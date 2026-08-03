@@ -2,7 +2,7 @@
   import SeoMeta from '$lib/SeoMeta.svelte';
   import { resolve } from '$app/paths';
   import { Separator } from '@urbicon-ui/blocks';
-  import { CodeExample, DocsLayout as DocsPageLayout } from '@urbicon-ui/docs';
+  import { CodeExample, DocsLayout as DocsPageLayout, Section } from '@urbicon-ui/docs';
 
   const navigation = [
     { id: 'props', title: 'Props' },
@@ -66,7 +66,7 @@
   defaults={{
     Button: {
       slotClasses: {
-        base: 'inline-flex items-center gap-2 rounded-none border-2 border-current px-6 py-3 font-mono text-sm font-bold tracking-widest uppercase transition-all hover:bg-current/10',
+        base: 'inline-flex items-center gap-2 rounded-none border-2 border-current px-6 py-3 font-mono text-sm font-bold tracking-widest uppercase transition-colors hover:bg-current/10',
         content: 'flex items-center gap-2'
       }
     },
@@ -231,8 +231,7 @@ export type PresetMap = Record<string, Record<string, ComponentPreset>>;`;
   showToc
   breadcrumbs={[{ label: 'Customization', href: resolve('/customization') }]}
 >
-  <section class="mb-12">
-    <h2 class="text-text-primary mb-4 text-2xl font-bold" id="props">Props</h2>
+  <Section id="props" title="Props" class="mb-12">
     <div class="overflow-x-auto">
       <table class="w-full text-left text-sm">
         <thead>
@@ -259,14 +258,11 @@ export type PresetMap = Record<string, Record<string, ComponentPreset>>;`;
         </tbody>
       </table>
     </div>
-  </section>
+  </Section>
 
   <Separator class="mb-12" />
 
-  <section class="mb-12">
-    <h2 class="text-text-primary mb-4 text-2xl font-bold" id="global-defaults">
-      Global Component Defaults
-    </h2>
+  <Section id="global-defaults" title="Global Component Defaults" class="mb-12">
     <p class="text-text-secondary mb-6 leading-relaxed">
       Pass per-component
       <code class="bg-surface-subtle rounded-modify px-1.5 py-0.5 text-sm">slotClasses</code>
@@ -275,12 +271,11 @@ export type PresetMap = Record<string, Record<string, ComponentPreset>>;`;
       on top (both class lists apply).
     </p>
     <CodeExample title="Setting global defaults" code={basicExample} preview={false} />
-  </section>
+  </Section>
 
   <Separator class="mb-12" />
 
-  <section class="mb-12">
-    <h2 class="text-text-primary mb-4 text-2xl font-bold" id="merge-behavior">Merge Behavior</h2>
+  <Section id="merge-behavior" title="Merge Behavior" class="mb-12">
     <p class="text-text-secondary mb-6 leading-relaxed">
       Global defaults and instance overrides are merged per slot. Conflicting Tailwind utilities are
       resolved by bucket — a later source in the chain wins (e.g. an instance
@@ -314,12 +309,11 @@ export type PresetMap = Record<string, Record<string, ComponentPreset>>;`;
         </li>
       </ol>
     </div>
-  </section>
+  </Section>
 
   <Separator class="mb-12" />
 
-  <section class="mb-12">
-    <h2 class="text-text-primary mb-4 text-2xl font-bold" id="presets">Presets</h2>
+  <Section id="presets" title="Presets" class="mb-12">
     <p class="text-text-secondary mb-6 leading-relaxed">
       <code class="bg-surface-subtle rounded-modify px-1.5 py-0.5 text-sm">defaults</code>
       apply globally to <em>every</em> instance. Presets are different: register named looks once,
@@ -373,14 +367,11 @@ export type PresetMap = Record<string, Record<string, ComponentPreset>>;`;
       <code class="text-xs">presets[ComponentName].foo</code>, the resolver logs a console warning
       (development only). The component falls back to its default look.
     </div>
-  </section>
+  </Section>
 
   <Separator class="mb-12" />
 
-  <section class="mb-12">
-    <h2 class="text-text-primary mb-4 text-2xl font-bold" id="conditional-overrides">
-      Conditional Defaults (overrides)
-    </h2>
+  <Section id="conditional-overrides" title="Conditional Defaults (overrides)" class="mb-12">
     <p class="text-text-secondary mb-6 leading-relaxed">
       <code class="bg-surface-subtle rounded-modify px-1.5 py-0.5 text-sm">slotClasses</code>
       apply to <em>every</em> instance regardless of variant. When a rule must target a specific
@@ -417,14 +408,11 @@ export type PresetMap = Record<string, Record<string, ComponentPreset>>;`;
         </li>
       </ul>
     </div>
-  </section>
+  </Section>
 
   <Separator class="mb-12" />
 
-  <section class="mb-12">
-    <h2 class="text-text-primary mb-4 text-2xl font-bold" id="unstyled-mode">
-      Global Unstyled Mode
-    </h2>
+  <Section id="unstyled-mode" title="Global Unstyled Mode" class="mb-12">
     <p class="text-text-secondary mb-6 leading-relaxed">
       Set <code class="bg-surface-subtle rounded-modify px-1.5 py-0.5 text-sm">unstyled</code> to strip
       all default styles from every component. They render their HTML structure but no visual styling.
@@ -442,12 +430,11 @@ export type PresetMap = Record<string, Record<string, ComponentPreset>>;`;
       code={unstyledWithDefaultsExample}
       preview={false}
     />
-  </section>
+  </Section>
 
   <Separator class="mb-12" />
 
-  <section>
-    <h2 class="text-text-primary mb-4 text-2xl font-bold" id="slot-names">Slot Names Reference</h2>
+  <Section id="slot-names" title="Slot Names Reference">
     <p class="text-text-secondary mb-6 leading-relaxed">
       Each component defines its own set of named slots. Use the API reference for each component to
       see its available slot names, or check the
@@ -460,5 +447,5 @@ export type PresetMap = Record<string, Record<string, ComponentPreset>>;`;
       language="typescript"
       preview={false}
     />
-  </section>
+  </Section>
 </DocsPageLayout>

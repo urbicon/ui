@@ -2,7 +2,7 @@
   import SeoMeta from '$lib/SeoMeta.svelte';
   import { resolve } from '$app/paths';
   import { Badge, Card } from '@urbicon-ui/blocks';
-  import { CodeExample, DocsLayout as DocsPageLayout } from '@urbicon-ui/docs';
+  import { CodeExample, DocsLayout as DocsPageLayout, Section } from '@urbicon-ui/docs';
 
   const navigation = [
     { id: 'architecture', title: 'Token Architecture' },
@@ -238,6 +238,11 @@
   ];
 </script>
 
+<!-- urbicon-ignore placeholder-content card-monotony — 'The quick brown fox'
+     is a type specimen, the one place filler copy is the content: it shows the
+     typography scale at each size. The five cards are the token layers,
+     deliberately equal in weight. -->
+
 <SeoMeta
   title="Design Tokens"
   description="Comprehensive design token system for colors, typography, spacing, and more. Built with CSS custom properties and Tailwind 4."
@@ -251,9 +256,7 @@
   showToc
   breadcrumbs={[{ label: 'Customization', href: resolve('/customization') }]}
 >
-  <section class="mb-16">
-    <h2 class="text-text-primary mb-6 text-2xl font-bold" id="architecture">Token Architecture</h2>
-
+  <Section id="architecture" title="Token Architecture" class="mb-16">
     <div class="mb-8 grid grid-cols-1 gap-6 lg:grid-cols-3">
       <Card padding="lg" class="text-center">
         <h3 class="text-text-primary mb-3 text-lg font-semibold">Foundation Layer</h3>
@@ -300,12 +303,10 @@
         preview={false}
       />
     </div>
-  </section>
+  </Section>
 
   <!-- Color System -->
-  <section class="mb-16">
-    <h2 class="text-text-primary mb-6 text-2xl font-bold" id="colors">Color System</h2>
-
+  <Section id="colors" title="Color System" class="mb-16">
     <div class="mb-8">
       <h3 class="text-text-primary mb-4 text-lg font-semibold">Neutral Palette</h3>
       <p class="text-text-secondary mb-4">
@@ -362,12 +363,10 @@
         </div>
       {/each}
     </div>
-  </section>
+  </Section>
 
   <!-- Spacing Scale -->
-  <section class="mb-16">
-    <h2 class="text-text-primary mb-6 text-2xl font-bold" id="spacing">Spacing Scale</h2>
-
+  <Section id="spacing" title="Spacing Scale" class="mb-16">
     <p class="text-text-secondary mb-6">
       Urbicon UI does not ship a custom spacing token layer — it uses
       <a
@@ -415,12 +414,10 @@
         </table>
       </div>
     </div>
-  </section>
+  </Section>
 
   <!-- Typography Scale -->
-  <section class="mb-16">
-    <h2 class="text-text-primary mb-6 text-2xl font-bold" id="typography">Typography Scale</h2>
-
+  <Section id="typography" title="Typography Scale" class="mb-16">
     <p class="text-text-secondary mb-6">
       Type is themeable exactly like color. Sizes, weights, leading, tracking and font families are
       Tailwind
@@ -564,12 +561,10 @@
         </table>
       </div>
     </div>
-  </section>
+  </Section>
 
   <!-- Border Radius -->
-  <section class="mb-16">
-    <h2 class="text-text-primary mb-6 text-2xl font-bold" id="radius">Border Radius</h2>
-
+  <Section id="radius" title="Border Radius" class="mb-16">
     <h3 class="text-text-primary mb-4 text-lg font-semibold">Physical Scale</h3>
     <p class="text-text-secondary mb-6">
       Real <code class="bg-surface-subtle rounded-modify px-1.5 py-0.5 text-sm">--radius-*</code>
@@ -620,11 +615,10 @@
         </table>
       </div>
     </div>
-  </section>
+  </Section>
 
   <!-- Motion & Depth -->
-  <section class="mb-16">
-    <h2 class="text-text-primary mb-6 text-2xl font-bold" id="interaction">Motion &amp; Depth</h2>
+  <Section id="interaction" title="Motion &amp; Depth" class="mb-16">
     <p class="text-text-secondary mb-6">
       The interaction layer ships real
       <code class="bg-surface-subtle rounded-modify px-1.5 py-0.5 text-sm">--blocks-duration-*</code
@@ -736,12 +730,10 @@
       <code class="text-xs">:root</code> block after their <code class="text-xs">@theme</code> for exactly
       this reason.
     </div>
-  </section>
+  </Section>
 
   <!-- Custom Theming -->
-  <section class="mb-16">
-    <h2 class="text-text-primary mb-6 text-2xl font-bold" id="custom-theming">Custom Theming</h2>
-
+  <Section id="custom-theming" title="Custom Theming" class="mb-16">
     <p class="text-text-secondary mb-6">
       Use Tailwind 4's
       <code class="bg-surface-subtle rounded-modify px-2 py-1 text-sm">@theme</code>
@@ -790,12 +782,10 @@
         </li>
       </ul>
     </div>
-  </section>
+  </Section>
 
   <!-- Dark Mode -->
-  <section class="mb-16">
-    <h2 class="text-text-primary mb-6 text-2xl font-bold" id="dark-mode">Dark Mode Support</h2>
-
+  <Section id="dark-mode" title="Dark Mode Support" class="mb-16">
     <p class="text-text-secondary mb-6">
       Design tokens automatically adapt to dark mode using
       <code class="bg-surface-subtle rounded-modify px-2 py-1 text-sm">light-dark()</code>:
@@ -846,5 +836,5 @@
         </div>
       </Card>
     </div>
-  </section>
+  </Section>
 </DocsPageLayout>

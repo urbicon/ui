@@ -2,7 +2,13 @@
   import SeoMeta from '$lib/SeoMeta.svelte';
   import { resolve } from '$app/paths';
   import { Badge, Button, Card, Checkbox, Toggle, Separator, Alert } from '@urbicon-ui/blocks';
-  import { CodeExample, DocsLayout as DocsPageLayout } from '@urbicon-ui/docs';
+  import { CodeExample, DocsLayout as DocsPageLayout, Section } from '@urbicon-ui/docs';
+
+  const navigation = [
+    { id: 'preview', title: 'Live Preview' },
+    { id: 'usage', title: 'Usage' },
+    { id: 'create', title: 'Create Your Own Theme' }
+  ];
 
   const themes = [
     {
@@ -212,13 +218,14 @@
   title="CSS Token Themes"
   description="Swap palettes with a single CSS import. Each theme re-colors the primary and secondary accents and re-tints the neutral chassis — so surfaces, text and borders share the accent's temperature instead of staying cool grey."
   maxWidth="xl"
+  {navigation}
   breadcrumbs={[{ label: 'Customization', href: resolve('/customization') }]}
 >
   <!-- Theme selector -->
   <div class="mb-8 flex flex-wrap gap-3">
     {#each themes as theme, i (theme.name)}
       <button
-        class="flex items-center gap-2 rounded-lg border px-4 py-2.5 text-sm font-medium transition-all {activeTheme ===
+        class="flex items-center gap-2 rounded-lg border px-4 py-2.5 text-sm font-medium transition-colors {activeTheme ===
         i
           ? 'border-primary bg-primary-subtle text-primary'
           : 'border-border-subtle text-text-tertiary hover:border-border-default hover:text-text-secondary'}"
@@ -244,51 +251,52 @@
 
   <p class="text-text-tertiary mb-6 text-sm">{themes[activeTheme].desc}</p>
 
-  <!-- Live preview -->
-  <Card class="border-border-subtle mb-8 shadow-[var(--blocks-shadow-md)]">
-    <div class="space-y-6 p-6" style={previewStyle}>
-      <div>
-        <h2 class="text-text-tertiary mb-3 text-sm font-medium">Buttons</h2>
-        <div class="flex flex-wrap gap-3">
-          <Button intent="primary" variant="filled">Primary</Button>
-          <Button intent="secondary" variant="filled">Secondary</Button>
-          <Button intent="primary" variant="outlined">Outlined</Button>
-          <Button intent="primary" variant="ghost">Ghost</Button>
+  <Section id="preview" title="Live Preview">
+    <Card class="border-border-subtle mb-8 shadow-[var(--blocks-shadow-md)]">
+      <div class="space-y-6 p-6" style={previewStyle}>
+        <div>
+          <h3 class="text-text-tertiary mb-3 text-sm font-medium">Buttons</h3>
+          <div class="flex flex-wrap gap-3">
+            <Button intent="primary" variant="filled">Primary</Button>
+            <Button intent="secondary" variant="filled">Secondary</Button>
+            <Button intent="primary" variant="outlined">Outlined</Button>
+            <Button intent="primary" variant="ghost">Ghost</Button>
+          </div>
         </div>
-      </div>
-      <Separator />
-      <div>
-        <h2 class="text-text-tertiary mb-3 text-sm font-medium">Badges</h2>
-        <div class="flex flex-wrap gap-2">
-          <Badge intent="primary" variant="filled">Primary</Badge>
-          <Badge intent="secondary" variant="filled">Secondary</Badge>
-          <Badge intent="primary" variant="soft">Soft</Badge>
-          <Badge intent="secondary" variant="soft">Soft</Badge>
+        <Separator />
+        <div>
+          <h3 class="text-text-tertiary mb-3 text-sm font-medium">Badges</h3>
+          <div class="flex flex-wrap gap-2">
+            <Badge intent="primary" variant="filled">Primary</Badge>
+            <Badge intent="secondary" variant="filled">Secondary</Badge>
+            <Badge intent="primary" variant="soft">Soft</Badge>
+            <Badge intent="secondary" variant="soft">Soft</Badge>
+          </div>
         </div>
-      </div>
-      <Separator />
-      <div>
-        <h2 class="text-text-tertiary mb-3 text-sm font-medium">Form Elements</h2>
-        <div class="flex flex-wrap items-center gap-4">
-          <Checkbox label="Checkbox" checked intent="primary" />
-          <Toggle checked intent="primary" />
+        <Separator />
+        <div>
+          <h3 class="text-text-tertiary mb-3 text-sm font-medium">Form Elements</h3>
+          <div class="flex flex-wrap items-center gap-4">
+            <Checkbox label="Checkbox" checked intent="primary" />
+            <Toggle checked intent="primary" />
+          </div>
         </div>
+        <Separator />
+        <Alert intent="primary" variant="soft" size="sm">
+          This preview updates live as you switch themes above.
+        </Alert>
       </div>
-      <Separator />
-      <Alert intent="primary" variant="soft" size="sm">
-        This preview updates live as you switch themes above.
-      </Alert>
-    </div>
-  </Card>
+    </Card>
+  </Section>
 
-  <!-- Usage -->
-  <CodeExample title="Usage" code={usageCode} language="css" preview={false} />
+  <Section id="usage" title="Usage">
+    <CodeExample title="Theme import" code={usageCode} language="css" preview={false} />
+  </Section>
 
   <Separator class="my-12" />
 
   <!-- Custom themes -->
-  <section>
-    <h2 class="text-text-primary mb-4 text-2xl font-bold">Create Your Own Theme</h2>
+  <Section id="create" title="Create Your Own Theme">
     <p class="text-text-secondary mb-6 leading-relaxed">
       Create a CSS file with a
       <code class="bg-surface-subtle rounded px-1.5 py-0.5 text-sm">@theme</code> block that
@@ -305,5 +313,5 @@
       >
       to interactively generate OKLCH values for your brand color.
     </p>
-  </section>
+  </Section>
 </DocsPageLayout>

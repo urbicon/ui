@@ -1,10 +1,12 @@
-<!-- urbicon-ignore token-hallucination — the `accent-fg` hits are the CSS custom
-     property `--room-accent-fg` inside quoted stylesheet samples this page teaches
-     from. It is a variable in the room register, not a Tailwind utility. -->
+<!-- urbicon-ignore token-hallucination font-weight-uniform — the `accent-fg`
+     hits are the CSS custom property `--room-accent-fg` inside quoted stylesheet
+     samples this page teaches from: a variable in the room register, not a
+     Tailwind utility. Five of the seven uniform weights are table header cells,
+     where one weight is correct. -->
 <script lang="ts">
   import SeoMeta from '$lib/SeoMeta.svelte';
   import { resolve } from '$app/paths';
-  import { CodeExample, DocsLayout as DocsPageLayout } from '@urbicon-ui/docs';
+  import { CodeExample, DocsLayout as DocsPageLayout, Section } from '@urbicon-ui/docs';
 
   const navigation = [
     { id: 'what', title: 'What it is' },
@@ -99,8 +101,7 @@ export const ROUTE_CHANNEL = {
   breadcrumbs={[{ label: 'Customization', href: resolve('/customization') }]}
 >
   <!-- What it is ──────────────────────────────────────────── -->
-  <section class="mb-12">
-    <h2 class="text-text-primary mb-4 text-2xl font-bold" id="what">What it is</h2>
+  <Section id="what" title="What it is" class="mb-12">
     <p class="text-text-secondary mb-4 leading-relaxed">
       Color Rooms is the visual identity of this docs site — one grotesk (Schibsted Grotesk) for
       both display and body, JetBrains Mono for meta and code, on warm cream paper. Its signature is
@@ -135,11 +136,10 @@ export const ROUTE_CHANNEL = {
         > (class / slotClasses / preset / defaults / overrides / unstyled).
       </p>
     </div>
-  </section>
+  </Section>
 
   <!-- The Rooms ───────────────────────────────────────────── -->
-  <section class="mb-12">
-    <h2 class="text-text-primary mb-4 text-2xl font-bold" id="rooms">The Rooms</h2>
+  <Section id="rooms" title="The Rooms" class="mb-12">
     <p class="text-text-secondary mb-6 leading-relaxed">
       A room is a <strong>component family</strong>, not a product area. A component's doc page
       wears the channel of its family — so <code class="text-text-primary">Button</code> and
@@ -263,11 +263,10 @@ export const ROUTE_CHANNEL = {
         >Tier System</a
       >.
     </p>
-  </section>
+  </Section>
 
   <!-- Token Catalogue ────────────────────────────────────── -->
-  <section class="mb-12">
-    <h2 class="text-text-primary mb-4 text-2xl font-bold" id="tokens">Token Catalogue</h2>
+  <Section id="tokens" title="Token Catalogue" class="mb-12">
     <p class="text-text-secondary mb-6 leading-relaxed">
       The <code class="text-text-primary">--docs-*</code> namespace holds the paper/ink hierarchy;
       the primary family is derived from the room (above). Color Rooms also binds a handful of
@@ -422,11 +421,10 @@ export const ROUTE_CHANNEL = {
         </tbody>
       </table>
     </div>
-  </section>
+  </Section>
 
   <!-- Activation ──────────────────────────────────────────── -->
-  <section class="mb-12">
-    <h2 class="text-text-primary mb-4 text-2xl font-bold" id="activation">Activation</h2>
+  <Section id="activation" title="Activation" class="mb-12">
     <p class="text-text-secondary mb-4 leading-relaxed">
       The theme activates when <code class="text-text-primary">.docs-rooms</code> sits on a parent
       of your content. The docs site puts it on <code class="text-text-primary">&lt;html&gt;</code>
@@ -464,11 +462,10 @@ export const ROUTE_CHANNEL = {
         >Tier System</a
       > — Color Rooms just rebinds a wider set of tokens and derives them from the room.
     </p>
-  </section>
+  </Section>
 
   <!-- Light & Dark ─────────────────────────────────────────── -->
-  <section class="mb-12">
-    <h2 class="text-text-primary mb-4 text-2xl font-bold" id="modes">Light &amp; Dark</h2>
+  <Section id="modes" title="Light &amp; Dark" class="mb-12">
     <p class="text-text-secondary mb-4 leading-relaxed">
       Color Rooms supports both light and dark out of the box — Light is warm cream paper with warm
       dark ink, Dark is warm coffee paper with warm cream ink. The room accent is
@@ -508,11 +505,10 @@ export const ROUTE_CHANNEL = {
       >
       for the library-side details.
     </p>
-  </section>
+  </Section>
 
   <!-- Override Recipes ────────────────────────────────────── -->
-  <section class="mb-12">
-    <h2 class="text-text-primary mb-4 text-2xl font-bold" id="override">Override Recipes</h2>
+  <Section id="override" title="Override Recipes" class="mb-12">
     <p class="text-text-secondary mb-6 leading-relaxed">
       Because every value lives on a CSS custom property, you can adjust the theme at any scope —
       globally inside <code class="text-text-primary">.docs-rooms</code>, per-room on
@@ -529,5 +525,5 @@ export const ROUTE_CHANNEL = {
       or write a custom <code class="text-text-primary">@theme</code> block — Color Rooms sits
       <em>on top</em> of that and, per room, overrides the primary chain with the room accent.
     </p>
-  </section>
+  </Section>
 </DocsPageLayout>

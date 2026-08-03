@@ -295,6 +295,20 @@
   }
 </script>
 
+<!-- urbicon-ignore inline-style card-monotony — this page generates OKLCH
+     values and has to apply them, which is the whole point of a theme builder;
+     a token would show the current theme, not the one being built. The five
+     cards are tool panels of equal standing. -->
+
+<!--
+  No `<Section>` on this page, deliberately. Its headings label the panels of a
+  tool — colour pickers, a live preview, a CSS output panel — laid out in a grid beside their own
+  controls, not the parts of a document read top to bottom. `Section` brings a
+  header block and document spacing that would fight that layout, and a table of
+  contents linking into grid columns helps nobody. The five prose pages under
+  /customization use `Section`; these two are the exception, with a reason.
+-->
+
 <SeoMeta
   title="Theme Builder"
   description="Visual OKLCH-based theme builder for Urbicon UI. Pick your brand color and generate a complete design token palette."
@@ -383,7 +397,7 @@
               <div class="flex items-center gap-2">
                 <span class="text-text-tertiary font-mono text-xs">{secondaryHue}°</span>
                 <button
-                  class="rounded-modify text-3xs border px-2 py-0.5 font-medium transition-all {secondaryAuto
+                  class="rounded-modify text-3xs border px-2 py-0.5 font-medium transition-colors {secondaryAuto
                     ? 'border-primary bg-primary-subtle text-primary'
                     : 'border-border-subtle text-text-tertiary hover:border-border-default'}"
                   onclick={() => {
@@ -459,7 +473,7 @@
               <div class="flex items-center gap-2">
                 <span class="text-text-tertiary font-mono text-xs">{chassisHue}°</span>
                 <button
-                  class="rounded-modify text-3xs border px-2 py-0.5 font-medium transition-all {chassisAuto
+                  class="rounded-modify text-3xs border px-2 py-0.5 font-medium transition-colors {chassisAuto
                     ? 'border-primary bg-primary-subtle text-primary'
                     : 'border-border-subtle text-text-tertiary hover:border-border-default'}"
                   onclick={() => {
@@ -529,7 +543,7 @@
             <div class="flex flex-wrap gap-2">
               {#each radiusOptions as opt (opt.value)}
                 <button
-                  class="rounded-modify border px-3 py-1.5 text-xs font-medium transition-all {radius ===
+                  class="rounded-modify border px-3 py-1.5 text-xs font-medium transition-colors {radius ===
                   opt.value
                     ? 'border-primary bg-primary-subtle text-primary'
                     : 'border-border-subtle text-text-tertiary hover:border-border-default hover:text-text-secondary'}"
@@ -568,7 +582,7 @@
             <div class="grid grid-cols-4 gap-2">
               {#each [{ name: 'Blue', h: 240, c: 0.15, l: 0.58 }, { name: 'Purple', h: 280, c: 0.15, l: 0.55 }, { name: 'Green', h: 140, c: 0.15, l: 0.55 }, { name: 'Red', h: 25, c: 0.18, l: 0.55 }, { name: 'Orange', h: 50, c: 0.18, l: 0.6 }, { name: 'Teal', h: 180, c: 0.12, l: 0.55 }, { name: 'Pink', h: 340, c: 0.18, l: 0.6 }, { name: 'Indigo', h: 260, c: 0.18, l: 0.5 }] as preset (preset.name)}
                 <button
-                  class="border-border-subtle hover:border-border-default rounded-contain flex flex-col items-center gap-1 border p-2 transition-all hover:shadow-[var(--blocks-shadow-sm)]"
+                  class="border-border-subtle hover:border-border-default rounded-contain flex flex-col items-center gap-1 border p-2 transition-colors hover:shadow-[var(--blocks-shadow-sm)]"
                   onclick={() => {
                     brandHue = preset.h;
                     brandChroma = preset.c;

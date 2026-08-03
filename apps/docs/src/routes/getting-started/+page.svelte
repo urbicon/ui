@@ -155,6 +155,12 @@ export default {
 }`;
 </script>
 
+<!-- urbicon-ignore arbitrary-color — the ink literal belongs to the cream
+     artboard, which pins `color-scheme: light` on purpose (see the comment at
+     the artboard) and carries its own two-colour palette through
+     `--room-accent`. A semantic surface token there would pull in the site
+     chassis the artboard exists to step outside of. -->
+
 <SeoMeta
   title="Getting Started"
   description="Install Urbicon UI, import the design tokens, render your first component, theme it and onboard your AI agent — five steps with a live preview that grows as you go. Svelte 5 + Tailwind 4."
@@ -194,6 +200,14 @@ export default {
 <div class="mx-auto max-w-6xl px-4 pt-10 pb-16 sm:px-6 lg:px-8">
   <div class="grid grid-cols-1 gap-12 lg:grid-cols-[minmax(0,1fr)_23rem] lg:items-start lg:gap-14">
     <!-- ── The four steps ─────────────────────────────────────────────── -->
+    <!--
+      Hand-rolled `<section>` + `<h2>` here, not `<Section>`, and on purpose.
+      The step number is the page: a 5xl numeral baseline-aligned against a 2xl
+      title, one rule per step. `Section`'s `marker` renders a small inline
+      marker, which is a different idea — the five prose pages under
+      /customization moved onto `Section` in this same pass precisely because
+      their headings had no such design behind them.
+    -->
     <div>
       <!-- 00 · No project yet? — optional pre-step, outside STEPS (see head
            comment): no scrollspy id, no effect on the preview card. -->

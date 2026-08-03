@@ -2,7 +2,7 @@
   import SeoMeta from '$lib/SeoMeta.svelte';
   import { resolve } from '$app/paths';
   import { Badge, Button, Checkbox, SegmentGroup, SegmentItem, Toolbar } from '@urbicon-ui/blocks';
-  import { CodeExample, DocsLayout as DocsPageLayout } from '@urbicon-ui/docs';
+  import { CodeExample, DocsLayout as DocsPageLayout, Section } from '@urbicon-ui/docs';
 
   const navigation = [
     { id: 'three-tiers', title: 'Three Tiers' },
@@ -67,8 +67,7 @@
   breadcrumbs={[{ label: 'Customization', href: resolve('/customization') }]}
 >
   <!-- Three Tiers ─────────────────────────────────────────── -->
-  <section class="mb-12">
-    <h2 class="text-text-primary mb-4 text-2xl font-bold" id="three-tiers">Three Tiers</h2>
+  <Section id="three-tiers" title="Three Tiers" class="mb-12">
     <p class="text-text-secondary mb-6 leading-relaxed">
       Every primitive in the library belongs to exactly one of three tiers. The tier dictates the
       component's default radius and how it responds to a wrapping context. Brands tune the visual
@@ -123,13 +122,10 @@
       checkbox keeps following the tier: a pill-shaped box there is a look you asked for by writing
       <code class="text-text-primary">tier="commit"</code>, not one a button theme imposed on you.
     </p>
-  </section>
+  </Section>
 
   <!-- Tier-aware components ────────────────────────────────── -->
-  <section class="mb-12">
-    <h2 class="text-text-primary mb-4 text-2xl font-bold" id="tier-aware-components">
-      Tier-aware Components
-    </h2>
+  <Section id="tier-aware-components" title="Tier-aware Components" class="mb-12">
     <p class="text-text-secondary mb-6 leading-relaxed">
       Seven primitives expose a <code class="text-text-primary">tier</code> prop AND read from a
       wrapping
@@ -212,11 +208,10 @@
       language="svelte"
       preview={false}
     />
-  </section>
+  </Section>
 
   <!-- Context cascade demo ─────────────────────────────────── -->
-  <section class="mb-12">
-    <h2 class="text-text-primary mb-4 text-2xl font-bold" id="context-cascade">Context Cascade</h2>
+  <Section id="context-cascade" title="Context Cascade" class="mb-12">
     <p class="text-text-secondary mb-6 leading-relaxed">
       A wrapping component with a <code class="text-text-primary">tier</code> prop publishes that
       tier through <code class="text-text-primary">TierContext</code>. Every tier-aware child that
@@ -247,13 +242,10 @@
         on a single child to opt-out of the cascade.
       </p>
     </div>
-  </section>
+  </Section>
 
   <!-- Override pathway ─────────────────────────────────────── -->
-  <section class="mb-12">
-    <h2 class="text-text-primary mb-4 text-2xl font-bold" id="override-pathway">
-      Override Pathway
-    </h2>
+  <Section id="override-pathway" title="Override Pathway" class="mb-12">
     <p class="text-text-secondary mb-6 leading-relaxed">
       The three tier tokens are CSS custom properties. Override them at any scope — global
       <code class="text-text-primary">@theme</code> for brand identity, a wrapping selector for a
@@ -300,11 +292,10 @@
       language="css"
       preview={false}
     />
-  </section>
+  </Section>
 
   <!-- Bridge token ──────────────────────────────────────────── -->
-  <section class="mb-12">
-    <h2 class="text-text-primary mb-4 text-2xl font-bold" id="bridge">Bridge Token</h2>
+  <Section id="bridge" title="Bridge Token" class="mb-12">
     <p class="text-text-secondary mb-6 leading-relaxed">
       <code class="text-text-primary">--radius-bridge</code> is the middle rung —
       <code class="text-text-primary">var(--radius-md)</code> by default — for the two cases where
@@ -336,5 +327,5 @@
       <a href={resolve('/blocks/primitives/card')} class="text-primary hover:underline">Card</a>
       for the optical one.
     </p>
-  </section>
+  </Section>
 </DocsPageLayout>

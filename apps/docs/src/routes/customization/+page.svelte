@@ -2,7 +2,7 @@
   import SeoMeta from '$lib/SeoMeta.svelte';
   import { resolve } from '$app/paths';
   import { Card, Separator } from '@urbicon-ui/blocks';
-  import { CodeExample, DocsLayout as DocsPageLayout } from '@urbicon-ui/docs';
+  import { CodeExample, DocsLayout as DocsPageLayout, Section } from '@urbicon-ui/docs';
   // The shipped theme itself, not a retyped excerpt — a hand-copied version of
   // this file previously drifted into teaching a primary-only recolor.
   import forestThemeSource from '@urbicon-ui/blocks/style/themes/forest.css?raw';
@@ -115,6 +115,12 @@
 </BlocksProvider>`;
 </script>
 
+<!-- urbicon-ignore inline-style card-monotony — the inline styles are OKLCH
+     swatches: the colour IS the content, and a token would show the reader the
+     current theme instead of the one being named. The seven cards are a grid of
+     peers — one entry per customization page — so varying their weight would
+     invent a hierarchy the set does not have. -->
+
 <SeoMeta
   title="Customization"
   description="Customize Urbicon UI with CSS token themes, BlocksProvider, and per-component defaults."
@@ -128,8 +134,7 @@
   breadcrumbs={[{ label: 'Home', href: resolve('/') }]}
 >
   <!-- Task 1: the canonical override ladder as a decision table -->
-  <section class="mb-12">
-    <h2 class="text-text-primary mb-4 text-2xl font-bold" id="ladder">Which tool do I use?</h2>
+  <Section id="ladder" title="Which tool do I use?" class="mb-12">
     <p class="text-text-secondary mb-6 leading-relaxed">
       Start from your goal, not from the API. Find the row that matches what you want to change —
       the <strong>Reach for</strong> column is the tool to use.
@@ -178,15 +183,17 @@
         {/each}
       </ol>
     </div>
-  </section>
+  </Section>
 
   <Separator class="mb-12" />
 
   <!-- Task 2: the "class only hits the root slot" trap -->
-  <section class="mb-12">
-    <h2 class="text-text-primary mb-4 text-2xl font-bold" id="class-trap">
+  <!-- titleSnippet, not `title`: the heading carries inline markup, and a
+       `title` prop is a plain string. -->
+  <Section id="class-trap" class="mb-12">
+    {#snippet titleSnippet()}
       The <code class="text-primary">class</code> Root-Slot Trap
-    </h2>
+    {/snippet}
     <div
       class="border-warning/40 bg-warning-subtle text-text-secondary rounded-contain mb-6 border p-4 text-sm leading-relaxed"
     >
@@ -216,13 +223,12 @@
         >Slot Names reference</a
       >, for its slot map.
     </p>
-  </section>
+  </Section>
 
   <Separator class="mb-12" />
 
   <!-- CSS Themes -->
-  <section class="mb-12">
-    <h2 class="text-text-primary mb-4 text-2xl font-bold" id="themes">CSS Token Themes</h2>
+  <Section id="themes" title="CSS Token Themes" class="mb-12">
     <p class="text-text-secondary mb-6 leading-relaxed">
       The simplest way to brand the library. Import a theme CSS file after the base styles to
       override the primary and secondary accents plus the neutral chassis. The semantic layer
@@ -315,15 +321,12 @@
       preview={false}
       defaultExpanded={false}
     />
-  </section>
+  </Section>
 
   <Separator class="mb-12" />
 
   <!-- BlocksProvider defaults -->
-  <section class="mb-12">
-    <h2 class="text-text-primary mb-4 text-2xl font-bold" id="defaults">
-      Global Component Defaults
-    </h2>
+  <Section id="defaults" title="Global Component Defaults" class="mb-12">
     <p class="text-text-secondary mb-6 leading-relaxed">
       When CSS token overrides are not enough, use
       <code class="bg-surface-subtle rounded-modify px-1.5 py-0.5 text-sm">BlocksProvider</code>
@@ -349,13 +352,12 @@
         >BlocksProvider API</a
       >.
     </p>
-  </section>
+  </Section>
 
   <Separator class="mb-12" />
 
   <!-- Fully unstyled -->
-  <section class="mb-12">
-    <h2 class="text-text-primary mb-4 text-2xl font-bold" id="unstyled">Global Unstyled Mode</h2>
+  <Section id="unstyled" title="Global Unstyled Mode" class="mb-12">
     <p class="text-text-secondary mb-6 leading-relaxed">
       For a completely custom design, set <code
         class="bg-surface-subtle rounded-modify px-1.5 py-0.5 text-sm">unstyled</code
@@ -366,13 +368,12 @@
       via defaults or per instance) to apply your own design.
     </p>
     <CodeExample title="Global unstyled mode" code={unstyledExample} preview={false} />
-  </section>
+  </Section>
 
   <Separator class="mb-12" />
 
   <!-- Quick links -->
-  <section>
-    <h2 class="text-text-primary mb-6 text-2xl font-bold" id="deep-dives">Deep Dives</h2>
+  <Section id="deep-dives" title="Deep Dives">
     <div class="grid gap-4 sm:grid-cols-2">
       <Card
         href={resolve('/customization/themes')}
@@ -444,5 +445,5 @@
         </div>
       </Card>
     </div>
-  </section>
+  </Section>
 </DocsPageLayout>

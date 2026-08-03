@@ -169,6 +169,10 @@ configureI18n({
 </I18nProvider>`;
 </script>
 
+<!-- urbicon-ignore font-weight-uniform — all seven weights sit on table header
+     cells, where one uniform weight is correct; a varied `th` would be the
+     defect. -->
+
 <SeoMeta
   title="Provider & SSR - Localization"
   description="I18nProvider, the useI18n() API, locale switching and persistence, server-side locale resolution, error handling, and coexisting with an app-level i18n."

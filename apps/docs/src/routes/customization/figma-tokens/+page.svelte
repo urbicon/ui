@@ -1,7 +1,7 @@
 <script lang="ts">
   import SeoMeta from '$lib/SeoMeta.svelte';
   import { resolve } from '$app/paths';
-  import { Card, Badge, Button, Separator } from '@urbicon-ui/blocks';
+  import { Badge, Button, Card, DownloadIcon, Separator } from '@urbicon-ui/blocks';
   import { generateFigmaTokens, generateFigmaTokensJSON } from '@urbicon-ui/blocks';
   import type { FigmaToken, FigmaTokenGroup } from '@urbicon-ui/blocks';
   import { DocsLayout as DocsPageLayout } from '@urbicon-ui/docs';
@@ -52,6 +52,20 @@
   };
 </script>
 
+<!-- urbicon-ignore card-monotony — the seven cards are one stat row: same
+     shape, one number each. Varying their weight would claim a ranking
+     between 'Color Palettes' and 'Shadows' that does not exist. -->
+
+<!--
+  No `<Section>` on this page, deliberately. Its headings label the panels of a
+  tool — a JSON preview beside a download button, an instruction column — laid
+  out in a grid beside their own controls, not the parts of a document read top
+  to bottom. `Section` brings a
+  header block and document spacing that would fight that layout, and a table of
+  contents linking into grid columns helps nobody. The five prose pages under
+  /customization use `Section`; these two are the exception, with a reason.
+-->
+
 <SeoMeta
   title="Figma Token Export"
   description="Export Urbicon UI design tokens in Figma-compatible JSON format. Compatible with Tokens Studio for Figma plugin."
@@ -78,14 +92,7 @@
   <!-- Actions -->
   <div class="mb-8 flex flex-wrap gap-3">
     <Button intent="primary" onclick={downloadTokens}>
-      <svg class="mr-2 h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-        <path
-          stroke-linecap="round"
-          stroke-linejoin="round"
-          stroke-width="2"
-          d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"
-        />
-      </svg>
+      <DownloadIcon size={16} class="mr-2" />
       Download JSON ({(tokensCompact.length / 1024).toFixed(1)} KB)
     </Button>
     <Button variant="outlined" intent={copied ? 'success' : 'neutral'} onclick={copyTokens}>
@@ -104,7 +111,7 @@
       </div>
       <Card class="border-border-subtle shadow-[var(--blocks-shadow-md)]">
         <pre
-          class="text-text-secondary max-h-[600px] overflow-auto p-6 font-mono text-xs leading-relaxed"><code
+          class="text-text-secondary max-h-150 overflow-auto p-6 font-mono text-xs leading-relaxed"><code
             >{showFull ? tokensJSON : previewLines}</code
           ></pre>
       </Card>
