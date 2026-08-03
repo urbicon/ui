@@ -35,6 +35,31 @@ import type { Repositories } from './types.js';
  * `capabilities` gates the optional-repository checks: a check whose required
  * repos you do not declare is reported as skipped rather than failing.
  *
+ * ## Before the first run: your id columns
+ *
+ * Ids are opaque strings to this package, and the checks hold you to that. Most
+ * of them feed your adapter ids it handed back itself, but seven pass a
+ * deliberately malformed one (`'not-an-id'`) and require a miss — `null`,
+ * `false`, no-op. Six of those seven are capability-gated, so a harness
+ * declaring no optional repositories exercises exactly one of them, and a green
+ * default run says correspondingly little.
+ *
+ * A column that parses its input instead of storing it — a native `uuid`, an
+ * integer key — cannot miss on such a value. It fails while parsing the literal,
+ * on reads as much as on writes, so the check reports that error rather than the
+ * column type behind it. (Postgres raises SQLSTATE 22P02. Other engines word it
+ * differently, which is why an adapter on another engine cannot reuse the
+ * Postgres wording.)
+ *
+ * A native id type is allowed — the adapter guide says so explicitly — but it
+ * moves work onto the adapter: catch that one error, on that one argument, and
+ * return the miss, while every other database error keeps propagating. The
+ * shipped Prisma adapter does exactly that in `idSafeClient`, though only on a
+ * driver adapter; on the older Rust engine (v5/v6) there is no translation and
+ * the adapter satisfies the rule itself. The full contract, including what it
+ * deliberately does *not* cover (inserts), is the `Ids are opaque strings`
+ * section at the top of `types.ts`.
+ *
  * ## Test runners
  *
  * This module is runner-agnostic: it takes `describe`/`it`/`expect` from the
