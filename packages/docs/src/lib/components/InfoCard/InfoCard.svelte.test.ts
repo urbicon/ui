@@ -31,6 +31,22 @@ describe('InfoCard', () => {
     expect(aside?.getAttribute('aria-label')).toBe('Heads up');
   });
 
+  it('renders the title as an h3 by default, clamped to 1..6 when set', () => {
+    // A card sits under a Section (h2), so h3. It was a fixed h4 until 2026-08,
+    // which put an h2 → h4 skip on every page using a card under a section.
+    expect(render({ title: 'Heads up' }).querySelector('h3')?.textContent?.trim()).toBe('Heads up');
+    cleanup?.();
+
+    expect(render({ title: 'Top', headingLevel: 2 }).querySelector('h2')).not.toBeNull();
+    cleanup?.();
+
+    expect(
+      render({ title: 'Clamped', headingLevel: 99 as InfoCardProps['headingLevel'] }).querySelector(
+        'h6'
+      )
+    ).not.toBeNull();
+  });
+
   it('falls back to a generic label when there is no title', () => {
     // Several InfoCards share a page and every one is a complementary
     // landmark, so an unnamed one is indistinguishable from its neighbours.

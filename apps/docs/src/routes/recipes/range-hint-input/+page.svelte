@@ -205,21 +205,21 @@
     <Card variant="outlined">
       <div class="divide-border-subtle divide-y">
         <div class="px-4 py-3">
-          <h4 class="text-text-primary text-sm font-semibold">expectedRange from real data</h4>
+          <h3 class="text-text-primary text-sm font-semibold">expectedRange from real data</h3>
           <p class="text-text-secondary mt-1 text-sm">
             Last year's value ± 15%, or a trend extrapolation from the last 3 periods. Hardcoded
             ranges feel arbitrary — derived ranges signal to the user that the app understands them.
           </p>
         </div>
         <div class="px-4 py-3">
-          <h4 class="text-text-primary text-sm font-semibold">Tolerance factor per domain</h4>
+          <h3 class="text-text-primary text-sm font-semibold">Tolerance factor per domain</h3>
           <p class="text-text-secondary mt-1 text-sm">
             15% is a sensible default. Stricter for required fields (5%), wider for estimates (30%).
             Never 0% — otherwise there is no "slightly off".
           </p>
         </div>
         <div class="px-4 py-3">
-          <h4 class="text-text-primary text-sm font-semibold">Status never blocks</h4>
+          <h3 class="text-text-primary text-sm font-semibold">Status never blocks</h3>
           <p class="text-text-secondary mt-1 text-sm">
             The input stays validation-free — the user can deliberately enter values outside the
             range (meter replacement, special case, settlement value). For hard constraints, set an
@@ -227,7 +227,7 @@
           </p>
         </div>
         <div class="px-4 py-3">
-          <h4 class="text-text-primary text-sm font-semibold">Explain the why on danger</h4>
+          <h3 class="text-text-primary text-sm font-semibold">Explain the why on danger</h3>
           <p class="text-text-secondary mt-1 text-sm">
             For values far outside the range, offer an additional contextual hint — "Typo? Meter
             replaced? Special tariff?". That raises the correction rate without blocking the user.

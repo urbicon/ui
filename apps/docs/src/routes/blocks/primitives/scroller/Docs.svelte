@@ -46,7 +46,7 @@
           <Scroller label="Main features, wide" itemBasis="13rem">
             {#each features.slice(0, 3) as feature (feature.id)}
               <article class="border-border-subtle bg-surface-elevated rounded-contain border p-4">
-                <h4 class="text-text-primary text-sm font-semibold">{feature.title}</h4>
+                <p class="text-text-primary text-sm font-semibold">{feature.title}</p>
                 <p class="text-text-secondary mt-1 text-sm">{feature.body}</p>
               </article>
             {/each}
@@ -63,7 +63,7 @@
           <Scroller label="Main features, narrow" itemBasis="13rem">
             {#each features.slice(0, 3) as feature (feature.id)}
               <article class="border-border-subtle bg-surface-elevated rounded-contain border p-4">
-                <h4 class="text-text-primary text-sm font-semibold">{feature.title}</h4>
+                <p class="text-text-primary text-sm font-semibold">{feature.title}</p>
                 <p class="text-text-secondary mt-1 text-sm">{feature.body}</p>
               </article>
             {/each}
@@ -98,7 +98,7 @@
       >
         {#each features as feature (feature.id)}
           <article class="border-border-subtle bg-surface-elevated rounded-contain border p-6">
-            <h4 class="text-text-primary text-base font-semibold">{feature.title}</h4>
+            <p class="text-text-primary text-base font-semibold">{feature.title}</p>
             <p class="text-text-secondary mt-2 text-sm">{feature.body}</p>
           </article>
         {/each}

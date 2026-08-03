@@ -296,7 +296,7 @@
       <GuideProvider controller={tourGuide}>
         <div class="border-border-subtle bg-surface-elevated rounded-2xl border p-6">
           <div class="mb-4 flex items-center justify-between">
-            <h4 class="text-text-primary text-sm font-semibold">Dashboard</h4>
+            <p class="text-text-primary text-sm font-semibold">Dashboard</p>
             <span class="relative inline-flex">
               <GuideBeacon tour={demoTour} once={false} />
             </span>

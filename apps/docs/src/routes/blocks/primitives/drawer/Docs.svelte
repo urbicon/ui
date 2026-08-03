@@ -173,7 +173,7 @@
     </p>
     <div class="divide-border-subtle divide-y">
       <div class="pb-4">
-        <h4 class="text-text-primary mb-1.5 text-sm font-semibold">Stack order is LIFO</h4>
+        <h3 class="text-text-primary mb-1.5 text-sm font-semibold">Stack order is LIFO</h3>
         <p class="text-text-secondary text-sm leading-relaxed">
           The most recently opened Drawer renders on top. Pressing
           <Kbd keys="Escape" />
@@ -182,7 +182,7 @@
         </p>
       </div>
       <div class="py-4">
-        <h4 class="text-text-primary mb-1.5 text-sm font-semibold">Backdrop & body-scroll</h4>
+        <h3 class="text-text-primary mb-1.5 text-sm font-semibold">Backdrop & body-scroll</h3>
         <p class="text-text-secondary text-sm leading-relaxed">
           Each open Drawer adds its own backdrop. The body-scroll lock is reference-counted — scroll
           stays locked until <em>every</em> Drawer is closed. Closing the topmost panel revives keyboard
@@ -190,7 +190,7 @@
         </p>
       </div>
       <div class="py-4">
-        <h4 class="text-text-primary mb-1.5 text-sm font-semibold">Recommended depth: 2–3</h4>
+        <h3 class="text-text-primary mb-1.5 text-sm font-semibold">Recommended depth: 2–3</h3>
         <p class="text-text-secondary text-sm leading-relaxed">
           Two or three layers (e.g. <em>wizard → preview → trace</em>) work well in practice. Beyond
           that, the visual stack becomes cramped, especially on mobile. Consider a
@@ -198,7 +198,7 @@
         </p>
       </div>
       <div class="py-4">
-        <h4 class="text-text-primary mb-1.5 text-sm font-semibold">Mobile caveat</h4>
+        <h3 class="text-text-primary mb-1.5 text-sm font-semibold">Mobile caveat</h3>
         <p class="text-text-secondary text-sm leading-relaxed">
           Each Drawer caps its size at <code class="text-text-primary">100dvw</code> /
           <code class="text-text-primary">100dvh</code>, so a stacked Drawer on a 320 px viewport
@@ -208,9 +208,9 @@
         </p>
       </div>
       <div class="pt-4">
-        <h4 class="text-text-primary mb-1.5 text-sm font-semibold">
+        <h3 class="text-text-primary mb-1.5 text-sm font-semibold">
           Programmatic <code class="text-text-primary">overlayStack</code>
-        </h4>
+        </h3>
         <p class="text-text-secondary text-sm leading-relaxed">
           Drawer, Dialog, and (mobile) Sidebar all auto-register with a shared
           <code class="text-text-primary">overlayStack</code> singleton on open. Use this for app-level

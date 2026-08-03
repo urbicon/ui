@@ -171,7 +171,7 @@
       </p>
 
       <div class="border-border-subtle bg-surface-elevated rounded-2xl border p-6">
-        <h4 class="text-text-primary mb-4 text-sm font-semibold">Menu Actions</h4>
+        <h3 class="text-text-primary mb-4 text-sm font-semibold">Menu Actions</h3>
         <div class="grid grid-cols-1 gap-x-8 gap-y-3 text-sm md:grid-cols-2">
           {#each menuActions as item (item.action)}
             <div>

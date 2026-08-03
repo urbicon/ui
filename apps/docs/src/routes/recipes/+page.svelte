@@ -150,11 +150,13 @@
               {recipe.difficulty}
             </Badge>
           </div>
-          <h3
+          <!-- h2, not h3: the recipe cards are this page's content, sitting
+               directly under the page h1 with no section heading between. -->
+          <h2
             class="text-text-primary group-hover:text-primary mb-2 text-lg font-semibold transition-colors"
           >
             {recipe.title}
-          </h3>
+          </h2>
           <p class="text-text-secondary mb-4 flex-1 text-sm leading-relaxed">
             {recipe.description}
           </p>

@@ -266,16 +266,16 @@
     <Card variant="outlined">
       <div class="divide-border-subtle divide-y">
         <div class="px-4 py-3">
-          <h4 class="text-text-primary text-sm font-semibold">Don't put answers in URL params</h4>
+          <h3 class="text-text-primary text-sm font-semibold">Don't put answers in URL params</h3>
           <p class="text-text-secondary mt-1 text-sm">
             Wizard state is usually ephemeral — URL state would affect bookmarks or refreshes in
             unexpected ways. Only opt in with `?step=2` or similar when explicitly desired.
           </p>
         </div>
         <div class="px-4 py-3">
-          <h4 class="text-text-primary text-sm font-semibold">
+          <h3 class="text-text-primary text-sm font-semibold">
             $derived instead of imperative skip logic
-          </h4>
+          </h3>
           <p class="text-text-secondary mt-1 text-sm">
             The steps array is filtered at render time via `$derived.by`. As soon as an answer
             changes, the next step is (de)activated automatically — no manual `goto()` or event
@@ -283,14 +283,14 @@
           </p>
         </div>
         <div class="px-4 py-3">
-          <h4 class="text-text-primary text-sm font-semibold">Auto-recommendation in the review</h4>
+          <h3 class="text-text-primary text-sm font-semibold">Auto-recommendation in the review</h3>
           <p class="text-text-secondary mt-1 text-sm">
             The last step shows not just the answers but also the derived recommendation. Optionally
             the user can override it — add a "Choose a different one?" toggle for that.
           </p>
         </div>
         <div class="px-4 py-3">
-          <h4 class="text-text-primary text-sm font-semibold">Back navigation always allowed</h4>
+          <h3 class="text-text-primary text-sm font-semibold">Back navigation always allowed</h3>
           <p class="text-text-secondary mt-1 text-sm">
             Forward may be locked while the current answer is missing. Back must never block —
             otherwise the user can't escape a dead end.

@@ -112,7 +112,7 @@ ${scriptClose}
       </p>
 
       <div class="border-border-subtle bg-surface-elevated rounded-2xl border p-6">
-        <h4 class="text-text-primary mb-4 text-sm font-semibold">Operator Reference</h4>
+        <h3 class="text-text-primary mb-4 text-sm font-semibold">Operator Reference</h3>
         <div class="grid grid-cols-1 gap-x-8 gap-y-3 text-sm md:grid-cols-2">
           {#each operators as item (item.op)}
             <div>

@@ -233,7 +233,7 @@
   related={relatedLinks}
 >
   <Section id="playground" intent="primary">
-    <InfoCard intent="info" title="The bidirectional link, live">
+    <InfoCard intent="info" headingLevel={2} title="The bidirectional link, live">
       Click the <strong>ⓘ</strong> marker to open the help panel (UI → guide), then hover or focus a
       <strong>link inside an article</strong> to highlight the matching field (guide → UI). The
       panel is

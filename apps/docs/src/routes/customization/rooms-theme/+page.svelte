@@ -123,7 +123,7 @@ export const ROUTE_CHANNEL = {
     </p>
 
     <div class="border-border-subtle bg-surface-elevated rounded-2xl border p-6">
-      <h4 class="text-text-primary mb-2 text-sm font-semibold">Color Rooms vs. Consumer Apps</h4>
+      <h3 class="text-text-primary mb-2 text-sm font-semibold">Color Rooms vs. Consumer Apps</h3>
       <p class="text-text-secondary text-sm leading-relaxed">
         Color Rooms is <strong>docs-only</strong>. Consumer apps that depend on
         <code class="text-text-primary">@urbicon-ui/blocks</code> do not import

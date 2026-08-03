@@ -113,7 +113,7 @@
   <Section id="tradeoffs" title="Trade-offs">
     <div class="grid gap-4 sm:grid-cols-2">
       <div class="border-border-subtle bg-surface-elevated rounded-2xl border p-5">
-        <h4 class="text-text-primary mb-2 text-sm font-semibold">Eager (default)</h4>
+        <h3 class="text-text-primary mb-2 text-sm font-semibold">Eager (default)</h3>
         <ul class="text-text-secondary space-y-1 text-sm">
           <li>Simplest — no extra config.</li>
           <li>Compile-time key parity across all locales.</li>
@@ -122,7 +122,7 @@
         </ul>
       </div>
       <div class="border-border-subtle bg-surface-elevated rounded-2xl border p-5">
-        <h4 class="text-text-primary mb-2 text-sm font-semibold">Lazy (opt-in)</h4>
+        <h3 class="text-text-primary mb-2 text-sm font-semibold">Lazy (opt-in)</h3>
         <ul class="text-text-secondary space-y-1 text-sm">
           <li>Smaller initial bundle — inactive locales excluded.</li>
           <li>Parity is a runtime/CI check, not compile-time.</li>

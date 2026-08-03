@@ -166,7 +166,7 @@
     >
       {#each cards as card (card.id)}
         <article class="border-border-subtle bg-surface-elevated rounded-contain border p-4">
-          <h3 class="text-text-primary text-sm font-semibold">{card.title}</h3>
+          <p class="text-text-primary text-sm font-semibold">{card.title}</p>
           <p class="text-text-secondary mt-1 text-sm">{card.body}</p>
         </article>
       {/each}

@@ -27,6 +27,19 @@ export interface InfoCardProps
   title?: string;
 
   /**
+   * Heading level for the card title, clamped to 1..6. Cards usually sit inside
+   * a `<Section>` (`h2`), so `h3` is the default.
+   *
+   * It was a fixed `h4` until 2026-08, which put an `h2 → h4` skip into the
+   * outline of every page that used a card directly under a section, and an
+   * `h1 → h4` one on the pages that use cards as their landing grid. Pass an
+   * explicit level where the nesting differs. The title styling is class-driven,
+   * so the level never changes how the card looks.
+   * @default 3
+   */
+  headingLevel?: 1 | 2 | 3 | 4 | 5 | 6;
+
+  /**
    * Decorative glyph rendered before the title. Purely visual — it is hidden
    * from assistive tech, so never put meaning here that the title does not carry.
    */

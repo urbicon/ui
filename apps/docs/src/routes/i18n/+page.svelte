@@ -89,19 +89,19 @@ export const load = ({ request }) => ({ locale: resolveLocale(request) });`;
       locale source). This package gives exactly four things:
     </p>
     <div class="grid gap-4 sm:grid-cols-2">
-      <InfoCard title="SSR-correct">
+      <InfoCard headingLevel={2} title="SSR-correct">
         The active locale is request-scoped (in context), so concurrent server renders with
         different languages never leak into each other.
       </InfoCard>
-      <InfoCard title="Package-scoped">
+      <InfoCard headingLevel={2} title="Package-scoped">
         Each package (blocks, table, auth) registers its own namespaced keys into one shared
         registry — a merged surface, no collisions.
       </InfoCard>
-      <InfoCard title="Type-safe">
+      <InfoCard headingLevel={2} title="Type-safe">
         Keys and their <code>{'{{params}}'}</code> flow from the <code>en</code> bundle straight
         into the hook's <code>t</code> — typos are compile errors.
       </InfoCard>
-      <InfoCard title="Zero-dependency">
+      <InfoCard headingLevel={2} title="Zero-dependency">
         Reactive via <code>$state</code>/<code>$derived</code>; pluralization and formatting via the
         platform <code>Intl</code> APIs. No runtime deps.
       </InfoCard>
@@ -119,7 +119,7 @@ export const load = ({ request }) => ({ locale: resolveLocale(request) });`;
     </p>
 
     <div class="border-border-subtle bg-surface-elevated mb-4 rounded-2xl border p-6">
-      <h4 class="text-text-primary mb-3 text-sm font-semibold">Read-tolerant, write-strict</h4>
+      <h3 class="text-text-primary mb-3 text-sm font-semibold">Read-tolerant, write-strict</h3>
       <ul class="text-text-secondary space-y-2 text-sm">
         <li>
           <strong class="text-text-primary">Reading</strong> without a provider → the constant base

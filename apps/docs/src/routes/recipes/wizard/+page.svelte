@@ -303,7 +303,7 @@
                       placeholder="Anything else we should know?"
                     />
                     <div class="bg-surface-subtle rounded-lg p-4">
-                      <h4 class="text-text-primary mb-2 text-sm font-semibold">Summary</h4>
+                      <h3 class="text-text-primary mb-2 text-sm font-semibold">Summary</h3>
                       <dl class="text-text-secondary space-y-1 text-sm">
                         <div class="flex justify-between">
                           <dt>Name</dt>

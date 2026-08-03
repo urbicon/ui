@@ -193,7 +193,7 @@
       {#each sections as section (section.name)}
         <Card class="border-border-subtle">
           <div class="p-4">
-            <h4 class="text-text-primary mb-1 text-sm font-semibold">{section.name}</h4>
+            <h3 class="text-text-primary mb-1 text-sm font-semibold">{section.name}</h3>
             <p class="text-text-tertiary mb-3 text-xs">{section.description}</p>
             <div class="flex flex-wrap gap-1">
               {#each section.components as comp (comp)}
