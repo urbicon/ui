@@ -76,10 +76,17 @@
       }
       const cs = getComputedStyle(bar);
       const padX = (parseFloat(cs.paddingLeft) || 0) + (parseFloat(cs.paddingRight) || 0);
-      measured = {
+      const next = {
         container: Math.round(host.getBoundingClientRect().width),
         contentBox: Math.round(bar.clientWidth - padX)
       };
+      // The query above reaches into Table's own markup. If a wrapper ever lands
+      // between the toolbar slot and the bar, it resolves to the wrapper instead
+      // — which has no padding, so the chrome silently reads 0 and the switch
+      // mark drifts onto the threshold itself. Bound it: `p-3` plus a border is
+      // 26px at `md`, and nothing in the size scale gets near 64.
+      const chrome = next.container - next.contentBox;
+      measured = chrome > 0 && chrome <= 64 ? next : null;
     };
 
     const ro = new ResizeObserver(read);
