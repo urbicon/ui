@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { CodeExample, Section } from '@urbicon-ui/docs';
+  import { CodeExample, Note, NoteList, Section } from '@urbicon-ui/docs';
   import { Kbd } from '@urbicon-ui/blocks';
   import { WeekMealPlan, MonthShiftPlan, CustomStyling } from './examples';
 
@@ -60,14 +60,16 @@ export async function load({ url }) {
 
 <!-- ─── Accessibility ─── -->
 <Section marker="03" id="accessibility" title="Accessibility">
-  <div class="prose prose-sm max-w-none">
-    <ul>
-      <li>
+  <NoteList>
+    <Note title="The ARIA grid pattern">
+      <p>
         The grid uses the ARIA <code>grid</code> pattern: <code>role="grid"</code> wraps
         <code>row</code>/<code>columnheader</code>/<code>gridcell</code>, the active day carries
         <code>aria-selected</code>, and a roving <code>tabindex</code> keeps a single tab stop.
-      </li>
-      <li>
+      </p>
+    </Note>
+    <Note title="Keyboard">
+      <p>
         <strong>Keyboard:</strong> arrow keys move the focused day, <Kbd keys="Home" />/<Kbd
           keys="End"
         />
@@ -76,20 +78,26 @@ export async function load({ url }) {
         />
         a year), and <Kbd keys="Enter" />/<Kbd keys="Space" /> select. Navigation pulls the focus back
         into view by paging when it crosses the visible window.
-      </li>
-      <li>
+      </p>
+    </Note>
+    <Note title="Interactive cell content keeps its behaviour">
+      <p>
         Interactive content inside a <code>cell</code> (buttons, links, inputs) keeps its own Enter/Space
         and click behaviour — grid navigation only fires from the cell itself, and only a click on the
         cell body selects the day.
-      </li>
-      <li>
+      </p>
+    </Note>
+    <Note title="Navigation is announced">
+      <p>
         The localized view title is mirrored into an <code>aria-live="polite"</code> status region,
         so screen readers announce navigation. Focus rings use <code>focus-visible</code> only.
-      </li>
-      <li>
+      </p>
+    </Note>
+    <Note title="Reduced motion">
+      <p>
         Transitions and swipe respect <code>prefers-reduced-motion</code> (set
         <code>animated={false}</code> to opt out entirely).
-      </li>
-    </ul>
-  </div>
+      </p>
+    </Note>
+  </NoteList>
 </Section>

@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { CodeExample, Section } from '@urbicon-ui/docs';
+  import { CodeExample, Note, NoteList, Section } from '@urbicon-ui/docs';
   import {
     EmptyState,
     Button,
@@ -87,7 +87,7 @@
 </Section>
 
 <Section marker="02" id="customization" title="Customization">
-  <div class="prose prose-sm max-w-none">
+  <div class="text-text-secondary space-y-3 text-sm leading-relaxed">
     <p>
       Pair with any icon from <code>@urbicon-ui/blocks</code>. The container picks up the semantic
       <code>bg-primary-subtle</code>
@@ -101,15 +101,17 @@
 </Section>
 
 <Section marker="03" id="accessibility" title="Accessibility">
-  <div class="prose prose-sm max-w-none">
-    <ul>
-      <li>
+  <NoteList>
+    <Note title="The icon is decorative">
+      <p>
         The decorative icon is hidden from screen readers via its built-in <code>aria-hidden</code>.
-      </li>
-      <li>
+      </p>
+    </Note>
+    <Note title="The title is an h3">
+      <p>
         The title renders as <code>&lt;h3&gt;</code> so it slots into existing page heading
         hierarchy without competing with the page <code>&lt;h1&gt;</code>.
-      </li>
-    </ul>
-  </div>
+      </p>
+    </Note>
+  </NoteList>
 </Section>

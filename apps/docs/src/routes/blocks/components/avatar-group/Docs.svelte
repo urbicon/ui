@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { CodeExample, Section } from '@urbicon-ui/docs';
+  import { CodeExample, Note, NoteList, Section } from '@urbicon-ui/docs';
   import { AvatarGroup } from '@urbicon-ui/blocks';
 
   const team = [
@@ -108,25 +108,31 @@
 </Section>
 
 <Section marker="03" id="accessibility" title="Accessibility">
-  <div class="prose prose-sm max-w-none">
-    <ul>
-      <li>
+  <NoteList>
+    <Note title="Group semantics">
+      <p>
         The stack is a <code>role="group"</code> with a localized <code>aria-label</code> (e.g.
         “Avatar group”). Override it with your own <code>aria-label</code> to name the specific set —
         “Project collaborators”, “Assignees”.
-      </li>
-      <li>
+      </p>
+    </Note>
+    <Note title="Per-avatar naming">
+      <p>
         Each avatar shows its initials (or photo) from <code>name</code> / <code>src</code>; the
         group's <code>aria-label</code> gives the whole set its context for assistive tech.
-      </li>
-      <li>
+      </p>
+    </Note>
+    <Note title="The overflow chip is announced">
+      <p>
         The <code>+N</code> overflow chip carries its own <code>aria-label</code> (<code>+2</code>,
         <code>+9</code>), so the hidden count is announced rather than silently dropped.
-      </li>
-      <li>
+      </p>
+    </Note>
+    <Note title="The overlap ring is decorative">
+      <p>
         The overlap ring is drawn with <code>borderColor</code> (default the base surface). It is decorative
         — set it to match whatever surface the group sits on so the cut-out effect holds.
-      </li>
-    </ul>
-  </div>
+      </p>
+    </Note>
+  </NoteList>
 </Section>

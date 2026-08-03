@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { CodeExample, Section } from '@urbicon-ui/docs';
+  import { CodeExample, Note, NoteList, Section } from '@urbicon-ui/docs';
   import { DatePicker, Kbd, TimeInput } from '@urbicon-ui/blocks';
 
   let startTime = $state('09:30');
@@ -112,7 +112,7 @@
 </Section>
 
 <Section marker="02" id="form-family" title="Date + Time">
-  <div class="prose prose-sm max-w-none">
+  <div class="text-text-secondary space-y-3 text-sm leading-relaxed">
     <p>
       <code>TimeInput</code> closes the last gap in the form family: <code>Calendar</code>,
       <code>DatePicker</code> and <code>DateRangePicker</code> cover dates; <code>TimeInput</code>
@@ -150,7 +150,7 @@
 </Section>
 
 <Section marker="03" id="customization" title="Customization">
-  <div class="prose prose-sm max-w-none">
+  <div class="text-text-secondary space-y-3 text-sm leading-relaxed">
     <p>
       Reach for named <code>preset</code>s registered on <code>&lt;BlocksProvider&gt;</code> for a
       reusable look, or <code>slotClasses</code> to retouch individual parts — the slots are
@@ -167,28 +167,40 @@
 </Section>
 
 <Section marker="04" id="accessibility" title="Accessibility">
-  <div class="prose prose-sm max-w-none">
-    <ul>
-      <li>
+  <NoteList>
+    <Note title="Group semantics">
+      <p>
         The field is a <code>role="group"</code> named by its <code>label</code> (or
         <code>aria-label</code>).
-      </li>
-      <li>
+      </p>
+    </Note>
+    <Note title="Per-segment naming">
+      <p>
         Each segment — hour, minute, and (when present) second — carries its own
         <code>aria-label</code>.
-      </li>
-      <li>
+      </p>
+    </Note>
+    <Note title="Keyboard">
+      <p>
         <strong>Arrow Up / Down</strong> steps the focused segment (with wrap);
         <strong>Arrow Left / Right</strong> moves between segments; typing digits auto-advances to the
         next segment.
-      </li>
-      <li>
+      </p>
+    </Note>
+    <Note title="The AM/PM segment">
+      <p>
         The AM/PM segment toggles by click, Arrow keys, or the <Kbd keys="A" /> / <Kbd keys="P" /> keys.
-      </li>
-      <li>
+      </p>
+    </Note>
+    <Note title="Clamping">
+      <p>
         Out-of-range values clamp to <code>min</code> / <code>max</code> when the field loses focus.
-      </li>
-      <li>The error message is announced via <code>role="alert"</code>.</li>
-    </ul>
-  </div>
+      </p>
+    </Note>
+    <Note title="Errors are announced">
+      <p>
+        The error message is announced via <code>role="alert"</code>.
+      </p>
+    </Note>
+  </NoteList>
 </Section>

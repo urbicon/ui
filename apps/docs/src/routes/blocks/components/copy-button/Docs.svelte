@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { CodeExample, Section } from '@urbicon-ui/docs';
+  import { CodeExample, Note, NoteList, Section } from '@urbicon-ui/docs';
   import { Card, CopyButton } from '@urbicon-ui/blocks';
 
   const variants = ['ghost', 'outlined', 'filled'] as const;
@@ -94,32 +94,40 @@
 </Section>
 
 <Section marker="03" id="accessibility" title="Accessibility">
-  <div class="prose prose-sm max-w-none">
-    <ul>
-      <li>
+  <NoteList>
+    <Note title="Stable name in icon-only mode">
+      <p>
         In icon-only mode the button keeps a stable accessible name (<em>Copy</em>, or your own
         <code>aria-label</code>); the outcome is not baked into the name.
-      </li>
-      <li>
+      </p>
+    </Note>
+    <Note title="Label in Name in labelled mode">
+      <p>
         In labelled mode the visible text is the accessible name (WCAG 2.5.3, Label in Name); no
         <code>aria-label</code> overrides it.
-      </li>
-      <li>
+      </p>
+    </Note>
+    <Note title="The result is announced">
+      <p>
         A visually-hidden <code>role="status"</code> live region announces the result —
         <em>Copied</em>
         or <em>Copy failed</em> — the moment it happens, in both modes and without stealing focus.
         (An <code>aria-label</code> change alone is not reliably announced, so the icon-only default would
         otherwise be silent to a screen reader.)
-      </li>
-      <li>
+      </p>
+    </Note>
+    <Note title="The icon is decorative">
+      <p>
         The copy/check icon is <code>aria-hidden</code>; sighted users read state from the icon, the
         intent colour, and (in labelled mode) the swapped label.
-      </li>
-      <li>
+      </p>
+    </Note>
+    <Note title="Failure has a path">
+      <p>
         The clipboard write can fail in an insecure (non-HTTPS) context or when permission is
         denied. That path calls <code>onError</code> and shows the failed state rather than throwing through
         the render.
-      </li>
-    </ul>
-  </div>
+      </p>
+    </Note>
+  </NoteList>
 </Section>

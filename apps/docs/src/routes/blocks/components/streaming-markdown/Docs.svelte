@@ -45,7 +45,7 @@
 </Section>
 
 <Section marker="02" id="customization" title="Customization">
-  <div class="prose prose-sm max-w-none">
+  <div class="text-text-secondary space-y-3 text-sm leading-relaxed">
     <p>
       Every element maps to a named slot (<code>paragraph</code>, <code>heading1</code>–<code
         >heading6</code

@@ -7,6 +7,7 @@
     DocsLayout as DocsPageLayout,
     Section
   } from '@urbicon-ui/docs';
+  import CustomDocs from './Docs.svelte';
   import Playground from './Playground.svelte';
   import { componentData } from './api';
   import { buildRelatedLinks } from '$lib/component-links';
@@ -15,6 +16,9 @@
 
   const navigation = [
     { id: 'playground', title: 'Playground' },
+    { id: 'examples', title: 'Examples' },
+    { id: 'customization', title: 'Customization' },
+    { id: 'accessibility', title: 'Accessibility' },
     { id: 'api', title: 'API Reference' },
     { id: 'installation', title: 'Installation' }
   ];
@@ -39,12 +43,14 @@
   sourceHref={componentData?.sourceHref}
   related={relatedLinks}
 >
-  <Section id="playground" title="Playground" intent="primary">
+  <Section id="playground" intent="primary">
     <Playground />
   </Section>
 
+  <CustomDocs />
+
   <Section
-    marker="02"
+    marker="04"
     id="api"
     title="API Reference"
     intent="secondary"
@@ -53,7 +59,7 @@
     <ApiReference props={componentData?.props ?? []} types={componentData?.types ?? []} />
   </Section>
 
-  <Section marker="03" id="installation" title="Installation">
+  <Section marker="05" id="installation" title="Installation">
     <CodeExample
       title="Import"
       code={`import { DateRangePicker } from '@urbicon-ui/blocks';`}

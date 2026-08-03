@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { CodeExample, Section } from '@urbicon-ui/docs';
+  import { CodeExample, Note, NoteList, Section } from '@urbicon-ui/docs';
   import { CurrencyInput, centsToMajor, majorToCents } from '@urbicon-ui/blocks';
 
   let priceCents = $state(1234_56);
@@ -67,7 +67,7 @@
 </Section>
 
 <Section marker="02" id="major-units" title="Working with major units">
-  <div class="prose prose-sm max-w-none">
+  <div class="text-text-secondary space-y-3 text-sm leading-relaxed">
     <p>
       <code>CurrencyInput</code> stores values in <strong>minor units</strong> (cents) so summing,
       sorting, and persisting amounts stay free of floating-point drift. When integrating with an
@@ -100,7 +100,7 @@
     </p>
   </CodeExample>
 
-  <div class="prose prose-sm mt-4 max-w-none">
+  <div class="text-text-secondary mt-4 space-y-3 text-sm leading-relaxed">
     <p>
       <strong>Float-precision caveat:</strong> a major-unit value that has already lost precision
       before reaching <code>majorToCents</code> (e.g. <code>0.1 + 0.2</code>) cannot be recovered.
@@ -111,7 +111,7 @@
 </Section>
 
 <Section marker="03" id="customization" title="Customization">
-  <div class="prose prose-sm max-w-none">
+  <div class="text-text-secondary space-y-3 text-sm leading-relaxed">
     <p>
       <code>CurrencyInput</code> wraps <code>&lt;Input&gt;</code>, so all
       <code>InputProps</code> (label, helper, error, slotClasses, …) flow through. The cents-based
@@ -127,22 +127,26 @@
 </Section>
 
 <Section marker="04" id="accessibility" title="Accessibility">
-  <div class="prose prose-sm max-w-none">
-    <ul>
-      <li>
+  <NoteList>
+    <Note title="Inherited from Input">
+      <p>
         Inherits <code>aria-invalid</code> / <code>aria-describedby</code> wiring from the
         underlying
         <code>&lt;Input&gt;</code> via the <code>label</code>, <code>error</code>, and
         <code>helper</code> props.
-      </li>
-      <li>
+      </p>
+    </Note>
+    <Note title="Numeric keyboard">
+      <p>
         Sets <code>inputmode="decimal"</code> so mobile keyboards open the numeric pad with a decimal
         separator.
-      </li>
-      <li>
+      </p>
+    </Note>
+    <Note title="Raw value while focused">
+      <p>
         Raw editing while focused — formatting happens on blur, so screen-reader users hear the
         unambiguous typed value.
-      </li>
-    </ul>
-  </div>
+      </p>
+    </Note>
+  </NoteList>
 </Section>

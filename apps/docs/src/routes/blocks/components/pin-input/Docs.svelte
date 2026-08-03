@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { CodeExample, Section } from '@urbicon-ui/docs';
+  import { CodeExample, Note, NoteList, Section } from '@urbicon-ui/docs';
   import { PinInput } from '@urbicon-ui/blocks';
 
   let otp = $state('');
@@ -107,7 +107,7 @@
 </Section>
 
 <Section marker="02" id="two-factor" title="Two-factor / OTP">
-  <div class="prose prose-sm max-w-none">
+  <div class="text-text-secondary space-y-3 text-sm leading-relaxed">
     <p>
       <code>PinInput</code> is purpose-built for the one-time-code step of a two-factor flow. The
       first cell already carries <code>autocomplete="one-time-code"</code>, so iOS surfaces the code
@@ -143,7 +143,7 @@
 </Section>
 
 <Section marker="03" id="customization" title="Customization">
-  <div class="prose prose-sm max-w-none">
+  <div class="text-text-secondary space-y-3 text-sm leading-relaxed">
     <p>
       Every visual surface is a named slot: <code>root</code> (what <code>class</code> also
       targets),
@@ -182,25 +182,31 @@
 </Section>
 
 <Section marker="04" id="accessibility" title="Accessibility">
-  <div class="prose prose-sm max-w-none">
-    <ul>
-      <li>
+  <NoteList>
+    <Note title="Group semantics">
+      <p>
         The cell row is a <code>role="group"</code>, named by <code>aria-labelledby</code> when a
         visible <code>label</code> is set, or by <code>aria-label</code> otherwise.
-      </li>
-      <li>
+      </p>
+    </Note>
+    <Note title="Each cell announces its position">
+      <p>
         Each cell announces its position — <code>aria-label="Character N of M"</code> — so a screen-reader
         user always knows where the caret sits.
-      </li>
-      <li>
+      </p>
+    </Note>
+    <Note title="Errors are announced">
+      <p>
         An <code>error</code> message is exposed via <code>role="alert"</code> and wired to every
         cell through <code>aria-describedby</code>, alongside <code>aria-invalid</code>.
-      </li>
-      <li>
+      </p>
+    </Note>
+    <Note title="Keyboard">
+      <p>
         Full keyboard support: typing a valid character auto-advances to the next cell,
         <code>Backspace</code> clears and steps back, the arrow keys plus <code>Home</code> /
         <code>End</code> move between cells, and a paste is distributed across the cells from the caret.
-      </li>
-    </ul>
-  </div>
+      </p>
+    </Note>
+  </NoteList>
 </Section>

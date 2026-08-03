@@ -68,7 +68,7 @@
 </Section>
 
 <Section marker="03" id="related" title="Related">
-  <div class="prose prose-sm max-w-none">
+  <div class="text-text-secondary space-y-3 text-sm leading-relaxed">
     <p>
       For the streaming flow that produces these chips automatically, see
       <a href={asset('/blocks/components/streaming-markdown')}>StreamingMarkdown</a> — its

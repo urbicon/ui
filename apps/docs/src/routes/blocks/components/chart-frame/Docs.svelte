@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { CodeExample, Section } from '@urbicon-ui/docs';
+  import { CodeExample, Note, NoteList, Section } from '@urbicon-ui/docs';
   import { CustomMarks, LegendAndFallback } from './examples';
 
   import customMarksCode from './examples/CustomMarks.svelte?raw';
@@ -8,7 +8,7 @@
 
 <!-- ─── When to use ─── -->
 <Section marker="01" id="when-to-use" title="When to use">
-  <div class="prose prose-sm max-w-none">
+  <div class="text-text-secondary space-y-3 text-sm leading-relaxed">
     <p>
       ChartFrame is the low-level shell every cartesian chart in the family is built on. It owns the
       parts that are tedious to get right — responsive width via a
@@ -70,25 +70,31 @@
 
 <!-- ─── Accessibility ─── -->
 <Section marker="03" id="accessibility" title="Accessibility">
-  <div class="prose prose-sm max-w-none">
-    <ul>
-      <li>
+  <NoteList>
+    <Note title="One named image">
+      <p>
         The SVG carries <code>role="img"</code> with your <code>ariaLabel</code>, so assistive tech
         announces the chart as a single named image rather than reading out every path and number.
-      </li>
-      <li>
+      </p>
+    </Note>
+    <Note title="Supply a fallback for the detail">
+      <p>
         Because <code>role="img"</code> hides the SVG internals, supply a
         <code>fallback</code> snippet — rendered visually hidden — when the detail matters. A data
         <code>&lt;table&gt;</code> is the most robust choice.
-      </li>
-      <li>
+      </p>
+    </Note>
+    <Note title="The legend is real HTML">
+      <p>
         The <code>legend</code> snippet is ordinary HTML below the SVG, so its text is selectable and
         in the accessibility tree without extra work.
-      </li>
-      <li>
+      </p>
+    </Note>
+    <Note title="Always pass an ariaLabel">
+      <p>
         Always pass an <code>ariaLabel</code>. Without it the chart is an unlabelled image — fine
         only when an adjacent caption already conveys the same information.
-      </li>
-    </ul>
-  </div>
+      </p>
+    </Note>
+  </NoteList>
 </Section>

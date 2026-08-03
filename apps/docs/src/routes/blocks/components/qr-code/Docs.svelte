@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { CodeExample, Section } from '@urbicon-ui/docs';
+  import { CodeExample, Note, NoteList, Section } from '@urbicon-ui/docs';
   import { QRCode, Textarea } from '@urbicon-ui/blocks';
 
   const eclLevels = ['L', 'M', 'Q', 'H'] as const;
@@ -83,7 +83,7 @@
 </Section>
 
 <Section marker="02" id="auth-2fa" title="2FA & auth">
-  <div class="prose prose-sm max-w-none">
+  <div class="text-text-secondary space-y-3 text-sm leading-relaxed">
     <p>
       <code>QRCode</code> completes the auth package's zero-dependency 2FA story. Instead of wiring
       an external QR library into <code>TwoFactorManager</code>'s <code>qr</code> snippet, hand the
@@ -114,7 +114,7 @@
 </Section>
 
 <Section marker="03" id="encoding" title="Encoding capacity & errors">
-  <div class="prose prose-sm max-w-none">
+  <div class="text-text-secondary space-y-3 text-sm leading-relaxed">
     <p>
       The encoder picks the smallest QR version (1–40) that fits and the most efficient mode for
       your data — numeric, alphanumeric, or UTF-8 byte — automatically. You never choose a version
@@ -157,25 +157,31 @@
 </Section>
 
 <Section marker="04" id="accessibility" title="Accessibility">
-  <div class="prose prose-sm max-w-none">
-    <ul>
-      <li>
+  <NoteList>
+    <Note title="One named image">
+      <p>
         Renders as <code>role="img"</code> with an <code>aria-label</code> — defaulting to a localized
         "QR code" and overridable per instance.
-      </li>
-      <li>
+      </p>
+    </Note>
+    <Note title="Never echo a sensitive payload">
+      <p>
         <strong>Never echo sensitive payloads</strong> (a 2FA secret, a signed token) into
         <code>aria-label</code>: it is announced aloud and exposed in the accessibility tree.
-      </li>
-      <li>
+      </p>
+    </Note>
+    <Note title="Contrast and scannability">
+      <p>
         For guaranteed scannability keep high-contrast <strong>dark-on-light</strong> modules.
         <code>frame="card"</code> supplies the light ground; the default <code>foreground</code> is
         <code>currentColor</code>, so an unframed code inherits the surrounding text colour.
-      </li>
-      <li>
+      </p>
+    </Note>
+    <Note title="The failure state stays labelled">
+      <p>
         When encoding fails, the visible fallback also carries <code>role="img"</code> with the same label,
         so assistive tech is never left with an empty region.
-      </li>
-    </ul>
-  </div>
+      </p>
+    </Note>
+  </NoteList>
 </Section>
