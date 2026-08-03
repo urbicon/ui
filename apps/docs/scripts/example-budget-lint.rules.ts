@@ -68,13 +68,21 @@ export const UNCOUNTED = new Set(['customization', 'installation', 'api', 'types
 /**
  * Section ids whose `<CodeExample>`s count toward the Examples budget.
  *
- * `examples` plus `mint`: rule 6 of the guide's Examples Strategy puts Mint
- * patterns in Examples, so counting a `mint` section separately would let a page
- * hold nine examples and report four. Button did exactly that until 2026-08 —
- * one example in `examples`, four in `mint` — and read as UNDER budget.
+ * `examples` plus the Mint section: rule 6 of the guide's Examples Strategy puts
+ * Mint patterns in Examples, so counting a Mint section separately would let a
+ * page hold nine examples and report four. Button did exactly that until
+ * 2026-08 — one example in `examples`, four in `mint` — and read as UNDER
+ * budget.
+ *
+ * The id is matched as `/^mints?$/i` and not as the literal `'mint'`, because
+ * the pages do not agree on the spelling: `checkbox` writes `id="mint"` and
+ * `segment-group` writes `id="mints"`. The first version of this rule tested
+ * the literal, so segment-group's Mint section — 4 examples plus 1, i.e. over
+ * budget — was certified clean by the very gate written to catch it. A rule
+ * keyed to one spelling of a hand-written id is a rule with a hole in it.
  */
 export function isCounted(sectionId: string): boolean {
-  return sectionId === 'examples' || sectionId === 'mint';
+  return sectionId === 'examples' || /^mints?$/i.test(sectionId);
 }
 
 export interface SectionCount {
@@ -116,16 +124,43 @@ export const MAX_EXAMPLES = 4;
 
 export type Verdict = 'ok' | 'over' | 'under' | 'missing';
 
+/**
+ * A component-specific section carrying more examples than the whole page is
+ * allowed — i.e. a second Examples section wearing a different name.
+ *
+ * The budget started life as a two-value whitelist (`examples` + `mint`), which
+ * left every other id silently free. Measured 2026-08 across the 75 component
+ * pages: 14 of them held 32 further examples outside the counted set. Most are
+ * the deep-dives the Section Order table explicitly allows — one or two demos
+ * under `async-search`, `two-factor`, `form-family` — and those stay legitimate.
+ * `badge` was not: five numbered demos under `patterns` ("1. Status Tag",
+ * "2. Counter — numeric pill", …), one of them a near-verbatim repeat of an
+ * entry in its own `examples` section, while the page reported 3 and clean.
+ *
+ * So the rule is the ceiling, not a name list: a section may be topical, but it
+ * may not be bigger than the page's whole example budget. This is also what
+ * makes `UNCOUNTED` load-bearing rather than decorative — those ids are
+ * reference material and are exempt from the ceiling too.
+ */
+export function oversizedSections(counts: readonly SectionCount[]): SectionCount[] {
+  return counts.filter(
+    (c) => !isCounted(c.id) && !UNCOUNTED.has(c.id) && c.examples > MAX_EXAMPLES
+  );
+}
+
 /** The counted total for a page, and whether it sits inside the budget. */
 export function verdictFor(counts: readonly SectionCount[]): {
   total: number;
   counted: SectionCount[];
+  oversized: SectionCount[];
   verdict: Verdict;
 } {
   const counted = counts.filter((c) => isCounted(c.id));
   const total = counted.reduce((n, c) => n + c.examples, 0);
-  if (!counts.some((c) => c.id === 'examples')) return { total, counted, verdict: 'missing' };
-  if (total > MAX_EXAMPLES) return { total, counted, verdict: 'over' };
-  if (total < MIN_EXAMPLES) return { total, counted, verdict: 'under' };
-  return { total, counted, verdict: 'ok' };
+  const oversized = oversizedSections(counts);
+  if (!counts.some((c) => c.id === 'examples'))
+    return { total, counted, oversized, verdict: 'missing' };
+  if (total > MAX_EXAMPLES) return { total, counted, oversized, verdict: 'over' };
+  if (total < MIN_EXAMPLES) return { total, counted, oversized, verdict: 'under' };
+  return { total, counted, oversized, verdict: 'ok' };
 }

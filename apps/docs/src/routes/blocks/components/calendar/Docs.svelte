@@ -13,8 +13,45 @@
     CustomDayCell
   } from './examples';
 
-  import basicMonthCode from './examples/BasicMonth.svelte?raw';
   import customDayCellCode from './examples/CustomDayCell.svelte?raw';
+
+  // The month group renders three demos, so its snippet shows the data model
+  // they share rather than one of the three sources. `RecurrenceRule` is the
+  // least guessable part of the Calendar API and the page renders no
+  // TypesReference, so dropping it here would leave it documented nowhere on
+  // /blocks/components/calendar — which is what the first cut of this grouping
+  // did while the description still promised it.
+  const eventShapesCode = `import type { CalendarEvent } from '@urbicon-ui/blocks';
+
+const events: CalendarEvent[] = [
+  // One day: start only.
+  { id: '1', title: 'Code freeze', start: new Date(2026, 2, 18), categoryId: 'deadline' },
+
+  // A span: add end, and the event draws across every day between.
+  { id: '2', title: 'Sprint 14', start: new Date(2026, 2, 9), end: new Date(2026, 2, 20) },
+
+  // A series: one object plus a rule, expanded by the calendar.
+  // byDay is 0-6 (Sunday-Saturday) and applies to \`frequency: 'weekly'\`;
+  // interval skips n periods; until ends the series (inclusive).
+  {
+    id: '3',
+    title: 'Standup',
+    start: new Date(2026, 2, 2),
+    recurrence: {
+      frequency: 'weekly',
+      byDay: [1, 2, 3, 4, 5],
+      until: new Date(2026, 2, 31)
+    }
+  },
+  {
+    id: '4',
+    title: 'Sprint review',
+    start: new Date(2026, 2, 6),
+    recurrence: { frequency: 'weekly', interval: 2, byDay: [5] }
+  }
+];
+
+<Calendar {events} {categories} showLegend showWeekNumbers />`;
 
   // Three of the four examples below group several demos under one heading (nine
   // headings was more than anyone reads). Where the demos differ only by a prop,
@@ -62,7 +99,7 @@
     <CodeExample
       title="Events in a month view"
       description="The month grid is the default and carries the whole event model. A one-day event needs only start; adding end draws it across a span (conferences, sprints, holidays); adding a recurrence rule expands one object into a series (a weekday standup, a biweekly review). Categories colour the entries and drive the legend, and clicking a day opens its detail list."
-      code={basicMonthCode}
+      code={eventShapesCode}
     >
       <div class="space-y-10">
         <BasicMonth />

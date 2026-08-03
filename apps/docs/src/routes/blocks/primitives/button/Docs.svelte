@@ -56,13 +56,23 @@
 
     <CodeExample
       title="Mint micro-interactions"
-      description="Mint (Micro-interactions) adds motion feedback and respects prefers-reduced-motion on its own. What matters when picking one is the trigger, not the name: scale, translate, rotate, glow, pulse and wiggle answer the pointer arriving, while ripple, bounce and shake answer the click. Use a hover effect to invite, a click effect to confirm — the Playground's Mint control cycles through the full list."
+      description="Mint (Micro-interactions) adds motion feedback and respects prefers-reduced-motion on its own. What matters when picking one is the trigger, not the name: the first row answers the pointer arriving, the second answers the click — use a hover effect to invite, a click effect to confirm. All nine registered effects are here because this is the only place they are listed: the Playground's Mint control offers four of them, and the generated API renders mint as an opaque MintProp with no value list."
       isolate
+      previewClass="flex flex-col gap-3"
     >
-      <Button intent="primary" mint="scale">Scale (hover)</Button>
-      <Button intent="primary" mint="glow">Glow (hover)</Button>
-      <Button intent="primary" mint="ripple">Ripple (click)</Button>
-      <Button intent="danger" mint="shake">Shake (click)</Button>
+      <div class="flex flex-wrap items-center gap-3">
+        <Button intent="primary" mint="scale">Scale</Button>
+        <Button intent="primary" mint="translate">Translate</Button>
+        <Button intent="primary" mint="rotate">Rotate</Button>
+        <Button intent="primary" mint="glow">Glow</Button>
+        <Button intent="secondary" mint="pulse">Pulse</Button>
+        <Button intent="secondary" mint="wiggle">Wiggle</Button>
+      </div>
+      <div class="flex flex-wrap items-center gap-3">
+        <Button intent="primary" mint="ripple">Ripple</Button>
+        <Button intent="primary" mint="bounce">Bounce</Button>
+        <Button intent="danger" mint="shake">Shake</Button>
+      </div>
     </CodeExample>
 
     <CodeExample

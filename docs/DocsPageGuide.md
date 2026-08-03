@@ -73,22 +73,35 @@ The Playground is the canonical variant/size/intent explorer. Pages should NOT d
 5. **Customization examples stay separate.** The Customization section (slotClasses, preset, unstyled) is its own scope per XC-4 and not part of this Examples count.
 6. **Mint examples count as use-cases.** "Mint micro-interactions" patterns belong in Examples, not in a separate variant grid.
 
-**`bun run examples:budget` enforces rules 3, 5 and 6** (`apps/docs/scripts/example-budget-lint.ts`).
-Until 2026-08 the budget lived only in this file, and the corpus drifted to 15 pages over the
-ceiling (calendar at nine) and four under the floor — a rule that is only prose is a rule the next
-page does not inherit. Do not confuse it with `examples:lint`, which type-checks `@example` JSDoc
-blocks and is a different check entirely.
+**`bun run examples:budget` enforces rules 3, 5 and 6** (`apps/docs/scripts/example-budget-lint.ts`,
+wired into the `gates` job in `ci.yml`). Until 2026-08 the budget lived only in this file — and a
+rule that is only prose is a rule the next page does not inherit. Measured against `main` on
+2026-08-04 the script reported **17 pages over the ceiling** (calendar at nine) **and 2 under the
+floor**. Do not confuse it with `examples:lint`, which type-checks `@example` JSDoc blocks and is a
+different check entirely.
 
-The lint had to settle three things this section leaves open:
+The lint had to settle four things this section leaves open:
 
-- **A `mint` section counts together with `examples`.** Rule 6 puts Mint patterns *in* Examples, so
-  a standalone Mint section must not buy a page extra budget. Button proved why: one example in
+- **A Mint section counts together with `examples`.** Rule 6 puts Mint patterns *in* Examples, so a
+  standalone Mint section must not buy a page extra budget. Button proved why: one example in
   `examples` and four in `mint` made the reference implementation read as **under** budget while it
-  carried five. All three Mint sections (Button, Toggle, Tab) were folded away in the 2026-08 sweep.
+  carried five. The id is matched as `/^mints?$/i`, because the pages disagree on the spelling —
+  `checkbox` writes `id="mint"`, `segment-group` writes `id="mints"`. Keying the rule to one
+  spelling left segment-group (4 + 1, i.e. over budget) certified clean by the gate written to
+  catch it. Button's, Toggle's and Tab's Mint sections were folded away in the 2026-08 sweep;
+  checkbox's and segment-group's remain and are counted.
 - **`installation` never counts**, and neither do `customization` (rule 5), `api` or `types`.
+- **A component-specific section may not exceed the page's whole budget.** The counted set is a
+  whitelist, so every other id was silently free: 14 pages held 32 further examples outside it, and
+  `badge` carried five numbered demos under `patterns` while reporting 3. One or two demos in a
+  topical deep-dive stay legitimate; a section bigger than the budget is a second Examples section
+  under another name. A section keyed to an API surface rather than to drift takes an `OVERSIZE_OK`
+  entry with a reason (badge's `patterns` is one per `purpose` value, and the axis has five).
 - **A page with no `examples` section** needs a `NO_EXAMPLES` entry with a reason. `components/guide`
-  is the one entry: a subsystem page cut into eight topical sections, none of them over budget. A
-  stale entry is an error too, same contract as `registry-lint`'s UNLISTED.
+  is the one entry: a subsystem page cut into eight topical sections. That excuses the page total
+  only — the per-section ceiling still applies to it, so the reason it gives ("none of them over
+  budget") is the check that actually runs. Stale entries are errors in both maps, same contract as
+  `registry-lint`'s UNLISTED.
 
 ### Sections to remove on sight
 

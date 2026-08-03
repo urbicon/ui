@@ -59,30 +59,6 @@
         </SegmentGroup>
       </div>
     </CodeExample>
-
-    <CodeExample
-      title="Dashboard Toolbar"
-      description="Full-width segment in a toolbar layout."
-      isolate
-    >
-      <div class="border-border-subtle bg-surface-elevated rounded-2xl border p-4">
-        <div class="mb-4 flex items-center justify-between">
-          <h3 class="text-text-primary text-base font-semibold">Analytics</h3>
-          <span class="text-text-tertiary text-xs">Last updated: just now</span>
-        </div>
-        <SegmentGroup
-          bind:value={period}
-          fullWidth
-          mint={['scale', 'glow']}
-          ariaLabel="Analytics period"
-        >
-          <SegmentItem value="day">Day</SegmentItem>
-          <SegmentItem value="week">Week</SegmentItem>
-          <SegmentItem value="month">Month</SegmentItem>
-          <SegmentItem value="year">Year</SegmentItem>
-        </SegmentGroup>
-      </div>
-    </CodeExample>
   </div>
 </Section>
 

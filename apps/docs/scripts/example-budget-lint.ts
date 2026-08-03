@@ -3,10 +3,18 @@
  *
  * `docs/DocsPageGuide.md` has carried an Examples budget since the 2026-07
  * triage ("2–4 examples per page is the target… If you have five candidate
- * examples, two probably overlap"), and nothing ever checked it. By 2026-08 the
- * corpus of 75 component pages held 15 pages over the ceiling — calendar at
- * nine — and four pages under the floor. A rule that exists only as prose is a
- * rule the next page does not inherit.
+ * examples, two probably overlap"), and nothing ever checked it. A rule that
+ * exists only as prose is a rule the next page does not inherit.
+ *
+ * Run against `main` at 2026-08-04, this script reports **17 pages over the
+ * ceiling and 2 under the floor** across the 75 component pages — calendar at
+ * nine. Those are not the numbers of the hand audit that opened the issue
+ * (15 over / 4 under), and the difference is the point: counting a `mint`
+ * section with `examples` moves Button from "under" to "over" and Toggle from
+ * "under" to inside the budget, and matching the id as `/^mints?$/i` rather
+ * than the literal adds segment-group. Quoting the audit's figures here as if
+ * they were this script's output would be reporting a number nobody measured
+ * with this rule.
  *
  * `examples:lint` in `packages/docs-gen` sounds like this check and is not: it
  * type-checks `@example` JSDoc blocks in `index.ts`. This one counts rendered
@@ -56,6 +64,20 @@ const NO_EXAMPLES: Record<string, string> = {
 };
 
 /**
+ * Component-specific sections allowed past the per-section ceiling, keyed
+ * `<page>#<section>`, with the reason. Same contract as `NO_EXAMPLES`: a stale
+ * entry is an error.
+ */
+const OVERSIZE_OK: Record<string, string> = {
+  'primitives/badge#patterns':
+    "One demo per value of Badge's `purpose` axis, and the axis has five (status / tag / counter " +
+    '/ dot / chip). The section is the taxonomy that stops the most common colour defect on the ' +
+    'page — painting a category as a status — so capping it at four would mean documenting four ' +
+    'fifths of an enum. The ceiling is right for a section that has drifted into a second ' +
+    'Examples dump; this one is keyed to an API surface and grows only when that surface does.'
+};
+
+/**
  * A collapse here means the parser drifted, not that the docs got clean. The
  * corpus was 75 component pages on 2026-08-04; the floor leaves room for pages
  * to come and go without leaving room for half of them to vanish unnoticed.
@@ -64,7 +86,12 @@ const MIN_PAGES = 60;
 
 interface Finding {
   page: string;
-  kind: 'over-budget' | 'under-budget' | 'missing-examples' | 'stale-exemption';
+  kind:
+    | 'over-budget'
+    | 'under-budget'
+    | 'missing-examples'
+    | 'oversized-section'
+    | 'stale-exemption';
   detail: string;
 }
 
@@ -113,6 +140,7 @@ function collectPages(): string[] {
 
 const findings: Finding[] = [];
 const seenExemptions = new Set<string>();
+const seenOversizeOk = new Set<string>();
 const rows: { page: string; total: number; detail: string }[] = [];
 
 for (const rel of collectPages()) {
@@ -120,10 +148,30 @@ for (const rel of collectPages()) {
   const pageSrc = readFileSync(join(dir, '+page.svelte'), 'utf8');
   const { markup, tags } = splice(dir, pageSrc);
   const counts = countBySection(markup, tags);
-  const { total, counted, verdict } = verdictFor(counts);
+  const { total, counted, oversized, verdict } = verdictFor(counts);
 
   const detail = counted.map((c) => `${c.id}:${c.examples}`).join(' ') || '—';
   rows.push({ page: rel, total, detail });
+
+  // The per-section ceiling applies to EVERY page, including the ones excused
+  // from the page total. `NO_EXAMPLES` excuses a page from having one canonical
+  // Examples section — it does not excuse a topical section from growing into
+  // an unread wall. The `components/guide` entry justifies itself with exactly
+  // this property ("no single section exceeds the budget"), so the check has to
+  // be the one the reason claims; otherwise the written reason and the executed
+  // test are two different statements, and only one of them is enforced.
+  for (const s of oversized) {
+    const key = `${rel}#${s.id}`;
+    if (OVERSIZE_OK[key]) {
+      seenOversizeOk.add(key);
+      continue;
+    }
+    findings.push({
+      page: rel,
+      kind: 'oversized-section',
+      detail: `section "${s.id}" holds ${s.examples} examples — more than the ${MAX_EXAMPLES} the whole page is allowed. A topical section is fine; a second Examples section under another name is not. If it is keyed to an API surface rather than drift, record it in OVERSIZE_OK with the reason.`
+    });
+  }
 
   if (verdict === 'missing') {
     if (NO_EXAMPLES[rel]) {
@@ -171,6 +219,18 @@ for (const rel of Object.keys(NO_EXAMPLES)) {
       page: rel,
       kind: 'stale-exemption',
       detail: 'listed in NO_EXAMPLES but is no longer a component page — remove the entry'
+    });
+  }
+}
+
+for (const key of Object.keys(OVERSIZE_OK)) {
+  if (!seenOversizeOk.has(key)) {
+    findings.push({
+      page: key,
+      kind: 'stale-exemption',
+      detail:
+        'listed in OVERSIZE_OK but the section is no longer over the per-section ceiling — ' +
+        'remove the entry'
     });
   }
 }

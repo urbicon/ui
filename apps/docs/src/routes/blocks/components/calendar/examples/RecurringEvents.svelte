@@ -16,7 +16,10 @@
       start: new Date(2026, 2, 2),
       categoryId: 'standup',
       description: 'Daily team standup',
-      recurrence: { frequency: 'daily', byDay: [1, 2, 3, 4, 5], until: new Date(2026, 2, 31) }
+      // `byDay` is only read for `frequency: 'weekly'` — the engine's `daily`
+      // branch returns the cursor unconditionally, so `daily` + `byDay` used to
+      // render this "weekdays only" standup on Saturdays and Sundays too.
+      recurrence: { frequency: 'weekly', byDay: [1, 2, 3, 4, 5], until: new Date(2026, 2, 31) }
     },
     {
       id: 'review',

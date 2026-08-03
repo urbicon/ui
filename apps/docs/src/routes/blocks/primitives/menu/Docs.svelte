@@ -73,7 +73,7 @@
 
     <CodeExample
       title="Custom snippets"
-      description="customHeader, customFooter and customItem replace the regions an items array cannot express — a sign-in banner, a destructive footer action, a row with an avatar and a shortcut. customItem receives the item plus an activate() callback that fires its onSelect and closes the menu."
+      description="customHeader, customFooter and customItem replace the regions an items array cannot express — a sign-in banner, a destructive footer action, a row with an avatar and a shortcut. customItem takes one positional argument, the item, and should render visible content only: Menu already provides the surrounding role='menuitem' button, so an interactive element inside the snippet nests one control in another and fires the action twice."
       code={customSnippetsCode}
     >
       <div class="flex flex-col gap-6">

@@ -17,18 +17,6 @@
 <Section marker="01" id="examples" title="Examples">
   <div class="space-y-8">
     <CodeExample
-      title="Counter (numeric pill)"
-      description="The counter prop locks min-width to height so single-digit numbers render as a circle. Compare a text badge with the same intent to see the effect."
-      isolate
-      previewClass="flex items-center gap-6"
-    >
-      <Badge intent="primary" size="sm">3 unread</Badge>
-      <Badge intent="primary" counter size="sm">3</Badge>
-      <Badge intent="danger" counter size="sm">12</Badge>
-      <Badge intent="success" counter size="sm">99+</Badge>
-    </CodeExample>
-
-    <CodeExample
       title="Border (visual separation on colored surfaces)"
       description="The border prop adds a 2px ring in the page surface color — invisible on the default page background, but it cuts a clean halo when the badge overlays a colored avatar, image, or button."
       isolate
@@ -105,10 +93,11 @@
 
     <CodeExample
       title="2. Counter — numeric pill"
-      description="`counter` locks the badge to a circle/pill geometry that holds 1–3 digits cleanly. Always pair with a `placement` when anchoring to a Button or Avatar — see the Notification Counter example above."
+      description="`counter` locks min-width to height, so a single digit renders as a circle rather than a squat pill — the first badge below is the same intent without it, for comparison. It holds 1–3 digits cleanly. Always pair with a `placement` when anchoring to a Button or Avatar — see the Notification Counter example above."
       isolate
       previewClass="flex items-center gap-3"
     >
+      <Badge intent="primary" size="sm">3 unread</Badge>
       <Badge intent="primary" counter size="sm">3</Badge>
       <Badge intent="danger" counter size="sm">12</Badge>
       <Badge intent="success" counter size="sm">99+</Badge>
