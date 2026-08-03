@@ -1,3 +1,8 @@
+<!-- urbicon-ignore raw-tailwind-color — the 17 raw colours are the Customization
+     section's subject. Those demos exist to show what `slotClasses`/`unstyled` reach
+     that the token system deliberately does not: glassmorphism, a terminal look, a neon
+     outline. Tokenising them would delete the example. Every other section on this page
+     stays under the rule. -->
 <script lang="ts">
   import { CodeExample, Note, NoteList, Section } from '@urbicon-ui/docs';
   import { Kbd, SegmentGroup, SegmentItem } from '@urbicon-ui/blocks';
@@ -224,7 +229,7 @@
         class="inline-flex gap-1 rounded-2xl bg-linear-to-br from-amber-200 to-orange-400 p-1.5 shadow-xl"
         slotClasses={{
           indicator: 'rounded-xl bg-white/80 shadow-md',
-          item: 'relative z-10 rounded-xl px-5 py-2 text-sm font-bold text-orange-950/80 transition-colors data-[state=active]:text-orange-900'
+          item: 'relative z-[var(--z-docked)] rounded-xl px-5 py-2 text-sm font-bold text-orange-950/80 transition-colors data-[state=active]:text-orange-900'
         }}
         ariaLabel="Unstyled warm"
       >
@@ -238,7 +243,7 @@
         class="inline-flex gap-0 border-2 border-current p-0 font-mono text-sm"
         slotClasses={{
           indicator: 'bg-text-primary',
-          item: 'text-text-primary relative z-10 border-r border-current px-5 py-2.5 font-bold tracking-widest uppercase transition-colors last:border-r-0 data-[state=active]:text-surface-base'
+          item: 'text-text-primary relative z-[var(--z-docked)] border-r border-current px-5 py-2.5 font-bold tracking-widest uppercase transition-colors last:border-r-0 data-[state=active]:text-surface-base'
         }}
         ariaLabel="Unstyled brutalist"
       >

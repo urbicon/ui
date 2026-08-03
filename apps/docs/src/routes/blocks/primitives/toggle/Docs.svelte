@@ -1,3 +1,8 @@
+<!-- urbicon-ignore raw-tailwind-color — the 21 raw colours are the Customization
+     section's subject. Those demos exist to show what `slotClasses`/`unstyled` reach
+     that the token system deliberately does not: glassmorphism, a terminal look, a neon
+     outline. Tokenising them would delete the example. Every other section on this page
+     stays under the rule. -->
 <script lang="ts">
   import { CodeExample, Note, NoteList, Section } from '@urbicon-ui/docs';
   import { Kbd, Toggle } from '@urbicon-ui/blocks';

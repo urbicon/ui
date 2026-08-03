@@ -1,3 +1,6 @@
+<!-- urbicon-ignore token-hallucination — the `accent-fg` hits are the CSS custom
+     property `--room-accent-fg` inside quoted stylesheet samples this page teaches
+     from. It is a variable in the room register, not a Tailwind utility. -->
 <script lang="ts">
   import SeoMeta from '$lib/SeoMeta.svelte';
   import { resolve } from '$app/paths';

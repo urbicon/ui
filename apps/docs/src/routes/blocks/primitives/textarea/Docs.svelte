@@ -118,7 +118,7 @@
         bind:value={bio}
         slotClasses={{
           wrapper: 'flex flex-col gap-1',
-          base: 'bg-transparent border-b-2 border-text-tertiary px-0 py-2 text-text-primary placeholder:text-text-quaternary focus:outline-none focus:border-primary resize-none transition-colors',
+          base: 'bg-transparent border-b-2 border-text-tertiary px-0 py-2 text-text-primary placeholder:text-text-quaternary focus-visible:outline-none focus-visible:border-primary resize-none transition-colors',
           footer: 'flex justify-end',
           counter: 'text-xs text-text-tertiary tabular-nums'
         }}

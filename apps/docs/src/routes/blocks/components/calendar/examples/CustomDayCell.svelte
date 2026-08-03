@@ -1,3 +1,6 @@
+<!-- urbicon-ignore raw-tailwind-color — the emerald ramp IS the demo: a
+     contribution-heatmap day cell, where four fixed opacity steps of one hue encode
+     the count. A semantic token has one value and cannot express a scale. -->
 <script lang="ts">
   import { Calendar } from '@urbicon-ui/blocks';
   import type { CalendarEvent, DayCellContext } from '@urbicon-ui/blocks';

@@ -1,3 +1,8 @@
+<!-- urbicon-ignore raw-tailwind-color — the 3 raw colours are the Customization
+     section's subject. Those demos exist to show what `slotClasses`/`unstyled` reach
+     that the token system deliberately does not: glassmorphism, a terminal look, a neon
+     outline. Tokenising them would delete the example. Every other section on this page
+     stays under the rule. -->
 <script lang="ts">
   import { CodeExample, Note, NoteList, Section } from '@urbicon-ui/docs';
   import { Spinner, Button, Card, Badge } from '@urbicon-ui/blocks';
@@ -93,7 +98,7 @@
           </div>
         </Card>
         <div
-          class="bg-surface-base/60 rounded-contain absolute inset-0 z-10 flex flex-col items-center justify-center gap-3 backdrop-blur-sm"
+          class="bg-surface-base/60 rounded-contain absolute inset-0 z-[var(--z-docked)] flex flex-col items-center justify-center gap-3 backdrop-blur-sm"
         >
           <Spinner size="lg" intent="primary" variant="ring" />
           <p class="text-text-secondary text-sm font-medium">Loading content…</p>

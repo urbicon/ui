@@ -289,9 +289,20 @@ const INTERNAL_SUBPATH_SEGMENTS = new Set([
  * file (`…/Button.svelte`, `…/foo.js`) or a path through an internal directory
  * (`primitives/`, `components/`, …). The documented public subpaths — `./date`,
  * `./style/*.css`, `./i18n/en` — are flat, extensionless-or-CSS, and stay allowed.
+ *
+ * One shape has to be excused: a **flat** `name.svelte` subpath. Svelte 5's
+ * runes convention names a reactive module `url.svelte.ts`, whose export map
+ * entry is therefore `./url.svelte` — `@urbicon-ui/sveltekit-utils/url.svelte`
+ * is a declared public export, not a reach into anything. Flagging it made the
+ * docs app fail its own linter on two correct imports. A component file is
+ * still caught, because reaching one takes a directory
+ * (`…/primitives/Button/Button.svelte`) and a nested path is deep regardless
+ * of its extension.
  */
 function isDeepInternalSubpath(subpath: string): boolean {
-  if (/\.svelte(\.[jt]s)?$|\.[jt]s$/.test(subpath)) return true;
+  const nested = subpath.includes('/');
+  if (nested && /\.svelte(\.[jt]s)?$|\.[jt]s$/.test(subpath)) return true;
+  if (!nested && /\.[jt]s$/.test(subpath)) return true;
   return subpath.split('/').some((seg) => INTERNAL_SUBPATH_SEGMENTS.has(seg));
 }
 

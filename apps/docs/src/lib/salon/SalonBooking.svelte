@@ -52,6 +52,9 @@
   let cursor = $state(0);
 
   let idSeq = 0;
+  // urbicon-ignore dynamic-class-interpolation — `m-1`, `m-2`… are message ids for
+  // the chat transcript, never class names. The rule reads the `m-` prefix as the
+  // margin utility, which this template has nothing to do with.
   const nextId = () => `m-${++idSeq}`;
 
   const router = new A2uiSurfaceRouter();

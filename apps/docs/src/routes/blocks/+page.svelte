@@ -1,3 +1,6 @@
+<!-- urbicon-ignore hardcoded-z-index — the two z values are local to a cell that
+     sets `isolate` (line 177), so they order the overlay link against the specimen
+     inside one stacking context and can never meet the global overlay scale. -->
 <!--
   Blocks overview — the "specimen book". A printed-catalogue take on the
   component index: cells share hairlines (1px grid gaps) instead of floating

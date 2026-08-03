@@ -700,6 +700,22 @@ describe('deep-internal-import', () => {
     ].join('\n');
     expect(has(lintDesign(code).findings, 'deep-internal-import')).toBe(false);
   });
+  it('does NOT flag a flat `*.svelte` subpath — the runes-module export shape', () => {
+    // `url.svelte.ts` is exported as `./url.svelte`, so the specifier ends in
+    // `.svelte` while being a declared public entry. The docs app failed its
+    // own linter on two of these before the rule learned the difference.
+    const code =
+      "<script>import { useUrlParam } from '@urbicon-ui/sveltekit-utils/url.svelte';</script>";
+    expect(has(lintDesign(code).findings, 'deep-internal-import')).toBe(false);
+  });
+  it('still flags a nested component file, extension notwithstanding', () => {
+    const code = "<script>import X from '@urbicon-ui/blocks/Foo/Foo.svelte';</script>";
+    expect(has(lintDesign(code).findings, 'deep-internal-import')).toBe(true);
+  });
+  it('still flags a flat build artefact', () => {
+    const code = "<script>import X from '@urbicon-ui/blocks/index.js';</script>";
+    expect(has(lintDesign(code).findings, 'deep-internal-import')).toBe(true);
+  });
 });
 
 describe('hardcoded-motion', () => {

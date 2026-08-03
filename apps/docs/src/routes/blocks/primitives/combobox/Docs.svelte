@@ -1,3 +1,8 @@
+<!-- urbicon-ignore raw-tailwind-color — the 15 raw colours are the Customization
+     section's subject. Those demos exist to show what `slotClasses`/`unstyled` reach
+     that the token system deliberately does not: glassmorphism, a terminal look, a neon
+     outline. Tokenising them would delete the example. Every other section on this page
+     stays under the rule. -->
 <script lang="ts">
   import { CodeExample, Note, NoteList, Section } from '@urbicon-ui/docs';
   import { Avatar, Badge, Combobox, Kbd } from '@urbicon-ui/blocks';
@@ -362,7 +367,7 @@ ${asyncScriptClose}
           input:
             'w-full rounded-xl border border-white/20 bg-white/10 px-5 py-3 text-white placeholder-white/50 shadow-lg backdrop-blur-md transition-all focus-visible:border-white/40 focus-visible:bg-white/15 focus-visible:outline-none',
           listbox:
-            'absolute z-50 mt-2 w-full rounded-xl border border-white/20 bg-white/10 p-1 shadow-xl backdrop-blur-xl max-h-60 overflow-y-auto',
+            'absolute z-[var(--z-dropdown)] mt-2 w-full rounded-xl border border-white/20 bg-white/10 p-1 shadow-xl backdrop-blur-xl max-h-60 overflow-y-auto',
           option:
             'flex w-full items-center gap-2 rounded-lg px-4 py-2.5 text-white/80 cursor-pointer transition-colors hover:bg-white/15',
           optionActive: 'bg-white/20 text-white',
@@ -390,7 +395,7 @@ ${asyncScriptClose}
           input:
             'w-full bg-neutral-950 text-green-400 border-2 border-green-600/50 rounded-none px-4 py-3 text-sm placeholder:text-green-600/50 focus-visible:outline-none focus-visible:border-green-400',
           listbox:
-            'absolute z-50 mt-0 w-full bg-neutral-950 border-2 border-t-0 border-green-600/50 max-h-60 overflow-y-auto',
+            'absolute z-[var(--z-dropdown)] mt-0 w-full bg-neutral-950 border-2 border-t-0 border-green-600/50 max-h-60 overflow-y-auto',
           option:
             'flex w-full items-center gap-2 px-4 py-2 text-sm text-green-300 cursor-pointer hover:bg-green-900/30',
           optionActive: 'bg-green-800/40 text-green-200',
