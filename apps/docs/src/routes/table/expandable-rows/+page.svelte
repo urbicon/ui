@@ -39,22 +39,22 @@
       title="Expandable Detail Panel"
       description="Click the expand toggle to reveal additional detail for each row."
       code={`<Table {items} {columns}>
-{#snippet expandedRowContent(item)}
-  <div class="grid grid-cols-3 gap-4 p-4">
-    <div>
-      <span class="text-xs text-text-tertiary">Email</span>
-      <p class="text-sm">{item.email}</p>
+  {#snippet expandedRowContent(item)}
+    <div class="grid grid-cols-3 gap-4 p-4">
+      <div>
+        <span class="text-xs text-text-tertiary">Email</span>
+        <p class="text-sm">{item.email}</p>
+      </div>
+      <div>
+        <span class="text-xs text-text-tertiary">Salary</span>
+        <p class="text-sm">{item.salary.toLocaleString()} \u20AC</p>
+      </div>
+      <div>
+        <span class="text-xs text-text-tertiary">Projects</span>
+        <p class="text-sm">{item.projects}</p>
+      </div>
     </div>
-    <div>
-      <span class="text-xs text-text-tertiary">Salary</span>
-      <p class="text-sm">{item.salary.toLocaleString()} \u20AC</p>
-    </div>
-    <div>
-      <span class="text-xs text-text-tertiary">Projects</span>
-      <p class="text-sm">{item.projects}</p>
-    </div>
-  </div>
-{/snippet}
+  {/snippet}
 </Table>`}
     >
       <Table

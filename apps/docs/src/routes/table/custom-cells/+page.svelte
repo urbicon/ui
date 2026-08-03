@@ -102,26 +102,26 @@
       title="Status Badges & Progress Bars"
       description="Per-column snippets transform raw values into semantic badges and visual progress indicators."
       code={`{#snippet statusCell(item, value)}
-<Badge
-  intent={value === 'active' ? 'success' : value === 'on-leave' ? 'warning' : 'danger'}
-  size="xs"
->{value}</Badge>
+  <Badge
+    intent={value === 'active' ? 'success' : value === 'on-leave' ? 'warning' : 'danger'}
+    size="xs"
+  >{value}</Badge>
 {/snippet}
 
 {#snippet projectsCell(item, value)}
-<div class="flex items-center gap-2">
-  <div class="h-1.5 w-16 rounded-full bg-surface-subtle">
-    <div class="h-full rounded-full bg-primary" style="width: {(value / 20) * 100}%" />
+  <div class="flex items-center gap-2">
+    <div class="h-1.5 w-16 rounded-full bg-surface-subtle">
+      <div class="h-full rounded-full bg-primary" style="width: {(value / 20) * 100}%" />
+    </div>
+    <span class="text-xs">{value}</span>
   </div>
-  <span class="text-xs">{value}</span>
-</div>
 {/snippet}
 
 <Table items={data} columns={[
-{ accessor: 'name', title: 'Name', sortable: true },
-{ accessor: 'role', title: 'Role' },
-{ accessor: 'status', title: 'Status', cell: statusCell },
-{ accessor: 'projects', title: 'Projects', cell: projectsCell }
+  { accessor: 'name', title: 'Name', sortable: true },
+  { accessor: 'role', title: 'Role' },
+  { accessor: 'status', title: 'Status', cell: statusCell },
+  { accessor: 'projects', title: 'Projects', cell: projectsCell }
 ]} />`}
     >
       <Table
@@ -142,27 +142,27 @@
       title="Rich Multi-Info Cells"
       description="Combine avatar initials, name, subtitle, and inline badges for information-dense rows."
       code={`{#snippet employeeCell(item)}
-<div class="flex items-center gap-3">
-  <div class="bg-primary-subtle text-primary flex h-8 w-8 shrink-0
-           items-center justify-center rounded-full text-xs font-bold">
-    {item.name.split(' ').map(n => n[0]).join('')}
+  <div class="flex items-center gap-3">
+    <div class="bg-primary-subtle text-primary flex h-8 w-8 shrink-0
+             items-center justify-center rounded-full text-xs font-bold">
+      {item.name.split(' ').map(n => n[0]).join('')}
+    </div>
+    <div class="min-w-0">
+      <p class="text-sm font-medium truncate">{item.name}</p>
+      <p class="text-xs text-text-tertiary truncate">{item.email}</p>
+    </div>
   </div>
-  <div class="min-w-0">
-    <p class="text-sm font-medium truncate">{item.name}</p>
-    <p class="text-xs text-text-tertiary truncate">{item.email}</p>
-  </div>
-</div>
 {/snippet}
 
 {#snippet salaryCell(item, value)}
-<div class="text-right">
-  <span class="text-sm font-semibold tabular-nums">
-    {value?.toLocaleString('de-DE', { style: 'currency', currency: 'EUR' })}
-  </span>
-  {#if value > 130000}
-    <span class="ml-1.5 inline-block h-1.5 w-1.5 rounded-full bg-success" />
-  {/if}
-</div>
+  <div class="text-right">
+    <span class="text-sm font-semibold tabular-nums">
+      {value?.toLocaleString('de-DE', { style: 'currency', currency: 'EUR' })}
+    </span>
+    {#if value > 130000}
+      <span class="ml-1.5 inline-block h-1.5 w-1.5 rounded-full bg-success" />
+    {/if}
+  </div>
 {/snippet}`}
     >
       <Table
@@ -183,20 +183,20 @@
       title="Heat Map Cells"
       description="Conditional background coloring to highlight data patterns – great for KPI dashboards."
       code={`{#snippet heatCell(item, value)}
-{@const pct = Math.min(value / 20, 1)}
-{@const hue = pct * 142}
-<div
-  class="mx-auto flex h-8 w-12 items-center justify-center rounded-lg
-         text-xs font-bold tabular-nums"
-  style="background: oklch(0.92 0.06 {hue}); color: oklch(0.35 0.12 {hue})"
->
-  {value}
-</div>
+  {@const pct = Math.min(value / 20, 1)}
+  {@const hue = pct * 142}
+  <div
+    class="mx-auto flex h-8 w-12 items-center justify-center rounded-lg
+           text-xs font-bold tabular-nums"
+    style="background: oklch(0.92 0.06 {hue}); color: oklch(0.35 0.12 {hue})"
+  >
+    {value}
+  </div>
 {/snippet}
 
 <Table items={data} columns={[
-...,
-{ accessor: 'projects', title: 'Projects', cell: heatCell, align: 'center' }
+  ...,
+  { accessor: 'projects', title: 'Projects', cell: heatCell, align: 'center' }
 ]} />`}
     >
       <Table
@@ -217,13 +217,13 @@
       title="Global Cell Override"
       description="A table-level cell snippet overrides rendering for every column at once – useful for uniform styling."
       code={`<Table {items} {columns}>
-{#snippet cell(item, value, column)}
-  {#if resolveColumnId(column) === 'department'}
-    <Badge variant="outlined" intent="neutral" size="xs">{value}</Badge>
-  {:else}
-    <span class="text-sm">{value}</span>
-  {/if}
-{/snippet}
+  {#snippet cell(item, value, column)}
+    {#if resolveColumnId(column) === 'department'}
+      <Badge variant="outlined" intent="neutral" size="xs">{value}</Badge>
+    {:else}
+      <span class="text-sm">{value}</span>
+    {/if}
+  {/snippet}
 </Table>`}
     >
       <Table

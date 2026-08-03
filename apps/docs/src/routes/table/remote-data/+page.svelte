@@ -70,21 +70,21 @@ ${scriptClose}
       title="Managed: queryFn"
       description="Provide an async function – the table handles loading, errors, request cancellation (AbortSignal), and debouncing automatically. The live demo runs against a deterministic in-memory mock backend that filters, sorts, and paginates 56 rows server-side after an adjustable artificial latency (no real network requests) — the code shows the real fetch-based consumer pattern."
       code={`<Table
-mode="server"
-columns={columns}
-queryFn={async (query, { signal }) => {
-  const params = new URLSearchParams({
-    page: String(query.page),
-    limit: String(query.itemsPerPage),
-    sort: query.sortColumn || '',
-    dir: query.sortDirection,
-    q: query.searchTerm
-  });
-  const res = await fetch(\`/api/users?\${params}\`, { signal });
-  const data = await res.json();
-  return { items: data.results, totalItems: data.total };
-}}
-queryDebounceMs={300}
+  mode="server"
+  columns={columns}
+  queryFn={async (query, { signal }) => {
+    const params = new URLSearchParams({
+      page: String(query.page),
+      limit: String(query.itemsPerPage),
+      sort: query.sortColumn || '',
+      dir: query.sortDirection,
+      q: query.searchTerm
+    });
+    const res = await fetch(\`/api/users?\${params}\`, { signal });
+    const data = await res.json();
+    return { items: data.results, totalItems: data.total };
+  }}
+  queryDebounceMs={300}
 />`}
     >
       <RemoteDataDemo />

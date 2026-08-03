@@ -38,10 +38,10 @@
       title="10,000 Rows"
       description="Only ~20 rows are in the DOM. Pagination is bypassed – all items are in a scrollable container."
       code={`<Table
-items={largeDataset}
-columns={columns}
-virtualized={true}
-virtualHeight="400px"
+  items={largeDataset}
+  columns={columns}
+  virtualized={true}
+  virtualHeight="400px"
 />`}
       preview={false}
     />

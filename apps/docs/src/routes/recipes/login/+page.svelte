@@ -5,6 +5,7 @@
     Button,
     Card,
     Checkbox,
+    EyeIcon,
     EyeOffIcon,
     Input,
     LockIcon,
@@ -179,9 +180,21 @@
                       <button
                         type="button"
                         class="text-text-tertiary hover:text-text-primary absolute top-8 right-3"
+                        aria-label={showPassword ? 'Hide password' : 'Show password'}
+                        aria-pressed={showPassword}
                         onclick={() => (showPassword = !showPassword)}
                       >
-                        <EyeOffIcon size={16} />
+                        <!-- The icon switches with the state, as it did before the
+                             inline-SVG sweep replaced the `{#if}` with a fixed
+                             EyeOffIcon: this button has no text, so the icon was
+                             the only indication of which way it was pointing.
+                             The label and aria-pressed say the same thing to a
+                             screen reader, which the SVG version never did. -->
+                        {#if showPassword}
+                          <EyeOffIcon size={16} />
+                        {:else}
+                          <EyeIcon size={16} />
+                        {/if}
                       </button>
                     </div>
                     <div class="flex items-center justify-between">

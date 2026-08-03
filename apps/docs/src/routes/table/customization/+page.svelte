@@ -34,17 +34,17 @@
       title="Custom Empty State"
       description="Override the default empty state with a branded illustration or call-to-action. The snippet renders into the desktop <tbody>, so it must be table-row markup — on mobile the card list shows the plain noDataText instead, since <tr>/<td> cannot live in a <div>. Same for loadingState and errorState."
       code={`<Table {items} {columns}>
-{#snippet emptyState()}
-  <tr>
-    <td colspan="99" class="py-12 text-center">
-      <div class="text-4xl mb-3">\uD83D\uDD0D</div>
-      <p class="text-lg font-semibold">No results found</p>
-      <p class="text-sm text-text-secondary mt-1">
-        Try adjusting your filters or search term.
-      </p>
-    </td>
-  </tr>
-{/snippet}
+  {#snippet emptyState()}
+    <tr>
+      <td colspan="99" class="py-12 text-center">
+        <div class="text-4xl mb-3">\uD83D\uDD0D</div>
+        <p class="text-lg font-semibold">No results found</p>
+        <p class="text-sm text-text-secondary mt-1">
+          Try adjusting your filters or search term.
+        </p>
+      </td>
+    </tr>
+  {/snippet}
 </Table>`}
     >
       <Table items={[]} columns={basicColumns} enableSmartFilter={false}>
@@ -69,15 +69,15 @@
       title="Style Slot Overrides"
       description="Use slotClasses to add custom classes to specific rendering slots, or unstyled to strip all variant classes for full control."
       code={`<Table
-{items}
-{columns}
-slotClasses={{
-  container: 'my-custom-container',
-  row: 'hover:bg-primary-subtle',
-  headerRow: 'bg-surface-elevated',
-  cell: 'px-6',
-  filterBar: 'mb-6'
-}}
+  {items}
+  {columns}
+  slotClasses={{
+    container: 'my-custom-container',
+    row: 'hover:bg-primary-subtle',
+    headerRow: 'bg-surface-elevated',
+    cell: 'px-6',
+    filterBar: 'mb-6'
+  }}
 />`}
       preview={false}
     />
@@ -100,20 +100,20 @@ slotClasses={{
 
 <!-- Granular opt-out: keep the user's column layout, drop their search -->
 <Table
-{items}
-{columns}
-persistenceConfig={{
-  tableId: 'team-roster',
-  persistSearch: false,
-  persistFilters: false
-}}
+  {items}
+  {columns}
+  persistenceConfig={{
+    tableId: 'team-roster',
+    persistSearch: false,
+    persistFilters: false
+  }}
 />
 
 <!-- Tab-scoped only (lost on tab close) -->
 <Table
-{items}
-{columns}
-persistenceConfig={{ tableId: 'team-roster', storage: 'sessionStorage' }}
+  {items}
+  {columns}
+  persistenceConfig={{ tableId: 'team-roster', storage: 'sessionStorage' }}
 />`}
       preview={false}
     />
