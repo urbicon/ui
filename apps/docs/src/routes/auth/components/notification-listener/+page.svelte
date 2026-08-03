@@ -4,6 +4,8 @@
     ApiReference,
     CodeExample,
     DocsLayout as DocsPageLayout,
+    Note,
+    NoteList,
     Section
   } from '@urbicon-ui/docs';
   import { asset, resolve } from '$app/paths';
@@ -20,6 +22,7 @@
 
   const navigation = [
     { id: 'usage', title: 'Usage' },
+    { id: 'accessibility', title: 'Accessibility' },
     { id: 'api', title: 'API Reference' },
     { id: 'installation', title: 'Installation' }
   ];
@@ -50,11 +53,42 @@
     </CodeExample>
   </Section>
 
-  <Section marker="02" id="api" title="API Reference" intent="secondary">
+  <Section marker="02" id="accessibility" title="Accessibility">
+    <NoteList>
+      <Note title="It renders no DOM at all">
+        <p>
+          The component is a lifecycle hook around an
+          <code class="text-text-primary">EventSource</code> — there is no markup, so it adds nothing
+          to the accessibility tree, cannot be focused, and cannot be reached by a screen reader. Placing
+          it anywhere in the page is equally correct.
+        </p>
+      </Note>
+      <Note title="Announcing an arrival is the consumer’s job">
+        <p>
+          Because it renders nothing, a notification arriving over the stream is completely silent
+          for assistive tech. If arrival should be announced, route
+          <code class="text-text-primary">onNotification</code> somewhere that speaks — a live region
+          of your own, a toast, or the badge and centre this component is meant to feed.
+        </p>
+      </Note>
+      <Note title="Reconnection is silent by design">
+        <p>
+          Dropped connections retry with exponential backoff and give up after
+          <code class="text-text-primary">maxReconnectAttempts</code>, reporting through
+          <code class="text-text-primary">onError</code> and
+          <code class="text-text-primary">onReconnect</code> callbacks rather than any UI. If a stalled
+          stream should be visible to the user, that surface is yours to build — silently missing notifications
+          is the failure mode worth designing against.
+        </p>
+      </Note>
+    </NoteList>
+  </Section>
+
+  <Section marker="03" id="api" title="API Reference" intent="secondary">
     <ApiReference props={componentData?.props ?? []} />
   </Section>
 
-  <Section marker="03" id="installation" title="Installation">
+  <Section marker="04" id="installation" title="Installation">
     <CodeExample
       title="Import"
       code={`import { NotificationListener } from '@urbicon-ui/auth';`}
