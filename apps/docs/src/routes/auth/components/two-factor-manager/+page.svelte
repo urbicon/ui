@@ -67,7 +67,7 @@
       <Note title="The secret and the backup codes are real elements">
         <p>
           The TOTP secret renders in a <code class="text-text-primary">&lt;code&gt;</code> element
-          and the ten backup codes in a <code class="text-text-primary">&lt;ul&gt;</code> of
+          and the backup codes in a <code class="text-text-primary">&lt;ul&gt;</code> of
           <code class="text-text-primary">&lt;li&gt;</code>. A reader announces the list with its
           item count and can step through the codes one at a time — the same content as a styled
           grid of divs would be an unnavigable run of characters.
@@ -83,12 +83,15 @@
           numeric keypad and lets the OS offer the code directly.
         </p>
       </Note>
-      <Note title="Step changes are announced, not focused">
+      <Note title="Step changes are neither focused nor announced">
         <p>
-          Moving from idle to setup to backup codes replaces the content without moving focus — only
-          the live region marks the change. The QR code itself is a consumer-supplied snippet, so
-          its alternative text is yours to provide; the secret is always available as text next to
-          it for anyone who cannot scan.
+          Moving from idle to setup to backup codes replaces the content in place, and nothing marks
+          it: focus is not moved, and the live region above carries only errors — a successful step
+          change clears the error first, so the region is empty exactly when the view swaps. A
+          screen-reader user is left on a page whose content silently became something else. Move
+          focus to the new step yourself if this flow matters to you. The QR code is a
+          consumer-supplied snippet, so its alternative text is yours to provide; the secret is
+          always available as text next to it for anyone who cannot scan.
         </p>
       </Note>
     </NoteList>

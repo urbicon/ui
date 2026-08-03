@@ -57,12 +57,13 @@
 
   <Section marker="02" id="accessibility" title="Accessibility">
     <NoteList>
-      <Note title="One live region per form, not one per page">
+      <Note title="One live region per block, not one per page">
         <p>
-          Profile, email, password and account deletion each own a separate
-          <code class="text-text-primary">aria-live="polite"</code> region placed inside that form. With
-          four save buttons on one page, a single shared region would announce "Saved" with no way to
-          tell which of the four it meant.
+          Profile, email and password each own a separate
+          <code class="text-text-primary">aria-live="polite"</code> region inside their own
+          <code class="text-text-primary">&lt;form&gt;</code>, and account deletion has a fourth in
+          its section. With three save buttons on one page, a single shared region would report
+          success with no way to tell which of the three it meant.
         </p>
       </Note>
       <Note title="The danger zone is a named landmark">

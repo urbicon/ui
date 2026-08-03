@@ -83,11 +83,14 @@
           named buttons.
         </p>
       </Note>
-      <Note title="Timestamps are marked up as time">
+      <Note title="The list is a list; the timestamp is not yet a timestamp">
         <p>
-          The relative age renders in a <code class="text-text-primary">&lt;time&gt;</code> element
-          and the list itself is a <code class="text-text-primary">&lt;ul&gt;</code>, so the count
-          is announced before the contents.
+          Items sit in a real <code class="text-text-primary">&lt;ul&gt;</code>, so the count is
+          announced before the contents. The relative age uses a
+          <code class="text-text-primary">&lt;time&gt;</code> element but supplies no
+          <code class="text-text-primary">datetime</code> attribute, and its text ("2 hours ago") is not
+          a valid datetime string — so the element carries no machine-readable date and gives assistive
+          tech nothing the plain text would not. Treat it as styling, not semantics.
         </p>
       </Note>
     </NoteList>

@@ -57,8 +57,12 @@
           carrying
           <code class="text-text-primary">aria-label</code>, so a reader announces it as a named
           list with a known item count instead of four orphaned lines under a text field. It is also
-          the only explanation for why the submit button is disabled — an unlabelled disabled button
-          with no reachable reason is the failure this avoids.
+          the only explanation for why the submit button is disabled — but it renders only once the
+          password field has content, and not at all when
+          <code class="text-text-primary">showRequirements</code> is
+          <code class="text-text-primary">false</code>. In both of those states the button is
+          disabled with no reachable reason at all, so supply your own explanation if you turn the
+          checklist off.
         </p>
       </Note>
       <Note title="Pass/fail is text, not colour">

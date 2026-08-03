@@ -51,15 +51,14 @@
 
   <Section marker="02" id="accessibility" title="Accessibility">
     <NoteList>
-      <Note title="Failures are polite, the success interrupts">
+      <Note title="Both outcomes are announced">
         <p>
           The error region below the heading is always mounted and
           <code class="text-text-primary">aria-live="polite"</code>, so a server or network failure
-          is announced without moving focus. The success state is different: it replaces the whole
-          form with an
-          <code class="text-text-primary">Alert</code>, which carries
-          <code class="text-text-primary">role="alert"</code> from blocks — the form disappearing under
-          the user is a large enough change that it should interrupt rather than queue.
+          is announced without moving focus. On success the form is replaced by an
+          <code class="text-text-primary">Alert</code>, which blocks renders with
+          <code class="text-text-primary">role="alert"</code> — so the outcome reaches the reader on either
+          path, and focus stays where the user left it.
         </p>
       </Note>
       <Note title="A single labelled field">

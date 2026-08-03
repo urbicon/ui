@@ -55,20 +55,22 @@
       <Note title="Nothing is rendered at zero">
         <p>
           The badge only exists while <code class="text-text-primary">count &gt; 0</code>. It leaves
-          no empty element and — when interactive — no focusable stop behind, so tabbing past a
-          quiet bell does not hit a control that announces nothing.
+          no empty element and no focusable stop behind, so tabbing past a quiet bell does not hit a
+          control that announces nothing.
         </p>
       </Note>
-      <Note title="Interactive means button semantics">
+      <Note title="It is always a button, even without a handler">
         <p>
-          Passing <code class="text-text-primary">onclick</code> makes blocks'
-          <code class="text-text-primary">Badge</code>
-          take
+          The component passes <code class="text-text-primary">interactive</code> to blocks'
+          <code class="text-text-primary">Badge</code> unconditionally, so the badge always takes
           <code class="text-text-primary">role="button"</code> and
-          <code class="text-text-primary">tabindex="0"</code>, and it activates on
-          <Kbd keys="Enter" /> and <Kbd keys="Space" />. Without a handler it stays
-          <code class="text-text-primary">role="status"</code>, which is what a passive count should
-          be.
+          <code class="text-text-primary">tabindex="0"</code> — but
+          <code class="text-text-primary">onclick</code> is optional, and the key handler only fires
+          when one was given. A badge rendered without a handler is therefore a focusable stop that
+          announces as a button and does nothing on
+          <Kbd keys="Enter" /> or <Kbd keys="Space" />. Pass an
+          <code class="text-text-primary">onclick</code>, or wrap the count in your own control
+          rather than leaving the badge to stand alone.
         </p>
       </Note>
       <Note title="The accessible name is only the number">
