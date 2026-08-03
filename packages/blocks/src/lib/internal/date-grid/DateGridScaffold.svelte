@@ -184,6 +184,10 @@
                 {ctx.weekNumberFor(week[3] ?? week[0])}
               </span>
             {/if}
+            <!-- `aria-current="date"` uses the controller's raw `isToday`, so it is
+                 never affected by a wrapper's visual `highlightToday` — the same
+                 rule Calendar's five today paths follow. Planner had no date
+                 pointer at all before, the largest a11y gap between the two. -->
             {#each week as date (toIso(date))}
               {@const info = ctx.dayCellInfo(date)}
               <div
@@ -191,6 +195,7 @@
                 data-date={info.isoDate}
                 aria-selected={ctx.isSelected(date) || undefined}
                 aria-disabled={info.isDisabled || undefined}
+                aria-current={info.isToday ? 'date' : undefined}
                 tabindex={info.isFocused ? 0 : -1}
                 class="focus-visible:outline-primary focus-visible:outline-2 focus-visible:outline-offset-[-2px] {cellClass}"
                 onclick={(event) => onCellClick(event, date)}

@@ -154,6 +154,7 @@
     {#each miniGrid.flat() as date (date.getTime())}
       {@const inMonth = date.getMonth() === miniMonth}
       {@const isToday = isSameDay(date, ctx.today)}
+      {@const markToday = isToday && ctx.highlightToday}
       {@const isSelected = ctx.isDateSelected(date)}
       {@const hasEvents = ctx.getEventsForDate(date).length > 0}
       {@const isMiniFirstDay = isSameDay(date, miniGrid[0][0])}
@@ -162,9 +163,9 @@
         type="button"
         class="{slot('miniCalendarDay')}
           {!inMonth ? 'opacity-30' : ''}
-          {isToday && inMonth ? 'bg-primary text-text-on-primary' : ''}
-          {isSelected && !isToday && inMonth ? 'bg-primary-subtle text-primary font-bold' : ''}
-          {hasEvents && inMonth && !isToday && !isSelected ? 'font-bold' : ''}"
+          {markToday && inMonth ? 'bg-primary text-text-on-primary' : ''}
+          {isSelected && !markToday && inMonth ? 'bg-primary-subtle text-primary font-bold' : ''}
+          {hasEvents && inMonth && !markToday && !isSelected ? 'font-bold' : ''}"
         tabindex={isFocusedMini || (!focusedMiniDate && isMiniFirstDay) ? 0 : -1}
         role="gridcell"
         aria-label={formatDateFull(date, ctx.locale)}
@@ -177,7 +178,7 @@
         }}
       >
         {date.getDate()}
-        {#if hasEvents && inMonth && !isToday}
+        {#if hasEvents && inMonth && !markToday}
           <span class="bg-primary absolute bottom-0 left-1/2 size-1 -translate-x-1/2 rounded-full"
           ></span>
         {/if}

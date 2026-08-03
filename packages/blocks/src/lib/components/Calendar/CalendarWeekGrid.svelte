@@ -120,26 +120,29 @@
           ? { x: ctx.navDirection === 'forward' ? -40 : 40, duration: 150 }
           : { duration: 0 }}
       >
-        <!-- Day headers row -->
+        <!-- Day headers row. `markToday` gates the *look* (this is the
+             full-bleed primary block issue #97 was filed over); `aria-current`
+             stays on the raw `isToday` so the semantics survive the preference. -->
         <div class="grid grid-cols-7">
           {#each ctx.weekDates as date, dayIdx (toIso(date))}
             {@const isToday = isSameDay(date, ctx.today)}
+            {@const markToday = isToday && ctx.highlightToday}
             {@const isSelected = ctx.isDateSelected(date)}
             <button
               type="button"
-              class="{slot('weekColumnHeader')} {isToday
+              class="{slot('weekColumnHeader')} {markToday
                 ? 'bg-primary text-text-on-primary'
-                : ''} {isSelected && !isToday ? 'bg-primary-subtle' : ''}"
+                : ''} {isSelected && !markToday ? 'bg-primary-subtle' : ''}"
               data-weekday={dayIdx}
               onclick={() => handleDayClick(date)}
               tabindex={dayIdx === 0 ? 0 : -1}
               aria-label="{weekdayNames[dayIdx]} {date.getDate()}"
               aria-current={isToday ? 'date' : undefined}
             >
-              <span class="{slot('weekColumnDayName')} {isToday ? 'text-text-on-primary' : ''}">
+              <span class="{slot('weekColumnDayName')} {markToday ? 'text-text-on-primary' : ''}">
                 {weekdayNames[dayIdx]}
               </span>
-              <span class="{slot('weekColumnDayNumber')} {isToday ? 'text-text-on-primary' : ''}">
+              <span class="{slot('weekColumnDayNumber')} {markToday ? 'text-text-on-primary' : ''}">
                 {date.getDate()}
               </span>
             </button>

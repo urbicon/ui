@@ -16,9 +16,13 @@
   const ctx = getCalendarContext();
   const slot = createSlotHelper(ctx);
 
-  // Slot height in px — consistent per-hour height across intervals
-  const hourHeight = $derived(ctx.size === 'sm' ? 40 : ctx.size === 'lg' ? 64 : 48);
-  const slotHeight = $derived(ctx.timeGridInterval === 30 ? hourHeight / 2 : hourHeight);
+  // Slot height in px — consistent per-hour height across intervals. The hour
+  // height comes from the context already resolved (the `timeGridHourHeight`
+  // prop, else the size-derived default), so this file no longer owns the
+  // size→height coupling that made a long day's card height unreachable.
+  const slotHeight = $derived(
+    ctx.timeGridInterval === 30 ? ctx.timeGridHourHeight / 2 : ctx.timeGridHourHeight
+  );
   const timeSlots = $derived(
     generateTimeSlots(ctx.timeGridStartHour, ctx.timeGridEndHour, ctx.timeGridInterval)
   );
