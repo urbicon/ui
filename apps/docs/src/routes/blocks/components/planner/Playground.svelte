@@ -56,7 +56,7 @@
       'view',
       'variant',
       'size',
-      'showWeekNumber',
+      'showWeekNumbers',
       'highlightToday',
       'highlightWeekend',
       'animated',
@@ -72,7 +72,7 @@
           { label: 'month', value: 'month' }
         ]
       },
-      showWeekNumber: { label: 'Week Number' },
+      showWeekNumbers: { label: 'Week Numbers' },
       highlightToday: { label: 'Highlight Today', defaultValue: true },
       highlightWeekend: { label: 'Highlight Weekend' },
       animated: { defaultValue: true }
@@ -103,7 +103,7 @@
         view={values.view}
         variant={values.variant}
         size={values.size}
-        showWeekNumber={values.showWeekNumber}
+        showWeekNumbers={values.showWeekNumbers}
         highlightToday={values.highlightToday}
         highlightWeekend={values.highlightWeekend}
         animated={values.animated}

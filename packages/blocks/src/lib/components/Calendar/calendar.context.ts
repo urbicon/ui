@@ -40,6 +40,14 @@ export interface CalendarContext {
   readonly showWeekNumbers: boolean;
   readonly showOutsideDays: boolean;
   readonly fixedWeeks: boolean;
+  /**
+   * Whether today gets its visual marker. Every view draws today itself — the
+   * month cell through the `dayState` variant, the week/year/agenda/mini
+   * headers through inline classes — so the flag lives here rather than being
+   * threaded prop-by-prop; that is what keeps the five paths in step. Read it
+   * for *styling only*: `aria-current="date"` stays unconditional.
+   */
+  readonly highlightToday: boolean;
   readonly disabled: boolean;
 
   // Navigation constraints
@@ -99,6 +107,10 @@ export interface CalendarContext {
   readonly timeGridStartHour: number;
   readonly timeGridEndHour: number;
   readonly timeGridInterval: 30 | 60;
+  /** Resolved pixel height of one hour row — the `timeGridHourHeight` prop, or
+   * the `size`-derived default when it is unset. Always a number, so the grid
+   * never re-derives the fallback. */
+  readonly timeGridHourHeight: number;
 
   // Event popover
   readonly eventPopover: boolean;

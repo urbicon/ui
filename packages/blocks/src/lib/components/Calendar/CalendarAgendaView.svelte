@@ -51,7 +51,10 @@
           month: 'long',
           year: 'numeric'
         }),
-        isToday: ctx.isDateToday(d),
+        // Styling-only flag (the agenda has no aria-current — the day label is a
+        // div, and the group is named by `aria-label`), so it folds in
+        // highlightToday directly.
+        isToday: ctx.highlightToday && ctx.isDateToday(d),
         events: dayEvents
       });
     }

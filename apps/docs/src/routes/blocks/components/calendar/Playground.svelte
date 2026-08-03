@@ -97,6 +97,7 @@
       'size',
       'selectionMode',
       'showWeekNumbers',
+      'highlightToday',
       'showOutsideDays',
       'fixedWeeks',
       'eventPopover',
@@ -107,6 +108,7 @@
     overrides: {
       selectionMode: { label: 'Selection Mode' },
       showWeekNumbers: { label: 'Week Numbers' },
+      highlightToday: { label: 'Highlight Today', defaultValue: true },
       showOutsideDays: { label: 'Outside Days', defaultValue: true },
       fixedWeeks: { label: 'Fixed Weeks' },
       eventPopover: { label: 'Event Popover' },
@@ -139,6 +141,7 @@
         size={values.size}
         selectionMode={values.selectionMode}
         showWeekNumbers={values.showWeekNumbers}
+        highlightToday={values.highlightToday}
         showOutsideDays={values.showOutsideDays}
         fixedWeeks={values.fixedWeeks}
         eventPopover={values.eventPopover}

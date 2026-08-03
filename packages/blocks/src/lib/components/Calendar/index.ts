@@ -6,6 +6,7 @@ import type {
   CalendarEventCategory,
   CalendarSelection,
   CalendarViewMode,
+  DateRange,
   DayCellContext,
   EventItemContext,
   HeaderContext
@@ -204,6 +205,18 @@ export interface CalendarProps
   showOutsideDays?: boolean;
   /** Always show 6 weeks in the grid. @default false */
   fixedWeeks?: boolean;
+  /**
+   * Visually mark today across every view — the month cell, the week column
+   * header, the year mini-day, the agenda day header and the mini calendar.
+   * `aria-current="date"` is **not** affected: it is a semantic pointer, so a
+   * screen-reader user keeps the orientation a purely visual preference should
+   * not take away. Neither is the time grid's current-time line, which marks the
+   * current *time* rather than the day (see `timeGridHourHeight`'s neighbours).
+   * Matches `Planner`'s prop of the same name.
+   * @default true
+   * @summary Whether today gets its visual marker. Never touches aria-current.
+   */
+  highlightToday?: boolean;
 
   // === Navigation constraints ===
   /** Earliest selectable/navigable date. */
@@ -226,6 +239,18 @@ export interface CalendarProps
   onValueChange?: (value: CalendarSelection) => void;
   /** Fires when the displayed month/year changes via navigation. */
   onMonthChange?: (month: number, year: number) => void;
+  /**
+   * Fires after **any** navigation, in every view, with the new reference date
+   * and the visible range — load data here. The per-view callbacks
+   * (`onMonthChange` / `onWeekChange` / `onDayChange`) still fire and are the
+   * better fit when you only care about one view; this one spares you
+   * reconstructing the window yourself. The range is view-accurate: month spans
+   * the padded cell grid (spill days included), week/day the visible days, year
+   * 1 Jan–31 Dec, agenda `agendaDays` from the 1st. Matches `Planner`'s
+   * `onNavigate`.
+   * @summary Fires on every navigation with the new visible range — the data-loading hook.
+   */
+  onNavigate?: (date: Date, range: DateRange) => void;
   /** Fires when the view mode changes. */
   onViewChange?: (view: CalendarViewMode) => void;
   /** Fires when a date cell is clicked (regardless of selection change). */
@@ -270,6 +295,17 @@ export interface CalendarProps
   timeGridEndHour?: number;
   /** Time slot interval in minutes. @default 60 */
   timeGridInterval?: 30 | 60;
+  /**
+   * Height of one hour row in the time grid, in pixels. Left unset it follows
+   * `size` (sm 40 · md 48 · lg 64), which is the only reason a nine-hour day
+   * costs 432 px of card height whether or not the consumer has it. Set a
+   * smaller number for a compact day, a larger one for finer slots. Drives the
+   * label column, the slot rows, the grid's `min-height` and the auto-scroll
+   * to the current time, so it is a number rather than a CSS variable — the
+   * scroll math has to read it.
+   * @summary Pixel height of one hour row in the time grid. Follows `size` when unset.
+   */
+  timeGridHourHeight?: number;
 
   // === Event popover ===
   /** Show a rich popover on hover/focus for days with events (month view). @default false */

@@ -22,7 +22,11 @@
       year,
       label: formatMonthShort(month, ctx.locale),
       grid: getMonthGrid(year, month, ctx.weekStartsOn),
-      isCurrent: month === ctx.today.getMonth() && year === ctx.today.getFullYear(),
+      // The current-month ring is the year view's today marker, so it follows
+      // `highlightToday` like the day pills below — otherwise switching the
+      // marker off in month/week view still leaves the year view shouting.
+      isCurrent:
+        ctx.highlightToday && month === ctx.today.getMonth() && year === ctx.today.getFullYear(),
       isDisplayed: month === ctx.displayedMonth && year === ctx.displayedYear
     }))
   );
@@ -128,16 +132,16 @@
                 {@const inMonth = date.getMonth() === mini.month}
                 {@const events = ctx.getEventsForDate(date)}
                 {@const hasEvents = events.length > 0}
-                {@const isToday = isSameDay(date, ctx.today)}
+                {@const markToday = isSameDay(date, ctx.today) && ctx.highlightToday}
                 <span
                   class="{slot('yearMiniDay')}
                   {!inMonth ? 'invisible' : ''}
                   {hasEvents && inMonth ? 'text-text-primary bg-primary-subtle/30 font-bold' : ''}
-                  {isToday && inMonth ? 'bg-primary text-text-on-primary rounded-full' : ''}"
+                  {markToday && inMonth ? 'bg-primary text-text-on-primary rounded-full' : ''}"
                 >
                   {#if inMonth}
                     {date.getDate()}
-                    {#if hasEvents && !isToday}
+                    {#if hasEvents && !markToday}
                       <span
                         class="{slot('yearMiniDot')} block"
                         style="background-color: var(--color-primary)"

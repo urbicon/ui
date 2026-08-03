@@ -83,7 +83,31 @@ export interface PlannerProps<T = unknown>
    */
   locale?: string;
   /** Show the ISO week-number column on the left. @default false */
+  showWeekNumbers?: boolean;
+  /**
+   * Renamed to `showWeekNumbers` for parity with `Calendar`, which has carried
+   * the plural since long before Planner existed. Still honoured, and warns in
+   * DEV; drop it before 1.0.
+   * @deprecated Use `showWeekNumbers`.
+   * @summary Deprecated spelling of `showWeekNumbers`.
+   */
   showWeekNumber?: boolean;
+
+  // ── Constraints ──────────────────────────────────────
+  /** Earliest navigable/selectable date. */
+  minDate?: Date;
+  /** Latest navigable/selectable date. */
+  maxDate?: Date;
+  /** Specific dates that cannot be selected. */
+  disabledDates?: Date[];
+  /** Predicate for dates that cannot be selected, on top of `minDate`/`maxDate`. */
+  isDateDisabled?: (date: Date) => boolean;
+  /**
+   * Always render 6 week rows in `view="month"`, so the grid keeps its height
+   * across months of 4, 5 and 6 rows. Ignored in `week`/`range`.
+   * @default false
+   */
+  fixedWeeks?: boolean;
 
   // ── State ────────────────────────────────────────────
   /** Reference date the view is anchored on. Supports `bind:value`. @default today */

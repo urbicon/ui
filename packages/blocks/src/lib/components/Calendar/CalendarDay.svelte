@@ -33,6 +33,16 @@
   const events = $derived(ctx.getEventsForDate(date));
   const hasEvents = $derived(events.length > 0);
 
+  // `highlightToday={false}` drops out of the *visual* ladder only: a today cell
+  // then styles as whatever it would be without today (selected, or default), so
+  // a selected today keeps its selection ring instead of falling through to
+  // nothing. `data-state` follows the ladder because it mirrors the applied
+  // style. The `aria-current="date"` in the markup keeps using the raw `isToday`
+  // on purpose — highlightToday is a visual preference, and a screen-reader user
+  // must not lose the date pointer because the consumer only wanted the colour
+  // gone. Same rule in the four other views.
+  const markToday = $derived(isToday && ctx.highlightToday);
+
   const dayState = $derived.by(() => {
     if (isDisabled) return 'disabled' as const;
     if (isOutsideMonth) return 'outsideMonth' as const;
@@ -41,9 +51,9 @@
     if (isInRange) return 'inRange' as const;
     if (isPreviewRangeEnd) return 'previewRangeEnd' as const;
     if (isInPreviewRange) return 'previewRange' as const;
-    if (isToday && isSelected) return 'todaySelected' as const;
+    if (markToday && isSelected) return 'todaySelected' as const;
     if (isSelected) return 'selected' as const;
-    if (isToday) return 'today' as const;
+    if (markToday) return 'today' as const;
     return 'default' as const;
   });
 

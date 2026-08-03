@@ -2,7 +2,7 @@
   import { resolveDateLocale, useI18n } from '@urbicon-ui/i18n';
   import { useBlocksI18n } from '$lib';
   import { getBlocksConfig, resolveSlotClasses } from '$lib/provider';
-  import { stripTime } from '$lib/date';
+  import { stripTime, toIso } from '$lib/date';
   import {
     DateGridController,
     DateGridScaffold,
@@ -37,7 +37,14 @@
     rangeEnd = $bindable(undefined),
     weekStartsOn = 1,
     locale = 'auto',
-    showWeekNumber = false,
+    showWeekNumbers = false,
+    showWeekNumber: showWeekNumberDeprecated,
+    // Constraints
+    minDate,
+    maxDate,
+    disabledDates = [],
+    isDateDisabled: isDateDisabledProp,
+    fixedWeeks = false,
     // State
     value = $bindable(undefined),
     selectedDate = $bindable(undefined),
@@ -77,6 +84,24 @@
 
   const bt = useBlocksI18n();
 
+  // --- Deprecated `showWeekNumber` (singular) ---
+  // Renamed to the plural for parity with Calendar. Honoured rather than
+  // silently dropped, and loud in DEV — the failure mode of a silent rename is a
+  // week-number column that just stops appearing, with nothing to grep for.
+  // Same `import.meta.env?.DEV && console.warn` idiom as DateGridController's
+  // inverted-bounds warning.
+  const effectiveShowWeekNumbers = $derived(showWeekNumbers || showWeekNumberDeprecated === true);
+  // Checked once at setup rather than in an $effect: the realistic mistake is a
+  // statically-passed prop, and setup also runs during SSR, where an $effect
+  // would stay silent.
+  // svelte-ignore state_referenced_locally
+  if (import.meta.env?.DEV && showWeekNumberDeprecated !== undefined) {
+    console.warn(
+      '[Planner] `showWeekNumber` is deprecated — rename it to `showWeekNumbers` ' +
+        '(plural), matching Calendar. The old name still works but will be removed.'
+    );
+  }
+
   // --- BlocksConfig integration ---
   const blocksConfig = getBlocksConfig();
   const unstyled = $derived(unstyledProp || blocksConfig?.unstyled || false);
@@ -103,6 +128,15 @@
     if (value !== undefined) value = d;
   }
 
+  // --- Extra disable predicate (min/max are the controller's) ---
+  // Mirrors Calendar: the explicit date list is pre-hashed on the ISO key so a
+  // long `disabledDates` costs one lookup per cell instead of a linear scan.
+  const disabledDatesSet = $derived(new Set(disabledDates.map((d) => toIso(d))));
+  function checkExtraDisabled(date: Date): boolean {
+    if (isDateDisabledProp?.(date)) return true;
+    return disabledDatesSet.has(toIso(date));
+  }
+
   // --- Headless mechanics: Planner owns the source of truth, the controller
   // computes geometry/queries and reports navigation/selection back. Single
   // selection only (D5); range/multiple stay Calendar's. ---
@@ -115,6 +149,9 @@
     },
     get weekStartsOn() {
       return weekStartsOn;
+    },
+    get fixedWeeks() {
+      return fixedWeeks;
     },
     get locale() {
       return resolvedLocale;
@@ -132,14 +169,15 @@
       return rangeEnd;
     },
     get minDate() {
-      return undefined;
+      return minDate;
     },
     get maxDate() {
-      return undefined;
+      return maxDate;
     },
     get disabled() {
       return disabled;
     },
+    isDateDisabled: checkExtraDisabled,
     onNavigate: handleNavigate,
     onSelect: handleSelect
   });
@@ -183,6 +221,7 @@
       isSelected: controller.isSelected(info.date),
       isWeekend: info.isWeekend,
       isOutsideRange: info.isOutside,
+      isDisabled: info.isDisabled,
       weekNumber: info.weekNumber,
       weekday: weekdayName(info.date),
       selectDate: () => controller.selectDate(info.date)
@@ -288,7 +327,7 @@
 
   <DateGridScaffold
     class={slot('grid', !isWeek ? 'border-border-subtle border-r border-b' : '')}
-    {showWeekNumber}
+    showWeekNumber={effectiveShowWeekNumbers}
     swipeable={swipeableProp && !disabled}
     {animated}
     ariaLabel={bt('planner.grid')}
@@ -309,8 +348,11 @@
     <span class="inline-flex items-center justify-center gap-1">
       {info.weekday}
       {#if isWeek && info.date}
-        {@const isToday = controller.isToday(info.date)}
-        <span class={['tabular-nums', isToday && 'text-primary font-bold']}>
+        <!-- `highlightToday` used to gate only the cell date below, never this
+             header number — so switching the marker off still left today bold
+             and primary-coloured at the top of the week column. -->
+        {@const markToday = highlightToday && controller.isToday(info.date)}
+        <span class={['tabular-nums', markToday && 'text-primary font-bold']}>
           {info.date.getDate()}
         </span>
       {/if}

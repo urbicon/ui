@@ -56,6 +56,7 @@
     // Grid
     showOutsideDays = true,
     fixedWeeks = false,
+    highlightToday = true,
     // Navigation constraints
     minDate,
     maxDate,
@@ -72,6 +73,7 @@
     onEventClick,
     onWeekChange,
     onDayChange,
+    onNavigate,
     onDateCreate,
     onTimeSlotCreate,
     // Custom rendering
@@ -87,6 +89,7 @@
     timeGridStartHour = 7,
     timeGridEndHour = 20,
     timeGridInterval = 60,
+    timeGridHourHeight,
     // Event popover
     eventPopover = false,
     // Mini calendar
@@ -245,11 +248,22 @@
     onSelect: handleSelect
   });
 
+  // The controller hands back its own cell range, which is right for month/week/
+  // day but wrong for the two views Calendar maps onto month geometry: year spans
+  // a whole year, agenda `agendaDays` from the 1st. `visibleRange` already
+  // computes exactly that per view (recurrence expansion relies on it), so
+  // onNavigate reports it rather than the controller's argument. Read after the
+  // `referenceDate` assignment, so the $derived has already been invalidated.
+  function emitNavigate(next: Date) {
+    onNavigate?.(next, { start: visibleRange.start, end: visibleRange.end });
+  }
+
   function handleNavigate(next: Date) {
     referenceDate = next;
     if (view === 'week') onWeekChange?.(next);
     else if (view === 'day') onDayChange?.(next);
     else onMonthChange?.(next.getMonth(), next.getFullYear());
+    emitNavigate(next);
   }
 
   function handleSelect(selection: DateGridSelection, date: Date) {
@@ -266,6 +280,10 @@
       const anchor = clampDate(new Date(date.getFullYear(), date.getMonth(), 1), minDate, maxDate);
       referenceDate = anchor;
       onMonthChange?.(anchor.getMonth(), anchor.getFullYear());
+      // The spill jump moves the visible window without going through the
+      // controller, so onNavigate has to be emitted here too — a data loader
+      // subscribed to it must not miss the one navigation a *click* triggers.
+      emitNavigate(anchor);
     }
     onDateClick?.(date);
     // Always assign the $bindable — no controlled/uncontrolled split. With
@@ -289,6 +307,15 @@
     const timeout = setTimeout(() => controller.refreshToday(), msUntilMidnight);
     return () => clearTimeout(timeout);
   });
+
+  // --- Time grid: the hour row height, resolved once ---
+  // Unset follows `size`, the coupling that made a long day's card height
+  // unreachable from the outside (issue #97). Resolved here rather than in
+  // CalendarTimeGrid so the grid reads one number and both its callers (week +
+  // day view) get the same one.
+  const resolvedHourHeight = $derived(
+    timeGridHourHeight ?? (size === 'sm' ? 40 : size === 'lg' ? 64 : 48)
+  );
 
   // --- Time grid: week/day always show it; month/year/agenda respect the prop ---
   const showTimeGrid = $derived.by(() => {
@@ -553,6 +580,9 @@
     get fixedWeeks() {
       return fixedWeeks;
     },
+    get highlightToday() {
+      return highlightToday;
+    },
     get disabled() {
       return disabled;
     },
@@ -629,6 +659,9 @@
     },
     get timeGridInterval() {
       return timeGridInterval;
+    },
+    get timeGridHourHeight() {
+      return resolvedHourHeight;
     },
     get eventPopover() {
       return eventPopover;
