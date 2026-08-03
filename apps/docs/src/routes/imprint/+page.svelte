@@ -28,7 +28,7 @@
       Felix Urban<br />
       Tannenstr. 27<br />
       40476 Düsseldorf<br />
-      Deutschland
+      Deutschland W-IdNr. DE404515471
     </p>
   </section>
 
@@ -37,8 +37,8 @@
       // Kontakt
     </h2>
     <p class="text-text-secondary mt-4 leading-relaxed">
-      E-Mail: <a href="mailto:info@urbicon.de" class="text-primary hover:underline"
-        >info@urbicon.de</a
+      E-Mail: <a href="mailto:ui.info@urbicon.de" class="text-primary hover:underline"
+        >ui.info@urbicon.de</a
       >
     </p>
   </section>
