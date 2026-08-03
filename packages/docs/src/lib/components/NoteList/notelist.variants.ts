@@ -17,7 +17,15 @@ import { type SlotNames, tv, type VariantProps } from '@urbicon-ui/blocks';
  */
 export const noteListVariants = tv({
   slots: {
-    root: ['rounded-2xl border border-border-subtle bg-surface-elevated p-6'],
+    // `rounded-contain`, not a raw step. This was `rounded-2xl` — 1rem against
+    // the container token's 0.125rem, a factor of eight — and the only raw
+    // radius anywhere in this package (22 of 23 already used the semantic
+    // tokens). The docs site teaches the rule it was breaking, on
+    // /customization/tier-system: "--radius-contain: var(--radius-xs);
+    // /* container — Card, Alert, Dialog */". A note card is a container, and
+    // Card and Alert both use the token, so a project that retunes the
+    // container radius now moves this with it instead of leaving it behind.
+    root: ['rounded-contain border border-border-subtle bg-surface-elevated p-6'],
     list: ['divide-y divide-border-subtle']
   },
   variants: {
