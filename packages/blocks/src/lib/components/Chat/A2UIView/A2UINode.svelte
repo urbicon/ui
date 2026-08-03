@@ -9,6 +9,9 @@
     Separator,
     Skeleton,
     Slider,
+    Tab,
+    TabItem,
+    TabPanel,
     Textarea
   } from '$lib/primitives';
   import { resolveIcon } from '$lib/icons';
@@ -386,6 +389,53 @@
   function onDtTimeChange(nextTime: string | null): void {
     writeDateTime(dtMode === 'datetime' ? dtParts.date : '', nextTime ?? '');
   }
+
+  // ── Tabs ───────────────────────────────────────────────────────────────────
+  // Pair each `tabs` item's title with its resolved panel by consuming child
+  // nodes by id (in order), NOT by raw index: a cyclic item.child is dropped
+  // from node.children entirely (no placeholder, unlike a dangling ref), which
+  // would shift every later panel up by one under a positional zip. Each item
+  // gets a stable synthetic value, so the keyed {#each} and the `tab-${value}` /
+  // `tabpanel-${value}` DOM ids stay unique even when two items name the same
+  // child. The value is prefixed with `node.key` (unique per rendered POSITION,
+  // unlike `node.id`) so a Tabs repeated by a `{ componentId, path }` template
+  // does not emit the same tab id once per data row.
+  const tabItems = $derived.by(() => {
+    const items = raw('tabs');
+    if (!Array.isArray(items))
+      return [] as Array<{ value: string; title: string; child: A2uiRenderNode | undefined }>;
+    const pool = node.children.filter((child) => child.slot === 'tabs');
+    const used = new Set<number>();
+    return items.map((item, i) => {
+      const entry =
+        item !== null && typeof item === 'object' ? (item as Record<string, unknown>) : undefined;
+      let matched: A2uiRenderNode | undefined;
+      if (typeof entry?.child === 'string') {
+        for (let j = 0; j < pool.length; j++) {
+          if (!used.has(j) && pool[j].id === entry.child) {
+            matched = pool[j];
+            used.add(j);
+            break;
+          }
+        }
+      }
+      return {
+        value: `${node.key}-tab-${i}`,
+        title: entry ? text(context.resolve(entry.title, node.scopePrefix).value) : '',
+        child: matched
+      };
+    });
+  });
+
+  // Which tab is open is client-local — A2UI has no selection binding for Tabs,
+  // so nothing is written back to the data model. The selection is validated on
+  // READ rather than clamped on write: an `updateComponents` may shorten the
+  // list, and a stored id pointing at a tab that no longer exists would leave
+  // the strip with no active tab and an empty panel area.
+  let selectedTab = $state('');
+  const activeTab = $derived(
+    tabItems.some((item) => item.value === selectedTab) ? selectedTab : (tabItems[0]?.value ?? '')
+  );
 </script>
 
 {#snippet faultChip(label: string)}
@@ -460,6 +510,28 @@
       {@render renderChild(node.children[0], blockCtx)}
     {/if}
   </Card>
+{:else if component === 'Tabs'}
+  <Tab
+    value={activeTab}
+    onValueChange={(next) => (selectedTab = next)}
+    style={weightStyle}
+    aria-label={ariaLabel}
+  >
+    {#snippet tabs()}
+      {#each tabItems as item (item.value)}
+        <TabItem value={item.value}>{item.title}</TabItem>
+      {/each}
+    {/snippet}
+    {#snippet panels()}
+      {#each tabItems as item (item.value)}
+        <TabPanel value={item.value}>
+          {#if item.child}
+            {@render renderChild(item.child, blockCtx)}
+          {/if}
+        </TabPanel>
+      {/each}
+    {/snippet}
+  </Tab>
 {:else if component === 'Divider'}
   <Separator
     orientation={enumOr('axis', 'horizontal') === 'vertical' ? 'vertical' : 'horizontal'}

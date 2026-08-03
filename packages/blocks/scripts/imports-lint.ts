@@ -105,6 +105,9 @@ const ALLOWLIST: ReadonlyArray<readonly [edge: string, why: string]> = [
   ['A2UINode -> Separator', 'essential composition — renders the trusted catalog (Divider)'],
   ['A2UINode -> Skeleton', 'essential composition — streaming placeholder for pending refs'],
   ['A2UINode -> Slider', 'essential composition — renders the trusted catalog (Slider)'],
+  ['A2UINode -> Tab', 'essential composition — renders the trusted catalog (Tabs)'],
+  ['A2UINode -> TabItem', 'essential composition — renders the trusted catalog (Tabs)'],
+  ['A2UINode -> TabPanel', 'essential composition — renders the trusted catalog (Tabs)'],
   ['A2UINode -> TimeInput', 'essential composition — renders the trusted catalog (DateTimeInput)'],
   [
     'A2UINode -> Textarea',

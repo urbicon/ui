@@ -10,29 +10,29 @@
   },
   "sizes": {
     "A2UIView": {
-      "min": 374308,
-      "gz": 97598,
+      "min": 387983,
+      "gz": 100730,
       "net": {
-        "min": 360287,
-        "gz": 93014
+        "min": 373961,
+        "gz": 96143
       },
       "lazy": {
         "min": 7545,
-        "gz": 3275
+        "gz": 3276
       },
       "pkg": "blocks",
       "exports": ["A2UIView"]
     },
     "A2UIViewUrbicon": {
-      "min": 483334,
-      "gz": 122514,
+      "min": 497000,
+      "gz": 125835,
       "net": {
-        "min": 469302,
-        "gz": 117923
+        "min": 482976,
+        "gz": 121263
       },
       "lazy": {
         "min": 7545,
-        "gz": 3277
+        "gz": 3276
       },
       "pkg": "blocks",
       "exports": ["A2UIView", "urbiconA2uiCatalog"]

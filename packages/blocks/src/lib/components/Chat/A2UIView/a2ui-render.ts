@@ -167,7 +167,8 @@ interface WalkState {
 /**
  * Resolve a component's child references by walking its spec's child-bearing
  * props (`childId` = one id; `childList` = an id array or a `{ componentId,
- * path }` template; `labeledChildren` = a `[{ label, child }]` list). Kind-
+ * path }` template; `labeledChildren` = a `[{ <labelKey>, child }]` list, whose
+ * child key is always `child` regardless of the spec's `labelKey`). Kind-
  * driven rather than reading fixed `child`/`children` keys, so a catalog may
  * name its child slots freely (Card header/footer, Section child, Accordion
  * items, …). Behaviour is unchanged for the Basic catalog, whose only child

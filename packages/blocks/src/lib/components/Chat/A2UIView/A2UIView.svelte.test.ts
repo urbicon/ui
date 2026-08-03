@@ -798,3 +798,291 @@ describe('A2UIView — DateTimeInput', () => {
     }
   });
 });
+
+describe('A2UIView — Tabs', () => {
+  it('renders one tab per item with the first panel active', () => {
+    const issues: A2uiValidationIssue[] = [];
+    render({
+      onValidationError: (next) => issues.push(...next),
+      payload: [
+        surface(),
+        comps([
+          {
+            id: 'root',
+            component: 'Tabs',
+            tabs: [
+              { title: 'Details', child: 'p1' },
+              { title: 'History', child: 'p2' }
+            ]
+          },
+          { id: 'p1', component: 'Text', text: 'PANEL-ONE' },
+          { id: 'p2', component: 'Text', text: 'PANEL-TWO' }
+        ])
+      ]
+    });
+    expect(issues.filter((i) => i.severity === 'error')).toEqual([]);
+    const tabs = screen.getAllByRole('tab');
+    expect(tabs.map((t) => t.textContent?.trim())).toEqual(['Details', 'History']);
+    expect(tabs[0].getAttribute('aria-selected')).toBe('true');
+    expect(tabs[1].getAttribute('aria-selected')).toBe('false');
+    expect(screen.getByRole('tabpanel').textContent).toContain('PANEL-ONE');
+  });
+
+  it('switches the visible panel on click (selection is client-local)', async () => {
+    const user = userEvent.setup();
+    render({
+      payload: [
+        surface(),
+        comps([
+          {
+            id: 'root',
+            component: 'Tabs',
+            tabs: [
+              { title: 'First', child: 'p1' },
+              { title: 'Second', child: 'p2' }
+            ]
+          },
+          { id: 'p1', component: 'Text', text: 'PANEL-ONE' },
+          { id: 'p2', component: 'Text', text: 'PANEL-TWO' }
+        ])
+      ]
+    });
+    await user.click(screen.getByRole('tab', { name: 'Second' }));
+    flushSync();
+    const panel = screen.getByRole('tabpanel');
+    expect(panel.textContent).toContain('PANEL-TWO');
+    expect(panel.textContent).not.toContain('PANEL-ONE');
+    expect(screen.getByRole('tab', { name: 'Second' }).getAttribute('aria-selected')).toBe('true');
+  });
+
+  it('resolves a { path } binding in a tab title', () => {
+    render({
+      payload: [
+        surface(),
+        data({ who: 'Ada' }),
+        comps([
+          {
+            id: 'root',
+            component: 'Tabs',
+            tabs: [{ title: { path: '/who' }, child: 'p1' }]
+          },
+          { id: 'p1', component: 'Text', text: 'body' }
+        ])
+      ]
+    });
+    expect(screen.getByRole('tab', { name: 'Ada' })).toBeTruthy();
+  });
+
+  it('keeps titles aligned with panels when an earlier item cycles', async () => {
+    const user = userEvent.setup();
+    render({
+      payload: [
+        surface(),
+        comps([
+          {
+            id: 'root',
+            component: 'Tabs',
+            tabs: [
+              { title: 'Alpha', child: 'root' }, // cyclic → dropped from node.children
+              { title: 'Beta', child: 'pb' },
+              { title: 'Gamma', child: 'pc' }
+            ]
+          },
+          { id: 'pb', component: 'Text', text: 'PANEL-BETA' },
+          { id: 'pc', component: 'Text', text: 'PANEL-GAMMA' }
+        ])
+      ]
+    });
+    // All three titles render — only the cyclic item's panel is empty.
+    expect(screen.getAllByRole('tab')).toHaveLength(3);
+    const beta = screen.getByRole('tab', { name: 'Beta' });
+    await user.click(beta);
+    flushSync();
+    // Beta's panel must be PANEL-BETA, not shifted to PANEL-GAMMA by a positional zip.
+    const panelId = beta.getAttribute('aria-controls');
+    const panel = panelId ? document.getElementById(panelId) : null;
+    expect(panel?.textContent).toContain('PANEL-BETA');
+    expect(panel?.textContent).not.toContain('PANEL-GAMMA');
+  });
+
+  it('emits unique tab/panel ids when two items name the same child', () => {
+    render({
+      payload: [
+        surface(),
+        comps([
+          {
+            id: 'root',
+            component: 'Tabs',
+            tabs: [
+              { title: 'One', child: 'shared' },
+              { title: 'Two', child: 'shared' }
+            ]
+          },
+          { id: 'shared', component: 'Text', text: 'panel' }
+        ])
+      ]
+    });
+    const ids = screen.getAllByRole('tab').map((t) => t.id);
+    expect(ids).toHaveLength(2);
+    expect(new Set(ids).size).toBe(2);
+  });
+
+  it('warns (not errors) on an empty tabs array', () => {
+    const issues: A2uiValidationIssue[] = [];
+    render({
+      onValidationError: (next) => issues.push(...next),
+      payload: [surface(), comps([{ id: 'root', component: 'Tabs', tabs: [] }])]
+    });
+    expect(issues.filter((i) => i.severity === 'error')).toEqual([]);
+    expect(issues.some((i) => i.code === A2UI_ISSUE_CODES.TABS_EMPTY)).toBe(true);
+    expect(screen.queryAllByRole('tab')).toHaveLength(0);
+  });
+
+  it('rejects the whole prop when an item uses `label` instead of the spec `title`', () => {
+    const issues: A2uiValidationIssue[] = [];
+    render({
+      onValidationError: (next) => issues.push(...next),
+      payload: [
+        surface(),
+        comps([
+          { id: 'root', component: 'Tabs', tabs: [{ label: 'Wrong', child: 'p1' }] },
+          { id: 'p1', component: 'Text', text: 'body' }
+        ])
+      ]
+    });
+    expect(issues.some((i) => i.code === A2UI_ISSUE_CODES.TYPE_MISMATCH)).toBe(true);
+    // `tabs` is required, so dropping it makes the component a visible fault.
+    expect(screen.queryAllByRole('tab')).toHaveLength(0);
+  });
+
+  // Every payload-driven keyed {#each} is an each_key_duplicate surface, and a
+  // Tabs strip renders TWO of them (triggers + panels) plus two DOM id spaces.
+  // Mount AND unmount must survive any shape the model can emit.
+  describe('never throws on adversarial Tabs payloads', () => {
+    const attacks: Record<string, unknown[]> = {
+      'duplicate titles': [
+        surface(),
+        comps([
+          {
+            id: 'root',
+            component: 'Tabs',
+            tabs: [
+              { title: 'Same', child: 'p1' },
+              { title: 'Same', child: 'p2' }
+            ]
+          },
+          { id: 'p1', component: 'Text', text: 'one' },
+          { id: 'p2', component: 'Text', text: 'two' }
+        ])
+      ],
+      'two items on the same child id': [
+        surface(),
+        comps([
+          {
+            id: 'root',
+            component: 'Tabs',
+            tabs: [
+              { title: 'A', child: 'shared' },
+              { title: 'B', child: 'shared' }
+            ]
+          },
+          { id: 'shared', component: 'Text', text: 'panel' }
+        ])
+      ],
+      'child references an ancestor (cycle)': [
+        surface(),
+        comps([{ id: 'root', component: 'Tabs', tabs: [{ title: 'Loop', child: 'root' }] }])
+      ],
+      'child references the Tabs itself via a wrapper': [
+        surface(),
+        comps([
+          { id: 'root', component: 'Column', children: ['tabs'] },
+          { id: 'tabs', component: 'Tabs', tabs: [{ title: 'Up', child: 'root' }] }
+        ])
+      ],
+      'empty tabs array': [surface(), comps([{ id: 'root', component: 'Tabs', tabs: [] }])],
+      'dangling child id': [
+        surface(),
+        comps([{ id: 'root', component: 'Tabs', tabs: [{ title: 'Ghost', child: 'nope' }] }])
+      ],
+      'malformed items (non-object, missing child, non-string title)': [
+        surface(),
+        comps([
+          {
+            id: 'root',
+            component: 'Tabs',
+            tabs: [null, 42, { title: 'ok' }, { child: 'p1' }, { title: { deep: {} }, child: 'p1' }]
+          },
+          { id: 'p1', component: 'Text', text: 'body' }
+        ])
+      ],
+      'tabs is not an array': [
+        surface(),
+        comps([{ id: 'root', component: 'Tabs', tabs: { title: 'x', child: 'p1' } }])
+      ],
+      'title binds to a missing data path': [
+        surface(),
+        data({}),
+        comps([
+          { id: 'root', component: 'Tabs', tabs: [{ title: { path: '/gone' }, child: 'p1' }] },
+          { id: 'p1', component: 'Text', text: 'body' }
+        ])
+      ],
+      'nested Tabs inside a Tabs panel': [
+        surface(),
+        comps([
+          { id: 'root', component: 'Tabs', tabs: [{ title: 'Outer', child: 'inner' }] },
+          { id: 'inner', component: 'Tabs', tabs: [{ title: 'Inner', child: 'leaf' }] },
+          { id: 'leaf', component: 'Text', text: 'deep' }
+        ])
+      ]
+    };
+
+    for (const [name, payload] of Object.entries(attacks)) {
+      it(`survives: ${name}`, () => {
+        expect(() => {
+          render({ payload });
+          flushSync();
+          dispose?.();
+          dispose = undefined;
+        }).not.toThrow();
+      });
+    }
+  });
+
+  it('falls back to the first tab when an update shrinks the list under the selection', async () => {
+    const user = userEvent.setup();
+    const tabsOf = (titles: string[]) => ({
+      id: 'root',
+      component: 'Tabs',
+      tabs: titles.map((title, i) => ({ title, child: `p${i}` }))
+    });
+    const props = render({
+      payload: [
+        surface(),
+        comps([
+          tabsOf(['A', 'B', 'C']),
+          { id: 'p0', component: 'Text', text: 'PANEL-A' },
+          { id: 'p1', component: 'Text', text: 'PANEL-B' },
+          { id: 'p2', component: 'Text', text: 'PANEL-C' }
+        ])
+      ]
+    });
+
+    await user.click(screen.getByRole('tab', { name: 'C' }));
+    flushSync();
+    expect(screen.getByRole('tabpanel').textContent).toContain('PANEL-C');
+
+    // A later updateComponents replaces `root` with a shorter list — the stored
+    // selection now points at a tab that no longer exists. The strip must fall
+    // back to the first tab, never leave the panel area blank.
+    flushSync(() => {
+      props.payload = [...(props.payload as unknown[]), comps([tabsOf(['A'])])];
+    });
+    flushSync();
+
+    expect(screen.getAllByRole('tab')).toHaveLength(1);
+    expect(screen.getByRole('tab', { name: 'A' }).getAttribute('aria-selected')).toBe('true');
+    expect(screen.getByRole('tabpanel').textContent).toContain('PANEL-A');
+  });
+});

@@ -72,7 +72,7 @@ function renderKind(spec: A2uiPropSpec): string {
     case 'childList':
       return 'array of ids OR template { componentId, path }';
     case 'labeledChildren':
-      return 'array of { label, child } (child is a component id)';
+      return `array of { ${spec.labelKey ?? 'label'}, child } (child is a component id)`;
     case 'action':
       return 'action { event: { name, context } }';
     case 'options':

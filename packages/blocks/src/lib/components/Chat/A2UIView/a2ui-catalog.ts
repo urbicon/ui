@@ -128,6 +128,24 @@ export const basicA2uiCatalogSpec: A2uiCatalogSpec = {
   ignoredProps: A2UI_IGNORED_PROPS,
   flexContainers: new Set(['Row', 'Column']),
   componentChecks: {
+    Tabs: ({ id, props, surfaceId, base }) => {
+      // The spec marks `tabs` minItems: 1. An empty array is a well-formed
+      // `labeledChildren` value, so the kind check passes it — but it renders a
+      // tab strip with nothing in it. Read tolerantly, report loudly.
+      const tabs = props.get('tabs');
+      if (Array.isArray(tabs) && tabs.length === 0) {
+        return [
+          {
+            severity: 'warning',
+            code: A2UI_ISSUE_CODES.TABS_EMPTY,
+            message: `Tabs "${id}" has an empty tabs array; nothing is rendered`,
+            surfaceId,
+            path: base
+          }
+        ];
+      }
+      return [];
+    },
     ChoicePicker: ({ id, props, surfaceId, base }) => {
       if (props.get('displayStyle') === 'chips' || props.get('filterable') === true) {
         return [

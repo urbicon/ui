@@ -99,6 +99,8 @@ export const A2UI_ISSUE_CODES = {
   DUPLICATE_OPTION: 'DUPLICATE_OPTION',
   /** `DateTimeInput` with neither `enableDate` nor `enableTime` — rendered as a date input. */
   DATETIME_NO_MODE: 'DATETIME_NO_MODE',
+  /** `Tabs` with an empty `tabs` array (the spec requires at least one) — nothing renders. */
+  TABS_EMPTY: 'TABS_EMPTY',
   /** More surfaces than the engine renders at once — the extra `createSurface` is refused. */
   MAX_SURFACES: 'MAX_SURFACES',
   /** A single `updateComponents` exceeds the per-message component cap — the surplus is dropped. */

@@ -5,7 +5,7 @@
  * standalone (a server building the system prompt has no DOM).
  *
  * The subset covers the v0.9.1 `basic` components except the deliberately
- * excluded ones (Modal, Tabs, Video, AudioPlayer), which validate to a visible
+ * excluded ones (Modal, Video, AudioPlayer), which validate to a visible
  * error chip; see `UNSUPPORTED_A2UI_COMPONENTS`.
  *
  * Prop names, kinds, `required`, defaults and enum sets mirror
@@ -36,6 +36,14 @@ export interface A2uiPropSpec {
   dynamic?: boolean;
   /** Allowed values for `enum`/`icon` kinds. */
   values?: readonly string[];
+  /**
+   * `labeledChildren` only: the item key carrying the label. The A2UI catalogs
+   * disagree on it — Basic `Tabs` items are `{ title, child }`, the Urbicon
+   * `Accordion` uses `{ label, child }` — and the registries mirror their own
+   * catalog verbatim, so the key is data rather than a hardcoded `label`.
+   * The child key is always `child`. @default 'label'
+   */
+  labelKey?: string;
   /** Documented default (rendered in the prompt). */
   default?: string | number | boolean;
   /** Agent-facing description; emitted into the system prompt verbatim. */
@@ -66,7 +74,6 @@ export const A2UI_SUPPORTED_VERSIONS: readonly string[] = ['v0.9', 'v0.9.1'];
  */
 export const UNSUPPORTED_A2UI_COMPONENTS: ReadonlySet<string> = new Set([
   'Modal',
-  'Tabs',
   'Video',
   'AudioPlayer'
 ]);
@@ -210,6 +217,20 @@ export const A2UI_REGISTRY: Readonly<Record<string, A2uiComponentSpec>> = Object
         required: true,
         description:
           'The ID of the single child component to render inside the card. Pass a layout container ID for multiple elements. Never inline the child.'
+      }
+    })
+  },
+
+  Tabs: {
+    description:
+      'A tabbed container: one panel visible at a time, switched by its tab title. Each entry in `tabs` pairs a title with ONE child component ID — wrap several elements in a Column or Row and pass that container ID. Which tab is open is client-local state; it is never written to the data model, so do not bind it.',
+    props: withCommon({
+      tabs: {
+        kind: 'labeledChildren',
+        labelKey: 'title',
+        required: true,
+        description:
+          'The tabs as an array of { title, child }: title is the tab label (a string, or a { path } binding), child is the ID of the panel body component. Never inline the child. Provide at least one tab.'
       }
     })
   },
