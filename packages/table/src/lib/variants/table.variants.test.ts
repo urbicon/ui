@@ -1,6 +1,10 @@
 import { describe, expect, it } from 'vitest';
 import { tableContainerVariants, tableHeaderVariants, tableRowVariants } from './table.variants';
-import { smartFilterBarVariants } from './table-features.variants';
+import {
+  filterPanelVariants,
+  smartFilterBarVariants,
+  toolsSheetVariants
+} from './table-features.variants';
 import { mobileCardVariants } from './table-states.variants';
 
 describe('tableContainerVariants', () => {
@@ -180,18 +184,13 @@ describe('mobileCardVariants — closed card', () => {
 });
 
 describe('smartFilterBarVariants — compact bar', () => {
-  // Compact means the five triggers moved into a popover on one button, so the
-  // search field and that button share a row instead of stacking.
+  // Compact means the five tools moved out of the bar and into a sheet reached
+  // from one button, so the search field and that button share a row instead of
+  // stacking.
   it('puts the search field and the tool button on one row', () => {
     const controls = smartFilterBarVariants({ compact: true }).controls();
     expect(controls).toMatch(/\bflex-row\b/);
     expect(controls).toMatch(/\bitems-center\b/);
-  });
-
-  it('turns the rule with the tools', () => {
-    // Upright between two icons in the capsule; lying across the stacked panel.
-    expect(smartFilterBarVariants({ compact: false }).rule()).toMatch(/!h-5/);
-    expect(smartFilterBarVariants({ compact: true }).rule()).not.toMatch(/!h-5/);
   });
 
   it('gives the tool button a touch-sized target', () => {
@@ -202,21 +201,57 @@ describe('smartFilterBarVariants — compact bar', () => {
     expect(trigger).toMatch(/\bshrink-0\b/);
   });
 
-  // The rows INSIDE the panel need their own touch height: `actionsSection`
-  // carries the capsule's, and the compact branch does not render that slot at
-  // all — its selector even excludes `[popover]` descendants, which is exactly
-  // what these rows are. Asserting it on the trigger alone suggested a coverage
-  // that did not exist.
-  it('gives every row in the tool panel a touch-sized target', () => {
-    const panel = smartFilterBarVariants({ compact: true }).toolsPanel();
-    expect(panel).toMatch(/\[&_button\]:min-h-11/);
-    expect(panel).toMatch(/\[&>\*\]:min-h-11/);
+  it('only stacks the search row once the bar is compact', () => {
+    // The default and the explicit `false` have to differ from `true`, which is
+    // what makes the axis worth having. Comparing the default AGAINST `false`
+    // would pass even if the axis stopped doing anything at all.
+    const relaxed = smartFilterBarVariants({}).controls();
+    expect(relaxed).toBe(smartFilterBarVariants({ compact: false }).controls());
+    expect(relaxed).not.toBe(smartFilterBarVariants({ compact: true }).controls());
+  });
+});
+
+describe('toolsSheetVariants', () => {
+  // The popover stack this replaced guaranteed 44px rows through the deleted
+  // `toolsPanel` slot. RadioItem renders an `inline-flex` label with no minimum
+  // height, so without a rule here a sort row is ~20px tall and only as wide as
+  // the column name — while the Checkbox rows one section below are 44px.
+  it('gives every labelled row a full-width touch target', () => {
+    const section = toolsSheetVariants().section();
+    expect(section).toMatch(/\[&_label\]:min-h-11/);
+    expect(section).toMatch(/\[&_label\]:w-full/);
   });
 
-  it('stays uncompacted by default', () => {
-    expect(smartFilterBarVariants({}).controls()).toBe(
-      smartFilterBarVariants({ compact: false }).controls()
-    );
+  it('sizes the segment track too — it renders buttons, not labels', () => {
+    expect(toolsSheetVariants().segments()).toMatch(/\[&_button\]:min-h-11/);
+  });
+
+  it('keeps the button rule off the sections, so the filter form is untouched', () => {
+    // Scoping matters: a blanket `[&_button]:min-h-11` on the section would
+    // also inflate the quick-value grid (capped at `max-h-32`) and the
+    // remove-filter icons inside FilterPanel.
+    expect(toolsSheetVariants().section()).not.toMatch(/\[&_button\]/);
+  });
+});
+
+describe('filterPanelVariants', () => {
+  // The form renders at ~352px inside the filter popover and at ~300px inside
+  // the tools sheet, and the operator/value row has to stack in the second case
+  // only. That is a container query, not a prop — see the variant's own note.
+  it('stacks the operator/value row until the container clears @xs', () => {
+    const row = filterPanelVariants({}).filterRow();
+    expect(row).toMatch(/\bflex-col\b/);
+    expect(row).toMatch(/@xs:flex-row/);
+  });
+
+  it('declares the container the row queries against', () => {
+    expect(filterPanelVariants({}).root()).toMatch(/@container/);
+  });
+
+  it('lets the operator select fill the width while stacked', () => {
+    const operator = filterPanelVariants({}).operatorSelect();
+    expect(operator).toMatch(/\bw-full\b/);
+    expect(operator).toMatch(/@xs:w-32/);
   });
 });
 

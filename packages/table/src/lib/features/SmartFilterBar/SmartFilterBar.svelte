@@ -5,7 +5,6 @@
     Badge,
     Button,
     Input,
-    Popover,
     Separator,
     Toolbar,
     resolveIcon,
@@ -22,6 +21,7 @@
   import GroupingMenu from './GroupingMenu.svelte';
   import SortMenu from './SortMenu.svelte';
   import SummaryMenu from './SummaryMenu.svelte';
+  import ToolsSheet from './ToolsSheet.svelte';
   import { getTableStyleConfig, resolveSlotClass } from '$lib/core/table-style-context';
 
   const tt = useTableI18n();
@@ -71,23 +71,18 @@
     }
   }
 
-  // ── Narrow bar → one tool button instead of a five-icon capsule ──────────
+  // ── Narrow bar → the tools move into a sheet ─────────────────────────────
   //
-  // Stacked, the capsule sat under the search field as a shrink-wrapped block
-  // with nothing to align to — it read as a stray object rather than a part of
-  // the bar, and it cost a whole row on the screen with the least of them. Below
-  // the threshold the five triggers therefore move INTO a popover on a single
-  // button beside the search field.
+  // Stacked, the five-icon capsule sat under the search field as a shrink-wrapped
+  // block with nothing to align to, and it cost a whole row on the screen with
+  // the least of them. Below the threshold the tools therefore leave the bar
+  // entirely and become sections of one bottom sheet (see ToolsSheet, which
+  // documents why a sheet and not the popover this used to be).
   //
   // Measured, not guessed at from the viewport: the bar is the thing that runs
   // out of room (it can sit in a card, a drawer, a split pane), which is the
   // same reason `layout` has a `responsive` mode driven by `@container`. Only
   // that mode switches — `horizontal` and `vertical` are explicit instructions.
-  //
-  // The five menus keep their own triggers and their own panels; nesting works
-  // because Popover is native top-layer and NOT portalled, so an inner panel is
-  // a DOM descendant of the outer one and the light-dismiss chain treats them as
-  // one unit (the operator `Select` inside FilterMenu already relies on this).
   let barElement = $state<HTMLDivElement>();
   let compact = $state(false);
   let toolsOpen = $state(false);
@@ -124,16 +119,16 @@
     return el.clientWidth - padX;
   }
 
-  // The popover only exists in the compact branch, and unmounting it does not
-  // write `open` back — so a bar that grows past the threshold with the panel
-  // open would re-open it, unprompted, the moment it narrows again (rotate a
+  // The sheet only exists in the compact branch, and unmounting it does not
+  // write `open` back — so a bar that grows past the threshold with the sheet
+  // up would re-open it, unprompted, the moment it narrows again (rotate a
   // phone twice). Closing on the way out also keeps focus from being stranded
-  // on a removed panel.
+  // on a removed dialog.
   $effect(() => {
     if (!compact) toolsOpen = false;
   });
 
-  // What the closed tool button has to say for itself: with the panel shut, the
+  // What the closed tool button has to say for itself: with the sheet shut, the
   // lit triggers inside it are invisible, so the count of what is currently
   // acting on the grid rides on the button. Column visibility counts too — a
   // hidden column changes what the reader sees.
@@ -156,49 +151,6 @@
     })
   );
 </script>
-
-{#snippet toolsTrigger()}
-  <Button
-    variant="ghost"
-    intent="neutral"
-    size="sm"
-    active={activeToolCount > 0}
-    class={filterBarStyles.toolsTrigger()}
-    aria-label={activeToolCount > 0
-      ? tt('aria.toolsActive', { count: String(activeToolCount) })
-      : tt('aria.tools')}
-    aria-expanded={toolsOpen}
-  >
-    <SettingsIcon class="h-4 w-4" />
-    {#if activeToolCount > 0}
-      <!-- The lit triggers are behind a closed door; the count is what is left
-           to say that the grid is not showing everything there is. -->
-      <Badge variant="soft" size="xs" counter class="bg-surface-base text-primary-emphasis">
-        {activeToolCount}
-      </Badge>
-    {/if}
-  </Button>
-{/snippet}
-
-{#snippet tools()}
-  <FilterMenu stacked={compact} />
-  <SortMenu stacked={compact} />
-  <!-- Grouping is unavailable while virtualized (see TableState.virtualized) -->
-  {#if !tableState.virtualized}
-    <GroupingMenu stacked={compact} />
-  {/if}
-  <SummaryMenu stacked={compact} />
-  {#if tableState.enableColumnVisibility}
-    <!--
-      The rule splits the two jobs in the capsule: everything left of it
-      changes WHICH rows/values the grid shows, the eye changes only what is
-      on screen. Explicit height because Separator's own `h-full` resolves
-      against an auto-height flex row — i.e. to nothing.
-    -->
-    <Separator orientation={compact ? 'horizontal' : 'vertical'} class={filterBarStyles.rule()} />
-    <ColumnVisibilityMenu stacked={compact} />
-  {/if}
-{/snippet}
 
 <div
   bind:this={barElement}
@@ -228,26 +180,35 @@
 
     {#if compact}
       <!--
-        No `onclick` on the trigger: Popover owns the open/close of the element
-        it is handed (same as FilterMenu's) — a second toggle here would fire
-        alongside it and the panel would open and shut in the same tick.
+        A plain button owning its own state, not a Popover trigger: the sheet is
+        a modal `<dialog>` and opens by being told to, so there is no light
+        dismiss to coordinate with and no reason to route the click through an
+        overlay primitive.
       -->
-      <Popover
-        bind:open={toolsOpen}
-        placement="bottom-end"
-        offsetDistance={8}
-        onClickOutside={() => (toolsOpen = false)}
-        trigger={toolsTrigger}
-        role="dialog"
+      <Button
+        variant="ghost"
+        intent="neutral"
+        size="sm"
+        active={activeToolCount > 0}
+        class={filterBarStyles.toolsTrigger()}
+        aria-label={activeToolCount > 0
+          ? tt('aria.toolsActive', { count: String(activeToolCount) })
+          : tt('aria.tools')}
+        aria-haspopup="dialog"
+        aria-expanded={toolsOpen}
+        onclick={() => (toolsOpen = true)}
       >
-        <!--
-          The same five components, stacked. They keep their own triggers and
-          panels — this popover only gives them a place to stand.
-        -->
-        <div class={filterBarStyles.toolsPanel()}>
-          {@render tools()}
-        </div>
-      </Popover>
+        <SettingsIcon class="h-4 w-4" />
+        {#if activeToolCount > 0}
+          <!-- The lit triggers are behind a closed door; the count is what is
+               left to say that the grid is not showing everything there is. -->
+          <Badge variant="soft" size="xs" counter class="bg-surface-base text-primary-emphasis">
+            {activeToolCount}
+          </Badge>
+        {/if}
+      </Button>
+
+      <ToolsSheet bind:open={toolsOpen} />
     {:else}
       <!--
         `quiet` (the Toolbar default), not `ghost`: the five icon triggers are one
@@ -260,7 +221,23 @@
         padding="xs"
         class={filterBarStyles.actionsSection()}
       >
-        {@render tools()}
+        <FilterMenu />
+        <SortMenu />
+        <!-- Grouping is unavailable while virtualized (see TableState.virtualized) -->
+        {#if !tableState.virtualized}
+          <GroupingMenu />
+        {/if}
+        <SummaryMenu />
+        {#if tableState.enableColumnVisibility}
+          <!--
+            The rule splits the two jobs in the capsule: everything left of it
+            changes WHICH rows/values the grid shows, the eye changes only what is
+            on screen. Explicit height because Separator's own `h-full` resolves
+            against an auto-height flex row — i.e. to nothing.
+          -->
+          <Separator orientation="vertical" class={filterBarStyles.rule()} />
+          <ColumnVisibilityMenu />
+        {/if}
       </Toolbar>
     {/if}
   </div>

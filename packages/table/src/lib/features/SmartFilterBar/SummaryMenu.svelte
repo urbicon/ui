@@ -11,9 +11,6 @@
   } from '@urbicon-ui/blocks';
   import MenuTrigger from './MenuTrigger.svelte';
 
-  /** Full-width labelled row instead of a tooltipped icon — see MenuTrigger. */
-  let { stacked = false }: { stacked?: boolean } = $props();
-
   const tt = useTableI18n();
 
   const SquareSigmaIcon = resolveIcon('squareSigma', SquareSigmaIconDefault);
@@ -107,7 +104,6 @@
 {#snippet customTrigger(_selected: unknown[], _open: boolean, _clear: () => void)}
   <MenuTrigger
     label={tt('summary.button.title')}
-    {stacked}
     active={isActive}
     {triggerClass}
     expanded={menuOpen}
@@ -119,12 +115,6 @@
 {/snippet}
 
 <!-- `w-auto`: see SortMenu — the Select wrapper defaults to `w-full`. -->
-<!--
-  `usePortal={!stacked}`: stacked means this Select lives inside the tool
-  popover, and Popover's own contract (see Popover.svelte) puts a nested panel on
-  `position: absolute` instead of promoting a second top layer — that is where
-  the focus and z-index quirks live. FilterMenu's operator Select already does it.
--->
 <Select
   groups={menuGroups}
   bind:value={selectedValue}
@@ -133,7 +123,6 @@
   disabled={summableColumns.length === 0}
   size="sm"
   syncWidth={false}
-  usePortal={!stacked}
   class="w-auto"
   {customTrigger}
 />

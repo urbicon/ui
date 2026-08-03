@@ -32,6 +32,13 @@ export default {
     },
     quickValues: {
       title: 'Quick values'
+    },
+    // The operator select and value field repeat once per column, so the
+    // column name is the only thing that tells two of them apart. Without it
+    // every row reads as an unnamed combobox.
+    aria: {
+      operatorFor: 'Filter operator for {{column}}',
+      valueFor: 'Filter value for {{column}}'
     }
   },
   search: {
@@ -41,6 +48,10 @@ export default {
     button: {
       title: 'Summary'
     },
+    // The store keeps at most one aggregation per column, so turning one off is
+    // a choice among the types rather than a separate gesture.
+    none: 'None',
+    empty: 'No column can be summarised',
     types: {
       average: 'Average',
       count: 'Count',
@@ -81,7 +92,8 @@ export default {
     fetchFailed: 'Failed to load data'
   },
   columns: {
-    visibility: 'Column visibility'
+    visibility: 'Column visibility',
+    empty: 'Every column is pinned'
   },
   grouping: {
     button: 'Grouping',
@@ -91,7 +103,18 @@ export default {
     button: 'Sort',
     none: 'No sorting',
     ascending: 'Ascending',
-    descending: 'Descending'
+    descending: 'Descending',
+    // The sheet splits column and direction into two controls; the direction
+    // one needs a name of its own.
+    direction: 'Sort direction'
+  },
+  // The narrow bar's tools sheet.
+  tools: {
+    title: 'Table tools',
+    done: 'Done',
+    // Names the column list inside the sort/grouping sections. The section
+    // heading already says which tool it is, so the list says what it picks.
+    column: 'Column'
   },
   header: {
     activeFilter: 'Active filter',

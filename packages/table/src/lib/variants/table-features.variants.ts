@@ -27,12 +27,18 @@ export const smartFilterBarVariants = tv({
     // the shrink-0 action buttons on a narrow screen (Codeberg #28).
     controls: ['flex gap-2'],
     searchSection: ['w-full min-w-0'],
-    // Touch targets: enlarge only the menu *trigger* buttons to ≥44px while the
-    // bar is stacked (the mobile case). Triggers carry `aria-haspopup`; the
+    // Touch targets: enlarge the menu *trigger* buttons to ≥44px while the bar is
+    // stacked, reverting at `@md`. Triggers carry `aria-haspopup`; the
     // `:not([popover] *)` guard excludes the panels they open — those are DOM
     // descendants of this toolbar (native top-layer popover, not portalled) and
     // carry their own haspopup controls (e.g. the filter operator selects), so a
-    // blanket rule would wrongly size them too. Revert to compact at ≥ @md.
+    // blanket rule would wrongly size them too.
+    //
+    // Reachable only under an explicit `layout="vertical"`/`"horizontal"`: at the
+    // default `responsive`, `@md` and COMPACT_MAX_WIDTH are the same 28rem step
+    // measured on the same content box, so below it the tools have left the bar
+    // for the sheet and this slot renders nothing. Kept because those two
+    // layouts are instructions the consumer gave, not states the bar chose.
     actionsSection: [
       'flex items-center',
       '[&_button[aria-haspopup]:not(:where([popover]_*))]:min-h-11',
@@ -41,20 +47,14 @@ export const smartFilterBarVariants = tv({
       '@md:[&_button[aria-haspopup]:not(:where([popover]_*))]:min-w-0'
     ],
     chipsSection: ['w-full'],
-    // The rule between "changes which rows/values" and "changes what is on
-    // screen". It turns with the tools — see the `compact` axis below.
-    rule: [],
+    // The upright rule inside the capsule, between "changes which rows/values
+    // the grid shows" and "changes only what is on screen". Capsule-only: the
+    // compact branch renders no triggers at all, so there is nothing to divide.
+    // Explicit height because Separator's own `h-full` resolves against an
+    // auto-height flex row — i.e. to nothing.
+    rule: ['mx-0.5 !h-5'],
     // The narrow bar's single tool button — see the switch in SmartFilterBar.
-    toolsTrigger: ['min-h-11 min-w-11 shrink-0 gap-1.5'],
-    // The five triggers, stacked. The touch height is set HERE and not inherited
-    // from `actionsSection`: that slot is the capsule branch, which the compact
-    // mode does not render at all, and its selector excludes `[popover]`
-    // descendants anyway — which is precisely what these rows are.
-    toolsPanel: [
-      'flex min-w-44 flex-col items-stretch gap-1 p-1',
-      '[&>*]:min-h-11',
-      '[&_button]:min-h-11 [&_button]:justify-start'
-    ]
+    toolsTrigger: ['min-h-11 min-w-11 shrink-0 gap-1.5']
   },
 
   variants: {
@@ -104,23 +104,18 @@ export const smartFilterBarVariants = tv({
     },
 
     /**
-     * The bar ran out of room and moved its five triggers into a popover on one
-     * button (SmartFilterBar measures this; it is not a consumer prop). Only the
-     * pieces whose geometry turns with them live here.
+     * The bar ran out of room and moved its five tools into a sheet reached from
+     * one button (SmartFilterBar measures this; it is not a consumer prop). Only
+     * the pieces whose geometry turns with them live here — the tools themselves
+     * are no longer part of the bar in this mode, so nothing about them does.
      */
     compact: {
       true: {
-        // Stacked panel → the rule lies across it.
-        rule: 'my-1',
         // The button sits beside the search field, so the row must not stack.
         controls: 'flex-row items-center',
         searchSection: 'flex-1'
       },
-      false: {
-        // Upright in the capsule. Explicit height because Separator's own
-        // `h-full` resolves against an auto-height flex row — i.e. to nothing.
-        rule: 'mx-0.5 !h-5'
-      }
+      false: {}
     },
 
     variant: {
@@ -435,8 +430,38 @@ export const columnMenuVariants = tv({
 });
 
 /**
- * FILTER MENU VARIANTS (compat)
- * Menu/popover for complex filter input.
+ * TOOLS SHEET VARIANTS
+ * The narrow bar's tool surface — see ToolsSheet.
+ *
+ * Only the touch contract lives here, because it is the one thing the sheet has
+ * to impose on panels that otherwise style themselves. Every row a thumb aims
+ * at gets the 44px target docs/ResponsiveGuidelines.md asks for, and gets the
+ * full row width to be aimed at — `RadioItem` renders an `inline-flex` label
+ * with no minimum height, so its hit area is otherwise as tall as the text and
+ * as wide as the column name. `Checkbox` already carries `min-h-11` on its own
+ * control; stating it here too costs nothing and keeps the sections consistent
+ * rather than 44px in one and 20px in the next.
+ *
+ * This replaces the guarantee the old `toolsPanel` slot made for the popover
+ * stack (`[&>*]:min-h-11`, `[&_button]:min-h-11`) — the stack is gone, the
+ * requirement is not.
+ */
+export const toolsSheetVariants = tv({
+  slots: {
+    section: ['[&_label]:min-h-11 [&_label]:w-full [&_label]:items-center'],
+    // SegmentGroup renders buttons, not labels, so it needs saying separately.
+    // Scoped to the segment track rather than `[&_button]`, which would also
+    // inflate the filter form's quick-value grid and remove-filter icons.
+    segments: ['[&_button]:min-h-11']
+  }
+});
+
+/**
+ * FILTER MENU VARIANTS
+ * The popover SHELL around FilterPanel — position, width, ground, heading.
+ *
+ * The form itself lives in {@link filterPanelVariants}, because the same form is
+ * also a section of the tools sheet, where none of this applies.
  */
 export const filterMenuVariants = tv({
   slots: {
@@ -447,21 +472,7 @@ export const filterMenuVariants = tv({
       'p-4 space-y-4'
     ],
     header: ['flex items-center justify-between pb-3', 'border-b border-border-subtle'],
-    title: ['text-base font-semibold text-text-primary'],
-    section: ['space-y-3'],
-    sectionTitle: ['text-sm font-medium text-text-primary'],
-    filterRow: ['flex gap-2 items-start'],
-    operatorSelect: ['w-32 flex-shrink-0'],
-    valueInput: ['flex-1'],
-    quickValues: [
-      'grid grid-cols-2 gap-1 p-2 max-h-32 overflow-y-auto',
-      'border border-border-subtle rounded-modify'
-    ],
-    activeFilter: [
-      'flex items-center justify-between p-2',
-      'bg-surface-subtle border border-border-subtle rounded-modify'
-    ],
-    footer: ['flex items-center justify-end gap-2 pt-3', 'border-t border-border-subtle']
+    title: ['text-base font-semibold text-text-primary']
   },
   variants: {
     size: {
@@ -478,6 +489,36 @@ export const filterMenuVariants = tv({
   },
   defaultVariants: {
     size: 'md'
+  }
+});
+
+/**
+ * FILTER PANEL VARIANTS
+ * The filter FORM — one section per filterable column, plus its own actions.
+ *
+ * Sized by container query, not by a prop: the form renders at ~352px inside the
+ * filter popover (`w-96` minus `p-4`) and at ~300px inside a tools sheet on a
+ * phone, and the operator/value row has to stack in the second case and not in
+ * the first. `@xs` (20rem) sits between the two, so the same component fits both
+ * hulls without either one having to describe the other's geometry.
+ */
+export const filterPanelVariants = tv({
+  slots: {
+    root: ['@container space-y-4'],
+    section: ['space-y-3'],
+    sectionTitle: ['text-sm font-medium text-text-primary'],
+    filterRow: ['flex flex-col gap-2', '@xs:flex-row @xs:items-start'],
+    operatorSelect: ['w-full', '@xs:w-32 @xs:flex-shrink-0'],
+    valueInput: ['flex-1'],
+    quickValues: [
+      'grid grid-cols-2 gap-1 p-2 max-h-32 overflow-y-auto',
+      'border border-border-subtle rounded-modify'
+    ],
+    activeFilter: [
+      'flex items-center justify-between p-2',
+      'bg-surface-subtle border border-border-subtle rounded-modify'
+    ],
+    footer: ['flex items-center justify-end gap-2 pt-3', 'border-t border-border-subtle']
   }
 });
 
