@@ -71,7 +71,10 @@
     <header class="bg-surface-base/80 sticky top-0 z-[var(--z-sticky)] backdrop-blur">
       <div class="mx-auto flex max-w-6xl items-baseline justify-between px-6 py-4">
         <span class="livery-display text-base">{SALON_NAME}</span>
-        <nav class="text-2xs text-text-secondary flex gap-6 tracking-[0.2em] uppercase">
+        <nav
+          aria-label="Salon"
+          class="text-2xs text-text-secondary flex gap-6 tracking-[0.2em] uppercase"
+        >
           <a class="hover:text-text-primary" href="#services">Services</a>
           <a class="hover:text-text-primary" href="#room">The Room</a>
           <a class="hover:text-text-primary" href="#booking">Book</a>

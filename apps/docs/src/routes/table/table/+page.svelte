@@ -36,6 +36,12 @@ ${scriptClose}
   ];
 </script>
 
+<!-- urbicon-ignore heading-skip — false positive. Rendered, the outline
+     reads h2 (section), then h3 (CodeExample title), then h4, with no skip; the
+     rule only knows `Section` as a heading-rendering component and cannot
+     see the h3 a CodeExample title emits between the two. Verified against
+     the served HTML, 2026-08. Tracked as issue #99. -->
+
 <SeoMeta
   title="Table Component"
   description="Advanced data table with smart filtering, column factories, grouping, summaries, and responsive mobile layout."
@@ -55,7 +61,7 @@ ${scriptClose}
     Live-Einstellungen abbildete noch die Tabelle selbst zeigte. Der Playground
     druckt beides jetzt aus denselben Objekten, die er rendert.
   -->
-  <Section id="playground" intent="primary">
+  <Section id="playground" title="Playground" titleHidden intent="primary">
     <Playground />
   </Section>
 

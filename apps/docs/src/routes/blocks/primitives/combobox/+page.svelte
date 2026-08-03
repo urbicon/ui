@@ -44,7 +44,7 @@
   sourceHref={componentData?.sourceHref}
   related={relatedLinks}
 >
-  <Section id="playground" intent="primary">
+  <Section id="playground" title="Playground" titleHidden intent="primary">
     <Playground />
   </Section>
 

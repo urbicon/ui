@@ -70,6 +70,12 @@
   const styles = $derived(playgroundConfiguratorVariants({ size }));
   const variantKeySet = $derived(new Set(variantKeys));
 
+  // Two playgrounds can share a page (the /blocks specimen book), so the id
+  // that ties the region to its heading has to be per-instance. Two steps:
+  // `$props.id()` is only valid as a top-level initializer.
+  const propsId = $props.id();
+  const titleId = `playground-title-${propsId}`;
+
   // Knob-Strip uses a uniform `sm` field size across all playground
   // densities so SegmentGroup/Select/Input/Toggle line up at the same
   // visual scale. Without this, md/lg playgrounds rendered Input at
@@ -380,10 +386,20 @@
 <!-- `class` belongs on the root, as the prop's JSDoc says; it used to land on the
      inner container, so a consumer positioning the playground from the outside
      was styling the wrong box. -->
-<section {...restProps} class={[slot('root'), className]}>
+<!-- The region names itself either way. With the header shown it points at the
+     heading it renders; with `showHeader={false}` — how every component page
+     embeds it — there is no heading to point at, so the title becomes the
+     label. Without this the largest interactive element on 92 pages was a
+     landmark a screen reader announces as nothing. -->
+<section
+  {...restProps}
+  class={[slot('root'), className]}
+  aria-labelledby={showHeader ? titleId : undefined}
+  aria-label={showHeader ? undefined : title}
+>
   {#if showHeader}
     <div class={slot('header')}>
-      <h2 class={slot('title')}>{title}</h2>
+      <h2 id={titleId} class={slot('title')}>{title}</h2>
       {#if subtitle}
         <p class={slot('subtitle')}>{subtitle}</p>
       {/if}

@@ -137,7 +137,7 @@ export function localizeHref(path, locale) {
   {navigation}
   breadcrumbs={[{ label: 'Localization', href: resolve('/i18n') }]}
 >
-  <Section id="overview" intent="primary">
+  <Section id="overview" title="Why routing lives here" titleHidden intent="primary">
     <p class="text-text-secondary mb-4">
       <a class="text-primary hover:underline" href={resolve('/i18n/provider')}>Provider &amp; SSR</a
       >

@@ -67,6 +67,28 @@ describe('Section', () => {
     expect(document.getElementById('notes-title')).toBeNull();
   });
 
+  it('keeps a real, referenced heading under titleHidden', () => {
+    // The playground sections on 57 component pages render no heading by
+    // design, and the table of contents offered a "Playground" entry that led
+    // into an unnamed region. `titleHidden` has to give the section a heading
+    // and a resolving aria-labelledby — hiding it visually is the only part
+    // that changes.
+    render({ id: 'playground', title: 'Playground', titleHidden: true });
+    const section = document.querySelector('section#playground');
+
+    expect(section?.getAttribute('aria-labelledby')).toBe('playground-title');
+    expect(document.getElementById('playground-title')?.tagName).toBe('H2');
+    expect(section?.querySelector('header')?.className).toBe('sr-only');
+  });
+
+  it('keeps the header visible when titleHidden is not set', () => {
+    // Positive control for the test above: `sr-only` must come from the prop,
+    // not from something the header always carries.
+    render({ id: 'usage', title: 'Usage' });
+
+    expect(document.querySelector('section#usage header')?.className).not.toContain('sr-only');
+  });
+
   it('renders the requested heading level, clamped to 1..6', () => {
     render({ id: 'a', title: 'Level three', headingLevel: 3 });
     expect(screen.getByText('Level three').tagName).toBe('H3');

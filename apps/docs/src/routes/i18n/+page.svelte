@@ -75,7 +75,7 @@ export const load = ({ request }) => ({ locale: resolveLocale(request) });`;
   showToc={true}
   {navigation}
 >
-  <Section id="overview" intent="primary">
+  <Section id="overview" title="Overview" titleHidden intent="primary">
     <p class="text-text-secondary mb-4">
       <code>@urbicon-ui/i18n</code> is the localization layer the design system runs on:
       <code>&lt;Pagination&gt;</code>, <code>&lt;Menu&gt;</code>, the data table, and the auth pages

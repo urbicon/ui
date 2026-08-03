@@ -134,6 +134,7 @@ export default {
     aiDx: 'AI & DX',
     appTitle: 'Urbicon UI',
     changelog: 'Changelog',
+    docsNav: 'Dokumentation',
     footerNav: 'Fußzeilen-Navigation',
     footerTagline: 'Svelte 5 + Tailwind 4',
     imprint: 'Impressum',

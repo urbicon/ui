@@ -131,6 +131,12 @@
   const showToolbar = $derived((showToc && navigation.length > 0) || sourceHref != null);
 </script>
 
+<!-- urbicon-ignore animated-dimensions — the sticky breadcrumb shrinks its
+     type when the header scrolls away, and font-size is what shrinks. The
+     usual escape, a transform scale, resamples text and reads blurry at
+     these sizes. The cost is real but bounded: one line of text, 300ms,
+     once per scroll direction change. -->
+
 <!--
   Editorial stability stamp (only-non-stable convention):
   Only renders when the component carries a non-`stable` stability —
@@ -245,7 +251,7 @@
                Hidden on mobile, where the bar has no room for it beside the
                title and the source link. -->
           <div
-            class="hidden items-center overflow-hidden transition-all duration-300 ease-out sm:flex
+            class="hidden items-center overflow-hidden transition-[max-width,opacity,margin-left] duration-300 ease-out sm:flex
               {scrolledPastHeader && activeSectionTitle
               ? 'ml-2 max-w-56 opacity-100'
               : 'ml-0 max-w-0 opacity-0'}"
@@ -275,7 +281,7 @@
            separator. -->
       <div class="relative h-px overflow-hidden" aria-hidden="true" data-docs-sticky-hairline>
         <div
-          class="bg-border-subtle absolute top-0 h-px transition-all duration-300 ease-out
+          class="bg-border-subtle absolute top-0 h-px transition-[left,right] duration-300 ease-out
             {scrolledPastHeader ? 'right-0 left-0' : 'right-1/2 left-1/2'}"
         ></div>
       </div>

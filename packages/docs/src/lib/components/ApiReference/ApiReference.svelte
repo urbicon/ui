@@ -160,8 +160,13 @@
     <p>{dt('noApiPropertiesBody')}</p>
   </InfoCard>
 {:else}
-  <!-- `id` is the anchor TypesReference links back to; a page may override it via restProps. -->
-  <section {...restProps} id="api-reference" class={[slot('base'), className]}>
+  <!-- A `<div>`, not a `<section>`: this component renders no heading of its own
+       — every page puts it inside a titled `<Section>` — so as a section it was
+       an unnamed region, which a screen reader announces as nothing at all
+       while still counting as a landmark boundary. The `id` stays: it is the
+       anchor TypesReference links back to, and a page may override it via
+       restProps. -->
+  <div {...restProps} id="api-reference" class={[slot('base'), className]}>
     <div class={slot('stats')}>
       <span>{dt('propsCount', { count: sortedProps.length })}</span>
       {#if requiredCount > 0}
@@ -284,5 +289,5 @@
         {@render usageNotes()}
       </div>
     {/if}
-  </section>
+  </div>
 {/if}

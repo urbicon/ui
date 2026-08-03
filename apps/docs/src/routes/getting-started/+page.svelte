@@ -211,8 +211,11 @@ export default {
     <div>
       <!-- 00 · No project yet? — optional pre-step, outside STEPS (see head
            comment): no scrollspy id, no effect on the preview card. -->
-      <section class="pb-12">
-        <h2 class="text-text-primary flex items-baseline gap-4 text-2xl font-bold tracking-tight">
+      <section aria-labelledby="prestep-title" class="pb-12">
+        <h2
+          id="prestep-title"
+          class="text-text-primary flex items-baseline gap-4 text-2xl font-bold tracking-tight"
+        >
           <span class="text-primary text-5xl leading-none font-medium" aria-hidden="true">00</span>
           No project yet?
         </h2>
@@ -251,8 +254,15 @@ export default {
       </section>
 
       <!-- 01 · Install -->
-      <section id={STEPS[0].id} class="border-border-subtle border-t py-12">
-        <h2 class="text-text-primary flex items-baseline gap-4 text-2xl font-bold tracking-tight">
+      <section
+        id={STEPS[0].id}
+        aria-labelledby="{STEPS[0].id}-title"
+        class="border-border-subtle border-t py-12"
+      >
+        <h2
+          id="{STEPS[0].id}-title"
+          class="text-text-primary flex items-baseline gap-4 text-2xl font-bold tracking-tight"
+        >
           <span class="text-primary text-5xl leading-none font-medium" aria-hidden="true">
             {STEPS[0].n}
           </span>
@@ -286,8 +296,15 @@ export default {
       </section>
 
       <!-- 02 · Import the tokens -->
-      <section id={STEPS[1].id} class="border-border-subtle border-t py-12">
-        <h2 class="text-text-primary flex items-baseline gap-4 text-2xl font-bold tracking-tight">
+      <section
+        id={STEPS[1].id}
+        aria-labelledby="{STEPS[1].id}-title"
+        class="border-border-subtle border-t py-12"
+      >
+        <h2
+          id="{STEPS[1].id}-title"
+          class="text-text-primary flex items-baseline gap-4 text-2xl font-bold tracking-tight"
+        >
           <span class="text-primary text-5xl leading-none font-medium" aria-hidden="true">
             {STEPS[1].n}
           </span>
@@ -336,8 +353,15 @@ export default {
       </section>
 
       <!-- 03 · Your first component -->
-      <section id={STEPS[2].id} class="border-border-subtle border-t py-12">
-        <h2 class="text-text-primary flex items-baseline gap-4 text-2xl font-bold tracking-tight">
+      <section
+        id={STEPS[2].id}
+        aria-labelledby="{STEPS[2].id}-title"
+        class="border-border-subtle border-t py-12"
+      >
+        <h2
+          id="{STEPS[2].id}-title"
+          class="text-text-primary flex items-baseline gap-4 text-2xl font-bold tracking-tight"
+        >
           <span class="text-primary text-5xl leading-none font-medium" aria-hidden="true">
             {STEPS[2].n}
           </span>
@@ -366,8 +390,15 @@ export default {
       </section>
 
       <!-- 04 · Make it yours -->
-      <section id={STEPS[3].id} class="border-border-subtle border-t py-12">
-        <h2 class="text-text-primary flex items-baseline gap-4 text-2xl font-bold tracking-tight">
+      <section
+        id={STEPS[3].id}
+        aria-labelledby="{STEPS[3].id}-title"
+        class="border-border-subtle border-t py-12"
+      >
+        <h2
+          id="{STEPS[3].id}-title"
+          class="text-text-primary flex items-baseline gap-4 text-2xl font-bold tracking-tight"
+        >
           <span class="text-primary text-5xl leading-none font-medium" aria-hidden="true">
             {STEPS[3].n}
           </span>
@@ -390,8 +421,15 @@ export default {
 
       <!-- 05 · Bring your agent — the landing's second install command,
            mirrored here so both entry points tell the same story. -->
-      <section id={STEPS[4].id} class="border-border-subtle border-t pt-12">
-        <h2 class="text-text-primary flex items-baseline gap-4 text-2xl font-bold tracking-tight">
+      <section
+        id={STEPS[4].id}
+        aria-labelledby="{STEPS[4].id}-title"
+        class="border-border-subtle border-t pt-12"
+      >
+        <h2
+          id="{STEPS[4].id}-title"
+          class="text-text-primary flex items-baseline gap-4 text-2xl font-bold tracking-tight"
+        >
           <span class="text-primary text-5xl leading-none font-medium" aria-hidden="true">
             {STEPS[4].n}
           </span>

@@ -108,7 +108,7 @@ export const POST = createForgotPasswordHandler(authDeps);
   showToc={true}
   {navigation}
 >
-  <Section id="overview" intent="primary">
+  <Section id="overview" title="Overview" titleHidden intent="primary">
     <p class="text-text-secondary mb-4">
       <code>@urbicon-ui/auth</code> provides everything you need for auth in a SvelteKit app: session
       management, registration with invitation gates, password reset flows, passkey login, real-time notifications,

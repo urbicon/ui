@@ -41,6 +41,12 @@
   ];
 </script>
 
+<!-- urbicon-ignore heading-skip — false positive. Rendered, the outline
+     reads h2 (section), then h3 (CodeExample title), then h4, with no skip; the
+     rule only knows `Section` as a heading-rendering component and cannot
+     see the h3 a CodeExample title emits between the two. Verified against
+     the served HTML, 2026-08. Tracked as issue #99. -->
+
 <SeoMeta
   title="Sorting, Grouping & Summaries - Table"
   description="Sort by clicking column headers, group rows by any groupable column, and aggregate numeric columns with summary rows."

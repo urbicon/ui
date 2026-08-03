@@ -26,7 +26,7 @@
       <div class="border-border-subtle h-80 w-full overflow-hidden rounded-xl border">
         <SplitPane defaultRatio={0.28} min="18%" max="55%">
           {#snippet start()}
-            <nav class="bg-surface-elevated h-full overflow-auto p-3">
+            <nav aria-label="Demo sidebar" class="bg-surface-elevated h-full overflow-auto p-3">
               <p class="text-text-tertiary mb-2 px-1 text-xs font-semibold tracking-wide uppercase">
                 Explorer
               </p>
@@ -117,7 +117,7 @@
             onCollapsedChange={(c) => (sidebarCollapsed = c)}
           >
             {#snippet start()}
-              <nav class="bg-surface-elevated h-full overflow-auto p-3">
+              <nav aria-label="Demo sidebar" class="bg-surface-elevated h-full overflow-auto p-3">
                 <p class="text-text-primary mb-2 text-sm font-semibold">Filters</p>
                 <ul class="text-text-secondary space-y-1 text-sm">
                   <li>Status</li>

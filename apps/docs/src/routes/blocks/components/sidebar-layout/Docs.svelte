@@ -60,7 +60,7 @@
   {/snippet}
 
   {#snippet sidebar()}
-    <nav class="flex flex-col gap-1 p-3">
+    <nav aria-label="Demo sidebar" class="flex flex-col gap-1 p-3">
       <a href="/dashboard" class="rounded-lg px-3 py-2 text-sm">Dashboard</a>
       <a href="/projects" class="rounded-lg px-3 py-2 text-sm">Projects</a>
       <a href="/settings" class="rounded-lg px-3 py-2 text-sm">Settings</a>
@@ -121,7 +121,7 @@
   {/snippet}
 
   {#snippet sidebar()}
-    <nav class="flex flex-col gap-6 p-3">
+    <nav aria-label="Demo sidebar" class="flex flex-col gap-6 p-3">
       {#each sections as section, i (section.label ?? i)}
         <div class="flex flex-col gap-1">
           <span class="text-text-tertiary px-3 pb-1 text-2xs font-semibold uppercase tracking-wider">

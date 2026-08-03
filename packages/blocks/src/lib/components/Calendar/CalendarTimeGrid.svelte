@@ -136,7 +136,7 @@
           {#if isToday && currentTimePercent !== null}
             <div class={slot('currentTimeLine')} style="top: {currentTimePercent}%;">
               <!-- Dot matches the line: the shared `live` ("now") accent, not danger. -->
-              <div class="absolute -top-1 -left-1 size-2 rounded-full bg-live"></div>
+              <div class="bg-live absolute -top-1 -left-1 size-2 rounded-full"></div>
             </div>
           {/if}
         </div>

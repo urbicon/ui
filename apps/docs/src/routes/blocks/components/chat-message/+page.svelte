@@ -46,7 +46,7 @@
   sourceHref={componentData?.sourceHref}
   related={relatedLinks}
 >
-  <Section id="playground" intent="primary">
+  <Section id="playground" title="Playground" titleHidden intent="primary">
     <p class="text-text-secondary mb-6 text-sm leading-relaxed">
       One message rendered on its own. Flip the layout between the tinted
       <code class="text-text-primary">bubble</code> and the document-like

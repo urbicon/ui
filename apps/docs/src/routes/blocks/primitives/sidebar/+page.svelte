@@ -45,7 +45,7 @@
   sourceHref={componentData?.sourceHref}
   related={relatedLinks}
 >
-  <Section id="overview">
+  <Section id="overview" title="Overview" titleHidden>
     <div class="border-border-subtle bg-surface-elevated rounded-2xl border p-5">
       <h2 class="text-text-primary text-sm font-semibold">Looking for an app shell?</h2>
       <p class="text-text-secondary mt-1.5 text-sm leading-relaxed">
@@ -62,7 +62,7 @@
       </p>
     </div>
   </Section>
-  <Section id="playground" intent="primary">
+  <Section id="playground" title="Playground" titleHidden intent="primary">
     <Playground />
   </Section>
 

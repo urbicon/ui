@@ -90,10 +90,17 @@
   }
 </script>
 
-<section id="types" class="{slot('root')} {className ?? ''}" {...restProps}>
+<!-- The heading is right there, so the region can name itself; without the
+     reference this is a `<section>` a screen reader announces as nothing. -->
+<section
+  id="types"
+  class="{slot('root')} {className ?? ''}"
+  aria-labelledby="types-title"
+  {...restProps}
+>
   <div class="space-y-6">
     <div class={slot('header')}>
-      <h2 class={slot('title')}>{headingTitle}</h2>
+      <h2 id="types-title" class={slot('title')}>{headingTitle}</h2>
       {#if headingDescription}
         <p class={slot('description')}>{headingDescription}</p>
       {/if}

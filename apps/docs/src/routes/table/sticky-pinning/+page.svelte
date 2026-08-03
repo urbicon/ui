@@ -12,6 +12,15 @@
   const stickyProp = $derived(stickyMode === 'false' ? false : stickyMode);
 
   // Generate enough rows so the user has something to scroll through
+  const navigation = [
+    { id: 'overview', title: 'Overview' },
+    { id: 'playground', title: 'Playground' },
+    { id: 'modes', title: 'Modes' },
+    { id: 'custom-toolbar', title: 'Custom toolbar' },
+    { id: 'contained-scroll', title: 'Contained scroll' },
+    { id: 'caveats', title: 'Caveats' }
+  ];
+
   const manyEmployees = $derived([
     ...employees,
     ...employees.map((e) => ({ ...e, id: e.id + 100 })),
@@ -28,9 +37,10 @@
 <DocsPageLayout
   title="Sticky Pinning"
   description="Pin the toolbar, column header, and group header to the top of the scroll ancestor on long lists. Keeps context visible while scrolling through hundreds of rows."
+  {navigation}
   breadcrumbs={[{ label: 'Table', href: resolve('/table/table') }]}
 >
-  <Section id="overview">
+  <Section id="overview" title="Overview">
     <div class="space-y-4">
       <p class="text-text-secondary text-sm">
         The <code class="text-text-primary">sticky</code> prop pins one or more of the table's three
@@ -48,12 +58,12 @@
     </div>
   </Section>
 
-  <Section id="playground">
+  <Section id="playground" title="Playground">
     <div class="space-y-6">
       <div
         class="bg-surface-base border-border-default rounded-contain flex flex-wrap items-end gap-6 border p-4"
       >
-        <div class="min-w-[280px] flex-1">
+        <div class="min-w-70 flex-1">
           <div class="text-text-secondary mb-2 block text-xs font-medium tracking-wide uppercase">
             sticky
           </div>
@@ -65,7 +75,7 @@
           </SegmentGroup>
         </div>
 
-        <div class="min-w-[240px] flex-1">
+        <div class="min-w-60 flex-1">
           <div class="text-text-secondary mb-2 block text-xs font-medium tracking-wide uppercase">
             stickyOffset: {stickyOffset}px
           </div>
@@ -92,7 +102,7 @@
     </div>
   </Section>
 
-  <Section id="modes">
+  <Section id="modes" title="Modes">
     <div class="space-y-8">
       <CodeExample
         title="sticky (defaults to both)"
@@ -145,7 +155,7 @@
     </div>
   </Section>
 
-  <Section id="custom-toolbar">
+  <Section id="custom-toolbar" title="Custom toolbar">
     <div class="space-y-4">
       <p class="text-text-secondary text-sm">
         The default toolbar is the <code class="text-text-primary">SmartFilterBar</code>. Override
@@ -167,9 +177,8 @@
     </div>
   </Section>
 
-  <Section id="contained-scroll">
+  <Section id="contained-scroll" title={'Contained scroll — fit="viewport"'}>
     <div class="space-y-4">
-      <h2 class="text-lg font-semibold">Contained scroll — <code>fit="viewport"</code></h2>
       <p class="text-text-secondary text-sm">
         Page-relative <code class="text-text-primary">sticky</code> pinning and in-table horizontal
         scroll are mutually exclusive: a single element cannot be both a sticky-pin host and a
@@ -204,8 +213,7 @@
     </div>
   </Section>
 
-  <Section id="caveats">
-    <h2 class="mb-2 text-lg font-semibold">Caveats</h2>
+  <Section id="caveats" title="Caveats">
     <ul class="text-text-secondary list-disc space-y-2 pl-5 text-sm">
       <li>
         Sticky pinning anchors to the nearest scrollable ancestor. If you wrap the table in a

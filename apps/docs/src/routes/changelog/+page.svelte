@@ -86,9 +86,17 @@
   </p>
 
   {#each entries as entry (entry.version)}
-    <section class="border-border-subtle mb-8 border-b pb-8 last:border-b-0">
+    <!-- One region per release, named by its own version heading. The page
+         carries 98 of them, and unnamed they are 98 landmark boundaries a
+         screen reader announces as nothing. -->
+    <section
+      class="border-border-subtle mb-8 border-b pb-8 last:border-b-0"
+      aria-labelledby="release-{entry.version}"
+    >
       <div class="mb-4 flex items-baseline gap-3">
-        <h2 class="text-text-primary text-xl font-bold">{entry.version}</h2>
+        <h2 id="release-{entry.version}" class="text-text-primary text-xl font-bold">
+          {entry.version}
+        </h2>
         {#if entry.date}
           <span class="text-text-quaternary text-sm">{entry.date}</span>
         {/if}

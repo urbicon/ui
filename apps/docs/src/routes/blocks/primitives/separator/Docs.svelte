@@ -13,7 +13,7 @@
       description="Vertical separators as dividers between navigation items — a classic breadcrumb pattern."
       isolate
     >
-      <nav class="flex items-center text-sm">
+      <nav aria-label="Breadcrumb" class="flex items-center text-sm">
         <a href="#!" class="text-text-tertiary hover:text-text-primary transition-colors">Home</a>
         <Separator orientation="vertical" size="sm" class="mx-3 h-4" />
         <a href="#!" class="text-text-tertiary hover:text-text-primary transition-colors"

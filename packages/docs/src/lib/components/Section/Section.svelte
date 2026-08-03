@@ -8,6 +8,7 @@
     title,
     marker,
     meta,
+    titleHidden = false,
     subtitle,
     badges = [],
     centered = false,
@@ -58,9 +59,12 @@
   class={[slot('root'), className]}
   aria-labelledby={hasHeading ? headingId : undefined}
 >
-  <!-- Header Section (only rendered if there's content) -->
+  <!-- Header Section (only rendered if there's content). Under `titleHidden`
+       the whole header goes into the screen-reader layer: `sr-only` is
+       absolutely positioned, so the header's own `mt-*` rhythm stops taking
+       space too — hiding only the title would leave its margin behind. -->
   {#if hasHeader}
-    <header class={slot('header')}>
+    <header class={[titleHidden ? 'sr-only' : slot('header')]}>
       <div class={slot('headerRow')}>
         <!-- Title: Snippet takes precedence over prop -->
         {#if titleSnippet}

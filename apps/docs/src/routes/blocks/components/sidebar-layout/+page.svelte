@@ -45,7 +45,7 @@
   sourceHref={componentData?.sourceHref}
   related={relatedLinks}
 >
-  <Section id="overview" intent="primary">
+  <Section id="overview" title="Overview" titleHidden intent="primary">
     <p class="text-text-secondary text-sm leading-relaxed">
       The documentation site you are reading now is itself wrapped in
       <code class="text-text-primary">SidebarLayout</code>. Resize your viewport below 1024px to see
@@ -60,7 +60,7 @@
     </p>
   </Section>
 
-  <Section id="playground" intent="primary">
+  <Section id="playground" title="Playground" titleHidden intent="primary">
     <Playground />
   </Section>
 

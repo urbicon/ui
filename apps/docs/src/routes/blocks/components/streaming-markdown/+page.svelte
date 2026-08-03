@@ -91,7 +91,7 @@ for await (const chunk of stream) render(chunk);
   sourceHref={componentData?.sourceHref}
   related={relatedLinks}
 >
-  <Section id="playground" intent="primary">
+  <Section id="playground" title="Playground" titleHidden intent="primary">
     <Playground />
   </Section>
 

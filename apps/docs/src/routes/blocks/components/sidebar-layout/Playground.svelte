@@ -86,7 +86,7 @@
         {/snippet}
 
         {#snippet sidebar()}
-          <nav class="space-y-1 p-3">
+          <nav aria-label="Demo sidebar" class="space-y-1 p-3">
             {#each NAV as item, i (item)}
               <a
                 href="#{item.toLowerCase()}"

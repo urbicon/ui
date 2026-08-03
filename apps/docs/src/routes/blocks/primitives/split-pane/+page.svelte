@@ -46,7 +46,7 @@
 
     return `<SplitPane${propsStr} defaultRatio={0.4} min="20%" max="80%">
   {#snippet start()}
-    <nav class="h-full overflow-auto p-4">Sidebar</nav>
+    <nav aria-label="Demo sidebar" class="h-full overflow-auto p-4">Sidebar</nav>
   {/snippet}
   {#snippet end()}
     <main class="h-full overflow-auto p-4">Content</main>
@@ -74,7 +74,7 @@
   sourceHref={componentData?.sourceHref}
   related={relatedLinks}
 >
-  <Section id="playground" intent="primary">
+  <Section id="playground" title="Playground" titleHidden intent="primary">
     <Playground />
   </Section>
 

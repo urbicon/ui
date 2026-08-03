@@ -49,6 +49,25 @@ export interface SectionProps
   meta?: string;
 
   /**
+   * Keep the header in the screen-reader layer only — the section still gets a
+   * real heading and a working `aria-labelledby`, it just does not draw one.
+   *
+   * For sections whose purpose is obvious from what they contain but that carry
+   * no heading in the design. The component playgrounds are the case this
+   * exists for: the specimen sits directly under the page `h1` and a
+   * "Playground" heading above it would be redundant to a sighted reader —
+   * while without one the table of contents offered a "Playground" entry
+   * leading into an unnamed region, and heading navigation skipped the largest
+   * interactive element on the page (measured on 57 pages, 2026-08).
+   *
+   * Do not reach for it to quiet a section that simply has no title yet: a
+   * hidden heading and a missing heading look the same in the markup and only
+   * one of them is a decision.
+   * @default false
+   */
+  titleHidden?: boolean;
+
+  /**
    * Subtitle text (property)
    */
   subtitle?: string;

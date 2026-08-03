@@ -112,7 +112,10 @@
           <div class={slot('empty')}>{bt('calendar.noEvents')}</div>
         {:else}
           {#each agendaEntries as entry (toIso(entry.date))}
-            <section class={slot('agendaDayGroup')}>
+            <!-- The day label is a styled div, not a heading, so the region has
+                 nothing to point `aria-labelledby` at — labelled directly, or a
+                 screen reader announces one unnamed region per day. -->
+            <section class={slot('agendaDayGroup')} aria-label={entry.dateLabel}>
               <div
                 class="{slot('agendaDayHeader')} {entry.isToday ? 'text-primary font-bold' : ''}"
               >

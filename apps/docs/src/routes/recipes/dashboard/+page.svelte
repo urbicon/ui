@@ -135,7 +135,7 @@
   {/snippet}
 
   {#snippet sidebar()}
-    <nav class="flex flex-col gap-1 p-3">
+    <nav aria-label="Dashboard sidebar" class="flex flex-col gap-1 p-3">
       {#each navItems as item (item.id)}
         {@const Icon = item.icon}
         <button
@@ -263,7 +263,7 @@
         {/snippet}
 
         {#snippet sidebar()}
-          <nav class="flex flex-col gap-1 p-3">
+          <nav aria-label="Dashboard sidebar" class="flex flex-col gap-1 p-3">
             {#each navItems as item (item.id)}
               {@const Icon = item.icon}
               <button

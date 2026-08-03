@@ -1,10 +1,12 @@
 <script lang="ts">
   import { page } from '$app/state';
+  import { useAppI18n } from '$lib/i18n';
   import { resolveNav, useNavLabel, type NavItem } from '$lib/navigation';
 
   let { items }: { items: NavItem[] } = $props();
 
   const navLabel = useNavLabel();
+  const ta = useAppI18n();
 
   // Prefix-active: this item's subtree contains the current page.
   function isActive(href: string | undefined, path: string) {
@@ -96,8 +98,15 @@
   the chip says which PAGE. The rail carries the depth so the indent does not
   have to: leaves step in once, and their belonging is drawn as a line rather
   than as a third staircase step.
+
+  The label is not decoration: a component page carries six navigation
+  landmarks — breadcrumb, on-this-page, related, prev/next, footer and this one
+  — and this was the only unnamed one on all 169 pages, so the landmark list a
+  screen-reader user navigates by named five of them and left the primary one
+  blank. It goes through `ta` because the chrome follows the active locale
+  (the content column does not — see the root layout).
 -->
-<nav class="flex flex-1 flex-col gap-0.5 overflow-y-auto p-3">
+<nav aria-label={ta('chrome.docsNav')} class="flex flex-1 flex-col gap-0.5 overflow-y-auto p-3">
   {#each items as item (item.href ?? item.name)}
     {@const exact = item.href != null && path === item.href}
     {@const inSection = isActive(item.href, path) || hasActiveDescendant(item, path)}
@@ -153,7 +162,7 @@
                   aria-hidden="true">▶</span
                 >
                 {navLabel(child)}
-                <span class="font-meta text-text-quaternary ml-auto text-2xs"
+                <span class="font-meta text-text-quaternary text-2xs ml-auto"
                   >{child.children?.length ?? 0}</span
                 >
               </button>

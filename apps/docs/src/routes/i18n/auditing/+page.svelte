@@ -75,7 +75,7 @@ const report = findUnusedKeys(collectDeepKeys(enBundle), scan, {
   {navigation}
   breadcrumbs={[{ label: 'Localization', href: resolve('/i18n') }]}
 >
-  <Section id="overview" intent="primary">
+  <Section id="overview" title="Three layers" titleHidden intent="primary">
     <p class="text-text-secondary mb-4">
       A key-based i18n system has three distinct failure modes, and one tool rarely covers all
       three. A locale can <strong>fall behind</strong> the base (a key missing, empty, or with the

@@ -57,6 +57,14 @@ ${scriptClose}
   {/snippet}
 </Table>`;
 
+  const navigation = [
+    { id: 'overview', title: 'Overview' },
+    { id: 'demo', title: 'Demo' },
+    { id: 'enable', title: 'Enabling live updates' },
+    { id: 'merge-semantics', title: 'Buffer & merge semantics' },
+    { id: 'auto-apply', title: 'Auto-apply on navigation' }
+  ];
+
   const codeAutoApply = `<Table
   {items}
   {columns}
@@ -73,9 +81,10 @@ ${scriptClose}
 <DocsPageLayout
   title="Live Updates"
   description="Non-disruptive real-time data updates with buffering and user-controlled application."
+  {navigation}
   breadcrumbs={[{ label: 'Table', href: resolve('/table/table') }]}
 >
-  <Section id="overview">
+  <Section id="overview" title="Overview">
     <div class="space-y-4">
       <p class="text-text-secondary text-sm">
         Live-injecting rows into a filtered, sorted, paginated table is disorienting: rows jump
@@ -94,7 +103,7 @@ ${scriptClose}
     </div>
   </Section>
 
-  <Section id="demo">
+  <Section id="demo" title="Demo">
     <div class="space-y-4">
       <p class="text-text-secondary text-sm">
         The panel below plays the role of your backend. Push a few events — the
@@ -109,7 +118,7 @@ ${scriptClose}
     </div>
   </Section>
 
-  <Section id="enable">
+  <Section id="enable" title="Enabling live updates">
     <div class="space-y-8">
       <CodeExample
         title="Enable live updates"
@@ -134,9 +143,8 @@ ${scriptClose}
     </div>
   </Section>
 
-  <Section id="merge-semantics">
+  <Section id="merge-semantics" title="Buffer & merge semantics">
     <div class="border-border-subtle bg-surface-elevated rounded-2xl border p-6">
-      <h4 class="text-text-primary mb-4 text-sm font-semibold">Buffer &amp; merge semantics</h4>
       <ul class="text-text-secondary list-inside list-disc space-y-2 text-sm">
         <li>
           <code class="text-text-primary">pushInsert</code> deduplicates by row ID — pushing the same
@@ -168,7 +176,7 @@ ${scriptClose}
     </div>
   </Section>
 
-  <Section id="auto-apply">
+  <Section id="auto-apply" title="Auto-apply on navigation">
     <div class="space-y-4">
       <p class="text-text-secondary text-sm">
         With <code class="text-text-primary">autoApplyOnNavigation</code> (default
