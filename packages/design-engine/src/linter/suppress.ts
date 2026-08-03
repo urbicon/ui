@@ -23,6 +23,7 @@
  */
 
 import { HEURISTIC_RULE_IDS } from './heuristics.js';
+import { HTML_COMMENT_END } from './mask.js';
 import { RULES } from './rules.js';
 import type { Finding, SuppressedRule } from './types.js';
 
@@ -38,9 +39,29 @@ export function knownRuleIds(): ReadonlySet<string> {
  * `urbicon-ignore` pragmas in any comment flavour. The id list runs to the end
  * of the comment or to the first em-dash (`—`), which starts the human reason
  * (HTML comments cannot contain `--`, so the ASCII form is not an option).
+ *
+ * Each body runs from the opener to the **first** closer, and nothing else may
+ * end it. That is the one rule the host languages give us, and matching it is
+ * what keeps this reader agreeing with the comment mask in `mask.ts`: neither
+ * HTML comments nor JS block comments nest, so a `<!--` or `/*` inside a body is
+ * ordinary text, not a second pragma. A boundary the mask does not recognise
+ * would let an id be read out of a body the mask has already blanked and turned
+ * into a file-wide exemption — a suppression that widens itself, which is the
+ * one direction this module must never move (see the header).
+ *
+ * The HTML form used to read `[^>]*?`, which added a boundary of its own: a
+ * reason that named a tag (`… all eight are <h3> …`) stopped the pragma from
+ * matching and the suppression silently did not apply. `[^>]` was never a *line*
+ * boundary — it crosses `\n` happily, which is why every multi-line pragma in
+ * this repo kept working; `>` alone was the limit. `[\s\S]*?` removes it.
+ *
+ * The HTML closer comes from {@link HTML_COMMENT_END} so this reader and the mask
+ * cannot disagree about which character sequence ends a comment (`--!>` closes
+ * one too) — the same agreement, at the other end of the region.
  */
 const PRAGMA_RES: readonly RegExp[] = [
-  /<!--\s*urbicon-ignore\b([^>]*?)-->/g, // <!-- urbicon-ignore … -->
+  // <!-- urbicon-ignore … -->
+  new RegExp(String.raw`<!--\s*urbicon-ignore\b([\s\S]*?)` + HTML_COMMENT_END, 'g'),
   /\/\/\s*urbicon-ignore\b(.*)$/gm, // // urbicon-ignore …
   /\/\*\s*urbicon-ignore\b([\s\S]*?)\*\//g // /* urbicon-ignore … */
 ];

@@ -39,8 +39,17 @@ interface Delimiters {
   readonly close: RegExp;
 }
 
-/** `--!>` closes a comment too (HTML's "comment end bang" state), so the mask honours it. */
-const HTML_COMMENT: Delimiters = { open: /<!--/g, close: /--!?>/g };
+/**
+ * How an HTML comment ends: `--!>` closes one too (HTML's "comment end bang"
+ * state), so the mask honours it. Exported as a pattern *source* because the mask
+ * is not the only reader that has to agree on where a comment stops — `suppress.ts`
+ * reads `urbicon-ignore` pragmas out of the raw, unmasked source and would
+ * otherwise scan straight past a closer the mask has already blanked. Sharing the
+ * source string is what keeps the two from drifting apart in silence.
+ */
+export const HTML_COMMENT_END = '--!?>';
+
+const HTML_COMMENT: Delimiters = { open: /<!--/g, close: new RegExp(HTML_COMMENT_END, 'g') };
 const BLOCK_COMMENT: Delimiters = { open: /\/\*/g, close: /\*\//g };
 
 /**

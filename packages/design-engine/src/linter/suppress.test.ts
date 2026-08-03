@@ -82,6 +82,107 @@ describe('urbicon-ignore pragma (file-scoped exemption)', () => {
   });
 });
 
+/**
+ * The comment boundary itself. Every case here fails as a *missing* signal — a
+ * suppression that quietly does not apply, or one that quietly applies to the
+ * wrong pragma — so none of them announce themselves without a test.
+ */
+describe('urbicon-ignore pragma boundaries', () => {
+  it('matches when the reason names a tag', () => {
+    // The reported case: the body used to be `[^>]*?`, so the `<h3>` ended it and
+    // the pragma stopped matching — while reading as a perfectly good suppression.
+    const code =
+      '<!-- urbicon-ignore magic-dimension — all eight are `<h3>`: the hierarchy\n' +
+      '     is carried by the `<Section>` h2 above them. -->\n' +
+      '<div class="h-[30px]">x</div>';
+    const report = lintDesign(code);
+    expect(has(report.findings, 'magic-dimension')).toBe(false);
+    expect(has(report.findings, 'invalid-suppression')).toBe(false);
+    expect(report.suppressed).toEqual([{ ruleId: 'magic-dimension', count: 1, source: 'pragma' }]);
+  });
+
+  it('matches when the reason contains a bare `>`', () => {
+    const code =
+      '<!-- urbicon-ignore inline-style — the swatch maps value => colour, a > b -->\n' +
+      '<div style="color: red">x</div>';
+    const report = lintDesign(code);
+    expect(has(report.findings, 'inline-style')).toBe(false);
+    expect(report.suppressed).toEqual([{ ruleId: 'inline-style', count: 1, source: 'pragma' }]);
+  });
+
+  it('reads the same comment extent as the mask when a body holds a `<!--`', () => {
+    // HTML comments do not nest: the first `-->` ends the comment, so the second
+    // `<!-- urbicon-ignore` here is reason prose inside the first one, not a
+    // pragma. The mask blanks exactly this span, and lifting `raw-tailwind-color`
+    // out of it would turn masked prose into a file-wide exemption — a
+    // suppression widening itself, which is the direction this module forbids.
+    const code = [
+      '<!-- urbicon-ignore magic-dimension — the hero art is measured, not tokenised',
+      '<!-- urbicon-ignore raw-tailwind-color — swatch table below is fixture data -->',
+      '<div class="h-[30px]">x</div>',
+      '<div class="bg-blue-500">swatch</div>'
+    ].join('\n');
+    const report = lintDesign(code);
+    expect(report.suppressed).toEqual([{ ruleId: 'magic-dimension', count: 1, source: 'pragma' }]);
+    expect(has(report.findings, 'raw-tailwind-color')).toBe(true); // never exempted from prose
+  });
+
+  it('an unterminated pragma with no closer at all suppresses nothing', () => {
+    const code =
+      '<!-- urbicon-ignore magic-dimension — no closer anywhere\n<div class="h-[30px]">x</div>';
+    const report = lintDesign(code);
+    expect(has(report.findings, 'magic-dimension')).toBe(true);
+    expect(report.suppressed).toBeUndefined();
+  });
+
+  it('ends on `--!>`, the comment end the mask already honours', () => {
+    const code = '<!-- urbicon-ignore magic-dimension --!>\n<div class="h-[30px]">x</div>';
+    const report = lintDesign(code);
+    expect(has(report.findings, 'magic-dimension')).toBe(false);
+    expect(report.suppressed).toEqual([{ ruleId: 'magic-dimension', count: 1, source: 'pragma' }]);
+  });
+
+  it('a reason may quote the pragma syntax it documents', () => {
+    // The house form written out in a reason — which this repo's doc pages invite.
+    // A boundary rule that stopped at the quoted `<!--` would cost the file both
+    // its suppression and a spurious `invalid-suppression` warning.
+    const code =
+      '<!-- urbicon-ignore magic-dimension — the house form is `<!-- urbicon-ignore … -->`,\n' +
+      '     see the linter docs. -->\n' +
+      '<div class="h-[30px]">x</div>';
+    const report = lintDesign(code);
+    expect(has(report.findings, 'magic-dimension')).toBe(false);
+    expect(has(report.findings, 'invalid-suppression')).toBe(false);
+    expect(report.suppressed).toEqual([{ ruleId: 'magic-dimension', count: 1, source: 'pragma' }]);
+  });
+});
+
+/** The `/* … *\/` flavour, which had no coverage at all. */
+describe('urbicon-ignore pragma (block-comment flavour)', () => {
+  it('suppresses from a block comment', () => {
+    const code =
+      '/* urbicon-ignore raw-tailwind-color — fixture data */\n' + "const c = 'bg-blue-500';";
+    const report = lintDesign(code, { filename: 'fixture.ts' });
+    expect(has(report.findings, 'raw-tailwind-color')).toBe(false);
+    expect(report.suppressed).toEqual([
+      { ruleId: 'raw-tailwind-color', count: 1, source: 'pragma' }
+    ]);
+  });
+
+  it('a reason may contain a `/*`, which block comments do not treat as an opener', () => {
+    // Legal, warning-free TS: block comments do not nest, so this is one comment
+    // and one well-formed pragma — `maskBlockComments` blanks exactly this span.
+    const code =
+      '/* urbicon-ignore raw-tailwind-color — the emitter writes a leading /* marker */\n' +
+      "const c = 'bg-blue-500';";
+    const report = lintDesign(code, { filename: 'fixture.ts' });
+    expect(has(report.findings, 'raw-tailwind-color')).toBe(false);
+    expect(report.suppressed).toEqual([
+      { ruleId: 'raw-tailwind-color', count: 1, source: 'pragma' }
+    ]);
+  });
+});
+
 describe('suppressRules option (the manifest ## Exempt channel)', () => {
   it('suppresses like a pragma, tagged with source "option"', () => {
     const report = lintDesign('<div class="bg-blue-500">x</div>', {
