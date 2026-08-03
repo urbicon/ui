@@ -444,13 +444,15 @@
             </button>
           {/if}
           {#if hasAnyDescription}
-            <!-- helpToggleActive is a state layer, not a slot: it has no
-               slotClasses key, so `unstyled` drops it with the rest of the
-               default styles — the pressed state is still carried by
-               aria-pressed for consumers who restyle from scratch. -->
+            <!-- helpToggleActive is a state layer, but it IS a tv slot, so it
+               is part of the public slotClasses union — called as
+               `styles.helpToggleActive()` it ignored the consumer's entry, which
+               the comment here used to deny. Through `slot()` the entry lands
+               and `unstyled` still drops the defaults; the pressed state is
+               carried by aria-pressed either way. -->
             <button
               type="button"
-              class={[slot('helpToggle'), helpVisible && !unstyled && styles.helpToggleActive()]
+              class={[slot('helpToggle'), helpVisible && slot('helpToggleActive')]
                 .filter(Boolean)
                 .join(' ')}
               aria-pressed={helpVisible}

@@ -62,8 +62,17 @@
   const styles = $derived(apiReferenceVariants());
 
   // `unstyled` drops the tv defaults; slotClasses always apply on top.
-  const slot = (name: ApiReferenceSlots): string =>
-    [unstyled ? '' : styles[name](), slotClasses[name] ?? ''].filter(Boolean).join(' ');
+  // Folds through tv(): a `slotClasses` entry strips the default it conflicts
+  // with, so the override wins its bucket instead of both classes landing on
+  // the element and the stylesheet order picking the winner. Same contract as
+  // the ternary every `blocks` component uses, and as CodePanel /
+  // TypesReference / PlaygroundConfigurator here. Under `unstyled` there are
+  // no defaults to fold against, so the override stands alone.
+  const slot = (name: ApiReferenceSlots): string => {
+    if (unstyled) return slotClasses[name] ?? '';
+    const fns = styles as unknown as Record<string, (a: { class?: string }) => string>;
+    return fns[name]({ class: slotClasses[name] });
+  };
 
   // Pre-hydration the Table body is empty — TableProvider seeds its rows in a
   // client-only $effect — so the prerendered artifact renders the empty state
@@ -104,7 +113,12 @@
     event.preventDefault();
     revealTableRow({
       rowId: `type-${typeName}`,
-      highlightClasses: styles.highlightRing(),
+      // Through `slot()`, not `styles.highlightRing()` directly: `highlightRing`
+      // IS a tv slot, so it is part of the public `slotClasses` union — called
+      // directly it ignored the consumer's entry and survived `unstyled`. It is
+      // not a class attribute but an argument, which is exactly why it was
+      // missed.
+      highlightClasses: slot('highlightRing'),
       fallbackSectionId: 'types',
       expand: true
     });
@@ -165,8 +179,11 @@
        an unnamed region, which a screen reader announces as nothing at all
        while still counting as a landmark boundary. The `id` stays: it is the
        anchor TypesReference links back to, and a page may override it via
-       restProps. -->
-  <div {...restProps} id="api-reference" class={[slot('base'), className]}>
+       restProps — which is why the spread comes LAST. Svelte lets a later
+       attribute win over an earlier spread, so `{...restProps}` in front would
+       pin every instance to the literal, and a page rendering more than one
+       (the Guide page renders 13) would emit the same id that often. -->
+  <div id="api-reference" class={[slot('base'), className]} {...restProps}>
     <div class={slot('stats')}>
       <span>{dt('propsCount', { count: sortedProps.length })}</span>
       {#if requiredCount > 0}

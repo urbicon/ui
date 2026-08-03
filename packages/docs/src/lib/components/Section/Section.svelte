@@ -29,8 +29,17 @@
   const styles = $derived(sectionVariants({ size, intent, centered }));
 
   // `unstyled` drops the tv defaults; slotClasses always apply on top.
-  const slot = (name: SectionSlots): string =>
-    [unstyled ? '' : styles[name](), slotClasses[name] ?? ''].filter(Boolean).join(' ');
+  // Folds through tv(): a `slotClasses` entry strips the default it conflicts
+  // with, so the override wins its bucket instead of both classes landing on
+  // the element and the stylesheet order picking the winner. Same contract as
+  // the ternary every `blocks` component uses, and as CodePanel /
+  // TypesReference / PlaygroundConfigurator here. Under `unstyled` there are
+  // no defaults to fold against, so the override stands alone.
+  const slot = (name: SectionSlots): string => {
+    if (unstyled) return slotClasses[name] ?? '';
+    const fns = styles as unknown as Record<string, (a: { class?: string }) => string>;
+    return fns[name]({ class: slotClasses[name] });
+  };
 
   // Determine whether to show header section
   const hasHeader = $derived(

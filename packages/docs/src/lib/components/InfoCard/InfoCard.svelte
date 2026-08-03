@@ -22,8 +22,17 @@
   const styles = $derived(infoCardVariants({ intent, size }));
 
   // `unstyled` drops the tv defaults; slotClasses always apply on top.
-  const slot = (name: InfoCardSlots): string =>
-    [unstyled ? '' : styles[name](), slotClasses[name] ?? ''].filter(Boolean).join(' ');
+  // Folds through tv(): a `slotClasses` entry strips the default it conflicts
+  // with, so the override wins its bucket instead of both classes landing on
+  // the element and the stylesheet order picking the winner. Same contract as
+  // the ternary every `blocks` component uses, and as CodePanel /
+  // TypesReference / PlaygroundConfigurator here. Under `unstyled` there are
+  // no defaults to fold against, so the override stands alone.
+  const slot = (name: InfoCardSlots): string => {
+    if (unstyled) return slotClasses[name] ?? '';
+    const fns = styles as unknown as Record<string, (a: { class?: string }) => string>;
+    return fns[name]({ class: slotClasses[name] });
+  };
 
   // Same clamp as Section and Note: an out-of-range level would emit `<h0>`,
   // which is not a heading at all.
