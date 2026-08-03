@@ -59,16 +59,10 @@
         </div>
       </div>
     </CodeExample>
-  </div>
-</Section>
 
-<!-- ─── Micro-Interactions ─── -->
-
-<Section marker="02" id="mint" title="Micro-Interactions (Mint)">
-  <div class="space-y-8">
     <CodeExample
-      title="Mint Presets"
-      description="Hover over each toggle to see the micro-interaction effect."
+      title="Mint micro-interactions"
+      description="A switch is worth a little motion feedback, because its two states look alike. Pass one effect by name, or an array to layer several — the array form is what the Playground's single-value Mint control cannot express. Everything here is suppressed under prefers-reduced-motion."
       isolate
       previewClass="flex flex-col gap-3"
     >
@@ -81,7 +75,7 @@
 
 <!-- ─── Customization ─── -->
 
-<Section marker="03" id="customization" title="Customization">
+<Section marker="02" id="customization" title="Customization">
   <div class="space-y-8">
     <CodeExample
       title="Gradient Tracks"
@@ -186,7 +180,7 @@
 
 <!-- ─── Accessibility ─── -->
 
-<Section marker="04" id="accessibility" title="Accessibility">
+<Section marker="03" id="accessibility" title="Accessibility">
   <NoteList>
     <Note title="Built-in ARIA">
       <p>

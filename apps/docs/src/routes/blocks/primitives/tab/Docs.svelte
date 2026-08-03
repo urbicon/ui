@@ -30,183 +30,6 @@
 
 <Section marker="01" id="examples" title="Examples">
   <div class="space-y-8">
-    <!-- Variants -->
-    <CodeExample
-      title="Variants"
-      description="Four visual styles for different UI contexts."
-      isolate
-      previewClass="flex flex-col gap-10"
-    >
-      <div class="flex w-full flex-col gap-2.5">
-        <p class="text-text-tertiary text-xs font-medium tracking-wider uppercase">Line</p>
-        <Tab defaultValue="overview">
-          {#snippet tabs()}
-            <TabItem value="overview">Overview</TabItem>
-            <TabItem value="analytics">Analytics</TabItem>
-            <TabItem value="reports">Reports</TabItem>
-          {/snippet}
-          {#snippet panels()}
-            <TabPanel value="overview">
-              <p class="text-text-secondary text-sm">
-                Animated underline indicator tracks the active tab.
-              </p>
-            </TabPanel>
-            <TabPanel value="analytics">
-              <p class="text-text-secondary text-sm">
-                Great for primary navigation within a page section.
-              </p>
-            </TabPanel>
-            <TabPanel value="reports">
-              <p class="text-text-secondary text-sm">
-                Clean separation between tab strip and content area.
-              </p>
-            </TabPanel>
-          {/snippet}
-        </Tab>
-      </div>
-
-      <div class="flex w-full flex-col gap-2.5">
-        <p class="text-text-tertiary text-xs font-medium tracking-wider uppercase">Pills</p>
-        <Tab variant="pills" defaultValue="overview">
-          {#snippet tabs()}
-            <TabItem value="overview">Overview</TabItem>
-            <TabItem value="analytics">Analytics</TabItem>
-            <TabItem value="reports">Reports</TabItem>
-          {/snippet}
-          {#snippet panels()}
-            <TabPanel value="overview">
-              <p class="text-text-secondary text-sm">
-                Segmented-control feel with a subtle background.
-              </p>
-            </TabPanel>
-            <TabPanel value="analytics">
-              <p class="text-text-secondary text-sm">
-                Active tab gets an elevated surface treatment.
-              </p>
-            </TabPanel>
-            <TabPanel value="reports">
-              <p class="text-text-secondary text-sm">
-                Ideal for compact filter bars or toolbar toggles.
-              </p>
-            </TabPanel>
-          {/snippet}
-        </Tab>
-      </div>
-
-      <div class="flex w-full flex-col gap-2.5">
-        <p class="text-text-tertiary text-xs font-medium tracking-wider uppercase">Enclosed</p>
-        <Tab variant="enclosed" defaultValue="overview">
-          {#snippet tabs()}
-            <TabItem value="overview">Overview</TabItem>
-            <TabItem value="analytics">Analytics</TabItem>
-            <TabItem value="reports">Reports</TabItem>
-          {/snippet}
-          {#snippet panels()}
-            <TabPanel value="overview">
-              <p class="text-text-secondary text-sm">
-                Classic browser-tab pattern with bordered tabs.
-              </p>
-            </TabPanel>
-            <TabPanel value="analytics">
-              <p class="text-text-secondary text-sm">
-                Active tab merges visually with the content panel.
-              </p>
-            </TabPanel>
-            <TabPanel value="reports">
-              <p class="text-text-secondary text-sm">
-                Strong visual affordance of the selected state.
-              </p>
-            </TabPanel>
-          {/snippet}
-        </Tab>
-      </div>
-
-      <div class="flex w-full flex-col gap-2.5">
-        <p class="text-text-tertiary text-xs font-medium tracking-wider uppercase">Solid</p>
-        <Tab variant="solid" defaultValue="overview">
-          {#snippet tabs()}
-            <TabItem value="overview">Overview</TabItem>
-            <TabItem value="analytics">Analytics</TabItem>
-            <TabItem value="reports">Reports</TabItem>
-          {/snippet}
-          {#snippet panels()}
-            <TabPanel value="overview">
-              <p class="text-text-secondary text-sm">Bold primary fill on the active tab.</p>
-            </TabPanel>
-            <TabPanel value="analytics">
-              <p class="text-text-secondary text-sm">
-                High contrast — perfect for prominent action areas.
-              </p>
-            </TabPanel>
-            <TabPanel value="reports">
-              <p class="text-text-secondary text-sm">
-                Segmented control with strong visual hierarchy.
-              </p>
-            </TabPanel>
-          {/snippet}
-        </Tab>
-      </div>
-    </CodeExample>
-
-    <!-- Sizes -->
-    <CodeExample title="Sizes" isolate previewClass="flex flex-col gap-10">
-      <div class="flex w-full flex-col gap-2.5">
-        <p class="text-text-tertiary text-xs font-medium tracking-wider uppercase">Small</p>
-        <Tab variant="pills" size="sm" defaultValue="a">
-          {#snippet tabs()}
-            <TabItem value="a">Day</TabItem>
-            <TabItem value="b">Week</TabItem>
-            <TabItem value="c">Month</TabItem>
-          {/snippet}
-          {#snippet panels()}
-            <TabPanel value="a"
-              ><p class="text-text-secondary text-sm">
-                Compact for toolbars and dense UIs.
-              </p></TabPanel
-            >
-            <TabPanel value="b"><p class="text-text-secondary text-sm">—</p></TabPanel>
-            <TabPanel value="c"><p class="text-text-secondary text-sm">—</p></TabPanel>
-          {/snippet}
-        </Tab>
-      </div>
-      <div class="flex w-full flex-col gap-2.5">
-        <p class="text-text-tertiary text-xs font-medium tracking-wider uppercase">Medium</p>
-        <Tab variant="pills" size="md" defaultValue="a">
-          {#snippet tabs()}
-            <TabItem value="a">Day</TabItem>
-            <TabItem value="b">Week</TabItem>
-            <TabItem value="c">Month</TabItem>
-          {/snippet}
-          {#snippet panels()}
-            <TabPanel value="a"
-              ><p class="text-text-secondary">Default size for most use cases.</p></TabPanel
-            >
-            <TabPanel value="b"><p class="text-text-secondary">—</p></TabPanel>
-            <TabPanel value="c"><p class="text-text-secondary">—</p></TabPanel>
-          {/snippet}
-        </Tab>
-      </div>
-      <div class="flex w-full flex-col gap-2.5">
-        <p class="text-text-tertiary text-xs font-medium tracking-wider uppercase">Large</p>
-        <Tab variant="pills" size="lg" defaultValue="a">
-          {#snippet tabs()}
-            <TabItem value="a">Day</TabItem>
-            <TabItem value="b">Week</TabItem>
-            <TabItem value="c">Month</TabItem>
-          {/snippet}
-          {#snippet panels()}
-            <TabPanel value="a"
-              ><p class="text-text-secondary text-lg">
-                For hero sections and spacious layouts.
-              </p></TabPanel
-            >
-            <TabPanel value="b"><p class="text-text-secondary text-lg">—</p></TabPanel>
-            <TabPanel value="c"><p class="text-text-secondary text-lg">—</p></TabPanel>
-          {/snippet}
-        </Tab>
-      </div>
-    </CodeExample>
-
     <!-- Vertical Orientation -->
     <CodeExample
       title="Vertical Orientation"
@@ -437,53 +260,9 @@
   </div>
 </Section>
 
-<!-- ─── Micro-Interactions ─── -->
-
-<Section marker="02" id="mint" title="Micro-Interactions">
-  <div class="space-y-8">
-    <CodeExample title="Scale" description="Subtle scale on hover for playful UI." isolate>
-      <Tab variant="pills" mint="scale" defaultValue="a">
-        {#snippet tabs()}
-          <TabItem value="a">Design</TabItem>
-          <TabItem value="b">Develop</TabItem>
-          <TabItem value="c">Deploy</TabItem>
-        {/snippet}
-        {#snippet panels()}
-          <TabPanel value="a"
-            ><p class="text-text-secondary text-sm">
-              Hover over the tabs to see the scale effect.
-            </p></TabPanel
-          >
-          <TabPanel value="b"><p class="text-text-secondary text-sm">—</p></TabPanel>
-          <TabPanel value="c"><p class="text-text-secondary text-sm">—</p></TabPanel>
-        {/snippet}
-      </Tab>
-    </CodeExample>
-
-    <CodeExample title="Glow" description="Soft glow aura around the tab container." isolate>
-      <Tab variant="solid" mint="glow" defaultValue="a">
-        {#snippet tabs()}
-          <TabItem value="a">Live</TabItem>
-          <TabItem value="b">Preview</TabItem>
-          <TabItem value="c">Code</TabItem>
-        {/snippet}
-        {#snippet panels()}
-          <TabPanel value="a"
-            ><p class="text-text-secondary text-sm">
-              The container gets a soft glow on interaction.
-            </p></TabPanel
-          >
-          <TabPanel value="b"><p class="text-text-secondary text-sm">—</p></TabPanel>
-          <TabPanel value="c"><p class="text-text-secondary text-sm">—</p></TabPanel>
-        {/snippet}
-      </Tab>
-    </CodeExample>
-  </div>
-</Section>
-
 <!-- ─── Customization ─── -->
 
-<Section marker="03" id="customization" title="Customization">
+<Section marker="02" id="customization" title="Customization">
   <div class="space-y-8">
     <!-- slotClasses -->
     <CodeExample
@@ -657,7 +436,7 @@
 
 <!-- ─── Accessibility ─── -->
 
-<Section marker="04" id="accessibility" title="Accessibility">
+<Section marker="03" id="accessibility" title="Accessibility">
   <NoteList>
     <Note title="Built-in ARIA">
       <p>

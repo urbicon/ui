@@ -53,7 +53,6 @@
 
   let filterValue = $state<string | null>(null);
   let customValue = $state<string | null>(null);
-  let assigneeValue = $state<string | null>(null);
   let timezoneValue = $state<string | null>(null);
   let skillsValue = $state<string[]>(['ts', 'svelte']);
 
@@ -161,21 +160,6 @@ ${asyncScriptClose}
 
 <Section marker="01" id="examples" title="Examples">
   <div class="space-y-8">
-    <CodeExample
-      title="Per-option disabled"
-      description="Disable individual options while the rest of the list stays selectable. Keyboard navigation skips disabled options — useful for assignee pickers where someone is on leave."
-      isolate
-      previewClass="flex flex-col gap-4 max-w-sm"
-    >
-      <Combobox
-        label="Assignee"
-        options={teamMembers}
-        bind:value={assigneeValue}
-        placeholder="Assign to…"
-        clearable
-      />
-    </CodeExample>
-
     <CodeExample
       title="Multi-select with tags"
       description="Pass `multiple` to bind an array of values. Picks render as removable tag chips below the search input, the listbox stays open across selections, Backspace on an empty field removes the last tag, and `maxItems` caps the count — non-selected options grey out once the cap is reached."

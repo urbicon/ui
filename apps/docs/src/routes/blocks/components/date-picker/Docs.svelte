@@ -1,23 +1,11 @@
 <script lang="ts">
   import { Kbd } from '@urbicon-ui/blocks';
   import { CodeExample, Note, NoteList, Section } from '@urbicon-ui/docs';
-  import {
-    BasicDatePicker,
-    DateRangeExample,
-    WithConstraints,
-    Sizes,
-    Variants,
-    WeekNumbers,
-    Clearable
-  } from './examples';
+  import { BasicDatePicker, DateRangeExample, WithConstraints } from './examples';
 
   import basicDatePickerCode from './examples/BasicDatePicker.svelte?raw';
   import dateRangeExampleCode from './examples/DateRangeExample.svelte?raw';
   import withConstraintsCode from './examples/WithConstraints.svelte?raw';
-  import sizesCode from './examples/Sizes.svelte?raw';
-  import variantsCode from './examples/Variants.svelte?raw';
-  import weekNumbersCode from './examples/WeekNumbers.svelte?raw';
-  import clearableCode from './examples/Clearable.svelte?raw';
 </script>
 
 <!-- ─── Examples ─── -->
@@ -34,7 +22,7 @@
 
     <CodeExample
       title="DateRangePicker"
-      description="Zeitraum-Auswahl mit zwei Klicks: Start- und Enddatum. Das Popover schliesst automatisch nach Auswahl beider Daten. Ideal fuer Buchungen und Filter."
+      description="Two clicks pick a start and an end date; the popover closes on its own once both are set. The shape bookings and report filters usually want."
       code={dateRangeExampleCode}
     >
       <DateRangeExample />
@@ -42,42 +30,10 @@
 
     <CodeExample
       title="With Constraints"
-      description="Einschraenkungen via minDate, maxDate, disabledDates und isDateDisabled. Hier sind nur Werktage im Maerz 2026 waehlbar – Wochenenden und Feiertage sind gesperrt."
+      description="minDate, maxDate, disabledDates and isDateDisabled together — only weekdays in March 2026 are selectable, weekends and holidays are locked out."
       code={withConstraintsCode}
     >
       <WithConstraints />
-    </CodeExample>
-
-    <CodeExample
-      title="Sizes"
-      description="Alle fuenf Groessen im Ueberblick: xs, sm, md, lg, xl. Die Groesse beeinflusst Input und Kalender-Popup gleichermassen."
-      code={sizesCode}
-    >
-      <Sizes />
-    </CodeExample>
-
-    <CodeExample
-      title="Variants"
-      description="Kalender-Varianten (default, bordered, ghost) und Input-Varianten (outlined, filled, ghost, underline) lassen sich unabhaengig kombinieren."
-      code={variantsCode}
-    >
-      <Variants />
-    </CodeExample>
-
-    <CodeExample
-      title="With Week Numbers"
-      description="ISO-Kalenderwochen in der linken Spalte des Kalenders – nuetzlich fuer Projektplanung und Liefertermine."
-      code={weekNumbersCode}
-    >
-      <WeekNumbers />
-    </CodeExample>
-
-    <CodeExample
-      title="Clearable"
-      description="The date clears through the × by default. Passing clearable as false takes that affordance away."
-      code={clearableCode}
-    >
-      <Clearable />
     </CodeExample>
   </div>
 </Section>

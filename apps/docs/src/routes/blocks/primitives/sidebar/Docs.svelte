@@ -9,7 +9,10 @@
   import { r } from '$lib/route';
 
   let detailOpen = $state(false);
+  let navOpen = $state(false);
   let brandedOpen = $state(false);
+
+  const appNav = ['Overview', 'Analytics', 'Customers', 'Products', 'Settings'];
 </script>
 
 <!-- ─── When to use ─── -->
@@ -120,6 +123,63 @@
               </div>
             </div>
           </div>
+        </Sidebar>
+      {/if}
+    </CodeExample>
+
+    <CodeExample
+      title="Collapsible App Navigation"
+      description="The second of the two modes, and the one the Playground cannot reach. In `responsive` mode (the default) `open` only drives the mobile overlay — on desktop the panel is always there. In `collapsible` mode `open` drives it at every viewport, so the same button folds the navigation away on a laptop as well. The panel exposes `--sidebar-effective-width` (0px when collapsed) for content inside it to react to."
+      code={`<Button variant="outlined" onclick={() => (navOpen = !navOpen)}>
+  {navOpen ? 'Collapse' : 'Expand'} navigation
+</Button>
+
+<Sidebar bind:open={navOpen} mode="collapsible" width="16rem">
+  {#snippet header()}
+    <span class="font-semibold">Acme</span>
+  {/snippet}
+  <nav class="space-y-1 p-3">
+    {#each ['Overview', 'Analytics', 'Settings'] as item (item)}
+      <a href="/{item.toLowerCase()}" class="block rounded-lg px-3 py-2 text-sm">{item}</a>
+    {/each}
+  </nav>
+</Sidebar>`}
+    >
+      <Button variant="outlined" onclick={() => (navOpen = true)}>Expand navigation</Button>
+      {#if navOpen}
+        <Sidebar
+          open={true}
+          mode="collapsible"
+          width="16rem"
+          onOpenChange={(o) => {
+            if (!o) navOpen = false;
+          }}
+        >
+          {#snippet header()}
+            <div class="flex items-center justify-between py-3">
+              <span class="text-text-primary font-semibold">Acme</span>
+              <Button
+                variant="ghost"
+                intent="neutral"
+                size="xs"
+                onclick={() => (navOpen = false)}
+                aria-label="Collapse navigation"
+              >
+                <CloseIcon class="h-4 w-4" />
+              </Button>
+            </div>
+          {/snippet}
+          <nav class="space-y-1 p-3">
+            {#each appNav as item (item)}
+              <button
+                type="button"
+                class="text-text-secondary hover:bg-surface-subtle hover:text-text-primary w-full rounded-lg px-3 py-2 text-left text-sm transition-colors"
+                onclick={() => (navOpen = false)}
+              >
+                {item}
+              </button>
+            {/each}
+          </nav>
         </Sidebar>
       {/if}
     </CodeExample>

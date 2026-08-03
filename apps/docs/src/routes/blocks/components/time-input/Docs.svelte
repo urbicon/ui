@@ -6,9 +6,6 @@
   let meetingTime = $state('14:15');
   let preciseTime = $state('13:45:30');
   let officeTime = $state('09:00');
-  let smTime = $state('08:15');
-  let mdTime = $state('12:30');
-  let lgTime = $state('17:45');
   let errorTime = $state<string | null>(null);
 
   let apptDate = $state('2026-08-15');
@@ -18,42 +15,34 @@
 <Section marker="01" id="examples" title="Examples">
   <div class="space-y-8">
     <CodeExample
-      title="24-hour — the default"
-      description="The bound value is a canonical 24-hour HH:MM string, or null when the field is empty."
+      title="Display format vs. bound value"
+      description="format=&quot;12h&quot; adds an AM/PM segment and withSeconds adds a seconds segment, but both change only what the field shows. The bound value is always a canonical 24-hour string, or null when the field is empty — 14:15 displays as 02:15 PM and still binds as 14:15."
       code={`<script>
   let startTime = $state('09:30');
-<\/script>
-<TimeInput label="Start" bind:value={startTime} />`}
-      language="svelte"
-    >
-      <TimeInput label="Start" bind:value={startTime} />
-      <p class="text-text-secondary mt-2 text-sm">Value: <code>{startTime ?? '—'}</code></p>
-    </CodeExample>
-
-    <CodeExample
-      title="12-hour display"
-      description="format=&quot;12h&quot; adds an AM/PM segment for display only — the bound value stays a canonical 24-hour string (14:15 shows as 02:15 PM but binds as 14:15)."
-      code={`<script>
   let meetingTime = $state('14:15');
-<\/script>
-<TimeInput label="Meeting" format="12h" bind:value={meetingTime} />`}
-      language="svelte"
-    >
-      <TimeInput label="Meeting" format="12h" bind:value={meetingTime} />
-      <p class="text-text-secondary mt-2 text-sm">Value (24h): <code>{meetingTime ?? '—'}</code></p>
-    </CodeExample>
-
-    <CodeExample
-      title="With seconds"
-      description="withSeconds appends a seconds segment; the value widens to HH:MM:SS."
-      code={`<script>
   let preciseTime = $state('13:45:30');
 <\/script>
+<TimeInput label="Start" bind:value={startTime} />
+<TimeInput label="Meeting" format="12h" bind:value={meetingTime} />
 <TimeInput label="Duration" withSeconds bind:value={preciseTime} />`}
       language="svelte"
     >
-      <TimeInput label="Duration" withSeconds bind:value={preciseTime} />
-      <p class="text-text-secondary mt-2 text-sm">Value: <code>{preciseTime ?? '—'}</code></p>
+      <div class="flex flex-wrap items-start gap-6">
+        <div>
+          <TimeInput label="Start" bind:value={startTime} />
+          <p class="text-text-secondary mt-2 text-sm">Value: <code>{startTime ?? '—'}</code></p>
+        </div>
+        <div>
+          <TimeInput label="Meeting" format="12h" bind:value={meetingTime} />
+          <p class="text-text-secondary mt-2 text-sm">
+            Value (24h): <code>{meetingTime ?? '—'}</code>
+          </p>
+        </div>
+        <div>
+          <TimeInput label="Duration" withSeconds bind:value={preciseTime} />
+          <p class="text-text-secondary mt-2 text-sm">Value: <code>{preciseTime ?? '—'}</code></p>
+        </div>
+      </div>
     </CodeExample>
 
     <CodeExample
@@ -79,21 +68,6 @@
         bind:value={officeTime}
       />
       <p class="text-text-secondary mt-2 text-sm">Value: <code>{officeTime ?? '—'}</code></p>
-    </CodeExample>
-
-    <CodeExample
-      title="Sizes"
-      description="Three field heights via the size prop — sm, md (default), lg."
-      code={`<TimeInput label="Small" size="sm" bind:value={time} />
-<TimeInput label="Medium" size="md" bind:value={time} />
-<TimeInput label="Large" size="lg" bind:value={time} />`}
-      language="svelte"
-    >
-      <div class="flex flex-col gap-4">
-        <TimeInput label="Small" size="sm" bind:value={smTime} />
-        <TimeInput label="Medium" size="md" bind:value={mdTime} />
-        <TimeInput label="Large" size="lg" bind:value={lgTime} />
-      </div>
     </CodeExample>
 
     <CodeExample

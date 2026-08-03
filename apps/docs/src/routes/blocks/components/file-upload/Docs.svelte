@@ -3,23 +3,17 @@
   import { CodeExample, Note, NoteList, Section } from '@urbicon-ui/docs';
   import {
     BasicUpload,
-    MultipleFiles,
     ImagePreview,
     WithValidation,
     UploadProgress,
-    CustomDropzone,
-    Sizes,
-    PasteUpload
+    CustomDropzone
   } from './examples';
 
   import basicUploadCode from './examples/BasicUpload.svelte?raw';
-  import multipleFilesCode from './examples/MultipleFiles.svelte?raw';
   import imagePreviewCode from './examples/ImagePreview.svelte?raw';
   import withValidationCode from './examples/WithValidation.svelte?raw';
   import uploadProgressCode from './examples/UploadProgress.svelte?raw';
   import customDropzoneCode from './examples/CustomDropzone.svelte?raw';
-  import sizesCode from './examples/Sizes.svelte?raw';
-  import pasteUploadCode from './examples/PasteUpload.svelte?raw';
 </script>
 
 <!-- ─── Examples ─── -->
@@ -32,14 +26,6 @@
       code={basicUploadCode}
     >
       <BasicUpload />
-    </CodeExample>
-
-    <CodeExample
-      title="Several files, with a ceiling"
-      description="Multi-select bounded by `maxFiles`. A badge counts the remaining slots; anything over the limit is refused through `onFileReject`."
-      code={multipleFilesCode}
-    >
-      <MultipleFiles />
     </CodeExample>
 
     <CodeExample
@@ -64,22 +50,6 @@
       code={uploadProgressCode}
     >
       <UploadProgress />
-    </CodeExample>
-
-    <CodeExample
-      title="Paste a screenshot"
-      description="`allowPaste` takes images straight from the clipboard, which is what a screenshot workflow actually wants. Ctrl+V / Cmd+V is the whole interaction."
-      code={pasteUploadCode}
-    >
-      <PasteUpload />
-    </CodeExample>
-
-    <CodeExample
-      title="Sizes"
-      description="Three sizes (sm, md, lg) move the dropzone padding, the type scale, the icon and the file items together."
-      code={sizesCode}
-    >
-      <Sizes />
     </CodeExample>
   </div>
 </Section>

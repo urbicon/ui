@@ -10,6 +10,7 @@
     "clean": "rm -rf dist .svelte-kit",
     "clean-all": "bun --bun run clean && rm -rf node_modules",
     "dev": "vite dev",
+    "examples:budget": "bun scripts/example-budget-lint.ts",
     "format": "biome format --write . && prettier --write \"**/*.svelte\"",
     "lint": "biome check . && svelte-check --tsconfig ./tsconfig.json",
     "playgrounds:lint": "bun run scripts/playgrounds-lint.ts",

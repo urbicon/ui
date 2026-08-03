@@ -14,24 +14,8 @@
 <Section marker="01" id="examples" title="Examples">
   <div class="space-y-8">
     <CodeExample
-      title="Mint micro-interactions"
-      description="Mints only apply when the avatar is interactive (clickable, interactive, or onclick). Recommended: scale and glow — they read as 'this profile is tappable' without being playful. Avoid bounce, rotate, and wiggle on profile pictures — they undermine the calm a face conveys."
-      isolate
-    >
-      <Avatar name="Scale" clickable mint="scale" size="lg" />
-      <Avatar name="Glow" clickable mint="glow" intent="primary" size="lg" />
-      <Avatar name="Static" clickable size="lg" />
-    </CodeExample>
-  </div>
-</Section>
-
-<!-- ─── Customization ─── -->
-
-<Section marker="02" id="customization" title="Customization">
-  <div class="space-y-8">
-    <CodeExample
       title="Team Row"
-      description="Overlapping avatars with a children-based overflow counter."
+      description="Overlapping avatars with a children-based overflow counter — the standard way to show a member list in a row that has no room for one."
       isolate
       previewClass="flex items-center"
     >
@@ -51,7 +35,7 @@
 
     <CodeExample
       title="Custom Children"
-      description="Use children to render arbitrary content instead of auto-generated initials."
+      description="Use children to render arbitrary content instead of auto-generated initials — an icon for a system account, a count for a group, a glyph for a placeholder."
       isolate
     >
       <Avatar size="xl" intent="primary">
@@ -65,6 +49,22 @@
       </Avatar>
     </CodeExample>
 
+    <CodeExample
+      title="Mint micro-interactions"
+      description="Mints only apply when the avatar is interactive (clickable, interactive, or onclick). Recommended: scale and glow — they read as 'this profile is tappable' without being playful. Avoid bounce, rotate, and wiggle on profile pictures — they undermine the calm a face conveys."
+      isolate
+    >
+      <Avatar name="Scale" clickable mint="scale" size="lg" />
+      <Avatar name="Glow" clickable mint="glow" intent="primary" size="lg" />
+      <Avatar name="Static" clickable size="lg" />
+    </CodeExample>
+  </div>
+</Section>
+
+<!-- ─── Customization ─── -->
+
+<Section marker="02" id="customization" title="Customization">
+  <div class="space-y-8">
     <CodeExample
       title="Gradient Avatar"
       description="Use unstyled with children for fully custom styling."

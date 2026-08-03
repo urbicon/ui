@@ -17,14 +17,6 @@
     { label: 'Chimney sweep levy', value: 12800, intent: 'warning' }
   ];
 
-  const budgetItems: CompositionItem[] = [
-    { label: 'Rent', value: 145000, intent: 'primary' },
-    { label: 'Groceries', value: 48000, intent: 'success' },
-    { label: 'Electricity & gas', value: 22000, intent: 'warning' },
-    { label: 'Mobility', value: 18000, intent: 'secondary' },
-    { label: 'Savings', value: 32000, intent: 'neutral' }
-  ];
-
   const tinyItems: CompositionItem[] = [
     { label: 'Main share', value: 950, intent: 'primary' },
     { label: 'Mini A', value: 8, intent: 'success' },
@@ -57,74 +49,6 @@
           legendPlacement="bottom"
           showTotal
           totalLabel="Heating cost pot 2024"
-        />
-      </div>
-    </CodeExample>
-
-    <CodeExample
-      title="Sizes"
-      description="Three height steps for different levels of hierarchy."
-      isolate
-      previewClass="flex flex-col gap-6 w-full p-6"
-    >
-      <div class="w-full max-w-xl space-y-6">
-        <CompositionBar items={budgetItems} formatValue={formatEur} size="sm" />
-        <CompositionBar items={budgetItems} formatValue={formatEur} size="md" />
-        <CompositionBar items={budgetItems} formatValue={formatEur} size="lg" />
-      </div>
-    </CodeExample>
-
-    <CodeExample
-      title="Legend Placement"
-      description="Four anchor positions for the legend (top, right, bottom, left)."
-      isolate
-      previewClass="flex flex-col gap-6 w-full p-6"
-    >
-      <div class="w-full max-w-xl space-y-6">
-        <CompositionBar
-          items={budgetItems}
-          formatValue={formatEur}
-          legendPlacement="top"
-          showTotal
-          totalLabel="Top"
-        />
-        <CompositionBar
-          items={budgetItems}
-          formatValue={formatEur}
-          legendPlacement="right"
-          showTotal
-          totalLabel="Right"
-        />
-        <CompositionBar
-          items={budgetItems}
-          formatValue={formatEur}
-          legendPlacement="bottom"
-          showTotal
-          totalLabel="Bottom"
-        />
-        <CompositionBar
-          items={budgetItems}
-          formatValue={formatEur}
-          legendPlacement="left"
-          showTotal
-          totalLabel="Left"
-        />
-      </div>
-    </CodeExample>
-
-    <CodeExample
-      title="Vertical Orientation"
-      description="Stacked column for vertical layouts (e.g. sidebar visualizations)."
-      isolate
-      previewClass="flex justify-center w-full p-6"
-    >
-      <div class="flex h-64 w-full max-w-md items-stretch justify-center">
-        <CompositionBar
-          items={heatingItems}
-          formatValue={formatEur}
-          orientation="vertical"
-          size="lg"
-          legendPlacement="right"
         />
       </div>
     </CodeExample>

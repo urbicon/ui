@@ -73,6 +73,23 @@ The Playground is the canonical variant/size/intent explorer. Pages should NOT d
 5. **Customization examples stay separate.** The Customization section (slotClasses, preset, unstyled) is its own scope per XC-4 and not part of this Examples count.
 6. **Mint examples count as use-cases.** "Mint micro-interactions" patterns belong in Examples, not in a separate variant grid.
 
+**`bun run examples:budget` enforces rules 3, 5 and 6** (`apps/docs/scripts/example-budget-lint.ts`).
+Until 2026-08 the budget lived only in this file, and the corpus drifted to 15 pages over the
+ceiling (calendar at nine) and four under the floor — a rule that is only prose is a rule the next
+page does not inherit. Do not confuse it with `examples:lint`, which type-checks `@example` JSDoc
+blocks and is a different check entirely.
+
+The lint had to settle three things this section leaves open:
+
+- **A `mint` section counts together with `examples`.** Rule 6 puts Mint patterns *in* Examples, so
+  a standalone Mint section must not buy a page extra budget. Button proved why: one example in
+  `examples` and four in `mint` made the reference implementation read as **under** budget while it
+  carried five. All three Mint sections (Button, Toggle, Tab) were folded away in the 2026-08 sweep.
+- **`installation` never counts**, and neither do `customization` (rule 5), `api` or `types`.
+- **A page with no `examples` section** needs a `NO_EXAMPLES` entry with a reason. `components/guide`
+  is the one entry: a subsystem page cut into eight topical sections, none of them over budget. A
+  stale entry is an error too, same contract as `registry-lint`'s UNLISTED.
+
 ### Sections to remove on sight
 
 - "Variants" / "All Variants" / "Variant Showcase" → delete if Playground has `variant` toggle.
@@ -106,7 +123,7 @@ A quick smoke test:
 
 - Open the Playground. Set every prop you can. Does the docs page have a section that's basically the same thing as a static grid? → Delete it.
 - Read every Example title aloud. If two of them sound like "the same thing with prop X different" → merge or delete one.
-- Count CodeExamples in `Docs.svelte`. More than 4? Justify each.
+- Count CodeExamples in `Docs.svelte`. More than 4? Justify each — or let `bun run examples:budget` count for you.
 
 Track this when sweeping a page: report before-/after-line-count in commit body so the diff shows the docs-strategy intent.
 
