@@ -1,6 +1,6 @@
 <script lang="ts">
   import { CodeExample, Note, NoteList, Section } from '@urbicon-ui/docs';
-  import { SegmentGroup, SegmentItem } from '@urbicon-ui/blocks';
+  import { Kbd, SegmentGroup, SegmentItem } from '@urbicon-ui/blocks';
   import { resolve } from '$app/paths';
 
   let theme = $state('system');
@@ -275,20 +275,11 @@
     </Note>
     <Note title="Keyboard">
       <p>
-        <kbd
-          class="bg-surface-base border-border-subtle rounded-modify border px-1.5 py-0.5 text-xs font-medium"
-          >Arrow</kbd
-        >
+        <Kbd keys="Arrow" />
         keys move between options and select immediately.
-        <kbd
-          class="bg-surface-base border-border-subtle rounded-modify border px-1.5 py-0.5 text-xs font-medium"
-          >Home</kbd
-        >
+        <Kbd keys="Home" />
         /
-        <kbd
-          class="bg-surface-base border-border-subtle rounded-modify border px-1.5 py-0.5 text-xs font-medium"
-          >End</kbd
-        >
+        <Kbd keys="End" />
         jump to first/last option. Only the active item is in the tab order (roving tabindex).
       </p>
     </Note>

@@ -1,6 +1,6 @@
 <script lang="ts">
   import { CodeExample, Section } from '@urbicon-ui/docs';
-  import { DatePicker, TimeInput } from '@urbicon-ui/blocks';
+  import { DatePicker, Kbd, TimeInput } from '@urbicon-ui/blocks';
 
   let startTime = $state('09:30');
   let meetingTime = $state('14:15');
@@ -183,7 +183,7 @@
         next segment.
       </li>
       <li>
-        The AM/PM segment toggles by click, Arrow keys, or the <kbd>A</kbd> / <kbd>P</kbd> keys.
+        The AM/PM segment toggles by click, Arrow keys, or the <Kbd keys="A" /> / <Kbd keys="P" /> keys.
       </li>
       <li>
         Out-of-range values clamp to <code>min</code> / <code>max</code> when the field loses focus.

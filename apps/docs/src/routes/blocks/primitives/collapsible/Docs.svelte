@@ -1,6 +1,6 @@
 <script lang="ts">
   import { CodeExample, Note, NoteList, Section } from '@urbicon-ui/docs';
-  import { Collapsible, Badge, Button } from '@urbicon-ui/blocks';
+  import { Badge, Button, Collapsible, Kbd } from '@urbicon-ui/blocks';
   import { resolve } from '$app/paths';
 
   let controlledOpen = $state(false);
@@ -233,20 +233,11 @@
     </Note>
     <Note title="Keyboard Navigation">
       <p>
-        <kbd
-          class="bg-surface-base border-border-subtle rounded border px-1.5 py-0.5 text-xs font-medium"
-          >Tab</kbd
-        >
+        <Kbd keys="Tab" />
         moves focus to the trigger.
-        <kbd
-          class="bg-surface-base border-border-subtle rounded border px-1.5 py-0.5 text-xs font-medium"
-          >Enter</kbd
-        >
+        <Kbd keys="Enter" />
         /
-        <kbd
-          class="bg-surface-base border-border-subtle rounded border px-1.5 py-0.5 text-xs font-medium"
-          >Space</kbd
-        >
+        <Kbd keys="Space" />
         toggle the content. Focus rings use
         <code class="text-text-primary">focus-visible:</code> so they only appear on keyboard navigation.
       </p>

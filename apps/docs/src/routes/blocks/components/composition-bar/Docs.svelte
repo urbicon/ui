@@ -1,6 +1,6 @@
 <script lang="ts">
   import { CodeExample, Note, NoteList, Section } from '@urbicon-ui/docs';
-  import { CompositionBar, type CompositionItem } from '@urbicon-ui/blocks';
+  import { CompositionBar, Kbd, type CompositionItem } from '@urbicon-ui/blocks';
 
   const formatEur = (cents: number) =>
     new Intl.NumberFormat('de-DE', {
@@ -244,32 +244,14 @@
     </Note>
     <Note title="Keyboard Navigation">
       <p>
-        <kbd
-          class="bg-surface-base border-border-subtle rounded-modify border px-1.5 py-0.5 text-xs"
-          >Tab</kbd
-        >
+        <Kbd keys="Tab" />
         focuses the next segment,
-        <kbd
-          class="bg-surface-base border-border-subtle rounded-modify border px-1.5 py-0.5 text-xs"
-          >Arrow keys</kbd
-        >
+        <Kbd keys="Arrow keys" />
         move between segments,
-        <kbd
-          class="bg-surface-base border-border-subtle rounded-modify border px-1.5 py-0.5 text-xs"
-          >Home</kbd
-        >
-        /<kbd
-          class="bg-surface-base border-border-subtle rounded-modify border px-1.5 py-0.5 text-xs"
-          >End</kbd
-        >
+        <Kbd keys="Home" />
+        /<Kbd keys="End" />
         jump to the first/last,
-        <kbd
-          class="bg-surface-base border-border-subtle rounded-modify border px-1.5 py-0.5 text-xs"
-          >Enter</kbd
-        >/<kbd
-          class="bg-surface-base border-border-subtle rounded-modify border px-1.5 py-0.5 text-xs"
-          >Space</kbd
-        > triggers onItemSelect.
+        <Kbd keys="Enter" />/<Kbd keys="Space" /> triggers onItemSelect.
       </p>
     </Note>
     <Note title="Bidirectional Highlight">

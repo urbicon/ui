@@ -1,11 +1,12 @@
 <script lang="ts">
   import { CodeExample, Note, NoteList, Section } from '@urbicon-ui/docs';
   import {
-    CommandPalette,
     Badge,
     Button,
+    CommandPalette,
     FilePlusIcon,
     FolderOpenIcon,
+    Kbd,
     LogOutIcon,
     PanelLeftIcon,
     RepeatIcon,
@@ -206,34 +207,16 @@
     </Note>
     <Note title="Keyboard">
       <p>
-        <kbd
-          class="bg-surface-base border-border-subtle rounded-modify border px-1.5 py-0.5 text-xs font-medium"
-          >Cmd+K</kbd
-        >
+        <Kbd keys={['Cmd', 'K']} />
         /
-        <kbd
-          class="bg-surface-base border-border-subtle rounded-modify border px-1.5 py-0.5 text-xs font-medium"
-          >Ctrl+K</kbd
-        >
+        <Kbd keys={['Ctrl', 'K']} />
         to open (configurable).
-        <kbd
-          class="bg-surface-base border-border-subtle rounded-modify border px-1.5 py-0.5 text-xs font-medium"
-          >&#8593;</kbd
-        >
-        <kbd
-          class="bg-surface-base border-border-subtle rounded-modify border px-1.5 py-0.5 text-xs font-medium"
-          >&#8595;</kbd
-        >
+        <Kbd keys="↑" />
+        <Kbd keys="↓" />
         to navigate,
-        <kbd
-          class="bg-surface-base border-border-subtle rounded-modify border px-1.5 py-0.5 text-xs font-medium"
-          >Enter</kbd
-        >
+        <Kbd keys="Enter" />
         to select,
-        <kbd
-          class="bg-surface-base border-border-subtle rounded-modify border px-1.5 py-0.5 text-xs font-medium"
-          >Escape</kbd
-        >
+        <Kbd keys="Escape" />
         to close. The highlighted item scrolls into view automatically.
       </p>
     </Note>

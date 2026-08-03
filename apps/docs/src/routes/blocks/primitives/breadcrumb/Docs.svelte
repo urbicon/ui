@@ -1,6 +1,6 @@
 <script lang="ts">
   import { CodeExample, Note, NoteList, Section } from '@urbicon-ui/docs';
-  import { Breadcrumb, Badge } from '@urbicon-ui/blocks';
+  import { Badge, Breadcrumb, Kbd } from '@urbicon-ui/blocks';
   import { resolve } from '$app/paths';
 
   // Demo-only items don't navigate — they're just to illustrate the
@@ -276,10 +276,7 @@
       <p>
         All breadcrumb links are standard
         <code class="text-text-primary">&lt;a&gt;</code> elements, fully focusable via
-        <kbd
-          class="bg-surface-base border-border-subtle rounded-modify border px-1.5 py-0.5 text-xs font-medium"
-          >Tab</kbd
-        >. Focus indicators use
+        <Kbd keys="Tab" />. Focus indicators use
         <code class="text-text-primary">focus-visible:</code> to only show on keyboard navigation.
       </p>
     </Note>

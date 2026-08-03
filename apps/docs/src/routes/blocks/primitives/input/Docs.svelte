@@ -1,6 +1,14 @@
 <script lang="ts">
   import { CodeExample, Note, NoteList, Section } from '@urbicon-ui/docs';
-  import { Input, SearchIcon, EyeIcon, EyeOffIcon, MailIcon, LockIcon } from '@urbicon-ui/blocks';
+  import {
+    EyeIcon,
+    EyeOffIcon,
+    Input,
+    Kbd,
+    LockIcon,
+    MailIcon,
+    SearchIcon
+  } from '@urbicon-ui/blocks';
   import { resolve } from '$app/paths';
 
   let searchValue = $state('Svelte components');
@@ -169,15 +177,9 @@
     </Note>
     <Note title="Keyboard">
       <p>
-        <kbd
-          class="bg-surface-base border-border-subtle rounded border px-1.5 py-0.5 text-xs font-medium"
-          >Tab</kbd
-        >
+        <Kbd keys="Tab" />
         to focus. Native text input behavior for all key combinations. Clearable inputs respond to
-        <kbd
-          class="bg-surface-base border-border-subtle rounded border px-1.5 py-0.5 text-xs font-medium"
-          >Escape</kbd
-        >
+        <Kbd keys="Escape" />
         to clear the value. Focus indication uses
         <code class="text-text-primary">focus-visible:</code> for keyboard-only visibility.
       </p>

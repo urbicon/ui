@@ -1,6 +1,6 @@
 <script lang="ts">
   import { CodeExample, Section } from '@urbicon-ui/docs';
-  import { ThemeSwitcher, Toggle } from '@urbicon-ui/blocks';
+  import { Kbd, ThemeSwitcher, Toggle } from '@urbicon-ui/blocks';
 </script>
 
 <Section marker="01" id="examples" title="Examples">
@@ -72,19 +72,10 @@
       <code class="text-text-primary">aria-label</code> and
       <code class="text-text-primary">title</code> that name the active theme ("Light mode" / "Dark
       mode" / "System theme"). Focusable via
-      <kbd
-        class="bg-surface-base border-border-subtle rounded-modify border px-1.5 py-0.5 text-xs font-medium"
-        >Tab</kbd
-      >, activated with
-      <kbd
-        class="bg-surface-base border-border-subtle rounded-modify border px-1.5 py-0.5 text-xs font-medium"
-        >Enter</kbd
-      >
+      <Kbd keys="Tab" />, activated with
+      <Kbd keys="Enter" />
       /
-      <kbd
-        class="bg-surface-base border-border-subtle rounded-modify border px-1.5 py-0.5 text-xs font-medium"
-        >Space</kbd
-      >; uses
+      <Kbd keys="Space" />; uses
       <code class="text-text-primary">focus-visible:</code> for keyboard-only rings. In system mode
       the UI live-follows
       <code class="text-text-primary">prefers-color-scheme</code> changes natively via

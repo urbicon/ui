@@ -1,5 +1,6 @@
 <script lang="ts">
   import { CodeExample, Note, NoteList, Section } from '@urbicon-ui/docs';
+  import { Kbd } from '@urbicon-ui/blocks';
   import { r } from '$lib/route';
 </script>
 
@@ -49,7 +50,7 @@
       description="The most common pattern — permanent sidebar on desktop, hamburger overlay on mobile. The layout exposes --sidebar-width and --sidebar-effective-width on its root, so the main content offset works without any CSS plumbing in the consumer."
       preview={false}
       code={`<script>
-  import { SidebarLayout, Button, MenuIcon, ThemeSwitcher } from '@urbicon-ui/blocks';
+  import { Button, MenuIcon, SidebarLayout, ThemeSwitcher } from '@urbicon-ui/blocks';
   let sidebarOpen = $state(false);
 <\/script>
 
@@ -267,10 +268,7 @@
     <Note title="Mobile overlay">
       <p>
         Body scroll is locked while the overlay is open. Pressing
-        <kbd
-          class="bg-surface-base border-border-subtle rounded-modify border px-1.5 py-0.5 text-xs font-medium"
-          >Escape</kbd
-        >
+        <Kbd keys="Escape" />
         closes the overlay (configurable via
         <code class="text-text-primary">closeOnEscape</code>), and a backdrop click also dismisses
         it (configurable via

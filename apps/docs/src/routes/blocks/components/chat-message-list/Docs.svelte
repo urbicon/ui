@@ -1,5 +1,6 @@
 <script lang="ts">
   import { CodeExample, Note, NoteList, Section } from '@urbicon-ui/docs';
+  import { Kbd } from '@urbicon-ui/blocks';
   import { r } from '$lib/route';
 </script>
 
@@ -145,10 +146,7 @@
         (<code class="text-text-primary">listLabel</code>) with
         <code class="text-text-primary">tabindex="0"</code>, so keyboard users can focus the
         conversation and scroll it with the arrow /
-        <kbd
-          class="bg-surface-base border-border-subtle rounded-modify border px-1.5 py-0.5 text-xs font-medium"
-          >Page</kbd
-        >
+        <Kbd keys="Page" />
         keys. Its focus ring uses <code class="text-text-primary">focus-visible:</code> (keyboard-only).
       </p>
     </Note>

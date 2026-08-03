@@ -1,6 +1,6 @@
 <script lang="ts">
   import { CodeExample, Note, NoteList, Section } from '@urbicon-ui/docs';
-  import { RadioGroup, RadioItem } from '@urbicon-ui/blocks';
+  import { Kbd, RadioGroup, RadioItem } from '@urbicon-ui/blocks';
   import { resolve } from '$app/paths';
 
   let selectedPlan = $state('pro');
@@ -169,24 +169,12 @@
     </Note>
     <Note title="Keyboard">
       <p>
-        <kbd
-          class="bg-surface-base border-border-subtle rounded border px-1.5 py-0.5 text-xs font-medium"
-          >Tab</kbd
-        >
+        <Kbd keys="Tab" />
         into the group focuses the selected (or first) item.
-        <kbd
-          class="bg-surface-base border-border-subtle rounded border px-1.5 py-0.5 text-xs font-medium"
-          >Arrow</kbd
-        >
+        <Kbd keys="Arrow" />
         keys move between options and select automatically. Vertical groups use
-        <kbd
-          class="bg-surface-base border-border-subtle rounded border px-1.5 py-0.5 text-xs font-medium"
-          >Up/Down</kbd
-        >, horizontal groups use
-        <kbd
-          class="bg-surface-base border-border-subtle rounded border px-1.5 py-0.5 text-xs font-medium"
-          >Left/Right</kbd
-        >. Navigation wraps around at both ends.
+        <Kbd keys="Up/Down" />, horizontal groups use
+        <Kbd keys="Left/Right" />. Navigation wraps around at both ends.
       </p>
     </Note>
     <Note title="Focus Management">

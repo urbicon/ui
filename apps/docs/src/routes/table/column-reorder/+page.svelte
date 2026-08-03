@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { Kbd } from '@urbicon-ui/blocks';
   import SeoMeta from '$lib/SeoMeta.svelte';
   import { CodeExample, DocsLayout as DocsPageLayout, Section } from '@urbicon-ui/docs';
   import { Table } from '@urbicon-ui/table';
@@ -18,13 +19,7 @@
       <p class="text-text-secondary text-sm">
         Enable <code class="text-text-primary">enableColumnReorder</code> to let users drag column
         headers into a new order. Also supports keyboard reorder via
-        <kbd
-          class="bg-surface-base border-border-subtle rounded-modify border px-1.5 py-0.5 text-xs font-medium"
-          >Shift</kbd
-        >+<kbd
-          class="bg-surface-base border-border-subtle rounded-modify border px-1.5 py-0.5 text-xs font-medium"
-          >Arrow Left/Right</kbd
-        >.
+        <Kbd keys="Shift" />+<Kbd keys="Arrow Left/Right" />.
       </p>
 
       <CodeExample

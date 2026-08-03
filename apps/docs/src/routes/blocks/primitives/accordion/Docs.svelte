@@ -1,7 +1,7 @@
 <script lang="ts">
   import { resolve } from '$app/paths';
   import { CodeExample, Note, NoteList, Section } from '@urbicon-ui/docs';
-  import { Accordion, AccordionItem, Collapsible, Badge } from '@urbicon-ui/blocks';
+  import { Accordion, AccordionItem, Badge, Collapsible, Kbd } from '@urbicon-ui/blocks';
 
   let faqValue = $state<string>('what-is');
 </script>
@@ -379,20 +379,11 @@
     </Note>
     <Note title="Keyboard Navigation">
       <p>
-        <kbd
-          class="bg-surface-base border-border-subtle rounded border px-1.5 py-0.5 text-xs font-medium"
-          >Tab</kbd
-        >
+        <Kbd keys="Tab" />
         moves focus between triggers.
-        <kbd
-          class="bg-surface-base border-border-subtle rounded border px-1.5 py-0.5 text-xs font-medium"
-          >Enter</kbd
-        >
+        <Kbd keys="Enter" />
         /
-        <kbd
-          class="bg-surface-base border-border-subtle rounded border px-1.5 py-0.5 text-xs font-medium"
-          >Space</kbd
-        >
+        <Kbd keys="Space" />
         toggle the focused item. Focus rings use
         <code class="text-text-primary">focus-visible:</code> so they only appear on keyboard navigation,
         never on mouse clicks.

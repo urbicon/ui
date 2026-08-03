@@ -1,6 +1,6 @@
 <script lang="ts">
   import { CodeExample, Note, NoteList, Section } from '@urbicon-ui/docs';
-  import { Sidebar, Button, Separator, Badge, Avatar, CloseIcon } from '@urbicon-ui/blocks';
+  import { Avatar, Badge, Button, CloseIcon, Kbd, Separator, Sidebar } from '@urbicon-ui/blocks';
   import { r } from '$lib/route';
 
   let detailOpen = $state(false);
@@ -234,10 +234,7 @@
     </Note>
     <Note title="Keyboard">
       <p>
-        <kbd
-          class="bg-surface-base border-border-subtle rounded border px-1.5 py-0.5 text-xs font-medium"
-          >Escape</kbd
-        >
+        <Kbd keys="Escape" />
         closes the mobile overlay (configurable via
         <code class="text-text-primary">closeOnEscape</code>). Backdrop click dismiss is
         configurable via <code class="text-text-primary">closeOnBackdropClick</code>.

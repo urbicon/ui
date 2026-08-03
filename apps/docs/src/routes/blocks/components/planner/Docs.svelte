@@ -1,5 +1,6 @@
 <script lang="ts">
   import { CodeExample, Section } from '@urbicon-ui/docs';
+  import { Kbd } from '@urbicon-ui/blocks';
   import { WeekMealPlan, MonthShiftPlan, CustomStyling } from './examples';
 
   import weekMealPlanCode from './examples/WeekMealPlan.svelte?raw';
@@ -67,10 +68,14 @@ export async function load({ url }) {
         <code>aria-selected</code>, and a roving <code>tabindex</code> keeps a single tab stop.
       </li>
       <li>
-        <strong>Keyboard:</strong> arrow keys move the focused day, <kbd>Home</kbd>/<kbd>End</kbd>
-        jump to the week edges, <kbd>PageUp</kbd>/<kbd>PageDown</kbd> step a month (<kbd>Shift</kbd>
-        a year), and <kbd>Enter</kbd>/<kbd>Space</kbd> select. Navigation pulls the focus back into view
-        by paging when it crosses the visible window.
+        <strong>Keyboard:</strong> arrow keys move the focused day, <Kbd keys="Home" />/<Kbd
+          keys="End"
+        />
+        jump to the week edges, <Kbd keys="PageUp" />/<Kbd keys="PageDown" /> step a month (<Kbd
+          keys="Shift"
+        />
+        a year), and <Kbd keys="Enter" />/<Kbd keys="Space" /> select. Navigation pulls the focus back
+        into view by paging when it crosses the visible window.
       </li>
       <li>
         Interactive content inside a <code>cell</code> (buttons, links, inputs) keeps its own Enter/Space

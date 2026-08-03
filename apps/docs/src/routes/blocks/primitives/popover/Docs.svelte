@@ -1,6 +1,6 @@
 <script lang="ts">
   import { CodeExample, Note, NoteList, Section } from '@urbicon-ui/docs';
-  import { Popover, Button, Badge, ChevronDownIcon } from '@urbicon-ui/blocks';
+  import { Badge, Button, ChevronDownIcon, Kbd, Popover } from '@urbicon-ui/blocks';
   import { r } from '$lib/route';
 
   let controlledOpen = $state(false);
@@ -345,25 +345,13 @@
     </Note>
     <Note title="Keyboard">
       <p>
-        <kbd
-          class="bg-surface-base border-border-subtle rounded border px-1.5 py-0.5 text-xs font-medium"
-          >Enter</kbd
-        >
+        <Kbd keys="Enter" />
         /
-        <kbd
-          class="bg-surface-base border-border-subtle rounded border px-1.5 py-0.5 text-xs font-medium"
-          >Space</kbd
-        >
+        <Kbd keys="Space" />
         toggle the popover when the trigger is focused.
-        <kbd
-          class="bg-surface-base border-border-subtle rounded border px-1.5 py-0.5 text-xs font-medium"
-          >Escape</kbd
-        >
+        <Kbd keys="Escape" />
         closes the popover and returns focus to the trigger.
-        <kbd
-          class="bg-surface-base border-border-subtle rounded border px-1.5 py-0.5 text-xs font-medium"
-          >Tab</kbd
-        >
+        <Kbd keys="Tab" />
         moves through focusable content inside the popover.
       </p>
     </Note>

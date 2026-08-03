@@ -1,6 +1,6 @@
 <script lang="ts">
   import { CodeExample, Note, NoteList, Section } from '@urbicon-ui/docs';
-  import { Stepper, StepperStep, Button, Badge } from '@urbicon-ui/blocks';
+  import { Badge, Button, Kbd, Stepper, StepperStep } from '@urbicon-ui/blocks';
   import { resolve } from '$app/paths';
 
   let interactiveStep = $state(0);
@@ -293,20 +293,11 @@
     </Note>
     <Note title="Keyboard Navigation">
       <p>
-        <kbd
-          class="bg-surface-base border-border-subtle rounded border px-1.5 py-0.5 text-xs font-medium"
-          >Tab</kbd
-        >
+        <Kbd keys="Tab" />
         moves focus between clickable steps.
-        <kbd
-          class="bg-surface-base border-border-subtle rounded border px-1.5 py-0.5 text-xs font-medium"
-          >Enter</kbd
-        >
+        <Kbd keys="Enter" />
         /
-        <kbd
-          class="bg-surface-base border-border-subtle rounded border px-1.5 py-0.5 text-xs font-medium"
-          >Space</kbd
-        >
+        <Kbd keys="Space" />
         activates the focused step. Focus rings use
         <code class="text-text-primary">focus-visible:</code> for keyboard-only visibility.
       </p>

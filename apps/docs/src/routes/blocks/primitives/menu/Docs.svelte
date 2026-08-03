@@ -13,7 +13,7 @@
   import declarativeChildrenCode from './examples/DeclarativeChildren.svelte?raw';
 
   import { CodeExample, InfoCard, Note, NoteList, Section } from '@urbicon-ui/docs';
-  import { Menu } from '@urbicon-ui/blocks';
+  import { Kbd, Menu } from '@urbicon-ui/blocks';
   import { resolve } from '$app/paths';
 </script>
 
@@ -125,45 +125,21 @@
     </Note>
     <Note title="Keyboard">
       <p>
-        <kbd
-          class="bg-surface-base border-border-subtle rounded border px-1.5 py-0.5 text-xs font-medium"
-          >Enter</kbd
-        >
+        <Kbd keys="Enter" />
         /
-        <kbd
-          class="bg-surface-base border-border-subtle rounded border px-1.5 py-0.5 text-xs font-medium"
-          >Space</kbd
-        >
+        <Kbd keys="Space" />
         on the trigger to open. Arrow keys move focus between items (roving tabindex),
-        <kbd
-          class="bg-surface-base border-border-subtle rounded border px-1.5 py-0.5 text-xs font-medium"
-          >Home</kbd
-        >
+        <Kbd keys="Home" />
         /
-        <kbd
-          class="bg-surface-base border-border-subtle rounded border px-1.5 py-0.5 text-xs font-medium"
-          >End</kbd
-        >
+        <Kbd keys="End" />
         jump to the first/last item, and
-        <kbd
-          class="bg-surface-base border-border-subtle rounded border px-1.5 py-0.5 text-xs font-medium"
-          >Tab</kbd
-        >
+        <Kbd keys="Tab" />
         moves focus out and closes the menu (W3C menu pattern);
-        <kbd
-          class="bg-surface-base border-border-subtle rounded border px-1.5 py-0.5 text-xs font-medium"
-          >Enter</kbd
-        >
+        <Kbd keys="Enter" />
         /
-        <kbd
-          class="bg-surface-base border-border-subtle rounded border px-1.5 py-0.5 text-xs font-medium"
-          >Space</kbd
-        >
+        <Kbd keys="Space" />
         activates an item.
-        <kbd
-          class="bg-surface-base border-border-subtle rounded border px-1.5 py-0.5 text-xs font-medium"
-          >Escape</kbd
-        >
+        <Kbd keys="Escape" />
         closes the menu and restores focus to the trigger.
       </p>
     </Note>

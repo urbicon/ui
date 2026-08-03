@@ -11,12 +11,13 @@
   import {
     Button,
     CommandPalette,
-    type CommandPaletteItem,
     FilePlusIcon,
+    Kbd,
     LogOutIcon,
     SaveIcon,
     SearchIcon,
-    SettingsIcon
+    SettingsIcon,
+    type CommandPaletteItem
   } from '@urbicon-ui/blocks';
   import {
     defaultValuesOf,
@@ -103,10 +104,7 @@
         Open Command Palette
       </Button>
       <p class="text-text-tertiary text-sm">
-        The global hotkey (<kbd
-          class="bg-surface-base border-border-subtle rounded border px-1.5 py-0.5 text-xs font-medium"
-          >Ctrl+K</kbd
-        >
+        The global hotkey (<Kbd keys={['Ctrl', 'K']} />
         by default) is off here — this page already owns that key.
       </p>
     </div>

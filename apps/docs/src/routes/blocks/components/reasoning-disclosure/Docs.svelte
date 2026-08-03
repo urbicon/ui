@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { Kbd } from '@urbicon-ui/blocks';
   import { CodeExample, Note, NoteList, Section } from '@urbicon-ui/docs';
   import Settled from './examples/Settled.svelte';
   import StreamingSim from './examples/StreamingSim.svelte';
@@ -45,20 +46,11 @@
         <code class="text-text-primary">aria-expanded</code> and
         <code class="text-text-primary">aria-controls</code> for the trace region — the standard
         Collapsible contract.
-        <kbd
-          class="bg-surface-base border-border-subtle rounded border px-1.5 py-0.5 text-xs font-medium"
-          >Tab</kbd
-        >
+        <Kbd keys="Tab" />
         to reach it,
-        <kbd
-          class="bg-surface-base border-border-subtle rounded border px-1.5 py-0.5 text-xs font-medium"
-          >Enter</kbd
-        >
+        <Kbd keys="Enter" />
         or
-        <kbd
-          class="bg-surface-base border-border-subtle rounded border px-1.5 py-0.5 text-xs font-medium"
-          >Space</kbd
-        >
+        <Kbd keys="Space" />
         to toggle. Focus rings use <code class="text-text-primary">focus-visible:</code>.
       </p>
     </Note>

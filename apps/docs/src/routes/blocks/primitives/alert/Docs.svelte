@@ -5,6 +5,7 @@
     Button,
     CheckCircleIcon,
     DangerCircleIcon,
+    Kbd,
     WarningTriangleIcon
   } from '@urbicon-ui/blocks';
   import { resolve } from '$app/paths';
@@ -222,10 +223,8 @@
         }}
         title="Tip"
       >
-        Use keyboard shortcuts to speed up your workflow. Press <kbd
-          class="bg-surface-base border-border-subtle rounded-modify border px-1 py-0.5 text-xs font-medium"
-          >⌘K</kbd
-        > to open the command palette.
+        Use keyboard shortcuts to speed up your workflow. Press <Kbd keys="⌘K" /> to open the command
+        palette.
       </Alert>
       <Alert
         unstyled
@@ -269,20 +268,12 @@
     <Note title="Keyboard">
       <p>
         The dismiss button is focusable via
-        <kbd
-          class="bg-surface-base border-border-subtle rounded-modify border px-1.5 py-0.5 text-xs font-medium"
-          >Tab</kbd
-        >
+        <Kbd keys="Tab" />
         and activates with
-        <kbd
-          class="bg-surface-base border-border-subtle rounded-modify border px-1.5 py-0.5 text-xs font-medium"
-          >Enter</kbd
-        >
+        <Kbd keys="Enter" />
         /
-        <kbd
-          class="bg-surface-base border-border-subtle rounded-modify border px-1.5 py-0.5 text-xs font-medium"
-          >Space</kbd
-        >. Focus-visible ring follows the component's intent color for clear contrast.
+        <Kbd keys="Space" />. Focus-visible ring follows the component's intent color for clear
+        contrast.
       </p>
     </Note>
     <Note title="Reduced Motion">

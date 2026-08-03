@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { Kbd } from '@urbicon-ui/blocks';
   import { CodeExample, Note, NoteList, Section } from '@urbicon-ui/docs';
   import ChatComposer from './examples/ChatComposer.svelte';
   import WithAttachments from './examples/WithAttachments.svelte';
@@ -84,21 +85,12 @@
     </Note>
     <Note title="Keyboard & IME">
       <p>
-        <kbd
-          class="bg-surface-base border-border-subtle rounded border px-1.5 py-0.5 text-xs font-medium"
-          >Enter</kbd
-        >
+        <Kbd keys="Enter" />
         sends (or inserts a newline under
         <code class="text-text-primary">submitOn="mod-enter"</code>);
-        <kbd
-          class="bg-surface-base border-border-subtle rounded border px-1.5 py-0.5 text-xs font-medium"
-          >Shift</kbd
-        >
+        <Kbd keys="Shift" />
         +
-        <kbd
-          class="bg-surface-base border-border-subtle rounded border px-1.5 py-0.5 text-xs font-medium"
-          >Enter</kbd
-        >
+        <Kbd keys="Enter" />
         always inserts a newline. Submission is suppressed mid-IME-composition, so composing Japanese,
         Chinese, or Korean text never fires a stray send. Focus rings use
         <code class="text-text-primary">focus-visible:</code> for keyboard-only visibility.

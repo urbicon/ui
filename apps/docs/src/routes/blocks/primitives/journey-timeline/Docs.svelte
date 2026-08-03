@@ -4,6 +4,7 @@
     Badge,
     Button,
     JourneyTimeline,
+    Kbd,
     type JourneyNode,
     type JourneyStatus
   } from '@urbicon-ui/blocks';
@@ -372,11 +373,11 @@
       <p class="text-text-primary mb-2 font-medium">Keyboard</p>
       <ul class="list-inside list-disc space-y-1">
         <li>
-          <kbd>↑</kbd> / <kbd>↓</kbd> (vertical) or <kbd>←</kbd> / <kbd>→</kbd> (horizontal) move the
-          roving focus between node headers without changing the focused node.
+          <Kbd keys="↑" /> / <Kbd keys="↓" /> (vertical) or <Kbd keys="←" /> / <Kbd keys="→" /> (horizontal)
+          move the roving focus between node headers without changing the focused node.
         </li>
-        <li><kbd>Home</kbd> / <kbd>End</kbd> jump to the first / last focusable node.</li>
-        <li><kbd>Enter</kbd> / <kbd>Space</kbd> put the header's node in focus.</li>
+        <li><Kbd keys="Home" /> / <Kbd keys="End" /> jump to the first / last focusable node.</li>
+        <li><Kbd keys="Enter" /> / <Kbd keys="Space" /> put the header's node in focus.</li>
       </ul>
     </div>
     <p>

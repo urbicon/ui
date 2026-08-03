@@ -1,6 +1,13 @@
 <script lang="ts">
   import { CodeExample, Note, NoteList, Section } from '@urbicon-ui/docs';
-  import { SplitPane, Badge, FileIcon, FolderOpenIcon, SparklesIcon } from '@urbicon-ui/blocks';
+  import {
+    Badge,
+    FileIcon,
+    FolderOpenIcon,
+    Kbd,
+    SparklesIcon,
+    SplitPane
+  } from '@urbicon-ui/blocks';
   import { resolve } from '$app/paths';
 
   let sidebarCollapsed = $state(false);
@@ -224,61 +231,34 @@
     <Note title="Keyboard">
       <div class="text-text-secondary space-y-2 text-sm leading-relaxed">
         <p>
-          <kbd
-            class="bg-surface-base border-border-subtle rounded border px-1.5 py-0.5 text-xs font-medium"
-            >Tab</kbd
-          >
+          <Kbd keys="Tab" />
           moves focus to the divider. The arrow keys follow the layout axis:
         </p>
         <ul class="ml-1 space-y-1.5">
           <li>
-            <kbd
-              class="bg-surface-base border-border-subtle rounded border px-1.5 py-0.5 text-xs font-medium"
-              >←</kbd
-            >
+            <Kbd keys="←" />
             /
-            <kbd
-              class="bg-surface-base border-border-subtle rounded border px-1.5 py-0.5 text-xs font-medium"
-              >→</kbd
-            >
+            <Kbd keys="→" />
             (horizontal) or
-            <kbd
-              class="bg-surface-base border-border-subtle rounded border px-1.5 py-0.5 text-xs font-medium"
-              >↑</kbd
-            >
+            <Kbd keys="↑" />
             /
-            <kbd
-              class="bg-surface-base border-border-subtle rounded border px-1.5 py-0.5 text-xs font-medium"
-              >↓</kbd
-            >
+            <Kbd keys="↓" />
             (vertical) resize by ±2%.
           </li>
           <li>
             Hold
-            <kbd
-              class="bg-surface-base border-border-subtle rounded border px-1.5 py-0.5 text-xs font-medium"
-              >Shift</kbd
-            >
+            <Kbd keys="Shift" />
             with an arrow for a ±10% step.
           </li>
           <li>
-            <kbd
-              class="bg-surface-base border-border-subtle rounded border px-1.5 py-0.5 text-xs font-medium"
-              >Home</kbd
-            >
+            <Kbd keys="Home" />
             /
-            <kbd
-              class="bg-surface-base border-border-subtle rounded border px-1.5 py-0.5 text-xs font-medium"
-              >End</kbd
-            >
+            <Kbd keys="End" />
             jump to the <code class="text-text-primary">min</code> /
             <code class="text-text-primary">max</code> limit.
           </li>
           <li>
-            <kbd
-              class="bg-surface-base border-border-subtle rounded border px-1.5 py-0.5 text-xs font-medium"
-              >Enter</kbd
-            >
+            <Kbd keys="Enter" />
             toggles collapse when <code class="text-text-primary">collapsible</code> is set;
             otherwise it resets to <code class="text-text-primary">defaultRatio</code> — the keyboard
             equivalent of the double-click reset.

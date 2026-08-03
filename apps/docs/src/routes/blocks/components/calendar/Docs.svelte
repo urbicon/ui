@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { Kbd } from '@urbicon-ui/blocks';
   import { CodeExample, Note, NoteList, Section } from '@urbicon-ui/docs';
   import {
     BasicMonth,
@@ -117,47 +118,17 @@
     </Note>
     <Note title="Keyboard Navigation">
       <p>
-        <kbd
-          class="bg-surface-base border-border-subtle rounded-modify border px-1.5 py-0.5 text-xs font-medium"
-          >←</kbd
-        >
-        <kbd
-          class="bg-surface-base border-border-subtle rounded-modify border px-1.5 py-0.5 text-xs font-medium"
-          >→</kbd
-        >
+        <Kbd keys="←" />
+        <Kbd keys="→" />
         move focus between days,
-        <kbd
-          class="bg-surface-base border-border-subtle rounded-modify border px-1.5 py-0.5 text-xs font-medium"
-          >↑</kbd
-        >
-        <kbd
-          class="bg-surface-base border-border-subtle rounded-modify border px-1.5 py-0.5 text-xs font-medium"
-          >↓</kbd
-        >
+        <Kbd keys="↑" />
+        <Kbd keys="↓" />
         between weeks.
-        <kbd
-          class="bg-surface-base border-border-subtle rounded-modify border px-1.5 py-0.5 text-xs font-medium"
-          >Home</kbd
-        >/<kbd
-          class="bg-surface-base border-border-subtle rounded-modify border px-1.5 py-0.5 text-xs font-medium"
-          >End</kbd
-        >
+        <Kbd keys="Home" />/<Kbd keys="End" />
         jump to the start/end of the week.
-        <kbd
-          class="bg-surface-base border-border-subtle rounded-modify border px-1.5 py-0.5 text-xs font-medium"
-          >PageUp</kbd
-        >/<kbd
-          class="bg-surface-base border-border-subtle rounded-modify border px-1.5 py-0.5 text-xs font-medium"
-          >PageDown</kbd
-        >
+        <Kbd keys="PageUp" />/<Kbd keys="PageDown" />
         navigate between months.
-        <kbd
-          class="bg-surface-base border-border-subtle rounded-modify border px-1.5 py-0.5 text-xs font-medium"
-          >Enter</kbd
-        >/<kbd
-          class="bg-surface-base border-border-subtle rounded-modify border px-1.5 py-0.5 text-xs font-medium"
-          >Space</kbd
-        >
+        <Kbd keys="Enter" />/<Kbd keys="Space" />
         select the focused day. Focus rings use
         <code class="text-text-primary">focus-visible:</code> for keyboard-only visibility.
       </p>

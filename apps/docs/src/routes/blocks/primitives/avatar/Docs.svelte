@@ -1,6 +1,6 @@
 <script lang="ts">
   import { CodeExample, Note, NoteList, Section } from '@urbicon-ui/docs';
-  import { Avatar } from '@urbicon-ui/blocks';
+  import { Avatar, Kbd } from '@urbicon-ui/blocks';
   import { resolve } from '$app/paths';
 </script>
 
@@ -125,20 +125,11 @@
     <Note title="Keyboard">
       <p>
         Interactive avatars are focusable via
-        <kbd
-          class="bg-surface-base border-border-subtle rounded border px-1.5 py-0.5 text-xs font-medium"
-          >Tab</kbd
-        >
+        <Kbd keys="Tab" />
         and activate with
-        <kbd
-          class="bg-surface-base border-border-subtle rounded border px-1.5 py-0.5 text-xs font-medium"
-          >Enter</kbd
-        >
+        <Kbd keys="Enter" />
         /
-        <kbd
-          class="bg-surface-base border-border-subtle rounded border px-1.5 py-0.5 text-xs font-medium"
-          >Space</kbd
-        >. Non-interactive avatars are skipped in the tab order.
+        <Kbd keys="Space" />. Non-interactive avatars are skipped in the tab order.
       </p>
     </Note>
     <Note title="Image Fallback">

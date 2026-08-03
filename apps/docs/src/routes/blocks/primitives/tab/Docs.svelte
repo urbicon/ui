@@ -1,6 +1,6 @@
 <script lang="ts">
   import { CodeExample, Note, NoteList, Section } from '@urbicon-ui/docs';
-  import { Tab, TabItem, TabPanel, Badge } from '@urbicon-ui/blocks';
+  import { Badge, Kbd, Tab, TabItem, TabPanel } from '@urbicon-ui/blocks';
   import { resolve } from '$app/paths';
 
   let activeSettings = $state('profile');
@@ -749,40 +749,19 @@
     </Note>
     <Note title="Keyboard Navigation">
       <p>
-        <kbd
-          class="bg-surface-base border-border-subtle rounded-modify border px-1.5 py-0.5 text-xs font-medium"
-          >Arrow Left</kbd
-        >
+        <Kbd keys="Arrow Left" />
         /
-        <kbd
-          class="bg-surface-base border-border-subtle rounded-modify border px-1.5 py-0.5 text-xs font-medium"
-          >Arrow Right</kbd
-        >
+        <Kbd keys="Arrow Right" />
         cycle through horizontal tabs.
-        <kbd
-          class="bg-surface-base border-border-subtle rounded-modify border px-1.5 py-0.5 text-xs font-medium"
-          >Arrow Up</kbd
-        >
+        <Kbd keys="Arrow Up" />
         /
-        <kbd
-          class="bg-surface-base border-border-subtle rounded-modify border px-1.5 py-0.5 text-xs font-medium"
-          >Arrow Down</kbd
-        >
+        <Kbd keys="Arrow Down" />
         for vertical orientation.
-        <kbd
-          class="bg-surface-base border-border-subtle rounded-modify border px-1.5 py-0.5 text-xs font-medium"
-          >Home</kbd
-        >
+        <Kbd keys="Home" />
         /
-        <kbd
-          class="bg-surface-base border-border-subtle rounded-modify border px-1.5 py-0.5 text-xs font-medium"
-          >End</kbd
-        >
+        <Kbd keys="End" />
         jump to first/last tab.
-        <kbd
-          class="bg-surface-base border-border-subtle rounded-modify border px-1.5 py-0.5 text-xs font-medium"
-          >Tab</kbd
-        >
+        <Kbd keys="Tab" />
         moves focus into and out of the tab strip.
       </p>
     </Note>

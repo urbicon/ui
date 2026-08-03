@@ -1,6 +1,6 @@
 <script lang="ts">
   import { CodeExample, Note, NoteList, Section } from '@urbicon-ui/docs';
-  import { Badge, Button } from '@urbicon-ui/blocks';
+  import { Badge, Button, Kbd } from '@urbicon-ui/blocks';
   import { resolve } from '$app/paths';
 
   let filters = $state<string[]>(['Active', 'Premium', 'Last 7 days']);
@@ -376,29 +376,14 @@
     <Note title="Keyboard">
       <p>
         Interactive badges are focusable via
-        <kbd
-          class="bg-surface-base border-border-subtle rounded-modify border px-1.5 py-0.5 text-xs font-medium"
-          >Tab</kbd
-        >
+        <Kbd keys="Tab" />
         and activate with
-        <kbd
-          class="bg-surface-base border-border-subtle rounded-modify border px-1.5 py-0.5 text-xs font-medium"
-          >Enter</kbd
-        >
+        <Kbd keys="Enter" />
         /
-        <kbd
-          class="bg-surface-base border-border-subtle rounded-modify border px-1.5 py-0.5 text-xs font-medium"
-          >Space</kbd
-        >. Removable badges also respond to
-        <kbd
-          class="bg-surface-base border-border-subtle rounded-modify border px-1.5 py-0.5 text-xs font-medium"
-          >Delete</kbd
-        >
+        <Kbd keys="Space" />. Removable badges also respond to
+        <Kbd keys="Delete" />
         /
-        <kbd
-          class="bg-surface-base border-border-subtle rounded-modify border px-1.5 py-0.5 text-xs font-medium"
-          >Backspace</kbd
-        >.
+        <Kbd keys="Backspace" />.
       </p>
     </Note>
     <Note title="Reduced Motion">

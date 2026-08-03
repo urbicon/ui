@@ -1,6 +1,6 @@
 <script lang="ts">
   import { CodeExample, Note, NoteList, Section } from '@urbicon-ui/docs';
-  import { Tooltip, Button, Badge } from '@urbicon-ui/blocks';
+  import { Badge, Button, Kbd, Tooltip } from '@urbicon-ui/blocks';
   import { resolve } from '$app/paths';
 </script>
 
@@ -164,16 +164,10 @@
     <Note title="Keyboard">
       <p>
         Tooltips appear on
-        <kbd
-          class="bg-surface-base border-border-subtle rounded-modify border px-1.5 py-0.5 text-xs font-medium"
-          >Focus</kbd
-        >
+        <Kbd keys="Focus" />
         and dismiss with
-        <kbd
-          class="bg-surface-base border-border-subtle rounded-modify border px-1.5 py-0.5 text-xs font-medium"
-          >Escape</kbd
-        >. The tooltip itself is never focusable – it supplements the trigger's accessible
-        description.
+        <Kbd keys="Escape" />. The tooltip itself is never focusable – it supplements the trigger's
+        accessible description.
       </p>
     </Note>
     <Note title="Timing">

@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { Kbd } from '@urbicon-ui/blocks';
   import SeoMeta from '$lib/SeoMeta.svelte';
   import { DocsLayout as DocsPageLayout, Note, NoteList, Section } from '@urbicon-ui/docs';
   import { resolve } from '$app/paths';
@@ -33,10 +34,7 @@
         <div class="grid grid-cols-2 gap-x-6 gap-y-1.5 text-xs">
           {#each [{ key: 'Arrow Up/Down', action: 'Navigate between rows' }, { key: 'Home / End', action: 'Jump to first / last row' }, { key: 'Space', action: 'Toggle row selection' }, { key: 'Enter', action: 'Expand row or trigger onRowClick' }, { key: 'Page Up/Down', action: 'Previous / next page' }, { key: 'Escape', action: 'Clear selection' }, { key: 'Shift+Arrow L/R', action: 'Reorder column (on header)' }] as shortcut (shortcut.key)}
             <div class="flex items-baseline gap-2">
-              <kbd
-                class="bg-surface-base border-border-subtle rounded-modify border px-1.5 py-0.5 font-medium whitespace-nowrap"
-                >{shortcut.key}</kbd
-              >
+              <Kbd keys={shortcut.key} />
               <span class="text-text-secondary">{shortcut.action}</span>
             </div>
           {/each}

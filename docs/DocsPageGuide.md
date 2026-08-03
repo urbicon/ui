@@ -297,32 +297,26 @@ The example file (`examples/Basic.svelte`) is a normal Svelte component — it j
 
 ## Accessibility Section
 
-Every component should include an accessibility section:
+Every component should include an accessibility section. It is `NoteList` + `Note` from
+`@urbicon-ui/docs` — not hand-written markup:
 
 ```svelte
-<Section id="accessibility" title="Accessibility">
-  <div class="border-border-subtle bg-surface-elevated rounded-2xl border p-6">
-    <div class="divide-border-subtle divide-y">
-      <div class="pb-4">
-        <h4 class="text-text-primary mb-1.5 text-sm font-semibold">Built-in ARIA</h4>
-        <p class="text-text-secondary text-sm leading-relaxed">
-          Description of automatic ARIA attributes...
-        </p>
-      </div>
-      <div class="py-4">
-        <h4 class="text-text-primary mb-1.5 text-sm font-semibold">Keyboard</h4>
-        <p class="text-text-secondary text-sm leading-relaxed">
-          <kbd
-            class="bg-surface-base border-border-subtle rounded border px-1.5 py-0.5 text-xs font-medium"
-            >Tab</kbd
-          >
-          to focus, ...
-        </p>
-      </div>
-    </div>
-  </div>
+<Section marker="04" id="accessibility" title="Accessibility">
+  <NoteList>
+    <Note title="Built-in ARIA">Description of automatic ARIA attributes…</Note>
+    <Note title="Keyboard">
+      <Kbd>Tab</Kbd> to focus, <Kbd>Space</Kbd> to toggle.
+    </Note>
+  </NoteList>
 </Section>
 ```
+
+Row separators and the first/last row padding belong to the component: adding or reordering a
+note never means fixing the spacing of its neighbours. A heading that carries markup uses the
+`titleSnippet` snippet instead of the `title` prop.
+
+Keyboard keys are `<Kbd>` from `@urbicon-ui/blocks`. The primitive exists precisely to end the
+ad-hoc `<kbd class="…">` spans; a hand-styled one is a bug, not a shortcut.
 
 Typical subsections: Built-in ARIA, Keyboard, Reduced Motion. Add component-specific items (e.g. screen reader hints for Menu, focus trap for Dialog).
 

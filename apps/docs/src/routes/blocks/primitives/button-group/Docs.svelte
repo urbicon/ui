@@ -4,12 +4,13 @@
     BoldIcon,
     Button,
     ButtonGroup,
-    type ButtonGroupValue,
     GalleryIcon,
     ItalicIcon,
+    Kbd,
     ListIcon,
     MapIcon,
     MapPinIcon,
+    type ButtonGroupValue,
     UnderlineIcon,
     ZoomInIcon,
     ZoomOutIcon
@@ -214,20 +215,11 @@
     </Note>
     <Note title="Keyboard">
       <p>
-        <kbd
-          class="bg-surface-base border-border-subtle rounded border px-1.5 py-0.5 text-xs font-medium"
-          >Tab</kbd
-        >
+        <Kbd keys="Tab" />
         moves focus between buttons.
-        <kbd
-          class="bg-surface-base border-border-subtle rounded border px-1.5 py-0.5 text-xs font-medium"
-          >Enter</kbd
-        >
+        <Kbd keys="Enter" />
         /
-        <kbd
-          class="bg-surface-base border-border-subtle rounded border px-1.5 py-0.5 text-xs font-medium"
-          >Space</kbd
-        >
+        <Kbd keys="Space" />
         toggles selection.
       </p>
     </Note>

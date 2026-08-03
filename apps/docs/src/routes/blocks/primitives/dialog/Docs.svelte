@@ -1,6 +1,6 @@
 <script lang="ts">
   import { CodeExample, Note, NoteList, Section } from '@urbicon-ui/docs';
-  import { Dialog, Button, Input } from '@urbicon-ui/blocks';
+  import { Button, Dialog, Input, Kbd } from '@urbicon-ui/blocks';
   import { resolve } from '$app/paths';
 
   let basicOpen = $state(false);
@@ -133,11 +133,7 @@
             placeholder="Search commands..."
             class="text-text-primary placeholder:text-text-tertiary w-full border-none bg-transparent text-sm outline-none"
           />
-          <kbd
-            class="bg-surface-base border-border-subtle text-text-tertiary rounded-modify border px-1.5 py-0.5 text-xs"
-          >
-            Esc
-          </kbd>
+          <Kbd keys="Esc" />
         </div>
         <div class="space-y-1 pt-3">
           {#each ['Create new project', 'Open settings', 'Switch workspace', 'View documentation'] as item (item)}
@@ -343,19 +339,13 @@
     <Note title="Focus Trap">
       <p>
         When open, focus is trapped inside the dialog.
-        <kbd
-          class="bg-surface-base border-border-subtle rounded-modify border px-1.5 py-0.5 text-xs font-medium"
-          >Tab</kbd
-        >
+        <Kbd keys="Tab" />
         cycles through interactive elements. On close, focus returns to the element that opened the dialog.
       </p>
     </Note>
     <Note title="Keyboard">
       <p>
-        <kbd
-          class="bg-surface-base border-border-subtle rounded-modify border px-1.5 py-0.5 text-xs font-medium"
-          >Escape</kbd
-        >
+        <Kbd keys="Escape" />
         closes the dialog (configurable via <code class="text-text-primary">closeOnEscape</code>).
       </p>
     </Note>

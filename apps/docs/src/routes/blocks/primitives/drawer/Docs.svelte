@@ -1,6 +1,6 @@
 <script lang="ts">
   import { CodeExample, Note, NoteList, Section } from '@urbicon-ui/docs';
-  import { Button, Drawer, Input, Separator, Toggle } from '@urbicon-ui/blocks';
+  import { Button, Drawer, Input, Kbd, Separator, Toggle } from '@urbicon-ui/blocks';
   import { r } from '$lib/route';
 
   let rightOpen = $state(false);
@@ -176,10 +176,7 @@
         <h4 class="text-text-primary mb-1.5 text-sm font-semibold">Stack order is LIFO</h4>
         <p class="text-text-secondary text-sm leading-relaxed">
           The most recently opened Drawer renders on top. Pressing
-          <kbd
-            class="bg-surface-base border-border-subtle rounded-modify border px-1.5 py-0.5 text-xs font-medium"
-            >Escape</kbd
-          >
+          <Kbd keys="Escape" />
           closes the topmost drawer; the underlying ones stay open. Each Drawer manages its own focus-trap,
           so keyboard navigation stays inside the topmost panel.
         </p>
@@ -242,10 +239,7 @@ overlayStack.topId;   // string | null`}</code
     <Note title="Focus Trap">
       <p>
         When open, focus is trapped inside the drawer panel.
-        <kbd
-          class="bg-surface-base border-border-subtle rounded-modify border px-1.5 py-0.5 text-xs font-medium"
-          >Tab</kbd
-        >
+        <Kbd keys="Tab" />
         cycles through focusable elements. On close, focus returns to the element that triggered the drawer.
       </p>
     </Note>
@@ -259,10 +253,7 @@ overlayStack.topId;   // string | null`}</code
     </Note>
     <Note title="Keyboard">
       <p>
-        <kbd
-          class="bg-surface-base border-border-subtle rounded-modify border px-1.5 py-0.5 text-xs font-medium"
-          >Escape</kbd
-        >
+        <Kbd keys="Escape" />
         closes the drawer (configurable via
         <code class="text-text-primary">closeOnEscape</code>). Backdrop click dismiss is also
         configurable.

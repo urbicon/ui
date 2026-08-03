@@ -1,6 +1,6 @@
 <script lang="ts">
   import { CodeExample, Note, NoteList, Section } from '@urbicon-ui/docs';
-  import { Sankey, type SankeyNode, type SankeyLink } from '@urbicon-ui/blocks';
+  import { Kbd, Sankey, type SankeyLink, type SankeyNode } from '@urbicon-ui/blocks';
 
   const formatEur = (cents: number) =>
     new Intl.NumberFormat('de-DE', {
@@ -214,18 +214,9 @@
     </Note>
     <Note title="Keyboard Navigation">
       <p>
-        <kbd
-          class="bg-surface-base border-border-subtle rounded-modify border px-1.5 py-0.5 text-xs"
-          >Tab</kbd
-        >
+        <Kbd keys="Tab" />
         focuses every node and link in sequence. On a focused element,
-        <kbd
-          class="bg-surface-base border-border-subtle rounded-modify border px-1.5 py-0.5 text-xs"
-          >Enter</kbd
-        >/<kbd
-          class="bg-surface-base border-border-subtle rounded-modify border px-1.5 py-0.5 text-xs"
-          >Space</kbd
-        >
+        <Kbd keys="Enter" />/<Kbd keys="Space" />
         triggers the click handler (onNodeClick / onLinkClick).
       </p>
     </Note>

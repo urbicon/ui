@@ -1,6 +1,6 @@
 <script lang="ts">
   import { CodeExample, Note, NoteList, Section } from '@urbicon-ui/docs';
-  import { Select } from '@urbicon-ui/blocks';
+  import { Kbd, Select } from '@urbicon-ui/blocks';
   import { resolve } from '$app/paths';
 
   let selectedRole = $state<string | null>('editor');
@@ -174,35 +174,17 @@
     </Note>
     <Note title="Keyboard">
       <p>
-        <kbd
-          class="bg-surface-base border-border-subtle rounded border px-1.5 py-0.5 text-xs font-medium"
-          >Enter</kbd
-        >
+        <Kbd keys="Enter" />
         /
-        <kbd
-          class="bg-surface-base border-border-subtle rounded border px-1.5 py-0.5 text-xs font-medium"
-          >Space</kbd
-        >
+        <Kbd keys="Space" />
         /
-        <kbd
-          class="bg-surface-base border-border-subtle rounded border px-1.5 py-0.5 text-xs font-medium"
-          >Arrow Down</kbd
-        >
+        <Kbd keys="Arrow Down" />
         opens the dropdown.
-        <kbd
-          class="bg-surface-base border-border-subtle rounded border px-1.5 py-0.5 text-xs font-medium"
-          >Arrow Up/Down</kbd
-        >
+        <Kbd keys="Arrow Up/Down" />
         navigates options.
-        <kbd
-          class="bg-surface-base border-border-subtle rounded border px-1.5 py-0.5 text-xs font-medium"
-          >Home/End</kbd
-        >
+        <Kbd keys="Home/End" />
         jump to first/last.
-        <kbd
-          class="bg-surface-base border-border-subtle rounded border px-1.5 py-0.5 text-xs font-medium"
-          >Escape</kbd
-        >
+        <Kbd keys="Escape" />
         closes and returns focus.
       </p>
     </Note>

@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { Kbd } from '@urbicon-ui/blocks';
   import { CodeExample, Note, NoteList, Section } from '@urbicon-ui/docs';
   import Lifecycle from './examples/Lifecycle.svelte';
   import ErrorState from './examples/ErrorState.svelte';
@@ -62,20 +63,11 @@
         <code class="text-text-primary">aria-expanded</code> and
         <code class="text-text-primary">aria-controls</code> pointing at the body region — the same
         Collapsible contract as the rest of the library.
-        <kbd
-          class="bg-surface-base border-border-subtle rounded border px-1.5 py-0.5 text-xs font-medium"
-          >Tab</kbd
-        >
+        <Kbd keys="Tab" />
         to reach it,
-        <kbd
-          class="bg-surface-base border-border-subtle rounded border px-1.5 py-0.5 text-xs font-medium"
-          >Enter</kbd
-        >
+        <Kbd keys="Enter" />
         or
-        <kbd
-          class="bg-surface-base border-border-subtle rounded border px-1.5 py-0.5 text-xs font-medium"
-          >Space</kbd
-        >
+        <Kbd keys="Space" />
         to toggle. Focus rings use <code class="text-text-primary">focus-visible:</code>.
       </p>
     </Note>

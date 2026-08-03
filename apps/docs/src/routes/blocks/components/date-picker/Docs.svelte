@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { Kbd } from '@urbicon-ui/blocks';
   import { CodeExample, Note, NoteList, Section } from '@urbicon-ui/docs';
   import {
     BasicDatePicker,
@@ -95,32 +96,14 @@
     </Note>
     <Note title="Keyboard Navigation">
       <p>
-        <kbd
-          class="bg-surface-base border-border-subtle rounded-modify border px-1.5 py-0.5 text-xs font-medium"
-          >Enter</kbd
-        >,
-        <kbd
-          class="bg-surface-base border-border-subtle rounded-modify border px-1.5 py-0.5 text-xs font-medium"
-          >Space</kbd
-        >
+        <Kbd keys="Enter" />,
+        <Kbd keys="Space" />
         oder
-        <kbd
-          class="bg-surface-base border-border-subtle rounded-modify border px-1.5 py-0.5 text-xs font-medium"
-          >ArrowDown</kbd
-        >
+        <Kbd keys="ArrowDown" />
         oeffnen den Kalender.
-        <kbd
-          class="bg-surface-base border-border-subtle rounded-modify border px-1.5 py-0.5 text-xs font-medium"
-          >Escape</kbd
-        >
+        <Kbd keys="Escape" />
         schliesst ihn. Im Kalender navigieren Pfeiltasten zwischen Tagen/Wochen,
-        <kbd
-          class="bg-surface-base border-border-subtle rounded-modify border px-1.5 py-0.5 text-xs font-medium"
-          >PageUp</kbd
-        >/<kbd
-          class="bg-surface-base border-border-subtle rounded-modify border px-1.5 py-0.5 text-xs font-medium"
-          >PageDown</kbd
-        >
+        <Kbd keys="PageUp" />/<Kbd keys="PageDown" />
         zwischen Monaten. Fokus-Ringe nutzen
         <code class="text-text-primary">focus-visible:</code> fuer reine Keyboard-Sichtbarkeit.
       </p>

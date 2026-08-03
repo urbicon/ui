@@ -1,6 +1,6 @@
 <script lang="ts">
   import { CodeExample, Section } from '@urbicon-ui/docs';
-  import { Select, LocaleSwitcher } from '@urbicon-ui/blocks';
+  import { Kbd, LocaleSwitcher, Select } from '@urbicon-ui/blocks';
 </script>
 
 <Section marker="01" id="examples" title="Examples">
@@ -76,24 +76,12 @@
       <code class="text-text-primary">aria-expanded</code>,
       <code class="text-text-primary">aria-selected</code> — plus a trigger
       <code class="text-text-primary">aria-label</code> from the i18n bundle.
-      <kbd
-        class="bg-surface-base border-border-subtle rounded-modify border px-1.5 py-0.5 text-xs font-medium"
-        >↑</kbd
-      >
-      <kbd
-        class="bg-surface-base border-border-subtle rounded-modify border px-1.5 py-0.5 text-xs font-medium"
-        >↓</kbd
-      >
+      <Kbd keys="↑" />
+      <Kbd keys="↓" />
       navigate,
-      <kbd
-        class="bg-surface-base border-border-subtle rounded-modify border px-1.5 py-0.5 text-xs font-medium"
-        >Enter</kbd
-      >
+      <Kbd keys="Enter" />
       selects,
-      <kbd
-        class="bg-surface-base border-border-subtle rounded-modify border px-1.5 py-0.5 text-xs font-medium"
-        >Esc</kbd
-      >
+      <Kbd keys="Esc" />
       closes. Locale names resolve from the active translation bundle.
     </p>
   </div>

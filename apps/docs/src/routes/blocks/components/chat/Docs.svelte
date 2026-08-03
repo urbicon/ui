@@ -1,5 +1,6 @@
 <script lang="ts">
   import { CodeExample, Note, NoteList, Section } from '@urbicon-ui/docs';
+  import { Kbd } from '@urbicon-ui/blocks';
   import { r } from '$lib/route';
 </script>
 
@@ -144,16 +145,10 @@
     </Note>
     <Note title="Scroll ownership">
       <p>
-        Because only the body scrolls, keyboard scrolling (<kbd
-          class="bg-surface-base border-border-subtle rounded-modify border px-1.5 py-0.5 text-xs font-medium"
-          >Page&nbsp;Up</kbd
-        >
+        Because only the body scrolls, keyboard scrolling (<Kbd keys="Page Up" />
         /
-        <kbd
-          class="bg-surface-base border-border-subtle rounded-modify border px-1.5 py-0.5 text-xs font-medium"
-          >Page&nbsp;Down</kbd
-        >) lands on the focusable list region, never on the page — while the header and composer
-        stay reachable and in view.
+        <Kbd keys="Page Down" />) lands on the focusable list region, never on the page — while the
+        header and composer stay reachable and in view.
       </p>
     </Note>
   </NoteList>

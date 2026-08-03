@@ -1,6 +1,6 @@
 <script lang="ts">
   import { CodeExample, Note, NoteList, Section } from '@urbicon-ui/docs';
-  import { Slider } from '@urbicon-ui/blocks';
+  import { Kbd, Slider } from '@urbicon-ui/blocks';
   import { resolve } from '$app/paths';
 
   let volume = $state(65);
@@ -233,25 +233,13 @@
     </Note>
     <Note title="Keyboard">
       <p>
-        <kbd
-          class="bg-surface-base border-border-subtle rounded border px-1.5 py-0.5 text-xs font-medium"
-          >Arrow Right/Up</kbd
-        >
+        <Kbd keys="Arrow Right/Up" />
         increases by step,
-        <kbd
-          class="bg-surface-base border-border-subtle rounded border px-1.5 py-0.5 text-xs font-medium"
-          >Arrow Left/Down</kbd
-        >
+        <Kbd keys="Arrow Left/Down" />
         decreases.
-        <kbd
-          class="bg-surface-base border-border-subtle rounded border px-1.5 py-0.5 text-xs font-medium"
-          >Page Up/Down</kbd
-        >
+        <Kbd keys="Page Up/Down" />
         moves by 10x step.
-        <kbd
-          class="bg-surface-base border-border-subtle rounded border px-1.5 py-0.5 text-xs font-medium"
-          >Home/End</kbd
-        >
+        <Kbd keys="Home/End" />
         jump to min/max.
       </p>
     </Note>

@@ -1,6 +1,6 @@
 <script lang="ts">
   import { CodeExample, Note, NoteList, Section } from '@urbicon-ui/docs';
-  import { Button, toaster } from '@urbicon-ui/blocks';
+  import { Button, Kbd, toaster } from '@urbicon-ui/blocks';
   import { resolve } from '$app/paths';
 
   let counter = $state(0);
@@ -349,20 +349,11 @@ toaster.clear();      // remove all`}
     <Note title="Keyboard">
       <p>
         Dismiss buttons are focusable via
-        <kbd
-          class="bg-surface-base border-border-subtle rounded border px-1.5 py-0.5 text-xs font-medium"
-          >Tab</kbd
-        >
+        <Kbd keys="Tab" />
         and activate with
-        <kbd
-          class="bg-surface-base border-border-subtle rounded border px-1.5 py-0.5 text-xs font-medium"
-          >Enter</kbd
-        >
+        <Kbd keys="Enter" />
         /
-        <kbd
-          class="bg-surface-base border-border-subtle rounded border px-1.5 py-0.5 text-xs font-medium"
-          >Space</kbd
-        >. The dismiss button has an
+        <Kbd keys="Space" />. The dismiss button has an
         <code class="text-text-primary">aria-label="Dismiss"</code>.
       </p>
     </Note>

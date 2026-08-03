@@ -9,7 +9,8 @@
     GuideHint,
     GuidePanel,
     GuideProvider,
-    GuideRef
+    GuideRef,
+    Kbd
   } from '@urbicon-ui/blocks';
   import type { GuideTour } from '@urbicon-ui/blocks';
 
@@ -437,18 +438,8 @@
         on
         <strong>focus</strong> as well as hover, so the bidirectional link works without a mouse.
         The tour bubble takes focus on open;
-        <kbd class="bg-surface-base border-border-subtle rounded border px-1.5 py-0.5 text-xs"
-          >&#8594;</kbd
-        >
-        /
-        <kbd class="bg-surface-base border-border-subtle rounded border px-1.5 py-0.5 text-xs"
-          >&#8592;</kbd
-        >
-        step,
-        <kbd class="bg-surface-base border-border-subtle rounded border px-1.5 py-0.5 text-xs"
-          >Esc</kbd
-        >
-        skips. An interactive step joins its spotlit target to the bubble in one Tab cycle.
+        <Kbd keys="→" /> / <Kbd keys="←" /> step, <Kbd keys="Esc" /> skips. An interactive step joins
+        its spotlit target to the bubble in one Tab cycle.
       </p>
     </Note>
     <Note title="Announcements & focus">

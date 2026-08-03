@@ -1,6 +1,6 @@
 <script lang="ts">
   import { CodeExample, Note, NoteList, Section } from '@urbicon-ui/docs';
-  import { Card, Badge, Button } from '@urbicon-ui/blocks';
+  import { Badge, Button, Card, Kbd } from '@urbicon-ui/blocks';
   import { resolve } from '$app/paths';
 </script>
 
@@ -220,20 +220,11 @@
     <Note title="Keyboard">
       <p>
         Interactive cards are focusable via
-        <kbd
-          class="bg-surface-base border-border-subtle rounded-modify border px-1.5 py-0.5 text-xs font-medium"
-          >Tab</kbd
-        >
+        <Kbd keys="Tab" />
         and activate with
-        <kbd
-          class="bg-surface-base border-border-subtle rounded-modify border px-1.5 py-0.5 text-xs font-medium"
-          >Enter</kbd
-        >
+        <Kbd keys="Enter" />
         /
-        <kbd
-          class="bg-surface-base border-border-subtle rounded-modify border px-1.5 py-0.5 text-xs font-medium"
-          >Space</kbd
-        >. Non-interactive cards are skipped in the tab order.
+        <Kbd keys="Space" />. Non-interactive cards are skipped in the tab order.
       </p>
     </Note>
     <Note title="Structure">
