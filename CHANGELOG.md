@@ -4,13 +4,70 @@ All notable changes to this project will be documented in this file.
 This changelog is automatically generated from [Conventional Commits](https://www.conventionalcommits.org).
 
 
+## [6.51.0] - 2026-08-03
+
+### Breaking Changes
+- **docs**: Restore the tv fold the slot() helper had dropped, and guard it
+> **BREAKING:** eine `slotClasses`-Angabe verdraengt jetzt den Default, mit dem sie im selben Tailwind-Bucket kollidiert, statt zusaetzlich zu ihm zu gelten. Wer sich auf die Verkettung verlassen hat (nur innerhalb dieses Branches moeglich), sieht eine Klasse weniger auf dem Element.
+
+### Bug Fixes
+- **blocks**: Let an inner Escape dismiss only what handled it
+- **blocks**: Treat an empty-string radio value as a real selection
+- **blocks**: Stop the calendar header from scrolling the page sideways
+- **blocks**: Line the calendar's chevrons up on a narrow header
+- **docs-app**: Close the two holes that let sections-lint report pages it never checked
+- **docs-app**: Undo three regressions the review found
+- **docs**: Make the internal ids instance-local and fill the two empty Default columns
+- **docs-app**: Close three ways past registry-lint
+- **docs**: Repair what the adversarial review found in my own fold commit
+- **docs-app**: Stop sections-lint firing on mutually exclusive branches
+- **docs,docs-app**: Finish the @default sweep and stop the three-way id clash
+- **docs**: Put the note card back on the container radius token
+
+### CI/CD
+- Gate on one aggregate check instead of nine job names
+- Sync SvelteKit before the docs-app tests
+
+### Documentation
+- Correct the measured claims that live in files rather than in the log
+- Record the issue taxonomy in the tracking rules
+- Fix imprint
+
+### Features
+- **table**: Move the narrow bar's tools into a sheet
+- **docs**: Rebuild the landing's Blocks tile as a three-view backoffice
+
+### Miscellaneous
+- Raise the bundle-size baseline for the table tools sheet
+
+### Testing
+- **e2e**: Fix the login selectors my aria-label change broke
+
 ## [6.50.0] - 2026-08-02
+
+### Breaking Changes
+- **docs**: Drop the TOC order field nothing ever read
 
 ### Bug Fixes
 - **design**: Stop nudging projects that decided shape at the tier
 - **blocks**: Move the Drawer panel onto the contain tier
 - **blocks**: Default purpose="tag" badges to the neutral intent
 - **docs-gen**: Point the llms-full install at the public npm registry
+- **docs**: Make lineNumbers work, name the TOC landmarks, stop leaking a listener
+- **docs**: Localize the last hardcoded strings in the package
+- **docs-gen,mcp-server**: Filter the internal catalog by package, not by name
+- **design-engine,docs-app**: Clear the docs app's 265 validator errors
+- **docs-app**: Give 33 pages their own meta description
+- **docs,docs-app**: Correct the note heading level, put real icons on the primitives pages
+- **docs-app**: Drop the dead prose class, complete two pages missing their sections
+- **docs,docs-app**: Give InfoCard a heading level and repair 30 outline skips
+- **docs-app**: Wire the 14 auth pages onto the shape every other page has
+- **docs,docs-app**: Give CodeExample a heading level, clear the last docs-side outline skips
+- **docs,docs-app**: Name the regions and navigations the docs site never named
+- **docs-app,auth**: Give the top-level pages the headings and names they lacked
+- **docs-app,docs**: Hold the ten docs meta pages to the guide they document
+- **docs-app**: Keep an authoring note out of the snippet it explains
+- **docs-app**: Give the sidebar footer readable contrast, name the bell button
 - Drop the unfounded @sveltejs/kit peer dependency
 - **blocks**: Render the tooltip panel as a span so it is legal inline
 - **blocks,docs**: Answer the adversarial review of the tooltip span fix
@@ -24,9 +81,11 @@ This changelog is automatically generated from [Conventional Commits](https://ww
 ### Build
 - Keep the incremental type-check cache out of the tarballs
 - Stop the publish scripts writing into the tracked LICENSE files
+- Run the ESM-specifier pass in every package that emits with svelte-package
 
 ### CI/CD
 - Wait for CI instead of losing the e2e skip by seconds
+- Gate on the two docs lints that were only ever run by hand
 
 ### Documentation
 - Correct the publishing facts, record the token-only theme contract
@@ -35,6 +94,10 @@ This changelog is automatically generated from [Conventional Commits](https://ww
 - **blocks**: Give the package README a consumer install path
 - Lead the install path with the sv add-on
 - **docs-app**: Let the add-on path skip ahead to step 03
+- **docs-app**: Give CodePanel a page and register all nine docs components
+- Resolve the page-canon conflict and refresh the DocsPageGuide
+- **docs-app**: Translate the last German pages, drop two dead files
+- Correct two guide claims the pages have never followed
 - Draw the SvelteKit boundary where it actually runs
 - **table**: Correct two claims the round-3 review measured as wrong
 
@@ -42,15 +105,38 @@ This changelog is automatically generated from [Conventional Commits](https://ww
 - **design-engine**: Rank radius by role in the rubric, rename the ux axis
 - **design-engine**: Ship the radius tiers and the category-vs-status rule
 - **blocks**: Give Card a container tier for small content surfaces
+- **docs**: Put Section, InfoCard and CodeExample on the standard styling API
+- **docs**: Expose the variants values, slot types and i18n at the package entry
+- **docs-gen**: Fill the docs catalog and gate its metadata
+- **docs-app**: Add a sections lint and fix the five pages it found
+- **docs**: Add NoteList/Note for the card every docs page hand-copies
 - **blocks**: Guard every namespace by asking the compiler, not a model
 
 ### Miscellaneous
+- **docs**: Drop the dead variants barrel, the dead slot and an unused devDep
+- Record the docs test dependencies in the lockfile
+- **docs-app**: Drop eight playgrounds for pages that were never built
+- **docs-app**: Drop two test fixtures whose spike is finished
 - Re-baseline bundle sizes for the Svelte 5.56.8 / Vite 8.2.0 bump
 
 ### Performance
 - **table**: Resolve the cell locale once per table, not once per cell
 
+### Refactoring
+- **docs**: Make every ApiReference slot overridable
+- **docs**: Finish the slotClasses contract across the remaining components
+- **docs-app**: Replace the hand-copied accessibility card with NoteList
+- **docs-app**: Use the Kbd primitive instead of hand-drawn keycaps
+- **docs-app**: Give the recipes one header component
+- **docs-app**: Derive the cookbook from the recipes instead of copying them
+- **docs-app**: Unify the 23 recipe pages onto one shape
+- **docs-app**: Put the customization pages on the same section component as the rest
+
+### Styling
+- **docs-app**: Apply the pending Tailwind class ordering
+
 ### Testing
+- **docs**: Give the package its first DOM tests (closes #35)
 - **blocks**: Read the config and ask the compiler, not a list
 - **blocks**: Give the display probe a positive control
 - **blocks**: Assert every GLOB root reaches the emitted-CSS guard
