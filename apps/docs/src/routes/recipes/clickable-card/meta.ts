@@ -1,4 +1,8 @@
-export const recipeMeta = {
+import type { RecipeMeta } from '../recipe-meta';
+
+export const recipeMeta: RecipeMeta = {
+  category: 'Display',
+  difficulty: 'Beginner',
   title: 'Clickable Card',
   description:
     'Card as one fully clickable element — dashboard tile, list card, navigation tile. Card automatically renders as <a> or <button> depending on the prop; nested <a><Card></Card></a> is unnecessary (and usually wrong).',

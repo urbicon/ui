@@ -1,4 +1,8 @@
-export const recipeMeta = {
+import type { RecipeMeta } from '../recipe-meta';
+
+export const recipeMeta: RecipeMeta = {
+  category: 'Display',
+  difficulty: 'Beginner',
   title: 'Stat Tile',
   description:
     'KPI tile for dashboards: label on top, large value, optional trend indicator and icon tile on the right. Combines Card, the icon-tile pattern, and semantic intent tokens. Generic pattern for any reporting/analytics surface.',

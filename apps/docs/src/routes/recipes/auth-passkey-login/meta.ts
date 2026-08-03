@@ -1,4 +1,8 @@
-export const recipeMeta = {
+import type { RecipeMeta } from '../recipe-meta';
+
+export const recipeMeta: RecipeMeta = {
+  category: 'Authentication',
+  difficulty: 'Advanced',
   title: 'Passkey Login',
   description:
     'Passwordless and password sign-in in one form, backed by the WebAuthn passkey handlers.',

@@ -1,4 +1,8 @@
-export const recipeMeta = {
+import type { RecipeMeta } from '../recipe-meta';
+
+export const recipeMeta: RecipeMeta = {
+  category: 'Authentication',
+  difficulty: 'Intermediate',
   title: 'Invitation-Gated Registration',
   description:
     'Admin-minted invitations gate sign-up: the RegisterPage only succeeds for an invited email.',

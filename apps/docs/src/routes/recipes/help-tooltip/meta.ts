@@ -1,4 +1,8 @@
-export const recipeMeta = {
+import type { RecipeMeta } from '../recipe-meta';
+
+export const recipeMeta: RecipeMeta = {
+  category: 'Display',
+  difficulty: 'Beginner',
   title: 'Help Tooltip',
   description:
     'Glossary trigger for domain terms — small info icon next to a label, tooltip with the definition. Pattern for domain apps with specialist vocabulary (heating-cost billing, tax, payroll, insurance). Combines Tooltip + Button (ghost, 2xs) + InfoCircleIcon.',

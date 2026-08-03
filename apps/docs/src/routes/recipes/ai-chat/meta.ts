@@ -1,5 +1,9 @@
-export const recipeMeta = {
+import type { RecipeMeta } from '../recipe-meta';
+
+export const recipeMeta: RecipeMeta = {
   pattern: 'ai-chat',
+  category: 'AI',
+  difficulty: 'Advanced',
   title: 'AI Chat',
   description:
     'A full streaming chat surface — Chat shell + ChatMessageList + PromptInput — wired to a SvelteKit SSE endpoint that relays a Claude/LLM stream. Client reads the response as a ReadableStream (POST body, not EventSource), appends tokens in place to the last assistant message, and stops mid-stream via an AbortController.',

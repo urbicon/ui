@@ -1,4 +1,8 @@
-export const recipeMeta = {
+import type { RecipeMeta } from '../recipe-meta';
+
+export const recipeMeta: RecipeMeta = {
+  category: 'Authentication',
+  difficulty: 'Intermediate',
   title: 'Password Reset Flow',
   description:
     'The two-page forgot/reset flow: request a link, then set a new password from the emailed token.',

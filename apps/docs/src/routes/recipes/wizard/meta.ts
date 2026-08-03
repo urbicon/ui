@@ -1,5 +1,9 @@
-export const recipeMeta = {
+import type { RecipeMeta } from '../recipe-meta';
+
+export const recipeMeta: RecipeMeta = {
   pattern: 'form-page',
+  category: 'Forms',
+  difficulty: 'Advanced',
   title: 'Multi-Step Wizard',
   description: 'Step-by-step form wizard with validation, progress tracking, and review step.',
   components: [

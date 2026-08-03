@@ -10,7 +10,7 @@
  *      command palette, the prev/next reading chain and the `/blocks` register)
  *   2. `src/lib/component-links.ts` — `componentLinks`, name → route, the table
  *      `buildRelatedLinks` reads for the `@related` chips
- *   3. `src/routes/recipes/+page.svelte` — the cookbook index
+ *   3. `src/routes/recipes/recipe-meta.ts` — `RECIPE_ORDER`, the cookbook contents
  *
  * Forgetting one is silent in every direction: the page exists and simply never
  * appears in the sidebar, and a `@related` pointing at it is dropped without a
@@ -32,7 +32,7 @@
  *   4. every recipe page is in the cookbook index (drafts excepted — they are
  *      pruned from both by `DRAFT_ROUTES`)
  *   5. every component chip on a recipe/showcase card resolves through
- *      `componentLinks` instead of falling back to `#`
+ *      `componentLinks`, rather than rendering as an unlinked badge
  *
  * An unlisted page and a stale UNLISTED entry (one that matches no page, or
  * only pages that are in the nav anyway) are both errors — the stale check is
@@ -140,7 +140,6 @@ collectPages(ROUTES, '', pages);
 // needed `svelte-kit sync` to run would be a lint nobody runs.
 const linksSrc = readFileSync(join(APP, 'src/lib/component-links.ts'), 'utf8');
 const navSrc = readFileSync(join(APP, 'src/lib/navigation.ts'), 'utf8');
-const cookbookSrc = readFileSync(join(ROUTES, 'recipes/+page.svelte'), 'utf8');
 
 const linksAt = linksSrc.indexOf('export const componentLinks');
 const linksOpen = linksSrc.indexOf('{', linksAt);
@@ -170,8 +169,25 @@ if (!draftBlock) {
 }
 const draftRoutes = new Set([...(draftBlock?.[1] ?? '').matchAll(/'([^']+)'/g)].map((m) => m[1]));
 
+/**
+ * The cookbook's contents, read from `RECIPE_ORDER`.
+ *
+ * The index used to hold a literal card per recipe — title, description and
+ * component list copied out of the recipe's own `meta.ts`. All 22 had drifted
+ * from their source, so the cards are now derived and this list of slugs is all
+ * that is hand-kept. A missing slug means the recipe appears nowhere, which is
+ * what check 4 below is for.
+ */
+const orderSrc = readFileSync(join(ROUTES, 'recipes/recipe-meta.ts'), 'utf8');
+const orderBlock = orderSrc.match(/RECIPE_ORDER\s*=\s*\[([\s\S]*?)\]\s*as const;/);
+if (!orderBlock) {
+  errors.push({
+    where: 'src/routes/recipes/recipe-meta.ts',
+    detail: 'cannot read RECIPE_ORDER — the parser here drifted from the source, fix it here'
+  });
+}
 const cookbookHrefs = new Set(
-  [...cookbookSrc.matchAll(/href:\s*'(\/recipes\/[^']+)'/g)].map((m) => m[1])
+  [...(orderBlock?.[1] ?? '').matchAll(/'([^']+)'/g)].map((m) => `/recipes/${m[1]}`)
 );
 
 // ── 1. catalogue → componentLinks ────────────────────────────────────────────
@@ -292,7 +308,7 @@ for (const route of recipePages) {
       errors.push({
         where: 'src/routes/recipes/+page.svelte',
         detail:
-          `${route} is a DRAFT_ROUTE but the cookbook still lists it — a draft is hidden ` +
+          `${route} is a DRAFT_ROUTE but RECIPE_ORDER still lists it — a draft is hidden ` +
           `everywhere or nowhere.`
       });
     }
@@ -302,27 +318,27 @@ for (const route of recipePages) {
     errors.push({
       where: `src/routes${route}/+page.svelte`,
       detail:
-        `${route} is missing from the cookbook index — add a card for it in ` +
-        `src/routes/recipes/+page.svelte, or mark the page a draft via DRAFT_ROUTES.`
+        `${route} is missing from the cookbook index — add its slug to RECIPE_ORDER in ` +
+        `src/routes/recipes/recipe-meta.ts, or mark the page a draft via DRAFT_ROUTES.`
     });
   }
 }
 for (const href of cookbookHrefs) {
   if (!pages.has(href)) {
     errors.push({
-      where: 'src/routes/recipes/+page.svelte',
-      detail: `the cookbook lists ${href}, which has no \`+page.svelte\`.`
+      where: 'src/routes/recipes/recipe-meta.ts',
+      detail: `RECIPE_ORDER lists ${href}, which has no \`+page.svelte\`.`
     });
   }
 }
 
 // ── 5. component chips → componentLinks ──────────────────────────────────────
 // The `components: [...]` list on a recipe is rendered as linked chips through
-// `componentLinks[name] ?? '#'`. The fallback means an unknown name is a chip
-// that goes nowhere rather than an error — the same silence as a dropped
-// `@related`, one layer further out. Only the hand-written card metadata is
-// read: a `components:` key also appears inside A2UI payload literals on the
-// demo pages, where the names are node ids and mean nothing here.
+// `componentLinks[name]`. A name with no entry renders as an unlinked badge —
+// legible, but silently missing the link the reader expects, which is what this
+// check is for. Only the hand-written metadata is read: a `components:` key
+// also appears inside A2UI payload literals on the demo pages, where the names
+// are node ids and mean nothing here.
 const chipSources = [
   'src/routes/recipes/+page.svelte',
   'src/routes/showcase/+page.svelte',
@@ -339,8 +355,8 @@ for (const file of chipSources) {
         errors.push({
           where: file,
           detail:
-            `the component chip "${m[1]}" has no \`componentLinks\` entry, so it renders as a ` +
-            `dead \`#\` link. Add it to src/lib/component-links.ts (a sub-component aliases onto ` +
+            `the component chip "${m[1]}" has no \`componentLinks\` entry, so it renders as an ` +
+            `unlinked badge. Add it to src/lib/component-links.ts (a sub-component aliases onto ` +
             `the page that documents it, e.g. RadioItem → the RadioGroup page).`
         });
       }

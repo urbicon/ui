@@ -1,5 +1,9 @@
-export const recipeMeta = {
+import type { RecipeMeta } from '../recipe-meta';
+
+export const recipeMeta: RecipeMeta = {
   pattern: 'onboarding-guide',
+  category: 'Display',
+  difficulty: 'Advanced',
   title: 'Onboarding Flow',
   description:
     'First-run onboarding built on the Guide system: a waiting beacon starts an opt-in spotlight tour, a non-modal help panel links back to the UI, a hint flags a new feature, and analytics hooks track the funnel.',

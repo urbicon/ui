@@ -1,4 +1,8 @@
-export const recipeMeta = {
+import type { RecipeMeta } from '../recipe-meta';
+
+export const recipeMeta: RecipeMeta = {
+  category: 'Forms',
+  difficulty: 'Intermediate',
   title: 'Settings Page',
   description:
     'Compact tabbed settings page — profile, notifications, and security as flat, co-equal sections with a single save. The small-scale shape of the settings-page pattern (larger or hierarchical settings use a sidebar).',

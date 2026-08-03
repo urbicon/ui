@@ -1,5 +1,9 @@
-export const recipeMeta = {
+import type { RecipeMeta } from '../recipe-meta';
+
+export const recipeMeta: RecipeMeta = {
   pattern: 'planning-board',
+  category: 'Display',
+  difficulty: 'Intermediate',
   title: 'Meal Planner',
   description:
     'Weekly meal plan built on Planner — meals bucketed by day, sorted by meal type, with an add affordance that lives on every day including empty ones.',

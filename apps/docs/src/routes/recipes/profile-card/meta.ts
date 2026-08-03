@@ -1,4 +1,8 @@
-export const recipeMeta = {
+import type { RecipeMeta } from '../recipe-meta';
+
+export const recipeMeta: RecipeMeta = {
+  category: 'Display',
+  difficulty: 'Beginner',
   title: 'Profile Card',
   description:
     'User profile card with avatar, stats, skills, and action buttons in multiple layouts.',

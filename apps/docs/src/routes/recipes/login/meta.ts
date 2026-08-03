@@ -1,5 +1,9 @@
-export const recipeMeta = {
+import type { RecipeMeta } from '../recipe-meta';
+
+export const recipeMeta: RecipeMeta = {
   pattern: 'form-page',
+  category: 'Authentication',
+  difficulty: 'Beginner',
   title: 'Login Form',
   description:
     'Complete authentication form with validation, password visibility, and demo credentials.',

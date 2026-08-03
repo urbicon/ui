@@ -1,5 +1,9 @@
-export const recipeMeta = {
+import type { RecipeMeta } from '../recipe-meta';
+
+export const recipeMeta: RecipeMeta = {
   pattern: 'dashboard',
+  category: 'Layout',
+  difficulty: 'Intermediate',
   title: 'Dashboard Layout',
   description:
     'App-shell pattern built on SidebarLayout — persistent sidebar on desktop, slide-in overlay on mobile, with stat cards, chart, and activity feed.',

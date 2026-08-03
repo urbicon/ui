@@ -1,4 +1,8 @@
-export const recipeMeta = {
+import type { RecipeMeta } from '../recipe-meta';
+
+export const recipeMeta: RecipeMeta = {
+  category: 'Layout',
+  difficulty: 'Intermediate',
   title: 'Filter Sidebar',
   description:
     'A filterable results page where the filter panel is a persistent left rail on desktop and a slide-in overlay on mobile — the exact lifecycle Sidebar mode="responsive" exists for. No backdrop or focus-trap on the desktop rail (that would be a Drawer); the panel is part of the page shell.',

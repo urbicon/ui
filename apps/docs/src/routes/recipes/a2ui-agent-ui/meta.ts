@@ -1,5 +1,9 @@
-export const recipeMeta = {
+import type { RecipeMeta } from '../recipe-meta';
+
+export const recipeMeta: RecipeMeta = {
   pattern: 'a2ui-agent-ui',
+  category: 'AI',
+  difficulty: 'Advanced',
   title: 'Agent-generated UI (A2UI)',
   description:
     'A chat where the agent answers with live UI instead of prose: A2uiStreamSplitter turns the token stream into a2ui parts, A2UIView renders them against a trusted catalog, and A2uiSurfaceRouter lets a later turn patch a form the agent sent earlier — the multi-step flow (pick a date → load slots → confirm) without rebuilding the surface.',

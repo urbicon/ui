@@ -1,4 +1,8 @@
-export const recipeMeta = {
+import type { RecipeMeta } from '../recipe-meta';
+
+export const recipeMeta: RecipeMeta = {
+  category: 'Display',
+  difficulty: 'Intermediate',
   title: 'Trace Drawer',
   description:
     'Hierarchical "How was this value calculated?" drawer. Clicking an aggregated result opens a drawer from the right with the full calculation pipeline — input values as leaves, formulas as sublabels.',

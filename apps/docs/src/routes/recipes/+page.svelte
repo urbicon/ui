@@ -4,200 +4,22 @@
   import { r } from '$lib/route';
   import { Card, Badge, Button, buttonVariants } from '@urbicon-ui/blocks';
   import RecipePreview from './RecipePreview.svelte';
+  import { RECIPE_ORDER, type RecipeMeta } from './recipe-meta';
 
-  const recipes = [
-    {
-      title: 'Login Form',
-      description: 'Authentication form with validation, password toggle, and loading states.',
-      href: '/recipes/login',
-      components: ['Input', 'Button', 'Checkbox', 'Card', 'Alert'],
-      category: 'Authentication',
-      difficulty: 'Beginner'
-    },
-    {
-      title: 'Passkey Login',
-      description:
-        'Passwordless and password sign-in in one form, backed by the WebAuthn handlers.',
-      href: '/recipes/auth-passkey-login',
-      components: ['LoginPage', 'PasskeyManager'],
-      category: 'Authentication',
-      difficulty: 'Advanced'
-    },
-    {
-      title: 'Invitation-Gated Registration',
-      description: 'Admin-minted invitations gate sign-up via RegisterPage and InvitationManager.',
-      href: '/recipes/auth-invitation-register',
-      components: ['RegisterPage', 'InvitationManager'],
-      category: 'Authentication',
-      difficulty: 'Intermediate'
-    },
-    {
-      title: 'Password Reset Flow',
-      description: 'The two-page forgot/reset flow with timing-safe, enumeration-safe handlers.',
-      href: '/recipes/auth-password-reset',
-      components: ['ForgotPasswordPage', 'ResetPasswordPage'],
-      category: 'Authentication',
-      difficulty: 'Intermediate'
-    },
-    {
-      title: 'Dashboard Layout',
-      description:
-        'App dashboard with collapsible sidebar, stat cards, progress indicators, and activity feed.',
-      href: '/recipes/dashboard',
-      components: ['Card', 'Badge', 'Avatar', 'Button', 'Progress', 'Tooltip'],
-      category: 'Layout',
-      difficulty: 'Intermediate'
-    },
-    {
-      title: 'Filter Sidebar',
-      description:
-        'Filterable results page with a filter panel that is persistent on desktop and a slide-in overlay on mobile — Sidebar mode="responsive" with live client-side filtering.',
-      href: '/recipes/filter-sidebar',
-      components: ['Sidebar', 'Checkbox', 'RadioGroup', 'Slider', 'Card'],
-      category: 'Layout',
-      difficulty: 'Intermediate'
-    },
-    {
-      title: 'Settings Page',
-      description: 'Tabbed settings page with profile editing, notifications, and security panels.',
-      href: '/recipes/settings',
-      components: ['Tab', 'Input', 'Textarea', 'Select', 'Toggle', 'Accordion'],
-      category: 'Forms',
-      difficulty: 'Intermediate'
-    },
-    {
-      title: 'Multi-Step Wizard',
-      description: 'Step-by-step form wizard with validation, progress tracking, and review step.',
-      href: '/recipes/wizard',
-      components: ['Stepper', 'Input', 'Select', 'RadioGroup', 'Progress'],
-      category: 'Forms',
-      difficulty: 'Advanced'
-    },
-    {
-      title: 'Notification Center',
-      description: 'Slide-in notification panel with tabs, filtering, and action buttons.',
-      href: '/recipes/notification-center',
-      components: ['Drawer', 'Tab', 'Badge', 'Avatar', 'Tooltip'],
-      category: 'Layout',
-      difficulty: 'Intermediate'
-    },
-    {
-      title: 'Pricing Cards',
-      description: 'Three-tier pricing with SegmentGroup billing toggle and feature comparison.',
-      href: '/recipes/pricing',
-      components: ['Card', 'SegmentGroup', 'Badge', 'Button', 'Tooltip'],
-      category: 'Marketing',
-      difficulty: 'Beginner'
-    },
-    {
-      title: 'Trace Drawer',
-      description:
-        'Hierarchical drawer with a calculation breakdown — "How was this value calculated?".',
-      href: '/recipes/trace-drawer',
-      components: ['Drawer', 'Card', 'Button', 'Badge'],
-      category: 'Display',
-      difficulty: 'Intermediate'
-    },
-    {
-      title: 'Decision Tree Wizard',
-      description:
-        'Stepper whose steps and recommendation are derived from the answers given so far.',
-      href: '/recipes/decision-tree-wizard',
-      components: ['Stepper', 'Card', 'RadioGroup', 'Button', 'Alert'],
-      category: 'Forms',
-      difficulty: 'Advanced'
-    },
-    {
-      title: 'Range Hint Input',
-      description:
-        'Input with a contextual plausibility range in the helper text — adaptive success/warning/danger.',
-      href: '/recipes/range-hint-input',
-      components: ['Input'],
-      category: 'Forms',
-      difficulty: 'Beginner'
-    },
-    {
-      title: 'Clickable Card',
-      description:
-        'Card as one fully clickable element — href, onclick, clickable. With an anti-pattern comparison (no nested <a>).',
-      href: '/recipes/clickable-card',
-      components: ['Card'],
-      category: 'Display',
-      difficulty: 'Beginner'
-    },
-    {
-      title: 'Stat Tile',
-      description:
-        'KPI tile for dashboards — label, value, trend, icon tile. Scales from a single tile to a 4-up grid.',
-      href: '/recipes/stat-tile',
-      components: ['Card', 'Badge'],
-      category: 'Display',
-      difficulty: 'Beginner'
-    },
-    {
-      title: 'Page Header',
-      description:
-        'Top-of-page heading with eyebrow, title, subtitle, and actions — four patterns for list, detail, tab, and form pages. Pure Tailwind, no component.',
-      href: '/recipes/page-header',
-      components: ['Button', 'Badge', 'Breadcrumb', 'Tab'],
-      category: 'Layout',
-      difficulty: 'Beginner'
-    },
-    {
-      title: 'Help Tooltip',
-      description:
-        'Glossary trigger for domain terms — info icon next to a label, tooltip with the definition. Pattern for domain apps with specialist vocabulary.',
-      href: '/recipes/help-tooltip',
-      components: ['Tooltip', 'Button'],
-      category: 'Display',
-      difficulty: 'Beginner'
-    },
-    {
-      title: 'Onboarding Flow',
-      description:
-        'First-run onboarding on the Guide system — a beacon-launched spotlight tour, a non-modal help panel, a new-feature hint, and onStep/onComplete/onSkip analytics.',
-      href: '/recipes/onboarding-flow',
-      components: ['Guide', 'GuideBeacon', 'GuidePanel', 'GuideMention', 'GuideHint'],
-      category: 'Display',
-      difficulty: 'Advanced'
-    },
-    {
-      title: 'Unsaved Changes Guard',
-      description:
-        'Guards against data loss when leaving a form with unsaved changes — combines ConfirmDialog, beforeNavigate, and beforeunload.',
-      href: '/recipes/unsaved-changes-guard',
-      components: ['ConfirmDialog'],
-      category: 'Forms',
-      difficulty: 'Intermediate'
-    },
-    {
-      title: 'Meal Planner',
-      description:
-        'Weekly meal plan on the Planner grid — meals bucketed by day, sorted by type, with an "Add" affordance on every day, including empty ones.',
-      href: '/recipes/meal-planner',
-      components: ['Planner', 'Button', 'Badge'],
-      category: 'Display',
-      difficulty: 'Intermediate'
-    },
-    {
-      title: 'AI Chat',
-      description:
-        'Streaming chat surface — Chat shell + ChatMessageList + PromptInput wired to a SvelteKit SSE endpoint. Token-append in place, AbortController Stop, regenerate/retry.',
-      href: '/recipes/ai-chat',
-      components: ['Chat', 'ChatMessageList', 'PromptInput'],
-      category: 'AI',
-      difficulty: 'Advanced'
-    },
-    {
-      title: 'Agent-generated UI (A2UI)',
-      description:
-        'The agent answers with live UI, not prose: stream splitter → A2UIView → surface router, so a later turn can patch the form it sent earlier (pick a date → load slots → confirm).',
-      href: '/recipes/a2ui-agent-ui',
-      components: ['A2UIView', 'Chat', 'ChatMessageList', 'PromptInput'],
-      category: 'AI',
-      difficulty: 'Advanced'
-    }
-  ];
+  /**
+   * Built from the recipes' own `meta.ts`, not from a second copy of it.
+   * `import.meta.glob` is eager, so this is a build-time lookup, and
+   * RECIPE_ORDER decides both what appears and in which order.
+   */
+  const metaModules = import.meta.glob<{ recipeMeta: RecipeMeta }>('./*/meta.ts', {
+    eager: true
+  });
+
+  const recipes = RECIPE_ORDER.map((slug) => ({
+    slug,
+    href: `/recipes/${slug}`,
+    ...metaModules[`./${slug}/meta.ts`].recipeMeta
+  }));
 
   const categories = ['All', ...new Set(recipes.map((r) => r.category))];
   let activeCategory = $state('All');

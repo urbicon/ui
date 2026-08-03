@@ -1,4 +1,8 @@
-export const recipeMeta = {
+import type { RecipeMeta } from '../recipe-meta';
+
+export const recipeMeta: RecipeMeta = {
+  category: 'Forms',
+  difficulty: 'Beginner',
   title: 'Range Hint Input',
   description:
     'Input with a contextual plausibility range in the helper text that reacts adaptively to the value (success / warning / danger). Generic pattern for plausibility checks without hard validation — the user may deliberately enter values outside the range.',

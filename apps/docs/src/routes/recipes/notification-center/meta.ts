@@ -1,4 +1,8 @@
-export const recipeMeta = {
+import type { RecipeMeta } from '../recipe-meta';
+
+export const recipeMeta: RecipeMeta = {
+  category: 'Layout',
+  difficulty: 'Intermediate',
   title: 'Notification Center',
   description: 'Slide-in notification panel with tabs, filtering, and action buttons.',
   components: ['Drawer', 'Tab', 'Badge', 'Avatar', 'Button', 'Separator', 'Tooltip'],

@@ -1,4 +1,8 @@
-export const recipeMeta = {
+import type { RecipeMeta } from '../recipe-meta';
+
+export const recipeMeta: RecipeMeta = {
+  category: 'Forms',
+  difficulty: 'Advanced',
   title: 'Decision Tree Wizard',
   description:
     'Stepper wizard where answers in step N change the options or the flow in step N+1. Pattern for auto-deriving complex configurations from simple user decisions.',

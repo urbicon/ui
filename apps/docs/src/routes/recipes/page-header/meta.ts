@@ -1,4 +1,8 @@
-export const recipeMeta = {
+import type { RecipeMeta } from '../recipe-meta';
+
+export const recipeMeta: RecipeMeta = {
+  category: 'Layout',
+  difficulty: 'Beginner',
   title: 'Page Header',
   description:
     'Top-of-page heading pattern with eyebrow, title, subtitle, and action area. Pure Tailwind composition — no library component needed. Four variants for list pages, detail pages with breadcrumb, tabbed pages, and form pages.',
