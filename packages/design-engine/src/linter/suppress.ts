@@ -40,42 +40,30 @@ export function knownRuleIds(): ReadonlySet<string> {
  * of the comment or to the first em-dash (`—`), which starts the human reason
  * (HTML comments cannot contain `--`, so the ASCII form is not an option).
  *
- * Both block forms take a *tempered* body — `(?:(?!<!--)[\s\S])*?`, and the same
- * shape against `/*` for the block-comment flavour — rather than a plain
- * `[\s\S]*?`, so a pragma reaches its own closer but never crosses a further
- * opener of its own kind. Three reasons, each of them something a simpler
- * spelling got wrong:
+ * Each body runs from the opener to the **first** closer, and nothing else may
+ * end it. That is the one rule the host languages give us, and matching it is
+ * what keeps this reader agreeing with the comment mask in `mask.ts`: neither
+ * HTML comments nor JS block comments nest, so a `<!--` or `/*` inside a body is
+ * ordinary text, not a second pragma. A boundary the mask does not recognise
+ * would let an id be read out of a body the mask has already blanked and turned
+ * into a file-wide exemption — a suppression that widens itself, which is the
+ * one direction this module must never move (see the header).
  *
- *  - **A body has to be able to hold a `>`.** The HTML form used to read `[^>]*?`,
- *    so a reason that names a tag (`… all eight are <h3> …`) stopped the pragma
- *    from matching at all and the suppression silently did not apply. `[^>]` was
- *    never a *line* boundary — it crosses `\n` happily, which is why all 47
- *    pragmas in this repo are multi-line and still matched; the one boundary it
- *    imposed was `>`.
- *  - **An unterminated pragma must not eat the next one.** With a plain lazy body
- *    the first pragma runs on to the *second* pragma's closer; the second one's
- *    ids then land behind the first one's em-dash, where the reason is discarded —
- *    a working suppression disappears without a single warning. Tempering ends the
- *    first pragma's scan at the next opener, so the malformed pragma matches
- *    nothing and the well-formed one keeps working.
- *  - **It stays linear.** A plain lazy body re-scans to end-of-input for every
- *    opener it cannot close — the quadratic blow-up `mask.ts` gave up its own
- *    regexes to avoid, on exactly the input class documented there.
- *    Measured on 1600 unclosed openers before a 200 kB tail: 207 ms plain,
- *    12 ms tempered.
+ * The HTML form used to read `[^>]*?`, which added a boundary of its own: a
+ * reason that named a tag (`… all eight are <h3> …`) stopped the pragma from
+ * matching and the suppression silently did not apply. `[^>]` was never a *line*
+ * boundary — it crosses `\n` happily, which is why every multi-line pragma in
+ * this repo kept working; `>` alone was the limit. `[\s\S]*?` removes it.
  *
- * What that costs is a reason containing a literal `<!--` (or `/*`), which is a
- * `nested-comment` parse error in HTML's own tokenizer — cheap next to a reason
- * mentioning a tag, which is the natural thing to write.
- *
- * The HTML closer comes from {@link HTML_COMMENT_END} so the pragma reader and
- * the comment mask cannot disagree about where a comment ends.
+ * The HTML closer comes from {@link HTML_COMMENT_END} so this reader and the mask
+ * cannot disagree about which character sequence ends a comment (`--!>` closes
+ * one too) — the same agreement, at the other end of the region.
  */
 const PRAGMA_RES: readonly RegExp[] = [
   // <!-- urbicon-ignore … -->
-  new RegExp(String.raw`<!--\s*urbicon-ignore\b((?:(?!<!--)[\s\S])*?)` + HTML_COMMENT_END, 'g'),
+  new RegExp(String.raw`<!--\s*urbicon-ignore\b([\s\S]*?)` + HTML_COMMENT_END, 'g'),
   /\/\/\s*urbicon-ignore\b(.*)$/gm, // // urbicon-ignore …
-  /\/\*\s*urbicon-ignore\b((?:(?!\/\*)[\s\S])*?)\*\//g // /* urbicon-ignore … */
+  /\/\*\s*urbicon-ignore\b([\s\S]*?)\*\//g // /* urbicon-ignore … */
 ];
 
 const ID_SHAPE = /^[a-z][a-z0-9-]*$/;
