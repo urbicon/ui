@@ -12,12 +12,21 @@ export const breadcrumbVariants = tv({
       'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/50 focus-visible:rounded-sm'
     ],
     currentPage: 'font-medium text-text-primary truncate max-w-48',
-    // Per-item leading icon (`BreadcrumbItem.icon`). Sits *inside* the link /
-    // current-page element as an inline box rather than turning that element
-    // into a flex container: `link`/`currentPage` carry `truncate`, and
-    // `text-overflow` never reaches the anonymous flex item a text child would
-    // become. `align-middle` is the same inline-icon alignment Kbd uses.
-    icon: 'inline-flex items-center justify-center shrink-0 align-middle mr-1.5',
+    // Wrapper for a per-item leading icon (`BreadcrumbItem.icon`) — layout and
+    // spacing only, no box size. The glyph carries its own absolute size (see
+    // `glyphSize` in Breadcrumb.svelte), because an `unstyled` trail empties
+    // this slot down to whatever the consumer passed: a glyph sized off its
+    // wrapper would then resolve against the crumb link instead (measured at
+    // 96×96 for a 16px icon). Same split as Menu's `indicator` slot, which is
+    // likewise layout-only against a hardcoded `h-4 w-4` on the icon.
+    //
+    // It sits *inside* link/currentPage as an inline box rather than turning
+    // either into a flex container: both carry `truncate`, and `text-overflow`
+    // never reaches the anonymous flex item a bare text child would become —
+    // breadcrumb.variants.test.ts pins that. No `shrink-0`: the parent here is
+    // always a block (`<a>` / the current-page `<span>`), never a flex
+    // container, so `flex-shrink` has nothing to act on.
+    icon: 'inline-flex items-center justify-center align-middle',
     // Collapse affordance: the "…" button shown in place of the folded middle
     // items. Styled as a quiet link; expands the full trail on click.
     ellipsis: [
@@ -30,20 +39,24 @@ export const breadcrumbVariants = tv({
   },
   variants: {
     size: {
+      // The icon's gap to its label scales with the glyph — a fixed margin sits
+      // proportionally wrong at `sm` and `lg`. It lives per size rather than as
+      // a base token an override would strip in every branch (a dead token by
+      // variants-lint's definition).
       sm: {
         list: 'text-xs gap-0.5',
         separator: 'mx-1.5',
-        icon: 'size-3.5'
+        icon: 'mr-1'
       },
       md: {
         list: 'text-sm gap-1',
         separator: 'mx-2',
-        icon: 'size-4'
+        icon: 'mr-1.5'
       },
       lg: {
         list: 'text-base gap-1',
         separator: 'mx-2',
-        icon: 'size-5'
+        icon: 'mr-2'
       }
     },
     // Overflow strategy when the trail runs out of horizontal room.

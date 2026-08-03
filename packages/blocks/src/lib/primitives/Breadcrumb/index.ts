@@ -15,6 +15,8 @@ export interface BreadcrumbItem {
    * lookup drags all 315 icons into the consumer bundle (see
    * docs/ICON-DESIGN.md). Decorative by contract — the icon is wrapped in an
    * `aria-hidden` span, so the crumb still announces as its `label` alone.
+   * Give an icon-led crumb an `aria-label` if its `label` is too terse to
+   * stand on its own.
    */
   icon?: IconComponent;
   /** Navigation URL (omit for current page) */
@@ -25,7 +27,10 @@ export interface BreadcrumbItem {
    * (e.g. demos with non-existent routes — call `event.preventDefault()`).
    */
   onclick?: (event: MouseEvent) => void;
-  /** Accessible label override */
+  /**
+   * Accessible name override for this crumb, replacing `label` for assistive
+   * technology. Applies to linked crumbs and to the current page alike.
+   */
   'aria-label'?: string;
 }
 

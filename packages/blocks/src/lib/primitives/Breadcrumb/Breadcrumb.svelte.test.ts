@@ -124,11 +124,48 @@ describe('Breadcrumb — item icons', () => {
     expect(wrapper?.tagName).toBe('SPAN');
     // Decorative: the glyph must not be read out on top of its own label.
     expect(wrapper?.getAttribute('aria-hidden')).toBe('true');
-    expect(wrapper?.querySelector('svg')).not.toBeNull();
-    // The slot's own sizing reaches the wrapper — md maps to size-4.
-    expect(wrapper?.getAttribute('class')).toContain('size-4');
+    // The glyph sizes itself; the wrapper is layout-only.
+    expect(wrapper?.querySelector('svg')?.getAttribute('class')).toContain('size-4');
+    expect(wrapper?.getAttribute('class')).not.toMatch(/(?:^|\s)size-/);
     // The label is still the only text in the crumb — the icon adds none.
     expect(link.textContent?.trim()).toBe('Alpha');
+  });
+
+  it('sizes the glyph absolutely, and scales it with the trail', () => {
+    const items = trail();
+    items[0] = { ...items[0], icon: HomeIcon };
+
+    for (const [size, expected] of [
+      ['sm', 'size-3.5'],
+      ['md', 'size-4'],
+      ['lg', 'size-5']
+    ] as const) {
+      renderBreadcrumb({ items, size });
+      const glyph = screen.getByRole('link', { name: 'Alpha' }).querySelector('svg');
+      expect(glyph?.getAttribute('class')).toContain(expected);
+      dispose?.();
+      document.body.replaceChildren();
+    }
+  });
+
+  // The regression this file exists for. `unstyled` reduces every slot to
+  // whatever the consumer passed, so a glyph sized off its wrapper (`size-full`)
+  // had nothing to resolve against but the crumb link, and rendered at the
+  // link's full width — 338px for a 16px icon in a plain-CSS repro. The glyph
+  // keeps an absolute size in both modes.
+  it('keeps the glyph absolutely sized in unstyled mode', () => {
+    const items = trail();
+    items[0] = { ...items[0], icon: HomeIcon };
+    renderBreadcrumb({ items, unstyled: true });
+
+    const wrapper = screen.getByRole('link', { name: 'Alpha' }).firstElementChild;
+    // unstyled: the wrapper really is class-less (Svelte drops the attribute
+    // for an empty value), so it offers no box…
+    expect(wrapper?.getAttribute('class') ?? '').toBe('');
+    // …which is exactly why the glyph must not depend on one.
+    const glyphClass = wrapper?.querySelector('svg')?.getAttribute('class');
+    expect(glyphClass).toContain('size-4');
+    expect(glyphClass).not.toContain('size-full');
   });
 
   it('renders the icon on the current page as well', () => {
@@ -161,5 +198,19 @@ describe('Breadcrumb — item icons', () => {
     expect(expandBtn.textContent?.trim()).toBe('…');
     // the head/tail crumbs that survive the collapse still get theirs
     expect(screen.getByRole('link', { name: 'Alpha' }).querySelector('svg')).not.toBeNull();
+  });
+
+  // An icon-led last crumb is the case that made this matter: the icon is
+  // aria-hidden, so a terse `label` leaves the current page with almost nothing
+  // to announce. `aria-label` used to be read in the <a> branch only.
+  it('applies a per-item aria-label to the current page, not only to links', () => {
+    const items: BreadcrumbItem[] = [
+      { label: 'Alpha', href: '/a' },
+      { label: '', icon: HomeIcon, 'aria-label': 'Settings' }
+    ];
+    renderBreadcrumb({ items });
+
+    const current = document.querySelector('[aria-current="page"]');
+    expect(current?.getAttribute('aria-label')).toBe('Settings');
   });
 });
