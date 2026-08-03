@@ -57,7 +57,7 @@ test.describe('Recipe: login', () => {
     const p = preview(page);
 
     await p.getByLabel('Email').fill('demo@example.com');
-    await p.getByLabel('Password').fill('wrong-password');
+    await p.getByLabel('Password', { exact: true }).fill('wrong-password');
     await p.getByRole('button', { name: 'Sign in' }).click();
 
     // 1.5 s fake latency sits inside the default expect timeout.
@@ -70,7 +70,7 @@ test.describe('Recipe: login', () => {
     const p = preview(page);
 
     await p.getByLabel('Email').fill('demo@example.com');
-    await p.getByLabel('Password').fill('password123');
+    await p.getByLabel('Password', { exact: true }).fill('password123');
     const submit = p.getByRole('button', { name: 'Sign in' });
     await submit.click();
 
@@ -85,13 +85,26 @@ test.describe('Recipe: login', () => {
     await gotoRecipe(page, 'login');
     const p = preview(page);
 
-    const password = p.getByLabel('Password');
+    // `exact`, because the toggle beside the field is named "Show password" /
+    // "Hide password" and getByLabel matches substrings — without it this
+    // resolves to two elements. It used to resolve to one only because the
+    // toggle had no name at all, which was the defect, not the contract.
+    const password = p.getByLabel('Password', { exact: true });
     await password.fill('secret123');
     await expect(password).toHaveAttribute('type', 'password');
 
-    // The eye toggle is the only plain (icon-only, nameless) button next to the field.
-    await p.locator('div.relative > button[type="button"]').click();
-    await expect(p.getByLabel('Password')).toHaveAttribute('type', 'text');
+    // Selected by its accessible name rather than by DOM shape: the old
+    // `div.relative > button[type="button"]` broke on any wrapper change and
+    // said nothing about what the button is.
+    const toggle = p.getByRole('button', { name: 'Show password' });
+    await toggle.click();
+    await expect(password).toHaveAttribute('type', 'text');
+    // The name and the pressed state carry the toggle's state for anyone who
+    // cannot see the icon — assert them, or the icon is the only indicator again.
+    await expect(p.getByRole('button', { name: 'Hide password' })).toHaveAttribute(
+      'aria-pressed',
+      'true'
+    );
   });
 });
 
