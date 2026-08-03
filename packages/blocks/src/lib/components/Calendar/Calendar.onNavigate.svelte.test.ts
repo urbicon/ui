@@ -187,6 +187,11 @@ describe('Calendar onNavigate — the mini calendar', () => {
     expect(calls[0].date.getMonth()).toBe(6); // July
   });
 
+  // COVERAGE, NOT REGRESSION: the only case in this file that also passed
+  // before the fix. Week/day view routes the mini calendar through
+  // `ctx.goToDate` → controller → `handleNavigate`, which already emitted; the
+  // agenda case above is the one that exercises the broken `goToMonth` arm.
+  // Kept so the arm stays covered if it is ever rewired.
   it('fires when a neighbouring-month day is clicked in week view', () => {
     const { onNavigate } = renderCalendar({
       view: 'week',

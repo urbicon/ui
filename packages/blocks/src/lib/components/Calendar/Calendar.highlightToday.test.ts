@@ -50,11 +50,13 @@ const events: CalendarEvent[] = [
 /**
  * The opening tag of the first element carrying `attr`, e.g. `data-date="…"`.
  *
- * Throws when nothing matches instead of returning `''`. Every negative
- * assertion in this file is a `not.toContain` against this result, and an empty
- * string satisfies all of them — so a selector that silently stopped matching
- * would turn the whole "switched off" half of the suite green while testing
- * nothing.
+ * Throws when nothing matches instead of returning `''`, because `''` satisfies
+ * every `not.toContain`. Exactly one case actually depended on that — the
+ * agenda "drops the emphasis" case below, the only tag-scoped negative with no
+ * positive `toContain` beside it to fail first. The month, week and mini cases
+ * each assert something present in the same tag, and the year/height negatives
+ * run against the whole `body`, which is never empty. Throwing is defence in
+ * depth for the other five, and the actual guard for the agenda one.
  */
 function tagWith(body: string, attr: string): string {
   const match = body.match(new RegExp(`<[a-zA-Z]+[^>]*${attr}[^>]*>`));
