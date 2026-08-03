@@ -101,7 +101,8 @@ Size constraints (`sm:max-w-sm`, `sm:max-w-md`, etc.) apply from `sm:` upward.
 | Pattern | Use for | Implementation |
 |---------|---------|----------------|
 | **Horizontal scroll** | Tab lists, Toolbar | `overflow-x-auto` with hidden scrollbar |
-| **Wrap** | Button groups, filter chips, Calendar header | `flex-wrap gap-2` |
+| **Wrap** | Button groups, filter chips, Calendar header (from `sm` up) | `flex-wrap gap-2` |
+| **Re-place** | Control rows whose groups must line up rather than break wherever the width runs out — Calendar header below `sm` | `max-sm:grid max-sm:grid-cols-[auto_1fr_auto]` + an explicit `col-start`/`row-start` per control |
 | **Stack** | Side-by-side → vertical | `flex-col sm:flex-row` |
 | **Truncate** | Long text in constrained space | `truncate max-w-48` + Tooltip |
 

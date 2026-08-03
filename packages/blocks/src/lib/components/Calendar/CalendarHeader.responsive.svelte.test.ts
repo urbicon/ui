@@ -81,6 +81,67 @@ describe('CalendarHeader overflow contract', () => {
   });
 });
 
+describe('CalendarHeader narrow grid', () => {
+  // Wrapping alone breaks the line wherever the width runs out, which put the
+  // two chevrons on different lines (`‹` with the title, `›` with the today
+  // button) and, at 320 px, gave every control a line of its own. Below `sm`
+  // the header is a three-column grid instead: `‹ · title · ›` on the first
+  // line, switcher + today on the second. jsdom does no layout, so the assert
+  // is on the placement contract — the grid, and which cell each control
+  // claims.
+  it('places the controls in explicit cells below sm', () => {
+    const target = mountCalendar();
+    const el = header(target);
+    expect(el.className).toContain('max-sm:grid');
+    expect(el.className).toContain('max-sm:grid-cols-[auto_1fr_auto]');
+
+    const cell = (node: Element) =>
+      [...node.classList].filter((c) => /^max-sm:(col|row)-/.test(c)).sort();
+    const [nav, title, switcher] = [...el.children];
+    expect(cell(nav)).toEqual(['max-sm:col-start-1', 'max-sm:row-start-1']);
+    expect(cell(title)).toEqual(['max-sm:col-start-2', 'max-sm:row-start-1']);
+    // Second line, from the left edge across the title column — up to the
+    // today button, which auto-places into the one cell left over, (2,3).
+    expect(cell(switcher)).toEqual([
+      'max-sm:col-span-2',
+      'max-sm:col-start-1',
+      'max-sm:row-start-2'
+    ]);
+    const next = target.querySelector('button[aria-label="Next month"]');
+    expect(cell(next!)).toEqual(['max-sm:col-start-3', 'max-sm:row-start-1']);
+  });
+
+  it('dissolves the actions wrapper into the grid', () => {
+    // today and next belong to different lines there, so the box that holds
+    // them as one wrap unit has to stop being a box.
+    const el = header(mountCalendar());
+    const actions = el.children[3];
+    expect(actions.className).toContain('max-sm:contents');
+  });
+
+  it('drops the month-width reservation inside the grid', () => {
+    // The reservation stops the title from moving the header's width. In the
+    // grid the title sits in a `1fr` column, so nothing is left to move — and
+    // holding 148 px open only costs the visible title room: on a 360 px phone
+    // (a 144 px column) it wrapped "March 2026" onto two lines.
+    const target = mountCalendar();
+    const reservation = target.querySelector('.invisible[aria-hidden="true"]');
+    expect(reservation?.className).toContain('max-sm:hidden');
+  });
+
+  it('leaves the wrapping row alone without a view switcher', () => {
+    // DatePicker's header. Four controls wrap on their own, and the grid would
+    // raise the header's min-content — which is what the popover's
+    // shrink-to-fit width measures itself against.
+    const target = mountCalendar({ showViewSwitcher: false });
+    expect(header(target).className).not.toContain('max-sm:grid');
+    expect(header(target).children[2].className).not.toContain('max-sm:contents');
+    expect(target.querySelector('.invisible[aria-hidden="true"]')?.className).not.toContain(
+      'max-sm:hidden'
+    );
+  });
+});
+
 describe('CalendarHeader view labels', () => {
   it('renders both label forms so the narrow one is a pure CSS swap', () => {
     mountCalendar({ locale: 'de-DE', initialLocale: 'de' });
