@@ -58,7 +58,7 @@
     </div>
   </Section>
 
-  <Section id="playground" title="Playground">
+  <Section id="playground" title="Playground" intent="primary">
     <div class="space-y-6">
       <div
         class="bg-surface-base border-border-default rounded-contain flex flex-wrap items-end gap-6 border p-4"

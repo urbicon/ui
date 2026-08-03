@@ -202,6 +202,7 @@ export default {
     codePanel: 'Code Panel',
     docsLayout: 'Docs Layout',
     infoCard: 'Info Card',
+    noteList: 'Note List',
     playgroundConfigurator: 'Playground Configurator',
     section: 'Section',
     tableOfContents: 'Table of Contents',

@@ -7,7 +7,12 @@
 </script>
 
 <!-- All Control Types -->
-<Section id="control-types" title="Control Types" subtitle="Every supported control in action">
+<Section
+  marker="01"
+  id="control-types"
+  title="Control Types"
+  subtitle="Every supported control in action"
+>
   <CodeExample title="All Controls" isolate>
     <PlaygroundConfigurator
       componentName="Demo"
@@ -73,6 +78,7 @@
 
 <!-- Conditional Controls -->
 <Section
+  marker="02"
   id="conditional"
   title="Conditional Controls"
   subtitle="Controls that appear based on other values"
@@ -141,43 +147,9 @@
   </CodeExample>
 </Section>
 
-<!-- Sizes -->
-<Section id="sizes" title="Sizes" subtitle="Compact, default, and spacious layouts">
-  <div class="flex flex-col gap-6">
-    {#each ['sm', 'md', 'lg'] as const as sizeOption (sizeOption)}
-      <CodeExample title="Size: {sizeOption}" isolate>
-        <PlaygroundConfigurator
-          componentName="Button"
-          shareKey="Button-{sizeOption}"
-          showHeader={false}
-          size={sizeOption}
-          controls={[
-            { key: 'label', type: 'text', label: 'Label', defaultValue: 'Click me' },
-            {
-              key: 'intent',
-              type: 'dropdown',
-              label: 'Intent',
-              items: [
-                { label: 'Primary', value: 'primary' },
-                { label: 'Neutral', value: 'neutral' }
-              ],
-              defaultValue: 'primary'
-            }
-          ]}
-          values={{ label: 'Click me', intent: 'primary' }}
-          codeGenerator={buttonCode}
-        >
-          {#snippet children(values)}
-            <Button intent={values.intent}>{values.label}</Button>
-          {/snippet}
-        </PlaygroundConfigurator>
-      </CodeExample>
-    {/each}
-  </div>
-</Section>
-
 <!-- Custom Code Generator -->
 <Section
+  marker="03"
   id="code-gen"
   title="Custom Code Generator"
   subtitle="Pass your own code generator for tailored output"
@@ -250,6 +222,7 @@
 
 <!-- PropDocs + VariantKeys -->
 <Section
+  marker="04"
   id="prop-docs"
   title="PropDocs & VariantKeys"
   subtitle="Info tooltips and variant badges for controls"
@@ -305,10 +278,3 @@
 </Section>
 
 <!-- Use Cases -->
-<Section id="use-cases" title="Use Cases" subtitle="Where PlaygroundConfigurator fits in docs">
-  <div class="grid grid-cols-1 gap-4 md:grid-cols-3">
-    <InfoCard title="Component Docs">Live preview with knobs for every prop</InfoCard>
-    <InfoCard title="Design System">Quick exploration of variants, sizes, and intents</InfoCard>
-    <InfoCard title="Code Generation">Copy-paste ready Svelte code from the panel</InfoCard>
-  </div>
-</Section>

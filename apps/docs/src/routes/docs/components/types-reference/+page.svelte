@@ -2,22 +2,29 @@
   import SeoMeta from '$lib/SeoMeta.svelte';
   import {
     ApiReference,
+    CodeExample,
     DocsLayout as DocsPageLayout,
+    Note,
+    NoteList,
     PlaygroundConfigurator,
     Section,
     TypesReference
   } from '@urbicon-ui/docs';
   import type { LocalTypeDef } from '@urbicon-ui/docs';
-  import CustomDocs from './DocsCustom.svelte';
+  import Docs from './Docs.svelte';
+  import { componentData } from './api';
+  import { buildRelatedLinks } from '$lib/component-links';
   import { asset, resolve } from '$app/paths';
+
+  const relatedLinks = buildRelatedLinks(componentData);
 
   const navigation = [
     { id: 'playground', title: 'Playground' },
     { id: 'examples', title: 'Examples' },
-    { id: 'sizes', title: 'Sizes' },
     { id: 'empty', title: 'Empty State' },
-    { id: 'use-cases', title: 'Use Cases' },
-    { id: 'api', title: 'API Reference' }
+    { id: 'accessibility', title: 'Accessibility' },
+    { id: 'api', title: 'API Reference' },
+    { id: 'installation', title: 'Installation' }
   ];
 
   const playgroundTypes: LocalTypeDef[] = [
@@ -52,84 +59,29 @@
     }
   ];
 
-  const componentProps = [
-    {
-      name: 'types',
-      type: 'LocalTypeDef[]',
-      required: true,
-      description: 'Array of type definitions to display.',
-      source: { type: 'direct' as const, name: 'TypesReferenceProps' }
-    },
-    {
-      name: 'title',
-      type: 'string',
-      required: false,
-      description: 'Section heading text.',
-      defaultValue: "'Types'",
-      source: { type: 'direct' as const, name: 'TypesReferenceProps' }
-    },
-    {
-      name: 'description',
-      type: 'string',
-      required: false,
-      description: 'Descriptive text below the title.',
-      source: { type: 'direct' as const, name: 'TypesReferenceProps' }
-    },
-    {
-      name: 'size',
-      type: "'sm' | 'md' | 'lg'",
-      required: false,
-      description: 'Controls the density – text size, padding, badge size.',
-      defaultValue: "'md'",
-      source: { type: 'variant' as const, name: 'TypesReferenceVariantProps' }
-    },
-    {
-      name: 'class',
-      type: 'string',
-      required: false,
-      description: 'Extra CSS classes merged onto the root section element.',
-      source: { type: 'direct' as const, name: 'TypesReferenceProps' }
-    },
-    {
-      name: 'unstyled',
-      type: 'boolean',
-      required: false,
-      description: 'Strip all default tv() styles from internal slots.',
-      defaultValue: 'false',
-      source: { type: 'direct' as const, name: 'TypesReferenceProps' }
-    },
-    {
-      name: 'slotClasses',
-      type: 'Partial<Record<SlotName, string>>',
-      required: false,
-      description: 'Per-slot class overrides for internal elements.',
-      source: { type: 'direct' as const, name: 'TypesReferenceProps' }
-    },
-    {
-      name: 'emptyState',
-      type: 'Snippet',
-      required: false,
-      description: 'Optional snippet rendered when no types match the filter.',
-      source: { type: 'direct' as const, name: 'TypesReferenceProps' }
-    }
-  ];
+  const description =
+    'Expandable type definitions panel for component documentation, with inline code blocks, literal-value badges and cross-links into the API reference.';
 </script>
 
-<SeoMeta
-  title="TypesReference"
-  description="Expandable type definitions panel for component documentation with inline code blocks, literal badges, and API cross-links."
-/>
+<SeoMeta title="TypesReference Component" {description} />
 
 <DocsPageLayout
   title="TypesReference"
-  description="Expandable type definitions panel for component documentation with inline code blocks, literal badges, and API cross-links."
+  {description}
   maxWidth="lg"
   showToc={true}
   {navigation}
   breadcrumbs={[{ label: 'Doc Components', href: resolve('/docs') }]}
+  stability={componentData?.stability}
+  sourceHref={componentData?.sourceHref}
+  related={relatedLinks}
 >
-  <!-- Hero Playground -->
-  <Section id="playground" title="Playground" subtitle="Configure and preview the types panel">
+  <Section
+    id="playground"
+    title="Playground"
+    intent="primary"
+    subtitle="Configure and preview the types panel"
+  >
     <PlaygroundConfigurator
       componentName="TypesReference"
       showHeader={false}
@@ -170,16 +122,57 @@
     </PlaygroundConfigurator>
   </Section>
 
-  <CustomDocs />
+  <Docs />
 
-  <!-- API Reference -->
+  <Section marker="03" id="accessibility" title="Accessibility">
+    <NoteList>
+      <Note title="A named region with its own heading">
+        <p>
+          The panel renders a <code>&lt;section&gt;</code> labelled by the heading it draws from
+          <code>title</code>, so it is one region in the landmark list rather than an unnamed block
+          at the end of the page.
+        </p>
+      </Note>
+      <Note title="Expanding a definition is a button">
+        <p>
+          Each row's toggle carries <code>aria-expanded</code> and is in the tab order with a visible
+          focus ring. Definitions are collapsed by default, so a keyboard reader passes 20 type names
+          rather than 20 type bodies.
+        </p>
+      </Note>
+      <Note title="Cross-links are in-page anchors">
+        <p>
+          The "used by" links point at rows of the API table on the same page. They are ordinary
+          anchors — they work with the keyboard, appear in a link list, and survive being copied out
+          of the page.
+        </p>
+      </Note>
+      <Note title="Literal values are text, not colour">
+        <p>
+          A union type's members render as badges whose meaning is in their text. Nothing on the
+          panel is distinguished by colour alone.
+        </p>
+      </Note>
+    </NoteList>
+  </Section>
+
   <Section
+    marker="04"
     id="api"
     title="API Reference"
     subtitle="Complete list of component properties and their configurations"
     intent="secondary"
   >
-    <ApiReference props={componentProps} />
+    <ApiReference props={componentData?.props ?? []} />
+  </Section>
+
+  <Section marker="05" id="installation" title="Installation">
+    <CodeExample
+      title="Import"
+      code={`import { TypesReference } from '@urbicon-ui/docs';`}
+      language="svelte"
+      preview={false}
+    />
   </Section>
 
   <div class="mt-6 w-full text-right">

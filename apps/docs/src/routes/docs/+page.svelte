@@ -3,61 +3,46 @@
   import { DocsLayout as DocsPageLayout, Section, CodeExample } from '@urbicon-ui/docs';
   import { Card } from '@urbicon-ui/blocks';
   import { resolveNav, type NavHref } from '$lib/navigation';
+  import docsCatalog from '../../../static/docs/_catalog.json';
 
   type DocComponent = { name: string; href: NavHref; description: string };
 
-  // Hand-curated — descriptions live here, per-component detail on the subpages.
-  const pageAnatomy: DocComponent[] = [
-    {
-      name: 'DocsLayout',
-      href: '/docs/components/docs-layout',
-      description:
-        'The page shell: collapsing hero, breadcrumbs, sticky table of contents with scroll-spy, stability badge, and source/related links.'
-    },
-    {
-      name: 'Section',
-      href: '/docs/components/section',
-      description:
-        'Numbered content sections with editorial markers, intent tinting, and anchor ids — the grid every page is built on.'
-    },
-    {
-      name: 'TableOfContents',
-      href: '/docs/components/table-of-contents',
-      description:
-        'Standalone scroll-spy table of contents — built into DocsLayout, usable on its own.'
-    }
-  ];
+  /**
+   * The index reads the generated catalogue, so a component cannot be shipped,
+   * documented and missing here at the same time. Two of ten were, until
+   * 2026-08: CodePanel and NoteList each had a page, a sidebar entry and a
+   * `componentLinks` entry, and no card on the page that is supposed to list
+   * them — `registry:lint` checks the other three registries, not this one.
+   *
+   * Only the split into the two groups is editorial (the catalogue has no
+   * notion of "shell" versus "block"); everything a reader sees comes from the
+   * component's own `@summary`, which `summary:lint` already gates. A component
+   * not named below lands in Content Blocks rather than nowhere.
+   */
+  const ANATOMY: readonly string[] = ['DocsLayout', 'Section', 'TableOfContents'];
 
-  const contentBlocks: DocComponent[] = [
-    {
-      name: 'CodeExample',
-      href: '/docs/components/code-example',
-      description:
-        'Live preview and highlighted source side by side, with copy button and optional isolated rendering.'
-    },
-    {
-      name: 'PlaygroundConfigurator',
-      href: '/docs/components/playground-configurator',
-      description:
-        'Interactive prop playground: typed controls, conditional visibility, dirty state, and code generation.'
-    },
-    {
-      name: 'ApiReference',
-      href: '/docs/components/api-reference',
-      description:
-        'Prop tables rendered from the generated component metadata, with grouping and usage notes.'
-    },
-    {
-      name: 'TypesReference',
-      href: '/docs/components/types-reference',
-      description: 'TypeScript interfaces and type aliases as a readable reference table.'
-    },
-    {
-      name: 'InfoCard',
-      href: '/docs/components/info-card',
-      description: 'Compact intent-tinted callout cards for notes, warnings, and feature summaries.'
-    }
-  ];
+  const catalog = docsCatalog as ReadonlyArray<{
+    name: string;
+    slug: string;
+    summary?: string;
+    description: string;
+  }>;
+
+  const toCard = (entry: (typeof catalog)[number]): DocComponent => ({
+    name: entry.name,
+    href: `/docs/components/${entry.slug}` as NavHref,
+    description: entry.summary ?? entry.description
+  });
+
+  const byName = (a: DocComponent, b: DocComponent) => a.name.localeCompare(b.name);
+  const pageAnatomy = catalog
+    .filter((e) => ANATOMY.includes(e.name))
+    .map(toCard)
+    .sort(byName);
+  const contentBlocks = catalog
+    .filter((e) => !ANATOMY.includes(e.name))
+    .map(toCard)
+    .sort(byName);
 
   const navigation = [
     { id: 'overview', title: 'Overview' },

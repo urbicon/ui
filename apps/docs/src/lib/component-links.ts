@@ -67,6 +67,10 @@ export const componentLinks: Record<string, string> = {
   LineChart: '/blocks/components/line-chart',
   LocaleSwitcher: '/blocks/components/locale-switcher',
   Menu: '/blocks/primitives/menu',
+  // Note ships with NoteList and has no page of its own — a `@related Note`
+  // chip aliases onto the list's page rather than being dropped.
+  Note: '/docs/components/note-list',
+  NoteList: '/docs/components/note-list',
   NumberInput: '/blocks/components/number-input',
   Pagination: '/blocks/primitives/pagination',
   PinInput: '/blocks/components/pin-input',

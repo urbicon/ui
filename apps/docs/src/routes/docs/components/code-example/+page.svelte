@@ -7,39 +7,48 @@
     Section,
     InfoCard,
     CodeExample as CodeExampleComponent,
+    Note,
+    NoteList,
     TypesReference
   } from '@urbicon-ui/docs';
   import { Button } from '@urbicon-ui/blocks';
-  import CustomDocs from './DocsCustom.svelte';
+  import Docs from './Docs.svelte';
   import { componentData } from './api';
+  import { buildRelatedLinks } from '$lib/component-links';
   import { asset, resolve } from '$app/paths';
+
+  const relatedLinks = buildRelatedLinks(componentData);
 
   const navigation = [
     { id: 'playground', title: 'Playground' },
+    { id: 'examples', title: 'Examples' },
     { id: 'usage', title: 'Usage Notes' },
+    { id: 'accessibility', title: 'Accessibility' },
     { id: 'api', title: 'API Reference' },
     { id: 'types', title: 'Type Definitions' },
-    { id: 'examples', title: 'Examples' },
-    { id: 'use-cases', title: 'Use Cases' }
+    { id: 'installation', title: 'Installation' }
   ];
 
   const typesForTypesReference = componentData.types ?? [];
+
+  const description =
+    'Code example card with live preview, syntax highlighting, copy-to-clipboard, and a collapsible code panel.';
 </script>
 
-<SeoMeta
-  title="CodeExample Component"
-  description="Code example card with live preview, syntax highlighting, copy-to-clipboard, and a collapsible code panel."
-/>
+<SeoMeta title="CodeExample Component" {description} />
 
 <DocsPageLayout
   title="CodeExample"
-  description="Code example card with live preview, syntax highlighting, copy-to-clipboard, and a collapsible code panel."
+  {description}
   maxWidth="lg"
   showToc={true}
   {navigation}
   breadcrumbs={[{ label: 'Doc Components', href: resolve('/docs') }]}
+  stability={componentData?.stability}
+  sourceHref={componentData?.sourceHref}
+  related={relatedLinks}
 >
-  <Section id="playground" title="Playground">
+  <Section id="playground" title="Playground" intent="primary">
     <PlaygroundConfigurator
       componentName="CodeExample"
       controls={[
@@ -77,8 +86,10 @@
     </PlaygroundConfigurator>
   </Section>
 
-  <!-- Usage Notes Section -->
+  <Docs />
+
   <Section
+    marker="02"
     id="usage"
     title="Usage Notes"
     subtitle="Best practices and important considerations"
@@ -105,8 +116,34 @@
     </div>
   </Section>
 
-  <!-- API Reference Section -->
+  <Section marker="03" id="accessibility" title="Accessibility">
+    <NoteList>
+      <Note title="Preview and code are one figure, two regions">
+        <p>
+          The preview stage and the code panel are separate regions, each named from the example's
+          <code>title</code>, so a screen-reader user can tell which of the two they have landed in
+          rather than hearing the same name twice.
+        </p>
+      </Note>
+      <Note title="Nothing is preview-only">
+        <p>
+          Whatever the preview renders is also in the code panel, so a reader who cannot use the
+          visual preview still gets the whole example. This is why <code>isolate</code> exists: it extracts
+          the children as the snippet at build time instead of letting the two drift.
+        </p>
+      </Note>
+      <Note title="The collapse is a button, not a heading">
+        <p>
+          Expanding the code panel is an ordinary button with <code>aria-expanded</code>, in the tab
+          order, with a visible focus ring. The example title above it stays a heading, so the page
+          outline does not change when a panel is folded.
+        </p>
+      </Note>
+    </NoteList>
+  </Section>
+
   <Section
+    marker="04"
     id="api"
     title="API Reference"
     subtitle="Complete list of component properties and their configurations"
@@ -115,10 +152,16 @@
     <ApiReference props={componentData?.props ?? []} types={typesForTypesReference} />
   </Section>
 
-  <!-- Type Definitions -->
   <TypesReference types={typesForTypesReference} />
 
-  <CustomDocs />
+  <Section marker="05" id="installation" title="Installation">
+    <CodeExampleComponent
+      title="Import"
+      code={`import { CodeExample } from '@urbicon-ui/docs';`}
+      language="svelte"
+      preview={false}
+    />
+  </Section>
 
   <div class="mt-6 text-right">
     <a

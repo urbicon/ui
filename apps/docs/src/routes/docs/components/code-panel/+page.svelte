@@ -2,6 +2,7 @@
   import SeoMeta from '$lib/SeoMeta.svelte';
   import {
     ApiReference,
+    CodeExample,
     CodePanel,
     DocsLayout as DocsPageLayout,
     InfoCard,
@@ -10,16 +11,20 @@
     PlaygroundConfigurator,
     Section
   } from '@urbicon-ui/docs';
-  import CustomDocs from './DocsCustom.svelte';
+  import Docs from './Docs.svelte';
   import { componentData } from './api';
+  import { buildRelatedLinks } from '$lib/component-links';
   import { asset, resolve } from '$app/paths';
+
+  const relatedLinks = buildRelatedLinks(componentData);
 
   const navigation = [
     { id: 'playground', title: 'Playground' },
     { id: 'examples', title: 'Examples' },
     { id: 'usage', title: 'Usage Notes' },
     { id: 'accessibility', title: 'Accessibility' },
-    { id: 'api', title: 'API Reference' }
+    { id: 'api', title: 'API Reference' },
+    { id: 'installation', title: 'Installation' }
   ];
 
   const SAMPLE = `<script lang="ts">
@@ -45,8 +50,11 @@
   showToc={true}
   {navigation}
   breadcrumbs={[{ label: 'Doc Components', href: resolve('/docs') }]}
+  stability={componentData?.stability}
+  sourceHref={componentData?.sourceHref}
+  related={relatedLinks}
 >
-  <Section id="playground" title="Playground">
+  <Section id="playground" title="Playground" intent="primary">
     <PlaygroundConfigurator
       componentName="CodePanel"
       controls={[
@@ -94,9 +102,9 @@
     </PlaygroundConfigurator>
   </Section>
 
-  <CustomDocs {SAMPLE} />
+  <Docs {SAMPLE} />
 
-  <Section marker="03" id="usage" title="Usage Notes">
+  <Section marker="02" id="usage" title="Usage Notes">
     <div class="space-y-6">
       <InfoCard intent="info" title="Reach for CodeExample first">
         <p>
@@ -124,7 +132,7 @@
     </div>
   </Section>
 
-  <Section marker="04" id="accessibility" title="Accessibility">
+  <Section marker="03" id="accessibility" title="Accessibility">
     <NoteList>
       <Note title="Built-in ARIA">
         <p>
@@ -151,12 +159,22 @@
   </Section>
 
   <Section
+    marker="04"
     id="api"
     title="API Reference"
     subtitle="Complete list of component properties and their configurations"
     intent="secondary"
   >
     <ApiReference props={componentData?.props ?? []} />
+  </Section>
+
+  <Section marker="05" id="installation" title="Installation">
+    <CodeExample
+      title="Import"
+      code={`import { CodePanel } from '@urbicon-ui/docs';`}
+      language="svelte"
+      preview={false}
+    />
   </Section>
 
   <div class="mt-6 text-right">

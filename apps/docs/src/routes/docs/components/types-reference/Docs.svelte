@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { CodeExample, Section, InfoCard, TypesReference } from '@urbicon-ui/docs';
+  import { CodeExample, Section, TypesReference } from '@urbicon-ui/docs';
   import type { LocalTypeDef } from '@urbicon-ui/docs';
 
   const sampleTypes: LocalTypeDef[] = [
@@ -38,7 +38,12 @@
 </script>
 
 <!-- Basic Usage -->
-<Section id="examples" title="Examples" subtitle="How TypesReference renders type definitions">
+<Section
+  marker="01"
+  id="examples"
+  title="Examples"
+  subtitle="How TypesReference renders type definitions"
+>
   <CodeExample title="Interface & Type Definitions" isolate>
     <TypesReference
       types={sampleTypes}
@@ -48,33 +53,14 @@
   </CodeExample>
 </Section>
 
-<!-- Sizes -->
-<Section id="sizes" title="Sizes" subtitle="Compact, default, and spacious density">
-  <div class="flex flex-col gap-6">
-    {#each ['sm', 'md', 'lg'] as const as sizeOption (sizeOption)}
-      <CodeExample title="Size: {sizeOption}" isolate>
-        <TypesReference
-          types={sampleTypes.slice(0, 2)}
-          title="Types ({sizeOption})"
-          size={sizeOption}
-        />
-      </CodeExample>
-    {/each}
-  </div>
-</Section>
-
 <!-- Empty State -->
-<Section id="empty" title="Empty State" subtitle="What happens when no types are provided">
+<Section
+  marker="02"
+  id="empty"
+  title="Empty State"
+  subtitle="What happens when no types are provided"
+>
   <CodeExample title="No Types" isolate>
     <TypesReference types={[]} title="Types" description="This component has no local types." />
   </CodeExample>
-</Section>
-
-<!-- Use Cases -->
-<Section id="use-cases" title="Use Cases" subtitle="Where TypesReference fits in documentation">
-  <div class="grid grid-cols-1 gap-4 md:grid-cols-3">
-    <InfoCard title="Component Docs">Type definitions alongside API reference</InfoCard>
-    <InfoCard title="Cross-Linking">Click "Used by" to jump to the API section</InfoCard>
-    <InfoCard title="Literal Values">Union types show inline value badges</InfoCard>
-  </div>
 </Section>

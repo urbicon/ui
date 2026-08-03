@@ -2,217 +2,190 @@
   import SeoMeta from '$lib/SeoMeta.svelte';
   import {
     ApiReference,
+    CodeExample,
     DocsLayout as DocsPageLayout,
+    Note,
+    NoteList,
     PlaygroundConfigurator,
     Section
   } from '@urbicon-ui/docs';
-  import CustomDocs from './DocsCustom.svelte';
+  import { Button } from '@urbicon-ui/blocks';
+  import Docs from './Docs.svelte';
+  import { componentData } from './api';
+  import { buildRelatedLinks } from '$lib/component-links';
   import { asset, resolve } from '$app/paths';
+
+  const relatedLinks = buildRelatedLinks(componentData);
 
   const navigation = [
     { id: 'playground', title: 'Playground' },
     { id: 'control-types', title: 'Control Types' },
     { id: 'conditional', title: 'Conditional Controls' },
-    { id: 'sizes', title: 'Sizes' },
     { id: 'code-gen', title: 'Code Generation' },
     { id: 'prop-docs', title: 'PropDocs & Variants' },
-    { id: 'use-cases', title: 'Use Cases' },
-    { id: 'api', title: 'API Reference' }
+    { id: 'accessibility', title: 'Accessibility' },
+    { id: 'api', title: 'API Reference' },
+    { id: 'installation', title: 'Installation' }
   ];
 
-  // Static map — Tailwind only compiles complete class literals, so the
-  // dropdown value must resolve to a full utility, never an interpolated fragment.
-  const colorClasses: Record<string, string> = {
-    primary: 'text-primary',
-    success: 'text-success',
-    danger: 'text-danger',
-    neutral: 'text-neutral'
-  };
-
-  const componentProps = [
-    {
-      name: 'title',
-      type: 'string',
-      required: false,
-      description: 'Heading text above the playground panel.',
-      source: { type: 'direct' as const, name: 'PlaygroundConfiguratorProps' }
-    },
-    {
-      name: 'subtitle',
-      type: 'string',
-      required: false,
-      description: 'Descriptive text below the title.',
-      source: { type: 'direct' as const, name: 'PlaygroundConfiguratorProps' }
-    },
-    {
-      name: 'controls',
-      type: 'ControlDefinition[]',
-      required: true,
-      description: 'Control definitions that drive the props panel (dropdown, toggle, text, etc.).',
-      source: { type: 'direct' as const, name: 'PlaygroundConfiguratorProps' }
-    },
-    {
-      name: 'values',
-      type: 'Record<string, any>',
-      required: true,
-      description: 'Current control values. Supports bind:values for two-way binding.',
-      source: { type: 'direct' as const, name: 'PlaygroundConfiguratorProps' }
-    },
-    {
-      name: 'onValuesChange',
-      type: '(values: Record<string, any>) => void',
-      required: false,
-      description: 'Fires after any control value changes with the full values map.',
-      source: { type: 'direct' as const, name: 'PlaygroundConfiguratorProps' }
-    },
-    {
-      name: 'codeGenerator',
-      type: '(values: Record<string, any>) => string',
-      required: false,
-      description: 'Custom code generator. Falls back to auto-generated Svelte tag syntax.',
-      source: { type: 'direct' as const, name: 'PlaygroundConfiguratorProps' }
-    },
-    {
-      name: 'componentName',
-      type: 'string',
-      required: false,
-      description: 'Component name used in auto-generated code output.',
-      defaultValue: "'Component'",
-      source: { type: 'direct' as const, name: 'PlaygroundConfiguratorProps' }
-    },
-    {
-      name: 'showHeader',
-      type: 'boolean',
-      required: false,
-      description: 'Show the title/subtitle header above the playground.',
-      defaultValue: 'true',
-      source: { type: 'direct' as const, name: 'PlaygroundConfiguratorProps' }
-    },
-    {
-      name: 'propDocs',
-      type: 'Record<string, string>',
-      required: false,
-      description:
-        'Hand-written prop descriptions (from JSDoc). Shown as tooltip behind an info icon.',
-      source: { type: 'direct' as const, name: 'PlaygroundConfiguratorProps' }
-    },
-    {
-      name: 'variantKeys',
-      type: 'string[]',
-      required: false,
-      description: 'Prop names originating from tailwind-variants. Shown with a "V" indicator.',
-      source: { type: 'direct' as const, name: 'PlaygroundConfiguratorProps' }
-    },
-    {
-      name: 'size',
-      type: "'sm' | 'md' | 'lg'",
-      required: false,
-      description:
-        'Controls the density of the playground layout – padding, grid columns, and text size.',
-      defaultValue: "'md'",
-      source: { type: 'variant' as const, name: 'PlaygroundConfiguratorVariantProps' }
-    },
-    {
-      name: 'children',
-      type: 'Snippet<[Record<string, any>]>',
-      required: true,
-      description: 'Render snippet receiving the current values map for the live preview.',
-      source: { type: 'direct' as const, name: 'PlaygroundConfiguratorProps' }
-    },
-    {
-      name: 'class',
-      type: 'string',
-      required: false,
-      description: 'Extra CSS classes merged onto the root element.',
-      source: { type: 'direct' as const, name: 'PlaygroundConfiguratorProps' }
-    },
-    {
-      name: 'unstyled',
-      type: 'boolean',
-      required: false,
-      description: 'Strip all default tv() styles from internal slots.',
-      defaultValue: 'false',
-      source: { type: 'direct' as const, name: 'PlaygroundConfiguratorProps' }
-    },
-    {
-      name: 'slotClasses',
-      type: 'Partial<Record<SlotName, string>>',
-      required: false,
-      description: 'Per-slot class overrides for internal elements.',
-      source: { type: 'direct' as const, name: 'PlaygroundConfiguratorProps' }
-    }
-  ];
+  const description =
+    'Live component playground pairing a preview stage with prop controls and a generated snippet.';
 </script>
 
-<SeoMeta
-  title="PlaygroundConfigurator"
-  description="Interactive playground for component documentation with live preview, controls panel, and code generation."
-/>
+<SeoMeta title="PlaygroundConfigurator Component" {description} />
 
 <DocsPageLayout
   title="PlaygroundConfigurator"
-  description="Interactive playground for component documentation with live preview, controls panel, and code generation."
+  {description}
   maxWidth="lg"
   showToc={true}
   {navigation}
   breadcrumbs={[{ label: 'Doc Components', href: resolve('/docs') }]}
+  stability={componentData?.stability}
+  sourceHref={componentData?.sourceHref}
+  related={relatedLinks}
 >
-  <!-- Hero Playground -->
-  <Section id="playground" title="Playground" subtitle="Configure controls and see the live output">
+  <Section
+    id="playground"
+    title="Playground"
+    intent="primary"
+    subtitle="A playground configuring a playground"
+  >
+    <!-- The knobs are this component's own props, and the stage is a second,
+         smaller playground they steer. Until 2026-08 the knobs drove a styled
+         `<span>` instead (label / bold / color / font size), so the generated
+         snippet on the page documenting the generator read
+         `<PlaygroundConfigurator bold color="success" label="Hello World"
+         size={24} />` — four attributes, none of them a prop of this component,
+         and `size` with a pixel number where the prop takes sm/md/lg. -->
     <PlaygroundConfigurator
       componentName="PlaygroundConfigurator"
       showHeader={false}
       controls={[
-        { type: 'text', key: 'label', label: 'Label', defaultValue: 'Hello World' },
-        { type: 'boolean', key: 'bold', label: 'Bold', defaultValue: false },
         {
           type: 'dropdown',
-          key: 'color',
-          label: 'Color',
-          items: [
-            { label: 'Primary', value: 'primary' },
-            { label: 'Success', value: 'success' },
-            { label: 'Danger', value: 'danger' },
-            { label: 'Neutral', value: 'neutral' }
-          ],
-          defaultValue: 'primary'
+          key: 'size',
+          label: 'Size',
+          items: ['sm', 'md', 'lg'].map((v) => ({ label: v, value: v })),
+          defaultValue: 'md'
+        },
+        { type: 'boolean', key: 'showHeader', label: 'Show header', defaultValue: true },
+        {
+          type: 'text',
+          key: 'title',
+          label: 'Title',
+          defaultValue: 'Button',
+          condition: { dependsOn: 'showHeader', equals: true }
         },
         {
-          type: 'slider',
-          key: 'size',
-          label: 'Font Size',
-          defaultValue: 16,
-          min: 12,
-          max: 32,
-          step: 1
+          type: 'text',
+          key: 'subtitle',
+          label: 'Subtitle',
+          defaultValue: 'Try the intents',
+          condition: { dependsOn: 'showHeader', equals: true }
+        },
+        {
+          type: 'boolean',
+          key: 'defaultCodeExpanded',
+          label: 'Code panel open',
+          defaultValue: true
         }
       ]}
-      values={{ label: 'Hello World', bold: false, color: 'primary', size: 16 }}
+      values={{
+        size: 'md',
+        showHeader: true,
+        title: 'Button',
+        subtitle: 'Try the intents',
+        defaultCodeExpanded: true
+      }}
     >
       {#snippet children(values)}
-        <span
-          class={[
-            colorClasses[values.color] ?? 'text-text-primary',
-            'transition-colors duration-[var(--blocks-duration-fast)]'
-          ]}
-          style="font-size: {values.size}px; font-weight: {values.bold ? 700 : 400}"
-        >
-          {values.label}
-        </span>
+        <div class="w-full">
+          <PlaygroundConfigurator
+            componentName="Button"
+            shareKey="playground-inner"
+            size={values.size}
+            showHeader={values.showHeader}
+            title={values.title}
+            subtitle={values.subtitle}
+            defaultCodeExpanded={values.defaultCodeExpanded}
+            controls={[
+              { key: 'label', type: 'text', label: 'Label', defaultValue: 'Save changes' },
+              {
+                key: 'intent',
+                type: 'dropdown',
+                label: 'Intent',
+                items: [
+                  { label: 'primary', value: 'primary' },
+                  { label: 'neutral', value: 'neutral' },
+                  { label: 'danger', value: 'danger' }
+                ],
+                defaultValue: 'primary'
+              }
+            ]}
+            values={{ label: 'Save changes', intent: 'primary' }}
+          >
+            {#snippet children(inner)}
+              <Button intent={inner.intent}>{inner.label}</Button>
+            {/snippet}
+          </PlaygroundConfigurator>
+        </div>
       {/snippet}
     </PlaygroundConfigurator>
   </Section>
 
-  <CustomDocs />
+  <Docs />
 
-  <!-- API Reference -->
+  <Section marker="05" id="accessibility" title="Accessibility">
+    <NoteList>
+      <Note title="Every control is a labelled form control">
+        <p>
+          The panel renders real inputs — text fields, checkboxes, selects, sliders — each with its
+          own <code>&lt;label&gt;</code>. The label text is the knob's <code>label</code>, so a knob
+          named "Size" announces as "Size", and a knob whose effect is screen-reader-only should say
+          so there rather than reading as dead.
+        </p>
+      </Note>
+      <Note title="The stage updates without stealing focus">
+        <p>
+          Changing a control re-renders the preview and leaves focus on the control. That is what
+          makes the panel usable with a keyboard: a reader can walk the whole control set with Tab
+          without the page pulling them back to the stage after each change.
+        </p>
+      </Note>
+      <Note title="The generated snippet is text, not an image">
+        <p>
+          The code below the stage is real text in a code panel, so it is readable, selectable and
+          copyable. A reader who cannot use the visual preview still gets the exact markup the
+          current knob settings produce.
+        </p>
+      </Note>
+      <Note title="Reset is a button and says what it resets">
+        <p>
+          A knob moved away from its default gets a marker, and the reset control is an ordinary
+          button rather than a click target on the marker itself.
+        </p>
+      </Note>
+    </NoteList>
+  </Section>
+
   <Section
+    marker="06"
     id="api"
     title="API Reference"
     subtitle="Complete list of component properties and their configurations"
     intent="secondary"
   >
-    <ApiReference props={componentProps} />
+    <ApiReference props={componentData?.props ?? []} />
+  </Section>
+
+  <Section marker="07" id="installation" title="Installation">
+    <CodeExample
+      title="Import"
+      code={`import { PlaygroundConfigurator } from '@urbicon-ui/docs';`}
+      language="svelte"
+      preview={false}
+    />
   </Section>
 
   <div class="mt-6 w-full text-right">

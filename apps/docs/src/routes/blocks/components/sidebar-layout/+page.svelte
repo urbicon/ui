@@ -16,8 +16,8 @@
 
   const navigation = [
     { id: 'overview', title: 'Overview' },
-    { id: 'usage', title: 'When to use' },
     { id: 'playground', title: 'Playground' },
+    { id: 'usage', title: 'When to use' },
     { id: 'examples', title: 'Examples' },
     { id: 'customization', title: 'Customization' },
     { id: 'accessibility', title: 'Accessibility' },

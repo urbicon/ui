@@ -414,6 +414,7 @@ const allNavigationItems: NavItem[] = [
       { name: 'Code Panel', nameKey: 'nav.codePanel', href: '/docs/components/code-panel' },
       { name: 'Docs Layout', nameKey: 'nav.docsLayout', href: '/docs/components/docs-layout' },
       { name: 'Info Card', nameKey: 'nav.infoCard', href: '/docs/components/info-card' },
+      { name: 'Note List', nameKey: 'nav.noteList', href: '/docs/components/note-list' },
       {
         name: 'Playground Configurator',
         nameKey: 'nav.playgroundConfigurator',

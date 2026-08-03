@@ -8,7 +8,10 @@
  *   - a nav entry with no matching section renders a TOC link that scrolls
  *     nowhere;
  *   - a section with no nav entry is unreachable from the TOC and invisible to
- *     the scroll-spy, so the reader loses their place while scrolling past it.
+ *     the scroll-spy, so the reader loses their place while scrolling past it;
+ *   - a nav that lists the same sections in a different order shows a table of
+ *     contents that disagrees with the page under it, and the scroll-spy marks
+ *     an entry other than the one the reader is looking at.
  *
  * The 2026-07 docs triage found ten pages in this state by hand and flagged the
  * check as "a candidate for a small lint". This is that lint.
@@ -44,7 +47,7 @@ const EXEMPT: Record<string, string> = {};
 
 interface Finding {
   page: string;
-  kind: 'dead-nav-entry' | 'unlisted-section' | 'duplicate-id' | 'stale-exemption';
+  kind: 'dead-nav-entry' | 'unlisted-section' | 'duplicate-id' | 'wrong-order' | 'stale-exemption';
   detail: string;
 }
 
@@ -112,11 +115,31 @@ function anchorIds(src: string): Set<string> {
   return ids;
 }
 
-/** `id` values of rendered `<Section …>` / `<SectionComponent …>` elements. */
-function sectionIds(src: string): string[] {
+/**
+ * Every local name `Section` is imported under on this page.
+ *
+ * The first version matched by shape — "every alias ends in Section" — and
+ * therefore missed `SectionComponent`, which is exactly what the Section docs
+ * page calls it. That page's sections were invisible to this lint while it
+ * reported the page as clean. Reading the import is not a cleverer guess, it is
+ * the actual answer, and it also stops `MenuSection` (a blocks component that
+ * happens to fit the old shape) from being counted as a page section.
+ */
+function sectionTags(src: string): string[] {
+  const names = new Set(['Section']);
+  for (const imp of src.matchAll(/import\s*\{([^}]*)\}\s*from\s*['"]@urbicon-ui\/docs['"]/g)) {
+    for (const spec of imp[1].split(',')) {
+      const alias = spec.trim().match(/^Section\s+as\s+([A-Za-z_$][\w$]*)$/);
+      if (alias) names.add(alias[1]);
+    }
+  }
+  return [...names];
+}
+
+/** `id` values of rendered `<Section …>` elements, in document order. */
+function sectionIds(src: string, tags: readonly string[]): string[] {
   const clean = blankQuotedMarkup(src);
-  // Component name varies by import alias; every one of them ends in "Section".
-  const tag = /<([A-Z][A-Za-z]*Section|Section)\b([^>]*)>/g;
+  const tag = new RegExp(`<(${tags.join('|')})\\b([^>]*)>`, 'g');
   return [...clean.matchAll(tag)]
     .map((m) => m[2].match(/\bid=["']([^"']+)["']/)?.[1])
     .filter((id): id is string => id !== undefined);
@@ -128,6 +151,27 @@ function navIds(src: string): string[] | null {
   const block = clean.match(/const navigation(?::[^=]+)?\s*=\s*\[([\s\S]*?)\n\s*\];/);
   if (!block) return null;
   return [...block[1].matchAll(/\bid:\s*['"]([^'"]+)['"]/g)].map((m) => m[1]);
+}
+
+/**
+ * The page's markup with every sibling docs component substituted in at its
+ * call site, so the section sequence is the sequence the browser paints. A page
+ * typically renders `<Docs />` between its playground and its API section, so
+ * the order only comes out right if the sibling lands there and not at the end.
+ */
+function splice(dir: string, pageSrc: string): string {
+  let markup = blankQuotedMarkup(pageSrc);
+  for (const sibling of readdirSync(dir)) {
+    if (!sibling.endsWith('.svelte') || sibling === '+page.svelte') continue;
+    const local = markup.match(
+      new RegExp(`import\\s+(\\w+)\\s+from\\s+['"]\\./${sibling.replace('.', '\\.')}['"]`)
+    )?.[1];
+    if (!local) continue;
+    const call = new RegExp(`<${local}\\b[^>]*/>`);
+    if (!call.test(markup)) continue;
+    markup = markup.replace(call, blankQuotedMarkup(readFileSync(join(dir, sibling), 'utf8')));
+  }
+  return markup;
 }
 
 /** Route dirs that hold a `+page.svelte`. */
@@ -160,15 +204,23 @@ for (const dir of pageDirs) {
 
   checked++;
 
-  // Sections live in the route file plus its sibling docs components.
+  // Sections live in the route file plus its sibling docs components. For the
+  // membership questions a concatenation is enough; the order question needs
+  // the sibling spliced in at its call site instead, which is what `ordered`
+  // below does — appending it would report a wrong order for the 100-odd pages
+  // that render `<Docs />` before their API section.
   let markup = pageSrc;
+  const tags = new Set(sectionTags(pageSrc));
   for (const sibling of readdirSync(dir)) {
     if (sibling.endsWith('.svelte') && sibling !== '+page.svelte') {
-      markup += `\n${readFileSync(join(dir, sibling), 'utf8')}`;
+      const siblingSrc = readFileSync(join(dir, sibling), 'utf8');
+      for (const t of sectionTags(siblingSrc)) tags.add(t);
+      markup += `\n${siblingSrc}`;
     }
   }
+  const tagList = [...tags];
   const staged = blankDemoStages(markup);
-  const ids = sectionIds(staged);
+  const ids = sectionIds(staged, tagList);
   // Anchors keep the full markup: a nav entry may legitimately point at an id
   // that lives inside a demo (a page documenting anchors would do exactly that).
   const anchors = anchorIds(markup);
@@ -208,6 +260,21 @@ for (const dir of pageDirs) {
       });
     }
   }
+
+  // Order: compare only the ids both sides carry, so a page with a membership
+  // finding above reports that once instead of also reporting a shuffle.
+  const rendered = sectionIds(blankDemoStages(splice(dir, pageSrc)), tagList);
+  const navShared = nav.filter((id) => new Set(rendered).has(id));
+  const renderShared = rendered.filter((id) => navSet.has(id));
+  if (navShared.join('|') !== renderShared.join('|')) {
+    findings.push({
+      page: rel,
+      kind: 'wrong-order',
+      detail:
+        `the TOC lists ${navShared.join(' → ')} but the page renders ` +
+        `${renderShared.join(' → ')} — the nav array IS the rendered order, nothing sorts it`
+    });
+  }
 }
 
 for (const rel of Object.keys(EXEMPT)) {
@@ -236,7 +303,8 @@ console.log(
 
 if (findings.length === 0) {
   console.log(
-    '\x1b[32m✓ every nav entry resolves to a section and every section is listed.\x1b[0m'
+    '\x1b[32m✓ every nav entry resolves to a section, every section is listed, ' +
+      'and both are in the same order.\x1b[0m'
   );
   process.exit(0);
 }

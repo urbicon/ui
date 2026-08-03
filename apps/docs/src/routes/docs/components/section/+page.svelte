@@ -2,39 +2,52 @@
   import SeoMeta from '$lib/SeoMeta.svelte';
   import {
     ApiReference,
+    CodeExample,
     DocsLayout as DocsPageLayout,
+    Note,
+    NoteList,
     PlaygroundConfigurator,
     Section as SectionComponent,
     TypesReference,
     InfoCard
   } from '@urbicon-ui/docs';
-  import CustomDocs from './DocsCustom.svelte';
+  import Docs from './Docs.svelte';
   import { componentData, type ComponentAPIInfo } from './api';
+  import { buildRelatedLinks } from '$lib/component-links';
   import { asset, resolve } from '$app/paths';
+
+  const relatedLinks = buildRelatedLinks(componentData);
 
   const navigation = [
     { id: 'playground', title: 'Playground' },
-    { id: 'api', title: 'API Reference' },
     { id: 'examples', title: 'Examples' },
-    { id: 'use-cases', title: 'Use Cases' },
-    { id: 'types', title: 'Type Definitions' }
+    { id: 'accessibility', title: 'Accessibility' },
+    { id: 'api', title: 'API Reference' },
+    { id: 'types', title: 'Type Definitions' },
+    { id: 'installation', title: 'Installation' }
   ];
 
   const typesForTypesReference =
     (componentData as ComponentAPIInfo & { types?: unknown[] }).types ?? [];
+
+  const description =
+    'Anchored content section with an editorial marker, title, subtitle and badges — the grid every documentation page is built on.';
 </script>
 
-<SeoMeta title="Section Component" description="Documentation for the Section component" />
+<SeoMeta title="Section Component" {description} />
 
 <DocsPageLayout
   title="Section"
-  description="Documentation for the Section component"
+  {description}
   maxWidth="lg"
   showToc={true}
   {navigation}
   breadcrumbs={[{ label: 'Doc Components', href: resolve('/docs') }]}
+  stability={componentData?.stability}
+  sourceHref={componentData?.sourceHref}
+  related={relatedLinks}
 >
-  <SectionComponent id="playground" title="Playground">
+  <SectionComponent id="playground" title="Playground" intent="primary">
     <PlaygroundConfigurator
       componentName="Section"
       controls={[
@@ -106,9 +119,46 @@
     </PlaygroundConfigurator>
   </SectionComponent>
 
-  <CustomDocs />
+  <Docs />
+
+  <SectionComponent marker="03" id="accessibility" title="Accessibility">
+    <NoteList>
+      <Note title="Only a titled section is a region">
+        <p>
+          The element is always <code>&lt;section&gt;</code>, but a browser exposes it as a region
+          landmark only once it has an accessible name — so the component points
+          <code>aria-labelledby</code> at the heading it rendered, and omits the attribute entirely when
+          there is no heading to point at. A section carrying only a subtitle or badges is a container,
+          not a landmark, which is the honest answer: an unnamed region is a stop that announces nothing.
+        </p>
+      </Note>
+      <Note title="Choose the level, not the size">
+        <p>
+          <code>headingLevel</code> sets the tag; <code>intent</code> sets the look. They are
+          separate on purpose: a subsection that needs <code>h3</code> semantics can still carry the
+          <code>primary</code> type scale, and nothing forces an author to break the outline to get the
+          size they want. Out-of-range levels are clamped to 1–6.
+        </p>
+      </Note>
+      <Note title="titleHidden keeps the heading, hides the header">
+        <p>
+          A playground stage does not need a visible "Playground" heading, but its table-of-contents
+          entry still has to lead somewhere. <code>titleHidden</code> moves the whole header into the
+          screen-reader layer, so the heading stays in the outline and the section keeps its name. Do
+          not use it to quiet a section that simply has no title yet.
+        </p>
+      </Note>
+      <Note title="The marker is editorial">
+        <p>
+          It renders as decorative text and is not part of the heading, so a screen reader announces
+          "Examples", not "01 Examples". Nothing reads it back — the numbering is for the eye.
+        </p>
+      </Note>
+    </NoteList>
+  </SectionComponent>
 
   <SectionComponent
+    marker="04"
     id="api"
     title="API Reference"
     subtitle="Complete list of component properties and their configurations"
@@ -118,6 +168,15 @@
   </SectionComponent>
 
   <TypesReference types={typesForTypesReference} />
+
+  <SectionComponent marker="05" id="installation" title="Installation">
+    <CodeExample
+      title="Import"
+      code={`import { Section } from '@urbicon-ui/docs';`}
+      language="svelte"
+      preview={false}
+    />
+  </SectionComponent>
 
   <div class="mt-6 w-full text-right">
     <a

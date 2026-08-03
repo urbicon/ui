@@ -1,9 +1,9 @@
 <script lang="ts">
-  import { CodeExample, Section, InfoCard } from '@urbicon-ui/docs';
+  import { CodeExample, Section } from '@urbicon-ui/docs';
   import { Badge, Button } from '@urbicon-ui/blocks';
 </script>
 
-<Section id="examples" title="Examples" subtitle="The core props in action">
+<Section marker="01" id="examples" title="Examples" subtitle="The core props in action">
   <div class="flex flex-col gap-6">
     <CodeExample
       title="Preview + code"
@@ -37,13 +37,5 @@ const styles = codeExampleVariants({ size: 'sm' });`}
     >
       <Badge intent="success">Active</Badge>
     </CodeExample>
-  </div>
-</Section>
-
-<Section id="use-cases" title="Use Cases" subtitle="When to use CodeExample">
-  <div class="grid grid-cols-1 gap-4 md:grid-cols-3">
-    <InfoCard title="Component Docs">Live preview and copyable snippet in one card</InfoCard>
-    <InfoCard title="Tutorials">Step-by-step guides with runnable results</InfoCard>
-    <InfoCard title="API Notes">Code-only snippets for types and config files</InfoCard>
   </div>
 </Section>
