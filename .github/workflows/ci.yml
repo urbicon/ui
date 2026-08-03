@@ -329,3 +329,46 @@ jobs:
           path: mcp-dist/
           retention-days: 3
           if-no-files-found: error
+
+  # THE ONE REQUIRED CHECK. Branch protection names this job and nothing else,
+  # so the shard count can go from four to six and a gate can be added, renamed
+  # or dropped without anyone touching the ruleset. That matters more than it
+  # sounds: a required check that no job reports any more stays "expected"
+  # forever and blocks every pull request, with no failure anywhere to explain
+  # why. Naming nine jobs individually is nine chances to hit that.
+  #
+  # `if: always()` is what makes this a gate rather than a decoration. Without
+  # it the job is skipped as soon as a dependency fails — and a skipped required
+  # check does not read as "failed" to branch protection, so a red suite would
+  # merge. With it the job runs regardless and the step below decides.
+  #
+  # `e2e-report` is deliberately NOT a dependency: it only stitches the shard
+  # artefacts into one HTML report and carries `if: !cancelled()`, so it goes
+  # green over a red suite. `e2e` here is the matrix itself, whose aggregate
+  # result is `failure` if any shard failed (`fail-fast: false` lets them all
+  # finish first).
+  ci-green:
+    name: CI green
+    needs: [lint, typecheck, gates, test, e2e, build]
+    if: always()
+    runs-on: ubuntu-latest
+    # Reports nothing, reads nothing, checks nothing out.
+    permissions: {}
+    steps:
+      - name: Every gate must have succeeded
+        # Both values go through `env:` rather than into the script text. Nothing
+        # here is attacker-controlled today, but a `run:` that interpolates an
+        # expression directly is the shape workflow injections take, and the
+        # habit is worth keeping even where the input is a job result.
+        env:
+          NEEDS: ${{ toJSON(needs) }}
+          # `skipped` counts as red too: no job in this workflow is conditional,
+          # so a skip means something upstream did not run as intended.
+          ANY_NOT_GREEN: ${{ contains(needs.*.result, 'failure') || contains(needs.*.result, 'cancelled') || contains(needs.*.result, 'skipped') }}
+        run: |
+          echo "$NEEDS"
+          if [ "$ANY_NOT_GREEN" = "true" ]; then
+            echo "::error::At least one CI gate did not succeed — see the jobs above."
+            exit 1
+          fi
+          echo "All gates green."
