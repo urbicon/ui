@@ -83,7 +83,7 @@ export const A2UI_ISSUE_CODES = {
   DUPLICATE_SURFACE: 'DUPLICATE_SURFACE',
   /** `component` is a string but not in any catalog. */
   UNKNOWN_COMPONENT: 'UNKNOWN_COMPONENT',
-  /** A real catalog component outside the rendered subset (Modal, Tabs, …). */
+  /** A real catalog component outside the rendered subset (Modal, Video, …). */
   UNSUPPORTED_COMPONENT: 'UNSUPPORTED_COMPONENT',
   /** A prop not declared for the component (whitelist violation). */
   UNKNOWN_PROP: 'UNKNOWN_PROP',

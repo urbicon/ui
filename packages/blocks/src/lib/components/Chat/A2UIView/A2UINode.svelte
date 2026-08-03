@@ -49,6 +49,10 @@
     renderChild: Snippet<[A2uiRenderNode, A2uiRenderContext]>;
   } = $props();
 
+  // Per-INSTANCE id namespace for the DOM ids this dispatcher mints (Tabs).
+  // Must stay a top-level initializer (`props_id_invalid_placement` otherwise).
+  const propsId = $props.id();
+
   const DangerIcon = resolveIcon('danger', DangerCircleIconDefault);
 
   // Local fallback state for inputs whose `value` is a literal (no data-model
@@ -394,12 +398,21 @@
   // Pair each `tabs` item's title with its resolved panel by consuming child
   // nodes by id (in order), NOT by raw index: a cyclic item.child is dropped
   // from node.children entirely (no placeholder, unlike a dangling ref), which
-  // would shift every later panel up by one under a positional zip. Each item
-  // gets a stable synthetic value, so the keyed {#each} and the `tab-${value}` /
-  // `tabpanel-${value}` DOM ids stay unique even when two items name the same
-  // child. The value is prefixed with `node.key` (unique per rendered POSITION,
-  // unlike `node.id`) so a Tabs repeated by a `{ componentId, path }` template
-  // does not emit the same tab id once per data row.
+  // would shift every later panel up by one under a positional zip.
+  //
+  // The item `value` becomes the `tab-${value}` / `tabpanel-${value}` DOM ids,
+  // so its namespace is `$props.id()` — unique per COMPONENT INSTANCE and
+  // character-safe. Neither payload-derived source works: `node.id` repeats
+  // under a `{ componentId, path }` template, `node.key` is built without the
+  // parent key (`a2ui-render.ts`) so it only distinguishes SIBLINGS — two
+  // parents referencing one Tabs id (a diamond, which the graph check passes
+  // deliberately) collide — and both can carry whitespace, which would turn
+  // `aria-controls` into an IDREF list and sever the tab↔panel relation.
+  //
+  // The index is the item's only identity: A2UI gives a tab no stable id, and
+  // both `title` and `child` may repeat. So an update that PREPENDS a tab keeps
+  // the selection on the index, not on the tab that was open.
+  const tabsLabelKey = A2UI_REGISTRY.Tabs.props.tabs.labelKey ?? 'label';
   const tabItems = $derived.by(() => {
     const items = raw('tabs');
     if (!Array.isArray(items))
@@ -420,8 +433,8 @@
         }
       }
       return {
-        value: `${node.key}-tab-${i}`,
-        title: entry ? text(context.resolve(entry.title, node.scopePrefix).value) : '',
+        value: `${propsId}-tab-${i}`,
+        title: entry ? text(context.resolve(entry[tabsLabelKey], node.scopePrefix).value) : '',
         child: matched
       };
     });
@@ -511,27 +524,34 @@
     {/if}
   </Card>
 {:else if component === 'Tabs'}
-  <Tab
-    value={activeTab}
-    onValueChange={(next) => (selectedTab = next)}
-    style={weightStyle}
-    aria-label={ariaLabel}
-  >
-    {#snippet tabs()}
-      {#each tabItems as item (item.value)}
-        <TabItem value={item.value}>{item.title}</TabItem>
-      {/each}
-    {/snippet}
-    {#snippet panels()}
-      {#each tabItems as item (item.value)}
-        <TabPanel value={item.value}>
-          {#if item.child}
-            {@render renderChild(item.child, blockCtx)}
-          {/if}
-        </TabPanel>
-      {/each}
-    {/snippet}
-  </Tab>
+  <!-- An empty strip would render role="tablist" with no role="tab" child
+       (axe aria-required-children); the empty list is reported as TABS_EMPTY.
+       A labelled Tab root needs role="group" — its <div> is role=generic,
+       which forbids aria-label (axe aria-prohibited-attr), same as Column/Row. -->
+  {#if tabItems.length > 0}
+    <Tab
+      value={activeTab}
+      onValueChange={(next) => (selectedTab = next)}
+      style={weightStyle}
+      role={ariaLabel ? 'group' : undefined}
+      aria-label={ariaLabel}
+    >
+      {#snippet tabs()}
+        {#each tabItems as item (item.value)}
+          <TabItem value={item.value}>{item.title}</TabItem>
+        {/each}
+      {/snippet}
+      {#snippet panels()}
+        {#each tabItems as item (item.value)}
+          <TabPanel value={item.value}>
+            {#if item.child}
+              {@render renderChild(item.child, blockCtx)}
+            {/if}
+          </TabPanel>
+        {/each}
+      {/snippet}
+    </Tab>
+  {/if}
 {:else if component === 'Divider'}
   <Separator
     orientation={enumOr('axis', 'horizontal') === 'vertical' ? 'vertical' : 'horizontal'}

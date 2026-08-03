@@ -927,7 +927,99 @@ describe('A2UIView — Tabs', () => {
     expect(new Set(ids).size).toBe(2);
   });
 
-  it('warns (not errors) on an empty tabs array', () => {
+  // Two parents referencing ONE Tabs id is a diamond, not a cycle — the graph
+  // check passes it with zero issues and the node is built twice. Render-node
+  // keys are only unique among SIBLINGS (`a2ui-render.ts` builds them without
+  // the parent key), so identity for DOM ids must come from the component
+  // instance, never from the payload or the render key.
+  it('emits unique ids when two parents share one Tabs child (diamond)', () => {
+    const issues: A2uiValidationIssue[] = [];
+    render({
+      onValidationError: (next) => issues.push(...next),
+      payload: [
+        surface(),
+        comps([
+          { id: 'root', component: 'Row', children: ['c1', 'c2'] },
+          { id: 'c1', component: 'Column', children: ['tb'] },
+          { id: 'c2', component: 'Column', children: ['tb'] },
+          {
+            id: 'tb',
+            component: 'Tabs',
+            tabs: [
+              { title: 'A', child: 'b1' },
+              { title: 'B', child: 'b2' }
+            ]
+          },
+          { id: 'b1', component: 'Text', text: 'BODY-A' },
+          { id: 'b2', component: 'Text', text: 'BODY-B' }
+        ])
+      ]
+    });
+    expect(issues.filter((i) => i.severity === 'error')).toEqual([]);
+
+    const tabs = screen.getAllByRole('tab');
+    expect(tabs).toHaveLength(4);
+    expect(new Set(tabs.map((t) => t.id)).size).toBe(4);
+
+    const panelIds = Array.from(document.querySelectorAll('[role="tabpanel"]')).map((p) => p.id);
+    expect(panelIds).toHaveLength(4);
+    expect(new Set(panelIds).size).toBe(4);
+
+    // Each tab must point at exactly ONE existing panel — with colliding ids the
+    // second strip's aria-controls resolves to the first strip's panel.
+    for (const tab of tabs) {
+      const controls = tab.getAttribute('aria-controls') ?? '';
+      expect(panelIds.filter((id) => id === controls)).toHaveLength(1);
+    }
+  });
+
+  // Component ids are validated as "non-empty string, not a proto key" only, so
+  // a payload id may carry whitespace. Whitespace in an `aria-controls` value
+  // makes it an IDREF *list*, silently severing the tab↔panel relation for AT.
+  it('emits whitespace-free ids when a payload id contains spaces', () => {
+    const issues: A2uiValidationIssue[] = [];
+    render({
+      onValidationError: (next) => issues.push(...next),
+      payload: [
+        surface(),
+        comps([
+          { id: 'root', component: 'Column', children: ['my tab'] },
+          { id: 'my tab', component: 'Tabs', tabs: [{ title: 'A', child: 'b1' }] },
+          { id: 'b1', component: 'Text', text: 'BODY' }
+        ])
+      ]
+    });
+    expect(issues.filter((i) => i.severity === 'error')).toEqual([]);
+
+    const tab = screen.getByRole('tab');
+    expect(tab.id).not.toMatch(/\s/);
+    const controls = tab.getAttribute('aria-controls') ?? '';
+    expect(controls).not.toMatch(/\s/);
+    expect(document.getElementById(controls)).not.toBeNull();
+  });
+
+  // A plain <div> is role=generic, which forbids aria-label (axe
+  // aria-prohibited-attr) — same rule the Column/Row/Card branches follow.
+  it('gives a labelled Tabs role=group so aria-label is valid', () => {
+    render({
+      payload: [
+        surface(),
+        comps([
+          {
+            id: 'root',
+            component: 'Tabs',
+            accessibility: { label: 'Booking steps' },
+            tabs: [{ title: 'A', child: 'b1' }]
+          },
+          { id: 'b1', component: 'Text', text: 'BODY' }
+        ])
+      ]
+    });
+    expect(screen.getByRole('group', { name: 'Booking steps' })).toBeTruthy();
+    expect(document.querySelector('div[aria-label="Booking steps"]:not([role])')).toBeNull();
+  });
+
+  it('warns (not errors) on an empty tabs array and renders no tablist', () => {
     const issues: A2uiValidationIssue[] = [];
     render({
       onValidationError: (next) => issues.push(...next),
@@ -936,6 +1028,8 @@ describe('A2UIView — Tabs', () => {
     expect(issues.filter((i) => i.severity === 'error')).toEqual([]);
     expect(issues.some((i) => i.code === A2UI_ISSUE_CODES.TABS_EMPTY)).toBe(true);
     expect(screen.queryAllByRole('tab')).toHaveLength(0);
+    // An empty `role="tablist"` violates aria-required-children — render nothing.
+    expect(document.querySelector('[role="tablist"]')).toBeNull();
   });
 
   it('rejects the whole prop when an item uses `label` instead of the spec `title`', () => {
