@@ -29,7 +29,14 @@ export interface BreadcrumbItem {
   onclick?: (event: MouseEvent) => void;
   /**
    * Accessible name override for this crumb, replacing `label` for assistive
-   * technology. Applies to linked crumbs and to the current page alike.
+   * technology.
+   *
+   * On a linked crumb this is an `aria-label` on the `<a>`, which every
+   * implementation honours. On the current page it rides on a generic element,
+   * and implementations disagree there: Chrome computes the name, while a
+   * strict ARIA 1.2 reading ignores an author name on `generic` and falls back
+   * to the content. So give an icon-led last crumb a real `label` rather than
+   * relying on the override alone.
    */
   'aria-label'?: string;
 }
