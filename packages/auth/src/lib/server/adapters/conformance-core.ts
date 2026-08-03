@@ -35,6 +35,22 @@ import type { Repositories } from './types.js';
  * `capabilities` gates the optional-repository checks: a check whose required
  * repos you do not declare is reported as skipped rather than failing.
  *
+ * ## Before the first run: your id columns
+ *
+ * Ids are opaque strings to this package, and the checks hold you to that. Most
+ * of them feed your adapter ids it handed back itself, but seven pass a
+ * deliberately malformed one (`UNREPRESENTABLE_ID`) and require a miss — `null`,
+ * `false`, no-op. A native `uuid` or integer id column does not miss on that
+ * value, it raises SQLSTATE 22P02 while parsing the literal, on reads as much as
+ * on writes. So a typed id column fails those checks, and the failure names the
+ * error rather than the cause.
+ *
+ * Either keep the id columns string-shaped (`text` holding whatever scheme you
+ * like), or catch that one error on that one argument and return the miss — the
+ * shipped Prisma adapter does the latter in `idSafeClient`. The full contract,
+ * including what it deliberately does *not* cover (inserts), is the
+ * `Ids are opaque strings` section at the top of `types.ts`.
+ *
  * ## Test runners
  *
  * This module is runner-agnostic: it takes `describe`/`it`/`expect` from the
