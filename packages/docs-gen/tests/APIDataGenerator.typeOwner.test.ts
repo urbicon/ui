@@ -2,6 +2,7 @@ import type { ComponentInfo } from '@urbicon-ui/shared-types';
 import { describe, expect, it } from 'vitest';
 import { APIDataGenerator } from '../src/core/enrichment/APIDataGenerator';
 import type { TypeDefinition } from '../src/types';
+import { repoRelativePackagePath } from '../src/utils/repo-path';
 
 // `owner` is the canonical home of a type: the documented component whose
 // source declares it. It is what lets a page render a reference instead of a
@@ -103,18 +104,30 @@ describe('APIDataGenerator — canonical type owner', () => {
     expect(owners.GuidePanel?.GuidePanelProps).toBe('GuidePanel');
   });
 
-  it('keys the directory index the same way sourcePath is spelled', async () => {
-    // Component paths arrive absolute, `sourcePath` arrives repo-relative,
-    // and ownership only resolves when both reduce to the identical string.
-    // A checkout directory whose name merely *ends* in `packages` used to
-    // re-anchor the absolute side one level too high — no error, no warning,
-    // just `owner` absent on every entry in the run.
+  // Component paths arrive absolute, `sourcePath` arrives repo-relative, and
+  // ownership only resolves when both reduce to the identical string. Both
+  // failure modes below were silent — no error, no warning, just `owner`
+  // absent on every entry in the run.
+  //
+  // The `sourcePath` here is not hand-written: it is derived from the same
+  // absolute path through the same helper `LocalTypesExtractor` uses, which
+  // is the whole point — a hand-written one would encode the assumption
+  // under test instead of exercising it. Under `/home/me/packages/ui` the
+  // extractor really does store `packages/ui/packages/blocks/…`.
+  it.each([
+    // Matching the bare substring `packages/` re-anchored the absolute side
+    // one level too high.
+    ['a checkout directory ending in "packages"', '/home/me/dev-packages/ui'],
+    // Here the stored sourcePath still contains a later `/packages/`, so a
+    // non-idempotent rule reduces it a second time and the two sides part.
+    ['a checkout directory named "packages"', '/home/me/packages/ui'],
+    ['a plain checkout', '/home/me/ui']
+  ])('keys the directory index the same way sourcePath is spelled: %s', async (_label, root) => {
+    const absolute = `${root}/packages/blocks/src/lib/primitives/Dialog/index.ts`;
+    const storedSourcePath = repoRelativePackagePath(absolute) as string;
+
     const owners = await ownersFor([
-      component(
-        'Dialog',
-        '/home/me/dev-packages/ui/packages/blocks/src/lib/primitives/Dialog/index.ts',
-        [typeDef('DialogIntent', 'packages/blocks/src/lib/primitives/Dialog/index.ts')]
-      )
+      component('Dialog', absolute, [typeDef('DialogIntent', storedSourcePath)])
     ]);
 
     expect(owners.Dialog?.DialogIntent).toBe('Dialog');
