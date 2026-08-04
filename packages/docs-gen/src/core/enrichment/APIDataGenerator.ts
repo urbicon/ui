@@ -6,7 +6,8 @@ import type {
   PropInfo,
   VariantInfo
 } from '@urbicon-ui/shared-types';
-import type { APIData, ComponentAPIData, TypeDefinition } from '../../types';
+import type { APIData, ComponentAPIData, TypeDefinition, TypeUsedByRef } from '../../types';
+import { repoRelativePackageDir, repoRelativePackagePath } from '../../utils/repo-path';
 import { toSlug } from '../../utils/slug';
 
 /**
@@ -35,6 +36,8 @@ export class APIDataGenerator {
   private typeDefinitions: TypeDefinition[] = [];
   private componentSlugs = new Map<string, string>();
   private componentGroups = new Map<string, string | undefined>();
+  /** Declaring directory → the documented components whose source lives there. */
+  private componentsByDir = new Map<string, string[]>();
   private routeBasePath: string = '/components';
 
   /**
@@ -54,15 +57,24 @@ export class APIDataGenerator {
     this.typeDefinitions = [];
     this.componentSlugs.clear();
     this.componentGroups.clear();
+    this.componentsByDir.clear();
     this.routeBasePath = options?.routeBasePath || '/components';
 
     // Prepare component slugs + groups for linking. The group (primitives /
     // components / undefined) is what turns the flat base into the real route
     // segment — cross-links resolve the *target* component's group, so the
     // whole map has to be built up-front, before any component is processed.
+    // The directory index serves the same up-front need for type ownership:
+    // resolving a type's home means asking "which documented component
+    // declares it", which no single component can answer about itself.
     for (const c of richComponents) {
       this.componentSlugs.set(c.name, toSlug(c.name));
       this.componentGroups.set(c.name, this.inferGroupFromPath(c.filePath || ''));
+      const dir = repoRelativePackageDir(c.filePath || '');
+      if (!dir) continue;
+      const siblings = this.componentsByDir.get(dir);
+      if (siblings) siblings.push(c.name);
+      else this.componentsByDir.set(dir, [c.name]);
     }
 
     // Process each component
@@ -149,10 +161,7 @@ export class APIDataGenerator {
       : [];
     if (localTypeDefs.length > 0) {
       // Reverse index: which props reference which local types
-      const usedByMap = new Map<
-        string,
-        Array<{ component: string; propName: string; source: string }>
-      >();
+      const usedByMap = new Map<string, TypeUsedByRef[]>();
       const considerProps = [
         ...processedProps,
         ...processedInheritance.flatMap((inh: InheritanceInfo) => inh.props || [])
@@ -175,17 +184,17 @@ export class APIDataGenerator {
         }
       }
 
-      for (const td of localTypeDefs as (TypeDefinition & {
-        scope?: string;
-        usedByProps?: unknown[];
-        usedByCount?: number;
-        category?: string;
-      })[]) {
+      for (const td of localTypeDefs) {
         // annotate scope/category and usedBy — the extractor marks
         // program-resolved definitions as 'imported'; everything else is local
         td.scope = td.scope ?? 'local';
         td.usedByProps = usedByMap.get(td.name) || [];
-        td.usedByCount = Array.isArray(td.usedByProps) ? td.usedByProps.length : 0;
+        td.usedByCount = td.usedByProps.length;
+        // Canonical home: the documented component that declares this type.
+        // Left unset when none does — `$lib/utils` plumbing has no page to
+        // point at, and pretending otherwise would invent a link target.
+        const owner = this.resolveTypeOwner(td);
+        if (owner) td.owner = owner;
         const defStr = String(td.definition || '');
         // `SlotNames<…>` aliases (`XSlots`) are tv()-machinery like the
         // `VariantProps<…>` aliases — categorized 'variant' so type surfaces
@@ -274,11 +283,61 @@ export class APIDataGenerator {
    */
   private buildSourceHref(filePath: string): string | undefined {
     if (!filePath) return undefined;
-    const normalized = filePath.replace(/\\/g, '/');
-    if (normalized.includes('/node_modules/')) return undefined;
-    const match = normalized.match(/(packages\/.+)$/);
-    if (!match) return undefined;
-    return `${APIDataGenerator.SOURCE_BASE_URL}/${match[1]}`;
+    if (filePath.replace(/\\/g, '/').includes('/node_modules/')) return undefined;
+    const repoRelative = repoRelativePackagePath(filePath);
+    if (!repoRelative) return undefined;
+    return `${APIDataGenerator.SOURCE_BASE_URL}/${repoRelative}`;
+  }
+
+  // ==========================================
+  // TYPE OWNERSHIP
+  // ==========================================
+
+  /**
+   * The documented component that declares `td` — its canonical home.
+   *
+   * Directory, not file: a component's types are split across `index.ts` and
+   * `<name>.variants.ts`, and both are the same component's surface.
+   *
+   * Two rules, applied in order to every directory alike:
+   *
+   * 1. **The longest sibling name that prefixes the type name.** A directory
+   *    can serve several documented components (`components/Guide/` declares
+   *    Guide, GuidePanel, GuideBeacon, GuideRef …, nine doc pages off one
+   *    `index.ts`). Longest, because `GuidePanelProps` prefixes both `Guide`
+   *    and `GuidePanel` and only the latter is its home.
+   * 2. **Otherwise the family root** — the sibling named after the directory
+   *    itself (`primitives/DatePicker/` → `DatePicker`).
+   *
+   * Rule 2 exists because the first cut had none: a lone sibling owned its
+   * directory unconditionally while a directory with two siblings required a
+   * prefix match. Whether a type got a home then depended on how many *other*
+   * components happened to share its file. `DatePicker/index.ts` declares
+   * `DatePickerPreset` (owned) and, five lines later, `DateRangePreset` —
+   * unowned, because neither `DatePicker` nor `DateRangePicker` prefixes it,
+   * though both are declared side by side in the same file. Same for
+   * `DateFormatOptions` out of `datepicker.engine.ts`. Both are exported and
+   * appear on two pages, so they were exactly the copies this field exists to
+   * turn into a link, and exactly the ones it missed.
+   *
+   * Still `undefined` when neither rule fires: a directory backing no
+   * documented component (`$lib/utils`, `$lib/mint`, `internal/charts`) has no
+   * page to point at, and inventing one would produce a link to a page that
+   * never documents the type.
+   */
+  private resolveTypeOwner(td: TypeDefinition): string | undefined {
+    const dir = repoRelativePackageDir(td.sourcePath || '');
+    if (!dir) return undefined;
+    const siblings = this.componentsByDir.get(dir);
+    if (!siblings || siblings.length === 0) return undefined;
+
+    const longestPrefix = siblings
+      .filter((name) => td.name.startsWith(name))
+      .sort((a, b) => b.length - a.length)[0];
+    if (longestPrefix) return longestPrefix;
+
+    const familyRoot = dir.slice(dir.lastIndexOf('/') + 1);
+    return siblings.find((name) => name === familyRoot);
   }
 
   // ==========================================

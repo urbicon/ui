@@ -202,6 +202,43 @@ export class APIFileGenerator {
       "export type ComponentStability = 'experimental' | 'beta' | 'stable' | 'deprecated';"
     );
     lines.push('');
+    lines.push(
+      "export interface TypeUsedByRef { component: string; propName: string; source: 'direct' | 'inherited' | 'variant' }"
+    );
+    lines.push('');
+    // Was `{ name; type; definition; [key: string]: unknown }` — an index
+    // signature under which every field beyond the three named ones read back
+    // as `unknown`, so a page could not branch on `scope`, `category` or
+    // `usedByCount` without asserting first. It was *not* what forced the one
+    // remaining cast in the docs app
+    // (`docs/components/section/+page.svelte`): tsc accepts the old array as
+    // `LocalTypeDef[]` unchanged, which is why ten other pages pass
+    // `componentData.types` uncast today. Spelling the real shape out is
+    // what makes the extra fields usable — and what surfaced the wrong
+    // `scope` union in `LocalTypeDef`, since a precise type has to agree with
+    // it where a bag of `unknown` did not.
+    lines.push('export interface TypeDefinitionInfo {');
+    lines.push('  name: string;');
+    lines.push("  type: 'interface' | 'type' | 'enum' | 'class';");
+    lines.push('  definition: string;');
+    lines.push('  package: string;');
+    lines.push('  documentation?: string;');
+    lines.push("  scope?: 'local' | 'imported';");
+    lines.push("  category?: 'props' | 'variant' | 'helper';");
+    lines.push('  members?: number;');
+    lines.push('  sourcePath?: string;');
+    lines.push('  seeAlso?: string;');
+    lines.push('  seeAlsoRefs?: string[];');
+    // Whether a consumer can import the name from the package — the property
+    // a docs page filters on, resolved against the package's entry points.
+    lines.push('  exported?: boolean;');
+    // The documented component that declares the type; unequal to this
+    // component means the entry is a copy whose home is another page.
+    lines.push('  owner?: string;');
+    lines.push('  usedByProps?: TypeUsedByRef[];');
+    lines.push('  usedByCount?: number;');
+    lines.push('}');
+    lines.push('');
     lines.push('export interface ComponentAPIInfo {');
     lines.push('  name: string;');
     lines.push('  props: PropInfo[];');
@@ -218,9 +255,7 @@ export class APIFileGenerator {
     // this field the emitted `componentData: ComponentAPIInfo` no longer
     // type-checks in any freshly generated tree.
     lines.push('  slots?: string[];');
-    lines.push(
-      '  types?: Array<{ name: string; type: string; definition: string; [key: string]: unknown }>;'
-    );
+    lines.push('  types?: TypeDefinitionInfo[];');
     lines.push('}');
     lines.push('');
     const dataStr = JSON.stringify(componentData, null, 2);

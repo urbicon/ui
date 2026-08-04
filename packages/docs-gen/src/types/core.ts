@@ -7,6 +7,7 @@ import type {
   InheritanceInfo,
   PackageInfo,
   PropInfo,
+  PropSource,
   VariantInfo
 } from '@urbicon-ui/shared-types';
 import type { ValidationResult } from './validation';
@@ -177,6 +178,32 @@ export interface ComponentAPIData {
 }
 
 /**
+ * One prop that refers to a `TypeDefinition`, collected by `APIDataGenerator`
+ * while building the reverse index over a component's props.
+ */
+export interface TypeUsedByRef {
+  /** Component that owns the prop. */
+  component: string;
+  /** Prop name within that component. */
+  propName: string;
+  /**
+   * How the prop reaches the type. Same union as `PropSource['type']` — the
+   * value is copied straight off the prop, so widening it to `string` here
+   * would only make the emitted artifact unassignable to the docs package's
+   * `TypeUsedByRef`, which spells the union out.
+   */
+  source: PropSource['type'];
+}
+
+/**
+ * Coarse classification assigned during enrichment so type surfaces can pick
+ * their audience: `props` (a `*Props` interface), `variant` (tv() machinery —
+ * `VariantProps<…>` / `SlotNames<…>` aliases), `helper` (everything else,
+ * i.e. the business types).
+ */
+export type TypeCategory = 'props' | 'variant' | 'helper';
+
+/**
  * A supporting type definition attached to a component — extracted by
  * `LocalTypesExtractor` from the component's `index.ts`/variants file or
  * resolved from elsewhere in the package via the shared ts.Program. Rendered
@@ -224,6 +251,56 @@ export interface TypeDefinition {
    * type name (`CartesianDatum`) or a member path. Rendered as literal text.
    */
   seeAlsoRefs?: string[];
+  /**
+   * Whether the name is reachable from one of the package's **public entry
+   * points** (`package.json#exports` → `src/lib/…`), i.e. whether a consumer
+   * can write `import type { X } from '@urbicon-ui/blocks'`.
+   *
+   * This — not `category` — is the property that separates a type worth
+   * documenting from tv() plumbing: filtering on `category === 'helper'`
+   * would discard 203 `*Props` interfaces and 127 exported variant aliases,
+   * the very names a consumer types. Resolved by
+   * `LocalTypesExtractor` through the shared program's checker.
+   *
+   * Omitted (not `false`) when the export surface could not be determined —
+   * single-file mode, or a package root without a resolvable entry. An
+   * absent flag means "unknown", never "not exported".
+   *
+   * The match is by *name*, not by declaration site: a private `Foo` in
+   * `internal/` would inherit the flag from an unrelated public `Foo`
+   * elsewhere in the same package. Measured against a declaration-file-aware
+   * lookup over all four packages, 0 of 795 entries disagree today, so the
+   * cheaper form is what ships — but the collision is the thing to check
+   * first if a `exported: true` ever looks wrong.
+   */
+  exported?: boolean;
+  /**
+   * The **documented component that declares this type** — its canonical
+   * home. Set by `APIDataGenerator` from the declaring file's directory; for
+   * a compound directory serving several documented components
+   * (`components/Guide/` → Guide, GuidePanel, GuideBeacon, …) the sibling
+   * whose name is the longest prefix of the type name wins.
+   *
+   * Equal to the owning component for a type declared on its own page;
+   * *different* when the entry is a copy that `collectImportedTypes` pulled
+   * in (`DialogIntent` on the ConfirmDialog page → `Dialog`), which is what
+   * lets a renderer show a reference instead of a second full body.
+   *
+   * Omitted when no documented component declares the type — library
+   * plumbing out of `$lib/utils`, `$lib/mint`, `$lib/internal`. Those have
+   * no home to point at; 352 of them are exported package API, so an absent
+   * `owner` is *not* a licence to drop the entry.
+   */
+  owner?: string;
+  /**
+   * Audience classification assigned during enrichment. See `TypeCategory`.
+   * Defaults to `helper` on the consuming side when unset.
+   */
+  category?: TypeCategory;
+  /** Props that refer to this type — reverse index built during enrichment. */
+  usedByProps?: TypeUsedByRef[];
+  /** `usedByProps.length`, precomputed for the emitted artifacts. */
+  usedByCount?: number;
 }
 
 /**

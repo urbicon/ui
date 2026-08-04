@@ -24,8 +24,19 @@ export interface LocalTypeDef {
   documentation?: string;
   /** Classification for grouping. */
   category?: 'props' | 'variant' | 'helper' | string;
-  /** Whether the type originates from this package or an external dependency. */
-  scope?: 'local' | 'external';
+  /**
+   * Where the definition lives relative to the component: `local` (its own
+   * `index.ts` / variants file) or `imported` (elsewhere in the package,
+   * pulled in through a type-only import).
+   *
+   * Was `'local' | 'external'`, which was wrong on both members: `external`
+   * is a value docs-gen has never emitted, and `imported` — which it emits on
+   * 575 of 967 entries — was missing. It went unnoticed because the generated
+   * array was typed with a `[key: string]: unknown` index signature, under
+   * which tsc never compared the two unions at all. Making the emitted type
+   * precise is what brought the disagreement to the surface.
+   */
+  scope?: 'local' | 'imported';
   /** Props that reference this type. */
   usedByProps?: TypeUsedByRef[];
   /**

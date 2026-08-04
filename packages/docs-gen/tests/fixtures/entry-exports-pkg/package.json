@@ -1,0 +1,16 @@
+{
+  "name": "@fixture/entry-exports-pkg",
+  "private": true,
+  "version": "0.0.0",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    },
+    "./sub": {
+      "types": "./dist/sub/index.d.ts",
+      "import": "./dist/sub/index.js"
+    },
+    "./style/index.css": "./dist/style/index.css"
+  }
+}

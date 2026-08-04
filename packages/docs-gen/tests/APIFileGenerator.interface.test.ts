@@ -24,7 +24,25 @@ function fullComponentData(): ComponentAPIData {
     sourceHref: 'https://example.test/source',
     relatedComponents: ['Other'],
     slots: ['base', 'label'],
-    types: [{ name: 'HelperType', type: 'interface', definition: 'interface HelperType {}' }]
+    types: [
+      {
+        name: 'HelperType',
+        type: 'interface',
+        definition: 'interface HelperType {}',
+        package: '@urbicon-ui/blocks',
+        documentation: 'A helper.',
+        scope: 'imported',
+        category: 'helper',
+        members: 1,
+        sourcePath: 'packages/blocks/src/lib/utils/helper.ts',
+        seeAlso: 'https://example.test/helper',
+        seeAlsoRefs: ['OtherType'],
+        exported: true,
+        owner: 'Other',
+        usedByProps: [{ component: 'Widget', propName: 'helper', source: 'direct' }],
+        usedByCount: 1
+      }
+    ]
   } as ComponentAPIData;
 }
 
@@ -125,6 +143,65 @@ describe('APIFileGenerator — emitted interface covers the emitted data', () =>
     expect(emittedFields).toContain('values');
     for (const field of emittedFields) {
       expect(declared, `InheritanceProp is missing "${field}"`).toContain(field);
+    }
+  });
+
+  // Third instance of the same gap, one level down again: `types[]` used to be
+  // typed `{ name; type; definition; [key: string]: unknown }`, so every extra
+  // field read back as `unknown` and no consumer could branch on it without
+  // asserting. tsc accepted that array as `LocalTypeDef[]` all the same — the
+  // index signature made the two never be compared — which is exactly why the
+  // drift went unnoticed. This guard is what keeps a newly emitted field from
+  // re-opening the hole.
+  it('declares every emitted type-definition field on TypeDefinitionInfo', async () => {
+    const generator = new APIFileGenerator({ outputPath: dir, format: 'typescript' });
+    await generator.generate({
+      metadata: { generated: '2026-08-04T00:00:00.000Z', version: 'test' },
+      components: { Widget: fullComponentData() }
+    } as unknown as APIData);
+
+    const emitted = await fs.readFile(path.join(dir, 'primitives', 'widget', 'api.ts'), 'utf-8');
+    const block = emitted.match(/export interface TypeDefinitionInfo \{([\s\S]*?)\n\}/);
+    expect(block).not.toBeNull();
+    const declared = new Set(
+      [...(block as RegExpMatchArray)[1].matchAll(/^\s{2}(\w+)\??:/gm)].map((m) => m[1])
+    );
+
+    const dataMatch = emitted.match(
+      /export const componentData: ComponentAPIInfo = ([\s\S]*?) as const;/
+    );
+    const parsed = JSON.parse((dataMatch as RegExpMatchArray)[1]) as {
+      types: Record<string, unknown>[];
+    };
+    const emittedFields = Object.keys(parsed.types[0]);
+    expect(emittedFields).toContain('exported');
+    expect(emittedFields).toContain('owner');
+    for (const field of emittedFields) {
+      expect(declared, `TypeDefinitionInfo is missing "${field}"`).toContain(field);
+    }
+    // The index signature it replaced typed nothing; its return would make
+    // every future field `unknown` again without failing anything.
+    expect(block?.[1]).not.toMatch(/\[key: string\]/);
+
+    // Second, independent oracle. The loop above only sees fields the fixture
+    // above happens to carry, so it catches a new field only if someone also
+    // remembers to fixture it — the same "green for the wrong reason" shape
+    // this file exists to prevent. `TypeDefinition` in types/core.ts is the
+    // authority on what *can* be emitted, so read it directly.
+    const core = await fs.readFile(
+      path.join(import.meta.dirname, '..', 'src', 'types', 'core.ts'),
+      'utf-8'
+    );
+    const coreBlock = core.match(/export interface TypeDefinition \{([\s\S]*?)\n\}/);
+    expect(coreBlock).not.toBeNull();
+    const sourceFields = [...(coreBlock as RegExpMatchArray)[1].matchAll(/^ {2}(\w+)\??:/gm)].map(
+      (m) => m[1]
+    );
+    expect(sourceFields.length).toBeGreaterThan(emittedFields.length - 1);
+    for (const field of sourceFields) {
+      expect(declared, `TypeDefinitionInfo does not cover TypeDefinition.${field}`).toContain(
+        field
+      );
     }
   });
 
