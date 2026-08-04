@@ -168,7 +168,8 @@ Track this when sweeping a page: report before-/after-line-count in commit body 
     ApiReference,
     CodeExample,
     DocsLayout as DocsPageLayout,
-    Section
+    Section,
+    TypesReference
   } from '@urbicon-ui/docs';
   import CustomDocs from './Docs.svelte';
   import Playground from './Playground.svelte';
@@ -205,15 +206,16 @@ Track this when sweeping a page: report before-/after-line-count in commit body 
   sourceHref={componentData?.sourceHref}
   related={relatedLinks}
 >
-  <!-- 1. Playground — no title, so no marker -->
-  <Section id="playground" intent="primary">
+  <!-- 1. Playground — titled but unmarked; add `titleHidden` to keep the heading
+       in the outline while the stage speaks for itself (59 of 87 pages do). -->
+  <Section id="playground" title="Playground" titleHidden intent="primary">
     <Playground />
   </Section>
 
-  <!-- 2–N-2. Custom Docs (Examples, Accessibility, …) — markers 01… -->
+  <!-- 2–N-3. Custom Docs (Examples, Accessibility, …) — markers 01… -->
   <CustomDocs />
 
-  <!-- N-1. API Reference -->
+  <!-- N-2. API Reference -->
   <Section
     marker="05"
     id="api"
@@ -221,8 +223,13 @@ Track this when sweeping a page: report before-/after-line-count in commit body 
     intent="secondary"
     meta={`${componentData?.stats?.totalProps ?? 0} props`}
   >
-    <ApiReference props={componentData?.props ?? []} />
+    <ApiReference props={componentData?.props ?? []} types={componentData?.types ?? []} />
   </Section>
+
+  <!-- N-1. Types — no <Section> and no marker: TypesReference renders its own
+       <section id="types"> with its own heading. The `types=` above and this
+       line are one feature; either alone fails silently. -->
+  <TypesReference types={componentData?.types ?? []} />
 
   <!-- N. Installation -->
   <Section marker="06" id="installation" title="Installation">
