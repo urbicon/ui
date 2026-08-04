@@ -5,7 +5,8 @@
     ApiReference,
     CodeExample,
     DocsLayout as DocsPageLayout,
-    Section
+    Section,
+    TypesReference
   } from '@urbicon-ui/docs';
   import CustomDocs from './Docs.svelte';
   import Playground from './Playground.svelte';
@@ -21,6 +22,7 @@
     { id: 'encoding', title: 'Encoding & errors' },
     { id: 'accessibility', title: 'Accessibility' },
     { id: 'api', title: 'API Reference' },
+    { id: 'types', title: 'Types' },
     { id: 'installation', title: 'Installation' }
   ];
 </script>
@@ -57,8 +59,10 @@
     intent="secondary"
     meta={`${componentData?.stats?.totalProps ?? 0} props`}
   >
-    <ApiReference props={componentData?.props ?? []} />
+    <ApiReference props={componentData?.props ?? []} types={componentData?.types ?? []} />
   </Section>
+
+  <TypesReference types={componentData?.types ?? []} />
 
   <Section marker="06" id="installation" title="Installation">
     <CodeExample

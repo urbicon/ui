@@ -4,7 +4,8 @@
     ApiReference,
     CodeExample,
     DocsLayout as DocsPageLayout,
-    Section
+    Section,
+    TypesReference
   } from '@urbicon-ui/docs';
   import { Table } from '@urbicon-ui/table';
   import Playground from './Playground.svelte';
@@ -32,6 +33,7 @@ ${scriptClose}
     { id: 'playground', title: 'Playground' },
     { id: 'column-factories', title: 'Column Factories' },
     { id: 'api', title: 'API Reference' },
+    { id: 'types', title: 'Types' },
     { id: 'installation', title: 'Installation' }
   ];
 </script>
@@ -100,8 +102,10 @@ ${scriptClose}
   </Section>
 
   <Section id="api" title="API Reference" intent="secondary">
-    <ApiReference props={componentData?.props ?? []} />
+    <ApiReference props={componentData?.props ?? []} types={componentData?.types ?? []} />
   </Section>
+
+  <TypesReference types={componentData?.types ?? []} />
 
   <Section id="installation" title="Installation">
     <CodeExample

@@ -5,7 +5,8 @@
     CodeExample,
     DocsLayout as DocsPageLayout,
     InfoCard,
-    Section
+    Section,
+    TypesReference
   } from '@urbicon-ui/docs';
   import CustomDocs from './Docs.svelte';
   import Playground from './Playground.svelte';
@@ -64,6 +65,7 @@
     { id: 'accessibility', title: 'Accessibility' },
     { id: 'customization', title: 'Customization' },
     { id: 'api', title: 'API Reference' },
+    { id: 'types', title: 'Types' },
     { id: 'installation', title: 'Installation' }
   ];
 
@@ -255,7 +257,7 @@
         <p class="text-text-secondary mb-4 text-sm">
           Mount once inside <code>GuideProvider</code>; renders nothing until a tour starts.
         </p>
-        <ApiReference props={componentData?.props ?? []} />
+        <ApiReference props={componentData?.props ?? []} types={componentData?.types ?? []} />
       </div>
 
       <div>
@@ -294,6 +296,8 @@
       {/each}
     </div>
   </Section>
+
+  <TypesReference types={componentData?.types ?? []} />
 
   <Section marker="10" id="installation" title="Installation">
     <CodeExample

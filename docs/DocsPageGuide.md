@@ -64,6 +64,15 @@ Both must read the **same** `componentData` — feeding one of them a different 
 array or `componentData.props` is the failure this costs the most time to spot. `bun run
 typesref:lint` checks both directions and refuses anything that is not the canonical expression.
 
+The section goes **after** the API section's `</Section>` and before Installation, unwrapped:
+`TypesReference` renders its own `<section id="types">`, so a `<Section>` around it is not needed
+and costs a marker in the sequence. It takes a `{ id: 'types', title: 'Types' }` nav entry — the
+label is what the component's heading actually says (`typesTitle`), and `sections:lint` accepts
+the anchor either way, so the entry is an editorial decision rather than a checked one. All 100
+pages with types carry it since #114 stage 3; the one page that nests the table in a real
+`<Section id="types">` (`toast`, which wants its own heading text) then **needs** the entry,
+because `revealTableRow`'s `fallbackSectionId: 'types'` must resolve to something.
+
 **The rendered order is the order you write.** `TocNavigationItem` accepts no `order` field and
 nothing sorts by one; the TOC renders the `navigation` array as given, and the page renders its
 sections as written. The two are checked against each other by `bun run sections:lint`, which
@@ -159,7 +168,8 @@ Track this when sweeping a page: report before-/after-line-count in commit body 
     ApiReference,
     CodeExample,
     DocsLayout as DocsPageLayout,
-    Section
+    Section,
+    TypesReference
   } from '@urbicon-ui/docs';
   import CustomDocs from './Docs.svelte';
   import Playground from './Playground.svelte';
@@ -175,6 +185,7 @@ Track this when sweeping a page: report before-/after-line-count in commit body 
     // ...component-specific sections...
     { id: 'accessibility', title: 'Accessibility' },
     { id: 'api', title: 'API Reference' },
+    { id: 'types', title: 'Types' },
     { id: 'installation', title: 'Installation' }
   ];
 </script>
@@ -195,15 +206,16 @@ Track this when sweeping a page: report before-/after-line-count in commit body 
   sourceHref={componentData?.sourceHref}
   related={relatedLinks}
 >
-  <!-- 1. Playground — no title, so no marker -->
-  <Section id="playground" intent="primary">
+  <!-- 1. Playground — titled but unmarked; add `titleHidden` to keep the heading
+       in the outline while the stage speaks for itself (59 of 87 pages do). -->
+  <Section id="playground" title="Playground" titleHidden intent="primary">
     <Playground />
   </Section>
 
-  <!-- 2–N-2. Custom Docs (Examples, Accessibility, …) — markers 01… -->
+  <!-- 2–N-3. Custom Docs (Examples, Accessibility, …) — markers 01… -->
   <CustomDocs />
 
-  <!-- N-1. API Reference -->
+  <!-- N-2. API Reference -->
   <Section
     marker="05"
     id="api"
@@ -211,8 +223,13 @@ Track this when sweeping a page: report before-/after-line-count in commit body 
     intent="secondary"
     meta={`${componentData?.stats?.totalProps ?? 0} props`}
   >
-    <ApiReference props={componentData?.props ?? []} />
+    <ApiReference props={componentData?.props ?? []} types={componentData?.types ?? []} />
   </Section>
+
+  <!-- N-1. Types — no <Section> and no marker: TypesReference renders its own
+       <section id="types"> with its own heading. The `types=` above and this
+       line are one feature; either alone fails silently. -->
+  <TypesReference types={componentData?.types ?? []} />
 
   <!-- N. Installation -->
   <Section marker="06" id="installation" title="Installation">
@@ -452,7 +469,7 @@ Semantic tokens automatically adapt between light and dark mode.
 - [ ] `+page.svelte`: `stability` / `sourceHref` / `related` wired from `componentData`
 - [ ] `+page.svelte`: PlaygroundConfigurator with `showHeader={false}`, in `Playground.svelte` if it is more than a handful of controls
 - [ ] `+page.svelte`: ApiReference directly in Section (no wrapper div)
-- [ ] `+page.svelte`: the Types section — `<ApiReference … types={componentData?.types ?? []} />` **and** a `<TypesReference types={componentData?.types ?? []} />`, both fed from the same `componentData` — `bun run typesref:lint` is green
+- [ ] `+page.svelte`: the Types section — `<ApiReference … types={componentData?.types ?? []} />` **and** a `<TypesReference types={componentData?.types ?? []} />` after the API section, both fed from the same `componentData`, plus a `{ id: 'types', title: 'Types' }` nav entry — `bun run typesref:lint` is green
 - [ ] `+page.svelte`: Installation section at the end, `preview={false}` on the import example
 - [ ] `+page.svelte`: llm.txt link (prev/next comes from the layout — never add `<PrevNextNav>` per page)
 - [ ] `Docs.svelte`: no `docsConfig` export (route files are not read by docs-gen)

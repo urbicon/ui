@@ -39,16 +39,18 @@
 
     <CodeExample
       title="A page's API section"
-      description="What the section looks like on every component page: the generated props, inside a Section with a secondary intent so reference content reads differently from guide content."
+      description="What the section looks like on every component page: the generated props, inside a Section with a secondary intent so reference content reads differently from guide content. `types=` and the TypesReference below it are one feature — the prop is what turns a type name in the Type column into a link, and the section is what the link points at."
       language="svelte"
       code={`<script lang="ts">
-  import { ApiReference, Section } from '@urbicon-ui/docs';
+  import { ApiReference, Section, TypesReference } from '@urbicon-ui/docs';
   import { componentData } from './api';
 <\/script>
 
 <Section marker="05" id="api" title="API Reference" intent="secondary">
-  <ApiReference props={componentData?.props ?? []} />
-</Section>`}
+  <ApiReference props={componentData?.props ?? []} types={componentData?.types ?? []} />
+</Section>
+
+<TypesReference types={componentData?.types ?? []} />`}
     >
       <ApiReference props={sampleProps} />
     </CodeExample>

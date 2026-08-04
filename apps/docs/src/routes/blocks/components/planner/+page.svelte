@@ -4,7 +4,8 @@
     ApiReference,
     CodeExample,
     DocsLayout as DocsPageLayout,
-    Section
+    Section,
+    TypesReference
   } from '@urbicon-ui/docs';
   import SeoMeta from '$lib/SeoMeta.svelte';
   import CustomDocs from './Docs.svelte';
@@ -18,6 +19,7 @@
     { id: 'customization', title: 'Customization' },
     { id: 'accessibility', title: 'Accessibility' },
     { id: 'api', title: 'API Reference' },
+    { id: 'types', title: 'Types' },
     { id: 'installation', title: 'Installation' }
   ];
 
@@ -47,8 +49,10 @@
   <CustomDocs />
 
   <Section id="api" title="API Reference" intent="secondary">
-    <ApiReference props={componentData?.props ?? []} />
+    <ApiReference props={componentData?.props ?? []} types={componentData?.types ?? []} />
   </Section>
+
+  <TypesReference types={componentData?.types ?? []} />
 
   <Section id="installation" title="Installation">
     <CodeExample

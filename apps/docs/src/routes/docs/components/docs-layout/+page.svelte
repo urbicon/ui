@@ -20,11 +20,9 @@
     { id: 'examples', title: 'Examples' },
     { id: 'accessibility', title: 'Accessibility' },
     { id: 'api', title: 'API Reference' },
-    { id: 'types', title: 'Type Definitions' },
+    { id: 'types', title: 'Types' },
     { id: 'installation', title: 'Installation' }
   ];
-
-  const typesForTypesReference = componentData.types ?? [];
 
   const description =
     'Documentation page layout with header hero, sticky table of contents, scrollspy, and a responsive content column.';
@@ -86,10 +84,10 @@
     subtitle="Complete list of component properties and their configurations"
     intent="secondary"
   >
-    <ApiReference props={componentData?.props ?? []} types={typesForTypesReference} />
+    <ApiReference props={componentData?.props ?? []} types={componentData?.types ?? []} />
   </Section>
 
-  <TypesReference types={typesForTypesReference} />
+  <TypesReference types={componentData?.types ?? []} />
 
   <Section marker="04" id="installation" title="Installation">
     <CodeExample

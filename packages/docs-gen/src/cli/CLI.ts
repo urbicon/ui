@@ -346,7 +346,8 @@ export class DocsGeneratorCLI {
     ApiReference,
     CodeExample,
     DocsLayout as DocsPageLayout,
-    Section
+    Section,
+    TypesReference
   } from '@urbicon-ui/docs';
   import SeoMeta from '$lib/SeoMeta.svelte';
   import CustomDocs from './Docs.svelte';
@@ -357,12 +358,13 @@ export class DocsGeneratorCLI {
   const relatedLinks = buildRelatedLinks(componentData);
 
   const navigation = [
-    { id: 'playground', title: 'Playground', order: 1 },
-    { id: 'examples', title: 'Examples', order: 2 },
-    { id: 'customization', title: 'Customization', order: 3 },
-    { id: 'accessibility', title: 'Accessibility', order: 4 },
-    { id: 'api', title: 'API Reference', order: 10 },
-    { id: 'installation', title: 'Installation', order: 11 }
+    { id: 'playground', title: 'Playground' },
+    { id: 'examples', title: 'Examples' },
+    { id: 'customization', title: 'Customization' },
+    { id: 'accessibility', title: 'Accessibility' },
+    { id: 'api', title: 'API Reference' },
+    { id: 'types', title: 'Types' },
+    { id: 'installation', title: 'Installation' }
   ];
 </script>
 
@@ -389,8 +391,10 @@ export class DocsGeneratorCLI {
   <CustomDocs />
 
   <Section id="api" title="API Reference" intent="secondary">
-    <ApiReference props={componentData?.props ?? []} />
+    <ApiReference props={componentData?.props ?? []} types={componentData?.types ?? []} />
   </Section>
+
+  <TypesReference types={componentData?.types ?? []} />
 
   <Section id="installation" title="Installation">
     <CodeExample
