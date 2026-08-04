@@ -45,6 +45,14 @@
     SERVICE_CATEGORIES
   } from '$lib/landing/schedule';
   import AgentReplay from '$lib/landing/AgentReplay.svelte';
+  import {
+    BRAND,
+    BRAND_SUFFIX,
+    CLAIM_LEAD,
+    CLAIM_POINT,
+    EYEBROW,
+    PROOF
+  } from '$lib/landing/wordmark';
   import { asset } from '$app/paths';
   import { REPO_URL } from '$lib/seo';
   import BookingCard from '$lib/salon/BookingCard.svelte';
@@ -674,14 +682,6 @@
     { label: 'theming', href: '/customization' }
   ]);
 
-  // Die Fußzeile der Namens-Kachel. Bis 2026-08-03 stand hier
-  // „one package · one grammar · one gate". Die Dreizahl war nicht das Problem,
-  // die dreifache Anapher war es: `one … one … one …` ist die Figur einer
-  // deutschen Parole, und gesperrte Mono-Versalie auf Ink liefert die Optik
-  // dazu. Der Satz sagt jetzt dasselbe (alles darin wurde darin gemacht) ohne
-  // die Figur — und er ist die These der Seite, nicht ihre Aufzählung.
-  const PROOF = 'Everything in it was made in it.';
-
   // ── Zeile 2: das Hero-Inventar als niedrigere Zeile ────────────────
   // Mechanik 1:1 aus test-fixtures/landing-hero: die Vorschau ist der gepflegte
   // Playground der Doku-Seite (zwei Konsumenten, eine Wahrheit), lazy geladen.
@@ -806,7 +806,7 @@
     <section class="row1" aria-label="Hero">
       <div class="name-tile">
         <div class="tile-head">
-          <p class="eyebrow">UI platform for Svelte 5 + Tailwind 4</p>
+          <p class="eyebrow">{EYEBROW}</p>
           <!-- Die Kachel ist in beiden Modi Ink; der `color-scheme: dark`-Scope
                lässt die Tokens des Switchers dunkel auflösen (helles Icon auf
                dunklem Grund), wie bei der LiveryTile. Persistenz + <html>-Klasse
@@ -826,8 +826,8 @@
                the h1 was named "urbicon ui Highlights" (measured). `aria-label`
                pins the name to the wordmark; the five buttons stay in the tree,
                focusable and individually named. -->
-          <h1 class="brand" aria-label="urbicon ui">
-            urbicon <span class="brand-suffix">ui</span><span
+          <h1 class="brand" aria-label={`${BRAND} ${BRAND_SUFFIX}`}>
+            {BRAND} <span class="brand-suffix">{BRAND_SUFFIX}</span><span
               class="ticks"
               role="group"
               aria-label="Highlights"
@@ -847,7 +847,7 @@
                Fläche). Die erste Hälfte ist die Eintrittskarte (0 Deps hat
                nicht nur diese Bibliothek), die zweite ist das Argument: dass
                der Gate die Verwendung dort hält, wo sie hingehört. -->
-          <p class="claim">Zero dependencies. <strong>No drift.</strong></p>
+          <p class="claim">{CLAIM_LEAD} <strong>{CLAIM_POINT}</strong></p>
         </div>
         <p class="proof">{PROOF}</p>
       </div>

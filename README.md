@@ -1,6 +1,6 @@
 <p align="center">
   <a href="https://ui.urbicon.de">
-    <img src="apps/docs/static/og.png" alt="urbicon ui — Depends on nothing." width="720" />
+    <img src="apps/docs/static/og.png" alt="urbicon ui — Zero dependencies. No drift." width="720" />
   </a>
 </p>
 
