@@ -162,6 +162,39 @@ describe('TableStore — state.items', () => {
     expect(seen).toEqual([2, 2]);
   });
 
+  it('notifies on a replaced array, NOT on a row edited in place', () => {
+    // The one behaviour the derived rewrite took away, pinned so it is a
+    // contract rather than an accident. A `$state` data property deep-proxies
+    // what is assigned to it; a `$derived` does not wrap its value at all — so
+    // writing through to a row still changes the row and tells nobody.
+    //
+    // Nothing in the library does this (every update path replaces the array),
+    // but `onReady` hands the state to consumers, so the boundary is worth a
+    // failing test rather than a comment.
+    const seen: number[] = [];
+    const cleanup = $effect.root(() => {
+      const store = createTableState(undefined, undefined, {
+        items: () => [{ id: 1, name: 'Ada' }] as TableItem[]
+      });
+      $effect(() => {
+        seen.push(store.state.items.length);
+      });
+      flushSync();
+
+      store.state.items[0].name = 'Grace';
+      flushSync();
+      // The write lands — it just does not invalidate anything.
+      expect(store.state.items[0].name).toBe('Grace');
+
+      store.state.items = [...store.state.items, { id: 2, name: 'Radia' } as TableItem];
+      flushSync();
+    });
+    cleanup();
+
+    // One run at mount, one for the replacement. The in-place edit adds none.
+    expect(seen).toEqual([1, 2]);
+  });
+
   it('normalizes items without an id, as setItems did', () => {
     // `normalizeItems` stamps `__index` (not `id`) on items that have none —
     // the key-stability fallback. The derived has to run it for the same reason

@@ -214,6 +214,17 @@ export function createTableState(
   // cannot hand-build.
   //
   // See docs/SVELTE5-PATTERNS.md → "Prop-derived state".
+  //
+  // **Reactivity depth, deliberately shallower than before.** A `$state` data
+  // property deep-proxies whatever is assigned to it, so `state.items[0].name
+  // = 'x'` used to notify. A `$derived` does not wrap its value, so it no
+  // longer does — measured: the write lands, no reader re-runs. Replacing the
+  // whole array (`state.items = […]`, what `setItems`, `useLiveUpdates` and
+  // `useRemoteData` all do) notifies exactly as before, and nothing in the
+  // library mutates a row in place. Consumers reaching the state through
+  // `onReady` must do the same: edit a row via `pushUpdate` or by assigning a
+  // new array, never by writing through to a row. Pinned by
+  // TableStore.columns.svelte.test.ts.
   let items = $derived(normalizeItems(props?.items?.() ?? []));
   let loading = $derived(props?.loading?.() ?? false);
   let error = $derived(props?.error?.() ?? null);
