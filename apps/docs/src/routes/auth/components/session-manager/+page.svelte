@@ -6,7 +6,8 @@
     DocsLayout as DocsPageLayout,
     Note,
     NoteList,
-    Section
+    Section,
+    TypesReference
   } from '@urbicon-ui/docs';
   import { asset, resolve } from '$app/paths';
   import { buildRelatedLinks } from '$lib/component-links';
@@ -20,6 +21,7 @@
     { id: 'usage', title: 'Usage' },
     { id: 'accessibility', title: 'Accessibility' },
     { id: 'api', title: 'API Reference' },
+    { id: 'types', title: 'Types' },
     { id: 'installation', title: 'Installation' }
   ];
 </script>
@@ -93,8 +95,10 @@
   </Section>
 
   <Section marker="03" id="api" title="API Reference" intent="secondary">
-    <ApiReference props={componentData?.props ?? []} />
+    <ApiReference props={componentData?.props ?? []} types={componentData?.types ?? []} />
   </Section>
+
+  <TypesReference types={componentData?.types ?? []} />
 
   <Section marker="04" id="installation" title="Installation">
     <CodeExample
