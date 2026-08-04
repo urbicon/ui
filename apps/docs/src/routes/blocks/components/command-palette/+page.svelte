@@ -4,7 +4,8 @@
     ApiReference,
     CodeExample,
     DocsLayout as DocsPageLayout,
-    Section
+    Section,
+    TypesReference
   } from '@urbicon-ui/docs';
   import CustomDocs from './Docs.svelte';
   import Playground from './Playground.svelte';
@@ -58,6 +59,8 @@
   >
     <ApiReference props={componentData?.props ?? []} types={componentData?.types ?? []} />
   </Section>
+
+  <TypesReference types={componentData?.types ?? []} />
 
   <Section marker="05" id="installation" title="Installation">
     <CodeExample

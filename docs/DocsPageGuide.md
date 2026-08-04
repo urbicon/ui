@@ -54,6 +54,16 @@ with an intent. Adding one there makes the page's headings step out of line with
      held under every reading: 0 of the 329 sections in the second group carry an intent. -->
 
 
+**The Types section is two halves, and one half alone is worse than neither.** A page documents
+its types with `<TypesReference types={componentData?.types ?? []} />`, and it makes the type names
+in the API table link to that section with `types={componentData?.types ?? []}` on `<ApiReference>`.
+Neither half announces the other's absence: without the prop, `knownTypeNames` is empty and every
+type name in the Type column silently renders as plain text; without the section, the `#type-<Name>`
+links the prop generates point at an anchor that does not exist, and clicking one does nothing.
+Both must read the **same** `componentData` — feeding one of them a different module, an empty
+array or `componentData.props` is the failure this costs the most time to spot. `bun run
+typesref:lint` checks both directions and refuses anything that is not the canonical expression.
+
 **The rendered order is the order you write.** `TocNavigationItem` accepts no `order` field and
 nothing sorts by one; the TOC renders the `navigation` array as given, and the page renders its
 sections as written. The two are checked against each other by `bun run sections:lint`, which
@@ -442,6 +452,7 @@ Semantic tokens automatically adapt between light and dark mode.
 - [ ] `+page.svelte`: `stability` / `sourceHref` / `related` wired from `componentData`
 - [ ] `+page.svelte`: PlaygroundConfigurator with `showHeader={false}`, in `Playground.svelte` if it is more than a handful of controls
 - [ ] `+page.svelte`: ApiReference directly in Section (no wrapper div)
+- [ ] `+page.svelte`: the Types section — `<ApiReference … types={componentData?.types ?? []} />` **and** a `<TypesReference types={componentData?.types ?? []} />`, both fed from the same `componentData` — `bun run typesref:lint` is green
 - [ ] `+page.svelte`: Installation section at the end, `preview={false}` on the import example
 - [ ] `+page.svelte`: llm.txt link (prev/next comes from the layout — never add `<PrevNextNav>` per page)
 - [ ] `Docs.svelte`: no `docsConfig` export (route files are not read by docs-gen)

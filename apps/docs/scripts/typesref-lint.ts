@@ -44,14 +44,26 @@
  *
  * ── The trap this has to survive ───────────────────────────────────────────
  * A page can satisfy the letter of the rule and still be dead. `types={[]}`,
- * `types={undefined}` or a hand-written demo array all put a `types=` on the
- * tag while feeding the component nothing the generator produced — the same
- * shape as the namespace import that used to walk through blocks' imports-lint.
- * So the attribute is not merely counted, it is *resolved*: the expression must
- * reach a `componentData` imported from an `api` module, directly or through
- * one local const (`typesForTypesReference`). Anything else is reported, and an
- * expression this script cannot resolve at all is reported too rather than
- * assumed good — see `resolveTypesExpression`.
+ * `types={undefined}`, a hand-written demo array, `componentData?.props ?? []`
+ * (right object, wrong field — the line beside it reads `props={…props}`) or
+ * `componentData.types.slice(0, 0)` all put a `types=` on the tag while feeding
+ * the component nothing useful — the same shape as the namespace import that
+ * used to walk through blocks' imports-lint. So the attribute is not counted, it
+ * is *resolved* against a canonical shape, and the generated module it reads is
+ * remembered so the page's two halves can be required to agree. Anything
+ * unrecognised is reported rather than assumed good — see `resolveTypesSource`.
+ *
+ * ── What this deliberately does NOT check ──────────────────────────────────
+ *   - Reachability. A `<TypesReference>` inside `{#if false}` counts as
+ *     rendered. Any conditional is an equal bypass, and deciding which branch
+ *     runs is beyond a text lint; the honest statement is that this checks
+ *     presence and wiring, not control flow.
+ *   - What ends up in the table. All 11 wired pages pass `componentData.types`
+ *     UNFILTERED, and neither component filters internally, so the stage-3
+ *     filter above decides only WHETHER a page needs a Types section, never
+ *     what is in it. That direction is safe (the rule can only be too lax about
+ *     content, never too strict), but it is why the `NO_PAGE` gap below is real:
+ *     see #141.
  *
  * Demo instances are excluded before any of that, by the same blanking
  * `sections-lint` uses: a `<TypesReference types={sampleTypes}>` inside a
@@ -79,162 +91,185 @@ const APP = join(dirname(fileURLToPath(import.meta.url)), '..');
 const ROUTES = join(APP, 'src/routes');
 
 /**
- * The pre-existing backlog, one entry per page, each pointing at the issue that
- * empties it. Introduced 2026-08-04 alongside the rule: 93 of the 100 pages
- * with an `api.ts` were never wired, so gating on the rule alone would have
- * meant a red CI with no fix in the same change.
+ * The pre-existing backlog: the 93 pages that were unwired on 2026-08-04, when
+ * this rule was written. Gating on the rule alone would have meant a red CI with
+ * no fix in the same change, so the backlog is enumerated instead of counted.
  *
- * Same contract as blocks' imports-lint ALLOWLIST and variants-lint's
- * HAND_WRITTEN_CSS — **the list may only SHRINK, never grow**, and both stale
- * directions are errors: an entry whose page no longer exists, and an entry
- * whose page is conformant now (the exception buys nothing). Stage 3 of #114
- * wires the pages and deletes this map with them; `PENDING_AT_INTRODUCTION`
- * below is what stops it being topped up in the meantime.
+ * ── Why a frozen ROSTER and not a shrinking list ───────────────────────────
+ * The first version of this was a `Record<route, reason>` that stage 3 would
+ * empty, guarded by "the list may never exceed the 93 it started at". That
+ * guard was a **fixed ceiling, not a ratchet**, and stage 3 is precisely the
+ * sweep that frees slots under it: wire one page, delete its entry, and there
+ * is now room for a different page to be broken and exempted with the count
+ * unchanged. Measured 2026-08-04 on the first version: wiring `kbd` and
+ * deleting its entry (92, green), then UN-wiring `toast` and adding it as a new
+ * entry (93 again) — **green, no message**, a working page silently regressed.
+ *
+ * So the keys are frozen instead. Every route below is permanent for the life
+ * of the map and its VALUE moves `PENDING` → `WIRED`; nothing is ever deleted
+ * and nothing is ever added. A page that breaks after today is simply not in
+ * the roster, so it is checked like any other page, and it cannot be added to
+ * the roster because `ROSTER_SIZE` is checked for equality, not for a ceiling.
+ *
+ * The `WIRED` entries are not bookkeeping — they are regression guards for
+ * exactly the pages the sweep has touched: flipping one back to broken is an
+ * error naming the regression. Stage 3 deletes the whole map once every entry
+ * is `WIRED`, which is also when `ROSTER_SIZE` and this comment go.
  *
  * The reason is the same sentence on every entry on purpose. This is one
  * decision enumerated 93 times, not 93 decisions — enumerating it is what makes
- * the sweep auditable, because a page the sweep misses stays in the map and the
- * map is checked.
+ * the sweep auditable, because a page the sweep misses keeps its `PENDING` and
+ * the roster is checked.
  */
-const STAGE_3 = 'never wired — #114 stage 3 adds the Types section and deletes this entry';
+const PENDING = 'unwired on 2026-08-04 — #114 stage 3 wires the page and flips this to WIRED';
+const WIRED = 'wired since 2026-08-04 — kept as a regression guard until the roster is deleted';
 
-const PENDING_STAGE3: Record<string, string> = {
-  '/auth/components/account-settings': STAGE_3,
-  '/auth/components/forgot-password-page': STAGE_3,
-  '/auth/components/invitation-manager': STAGE_3,
-  '/auth/components/login-page': STAGE_3,
-  '/auth/components/notification-badge': STAGE_3,
-  '/auth/components/notification-center': STAGE_3,
-  '/auth/components/notification-listener': STAGE_3,
-  '/auth/components/passkey-manager': STAGE_3,
-  '/auth/components/push-permission-prompt': STAGE_3,
-  '/auth/components/register-page': STAGE_3,
-  '/auth/components/reset-password-page': STAGE_3,
-  '/auth/components/session-manager': STAGE_3,
-  '/auth/components/two-factor-manager': STAGE_3,
-  '/auth/components/verify-email-page': STAGE_3,
-  '/blocks/components/a2-ui-view': STAGE_3,
-  '/blocks/components/area-chart': STAGE_3,
-  '/blocks/components/avatar-group': STAGE_3,
-  '/blocks/components/bar-chart': STAGE_3,
-  '/blocks/components/calendar': STAGE_3,
-  '/blocks/components/chart-frame': STAGE_3,
-  '/blocks/components/chat': STAGE_3,
-  '/blocks/components/chat-message': STAGE_3,
-  '/blocks/components/chat-message-list': STAGE_3,
-  '/blocks/components/citation-chip': STAGE_3,
-  '/blocks/components/code-block': STAGE_3,
-  '/blocks/components/command-palette': STAGE_3,
-  '/blocks/components/composition-bar': STAGE_3,
-  '/blocks/components/copy-button': STAGE_3,
-  '/blocks/components/currency-input': STAGE_3,
-  '/blocks/components/date-picker': STAGE_3,
-  '/blocks/components/date-range-picker': STAGE_3,
-  '/blocks/components/donut-chart': STAGE_3,
-  '/blocks/components/empty-state': STAGE_3,
-  '/blocks/components/file-upload': STAGE_3,
-  '/blocks/components/guide': STAGE_3,
-  '/blocks/components/line-chart': STAGE_3,
-  '/blocks/components/locale-switcher': STAGE_3,
-  '/blocks/components/number-input': STAGE_3,
-  '/blocks/components/pin-input': STAGE_3,
-  '/blocks/components/planner': STAGE_3,
-  '/blocks/components/prompt-input': STAGE_3,
-  '/blocks/components/qr-code': STAGE_3,
-  '/blocks/components/reasoning-disclosure': STAGE_3,
-  '/blocks/components/sankey': STAGE_3,
-  '/blocks/components/sidebar-layout': STAGE_3,
-  '/blocks/components/sparkline': STAGE_3,
-  '/blocks/components/streaming-markdown': STAGE_3,
-  '/blocks/components/theme-switcher': STAGE_3,
-  '/blocks/components/time-input': STAGE_3,
-  '/blocks/components/tool-call-card': STAGE_3,
-  '/blocks/primitives/accordion': STAGE_3,
-  '/blocks/primitives/alert': STAGE_3,
-  '/blocks/primitives/avatar': STAGE_3,
-  '/blocks/primitives/badge': STAGE_3,
-  '/blocks/primitives/breadcrumb': STAGE_3,
-  '/blocks/primitives/button': STAGE_3,
-  '/blocks/primitives/button-group': STAGE_3,
-  '/blocks/primitives/card': STAGE_3,
-  '/blocks/primitives/checkbox': STAGE_3,
-  '/blocks/primitives/collapsible': STAGE_3,
-  '/blocks/primitives/combobox': STAGE_3,
-  '/blocks/primitives/confirm-dialog': STAGE_3,
-  '/blocks/primitives/dialog': STAGE_3,
-  '/blocks/primitives/drawer': STAGE_3,
-  '/blocks/primitives/form-field': STAGE_3,
-  '/blocks/primitives/input': STAGE_3,
-  '/blocks/primitives/journey-timeline': STAGE_3,
-  '/blocks/primitives/kbd': STAGE_3,
-  '/blocks/primitives/menu': STAGE_3,
-  '/blocks/primitives/pagination': STAGE_3,
-  '/blocks/primitives/popover': STAGE_3,
-  '/blocks/primitives/progress': STAGE_3,
-  '/blocks/primitives/radio-group': STAGE_3,
-  '/blocks/primitives/scroller': STAGE_3,
-  '/blocks/primitives/segment-group': STAGE_3,
-  '/blocks/primitives/select': STAGE_3,
-  '/blocks/primitives/separator': STAGE_3,
-  '/blocks/primitives/sidebar': STAGE_3,
-  '/blocks/primitives/skeleton': STAGE_3,
-  '/blocks/primitives/slider': STAGE_3,
-  '/blocks/primitives/spinner': STAGE_3,
-  '/blocks/primitives/split-pane': STAGE_3,
-  '/blocks/primitives/stepper': STAGE_3,
-  '/blocks/primitives/tab': STAGE_3,
-  '/blocks/primitives/textarea': STAGE_3,
-  '/blocks/primitives/toggle': STAGE_3,
-  '/blocks/primitives/toolbar': STAGE_3,
-  '/blocks/primitives/tooltip': STAGE_3,
-  '/docs/components/code-panel': STAGE_3,
-  '/docs/components/note-list': STAGE_3,
-  '/docs/components/playground-configurator': STAGE_3,
-  '/docs/components/types-reference': STAGE_3,
-  '/table/table': STAGE_3
+const STAGE_3_ROSTER: Record<string, typeof PENDING | typeof WIRED> = {
+  '/auth/components/account-settings': PENDING,
+  '/auth/components/forgot-password-page': PENDING,
+  '/auth/components/invitation-manager': PENDING,
+  '/auth/components/login-page': PENDING,
+  '/auth/components/notification-badge': PENDING,
+  '/auth/components/notification-center': PENDING,
+  '/auth/components/notification-listener': PENDING,
+  '/auth/components/passkey-manager': PENDING,
+  '/auth/components/push-permission-prompt': PENDING,
+  '/auth/components/register-page': PENDING,
+  '/auth/components/reset-password-page': PENDING,
+  '/auth/components/session-manager': PENDING,
+  '/auth/components/two-factor-manager': PENDING,
+  '/auth/components/verify-email-page': PENDING,
+  '/blocks/components/a2-ui-view': PENDING,
+  '/blocks/components/area-chart': PENDING,
+  '/blocks/components/avatar-group': PENDING,
+  '/blocks/components/bar-chart': PENDING,
+  '/blocks/components/calendar': PENDING,
+  '/blocks/components/chart-frame': PENDING,
+  '/blocks/components/chat': PENDING,
+  '/blocks/components/chat-message': PENDING,
+  '/blocks/components/chat-message-list': PENDING,
+  '/blocks/components/citation-chip': PENDING,
+  '/blocks/components/code-block': PENDING,
+  '/blocks/components/command-palette': WIRED,
+  '/blocks/components/composition-bar': PENDING,
+  '/blocks/components/copy-button': PENDING,
+  '/blocks/components/currency-input': PENDING,
+  '/blocks/components/date-picker': PENDING,
+  '/blocks/components/date-range-picker': WIRED,
+  '/blocks/components/donut-chart': PENDING,
+  '/blocks/components/empty-state': PENDING,
+  '/blocks/components/file-upload': PENDING,
+  '/blocks/components/guide': PENDING,
+  '/blocks/components/line-chart': PENDING,
+  '/blocks/components/locale-switcher': PENDING,
+  '/blocks/components/number-input': WIRED,
+  '/blocks/components/pin-input': PENDING,
+  '/blocks/components/planner': PENDING,
+  '/blocks/components/prompt-input': PENDING,
+  '/blocks/components/qr-code': PENDING,
+  '/blocks/components/reasoning-disclosure': PENDING,
+  '/blocks/components/sankey': PENDING,
+  '/blocks/components/sidebar-layout': PENDING,
+  '/blocks/components/sparkline': PENDING,
+  '/blocks/components/theme-switcher': WIRED,
+  '/blocks/components/streaming-markdown': PENDING,
+  '/blocks/components/time-input': PENDING,
+  '/blocks/components/tool-call-card': PENDING,
+  '/blocks/primitives/accordion': PENDING,
+  '/blocks/primitives/alert': PENDING,
+  '/blocks/primitives/avatar': PENDING,
+  '/blocks/primitives/badge': PENDING,
+  '/blocks/primitives/breadcrumb': PENDING,
+  '/blocks/primitives/button': PENDING,
+  '/blocks/primitives/button-group': PENDING,
+  '/blocks/primitives/card': PENDING,
+  '/blocks/primitives/checkbox': PENDING,
+  '/blocks/primitives/collapsible': PENDING,
+  '/blocks/primitives/combobox': PENDING,
+  '/blocks/primitives/confirm-dialog': PENDING,
+  '/blocks/primitives/dialog': PENDING,
+  '/blocks/primitives/drawer': PENDING,
+  '/blocks/primitives/form-field': PENDING,
+  '/blocks/primitives/input': PENDING,
+  '/blocks/primitives/journey-timeline': PENDING,
+  '/blocks/primitives/kbd': PENDING,
+  '/blocks/primitives/menu': PENDING,
+  '/blocks/primitives/pagination': PENDING,
+  '/blocks/primitives/popover': PENDING,
+  '/blocks/primitives/progress': PENDING,
+  '/blocks/primitives/radio-group': PENDING,
+  '/blocks/primitives/scroller': PENDING,
+  '/blocks/primitives/segment-group': PENDING,
+  '/blocks/primitives/select': PENDING,
+  '/blocks/primitives/separator': PENDING,
+  '/blocks/primitives/sidebar': PENDING,
+  '/blocks/primitives/skeleton': PENDING,
+  '/blocks/primitives/slider': PENDING,
+  '/blocks/primitives/spinner': PENDING,
+  '/blocks/primitives/split-pane': PENDING,
+  '/blocks/primitives/stepper': PENDING,
+  '/blocks/primitives/tab': PENDING,
+  '/blocks/primitives/textarea': PENDING,
+  '/blocks/primitives/toggle': PENDING,
+  '/blocks/primitives/toolbar': PENDING,
+  '/blocks/primitives/tooltip': PENDING,
+  '/docs/components/code-panel': PENDING,
+  '/docs/components/note-list': PENDING,
+  '/docs/components/playground-configurator': PENDING,
+  '/docs/components/types-reference': PENDING,
+  '/table/table': PENDING
 };
 
 /**
- * The size of PENDING_STAGE3 on the day it was introduced. The stale checks
- * force entries out as pages get fixed, but nothing stops a NEW violating page
- * being added to the map instead of being wired — which is exactly how an
- * exception list rots into a blanket exemption. So the list may shrink freely
- * and may never exceed the number it started at.
+ * The number of routes in STAGE_3_ROSTER, frozen on the day it was introduced
+ * and checked for EQUALITY. Entries are never added or removed; only their
+ * value moves PENDING → WIRED. See the roster's own comment for why a ceiling
+ * was not enough.
  */
-const PENDING_AT_INTRODUCTION = 93;
+const ROSTER_SIZE = 93;
 
 /**
  * Route dirs that have a generated `api.ts` but no `+page.svelte`, each with
- * the reason. Their types are documented on a family page instead.
+ * the reason their types are not on a page.
  *
  * Not a silent `continue`: registry-lint's header records what a bare skip
  * costs — `NoteList` shipped exported, catalogued, with a generated `api.ts`
  * in a route directory and no page, for a whole release, past a green lint.
  * Same contract as everything else here, both stale directions are errors.
  *
- * Caveat this script does NOT check, and should not be read as checking: that
- * the family page named below actually documents these types. Its own
- * `<TypesReference>` is fed from its own `componentData.types`, so the nine
- * Guide surfaces' types are not covered by it today. Verifying that claim needs
- * the family page to aggregate the sibling `api.ts` types, which is a content
- * decision, not a lint rule.
+ * ── The reason says "nowhere", not "on the family page" ────────────────────
+ * These eight are `PAGELESS` in registry-lint as "documented as a family on
+ * /blocks/components/guide", and for PROPS that is true — the family page
+ * imports each sibling's `componentData` and renders a per-surface
+ * `<ApiReference>`. For TYPES it is false, and the filter at the top of this
+ * file is what makes it false: `guide/api.ts` does carry `GuidePanelProps` and
+ * friends, but with `owner` naming the surface, so `t.owner === 'Guide'` drops
+ * them. Measured 2026-08-04: 39 types on the family page, 14 survive, not one
+ * of them a surface type — 8 `Guide*Props` + 7 `Guide*Variants` = 15 names on
+ * no page at all.
+ *
+ * An exception with a false reason is still false with a footnote, so the
+ * reason below names the gap and points at #141 rather than repeating a claim
+ * this script cannot make. It deliberately does NOT verify where these types
+ * are documented — closing the gap means aggregating sibling types into the
+ * family page (or changing what `owner` means), which is a content decision.
+ *
+ * Kept separate from registry-lint's `PAGELESS` rather than imported: that map
+ * is keyed by component NAME and answers a different question (is there a page
+ * at all), and after the correction above the two no longer say the same thing.
+ * `registry-lint` also runs its whole lint on import, so there is nothing to
+ * import from it without splitting the map into a shared module first. Both
+ * lists are stale-checked, so a ninth surface turns both red rather than one.
  */
 const NO_PAGE: Record<string, string> = {
-  '/blocks/components/guide-article':
-    'guide surface — page-less, family page /blocks/components/guide',
-  '/blocks/components/guide-beacon':
-    'guide surface — page-less, family page /blocks/components/guide',
-  '/blocks/components/guide-hint':
-    'guide surface — page-less, family page /blocks/components/guide',
-  '/blocks/components/guide-marker':
-    'guide surface — page-less, family page /blocks/components/guide',
-  '/blocks/components/guide-mention':
-    'guide surface — page-less, family page /blocks/components/guide',
-  '/blocks/components/guide-panel':
-    'guide surface — page-less, family page /blocks/components/guide',
-  '/blocks/components/guide-provider':
-    'guide surface — page-less, family page /blocks/components/guide',
-  '/blocks/components/guide-ref': 'guide surface — page-less, family page /blocks/components/guide'
+  '/blocks/components/guide-article': 'guide surface — its types land on no page, see #141',
+  '/blocks/components/guide-beacon': 'guide surface — its types land on no page, see #141',
+  '/blocks/components/guide-hint': 'guide surface — its types land on no page, see #141',
+  '/blocks/components/guide-marker': 'guide surface — its types land on no page, see #141',
+  '/blocks/components/guide-mention': 'guide surface — its types land on no page, see #141',
+  '/blocks/components/guide-panel': 'guide surface — its types land on no page, see #141',
+  '/blocks/components/guide-provider': 'guide surface — its types land on no page, see #141',
+  '/blocks/components/guide-ref': 'guide surface — its types land on no page, see #141'
 };
 
 /**
@@ -407,33 +442,96 @@ function generatedDataNames(src: string): Set<string> {
   return names;
 }
 
-type Liveness = 'live' | 'dead' | 'unresolved';
+/**
+ * What a `types=` expression reads.
+ *
+ * `module` is the generated binding it reads `.types` off — `componentData`, or
+ * a sibling alias like `panelData`. Carrying the NAME rather than a boolean is
+ * what lets the two halves of a page be compared against each other; see the
+ * `sameSource` check at the call site.
+ */
+type TypesSource =
+  | { kind: 'live'; module: string }
+  | { kind: 'dead'; why: string }
+  | { kind: 'unresolved' };
 
 /**
- * Whether a `types=` expression is actually fed from generated component data.
- *
- * `live` — it names a generated `componentData` (`componentData?.types ?? []`),
- * or one local const that does (`typesForTypesReference`, which six pages use).
- * `dead` — it resolves to something the generator never produced: `[]`,
- * `undefined`, a hand-written array. Formally an attribute, functionally
- * nothing; `knownTypeNames` stays empty and every type name stays dead text.
- * `unresolved` — a bare identifier with no declaration this script can find.
- * Reported rather than assumed good: a guard that silently accepts what it
- * cannot read is the shape this whole rule exists to stop.
+ * Blank out `as <Type>` casts, length-preserving, so the expression underneath
+ * can be matched structurally. The one live shape is
+ *   `(componentData as ComponentAPIInfo & { types?: unknown[] }).types ?? []`
+ * on the six `docs/components/*` pages — the cast body carries `{`, `}` and `[`
+ * `]`, so it is skipped to the bracket that closes the cast's own group.
  */
-function resolveTypesExpression(expr: string, src: string, generated: Set<string>): Liveness {
-  const mentionsGenerated = (text: string): boolean =>
-    [...generated].some((n) => new RegExp(`\\b${n}\\b`).test(text));
+function blankCasts(expr: string): string {
+  let out = expr;
+  for (;;) {
+    const at = out.search(/\bas\b/);
+    if (at === -1) return out;
+    let depth = 0;
+    let end = out.length;
+    for (let i = at; i < out.length; i++) {
+      const ch = out[i];
+      if (ch === '(' || ch === '{' || ch === '[') depth++;
+      else if (ch === ')' || ch === '}' || ch === ']') {
+        if (depth === 0) {
+          end = i;
+          break;
+        }
+        depth--;
+      }
+    }
+    out = out.slice(0, at) + ' '.repeat(end - at) + out.slice(end);
+  }
+}
 
-  if (mentionsGenerated(expr)) return 'live';
+/**
+ * The canonical way to hand a component the generated types. Anything else is
+ * refused rather than pattern-matched loosely — see `resolveTypesSource`.
+ */
+const CANONICAL_TYPES_EXPR =
+  /^([A-Za-z_$][\w$]*)\s*\??\.\s*types\s*(?:(?:\?\?|\|\|)\s*\[\s*\]\s*)?$/;
 
-  const identifiers = [...expr.matchAll(/[A-Za-z_$][\w$]*/g)]
-    .map((m) => m[0])
-    .filter((id) => !['undefined', 'null', 'as', 'const', 'satisfies'].includes(id));
-  if (identifiers.length === 0) return 'dead'; // `{[]}`, `{''}` — nothing to resolve
+/**
+ * What a `types=` expression actually feeds the component.
+ *
+ * The first version of this asked only "does the expression MENTION a generated
+ * binding", which is blind to the value and let three real shapes through green
+ * (all measured 2026-08-04 on the wired `toast` page):
+ *
+ *   - `types={componentData?.props ?? []}` — right object, wrong field. The
+ *     line beside it reads `props={componentData?.props ?? []}`, so a
+ *     copy-paste slip is the single most likely way to get this wiring wrong,
+ *     and it produces EXACTLY the defect this lint exists to catch:
+ *     `knownTypeNames` fills with prop names, ApiReference emits
+ *     `#type-<propName>`, and `revealTableRow` finds nothing.
+ *   - `types={componentData.types.slice(0, 0)}` — right field, emptied.
+ *   - `types={demo.typesForTypesReference}` — a property access that merely
+ *     contains a generated-looking identifier.
+ *
+ * So the expression is now matched against `CANONICAL_TYPES_EXPR` — `X.types`,
+ * `X?.types`, optionally `?? []` / `|| []` — after casts and parentheses are
+ * removed, and `X` must be a generated binding. A bare identifier is resolved
+ * one hop through its `const` declaration and the same test is applied to the
+ * initializer. Everything else is `dead` or `unresolved` and reported: refusing
+ * an unrecognised shape is the point, because the set of ways to write "nothing
+ * useful" is open-ended while the set of correct ways is two lines long.
+ */
+function resolveTypesSource(expr: string, src: string, generated: Set<string>): TypesSource {
+  const normalize = (text: string): string =>
+    blankCasts(text).replace(/[()]/g, ' ').replace(/\s+/g, ' ').trim();
 
-  let sawDeclaration = false;
-  for (const id of identifiers) {
+  const direct = normalize(expr).match(CANONICAL_TYPES_EXPR);
+  if (direct) {
+    if (generated.has(direct[1])) return { kind: 'live', module: direct[1] };
+    return {
+      kind: 'dead',
+      why: `\`${direct[1]}\` is not a \`componentData\` imported from an \`api\` module`
+    };
+  }
+
+  // A bare identifier — resolve one hop and test the initializer the same way.
+  const bare = normalize(expr).match(/^([A-Za-z_$][\w$]*)$/);
+  if (bare) {
     // `\s*` on BOTH sides of the optional type annotation. Without the second
     // one this matched nothing for the six pages that write
     //   const typesForTypesReference =
@@ -442,13 +540,21 @@ function resolveTypesExpression(expr: string, src: string, generated: Set<string
     // that needs resolving at all came back `unresolved` and the six pages
     // already wired were reported as unwired. Caught by the first real run.
     const decl = src.match(
-      new RegExp(`\\b(?:const|let|var)\\s+${id}\\b\\s*(?::[\\s\\S]*?)?\\s*=([\\s\\S]*?);`)
+      new RegExp(`\\b(?:const|let|var)\\s+${bare[1]}\\b\\s*(?::[\\s\\S]*?)?\\s*=([\\s\\S]*?);`)
     );
-    if (!decl) continue;
-    sawDeclaration = true;
-    if (mentionsGenerated(decl[1])) return 'live';
+    if (!decl) return { kind: 'unresolved' };
+    const hop = normalize(decl[1]).match(CANONICAL_TYPES_EXPR);
+    if (hop && generated.has(hop[1])) return { kind: 'live', module: hop[1] };
+    return {
+      kind: 'dead',
+      why: `\`${bare[1]}\` resolves to \`${normalize(decl[1])}\`, which does not read \`.types\` off a generated \`componentData\``
+    };
   }
-  return sawDeclaration ? 'dead' : 'unresolved';
+
+  return {
+    kind: 'dead',
+    why: 'not of the form `componentData.types` / `componentData?.types ?? []`'
+  };
 }
 
 // ── The generated data ───────────────────────────────────────────────────────
@@ -476,18 +582,22 @@ const route = (dir: string): string => dir.slice(ROUTES.length) || '/';
 let documentableTotal = 0;
 let pagesWithApi = 0;
 let checked = 0;
-const pendingSeen = new Set<string>();
+const rosterSeen = new Set<string>();
 const noPageSeen = new Set<string>();
 const conformant: string[] = [];
 
 for (const dir of apiDirs) {
   const r = route(dir);
 
-  // Imported, not regexed. A generated `api.ts` is a self-contained module (no
-  // imports at all — verified across all 108), so the real object is available
-  // and the stage-3 filter can be applied verbatim instead of approximated. If
-  // the generator ever gives it a dependency this throws, which is the correct
-  // outcome: the parser would be reading something it no longer understands.
+  // Imported, not regexed, so the stage-3 filter runs against the real object
+  // instead of an approximation of it. The premise is that a generated `api.ts`
+  // is self-contained — measured 2026-08-04: zero `import` statements across all
+  // 108 — and it is a premise, not something enforced here. An earlier version
+  // of this comment claimed a new dependency would throw; it does not. Measured:
+  // prepending `import { existsSync } from 'node:fs'` to one api.ts left the run
+  // green, because only an UNRESOLVABLE specifier throws. Note also that
+  // `await import()` executes module code, which is safe only because this file
+  // is generated by docs-gen from the repo's own sources.
   let componentData: { name: string; types?: TypeEntry[] };
   try {
     componentData = (await import(join(dir, 'api.ts'))).componentData;
@@ -530,76 +640,132 @@ for (const dir of apiDirs) {
   const apiTags = openingTags(markup, localNames(markup, 'ApiReference'));
   const typesTags = openingTags(markup, localNames(markup, 'TypesReference'));
 
+  const exempt = STAGE_3_ROSTER[r] === PENDING;
+
   // A page may render several `<ApiReference>` — the Guide family page renders
   // six, one per surface, and the demo instances a docs page renders are
   // already blanked above. So the question is whether ANY of them is wired, not
   // whether all are: a family page's per-surface tables legitimately share the
   // one Types section below them.
-  let apiLive = false;
-  for (const tag of apiTags) {
-    const expr = typesExpression(tag);
-    if (expr === null) continue;
-    const liveness = resolveTypesExpression(expr, markup, generated);
-    if (liveness === 'live') apiLive = true;
-    else if (!(r in PENDING_STAGE3)) {
+  const apiSources = new Set<string>();
+  const typesSources = new Set<string>();
+
+  for (const [label, tags, sink] of [
+    ['ApiReference', apiTags, apiSources],
+    ['TypesReference', typesTags, typesSources]
+  ] as const) {
+    for (const tag of tags) {
+      const expr = typesExpression(tag);
+      if (expr === null) continue;
+      const source = resolveTypesSource(expr, markup, generated);
+      if (source.kind === 'live') {
+        sink.add(source.module);
+        continue;
+      }
+      if (exempt) continue;
       errors.push({
         where: `src/routes${r}/+page.svelte`,
-        detail: `<ApiReference types={${expr.trim()}}> is ${
-          liveness === 'dead'
-            ? 'not fed from the generated component data, so `knownTypeNames` stays empty and ' +
-              'every type name in the Type column renders as dead text — the attribute is ' +
-              'there and buys nothing'
-            : 'an expression this script cannot resolve to a declaration; it may be dead. ' +
-              'Feed it `componentData.types` directly, or teach `resolveTypesExpression` this shape'
-        }.`
+        detail:
+          source.kind === 'dead'
+            ? `<${label} types={${expr.trim()}}> feeds nothing the generator produced — ` +
+              `${source.why}. The attribute is there and buys nothing: ` +
+              `\`knownTypeNames\` stays empty and every type name stays dead text. ` +
+              `Pass \`componentData?.types ?? []\`.`
+            : `<${label} types={${expr.trim()}}> is an expression this script cannot resolve ` +
+              `to a declaration, so it may be dead. Pass \`componentData?.types ?? []\` ` +
+              `directly, or teach \`resolveTypesSource\` this shape.`
       });
     }
   }
 
-  let typesLive = false;
-  for (const tag of typesTags) {
-    const expr = typesExpression(tag);
-    if (expr === null) continue;
-    if (resolveTypesExpression(expr, markup, generated) === 'live') typesLive = true;
+  // A `<TypesReference id="...">` overrides the component's own `id="types"`
+  // (it takes `{...restProps}`), which is the anchor `revealTableRow` falls back
+  // to when it cannot find the row itself — reachable in normal use, because
+  // TypesReference's own "only referenced" filter can remove the row. So an
+  // override is fine only while some other element supplies `id="types"`, which
+  // on the one page that does this is the wrapping `<Section id="types">`.
+  const typesIdOverride = typesTags.some((t) => /\bid\s*=/.test(t));
+  const hasTypesAnchor = /\bid=["']types["']/.test(markup);
+  if (!exempt && typesSources.size > 0 && typesIdOverride && !hasTypesAnchor) {
+    errors.push({
+      where: `src/routes${r}/+page.svelte`,
+      detail:
+        `<TypesReference> overrides its \`id\`, and nothing else on the page carries ` +
+        `\`id="types"\` — so \`revealTableRow\`'s \`fallbackSectionId: 'types'\` resolves to ` +
+        `nothing whenever the row itself is not on screen. Wrap it in a ` +
+        `\`<Section id="types">\` or drop the override.`
+    });
   }
 
-  if (r in PENDING_STAGE3) {
-    pendingSeen.add(r);
-    if (typesLive && apiLive) {
+  const wired =
+    apiSources.size > 0 &&
+    typesSources.size > 0 &&
+    // Both halves live is not enough: they must read the SAME generated module.
+    // Measured 2026-08-04 — the Guide family page feeding its per-surface table
+    // from `panelData.types` and its `<TypesReference>` from
+    // `componentData.types` passed the earlier boolean check while not one
+    // `#type-GuidePanelProps` link had a target.
+    [...apiSources].every((m) => typesSources.has(m));
+
+  if (r in STAGE_3_ROSTER) {
+    rosterSeen.add(r);
+    if (exempt && wired) {
       errors.push({
-        where: 'PENDING_STAGE3',
-        detail: `${r} is wired now — remove the entry, the exception buys nothing.`
+        where: 'STAGE_3_ROSTER',
+        detail: `${r} is wired now — flip its entry from PENDING to WIRED.`
       });
     }
-    continue;
+    if (!exempt && !wired) {
+      errors.push({
+        where: `src/routes${r}/+page.svelte`,
+        detail:
+          `is marked WIRED in STAGE_3_ROSTER but is not wired any more — a page this sweep ` +
+          `already fixed has regressed. Restore its Types section rather than flipping the ` +
+          `entry back.`
+      });
+    }
+    if (exempt) continue;
   }
 
   checked++;
 
   if (documentable.length === 0) {
-    // No live case today (all 108 carry at least one), so this is unreachable
-    // rather than dead — kept because "nothing to document" is a legitimate
-    // future state and silently skipping it is what the rest of this file argues
-    // against.
-    conformant.push(r);
+    // Reported, not waved through. This branch is unreachable today (all 108
+    // api.ts carry at least one documentable type), and the earlier version
+    // booked it as conformant on that basis — which made it a silent hole
+    // exactly where the generated input is what broke. Measured 2026-08-04:
+    // flipping every `exported` in `toast/api.ts` to false and stripping the
+    // page's Types section left the run GREEN and still counted toast among the
+    // "wired" pages, because the only guard was a GLOBAL floor (661 → 652,
+    // against a floor of 500) while the damage is per page.
+    errors.push({
+      where: `src/routes${r}/api.ts`,
+      detail:
+        `has ${(componentData.types ?? []).length} extracted type(s) but none survive ` +
+        `\`exported && (!owner || owner === '${componentData.name}')\`, so this page is exempt ` +
+        `from the rule for a reason nobody chose. Either the generator regressed (run ` +
+        `\`bun run docs:gen:all\`) or this component genuinely exposes no importable type of ` +
+        `its own — in which case say so here.`
+    });
     continue;
   }
 
-  if (!typesLive) {
+  if (typesSources.size === 0) {
     errors.push({
       where: `src/routes${r}/+page.svelte`,
-      detail: apiLive
-        ? `passes \`types=\` to <ApiReference> but renders no <TypesReference> fed from ` +
-          `\`componentData.types\` — so it emits \`#type-<Name>\` links whose target section ` +
-          `does not exist. \`revealTableRow\` falls back to \`fallbackSectionId: 'types'\`, which ` +
-          `resolves to nothing, and the click does nothing at all. Add the Types section.`
-        : `has ${documentable.length} documentable type(s) and renders no <TypesReference> — ` +
-          `they are documented nowhere. Add \`<TypesReference types={componentData?.types ?? []} />\` ` +
-          `(inside a \`<Section id="types" title="Types">\` if the page lists one in its nav).`
+      detail:
+        apiSources.size > 0
+          ? `passes \`types=\` to <ApiReference> but renders no <TypesReference> fed from ` +
+            `\`componentData.types\` — so it emits \`#type-<Name>\` links whose target section ` +
+            `does not exist. \`revealTableRow\` falls back to \`fallbackSectionId: 'types'\`, which ` +
+            `resolves to nothing, and the click does nothing at all. Add the Types section.`
+          : `has ${documentable.length} documentable type(s) and renders no <TypesReference> — ` +
+            `they are documented nowhere. Add \`<TypesReference types={componentData?.types ?? []} />\` ` +
+            `(inside a \`<Section id="types" title="Types">\` if the page lists one in its nav).`
     });
   }
 
-  if (!apiLive) {
+  if (apiSources.size === 0) {
     errors.push({
       where: `src/routes${r}/+page.svelte`,
       detail:
@@ -610,15 +776,28 @@ for (const dir of apiDirs) {
     });
   }
 
-  if (typesLive && apiLive) conformant.push(r);
+  if (apiSources.size > 0 && typesSources.size > 0 && !wired) {
+    errors.push({
+      where: `src/routes${r}/+page.svelte`,
+      detail:
+        `<ApiReference> reads types from {${[...apiSources].join(', ')}} while <TypesReference> ` +
+        `documents {${[...typesSources].join(', ')}} — both halves are live and they are ` +
+        `disjoint, so the links one emits have no target in the other. Feed them the same ` +
+        `\`componentData\`.`
+    });
+  }
+
+  if (wired) conformant.push(r);
 }
 
 // ── Stale exceptions ─────────────────────────────────────────────────────────
-for (const [r, why] of Object.entries(PENDING_STAGE3)) {
-  if (!pendingSeen.has(r)) {
+for (const [r, why] of Object.entries(STAGE_3_ROSTER)) {
+  if (!rosterSeen.has(r)) {
     errors.push({
-      where: 'PENDING_STAGE3',
-      detail: `stale entry '${r}' (${why}) — no such page has a generated api.ts any more, remove it.`
+      where: 'STAGE_3_ROSTER',
+      detail:
+        `stale entry '${r}' (${why}) — no such page has a generated api.ts any more. The roster ` +
+        `is frozen, so removing the route means also lowering ROSTER_SIZE, deliberately.`
     });
   }
 }
@@ -632,12 +811,18 @@ for (const [r, why] of Object.entries(NO_PAGE)) {
     });
   }
 }
-if (Object.keys(PENDING_STAGE3).length > PENDING_AT_INTRODUCTION) {
+// Membership, not size. A ceiling (`length > N`) is not a ratchet: every page
+// stage 3 wires would free a slot under it, so after 50 fixes there would be 50
+// openings and 93 would stay the bar forever. Equality plus permanent keys means
+// a page that breaks after today cannot be exempted at all — it is not in the
+// roster, and putting it in changes the size.
+if (Object.keys(STAGE_3_ROSTER).length !== ROSTER_SIZE) {
   errors.push({
-    where: 'PENDING_STAGE3',
+    where: 'STAGE_3_ROSTER',
     detail:
-      `${Object.keys(PENDING_STAGE3).length} entries, up from ${PENDING_AT_INTRODUCTION} at ` +
-      `introduction — this list may only shrink. A new page is wired, not exempted.`
+      `${Object.keys(STAGE_3_ROSTER).length} entries, but the roster was frozen at ` +
+      `${ROSTER_SIZE} on 2026-08-04. Entries are never added or removed — a fixed page flips ` +
+      `PENDING → WIRED, and a page broken after today is wired, not exempted.`
   });
 }
 
@@ -657,10 +842,14 @@ if (
 }
 
 // ── Report ───────────────────────────────────────────────────────────────────
+const rosterValues = Object.values(STAGE_3_ROSTER);
+const pendingCount = rosterValues.filter((v) => v === PENDING).length;
+const wiredCount = rosterValues.filter((v) => v === WIRED).length;
+
 console.log(
   `\n${c.bold}typesref-lint${c.reset} ${c.gray}· ${apiDirs.length} api.ts (${pagesWithApi} with a ` +
     `page), ${documentableTotal} documentable types, ${checked} pages checked, ` +
-    `${Object.keys(PENDING_STAGE3).length} pending stage 3${c.reset}\n`
+    `roster ${wiredCount}/${ROSTER_SIZE} wired (${pendingCount} pending stage 3)${c.reset}\n`
 );
 
 if (errors.length) {
@@ -678,6 +867,6 @@ if (errors.length) {
 console.log(
   `${c.green}✓ every page with documentable types renders a <TypesReference> and passes ` +
     `\`types=\` to its <ApiReference>, both fed from the generated component data ` +
-    `(${conformant.length} pages wired, ${Object.keys(PENDING_STAGE3).length} pending stage 3, ` +
+    `(${conformant.length} pages wired, ${pendingCount} pending stage 3, ` +
     `${Object.keys(NO_PAGE).length} page-less by decision).${c.reset}\n`
 );
