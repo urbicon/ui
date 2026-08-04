@@ -3,6 +3,8 @@
 Mandatory best practices for the Urbicon UI codebase. This file is the detailed reference for the short section in [`AGENTS.md`](../AGENTS.md#svelte-5--mandatory-patterns).
 
 > **Context:** A 2026-05 review found five recurring anti-patterns (`Math.random()` IDs, `setContext('string')`, `$state(new Map())`, index keys, `class:foo`) in an otherwise fully Svelte-5-migrated codebase. All were fixed — this file prevents regressions. Source for the rules themselves: the official Svelte 5 documentation.
+>
+> **2026-08:** all 185 `$effect` in the repo were inventoried and the rules below measured against real SSR output. The "State sync" row had named `$derived` as the replacement but said nothing about values with **other writers** — a silence that led one issue to conclude a derivation was "architecturally impossible". It is not: deriveds are overridable as of 5.25. See "Prop-derived state" below.
 
 ## Anti-Patterns (do NOT do)
 
@@ -18,7 +20,9 @@ Mandatory best practices for the Urbicon UI codebase. This file is the detailed 
 | `setContext('string', …)` (≥ 5.40)                                                                                                | `createContext<T>()`                                                 | 🟠       |
 | `$state(new Map())` / `$state(new Set())`                                                                                         | `new SvelteMap(...)` / `new SvelteSet(...)` from `svelte/reactivity` | 🟠       |
 | Index as key in `{#each}`                                                                                                        | Stable unique key (ID, ISO date, slug)                              | 🟠       |
-| State sync via `$effect` (`foo = bar` inside the effect)                                                                          | `$derived`                                                           | 🟠       |
+| State sync via `$effect` (`foo = bar` inside the effect)                                                                          | `$derived` — **including when the value has other writers**, see below | 🟠       |
+| `bind:this` + `$effect` only to decorate/measure an element                                                                       | `{@attach …}` — no ref, no null guard, teardown built in            | 🟠       |
+| `$effect` to observe an external source (listener, observer, socket)                                                              | `createSubscriber` from `svelte/reactivity`                          | 🟠       |
 | `if (browser)` inside `$effect`                                                                                                   | `$effect` runs client-only — the guard is redundant                 | 🟠       |
 | `<svelte:component this={X}>`                                                                                                     | `<X />` (Svelte 5 allows dynamic components directly)               | 🟡       |
 | `<svelte:self>`                                                                                                                   | `import Self from './ThisComponent.svelte'`                          | 🟡       |
@@ -189,6 +193,83 @@ A characterization test **before** the rework is mandatory when the service is u
 
 Action definitions accordingly move from `(node, params) => { … return { destroy } }` to `(params) => (node) => { … return () => /* cleanup */ }`. Reactivity per attach is the default — restrict it deliberately with `untrack(...)` when needed.
 
+An `$effect` that only exists to decorate or measure an element — `bind:this`, a null guard, a teardown — is an attachment written the long way. `{@attach}` drops all three: the element is the argument, so it cannot be null, and the return value _is_ the teardown. Role model: `mintAttachment` in `packages/blocks/src/lib/mint/svelte.ts`.
+
+### Prop-derived state — `$derived` covers all four cases
+
+**Why this matters beyond tidiness:** `$effect` never runs during SSR. Every value a component syncs in an effect is absent from the server-rendered HTML. A `$derived` is evaluated during SSR and lands in the markup.
+
+Deriveds have been **overridable since 5.25** ([docs](https://svelte.dev/docs/svelte/$derived#Overriding-derived-values)), which is what makes them work even where a second writer exists. Assigning to a derived holds until one of its dependencies changes — then it re-seeds. That is exactly the semantics of "the prop seeds it, local interaction then owns it".
+
+**1. Plain mirror — no other writer:**
+
+```svelte
+<!-- ❌ invisible during SSR -->
+let mode = $state('client');
+$effect(() => { mode = modeProp; });
+
+<!-- ✅ -->
+const mode = $derived(modeProp);
+```
+
+**2. Prop seeds a buffer that local writers take over.** Recognisable by the guard against your own feedback (`if (next !== untrack(() => local))`):
+
+```svelte
+<!-- ✅ the override holds; a new prop value re-seeds -->
+let cells = $derived(toCells(value ?? ''));
+
+function type(i: string, char: string) {
+  cells = cells.with(i, char); // plain assignment — no effect, no untrack
+}
+```
+
+**3. Reset on trigger** — "when X changes, put Y back":
+
+```svelte
+<!-- ❌ -->
+$effect(() => { void query; selectedIndex = 0; });
+
+<!-- ✅ arrow keys still assign to it; a new query resets it -->
+let selectedIndex = $derived.by(() => { query; return 0; });
+```
+
+**4. The value lives in a shared store.** A `$state({ … })` bucket **cannot hold a derivation** — that, not carelessness, is why a provider ends up mirroring every prop in an effect. Hand the store getters instead of values; a getter inside a `$state` literal stays reactive *and* is visible during SSR:
+
+```ts
+// ❌ the bucket must be filled from outside, so it needs ~14 effects
+const state = $state({ mode: 'client', selectionMode: 'none' });
+
+// ✅ nothing to fill
+const state = $state({
+  get mode() { return props.mode; },
+  get selectionMode() { return props.selectionMode; }
+});
+```
+
+A getter-only field throws on assignment, so a field with a **second** writer (live updates, remote data) needs a real `$derived` class field rather than a hand-written `get`/`set` pair — a hand-built `override ?? prop` getter never re-seeds, while `$derived` does it for free.
+
+**What stays an effect:** consumer callbacks, DEV validation, network/abort/timers, focus and overlay lifecycle, and latches (`hasBeenActive`, `reachedStep`) — a value with memory cannot be an expression without hiding a side effect in a getter.
+
+### Observing an external source — `createSubscriber`
+
+For anything event-based outside Svelte (listeners, `ResizeObserver`, `IntersectionObserver`, sockets), `createSubscriber` turns the source into a value that components simply read — instead of every call site repeating `$effect(() => thing.observe())`:
+
+```ts
+import { createSubscriber } from 'svelte/reactivity';
+import { on } from 'svelte/events';
+
+class ScrollSpy {
+  #subscribe = createSubscriber((update) => on(window, 'scroll', update, { passive: true }));
+
+  get active() {
+    this.#subscribe(); // makes the getter reactive when read in an effect/template
+    return computeActive();
+  }
+}
+```
+
+`start` runs once no matter how many effects read the value, and its teardown runs when the last one is destroyed. `MediaQuery` from `svelte/reactivity` is the same idea, already built.
+
 ### Stable keys in `{#each}`
 
 ```svelte
@@ -207,11 +288,18 @@ Action definitions accordingly move from `(node, params) => { … return { destr
 
 Exception: purely static skeletons with `Array(count)` — here the index is semantically the correct stable key (no per-item state).
 
-## Top 5 code smells (grep targets)
+## Code smells (grep targets)
 
 For future reviews and pre-merge checks:
 
 ```bash
+# 0. Effect used as a trigger — a bare `void x;` is hand-written dependency
+#    tracking, i.e. "I want to react to a change", which is a $derived (42 hits, 2026-08)
+rg "^\s*void [a-zA-Z]" packages/ apps/
+
+# 0b. Element decoration written the long way — `bind:this` ref + null guard + teardown
+rg "\\\$effect\(\(\) => \{\s*if \([a-zA-Z]+(El|Ref|Element)" packages/
+
 # 1. Math.random for IDs (🔴) — expect 1 hit: utils/id.ts (documented non-component fallback, not a violation)
 rg "Math\.random\(\)" packages/
 
@@ -238,4 +326,6 @@ rg "\(\s*i\s*\)\s*\}" packages/ -t svelte
 | `SvelteMap` + reactive `$effect`                                          | `packages/blocks/src/lib/primitives/Tab/Tab.svelte`                       |
 | `MediaQuery` from `svelte/reactivity` (instance-local, deliberately over `svelte/reactivity/window`) | `Sidebar/Sidebar.svelte`, `Pagination/Pagination.svelte`               |
 | Generic component                                                         | `packages/blocks/src/lib/primitives/Combobox/Combobox.svelte`             |
+| Attachment factory instead of `bind:this` + `$effect`                     | `packages/blocks/src/lib/mint/svelte.ts` (`mintAttachment`)              |
+| `createSubscriber` for an external event source                           | `packages/docs/src/lib/stores/scroll-spy.svelte.ts`                       |
 | `$props.id()` two-step pattern                                           | every primitive with an `id` prop (e.g. `Checkbox`, `RadioItem`, `FormField`) |
