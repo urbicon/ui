@@ -5,7 +5,7 @@ import {
   type TableQueryViewState
 } from '@urbicon-ui/sveltekit-utils/table-query';
 import { beforeEach, describe, expect, it } from 'vitest';
-import type { Column, TableItem } from '$lib';
+import type { Column, Filter, TableItem } from '$lib';
 import type { TableViewState } from './TableStore.svelte';
 import { createTableState } from './TableStore.svelte';
 
@@ -99,6 +99,11 @@ describe('the parsed URL, handed to `query`', () => {
         columns: () => COLUMNS,
         query: () => view('')
       });
+      // The post-hydration step `TableProvider` performs in an `$effect`.
+      // Storage is a client-only layer since #152, so nothing it holds reaches
+      // state until this runs — which is what keeps the client's first render
+      // in step with the server's HTML.
+      store.applyPersistedState();
       expect(store.state.sortColumn).toBe('name');
       expect(names(store.paginatedItems)).toEqual(['Ada', 'Barbara', 'Grace']);
     });
@@ -204,5 +209,148 @@ describe('the parsed URL, handed to `query`', () => {
     expect(store.state.searchTerm).toBe('a');
     expect(store.state.itemsPerPage).toBe(2);
     expect(store.state.groupByKey).toBe('name');
+  });
+});
+
+describe('persistence is a client-only layer', () => {
+  // The rule the store follows since #152: storage is read at construction but
+  // only *applied* after hydration, because it does not exist on the server.
+  // Without that, a stored sort reordered the rows in the client's very first
+  // render — measured against `Table.ssr.test.ts`, which renders Ada/Grace.
+
+  it('does not reorder the first render, and does after hydration', () => {
+    window.localStorage.setItem(
+      'urbicon_table_sort_late_v1',
+      JSON.stringify({ column: 'amount', direction: 'asc' })
+    );
+
+    const cleanup = $effect.root(() => {
+      const store = createTableState({ tableId: 'late' }, undefined, {
+        items: () => ITEMS,
+        columns: () => COLUMNS
+      });
+      // What the server renders, and therefore what the client's first render
+      // has to match: input order, nothing from storage.
+      expect(store.state.sortColumn).toBe('');
+      expect(names(store.paginatedItems)).toEqual(['Ada', 'Grace', 'Barbara']);
+
+      store.applyPersistedState();
+
+      expect(store.state.sortColumn).toBe('amount');
+      expect(names(store.paginatedItems)).toEqual(['Grace', 'Barbara', 'Ada']);
+    });
+    cleanup();
+  });
+
+  it('still lets a stored empty axis beat the seed', () => {
+    // Deferring the *application* must not defer the decision: the `hydrated*`
+    // flags are still computed at construction, so a seed cannot fill an axis
+    // that storage will supply as empty. Without that the seed would sort at
+    // construction and storage would overwrite it a moment later — visible, and
+    // for one frame simply wrong.
+    window.localStorage.setItem(
+      'urbicon_table_sort_cleared_v1',
+      JSON.stringify({ column: '', direction: 'asc' })
+    );
+
+    const cleanup = $effect.root(() => {
+      const store = createTableState(
+        { tableId: 'cleared' },
+        { sort: { column: 'amount', direction: 'desc' } },
+        { items: () => ITEMS, columns: () => COLUMNS }
+      );
+      expect(store.state.sortColumn).toBe('');
+      store.applyPersistedState();
+      expect(store.state.sortColumn).toBe('');
+    });
+    cleanup();
+  });
+});
+
+describe('persistControlled — keeping a URL-controlled axis across a bare visit', () => {
+  const FILTER_KEY = 'urbicon_table_filters_pc_v1';
+  const aFilter = [{ column: 'name', operator: 'contains', value: 'ad' }] as Filter[];
+
+  it('stores nothing by default, so a bare visit restores nothing', async () => {
+    const cleanup = $effect.root(() => {
+      const store = createTableState({ tableId: 'pc' }, undefined, {
+        items: () => ITEMS,
+        columns: () => COLUMNS,
+        query: () => ({ activeFilters: [] })
+      });
+      store.applyPersistedState();
+      store.addFilter(aFilter[0]);
+    });
+    await new Promise((resolve) => setTimeout(resolve, 700));
+    cleanup();
+
+    expect(window.localStorage.getItem(FILTER_KEY)).toBeNull();
+  });
+
+  it('stores what the reader filtered, and hands it back on a bare visit', async () => {
+    const cleanup = $effect.root(() => {
+      const store = createTableState({ tableId: 'pc', persistControlled: true }, undefined, {
+        items: () => ITEMS,
+        columns: () => COLUMNS,
+        query: () => ({ activeFilters: [] })
+      });
+      store.applyPersistedState();
+      store.addFilter(aFilter[0]);
+    });
+    // Past the 500 ms write debounce.
+    await new Promise((resolve) => setTimeout(resolve, 700));
+    cleanup();
+
+    expect(JSON.parse(window.localStorage.getItem(FILTER_KEY) ?? 'null')).toEqual(aFilter);
+
+    // Second visit, same page, no query params at all.
+    const cleanup2 = $effect.root(() => {
+      const store = createTableState({ tableId: 'pc', persistControlled: true }, undefined, {
+        items: () => ITEMS,
+        columns: () => COLUMNS,
+        query: () => view('')
+      });
+      store.applyPersistedState();
+      expect(store.state.activeFilters).toHaveLength(1);
+      expect(names(store.paginatedItems)).toEqual(['Ada']);
+    });
+    cleanup2();
+  });
+
+  it('does not write when the reader only followed a link', async () => {
+    // The reason unlocking the write is safe: storage is fed from the action
+    // wrappers, never from a controlled value resolving. Someone else's filter
+    // arriving through the URL must not become this reader's stored default.
+    const cleanup = $effect.root(() => {
+      const store = createTableState({ tableId: 'pc', persistControlled: true }, undefined, {
+        items: () => ITEMS,
+        columns: () => COLUMNS,
+        query: () => ({ activeFilters: aFilter })
+      });
+      store.applyPersistedState();
+      expect(store.state.activeFilters).toHaveLength(1);
+    });
+    await new Promise((resolve) => setTimeout(resolve, 700));
+    cleanup();
+
+    expect(window.localStorage.getItem(FILTER_KEY)).toBeNull();
+  });
+
+  it('leaves the reading order alone — the link still wins over storage', async () => {
+    window.localStorage.setItem(
+      'urbicon_table_sort_pc2_v1',
+      JSON.stringify({ column: 'amount', direction: 'desc' })
+    );
+
+    const cleanup = $effect.root(() => {
+      const store = createTableState({ tableId: 'pc2', persistControlled: true }, undefined, {
+        items: () => ITEMS,
+        columns: () => COLUMNS,
+        query: () => view('?sort=name')
+      });
+      store.applyPersistedState();
+      expect(store.state.sortColumn).toBe('name');
+    });
+    cleanup();
   });
 });

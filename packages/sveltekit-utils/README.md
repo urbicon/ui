@@ -88,6 +88,8 @@ Opt-in URL sync for `@urbicon-ui/table`, in client mode as well as `mode="server
 
 Because `viewState` re-reads the URL rather than capturing it, the browser's back button works: navigating back to a URL without `?sort` returns the table to its unsorted view.
 
+A controlled axis is not written to `localStorage` by default, so a visit that arrives without query params starts clean. For a business table where "my filters are still there tomorrow" is expected, pair the sync with `persistenceConfig={{ tableId: '…', persistControlled: true }}` — the table then stores what the reader themselves changed (never what a shared link brought), and hands it back on a bare visit. Reading order is unaffected: the URL still wins.
+
 With manual control (`onQueryChange` instead of `queryFn`), pass `sync.syncQuery` directly — note that `onQueryChange` does not fire when `queryFn` is set, which is why the managed variant calls it inside `queryFn`.
 
 The pure serializers live under `@urbicon-ui/sveltekit-utils/table-query` and work without SvelteKit — e.g. to parse the initial query in a server `load` and fetch the first page during SSR:

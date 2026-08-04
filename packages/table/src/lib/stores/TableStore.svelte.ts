@@ -70,25 +70,37 @@ export interface SummaryConfig {
  * the sort, the filters, the grouping, the summaries or the selection is
  * itself persisted and wins over the matching `initial*` seed.
  *
- * ## With server rendering
+ * ## Storage is a client-only layer
  *
- * The axes split in two, and the line is the same one twice over: *may the
- * server know this*, and *should a shared link carry it*.
+ * Every axis here is read at construction and **applied after hydration**, from
+ * an `$effect`. One rule, no per-axis exceptions, for one reason: storage does
+ * not exist on the server. Anything applied during construction makes the
+ * client's first render disagree with the HTML it is hydrating — measured with
+ * `{amount, asc}` stored, the server emitted Ada/Grace and the client mounted
+ * Grace/Ada.
+ *
+ * What that costs is a visible change on an SSR page once the JavaScript
+ * arrives. On a client-rendered page it costs nothing: the effect still runs
+ * inside `mount()`, before the browser paints.
+ *
+ * ## What belongs here, and what belongs in the URL
+ *
+ * Two questions, and they draw the same line: *may the server know this*, and
+ * *should a shared link carry it*.
  *
  * - **Filters, search, sort, grouping, page** decide which data is shown, so
- *   the server has to know them — and `localStorage` is precisely what it
- *   cannot read. Put those in the URL and hand them to {@link TableProps.query}
- *   instead; a controlled axis outranks persistence and is not written to
- *   storage at all. See `createTableQueryUrlSync` in `@urbicon-ui/sveltekit-utils`.
- *   Leaving them here under SSR means the server renders one view and the
- *   browser replaces it with another.
+ *   the server has to know them if it is to render anything true. Put those in
+ *   the URL and hand them to {@link TableProps.query} — a controlled axis
+ *   outranks persistence, and unlike storage the server can read it. See
+ *   `createTableQueryUrlSync` in `@urbicon-ui/sveltekit-utils`. Kept here alone
+ *   under SSR, they still restore correctly; the server just renders the
+ *   unfiltered view first.
  * - **Column visibility and column order** are presentation. Nobody wants to
- *   share a link that hides columns on the other end, so they stay here — and
- *   because the server cannot read storage, it renders **every** column. The
- *   preference is applied after hydration, which is a visible change on an
- *   SSR page and none at all on a client-rendered one (the effect that applies
- *   it still runs before the first paint). That transition is the deliberate
- *   cost of keeping these two out of the URL, not an oversight.
+ *   share a link that hides columns on the other end, so they stay here and the
+ *   server renders every column.
+ *
+ * The two are not exclusive: see {@link persistControlled} for keeping a
+ * URL-controlled filter across a visit that arrives without one.
  */
 export interface TablePersistenceConfig {
   /** Unique identifier for this table — used as the storage-key suffix. */
@@ -111,6 +123,36 @@ export interface TablePersistenceConfig {
   persistColumnVisibility?: boolean;
   /** Persist column order. Default `true`. */
   persistColumnOrder?: boolean;
+  /**
+   * Also store the axes the {@link TableProps.query} prop controls. **Default
+   * `false`.**
+   *
+   * Without it, a controlled axis is neither restored from storage nor written
+   * to it: the URL is the source of truth while it carries one, and that is
+   * where the view lives — bookmarkable, shareable, surviving a reload. What it
+   * does not survive is opening the same page from a bare link, because nothing
+   * was written.
+   *
+   * For a business table that is usually the wrong answer — "my filters are
+   * still there tomorrow" is expected behaviour — so `persistControlled: true`
+   * unlocks the write. The reading order is untouched: **URL > storage**, so a
+   * link still shows what it says.
+   *
+   * The reason this is safe to unlock is that only a *setter* writes. Storage
+   * is fed from the table's own action wrappers (`addFilter`, `setSort`, …),
+   * never from a controlled value resolving — so following someone else's link
+   * stores nothing, and only what the reader themselves changes is kept.
+   *
+   * ```svelte
+   * <Table
+   *   {items} {columns}
+   *   query={sync.viewState}
+   *   onQueryChange={sync.syncQuery}
+   *   persistenceConfig={{ tableId: 'invoices', persistControlled: true }}
+   * />
+   * ```
+   */
+  persistControlled?: boolean;
   /**
    * Persist selected row ids across reloads. **Opt-in — default `false`**,
    * unlike every axis above (a restored selection surprises more often than it
@@ -554,33 +596,36 @@ export function createTableState(
   const liveUpdates = useLiveUpdates(state);
 
   /**
-   * Apply the persisted **presentation** preferences — which columns are hidden
-   * and in what order.
+   * Apply everything storage supplied — the sort, filters, search term,
+   * grouping and summaries on the shared state, plus the column visibility and
+   * order that live inside their own concerns.
    *
-   * Deliberately not called here at construction, unlike every other persisted
-   * axis. Those decide *which data is shown*, which is exactly the state the
-   * server has to know, so #152 moved them to the URL where it can see them.
-   * Column visibility and order are the other class: nobody wants to share a
-   * link that hides columns on the other end, so they stay in `localStorage` —
-   * and `localStorage` does not exist on the server.
+   * Deliberately not called here at construction, and that is the one rule
+   * persistence follows now: **storage is a client-only layer, applied after
+   * hydration.** It exists only in the browser, so anything read from it and
+   * applied during construction makes the client's first render disagree with
+   * the server's HTML — measured both ways, with `{amount, asc}` stored the
+   * server emitted Ada/Grace and the client mounted Grace/Ada, and with
+   * `['amount']` hidden the server emitted two `<th>` and the client one.
    *
-   * That leaves one honest option. The server renders every column; the client
-   * applies the preference **after** hydration, so the markup it hydrates and
-   * the markup it produces agree on the column set. Applying it at construction
-   * instead made the client's very first render carry a different number of
-   * `<th>` than the HTML underneath it — measured: with `['amount']` stored, the
-   * server emitted `Name`/`Amount` and the client mounted `Name` alone.
+   * A per-axis judgement was the alternative, and it is worse: it would need an
+   * argument for each of eight axes, and every one of them would come out the
+   * same way, because none of them can reach the server. The axes that *should*
+   * reach it belong in the URL instead — see {@link TableProps.query}.
    *
    * `TableProvider` calls this from an `$effect`, which is the hydration
    * boundary: it does not run on the server, and on the client it runs before
-   * the browser paints — so a client-only app still shows its stored columns in
-   * its first paint and sees no flash. Under SSR the already-painted server
-   * markup changes once, which is the transition #152 called acceptable for
-   * this class, because it changes presentation and not data.
+   * the browser paints — so a client-rendered app still shows its stored view
+   * in its first paint. Under SSR the already-painted server markup changes
+   * once, after the JavaScript arrives.
    *
-   * Idempotent: applying the same snapshot twice is the same snapshot.
+   * Reading storage still happens at construction, because the `hydrated*`
+   * flags have to be right before the `initial*` seeds below run: a seed must
+   * stay off an axis storage will supply, including one storage supplies as
+   * *empty*.
    */
-  function applyPersistedColumnPreferences() {
+  function applyPersistedState() {
+    persistence.applyPersistedState();
     // `state.columns` may still be empty when this runs; the consumer's
     // `columns` prop reaches `setColumns` separately, and filtering by the
     // persisted hidden ids happens there.
@@ -934,7 +979,7 @@ export function createTableState(
       return columnOrder.columnOrder;
     },
     initColumnOrder: columnOrder.initOrder,
-    applyPersistedColumnPreferences,
+    applyPersistedState,
     reorderColumn,
     resetColumnOrder,
     getColumnIndex: columnOrder.getColumnIndex,

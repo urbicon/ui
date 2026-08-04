@@ -77,6 +77,24 @@ export function usePersistence(
   const owns = (axis: keyof TableViewState): boolean => controlledView?.()?.[axis] !== undefined;
 
   /**
+   * Whether a *controlled* axis may still be written to storage.
+   *
+   * Off by default, and the default is the careful one: a controlled value
+   * copied into storage resurfaces the moment the table stops being controlled,
+   * so a reader who once followed someone else's link would get that stranger's
+   * filter back on a later visit.
+   *
+   * `persistControlled: true` unlocks it for the case a business table wants —
+   * "my filters are still there tomorrow" — and it is safe to unlock because
+   * only a *setter* writes. The `sync*` functions below are called from the
+   * store's action wrappers, never from the controlled derived resolving, so
+   * following a shared link stores nothing; the reader's own next filter does.
+   */
+  const storeControlled = persistenceConfig?.persistControlled === true;
+  /** May this axis be written to storage right now? */
+  const writable = (axis: keyof TableViewState): boolean => storeControlled || !owns(axis);
+
+  /**
    * Sort is **one** axis across two fields, and both hydration and write-back
    * touch both slots. Keying them off `sortColumn` alone let a controlled
    * `sortDirection` be overwritten by a stored one: `{ sortDirection: 'desc' }`
@@ -104,6 +122,21 @@ export function usePersistence(
   let hydratedSort = false;
   let hydratedSelection = false;
 
+  /**
+   * The writes hydration would make, held back until `applyPersistedState()`.
+   *
+   * Reading storage stays here at construction — it is synchronous, and the
+   * `hydrated*` flags below have to be right before the host store runs its
+   * `initial*` seeds. What moves is the *assignment*: storage exists only in
+   * the browser, so applying it during construction made the client's first
+   * render disagree with the server's HTML. Measured with `{amount, asc}`
+   * stored: the server emitted Ada/Grace and the client mounted Grace/Ada.
+   *
+   * See the SSR section of `TablePersistenceConfig` for why this is one rule
+   * for every axis rather than a judgement per axis.
+   */
+  const pending: Array<() => void> = [];
+
   if (persistenceConfig) {
     if (persistenceConfig.persistFilters !== false) {
       persistentFilters = createPersistentFilters({
@@ -116,7 +149,10 @@ export function usePersistence(
         persistentFilters.hasStoredValue &&
         Array.isArray(persistentFilters.value)
       ) {
-        state.activeFilters = persistentFilters.value.filter(isFilterShape);
+        const filters = persistentFilters.value.filter(isFilterShape);
+        pending.push(() => {
+          state.activeFilters = filters;
+        });
         hydratedFilters = true;
       }
     }
@@ -132,7 +168,10 @@ export function usePersistence(
         persistentSearchTerm.hasStoredValue &&
         typeof persistentSearchTerm.value === 'string'
       ) {
-        state.searchTerm = persistentSearchTerm.value;
+        const term = persistentSearchTerm.value;
+        pending.push(() => {
+          state.searchTerm = term;
+        });
       }
     }
 
@@ -148,7 +187,9 @@ export function usePersistence(
         persistentGroupByKey.hasStoredValue &&
         (groupByValue === null || typeof groupByValue === 'string')
       ) {
-        state.groupByKey = groupByValue;
+        pending.push(() => {
+          state.groupByKey = groupByValue;
+        });
         hydratedGroupByKey = true;
       }
     }
@@ -164,10 +205,12 @@ export function usePersistence(
         Array.isArray(persistentSummaryConfigs.value)
       ) {
         const configs = persistentSummaryConfigs.value.filter(isSummaryConfigShape);
-        state.summaryConfigs = configs;
-        // Only reveal the summary row when there is something to show — a
-        // stored *empty* set means the user removed every summary.
-        state.showSummary = configs.length > 0;
+        pending.push(() => {
+          state.summaryConfigs = configs;
+          // Only reveal the summary row when there is something to show — a
+          // stored *empty* set means the user removed every summary.
+          state.showSummary = configs.length > 0;
+        });
         hydratedSummaryConfigs = true;
       }
     }
@@ -186,8 +229,12 @@ export function usePersistence(
         typeof sortValue === 'object' &&
         typeof sortValue.column === 'string'
       ) {
-        state.sortColumn = sortValue.column;
-        state.sortDirection = sortValue.direction === 'desc' ? 'desc' : 'asc';
+        const column = sortValue.column;
+        const direction = sortValue.direction === 'desc' ? 'desc' : 'asc';
+        pending.push(() => {
+          state.sortColumn = column;
+          state.sortDirection = direction;
+        });
         hydratedSort = true;
       }
     }
@@ -220,10 +267,25 @@ export function usePersistence(
         debounceMs: persistenceConfig.debounceMs
       });
       if (persistentSelection.hasStoredValue && Array.isArray(persistentSelection.value)) {
-        for (const id of persistentSelection.value.filter(isRowId)) state.selectedIds.add(id);
+        const ids = persistentSelection.value.filter(isRowId);
+        pending.push(() => {
+          for (const id of ids) state.selectedIds.add(id);
+        });
         hydratedSelection = true;
       }
     }
+  }
+
+  /**
+   * Apply everything storage supplied. Called once, from an `$effect` in
+   * `TableProvider` — which is the hydration boundary: it does not run on the
+   * server, and on the client it runs before the browser paints.
+   *
+   * Idempotent, and drains itself so a second call cannot re-apply a snapshot
+   * over a value the user has since changed.
+   */
+  function applyPersistedState(): void {
+    while (pending.length > 0) pending.shift()?.();
   }
 
   // A controlled axis counts as "already supplied" for the `initial*` seeds,
@@ -241,23 +303,23 @@ export function usePersistence(
   // same reference back would be no signal change at all — the auto-save effect
   // would not re-run and the edit would never reach storage.
   function syncFilters() {
-    if (persistentFilters && !owns('activeFilters')) {
+    if (persistentFilters && writable('activeFilters')) {
       persistentFilters.value = [...state.activeFilters];
     }
   }
 
-  // Skipped while search is controlled, for the same reason as syncSelection
-  // below: the prop is the source of truth, so a controlled term must never
-  // reach storage — switching that table back to uncontrolled later would
-  // otherwise revive it.
+  // `searchControlled` is NOT part of `writable`: that is the separate
+  // `searchTerm` *prop*, whose value the consumer owns outright and re-applies
+  // on every render. `persistControlled` is about the `query` prop, where the
+  // table still owns the value between navigations.
   function syncSearch() {
-    if (persistentSearchTerm && !state.searchControlled && !owns('searchTerm')) {
+    if (persistentSearchTerm && !state.searchControlled && writable('searchTerm')) {
       persistentSearchTerm.value = state.searchTerm;
     }
   }
 
   function syncGroupByKey() {
-    if (persistentGroupByKey && !owns('groupByKey')) {
+    if (persistentGroupByKey && writable('groupByKey')) {
       persistentGroupByKey.value = state.groupByKey;
     }
   }
@@ -267,7 +329,7 @@ export function usePersistence(
   }
 
   function syncSortState() {
-    if (persistentSortState && !ownsSort())
+    if (persistentSortState && (storeControlled || !ownsSort()))
       persistentSortState.value = {
         column: state.sortColumn,
         direction: state.sortDirection
@@ -317,6 +379,7 @@ export function usePersistence(
   }
 
   return {
+    applyPersistedState,
     syncFilters,
     syncSearch,
     syncGroupByKey,

@@ -49,10 +49,22 @@ function createMemoryStorage(): Storage {
   };
 }
 
+/**
+ * Construct a store the way `TableProvider` does: inside an effect root, and
+ * then apply what storage supplied.
+ *
+ * The second step is what changed with #152. The store no longer writes stored
+ * values into state during construction, because storage exists only in the
+ * browser and applying it there put the client's first render out of step with
+ * the server's HTML. Hydration is now an explicit post-mount step, so a test
+ * that wants the restored view has to take it — exactly like the provider's
+ * `$effect` does.
+ */
 function withRoot<T>(fn: () => T): T {
   let result!: T;
   const cleanup = $effect.root(() => {
     result = fn();
+    (result as { applyPersistedState?: () => void })?.applyPersistedState?.();
   });
   cleanup();
   return result;
