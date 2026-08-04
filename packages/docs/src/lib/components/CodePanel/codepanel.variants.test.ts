@@ -14,9 +14,11 @@ describe('codePanelVariants', () => {
       'copySeparator',
       'codeCollapse',
       'codeDisplay',
-      'codeContent',
-      'loadingContainer',
-      'loadingText'
+      'codeContent'
+      // `loadingContainer` / `loadingText` are gone with the loading state
+      // itself: highlighting is synchronous since #10, so there is no spinner
+      // to style. This list is the reason that had to be a deletion rather than
+      // a leftover — see the both-directions check below.
     ];
 
     for (const slot of expectedSlots) {
@@ -36,7 +38,6 @@ describe('codePanelVariants', () => {
     expect(styles.codeToggle()).toContain('text-text-tertiary');
     expect(styles.copyButton()).toContain('text-text-quaternary');
     expect(styles.copySeparator()).toContain('text-text-quaternary');
-    expect(styles.loadingText()).toContain('text-text-secondary');
   });
 
   it('toolbar has no border or background', () => {

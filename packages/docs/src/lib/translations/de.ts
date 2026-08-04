@@ -59,7 +59,6 @@ export default {
   showAllCode: 'Alle Code-Beispiele anzeigen',
   copied: 'Kopiert!',
   copy: 'Kopieren',
-  loadingSyntax: 'Syntax-Highlighting wird geladen...',
   codeExample: 'Code-Beispiel',
   codeExampleLabeled: 'Code-Beispiel: {{title}}',
 

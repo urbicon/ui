@@ -170,6 +170,7 @@
       "name": "@urbicon-ui/docs",
       "version": "6.51.0",
       "devDependencies": {
+        "@shikijs/langs": "^4.4.1",
         "@sveltejs/kit": "catalog:",
         "@sveltejs/package": "catalog:",
         "@sveltejs/vite-plugin-svelte": "catalog:",
@@ -194,6 +195,7 @@
         "vitest": "catalog:",
       },
       "peerDependencies": {
+        "@shikijs/langs": "^4.4.1",
         "@urbicon-ui/blocks": "^6.0.0",
         "@urbicon-ui/i18n": "^6.0.0",
         "@urbicon-ui/shared-types": "^6.0.0",

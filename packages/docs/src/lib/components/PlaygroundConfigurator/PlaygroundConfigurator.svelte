@@ -159,19 +159,30 @@
     return control.description || propDocs?.[control.key];
   }
 
-  let initialized = false;
-  $effect(() => {
-    if (!initialized && (!values || Object.keys(values).length === 0)) {
-      const initialValues: Record<string, unknown> = {};
-      controls.forEach((control) => {
-        if (control.defaultValue !== undefined) {
-          initialValues[control.key] = control.defaultValue;
-        }
-      });
-      values = initialValues as TValues;
+  // Seeded at init, not in an `$effect`. Effects do not run on the server, so
+  // the prerendered playground had `values = {}`: the preview rendered the
+  // component with none of its knobs applied and the generated snippet showed a
+  // bare tag. That is the second of #10's three surfaces — same defect as the
+  // table's, in a different component.
+  //
+  // Writing to a `$bindable` prop here is the same write the effect did on its
+  // first (and only meaningful) run, so a caller that binds sees it exactly as
+  // before — on the client. Measured: on the server the write does **not**
+  // propagate upwards, because `bind:` is an SSR no-op. A parent that binds an
+  // empty object and renders from it therefore still has #10's defect, one
+  // level up; what this fixes is the configurator's own server output.
+  //
+  // `controls` is read once here on purpose — this is the initial seed, and a
+  // later controls change must not re-run it (the `initialized` flag the effect
+  // carried said the same thing, less directly).
+  // svelte-ignore state_referenced_locally
+  if (!values || Object.keys(values).length === 0) {
+    const initialValues: Record<string, unknown> = {};
+    for (const control of controls) {
+      if (control.defaultValue !== undefined) initialValues[control.key] = control.defaultValue;
     }
-    initialized = true;
-  });
+    values = initialValues as TValues;
+  }
 
   function updateValue(key: string, value: unknown) {
     values = { ...values, [key]: value } as TValues;
@@ -247,10 +258,10 @@
   onMount(() => {
     const shared = decodeShareParams(controls, window.location.search, shareScope);
     if (Object.keys(shared).length === 0) return;
-    // Mirrors the init effect's own guard: if this callback wins the race
-    // against it, `values` may still be the empty map a consumer passed, and
-    // merging a partial share subset onto that would leave every untouched
-    // control undefined.
+    // `values` can still be empty here — not through a race (the seed runs at
+    // init, so always before this), but because a control without a
+    // `defaultValue` contributes nothing to it. Merging a partial share subset
+    // onto an empty map would leave every untouched control undefined.
     const base = values && Object.keys(values).length > 0 ? values : componentDefaults;
     values = { ...base, ...shared } as TValues;
     onValuesChange?.(values);

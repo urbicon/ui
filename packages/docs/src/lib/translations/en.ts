@@ -59,7 +59,6 @@ export default {
   showAllCode: 'Show All Code',
   copied: 'Copied!',
   copy: 'Copy',
-  loadingSyntax: 'Loading syntax highlighting...',
   codeExample: 'Code example',
   codeExampleLabeled: 'Code example: {{title}}',
 
