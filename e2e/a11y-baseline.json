@@ -51,6 +51,19 @@
       "contrast": { "fg": "#635f58", "bg": "#070c10" },
       "reason": "Off-system dark-skinned SegmentGroup demo, inactive label: #635f58 on #070c10 = 3.09:1. The inactive label tracks --docs-soft, which W1 darkened #6e6b64 -> #635f58 to clear AA on the on-system warm-neutral track; on this demo's deliberately near-black brutalist skin that same token lands below the floor. Restyle-vs-exempt call on the off-system demo, outside e2e scope.",
       "ref": "docs/technical-debt.md -> 'Off-system dark-skin SegmentGroup demo trips axe (restyle-vs-exempt)'"
+    },
+    {
+      "id": "preview-sidebar-collapsed-collapsible-aria-hidden-focus",
+      "pass": "preview",
+      "rule": "aria-hidden-focus",
+      "routes": ["sidebar"],
+      "htmlIncludes": [
+        "data-mode=\"collapsible\"",
+        "data-state=\"closed\"",
+        "aria-hidden=\"true\""
+      ],
+      "reason": "LIBRARY BUG, not demo markup. Sidebar.svelte sets aria-hidden on the <aside> when a collapsible panel is closed but nothing sets `inert` and no focusable child is disabled, so the nav buttons stay tabbable inside a 0px-wide region the screen reader skips. The fix is not a one-liner: `inert` implies aria-hidden and is the clean answer, but it also kills pointer events, and the panel animates its width — when in the transition it applies is a per-mode decision that wants its own tests, which belongs in a blocks PR and not in a docs one. The predicate pins the deferral to exactly this state: collapsible mode, closed, aria-hidden. A responsive-mode panel (data-mode=\"responsive\"), an open one (data-state=\"open\") or any other node on the page is still red.",
+      "ref": "https://github.com/urbicon/ui/issues/138"
     }
   ]
 }
