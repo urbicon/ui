@@ -1,3 +1,4 @@
+// @vitest-environment jsdom
 import { flushSync } from 'svelte';
 import { describe, expect, it } from 'vitest';
 import type { Column, TableItem } from '$lib';
@@ -127,6 +128,38 @@ describe('TableStore — state.items', () => {
 
     items = [];
     expect(store.state.items).toHaveLength(0);
+  });
+
+  it('a fresh queryFn identity does not discard fetched rows', () => {
+    // Regression guard for the hazard the derived rewrite introduced: in managed
+    // server mode the item slot is gated on whether a `queryFn` exists. Reading
+    // the *function* there made the derived depend on its identity, and
+    // `queryFn={(q) => …}` — the form in the package README — hands over a new
+    // one on every parent render. That re-seeded `state.items` to `[]` and threw
+    // away what `useRemoteData` had assigned, with nothing to refetch it: the
+    // fetch effect tracks only `mode` and `queryKey`. TableProvider therefore
+    // reads a boolean; this asserts the property that boolean buys.
+    const seen: number[] = [];
+    const cleanup = $effect.root(() => {
+      let queryFn = $state<(() => void) | undefined>(() => {});
+      const hasQueryFn = $derived(!!queryFn);
+      const store = createTableState(undefined, undefined, {
+        mode: () => 'server',
+        items: () => (hasQueryFn ? [] : ITEMS)
+      });
+
+      // What setServerResult does with the fetched page.
+      store.state.items = ITEMS;
+      flushSync();
+      seen.push(store.state.items.length);
+
+      // Parent re-renders, inline arrow gets a new identity.
+      queryFn = () => {};
+      flushSync();
+      seen.push(store.state.items.length);
+    });
+    cleanup();
+    expect(seen).toEqual([2, 2]);
   });
 
   it('normalizes items without an id, as setItems did', () => {

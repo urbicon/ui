@@ -24,6 +24,24 @@ export function usePagination(
     return Math.ceil(totalItems / state.itemsPerPage);
   });
 
+  /**
+   * The page actually rendered: `currentPage` clamped into range.
+   *
+   * `currentPage` derives from the `initialPage` prop and is written by
+   * pagination, search, filtering and grouping — none of which can know whether
+   * the page still exists after `itemsPerPage` or the item count changed. Before
+   * 2026-08 the reset rode along inside `setItemsPerPage` (which set
+   * `currentPage = 1` as a side effect), so raising a rows-per-page control from
+   * 3 to 20 while on page 5 left `currentPage` at 5 against a single page —
+   * `slice(80, 100)` on 100 rows, an empty body with the data right there, and a
+   * pager reading "5 / 1".
+   *
+   * Clamping here makes that state unrepresentable instead of relying on every
+   * writer to remember the reset. It also covers an out-of-range `initialPage`,
+   * which never had a guard at all.
+   */
+  const effectivePage = $derived(Math.min(Math.max(state.currentPage, 1), totalPages));
+
   const paginatedItems = $derived.by((): TableItem[] => {
     const items = getSortedItems();
 
@@ -34,8 +52,8 @@ export function usePagination(
     if (state.groupByKey) return items;
 
     return items.slice(
-      (state.currentPage - 1) * state.itemsPerPage,
-      state.currentPage * state.itemsPerPage
+      (effectivePage - 1) * state.itemsPerPage,
+      effectivePage * state.itemsPerPage
     );
   });
 
@@ -63,6 +81,14 @@ export function usePagination(
     },
     get paginatedItems() {
       return paginatedItems;
+    },
+    /**
+     * `currentPage` clamped into range — what `paginatedItems` actually sliced.
+     * Read this for anything user-facing; `state.currentPage` can sit out of
+     * range after the page size or the item count changed under it.
+     */
+    get effectivePage() {
+      return effectivePage;
     },
     setPage,
     goToPage,

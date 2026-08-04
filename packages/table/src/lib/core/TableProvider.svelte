@@ -93,6 +93,16 @@
     onReady = undefined
   }: TableProviderProps = $props();
 
+  /**
+   * Whether a managed fetch is configured — as a boolean, deliberately.
+   *
+   * The prop getters below feed deriveds, and a derived that read `queryFn`
+   * itself would re-evaluate whenever the consumer passes a fresh arrow
+   * (`queryFn={(q) => …}` re-creates it on every parent render), discarding the
+   * fetched rows. `!!queryFn` only changes when one appears or disappears.
+   */
+  const hasQueryFn = $derived(!!queryFn);
+
   // Store is built once from the initial persistence config — not meant to
   // re-create if the prop changes reactively. The initial* seeds are equally
   // construction-time-only (seed-once): later changes to initialSort /
@@ -128,11 +138,21 @@
       // A managed `queryFn` owns the item list; the prop must not fight the
       // fetch lifecycle, so it contributes nothing in that mode (unchanged
       // behaviour, previously the `!(mode === 'server' && queryFn)` guard).
-      items: () => (mode === 'server' && queryFn ? [] : (items as TableItem[])),
+      //
+      // Reads `hasQueryFn`, NOT `queryFn` — this is a derived, not an effect,
+      // and the difference bites. `queryFn` is a function prop, so
+      // `<Table queryFn={(q) => …}>` hands it a fresh identity on every parent
+      // re-render. Depending on the identity would invalidate this derived,
+      // re-seed `state.items` to `[]`, and throw away the rows `useRemoteData`
+      // had assigned — with nothing to refetch them, since the fetch effect
+      // tracks only `mode` and `queryKey`. A boolean changes only when a
+      // `queryFn` actually appears or disappears, and Svelte skips propagation
+      // when a derived's new value is referentially identical to the old one.
+      items: () => (mode === 'server' && hasQueryFn ? [] : (items as TableItem[])),
       columns: () => columns,
-      // Same ownership rule: a managed fetch drives both slots itself.
-      loading: () => (mode === 'server' && queryFn ? false : loading),
-      error: () => (mode === 'server' && queryFn ? null : error),
+      // Same ownership rule, same reason for the boolean.
+      loading: () => (mode === 'server' && hasQueryFn ? false : loading),
+      error: () => (mode === 'server' && hasQueryFn ? null : error),
       initialPage: () => initialPage,
       itemsPerPage: () => itemsPerPage,
       multiExpand: () => multiExpand,

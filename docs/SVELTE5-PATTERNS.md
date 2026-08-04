@@ -294,11 +294,13 @@ For future reviews and pre-merge checks:
 
 ```bash
 # 0. Effect used as a trigger — a bare `void x;` is hand-written dependency
-#    tracking, i.e. "I want to react to a change", which is a $derived (42 hits, 2026-08)
+#    tracking, i.e. "I want to react to a change", which is a $derived (53 hits, 46 outside tests; 2026-08)
 rg "^\s*void [a-zA-Z]" packages/ apps/
 
-# 0b. Element decoration written the long way — `bind:this` ref + null guard + teardown
-rg "\\\$effect\(\(\) => \{\s*if \([a-zA-Z]+(El|Ref|Element)" packages/
+# 0b. Element decoration written the long way — `bind:this` ref + null guard + teardown.
+#     `-U` is required: the shape spans two lines and rg is line-based, so `\s*`
+#     cannot cross the newline. Without it the guard matches nothing, forever.
+rg -U "\\\$effect\(\(\) => \{\s*if \([a-zA-Z]+(El|Ref|Element)" packages/
 
 # 1. Math.random for IDs (🔴) — expect 1 hit: utils/id.ts (documented non-component fallback, not a violation)
 rg "Math\.random\(\)" packages/
