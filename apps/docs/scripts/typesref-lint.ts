@@ -58,6 +58,11 @@
  *     rendered. Any conditional is an equal bypass, and deciding which branch
  *     runs is beyond a text lint; the honest statement is that this checks
  *     presence and wiring, not control flow.
+ *   - Svelte's shorthand. `<TypesReference {types} />` reads as "no `types=`"
+ *     and is reported as unwired. That is a false positive, but a loud one in
+ *     the safe direction, and no page in the corpus writes it — the canonical
+ *     form the error asks for is spelled out. Teach `typesExpression` the
+ *     shorthand if a page ever wants it, rather than working around the error.
  *   - What ends up in the table. All 11 wired pages pass `componentData.types`
  *     UNFILTERED, and neither component filters internally, so the stage-3
  *     filter above decides only WHETHER a page needs a Types section, never
@@ -423,23 +428,51 @@ function typesExpression(tag: string): string | null {
 // ── Liveness ─────────────────────────────────────────────────────────────────
 
 /**
- * The local names bound to a generator-produced `componentData` on this page —
- * `componentData` from `./api`, plus every alias of it from a sibling's
- * (`import { componentData as panelData } from '../guide-panel/api'`, which the
- * Guide family page does nine times).
+ * The local names bound to a generator-produced `componentData` on this page,
+ * and which of them come from the page's OWN `./api`.
+ *
+ * The distinction is the whole point. "Generated" used to mean "the specifier
+ * ends in `api`", which is a path ending, not a provenance — so a page could
+ * document a NEIGHBOUR's types on both halves and satisfy the same-source rule
+ * while its own types landed nowhere. Measured 2026-08-04: pointing the toast
+ * page's import at `'../tooltip/api'` left the run green with Tooltip's types
+ * documented under Toast's heading and Toast's own nine documented nowhere. A
+ * wrong neighbour path is the same class of slip as `.props` for `.types`, and
+ * stage 3 wires 89 pages by hand — this is exactly when it happens.
+ *
+ * `own` is therefore what a page may document, and `all` exists only so a
+ * foreign binding can be RECOGNISED and named in the error rather than falling
+ * through as an unresolvable expression.
+ *
+ * Corpus, measured 2026-08-04: 178 imports from `'./api'` and 9 from
+ * `'../<guide-surface>/api'` — the latter only on the Guide family page (8 in
+ * `+page.svelte`, 1 in its `Playground.svelte`), and used for `props=`, never
+ * for `types=`. All 11 wired pages use `'./api'` for both halves, so requiring
+ * it costs nothing today.
  */
-function generatedDataNames(src: string): Set<string> {
-  const names = new Set<string>();
+interface GeneratedBindings {
+  /** local name → import specifier, for every `componentData` binding. */
+  readonly all: Map<string, string>;
+  /** the subset bound from this route's own `./api`. */
+  readonly own: Set<string>;
+}
+
+function generatedDataNames(src: string): GeneratedBindings {
+  const all = new Map<string, string>();
+  const own = new Set<string>();
   for (const imp of src.matchAll(/import\s*\{([^}]*)\}\s*from\s*['"]([^'"]+)['"]/g)) {
-    if (!/(^|\/)api$/.test(imp[2])) continue;
+    const specifier = imp[2];
+    if (!/(^|\/)api$/.test(specifier)) continue;
     for (const spec of imp[1].split(',')) {
       const t = spec.trim();
       const alias = t.match(/^componentData\s+as\s+([A-Za-z_$][\w$]*)$/);
-      if (alias) names.add(alias[1]);
-      else if (t === 'componentData') names.add('componentData');
+      const local = alias ? alias[1] : t === 'componentData' ? 'componentData' : null;
+      if (local === null) continue;
+      all.set(local, specifier);
+      if (specifier === './api') own.add(local);
     }
   }
-  return names;
+  return { all, own };
 }
 
 /**
@@ -516,7 +549,11 @@ const CANONICAL_TYPES_EXPR =
  * an unrecognised shape is the point, because the set of ways to write "nothing
  * useful" is open-ended while the set of correct ways is two lines long.
  */
-function resolveTypesSource(expr: string, src: string, generated: Set<string>): TypesSource {
+function resolveTypesSource(
+  expr: string,
+  src: string,
+  generated: ReadonlyMap<string, string>
+): TypesSource {
   const normalize = (text: string): string =>
     blankCasts(text).replace(/[()]/g, ' ').replace(/\s+/g, ' ').trim();
 
@@ -635,7 +672,19 @@ for (const dir of apiDirs) {
 
   const src = readFileSync(pageFile, 'utf8');
   const markup = blankDemoStages(splice(dir, src));
-  const generated = generatedDataNames(markup);
+  // Bindings come from `+page.svelte` ALONE, never from the spliced markup, and
+  // that is load-bearing: splicing concatenates files, which merges import
+  // scopes that the module system keeps apart. `toast/Playground.svelte` imports
+  // `componentData` from `'./api'` while `+page.svelte` has its own binding of
+  // the same name — so reading the concatenation let the sibling's legitimate
+  // own-import launder a foreign one on the page. Measured 2026-08-04: with the
+  // page importing `'../tooltip/api'`, the first version of this very check
+  // still passed, because `own` had picked up `componentData` from the
+  // Playground. The tags are still collected from the spliced markup (a Types
+  // section may live in a sibling), and a tag there is resolved against the
+  // page's imports — a sibling that binds the name differently is pathological
+  // and comes out as an error, which is the right direction.
+  const generated = generatedDataNames(src);
 
   const apiTags = openingTags(markup, localNames(markup, 'ApiReference'));
   const typesTags = openingTags(markup, localNames(markup, 'TypesReference'));
@@ -657,7 +706,7 @@ for (const dir of apiDirs) {
     for (const tag of tags) {
       const expr = typesExpression(tag);
       if (expr === null) continue;
-      const source = resolveTypesSource(expr, markup, generated);
+      const source = resolveTypesSource(expr, markup, generated.all);
       if (source.kind === 'live') {
         sink.add(source.module);
         continue;
@@ -697,9 +746,32 @@ for (const dir of apiDirs) {
     });
   }
 
+  // A page documents its OWN types. Same source is not enough when the source is
+  // a neighbour: both halves reading `'../tooltip/api'` agree with each other
+  // and document the wrong component, while this page's own types land nowhere.
+  // Measured 2026-08-04 — that exact edit on the toast page left the run green.
+  // Reported per binding, so the error can name the specifier that is wrong.
+  const foreign = [...new Set([...apiSources, ...typesSources])].filter(
+    (m) => !generated.own.has(m)
+  );
+  if (!exempt) {
+    for (const module of foreign) {
+      errors.push({
+        where: `src/routes${r}/+page.svelte`,
+        detail:
+          `documents types from \`${module}\`, imported from ` +
+          `'${generated.all.get(module)}' — that is another component's generated data, so ` +
+          `this page's own ${documentable.length} documentable type(s) appear nowhere and the ` +
+          `table under its heading belongs to something else. Feed both halves the ` +
+          `\`componentData\` from './api'.`
+      });
+    }
+  }
+
   const wired =
     apiSources.size > 0 &&
     typesSources.size > 0 &&
+    foreign.length === 0 &&
     // Both halves live is not enough: they must read the SAME generated module.
     // Measured 2026-08-04 — the Guide family page feeding its per-surface table
     // from `panelData.types` and its `<TypesReference>` from
@@ -776,14 +848,20 @@ for (const dir of apiDirs) {
     });
   }
 
-  if (apiSources.size > 0 && typesSources.size > 0 && !wired) {
+  // Keyed on an actual set difference, not on `!wired`. A foreign-but-matching
+  // source (both halves on '../tooltip/api') already has its own error above,
+  // and reporting it here too produced the nonsense line "reads types from
+  // {componentData} while <TypesReference> documents {componentData} — they are
+  // disjoint" about two identical sets.
+  const mismatched = [...apiSources].filter((m) => !typesSources.has(m));
+  if (apiSources.size > 0 && typesSources.size > 0 && mismatched.length > 0) {
     errors.push({
       where: `src/routes${r}/+page.svelte`,
       detail:
         `<ApiReference> reads types from {${[...apiSources].join(', ')}} while <TypesReference> ` +
-        `documents {${[...typesSources].join(', ')}} — both halves are live and they are ` +
-        `disjoint, so the links one emits have no target in the other. Feed them the same ` +
-        `\`componentData\`.`
+        `documents {${[...typesSources].join(', ')}} — both halves are live and they do not ` +
+        `agree, so the \`#type-<Name>\` links the first emits have no target in the second. ` +
+        `Feed them the same \`componentData\`.`
     });
   }
 
