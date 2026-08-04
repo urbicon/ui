@@ -1,9 +1,11 @@
 // @vitest-environment jsdom
 import { createRawSnippet, flushSync, mount, unmount } from 'svelte';
+import type { Attachment } from 'svelte/attachments';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import Button from '../primitives/Button/Button.svelte';
 import Input from '../primitives/Input/Input.svelte';
 import { mintRegistry } from './registry';
+import { mintAttachment } from './svelte';
 import type { Mint } from './types';
 
 // The positive control for `mintAttachment`.
@@ -132,16 +134,41 @@ describe('mintAttachment — a rendered component actually applies its mint', ()
     unmount(comp);
   });
 
-  it("mint='none' and an absent mint are both no-ops", () => {
-    const a = mount(Button, { target, props: { mint: 'none', children: label } });
+  it("mint='none' is a no-op", () => {
+    const comp = mount(Button, { target, props: { mint: 'none', children: label } });
     flushSync();
     expect(inits).toHaveLength(0);
-    unmount(a);
+    unmount(comp);
+  });
 
-    const b = mount(Button, { target, props: { children: label } });
+  it('an absent mint applies the component default — on Button that is NOT nothing', () => {
+    // This test used to read "mint='none' and an absent mint are both no-ops"
+    // and assert `inits` stayed at 0 for a Button with no mint prop. It passed
+    // for the wrong reason: `inits` only counts the probe, and Button defaults
+    // to `mint = 'scale'` (Button.svelte:25) — it is the one component in the
+    // set that does. So the assertion held while the opposite of its claim was
+    // true.
+    //
+    // Registering the probe under the default's own name makes the real
+    // behaviour observable, and doubles as the precedence check: a registry
+    // entry outranks the caller's `fallbacks` (registry.ts → `apply`).
+    mintRegistry.register('scale', probeMint);
+    const comp = mount(Button, { target, props: { children: label } });
+    flushSync();
+
+    expect(inits).toHaveLength(1);
+    expect(inits[0].tag).toBe('BUTTON');
+
+    unmount(comp);
+  });
+
+  it('an absent mint IS a no-op where the default is none (Input)', () => {
+    // The claim the old test meant to make, on a component where it holds.
+    const comp = mount(Input, { target, props: {} });
     flushSync();
     expect(inits).toHaveLength(0);
-    unmount(b);
+    expect(target.querySelector('input')?.dataset.probeApplied).toBeUndefined();
+    unmount(comp);
   });
 
   it('lands on the inner control, not on the wrapper (Input)', () => {
@@ -152,5 +179,49 @@ describe('mintAttachment — a rendered component actually applies its mint', ()
     expect(inits[0].tag).toBe('INPUT');
 
     unmount(comp);
+  });
+});
+
+describe('mintAttachment — the fallbacks the caller imported statically', () => {
+  // `fallbacks` is what keeps a component's *own* default tree-shaken: Button
+  // imports `scaleMint` directly and hands it over, instead of the registry
+  // demand-loading the whole built-in set (~3.9 KB). Dropping the option on the
+  // way through `mintAttachment` would not break a single other test in this
+  // file — the built-ins load asynchronously and would paper over it a
+  // microtask later — so it needs asserting here, synchronously.
+  //
+  // The name is deliberately one no built-in owns, so the assertion cannot be
+  // satisfied by the demand-load arriving instead.
+  const UNKNOWN = 'no-builtin-owns-this';
+
+  it('resolves a name the registry does not know, synchronously', () => {
+    const el = document.createElement('div');
+    const attach = mintAttachment(UNKNOWN, { fallbacks: { [UNKNOWN]: probeMint } });
+    expect(attach).not.toBe(false);
+
+    const cleanup = (attach as Attachment<HTMLElement>)(el);
+    expect(inits).toHaveLength(1);
+    expect(el.dataset.probeApplied).toBe('yes');
+
+    cleanup?.();
+    expect(destroys).toHaveLength(1);
+    expect(el.dataset.probeApplied).toBeUndefined();
+  });
+
+  it('without them the same name resolves nothing synchronously', () => {
+    // The negative control: proves the test above measures the fallback and not
+    // merely "apply() ran".
+    const el = document.createElement('div');
+    const attach = mintAttachment(UNKNOWN);
+    (attach as Attachment<HTMLElement>)(el);
+
+    expect(inits).toHaveLength(0);
+    expect(el.dataset.probeApplied).toBeUndefined();
+  });
+
+  it('returns false — an inert attachment — when there is nothing to apply', () => {
+    expect(mintAttachment(undefined)).toBe(false);
+    expect(mintAttachment('none')).toBe(false);
+    expect(mintAttachment('probe', { enabled: false })).toBe(false);
   });
 });
