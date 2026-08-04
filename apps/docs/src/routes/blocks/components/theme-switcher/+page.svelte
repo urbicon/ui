@@ -22,6 +22,7 @@
     { id: 'customization', title: 'Customization' },
     { id: 'accessibility', title: 'Accessibility' },
     { id: 'api', title: 'API Reference' },
+    { id: 'types', title: 'Types' },
     { id: 'installation', title: 'Installation' }
   ];
 </script>
