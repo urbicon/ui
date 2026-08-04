@@ -24,7 +24,25 @@ function fullComponentData(): ComponentAPIData {
     sourceHref: 'https://example.test/source',
     relatedComponents: ['Other'],
     slots: ['base', 'label'],
-    types: [{ name: 'HelperType', type: 'interface', definition: 'interface HelperType {}' }]
+    types: [
+      {
+        name: 'HelperType',
+        type: 'interface',
+        definition: 'interface HelperType {}',
+        package: '@urbicon-ui/blocks',
+        documentation: 'A helper.',
+        scope: 'imported',
+        category: 'helper',
+        members: 1,
+        sourcePath: 'packages/blocks/src/lib/utils/helper.ts',
+        seeAlso: 'https://example.test/helper',
+        seeAlsoRefs: ['OtherType'],
+        exported: true,
+        owner: 'Other',
+        usedByProps: [{ component: 'Widget', propName: 'helper', source: 'direct' }],
+        usedByCount: 1
+      }
+    ]
   } as ComponentAPIData;
 }
 
@@ -126,6 +144,43 @@ describe('APIFileGenerator — emitted interface covers the emitted data', () =>
     for (const field of emittedFields) {
       expect(declared, `InheritanceProp is missing "${field}"`).toContain(field);
     }
+  });
+
+  // Third instance of the same gap, one level down again: `types[]` used to be
+  // typed `{ name; type; definition; [key: string]: unknown }`, so every extra
+  // field was silently `unknown` and the array was unassignable to the docs
+  // package's `LocalTypeDef[]` — which is why every page cast it away. With a
+  // real `TypeDefinitionInfo` the cast goes, and this guard is what keeps a
+  // newly emitted field from re-opening the hole.
+  it('declares every emitted type-definition field on TypeDefinitionInfo', async () => {
+    const generator = new APIFileGenerator({ outputPath: dir, format: 'typescript' });
+    await generator.generate({
+      metadata: { generated: '2026-08-04T00:00:00.000Z', version: 'test' },
+      components: { Widget: fullComponentData() }
+    } as unknown as APIData);
+
+    const emitted = await fs.readFile(path.join(dir, 'primitives', 'widget', 'api.ts'), 'utf-8');
+    const block = emitted.match(/export interface TypeDefinitionInfo \{([\s\S]*?)\n\}/);
+    expect(block).not.toBeNull();
+    const declared = new Set(
+      [...(block as RegExpMatchArray)[1].matchAll(/^\s{2}(\w+)\??:/gm)].map((m) => m[1])
+    );
+
+    const dataMatch = emitted.match(
+      /export const componentData: ComponentAPIInfo = ([\s\S]*?) as const;/
+    );
+    const parsed = JSON.parse((dataMatch as RegExpMatchArray)[1]) as {
+      types: Record<string, unknown>[];
+    };
+    const emittedFields = Object.keys(parsed.types[0]);
+    expect(emittedFields).toContain('exported');
+    expect(emittedFields).toContain('owner');
+    for (const field of emittedFields) {
+      expect(declared, `TypeDefinitionInfo is missing "${field}"`).toContain(field);
+    }
+    // The index signature it replaced typed nothing; its return would make
+    // every future field `unknown` again without failing anything.
+    expect(block?.[1]).not.toMatch(/\[key: string\]/);
   });
 
   it('no longer emits the dead typeAnchor/typePreview fields (removed 2026-07: nothing read them)', async () => {

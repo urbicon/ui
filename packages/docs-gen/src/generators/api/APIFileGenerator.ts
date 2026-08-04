@@ -202,6 +202,37 @@ export class APIFileGenerator {
       "export type ComponentStability = 'experimental' | 'beta' | 'stable' | 'deprecated';"
     );
     lines.push('');
+    lines.push(
+      "export interface TypeUsedByRef { component: string; propName: string; source: 'direct' | 'inherited' | 'variant' }"
+    );
+    lines.push('');
+    // Was `{ name; type; definition; [key: string]: unknown }` — an index
+    // signature that typed nothing beyond the three named fields and made the
+    // array unassignable to TypesReference's `LocalTypeDef[]`, so every page
+    // that wanted to render types cast it to `unknown[]` first. Spelling the
+    // real shape out is what removes the cast at 108 call sites.
+    lines.push('export interface TypeDefinitionInfo {');
+    lines.push('  name: string;');
+    lines.push("  type: 'interface' | 'type' | 'enum' | 'class';");
+    lines.push('  definition: string;');
+    lines.push('  package: string;');
+    lines.push('  documentation?: string;');
+    lines.push("  scope?: 'local' | 'imported';");
+    lines.push("  category?: 'props' | 'variant' | 'helper';");
+    lines.push('  members?: number;');
+    lines.push('  sourcePath?: string;');
+    lines.push('  seeAlso?: string;');
+    lines.push('  seeAlsoRefs?: string[];');
+    // Whether a consumer can import the name from the package — the property
+    // a docs page filters on, resolved against the package's entry points.
+    lines.push('  exported?: boolean;');
+    // The documented component that declares the type; unequal to this
+    // component means the entry is a copy whose home is another page.
+    lines.push('  owner?: string;');
+    lines.push('  usedByProps?: TypeUsedByRef[];');
+    lines.push('  usedByCount?: number;');
+    lines.push('}');
+    lines.push('');
     lines.push('export interface ComponentAPIInfo {');
     lines.push('  name: string;');
     lines.push('  props: PropInfo[];');
@@ -218,9 +249,7 @@ export class APIFileGenerator {
     // this field the emitted `componentData: ComponentAPIInfo` no longer
     // type-checks in any freshly generated tree.
     lines.push('  slots?: string[];');
-    lines.push(
-      '  types?: Array<{ name: string; type: string; definition: string; [key: string]: unknown }>;'
-    );
+    lines.push('  types?: TypeDefinitionInfo[];');
     lines.push('}');
     lines.push('');
     const dataStr = JSON.stringify(componentData, null, 2);

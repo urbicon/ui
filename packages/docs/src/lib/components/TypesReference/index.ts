@@ -24,8 +24,19 @@ export interface LocalTypeDef {
   documentation?: string;
   /** Classification for grouping. */
   category?: 'props' | 'variant' | 'helper' | string;
-  /** Whether the type originates from this package or an external dependency. */
-  scope?: 'local' | 'external';
+  /**
+   * Where the definition lives relative to the component: `local` (its own
+   * `index.ts` / variants file) or `imported` (elsewhere in the package,
+   * pulled in through a type-only import).
+   *
+   * Was `'local' | 'external'`. `external` is a value docs-gen has never
+   * emitted and `imported` — which it emits on ~60 % of entries — was not in
+   * the union, so the generated `componentData.types` array was not
+   * assignable to `LocalTypeDef[]` and every page casts it to `unknown[]`
+   * on the way in. The cast hid the mismatch rather than the mismatch being
+   * absent.
+   */
+  scope?: 'local' | 'imported';
   /** Props that reference this type. */
   usedByProps?: TypeUsedByRef[];
   /**

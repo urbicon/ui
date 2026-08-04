@@ -42,6 +42,12 @@ export abstract class TypeScriptBaseExtractor<
   protected compilerOptions: ts.CompilerOptions;
   /** Package root (tsconfig directory) when program-backed, else null. */
   protected packageRoot: string | null = null;
+  /**
+   * Names reachable from the package's public entry points, or null when the
+   * surface is unknown (single-file mode, or a package root with no typed
+   * entry). Shared per program — see `ProgramBundle.publicExportNames`.
+   */
+  protected publicExportNames: ReadonlySet<string> | null = null;
 
   constructor(tsConfig?: { configPath?: string } | Record<string, unknown>) {
     super(tsConfig);
@@ -343,6 +349,7 @@ export abstract class TypeScriptBaseExtractor<
       // single-file mode (that's how cross-file types vanish unnoticed).
       const bundle = getProgramBundle(config.configPath);
       this.packageRoot = bundle.packageRoot;
+      this.publicExportNames = bundle.publicExportNames;
       return bundle.program;
     }
 
@@ -618,6 +625,21 @@ export abstract class TypeScriptBaseExtractor<
    */
   protected static isSeeLinkTarget(value: string): boolean {
     return /^https?:\/\//.test(value) || value.startsWith('/') || value.startsWith('#');
+  }
+
+  /**
+   * `{ exported: true | false }` for a declared name, or `{}` when the
+   * package's public surface is unknown.
+   *
+   * Absent keys, not keys set to `undefined`: the package compiles under
+   * `exactOptionalPropertyTypes` and callers spread this straight into a
+   * `TypeDefinition`, where an explicit `undefined` is not the same as
+   * omitted. The distinction carries meaning here — an omitted flag says
+   * "could not be determined", which must not read as "not exported".
+   */
+  protected exportedFlag(name: string): { exported?: boolean } {
+    if (!this.publicExportNames) return {};
+    return { exported: this.publicExportNames.has(name) };
   }
 
   /**

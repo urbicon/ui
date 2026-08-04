@@ -6,7 +6,7 @@ import type {
   PropInfo,
   VariantInfo
 } from '@urbicon-ui/shared-types';
-import type { APIData, ComponentAPIData, TypeDefinition } from '../../types';
+import type { APIData, ComponentAPIData, TypeDefinition, TypeUsedByRef } from '../../types';
 import { toSlug } from '../../utils/slug';
 
 /**
@@ -35,6 +35,8 @@ export class APIDataGenerator {
   private typeDefinitions: TypeDefinition[] = [];
   private componentSlugs = new Map<string, string>();
   private componentGroups = new Map<string, string | undefined>();
+  /** Declaring directory → the documented components whose source lives there. */
+  private componentsByDir = new Map<string, string[]>();
   private routeBasePath: string = '/components';
 
   /**
@@ -54,15 +56,24 @@ export class APIDataGenerator {
     this.typeDefinitions = [];
     this.componentSlugs.clear();
     this.componentGroups.clear();
+    this.componentsByDir.clear();
     this.routeBasePath = options?.routeBasePath || '/components';
 
     // Prepare component slugs + groups for linking. The group (primitives /
     // components / undefined) is what turns the flat base into the real route
     // segment — cross-links resolve the *target* component's group, so the
     // whole map has to be built up-front, before any component is processed.
+    // The directory index serves the same up-front need for type ownership:
+    // resolving a type's home means asking "which documented component
+    // declares it", which no single component can answer about itself.
     for (const c of richComponents) {
       this.componentSlugs.set(c.name, toSlug(c.name));
       this.componentGroups.set(c.name, this.inferGroupFromPath(c.filePath || ''));
+      const dir = APIDataGenerator.declaringDirOf(c.filePath || '');
+      if (!dir) continue;
+      const siblings = this.componentsByDir.get(dir);
+      if (siblings) siblings.push(c.name);
+      else this.componentsByDir.set(dir, [c.name]);
     }
 
     // Process each component
@@ -149,10 +160,7 @@ export class APIDataGenerator {
       : [];
     if (localTypeDefs.length > 0) {
       // Reverse index: which props reference which local types
-      const usedByMap = new Map<
-        string,
-        Array<{ component: string; propName: string; source: string }>
-      >();
+      const usedByMap = new Map<string, TypeUsedByRef[]>();
       const considerProps = [
         ...processedProps,
         ...processedInheritance.flatMap((inh: InheritanceInfo) => inh.props || [])
@@ -175,17 +183,17 @@ export class APIDataGenerator {
         }
       }
 
-      for (const td of localTypeDefs as (TypeDefinition & {
-        scope?: string;
-        usedByProps?: unknown[];
-        usedByCount?: number;
-        category?: string;
-      })[]) {
+      for (const td of localTypeDefs) {
         // annotate scope/category and usedBy — the extractor marks
         // program-resolved definitions as 'imported'; everything else is local
         td.scope = td.scope ?? 'local';
         td.usedByProps = usedByMap.get(td.name) || [];
-        td.usedByCount = Array.isArray(td.usedByProps) ? td.usedByProps.length : 0;
+        td.usedByCount = td.usedByProps.length;
+        // Canonical home: the documented component that declares this type.
+        // Left unset when none does — `$lib/utils` plumbing has no page to
+        // point at, and pretending otherwise would invent a link target.
+        const owner = this.resolveTypeOwner(td);
+        if (owner) td.owner = owner;
         const defStr = String(td.definition || '');
         // `SlotNames<…>` aliases (`XSlots`) are tv()-machinery like the
         // `VariantProps<…>` aliases — categorized 'variant' so type surfaces
@@ -279,6 +287,56 @@ export class APIDataGenerator {
     const match = normalized.match(/(packages\/.+)$/);
     if (!match) return undefined;
     return `${APIDataGenerator.SOURCE_BASE_URL}/${match[1]}`;
+  }
+
+  // ==========================================
+  // TYPE OWNERSHIP
+  // ==========================================
+
+  /**
+   * Repo-relative directory of a declaring file, in exactly the spelling
+   * `LocalTypesExtractor.toRepoRelativePath` produces for `sourcePath` — from
+   * the first `packages/` segment on. Comparing anything else would compare a
+   * component's absolute path against a type's repo-relative one and never
+   * match.
+   *
+   * `null` when the path has no `packages/` segment: an ad-hoc root cannot be
+   * lined up with a `sourcePath` that was rendered relative to its package,
+   * and an unset owner (no home) is the correct answer there, not a guess.
+   */
+  private static declaringDirOf(filePath: string): string | null {
+    if (!filePath) return null;
+    const normalized = filePath.replace(/\\/g, '/');
+    const repoRelative = normalized.match(/(packages\/.+)$/)?.[1];
+    if (!repoRelative) return null;
+    const cut = repoRelative.lastIndexOf('/');
+    return cut > 0 ? repoRelative.slice(0, cut) : null;
+  }
+
+  /**
+   * The documented component that declares `td` — its canonical home.
+   *
+   * Directory, not file: a component's types are split across `index.ts` and
+   * `<name>.variants.ts`, and both are the same component's surface.
+   *
+   * A directory can serve several documented components (`components/Guide/`
+   * declares Guide, GuidePanel, GuideBeacon, GuideRef …, nine doc pages off
+   * one `index.ts`). There the longest sibling name that prefixes the type
+   * name wins — longest, because `GuidePanelProps` prefixes both `Guide` and
+   * `GuidePanel` and only the latter is its home. A type that matches no
+   * sibling (`GuideTourSlots` in a directory without a `GuideTour`
+   * component) stays unowned rather than being handed to whichever sibling
+   * sorted first.
+   */
+  private resolveTypeOwner(td: TypeDefinition): string | undefined {
+    const dir = APIDataGenerator.declaringDirOf(td.sourcePath || '');
+    if (!dir) return undefined;
+    const siblings = this.componentsByDir.get(dir);
+    if (!siblings || siblings.length === 0) return undefined;
+    if (siblings.length === 1) return siblings[0];
+    return siblings
+      .filter((name) => td.name.startsWith(name))
+      .sort((a, b) => b.length - a.length)[0];
   }
 
   // ==========================================

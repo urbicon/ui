@@ -32,6 +32,12 @@ const MAX_TYPES_PER_COMPONENT = 40;
  * pulls in GuideStep and its analytics event payloads. Classes are rendered
  * as a public-signature summary. Without a program this pass is a no-op and
  * behavior matches the historical single-file extraction.
+ *
+ * Every emitted definition also carries `exported` — whether the name is
+ * reachable from one of the package's public entry points, i.e. whether a
+ * consumer can import it. Resolved against the shared program's export set
+ * (`ProgramBundle.publicExportNames`), so it costs one Set lookup per type,
+ * not a second `createProgram`. Omitted in single-file mode.
  */
 export class LocalTypesExtractor extends TypeScriptBaseExtractor<
   LocalTypesExtractionInput,
@@ -154,6 +160,7 @@ export class LocalTypesExtractor extends TypeScriptBaseExtractor<
       package: packageName,
       documentation,
       ...this.extractSeeTags(decl),
+      ...this.exportedFlag(name),
       scope: 'imported' as const,
       sourcePath: this.toRepoRelativePath(declSourceFile.fileName)
     };
@@ -295,6 +302,7 @@ export class LocalTypesExtractor extends TypeScriptBaseExtractor<
           package: packageName,
           documentation: this.extractJSDocComment(node) || '',
           ...this.extractSeeTags(node),
+          ...this.exportedFlag(name),
           sourcePath
         });
         existing.add(name);
@@ -314,6 +322,7 @@ export class LocalTypesExtractor extends TypeScriptBaseExtractor<
           package: packageName,
           documentation: this.extractJSDocComment(node) || '',
           ...this.extractSeeTags(node),
+          ...this.exportedFlag(name),
           members: node.members?.length ?? 0,
           sourcePath
         });
