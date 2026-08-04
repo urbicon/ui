@@ -1,12 +1,15 @@
+import AccessibilityIcon from './AccessibilityIcon.svelte';
 import ActivityIcon from './ActivityIcon.svelte';
 import AlertCircleIcon from './AlertCircleIcon.svelte';
 import AlignCenterIcon from './AlignCenterIcon.svelte';
+import AlignJustifyIcon from './AlignJustifyIcon.svelte';
 import AlignLeftIcon from './AlignLeftIcon.svelte';
 import AlignRightIcon from './AlignRightIcon.svelte';
 import AnchorIcon from './AnchorIcon.svelte';
 import ApertureIcon from './ApertureIcon.svelte';
 import ArchiveIcon from './ArchiveIcon.svelte';
 import AreaChartIcon from './AreaChartIcon.svelte';
+import ArrowBigUpIcon from './ArrowBigUpIcon.svelte';
 import ArrowDownIcon from './ArrowDownIcon.svelte';
 import ArrowLeftIcon from './ArrowLeftIcon.svelte';
 import ArrowLeftRightIcon from './ArrowLeftRightIcon.svelte';
@@ -34,14 +37,18 @@ import BikeIcon from './BikeIcon.svelte';
 import BoldIcon from './BoldIcon.svelte';
 import BookmarkIcon from './BookmarkIcon.svelte';
 import BookOpenIcon from './BookOpenIcon.svelte';
+import BracesIcon from './BracesIcon.svelte';
 import BriefcaseIcon from './BriefcaseIcon.svelte';
 import BugIcon from './BugIcon.svelte';
 import Building2Icon from './Building2Icon.svelte';
 import BuildingIcon from './BuildingIcon.svelte';
 import CalculatorIcon from './CalculatorIcon.svelte';
+import CalendarCheckIcon from './CalendarCheckIcon.svelte';
 import CalendarClockIcon from './CalendarClockIcon.svelte';
 import CalendarDaysIcon from './CalendarDaysIcon.svelte';
 import CalendarIcon from './CalendarIcon.svelte';
+import CalendarPlusIcon from './CalendarPlusIcon.svelte';
+import CalendarXIcon from './CalendarXIcon.svelte';
 import CameraIcon from './CameraIcon.svelte';
 import CarIcon from './CarIcon.svelte';
 import CheckCircleIcon from './CheckCircleIcon.svelte';
@@ -52,6 +59,7 @@ import ChevronRightIcon from './ChevronRightIcon.svelte';
 import ChevronsDownIcon from './ChevronsDownIcon.svelte';
 import ChevronsLeftIcon from './ChevronsLeftIcon.svelte';
 import ChevronsRightIcon from './ChevronsRightIcon.svelte';
+import ChevronsUpDownIcon from './ChevronsUpDownIcon.svelte';
 import ChevronsUpIcon from './ChevronsUpIcon.svelte';
 import ChevronUpIcon from './ChevronUpIcon.svelte';
 import CircleDotIcon from './CircleDotIcon.svelte';
@@ -66,6 +74,7 @@ import ClockIcon from './ClockIcon.svelte';
 import CloseIcon from './CloseIcon.svelte';
 import CloudIcon from './CloudIcon.svelte';
 import CloudLightningIcon from './CloudLightningIcon.svelte';
+import CloudOffIcon from './CloudOffIcon.svelte';
 import CloudRainIcon from './CloudRainIcon.svelte';
 import CloudSnowIcon from './CloudSnowIcon.svelte';
 import CloudSunIcon from './CloudSunIcon.svelte';
@@ -73,33 +82,43 @@ import CodeIcon from './CodeIcon.svelte';
 import CoffeeIcon from './CoffeeIcon.svelte';
 import CoinsIcon from './CoinsIcon.svelte';
 import Columns3Icon from './Columns3Icon.svelte';
+import CommandIcon from './CommandIcon.svelte';
 import ContactIcon from './ContactIcon.svelte';
 import CopyIcon from './CopyIcon.svelte';
+import CornerDownLeftIcon from './CornerDownLeftIcon.svelte';
 import CornerDownRightIcon from './CornerDownRightIcon.svelte';
 import CornerUpLeftIcon from './CornerUpLeftIcon.svelte';
+import CpuIcon from './CpuIcon.svelte';
 import CreditCardIcon from './CreditCardIcon.svelte';
 import DangerCircleIcon from './DangerCircleIcon.svelte';
 import DatabaseIcon from './DatabaseIcon.svelte';
+import DollarSignIcon from './DollarSignIcon.svelte';
 import DoorIcon from './DoorIcon.svelte';
 import DoorOpenIcon from './DoorOpenIcon.svelte';
+import DownloadCloudIcon from './DownloadCloudIcon.svelte';
 import DownloadIcon from './DownloadIcon.svelte';
 import DropletIcon from './DropletIcon.svelte';
 import DropletsIcon from './DropletsIcon.svelte';
 import EditIcon from './EditIcon.svelte';
 import EuroIcon from './EuroIcon.svelte';
 import ExpandIcon from './ExpandIcon.svelte';
+import ExportIcon from './ExportIcon.svelte';
 import ExternalLinkIcon from './ExternalLinkIcon.svelte';
 import EyeIcon from './EyeIcon.svelte';
 import EyeOffIcon from './EyeOffIcon.svelte';
 import FastForwardIcon from './FastForwardIcon.svelte';
 import FenceIcon from './FenceIcon.svelte';
 import FileCheckIcon from './FileCheckIcon.svelte';
+import FileCodeIcon from './FileCodeIcon.svelte';
 import FileIcon from './FileIcon.svelte';
+import FileImageIcon from './FileImageIcon.svelte';
+import FileMinusIcon from './FileMinusIcon.svelte';
 import FilePlusIcon from './FilePlusIcon.svelte';
 import FileSignatureIcon from './FileSignatureIcon.svelte';
 import FileSpreadsheetIcon from './FileSpreadsheetIcon.svelte';
 import FilesIcon from './FilesIcon.svelte';
 import FileTextIcon from './FileTextIcon.svelte';
+import FileXIcon from './FileXIcon.svelte';
 import FilmIcon from './FilmIcon.svelte';
 import FilterXIcon from './FilterXIcon.svelte';
 import FingerprintIcon from './FingerprintIcon.svelte';
@@ -111,6 +130,7 @@ import FolderMinusIcon from './FolderMinusIcon.svelte';
 import FolderOpenIcon from './FolderOpenIcon.svelte';
 import FolderPlusIcon from './FolderPlusIcon.svelte';
 import FolderTreeIcon from './FolderTreeIcon.svelte';
+import FolderXIcon from './FolderXIcon.svelte';
 import FuelIcon from './FuelIcon.svelte';
 import FunnelIcon from './FunnelIcon.svelte';
 import GalleryIcon from './GalleryIcon.svelte';
@@ -121,6 +141,7 @@ import GiftIcon from './GiftIcon.svelte';
 import GitBranchIcon from './GitBranchIcon.svelte';
 import GitCommitIcon from './GitCommitIcon.svelte';
 import GitMergeIcon from './GitMergeIcon.svelte';
+import GitPullRequestIcon from './GitPullRequestIcon.svelte';
 import GlassesIcon from './GlassesIcon.svelte';
 import GlobeIcon from './GlobeIcon.svelte';
 import GraduationCapIcon from './GraduationCapIcon.svelte';
@@ -136,7 +157,9 @@ import HeartPulseIcon from './HeartPulseIcon.svelte';
 import HeatPumpIcon from './HeatPumpIcon.svelte';
 import HexagonIcon from './HexagonIcon.svelte';
 import HighlighterIcon from './HighlighterIcon.svelte';
+import HistoryIcon from './HistoryIcon.svelte';
 import HomeIcon from './HomeIcon.svelte';
+import HourglassIcon from './HourglassIcon.svelte';
 import HouseIcon from './HouseIcon.svelte';
 import IdCardIcon from './IdCardIcon.svelte';
 import ImageIcon from './ImageIcon.svelte';
@@ -150,8 +173,11 @@ import type { IconCategory, IconComponent, IconMeta, IconName, IconSet } from '.
 import KeyIcon from './KeyIcon.svelte';
 import KeyRoundIcon from './KeyRoundIcon.svelte';
 import LandmarkIcon from './LandmarkIcon.svelte';
+import LanguagesIcon from './LanguagesIcon.svelte';
 import LaptopIcon from './LaptopIcon.svelte';
 import LayersIcon from './LayersIcon.svelte';
+import LayoutGridIcon from './LayoutGridIcon.svelte';
+import LayoutListIcon from './LayoutListIcon.svelte';
 import LeafIcon from './LeafIcon.svelte';
 import LightbulbIcon from './LightbulbIcon.svelte';
 import LineChartIcon from './LineChartIcon.svelte';
@@ -160,6 +186,7 @@ import ListChecksIcon from './ListChecksIcon.svelte';
 import ListFilterIcon from './ListFilterIcon.svelte';
 import ListIcon from './ListIcon.svelte';
 import ListOrderedIcon from './ListOrderedIcon.svelte';
+import LoaderIcon from './LoaderIcon.svelte';
 import LockIcon from './LockIcon.svelte';
 import LockKeyholeIcon from './LockKeyholeIcon.svelte';
 import LogInIcon from './LogInIcon.svelte';
@@ -167,6 +194,7 @@ import LogOutIcon from './LogOutIcon.svelte';
 import MailCheckIcon from './MailCheckIcon.svelte';
 import MailIcon from './MailIcon.svelte';
 import MailOpenIcon from './MailOpenIcon.svelte';
+import MailXIcon from './MailXIcon.svelte';
 import MapIcon from './MapIcon.svelte';
 import MapPinIcon from './MapPinIcon.svelte';
 import MaximizeIcon from './MaximizeIcon.svelte';
@@ -190,14 +218,18 @@ import NavigationIcon from './NavigationIcon.svelte';
 import NetworkIcon from './NetworkIcon.svelte';
 import OctagonIcon from './OctagonIcon.svelte';
 import OilCanIcon from './OilCanIcon.svelte';
+import OptionIcon from './OptionIcon.svelte';
 import OutdentIcon from './OutdentIcon.svelte';
 import PackageIcon from './PackageIcon.svelte';
 import PaletteIcon from './PaletteIcon.svelte';
+import PanelBottomIcon from './PanelBottomIcon.svelte';
 import PanelLeftIcon from './PanelLeftIcon.svelte';
 import PanelRightIcon from './PanelRightIcon.svelte';
+import PanelTopIcon from './PanelTopIcon.svelte';
 import PaperclipIcon from './PaperclipIcon.svelte';
 import ParkingIcon from './ParkingIcon.svelte';
 import PasskeyIcon from './PasskeyIcon.svelte';
+import PauseCircleIcon from './PauseCircleIcon.svelte';
 import PauseIcon from './PauseIcon.svelte';
 import PelletIcon from './PelletIcon.svelte';
 import PercentIcon from './PercentIcon.svelte';
@@ -206,7 +238,9 @@ import PieChartIcon from './PieChartIcon.svelte';
 import PiggyBankIcon from './PiggyBankIcon.svelte';
 import PillIcon from './PillIcon.svelte';
 import PinIcon from './PinIcon.svelte';
+import PinOffIcon from './PinOffIcon.svelte';
 import PlaneIcon from './PlaneIcon.svelte';
+import PlayCircleIcon from './PlayCircleIcon.svelte';
 import PlayIcon from './PlayIcon.svelte';
 import PlugIcon from './PlugIcon.svelte';
 import PlugZapIcon from './PlugZapIcon.svelte';
@@ -221,6 +255,7 @@ import ReceiptIcon from './ReceiptIcon.svelte';
 import RecycleIcon from './RecycleIcon.svelte';
 import RedoIcon from './RedoIcon.svelte';
 import RefreshIcon from './RefreshIcon.svelte';
+import RemoveFormattingIcon from './RemoveFormattingIcon.svelte';
 import RepeatIcon from './RepeatIcon.svelte';
 import ReplyIcon from './ReplyIcon.svelte';
 import RewindIcon from './RewindIcon.svelte';
@@ -249,6 +284,7 @@ import ShoppingCartIcon from './ShoppingCartIcon.svelte';
 import ShuffleIcon from './ShuffleIcon.svelte';
 import SkipBackIcon from './SkipBackIcon.svelte';
 import SkipForwardIcon from './SkipForwardIcon.svelte';
+import SlidersHorizontalIcon from './SlidersHorizontalIcon.svelte';
 import SmartphoneIcon from './SmartphoneIcon.svelte';
 import SmileIcon from './SmileIcon.svelte';
 import SnowflakeIcon from './SnowflakeIcon.svelte';
@@ -264,11 +300,13 @@ import StarIcon from './StarIcon.svelte';
 import StopCircleIcon from './StopCircleIcon.svelte';
 import StoreIcon from './StoreIcon.svelte';
 import StrikethroughIcon from './StrikethroughIcon.svelte';
+import SubscriptIcon from './SubscriptIcon.svelte';
 import SuccessCircleIcon from './SuccessCircleIcon.svelte';
 import SunIcon from './SunIcon.svelte';
 import SunriseIcon from './SunriseIcon.svelte';
 import SunSnowIcon from './SunSnowIcon.svelte';
 import SunsetIcon from './SunsetIcon.svelte';
+import SuperscriptIcon from './SuperscriptIcon.svelte';
 import Table2Icon from './Table2Icon.svelte';
 import TableIcon from './TableIcon.svelte';
 import TagIcon from './TagIcon.svelte';
@@ -277,6 +315,7 @@ import TerminalIcon from './TerminalIcon.svelte';
 import ThermometerIcon from './ThermometerIcon.svelte';
 import ThumbsDownIcon from './ThumbsDownIcon.svelte';
 import ThumbsUpIcon from './ThumbsUpIcon.svelte';
+import TimerIcon from './TimerIcon.svelte';
 import TrashIcon from './TrashIcon.svelte';
 import TreeIcon from './TreeIcon.svelte';
 import TrendingDownIcon from './TrendingDownIcon.svelte';
@@ -290,15 +329,18 @@ import UndoIcon from './UndoIcon.svelte';
 import UnlinkIcon from './UnlinkIcon.svelte';
 import UnlockIcon from './UnlockIcon.svelte';
 import UploadCloudIcon from './UploadCloudIcon.svelte';
+import UploadIcon from './UploadIcon.svelte';
 import UserCheckIcon from './UserCheckIcon.svelte';
 import UserCogIcon from './UserCogIcon.svelte';
 import UserIcon from './UserIcon.svelte';
+import UserMinusIcon from './UserMinusIcon.svelte';
 import UserPlusIcon from './UserPlusIcon.svelte';
 import UsersIcon from './UsersIcon.svelte';
 import UserXIcon from './UserXIcon.svelte';
 import VideoIcon from './VideoIcon.svelte';
 import VideoOffIcon from './VideoOffIcon.svelte';
 import VolumeIcon from './VolumeIcon.svelte';
+import VolumeLowIcon from './VolumeLowIcon.svelte';
 import VolumeOffIcon from './VolumeOffIcon.svelte';
 import WalletCardsIcon from './WalletCardsIcon.svelte';
 import WalletIcon from './WalletIcon.svelte';
@@ -308,6 +350,7 @@ import WatchIcon from './WatchIcon.svelte';
 import WaterMeterIcon from './WaterMeterIcon.svelte';
 import WavesIcon from './WavesIcon.svelte';
 import WifiIcon from './WifiIcon.svelte';
+import WifiOffIcon from './WifiOffIcon.svelte';
 import WindArrowIcon from './WindArrowIcon.svelte';
 import WindIcon from './WindIcon.svelte';
 import WorkflowIcon from './WorkflowIcon.svelte';
@@ -631,7 +674,50 @@ export const DEFAULT_ICONS: IconSet = {
   fuel: FuelIcon,
   pellet: PelletIcon,
   waterMeter: WaterMeterIcon,
-  meter: MeterIcon
+  meter: MeterIcon,
+  upload: UploadIcon,
+  export: ExportIcon,
+  wifiOff: WifiOffIcon,
+  cloudOff: CloudOffIcon,
+  userMinus: UserMinusIcon,
+  fileX: FileXIcon,
+  fileMinus: FileMinusIcon,
+  folderX: FolderXIcon,
+  mailX: MailXIcon,
+  alignJustify: AlignJustifyIcon,
+  pinOff: PinOffIcon,
+  gitPullRequest: GitPullRequestIcon,
+  panelTop: PanelTopIcon,
+  panelBottom: PanelBottomIcon,
+  chevronsUpDown: ChevronsUpDownIcon,
+  command: CommandIcon,
+  option: OptionIcon,
+  arrowBigUp: ArrowBigUpIcon,
+  cornerDownLeft: CornerDownLeftIcon,
+  languages: LanguagesIcon,
+  history: HistoryIcon,
+  timer: TimerIcon,
+  hourglass: HourglassIcon,
+  slidersHorizontal: SlidersHorizontalIcon,
+  layoutGrid: LayoutGridIcon,
+  layoutList: LayoutListIcon,
+  calendarCheck: CalendarCheckIcon,
+  calendarX: CalendarXIcon,
+  calendarPlus: CalendarPlusIcon,
+  loader: LoaderIcon,
+  accessibility: AccessibilityIcon,
+  fileImage: FileImageIcon,
+  fileCode: FileCodeIcon,
+  subscript: SubscriptIcon,
+  superscript: SuperscriptIcon,
+  removeFormatting: RemoveFormattingIcon,
+  playCircle: PlayCircleIcon,
+  pauseCircle: PauseCircleIcon,
+  volumeLow: VolumeLowIcon,
+  braces: BracesIcon,
+  cpu: CpuIcon,
+  downloadCloud: DownloadCloudIcon,
+  dollarSign: DollarSignIcon
 };
 
 export const ICON_METADATA: Record<IconName, IconMeta> = {
@@ -733,7 +819,7 @@ export const ICON_METADATA: Record<IconName, IconMeta> = {
   plug: {
     label: 'Plug',
     categories: ['utility'],
-    keywords: ['power', 'electric', 'connector', 'socket', 'energy']
+    keywords: ['power', 'electric', 'connector', 'socket', 'energy', 'connection']
   },
   plugZap: {
     label: 'Plug Zap',
@@ -913,7 +999,7 @@ export const ICON_METADATA: Record<IconName, IconMeta> = {
   keyRound: {
     label: 'Key Round',
     categories: ['action'],
-    keywords: ['access', 'password', 'auth', 'credential', 'secret', 'login']
+    keywords: ['access', 'password', 'auth', 'credential', 'secret', 'login', 'token']
   },
   passkey: {
     label: 'Passkey',
@@ -973,7 +1059,7 @@ export const ICON_METADATA: Record<IconName, IconMeta> = {
   network: {
     label: 'Network',
     categories: ['data'],
-    keywords: ['nodes', 'graph', 'connections', 'topology', 'mesh']
+    keywords: ['nodes', 'graph', 'connections', 'topology', 'mesh', 'connection']
   },
   listFilter: {
     label: 'List Filter',
@@ -983,7 +1069,7 @@ export const ICON_METADATA: Record<IconName, IconMeta> = {
   calendarDays: {
     label: 'Calendar Days',
     categories: ['data'],
-    keywords: ['schedule', 'dates', 'month', 'planner', 'days']
+    keywords: ['schedule', 'dates', 'month', 'planner', 'days', 'booking']
   },
   skipForward: {
     label: 'Skip Forward',
@@ -1103,7 +1189,7 @@ export const ICON_METADATA: Record<IconName, IconMeta> = {
   route: {
     label: 'Route',
     categories: ['navigation'],
-    keywords: ['path', 'directions', 'journey', 'way', 'trip']
+    keywords: ['path', 'directions', 'journey', 'way', 'trip', 'distance']
   },
   anchor: {
     label: 'Anchor',
@@ -1263,7 +1349,7 @@ export const ICON_METADATA: Record<IconName, IconMeta> = {
   fileText: {
     label: 'File Text',
     categories: ['media'],
-    keywords: ['document', 'page', 'text', 'article', 'content', 'doc']
+    keywords: ['document', 'page', 'text', 'article', 'content', 'doc', 'pdf']
   },
   files: {
     label: 'Files',
@@ -1418,7 +1504,7 @@ export const ICON_METADATA: Record<IconName, IconMeta> = {
   userCog: {
     label: 'User Cog',
     categories: ['communication'],
-    keywords: ['settings', 'profile', 'manage', 'admin', 'preferences', 'account']
+    keywords: ['settings', 'profile', 'manage', 'admin', 'preferences', 'account', 'permission']
   },
   userPlus: {
     label: 'User Plus',
@@ -1460,7 +1546,11 @@ export const ICON_METADATA: Record<IconName, IconMeta> = {
     categories: ['navigation'],
     keywords: ['arrow', 'collapse', 'up', 'expand']
   },
-  minus: { label: 'Minus', categories: ['action'], keywords: ['subtract', 'remove', 'decrease'] },
+  minus: {
+    label: 'Minus',
+    categories: ['action'],
+    keywords: ['subtract', 'remove', 'decrease', 'less', 'collapse']
+  },
   plus: { label: 'Plus', categories: ['action'], keywords: ['add', 'create', 'new', 'increase'] },
   info: {
     label: 'Info Circle',
@@ -1485,22 +1575,22 @@ export const ICON_METADATA: Record<IconName, IconMeta> = {
   arrowDown: {
     label: 'Arrow Down',
     categories: ['navigation'],
-    keywords: ['down', 'below', 'direction']
+    keywords: ['down', 'below', 'direction', 'descend', 'scroll']
   },
   arrowUp: {
     label: 'Arrow Up',
     categories: ['navigation'],
-    keywords: ['up', 'above', 'direction']
+    keywords: ['up', 'above', 'direction', 'ascend', 'scroll']
   },
   arrowLeft: {
     label: 'Arrow Left',
     categories: ['navigation'],
-    keywords: ['back', 'previous', 'direction']
+    keywords: ['back', 'previous', 'direction', 'west', 'return']
   },
   arrowRight: {
     label: 'Arrow Right',
     categories: ['navigation'],
-    keywords: ['forward', 'next', 'direction']
+    keywords: ['forward', 'next', 'direction', 'east', 'proceed']
   },
   calculator: {
     label: 'Calculator',
@@ -1525,12 +1615,12 @@ export const ICON_METADATA: Record<IconName, IconMeta> = {
   clock: {
     label: 'Clock',
     categories: ['data'],
-    keywords: ['time', 'schedule', 'hour', 'duration', 'password', 'protected', 'security']
+    keywords: ['time', 'schedule', 'hour', 'duration']
   },
   code: {
     label: 'Code',
     categories: ['media'],
-    keywords: ['developer', 'programming', 'source', 'html', 'brackets', 'syntax']
+    keywords: ['developer', 'programming', 'source', 'html', 'brackets', 'syntax', 'api']
   },
   copy: {
     label: 'Copy',
@@ -1558,13 +1648,21 @@ export const ICON_METADATA: Record<IconName, IconMeta> = {
     categories: ['action'],
     keywords: ['open', 'new tab', 'external', 'launch']
   },
-  file: { label: 'File', categories: ['media'], keywords: ['document', 'page', 'paper'] },
+  file: {
+    label: 'File',
+    categories: ['media'],
+    keywords: ['document', 'page', 'paper', 'blank', 'empty', 'attachment']
+  },
   filterX: {
     label: 'Filter X',
     categories: ['data'],
-    keywords: ['remove filter', 'clear', 'reset']
+    keywords: ['remove filter', 'clear', 'reset', 'unfiltered']
   },
-  funnel: { label: 'Funnel', categories: ['data'], keywords: ['filter', 'sort', 'refine'] },
+  funnel: {
+    label: 'Funnel',
+    categories: ['data'],
+    keywords: ['filter', 'sort', 'refine', 'narrow', 'criteria', 'query']
+  },
   globe: {
     label: 'Globe',
     categories: ['communication'],
@@ -1576,7 +1674,8 @@ export const ICON_METADATA: Record<IconName, IconMeta> = {
       'locale',
       'web',
       'browser',
-      'translate'
+      'translate',
+      'internationalization'
     ]
   },
   grip: {
@@ -1599,8 +1698,16 @@ export const ICON_METADATA: Record<IconName, IconMeta> = {
     categories: ['data'],
     keywords: ['stack', 'overlap', 'levels', 'depth']
   },
-  link: { label: 'Link', categories: ['action'], keywords: ['chain', 'url', 'hyperlink'] },
-  lock: { label: 'Lock', categories: ['toggle'], keywords: ['secure', 'locked', 'private'] },
+  link: {
+    label: 'Link',
+    categories: ['action'],
+    keywords: ['chain', 'url', 'hyperlink', 'connect', 'href', 'anchor']
+  },
+  lock: {
+    label: 'Lock',
+    categories: ['toggle'],
+    keywords: ['secure', 'locked', 'private', 'permission', 'restricted']
+  },
   mail: {
     label: 'Mail',
     categories: ['communication'],
@@ -1614,12 +1721,12 @@ export const ICON_METADATA: Record<IconName, IconMeta> = {
   monitor: {
     label: 'Monitor',
     categories: ['toggle'],
-    keywords: ['screen', 'display', 'system', 'desktop', 'computer', 'device', 'os']
+    keywords: ['screen', 'display', 'system', 'desktop', 'computer', 'device', 'os', 'mode']
   },
   moon: {
     label: 'Moon',
     categories: ['toggle'],
-    keywords: ['dark', 'night', 'theme', 'darkmode', 'sleep']
+    keywords: ['dark', 'night', 'theme', 'darkmode', 'sleep', 'appearance', 'mode']
   },
   moreVertical: {
     label: 'More Vertical',
@@ -1634,9 +1741,13 @@ export const ICON_METADATA: Record<IconName, IconMeta> = {
   refresh: {
     label: 'Refresh',
     categories: ['action'],
-    keywords: ['reload', 'sync', 'update', 'rotate']
+    keywords: ['reload', 'sync', 'update', 'rotate', 'retry']
   },
-  redo: { label: 'Redo', categories: ['action'], keywords: ['forward', 'repeat', 'again'] },
+  redo: {
+    label: 'Redo',
+    categories: ['action'],
+    keywords: ['forward', 'repeat', 'again', 'reapply', 'redo']
+  },
   save: {
     label: 'Save',
     categories: ['action'],
@@ -1650,7 +1761,7 @@ export const ICON_METADATA: Record<IconName, IconMeta> = {
   settings: {
     label: 'Settings',
     categories: ['action'],
-    keywords: ['gear', 'cog', 'preferences', 'config', 'configure', 'admin']
+    keywords: ['gear', 'cog', 'preferences', 'config', 'configure', 'admin', 'configuration']
   },
   sortAsc: {
     label: 'Sort Ascending',
@@ -1675,14 +1786,18 @@ export const ICON_METADATA: Record<IconName, IconMeta> = {
   sun: {
     label: 'Sun',
     categories: ['toggle'],
-    keywords: ['light', 'day', 'theme', 'bright', 'lightmode', 'brightness']
+    keywords: ['light', 'day', 'theme', 'bright', 'lightmode', 'brightness', 'appearance', 'mode']
   },
   trash: {
     label: 'Trash',
     categories: ['action'],
-    keywords: ['delete', 'remove', 'bin', 'garbage', 'destroy', 'discard']
+    keywords: ['delete', 'remove', 'bin', 'garbage', 'destroy', 'discard', 'erase']
   },
-  undo: { label: 'Undo', categories: ['action'], keywords: ['back', 'revert', 'undo'] },
+  undo: {
+    label: 'Undo',
+    categories: ['action'],
+    keywords: ['back', 'revert', 'undo', 'step back', 'history', 'reverse']
+  },
   unlock: {
     label: 'Unlock',
     categories: ['toggle'],
@@ -1691,7 +1806,7 @@ export const ICON_METADATA: Record<IconName, IconMeta> = {
   uploadCloud: {
     label: 'Upload Cloud',
     categories: ['action'],
-    keywords: ['upload', 'cloud', 'import']
+    keywords: ['upload', 'cloud', 'import', 'backup', 'sync', 'publish']
   },
   user: {
     label: 'User',
@@ -1747,12 +1862,12 @@ export const ICON_METADATA: Record<IconName, IconMeta> = {
   shield: {
     label: 'Shield',
     categories: ['status'],
-    keywords: ['security', 'protect', 'safe', 'guard', 'privacy', 'firewall']
+    keywords: ['security', 'protect', 'safe', 'guard', 'privacy', 'firewall', 'permission']
   },
   key: {
     label: 'Key',
     categories: ['action'],
-    keywords: ['access', 'unlock', 'password', 'auth', 'login', 'credential', 'secret']
+    keywords: ['access', 'unlock', 'password', 'auth', 'login', 'credential', 'secret', 'token']
   },
   printer: {
     label: 'Printer',
@@ -1809,12 +1924,12 @@ export const ICON_METADATA: Record<IconName, IconMeta> = {
   logOut: {
     label: 'Log Out',
     categories: ['action'],
-    keywords: ['sign out', 'exit', 'leave', 'logout']
+    keywords: ['sign out', 'exit', 'leave', 'logout', 'signout']
   },
   logIn: {
     label: 'Log In',
     categories: ['action'],
-    keywords: ['sign in', 'enter', 'access', 'login']
+    keywords: ['sign in', 'enter', 'access', 'login', 'signin']
   },
   hash: {
     label: 'Hash',
@@ -1824,7 +1939,7 @@ export const ICON_METADATA: Record<IconName, IconMeta> = {
   wifi: {
     label: 'Wifi',
     categories: ['status'],
-    keywords: ['internet', 'wireless', 'signal', 'network']
+    keywords: ['internet', 'wireless', 'signal', 'network', 'connection']
   },
   power: { label: 'Power', categories: ['action'], keywords: ['on', 'off', 'switch', 'shutdown'] },
   rocket: {
@@ -1915,7 +2030,7 @@ export const ICON_METADATA: Record<IconName, IconMeta> = {
   underline: {
     label: 'Underline',
     categories: ['action'],
-    keywords: ['text', 'format', 'decoration']
+    keywords: ['text', 'format', 'decoration', 'editor']
   },
   alignLeft: {
     label: 'Align Left',
@@ -2015,7 +2130,17 @@ export const ICON_METADATA: Record<IconName, IconMeta> = {
   palette: {
     label: 'Palette',
     categories: ['media'],
-    keywords: ['color', 'design', 'theme', 'paint', 'customize', 'style', 'brush', 'art']
+    keywords: [
+      'color',
+      'design',
+      'theme',
+      'paint',
+      'customize',
+      'style',
+      'brush',
+      'art',
+      'appearance'
+    ]
   },
   wrench: {
     label: 'Wrench',
@@ -2099,7 +2224,7 @@ export const ICON_METADATA: Record<IconName, IconMeta> = {
   ruler: {
     label: 'Ruler',
     categories: ['data'],
-    keywords: ['measure', 'unit', 'scale', 'length', 'size', 'dimension']
+    keywords: ['measure', 'unit', 'scale', 'length', 'size', 'dimension', 'distance']
   },
   activity: {
     label: 'Activity',
@@ -2194,6 +2319,238 @@ export const ICON_METADATA: Record<IconName, IconMeta> = {
       'sensor',
       'consumption'
     ]
+  },
+  upload: {
+    label: 'Upload',
+    categories: ['action'],
+    keywords: ['send', 'transfer', 'publish', 'file', 'put', 'submit']
+  },
+  export: {
+    label: 'Export',
+    categories: ['action'],
+    keywords: ['extract', 'out', 'outgoing', 'share', 'send out', 'emit']
+  },
+  wifiOff: {
+    label: 'Wifi Off',
+    categories: ['status', 'toggle'],
+    keywords: ['offline', 'disconnected', 'no internet', 'wireless', 'no signal']
+  },
+  cloudOff: {
+    label: 'Cloud Off',
+    categories: ['status', 'toggle'],
+    keywords: ['offline', 'disconnected', 'no sync', 'storage', 'unavailable']
+  },
+  userMinus: {
+    label: 'User Minus',
+    categories: ['communication'],
+    keywords: ['remove', 'leave', 'unsubscribe', 'member', 'revoke', 'demote']
+  },
+  fileX: {
+    label: 'File X',
+    categories: ['status'],
+    keywords: ['invalid', 'rejected', 'failed', 'document', 'error', 'corrupt']
+  },
+  fileMinus: {
+    label: 'File Minus',
+    categories: ['action'],
+    keywords: ['remove', 'delete', 'document', 'discard', 'detach']
+  },
+  folderX: {
+    label: 'Folder X',
+    categories: ['media'],
+    keywords: ['delete', 'remove', 'directory', 'invalid', 'missing', 'error']
+  },
+  mailX: {
+    label: 'Mail X',
+    categories: ['communication'],
+    keywords: ['bounced', 'undelivered', 'failed', 'email', 'rejected', 'unsubscribe']
+  },
+  alignJustify: {
+    label: 'Align Justify',
+    categories: ['action'],
+    keywords: ['text', 'paragraph', 'format', 'justify', 'block', 'even']
+  },
+  pinOff: {
+    label: 'Pin Off',
+    categories: ['action', 'toggle'],
+    keywords: ['unpin', 'detach', 'release', 'unstick', 'unfix', 'unpinned']
+  },
+  gitPullRequest: {
+    label: 'Git Pull Request',
+    categories: ['data'],
+    keywords: ['pr', 'merge request', 'review', 'contribute', 'branch', 'version']
+  },
+  panelTop: {
+    label: 'Panel Top',
+    categories: ['layout'],
+    keywords: ['header', 'toolbar', 'pane', 'split', 'drawer', 'topbar']
+  },
+  panelBottom: {
+    label: 'Panel Bottom',
+    categories: ['layout'],
+    keywords: ['footer', 'sheet', 'drawer', 'pane', 'split', 'console']
+  },
+  chevronsUpDown: {
+    label: 'Chevrons Up Down',
+    categories: ['navigation'],
+    keywords: ['select', 'sort', 'unfold', 'expand', 'dropdown', 'combobox', 'both']
+  },
+  command: {
+    label: 'Command',
+    categories: ['utility'],
+    keywords: ['cmd', 'meta', 'key', 'shortcut', 'keyboard', 'mac', 'palette']
+  },
+  option: {
+    label: 'Option',
+    categories: ['utility'],
+    keywords: ['alt', 'key', 'shortcut', 'keyboard', 'mac', 'modifier']
+  },
+  arrowBigUp: {
+    label: 'Arrow Big Up',
+    categories: ['utility'],
+    keywords: ['shift', 'key', 'shortcut', 'keyboard', 'modifier', 'caps']
+  },
+  cornerDownLeft: {
+    label: 'Corner Down Left',
+    categories: ['navigation'],
+    keywords: ['enter', 'return', 'submit', 'key', 'keyboard', 'newline']
+  },
+  languages: {
+    label: 'Languages',
+    categories: ['communication'],
+    keywords: [
+      'translate',
+      'language',
+      'locale',
+      'i18n',
+      'international',
+      'switch',
+      'internationalization'
+    ]
+  },
+  history: {
+    label: 'History',
+    categories: ['action'],
+    keywords: ['undo', 'past', 'log', 'audit', 'revert', 'timeline', 'recent']
+  },
+  timer: {
+    label: 'Timer',
+    categories: ['data'],
+    keywords: ['stopwatch', 'countdown', 'duration', 'elapsed', 'session', 'expire']
+  },
+  hourglass: {
+    label: 'Hourglass',
+    categories: ['status'],
+    keywords: ['waiting', 'pending', 'loading', 'time', 'expire', 'progress']
+  },
+  slidersHorizontal: {
+    label: 'Sliders Horizontal',
+    categories: ['action'],
+    keywords: ['settings', 'adjust', 'controls', 'tune', 'options', 'filter', 'preferences']
+  },
+  layoutGrid: {
+    label: 'Layout Grid',
+    categories: ['layout'],
+    keywords: ['grid', 'tiles', 'cards', 'view', 'gallery view', 'switch']
+  },
+  layoutList: {
+    label: 'Layout List',
+    categories: ['layout'],
+    keywords: ['list view', 'rows', 'detail', 'view', 'switch', 'compact']
+  },
+  calendarCheck: {
+    label: 'Calendar Check',
+    categories: ['data'],
+    keywords: ['booked', 'confirmed', 'scheduled', 'date', 'done', 'available', 'booking']
+  },
+  calendarX: {
+    label: 'Calendar X',
+    categories: ['data'],
+    keywords: ['cancelled', 'unavailable', 'blocked', 'date', 'declined', 'off']
+  },
+  calendarPlus: {
+    label: 'Calendar Plus',
+    categories: ['data'],
+    keywords: ['add event', 'new', 'book', 'schedule', 'date', 'create']
+  },
+  loader: {
+    label: 'Loader',
+    categories: ['status'],
+    keywords: ['spinner', 'loading', 'busy', 'pending', 'wait', 'progress', 'rotate']
+  },
+  accessibility: {
+    label: 'Accessibility',
+    categories: ['utility'],
+    keywords: [
+      'a11y',
+      'accessible',
+      'inclusive',
+      'disability',
+      'person',
+      'wcag',
+      'screenreader',
+      'contrast'
+    ]
+  },
+  fileImage: {
+    label: 'File Image',
+    categories: ['media'],
+    keywords: ['picture', 'photo', 'png', 'jpg', 'attachment', 'document']
+  },
+  fileCode: {
+    label: 'File Code',
+    categories: ['data'],
+    keywords: ['source', 'script', 'programming', 'json', 'document', 'developer']
+  },
+  subscript: {
+    label: 'Subscript',
+    categories: ['action'],
+    keywords: ['text', 'format', 'editor', 'lower', 'index', 'chemistry']
+  },
+  superscript: {
+    label: 'Superscript',
+    categories: ['action'],
+    keywords: ['text', 'format', 'editor', 'power', 'exponent', 'footnote']
+  },
+  removeFormatting: {
+    label: 'Remove Formatting',
+    categories: ['action'],
+    keywords: ['clear', 'plain text', 'strip', 'editor', 'reset', 'format', 'erase']
+  },
+  playCircle: {
+    label: 'Play Circle',
+    categories: ['media'],
+    keywords: ['start', 'resume', 'video', 'watch', 'run', 'begin']
+  },
+  pauseCircle: {
+    label: 'Pause Circle',
+    categories: ['media'],
+    keywords: ['hold', 'suspend', 'video', 'halt', 'break', 'stop']
+  },
+  volumeLow: {
+    label: 'Volume Low',
+    categories: ['media'],
+    keywords: ['quiet', 'sound', 'audio', 'speaker', 'low', 'soft']
+  },
+  braces: {
+    label: 'Braces',
+    categories: ['data'],
+    keywords: ['json', 'object', 'code', 'curly', 'syntax', 'developer', 'api']
+  },
+  cpu: {
+    label: 'Cpu',
+    categories: ['data'],
+    keywords: ['processor', 'chip', 'hardware', 'compute', 'core', 'performance']
+  },
+  downloadCloud: {
+    label: 'Download Cloud',
+    categories: ['action'],
+    keywords: ['cloud', 'fetch', 'sync', 'retrieve', 'pull', 'restore']
+  },
+  dollarSign: {
+    label: 'Dollar Sign',
+    categories: ['data'],
+    keywords: ['usd', 'money', 'price', 'currency', 'cost', 'payment']
   }
 };
 

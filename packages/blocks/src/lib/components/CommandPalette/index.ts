@@ -34,7 +34,7 @@ export interface CommandPaletteItem {
    * Leading icon component. Pass an icon directly (`import { SearchIcon } from
    * '@urbicon-ui/blocks'`), not an icon *name* — a name would have to be
    * resolved through the registry at runtime, and that dynamic lookup drags all
-   * 315 icons into the consumer bundle (see docs/ICON-DESIGN.md). Rendered at
+   * the entire icon set into the consumer bundle (see docs/ICON-DESIGN.md). Rendered at
    * the slot's own size, inheriting `currentColor`.
    */
   icon?: IconComponent;

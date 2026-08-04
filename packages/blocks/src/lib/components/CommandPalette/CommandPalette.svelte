@@ -1,11 +1,17 @@
 <script lang="ts">
   import { useBlocksI18n } from '$lib';
+  import { resolveIcon } from '$lib/icons';
+  import CloseIconDefault from '$lib/icons/CloseIcon.svelte';
+  import SearchIconDefault from '$lib/icons/SearchIcon.svelte';
   import { Dialog, Separator } from '$lib/primitives';
   import { getBlocksConfig, resolveSlotClasses } from '$lib/provider';
   import type { CommandPaletteProps, CommandPaletteItem } from './index';
   import { commandPaletteVariants, type CommandPaletteVariants } from './commandPalette.variants';
 
   const bt = useBlocksI18n();
+
+  const SearchIcon = resolveIcon('search', SearchIconDefault);
+  const CloseIcon = resolveIcon('close', CloseIconDefault);
 
   let {
     items,
@@ -163,21 +169,11 @@
         ? (slotClasses?.inputWrapper ?? '')
         : styles.inputWrapper({ class: slotClasses?.inputWrapper })}
     >
-      <svg
+      <SearchIcon
         class={unstyled
           ? (slotClasses?.inputIcon ?? '')
           : styles.inputIcon({ class: slotClasses?.inputIcon })}
-        fill="none"
-        viewBox="0 0 24 24"
-        stroke="currentColor"
-        stroke-width="2"
-      >
-        <path
-          stroke-linecap="round"
-          stroke-linejoin="round"
-          d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"
-        />
-      </svg>
+      />
       <input
         bind:this={inputEl}
         type="text"
@@ -204,15 +200,7 @@
             inputEl?.focus();
           }}
         >
-          <svg
-            class="h-4 w-4"
-            fill="none"
-            viewBox="0 0 24 24"
-            stroke="currentColor"
-            stroke-width="2"
-          >
-            <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" />
-          </svg>
+          <CloseIcon class="h-4 w-4" />
         </button>
       {/if}
     </div>

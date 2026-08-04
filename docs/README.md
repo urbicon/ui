@@ -47,7 +47,7 @@ Then reach for the rest as you need it.
 ## Icons
 
 - [ICON-DESIGN.md](ICON-DESIGN.md) — icon design language: hard contract, grid/radius scale, canonical motifs, tree-shaking rules (enforced by `bun run icons:lint`)
-- [ICON-ROADMAP.md](ICON-ROADMAP.md) — how the set grew from 156 to 315, and the open polish backlog
+- [ICON-ROADMAP.md](ICON-ROADMAP.md) — how the set grew from 156 to 358, and the open polish backlog
 
 ## Auth
 

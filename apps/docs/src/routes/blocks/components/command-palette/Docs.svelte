@@ -129,13 +129,7 @@
         class="border-border-default bg-surface-base text-text-tertiary hover:border-border-emphasis hover:text-text-secondary rounded-modify flex items-center gap-2 border px-4 py-2.5 text-sm shadow-[var(--blocks-shadow-sm)] transition-all"
         onclick={() => (customOpen = true)}
       >
-        <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-          <path
-            stroke-linecap="round"
-            stroke-linejoin="round"
-            d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"
-          />
-        </svg>
+        <SearchIcon class="h-4 w-4" />
         Search commands...
         <Badge variant="outlined" intent="neutral" size="sm" class="ml-8">
           <kbd class="text-3xs font-mono">Ctrl+K</kbd>

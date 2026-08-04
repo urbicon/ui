@@ -1,8 +1,11 @@
 <script lang="ts" generics="Item">
   import { useTableI18n } from '../i18n';
   import { linkCellVariants, type LinkCellVariantProps } from '$lib/variants';
+  import { resolveIcon, ExternalLinkIcon as ExternalLinkIconDefault } from '@urbicon-ui/blocks';
 
   const tt = useTableI18n();
+
+  const ExternalLinkIcon = resolveIcon('externalLink', ExternalLinkIconDefault);
 
   export type LinkCellProps<Item> = {
     item: Item;
@@ -205,21 +208,7 @@
       </span>
 
       {#if showIcon && isExternal()}
-        <svg
-          class={styles.icon()}
-          width="14"
-          height="14"
-          viewBox="0 0 24 24"
-          fill="none"
-          stroke="currentColor"
-          stroke-width="2"
-          stroke-linecap="round"
-          stroke-linejoin="round"
-          aria-hidden="true"
-        >
-          <path d="M7 17L17 7" />
-          <path d="M7 7h10v10" />
-        </svg>
+        <ExternalLinkIcon size={14} class={styles.icon()} />
       {/if}
     </a>
   </div>

@@ -2,7 +2,7 @@ import { createOptionalContext } from '$lib/utils/optional-context';
 import type { IconComponent, IconName, IconSet } from './icon-types';
 
 // Re-export the icon type surface so existing `from './icon.context'` imports —
-// the 315 leaf icons (type-only) and any consumer that imported types here —
+// the leaf icons (type-only) and any consumer that imported types here —
 // keep resolving after the registry/types/transform split.
 export type {
   IconCategory,

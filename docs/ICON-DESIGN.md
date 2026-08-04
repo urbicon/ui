@@ -5,7 +5,7 @@ reads as one family. The hard, machine-checkable rules here are enforced by
 `bun run icons:lint` (`packages/blocks/scripts/icons-lint.ts`); the soft rules are judgement
 calls the linter surfaces as warnings and a reviewer (or you) decides on.
 
-> These values are not invented — they codify what the existing 315 icons already do in the
+> These values are not invented — they codify what the existing icons already do in the
 > majority. When in doubt, **copy the geometry of the named reference icon** for that shape class
 > and adapt it; do not start from a blank 24×24.
 
@@ -19,10 +19,45 @@ calls the linter surfaces as warnings and a reviewer (or you) decides on.
 - The `<svg>` wrapper attributes in the file are stripped at runtime — but they **must still be
   correct** (the linter checks them, and they drive editor preview).
 
+## What belongs in the set
+
+This set is **not** a general-purpose icon library and should not grow into one. Every icon is
+hand-drawn against the contract below, so each one is permanent maintenance — a name in the
+`IconName` union that a consumer may pin, a keyword entry `find_icons` searches, a drawing that
+has to be re-checked whenever the design language moves. Coverage is therefore chosen, not
+accumulated.
+
+**Take an icon when one of these holds:**
+
+1. **It completes a series the set already committed to.** `download` without `upload`,
+   `wifi` without `wifiOff`, `panelLeft`/`panelRight` without `panelTop`/`panelBottom` — the
+   missing direction reads as a defect, because the established pattern promises it exists.
+2. **A component in this repo needs it.** `Kbd` renders ⌘ as text, `LocaleSwitcher` has no glyph,
+   `Drawer` has a `placement` the panel icons don't cover. A feature that ships without its icon
+   is the strongest possible argument for drawing one.
+3. **It is a standard control motif of application UI** — the vocabulary any dashboard, table,
+   editor or settings screen needs: sort, filter, layout switch, history, upload.
+4. **It is load-bearing for a domain the library actually serves** and no generic icon carries the
+   meaning (`heatPump`, `waterMeter`, `solarPanel`).
+
+**Leave it out when:**
+
+- It is **domain breadth for its own sake** — food, animals, sport, science, vehicles beyond the
+  handful already carried. Reach for a full set (Lucide, Phosphor) instead; `IconProvider` exists
+  precisely so a consumer can bring their own.
+- It is a **brand or social logo.** Those are fill-based and legally bound to their original
+  geometry, so they cannot satisfy the pure-stroke contract without being wrong twice over.
+- **An existing icon already carries the meaning.** Prefer adding keywords to `ICON_METADATA` over
+  adding a glyph — a synonym costs one line and makes the existing drawing findable, and
+  `find_icons` searches keywords, not names. Two icons for one idea are only allowed as declared
+  semantic aliases (`checkCircle`/`successCircle`), never as near-duplicates.
+
+Rule of thumb: an icon whose only justification is "another set has it" fails all four tests.
+
 ## Icon resolution & tree-shaking
 
 How a component renders a _default_ icon decides whether a consumer who imports that component
-drags in **one** icon or **all ~315**. Two resolvers exist (`resolveIcon` in `icons/icon.context.ts`, `getIcon` in `icons/icon-registry.ts`); pick by call
+drags in **one** icon or **the whole set**. Two resolvers exist (`resolveIcon` in `icons/icon.context.ts`, `getIcon` in `icons/icon-registry.ts`); pick by call
 site:
 
 - **`resolveIcon(name, FallbackIcon)` — use this in every component.** The component imports its
@@ -46,12 +81,12 @@ site:
   icon and is indexed dynamically (`DEFAULT_ICONS[name]`), **importing `getIcon` pulls the whole
   icon set into the bundle** — unavoidable for a genuinely by-name component, wrong everywhere else.
 
-**Why it matters.** `DEFAULT_ICONS` statically imports all ~315 icons and `getIcon` reads it via a
+**Why it matters.** `DEFAULT_ICONS` statically imports every icon and `getIcon` reads it via a
 runtime key — a dynamic property access no bundler can tree-shake. A single `getIcon('close')` in
-`Input` therefore used to drag all 315 icons into any app that imports `<Input>`. `resolveIcon`
-never references the registry, so the bundler drops `DEFAULT_ICONS` (and its 315 imports) whenever
-no `<Icon>` is in the graph. Measured on the built `dist`: `<Input>` bundles **1** icon, `<Select>`
-3, `<Toaster>` 5 — down from 315 each.
+`Input` therefore used to drag every icon into any app that imports `<Input>`. `resolveIcon`
+never references the registry, so the bundler drops `DEFAULT_ICONS` (and its hundreds of
+imports) whenever no `<Icon>` is in the graph. Measured on the built `dist`: `<Input>` bundles **1** icon, `<Select>`
+3, `<Toaster>` 5 — down from the entire set each (315 icons when that measurement was taken).
 
 **Rule for new components.** Resolve every built-in icon via `resolveIcon(name, …Default)` with a
 direct import. Never call `getIcon` in a component — the lone exception is `Icon.svelte`. The
@@ -217,8 +252,17 @@ bun run icons:lint --strict   # warnings fail too — use when tightening the se
 ```
 
 **Errors (must fix):** root-attribute contract, child `fill`/`stroke`/`stroke-width` overrides,
-off-grid axis-aligned coordinates, illegal `rect` `rx`, and registry integrity
-(svg ↔ `.svelte` ↔ `index.ts` ↔ `DEFAULT_ICONS` ↔ `ICON_METADATA` ↔ `IconName`).
+off-grid axis-aligned coordinates, illegal `rect` `rx`, registry integrity
+(svg ↔ `.svelte` ↔ `index.ts` ↔ `DEFAULT_ICONS` ↔ `ICON_METADATA` ↔ `IconName`), and the
+**documented icon count**.
+
+That last one exists because the size of the set was quoted in fifteen places and every one of
+them had gone stale. Twelve were decoration ("drags all N icons into the bundle" — the number
+carried nothing "the whole set" doesn't) and were deleted rather than maintained; a number nobody
+acts on is a number that only rots. The four that inform a reader — `COUNT_CLAIMS` in
+`icons-lint.ts` — are checked against the count the linter already has from the `svg/` directory,
+so the claim cannot drift from the thing it describes. Rewording the sentence so the pattern stops
+matching is an error too, not a silent detachment.
 
 **Warnings (judgement):** off-grid numbers inside organic paths, dense paths (>20 pts), spaced
 path notation, unusual elements. These are the deliberately-soft rules from §2, §5 and §6.

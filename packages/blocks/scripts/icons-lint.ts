@@ -225,6 +225,50 @@ function lintRegistry(svgNames: string[]): void {
   sym(unionKeys, 'IconName', defaultKeys, 'DEFAULT_ICONS');
 }
 
+// ── Documented counts ────────────────────────────────────────────────────────
+/**
+ * Four docs quote the set's size as information a reader acts on (how big is
+ * this set / how far did it grow). Everywhere else the number was decoration —
+ * "drags all N icons into the bundle" says nothing "the whole set" doesn't — and
+ * those copies were deleted rather than maintained, because a number that no one
+ * reads is a number that only goes stale.
+ *
+ * These four stay, bound to the count this linter already has in hand. That is
+ * the whole justification for the check: it asks no new oracle and re-implements
+ * no parser — it compares a prose claim against the directory it is a claim
+ * about. A pattern that stops matching is an error too, so rewording the
+ * sentence can't silently detach it from the truth.
+ *
+ * Deliberately absent: ICON-DESIGN.md's "315 icons when that measurement was
+ * taken" — a historical statement about a past measurement, which must NOT track
+ * the current count.
+ */
+const REPO_ROOT = join(import.meta.dir, '../../..');
+const COUNT_CLAIMS: ReadonlyArray<readonly [string, RegExp]> = [
+  ['packages/blocks/README.md', /(\d+) hand-rolled SVG icons/],
+  ['docs/ARCHITECTURE.md', /icon set \((\d+) icons\)/],
+  ['docs/README.md', /how the set grew from 156 to (\d+)/],
+  ['docs/ICON-ROADMAP.md', /\*\*156 icons to the current set of (\d+)\*\*/]
+];
+
+function lintDocumentedCounts(actual: number): void {
+  for (const [file, re] of COUNT_CLAIMS) {
+    const path = join(REPO_ROOT, file);
+    if (!existsSync(path)) {
+      err(file, 'count-claim', 'file listed in COUNT_CLAIMS does not exist');
+      continue;
+    }
+    const match = readFileSync(path, 'utf8').match(re);
+    if (!match) {
+      err(file, 'count-claim', `no icon-count claim matching ${re} — entry is stale`);
+      continue;
+    }
+    if (Number(match[1]) !== actual) {
+      err(file, 'count-claim', `claims ${match[1]} icons, the set has ${actual}`);
+    }
+  }
+}
+
 // ── Report ─────────────────────────────────────────────────────────────────
 const groupByIcon = (findings: Finding[]): Map<string, Finding[]> => {
   const byIcon = new Map<string, Finding[]>();
@@ -251,6 +295,7 @@ const svgFiles = readdirSync(SVG_DIR)
 
 for (const f of svgFiles) lintSvg(f, readFileSync(join(SVG_DIR, f), 'utf8'));
 lintRegistry(svgFiles);
+lintDocumentedCounts(svgFiles.length);
 
 console.log(`\n${c.bold}icons-lint${c.reset} ${c.gray}· ${svgFiles.length} icons${c.reset}\n`);
 

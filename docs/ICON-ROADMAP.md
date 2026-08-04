@@ -1,12 +1,16 @@
 # Icon Set Expansion
 
-Record of the icon-set expansion from **156 icons to the current set of 315**, added in three
+Record of the icon-set expansion from **156 icons to the current set of 358**, added in four
 prioritised waves following [ICON-DESIGN.md](ICON-DESIGN.md) and verified by `bun run icons:lint`.
 
 **The expansion is complete**; what remains open is the polish backlog at the bottom. The live
 source of truth for what exists is `ICON_METADATA` in
 `packages/blocks/src/lib/icons/icon-registry.ts` (and the `urbicon icons` command); this file
 records the *rationale* and that backlog.
+
+Since P4 the *admission* question has an answer of its own —
+[ICON-DESIGN.md](ICON-DESIGN.md) → "What belongs in the set". Read it before proposing a wave
+five: it is what stops the set from drifting into a general-purpose library.
 
 ## Why these icons
 
@@ -50,6 +54,25 @@ finance (`euro` `percent` `coins` `banknote` `piggy-bank` `landmark` `scale` `ha
 `sunrise` `sunset` `wind-arrow`), transport/geo (`car` `bike` `plane` `map` `navigation` `route`
 `anchor`), objects (`coffee` `shopping-bag` `watch` `glasses` `graduation-cap` `heart-pulse`
 `smile` `gamepad` `pill` `flashlight`).
+
+**P4 · Symmetrie-Nachlese & UI-Vokabular (43)** — the three earlier waves named family symmetry as
+their motive but left the reverse direction missing in a dozen places, and a year of new components
+arrived without their glyphs. Series completions (`upload` `export` `wifi-off` `cloud-off`
+`user-minus` `file-x/-minus` `folder-x` `mail-x` `align-justify` `pin-off` `git-pull-request`
+`panel-top/-bottom` `chevrons-up-down`); glyphs a shipped feature was missing (`command` `option`
+`arrow-big-up` `corner-down-left` for `Kbd`/CommandPalette, `languages` for `LocaleSwitcher`,
+`history` `timer` `hourglass` `loader` `accessibility` `sliders-horizontal` `layout-grid`
+`layout-list` `calendar-check/-x/-plus`; `loader` is drawn **to be rotated** — render it as
+`<LoaderIcon animation="spin" />`, and keep its gap off-centre so it still reads as a ring with a
+gap when it stands still, rather than as the letter U); breadth with a caller (`file-image` `file-code`
+`subscript` `superscript` `remove-formatting` `play-circle` `pause-circle` `volume-low` `braces`
+`cpu` `download-cloud` `dollar-sign`).
+
+Five candidates were **dropped by the admission rules** rather than drawn: `volume2` and
+`cloudUpload` duplicate `volume` / `uploadCloud`, `hardDrive` is a near-duplicate of `server`,
+`fileJson` is covered by `braces` + `fileCode`, and `fileArchive` (covered by `archive` / `package`)
+had no zipper motif that survives 16px. The same wave replaced the last hand-inlined SVGs in
+CommandPalette, table's Empty/Error/Link cells, CodePanel and the docs nav with real icons.
 
 ## Non-goals
 
