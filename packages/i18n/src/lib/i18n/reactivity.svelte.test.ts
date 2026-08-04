@@ -1,3 +1,4 @@
+// @vitest-environment jsdom
 import { flushSync } from 'svelte';
 import { describe, expect, it } from 'vitest';
 import { I18nState } from './context.svelte';
@@ -11,7 +12,13 @@ import { I18nRegistry } from './registry.svelte';
  *    package registers more keys, e.g. a lazily-loaded sub-package), and
  *  - the request-scoped `I18nState.locale` `$state` (re-resolve on `setLocale`).
  *
- * Both run inside `$effect.root` + `flushSync` (no DOM, no component context).
+ * Both run inside `$effect.root` + `flushSync`, no component context — but they
+ * do need the DOM environment, which is why the docblock above is not optional.
+ * Written without it, this file passed for months while running nothing: only
+ * vitest's web transform mode consults `resolve.conditions`, so under the node
+ * default Svelte resolved to its server build, where `$effect.root` is a no-op
+ * that discards its callback unread. Sabotaging `setLocale` to `return false`
+ * left both tests green. They fail now.
  */
 describe('reactivity', () => {
   it('$derived(registry.translate(...)) re-computes when a package registers', () => {

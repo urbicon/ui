@@ -22,6 +22,17 @@ export default mergeConfig(
       // simply moved the failure to the 10s hook default. One budget, applied
       // where the work happens, is both simpler and faster.
       testTimeout: 30_000
+    },
+    // `reactivity.svelte.test.ts` drives real `$effect`s. Two knobs have to be
+    // right for that and both fail silently: the file needs a
+    // `// @vitest-environment jsdom` docblock (only the web transform mode
+    // consults `resolve.conditions`), and the condition below has to exist at
+    // all — without it Svelte resolves to its *server* build, where `$effect`
+    // and `$effect.root` are no-ops that swallow the callback whole. Missing
+    // either one, the suite passed while asserting nothing. Same reasoning as
+    // packages/blocks and packages/table; scoped to test runs only.
+    resolve: {
+      conditions: ['browser']
     }
   })
 );

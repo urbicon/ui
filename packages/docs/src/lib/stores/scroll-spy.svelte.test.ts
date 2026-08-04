@@ -87,6 +87,38 @@ describe('ScrollSpy — the listener follows the readers', () => {
     expect(liveScrollListeners()).toBe(1);
     cleanup();
   });
+
+  it('a scroll event makes the reader recompute', () => {
+    // The property the rest of this file cannot see: every test above either
+    // counts listeners or reads `active` directly, so the whole notification
+    // path — onScroll → rAF → `update()` → invalidate the readers — was
+    // untested. Measured: replacing `requestAnimationFrame(update)` with
+    // `requestAnimationFrame(() => {})` left all eight of them green.
+    const a = section('a', 900); // below the 300 line
+    const seen: string[] = [];
+    const cleanup = $effect.root(() => {
+      const spy = new ScrollSpy(() => ['a']);
+      $effect(() => {
+        seen.push(spy.active);
+      });
+    });
+    flushSync();
+    expect(seen).toEqual(['']);
+
+    // The reader scrolls; nothing about the spy's inputs changed, only geometry.
+    a.getBoundingClientRect = () => ({ top: 100 }) as DOMRect;
+    window.dispatchEvent(new Event('scroll'));
+    flushSync();
+
+    expect(seen).toEqual(['', 'a']);
+    cleanup();
+  });
+
+  // No companion test for "stops recomputing after cleanup": it cannot fail.
+  // A destroyed effect does not re-run whatever the listener does, so such a
+  // test asserts a Svelte property, not a ScrollSpy one — it stayed green with
+  // the teardown's `off()` commented out. The listener count above catches that
+  // sabotage, and is the honest place for it.
 });
 
 describe('ScrollSpy — which section is active', () => {
