@@ -218,11 +218,11 @@ const STAGE_3_ROSTER: Record<string, typeof PENDING | typeof WIRED> = {
   '/blocks/primitives/toggle': WIRED,
   '/blocks/primitives/toolbar': WIRED,
   '/blocks/primitives/tooltip': WIRED,
-  '/docs/components/code-panel': PENDING,
-  '/docs/components/note-list': PENDING,
-  '/docs/components/playground-configurator': PENDING,
-  '/docs/components/types-reference': PENDING,
-  '/table/table': PENDING
+  '/docs/components/code-panel': WIRED,
+  '/docs/components/note-list': WIRED,
+  '/docs/components/playground-configurator': WIRED,
+  '/docs/components/types-reference': WIRED,
+  '/table/table': WIRED
 };
 
 /**

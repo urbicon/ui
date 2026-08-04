@@ -7,7 +7,8 @@
     Note,
     NoteList,
     PlaygroundConfigurator,
-    Section
+    Section,
+    TypesReference
   } from '@urbicon-ui/docs';
   import { Button } from '@urbicon-ui/blocks';
   import CustomDocs from './Docs.svelte';
@@ -25,6 +26,7 @@
     { id: 'prop-docs', title: 'PropDocs & Variants' },
     { id: 'accessibility', title: 'Accessibility' },
     { id: 'api', title: 'API Reference' },
+    { id: 'types', title: 'Types' },
     { id: 'installation', title: 'Installation' }
   ];
 
@@ -176,8 +178,10 @@
     subtitle="Complete list of component properties and their configurations"
     intent="secondary"
   >
-    <ApiReference props={componentData?.props ?? []} />
+    <ApiReference props={componentData?.props ?? []} types={componentData?.types ?? []} />
   </Section>
+
+  <TypesReference types={componentData?.types ?? []} />
 
   <Section marker="07" id="installation" title="Installation">
     <CodeExample
