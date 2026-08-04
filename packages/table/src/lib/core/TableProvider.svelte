@@ -1,5 +1,6 @@
 <script lang="ts">
   import { untrack, type Snippet } from 'svelte';
+  import { SvelteSet } from 'svelte/reactivity';
   import { resolveDateLocale, useI18n } from '@urbicon-ui/i18n';
   import { attachTableContext, attachCellLocale, createTableState, findColumnById } from '$lib';
   import { useTableI18n } from '$lib/i18n';
@@ -204,6 +205,26 @@
     state.groupByKey = null;
   }
 
+  // The collapse set holds *group names* — values of whatever column is grouped
+  // by — so it cannot outlive its key: after regrouping, those names mean
+  // nothing, and one that happens to match collapses a group nobody touched.
+  // `setGroupByKey` clears it for every imperative path, but `state.groupByKey`
+  // also derives from the controlled `query` prop, which changes on plain
+  // navigation (#152) without passing through any setter. Watching the value
+  // covers that door. `currentPage` deliberately stays out of it: resetting to
+  // page 1 belongs to a click, not to a link that names its own page.
+  let lastGroupKey: string | null | undefined;
+  $effect(() => {
+    const key = state.groupByKey;
+    const previous = untrack(() => lastGroupKey);
+    lastGroupKey = key;
+    if (previous === undefined || key === previous) return;
+    untrack(() => {
+      state.collapsedGroups = new SvelteSet();
+      state.allGroupsExpanded = true;
+    });
+  });
+
   // Runtime toggle into virtualization: clear a group key that is active by then.
   // Still an effect — it is not a derivation but a one-way write to a *different*
   // piece of state, which is exactly what effects are for.
@@ -239,6 +260,63 @@
       console.warn(
         `[Table] initialSort.column "${seededSort.column}" does not match any column id — the seeded sort has no effect.`
       );
+    }
+    // The `query` twin of the check above, and the more important one: this
+    // value usually comes from a URL, so it can be set by whoever sent the
+    // link rather than by the developer.
+    const controlledSort = query?.sortColumn;
+    if (controlledSort && !findColumnById(columns, controlledSort)) {
+      console.warn(
+        `[Table] query.sortColumn "${controlledSort}" does not match any column id — the table renders unsorted.`
+      );
+    }
+  });
+
+  // A controlled axis silently outranks the prop that would otherwise seed it,
+  // and silently switches persistence off for that axis. That is the intended
+  // precedence (#152: URL > localStorage > seed), but "intended" and "visible"
+  // are different things: the seed prop stays in the call site looking like it
+  // does something. Every neighbouring conflict in this file is reported, so
+  // this one is too.
+  $effect(() => {
+    if (!import.meta.env?.DEV || !query) return;
+    const shadowed: string[] = [];
+    const seeds = untrack(() => ({
+      initialSort,
+      initialFilters,
+      initialGroupBy,
+      initialPage,
+      itemsPerPage,
+      searchTerm
+    }));
+    // Only props whose value proves the consumer passed them. `initialPage`,
+    // `itemsPerPage` and `initialGroupBy` carry defaults, so "present" is not
+    // observable — compared against the default instead, which reports the
+    // cases that actually differ and stays quiet on the ones that cannot.
+    if ((query.sortColumn !== undefined || query.sortDirection !== undefined) && seeds.initialSort)
+      shadowed.push('initialSort');
+    if (query.activeFilters !== undefined && seeds.initialFilters?.length)
+      shadowed.push('initialFilters');
+    if (query.groupByKey !== undefined && seeds.initialGroupBy) shadowed.push('initialGroupBy');
+    if (query.page !== undefined && seeds.initialPage !== 1) shadowed.push('initialPage');
+    if (query.itemsPerPage !== undefined && seeds.itemsPerPage !== 10)
+      shadowed.push('itemsPerPage');
+    if (query.searchTerm !== undefined && seeds.searchTerm !== undefined)
+      shadowed.push('searchTerm');
+    if (shadowed.length > 0) {
+      console.warn(
+        `[Table] \`query\` controls the same axes as ${shadowed.map((s) => `\`${s}\``).join(', ')} — the controlled value wins and the prop has no effect. Move the value into the query, or drop the prop.`
+      );
+    }
+    if (persistenceConfig) {
+      const axes = (
+        ['sortColumn', 'sortDirection', 'searchTerm', 'activeFilters', 'groupByKey'] as const
+      ).filter((axis) => query[axis] !== undefined);
+      if (axes.length > 0) {
+        console.warn(
+          `[Table] \`query\` controls ${axes.map((a) => `\`${a}\``).join(', ')}, so \`persistenceConfig\` neither restores nor stores ${axes.length === 1 ? 'that axis' : 'those axes'} — the link is the source of truth for them.`
+        );
+      }
     }
   });
 

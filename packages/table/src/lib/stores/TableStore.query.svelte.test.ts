@@ -91,13 +91,16 @@ describe('query — the controlled axes resolve without a tracking context', () 
     const store = createTableState(undefined, undefined, {
       items: () => ITEMS,
       columns: () => COLUMNS,
+      // `contains: 'a'` would match all three rows in input order, so the
+      // assertion below would hold with no filtering at all. The filter has to
+      // exclude something to measure anything.
       query: () => ({
-        activeFilters: [{ column: 'name', operator: 'contains', value: 'a' }] as Filter[]
+        activeFilters: [{ column: 'name', operator: 'contains', value: 'ra' }] as Filter[]
       })
     });
 
     expect(store.state.activeFilters).toHaveLength(1);
-    expect(names(store.paginatedItems)).toEqual(['Ada', 'Grace', 'Barbara']);
+    expect(names(store.paginatedItems)).toEqual(['Grace', 'Barbara']);
   });
 
   it('follows the query when it changes — the back button, not a remount', () => {

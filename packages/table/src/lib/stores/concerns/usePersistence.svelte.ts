@@ -75,6 +75,16 @@ export function usePersistence(
    * being controlled (#152, precedence URL > localStorage > `initial*` seed).
    */
   const owns = (axis: keyof TableViewState): boolean => controlledView?.()?.[axis] !== undefined;
+
+  /**
+   * Sort is **one** axis across two fields, and both hydration and write-back
+   * touch both slots. Keying them off `sortColumn` alone let a controlled
+   * `sortDirection` be overwritten by a stored one: `{ sortDirection: 'desc' }`
+   * with `{column:'amount',direction:'asc'}` in storage hydrated the direction
+   * to `'asc'` over a derived that resolved to `'desc'`, and kept writing the
+   * controlled table's sort back into storage.
+   */
+  const ownsSort = (): boolean => owns('sortColumn') || owns('sortDirection');
   let persistentFilters: ReturnType<typeof createPersistentFilters> | undefined;
   let persistentSearchTerm: ReturnType<typeof createPersistentSearchTerm> | undefined;
   let persistentGroupByKey: ReturnType<typeof createPersistentGroupByKey> | undefined;
@@ -170,7 +180,7 @@ export function usePersistence(
       });
       const sortValue = persistentSortState.value;
       if (
-        !owns('sortColumn') &&
+        !ownsSort() &&
         persistentSortState.hasStoredValue &&
         sortValue &&
         typeof sortValue === 'object' &&
@@ -223,7 +233,7 @@ export function usePersistence(
   // chose) would read as "nothing supplied" and let the seed sort the view back.
   if (owns('activeFilters')) hydratedFilters = true;
   if (owns('groupByKey')) hydratedGroupByKey = true;
-  if (owns('sortColumn')) hydratedSort = true;
+  if (ownsSort()) hydratedSort = true;
 
   // Sync functions called by other concerns after mutations
   // Every sync writes a *snapshot*, never the live array: the concerns mutate
@@ -257,7 +267,7 @@ export function usePersistence(
   }
 
   function syncSortState() {
-    if (persistentSortState && !owns('sortColumn'))
+    if (persistentSortState && !ownsSort())
       persistentSortState.value = {
         column: state.sortColumn,
         direction: state.sortDirection

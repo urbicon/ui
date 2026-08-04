@@ -479,6 +479,13 @@ export interface TableProps<T = TableItem> {
    * longer written to storage — otherwise the stored copy would resurface the
    * moment the table stopped being controlled.
    *
+   * Because presence *is* the switch, pass only the axes you mean to control.
+   * An object with every field filled in claims every axis — so a table handed
+   * a complete query ignores `persistenceConfig` and every `initial*` seed, on
+   * every URL, including one with no parameters at all. `createTableQueryUrlSync`
+   * exposes both shapes for exactly this reason: `viewState` (the axes the URL
+   * names — this prop) and `initialQuery` (a complete snapshot, for a fetch).
+   *
    * The reason to reach for this is the server. View state kept in
    * `localStorage` is invisible to it, so a server-rendered table shows an
    * unfiltered, unsorted view that the client then replaces on hydration. Put
@@ -499,7 +506,7 @@ export interface TableProps<T = TableItem> {
    * <Table
    *   {items}
    *   {columns}
-   *   query={sync.initialQuery}
+   *   query={sync.viewState}
    *   onQueryChange={sync.syncQuery}
    * />
    * ```

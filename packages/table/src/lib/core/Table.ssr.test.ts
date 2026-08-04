@@ -78,17 +78,20 @@ describe('Table — server render of a shared link', () => {
   // see it. `query` is the URL, parsed.
 
   it('sorts on the server', () => {
-    const body = bodyOf({ items: ROWS, query: { sortColumn: 'name', sortDirection: 'asc' } });
-    const order = ['Ada', 'Grace', 'Radia'].map((name) => body.indexOf(name));
-
-    expect(order.every((i) => i >= 0)).toBe(true);
-    // Ada, Grace, Radia is also the input order — so assert against a sort that
-    // actually moves something.
+    // Sorted against the INPUT order, which is already Ada/Grace/Radia — so the
+    // only assertion worth writing is one where the sort moves a row. A check
+    // that all three names appear passes without any sorting at all.
     const byAmount = bodyOf({
       items: ROWS,
       query: { sortColumn: 'amount', sortDirection: 'desc' }
     });
     expect(byAmount.indexOf('Radia')).toBeLessThan(byAmount.indexOf('Ada'));
+
+    const ascending = bodyOf({
+      items: ROWS,
+      query: { sortColumn: 'amount', sortDirection: 'asc' }
+    });
+    expect(ascending.indexOf('Ada')).toBeLessThan(ascending.indexOf('Radia'));
   });
 
   it('searches on the server', () => {

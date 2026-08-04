@@ -144,6 +144,49 @@ describe('Table — query emission in client mode', () => {
     expect(seen.at(-1)).toMatchObject({ searchTerm: 'ada' });
   });
 
+  it('keeps the page the URL asked for when a controlled searchTerm is also present', () => {
+    // The client half of an SSR/client agreement. `TableProvider` applies the
+    // controlled `searchTerm` prop in a mount effect, and `setSearchTerm` used
+    // to reset the page unconditionally — so `?page=2&q=…` rendered page 2 on
+    // the server and snapped to page 1 the moment the browser took over. Which
+    // is the exact divergence the `query` prop exists to remove (#152), arriving
+    // through a different door.
+    const el = mountTable({ query: { page: 2, itemsPerPage: 1 }, searchTerm: '' });
+    const body = el.querySelector('tbody');
+
+    expect(body?.textContent).toContain('Grace');
+    expect(body?.textContent).not.toContain('Ada');
+  });
+
+  it('drops the collapse set when the URL regroups by another column', () => {
+    // `collapsedGroups` holds group *names*. Regrouping through `setGroupByKey`
+    // clears them; regrouping through the controlled `query` prop never touches
+    // that setter, so the names of the previous grouping survived — and one
+    // that happens to match collapses a group nobody collapsed.
+    let ctx:
+      | { state: { collapsedGroups: Set<string> }; toggleGroup: (n: string) => void }
+      | undefined;
+    const props = $state({
+      items: ROWS,
+      query: { groupByKey: 'name' } as Record<string, unknown>,
+      onReady: (c: unknown) => {
+        ctx = c as typeof ctx;
+      }
+    });
+    target = document.createElement('div');
+    document.body.appendChild(target);
+    comp = mount(TableHarness, { target, props }) as Record<string, unknown>;
+    flushSync();
+
+    ctx?.toggleGroup('Ada');
+    flushSync();
+    expect(ctx?.state.collapsedGroups.has('Ada')).toBe(true);
+
+    props.query = { groupByKey: 'amount' };
+    flushSync();
+    expect(ctx?.state.collapsedGroups.size).toBe(0);
+  });
+
   it('never fetches in client mode, even with a queryFn present', async () => {
     // `queryFn` is a server-mode contract. Emitting in client mode must not
     // quietly start calling it — that would fetch over data the consumer owns.
