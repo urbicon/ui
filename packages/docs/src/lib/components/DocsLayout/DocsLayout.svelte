@@ -92,6 +92,12 @@
   // condition that used to gate the `observe()` effect gates the read here —
   // a layout with neither a collapsing header nor a TOC still costs nothing.
   const spyConsumed = $derived(useCollapsingHeader || (showToc && navigation.length > 0));
+  // Read the getter EXACTLY once per frame and pass this derived on — including
+  // to the TOC below. `spy.active` is not a stored value: every read walks the
+  // id list calling `getBoundingClientRect`, which forces layout. The markup
+  // used to read it a second time, which measured everything twice and reached
+  // past the gate above while doing it. Measured over four sections, one scroll
+  // frame: 4 calls with one reader, 8 with two.
   const activeSection = $derived(spyConsumed ? spy.active : '');
 
   // The badge names AND anchors to the top-level section the reader is in —
@@ -349,13 +355,7 @@
     </div>
 
     {#if showToc && navigation.length > 0}
-      <TableOfContents
-        {navigation}
-        {related}
-        {showCodeToggle}
-        position="right"
-        activeSection={spy.active}
-      />
+      <TableOfContents {navigation} {related} {showCodeToggle} position="right" {activeSection} />
     {/if}
   </div>
 </div>
