@@ -572,7 +572,7 @@ function checkEmojiAsIcon(lines: string[]): Finding[] {
     'emoji-as-icon',
     hits,
     'Emoji in the markup as iconography. They render inconsistently across platforms and clash with a real icon set.',
-    'Use the `Icon` component / a `*Icon` from the 315-icon set (`find_icons`) — consistent stroke, size, and theming.'
+    'Use the `Icon` component / a `*Icon` from the icon set (`find_icons`) — consistent stroke, size, and theming.'
   );
 }
 

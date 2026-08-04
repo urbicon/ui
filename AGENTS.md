@@ -139,7 +139,7 @@ launch: [docs/AI-NATIVE-DX.md](docs/AI-NATIVE-DX.md).
 
 ## Icons
 
-Icons live in `packages/blocks/src/lib/icons/`. **Never call `getIcon('name')` inside a component** — the dynamic key defeats tree-shaking and drags all 315 icons into the consumer bundle; use `resolveIcon('name', NameIconDefault)` with a direct import (`<Icon name="…" />` is the lone exception). Geometry contract, the 5-spot registration checklist and `icons:lint`: **`add-icon` skill**.
+Icons live in `packages/blocks/src/lib/icons/`. **Never call `getIcon('name')` inside a component** — the dynamic key defeats tree-shaking and drags the entire icon set into the consumer bundle; use `resolveIcon('name', NameIconDefault)` with a direct import (`<Icon name="…" />` is the lone exception). Geometry contract, the 5-spot registration checklist and `icons:lint`: **`add-icon` skill**.
 
 ## Git Workflow (Agent Notes)
 
