@@ -13,15 +13,83 @@
     CustomDayCell
   } from './examples';
 
-  import basicMonthCode from './examples/BasicMonth.svelte?raw';
-  import yearViewCode from './examples/YearView.svelte?raw';
-  import weekTimeGridCode from './examples/WeekTimeGrid.svelte?raw';
-  import agendaViewCode from './examples/AgendaView.svelte?raw';
-  import multiDayEventsCode from './examples/MultiDayEvents.svelte?raw';
-  import recurringEventsCode from './examples/RecurringEvents.svelte?raw';
-  import rangeSelectionCode from './examples/RangeSelection.svelte?raw';
-  import disabledDatesCode from './examples/DisabledDates.svelte?raw';
   import customDayCellCode from './examples/CustomDayCell.svelte?raw';
+
+  // The month group renders three demos, so its snippet shows the data model
+  // they share rather than one of the three sources. `RecurrenceRule` is the
+  // least guessable part of the Calendar API and the page renders no
+  // TypesReference, so dropping it here would leave it documented nowhere on
+  // /blocks/components/calendar — which is what the first cut of this grouping
+  // did while the description still promised it.
+  const eventShapesCode = `import type { CalendarEvent } from '@urbicon-ui/blocks';
+
+const events: CalendarEvent[] = [
+  // One day: start only.
+  { id: '1', title: 'Code freeze', start: new Date(2026, 2, 18), categoryId: 'deadline' },
+
+  // A span: add end, and the event draws across every day between.
+  { id: '2', title: 'Sprint 14', start: new Date(2026, 2, 9), end: new Date(2026, 2, 20) },
+
+  // A series: one object plus a rule, expanded by the calendar.
+  // byDay is 0-6 (Sunday-Saturday) and applies to \`frequency: 'weekly'\`;
+  // interval skips n periods; until ends the series (inclusive).
+  {
+    id: '3',
+    title: 'Standup',
+    start: new Date(2026, 2, 2),
+    recurrence: {
+      frequency: 'weekly',
+      byDay: [1, 2, 3, 4, 5],
+      until: new Date(2026, 2, 31)
+    }
+  },
+  {
+    id: '4',
+    title: 'Sprint review',
+    start: new Date(2026, 2, 6),
+    recurrence: { frequency: 'weekly', interval: 2, byDay: [5] }
+  }
+];
+
+<Calendar {events} {categories} showLegend showWeekNumbers />`;
+
+  // Three of the four examples below group several demos under one heading (nine
+  // headings was more than anyone reads). Where the demos differ only by a prop,
+  // the snippet shows that prop rather than three full component sources — the
+  // `code` prop is deliberately not the rendered markup in those two cases.
+  const viewsCode = `<!-- One component, one prop. The default view is "month". -->
+<Calendar
+  view="week"
+  {events}
+  {categories}
+  showTimeGrid
+  timeGridStartHour={8}
+  timeGridEndHour={18}
+  timeGridInterval={30}
+/>
+
+<Calendar view="year" views={['month', 'year']} {events} {categories} defaultYear={2026} />
+
+<Calendar view="agenda" {events} {categories} agendaDays={21} />`;
+
+  const constraintsCode = `<!-- Two clicks pick a range; minDate/maxDate bound both ends. -->
+<Calendar
+  selectionMode="range"
+  bind:value
+  variant="bordered"
+  minDate={new Date(2026, 2, 1)}
+  maxDate={new Date(2026, 3, 30)}
+/>
+
+<!-- disabledDates locks named days, isDateDisabled locks a rule. -->
+<Calendar
+  bind:value={selectedDate}
+  variant="bordered"
+  {minDate}
+  {maxDate}
+  disabledDates={holidays}
+  isDateDisabled={(d) => d.getDay() === 0 || d.getDay() === 6}
+/>`;
 </script>
 
 <!-- ─── Examples ─── -->
@@ -29,72 +97,43 @@
 <Section marker="01" id="examples" title="Examples">
   <div class="space-y-10">
     <CodeExample
-      title="Month View with Events"
-      description="Calendar with color-coded events, a category legend, an event detail list, and week numbers. Click a day to see its events."
-      code={basicMonthCode}
+      title="Events in a month view"
+      description="The month grid is the default and carries the whole event model. A one-day event needs only start; adding end draws it across a span (conferences, sprints, holidays); adding a recurrence rule expands one object into a series (a weekday standup, a biweekly review). Categories colour the entries and drive the legend, and clicking a day opens its detail list."
+      code={eventShapesCode}
     >
-      <BasicMonth />
+      <div class="space-y-10">
+        <BasicMonth />
+        <MultiDayEvents />
+        <RecurringEvents />
+      </div>
     </CodeExample>
 
     <CodeExample
-      title="Week View with Time Grid"
-      description="Week view with an hour-based time grid, overlapping appointments, and all-day events. The time axis shows 30-minute intervals."
-      code={weekTimeGridCode}
+      title="Week, year and agenda views"
+      description="Same component, same events, one prop. Pick week with a time grid when the hour matters, year when the question is distribution across months, and agenda when the reader wants a list rather than a grid. The snippet shows only what differs between the three."
+      code={viewsCode}
     >
-      <WeekTimeGrid />
+      <div class="space-y-10">
+        <WeekTimeGrid />
+        <YearView />
+        <AgendaView />
+      </div>
     </CodeExample>
 
     <CodeExample
-      title="Multi-Day Events"
-      description="Events spanning multiple days — conferences, sprints, or vacations. Hovering a day with events opens an event popover."
-      code={multiDayEventsCode}
+      title="Constrained selection"
+      description="Two ways to narrow what a reader may pick, usually used together: selectionMode='range' takes a start and an end in two clicks, while minDate/maxDate bound the navigable window, disabledDates locks named days such as public holidays, and isDateDisabled locks a rule such as weekends."
+      code={constraintsCode}
     >
-      <MultiDayEvents />
+      <div class="space-y-10">
+        <RangeSelection />
+        <DisabledDates />
+      </div>
     </CodeExample>
 
     <CodeExample
-      title="Recurring Events"
-      description="Recurring events with flexible rules: daily standups (weekdays only), biweekly reviews, sports on specific weekdays."
-      code={recurringEventsCode}
-    >
-      <RecurringEvents />
-    </CodeExample>
-
-    <CodeExample
-      title="Year Overview"
-      description="Year overview as a 3×4 grid of mini months. Event indicators show the distribution across the year. Clicking a month switches to the month view."
-      code={yearViewCode}
-    >
-      <YearView />
-    </CodeExample>
-
-    <CodeExample
-      title="Agenda View"
-      description="Chronological event list for the next 21 days, grouped by date — ideal for a quick schedule preview."
-      code={agendaViewCode}
-    >
-      <AgendaView />
-    </CodeExample>
-
-    <CodeExample
-      title="Date Range Selection"
-      description="Date range selection with two clicks. Navigation is constrained by minDate/maxDate. The bordered variant visually sets the calendar apart."
-      code={rangeSelectionCode}
-    >
-      <RangeSelection />
-    </CodeExample>
-
-    <CodeExample
-      title="Disabled Dates"
-      description="Blocking specific days: isDateDisabled blocks weekends, disabledDates locks individual holidays. Navigation is constrained by minDate/maxDate."
-      code={disabledDatesCode}
-    >
-      <DisabledDates />
-    </CodeExample>
-
-    <CodeExample
-      title="Custom Day Cell – Heatmap"
-      description="Full control over day-cell rendering with the dayCell snippet. Here as a GitHub-style activity heatmap: the more events on a day, the more intense the green."
+      title="Custom day cells – heatmap"
+      description="Full control over day-cell rendering with the dayCell snippet — the escape hatch for anything the event model does not express. Here as a GitHub-style activity heatmap: the more events on a day, the more intense the green."
       code={customDayCellCode}
     >
       <CustomDayCell />

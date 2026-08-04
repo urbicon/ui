@@ -17,7 +17,6 @@
   const navigation = [
     { id: 'playground', title: 'Playground' },
     { id: 'examples', title: 'Examples' },
-    { id: 'mint', title: 'Micro-Interactions' },
     { id: 'customization', title: 'Customization' },
     { id: 'accessibility', title: 'Accessibility' },
     { id: 'api', title: 'API Reference' },
@@ -51,7 +50,7 @@
   <CustomDocs />
 
   <Section
-    marker="05"
+    marker="04"
     id="api"
     title="API Reference"
     intent="secondary"
@@ -60,7 +59,7 @@
     <ApiReference props={componentData?.props ?? []} />
   </Section>
 
-  <Section marker="06" id="installation" title="Installation">
+  <Section marker="05" id="installation" title="Installation">
     <CodeExample
       title="Import"
       code={`import { Toggle } from '@urbicon-ui/blocks';`}

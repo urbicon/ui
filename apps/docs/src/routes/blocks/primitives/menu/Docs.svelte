@@ -15,6 +15,16 @@
   import { CodeExample, InfoCard, Note, NoteList, Section } from '@urbicon-ui/docs';
   import { Kbd, Menu } from '@urbicon-ui/blocks';
   import { resolve } from '$app/paths';
+
+  // The snippet example shows two demo files in one code block — each keeps its
+  // own script block, so they are labelled rather than spliced together.
+  const customSnippetsCode = [
+    '<!-- CustomHeaderFooter.svelte -->',
+    customHeaderFooterCode.trimEnd(),
+    '',
+    '<!-- CustomItemRenderer.svelte -->',
+    customItemRendererCode.trimEnd()
+  ].join('\n');
 </script>
 
 <!-- ─── When Menu vs Select ─── -->
@@ -62,19 +72,14 @@
     </CodeExample>
 
     <CodeExample
-      title="Custom header & footer"
-      description="Inject custom header and footer regions via the customHeader and customFooter snippets. Useful for sign-in banners or destructive footer actions."
-      code={customHeaderFooterCode}
+      title="Custom snippets"
+      description="customHeader, customFooter and customItem replace the regions an items array cannot express — a sign-in banner, a destructive footer action, a row with an avatar and a shortcut. customItem takes one positional argument, the item, and should render visible content only: Menu already provides the surrounding role='menuitem' button, so an interactive element inside the snippet nests one control in another and fires the action twice."
+      code={customSnippetsCode}
     >
-      <CustomHeaderFooter />
-    </CodeExample>
-
-    <CodeExample
-      title="Custom per-item renderer"
-      description="Full control over each list item via the customItem snippet. Receives the item and an activate() callback that dispatches the item's onSelect and closes the menu."
-      code={customItemRendererCode}
-    >
-      <CustomItemRenderer />
+      <div class="flex flex-col gap-6">
+        <CustomHeaderFooter />
+        <CustomItemRenderer />
+      </div>
     </CodeExample>
   </div>
 </Section>

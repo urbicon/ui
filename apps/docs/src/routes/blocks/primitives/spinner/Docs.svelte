@@ -5,7 +5,7 @@
      stays under the rule. -->
 <script lang="ts">
   import { CodeExample, Note, NoteList, Section } from '@urbicon-ui/docs';
-  import { Badge, Button, Card, CheckIcon, Spinner } from '@urbicon-ui/blocks';
+  import { Badge, Card, CheckIcon, Spinner } from '@urbicon-ui/blocks';
   import { resolve } from '$app/paths';
 </script>
 
@@ -14,10 +14,10 @@
 <Section marker="01" id="examples" title="Examples">
   <div class="space-y-8">
     <CodeExample
-      title="Row-level loading"
-      description="Show progress on a single row while the rest of the list stays interactive — the canonical pattern for async row actions in tables and lists."
+      title="In a list"
+      description="The two places a list needs a spinner: on a single row while its action runs and the rest of the list stays interactive, and at the foot of the list while the next page is fetched."
       isolate
-      previewClass="flex justify-center max-w-sm w-full mx-auto"
+      previewClass="flex flex-col items-center gap-6 max-w-sm w-full mx-auto"
     >
       <div
         class="border-border-subtle bg-surface-elevated divide-border-subtle w-full divide-y rounded-2xl border"
@@ -35,14 +35,7 @@
           <Badge intent="neutral" size="sm" variant="soft">Queued</Badge>
         </div>
       </div>
-    </CodeExample>
 
-    <CodeExample
-      title="Lazy-load indicator"
-      description="Place a spinner at the end of a paginated list to signal that more content is being fetched."
-      isolate
-      previewClass="flex justify-center max-w-sm w-full mx-auto"
-    >
       <div class="border-border-subtle bg-surface-elevated w-full rounded-2xl border p-4">
         <ul class="space-y-2.5">
           <li class="text-text-primary text-sm">Item 1 — Loaded</li>
@@ -137,15 +130,6 @@
           <Badge intent="neutral" size="sm" variant="soft" class="ml-auto">Pending</Badge>
         </div>
       </div>
-    </CodeExample>
-
-    <CodeExample
-      title="Inline with Button"
-      description="Button's built-in loading state includes an inline spinner."
-      isolate
-    >
-      <Button loading>Processing</Button>
-      <Button loading loadingPlacement="start" variant="outlined">Uploading</Button>
     </CodeExample>
   </div>
 </Section>

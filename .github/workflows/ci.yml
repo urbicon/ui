@@ -108,6 +108,11 @@ jobs:
       # a TOC link that scrolls nowhere, a section unreachable from the TOC,
       # and a nav whose order disagrees with the page under it.
       - run: bun run sections:lint
+      # The 2-4 CodeExample budget per component page. It lived only as prose in
+      # DocsPageGuide.md until 2026-08 and the corpus had drifted to 17 pages
+      # over the ceiling and 2 under the floor. Reads nothing generated, so it
+      # does not need the build steps above.
+      - run: bun run examples:budget
       # The design linter this project sells, applied to the project's own
       # markup. Correctness gates unconditionally. The craft floor is set to
       # the current worst file rather than to an aspiration, so it forbids

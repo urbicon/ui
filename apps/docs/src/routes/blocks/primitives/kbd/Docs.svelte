@@ -1,19 +1,25 @@
 <script lang="ts">
   import { CodeExample, Note, NoteList, Section } from '@urbicon-ui/docs';
   import { Kbd } from '@urbicon-ui/blocks';
-
-  const sizes = ['sm', 'md', 'lg'] as const;
 </script>
 
 <Section marker="01" id="examples" title="Examples">
   <div class="space-y-8">
     <CodeExample
-      title="Single key"
-      description="Pass a string to keys for one keycap. Symbols like ⌘, ⇧ and ⌥ render as-is."
-      code={`<Kbd keys="⌘K" />`}
+      title="Keycaps"
+      description="Pass a string to keys for one keycap. Symbols like ⌘, ⇧ and ⌥ render as-is, and spelled-out names work the same way — useful for keys with no glyph."
+      code={`<Kbd keys="⌘K" />
+<Kbd keys="Esc" />
+<Kbd keys="Enter" />
+<Kbd keys="Tab" />`}
       language="svelte"
     >
-      <Kbd keys="⌘K" />
+      <div class="flex flex-wrap items-center gap-3">
+        <Kbd keys="⌘K" />
+        <Kbd keys="Esc" />
+        <Kbd keys="Enter" />
+        <Kbd keys="Tab" />
+      </div>
     </CodeExample>
 
     <CodeExample
@@ -30,24 +36,6 @@
     </CodeExample>
 
     <CodeExample
-      title="Sizes"
-      description="Three keycap sizes — sm, md (default) and lg — to match the surrounding text scale."
-      code={`{#each ['sm', 'md', 'lg'] as size}
-  <Kbd keys="⌘K" {size} />
-{/each}`}
-      language="svelte"
-    >
-      <div class="flex flex-wrap items-center gap-4">
-        {#each sizes as size (size)}
-          <div class="flex flex-col items-center gap-2">
-            <Kbd keys="⌘K" {size} />
-            <span class="text-text-tertiary text-xs">{size}</span>
-          </div>
-        {/each}
-      </div>
-    </CodeExample>
-
-    <CodeExample
       title="Inline in a sentence"
       description="Kbd sits on the text baseline, so it reads naturally inside running copy or a tooltip."
       code={`<p>Press <Kbd keys="/" size="sm" /> to search, or <Kbd keys={['⌘', 'K']} size="sm" /> for the command palette.</p>`}
@@ -57,21 +45,6 @@
         Press <Kbd keys="/" size="sm" /> to search, or <Kbd keys={['⌘', 'K']} size="sm" /> for the command
         palette.
       </p>
-    </CodeExample>
-
-    <CodeExample
-      title="Named keys"
-      description="Spelled-out key names work exactly like symbols — useful for keys with no glyph."
-      code={`<Kbd keys="Esc" />
-<Kbd keys="Enter" />
-<Kbd keys="Tab" />`}
-      language="svelte"
-    >
-      <div class="flex flex-wrap items-center gap-3">
-        <Kbd keys="Esc" />
-        <Kbd keys="Enter" />
-        <Kbd keys="Tab" />
-      </div>
     </CodeExample>
   </div>
 </Section>

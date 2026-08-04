@@ -12,20 +12,33 @@
 <Section marker="01" id="examples" title="Examples">
   <div class="space-y-8">
     <CodeExample
-      title="With descriptions"
-      description="Pair each option with secondary text — the most common pattern for plan pickers, settings, and preferences."
+      title="Plan picker with descriptions"
+      description="Pair each option with secondary text — the most common pattern for plan pickers, settings and preferences. Bound to value, so the selection drives the surrounding UI."
       isolate
-      previewClass="flex flex-col gap-3"
+      previewClass="flex justify-center max-w-md w-full mx-auto"
     >
-      <RadioGroup label="Plan">
-        <RadioItem value="free" label="Free" description="Up to 3 projects, 1 GB storage" />
-        <RadioItem value="pro" label="Pro" description="Unlimited projects, 100 GB storage" />
-        <RadioItem
-          value="enterprise"
-          label="Enterprise"
-          description="Custom limits, dedicated support"
-        />
-      </RadioGroup>
+      <div class="border-border-subtle bg-surface-elevated w-full space-y-4 rounded-2xl border p-5">
+        <RadioGroup label="Choose your plan" bind:value={selectedPlan} intent="success">
+          <RadioItem
+            value="free"
+            label="Free"
+            description="3 projects, 1 GB storage, community support"
+          />
+          <RadioItem
+            value="pro"
+            label="Pro — $12/mo"
+            description="Unlimited projects, 100 GB, priority support"
+          />
+          <RadioItem
+            value="enterprise"
+            label="Enterprise"
+            description="Custom limits, SLA, dedicated account manager"
+          />
+        </RadioGroup>
+        <p class="text-text-tertiary text-xs">
+          Selected: <span class="text-text-primary font-medium">{selectedPlan}</span>
+        </p>
+      </div>
     </CodeExample>
 
     <CodeExample
@@ -55,36 +68,6 @@
         <RadioItem value="accept" label="I accept" />
         <RadioItem value="decline" label="I decline" />
       </RadioGroup>
-    </CodeExample>
-
-    <CodeExample
-      title="Pricing Plan Selector"
-      description="RadioGroup in a realistic settings context with bound value."
-      isolate
-      previewClass="flex justify-center max-w-md w-full mx-auto"
-    >
-      <div class="border-border-subtle bg-surface-elevated w-full space-y-4 rounded-2xl border p-5">
-        <RadioGroup label="Choose your plan" bind:value={selectedPlan} intent="success">
-          <RadioItem
-            value="free"
-            label="Free"
-            description="3 projects, 1 GB storage, community support"
-          />
-          <RadioItem
-            value="pro"
-            label="Pro — $12/mo"
-            description="Unlimited projects, 100 GB, priority support"
-          />
-          <RadioItem
-            value="enterprise"
-            label="Enterprise"
-            description="Custom limits, SLA, dedicated account manager"
-          />
-        </RadioGroup>
-        <p class="text-text-tertiary text-xs">
-          Selected: <span class="text-text-primary font-medium">{selectedPlan}</span>
-        </p>
-      </div>
     </CodeExample>
 
     <CodeExample

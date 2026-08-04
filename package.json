@@ -115,6 +115,7 @@
     "registry:lint": "bun --filter='@urbicon-ui/docs-app' run registry:lint",
     "summary:lint": "bun run packages/docs-gen/scripts/summary-lint.ts",
     "examples:lint": "bun run packages/docs-gen/scripts/examples-lint.ts",
+    "examples:budget": "bun --filter='@urbicon-ui/docs-app' run examples:budget",
     "sections:lint": "bun --filter='@urbicon-ui/docs-app' run sections:lint"
   },
   "devDependencies": {

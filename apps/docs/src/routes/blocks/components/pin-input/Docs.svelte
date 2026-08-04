@@ -5,8 +5,6 @@
   let otp = $state('');
   let otpStatus = $state('');
 
-  let pin = $state('');
-
   let licenseKey = $state('');
 
   let twoFactorCode = $state('');
@@ -16,7 +14,7 @@
   <div class="space-y-8">
     <CodeExample
       title="Six-digit OTP with a completion callback"
-      description="bind:value keeps the concatenated string in sync; onComplete fires once the final cell is filled — the moment to kick off verification."
+      description="bind:value keeps the concatenated string in sync; onComplete fires once the final cell is filled — the moment to kick off verification. Set mask to render each filled cell as a dot — right for standing PINs and passcodes, unnecessary for throwaway SMS codes."
       code={`<script>
   let code = $state('');
   let status = $state('');
@@ -47,15 +45,6 @@
     </CodeExample>
 
     <CodeExample
-      title="Masked — passcode entry"
-      description="mask renders each filled cell as a dot, the way a password field hides characters. Use it for standing PINs and passcodes rather than throwaway SMS codes."
-      code={`<PinInput label="PIN" length={4} mask bind:value={pin} />`}
-      language="svelte"
-    >
-      <PinInput label="PIN" length={4} mask bind:value={pin} />
-    </CodeExample>
-
-    <CodeExample
       title="Alphanumeric with a grouped separator"
       description="type=alphanumeric widens the character set to A–Z; uppercase normalises casing as you type; separator + groupSize break a long code into readable groups — here a 4-4 license key."
       code={`<PinInput
@@ -78,21 +67,6 @@
         groupSize={4}
         bind:value={licenseKey}
       />
-    </CodeExample>
-
-    <CodeExample
-      title="Sizes"
-      description="sm, md (default), and lg scale the cells together with the caret and separator. sm floors the font to 16px on touch devices so iOS Safari does not zoom on focus."
-      code={`<PinInput size="sm" length={4} label="Small" />
-<PinInput size="md" length={4} label="Medium" />
-<PinInput size="lg" length={4} label="Large" />`}
-      language="svelte"
-    >
-      <div class="flex flex-wrap items-end gap-6">
-        <PinInput size="sm" length={4} label="Small" />
-        <PinInput size="md" length={4} label="Medium" />
-        <PinInput size="lg" length={4} label="Large" />
-      </div>
     </CodeExample>
 
     <CodeExample

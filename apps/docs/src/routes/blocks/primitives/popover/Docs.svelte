@@ -9,7 +9,6 @@
     Badge,
     BarChartIcon,
     Button,
-    ChevronDownIcon,
     Kbd,
     LogOutIcon,
     Popover,
@@ -74,27 +73,6 @@
 
 <Section marker="02" id="examples" title="Examples">
   <div class="space-y-8">
-    <CodeExample title="Sizes" isolate previewClass="flex items-center gap-4">
-      <Popover size="sm">
-        {#snippet trigger()}
-          <Button variant="outlined" size="sm">Small</Button>
-        {/snippet}
-        <div class="text-text-secondary p-2">Compact panel for tight spaces</div>
-      </Popover>
-      <Popover size="md">
-        {#snippet trigger()}
-          <Button variant="outlined" size="sm">Medium</Button>
-        {/snippet}
-        <div class="text-text-secondary p-3">Default size with comfortable spacing</div>
-      </Popover>
-      <Popover size="lg">
-        {#snippet trigger()}
-          <Button variant="outlined" size="sm">Large</Button>
-        {/snippet}
-        <div class="text-text-secondary p-4">Generous panel for rich content</div>
-      </Popover>
-    </CodeExample>
-
     <CodeExample
       title="Placements"
       description="The popover auto-flips when the preferred side runs out of space."
@@ -115,6 +93,7 @@
 
     <CodeExample
       title="Rich Content – User Profile"
+      description="A popover is a surface, not just a tooltip — it can carry structured content, avatars and its own actions, and the focus order follows the markup you put inside."
       code={`<Popover placement="bottom-end">
   {#snippet trigger()}
     <div class="avatar-trigger">JD</div>
@@ -171,46 +150,6 @@
               Sign out
             </button>
           </div>
-        </div>
-      </Popover>
-    </CodeExample>
-
-    <CodeExample
-      title="Sync Width"
-      description="Match the popover width to its trigger – ideal for select or autocomplete patterns."
-      code={`<Popover syncWidth placement="bottom-start">
-  {#snippet trigger()}
-    <div class="w-80 ...">Select a framework…</div>
-  {/snippet}
-  {#snippet children()}
-    <div class="py-1">
-      {#each frameworks as fw}
-        <div class="hover:bg-surface-hover px-3 py-2">{fw}</div>
-      {/each}
-    </div>
-  {/snippet}
-</Popover>`}
-      isolate
-      previewClass="flex justify-center"
-    >
-      <Popover syncWidth placement="bottom-start">
-        {#snippet trigger()}
-          <button
-            type="button"
-            class="bg-surface-base border-border-default hover:border-border-emphasis rounded-modify flex w-80 cursor-pointer items-center justify-between border px-3 py-2.5 text-sm transition-colors"
-          >
-            <span class="text-text-secondary">Select a framework…</span>
-            <ChevronDownIcon class="text-text-tertiary h-4 w-4" />
-          </button>
-        {/snippet}
-        <div class="py-1">
-          {#each ['SvelteKit', 'Next.js', 'Nuxt', 'Remix', 'Astro'] as fw (fw)}
-            <div
-              class="text-text-primary hover:bg-surface-hover cursor-pointer px-3 py-2 text-sm transition-colors first:rounded-t-md last:rounded-b-md"
-            >
-              {fw}
-            </div>
-          {/each}
         </div>
       </Popover>
     </CodeExample>

@@ -16,97 +16,47 @@
 <Section marker="01" id="examples" title="Examples">
   <div class="space-y-8">
     <CodeExample
-      title="All Intents"
-      description="Each intent maps to a semantic icon and border color for instant recognition."
-      code={`toaster.info('New message', { description: 'You have a notification.' });
-toaster.success('Payment received', { description: '$42.00 from Acme Inc.' });
-toaster.warning('Disk space low', { description: '92% of storage used.' });
-toaster.danger('Deploy failed', { description: 'Build error on line 42.' });
-toaster.add({ title: 'Reminder', intent: 'neutral', description: 'Stand-up in 5 min.' });`}
+      title="Duration, progress and dismissal"
+      description={`Three settings decide how long a toast lives and how it leaves: duration in milliseconds (0 keeps it up until the reader acts), showProgress for the bar that counts the remaining time down, and dismissible={false} for toasts that may only auto-close.`}
+      code={`// duration in ms – 0 keeps the toast up until the reader acts
+toaster.success('Auto-saved', { duration: 2000 });
+toaster.danger('Action required', {
+  description: 'Please review the error log.',
+  duration: 0
+});
+
+// showProgress draws the bar counting the remaining time down
+toaster.success('Uploading…', { duration: 6000, showProgress: true });
+toaster.success('Uploaded', { duration: 6000, showProgress: false });
+
+// dismissible: false drops the close button – auto-close only
+toaster.info('Syncing…', {
+  description: 'Please wait.',
+  dismissible: false,
+  duration: 3000
+});`}
       isolate
       previewClass="flex flex-wrap items-center justify-center gap-3 py-4"
     >
       <Button
         size="sm"
-        intent="primary"
-        onclick={() => toaster.info('New message', { description: 'You have a notification.' })}
+        variant="outlined"
+        onclick={() => toaster.success('Auto-saved', { duration: 2000 })}
       >
-        Info
-      </Button>
-      <Button
-        size="sm"
-        intent="success"
-        onclick={() =>
-          toaster.success('Payment received', { description: '$42.00 from Acme Inc.' })}
-      >
-        Success
-      </Button>
-      <Button
-        size="sm"
-        intent="warning"
-        onclick={() => toaster.warning('Disk space low', { description: '92% of storage used.' })}
-      >
-        Warning
+        Quick (2s)
       </Button>
       <Button
         size="sm"
         intent="danger"
-        onclick={() => toaster.danger('Deploy failed', { description: 'Build error on line 42.' })}
-      >
-        Danger
-      </Button>
-      <Button
-        size="sm"
-        intent="neutral"
         variant="outlined"
         onclick={() =>
-          toaster.add({
-            title: 'Reminder',
-            intent: 'neutral',
-            description: 'Stand-up in 5 min.'
+          toaster.danger('Action required', {
+            description: 'Please review the error log.',
+            duration: 0
           })}
       >
-        Neutral
+        Persistent
       </Button>
-    </CodeExample>
-
-    <CodeExample
-      title="Title Only"
-      description="Compact toasts without a description for brief confirmations."
-      code={`toaster.success('Copied to clipboard');
-toaster.info('Link shared');`}
-      isolate
-      previewClass="flex flex-wrap items-center justify-center gap-3 py-4"
-    >
-      <Button
-        size="sm"
-        intent="success"
-        variant="outlined"
-        onclick={() => toaster.success('Copied to clipboard')}
-      >
-        Copy
-      </Button>
-      <Button
-        size="sm"
-        intent="primary"
-        variant="outlined"
-        onclick={() => toaster.info('Link shared')}
-      >
-        Share
-      </Button>
-    </CodeExample>
-
-    <CodeExample
-      title="Progress Bar"
-      description="An animated bar counts down the remaining duration. Compare with and without to see the difference."
-      code={`// With progress bar (default)
-toaster.success('Uploading…', { duration: 6000, showProgress: true });
-
-// Without progress bar
-toaster.success('Uploaded', { duration: 6000, showProgress: false });`}
-      isolate
-      previewClass="flex flex-wrap items-center justify-center gap-3 py-4"
-    >
       <Button
         size="sm"
         intent="success"
@@ -132,54 +82,6 @@ toaster.success('Uploaded', { duration: 6000, showProgress: false });`}
       >
         Without Progress
       </Button>
-    </CodeExample>
-
-    <CodeExample
-      title="Custom Duration"
-      description="Set duration in milliseconds. Use 0 for persistent toasts that require manual dismissal."
-      code={`// Quick flash – 2 seconds
-toaster.success('Auto-saved', { duration: 2000 });
-
-// Persistent – must be dismissed manually
-toaster.danger('Action required', {
-  description: 'Please review the error log.',
-  duration: 0
-});`}
-      isolate
-      previewClass="flex flex-wrap items-center justify-center gap-3 py-4"
-    >
-      <Button
-        size="sm"
-        variant="outlined"
-        onclick={() => toaster.success('Auto-saved', { duration: 2000 })}
-      >
-        Quick (2s)
-      </Button>
-      <Button
-        size="sm"
-        intent="danger"
-        variant="outlined"
-        onclick={() =>
-          toaster.danger('Action required', {
-            description: 'Please review the error log.',
-            duration: 0
-          })}
-      >
-        Persistent
-      </Button>
-    </CodeExample>
-
-    <CodeExample
-      title="Non-Dismissible"
-      description="Remove the close button for toasts that should only auto-dismiss."
-      code={`toaster.info('Syncing…', {
-  description: 'Please wait.',
-  dismissible: false,
-  duration: 3000
-});`}
-      isolate
-      previewClass="flex justify-center py-4"
-    >
       <Button
         size="sm"
         variant="outlined"
