@@ -34,6 +34,15 @@
 
   // Per-surface API tables, fed from each surface's generated api.ts (same JSDoc
   // source the MCP catalog and llm.txt are built from).
+  //
+  // Every `<ApiReference>` below gets the SAME `types` list — `guide/api.ts`'s,
+  // which is what the page's one `<TypesReference>` renders. `ApiReference`
+  // links a prop's type only when that name is in its own `types`, so the
+  // tables that were handed none rendered `GuideController`, `GuideDirection`,
+  // `Placement`, `GuideStorageAdapter` and `GuideTour` as plain text — while the
+  // section documenting them sat two screens further down on the same page
+  // (#141). Passing a surface its *own* api.ts types instead would break that:
+  // the link would point at a row this page does not render.
   const surfaces = [
     { data: providerData, blurb: 'Context root — wires every surface to one GuideController.' },
     { data: panelData, blurb: 'The callable, non-modal help panel (D1).' },
@@ -265,7 +274,7 @@
         <p class="text-text-secondary mb-4 text-sm">
           The headless engine. Create one and pass it to the provider for programmatic control.
         </p>
-        <ApiReference props={controllerApi} />
+        <ApiReference props={controllerApi} types={componentData?.types ?? []} />
       </div>
 
       <div>
@@ -273,25 +282,25 @@
         <p class="text-text-secondary mb-4 text-sm">
           The tour definition you pass to <code>startTour</code> — lives in your app, not the library.
         </p>
-        <ApiReference props={tourApi} />
+        <ApiReference props={tourApi} types={componentData?.types ?? []} />
       </div>
 
       <div>
         <h3 class="text-text-primary mb-1 text-lg font-semibold">GuideStep</h3>
-        <ApiReference props={stepApi} />
+        <ApiReference props={stepApi} types={componentData?.types ?? []} />
       </div>
 
       <div>
         <h3 class="text-text-primary mb-1 text-lg font-semibold">GuideStepEvent / GuideEndEvent</h3>
         <p class="text-text-secondary mb-4 text-sm">The payloads passed to the analytics hooks.</p>
-        <ApiReference props={eventApi} />
+        <ApiReference props={eventApi} types={componentData?.types ?? []} />
       </div>
 
       {#each surfaces as surface (surface.data.name)}
         <div>
           <h3 class="text-text-primary mb-1 text-lg font-semibold">{surface.data.name}</h3>
           <p class="text-text-secondary mb-4 text-sm">{surface.blurb}</p>
-          <ApiReference props={surface.data.props ?? []} />
+          <ApiReference props={surface.data.props ?? []} types={componentData?.types ?? []} />
         </div>
       {/each}
     </div>

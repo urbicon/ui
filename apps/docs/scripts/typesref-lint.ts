@@ -82,8 +82,8 @@
  *     UNFILTERED, and neither component filters internally, so the filter above
  *     decides only WHETHER a page needs a Types section, never what is in it.
  *     That direction is safe (the rule can only be too lax about content, never
- *     too strict), but it has two live consequences. It is why the `NO_PAGE` gap
- *     below is real (#141), and it means a page shows the 20 % of its entries
+ *     too strict), and it is why the `NO_PAGE` block below can say the family
+ *     page documents the surface types: a page shows the 20 % of its entries
  *     that the filter would drop — measured across the 89 pages the sweep wired:
  *     614 entries rendered, 489 documentable, median 1 extra per page, and one
  *     outlier (`/blocks/components/guide`, 25 of 39). Mostly `*Slots` aliases and
@@ -118,29 +118,35 @@ const ROUTES = join(APP, 'src/routes');
 
 /**
  * Route dirs that have a generated `api.ts` but no `+page.svelte`, each with
- * the reason their types are not on a page.
+ * the reason no page of their own is missing.
  *
  * Not a silent `continue`: registry-lint's header records what a bare skip
  * costs — `NoteList` shipped exported, catalogued, with a generated `api.ts`
  * in a route directory and no page, for a whole release, past a green lint.
  * Same contract as everything else here, both stale directions are errors.
  *
- * ── The reason says "nowhere", not "on the family page" ────────────────────
+ * ── The family page really does document them ──────────────────────────────
  * These eight are `PAGELESS` in registry-lint as "documented as a family on
- * /blocks/components/guide", and for PROPS that is true — the family page
- * imports each sibling's `componentData` and renders a per-surface
- * `<ApiReference>`. For TYPES it is false, and the filter at the top of this
- * file is what makes it false: `guide/api.ts` does carry `GuidePanelProps` and
- * friends, but with `owner` naming the surface, so `t.owner === 'Guide'` drops
- * them. Measured 2026-08-04: 39 types on the family page, 14 survive, not one
- * of them a surface type — 8 `Guide*Props` + 7 `Guide*Variants` = 15 names on
- * no page at all.
+ * /blocks/components/guide", and that holds for their types as well as their
+ * props. An earlier version of this comment said otherwise and opened #141 over
+ * it, reasoning that `guide/api.ts` carries `GuidePanelProps` with `owner`
+ * naming the surface, so the filter at the top of this file drops it.
  *
- * An exception with a false reason is still false with a footnote, so the
- * reason below names the gap and points at #141 rather than repeating a claim
- * this script cannot make. It deliberately does NOT verify where these types
- * are documented — closing the gap means aggregating sibling types into the
- * family page (or changing what `owner` means), which is a content decision.
+ * The filter is this *script's*. No page applies it — all 99 pages with a Types
+ * section pass `types={componentData?.types ?? []}` unfiltered, which the very
+ * next paragraph measures from the other side ("a page shows the 20 % of its
+ * entries that the filter would drop … `/blocks/components/guide`, 25 of 39").
+ * Those 25 are exactly the 15 names #141 called undocumented, plus the `*Slots`
+ * aliases. So the surface types are on a page, and were the whole time.
+ *
+ * What was genuinely missing is the link INTO that section: the per-surface
+ * `<ApiReference>` calls passed no `types`, and `ApiReference` links a prop's
+ * type only when the name is in its own list. Fixed on the page, not here.
+ *
+ * This script still does not verify the claim — a name rendered somewhere on
+ * some page is not something a route-keyed lint can check without becoming a
+ * second renderer. The reason below states where they live and why this file
+ * takes it on faith.
  *
  * Kept separate from registry-lint's `PAGELESS` rather than imported: that map
  * is keyed by component NAME and answers a different question (is there a page
@@ -150,14 +156,22 @@ const ROUTES = join(APP, 'src/routes');
  * lists are stale-checked, so a ninth surface turns both red rather than one.
  */
 const NO_PAGE: Record<string, string> = {
-  '/blocks/components/guide-article': 'guide surface — its types land on no page, see #141',
-  '/blocks/components/guide-beacon': 'guide surface — its types land on no page, see #141',
-  '/blocks/components/guide-hint': 'guide surface — its types land on no page, see #141',
-  '/blocks/components/guide-marker': 'guide surface — its types land on no page, see #141',
-  '/blocks/components/guide-mention': 'guide surface — its types land on no page, see #141',
-  '/blocks/components/guide-panel': 'guide surface — its types land on no page, see #141',
-  '/blocks/components/guide-provider': 'guide surface — its types land on no page, see #141',
-  '/blocks/components/guide-ref': 'guide surface — its types land on no page, see #141'
+  '/blocks/components/guide-article':
+    'guide surface — props AND types documented on the family page /blocks/components/guide',
+  '/blocks/components/guide-beacon':
+    'guide surface — props AND types documented on the family page /blocks/components/guide',
+  '/blocks/components/guide-hint':
+    'guide surface — props AND types documented on the family page /blocks/components/guide',
+  '/blocks/components/guide-marker':
+    'guide surface — props AND types documented on the family page /blocks/components/guide',
+  '/blocks/components/guide-mention':
+    'guide surface — props AND types documented on the family page /blocks/components/guide',
+  '/blocks/components/guide-panel':
+    'guide surface — props AND types documented on the family page /blocks/components/guide',
+  '/blocks/components/guide-provider':
+    'guide surface — props AND types documented on the family page /blocks/components/guide',
+  '/blocks/components/guide-ref':
+    'guide surface — props AND types documented on the family page /blocks/components/guide'
 };
 
 /**
