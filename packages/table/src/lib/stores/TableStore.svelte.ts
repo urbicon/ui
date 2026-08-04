@@ -145,6 +145,41 @@ export interface TableSeedState {
 }
 
 /**
+ * The consumer props the store derives from, handed in as getters so the source
+ * stays tracked.
+ *
+ * Every entry here used to be mirrored into the store by an `$effect` in
+ * `TableProvider`. Effects do not run during server rendering, so none of it
+ * reached the prerendered HTML — the table rendered its empty state and, on the
+ * docs site, 81 API pages asserted the documented component had no properties
+ * (#10). As getters feeding deriveds, the same values are evaluated during SSR.
+ *
+ * All optional: a store constructed without them behaves exactly as the old
+ * defaults did, which is what keeps the store's own test suite meaningful.
+ */
+export interface TablePropSources {
+  items?: () => TableItem[];
+  columns?: () => Column[];
+  loading?: () => boolean;
+  error?: () => string | null;
+  initialPage?: () => number;
+  itemsPerPage?: () => number;
+  multiExpand?: () => boolean;
+  groupOrder?: () => string[];
+  selectionMode?: () => 'none' | 'single' | 'multi';
+  /** Whether `selectedIds` is controlled — i.e. the prop is present. */
+  selectionControlled?: () => boolean;
+  /** Whether `searchTerm` is controlled — i.e. the prop is not `undefined`. */
+  searchControlled?: () => boolean;
+  rowClickSelects?: () => boolean;
+  activeRowId?: () => string | number | null;
+  virtualized?: () => boolean;
+  mode?: () => 'client' | 'server';
+  serverTotalItems?: () => number;
+  enableColumnVisibility?: () => boolean;
+}
+
+/**
  * Creates the table state by composing independent concerns.
  *
  * Derived chain: items → filteredItems → sortedItems → grouped → paginatedItems
@@ -160,28 +195,104 @@ export interface TableSeedState {
  */
 export function createTableState(
   persistenceConfig?: TablePersistenceConfig,
-  seed?: TableSeedState
+  seed?: TableSeedState,
+  props?: TablePropSources
 ) {
+  // ── Prop-driven slots ────────────────────────────────────────────────────
+  //
+  // Each of these used to be a plain `$state` field that `TableProvider` filled
+  // from a prop inside an `$effect` — about sixteen of them. `$effect` does not
+  // run during SSR, so the server rendered an empty table and the prerendered
+  // HTML claimed the component had no rows (#10).
+  //
+  // As deriveds they are evaluated during the server render, and — since 5.25 —
+  // they are still writable, which is what the second writers need: live updates
+  // and remote fetches assign to `state.items`, pagination assigns to
+  // `state.currentPage`. An assignment holds until the prop behind it changes,
+  // which then re-seeds. That combination is the reason this is a derived and
+  // not a hand-written `override ?? prop` getter: the re-seed is the part you
+  // cannot hand-build.
+  //
+  // See docs/SVELTE5-PATTERNS.md → "Prop-derived state".
+  let items = $derived(normalizeItems(props?.items?.() ?? []));
+  let loading = $derived(props?.loading?.() ?? false);
+  let error = $derived(props?.error?.() ?? null);
+  let currentPage = $derived(props?.initialPage?.() ?? 1);
+  let itemsPerPage = $derived(props?.itemsPerPage?.() ?? 10);
+  let multiExpand = $derived(props?.multiExpand?.() ?? false);
+  let groupOrder = $derived(props?.groupOrder?.() ?? []);
+  let selectionMode = $derived(props?.selectionMode?.() ?? 'none');
+  let selectionControlled = $derived(props?.selectionControlled?.() ?? false);
+  let searchControlled = $derived(props?.searchControlled?.() ?? false);
+  let rowClickSelects = $derived(props?.rowClickSelects?.() ?? false);
+  let activeRowId = $derived(props?.activeRowId?.() ?? null);
+  let virtualized = $derived(props?.virtualized?.() ?? false);
+  let mode = $derived(props?.mode?.() ?? 'client');
+  let serverTotalItems = $derived(props?.serverTotalItems?.() ?? 0);
+  let enableColumnVisibility = $derived(props?.enableColumnVisibility?.() ?? true);
+
+  // `state.columns` is the *visible* subset. The full list comes from the prop,
+  // the filtering lives in `useColumnVisibility` — which needs `state` to exist
+  // first, so both accessors are bound in after the concerns are built. Until
+  // then the unfiltered prop list is the honest answer (nothing is hidden yet).
+  let columnsView: (() => Column[]) | null = null;
+  let columnsWrite: ((next: Column[]) => void) | null = null;
+
   // ── Shared reactive state ──
   const state: TableState = $state({
-    items: [] as TableItem[],
-    columns: [] as Column[],
-    loading: false,
-    error: null as string | null,
+    get items() {
+      return items;
+    },
+    set items(next: TableItem[]) {
+      items = next;
+    },
+    get columns() {
+      return columnsView?.() ?? props?.columns?.() ?? [];
+    },
+    set columns(next: Column[]) {
+      columnsWrite?.(next);
+    },
+    get loading() {
+      return loading;
+    },
+    set loading(next: boolean) {
+      loading = next;
+    },
+    get error() {
+      return error;
+    },
+    set error(next: string | null) {
+      error = next;
+    },
 
     searchTerm: '',
     activeFilters: [] as Filter[],
     showAdvancedSearch: false,
 
-    currentPage: 1,
-    itemsPerPage: 10,
+    get currentPage() {
+      return currentPage;
+    },
+    set currentPage(next: number) {
+      currentPage = next;
+    },
+    get itemsPerPage() {
+      return itemsPerPage;
+    },
+    set itemsPerPage(next: number) {
+      itemsPerPage = next;
+    },
 
     sortColumn: '',
     sortDirection: 'asc' as 'asc' | 'desc',
 
     expandedItemId: null as string | number | null,
     expandedItemIds: new SvelteSet<string | number>(),
-    multiExpand: false,
+    get multiExpand() {
+      return multiExpand;
+    },
+    set multiExpand(next: boolean) {
+      multiExpand = next;
+    },
 
     groupByKey: null as string | null,
     /**
@@ -204,28 +315,78 @@ export function createTableState(
     declaredGroupByKey: null as string | null,
     collapsedGroups: new SvelteSet<string>(),
     allGroupsExpanded: true,
-    groupOrder: [] as string[],
+    get groupOrder() {
+      return groupOrder;
+    },
+    set groupOrder(next: string[]) {
+      groupOrder = next;
+    },
 
     summaryConfigs: [] as SummaryConfig[],
     showSummary: false,
 
-    selectionMode: 'none' as 'none' | 'single' | 'multi',
+    get selectionMode() {
+      return selectionMode;
+    },
+    set selectionMode(next: 'none' | 'single' | 'multi') {
+      selectionMode = next;
+    },
     selectedIds: new SvelteSet<string | number>(),
-    selectionControlled: false,
-    searchControlled: false,
-    rowClickSelects: false,
+    get selectionControlled() {
+      return selectionControlled;
+    },
+    set selectionControlled(next: boolean) {
+      selectionControlled = next;
+    },
+    get searchControlled() {
+      return searchControlled;
+    },
+    set searchControlled(next: boolean) {
+      searchControlled = next;
+    },
+    get rowClickSelects() {
+      return rowClickSelects;
+    },
+    set rowClickSelects(next: boolean) {
+      rowClickSelects = next;
+    },
     /**
      * The row currently being shown elsewhere (master/detail) — distinct from
      * selection, which implies an action on a set. Marking it needed
      * `selectionMode` before, which also switches on the checkbox column.
      */
-    activeRowId: null as string | number | null,
-    virtualized: false,
+    get activeRowId() {
+      return activeRowId;
+    },
+    set activeRowId(next: string | number | null) {
+      activeRowId = next;
+    },
+    get virtualized() {
+      return virtualized;
+    },
+    set virtualized(next: boolean) {
+      virtualized = next;
+    },
 
-    mode: 'client' as 'client' | 'server',
-    serverTotalItems: 0,
+    get mode() {
+      return mode;
+    },
+    set mode(next: 'client' | 'server') {
+      mode = next;
+    },
+    get serverTotalItems() {
+      return serverTotalItems;
+    },
+    set serverTotalItems(next: number) {
+      serverTotalItems = next;
+    },
 
-    enableColumnVisibility: true
+    get enableColumnVisibility() {
+      return enableColumnVisibility;
+    },
+    set enableColumnVisibility(next: boolean) {
+      enableColumnVisibility = next;
+    }
   });
 
   // ── Persistence (initializes state from storage) ──
@@ -242,7 +403,12 @@ export function createTableState(
     () => sorting.sortedItems
   );
   const expansion = useExpansion(state);
-  const columnVisibility = useColumnVisibility(state);
+  const columnVisibility = useColumnVisibility(() => props?.columns?.() ?? []);
+  // Bind the visible-column view now that the concern exists. Before this line
+  // `state.columns` answers with the unfiltered prop list, which is correct:
+  // nothing can be hidden yet.
+  columnsView = () => columnVisibility.visibleColumns;
+  columnsWrite = (next) => columnVisibility.setColumns(next);
   const summary = useSummary(
     state,
     () => sorting.sortedItems,

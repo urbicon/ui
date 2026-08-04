@@ -1321,32 +1321,37 @@ describe('useColumnVisibility', () => {
     { accessor: 'email', title: 'Email' }
   ] as Column[];
 
-  it('contract: hideColumn removes from state.columns', () => {
-    const state = { columns: [] } as unknown as TableState;
-    const cv = useColumnVisibility(state);
+  // The concern no longer writes into `state.columns`; it exposes `visibleColumns`
+  // and the store binds `state.columns` to it (see createTableState). That is what
+  // makes the visible set survive server rendering — a write from an effect never
+  // reached the server at all (#10). These assertions therefore read the concern's
+  // own view; `TableStore.columns.svelte.test.ts` covers the wiring to `state`.
+  const visible = (cv: ReturnType<typeof useColumnVisibility>) =>
+    cv.visibleColumns.map((c) => c.accessor);
+
+  it('contract: hideColumn removes from the visible set', () => {
+    const cv = useColumnVisibility();
 
     cv.setColumns(columns);
     cv.hideColumn('age');
 
-    expect(state.columns.map((c) => c.accessor)).toEqual(['name', 'email']);
+    expect(visible(cv)).toEqual(['name', 'email']);
     expect(cv.hiddenColumnKeys.has('age')).toBe(true);
   });
 
   it('contract: showColumn restores a previously hidden column', () => {
-    const state = { columns: [] } as unknown as TableState;
-    const cv = useColumnVisibility(state);
+    const cv = useColumnVisibility();
 
     cv.setColumns(columns);
     cv.hideColumn('age');
     cv.showColumn('age');
 
-    expect(state.columns.map((c) => c.accessor)).toEqual(['name', 'age', 'email']);
+    expect(visible(cv)).toEqual(['name', 'age', 'email']);
     expect(cv.hiddenColumnKeys.has('age')).toBe(false);
   });
 
   it('contract: setHiddenIds seeds the hidden-set before setColumns', () => {
-    const state = { columns: [] } as unknown as TableState;
-    const cv = useColumnVisibility(state);
+    const cv = useColumnVisibility();
 
     // Persisted snapshot lands first (hydrate phase).
     cv.setHiddenIds(['age', 'email']);
@@ -1356,30 +1361,28 @@ describe('useColumnVisibility', () => {
     // Then the consumer's columns prop reaches the store.
     cv.setColumns(columns);
 
-    // state.columns must be filtered by the persisted hidden ids.
-    expect(state.columns.map((c) => c.accessor)).toEqual(['name']);
+    // The visible set must be filtered by the persisted hidden ids.
+    expect(visible(cv)).toEqual(['name']);
   });
 
   it('contract: showAllColumns reveals persisted-hidden columns', () => {
     // Guards the enableColumnVisibility={false} recovery path: TableProvider
     // calls showAllColumns() when the feature is off so a column hidden in a
     // prior (persisted) session is never stranded without a restore UI.
-    const state = { columns: [] } as unknown as TableState;
-    const cv = useColumnVisibility(state);
+    const cv = useColumnVisibility();
 
     cv.setHiddenIds(['age', 'email']);
     cv.setColumns(columns);
-    expect(state.columns.map((c) => c.accessor)).toEqual(['name']);
+    expect(visible(cv)).toEqual(['name']);
 
     cv.showAllColumns();
 
-    expect(state.columns.map((c) => c.accessor)).toEqual(['name', 'age', 'email']);
+    expect(visible(cv)).toEqual(['name', 'age', 'email']);
     expect(cv.hiddenColumnKeys.size).toBe(0);
   });
 
   it('contract: setHiddenIds with empty array clears the hidden-set', () => {
-    const state = { columns: [] } as unknown as TableState;
-    const cv = useColumnVisibility(state);
+    const cv = useColumnVisibility();
 
     cv.setColumns(columns);
     cv.hideColumn('age');
@@ -1388,16 +1391,15 @@ describe('useColumnVisibility', () => {
     expect(cv.hiddenColumnKeys.size).toBe(0);
   });
 
-  it('contract: showAllColumns clears hidden-set and restores state.columns', () => {
-    const state = { columns: [] } as unknown as TableState;
-    const cv = useColumnVisibility(state);
+  it('contract: showAllColumns clears hidden-set and restores the visible set', () => {
+    const cv = useColumnVisibility();
 
     cv.setColumns(columns);
     cv.hideColumn('age');
     cv.hideColumn('email');
     cv.showAllColumns();
 
-    expect(state.columns.map((c) => c.accessor)).toEqual(['name', 'age', 'email']);
+    expect(visible(cv)).toEqual(['name', 'age', 'email']);
     expect(cv.hiddenColumnKeys.size).toBe(0);
   });
 });

@@ -198,8 +198,7 @@ describe('useColumnVisibility reactivity', () => {
 
   it('hide/show/showAll update $derived consumers of hiddenColumnKeys', () => {
     const cleanup = $effect.root(() => {
-      const state = { columns: [] as Column[] } as unknown as TableState;
-      const visibility = useColumnVisibility(state);
+      const visibility = useColumnVisibility();
       visibility.setColumns(columns);
 
       let hiddenCount = -1;
@@ -235,8 +234,7 @@ describe('useColumnVisibility reactivity', () => {
 
   it('setHiddenIds replaces the set observably', () => {
     const cleanup = $effect.root(() => {
-      const state = { columns: [] as Column[] } as unknown as TableState;
-      const visibility = useColumnVisibility(state);
+      const visibility = useColumnVisibility();
       visibility.setColumns(columns);
 
       let hidden: string[] = [];
