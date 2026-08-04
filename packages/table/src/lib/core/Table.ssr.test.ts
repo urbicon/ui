@@ -69,3 +69,58 @@ describe('Table — server render', () => {
     expect(body).not.toContain('Person 10');
   });
 });
+
+describe('Table — server render of a shared link', () => {
+  // The acceptance criterion #152 states: an SSR consumer with a filter in the
+  // URL must receive *filtered* rows in the server-rendered HTML. Same
+  // measurement as the suite above, but with a non-default view — which is
+  // exactly what localStorage could never deliver, because the server cannot
+  // see it. `query` is the URL, parsed.
+
+  it('sorts on the server', () => {
+    // Sorted against the INPUT order, which is already Ada/Grace/Radia — so the
+    // only assertion worth writing is one where the sort moves a row. A check
+    // that all three names appear passes without any sorting at all.
+    const byAmount = bodyOf({
+      items: ROWS,
+      query: { sortColumn: 'amount', sortDirection: 'desc' }
+    });
+    expect(byAmount.indexOf('Radia')).toBeLessThan(byAmount.indexOf('Ada'));
+    // No ascending counterpart: `amount asc` is the input order, so it would
+    // pass with no sorting at all — a second assertion that cannot fail is not
+    // twice the coverage.
+  });
+
+  it('searches on the server', () => {
+    const body = bodyOf({ items: ROWS, query: { searchTerm: 'grace' } });
+
+    expect(body).toContain('Grace');
+    expect(body).not.toContain('Ada');
+    expect(body).not.toContain('Radia');
+  });
+
+  it('pages on the server', () => {
+    const body = bodyOf({ items: ROWS, query: { page: 2, itemsPerPage: 1 } });
+
+    expect(body).toContain('Grace');
+    expect(body).not.toContain('Ada');
+  });
+
+  it('filters on the server', () => {
+    const body = bodyOf({
+      items: ROWS,
+      query: { activeFilters: [{ column: 'name', operator: 'equals', value: 'Radia' }] }
+    });
+
+    expect(body).toContain('Radia');
+    expect(body).not.toContain('Grace');
+  });
+});
+
+// Deleted here: "renders every column, because storage does not exist here".
+// It ran in the node env, never wrote a key, and `getStorage()` returns null
+// without a `window` — so "both headers present" held for every conceivable
+// implementation, including the one it was added to guard against. The
+// measurement that carries #152 part 2 lives on the client side, in
+// `Table.render.svelte.test.ts` ("applies the stored column preference — after
+// hydration, not before it"), which is where the two renders can differ.

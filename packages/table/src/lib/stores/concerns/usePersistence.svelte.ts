@@ -9,7 +9,7 @@ import {
   createPersistentSortState,
   createPersistentSummaryConfigs
 } from '$lib/utils';
-import type { SummaryConfig, TablePersistenceConfig } from '../TableStore.svelte';
+import type { SummaryConfig, TablePersistenceConfig, TableViewState } from '../TableStore.svelte';
 import type { TableState } from './types';
 
 /**
@@ -60,7 +60,59 @@ function isRowId(value: unknown): value is string | number {
  * persistence already owns. A missing **or corrupt** entry counts as
  * absent, so junk in storage can never block a seed permanently.
  */
-export function usePersistence(state: TableState, persistenceConfig?: TablePersistenceConfig) {
+export function usePersistence(
+  state: TableState,
+  persistenceConfig?: TablePersistenceConfig,
+  controlledView?: () => TableViewState | undefined
+) {
+  /**
+   * Does the controlled view state (normally the URL) own this axis?
+   *
+   * Per-field, by presence — the rule `syncSearch` already applied to
+   * `searchControlled`, generalised. An owned axis is neither hydrated from
+   * storage nor written back to it: the URL is the source of truth, and a value
+   * copied into storage alongside would resurface the moment the table stopped
+   * being controlled (#152, precedence URL > localStorage > `initial*` seed).
+   */
+  const owns = (axis: keyof TableViewState): boolean => controlledView?.()?.[axis] !== undefined;
+
+  /**
+   * Whether the shareable axes may be written to storage at all.
+   *
+   * Keyed on *whether a `query` prop is wired*, *not* on whether it happens to
+   * carry this axis right now — and that distinction is the whole of it.
+   * `owns()` reads the live URL, but the URL lags the state it mirrors: a click
+   * runs `setSort` synchronously, while `onQueryChange` is debounced and
+   * `goto()` is async on top. Asking `owns()` at write time therefore answers
+   * "no" for the first change on a bare URL and "yes" for every one after it.
+   *
+   * Measured with the documented wiring and `persistControlled` at its default:
+   * the reader sorts by amount (written to storage, URL still bare), the URL
+   * catches up, the reader sorts by date (not written) — and the next bare
+   * visit restores *amount*, the sort they abandoned. Neither "nothing is
+   * stored" nor "everything is stored", but a stale intermediate, chosen by a
+   * race.
+   *
+   * So: wire `query` and the shareable axes live in the URL, full stop.
+   * `persistControlled: true` opts back into storing them as well, and it is
+   * safe to unlock because only a *setter* writes — the `sync*` functions are
+   * called from the store's action wrappers, never from a controlled derived
+   * resolving, so following a shared link stores nothing.
+   */
+  const storeControlled = persistenceConfig?.persistControlled === true;
+  const queryWired = (): boolean => controlledView?.() !== undefined;
+  /** May the shareable axes be written to storage? */
+  const writable = (): boolean => storeControlled || !queryWired();
+
+  /**
+   * Sort is **one** axis across two fields, and both hydration and write-back
+   * touch both slots. Keying them off `sortColumn` alone let a controlled
+   * `sortDirection` be overwritten by a stored one: `{ sortDirection: 'desc' }`
+   * with `{column:'amount',direction:'asc'}` in storage hydrated the direction
+   * to `'asc'` over a derived that resolved to `'desc'`, and kept writing the
+   * controlled table's sort back into storage.
+   */
+  const ownsSort = (): boolean => owns('sortColumn') || owns('sortDirection');
   let persistentFilters: ReturnType<typeof createPersistentFilters> | undefined;
   let persistentSearchTerm: ReturnType<typeof createPersistentSearchTerm> | undefined;
   let persistentGroupByKey: ReturnType<typeof createPersistentGroupByKey> | undefined;
@@ -80,6 +132,21 @@ export function usePersistence(state: TableState, persistenceConfig?: TablePersi
   let hydratedSort = false;
   let hydratedSelection = false;
 
+  /**
+   * The writes hydration would make, held back until `applyPersistedState()`.
+   *
+   * Reading storage stays here at construction — it is synchronous, and the
+   * `hydrated*` flags below have to be right before the host store runs its
+   * `initial*` seeds. What moves is the *assignment*: storage exists only in
+   * the browser, so applying it during construction made the client's first
+   * render disagree with the server's HTML. Measured with `{amount, asc}`
+   * stored: the server emitted Ada/Grace and the client mounted Grace/Ada.
+   *
+   * See the SSR section of `TablePersistenceConfig` for why this is one rule
+   * for every axis rather than a judgement per axis.
+   */
+  const pending: Array<() => void> = [];
+
   if (persistenceConfig) {
     if (persistenceConfig.persistFilters !== false) {
       persistentFilters = createPersistentFilters({
@@ -87,8 +154,15 @@ export function usePersistence(state: TableState, persistenceConfig?: TablePersi
         storage: persistenceConfig.storage,
         debounceMs: persistenceConfig.debounceMs
       });
-      if (persistentFilters.hasStoredValue && Array.isArray(persistentFilters.value)) {
-        state.activeFilters = persistentFilters.value.filter(isFilterShape);
+      if (
+        !owns('activeFilters') &&
+        persistentFilters.hasStoredValue &&
+        Array.isArray(persistentFilters.value)
+      ) {
+        const filters = persistentFilters.value.filter(isFilterShape);
+        pending.push(() => {
+          state.activeFilters = filters;
+        });
         hydratedFilters = true;
       }
     }
@@ -99,8 +173,15 @@ export function usePersistence(state: TableState, persistenceConfig?: TablePersi
         storage: persistenceConfig.storage,
         debounceMs: persistenceConfig.debounceMs
       });
-      if (persistentSearchTerm.hasStoredValue && typeof persistentSearchTerm.value === 'string') {
-        state.searchTerm = persistentSearchTerm.value;
+      if (
+        !owns('searchTerm') &&
+        persistentSearchTerm.hasStoredValue &&
+        typeof persistentSearchTerm.value === 'string'
+      ) {
+        const term = persistentSearchTerm.value;
+        pending.push(() => {
+          state.searchTerm = term;
+        });
       }
     }
 
@@ -112,10 +193,13 @@ export function usePersistence(state: TableState, persistenceConfig?: TablePersi
       });
       const groupByValue = persistentGroupByKey.value;
       if (
+        !owns('groupByKey') &&
         persistentGroupByKey.hasStoredValue &&
         (groupByValue === null || typeof groupByValue === 'string')
       ) {
-        state.groupByKey = groupByValue;
+        pending.push(() => {
+          state.groupByKey = groupByValue;
+        });
         hydratedGroupByKey = true;
       }
     }
@@ -131,10 +215,12 @@ export function usePersistence(state: TableState, persistenceConfig?: TablePersi
         Array.isArray(persistentSummaryConfigs.value)
       ) {
         const configs = persistentSummaryConfigs.value.filter(isSummaryConfigShape);
-        state.summaryConfigs = configs;
-        // Only reveal the summary row when there is something to show — a
-        // stored *empty* set means the user removed every summary.
-        state.showSummary = configs.length > 0;
+        pending.push(() => {
+          state.summaryConfigs = configs;
+          // Only reveal the summary row when there is something to show — a
+          // stored *empty* set means the user removed every summary.
+          state.showSummary = configs.length > 0;
+        });
         hydratedSummaryConfigs = true;
       }
     }
@@ -147,13 +233,18 @@ export function usePersistence(state: TableState, persistenceConfig?: TablePersi
       });
       const sortValue = persistentSortState.value;
       if (
+        !ownsSort() &&
         persistentSortState.hasStoredValue &&
         sortValue &&
         typeof sortValue === 'object' &&
         typeof sortValue.column === 'string'
       ) {
-        state.sortColumn = sortValue.column;
-        state.sortDirection = sortValue.direction === 'desc' ? 'desc' : 'asc';
+        const column = sortValue.column;
+        const direction = sortValue.direction === 'desc' ? 'desc' : 'asc';
+        pending.push(() => {
+          state.sortColumn = column;
+          state.sortDirection = direction;
+        });
         hydratedSort = true;
       }
     }
@@ -186,11 +277,35 @@ export function usePersistence(state: TableState, persistenceConfig?: TablePersi
         debounceMs: persistenceConfig.debounceMs
       });
       if (persistentSelection.hasStoredValue && Array.isArray(persistentSelection.value)) {
-        for (const id of persistentSelection.value.filter(isRowId)) state.selectedIds.add(id);
+        const ids = persistentSelection.value.filter(isRowId);
+        pending.push(() => {
+          for (const id of ids) state.selectedIds.add(id);
+        });
         hydratedSelection = true;
       }
     }
   }
+
+  /**
+   * Apply everything storage supplied. Called once, from an `$effect` in
+   * `TableProvider` — which is the hydration boundary: it does not run on the
+   * server, and on the client it runs before the browser paints.
+   *
+   * Idempotent, and drains itself so a second call cannot re-apply a snapshot
+   * over a value the user has since changed.
+   */
+  function applyPersistedState(): void {
+    while (pending.length > 0) pending.shift()?.();
+  }
+
+  // A controlled axis counts as "already supplied" for the `initial*` seeds,
+  // whether or not persistence is configured at all — which is why this sits
+  // outside the block above. Without it a `query` carrying an explicitly empty
+  // axis (`?sort=` elided from the URL means "no sort", a real state the reader
+  // chose) would read as "nothing supplied" and let the seed sort the view back.
+  if (owns('activeFilters')) hydratedFilters = true;
+  if (owns('groupByKey')) hydratedGroupByKey = true;
+  if (ownsSort()) hydratedSort = true;
 
   // Sync functions called by other concerns after mutations
   // Every sync writes a *snapshot*, never the live array: the concerns mutate
@@ -198,21 +313,25 @@ export function usePersistence(state: TableState, persistenceConfig?: TablePersi
   // same reference back would be no signal change at all — the auto-save effect
   // would not re-run and the edit would never reach storage.
   function syncFilters() {
-    if (persistentFilters) persistentFilters.value = [...state.activeFilters];
+    if (persistentFilters && writable()) {
+      persistentFilters.value = [...state.activeFilters];
+    }
   }
 
-  // Skipped while search is controlled, for the same reason as syncSelection
-  // below: the prop is the source of truth, so a controlled term must never
-  // reach storage — switching that table back to uncontrolled later would
-  // otherwise revive it.
+  // `searchControlled` is NOT part of `writable`: that is the separate
+  // `searchTerm` *prop*, whose value the consumer owns outright and re-applies
+  // on every render. `persistControlled` is about the `query` prop, where the
+  // table still owns the value between navigations.
   function syncSearch() {
-    if (persistentSearchTerm && !state.searchControlled) {
+    if (persistentSearchTerm && !state.searchControlled && writable()) {
       persistentSearchTerm.value = state.searchTerm;
     }
   }
 
   function syncGroupByKey() {
-    if (persistentGroupByKey) persistentGroupByKey.value = state.groupByKey;
+    if (persistentGroupByKey && writable()) {
+      persistentGroupByKey.value = state.groupByKey;
+    }
   }
 
   function syncSummaryConfigs() {
@@ -220,7 +339,7 @@ export function usePersistence(state: TableState, persistenceConfig?: TablePersi
   }
 
   function syncSortState() {
-    if (persistentSortState)
+    if (persistentSortState && writable())
       persistentSortState.value = {
         column: state.sortColumn,
         direction: state.sortDirection
@@ -270,6 +389,7 @@ export function usePersistence(state: TableState, persistenceConfig?: TablePersi
   }
 
   return {
+    applyPersistedState,
     syncFilters,
     syncSearch,
     syncGroupByKey,

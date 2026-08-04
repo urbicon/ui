@@ -59,7 +59,7 @@ updateUrlSearchParams({ page: '1', tag: ['a', 'b'] }, { replaceState: true });
 
 ## Table Query ↔ URL (`table-query` + `url.svelte`)
 
-Opt-in URL sync for `@urbicon-ui/table` in `mode="server"`: the `TableQuery` the table emits (search, sort, page, page size, filters, grouping) is mirrored onto query parameters (`?q=…&sort=…&page=…`), so the view state survives reloads and can be shared as a link.
+Opt-in URL sync for `@urbicon-ui/table`, in client mode as well as `mode="server"`: the `TableQuery` the table emits (search, sort, page, page size, filters, grouping) is mirrored onto query parameters (`?q=…&sort=…&page=…`), so the view state survives reloads, can be shared as a link, and — unlike `localStorage` — is visible to the server.
 
 ```svelte
 <script lang="ts">
@@ -74,12 +74,7 @@ Opt-in URL sync for `@urbicon-ui/table` in `mode="server"`: the `TableQuery` the
   mode="server"
   {columns}
   itemsPerPage={25}
-  initialPage={sync.initialQuery.page}
-  initialGroupBy={sync.initialQuery.groupByKey}
-  initialSort={sync.initialQuery.sortColumn
-    ? { column: sync.initialQuery.sortColumn, direction: sync.initialQuery.sortDirection }
-    : undefined}
-  initialFilters={sync.initialQuery.activeFilters}
+  query={sync.viewState}
   queryFn={async (query, { signal }) => {
     sync.syncQuery(query); // mirror the query onto the URL (replaceState)
     const res = await fetch(`/api/users?${tableQueryToSearchParams(query)}`, { signal });
@@ -88,6 +83,12 @@ Opt-in URL sync for `@urbicon-ui/table` in `mode="server"`: the `TableQuery` the
   }}
 />
 ```
+
+`viewState` carries **only the axes the URL actually names**, and the table's `query` prop reads it by field presence: a present field controls that axis, an absent one leaves persistence and the `initial*` seeds alone. That is why this is not `initialQuery` — that one describes every axis, including the ones it filled in from the defaults, so a table wired to it ignores `persistenceConfig`, `initialSort`, `initialFilters` and `initialGroupBy` on every URL. `initialQuery` stays what its name says: a complete snapshot, parsed once, to seed a fetch with.
+
+Because `viewState` re-reads the URL rather than capturing it, the browser's back button works: navigating back to a URL without `?sort` returns the table to its unsorted view.
+
+A controlled axis is not written to `localStorage` by default, so a visit that arrives without query params starts clean. For a business table where "my filters are still there tomorrow" is expected, pair the sync with `persistenceConfig={{ tableId: '…', persistControlled: true }}` — the table then stores what the reader themselves changed (never what a shared link brought), and hands it back on a bare visit. Reading order is unaffected: the URL still wins.
 
 With manual control (`onQueryChange` instead of `queryFn`), pass `sync.syncQuery` directly — note that `onQueryChange` does not fire when `queryFn` is set, which is why the managed variant calls it inside `queryFn`.
 

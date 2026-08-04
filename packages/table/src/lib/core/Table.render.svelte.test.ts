@@ -1,8 +1,27 @@
 // @vitest-environment jsdom
 import { screen } from '@testing-library/dom';
 import { flushSync, mount, unmount } from 'svelte';
-import { afterEach, describe, expect, it } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import TableHarness from './__fixtures__/TableHarness.svelte';
+
+/**
+ * Node ≥ 25 ships a broken global `localStorage` stub that shadows jsdom's
+ * Storage under vitest, so a test needing real storage semantics installs its
+ * own — same reason and same shape as `TableStore.seed.persistence.svelte.test.ts`.
+ */
+function memoryStorage(): Storage {
+  const map = new Map<string, string>();
+  return {
+    get length() {
+      return map.size;
+    },
+    clear: () => map.clear(),
+    getItem: (key: string) => (map.has(key) ? (map.get(key) ?? null) : null),
+    key: (index: number) => [...map.keys()][index] ?? null,
+    removeItem: (key: string) => void map.delete(key),
+    setItem: (key: string, value: string) => void map.set(key, String(value))
+  };
+}
 
 /**
  * The mounted table — the counterpart to `Table.ssr.test.ts`.
@@ -37,6 +56,10 @@ function mountTable(props: Record<string, unknown> = {}) {
   flushSync();
   return target;
 }
+
+beforeEach(() => {
+  Object.defineProperty(window, 'localStorage', { value: memoryStorage(), configurable: true });
+});
 
 afterEach(() => {
   if (comp) unmount(comp);
@@ -99,5 +122,254 @@ describe('Table — mounted', () => {
     flushSync();
     expect(target.querySelectorAll('tbody tr').length).toBe(4);
     expect(target.textContent).toContain('Barbara');
+  });
+});
+
+describe('Table — query emission in client mode', () => {
+  // The gap #152 names: `query` and `queryKey` were always computed regardless
+  // of mode, but only the server branch emitted them, so a client-mode table had
+  // nothing for a URL sync to listen to. Without an emission there is no way for
+  // the view state to reach the URL, and through the URL the server.
+  //
+  // The emission is debounced through a `setTimeout`, with delay 0 for the first
+  // one — so a macrotask tick is what these await, not a `flushSync`.
+  const tick = () => new Promise((resolve) => setTimeout(resolve, 0));
+
+  it('emits the initial query without a server mode', async () => {
+    const seen: Array<Record<string, unknown>> = [];
+    mountTable({ onQueryChange: (q: Record<string, unknown>) => seen.push(q) });
+    await tick();
+
+    expect(seen).toHaveLength(1);
+    expect(seen[0]).toMatchObject({ page: 1, sortColumn: '', searchTerm: '', groupByKey: null });
+  });
+
+  it('emits again when the view state changes', async () => {
+    const seen: Array<Record<string, unknown>> = [];
+    const props = $state({
+      items: ROWS,
+      searchTerm: '',
+      onQueryChange: (q: Record<string, unknown>) => seen.push(q)
+    });
+    target = document.createElement('div');
+    document.body.appendChild(target);
+    comp = mount(TableHarness, { target, props }) as Record<string, unknown>;
+    flushSync();
+    await tick();
+    expect(seen).toHaveLength(1);
+
+    props.searchTerm = 'ada';
+    flushSync();
+    // Past the default 300 ms debounce.
+    await new Promise((resolve) => setTimeout(resolve, 350));
+
+    expect(seen.length).toBeGreaterThan(1);
+    expect(seen.at(-1)).toMatchObject({ searchTerm: 'ada' });
+  });
+
+  it('keeps the page the URL asked for when a controlled searchTerm is also present', () => {
+    // The client half of an SSR/client agreement. `TableProvider` applies the
+    // controlled `searchTerm` prop in a mount effect, and `setSearchTerm` used
+    // to reset the page unconditionally — so `?page=2&q=…` rendered page 2 on
+    // the server and snapped to page 1 the moment the browser took over. Which
+    // is the exact divergence the `query` prop exists to remove (#152), arriving
+    // through a different door.
+    const el = mountTable({ query: { page: 2, itemsPerPage: 1 }, searchTerm: '' });
+    const body = el.querySelector('tbody');
+
+    expect(body?.textContent).toContain('Grace');
+    expect(body?.textContent).not.toContain('Ada');
+  });
+
+  it('drops the collapse set when the URL regroups by another column', () => {
+    // `collapsedGroups` holds group *names*. Regrouping through `setGroupByKey`
+    // clears them; regrouping through the controlled `query` prop never touches
+    // that setter, so the names of the previous grouping survived — and one
+    // that happens to match collapses a group nobody collapsed.
+    let ctx:
+      | { state: { collapsedGroups: Set<string> }; toggleGroup: (n: string) => void }
+      | undefined;
+    const props = $state({
+      items: ROWS,
+      query: { groupByKey: 'name' } as Record<string, unknown>,
+      onReady: (c: unknown) => {
+        ctx = c as typeof ctx;
+      }
+    });
+    target = document.createElement('div');
+    document.body.appendChild(target);
+    comp = mount(TableHarness, { target, props }) as Record<string, unknown>;
+    flushSync();
+
+    ctx?.toggleGroup('Ada');
+    flushSync();
+    expect(ctx?.state.collapsedGroups.has('Ada')).toBe(true);
+
+    props.query = { groupByKey: 'amount' };
+    flushSync();
+    expect(ctx?.state.collapsedGroups.size).toBe(0);
+  });
+
+  it('applies the stored column preference — after hydration, not before it', () => {
+    // #152 part 2, the client half of `Table.ssr.test.ts`'s "renders every
+    // column". The two are one statement: the server has no localStorage, so it
+    // renders every column; the client must therefore not have *fewer* columns
+    // in the render that hydrates that markup.
+    //
+    // Measured before the change: with `['amount']` stored, `mount()` produced a
+    // single `<th>` — the second header never existed in the DOM, not even
+    // before `flushSync`. Now the preference arrives with the user effects,
+    // which `mount()` does NOT flush (hence the `flushSync` below) but which
+    // still run before the browser paints. So a client-rendered app sees no
+    // flash and an SSR one sees exactly one change.
+    window.localStorage.setItem(
+      'urbicon_table_hidden_columns_prefs_v1',
+      JSON.stringify(['amount'])
+    );
+
+    const host = document.createElement('div');
+    document.body.appendChild(host);
+    const instance = mount(TableHarness, {
+      target: host,
+      props: { items: ROWS, persistenceConfig: { tableId: 'prefs' } }
+    });
+    // Sampled inside the same synchronous block `mount()` returns from, before
+    // any effect has been flushed.
+    const duringMount = [...host.querySelectorAll('th')].map((h) => h.textContent ?? '');
+    flushSync();
+    const after = [...host.querySelectorAll('th')].map((h) => h.textContent ?? '');
+
+    expect(duringMount.some((h) => h.includes('Amount'))).toBe(true);
+    expect(after.some((h) => h.includes('Amount'))).toBe(false);
+
+    unmount(instance);
+    host.remove();
+  });
+
+  it('gives the virtualized header, body and summary the same column tracks', () => {
+    // #14 / the open half of #150. The virtualized layout renders three
+    // independent `<table>` elements, so each computes its own column tracks.
+    // With `table-fixed` those come from the FIRST ROW — the `<th>` row in the
+    // header table, a `<td>` row in the body table — and `TableHead` writes
+    // `width`/`min-width` inline on `<th>` while `TableRow` writes nothing on
+    // `<td>`. So an explicit column width sized the header and not the body.
+    //
+    // jsdom has no layout engine, so this asserts the tracks are *declared*
+    // identically, not that they measure identically. The geometric half needs
+    // a browser and belongs in the VR suite.
+    const el = mountTable({
+      items: Array.from({ length: 40 }, (_, i) => ({ id: i, name: `P${i}`, amount: i })),
+      virtualized: true,
+      columns: [
+        { accessor: 'name', title: 'Name', width: '18rem', minWidth: '10rem' },
+        { accessor: 'amount', title: 'Amount' }
+      ],
+      initialSummaryConfigs: [{ column: 'amount', type: 'sum' }]
+    });
+
+    const tables = [...el.querySelectorAll('table')];
+    const groups = tables.map((table) =>
+      [...table.querySelectorAll('colgroup > col')].map((col) => col.getAttribute('style') ?? '')
+    );
+
+    // Every table in the virtualized layout carries tracks…
+    expect(tables.length).toBeGreaterThanOrEqual(2);
+    expect(groups.every((g) => g.length > 0)).toBe(true);
+    // …and the explicit width reaches them.
+    expect(groups[0].join(' ')).toContain('18rem');
+
+    // Deliberately NOT asserted: that the four groups equal each other. They
+    // are four renders of one snippet reading one derived, so they cannot
+    // differ — an assertion guaranteed by construction measures nothing.
+    //
+    // What can differ, and is the actual failure mode of #14, is the tracks
+    // against the cells they size. Compared against the header, which is the
+    // one row jsdom renders here (the virtualizer needs a measured viewport and
+    // produces none, so the body has no rows to compare).
+    const headerCells = [...el.querySelectorAll('thead th')];
+    expect(headerCells).toHaveLength(groups[0].length);
+    // Column order too, not just the count: the header and the tracks must walk
+    // the same list. `TableHead` and `columnTracks` used to disagree whenever a
+    // stored column order met `enableColumnReorder={false}`.
+    const headerIds = headerCells
+      .map((th) => th.getAttribute('data-testid'))
+      .filter((id): id is string => !!id?.startsWith('column-header-'))
+      .map((id) => id.replace('column-header-', ''));
+    expect(headerIds).toEqual(['name', 'amount']);
+  });
+
+  it('follows a stored column order in header, body and tracks alike', () => {
+    // The narrow case where the three used to disagree. `TableRow` and
+    // `SummaryRow` always iterate `orderedColumns`, and a stored order is
+    // restored whether or not reordering is currently enabled — but the header
+    // and the column tracks read it only `enableColumnReorder ? … :
+    // state.columns`. So with a stored order and the flag off, the header
+    // rendered the declaration order over a body in the persisted one, and the
+    // tracks sized the wrong cells.
+    window.localStorage.setItem(
+      'urbicon_table_column_order_ord_v1',
+      JSON.stringify(['amount', 'name'])
+    );
+
+    const el = mountTable({ persistenceConfig: { tableId: 'ord' } });
+    flushSync();
+
+    const headerIds = [...el.querySelectorAll('thead th')]
+      .map((th) => th.getAttribute('data-testid'))
+      .filter((id): id is string => !!id?.startsWith('column-header-'))
+      .map((id) => id.replace('column-header-', ''));
+    // The body's own order, read off the first row's cell values.
+    const firstRow = [...(el.querySelector('tbody tr')?.children ?? [])].map((td) =>
+      (td.textContent ?? '').trim()
+    );
+
+    expect(headerIds).toEqual(['amount', 'name']);
+    // Ada's amount is 100 and her name is 'Ada' — amount first proves the body
+    // followed the same order rather than the declaration one.
+    expect(firstRow[0]).toBe('100');
+    expect(firstRow[1]).toBe('Ada');
+
+    unmount(comp as Record<string, unknown>);
+    comp = undefined;
+
+    // And the virtualized tracks with it. A `<col>` has no identity, so the
+    // order is read off the one column that carries a width: declared second,
+    // it has to end up in slot two only if the tracks ignored the stored order.
+    const virt = mountTable({
+      virtualized: true,
+      persistenceConfig: { tableId: 'ord' },
+      columns: [
+        { accessor: 'name', title: 'Name', width: '18rem' },
+        { accessor: 'amount', title: 'Amount' }
+      ]
+    });
+    flushSync();
+    // One colgroup per table in this layout — the header's is enough, and the
+    // sibling test already pins that every table carries the same one.
+    const cols = [...(virt.querySelector('colgroup')?.children ?? [])].map(
+      (col) => col.getAttribute('style') ?? ''
+    );
+
+    expect(cols).toHaveLength(2);
+    expect(cols[0]).toBe('');
+    expect(cols[1]).toContain('18rem');
+  });
+
+  it('never fetches in client mode, even with a queryFn present', async () => {
+    // `queryFn` is a server-mode contract. Emitting in client mode must not
+    // quietly start calling it — that would fetch over data the consumer owns.
+    let fetches = 0;
+    const seen: unknown[] = [];
+    mountTable({
+      queryFn: async () => {
+        fetches++;
+        return { items: [], totalItems: 0 };
+      },
+      onQueryChange: (q: unknown) => seen.push(q)
+    });
+    await tick();
+
+    expect(fetches).toBe(0);
+    expect(seen).toHaveLength(1);
   });
 });

@@ -1,5 +1,6 @@
 <script lang="ts">
   import { untrack, type Snippet } from 'svelte';
+  import { SvelteSet } from 'svelte/reactivity';
   import { resolveDateLocale, useI18n } from '@urbicon-ui/i18n';
   import { attachTableContext, attachCellLocale, createTableState, findColumnById } from '$lib';
   import { useTableI18n } from '$lib/i18n';
@@ -11,7 +12,11 @@
     TableQuery,
     TableQueryResult
   } from '$lib/types/tableTypes';
-  import type { SummaryConfig, TablePersistenceConfig } from '$lib/stores/TableStore.svelte';
+  import type {
+    SummaryConfig,
+    TablePersistenceConfig,
+    TableViewState
+  } from '$lib/stores/TableStore.svelte';
   import type { TableContext } from './table/index';
 
   const tt = useTableI18n();
@@ -43,6 +48,7 @@
     serverTotalItems?: number;
     queryFn?: (query: TableQuery, options: { signal: AbortSignal }) => Promise<TableQueryResult>;
     onQueryChange?: (query: TableQuery) => void;
+    query?: TableViewState;
     queryDebounceMs?: number;
     enableLiveUpdates?: boolean;
     autoApplyOnNavigation?: boolean;
@@ -79,6 +85,7 @@
     serverTotalItems = 0,
     queryFn = undefined,
     onQueryChange = undefined,
+    query = undefined,
     queryDebounceMs = 300,
     enableLiveUpdates = false,
     autoApplyOnNavigation = true,
@@ -102,6 +109,15 @@
    * fetched rows. `!!queryFn` only changes when one appears or disappears.
    */
   const hasQueryFn = $derived(!!queryFn);
+  /**
+   * Same treatment for `onQueryChange`, and here it matters even more: the
+   * emission effect below has to know whether anybody is listening *before* it
+   * decides to run. Reading the callback itself would put its identity on the
+   * effect's dependency list, so an inline `onQueryChange={(q) => …}` would
+   * re-fire the effect on every parent render — and since the listener's job is
+   * to write the query into the URL, that is a navigation loop, not just noise.
+   */
+  const hasQueryChange = $derived(!!onQueryChange);
 
   // Store is built once from the initial persistence config — not meant to
   // re-create if the prop changes reactively. The initial* seeds are equally
@@ -165,7 +181,8 @@
       virtualized: () => virtualized,
       mode: () => mode,
       serverTotalItems: () => (mode === 'server' ? serverTotalItems : 0),
-      enableColumnVisibility: () => enableColumnVisibility
+      enableColumnVisibility: () => enableColumnVisibility,
+      query: () => query
     }
   );
   attachTableContext(tableState);
@@ -174,10 +191,12 @@
 
   // Virtualization vs. grouping. `state.virtualized` now derives from the prop,
   // so the flag needs no syncing; what remains is the one-way *clearing* of a
-  // group key that persistence or a seed put in place before the mode was known.
-  // Done synchronously, before the first render, so a virtualized table never
-  // renders its full item set for a frame. Storage is deliberately left alone,
-  // so a persisted grouping applies again on the next load without `virtualized`.
+  // group key that a **seed** put in place. Persistence no longer reaches this
+  // point — since it became a post-hydration step, `state.groupByKey` is still
+  // whatever the seed and the query left here, and a *stored* grouping is
+  // cleared by the runtime effect below instead. Storage is deliberately left
+  // alone either way, so a persisted grouping applies again on the next load
+  // without `virtualized`.
   // svelte-ignore state_referenced_locally
   if (virtualized && state.groupByKey) {
     if (import.meta.env?.DEV) {
@@ -187,6 +206,37 @@
     }
     state.groupByKey = null;
   }
+
+  // Everything storage supplied lands here, and the `$effect` is the whole
+  // point: it does not run on the server, so the server's HTML and the client's
+  // first render agree, and the stored view arrives afterwards. That is the one
+  // rule persistence follows — storage exists only in the browser, so no axis
+  // read from it may be applied before hydration (#152).
+  //
+  // Untracked: it drains a snapshot taken at construction and must run once.
+  $effect(() => {
+    untrack(() => tableState.applyPersistedState());
+  });
+
+  // The collapse set holds *group names* — values of whatever column is grouped
+  // by — so it cannot outlive its key: after regrouping, those names mean
+  // nothing, and one that happens to match collapses a group nobody touched.
+  // `setGroupByKey` clears it for every imperative path, but `state.groupByKey`
+  // also derives from the controlled `query` prop, which changes on plain
+  // navigation (#152) without passing through any setter. Watching the value
+  // covers that door. `currentPage` deliberately stays out of it: resetting to
+  // page 1 belongs to a click, not to a link that names its own page.
+  let lastGroupKey: string | null | undefined;
+  $effect(() => {
+    const key = state.groupByKey;
+    const previous = untrack(() => lastGroupKey);
+    lastGroupKey = key;
+    if (previous === undefined || key === previous) return;
+    untrack(() => {
+      state.collapsedGroups = new SvelteSet();
+      state.allGroupsExpanded = true;
+    });
+  });
 
   // Runtime toggle into virtualization: clear a group key that is active by then.
   // Still an effect — it is not a derivation but a one-way write to a *different*
@@ -222,6 +272,61 @@
     if (seededSort?.column && !findColumnById(columns, seededSort.column)) {
       console.warn(
         `[Table] initialSort.column "${seededSort.column}" does not match any column id — the seeded sort has no effect.`
+      );
+    }
+    // The `query` twin of the check above, and the more important one: this
+    // value usually comes from a URL, so it can be set by whoever sent the
+    // link rather than by the developer.
+    const controlledSort = query?.sortColumn;
+    if (controlledSort && !findColumnById(columns, controlledSort)) {
+      console.warn(
+        `[Table] query.sortColumn "${controlledSort}" does not match any column id — the table renders unsorted.`
+      );
+    }
+  });
+
+  // A controlled axis silently outranks the prop that would otherwise seed it,
+  // and silently switches persistence off for that axis. That is the intended
+  // precedence (#152: URL > localStorage > seed), but "intended" and "visible"
+  // are different things: the seed prop stays in the call site looking like it
+  // does something. Every neighbouring conflict in this file is reported, so
+  // this one is too.
+  $effect(() => {
+    if (!import.meta.env?.DEV || !query) return;
+    const shadowed: string[] = [];
+    const seeds = untrack(() => ({
+      initialSort,
+      initialFilters,
+      initialGroupBy,
+      initialPage,
+      itemsPerPage,
+      searchTerm
+    }));
+    // Only props whose value proves the consumer passed them. `initialPage`,
+    // `itemsPerPage` and `initialGroupBy` carry defaults, so "present" is not
+    // observable — compared against the default instead, which reports the
+    // cases that actually differ and stays quiet on the ones that cannot.
+    if ((query.sortColumn !== undefined || query.sortDirection !== undefined) && seeds.initialSort)
+      shadowed.push('initialSort');
+    if (query.activeFilters !== undefined && seeds.initialFilters?.length)
+      shadowed.push('initialFilters');
+    if (query.groupByKey !== undefined && seeds.initialGroupBy) shadowed.push('initialGroupBy');
+    if (query.page !== undefined && seeds.initialPage !== 1) shadowed.push('initialPage');
+    if (query.itemsPerPage !== undefined && seeds.itemsPerPage !== 10)
+      shadowed.push('itemsPerPage');
+    if (query.searchTerm !== undefined && seeds.searchTerm !== undefined)
+      shadowed.push('searchTerm');
+    if (shadowed.length > 0) {
+      console.warn(
+        `[Table] \`query\` controls the same axes as ${shadowed.map((s) => `\`${s}\``).join(', ')} — the controlled value wins and the prop has no effect. Move the value into the query, or drop the prop.`
+      );
+    }
+    // Only when the flag that would make it false is off. With
+    // `persistControlled: true` storing those axes is the point of the config,
+    // so the warning would contradict the feature.
+    if (persistenceConfig && persistenceConfig.persistControlled !== true) {
+      console.warn(
+        `[Table] \`query\` is wired, so \`persistenceConfig\` does not store the shareable axes (sort, search, filters, grouping) — the URL is the source of truth for them. Set \`persistControlled: true\` to keep them in storage as well.`
       );
     }
   });
@@ -331,7 +436,11 @@
   let initialFetchDone = false;
 
   $effect(() => {
-    if (mode !== 'server') return;
+    // Server mode runs this for the fetch. Client mode runs it only to emit —
+    // which is what lets the view state reach the URL, and through the URL the
+    // server (#152). `query`/`queryKey` were always computed mode-independently;
+    // only the emission was gated.
+    if (mode !== 'server' && !hasQueryChange) return;
 
     // Track the queryKey to detect changes
     const currentQueryKey = tableState.queryKey;
@@ -345,7 +454,9 @@
     debounceTimer = setTimeout(() => {
       const currentQuery = tableState.query;
 
-      if (queryFn) {
+      // `queryFn` is a *server*-mode contract; in client mode the table owns
+      // the data and there is nothing to fetch, so only the emission runs.
+      if (mode === 'server' && queryFn) {
         executeManagedFetch(currentQuery);
       } else if (onQueryChange) {
         onQueryChange(currentQuery);
