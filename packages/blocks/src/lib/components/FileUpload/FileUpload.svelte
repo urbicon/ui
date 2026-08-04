@@ -9,7 +9,7 @@
   import CloseIconDefault from '$lib/icons/CloseIcon.svelte';
   import CheckCircleIconDefault from '$lib/icons/CheckCircleIcon.svelte';
   import DangerCircleIconDefault from '$lib/icons/DangerCircleIcon.svelte';
-  import { mintRegistry } from '$lib/mint';
+  import { mintAttachment } from '$lib/mint';
   import { Progress } from '$lib/primitives/Progress';
   // internal core, not the public component — keeps the public-to-public import graph clean (see internal/core/)
   import CoreSpinner from '$lib/internal/core/CoreSpinner.svelte';
@@ -76,7 +76,6 @@
   // ── State ──────────────────────────────────────────────────────────────────
 
   let inputEl = $state<HTMLInputElement>();
-  let dropzoneEl = $state<HTMLDivElement>();
   let dragging = $state(false);
   let dragInvalid = $state(false);
   let dragCounter = $state(0);
@@ -299,12 +298,6 @@
 
   // ── Mint ─────────────────────────────────────────────────────────────────
 
-  $effect(() => {
-    if (dropzoneEl && mint && mint !== 'none' && !disabled) {
-      return mintRegistry.apply(dropzoneEl, mint);
-    }
-  });
-
   function openFilePicker() {
     if (!disabled && inputEl) inputEl.click();
   }
@@ -343,7 +336,7 @@
   <!-- Dropzone -->
   {#if !maxFilesReached || files.length === 0}
     <div
-      bind:this={dropzoneEl}
+      {@attach mintAttachment(mint, { enabled: !disabled })}
       class={slot('dropzone')}
       role="button"
       tabindex={disabled ? -1 : 0}

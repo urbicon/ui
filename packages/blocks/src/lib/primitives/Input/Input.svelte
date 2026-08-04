@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { useBlocksI18n, mintRegistry, createPersistentState } from '$lib';
+  import { useBlocksI18n, mintAttachment, createPersistentState } from '$lib';
   import { getBlocksConfig, resolveSlotClasses } from '$lib/provider';
   import CoreFieldMessage from '$lib/internal/core/CoreFieldMessage.svelte';
   import { useFormField, getTierContext } from '$lib/utils';
@@ -142,12 +142,6 @@
     [ff.describedBy, ariaDescribedby].filter(Boolean).join(' ') || undefined
   );
 
-  $effect(() => {
-    if (inputRef && mint && mint !== 'none' && !disabled) {
-      return mintRegistry.apply(inputRef, mint);
-    }
-  });
-
   function handleClear() {
     if (disabled || readonly) return;
     value = '';
@@ -231,6 +225,7 @@
     <input
       {...restProps}
       bind:this={inputRef}
+      {@attach mintAttachment(mint, { enabled: !disabled })}
       bind:value
       id={ff.fieldId}
       class={unstyled ? (slotClasses?.base ?? '') : styles.base({ class: slotClasses?.base })}

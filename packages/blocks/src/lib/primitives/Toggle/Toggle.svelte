@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { useBlocksI18n, mintRegistry } from '$lib';
+  import { useBlocksI18n, mintAttachment } from '$lib';
   import CoreFieldMessage from '$lib/internal/core/CoreFieldMessage.svelte';
   import { getBlocksConfig, resolveSlotClasses } from '$lib/provider';
   import { getTierContext, useFormField } from '$lib/utils';
@@ -56,8 +56,6 @@
   const blocksConfig = getBlocksConfig();
   const unstyled = $derived(unstyledProp || blocksConfig?.unstyled || false);
 
-  let trackElement = $state<HTMLElement>();
-
   // Tier precedence (closest wins): own prop → TierContext (Toolbar / ButtonGroup)
   // → 'commit' default. A bare Toggle is a Pill switch; a Toolbar tier="modify"
   // re-frames it as a compact rectangular switch.
@@ -89,12 +87,6 @@
   // Mint targets the directional switch track, not the enclosing <label> that
   // also wraps the text — a hover/scale effect belongs to the control surface,
   // mirroring SegmentItem/Button (XC-1).
-  $effect(() => {
-    if (trackElement && mint && mint !== 'none' && !disabled) {
-      return mintRegistry.apply(trackElement, mint);
-    }
-  });
-
   function handleChange() {
     if (disabled) return;
     onCheckedChange?.(checked);
@@ -135,7 +127,7 @@
 
     <span
       class={unstyled ? (slotClasses?.track ?? '') : styles.track({ class: slotClasses?.track })}
-      bind:this={trackElement}
+      {@attach mintAttachment(mint, { enabled: !disabled })}
       aria-hidden="true"
       data-state={dataState}
     >

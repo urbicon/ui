@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { mintRegistry } from '$lib';
+  import { mintAttachment } from '$lib';
   import CoreFieldMessage from '$lib/internal/core/CoreFieldMessage.svelte';
   import { getBlocksConfig, resolveSlotClasses } from '$lib/provider';
   import { useFormField, getTierContext } from '$lib/utils';
@@ -125,12 +125,6 @@
     // (same class as Input's onkeydown forward).
     userOnInput?.(event);
   }
-
-  $effect(() => {
-    if (textareaRef && mint && mint !== 'none' && !disabled) {
-      return mintRegistry.apply(textareaRef, mint);
-    }
-  });
 </script>
 
 <div
@@ -150,6 +144,7 @@
   <textarea
     {...restProps}
     bind:this={textareaRef}
+    {@attach mintAttachment(mint, { enabled: !disabled })}
     bind:value
     id={ff.fieldId}
     class={unstyled ? (slotClasses?.base ?? '') : styles.base({ class: slotClasses?.base })}

@@ -1,5 +1,5 @@
 <script lang="ts" generics="T extends string | number | boolean = string">
-  import { useBlocksI18n, mintRegistry } from '$lib';
+  import { useBlocksI18n, mintAttachment } from '$lib';
   import CoreFieldMessage from '$lib/internal/core/CoreFieldMessage.svelte';
   import { useFormField, getTierContext, useFloatingPanel, floatingPanelHidden } from '$lib/utils';
   import { getBlocksConfig, resolveSlotClasses } from '$lib/provider';
@@ -237,12 +237,6 @@
     resolveSlotClasses(blocksConfig, 'Select', preset, variantProps, slotClassesProp)
   );
 
-  $effect(() => {
-    if (triggerRef && mint && mint !== 'none' && !disabled) {
-      return mintRegistry.apply(triggerRef, mint);
-    }
-  });
-
   // Initial active-option highlight when the listbox opens. Where the virtual
   // cursor starts:
   //   • the selected option, if any — shows the user where they are
@@ -473,12 +467,18 @@
   >
     {#if customTrigger}
       <!-- svelte-ignore a11y_no_static_element_interactions -->
-      <span bind:this={triggerRef} class="inline-flex" onkeydown={handleTriggerKeydown}>
+      <span
+        bind:this={triggerRef}
+        {@attach mintAttachment(mint, { enabled: !disabled })}
+        class="inline-flex"
+        onkeydown={handleTriggerKeydown}
+      >
         {@render customTrigger(selectedOptions, open, clear)}
       </span>
     {:else}
       <button
         bind:this={triggerRef}
+        {@attach mintAttachment(mint, { enabled: !disabled })}
         id={triggerId}
         type="button"
         class={unstyled

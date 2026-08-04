@@ -1,6 +1,6 @@
 <script lang="ts">
   import { untrack } from 'svelte';
-  import { mintRegistry } from '$lib/mint';
+  import { mintAttachment } from '$lib/mint';
   import { getBlocksConfig, resolveSlotClasses } from '$lib/provider';
   import type { SplitPaneProps } from './index';
   import { clampRatio, parseLimit, ratioFromPointer, resolveDragRatio } from './split-pane.utils';
@@ -90,12 +90,6 @@
 
   // mint is wired on the interactive element — the divider — exactly as Slider
   // applies it to its track ref.
-  $effect(() => {
-    if (handleRef && mint && mint !== 'none' && !disabled) {
-      return mintRegistry.apply(handleRef, mint);
-    }
-  });
-
   function containerSize(): number {
     if (!rootRef) return measuredPx;
     const rect = rootRef.getBoundingClientRect();
@@ -261,6 +255,7 @@
   <!-- svelte-ignore a11y_no_noninteractive_tabindex, a11y_no_noninteractive_element_interactions -->
   <div
     bind:this={handleRef}
+    {@attach mintAttachment(mint, { enabled: !disabled })}
     role="separator"
     tabindex={disabled ? -1 : 0}
     aria-label={handleLabel}
