@@ -148,10 +148,11 @@ describe('APIFileGenerator — emitted interface covers the emitted data', () =>
 
   // Third instance of the same gap, one level down again: `types[]` used to be
   // typed `{ name; type; definition; [key: string]: unknown }`, so every extra
-  // field was silently `unknown` and the array was unassignable to the docs
-  // package's `LocalTypeDef[]` — which is why every page cast it away. With a
-  // real `TypeDefinitionInfo` the cast goes, and this guard is what keeps a
-  // newly emitted field from re-opening the hole.
+  // field read back as `unknown` and no consumer could branch on it without
+  // asserting. tsc accepted that array as `LocalTypeDef[]` all the same — the
+  // index signature made the two never be compared — which is exactly why the
+  // drift went unnoticed. This guard is what keeps a newly emitted field from
+  // re-opening the hole.
   it('declares every emitted type-definition field on TypeDefinitionInfo', async () => {
     const generator = new APIFileGenerator({ outputPath: dir, format: 'typescript' });
     await generator.generate({
@@ -181,6 +182,27 @@ describe('APIFileGenerator — emitted interface covers the emitted data', () =>
     // The index signature it replaced typed nothing; its return would make
     // every future field `unknown` again without failing anything.
     expect(block?.[1]).not.toMatch(/\[key: string\]/);
+
+    // Second, independent oracle. The loop above only sees fields the fixture
+    // above happens to carry, so it catches a new field only if someone also
+    // remembers to fixture it — the same "green for the wrong reason" shape
+    // this file exists to prevent. `TypeDefinition` in types/core.ts is the
+    // authority on what *can* be emitted, so read it directly.
+    const core = await fs.readFile(
+      path.join(import.meta.dirname, '..', 'src', 'types', 'core.ts'),
+      'utf-8'
+    );
+    const coreBlock = core.match(/export interface TypeDefinition \{([\s\S]*?)\n\}/);
+    expect(coreBlock).not.toBeNull();
+    const sourceFields = [...(coreBlock as RegExpMatchArray)[1].matchAll(/^ {2}(\w+)\??:/gm)].map(
+      (m) => m[1]
+    );
+    expect(sourceFields.length).toBeGreaterThan(emittedFields.length - 1);
+    for (const field of sourceFields) {
+      expect(declared, `TypeDefinitionInfo does not cover TypeDefinition.${field}`).toContain(
+        field
+      );
+    }
   });
 
   it('no longer emits the dead typeAnchor/typePreview fields (removed 2026-07: nothing read them)', async () => {

@@ -33,6 +33,16 @@ export interface ProgramBundle {
    * than "not exported". See `resolvePublicExportNames`.
    */
   publicExportNames: ReadonlySet<string> | null;
+  /**
+   * Why the surface above is `null` even though the manifest *declared* typed
+   * entries — a broken `dist/*.d.ts` → `src/lib/*` mapping, or an unreadable
+   * manifest. `null` when nothing was declared (the documented unknown case).
+   *
+   * Carried rather than thrown so the bundle still lands in the cache; it is
+   * `assertResolvablePublicExports` at phase start that turns it into a run
+   * failure, where the error can actually escape.
+   */
+  publicExportFailure: string | null;
 }
 
 const bundles = new Map<string, ProgramBundle>();
@@ -81,14 +91,54 @@ export function parseTsConfig(configPath: string): ts.ParsedCommandLine {
  * Eager validation hook for the pipeline: parses the tsconfig (throwing on
  * miss/errors) *before* extraction starts, so a broken configPath fails the
  * run at phase start instead of degrading into 80 per-component warnings.
+ *
+ * Deliberately cheap (~5–15ms, no program build) — see
+ * `assertResolvablePublicExports` for the second, program-backed half of the
+ * same eager check.
  */
 export function assertUsableTsConfig(configPath: string): void {
   parseTsConfig(configPath);
 }
 
 /**
+ * Second eager validation hook, run next to `assertUsableTsConfig` at phase
+ * start: a package whose manifest *declares* typed entry points none of which
+ * resolve must abort the run.
+ *
+ * This has to live at the pipeline level, not in `getProgramBundle`. The
+ * extractors are constructed per component inside `ExtractionCoordinator`'s
+ * per-extractor `try/catch`, which turns any constructor throw into
+ * `{ success: false, data: [] }` plus a `console.warn` and never propagates
+ * the error — so a throw from the bundle builder produced a *green* run over
+ * 0 props, 0 variants and 0 types (measured: 5/5 components "successfully
+ * extracted", exit 0). Building the program here is not extra work: it is the
+ * same program every extractor is about to share, one phase earlier.
+ *
+ * An *unknown* surface is a warning rather than an error: a package with no
+ * `exports` manifest at all is the documented ad-hoc case, and `exported`
+ * is then absent (never `false`) on every type. It is still worth one line at
+ * phase start, because every downstream gate loses its input.
+ */
+export function assertResolvablePublicExports(configPath: string): void {
+  const bundle = getProgramBundle(configPath);
+  if (bundle.publicExportFailure) throw new Error(bundle.publicExportFailure);
+  if (!bundle.publicExportNames) {
+    console.warn(
+      `⚠️  ${bundle.packageRoot}: no typed entry point found in package.json#exports — ` +
+        `the exported/not-exported flag will be absent on every extracted type.`
+    );
+  }
+}
+
+/**
  * Get (or build) the shared program bundle for a tsconfig. Throws when the
  * tsconfig is missing or unparsable — see the fail-loud contract above.
+ *
+ * The public-export surface is resolved *after* the bundle is cached, and its
+ * failure is carried on the bundle instead of thrown. Throwing here left the
+ * cache empty, so every extractor of every component rebuilt the program:
+ * measured 160ms → 3667ms for the same five components (23×). A cache that
+ * only fills on the happy path is not a cache.
  */
 export function getProgramBundle(configPath: string): ProgramBundle {
   const resolved = path.resolve(configPath);
@@ -112,9 +162,14 @@ export function getProgramBundle(configPath: string): ProgramBundle {
     checker,
     compilerOptions,
     packageRoot,
-    publicExportNames: resolvePublicExportNames(program, checker, packageRoot)
+    publicExportNames: null,
+    publicExportFailure: null
   };
   bundles.set(resolved, bundle);
+
+  const surface = resolvePublicExportNames(program, checker, packageRoot);
+  bundle.publicExportNames = surface.names;
+  bundle.publicExportFailure = surface.failure;
   return bundle;
 }
 
@@ -129,18 +184,23 @@ export function getProgramBundle(configPath: string): ProgramBundle {
  * as public as the root entry's, and a root-only rule would report them as
  * private.
  */
-function publicEntrySourceCandidates(packageRoot: string): string[] {
+function publicEntrySourceCandidates(packageRoot: string): {
+  paths: string[];
+  failure: string | null;
+} {
   const manifestPath = path.join(packageRoot, 'package.json');
-  if (!ts.sys.fileExists(manifestPath)) return [];
+  if (!ts.sys.fileExists(manifestPath)) return { paths: [], failure: null };
 
   let manifest: { exports?: unknown };
   try {
     manifest = JSON.parse(ts.sys.readFile(manifestPath) ?? '{}');
   } catch (error) {
-    throw new Error(
-      `docs-gen: ${manifestPath} is not valid JSON, so the package's public export surface ` +
+    return {
+      paths: [],
+      failure:
+        `docs-gen: ${manifestPath} is not valid JSON, so the package's public export surface ` +
         `cannot be determined: ${error instanceof Error ? error.message : String(error)}`
-    );
+    };
   }
 
   const candidates = new Set<string>();
@@ -157,30 +217,36 @@ function publicEntrySourceCandidates(packageRoot: string): string[] {
     }
   };
   visit(manifest.exports);
-  return [...candidates];
+  return { paths: [...candidates], failure: null };
 }
 
 /**
  * Union of the names exported from the package's public entry points.
  *
- * Fail-loud contract, same shape as the tsconfig one above: when the manifest
- * *declares* typed entries but none of them resolves inside the program, the
- * `dist/*.d.ts` → `src/lib/*` mapping has broken, and every type would then
- * be labelled "not exported" — a silent, uniformly wrong answer that a lint
- * downstream would enforce. That throws. A package with no typed entries at
- * all (test fixtures) is the documented unknown case and yields `null`.
+ * Never throws — the failure is returned, so `getProgramBundle` can cache the
+ * bundle either way and `assertResolvablePublicExports` can raise it at phase
+ * start, which is the only level where the error is not swallowed by
+ * `ExtractionCoordinator`'s per-extractor `try/catch`.
+ *
+ * A manifest that *declares* typed entries none of which resolve is a
+ * failure, not an unknown: the `dist/*.d.ts` → `src/lib/*` mapping has
+ * broken, and every type in the package would be labelled "not exported" —
+ * one uniformly wrong answer that a downstream lint would then enforce. A
+ * package with no typed entries at all (test fixtures, ad-hoc roots) is the
+ * documented unknown case and yields `null` without a failure.
  */
 function resolvePublicExportNames(
   program: ts.Program,
   checker: ts.TypeChecker,
   packageRoot: string
-): ReadonlySet<string> | null {
+): { names: ReadonlySet<string> | null; failure: string | null } {
   const candidates = publicEntrySourceCandidates(packageRoot);
-  if (candidates.length === 0) return null;
+  if (candidates.failure) return { names: null, failure: candidates.failure };
+  if (candidates.paths.length === 0) return { names: null, failure: null };
 
   const names = new Set<string>();
   let resolved = 0;
-  for (const candidate of candidates) {
+  for (const candidate of candidates.paths) {
     const sourceFile = program.getSourceFile(candidate);
     if (!sourceFile) continue;
     const moduleSymbol = checker.getSymbolAtLocation(sourceFile);
@@ -190,14 +256,16 @@ function resolvePublicExportNames(
   }
 
   if (resolved === 0) {
-    throw new Error(
-      `docs-gen: ${path.join(packageRoot, 'package.json')} declares typed entry points, but none of ` +
+    return {
+      names: null,
+      failure:
+        `docs-gen: ${path.join(packageRoot, 'package.json')} declares typed entry points, but none of ` +
         `them resolves to a source file in the program:\n` +
-        candidates.map((c) => `  - ${path.relative(packageRoot, c)}`).join('\n') +
+        candidates.paths.map((c) => `  - ${path.relative(packageRoot, c)}`).join('\n') +
         `\nWithout an entry the exported/not-exported flag on every type would be uniformly wrong.`
-    );
+    };
   }
-  return names;
+  return { names, failure: null };
 }
 
 /** Test hook: drop all cached programs. */

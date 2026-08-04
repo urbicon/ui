@@ -7,6 +7,7 @@ import type {
   VariantInfo
 } from '@urbicon-ui/shared-types';
 import type { APIData, ComponentAPIData, TypeDefinition, TypeUsedByRef } from '../../types';
+import { repoRelativePackageDir, repoRelativePackagePath } from '../../utils/repo-path';
 import { toSlug } from '../../utils/slug';
 
 /**
@@ -69,7 +70,7 @@ export class APIDataGenerator {
     for (const c of richComponents) {
       this.componentSlugs.set(c.name, toSlug(c.name));
       this.componentGroups.set(c.name, this.inferGroupFromPath(c.filePath || ''));
-      const dir = APIDataGenerator.declaringDirOf(c.filePath || '');
+      const dir = repoRelativePackageDir(c.filePath || '');
       if (!dir) continue;
       const siblings = this.componentsByDir.get(dir);
       if (siblings) siblings.push(c.name);
@@ -282,11 +283,10 @@ export class APIDataGenerator {
    */
   private buildSourceHref(filePath: string): string | undefined {
     if (!filePath) return undefined;
-    const normalized = filePath.replace(/\\/g, '/');
-    if (normalized.includes('/node_modules/')) return undefined;
-    const match = normalized.match(/(packages\/.+)$/);
-    if (!match) return undefined;
-    return `${APIDataGenerator.SOURCE_BASE_URL}/${match[1]}`;
+    if (filePath.replace(/\\/g, '/').includes('/node_modules/')) return undefined;
+    const repoRelative = repoRelativePackagePath(filePath);
+    if (!repoRelative) return undefined;
+    return `${APIDataGenerator.SOURCE_BASE_URL}/${repoRelative}`;
   }
 
   // ==========================================
@@ -294,49 +294,50 @@ export class APIDataGenerator {
   // ==========================================
 
   /**
-   * Repo-relative directory of a declaring file, in exactly the spelling
-   * `LocalTypesExtractor.toRepoRelativePath` produces for `sourcePath` — from
-   * the first `packages/` segment on. Comparing anything else would compare a
-   * component's absolute path against a type's repo-relative one and never
-   * match.
-   *
-   * `null` when the path has no `packages/` segment: an ad-hoc root cannot be
-   * lined up with a `sourcePath` that was rendered relative to its package,
-   * and an unset owner (no home) is the correct answer there, not a guess.
-   */
-  private static declaringDirOf(filePath: string): string | null {
-    if (!filePath) return null;
-    const normalized = filePath.replace(/\\/g, '/');
-    const repoRelative = normalized.match(/(packages\/.+)$/)?.[1];
-    if (!repoRelative) return null;
-    const cut = repoRelative.lastIndexOf('/');
-    return cut > 0 ? repoRelative.slice(0, cut) : null;
-  }
-
-  /**
    * The documented component that declares `td` — its canonical home.
    *
    * Directory, not file: a component's types are split across `index.ts` and
    * `<name>.variants.ts`, and both are the same component's surface.
    *
-   * A directory can serve several documented components (`components/Guide/`
-   * declares Guide, GuidePanel, GuideBeacon, GuideRef …, nine doc pages off
-   * one `index.ts`). There the longest sibling name that prefixes the type
-   * name wins — longest, because `GuidePanelProps` prefixes both `Guide` and
-   * `GuidePanel` and only the latter is its home. A type that matches no
-   * sibling (`GuideTourSlots` in a directory without a `GuideTour`
-   * component) stays unowned rather than being handed to whichever sibling
-   * sorted first.
+   * Two rules, applied in order to every directory alike:
+   *
+   * 1. **The longest sibling name that prefixes the type name.** A directory
+   *    can serve several documented components (`components/Guide/` declares
+   *    Guide, GuidePanel, GuideBeacon, GuideRef …, nine doc pages off one
+   *    `index.ts`). Longest, because `GuidePanelProps` prefixes both `Guide`
+   *    and `GuidePanel` and only the latter is its home.
+   * 2. **Otherwise the family root** — the sibling named after the directory
+   *    itself (`primitives/DatePicker/` → `DatePicker`).
+   *
+   * Rule 2 exists because the first cut had none: a lone sibling owned its
+   * directory unconditionally while a directory with two siblings required a
+   * prefix match. Whether a type got a home then depended on how many *other*
+   * components happened to share its file. `DatePicker/index.ts` declares
+   * `DatePickerPreset` (owned) and, five lines later, `DateRangePreset` —
+   * unowned, because neither `DatePicker` nor `DateRangePicker` prefixes it,
+   * though both are declared side by side in the same file. Same for
+   * `DateFormatOptions` out of `datepicker.engine.ts`. Both are exported and
+   * appear on two pages, so they were exactly the copies this field exists to
+   * turn into a link, and exactly the ones it missed.
+   *
+   * Still `undefined` when neither rule fires: a directory backing no
+   * documented component (`$lib/utils`, `$lib/mint`, `internal/charts`) has no
+   * page to point at, and inventing one would produce a link to a page that
+   * never documents the type.
    */
   private resolveTypeOwner(td: TypeDefinition): string | undefined {
-    const dir = APIDataGenerator.declaringDirOf(td.sourcePath || '');
+    const dir = repoRelativePackageDir(td.sourcePath || '');
     if (!dir) return undefined;
     const siblings = this.componentsByDir.get(dir);
     if (!siblings || siblings.length === 0) return undefined;
-    if (siblings.length === 1) return siblings[0];
-    return siblings
+
+    const longestPrefix = siblings
       .filter((name) => td.name.startsWith(name))
       .sort((a, b) => b.length - a.length)[0];
+    if (longestPrefix) return longestPrefix;
+
+    const familyRoot = dir.slice(dir.lastIndexOf('/') + 1);
+    return siblings.find((name) => name === familyRoot);
   }
 
   // ==========================================

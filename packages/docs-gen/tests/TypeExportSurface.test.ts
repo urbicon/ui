@@ -1,8 +1,39 @@
 import * as path from 'node:path';
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
+import { ExtractionCoordinator } from '../src/core/extraction/ExtractionCoordinator';
+import { ErrorHandler } from '../src/core/pipeline/ErrorHandler';
 import { LocalTypesExtractor } from '../src/extractors/typescript/LocalTypesExtractor';
-import { getProgramBundle } from '../src/extractors/typescript/ProgramCache';
-import type { TypeDefinition } from '../src/types';
+import {
+  assertResolvablePublicExports,
+  getProgramBundle
+} from '../src/extractors/typescript/ProgramCache';
+import type { ComponentManifest, ProcessingConfig, TypeDefinition } from '../src/types';
+
+function processingConfig(): ProcessingConfig {
+  return {
+    extraction: {
+      typescript: {
+        extractJSDoc: true,
+        extractTypeReferences: true,
+        extractDefaultValues: true,
+        resolveTypeAliases: true
+      },
+      variants: { frameworks: ['tailwind-variants'], extractDefaults: true },
+      documentation: { validateSchema: true, allowPartialDocs: false },
+      inheritance: { resolveExternalTypes: true, includeHTMLAttributes: true, maxDepth: 5 }
+    },
+    enrichment: {
+      crossReferences: { enabled: true, includeExternal: true },
+      metadata: { extractStats: true, calculateComplexity: true }
+    },
+    validation: {
+      rules: [],
+      schema: { enabled: true, failOnError: false },
+      examples: {},
+      components: {}
+    }
+  } as unknown as ProcessingConfig;
+}
 
 // The `exported` flag is the property Stage 2's lint and Stage 3's page
 // wiring will gate on, so it needs a control on both answers *and* on the
@@ -52,11 +83,84 @@ describe('ProgramCache — public export surface', () => {
     expect(getProgramBundle(CROSS_FILE_CONFIG).publicExportNames).toBeNull();
   });
 
-  it('fails loud when the manifest declares typed entries none of which resolve', () => {
-    // Degrading to an empty set here would label every type "not exported" —
-    // one uniformly wrong answer that a downstream lint would then enforce.
-    expect(() => getProgramBundle(MISSING_CONFIG)).toThrow(
+  it('carries the failure on the bundle instead of throwing, and still caches', () => {
+    // Throwing from the builder left `bundles` empty, so every extractor of
+    // every component rebuilt the program: measured 160ms → 3667ms for the
+    // same five components. A cache that only fills on the happy path is not
+    // a cache.
+    const first = getProgramBundle(MISSING_CONFIG);
+    expect(first.publicExportNames).toBeNull();
+    expect(first.publicExportFailure).toMatch(
       /declares typed entry points, but none of them resolves/
+    );
+    expect(getProgramBundle(MISSING_CONFIG).program).toBe(first.program);
+  });
+
+  it('raises that failure from the eager pipeline hook', () => {
+    // Degrading to an empty set would label every type "not exported" — one
+    // uniformly wrong answer that a downstream lint would then enforce.
+    expect(() => assertResolvablePublicExports(MISSING_CONFIG)).toThrow(
+      /declares typed entry points, but none of them resolves/
+    );
+    // A package that declares no typed entry at all is the documented
+    // unknown case: one warning, not a failed run.
+    const warn = vi.spyOn(console, 'warn').mockImplementation(() => {});
+    expect(() => assertResolvablePublicExports(CROSS_FILE_CONFIG)).not.toThrow();
+    expect(warn).toHaveBeenCalledWith(expect.stringMatching(/no typed entry point found/));
+    warn.mockRestore();
+  });
+});
+
+describe('ExtractionCoordinator — the export-surface guard where it takes effect', () => {
+  // The guard has to fire at phase start. Everything below it is constructed
+  // inside a per-extractor try/catch that turns a throw into
+  // `{ success: false, data: [] }` plus a console.warn and never propagates
+  // it — measured on the pre-fix code, a package with unresolvable entries
+  // extracted "5/5 components successfully" with 0 props, 0 variants and
+  // 0 types, and exit code 0.
+  it('aborts construction rather than extracting an empty component', () => {
+    expect(
+      () =>
+        new ExtractionCoordinator(processingConfig(), new ErrorHandler(), {
+          configPath: MISSING_CONFIG
+        })
+    ).toThrow(/declares typed entry points, but none of them resolves/);
+  });
+
+  it('applies the same contract on the update path', () => {
+    const coordinator = new ExtractionCoordinator(processingConfig(), new ErrorHandler(), {
+      configPath: EXPORTS_CONFIG
+    });
+    expect(() =>
+      coordinator.updateConfig(processingConfig(), { configPath: MISSING_CONFIG })
+    ).toThrow(/declares typed entry points, but none of them resolves/);
+  });
+
+  it('does not stand in the way of a package whose entries resolve', async () => {
+    const coordinator = new ExtractionCoordinator(processingConfig(), new ErrorHandler(), {
+      configPath: EXPORTS_CONFIG
+    });
+    const rich = await coordinator.extractAllComponents([
+      {
+        component: {
+          name: 'Widget',
+          packageName: '@fixture/entry-exports-pkg',
+          filePath: WIDGET,
+          description: '',
+          props: [],
+          variants: [],
+          inheritance: [],
+          stats: { totalProps: 0, directProps: 0, variantProps: 0, inheritedProps: 0 }
+        },
+        files: { main: WIDGET },
+        packageInfo: { name: '@fixture/entry-exports-pkg', version: '0.0.0', path: EXPORTS_PKG }
+      } as unknown as ComponentManifest
+    ]);
+
+    // The point of the guard is that a real run is *not* eviscerated.
+    expect(rich[0]?.props.length).toBeGreaterThan(0);
+    expect((rich[0] as unknown as { localTypes?: unknown[] }).localTypes?.length).toBeGreaterThan(
+      0
     );
   });
 });

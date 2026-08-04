@@ -6,7 +6,10 @@ import type {
   VariantInfo
 } from '@urbicon-ui/shared-types';
 import { ExtractorFactory } from '../../extractors/ExtractorFactory';
-import { assertUsableTsConfig } from '../../extractors/typescript/ProgramCache';
+import {
+  assertResolvablePublicExports,
+  assertUsableTsConfig
+} from '../../extractors/typescript/ProgramCache';
 import type { PropsExtractor } from '../../extractors/typescript/PropsExtractor';
 import type { VariantsExtractor } from '../../extractors/variants/VariantsExtractor';
 import type {
@@ -51,6 +54,15 @@ export class ExtractionCoordinator {
    * Fail loud *before* extraction starts: a configured-but-broken tsconfig
    * must abort the run, not degrade into per-component warnings with
    * cross-file types silently missing from the artifacts.
+   *
+   * The same reasoning covers the package's public export surface, and for
+   * the same mechanical reason: everything below this point is constructed
+   * inside the per-extractor `try/catch` further down this file, which
+   * converts any throw into `{ success: false, data: [] }` and drops the
+   * error. A package whose typed `exports` targets no longer map onto
+   * `src/lib/…` therefore produced a green run over 0 props / 0 variants /
+   * 0 types. Both assertions must happen here, at the one level where an
+   * error still escapes.
    */
   private static resolveTsExtractionConfig(
     config: ProcessingConfig,
@@ -62,6 +74,7 @@ export class ExtractionCoordinator {
     );
     if (tsExtractionConfig?.configPath) {
       assertUsableTsConfig(tsExtractionConfig.configPath);
+      assertResolvablePublicExports(tsExtractionConfig.configPath);
     }
     return tsExtractionConfig;
   }

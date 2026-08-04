@@ -103,6 +103,23 @@ describe('APIDataGenerator — canonical type owner', () => {
     expect(owners.GuidePanel?.GuidePanelProps).toBe('GuidePanel');
   });
 
+  it('keys the directory index the same way sourcePath is spelled', async () => {
+    // Component paths arrive absolute, `sourcePath` arrives repo-relative,
+    // and ownership only resolves when both reduce to the identical string.
+    // A checkout directory whose name merely *ends* in `packages` used to
+    // re-anchor the absolute side one level too high — no error, no warning,
+    // just `owner` absent on every entry in the run.
+    const owners = await ownersFor([
+      component(
+        'Dialog',
+        '/home/me/dev-packages/ui/packages/blocks/src/lib/primitives/Dialog/index.ts',
+        [typeDef('DialogIntent', 'packages/blocks/src/lib/primitives/Dialog/index.ts')]
+      )
+    ]);
+
+    expect(owners.Dialog?.DialogIntent).toBe('Dialog');
+  });
+
   it('leaves library plumbing unowned rather than inventing a home', async () => {
     // `$lib/utils` and `$lib/mint` back no doc page. 390 of 967 real entries
     // land here, 352 of them exported package API — an absent owner means
@@ -120,16 +137,43 @@ describe('APIDataGenerator — canonical type owner', () => {
     expect(owners.Button?.VariantProps).toBeUndefined();
   });
 
-  it('leaves a compound-directory type unowned when it matches no sibling', async () => {
-    // Handing it to whichever sibling sorted first would be a link to a page
-    // that never documents it.
+  it('falls back to the family root, whatever the sibling count', async () => {
+    // The first cut made this depend on arity: a lone sibling owned its
+    // directory unconditionally, two siblings demanded a prefix match. Real
+    // consequence — `DatePicker/index.ts` declares `DatePickerPreset` and,
+    // five lines on, `DateRangePreset`; only the first got a home, though
+    // both are exported and appear on both date pages.
+    const dpIndex = 'packages/blocks/src/lib/primitives/DatePicker/index.ts';
     const owners = await ownersFor([
-      component('Guide', `${BLOCKS}/components/Guide/index.ts`, [
-        typeDef('OverlayHandle', 'packages/blocks/src/lib/components/Guide/index.ts')
+      component('DatePicker', `${BLOCKS}/primitives/DatePicker/index.ts`, [
+        typeDef('DatePickerPreset', dpIndex),
+        typeDef('DateRangePreset', dpIndex),
+        typeDef('DateFormatOptions', 'packages/blocks/src/lib/primitives/DatePicker/engine.ts')
       ]),
-      component('GuidePanel', `${BLOCKS}/components/Guide/index.ts`, [])
+      component('DateRangePicker', `${BLOCKS}/primitives/DatePicker/index.ts`, [
+        typeDef('DateRangePreset', dpIndex)
+      ])
     ]);
 
-    expect(owners.Guide?.OverlayHandle).toBeUndefined();
+    expect(owners.DatePicker?.DatePickerPreset).toBe('DatePicker');
+    // Prefixes neither sibling — the directory's own component owns it.
+    expect(owners.DatePicker?.DateRangePreset).toBe('DatePicker');
+    expect(owners.DatePicker?.DateFormatOptions).toBe('DatePicker');
+    // …and from the sibling's page it is therefore a reference, not a copy.
+    expect(owners.DateRangePicker?.DateRangePreset).toBe('DatePicker');
+  });
+
+  it('stays unowned when no sibling is named after the directory either', async () => {
+    // A family whose root component is not documented has no page to point
+    // at; handing the type to whichever sibling sorted first would link to a
+    // page that never documents it.
+    const owners = await ownersFor([
+      component('GuidePanel', `${BLOCKS}/components/Guide/index.ts`, [
+        typeDef('OverlayHandle', 'packages/blocks/src/lib/components/Guide/index.ts')
+      ]),
+      component('GuideBeacon', `${BLOCKS}/components/Guide/index.ts`, [])
+    ]);
+
+    expect(owners.GuidePanel?.OverlayHandle).toBeUndefined();
   });
 });

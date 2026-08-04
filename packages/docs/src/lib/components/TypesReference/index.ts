@@ -29,12 +29,12 @@ export interface LocalTypeDef {
    * `index.ts` / variants file) or `imported` (elsewhere in the package,
    * pulled in through a type-only import).
    *
-   * Was `'local' | 'external'`. `external` is a value docs-gen has never
-   * emitted and `imported` — which it emits on ~60 % of entries — was not in
-   * the union, so the generated `componentData.types` array was not
-   * assignable to `LocalTypeDef[]` and every page casts it to `unknown[]`
-   * on the way in. The cast hid the mismatch rather than the mismatch being
-   * absent.
+   * Was `'local' | 'external'`, which was wrong on both members: `external`
+   * is a value docs-gen has never emitted, and `imported` — which it emits on
+   * 575 of 967 entries — was missing. It went unnoticed because the generated
+   * array was typed with a `[key: string]: unknown` index signature, under
+   * which tsc never compared the two unions at all. Making the emitted type
+   * precise is what brought the disagreement to the surface.
    */
   scope?: 'local' | 'imported';
   /** Props that reference this type. */

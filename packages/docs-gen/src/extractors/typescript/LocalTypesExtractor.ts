@@ -1,6 +1,7 @@
 import * as path from 'node:path';
 import * as ts from 'typescript';
 import type { TypeDefinition } from '../../types';
+import { repoRelativePackagePath } from '../../utils/repo-path';
 import { TypeScriptBaseExtractor } from './TypeScriptBaseExtractor';
 
 interface LocalTypesExtractionInput {
@@ -335,12 +336,16 @@ export class LocalTypesExtractor extends TypeScriptBaseExtractor<
    * Repo-relative path of a declaring file for the oversize summary: from
    * the `packages/` segment when present, else relative to the package root,
    * else the basename (synthetic test fixtures).
+   *
+   * The `packages/` branch is the shared helper, not a local copy —
+   * `APIDataGenerator` has to derive the *identical* string from a
+   * component's absolute path for type ownership to resolve at all, and the
+   * copy it used to keep diverged on a checkout path ending in `packages`.
    */
   private toRepoRelativePath(fileName: string): string {
     const resolved = path.resolve(fileName);
-    const marker = `${path.sep}packages${path.sep}`;
-    const idx = resolved.indexOf(marker);
-    if (idx >= 0) return resolved.slice(idx + 1);
+    const repoRelative = repoRelativePackagePath(resolved);
+    if (repoRelative) return repoRelative;
     if (this.packageRoot && resolved.startsWith(`${this.packageRoot}${path.sep}`)) {
       return path.relative(this.packageRoot, resolved);
     }

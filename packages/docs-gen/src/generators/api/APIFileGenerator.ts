@@ -207,10 +207,16 @@ export class APIFileGenerator {
     );
     lines.push('');
     // Was `{ name; type; definition; [key: string]: unknown }` — an index
-    // signature that typed nothing beyond the three named fields and made the
-    // array unassignable to TypesReference's `LocalTypeDef[]`, so every page
-    // that wanted to render types cast it to `unknown[]` first. Spelling the
-    // real shape out is what removes the cast at 108 call sites.
+    // signature under which every field beyond the three named ones read back
+    // as `unknown`, so a page could not branch on `scope`, `category` or
+    // `usedByCount` without asserting first. It was *not* what forced the one
+    // remaining cast in the docs app
+    // (`docs/components/section/+page.svelte`): tsc accepts the old array as
+    // `LocalTypeDef[]` unchanged, which is why ten other pages pass
+    // `componentData.types` uncast today. Spelling the real shape out is
+    // what makes the extra fields usable — and what surfaced the wrong
+    // `scope` union in `LocalTypeDef`, since a precise type has to agree with
+    // it where a bag of `unknown` did not.
     lines.push('export interface TypeDefinitionInfo {');
     lines.push('  name: string;');
     lines.push("  type: 'interface' | 'type' | 'enum' | 'class';");

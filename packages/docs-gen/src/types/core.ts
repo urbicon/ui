@@ -265,6 +265,13 @@ export interface TypeDefinition {
    * Omitted (not `false`) when the export surface could not be determined —
    * single-file mode, or a package root without a resolvable entry. An
    * absent flag means "unknown", never "not exported".
+   *
+   * The match is by *name*, not by declaration site: a private `Foo` in
+   * `internal/` would inherit the flag from an unrelated public `Foo`
+   * elsewhere in the same package. Measured against a declaration-file-aware
+   * lookup over all four packages, 0 of 795 entries disagree today, so the
+   * cheaper form is what ships — but the collision is the thing to check
+   * first if a `exported: true` ever looks wrong.
    */
   exported?: boolean;
   /**
