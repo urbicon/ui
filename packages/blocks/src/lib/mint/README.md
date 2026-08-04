@@ -110,25 +110,41 @@ mintPresets['error-feedback']; // Für Fehler-Feedback
 
 ## Svelte 5 Attachments
 
+Auf eigenem Markup wird ein Mint über `mintAttachment` angebracht — dieselbe
+Factory, die auch jede Komponente der Library intern benutzt:
+
 ```svelte
 <script>
-  import { mintRegistry } from '@urbicon-ui/blocks';
-
-  // {@attach} factory — mintRegistry.apply returns the cleanup the attachment needs
-  const mint = (mints) => (element) => mintRegistry.apply(element, mints);
+  import { mintAttachment } from '@urbicon-ui/blocks';
 </script>
 
 <!-- Einzelner Mint -->
-<div {@attach mint('scale')}>Hover mich</div>
+<div {@attach mintAttachment('scale')}>Hover mich</div>
 
 <!-- Mehrere Mints -->
-<div {@attach mint(['scale', 'glow'])}>Multi-Effekt</div>
+<div {@attach mintAttachment(['scale', 'glow'])}>Multi-Effekt</div>
 
 <!-- Mit Konfiguration -->
-<div {@attach mint({ name: 'bounce', config: { trigger: 'click' } })}>
+<div {@attach mintAttachment({ name: 'bounce', config: { trigger: 'click' } })}>
   Click mich
 </div>
+
+<!-- An Komponenten-Zustand gekoppelt: `enabled` false baut den Mint ab -->
+<button {@attach mintAttachment(mint, { enabled: !disabled && !loading })}>
+  Speichern
+</button>
 ```
+
+`mintAttachment` gibt `false` zurück, wenn nichts anzuwenden ist (`undefined`,
+`'none'`, `enabled: false`) — `{@attach false}` ist ein No-op, die Aufrufstelle
+braucht also keine eigene Bedingung.
+
+> **Ersetzt** die vormals exportierte Action `mint` und das Composable `useMint`. Die
+> Action war ein `use:`-Konstrukt, das dieses Repo generell durch `{@attach}`
+> ersetzt hat; `useMint` konnte sein Ziel gar nicht erreichen, weil es das
+> Element per Wert entgegennahm und `onMount` damit den `undefined`-Stand von
+> `bind:this` zur Init-Zeit las. Wer die Action benutzt hat, ersetzt
+> `use:mint={m}` durch `{@attach mintAttachment(m)}`.
 
 ## Eigene Mints registrieren
 

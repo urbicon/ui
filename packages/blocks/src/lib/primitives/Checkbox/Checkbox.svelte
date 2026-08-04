@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { mintRegistry } from '$lib';
+  import { mintAttachment } from '$lib';
   import CoreFieldMessage from '$lib/internal/core/CoreFieldMessage.svelte';
   import { getBlocksConfig, resolveSlotClasses } from '$lib/provider';
   import { getTierContext, useFormField } from '$lib/utils';
@@ -65,7 +65,6 @@
   const blocksConfig = getBlocksConfig();
   const unstyled = $derived(unstyledProp || blocksConfig?.unstyled || false);
 
-  let boxElement = $state<HTMLElement>();
   let inputRef = $state<HTMLInputElement>();
 
   const dataState = $derived(indeterminate ? 'indeterminate' : checked ? 'checked' : 'unchecked');
@@ -99,12 +98,6 @@
   // Mint targets the directional box (the visual checkbox), not the enclosing
   // <label> that also wraps the text — a hover/scale effect belongs to the
   // control surface, mirroring SegmentItem/Button (XC-1).
-  $effect(() => {
-    if (boxElement && mint && mint !== 'none' && !disabled) {
-      return mintRegistry.apply(boxElement, mint);
-    }
-  });
-
   function handleChange(event: Event & { currentTarget: EventTarget & HTMLInputElement }) {
     if (disabled) return;
     if (indeterminate) indeterminate = false;
@@ -154,7 +147,7 @@
 
     <span
       class={unstyled ? (slotClasses?.box ?? '') : styles.box({ class: slotClasses?.box })}
-      bind:this={boxElement}
+      {@attach mintAttachment(mint, { enabled: !disabled })}
       aria-hidden="true"
       data-state={dataState}
     >

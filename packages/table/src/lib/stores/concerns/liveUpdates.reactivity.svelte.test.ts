@@ -1,3 +1,4 @@
+// @vitest-environment jsdom
 import { flushSync } from 'svelte';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import type { Column } from '$lib/types/tableTypes';
@@ -14,7 +15,12 @@ import { useLiveUpdates } from './useLiveUpdates.svelte.js';
  * is not a signal write, so $derived consumers (banner counts, row highlight,
  * hidden-column menus) kept tracking the stale instance and never re-ran.
  * The sets are now mutated in place; these tests observe them through
- * $effect.root + flushSync (no DOM, no component context).
+ * $effect.root + flushSync — no component context, but the DOM environment
+ * above is load-bearing. Without it this file ran nothing for its whole life:
+ * `resolve.conditions: ['browser']` is only consulted in vitest's web transform
+ * mode, so under the node default Svelte resolved to its server build, where
+ * `$effect.root` swallows the callback. Making `pushDelete` a no-op left all
+ * eight green; it now fails four of them.
  */
 
 function makeLiveState() {
@@ -198,8 +204,7 @@ describe('useColumnVisibility reactivity', () => {
 
   it('hide/show/showAll update $derived consumers of hiddenColumnKeys', () => {
     const cleanup = $effect.root(() => {
-      const state = { columns: [] as Column[] } as unknown as TableState;
-      const visibility = useColumnVisibility(state);
+      const visibility = useColumnVisibility();
       visibility.setColumns(columns);
 
       let hiddenCount = -1;
@@ -235,8 +240,7 @@ describe('useColumnVisibility reactivity', () => {
 
   it('setHiddenIds replaces the set observably', () => {
     const cleanup = $effect.root(() => {
-      const state = { columns: [] as Column[] } as unknown as TableState;
-      const visibility = useColumnVisibility(state);
+      const visibility = useColumnVisibility();
       visibility.setColumns(columns);
 
       let hidden: string[] = [];

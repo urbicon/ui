@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { mintRegistry } from '$lib';
+  import { mintAttachment } from '$lib';
   // internal core, not the public component — keeps the public-to-public import graph clean (see internal/core/)
   import CoreSpinner from '$lib/internal/core/CoreSpinner.svelte';
   // Direct import (not the barrel): the resolveIcon tree-shaking pattern.
@@ -78,18 +78,6 @@
     resolveSlotClasses(blocksConfig, 'Button', preset, variantProps, slotClassesProp)
   );
 
-  $effect(() => {
-    if (
-      buttonElement &&
-      effectiveMint &&
-      effectiveMint !== 'none' &&
-      !effectiveDisabled &&
-      !loading
-    ) {
-      return mintRegistry.apply(buttonElement, effectiveMint, { scale: scaleMint });
-    }
-  });
-
   function handleClick(event: MouseEvent) {
     if (effectiveDisabled || loading) return;
 
@@ -130,6 +118,10 @@
 -->
 <button
   bind:this={buttonElement}
+  {@attach mintAttachment(effectiveMint, {
+    enabled: !effectiveDisabled && !loading,
+    fallbacks: { scale: scaleMint }
+  })}
   {...restProps}
   {type}
   disabled={effectiveDisabled}

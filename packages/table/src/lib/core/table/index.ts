@@ -483,6 +483,11 @@ export interface TableProps<T = TableItem> {
    * `applyAllUpdates` for live feeds, plus the reactive `state`. Hold on to it
    * for the lifetime of the table; it is not re-created.
    *
+   * `state.items` and `state.columns` are reactive to *replacement*, not to
+   * writes reaching inside them: `state.items[0].name = 'x'` changes the row
+   * and re-renders nothing. Edit a row through `pushUpdate`, or assign a new
+   * array.
+   *
    * @example Feeding a WebSocket into a live-updating table
    * ```svelte
    * <script lang="ts">

@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { useBlocksI18n, mintRegistry } from '$lib';
+  import { useBlocksI18n, mintAttachment } from '$lib';
   import { useI18n } from '@urbicon-ui/i18n';
   import { getBlocksConfig, resolveSlotClasses } from '$lib/provider';
   import type { CompositionBarProps, CompositionBarIntent, CompositionItem } from './index';
@@ -172,12 +172,6 @@
     return intentRingClass[item.intent ?? intent];
   }
 
-  $effect(() => {
-    if (barRef && mint && mint !== 'none') {
-      return mintRegistry.apply(barRef, mint);
-    }
-  });
-
   function handleSelect(item: CompositionItem, index: number) {
     onItemSelect?.(item, index);
   }
@@ -270,6 +264,7 @@
          role="img" — atomic is only correct without interactive descendants. -->
     <div
       bind:this={barRef}
+      {@attach mintAttachment(mint)}
       role="group"
       aria-label={ariaSummary}
       class={unstyled ? (slotClasses?.bar ?? '') : styles.bar({ class: slotClasses?.bar })}
@@ -318,7 +313,7 @@
               <span
                 aria-hidden="true"
                 class={[
-                  'pointer-events-none truncate px-1.5 text-3xs font-medium tabular-nums',
+                  'text-3xs pointer-events-none truncate px-1.5 font-medium tabular-nums',
                   !unstyled && getOnColorClass(item)
                 ]
                   .filter(Boolean)

@@ -1,5 +1,5 @@
 <script lang="ts" generics="T extends string | number | boolean = string">
-  import { useBlocksI18n, mintRegistry } from '$lib';
+  import { useBlocksI18n, mintAttachment } from '$lib';
   import CoreFieldMessage from '$lib/internal/core/CoreFieldMessage.svelte';
   import { tick } from 'svelte';
   import { SvelteMap } from 'svelte/reactivity';
@@ -101,12 +101,6 @@
   let wrapperEl = $state<HTMLElement>();
   let listboxEl = $state<HTMLElement>();
   let activeIndex = $state(-1);
-
-  $effect(() => {
-    if (inputEl && mint && mint !== 'none' && !disabled) {
-      return mintRegistry.apply(inputEl, mint);
-    }
-  });
 
   const defaultFilter = (opt: ComboboxOption<T>, q: string) =>
     opt.label.toLowerCase().includes(q.toLowerCase());
@@ -935,6 +929,7 @@
 {#snippet searchField(cls: string)}
   <input
     bind:this={inputEl}
+    {@attach mintAttachment(mint, { enabled: !disabled })}
     id={ff.fieldId}
     type="text"
     role="combobox"

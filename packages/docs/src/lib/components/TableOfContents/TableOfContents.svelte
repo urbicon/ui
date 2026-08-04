@@ -82,13 +82,11 @@
     navigationItems.flatMap((item) => [item.id, ...item.children.map((child) => child.id)])
   );
   const spy = new ScrollSpy(() => spyIds);
-  $effect(() => {
-    if (activeSection !== undefined || !trackScroll) return;
-    void spyIds;
-    return spy.observe();
-  });
 
   // Controlled wins; `trackScroll` only gates the self-tracking fallback.
+  // The short-circuit is also what gates the listener: `spy.active` only
+  // subscribes when it is actually read, so the condition lives here once
+  // instead of being mirrored in an `$effect` that called `observe()`.
   const active = $derived(activeSection ?? (trackScroll ? spy.active : ''));
 
   // Plain function — reads the reactive `active` at render time, so each

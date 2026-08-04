@@ -228,7 +228,10 @@ export class PipelineOrchestrator {
     console.log('  📊 Generating API data...');
     const apiDataGenerator = new APIDataGenerator();
     const apiData = await apiDataGenerator.generate(richComponents, {
-      routeBasePath: this.deriveRouteBasePath()
+      routeBasePath: this.deriveRouteBasePath(),
+      // The on-disk twin of the base above, so cross-links can be checked
+      // against the routes that actually exist — see `hasDocPage`.
+      routeOutputPath: this.config.output.api?.outputPath ?? ''
     });
 
     console.log(

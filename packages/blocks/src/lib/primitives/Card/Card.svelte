@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { mintRegistry } from '$lib';
+  import { mintAttachment } from '$lib';
   import { getBlocksConfig, resolveSlotClasses } from '$lib/provider';
   import { cardVariants, type CardVariants } from './card.variants';
   import type { CardProps } from './index';
@@ -27,8 +27,6 @@
 
   const blocksConfig = getBlocksConfig();
   const unstyled = $derived(unstyledProp || blocksConfig?.unstyled || false);
-
-  let cardElement = $state<HTMLElement>();
 
   const elementType = $derived.by(() => {
     if (href) return 'a';
@@ -65,12 +63,6 @@
     return props;
   });
 
-  $effect(() => {
-    if (cardElement && mint && mint !== 'none' && isInteractive && !disabled) {
-      return mintRegistry.apply(cardElement, mint);
-    }
-  });
-
   function handleClick(event: MouseEvent) {
     if (disabled) return;
     onclick?.(event);
@@ -79,7 +71,7 @@
 
 <svelte:element
   this={elementType}
-  bind:this={cardElement}
+  {@attach mintAttachment(mint, { enabled: isInteractive && !disabled })}
   class={unstyled
     ? [slotClasses?.base, className].filter(Boolean).join(' ')
     : styles.base({ class: [slotClasses?.base, className] })}

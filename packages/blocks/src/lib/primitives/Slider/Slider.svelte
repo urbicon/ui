@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { useBlocksI18n, mintRegistry } from '$lib';
+  import { useBlocksI18n, mintAttachment } from '$lib';
   import CoreFieldMessage from '$lib/internal/core/CoreFieldMessage.svelte';
   import { getBlocksConfig, resolveSlotClasses } from '$lib/provider';
   import { useFormField } from '$lib/utils';
@@ -266,12 +266,6 @@
   const startLabelledBy = $derived(ariaLabelledby ? `${ariaLabelledby} ${minLabelId}` : undefined);
   const endLabelledBy = $derived(ariaLabelledby ? `${ariaLabelledby} ${maxLabelId}` : undefined);
 
-  $effect(() => {
-    if (trackRef && mint && mint !== 'none' && !disabled) {
-      return mintRegistry.apply(trackRef, mint);
-    }
-  });
-
   function clamp(val: number) {
     const stepped = Math.round((val - min) / step) * step + min;
     return Math.min(Math.max(stepped, min), max);
@@ -416,6 +410,7 @@
   <!-- svelte-ignore a11y_click_events_have_key_events a11y_no_static_element_interactions -->
   <div
     bind:this={trackRef}
+    {@attach mintAttachment(mint, { enabled: !disabled })}
     class={unstyled ? (slotClasses?.base ?? '') : styles.base({ class: slotClasses?.base })}
     onclick={handleTrackClick}
     onpointermove={handlePointerMove}

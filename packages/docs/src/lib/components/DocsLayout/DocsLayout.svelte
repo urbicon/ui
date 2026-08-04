@@ -88,7 +88,17 @@
     navigation.flatMap((n) => [n.id, ...(n.children?.map((c) => c.id) ?? [])])
   );
   const spy = new ScrollSpy(() => navIds);
-  const activeSection = $derived(spy.active);
+  // Reading `spy.active` is what starts the scroll listener, so the same
+  // condition that used to gate the `observe()` effect gates the read here —
+  // a layout with neither a collapsing header nor a TOC still costs nothing.
+  const spyConsumed = $derived(useCollapsingHeader || (showToc && navigation.length > 0));
+  // Read the getter EXACTLY once per frame and pass this derived on — including
+  // to the TOC below. `spy.active` is not a stored value: every read walks the
+  // id list calling `getBoundingClientRect`, which forces layout. The markup
+  // used to read it a second time, which measured everything twice and reached
+  // past the gate above while doing it. Measured over four sections, one scroll
+  // frame: 4 calls with one reader, 8 with two.
+  const activeSection = $derived(spyConsumed ? spy.active : '');
 
   // The badge names AND anchors to the top-level section the reader is in —
   // when a nested child is active, its parent supplies both label and target,
@@ -100,17 +110,6 @@
     );
   });
   const activeSectionTitle = $derived(activeTopSection?.title ?? '');
-
-  // $effect (not onMount) so the spy re-observes (recomputing immediately)
-  // when the id set changes, and tears down on unmount. In this app the
-  // layout remounts per page anyway — the reactive read matters for layouts
-  // whose `navigation` prop changes in place, and keeps the wiring symmetric
-  // with the headerEl observer below.
-  $effect(() => {
-    if (!useCollapsingHeader && !(showToc && navigation.length > 0)) return;
-    void navIds;
-    return spy.observe();
-  });
 
   // Separate $effect for the hero observer: reactive to `useCollapsingHeader`
   // and `headerEl` — when a navigation toggles breadcrumbs from `undefined`
@@ -356,13 +355,7 @@
     </div>
 
     {#if showToc && navigation.length > 0}
-      <TableOfContents
-        {navigation}
-        {related}
-        {showCodeToggle}
-        position="right"
-        activeSection={spy.active}
-      />
+      <TableOfContents {navigation} {related} {showCodeToggle} position="right" {activeSection} />
     {/if}
   </div>
 </div>

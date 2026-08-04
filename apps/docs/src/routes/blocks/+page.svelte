@@ -138,7 +138,6 @@
   // first section crosses the trigger line, `active` is '' → fall back to the
   // first chapter so the register never renders without a current mark.
   const spy = new ScrollSpy(() => chapters.map((chapter) => chapter.slug));
-  $effect(() => spy.observe());
   const activeChapter = $derived(spy.active || (chapters[0]?.slug ?? ''));
 
   // DEV-only completeness gate: every nav entry needs a specimen cell and

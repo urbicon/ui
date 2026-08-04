@@ -61,7 +61,6 @@
   ] as const;
 
   const spy = new ScrollSpy(() => STEPS.map((step) => step.id));
-  $effect(() => spy.observe());
   // Before the first section crosses the trigger line spy.active is '' →
   // findIndex -1 → clamp to step 1, so the card never shows "step 0".
   const activeStep = $derived(Math.max(1, STEPS.findIndex((step) => step.id === spy.active) + 1));

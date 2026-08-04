@@ -135,8 +135,12 @@
 
   // Reset focus when page/sort/filter changes
   $effect(() => {
-    // Track dependencies so we reset on any data change
-    void tableState.currentPage;
+    // Track dependencies so we reset on any data change.
+    // `effectivePage`, not `state.currentPage` — what matters is whether the
+    // rendered rows changed, and the raw value misses that in both directions:
+    // 5 → 6 against three pages renders the same rows (reset was firing for
+    // nothing), while a new page size re-slices them without moving it at all.
+    void tableContext.effectivePage;
     void tableState.sortColumn;
     void tableState.sortDirection;
     void tableState.searchTerm;
@@ -249,19 +253,23 @@
         }
         break;
       }
+      // Both keys step from `effectivePage`, not `state.currentPage`: the raw
+      // value can sit past the last page after the page size or the row count
+      // changed, and stepping from there lands outside the range `goToPage`
+      // accepts — which killed paging in BOTH directions rather than one.
       case 'PageDown': {
         // Next page
-        if (tableContext.totalPages > 1 && tableState.currentPage < tableContext.totalPages) {
+        if (tableContext.totalPages > 1 && tableContext.effectivePage < tableContext.totalPages) {
           e.preventDefault();
-          tableContext.goToPage(tableState.currentPage + 1);
+          tableContext.goToPage(tableContext.effectivePage + 1);
         }
         break;
       }
       case 'PageUp': {
         // Previous page
-        if (tableContext.totalPages > 1 && tableState.currentPage > 1) {
+        if (tableContext.totalPages > 1 && tableContext.effectivePage > 1) {
           e.preventDefault();
-          tableContext.goToPage(tableState.currentPage - 1);
+          tableContext.goToPage(tableContext.effectivePage - 1);
         }
         break;
       }

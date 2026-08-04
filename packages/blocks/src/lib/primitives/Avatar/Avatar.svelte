@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { mintRegistry } from '$lib';
+  import { mintAttachment } from '$lib';
   import { getBlocksConfig, resolveSlotClasses } from '$lib/provider';
   import { avatarVariants, type AvatarVariants } from '$lib/primitives';
   import { useBlocksI18n } from '$lib';
@@ -37,7 +37,6 @@
   const blocksConfig = getBlocksConfig();
   const unstyled = $derived(unstyledProp || blocksConfig?.unstyled || false);
 
-  let avatarElement = $state<HTMLElement>();
   let imageError = $state(false);
 
   const isInteractive = $derived(clickable || interactive || !!onclick);
@@ -131,12 +130,6 @@
   // border. Only meaningful together with `ring`.
   const baseStyle = $derived(ringColor ? `--tw-ring-color: ${ringColor}` : undefined);
 
-  $effect(() => {
-    if (avatarElement && mint && mint !== 'none' && isInteractive) {
-      return mintRegistry.apply(avatarElement, mint);
-    }
-  });
-
   function handleMouseEnter() {
     onHover?.(true);
   }
@@ -165,7 +158,7 @@
 
 <!-- svelte-ignore a11y_no_noninteractive_tabindex -->
 <div
-  bind:this={avatarElement}
+  {@attach mintAttachment(mint, { enabled: isInteractive })}
   class={[
     'blocks-avatar',
     `blocks-intent-${intent}`,

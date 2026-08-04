@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { mintRegistry } from '$lib';
+  import { mintAttachment } from '$lib';
   // internal core, not the public component — keeps the public-to-public import graph clean (see internal/core/)
   import CoreIconButton from '$lib/internal/core/CoreIconButton.svelte';
   import { getBlocksConfig, resolveSlotClasses } from '$lib/provider';
@@ -46,8 +46,6 @@
   const blocksConfig = getBlocksConfig();
   const unstyled = $derived(unstyledProp || blocksConfig?.unstyled || false);
 
-  let badgeElement = $state<HTMLElement>();
-
   // `purpose` is the canonical semantic axis; it orchestrates the low-level
   // visual props so the tv() config stays as-is. When set it wins over the
   // deprecated `variant="dot"` / `counter` boolean; when unset those apply
@@ -93,12 +91,6 @@
     resolveSlotClasses(blocksConfig, 'Badge', preset, variantProps, slotClassesProp)
   );
 
-  $effect(() => {
-    if (badgeElement && mint && mint !== 'none' && isInteractive && !disabled) {
-      return mintRegistry.apply(badgeElement, mint);
-    }
-  });
-
   function handleMouseEnter() {
     onHover?.(true);
   }
@@ -134,7 +126,7 @@
 
 <!-- svelte-ignore a11y_no_noninteractive_tabindex -->
 <span
-  bind:this={badgeElement}
+  {@attach mintAttachment(mint, { enabled: isInteractive && !disabled })}
   class={[
     `blocks-intent-${intent}`,
     unstyled

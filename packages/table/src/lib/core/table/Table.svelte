@@ -326,7 +326,7 @@
                count exactly when a filter narrows the table and a reader most
                wants it. -->
           <Pagination
-            currentPage={tableState.currentPage}
+            currentPage={tableContext.effectivePage}
             totalPages={tableContext.totalPages}
             onPageChange={tableContext.goToPage}
             layout="table"

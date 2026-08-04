@@ -93,6 +93,16 @@
     onReady = undefined
   }: TableProviderProps = $props();
 
+  /**
+   * Whether a managed fetch is configured — as a boolean, deliberately.
+   *
+   * The prop getters below feed deriveds, and a derived that read `queryFn`
+   * itself would re-evaluate whenever the consumer passes a fresh arrow
+   * (`queryFn={(q) => …}` re-creates it on every parent render), discarding the
+   * fetched rows. `!!queryFn` only changes when one appears or disappears.
+   */
+  const hasQueryFn = $derived(!!queryFn);
+
   // Store is built once from the initial persistence config — not meant to
   // re-create if the prop changes reactively. The initial* seeds are equally
   // construction-time-only (seed-once): later changes to initialSort /
@@ -109,51 +119,79 @@
   // — so a falsy `groupByKey` (its `null` default, or `''`) still lets the
   // seed apply.
   // svelte-ignore state_referenced_locally
-  const tableState = createTableState(persistenceConfig, {
-    sort: initialSort,
-    filters: initialFilters,
-    selectedIds: selectedIds === undefined ? initialSelectedIds : undefined,
-    groupBy: groupByKey ? undefined : initialGroupBy,
-    summaryConfigs: initialSummaryConfigs
-  });
+  const tableState = createTableState(
+    persistenceConfig,
+    {
+      sort: initialSort,
+      filters: initialFilters,
+      selectedIds: selectedIds === undefined ? initialSelectedIds : undefined,
+      groupBy: groupByKey ? undefined : initialGroupBy,
+      summaryConfigs: initialSummaryConfigs
+    },
+    // Prop → store, as getters rather than as effects. This block replaces
+    // sixteen `$effect(() => { state.X = X })` mirrors; because a derived is
+    // evaluated during SSR, the server now renders the actual rows and columns
+    // instead of an empty table (#10). Values with a second writer (items,
+    // pagination, loading/error) stay assignable — the derived re-seeds when the
+    // prop behind it changes. See docs/SVELTE5-PATTERNS.md → "Prop-derived state".
+    {
+      // A managed `queryFn` owns the item list; the prop must not fight the
+      // fetch lifecycle, so it contributes nothing in that mode (unchanged
+      // behaviour, previously the `!(mode === 'server' && queryFn)` guard).
+      //
+      // Reads `hasQueryFn`, NOT `queryFn` — this is a derived, not an effect,
+      // and the difference bites. `queryFn` is a function prop, so
+      // `<Table queryFn={(q) => …}>` hands it a fresh identity on every parent
+      // re-render. Depending on the identity would invalidate this derived,
+      // re-seed `state.items` to `[]`, and throw away the rows `useRemoteData`
+      // had assigned — with nothing to refetch them, since the fetch effect
+      // tracks only `mode` and `queryKey`. A boolean changes only when a
+      // `queryFn` actually appears or disappears, and Svelte skips propagation
+      // when a derived's new value is referentially identical to the old one.
+      items: () => (mode === 'server' && hasQueryFn ? [] : (items as TableItem[])),
+      columns: () => columns,
+      // Same ownership rule, same reason for the boolean.
+      loading: () => (mode === 'server' && hasQueryFn ? false : loading),
+      error: () => (mode === 'server' && hasQueryFn ? null : error),
+      initialPage: () => initialPage,
+      itemsPerPage: () => itemsPerPage,
+      multiExpand: () => multiExpand,
+      groupOrder: () => groupOrder,
+      selectionMode: () => selectionMode,
+      selectionControlled: () => selectedIds !== undefined,
+      searchControlled: () => searchTerm !== undefined,
+      rowClickSelects: () => rowClickSelects,
+      activeRowId: () => activeRowId ?? null,
+      virtualized: () => virtualized,
+      mode: () => mode,
+      serverTotalItems: () => (mode === 'server' ? serverTotalItems : 0),
+      enableColumnVisibility: () => enableColumnVisibility
+    }
+  );
   attachTableContext(tableState);
 
-  const {
-    state,
-    setItems,
-    setColumns,
-    setLoading,
-    setPage,
-    setItemsPerPage,
-    setGroupByKey,
-    setGroupOrder,
-    setError
-  } = tableState;
+  const { state, setGroupByKey } = tableState;
 
-  // Virtualization vs. grouping. The store arrives with persistence hydration
-  // and the seeds already applied, so a persisted or seeded group key can be in
-  // place before the mode is known — set the flag and drop such a key
-  // *synchronously*, before the first render, so a virtualized table never
+  // Virtualization vs. grouping. `state.virtualized` now derives from the prop,
+  // so the flag needs no syncing; what remains is the one-way *clearing* of a
+  // group key that persistence or a seed put in place before the mode was known.
+  // Done synchronously, before the first render, so a virtualized table never
   // renders its full item set for a frame. Storage is deliberately left alone,
-  // so a persisted grouping applies again on the next load without
-  // `virtualized` — the effect below only clears, it never re-applies.
+  // so a persisted grouping applies again on the next load without `virtualized`.
   // svelte-ignore state_referenced_locally
-  if (virtualized) {
-    state.virtualized = true;
-    // svelte-ignore state_referenced_locally
-    if (state.groupByKey) {
-      if (import.meta.env?.DEV) {
-        console.warn(
-          `[Table] Ignoring grouping ("${state.groupByKey}") on a virtualized table — grouped virtualization is not implemented. Drop \`virtualized\` to group, or group server-side.`
-        );
-      }
-      state.groupByKey = null;
+  if (virtualized && state.groupByKey) {
+    if (import.meta.env?.DEV) {
+      console.warn(
+        `[Table] Ignoring grouping ("${state.groupByKey}") on a virtualized table — grouped virtualization is not implemented. Drop \`virtualized\` to group, or group server-side.`
+      );
     }
+    state.groupByKey = null;
   }
 
-  // Keep it live for a runtime toggle (the setGroupByKey gate reads this flag).
+  // Runtime toggle into virtualization: clear a group key that is active by then.
+  // Still an effect — it is not a derivation but a one-way write to a *different*
+  // piece of state, which is exactly what effects are for.
   $effect(() => {
-    state.virtualized = virtualized;
     if (!virtualized) return;
     const active = untrack(() => state.groupByKey);
     if (!active) return;
@@ -167,28 +205,24 @@
     });
   });
 
-  // ── Sync props → store ──
-
+  // ── DEV validation of the props the store now derives from ──
+  // The values reach the store as getters (see `createTableState` above); what is
+  // left here is telling the developer when they do not make sense. Effects,
+  // legitimately: they only report.
   $effect(() => {
-    if (columns && columns.length > 0) {
-      setColumns(columns);
-      if (import.meta.env?.DEV) {
-        const result = ColumnValidation.validateColumns(columns);
-        if (!result.isValid) {
-          console.warn('[Table] Column validation:', result.errors);
-        }
-        // Columns are unknown at store construction, so a seeded sort against
-        // a nonexistent column stays silently inert (read-tolerant). Surface
-        // it here, where columns are first known. The seed is
-        // construction-time-only — read it untracked so a later prop change
-        // cannot re-run this effect.
-        const seededSort = untrack(() => initialSort);
-        if (seededSort?.column && !findColumnById(columns, seededSort.column)) {
-          console.warn(
-            `[Table] initialSort.column "${seededSort.column}" does not match any column id — the seeded sort has no effect.`
-          );
-        }
-      }
+    if (!import.meta.env?.DEV || !columns || columns.length === 0) return;
+    const result = ColumnValidation.validateColumns(columns);
+    if (!result.isValid) {
+      console.warn('[Table] Column validation:', result.errors);
+    }
+    // A seeded sort against a nonexistent column stays silently inert
+    // (read-tolerant), so surface it. The seed is construction-time-only — read
+    // it untracked so a later prop change cannot re-run this.
+    const seededSort = untrack(() => initialSort);
+    if (seededSort?.column && !findColumnById(columns, seededSort.column)) {
+      console.warn(
+        `[Table] initialSort.column "${seededSort.column}" does not match any column id — the seeded sort has no effect.`
+      );
     }
   });
 
@@ -202,79 +236,25 @@
     );
   }
 
+  // Turning column visibility off means "all columns visible": reveal everything
+  // and drop any hidden set — including one hydrated from persistence —
+  // otherwise persisted-hidden columns would be stranded (hidden, with both
+  // restore UIs gated off). A write to a different slice, so still an effect;
+  // untrack keeps it keyed only on the flag.
   $effect(() => {
-    // In server mode, items come from queryFn or external; skip direct sync if queryFn manages it
-    if (items && items.length > 0 && !(mode === 'server' && queryFn)) {
-      setItems(items);
-    }
+    if (enableColumnVisibility) return;
+    untrack(() => tableState.showAllColumns());
   });
 
+  // Controlled selection: the flag itself derives from the prop (see above), but
+  // *applying* the value is a write into the selection set, which is a genuine
+  // effect. untrack keeps it keyed only on the prop: setSelectedIds reads
+  // `state.selectedIds` on its write path, so without it every internal row click
+  // would re-run this, re-assert the stale prop value and freeze the selection
+  // against user interaction.
   $effect(() => {
-    if (groupOrder && groupOrder.length > 0) {
-      setGroupOrder(groupOrder);
-    }
-  });
-
-  $effect(() => {
-    setItemsPerPage(itemsPerPage);
-  });
-
-  $effect(() => {
-    setPage(initialPage);
-  });
-
-  $effect(() => {
-    state.multiExpand = multiExpand;
-  });
-
-  $effect(() => {
-    state.mode = mode;
-  });
-
-  $effect(() => {
-    if (mode === 'server') {
-      state.serverTotalItems = serverTotalItems;
-    }
-  });
-
-  $effect(() => {
-    state.selectionMode = selectionMode;
-  });
-
-  $effect(() => {
-    state.rowClickSelects = rowClickSelects;
-  });
-
-  $effect(() => {
-    state.activeRowId = activeRowId;
-  });
-
-  $effect(() => {
-    state.enableColumnVisibility = enableColumnVisibility;
-    // Turning the feature off means "all columns visible". Reveal everything and
-    // drop any hidden set — including one hydrated from persistence — otherwise
-    // persisted-hidden columns would be stranded: hidden, with both restore UIs
-    // (the visibility menu and the header-menu "show" list) gated off. untrack
-    // keeps this effect keyed only on the flag, not on the columns it touches.
-    if (!enableColumnVisibility) {
-      untrack(() => tableState.showAllColumns());
-    }
-  });
-
-  // Selection is controlled when the prop is present. Set the flag *before*
-  // applying, so the setSelectedIds wrapper's syncSelection sees it and skips
-  // persisting — a controlled value is never mirrored to storage (persistSelection
-  // is a true no-op in controlled mode). `!== undefined` so an empty controlled
-  // array still counts as controlled. untrack keeps this effect keyed only on
-  // the prop: setSelectedIds reads `state.selectedIds` on its write path
-  // (SvelteSet mutation + syncSelection), so without it every internal row
-  // click re-runs the effect, which re-asserts the stale prop value and
-  // freezes the selection against user interaction.
-  $effect(() => {
-    state.selectionControlled = selectedIds !== undefined;
-    if (selectedIds) {
-      untrack(() => tableState.setSelectedIds(selectedIds));
-    }
+    if (!selectedIds) return;
+    untrack(() => tableState.setSelectedIds(selectedIds));
   });
 
   $effect(() => {
@@ -284,23 +264,17 @@
     }
   });
 
-  // Controlled search: an explicit `searchTerm` prop drives the store. Guard on
-  // `!== undefined` so an empty string is a valid controlled value ("no
-  // search") — and so a controlled term wins over a persisted one. Uncontrolled
-  // usage leaves `searchTerm` undefined and this effect is inert.
-  //
-  // The flag is set *before* applying, exactly like selection's: setSearchTerm's
-  // syncSearch has to see it and skip persisting, so a controlled term is never
-  // mirrored to storage. No `untrack` needed here, unlike the selection twin —
-  // that one needs it because setSelectedIds reads `state.selectedIds` on its
-  // write path even while controlled; this path reads nothing reactive
+  // Controlled search: `state.searchControlled` derives from the prop (see
+  // above), so `syncSearch` sees the flag from the first render and never
+  // mirrors a controlled term to storage. Applying the value is still a write —
+  // guarded on `!== undefined` so an empty string is a valid controlled value
+  // ("no search") and a controlled term wins over a persisted one. No `untrack`
+  // needed, unlike the selection twin: this path reads nothing reactive
   // (`useSearch.setSearchTerm` only assigns, and syncSearch short-circuits on
   // the flag before it would touch `state.searchTerm`).
   $effect(() => {
-    state.searchControlled = searchTerm !== undefined;
-    if (searchTerm !== undefined) {
-      tableState.setSearchTerm(searchTerm);
-    }
+    if (searchTerm === undefined) return;
+    tableState.setSearchTerm(searchTerm);
   });
 
   $effect(() => {
@@ -311,23 +285,19 @@
 
   // Consumer-driven loading/error. Both slots belong to whoever fetches: in
   // client mode and in the manual server flow (`onQueryChange`) that is the
-  // consumer, so the props drive the store. A managed `queryFn` owns the same
-  // two slots itself (setServerLoading / setServerResult / setServerError), so
-  // the props are skipped there instead of racing the fetch lifecycle — and DEV
-  // says so rather than swallowing the conflict.
+  // consumer, so the props drive the store (through the getters above). A managed
+  // `queryFn` owns the same two slots itself (setServerLoading / setServerResult
+  // / setServerError), so the props contribute nothing there instead of racing
+  // the fetch lifecycle — and DEV says so rather than swallowing the conflict.
   const managedFetch = $derived(mode === 'server' && !!queryFn);
 
   $effect(() => {
-    if (managedFetch) {
-      if (import.meta.env?.DEV && (loading || error !== null)) {
-        console.warn(
-          '[Table] `loading`/`error` are ignored while a managed `queryFn` is set — the table drives both. Drop the props or switch to `onQueryChange` for manual control.'
-        );
-      }
-      return;
+    if (!managedFetch) return;
+    if (import.meta.env?.DEV && (loading || error !== null)) {
+      console.warn(
+        '[Table] `loading`/`error` are ignored while a managed `queryFn` is set — the table drives both. Drop the props or switch to `onQueryChange` for manual control.'
+      );
     }
-    setLoading(loading);
-    setError(error);
   });
 
   // Controlled grouping: an explicit `groupByKey` prop drives the store

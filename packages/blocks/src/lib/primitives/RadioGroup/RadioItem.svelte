@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { mintRegistry } from '$lib';
+  import { mintAttachment } from '$lib';
   import { getBlocksConfig, resolveSlotClasses } from '$lib/provider';
   import type { RadioItemProps } from './index';
   import { getRadioGroupContext } from './radioGroup.context';
@@ -63,14 +63,6 @@
     resolveSlotClasses(blocksConfig, 'RadioItem', preset, variantProps, slotClassesProp)
   );
 
-  let controlElement = $state<HTMLElement>();
-
-  $effect(() => {
-    if (controlElement && ctx.mint && ctx.mint !== 'none' && !isDisabled) {
-      return mintRegistry.apply(controlElement, ctx.mint);
-    }
-  });
-
   function handleChange() {
     if (isDisabled) return;
     ctx.select(value);
@@ -81,7 +73,7 @@
   class={unstyled
     ? [slotClasses?.item, className].filter(Boolean).join(' ')
     : styles.item({ class: [slotClasses?.item, className] })}
-  bind:this={controlElement}
+  {@attach mintAttachment(ctx.mint, { enabled: !isDisabled })}
   for={id}
 >
   <input

@@ -1,7 +1,7 @@
 <script lang="ts">
   import { onMount } from 'svelte';
   import { getBlocksConfig, resolveSlotClasses } from '$lib/provider';
-  import { mintRegistry } from '$lib';
+  import { mintAttachment } from '$lib';
   import type { TabItemProps } from './index';
   import { getTabContext } from './tab.context';
   import { tabVariants, type TabVariants } from './tab.variants';
@@ -52,13 +52,6 @@
     }
   });
 
-  $effect(() => {
-    const mint = tabContext.mint;
-    if (tabItemElement && mint && mint !== 'none' && !isDisabled) {
-      return mintRegistry.apply(tabItemElement, mint);
-    }
-  });
-
   function handleClick() {
     if (!isDisabled) {
       tabContext.selectTab(value);
@@ -68,6 +61,7 @@
 
 <button
   bind:this={tabItemElement}
+  {@attach mintAttachment(tabContext.mint, { enabled: !isDisabled })}
   type="button"
   role="tab"
   class={unstyled

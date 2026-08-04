@@ -1,7 +1,7 @@
 <script lang="ts">
   import { onMount } from 'svelte';
   import { getBlocksConfig, resolveSlotClasses } from '$lib/provider';
-  import { mintRegistry } from '$lib';
+  import { mintAttachment } from '$lib';
   import { segmentGroupVariants, type SegmentGroupVariants } from './segmentgroup.variants';
   import { getSegmentGroupContext } from './segmentGroup.context';
   import type { SegmentItemProps } from './index';
@@ -44,13 +44,6 @@
     }
   });
 
-  $effect(() => {
-    const mint = ctx.mint;
-    if (itemElement && mint && mint !== 'none' && !isDisabled) {
-      return mintRegistry.apply(itemElement, mint);
-    }
-  });
-
   function handleClick() {
     if (!isDisabled) {
       ctx.selectItem(value);
@@ -60,6 +53,7 @@
 
 <button
   bind:this={itemElement}
+  {@attach mintAttachment(ctx.mint, { enabled: !isDisabled })}
   type="button"
   role="radio"
   class={unstyled
