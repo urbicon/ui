@@ -10,6 +10,7 @@
   import SummaryRow from '../features/SummaryRow.svelte';
   import { getTableStyleConfig, resolveSlotClass } from './table-style-context';
   import { computeVirtualItems, ROW_HEIGHTS } from '$lib/utils/virtualizer';
+  import { resolveColumnId } from '$lib/utils';
   import { getStickyContext } from './sticky-context.svelte';
   import type { Column, TableItem } from '$lib/types/tableTypes';
   import type { Snippet } from 'svelte';
@@ -275,7 +276,60 @@
       }
     }
   }
+
+  /**
+   * The column tracks, as data — one entry per rendered `<col>`, in render order.
+   *
+   * The virtualized layout renders the header, the body and the summary row as
+   * three independent `<table>` elements, so each computes its own tracks. That
+   * only stayed invisible while every track was implicit: `table-fixed` takes
+   * its widths from the **first row**, which for the header table is the `<th>`
+   * row and for the body table is a `<td>` row — and `TableHead` writes
+   * `width`/`min-width` inline on `<th>` while `TableRow` writes nothing on
+   * `<td>`. So a column with an explicit `width` sized the header and not the
+   * body, and everything after it slid (measured on the landing specimen: the
+   * STATUS header ~130px right of its badges).
+   *
+   * `<colgroup>` is the mechanism tables have for exactly this — it sizes tracks
+   * independently of any row — so the same list goes into all three and they can
+   * no longer disagree. It mirrors `TableHead`'s leading control columns; the
+   * group-toggle column is absent on purpose, because `virtualizedActive`
+   * already excludes grouping.
+   */
+  const displayColumns = $derived(
+    enableColumnReorder ? tableContext.orderedColumns : tableState.columns
+  );
+  const columnTracks = $derived.by(() => {
+    const tracks: Array<{ key: string; width?: string; minWidth?: string }> = [];
+    // `w-12` / `w-10` on the header's control cells, as widths a `<col>` can
+    // carry. Kept beside each other so a change to one is a change to both.
+    if (selectable) tracks.push({ key: '__selection', width: '3rem' });
+    if (expandable) tracks.push({ key: '__expand', width: '2.5rem' });
+    for (const column of displayColumns) {
+      tracks.push({
+        key: resolveColumnId(column),
+        width: column.width,
+        minWidth: column.width ? (column.minWidth ?? '4rem') : column.minWidth
+      });
+    }
+    return tracks;
+  });
 </script>
+
+{#snippet columnTrackGroup()}
+  <colgroup>
+    {#each columnTracks as track (track.key)}
+      <col
+        style={[
+          track.width && `width: ${track.width}`,
+          track.minWidth && `min-width: ${track.minWidth}`
+        ]
+          .filter(Boolean)
+          .join('; ')}
+      />
+    {/each}
+  </colgroup>
+{/snippet}
 
 {#if virtualizedActive}
   <!-- Virtualized mode: scroll container with fixed height -->
@@ -305,6 +359,7 @@
       onkeydown={handleTableKeyDown}
       data-testid="table-element"
     >
+      {@render columnTrackGroup()}
       {#if header}
         {@render header()}
       {:else}
@@ -331,6 +386,7 @@
           )}
           onkeydown={handleTableKeyDown}
         >
+          {@render columnTrackGroup()}
           <tbody
             class={resolveSlotClass(
               tableStyles.body,
@@ -357,6 +413,7 @@
             )} absolute top-0 left-0 w-full"
             onkeydown={handleTableKeyDown}
           >
+            {@render columnTrackGroup()}
             <tbody
               class={resolveSlotClass(
                 tableStyles.body,
@@ -386,13 +443,18 @@
         </div>
 
         {#if tableState.showSummary && tableState.summaryConfigs.length > 0}
+          <!-- `table-fixed` + the shared tracks, like its two siblings: without
+               them this third table sized its columns from the summary values,
+               so the totals sat under the wrong headers. -->
           <table
             class={resolveSlotClass(
               tableStyles.table,
               styleConfig.slotClasses.table,
-              styleConfig.unstyled
+              styleConfig.unstyled,
+              'table-fixed'
             )}
           >
+            {@render columnTrackGroup()}
             <tbody>
               <SummaryRow {expandable} {size} />
             </tbody>

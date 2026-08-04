@@ -245,6 +245,41 @@ describe('Table — query emission in client mode', () => {
     host.remove();
   });
 
+  it('gives the virtualized header, body and summary the same column tracks', () => {
+    // #14 / the open half of #150. The virtualized layout renders three
+    // independent `<table>` elements, so each computes its own column tracks.
+    // With `table-fixed` those come from the FIRST ROW — the `<th>` row in the
+    // header table, a `<td>` row in the body table — and `TableHead` writes
+    // `width`/`min-width` inline on `<th>` while `TableRow` writes nothing on
+    // `<td>`. So an explicit column width sized the header and not the body.
+    //
+    // jsdom has no layout engine, so this asserts the tracks are *declared*
+    // identically, not that they measure identically. The geometric half needs
+    // a browser and belongs in the VR suite.
+    const el = mountTable({
+      items: Array.from({ length: 40 }, (_, i) => ({ id: i, name: `P${i}`, amount: i })),
+      virtualized: true,
+      columns: [
+        { accessor: 'name', title: 'Name', width: '18rem', minWidth: '10rem' },
+        { accessor: 'amount', title: 'Amount' }
+      ],
+      initialSummaryConfigs: [{ column: 'amount', type: 'sum' }]
+    });
+
+    const groups = [...el.querySelectorAll('table')].map((table) =>
+      [...table.querySelectorAll('colgroup > col')].map((col) => col.getAttribute('style') ?? '')
+    );
+
+    // Every table in the virtualized layout carries tracks…
+    expect(groups.length).toBeGreaterThanOrEqual(2);
+    expect(groups.every((g) => g.length > 0)).toBe(true);
+    // …and they are the same tracks.
+    for (const group of groups) expect(group).toEqual(groups[0]);
+    // The explicit width actually reaches them — an all-empty list would satisfy
+    // the equality above without carrying anything.
+    expect(groups[0].join(' ')).toContain('18rem');
+  });
+
   it('never fetches in client mode, even with a queryFn present', async () => {
     // `queryFn` is a server-mode contract. Emitting in client mode must not
     // quietly start calling it — that would fetch over data the consumer owns.
