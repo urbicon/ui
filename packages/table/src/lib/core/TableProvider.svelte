@@ -191,10 +191,12 @@
 
   // Virtualization vs. grouping. `state.virtualized` now derives from the prop,
   // so the flag needs no syncing; what remains is the one-way *clearing* of a
-  // group key that persistence or a seed put in place before the mode was known.
-  // Done synchronously, before the first render, so a virtualized table never
-  // renders its full item set for a frame. Storage is deliberately left alone,
-  // so a persisted grouping applies again on the next load without `virtualized`.
+  // group key that a **seed** put in place. Persistence no longer reaches this
+  // point — since it became a post-hydration step, `state.groupByKey` is still
+  // whatever the seed and the query left here, and a *stored* grouping is
+  // cleared by the runtime effect below instead. Storage is deliberately left
+  // alone either way, so a persisted grouping applies again on the next load
+  // without `virtualized`.
   // svelte-ignore state_referenced_locally
   if (virtualized && state.groupByKey) {
     if (import.meta.env?.DEV) {
@@ -319,15 +321,13 @@
         `[Table] \`query\` controls the same axes as ${shadowed.map((s) => `\`${s}\``).join(', ')} — the controlled value wins and the prop has no effect. Move the value into the query, or drop the prop.`
       );
     }
-    if (persistenceConfig) {
-      const axes = (
-        ['sortColumn', 'sortDirection', 'searchTerm', 'activeFilters', 'groupByKey'] as const
-      ).filter((axis) => query[axis] !== undefined);
-      if (axes.length > 0) {
-        console.warn(
-          `[Table] \`query\` controls ${axes.map((a) => `\`${a}\``).join(', ')}, so \`persistenceConfig\` neither restores nor stores ${axes.length === 1 ? 'that axis' : 'those axes'} — the link is the source of truth for them.`
-        );
-      }
+    // Only when the flag that would make it false is off. With
+    // `persistControlled: true` storing those axes is the point of the config,
+    // so the warning would contradict the feature.
+    if (persistenceConfig && persistenceConfig.persistControlled !== true) {
+      console.warn(
+        `[Table] \`query\` is wired, so \`persistenceConfig\` does not store the shareable axes (sort, search, filters, grouping) — the URL is the source of truth for them. Set \`persistControlled: true\` to keep them in storage as well.`
+      );
     }
   });
 

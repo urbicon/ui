@@ -86,12 +86,9 @@ describe('Table — server render of a shared link', () => {
       query: { sortColumn: 'amount', sortDirection: 'desc' }
     });
     expect(byAmount.indexOf('Radia')).toBeLessThan(byAmount.indexOf('Ada'));
-
-    const ascending = bodyOf({
-      items: ROWS,
-      query: { sortColumn: 'amount', sortDirection: 'asc' }
-    });
-    expect(ascending.indexOf('Ada')).toBeLessThan(ascending.indexOf('Radia'));
+    // No ascending counterpart: `amount asc` is the input order, so it would
+    // pass with no sorting at all — a second assertion that cannot fail is not
+    // twice the coverage.
   });
 
   it('searches on the server', () => {
@@ -120,21 +117,10 @@ describe('Table — server render of a shared link', () => {
   });
 });
 
-describe('Table — the preference axes on the server', () => {
-  // #152 part 2. `columnVisibility` / `columnOrder` are *preferences*: they
-  // change presentation, not which data is shown, so they deliberately stay in
-  // localStorage rather than moving into the URL — nobody wants to share a link
-  // that hides columns on the other end.
-  //
-  // But the server has no localStorage. `createPersistentState` returns its
-  // default there, so the server renders every column. If the client then
-  // applies the stored preference during construction, its first render carries
-  // a different column set than the HTML it is hydrating.
-
-  it('renders every column, because storage does not exist here', () => {
-    const body = bodyOf({ items: ROWS, persistenceConfig: { tableId: 'ssr-prefs' } });
-
-    expect(body).toContain('Name');
-    expect(body).toContain('Amount');
-  });
-});
+// Deleted here: "renders every column, because storage does not exist here".
+// It ran in the node env, never wrote a key, and `getStorage()` returns null
+// without a `window` — so "both headers present" held for every conceivable
+// implementation, including the one it was added to guard against. The
+// measurement that carries #152 part 2 lives on the client side, in
+// `Table.render.svelte.test.ts` ("applies the stored column preference — after
+// hydration, not before it"), which is where the two renders can differ.

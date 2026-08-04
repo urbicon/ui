@@ -77,22 +77,32 @@ export function usePersistence(
   const owns = (axis: keyof TableViewState): boolean => controlledView?.()?.[axis] !== undefined;
 
   /**
-   * Whether a *controlled* axis may still be written to storage.
+   * Whether the shareable axes may be written to storage at all.
    *
-   * Off by default, and the default is the careful one: a controlled value
-   * copied into storage resurfaces the moment the table stops being controlled,
-   * so a reader who once followed someone else's link would get that stranger's
-   * filter back on a later visit.
+   * Keyed on *whether a `query` prop is wired*, *not* on whether it happens to
+   * carry this axis right now — and that distinction is the whole of it.
+   * `owns()` reads the live URL, but the URL lags the state it mirrors: a click
+   * runs `setSort` synchronously, while `onQueryChange` is debounced and
+   * `goto()` is async on top. Asking `owns()` at write time therefore answers
+   * "no" for the first change on a bare URL and "yes" for every one after it.
    *
-   * `persistControlled: true` unlocks it for the case a business table wants —
-   * "my filters are still there tomorrow" — and it is safe to unlock because
-   * only a *setter* writes. The `sync*` functions below are called from the
-   * store's action wrappers, never from the controlled derived resolving, so
-   * following a shared link stores nothing; the reader's own next filter does.
+   * Measured with the documented wiring and `persistControlled` at its default:
+   * the reader sorts by amount (written to storage, URL still bare), the URL
+   * catches up, the reader sorts by date (not written) — and the next bare
+   * visit restores *amount*, the sort they abandoned. Neither "nothing is
+   * stored" nor "everything is stored", but a stale intermediate, chosen by a
+   * race.
+   *
+   * So: wire `query` and the shareable axes live in the URL, full stop.
+   * `persistControlled: true` opts back into storing them as well, and it is
+   * safe to unlock because only a *setter* writes — the `sync*` functions are
+   * called from the store's action wrappers, never from a controlled derived
+   * resolving, so following a shared link stores nothing.
    */
   const storeControlled = persistenceConfig?.persistControlled === true;
-  /** May this axis be written to storage right now? */
-  const writable = (axis: keyof TableViewState): boolean => storeControlled || !owns(axis);
+  const queryWired = (): boolean => controlledView?.() !== undefined;
+  /** May the shareable axes be written to storage? */
+  const writable = (): boolean => storeControlled || !queryWired();
 
   /**
    * Sort is **one** axis across two fields, and both hydration and write-back
@@ -303,7 +313,7 @@ export function usePersistence(
   // same reference back would be no signal change at all — the auto-save effect
   // would not re-run and the edit would never reach storage.
   function syncFilters() {
-    if (persistentFilters && writable('activeFilters')) {
+    if (persistentFilters && writable()) {
       persistentFilters.value = [...state.activeFilters];
     }
   }
@@ -313,13 +323,13 @@ export function usePersistence(
   // on every render. `persistControlled` is about the `query` prop, where the
   // table still owns the value between navigations.
   function syncSearch() {
-    if (persistentSearchTerm && !state.searchControlled && writable('searchTerm')) {
+    if (persistentSearchTerm && !state.searchControlled && writable()) {
       persistentSearchTerm.value = state.searchTerm;
     }
   }
 
   function syncGroupByKey() {
-    if (persistentGroupByKey && writable('groupByKey')) {
+    if (persistentGroupByKey && writable()) {
       persistentGroupByKey.value = state.groupByKey;
     }
   }
@@ -329,7 +339,7 @@ export function usePersistence(
   }
 
   function syncSortState() {
-    if (persistentSortState && (storeControlled || !ownsSort()))
+    if (persistentSortState && writable())
       persistentSortState.value = {
         column: state.sortColumn,
         direction: state.sortDirection

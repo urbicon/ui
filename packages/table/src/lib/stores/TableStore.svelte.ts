@@ -80,8 +80,10 @@ export interface SummaryConfig {
  * Grace/Ada.
  *
  * What that costs is a visible change on an SSR page once the JavaScript
- * arrives. On a client-rendered page it costs nothing: the effect still runs
- * inside `mount()`, before the browser paints.
+ * arrives. On a client-rendered page it costs nothing the reader can see: the
+ * effect runs in the microtask after `mount()` returns, which is still before
+ * the browser paints. (Not *inside* `mount()` — that flushes render effects,
+ * not user effects, which is why the test for this has to `flushSync()`.)
  *
  * ## What belongs here, and what belongs in the URL
  *
@@ -626,9 +628,11 @@ export function createTableState(
    */
   function applyPersistedState() {
     persistence.applyPersistedState();
-    // `state.columns` may still be empty when this runs; the consumer's
-    // `columns` prop reaches `setColumns` separately, and filtering by the
-    // persisted hidden ids happens there.
+    // The hidden ids are applied to `useColumnVisibility`, which filters
+    // `state.columns` — itself a derived off the `columns` prop since #10, so it
+    // is already populated here. (This comment used to say the opposite; it
+    // predates that change, when `setColumns` was the ingestion path rather
+    // than an imperative escape hatch.)
     if (persistence.initialHiddenColumnIds.length > 0) {
       columnVisibility.setHiddenIds(persistence.initialHiddenColumnIds);
     }

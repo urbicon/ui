@@ -60,11 +60,14 @@ function createMemoryStorage(): Storage {
  * that wants the restored view has to take it — exactly like the provider's
  * `$effect` does.
  */
-function withRoot<T>(fn: () => T): T {
+function withRoot<T extends { applyPersistedState: () => void }>(fn: () => T): T {
   let result!: T;
   const cleanup = $effect.root(() => {
     result = fn();
-    (result as { applyPersistedState?: () => void })?.applyPersistedState?.();
+    // Typed rather than optional-called: an optional call would turn this whole
+    // helper into a silent no-op the day the method is renamed, and every test
+    // below would keep passing while measuring construction alone.
+    result.applyPersistedState();
   });
   cleanup();
   return result;

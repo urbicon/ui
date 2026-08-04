@@ -296,37 +296,34 @@
    * group-toggle column is absent on purpose, because `virtualizedActive`
    * already excludes grouping.
    */
-  const displayColumns = $derived(
-    enableColumnReorder ? tableContext.orderedColumns : tableState.columns
-  );
   const columnTracks = $derived.by(() => {
-    const tracks: Array<{ key: string; width?: string; minWidth?: string }> = [];
-    // `w-12` / `w-10` on the header's control cells, as widths a `<col>` can
-    // carry. Kept beside each other so a change to one is a change to both.
+    const tracks: Array<{ key: string; width?: string }> = [];
+    // The header's control cells carry `w-12` / `w-10`; these are the same two
+    // widths, as something a `<col>` can express.
     if (selectable) tracks.push({ key: '__selection', width: '3rem' });
     if (expandable) tracks.push({ key: '__expand', width: '2.5rem' });
-    for (const column of displayColumns) {
-      tracks.push({
-        key: resolveColumnId(column),
-        width: column.width,
-        minWidth: column.width ? (column.minWidth ?? '4rem') : column.minWidth
-      });
+    // `orderedColumns` unconditionally, NOT `enableColumnReorder ? … :
+    // state.columns`. `TableRow` and `SummaryRow` iterate `orderedColumns`
+    // whatever that flag says, and `applyPersistedState` restores a stored
+    // order whether or not reordering is currently enabled — so the conditional
+    // would have sized the header's declaration order onto the body's persisted
+    // one, which is the defect this snippet exists to remove. It falls back to
+    // `state.columns` when no order is set, so it is never the narrower choice.
+    for (const column of tableContext.orderedColumns) {
+      tracks.push({ key: resolveColumnId(column), width: column.width });
     }
     return tracks;
   });
 </script>
 
 {#snippet columnTrackGroup()}
+  <!-- `width` only: per CSS Tables a column box honours `border`, `background`,
+       `width` and `visibility` and nothing else, so a `min-width` here would be
+       inert — and one that reads as if it applied is worse than none. A column
+       with only a `minWidth` gets no track, exactly as before. -->
   <colgroup>
     {#each columnTracks as track (track.key)}
-      <col
-        style={[
-          track.width && `width: ${track.width}`,
-          track.minWidth && `min-width: ${track.minWidth}`
-        ]
-          .filter(Boolean)
-          .join('; ')}
-      />
+      <col style={track.width ? `width: ${track.width}` : ''} />
     {/each}
   </colgroup>
 {/snippet}

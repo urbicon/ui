@@ -36,10 +36,14 @@
   let dragFromIndex = $state<number | null>(null);
   let dropIndicatorIndex = $state<number | null>(null);
 
-  // Use orderedColumns when column reorder is enabled
-  const displayColumns = $derived(
-    enableColumnReorder ? tableContext.orderedColumns : tableState.columns
-  );
+  // `orderedColumns` unconditionally. It used to be gated on
+  // `enableColumnReorder`, but `TableRow` and `SummaryRow` never were, and a
+  // stored column order is restored whether or not reordering is currently
+  // enabled — so with the flag off the header rendered the declaration order
+  // over a body in the persisted one. `orderedColumns` falls back to
+  // `state.columns` when no order is set, so this is the same list in every
+  // case the flag used to cover.
+  const displayColumns = $derived(tableContext.orderedColumns);
 
   function makeDraggable(colIndex: number) {
     if (!enableColumnReorder) {

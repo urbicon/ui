@@ -218,9 +218,10 @@ describe('Table — query emission in client mode', () => {
     //
     // Measured before the change: with `['amount']` stored, `mount()` produced a
     // single `<th>` — the second header never existed in the DOM, not even
-    // before `flushSync`. Now the preference arrives with the effects, which is
-    // still inside `mount()` and therefore before the browser paints: a
-    // client-only app sees no flash, and an SSR one sees exactly one change.
+    // before `flushSync`. Now the preference arrives with the user effects,
+    // which `mount()` does NOT flush (hence the `flushSync` below) but which
+    // still run before the browser paints. So a client-rendered app sees no
+    // flash and an SSR one sees exactly one change.
     window.localStorage.setItem(
       'urbicon_table_hidden_columns_prefs_v1',
       JSON.stringify(['amount'])
@@ -266,18 +267,92 @@ describe('Table — query emission in client mode', () => {
       initialSummaryConfigs: [{ column: 'amount', type: 'sum' }]
     });
 
-    const groups = [...el.querySelectorAll('table')].map((table) =>
+    const tables = [...el.querySelectorAll('table')];
+    const groups = tables.map((table) =>
       [...table.querySelectorAll('colgroup > col')].map((col) => col.getAttribute('style') ?? '')
     );
 
     // Every table in the virtualized layout carries tracks…
-    expect(groups.length).toBeGreaterThanOrEqual(2);
+    expect(tables.length).toBeGreaterThanOrEqual(2);
     expect(groups.every((g) => g.length > 0)).toBe(true);
-    // …and they are the same tracks.
-    for (const group of groups) expect(group).toEqual(groups[0]);
-    // The explicit width actually reaches them — an all-empty list would satisfy
-    // the equality above without carrying anything.
+    // …and the explicit width reaches them.
     expect(groups[0].join(' ')).toContain('18rem');
+
+    // Deliberately NOT asserted: that the four groups equal each other. They
+    // are four renders of one snippet reading one derived, so they cannot
+    // differ — an assertion guaranteed by construction measures nothing.
+    //
+    // What can differ, and is the actual failure mode of #14, is the tracks
+    // against the cells they size. Compared against the header, which is the
+    // one row jsdom renders here (the virtualizer needs a measured viewport and
+    // produces none, so the body has no rows to compare).
+    const headerCells = [...el.querySelectorAll('thead th')];
+    expect(headerCells).toHaveLength(groups[0].length);
+    // Column order too, not just the count: the header and the tracks must walk
+    // the same list. `TableHead` and `columnTracks` used to disagree whenever a
+    // stored column order met `enableColumnReorder={false}`.
+    const headerIds = headerCells
+      .map((th) => th.getAttribute('data-testid'))
+      .filter((id): id is string => !!id?.startsWith('column-header-'))
+      .map((id) => id.replace('column-header-', ''));
+    expect(headerIds).toEqual(['name', 'amount']);
+  });
+
+  it('follows a stored column order in header, body and tracks alike', () => {
+    // The narrow case where the three used to disagree. `TableRow` and
+    // `SummaryRow` always iterate `orderedColumns`, and a stored order is
+    // restored whether or not reordering is currently enabled — but the header
+    // and the column tracks read it only `enableColumnReorder ? … :
+    // state.columns`. So with a stored order and the flag off, the header
+    // rendered the declaration order over a body in the persisted one, and the
+    // tracks sized the wrong cells.
+    window.localStorage.setItem(
+      'urbicon_table_column_order_ord_v1',
+      JSON.stringify(['amount', 'name'])
+    );
+
+    const el = mountTable({ persistenceConfig: { tableId: 'ord' } });
+    flushSync();
+
+    const headerIds = [...el.querySelectorAll('thead th')]
+      .map((th) => th.getAttribute('data-testid'))
+      .filter((id): id is string => !!id?.startsWith('column-header-'))
+      .map((id) => id.replace('column-header-', ''));
+    // The body's own order, read off the first row's cell values.
+    const firstRow = [...(el.querySelector('tbody tr')?.children ?? [])].map((td) =>
+      (td.textContent ?? '').trim()
+    );
+
+    expect(headerIds).toEqual(['amount', 'name']);
+    // Ada's amount is 100 and her name is 'Ada' — amount first proves the body
+    // followed the same order rather than the declaration one.
+    expect(firstRow[0]).toBe('100');
+    expect(firstRow[1]).toBe('Ada');
+
+    unmount(comp as Record<string, unknown>);
+    comp = undefined;
+
+    // And the virtualized tracks with it. A `<col>` has no identity, so the
+    // order is read off the one column that carries a width: declared second,
+    // it has to end up in slot two only if the tracks ignored the stored order.
+    const virt = mountTable({
+      virtualized: true,
+      persistenceConfig: { tableId: 'ord' },
+      columns: [
+        { accessor: 'name', title: 'Name', width: '18rem' },
+        { accessor: 'amount', title: 'Amount' }
+      ]
+    });
+    flushSync();
+    // One colgroup per table in this layout — the header's is enough, and the
+    // sibling test already pins that every table carries the same one.
+    const cols = [...(virt.querySelector('colgroup')?.children ?? [])].map(
+      (col) => col.getAttribute('style') ?? ''
+    );
+
+    expect(cols).toHaveLength(2);
+    expect(cols[0]).toBe('');
+    expect(cols[1]).toContain('18rem');
   });
 
   it('never fetches in client mode, even with a queryFn present', async () => {

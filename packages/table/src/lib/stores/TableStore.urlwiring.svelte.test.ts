@@ -44,7 +44,7 @@ const names = (rows: TableItem[]) => rows.map((r) => r.name);
 
 /** The parsed URL, as the table receives it. */
 const view = (search: string): TableViewState =>
-  searchParamsToTableViewState(new URLSearchParams(search)) as TableViewState;
+  searchParamsToTableViewState(new URLSearchParams(search));
 
 function memoryStorage(): Storage {
   const map = new Map<string, string>();
@@ -136,6 +136,10 @@ describe('the parsed URL, handed to `query`', () => {
         columns: () => COLUMNS,
         query: () => view('?sort=name')
       });
+      // Without the drain this measured the `query` derived alone and would
+      // hold with persistence removed entirely — precedence needs both halves
+      // present before it means anything.
+      store.applyPersistedState();
       expect(store.state.sortColumn).toBe('name');
       expect(store.state.sortDirection).toBe('asc');
     });
@@ -162,8 +166,12 @@ describe('the parsed URL, handed to `query`', () => {
       const store = createTableState({ tableId: 't-dir' }, undefined, {
         items: () => ITEMS,
         columns: () => COLUMNS,
-        query: () => ({ sortDirection: 'desc' }) as TableViewState
+        query: () => ({ sortDirection: 'desc' as const })
       });
+      // The drain is what makes this a test of `ownsSort()`: since hydration
+      // became a deferred step, skipping it left the stored value on a queue
+      // nobody read, and the assertion passed for the wrong reason.
+      store.applyPersistedState();
       expect(store.state.sortDirection).toBe('desc');
     });
     cleanup();
@@ -204,7 +212,7 @@ describe('the parsed URL, handed to `query`', () => {
     const store = createTableState(undefined, undefined, {
       items: () => ITEMS,
       columns: () => COLUMNS,
-      query: () => v as TableViewState
+      query: () => v
     });
     expect(store.state.searchTerm).toBe('a');
     expect(store.state.itemsPerPage).toBe(2);
@@ -270,6 +278,34 @@ describe('persistence is a client-only layer', () => {
 describe('persistControlled — keeping a URL-controlled axis across a bare visit', () => {
   const FILTER_KEY = 'urbicon_table_filters_pc_v1';
   const aFilter = [{ column: 'name', operator: 'contains', value: 'ad' }] as Filter[];
+
+  it('stores nothing even while the URL still lags behind the click', async () => {
+    // The case a per-field ownership test cannot reach. `owns()` reads the live
+    // URL, but the URL is written by a debounced `onQueryChange` and an async
+    // `goto` — so at the instant a click runs `setSort`, a bare URL still says
+    // "this axis is not controlled". Asking then let the FIRST change through
+    // and blocked every later one: storage kept `amount`, the sort the reader
+    // went on to abandon, and a later bare visit restored it.
+    //
+    // Everything here is deliberately synchronous around the setter, because
+    // that is exactly the window the defect lived in.
+    let urlSort = $state<string | undefined>(undefined);
+    const cleanup = $effect.root(() => {
+      const store = createTableState({ tableId: 'lag' }, undefined, {
+        items: () => ITEMS,
+        columns: () => COLUMNS,
+        query: (): TableViewState => (urlSort ? { sortColumn: urlSort, sortDirection: 'asc' } : {})
+      });
+      store.applyPersistedState();
+      store.setSort('amount', 'asc'); // click — the URL is still bare
+      urlSort = 'amount'; // …and only now catches up
+      store.setSort('name', 'asc'); // second click, now "controlled"
+    });
+    await new Promise((resolve) => setTimeout(resolve, 700));
+    cleanup();
+
+    expect(window.localStorage.getItem('urbicon_table_sort_lag_v1')).toBeNull();
+  });
 
   it('stores nothing by default, so a bare visit restores nothing', async () => {
     const cleanup = $effect.root(() => {
