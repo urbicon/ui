@@ -69,3 +69,50 @@ describe('Table — server render', () => {
     expect(body).not.toContain('Person 10');
   });
 });
+
+describe('Table — server render of a shared link', () => {
+  // The acceptance criterion #152 states: an SSR consumer with a filter in the
+  // URL must receive *filtered* rows in the server-rendered HTML. Same
+  // measurement as the suite above, but with a non-default view — which is
+  // exactly what localStorage could never deliver, because the server cannot
+  // see it. `query` is the URL, parsed.
+
+  it('sorts on the server', () => {
+    const body = bodyOf({ items: ROWS, query: { sortColumn: 'name', sortDirection: 'asc' } });
+    const order = ['Ada', 'Grace', 'Radia'].map((name) => body.indexOf(name));
+
+    expect(order.every((i) => i >= 0)).toBe(true);
+    // Ada, Grace, Radia is also the input order — so assert against a sort that
+    // actually moves something.
+    const byAmount = bodyOf({
+      items: ROWS,
+      query: { sortColumn: 'amount', sortDirection: 'desc' }
+    });
+    expect(byAmount.indexOf('Radia')).toBeLessThan(byAmount.indexOf('Ada'));
+  });
+
+  it('searches on the server', () => {
+    const body = bodyOf({ items: ROWS, query: { searchTerm: 'grace' } });
+
+    expect(body).toContain('Grace');
+    expect(body).not.toContain('Ada');
+    expect(body).not.toContain('Radia');
+  });
+
+  it('pages on the server', () => {
+    const body = bodyOf({ items: ROWS, query: { page: 2, itemsPerPage: 1 } });
+
+    expect(body).toContain('Grace');
+    expect(body).not.toContain('Ada');
+  });
+
+  it('filters on the server', () => {
+    const body = bodyOf({
+      items: ROWS,
+      query: { activeFilters: [{ column: 'name', operator: 'equals', value: 'Radia' }] }
+    });
+
+    expect(body).toContain('Radia');
+    expect(body).not.toContain('Grace');
+  });
+});

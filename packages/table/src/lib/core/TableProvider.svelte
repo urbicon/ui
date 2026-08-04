@@ -11,7 +11,11 @@
     TableQuery,
     TableQueryResult
   } from '$lib/types/tableTypes';
-  import type { SummaryConfig, TablePersistenceConfig } from '$lib/stores/TableStore.svelte';
+  import type {
+    SummaryConfig,
+    TablePersistenceConfig,
+    TableViewState
+  } from '$lib/stores/TableStore.svelte';
   import type { TableContext } from './table/index';
 
   const tt = useTableI18n();
@@ -43,6 +47,7 @@
     serverTotalItems?: number;
     queryFn?: (query: TableQuery, options: { signal: AbortSignal }) => Promise<TableQueryResult>;
     onQueryChange?: (query: TableQuery) => void;
+    query?: TableViewState;
     queryDebounceMs?: number;
     enableLiveUpdates?: boolean;
     autoApplyOnNavigation?: boolean;
@@ -79,6 +84,7 @@
     serverTotalItems = 0,
     queryFn = undefined,
     onQueryChange = undefined,
+    query = undefined,
     queryDebounceMs = 300,
     enableLiveUpdates = false,
     autoApplyOnNavigation = true,
@@ -102,6 +108,15 @@
    * fetched rows. `!!queryFn` only changes when one appears or disappears.
    */
   const hasQueryFn = $derived(!!queryFn);
+  /**
+   * Same treatment for `onQueryChange`, and here it matters even more: the
+   * emission effect below has to know whether anybody is listening *before* it
+   * decides to run. Reading the callback itself would put its identity on the
+   * effect's dependency list, so an inline `onQueryChange={(q) => …}` would
+   * re-fire the effect on every parent render — and since the listener's job is
+   * to write the query into the URL, that is a navigation loop, not just noise.
+   */
+  const hasQueryChange = $derived(!!onQueryChange);
 
   // Store is built once from the initial persistence config — not meant to
   // re-create if the prop changes reactively. The initial* seeds are equally
@@ -165,7 +180,8 @@
       virtualized: () => virtualized,
       mode: () => mode,
       serverTotalItems: () => (mode === 'server' ? serverTotalItems : 0),
-      enableColumnVisibility: () => enableColumnVisibility
+      enableColumnVisibility: () => enableColumnVisibility,
+      query: () => query
     }
   );
   attachTableContext(tableState);
@@ -331,7 +347,11 @@
   let initialFetchDone = false;
 
   $effect(() => {
-    if (mode !== 'server') return;
+    // Server mode runs this for the fetch. Client mode runs it only to emit —
+    // which is what lets the view state reach the URL, and through the URL the
+    // server (#152). `query`/`queryKey` were always computed mode-independently;
+    // only the emission was gated.
+    if (mode !== 'server' && !hasQueryChange) return;
 
     // Track the queryKey to detect changes
     const currentQueryKey = tableState.queryKey;
@@ -345,7 +365,9 @@
     debounceTimer = setTimeout(() => {
       const currentQuery = tableState.query;
 
-      if (queryFn) {
+      // `queryFn` is a *server*-mode contract; in client mode the table owns
+      // the data and there is nothing to fetch, so only the emission runs.
+      if (mode === 'server' && queryFn) {
         executeManagedFetch(currentQuery);
       } else if (onQueryChange) {
         onQueryChange(currentQuery);

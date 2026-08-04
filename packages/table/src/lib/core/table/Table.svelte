@@ -77,6 +77,7 @@
     serverTotalItems = 0,
     queryFn = undefined,
     onQueryChange = undefined,
+    query = undefined,
     queryDebounceMs = 300,
     persistenceConfig,
     unstyled = false,
@@ -212,6 +213,7 @@
   {serverTotalItems}
   {queryFn}
   {onQueryChange}
+  {query}
   {queryDebounceMs}
   {enableLiveUpdates}
   {autoApplyOnNavigation}

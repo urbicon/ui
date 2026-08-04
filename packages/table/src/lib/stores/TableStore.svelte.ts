@@ -177,6 +177,34 @@ export interface TablePropSources {
   mode?: () => 'client' | 'server';
   serverTotalItems?: () => number;
   enableColumnVisibility?: () => boolean;
+  /**
+   * Controlled view state, normally the parsed URL (#152).
+   *
+   * Per-field ownership: a field that is present outranks both persistence and
+   * the matching `initial*` seed for its axis; a field left `undefined` changes
+   * nothing. The same rule `searchControlled` already applies to `searchTerm`,
+   * generalised — which is why these are deriveds and not writes: the store
+   * still assigns to them on every user interaction, and a new value from the
+   * URL re-seeds the slot afterwards.
+   */
+  query?: () => TableViewState | undefined;
+}
+
+/**
+ * The view state a table can hand out and take back — the axes that decide
+ * *which data is shown*, and therefore exactly the axes the server has to know
+ * and a shared link has to carry (#152). Structurally the writable half of
+ * `TableQuery`; every field optional, because a consumer may control some axes
+ * and leave the rest to the table.
+ */
+export interface TableViewState {
+  page?: number;
+  itemsPerPage?: number;
+  sortColumn?: string;
+  sortDirection?: 'asc' | 'desc';
+  searchTerm?: string;
+  activeFilters?: Filter[];
+  groupByKey?: string | null;
 }
 
 /**
@@ -228,8 +256,33 @@ export function createTableState(
   let items = $derived(normalizeItems(props?.items?.() ?? []));
   let loading = $derived(props?.loading?.() ?? false);
   let error = $derived(props?.error?.() ?? null);
-  let currentPage = $derived(props?.initialPage?.() ?? 1);
-  let itemsPerPage = $derived(props?.itemsPerPage?.() ?? 10);
+  let currentPage = $derived(props?.query?.()?.page ?? props?.initialPage?.() ?? 1);
+  let itemsPerPage = $derived(props?.query?.()?.itemsPerPage ?? props?.itemsPerPage?.() ?? 10);
+  // The four axes below used to be plain `$state` seeded by persistence and the
+  // `initial*` seeds. As prop-derived slots they resolve during SSR, which is
+  // the point: a link carrying `?sort=name` has to render sorted on the server
+  // (#152). Nothing changes when no `query` is passed — the fallbacks are the
+  // values these fields held before.
+  let sortColumn = $derived(props?.query?.()?.sortColumn ?? '');
+  let sortDirection = $derived(props?.query?.()?.sortDirection ?? 'asc');
+  let searchTerm = $derived(props?.query?.()?.searchTerm ?? '');
+  let activeFilters = $derived(props?.query?.()?.activeFilters ?? []);
+  /**
+   * Grouping carries a gate, not just a value: grouped virtualization is not
+   * implemented, and a key that slips through deactivates virtualization and
+   * renders the *entire* item set — the failure `virtualized` exists to
+   * prevent. `setGroupByKey` has guarded every imperative path into grouping
+   * for that reason; a URL is one more path, and an unguarded
+   * `?group=status` on a virtualized table would be the worst of them, since
+   * nobody had to click anything to get there.
+   *
+   * Applying the gate here rather than in an effect also makes it hold during
+   * SSR, which the imperative gate never did.
+   */
+  let groupByKey = $derived.by(() => {
+    const requested = props?.query?.()?.groupByKey ?? null;
+    return requested && (props?.virtualized?.() ?? false) ? null : requested;
+  });
   let multiExpand = $derived(props?.multiExpand?.() ?? false);
   let groupOrder = $derived(props?.groupOrder?.() ?? []);
   let selectionMode = $derived(props?.selectionMode?.() ?? 'none');
@@ -276,8 +329,18 @@ export function createTableState(
       error = next;
     },
 
-    searchTerm: '',
-    activeFilters: [] as Filter[],
+    get searchTerm() {
+      return searchTerm;
+    },
+    set searchTerm(next: string) {
+      searchTerm = next;
+    },
+    get activeFilters() {
+      return activeFilters;
+    },
+    set activeFilters(next: Filter[]) {
+      activeFilters = next;
+    },
     showAdvancedSearch: false,
 
     get currentPage() {
@@ -293,8 +356,18 @@ export function createTableState(
       itemsPerPage = next;
     },
 
-    sortColumn: '',
-    sortDirection: 'asc' as 'asc' | 'desc',
+    get sortColumn() {
+      return sortColumn;
+    },
+    set sortColumn(next: string) {
+      sortColumn = next;
+    },
+    get sortDirection() {
+      return sortDirection;
+    },
+    set sortDirection(next: 'asc' | 'desc') {
+      sortDirection = next;
+    },
 
     expandedItemId: null as string | number | null,
     expandedItemIds: new SvelteSet<string | number>(),
@@ -305,7 +378,12 @@ export function createTableState(
       multiExpand = next;
     },
 
-    groupByKey: null as string | null,
+    get groupByKey() {
+      return groupByKey;
+    },
+    set groupByKey(next: string | null) {
+      groupByKey = next;
+    },
     /**
      * The grouping key the consumer *declared* via `initialGroupBy`, kept for
      * the lifetime of the table and never written again.
@@ -401,7 +479,9 @@ export function createTableState(
   });
 
   // ── Persistence (initializes state from storage) ──
-  const persistence = usePersistence(state, persistenceConfig);
+  // The controlled view state is handed in so persistence can step aside for
+  // every axis it owns — precedence URL > localStorage > `initial*` seed (#152).
+  const persistence = usePersistence(state, persistenceConfig, () => props?.query?.());
 
   // ── Concerns (composed in derived-chain order) ──
   const search = useSearch(state);

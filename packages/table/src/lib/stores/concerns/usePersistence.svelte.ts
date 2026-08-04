@@ -9,7 +9,7 @@ import {
   createPersistentSortState,
   createPersistentSummaryConfigs
 } from '$lib/utils';
-import type { SummaryConfig, TablePersistenceConfig } from '../TableStore.svelte';
+import type { SummaryConfig, TablePersistenceConfig, TableViewState } from '../TableStore.svelte';
 import type { TableState } from './types';
 
 /**
@@ -60,7 +60,21 @@ function isRowId(value: unknown): value is string | number {
  * persistence already owns. A missing **or corrupt** entry counts as
  * absent, so junk in storage can never block a seed permanently.
  */
-export function usePersistence(state: TableState, persistenceConfig?: TablePersistenceConfig) {
+export function usePersistence(
+  state: TableState,
+  persistenceConfig?: TablePersistenceConfig,
+  controlledView?: () => TableViewState | undefined
+) {
+  /**
+   * Does the controlled view state (normally the URL) own this axis?
+   *
+   * Per-field, by presence — the rule `syncSearch` already applied to
+   * `searchControlled`, generalised. An owned axis is neither hydrated from
+   * storage nor written back to it: the URL is the source of truth, and a value
+   * copied into storage alongside would resurface the moment the table stopped
+   * being controlled (#152, precedence URL > localStorage > `initial*` seed).
+   */
+  const owns = (axis: keyof TableViewState): boolean => controlledView?.()?.[axis] !== undefined;
   let persistentFilters: ReturnType<typeof createPersistentFilters> | undefined;
   let persistentSearchTerm: ReturnType<typeof createPersistentSearchTerm> | undefined;
   let persistentGroupByKey: ReturnType<typeof createPersistentGroupByKey> | undefined;
@@ -87,7 +101,11 @@ export function usePersistence(state: TableState, persistenceConfig?: TablePersi
         storage: persistenceConfig.storage,
         debounceMs: persistenceConfig.debounceMs
       });
-      if (persistentFilters.hasStoredValue && Array.isArray(persistentFilters.value)) {
+      if (
+        !owns('activeFilters') &&
+        persistentFilters.hasStoredValue &&
+        Array.isArray(persistentFilters.value)
+      ) {
         state.activeFilters = persistentFilters.value.filter(isFilterShape);
         hydratedFilters = true;
       }
@@ -99,7 +117,11 @@ export function usePersistence(state: TableState, persistenceConfig?: TablePersi
         storage: persistenceConfig.storage,
         debounceMs: persistenceConfig.debounceMs
       });
-      if (persistentSearchTerm.hasStoredValue && typeof persistentSearchTerm.value === 'string') {
+      if (
+        !owns('searchTerm') &&
+        persistentSearchTerm.hasStoredValue &&
+        typeof persistentSearchTerm.value === 'string'
+      ) {
         state.searchTerm = persistentSearchTerm.value;
       }
     }
@@ -112,6 +134,7 @@ export function usePersistence(state: TableState, persistenceConfig?: TablePersi
       });
       const groupByValue = persistentGroupByKey.value;
       if (
+        !owns('groupByKey') &&
         persistentGroupByKey.hasStoredValue &&
         (groupByValue === null || typeof groupByValue === 'string')
       ) {
@@ -147,6 +170,7 @@ export function usePersistence(state: TableState, persistenceConfig?: TablePersi
       });
       const sortValue = persistentSortState.value;
       if (
+        !owns('sortColumn') &&
         persistentSortState.hasStoredValue &&
         sortValue &&
         typeof sortValue === 'object' &&
@@ -192,13 +216,24 @@ export function usePersistence(state: TableState, persistenceConfig?: TablePersi
     }
   }
 
+  // A controlled axis counts as "already supplied" for the `initial*` seeds,
+  // whether or not persistence is configured at all — which is why this sits
+  // outside the block above. Without it a `query` carrying an explicitly empty
+  // axis (`?sort=` elided from the URL means "no sort", a real state the reader
+  // chose) would read as "nothing supplied" and let the seed sort the view back.
+  if (owns('activeFilters')) hydratedFilters = true;
+  if (owns('groupByKey')) hydratedGroupByKey = true;
+  if (owns('sortColumn')) hydratedSort = true;
+
   // Sync functions called by other concerns after mutations
   // Every sync writes a *snapshot*, never the live array: the concerns mutate
   // their arrays in place (`state.summaryConfigs[i] = config`), so assigning the
   // same reference back would be no signal change at all — the auto-save effect
   // would not re-run and the edit would never reach storage.
   function syncFilters() {
-    if (persistentFilters) persistentFilters.value = [...state.activeFilters];
+    if (persistentFilters && !owns('activeFilters')) {
+      persistentFilters.value = [...state.activeFilters];
+    }
   }
 
   // Skipped while search is controlled, for the same reason as syncSelection
@@ -206,13 +241,15 @@ export function usePersistence(state: TableState, persistenceConfig?: TablePersi
   // reach storage — switching that table back to uncontrolled later would
   // otherwise revive it.
   function syncSearch() {
-    if (persistentSearchTerm && !state.searchControlled) {
+    if (persistentSearchTerm && !state.searchControlled && !owns('searchTerm')) {
       persistentSearchTerm.value = state.searchTerm;
     }
   }
 
   function syncGroupByKey() {
-    if (persistentGroupByKey) persistentGroupByKey.value = state.groupByKey;
+    if (persistentGroupByKey && !owns('groupByKey')) {
+      persistentGroupByKey.value = state.groupByKey;
+    }
   }
 
   function syncSummaryConfigs() {
@@ -220,7 +257,7 @@ export function usePersistence(state: TableState, persistenceConfig?: TablePersi
   }
 
   function syncSortState() {
-    if (persistentSortState)
+    if (persistentSortState && !owns('sortColumn'))
       persistentSortState.value = {
         column: state.sortColumn,
         direction: state.sortDirection

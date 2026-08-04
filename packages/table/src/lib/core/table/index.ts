@@ -8,7 +8,7 @@ import type {
   TableQuery,
   TableQueryResult
 } from '$lib';
-import type { createTableState } from '$lib/stores/TableStore.svelte';
+import type { createTableState, TableViewState } from '$lib/stores/TableStore.svelte';
 import type { TableSlotClasses } from '../table-style-context';
 
 /**
@@ -448,14 +448,64 @@ export interface TableProps<T = TableItem> {
   queryFn?: (query: TableQuery, options: { signal: AbortSignal }) => Promise<TableQueryResult>;
 
   /**
-   * Callback fired when the table query changes in `mode: 'server'`.
-   * Use this for manual control — fetch data yourself and update the
-   * {@link items}, {@link serverTotalItems}, {@link loading} and {@link error}
-   * props accordingly.
-   * Fires after debounce (controlled by `queryDebounceMs`).
+   * Callback fired when the table query changes — page, page size, sort,
+   * search term, filters, grouping.
+   *
+   * In `mode: 'server'` this is the manual fetch path: fetch the data yourself
+   * and update {@link items}, {@link serverTotalItems}, {@link loading} and
+   * {@link error} accordingly. (With a managed {@link queryFn} the table fetches
+   * instead and this does not fire.)
+   *
+   * In `mode: 'client'` — the default — nothing is fetched; the table simply
+   * reports the view state it is rendering. That is what makes the state
+   * shareable: pair it with `createTableQueryUrlSync` from
+   * `@urbicon-ui/sveltekit-utils` to mirror it onto the URL, and pass the parsed
+   * query back in through {@link query} so the server renders the same view the
+   * reader linked to.
+   *
+   * Fires after debounce (controlled by `queryDebounceMs`); the first emission
+   * is immediate.
    * @default undefined
    */
   onQueryChange?: (query: TableQuery) => void;
+
+  /**
+   * Controlled view state — the axes that decide *which* data is shown: page,
+   * page size, sort, search term, filters, grouping.
+   *
+   * Per-field: a field that is present takes that axis over, a field left
+   * `undefined` changes nothing. An axis under control outranks both
+   * {@link persistenceConfig} and the matching `initial*` seed, and is no
+   * longer written to storage — otherwise the stored copy would resurface the
+   * moment the table stopped being controlled.
+   *
+   * The reason to reach for this is the server. View state kept in
+   * `localStorage` is invisible to it, so a server-rendered table shows an
+   * unfiltered, unsorted view that the client then replaces on hydration. Put
+   * the same state in the URL and the server renders what the reader asked
+   * for — and the link becomes shareable, which is the same property from the
+   * other side (#152).
+   *
+   * Pair it with {@link onQueryChange}, which now fires in client mode too.
+   *
+   * @example A table whose view lives in the URL
+   * ```svelte
+   * <script lang="ts">
+   *   import { createTableQueryUrlSync } from '@urbicon-ui/sveltekit-utils/url.svelte';
+   *
+   *   const sync = createTableQueryUrlSync();
+   * </script>
+   *
+   * <Table
+   *   {items}
+   *   {columns}
+   *   query={sync.initialQuery}
+   *   onQueryChange={sync.syncQuery}
+   * />
+   * ```
+   * @default undefined
+   */
+  query?: TableViewState;
 
   /**
    * Debounce delay in milliseconds for server query changes.

@@ -101,3 +101,64 @@ describe('Table — mounted', () => {
     expect(target.textContent).toContain('Barbara');
   });
 });
+
+describe('Table — query emission in client mode', () => {
+  // The gap #152 names: `query` and `queryKey` were always computed regardless
+  // of mode, but only the server branch emitted them, so a client-mode table had
+  // nothing for a URL sync to listen to. Without an emission there is no way for
+  // the view state to reach the URL, and through the URL the server.
+  //
+  // The emission is debounced through a `setTimeout`, with delay 0 for the first
+  // one — so a macrotask tick is what these await, not a `flushSync`.
+  const tick = () => new Promise((resolve) => setTimeout(resolve, 0));
+
+  it('emits the initial query without a server mode', async () => {
+    const seen: Array<Record<string, unknown>> = [];
+    mountTable({ onQueryChange: (q: Record<string, unknown>) => seen.push(q) });
+    await tick();
+
+    expect(seen).toHaveLength(1);
+    expect(seen[0]).toMatchObject({ page: 1, sortColumn: '', searchTerm: '', groupByKey: null });
+  });
+
+  it('emits again when the view state changes', async () => {
+    const seen: Array<Record<string, unknown>> = [];
+    const props = $state({
+      items: ROWS,
+      searchTerm: '',
+      onQueryChange: (q: Record<string, unknown>) => seen.push(q)
+    });
+    target = document.createElement('div');
+    document.body.appendChild(target);
+    comp = mount(TableHarness, { target, props }) as Record<string, unknown>;
+    flushSync();
+    await tick();
+    expect(seen).toHaveLength(1);
+
+    props.searchTerm = 'ada';
+    flushSync();
+    // Past the default 300 ms debounce.
+    await new Promise((resolve) => setTimeout(resolve, 350));
+
+    expect(seen.length).toBeGreaterThan(1);
+    expect(seen.at(-1)).toMatchObject({ searchTerm: 'ada' });
+  });
+
+  it('never fetches in client mode, even with a queryFn present', async () => {
+    // `queryFn` is a server-mode contract. Emitting in client mode must not
+    // quietly start calling it — that would fetch over data the consumer owns.
+    let fetches = 0;
+    const seen: unknown[] = [];
+    mountTable({
+      queryFn: async () => {
+        fetches++;
+        return { items: [], totalItems: 0 };
+      },
+      onQueryChange: (q: unknown) => seen.push(q)
+    });
+    await tick();
+
+    expect(fetches).toBe(0);
+    expect(seen).toHaveLength(1);
+  });
+});
