@@ -1,3 +1,5 @@
+import { existsSync } from 'node:fs';
+import path from 'node:path';
 import type {
   ComponentInfo,
   ComponentStability,
@@ -39,13 +41,23 @@ export class APIDataGenerator {
   /** Declaring directory → the documented components whose source lives there. */
   private componentsByDir = new Map<string, string[]>();
   private routeBasePath: string = '/components';
+  /**
+   * On-disk root the API files are written to — the same path
+   * `APIFileGenerator` joins `<group>/<slug>/api.ts` onto. Present so
+   * {@link routeForComponent} can ask the filesystem whether the page it is
+   * about to link to exists; empty means "cannot check", and every link is
+   * emitted as before.
+   */
+  private routeOutputPath = '';
+  /** Memoises the `+page.svelte` lookups; one stat per component, not per prop. */
+  private pageExistsCache = new Map<string, boolean>();
 
   /**
    * Generate complete API data structure from rich components
    */
   async generate(
     richComponents: ComponentInfo[],
-    options?: { routeBasePath?: string }
+    options?: { routeBasePath?: string; routeOutputPath?: string }
   ): Promise<APIData> {
     console.log(`📊 Generating API data for ${richComponents.length} components`);
 
@@ -59,6 +71,8 @@ export class APIDataGenerator {
     this.componentGroups.clear();
     this.componentsByDir.clear();
     this.routeBasePath = options?.routeBasePath || '/components';
+    this.routeOutputPath = options?.routeOutputPath || '';
+    this.pageExistsCache.clear();
 
     // Prepare component slugs + groups for linking. The group (primitives /
     // components / undefined) is what turns the flat base into the real route
@@ -384,7 +398,8 @@ export class APIDataGenerator {
       processedProp.type === 'VariantProps'
     ) {
       const slug = this.componentSlugs.get(component.name) || toSlug(component.name);
-      processedProp.seeAlso = `${this.routeForComponent(component.name, slug)}#variants`;
+      const route = this.routeForComponent(component.name, slug);
+      if (route) processedProp.seeAlso = `${route}#variants`;
     }
 
     // Add usage examples if missing
@@ -428,14 +443,18 @@ export class APIDataGenerator {
 
     if (localTypeNames.has(base)) {
       const slug = this.componentSlugs.get(component.name) || toSlug(component.name);
-      return `${this.routeForComponent(component.name, slug)}#type-${base}`;
+      const route = this.routeForComponent(component.name, slug);
+      // No page of its own → no link. The type still renders, as plain text.
+      if (route) return `${route}#type-${base}`;
+      return undefined;
     }
 
     // Component name or *Props → component page
     const compName = base.endsWith('Props') ? base.slice(0, -'Props'.length) : base;
     const slug = this.componentSlugs.get(compName);
     if (slug !== undefined) {
-      return `${this.routeForComponent(compName, slug)}#api`;
+      const route = this.routeForComponent(compName, slug);
+      if (route) return `${route}#api`;
     }
 
     // External types
@@ -478,10 +497,49 @@ export class APIDataGenerator {
    * `/blocks/components/<slug>`, so the group segment has to come from the
    * (target) component, not from the run-wide base.
    */
-  private routeForComponent(name: string, slug: string): string {
-    const base = this.routeBasePath.replace(/\/$/, '');
+  private routeForComponent(name: string, slug: string): string | null {
     const group = this.componentGroups.get(name);
+    if (!this.hasDocPage(group, slug)) return null;
+    const base = this.routeBasePath.replace(/\/$/, '');
     return group ? `${base}/${group}/${slug}` : `${base}/${slug}`;
+  }
+
+  /**
+   * Does the route this link would point at actually have a page?
+   *
+   * Not every documented component gets one. The nine Guide surfaces are
+   * documented together on `/blocks/components/guide`, so their own
+   * directories hold an `api.ts` and a `Playground.svelte` and no
+   * `+page.svelte` — a link to `/blocks/components/guide-beacon` resolves to
+   * nothing. The link was always wrong; it was invisible only because the
+   * prop tables it lives in were never rendered on the server. Fixing that
+   * (#10) turned it into a prerender failure, which is the honest signal.
+   *
+   * The oracle is the filesystem, deliberately: the same directory
+   * `APIFileGenerator` joins `<group>/<slug>/api.ts` onto either holds a page
+   * or it does not. A hand-maintained list of pageless components would be a
+   * second copy of that fact, free to drift.
+   *
+   * Dropping the link (rather than redirecting it to the family page) is the
+   * only answer available here — which page adopts an orphaned surface is
+   * knowledge the docs app holds in `component-links.ts`, not the generator.
+   * The type then renders as plain text, which is true. See #141.
+   */
+  private hasDocPage(group: string | undefined, slug: string): boolean {
+    // No output root configured (aggregate single-file runs) — cannot check,
+    // so keep every link rather than silently stripping them all.
+    if (!this.routeOutputPath) return true;
+
+    const key = `${group ?? ''}/${slug}`;
+    const cached = this.pageExistsCache.get(key);
+    if (cached !== undefined) return cached;
+
+    const dir = group
+      ? path.join(this.routeOutputPath, group, slug)
+      : path.join(this.routeOutputPath, slug);
+    const exists = existsSync(path.join(dir, '+page.svelte'));
+    this.pageExistsCache.set(key, exists);
+    return exists;
   }
 
   private inferGroupFromPath(filePath: string): string | undefined {
