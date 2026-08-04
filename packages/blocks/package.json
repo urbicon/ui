@@ -1,6 +1,6 @@
 {
   "name": "@urbicon-ui/blocks",
-  "version": "6.51.0",
+  "version": "7.0.0",
   "description": "Svelte 5 UI component library with Tailwind CSS 4, OKLCH design tokens and zero runtime dependencies",
   "license": "MIT",
   "repository": {
@@ -83,8 +83,8 @@
   ],
   "peerDependencies": {
     "svelte": "catalog:",
-    "@urbicon-ui/i18n": "^6.0.0",
-    "@urbicon-ui/shared-types": "^6.0.0"
+    "@urbicon-ui/i18n": "^7.0.0",
+    "@urbicon-ui/shared-types": "^7.0.0"
   },
   "dependencies": {},
   "devDependencies": {

@@ -1,6 +1,6 @@
 {
   "name": "@urbicon-ui/docs",
-  "version": "6.51.0",
+  "version": "7.0.0",
   "description": "Reusable documentation UI components for Urbicon UI docs sites",
   "license": "MIT",
   "repository": {
@@ -65,10 +65,10 @@
     "svelte": "catalog:",
     "shiki": "^4.4.1",
     "@shikijs/langs": "^4.4.1",
-    "@urbicon-ui/blocks": "^6.0.0",
-    "@urbicon-ui/table": "^6.0.0",
-    "@urbicon-ui/i18n": "^6.0.0",
-    "@urbicon-ui/shared-types": "^6.0.0"
+    "@urbicon-ui/blocks": "^7.0.0",
+    "@urbicon-ui/table": "^7.0.0",
+    "@urbicon-ui/i18n": "^7.0.0",
+    "@urbicon-ui/shared-types": "^7.0.0"
   },
   "scripts": {
     "dev": "svelte-package --watch",

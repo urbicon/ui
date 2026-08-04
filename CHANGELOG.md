@@ -4,6 +4,43 @@ All notable changes to this project will be documented in this file.
 This changelog is automatically generated from [Conventional Commits](https://www.conventionalcommits.org).
 
 
+## [7.0.0] - 2026-08-04
+
+### Breaking Changes
+- Derive prop-driven state instead of syncing it in $effect (#153)
+- **docs**: Highlight and seed synchronously, so the server renders them too (#155)
+> **BREAKING:** `highlighterService.highlightCode()` returns a string instead of a `Promise<string>`, `getHighlighter()` returns `HighlighterCore` instead of `Highlighter`, `CodePanelSlots` no longer carries `loadingContainer` / `loadingText`, and `@shikijs/langs` joins `shiki` as a required peer. * fix(docs): key the highlight cache on a colon, not on a NUL byte The separator was a literal NUL. It parses — a template literal takes any character — so tests, svelte-check, Biome and Prettier all passed it. What it broke is everything that decides text-vs-binary by scanning for a zero byte: `file` reported the source as `data`, `rg` refused to search it, and `git diff` showed "Bin 6828 -> 6840 bytes" instead of a diff, which is how it surfaced. A colon is unambiguous for this key: a language id never contains one. ---------
+- **table**: Let the view state live in the URL, so the server can see it (#154)
+
+### Bug Fixes
+- **design-engine**: Let an urbicon-ignore reason contain a tag (#120)
+- **design-engine**: Rank icon search by the data, not by registry order
+
+### Documentation
+- **docs-app**: Give the 14 auth component pages an accessibility section (#122)
+- **auth**: Tell adapter authors about id columns before the suite does (#117)
+- **docs-app**: Show the filter bar's narrow mode and its tools sheet (#124)
+- **docs-app**: Bring 19 component pages into the 2-4 example budget (#131)
+- **docs-app**: Wire the Types section on the last 89 pages and retire the stage-3 roster (#144)
+- Write down how a multi-issue wave ends, after one left 7.5 GB standing
+- Make a gate the last resort rather than the first
+- Shrink AGENTS.md by a third — one doc index, details at their subject
+- **docs-app**: Link the Guide surface types to the section that documents them (#156)
+
+### Features
+- **blocks**: Give BreadcrumbItem a leading icon (#118)
+- **blocks**: Map A2UI Tabs onto the Tab primitive (#129)
+- **blocks**: Align the Calendar and Planner prop surfaces (#126)
+- **docs-gen**: Mark every extracted type as exported and give it a canonical owner (#137)
+- **docs-app**: Add typesref:lint, guarding both halves of a page's Types section (#140)
+- **docs-app**: Capture the README shots and og.png from one wordmark source
+- **blocks**: Expand the icon set to 358, and write down what belongs in it
+- **blocks**: Tie the documented icon count to the set that defines it
+
+### Refactoring
+- **table**: Drop the dead half of table.system.ts (#119)
+- **blocks,table,docs**: Render icons from the set, not from inlined SVG
+
 ## [6.51.0] - 2026-08-03
 
 ### Breaking Changes
