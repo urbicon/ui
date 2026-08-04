@@ -32,6 +32,7 @@ Then reach for the rest as you need it.
 - [ResponsiveGuidelines.md](ResponsiveGuidelines.md) — breakpoints, touch targets, overlay patterns
 - [DocsPageGuide.md](DocsPageGuide.md) — building component documentation pages
 - [DOCS-SURFACES.md](DOCS-SURFACES.md) — where docs live, who owns them, how they reach consumers
+- [AI-NATIVE-DX.md](AI-NATIVE-DX.md) — what an agent is served and from where: the `urbicon` CLI (the consumer surface), the MCP adapter, the closed design loop
 - [VERSIONING.md](VERSIONING.md) — bump levels, bump-script steps, commit-type → changelog mapping
 
 ## Component reference
