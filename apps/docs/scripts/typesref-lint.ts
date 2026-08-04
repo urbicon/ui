@@ -132,12 +132,12 @@ const ROUTES = join(APP, 'src/routes');
  * it, reasoning that `guide/api.ts` carries `GuidePanelProps` with `owner`
  * naming the surface, so the filter at the top of this file drops it.
  *
- * The filter is this *script's*. No page applies it — all 99 pages with a Types
- * section pass `types={componentData?.types ?? []}` unfiltered, which the very
- * next paragraph measures from the other side ("a page shows the 20 % of its
+ * The filter is this *script's*. No page applies it — all 100 pages with a Types
+ * section pass `types={componentData?.types ?? []}` unfiltered, which the header
+ * above measures from the other side ("a page shows the 20 % of its
  * entries that the filter would drop … `/blocks/components/guide`, 25 of 39").
- * Those 25 are exactly the 15 names #141 called undocumented, plus the `*Slots`
- * aliases. So the surface types are on a page, and were the whole time.
+ * Those 25 are the 15 names #141 called undocumented, the eight `*Slots`
+ * aliases, and `Side`/`Alignment` (both unexported). So the surface types are on a page, and were the whole time.
  *
  * What was genuinely missing is the link INTO that section: the per-surface
  * `<ApiReference>` calls passed no `types`, and `ApiReference` links a prop's
@@ -150,7 +150,7 @@ const ROUTES = join(APP, 'src/routes');
  *
  * Kept separate from registry-lint's `PAGELESS` rather than imported: that map
  * is keyed by component NAME and answers a different question (is there a page
- * at all), and after the correction above the two no longer say the same thing.
+ * at all). The two now say the same thing, which is not a reason to merge them —
  * `registry-lint` also runs its whole lint on import, so there is nothing to
  * import from it without splitting the map into a shared module first. Both
  * lists are stale-checked, so a ninth surface turns both red rather than one.
