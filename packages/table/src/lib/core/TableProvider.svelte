@@ -205,6 +205,20 @@
     state.groupByKey = null;
   }
 
+  // The persisted *presentation* preferences — hidden columns, column order —
+  // are applied here rather than at store construction, and the `$effect` is the
+  // whole point: it does not run on the server, so the server's column set and
+  // the client's first render agree, and the preference lands afterwards.
+  //
+  // See `applyPersistedColumnPreferences` in TableStore for why these two axes
+  // cannot be handled like the rest (#152: they belong in storage, and the
+  // server cannot read storage — so a post-hydration change is the only honest
+  // option for them). Untracked: it reads a snapshot taken at construction, and
+  // must run exactly once.
+  $effect(() => {
+    untrack(() => tableState.applyPersistedColumnPreferences());
+  });
+
   // The collapse set holds *group names* — values of whatever column is grouped
   // by — so it cannot outlive its key: after regrouping, those names mean
   // nothing, and one that happens to match collapses a group nobody touched.

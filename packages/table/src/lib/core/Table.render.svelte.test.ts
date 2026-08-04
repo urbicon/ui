@@ -1,8 +1,27 @@
 // @vitest-environment jsdom
 import { screen } from '@testing-library/dom';
 import { flushSync, mount, unmount } from 'svelte';
-import { afterEach, describe, expect, it } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import TableHarness from './__fixtures__/TableHarness.svelte';
+
+/**
+ * Node ≥ 25 ships a broken global `localStorage` stub that shadows jsdom's
+ * Storage under vitest, so a test needing real storage semantics installs its
+ * own — same reason and same shape as `TableStore.seed.persistence.svelte.test.ts`.
+ */
+function memoryStorage(): Storage {
+  const map = new Map<string, string>();
+  return {
+    get length() {
+      return map.size;
+    },
+    clear: () => map.clear(),
+    getItem: (key: string) => (map.has(key) ? (map.get(key) ?? null) : null),
+    key: (index: number) => [...map.keys()][index] ?? null,
+    removeItem: (key: string) => void map.delete(key),
+    setItem: (key: string, value: string) => void map.set(key, String(value))
+  };
+}
 
 /**
  * The mounted table — the counterpart to `Table.ssr.test.ts`.
@@ -37,6 +56,10 @@ function mountTable(props: Record<string, unknown> = {}) {
   flushSync();
   return target;
 }
+
+beforeEach(() => {
+  Object.defineProperty(window, 'localStorage', { value: memoryStorage(), configurable: true });
+});
 
 afterEach(() => {
   if (comp) unmount(comp);
@@ -185,6 +208,41 @@ describe('Table — query emission in client mode', () => {
     props.query = { groupByKey: 'amount' };
     flushSync();
     expect(ctx?.state.collapsedGroups.size).toBe(0);
+  });
+
+  it('applies the stored column preference — after hydration, not before it', () => {
+    // #152 part 2, the client half of `Table.ssr.test.ts`'s "renders every
+    // column". The two are one statement: the server has no localStorage, so it
+    // renders every column; the client must therefore not have *fewer* columns
+    // in the render that hydrates that markup.
+    //
+    // Measured before the change: with `['amount']` stored, `mount()` produced a
+    // single `<th>` — the second header never existed in the DOM, not even
+    // before `flushSync`. Now the preference arrives with the effects, which is
+    // still inside `mount()` and therefore before the browser paints: a
+    // client-only app sees no flash, and an SSR one sees exactly one change.
+    window.localStorage.setItem(
+      'urbicon_table_hidden_columns_prefs_v1',
+      JSON.stringify(['amount'])
+    );
+
+    const host = document.createElement('div');
+    document.body.appendChild(host);
+    const instance = mount(TableHarness, {
+      target: host,
+      props: { items: ROWS, persistenceConfig: { tableId: 'prefs' } }
+    });
+    // Sampled inside the same synchronous block `mount()` returns from, before
+    // any effect has been flushed.
+    const duringMount = [...host.querySelectorAll('th')].map((h) => h.textContent ?? '');
+    flushSync();
+    const after = [...host.querySelectorAll('th')].map((h) => h.textContent ?? '');
+
+    expect(duringMount.some((h) => h.includes('Amount'))).toBe(true);
+    expect(after.some((h) => h.includes('Amount'))).toBe(false);
+
+    unmount(instance);
+    host.remove();
   });
 
   it('never fetches in client mode, even with a queryFn present', async () => {

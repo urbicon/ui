@@ -119,3 +119,22 @@ describe('Table — server render of a shared link', () => {
     expect(body).not.toContain('Grace');
   });
 });
+
+describe('Table — the preference axes on the server', () => {
+  // #152 part 2. `columnVisibility` / `columnOrder` are *preferences*: they
+  // change presentation, not which data is shown, so they deliberately stay in
+  // localStorage rather than moving into the URL — nobody wants to share a link
+  // that hides columns on the other end.
+  //
+  // But the server has no localStorage. `createPersistentState` returns its
+  // default there, so the server renders every column. If the client then
+  // applies the stored preference during construction, its first render carries
+  // a different column set than the HTML it is hydrating.
+
+  it('renders every column, because storage does not exist here', () => {
+    const body = bodyOf({ items: ROWS, persistenceConfig: { tableId: 'ssr-prefs' } });
+
+    expect(body).toContain('Name');
+    expect(body).toContain('Amount');
+  });
+});

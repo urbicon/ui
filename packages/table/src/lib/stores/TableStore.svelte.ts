@@ -69,6 +69,26 @@ export interface SummaryConfig {
  * stored value is restored verbatim — *including an empty one*: clearing
  * the sort, the filters, the grouping, the summaries or the selection is
  * itself persisted and wins over the matching `initial*` seed.
+ *
+ * ## With server rendering
+ *
+ * The axes split in two, and the line is the same one twice over: *may the
+ * server know this*, and *should a shared link carry it*.
+ *
+ * - **Filters, search, sort, grouping, page** decide which data is shown, so
+ *   the server has to know them — and `localStorage` is precisely what it
+ *   cannot read. Put those in the URL and hand them to {@link TableProps.query}
+ *   instead; a controlled axis outranks persistence and is not written to
+ *   storage at all. See `createTableQueryUrlSync` in `@urbicon-ui/sveltekit-utils`.
+ *   Leaving them here under SSR means the server renders one view and the
+ *   browser replaces it with another.
+ * - **Column visibility and column order** are presentation. Nobody wants to
+ *   share a link that hides columns on the other end, so they stay here — and
+ *   because the server cannot read storage, it renders **every** column. The
+ *   preference is applied after hydration, which is a visible change on an
+ *   SSR page and none at all on a client-rendered one (the effect that applies
+ *   it still runs before the first paint). That transition is the deliberate
+ *   cost of keeping these two out of the URL, not an oversight.
  */
 export interface TablePersistenceConfig {
   /** Unique identifier for this table — used as the storage-key suffix. */
@@ -533,15 +553,43 @@ export function createTableState(
   const remoteData = useRemoteData(state);
   const liveUpdates = useLiveUpdates(state);
 
-  // ── Apply persisted snapshots that live inside concerns ──
-  // `state.columns` is still empty at this point; the consumer's
-  // `columns` prop reaches `setColumns` after construction. Filtering by
-  // the persisted hidden ids happens there.
-  if (persistence.initialHiddenColumnIds.length > 0) {
-    columnVisibility.setHiddenIds(persistence.initialHiddenColumnIds);
-  }
-  if (persistence.initialColumnOrder.length > 0) {
-    columnOrder.applyOrder(persistence.initialColumnOrder);
+  /**
+   * Apply the persisted **presentation** preferences — which columns are hidden
+   * and in what order.
+   *
+   * Deliberately not called here at construction, unlike every other persisted
+   * axis. Those decide *which data is shown*, which is exactly the state the
+   * server has to know, so #152 moved them to the URL where it can see them.
+   * Column visibility and order are the other class: nobody wants to share a
+   * link that hides columns on the other end, so they stay in `localStorage` —
+   * and `localStorage` does not exist on the server.
+   *
+   * That leaves one honest option. The server renders every column; the client
+   * applies the preference **after** hydration, so the markup it hydrates and
+   * the markup it produces agree on the column set. Applying it at construction
+   * instead made the client's very first render carry a different number of
+   * `<th>` than the HTML underneath it — measured: with `['amount']` stored, the
+   * server emitted `Name`/`Amount` and the client mounted `Name` alone.
+   *
+   * `TableProvider` calls this from an `$effect`, which is the hydration
+   * boundary: it does not run on the server, and on the client it runs before
+   * the browser paints — so a client-only app still shows its stored columns in
+   * its first paint and sees no flash. Under SSR the already-painted server
+   * markup changes once, which is the transition #152 called acceptable for
+   * this class, because it changes presentation and not data.
+   *
+   * Idempotent: applying the same snapshot twice is the same snapshot.
+   */
+  function applyPersistedColumnPreferences() {
+    // `state.columns` may still be empty when this runs; the consumer's
+    // `columns` prop reaches `setColumns` separately, and filtering by the
+    // persisted hidden ids happens there.
+    if (persistence.initialHiddenColumnIds.length > 0) {
+      columnVisibility.setHiddenIds(persistence.initialHiddenColumnIds);
+    }
+    if (persistence.initialColumnOrder.length > 0) {
+      columnOrder.applyOrder(persistence.initialColumnOrder);
+    }
   }
 
   // ── Seed uncontrolled initial view state (sort / filters / selection /
@@ -886,6 +934,7 @@ export function createTableState(
       return columnOrder.columnOrder;
     },
     initColumnOrder: columnOrder.initOrder,
+    applyPersistedColumnPreferences,
     reorderColumn,
     resetColumnOrder,
     getColumnIndex: columnOrder.getColumnIndex,
