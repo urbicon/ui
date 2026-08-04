@@ -20,11 +20,9 @@
     { id: 'examples', title: 'Examples' },
     { id: 'accessibility', title: 'Accessibility' },
     { id: 'api', title: 'API Reference' },
-    { id: 'types', title: 'Type Definitions' },
+    { id: 'types', title: 'Types' },
     { id: 'installation', title: 'Installation' }
   ];
-
-  const typesForTypesReference = componentData.types ?? [];
 
   const description =
     'Structured API reference table — renders prop names, types, defaults, and descriptions with source and required badges.';
@@ -62,19 +60,19 @@
       </Note>
       <Note title="Type cross-links">
         <p>
-          A type that resolves to a local definition renders as a link into the Type Definitions
-          section on the same page. It is an ordinary in-page anchor, so it works with the keyboard
-          and appears in the link list a screen reader can bring up.
+          A type that resolves to a local definition renders as a link into the Types section on the
+          same page. It is an ordinary in-page anchor, so it works with the keyboard and appears in
+          the link list a screen reader can bring up.
         </p>
       </Note>
     </NoteList>
   </Section>
 
   <Section marker="03" id="api" title="API Reference" intent="secondary">
-    <ApiReferenceComponent props={componentData?.props ?? []} types={typesForTypesReference} />
+    <ApiReferenceComponent props={componentData?.props ?? []} types={componentData?.types ?? []} />
   </Section>
 
-  <TypesReference types={typesForTypesReference} />
+  <TypesReference types={componentData?.types ?? []} />
 
   <Section marker="04" id="installation" title="Installation">
     <CodeExample

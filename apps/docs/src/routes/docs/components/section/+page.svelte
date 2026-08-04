@@ -12,7 +12,7 @@
     InfoCard
   } from '@urbicon-ui/docs';
   import CustomDocs from './Docs.svelte';
-  import { componentData, type ComponentAPIInfo } from './api';
+  import { componentData } from './api';
   import { buildRelatedLinks } from '$lib/component-links';
   import { asset, resolve } from '$app/paths';
 
@@ -23,12 +23,9 @@
     { id: 'examples', title: 'Examples' },
     { id: 'accessibility', title: 'Accessibility' },
     { id: 'api', title: 'API Reference' },
-    { id: 'types', title: 'Type Definitions' },
+    { id: 'types', title: 'Types' },
     { id: 'installation', title: 'Installation' }
   ];
-
-  const typesForTypesReference =
-    (componentData as ComponentAPIInfo & { types?: unknown[] }).types ?? [];
 
   const description =
     'Anchored content section with an editorial marker, title, subtitle and badges — the grid every documentation page is built on.';
@@ -164,10 +161,10 @@
     subtitle="Complete list of component properties and their configurations"
     intent="secondary"
   >
-    <ApiReference props={componentData?.props ?? []} types={typesForTypesReference} />
+    <ApiReference props={componentData?.props ?? []} types={componentData?.types ?? []} />
   </SectionComponent>
 
-  <TypesReference types={typesForTypesReference} />
+  <TypesReference types={componentData?.types ?? []} />
 
   <SectionComponent marker="05" id="installation" title="Installation">
     <CodeExample
