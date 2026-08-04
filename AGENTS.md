@@ -149,6 +149,24 @@ Icons live in `packages/blocks/src/lib/icons/`. **Never call `getIcon('name')` i
 - **Root `docs/*.md` + `AGENTS.md` are NOT prettier-gated** (lint runs per-package via `--filter='*'`; root docs sit in no package). Many are hand-/compact-formatted (unaligned tables). For surgical diffs, match a file's existing style — do **not** blindly `prettier --write` root docs (it re-aligns whole tables). Package files like `packages/auth/README.md` **are** gated.
 - **`import.meta.env` build warning is expected — do NOT "fix" it**: the library build emits a `@sveltejs/package` advisory ("Avoid usage of `import.meta.env`"). Intentional and harmless: `blocks` uses optional-chained `import.meta.env?.DEV` (safe in non-Vite consumers) instead of `esm-env`, because `esm-env` would be a **runtime dependency** in the published `dist/` and break the zero-dependency maxim. The advisory is a plain string-match, so it fires even with `?.`. Never resolve it by adding `esm-env` / `$app/environment`.
 
+## Multi-Issue Waves (Orchestration)
+
+Working a batch of issues in one session — the `ready` label, a milestone, a review's findings. The 2026-08-03 wave (15 PRs, 11 issues closed) is the reference run; these rules are what it cost.
+
+- **The git graph cannot tell you what is merged — GitHub can.** PRs land as squash merges, so the branch commit never enters `main` and `git branch --merged` reports every merged branch as unmerged. Do not read the graph and do not guess from `[origin/…: gone]`. The authoritative check compares each PR's head SHA against the local tip:
+  ```sh
+  gh pr view <N> --json headRefName,headRefOid,state
+  ```
+  Equal SHA + `MERGED` means nothing was lost. That check is also what makes deleting a branch safe.
+
+- **One worktree per lane, not per issue.** Lanes are packages (`iw-blocks`, `iw-docs`, `iw-table`, `iw-engine`), because that is where conflicts actually are; two issues in the same package share a lane and go one after the other. A worktree costs ~500 MB after `bun install` — the wave above ran 15 of them and left 7.5 GB behind. Four lanes cover the repo.
+
+- **Automerge means the wave ends before the merges do**, and that is why nothing gets cleaned: the session is over when the last PR lands. So the sweep is either the wave's explicit closing step (after confirming every PR is `MERGED`) or the **first** step of the next session. It is never optional — skipped once, the leftovers are indistinguishable from live work.
+
+- **The sweep removes three things, not one.** The feature branch, its worktree, **and** the `worktree-*` scaffolding branch the worktree tooling creates — that one never merges and never disappears on its own. Then `git worktree prune`. Check `git worktree list` for uncommitted work first; a clean tree in every worktree is what makes the sweep a non-event.
+
+- **Deliberately parked branches need a written reason, in a place that is not the branch.** `feat/drizzle-adapter` says in its commit message that it is evidence rather than a proposal — correct, and still invisible to anyone reading the branch list. The reason belongs in the issue it answers (there: #65), with the branch name and SHA. Otherwise the next sweep has to re-derive it, or deletes it.
+
 ## Versioning
 
 One unified version across all packages, bumped once at the end of a coherent set of changes — **never on a dirty tree**, and **never edit `CHANGELOG.md` by hand** (git-cliff generates it). Bump levels, tag/push flow, commit-type → changelog mapping: **`release-bump` skill**.
