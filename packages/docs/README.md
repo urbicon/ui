@@ -5,12 +5,12 @@ Reusable documentation UI components — the pieces the [Urbicon UI docs site](h
 ## Installation
 
 ```bash
-bun add @urbicon-ui/docs @urbicon-ui/blocks @urbicon-ui/table @urbicon-ui/i18n @urbicon-ui/shared-types shiki
+bun add @urbicon-ui/docs @urbicon-ui/blocks @urbicon-ui/table @urbicon-ui/i18n @urbicon-ui/shared-types shiki @shikijs/langs
 ```
 
 All of these (plus `svelte` ^5) are **peer dependencies** — the package bundles none of them:
 
-- **`shiki`** (^4.2.0) — syntax highlighting. `CodePanel` / `CodeExample` highlight through a shared, lazily-created highlighter (`highlighterService`) with the package's editorial light/dark themes. It is a peer so your app controls the version and Shiki's grammars are not double-bundled next to an app-level install.
+- **`shiki`** (^4.4.1) + **`@shikijs/langs`** — syntax highlighting. `CodePanel` / `CodeExample` highlight through a shared, **synchronous** highlighter (`highlighterService`) with the package's editorial light/dark themes: Shiki's `Sync` core, its JavaScript regex engine, and nine statically imported grammars. Synchronous is the point — an awaited highlighter can only be driven from an effect, effects do not run during SSR, and the prerendered page then carries a spinner where the code should be. It also costs less over the wire than the async path did (116 KB gz eager and nothing lazy, against 43 KB eager plus a 145 KB `onig.wasm` and 63 KB of grammars); the measurement is written up at the top of `utils/highlighter.ts`. Both are peers so your app controls the version and the grammars are not double-bundled next to an app-level install.
 - **`@urbicon-ui/blocks`** — the components compose blocks primitives (Card, Badge, Button, …) and the semantic token layer.
 - **`@urbicon-ui/table`** — `ApiReference` and `TypesReference` render their prop/type tables via `<Table>`.
 - **`@urbicon-ui/i18n`** — built-in strings ship as a package-scoped `docs.*` namespace (EN/DE).
@@ -78,7 +78,7 @@ export default defineConfig({
 | `PlaygroundConfigurator`| Interactive prop playground: live preview, control panel, generated code                                       |
 | `InfoCard`              | Memo-style callout card for notes and tips; renders as a link when `href` is set                               |
 
-Also exported: `CodeVisibilityStore` (+ context helpers) for a page-global expand/collapse-all-code toggle, `ScrollSpy` for active-section tracking, `extractPlaygroundDocs` / `extractLiteralValues` for deriving playground control metadata from generated API props, and `highlighterService` — the shared Shiki singleton the code components highlight through.
+Also exported: `CodeVisibilityStore` (+ context helpers) for a page-global expand/collapse-all-code toggle, `ScrollSpy` for active-section tracking, `extractPlaygroundDocs` / `extractLiteralValues` for deriving playground control metadata from generated API props, and `highlighterService` — the shared Shiki singleton the code components highlight through (`highlightCode(code, language)` returns a string, not a promise).
 
 ## Styling
 

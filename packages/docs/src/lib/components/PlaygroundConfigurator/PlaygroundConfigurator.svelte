@@ -159,19 +159,27 @@
     return control.description || propDocs?.[control.key];
   }
 
-  let initialized = false;
-  $effect(() => {
-    if (!initialized && (!values || Object.keys(values).length === 0)) {
-      const initialValues: Record<string, unknown> = {};
-      controls.forEach((control) => {
-        if (control.defaultValue !== undefined) {
-          initialValues[control.key] = control.defaultValue;
-        }
-      });
-      values = initialValues as TValues;
+  // Seeded at init, not in an `$effect`. Effects do not run on the server, so
+  // the prerendered playground had `values = {}`: the preview rendered the
+  // component with none of its knobs applied and the generated snippet showed a
+  // bare tag. That is the second of #10's three surfaces — same defect as the
+  // table's, in a different component.
+  //
+  // Writing to a `$bindable` prop here is the same write the effect did on its
+  // first (and only meaningful) run; a caller that binds sees it exactly as
+  // before, and now the server does too.
+  //
+  // `controls` is read once here on purpose — this is the initial seed, and a
+  // later controls change must not re-run it (the `initialized` flag the effect
+  // carried said the same thing, less directly).
+  // svelte-ignore state_referenced_locally
+  if (!values || Object.keys(values).length === 0) {
+    const initialValues: Record<string, unknown> = {};
+    for (const control of controls) {
+      if (control.defaultValue !== undefined) initialValues[control.key] = control.defaultValue;
     }
-    initialized = true;
-  });
+    values = initialValues as TValues;
+  }
 
   function updateValue(key: string, value: unknown) {
     values = { ...values, [key]: value } as TValues;

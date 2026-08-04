@@ -52,27 +52,13 @@
   }
 
   let copied = $state(false);
-  let highlightedCode = $state('');
-  let isLoading = $state(true);
 
-  $effect(() => {
-    isLoading = true;
-    highlighterService
-      .highlightCode(code, language)
-      .then((result) => {
-        highlightedCode = result;
-        isLoading = false;
-      })
-      .catch((error) => {
-        console.error('Failed to highlight code:', error);
-        const escaped = String(code || '')
-          .replace(/&/g, '&amp;')
-          .replace(/</g, '&lt;')
-          .replace(/>/g, '&gt;');
-        highlightedCode = `<pre><code>${escaped}</code></pre>`;
-        isLoading = false;
-      });
-  });
+  // `$derived`, not an `$effect` writing `$state`: the highlighter is
+  // synchronous (see `utils/highlighter.ts`), and a derived recomputes on read
+  // during SSR too. That is the whole of #10 for this component — the
+  // prerendered page now carries the highlighted code instead of a spinner and
+  // the words "Loading syntax highlighting…".
+  const highlightedCode = $derived(highlighterService.highlightCode(code, language));
 
   async function copyCode() {
     try {
@@ -107,13 +93,7 @@
       <span class="sr-only">{toggleLabel}</span>
     </button>
     <span class={slot('copySeparator')} aria-hidden="true">·</span>
-    <button
-      type="button"
-      class={slot('copyButton')}
-      onclick={copyCode}
-      aria-label={copyLabel}
-      disabled={isLoading}
-    >
+    <button type="button" class={slot('copyButton')} onclick={copyCode} aria-label={copyLabel}>
       {copyLabel}
       <span aria-hidden="true">{copied ? '✓' : '↗'}</span>
     </button>
@@ -129,29 +109,20 @@
 
   <div class={slot('codeCollapse')} style="grid-template-rows: {isExpanded ? '1fr' : '0fr'}">
     <div class="overflow-hidden">
-      {#if isLoading}
-        <div class={slot('loadingContainer')} aria-live="polite">
-          <Spinner size="sm" color="current" />
-          <span class={slot('loadingText')}>
-            {dt('loadingSyntax')}
-          </span>
+      <div class={slot('codeDisplay')}>
+        <div
+          class={[slot('codeContent'), showLineNumbers && 'has-line-numbers']
+            .filter(Boolean)
+            .join(' ')}
+          style={showLineNumbers ? `--code-line-number-width: ${lineNumberWidth}ch` : undefined}
+          role="textbox"
+          aria-readonly="true"
+          aria-label={codeLabel}
+          tabindex="0"
+        >
+          {@html highlightedCode}
         </div>
-      {:else}
-        <div class={slot('codeDisplay')}>
-          <div
-            class={[slot('codeContent'), showLineNumbers && 'has-line-numbers']
-              .filter(Boolean)
-              .join(' ')}
-            style={showLineNumbers ? `--code-line-number-width: ${lineNumberWidth}ch` : undefined}
-            role="textbox"
-            aria-readonly="true"
-            aria-label={codeLabel}
-            tabindex="0"
-          >
-            {@html highlightedCode}
-          </div>
-        </div>
-      {/if}
+      </div>
     </div>
   </div>
 </div>

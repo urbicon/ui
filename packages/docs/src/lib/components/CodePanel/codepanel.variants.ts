@@ -19,7 +19,6 @@ export const codePanelVariants = tv({
       'font-meta text-text-quaternary inline-flex shrink-0 items-center gap-1 text-xs uppercase tracking-wider',
       'transition-colors duration-(--blocks-duration-fast)',
       'hover:text-text-primary',
-      'disabled:cursor-not-allowed disabled:opacity-50',
       'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40 focus-visible:ring-offset-2'
     ],
     copySeparator: ['text-text-quaternary text-xs'],
@@ -31,9 +30,11 @@ export const codePanelVariants = tv({
     codeContent: [
       'focus-visible:outline-none focus-visible:ring-2',
       'focus-visible:ring-primary/40 focus-visible:ring-inset'
-    ],
-    loadingContainer: ['flex items-center justify-center gap-2 p-8'],
-    loadingText: ['text-sm text-text-secondary']
+    ]
+    // `loadingContainer` / `loadingText` lived here for the spinner shown while
+    // the async highlighter resolved. Highlighting is synchronous now (#10), so
+    // there is no loading state left to style — and no `disabled` on the copy
+    // button either, which is why its `disabled:` pair went with them.
   },
   variants: {
     size: {
@@ -41,13 +42,11 @@ export const codePanelVariants = tv({
         toolbar: 'px-3 py-1.5',
         codeToggle: 'text-2xs',
         copyButton: 'text-2xs',
-        codeChevron: 'size-3',
-        loadingContainer: 'p-6'
+        codeChevron: 'size-3'
       },
       md: {},
       lg: {
-        toolbar: 'px-5 py-2.5',
-        loadingContainer: 'p-10'
+        toolbar: 'px-5 py-2.5'
       }
     }
   },
