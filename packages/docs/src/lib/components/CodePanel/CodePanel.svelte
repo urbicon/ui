@@ -1,7 +1,7 @@
 <script lang="ts">
   import { highlighterService } from '$lib';
   import { useDocsI18n } from '$lib/i18n';
-  import { Spinner } from '@urbicon-ui/blocks';
+  import { ChevronRightIcon, Spinner } from '@urbicon-ui/blocks';
   import { codePanelVariants } from './codepanel.variants';
   import { LINE_NUMBER_AUTO_THRESHOLD, type CodePanelProps } from './index.js';
 
@@ -100,16 +100,9 @@
       onclick={handleToggle}
       aria-expanded={isExpanded}
     >
-      <svg
+      <ChevronRightIcon
         class={[slot('codeChevron'), isExpanded && 'rotate-90'].filter(Boolean).join(' ')}
-        fill="none"
-        viewBox="0 0 24 24"
-        stroke="currentColor"
-        stroke-width="2"
-        aria-hidden="true"
-      >
-        <path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7" />
-      </svg>
+      />
       <span class={slot('languageTag')}>{language}</span>
       <span class="sr-only">{toggleLabel}</span>
     </button>

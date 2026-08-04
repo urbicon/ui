@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { FileUpload, type FileUploadFile } from '@urbicon-ui/blocks';
+  import { FileUpload, UploadCloudIcon, type FileUploadFile } from '@urbicon-ui/blocks';
 
   let files = $state<FileUploadFile[]>([]);
 </script>
@@ -18,20 +18,7 @@
   >
     <div class="flex flex-col items-center gap-3 text-center">
       <div class="bg-primary/10 flex size-14 items-center justify-center rounded-full">
-        <svg
-          xmlns="http://www.w3.org/2000/svg"
-          viewBox="0 0 24 24"
-          fill="none"
-          stroke="currentColor"
-          stroke-width="1.5"
-          stroke-linecap="round"
-          stroke-linejoin="round"
-          class="text-primary size-7"
-        >
-          <path d="M4 14.899A7 7 0 1 1 15.71 8h1.79a4.5 4.5 0 0 1 2.5 8.242" />
-          <path d="M12 12v9" />
-          <path d="m16 16-4-4-4 4" />
-        </svg>
+        <UploadCloudIcon strokeWidth={1.5} class="text-primary size-7" />
       </div>
       <div>
         <p class="text-text-primary font-semibold">Design-Assets hochladen</p>

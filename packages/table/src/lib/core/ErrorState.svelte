@@ -2,8 +2,18 @@
   import { useTableI18n } from '../i18n';
   import { errorStateVariants, tableRowVariants, type ErrorStateVariantProps } from '$lib/variants';
   import { getTableStyleConfig, resolveSlotClass } from './table-style-context';
+  import {
+    resolveIcon,
+    ChevronDownIcon as ChevronDownIconDefault,
+    DangerCircleIcon as DangerCircleIconDefault,
+    RefreshIcon as RefreshIconDefault
+  } from '@urbicon-ui/blocks';
 
   const tt = useTableI18n();
+
+  const DangerIcon = resolveIcon('danger', DangerCircleIconDefault);
+  const ChevronDownIcon = resolveIcon('chevronDown', ChevronDownIconDefault);
+  const RefreshIcon = resolveIcon('refresh', RefreshIconDefault);
 
   export type ErrorStateProps = {
     title?: string;
@@ -75,18 +85,7 @@
       )}
     >
       <div class={styles.icon()}>
-        <svg
-          class={styles.iconSvg()}
-          viewBox="0 0 24 24"
-          fill="none"
-          stroke="currentColor"
-          stroke-linecap="round"
-          stroke-linejoin="round"
-        >
-          <circle cx="12" cy="12" r="10"></circle>
-          <line x1="15" y1="9" x2="9" y2="15"></line>
-          <line x1="9" y1="9" x2="15" y2="15"></line>
-        </svg>
+        <DangerIcon class={styles.iconSvg()} />
       </div>
 
       <div class={styles.content()}>
@@ -108,19 +107,7 @@
               aria-expanded={showDetails}
             >
               <span>{tt('actions.showDetails')}</span>
-              <svg
-                class={styles.detailsIcon()}
-                width="16"
-                height="16"
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="currentColor"
-                stroke-width="2"
-                stroke-linecap="round"
-                stroke-linejoin="round"
-              >
-                <polyline points="6,9 12,15 18,9"></polyline>
-              </svg>
+              <ChevronDownIcon size={16} class={styles.detailsIcon()} />
             </button>
 
             {#if showDetails}
@@ -138,19 +125,7 @@
             onkeydown={handleKeyDown}
             type="button"
           >
-            <svg
-              class={styles.retryIcon()}
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="currentColor"
-              stroke-width="2"
-              stroke-linecap="round"
-              stroke-linejoin="round"
-            >
-              <polyline points="23,4 23,10 17,10"></polyline>
-              <polyline points="1,20 1,14 7,14"></polyline>
-              <path d="M20.49 9A9 9 0 0 0 5.64 5.64L1 10m22 4l-4.64 4.36A9 9 0 0 1 3.51 15"></path>
-            </svg>
+            <RefreshIcon class={styles.retryIcon()} />
             {retryText}
           </button>
         {/if}

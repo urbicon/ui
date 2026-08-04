@@ -8,7 +8,7 @@ import type { CommandPaletteItem, CommandPaletteProps } from './index';
 
 // Item rendering for CommandPalette, which until now had only a variants test.
 // The `icon` field used to be SVG *path data* that the component inlined into
-// its own `<svg>` — foreign geometry in a library with 315 icons of its own and
+// its own `<svg>` — foreign geometry in a library with a full icon set of its own and
 // a written geometry contract (hero-review point 25b / S6). It is a component
 // now, and this is the DOM guard for that: a variants test cannot tell whether
 // the item's icon reaches an element.

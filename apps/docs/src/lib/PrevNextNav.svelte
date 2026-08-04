@@ -2,6 +2,7 @@
   import { r } from '$lib/route';
   import { useAppI18n } from '$lib/i18n';
   import { useI18n } from '@urbicon-ui/i18n';
+  import { ChevronLeftIcon, ChevronRightIcon } from '@urbicon-ui/blocks';
   import { navigationItems, useNavLabel, type NavItem } from './navigation';
 
   let { currentPath }: { currentPath: string } = $props();
@@ -73,15 +74,9 @@
         href={r(prev.href)}
         class="group text-text-secondary hover:text-primary flex items-center gap-2 text-sm transition-colors"
       >
-        <svg
+        <ChevronLeftIcon
           class="h-4 w-4 shrink-0 transition-transform group-hover:-translate-x-0.5"
-          fill="none"
-          viewBox="0 0 24 24"
-          stroke="currentColor"
-          stroke-width="2"
-        >
-          <path stroke-linecap="round" stroke-linejoin="round" d="M15 19l-7-7 7-7" />
-        </svg>
+        />
         <span class="flex flex-col items-start">
           {#if prev.group}<span class={kicker}>{prev.group}</span>{/if}
           <span>{prev.name}</span>
@@ -99,15 +94,9 @@
           {#if next.group}<span class={kicker}>{next.group}</span>{/if}
           <span>{next.name}</span>
         </span>
-        <svg
+        <ChevronRightIcon
           class="h-4 w-4 shrink-0 transition-transform group-hover:translate-x-0.5"
-          fill="none"
-          viewBox="0 0 24 24"
-          stroke="currentColor"
-          stroke-width="2"
-        >
-          <path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7" />
-        </svg>
+        />
       </a>
     {/if}
   </nav>

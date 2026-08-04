@@ -2,8 +2,18 @@
   import { useTableI18n } from '../i18n';
   import { emptyStateVariants, tableRowVariants, type EmptyStateVariantProps } from '$lib/variants';
   import { getTableStyleConfig, resolveSlotClass } from './table-style-context';
+  import {
+    resolveIcon,
+    DatabaseIcon as DatabaseIconDefault,
+    InboxIcon as InboxIconDefault,
+    SearchIcon as SearchIconDefault
+  } from '@urbicon-ui/blocks';
 
   const tt = useTableI18n();
+
+  const SearchIcon = resolveIcon('search', SearchIconDefault);
+  const DatabaseIcon = resolveIcon('database', DatabaseIconDefault);
+  const InboxIcon = resolveIcon('inbox', InboxIconDefault);
 
   export type EmptyStateProps = {
     message?: string;
@@ -87,44 +97,11 @@
       {#if icon}
         <div class={styles.icon()}>
           {#if icon === 'search'}
-            <svg
-              class={styles.iconSvg()}
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="currentColor"
-              stroke-linecap="round"
-              stroke-linejoin="round"
-            >
-              <circle cx="11" cy="11" r="8"></circle>
-              <path d="M21 21L16.65 16.65"></path>
-            </svg>
+            <SearchIcon class={styles.iconSvg()} />
           {:else if icon === 'database'}
-            <svg
-              class={styles.iconSvg()}
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="currentColor"
-              stroke-linecap="round"
-              stroke-linejoin="round"
-            >
-              <ellipse cx="12" cy="5" rx="9" ry="3"></ellipse>
-              <path d="M21 12c0 1.66-4 3-9 3s-9-1.34-9-3"></path>
-              <path d="M3 5v14c0 1.66 4 3 9 3s9-1.34 9-3V5"></path>
-            </svg>
+            <DatabaseIcon class={styles.iconSvg()} />
           {:else if icon === 'inbox'}
-            <svg
-              class={styles.iconSvg()}
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="currentColor"
-              stroke-linecap="round"
-              stroke-linejoin="round"
-            >
-              <polyline points="22,12 18,12 15,21 9,21 6,12 2,12"></polyline>
-              <path
-                d="M5.45 5.11L2 12v6a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2v-6l-3.45-6.89A2 2 0 0 0 16.76 4H7.24a2 2 0 0 0-1.79 1.11z"
-              ></path>
-            </svg>
+            <InboxIcon class={styles.iconSvg()} />
           {:else}
             <!-- Consumer-provided SVG markup; they are responsible for
                  sanitisation (same contract as the other icon slots). -->
