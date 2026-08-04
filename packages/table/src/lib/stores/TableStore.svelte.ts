@@ -677,6 +677,19 @@ export function createTableState(
     get totalPages() {
       return pagination.totalPages;
     },
+    /**
+     * The page actually rendered — `state.currentPage` clamped into range.
+     *
+     * Everything user-facing reads this, never `state.currentPage`: the raw
+     * value is the reader's *intent* and can sit out of range after
+     * `itemsPerPage` or the item count changed under it. Displaying it produced
+     * a pager reading "5 / 1", and paging keys computed from it went dead in
+     * both directions — `PageDown` compares `5 < 3`, `PageUp` asks `goToPage(4)`
+     * which the range check rejects.
+     */
+    get effectivePage() {
+      return pagination.effectivePage;
+    },
     get grouped() {
       return grouping.grouped;
     },

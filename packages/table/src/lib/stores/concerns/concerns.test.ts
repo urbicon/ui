@@ -864,6 +864,52 @@ describe('server mode: concern passthrough', () => {
     expect(pagination.totalPages).toBe(20); // 500/25
     expect(pagination.paginatedItems).toBe(items); // Passthrough
   });
+
+  it('effectivePage clamps a currentPage that outlived its range', () => {
+    // The state reached by raising a rows-per-page control while on a later
+    // page. Before the clamp `paginatedItems` sliced (80, 100) out of 100 rows
+    // and rendered an empty body with the data right there.
+    const items = Array.from({ length: 100 }, (_, i) => ({ id: i }));
+    const state = {
+      mode: 'client',
+      currentPage: 5,
+      itemsPerPage: 100,
+      groupByKey: null
+    } as unknown as TableState;
+
+    const pagination = usePagination(
+      state,
+      () => items,
+      () => items
+    );
+
+    expect(pagination.totalPages).toBe(1);
+    expect(pagination.effectivePage).toBe(1);
+    expect(pagination.paginatedItems).toHaveLength(100);
+    // The raw value is left alone on purpose: it is the reader's intent, and
+    // the pager, the paging keys and the focus reset all read `effectivePage`.
+    expect(state.currentPage).toBe(5);
+  });
+
+  it('effectivePage floors an out-of-range initialPage at 1', () => {
+    // `initialPage={0}` (or a negative) never had a guard of any kind.
+    const items = Array.from({ length: 10 }, (_, i) => ({ id: i }));
+    const state = {
+      mode: 'client',
+      currentPage: 0,
+      itemsPerPage: 5,
+      groupByKey: null
+    } as unknown as TableState;
+
+    const pagination = usePagination(
+      state,
+      () => items,
+      () => items
+    );
+
+    expect(pagination.effectivePage).toBe(1);
+    expect(pagination.paginatedItems.map((i) => (i as { id: number }).id)).toEqual([0, 1, 2, 3, 4]);
+  });
 });
 
 describe('useLiveUpdates', () => {
