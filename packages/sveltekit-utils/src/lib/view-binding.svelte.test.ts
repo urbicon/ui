@@ -468,3 +468,121 @@ describe('bindViewToUrl — two tables, one page', () => {
     expect(b.search).toBe('');
   });
 });
+
+// ── The writer's intended-search basis (adversarial review of cc338a26) ─────
+//
+// While a navigation is in flight, `page.url` is stale. A flush that merges
+// or compares against the live URL there works with yesterday's state — the
+// two attacks below are the review's red counter-examples, pinned green
+// against the `intendedSearch` basis.
+
+describe('bindViewToUrl — flushes while a navigation is in flight', () => {
+  it('a revert typed during a slow navigation ends with view and URL consistent (attack 1)', async () => {
+    // Clear, then retype the same value while the clearing navigation is in
+    // flight: against the stale live URL the corrective flush read as
+    // "cancels out" and was swallowed — permanent view↔URL divergence.
+    resetMockApp('?q=a');
+    const view = new TestView();
+    inRoot(() => bindViewToUrl(view, { debounceMs: 100 }));
+    expect(view.search).toBe('a'); // init applied
+
+    setNavigationLatency(200);
+
+    view.search = ''; // the reader clears the search…
+    flushSync();
+    await advance(100); // …debounce fires → clearing goto in flight (lands at +200)
+
+    view.search = 'a'; // …and retypes while it is in flight
+    flushSync();
+    await advance(100); // this flush must base itself on the INTENDED search
+
+    await advance(200); // both navigations land
+    await advance(2000); // let any corrective debounce run out
+
+    expect(view.search).toBe('a');
+    expect(new URLSearchParams(search()).get('q')).toBe('a');
+  });
+
+  it('two prefixed bindings with staggered debounces under latency keep BOTH slices (attack 2, Prüfstein 14)', async () => {
+    // b's flush happens while a's navigation is still in flight; merging on
+    // the stale live URL (bare) erased a's slice from the URL for good.
+    const a = new TestView();
+    const b = new TestView();
+    inRoot(() => {
+      bindViewToUrl(a, { prefix: 'a_', debounceMs: 100 });
+      bindViewToUrl(b, { prefix: 'b_', debounceMs: 200 });
+    });
+    setNavigationLatency(300);
+
+    a.search = 'aye';
+    b.search = 'bee';
+    flushSync();
+
+    await advance(100); // a's goto departs (lands at +300)
+    await advance(100); // b's flush merges onto the intended search, not the stale URL
+    await advance(300); // a's navigation lands
+    await advance(300); // b's navigation lands
+    await advance(2000); // any corrective debounce
+
+    const sp = new URLSearchParams(search());
+    expect(a.search).toBe('aye');
+    expect(b.search).toBe('bee');
+    expect(sp.get('a_q')).toBe('aye');
+    expect(sp.get('b_q')).toBe('bee');
+  });
+});
+
+describe('bindViewToUrl — mirror-only submissions (attack 3)', () => {
+  it('reflectExternal replaces even in push mode — a seed mirror mints no history entry', async () => {
+    // `replaceState: false` configures the *reader's* navigations. A pure
+    // external mirror (a storage seed reaching the URL) is not one — it must
+    // never grow the back-button stack, whatever the binding's push mode.
+    const view = new TestView();
+    inRoot(() => bindViewToUrl(view, { reflectExternal: true, replaceState: false }));
+    view.applyExternal({ search: 'stored' }, 'external');
+    flushSync();
+    await advance(300);
+    expect(new URLSearchParams(search()).get('q')).toBe('stored');
+    expect(navigationLog.pushCount).toBe(0);
+  });
+});
+
+describe('bindViewToUrl — the writer-side key registry', () => {
+  it('two prefixless bindings on two different views fail loud, pointing at `prefix`', () => {
+    // The view-level claims cannot see this one: each binding claims axes on
+    // its OWN view, yet both manage the same URL keys — last flush wins and a
+    // shared link loads the wrong table. The writer is the one place that
+    // sees every binding on the page.
+    const a = new TestView();
+    const b = new TestView();
+    inRoot(() => bindViewToUrl(a));
+    expect(() => inRoot(() => bindViewToUrl(b))).toThrow(/prefix/);
+  });
+
+  it('a destroyed binding releases its keys — a later binding on another view is legal', () => {
+    const a = new TestView();
+    const destroy = inRoot(() => bindViewToUrl(a));
+    destroy();
+    roots = roots.filter((d) => d !== destroy);
+    const b = new TestView();
+    expect(() => inRoot(() => bindViewToUrl(b))).not.toThrow();
+  });
+});
+
+describe('bindViewToUrl — teardown withdraws unflushed writer jobs', () => {
+  it('a job submitted in the same task as the unmount never navigates', async () => {
+    // The debounce can fire in the task that also unmounts the component:
+    // the job is submitted, the coalescing flush microtask has not run yet.
+    // Teardown must pull the job back, or the dead table's params navigate
+    // onto whatever page comes next.
+    const view = new TestView();
+    const destroy = inRoot(() => bindViewToUrl(view, { debounceMs: 100 }));
+    view.search = 'ada';
+    flushSync();
+    vi.advanceTimersByTime(100); // debounce fires → job submitted, flush queued
+    destroy(); // unmount before the microtask flush
+    roots = roots.filter((d) => d !== destroy);
+    await land(); // the writer flush runs — and must find nothing to send
+    expect(navigationLog.gotoCount).toBe(0);
+  });
+});

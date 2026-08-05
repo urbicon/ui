@@ -242,6 +242,24 @@ describe('candidate 2 — a flag around the synchronous application (measured to
   });
 });
 
+describe('groupBy normalisation — null is the single spelling of "ungrouped"', () => {
+  it("the setter reads a consumer's '' back as null, like the constructor does", () => {
+    const view = createTableView();
+    view.groupBy = 'status';
+    view.groupBy = ''; // "clear the grouping", spelled the loose way
+    expect(view.groupBy).toBeNull(); // never a distinct third state
+  });
+
+  it("writing '' onto an already-ungrouped view is a no-op — no phantom revision", () => {
+    const view = createTableView();
+    view.groupBy = '';
+    expect(view.groupBy).toBeNull();
+    // Normalised before the equality guard, so '' vs null is an echo: nothing
+    // for the bindings to serialize or store.
+    expect(view.originOf('groupBy')).toEqual({ revision: 0, origin: 'init' });
+  });
+});
+
 describe('claims — fail-loud composition (Prüfstein 16 / M1)', () => {
   it('two bindings of the same kind on one axis throw', () => {
     const view = createTableView();

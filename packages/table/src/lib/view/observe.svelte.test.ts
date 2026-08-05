@@ -3,6 +3,7 @@ import { flushSync } from 'svelte';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import type { Filter, TableQuery, TableQueryResult } from '$lib/types/tableTypes';
 import { createManagedFetch, observeView, viewToQuery } from './observe.svelte';
+import type { TableSource } from './source';
 import { createTableView, type TableView, type TableViewSnapshot } from './view.svelte';
 
 /**
@@ -230,6 +231,53 @@ describe('fetch counter (Prüfstein 12)', () => {
     resolvers[1]({ items: [{ id: 'fresh' }], totalItems: 1 });
     await flushMicrotasks();
 
+    expect(results).toHaveLength(1);
+    expect(results[0].items[0].id).toBe('fresh');
+    cleanup();
+  });
+});
+
+describe('a live source flip away from managed (the isManaged gate)', () => {
+  it('aborts the in-flight fetch, keeps its late result out of the sink, and refetches immediately on flip-back', async () => {
+    // The flip means "these client items are the truth now" — an in-flight
+    // managed fetch resolving afterwards must not land on top of them, and a
+    // later flip back to managed is a fresh start (immediate first fetch,
+    // not a debounced one).
+    const resolvers: Array<(r: TableQueryResult) => void> = [];
+    const seenSignals: AbortSignal[] = [];
+    const results: TableQueryResult[] = [];
+    const calls: TableQuery[] = [];
+    const query = (q: TableQuery, o: { signal: AbortSignal }): Promise<TableQueryResult> => {
+      calls.push(q);
+      seenSignals.push(o.signal);
+      return new Promise((resolve) => resolvers.push(resolve));
+    };
+    let source = $state<TableSource>({ query, debounceMs: 100 });
+    const cleanup = $effect.root(() => {
+      const view = createTableView();
+      createManagedFetch(view, () => source, { onResult: (r) => results.push(r) });
+    });
+    flushSync();
+    vi.advanceTimersByTime(0); // fetch 1 departs, stays in flight
+    await flushMicrotasks();
+    expect(calls).toHaveLength(1);
+
+    source = [{ id: 1 }]; // the parent flips to a client array mid-flight
+    flushSync();
+    expect(seenSignals[0].aborted).toBe(true); // aborted at the flip, not on supersede
+
+    resolvers[0]({ items: [{ id: 'stale' }], totalItems: 1 }); // the promise resolves late
+    await flushMicrotasks();
+    expect(results).toHaveLength(0); // the sink never hears from it
+
+    source = { query, debounceMs: 100 }; // flip back to managed
+    flushSync();
+    vi.advanceTimersByTime(0); // initialDone was reset → first fetch is immediate again
+    await flushMicrotasks();
+    expect(calls).toHaveLength(2);
+
+    resolvers[1]({ items: [{ id: 'fresh' }], totalItems: 1 });
+    await flushMicrotasks();
     expect(results).toHaveLength(1);
     expect(results[0].items[0].id).toBe('fresh');
     cleanup();

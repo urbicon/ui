@@ -3,7 +3,7 @@ import { flushSync } from 'svelte';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import type { Filter } from '$lib/types/tableTypes';
 import { bindViewToStorage, STORAGE_DEFAULT_AXES } from './storage-binding.svelte';
-import { createTableView, VIEW_AXES } from './view.svelte';
+import { createTableView, type TableView, VIEW_AXES } from './view.svelte';
 
 /**
  * The storage binding, measured — ported from the v8 spike (spike.origin /
@@ -578,6 +578,88 @@ describe('releaseAxes on destroy — the remount case (new in the product)', () 
     });
     second();
     first();
+  });
+});
+
+describe('remount hydration is scoped to the VIEW, not the binding (review attack 5)', () => {
+  it('a quick {#if} toggle does not re-hydrate stale storage over the reader’s newest edit', () => {
+    // The parent-owned view outlives the table. With a binding-scoped
+    // "applied once" flag, every remount counted as a fresh hydration and
+    // re-applied yesterday's stored value over state the reader has since
+    // changed. The marks live on the view now (`markStorageApplied`): a
+    // remount does not restart the view's life.
+    const view = createTableView();
+    const first = $effect.root(() => {
+      bindViewToStorage(view, { key: 'bind', storage, debounceMs: 100 });
+    });
+    flushSync();
+
+    view.search = 'ab';
+    flushSync();
+    vi.advanceTimersByTime(100);
+    expect(storedView()).toEqual({ search: 'ab' }); // the revert bait exists
+
+    view.search = 'abc'; // the newest edit…
+    flushSync();
+    first(); // …the {#if} unmounts before the debounce — pending write dropped
+
+    const second = $effect.root(() => {
+      bindViewToStorage(view, { key: 'bind', storage, debounceMs: 100 });
+    });
+    flushSync(); // hydration pass of the remounted binding
+
+    expect(view.search).toBe('abc'); // NOT reverted to the stored 'ab'
+    second();
+  });
+});
+
+describe('the binding handle — clear and flush', () => {
+  it('flush() writes the pending axes immediately, once, and disarms the debounce', () => {
+    let sets = 0;
+    const counting = {
+      getItem: (key: string) => storage.getItem(key),
+      setItem: (key: string, value: string) => {
+        sets += 1;
+        storage.setItem(key, value);
+      }
+    };
+    const cleanup = $effect.root(() => {
+      const view = createTableView();
+      const handle = bindViewToStorage(view, { key: 'bind', storage: counting, debounceMs: 500 });
+      flushSync();
+
+      view.search = 'ada';
+      flushSync();
+      expect(sets).toBe(0); // still inside the debounce window
+
+      handle.flush();
+      expect(sets).toBe(1); // written now, not at +500
+      expect(storedView()).toEqual({ search: 'ada' });
+    });
+    vi.advanceTimersByTime(1000); // the disarmed debounce adds no second write
+    expect(sets).toBe(1);
+    cleanup();
+  });
+
+  it('clear() removes the stored entry and drops the pending write — the live view is untouched', () => {
+    seedStorage({ search: 'stored' });
+    let view!: TableView;
+    const cleanup = $effect.root(() => {
+      view = createTableView();
+      const handle = bindViewToStorage(view, { key: 'bind', storage, debounceMs: 100 });
+      flushSync(); // hydration seeds the search
+      expect(view.search).toBe('stored');
+
+      view.groupBy = 'status'; // a pending write…
+      flushSync();
+      handle.clear(); // …the "reset saved view" button drops it with the entry
+    });
+    vi.advanceTimersByTime(1000);
+
+    expect(storage.getItem(KEY)).toBeNull(); // entry gone, pending write dropped
+    expect(view.search).toBe('stored'); // only storage was touched
+    expect(view.groupBy).toBe('status');
+    cleanup();
   });
 });
 
