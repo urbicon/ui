@@ -842,10 +842,8 @@ describe('useRemoteData', () => {
     expect(parsed.sortColumn).toBe('name');
   });
 
-  // Dropped from the v7 contract: "activeFilters in query are a copy". The
-  // projection reads `view.snapshot()`, which hands back the live filters
-  // reference — the old defensive copy existed to protect the loose state
-  // fields, which no longer exist. Flagged in the migration report.
+  // The v7 guarantee "activeFilters in query are a copy" survives: the
+  // projection copies in `viewToQuery`, and the copy test above pins it.
 });
 
 describe('server mode: concern passthrough', () => {

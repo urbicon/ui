@@ -142,7 +142,14 @@ export interface TableProps<T = TableItem> {
    *
    * Leave unset for a table that owns its view (zero-config); use
    * {@link viewDefaults} to adjust the defaults of that owned view. Passing
-   * both is a DEV error.
+   * both fails loud (also in prod — a miswired view corrupts state either
+   * way). Resolved once, at construction: a view is an identity, not a
+   * value — a later change of this prop is ignored.
+   *
+   * The table's own interaction handlers reset the page on a new search,
+   * filter or grouping; a *direct field write* (`view.search = 'x'`) does
+   * not — write `view.page = 1` alongside, or go through the context's
+   * `setSearchTerm`.
    *
    * @example A view whose state lives in the URL
    * ```svelte
@@ -164,8 +171,9 @@ export interface TableProps<T = TableItem> {
    * Defaults for the view the table owns when no {@link view} prop is passed
    * — the one-liner for the most common configuration:
    * `viewDefaults={{ pageSize: 25 }}`. Mutually exclusive with `view`
-   * (a consumer-owned view carries its own defaults); passing both is a DEV
-   * error.
+   * (a consumer-owned view carries its own defaults); passing both fails
+   * loud. Resolved once, at construction — a later change of this prop is
+   * ignored.
    * @default undefined
    */
   viewDefaults?: TableViewDefaults;

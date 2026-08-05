@@ -1,28 +1,25 @@
 // === VIEW OBJECT (v8 view state) ===
-export {
-  createManagedFetch,
-  type FetchSink,
-  type ObserveViewOptions,
-  observeView,
-  viewToQuery
-} from './observe.svelte.js';
-export {
-  type ClientItemsSource,
-  type ResolvedSource,
-  resolveSource,
-  type ServerManagedSource,
-  type ServerManualSource,
-  type TableSource
+//
+// Deliberately NOT exported (internal wiring, `TableProvider` is the only
+// consumer): `createManagedFetch`/`FetchSink` (the fetch lifecycle),
+// `resolveViewProp` (the view/viewDefaults resolution) and
+// `resolveSource`/`ResolvedSource` (the union dispatch).
+export { type ObserveViewOptions, observeView, viewToQuery } from './observe.svelte.js';
+export type {
+  ClientItemsSource,
+  ServerManagedSource,
+  ServerManualSource,
+  TableSource
 } from './source.js';
 export {
   bindViewToStorage,
   STORAGE_DEFAULT_AXES,
+  type StorageBindingHandle,
   type StorageBindingOptions
 } from './storage-binding.svelte.js';
 export {
   type BindingKind,
   createTableView,
-  resolveViewProp,
   TableView,
   type TableViewDefaults,
   type TableViewSnapshot,

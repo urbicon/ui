@@ -48,6 +48,18 @@ acceptSource({ kind: 'server', items });
 // @ts-expect-error managed source cannot carry `items`
 acceptSource({ query, items });
 
+// A managed source owns loading/error/total too — v7 warned about this
+// combination in DEV and ignored the props; now it must not compile, in the
+// variable form as well (the guards are load-bearing, like `total`'s).
+const managedWithLoading = { query, loading: true };
+// @ts-expect-error managed source cannot carry `loading` (variable form)
+acceptSource(managedWithLoading);
+const managedWithErrorTotal = { query, error: 'boom' as string | null, total: 99 };
+// @ts-expect-error managed source cannot carry `error`/`total` (variable form)
+acceptSource(managedWithErrorTotal);
+// @ts-expect-error managed source cannot carry `loading` (fresh literal)
+acceptSource({ query, loading: false });
+
 // ── Control measurement: the union WITHOUT the never-guards lets the silent
 // mode switch through on variable assignment. This block compiling is the
 // *measured defect*, not an oversight — remove the guards from TableSource

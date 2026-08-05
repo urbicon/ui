@@ -324,7 +324,10 @@ export function createTableState(
      */
     get groupByKey() {
       const requested = tableView.groupBy;
-      return requested && (props?.virtualized?.() ?? false) ? null : requested;
+      // Gated on the same overridable slot `useGrouping`'s setter gate reads
+      // (`state.virtualized`) — not on the raw prop — so the two gates can
+      // never disagree about what "virtualized" currently means.
+      return requested && virtualized ? null : requested;
     },
     set groupByKey(next: string | null) {
       tableView.groupBy = next;

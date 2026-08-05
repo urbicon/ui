@@ -60,25 +60,66 @@ function ownSlice(search: string, keys: readonly string[]): URLSearchParams {
 }
 
 interface WriterJob {
+  /** The submitting binding — lets a teardown withdraw its unflushed jobs. */
+  owner: object;
   keys: readonly string[];
   params: URLSearchParams;
   replaceState: boolean;
 }
 
 /**
- * The page-scoped coalescing URL writer. Module scope is safe here: it is
- * only ever touched from client-side effects (`goto` does not exist on the
- * server), so it can never carry state between server requests.
+ * The app-global coalescing URL writer (module scope — it outlives route
+ * changes; safe on the server because it is only ever touched from
+ * client-side effects and timer callbacks, so it can never carry state
+ * between server requests).
+ *
+ * While a navigation is in flight, `page.url` is stale — so the writer keeps
+ * `intendedSearch`, the last search string it sent, and uses it as BOTH the
+ * merge basis and the cancels-out comparison. Without it, a flush issued
+ * inside the in-flight window merged onto the stale URL: a revert during a
+ * slow navigation was swallowed as "cancels out" (permanent view↔URL
+ * divergence), and a sibling binding's slice was erased from the URL — the
+ * two red counter-examples of the adversarial review.
  */
 const writer = {
   jobs: [] as WriterJob[],
   flushQueued: false,
   /** Search strings sent via `goto` and not yet acknowledged by a landing. */
   sentPending: new Set<string>(),
+  /** The last sent search string — the true URL basis while anything is pending. */
+  intendedSearch: null as string | null,
   /** Memoized verdict for the most recent landing, so every binding on the
    *  page classifies one landing identically (the first query consumes the
    *  `sentPending` entry, the rest read the memo). */
   lastClassified: null as { search: string; self: boolean } | null,
+  /**
+   * The URL keys of every live url binding, by owner. Two prefixless
+   * bindings on two views would silently manage the same keys (last flush
+   * wins, a shared link loads the wrong table) — a key intersection at
+   * registration is a programming error, caught here because the writer is
+   * the one place that sees every binding on the page.
+   */
+  liveKeys: new Map<object, readonly string[]>(),
+
+  register(owner: object, keys: readonly string[]): void {
+    for (const [other, otherKeys] of this.liveKeys) {
+      if (other === owner) continue;
+      const clash = keys.find((key) => otherKeys.includes(key));
+      if (clash) {
+        throw new Error(
+          `[bindViewToUrl] two url bindings on this page manage the URL key "${clash}" — give one of them a \`prefix\`.`
+        );
+      }
+    }
+    this.liveKeys.set(owner, keys);
+  },
+
+  unregister(owner: object): void {
+    this.liveKeys.delete(owner);
+    // Withdraw unflushed jobs: a debounce that fired in the same task as the
+    // unmount must not navigate with the dead binding's params.
+    this.jobs = this.jobs.filter((job) => job.owner !== owner);
+  },
 
   submit(job: WriterJob): void {
     this.jobs.push(job);
@@ -92,7 +133,8 @@ const writer = {
     if (this.jobs.length === 0) return;
     const jobs = this.jobs;
     this.jobs = [];
-    const next = new URLSearchParams(page.url.searchParams);
+    const baseline = this.intendedSearch ?? page.url.search;
+    const next = new URLSearchParams(baseline);
     let replaceState = true;
     for (const job of jobs) {
       for (const key of job.keys) next.delete(key);
@@ -101,8 +143,9 @@ const writer = {
     }
     const qs = next.toString();
     const search = qs ? `?${qs}` : '';
-    if (search === page.url.search) return; // coalesced jobs cancelled out
+    if (search === baseline) return; // coalesced jobs cancelled out
     this.sentPending.add(search);
+    this.intendedSearch = search;
     void goto(`${page.url.pathname}${search}${page.url.hash}`, {
       replaceState,
       noScroll: true,
@@ -115,14 +158,23 @@ const writer = {
    * entry on first query (so a later back-navigation to the same string is
    * foreign, as it should be) and memoizes the verdict for the flush so
    * every binding agrees. A foreign landing invalidates everything pending —
-   * SvelteKit has cancelled those navigations.
+   * SvelteKit has cancelled those navigations. When the *intended* (last
+   * sent) navigation lands, every older pending entry is cleared too: those
+   * navigations were superseded and will never land, and a stale entry
+   * would misclassify a later back-landing on the same string as self.
    */
   classify(search: string): 'self' | 'foreign' {
     if (this.lastClassified?.search === search) {
       return this.lastClassified.self ? 'self' : 'foreign';
     }
     const self = this.sentPending.delete(search);
-    if (!self) this.sentPending.clear();
+    if (!self) {
+      this.sentPending.clear();
+      this.intendedSearch = null;
+    } else if (search === this.intendedSearch) {
+      this.sentPending.clear();
+      this.intendedSearch = null;
+    }
     this.lastClassified = { search, self };
     return self ? 'self' : 'foreign';
   }
@@ -139,7 +191,9 @@ export function __resetUrlWriterForTests(): void {
   writer.jobs = [];
   writer.flushQueued = false;
   writer.sentPending.clear();
+  writer.intendedSearch = null;
   writer.lastClassified = null;
+  writer.liveKeys.clear();
 }
 
 /** Options for {@link bindViewToUrl}. */
@@ -210,8 +264,11 @@ export function bindViewToUrl(view: TableViewLike, options: UrlViewBindingOption
   const reflectExternal = options.reflectExternal ?? false;
   const prefix = options.prefix ?? '';
   const managedKeys = viewAxisKeys(axes, prefix);
+  /** Identity handle for the writer's job/key bookkeeping. */
+  const owner = {};
 
   view.claimAxes('url', axes);
+  writer.register(owner, managedKeys);
 
   // ── Init phase: URL → view, synchronous. Absence means "not claimed" here
   // (storage may seed the axis later) — the only moment presence matters.
@@ -273,10 +330,17 @@ export function bindViewToUrl(view: TableViewLike, options: UrlViewBindingOption
   const currentBaseline = (): string =>
     lastSubmitted ?? canonical(ownSlice(page.url.search, managedKeys));
 
+  // Whether the pending debounce window saw a reader (or system) change, as
+  // opposed to a pure external mirror (`reflectExternal`): a storage seed
+  // reaching the URL must never mint a history entry the reader did not
+  // cause, so a mirror-only submission always replaces.
+  let pendingHasUserChange = false;
+
   $effect(() => {
     readAxes(view, axes); // track exactly the bound axes
     untrack(() => {
       let shouldMirror = reflectExternal;
+      let sawUserChange = false;
       for (const axis of axes) {
         const { revision, origin } = view.originOf(axis);
         if (revision > lastSeenRevision[axis]) {
@@ -284,10 +348,14 @@ export function bindViewToUrl(view: TableViewLike, options: UrlViewBindingOption
           // `system` mirrors too: the table cleaning a value may clean the
           // URL (virtualized × grouping). Only `external` (a binding
           // applying) stays silent.
-          if (origin === 'user' || origin === 'system') shouldMirror = true;
+          if (origin === 'user' || origin === 'system') {
+            shouldMirror = true;
+            sawUserChange = true;
+          }
         }
       }
       if (!shouldMirror) return;
+      if (sawUserChange) pendingHasUserChange = true;
       const serialized = viewSnapshotToSearchParams(view.snapshot(), view.defaults, axes, prefix);
       if (canonical(serialized) === currentBaseline()) return;
       if (timer) clearTimeout(timer);
@@ -297,9 +365,16 @@ export function bindViewToUrl(view: TableViewLike, options: UrlViewBindingOption
         // further changes; the last state is the one worth navigating to.
         const latest = viewSnapshotToSearchParams(view.snapshot(), view.defaults, axes, prefix);
         const latestCanonical = canonical(latest);
+        const mirrorOnly = !pendingHasUserChange;
+        pendingHasUserChange = false;
         if (latestCanonical === currentBaseline()) return;
         lastSubmitted = latestCanonical;
-        writer.submit({ keys: managedKeys, params: latest, replaceState });
+        writer.submit({
+          owner,
+          keys: managedKeys,
+          params: latest,
+          replaceState: mirrorOnly ? true : replaceState
+        });
       }, debounceMs);
     });
     // No per-run teardown — the timer must survive unrelated re-runs, or
@@ -318,6 +393,7 @@ export function bindViewToUrl(view: TableViewLike, options: UrlViewBindingOption
         timer = null;
       }
       view.releaseAxes('url', axes);
+      writer.unregister(owner);
     };
   });
 }

@@ -52,8 +52,8 @@ export interface TableQueryFilter {
 
 /**
  * Query state of a table in server mode. Structural mirror of `TableQuery`
- * from `@urbicon-ui/table` — the object passed to `queryFn` / `onQueryChange`
- * is directly assignable.
+ * from `@urbicon-ui/table` — the object a managed `source.query` receives
+ * (or `viewToQuery` projects) is directly assignable.
  */
 export interface TableQueryParams {
   /** Current page (1-based). */
@@ -73,39 +73,12 @@ export interface TableQueryParams {
 }
 
 /**
- * The partial half of {@link TableQueryParams} — structural mirror of
- * `TableViewState` from `@urbicon-ui/table`, the type its `query` prop takes.
- *
- * Every field optional, and that is the whole contract: **presence means
- * controlled**. A consumer may hand over the sort and leave paging to the
- * table, so "absent" has to stay distinguishable from "set to its default
- * value" — which is exactly what {@link TableQueryParams} cannot express.
- */
-export interface TableQueryViewState {
-  /** Current page (1-based). */
-  page?: number;
-  /** Number of items per page. */
-  itemsPerPage?: number;
-  /** Column ID to sort by, or empty string for no sort. */
-  sortColumn?: string;
-  /** Sort direction. */
-  sortDirection?: TableQuerySortDirection;
-  /** Full-text search term. */
-  searchTerm?: string;
-  /** Active column filters. */
-  activeFilters?: TableQueryFilter[];
-  /** Column ID for grouping, or null for ungrouped. */
-  groupByKey?: string | null;
-}
-
-/**
  * Baseline used for default elision: query values equal to these defaults are
  * omitted from the URL, and missing params parse back to them.
  *
- * Set the defaults to the table's **initial, uncontrolled state** — i.e. the
- * values you pass as props (`itemsPerPage`, `initialPage`, `initialGroupBy`).
- * Unset fields fall back to the table's own defaults (page 1, 10 items per
- * page, no sort, empty search, ungrouped).
+ * Set the defaults to the view's defaults (`createTableView({ defaults })`,
+ * projected into the wire shape). Unset fields fall back to the table's own
+ * defaults (page 1, 10 items per page, no sort, empty search, ungrouped).
  */
 export interface TableQueryDefaults {
   /** Default page. @default 1 */
@@ -237,8 +210,8 @@ function parseFilterParam(raw: string): TableQueryFilter | null {
  * When `sortColumn` is empty the sort direction is meaningless and is
  * normalized away (it parses back as `'asc'`).
  *
- * Also handy for building the backend request inside `queryFn` — the same
- * scheme works as an API query string.
+ * Also handy for building the backend request inside a managed
+ * `source.query` — the same scheme works as an API query string.
  *
  * @param query - Query emitted by the table (`TableQuery` is assignable).
  * @param options - Elision defaults + key prefix.
@@ -325,71 +298,6 @@ export function searchParamsToTableQuery(
     activeFilters,
     groupByKey: rawGroup !== null ? (rawGroup === '' ? null : rawGroup) : d.groupByKey
   };
-}
-
-/**
- * Parse `URLSearchParams` into the **partial** view state a table's `query`
- * prop takes — a key per axis the URL actually carries, and nothing else.
- *
- * This is the deliberate opposite of {@link searchParamsToTableQuery}, and the
- * distinction is load-bearing rather than cosmetic. The table reads `query` by
- * **field presence**: a present field means "this axis is controlled — outrank
- * persistence and the `initial*` seed"; an absent one means "the URL has no
- * opinion, carry on". A complete object therefore claims every axis, so
- * handing `searchParamsToTableQuery`'s output to `query` silently switches off
- * `persistenceConfig`, `initialSort`, `initialFilters` and `initialGroupBy` —
- * even on a URL with no params at all, where its every field is a default it
- * invented. That is not a hypothetical: it was the shipped wiring, and this
- * function exists because of it.
- *
- * `sortColumn` and `sortDirection` are emitted as a pair or not at all, so the
- * half-controlled sort (a direction with no column) cannot be produced here.
- *
- * Same tolerance as the full parser: an unparsable `page`/`size` falls back to
- * the resolved default *for that key* — the key was present, so the axis stays
- * controlled — and malformed filters are skipped individually.
- *
- * @param params - Search params to read (not mutated).
- * @param options - Fallback defaults + key prefix.
- * @returns Only the axes present in `params`.
- */
-export function searchParamsToTableViewState(
-  params: URLSearchParams,
-  options: TableQueryUrlOptions = {}
-): TableQueryViewState {
-  const d = resolveDefaults(options.defaults);
-  const k = paramKeys(options.prefix ?? '');
-  const view: TableQueryViewState = {};
-
-  const rawPage = params.get(k.page);
-  if (rawPage !== null) view.page = parsePositiveInt(rawPage) ?? d.page;
-
-  const rawSize = params.get(k.size);
-  if (rawSize !== null) view.itemsPerPage = parsePositiveInt(rawSize) ?? d.itemsPerPage;
-
-  const rawSort = params.get(k.sort);
-  if (rawSort !== null) {
-    view.sortColumn = rawSort;
-    view.sortDirection = rawSort !== '' && params.get(k.dir) === 'desc' ? 'desc' : 'asc';
-  }
-
-  const rawSearch = params.get(k.q);
-  if (rawSearch !== null) view.searchTerm = rawSearch;
-
-  const rawFilters = params.getAll(k.filter);
-  if (rawFilters.length > 0) {
-    const activeFilters: TableQueryFilter[] = [];
-    for (const raw of rawFilters) {
-      const filter = parseFilterParam(raw);
-      if (filter) activeFilters.push(filter);
-    }
-    view.activeFilters = activeFilters;
-  }
-
-  const rawGroup = params.get(k.group);
-  if (rawGroup !== null) view.groupByKey = rawGroup === '' ? null : rawGroup;
-
-  return view;
 }
 
 /**

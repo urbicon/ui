@@ -40,13 +40,21 @@ export interface ServerManualSource<T = TableItem> {
   query?: never;
 }
 
-/** Server mode, managed flow: the table drives the fetch lifecycle. */
+/**
+ * Server mode, managed flow: the table drives the fetch lifecycle — and owns
+ * `loading`/`error`/`total` outright, so the `never` guards below make
+ * passing them a type error instead of the silently ignored props they were
+ * in v7 (the DEV warning this union replaced).
+ */
 export interface ServerManagedSource {
   query: (q: TableQuery, options: { signal: AbortSignal }) => Promise<TableQueryResult>;
   /** Debounce for refetches after the immediate first fetch. @default 300 */
   debounceMs?: number;
   kind?: never;
   items?: never;
+  loading?: never;
+  error?: never;
+  total?: never;
 }
 
 /**

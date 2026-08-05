@@ -23,9 +23,8 @@ import type { Filter, TableQuery } from './tableTypes';
  * decorates the table-side view without importing it.
  *
  * The view types are imported from the package ROOT (which re-exports
- * `./table-view`): the `./table-view` subpath exists in `dist/` but has no
- * `exports` entry in sveltekit-utils' package.json yet, so the subpath does
- * not resolve.
+ * `./table-view`); the `./table-view` subpath is exported too, but the root
+ * import keeps this file working even against an older built `dist/`.
  *
  * Note: `@urbicon-ui/sveltekit-utils` must be built (`dist/`) for its types to
  * resolve — same as this package's other workspace dev-dependencies.

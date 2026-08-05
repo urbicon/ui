@@ -65,7 +65,21 @@ export function createManagedFetch<T>(
   let abortController: AbortController | null = null;
 
   $effect(() => {
-    if (!isManaged) return;
+    if (!isManaged) {
+      // A live flip away from the managed variant (source prop changed to
+      // client/manual): the in-flight fetch must not land on top of the
+      // re-seeded items, and a pending debounce must not start a new one.
+      // `initialDone` resets so a later flip back gets its immediate first
+      // fetch again.
+      if (timer) {
+        clearTimeout(timer);
+        timer = null;
+      }
+      abortController?.abort();
+      abortController = null;
+      initialDone = false;
+      return;
+    }
     void viewKey; // the only other tracked dependency
     const delay = initialDone
       ? untrack(() => {

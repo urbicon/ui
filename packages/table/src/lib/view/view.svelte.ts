@@ -152,6 +152,8 @@ export class TableView {
   #claims = new Set<string>();
   /** Axes a binding applied during init (the URL named them) — see {@link markInitApplied}. */
   #initApplied = new Set<ViewAxis>();
+  /** Axes a storage binding has hydrated in this view's lifetime — see {@link markStorageApplied}. */
+  #storageApplied = new Set<ViewAxis>();
 
   constructor(defaults: TableViewDefaults = {}) {
     if (
@@ -228,7 +230,10 @@ export class TableView {
     return this.#groupBy;
   }
   set groupBy(value: string | null) {
-    this.#write('groupBy', value, 'user');
+    // `|| null`: same normalisation as the constructor — `null` stays the
+    // single spelling of "ungrouped", so a consumer's `''` never reaches
+    // serialization or storage as a distinct third state.
+    this.#write('groupBy', value || null, 'user');
   }
 
   // ── The binding/system write surface ────────────────────────────────────
@@ -359,6 +364,24 @@ export class TableView {
   /** Whether a binding applied this axis during init. */
   wasInitApplied(axis: ViewAxis): boolean {
     return this.#initApplied.has(axis);
+  }
+
+  /**
+   * Marks axes a storage binding has processed at hydration time — like
+   * {@link markInitApplied}, scoped to the VIEW's lifetime, not the
+   * binding's: "storage never applies again" is a phase of the view's life,
+   * so a remounting child (`{#if}`) on a longer-lived view must not
+   * re-hydrate over state the reader has since changed. Set for every bound
+   * axis the hydration pass considered, whether or not storage held a value
+   * for it, and never cleared — symmetric with the init marks.
+   */
+  markStorageApplied(axes: readonly ViewAxis[]): void {
+    for (const axis of axes) this.#storageApplied.add(axis);
+  }
+
+  /** Whether a storage binding already hydrated this axis in this view's lifetime. */
+  wasStorageApplied(axis: ViewAxis): boolean {
+    return this.#storageApplied.has(axis);
   }
 }
 

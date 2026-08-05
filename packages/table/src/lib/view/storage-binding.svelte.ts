@@ -43,9 +43,25 @@ export interface StorageBindingOptions {
   /** Axes to persist. @default STORAGE_DEFAULT_AXES (all but `page`) */
   axes?: readonly ViewAxis[];
   /** Storage to use. @default window.localStorage */
-  storage?: Pick<Storage, 'getItem' | 'setItem'>;
+  storage?: Pick<Storage, 'getItem' | 'setItem'> & Partial<Pick<Storage, 'removeItem'>>;
   /** Write debounce in ms. @default 500 */
   debounceMs?: number;
+}
+
+/** What {@link bindViewToStorage} hands back — the two imperative affordances. */
+export interface StorageBindingHandle {
+  /**
+   * Remove this table's stored view entry (and drop any pending write) — the
+   * "reset saved view" button. The live view is untouched; only storage is.
+   */
+  clear(): void;
+  /**
+   * Write pending changes immediately instead of waiting for the debounce.
+   * Useful right before a programmatic navigation — the destroy teardown
+   * deliberately DROPS pending writes (no side effects after death), so an
+   * edit younger than `debounceMs` is lost on unmount unless flushed.
+   */
+  flush(): void;
 }
 
 const FILTER_OPERATORS = new Set([
@@ -130,7 +146,10 @@ function readAxes(view: TableView, axes: readonly ViewAxis[]): void {
  * bindViewToStorage(view, { key: 'invoices' });
  * ```
  */
-export function bindViewToStorage(view: TableView, options: StorageBindingOptions): void {
+export function bindViewToStorage(
+  view: TableView,
+  options: StorageBindingOptions
+): StorageBindingHandle {
   const axes = options.axes ?? STORAGE_DEFAULT_AXES;
   const debounceMs = options.debounceMs ?? 500;
   const storage =
@@ -159,14 +178,22 @@ export function bindViewToStorage(view: TableView, options: StorageBindingOption
   // taken here rather than at construction, which is what makes registration
   // order irrelevant: by the time effects run, every binding created during
   // component init has registered its init claims.
+  //
+  // "Once" is scoped to the VIEW's lifetime, not this binding's: the marks
+  // live on the view (`markStorageApplied`), so a remounting child (`{#if}`)
+  // on a longer-lived view does not re-hydrate stale storage over state the
+  // reader has since changed — the phase contract says storage never applies
+  // again, and a remount does not restart the view's life.
   let applied = false;
   $effect(() => {
     if (applied) return;
     applied = true;
     untrack(() => {
+      const freshAxes = axes.filter((axis) => !view.wasStorageApplied(axis));
+      view.markStorageApplied(freshAxes);
       if (!stored) return;
       const partial: Partial<TableViewSnapshot> = {};
-      for (const axis of axes) {
+      for (const axis of freshAxes) {
         if (axis in stored && !view.wasInitApplied(axis)) {
           const value = validateAxisValue(axis, stored[axis]);
           if (value !== undefined) {
@@ -186,6 +213,29 @@ export function bindViewToStorage(view: TableView, options: StorageBindingOption
 
   const pending = new Set<ViewAxis>();
   let timer: ReturnType<typeof setTimeout> | null = null;
+
+  function writePending(): void {
+    if (pending.size === 0 || !storage) return;
+    let current: Record<string, unknown> = {};
+    try {
+      const raw = storage.getItem(storageKey);
+      const parsed: unknown = raw === null ? {} : JSON.parse(raw);
+      if (parsed && typeof parsed === 'object' && !Array.isArray(parsed)) {
+        current = parsed as Record<string, unknown>;
+      }
+    } catch {
+      current = {};
+    }
+    const live = view.snapshot();
+    for (const axis of pending) current[axis] = live[axis];
+    pending.clear();
+    try {
+      storage.setItem(storageKey, JSON.stringify(current));
+    } catch {
+      // Quota/security errors must not take the table down — the view
+      // simply stops being persisted, same as with storage disabled.
+    }
+  }
 
   $effect(() => {
     readAxes(view, axes); // track exactly the bound axes
@@ -212,26 +262,7 @@ export function bindViewToStorage(view: TableView, options: StorageBindingOption
       if (timer) clearTimeout(timer);
       timer = setTimeout(() => {
         timer = null;
-        if (pending.size === 0) return;
-        let current: Record<string, unknown> = {};
-        try {
-          const raw = storage.getItem(storageKey);
-          const parsed: unknown = raw === null ? {} : JSON.parse(raw);
-          if (parsed && typeof parsed === 'object' && !Array.isArray(parsed)) {
-            current = parsed as Record<string, unknown>;
-          }
-        } catch {
-          current = {};
-        }
-        const live = view.snapshot();
-        for (const axis of pending) current[axis] = live[axis];
-        pending.clear();
-        try {
-          storage.setItem(storageKey, JSON.stringify(current));
-        } catch {
-          // Quota/security errors must not take the table down — the view
-          // simply stops being persisted, same as with storage disabled.
-        }
+        writePending();
       }, debounceMs);
     });
     // No per-run teardown — the timer must survive unrelated re-runs, or
@@ -251,4 +282,26 @@ export function bindViewToStorage(view: TableView, options: StorageBindingOption
       view.releaseAxes('storage', axes);
     };
   });
+
+  return {
+    clear() {
+      pending.clear();
+      if (timer) {
+        clearTimeout(timer);
+        timer = null;
+      }
+      try {
+        storage?.removeItem?.(storageKey);
+      } catch {
+        // Same containment as the write path.
+      }
+    },
+    flush() {
+      if (timer) {
+        clearTimeout(timer);
+        timer = null;
+      }
+      writePending();
+    }
+  };
 }
