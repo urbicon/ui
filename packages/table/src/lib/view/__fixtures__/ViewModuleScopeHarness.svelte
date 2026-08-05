@@ -1,9 +1,9 @@
 <script lang="ts">
   /**
-   * SPIKE m4 counter-probe — renders the module-scope view. With `write`
-   * set, this render mutates the shared view; a later render without `write`
-   * still sees the mutation. Two sequential server renders standing in for
-   * two requests: the leak is instance-level, so sequencing proves it.
+   * m4 counter-probe — renders the module-scope view. With `write` set, this
+   * render mutates the shared view; a later render without `write` still sees
+   * the mutation. Two sequential server renders standing in for two requests:
+   * the leak is instance-level, so sequencing proves it.
    */
   import { moduleScopeView } from './module-view';
 

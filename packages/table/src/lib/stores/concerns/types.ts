@@ -48,23 +48,6 @@ export interface TableState {
    */
   selectionControlled: boolean;
   /**
-   * Whether `searchTerm` is driven by a controlled prop. When true, search
-   * persistence is suppressed for the same reason selection's is: the prop is
-   * the source of truth, so a controlled value must never reach storage — it
-   * would resurrect on a later switch back to uncontrolled (set by
-   * `TableProvider` from the `searchTerm` prop).
-   */
-  searchControlled: boolean;
-  /**
-   * Whether the standalone `groupByKey` prop is controlled — the same contract
-   * as `searchControlled`, for the same reason: a value the consumer drives is
-   * never written to storage, so it cannot resurface on a later visit that no
-   * longer passes the prop (set by `TableProvider` from the `groupByKey` prop).
-   * The `query.groupByKey` axis is a different path, governed by
-   * `persistenceConfig.persistControlled`.
-   */
-  groupControlled: boolean;
-  /**
    * Whether a click anywhere on a row body toggles that row's selection (set by
    * `TableProvider` from the resolved `rowClickSelects` prop). The checkbox path
    * is unaffected — this only adds the row itself as a selection target.
@@ -86,7 +69,16 @@ export interface TableState {
    */
   virtualized: boolean;
 
-  mode: 'client' | 'server';
+  /**
+   * Data-processing mode, derived from the resolved {@link TableSource} —
+   * `'server'` covers both the manual and the managed server variant. Read by
+   * the sorting/pagination concerns; never written (the source is the truth).
+   */
+  readonly mode: 'client' | 'server';
+  /**
+   * Server-side total for pagination. Derived from a manual server source's
+   * `total`; a managed fetch writes it via `setServerResult`.
+   */
   serverTotalItems: number;
 
   /** Table-level switch for the column-visibility feature (visibility menu + header hide action). */

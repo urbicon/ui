@@ -95,17 +95,26 @@ describe('TableStore — state.items', () => {
     { id: 2, name: 'Grace' }
   ] as TableItem[];
 
-  it('reflects the items prop without a tracking context', () => {
-    const store = createTableState(undefined, undefined, { items: () => ITEMS });
+  it('reflects a plain-array source without a tracking context', () => {
+    const store = createTableState(undefined, undefined, { source: () => ITEMS });
     expect(store.state.items.map((i) => i.name)).toEqual(['Ada', 'Grace']);
   });
 
-  it('a second writer overrides, a new prop re-seeds', () => {
+  it('reflects the client-object source variant too', () => {
+    // `{ items, loading?, error? }` — the "I fetch it myself" shape. The item
+    // slot must not care which client variant delivered the rows.
+    const store = createTableState(undefined, undefined, {
+      source: () => ({ items: ITEMS, loading: false })
+    });
+    expect(store.state.items.map((i) => i.name)).toEqual(['Ada', 'Grace']);
+  });
+
+  it('a second writer overrides, a new source re-seeds', () => {
     const cleanup = $effect.root(() => {
       let items = $state<TableItem[]>(ITEMS);
-      const store = createTableState(undefined, undefined, { items: () => items });
+      const store = createTableState(undefined, undefined, { source: () => items });
 
-      // What useLiveUpdates / useRemoteData do.
+      // What useLiveUpdates / setServerResult do.
       store.state.items = [...store.state.items, { id: 3, name: 'Radia' } as TableItem];
       flushSync();
       expect(store.state.items.map((i) => i.name)).toEqual(['Ada', 'Grace', 'Radia']);
@@ -117,35 +126,37 @@ describe('TableStore — state.items', () => {
     cleanup();
   });
 
-  it('an emptied items prop empties the table', () => {
+  it('an emptied source empties the table', () => {
     // Behaviour change, recorded on purpose: the old effect was guarded with
     // `items.length > 0`, so clearing the prop left the previous rows on screen.
     // A derivation has no such asymmetry, and the honest reading of "items=[]"
     // is an empty table.
     let items = $state<TableItem[]>(ITEMS);
-    const store = createTableState(undefined, undefined, { items: () => items });
+    const store = createTableState(undefined, undefined, { source: () => items });
     expect(store.state.items).toHaveLength(2);
 
     items = [];
     expect(store.state.items).toHaveLength(0);
   });
 
-  it('a fresh queryFn identity does not discard fetched rows', () => {
-    // Regression guard for the hazard the derived rewrite introduced: in managed
-    // server mode the item slot is gated on whether a `queryFn` exists. Reading
-    // the *function* there made the derived depend on its identity, and
-    // `queryFn={(q) => …}` — the form in the package README — hands over a new
-    // one on every parent render. That re-seeded `state.items` to `[]` and threw
-    // away what `useRemoteData` had assigned, with nothing to refetch it: the
-    // fetch effect tracks only `mode` and `queryKey`. TableProvider therefore
-    // reads a boolean; this asserts the property that boolean buys.
+  it('a fresh managed-source literal does not discard fetched rows', () => {
+    // Regression guard for the #153-R1 class, in its v8 shape: an inline
+    // `source={{ query: (q) => … }}` hands over a NEW object (and a new
+    // function identity) on every parent render. The store's two derived
+    // stages exist so that only stable values leave the resolution — for a
+    // managed source the item slot is a referentially stable empty list, so
+    // the fresh literal must not re-seed `state.items` and throw away what
+    // `setServerResult` assigned (nothing would refetch it: the fetch effect
+    // tracks the structural view key, not the source identity).
     const seen: number[] = [];
     const cleanup = $effect.root(() => {
-      let queryFn = $state<(() => void) | undefined>(() => {});
-      const hasQueryFn = $derived(!!queryFn);
+      let rev = $state(0);
       const store = createTableState(undefined, undefined, {
-        mode: () => 'server',
-        items: () => (hasQueryFn ? [] : ITEMS)
+        source: () => {
+          void rev;
+          // Fresh literal AND fresh query identity per evaluation.
+          return { query: async () => ({ items: [], totalItems: 0 }) };
+        }
       });
 
       // What setServerResult does with the fetched page.
@@ -153,8 +164,8 @@ describe('TableStore — state.items', () => {
       flushSync();
       seen.push(store.state.items.length);
 
-      // Parent re-renders, inline arrow gets a new identity.
-      queryFn = () => {};
+      // Parent re-renders, inline literal gets a new identity.
+      rev += 1;
       flushSync();
       seen.push(store.state.items.length);
     });
@@ -174,7 +185,7 @@ describe('TableStore — state.items', () => {
     const seen: number[] = [];
     const cleanup = $effect.root(() => {
       const store = createTableState(undefined, undefined, {
-        items: () => [{ id: 1, name: 'Ada' }] as TableItem[]
+        source: () => [{ id: 1, name: 'Ada' }] as TableItem[]
       });
       $effect(() => {
         seen.push(store.state.items.length);
@@ -200,7 +211,7 @@ describe('TableStore — state.items', () => {
     // the key-stability fallback. The derived has to run it for the same reason
     // `setItems` did, so the server render keys rows the way the client will.
     const store = createTableState(undefined, undefined, {
-      items: () => [{ name: 'no id' }] as TableItem[]
+      source: () => [{ name: 'no id' }] as TableItem[]
     });
     expect(store.state.items[0].__index).toBe(0);
   });

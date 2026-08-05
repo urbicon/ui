@@ -1,31 +1,27 @@
 import type { TableItem, TableQuery } from '$lib/types/tableTypes';
+import { viewToQuery } from '$lib/view/observe.svelte';
+import type { TableView } from '$lib/view/view.svelte';
 import type { TableState } from './types';
 
 /**
- * Remote data concern: derives the current query state for server-side fetching.
+ * Remote data concern: derives the current query state for server-side
+ * fetching — since v8 a projection of the view object, not a hand-assembled
+ * copy of six loose state fields.
  *
  * This concern does NOT fetch data itself (keeping the store synchronous).
- * Instead, it exposes a reactive `query` object and `setServerResult()` for
- * the component layer to drive the async lifecycle.
+ * The managed fetch lifecycle lives in `createManagedFetch`
+ * (`$lib/view/observe.svelte`), driven by `TableProvider`; the setters here
+ * are its sink.
  *
- * @param state - Shared table state.
+ * @param state - Shared table state (the setters write into it).
+ * @param view - The view object the query is projected from.
  */
-export function useRemoteData(state: TableState) {
+export function useRemoteData(state: TableState, view: TableView) {
   /**
-   * Current query derived from table state.
-   * Changes reactively when any filter/sort/page/search state changes.
+   * Current query derived from the view.
+   * Changes reactively when any filter/sort/page/search axis changes.
    */
-  const query = $derived.by(
-    (): TableQuery => ({
-      page: state.currentPage,
-      itemsPerPage: state.itemsPerPage,
-      sortColumn: state.sortColumn,
-      sortDirection: state.sortDirection,
-      searchTerm: state.searchTerm,
-      activeFilters: [...state.activeFilters],
-      groupByKey: state.groupByKey
-    })
-  );
+  const query = $derived.by((): TableQuery => viewToQuery(view.snapshot()));
 
   /**
    * Serialized query string for change detection.
@@ -35,8 +31,7 @@ export function useRemoteData(state: TableState) {
 
   /**
    * Apply server result to the table state.
-   * Called by the component layer when `queryFn` resolves or when
-   * the developer provides new items in manual mode.
+   * Called by the managed fetch when `source.query` resolves.
    */
   function setServerResult(result: { items: TableItem[]; totalItems: number }) {
     state.items = result.items;
@@ -45,17 +40,13 @@ export function useRemoteData(state: TableState) {
     state.error = null;
   }
 
-  /**
-   * Set server-side error state.
-   */
+  /** Set server-side error state. */
   function setServerError(error: string) {
     state.loading = false;
     state.error = error;
   }
 
-  /**
-   * Set loading state (used before fetch).
-   */
+  /** Set loading state (used before fetch). */
   function setServerLoading() {
     state.loading = true;
   }

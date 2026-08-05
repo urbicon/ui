@@ -33,7 +33,6 @@ export * from './stores/index.js';
 export * from './style/index.js';
 // === TYPES ===
 export * from './types/index.js';
-
 // === COLUMN RESOLVERS ===
 // Helpers for table-level cell snippets and other consumers that need to
 // derive the stable identifier or value from a Column with a string,
@@ -49,3 +48,5 @@ export type { VirtualItem, VirtualizerOptions, VirtualizerResult } from './utils
 export { computeVirtualItems, ROW_HEIGHTS } from './utils/virtualizer.js';
 // === VARIANTS ===
 export * from './variants/index.js';
+// === VIEW OBJECT (v8 view state) ===
+export * from './view/index.js';

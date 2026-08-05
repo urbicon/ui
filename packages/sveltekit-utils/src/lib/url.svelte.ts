@@ -1,6 +1,14 @@
 import { building } from '$app/environment';
 import { goto } from '$app/navigation';
 import { page } from '$app/state';
+
+// The v8 view-object binding lives in its own module; re-exported here so the
+// documented import path (`@urbicon-ui/sveltekit-utils/url.svelte`) carries it.
+// The mirror types (TableViewLike, TableViewSnapshot, …) are exported from the
+// package root via `table-view` — not re-exported here, which would make the
+// root's star exports ambiguous and silently drop them.
+export { bindViewToUrl, type UrlViewBindingOptions } from './view-binding.svelte';
+
 import {
   applyTableQueryToSearchParams,
   searchParamsToTableQuery,

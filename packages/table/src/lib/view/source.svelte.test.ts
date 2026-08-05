@@ -5,9 +5,11 @@ import type { TableQueryResult } from '$lib/types/tableTypes';
 import { resolveSource, type TableSource } from './source';
 
 /**
- * SPIKE §7.3 — runtime half of the source union: dispatch correctness and
- * the identity-tracking measurement (M2). The type-level half lives in
- * source.typecheck.ts and is enforced by svelte-check.
+ * Runtime half of the source union, ported from the v8 spike (§7.3,
+ * spike.source at 5c0f42f8): dispatch correctness and the identity-tracking
+ * measurement (M2). The type-level half (excess-property guards on the
+ * `kind?: never` / `total?: never` fields) lives in the svelte-check gate,
+ * not here.
  */
 
 const ITEMS = [
@@ -83,7 +85,7 @@ describe('identity tracking (M2) — per-render fresh source literals', () => {
     // The derived re-evaluated (its input tracked renderTrigger), but its
     // VALUE is the same array reference — Svelte skips propagation, the
     // downstream effect never runs. This is the structural-derivation shield
-    // that has to carry the fetch layer and the items ingestion.
+    // that carries the fetch layer and the items ingestion.
     expect(downstreamRuns).toBe(1);
     cleanup();
   });
@@ -108,9 +110,9 @@ describe('identity tracking (M2) — per-render fresh source literals', () => {
       flushSync();
     });
 
-    // Fresh array identity propagates. Same contract as today's `items` prop:
+    // Fresh array identity propagates. Same contract as the v7 `items` prop:
     // the reference must be stable across renders; the union does not change
-    // that, and Rev. 3 documents it as the consumer-side rule that REMAINS.
+    // that — it stays the consumer-side rule (Rev. 3).
     expect(downstreamRuns).toBe(2);
     cleanup();
   });

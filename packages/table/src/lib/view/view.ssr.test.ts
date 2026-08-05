@@ -5,19 +5,26 @@ import ViewSsrHarness from './__fixtures__/ViewSsrHarness.svelte';
 import { createTableView } from './view.svelte';
 
 /**
- * SPIKE — the SSR half: construction and getters resolve during the server
- * render (Prüfstein 1 at unit scale), requests do not share view state when
- * the view is component-scoped (Prüfstein 15), the module-scope counter-probe
+ * The SSR half, ported from the v8 spike (spike.ssr at 5c0f42f8):
+ * construction and getters resolve during the server render (Prüfstein 1 at
+ * unit scale), requests do not share view state when the view is
+ * component-scoped (Prüfstein 15), the module-scope counter-probe
  * demonstrates the leak the m4 rule exists for, and the DEV guard's
  * `hasContext` probe actually distinguishes the two situations.
  *
- * Node environment on purpose — same pattern as Table.ssr.test.ts.
+ * The spike harness parsed a real URL through the URL binding; that binding
+ * lives in sveltekit-utils now, so the harness applies an init partial via
+ * `applyExternal(..., 'external')` — the exact call the URL binding makes
+ * synchronously at init. Node environment on purpose — same pattern as
+ * Table.ssr.test.ts.
  */
 
-describe('SSR renders the linked view (Prüfstein 1, unit scale)', () => {
-  it('a sort/search-carrying URL reaches the server HTML synchronously', () => {
+describe('SSR renders the applied view (Prüfstein 1, unit scale)', () => {
+  it('an init-applied sort/search/page reaches the server HTML synchronously', () => {
     const { body } = render(ViewSsrHarness, {
-      props: { search: '?sort=amount&dir=desc&q=ada&page=3' }
+      props: {
+        init: { sort: { column: 'amount', direction: 'desc' }, search: 'ada', page: 3 }
+      }
     });
 
     expect(body).toContain('amount:desc');
@@ -25,8 +32,8 @@ describe('SSR renders the linked view (Prüfstein 1, unit scale)', () => {
     expect(body).toContain('page:3');
   });
 
-  it('a bare URL renders the defaults', () => {
-    const { body } = render(ViewSsrHarness, { props: { search: '' } });
+  it('without an init application the defaults render', () => {
+    const { body } = render(ViewSsrHarness, { props: {} });
 
     expect(body).toContain('unsorted');
     expect(body).toContain('empty');
@@ -34,16 +41,21 @@ describe('SSR renders the linked view (Prüfstein 1, unit scale)', () => {
     expect(body).toContain('size:10');
   });
 
-  it('an explicit empty sort param renders unsorted even against a default sort', () => {
-    const { body } = render(ViewSsrHarness, { props: { search: '?sort=' } });
+  it('“empty is a value”: an init-applied null sort renders unsorted even against a default sort', () => {
+    const { body } = render(ViewSsrHarness, {
+      props: {
+        defaults: { sort: { column: 'date', direction: 'desc' } },
+        init: { sort: null }
+      }
+    });
     expect(body).toContain('unsorted');
   });
 });
 
 describe('request isolation (Prüfstein 15)', () => {
   it('two renders of a component-scoped view do not share state', () => {
-    const first = render(ViewSsrHarness, { props: { search: '?q=first-request' } });
-    const second = render(ViewSsrHarness, { props: { search: '' } });
+    const first = render(ViewSsrHarness, { props: { init: { search: 'first-request' } } });
+    const second = render(ViewSsrHarness, { props: {} });
 
     expect(first.body).toContain('first-request');
     expect(second.body).not.toContain('first-request');
@@ -82,7 +94,7 @@ describe('the DEV guard for module-scope construction (m4)', () => {
   });
 
   it('does not warn during a component render on the server', () => {
-    render(ViewSsrHarness, { props: { search: '' } });
+    render(ViewSsrHarness, { props: {} });
     expect(warnSpy).not.toHaveBeenCalled();
   });
 });

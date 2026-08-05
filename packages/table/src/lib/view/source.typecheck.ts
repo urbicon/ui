@@ -1,5 +1,5 @@
 /**
- * SPIKE §7.3 — type-level measurements against the real compiler. This file
+ * Type-level guards (v8 source union) against the real compiler. This file
  * is *checked*, never executed: every `@ts-expect-error` here is a claim that
  * the compiler rejects the line — and svelte-check fails when one stops
  * erroring, so each probe carries its own positive control.
@@ -17,7 +17,7 @@ import { resolveSource, type TableSource } from './source';
 declare const items: Array<{ id: number; name: string }>;
 declare const query: (q: TableQuery, o: { signal: AbortSignal }) => Promise<TableQueryResult>;
 
-declare function acceptSource<T extends TableItem>(source: TableSource<T>): void;
+declare function acceptSource<T>(source: TableSource<T>): void;
 
 // ── The four intended shapes all pass ─────────────────────────────────────
 acceptSource(items);
@@ -52,17 +52,17 @@ acceptSource({ query, items });
 // mode switch through on variable assignment. This block compiling is the
 // *measured defect*, not an oversight — remove the guards from TableSource
 // and the two @ts-expect-error probes above start failing the check.
-interface NaiveClient<T extends TableItem> {
+interface NaiveClient<T> {
   items: T[];
   loading?: boolean;
   error?: string | null;
 }
-type NaiveSource<T extends TableItem> = T[] | NaiveClient<T>;
-declare function acceptNaive<T extends TableItem>(source: NaiveSource<T>): void;
+type NaiveSource<T> = T[] | NaiveClient<T>;
+declare function acceptNaive<T>(source: NaiveSource<T>): void;
 acceptNaive(informativeTotal); // compiles — the silent switch M5 warns about
 
 // ── TS ergonomics under generics (§7.3): narrowing survives the generic ───
-export function genericConsumer<T extends TableItem>(source: TableSource<T>): T[] {
+export function genericConsumer<T>(source: TableSource<T>): T[] {
   const resolved = resolveSource(source);
   if (resolved.mode === 'server-managed') {
     // narrowed: no items on the managed arm

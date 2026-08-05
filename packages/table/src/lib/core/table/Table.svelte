@@ -1,6 +1,7 @@
 <script lang="ts" generics="T = TableItem">
   import type { TableProps } from './index';
   import type { TableItem, Column } from '$lib/types/tableTypes';
+  import type { TableSource } from '$lib/view/source';
   import { getTableContext } from '$lib/stores/TableStore.svelte.js';
   import { tableContainerVariants } from '$lib/variants';
   import {
@@ -36,8 +37,10 @@
     size = 'md' as 'sm' | 'md' | 'lg',
     variant = 'flush' as 'flush' | 'surface' | 'framed',
 
-    itemsPerPage = 10,
-    initialPage = 1,
+    source = undefined,
+    view = undefined,
+    viewDefaults = undefined,
+    prefs = undefined,
     expandedRowContent = undefined,
     multiExpand = false,
     mobileCardDetails = 'collapsed',
@@ -45,21 +48,13 @@
     virtualized = false,
     virtualHeight = '600px',
     groupOrder = [],
-    initialGroupBy = null,
-    initialSummaryConfigs = [],
-    initialSort = undefined,
-    initialFilters = undefined,
     initialSelectedIds = undefined,
 
     enableSmartFilter = true,
     enableColumnVisibility = true,
     searchPlaceholder = tt('search.placeholder'),
     searchDebounceMs = 300,
-    searchTerm = undefined,
-    onSearchTermChange = undefined,
 
-    loading = false,
-    error = null,
     loadingText = tt('data.loading'),
     errorText = tt('error.loadingError'),
     noDataText = tt('data.empty'),
@@ -73,13 +68,6 @@
     errorState = undefined,
     groupHeaderContent,
     toolbar = undefined,
-    mode = 'client',
-    serverTotalItems = 0,
-    queryFn = undefined,
-    onQueryChange = undefined,
-    query = undefined,
-    queryDebounceMs = 300,
-    persistenceConfig,
     unstyled = false,
     slotClasses = {},
     enableColumnReorder = false,
@@ -108,6 +96,7 @@
   // consumers writing `<Table<Apartment> ... />` get full type-safety.
   const itemsErased = $derived(items as unknown as TableItem[]);
   const columnsErased = $derived(columns as unknown as Column[]);
+  const sourceErased = $derived(source as unknown as TableSource | undefined);
   const expandedRowContentErased = $derived(
     expandedRowContent as unknown as TableProps['expandedRowContent']
   );
@@ -196,25 +185,14 @@
 <TableProvider
   items={itemsErased}
   columns={columnsErased}
-  {itemsPerPage}
-  {initialPage}
+  source={sourceErased}
+  {view}
+  {viewDefaults}
+  {prefs}
   {groupOrder}
-  {initialGroupBy}
-  {initialSummaryConfigs}
-  {initialSort}
-  {initialFilters}
   {initialSelectedIds}
   {multiExpand}
   {virtualized}
-  {loading}
-  {error}
-  {persistenceConfig}
-  {mode}
-  {serverTotalItems}
-  {queryFn}
-  {onQueryChange}
-  {query}
-  {queryDebounceMs}
   {enableLiveUpdates}
   {autoApplyOnNavigation}
   {selectionMode}
@@ -224,8 +202,6 @@
   {selectedIds}
   onSelectionChange={onSelectionChangeErased}
   {enableColumnVisibility}
-  {searchTerm}
-  {onSearchTermChange}
 >
   {@render provider_content()}
 </TableProvider>

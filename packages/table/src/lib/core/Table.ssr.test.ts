@@ -1,5 +1,6 @@
 import { render } from 'svelte/server';
-import { describe, expect, it } from 'vitest';
+import { afterAll, beforeAll, describe, expect, it, vi } from 'vitest';
+import { createTableView, type TableViewSnapshot } from '$lib/view/view.svelte';
 import TableHarness from './__fixtures__/TableHarness.svelte';
 
 /**
@@ -54,19 +55,21 @@ describe('Table — server render', () => {
     expect(body).toContain('Nothing here');
   });
 
-  it('honours itemsPerPage on the server, so page one is not the whole set', () => {
+  it('honours viewDefaults.pageSize on the server, so page one is not the whole set', () => {
     const many = Array.from({ length: 25 }, (_, i) => ({
       id: i,
       name: `Person ${i}`,
       amount: i
     }));
-    const body = bodyOf({ items: many, itemsPerPage: 10 });
+    // 7, deliberately NOT the view's own default of 10 — with 10 the
+    // assertion below held even when the prop never reached the store.
+    const body = bodyOf({ items: many, viewDefaults: { pageSize: 7 } });
 
     expect(body).toContain('Person 0');
-    expect(body).toContain('Person 9');
-    // Page two must not be in the first paint — the prop has to reach the store
-    // during SSR for the slice to happen at all.
-    expect(body).not.toContain('Person 10');
+    expect(body).toContain('Person 6');
+    // Page two must not be in the first paint — the default has to reach the
+    // view during SSR for the slice to happen at all.
+    expect(body).not.toContain('Person 7');
   });
 });
 
@@ -75,7 +78,28 @@ describe('Table — server render of a shared link', () => {
   // URL must receive *filtered* rows in the server-rendered HTML. Same
   // measurement as the suite above, but with a non-default view — which is
   // exactly what localStorage could never deliver, because the server cannot
-  // see it. `query` is the URL, parsed.
+  // see it. Since v8 the URL binding applies the parsed params to the view
+  // object *before* the table renders (`applyExternal`, `external` origin) —
+  // `linkedView` below is that init step, minus SvelteKit. The client-side
+  // half of this wiring (binding matrix, deep-link precedence) lives in
+  // `stores/TableStore.viewwiring.svelte.test.ts`; it cannot live here
+  // because a `svelte/server` render needs the node environment, where
+  // `$effect.root` does not run.
+
+  // Constructing a view outside a component warns on the server (module-scope
+  // views are cross-request state) — correct in production, noise here.
+  beforeAll(() => {
+    vi.spyOn(console, 'warn').mockImplementation(() => {});
+  });
+  afterAll(() => {
+    vi.restoreAllMocks();
+  });
+
+  const linkedView = (partial: Partial<TableViewSnapshot>) => {
+    const view = createTableView();
+    view.applyExternal(partial, 'external');
+    return view;
+  };
 
   it('sorts on the server', () => {
     // Sorted against the INPUT order, which is already Ada/Grace/Radia — so the
@@ -83,7 +107,7 @@ describe('Table — server render of a shared link', () => {
     // that all three names appear passes without any sorting at all.
     const byAmount = bodyOf({
       items: ROWS,
-      query: { sortColumn: 'amount', sortDirection: 'desc' }
+      view: linkedView({ sort: { column: 'amount', direction: 'desc' } })
     });
     expect(byAmount.indexOf('Radia')).toBeLessThan(byAmount.indexOf('Ada'));
     // No ascending counterpart: `amount asc` is the input order, so it would
@@ -92,7 +116,7 @@ describe('Table — server render of a shared link', () => {
   });
 
   it('searches on the server', () => {
-    const body = bodyOf({ items: ROWS, query: { searchTerm: 'grace' } });
+    const body = bodyOf({ items: ROWS, view: linkedView({ search: 'grace' }) });
 
     expect(body).toContain('Grace');
     expect(body).not.toContain('Ada');
@@ -100,7 +124,7 @@ describe('Table — server render of a shared link', () => {
   });
 
   it('pages on the server', () => {
-    const body = bodyOf({ items: ROWS, query: { page: 2, itemsPerPage: 1 } });
+    const body = bodyOf({ items: ROWS, view: linkedView({ page: 2, pageSize: 1 }) });
 
     expect(body).toContain('Grace');
     expect(body).not.toContain('Ada');
@@ -109,7 +133,7 @@ describe('Table — server render of a shared link', () => {
   it('filters on the server', () => {
     const body = bodyOf({
       items: ROWS,
-      query: { activeFilters: [{ column: 'name', operator: 'equals', value: 'Radia' }] }
+      view: linkedView({ filters: [{ column: 'name', operator: 'equals', value: 'Radia' }] })
     });
 
     expect(body).toContain('Radia');

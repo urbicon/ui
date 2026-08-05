@@ -7,7 +7,7 @@ export { useFocusManagement } from './useFocusManagement.svelte.js';
 export { useGrouping } from './useGrouping.svelte.js';
 export { useLiveUpdates } from './useLiveUpdates.svelte.js';
 export { usePagination } from './usePagination.svelte.js';
-export { usePersistence } from './usePersistence.svelte.js';
+export { usePrefs } from './usePrefs.svelte.js';
 export { useRemoteData } from './useRemoteData.svelte.js';
 export { useSearch } from './useSearch.svelte.js';
 export { useSelection } from './useSelection.svelte.js';

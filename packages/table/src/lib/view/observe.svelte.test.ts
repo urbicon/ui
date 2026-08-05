@@ -2,16 +2,25 @@
 import { flushSync } from 'svelte';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import type { Filter, TableQuery, TableQueryResult } from '$lib/types/tableTypes';
-import { bindViewToUrl, FakeUrl } from './bindings.svelte';
-import { createManagedFetch, observeView } from './fetcher.svelte';
-import type { TableSource } from './source';
-import { createTableView, type TableViewSnapshot } from './view.svelte';
+import { createManagedFetch, observeView, viewToQuery } from './observe.svelte';
+import { createTableView, type TableView, type TableViewSnapshot } from './view.svelte';
 
 /**
- * SPIKE §7.4 — the server-mode contract: exactly one fetch per interaction,
- * the first immediate, echoes free of second fetches (Prüfstein 12); the
- * two-timer divergence between URL debounce and fetch debounce; and
- * `observeView` as the `onQueryChange` replacement (Prüfstein 13).
+ * The managed fetch layer and `observeView`, ported from the v8 spike
+ * (§7.4, spike.fetch / spike.review-fixes at 5c0f42f8): exactly one fetch
+ * per interaction, the first immediate, echoes free of second fetches
+ * (Prüfstein 12), identity-hardening against fresh source literals, abort
+ * on supersede, destroy teardowns (M4), and `observeView` as the
+ * `onQueryChange` replacement (Prüfstein 13).
+ *
+ * The full circle over a real URL binding (user change → goto → echo parsed
+ * → no second fetch) and the two-timer divergence between URL debounce and
+ * fetch debounce moved to sveltekit-utils with the URL binding.
+ *
+ * Product delta against the spike: `FetchSink.onError` receives
+ * `string | null` — `null` for a rejection without a message (the spike
+ * passed the literal 'fetch failed'); the sink supplies its own (i18n)
+ * fallback.
  */
 
 const aFilter: Filter = { column: 'name', operator: 'contains', value: 'ad' };
@@ -128,16 +137,37 @@ describe('fetch counter (Prüfstein 12)', () => {
     cleanup();
   });
 
+  it('an external CHANGE (a navigation, not an echo) fetches like a user change', async () => {
+    const { calls, query } = makeCountingQuery();
+    const cleanup = $effect.root(() => {
+      const view = createTableView();
+      createManagedFetch(view, () => ({ query, debounceMs: 300 }), { onResult: () => {} });
+      flushSync();
+      vi.advanceTimersByTime(0);
+
+      // A back/forward navigation applies a genuinely different state — the
+      // fetch layer keys on structure, not on origin.
+      view.applyExternal({ page: 5 }, 'external');
+      flushSync();
+      vi.advanceTimersByTime(300);
+    });
+    await flushMicrotasks();
+
+    expect(calls).toHaveLength(2);
+    expect(calls[1].page).toBe(5);
+    cleanup();
+  });
+
   it('a parent re-render with a fresh source literal refetches nothing and keeps the result', async () => {
     const results: TableQueryResult[] = [];
     const { calls, query } = makeCountingQuery();
     const cleanup = $effect.root(() => {
       const view = createTableView();
       let renderTrigger = $state(0);
-      const getSource = (): TableSource => {
+      const getSource = () => {
         void renderTrigger;
         // fresh object AND fresh arrow per render — the #153-regression shape
-        return { query: (q, o) => query(q), debounceMs: 300 };
+        return { query: (q: TableQuery) => query(q), debounceMs: 300 };
       };
       createManagedFetch(view, getSource, { onResult: (r) => results.push(r) });
       flushSync();
@@ -154,11 +184,27 @@ describe('fetch counter (Prüfstein 12)', () => {
     cleanup();
   });
 
+  it('a client source never fetches — the managed gate stays closed', async () => {
+    const results: TableQueryResult[] = [];
+    const cleanup = $effect.root(() => {
+      const view = createTableView();
+      createManagedFetch(view, () => [{ id: 1 }], { onResult: (r) => results.push(r) });
+      flushSync();
+      view.page = 2;
+      flushSync();
+    });
+    vi.advanceTimersByTime(1000);
+    await flushMicrotasks();
+
+    expect(results).toHaveLength(0);
+    cleanup();
+  });
+
   it('a superseded in-flight fetch is aborted and its result discarded', async () => {
     const resolvers: Array<(r: TableQueryResult) => void> = [];
     const seenSignals: AbortSignal[] = [];
     const results: TableQueryResult[] = [];
-    const query = (q: TableQuery, o: { signal: AbortSignal }): Promise<TableQueryResult> => {
+    const query = (_q: TableQuery, o: { signal: AbortSignal }): Promise<TableQueryResult> => {
       seenSignals.push(o.signal);
       return new Promise((resolve) => resolvers.push(resolve));
     };
@@ -190,60 +236,70 @@ describe('fetch counter (Prüfstein 12)', () => {
   });
 });
 
-describe('full circle with a URL binding — echoes end the loop (Prüfstein 12)', () => {
-  it('user filter change → URL updated → echo parsed → no second fetch', async () => {
-    const { calls, query } = makeCountingQuery();
-    const url = new FakeUrl('');
+describe('the sink contract', () => {
+  it('onLoading precedes every result', async () => {
+    const events: string[] = [];
+    const { query } = makeCountingQuery();
+    let view!: TableView;
     const cleanup = $effect.root(() => {
-      const view = createTableView();
-      bindViewToUrl(view, url, { debounceMs: 100 });
-      createManagedFetch(view, () => ({ query, debounceMs: 100 }), { onResult: () => {} });
-      flushSync();
-      vi.advanceTimersByTime(0); // initial fetch
-
-      view.filters = [aFilter];
-      flushSync();
-      vi.advanceTimersByTime(100); // both the goto and the fetch fire
+      view = createTableView();
+      createManagedFetch(view, () => ({ query, debounceMs: 100 }), {
+        onLoading: () => events.push('loading'),
+        onResult: () => events.push('result')
+      });
     });
-    await flushMicrotasks(); // goto applies → URL→view effect parses fresh filter refs
-    vi.advanceTimersByTime(600); // any echo-induced debounce would fire now
+    flushSync();
+    vi.advanceTimersByTime(0);
+    await flushMicrotasks(); // the init result lands before the interaction
+
+    view.search = 'ada';
+    flushSync();
+    vi.advanceTimersByTime(100);
     await flushMicrotasks();
 
-    expect(url.search).toBe('filter=name%3Acontains%3Aad');
-    expect(calls).toHaveLength(2); // init + interaction — the echo added none
+    expect(events).toEqual(['loading', 'result', 'loading', 'result']);
     cleanup();
   });
-});
 
-describe('two timers — URL debounce vs. fetch debounce (§7.4)', () => {
-  it('with diverging debounces the URL updates before the data does — a measurable transient', async () => {
-    const { calls, query } = makeCountingQuery();
-    const url = new FakeUrl('');
+  it('a rejection with an Error surfaces its message', async () => {
+    const errors: Array<string | null> = [];
     const cleanup = $effect.root(() => {
       const view = createTableView();
-      bindViewToUrl(view, url, { debounceMs: 100 });
-      createManagedFetch(view, () => ({ query, debounceMs: 500 }), { onResult: () => {} });
-      flushSync();
-      vi.advanceTimersByTime(0);
-
-      view.search = 'ada';
-      flushSync();
-      vi.advanceTimersByTime(100);
+      createManagedFetch(
+        view,
+        () => ({
+          query: async () => {
+            throw new Error('boom');
+          }
+        }),
+        { onResult: () => {}, onError: (message) => errors.push(message) }
+      );
     });
+    flushSync();
+    vi.advanceTimersByTime(0);
     await flushMicrotasks();
 
-    // At t=100 the address bar names a state the table has not fetched yet.
-    expect(url.search).toBe('q=ada');
-    expect(calls).toHaveLength(1);
+    expect(errors).toEqual(['boom']);
+    cleanup();
+  });
 
-    vi.advanceTimersByTime(400);
+  it('a rejection without a message reports null — the sink supplies its own fallback', async () => {
+    const errors: Array<string | null> = [];
+    const cleanup = $effect.root(() => {
+      const view = createTableView();
+      createManagedFetch(
+        view,
+        () => ({
+          query: () => Promise.reject('kaputt') // not an Error — no message to forward
+        }),
+        { onResult: () => {}, onError: (message) => errors.push(message) }
+      );
+    });
+    flushSync();
+    vi.advanceTimersByTime(0);
     await flushMicrotasks();
-    expect(calls).toHaveLength(2); // the fetch catches up at t=500
 
-    // Rev. 3 verdict: the divergence window is exactly |fetchDebounce −
-    // urlDebounce| and shows a shareable URL ahead of its data — harmless
-    // for correctness (the fetch always lands on the final state), but the
-    // defaults should match so the window is 0 out of the box.
+    expect(errors).toEqual([null]);
     cleanup();
   });
 });
@@ -272,5 +328,87 @@ describe('observeView (Prüfstein 13)', () => {
 
     expect(seen).toHaveLength(2);
     cleanup();
+  });
+});
+
+describe('destroy teardown (M4)', () => {
+  it('a pending fetch debounce dies with the scope, and an in-flight fetch is aborted', async () => {
+    const calls: TableQuery[] = [];
+    const seenSignals: AbortSignal[] = [];
+    const results: TableQueryResult[] = [];
+    const query = (q: TableQuery, o: { signal: AbortSignal }): Promise<TableQueryResult> => {
+      calls.push(q);
+      seenSignals.push(o.signal);
+      return new Promise(() => {}); // stays in flight forever
+    };
+    const cleanup = $effect.root(() => {
+      const view = createTableView();
+      createManagedFetch(view, () => ({ query, debounceMs: 300 }), {
+        onResult: (r) => results.push(r)
+      });
+      flushSync();
+      vi.advanceTimersByTime(0); // initial fetch departs, stays in flight
+      view.page = 2; // schedules the debounced second fetch
+      flushSync();
+    });
+    cleanup(); // unmount before the debounce fires
+    vi.advanceTimersByTime(1000);
+    await flushMicrotasks();
+
+    expect(calls).toHaveLength(1); // the pending second fetch never ran
+    expect(seenSignals[0].aborted).toBe(true); // the in-flight one was aborted
+    expect(results).toHaveLength(0);
+  });
+
+  it('a pending observeView debounce dies with the scope — no callback after unmount', () => {
+    let callbacks = 0;
+    const cleanup = $effect.root(() => {
+      const view = createTableView();
+      observeView(
+        view,
+        () => {
+          callbacks += 1;
+        },
+        { debounceMs: 300 }
+      );
+      flushSync();
+      expect(callbacks).toBe(1); // initial synchronous emission
+      view.search = 'ada';
+      flushSync();
+    });
+    cleanup();
+    vi.advanceTimersByTime(1000);
+
+    expect(callbacks).toBe(1);
+  });
+});
+
+describe('viewToQuery — the projection into the TableQuery vocabulary', () => {
+  it('maps every axis', () => {
+    expect(
+      viewToQuery({
+        search: 'ada',
+        sort: { column: 'amount', direction: 'desc' },
+        page: 3,
+        pageSize: 50,
+        filters: [aFilter],
+        groupBy: 'status'
+      })
+    ).toEqual({
+      page: 3,
+      itemsPerPage: 50,
+      sortColumn: 'amount',
+      sortDirection: 'desc',
+      searchTerm: 'ada',
+      activeFilters: [aFilter],
+      groupByKey: 'status'
+    });
+  });
+
+  it('projects "unsorted" as an empty sortColumn with asc — the legacy TableQuery shape', () => {
+    const query = viewToQuery(createTableView().snapshot());
+    expect(query.sortColumn).toBe('');
+    expect(query.sortDirection).toBe('asc');
+    expect(query.groupByKey).toBeNull();
   });
 });
