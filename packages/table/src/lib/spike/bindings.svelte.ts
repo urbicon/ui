@@ -2,31 +2,85 @@
  * SPIKE §3.3 / §7.1 / §7.2 — the two bindings as decorations OVER the view
  * object, plus a fake URL with SvelteKit's timing (setter synchronous, `goto`
  * applying asynchronously) so the race the old write gate existed for is
- * reproducible in a test.
+ * reproducible in a test. `latencyMs` stretches the in-flight window so the
+ * lost-update race the review's M2 named is measurable, not just argued.
  *
  * Phase contract (§3.3): defaults (constructor) → URL (init, synchronous,
  * SSR too) → storage (after hydration) → runtime (URL navigations apply;
  * storage never applies again, only writes).
+ *
+ * Post-review revisions (adversarial review of the spike, 2026-08-05):
+ * - M3: `goto` merges into the current URL — the binding's own keys are
+ *   replaced, every foreign param survives (the shipped
+ *   `applyTableQueryToSearchParams` contract). Echo suppression compares
+ *   only the binding's own key slice, canonicalised.
+ * - M4: every timer is cleared on destroy via a dependency-free effect whose
+ *   teardown runs exactly once, at teardown of the owning scope. Pending
+ *   storage writes are DROPPED on destroy (no side effects after unmount);
+ *   whether v8 should flush instead is a build-time decision.
  */
 import { untrack } from 'svelte';
 import { axesNamedBy, searchParamsToViewPartial, viewToSearchParams } from './serialize';
 import { type TableView, type TableViewSnapshot, VIEW_AXES, type ViewAxis } from './view.svelte';
 
+/** URL keys per axis — the §3.2 key scheme, grouped by owning axis. */
+const AXIS_KEYS: Record<ViewAxis, readonly string[]> = {
+  search: ['q'],
+  sort: ['sort', 'dir'],
+  page: ['page'],
+  pageSize: ['size'],
+  filters: ['filter'],
+  groupBy: ['group']
+};
+
+const keysOf = (axes: readonly ViewAxis[]): string[] =>
+  axes.flatMap((axis) => [...AXIS_KEYS[axis]]);
+
+/** Order-insensitive canonical form, for echo comparison only. */
+function canonical(sp: URLSearchParams): string {
+  return [...sp.entries()]
+    .map(([k, v]) => `${k}=${v}`)
+    .sort()
+    .join('&');
+}
+
+/** The binding's own slice of a search string — foreign params excluded. */
+function ownSlice(search: string, keys: readonly string[]): URLSearchParams {
+  const all = new URLSearchParams(search);
+  const own = new URLSearchParams();
+  for (const key of keys) {
+    for (const value of all.getAll(key)) own.append(key, value);
+  }
+  return own;
+}
+
+/** Replace the binding's own keys inside the current search, keep the rest. */
+function mergeOwn(currentSearch: string, own: URLSearchParams, keys: readonly string[]): string {
+  const next = new URLSearchParams(currentSearch);
+  for (const key of keys) next.delete(key);
+  for (const [key, value] of own) next.append(key, value);
+  return next.toString();
+}
+
 /**
  * Stand-in for SvelteKit's page/goto pair, with the one property that made
- * the old ownership question racy: writes apply in a microtask, reads are
- * reactive. Keeps a history stack so the back button is testable.
+ * the old ownership question racy: writes apply asynchronously, reads are
+ * reactive. `latencyMs: 0` (default) applies in a microtask; a positive
+ * latency applies via setTimeout, standing in for a real navigation's load
+ * phase. Keeps a history stack so the back button is testable.
  */
 export class FakeUrl {
   #search = $state('');
   #history: string[];
+  #latencyMs: number;
   /** Measurement counters. */
   gotoCount = 0;
   pushCount = 0;
 
-  constructor(initial = '') {
+  constructor(initial = '', opts: { latencyMs?: number } = {}) {
     this.#search = initial;
     this.#history = [initial];
+    this.#latencyMs = opts.latencyMs ?? 0;
   }
 
   get search(): string {
@@ -36,7 +90,7 @@ export class FakeUrl {
   goto(search: string, opts: { replaceState?: boolean } = {}): void {
     this.gotoCount += 1;
     const replaceState = opts.replaceState ?? true;
-    queueMicrotask(() => {
+    const apply = () => {
       if (replaceState) {
         this.#history[this.#history.length - 1] = search;
       } else {
@@ -44,7 +98,12 @@ export class FakeUrl {
         this.pushCount += 1;
       }
       this.#search = search;
-    });
+    };
+    if (this.#latencyMs > 0) {
+      setTimeout(apply, this.#latencyMs);
+    } else {
+      queueMicrotask(apply);
+    }
   }
 
   /** The back button — synchronous, like a popstate delivering a new URL. */
@@ -93,6 +152,7 @@ export function bindViewToUrl(view: TableView, url: FakeUrl, options: UrlBinding
   const axes = options.axes ?? VIEW_AXES;
   const debounceMs = options.debounceMs ?? 300;
   const reflectExternal = options.reflectExternal ?? false;
+  const managedKeys = keysOf(axes);
 
   view.claimAxes('url', axes);
 
@@ -101,7 +161,7 @@ export function bindViewToUrl(view: TableView, url: FakeUrl, options: UrlBinding
   const initialSearch = untrack(() => url.search);
   const initialParams = new URLSearchParams(initialSearch);
   const named = axesNamedBy(initialParams).filter((axis) => axes.includes(axis));
-  const initialPartial = searchParamsToViewPartial(initialParams);
+  const initialPartial = searchParamsToViewPartial(initialParams, view.defaults);
   const initApply: Partial<TableViewSnapshot> = {};
   for (const axis of named) {
     (initApply as Record<ViewAxis, unknown>)[axis] = initialPartial[axis];
@@ -120,7 +180,7 @@ export function bindViewToUrl(view: TableView, url: FakeUrl, options: UrlBinding
     lastSeenSearch = search;
     untrack(() => {
       const params = new URLSearchParams(search);
-      const partial = searchParamsToViewPartial(params);
+      const partial = searchParamsToViewPartial(params, view.defaults);
       const full: Partial<TableViewSnapshot> = {};
       for (const axis of axes) {
         (full as Record<ViewAxis, unknown>)[axis] =
@@ -130,8 +190,10 @@ export function bindViewToUrl(view: TableView, url: FakeUrl, options: UrlBinding
     });
   });
 
-  // ── Runtime: view → URL, debounced, echo-suppressed by comparing the
-  // serialisation against the current URL before any `goto`.
+  // ── Runtime: view → URL, debounced. Echo suppression compares only the
+  // binding's OWN key slice (canonicalised — key order in the URL is not the
+  // binding's to dictate); the eventual `goto` merges into the current URL so
+  // foreign params and other bindings' axes survive (M3).
   const lastSeenRevision = zeroRevisions();
   for (const axis of axes) lastSeenRevision[axis] = untrack(() => view.originOf(axis).revision);
 
@@ -150,25 +212,36 @@ export function bindViewToUrl(view: TableView, url: FakeUrl, options: UrlBinding
         }
       }
       if (!shouldMirror) return;
-      const serialized = viewToSearchParams(view.snapshot(), view.defaults, axes).toString();
-      if (serialized === normalizeSearch(url.search)) return; // echo suppression
+      const serialized = viewToSearchParams(view.snapshot(), view.defaults, axes);
+      if (canonical(serialized) === canonical(ownSlice(url.search, managedKeys))) return;
       if (timer) clearTimeout(timer);
       timer = setTimeout(() => {
         timer = null;
         // Serialize from the *live* view — the debounce window may have seen
         // further changes; the last state is the one worth navigating to.
-        const latest = viewToSearchParams(view.snapshot(), view.defaults, axes).toString();
-        if (latest === normalizeSearch(url.search)) return;
-        url.goto(latest, { replaceState: options.replaceState ?? true });
+        const latest = viewToSearchParams(view.snapshot(), view.defaults, axes);
+        if (canonical(latest) === canonical(ownSlice(url.search, managedKeys))) return;
+        url.goto(mergeOwn(url.search, latest, managedKeys), {
+          replaceState: options.replaceState ?? true
+        });
       }, debounceMs);
     });
-    // No teardown that clears the timer between runs — it must survive them,
-    // or every keystroke would cancel the pending write.
+    // No per-run teardown — the timer must survive unrelated re-runs, or
+    // every keystroke would cancel the pending write.
   });
-}
 
-function normalizeSearch(search: string): string {
-  return new URLSearchParams(search).toString();
+  // Destroy-only teardown (M4): a dependency-free effect runs once; its
+  // teardown fires when the owning scope is destroyed. Without this, a
+  // pending debounce outlives the component and fires a `goto` with the dead
+  // table's params onto whatever page comes next.
+  $effect(() => {
+    return () => {
+      if (timer) {
+        clearTimeout(timer);
+        timer = null;
+      }
+    };
+  });
 }
 
 /**
@@ -178,6 +251,11 @@ function normalizeSearch(search: string): string {
  * deliberately never does ("page 1 on navigation is intentional UX"). The
  * two bindings therefore need different axis defaults; the URL binding keeps
  * all six (a shared link SHOULD name its page).
+ *
+ * `pageSize` staying IN is a second, deliberate behaviour delta: today no
+ * pagination value is persisted at all. "Yesterday's page size is still set"
+ * is squarely the storage binding's promise, so it stays — flagged for the
+ * v8 notes alongside the seed-resync delta (n5/Prüfstein 21).
  */
 export const STORAGE_DEFAULT_AXES: readonly ViewAxis[] = [
   'search',
@@ -296,5 +374,19 @@ export function bindViewToStorage(view: TableView, options: StorageBindingOption
         storage.setItem(storageKey, JSON.stringify(current));
       }, debounceMs);
     });
+  });
+
+  // Destroy-only teardown (M4): drop the pending write instead of letting it
+  // fire after unmount. Whether v8 flushes instead (today's forceSave
+  // affordance) is a build-time decision — dropping is the conservative
+  // no-side-effects-after-death default.
+  $effect(() => {
+    return () => {
+      if (timer) {
+        clearTimeout(timer);
+        timer = null;
+      }
+      pending.clear();
+    };
   });
 }

@@ -51,18 +51,29 @@ const storedView = (key = 'origin'): Record<string, unknown> | null => {
 
 describe('candidate 1 — per-axis (revision, origin), two write surfaces', () => {
   it('a user edit and an external apply on DIFFERENT axes coalesce into one flush without mixing origins', () => {
+    // Observer with the same dependencies as the storage effect — proves the
+    // "one run for both writes" half directly instead of inferring it from
+    // the outcome (review m1): registration + one batched run.
+    let observerRuns = 0;
     const cleanup = $effect.root(() => {
       const view = createTableView();
       // All six axes bound explicitly — this test measures origin mechanics,
       // not the page-exclusion default (pinned in spike.composition).
       bindViewToStorage(view, { key: 'origin', storage, debounceMs: 100, axes: VIEW_AXES });
+      $effect(() => {
+        void view.page;
+        void view.search;
+        observerRuns += 1;
+      });
       flushSync(); // registration pass — establishes the revision baseline
+      expect(observerRuns).toBe(1);
 
       // The §7.1 measurement setup: a click and a programmatic navigation in
       // the same tick. One storage-effect run sees both changes.
       view.page = 3; // reader interaction
       view.applyExternal({ search: 'from-url' }, 'external'); // URL echo
       flushSync();
+      expect(observerRuns).toBe(2); // ONE batched run for both writes
     });
     vi.advanceTimersByTime(150);
 

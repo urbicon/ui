@@ -38,9 +38,16 @@ function parseFilterParam(raw: string): Filter | null {
 
 /**
  * The axes a URL names, in the v8 vocabulary — presence only for params the
- * URL actually carries. Same per-key tolerance as the shipped parser.
+ * URL actually carries. Same per-key tolerance as the shipped parser,
+ * including its fallback target: an unparsable value on a present key falls
+ * back to the CONFIGURED default for that axis (review n3 — the first draft
+ * hard-coded page 1 / size 10, which diverged from the shipped
+ * `resolveDefaults` behaviour once `viewDefaults.pageSize` was set).
  */
-export function searchParamsToViewPartial(sp: URLSearchParams): Partial<TableViewSnapshot> {
+export function searchParamsToViewPartial(
+  sp: URLSearchParams,
+  defaults?: Pick<TableViewSnapshot, 'page' | 'pageSize'>
+): Partial<TableViewSnapshot> {
   const partial: Partial<TableViewSnapshot> = {};
 
   const rawSearch = sp.get('q');
@@ -58,14 +65,14 @@ export function searchParamsToViewPartial(sp: URLSearchParams): Partial<TableVie
   if (rawPage !== null && /^\d+$/.test(rawPage) && Number(rawPage) >= 1) {
     partial.page = Number(rawPage);
   } else if (rawPage !== null) {
-    partial.page = 1; // key present → axis claimed, value falls back (read tolerant)
+    partial.page = defaults?.page ?? 1; // key present → axis claimed, value falls back
   }
 
   const rawSize = sp.get('size');
   if (rawSize !== null && /^\d+$/.test(rawSize) && Number(rawSize) >= 1) {
     partial.pageSize = Number(rawSize);
   } else if (rawSize !== null) {
-    partial.pageSize = 10;
+    partial.pageSize = defaults?.pageSize ?? 10;
   }
 
   // `filter=` (empty marker) and `filter=a:contains:b` both claim the axis;

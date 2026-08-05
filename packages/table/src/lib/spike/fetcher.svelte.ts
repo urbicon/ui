@@ -73,6 +73,19 @@ export function createManagedFetch<T extends TableItem>(
     // debounce-clear above plus the abort below.
   });
 
+  // Destroy-only teardown (review M4): without it a pending debounce fires a
+  // fetch after unmount and calls the sink of a dead table; an in-flight
+  // request keeps running with nobody to abort it.
+  $effect(() => {
+    return () => {
+      if (timer) {
+        clearTimeout(timer);
+        timer = null;
+      }
+      abortController?.abort();
+    };
+  });
+
   async function execute(): Promise<void> {
     // Resolve the source at execution time, untracked — its identity may be
     // fresh on every parent render; only its *content* matters here.
@@ -129,5 +142,16 @@ export function observeView(
       timer = null;
       callback(untrack(() => view.snapshot()));
     }, debounceMs);
+  });
+
+  // Destroy-only teardown (review M4): a pending debounce must not call the
+  // consumer's callback after the observing scope is gone.
+  $effect(() => {
+    return () => {
+      if (timer) {
+        clearTimeout(timer);
+        timer = null;
+      }
+    };
   });
 }

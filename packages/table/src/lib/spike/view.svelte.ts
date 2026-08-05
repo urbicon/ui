@@ -109,8 +109,14 @@ export class TableView {
     groupBy: { revision: 0, origin: 'init' }
   };
 
-  /** kind → axes claimed by a binding of that kind (fail-loud on conflict). */
-  #claims = new Map<ViewAxis, BindingKind>();
+  /**
+   * `kind:axis` pairs claimed by bindings (fail-loud on conflict). A Set over
+   * the composite key, NOT a `Map<axis, kind>`: the review's M1 showed the
+   * map form is defeasible by interleaving kinds (url → storage → url again
+   * overwrote the slot and the second url binding registered silently).
+   * Pinned by the interleaving test in spike.composition.
+   */
+  #claims = new Set<string>();
   /** Axes a binding applied during init (the URL named them) — §3.3 contract. */
   #initApplied = new Set<ViewAxis>();
 
@@ -277,12 +283,13 @@ export class TableView {
    */
   claimAxes(kind: BindingKind, axes: readonly ViewAxis[]): void {
     for (const axis of axes) {
-      if (this.#claims.get(axis) === kind) {
+      const key = `${kind}:${axis}`;
+      if (this.#claims.has(key)) {
         throw new Error(
           `[TableView] two ${kind} bindings claim the axis "${axis}" — every axis takes at most one binding per kind.`
         );
       }
-      this.#claims.set(axis, kind);
+      this.#claims.add(key);
     }
   }
 
