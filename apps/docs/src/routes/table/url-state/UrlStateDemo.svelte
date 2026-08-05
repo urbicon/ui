@@ -26,6 +26,10 @@
   const demoParams = $derived(
     building ? [] : [...page.url.searchParams].filter(([key]) => key.startsWith('demo_'))
   );
+
+  // Two steps because `$props.id()` is only legal as a top-level initializer.
+  const propsId = $props.id();
+  const paramsLabelId = `url-state-demo-params-${propsId}`;
 </script>
 
 <div class="space-y-4">
@@ -40,12 +44,25 @@
   />
 
   <div class="border-border-subtle bg-surface-elevated rounded-xl border p-4">
-    <p class="text-text-secondary text-xs">
+    <p id={paramsLabelId} class="text-text-secondary text-xs">
       Sort a column, search, or page — then look at the address bar. These are the params this table
       owns right now:
     </p>
-    <ul class="mt-2 flex flex-wrap gap-2">
-      {#each demoParams as [key, value] (`${key}=${value}`)}
+    <!-- Live region because the address bar is not one: the sentence above tells
+         a sighted reader where to look, and this list is the only place the same
+         change is announced. -->
+    <ul
+      class="mt-2 flex flex-wrap gap-2"
+      aria-labelledby={paramsLabelId}
+      aria-live="polite"
+      aria-atomic="true"
+    >
+      <!-- Keyed by index as well as content: `filter` is the one repeatable key
+           (one param per active filter), and applying the same filter twice
+           produces two identical entries. A content-only key throws
+           `each_key_duplicate` — in production too — which would take the table
+           and this list down together. -->
+      {#each demoParams as [key, value], i (`${i}:${key}=${value}`)}
         <li>
           <code
             class="border-border-subtle bg-surface-base text-text-primary rounded border px-2 py-1 text-xs"

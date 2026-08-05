@@ -152,14 +152,15 @@ are overridable as of Svelte 5.25) and even when the state lives in a shared `$s
 
 The reason is not tidiness. **`$effect` never runs during server rendering**, so every value
 a component ingests in an effect is missing from the prerendered HTML and appears only after
-hydration. Measured on three surfaces in v7 (#10): the table rendered its rows in the wrong
-order until the client took over, `CodePanel` shipped a spinner where the code should be, and
-`PlaygroundConfigurator` served empty controls. 153 of 173 prerendered pages now carry real
-highlighted code; the remaining 20 are 5 redirect stubs, a 404 page and 14 pages with no code
-on them.
+hydration. Measured on three surfaces in v7 (#10): the table served an **empty** body because
+every prop reached the store through an effect, `CodePanel` shipped a spinner where the code
+should be, and `PlaygroundConfigurator` served empty controls. 154 of 173 prerendered pages
+now carry real highlighted code; the remaining 19 are 5 redirect stubs and 14 pages with no
+code on them.
 
 **Known consequence:** a `$state` bucket cannot hold a derivation, which is why a provider
-that mirrors every prop needs ~14 effects. The way out is the getter, not the effect. What
+that mirrors every prop needs one effect per prop — the table's had ten of them, mirroring
+twelve fields, before #153 removed them. The way out is the getter, not the effect. What
 legitimately stays an effect: consumer callbacks, DEV validation, network/abort/timers, focus
 and overlay lifecycle, and latches (`hasBeenActive`) — a value with memory is not an
 expression. Full rules and role models: [SVELTE5-PATTERNS.md](SVELTE5-PATTERNS.md).
@@ -169,17 +170,19 @@ expression. Full rules and role models: [SVELTE5-PATTERNS.md](SVELTE5-PATTERNS.m
 The table's `query` prop controls search, sort, page, page size, filters and grouping by
 field presence, and outranks both `persistenceConfig` and the `initial*` seeds.
 
-Storage is a client-only layer: `getStorage()` in `@urbicon-ui/blocks` returns `null` outside
-the browser, so state read from it at construction desynchronises the client's first render
-from the server's HTML
-— a persisted sort produces one row order on the server and another after hydration. The URL
-is visible to both, which is what makes a sorted, filtered table server-renderable.
+Storage is a client-only layer — its accessor (module-private in `@urbicon-ui/blocks`) returns
+`null` outside the browser — so state read from it at construction desynchronises the client's
+first render from the server's HTML: a persisted sort produces one row order on the server and
+another after hydration. The URL is visible to both, which is what makes a sorted, filtered
+table server-renderable.
 
-**Known consequence:** the reader's own state would then not survive a bare visit, because a
-controlled axis is by default neither read from nor written to storage. `persistControlled:
-true` restores that half deliberately — writes on the reader's own edits only, never when a
-controlled value resolves, so following someone else's link stores nothing. Column visibility
-and column order stay out of the URL entirely: they are presentation, not selection.
+**Known consequence:** the reader's own state would then not survive a bare visit, because
+wiring `query` at all stops the shareable axes from reaching storage (writing is gated per
+table, not per axis — a setter is synchronous while the URL lags behind a debounce and an
+async `goto`). `persistControlled: true` restores that half deliberately: writes come from the
+store's action wrappers only, never from a `query` axis resolving, so following someone else's
+link stores nothing. Column visibility and column order stay out of the URL entirely — they
+are presentation, not selection.
 
 ## The docs highlighter is synchronous, and pays for it in the eager bundle
 
@@ -187,8 +190,10 @@ and column order stay out of the URL entirely: they are presentation, not select
 its JavaScript regex engine and ten statically imported grammars.
 
 An awaited highlighter can only be driven from an effect, and by the rule above that means no
-prerendered page contains highlighted code. The cost is real and was measured on this
-project's built bundles: the eager chunk grows 44 → 121 KB gz. It is still the cheaper side,
+prerendered page contains highlighted code. The cost is real, and the numbers below are the
+measurement recorded at the head of `packages/docs/src/lib/utils/highlighter.ts` — re-verified
+here against the built chunk, which carries 121 KB gz: the eager chunk grows 44 → 121 KB gz.
+It is still the cheaper side,
 because Vite never sets shiki's `unwasm` condition, so `./wasm` resolves to the base64-inlined
 oniguruma build — a 607 KB raw / 225 KB gz JavaScript chunk the JS engine makes unnecessary.
 Total for a page with code: ~333 → 121 KB gz.

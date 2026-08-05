@@ -104,7 +104,7 @@ The axes that decide **which** rows are shown — search, sort, page, page size,
 <Table {items} {columns} itemsPerPage={25} query={sync.viewState} onQueryChange={sync.syncQuery} />
 ```
 
-`query` is read **per field**: a field that is present controls its axis, an absent one leaves persistence and the `initial*` seeds alone (`{ page: 2 }` pages without clearing a stored sort). An explicitly empty value is a real state — `sortColumn: ''` means "no sort", and no seed slips past it.
+`query` is read **per field**: a field that is present controls its axis, an absent one leaves persistence and the `initial*` seeds alone (`{ page: 2 }` pages without clearing a stored sort). An explicitly empty value is a real state — `sortColumn: ''` means "no sort", and no seed slips past it. That holds for every axis `TableQueryDefaults` can carry; `activeFilters` has no defaults field, so an emptied filter set writes no marker to the URL and an `initialFilters` seed returns on the next load.
 
 Each controlled axis is a `$derived`, not a value written at construction, and that is the point: **`$effect` never runs during server rendering**, so view state ingested in one is absent from the prerendered HTML and the client swaps the table out on hydration. A derivation resolves on the server, so the linked view is in the markup that arrives — which `localStorage` can never achieve, since the server cannot read it. `query` is what makes a sorted, filtered table server-renderable at all.
 
@@ -138,7 +138,7 @@ Storage keys are namespaced by `tableId` (`urbicon_table_filters_expenses_v1`, �
 
 **Cleared counts as state.** Restoring keys off "is a value stored", not "is the stored value non-empty" — so clearing the sort, removing every filter chip, ungrouping, dropping all summaries or deselecting everything is persisted as such and survives the reload. Where an axis also has an `initial*` seed (`initialSort`, `initialFilters`, `initialGroupBy`, `initialSummaryConfigs`, `initialSelectedIds`), the stored value wins — the seed only fills an axis storage has nothing for. Disable that axis' persistence if the seed should win on every visit.
 
-**Precedence is per axis: `query` → storage → `initial*` seed.** A controlled axis is by default neither restored from storage nor written to it — while the URL carries the state, the URL *is* the state. What that does not survive is opening the page from a bare link, because nothing was stored. For a business table that is usually the wrong answer ("my filters are still there tomorrow" is expected), so `persistControlled: true` stores the controlled axes as well:
+**Precedence is per axis: `query` → storage → `initial*` seed.** Restoring is per axis — storage fills what the query says nothing about. Writing is **per table**: wiring a `query` prop at all, even one that currently names no axis, stops the shareable axes (sort, search, filters, grouping) from reaching storage. That asymmetry is deliberate: a setter runs synchronously while the URL only catches up after a debounce and an async `goto`, so a per-axis write gate would store the first sort and silently drop the ones after it. While the URL carries the state, the URL *is* the state. What that does not survive is opening the page from a bare link, because nothing was stored. For a business table that is usually the wrong answer ("my filters are still there tomorrow" is expected), so `persistControlled: true` stores the controlled axes as well:
 
 ```svelte
 <Table
@@ -150,7 +150,7 @@ Storage keys are namespaced by `tableId` (`urbicon_table_filters_expenses_v1`, �
 />
 ```
 
-Writes then happen on the reader's own edits only — never when a controlled value resolves — so following someone else's link stores nothing, and a bare visit later restores what the reader themselves changed. The reading order is unaffected: a URL that names an axis still outranks the stored value for that axis.
+Writes then come from the store's action wrappers only — never from a `query` axis resolving — so following someone else's link stores nothing, and a bare visit later restores what the reader themselves changed. The reading order is unaffected: a URL that names an axis still outranks the stored value for that axis.
 
 `storage: 'sessionStorage'` limits persistence to the current tab (lost on tab close). The `clearAllPersistentData` and `forceSavePersistentData` methods on the table context let you reset or flush state imperatively; after `clearAllPersistentData` the axes are back to "nothing stored", so the seeds apply again on the next load.
 

@@ -27,7 +27,7 @@ import { editorialDark, editorialLight } from './shiki-editorial-themes';
  * oniguruma WASM (which can only be instantiated asynchronously).
  *
  *  - **Bytes.** Measured on the built client bundles of this site, not on
- *    `node_modules`. The eager entry chunk grows 44 → 121 KB gz as the nine
+ *    `node_modules`. The eager entry chunk grows 44 → 121 KB gz as the ten
  *    grammars move into it. What goes away is bigger: Vite resolves Shiki's
  *    `./wasm` export to the **base64-inlined** build (the `unwasm` condition is
  *    never set), so the old output shipped oniguruma as a 607 KB JS chunk —

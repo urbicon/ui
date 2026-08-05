@@ -582,6 +582,13 @@ export interface TableProps<T = TableItem> {
    * Pagination (current page) is intentionally never persisted — page 1
    * on navigation is standard UX.
    *
+   * Wiring {@link query} changes this: the shareable axes (sort, search,
+   * filters, grouping) then live in the URL and stop reaching storage, so a
+   * visit without params starts clean. Set `persistControlled: true` to store
+   * them as well — writes come from the reader's own edits only, never from a
+   * controlled value resolving, and the URL still outranks the stored value
+   * per axis.
+   *
    * @example
    * ```svelte
    * <Table {items} {columns} persistenceConfig={{ tableId: 'expenses' }} />
