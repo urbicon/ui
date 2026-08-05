@@ -370,6 +370,35 @@ describe('seed precedence vs persistence: groupBy', () => {
     expect(ts.state.groupByKey).toBe('department');
   });
 
+  it('a controlled groupByKey is not stored — the consumer owns it, not storage', () => {
+    // Same contract `searchControlled` has carried all along: the standalone
+    // `groupByKey` prop is applied through an effect in TableProvider, so
+    // without the guard the consumer's value would be written as if the reader
+    // had picked it, and would come back on a later visit that no longer
+    // passes the prop. (The `query.groupByKey` axis is a different path — that
+    // one is governed by `persistControlled`.)
+    const ts = withRoot(() =>
+      createTableState({ tableId: 't10e' }, undefined, { groupControlled: () => true })
+    );
+
+    ts.setGroupByKey('department');
+    ts.forceSavePersistentData();
+
+    expect(ts.state.groupByKey).toBe('department');
+    expect(window.localStorage.getItem(GROUP_KEY('t10e'))).toBe(null);
+  });
+
+  it('and the same grouping IS stored when the prop is absent', () => {
+    // The positive control for the test above: without it, a guard that always
+    // returned true would pass it and measure nothing.
+    const ts = withRoot(() => createTableState({ tableId: 't10f' }));
+
+    ts.setGroupByKey('department');
+    ts.forceSavePersistentData();
+
+    expect(JSON.parse(window.localStorage.getItem(GROUP_KEY('t10f')) ?? 'null')).toBe('department');
+  });
+
   it('ungrouping survives a reload instead of re-seeding (end to end)', () => {
     window.localStorage.setItem(GROUP_KEY('t10d'), JSON.stringify('name'));
 

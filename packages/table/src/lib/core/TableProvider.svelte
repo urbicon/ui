@@ -176,6 +176,7 @@
       selectionMode: () => selectionMode,
       selectionControlled: () => selectedIds !== undefined,
       searchControlled: () => searchTerm !== undefined,
+      groupControlled: () => groupByKey !== undefined,
       rowClickSelects: () => rowClickSelects,
       activeRowId: () => activeRowId ?? null,
       virtualized: () => virtualized,

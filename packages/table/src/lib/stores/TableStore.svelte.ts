@@ -235,6 +235,13 @@ export interface TablePropSources {
   selectionControlled?: () => boolean;
   /** Whether `searchTerm` is controlled — i.e. the prop is not `undefined`. */
   searchControlled?: () => boolean;
+  /**
+   * Whether the standalone `groupByKey` prop is controlled — i.e. present. The
+   * `query.groupByKey` axis is covered by `persistControlled` instead; this one
+   * follows `searchControlled`, so a value the consumer drives is never stored
+   * and cannot resurface on a later visit that no longer passes the prop.
+   */
+  groupControlled?: () => boolean;
   rowClickSelects?: () => boolean;
   activeRowId?: () => string | number | null;
   virtualized?: () => boolean;
@@ -352,6 +359,7 @@ export function createTableState(
   let selectionMode = $derived(props?.selectionMode?.() ?? 'none');
   let selectionControlled = $derived(props?.selectionControlled?.() ?? false);
   let searchControlled = $derived(props?.searchControlled?.() ?? false);
+  let groupControlled = $derived(props?.groupControlled?.() ?? false);
   let rowClickSelects = $derived(props?.rowClickSelects?.() ?? false);
   let activeRowId = $derived(props?.activeRowId?.() ?? null);
   let virtualized = $derived(props?.virtualized?.() ?? false);
@@ -496,6 +504,12 @@ export function createTableState(
     },
     set searchControlled(next: boolean) {
       searchControlled = next;
+    },
+    get groupControlled() {
+      return groupControlled;
+    },
+    set groupControlled(next: boolean) {
+      groupControlled = next;
     },
     get rowClickSelects() {
       return rowClickSelects;

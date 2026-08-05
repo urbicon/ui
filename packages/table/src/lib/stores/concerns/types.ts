@@ -56,6 +56,15 @@ export interface TableState {
    */
   searchControlled: boolean;
   /**
+   * Whether the standalone `groupByKey` prop is controlled — the same contract
+   * as `searchControlled`, for the same reason: a value the consumer drives is
+   * never written to storage, so it cannot resurface on a later visit that no
+   * longer passes the prop (set by `TableProvider` from the `groupByKey` prop).
+   * The `query.groupByKey` axis is a different path, governed by
+   * `persistenceConfig.persistControlled`.
+   */
+  groupControlled: boolean;
+  /**
    * Whether a click anywhere on a row body toggles that row's selection (set by
    * `TableProvider` from the resolved `rowClickSelects` prop). The checkbox path
    * is unaffected — this only adds the row itself as a selection target.

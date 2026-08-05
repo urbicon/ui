@@ -329,7 +329,13 @@ export function usePersistence(
   }
 
   function syncGroupByKey() {
-    if (persistentGroupByKey && writable()) {
+    // `!state.groupControlled` for the same reason `syncSearch` carries it: the
+    // standalone `groupByKey` prop is applied through an effect, so without the
+    // guard a value the consumer drives would be stored as if the reader had
+    // chosen it — and reappear on a later visit that no longer passes the prop.
+    // This is the prop path, not the `query.groupByKey` axis; that one is what
+    // `writable()` / `persistControlled` govern.
+    if (persistentGroupByKey && !state.groupControlled && writable()) {
       persistentGroupByKey.value = state.groupByKey;
     }
   }
