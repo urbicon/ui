@@ -143,3 +143,56 @@ way back if it is ever needed.
 
 The docs site is a separate path — `.github/workflows/deploy.yml`, triggered by a green
 pipeline rather than by the tag itself. See [VERSIONING.md](VERSIONING.md).
+
+## Prop-driven state is derived, never synced in an effect
+
+A value that follows a prop is a `$derived`, even when other writers assign to it (deriveds
+are overridable as of Svelte 5.25) and even when the state lives in a shared `$state` bucket
+— hand that bucket getters instead of values.
+
+The reason is not tidiness. **`$effect` never runs during server rendering**, so every value
+a component ingests in an effect is missing from the prerendered HTML and appears only after
+hydration. Measured on three surfaces in v7 (#10): the table rendered its rows in the wrong
+order until the client took over, `CodePanel` shipped a spinner where the code should be, and
+`PlaygroundConfigurator` served empty controls. 153 of 173 prerendered pages now carry real
+highlighted code; the remaining 20 are 5 redirect stubs, a 404 page and 14 pages with no code
+on them.
+
+**Known consequence:** a `$state` bucket cannot hold a derivation, which is why a provider
+that mirrors every prop needs ~14 effects. The way out is the getter, not the effect. What
+legitimately stays an effect: consumer callbacks, DEV validation, network/abort/timers, focus
+and overlay lifecycle, and latches (`hasBeenActive`) — a value with memory is not an
+expression. Full rules and role models: [SVELTE5-PATTERNS.md](SVELTE5-PATTERNS.md).
+
+## Table view state belongs in the URL, not only in `localStorage`
+
+The table's `query` prop controls search, sort, page, page size, filters and grouping by
+field presence, and outranks both `persistenceConfig` and the `initial*` seeds.
+
+Storage is a client-only layer: `getStorage()` in `@urbicon-ui/blocks` returns `null` outside
+the browser, so state read from it at construction desynchronises the client's first render
+from the server's HTML
+— a persisted sort produces one row order on the server and another after hydration. The URL
+is visible to both, which is what makes a sorted, filtered table server-renderable.
+
+**Known consequence:** the reader's own state would then not survive a bare visit, because a
+controlled axis is by default neither read from nor written to storage. `persistControlled:
+true` restores that half deliberately — writes on the reader's own edits only, never when a
+controlled value resolves, so following someone else's link stores nothing. Column visibility
+and column order stay out of the URL entirely: they are presentation, not selection.
+
+## The docs highlighter is synchronous, and pays for it in the eager bundle
+
+`highlighterService.highlightCode()` returns a string, not a promise: Shiki's `Sync` core with
+its JavaScript regex engine and ten statically imported grammars.
+
+An awaited highlighter can only be driven from an effect, and by the rule above that means no
+prerendered page contains highlighted code. The cost is real and was measured on this
+project's built bundles: the eager chunk grows 44 → 121 KB gz. It is still the cheaper side,
+because Vite never sets shiki's `unwasm` condition, so `./wasm` resolves to the base64-inlined
+oniguruma build — a 607 KB raw / 225 KB gz JavaScript chunk the JS engine makes unnecessary.
+Total for a page with code: ~333 → 121 KB gz.
+
+**Known consequence:** `shiki` and `@shikijs/langs` are both peers of `@urbicon-ui/docs`, and
+a language outside the ten bundled grammars renders unhighlighted (DEV warns). Adding one is
+an import in `utils/highlighter.ts`, not a config option.

@@ -216,6 +216,7 @@ export default {
     tableColumnReorder: 'Column Reorder',
     tableVirtualScrolling: 'Virtual Scrolling',
     tableRemoteData: 'Remote Data',
+    tableUrlState: 'URL State',
     tableLiveUpdates: 'Live Updates',
     tableStickyPinning: 'Sticky Pinning',
     tableCustomization: 'Customization',

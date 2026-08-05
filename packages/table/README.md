@@ -32,6 +32,7 @@ Peer dependencies: `svelte` (^5), `@urbicon-ui/blocks`, `@urbicon-ui/i18n`. No S
 | Column ordering     | Pointer-event drag-and-drop + `Shift+ArrowLeft/Right` keyboard reorder via shared `createDraggable` action                  |
 | Column visibility   | Header menu + persistence API; opt out per column (`hideable: false`) or table-wide (`enableColumnVisibility={false}`)      |
 | Remote mode         | `mode: 'server'` + `queryFn` (managed fetch with `AbortSignal`) or `onQueryChange` (manual), debounced, cancellation-safe   |
+| URL / view state    | `query` controls search, sort, page, page size, filters and grouping **per axis**; resolved during SSR, so a shared link renders server-side |
 | Live updates        | `pushInsert/Update/Delete` pending-buffer, `LiveUpdateBanner`, auto-apply on navigation                                     |
 | Styling             | `unstyled`, `slotClasses`, `TableStyleContext` — every subcomponent respects the 17-slot map                                |
 | Cells               | `LinkCell`, `NumberCell`, `DateCell`, `UserAvatar`, `StatusBadge`, `CustomCell`, Fill-Cell                                  |
@@ -89,6 +90,28 @@ Peer dependencies: `svelte` (^5), `@urbicon-ui/blocks`, `@urbicon-ui/i18n`. No S
 
 Inside the table's tree (a `toolbar` snippet, a custom cell) `getTableContext()` returns the same object.
 
+## View State in the URL
+
+The axes that decide **which** rows are shown — search, sort, page, page size, filters, grouping — can be controlled from outside via `query`, so the view becomes a link: shareable, reload-proof, and visible to the server. In SvelteKit the wiring is two props:
+
+```svelte
+<script lang="ts">
+  import { createTableQueryUrlSync } from '@urbicon-ui/sveltekit-utils/url.svelte';
+
+  const sync = createTableQueryUrlSync({ defaults: { itemsPerPage: 25 } });
+</script>
+
+<Table {items} {columns} itemsPerPage={25} query={sync.viewState} onQueryChange={sync.syncQuery} />
+```
+
+`query` is read **per field**: a field that is present controls its axis, an absent one leaves persistence and the `initial*` seeds alone (`{ page: 2 }` pages without clearing a stored sort). An explicitly empty value is a real state — `sortColumn: ''` means "no sort", and no seed slips past it.
+
+Each controlled axis is a `$derived`, not a value written at construction, and that is the point: **`$effect` never runs during server rendering**, so view state ingested in one is absent from the prerendered HTML and the client swaps the table out on hydration. A derivation resolves on the server, so the linked view is in the markup that arrives — which `localStorage` can never achieve, since the server cannot read it. `query` is what makes a sorted, filtered table server-renderable at all.
+
+Column visibility and column order are deliberately **not** part of `query`. They are presentation rather than selection — nobody wants to share a link that hides columns on the other end — so they stay in `localStorage` and the server renders every column. A `groupByKey` arriving from a URL is refused on a `virtualized` table, exactly like every other route into grouping.
+
+`@urbicon-ui/sveltekit-utils` is a peer of the wiring, not of this package: `query` takes a plain `TableViewState`, so any router (or a plain `$state` object) can drive it.
+
 ## State Persistence
 
 `persistenceConfig={{ tableId: 'foo' }}` is enough to make filters, search, group-by, summaries, sort, column visibility and column order survive a page reload. Every axis is on by default and stored under a `tableId`-scoped key in `localStorage`. Pagination is intentionally **not** persisted — page 1 on navigation is standard UX.
@@ -114,6 +137,20 @@ Disable individual axes (e.g. always start filter-free, but keep the column layo
 Storage keys are namespaced by `tableId` (`urbicon_table_filters_expenses_v1`, …); pick a stable, unique `tableId` per table — two tables sharing one id will overwrite each other. A key is only written once its axis differs from the default, so a table nobody touched writes nothing at all.
 
 **Cleared counts as state.** Restoring keys off "is a value stored", not "is the stored value non-empty" — so clearing the sort, removing every filter chip, ungrouping, dropping all summaries or deselecting everything is persisted as such and survives the reload. Where an axis also has an `initial*` seed (`initialSort`, `initialFilters`, `initialGroupBy`, `initialSummaryConfigs`, `initialSelectedIds`), the stored value wins — the seed only fills an axis storage has nothing for. Disable that axis' persistence if the seed should win on every visit.
+
+**Precedence is per axis: `query` → storage → `initial*` seed.** A controlled axis is by default neither restored from storage nor written to it — while the URL carries the state, the URL *is* the state. What that does not survive is opening the page from a bare link, because nothing was stored. For a business table that is usually the wrong answer ("my filters are still there tomorrow" is expected), so `persistControlled: true` stores the controlled axes as well:
+
+```svelte
+<Table
+  {items}
+  {columns}
+  query={sync.viewState}
+  onQueryChange={sync.syncQuery}
+  persistenceConfig={{ tableId: 'invoices', persistControlled: true }}
+/>
+```
+
+Writes then happen on the reader's own edits only — never when a controlled value resolves — so following someone else's link stores nothing, and a bare visit later restores what the reader themselves changed. The reading order is unaffected: a URL that names an axis still outranks the stored value for that axis.
 
 `storage: 'sessionStorage'` limits persistence to the current tab (lost on tab close). The `clearAllPersistentData` and `forceSavePersistentData` methods on the table context let you reset or flush state imperatively; after `clearAllPersistentData` the axes are back to "nothing stored", so the seeds apply again on the next load.
 
@@ -168,7 +205,7 @@ Semantics worth stating outright, since they differ from some other table librar
 
 - **Select-all covers every filtered row, not just the current page.** In `selectionMode="multi"`, the header checkbox toggles all rows that pass the active search/filters — across every page — and its indeterminate state reflects that same set. (TanStack/shadcn default to a page-scoped select-all.) Selection is keyed by `item.id`, falling back to the row index, so it survives paging and re-sorting.
 - **`greaterThan`/`lessThan` compare numbers first, dates second.** When both the cell value and the filter value convert via `Number()`, they are compared as numbers; otherwise both sides are read as instants (`Date` objects, epoch milliseconds, ISO-8601 strings) — every other string format never matches, so a malformed or empty value filters everything out instead of matching everything. For a bare calendar date (`YYYY-MM-DD`, what a `dataType: 'date'` column's filter input emits) "after"/"before" compare on **UTC day boundaries**, so a row stamped `2021-03-15T09:00Z` matches neither `after 2021-03-15` nor `before 2021-03-15`; a filter value with a time of day compares instants strictly. A `Date` built from local parts (`new Date(2021, 2, 15)`) can land on the neighbouring UTC day — store ISO strings or UTC-constructed dates for day-exact filtering.
-- **A controlled `searchTerm` wins over `persistSearch`.** When you pass `searchTerm`, it drives the search state and takes precedence over a value restored from `persistenceConfig.persistSearch`. Leave it `undefined` to let persistence (or the built-in filter bar) own the term; an empty string is a valid controlled value that clears the search.
+- **A controlled `searchTerm` wins over `persistSearch`.** When you pass `searchTerm`, it drives the search state and takes precedence over a value restored from `persistenceConfig.persistSearch`. Leave it `undefined` to let persistence (or the built-in filter bar) own the term; an empty string is a valid controlled value that clears the search. This is the single-axis case of the general rule above — `query` applies the same precedence to sort, page, page size, filters and grouping, by field presence.
 
 ## Development
 
