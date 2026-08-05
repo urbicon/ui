@@ -4,6 +4,15 @@ All notable changes to this project will be documented in this file.
 This changelog is automatically generated from [Conventional Commits](https://www.conventionalcommits.org).
 
 
+## [7.0.1] - 2026-08-05
+
+### Bug Fixes
+- **table**: Stop storing a controlled groupByKey
+
+### Documentation
+- **docs-app,table**: Document the v7 view-state layer where it is looked for
+- Answer the adversarial review of the v7 documentation pass
+
 ## [7.0.0] - 2026-08-04
 
 ### Breaking Changes
