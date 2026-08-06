@@ -210,7 +210,7 @@ export function searchParamsToViewPartial(
  * the URL binding performs at init, for code that has no view (a server
  * `load`).
  *
- * This is also what a server `load` hands its fetch. Since 8.1 the view and
+ * This is also what a server `load` hands its fetch. Since v9 the view and
  * the query speak one vocabulary (#162), so there is nothing to project on
  * the way out: the object below is the same shape a managed `source.query`
  * receives. The `searchParamsToViewQuery` / `viewSnapshotToTableQuery` pair
@@ -242,14 +242,24 @@ export function searchParamsToViewSnapshot(
   return { ...resolved, ...searchParamsToViewPartial(sp, resolved, prefix) };
 }
 
-/** Fill an unset axis with the table's own default — never `undefined` anywhere. */
+/**
+ * Fill an unset axis with the table's own default — never `undefined`
+ * anywhere.
+ *
+ * The two composite axes are copied for the same reason `TableView`'s
+ * constructor copies them: the documented `load` pattern shares ONE defaults
+ * object between the server and the component (a module-scope
+ * `export const invoiceView = …`). Handing a caller's array straight back out
+ * means a `load` that sorts or normalises the snapshot in place poisons that
+ * shared constant for every later request on the same server process.
+ */
 function resolveViewDefaults(defaults: Partial<TableViewSnapshot>): TableViewSnapshot {
   return {
     search: defaults.search ?? '',
-    sort: defaults.sort ?? null,
+    sort: defaults.sort ? { ...defaults.sort } : null,
     page: defaults.page ?? 1,
     pageSize: defaults.pageSize ?? 10,
-    filters: defaults.filters ?? [],
+    filters: defaults.filters ? [...defaults.filters] : [],
     groupBy: defaults.groupBy || null
   };
 }

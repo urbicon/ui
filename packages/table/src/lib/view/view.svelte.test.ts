@@ -58,6 +58,27 @@ describe('construction — defaults resolution', () => {
     expect(view.defaults.filters).toHaveLength(0);
     expect(view.defaults.sort).toEqual({ column: 'date', direction: 'desc' });
   });
+
+  it('an in-place write to a live axis does not move the baseline with it', () => {
+    // Reported by review as a defect (`#sort` is assigned `defaults.sort`
+    // rather than a copy, unlike `#filters`) — measured 2026-08-06 and it does
+    // NOT reproduce: the `$state` proxy around the assigned object keeps its
+    // writes in its own signals. Pinned as the property rather than the
+    // mechanism, so the day Svelte's proxy semantics change, this goes red
+    // here instead of silently in a consumer's elided URL.
+    const view = createTableView({
+      defaults: { sort: { column: 'date', direction: 'desc' }, filters: [aFilter] }
+    });
+
+    if (view.sort) view.sort.direction = 'asc';
+    view.filters[0].value = 'zz';
+
+    expect(view.defaults.sort).toEqual({ column: 'date', direction: 'desc' });
+    expect(view.defaults.filters).toEqual([aFilter]);
+    // …and the change IS visible on the live axis, so the isolation is not
+    // simply the write being dropped.
+    expect(view.sort?.direction).toBe('asc');
+  });
 });
 
 describe('snapshot() is a snapshot — the composite axes are copied (#162)', () => {

@@ -327,6 +327,21 @@ describe('serialization details the roundtrip only reaches implicitly', () => {
     expect(sp.toString()).toBe('q=ada&page=2&size=50&sort=name');
   });
 
+  it('elides everything when every axis equals a fully custom baseline', () => {
+    // The all-axes case: per-axis elision is covered above, but a view sitting
+    // exactly on a non-default baseline has to produce an EMPTY query string,
+    // not a redundant echo of its own defaults.
+    const custom: TableViewSnapshot = {
+      search: 'ada',
+      sort: { column: 'createdAt', direction: 'desc' },
+      page: 3,
+      pageSize: 25,
+      filters: [aFilter],
+      groupBy: 'team'
+    };
+    expect(viewSnapshotToSearchParams({ ...custom }, custom).toString()).toBe('');
+  });
+
   it('writes dir only for descending sorts', () => {
     expect(
       viewSnapshotToSearchParams(
@@ -399,6 +414,18 @@ describe('read tolerance — an unparsable value never throws', () => {
     expect(searchParamsToViewSnapshot(new URLSearchParams('size=lots')).pageSize).toBe(10);
   });
 
+  it('parses the explicit ungrouped marker back to null', () => {
+    // The read side of `group=`, which the write side (`marks "explicitly
+    // ungrouped"…` above) emits. Asymmetric coverage is how a codec drifts:
+    // the binding wrote the marker and nothing said what it reads back as.
+    const parsed = searchParamsToViewSnapshot(new URLSearchParams('group='), { groupBy: 'team' });
+    expect(parsed.groupBy).toBeNull();
+    // …while an absent `group` falls back to the default, rather than to null.
+    expect(searchParamsToViewSnapshot(new URLSearchParams(), { groupBy: 'team' }).groupBy).toBe(
+      'team'
+    );
+  });
+
   it('treats an unknown dir as ascending', () => {
     const parsed = searchParamsToViewSnapshot(new URLSearchParams('sort=name&dir=sideways'));
     expect(parsed.sort).toEqual({ column: 'name', direction: 'asc' });
@@ -422,5 +449,31 @@ describe('read tolerance — an unparsable value never throws', () => {
     expect(parsed.page).toBe(3);
     // Unprefixed params belong to someone else.
     expect(searchParamsToViewSnapshot(sp).search).toBe('global');
+  });
+});
+
+describe('the load path does not alias the defaults object it was handed', () => {
+  // The documented pattern shares ONE defaults constant between a server
+  // `load` and the component (`export const invoiceView = …`), so handing the
+  // caller's own array back out means a `load` that normalises the snapshot in
+  // place poisons that constant for every later request on the process.
+  // Positive control: drop the spreads in `resolveViewDefaults` and all four
+  // assertions go red.
+  it('copies the composite axes the URL did not name', () => {
+    const shared = {
+      pageSize: 25,
+      sort: { column: 'date', direction: 'desc' as const },
+      filters: [aFilter]
+    };
+    const snap = searchParamsToViewSnapshot(new URLSearchParams('page=2'), shared);
+
+    expect(snap.filters).not.toBe(shared.filters);
+    expect(snap.sort).not.toBe(shared.sort);
+
+    snap.filters.push({ column: 'x', operator: 'equals', value: 'y' });
+    if (snap.sort) snap.sort.direction = 'asc';
+
+    expect(shared.filters).toHaveLength(1);
+    expect(shared.sort.direction).toBe('desc');
   });
 });

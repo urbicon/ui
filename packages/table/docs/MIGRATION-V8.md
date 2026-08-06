@@ -64,11 +64,29 @@ served. Its codec was the same URL scheme under the old spellings, so it now liv
 | `viewSnapshotToTableQuery` | gone — it was the identity |
 | `TableQueryParams` | `TableViewSnapshot` |
 | `TableQueryFilter` · `TABLE_QUERY_FILTER_OPERATORS` | `TableViewFilter` · `TABLE_VIEW_FILTER_OPERATORS` |
+| `TableQuerySortDirection` · `TableQueryFilterOperator` | `TableViewSort['direction']` · `TableViewFilterOperator` |
+| `TableQueryDefaults` · `TableQueryUrlOptions` | no successor — see below |
+
+**The options object became positional parameters**, so this is not a pure rename:
+
+```ts
+tableQueryToSearchParams(q, { defaults, prefix });                  // 8.0
+viewSnapshotToSearchParams(snapshot, defaults, axes, prefix);       // v9
+```
+
+`defaults` is required now rather than optional, and it is a full snapshot rather than the
+partial `TableQueryDefaults` — which is what lets a default *filter set* participate in
+elision at all, the one axis the old baseline had no field for. `axes` is new: pass a subset
+to restrict the output to one binding's axes, or omit it for all six. TypeScript flags every
+call site, but the shape of the fix is worth knowing before you start.
 
 The write-strict validation the old serializer performed inline is now
 `assertValidViewSnapshot`, called by `applyViewToSearchParams` and deliberately not by
 `viewSnapshotToSearchParams` — that one runs inside the URL binding on every view change,
-where a throw over a `view.page = 0` would take the table down rather than the URL.
+where a throw over a `view.page = 0` would take the table down rather than the URL. If you
+used `tableQueryToSearchParams` to build a backend query string and relied on it rejecting a
+bad page or an unknown operator, call `assertValidViewSnapshot` yourself first: nothing in
+the type system will point out that the guard left.
 
 ## The shape of the change
 

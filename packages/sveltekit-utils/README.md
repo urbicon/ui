@@ -215,7 +215,7 @@ export const POST = async ({ request }) => {
 | `./cron`        | `createCronRunner`, `CronJob`, `CronRunnerConfig`, `CronRunner`                                                                                    |
 | `./sse`         | `streamSse`, `SseEvent`, `StreamSseOptions`, `SseRequestError`                                                                                     |
 
-`bindViewToUrl` lives in its own module (`view-binding.svelte.ts`) and is re-exported from `./url.svelte`, which is its documented import path — it has no subpath of its own. `./table-view` is SvelteKit-free (it touches no `$app/*`), which is what lets a `load` function and a plain test use them; `./url.svelte` is the half that needs the router.
+`bindViewToUrl` lives in its own module (`view-binding.svelte.ts`) and is re-exported from `./url.svelte`, which is its documented import path — it has no subpath of its own. `./table-view` is SvelteKit-free (it touches no `$app/*`), which is what lets a `load` function and a plain test use it; `./url.svelte` is the half that needs the router.
 
 ## Development
 

@@ -252,6 +252,7 @@ const allNavigationItems: NavItem[] = [
         href: '/table/virtual-scrolling'
       },
       { name: 'Remote Data', nameKey: 'nav.tableRemoteData', href: '/table/remote-data' },
+      { name: 'Server-Rendered Data', nameKey: 'nav.tableSsr', href: '/table/ssr' },
       { name: 'URL State', nameKey: 'nav.tableUrlState', href: '/table/url-state' },
       { name: 'Live Updates', nameKey: 'nav.tableLiveUpdates', href: '/table/live-updates' },
       {

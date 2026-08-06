@@ -187,6 +187,15 @@ export class TableView {
       groupBy: defaults.groupBy || null
     };
     this.#search = this.defaults.search;
+    // No spread on `sort` here, deliberately, and it is not the asymmetry with
+    // `filters` below that it looks like: assigning to a `$state` field wraps
+    // the value in Svelte's proxy, whose writes land in its own signals rather
+    // than in the assigned object — so `view.sort.direction = 'asc'` leaves
+    // `defaults.sort` alone already (measured 2026-08-06, both ways: adding
+    // the spread changed no observable, including the serialized URL). The
+    // `filters` copy is not redundant for the same reason it is not here: an
+    // array literal that reaches BOTH slots would still be one array, and the
+    // spread is what `#filters` is seeded from.
     this.#sort = this.defaults.sort;
     this.#page = this.defaults.page;
     this.#pageSize = this.defaults.pageSize;
@@ -334,6 +343,15 @@ export class TableView {
    * Shallow on purpose: the filter entries are three-string value objects
    * nothing edits in place, and a deep clone per snapshot would be paid on
    * every view change to guard against a write nobody makes.
+   *
+   * The copy is not free of consequence, so: spreading the array reads the
+   * state proxy's length and indices, which widens what a reader of this
+   * method tracks. Measured — an effect over `void view.snapshot()` now also
+   * re-runs on an in-place `view.filters.push(…)`, where before it did not.
+   * That is a *more* honest dependency set (the snapshot's value really did
+   * change), and the bindings are unaffected: they track the axes through
+   * `readAxes`, and an in-place push still reaches neither the URL nor
+   * storage, because `#write` is what moves the origin bookkeeping.
    */
   snapshot(): TableViewSnapshot {
     return {
