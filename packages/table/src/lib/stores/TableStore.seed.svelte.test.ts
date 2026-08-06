@@ -50,8 +50,7 @@ describe('view defaults: sort', () => {
 
     // `state.sortColumn`/`state.sortDirection` are what TableHead's active
     // indicator and SortMenu read.
-    expect(ts.state.sortColumn).toBe('age');
-    expect(ts.state.sortDirection).toBe('desc');
+    expect(ts.view.sort).toEqual({ column: 'age', direction: 'desc' });
 
     // The snapshot — what the managed fetch hands `source.query`, and what
     // `observeView` consumers see (the context's `query` getter left with the
@@ -73,20 +72,18 @@ describe('view defaults: sort', () => {
 
     // handleSort on the seeded column at `desc` cycles to "no sort".
     ts.handleSort('age');
-    expect(ts.state.sortColumn).toBe('');
+    expect(ts.view.sort).toBeNull();
     expect(ts.view.snapshot().sort?.column ?? '').toBe('');
     expect(ts.view.sort).toBeNull();
 
     // Re-sorting by another column works normally; the seed never re-asserts.
     ts.handleSort('name');
-    expect(ts.state.sortColumn).toBe('name');
-    expect(ts.state.sortDirection).toBe('asc');
+    expect(ts.view.sort).toEqual({ column: 'name', direction: 'asc' });
   });
 
   it('treats `sort: null` as "unsorted" — a value, not a missing seed', () => {
     const ts = seeded({ sort: null });
-    expect(ts.state.sortColumn).toBe('');
-    expect(ts.state.sortDirection).toBe('asc');
+    expect(ts.view.sort).toBeNull();
     expect(ts.view.defaults.sort).toBeNull();
   });
 });
@@ -97,7 +94,7 @@ describe('view defaults: filters', () => {
   it('seeds filters at construction — chips source and first query contain them', () => {
     const ts = seeded({ filters: seedFilters });
 
-    expect(ts.state.activeFilters).toEqual(seedFilters);
+    expect(ts.view.filters).toEqual(seedFilters);
     expect(ts.view.snapshot().filters).toEqual(seedFilters);
   });
 
@@ -121,7 +118,7 @@ describe('view defaults: filters', () => {
     const ts = seeded({ filters: seedFilters });
 
     ts.clearAllFilters();
-    expect(ts.state.activeFilters).toEqual([]);
+    expect(ts.view.filters).toEqual([]);
     expect(ts.view.snapshot().filters).toEqual([]);
   });
 });
@@ -135,8 +132,8 @@ describe('view defaults: page and pageSize', () => {
     ts.setColumns(columns);
     ts.setItems(items);
 
-    expect(ts.state.currentPage).toBe(2);
-    expect(ts.state.itemsPerPage).toBe(2);
+    expect(ts.view.page).toBe(2);
+    expect(ts.view.pageSize).toBe(2);
     expect(ts.paginatedItems.map((i) => i.id)).toEqual([3]);
   });
 
@@ -146,7 +143,7 @@ describe('view defaults: page and pageSize', () => {
     ts.setItems(items);
 
     ts.goToPage(1);
-    expect(ts.state.currentPage).toBe(1);
+    expect(ts.view.page).toBe(1);
   });
 });
 
@@ -156,15 +153,15 @@ describe('view defaults: search', () => {
     ts.setColumns(columns);
     ts.setItems(items);
 
-    expect(ts.state.searchTerm).toBe('ali');
+    expect(ts.view.search).toBe('ali');
     expect(ts.view.snapshot().search).toBe('ali');
     expect(ts.filteredItems.map((i) => i.id)).toEqual([1]);
   });
 
   it('is seed-once — clearing the search sticks', () => {
     const ts = seeded({ search: 'ali' });
-    ts.setSearchTerm('');
-    expect(ts.state.searchTerm).toBe('');
+    ts.setSearch('');
+    expect(ts.view.search).toBe('');
   });
 });
 
@@ -210,7 +207,7 @@ describe('view defaults: groupBy', () => {
     ts.setColumns(columns);
     ts.setItems(items);
 
-    expect(ts.state.groupByKey).toBe('department');
+    expect(ts.state.effectiveGroupBy).toBe('department');
     expect(Object.keys(ts.grouped).sort()).toEqual(['Design', 'Engineering']);
     expect(ts.grouped.Engineering.map((i) => i.id)).toEqual([1, 3]);
     expect(ts.grouped.Design.map((i) => i.id)).toEqual([2]);
@@ -223,7 +220,7 @@ describe('view defaults: groupBy', () => {
     const ts = seeded({ groupBy: 'department' });
     expect(ts.state.declaredGroupByKey).toBe('department');
 
-    ts.setGroupByKey(null);
+    ts.setGroupBy(null);
     expect(ts.state.declaredGroupByKey).toBe('department');
   });
 
@@ -231,16 +228,16 @@ describe('view defaults: groupBy', () => {
     const ts = seeded({ groupBy: 'department' });
 
     // Clearing to ungrouped sticks — there is no effect that re-asserts the seed.
-    ts.setGroupByKey(null);
-    expect(ts.state.groupByKey).toBeNull();
+    ts.setGroupBy(null);
+    expect(ts.state.effectiveGroupBy).toBeNull();
 
     // Grouping by another column works normally; the seed never re-applies.
-    ts.setGroupByKey('age');
-    expect(ts.state.groupByKey).toBe('age');
+    ts.setGroupBy('age');
+    expect(ts.state.effectiveGroupBy).toBe('age');
   });
 
   it('treats a nullish/empty seed as "no grouping"', () => {
-    expect(seeded({ groupBy: null }).state.groupByKey).toBeNull();
+    expect(seeded({ groupBy: null }).state.effectiveGroupBy).toBeNull();
 
     // `''` is a degenerate input the type admits; it must not group anything
     // and must not become a menu declaration.
@@ -304,13 +301,13 @@ describe('prefs defaults: summaries', () => {
 describe('absent seeds are inert', () => {
   it('no arguments leave every axis at its default', () => {
     const ts = createTableState();
-    expect(ts.state.sortColumn).toBe('');
-    expect(ts.state.activeFilters).toEqual([]);
-    expect(ts.state.currentPage).toBe(1);
-    expect(ts.state.itemsPerPage).toBe(10);
-    expect(ts.state.searchTerm).toBe('');
+    expect(ts.view.sort).toBeNull();
+    expect(ts.view.filters).toEqual([]);
+    expect(ts.view.page).toBe(1);
+    expect(ts.view.pageSize).toBe(10);
+    expect(ts.view.search).toBe('');
     expect(ts.state.selectedIds.size).toBe(0);
-    expect(ts.state.groupByKey).toBeNull();
+    expect(ts.state.effectiveGroupBy).toBeNull();
     expect(ts.state.summaryConfigs).toEqual([]);
   });
 
@@ -321,7 +318,7 @@ describe('absent seeds are inert', () => {
       undefined,
       { selectedIds: [] }
     );
-    expect(ts.state.activeFilters).toEqual([]);
+    expect(ts.view.filters).toEqual([]);
     expect(ts.state.selectedIds.size).toBe(0);
     expect(ts.state.summaryConfigs).toEqual([]);
   });

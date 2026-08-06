@@ -20,7 +20,7 @@
   const tt = useTableI18n();
 
   const tableContext = getInternalTableContext();
-  const { state: tableState, toggleExpand, isItemExpanded } = tableContext;
+  const { state: tableState, view: tableView, toggleExpand, isItemExpanded } = tableContext;
   const styleConfig = getTableStyleConfig();
 
   let selectable = $derived(tableState.selectionMode !== 'none');
@@ -57,7 +57,7 @@
 
   const totalColumnsCount = $derived.by(() => {
     let count = tableState.columns.length;
-    if (tableState.groupByKey) count += 1;
+    if (tableState.effectiveGroupBy) count += 1;
     if (expandable) count += 1;
     if (selectable) count += 1;
     return count;

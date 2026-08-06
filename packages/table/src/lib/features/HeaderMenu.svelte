@@ -40,7 +40,8 @@
   const tableContext = getInternalTableContext();
   const {
     state: tableState,
-    setGroupByKey,
+    view: tableView,
+    setGroupBy,
     addSummaryConfig,
     removeSummaryConfig,
     removeFiltersByColumn,
@@ -65,22 +66,20 @@
   const styles = $derived(headerMenuVariants({ active: isActive }));
 
   function handleSortAsc() {
-    tableState.sortColumn = columnId;
-    tableState.sortDirection = 'asc';
+    tableView.sort = { column: columnId, direction: 'asc' };
     menuOpen = false;
   }
 
   function handleSortDesc() {
-    tableState.sortColumn = columnId;
-    tableState.sortDirection = 'desc';
+    tableView.sort = { column: columnId, direction: 'desc' };
     menuOpen = false;
   }
 
   function handleGroupBy() {
-    if (tableState.groupByKey === columnId) {
-      setGroupByKey(null);
+    if (tableState.effectiveGroupBy === columnId) {
+      setGroupBy(null);
     } else {
-      setGroupByKey(columnId);
+      setGroupBy(columnId);
     }
     menuOpen = false;
   }
@@ -120,10 +119,10 @@
     return headerMenuItemVariants({ intent, active });
   }
 
-  let isSorted = $derived(tableState.sortColumn === columnId);
-  let isGrouped = $derived(tableState.groupByKey === columnId);
+  let isSorted = $derived(tableView.sort?.column === columnId);
+  let isGrouped = $derived(tableState.effectiveGroupBy === columnId);
   let hasSummary = $derived(tableState.summaryConfigs.some((c) => c.column === columnId));
-  let hasFilter = $derived(tableState.activeFilters.some((f) => f.column === columnId));
+  let hasFilter = $derived(tableView.filters.some((f) => f.column === columnId));
 
   const hiddenColumns = $derived.by(() =>
     tableContext.allColumns.filter((col) => tableContext.hiddenColumnKeys.has(resolveColumnId(col)))
@@ -154,7 +153,7 @@
         <Button
           variant="ghost"
           size="sm"
-          class={itemClass('default', isSorted && tableState.sortDirection === 'asc')}
+          class={itemClass('default', isSorted && tableView.sort?.direction === 'asc')}
           onclick={handleSortAsc}
         >
           <ArrowUpIcon class="h-4 w-4" />
@@ -164,7 +163,7 @@
         <Button
           variant="ghost"
           size="sm"
-          class={itemClass('default', isSorted && tableState.sortDirection === 'desc')}
+          class={itemClass('default', isSorted && tableView.sort?.direction === 'desc')}
           onclick={handleSortDesc}
         >
           <ArrowDownIcon class="h-4 w-4" />

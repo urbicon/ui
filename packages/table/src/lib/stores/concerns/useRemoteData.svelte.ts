@@ -19,7 +19,7 @@ export function useRemoteData(state: TableState) {
    */
   function setServerResult(result: { items: TableItem[]; total: number }) {
     state.items = result.items;
-    state.serverTotalItems = result.total;
+    state.serverTotal = result.total;
     state.loading = false;
     state.error = null;
   }

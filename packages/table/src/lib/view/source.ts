@@ -1,7 +1,7 @@
 /**
  * The data-source union (TABLE-VIEW-STATE-2026-08.md §3.5). Replaces the
  * `mode` × `items` × `queryFn` × `onQueryChange` × `loading` × `error` ×
- * `serverTotalItems` prop combinatorics with one value whose invalid
+ * `serverTotal` prop combinatorics with one value whose invalid
  * combinations are unrepresentable.
  *
  * `processing` is required on every arm (#165), and that is what makes the

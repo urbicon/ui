@@ -11,15 +11,19 @@
   const tt = useTableI18n();
 
   const tableContext = getTableContext();
-  const { state: tableState, setGroupByKey } = tableContext;
+  const { state: tableState, view: tableView, setGroupBy } = tableContext;
 
   const entries = $derived(
-    buildGroupingEntries(tableState.columns, tableState.declaredGroupByKey, tableState.groupByKey)
+    buildGroupingEntries(
+      tableState.columns,
+      tableState.declaredGroupByKey,
+      tableState.effectiveGroupBy
+    )
   );
-  const currentValue = $derived(tableState.groupByKey || '');
+  const currentValue = $derived(tableState.effectiveGroupBy || '');
 
   function handleChange(value: string) {
-    setGroupByKey(value === '' ? null : value);
+    setGroupBy(value === '' ? null : value);
   }
 </script>
 

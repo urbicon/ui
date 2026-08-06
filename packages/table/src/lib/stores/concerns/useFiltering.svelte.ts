@@ -1,5 +1,6 @@
 import type { Filter, FilterOperator, TableItem } from '$lib/types/tableTypes';
 import { findColumnById, resolveColumnId, resolveColumnValue, resolveValueById } from '$lib/utils';
+import type { TableView } from '$lib/view/view.svelte';
 import type { TableState } from './types';
 
 /**
@@ -107,7 +108,7 @@ function matchesDateEquality(rawItemValue: unknown, filterValue: string): boolea
  * accessor (string property or function), not a raw `getNestedValue` —
  * which keeps object-typed properties and computed columns honest.
  */
-export function useFiltering(state: TableState) {
+export function useFiltering(state: TableState, view: TableView) {
   const filteredItems = $derived.by((): TableItem[] => {
     if (!state.items.length) return [];
 
@@ -116,7 +117,7 @@ export function useFiltering(state: TableState) {
 
     return state.items.filter((item) => {
       const matchesSearchTerm =
-        state.searchTerm === '' ||
+        view.search === '' ||
         state.columns
           // Discriminate synthetic columns first — afterwards TS narrows to
           // DataColumnString | DataColumnFunction, which carries `searchable`.
@@ -130,12 +131,12 @@ export function useFiltering(state: TableState) {
               return false;
             }
             const value = raw === null || raw === undefined ? '' : String(raw);
-            return value.toLowerCase().includes(state.searchTerm.toLowerCase());
+            return value.toLowerCase().includes(view.search.toLowerCase());
           });
 
       const matchesFilters =
-        state.activeFilters.length === 0 ||
-        state.activeFilters.every((filter) => {
+        view.filters.length === 0 ||
+        view.filters.every((filter) => {
           const raw = resolveValueById(state.columns, item, filter.column);
           const value = String(raw ?? '').toLowerCase();
           const filterValue = filter.value.toLowerCase();
@@ -198,32 +199,32 @@ export function useFiltering(state: TableState) {
   });
 
   function addFilter(filter: Filter) {
-    state.activeFilters = [...state.activeFilters, filter];
-    state.currentPage = 1;
+    view.filters = [...view.filters, filter];
+    view.page = 1;
   }
 
   function removeFilter(index: number) {
-    state.activeFilters = state.activeFilters.filter((_, i) => i !== index);
-    state.currentPage = 1;
+    view.filters = view.filters.filter((_, i) => i !== index);
+    view.page = 1;
   }
 
   function removeFiltersByColumn(column: string, operator?: FilterOperator, value?: string) {
-    state.activeFilters = state.activeFilters.filter((filter) => {
+    view.filters = view.filters.filter((filter) => {
       if (filter.column !== column) return true;
       if (operator && filter.operator !== operator) return true;
       if (value && filter.value !== value) return true;
       return false;
     });
-    state.currentPage = 1;
+    view.page = 1;
   }
 
   function clearAllFilters() {
-    state.activeFilters = [];
-    state.currentPage = 1;
+    view.filters = [];
+    view.page = 1;
   }
 
   function hasFilterForColumn(column: string, operator?: FilterOperator, value?: string): boolean {
-    return state.activeFilters.some((filter) => {
+    return view.filters.some((filter) => {
       if (filter.column !== column) return false;
       if (operator && filter.operator !== operator) return false;
       if (value && filter.value !== value) return false;

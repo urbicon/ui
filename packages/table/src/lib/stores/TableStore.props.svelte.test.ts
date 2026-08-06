@@ -19,7 +19,7 @@ import { createTableState, type TablePropSources } from './TableStore.svelte';
  * `TableProvider`'s call is invisible — the prop is optional, so the store
  * silently keeps its default and the table renders something plausible.
  *
- * Since v8 the loose `items`/`loading`/`error`/`mode`/`serverTotalItems`/
+ * Since v8 the loose `items`/`loading`/`error`/`mode`/`serverTotal`/
  * `queryFn` props are ONE `source` getter (the `TableSource` union), and the
  * view axes (`initialPage`, `itemsPerPage`, …) live on the view object — so
  * the matrix below covers the simple pass-throughs, and a second block covers
@@ -147,7 +147,7 @@ describe('TableStore — every prop source reaches its state field', () => {
 
 describe('TableStore — the source union feeds the derived slots', () => {
   // What used to be four independent props (`loading`, `error`, `mode`,
-  // `serverTotalItems`) is now derived out of ONE `source` value, so a wrong
+  // `serverTotal`) is now derived out of ONE `source` value, so a wrong
   // combination is unrepresentable — and each derivation still has to
   // resolve without a tracking context (SSR) and follow the prop.
   const ITEMS = [{ id: 1 }, { id: 2 }] as TableItem[];
@@ -157,7 +157,7 @@ describe('TableStore — the source union feeds the derived slots', () => {
     expect(store.state.mode).toBe('client');
     expect(store.state.loading).toBe(false);
     expect(store.state.error).toBeNull();
-    expect(store.state.serverTotalItems).toBe(0);
+    expect(store.state.serverTotal).toBe(0);
     expect(store.state.items).toEqual([]);
   });
 
@@ -179,21 +179,21 @@ describe('TableStore — the source union feeds the derived slots', () => {
     expect(store.state.error).toBeNull();
   });
 
-  it('a manual server source sets mode and serverTotalItems', () => {
+  it('a manual server source sets mode and serverTotal', () => {
     let value = $state<TableSource>({ processing: 'server', items: ITEMS, total: 500 });
     const store = createTableState(undefined, undefined, { source: () => value });
 
     expect(store.state.mode).toBe('server');
-    expect(store.state.serverTotalItems).toBe(500);
+    expect(store.state.serverTotal).toBe(500);
     expect(store.state.items).toHaveLength(2);
 
     value = { processing: 'server', items: ITEMS, total: 12 };
-    expect(store.state.serverTotalItems).toBe(12);
+    expect(store.state.serverTotal).toBe(12);
 
     // Back to a client source: the mode is derived, so it follows.
     value = { processing: 'client', items: ITEMS };
     expect(store.state.mode).toBe('client');
-    expect(store.state.serverTotalItems).toBe(0);
+    expect(store.state.serverTotal).toBe(0);
   });
 
   it('a managed source is server mode with an empty item slot', () => {

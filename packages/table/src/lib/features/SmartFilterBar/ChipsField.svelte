@@ -16,7 +16,13 @@
   let { class: className = '' } = $props();
 
   const tableContext = getTableContext();
-  const { state: tableState, removeFilter, setGroupByKey, removeSummaryConfig } = tableContext;
+  const {
+    state: tableState,
+    view: tableView,
+    removeFilter,
+    setGroupBy,
+    removeSummaryConfig
+  } = tableContext;
 
   function getColumnTitle(id: string): string {
     // Raw-id fallback for persisted state that references a removed column.
@@ -47,7 +53,7 @@
     const chips: ChipItem[] = [];
 
     // Filter Chips
-    tableState.activeFilters.forEach((filter, index) => {
+    tableView.filters.forEach((filter, index) => {
       chips.push({
         type: 'filter',
         id: `filter-${index}`,
@@ -56,12 +62,12 @@
       });
     });
 
-    if (tableState.groupByKey) {
+    if (tableState.effectiveGroupBy) {
       chips.push({
         type: 'group',
         id: 'group',
-        content: getColumnTitle(tableState.groupByKey),
-        onRemove: () => setGroupByKey(null)
+        content: getColumnTitle(tableState.effectiveGroupBy),
+        onRemove: () => setGroupBy(null)
       });
     }
 

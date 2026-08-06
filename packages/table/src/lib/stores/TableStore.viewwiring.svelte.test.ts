@@ -83,11 +83,10 @@ describe('a deep-linked view renders synchronously', () => {
       { source: () => ({ processing: 'client' as const, items: ITEMS }), columns: () => COLUMNS }
     );
 
-    expect(store.state.searchTerm).toBe('a');
-    expect(store.state.itemsPerPage).toBe(2);
-    expect(store.state.sortColumn).toBe('amount');
-    expect(store.state.sortDirection).toBe('desc');
-    expect(store.state.groupByKey).toBe('name');
+    expect(store.view.search).toBe('a');
+    expect(store.view.pageSize).toBe(2);
+    expect(store.view.sort).toEqual({ column: 'amount', direction: 'desc' });
+    expect(store.state.effectiveGroupBy).toBe('name');
   });
 });
 
@@ -121,8 +120,8 @@ describe('the binding matrix', () => {
       columns: () => COLUMNS
     });
 
-    store.setSort('amount', 'asc');
-    store.setSearchTerm('a');
+    store.setSort({ column: 'amount', direction: 'asc' });
+    store.setSearch('a');
     vi.advanceTimersByTime(1000);
 
     expect(view.sort).toEqual({ column: 'amount', direction: 'asc' });
@@ -142,7 +141,7 @@ describe('the binding matrix', () => {
       });
       flushSync();
 
-      store.setSort('amount', 'asc'); // a click, i.e. a `user` write
+      store.setSort({ column: 'amount', direction: 'asc' }); // a click, i.e. a `user` write
       flushSync();
       vi.advanceTimersByTime(600);
     });
@@ -162,7 +161,7 @@ describe('the binding matrix', () => {
       });
       flushSync();
 
-      expect(store.state.sortColumn).toBe('amount');
+      expect(store.view.sort?.column).toBe('amount');
       expect(names(store.paginatedItems)).toEqual(['Grace', 'Barbara', 'Ada']);
     });
     cleanup2();
@@ -183,8 +182,7 @@ describe('the binding matrix', () => {
       });
       flushSync(); // hydration: storage must keep off the init-applied axis
 
-      expect(store.state.sortColumn).toBe('name');
-      expect(store.state.sortDirection).toBe('asc');
+      expect(store.view.sort).toEqual({ column: 'name', direction: 'asc' });
       vi.advanceTimersByTime(1000);
     });
     cleanup();
@@ -267,7 +265,7 @@ describe('the binding matrix', () => {
       });
       flushSync();
 
-      store.setSort('amount', 'asc');
+      store.setSort({ column: 'amount', direction: 'asc' });
       flushSync();
       vi.advanceTimersByTime(600);
     });

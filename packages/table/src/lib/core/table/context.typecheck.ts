@@ -39,11 +39,12 @@ use(
   pub.filteredItems,
   pub.sortedItems,
   pub.paginatedItems,
-  pub.totalItems,
+  pub.total,
   pub.totalPages,
-  pub.effectivePage
+  pub.effectivePage,
+  pub.effectiveGroupBy
 );
-use(pub.setSearchTerm);
+use(pub.setSearch);
 use(
   pub.addFilter,
   pub.removeFilter,
@@ -52,8 +53,8 @@ use(
   pub.hasFilterForColumn
 );
 use(pub.handleSort, pub.setSort);
-use(pub.goToPage, pub.setItemsPerPage);
-use(pub.setGroupByKey);
+use(pub.goToPage, pub.setPageSize);
+use(pub.setGroupBy);
 use(
   pub.selectedItems,
   pub.allSelected,

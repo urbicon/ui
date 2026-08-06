@@ -13,7 +13,7 @@
   } = $props();
 
   const tableContext = getInternalTableContext();
-  const { state: tableState } = tableContext;
+  const { state: tableState, view: tableView } = tableContext;
   const styleConfig = getTableStyleConfig();
 
   let summaryData = $derived(groupSummaryData || tableContext.summaryData);
@@ -56,7 +56,7 @@
       <td class="{summaryStyles.cell()} w-12" aria-hidden="true"></td>
     {/if}
 
-    {#if tableState.groupByKey}
+    {#if tableState.effectiveGroupBy}
       <td class="{summaryStyles.cell()} w-10" aria-hidden="true"></td>
     {/if}
 

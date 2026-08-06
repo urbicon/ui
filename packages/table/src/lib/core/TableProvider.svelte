@@ -153,14 +153,14 @@
   // The collapse set holds *group names* — values of whatever column is grouped
   // by — so it cannot outlive its key: after regrouping, those names mean
   // nothing, and one that happens to match collapses a group nobody touched.
-  // `setGroupByKey` clears it for every imperative path, but `state.groupByKey`
+  // `setGroupBy` clears it for every imperative path, but the applied grouping
   // also changes when a URL binding applies a navigation — no setter involved.
-  // Watching the value covers that door. `currentPage` deliberately stays out
+  // Watching the value covers that door. The page deliberately stays out
   // of it: resetting to page 1 belongs to a click, not to a link that names
   // its own page.
   let lastGroupKey: string | null | undefined;
   $effect(() => {
-    const key = state.groupByKey;
+    const key = state.effectiveGroupBy;
     const previous = untrack(() => lastGroupKey);
     lastGroupKey = key;
     if (previous === undefined || key === previous) return;
@@ -200,7 +200,7 @@
     // (read-tolerant), so surface it. This value usually comes from a URL or
     // the view defaults, so it can be set by whoever sent the link rather
     // than by the developer.
-    const sortColumn = state.sortColumn;
+    const sortColumn = tableView.sort?.column;
     if (sortColumn && !findColumnById(columns, sortColumn)) {
       console.warn(
         `[Table] the view's sort column "${sortColumn}" does not match any column id — the table renders unsorted.`

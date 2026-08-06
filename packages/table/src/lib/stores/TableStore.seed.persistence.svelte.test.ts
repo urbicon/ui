@@ -145,7 +145,7 @@ describe('view axes: bindViewToStorage vs the view defaults', () => {
 
       expect(view.sort).toEqual({ column: 'amount', direction: 'asc' });
       expect(store.paginatedItems.map((r) => r.name)).toEqual(['Grace', 'Ada']);
-      expect(store.state.sortColumn).toBe('amount');
+      expect(store.view.sort?.column).toBe('amount');
     });
     cleanup();
   });
@@ -620,9 +620,9 @@ describe('storage hygiene: only reader actions create entries', () => {
       createTableState(undefined, { storage: 't19' }, { columns: () => COLUMNS })
     );
 
-    expect(ts.state.sortColumn).toBe('');
-    expect(ts.state.activeFilters).toEqual([]);
-    expect(ts.state.groupByKey).toBeNull();
+    expect(ts.view.sort).toBeNull();
+    expect(ts.view.filters).toEqual([]);
+    expect(ts.state.effectiveGroupBy).toBeNull();
   });
 
   it('clearAllPersistentData removes the entries for good', () => {

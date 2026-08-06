@@ -18,26 +18,26 @@
   const tt = useTableI18n();
 
   const tableContext = getTableContext();
-  const { state: tableState, setSort } = tableContext;
+  const { state: tableState, view: tableView, setSort } = tableContext;
 
   const sheetStyles = toolsSheetVariants();
 
   const entries = $derived(buildSortEntries(tableState.columns));
-  const currentColumn = $derived(tableState.sortColumn || '');
-  const currentDirection = $derived(tableState.sortDirection ?? 'asc');
+  const currentColumn = $derived(tableView.sort?.column ?? '');
+  const currentDirection = $derived(tableView.sort?.direction ?? 'asc');
 
   function handleColumnChange(columnId: string) {
     if (!columnId) {
-      setSort('', 'asc');
+      setSort(null);
       return;
     }
-    setSort(columnId, currentDirection);
+    setSort({ column: columnId, direction: currentDirection });
   }
 
   function handleDirectionChange(direction: string) {
     if (!currentColumn) return;
     if (direction === 'asc' || direction === 'desc') {
-      setSort(currentColumn, direction);
+      setSort({ column: currentColumn, direction });
     }
   }
 </script>

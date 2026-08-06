@@ -15,9 +15,9 @@
   const LayersIcon = resolveIcon('layers', LayersIconDefault);
 
   const tableContext = getTableContext();
-  const { state: tableState, setGroupByKey } = tableContext;
+  const { state: tableState, view: tableView, setGroupBy } = tableContext;
 
-  const currentValue = $derived(tableState.groupByKey || '');
+  const currentValue = $derived(tableState.effectiveGroupBy || '');
   const isActive = $derived(!!currentValue);
 
   // The check glyph that used to sit next to the icon is gone: it was a third
@@ -33,14 +33,14 @@
     ...buildGroupingEntries(
       tableState.columns,
       tableState.declaredGroupByKey,
-      tableState.groupByKey
+      tableState.effectiveGroupBy
     ).map((entry) => ({ label: entry.label, value: entry.id }))
   ]);
 
   let menuOpen = $state(false);
 
   function handleValueChange(value: string) {
-    setGroupByKey(value === '' ? null : value);
+    setGroupBy(value === '' ? null : value);
   }
 </script>
 

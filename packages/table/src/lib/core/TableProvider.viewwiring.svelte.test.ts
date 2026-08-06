@@ -109,13 +109,13 @@ describe('virtualization × grouping — the system discard', () => {
     const view = createTableView({ defaults: { groupBy: 'name' } });
     let ctx: TableContext | undefined;
     mountTable({ view, onReady: (c: TableContext) => (ctx = c) }); // NOT virtualized
-    expect(ctx?.state.groupByKey).toBe('name'); // the grouping stands
+    expect(ctx?.state.effectiveGroupBy).toBe('name'); // the grouping stands
 
     if (!ctx) throw new Error('onReady never fired');
     ctx.state.virtualized = true; // runtime override through the slot, not the prop
     flushSync();
 
-    expect(ctx.state.groupByKey).toBeNull(); // hidden by the same slot the setter gate reads
+    expect(ctx.state.effectiveGroupBy).toBeNull(); // hidden by the same slot the setter gate reads
   });
 });
 

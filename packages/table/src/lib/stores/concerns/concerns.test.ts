@@ -1,5 +1,6 @@
 import { afterAll, beforeAll, describe, expect, it, vi } from 'vitest';
 import type { Column, Filter, TableItem } from '$lib/types/tableTypes';
+import type { TableView, TableViewSnapshot } from '$lib/view/view.svelte';
 import type { SummaryConfig } from '../TableStore.svelte';
 import type { TableState } from './types';
 import { useColumnOrder } from './useColumnOrder.svelte.js';
@@ -26,6 +27,25 @@ afterAll(() => {
   vi.restoreAllMocks();
 });
 
+/**
+ * A minimal stand-in for the view object the axis-owning concerns now take
+ * (#166). These tests deliberately run outside a Svelte runtime — they pin the
+ * concerns' *contracts*, not their reactivity — so a plain object with the six
+ * axes is exactly the surface under test. `createTableView` would work too and
+ * would drag in the module-scope SSR warning for nothing.
+ */
+function fakeView(overrides: Partial<TableViewSnapshot> = {}): TableView {
+  return {
+    search: '',
+    sort: null,
+    page: 1,
+    pageSize: 10,
+    filters: [],
+    groupBy: null,
+    ...overrides
+  } as unknown as TableView;
+}
+
 // Concern tests for pure logic (non-reactive parts).
 // Reactive $derived chains are tested indirectly via the existing TableStore tests.
 // These tests validate the concern API contracts.
@@ -33,19 +53,16 @@ afterAll(() => {
 describe('useSearch', () => {
   // Search concern mutates state.searchTerm and state.currentPage.
   // Since $state requires Svelte runtime, we test the contract:
-  // setSearchTerm(term) should update searchTerm and reset page.
+  // setSearch(term) should update searchTerm and reset page.
 
-  it('contract: setSearchTerm updates term and resets page', () => {
-    const state = {
-      searchTerm: '',
-      currentPage: 5
-    } as unknown as TableState;
+  it('contract: setSearch updates term and resets page', () => {
+    const view = fakeView({ page: 5 });
 
-    const search = useSearch(state);
-    search.setSearchTerm('hello');
+    const search = useSearch(view);
+    search.setSearch('hello');
 
-    expect(state.searchTerm).toBe('hello');
-    expect(state.currentPage).toBe(1);
+    expect(view.search).toBe('hello');
+    expect(view.page).toBe(1);
   });
 });
 
@@ -111,112 +128,96 @@ describe('useExpansion', () => {
 
 describe('useSorting', () => {
   it('contract: handleSort cycles through asc → desc → off', () => {
-    const state = {
-      sortColumn: '',
-      sortDirection: 'asc' as 'asc' | 'desc'
-    } as unknown as TableState;
-
-    const sorting = useSorting(state, () => []);
+    const view = fakeView();
+    const sorting = useSorting({} as TableState, view, () => []);
 
     // First click: set column, asc
     sorting.handleSort('name');
-    expect(state.sortColumn).toBe('name');
-    expect(state.sortDirection).toBe('asc');
+    expect(view.sort).toEqual({ column: 'name', direction: 'asc' });
 
     // Second click: same column, desc
     sorting.handleSort('name');
-    expect(state.sortColumn).toBe('name');
-    expect(state.sortDirection).toBe('desc');
+    expect(view.sort).toEqual({ column: 'name', direction: 'desc' });
 
-    // Third click: same column, reset
+    // Third click: unsorted — `null`, not a column-less direction.
     sorting.handleSort('name');
-    expect(state.sortColumn).toBe('');
-    expect(state.sortDirection).toBe('asc');
+    expect(view.sort).toBeNull();
   });
 
   it('contract: clicking a different column resets to asc', () => {
-    const state = {
-      sortColumn: 'name',
-      sortDirection: 'desc' as 'asc' | 'desc'
-    } as unknown as TableState;
-
-    const sorting = useSorting(state, () => []);
+    const view = fakeView({ sort: { column: 'name', direction: 'desc' } });
+    const sorting = useSorting({} as TableState, view, () => []);
 
     sorting.handleSort('age');
-    expect(state.sortColumn).toBe('age');
-    expect(state.sortDirection).toBe('asc');
+    expect(view.sort).toEqual({ column: 'age', direction: 'asc' });
   });
 });
 
 describe('useGrouping', () => {
-  it('contract: setGroupByKey resets collapse state and page', () => {
+  it('contract: setGroupBy resets collapse state and page', () => {
     const state = {
-      groupByKey: null as string | null,
       collapsedGroups: new Set(['Engineering']),
       allGroupsExpanded: false,
-      currentPage: 3,
       groupOrder: []
     } as unknown as TableState;
+    const view = fakeView({ page: 3 });
 
-    const grouping = useGrouping(state, () => []);
+    const grouping = useGrouping(state, view, () => []);
 
-    grouping.setGroupByKey('department');
-    expect(state.groupByKey).toBe('department');
+    grouping.setGroupBy('department');
+    expect(view.groupBy).toBe('department');
     expect(state.collapsedGroups.size).toBe(0);
     expect(state.allGroupsExpanded).toBe(true);
-    expect(state.currentPage).toBe(1);
+    expect(view.page).toBe(1);
   });
 
-  it('contract: setGroupByKey(null) clears grouping', () => {
+  it('contract: setGroupBy(null) clears grouping', () => {
     const state = {
-      groupByKey: 'department' as string | null,
       collapsedGroups: new Set<string>(),
       allGroupsExpanded: true,
-      currentPage: 1,
       groupOrder: []
     } as unknown as TableState;
+    const view = fakeView({ groupBy: 'department' });
 
-    const grouping = useGrouping(state, () => []);
+    const grouping = useGrouping(state, view, () => []);
 
-    grouping.setGroupByKey(null);
-    expect(state.groupByKey).toBe(null);
+    grouping.setGroupBy(null);
+    expect(view.groupBy).toBeNull();
   });
 
-  it('contract: setGroupByKey is inert while virtualized', () => {
+  it('contract: setGroupBy is inert while virtualized', () => {
     const state = {
-      groupByKey: null as string | null,
       collapsedGroups: new Set<string>(),
       allGroupsExpanded: true,
-      currentPage: 2,
       groupOrder: [],
       virtualized: true
     } as unknown as TableState;
+    const view = fakeView({ page: 2 });
 
-    const grouping = useGrouping(state, () => []);
+    const grouping = useGrouping(state, view, () => []);
 
     // Grouped virtualization is not implemented — letting the key through
     // would deactivate virtualization and render the full item set.
-    grouping.setGroupByKey('department');
-    expect(state.groupByKey).toBe(null);
-    expect(state.currentPage).toBe(2);
+    grouping.setGroupBy('department');
+    expect(view.groupBy).toBeNull();
+    expect(view.page).toBe(2);
   });
 
   it('contract: clearing grouping stays allowed while virtualized', () => {
     // A key can already be in place (persistence/seed) when the mode is
     // switched on — the provider clears it through this same path.
     const state = {
-      groupByKey: 'department' as string | null,
       collapsedGroups: new Set<string>(),
       allGroupsExpanded: true,
-      currentPage: 1,
       groupOrder: [],
       virtualized: true
     } as unknown as TableState;
+    const view = fakeView({ groupBy: 'department' });
 
-    const grouping = useGrouping(state, () => []);
+    const grouping = useGrouping(state, view, () => []);
 
-    grouping.setGroupByKey(null);
-    expect(state.groupByKey).toBe(null);
+    grouping.setGroupBy(null);
+    expect(view.groupBy).toBeNull();
   });
 });
 
@@ -241,13 +242,10 @@ describe('derived ops use the accessor (function or string)', () => {
     const state = {
       mode: 'client',
       items,
-      columns,
-      searchTerm: 'bob',
-      activeFilters: [],
-      currentPage: 1
+      columns
     } as unknown as TableState;
 
-    const filtering = useFiltering(state);
+    const filtering = useFiltering(state, fakeView({ search: 'bob' }));
     expect(filtering.filteredItems).toHaveLength(1);
     expect((filtering.filteredItems[0] as Row).id).toBe(2);
   });
@@ -255,12 +253,11 @@ describe('derived ops use the accessor (function or string)', () => {
   it('sort uses a function accessor', () => {
     const state = {
       mode: 'client',
-      columns,
-      sortColumn: 'userName',
-      sortDirection: 'asc' as const
+      columns
     } as unknown as TableState;
 
-    const sorting = useSorting(state, () => items);
+    const view = fakeView({ sort: { column: 'userName', direction: 'asc' } });
+    const sorting = useSorting(state, view, () => items);
     expect(sorting.sortedItems.map((r) => (r as Row).id)).toEqual([1, 2, 3]);
   });
 
@@ -268,14 +265,13 @@ describe('derived ops use the accessor (function or string)', () => {
     const state = {
       mode: 'client',
       columns,
-      groupByKey: 'userName',
+      effectiveGroupBy: 'userName',
       collapsedGroups: new Set<string>(),
       allGroupsExpanded: true,
-      currentPage: 1,
       groupOrder: []
     } as unknown as TableState;
 
-    const grouping = useGrouping(state, () => items);
+    const grouping = useGrouping(state, fakeView({ groupBy: 'userName' }), () => items);
     expect(Object.keys(grouping.grouped).sort()).toEqual(['Alice', 'Bob', 'Charlie']);
   });
 
@@ -283,78 +279,62 @@ describe('derived ops use the accessor (function or string)', () => {
     const syntheticCols: Column<Row>[] = [{ id: 'actions', title: '' }];
     const state = {
       mode: 'client',
-      columns: syntheticCols,
-      sortColumn: 'actions',
-      sortDirection: 'asc' as const
+      columns: syntheticCols
     } as unknown as TableState;
 
-    const sorting = useSorting(state, () => items);
+    const view = fakeView({ sort: { column: 'actions', direction: 'asc' } });
+    const sorting = useSorting(state, view, () => items);
     expect(sorting.sortedItems.map((r) => (r as Row).id)).toEqual([1, 2, 3]);
   });
 });
 
 describe('useFiltering', () => {
   it('contract: addFilter adds to activeFilters and resets page', () => {
-    const state = {
-      items: [],
-      columns: [],
-      searchTerm: '',
-      activeFilters: [] as Filter[],
-      currentPage: 3
-    } as unknown as TableState;
+    const state = { items: [], columns: [] } as unknown as TableState;
+    const view = fakeView({ page: 3 });
 
-    const filtering = useFiltering(state);
+    const filtering = useFiltering(state, view);
 
     filtering.addFilter({ column: 'name', operator: 'contains', value: 'Alice' });
-    expect(state.activeFilters).toHaveLength(1);
-    expect(state.currentPage).toBe(1);
+    expect(view.filters).toHaveLength(1);
+    expect(view.page).toBe(1);
   });
 
   it('contract: removeFilter removes by index', () => {
-    const state = {
-      items: [],
-      columns: [],
-      searchTerm: '',
-      activeFilters: [
+    const state = { items: [], columns: [] } as unknown as TableState;
+    const view = fakeView({
+      filters: [
         { column: 'name', operator: 'contains', value: 'Alice' },
         { column: 'age', operator: 'greaterThan', value: '25' }
-      ],
-      currentPage: 1
-    } as unknown as TableState;
+      ]
+    });
 
-    const filtering = useFiltering(state);
+    const filtering = useFiltering(state, view);
 
     filtering.removeFilter(0);
-    expect(state.activeFilters).toHaveLength(1);
-    expect(state.activeFilters[0].column).toBe('age');
+    expect(view.filters).toHaveLength(1);
+    expect(view.filters[0].column).toBe('age');
   });
 
   it('contract: clearAllFilters empties filters', () => {
-    const state = {
-      items: [],
-      columns: [],
-      searchTerm: '',
-      activeFilters: [{ column: 'name', operator: 'contains', value: 'Alice' }],
-      currentPage: 2
-    } as unknown as TableState;
+    const state = { items: [], columns: [] } as unknown as TableState;
+    const view = fakeView({
+      filters: [{ column: 'name', operator: 'contains', value: 'Alice' }],
+      page: 2
+    });
 
-    const filtering = useFiltering(state);
+    const filtering = useFiltering(state, view);
 
     filtering.clearAllFilters();
-    expect(state.activeFilters).toHaveLength(0);
-    expect(state.currentPage).toBe(1);
+    expect(view.filters).toHaveLength(0);
+    expect(view.page).toBe(1);
   });
 
   it('contract: hasFilterForColumn returns correct results', () => {
-    const state = {
-      items: [],
-      columns: [],
-      searchTerm: '',
-      activeFilters: [{ column: 'name', operator: 'contains', value: 'Alice' }],
-      currentPage: 1
-    } as unknown as TableState;
+    const state = { items: [], columns: [] } as unknown as TableState;
+    const view = fakeView({ filters: [{ column: 'name', operator: 'contains', value: 'Alice' }] });
 
-    const filtering = useFiltering(state);
+    const filtering = useFiltering(state, view);
 
     expect(filtering.hasFilterForColumn('name')).toBe(true);
     expect(filtering.hasFilterForColumn('age')).toBe(false);
@@ -405,13 +385,12 @@ describe('useFiltering — greaterThan / lessThan', () => {
     const state = {
       mode: 'client',
       items,
-      columns,
-      searchTerm: '',
-      activeFilters,
-      currentPage: 1
+      columns
     } as unknown as TableState;
 
-    return useFiltering(state).filteredItems.map((r) => (r as Row).id);
+    return useFiltering(state, fakeView({ filters: activeFilters })).filteredItems.map(
+      (r) => (r as Row).id
+    );
   };
 
   it('numeric comparison is unchanged', () => {
@@ -489,12 +468,15 @@ describe('useFiltering — greaterThan / lessThan', () => {
       mode: 'client',
       items: sparse,
       columns: [{ accessor: 'iso', title: 'ISO', dataType: 'date' }] as Column<TableItem>[],
-      searchTerm: '',
-      activeFilters: [{ column: 'iso', operator: 'greaterThan', value: '2021-03-15' }] as Filter[],
-      currentPage: 1
+      searchTerm: ''
     } as unknown as TableState;
+    const view = fakeView({
+      filters: [{ column: 'iso', operator: 'greaterThan', value: '2021-03-15' }]
+    });
 
-    expect(useFiltering(state).filteredItems.map((r) => (r as { id: number }).id)).toEqual([2]);
+    expect(useFiltering(state, view).filteredItems.map((r) => (r as { id: number }).id)).toEqual([
+      2
+    ]);
   });
 
   // `equals` is what the filter menu labels "on date" for a `dataType: 'date'`
@@ -717,7 +699,7 @@ describe('useRemoteData', () => {
   function makeServerState() {
     return {
       items: [],
-      serverTotalItems: 0,
+      serverTotal: 0,
       loading: false,
       error: null as string | null,
       mode: 'server' as const
@@ -738,7 +720,7 @@ describe('useRemoteData', () => {
     });
 
     expect(state.items).toHaveLength(2);
-    expect(state.serverTotalItems).toBe(100);
+    expect(state.serverTotal).toBe(100);
     expect(state.loading).toBe(false);
     expect(state.error).toBeNull();
   });
@@ -771,46 +753,45 @@ describe('server mode: concern passthrough', () => {
         { id: 1, name: 'Alice' },
         { id: 2, name: 'Bob' }
       ],
-      columns: [{ accessor: 'name', title: 'Name' }],
-      searchTerm: 'xyz', // Would normally filter everything out
-      activeFilters: [{ column: 'name', operator: 'equals', value: 'Nobody' }],
-      currentPage: 1
+      columns: [{ accessor: 'name', title: 'Name' }]
     } as unknown as TableState;
+    // Both would normally filter everything out.
+    const view = fakeView({
+      search: 'xyz',
+      filters: [{ column: 'name', operator: 'equals', value: 'Nobody' }]
+    });
 
-    const filtering = useFiltering(state);
+    const filtering = useFiltering(state, view);
     // In server mode, items pass through unchanged despite search/filter
     expect(filtering.filteredItems).toHaveLength(2);
   });
 
   it('useSorting passes through items in server mode', () => {
-    const state = {
-      mode: 'server',
-      sortColumn: 'name',
-      sortDirection: 'desc' as const
-    } as unknown as TableState;
+    const state = { mode: 'server' } as unknown as TableState;
+    const view = fakeView({ sort: { column: 'name', direction: 'desc' } });
 
     const items = [
       { id: 1, name: 'Alice' },
       { id: 2, name: 'Bob' }
     ];
 
-    const sorting = useSorting(state, () => items);
+    const sorting = useSorting(state, view, () => items);
     // In server mode, items pass through unchanged (server sorted)
     expect(sorting.sortedItems).toBe(items); // Same reference = no copy/sort
   });
 
-  it('usePagination uses serverTotalItems in server mode', () => {
+  it('usePagination uses serverTotal in server mode', () => {
     const state = {
       mode: 'server',
-      serverTotalItems: 500,
-      currentPage: 3,
-      itemsPerPage: 25,
-      groupByKey: null
+      serverTotal: 500,
+      effectiveGroupBy: null
     } as unknown as TableState;
+    const view = fakeView({ page: 3, pageSize: 25 });
 
     const items = [{ id: 1 }, { id: 2 }]; // Only current page's items
     const pagination = usePagination(
       state,
+      view,
       () => items,
       () => items
     );
@@ -825,15 +806,12 @@ describe('server mode: concern passthrough', () => {
     // page. Before the clamp `paginatedItems` sliced (80, 100) out of 100 rows
     // and rendered an empty body with the data right there.
     const items = Array.from({ length: 100 }, (_, i) => ({ id: i }));
-    const state = {
-      mode: 'client',
-      currentPage: 5,
-      itemsPerPage: 100,
-      groupByKey: null
-    } as unknown as TableState;
+    const state = { mode: 'client', effectiveGroupBy: null } as unknown as TableState;
+    const view = fakeView({ page: 5, pageSize: 100 });
 
     const pagination = usePagination(
       state,
+      view,
       () => items,
       () => items
     );
@@ -843,22 +821,19 @@ describe('server mode: concern passthrough', () => {
     expect(pagination.paginatedItems).toHaveLength(100);
     // The raw value is left alone on purpose: it is the reader's intent, and
     // the pager, the paging keys and the focus reset all read `effectivePage`.
-    expect(state.currentPage).toBe(5);
+    expect(view.page).toBe(5);
   });
 
   it('effectivePage floors an out-of-range seeded page at 1', () => {
     // A page seed of 0 (or a negative) never had a guard of any kind —
     // `viewDefaults={{ page: 0 }}` today, `initialPage={0}` before v8.
     const items = Array.from({ length: 10 }, (_, i) => ({ id: i }));
-    const state = {
-      mode: 'client',
-      currentPage: 0,
-      itemsPerPage: 5,
-      groupByKey: null
-    } as unknown as TableState;
+    const state = { mode: 'client', effectiveGroupBy: null } as unknown as TableState;
+    const view = fakeView({ page: 0, pageSize: 5 });
 
     const pagination = usePagination(
       state,
+      view,
       () => items,
       () => items
     );

@@ -29,7 +29,7 @@
 
   // Store-Kontext abrufen
   const tableContext = getInternalTableContext();
-  const { state: tableState, setSearchTerm } = tableContext;
+  const { state: tableState, view: tableView, setSearch } = tableContext;
   const styleConfig = getTableStyleConfig();
 
   // Props
@@ -43,12 +43,12 @@
   } = $props();
 
   // Local state — decouples UI input from the store so debouncing is not bypassed
-  let localSearch = $state(tableState.searchTerm);
+  let localSearch = $state(tableView.search);
   let debounceTimer = $state<number | null>(null);
 
   // Sync store → local (e.g. when the store is changed programmatically)
   $effect(() => {
-    const storeValue = tableState.searchTerm;
+    const storeValue = tableView.search;
     if (storeValue !== untrack(() => localSearch)) {
       localSearch = storeValue;
     }
@@ -60,7 +60,7 @@
 
     if (debounceTimer) clearTimeout(debounceTimer);
     debounceTimer = setTimeout(() => {
-      setSearchTerm(localSearch);
+      setSearch(localSearch);
     }, debounceMs) as unknown as number;
   }
 
@@ -68,7 +68,7 @@
     if (event.key === 'Escape' && localSearch) {
       localSearch = '';
       if (debounceTimer) clearTimeout(debounceTimer);
-      setSearchTerm('');
+      setSearch('');
     }
   }
 
@@ -134,9 +134,9 @@
   // acting on the grid rides on the button. Column visibility counts too — a
   // hidden column changes what the reader sees.
   const activeToolCount = $derived(
-    (tableState.activeFilters.length > 0 ? 1 : 0) +
-      (tableState.sortColumn ? 1 : 0) +
-      (tableState.groupByKey ? 1 : 0) +
+    (tableView.filters.length > 0 ? 1 : 0) +
+      (tableView.sort ? 1 : 0) +
+      (tableState.effectiveGroupBy ? 1 : 0) +
       (tableState.showSummary && tableState.summaryConfigs.length > 0 ? 1 : 0) +
       (tableContext.hiddenColumnKeys.size > 0 ? 1 : 0)
   );

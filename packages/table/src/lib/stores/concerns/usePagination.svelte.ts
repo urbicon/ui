@@ -1,38 +1,41 @@
 import type { TableItem } from '$lib/types/tableTypes';
+import type { TableView } from '$lib/view/view.svelte';
 import type { TableState } from './types';
 
 /**
  * Pagination concern: manages page state and computes paginated items.
  * In server mode, items are already paginated by the server — this concern
- * only computes `totalItems`/`totalPages` from `serverTotalItems`.
+ * only computes `totalItems`/`totalPages` from `serverTotal`.
  * @param state - Shared table state.
+ * @param view - The view object the page axes live on.
  * @param getFilteredItems - Getter for filtered items (client mode: local count).
  * @param getSortedItems - Getter for upstream sorted items.
  */
 export function usePagination(
   state: TableState,
+  view: TableView,
   getFilteredItems: () => TableItem[],
   getSortedItems: () => TableItem[]
 ) {
   const totalItems = $derived(
-    state.mode === 'server' ? state.serverTotalItems : getFilteredItems().length
+    state.mode === 'server' ? state.serverTotal : getFilteredItems().length
   );
 
   const totalPages = $derived.by(() => {
-    if (state.groupByKey) return 1;
+    if (state.effectiveGroupBy) return 1;
     if (totalItems === 0) return 1;
-    return Math.ceil(totalItems / state.itemsPerPage);
+    return Math.ceil(totalItems / view.pageSize);
   });
 
   /**
-   * The page actually rendered: `currentPage` clamped into range.
+   * The page actually rendered: `view.page` clamped into range.
    *
-   * `currentPage` derives from the view's `page` axis and is written by
-   * pagination, search, filtering and grouping — none of which can know whether
+   * `view.page` is written by pagination, search, filtering and grouping —
+   * none of which can know whether
    * the page still exists after `itemsPerPage` or the item count changed. Before
-   * 2026-08 the reset rode along inside `setItemsPerPage` (which set
+   * 2026-08 the reset rode along inside `setPageSize` (which set
    * `currentPage = 1` as a side effect), so raising a rows-per-page control from
-   * 3 to 20 while on page 5 left `currentPage` at 5 against a single page —
+   * 3 to 20 while on page 5 left the page at 5 against a single page —
    * `slice(80, 100)` on 100 rows, an empty body with the data right there, and a
    * pager reading "5 / 1".
    *
@@ -40,7 +43,7 @@ export function usePagination(
    * writer to remember the reset. It also covers an out-of-range page arriving
    * from the view (its defaults, a URL, storage), which never had a guard at all.
    */
-  const effectivePage = $derived(Math.min(Math.max(state.currentPage, 1), totalPages));
+  const effectivePage = $derived(Math.min(Math.max(view.page, 1), totalPages));
 
   const paginatedItems = $derived.by((): TableItem[] => {
     const items = getSortedItems();
@@ -49,27 +52,24 @@ export function usePagination(
     if (state.mode === 'server') return items;
 
     // Skip pagination when grouped (groups should be fully visible)
-    if (state.groupByKey) return items;
+    if (state.effectiveGroupBy) return items;
 
-    return items.slice(
-      (effectivePage - 1) * state.itemsPerPage,
-      effectivePage * state.itemsPerPage
-    );
+    return items.slice((effectivePage - 1) * view.pageSize, effectivePage * view.pageSize);
   });
 
   function setPage(page: number) {
-    state.currentPage = page;
+    view.page = page;
   }
 
   function goToPage(page: number) {
     if (page >= 1 && page <= totalPages) {
-      state.currentPage = page;
+      view.page = page;
     }
   }
 
-  function setItemsPerPage(count: number) {
-    state.itemsPerPage = count;
-    state.currentPage = 1;
+  function setPageSize(count: number) {
+    view.pageSize = count;
+    view.page = 1;
   }
 
   return {
@@ -83,15 +83,16 @@ export function usePagination(
       return paginatedItems;
     },
     /**
-     * `currentPage` clamped into range — what `paginatedItems` actually sliced.
-     * Read this for anything user-facing; `state.currentPage` can sit out of
-     * range after the page size or the item count changed under it.
+     * `view.page` clamped into range — what `paginatedItems` actually sliced.
+     * Read this for anything user-facing; `view.page` is the reader's *intent*
+     * and can sit out of range after the page size or the item count changed
+     * under it.
      */
     get effectivePage() {
       return effectivePage;
     },
     setPage,
     goToPage,
-    setItemsPerPage
+    setPageSize
   };
 }

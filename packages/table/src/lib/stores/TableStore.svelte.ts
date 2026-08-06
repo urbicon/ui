@@ -195,13 +195,13 @@ export function createTableState(
   //
   // Overridable deriveds: evaluated during SSR (#10), still writable for the
   // second writers — live updates and managed fetches assign to
-  // `state.items`/`loading`/`error`/`serverTotalItems`. An assignment holds
+  // `state.items`/`loading`/`error`/`serverTotal`. An assignment holds
   // until the value behind it changes, which then re-seeds.
   // See docs/SVELTE5-PATTERNS.md → "Prop-derived state".
   let items = $derived(normalizeItems(sourceItems));
   let loading = $derived(sourceLoading);
   let error = $derived(sourceError);
-  let serverTotalItems = $derived(sourceTotal);
+  let serverTotal = $derived(sourceTotal);
   let multiExpand = $derived(props?.multiExpand?.() ?? false);
   let groupOrder = $derived(props?.groupOrder?.() ?? []);
   let selectionMode = $derived(props?.selectionMode?.() ?? 'none');
@@ -253,49 +253,6 @@ export function createTableState(
       error = next;
     },
 
-    get searchTerm() {
-      return tableView.search;
-    },
-    set searchTerm(next: string) {
-      tableView.search = next;
-    },
-    get activeFilters() {
-      return tableView.filters;
-    },
-    set activeFilters(next: Filter[]) {
-      tableView.filters = next;
-    },
-
-    get currentPage() {
-      return tableView.page;
-    },
-    set currentPage(next: number) {
-      tableView.page = next;
-    },
-    get itemsPerPage() {
-      return tableView.pageSize;
-    },
-    set itemsPerPage(next: number) {
-      tableView.pageSize = next;
-    },
-
-    get sortColumn() {
-      return tableView.sort?.column ?? '';
-    },
-    set sortColumn(next: string) {
-      tableView.sort = next
-        ? { column: next, direction: tableView.sort?.direction ?? 'asc' }
-        : null;
-    },
-    get sortDirection() {
-      return tableView.sort?.direction ?? 'asc';
-    },
-    set sortDirection(next: 'asc' | 'desc') {
-      if (tableView.sort) {
-        tableView.sort = { column: tableView.sort.column, direction: next };
-      }
-    },
-
     expandedItemId: null as string | number | null,
     expandedItemIds: new SvelteSet<string | number>(),
     get multiExpand() {
@@ -306,23 +263,28 @@ export function createTableState(
     },
 
     /**
-     * Grouping carries a gate, not just a value: grouped virtualization is
-     * not implemented, and a key that slips through deactivates
-     * virtualization and renders the *entire* item set. The read-side gate
-     * here holds during SSR too — a `?group=…` deep link on a virtualized
+     * The grouping actually applied, which is not always the one requested —
+     * and that gap is why this survived the #166 cut while the other five
+     * axis mirrors did not. Grouped virtualization is not implemented, and a
+     * key that slips through deactivates virtualization and renders the
+     * *entire* item set, so a virtualized table renders ungrouped however the
+     * view is set. Read `view.groupBy` for what the reader asked for; read
+     * this for what they are looking at.
+     *
+     * The gate holds during SSR too — a `?group=…` deep link on a virtualized
      * table renders ungrouped on the server. The runtime *discard* (which
      * cleans the URL and un-dirties storage) is `TableProvider`'s
      * `applyExternal({ groupBy: null }, 'system')`.
+     *
+     * Read-only: write `view.groupBy`, or call `setGroupBy` for the
+     * page-1 reset and the collapsed-group cleanup that go with it.
      */
-    get groupByKey() {
+    get effectiveGroupBy() {
       const requested = tableView.groupBy;
       // Gated on the same overridable slot `useGrouping`'s setter gate reads
       // (`state.virtualized`) — not on the raw prop — so the two gates can
       // never disagree about what "virtualized" currently means.
       return requested && virtualized ? null : requested;
-    },
-    set groupByKey(next: string | null) {
-      tableView.groupBy = next;
     },
     /**
      * The grouping key the consumer *declared* via `view.defaults.groupBy`,
@@ -394,11 +356,11 @@ export function createTableState(
     get mode() {
       return mode;
     },
-    get serverTotalItems() {
-      return serverTotalItems;
+    get serverTotal() {
+      return serverTotal;
     },
-    set serverTotalItems(next: number) {
-      serverTotalItems = next;
+    set serverTotal(next: number) {
+      serverTotal = next;
     },
 
     get enableColumnVisibility() {
@@ -413,12 +375,13 @@ export function createTableState(
   const prefsStore = usePrefs(state, prefs);
 
   // ── Concerns (composed in derived-chain order) ──
-  const search = useSearch(state);
-  const filtering = useFiltering(state);
-  const sorting = useSorting(state, () => filtering.filteredItems);
-  const grouping = useGrouping(state, () => sorting.sortedItems);
+  const search = useSearch(tableView);
+  const filtering = useFiltering(state, tableView);
+  const sorting = useSorting(state, tableView, () => filtering.filteredItems);
+  const grouping = useGrouping(state, tableView, () => sorting.sortedItems);
   const pagination = usePagination(
     state,
+    tableView,
     () => filtering.filteredItems,
     () => sorting.sortedItems
   );
@@ -452,7 +415,7 @@ export function createTableState(
    * Tab without competing with the arrow keys for an index.
    */
   const navigableItems = $derived.by((): TableItem[] => {
-    if (!state.groupByKey) return pagination.paginatedItems;
+    if (!state.effectiveGroupBy) return pagination.paginatedItems;
     return Object.entries(grouping.grouped)
       .filter(([groupName]) => !state.collapsedGroups.has(groupName))
       .flatMap(([, groupItems]) => groupItems);
@@ -640,7 +603,7 @@ export function createTableState(
   // subset `getTableContext()` and `onReady` are typed against. Adding a
   // member here does NOT publish it; removing or renaming a public one fails
   // the `getTableContext()` return type (and `context.typecheck.ts`).
-  // External consumers should prefer the wrapper methods (setSearchTerm,
+  // External consumers should prefer the wrapper methods (setSearch,
   // addFilter, handleSort, etc.) which enforce side effects like the
   // page-1 reset.
   return {
@@ -658,14 +621,18 @@ export function createTableState(
     get paginatedItems() {
       return pagination.paginatedItems;
     },
-    get totalItems() {
+    get total() {
       return pagination.totalItems;
     },
     get totalPages() {
       return pagination.totalPages;
     },
+    /** The grouping actually applied — `null` on a virtualized table. */
+    get effectiveGroupBy() {
+      return state.effectiveGroupBy;
+    },
     /**
-     * The page actually rendered — `state.currentPage` clamped into range.
+     * The page actually rendered — `view.page` clamped into range.
      *
      * Everything user-facing reads this, never `state.currentPage`: the raw
      * value is the reader's *intent* and can sit out of range after
@@ -697,7 +664,7 @@ export function createTableState(
     setColumns: columnVisibility.setColumns,
 
     // Search
-    setSearchTerm: search.setSearchTerm,
+    setSearch: search.setSearch,
 
     // Filtering
     addFilter: filtering.addFilter,
@@ -713,7 +680,7 @@ export function createTableState(
     // Pagination
     setPage: pagination.setPage,
     goToPage: pagination.goToPage,
-    setItemsPerPage: pagination.setItemsPerPage,
+    setPageSize: pagination.setPageSize,
 
     // Expansion
     toggleExpand: expansion.toggleExpand,
@@ -722,7 +689,7 @@ export function createTableState(
     // Grouping
     toggleGroup: grouping.toggleGroup,
     toggleAllGroups: grouping.toggleAllGroups,
-    setGroupByKey: grouping.setGroupByKey,
+    setGroupBy: grouping.setGroupBy,
 
     // Summary
     addSummaryConfig,

@@ -61,6 +61,7 @@
   const tableContext = getTableContext();
   const {
     state: tableState,
+    view: tableView,
     addFilter,
     removeFiltersByColumn,
     clearAllFilters,
@@ -92,7 +93,7 @@
     return operators.map((op) => ({ value: op.value, label: op.label() }));
   };
 
-  const activeFilters = $derived(tableState.activeFilters);
+  const activeFilters = $derived(tableView.filters);
   const filterOptions = $derived.by(() => {
     return tableState.columns
       .filter((col) => col.accessor !== undefined && col.searchable !== false)

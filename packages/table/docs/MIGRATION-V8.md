@@ -10,7 +10,7 @@ Nothing about columns, cells, selection, virtualization, styling or snippets cha
 
 ## Already on 8.0?
 
-v9 tightens three things v8 shipped with. All are quick. In TypeScript the compiler names
+v9 tightens four things v8 shipped with. All are quick. In TypeScript the compiler names
 every call site that has to move; in plain JavaScript the table throws on the first render
 with a message that names the change.
 
@@ -113,6 +113,37 @@ structurally, and the table silently sorted a page of server-paged rows in the b
 `?: never` fields existed to catch that. Now the shape matches no variant at all, and the
 error arrives from the compiler rather than from a reader wondering why sorting only
 reordered the twenty rows in front of them.
+
+**The context stopped mirroring the view axes.** `TableContext.state` carried a second
+spelling of all six — `state.searchTerm`, `state.currentPage`, `state.sortColumn` +
+`state.sortDirection`, `state.activeFilters`, `state.itemsPerPage`, `state.groupByKey` — as
+getters onto the very same view. `context.view` is the one address now:
+
+| 8.0 | v9 |
+| --- | --- |
+| `ctx.state.searchTerm` | `ctx.view.search` |
+| `ctx.state.currentPage` | `ctx.view.page` |
+| `ctx.state.itemsPerPage` | `ctx.view.pageSize` |
+| `ctx.state.activeFilters` | `ctx.view.filters` |
+| `ctx.state.sortColumn` + `.sortDirection` | `ctx.view.sort` — `{ column, direction }` or `null` |
+| `ctx.state.groupByKey` | `ctx.view.groupBy`, or `ctx.effectiveGroupBy` — see below |
+| `ctx.totalItems` | `ctx.total` |
+| `ctx.setSearchTerm(t)` | `ctx.setSearch(t)` |
+| `ctx.setItemsPerPage(n)` | `ctx.setPageSize(n)` |
+| `ctx.setGroupByKey(k)` | `ctx.setGroupBy(k)` |
+| `ctx.setSort(column, direction)` | `ctx.setSort({ column, direction })`, or `setSort(null)` |
+| `ctx.state.serverTotalItems` | `ctx.state.serverTotal` |
+
+Everything else on `state` is untouched — `items`, `columns`, `loading`, `error`,
+`selectedIds`, the expansion, grouping and summary chrome, the prop-driven switches. Those
+are the table's own; the axes never were.
+
+**`ctx.effectiveGroupBy` is new, and it is not a rename.** `state.groupByKey` was the only
+one of the six that did not simply mirror the view: on a virtualized table it read `null`
+while `view.groupBy` named a column, because grouped virtualization is not implemented and
+a key slipping through would render every row. That distinction survives under a name that
+states it, next to the `effectivePage` that already draws the same one — read `view.groupBy`
+for what the reader asked for, `effectiveGroupBy` for what they are looking at.
 
 **`TableQueryResult` became `TablePage`.** With `TableQuery` gone (above) the old name was
 half of a pair whose other half no longer existed. Same shape, `{ items, total }`.
@@ -276,14 +307,15 @@ type was an alias for everything the internal store returned, so the store's wir
 and some sixty other members — was formally public API and every internal restructuring a
 breaking change. v8 keeps the parts that were meant for consumers:
 
-- **`state`** (the reactive read surface) and **`view`** (the six shareable axes),
+- **`state`** (what the table owns: rows, columns, load state, selection, chrome) and
+  **`view`** (the six shareable axes),
 - the **derived collections** — `filteredItems`, `sortedItems`, `paginatedItems`,
-  `totalItems`, `totalPages`, `effectivePage`, `selectedItems`, `allSelected`,
-  `someSelected`,
-- the **action families** — search (`setSearchTerm`), filters (`addFilter`,
+  `total`, `totalPages`, `effectivePage`, `effectiveGroupBy`, `selectedItems`,
+  `allSelected`, `someSelected`,
+- the **action families** — search (`setSearch`), filters (`addFilter`,
   `removeFilter`, `removeFiltersByColumn`, `clearAllFilters`, `hasFilterForColumn`),
-  sort (`handleSort`, `setSort`), pagination (`goToPage`, `setItemsPerPage`), grouping
-  (`setGroupByKey`), selection (`selectItem` … `setSelectedIds`, `isSelected`) and
+  sort (`handleSort`, `setSort`), pagination (`goToPage`, `setPageSize`), grouping
+  (`setGroupBy`), selection (`selectItem` … `setSelectedIds`, `isSelected`) and
   summaries (`addSummaryConfig`, `removeSummaryConfig`, `toggleSummary`,
   `setSummaryConfigs`),
 - the **live-update family** — `pushInsert`/`pushUpdate`/`pushDelete`, the apply/dismiss
@@ -293,7 +325,7 @@ What no longer appears on the type, and where its job went:
 
 | v7 context member | v8 |
 | --- | --- |
-| `setItems` / `setLoading` / `setError` | the `source` union: `source={{ items, loading, error }}` |
+| `setItems` / `setLoading` / `setError` | the `source` union: `source={{ processing: 'client', items, loading, error }}` |
 | `setServerResult` / `setServerError` / `setServerLoading` | a `processing: 'server'` source, with rows or with a `query` |
 | `query` / `queryKey` | `view.snapshot()`, or `observeView(view, cb)` |
 | `setColumns` | the `columns` prop |
@@ -360,12 +392,10 @@ What follows from it:
 6. **A grouping discarded by `virtualized` is a system decision.** It cleans the URL but never
    reaches storage as your wish, so the stored grouping applies again on the next load
    without `virtualized`.
-7. **A `sortDirection` write on an unsorted view is a no-op.** On the context surface,
-   `state.sortDirection = 'desc'` only re-directions an existing sort: direction is half of
-   the sort *value* (`view.sort = { column, direction }`), and unsorted is `null`, so there
-   is no direction to flip. In v7 the two lived in separate fields and a direction written
-   while unsorted was picked up by the next column write; in v8, set the column and the
-   direction together.
+7. **A direction is half of a sort value, not a field of its own.** `view.sort` is
+   `{ column, direction }` or `null`, so there is no way to write a direction while nothing
+   is sorted. In v7 the two lived in separate fields and a direction written while unsorted
+   was picked up by the next column write; now you set both together, or `null`.
 8. **Inside the URL write debounce, a foreign navigation wins.** If something else navigates
    the same path without a bound axis's param before the binding's debounced write fires —
    a link elsewhere on the page, a router redirect — the runtime rule applies: absence on a

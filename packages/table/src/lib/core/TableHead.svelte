@@ -25,7 +25,7 @@
   let { expandable = false, enableColumnReorder = false, size = 'md' as const } = $props();
 
   const tableContext = getInternalTableContext();
-  const { state: tableState, handleSort, toggleAllGroups } = tableContext;
+  const { state: tableState, view: tableView, handleSort, toggleAllGroups } = tableContext;
   const styleConfig = getTableStyleConfig();
   const stickyContext = getStickyContext();
 
@@ -96,11 +96,11 @@
   }
 
   function hasActiveFilter(columnKey: string): boolean {
-    return tableState.activeFilters.some((filter) => filter.column === columnKey);
+    return tableView.filters.some((filter) => filter.column === columnKey);
   }
 
   function isGroupedColumn(columnKey: string): boolean {
-    return tableState.groupByKey === columnKey;
+    return tableState.effectiveGroupBy === columnKey;
   }
 
   function hasSummary(columnKey: string): boolean {
@@ -159,7 +159,7 @@
     <!-- Structural header cells (group toggle, select-all, expand spacer) are
          chrome, not columns: they carry the header cell chrome but not
          `slotClasses.headerCell` — see TableSlotClasses.headerCell. -->
-    {#if tableState.groupByKey}
+    {#if tableState.effectiveGroupBy}
       <th class="{headerStyles.cell()} w-10 text-center">
         <button
           onclick={() => toggleAllGroups()}
@@ -205,8 +205,8 @@
       {@const columnHasSummary = hasSummary(columnId)}
       {@const summaryTypes = getSummaryTypes(columnId)}
       {@const actionIndicators = getActionIndicators(columnId)}
-      {@const isActiveSorted = tableState.sortColumn === columnId}
-      {@const sortedState = isActiveSorted ? tableState.sortDirection : 'none'}
+      {@const isActiveSorted = tableView.sort?.column === columnId}
+      {@const sortedState = isActiveSorted ? (tableView.sort?.direction ?? 'none') : 'none'}
       {@const isSortable =
         column.accessor !== undefined && (column.sortable === undefined || column.sortable)}
       {@const columnStyles = tableHeaderVariants({
@@ -236,7 +236,7 @@
             .join(' ')
         )}
         aria-sort={isActiveSorted
-          ? tableState.sortDirection === 'asc'
+          ? tableView.sort?.direction === 'asc'
             ? 'ascending'
             : 'descending'
           : 'none'}
@@ -290,7 +290,7 @@
 
             {#if isActiveSorted}
               <span class={columnStyles.sortIcon()} aria-hidden="true">
-                {#if tableState.sortDirection === 'asc'}
+                {#if tableView.sort?.direction === 'asc'}
                   <ChevronUpIcon class="h-4 w-4" />
                 {:else}
                   <ChevronDownIcon class="h-4 w-4" />

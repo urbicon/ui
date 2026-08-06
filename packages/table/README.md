@@ -79,7 +79,7 @@ The table calls `query` whenever the view changes — the first fetch immediatel
 
 ### Live updates
 
-`onReady` hands you the table context from outside the table's tree — the imperative API (`pushInsert` / `pushUpdate` / `pushDelete`, `applyAllUpdates`) plus the reactive `state`:
+`onReady` hands you the table context from outside the table's tree — the imperative API (`pushInsert` / `pushUpdate` / `pushDelete`, `applyAllUpdates`), the reactive `state` (rows, columns, selection, load state) and the `view` (the six axes — `ctx.view.search`, `ctx.view.sort`, …):
 
 ```svelte
 <script lang="ts">

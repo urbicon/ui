@@ -67,7 +67,7 @@ export function selectGroupableColumns(columns: Column[]): Column[] {
  * The grouping tool's rows, including the two keys that are legitimately absent
  * from {@link selectGroupableColumns}.
  *
- * Grouping is a superset of the column list: `view.groupBy` / `setGroupByKey`
+ * Grouping is a superset of the column list: `view.groupBy` / `setGroupBy`
  * accept any item field, so a table can group by something it shows no column
  * for — the landing journey groups bookings by `day` while displaying no Day
  * column, because the day belongs in the group header and would be redundant in
@@ -80,7 +80,7 @@ export function selectGroupableColumns(columns: Column[]): Column[] {
  *   instead would make the row vanish on ungroup, i.e. leave the reported
  *   symptom ("no way back to it") exactly as it was.
  * - the **active** key, when it is neither listed nor declared — reachable
- *   through a programmatic `setGroupByKey`, or through a column the header menu
+ *   through a programmatic `setGroupBy`, or through a column the header menu
  *   offers but this list filters out. Without it the Select holds a value it
  *   cannot display and DEV-logs `value "…" has no matching option`.
  *

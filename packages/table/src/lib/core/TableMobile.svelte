@@ -21,7 +21,7 @@
   } = $props();
 
   const tableContext = getInternalTableContext();
-  const { state: tableState, groupedSummaryData } = tableContext;
+  const { state: tableState, view: tableView, groupedSummaryData } = tableContext;
   const filteredItems = $derived(tableContext.filteredItems);
   const paginatedItems = $derived(tableContext.paginatedItems);
   const grouped = $derived(tableContext.grouped);
@@ -57,7 +57,7 @@
     <div class="text-text-secondary py-6 text-center text-sm" data-testid="empty-state-mobile">
       {noDataText}
     </div>
-  {:else if tableState.groupByKey}
+  {:else if tableState.effectiveGroupBy}
     {#each Object.entries(grouped) as [groupName, groupItems] (groupName)}
       <div class="mb-6">
         <h3

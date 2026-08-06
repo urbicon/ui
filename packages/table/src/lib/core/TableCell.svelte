@@ -6,7 +6,7 @@
   import type { Column, TableItem } from '$lib/types/tableTypes';
   import type { Snippet } from 'svelte';
 
-  const { state: tableState } = getTableContext();
+  const { state: tableState, view: tableView } = getTableContext();
 
   // The default `Date` branch of `formatCellValue` needs a resolved tag —
   // `undefined` there follows the runtime and diverges across the SSR
@@ -80,10 +80,10 @@
         <span
           class="text-text-primary block max-w-full overflow-hidden text-ellipsis whitespace-nowrap"
         >
-          {#if tableState.searchTerm}
+          {#if tableView.search}
             <SearchHighlight
               text={formatCellValue(item, column, cellLocale)}
-              searchTerm={tableState.searchTerm}
+              searchTerm={tableView.search}
             />
           {:else}
             {formatCellValue(item, column, cellLocale)}

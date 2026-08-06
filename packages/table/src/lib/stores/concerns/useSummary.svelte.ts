@@ -26,7 +26,8 @@ export function useSummary(
   });
 
   const groupedSummaryData = $derived.by((): Record<string, Record<string, number>> => {
-    if (!state.showSummary || state.summaryConfigs.length === 0 || !state.groupByKey) return {};
+    if (!state.showSummary || state.summaryConfigs.length === 0 || !state.effectiveGroupBy)
+      return {};
 
     const result: Record<string, Record<string, number>> = {};
     Object.entries(getGrouped()).forEach(([groupKey, groupItems]) => {

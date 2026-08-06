@@ -160,7 +160,7 @@ describe('Table — the view object, mounted', () => {
   });
 
   it('a change made through the table reaches the observer', async () => {
-    // The whole loop: the table's own interaction path (setSearchTerm, i.e.
+    // The whole loop: the table's own interaction path (setSearch, i.e.
     // what the SmartFilterBar calls) writes into the view, and an observer on
     // the view sees it — no `onQueryChange` prop involved.
     const view = createTableView();
@@ -174,7 +174,7 @@ describe('Table — the view object, mounted', () => {
     flushSync();
     expect(seen).toHaveLength(1);
 
-    ctx?.setSearchTerm('ada');
+    ctx?.setSearch('ada');
     flushSync();
     // Past the default 300 ms debounce.
     await new Promise((resolve) => setTimeout(resolve, 350));
@@ -185,7 +185,7 @@ describe('Table — the view object, mounted', () => {
   });
 
   it('keeps the page a deep link asked for across mount', () => {
-    // The client half of an SSR/client agreement. `setSearchTerm` used to
+    // The client half of an SSR/client agreement. `setSearch` used to
     // reset the page unconditionally, so `?page=2&q=…` rendered page 2 on the
     // server and snapped to page 1 the moment the browser took over. The
     // view arrives with the link applied; mounting must not reset it.
@@ -202,7 +202,7 @@ describe('Table — the view object, mounted', () => {
 
   it('drops the collapse set when a navigation regroups by another column', () => {
     // `collapsedGroups` holds group *names*. Regrouping through
-    // `setGroupByKey` clears them; regrouping through a URL binding's
+    // `setGroupBy` clears them; regrouping through a URL binding's
     // `applyExternal` never touches that setter, so the names of the previous
     // grouping survived — and one that happens to match collapses a group
     // nobody collapsed. The provider watches the value for that reason.

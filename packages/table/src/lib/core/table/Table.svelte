@@ -208,7 +208,7 @@
 
 {#snippet provider_content()}
   {@const tableContext = getTableContext()}
-  {@const { state: tableState } = tableContext}
+  {@const { state: tableState, view: tableView } = tableContext}
 
   {@const tableStyles = tableContainerVariants({
     variant,
@@ -290,7 +290,7 @@
     />
 
     {#if !tableState.loading && !tableState.error}
-      {#if tableContext.filteredItems.length > 0 && !tableState.groupByKey && !virtualized}
+      {#if tableContext.filteredItems.length > 0 && !tableState.effectiveGroupBy && !virtualized}
         {#if pagination}
           {@render pagination()}
         {:else}
@@ -314,8 +314,8 @@
             tier="modify"
             showInfo={true}
             showPreviousNext={tableContext.totalPages > 1}
-            itemsPerPage={tableState.itemsPerPage}
-            totalItems={tableContext.totalItems}
+            itemsPerPage={tableView.pageSize}
+            totalItems={tableContext.total}
             previousIcon={prevIcon}
             {nextIcon}
             pageLabel={tt('pagination.page')}

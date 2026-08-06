@@ -51,7 +51,7 @@
   } = $props();
 
   const tableContext = getInternalTableContext();
-  const { state: tableState } = tableContext;
+  const { state: tableState, view: tableView } = tableContext;
   const filteredItems = $derived(tableContext.filteredItems);
   const paginatedItems = $derived(tableContext.paginatedItems);
   /** Rendered rows in visual order — what the keyboard navigates. Equals
@@ -83,7 +83,7 @@
   const totalColSpan = $derived.by(() => {
     let count = tableState.columns.length;
     if (expandable) count += 1;
-    if (tableState.groupByKey) count += 1;
+    if (tableState.effectiveGroupBy) count += 1;
     if (selectable) count += 1;
     return count;
   });
@@ -99,7 +99,7 @@
   // without this the virtualized table would answer "loading" with the empty
   // state ("No data found.") while mobile says "Loading…".
   const virtualizedActive = $derived(
-    virtualized && !tableState.groupByKey && !tableState.loading && !tableState.error
+    virtualized && !tableState.effectiveGroupBy && !tableState.loading && !tableState.error
   );
   const virtualItems = $derived(tableContext.sortedItems);
   const rowHeight = $derived(ROW_HEIGHTS[size] ?? ROW_HEIGHTS.md);
@@ -142,14 +142,13 @@
     // 5 → 6 against three pages renders the same rows (reset was firing for
     // nothing), while a new page size re-slices them without moving it at all.
     void tableContext.effectivePage;
-    void tableState.sortColumn;
-    void tableState.sortDirection;
-    void tableState.searchTerm;
-    void tableState.activeFilters;
+    void tableView.sort;
+    void tableView.search;
+    void tableView.filters;
     // Grouping reshapes the index space just as much as paging does: switching
     // the group key reorders every row, and collapsing a group removes a run of
     // them, so a held index would land on a different item.
-    void tableState.groupByKey;
+    void tableState.effectiveGroupBy;
     void tableState.collapsedGroups.size;
     tableContext.resetFocus();
   });
@@ -516,7 +515,7 @@
               colSpan={totalColSpan}
             />
           {/if}
-        {:else if tableState.groupByKey}
+        {:else if tableState.effectiveGroupBy}
           {#if filteredItems.length === 0}
             {#if emptyState}
               {@render emptyState()}

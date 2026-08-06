@@ -57,7 +57,13 @@
 
   // Table context
   const tableContext = getInternalTableContext();
-  const { state: tableState, toggleGroup, toggleExpand, isItemExpanded } = tableContext;
+  const {
+    state: tableState,
+    view: tableView,
+    toggleGroup,
+    toggleExpand,
+    isItemExpanded
+  } = tableContext;
 
   // Reactive computations
   const computedTestId = $derived.by(() => {
@@ -79,7 +85,7 @@
   const colSpan = $derived.by(() => {
     let count = tableState.columns.length;
     if (expandable) count++; // For expand column
-    if (tableState.groupByKey) count++; // For group indentation column
+    if (tableState.effectiveGroupBy) count++; // For group indentation column
     if (selectable) count++; // For selection checkbox column
     return count;
   });
@@ -254,7 +260,7 @@
         </td>
       {/if}
 
-      {#if tableState.groupByKey}
+      {#if tableState.effectiveGroupBy}
         <td class={itemStyles.cell()} aria-hidden="true"></td>
       {/if}
 
