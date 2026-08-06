@@ -1,4 +1,4 @@
-import { describe, expect, it } from 'vitest';
+import { afterAll, beforeAll, describe, expect, it, vi } from 'vitest';
 import type { Column, Filter, TableItem } from '$lib/types/tableTypes';
 import type { SummaryConfig } from '../TableStore.svelte';
 import type { TableState } from './types';
@@ -10,12 +10,21 @@ import { useFocusManagement } from './useFocusManagement.svelte.js';
 import { useGrouping } from './useGrouping.svelte.js';
 import { useLiveUpdates } from './useLiveUpdates.svelte.js';
 import { usePagination } from './usePagination.svelte.js';
-import { usePersistence } from './usePersistence.svelte.js';
+import { usePrefs } from './usePrefs.svelte.js';
 import { useRemoteData } from './useRemoteData.svelte.js';
 import { useSearch } from './useSearch.svelte.js';
 import { useSelection } from './useSelection.svelte.js';
 import { useSorting } from './useSorting.svelte.js';
 import { useSummary } from './useSummary.svelte.js';
+
+// Some concerns DEV-warn on legitimate test input (e.g. a groupBy write on a
+// virtualized state). Correct in production, noise here.
+beforeAll(() => {
+  vi.spyOn(console, 'warn').mockImplementation(() => {});
+});
+afterAll(() => {
+  vi.restoreAllMocks();
+});
 
 // Concern tests for pure logic (non-reactive parts).
 // Reactive $derived chains are tested indirectly via the existing TableStore tests.
@@ -29,7 +38,6 @@ describe('useSearch', () => {
   it('contract: setSearchTerm updates term and resets page', () => {
     const state = {
       searchTerm: '',
-      showAdvancedSearch: false,
       currentPage: 5
     } as unknown as TableState;
 
@@ -38,20 +46,6 @@ describe('useSearch', () => {
 
     expect(state.searchTerm).toBe('hello');
     expect(state.currentPage).toBe(1);
-  });
-
-  it('contract: toggleAdvancedSearch flips state', () => {
-    const state = {
-      searchTerm: '',
-      showAdvancedSearch: false,
-      currentPage: 1
-    } as unknown as TableState;
-
-    const search = useSearch(state);
-    search.toggleAdvancedSearch();
-    expect(state.showAdvancedSearch).toBe(true);
-    search.toggleAdvancedSearch();
-    expect(state.showAdvancedSearch).toBe(false);
   });
 });
 
@@ -717,15 +711,11 @@ describe('useFocusManagement', () => {
 });
 
 describe('useRemoteData', () => {
+  // Since the v8 context cut the concern is only the managed fetch's SINK —
+  // the query projection lives in `viewToQuery` (tested with `observeView`),
+  // where `createManagedFetch` reads it too.
   function makeServerState() {
     return {
-      currentPage: 1,
-      itemsPerPage: 10,
-      sortColumn: 'name',
-      sortDirection: 'asc' as const,
-      searchTerm: '',
-      activeFilters: [],
-      groupByKey: null,
       items: [],
       serverTotalItems: 0,
       loading: false,
@@ -733,20 +723,6 @@ describe('useRemoteData', () => {
       mode: 'server' as const
     } as unknown as TableState;
   }
-
-  it('contract: query derives from state', () => {
-    const state = makeServerState();
-    const remote = useRemoteData(state);
-
-    const q = remote.query;
-    expect(q.page).toBe(1);
-    expect(q.itemsPerPage).toBe(10);
-    expect(q.sortColumn).toBe('name');
-    expect(q.sortDirection).toBe('asc');
-    expect(q.searchTerm).toBe('');
-    expect(q.activeFilters).toEqual([]);
-    expect(q.groupByKey).toBeNull();
-  });
 
   it('contract: setServerResult updates items and totalItems', () => {
     const state = makeServerState();
@@ -784,27 +760,6 @@ describe('useRemoteData', () => {
 
     remote.setServerLoading();
     expect(state.loading).toBe(true);
-  });
-
-  it('contract: queryKey is a JSON string for change detection', () => {
-    const state = makeServerState();
-    const remote = useRemoteData(state);
-
-    const key = remote.queryKey;
-    expect(typeof key).toBe('string');
-    const parsed = JSON.parse(key);
-    expect(parsed.page).toBe(1);
-    expect(parsed.sortColumn).toBe('name');
-  });
-
-  it('contract: activeFilters in query are a copy (not a reference)', () => {
-    const state = makeServerState();
-    state.activeFilters = [{ column: 'name', operator: 'contains', value: 'A' }];
-    const remote = useRemoteData(state);
-
-    const q = remote.query;
-    expect(q.activeFilters).toEqual(state.activeFilters);
-    expect(q.activeFilters).not.toBe(state.activeFilters);
   });
 });
 
@@ -891,8 +846,9 @@ describe('server mode: concern passthrough', () => {
     expect(state.currentPage).toBe(5);
   });
 
-  it('effectivePage floors an out-of-range initialPage at 1', () => {
-    // `initialPage={0}` (or a negative) never had a guard of any kind.
+  it('effectivePage floors an out-of-range seeded page at 1', () => {
+    // A page seed of 0 (or a negative) never had a guard of any kind —
+    // `viewDefaults={{ page: 0 }}` today, `initialPage={0}` before v8.
     const items = Array.from({ length: 10 }, (_, i) => ({ id: i }));
     const state = {
       mode: 'client',
@@ -1494,62 +1450,69 @@ describe('useColumnOrder — applyOrder', () => {
   });
 });
 
-describe('usePersistence — surface contract', () => {
-  // The persistence concern reads/writes through `createPersistentState`
-  // from @urbicon-ui/blocks. That helper is a no-op in Node (where these
-  // tests run — `typeof window === 'undefined'`), so we cannot assert
-  // round-tripped values here. We do, however, verify that:
-  //   1. without a `persistenceConfig` the concern is a pure no-op,
-  //   2. with one, every `sync*` method is exposed,
-  //   3. neither shape mutates `state` on construction.
+describe('usePrefs — surface contract', () => {
+  // The prefs concern (the v8 successor of usePersistence, minus the view
+  // axes) reads/writes through `createPersistentState` from
+  // @urbicon-ui/blocks. That helper is a no-op in Node (where these tests
+  // run — `typeof window === 'undefined'`), so we cannot assert round-tripped
+  // values here; `TableStore.seed.persistence.svelte.test.ts` does, in jsdom.
+  // What this block pins:
+  //   1. without a config the concern is a pure no-op,
+  //   2. with one, the full sync/clear surface is exposed,
+  //   3. neither shape mutates `state` on construction — stored values wait
+  //      for `applyPersistedState()` (the hydration boundary).
 
   function makeState(): TableState {
     return {
-      searchTerm: '',
-      activeFilters: [],
-      groupByKey: null,
       summaryConfigs: [],
-      sortColumn: '',
-      sortDirection: 'asc',
       showSummary: false,
       selectedIds: new Set<string | number>(),
       selectionControlled: false
     } as unknown as TableState;
   }
 
-  it('contract: without config exposes sync* as no-ops', () => {
+  it('contract: without config everything is a no-op and nothing is hydrated', () => {
     const state = makeState();
 
-    const persistence = usePersistence(state);
+    const prefs = usePrefs(state);
 
     // Calling any sync method should not throw.
-    persistence.syncFilters();
-    persistence.syncSearch();
-    persistence.syncGroupByKey();
-    persistence.syncSummaryConfigs();
-    persistence.syncSortState();
-    persistence.syncHiddenColumns(['age']);
-    persistence.syncColumnOrder(['name', 'age']);
-    persistence.syncSelection();
+    prefs.syncSummaryConfigs();
+    prefs.syncHiddenColumns(['age']);
+    prefs.syncColumnOrder(['name', 'age']);
+    prefs.syncSelection();
+    prefs.applyPersistedState();
 
-    // Initial hidden / order are empty when not opted in.
-    expect(persistence.initialHiddenColumnIds).toEqual([]);
-    expect(persistence.initialColumnOrder).toEqual([]);
+    // Nothing stored, nothing hydrated.
+    expect(prefs.storedHiddenColumnIds).toBeNull();
+    expect(prefs.storedColumnOrder).toBeNull();
+    expect(prefs.hydratedSummaryConfigs).toBe(false);
+    expect(prefs.hydratedSelection).toBe(false);
   });
 
-  it('contract: with config exposes the new sort/visibility/order sync methods', () => {
+  it('contract: with config exposes the sync and clear surface', () => {
     const state = makeState();
 
-    const persistence = usePersistence(state, { tableId: 'test-table' });
+    const prefs = usePrefs(state, { storage: 'test-table' });
 
-    expect(typeof persistence.syncSortState).toBe('function');
-    expect(typeof persistence.syncHiddenColumns).toBe('function');
-    expect(typeof persistence.syncColumnOrder).toBe('function');
-    expect(typeof persistence.syncSelection).toBe('function');
-    expect(typeof persistence.clearPersistedSortState).toBe('function');
-    expect(typeof persistence.clearPersistedHiddenColumns).toBe('function');
-    expect(typeof persistence.clearPersistedColumnOrder).toBe('function');
-    expect(typeof persistence.clearPersistedSelection).toBe('function');
+    expect(typeof prefs.syncSummaryConfigs).toBe('function');
+    expect(typeof prefs.syncHiddenColumns).toBe('function');
+    expect(typeof prefs.syncColumnOrder).toBe('function');
+    expect(typeof prefs.syncSelection).toBe('function');
+    expect(typeof prefs.clearPersistedSummaryConfigs).toBe('function');
+    expect(typeof prefs.clearPersistedHiddenColumns).toBe('function');
+    expect(typeof prefs.clearPersistedColumnOrder).toBe('function');
+    expect(typeof prefs.clearPersistedSelection).toBe('function');
+  });
+
+  it('contract: construction does not mutate state — hydration is a deferred step', () => {
+    const state = makeState();
+
+    usePrefs(state, { storage: 'test-table', persistSelection: true });
+
+    expect(state.summaryConfigs).toEqual([]);
+    expect(state.showSummary).toBe(false);
+    expect(state.selectedIds.size).toBe(0);
   });
 
   it('contract: selection persistence is opt-in and never throws either way', () => {
@@ -1558,13 +1521,12 @@ describe('usePersistence — surface contract', () => {
 
     // Default (no persistSelection flag): syncSelection is a harmless no-op —
     // the persistent store is never created, so the shared set is left alone.
-    const off = usePersistence(state, { tableId: 'sel-off' });
+    const off = usePrefs(state, { storage: 'sel-off' });
     expect(() => off.syncSelection()).not.toThrow();
 
-    // Opt-in: construction hydrates the shared set (a Node no-op here) and
-    // syncSelection engages without throwing. Round-tripping needs a DOM — see
-    // the block comment above.
-    const on = usePersistence(state, { tableId: 'sel-on', persistSelection: true });
+    // Opt-in: syncSelection engages without throwing. Round-tripping needs a
+    // DOM — see the block comment above.
+    const on = usePrefs(state, { storage: 'sel-on', persistSelection: true });
     expect(() => on.syncSelection()).not.toThrow();
     expect(typeof on.clearPersistedSelection).toBe('function');
 
@@ -1574,11 +1536,19 @@ describe('usePersistence — surface contract', () => {
     expect(() => on.syncSelection()).not.toThrow();
   });
 
+  it('contract: the object storage form is accepted alongside the string shorthand', () => {
+    const state = makeState();
+    const prefs = usePrefs(state, {
+      storage: { key: 'test-table', kind: 'sessionStorage', debounceMs: 100 }
+    });
+    expect(() => prefs.syncSummaryConfigs()).not.toThrow();
+  });
+
   it('contract: clearAllPersistentData covers every axis without throwing', () => {
     const state = makeState();
 
-    const persistence = usePersistence(state, { tableId: 'test-table' });
-    expect(() => persistence.clearAllPersistentData()).not.toThrow();
-    expect(() => persistence.forceSavePersistentData()).not.toThrow();
+    const prefs = usePrefs(state, { storage: 'test-table' });
+    expect(() => prefs.clearAllPersistentData()).not.toThrow();
+    expect(() => prefs.forceSavePersistentData()).not.toThrow();
   });
 });

@@ -51,6 +51,11 @@
       "types": "./dist/table-query.d.ts",
       "import": "./dist/table-query.js",
       "default": "./dist/table-query.js"
+    },
+    "./table-view": {
+      "types": "./dist/table-view.d.ts",
+      "import": "./dist/table-view.js",
+      "default": "./dist/table-view.js"
     }
   },
   "files": [

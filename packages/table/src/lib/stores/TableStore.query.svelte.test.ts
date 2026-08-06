@@ -1,21 +1,33 @@
-// @vitest-environment jsdom
-import { beforeEach, describe, expect, it } from 'vitest';
+import { afterAll, beforeAll, describe, expect, it, vi } from 'vitest';
 import type { Column, Filter, TableItem } from '$lib';
+import { createTableView } from '$lib/view/view.svelte';
 import { createTableState } from './TableStore.svelte';
 
 /**
- * Controlled view state — the `query` prop (#152).
+ * The view object as the store's single view-state surface (#152, v8).
  *
  * View state kept only in `localStorage` is invisible to the server, so since
- * #10 made the server render real rows a persisted sort produces one order on
- * the server and another on the client. Putting the same state in the URL and
- * handing it in as a prop removes the divergence by construction: the value is
- * a derived, so it resolves during SSR exactly as it does in the browser.
+ * #10 made the server render real rows a persisted sort produced one order on
+ * the server and another on the client. In v8 the same state lives in the
+ * consumer-constructed view object: a binding applies a URL's values through
+ * `applyExternal` *before* the store is built, the store's six state axes are
+ * pass-throughs onto the view — so the linked view resolves during SSR exactly
+ * as in the browser, with no `query` prop and no per-axis ownership flags.
  *
- * The precedence these tests pin is **URL > localStorage > `initial*` seed**,
- * per axis, by field presence — the rule `searchControlled` already applied to
- * `searchTerm`, generalised.
+ * Reading outside an effect IS the SSR situation. Every assertion here would
+ * have been unreachable on the server while these axes were plain `$state`
+ * written by persistence at construction.
  */
+
+// Node env, no component context: TableView construction warns there (the
+// module-scope-view guard) and the virtualized-grouping gate DEV-warns too.
+// Both correct in production, noise here.
+beforeAll(() => {
+  vi.spyOn(console, 'warn').mockImplementation(() => {});
+});
+afterAll(() => {
+  vi.restoreAllMocks();
+});
 
 const COLUMNS = [
   { accessor: 'name', title: 'Name' },
@@ -30,184 +42,199 @@ const ITEMS = [
 
 const names = (rows: TableItem[]) => rows.map((r) => r.name);
 
-function memoryStorage(): Storage {
-  const map = new Map<string, string>();
-  return {
-    get length() {
-      return map.size;
-    },
-    clear: () => map.clear(),
-    getItem: (key: string) => (map.has(key) ? (map.get(key) ?? null) : null),
-    key: (index: number) => [...map.keys()][index] ?? null,
-    removeItem: (key: string) => void map.delete(key),
-    setItem: (key: string, value: string) => void map.set(key, String(value))
-  };
+/** A view the way the URL binding leaves it at init: values applied as `external`. */
+function linkedView(partial: Parameters<ReturnType<typeof createTableView>['applyExternal']>[0]) {
+  const view = createTableView();
+  view.applyExternal(partial, 'external');
+  return view;
 }
 
-const SORT_KEY = (id: string) => `urbicon_table_sort_${id}_v1`;
-
-beforeEach(() => {
-  Object.defineProperty(window, 'localStorage', {
-    value: memoryStorage(),
-    configurable: true
-  });
-});
-
-describe('query — the controlled axes resolve without a tracking context', () => {
-  // Reading outside an effect IS the SSR situation. Every assertion here would
-  // have been unreachable on the server while these axes were plain `$state`
-  // written by persistence at construction.
-  it('sorts from the query, on the server path', () => {
-    const store = createTableState(undefined, undefined, {
-      items: () => ITEMS,
-      columns: () => COLUMNS,
-      query: () => ({ sortColumn: 'name', sortDirection: 'asc' })
-    });
+describe('view — externally applied axes resolve without a tracking context', () => {
+  it('sorts from the linked view, on the server path', () => {
+    const store = createTableState(
+      linkedView({ sort: { column: 'name', direction: 'asc' } }),
+      undefined,
+      { source: () => ITEMS, columns: () => COLUMNS }
+    );
 
     expect(names(store.paginatedItems)).toEqual(['Ada', 'Barbara', 'Grace']);
   });
 
-  it('searches from the query', () => {
-    const store = createTableState(undefined, undefined, {
-      items: () => ITEMS,
-      columns: () => COLUMNS,
-      query: () => ({ searchTerm: 'ada' })
+  it('searches from the linked view', () => {
+    const store = createTableState(linkedView({ search: 'ada' }), undefined, {
+      source: () => ITEMS,
+      columns: () => COLUMNS
     });
 
     expect(names(store.paginatedItems)).toEqual(['Ada']);
   });
 
-  it('pages from the query', () => {
-    const store = createTableState(undefined, undefined, {
-      items: () => ITEMS,
-      columns: () => COLUMNS,
-      query: () => ({ page: 2, itemsPerPage: 2 })
+  it('pages from the linked view', () => {
+    const store = createTableState(linkedView({ page: 2, pageSize: 2 }), undefined, {
+      source: () => ITEMS,
+      columns: () => COLUMNS
     });
 
     expect(names(store.paginatedItems)).toEqual(['Barbara']);
   });
 
-  it('filters from the query', () => {
-    const store = createTableState(undefined, undefined, {
-      items: () => ITEMS,
-      columns: () => COLUMNS,
-      // `contains: 'a'` would match all three rows in input order, so the
-      // assertion below would hold with no filtering at all. The filter has to
-      // exclude something to measure anything.
-      query: () => ({
-        activeFilters: [{ column: 'name', operator: 'contains', value: 'ra' }] as Filter[]
-      })
-    });
+  it('filters from the linked view', () => {
+    // `contains: 'a'` would match all three rows in input order, so the
+    // assertion below would hold with no filtering at all. The filter has to
+    // exclude something to measure anything.
+    const store = createTableState(
+      linkedView({ filters: [{ column: 'name', operator: 'contains', value: 'ra' }] as Filter[] }),
+      undefined,
+      { source: () => ITEMS, columns: () => COLUMNS }
+    );
 
     expect(store.state.activeFilters).toHaveLength(1);
     expect(names(store.paginatedItems)).toEqual(['Grace', 'Barbara']);
   });
 
-  it('follows the query when it changes — the back button, not a remount', () => {
-    let view = $state<{ sortColumn?: string }>({ sortColumn: 'name' });
-    const store = createTableState(undefined, undefined, {
-      items: () => ITEMS,
-      columns: () => COLUMNS,
-      query: () => view
+  it('follows a later application — the back button, not a remount', () => {
+    // SvelteKit does not remount the page component when only the query
+    // string changes; the URL binding calls `applyExternal` on the SAME view.
+    const view = linkedView({ sort: { column: 'name', direction: 'asc' } });
+    const store = createTableState(view, undefined, {
+      source: () => ITEMS,
+      columns: () => COLUMNS
     });
     expect(names(store.paginatedItems)).toEqual(['Ada', 'Barbara', 'Grace']);
 
-    view = { sortColumn: 'amount' };
+    // `amount desc` would be Ada/Barbara/Grace — the same visible order as
+    // name-asc, so it could not fail. Ascending moves every row.
+    view.applyExternal({ sort: { column: 'amount', direction: 'asc' } }, 'external');
     expect(names(store.paginatedItems)).toEqual(['Grace', 'Barbara', 'Ada']);
   });
 
-  it('an absent field leaves its axis alone', () => {
-    // Per-field ownership: a query that only carries a page must not silently
-    // clear a sort the seed supplied.
-    const store = createTableState(
-      undefined,
-      { sort: { column: 'name', direction: 'asc' } },
-      { items: () => ITEMS, columns: () => COLUMNS, query: () => ({ page: 1 }) }
-    );
-
-    expect(store.state.sortColumn).toBe('name');
-  });
-});
-
-describe('query — precedence over storage and seed', () => {
-  it('outranks a persisted sort, and does not overwrite it in storage', () => {
-    window.localStorage.setItem(
-      SORT_KEY('t-url'),
-      JSON.stringify({ column: 'amount', direction: 'desc' })
-    );
-
-    const cleanup = $effect.root(() => {
-      const store = createTableState({ tableId: 't-url' }, undefined, {
-        items: () => ITEMS,
-        columns: () => COLUMNS,
-        query: () => ({ sortColumn: 'name', sortDirection: 'asc' })
-      });
-
-      expect(store.state.sortColumn).toBe('name');
-      expect(names(store.paginatedItems)).toEqual(['Ada', 'Barbara', 'Grace']);
+  it('an absent axis in a partial application leaves that axis alone', () => {
+    // Per-axis application: a URL that only names a page must not silently
+    // clear a sort the view's defaults supplied.
+    const view = createTableView({ defaults: { sort: { column: 'name', direction: 'asc' } } });
+    view.applyExternal({ page: 2 }, 'external');
+    const store = createTableState(view, undefined, {
+      source: () => ITEMS,
+      columns: () => COLUMNS
     });
-    cleanup();
 
-    // The stored value survives untouched. Writing the controlled value over it
-    // would resurface as a surprise the moment the table stopped being
-    // controlled — the same reasoning `syncSearch` already applied to a
-    // controlled `searchTerm`.
-    expect(JSON.parse(window.localStorage.getItem(SORT_KEY('t-url')) ?? 'null')).toEqual({
-      column: 'amount',
-      direction: 'desc'
-    });
-  });
-
-  it('outranks an initialSort seed', () => {
-    const store = createTableState(
-      undefined,
-      { sort: { column: 'amount', direction: 'desc' } },
-      {
-        items: () => ITEMS,
-        columns: () => COLUMNS,
-        query: () => ({ sortColumn: 'name', sortDirection: 'asc' })
-      }
-    );
-
+    expect(store.state.currentPage).toBe(2);
     expect(store.state.sortColumn).toBe('name');
   });
 
-  it('an explicitly empty query axis stays empty — no seed slips past it', () => {
-    // The case the `hydrated*` flag has to cover: `?sort=` elided from the URL
-    // means "no sort", which is a real state. Reading it as "nothing supplied"
-    // would let the seed apply and silently sort a view the reader cleared.
-    const store = createTableState(
-      undefined,
-      { sort: { column: 'amount', direction: 'desc' } },
-      { items: () => ITEMS, columns: () => COLUMNS, query: () => ({ sortColumn: '' }) }
-    );
+  it('an explicitly applied "unsorted" beats the defaults — no seed slips past it', () => {
+    // `sort: null` is a value, not a sentinel: `?sort=` in a URL means "no
+    // sort", which is a real state the reader chose. Treating it as "nothing
+    // supplied" would let the defaults sort a view the reader cleared.
+    const view = createTableView({ defaults: { sort: { column: 'amount', direction: 'desc' } } });
+    view.applyExternal({ sort: null }, 'external');
+    const store = createTableState(view, undefined, {
+      source: () => ITEMS,
+      columns: () => COLUMNS
+    });
 
     expect(store.state.sortColumn).toBe('');
     expect(names(store.paginatedItems)).toEqual(['Ada', 'Grace', 'Barbara']);
   });
 });
 
-describe('query — grouping keeps its gate', () => {
-  it('a grouping key from the query is refused on a virtualized table', () => {
-    // `setGroupByKey` has gated every imperative path into grouping since
-    // grouped virtualization does not exist: a key that slips through
-    // deactivates virtualization and renders the FULL item set. A URL is one
-    // more path, and the most dangerous one — nobody had to click anything.
-    const store = createTableState(undefined, undefined, {
-      items: () => ITEMS,
-      columns: () => COLUMNS,
-      virtualized: () => true,
-      query: () => ({ groupByKey: 'name' })
+describe('view — the six state axes are pass-throughs onto the view', () => {
+  // The v8 equivalence contract: writing through `state` or through `view`
+  // is the same write (`user` origin), and both read the same signal. A
+  // sabotage that decouples one axis — a stray local `$state` shadowing the
+  // view — turns exactly one of these red.
+  it('state writes land on the view, view writes land on the state', () => {
+    const view = createTableView();
+    const store = createTableState(view, undefined, {
+      source: () => ITEMS,
+      columns: () => COLUMNS
     });
+    expect(store.view).toBe(view);
 
+    store.state.searchTerm = 'gr';
+    expect(view.search).toBe('gr');
+    view.search = '';
+    expect(store.state.searchTerm).toBe('');
+
+    store.state.activeFilters = [{ column: 'name', operator: 'contains', value: 'a' }] as Filter[];
+    expect(view.filters).toHaveLength(1);
+
+    store.state.currentPage = 3;
+    expect(view.page).toBe(3);
+    view.page = 1;
+    expect(store.state.currentPage).toBe(1);
+
+    store.state.itemsPerPage = 25;
+    expect(view.pageSize).toBe(25);
+
+    store.state.sortColumn = 'name';
+    expect(view.sort).toEqual({ column: 'name', direction: 'asc' });
+    store.state.sortDirection = 'desc';
+    expect(view.sort).toEqual({ column: 'name', direction: 'desc' });
+    view.sort = null;
+    expect(store.state.sortColumn).toBe('');
+
+    store.state.groupByKey = 'name';
+    expect(view.groupBy).toBe('name');
+    view.groupBy = null;
     expect(store.state.groupByKey).toBeNull();
   });
 
-  it('and accepted when the table is not virtualized', () => {
+  it('clearing the sort column clears the whole sort', () => {
+    const store = createTableState(
+      createTableView({ defaults: { sort: { column: 'name', direction: 'desc' } } }),
+      undefined,
+      { source: () => ITEMS, columns: () => COLUMNS }
+    );
+
+    store.state.sortColumn = '';
+    expect(store.view.sort).toBeNull();
+    expect(store.state.sortDirection).toBe('asc');
+  });
+
+  it('a direction write on an unsorted view is a no-op', () => {
+    // Deliberate v8 delta: an unsorted view has no direction (the serializers
+    // normalize it away the same way), so `sortDirection = 'desc'` without an
+    // active sort changes nothing instead of storing a dangling direction.
     const store = createTableState(undefined, undefined, {
-      items: () => ITEMS,
+      source: () => ITEMS,
+      columns: () => COLUMNS
+    });
+
+    store.state.sortDirection = 'desc';
+    expect(store.view.sort).toBeNull();
+    expect(store.state.sortColumn).toBe('');
+    expect(store.state.sortDirection).toBe('asc');
+
+    // With a sort active, the same write applies.
+    store.state.sortColumn = 'name';
+    store.state.sortDirection = 'desc';
+    expect(store.view.sort).toEqual({ column: 'name', direction: 'desc' });
+  });
+});
+
+describe('view — grouping keeps its gate', () => {
+  it('a grouping key from the view is refused on a virtualized table', () => {
+    // Grouped virtualization does not exist: a key that slips through
+    // deactivates virtualization and renders the FULL item set. The read-side
+    // gate on `state.groupByKey` holds during SSR too — a `?group=…` deep
+    // link on a virtualized table renders ungrouped on the server. (The
+    // runtime *discard* — cleaning the URL via a `system` write — is
+    // `TableProvider`'s half, not the store's.)
+    const store = createTableState(linkedView({ groupBy: 'name' }), undefined, {
+      source: () => ITEMS,
       columns: () => COLUMNS,
-      query: () => ({ groupByKey: 'name' })
+      virtualized: () => true
+    });
+
+    expect(store.state.groupByKey).toBeNull();
+    expect(store.grouped).toHaveProperty('ungrouped');
+  });
+
+  it('and accepted when the table is not virtualized', () => {
+    const store = createTableState(linkedView({ groupBy: 'name' }), undefined, {
+      source: () => ITEMS,
+      columns: () => COLUMNS
     });
 
     expect(store.state.groupByKey).toBe('name');

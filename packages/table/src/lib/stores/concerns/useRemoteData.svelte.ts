@@ -1,42 +1,22 @@
-import type { TableItem, TableQuery } from '$lib/types/tableTypes';
+import type { TableItem } from '$lib/types/tableTypes';
 import type { TableState } from './types';
 
 /**
- * Remote data concern: derives the current query state for server-side fetching.
+ * Remote data concern: the sink of the managed server fetch.
  *
- * This concern does NOT fetch data itself (keeping the store synchronous).
- * Instead, it exposes a reactive `query` object and `setServerResult()` for
- * the component layer to drive the async lifecycle.
+ * This concern does NOT fetch data itself (keeping the store synchronous),
+ * and since v8 it does not project the query either — the managed fetch
+ * lifecycle lives in `createManagedFetch` (`$lib/view/observe.svelte`),
+ * driven by `TableProvider`, which derives its query via
+ * `viewToQuery(view.snapshot())` itself. The setters here are where its
+ * results land.
  *
- * @param state - Shared table state.
+ * @param state - Shared table state (the setters write into it).
  */
 export function useRemoteData(state: TableState) {
   /**
-   * Current query derived from table state.
-   * Changes reactively when any filter/sort/page/search state changes.
-   */
-  const query = $derived.by(
-    (): TableQuery => ({
-      page: state.currentPage,
-      itemsPerPage: state.itemsPerPage,
-      sortColumn: state.sortColumn,
-      sortDirection: state.sortDirection,
-      searchTerm: state.searchTerm,
-      activeFilters: [...state.activeFilters],
-      groupByKey: state.groupByKey
-    })
-  );
-
-  /**
-   * Serialized query string for change detection.
-   * Allows `$effect` to trigger only when the query actually changes.
-   */
-  const queryKey = $derived(JSON.stringify(query));
-
-  /**
    * Apply server result to the table state.
-   * Called by the component layer when `queryFn` resolves or when
-   * the developer provides new items in manual mode.
+   * Called by the managed fetch when `source.query` resolves.
    */
   function setServerResult(result: { items: TableItem[]; totalItems: number }) {
     state.items = result.items;
@@ -45,28 +25,18 @@ export function useRemoteData(state: TableState) {
     state.error = null;
   }
 
-  /**
-   * Set server-side error state.
-   */
+  /** Set server-side error state. */
   function setServerError(error: string) {
     state.loading = false;
     state.error = error;
   }
 
-  /**
-   * Set loading state (used before fetch).
-   */
+  /** Set loading state (used before fetch). */
   function setServerLoading() {
     state.loading = true;
   }
 
   return {
-    get query() {
-      return query;
-    },
-    get queryKey() {
-      return queryKey;
-    },
     setServerResult,
     setServerError,
     setServerLoading

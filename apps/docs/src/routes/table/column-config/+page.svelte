@@ -165,7 +165,7 @@
         <Table
           items={employees}
           columns={richColumns}
-          itemsPerPage={5}
+          viewDefaults={{ pageSize: 5 }}
           enableSmartFilter={true}
           searchPlaceholder="Try grouping, summaries..."
         />
@@ -222,10 +222,11 @@
         which lists every hideable column with a checkbox, or through each column's
         <code class="text-text-primary">⋮</code> header menu, which offers
         <em>Hide column</em> plus <em>Show "Column"</em> entries for currently hidden ones. The
-        feature is on by default; visibility choices persist across reloads when a
+        feature is on by default; visibility choices persist across reloads once the table is given
+        a
         <a href={resolve('/table/customization')} class="text-primary hover:underline">
-          persistence config</a
-        > is set.
+          preferences storage key</a
+        >.
       </p>
 
       <CodeExample
@@ -246,7 +247,7 @@
         <Table
           items={employees}
           columns={visibilityColumns}
-          itemsPerPage={5}
+          viewDefaults={{ pageSize: 5 }}
           enableSmartFilter={true}
         />
       </CodeExample>

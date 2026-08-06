@@ -27,7 +27,7 @@
   import { Input } from '@urbicon-ui/blocks';
   import { I18nProvider } from '@urbicon-ui/i18n';
   import { useUrlParam } from '@urbicon-ui/sveltekit-utils/url.svelte';
-  import { Table } from '@urbicon-ui/table';
+  import { createTableView, Table } from '@urbicon-ui/table';
   import type { Component } from 'svelte';
   import type { PageData } from './$types';
 
@@ -107,6 +107,27 @@
   }
 
   let query = $state('');
+
+  /**
+   * Das Inventar hat sein eigenes View: Die Suche steht im Kopf der Seite, also
+   * schreibt sie von außen auf die Achse. Sortierung und Seitengröße sind
+   * Startwerte dieses Views, keine zweite Prop-Ebene.
+   *
+   * Der einmalige Zugriff auf `data` ist Absicht: Das View wird einmal
+   * konstruiert, und die Zeilenzahl ist eine Build-Konstante — `+page.server.ts`
+   * liest weder `url` noch `params`, es gibt kein `depends`/`invalidate`, also
+   * kann `data.rows` nachträglich nicht anders lang werden.
+   */
+  // svelte-ignore state_referenced_locally
+  const view = createTableView({
+    defaults: { pageSize: data.rows.length, sort: { column: 'name', direction: 'asc' } }
+  });
+
+  // Ein direkter Feldschreiber setzt die Seite nicht zurück (nur die Handler der
+  // Tabelle tun das). Folgenlos hier: Es gibt genau eine Seite.
+  $effect(() => {
+    view.search = query;
+  });
 
   /**
    * Die Auswahl steht in der URL, nicht im Komponenten-State. Ohne das war die
@@ -202,15 +223,13 @@
       <section class="inventory" aria-label="Component inventory">
         <Table
           items={data.rows}
-          searchTerm={query}
+          {view}
           enableSmartFilter={false}
           variant="flush"
           size="sm"
           ariaLabel="Every component in the set"
-          itemsPerPage={data.rows.length}
           onRowClick={(row) => setSelectedSlug((row as HeroRow).slug)}
           activeRowId={selected.id}
-          initialSort={{ column: 'name', direction: 'asc' }}
           slotClasses={{
             headerCell: '!py-2 !text-[0.6875rem] !font-medium !uppercase !tracking-[0.14em]',
             // Keine Zeilentrenner: 98 Haarlinien ergeben ein Gitter, und ein

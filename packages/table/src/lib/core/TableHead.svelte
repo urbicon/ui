@@ -7,7 +7,7 @@
     ChevronDownIcon as ChevronDownIconDefault,
     ChevronUpIcon as ChevronUpIconDefault
   } from '@urbicon-ui/blocks';
-  import { getTableContext } from '$lib/stores/TableStore.svelte';
+  import { getInternalTableContext } from '$lib/stores/TableStore.svelte';
   import { resolveColumnId } from '$lib/utils';
 
   const ChevronDownIcon = resolveIcon('chevronDown', ChevronDownIconDefault);
@@ -24,7 +24,7 @@
 
   let { expandable = false, enableColumnReorder = false, size = 'md' as const } = $props();
 
-  const tableContext = getTableContext();
+  const tableContext = getInternalTableContext();
   const { state: tableState, handleSort, toggleAllGroups } = tableContext;
   const styleConfig = getTableStyleConfig();
   const stickyContext = getStickyContext();

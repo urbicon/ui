@@ -135,7 +135,7 @@
         <Table
           items={filteredItems}
           {columns}
-          itemsPerPage={50}
+          viewDefaults={{ pageSize: 50 }}
           enableSmartFilter={false}
           searchPlaceholder={dt('searchTypes')}
         >

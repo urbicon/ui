@@ -7,7 +7,7 @@
   import { slide } from 'svelte/transition';
 
   const ChevronDownIcon = resolveIcon('chevronDown', ChevronDownIconDefault);
-  import { getTableContext } from '$lib/stores/TableStore.svelte';
+  import { getInternalTableContext } from '$lib/stores/TableStore.svelte';
   import { useTableI18n } from '$lib/i18n';
   import { tableRowVariants } from '$lib/variants';
   import { getTableStyleConfig, resolveSlotClass } from './table-style-context';
@@ -19,7 +19,7 @@
 
   const tt = useTableI18n();
 
-  const tableContext = getTableContext();
+  const tableContext = getInternalTableContext();
   const { state: tableState, toggleExpand, isItemExpanded } = tableContext;
   const styleConfig = getTableStyleConfig();
 

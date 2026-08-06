@@ -1,23 +1,34 @@
-import { describe, expect, it } from 'vitest';
+import { afterAll, beforeAll, describe, expect, it, vi } from 'vitest';
 import type { Column, Filter } from '$lib/types/tableTypes';
+import { viewToQuery } from '$lib/view/observe.svelte';
+import { createTableView, type TableViewDefaults } from '$lib/view/view.svelte';
 import { createTableState, type SummaryConfig } from './TableStore.svelte.js';
 
 /**
- * Seed contract for the uncontrolled `initial*` view-state props
- * (`initialSort` / `initialFilters` / `initialSelectedIds` / `initialGroupBy`
- * / `initialSummaryConfigs`), applied via `createTableState`'s `seed`
- * parameter. Semantics are uniform across the family: seed-once at
+ * Seed contract for the construction-time defaults, in the v8 vocabulary:
+ * the six view axes seed through `createTableView({ defaults })` (what used
+ * to be `initialSort` / `initialFilters` / `initialGroupBy` / `initialPage` /
+ * `itemsPerPage` / a search seed), summaries seed through
+ * `prefs.defaults.summaries`, and the selection through `createTableState`'s
+ * fourth argument. Semantics are uniform across the family: seed-once at
  * construction, a persisted value wins (covered in
  * `TableStore.seed.persistence.svelte.test.ts`, which needs a DOM for real
- * storage), a controlled prop wins (the Provider drops the selection seed
- * when `selectedIds` is set and the groupBy seed when `groupByKey` is set;
- * the store-level convergence is covered below).
+ * storage), a controlled `selectedIds` prop wins over the selection seed.
  *
  * These tests run in the default node environment — the seed lands before
  * the first render and before the first server-mode query emission, so the
  * synchronous post-construction reads here observe exactly what the header
  * indicator and the first emitted `query` observe.
  */
+
+// Node env, no component context: TableView construction warns there. Correct
+// in production (a module-scope view is cross-request state), noise here.
+beforeAll(() => {
+  vi.spyOn(console, 'warn').mockImplementation(() => {});
+});
+afterAll(() => {
+  vi.restoreAllMocks();
+});
 
 const columns: Column[] = [
   { accessor: 'name', title: 'Name', sortable: true },
@@ -31,24 +42,29 @@ const items = [
   { id: 3, name: 'Charlie', age: 35, department: 'Engineering' }
 ];
 
-describe('createTableState seed: initialSort', () => {
+/** Store over a view with the given defaults — the v8 spelling of `initial*`. */
+const seeded = (defaults: TableViewDefaults) => createTableState(createTableView({ defaults }));
+
+describe('view defaults: sort', () => {
   it('seeds sort state at construction — indicator source and first query contain it', () => {
-    const ts = createTableState(undefined, { sort: { column: 'age', direction: 'desc' } });
+    const ts = seeded({ sort: { column: 'age', direction: 'desc' } });
 
     // `state.sortColumn`/`state.sortDirection` are what TableHead's active
     // indicator and SortMenu read.
     expect(ts.state.sortColumn).toBe('age');
     expect(ts.state.sortDirection).toBe('desc');
 
-    // `query` is what the server-mode lifecycle emits — the whole point of
-    // the seed for URL sync: the first emission must CONTAIN the seeded sort
-    // instead of wiping the URL params.
-    expect(ts.query.sortColumn).toBe('age');
-    expect(ts.query.sortDirection).toBe('desc');
+    // The view projected into the `TableQuery` shape — what the managed
+    // fetch and `observeView` consumers see (the context's `query` getter
+    // left with the v8 cut; this is the same projection they use). The first
+    // emission must CONTAIN the seeded sort instead of wiping it.
+    const query = viewToQuery(ts.view.snapshot());
+    expect(query.sortColumn).toBe('age');
+    expect(query.sortDirection).toBe('desc');
   });
 
   it('sorts client-mode items by the seeded sort', () => {
-    const ts = createTableState(undefined, { sort: { column: 'age', direction: 'desc' } });
+    const ts = seeded({ sort: { column: 'age', direction: 'desc' } });
     ts.setColumns(columns);
     ts.setItems(items);
 
@@ -56,12 +72,13 @@ describe('createTableState seed: initialSort', () => {
   });
 
   it('is seed-once — users can still change and clear the sort', () => {
-    const ts = createTableState(undefined, { sort: { column: 'age', direction: 'desc' } });
+    const ts = seeded({ sort: { column: 'age', direction: 'desc' } });
 
     // handleSort on the seeded column at `desc` cycles to "no sort".
     ts.handleSort('age');
     expect(ts.state.sortColumn).toBe('');
-    expect(ts.query.sortColumn).toBe('');
+    expect(viewToQuery(ts.view.snapshot()).sortColumn).toBe('');
+    expect(ts.view.sort).toBeNull();
 
     // Re-sorting by another column works normally; the seed never re-asserts.
     ts.handleSort('name');
@@ -69,33 +86,34 @@ describe('createTableState seed: initialSort', () => {
     expect(ts.state.sortDirection).toBe('asc');
   });
 
-  it('treats an empty seed column as "no seed"', () => {
-    const ts = createTableState(undefined, { sort: { column: '', direction: 'desc' } });
+  it('treats `sort: null` as "unsorted" — a value, not a missing seed', () => {
+    const ts = seeded({ sort: null });
     expect(ts.state.sortColumn).toBe('');
     expect(ts.state.sortDirection).toBe('asc');
+    expect(ts.view.defaults.sort).toBeNull();
   });
 });
 
-describe('createTableState seed: initialFilters', () => {
+describe('view defaults: filters', () => {
   const seedFilters: Filter[] = [{ column: 'department', operator: 'equals', value: 'design' }];
 
   it('seeds filters at construction — chips source and first query contain them', () => {
-    const ts = createTableState(undefined, { filters: seedFilters });
+    const ts = seeded({ filters: seedFilters });
 
     expect(ts.state.activeFilters).toEqual(seedFilters);
-    expect(ts.query.activeFilters).toEqual(seedFilters);
+    expect(viewToQuery(ts.view.snapshot()).activeFilters).toEqual(seedFilters);
   });
 
   it('does not alias the consumer array', () => {
     const consumerArray: Filter[] = [{ column: 'name', operator: 'contains', value: 'a' }];
-    const ts = createTableState(undefined, { filters: consumerArray });
+    const ts = seeded({ filters: consumerArray });
 
     ts.addFilter({ column: 'age', operator: 'greaterThan', value: '20' });
     expect(consumerArray).toHaveLength(1);
   });
 
   it('filters client-mode items by the seeded filters', () => {
-    const ts = createTableState(undefined, { filters: seedFilters });
+    const ts = seeded({ filters: seedFilters });
     ts.setColumns(columns);
     ts.setItems(items);
 
@@ -103,17 +121,59 @@ describe('createTableState seed: initialFilters', () => {
   });
 
   it('is seed-once — users can still clear the seeded filters', () => {
-    const ts = createTableState(undefined, { filters: seedFilters });
+    const ts = seeded({ filters: seedFilters });
 
     ts.clearAllFilters();
     expect(ts.state.activeFilters).toEqual([]);
-    expect(ts.query.activeFilters).toEqual([]);
+    expect(viewToQuery(ts.view.snapshot()).activeFilters).toEqual([]);
   });
 });
 
-describe('createTableState seed: initialSelectedIds', () => {
+describe('view defaults: page and pageSize', () => {
+  // The former `initialPage`/`itemsPerPage` props. Values deliberately differ
+  // from the view's own defaults (1 and 10) — asserting the default would
+  // hold with the wiring cut.
+  it('seeds the page and the page size at construction', () => {
+    const ts = seeded({ page: 2, pageSize: 2 });
+    ts.setColumns(columns);
+    ts.setItems(items);
+
+    expect(ts.state.currentPage).toBe(2);
+    expect(ts.state.itemsPerPage).toBe(2);
+    expect(ts.paginatedItems.map((i) => i.id)).toEqual([3]);
+  });
+
+  it('is seed-once — paging away sticks', () => {
+    const ts = seeded({ page: 2, pageSize: 2 });
+    ts.setColumns(columns);
+    ts.setItems(items);
+
+    ts.goToPage(1);
+    expect(ts.state.currentPage).toBe(1);
+  });
+});
+
+describe('view defaults: search', () => {
+  it('seeds the search term and narrows client-mode items', () => {
+    const ts = seeded({ search: 'ali' });
+    ts.setColumns(columns);
+    ts.setItems(items);
+
+    expect(ts.state.searchTerm).toBe('ali');
+    expect(viewToQuery(ts.view.snapshot()).searchTerm).toBe('ali');
+    expect(ts.filteredItems.map((i) => i.id)).toEqual([1]);
+  });
+
+  it('is seed-once — clearing the search sticks', () => {
+    const ts = seeded({ search: 'ali' });
+    ts.setSearchTerm('');
+    expect(ts.state.searchTerm).toBe('');
+  });
+});
+
+describe('selection seed (createTableState 4th argument)', () => {
   it('seeds the selection at construction', () => {
-    const ts = createTableState(undefined, { selectedIds: [1, 3] });
+    const ts = createTableState(undefined, undefined, undefined, { selectedIds: [1, 3] });
     ts.state.selectionMode = 'multi';
     ts.setColumns(columns);
     ts.setItems(items);
@@ -125,7 +185,7 @@ describe('createTableState seed: initialSelectedIds', () => {
   });
 
   it('is seed-once — users can still clear the seeded selection', () => {
-    const ts = createTableState(undefined, { selectedIds: [1, 3] });
+    const ts = createTableState(undefined, undefined, undefined, { selectedIds: [1, 3] });
     ts.state.selectionMode = 'multi';
 
     ts.deselectAll();
@@ -136,10 +196,10 @@ describe('createTableState seed: initialSelectedIds', () => {
   });
 
   it('a controlled apply replaces the seed (controlled wins)', () => {
-    // TableProvider drops the seed entirely when the controlled `selectedIds`
-    // prop is present; even without that gate the store converges — the
-    // controlled effect applies the prop after construction:
-    const ts = createTableState(undefined, { selectedIds: [1, 3] });
+    // TableProvider seeds construction with the controlled `selectedIds`
+    // itself (SSR-visible); even when the two disagree the store converges —
+    // the controlled effect re-applies the prop after construction:
+    const ts = createTableState(undefined, undefined, undefined, { selectedIds: [1, 3] });
     ts.state.selectionControlled = true;
     ts.setSelectedIds([2]);
 
@@ -147,9 +207,9 @@ describe('createTableState seed: initialSelectedIds', () => {
   });
 });
 
-describe('createTableState seed: initialGroupBy', () => {
+describe('view defaults: groupBy', () => {
   it('seeds the grouping key at construction and groups client-mode items', () => {
-    const ts = createTableState(undefined, { groupBy: 'department' });
+    const ts = seeded({ groupBy: 'department' });
     ts.setColumns(columns);
     ts.setItems(items);
 
@@ -159,8 +219,19 @@ describe('createTableState seed: initialGroupBy', () => {
     expect(ts.grouped.Design.map((i) => i.id)).toEqual([2]);
   });
 
+  it('records the declared key for the grouping menu, for good', () => {
+    // Grouping accepts any item field, not only ones with a column — the menu
+    // reads the *declaration*, so the option survives even after ungrouping
+    // (the Select-without-option defect).
+    const ts = seeded({ groupBy: 'department' });
+    expect(ts.state.declaredGroupByKey).toBe('department');
+
+    ts.setGroupByKey(null);
+    expect(ts.state.declaredGroupByKey).toBe('department');
+  });
+
   it('is seed-once — users can still change and clear the grouping', () => {
-    const ts = createTableState(undefined, { groupBy: 'department' });
+    const ts = seeded({ groupBy: 'department' });
 
     // Clearing to ungrouped sticks — there is no effect that re-asserts the seed.
     ts.setGroupByKey(null);
@@ -171,17 +242,24 @@ describe('createTableState seed: initialGroupBy', () => {
     expect(ts.state.groupByKey).toBe('age');
   });
 
-  it('treats a nullish/empty seed as "no seed"', () => {
-    expect(createTableState(undefined, { groupBy: null }).state.groupByKey).toBeNull();
-    expect(createTableState(undefined, { groupBy: '' }).state.groupByKey).toBeNull();
+  it('treats a nullish/empty seed as "no grouping"', () => {
+    expect(seeded({ groupBy: null }).state.groupByKey).toBeNull();
+
+    // `''` is a degenerate input the type admits; it must not group anything
+    // and must not become a menu declaration.
+    const empty = seeded({ groupBy: '' });
+    empty.setColumns(columns);
+    empty.setItems(items);
+    expect(empty.grouped).toHaveProperty('ungrouped');
+    expect(empty.state.declaredGroupByKey).toBeNull();
   });
 });
 
-describe('createTableState seed: initialSummaryConfigs', () => {
+describe('prefs defaults: summaries', () => {
   const seedSummaries: SummaryConfig[] = [{ column: 'age', type: 'sum' }];
 
   it('seeds summary configs at construction and reveals the summary row', () => {
-    const ts = createTableState(undefined, { summaryConfigs: seedSummaries });
+    const ts = createTableState(undefined, { defaults: { summaries: seedSummaries } });
 
     expect(ts.state.summaryConfigs).toEqual(seedSummaries);
     // setSummaryConfigs sets showSummary from the config count, so a non-empty
@@ -194,7 +272,7 @@ describe('createTableState seed: initialSummaryConfigs', () => {
     // `state.summaryConfigs.length === 0`, so removing the last config re-ran
     // it and re-seeded — a user could never fully clear summaries while the
     // prop was set. Seeding in the constructor makes the clear stick.
-    const ts = createTableState(undefined, { summaryConfigs: seedSummaries });
+    const ts = createTableState(undefined, { defaults: { summaries: seedSummaries } });
 
     ts.removeSummaryConfig('age');
     expect(ts.state.summaryConfigs).toEqual([]);
@@ -212,7 +290,7 @@ describe('createTableState seed: initialSummaryConfigs', () => {
     // the reassignment branch and would leave the source intact either way, so
     // it wouldn't guard the copy.)
     const consumerArray: SummaryConfig[] = [{ column: 'age', type: 'sum' }];
-    const ts = createTableState(undefined, { summaryConfigs: consumerArray });
+    const ts = createTableState(undefined, { defaults: { summaries: consumerArray } });
 
     ts.addSummaryConfig({ column: 'age', type: 'avg' });
     expect(consumerArray).toEqual([{ column: 'age', type: 'sum' }]);
@@ -220,28 +298,32 @@ describe('createTableState seed: initialSummaryConfigs', () => {
   });
 
   it('treats an empty seed array as "no seed"', () => {
-    const ts = createTableState(undefined, { summaryConfigs: [] });
+    const ts = createTableState(undefined, { defaults: { summaries: [] } });
     expect(ts.state.summaryConfigs).toEqual([]);
     expect(ts.state.showSummary).toBe(false);
   });
 });
 
-describe('createTableState seed: absent seeds are inert', () => {
-  it('no seed argument leaves every axis at its default', () => {
+describe('absent seeds are inert', () => {
+  it('no arguments leave every axis at its default', () => {
     const ts = createTableState();
     expect(ts.state.sortColumn).toBe('');
     expect(ts.state.activeFilters).toEqual([]);
+    expect(ts.state.currentPage).toBe(1);
+    expect(ts.state.itemsPerPage).toBe(10);
+    expect(ts.state.searchTerm).toBe('');
     expect(ts.state.selectedIds.size).toBe(0);
     expect(ts.state.groupByKey).toBeNull();
     expect(ts.state.summaryConfigs).toEqual([]);
   });
 
   it('empty seed arrays leave every axis at its default', () => {
-    const ts = createTableState(undefined, {
-      filters: [],
-      selectedIds: [],
-      summaryConfigs: []
-    });
+    const ts = createTableState(
+      createTableView({ defaults: { filters: [] } }),
+      { defaults: { summaries: [] } },
+      undefined,
+      { selectedIds: [] }
+    );
     expect(ts.state.activeFilters).toEqual([]);
     expect(ts.state.selectedIds.size).toBe(0);
     expect(ts.state.summaryConfigs).toEqual([]);

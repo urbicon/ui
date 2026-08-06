@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { getTableContext } from '$lib/stores/TableStore.svelte';
+  import { getInternalTableContext } from '$lib/stores/TableStore.svelte';
   import { isColumnSummable } from '$lib/utils/summable';
   import { headerMenuItemVariants, headerMenuVariants } from '$lib/variants';
   import {
@@ -37,7 +37,7 @@
 
   let { column, isActive = false }: HeaderMenuProps = $props();
 
-  const tableContext = getTableContext();
+  const tableContext = getInternalTableContext();
   const {
     state: tableState,
     setGroupByKey,

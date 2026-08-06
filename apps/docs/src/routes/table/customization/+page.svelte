@@ -1,10 +1,44 @@
 <script lang="ts">
   import SeoMeta from '$lib/SeoMeta.svelte';
   import { SearchIcon } from '@urbicon-ui/blocks';
-  import { CodeExample, DocsLayout as DocsPageLayout, Section } from '@urbicon-ui/docs';
+  import { CodeExample, DocsLayout as DocsPageLayout, Note, NoteList } from '@urbicon-ui/docs';
   import { Table } from '@urbicon-ui/table';
   import { resolve } from '$app/paths';
-  import { basicColumns } from '../_data';
+  import { basicColumns, scriptClose, scriptOpen } from '../_data';
+
+  const codePersistence = `${scriptOpen}
+  import { Table, createTableView, bindViewToStorage } from '@urbicon-ui/table';
+
+  // The view — which rows the reader is looking at.
+  const view = createTableView({ defaults: { pageSize: 25 } });
+  const saved = bindViewToStorage(view, { key: 'team-roster' });
+${scriptClose}
+
+<!-- The preferences — how the table looks. -->
+<Table {items} {columns} {view} prefs={{ storage: 'team-roster', persistSelection: true }} />`;
+
+  const codePersistenceScope = `${scriptOpen}
+  const view = createTableView();
+
+  const saved = bindViewToStorage(view, {
+    key: 'team-roster',
+    axes: ['sort', 'pageSize'], // remember the ordering, forget search and filters
+    storage: sessionStorage, // tab-scoped; localStorage is the default
+    debounceMs: 500
+  });
+
+  // saved.flush() — write the pending change now, e.g. before a programmatic
+  //                 navigation; the teardown drops what is still pending.
+  // saved.clear() — the "reset saved view" button: removes the stored entry
+  //                 and leaves the live view untouched.
+${scriptClose}
+
+<Table
+  {items}
+  {columns}
+  {view}
+  prefs={{ storage: { key: 'team-roster', kind: 'sessionStorage' } }}
+/>`;
 </script>
 
 <SeoMeta
@@ -32,7 +66,7 @@
     <CodeExample
       headingLevel={2}
       title="Custom Empty State"
-      description="Override the default empty state with a branded illustration or call-to-action. The snippet renders into the desktop <tbody>, so it must be table-row markup — on mobile the card list shows the plain noDataText instead, since <tr>/<td> cannot live in a <div>. Same for loadingState and errorState."
+      description="The snippet renders into the desktop `<tbody>`, so it must be table-row markup."
       code={`<Table {items} {columns}>
   {#snippet emptyState()}
     <tr>
@@ -64,10 +98,19 @@
       </Table>
     </CodeExample>
 
+    <p class="text-text-secondary text-sm">
+      On mobile the card list shows the plain <code class="text-text-primary">noDataText</code>
+      instead, since <code class="text-text-primary">&lt;tr&gt;</code> and
+      <code class="text-text-primary">&lt;td&gt;</code> cannot live in a
+      <code class="text-text-primary">&lt;div&gt;</code>.
+      <code class="text-text-primary">loadingState</code> and
+      <code class="text-text-primary">errorState</code> behave the same way.
+    </p>
+
     <CodeExample
       headingLevel={2}
       title="Style Slot Overrides"
-      description="Use slotClasses to add custom classes to specific rendering slots, or unstyled to strip all variant classes for full control."
+      description="Use `slotClasses` to add your own classes to specific rendering slots, or `unstyled` to strip all variant classes."
       code={`<Table
   {items}
   {columns}
@@ -94,28 +137,67 @@
     <CodeExample
       headingLevel={2}
       title="State Persistence"
-      description="Pass a single tableId to persist every view-state setting across reloads — filters, search, grouping, summary configs, sort, hidden columns, and column order. Defaults to localStorage. Pagination is intentionally not persisted. Clearing counts as state: a setting the user emptied (no sort, no filters, no grouping) restores empty and wins over the matching initial* seed — the seed only fills a setting nothing is stored for."
-      code={`<!-- Opt every setting in with one line -->
-<Table {items} {columns} persistenceConfig={{ tableId: 'team-roster' }} />
-
-<!-- Granular opt-out: keep the user's column layout, drop their search -->
-<Table
-  {items}
-  {columns}
-  persistenceConfig={{
-    tableId: 'team-roster',
-    persistSearch: false,
-    persistFilters: false
-  }}
-/>
-
-<!-- Tab-scoped only (lost on tab close) -->
-<Table
-  {items}
-  {columns}
-  persistenceConfig={{ tableId: 'team-roster', storage: 'sessionStorage' }}
-/>`}
+      description="Two kinds of state, two channels — the view is yours, the preferences are the table's."
+      code={codePersistence}
       preview={false}
     />
+
+    <p class="text-text-secondary text-sm">
+      The view — search, sort, page, page size, filters, grouping — decides which rows a reader
+      sees. It lives on a view object you own, and
+      <code class="text-text-primary">bindViewToStorage</code> gives that object a memory. The
+      preferences — hidden columns, column order, summaries, and opt-in selection — decide how the
+      table looks; they belong to the table and travel through
+      <code class="text-text-primary">prefs</code>. The two channels write separate entries and only
+      share the key here because one name is easier to remember.
+    </p>
+
+    <CodeExample
+      headingLevel={2}
+      title="Narrowing What Is Stored"
+      description="`axes` narrows what is remembered — the default is every setting but the page number."
+      code={codePersistenceScope}
+      preview={false}
+    />
+
+    <p class="text-text-secondary text-sm">
+      <code class="text-text-primary">storage</code> takes any
+      <code class="text-text-primary">Storage</code> object, so
+      <code class="text-text-primary">sessionStorage</code> scopes the memory to the tab; the
+      preferences channel spells the same choice as its own
+      <code class="text-text-primary">kind</code> option. Writes are debounced, and the binding
+      hands back <code class="text-text-primary">flush</code> and
+      <code class="text-text-primary">clear</code>.
+    </p>
+
+    <NoteList variant="flush">
+      <Note title="Every view setting except the page number is stored">
+        Naming a page is what a link is for, so the URL keeps that setting and storage does not — a
+        fresh visit starts on page one. The page <em>size</em> is stored — "yesterday's page size is still
+        set" is squarely this binding's promise, and it is a change from v7, which persisted no pagination
+        at all.
+      </Note>
+      <Note title="Only what the reader changed">
+        A default is never written back, so a value you change in <code>defaults</code> later reaches
+        everyone who has not overridden that setting. What a binding applies is not the reader's doing
+        either — arriving on someone else's link leaves the saved view alone.
+      </Note>
+      <Note title="Clearing is a state">
+        A setting the reader emptied — no sort, no filters, no grouping, no summaries, no hidden
+        columns — restores empty and wins over the matching default. Only a missing or unreadable
+        entry falls back.
+      </Note>
+      <Note title="Selection is off by default">
+        <code>persistSelection</code> keys rows by <code>item.id</code>; without stable ids the
+        selection falls back to the row position and restores onto different rows after a reorder.
+      </Note>
+      <Note title="Upgrading from v7">
+        The preferences keep their storage keys, so a reader's column layout survives. The view
+        settings moved into one entry per view — the per-setting keys v7 wrote (<code
+          >table_sort_*</code
+        >, <code>table_search_*</code>, <code>table_filters_*</code>,
+        <code>table_group_by_*</code>) are no longer read.
+      </Note>
+    </NoteList>
   </div>
 </DocsPageLayout>

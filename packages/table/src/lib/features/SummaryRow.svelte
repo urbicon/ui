@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { getTableContext } from '$lib/stores/TableStore.svelte';
+  import { getInternalTableContext } from '$lib/stores/TableStore.svelte';
   import { resolveColumnId } from '$lib/utils';
   import { summaryRowVariants } from '$lib/variants';
   import { getTableStyleConfig, resolveSlotClass } from '$lib/core/table-style-context';
@@ -12,7 +12,7 @@
     class: className = ''
   } = $props();
 
-  const tableContext = getTableContext();
+  const tableContext = getInternalTableContext();
   const { state: tableState } = tableContext;
   const styleConfig = getTableStyleConfig();
 

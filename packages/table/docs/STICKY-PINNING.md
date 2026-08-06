@@ -189,7 +189,7 @@ avoid competing `top-*` declarations.
 | Wide table + `fit="viewport"` | Horizontal scrollbar appears **inside** the table; the page never scrolls sideways. |
 | Short table + `fit="viewport"` | Container hugs content (`< max-height`); no forced viewport-tall box, no scrollbar. |
 | Ancestor bottom-padding + `fit="viewport"` | Box reaches `100dvh`, so a padded wrapper/sibling adds a second page scrollbar. Drop the inset via the `data-fit="viewport"` hook, gated to `md`+ (see §3). |
-| `groupByKey` + sticky/contained | Group headers pin (they are the "header" layer). In contained mode at `top: thead-h`. |
+| `view.groupBy` + sticky/contained | Group headers pin (they are the "header" layer). In contained mode at `top: thead-h`. |
 | `virtualized` | Manages its own bounded scroll (`virtualHeight`); `fit` is ignored, `sticky` still works (thead already sits outside the virtual scroller). |
 | `unstyled` | Strips the sticky/contained classes — pinning is a layout function, not pure styling. Re-apply via `slotClasses.toolbar` / `slotClasses.thead` / `slotClasses.scrollArea`, or target the `data-table-*` attributes. |
 | Nested `overflow:auto` ancestor | Page-relative sticky binds to it — intended inside a `Drawer` body, surprising inside an accidental wrapper. |

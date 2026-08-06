@@ -14,43 +14,50 @@
   const navigation = [
     { id: 'server-mode', title: 'Server Mode' },
     { id: 'the-query', title: 'The Query' },
-    { id: 'query-fn', title: 'Fetching with queryFn' },
+    { id: 'managed', title: 'Fetching with source.query' },
     { id: 'manual', title: 'Fetching It Yourself' }
   ];
 
-  const codeQueryFn = `<Table
-  mode="server"
+  const codeQuery = `<Table
   {columns}
-  queryFn={async (query, { signal }) => {
-    const params = new URLSearchParams({
-      page: String(query.page),
-      limit: String(query.itemsPerPage),
-      sort: query.sortColumn,
-      dir: query.sortDirection,
-      q: query.searchTerm
-    });
-    const res = await fetch(\`/api/users?\${params}\`, { signal });
-    const data = await res.json();
-    return { items: data.results, totalItems: data.total };
+  source={{
+    query: async (query, { signal }) => {
+      const params = new URLSearchParams({
+        page: String(query.page),
+        limit: String(query.itemsPerPage),
+        sort: query.sortColumn,
+        dir: query.sortDirection,
+        q: query.searchTerm
+      });
+      const res = await fetch(\`/api/users?\${params}\`, { signal });
+      const data = await res.json();
+      return { items: data.results, totalItems: data.total };
+    }
   }}
 />`;
 
-  const codeOnQueryChange = `${scriptOpen}
+  const codeManual = `${scriptOpen}
+  import { Table, createTableView, observeView, viewToQuery } from '@urbicon-ui/table';
+
   let items = $state([]);
   let total = $state(0);
   let loading = $state(false);
   let error = $state(null);
 
-  async function handleQuery(query) {
+  const view = createTableView({ defaults: { pageSize: 25 } });
+
+  async function load(query) {
     loading = true;
     error = null;
     try {
       const params = new URLSearchParams({
         page: String(query.page),
         limit: String(query.itemsPerPage),
+        sort: query.sortColumn,
+        dir: query.sortDirection,
         q: query.searchTerm
       });
-      const res = await fetch('/api/users?' + params);
+      const res = await fetch(\`/api/users?\${params}\`);
       const data = await res.json();
       items = data.results;
       total = data.total;
@@ -60,17 +67,12 @@
       loading = false;
     }
   }
+
+  // Fires once on registration, then debounced on every view change.
+  observeView(view, (snapshot) => load(viewToQuery(snapshot)));
 ${scriptClose}
 
-<Table
-  mode="server"
-  {items}
-  {columns}
-  serverTotalItems={total}
-  {loading}
-  {error}
-  onQueryChange={handleQuery}
-/>`;
+<Table {columns} {view} source={{ kind: 'server', items, total, loading, error }} />`;
 </script>
 
 <SeoMeta
@@ -86,30 +88,33 @@ ${scriptClose}
 >
   <Section id="server-mode" title="Server Mode">
     <p class="text-text-secondary mb-6 text-sm">
-      <code class="text-text-primary">mode="server"</code> turns off filtering, sorting and paging
-      inside the table. It renders the rows in
-      <code class="text-text-primary">items</code> in the order they arrive.
+      A server <code class="text-text-primary">source</code> turns off filtering, sorting and paging inside
+      the table. It renders the rows you hand it in the order they arrive.
     </p>
 
     <p class="text-text-secondary mb-6 text-sm">
-      Every control writes to one query object.
-      <code class="text-text-primary">queryFn</code> lets the table run the fetch itself;
-      <code class="text-text-primary">onQueryChange</code> hands the query to your code. With neither
-      prop, the table never asks for rows.
+      Every control writes to one query object. A
+      <code class="text-text-primary">source</code> with a
+      <code class="text-text-primary">query</code> function lets the table run the fetch itself. The
+      manual shape, tagged <code class="text-text-primary">kind: 'server'</code>, leaves the fetch
+      to your code: <code class="text-text-primary">observeView</code> reports every view change, the
+      source carries the rows back.
     </p>
 
     <p class="text-text-secondary mb-6 text-sm">
-      Page numbers come from a total you supply. A
-      <code class="text-text-primary">queryFn</code> returns it as
-      <code class="text-text-primary">totalItems</code>.
-      <code class="text-text-primary">onQueryChange</code> needs the
-      <code class="text-text-primary">serverTotalItems</code> prop instead.
+      Page numbers come from a total you supply. A managed
+      <code class="text-text-primary">query</code> returns it as
+      <code class="text-text-primary">totalItems</code>. The manual shape carries it as
+      <code class="text-text-primary">total</code>.
     </p>
   </Section>
 
   <Section id="the-query" title="The Query">
     <p class="text-text-secondary mb-4 text-sm">
-      One object carries the seven fields that decide which rows to return.
+      One object carries the seven fields that decide which rows to return. A managed
+      <code class="text-text-primary">query</code> receives it;
+      <code class="text-text-primary">viewToQuery</code> builds it from a view snapshot in the manual
+      flow.
     </p>
 
     <div class="border-border-hairline mb-6 overflow-x-auto border-y">
@@ -171,26 +176,25 @@ ${scriptClose}
     </p>
   </Section>
 
-  <Section id="query-fn" title="Fetching with queryFn">
+  <Section id="managed" title="Fetching with source.query">
     <p class="text-text-secondary mb-6 text-sm">
-      The table calls <code class="text-text-primary">queryFn</code> with the query and an
+      The table calls <code class="text-text-primary">source.query</code> with the query and an
       <code class="text-text-primary">AbortSignal</code>. Return the rows for that page and the
       number of rows matching the query.
     </p>
 
     <p class="text-text-secondary mb-6 text-sm">
-      The table sets the loading and error states around every call. The
-      <code class="text-text-primary">loading</code> and
-      <code class="text-text-primary">error</code> props are ignored while a
-      <code class="text-text-primary">queryFn</code> is set.
+      The table sets the loading and error states around every call. The managed shape has no
+      <code class="text-text-primary">loading</code> or
+      <code class="text-text-primary">error</code> fields to pass — supplying them is a type error.
     </p>
 
     <p class="text-text-secondary mb-6 text-sm">
       The demo answers from a mock backend in the same module. The snippet shows the same
-      <code class="text-text-primary">queryFn</code> against a real endpoint.
+      <code class="text-text-primary">query</code> against a real endpoint.
     </p>
 
-    <CodeExample title="Live — every interaction is a request" code={codeQueryFn}>
+    <CodeExample title="Live — every interaction is a request" code={codeQuery}>
       <RemoteDataDemo />
     </CodeExample>
 
@@ -200,24 +204,32 @@ ${scriptClose}
         the signal runs to completion, and its response is discarded on arrival.
       </Note>
       <Note title="The first request goes out immediately">
-        Later ones wait for <code>queryDebounceMs</code>, 300 by default. A click on a column header
+        Later ones wait for <code>debounceMs</code>, 300 by default. A click on a column header
         waits as long as a keystroke.
       </Note>
-      <Note title="queryFn silences onQueryChange">
-        A table with both wired calls only <code>queryFn</code>. A URL sync on
-        <code>onQueryChange</code> never runs, and nothing warns. Fetch yourself when the query has to
-        reach your own code.
+      <Note title="A new query function does not refetch">
+        The table refetches when the view changes, never because the
+        <code>query</code> function changed identity — a parent re-render handing in a fresh closure fetches
+        nothing. When something outside the view decides what to fetch, fetch yourself and hand the rows
+        to the manual shape.
       </Note>
     </NoteList>
   </Section>
 
   <Section id="manual" title="Fetching It Yourself">
     <p class="text-text-secondary mb-6 text-sm">
-      <code class="text-text-primary">onQueryChange</code> hands you the query and stops there. Your
-      code sets <code class="text-text-primary">items</code>,
-      <code class="text-text-primary">serverTotalItems</code>,
+      <code class="text-text-primary">observeView</code> reports every view change and stops there.
+      Your code fetches and sets <code class="text-text-primary">items</code>,
+      <code class="text-text-primary">total</code>,
       <code class="text-text-primary">loading</code> and
-      <code class="text-text-primary">error</code>.
+      <code class="text-text-primary">error</code> on the source.
+    </p>
+
+    <p class="text-text-secondary mb-6 text-sm">
+      The <code class="text-text-primary">kind: 'server'</code> tag is mandatory. Server mode turns
+      the table's own sorting and filtering off, so it stays a decision you spell out — an object
+      with <code class="text-text-primary">items</code> and
+      <code class="text-text-primary">total</code> but no tag does not compile.
     </p>
 
     <p class="text-text-secondary mb-6 text-sm">
@@ -226,7 +238,7 @@ ${scriptClose}
       holds the data.
     </p>
 
-    <CodeExample title="Manual fetch" code={codeOnQueryChange} preview={false} />
+    <CodeExample title="Manual fetch" code={codeManual} preview={false} />
 
     <p class="text-text-secondary mt-8 mb-6 text-sm">
       This is where a URL sync attaches. The reader's change writes the address bar, and the address

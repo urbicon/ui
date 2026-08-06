@@ -20,36 +20,36 @@ Peer dependencies: `svelte` (^5), `@urbicon-ui/blocks`, `@urbicon-ui/i18n`. No S
 
 ## Capability Overview
 
-| Area                | Highlights                                                                                                                  |
-| ------------------- | --------------------------------------------------------------------------------------------------------------------------- |
-| Data pipeline       | `$derived`-chain `items → filteredItems → sortedItems → grouped → paginatedItems`; all stages reactive                      |
-| Sorting & Filtering | Column sort (asc/desc/none tri-state), smart filter bar, column-level filters, search highlighting, controlled `searchTerm` |
-| Selection           | Single / multi, `onSelectionChange`, select-all spans all **filtered** rows, keyboard toggle (`Space`), row-click select (`rowClickSelects`, on by default in single mode) |
-| Keyboard            | Roving tabindex, ARIA-Grid role, arrow keys, `Home`/`End`/`PageUp`/`PageDown`, Skip-Link                                    |
-| Grouping            | `groupByKey`, collapsible group headers, grouped summary rows                                                               |
-| Pagination          | Built-in paginator, auto-disable on grouping, mobile-friendly controls                                                      |
-| Virtualization      | `computeVirtualItems` for 10k+ rows (custom, zero deps); `virtualHeight` prop; falls back to normal rendering when inactive |
-| Column ordering     | Pointer-event drag-and-drop + `Shift+ArrowLeft/Right` keyboard reorder via shared `createDraggable` action                  |
-| Column visibility   | Header menu + persistence API; opt out per column (`hideable: false`) or table-wide (`enableColumnVisibility={false}`)      |
-| Remote mode         | `mode: 'server'` + `queryFn` (managed fetch with `AbortSignal`) or `onQueryChange` (manual), debounced, cancellation-safe   |
-| URL / view state    | `query` controls search, sort, page, page size, filters and grouping **per axis**; resolved during SSR, so a shared link renders server-side |
-| Live updates        | `pushInsert/Update/Delete` pending-buffer, `LiveUpdateBanner`, auto-apply on navigation                                     |
-| Styling             | `unstyled`, `slotClasses`, `TableStyleContext` — every subcomponent respects the 17-slot map                                |
-| Cells               | `LinkCell`, `NumberCell`, `DateCell`, `UserAvatar`, `StatusBadge`, `CustomCell`, Fill-Cell                                  |
-| i18n                | Package-scoped namespace `table.*`, EN + DE                                                                                 |
+| Area                | Highlights                                                                                                                                                                        |
+| ------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Data pipeline       | `$derived`-chain `items → filteredItems → sortedItems → grouped → paginatedItems`; all stages reactive                                                                            |
+| Sorting & Filtering | Column sort (asc/desc/none tri-state), smart filter bar, column-level filters, search highlighting, `view.search`                                                                 |
+| Selection           | Single / multi, `onSelectionChange`, select-all spans all **filtered** rows, keyboard toggle (`Space`), row-click select (`rowClickSelects`, on by default in single mode)        |
+| Keyboard            | Roving tabindex, ARIA-Grid role, arrow keys, `Home`/`End`/`PageUp`/`PageDown`, Skip-Link                                                                                          |
+| Grouping            | `view.groupBy`, collapsible group headers, grouped summary rows                                                                                                                   |
+| Pagination          | Built-in paginator, auto-disable on grouping, mobile-friendly controls                                                                                                            |
+| Virtualization      | `computeVirtualItems` for 10k+ rows (custom, zero deps); `virtualHeight` prop; falls back to normal rendering when inactive                                                       |
+| Column ordering     | Pointer-event drag-and-drop + `Shift+ArrowLeft/Right` keyboard reorder via shared `createDraggable` action                                                                        |
+| Column visibility   | Header menu + `prefs` storage; opt out per column (`hideable: false`) or table-wide (`enableColumnVisibility={false}`)                                                            |
+| Remote mode         | `source={{ query }}` — managed fetch with `AbortSignal`, debounced, cancellation-safe — or `source={{ kind: 'server', items, total }}` when you drive the fetch                   |
+| URL / view state    | One `view` object carries search, sort, page, page size, filters and grouping; `bindViewToUrl` applies a deep link at init — during SSR too, so a shared link renders server-side |
+| Live updates        | `pushInsert/Update/Delete` pending-buffer, `LiveUpdateBanner`, auto-apply on navigation                                                                                           |
+| Styling             | `unstyled`, `slotClasses`, `TableStyleContext` — every subcomponent respects the 17-slot map                                                                                      |
+| Cells               | `LinkCell`, `NumberCell`, `DateCell`, `UserAvatar`, `StatusBadge`, `CustomCell`, Fill-Cell                                                                                        |
+| i18n                | Package-scoped namespace `table.*`, EN + DE                                                                                                                                       |
 
 ## Quick Start
 
 ```svelte
 <script lang="ts">
-  import { Table, TableColumns } from '@urbicon-ui/table';
+  import { Table, TableColumns, type Column } from '@urbicon-ui/table';
 
   let items = $state([
     { id: 1, name: 'Alice', role: 'Admin' },
     { id: 2, name: 'Bob', role: 'User' }
   ]);
 
-  const columns = [
+  const columns: Column[] = [
     TableColumns.text('name', 'Name', { sortable: true }),
     TableColumns.text('role', 'Role')
   ];
@@ -58,19 +58,21 @@ Peer dependencies: `svelte` (^5), `@urbicon-ui/blocks`, `@urbicon-ui/i18n`. No S
 <Table {items} {columns} selectionMode="multi" onSelectionChange={(rows) => console.log(rows)} />
 ```
 
-### Server-mode with managed fetch
+### Server-mode with a managed source
 
 ```svelte
 <Table
-  mode="server"
-  serverTotalItems={total}
-  queryFn={async (query, { signal }) => {
-    const res = await fetch(`/api/users?${new URLSearchParams(query)}`, { signal });
-    return res.json(); // { items, totalItems }
-  }}
   {columns}
+  source={{
+    query: async (q, { signal }) => {
+      const res = await fetch(`/api/users?page=${q.page}&size=${q.itemsPerPage}`, { signal });
+      return res.json(); // { items, totalItems }
+    }
+  }}
 />
 ```
+
+The table calls `query` whenever the view changes — the first fetch immediately, later ones debounced (`debounceMs`, default 300) — and aborts superseded requests through the `AbortSignal`. Loading, error and the total row count are the table's in this flow; they are not expressible on a managed source. When you drive the fetch yourself, hand in what you have instead: `source={{ kind: 'server', items, total, loading, error }}`. The tag is mandatory — server mode hands sorting and filtering to the server, so it is an explicit decision rather than something inferred from a `total` that happened to be passed.
 
 ### Live updates
 
@@ -92,67 +94,62 @@ Inside the table's tree (a `toolbar` snippet, a custom cell) `getTableContext()`
 
 ## View State in the URL
 
-The axes that decide **which** rows are shown — search, sort, page, page size, filters, grouping — can be controlled from outside via `query`, so the view becomes a link: shareable, reload-proof, and visible to the server. In SvelteKit the wiring is two props:
+The axes that decide **which** rows are shown — search, sort, page, page size, filters, grouping — are one object you construct: the view. Bindings decorate it, so giving those axes the URL as their home is one line, and the view becomes a link: shareable, reload-proof, and visible to the server.
 
 ```svelte
 <script lang="ts">
-  import { createTableQueryUrlSync } from '@urbicon-ui/sveltekit-utils/url.svelte';
+  import { Table, createTableView } from '@urbicon-ui/table';
+  import { bindViewToUrl } from '@urbicon-ui/sveltekit-utils/url.svelte';
 
-  const sync = createTableQueryUrlSync({ defaults: { itemsPerPage: 25 } });
+  const view = createTableView({ defaults: { pageSize: 25 } });
+  bindViewToUrl(view);
 </script>
 
-<Table {items} {columns} itemsPerPage={25} query={sync.viewState} onQueryChange={sync.syncQuery} />
+<Table {items} {columns} {view} />
 ```
 
-`query` is read **per field**: a field that is present controls its axis, an absent one leaves persistence and the `initial*` seeds alone (`{ page: 2 }` pages without clearing a stored sort). An explicitly empty value is a real state — `sortColumn: ''` means "no sort", and no seed slips past it. That holds for every axis `TableQueryDefaults` can carry; `activeFilters` has no defaults field, so an emptied filter set writes no marker to the URL and an `initialFilters` seed returns on the next load.
+The defaults are stated once, on the view, and the binding elides against exactly them: an axis equal to its default writes no param, so a table nobody has touched leaves the URL clean. Both calls belong in the component's initialisation — a view in module scope is state shared between requests on the server.
 
-Each controlled axis is a `$derived`, not a value written at construction, and that is the point: **`$effect` never runs during server rendering**, so view state ingested in one is absent from the prerendered HTML and the client swaps the table out on hydration. A derivation resolves on the server, so the linked view is in the markup that arrives — which `localStorage` can never achieve, since the server cannot read it. `query` is what makes a sorted, filtered table server-renderable at all.
+The URL is applied **synchronously at init**, not from an `$effect`, and that is the point: effects never run during server rendering, so view state ingested in one is absent from the prerendered HTML and the client swaps the table out on hydration. Applied at init, the linked view is in the markup that arrives — which `localStorage` can never achieve, since the server cannot read it. This is what makes a sorted, filtered table server-renderable at all.
 
-Column visibility and column order are deliberately **not** part of `query`. They are presentation rather than selection — nobody wants to share a link that hides columns on the other end — so they stay in `localStorage` and the server renders every column. A `groupByKey` arriving from a URL is refused on a `virtualized` table, exactly like every other route into grouping.
+At runtime, navigations apply too, which is what makes the back button work: a URL that no longer carries `?sort` restores the view's default sort rather than the last value. Reads go the direct way — `view.sort`, `view.search` — and a write to a field is the reader's own change, which is how a binding tells it apart from a value it applied itself.
 
-`@urbicon-ui/sveltekit-utils` is a peer of the wiring, not of this package: `query` takes a plain `TableViewState`, so any router (or a plain `$state` object) can drive it.
+Column visibility and column order are deliberately **not** view axes. They are presentation rather than selection — nobody wants to share a link that hides columns on the other end — so they belong to `prefs`, live in web storage, and the server renders every column. A grouping arriving from a URL is discarded on a `virtualized` table, exactly like every other route into grouping.
+
+`@urbicon-ui/sveltekit-utils` is a peer of the wiring, not of this package: the URL binding decorates the view object from outside, so nothing here imports `$app/*`. A table without SvelteKit simply leaves the binding off.
 
 ## State Persistence
 
-`persistenceConfig={{ tableId: 'foo' }}` is enough to make filters, search, group-by, summaries, sort, column visibility and column order survive a page reload. Every axis is on by default and stored under a `tableId`-scoped key in `localStorage`. Pagination is intentionally **not** persisted — page 1 on navigation is standard UX.
+Two classes of state, two homes. The six **view** axes are persisted by binding the view to web storage; the table's **preferences** — column visibility, column order, summaries and, opt-in, the selection — go through `prefs`. They take the same id and are two independent lines:
 
 ```svelte
-<Table {items} {columns} persistenceConfig={{ tableId: 'expenses' }} />
+<script lang="ts">
+  import { Table, createTableView, bindViewToStorage } from '@urbicon-ui/table';
+
+  const view = createTableView({ defaults: { pageSize: 25 } });
+  bindViewToStorage(view, { key: 'expenses' });
+</script>
+
+<Table {items} {columns} {view} prefs={{ storage: 'expenses' }} />
 ```
 
-Disable individual axes (e.g. always start filter-free, but keep the column layout the user picked):
+`bindViewToStorage` covers five of the six axes by default (`STORAGE_DEFAULT_AXES`: search, sort, page size, filters, grouping). **`page` is never stored** — page 1 on navigation is standard UX — but `pageSize` is: "yesterday's page size is still set" is squarely what a saved view promises. Narrow the set with `axes` to always start filter- and search-free:
 
-```svelte
-<Table
-  {items}
-  {columns}
-  persistenceConfig={{
-    tableId: 'expenses',
-    persistFilters: false,
-    persistSearch: false
-  }}
-/>
+```typescript
+bindViewToStorage(view, { key: 'expenses', axes: ['sort', 'pageSize'] });
 ```
 
-Storage keys are namespaced by `tableId` (`urbicon_table_filters_expenses_v1`, …); pick a stable, unique `tableId` per table — two tables sharing one id will overwrite each other. A key is only written once its axis differs from the default, so a table nobody touched writes nothing at all.
+`storage` (default `window.localStorage`) takes any storage object — `sessionStorage` limits persistence to the current tab — and `debounceMs` (default 500) the write delay. The returned handle carries the two imperative affordances: `clear()` drops this table's stored view (the "reset saved view" button; the live view is untouched), `flush()` writes pending changes immediately — the teardown deliberately discards them, so an edit younger than the debounce is lost on unmount unless flushed.
 
-**Cleared counts as state.** Restoring keys off "is a value stored", not "is the stored value non-empty" — so clearing the sort, removing every filter chip, ungrouping, dropping all summaries or deselecting everything is persisted as such and survives the reload. Where an axis also has an `initial*` seed (`initialSort`, `initialFilters`, `initialGroupBy`, `initialSummaryConfigs`, `initialSelectedIds`), the stored value wins — the seed only fills an axis storage has nothing for. Disable that axis' persistence if the seed should win on every visit.
+`prefs` names its storage key as a string or as `{ key, kind: 'sessionStorage', debounceMs }`, seeds a table nobody has touched via `prefs={{ defaults: { hiddenColumns, columnOrder, summaries } }}`, and takes `persistSelection: true` — the one axis that is opt-in, because a restored selection surprises more often than it helps. Both channels namespace their keys by the id (`urbicon_table_view_expenses_v1` for the view, `table_hidden_columns_expenses` and its siblings for the preferences); pick a stable, unique id per table — two tables sharing one overwrite each other.
 
-**Precedence is per axis: `query` → storage → `initial*` seed.** Restoring is per axis — storage fills what the query says nothing about. Writing is **per table**: wiring a `query` prop at all, even one that currently names no axis, stops the shareable axes (sort, search, filters, grouping) from reaching storage. That asymmetry is deliberate: a setter runs synchronously while the URL only catches up after a debounce and an async `goto`, so a per-axis write gate would store the first sort and silently drop the ones after it. While the URL carries the state, the URL *is* the state. What that does not survive is opening the page from a bare link, because nothing was stored. For a business table that is usually the wrong answer ("my filters are still there tomorrow" is expected), so `persistControlled: true` stores the controlled axes as well:
+**Cleared counts as state.** Restoring keys off "is a value stored", not "is the stored value non-empty" — so clearing the sort, removing every filter chip, ungrouping, dropping all summaries or deselecting everything is persisted as such and survives the reload. A stored value therefore wins over the matching `prefs.defaults` entry, including a stored *empty* one; a missing **or corrupt** entry counts as absent, so junk in storage can never block a default permanently.
 
-```svelte
-<Table
-  {items}
-  {columns}
-  query={sync.viewState}
-  onQueryChange={sync.syncQuery}
-  persistenceConfig={{ tableId: 'invoices', persistControlled: true }}
-/>
-```
+**A default is never written back.** Storage holds only what the reader themselves changed: what a binding applied — the state a shared link carried, the storage seed itself — is never written, and neither is a value the table discarded on its own. So a deploy that changes the defaults reaches everyone who has not touched that axis.
 
-Writes then come from the store's action wrappers only — never from a `query` axis resolving — so following someone else's link stores nothing, and a bare visit later restores what the reader themselves changed. The reading order is unaffected: a URL that names an axis still outranks the stored value for that axis.
+That is the whole precedence rule, and it is a sequence rather than a ranking: defaults → URL (at init) → storage (after hydration), and at runtime only the URL still applies while storage only writes. A deep link therefore beats a stored value on the axes it names, and following someone else's link stores nothing.
 
-`storage: 'sessionStorage'` limits persistence to the current tab (lost on tab close). The `clearAllPersistentData` and `forceSavePersistentData` methods on the table context let you reset or flush state imperatively; after `clearAllPersistentData` the axes are back to "nothing stored", so the seeds apply again on the next load.
+`clearAllPersistentData` and `forceSavePersistentData` on the table context reset or flush the **preferences**; the view's own entry is `clear()` / `flush()` on the storage binding's handle.
 
 ## Subcomponent Styling
 
@@ -195,7 +192,7 @@ Resolves against the request-scoped locale from `<I18nProvider>` (or the base lo
 Deliberate trade-offs of the zero-dependency implementation — documented so they surprise no one:
 
 - **Virtualization assumes fixed row heights.** The row height derives from the `size` prop (`sm`/`md`/`lg` via `ROW_HEIGHTS`); rows with dynamic height (wrapping text, expanded content) are not supported in virtualized mode.
-- **Virtualization and grouping are mutually exclusive — virtualization wins.** Grouped virtualization is not implemented, so a `virtualized` table suppresses the grouping affordances (header menu, toolbar grouping menu) and ignores every other route into grouping — `initialGroupBy`, a controlled `groupByKey`, a persisted key — with a dev warning. (Until v6.41 grouping won instead, which silently deactivated virtualization and rendered the full item set — the very failure `virtualized` exists to prevent.) For large datasets, group server-side via remote mode or keep grouped views paginated instead of virtualized.
+- **Virtualization and grouping are mutually exclusive — virtualization wins.** Grouped virtualization is not implemented, so a `virtualized` table suppresses the grouping affordances (header menu, toolbar grouping menu) and discards a grouping no matter which route it arrives by — the view's defaults, a URL, storage — with a dev warning. The discard is the *system's* decision, not the reader's: the URL is cleaned of the parameter, but storage keeps the wish, so the grouping applies again on the next load without `virtualized`. (Until v6.41 grouping won instead, which silently deactivated virtualization and rendered the full item set — the very failure `virtualized` exists to prevent.) For large datasets, group server-side via remote mode or keep grouped views paginated instead of virtualized.
 - **Virtualized mode bypasses pagination.** All sorted items live in one scrollable container; only ~viewport rows are in the DOM.
 - **Live updates ship no transport.** `enableLiveUpdates` is a push-model pending-buffer — the app supplies WebSocket/SSE/polling and calls `pushInsert`/`pushUpdate`/`pushDelete`.
 
@@ -205,7 +202,6 @@ Semantics worth stating outright, since they differ from some other table librar
 
 - **Select-all covers every filtered row, not just the current page.** In `selectionMode="multi"`, the header checkbox toggles all rows that pass the active search/filters — across every page — and its indeterminate state reflects that same set. (TanStack/shadcn default to a page-scoped select-all.) Selection is keyed by `item.id`, falling back to the row index, so it survives paging and re-sorting.
 - **`greaterThan`/`lessThan` compare numbers first, dates second.** When both the cell value and the filter value convert via `Number()`, they are compared as numbers; otherwise both sides are read as instants (`Date` objects, epoch milliseconds, ISO-8601 strings) — every other string format never matches, so a malformed or empty value filters everything out instead of matching everything. For a bare calendar date (`YYYY-MM-DD`, what a `dataType: 'date'` column's filter input emits) "after"/"before" compare on **UTC day boundaries**, so a row stamped `2021-03-15T09:00Z` matches neither `after 2021-03-15` nor `before 2021-03-15`; a filter value with a time of day compares instants strictly. A `Date` built from local parts (`new Date(2021, 2, 15)`) can land on the neighbouring UTC day — store ISO strings or UTC-constructed dates for day-exact filtering.
-- **A controlled `searchTerm` wins over `persistSearch`.** When you pass `searchTerm`, it drives the search state and takes precedence over a value restored from `persistenceConfig.persistSearch`. Leave it `undefined` to let persistence (or the built-in filter bar) own the term; an empty string is a valid controlled value that clears the search. This is the single-axis case of the general rule above — `query` applies the same precedence to sort, page, page size, filters and grouping, by field presence.
 
 ## Development
 

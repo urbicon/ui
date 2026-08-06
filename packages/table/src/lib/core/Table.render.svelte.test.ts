@@ -2,7 +2,11 @@
 import { screen } from '@testing-library/dom';
 import { flushSync, mount, unmount } from 'svelte';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
+import { observeView } from '$lib/view/observe.svelte';
+import { createTableView, type TableViewSnapshot } from '$lib/view/view.svelte';
+import type { InternalTableContext } from '../stores/TableStore.svelte';
 import TableHarness from './__fixtures__/TableHarness.svelte';
+import type { TableContext } from './table/index';
 
 /**
  * Node ≥ 25 ships a broken global `localStorage` stub that shadows jsdom's
@@ -97,17 +101,19 @@ describe('Table — mounted', () => {
     expect(el.textContent).toContain('Nothing here');
   });
 
-  it('paginates to itemsPerPage', () => {
+  it('paginates to viewDefaults.pageSize', () => {
     const many = Array.from({ length: 25 }, (_, i) => ({
       id: i,
       name: `Person ${i}`,
       amount: i
     }));
-    const el = mountTable({ items: many, itemsPerPage: 10 });
+    // 5, deliberately NOT the view's own default of 10 — with 10 this held
+    // even when the prop never reached the store.
+    const el = mountTable({ items: many, viewDefaults: { pageSize: 5 } });
 
-    expect(el.querySelectorAll('tbody tr').length).toBe(10);
+    expect(el.querySelectorAll('tbody tr').length).toBe(5);
     expect(el.textContent).toContain('Person 0');
-    expect(el.textContent).not.toContain('Person 10');
+    expect(el.textContent).not.toContain('Person 5');
   });
 
   it('a later items prop reaches the rendered rows', () => {
@@ -125,87 +131,92 @@ describe('Table — mounted', () => {
   });
 });
 
-describe('Table — query emission in client mode', () => {
-  // The gap #152 names: `query` and `queryKey` were always computed regardless
-  // of mode, but only the server branch emitted them, so a client-mode table had
-  // nothing for a URL sync to listen to. Without an emission there is no way for
-  // the view state to reach the URL, and through the URL the server.
+describe('Table — the view object, mounted', () => {
+  // The gap #152 names, in its v8 shape: a client-mode table's view changes
+  // used to be observable only through the server-mode query emission, so a
+  // URL sync had nothing to listen to. Now the view object is the surface —
+  // `observeView` replaces `onQueryChange`, and a binding applies deep links
+  // through `applyExternal` before the table mounts.
   //
-  // The emission is debounced through a `setTimeout`, with delay 0 for the first
-  // one — so a macrotask tick is what these await, not a `flushSync`.
+  // `observeView` fires synchronously once, then debounced (default 300 ms) —
+  // so the change assertions await real time, like the emission tests did.
   const tick = () => new Promise((resolve) => setTimeout(resolve, 0));
 
-  it('emits the initial query without a server mode', async () => {
-    const seen: Array<Record<string, unknown>> = [];
-    mountTable({ onQueryChange: (q: Record<string, unknown>) => seen.push(q) });
-    await tick();
+  it('observeView emits the initial snapshot once, synchronously', async () => {
+    const view = createTableView();
+    const seen: TableViewSnapshot[] = [];
+    mountTable({ view });
+
+    const cleanup = $effect.root(() => {
+      observeView(view, (snapshot) => seen.push(snapshot));
+    });
+    flushSync();
 
     expect(seen).toHaveLength(1);
-    expect(seen[0]).toMatchObject({ page: 1, sortColumn: '', searchTerm: '', groupByKey: null });
+    expect(seen[0]).toMatchObject({ page: 1, sort: null, search: '', groupBy: null });
+    await tick();
+    expect(seen).toHaveLength(1);
+    cleanup();
   });
 
-  it('emits again when the view state changes', async () => {
-    const seen: Array<Record<string, unknown>> = [];
-    const props = $state({
-      items: ROWS,
-      searchTerm: '',
-      onQueryChange: (q: Record<string, unknown>) => seen.push(q)
+  it('a change made through the table reaches the observer', async () => {
+    // The whole loop: the table's own interaction path (setSearchTerm, i.e.
+    // what the SmartFilterBar calls) writes into the view, and an observer on
+    // the view sees it — no `onQueryChange` prop involved.
+    const view = createTableView();
+    const seen: TableViewSnapshot[] = [];
+    let ctx: TableContext | undefined;
+    mountTable({ view, onReady: (c: TableContext) => (ctx = c) });
+
+    const cleanup = $effect.root(() => {
+      observeView(view, (snapshot) => seen.push(snapshot));
     });
-    target = document.createElement('div');
-    document.body.appendChild(target);
-    comp = mount(TableHarness, { target, props }) as Record<string, unknown>;
     flushSync();
-    await tick();
     expect(seen).toHaveLength(1);
 
-    props.searchTerm = 'ada';
+    ctx?.setSearchTerm('ada');
     flushSync();
     // Past the default 300 ms debounce.
     await new Promise((resolve) => setTimeout(resolve, 350));
 
     expect(seen.length).toBeGreaterThan(1);
-    expect(seen.at(-1)).toMatchObject({ searchTerm: 'ada' });
+    expect(seen.at(-1)).toMatchObject({ search: 'ada' });
+    cleanup();
   });
 
-  it('keeps the page the URL asked for when a controlled searchTerm is also present', () => {
-    // The client half of an SSR/client agreement. `TableProvider` applies the
-    // controlled `searchTerm` prop in a mount effect, and `setSearchTerm` used
-    // to reset the page unconditionally — so `?page=2&q=…` rendered page 2 on
-    // the server and snapped to page 1 the moment the browser took over. Which
-    // is the exact divergence the `query` prop exists to remove (#152), arriving
-    // through a different door.
-    const el = mountTable({ query: { page: 2, itemsPerPage: 1 }, searchTerm: '' });
+  it('keeps the page a deep link asked for across mount', () => {
+    // The client half of an SSR/client agreement. `setSearchTerm` used to
+    // reset the page unconditionally, so `?page=2&q=…` rendered page 2 on the
+    // server and snapped to page 1 the moment the browser took over. The
+    // view arrives with the link applied; mounting must not reset it.
+    const view = createTableView();
+    view.applyExternal({ page: 2, pageSize: 1 }, 'external');
+    view.markInitApplied(['page', 'pageSize']);
+
+    const el = mountTable({ view });
     const body = el.querySelector('tbody');
 
     expect(body?.textContent).toContain('Grace');
     expect(body?.textContent).not.toContain('Ada');
   });
 
-  it('drops the collapse set when the URL regroups by another column', () => {
-    // `collapsedGroups` holds group *names*. Regrouping through `setGroupByKey`
-    // clears them; regrouping through the controlled `query` prop never touches
-    // that setter, so the names of the previous grouping survived — and one
-    // that happens to match collapses a group nobody collapsed.
-    let ctx:
-      | { state: { collapsedGroups: Set<string> }; toggleGroup: (n: string) => void }
-      | undefined;
-    const props = $state({
-      items: ROWS,
-      query: { groupByKey: 'name' } as Record<string, unknown>,
-      onReady: (c: unknown) => {
-        ctx = c as typeof ctx;
-      }
-    });
-    target = document.createElement('div');
-    document.body.appendChild(target);
-    comp = mount(TableHarness, { target, props }) as Record<string, unknown>;
-    flushSync();
+  it('drops the collapse set when a navigation regroups by another column', () => {
+    // `collapsedGroups` holds group *names*. Regrouping through
+    // `setGroupByKey` clears them; regrouping through a URL binding's
+    // `applyExternal` never touches that setter, so the names of the previous
+    // grouping survived — and one that happens to match collapses a group
+    // nobody collapsed. The provider watches the value for that reason.
+    const view = createTableView({ defaults: { groupBy: 'name' } });
+    // The group-collapse toggle is in-tree surface (the group header's own
+    // control), so this test reads the context the way the tree does — wide.
+    let ctx: InternalTableContext | undefined;
+    mountTable({ view, onReady: (c: TableContext) => (ctx = c as InternalTableContext) });
 
     ctx?.toggleGroup('Ada');
     flushSync();
     expect(ctx?.state.collapsedGroups.has('Ada')).toBe(true);
 
-    props.query = { groupByKey: 'amount' };
+    view.applyExternal({ groupBy: 'amount' }, 'external');
     flushSync();
     expect(ctx?.state.collapsedGroups.size).toBe(0);
   });
@@ -231,7 +242,7 @@ describe('Table — query emission in client mode', () => {
     document.body.appendChild(host);
     const instance = mount(TableHarness, {
       target: host,
-      props: { items: ROWS, persistenceConfig: { tableId: 'prefs' } }
+      props: { items: ROWS, prefs: { storage: 'prefs' } }
     });
     // Sampled inside the same synchronous block `mount()` returns from, before
     // any effect has been flushed.
@@ -264,7 +275,7 @@ describe('Table — query emission in client mode', () => {
         { accessor: 'name', title: 'Name', width: '18rem', minWidth: '10rem' },
         { accessor: 'amount', title: 'Amount' }
       ],
-      initialSummaryConfigs: [{ column: 'amount', type: 'sum' }]
+      prefs: { defaults: { summaries: [{ column: 'amount', type: 'sum' }] } }
     });
 
     const tables = [...el.querySelectorAll('table')];
@@ -311,7 +322,7 @@ describe('Table — query emission in client mode', () => {
       JSON.stringify(['amount', 'name'])
     );
 
-    const el = mountTable({ persistenceConfig: { tableId: 'ord' } });
+    const el = mountTable({ prefs: { storage: 'ord' } });
     flushSync();
 
     const headerIds = [...el.querySelectorAll('thead th')]
@@ -337,7 +348,7 @@ describe('Table — query emission in client mode', () => {
     // it has to end up in slot two only if the tracks ignored the stored order.
     const virt = mountTable({
       virtualized: true,
-      persistenceConfig: { tableId: 'ord' },
+      prefs: { storage: 'ord' },
       columns: [
         { accessor: 'name', title: 'Name', width: '18rem' },
         { accessor: 'amount', title: 'Amount' }
@@ -355,21 +366,30 @@ describe('Table — query emission in client mode', () => {
     expect(cols[1]).toContain('18rem');
   });
 
-  it('never fetches in client mode, even with a queryFn present', async () => {
-    // `queryFn` is a server-mode contract. Emitting in client mode must not
-    // quietly start calling it — that would fetch over data the consumer owns.
+  it('a managed source fetches once and renders the result', async () => {
+    // The v8 replacement for "never fetches in client mode, even with a
+    // queryFn present": a client source WITH a query function is no longer a
+    // representable state — the `TableSource` union makes the old ambiguity
+    // impossible. What remains testable is the managed flow itself: the first
+    // fetch is immediate, and the result reaches the rendered rows through
+    // `setServerResult`.
     let fetches = 0;
-    const seen: unknown[] = [];
-    mountTable({
-      queryFn: async () => {
-        fetches++;
-        return { items: [], totalItems: 0 };
-      },
-      onQueryChange: (q: unknown) => seen.push(q)
+    const el = mountTable({
+      items: [],
+      source: {
+        query: async () => {
+          fetches += 1;
+          return { items: [{ id: 1, name: 'Fetched', amount: 1 }], totalItems: 1 };
+        }
+      }
     });
-    await tick();
 
-    expect(fetches).toBe(0);
-    expect(seen).toHaveLength(1);
+    // First fetch is scheduled with delay 0; the result lands a microtask
+    // after that macrotask.
+    await new Promise((resolve) => setTimeout(resolve, 10));
+    flushSync();
+
+    expect(fetches).toBe(1);
+    expect(el.textContent).toContain('Fetched');
   });
 });

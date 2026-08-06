@@ -94,10 +94,9 @@
         columns={basicColumns}
         enableSmartFilter={true}
         searchPlaceholder="Search employees..."
-        itemsPerPage={50}
+        viewDefaults={{ pageSize: 50, groupBy: 'department' }}
         sticky={stickyProp}
         {stickyOffset}
-        initialGroupBy="department"
       />
     </div>
   </Section>

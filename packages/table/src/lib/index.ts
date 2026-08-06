@@ -27,25 +27,30 @@ export { default as FilterMenu } from './features/SmartFilterBar/FilterMenu.svel
 export { default as SmartFilterBar } from './features/SmartFilterBar/SmartFilterBar.svelte';
 export { default as SummaryRow } from './features/SummaryRow.svelte';
 export * from './i18n';
+// The pending-buffer counts on `TableContext.liveUpdateCounts`.
+export type { LiveUpdateCounts } from './stores/concerns/useLiveUpdates.svelte.js';
 // === STORES ===
 export * from './stores/index.js';
 // === STYLES ===
 export * from './style/index.js';
 // === TYPES ===
 export * from './types/index.js';
-
 // === COLUMN RESOLVERS ===
 // Helpers for table-level cell snippets and other consumers that need to
 // derive the stable identifier or value from a Column with a string,
 // function, or no accessor.
 export {
   findColumnById,
+  getNestedValue,
   resolveColumnId,
   resolveColumnLabel,
-  resolveColumnValue
+  resolveColumnValue,
+  resolveValueById
 } from './utils/index.js';
 export type { VirtualItem, VirtualizerOptions, VirtualizerResult } from './utils/virtualizer.js';
 // === VIRTUALIZER ===
 export { computeVirtualItems, ROW_HEIGHTS } from './utils/virtualizer.js';
 // === VARIANTS ===
 export * from './variants/index.js';
+// === VIEW OBJECT (v8 view state) ===
+export * from './view/index.js';

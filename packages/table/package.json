@@ -33,10 +33,12 @@
   },
   "files": [
     "LICENSE",
+    "docs/MIGRATION-V8.md",
     "docs/STICKY-PINNING.md",
     "dist",
     "!dist/**/*.test.*",
     "!dist/**/*.spec.*",
+    "!dist/**/*.typecheck.*",
     "!dist/**/__fixtures__/**"
   ],
   "types": "./dist/index.d.ts",

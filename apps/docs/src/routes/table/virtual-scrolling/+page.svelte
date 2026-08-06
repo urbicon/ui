@@ -55,10 +55,11 @@
         </li>
         <li>
           Virtualization wins over grouping – grouped virtualization is not implemented, so the
-          grouping affordances (header menu, toolbar menu) are suppressed and an
-          <code class="text-text-primary">initialGroupBy</code>, a controlled
-          <code class="text-text-primary">groupByKey</code> or a persisted grouping is ignored with
-          a dev warning. Group server-side, or drop
+          grouping affordances (header menu, toolbar menu) are suppressed and a grouping is
+          discarded no matter which way it arrives (view defaults, URL, storage), with a dev
+          warning. The discard is the system's decision, not the reader's: the URL is cleaned, but
+          nothing is written to storage, so a stored grouping applies again on the next load without
+          <code class="text-text-primary">virtualized</code>. Group server-side, or drop
           <code class="text-text-primary">virtualized</code>
         </li>
         <li>

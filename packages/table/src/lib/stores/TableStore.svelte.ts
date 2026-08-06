@@ -1,15 +1,11 @@
 import { createOptionalContext } from '@urbicon-ui/blocks';
 import { BASE_LOCALE } from '@urbicon-ui/i18n';
 import { SvelteSet } from 'svelte/reactivity';
-import type { Column, Filter, FilterOperator, TableItem } from '$lib';
-import {
-  findColumnById,
-  getNestedValue,
-  normalizeItems,
-  resolveColumnId,
-  resolveColumnValue,
-  resolveValueById
-} from '$lib/utils';
+import type { Column, Filter, TableItem } from '$lib';
+import type { TableContext } from '$lib/core/table/index.js';
+import { normalizeItems } from '$lib/utils';
+import { resolveSource, type TableSource } from '$lib/view/source';
+import { createTableView, type TableView } from '$lib/view/view.svelte';
 import type { TableState } from './concerns/types.js';
 import { useColumnOrder } from './concerns/useColumnOrder.svelte.js';
 import { useColumnVisibility } from './concerns/useColumnVisibility.svelte.js';
@@ -19,21 +15,12 @@ import { useFocusManagement } from './concerns/useFocusManagement.svelte.js';
 import { useGrouping } from './concerns/useGrouping.svelte.js';
 import { useLiveUpdates } from './concerns/useLiveUpdates.svelte.js';
 import { usePagination } from './concerns/usePagination.svelte.js';
-import { usePersistence } from './concerns/usePersistence.svelte.js';
+import { usePrefs } from './concerns/usePrefs.svelte.js';
 import { useRemoteData } from './concerns/useRemoteData.svelte.js';
 import { useSearch } from './concerns/useSearch.svelte.js';
 import { useSelection } from './concerns/useSelection.svelte.js';
 import { useSorting } from './concerns/useSorting.svelte.js';
 import { useSummary } from './concerns/useSummary.svelte.js';
-
-/**
- * Table context key (deprecated — kept for backwards compatibility).
- * Prefer `setTableContext()`/`getTableContext()` directly; the value is
- * no longer used internally now that the context goes through
- * `createContext<T>()`.
- * @deprecated Use `setTableContext`/`getTableContext` instead.
- */
-export const TABLE_CONTEXT_KEY = 'table';
 
 /**
  * Column summary configuration.
@@ -49,163 +36,55 @@ export interface SummaryConfig {
 }
 
 /**
- * Configuration for table state persistence across reloads.
+ * The table's preference channel (#152): column visibility, column order,
+ * summaries — and, opt-in, the selection. Preferences belong to the *table*:
+ * nobody wants to share a link that hides columns on the other end, so they
+ * live in web storage, never in the URL. The six view axes (search, sort,
+ * page, page size, filters, grouping) are the view object's business —
+ * persisted, if at all, through `bindViewToStorage`.
  *
- * Each view-state axis defaults to `true` — providing a `tableId` is
- * enough to opt filters, search, group, summary, sort, column visibility
- * and column order into persistence. Set individual flags to `false` to
- * keep them volatile. Row **selection is the exception**: it is opt-in via
- * `persistSelection: true` (a restored selection surprises more often than
- * it helps).
- *
- * Storage defaults to `localStorage` for every axis so reloads,
- * tab-close-and-reopen, and full browser restarts all restore the view.
- * Pass `storage: 'sessionStorage'` to limit persistence to the current
- * tab. Pagination (current page) is never persisted — page 1 on
- * navigation is intentional UX.
- *
- * An axis is only written once its value differs from the default, so a
- * table nobody touched leaves storage untouched as well. From then on the
- * stored value is restored verbatim — *including an empty one*: clearing
- * the sort, the filters, the grouping, the summaries or the selection is
- * itself persisted and wins over the matching `initial*` seed.
- *
- * ## Storage is a client-only layer
- *
- * Every axis here is read at construction and **applied after hydration**, from
- * an `$effect`. One rule, no per-axis exceptions, for one reason: storage does
- * not exist on the server. Anything applied during construction makes the
- * client's first render disagree with the HTML it is hydrating — measured with
- * `{amount, asc}` stored, the server emitted Ada/Grace and the client mounted
- * Grace/Ada.
- *
- * What that costs is a visible change on an SSR page once the JavaScript
- * arrives. On a client-rendered page it costs nothing the reader can see: the
- * effect runs in the microtask after `mount()` returns, which is still before
- * the browser paints. (Not *inside* `mount()` — that flushes render effects,
- * not user effects, which is why the test for this has to `flushSync()`.)
- *
- * ## What belongs here, and what belongs in the URL
- *
- * Two questions, and they draw the same line: *may the server know this*, and
- * *should a shared link carry it*.
- *
- * - **Filters, search, sort, grouping, page** decide which data is shown, so
- *   the server has to know them if it is to render anything true. Put those in
- *   the URL and hand them to {@link TableProps.query} — a controlled axis
- *   outranks persistence, and unlike storage the server can read it. See
- *   `createTableQueryUrlSync` in `@urbicon-ui/sveltekit-utils`. Kept here alone
- *   under SSR, they still restore correctly; the server just renders the
- *   unfiltered view first.
- * - **Column visibility and column order** are presentation. Nobody wants to
- *   share a link that hides columns on the other end, so they stay here and the
- *   server renders every column.
- *
- * The two are not exclusive: see {@link persistControlled} for keeping a
- * URL-controlled filter across a visit that arrives without one.
+ * Stored values are read at construction and **applied after hydration**
+ * (storage does not exist on the server, so anything applied earlier makes
+ * the client's first render disagree with the server HTML). `defaults` are
+ * deterministic on both sides and therefore apply at construction — a
+ * default-hidden column is hidden in the server HTML too. A stored value
+ * wins over the matching default, including a stored *empty* one.
  */
-export interface TablePersistenceConfig {
-  /** Unique identifier for this table — used as the storage-key suffix. */
-  tableId: string;
-  /** Storage type for every axis. Defaults to `localStorage`. */
-  storage?: 'localStorage' | 'sessionStorage';
-  /** Write debounce in ms. Defaults to 500. */
-  debounceMs?: number;
-  /** Persist `activeFilters`. Default `true`. */
-  persistFilters?: boolean;
-  /** Persist `searchTerm`. Default `true`. */
-  persistSearch?: boolean;
-  /** Persist `groupByKey`. Default `true`. */
-  persistGroupByKey?: boolean;
-  /** Persist `summaryConfigs`. Default `true`. */
-  persistSummaryConfigs?: boolean;
-  /** Persist `sortColumn` + `sortDirection`. Default `true`. */
-  persistSort?: boolean;
-  /** Persist hidden column ids. Default `true`. */
-  persistColumnVisibility?: boolean;
-  /** Persist column order. Default `true`. */
-  persistColumnOrder?: boolean;
+export interface TablePrefsConfig {
   /**
-   * Also store the axes the {@link TableProps.query} prop controls. **Default
-   * `false`.**
-   *
-   * Without it, a controlled axis is neither restored from storage nor written
-   * to it: the URL is the source of truth while it carries one, and that is
-   * where the view lives — bookmarkable, shareable, surviving a reload. What it
-   * does not survive is opening the same page from a bare link, because nothing
-   * was written.
-   *
-   * For a business table that is usually the wrong answer — "my filters are
-   * still there tomorrow" is expected behaviour — so `persistControlled: true`
-   * unlocks the write. The reading order is untouched: **URL > storage**, so a
-   * link still shows what it says.
-   *
-   * The reason this is safe to unlock is that only a *setter* writes. Storage
-   * is fed from the table's own action wrappers (`addFilter`, `setSort`, …),
-   * never from a controlled value resolving — so following someone else's link
-   * stores nothing, and only what the reader themselves changes is kept.
-   *
-   * ```svelte
-   * <Table
-   *   {items} {columns}
-   *   query={sync.viewState}
-   *   onQueryChange={sync.syncQuery}
-   *   persistenceConfig={{ tableId: 'invoices', persistControlled: true }}
-   * />
-   * ```
+   * Where to persist the preferences. A string is the shorthand for
+   * `{ key }`; without this field the preferences stay volatile and only
+   * `defaults` apply.
    */
-  persistControlled?: boolean;
+  storage?:
+    | string
+    | {
+        /** Unique identifier for this table — used as the storage-key suffix. */
+        key: string;
+        /** Storage type. @default 'localStorage' */
+        kind?: 'localStorage' | 'sessionStorage';
+        /** Write debounce in ms. @default 500 */
+        debounceMs?: number;
+      };
+  /** Initial preferences for a table nobody has touched yet. */
+  defaults?: {
+    /** Column ids hidden initially. */
+    hiddenColumns?: string[];
+    /** Initial column order (resolved column ids). */
+    columnOrder?: string[];
+    /** Initial summary configurations. */
+    summaries?: SummaryConfig[];
+  };
   /**
    * Persist selected row ids across reloads. **Opt-in — default `false`**,
-   * unlike every axis above (a restored selection surprises more often than it
-   * helps). Genuinely no effect when `selectedIds` is controlled: the prop is
-   * the source of truth, so a controlled value is never written to storage.
-   * Rows are keyed by `item.id`; without a stable `id` the selection falls back
-   * to the row's position index, which restores onto *different* rows after a
-   * reorder — enable this only for data with stable ids.
+   * unlike every axis above (a restored selection surprises more often than
+   * it helps). No effect when `selectedIds` is controlled: the prop is the
+   * source of truth, so a controlled value is never written to storage.
+   * Rows are keyed by `item.id`; without a stable `id` the selection falls
+   * back to the row's position index, which restores onto *different* rows
+   * after a reorder — enable this only for data with stable ids.
    */
   persistSelection?: boolean;
-}
-
-/**
- * Uncontrolled initial view state, applied once at store construction —
- * immediately after persistence hydration. Each axis seeds only when
- * persistence did not supply it, so a value restored from storage always
- * wins. The seeded value is synced back to storage exactly like a user
- * action would be (every axis writes through the persistence-syncing
- * wrappers below). Controlled props are gated one level up:
- * `TableProvider` drops the `selectedIds` seed whenever the controlled
- * `selectedIds` prop is present, and the `groupBy` seed whenever the
- * controlled `groupByKey` prop is truthy.
- *
- * "Persistence supplied it" means storage held an *entry* for that axis,
- * not that the entry was non-empty: an axis the user cleared (no sort, no
- * filters, no grouping, no summaries, nothing selected) is persisted as
- * cleared and beats the seed too — cleared state survives a reload. Only
- * an absent or corrupt entry lets the seed through.
- */
-export interface TableSeedState {
-  /**
-   * Initial sort. `column` must match a column's resolved id; an empty
-   * column is treated as "no seed".
-   */
-  sort?: { column: string; direction: 'asc' | 'desc' };
-  /** Initial selected row ids (keyed by `item.id`, row-index fallback). */
-  selectedIds?: Array<string | number>;
-  /** Initial advanced filters. */
-  filters?: Filter[];
-  /**
-   * Initial grouping key. A key restored via `persistGroupByKey` takes
-   * precedence — including a stored `null` (the user ungrouped); a
-   * nullish/empty seed is treated as "no seed".
-   */
-  groupBy?: string | null;
-  /**
-   * Initial summary configurations. A set restored via
-   * `persistSummaryConfigs` takes precedence — including a stored empty
-   * set (the user removed every summary); an empty seed is "no seed".
-   */
-  summaryConfigs?: SummaryConfig[];
 }
 
 /**
@@ -222,61 +101,38 @@ export interface TableSeedState {
  * defaults did, which is what keeps the store's own test suite meaningful.
  */
 export interface TablePropSources {
-  items?: () => TableItem[];
+  /** The data source union — `TableProvider` resolves the `items` shorthand into it. */
+  source?: () => TableSource | undefined;
   columns?: () => Column[];
-  loading?: () => boolean;
-  error?: () => string | null;
-  initialPage?: () => number;
-  itemsPerPage?: () => number;
   multiExpand?: () => boolean;
   groupOrder?: () => string[];
   selectionMode?: () => 'none' | 'single' | 'multi';
   /** Whether `selectedIds` is controlled — i.e. the prop is present. */
   selectionControlled?: () => boolean;
-  /** Whether `searchTerm` is controlled — i.e. the prop is not `undefined`. */
-  searchControlled?: () => boolean;
-  /**
-   * Whether the standalone `groupByKey` prop is controlled — i.e. present. The
-   * `query.groupByKey` axis is covered by `persistControlled` instead; this one
-   * follows `searchControlled`, so a value the consumer drives is never stored
-   * and cannot resurface on a later visit that no longer passes the prop.
-   */
-  groupControlled?: () => boolean;
   rowClickSelects?: () => boolean;
   activeRowId?: () => string | number | null;
   virtualized?: () => boolean;
-  mode?: () => 'client' | 'server';
-  serverTotalItems?: () => number;
   enableColumnVisibility?: () => boolean;
-  /**
-   * Controlled view state, normally the parsed URL (#152).
-   *
-   * Per-field ownership: a field that is present outranks both persistence and
-   * the matching `initial*` seed for its axis; a field left `undefined` changes
-   * nothing. The same rule `searchControlled` already applies to `searchTerm`,
-   * generalised — which is why these are deriveds and not writes: the store
-   * still assigns to them on every user interaction, and a new value from the
-   * URL re-seeds the slot afterwards.
-   */
-  query?: () => TableViewState | undefined;
 }
 
-/**
- * The view state a table can hand out and take back — the axes that decide
- * *which data is shown*, and therefore exactly the axes the server has to know
- * and a shared link has to carry (#152). Structurally the writable half of
- * `TableQuery`; every field optional, because a consumer may control some axes
- * and leave the rest to the table.
- */
-export interface TableViewState {
-  page?: number;
-  itemsPerPage?: number;
-  sortColumn?: string;
-  sortDirection?: 'asc' | 'desc';
-  searchTerm?: string;
-  activeFilters?: Filter[];
-  groupByKey?: string | null;
+/** Construction-time seeds that are neither view nor preference state. */
+export interface TableSeedState {
+  /**
+   * Initial selected row ids (keyed by `item.id`, row-index fallback),
+   * applied once at construction — during SSR too, so the seed is in the
+   * server HTML. `TableProvider` feeds it from the controlled `selectedIds`
+   * prop when that is present, from `initialSelectedIds` otherwise. For the
+   * uncontrolled seed, a selection restored via `prefs.persistSelection`
+   * takes precedence — including a stored *empty* one; a controlled seed
+   * wins over storage (the prop is the source of truth).
+   */
+  selectedIds?: Array<string | number>;
 }
+
+// Referentially stable empty list — the managed-source item slot must not
+// change identity across re-evaluations, or every parent render would count
+// as an items change.
+const NO_ITEMS: TableItem[] = [];
 
 /**
  * Creates the table state by composing independent concerns.
@@ -284,7 +140,11 @@ export interface TableViewState {
  * Derived chain: items → filteredItems → sortedItems → grouped → paginatedItems
  *
  * Each concern owns a slice of functionality (search, filtering, sorting, etc.)
- * but all read from and write to a shared reactive state object.
+ * but all read from and write to a shared reactive state object. Since v8 the
+ * six view axes on that object are pass-throughs onto the {@link TableView}:
+ * a concern writing `state.currentPage = 1` writes `view.page`, with `user`
+ * origin — which is what lets the bindings tell a reader's change from an
+ * applied one without the store keeping any ownership bookkeeping of its own.
  *
  * **Generic T erasure**: The consumer-facing `TableProps<T>` is generic, but the
  * store operates on `TableItem` (`Record<string, unknown>`). This is intentional —
@@ -293,78 +153,57 @@ export interface TableViewState {
  * responsibility at the `TableProps<T>` boundary.
  */
 export function createTableState(
-  persistenceConfig?: TablePersistenceConfig,
-  seed?: TableSeedState,
-  props?: TablePropSources
+  view?: TableView,
+  prefs?: TablePrefsConfig,
+  props?: TablePropSources,
+  seed?: TableSeedState
 ) {
+  // A table without a `view` prop owns an unbound view of its own — the
+  // zero-config path. `TableProvider` resolves `view`/`viewDefaults` before
+  // handing the result in here.
+  const tableView = view ?? createTableView();
+
+  // ── Source resolution ────────────────────────────────────────────────────
+  //
+  // Two derived stages, deliberately (#153-R1 class): `resolvedSource`
+  // re-evaluates whenever the consumer passes a fresh `source` literal —
+  // which an inline `source={{ query: (q) => … }}` does on every parent
+  // render. The stages below extract *stable* values out of it (a mode
+  // string, the items reference, booleans), and Svelte skips propagation
+  // when a derived's new value is referentially identical to the old one —
+  // so nothing downstream re-runs unless the content actually changed.
+  const resolvedSource = $derived(resolveSource(props?.source?.() ?? NO_ITEMS));
+  const sourceMode = $derived(resolvedSource.mode);
+  const sourceItems = $derived(
+    resolvedSource.mode === 'server-managed' ? NO_ITEMS : resolvedSource.items
+  );
+  const sourceLoading = $derived(
+    resolvedSource.mode === 'server-managed' ? false : resolvedSource.loading
+  );
+  const sourceError = $derived(
+    resolvedSource.mode === 'server-managed' ? null : resolvedSource.error
+  );
+  const sourceTotal = $derived(resolvedSource.mode === 'server-manual' ? resolvedSource.total : 0);
+  const mode = $derived(sourceMode === 'client' ? ('client' as const) : ('server' as const));
+
   // ── Prop-driven slots ────────────────────────────────────────────────────
   //
-  // Each of these used to be a plain `$state` field that `TableProvider` filled
-  // from a prop inside an `$effect` — about sixteen of them. `$effect` does not
-  // run during SSR, so the server rendered an empty table and the prerendered
-  // HTML claimed the component had no rows (#10).
-  //
-  // As deriveds they are evaluated during the server render, and — since 5.25 —
-  // they are still writable, which is what the second writers need: live updates
-  // and remote fetches assign to `state.items`, pagination assigns to
-  // `state.currentPage`. An assignment holds until the prop behind it changes,
-  // which then re-seeds. That combination is the reason this is a derived and
-  // not a hand-written `override ?? prop` getter: the re-seed is the part you
-  // cannot hand-build.
-  //
+  // Overridable deriveds: evaluated during SSR (#10), still writable for the
+  // second writers — live updates and managed fetches assign to
+  // `state.items`/`loading`/`error`/`serverTotalItems`. An assignment holds
+  // until the value behind it changes, which then re-seeds.
   // See docs/SVELTE5-PATTERNS.md → "Prop-derived state".
-  //
-  // **Reactivity depth, deliberately shallower than before.** A `$state` data
-  // property deep-proxies whatever is assigned to it, so `state.items[0].name
-  // = 'x'` used to notify. A `$derived` does not wrap its value, so it no
-  // longer does — measured: the write lands, no reader re-runs. Replacing the
-  // whole array (`state.items = […]`, what `setItems`, `useLiveUpdates` and
-  // `useRemoteData` all do) notifies exactly as before, and nothing in the
-  // library mutates a row in place. Consumers reaching the state through
-  // `onReady` must do the same: edit a row via `pushUpdate` or by assigning a
-  // new array, never by writing through to a row. Pinned by
-  // TableStore.columns.svelte.test.ts.
-  let items = $derived(normalizeItems(props?.items?.() ?? []));
-  let loading = $derived(props?.loading?.() ?? false);
-  let error = $derived(props?.error?.() ?? null);
-  let currentPage = $derived(props?.query?.()?.page ?? props?.initialPage?.() ?? 1);
-  let itemsPerPage = $derived(props?.query?.()?.itemsPerPage ?? props?.itemsPerPage?.() ?? 10);
-  // The four axes below used to be plain `$state` seeded by persistence and the
-  // `initial*` seeds. As prop-derived slots they resolve during SSR, which is
-  // the point: a link carrying `?sort=name` has to render sorted on the server
-  // (#152). Nothing changes when no `query` is passed — the fallbacks are the
-  // values these fields held before.
-  let sortColumn = $derived(props?.query?.()?.sortColumn ?? '');
-  let sortDirection = $derived(props?.query?.()?.sortDirection ?? 'asc');
-  let searchTerm = $derived(props?.query?.()?.searchTerm ?? '');
-  let activeFilters = $derived(props?.query?.()?.activeFilters ?? []);
-  /**
-   * Grouping carries a gate, not just a value: grouped virtualization is not
-   * implemented, and a key that slips through deactivates virtualization and
-   * renders the *entire* item set — the failure `virtualized` exists to
-   * prevent. `setGroupByKey` has guarded every imperative path into grouping
-   * for that reason; a URL is one more path, and an unguarded
-   * `?group=status` on a virtualized table would be the worst of them, since
-   * nobody had to click anything to get there.
-   *
-   * Applying the gate here rather than in an effect also makes it hold during
-   * SSR, which the imperative gate never did.
-   */
-  let groupByKey = $derived.by(() => {
-    const requested = props?.query?.()?.groupByKey ?? null;
-    return requested && (props?.virtualized?.() ?? false) ? null : requested;
-  });
+  let items = $derived(normalizeItems(sourceItems));
+  let loading = $derived(sourceLoading);
+  let error = $derived(sourceError);
+  let serverTotalItems = $derived(sourceTotal);
   let multiExpand = $derived(props?.multiExpand?.() ?? false);
   let groupOrder = $derived(props?.groupOrder?.() ?? []);
   let selectionMode = $derived(props?.selectionMode?.() ?? 'none');
   let selectionControlled = $derived(props?.selectionControlled?.() ?? false);
-  let searchControlled = $derived(props?.searchControlled?.() ?? false);
-  let groupControlled = $derived(props?.groupControlled?.() ?? false);
   let rowClickSelects = $derived(props?.rowClickSelects?.() ?? false);
   let activeRowId = $derived(props?.activeRowId?.() ?? null);
   let virtualized = $derived(props?.virtualized?.() ?? false);
-  let mode = $derived(props?.mode?.() ?? 'client');
-  let serverTotalItems = $derived(props?.serverTotalItems?.() ?? 0);
   let enableColumnVisibility = $derived(props?.enableColumnVisibility?.() ?? true);
 
   // `state.columns` is the *visible* subset. The full list comes from the prop,
@@ -375,6 +214,14 @@ export function createTableState(
   let columnsWrite: ((next: Column[]) => void) | null = null;
 
   // ── Shared reactive state ──
+  //
+  // The six view axes are pass-throughs onto the view object — reading tracks
+  // the view's `$state` fields, writing goes through the view's field setters
+  // and therefore counts as the reader's own change (`user` origin). The
+  // sort pair maps onto the single `view.sort` value: clearing the column
+  // clears the sort, and a direction write on an unsorted view is a no-op
+  // (an unsorted view has no direction — the serializers normalize it away
+  // the same way).
   const state: TableState = $state({
     get items() {
       return items;
@@ -402,43 +249,46 @@ export function createTableState(
     },
 
     get searchTerm() {
-      return searchTerm;
+      return tableView.search;
     },
     set searchTerm(next: string) {
-      searchTerm = next;
+      tableView.search = next;
     },
     get activeFilters() {
-      return activeFilters;
+      return tableView.filters;
     },
     set activeFilters(next: Filter[]) {
-      activeFilters = next;
+      tableView.filters = next;
     },
-    showAdvancedSearch: false,
 
     get currentPage() {
-      return currentPage;
+      return tableView.page;
     },
     set currentPage(next: number) {
-      currentPage = next;
+      tableView.page = next;
     },
     get itemsPerPage() {
-      return itemsPerPage;
+      return tableView.pageSize;
     },
     set itemsPerPage(next: number) {
-      itemsPerPage = next;
+      tableView.pageSize = next;
     },
 
     get sortColumn() {
-      return sortColumn;
+      return tableView.sort?.column ?? '';
     },
     set sortColumn(next: string) {
-      sortColumn = next;
+      tableView.sort = next
+        ? { column: next, direction: tableView.sort?.direction ?? 'asc' }
+        : null;
     },
     get sortDirection() {
-      return sortDirection;
+      return tableView.sort?.direction ?? 'asc';
     },
     set sortDirection(next: 'asc' | 'desc') {
-      sortDirection = next;
+      if (tableView.sort) {
+        tableView.sort = { column: tableView.sort.column, direction: next };
+      }
     },
 
     expandedItemId: null as string | number | null,
@@ -450,15 +300,28 @@ export function createTableState(
       multiExpand = next;
     },
 
+    /**
+     * Grouping carries a gate, not just a value: grouped virtualization is
+     * not implemented, and a key that slips through deactivates
+     * virtualization and renders the *entire* item set. The read-side gate
+     * here holds during SSR too — a `?group=…` deep link on a virtualized
+     * table renders ungrouped on the server. The runtime *discard* (which
+     * cleans the URL and un-dirties storage) is `TableProvider`'s
+     * `applyExternal({ groupBy: null }, 'system')`.
+     */
     get groupByKey() {
-      return groupByKey;
+      const requested = tableView.groupBy;
+      // Gated on the same overridable slot `useGrouping`'s setter gate reads
+      // (`state.virtualized`) — not on the raw prop — so the two gates can
+      // never disagree about what "virtualized" currently means.
+      return requested && virtualized ? null : requested;
     },
     set groupByKey(next: string | null) {
-      groupByKey = next;
+      tableView.groupBy = next;
     },
     /**
-     * The grouping key the consumer *declared* via `initialGroupBy`, kept for
-     * the lifetime of the table and never written again.
+     * The grouping key the consumer *declared* via `view.defaults.groupBy`,
+     * kept for the lifetime of the table and never written again.
      *
      * Grouping accepts any item field, not only the ones that have a column —
      * a table can group by `day` while showing no Day column, because the day
@@ -499,18 +362,6 @@ export function createTableState(
     set selectionControlled(next: boolean) {
       selectionControlled = next;
     },
-    get searchControlled() {
-      return searchControlled;
-    },
-    set searchControlled(next: boolean) {
-      searchControlled = next;
-    },
-    get groupControlled() {
-      return groupControlled;
-    },
-    set groupControlled(next: boolean) {
-      groupControlled = next;
-    },
     get rowClickSelects() {
       return rowClickSelects;
     },
@@ -538,9 +389,6 @@ export function createTableState(
     get mode() {
       return mode;
     },
-    set mode(next: 'client' | 'server') {
-      mode = next;
-    },
     get serverTotalItems() {
       return serverTotalItems;
     },
@@ -556,10 +404,8 @@ export function createTableState(
     }
   });
 
-  // ── Persistence (initializes state from storage) ──
-  // The controlled view state is handed in so persistence can step aside for
-  // every axis it owns — precedence URL > localStorage > `initial*` seed (#152).
-  const persistence = usePersistence(state, persistenceConfig, () => props?.query?.());
+  // ── Prefs (reads storage at construction, applies after hydration) ──
+  const prefsStore = usePrefs(state, prefs);
 
   // ── Concerns (composed in derived-chain order) ──
   const search = useSearch(state);
@@ -612,234 +458,161 @@ export function createTableState(
   const liveUpdates = useLiveUpdates(state);
 
   /**
-   * Apply everything storage supplied — the sort, filters, search term,
-   * grouping and summaries on the shared state, plus the column visibility and
-   * order that live inside their own concerns.
+   * Apply everything storage supplied — summaries and selection on the shared
+   * state, plus the column visibility and order that live inside their own
+   * concerns. Called by `TableProvider` from an `$effect`, which is the
+   * hydration boundary: storage is a client-only layer, so nothing read from
+   * it may reach the server HTML (see {@link TablePrefsConfig}).
    *
-   * Deliberately not called here at construction, and that is the one rule
-   * persistence follows now: **storage is a client-only layer, applied after
-   * hydration.** It exists only in the browser, so anything read from it and
-   * applied during construction makes the client's first render disagree with
-   * the server's HTML — measured both ways, with `{amount, asc}` stored the
-   * server emitted Ada/Grace and the client mounted Grace/Ada, and with
-   * `['amount']` hidden the server emitted two `<th>` and the client one.
-   *
-   * A per-axis judgement was the alternative, and it is worse: it would need an
-   * argument for each of eight axes, and every one of them would come out the
-   * same way, because none of them can reach the server. The axes that *should*
-   * reach it belong in the URL instead — see {@link TableProps.query}.
-   *
-   * `TableProvider` calls this from an `$effect`, which is the hydration
-   * boundary: it does not run on the server, and on the client it runs before
-   * the browser paints — so a client-rendered app still shows its stored view
-   * in its first paint. Under SSR the already-painted server markup changes
-   * once, after the JavaScript arrives.
-   *
-   * Reading storage still happens at construction, because the `hydrated*`
-   * flags have to be right before the `initial*` seeds below run: a seed must
-   * stay off an axis storage will supply, including one storage supplies as
-   * *empty*.
+   * The `defaults` do NOT run through here — they are deterministic on both
+   * sides of hydration and applied at construction below, so a default-hidden
+   * column is hidden in the server HTML too. A stored value arriving here
+   * overrides the default, including a stored *empty* one.
    */
   function applyPersistedState() {
-    persistence.applyPersistedState();
-    // The hidden ids are applied to `useColumnVisibility`, which filters
-    // `state.columns` — itself a derived off the `columns` prop since #10, so it
-    // is already populated here. (This comment used to say the opposite; it
-    // predates that change, when `setColumns` was the ingestion path rather
-    // than an imperative escape hatch.)
-    if (persistence.initialHiddenColumnIds.length > 0) {
-      columnVisibility.setHiddenIds(persistence.initialHiddenColumnIds);
+    prefsStore.applyPersistedState();
+    const storedHidden = prefsStore.storedHiddenColumnIds;
+    if (storedHidden !== null) {
+      columnVisibility.setHiddenIds(storedHidden);
     }
-    if (persistence.initialColumnOrder.length > 0) {
-      columnOrder.applyOrder(persistence.initialColumnOrder);
+    const storedOrder = prefsStore.storedColumnOrder;
+    if (storedOrder !== null && storedOrder.length > 0) {
+      columnOrder.applyOrder(storedOrder);
     }
   }
 
-  // ── Seed uncontrolled initial view state (sort / filters / selection /
-  // groupBy / summaryConfigs) ──
-  // Runs exactly once, here at construction — before the first render and
-  // before the first server-mode query emission, so the header sort indicator
-  // and the initial `query` both carry the seed. Persistence hydrated the
-  // shared state above, so each axis seeds only when persistence did not
-  // supply it: a persisted value wins — including a persisted *empty* one
-  // (`hydrated*`), so an axis the user cleared stays cleared instead of being
-  // re-seeded on every load. Writes go through the persistence-syncing
-  // wrappers (hoisted function declarations below), so a seeded value reaches
-  // storage exactly like a user action would.
-  if (seed?.sort?.column && !state.sortColumn && !persistence.hydratedSort) {
-    setSort(seed.sort.column, seed.sort.direction);
+  // ── Construction-time defaults ──
+  //
+  // Prefs defaults apply synchronously (SSR-visible); a stored value replaces
+  // them after hydration. Deliberately WITHOUT a storage write-back: since v8
+  // a default is not synced into storage — only what the reader themselves
+  // changes is written. After a deploy with changed defaults the new default
+  // greets returning readers who never touched the axis (the seed-resync
+  // delta, v8 notes).
+  if (prefs?.defaults?.hiddenColumns?.length) {
+    columnVisibility.setHiddenIds(prefs.defaults.hiddenColumns);
   }
+  if (prefs?.defaults?.columnOrder?.length) {
+    columnOrder.applyOrder(prefs.defaults.columnOrder);
+  }
+  const summaryDefaults = prefs?.defaults?.summaries;
   if (
-    seed?.filters &&
-    seed.filters.length > 0 &&
-    state.activeFilters.length === 0 &&
-    !persistence.hydratedFilters
+    summaryDefaults &&
+    summaryDefaults.length > 0 &&
+    state.summaryConfigs.length === 0 &&
+    !prefsStore.hydratedSummaryConfigs
   ) {
-    state.activeFilters = [...seed.filters];
-    persistence.syncFilters();
+    // Copy so the default never aliases the consumer's array — the
+    // add/update path can mutate an entry in place.
+    summary.setSummaryConfigs([...summaryDefaults]);
   }
   if (
     seed?.selectedIds &&
     seed.selectedIds.length > 0 &&
     state.selectedIds.size === 0 &&
-    !persistence.hydratedSelection
+    // A controlled selection is the source of truth over anything storage
+    // holds; only the uncontrolled initial seed yields to a stored value.
+    (state.selectionControlled || !prefsStore.hydratedSelection)
   ) {
-    setSelectedIds(seed.selectedIds);
+    selection.setSelectedIds(seed.selectedIds);
   }
-  if (seed?.groupBy) {
-    // Recorded even when the seed is not applied (a persisted key wins), because
-    // it is a declaration about what the menu should offer, not about what is
-    // currently grouped.
-    state.declaredGroupByKey = seed.groupBy;
-  }
-  if (seed?.groupBy && !state.groupByKey && !persistence.hydratedGroupByKey) {
-    setGroupByKey(seed.groupBy);
-  }
-  if (
-    seed?.summaryConfigs &&
-    seed.summaryConfigs.length > 0 &&
-    state.summaryConfigs.length === 0 &&
-    !persistence.hydratedSummaryConfigs
-  ) {
-    // Copy so the seed never aliases the consumer's array (mirrors the
-    // `initialFilters` seed above) — `setSummaryConfigs` stores the reference
-    // as-is, and the add/update path can mutate an entry in place.
-    setSummaryConfigs([...seed.summaryConfigs]);
+  if (tableView.defaults.groupBy) {
+    // Recorded even when grouping is not currently applied: it is a
+    // declaration about what the grouping menu should offer, not about what
+    // is grouped right now.
+    state.declaredGroupByKey = tableView.defaults.groupBy;
   }
 
-  // ── Thin wrappers that add persistence syncing ──
+  // ── Thin wrappers ──
+  //
+  // The view axes need no persistence syncing anymore: they write into the
+  // view object, and whatever bindings the consumer attached observe it. The
+  // prefs axes keep their explicit `sync*` calls — prefs storage is fed from
+  // the table's own action wrappers, never from a value resolving.
   function setItems(newItems: TableItem[]) {
     state.items = normalizeItems(newItems);
   }
 
-  function setLoading(isLoading: boolean) {
-    state.loading = isLoading;
-  }
-
-  function setError(errorMsg: string | null) {
-    state.error = errorMsg;
-  }
-
-  function setSearchTerm(term: string) {
-    search.setSearchTerm(term);
-    persistence.syncSearch();
-  }
-
-  function addFilter(filter: Filter) {
-    filtering.addFilter(filter);
-    persistence.syncFilters();
-  }
-
-  function removeFilter(index: number) {
-    filtering.removeFilter(index);
-    persistence.syncFilters();
-  }
-
-  function removeFiltersByColumn(column: string, operator?: FilterOperator, value?: string) {
-    filtering.removeFiltersByColumn(column, operator, value);
-    persistence.syncFilters();
-  }
-
-  function clearAllFilters() {
-    filtering.clearAllFilters();
-    persistence.syncFilters();
-  }
-
-  function setGroupByKey(key: string | null) {
-    grouping.setGroupByKey(key);
-    persistence.syncGroupByKey();
-  }
-
   function addSummaryConfig(config: SummaryConfig) {
     summary.addSummaryConfig(config);
-    persistence.syncSummaryConfigs();
+    prefsStore.syncSummaryConfigs();
   }
 
   function removeSummaryConfig(column: string) {
     summary.removeSummaryConfig(column);
-    persistence.syncSummaryConfigs();
+    prefsStore.syncSummaryConfigs();
   }
 
   function setSummaryConfigs(configs: SummaryConfig[]) {
     summary.setSummaryConfigs(configs);
-    persistence.syncSummaryConfigs();
-  }
-
-  function handleSort(column: string) {
-    sorting.handleSort(column);
-    persistence.syncSortState();
-  }
-
-  function setSort(column: string, direction: 'asc' | 'desc') {
-    sorting.setSort(column, direction);
-    persistence.syncSortState();
+    prefsStore.syncSummaryConfigs();
   }
 
   function hideColumn(id: string) {
     columnVisibility.hideColumn(id);
-    persistence.syncHiddenColumns([...columnVisibility.hiddenColumnKeys]);
+    prefsStore.syncHiddenColumns([...columnVisibility.hiddenColumnKeys]);
   }
 
   function showColumn(id: string) {
     columnVisibility.showColumn(id);
-    persistence.syncHiddenColumns([...columnVisibility.hiddenColumnKeys]);
+    prefsStore.syncHiddenColumns([...columnVisibility.hiddenColumnKeys]);
   }
 
   function toggleColumnVisibility(id: string) {
     columnVisibility.toggleColumnVisibility(id);
-    persistence.syncHiddenColumns([...columnVisibility.hiddenColumnKeys]);
+    prefsStore.syncHiddenColumns([...columnVisibility.hiddenColumnKeys]);
   }
 
   function showAllColumns() {
     columnVisibility.showAllColumns();
-    persistence.syncHiddenColumns([]);
+    prefsStore.syncHiddenColumns([]);
   }
 
   function reorderColumn(fromIndex: number, toIndex: number) {
     columnOrder.reorderColumn(fromIndex, toIndex);
-    persistence.syncColumnOrder(columnOrder.columnOrder);
+    prefsStore.syncColumnOrder(columnOrder.columnOrder);
   }
 
   function resetColumnOrder() {
     columnOrder.resetColumnOrder();
-    persistence.syncColumnOrder([]);
+    prefsStore.syncColumnOrder([]);
   }
 
   // Selection mutations sync to storage after mutating (a no-op unless
   // persistSelection is enabled). `isSelected` stays a passthrough (read-only).
   function selectItem(id: string | number) {
     selection.selectItem(id);
-    persistence.syncSelection();
+    prefsStore.syncSelection();
   }
 
   function deselectItem(id: string | number) {
     selection.deselectItem(id);
-    persistence.syncSelection();
+    prefsStore.syncSelection();
   }
 
   function toggleItem(id: string | number) {
     selection.toggleItem(id);
-    persistence.syncSelection();
+    prefsStore.syncSelection();
   }
 
   function selectAll() {
     selection.selectAll();
-    persistence.syncSelection();
+    prefsStore.syncSelection();
   }
 
   function deselectAll() {
     selection.deselectAll();
-    persistence.syncSelection();
+    prefsStore.syncSelection();
   }
 
   function toggleAll() {
     selection.toggleAll();
-    persistence.syncSelection();
+    prefsStore.syncSelection();
   }
 
   function setSelectedIds(ids: Array<string | number>) {
     selection.setSelectedIds(ids);
-    persistence.syncSelection();
+    prefsStore.syncSelection();
   }
 
   // Live-update deletes prune deleted rows out of the selection
@@ -848,20 +621,27 @@ export function createTableState(
   // too. `applyInserts`/`applyUpdates`/`dismissAll` never touch selection.
   function applyAllUpdates() {
     liveUpdates.applyAll();
-    persistence.syncSelection();
+    prefsStore.syncSelection();
   }
 
   function applyDeletes() {
     liveUpdates.applyDeletes();
-    persistence.syncSelection();
+    prefsStore.syncSelection();
   }
 
-  // ── Public API ──
-  // `state` is exposed for internal sub-components that need direct reads.
+  // ── Store surface ──
+  // This object is the *internal* surface ({@link InternalTableContext});
+  // what consumers see is the hand-written `TableContext` interface — the
+  // subset `getTableContext()` and `onReady` are typed against. Adding a
+  // member here does NOT publish it; removing or renaming a public one fails
+  // the `getTableContext()` return type (and `context.typecheck.ts`).
   // External consumers should prefer the wrapper methods (setSearchTerm,
-  // addFilter, handleSort, etc.) which enforce persistence sync and side effects.
+  // addFilter, handleSort, etc.) which enforce side effects like the
+  // page-1 reset.
   return {
     state,
+    /** The view object this table reads and writes — the six shareable axes. */
+    view: tableView,
 
     // Derived getters
     get filteredItems() {
@@ -907,26 +687,23 @@ export function createTableState(
       return summary.groupedSummaryData;
     },
 
-    // Data management
+    // Data management (internal wiring — consumers use the `source` union)
     setItems,
     setColumns: columnVisibility.setColumns,
-    setLoading,
-    setError,
 
     // Search
-    setSearchTerm,
-    toggleAdvancedSearch: search.toggleAdvancedSearch,
+    setSearchTerm: search.setSearchTerm,
 
     // Filtering
-    addFilter,
-    removeFilter,
-    removeFiltersByColumn,
-    clearAllFilters,
+    addFilter: filtering.addFilter,
+    removeFilter: filtering.removeFilter,
+    removeFiltersByColumn: filtering.removeFiltersByColumn,
+    clearAllFilters: filtering.clearAllFilters,
     hasFilterForColumn: filtering.hasFilterForColumn,
 
     // Sorting
-    handleSort,
-    setSort,
+    handleSort: sorting.handleSort,
+    setSort: sorting.setSort,
 
     // Pagination
     setPage: pagination.setPage,
@@ -939,10 +716,8 @@ export function createTableState(
 
     // Grouping
     toggleGroup: grouping.toggleGroup,
-    toggleGroupExpand: grouping.toggleGroup,
     toggleAllGroups: grouping.toggleAllGroups,
-    setGroupByKey,
-    setGroupOrder: grouping.setGroupOrder,
+    setGroupByKey: grouping.setGroupByKey,
 
     // Summary
     addSummaryConfig,
@@ -950,13 +725,6 @@ export function createTableState(
     toggleSummary: summary.toggleSummary,
     setSummaryConfigs,
     getFormattedSummaryValue: summary.getFormattedSummaryValue,
-
-    // Utilities
-    getNestedValue,
-    resolveColumnId,
-    resolveColumnValue,
-    resolveValueById,
-    findColumnById,
 
     // Column visibility
     get allColumns() {
@@ -996,7 +764,6 @@ export function createTableState(
     get columnOrder() {
       return columnOrder.columnOrder;
     },
-    initColumnOrder: columnOrder.initOrder,
     applyPersistedState,
     reorderColumn,
     resetColumnOrder,
@@ -1011,13 +778,7 @@ export function createTableState(
     moveFocus: focus.moveFocus,
     isFocusedRow: focus.isFocusedRow,
 
-    // Remote data
-    get query() {
-      return remoteData.query;
-    },
-    get queryKey() {
-      return remoteData.queryKey;
-    },
+    // Remote data (internal wiring — the managed-fetch sink)
     setServerResult: remoteData.setServerResult,
     setServerError: remoteData.setServerError,
     setServerLoading: remoteData.setServerLoading,
@@ -1040,23 +801,32 @@ export function createTableState(
     isRecentlyUpdated: liveUpdates.isRecentlyUpdated,
     isPendingDelete: liveUpdates.isPendingDelete,
 
-    // Persistence
-    clearPersistedFilters: persistence.clearPersistedFilters,
-    clearPersistedSearchTerm: persistence.clearPersistedSearchTerm,
-    clearPersistedGroupByKey: persistence.clearPersistedGroupByKey,
-    clearPersistedSummaryConfigs: persistence.clearPersistedSummaryConfigs,
-    clearPersistedSortState: persistence.clearPersistedSortState,
-    clearPersistedHiddenColumns: persistence.clearPersistedHiddenColumns,
-    clearPersistedColumnOrder: persistence.clearPersistedColumnOrder,
-    clearAllPersistentData: persistence.clearAllPersistentData,
-    forceSavePersistentData: persistence.forceSavePersistentData
+    // Prefs persistence
+    clearPersistedSummaryConfigs: prefsStore.clearPersistedSummaryConfigs,
+    clearPersistedHiddenColumns: prefsStore.clearPersistedHiddenColumns,
+    clearPersistedColumnOrder: prefsStore.clearPersistedColumnOrder,
+    clearPersistedSelection: prefsStore.clearPersistedSelection,
+    clearAllPersistentData: prefsStore.clearAllPersistentData,
+    forceSavePersistentData: prefsStore.forceSavePersistentData
   };
 }
 
-// Optional — setTableContext returns the existing context if any, so the
-// raw getter must be permissive (returns undefined when unset).
-const [getTableContextRaw, setTableContextRaw] =
-  createOptionalContext<ReturnType<typeof createTableState>>();
+/**
+ * The full store surface — everything `createTableState` returns, including
+ * the wiring and lifecycle members (`setColumns`, `applyPersistedState`,
+ * `setServer*`, focus internals, preference persistence) that the public
+ * {@link TableContext} deliberately leaves out.
+ *
+ * In-tree only: the type is not exported from the package, and the wide
+ * surface is reachable solely through {@link getInternalTableContext}. Both
+ * context types describe the same live object — the split is a contract
+ * boundary, not a second store.
+ */
+export type InternalTableContext = ReturnType<typeof createTableState>;
+
+// Optional context — the raw getter must be permissive (returns undefined
+// when unset) so `getTableContext` can fail loud with its own message.
+const [getTableContextRaw, setTableContextRaw] = createOptionalContext<InternalTableContext>();
 
 /**
  * The BCP 47 tag the formatting cells hand to `Intl`, resolved once per table.
@@ -1095,30 +865,34 @@ export function getCellLocale(): string {
 }
 
 /**
- * Creates and sets the table context.
- * @param persistenceConfig - Optional persistence configuration for filters, search, grouping, and summaries.
- * @param seed - Optional uncontrolled initial view state (sort, selection, filters, groupBy, summaryConfigs); a persisted value wins per axis. Ignored when an existing context is returned.
+ * Retrieves the table context — the public, hand-written {@link TableContext}
+ * surface. Throws when called outside of a `<TableProvider>` (the `<Table>`
+ * component mounts one for you), so consumers within the table tree can rely
+ * on a defined return value.
+ *
+ * The return-type annotation is the contract gate: the wide store object must
+ * satisfy the narrow interface, so renaming or removing a public member in
+ * `createTableState` fails to compile here.
  */
-export function setTableContext(persistenceConfig?: TablePersistenceConfig, seed?: TableSeedState) {
-  const existing = getTableContextRaw();
-  if (existing) return existing;
-
-  const tableState = createTableState(persistenceConfig, seed);
-  setTableContextRaw(tableState);
-  return tableState;
+export function getTableContext(): TableContext {
+  return requireTableContext();
 }
 
 /**
- * Retrieves the table context. Throws when called outside of a `<TableProvider>`
- * — consumers within the table tree can rely on a defined return value. For the
- * rare case where the absence of a provider must be detected, use
- * `getTableContextRaw()` (internal) or `setTableContext()` (idempotent setter).
+ * The same live context, typed with the full store surface. In-tree only —
+ * the table's own sub-components (header, rows, toolbar, menus) legitimately
+ * reach the wiring members from *inside*; consumers get {@link TableContext}
+ * via `getTableContext()` and never this.
  */
-export function getTableContext() {
+export function getInternalTableContext(): InternalTableContext {
+  return requireTableContext();
+}
+
+function requireTableContext(): InternalTableContext {
   const ctx = getTableContextRaw();
   if (!ctx) {
     throw new Error(
-      '`getTableContext()` was called outside of a `<TableProvider>`. Wrap the consuming component in `<TableProvider>` or use `setTableContext()` first.'
+      '`getTableContext()` was called outside of a `<TableProvider>`. Wrap the consuming component in `<TableProvider>` (the `<Table>` component does this for you).'
     );
   }
   return ctx;
@@ -1127,8 +901,8 @@ export function getTableContext() {
 /**
  * Set the table context to an externally-created `tableState`. Used by
  * `<TableProvider>` so it can construct the state once and share it
- * with the rest of the table tree.
+ * with the rest of the table tree. Not exported from the package.
  */
-export function attachTableContext(tableState: ReturnType<typeof createTableState>) {
+export function attachTableContext(tableState: InternalTableContext) {
   setTableContextRaw(tableState);
 }

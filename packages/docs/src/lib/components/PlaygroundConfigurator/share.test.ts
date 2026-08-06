@@ -402,18 +402,14 @@ describe('round trip', () => {
     });
 
     it('holds for a one-sided bound', () => {
-      // `/table/table` "Items per page": a floor, no ceiling. Clearing the
-      // field used to make `Number('')` → 0 and ship `?itemsPerPage=0`.
-      const itemsPerPage: ControlDefinition[] = [
-        { key: 'itemsPerPage', type: 'number', label: 'Items per page', defaultValue: 5, min: 3 }
+      // A floor, no ceiling. Clearing the field used to make `Number('')` → 0
+      // and ship `?size=0`.
+      const size: ControlDefinition[] = [
+        { key: 'size', type: 'number', label: 'Size', defaultValue: 5, min: 3 }
       ];
-      expect(encodeShareParams(itemsPerPage, { itemsPerPage: 0 }, SCOPE)).toBe('');
-      expect(encodeShareParams(itemsPerPage, { itemsPerPage: 3 }, SCOPE)).toBe(
-        '_pg=Demo&itemsPerPage=3'
-      );
-      expect(encodeShareParams(itemsPerPage, { itemsPerPage: 9999 }, SCOPE)).toBe(
-        '_pg=Demo&itemsPerPage=9999'
-      );
+      expect(encodeShareParams(size, { size: 0 }, SCOPE)).toBe('');
+      expect(encodeShareParams(size, { size: 3 }, SCOPE)).toBe('_pg=Demo&size=3');
+      expect(encodeShareParams(size, { size: 9999 }, SCOPE)).toBe('_pg=Demo&size=9999');
     });
 
     it('holds for the slider arm too, not just number', () => {

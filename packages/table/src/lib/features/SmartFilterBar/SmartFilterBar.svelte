@@ -1,6 +1,7 @@
 <script lang="ts">
   import { untrack } from 'svelte';
-  import { getTableContext, useTableI18n } from '$lib';
+  import { useTableI18n } from '$lib';
+  import { getInternalTableContext } from '$lib/stores/TableStore.svelte';
   import {
     Badge,
     Button,
@@ -27,7 +28,7 @@
   const tt = useTableI18n();
 
   // Store-Kontext abrufen
-  const tableContext = getTableContext();
+  const tableContext = getInternalTableContext();
   const { state: tableState, setSearchTerm } = tableContext;
   const styleConfig = getTableStyleConfig();
 

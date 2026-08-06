@@ -133,7 +133,7 @@
           { accessor: 'projects', title: 'Projects', cell: projectsCell, align: 'left' }
         ] as Column<Employee>[]}
         enableSmartFilter={false}
-        itemsPerPage={6}
+        viewDefaults={{ pageSize: 6 }}
       />
     </CodeExample>
 
@@ -174,7 +174,7 @@
           { accessor: 'status', title: 'Status', cell: statusCell }
         ] as Column<Employee>[]}
         enableSmartFilter={false}
-        itemsPerPage={6}
+        viewDefaults={{ pageSize: 6 }}
       />
     </CodeExample>
 
@@ -208,7 +208,7 @@
           { accessor: 'projects', title: 'Projects', cell: heatCell, align: 'center' }
         ] as Column<Employee>[]}
         enableSmartFilter={false}
-        itemsPerPage={6}
+        viewDefaults={{ pageSize: 6 }}
       />
     </CodeExample>
 
@@ -230,7 +230,7 @@
         items={employees.slice(0, 4)}
         columns={basicColumns}
         enableSmartFilter={false}
-        itemsPerPage={4}
+        viewDefaults={{ pageSize: 4 }}
       >
         {#snippet cell(_item: Employee, value: unknown, column: Column<Employee>)}
           {#if resolveColumnId(column) === 'department'}

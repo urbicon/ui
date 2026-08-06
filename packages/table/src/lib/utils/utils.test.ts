@@ -39,7 +39,7 @@ describe('resolveColumnLabel', () => {
 });
 
 describe('findColumnById', () => {
-  // Also the engine behind TableProvider's DEV warn for an `initialSort.column`
+  // Also the engine behind TableProvider's DEV warn for a view sort column
   // that matches no column (the Provider effect itself needs render infra).
   const columns: Column[] = [
     { accessor: 'name', title: 'Name' },

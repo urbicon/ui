@@ -5,7 +5,7 @@
     Checkbox,
     ChevronDownIcon as ChevronDownIconDefault
   } from '@urbicon-ui/blocks';
-  import { getTableContext } from '$lib/stores/TableStore.svelte';
+  import { getInternalTableContext } from '$lib/stores/TableStore.svelte';
   import { useTableI18n } from '$lib/i18n';
 
   const ChevronDownIcon = resolveIcon('chevronDown', ChevronDownIconDefault);
@@ -56,8 +56,8 @@
   }: GroupedRowProps = $props();
 
   // Table context
-  const tableContext = getTableContext();
-  const { state: tableState, toggleGroupExpand, toggleExpand, isItemExpanded } = tableContext;
+  const tableContext = getInternalTableContext();
+  const { state: tableState, toggleGroup, toggleExpand, isItemExpanded } = tableContext;
 
   // Reactive computations
   const computedTestId = $derived.by(() => {
@@ -106,7 +106,7 @@
 
   // Event handlers
   function handleToggleGroup() {
-    toggleGroupExpand(groupName);
+    toggleGroup(groupName);
   }
 
   function handleKeyDown(event: KeyboardEvent) {

@@ -1,14 +1,16 @@
 import { building } from '$app/environment';
 import { goto } from '$app/navigation';
 import { page } from '$app/state';
-import {
-  applyTableQueryToSearchParams,
-  searchParamsToTableQuery,
-  searchParamsToTableViewState,
-  type TableQueryParams,
-  type TableQueryUrlOptions,
-  type TableQueryViewState
-} from './table-query';
+
+// The v8 view-object binding lives in its own module; re-exported here so the
+// documented import path (`@urbicon-ui/sveltekit-utils/url.svelte`) carries it.
+// The mirror types (TableViewLike, TableViewSnapshot, …) are exported from the
+// package root via `table-view` — not re-exported here, which would make the
+// root's star exports ambiguous and silently drop them. The v7
+// `createTableQueryUrlSync` factory is gone with the table's `query` prop —
+// the URL home of a table view is `bindViewToUrl`; the load-path serializers
+// (`searchParamsToTableQuery` & friends) live on in `table-query`.
+export { bindViewToUrl, type UrlViewBindingOptions } from './view-binding.svelte';
 
 /**
  * How {@link useUrlArrayParam} maps an array onto the URL:
@@ -220,128 +222,4 @@ export function useUrlArrayParam(
   };
 
   return useUrlParam<string[]>(key, { parse, serialize, initial: opts.initial });
-}
-
-/** Options for {@link createTableQueryUrlSync}. */
-export interface TableQueryUrlSyncOptions extends TableQueryUrlOptions {
-  /**
-   * Replace the current history entry instead of pushing a new one. The
-   * default (`true`) keeps every sort/filter/page interaction from polluting
-   * the back button.
-   * @default true
-   */
-  replaceState?: boolean;
-}
-
-/**
- * Opt-in URL sync for a table: mirrors the `TableQuery` the table emits onto
- * `?q=…&sort=…&page=…` query params, so the view state survives reloads, can
- * be shared as a link, and — unlike `localStorage` — is visible to the server.
- * Works in client mode as well as server mode; the table emits its query in
- * both.
- *
- * Two directions, both explicit:
- * - **URL → query**: `viewState` carries the axes the URL actually names, and
- *   re-reads the URL on every navigation. Hand it to the table's `query` prop,
- *   which controls exactly those axes — per field, and ahead of both
- *   `persistenceConfig` and the `initial*` seeds. Because a controlled axis is
- *   a derived rather than a write, it resolves during server rendering too,
- *   which is the point: the server renders the view the link asked for instead
- *   of a default one the client swaps out on hydration.
- * - **query → URL**: pass `syncQuery` the query from `onQueryChange`, or call
- *   it inside `queryFn` (when `queryFn` is set, `onQueryChange` does not
- *   fire). It rewrites only its own — optionally prefixed — params via
- *   `goto` (`replaceState`, `noScroll`, `keepFocus`); unrelated params are
- *   preserved. Values equal to `options.defaults` are elided, so a table in
- *   its default state leaves the URL clean.
- *
- * Set `options.defaults` to the table's initial props (`itemsPerPage`,
- * `initialPage`, `initialGroupBy`) so the elision baseline matches the state
- * the table actually starts in.
- *
- * @example Client mode — the whole wiring is two props
- * ```svelte
- * <script lang="ts">
- *   import { Table } from '@urbicon-ui/table';
- *   import { createTableQueryUrlSync } from '@urbicon-ui/sveltekit-utils/url.svelte';
- *
- *   const sync = createTableQueryUrlSync({ defaults: { itemsPerPage: 25 } });
- * </script>
- *
- * <Table {items} {columns} query={sync.viewState} onQueryChange={sync.syncQuery} />
- * ```
- *
- * `query` is a *controlled* prop, which is what makes this work on the server:
- * the URL is parsed during SSR and the table renders the linked view rather
- * than an unfiltered one the client then replaces. It also outranks
- * `persistenceConfig` per axis, so there is no longer a caveat about a stored
- * value beating the link.
- *
- * Pass `viewState`, never `initialQuery`. `initialQuery` describes **every**
- * axis, so as a `query` value it claims every axis — including the ones the URL
- * says nothing about, whose values it filled in from the defaults. A table
- * wired that way ignores `persistenceConfig`, `initialSort`, `initialFilters`
- * and `initialGroupBy` entirely, on any URL, and says nothing about it.
- *
- * @example Server mode — the same two directions, with the fetch in between
- * ```svelte
- * <script lang="ts">
- *   const sync = createTableQueryUrlSync({ defaults: { itemsPerPage: 25 } });
- * </script>
- *
- * <Table
- *   mode="server"
- *   {columns}
- *   itemsPerPage={25}
- *   query={sync.viewState}
- *   queryFn={async (query, { signal }) => {
- *     sync.syncQuery(query);
- *     const res = await fetch(`/api/users?${new URLSearchParams(...)}`, { signal });
- *     const data = await res.json();
- *     return { items: data.results, totalItems: data.total };
- *   }}
- * />
- * ```
- *
- * @param options - Elision defaults, key prefix, history behaviour.
- * @returns `viewState` (the controlled axes, re-read on every navigation),
- *   `initialQuery` (a complete snapshot for a fetch) + `syncQuery` (write a
- *   query back to the URL).
- */
-export function createTableQueryUrlSync(options: TableQueryUrlSyncOptions = {}) {
-  // Same prerender rule as `useUrlParam`: no query string exists while
-  // building, so both readers parse from empty params instead of throwing.
-  const currentParams = () => (building ? new URLSearchParams() : page.url.searchParams);
-
-  // Parsed once, on purpose — a snapshot to seed a fetch with, not a source of
-  // truth. `viewState` below is the one the table binds to.
-  const initialQuery: TableQueryParams = searchParamsToTableQuery(currentParams(), options);
-
-  function syncQuery(query: TableQueryParams): void {
-    const next = applyTableQueryToSearchParams(page.url.searchParams, query, options);
-    const qs = next.toString();
-    goto(`${page.url.pathname}${qs ? `?${qs}` : ''}${page.url.hash}`, {
-      replaceState: options.replaceState ?? true,
-      noScroll: true,
-      keepFocus: true
-    });
-  }
-
-  return {
-    /**
-     * The axes the URL names, re-read on every navigation.
-     *
-     * A getter, not a captured value: `createTableQueryUrlSync` runs once per
-     * page component, and SvelteKit does not remount that component when only
-     * the query string changes. A snapshot would therefore never see the back
-     * button — the table would stay sorted after the user navigated back to a
-     * URL with no sort param. Reading `page.url` here makes every consumer of
-     * this getter a reader of SvelteKit's own reactive page state.
-     */
-    get viewState(): TableQueryViewState {
-      return searchParamsToTableViewState(currentParams(), options);
-    },
-    initialQuery,
-    syncQuery
-  } as const;
 }

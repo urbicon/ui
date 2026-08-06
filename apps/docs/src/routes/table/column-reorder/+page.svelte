@@ -50,7 +50,7 @@
         columns={basicColumns}
         enableColumnReorder={true}
         enableSmartFilter={false}
-        itemsPerPage={5}
+        viewDefaults={{ pageSize: 5 }}
       />
     </CodeExample>
   </div>

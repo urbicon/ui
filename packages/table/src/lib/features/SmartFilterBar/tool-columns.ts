@@ -67,14 +67,14 @@ export function selectGroupableColumns(columns: Column[]): Column[] {
  * The grouping tool's rows, including the two keys that are legitimately absent
  * from {@link selectGroupableColumns}.
  *
- * Grouping is a superset of the column list: `initialGroupBy` / `setGroupByKey`
+ * Grouping is a superset of the column list: `view.groupBy` / `setGroupByKey`
  * accept any item field, so a table can group by something it shows no column
  * for — the landing journey groups bookings by `day` while displaying no Day
  * column, because the day belongs in the group header and would be redundant in
  * every row. Two keys can therefore be missing, and they need different
  * treatment:
  *
- * - the **declared** key (`initialGroupBy`): the consumer asked for this
+ * - the **declared** key (`view.defaults.groupBy`): the consumer asked for this
  *   grouping, so it belongs in the list permanently — including after the user
  *   ungroups, which is the whole point. Deriving it from the *active* key
  *   instead would make the row vanish on ungroup, i.e. leave the reported

@@ -266,10 +266,11 @@ describe('defaultValuesOf', () => {
 
 describe('componentDefault', () => {
   it('keeps the component default when an override moves the starting point', () => {
-    // The Table playground opens at 5 rows; the component itself defaults to 10.
+    // A playground may open at a different starting point than the prop's own
+    // default — here 5 against a component default of 10.
     const [c] = deriveControls(
-      { props: [{ name: 'itemsPerPage', type: 'number', defaultValue: '10' }] },
-      { pick: ['itemsPerPage'], overrides: { itemsPerPage: { defaultValue: 5 } } }
+      { props: [{ name: 'stickyOffset', type: 'number', defaultValue: '10' }] },
+      { pick: ['stickyOffset'], overrides: { stickyOffset: { defaultValue: 5 } } }
     );
 
     expect(c.defaultValue).toBe(5);

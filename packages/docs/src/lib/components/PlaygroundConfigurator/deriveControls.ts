@@ -269,9 +269,10 @@ export function deriveControls(
     }
 
     // The derived default is what the *component* does without the prop. An
-    // override may move where the playground starts (`itemsPerPage: 5` on a
-    // component that defaults to 10) — keep the original, or the code snippet
-    // would omit exactly the props that make the preview look the way it does.
+    // override may move where the playground starts (`searchDebounceMs: 100`
+    // on a component that defaults to 300) — keep the original, or the code
+    // snippet would omit exactly the props that make the preview look the way
+    // it does.
     return { componentDefault: base.defaultValue, ...base, ...override };
   });
 

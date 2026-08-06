@@ -160,23 +160,25 @@ border-source mapping.
 ## 8 · Table state snippets
 
 The Table's three state snippets are named after the `slotClasses` slots they style, which
-frees `loading` and `error` for the state props they are everywhere else in the library:
+frees `loading` and `error` for the state fields they are everywhere else in the library.
+Since v8 those two live on the data source rather than on the table itself:
 
-| Snippet | Companion prop |
+| Snippet | Companion field |
 | --- | --- |
 | `emptyState` | — |
-| `loadingState` | `loading?: boolean` |
-| `errorState` | `error?: string \| null` |
+| `loadingState` | `source.loading?: boolean` |
+| `errorState` | `source.error?: string \| null` |
 
 ```svelte
-<Table {items} {columns} loading={pending} error={failure}>
+<Table {columns} source={{ items, loading: pending, error: failure }}>
   {#snippet emptyState()}
     <tr><td colspan="99">Nothing here</td></tr>
   {/snippet}
 </Table>
 ```
 
-With a managed `queryFn` the table owns both states and ignores the two props (DEV warns).
+A managed source (`source={{ query }}`) owns both states itself and has no such fields —
+what used to be a DEV warning is a shape that cannot be written.
 
 ---
 

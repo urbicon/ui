@@ -1,5 +1,6 @@
 import { render } from 'svelte/server';
-import { describe, expect, it } from 'vitest';
+import { afterAll, beforeAll, describe, expect, it, vi } from 'vitest';
+import { createTableView, type TableViewSnapshot } from '$lib/view/view.svelte';
 import TableHarness from './__fixtures__/TableHarness.svelte';
 
 /**
@@ -54,19 +55,24 @@ describe('Table — server render', () => {
     expect(body).toContain('Nothing here');
   });
 
-  it('honours itemsPerPage on the server, so page one is not the whole set', () => {
+  it('honours viewDefaults.pageSize on the server, so page one is not the whole set', () => {
+    // Positive control (red seen): `resolveViewProp` dropping its
+    // `viewDefaults` argument → 3 tests red (this one, the mounted twin in
+    // Table.render.svelte.test.ts, and the unit case in view.svelte.test.ts).
     const many = Array.from({ length: 25 }, (_, i) => ({
       id: i,
       name: `Person ${i}`,
       amount: i
     }));
-    const body = bodyOf({ items: many, itemsPerPage: 10 });
+    // 7, deliberately NOT the view's own default of 10 — with 10 the
+    // assertion below held even when the prop never reached the store.
+    const body = bodyOf({ items: many, viewDefaults: { pageSize: 7 } });
 
     expect(body).toContain('Person 0');
-    expect(body).toContain('Person 9');
-    // Page two must not be in the first paint — the prop has to reach the store
-    // during SSR for the slice to happen at all.
-    expect(body).not.toContain('Person 10');
+    expect(body).toContain('Person 6');
+    // Page two must not be in the first paint — the default has to reach the
+    // view during SSR for the slice to happen at all.
+    expect(body).not.toContain('Person 7');
   });
 });
 
@@ -75,7 +81,32 @@ describe('Table — server render of a shared link', () => {
   // URL must receive *filtered* rows in the server-rendered HTML. Same
   // measurement as the suite above, but with a non-default view — which is
   // exactly what localStorage could never deliver, because the server cannot
-  // see it. `query` is the URL, parsed.
+  // see it. Since v8 the URL binding applies the parsed params to the view
+  // object *before* the table renders (`applyExternal`, `external` origin) —
+  // `linkedView` below is that init step, minus SvelteKit. The client-side
+  // half of this wiring (binding matrix, deep-link precedence) lives in
+  // `stores/TableStore.viewwiring.svelte.test.ts`; it cannot live here
+  // because a `svelte/server` render needs the node environment, where
+  // `$effect.root` does not run.
+  //
+  // Positive control (red seen): `applyExternal` cut to a no-op → 8 tests
+  // red — all four cases below, the virtualized-grouping control, and three
+  // in view.ssr.test.ts. The link's application path IS the measurement.
+
+  // Constructing a view outside a component warns on the server (module-scope
+  // views are cross-request state) — correct in production, noise here.
+  beforeAll(() => {
+    vi.spyOn(console, 'warn').mockImplementation(() => {});
+  });
+  afterAll(() => {
+    vi.restoreAllMocks();
+  });
+
+  const linkedView = (partial: Partial<TableViewSnapshot>) => {
+    const view = createTableView();
+    view.applyExternal(partial, 'external');
+    return view;
+  };
 
   it('sorts on the server', () => {
     // Sorted against the INPUT order, which is already Ada/Grace/Radia — so the
@@ -83,7 +114,7 @@ describe('Table — server render of a shared link', () => {
     // that all three names appear passes without any sorting at all.
     const byAmount = bodyOf({
       items: ROWS,
-      query: { sortColumn: 'amount', sortDirection: 'desc' }
+      view: linkedView({ sort: { column: 'amount', direction: 'desc' } })
     });
     expect(byAmount.indexOf('Radia')).toBeLessThan(byAmount.indexOf('Ada'));
     // No ascending counterpart: `amount asc` is the input order, so it would
@@ -92,7 +123,7 @@ describe('Table — server render of a shared link', () => {
   });
 
   it('searches on the server', () => {
-    const body = bodyOf({ items: ROWS, query: { searchTerm: 'grace' } });
+    const body = bodyOf({ items: ROWS, view: linkedView({ search: 'grace' }) });
 
     expect(body).toContain('Grace');
     expect(body).not.toContain('Ada');
@@ -100,7 +131,7 @@ describe('Table — server render of a shared link', () => {
   });
 
   it('pages on the server', () => {
-    const body = bodyOf({ items: ROWS, query: { page: 2, itemsPerPage: 1 } });
+    const body = bodyOf({ items: ROWS, view: linkedView({ page: 2, pageSize: 1 }) });
 
     expect(body).toContain('Grace');
     expect(body).not.toContain('Ada');
@@ -109,11 +140,72 @@ describe('Table — server render of a shared link', () => {
   it('filters on the server', () => {
     const body = bodyOf({
       items: ROWS,
-      query: { activeFilters: [{ column: 'name', operator: 'equals', value: 'Radia' }] }
+      view: linkedView({ filters: [{ column: 'name', operator: 'equals', value: 'Radia' }] })
     });
 
     expect(body).toContain('Radia');
     expect(body).not.toContain('Grace');
+  });
+});
+
+describe('Table — server render of a virtualized table with a grouped link', () => {
+  // The url-state docs page says the server render is included; this makes
+  // that claim true for the awkward corner: a `?group=…` deep link onto a
+  // virtualized table renders UNGROUPED on the server — grouped
+  // virtualization is not implemented, the provider discards the grouping at
+  // construction (which runs during SSR) and the store's `groupByKey` read
+  // gate holds on the server too.
+  //
+  // Red seen: with the construction discard and the read gate both sabotaged
+  // away, the virtualized server render carried the `grouped-item-`
+  // group-header rows.
+  beforeAll(() => {
+    // The construction discard warns in DEV — expected here, not noise worth
+    // printing 2× per run. Same containment as the shared-link describe.
+    vi.spyOn(console, 'warn').mockImplementation(() => {});
+  });
+  afterAll(() => {
+    vi.restoreAllMocks();
+  });
+
+  const groupedView = () => {
+    const view = createTableView();
+    view.applyExternal({ groupBy: 'name' }, 'external');
+    return view;
+  };
+
+  it('renders ungrouped on the server, while the un-virtualized control groups', () => {
+    // Control first, same test: the same link on a plain table renders group
+    // headers — so the absence below cannot be "grouping never rendered".
+    const plain = bodyOf({ items: ROWS, view: groupedView() });
+    expect(plain).toContain('grouped-item-');
+
+    const virtualized = bodyOf({ items: ROWS, view: groupedView(), virtualized: true });
+    expect(virtualized).not.toContain('grouped-item-');
+  });
+});
+
+describe('Table — server render of a controlled selection', () => {
+  // The last category-A gap of the SSR/CSR audit, closed: the controlled
+  // `selectedIds` prop used to reach the selection only through the runtime
+  // effect, which does not run during SSR — measured: `selectedIds={[2]}`
+  // rendered unselected server HTML while `initialSelectedIds={[2]}`
+  // rendered it selected. The controlled prop now seeds construction too,
+  // so both halves below agree. Red seen: the first test failed
+  // (aria-selected="false" on row 2) before the seed change.
+  const rowTag = (body: string, id: number) =>
+    body.match(new RegExp(`<tr[^>]*data-testid="table-row-${id}"[^>]*>`))?.[0] ?? '';
+
+  it('a controlled selectedIds reaches the server HTML', () => {
+    const body = bodyOf({ items: ROWS, selectionMode: 'multi', selectedIds: [2] });
+    expect(rowTag(body, 2)).toContain('aria-selected="true"');
+    expect(rowTag(body, 1)).toContain('aria-selected="false"');
+  });
+
+  it('initialSelectedIds reaches the server HTML (the seed half, unchanged)', () => {
+    const body = bodyOf({ items: ROWS, selectionMode: 'multi', initialSelectedIds: [3] });
+    expect(rowTag(body, 3)).toContain('aria-selected="true"');
+    expect(rowTag(body, 1)).toContain('aria-selected="false"');
   });
 });
 

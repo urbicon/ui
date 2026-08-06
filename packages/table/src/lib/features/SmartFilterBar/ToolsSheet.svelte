@@ -1,5 +1,6 @@
 <script lang="ts">
-  import { getTableContext, useTableI18n } from '$lib';
+  import { useTableI18n } from '$lib';
+  import { getInternalTableContext } from '$lib/stores/TableStore.svelte';
   import { findColumnById, resolveColumnLabel } from '$lib/utils';
   import { Accordion, AccordionItem, Badge, Button, Drawer } from '@urbicon-ui/blocks';
   import { SvelteSet } from 'svelte/reactivity';
@@ -59,7 +60,7 @@
 
   const tt = useTableI18n();
 
-  const tableContext = getTableContext();
+  const tableContext = getInternalTableContext();
   const { state: tableState } = tableContext;
 
   /**

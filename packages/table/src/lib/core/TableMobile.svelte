@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { getTableContext } from '$lib/stores/TableStore.svelte';
+  import { getInternalTableContext } from '$lib/stores/TableStore.svelte';
   import { useTableI18n } from '$lib/i18n';
   import MobileCard from './MobileCard.svelte';
   import { resolveColumnId } from '$lib/utils';
@@ -20,7 +20,7 @@
     onRowClick = undefined as ((item: TableItem) => void) | undefined
   } = $props();
 
-  const tableContext = getTableContext();
+  const tableContext = getInternalTableContext();
   const { state: tableState, groupedSummaryData } = tableContext;
   const filteredItems = $derived(tableContext.filteredItems);
   const paginatedItems = $derived(tableContext.paginatedItems);

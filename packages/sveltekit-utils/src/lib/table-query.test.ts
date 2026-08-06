@@ -2,7 +2,6 @@ import { describe, expect, it } from 'vitest';
 import {
   applyTableQueryToSearchParams,
   searchParamsToTableQuery,
-  searchParamsToTableViewState,
   type TableQueryParams,
   tableQueryToSearchParams
 } from './table-query';
@@ -270,97 +269,5 @@ describe('applyTableQueryToSearchParams', () => {
     expect(next.get('q')).toBe('global');
     expect(next.get('t_q')).toBe('new');
     expect(next.get('t_page')).toBeNull();
-  });
-});
-
-describe('searchParamsToTableViewState', () => {
-  /**
-   * The partial twin of `searchParamsToTableQuery`, and the difference is the
-   * whole point: the table's `query` prop reads by field **presence**, so an
-   * object that answers every axis claims every axis. Handing it the complete
-   * parser switched `persistenceConfig` and every `initial*` seed off, on any
-   * URL — including one with no parameters, where each field was a default the
-   * parser invented.
-   */
-  it('answers nothing for a URL that carries nothing', () => {
-    expect(searchParamsToTableViewState(new URLSearchParams())).toEqual({});
-    // The contrast that makes it worth having two functions.
-    expect(Object.keys(searchParamsToTableQuery(new URLSearchParams()))).toHaveLength(7);
-  });
-
-  it('answers only the axes the URL names', () => {
-    expect(searchParamsToTableViewState(new URLSearchParams('q=ada&page=3'))).toEqual({
-      searchTerm: 'ada',
-      page: 3
-    });
-  });
-
-  it('emits sort column and direction as a pair, never one alone', () => {
-    // A direction without a column is a half-controlled sort the table would
-    // have to arbitrate against storage. Unrepresentable from here.
-    expect(searchParamsToTableViewState(new URLSearchParams('dir=desc'))).toEqual({});
-    expect(searchParamsToTableViewState(new URLSearchParams('sort=amount&dir=desc'))).toEqual({
-      sortColumn: 'amount',
-      sortDirection: 'desc'
-    });
-    expect(searchParamsToTableViewState(new URLSearchParams('sort=amount'))).toEqual({
-      sortColumn: 'amount',
-      sortDirection: 'asc'
-    });
-  });
-
-  it('keeps an explicitly emptied axis, because emptying it is a choice', () => {
-    // `?sort=` is not `?sort` missing: the reader cleared the sort, and that has
-    // to outrank a stored one.
-    expect(searchParamsToTableViewState(new URLSearchParams('sort='))).toEqual({
-      sortColumn: '',
-      sortDirection: 'asc'
-    });
-    expect(searchParamsToTableViewState(new URLSearchParams('group='))).toEqual({
-      groupByKey: null
-    });
-    expect(searchParamsToTableViewState(new URLSearchParams('q='))).toEqual({ searchTerm: '' });
-  });
-
-  it('stays read-tolerant without losing the axis', () => {
-    // The key was there, so the axis is controlled — the unparsable value falls
-    // back to the default rather than dropping the field and handing the axis
-    // back to persistence.
-    expect(searchParamsToTableViewState(new URLSearchParams('page=nope'))).toEqual({ page: 1 });
-    expect(
-      searchParamsToTableViewState(new URLSearchParams('size=x'), {
-        defaults: { itemsPerPage: 25 }
-      })
-    ).toEqual({ itemsPerPage: 25 });
-  });
-
-  it('skips malformed filters individually and keeps the rest', () => {
-    const view = searchParamsToTableViewState(
-      new URLSearchParams('filter=status:equals:open&filter=broken&filter=name:nope:x')
-    );
-    expect(view.activeFilters).toEqual([{ column: 'status', operator: 'equals', value: 'open' }]);
-  });
-
-  it('honours the prefix', () => {
-    expect(
-      searchParamsToTableViewState(new URLSearchParams('q=global&t_q=scoped'), {
-        prefix: 't_'
-      })
-    ).toEqual({ searchTerm: 'scoped' });
-  });
-
-  it('round-trips a written query back to the same axes', () => {
-    // What the table emits → URL → back. Elided defaults come back as absent,
-    // which is the same statement they made going out: "no opinion".
-    const written = applyTableQueryToSearchParams(
-      new URLSearchParams(),
-      query({ searchTerm: 'ada', sortColumn: 'amount', sortDirection: 'desc', page: 2 })
-    );
-    expect(searchParamsToTableViewState(written)).toEqual({
-      searchTerm: 'ada',
-      sortColumn: 'amount',
-      sortDirection: 'desc',
-      page: 2
-    });
   });
 });

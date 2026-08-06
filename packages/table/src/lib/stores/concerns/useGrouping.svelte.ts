@@ -54,12 +54,15 @@ export function useGrouping(state: TableState, getSortedItems: () => TableItem[]
   });
 
   function setGroupByKey(key: string | null) {
-    // One gate for every path into grouping (header menu, toolbar menu, the
-    // controlled `groupByKey` prop, the `initialGroupBy` seed, persistence
-    // hydration): grouped virtualization is not implemented, and letting a key
-    // through here used to deactivate virtualization and render the *full* item
-    // set — the failure mode `virtualized` is meant to prevent. Clearing stays
-    // allowed, so a key restored before the mode was known can still be undone.
+    // One gate for every path into grouping (header menu, toolbar menu, a
+    // consumer writing `view.groupBy`): grouped virtualization is not
+    // implemented, and letting a key through here used to deactivate
+    // virtualization and render the *full* item set — the failure mode
+    // `virtualized` is meant to prevent. Clearing stays allowed, so a key
+    // restored before the mode was known can still be undone. The paths that
+    // arrive through a binding (view defaults, URL, storage) are gated in
+    // `TableProvider` instead, as a *system* discard: it cleans the URL but
+    // never lands in storage as the reader's wish.
     if (key && state.virtualized) {
       if (import.meta.env?.DEV) {
         console.warn(
@@ -72,10 +75,6 @@ export function useGrouping(state: TableState, getSortedItems: () => TableItem[]
     state.collapsedGroups = new SvelteSet();
     state.allGroupsExpanded = true;
     state.currentPage = 1;
-  }
-
-  function setGroupOrder(order: string[]) {
-    state.groupOrder = order;
   }
 
   function toggleGroup(groupName: string) {
@@ -110,7 +109,6 @@ export function useGrouping(state: TableState, getSortedItems: () => TableItem[]
       return grouped;
     },
     setGroupByKey,
-    setGroupOrder,
     toggleGroup,
     toggleAllGroups
   };

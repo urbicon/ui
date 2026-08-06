@@ -515,15 +515,29 @@ items → filteredItems → sortedItems → grouped → paginatedItems
 Each stage depends on the previous one plus the relevant state (search term, active
 filters, sort column, group key, page).
 
-**Client and server mode.** `mode: 'client' | 'server'` selects who does the work. In server
-mode the derived chain passes `state.items` through unchanged, `totalPages` comes from the
-`totalItems` prop instead of the local array length, and `onQueryChange` fires on every
-sort/filter/page/search change with the full `TableQuery`
-(`{ page, itemsPerPage, sortColumn, sortDirection, searchTerm, activeFilters, groupByKey }`).
-A managed `queryFn` path handles fetching, loading and error states for you.
+**View state (v8).** The six axes that decide *which* rows are shown — search, sort, page,
+pageSize, filters, groupBy — live in one consumer-constructed `TableView` under a single
+name scheme, resolved against its `defaults` at construction (SSR-safe, no effects). Where
+they live is decided by bindings applied to that object, not by props of the table:
+`bindViewToUrl` (in `sveltekit-utils`, needs `$app`) and `bindViewToStorage` (here,
+Kit-free). Precedence comes from phases, not from registration order: defaults → URL (at
+init, synchronously, SSR included) → storage (after hydration); at runtime only the URL
+applies, storage only writes, and an axis is stored when its last change came from the
+reader. Preferences (column visibility and order, summaries, opt-in selection) are a
+separate channel — the `prefs` prop — and never enter the URL.
+
+**Client and server mode.** The data source is one union (`source`): plain items, items you
+fetch yourself, `{ kind: 'server', items, total, … }` for the manual flow, or `{ query }`
+for the managed one. The tag is mandatory because server mode hands sorting and filtering to
+the server; the invalid combinations of the old `mode`/`queryFn`/`loading` props are not
+expressible. In server mode the derived chain passes `state.items` through unchanged and
+`totalPages` comes from the source's `total`. The managed path fetches, aborts superseded
+requests and owns loading/error; `observeView(view, cb)` is the observer channel for
+consumers who want view changes without a URL.
 
 Scroll models (page-relative sticky pinning vs. contained scroll):
-[STICKY-PINNING.md](STICKY-PINNING.md).
+[STICKY-PINNING.md](STICKY-PINNING.md). Upgrading from v7:
+[MIGRATION-V8.md](MIGRATION-V8.md).
 
 ### `auth`
 

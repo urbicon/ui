@@ -86,7 +86,7 @@
   import { I18nProvider } from '@urbicon-ui/i18n';
   import { MediaQuery } from 'svelte/reactivity';
   import { useUrlParam } from '@urbicon-ui/sveltekit-utils/url.svelte';
-  import { Table } from '@urbicon-ui/table';
+  import { createTableView, Table } from '@urbicon-ui/table';
   import type { Component } from 'svelte';
   import type { PageData } from './$types';
   // Nur für `.room-accent` (primary-Familie aus --room-accent/--room-accent-fg
@@ -743,6 +743,25 @@
 
   let query = $state('');
 
+  // Das Inventar hat sein eigenes View: Die Suche steht in einem `Input`
+  // daneben, also schreibt sie von außen auf die Achse. Sortierung und
+  // Seitengröße sind Startwerte dieses Views, keine zweite Prop-Ebene.
+  //
+  // Der einmalige Zugriff auf `data` ist Absicht: `+page.server.ts` liest weder
+  // `url` noch `params`, es gibt kein `depends`/`invalidate` und die Route ist
+  // prerendert — die Zeilenzahl ist eine Build-Konstante, nichts, was
+  // `view.pageSize` später nachziehen müsste.
+  // svelte-ignore state_referenced_locally
+  const inventoryView = createTableView({
+    defaults: { pageSize: data.rows.length, sort: { column: 'name', direction: 'asc' } }
+  });
+
+  // Ein direkter Feldschreiber setzt die Seite nicht zurück (nur die Handler der
+  // Tabelle tun das). Folgenlos hier: Es gibt genau eine Seite.
+  $effect(() => {
+    inventoryView.search = query;
+  });
+
   // Auswahl in der URL — teilbar wie im Hero, aber ERSETZEND. Ein Eintrag pro
   // Klick klingt nach "überlebt den Zurück-Knopf" und ist das Gegenteil: nach
   // einem Durchlauf durch die Liste standen 50 Einträge in der History (Chromes
@@ -1171,7 +1190,7 @@
                           formatter: (value) => `$${value}`
                         }
                       ]}
-                      initialGroupBy="house"
+                      viewDefaults={{ groupBy: 'house' }}
                       variant="flush"
                       size="sm"
                       ariaLabel="Today's bookings across the four houses of Bleecker & Bond"
@@ -1265,16 +1284,14 @@
         <div class="inventory">
           <Table
             items={data.rows}
-            searchTerm={query}
+            view={inventoryView}
             enableSmartFilter={false}
             variant="flush"
             size="sm"
             sticky="header"
             ariaLabel="Every component in the set"
-            itemsPerPage={data.rows.length}
             onRowClick={(row) => setSelectedSlug((row as HeroRow).slug)}
             activeRowId={selected.id}
-            initialSort={{ column: 'name', direction: 'asc' }}
             slotClasses={{
               headerCell: '!py-2 !text-[0.6875rem] !font-medium !uppercase !tracking-[0.14em]',
               row: '!border-b-0',

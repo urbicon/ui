@@ -171,7 +171,9 @@ const NO_PAGE: Record<string, string> = {
   '/blocks/components/guide-provider':
     'guide surface — props AND types documented on the family page /blocks/components/guide',
   '/blocks/components/guide-ref':
-    'guide surface — props AND types documented on the family page /blocks/components/guide'
+    'guide surface — props AND types documented on the family page /blocks/components/guide',
+  '/docs/components/inline-code':
+    'embedded rendering detail of CodeExample/ApiReference (backtick spans in generated descriptions become <code>) — covered on /docs/components/code-example, same aliasing as its PAGELESS entry in registry-lint'
 };
 
 /**

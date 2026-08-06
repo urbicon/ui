@@ -162,7 +162,7 @@ What you need first: [ARCHITECTURE.md](docs/ARCHITECTURE.md) §1 package map & b
 
 - **Language**: reference/API docs in English; internal strategy & analysis docs stay German working documents.
 - **Public or internal**: reference content a consumer developer needs is public (package README, the shipped docs, the site, llms-full.txt). Planning, review bookkeeping and strategy stay under `docs/internal/` (git-ignored, unpublished). When knowledge must exist on both sides, **the public file is the canon** and the internal one links to it — never the other way around.
-- **Five docs ship inside npm tarballs** — `VARIANT-CONTRACT`, `STICKY-PINNING`, `A2UI`, `GUIDE` and `AUTH` are symlinks into `packages/*/docs/`, so they are public consumer documentation. No internal review IDs, wave or session names, priority markers (P1/P2, cluster letters) or `docs/internal/` references in them.
+- **Six docs ship inside npm tarballs** — `VARIANT-CONTRACT`, `STICKY-PINNING`, `MIGRATION-V8`, `A2UI`, `GUIDE` and `AUTH` are symlinks into `packages/*/docs/`, so they are public consumer documentation. No internal review IDs, wave or session names, priority markers (P1/P2, cluster letters) or `docs/internal/` references in them.
 
 ## Project tracking
 

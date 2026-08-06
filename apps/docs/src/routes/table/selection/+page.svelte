@@ -97,7 +97,7 @@ ${scriptClose}
           selectionMode="multi"
           onSelectionChange={(items) => (multiSelected = items)}
           enableSmartFilter={false}
-          itemsPerPage={4}
+          viewDefaults={{ pageSize: 4 }}
         />
         <p class="text-text-secondary text-sm">{multiSelected.length} selected</p>
       </div>
@@ -125,7 +125,7 @@ ${scriptClose}
         columns={basicColumns}
         selectionMode="single"
         enableSmartFilter={false}
-        itemsPerPage={4}
+        viewDefaults={{ pageSize: 4 }}
       />
     </CodeExample>
   </Section>
@@ -135,7 +135,7 @@ ${scriptClose}
       The table owns the selection until you pass
       <code class="text-text-primary">selectedIds</code> — then your code does. Take it over when
       the set has a life outside the table: preselected from the URL, cleared after a bulk action,
-      shared with another view. For only a starting value,
+      shared with another view. If all you need is a starting value,
       <code class="text-text-primary">initialSelectedIds</code> seeds the table-owned selection once;
       later changes to the prop are ignored.
     </p>
@@ -146,8 +146,7 @@ ${scriptClose}
       maps them to ids. An empty array is a valid value — nothing selected;
       <code class="text-text-primary">undefined</code> hands the selection back to the table. A
       controlled selection is never written to storage —
-      <code class="text-text-primary">persistenceConfig.persistSelection</code> restores only a table-owned
-      one.
+      <code class="text-text-primary">prefs.persistSelection</code> restores only a table-owned one.
     </p>
 
     <CodeExample
@@ -172,7 +171,7 @@ ${scriptClose}
           selectedIds={controlledIds}
           onSelectionChange={(items) => (controlledIds = items.map((item) => item.id))}
           enableSmartFilter={false}
-          itemsPerPage={6}
+          viewDefaults={{ pageSize: 6 }}
         />
       </div>
     </CodeExample>
