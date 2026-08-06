@@ -233,9 +233,12 @@ export function createPersistentState<T>(config: PersistentStateConfig<T>) {
 }
 
 /**
- * Specialized hook for filter persistence
+ * Storage addressing for a persistent preference channel: the id that scopes
+ * the storage key, which web storage backs it, and how long writes debounce.
+ * The shape the table's prefs factories (summaries, hidden columns, column
+ * order, selection) take — nothing filter-specific about it.
  */
-export interface FilterPersistenceConfig {
+export interface PersistenceKeyConfig {
   tableId: string;
   storage?: 'localStorage' | 'sessionStorage';
   debounceMs?: number;

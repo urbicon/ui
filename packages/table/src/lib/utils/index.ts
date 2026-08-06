@@ -1,4 +1,4 @@
-import { createPersistentState, type FilterPersistenceConfig } from '@urbicon-ui/blocks';
+import { createPersistentState, type PersistenceKeyConfig } from '@urbicon-ui/blocks';
 import type { SummaryConfig } from '$lib/stores/TableStore.svelte';
 import type { Column, TableItem } from '$lib/types/tableTypes';
 
@@ -353,7 +353,7 @@ export function splitSearchSegments(text: string, searchTerm: string): TextSegme
 // listed as such in docs/MIGRATION-V8.md. What stays here is the prefs channel:
 // summaries, hidden columns, column order, selection — same keys as v7, so a
 // reader's preferences survive the upgrade.
-export function createPersistentSummaryConfigs(config: FilterPersistenceConfig) {
+export function createPersistentSummaryConfigs(config: PersistenceKeyConfig) {
   return createPersistentState({
     key: `table_summary_configs_${config.tableId}`,
     defaultValue: [] as SummaryConfig[],
@@ -362,7 +362,7 @@ export function createPersistentSummaryConfigs(config: FilterPersistenceConfig) 
   });
 }
 
-export function createPersistentHiddenColumns(config: FilterPersistenceConfig) {
+export function createPersistentHiddenColumns(config: PersistenceKeyConfig) {
   return createPersistentState({
     key: `table_hidden_columns_${config.tableId}`,
     defaultValue: [] as string[],
@@ -371,7 +371,7 @@ export function createPersistentHiddenColumns(config: FilterPersistenceConfig) {
   });
 }
 
-export function createPersistentColumnOrder(config: FilterPersistenceConfig) {
+export function createPersistentColumnOrder(config: PersistenceKeyConfig) {
   return createPersistentState({
     key: `table_column_order_${config.tableId}`,
     defaultValue: [] as string[],
@@ -380,7 +380,7 @@ export function createPersistentColumnOrder(config: FilterPersistenceConfig) {
   });
 }
 
-export function createPersistentSelection(config: FilterPersistenceConfig) {
+export function createPersistentSelection(config: PersistenceKeyConfig) {
   return createPersistentState({
     // Row ids may be strings or numbers; JSON round-trips both faithfully.
     key: `table_selection_${config.tableId}`,
