@@ -113,6 +113,72 @@ describe('echo suppression at the write surface', () => {
   });
 });
 
+describe('writing an axis from an effect does not subscribe that effect to it', () => {
+  /**
+   * The documented way to drive an axis from outside is a one-liner:
+   * `$effect(() => { view.search = query })`. It only works because the write
+   * surface reads the current value *untracked* — otherwise the echo guard's
+   * own read subscribes the effect to the axis it writes, and every
+   * table-side edit is overwritten with the stale outer value on the next
+   * flush. Sabotage control: drop the `untrack` in `TableView.#write` and both
+   * assertions below fail (the run counter climbs, the term snaps back).
+   */
+  it('an outside-driven search survives a table-side edit', () => {
+    let outer = $state('');
+    let runs = 0;
+    const cleanup = $effect.root(() => {
+      const view = createTableView();
+      $effect(() => {
+        view.search = outer;
+        runs += 1;
+      });
+      flushSync();
+      expect(runs).toBe(1);
+
+      // The table's own search bar writes the axis the effect also writes.
+      view.search = 'design';
+      flushSync();
+
+      expect(runs).toBe(1); // the effect did not re-run…
+      expect(view.search).toBe('design'); // …so it did not restore ''
+    });
+    cleanup();
+  });
+
+  it('the effect still re-runs when its own source changes', () => {
+    let outer = $state('');
+    const cleanup = $effect.root(() => {
+      const view = createTableView();
+      $effect(() => {
+        view.search = outer;
+      });
+      flushSync();
+
+      outer = 'platform';
+      flushSync();
+      expect(view.search).toBe('platform');
+    });
+    cleanup();
+  });
+
+  it('a page reset written alongside does not block paging', () => {
+    let outer = $state('');
+    const cleanup = $effect.root(() => {
+      const view = createTableView();
+      $effect(() => {
+        view.search = outer;
+        view.page = 1;
+      });
+      flushSync();
+
+      view.page = 2; // the pager
+      flushSync();
+      expect(view.page).toBe(2); // not snapped back to 1
+    });
+    cleanup();
+  });
+});
+
 describe('per-axis (revision, origin) bookkeeping — candidate 1', () => {
   it('a user edit and an external apply on DIFFERENT axes coalesce into one flush without mixing origins', () => {
     // Observer with view dependencies — proves the "one run for both writes"

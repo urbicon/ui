@@ -9,7 +9,7 @@
  * bindings and system gates go through {@link TableView.applyExternal} so the
  * storage binding can tell a reader's change from an applied one.
  */
-import { hasContext } from 'svelte';
+import { hasContext, untrack } from 'svelte';
 import type { Filter } from '$lib/types/tableTypes';
 
 /**
@@ -253,7 +253,18 @@ export class TableView {
   }
 
   #write(axis: ViewAxis, value: unknown, origin: ViewOrigin): void {
-    const current = this.#read(axis);
+    // `untrack` around the read is what makes writing an axis from inside an
+    // `$effect` safe. Without it the echo guard's own read subscribes the
+    // effect to the axis it writes, so the obvious way to drive the search
+    // from outside —
+    //   $effect(() => { view.search = query });
+    // — re-ran on every table-side edit and overwrote it with the stale outer
+    // value (measured: typing in the table's own search bar snapped back;
+    // `view.page = 1` in the same effect made paging impossible). Untracking
+    // it here removes the failure instead of documenting a rule about it: a
+    // write is a write, and only the values the consumer actually reads
+    // decide when their effect runs.
+    const current = untrack(() => this.#read(axis));
     // The echo guard: a structurally identical write is a no-op — it neither
     // touches the signal nor the origin bookkeeping, so an echo arriving in
     // the same flush as a user edit cannot re-label the user's change.
