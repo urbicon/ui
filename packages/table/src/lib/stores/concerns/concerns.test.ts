@@ -1,6 +1,5 @@
 import { afterAll, beforeAll, describe, expect, it, vi } from 'vitest';
 import type { Column, Filter, TableItem } from '$lib/types/tableTypes';
-import { createTableView } from '$lib/view/view.svelte';
 import type { SummaryConfig } from '../TableStore.svelte';
 import type { TableState } from './types';
 import { useColumnOrder } from './useColumnOrder.svelte.js';
@@ -18,9 +17,8 @@ import { useSelection } from './useSelection.svelte.js';
 import { useSorting } from './useSorting.svelte.js';
 import { useSummary } from './useSummary.svelte.js';
 
-// `useRemoteData` takes the view object since v8; constructing one in node
-// outside a component warns (module-scope views on the server are
-// cross-request state). Correct in production, noise here.
+// Some concerns DEV-warn on legitimate test input (e.g. a groupBy write on a
+// virtualized state). Correct in production, noise here.
 beforeAll(() => {
   vi.spyOn(console, 'warn').mockImplementation(() => {});
 });
@@ -40,7 +38,6 @@ describe('useSearch', () => {
   it('contract: setSearchTerm updates term and resets page', () => {
     const state = {
       searchTerm: '',
-      showAdvancedSearch: false,
       currentPage: 5
     } as unknown as TableState;
 
@@ -49,20 +46,6 @@ describe('useSearch', () => {
 
     expect(state.searchTerm).toBe('hello');
     expect(state.currentPage).toBe(1);
-  });
-
-  it('contract: toggleAdvancedSearch flips state', () => {
-    const state = {
-      searchTerm: '',
-      showAdvancedSearch: false,
-      currentPage: 1
-    } as unknown as TableState;
-
-    const search = useSearch(state);
-    search.toggleAdvancedSearch();
-    expect(state.showAdvancedSearch).toBe(true);
-    search.toggleAdvancedSearch();
-    expect(state.showAdvancedSearch).toBe(false);
   });
 });
 
@@ -728,9 +711,9 @@ describe('useFocusManagement', () => {
 });
 
 describe('useRemoteData', () => {
-  // Since v8 the query is a projection of the VIEW object, not a
-  // hand-assembled copy of six loose state fields — the state argument only
-  // receives the lifecycle setters' writes.
+  // Since the v8 context cut the concern is only the managed fetch's SINK —
+  // the query projection lives in `viewToQuery` (tested with `observeView`),
+  // where `createManagedFetch` reads it too.
   function makeServerState() {
     return {
       items: [],
@@ -741,63 +724,10 @@ describe('useRemoteData', () => {
     } as unknown as TableState;
   }
 
-  const makeView = () =>
-    createTableView({ defaults: { sort: { column: 'name', direction: 'asc' } } });
-
-  it('contract: query derives from the view', () => {
-    const remote = useRemoteData(makeServerState(), makeView());
-
-    const q = remote.query;
-    expect(q.page).toBe(1);
-    expect(q.itemsPerPage).toBe(10);
-    expect(q.sortColumn).toBe('name');
-    expect(q.sortDirection).toBe('asc');
-    expect(q.searchTerm).toBe('');
-    expect(q.activeFilters).toEqual([]);
-    expect(q.groupByKey).toBeNull();
-  });
-
-  it('contract: query follows the view', () => {
-    const view = makeView();
-    const remote = useRemoteData(makeServerState(), view);
-    expect(remote.query.page).toBe(1);
-
-    view.page = 3;
-    view.search = 'ada';
-    expect(remote.query.page).toBe(3);
-    expect(remote.query.searchTerm).toBe('ada');
-  });
-
-  it('contract: activeFilters in the query are a copy, not the live view array', () => {
-    // The query object leaves the table (queryFn, observers). v7 guaranteed
-    // a defensive copy; the v8 projection must too — a consumer mutating the
-    // query must not mutate the view's filter state through the reference.
-    const view = createTableView();
-    view.filters = [{ column: 'name', operator: 'contains', value: 'ad' }];
-    const remote = useRemoteData(makeServerState(), view);
-
-    const q = remote.query;
-    expect(q.activeFilters).toEqual(view.filters);
-    expect(q.activeFilters).not.toBe(view.filters);
-    q.activeFilters.push({ column: 'x', operator: 'equals', value: 'y' });
-    expect(view.filters).toHaveLength(1);
-  });
-
-  it('contract: an unsorted view projects the empty-column/asc pair', () => {
-    // `TableQuery` keeps the v7 wire shape (`sortColumn: ''` for unsorted) so
-    // consumers' queryFn implementations keep working; `sort: null` has to
-    // normalize into it.
-    const view = createTableView();
-    const remote = useRemoteData(makeServerState(), view);
-
-    expect(remote.query.sortColumn).toBe('');
-    expect(remote.query.sortDirection).toBe('asc');
-  });
-
   it('contract: setServerResult updates items and totalItems', () => {
     const state = makeServerState();
     state.loading = true;
-    const remote = useRemoteData(state, makeView());
+    const remote = useRemoteData(state);
 
     remote.setServerResult({
       items: [
@@ -816,7 +746,7 @@ describe('useRemoteData', () => {
   it('contract: setServerError sets error and clears loading', () => {
     const state = makeServerState();
     state.loading = true;
-    const remote = useRemoteData(state, makeView());
+    const remote = useRemoteData(state);
 
     remote.setServerError('Network error');
 
@@ -826,24 +756,11 @@ describe('useRemoteData', () => {
 
   it('contract: setServerLoading sets loading state', () => {
     const state = makeServerState();
-    const remote = useRemoteData(state, makeView());
+    const remote = useRemoteData(state);
 
     remote.setServerLoading();
     expect(state.loading).toBe(true);
   });
-
-  it('contract: queryKey is a JSON string for change detection', () => {
-    const remote = useRemoteData(makeServerState(), makeView());
-
-    const key = remote.queryKey;
-    expect(typeof key).toBe('string');
-    const parsed = JSON.parse(key);
-    expect(parsed.page).toBe(1);
-    expect(parsed.sortColumn).toBe('name');
-  });
-
-  // The v7 guarantee "activeFilters in query are a copy" survives: the
-  // projection copies in `viewToQuery`, and the copy test above pins it.
 });
 
 describe('server mode: concern passthrough', () => {

@@ -1,6 +1,7 @@
 // @vitest-environment jsdom
 import { flushSync, mount, unmount } from 'svelte';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import type { InternalTableContext } from '../stores/TableStore.svelte';
 import TableHarness from './__fixtures__/TableHarness.svelte';
 import type { TableContext } from './table/index';
 
@@ -162,11 +163,12 @@ describe('TableProvider — enableColumnVisibility={false}', () => {
       JSON.stringify(['amount'])
     );
 
-    let ctx: TableContext | undefined;
+    // Wide: `hiddenColumnKeys` is column-visibility plumbing, in-tree surface.
+    let ctx: InternalTableContext | undefined;
     const el = mountTable({
       prefs: { storage: 'prefs' },
       enableColumnVisibility: false,
-      onReady: (c: TableContext) => (ctx = c)
+      onReady: (c: TableContext) => (ctx = c as InternalTableContext)
     });
 
     const headers = [...el.querySelectorAll('th')].map((h) => h.textContent ?? '');

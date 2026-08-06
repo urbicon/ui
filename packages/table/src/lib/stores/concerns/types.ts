@@ -12,7 +12,6 @@ export interface TableState {
 
   searchTerm: string;
   activeFilters: Filter[];
-  showAdvancedSearch: boolean;
 
   currentPage: number;
   itemsPerPage: number;

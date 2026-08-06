@@ -1,5 +1,6 @@
 import { afterAll, beforeAll, describe, expect, it, vi } from 'vitest';
 import type { Column, Filter } from '$lib/types/tableTypes';
+import { viewToQuery } from '$lib/view/observe.svelte';
 import { createTableView, type TableViewDefaults } from '$lib/view/view.svelte';
 import { createTableState, type SummaryConfig } from './TableStore.svelte.js';
 
@@ -53,11 +54,13 @@ describe('view defaults: sort', () => {
     expect(ts.state.sortColumn).toBe('age');
     expect(ts.state.sortDirection).toBe('desc');
 
-    // `query` is the view projected into the `TableQuery` shape — what the
-    // managed fetch and `observeView` consumers see. The first emission must
-    // CONTAIN the seeded sort instead of wiping it.
-    expect(ts.query.sortColumn).toBe('age');
-    expect(ts.query.sortDirection).toBe('desc');
+    // The view projected into the `TableQuery` shape — what the managed
+    // fetch and `observeView` consumers see (the context's `query` getter
+    // left with the v8 cut; this is the same projection they use). The first
+    // emission must CONTAIN the seeded sort instead of wiping it.
+    const query = viewToQuery(ts.view.snapshot());
+    expect(query.sortColumn).toBe('age');
+    expect(query.sortDirection).toBe('desc');
   });
 
   it('sorts client-mode items by the seeded sort', () => {
@@ -74,7 +77,7 @@ describe('view defaults: sort', () => {
     // handleSort on the seeded column at `desc` cycles to "no sort".
     ts.handleSort('age');
     expect(ts.state.sortColumn).toBe('');
-    expect(ts.query.sortColumn).toBe('');
+    expect(viewToQuery(ts.view.snapshot()).sortColumn).toBe('');
     expect(ts.view.sort).toBeNull();
 
     // Re-sorting by another column works normally; the seed never re-asserts.
@@ -98,7 +101,7 @@ describe('view defaults: filters', () => {
     const ts = seeded({ filters: seedFilters });
 
     expect(ts.state.activeFilters).toEqual(seedFilters);
-    expect(ts.query.activeFilters).toEqual(seedFilters);
+    expect(viewToQuery(ts.view.snapshot()).activeFilters).toEqual(seedFilters);
   });
 
   it('does not alias the consumer array', () => {
@@ -122,7 +125,7 @@ describe('view defaults: filters', () => {
 
     ts.clearAllFilters();
     expect(ts.state.activeFilters).toEqual([]);
-    expect(ts.query.activeFilters).toEqual([]);
+    expect(viewToQuery(ts.view.snapshot()).activeFilters).toEqual([]);
   });
 });
 
@@ -157,7 +160,7 @@ describe('view defaults: search', () => {
     ts.setItems(items);
 
     expect(ts.state.searchTerm).toBe('ali');
-    expect(ts.query.searchTerm).toBe('ali');
+    expect(viewToQuery(ts.view.snapshot()).searchTerm).toBe('ali');
     expect(ts.filteredItems.map((i) => i.id)).toEqual([1]);
   });
 

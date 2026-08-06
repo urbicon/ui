@@ -1,34 +1,19 @@
-import type { TableItem, TableQuery } from '$lib/types/tableTypes';
-import { viewToQuery } from '$lib/view/observe.svelte';
-import type { TableView } from '$lib/view/view.svelte';
+import type { TableItem } from '$lib/types/tableTypes';
 import type { TableState } from './types';
 
 /**
- * Remote data concern: derives the current query state for server-side
- * fetching — since v8 a projection of the view object, not a hand-assembled
- * copy of six loose state fields.
+ * Remote data concern: the sink of the managed server fetch.
  *
- * This concern does NOT fetch data itself (keeping the store synchronous).
- * The managed fetch lifecycle lives in `createManagedFetch`
- * (`$lib/view/observe.svelte`), driven by `TableProvider`; the setters here
- * are its sink.
+ * This concern does NOT fetch data itself (keeping the store synchronous),
+ * and since v8 it does not project the query either — the managed fetch
+ * lifecycle lives in `createManagedFetch` (`$lib/view/observe.svelte`),
+ * driven by `TableProvider`, which derives its query via
+ * `viewToQuery(view.snapshot())` itself. The setters here are where its
+ * results land.
  *
  * @param state - Shared table state (the setters write into it).
- * @param view - The view object the query is projected from.
  */
-export function useRemoteData(state: TableState, view: TableView) {
-  /**
-   * Current query derived from the view.
-   * Changes reactively when any filter/sort/page/search axis changes.
-   */
-  const query = $derived.by((): TableQuery => viewToQuery(view.snapshot()));
-
-  /**
-   * Serialized query string for change detection.
-   * Allows `$effect` to trigger only when the query actually changes.
-   */
-  const queryKey = $derived(JSON.stringify(query));
-
+export function useRemoteData(state: TableState) {
   /**
    * Apply server result to the table state.
    * Called by the managed fetch when `source.query` resolves.
@@ -52,12 +37,6 @@ export function useRemoteData(state: TableState, view: TableView) {
   }
 
   return {
-    get query() {
-      return query;
-    },
-    get queryKey() {
-      return queryKey;
-    },
     setServerResult,
     setServerError,
     setServerLoading

@@ -4,7 +4,7 @@
     Checkbox,
     ChevronDownIcon as ChevronDownIconDefault
   } from '@urbicon-ui/blocks';
-  import { getCellLocale, getTableContext } from '$lib/stores/TableStore.svelte.js';
+  import { getCellLocale, getInternalTableContext } from '$lib/stores/TableStore.svelte.js';
   import { useTableI18n } from '$lib/i18n';
 
   // See TableCell: the default `Date` branch must not reach `Intl` with
@@ -45,7 +45,7 @@
   }: MobileCardProps = $props();
 
   const tt = useTableI18n();
-  const tableContext = getTableContext();
+  const tableContext = getInternalTableContext();
   const {
     state: tableState,
     toggleExpand,

@@ -1,7 +1,7 @@
 import type { TableState } from './types';
 
 /**
- * Search concern: manages search term and advanced search toggle.
+ * Search concern: manages the search term (the page-1-reset side effect).
  */
 export function useSearch(state: TableState) {
   function setSearchTerm(term: string) {
@@ -17,12 +17,7 @@ export function useSearch(state: TableState) {
     state.currentPage = 1;
   }
 
-  function toggleAdvancedSearch() {
-    state.showAdvancedSearch = !state.showAdvancedSearch;
-  }
-
   return {
-    setSearchTerm,
-    toggleAdvancedSearch
+    setSearchTerm
   };
 }

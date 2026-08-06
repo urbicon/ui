@@ -77,10 +77,6 @@ export function useGrouping(state: TableState, getSortedItems: () => TableItem[]
     state.currentPage = 1;
   }
 
-  function setGroupOrder(order: string[]) {
-    state.groupOrder = order;
-  }
-
   function toggleGroup(groupName: string) {
     const newGroups = new SvelteSet(state.collapsedGroups);
 
@@ -113,7 +109,6 @@ export function useGrouping(state: TableState, getSortedItems: () => TableItem[]
       return grouped;
     },
     setGroupByKey,
-    setGroupOrder,
     toggleGroup,
     toggleAllGroups
   };

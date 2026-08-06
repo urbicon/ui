@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { getTableContext } from '$lib/stores/TableStore.svelte';
+  import { getInternalTableContext } from '$lib/stores/TableStore.svelte';
   import { useTableI18n } from '$lib/i18n';
   import EmptyState from './EmptyState.svelte';
   import ErrorState from './ErrorState.svelte';
@@ -50,7 +50,7 @@
     enableColumnReorder = false
   } = $props();
 
-  const tableContext = getTableContext();
+  const tableContext = getInternalTableContext();
   const { state: tableState } = tableContext;
   const filteredItems = $derived(tableContext.filteredItems);
   const paginatedItems = $derived(tableContext.paginatedItems);

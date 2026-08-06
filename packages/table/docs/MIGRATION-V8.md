@@ -154,6 +154,52 @@ export const load = async ({ url }) => ({
 wire vocabulary (`itemsPerPage`, `sortColumn`/`sortDirection`, `groupByKey`) — but it has no
 field for a default filter set, which is why the view-vocabulary function exists.
 
+### The context surface (`onReady` / `getTableContext`)
+
+`TableContext` is a hand-written interface now, and it is the whole contract. In v7 the
+type was an alias for everything the internal store returned, so the store's wiring —
+`setColumns`, `initColumnOrder`, `resetFocus`, `setServerResult`, `clearAllPersistentData`
+and some sixty other members — was formally public API and every internal restructuring a
+breaking change. v8 keeps the parts that were meant for consumers:
+
+- **`state`** (the reactive read surface) and **`view`** (the six shareable axes),
+- the **derived collections** — `filteredItems`, `sortedItems`, `paginatedItems`,
+  `totalItems`, `totalPages`, `effectivePage`, `selectedItems`, `allSelected`,
+  `someSelected`,
+- the **action families** — search (`setSearchTerm`), filters (`addFilter`,
+  `removeFilter`, `removeFiltersByColumn`, `clearAllFilters`, `hasFilterForColumn`),
+  sort (`handleSort`, `setSort`), pagination (`goToPage`, `setItemsPerPage`), grouping
+  (`setGroupByKey`), selection (`selectItem` … `setSelectedIds`, `isSelected`) and
+  summaries (`addSummaryConfig`, `removeSummaryConfig`, `toggleSummary`,
+  `setSummaryConfigs`),
+- the **live-update family** — `pushInsert`/`pushUpdate`/`pushDelete`, the apply/dismiss
+  methods, `liveUpdateCounts`, `hasPendingUpdates`, `isRecentlyUpdated`, `isPendingDelete`.
+
+What no longer appears on the type, and where its job went:
+
+| v7 context member | v8 |
+| --- | --- |
+| `setItems` / `setLoading` / `setError` | the `source` union: `source={{ items, loading, error }}` |
+| `setServerResult` / `setServerError` / `setServerLoading` | a `kind: 'server'` source, or the managed `{ query }` source |
+| `query` / `queryKey` | `viewToQuery(view.snapshot())`, or `observeView(view, cb)` |
+| `setColumns` | the `columns` prop |
+| `hideColumn` / `showColumn` / `toggleColumnVisibility` / `showAllColumns` / `allColumns` / `hiddenColumnKeys` | the built-in visibility UI (`enableColumnVisibility`), initial state via `prefs.defaults.hiddenColumns` |
+| `reorderColumn` / `resetColumnOrder` / `orderedColumns` / `columnOrder` / `getColumnIndex` / `initColumnOrder` | `enableColumnReorder` (drag + keyboard), initial order via `prefs.defaults.columnOrder` |
+| `focusedRowIndex` / `resetFocus` / `setFocusedRow` / `moveFocus` / `isFocusedRow` | keyboard navigation is built in |
+| `toggleExpand` / `isItemExpanded` | the built-in expansion chevron (`expandedRowContent`) |
+| `toggleGroup` / `toggleGroupExpand` / `toggleAllGroups` | the built-in group headers |
+| `setPage` | `goToPage(page)` (range-checked), or write `view.page` |
+| `setGroupOrder` | the `groupOrder` prop |
+| `toggleAdvancedSearch` | gone — nothing read it since the tools sheet replaced the advanced-search panel |
+| `getNestedValue` / `resolveColumnId` / `resolveColumnValue` / `resolveValueById` / `findColumnById` | the standalone package exports of the same names |
+| `applyPersistedState` / `clearPersisted*` / `forceSavePersistentData` | preference persistence is the table's own lifecycle; to reset a table's preferences, remove its `urbicon_table_*_<key>_v1` storage entries |
+| `setTableContext()` | gone — `<Table>` (via its `TableProvider`) is what establishes the context |
+
+The object behind the interface is unchanged and alive — nothing about *when* you get it
+(`onReady` once, `getTableContext()` inside the tree) moved. If a member you relied on is
+missing from the narrow surface, that is a conversation worth having rather than a cast:
+widening the interface later is additive, the cast freezes an internal.
+
 ## The one rule that replaces the precedence sections
 
 > One view object, fully resolved against its `defaults`. Bindings declare their axes

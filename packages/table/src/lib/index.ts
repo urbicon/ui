@@ -27,6 +27,8 @@ export { default as FilterMenu } from './features/SmartFilterBar/FilterMenu.svel
 export { default as SmartFilterBar } from './features/SmartFilterBar/SmartFilterBar.svelte';
 export { default as SummaryRow } from './features/SummaryRow.svelte';
 export * from './i18n';
+// The pending-buffer counts on `TableContext.liveUpdateCounts`.
+export type { LiveUpdateCounts } from './stores/concerns/useLiveUpdates.svelte.js';
 // === STORES ===
 export * from './stores/index.js';
 // === STYLES ===

@@ -4,6 +4,7 @@ import { flushSync, mount, unmount } from 'svelte';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import { observeView } from '$lib/view/observe.svelte';
 import { createTableView, type TableViewSnapshot } from '$lib/view/view.svelte';
+import type { InternalTableContext } from '../stores/TableStore.svelte';
 import TableHarness from './__fixtures__/TableHarness.svelte';
 import type { TableContext } from './table/index';
 
@@ -206,8 +207,10 @@ describe('Table — the view object, mounted', () => {
     // grouping survived — and one that happens to match collapses a group
     // nobody collapsed. The provider watches the value for that reason.
     const view = createTableView({ defaults: { groupBy: 'name' } });
-    let ctx: TableContext | undefined;
-    mountTable({ view, onReady: (c: TableContext) => (ctx = c) });
+    // The group-collapse toggle is in-tree surface (the group header's own
+    // control), so this test reads the context the way the tree does — wide.
+    let ctx: InternalTableContext | undefined;
+    mountTable({ view, onReady: (c: TableContext) => (ctx = c as InternalTableContext) });
 
     ctx?.toggleGroup('Ada');
     flushSync();

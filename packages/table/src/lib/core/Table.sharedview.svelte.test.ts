@@ -2,6 +2,7 @@
 import { flushSync, mount, unmount } from 'svelte';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { createTableView } from '$lib/view/view.svelte';
+import type { InternalTableContext } from '../stores/TableStore.svelte';
 import TableHarness from './__fixtures__/TableHarness.svelte';
 import type { TableContext } from './table/index';
 
@@ -40,7 +41,8 @@ const ROWS = [
 interface Mounted {
   target: HTMLElement;
   comp: Record<string, unknown>;
-  ctx: TableContext;
+  // Wide on purpose: these tests drive in-tree members (setPage) too.
+  ctx: InternalTableContext;
   rows: () => string[];
 }
 
@@ -50,10 +52,14 @@ let mounted: Mounted[] = [];
 function mountTable(props: Record<string, unknown>): Mounted {
   const target = document.createElement('div');
   document.body.appendChild(target);
-  let ctx: TableContext | undefined;
+  let ctx: InternalTableContext | undefined;
   const comp = mount(TableHarness, {
     target,
-    props: { items: ROWS, onReady: (c: TableContext) => (ctx = c), ...props }
+    props: {
+      items: ROWS,
+      onReady: (c: TableContext) => (ctx = c as InternalTableContext),
+      ...props
+    }
   }) as Record<string, unknown>;
   flushSync();
   if (!ctx) throw new Error('onReady never fired');

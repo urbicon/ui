@@ -1,5 +1,6 @@
 <script lang="ts">
-  import { getTableContext, useTableI18n } from '$lib';
+  import { useTableI18n } from '$lib';
+  import { getInternalTableContext } from '$lib/stores/TableStore.svelte';
   import { smartFilterBarTriggerVariants } from '$lib/variants';
   import { Badge, Select, resolveIcon, EyeIcon as EyeIconDefault } from '@urbicon-ui/blocks';
   import MenuTrigger from './MenuTrigger.svelte';
@@ -14,7 +15,7 @@
 
   const EyeIcon = resolveIcon('eye', EyeIconDefault);
 
-  const tableContext = getTableContext();
+  const tableContext = getInternalTableContext();
   const { toggleColumnVisibility } = tableContext;
 
   let menuOpen = $state(false);

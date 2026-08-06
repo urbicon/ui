@@ -2,14 +2,8 @@ import { createOptionalContext } from '@urbicon-ui/blocks';
 import { BASE_LOCALE } from '@urbicon-ui/i18n';
 import { SvelteSet } from 'svelte/reactivity';
 import type { Column, Filter, TableItem } from '$lib';
-import {
-  findColumnById,
-  getNestedValue,
-  normalizeItems,
-  resolveColumnId,
-  resolveColumnValue,
-  resolveValueById
-} from '$lib/utils';
+import type { TableContext } from '$lib/core/table/index.js';
+import { normalizeItems } from '$lib/utils';
 import { resolveSource, type TableSource } from '$lib/view/source';
 import { createTableView, type TableView } from '$lib/view/view.svelte';
 import type { TableState } from './concerns/types.js';
@@ -266,7 +260,6 @@ export function createTableState(
     set activeFilters(next: Filter[]) {
       tableView.filters = next;
     },
-    showAdvancedSearch: false,
 
     get currentPage() {
       return tableView.page;
@@ -461,7 +454,7 @@ export function createTableState(
   });
 
   const focus = useFocusManagement(state, () => navigableItems.length);
-  const remoteData = useRemoteData(state, tableView);
+  const remoteData = useRemoteData(state);
   const liveUpdates = useLiveUpdates(state);
 
   /**
@@ -538,14 +531,6 @@ export function createTableState(
   // the table's own action wrappers, never from a value resolving.
   function setItems(newItems: TableItem[]) {
     state.items = normalizeItems(newItems);
-  }
-
-  function setLoading(isLoading: boolean) {
-    state.loading = isLoading;
-  }
-
-  function setError(errorMsg: string | null) {
-    state.error = errorMsg;
   }
 
   function addSummaryConfig(config: SummaryConfig) {
@@ -644,8 +629,12 @@ export function createTableState(
     prefsStore.syncSelection();
   }
 
-  // ── Public API ──
-  // `state` is exposed for internal sub-components that need direct reads.
+  // ── Store surface ──
+  // This object is the *internal* surface ({@link InternalTableContext});
+  // what consumers see is the hand-written `TableContext` interface — the
+  // subset `getTableContext()` and `onReady` are typed against. Adding a
+  // member here does NOT publish it; removing or renaming a public one fails
+  // the `getTableContext()` return type (and `context.typecheck.ts`).
   // External consumers should prefer the wrapper methods (setSearchTerm,
   // addFilter, handleSort, etc.) which enforce side effects like the
   // page-1 reset.
@@ -698,15 +687,12 @@ export function createTableState(
       return summary.groupedSummaryData;
     },
 
-    // Data management
+    // Data management (internal wiring — consumers use the `source` union)
     setItems,
     setColumns: columnVisibility.setColumns,
-    setLoading,
-    setError,
 
     // Search
     setSearchTerm: search.setSearchTerm,
-    toggleAdvancedSearch: search.toggleAdvancedSearch,
 
     // Filtering
     addFilter: filtering.addFilter,
@@ -730,10 +716,8 @@ export function createTableState(
 
     // Grouping
     toggleGroup: grouping.toggleGroup,
-    toggleGroupExpand: grouping.toggleGroup,
     toggleAllGroups: grouping.toggleAllGroups,
     setGroupByKey: grouping.setGroupByKey,
-    setGroupOrder: grouping.setGroupOrder,
 
     // Summary
     addSummaryConfig,
@@ -741,13 +725,6 @@ export function createTableState(
     toggleSummary: summary.toggleSummary,
     setSummaryConfigs,
     getFormattedSummaryValue: summary.getFormattedSummaryValue,
-
-    // Utilities
-    getNestedValue,
-    resolveColumnId,
-    resolveColumnValue,
-    resolveValueById,
-    findColumnById,
 
     // Column visibility
     get allColumns() {
@@ -787,7 +764,6 @@ export function createTableState(
     get columnOrder() {
       return columnOrder.columnOrder;
     },
-    initColumnOrder: columnOrder.initOrder,
     applyPersistedState,
     reorderColumn,
     resetColumnOrder,
@@ -802,13 +778,7 @@ export function createTableState(
     moveFocus: focus.moveFocus,
     isFocusedRow: focus.isFocusedRow,
 
-    // Remote data
-    get query() {
-      return remoteData.query;
-    },
-    get queryKey() {
-      return remoteData.queryKey;
-    },
+    // Remote data (internal wiring — the managed-fetch sink)
     setServerResult: remoteData.setServerResult,
     setServerError: remoteData.setServerError,
     setServerLoading: remoteData.setServerLoading,
@@ -841,10 +811,22 @@ export function createTableState(
   };
 }
 
-// Optional — setTableContext returns the existing context if any, so the
-// raw getter must be permissive (returns undefined when unset).
-const [getTableContextRaw, setTableContextRaw] =
-  createOptionalContext<ReturnType<typeof createTableState>>();
+/**
+ * The full store surface — everything `createTableState` returns, including
+ * the wiring and lifecycle members (`setColumns`, `applyPersistedState`,
+ * `setServer*`, focus internals, preference persistence) that the public
+ * {@link TableContext} deliberately leaves out.
+ *
+ * In-tree only: the type is not exported from the package, and the wide
+ * surface is reachable solely through {@link getInternalTableContext}. Both
+ * context types describe the same live object — the split is a contract
+ * boundary, not a second store.
+ */
+export type InternalTableContext = ReturnType<typeof createTableState>;
+
+// Optional context — the raw getter must be permissive (returns undefined
+// when unset) so `getTableContext` can fail loud with its own message.
+const [getTableContextRaw, setTableContextRaw] = createOptionalContext<InternalTableContext>();
 
 /**
  * The BCP 47 tag the formatting cells hand to `Intl`, resolved once per table.
@@ -883,31 +865,34 @@ export function getCellLocale(): string {
 }
 
 /**
- * Creates and sets the table context.
- * @param prefs - Optional preference configuration (column visibility, order,
- * summaries, opt-in selection persistence). Ignored when an existing context
- * is returned.
+ * Retrieves the table context — the public, hand-written {@link TableContext}
+ * surface. Throws when called outside of a `<TableProvider>` (the `<Table>`
+ * component mounts one for you), so consumers within the table tree can rely
+ * on a defined return value.
+ *
+ * The return-type annotation is the contract gate: the wide store object must
+ * satisfy the narrow interface, so renaming or removing a public member in
+ * `createTableState` fails to compile here.
  */
-export function setTableContext(prefs?: TablePrefsConfig) {
-  const existing = getTableContextRaw();
-  if (existing) return existing;
-
-  const tableState = createTableState(undefined, prefs);
-  setTableContextRaw(tableState);
-  return tableState;
+export function getTableContext(): TableContext {
+  return requireTableContext();
 }
 
 /**
- * Retrieves the table context. Throws when called outside of a `<TableProvider>`
- * — consumers within the table tree can rely on a defined return value. For the
- * rare case where the absence of a provider must be detected, use
- * `getTableContextRaw()` (internal) or `setTableContext()` (idempotent setter).
+ * The same live context, typed with the full store surface. In-tree only —
+ * the table's own sub-components (header, rows, toolbar, menus) legitimately
+ * reach the wiring members from *inside*; consumers get {@link TableContext}
+ * via `getTableContext()` and never this.
  */
-export function getTableContext() {
+export function getInternalTableContext(): InternalTableContext {
+  return requireTableContext();
+}
+
+function requireTableContext(): InternalTableContext {
   const ctx = getTableContextRaw();
   if (!ctx) {
     throw new Error(
-      '`getTableContext()` was called outside of a `<TableProvider>`. Wrap the consuming component in `<TableProvider>` or use `setTableContext()` first.'
+      '`getTableContext()` was called outside of a `<TableProvider>`. Wrap the consuming component in `<TableProvider>` (the `<Table>` component does this for you).'
     );
   }
   return ctx;
@@ -916,8 +901,8 @@ export function getTableContext() {
 /**
  * Set the table context to an externally-created `tableState`. Used by
  * `<TableProvider>` so it can construct the state once and share it
- * with the rest of the table tree.
+ * with the rest of the table tree. Not exported from the package.
  */
-export function attachTableContext(tableState: ReturnType<typeof createTableState>) {
+export function attachTableContext(tableState: InternalTableContext) {
   setTableContextRaw(tableState);
 }

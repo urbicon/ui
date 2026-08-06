@@ -1,5 +1,6 @@
 <script lang="ts">
-  import { getTableContext, useTableI18n } from '$lib';
+  import { useTableI18n } from '$lib';
+  import { getInternalTableContext } from '$lib/stores/TableStore.svelte';
   import { Checkbox } from '@urbicon-ui/blocks';
   import { buildColumnVisibilityEntries } from './tool-columns';
 
@@ -13,7 +14,7 @@
    */
   const tt = useTableI18n();
 
-  const tableContext = getTableContext();
+  const tableContext = getInternalTableContext();
   const { toggleColumnVisibility } = tableContext;
 
   const entries = $derived(buildColumnVisibilityEntries(tableContext.allColumns));

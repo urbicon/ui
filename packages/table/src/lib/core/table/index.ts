@@ -1,19 +1,187 @@
 import type { Snippet } from 'svelte';
 import type { Column, TableItem, TablePrefsConfig } from '$lib';
-import type { createTableState } from '$lib/stores/TableStore.svelte';
+import type { TableState } from '$lib/stores/concerns/types.js';
+import type { LiveUpdateCounts } from '$lib/stores/concerns/useLiveUpdates.svelte';
+import type { SummaryConfig } from '$lib/stores/TableStore.svelte';
+import type { Filter, FilterOperator } from '$lib/types/tableTypes';
 import type { TableSource } from '$lib/view/source';
 import type { TableView, TableViewDefaults } from '$lib/view/view.svelte';
 import type { TableSlotClasses } from '../table-style-context';
 
 /**
- * The table's live context object — the store's public surface: reactive
- * `state`, the derived collections, and the imperative API (selection,
- * grouping, pagination, live-update push/apply).
+ * The table's live context object — the **supported consumer surface** of the
+ * store: reactive `state`, the derived collections, and the imperative API
+ * (search, filter, sort, page, group, select, summarize, live-update
+ * push/apply).
  *
  * Handed to {@link TableProps.onReady} for consumers outside the table's
- * component tree, and returned by `getTableContext()` inside it.
+ * component tree, and returned by `getTableContext()` inside it (a `toolbar`
+ * snippet, a custom cell). It is a live object for the lifetime of the table;
+ * hold on to it, it is not re-created.
+ *
+ * Hand-written and deliberately narrower than the store object behind it
+ * (since v8): wiring and lifecycle members — column set/order/visibility
+ * plumbing, focus internals, the managed-fetch sink, preference persistence —
+ * are not part of the contract. Prefer the action methods here over writing
+ * the equivalent `state` fields directly: the methods enforce the interaction
+ * side effects (a new search, filter or grouping resets to page 1; a summary
+ * mutation keeps the summary row's visibility consistent).
  */
-export type TableContext = ReturnType<typeof createTableState>;
+export interface TableContext {
+  /**
+   * The shared reactive state — the read surface for custom toolbars and
+   * cells (`state.searchTerm`, `state.sortColumn`, `state.activeFilters`,
+   * `state.selectedIds`, …). Fields are reactive to *replacement*, not to
+   * writes reaching inside them: `state.items[0].name = 'x'` re-renders
+   * nothing — edit a row through {@link pushUpdate}, or assign a new array.
+   * For writes, prefer the action methods on this context.
+   */
+  readonly state: TableState;
+
+  /**
+   * The view object this table reads and writes — the six shareable axes
+   * (search, sort, page, pageSize, filters, groupBy), fully resolved against
+   * its defaults. For a zero-config table this is the table-owned view; with
+   * a `view` prop it is that same object.
+   */
+  readonly view: TableView;
+
+  // ── Derived collections ──
+
+  /** Rows after search + filters, before sorting and pagination. */
+  readonly filteredItems: TableItem[];
+  /** Rows after search, filters and sort, before pagination. */
+  readonly sortedItems: TableItem[];
+  /** The rows of the current page — what the desktop body renders when ungrouped. */
+  readonly paginatedItems: TableItem[];
+  /** Total row count after filtering (server total in server mode). */
+  readonly totalItems: number;
+  /** Page count derived from {@link totalItems} and `state.itemsPerPage` (min. 1). */
+  readonly totalPages: number;
+  /**
+   * The page actually rendered — `state.currentPage` clamped into range.
+   * Everything user-facing reads this, never `state.currentPage`: the raw
+   * value is the reader's *intent* and can sit out of range after
+   * `itemsPerPage` or the item count changed under it.
+   */
+  readonly effectivePage: number;
+
+  // ── Search ──
+
+  /** Set the search term. A *new* term resets to page 1; re-applying the current one does not. */
+  setSearchTerm(term: string): void;
+
+  // ── Filtering ──
+
+  /** Append a filter and reset to page 1. */
+  addFilter(filter: Filter): void;
+  /** Remove the filter at `index` in `state.activeFilters` and reset to page 1. */
+  removeFilter(index: number): void;
+  /**
+   * Remove every filter matching `column` — narrowed further by `operator`
+   * and `value` when given — and reset to page 1.
+   */
+  removeFiltersByColumn(column: string, operator?: FilterOperator, value?: string): void;
+  /** Drop all filters and reset to page 1. */
+  clearAllFilters(): void;
+  /** Whether a filter for `column` (narrowed by `operator`/`value` when given) is active. */
+  hasFilterForColumn(column: string, operator?: FilterOperator, value?: string): boolean;
+
+  // ── Sorting ──
+
+  /** The column-header click: cycles the column asc → desc → unsorted. */
+  handleSort(column: string): void;
+  /**
+   * Set an exact sort, no cycling — for controls without a header to click.
+   * Pass an empty `column` to clear the sort.
+   */
+  setSort(column: string, direction: 'asc' | 'desc'): void;
+
+  // ── Pagination ──
+
+  /** Navigate to `page` if it is within `1..totalPages`; out-of-range calls are ignored. */
+  goToPage(page: number): void;
+  /** Set the page size and reset to page 1. */
+  setItemsPerPage(count: number): void;
+
+  // ── Grouping ──
+
+  /**
+   * Group by an item field (any field, not only ones with a column), or
+   * `null` to ungroup. Collapsed-group state is cleared on change. On a
+   * virtualized table a non-null key is refused (grouped virtualization is
+   * not implemented); clearing stays allowed.
+   */
+  setGroupByKey(key: string | null): void;
+
+  // ── Selection ──
+  // Rows are keyed by `item.id`, with the row index as fallback. All
+  // selection mutations sync to `prefs.persistSelection` storage when enabled.
+
+  /** The currently selected rows, resolved from `state.selectedIds`. */
+  readonly selectedItems: TableItem[];
+  /** Whether every *filtered* row is selected (the header checkbox state). */
+  readonly allSelected: boolean;
+  /** Whether some but not all filtered rows are selected (indeterminate). */
+  readonly someSelected: boolean;
+  /** Select one row (in `single` mode this replaces the selection). */
+  selectItem(id: string | number): void;
+  /** Deselect one row. */
+  deselectItem(id: string | number): void;
+  /** Toggle one row's selection. */
+  toggleItem(id: string | number): void;
+  /** Select every filtered row (multi mode). */
+  selectAll(): void;
+  /** Clear the selection. */
+  deselectAll(): void;
+  /** Header-checkbox behaviour: select all filtered rows, or clear if all are selected. */
+  toggleAll(): void;
+  /** Whether the row with `id` is selected. */
+  isSelected(id: string | number): boolean;
+  /** Replace the selection with `ids`. */
+  setSelectedIds(ids: Array<string | number>): void;
+
+  // ── Summaries ──
+
+  /** Add (or replace, per column) a summary aggregation; shows the summary row. */
+  addSummaryConfig(config: SummaryConfig): void;
+  /** Remove the summary for `column`; hides the summary row when none remain. */
+  removeSummaryConfig(column: string): void;
+  /** Toggle the summary row's visibility. */
+  toggleSummary(): void;
+  /** Replace all summary configurations; summary row shows iff any remain. */
+  setSummaryConfigs(configs: SummaryConfig[]): void;
+
+  // ── Live updates ──
+  // The push family is the feed side (call from your WebSocket/SSE handler);
+  // pushes buffer instead of applying, and the apply/dismiss family is the
+  // user's decision. See `enableLiveUpdates`.
+
+  /** Pending buffer counts (`inserts`/`updates`/`deletes`/`total`), reactive. */
+  readonly liveUpdateCounts: LiveUpdateCounts;
+  /** Whether anything is buffered — drives the `LiveUpdateBanner`. */
+  readonly hasPendingUpdates: boolean;
+  /** Buffer a new row. */
+  pushInsert(item: TableItem): void;
+  /** Buffer a partial change to the row with `id`. */
+  pushUpdate(id: string | number, changes: Partial<TableItem>): void;
+  /** Buffer a row removal. */
+  pushDelete(id: string | number): void;
+  /** Apply the whole buffer (deletes prune the selection too). */
+  applyAllUpdates(): void;
+  /** Apply only the buffered inserts. */
+  applyInserts(): void;
+  /** Apply only the buffered updates. */
+  applyUpdates(): void;
+  /** Apply only the buffered deletes (prunes deleted rows from the selection). */
+  applyDeletes(): void;
+  /** Drop the whole buffer without applying. */
+  dismissAllUpdates(): void;
+  /** Whether the row with `id` was applied recently — drives the row highlight. */
+  isRecentlyUpdated(id: string | number): boolean;
+  /** Whether the row with `id` has a buffered delete pending. */
+  isPendingDelete(id: string | number): boolean;
+}
 
 /**
  * Props interface for Table component
@@ -433,8 +601,10 @@ export interface TableProps<T = TableItem> {
    * supported way to reach the imperative API from *outside* the table's tree
    * (`getTableContext()` only resolves inside it).
    *
-   * The context is a live object: `pushInsert`/`pushUpdate`/`pushDelete` and
-   * `applyAllUpdates` for live feeds, plus the reactive `state`. Hold on to it
+   * The context is a live object typed as {@link TableContext} — since v8 a
+   * hand-written, deliberately narrow surface: `pushInsert`/`pushUpdate`/
+   * `pushDelete` and `applyAllUpdates` for live feeds, the reactive `state`,
+   * the derived collections and the documented action methods. Hold on to it
    * for the lifetime of the table; it is not re-created.
    *
    * `state.items` and `state.columns` are reactive to *replacement*, not to

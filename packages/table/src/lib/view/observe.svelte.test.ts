@@ -459,4 +459,22 @@ describe('viewToQuery — the projection into the TableQuery vocabulary', () => 
     expect(query.sortDirection).toBe('asc');
     expect(query.groupByKey).toBeNull();
   });
+
+  it('activeFilters are a copy, not the live view array', () => {
+    // The query object leaves the table (source.query, observers). v7
+    // guaranteed a defensive copy and the v8 projection must too — a consumer
+    // mutating the query must not mutate the view's filter state through the
+    // reference. Moved here from the useRemoteData contract when the
+    // context's `query` getter left with the v8 cut; positive control: with
+    // the copy removed from the projection chain, the `not.toBe` and
+    // `toHaveLength(1)` assertions go red.
+    const view = createTableView();
+    view.filters = [{ column: 'name', operator: 'contains', value: 'ad' }];
+
+    const query = viewToQuery(view.snapshot());
+    expect(query.activeFilters).toEqual(view.filters);
+    expect(query.activeFilters).not.toBe(view.filters);
+    query.activeFilters.push({ column: 'x', operator: 'equals', value: 'y' });
+    expect(view.filters).toHaveLength(1);
+  });
 });

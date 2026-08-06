@@ -2,11 +2,16 @@
   import { untrack, type Snippet } from 'svelte';
   import { SvelteSet } from 'svelte/reactivity';
   import { resolveDateLocale, useI18n } from '@urbicon-ui/i18n';
-  import { attachTableContext, attachCellLocale, createTableState, findColumnById } from '$lib';
+  import { findColumnById } from '$lib';
   import { useTableI18n } from '$lib/i18n';
   import { ColumnValidation } from '$lib/factories/ColumnValidation';
   import type { Column, TableItem } from '$lib/types/tableTypes';
-  import type { TablePrefsConfig } from '$lib/stores/TableStore.svelte';
+  import {
+    attachCellLocale,
+    attachTableContext,
+    createTableState,
+    type TablePrefsConfig
+  } from '$lib/stores/TableStore.svelte';
   import { createManagedFetch } from '$lib/view/observe.svelte';
   import type { TableSource } from '$lib/view/source';
   import { resolveViewProp, type TableView, type TableViewDefaults } from '$lib/view/view.svelte';

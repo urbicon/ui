@@ -2,6 +2,7 @@
 import { flushSync, mount, unmount } from 'svelte';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { createTableView } from '$lib/view/view.svelte';
+import type { InternalTableContext } from '../stores/TableStore.svelte';
 import TableHarness from './__fixtures__/TableHarness.svelte';
 import type { TableContext } from './table/index';
 
@@ -125,11 +126,12 @@ describe('live updates — buffered until the next navigation', () => {
       name: `Person ${i}`,
       amount: i
     }));
-    let ctx: TableContext | undefined;
+    // Wide: `setPage` (the unclamped raw write) is in-tree surface.
+    let ctx: InternalTableContext | undefined;
     mountTable({
       items: many,
       enableLiveUpdates: true,
-      onReady: (c: TableContext) => (ctx = c)
+      onReady: (c: TableContext) => (ctx = c as InternalTableContext)
     });
     if (!ctx) throw new Error('onReady never fired');
 
