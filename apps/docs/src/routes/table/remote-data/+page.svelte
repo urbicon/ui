@@ -44,7 +44,7 @@
   }
 ${scriptClose}
 
-<Table {columns} source={{ query: loadUsers }} viewDefaults={{ pageSize: 25 }} />`;
+<Table {columns} source={{ processing: 'server', query: loadUsers }} viewDefaults={{ pageSize: 25 }} />`;
 
   const codeParams = `import type { TableViewSnapshot } from '@urbicon-ui/table';
 
@@ -171,8 +171,8 @@ function toParams(view: TableViewSnapshot) {
         <code class="text-text-primary">total</code> counts every row matching the query, and the
         pager divides it by the page size, so it decides how far the reader can page — the same
         field, under the same name, that
-        <code class="text-text-primary">{"source={{ kind: 'server' }}"}</code> takes when you drive the
-        fetch yourself.
+        <code class="text-text-primary">{"source={{ processing: 'server' }}"}</code> takes when you drive
+        the fetch yourself.
       </p>
 
       <NoteList variant="flush">
@@ -184,7 +184,7 @@ function toParams(view: TableViewSnapshot) {
           A keystroke reaches the view after <code>searchDebounceMs</code> (300) and the network
           after <code>debounceMs</code> on top, so search sits about 600 ms behind. The two sit on
           different objects: <code>{'<Table searchDebounceMs={100} />'}</code> and
-          <code>{'source={{ query: loadUsers, debounceMs: 100 }}'}</code>.
+          <code>{"source={{ processing: 'server', query: loadUsers, debounceMs: 100 }}"}</code>.
         </Note>
         <Note title="Pass the signal on">
           When a newer request supersedes one in flight, the table aborts it. Handing

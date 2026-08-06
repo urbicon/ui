@@ -137,7 +137,7 @@ const NO_ITEMS: TableItem[] = [];
 // The `source`-less fallback (no `source`, no `items`): a table with no rows
 // yet. Hoisted for the same reason as `NO_ITEMS` — a literal here would be a
 // fresh object on every re-evaluation of the derived below.
-const NO_SOURCE: TableSource = { items: NO_ITEMS };
+const NO_SOURCE: TableSource = { processing: 'client', items: NO_ITEMS };
 
 /**
  * Creates the table state by composing independent concerns.

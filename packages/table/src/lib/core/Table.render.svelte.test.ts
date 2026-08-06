@@ -377,9 +377,10 @@ describe('Table — the view object, mounted', () => {
     const el = mountTable({
       items: [],
       source: {
+        processing: 'server' as const,
         query: async () => {
           fetches += 1;
-          return { items: [{ id: 1, name: 'Fetched', amount: 1 }], totalItems: 1 };
+          return { items: [{ id: 1, name: 'Fetched', amount: 1 }], total: 1 };
         }
       }
     });

@@ -100,11 +100,13 @@ describe('TableStore — state.items', () => {
     // there. This pair used to compare the bare-array arm against the object
     // one; the array arm is gone (#161), so what is left to say is that the
     // optional lifecycle fields do not gate the item slot.
-    const bare = createTableState(undefined, undefined, { source: () => ({ items: ITEMS }) });
+    const bare = createTableState(undefined, undefined, {
+      source: () => ({ processing: 'client' as const, items: ITEMS })
+    });
     expect(bare.state.items.map((i) => i.name)).toEqual(['Ada', 'Grace']);
 
     const withLifecycle = createTableState(undefined, undefined, {
-      source: () => ({ items: ITEMS, loading: true, error: 'boom' })
+      source: () => ({ processing: 'client' as const, items: ITEMS, loading: true, error: 'boom' })
     });
     expect(withLifecycle.state.items.map((i) => i.name)).toEqual(['Ada', 'Grace']);
   });
@@ -112,7 +114,9 @@ describe('TableStore — state.items', () => {
   it('a second writer overrides, a new source re-seeds', () => {
     const cleanup = $effect.root(() => {
       let items = $state<TableItem[]>(ITEMS);
-      const store = createTableState(undefined, undefined, { source: () => ({ items }) });
+      const store = createTableState(undefined, undefined, {
+        source: () => ({ processing: 'client' as const, items })
+      });
 
       // What useLiveUpdates / setServerResult do.
       store.state.items = [...store.state.items, { id: 3, name: 'Radia' } as TableItem];
@@ -132,7 +136,9 @@ describe('TableStore — state.items', () => {
     // A derivation has no such asymmetry, and the honest reading of "items=[]"
     // is an empty table.
     let items = $state<TableItem[]>(ITEMS);
-    const store = createTableState(undefined, undefined, { source: () => ({ items }) });
+    const store = createTableState(undefined, undefined, {
+      source: () => ({ processing: 'client' as const, items })
+    });
     expect(store.state.items).toHaveLength(2);
 
     items = [];
@@ -155,7 +161,7 @@ describe('TableStore — state.items', () => {
         source: () => {
           void rev;
           // Fresh literal AND fresh query identity per evaluation.
-          return { query: async () => ({ items: [], total: 0 }) };
+          return { processing: 'server' as const, query: async () => ({ items: [], total: 0 }) };
         }
       });
 
@@ -185,7 +191,10 @@ describe('TableStore — state.items', () => {
     const seen: number[] = [];
     const cleanup = $effect.root(() => {
       const store = createTableState(undefined, undefined, {
-        source: () => ({ items: [{ id: 1, name: 'Ada' }] as TableItem[] })
+        source: () => ({
+          processing: 'client' as const,
+          items: [{ id: 1, name: 'Ada' }] as TableItem[]
+        })
       });
       $effect(() => {
         seen.push(store.state.items.length);
@@ -211,7 +220,7 @@ describe('TableStore — state.items', () => {
     // the key-stability fallback. The derived has to run it for the same reason
     // `setItems` did, so the server render keys rows the way the client will.
     const store = createTableState(undefined, undefined, {
-      source: () => ({ items: [{ name: 'no id' }] as TableItem[] })
+      source: () => ({ processing: 'client' as const, items: [{ name: 'no id' }] as TableItem[] })
     });
     expect(store.state.items[0].__index).toBe(0);
   });

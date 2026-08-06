@@ -162,38 +162,46 @@ describe('TableStore — the source union feeds the derived slots', () => {
   });
 
   it('a client source carries loading and error', () => {
-    let value = $state<TableSource>({ items: ITEMS, loading: true, error: 'boom' });
+    let value = $state<TableSource>({
+      processing: 'client' as const,
+      items: ITEMS,
+      loading: true,
+      error: 'boom'
+    });
     const store = createTableState(undefined, undefined, { source: () => value });
 
     expect(store.state.mode).toBe('client');
     expect(store.state.loading).toBe(true);
     expect(store.state.error).toBe('boom');
 
-    value = { items: ITEMS, loading: false, error: null };
+    value = { processing: 'client' as const, items: ITEMS, loading: false, error: null };
     expect(store.state.loading).toBe(false);
     expect(store.state.error).toBeNull();
   });
 
   it('a manual server source sets mode and serverTotalItems', () => {
-    let value = $state<TableSource>({ kind: 'server', items: ITEMS, total: 500 });
+    let value = $state<TableSource>({ processing: 'server', items: ITEMS, total: 500 });
     const store = createTableState(undefined, undefined, { source: () => value });
 
     expect(store.state.mode).toBe('server');
     expect(store.state.serverTotalItems).toBe(500);
     expect(store.state.items).toHaveLength(2);
 
-    value = { kind: 'server', items: ITEMS, total: 12 };
+    value = { processing: 'server', items: ITEMS, total: 12 };
     expect(store.state.serverTotalItems).toBe(12);
 
     // Back to a client source: the mode is derived, so it follows.
-    value = { items: ITEMS };
+    value = { processing: 'client', items: ITEMS };
     expect(store.state.mode).toBe('client');
     expect(store.state.serverTotalItems).toBe(0);
   });
 
   it('a managed source is server mode with an empty item slot', () => {
     const store = createTableState(undefined, undefined, {
-      source: () => ({ query: async () => ({ items: [], total: 0 }) })
+      source: () => ({
+        processing: 'server' as const,
+        query: async () => ({ items: [], total: 0 })
+      })
     });
 
     // The fetch lifecycle lives in `createManagedFetch` (driven by the
@@ -208,7 +216,7 @@ describe('TableStore — the source union feeds the derived slots', () => {
     // The old `mode` prop could say 'client' while a queryFn was wired; the
     // union makes that unrepresentable. The state field has no setter.
     const store = createTableState(undefined, undefined, {
-      source: () => ({ kind: 'server' as const, items: ITEMS, total: 2 })
+      source: () => ({ processing: 'server' as const, items: ITEMS, total: 2 })
     });
     expect(store.state.mode).toBe('server');
     expect(Object.getOwnPropertyDescriptor(store.state, 'mode')?.set).toBeUndefined();
@@ -230,7 +238,7 @@ describe('TableStore — a controlled flag comes from the prop, not from a write
   it('selection stays consumer-owned while the prop is present', () => {
     let present = $state(true);
     const store = createTableState(undefined, undefined, {
-      source: () => ({ items: ITEMS }),
+      source: () => ({ processing: 'client' as const, items: ITEMS }),
       selectionMode: () => 'multi',
       selectionControlled: () => present
     });

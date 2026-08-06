@@ -14,14 +14,14 @@
  * #153-regression-1 class).
  */
 import { untrack } from 'svelte';
-import type { TableQueryResult } from '$lib/types/tableTypes';
+import type { TablePage } from '$lib/types/tableTypes';
 import { resolveSource, type TableSource } from './source';
 import type { TableView, TableViewSnapshot } from './view.svelte';
 
 /** Where a managed fetch reports its lifecycle — the store's server setters. */
 export interface FetchSink {
   onLoading?: () => void;
-  onResult: (result: TableQueryResult) => void;
+  onResult: (result: TablePage) => void;
   /** `null` = the rejection carried no message — the sink supplies its own (i18n) fallback. */
   onError?: (message: string | null) => void;
 }
@@ -35,7 +35,7 @@ export interface FetchSink {
  * Feature-frozen with `ServerManagedSource` (2026-08-06, #160; reasoning in
  * the `source.ts` header): no `refetch()`, no cache, no retry, no
  * invalidation hook. Each of those turns this into a data layer. Fix bugs
- * here, send capabilities to the manual `kind: 'server'` flow.
+ * here, send capabilities to the manual `processing: 'server'` flow.
  */
 export function createManagedFetch<T>(
   view: TableView,

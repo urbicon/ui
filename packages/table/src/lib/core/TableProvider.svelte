@@ -87,7 +87,7 @@
   // than an inline expression at each of the two use sites: it caches, so the
   // shorthand path hands out ONE object identity for as long as `items` itself
   // is stable, instead of a fresh literal per read.
-  const resolvedSource = $derived<TableSource>(source ?? { items });
+  const resolvedSource = $derived<TableSource>(source ?? { processing: 'client', items });
 
   // Store is built once from the initial prefs config — not meant to
   // re-create if the prop changes reactively. `initialSelectedIds` is

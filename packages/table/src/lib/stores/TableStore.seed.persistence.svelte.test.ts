@@ -127,6 +127,7 @@ describe('view axes: bindViewToStorage vs the view defaults', () => {
       bindViewToStorage(view, { key: 't1', storage: window.localStorage });
       const store = createTableState(view, undefined, {
         source: () => ({
+          processing: 'client' as const,
           items: [
             { id: 1, name: 'Ada', amount: 300 },
             { id: 2, name: 'Grace', amount: 100 }

@@ -51,7 +51,7 @@ ${scriptOpenTs}
   bindViewToUrl(view);
 ${scriptClose}
 
-<Table {columns} {view} source={{ kind: 'server', items: data.items, total: data.total }} />`;
+<Table {columns} {view} source={{ processing: 'server', items: data.items, total: data.total }} />`;
 
   const codeObserve = `${scriptOpenTs}
   import { Table, createTableView, observeView } from '@urbicon-ui/table';
@@ -78,12 +78,12 @@ ${scriptClose}
   });
 ${scriptClose}
 
-<Table {columns} {view} source={{ kind: 'server', items, total, loading, error }} />`;
+<Table {columns} {view} source={{ processing: 'server', items, total, loading, error }} />`;
 </script>
 
 <SeoMeta
   title="Server-Rendered Data - Table"
-  description="The browser gets the data: you fetch the rows in a SvelteKit load and hand them to the table with kind: 'server', so the first page arrives server-rendered."
+  description="The browser gets the data: you fetch the rows in a SvelteKit load and hand them to the table with processing: 'server', so the first page arrives server-rendered."
 />
 
 <DocsPageLayout
@@ -97,8 +97,8 @@ ${scriptClose}
       <p class="text-text-secondary text-sm">
         When a SvelteKit <code class="text-text-primary">load</code> fetches your rows, they are
         already there while the page renders. Hand the table what you have: the page of rows, the
-        total, and <code class="text-text-primary">kind: 'server'</code>. The view lives in the URL,
-        so every sort, filter and page change is a navigation, and
+        total, and <code class="text-text-primary">processing: 'server'</code>. The view lives in
+        the URL, so every sort, filter and page change is a navigation, and
         <code class="text-text-primary">load</code> answers it with the next page.
       </p>
 
@@ -110,7 +110,7 @@ ${scriptClose}
       />
 
       <NoteList variant="flush">
-        <Note title="kind: 'server' is mandatory">
+        <Note title="processing: 'server' is the decision">
           It switches the table's own sorting, filtering, searching and paging off, so it has to be
           an explicit decision. The type rejects the near misses: a <code>total</code> without the
           tag does not compile, and neither does the tag next to a <code>query</code>.

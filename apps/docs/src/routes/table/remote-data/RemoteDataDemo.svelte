@@ -1,5 +1,5 @@
 <script lang="ts">
-  // Live managed-source demo: `source={{ query, debounceMs }}` runs against a
+  // Live managed-source demo: `source={{ processing: 'server', query, debounceMs }}` runs against a
   // deterministic in-memory mock backend — search, sort, and pagination are
   // applied server-side (here: in this module) after an adjustable artificial
   // latency. A request counter and an in-flight badge make the request
@@ -7,12 +7,7 @@
   // superseded ones aborted. The same demo-fetcher pattern drives the Combobox
   // async-search demo and the e2e remote fixture. Fully deterministic — no
   // network, no Math.random.
-  import {
-    Table,
-    type Column,
-    type TableQueryResult,
-    type TableViewSnapshot
-  } from '@urbicon-ui/table';
+  import { Table, type Column, type TablePage, type TableViewSnapshot } from '@urbicon-ui/table';
   import { Badge, SegmentGroup, SegmentItem } from '@urbicon-ui/blocks';
 
   type User = {
@@ -70,7 +65,7 @@
   async function mockServer(
     query: TableViewSnapshot,
     { signal }: { signal: AbortSignal }
-  ): Promise<TableQueryResult> {
+  ): Promise<TablePage> {
     requestCount += 1;
     inFlight += 1;
     try {
@@ -130,7 +125,7 @@
 
   <Table
     {columns}
-    source={{ query: mockServer, debounceMs: 300 }}
+    source={{ processing: 'server', query: mockServer, debounceMs: 300 }}
     viewDefaults={{ pageSize: 8 }}
     searchPlaceholder="Search users…"
     ariaLabel="Server-mode users table"

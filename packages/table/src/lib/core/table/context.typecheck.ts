@@ -153,7 +153,7 @@ void pub.moveFocus;
 // @ts-expect-error isFocusedRow is internal
 void pub.isFocusedRow;
 
-// Managed-fetch sink — the consumer path is a `kind: 'server'` or `{ query }` source.
+// Managed-fetch sink — the consumer path is a `processing: 'server'` source.
 // @ts-expect-error setServerResult is internal
 void pub.setServerResult;
 // @ts-expect-error setServerError is internal

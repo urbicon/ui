@@ -296,7 +296,7 @@ export type FilterOperator =
  * called it `totalItems` purely because that name came through unchanged
  * from v7. Which flow you use no longer changes what the field is called.
  */
-export interface TableQueryResult {
+export interface TablePage {
   /** Items for the current page/query */
   items: TableItem[];
   /** Total number of items matching the query — drives pagination. */

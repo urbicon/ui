@@ -10,7 +10,7 @@ Nothing about columns, cells, selection, virtualization, styling or snippets cha
 
 ## Already on 8.0?
 
-v9 tightens two things v8 shipped with. Both are quick. In TypeScript the compiler names
+v9 tightens three things v8 shipped with. All are quick. In TypeScript the compiler names
 every call site that has to move; in plain JavaScript the table throws on the first render
 with a message that names the change.
 
@@ -20,7 +20,7 @@ for choosing.
 
 ```svelte
 <Table {columns} source={rows} />           <!-- 8.0 -->
-<Table {columns} source={{ items: rows }} /> <!-- v9 — or just items={rows} -->
+<Table {columns} source={{ processing: 'client', items: rows }} /> <!-- v9 — or items={rows} -->
 ```
 
 The rule that remains: `items` for rows and nothing else, `source` for rows plus how they
@@ -88,6 +88,35 @@ used `tableQueryToSearchParams` to build a backend query string and relied on it
 bad page or an unknown operator, call `assertValidViewSnapshot` yourself first: nothing in
 the type system will point out that the guard left.
 
+**`kind: 'server'` became `processing`, required on every variant.** The tag decides who
+sorts, filters, searches and pages — the table or your backend — and `kind` said none of
+that. It read as a statement about where the data comes from, which is a different question
+and one the tag never answered: the client variant fetches from a server too.
+
+```svelte
+<Table {columns} source={{ items: rows }} />                              <!-- 8.0 -->
+<Table {columns} source={{ processing: 'client', items: rows }} />        <!-- v9 -->
+
+<Table {columns} source={{ kind: 'server', items, total }} />             <!-- 8.0 -->
+<Table {columns} source={{ processing: 'server', items, total }} />       <!-- v9 -->
+
+<Table {columns} source={{ query: loadUsers }} />                         <!-- 8.0 -->
+<Table {columns} source={{ processing: 'server', query: loadUsers }} />   <!-- v9 -->
+```
+
+`items={rows}` is untouched — it is still the shorthand for a client source, and still the
+right prop when rows are all you have to say.
+
+Required is the point, not the spelling. In 8.0 the tag sat on one variant out of three, so
+`{ items, total }` — a server config that forgot it — matched the *client* variant
+structurally, and the table silently sorted a page of server-paged rows in the browser. Six
+`?: never` fields existed to catch that. Now the shape matches no variant at all, and the
+error arrives from the compiler rather than from a reader wondering why sorting only
+reordered the twenty rows in front of them.
+
+**`TableQueryResult` became `TablePage`.** With `TableQuery` gone (above) the old name was
+half of a pair whose other half no longer existed. Same shape, `{ items, total }`.
+
 ## The shape of the change
 
 ```svelte
@@ -147,14 +176,14 @@ three object shapes, in which the invalid combinations are not expressible:
 
 | v7 | v8 |
 | --- | --- |
-| `items={rows}` | `items={rows}` (unchanged) or `source={{ items: rows }}` |
-| `{items}` + `{loading}` + `{error}` in client mode | `source={{ items, loading, error }}` |
-| `mode="server"` + `serverTotalItems` + `{items}` + `{loading}` + `{error}` + `onQueryChange` | `source={{ kind: 'server', items, total, loading, error }}` + `observeView(view, cb)` |
-| `mode="server"` + `queryFn` + `queryDebounceMs` | `source={{ query, debounceMs }}` |
+| `items={rows}` | `items={rows}` (unchanged) or `source={{ processing: 'client', items: rows }}` |
+| `{items}` + `{loading}` + `{error}` in client mode | `source={{ processing: 'client', items, loading, error }}` |
+| `mode="server"` + `serverTotalItems` + `{items}` + `{loading}` + `{error}` + `onQueryChange` | `source={{ processing: 'server', items, total, loading, error }}` + `observeView(view, cb)` |
+| `mode="server"` + `queryFn` + `queryDebounceMs` | `source={{ processing: 'server', query, debounceMs }}` |
 
-`kind: 'server'` is mandatory on the manual server source. Server mode hands sorting and
+`processing: 'server'` is mandatory on both server sources. It hands sorting and
 filtering to the server, so it has to be a decision you took, not a shape you fell into —
-`{ items, total }` without the tag is a type error.
+`{ items, total }` without the tag matches no variant at all.
 
 The managed source (`{ query }`) owns loading and error itself, aborts superseded requests
 and issues the first fetch immediately, later ones debounced. It has no `loading`/`error`
@@ -165,7 +194,7 @@ That variant is deliberately the short path and nothing more: the view is the on
 that triggers a fetch, and it will stay that way. Re-running the same query (a refresh
 button, polling, resync after a failed optimistic update), caching, deduplication and
 invalidation after a mutation belong to a data layer — bring your own, and hand the table
-its result through `kind: 'server'`, which only asks for rows and a total.
+its result through `processing: 'server'` with rows and a total.
 
 ### Persistence
 
@@ -265,7 +294,7 @@ What no longer appears on the type, and where its job went:
 | v7 context member | v8 |
 | --- | --- |
 | `setItems` / `setLoading` / `setError` | the `source` union: `source={{ items, loading, error }}` |
-| `setServerResult` / `setServerError` / `setServerLoading` | a `kind: 'server'` source, or the managed `{ query }` source |
+| `setServerResult` / `setServerError` / `setServerLoading` | a `processing: 'server'` source, with rows or with a `query` |
 | `query` / `queryKey` | `view.snapshot()`, or `observeView(view, cb)` |
 | `setColumns` | the `columns` prop |
 | `hideColumn` / `showColumn` / `toggleColumnVisibility` / `showAllColumns` / `allColumns` / `hiddenColumnKeys` | the built-in visibility UI (`enableColumnVisibility`), initial state via `prefs.defaults.hiddenColumns` |
@@ -371,7 +400,7 @@ third table can join later. Two limits are worth knowing:
   grouping the reader sets later is taken back in the same flush.
 - **A shared view is not a shared cache.** A managed source (`{ query }`) on both tables
   fetches once *per table* per interaction. If one fetch should serve both, run it yourself
-  (`observeView` + your fetch) and hand each table a manual `kind: 'server'` source.
+  (`observeView` + your fetch) and hand each table a manual `processing: 'server'` source.
 
 ## Where to construct the view
 

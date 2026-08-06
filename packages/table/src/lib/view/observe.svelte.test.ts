@@ -1,7 +1,7 @@
 // @vitest-environment jsdom
 import { flushSync } from 'svelte';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import type { Filter, TableQueryResult } from '$lib/types/tableTypes';
+import type { Filter, TablePage } from '$lib/types/tableTypes';
 import { createManagedFetch, observeView } from './observe.svelte';
 import type { TableSource } from './source';
 import { createTableView, type TableView, type TableViewSnapshot } from './view.svelte';
@@ -44,7 +44,7 @@ async function flushMicrotasks(): Promise<void> {
 
 function makeCountingQuery() {
   const calls: TableViewSnapshot[] = [];
-  const query = async (q: TableViewSnapshot): Promise<TableQueryResult> => {
+  const query = async (q: TableViewSnapshot): Promise<TablePage> => {
     calls.push(q);
     return { items: [{ id: calls.length }], total: calls.length };
   };
@@ -65,10 +65,12 @@ describe('fetch counter (Prüfstein 12)', () => {
   //   measured.
   it('fires exactly once at init, immediately (delay 0)', async () => {
     const { calls, query } = makeCountingQuery();
-    const results: TableQueryResult[] = [];
+    const results: TablePage[] = [];
     const cleanup = $effect.root(() => {
       const view = createTableView();
-      createManagedFetch(view, () => ({ query }), { onResult: (r) => results.push(r) });
+      createManagedFetch(view, () => ({ processing: 'server' as const, query }), {
+        onResult: (r) => results.push(r)
+      });
     });
     flushSync();
     vi.advanceTimersByTime(0);
@@ -83,7 +85,9 @@ describe('fetch counter (Prüfstein 12)', () => {
     const { calls, query } = makeCountingQuery();
     const cleanup = $effect.root(() => {
       const view = createTableView();
-      createManagedFetch(view, () => ({ query, debounceMs: 300 }), { onResult: () => {} });
+      createManagedFetch(view, () => ({ processing: 'server' as const, query, debounceMs: 300 }), {
+        onResult: () => {}
+      });
       flushSync();
       vi.advanceTimersByTime(0);
 
@@ -108,7 +112,9 @@ describe('fetch counter (Prüfstein 12)', () => {
     const { calls, query } = makeCountingQuery();
     const cleanup = $effect.root(() => {
       const view = createTableView();
-      createManagedFetch(view, () => ({ query, debounceMs: 300 }), { onResult: () => {} });
+      createManagedFetch(view, () => ({ processing: 'server' as const, query, debounceMs: 300 }), {
+        onResult: () => {}
+      });
       flushSync();
       vi.advanceTimersByTime(0);
 
@@ -130,7 +136,9 @@ describe('fetch counter (Prüfstein 12)', () => {
     const { calls, query } = makeCountingQuery();
     const cleanup = $effect.root(() => {
       const view = createTableView();
-      createManagedFetch(view, () => ({ query, debounceMs: 300 }), { onResult: () => {} });
+      createManagedFetch(view, () => ({ processing: 'server' as const, query, debounceMs: 300 }), {
+        onResult: () => {}
+      });
       flushSync();
       vi.advanceTimersByTime(0);
 
@@ -153,7 +161,9 @@ describe('fetch counter (Prüfstein 12)', () => {
     const { calls, query } = makeCountingQuery();
     const cleanup = $effect.root(() => {
       const view = createTableView();
-      createManagedFetch(view, () => ({ query, debounceMs: 300 }), { onResult: () => {} });
+      createManagedFetch(view, () => ({ processing: 'server' as const, query, debounceMs: 300 }), {
+        onResult: () => {}
+      });
       flushSync();
       vi.advanceTimersByTime(0);
 
@@ -171,7 +181,7 @@ describe('fetch counter (Prüfstein 12)', () => {
   });
 
   it('a parent re-render with a fresh source literal refetches nothing and keeps the result', async () => {
-    const results: TableQueryResult[] = [];
+    const results: TablePage[] = [];
     const { calls, query } = makeCountingQuery();
     const cleanup = $effect.root(() => {
       const view = createTableView();
@@ -179,7 +189,11 @@ describe('fetch counter (Prüfstein 12)', () => {
       const getSource = () => {
         void renderTrigger;
         // fresh object AND fresh arrow per render — the #153-regression shape
-        return { query: (q: TableViewSnapshot) => query(q), debounceMs: 300 };
+        return {
+          processing: 'server' as const,
+          query: (q: TableViewSnapshot) => query(q),
+          debounceMs: 300
+        };
       };
       createManagedFetch(view, getSource, { onResult: (r) => results.push(r) });
       flushSync();
@@ -197,10 +211,10 @@ describe('fetch counter (Prüfstein 12)', () => {
   });
 
   it('a client source never fetches — the managed gate stays closed', async () => {
-    const results: TableQueryResult[] = [];
+    const results: TablePage[] = [];
     const cleanup = $effect.root(() => {
       const view = createTableView();
-      createManagedFetch(view, () => ({ items: [{ id: 1 }] }), {
+      createManagedFetch(view, () => ({ processing: 'client' as const, items: [{ id: 1 }] }), {
         onResult: (r) => results.push(r)
       });
       flushSync();
@@ -215,19 +229,16 @@ describe('fetch counter (Prüfstein 12)', () => {
   });
 
   it('a superseded in-flight fetch is aborted and its result discarded', async () => {
-    const resolvers: Array<(r: TableQueryResult) => void> = [];
+    const resolvers: Array<(r: TablePage) => void> = [];
     const seenSignals: AbortSignal[] = [];
-    const results: TableQueryResult[] = [];
-    const query = (
-      _q: TableViewSnapshot,
-      o: { signal: AbortSignal }
-    ): Promise<TableQueryResult> => {
+    const results: TablePage[] = [];
+    const query = (_q: TableViewSnapshot, o: { signal: AbortSignal }): Promise<TablePage> => {
       seenSignals.push(o.signal);
       return new Promise((resolve) => resolvers.push(resolve));
     };
     const cleanup = $effect.root(() => {
       const view = createTableView();
-      createManagedFetch(view, () => ({ query, debounceMs: 100 }), {
+      createManagedFetch(view, () => ({ processing: 'server' as const, query, debounceMs: 100 }), {
         onResult: (r) => results.push(r)
       });
       flushSync();
@@ -259,16 +270,16 @@ describe('a live source flip away from managed (the isManaged gate)', () => {
     // managed fetch resolving afterwards must not land on top of them, and a
     // later flip back to managed is a fresh start (immediate first fetch,
     // not a debounced one).
-    const resolvers: Array<(r: TableQueryResult) => void> = [];
+    const resolvers: Array<(r: TablePage) => void> = [];
     const seenSignals: AbortSignal[] = [];
-    const results: TableQueryResult[] = [];
+    const results: TablePage[] = [];
     const calls: TableViewSnapshot[] = [];
-    const query = (q: TableViewSnapshot, o: { signal: AbortSignal }): Promise<TableQueryResult> => {
+    const query = (q: TableViewSnapshot, o: { signal: AbortSignal }): Promise<TablePage> => {
       calls.push(q);
       seenSignals.push(o.signal);
       return new Promise((resolve) => resolvers.push(resolve));
     };
-    let source = $state<TableSource>({ query, debounceMs: 100 });
+    let source = $state<TableSource>({ processing: 'server' as const, query, debounceMs: 100 });
     const cleanup = $effect.root(() => {
       const view = createTableView();
       createManagedFetch(view, () => source, { onResult: (r) => results.push(r) });
@@ -278,7 +289,7 @@ describe('a live source flip away from managed (the isManaged gate)', () => {
     await flushMicrotasks();
     expect(calls).toHaveLength(1);
 
-    source = { items: [{ id: 1 }] }; // the parent flips to a client source mid-flight
+    source = { processing: 'client' as const, items: [{ id: 1 }] }; // the parent flips to a client source mid-flight
     flushSync();
     expect(seenSignals[0].aborted).toBe(true); // aborted at the flip, not on supersede
 
@@ -286,7 +297,7 @@ describe('a live source flip away from managed (the isManaged gate)', () => {
     await flushMicrotasks();
     expect(results).toHaveLength(0); // the sink never hears from it
 
-    source = { query, debounceMs: 100 }; // flip back to managed
+    source = { processing: 'server' as const, query, debounceMs: 100 }; // flip back to managed
     flushSync();
     vi.advanceTimersByTime(0); // initialDone was reset → first fetch is immediate again
     await flushMicrotasks();
@@ -307,7 +318,7 @@ describe('the sink contract', () => {
     let view!: TableView;
     const cleanup = $effect.root(() => {
       view = createTableView();
-      createManagedFetch(view, () => ({ query, debounceMs: 100 }), {
+      createManagedFetch(view, () => ({ processing: 'server' as const, query, debounceMs: 100 }), {
         onLoading: () => events.push('loading'),
         onResult: () => events.push('result')
       });
@@ -332,6 +343,7 @@ describe('the sink contract', () => {
       createManagedFetch(
         view,
         () => ({
+          processing: 'server' as const,
           query: async () => {
             throw new Error('boom');
           }
@@ -354,6 +366,7 @@ describe('the sink contract', () => {
       createManagedFetch(
         view,
         () => ({
+          processing: 'server' as const,
           query: () => Promise.reject('kaputt') // not an Error — no message to forward
         }),
         { onResult: () => {}, onError: (message) => errors.push(message) }
@@ -430,15 +443,15 @@ describe('destroy teardown (M4)', () => {
   it('a pending fetch debounce dies with the scope, and an in-flight fetch is aborted', async () => {
     const calls: TableViewSnapshot[] = [];
     const seenSignals: AbortSignal[] = [];
-    const results: TableQueryResult[] = [];
-    const query = (q: TableViewSnapshot, o: { signal: AbortSignal }): Promise<TableQueryResult> => {
+    const results: TablePage[] = [];
+    const query = (q: TableViewSnapshot, o: { signal: AbortSignal }): Promise<TablePage> => {
       calls.push(q);
       seenSignals.push(o.signal);
       return new Promise(() => {}); // stays in flight forever
     };
     const cleanup = $effect.root(() => {
       const view = createTableView();
-      createManagedFetch(view, () => ({ query, debounceMs: 300 }), {
+      createManagedFetch(view, () => ({ processing: 'server' as const, query, debounceMs: 300 }), {
         onResult: (r) => results.push(r)
       });
       flushSync();
@@ -485,7 +498,7 @@ describe('what a managed query receives (#162)', () => {
     // handed `view.snapshot()` directly. Positive control: re-introduce a
     // renaming projection in `execute` and the key assertion below goes red.
     const seen: TableViewSnapshot[] = [];
-    const query = async (q: TableViewSnapshot): Promise<TableQueryResult> => {
+    const query = async (q: TableViewSnapshot): Promise<TablePage> => {
       seen.push(q);
       return { items: [], total: 0 };
     };
@@ -500,7 +513,9 @@ describe('what a managed query receives (#162)', () => {
           groupBy: 'status'
         }
       });
-      createManagedFetch(view, () => ({ query }), { onResult: () => {} });
+      createManagedFetch(view, () => ({ processing: 'server' as const, query }), {
+        onResult: () => {}
+      });
     });
     flushSync();
     vi.advanceTimersByTime(0);

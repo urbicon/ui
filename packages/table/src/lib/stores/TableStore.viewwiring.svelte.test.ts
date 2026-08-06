@@ -62,7 +62,7 @@ describe('a deep-linked view renders synchronously', () => {
     const store = createTableState(
       deepLink({ sort: { column: 'amount', direction: 'asc' } }),
       undefined,
-      { source: () => ({ items: ITEMS }), columns: () => COLUMNS }
+      { source: () => ({ processing: 'client' as const, items: ITEMS }), columns: () => COLUMNS }
     );
 
     // No flush, no root, no tracking context — read the way the first
@@ -80,7 +80,7 @@ describe('a deep-linked view renders synchronously', () => {
         groupBy: 'name'
       }),
       undefined,
-      { source: () => ({ items: ITEMS }), columns: () => COLUMNS }
+      { source: () => ({ processing: 'client' as const, items: ITEMS }), columns: () => COLUMNS }
     );
 
     expect(store.state.searchTerm).toBe('a');
@@ -117,7 +117,7 @@ describe('the binding matrix', () => {
     const storage = memoryStore();
     const view = createTableView();
     const store = createTableState(view, undefined, {
-      source: () => ({ items: ITEMS }),
+      source: () => ({ processing: 'client' as const, items: ITEMS }),
       columns: () => COLUMNS
     });
 
@@ -137,7 +137,7 @@ describe('the binding matrix', () => {
       const view = createTableView();
       bindViewToStorage(view, { key: 'matrix', storage });
       const store = createTableState(view, undefined, {
-        source: () => ({ items: ITEMS }),
+        source: () => ({ processing: 'client' as const, items: ITEMS }),
         columns: () => COLUMNS
       });
       flushSync();
@@ -157,7 +157,7 @@ describe('the binding matrix', () => {
       const view = createTableView();
       bindViewToStorage(view, { key: 'matrix', storage });
       const store = createTableState(view, undefined, {
-        source: () => ({ items: ITEMS }),
+        source: () => ({ processing: 'client' as const, items: ITEMS }),
         columns: () => COLUMNS
       });
       flushSync();
@@ -178,7 +178,7 @@ describe('the binding matrix', () => {
       const view = deepLink({ sort: { column: 'name', direction: 'asc' } });
       bindViewToStorage(view, { key: 'matrix', storage });
       const store = createTableState(view, undefined, {
-        source: () => ({ items: ITEMS }),
+        source: () => ({ processing: 'client' as const, items: ITEMS }),
         columns: () => COLUMNS
       });
       flushSync(); // hydration: storage must keep off the init-applied axis
@@ -262,7 +262,7 @@ describe('the binding matrix', () => {
       const view = deepLink({ sort: { column: 'name', direction: 'asc' } });
       bindViewToStorage(view, { key: 'matrix', storage });
       const store = createTableState(view, undefined, {
-        source: () => ({ items: ITEMS }),
+        source: () => ({ processing: 'client' as const, items: ITEMS }),
         columns: () => COLUMNS
       });
       flushSync();

@@ -231,8 +231,9 @@ export interface TableContext {
  * <Table
  *   columns={columns}
  *   source={{
- *     query: async (query, { signal }) => {
- *       const res = await fetch(`/api/users?page=${query.page}`, { signal });
+ *     processing: 'server',
+ *     query: async (view, { signal }) => {
+ *       const res = await fetch(`/api/users?page=${view.page}`, { signal });
  *       return await res.json();
  *     }
  *   }}
@@ -259,7 +260,7 @@ export interface TableContext {
 export interface TableProps<T = TableItem> {
   /**
    * Array of data items to display in the table — the shorthand for
-   * `source={{ items }}`, and the right prop whenever the rows are all you
+   * `source={{ processing: 'client', items }}`, and the right prop whenever the rows are all you
    * have to say. Reach for {@link source} once loading, error or a server
    * total come into it.
    *
@@ -332,7 +333,7 @@ export interface TableProps<T = TableItem> {
    * grouping it could render, so give the virtualized table its own view.
    * And a **managed source** (`{ query }`) on both tables fetches once *per
    * table* per interaction — a shared view is not a shared cache; wire the
-   * fetch once yourself and hand both tables a manual `kind: 'server'`
+   * fetch once yourself and hand both tables a manual `processing: 'server'`
    * source if that matters.
    *
    * @example A view whose state lives in the URL
@@ -363,28 +364,36 @@ export interface TableProps<T = TableItem> {
   viewDefaults?: TableViewDefaults;
 
   /**
-   * Where the rows come from — rows *plus how they arrive*. Three shapes, and
-   * the invalid combinations of the old
+   * Where the rows come from, and **who processes them** — sorts, filters,
+   * searches and pages. Three shapes, and the invalid combinations of the old
    * `mode`/`queryFn`/`loading`/`error`/`serverTotalItems` props are not
    * expressible:
-   * - `{ items, loading?, error? }` — client items you fetch yourself
-   * - `{ kind: 'server', items, total, loading?, error? }` — manual server
-   *   flow; `kind: 'server'` is mandatory, because server mode hands
-   *   sorting/filtering to the server and must be an explicit decision
-   * - `{ query, debounceMs? }` — managed server flow: the table calls
-   *   `query` when the view changes (first fetch immediate, later ones
+   * - `{ processing: 'client', items, loading?, error? }` — the table does
+   *   that work in the browser; you fetched the rows, so `loading`/`error`
+   *   are yours to report
+   * - `{ processing: 'server', items, total, loading?, error? }` — your
+   *   backend does it; you fetch and hand in each page
+   * - `{ processing: 'server', query, debounceMs? }` — same, and the table
+   *   calls `query` when the view changes (first fetch immediate, later ones
    *   debounced), manages loading/error and aborts superseded requests
    *
-   * For rows and nothing else, reach for {@link items} — `source={{ items }}`
-   * says the same thing. `source` wins when both are set.
+   * `processing` is required on every variant: it decides whether the reader's
+   * sort headers reorder the page in front of them or ask your backend for a
+   * different one, which is too visible a difference to be inferred from a
+   * `total` that happened to be passed.
+   *
+   * For rows and nothing else, reach for {@link items} —
+   * `source={{ processing: 'client', items }}` says the same thing. `source`
+   * wins when both are set.
    *
    * @example Managed server flow
    * ```svelte
    * <Table
    *   {columns}
    *   source={{
-   *     query: async (query, { signal }) => {
-   *       const res = await fetch(`/api/users?page=${query.page}`, { signal });
+   *     processing: 'server',
+   *     query: async (view, { signal }) => {
+   *       const res = await fetch(`/api/users?page=${view.page}`, { signal });
    *       return await res.json();
    *     }
    *   }}

@@ -237,13 +237,17 @@ describe('two tables, one view — where the sharing bites', () => {
     // Each table runs its own `createManagedFetch` over the shared view, so
     // one reader interaction produces one fetch PER table. Two tables sharing
     // a view and a managed source is therefore a doubling, not a cache —
-    // wire the fetch once and hand both tables a manual `kind: 'server'`
+    // wire the fetch once and hand both tables a manual `processing: 'server'`
     // source if that matters. `debounceMs: 0` only shortens the wait; the
     // first fetch is immediate on either setting.
     const view = createTableView();
-    const query = vi.fn(async () => ({ items: ROWS, totalItems: 3 }));
-    const a = mountTable({ items: undefined, source: { query, debounceMs: 0 }, view });
-    mountTable({ items: undefined, source: { query, debounceMs: 0 }, view });
+    const query = vi.fn(async () => ({ items: ROWS, total: 3 }));
+    const a = mountTable({
+      items: undefined,
+      source: { processing: 'server', query, debounceMs: 0 },
+      view
+    });
+    mountTable({ items: undefined, source: { processing: 'server', query, debounceMs: 0 }, view });
     await vi.waitFor(() => expect(query).toHaveBeenCalledTimes(2)); // one per table, at mount
 
     a.ctx.setSearchTerm('ada');

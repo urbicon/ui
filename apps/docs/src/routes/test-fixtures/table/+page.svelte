@@ -4,12 +4,7 @@
   // data over the managed server source. Data is fully deterministic — index-derived
   // names, cycling categories, and a (i * 37) % 101 score whose order deliberately
   // differs from insertion order so a sort visibly reorders rows. No Math.random.
-  import {
-    Table,
-    type Column,
-    type TableQueryResult,
-    type TableViewSnapshot
-  } from '@urbicon-ui/table';
+  import { Table, type Column, type TablePage, type TableViewSnapshot } from '@urbicon-ui/table';
 
   type Row = { id: number; name: string; category: string; score: number };
 
@@ -64,7 +59,7 @@
   let shownRow = $state<Row | null>(null);
 
   // Remote fixture: a deterministic in-memory "backend" behind the managed server
-  // source (`source={{ query, debounceMs }}`). The query applies search / sort /
+  // source (`source={{ processing: 'server', query, debounceMs }}`). The query applies search / sort /
   // paging to a fixed 40-row set after an artificial latency, and increments a
   // request counter surfaced in the DOM — so the spec can assert that a search or
   // sort interaction issues a fresh request and the table renders the new result.
@@ -76,7 +71,7 @@
   let requestCount = $state(0);
   let remoteTotal = $state(0);
 
-  async function remoteQuery(query: TableViewSnapshot): Promise<TableQueryResult> {
+  async function remoteQuery(query: TableViewSnapshot): Promise<TablePage> {
     requestCount += 1;
     await new Promise((resolve) => setTimeout(resolve, REMOTE_LATENCY_MS));
 
@@ -236,7 +231,7 @@
     </p>
     <Table
       {columns}
-      source={{ query: remoteQuery, debounceMs: 50 }}
+      source={{ processing: 'server', query: remoteQuery, debounceMs: 50 }}
       searchDebounceMs={50}
       viewDefaults={{ pageSize: 10 }}
       ariaLabel="Remote fixture table"

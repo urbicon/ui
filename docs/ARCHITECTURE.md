@@ -527,7 +527,7 @@ reader. Preferences (column visibility and order, summaries, opt-in selection) a
 separate channel — the `prefs` prop — and never enter the URL.
 
 **Client and server mode.** The data source is one union (`source`): plain items, items you
-fetch yourself, `{ kind: 'server', items, total, … }` for the manual flow, or `{ query }`
+fetch yourself, `{ processing: 'server', items, total, … }` for the manual flow, or `{ processing: 'server', query }`
 for the managed one. The tag is mandatory because server mode hands sorting and filtering to
 the server; the invalid combinations of the old `mode`/`queryFn`/`loading` props are not
 expressible. In server mode the derived chain passes `state.items` through unchanged and
