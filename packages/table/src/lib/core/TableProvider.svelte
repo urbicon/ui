@@ -78,11 +78,12 @@
   const tableView = resolveViewProp(view, viewDefaults);
 
   // Store is built once from the initial prefs config — not meant to
-  // re-create if the prop changes reactively. `initialSelectedIds` is equally
-  // construction-time-only (seed-once); the controlled `selectedIds` prop
-  // supersedes it entirely (applied by the effect below), so the prop is the
-  // source of truth from the first render — and, per syncSelection, a
-  // controlled selection is never mirrored to storage.
+  // re-create if the prop changes reactively. `initialSelectedIds` is
+  // construction-time-only (seed-once); a controlled `selectedIds` wins over
+  // it and seeds construction too, so the controlled value is in the SERVER
+  // HTML (runtime changes of the prop, which only exist client-side, are
+  // applied by the effect below) — and, per syncSelection, a controlled
+  // selection is never mirrored to storage.
   // svelte-ignore state_referenced_locally
   const tableState = createTableState(
     tableView,
@@ -104,7 +105,7 @@
       virtualized: () => virtualized,
       enableColumnVisibility: () => enableColumnVisibility
     },
-    { selectedIds: selectedIds === undefined ? initialSelectedIds : undefined }
+    { selectedIds: selectedIds ?? initialSelectedIds }
   );
   attachTableContext(tableState);
 

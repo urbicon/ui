@@ -141,6 +141,30 @@ describe('Table — server render of a shared link', () => {
   });
 });
 
+describe('Table — server render of a controlled selection', () => {
+  // The last category-A gap of the SSR/CSR audit, closed: the controlled
+  // `selectedIds` prop used to reach the selection only through the runtime
+  // effect, which does not run during SSR — measured: `selectedIds={[2]}`
+  // rendered unselected server HTML while `initialSelectedIds={[2]}`
+  // rendered it selected. The controlled prop now seeds construction too,
+  // so both halves below agree. Red seen: the first test failed
+  // (aria-selected="false" on row 2) before the seed change.
+  const rowTag = (body: string, id: number) =>
+    body.match(new RegExp(`<tr[^>]*data-testid="table-row-${id}"[^>]*>`))?.[0] ?? '';
+
+  it('a controlled selectedIds reaches the server HTML', () => {
+    const body = bodyOf({ items: ROWS, selectionMode: 'multi', selectedIds: [2] });
+    expect(rowTag(body, 2)).toContain('aria-selected="true"');
+    expect(rowTag(body, 1)).toContain('aria-selected="false"');
+  });
+
+  it('initialSelectedIds reaches the server HTML (the seed half, unchanged)', () => {
+    const body = bodyOf({ items: ROWS, selectionMode: 'multi', initialSelectedIds: [3] });
+    expect(rowTag(body, 3)).toContain('aria-selected="true"');
+    expect(rowTag(body, 1)).toContain('aria-selected="false"');
+  });
+});
+
 // Deleted here: "renders every column, because storage does not exist here".
 // It ran in the node env, never wrote a key, and `getStorage()` returns null
 // without a `window` — so "both headers present" held for every conceivable

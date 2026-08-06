@@ -134,9 +134,12 @@ export interface TablePropSources {
 export interface TableSeedState {
   /**
    * Initial selected row ids (keyed by `item.id`, row-index fallback),
-   * applied once at construction. A selection restored via
-   * `prefs.persistSelection` takes precedence — including a stored *empty*
-   * one; ignored entirely when the controlled `selectedIds` prop is present.
+   * applied once at construction — during SSR too, so the seed is in the
+   * server HTML. `TableProvider` feeds it from the controlled `selectedIds`
+   * prop when that is present, from `initialSelectedIds` otherwise. For the
+   * uncontrolled seed, a selection restored via `prefs.persistSelection`
+   * takes precedence — including a stored *empty* one; a controlled seed
+   * wins over storage (the prop is the source of truth).
    */
   selectedIds?: Array<string | number>;
 }
@@ -523,7 +526,9 @@ export function createTableState(
     seed?.selectedIds &&
     seed.selectedIds.length > 0 &&
     state.selectedIds.size === 0 &&
-    !prefsStore.hydratedSelection
+    // A controlled selection is the source of truth over anything storage
+    // holds; only the uncontrolled initial seed yields to a stored value.
+    (state.selectionControlled || !prefsStore.hydratedSelection)
   ) {
     selection.setSelectedIds(seed.selectedIds);
   }

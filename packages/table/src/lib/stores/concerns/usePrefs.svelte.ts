@@ -101,6 +101,10 @@ export function usePrefs(state: TableState, prefs?: TablePrefsConfig) {
   if (persistentSelection?.hasStoredValue && Array.isArray(persistentSelection.value)) {
     const ids = persistentSelection.value.filter(isRowId);
     pending.push(() => {
+      // The read-side mirror of syncSelection's guard: a controlled
+      // selection never reaches storage, and a stored one (from an earlier
+      // uncontrolled era) never overrides the controlled prop.
+      if (state.selectionControlled) return;
       for (const id of ids) state.selectedIds.add(id);
     });
     hydratedSelection = true;

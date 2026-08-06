@@ -648,8 +648,15 @@ export interface TableProps<T = TableItem> {
   initialSelectedIds?: Array<string | number>;
 
   /**
-   * Controlled selected row IDs. When provided, the component reflects this value
-   * instead of managing selection internally.
+   * Controlled selected row IDs. When provided, the component reflects this
+   * value instead of managing selection internally: it seeds the selection at
+   * construction — SSR-visible, the server HTML carries the selected rows —
+   * and every later prop value replaces the selection. User interaction still
+   * changes the selection immediately (it is not frozen to the prop); hand
+   * the change back via {@link onSelectionChange} to keep the two in sync,
+   * or the next prop value reverts it. Never written to
+   * `prefs.persistSelection` storage, and a stored selection never overrides
+   * it — the prop is the source of truth.
    * @default undefined
    */
   selectedIds?: Array<string | number>;

@@ -193,9 +193,9 @@ describe('selection seed (createTableState 4th argument)', () => {
   });
 
   it('a controlled apply replaces the seed (controlled wins)', () => {
-    // TableProvider drops the seed entirely when the controlled `selectedIds`
-    // prop is present; even without that gate the store converges — the
-    // controlled effect applies the prop after construction:
+    // TableProvider seeds construction with the controlled `selectedIds`
+    // itself (SSR-visible); even when the two disagree the store converges —
+    // the controlled effect re-applies the prop after construction:
     const ts = createTableState(undefined, undefined, undefined, { selectedIds: [1, 3] });
     ts.state.selectionControlled = true;
     ts.setSelectedIds([2]);
