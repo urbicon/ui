@@ -195,6 +195,12 @@ What no longer appears on the type, and where its job went:
 | `applyPersistedState` / `clearPersisted*` / `forceSavePersistentData` | preference persistence is the table's own lifecycle; to reset a table's preferences, remove its `urbicon_table_*_<key>_v1` storage entries |
 | `setTableContext()` | gone — `<Table>` (via its `TableProvider`) is what establishes the context |
 
+The store barrel also stopped re-exporting its wiring wholesale: `createTableState`,
+`attachTableContext`, `attachCellLocale`, `TablePropSources`, `TableSeedState` and
+`TableViewState` were formally public in v7 (an `export *`) but never documented; they
+are internal now. If you constructed table state yourself, `<Table>` plus the context
+above is the supported path.
+
 The object behind the interface is unchanged and alive — nothing about *when* you get it
 (`onReady` once, `getTableContext()` inside the tree) moved. If a member you relied on is
 missing from the narrow surface, that is a conversation worth having rather than a cast:

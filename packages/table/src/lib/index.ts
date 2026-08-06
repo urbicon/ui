@@ -41,9 +41,11 @@ export * from './types/index.js';
 // function, or no accessor.
 export {
   findColumnById,
+  getNestedValue,
   resolveColumnId,
   resolveColumnLabel,
-  resolveColumnValue
+  resolveColumnValue,
+  resolveValueById
 } from './utils/index.js';
 export type { VirtualItem, VirtualizerOptions, VirtualizerResult } from './utils/virtualizer.js';
 // === VIRTUALIZER ===
