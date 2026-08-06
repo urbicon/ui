@@ -151,6 +151,18 @@ export interface TableProps<T = TableItem> {
    * not — write `view.page = 1` alongside, or go through the context's
    * `setSearchTerm`.
    *
+   * **Sharing one view across tables.** Several tables may mount the same
+   * view: they read and write the same six axes, and a table takes no claim
+   * of its own (a remounting `{#if}` child inherits the current state).
+   * Two limits are worth knowing. A **virtualized** table discards any
+   * grouping as a system decision, and on a shared view that discard is not
+   * scoped to the table that made it — an un-virtualized sibling loses a
+   * grouping it could render, so give the virtualized table its own view.
+   * And a **managed source** (`{ query }`) on both tables fetches once *per
+   * table* per interaction — a shared view is not a shared cache; wire the
+   * fetch once yourself and hand both tables a manual `kind: 'server'`
+   * source if that matters.
+   *
    * @example A view whose state lives in the URL
    * ```svelte
    * <script lang="ts">
@@ -219,6 +231,10 @@ export interface TableProps<T = TableItem> {
    * `{ key, kind?, debounceMs? }`); `defaults` are the initial preferences
    * for a table nobody touched (applied at construction, SSR-visible);
    * `persistSelection: true` opts the selection into storage.
+   *
+   * Using the same key string here and in `bindViewToStorage` is a naming
+   * convention, not a link: the two channels stay independent, so persisting
+   * both the view and the preferences always takes both statements.
    *
    * @example
    * ```svelte

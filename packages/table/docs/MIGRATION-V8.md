@@ -101,6 +101,17 @@ shared, **preferences** belong to the table and never leave the browser.
 table's stored view (the "reset my saved view" button) and `flush()` writes pending changes
 immediately.
 
+Using the same key for `bindViewToStorage(view, { key: 'x' })` and `prefs={{ storage: 'x' }}`
+is a naming convention, not a link — the two channels stay independent, and persisting both
+the view and the preferences always takes both statements.
+
+**If you drive an axis yourself** — the v8 equivalent of v7's controlled `searchTerm` prop is
+writing `view.search` from your own state — exclude that axis from the storage binding:
+`bindViewToStorage(view, { key: 'x', axes: ['sort', 'pageSize', 'filters', 'groupBy'] })`.
+Your writes are field writes, which count as reader changes, so a driven axis would land in
+storage like any other edit; v7 suppressed that automatically once `searchTerm` was
+controlled, v8 has no way to tell your writes from the reader's.
+
 ### URL state
 
 `createTableQueryUrlSync` is gone, and with it the `viewState`-vs-`initialQuery` choice and
@@ -183,6 +194,17 @@ What follows from it:
 6. **A grouping discarded by `virtualized` is a system decision.** It cleans the URL but never
    reaches storage as your wish, so the stored grouping applies again on the next load
    without `virtualized`.
+7. **A `sortDirection` write on an unsorted view is a no-op.** On the context surface,
+   `state.sortDirection = 'desc'` only re-directions an existing sort: direction is half of
+   the sort *value* (`view.sort = { column, direction }`), and unsorted is `null`, so there
+   is no direction to flip. In v7 the two lived in separate fields and a direction written
+   while unsorted was picked up by the next column write; in v8, set the column and the
+   direction together.
+8. **Inside the URL write debounce, a foreign navigation wins.** If something else navigates
+   the same path without a bound axis's param before the binding's debounced write fires —
+   a link elsewhere on the page, a router redirect — the runtime rule applies: absence on a
+   bound axis means the default. The pending edit is not resurrected afterwards; the last
+   writer of the URL wins.
 
 ## Consumers who used `onQueryChange` without a URL
 
@@ -201,6 +223,20 @@ emission), then debounced on every structural change, and it is echo-free.
 that type and its field names (`itemsPerPage`, `sortColumn`, `sortDirection`, `searchTerm`,
 `activeFilters`, `groupByKey`) are unchanged, because they are the server contract, not the
 view vocabulary.
+
+## Sharing one view across tables
+
+Several tables may mount the same view. They read and write the same six axes, and a table
+takes no claim of its own — a remounting `{#if}` child inherits the current state, and a
+third table can join later. Two limits are worth knowing:
+
+- **Give a virtualized table its own view.** A virtualized table discards grouping as a
+  system decision, and on a shared view that discard is not scoped to the table that made
+  it: an un-virtualized sibling loses a grouping it could perfectly well render, and a
+  grouping the reader sets later is taken back in the same flush.
+- **A shared view is not a shared cache.** A managed source (`{ query }`) on both tables
+  fetches once *per table* per interaction. If one fetch should serve both, run it yourself
+  (`observeView` + your fetch) and hand each table a manual `kind: 'server'` source.
 
 ## Where to construct the view
 

@@ -38,7 +38,12 @@ export const STORAGE_DEFAULT_AXES: readonly ViewAxis[] = [
 
 /** Options for {@link bindViewToStorage}. */
 export interface StorageBindingOptions {
-  /** Unique identifier for this table — used as the storage-key suffix. */
+  /**
+   * Unique identifier for this table — used as the storage-key suffix.
+   * Reusing the table's `prefs` storage key here is a naming convention,
+   * not a link: view storage and preference storage are independent
+   * channels, so persisting both always takes both statements.
+   */
   key: string;
   /** Axes to persist. @default STORAGE_DEFAULT_AXES (all but `page`) */
   axes?: readonly ViewAxis[];

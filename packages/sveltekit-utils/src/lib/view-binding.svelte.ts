@@ -217,6 +217,13 @@ export interface UrlViewBindingOptions {
   /**
    * Replace the current history entry instead of pushing a new one, so rapid
    * sort/filter/page edits do not flood the back button.
+   *
+   * Decided for v8: this default covers **all** binding writes — v7
+   * continuity, keeping interactions from polluting the back button — and
+   * there is deliberately no per-interaction-type history mapping (a page
+   * turn pushing while a keystroke replaces); this one global option is the
+   * whole knob. Mirror-only writes (`reflectExternal`) always replace,
+   * whatever this is set to.
    * @default true
    */
   replaceState?: boolean;
@@ -227,11 +234,15 @@ export interface UrlViewBindingOptions {
    */
   prefix?: string;
   /**
-   * Mirror *external* changes (a storage seed) into the URL immediately, via
-   * `replaceState` — the "yesterday's view" state becomes shareable without
-   * an interaction. Default `false`: the address bar does not change without
-   * reader interaction; the seed reaches the URL with the first one (the
-   * full snapshot is serialized then).
+   * Whether *external* changes (a storage seed) are mirrored into the URL.
+   *
+   * - `false` (default): the address bar does not change without a reader
+   *   interaction — a restored "yesterday's view" stays out of the URL until
+   *   the reader's first edit, which then serializes the full snapshot.
+   * - `true`: an external application reaches the URL immediately, always
+   *   via `replaceState` (a mirror is not a reader action, so it never
+   *   mints a history entry) — the restored state becomes shareable without
+   *   an interaction.
    * @default false
    */
   reflectExternal?: boolean;
