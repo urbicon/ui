@@ -195,7 +195,7 @@
     <Table
       items={tableItems}
       {columns}
-      itemsPerPage={999}
+      viewDefaults={{ pageSize: 999 }}
       enableSmartFilter={sortedProps.length > 6}
       searchPlaceholder={dt('filterProperties')}
       searchDebounceMs={200}

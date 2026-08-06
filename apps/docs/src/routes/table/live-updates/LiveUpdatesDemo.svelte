@@ -189,7 +189,7 @@
     {columns}
     enableLiveUpdates
     autoApplyOnNavigation={false}
-    itemsPerPage={8}
+    viewDefaults={{ pageSize: 8 }}
     onReady={(context) => (table = context)}
   >
     {#snippet toolbar()}

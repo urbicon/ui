@@ -82,7 +82,7 @@ ${scriptClose}
         <Table
           items={employees}
           columns={factoryColumns}
-          itemsPerPage={6}
+          viewDefaults={{ pageSize: 6 }}
           enableSmartFilter={false}
         />
       </CodeExample>

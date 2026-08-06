@@ -69,14 +69,17 @@
 
       <CodeExample
         title="Start Sorted"
-        description="initialSort seeds the uncontrolled sort once — the header indicator shows it, and users can still change or clear it. A sort restored via persistenceConfig (persistSort) takes precedence — including a stored 'no sort', so a sort the user cleared stays cleared instead of re-seeding."
-        code={`<Table {items} {columns} initialSort={{ column: 'salary', direction: 'desc' }} />`}
+        description="viewDefaults.sort is the view's baseline — the header indicator shows it, and users can still change or clear it. A storage binding applies a stored sort after hydration and so beats the default; a stored sort: null is a real value, so a sort the user cleared stays cleared."
+        code={`<Table
+  {items}
+  {columns}
+  viewDefaults={{ sort: { column: 'salary', direction: 'desc' }, pageSize: 5 }}
+/>`}
       >
         <Table
           items={employees}
           columns={summaryColumns}
-          initialSort={{ column: 'salary', direction: 'desc' }}
-          itemsPerPage={5}
+          viewDefaults={{ sort: { column: 'salary', direction: 'desc' }, pageSize: 5 }}
           enableSmartFilter={false}
         />
       </CodeExample>
@@ -87,14 +90,14 @@
         code={`<Table
   {items}
   {columns}
-  initialGroupBy="department"
+  viewDefaults={{ groupBy: 'department' }}
   groupOrder={['Platform', 'Product', 'Design', 'Data']}
 />`}
       >
         <Table
           items={employees}
           columns={basicColumns}
-          initialGroupBy="department"
+          viewDefaults={{ groupBy: 'department' }}
           groupOrder={['Platform', 'Product', 'Design', 'Data']}
           enableSmartFilter={false}
         />
@@ -107,10 +110,22 @@
       <p class="text-text-secondary text-sm">
         Summary rows aggregate a column across rows. When the table is grouped, each group gets its
         own summary row; without grouping, a single total row is appended below the data. Pass
-        <code class="text-text-primary">initialSummaryConfigs</code> to enable summaries
-        declaratively — users can also add and remove them at runtime via the
+        <code class="text-text-primary"
+          >prefs=&#123;&#123; defaults: &#123; summaries: [&hellip;] &#125; &#125;&#125;</code
+        >
+        to enable summaries declaratively — users can also add and remove them at runtime via the
         <a href="#header-menu" class="text-primary hover:underline">header menu</a> or the SmartFilterBar's
         summary control.
+      </p>
+
+      <p class="text-text-secondary text-sm">
+        <strong class="text-text-primary">Summaries are a preference, not a view axis.</strong>
+        Sorting and grouping decide
+        <em>which</em> rows a reader sees, which makes them worth sharing and worth putting in a
+        link — they live on the view. A summary row changes how the same rows are presented, so it
+        belongs to this reader on this device and stays in web storage:
+        <code class="text-text-primary">viewDefaults</code> for the former,
+        <code class="text-text-primary">prefs</code> for the latter.
       </p>
 
       <CodeExample
@@ -119,16 +134,15 @@
         code={`<Table
   {items}
   {columns}
-  initialGroupBy="department"
-  initialSummaryConfigs={[{ column: 'salary', type: 'sum' }]}
+  viewDefaults={{ groupBy: 'department', pageSize: 12 }}
+  prefs={{ defaults: { summaries: [{ column: 'salary', type: 'sum' }] } }}
 />`}
       >
         <Table
           items={employees}
           columns={summaryColumns}
-          initialGroupBy="department"
-          initialSummaryConfigs={[{ column: 'salary', type: 'sum' }]}
-          itemsPerPage={12}
+          viewDefaults={{ groupBy: 'department', pageSize: 12 }}
+          prefs={{ defaults: { summaries: [{ column: 'salary', type: 'sum' }] } }}
           enableSmartFilter={false}
         />
       </CodeExample>
@@ -160,10 +174,12 @@
         <code class="text-text-primary">summable: true</code> opts a column in,
         <code class="text-text-primary">summable: false</code> opts it out. When the flag is unset,
         columns with <code class="text-text-primary">dataType: 'number'</code> are summable
-        automatically. With a
+        automatically. Give the table a
         <a href={resolve('/table/customization')} class="text-primary hover:underline">
-          persistence config</a
-        >, summary selections survive reloads alongside filters, grouping, and sort.
+          preference store</a
+        >
+        (<code class="text-text-primary">prefs=&#123;&#123; storage: 'employees' &#125;&#125;</code
+        >) and summary selections survive reloads, alongside column visibility and column order.
       </p>
     </div>
   </Section>
@@ -198,7 +214,12 @@
 ];`}
         language="typescript"
       >
-        <Table items={employees} columns={richColumns} itemsPerPage={5} enableSmartFilter={false} />
+        <Table
+          items={employees}
+          columns={richColumns}
+          viewDefaults={{ pageSize: 5 }}
+          enableSmartFilter={false}
+        />
       </CodeExample>
 
       <p class="text-text-secondary text-sm">

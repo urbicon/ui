@@ -41,6 +41,7 @@ Then reach for the rest as you need it.
 - [COMPONENT-DECISION-MATRICES.md](COMPONENT-DECISION-MATRICES.md) — Sidebar/Drawer/Popover/SidebarLayout and Calendar/Planner decision matrices
 - [VARIANT-CONTRACT.md](VARIANT-CONTRACT.md) — what each `variant` value means across the library *(shipped in the blocks tarball)*
 - [STICKY-PINNING.md](STICKY-PINNING.md) — table scroll models: page-relative sticky pinning + contained scroll *(shipped in the table tarball)*
+- [MIGRATION-V8.md](MIGRATION-V8.md) — table v7 → v8: the consumer-owned view object, the source union, the two persistence channels *(shipped in the table tarball)*
 - [GUIDE.md](GUIDE.md) — Guide system: non-modal help panel, contextual hints, guided tour *(shipped in the blocks tarball)*
 - [A2UI.md](A2UI.md) — agent-generated UI in a chat: long-lived surfaces, the action-only return path *(shipped in the blocks tarball)*
 

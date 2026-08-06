@@ -1,28 +1,37 @@
 <script lang="ts">
   import { building } from '$app/environment';
   import { page } from '$app/state';
-  import { createTableQueryUrlSync } from '@urbicon-ui/sveltekit-utils/url.svelte';
-  import { Table } from '@urbicon-ui/table';
+  import { bindViewToUrl } from '@urbicon-ui/sveltekit-utils/url.svelte';
+  import { createTableView, Table } from '@urbicon-ui/table';
   import { basicColumns, employees } from '../_data';
 
   /**
-   * A real sync, running against this page's own address bar.
+   * A real binding, running against this page's own address bar.
    *
-   * `prefix` is what makes that safe: every key this demo writes is namespaced
-   * (`?demo_q=…`), so it cannot collide with a param the docs site itself uses,
-   * and `syncQuery` preserves everything it does not own — including the `#`
-   * anchor the table of contents navigates by.
+   * `prefix` is what makes that safe: every key this binding manages is
+   * namespaced (`?demo_q=…`), so it cannot claim a param the docs site itself
+   * uses, and the shared URL writer replaces only its own keys — every other
+   * param survives, and each navigation carries the current `#` anchor along,
+   * the one the table of contents scrolls by. Two bindings that would manage
+   * the same key are refused at registration rather than overwriting each
+   * other silently.
    *
-   * `defaults` matches the props below, so the elision baseline is the state
-   * the table actually starts in: page 1 at 5 rows writes nothing, and clearing
-   * search and sort again empties the URL rather than leaving `?demo_q=` behind.
+   * `defaults` is written once and does two jobs: it is the state the table
+   * starts in *and* the baseline the URL elides against. Page 1 at 5 rows
+   * therefore writes nothing, and clearing search and sort again empties the
+   * URL rather than leaving `?demo_q=` behind.
    */
-  const sync = createTableQueryUrlSync({ prefix: 'demo_', defaults: { itemsPerPage: 5 } });
+  const view = createTableView({ defaults: { pageSize: 5 } });
+  bindViewToUrl(view, { prefix: 'demo_' });
 
-  // Same rule as the sync itself: SvelteKit forbids reading `url.searchParams`
-  // while prerendering, because the emitted HTML must not depend on a query
-  // string that does not exist at build time. "Nothing yet" is the honest
-  // render for that pass; the client re-reads the real URL on hydration.
+  /**
+   * The binding itself is prerender-safe: its init phase skips reading
+   * `url.searchParams` while `building` (SvelteKit forbids it — the emitted
+   * HTML must not depend on a query string that does not exist at build time),
+   * so the build pass renders the defaults and the client applies the real URL
+   * at init, synchronously. This list reads the params directly, so it needs
+   * the same guard: "nothing yet" is the honest render for that pass.
+   */
   const demoParams = $derived(
     building ? [] : [...page.url.searchParams].filter(([key]) => key.startsWith('demo_'))
   );
@@ -36,10 +45,8 @@
   <Table
     items={employees}
     columns={basicColumns}
-    query={sync.viewState}
-    onQueryChange={sync.syncQuery}
+    {view}
     enableSmartFilter
-    itemsPerPage={5}
     searchPlaceholder="Search employees…"
   />
 

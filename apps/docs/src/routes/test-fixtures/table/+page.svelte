@@ -1,9 +1,9 @@
 <script lang="ts">
   // E2E fixture for the Table core flows (e2e/table-core.spec.ts): sorting, search
   // filtering, virtualization, grouping, row selection, column reorder, and remote
-  // (server-mode) data. Data is fully deterministic — index-derived names, cycling
-  // categories, and a (i * 37) % 101 score whose order deliberately differs from
-  // insertion order so a sort visibly reorders rows. No Math.random anywhere.
+  // data over the managed server source. Data is fully deterministic — index-derived
+  // names, cycling categories, and a (i * 37) % 101 score whose order deliberately
+  // differs from insertion order so a sort visibly reorders rows. No Math.random.
   import { Table, type Column, type TableQuery, type TableQueryResult } from '@urbicon-ui/table';
 
   type Row = { id: number; name: string; category: string; score: number };
@@ -58,13 +58,14 @@
   // spec can prove the mark follows the click without any selection being made.
   let shownRow = $state<Row | null>(null);
 
-  // Remote (server-mode) fixture: a deterministic in-memory "backend". queryFn
-  // applies search / sort / paging to a fixed 40-row set after an artificial
-  // latency, and increments a request counter surfaced in the DOM — so the spec
-  // can assert that a search or sort interaction issues a fresh request and the
-  // table renders the new result. queryFn never throws (an abort surfaces via the
-  // AbortSignal the table passes; a resolved-but-superseded result is ignored by
-  // the table itself), keeping the page free of uncaught errors.
+  // Remote fixture: a deterministic in-memory "backend" behind the managed server
+  // source (`source={{ query, debounceMs }}`). The query applies search / sort /
+  // paging to a fixed 40-row set after an artificial latency, and increments a
+  // request counter surfaced in the DOM — so the spec can assert that a search or
+  // sort interaction issues a fresh request and the table renders the new result.
+  // It never throws (an abort surfaces via the AbortSignal the table passes; a
+  // resolved-but-superseded result is ignored by the table itself), keeping the
+  // page free of uncaught errors.
   const remoteData = makeRows(40);
   const REMOTE_LATENCY_MS = 180;
   let requestCount = $state(0);
@@ -107,14 +108,14 @@
 <div class="bg-surface-base min-h-screen p-8" data-testid="table-fixtures">
   <h1 class="text-text-primary mb-6 text-xl font-bold">Table fixtures</h1>
 
-  <!-- Standard client-mode table: pagination + smart filter + sortable headers.
+  <!-- Standard client table: pagination + smart filter + sortable headers.
        Short search debounce keeps the spec fast without racing the filter. -->
   <section data-testid="table-standard" class="mb-16">
     <h2 class="text-text-primary mb-4 text-lg font-semibold">Standard (57 rows)</h2>
     <Table
       items={standardRows}
       {columns}
-      itemsPerPage={10}
+      viewDefaults={{ pageSize: 10 }}
       searchDebounceMs={50}
       ariaLabel="Standard fixture table"
     />
@@ -142,9 +143,8 @@
     <Table
       items={groupRows}
       columns={groupColumns}
-      initialGroupBy="region"
+      viewDefaults={{ groupBy: 'region', pageSize: 50 }}
       {groupOrder}
-      itemsPerPage={50}
       enableSmartFilter={false}
       ariaLabel="Grouped fixture table"
     />
@@ -160,10 +160,9 @@
     <Table
       items={groupRows}
       columns={groupColumns}
-      initialGroupBy="region"
+      viewDefaults={{ groupBy: 'region', pageSize: 50 }}
       {groupOrder}
       selectionMode="multi"
-      itemsPerPage={50}
       enableSmartFilter={false}
       ariaLabel="Grouped keyboard fixture table"
     />
@@ -182,7 +181,7 @@
       selectionMode="multi"
       onSelectionChange={(items) => (selectedCount = items.length)}
       enableSmartFilter={false}
-      itemsPerPage={10}
+      viewDefaults={{ pageSize: 10 }}
       ariaLabel="Selection fixture table"
     />
   </section>
@@ -201,7 +200,7 @@
       activeRowId={shownRow?.id ?? null}
       onRowClick={(row) => (shownRow = row as Row)}
       enableSmartFilter={false}
-      itemsPerPage={10}
+      viewDefaults={{ pageSize: 10 }}
       ariaLabel="Active row fixture table"
     />
   </section>
@@ -216,28 +215,25 @@
       {columns}
       enableColumnReorder
       enableSmartFilter={false}
-      itemsPerPage={10}
+      viewDefaults={{ pageSize: 10 }}
       ariaLabel="Reorder fixture table"
     />
   </section>
 
-  <!-- Remote (server mode) table: queryFn is a deterministic mock backend with
-       latency. The spec asserts a search / sort interaction fires a new request
-       (visible counter) and the table renders the fresh result. -->
+  <!-- Remote table on the managed server source: the query is a deterministic mock
+       backend with latency. The spec asserts a search / sort interaction fires a new
+       request (visible counter) and the table renders the fresh result. -->
   <section data-testid="table-remote">
-    <h2 class="text-text-primary mb-4 text-lg font-semibold">Remote (server mode)</h2>
+    <h2 class="text-text-primary mb-4 text-lg font-semibold">Remote (server source)</h2>
     <p class="text-text-secondary mb-4 text-sm">
       Requests: <span data-testid="remote-request-count">{requestCount}</span> · Total:
       <span data-testid="remote-total">{remoteTotal}</span>
     </p>
     <Table
-      items={[] as Row[]}
       {columns}
-      mode="server"
-      queryFn={remoteQuery}
-      queryDebounceMs={50}
+      source={{ query: remoteQuery, debounceMs: 50 }}
       searchDebounceMs={50}
-      itemsPerPage={10}
+      viewDefaults={{ pageSize: 10 }}
       ariaLabel="Remote fixture table"
     />
   </section>

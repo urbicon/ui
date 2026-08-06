@@ -79,13 +79,13 @@ ${scriptClose}
           columns={basicColumns}
           selectionMode="multi"
           enableSmartFilter={false}
-          itemsPerPage={6}
+          viewDefaults={{ pageSize: 6 }}
         />
       </CodeExample>
 
       <CodeExample
         title="Start Selected"
-        description="initialSelectedIds seeds the uncontrolled selection once — no controlled wiring needed for a starting value. Users can change or clear it freely; a selection restored via persistenceConfig.persistSelection takes precedence — including a stored empty one, so deselecting everything stays deselected instead of re-seeding."
+        description="initialSelectedIds seeds the uncontrolled selection once — no controlled wiring needed for a starting value. Users can change or clear it freely; a selection restored from storage — opt in via prefs.persistSelection — takes precedence, including a stored empty one, so deselecting everything stays deselected instead of re-seeding."
         code={`<Table
   {items}
   {columns}
@@ -99,7 +99,7 @@ ${scriptClose}
           selectionMode="multi"
           initialSelectedIds={[1, 3]}
           enableSmartFilter={false}
-          itemsPerPage={6}
+          viewDefaults={{ pageSize: 6 }}
         />
       </CodeExample>
 
@@ -118,7 +118,7 @@ ${scriptClose}
           columns={basicColumns}
           selectionMode="single"
           enableSmartFilter={false}
-          itemsPerPage={4}
+          viewDefaults={{ pageSize: 4 }}
         />
       </CodeExample>
     </div>
@@ -148,9 +148,8 @@ ${scriptClose}
         that ignores the callback freezes: the stale prop value is re-asserted and user clicks are
         reverted. An empty array is a valid controlled value ("nothing selected");
         <code class="text-text-primary">undefined</code> switches back to uncontrolled. A controlled
-        selection is never written to storage —
-        <code class="text-text-primary">persistenceConfig.persistSelection</code> has no effect in this
-        mode.
+        selection is never written to storage — the opt-in
+        <code class="text-text-primary">prefs.persistSelection</code> has no effect in this mode.
       </p>
 
       <CodeExample
@@ -176,7 +175,7 @@ ${scriptClose}
             selectedIds={controlledIds}
             onSelectionChange={(items) => (controlledIds = items.map((item) => item.id))}
             enableSmartFilter={false}
-            itemsPerPage={6}
+            viewDefaults={{ pageSize: 6 }}
           />
         </div>
       </CodeExample>

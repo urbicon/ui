@@ -33,6 +33,7 @@
   },
   "files": [
     "LICENSE",
+    "docs/MIGRATION-V8.md",
     "docs/STICKY-PINNING.md",
     "dist",
     "!dist/**/*.test.*",

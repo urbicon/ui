@@ -61,7 +61,7 @@
         items={employees.slice(0, 6)}
         columns={basicColumns}
         enableSmartFilter={false}
-        itemsPerPage={6}
+        viewDefaults={{ pageSize: 6 }}
       >
         {#snippet expandedRowContent(item)}
           <div class="grid grid-cols-1 gap-4 p-4 md:grid-cols-3">

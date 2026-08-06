@@ -167,22 +167,27 @@ expression. Full rules and role models: [SVELTE5-PATTERNS.md](SVELTE5-PATTERNS.m
 
 ## Table view state belongs in the URL, not only in `localStorage`
 
-The table's `query` prop controls search, sort, page, page size, filters and grouping by
-field presence, and outranks both `persistenceConfig` and the `initial*` seeds.
+Search, sort, page, page size, filters and grouping live in one consumer-owned `TableView`;
+`bindViewToUrl(view)` puts them in the address bar, `bindViewToStorage(view, { key })` keeps
+them between visits, and both are decorations over the same object rather than props of the
+table.
 
 Storage is a client-only layer — its accessor (module-private in `@urbicon-ui/blocks`) returns
 `null` outside the browser — so state read from it at construction desynchronises the client's
 first render from the server's HTML: a persisted sort produces one row order on the server and
 another after hydration. The URL is visible to both, which is what makes a sorted, filtered
-table server-renderable.
+table server-renderable: the URL binding applies synchronously at init, storage only after
+hydration.
 
-**Known consequence:** the reader's own state would then not survive a bare visit, because
-wiring `query` at all stops the shareable axes from reaching storage (writing is gated per
-table, not per axis — a setter is synchronous while the URL lags behind a debounce and an
-async `goto`). `persistControlled: true` restores that half deliberately: writes come from the
-store's action wrappers only, never from a `query` axis resolving, so following someone else's
-link stores nothing. Column visibility and column order stay out of the URL entirely — they
-are presentation, not selection.
+**Known consequence:** combining the two needs a rule about who wins, and v8 spends exactly
+one — precedence comes from *phases*, not from registration order. Defaults → URL (at init) →
+storage (after hydration); at runtime only the URL applies, storage only writes, and an axis
+is stored when its last change came from the reader, which is what keeps someone else's link
+out of storage. v7 needed two mechanisms for this (presence-based reads, prop-wiring-based
+writes) plus a `persistControlled` flag; #157 counted the cost in documentation, and the v8
+cut removed the question rather than the symptoms. Column visibility and column order stay
+out of the URL entirely — they are presentation, not selection, and live in the `prefs`
+channel.
 
 ## The docs highlighter is synchronous, and pays for it in the eager bundle
 

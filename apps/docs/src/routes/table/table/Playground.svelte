@@ -10,6 +10,11 @@
   `columns` und `items` ist kein Beispiel, sondern ein Tag. Die Daten gehen als
   *dieselben Objekte* hinein, die die Vorschau rendert — der Quelltext kann
   deshalb nicht von dem abweichen, was darüber steht.
+
+  Die Seitengröße läuft über ein eigenes View-Objekt statt über `viewDefaults`:
+  Defaults werden einmal bei Konstruktion aufgelöst, ein Regler daran bewegte
+  die Vorschau nicht. `bind:values` schließt den Kreis zum Schnipsel — der
+  gedruckte `createTableView`-Aufruf zeigt die Zahl, die gerade eingestellt ist.
 -->
 <script lang="ts">
   import type { PlaygroundHostProps } from '$lib/playground-host';
@@ -19,7 +24,7 @@
     extractPlaygroundDocs,
     PlaygroundConfigurator
   } from '@urbicon-ui/docs';
-  import { Table, type Column } from '@urbicon-ui/table';
+  import { createTableView, Table, type Column } from '@urbicon-ui/table';
   import { componentData } from './api';
 
   let { size, showHeader = false, slotClasses, class: className }: PlaygroundHostProps = $props();
@@ -84,22 +89,47 @@
     { id: 8, name: 'Lucas Weber', role: 'Backend Dev', department: 'Product', location: 'Berlin' }
   ];
 
+  // Startwert des Reglers UND Default des Views — eine Zahl, kein Paar, das
+  // auseinanderlaufen kann.
+  const PAGE_SIZE = 5;
+
   const controls = deriveControls(componentData, {
-    pick: [
-      'variant',
-      'size',
-      'selectionMode',
-      'itemsPerPage',
-      'enableSmartFilter',
-      'searchPlaceholder'
-    ],
+    pick: ['variant', 'size', 'selectionMode', 'enableSmartFilter', 'searchPlaceholder'],
     overrides: {
-      // Grenzen und Startwert sind eine Playground-Entscheidung; die Komponente
-      // selbst hat nur einen Default (10), keinen erlaubten Bereich.
-      itemsPerPage: { label: 'Items per page', min: 3, max: 20, step: 1, defaultValue: 5 },
       enableSmartFilter: { label: 'Smart Filter' },
       searchPlaceholder: { label: 'Search Placeholder', defaultValue: 'Search team...' }
-    }
+    },
+    extra: [
+      {
+        // Die Seitengröße ist keine Prop mehr, sondern eine Achse des Views —
+        // deshalb `extra` (der Regler steuert die Demo, nicht ein Attribut) und
+        // deshalb schreibt er unten auf `view.pageSize`. `at: 3` hält ihn an
+        // seinem Platz im Reglerstreifen. Grenzen sind eine
+        // Playground-Entscheidung; die Achse selbst hat nur einen Default (10).
+        type: 'number',
+        key: 'pageSize',
+        label: 'Items per page',
+        min: 3,
+        max: 20,
+        step: 1,
+        defaultValue: PAGE_SIZE,
+        at: 3
+      }
+    ]
+  });
+
+  let values = $state<Record<string, unknown>>(defaultValuesOf(controls));
+  const pageSize = $derived((values.pageSize as number | undefined) ?? PAGE_SIZE);
+
+  // Das View gehört dem Playground — nur so wirkt der Regler. `viewDefaults`
+  // löst einmal bei Konstruktion auf, eine spätere Prop-Änderung nicht.
+  const view = createTableView({ defaults: { pageSize: PAGE_SIZE } });
+
+  // Ein direkter Feldschreiber setzt die Seite nicht zurück (das tun nur die
+  // Handler der Tabelle) — hier folgenlos: die gerenderte Seite wird ohnehin in
+  // den gültigen Bereich geklemmt.
+  $effect(() => {
+    view.pageSize = pageSize;
   });
 </script>
 
@@ -112,14 +142,21 @@
   {slotClasses}
   class={className}
   {controls}
-  values={defaultValuesOf(controls)}
+  bind:values
   codeSetup={{
     imports: [
-      "import { Table } from '@urbicon-ui/table';",
+      "import { createTableView, Table } from '@urbicon-ui/table';",
       "import '@urbicon-ui/table/style/index.css';"
     ],
-    consts: { columns, items },
-    bind: ['columns', 'items']
+    consts: {
+      columns,
+      items,
+      // Roh, weil ein konstruiertes View keine druckbare Wertform hat — und mit
+      // der *aktuellen* Reglerstellung darin, sonst zeigte der Schnipsel eine
+      // andere Tabelle als die Bühne darüber.
+      view: { raw: `createTableView({ defaults: { pageSize: ${pageSize} } })` }
+    },
+    bind: ['columns', 'items', 'view']
   }}
 >
   {#snippet children(values)}
@@ -127,11 +164,11 @@
       variant={values.variant}
       size={values.size}
       selectionMode={values.selectionMode}
-      itemsPerPage={values.itemsPerPage}
       enableSmartFilter={values.enableSmartFilter}
       searchPlaceholder={values.searchPlaceholder}
       {columns}
       {items}
+      {view}
     />
   {/snippet}
 </PlaygroundConfigurator>

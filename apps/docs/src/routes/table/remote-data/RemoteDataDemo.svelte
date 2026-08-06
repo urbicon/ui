@@ -1,10 +1,12 @@
 <script lang="ts">
-  // Live server-mode demo: `queryFn` runs against a deterministic in-memory
-  // mock backend — search, sort, and pagination are applied server-side (here:
-  // in this module) after an adjustable artificial latency. A request counter
-  // and an in-flight badge make the request lifecycle visible. The same
-  // demo-fetcher pattern drives the Combobox async-search demo and the e2e
-  // remote fixture. Fully deterministic — no network, no Math.random.
+  // Live managed-source demo: `source={{ query, debounceMs }}` runs against a
+  // deterministic in-memory mock backend — search, sort, and pagination are
+  // applied server-side (here: in this module) after an adjustable artificial
+  // latency. A request counter and an in-flight badge make the request
+  // lifecycle visible: one fetch per interaction, the first one immediate,
+  // superseded ones aborted. The same demo-fetcher pattern drives the Combobox
+  // async-search demo and the e2e remote fixture. Fully deterministic — no
+  // network, no Math.random.
   import { Table, type Column, type TableQuery, type TableQueryResult } from '@urbicon-ui/table';
   import { Badge, SegmentGroup, SegmentItem } from '@urbicon-ui/blocks';
 
@@ -122,12 +124,9 @@
   </div>
 
   <Table
-    items={[] as User[]}
     {columns}
-    mode="server"
-    queryFn={mockServer}
-    queryDebounceMs={300}
-    itemsPerPage={8}
+    source={{ query: mockServer, debounceMs: 300 }}
+    viewDefaults={{ pageSize: 8 }}
     searchPlaceholder="Search users…"
     ariaLabel="Server-mode users table"
   />

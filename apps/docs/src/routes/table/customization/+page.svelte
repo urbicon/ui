@@ -4,7 +4,41 @@
   import { CodeExample, DocsLayout as DocsPageLayout, Section } from '@urbicon-ui/docs';
   import { Table } from '@urbicon-ui/table';
   import { resolve } from '$app/paths';
-  import { basicColumns } from '../_data';
+  import { basicColumns, scriptClose, scriptOpen } from '../_data';
+
+  const codePersistence = `${scriptOpen}
+  import { Table, createTableView, bindViewToStorage } from '@urbicon-ui/table';
+
+  // The view — which rows the reader is looking at.
+  const view = createTableView({ defaults: { pageSize: 25 } });
+  const saved = bindViewToStorage(view, { key: 'team-roster' });
+${scriptClose}
+
+<!-- The preferences — how the table looks. -->
+<Table {items} {columns} {view} prefs={{ storage: 'team-roster', persistSelection: true }} />`;
+
+  const codePersistenceScope = `${scriptOpen}
+  const view = createTableView();
+
+  const saved = bindViewToStorage(view, {
+    key: 'team-roster',
+    axes: ['sort', 'pageSize'], // remember the ordering, forget search and filters
+    storage: sessionStorage, // tab-scoped; localStorage is the default
+    debounceMs: 500
+  });
+
+  // saved.flush() — write the pending change now, e.g. before a programmatic
+  //                 navigation; the teardown drops what is still pending.
+  // saved.clear() — the "reset saved view" button: removes the stored entry
+  //                 and leaves the live view untouched.
+${scriptClose}
+
+<Table
+  {items}
+  {columns}
+  {view}
+  prefs={{ storage: { key: 'team-roster', kind: 'sessionStorage' } }}
+/>`;
 </script>
 
 <SeoMeta
@@ -94,28 +128,58 @@
     <CodeExample
       headingLevel={2}
       title="State Persistence"
-      description="Pass a single tableId to persist every view-state axis across reloads — filters, search, grouping, summary configs, sort, hidden columns, and column order. Defaults to localStorage. Pagination is intentionally not persisted. Clearing counts as state: an axis the user emptied (no sort, no filters, no grouping) restores empty and wins over the matching initial* seed — the seed only fills an axis nothing is stored for."
-      code={`<!-- Opt every axis in with one line -->
-<Table {items} {columns} persistenceConfig={{ tableId: 'team-roster' }} />
-
-<!-- Granular opt-out: keep the user's column layout, drop their search -->
-<Table
-  {items}
-  {columns}
-  persistenceConfig={{
-    tableId: 'team-roster',
-    persistSearch: false,
-    persistFilters: false
-  }}
-/>
-
-<!-- Tab-scoped only (lost on tab close) -->
-<Table
-  {items}
-  {columns}
-  persistenceConfig={{ tableId: 'team-roster', storage: 'sessionStorage' }}
-/>`}
+      description="Two kinds of state, two channels. The view — search, sort, page, page size, filters, grouping — decides which rows a reader sees; it lives on a view object the consumer owns, and bindViewToStorage gives that object a memory. The preferences — hidden columns, column order, summaries, and opt-in selection — decide how the table looks; they belong to the table and go through prefs. Preferences are the table's, the view is the consumer's: nobody wants to share a link that hides columns at the other end. The two channels write separate entries and only share the key here because one name is easier to remember."
+      code={codePersistence}
       preview={false}
     />
+
+    <CodeExample
+      headingLevel={2}
+      title="Narrowing What Is Stored"
+      description="axes narrows what is remembered — the default is every axis but the page number. storage takes any Storage object, so sessionStorage scopes the memory to the tab; the preferences channel spells that same choice as its own kind option. Writes are debounced, and bindViewToStorage hands back the two affordances that go with a debounce."
+      code={codePersistenceScope}
+      preview={false}
+    />
+
+    <div class="border-border-subtle bg-surface-elevated rounded-2xl border p-6">
+      <h3 class="text-text-primary mb-4 text-sm font-semibold">What Gets Stored</h3>
+      <ul class="text-text-secondary list-inside list-disc space-y-2 text-sm">
+        <li>
+          <strong class="text-text-primary">Every view axis except the page number.</strong>
+          Naming a page is what a link is for, so the URL keeps that axis and storage does not — a fresh
+          visit starts on page one. The page
+          <em>size</em> is stored — "yesterday's page size is still set" is squarely this binding's promise,
+          and it is a change from v7, which persisted no pagination at all.
+        </li>
+        <li>
+          <strong class="text-text-primary">Only what the reader changed.</strong>
+          A default is never written back, so a value you change in
+          <code class="text-text-primary">defaults</code> later reaches everyone who has not overridden
+          that axis. What a binding applies is not the reader's doing either — arriving on someone else's
+          link leaves the saved view alone.
+        </li>
+        <li>
+          <strong class="text-text-primary">Clearing is a state.</strong>
+          An axis the reader emptied — no sort, no filters, no grouping, no summaries, no hidden columns
+          — restores empty and wins over the matching default. Only a missing or unreadable entry falls
+          back.
+        </li>
+        <li>
+          <strong class="text-text-primary">Selection is off by default.</strong>
+          <code class="text-text-primary">persistSelection</code> keys rows by
+          <code class="text-text-primary">item.id</code>; without stable ids the selection falls
+          back to the row position and restores onto different rows after a reorder.
+        </li>
+        <li>
+          <strong class="text-text-primary">Upgrading from v7:</strong>
+          the preferences keep their storage keys, so a reader's column layout survives. The view axes
+          moved into one entry per view — the per-axis keys v7 wrote (<code
+            class="text-text-primary">table_sort_*</code
+          >, <code class="text-text-primary">table_search_*</code>,
+          <code class="text-text-primary">table_filters_*</code>,
+          <code class="text-text-primary">table_group_by_*</code>) are no longer read.
+        </li>
+      </ul>
+    </div>
   </div>
 </DocsPageLayout>

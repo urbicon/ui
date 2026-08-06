@@ -1,7 +1,7 @@
 <script lang="ts">
   import SeoMeta from '$lib/SeoMeta.svelte';
   import { CodeExample, DocsLayout as DocsPageLayout, Section } from '@urbicon-ui/docs';
-  import { Table, type Column } from '@urbicon-ui/table';
+  import { Table, createTableView, type Column } from '@urbicon-ui/table';
   import { Input, Slider } from '@urbicon-ui/blocks';
   import { resolve } from '$app/paths';
   import { employees, basicColumns, scriptOpen, scriptClose, type Employee } from '../_data';
@@ -10,10 +10,21 @@
     { id: 'filtering', title: 'Smart Filter Bar' },
     { id: 'tools-sheet', title: 'Narrow Bar & Tools Sheet' },
     { id: 'filter-operators', title: 'Filter Operators' },
-    { id: 'controlled-search', title: 'Controlled Search' }
+    { id: 'external-search', title: 'Search from Outside' }
   ];
 
-  let searchTerm = $state('');
+  // ── External-search demo ───────────────────────────────────────────────────
+  //
+  // The view belongs to this page, so the search axis is ours to write. Writing
+  // an axis does not subscribe this effect to it — only `term` decides when it
+  // runs — so the table's own search field keeps working alongside.
+  const view = createTableView({ defaults: { pageSize: 6 } });
+  let term = $state('');
+
+  $effect(() => {
+    view.search = term;
+    view.page = 1; // a direct field write does not reset the page
+  });
 
   // ── Narrow-bar demo ────────────────────────────────────────────────────────
   //
@@ -151,28 +162,35 @@
     }
   ];
 
-  const codeControlledSearch = `${scriptOpen}
-  let searchTerm = $state('');
+  const codeExternalSearch = `${scriptOpen}
+  import { Table, createTableView } from '@urbicon-ui/table';
+
+  const view = createTableView({ defaults: { pageSize: 6 } });
+  let term = $state('');
+
+  // Outside → view. Writing an axis never subscribes the effect to it, so the
+  // table's own search field keeps working alongside this one.
+  $effect(() => {
+    view.search = term;
+    view.page = 1; // a direct field write does not reset the page
+  });
 ${scriptClose}
 
-<Input bind:value={searchTerm} label="Search from outside the table" clearable />
+<Input bind:value={term} label="Search from outside the table" clearable />
 
-<Table
-  {items}
-  {columns}
-  {searchTerm}
-  onSearchTermChange={(term) => (searchTerm = term)}
-/>`;
+<p>The table is searching for: <code>{view.search || '—'}</code></p>
+
+<Table {items} {columns} {view} />`;
 </script>
 
 <SeoMeta
   title="Filtering & Search - Table"
-  description="Built-in search, column filters, summary controls, and column visibility via the SmartFilterBar — plus a controlled search term for external search UIs."
+  description="Built-in search, column filters, summary controls, and column visibility via the SmartFilterBar — plus an external search field wired through the table's view."
 />
 
 <DocsPageLayout
   title="Filtering & Search"
-  description="Built-in search, column filters, summary controls, and column visibility via the SmartFilterBar — plus a controlled search term for external search UIs."
+  description="Built-in search, column filters, summary controls, and column visibility via the SmartFilterBar — plus an external search field wired through the table's view."
   breadcrumbs={[{ label: 'Table', href: resolve('/table/table') }]}
   {navigation}
 >
@@ -193,6 +211,7 @@ ${scriptClose}
   enableSmartFilter={true}
   searchPlaceholder="Search employees..."
   searchDebounceMs={300}
+  viewDefaults={{ pageSize: 6 }}
 />`}
       >
         <Table
@@ -200,7 +219,8 @@ ${scriptClose}
           columns={basicColumns}
           enableSmartFilter={true}
           searchPlaceholder="Search employees..."
-          itemsPerPage={6}
+          searchDebounceMs={300}
+          viewDefaults={{ pageSize: 6 }}
         />
       </CodeExample>
     </div>
@@ -266,8 +286,7 @@ ${scriptClose}
             columns={toolsColumns}
             enableSmartFilter={true}
             searchPlaceholder="Search employees..."
-            initialSort={{ column: 'salary', direction: 'desc' }}
-            itemsPerPage={5}
+            viewDefaults={{ sort: { column: 'salary', direction: 'desc' }, pageSize: 5 }}
           />
         </div>
       </div>
@@ -318,10 +337,10 @@ ${scriptClose}
         With the sheet shut, the lit triggers inside it are invisible, so the button carries the number
         of things currently acting on the grid: one each for active filters (however many), a sort column,
         a grouping, a summary row that is switched on, and hidden columns — at most five. The demo starts
-        at 1 because it seeds
-        <code class="text-text-primary">initialSort</code>; add a filter or a grouping in the sheet
-        and watch it climb. Hidden columns count too — a column that is not on screen changes what
-        the reader sees just as much as a filter does.
+        at 1 because its
+        <code class="text-text-primary">viewDefaults</code> seed a sort; add a filter or a grouping in
+        the sheet and watch it climb. Hidden columns count too — a column that is not on screen changes
+        what the reader sees just as much as a filter does.
       </p>
 
       <CodeExample
@@ -390,61 +409,78 @@ ${scriptClose}
 
       <p class="text-text-secondary text-sm">
         To start with filters active, pass
-        <code class="text-text-primary">initialFilters</code> — an array of the same
-        <code class="text-text-primary">&#123; column, operator, value &#125;</code> objects. It
-        seeds the uncontrolled filter state once (the chips show them; users can still remove or add
-        filters), and filters restored via
-        <code class="text-text-primary">persistenceConfig</code>
-        (<code class="text-text-primary">persistFilters</code>) take precedence.
+        <code class="text-text-primary"
+          >viewDefaults=&#123;&#123; filters: [&hellip;] &#125;&#125;</code
+        >
+        — an array of the same
+        <code class="text-text-primary">&#123; column, operator, value &#125;</code> objects. That
+        is the view's baseline: the chips show them, users can still remove or add filters, and
+        <code class="text-text-primary">bindViewToStorage(view, &#123; key &#125;)</code> applies a stored
+        set over it after hydration.
       </p>
 
       <p class="text-text-secondary text-sm">
         Both search and filters match against the column accessor's output — not against what a
-        custom cell renders. In
-        <code class="text-text-primary">mode="server"</code> the table does not filter locally:
-        active filters arrive as <code class="text-text-primary">activeFilters</code> on the query
-        object — see
+        custom cell renders. With a server source (<code class="text-text-primary"
+          >source=&#123;&#123; query &#125;&#125;</code
+        >
+        or
+        <code class="text-text-primary"
+          >source=&#123;&#123; kind: 'server', &hellip; &#125;&#125;</code
+        >) the table does not filter locally: active filters arrive as
+        <code class="text-text-primary">activeFilters</code> on the query object — see
         <a href={resolve('/table/remote-data')} class="text-primary hover:underline">Remote Data</a
         >.
       </p>
     </div>
   </Section>
 
-  <Section id="controlled-search" title="Controlled Search">
+  <Section id="external-search" title="Search from Outside">
     <div class="space-y-8">
       <p class="text-text-secondary text-sm">
-        By default the search term is internal, uncontrolled state. Pass the
-        <code class="text-text-primary">searchTerm</code> prop to control it from outside — the prop
-        then drives the table's search, and
-        <code class="text-text-primary">onSearchTermChange</code> fires on every internal change
-        (typing in the SmartFilterBar, Escape-to-clear) so you can write the value back. An empty
-        string is a valid controlled value ("no search"); leave the prop
-        <code class="text-text-primary">undefined</code> for uncontrolled search. A controlled term
-        takes precedence over a persisted one (<code class="text-text-primary"
-          >persistenceConfig.persistSearch</code
-        >). <code class="text-text-primary">onSearchTermChange</code> also works on its own to observe
-        the uncontrolled value — for example to mirror it into the URL.
+        The search term is one of the six axes of the table's view. Hand the table a view of your
+        own — <code class="text-text-primary">createTableView()</code> — and the axis is yours: an
+        effect pushes your field into <code class="text-text-primary">view.search</code>, and
+        reading it back is just <code class="text-text-primary">view.search</code>, with no callback
+        in between. The table's own search field writes the same axis, so the readout below shows
+        what the table is filtering by, whichever of the two was typed into last.
+      </p>
+
+      <p class="text-text-secondary text-sm">
+        One thing comes with writing a field directly: it
+        <strong class="text-text-primary">does not reset the page</strong> — the table's own
+        handlers do that on a new search, so write
+        <code class="text-text-primary">view.page = 1</code> alongside if you want the same behaviour.
+        Writing an axis does not subscribe the effect to it, so the effect above runs when your field
+        changes and not when the table writes the same axis.
+      </p>
+
+      <p class="text-text-secondary text-sm">
+        Steering an axis from outside and persisting the view are independent. An axis whose value
+        comes from outside is usually one you do not want stored — name the others instead:
+        <code class="text-text-primary"
+          >bindViewToStorage(view, &#123; key: 'employees', axes: ['sort', 'filters', 'pageSize',
+          'groupBy'] &#125;)</code
+        >.
       </p>
 
       <CodeExample
         title="External Search Field"
-        description="The input and the table's own SmartFilterBar stay in sync: the input drives searchTerm, and onSearchTermChange writes internal changes back."
-        code={codeControlledSearch}
+        description="One view, two writers: the input pushes into view.search, the table's own search field writes the same axis, and the readout reads it straight back."
+        code={codeExternalSearch}
       >
         <div class="space-y-4">
           <Input
-            bind:value={searchTerm}
+            bind:value={term}
             label="Search from outside the table"
             placeholder="Try 'platform' or 'berlin'..."
             clearable
           />
-          <Table
-            items={employees}
-            columns={basicColumns}
-            {searchTerm}
-            onSearchTermChange={(term) => (searchTerm = term)}
-            itemsPerPage={6}
-          />
+          <p class="text-text-tertiary text-xs">
+            The table is searching for:
+            <code class="text-text-primary">{view.search || '—'}</code>
+          </p>
+          <Table items={employees} columns={basicColumns} {view} />
         </div>
       </CodeExample>
     </div>
