@@ -583,3 +583,73 @@
   --docs-soft: rgb(249 247 242 / 0.82);
   --docs-softer: rgb(249 247 242 / 0.55);
 }
+
+/* ── Reading layer — the measure, the prose scale, the aside ─────────────
+ *
+ * One column width governs everything in a section: heading, paragraph, rule,
+ * example frame and aside are the same width, because they are one reading
+ * column and not five independent blocks. A page with a table of contents gets
+ * `main: max-w-none` from DocsLayout's `sidebar` variant, so without this the
+ * column is as wide as the viewport allows and a paragraph capped on its own
+ * disagrees with every rule and frame around it.
+ *
+ * The scale is set here rather than per page: the pages hand-write
+ * `text-sm text-text-secondary` on every paragraph, which is 14px at reduced
+ * contrast. Body copy is neither.
+ */
+.docs-rooms {
+  --docs-measure: 46rem; /* the reading column — everything in a section */
+  --docs-prose-size: 1.0625rem; /* 17px, was 14px */
+  --docs-prose-leading: 1.7;
+}
+
+.docs-rooms #main-content section {
+  max-width: var(--docs-measure);
+}
+
+/* The playground is the one section that is all exhibit. Anywhere else a stage
+ * sits *inside* a reading section, so exempting `:has([data-docs-stage])` gives
+ * the whole section back its full width — which is the same disagreement one
+ * level up. */
+.docs-rooms #main-content section#playground {
+  max-width: none;
+}
+
+/* Structural, not class-keyed: a paragraph is body copy because of where it
+ * sits, not because someone remembered a utility. Demo markup inside a stage
+ * keeps the component's own scale. */
+.docs-rooms #main-content section:not(#playground) :is(p, ul, ol):not([data-docs-stage] *) {
+  font-size: var(--docs-prose-size);
+  line-height: var(--docs-prose-leading);
+  color: var(--color-text-primary);
+}
+
+/* Code is not prose and must not be wrapped to fit the measure — a broken
+ * import line is harder to read than a scrollbar. */
+.docs-rooms #main-content section:not(#playground) pre {
+  white-space: pre;
+  overflow-x: auto;
+}
+
+/* A monospace face at the same px size reads larger than the proportional one
+ * around it and pulls the eye off the sentence. */
+.docs-rooms #main-content section:not(#playground) :is(p, li) code {
+  font-size: 0.875em;
+}
+
+/* Three levels, three jobs: the section names the topic, the example labels an
+ * exhibit, the body carries the argument. The example label sits *below* body
+ * weight on purpose — before this it was 16px bold under a full-width rule and
+ * read as a second section heading. */
+.docs-rooms #main-content section:not(#playground) h2 {
+  font-size: 1.375rem;
+  font-weight: 600;
+  letter-spacing: -0.01em;
+}
+
+.docs-rooms #main-content section:not(#playground) h3 {
+  font-size: 0.9375rem;
+  font-weight: 600;
+  color: var(--docs-soft);
+}
+
