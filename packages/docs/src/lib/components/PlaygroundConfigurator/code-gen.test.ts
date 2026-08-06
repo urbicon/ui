@@ -475,11 +475,11 @@ describe('number field', () => {
     step: 1
   };
   const unbounded: ControlDefinition = { key: 'count', type: 'number', label: 'Count' };
-  // `/table/table` "Items per page": a floor, no ceiling.
+  // A one-sided bound: a floor, no ceiling.
   const floored: ControlDefinition = {
-    key: 'itemsPerPage',
+    key: 'size',
     type: 'number',
-    label: 'Items per page',
+    label: 'Size',
     defaultValue: 5,
     min: 3
   };
@@ -691,7 +691,7 @@ describe('generateDefaultCode with a codeSetup', () => {
   };
 
   it('emits a complete file: imports, data, then the tag', () => {
-    const code = generateDefaultCode('Table', { itemsPerPage: 5 }, { itemsPerPage: 10 }, SETUP);
+    const code = generateDefaultCode('Table', { stickyOffset: 5 }, { stickyOffset: 10 }, SETUP);
 
     expect(code).toBe(
       `<script lang="ts">
@@ -704,15 +704,15 @@ describe('generateDefaultCode with a codeSetup', () => {
 <Table
   {columns}
   {items}
-  itemsPerPage={5}
+  stickyOffset={5}
 />`
     );
   });
 
   it('still drops control values that match the component default', () => {
-    const code = generateDefaultCode('Table', { itemsPerPage: 10 }, { itemsPerPage: 10 }, SETUP);
+    const code = generateDefaultCode('Table', { stickyOffset: 10 }, { stickyOffset: 10 }, SETUP);
 
-    expect(code).not.toContain('itemsPerPage');
+    expect(code).not.toContain('stickyOffset');
     expect(code).toContain('{columns}');
   });
 
@@ -739,20 +739,20 @@ describe('generateDefaultCode with a codeSetup', () => {
 
 describe('computeOmittableDefaults', () => {
   it('prefers the component default over the playground starting point', () => {
-    // Otherwise the snippet omits `itemsPerPage={5}` — and a reader copying it
-    // gets ten rows per page while the preview above shows five.
+    // Otherwise the snippet omits `stickyOffset={5}` — and a reader copying it
+    // gets the component's own value while the preview above shows five.
     const controls = [
       {
-        key: 'itemsPerPage',
-        label: 'Items per page',
+        key: 'stickyOffset',
+        label: 'Sticky offset',
         type: 'number' as const,
         defaultValue: 5,
         componentDefault: 10
       }
     ];
 
-    expect(computeOmittableDefaults(controls)).toEqual({ itemsPerPage: 10 });
-    expect(computeComponentDefaults(controls)).toEqual({ itemsPerPage: 5 });
+    expect(computeOmittableDefaults(controls)).toEqual({ stickyOffset: 10 });
+    expect(computeComponentDefaults(controls)).toEqual({ stickyOffset: 5 });
   });
 
   it('falls back to the starting point when no component default is recorded', () => {

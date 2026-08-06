@@ -929,8 +929,9 @@ describe('server mode: concern passthrough', () => {
     expect(state.currentPage).toBe(5);
   });
 
-  it('effectivePage floors an out-of-range initialPage at 1', () => {
-    // `initialPage={0}` (or a negative) never had a guard of any kind.
+  it('effectivePage floors an out-of-range seeded page at 1', () => {
+    // A page seed of 0 (or a negative) never had a guard of any kind —
+    // `viewDefaults={{ page: 0 }}` today, `initialPage={0}` before v8.
     const items = Array.from({ length: 10 }, (_, i) => ({ id: i }));
     const state = {
       mode: 'client',
