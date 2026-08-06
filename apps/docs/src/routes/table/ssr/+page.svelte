@@ -112,8 +112,9 @@ ${scriptClose}
       <NoteList variant="flush">
         <Note title="processing: 'server' is the decision">
           It switches the table's own sorting, filtering, searching and paging off, so it has to be
-          an explicit decision. The type rejects the near misses: a <code>total</code> without the
-          tag does not compile, and neither does the tag next to a <code>query</code>.
+          an explicit decision — the tag is required on every source variant, including the client
+          one. The type rejects the near misses: a <code>total</code> without a tag compiles
+          nowhere, and neither does a source that carries both rows and a <code>query</code>.
         </Note>
         <Note title="You own loading and error">
           The table renders both states, you say when they apply. Whatever <code>error</code> holds is

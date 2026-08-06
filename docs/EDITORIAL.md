@@ -1,120 +1,171 @@
 # Editorial Guide
 
-How the prose that reaches a consumer developer is written — docs-site pages, package READMEs,
-head comments. Page *structure* is [DocsPageGuide.md](DocsPageGuide.md); what belongs in prop
-JSDoc versus on a page is the `component-metadata` skill; `docs/internal/` is exempt.
+How the prose that reaches a consumer developer is written: docs-site pages and package
+READMEs. Page *structure* is [DocsPageGuide.md](DocsPageGuide.md); prop JSDoc is the
+`component-metadata` skill; `docs/internal/` is exempt.
 
-Use this file as a process, not as writing instructions. Rules sitting in context do not prevent
-the patterns while writing — a separate editing pass catches them (measured 2026-08-05: nine
-violations in a draft written with this file in context, all found by the pass). Write from the
-principles and the canon; audit with the checklist. The `docs-editor` skill runs that pass in a
-fresh context.
+## Who we write for
 
-## Principles
+Someone with ten minutes and a task. They land mid-page from a search, they want the
+component running in their own project, and they will leave as soon as it does. Success
+looks like this: they copy the first example, it works, they adjust two props, they're gone.
+A reader who leaves after the first example had a good visit.
 
-**How much work the reader does to understand** outranks every rule below. Where they disagree,
-the rule is what needs fixing.
+Three goals, in this order:
 
-- **Plain words before precise-sounding ones.** *File* over *ledger*, *setting* over *axis*,
-  *control* over *knob*. Define a term only when no plain word exists.
-- **Short is a means, not the goal.** Cutting helps until the remaining sentence has to be read
-  twice.
-- **One page, both readers.** A newcomer acts on the opening of a section; the experienced reader
-  finds the exception further down. Common case first, exception after — in every section.
-- **Nobody reads in order.** Readers land mid-page from search or a link. Every section stands on
-  its own; repeating a short clause beats sending the reader back up.
+1. **Lower the barrier.** The shortest path from "never seen this" to "runs in my project".
+2. **Don't bury.** A page answers one question. Everything else is a link.
+3. **Make it pleasant.** Reading should feel like a colleague showing you something,
+   not like sitting an exam.
+
+Two principles outrank every rule in this file. The reader's work is the measure, not the
+word count: short is a means, and cutting helps until the remaining sentence has to be
+read twice. And nobody reads in order: people land mid-page from a search, so the top of
+a page stays light and the detail sits where a stuck reader jumps to.
 
 ## Canon
 
-Write like these pages — structure, register, length:
+The Svelte docs. Three pages are vendored in
+[`apps/docs/canon/`](../apps/docs/canon/README.md) so you read them locally instead of
+fetching them. Read them before writing, not for inspiration but for calibration:
 
-- `apps/docs/src/routes/table/remote-data/+page.svelte` — the compact case: one mechanism, two
-  fetch paths
-- `apps/docs/src/routes/table/url-state/+page.svelte` — the layered case: three mechanisms plus
-  SSR, every section standing alone
+- [getting-started.md](../apps/docs/canon/getting-started.md) shows how little a page can
+  contain.
+- [what-are-runes.md](../apps/docs/canon/what-are-runes.md) shows how to introduce a
+  concept: a definition, one snippet, three bullets on what makes it different, done.
+- [effect.md](../apps/docs/canon/effect.md) shows how a reference page is built. For
+  drafting, the opening sections and "When not to use `$effect`" carry the patterns; the
+  sub-rune sections in between are there for completeness.
 
-## Before writing
+What they do that we copy:
 
-- Name the question the page answers, in one sentence. Everything on the page earns its place
-  against it.
-- The first sentence says what the thing is and when to reach for it. Not how it came to be.
-- Every fact has one home. A rule about one prop → its JSDoc (generated onward into the API
-  table, `llm.txt`, MCP). How props relate, when to reach for which, the wiring → the page. Why a
-  lint rule exists → that script's header. An API problem → the change that found it, not a note.
-  Exhaustive is the system; minimal is the page.
+- **The first sentence says what it is and names two or three concrete things you'd use it
+  for.** Uses, not categories. The `$effect` page opens with effects and immediately lists
+  third-party libraries, canvas drawing and network requests, all in the same sentence.
+- **The most common mistake is the second thing on the page,** in plain prose with a link
+  to the alternative, instead of a warning box at the bottom.
+- **Code teaches, prose introduces.** One or two sentences lead into a snippet; the actual
+  learning happens in the snippet, carried by comments like *this will re-run whenever
+  `color` changes*.
+- **Permission sentences.** "You don't need X for now; come back to it later." One line,
+  and it takes weight off the reader.
+- **Advanced features say they're advanced** and sit at the bottom of the page.
+- **Anti-patterns are code pairs.** "Instead of this…" (snippet) "…do this:" (snippet).
+  No lecture in between.
+- **A little repetition is welcome.** Sections repeat a short clause instead of sending the
+  reader back up the page.
 
-## Checklist — the editing pass
+## Page shape
 
-Two rounds in order: every sentence against 1–15, then the whole page against 16–19.
+1. What it is, and when to reach for it. One or two sentences.
+2. The smallest working example. Complete, copy-paste-runnable, imports included.
+3. The two or three props everyone will touch, each shown as a one-line change to the
+   first example.
+4. Common variations and recipes.
+5. Exceptions and advanced use, labeled as such.
 
-Cut:
+## Model paragraphs
 
-1. Announcements and self-narration — "In the following section…", "The reason is timing." A
-   plain cross-link is fine.
-2. Verdicts riding a dash — `— the canonical real-world use case`. A dash carrying information
-   stays.
-3. Adjectives that decide nothing — powerful, seamless, robust… Test: would we ever ship the
-   opposite?
-4. List items padded for cadence — two if two are true, five if five are.
-5. Encouragement — "you're good to go".
-6. Design rationale in the flow — aside, or out.
-7. Sentences restating the snippet or the live demo (read the demo's own markup first). Say what
-   neither shows: when to reach for it, what it costs, what breaks.
-8. Insider nouns and metaphors — axes, seams, stages; a token *ledger*, a *choreography*. Use the
-   ordinary word; defining one is the fallback when none exists.
+These set the register. API details in them are illustrative; verify names against the
+source before shipping anything. When a shipped page has a better paragraph than these,
+swap it in: the samples here do more work than the rules below.
 
-Reshape:
+**Introducing a feature:**
 
-9. A colon or dash that pays off its own set-up → two sentences.
-10. A rhetorical `…, which is why …` → full stop. A causal link that *is* the information stays in
-    one sentence.
-11. A negation without an error it prevents → cut, or name who does it instead.
-12. A hypothetical as argument ("a per-field gate *would*…") → say what this design does.
+> `<Table>` renders the rows you pass it. When the data lives on a server, give it a
+> `source` with a `query` function. The table calls it whenever the user sorts, filters or
+> changes the page:
+>
+> ```svelte
+> <Table source={{ query: loadUsers }} />
+> ```
+>
+> `loadUsers` receives the current page, sort and filters, and returns the rows plus
+> `total` so the table can build its pagination.
 
-Each sentence:
+**A permission sentence:**
 
-13. Can the reader look at their own code afterwards and decide something? A bare category ("It
-    is a controlled prop") fails; keep the consequence, drop the category. Never define a term
-    with its own word.
-14. Default shapes: condition → consequence; task → tool. One purely orienting sentence per
-    section is the budget.
-15. Every behaviour claim is checkable against the component — verified in the source before it
-    ships.
+> You don't need `processing: 'server'` for a few hundred rows. Pass them as `items` and let the
+> table sort in the browser.
 
-Then the page:
+**The same fact, before and after:**
 
-16. Still answering the question it was opened for? Anything now belonging elsewhere — a second
-    topic is a second page, an API finding goes into the current change?
-17. Three parallel cases in prose → a comparison table. A table restating a type or prop list →
-    `<ApiReference>` / `<TypesReference>`; hand-written copies drift.
-18. One example demonstrates one thing. Two things, two examples.
-19. A note needs a victim: behaviour that has cost someone time, or that nothing catches. Where
-    DEV already warns, a plain sentence in the section replaces the note. Caveats crowding the
-    page are an API finding (`/table/url-state` was ~¼ notes and produced #157).
+> ❌ The table's reconciliation layer memoizes the query descriptor, ensuring the fetch
+> pipeline is only re-invoked when a semantically relevant axis of the view state changes.
+>
+> ✅ The table calls `query` again when the user changes the page, sort or filters.
 
-## The layer with no reader
+## Voice
 
-Head comments are read by every model that edits the file and by nobody who visits the site, so
-nothing keeps them short. An explanation that holds for N files lives in one place, not N.
-Evidence for a rule lives at the script that enforces it — a guide states the rule and points
-there.
+- Second person, present tense. The subject of the sentence is *you* or the code you write.
+- The API's own names: `source.query`, `total`. Never a noun invented for the page.
+- Plain words before precise-sounding ones: *file* over *ledger*, *setting* over *axis*.
+- Every sentence should survive being said out loud to a colleague. If it sounds like a
+  spec, rewrite it. If it sounds like marketing, cut it.
+- State what happens. A sentence about what does *not* happen earns its place only when
+  the behaviour contradicts a reasonable expectation, and a component that regularly
+  contradicts expectations has an API problem, not a documentation problem.
+- No dash rhythm. An em-dash that sets up a contrast or delivers a verdict reads as
+  generated prose. Use a period, a colon, a semicolon or parentheses.
+- Internals appear only when the reader writes different code once they know them. The
+  dependency-tracking section of the `$effect` page is the calibration point: it describes
+  internals, and it stays, because you structure your code around it. *What the library
+  compares before re-running* is the kind that goes.
 
-## Prop JSDoc
+## Process
 
-The sentence rules (9–15) apply there unchanged. What belongs in JSDoc versus on a page — the
-`@summary` budget, the description contract, who reads what — is the `component-metadata` skill.
+Rules sitting in context do not prevent the patterns while writing; a separate pass
+catches them. Three steps:
 
-## Deliberately not regulated
+1. **Draft as an answer.** Phrase the page as a question a real user asks ("How do I show
+   server data in the table?"). Write the answer the way you'd type it to a colleague in
+   chat, with the model paragraphs and the canon open next to you. Structure it afterwards.
+2. **Fresh reader with a task.** A context that has never seen the draft, the canon or
+   this guide gets the page with one instruction: *"Get this running from zero. Note every
+   point where you stall, every sentence you skip, everything you needed and didn't
+   find."* Skipped sentences mark the passages that describe instead of enable.
+3. **Checklist.** Sentence hygiene, last.
 
-Sentence length, humour, second person, opening with a question, playful or plain. The cuts leave
-room for a voice; they do not supply one.
+Steps 2 and 3, together with a fact-verification pass against the component source, are
+the `docs-editor` skill; run it after writing or substantially editing a page. Every
+behaviour claim is checked there before a page ships.
+
+## Checklist
+
+Sentence items (1–8), then page items (9–13).
+
+1. Announcements and self-narration ("In the following section…") → cut. A cross-link is fine.
+2. Padding: adjectives whose opposite we'd never ship (powerful, seamless), list items
+   added for cadence, cheerleading → cut.
+3. A sentence restating what the snippet or demo already shows → cut. Say what neither
+   shows: when to reach for it, what it costs, what breaks.
+4. Internals with no consequence in the reader's code → cut. If the reader can't use the
+   API without knowing them, that's an API finding. File it.
+5. Nouns invented for the page → the API's own names.
+6. A sentence about what does not happen → cut it and state the behaviour. Keep it only
+   for an error someone actually hit; if readers keep needing the sentence, file an API
+   finding instead.
+7. Em-dash contrasts and verdicts → a period, a colon, or parentheses.
+8. A bare category ("it is a controlled prop") → keep the consequence, drop the category.
+9. Every section answers the question the page was opened for. A section answering another
+   page's question moves there; one sentence and a link stay behind.
+10. Before the first code block: at most three sentences of prose.
+11. Three parallel cases in prose → a table, if item 9 lets all three stay. On a component
+    page, a hand-written prop or type table → `<ApiReference>` / `<TypesReference>`; copies
+    drift.
+12. One example demonstrates one thing. Two things, two examples.
+13. A note box only for behaviour that has cost someone time and that nothing catches.
+    Everything else is a plain sentence in the section.
+
+## Where facts live
+
+Every fact has one home. A rule about a single prop belongs in its JSDoc, which is
+generated onward into the API table, `llm.txt` and MCP. How props relate and when to reach
+for which belongs on the page. Why a lint rule exists belongs in that script's header.
+Exhaustive is the system; the page stays minimal.
 
 ## Changing this file
 
-- A new rule needs a repeat offender — a second page failing the same way. A single finding
-  belongs in the change that found it.
-- Budget: one page. A rule in means a rule out.
-- Checklist form is load-bearing, twice over. Guide prose is the longest style sample in an
-  author's context and gets imitated — a worked example from an earlier revision of this file
-  shipped verbatim into a page. And imperative fragments cannot violate the sentence rules they
-  state.
+Budget: one page. A new rule needs a second offender; a single finding belongs in the
+change that found it. Keep the model paragraphs current. They are the part of this file
+that actually gets imitated.

@@ -149,16 +149,18 @@ export type ResolvedSource<T = TableItem> =
 /**
  * Narrow the union into the internal discriminated shape.
  *
- * The validation up front is for the consumer TypeScript is not protecting.
- * In plain JavaScript every shape the type rules out still arrives here, and
- * each one used to fail late and anonymously: a bare array fell through to
- * the client branch and returned `items: undefined` — a value
- * `ResolvedSource` forbids — which surfaced as
- * `Cannot read properties of undefined (reading 'map')` from `normalizeItems`
- * two frames away, naming neither `source` nor the removed arm. A missing
- * `processing` is the worse one: `{ items, total }` would resolve as *client*
- * and quietly sort a page of server-paged rows, which is the exact defect the
- * required tag exists to prevent. Same failures, named.
+ * The validation is for the consumer TypeScript is not protecting: in plain
+ * JavaScript every shape the type rules out still arrives here, and each one
+ * used to fail late, anonymously, or — worst — not at all.
+ *
+ * The order matters and is the point. `processing` is read first and decides
+ * the branch; the structural fields are only checked *within* the branch it
+ * chose. Dispatching on `typeof source.query === 'function'` first, as this
+ * did until the #165 review, let a structural field overrule the explicit
+ * tag: `{ processing: 'client', query }` resolved as server-managed, so the
+ * table fetched and handed sorting to a backend the consumer had just said
+ * was not doing the work — the exact defect class the required tag exists to
+ * remove, reproduced inside the resolver.
  */
 export function resolveSource<T>(source: TableSource<T>): ResolvedSource<T> {
   if (Array.isArray(source)) {
@@ -174,30 +176,51 @@ export function resolveSource<T>(source: TableSource<T>): ResolvedSource<T> {
       `[Table] \`source\` needs \`processing: 'client'\` or \`processing: 'server'\` — it decides whether the table or your backend sorts, filters and pages. Got ${JSON.stringify(processing)}.`
     );
   }
-  if (typeof source.query === 'function') {
+
+  const hasQuery = typeof source.query === 'function';
+
+  if (processing === 'client') {
+    if (hasQuery) {
+      throw new TypeError(
+        "[Table] `source` has `processing: 'client'` and a `query` function. A `query` means the backend does the work — say `processing: 'server'`, or drop the query and pass `items`."
+      );
+    }
+    if (!Array.isArray(source.items)) {
+      throw new TypeError("[Table] `source` with `processing: 'client'` needs an `items` array.");
+    }
     return {
-      mode: 'server-managed',
-      query: source.query,
-      debounceMs: source.debounceMs ?? 300
-    };
-  }
-  if (!Array.isArray(source.items)) {
-    throw new TypeError(
-      `[Table] \`source\` with \`processing: '${source.processing}'\` needs an \`items\` array${source.processing === 'server' ? ' and a `total`, or a `query` function' : ''}.`
-    );
-  }
-  if (source.processing === 'server') {
-    return {
-      mode: 'server-manual',
+      mode: 'client',
       items: source.items,
-      total: source.total,
       loading: source.loading ?? false,
       error: source.error ?? null
     };
   }
+
+  if (hasQuery) {
+    return {
+      mode: 'server-managed',
+      // Narrowed by `hasQuery`, which TypeScript cannot carry across the
+      // intermediate const.
+      query: (source as ServerManagedSource).query,
+      debounceMs: (source as ServerManagedSource).debounceMs ?? 300
+    };
+  }
+  if (!Array.isArray(source.items)) {
+    throw new TypeError(
+      "[Table] `source` with `processing: 'server'` needs an `items` array and a `total`, or a `query` function."
+    );
+  }
+  // `total` drives the pager, and a missing one is not a small mistake: it
+  // reached `Math.ceil(undefined / pageSize)` and rendered "1 / NaN".
+  if (typeof source.total !== 'number' || !Number.isFinite(source.total)) {
+    throw new TypeError(
+      `[Table] \`source\` with \`processing: 'server'\` and rows needs a numeric \`total\` — it is what the pager divides by the page size. Got ${JSON.stringify(source.total)}.`
+    );
+  }
   return {
-    mode: 'client',
+    mode: 'server-manual',
     items: source.items,
+    total: source.total,
     loading: source.loading ?? false,
     error: source.error ?? null
   };

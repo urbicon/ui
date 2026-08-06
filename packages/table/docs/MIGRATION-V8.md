@@ -10,9 +10,12 @@ Nothing about columns, cells, selection, virtualization, styling or snippets cha
 
 ## Already on 8.0?
 
-v9 tightens four things v8 shipped with. All are quick. In TypeScript the compiler names
-every call site that has to move; in plain JavaScript the table throws on the first render
-with a message that names the change.
+v9 tightens four things v8 shipped with. All are quick, and TypeScript names every call
+site that has to move. In plain JavaScript there is no compiler to do that, so the two
+changes that alter a *shape* — the dropped array arm and the required `processing` — throw
+on the first render with a message that names them. The two renames cannot: a
+`{ items, totalItems }` your query still returns simply leaves `total` undefined, and the
+pager reads "1 / NaN". Grep for `totalItems` before you run it.
 
 **`source` is always an object.** The bare-array arm is gone: it resolved into exactly the
 same thing as `{ items }`, so "how do I pass rows?" had three correct answers and no rule
@@ -108,11 +111,13 @@ and one the tag never answered: the client variant fetches from a server too.
 right prop when rows are all you have to say.
 
 Required is the point, not the spelling. In 8.0 the tag sat on one variant out of three, so
-`{ items, total }` — a server config that forgot it — matched the *client* variant
-structurally, and the table silently sorted a page of server-paged rows in the browser. Six
-`?: never` fields existed to catch that. Now the shape matches no variant at all, and the
-error arrives from the compiler rather than from a reader wondering why sorting only
-reordered the twenty rows in front of them.
+the union leaned on `?: never` fields to keep a tagless server config — `{ items, total }` —
+from matching the *client* variant structurally. That worked: it was a compile error in 8.0,
+and it still is. What the required tag adds is a second, independent line under the same
+shape, and one thing the `never` fields could never provide — a consumer writing plain
+JavaScript now gets a named error at the first render instead of a table that quietly sorts
+a page of server-paged rows in the browser. Which of the two lines carries which case is
+measured probe by probe in `source.typecheck.ts`.
 
 **The context stopped mirroring the view axes.** `TableContext.state` carried a second
 spelling of all six — `state.searchTerm`, `state.currentPage`, `state.sortColumn` +
@@ -183,7 +188,7 @@ unbound view of its own.
 | `searchTerm={term}` + `onSearchTermChange={…}` | `view.search` — read it, write it |
 | `groupByKey` (on `TableProvider`) | `view.groupBy` |
 | `query={sync.viewState}` + `onQueryChange={sync.syncQuery}` | `bindViewToUrl(view)` |
-| `queryDebounceMs={300}` | `bindViewToUrl(view, { debounceMs: 300 })` / `source={{ query, debounceMs: 300 }}` |
+| `queryDebounceMs={300}` | `bindViewToUrl(view, { debounceMs: 300 })` / `source={{ processing: 'server', query, debounceMs: 300 }}` |
 | `initialSummaryConfigs={[…]}` | `prefs={{ defaults: { summaries: […] } }}` — summaries are a preference, not a view axis |
 
 Several axes collapse into **one** `viewDefaults` object rather than several props:

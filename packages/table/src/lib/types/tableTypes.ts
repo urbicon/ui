@@ -289,7 +289,7 @@ export type FilterOperator =
 /**
  * Result a server source resolves with — the return shape of `source.query`
  * (managed flow), and the shape `setServerResult` accepts in the manual
- * `kind: 'server'` flow.
+ * `processing: 'server'` flow.
  *
  * `total` is spelled the same here as on `ServerManualSource` (#162): both
  * mean "how many rows match this query", and until v9 the managed flow

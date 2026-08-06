@@ -25,7 +25,7 @@
   attachCellLocale(() => resolveDateLocale('auto', i18n.locale));
 
   export type TableProviderProps = {
-    /** Shorthand for `source={{ items }}` — just the rows, nothing about how they arrive. */
+    /** Shorthand for `source={{ processing: 'client', items }}` — just the rows. */
     items?: TableItem[];
     columns: Column[];
     /** Where the rows come from — see the `TableSource` union. Wins over `items`. */

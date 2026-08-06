@@ -8,7 +8,7 @@ import { resolveSource, type TableSource } from './source';
  * Runtime half of the source union, ported from the v8 spike (§7.3,
  * spike.source at 5c0f42f8): dispatch correctness and the identity-tracking
  * measurement (M2). The type-level half (excess-property guards on the
- * `kind?: never` / `total?: never` fields) lives in the svelte-check gate,
+ * required `processing` tag and the `?: never` fields) lives in the svelte-check gate,
  * not here.
  */
 
@@ -38,7 +38,7 @@ describe('resolveSource — dispatch', () => {
     });
   });
 
-  it('kind: server is manual server mode', () => {
+  it('processing: server with rows is manual server mode', () => {
     expect(resolveSource({ processing: 'server', items: ITEMS, total: 120 })).toEqual({
       mode: 'server-manual',
       items: ITEMS,
@@ -170,6 +170,37 @@ describe('resolveSource — the untyped consumer gets a named failure', () => {
     expect(() => resolveSource({ processing: 'remote', items: ITEMS } as never)).toThrow(
       /Got "remote"/
     );
+  });
+
+  it("does not let a `query` overrule an explicit `processing: 'client'`", () => {
+    // Found by the #165 review. The resolver dispatched on `typeof query ===
+    // "function"` BEFORE reading the tag, so this resolved as server-managed:
+    // the table fetched and handed sorting to a backend the consumer had just
+    // said was not doing the work. Positive control: move the `hasQuery`
+    // branch back above the `processing` split and this goes red.
+    const query = async () => ({ items: [], total: 0 });
+    expect(() => resolveSource({ processing: 'client', query } as never)).toThrow(
+      /has `processing: 'client'` and a `query` function/
+    );
+    // …and with rows alongside, which used to silently drop them.
+    expect(() => resolveSource({ processing: 'client', items: ITEMS, query } as never)).toThrow(
+      /`processing: 'client'` and a `query`/
+    );
+  });
+
+  it('rejects a manual server source with rows but no total', () => {
+    // Also from the #165 review: `total` came back `undefined` — a value
+    // `ResolvedSource` forbids — and reached `Math.ceil(undefined / pageSize)`,
+    // so the pager rendered "1 / NaN". Positive control: drop the
+    // `typeof source.total !== 'number'` check and this goes red.
+    expect(() => resolveSource({ processing: 'server', items: ITEMS } as never)).toThrow(
+      /needs a numeric `total`/
+    );
+    expect(() =>
+      resolveSource({ processing: 'server', items: ITEMS, total: Number.NaN } as never)
+    ).toThrow(/needs a numeric `total`/);
+    // A zero total is legitimate — an empty result set, not a missing field.
+    expect(resolveSource({ processing: 'server', items: [], total: 0 }).mode).toBe('server-manual');
   });
 
   it('names the missing rows once the tag is right', () => {

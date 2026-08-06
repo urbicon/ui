@@ -170,15 +170,15 @@ Since v8 those two live on the data source rather than on the table itself:
 | `errorState` | `source.error?: string \| null` |
 
 ```svelte
-<Table {columns} source={{ items, loading: pending, error: failure }}>
+<Table {columns} source={{ processing: 'client', items, loading: pending, error: failure }}>
   {#snippet emptyState()}
     <tr><td colspan="99">Nothing here</td></tr>
   {/snippet}
 </Table>
 ```
 
-A managed source (`source={{ query }}`) owns both states itself and has no such fields —
-what used to be a DEV warning is a shape that cannot be written.
+A managed source (`source={{ processing: 'server', query }}`) owns both states itself and has
+no such fields — what used to be a DEV warning is a shape that cannot be written.
 
 ---
 
