@@ -27,7 +27,7 @@
  * window of the spike review.
  */
 import { untrack } from 'svelte';
-import { building } from '$app/environment';
+import { browser, building } from '$app/environment';
 import { goto } from '$app/navigation';
 import { page } from '$app/state';
 import {
@@ -69,9 +69,12 @@ interface WriterJob {
 
 /**
  * The app-global coalescing URL writer (module scope — it outlives route
- * changes; safe on the server because it is only ever touched from
- * client-side effects and timer callbacks, so it can never carry state
- * between server requests).
+ * changes). Safe on the server because every touch is browser-gated: flushes
+ * and teardowns live in effects and timer callbacks, which never run there,
+ * and registration is explicitly `browser`-gated in `bindViewToUrl` — an
+ * unconditional register leaked across requests (the map outlives the
+ * request, and only an effect teardown releases an entry), so request 2 of
+ * the same route threw the claims error below.
  *
  * While a navigation is in flight, `page.url` is stale — so the writer keeps
  * `intendedSearch`, the last search string it sent, and uses it as BOTH the
@@ -196,6 +199,15 @@ export function __resetUrlWriterForTests(): void {
   writer.liveKeys.clear();
 }
 
+/**
+ * Size of the writer's live-key registry — lets the SSR suite assert that
+ * the module-global registry does not grow across simulated server requests.
+ * @internal test-only — not part of the public API.
+ */
+export function __urlWriterLiveKeyCountForTests(): number {
+  return writer.liveKeys.size;
+}
+
 /** Options for {@link bindViewToUrl}. */
 export interface UrlViewBindingOptions {
   /** Axes to bind. @default all six */
@@ -268,7 +280,14 @@ export function bindViewToUrl(view: TableViewLike, options: UrlViewBindingOption
   const owner = {};
 
   view.claimAxes('url', axes);
-  writer.register(owner, managedKeys);
+  // The writer registry serves the CLIENT writer only. Registering during
+  // SSR would leak the request: the module-global map outlives the request
+  // and only the effect teardown below — which never runs on the server —
+  // releases an entry, so request 2 of the same route would throw the claims
+  // error (and disjoint routes would grow the map without bound). The
+  // fail-loud purpose — two prefixless bindings are a programming error —
+  // is fully preserved client-side, where the same page renders again.
+  if (browser) writer.register(owner, managedKeys);
 
   // ── Init phase: URL → view, synchronous. Absence means "not claimed" here
   // (storage may seed the axis later) — the only moment presence matters.
