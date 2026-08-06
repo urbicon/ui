@@ -3,6 +3,7 @@
   import { DocsLayout as DocsPageLayout, Section, CodeExample } from '@urbicon-ui/docs';
   import { Card } from '@urbicon-ui/blocks';
   import { resolveNav, type NavHref } from '$lib/navigation';
+  import { componentLinks } from '$lib/component-links';
   import docsCatalog from '../../../static/docs/_catalog.json';
 
   type DocComponent = { name: string; href: NavHref; description: string };
@@ -13,6 +14,12 @@
    * 2026-08: CodePanel and NoteList each had a page, a sidebar entry and a
    * `componentLinks` entry, and no card on the page that is supposed to list
    * them — `registry:lint` checks the other three registries, not this one.
+   *
+   * The card href therefore comes from `componentLinks` (which registry:lint
+   * does gate, in both directions), falling back to the slug route: a
+   * component documented on a sibling's page — InlineCode lives on
+   * code-example's — links there instead of 404ing the prerender, which is
+   * exactly how the first InlineCode build failed.
    *
    * Only the split into the two groups is editorial (the catalogue has no
    * notion of "shell" versus "block"); everything a reader sees comes from the
@@ -30,7 +37,7 @@
 
   const toCard = (entry: (typeof catalog)[number]): DocComponent => ({
     name: entry.name,
-    href: `/docs/components/${entry.slug}` as NavHref,
+    href: (componentLinks[entry.name] ?? `/docs/components/${entry.slug}`) as NavHref,
     description: entry.summary ?? entry.description
   });
 
