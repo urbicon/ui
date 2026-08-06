@@ -216,6 +216,42 @@ describe('the binding matrix', () => {
     cleanup();
   });
 
+  it('back to a bare URL: the default wins over the stored value, and nothing is stored', () => {
+    // The two storage rules, composed the way a reader actually meets them:
+    // a stored search applies once after hydration; the back button then
+    // lands on the bare URL, whose runtime rule is "absence on a bound axis
+    // applies the default" (an `external` application of the full defaults —
+    // exactly what the URL binding does on a foreign landing, projected the
+    // same way `deepLink` projects its init). The default must win — storage
+    // never applies again after init — and the back navigation must not be
+    // stored as if the reader had cleared the search.
+    //
+    // Red seen: with the write effect's origin gate widened to also store
+    // `external` applications, the stored entry was overwritten with the
+    // default ('' instead of 'stored') — the second assertion failed.
+    const storage = memoryStore();
+    storage.setItem(KEY, JSON.stringify({ search: 'stored' }));
+
+    const cleanup = $effect.root(() => {
+      const view = createTableView();
+      bindViewToStorage(view, { key: 'matrix', storage });
+      flushSync(); // hydration: the stored search applies (no init claim)
+      expect(view.search).toBe('stored');
+
+      // The back button lands on the bare URL.
+      view.applyExternal({ ...view.defaults }, 'external');
+      flushSync();
+      expect(view.search).toBe(''); // the default, not the storage value
+      vi.advanceTimersByTime(1000); // let any (wrong) storage write fire
+      expect(view.search).toBe(''); // and storage did not re-apply either
+    });
+    cleanup();
+
+    // The back navigation wrote nothing: the entry still holds the reader's
+    // own last change.
+    expect(JSON.parse(storage.getItem(KEY) ?? 'null')).toEqual({ search: 'stored' });
+  });
+
   it('after init, a reader change on a link-claimed axis is stored again', () => {
     // `markInitApplied` records a historical fact, not a permanent claim on
     // writes: once the reader re-sorts by hand, that IS their change and the

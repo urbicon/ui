@@ -12,6 +12,7 @@ import { flushSync } from 'svelte';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import {
   back,
+  goto,
   navigationLog,
   resetMockApp,
   setNavigationLatency
@@ -246,6 +247,33 @@ describe('bindViewToUrl — URL to view', () => {
     view.applyExternal({ search: 'stored' }, 'external');
     flushSync();
     expect(view.search).toBe('stored'); // the initial-run guard held
+  });
+
+  it('a foreign same-path navigation inside the debounce window wins over the pending edit', async () => {
+    // The A5 contract, pinned: runtime absence on a bound axis means "apply
+    // the default", and that includes absence delivered by a navigation the
+    // binding did not send — last writer wins, and the foreign navigation is
+    // the last writer. Red seen: with the runtime effect sabotaged to apply
+    // only the axes the URL names (instead of a full snapshot with defaults
+    // for the missing ones), the edit survived the landing, and the pending
+    // debounce then wrote `?q=ada` back over the foreign URL.
+    const view = new TestView();
+    inRoot(() => bindViewToUrl(view, { debounceMs: 300 }));
+
+    view.search = 'ada'; // the reader edits; the URL write is pending
+    flushSync();
+    // Before the debounce fires, something else navigates the same path
+    // without the param (a link elsewhere on the page, a router redirect):
+    await goto('/?tab=settings');
+    await land();
+
+    expect(view.search).toBe(''); // runtime absence applied the default
+
+    // And the pending debounce must not resurrect the edit afterwards.
+    await advance(1000);
+    expect(view.search).toBe('');
+    expect(new URLSearchParams(search()).get('q')).toBeNull();
+    expect(navigationLog.gotoCount).toBe(1); // only the foreign navigation
   });
 
   it('survives the in-flight window: a stale own landing does not overwrite a newer edit', async () => {

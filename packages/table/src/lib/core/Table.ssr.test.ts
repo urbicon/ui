@@ -141,6 +141,43 @@ describe('Table — server render of a shared link', () => {
   });
 });
 
+describe('Table — server render of a virtualized table with a grouped link', () => {
+  // The url-state docs page says the server render is included; this makes
+  // that claim true for the awkward corner: a `?group=…` deep link onto a
+  // virtualized table renders UNGROUPED on the server — grouped
+  // virtualization is not implemented, the provider discards the grouping at
+  // construction (which runs during SSR) and the store's `groupByKey` read
+  // gate holds on the server too.
+  //
+  // Red seen: with the construction discard and the read gate both sabotaged
+  // away, the virtualized server render carried the `grouped-item-`
+  // group-header rows.
+  beforeAll(() => {
+    // The construction discard warns in DEV — expected here, not noise worth
+    // printing 2× per run. Same containment as the shared-link describe.
+    vi.spyOn(console, 'warn').mockImplementation(() => {});
+  });
+  afterAll(() => {
+    vi.restoreAllMocks();
+  });
+
+  const groupedView = () => {
+    const view = createTableView();
+    view.applyExternal({ groupBy: 'name' }, 'external');
+    return view;
+  };
+
+  it('renders ungrouped on the server, while the un-virtualized control groups', () => {
+    // Control first, same test: the same link on a plain table renders group
+    // headers — so the absence below cannot be "grouping never rendered".
+    const plain = bodyOf({ items: ROWS, view: groupedView() });
+    expect(plain).toContain('grouped-item-');
+
+    const virtualized = bodyOf({ items: ROWS, view: groupedView(), virtualized: true });
+    expect(virtualized).not.toContain('grouped-item-');
+  });
+});
+
 describe('Table — server render of a controlled selection', () => {
   // The last category-A gap of the SSR/CSR audit, closed: the controlled
   // `selectedIds` prop used to reach the selection only through the runtime
