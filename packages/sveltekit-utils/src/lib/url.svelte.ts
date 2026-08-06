@@ -9,7 +9,7 @@ import { page } from '$app/state';
 // root's star exports ambiguous and silently drop them. The v7
 // `createTableQueryUrlSync` factory is gone with the table's `query` prop —
 // the URL home of a table view is `bindViewToUrl`; the load-path serializers
-// (`searchParamsToTableQuery` & friends) live on in `table-query`.
+// (`searchParamsToViewSnapshot` & friends) live in `table-view`.
 export { bindViewToUrl, type UrlViewBindingOptions } from './view-binding.svelte';
 
 /**

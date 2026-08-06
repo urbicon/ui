@@ -95,18 +95,18 @@ describe('TableStore — state.items', () => {
     { id: 2, name: 'Grace' }
   ] as TableItem[];
 
-  it('reflects a plain-array source without a tracking context', () => {
-    const store = createTableState(undefined, undefined, { source: () => ({ items: ITEMS }) });
-    expect(store.state.items.map((i) => i.name)).toEqual(['Ada', 'Grace']);
-  });
+  it('reflects a client source without a tracking context', () => {
+    // The SSR situation: no effect has run, and the rows still have to be
+    // there. This pair used to compare the bare-array arm against the object
+    // one; the array arm is gone (#161), so what is left to say is that the
+    // optional lifecycle fields do not gate the item slot.
+    const bare = createTableState(undefined, undefined, { source: () => ({ items: ITEMS }) });
+    expect(bare.state.items.map((i) => i.name)).toEqual(['Ada', 'Grace']);
 
-  it('reflects the client-object source variant too', () => {
-    // `{ items, loading?, error? }` — the "I fetch it myself" shape. The item
-    // slot must not care which client variant delivered the rows.
-    const store = createTableState(undefined, undefined, {
-      source: () => ({ items: ITEMS, loading: false })
+    const withLifecycle = createTableState(undefined, undefined, {
+      source: () => ({ items: ITEMS, loading: true, error: 'boom' })
     });
-    expect(store.state.items.map((i) => i.name)).toEqual(['Ada', 'Grace']);
+    expect(withLifecycle.state.items.map((i) => i.name)).toEqual(['Ada', 'Grace']);
   });
 
   it('a second writer overrides, a new source re-seeds', () => {
@@ -155,7 +155,7 @@ describe('TableStore — state.items', () => {
         source: () => {
           void rev;
           // Fresh literal AND fresh query identity per evaluation.
-          return { query: async () => ({ items: [], totalItems: 0 }) };
+          return { query: async () => ({ items: [], total: 0 }) };
         }
       });
 

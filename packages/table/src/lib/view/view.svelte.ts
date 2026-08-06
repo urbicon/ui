@@ -171,12 +171,16 @@ export class TableView {
         '[TableView] constructed outside component initialisation on the server — a module-scope view is shared between requests. Construct it inside the component (or request-scoped load) that owns it.'
       );
     }
+    // Copied, not referenced: `defaults` IS the elision baseline every
+    // binding compares against, so a consumer who later pushes onto the array
+    // they passed in would silently move the "this axis is at its default"
+    // line — and with it what does and does not reach the URL.
     this.defaults = {
       search: defaults.search ?? '',
-      sort: defaults.sort ?? null,
+      sort: defaults.sort ? { ...defaults.sort } : null,
       page: defaults.page ?? 1,
       pageSize: defaults.pageSize ?? 10,
-      filters: defaults.filters ?? [],
+      filters: defaults.filters ? [...defaults.filters] : [],
       // `|| null` on top of the nullish fallback: an empty string is not a
       // grouping — normalising it here keeps `groupBy === null` the single
       // spelling of "ungrouped" for strict consumer checks.
@@ -317,14 +321,27 @@ export class TableView {
     return { revision, origin };
   }
 
-  /** Reactive full snapshot — reads (and therefore tracks) all six axes. */
+  /**
+   * Reactive full snapshot — reads (and therefore tracks) all six axes.
+   *
+   * The two composite axes are copied, so the returned object earns its name:
+   * a snapshot that writes through to the live view is not one. The copy used
+   * to sit in `viewToQuery`, which meant it only protected consumers who went
+   * through that projection — `observeView(view, cb)` handed the callback the
+   * view's own `filters` array, and a `cb` that sorted it in place was
+   * reordering view state. Moving it here covers every caller.
+   *
+   * Shallow on purpose: the filter entries are three-string value objects
+   * nothing edits in place, and a deep clone per snapshot would be paid on
+   * every view change to guard against a write nobody makes.
+   */
   snapshot(): TableViewSnapshot {
     return {
       search: this.#search,
-      sort: this.#sort,
+      sort: this.#sort === null ? null : { ...this.#sort },
       page: this.#page,
       pageSize: this.#pageSize,
-      filters: this.#filters,
+      filters: [...this.#filters],
       groupBy: this.#groupBy
     };
   }

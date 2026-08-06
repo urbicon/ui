@@ -8,7 +8,7 @@
  * suites drive it: a second copy would be free to drift from the real class in
  * exactly the places the bindings depend on.
  */
-import type { TableQueryFilter } from '../lib/table-query';
+import type { TableViewFilter } from '../lib/table-view';
 import {
   TABLE_VIEW_AXES,
   type TableViewAxis,
@@ -20,7 +20,7 @@ import {
 const sortEqual = (a: TableViewSort | null, b: TableViewSort | null): boolean =>
   a === b || (a !== null && b !== null && a.column === b.column && a.direction === b.direction);
 
-const filtersEqual = (a: TableQueryFilter[], b: TableQueryFilter[]): boolean =>
+const filtersEqual = (a: TableViewFilter[], b: TableViewFilter[]): boolean =>
   a === b ||
   (a.length === b.length &&
     a.every(
@@ -29,7 +29,7 @@ const filtersEqual = (a: TableQueryFilter[], b: TableQueryFilter[]): boolean =>
 
 function axisEqual(axis: TableViewAxis, a: unknown, b: unknown): boolean {
   if (axis === 'sort') return sortEqual(a as TableViewSort | null, b as TableViewSort | null);
-  if (axis === 'filters') return filtersEqual(a as TableQueryFilter[], b as TableQueryFilter[]);
+  if (axis === 'filters') return filtersEqual(a as TableViewFilter[], b as TableViewFilter[]);
   return Object.is(a, b);
 }
 
@@ -99,7 +99,7 @@ export class TestView implements TableViewLike {
   get filters() {
     return this.#snapshot.filters;
   }
-  set filters(v: TableQueryFilter[]) {
+  set filters(v: TableViewFilter[]) {
     this.#write('filters', v, 'user');
   }
   get groupBy() {

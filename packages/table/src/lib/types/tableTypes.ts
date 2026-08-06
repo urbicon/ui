@@ -287,37 +287,20 @@ export type FilterOperator =
   | 'lessThan';
 
 /**
- * Query object emitted by the table in server mode.
- * Contains the full query state for server-side data fetching.
- * Compatible with any HTTP library — convert to URL params, GraphQL variables, etc.
- */
-export interface TableQuery {
-  /** Current page (1-based) */
-  page: number;
-  /** Number of items per page */
-  itemsPerPage: number;
-  /** Column ID to sort by, or empty string if no sort is active */
-  sortColumn: string;
-  /** Sort direction. Always set — only meaningful once `sortColumn` is non-empty. */
-  sortDirection: 'asc' | 'desc';
-  /** Full-text search term, exactly as typed. Not trimmed. */
-  searchTerm: string;
-  /** Active column filters */
-  activeFilters: Filter[];
-  /** Column ID for grouping, or null if ungrouped */
-  groupByKey: string | null;
-}
-
-/**
  * Result a server source resolves with — the return shape of `source.query`
  * (managed flow), and the shape `setServerResult` accepts in the manual
  * `kind: 'server'` flow.
+ *
+ * `total` is spelled the same here as on `ServerManualSource` (#162): both
+ * mean "how many rows match this query", and until v9 the managed flow
+ * called it `totalItems` purely because that name came through unchanged
+ * from v7. Which flow you use no longer changes what the field is called.
  */
 export interface TableQueryResult {
   /** Items for the current page/query */
   items: TableItem[];
-  /** Total number of items matching the query (for pagination) */
-  totalItems: number;
+  /** Total number of items matching the query — drives pagination. */
+  total: number;
 }
 
 /**

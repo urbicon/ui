@@ -65,12 +65,14 @@ Peer dependencies: `svelte` (^5), `@urbicon-ui/blocks`, `@urbicon-ui/i18n`. No S
   {columns}
   source={{
     query: async (q, { signal }) => {
-      const res = await fetch(`/api/users?page=${q.page}&size=${q.itemsPerPage}`, { signal });
-      return res.json(); // { items, totalItems }
+      const res = await fetch(`/api/users?page=${q.page}&size=${q.pageSize}`, { signal });
+      return res.json(); // { items, total }
     }
   }}
 />
 ```
+
+`q` is the view itself — the same six axes (`search`, `sort`, `page`, `pageSize`, `filters`, `groupBy`) a reader manipulates, under the same names; project them onto your backend's parameters inside the function.
 
 The table calls `query` whenever the view changes — the first fetch immediately, later ones debounced (`debounceMs`, default 300) — and aborts superseded requests through the `AbortSignal`. Loading, error and the total row count are the table's in this flow; they are not expressible on a managed source. When you drive the fetch yourself, hand in what you have instead: `source={{ kind: 'server', items, total, loading, error }}`. The tag is mandatory — server mode hands sorting and filtering to the server, so it is an explicit decision rather than something inferred from a `total` that happened to be passed.
 

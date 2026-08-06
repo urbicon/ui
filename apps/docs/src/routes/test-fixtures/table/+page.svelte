@@ -4,7 +4,12 @@
   // data over the managed server source. Data is fully deterministic — index-derived
   // names, cycling categories, and a (i * 37) % 101 score whose order deliberately
   // differs from insertion order so a sort visibly reorders rows. No Math.random.
-  import { Table, type Column, type TableQuery, type TableQueryResult } from '@urbicon-ui/table';
+  import {
+    Table,
+    type Column,
+    type TableQueryResult,
+    type TableViewSnapshot
+  } from '@urbicon-ui/table';
 
   type Row = { id: number; name: string; category: string; score: number };
 
@@ -71,11 +76,11 @@
   let requestCount = $state(0);
   let remoteTotal = $state(0);
 
-  async function remoteQuery(query: TableQuery): Promise<TableQueryResult> {
+  async function remoteQuery(query: TableViewSnapshot): Promise<TableQueryResult> {
     requestCount += 1;
     await new Promise((resolve) => setTimeout(resolve, REMOTE_LATENCY_MS));
 
-    const term = (query.searchTerm ?? '').trim().toLowerCase();
+    const term = query.search.trim().toLowerCase();
     let rows = term
       ? remoteData.filter(
           (row) =>
@@ -83,9 +88,9 @@
         )
       : [...remoteData];
 
-    if (query.sortColumn) {
-      const key = query.sortColumn as keyof Row;
-      const dir = query.sortDirection === 'desc' ? -1 : 1;
+    if (query.sort) {
+      const key = query.sort.column as keyof Row;
+      const dir = query.sort.direction === 'desc' ? -1 : 1;
       rows = [...rows].sort((a, b) => {
         if (a[key] < b[key]) return -1 * dir;
         if (a[key] > b[key]) return 1 * dir;
@@ -95,9 +100,9 @@
 
     remoteTotal = rows.length;
 
-    const perPage = query.itemsPerPage || 10;
+    const perPage = query.pageSize || 10;
     const start = (Math.max(1, query.page) - 1) * perPage;
-    return { items: rows.slice(start, start + perPage), totalItems: rows.length };
+    return { items: rows.slice(start, start + perPage), total: rows.length };
   }
 </script>
 

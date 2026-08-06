@@ -4,7 +4,7 @@
 // consumer): `createManagedFetch`/`FetchSink` (the fetch lifecycle),
 // `resolveViewProp` (the view/viewDefaults resolution) and
 // `resolveSource`/`ResolvedSource` (the union dispatch).
-export { type ObserveViewOptions, observeView, viewToQuery } from './observe.svelte.js';
+export { type ObserveViewOptions, observeView } from './observe.svelte.js';
 export type {
   ClientItemsSource,
   ServerManagedSource,

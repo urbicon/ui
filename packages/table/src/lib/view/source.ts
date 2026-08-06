@@ -24,7 +24,8 @@
  * for rows and a total and therefore composes with any of them. That variant
  * is where capabilities go; this one takes bug fixes.
  */
-import type { TableItem, TableQuery, TableQueryResult } from '$lib/types/tableTypes';
+import type { TableItem, TableQueryResult } from '$lib/types/tableTypes';
+import type { TableViewSnapshot } from './view.svelte';
 
 /** Client-mode source with self-fetched loading/error state. */
 export interface ClientItemsSource<T = TableItem> {
@@ -64,7 +65,12 @@ export interface ServerManualSource<T = TableItem> {
  * {@link ServerManualSource}.
  */
 export interface ServerManagedSource {
-  query: (q: TableQuery, options: { signal: AbortSignal }) => Promise<TableQueryResult>;
+  /**
+   * Called with the view itself — the same six axes the reader manipulates,
+   * under the same names. Project it onto your backend's parameters inside
+   * the function.
+   */
+  query: (q: TableViewSnapshot, options: { signal: AbortSignal }) => Promise<TableQueryResult>;
   /** Debounce for refetches after the immediate first fetch. @default 300 */
   debounceMs?: number;
   kind?: never;
@@ -80,7 +86,7 @@ export interface ServerManagedSource {
  * - `{ kind: 'server', items, total, loading?, error? }` — manual server flow
  * - `{ query, debounceMs? }` — managed server flow
  *
- * The bare `T[]` arm was dropped in 8.1 (#161). It normalised into exactly the
+ * The bare `T[]` arm was dropped in v9 (#161). It normalised into exactly the
  * same internal shape as `{ items }`, so it bought no capability — it only
  * gave "how do I pass rows?" a third correct answer next to `items` and
  * `source={{ items }}`. The split that remains is a rule you can state:
@@ -104,7 +110,7 @@ export type ResolvedSource<T = TableItem> =
     }
   | {
       mode: 'server-managed';
-      query: (q: TableQuery, options: { signal: AbortSignal }) => Promise<TableQueryResult>;
+      query: (q: TableViewSnapshot, options: { signal: AbortSignal }) => Promise<TableQueryResult>;
       debounceMs: number;
     };
 
@@ -125,6 +131,20 @@ export function resolveSource<T>(source: TableSource<T>): ResolvedSource<T> {
       loading: source.loading ?? false,
       error: source.error ?? null
     };
+  }
+  // Fail loud, and name the cause. The type makes a bare array unrepresentable
+  // for a TypeScript consumer, but a plain-JS one has no compiler to catch it:
+  // `source={rows}` matches neither guard above, falls through to here, and
+  // used to return `items: undefined` — a value `ResolvedSource` forbids. The
+  // consumer then saw `Cannot read properties of undefined (reading 'map')`
+  // from `normalizeItems`, two frames away, naming neither `source` nor the
+  // arm that was removed under them. Same crash, useful message.
+  if (!Array.isArray(source.items)) {
+    throw new TypeError(
+      Array.isArray(source)
+        ? '[Table] `source` no longer takes a bare array — pass `source={{ items: rows }}`, or use the `items` prop.'
+        : '[Table] `source` needs an `items` array, a `kind: "server"` source, or a `query` function.'
+    );
   }
   return {
     mode: 'client',

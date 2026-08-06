@@ -41,6 +41,58 @@ describe('construction — defaults resolution', () => {
     });
     expect(view.snapshot()).toEqual(view.defaults);
   });
+
+  it('copies the composite defaults instead of aliasing the consumer objects', () => {
+    // `defaults` IS the elision baseline every binding compares against, so a
+    // consumer who pushes onto the array they passed in would silently move
+    // the "this axis is at its default" line — and with it what reaches the
+    // URL. Positive control: drop the spread in the constructor and both
+    // `toHaveLength(0)`/`direction` assertions go red.
+    const consumerFilters: Filter[] = [];
+    const consumerSort = { column: 'date', direction: 'desc' as const };
+    const view = createTableView({ defaults: { filters: consumerFilters, sort: consumerSort } });
+
+    consumerFilters.push({ column: 'name', operator: 'contains', value: 'ada' });
+    consumerSort.column = 'amount';
+
+    expect(view.defaults.filters).toHaveLength(0);
+    expect(view.defaults.sort).toEqual({ column: 'date', direction: 'desc' });
+  });
+});
+
+describe('snapshot() is a snapshot — the composite axes are copied (#162)', () => {
+  // The copy used to live in `viewToQuery`, so it only protected consumers who
+  // went through that projection; `observeView(view, cb)` handed the callback
+  // the view's own array. With the query and view vocabularies unified the
+  // projection is gone, and the guarantee belongs to `snapshot()` itself.
+  // Positive control: remove the spreads in `snapshot()` and every `not.toBe`
+  // below goes red.
+  it('hands out a filters array the caller cannot write through', () => {
+    const view = createTableView();
+    view.filters = [{ column: 'name', operator: 'contains', value: 'ad' }];
+
+    const snap = view.snapshot();
+    expect(snap.filters).toEqual(view.filters);
+    expect(snap.filters).not.toBe(view.filters);
+
+    snap.filters.push({ column: 'x', operator: 'equals', value: 'y' });
+    expect(view.filters).toHaveLength(1);
+  });
+
+  it('hands out a sort object the caller cannot write through', () => {
+    const view = createTableView();
+    view.sort = { column: 'amount', direction: 'asc' };
+
+    const snap = view.snapshot();
+    expect(snap.sort).not.toBe(view.sort);
+
+    if (snap.sort) snap.sort.direction = 'desc';
+    expect(view.sort?.direction).toBe('asc');
+  });
+
+  it('keeps null sort as null rather than an empty object', () => {
+    expect(createTableView().snapshot().sort).toBeNull();
+  });
 });
 
 describe('echo suppression at the write surface', () => {

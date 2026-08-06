@@ -193,7 +193,7 @@ describe('TableStore — the source union feeds the derived slots', () => {
 
   it('a managed source is server mode with an empty item slot', () => {
     const store = createTableState(undefined, undefined, {
-      source: () => ({ query: async () => ({ items: [], totalItems: 0 }) })
+      source: () => ({ query: async () => ({ items: [], total: 0 }) })
     });
 
     // The fetch lifecycle lives in `createManagedFetch` (driven by the

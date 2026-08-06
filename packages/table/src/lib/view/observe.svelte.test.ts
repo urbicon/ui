@@ -1,8 +1,8 @@
 // @vitest-environment jsdom
 import { flushSync } from 'svelte';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import type { Filter, TableQuery, TableQueryResult } from '$lib/types/tableTypes';
-import { createManagedFetch, observeView, viewToQuery } from './observe.svelte';
+import type { Filter, TableQueryResult } from '$lib/types/tableTypes';
+import { createManagedFetch, observeView } from './observe.svelte';
 import type { TableSource } from './source';
 import { createTableView, type TableView, type TableViewSnapshot } from './view.svelte';
 
@@ -43,10 +43,10 @@ async function flushMicrotasks(): Promise<void> {
 }
 
 function makeCountingQuery() {
-  const calls: TableQuery[] = [];
-  const query = async (q: TableQuery): Promise<TableQueryResult> => {
+  const calls: TableViewSnapshot[] = [];
+  const query = async (q: TableViewSnapshot): Promise<TableQueryResult> => {
     calls.push(q);
-    return { items: [{ id: calls.length }], totalItems: calls.length };
+    return { items: [{ id: calls.length }], total: calls.length };
   };
   return { calls, query };
 }
@@ -122,7 +122,7 @@ describe('fetch counter (Prüfstein 12)', () => {
     await flushMicrotasks();
 
     expect(calls).toHaveLength(2);
-    expect(calls[1].searchTerm).toBe('ad');
+    expect(calls[1].search).toBe('ad');
     cleanup();
   });
 
@@ -179,7 +179,7 @@ describe('fetch counter (Prüfstein 12)', () => {
       const getSource = () => {
         void renderTrigger;
         // fresh object AND fresh arrow per render — the #153-regression shape
-        return { query: (q: TableQuery) => query(q), debounceMs: 300 };
+        return { query: (q: TableViewSnapshot) => query(q), debounceMs: 300 };
       };
       createManagedFetch(view, getSource, { onResult: (r) => results.push(r) });
       flushSync();
@@ -218,7 +218,10 @@ describe('fetch counter (Prüfstein 12)', () => {
     const resolvers: Array<(r: TableQueryResult) => void> = [];
     const seenSignals: AbortSignal[] = [];
     const results: TableQueryResult[] = [];
-    const query = (_q: TableQuery, o: { signal: AbortSignal }): Promise<TableQueryResult> => {
+    const query = (
+      _q: TableViewSnapshot,
+      o: { signal: AbortSignal }
+    ): Promise<TableQueryResult> => {
       seenSignals.push(o.signal);
       return new Promise((resolve) => resolvers.push(resolve));
     };
@@ -240,8 +243,8 @@ describe('fetch counter (Prüfstein 12)', () => {
     expect(seenSignals[0].aborted).toBe(true);
     expect(seenSignals[1].aborted).toBe(false);
 
-    resolvers[0]({ items: [{ id: 'stale' }], totalItems: 1 }); // stale resolve
-    resolvers[1]({ items: [{ id: 'fresh' }], totalItems: 1 });
+    resolvers[0]({ items: [{ id: 'stale' }], total: 1 }); // stale resolve
+    resolvers[1]({ items: [{ id: 'fresh' }], total: 1 });
     await flushMicrotasks();
 
     expect(results).toHaveLength(1);
@@ -259,8 +262,8 @@ describe('a live source flip away from managed (the isManaged gate)', () => {
     const resolvers: Array<(r: TableQueryResult) => void> = [];
     const seenSignals: AbortSignal[] = [];
     const results: TableQueryResult[] = [];
-    const calls: TableQuery[] = [];
-    const query = (q: TableQuery, o: { signal: AbortSignal }): Promise<TableQueryResult> => {
+    const calls: TableViewSnapshot[] = [];
+    const query = (q: TableViewSnapshot, o: { signal: AbortSignal }): Promise<TableQueryResult> => {
       calls.push(q);
       seenSignals.push(o.signal);
       return new Promise((resolve) => resolvers.push(resolve));
@@ -279,7 +282,7 @@ describe('a live source flip away from managed (the isManaged gate)', () => {
     flushSync();
     expect(seenSignals[0].aborted).toBe(true); // aborted at the flip, not on supersede
 
-    resolvers[0]({ items: [{ id: 'stale' }], totalItems: 1 }); // the promise resolves late
+    resolvers[0]({ items: [{ id: 'stale' }], total: 1 }); // the promise resolves late
     await flushMicrotasks();
     expect(results).toHaveLength(0); // the sink never hears from it
 
@@ -289,7 +292,7 @@ describe('a live source flip away from managed (the isManaged gate)', () => {
     await flushMicrotasks();
     expect(calls).toHaveLength(2);
 
-    resolvers[1]({ items: [{ id: 'fresh' }], totalItems: 1 });
+    resolvers[1]({ items: [{ id: 'fresh' }], total: 1 });
     await flushMicrotasks();
     expect(results).toHaveLength(1);
     expect(results[0].items[0].id).toBe('fresh');
@@ -425,10 +428,10 @@ describe('observeView (Prüfstein 13)', () => {
 
 describe('destroy teardown (M4)', () => {
   it('a pending fetch debounce dies with the scope, and an in-flight fetch is aborted', async () => {
-    const calls: TableQuery[] = [];
+    const calls: TableViewSnapshot[] = [];
     const seenSignals: AbortSignal[] = [];
     const results: TableQueryResult[] = [];
-    const query = (q: TableQuery, o: { signal: AbortSignal }): Promise<TableQueryResult> => {
+    const query = (q: TableViewSnapshot, o: { signal: AbortSignal }): Promise<TableQueryResult> => {
       calls.push(q);
       seenSignals.push(o.signal);
       return new Promise(() => {}); // stays in flight forever
@@ -475,50 +478,43 @@ describe('destroy teardown (M4)', () => {
   });
 });
 
-describe('viewToQuery — the projection into the TableQuery vocabulary', () => {
-  it('maps every axis', () => {
-    expect(
-      viewToQuery({
-        search: 'ada',
-        sort: { column: 'amount', direction: 'desc' },
-        page: 3,
-        pageSize: 50,
-        filters: [aFilter],
-        groupBy: 'status'
-      })
-    ).toEqual({
-      page: 3,
-      itemsPerPage: 50,
-      sortColumn: 'amount',
-      sortDirection: 'desc',
-      searchTerm: 'ada',
-      activeFilters: [aFilter],
-      groupByKey: 'status'
+describe('what a managed query receives (#162)', () => {
+  it('is the view snapshot itself — the six axes under the view names', async () => {
+    // The projection this used to go through (`viewToQuery`) is gone: the
+    // query vocabulary and the view vocabulary are one, so `source.query` is
+    // handed `view.snapshot()` directly. Positive control: re-introduce a
+    // renaming projection in `execute` and the key assertion below goes red.
+    const seen: TableViewSnapshot[] = [];
+    const query = async (q: TableViewSnapshot): Promise<TableQueryResult> => {
+      seen.push(q);
+      return { items: [], total: 0 };
+    };
+    const cleanup = $effect.root(() => {
+      const view = createTableView({
+        defaults: {
+          search: 'ada',
+          sort: { column: 'amount', direction: 'desc' },
+          page: 3,
+          pageSize: 50,
+          filters: [aFilter],
+          groupBy: 'status'
+        }
+      });
+      createManagedFetch(view, () => ({ query }), { onResult: () => {} });
     });
-  });
+    flushSync();
+    vi.advanceTimersByTime(0);
+    await flushMicrotasks();
+    cleanup();
 
-  it('projects "unsorted" as an empty sortColumn with asc — the legacy TableQuery shape', () => {
-    const query = viewToQuery(createTableView().snapshot());
-    expect(query.sortColumn).toBe('');
-    expect(query.sortDirection).toBe('asc');
-    expect(query.groupByKey).toBeNull();
-  });
-
-  it('activeFilters are a copy, not the live view array', () => {
-    // The query object leaves the table (source.query, observers). v7
-    // guaranteed a defensive copy and the v8 projection must too — a consumer
-    // mutating the query must not mutate the view's filter state through the
-    // reference. Moved here from the useRemoteData contract when the
-    // context's `query` getter left with the v8 cut; positive control: with
-    // the copy removed from the projection chain, the `not.toBe` and
-    // `toHaveLength(1)` assertions go red.
-    const view = createTableView();
-    view.filters = [{ column: 'name', operator: 'contains', value: 'ad' }];
-
-    const query = viewToQuery(view.snapshot());
-    expect(query.activeFilters).toEqual(view.filters);
-    expect(query.activeFilters).not.toBe(view.filters);
-    query.activeFilters.push({ column: 'x', operator: 'equals', value: 'y' });
-    expect(view.filters).toHaveLength(1);
+    expect(seen).toHaveLength(1);
+    expect(seen[0]).toEqual({
+      search: 'ada',
+      sort: { column: 'amount', direction: 'desc' },
+      page: 3,
+      pageSize: 50,
+      filters: [aFilter],
+      groupBy: 'status'
+    });
   });
 });

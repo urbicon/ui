@@ -49,11 +49,11 @@ ${scriptClose}
 export const invoiceView = { pageSize: 25 };
 
 // +page.server.ts
-import { searchParamsToViewQuery } from '@urbicon-ui/sveltekit-utils/table-view';
+import { searchParamsToViewSnapshot } from '@urbicon-ui/sveltekit-utils/table-view';
 import { invoiceView } from './view-defaults';
 
 export const load = async ({ url }) => {
-  const query = searchParamsToViewQuery(url.searchParams, invoiceView);
+  const query = searchParamsToViewSnapshot(url.searchParams, invoiceView);
   return { initialResult: await fetchInvoices(query) };
 };`;
 </script>
@@ -318,11 +318,11 @@ export const load = async ({ url }) => {
 
     <p class="text-text-secondary mb-6 text-sm">
       In server mode the load function reads the same parameters.
-      <code class="text-text-primary">searchParamsToViewQuery</code> resolves them against the same
-      defaults object the component hands
-      <code class="text-text-primary">createTableView</code>, and returns a complete query, the
-      shape a fetch wants — an absent parameter resolves on the server exactly as it does in the
-      view, from one declaration rather than two.
+      <code class="text-text-primary">searchParamsToViewSnapshot</code> resolves them against the
+      same defaults object the component hands
+      <code class="text-text-primary">createTableView</code>, and returns the very shape a managed
+      <code class="text-text-primary">query</code> receives — an absent parameter resolves on the server
+      exactly as it does in the view, from one declaration rather than two.
     </p>
 
     <CodeExample title="Seeding the first fetch" code={codeServer} preview={false} />

@@ -179,7 +179,7 @@ void pub.forceSavePersistentData;
 
 // ── Removed from the store entirely (v8 cut, C8) — gone from BOTH types ───
 
-// @ts-expect-error query left with the projection — use viewToQuery(view.snapshot())
+// @ts-expect-error query left with the projection — use view.snapshot()
 void wide.query;
 // @ts-expect-error queryKey left with the projection
 void wide.queryKey;

@@ -14,11 +14,33 @@
  * to `sort=`, so a cleared filter set elides like every other axis (the
  * shipped read side already tolerated it).
  */
-import {
-  TABLE_QUERY_FILTER_OPERATORS,
-  type TableQueryFilter,
-  type TableQueryParams
-} from './table-query';
+
+/**
+ * Filter operators supported by the table. Mirrors `FilterOperator` from
+ * `@urbicon-ui/table`. Used as the runtime whitelist when parsing `filter`
+ * params from the URL.
+ */
+export const TABLE_VIEW_FILTER_OPERATORS = [
+  'contains',
+  'equals',
+  'startsWith',
+  'endsWith',
+  'greaterThan',
+  'lessThan'
+] as const;
+
+/** Filter operator of a view filter. Mirrors `@urbicon-ui/table`. */
+export type TableViewFilterOperator = (typeof TABLE_VIEW_FILTER_OPERATORS)[number];
+
+/** Single column filter on the `filters` axis. Mirrors `Filter` from `@urbicon-ui/table`. */
+export interface TableViewFilter {
+  /** Column ID the filter applies to. */
+  column: string;
+  /** Filter operator. */
+  operator: TableViewFilterOperator;
+  /** Filter value (always a string, numeric operators convert internally). */
+  value: string;
+}
 
 /** One of the six view axes. Mirrors `ViewAxis` from `@urbicon-ui/table`. */
 export type TableViewAxis = 'search' | 'sort' | 'page' | 'pageSize' | 'filters' | 'groupBy';
@@ -50,7 +72,7 @@ export interface TableViewSnapshot {
   sort: TableViewSort | null;
   page: number;
   pageSize: number;
-  filters: TableQueryFilter[];
+  filters: TableViewFilter[];
   groupBy: string | null;
 }
 
@@ -68,7 +90,7 @@ export interface TableViewLike {
   sort: TableViewSort | null;
   page: number;
   pageSize: number;
-  filters: TableQueryFilter[];
+  filters: TableViewFilter[];
   groupBy: string | null;
   applyExternal(partial: Partial<TableViewSnapshot>, origin: 'external' | 'system'): void;
   claimAxes(kind: 'url' | 'storage', axes: readonly TableViewAxis[]): void;
@@ -97,12 +119,12 @@ export function viewAxisKeys(axes: readonly TableViewAxis[], prefix = ''): strin
   return axes.flatMap((axis) => AXIS_KEYS[axis].map((key) => `${prefix}${key}`));
 }
 
-function isFilterOperator(value: string): value is TableQueryFilter['operator'] {
-  return (TABLE_QUERY_FILTER_OPERATORS as readonly string[]).includes(value);
+function isFilterOperator(value: string): value is TableViewFilter['operator'] {
+  return (TABLE_VIEW_FILTER_OPERATORS as readonly string[]).includes(value);
 }
 
-/** Same per-entry tolerance as the table-query parser: malformed → null → skipped. */
-function parseFilterParam(raw: string): TableQueryFilter | null {
+/** Per-entry tolerance: a malformed entry becomes null and the caller skips it. */
+function parseFilterParam(raw: string): TableViewFilter | null {
   const parts = raw.split(':');
   if (parts.length !== 3) return null;
   const [encodedColumn, operator, encodedValue] = parts;
@@ -173,7 +195,7 @@ export function searchParamsToViewPartial(
   if (rawFilters.length > 0) {
     partial.filters = rawFilters
       .map(parseFilterParam)
-      .filter((f): f is TableQueryFilter => f !== null);
+      .filter((f): f is TableViewFilter => f !== null);
   }
 
   const rawGroup = sp.get(`${prefix}group`);
@@ -187,6 +209,29 @@ export function searchParamsToViewPartial(
  * comes from the URL, every other one from `defaults` — the same resolution
  * the URL binding performs at init, for code that has no view (a server
  * `load`).
+ *
+ * This is also what a server `load` hands its fetch. Since 8.1 the view and
+ * the query speak one vocabulary (#162), so there is nothing to project on
+ * the way out: the object below is the same shape a managed `source.query`
+ * receives. The `searchParamsToViewQuery` / `viewSnapshotToTableQuery` pair
+ * that used to do the projecting were identity functions once the names
+ * agreed, and are gone.
+ *
+ * The `defaults` argument is the point: it takes the very object
+ * `createTableView({ defaults })` takes, so the server cannot resolve an
+ * absent param differently from the client — and a default filter set is
+ * expressible, which the old wire-vocabulary baseline could not manage no
+ * matter how it was written (#157 finding 2).
+ *
+ * @example
+ * ```ts
+ * // shared with the component that calls createTableView({ defaults })
+ * export const invoiceView = { pageSize: 25, sort: { column: 'date', direction: 'desc' } };
+ *
+ * export const load = async ({ url }) => ({
+ *   initialResult: await fetchInvoices(searchParamsToViewSnapshot(url.searchParams, invoiceView))
+ * });
+ * ```
  */
 export function searchParamsToViewSnapshot(
   sp: URLSearchParams,
@@ -207,54 +252,6 @@ function resolveViewDefaults(defaults: Partial<TableViewSnapshot>): TableViewSna
     filters: defaults.filters ?? [],
     groupBy: defaults.groupBy || null
   };
-}
-
-/**
- * Project a view snapshot into the wire shape a backend speaks — the same
- * mapping the table applies before calling a managed `source.query`, so a
- * server `load` and the table's own fetches send identical field names.
- */
-export function viewSnapshotToTableQuery(snapshot: TableViewSnapshot): TableQueryParams {
-  return {
-    page: snapshot.page,
-    itemsPerPage: snapshot.pageSize,
-    sortColumn: snapshot.sort?.column ?? '',
-    sortDirection: snapshot.sort?.direction ?? 'asc',
-    searchTerm: snapshot.search,
-    activeFilters: [...snapshot.filters],
-    groupByKey: snapshot.groupBy
-  };
-}
-
-/**
- * The load-path counterpart of the URL binding: parse search params against
- * the **view's own defaults** and hand back the query a fetch needs.
- *
- * The point is the defaults argument. `searchParamsToTableQuery` takes its
- * baseline in the wire vocabulary (`itemsPerPage`, `sortColumn`/`sortDirection`,
- * `groupByKey`) and has no field for filters at all, so a `load` had to keep a
- * second, differently-spelled copy of what `createTableView({ defaults })`
- * already says — and could not express a default filter set no matter how it
- * was written (#157 finding 2). This one takes the very object the view takes:
- * one spelling, all six axes, so the server cannot resolve an absent param
- * differently from the client.
- *
- * @example
- * ```ts
- * // shared with the component that calls createTableView({ defaults })
- * export const invoiceView = { pageSize: 25, sort: { column: 'date', direction: 'desc' } };
- *
- * export const load = async ({ url }) => ({
- *   initialResult: await fetchInvoices(searchParamsToViewQuery(url.searchParams, invoiceView))
- * });
- * ```
- */
-export function searchParamsToViewQuery(
-  sp: URLSearchParams,
-  defaults: Partial<TableViewSnapshot> = {},
-  prefix = ''
-): TableQueryParams {
-  return viewSnapshotToTableQuery(searchParamsToViewSnapshot(sp, defaults, prefix));
 }
 
 /**
@@ -325,4 +322,88 @@ export function viewSnapshotToSearchParams(
   }
 
   return sp;
+}
+
+/**
+ * Write-side validation: never serialize structurally invalid state.
+ *
+ * The strict half of the module's read-tolerant / write-strict contract, and
+ * deliberately NOT called by {@link viewSnapshotToSearchParams}: that one runs
+ * inside the URL binding on every view change, where a throw would take the
+ * whole table down over a `view.page = 0` a consumer wrote. Serializing a bad
+ * page there costs a wrong URL; throwing there costs the page.
+ *
+ * @throws TypeError when an axis holds a value the URL scheme cannot mean.
+ */
+export function assertValidViewSnapshot(snapshot: TableViewSnapshot): void {
+  if (!Number.isSafeInteger(snapshot.page) || snapshot.page < 1) {
+    throw new TypeError(`[table-view] page must be a positive integer, got ${snapshot.page}`);
+  }
+  if (!Number.isSafeInteger(snapshot.pageSize) || snapshot.pageSize < 1) {
+    throw new TypeError(
+      `[table-view] pageSize must be a positive integer, got ${snapshot.pageSize}`
+    );
+  }
+  if (snapshot.sort !== null) {
+    if (!snapshot.sort.column) {
+      throw new TypeError(
+        '[table-view] sort.column must be a non-empty string, or sort must be null'
+      );
+    }
+    if (snapshot.sort.direction !== 'asc' && snapshot.sort.direction !== 'desc') {
+      throw new TypeError(
+        `[table-view] sort.direction must be 'asc' or 'desc', got ${String(snapshot.sort.direction)}`
+      );
+    }
+  }
+  if (snapshot.groupBy === '') {
+    throw new TypeError("[table-view] groupBy must be a non-empty string or null, got ''");
+  }
+  for (const filter of snapshot.filters) {
+    if (!filter.column) {
+      throw new TypeError('[table-view] filter.column must be a non-empty string');
+    }
+    if (!isFilterOperator(filter.operator)) {
+      throw new TypeError(
+        `[table-view] unknown filter operator '${String(filter.operator)}' on column '${filter.column}'`
+      );
+    }
+  }
+}
+
+/**
+ * Merge a view into existing search params: every key the given axes own is
+ * replaced by the serialized snapshot, and every other param is preserved
+ * untouched. Keys whose axis returned to its default are removed (the same
+ * elision {@link viewSnapshotToSearchParams} applies).
+ *
+ * This is the one thing the axis-scoped serializer cannot do on its own —
+ * everything else the retired `./table-query` module offered was the same
+ * codec under wire-vocabulary names (#162).
+ *
+ * @param existing - Current search params (not mutated — a copy is returned).
+ * @param snapshot - The view state to write.
+ * @param defaults - Elision baseline, structurally the view's own defaults.
+ * @param axes - Axes to write; every other axis is left alone in `existing`.
+ * @param prefix - Key prefix, to namespace multiple synced tables on a page.
+ * @returns New `URLSearchParams` with the view applied.
+ * @throws TypeError when the snapshot is structurally invalid (write strict).
+ */
+export function applyViewToSearchParams(
+  existing: URLSearchParams,
+  snapshot: TableViewSnapshot,
+  defaults: TableViewSnapshot,
+  axes: readonly TableViewAxis[] = TABLE_VIEW_AXES,
+  prefix = ''
+): URLSearchParams {
+  assertValidViewSnapshot(snapshot);
+  const serialized = viewSnapshotToSearchParams(snapshot, defaults, axes, prefix);
+  const next = new URLSearchParams(existing);
+  for (const key of viewAxisKeys(axes, prefix)) {
+    next.delete(key);
+  }
+  for (const [key, value] of serialized) {
+    next.append(key, value);
+  }
+  return next;
 }

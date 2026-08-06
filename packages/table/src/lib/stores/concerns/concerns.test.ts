@@ -711,9 +711,9 @@ describe('useFocusManagement', () => {
 });
 
 describe('useRemoteData', () => {
-  // Since the v8 context cut the concern is only the managed fetch's SINK —
-  // the query projection lives in `viewToQuery` (tested with `observeView`),
-  // where `createManagedFetch` reads it too.
+  // Since the v8 context cut the concern is only the managed fetch's SINK.
+  // What the fetch sends is the view snapshot itself (#162), covered where
+  // `createManagedFetch` is tested.
   function makeServerState() {
     return {
       items: [],
@@ -734,7 +734,7 @@ describe('useRemoteData', () => {
         { id: 1, name: 'Alice' },
         { id: 2, name: 'Bob' }
       ],
-      totalItems: 100
+      total: 100
     });
 
     expect(state.items).toHaveLength(2);

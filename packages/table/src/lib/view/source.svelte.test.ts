@@ -50,7 +50,7 @@ describe('resolveSource — dispatch', () => {
     // Positive control (red seen): the resolver default changed to `?? 50`
     // → exactly this test red — the one pin on the managed-fetch default
     // (Prüfstein 22); the fetch tests all pass `debounceMs` explicitly.
-    const query = async (): Promise<TableQueryResult> => ({ items: [], totalItems: 0 });
+    const query = async (): Promise<TableQueryResult> => ({ items: [], total: 0 });
     const resolved = resolveSource({ query });
     expect(resolved.mode).toBe('server-managed');
     if (resolved.mode === 'server-managed') {
@@ -127,7 +127,7 @@ describe('identity tracking (M2) — per-render fresh source literals', () => {
       const getSource = (): TableSource => {
         void renderTrigger;
         // fresh arrow on every render — the #153-regression-1 shape
-        return { query: async () => ({ items: [], totalItems: 0 }) };
+        return { query: async () => ({ items: [], total: 0 }) };
       };
       const isManaged = $derived(resolveSource(getSource()).mode === 'server-managed');
 
@@ -144,5 +144,21 @@ describe('identity tracking (M2) — per-render fresh source literals', () => {
     // does not re-run — the `hasQueryFn` technique, carried over.
     expect(effectRuns).toBe(1);
     cleanup();
+  });
+});
+
+describe('resolveSource — the untyped consumer gets a named failure (#161 review)', () => {
+  // The type makes both of these unrepresentable, so these probes go through
+  // `as never`: they stand in for a plain-JS consumer with no compiler. Before
+  // the guard, each returned `{ items: undefined }` and crashed two frames
+  // later inside `normalizeItems` with a message naming neither `source` nor
+  // the removed arm. Positive control: drop the `Array.isArray(source.items)`
+  // check and both assertions go red (`toThrow` fails — nothing is thrown).
+  it('names the removed array arm when handed a bare array', () => {
+    expect(() => resolveSource(ITEMS as never)).toThrow(/no longer takes a bare array/);
+  });
+
+  it('names the three shapes when handed an object that is none of them', () => {
+    expect(() => resolveSource({} as never)).toThrow(/needs an `items` array/);
   });
 });

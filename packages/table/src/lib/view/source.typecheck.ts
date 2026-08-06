@@ -11,11 +11,15 @@
  * models the union *without* the guard, and its probe compiles, which is the
  * measured failure the guards exist for.
  */
-import type { TableItem, TableQuery, TableQueryResult } from '$lib/types/tableTypes';
+import type { TableItem, TableQueryResult } from '$lib/types/tableTypes';
 import { resolveSource, type TableSource } from './source';
+import type { TableViewSnapshot } from './view.svelte';
 
 declare const items: Array<{ id: number; name: string }>;
-declare const query: (q: TableQuery, o: { signal: AbortSignal }) => Promise<TableQueryResult>;
+declare const query: (
+  q: TableViewSnapshot,
+  o: { signal: AbortSignal }
+) => Promise<TableQueryResult>;
 
 declare function acceptSource<T>(source: TableSource<T>): void;
 
@@ -66,17 +70,18 @@ acceptSource(managedWithErrorTotal);
 // @ts-expect-error managed source cannot carry `loading` (fresh literal)
 acceptSource({ query, loading: false });
 
-// ── Control measurement: the union WITHOUT the never-guards lets the silent
-// mode switch through on variable assignment. This block compiling is the
-// *measured defect*, not an oversight — remove the guards from TableSource
-// and the two @ts-expect-error probes above start failing the check.
+// ── Control measurement: the client arm WITHOUT the never-guards lets the
+// silent mode switch through on variable assignment. This block compiling is
+// the *measured defect*, not an oversight — remove the guards from
+// `ClientItemsSource` and three of the @ts-expect-error probes above (the
+// `total` variable form, the `kind: 'server'` one and the managed-with-loading
+// one) start failing the check as unused directives. Measured 2026-08-06.
 interface NaiveClient<T> {
   items: T[];
   loading?: boolean;
   error?: string | null;
 }
-type NaiveSource<T> = NaiveClient<T>;
-declare function acceptNaive<T>(source: NaiveSource<T>): void;
+declare function acceptNaive<T>(source: NaiveClient<T>): void;
 acceptNaive(informativeTotal); // compiles — the silent switch M5 warns about
 
 // ── TS ergonomics under generics (§7.3): narrowing survives the generic ───

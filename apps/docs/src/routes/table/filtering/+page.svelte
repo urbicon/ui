@@ -428,7 +428,7 @@ ${scriptClose}
         <code class="text-text-primary"
           >source=&#123;&#123; kind: 'server', &hellip; &#125;&#125;</code
         >) the table does not filter locally: active filters arrive as
-        <code class="text-text-primary">activeFilters</code> on the query object — see
+        <code class="text-text-primary">filters</code> on the view the query receives — see
         <a href={resolve('/table/remote-data')} class="text-primary hover:underline">Remote Data</a
         >.
       </p>

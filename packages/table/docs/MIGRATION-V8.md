@@ -10,7 +10,9 @@ Nothing about columns, cells, selection, virtualization, styling or snippets cha
 
 ## Already on 8.0?
 
-8.1 tightened two things v8 shipped with. Both are quick, both are compiler-caught.
+v9 tightens two things v8 shipped with. Both are quick. In TypeScript the compiler names
+every call site that has to move; in plain JavaScript the table throws on the first render
+with a message that names the change.
 
 **`source` is always an object.** The bare-array arm is gone: it resolved into exactly the
 same thing as `{ items }`, so "how do I pass rows?" had three correct answers and no rule
@@ -18,11 +20,55 @@ for choosing.
 
 ```svelte
 <Table {columns} source={rows} />           <!-- 8.0 -->
-<Table {columns} source={{ items: rows }} /> <!-- 8.1 — or just items={rows} -->
+<Table {columns} source={{ items: rows }} /> <!-- v9 — or just items={rows} -->
 ```
 
 The rule that remains: `items` for rows and nothing else, `source` for rows plus how they
 arrive (loading, error, a server total, a fetch function).
+
+**The query speaks the view's vocabulary.** v8.0 shipped `TableQuery` unchanged from v7, so
+the same six axes had two spellings depending on which side of `source.query` you stood on —
+and the row count was `total` going in, `totalItems` coming out. There is one vocabulary now:
+
+| 8.0 | v9 |
+| --- | --- |
+| `q.searchTerm` | `q.search` |
+| `q.itemsPerPage` | `q.pageSize` |
+| `q.activeFilters` | `q.filters` |
+| `q.groupByKey` | `q.groupBy` |
+| `q.sortColumn` + `q.sortDirection` | `q.sort` — `{ column, direction }` or `null` |
+| `return { items, totalItems }` | `return { items, total }` |
+
+`TableQuery` is gone as a type: what `source.query` receives *is* a `TableViewSnapshot`. So
+is `viewToQuery`, which had nothing left to project — `observeView(view, cb)` hands `cb`
+the snapshot, and you pass it straight on:
+
+```ts
+observeView(view, (snapshot) => fetchPage(viewToQuery(snapshot))); // 8.0
+observeView(view, (snapshot) => fetchPage(snapshot));              // v9
+```
+
+The one axis that changed shape rather than name is `sort`. `sortColumn: ''` was a sentinel
+for "unsorted" that left `sortDirection` holding a direction for no column; `sort: null`
+cannot express that at all. Where you wrote `if (q.sortColumn)`, write `if (q.sort)`.
+
+In `@urbicon-ui/sveltekit-utils` the `./table-query` subpath is gone with the vocabulary it
+served. Its codec was the same URL scheme under the old spellings, so it now lives in
+`./table-view` (also exported from the package root):
+
+| 8.0 | v9 |
+| --- | --- |
+| `searchParamsToTableQuery` · `searchParamsToViewQuery` | `searchParamsToViewSnapshot` |
+| `tableQueryToSearchParams` | `viewSnapshotToSearchParams` |
+| `applyTableQueryToSearchParams` | `applyViewToSearchParams` (axis-scoped) |
+| `viewSnapshotToTableQuery` | gone — it was the identity |
+| `TableQueryParams` | `TableViewSnapshot` |
+| `TableQueryFilter` · `TABLE_QUERY_FILTER_OPERATORS` | `TableViewFilter` · `TABLE_VIEW_FILTER_OPERATORS` |
+
+The write-strict validation the old serializer performed inline is now
+`assertValidViewSnapshot`, called by `applyViewToSearchParams` and deliberately not by
+`viewSnapshotToSearchParams` — that one runs inside the URL binding on every view change,
+where a throw over a `view.page = 0` would take the table down rather than the URL.
 
 ## The shape of the change
 
@@ -157,10 +203,10 @@ state, so they cannot disagree with each other.
 Two bound tables on one page still namespace with `prefix`. The URL **format is unchanged**
 for readers: existing deep links keep working.
 
-The pure serializers are unchanged and still SvelteKit-free. For the load path, prefer
-`searchParamsToViewQuery` from `@urbicon-ui/sveltekit-utils/table-view`: it takes the *same*
-defaults object the component hands `createTableView`, so the server cannot resolve an
-absent param differently from the client.
+The pure serializers are still SvelteKit-free. For the load path, use
+`searchParamsToViewSnapshot` from `@urbicon-ui/sveltekit-utils/table-view`: it takes the
+*same* defaults object the component hands `createTableView`, so the server cannot resolve
+an absent param differently from the client.
 
 ```ts
 // view-defaults.ts — imported by both the component and the load function
@@ -168,13 +214,12 @@ export const invoiceView = { pageSize: 25, sort: { column: 'date', direction: 'd
 
 // +page.server.ts
 export const load = async ({ url }) => ({
-  initialResult: await fetchInvoices(searchParamsToViewQuery(url.searchParams, invoiceView))
+  initialResult: await fetchInvoices(searchParamsToViewSnapshot(url.searchParams, invoiceView))
 });
 ```
 
-`searchParamsToTableQuery` in `/table-query` still works and still takes its baseline in the
-wire vocabulary (`itemsPerPage`, `sortColumn`/`sortDirection`, `groupByKey`) — but it has no
-field for a default filter set, which is why the view-vocabulary function exists.
+What it hands back is the same shape a managed `source.query` receives, so the `load` and
+the table's own fetches speak to your backend identically.
 
 ### The context surface (`onReady` / `getTableContext`)
 
@@ -203,7 +248,7 @@ What no longer appears on the type, and where its job went:
 | --- | --- |
 | `setItems` / `setLoading` / `setError` | the `source` union: `source={{ items, loading, error }}` |
 | `setServerResult` / `setServerError` / `setServerLoading` | a `kind: 'server'` source, or the managed `{ query }` source |
-| `query` / `queryKey` | `viewToQuery(view.snapshot())`, or `observeView(view, cb)` |
+| `query` / `queryKey` | `view.snapshot()`, or `observeView(view, cb)` |
 | `setColumns` | the `columns` prop |
 | `hideColumn` / `showColumn` / `toggleColumnVisibility` / `showAllColumns` / `allColumns` / `hiddenColumnKeys` | the built-in visibility UI (`enableColumnVisibility`), initial state via `prefs.defaults.hiddenColumns` |
 | `reorderColumn` / `resetColumnOrder` / `orderedColumns` / `columnOrder` / `getColumnIndex` / `initColumnOrder` | `enableColumnReorder` (drag + keyboard), initial order via `prefs.defaults.columnOrder` |
@@ -286,17 +331,15 @@ Analytics, a manual fetch, a server sync — anything that wanted to *observe* t
 than put it in the address bar:
 
 ```ts
-import { observeView, viewToQuery } from '@urbicon-ui/table';
+import { observeView } from '@urbicon-ui/table';
 
-observeView(view, (snapshot) => fetchPage(viewToQuery(snapshot)), { debounceMs: 300 });
+observeView(view, (snapshot) => fetchPage(snapshot), { debounceMs: 300 });
 ```
 
 It fires once synchronously on registration (the parity with `onQueryChange`'s initial
-emission), then debounced on every structural change, and it is echo-free.
-`viewToQuery` projects a snapshot into the `TableQuery` shape your backend already speaks —
-that type and its field names (`itemsPerPage`, `sortColumn`, `sortDirection`, `searchTerm`,
-`activeFilters`, `groupByKey`) are unchanged, because they are the server contract, not the
-view vocabulary.
+emission), then debounced on every structural change, and it is echo-free. The snapshot is
+the same object a managed `source.query` receives — project it onto your backend's
+parameter names where you build the request.
 
 ## Sharing one view across tables
 
