@@ -18,14 +18,19 @@
   Konzept: docs/internal/LANDING-CONCEPT-2026-07.md → "Struktur v2".
 -->
 <!-- urbicon-ignore important-modifier — the `!` modifiers are all slot overrides
-     (PLAYGROUND_SLOTS and the Scroller control map): a slotClasses string and the
-     component's own tv() defaults land on the same element, so without `!` the
-     winner depends on stylesheet order rather than on intent. Counted 2026-08-03
-     with the engine's own regex: 37 matches, 36 of them real and every one
-     inside a slotClasses map, none loose in a class attribute. (The 37th is the
-     string `!h-full` quoted in a CSS comment further down — a match, not a
-     modifier. An earlier version of this note said "35 of 35", which no
-     counting method produces.)
+     (PLAYGROUND_SLOTS, the Scroller control map, the inventory table, the copy
+     button in step 01): a slotClasses string and the component's own tv()
+     defaults land on the same element, so without `!` the winner depends on
+     stylesheet order rather than on intent. Recounted 2026-08-04 with the
+     engine's own regex: 39 matches, 37 of them real and every one inside a
+     slotClasses map, none loose in a class attribute. The other two are the
+     string `!h-full` quoted in prose — once in this very note, once in a CSS
+     comment further down; matches, not modifiers. (The count is by regex
+     match, not by modifier: its lookbehind wants a quote or space before the
+     `!`, so a variant-prefixed one like `hover:!bg-current/15` never enters
+     the tally. An earlier version of this note said "35 of 35", which no
+     counting method produces, and then "37, 36 real", which missed the second
+     quotation.)
 
      `magic-dimension` and `inline-style` were suppressed here too until the
      Blocks tile was rebuilt as a three-view backoffice; that rewrite removed the
@@ -67,6 +72,7 @@
     type ChartSeries,
     CompositionBar,
     type CompositionItem,
+    CopyButton,
     DonutChart,
     Input,
     Progress,
@@ -101,6 +107,14 @@
     href?: string;
     linkLabel?: string;
   }
+
+  /* Die zwei Befehle aus Schritt 01 — einmal notiert, weil sie zweimal
+     gebraucht werden: als sichtbarer Text und als Wert im Kopier-Knopf. Zwei
+     Literale wären zwei Wahrheiten, und die falsche landet still in der
+     Zwischenablage. Der Bestandsfall in `.step-alt` steht bewusst NICHT hier:
+     er ist eine Abzweigung, kein Schritt (siehe Kommentar dort). */
+  const INSTALL_COMMANDS = ['bunx sv create my-app --add @urbicon-ui', 'bunx urbicon init --hook'];
+
   const TILES: TileDef[] = $derived([
     {
       key: 'blocks',
@@ -748,12 +762,20 @@
     inventoryView.search = query;
   });
 
-  // Auswahl in der URL (teilbar, überlebt den Zurück-Knopf) — wie im Hero.
+  // Auswahl in der URL — teilbar wie im Hero, aber ERSETZEND. Ein Eintrag pro
+  // Klick klingt nach "überlebt den Zurück-Knopf" und ist das Gegenteil: nach
+  // einem Durchlauf durch die Liste standen 50 Einträge in der History (Chromes
+  // Deckel), und der Zurück-Knopf führte nicht mehr aus der Seite heraus,
+  // sondern durch die zuletzt angesehenen Komponenten. Auf der Einstiegsseite
+  // ist "zurück" für die meisten Besucher der Weg nach draußen. Die Auswahl ist
+  // Zustand innerhalb einer Ansicht, keine Navigation — dieselbe Einordnung wie
+  // Sortierung oder Filter. Am Deeplink ändert das nichts: `?c=calendar` lädt
+  // unverändert dieselbe Ansicht, geteilte Links bleiben gültig.
   const [selectedSlug, setSelectedSlug] = useUrlParam<string | null>('c', {
     parse: (sp) => sp.get('c'),
     serialize: (value) => new URLSearchParams(value ? { c: value } : {}),
     initial: null,
-    replaceState: false
+    replaceState: true
   });
 
   const selected = $derived<HeroRow>(
@@ -1235,17 +1257,30 @@
     >
       <div class="inv-col">
         <div class="inv-head">
+          <!-- Ohne das bot Chrome hier gespeicherte Formularwerte an und legte
+               eine Mailadresse über das Filterfeld der Landingpage. `off`
+               allein reicht dafür nicht — ein namenloses Textfeld ordnet Chrome
+               heuristisch ein, also bekommt es einen Namen, der in keiner
+               Autofill-Kategorie liegt. Ein `<form>` gibt es hier nicht, der
+               Name ist reine Kennzeichnung. -->
           <Input
             bind:value={query}
             variant="underline"
             size="sm"
             clearable
+            autocomplete="off"
+            name="component-filter"
             placeholder="Filter {data.rows.length} components"
             aria-label="Filter components"
           />
         </div>
         <!-- Alle Zeilen auf einmal, die Spalte scrollt selbst; der leere
-           pagination-Snippet nimmt dem Fuß das Chrom (wie im Hero). -->
+           pagination-Snippet nimmt dem Fuß das Chrom (wie im Hero).
+           `sticky="header"`: bei 99 Zeilen ist die Kopfzeile die einzige
+           Auskunft darüber, dass 41.6 die kB-Spalte ist und nicht die Props —
+           sie muss stehen bleiben. Die Table pinnt gegen ihren Scroll-Vorfahren
+           (hier `.inventory`) und lässt dafür den eigenen `overflow-x`-Wrapper
+           weg, der jedes Pinning von außen aushebeln würde. -->
         <div class="inventory">
           <Table
             items={data.rows}
@@ -1253,6 +1288,7 @@
             enableSmartFilter={false}
             variant="flush"
             size="sm"
+            sticky="header"
             ariaLabel="Every component in the set"
             onRowClick={(row) => setSelectedSlug((row as HeroRow).slug)}
             activeRowId={selected.id}
@@ -1378,8 +1414,21 @@
       <div class="step step-ink" style:--ink-solid={CHANNELS.ink.solid}>
         <div class="step-body">
           <h2 class="step-title">Install</h2>
-          <code class="cmd">bunx sv create my-app --add @urbicon-ui</code>
-          <code class="cmd">bunx urbicon init --hook</code>
+          <!-- Der Kopier-Knopf ist der eigene: die Seite listet zwanzig Zeilen
+               weiter oben einen `CopyButton` und ließ die zwei Befehle, für die
+               es ihn gibt, von Hand markieren. Der `aria-label` nennt den
+               Befehl, sonst heißen beide Knöpfe gleich. -->
+          {#each INSTALL_COMMANDS as command (command)}
+            <div class="cmd cmd-copy">
+              <code>{command}</code>
+              <CopyButton
+                value={command}
+                size="sm"
+                aria-label="Copy: {command}"
+                slotClasses={{ base: '!text-current hover:!bg-current/15' }}
+              />
+            </div>
+          {/each}
           <p class="step-line">
             From an empty folder to a themed app your agent can build in — the first command
             installs and wires Tailwind, the second brings the agent into the design loop.
@@ -2141,20 +2190,42 @@
   }
 
   /* ── Zeile 2: Inventar + Vorschau — die niedrigere Hero-Fassung ─
-     Feste Zeilenhöhe statt 100dvh: beide Spalten scrollen intern, die
-     Seite läuft normal weiter. */
+     Die Zeile hat eine Grundhöhe, aber keine feste mehr: die VORSCHAU scrollt
+     nicht, sie dehnt die Zeile.
+
+     Warum: gemessen am 2026-08-04 lief die Vorschau bei der Hälfte der 99
+     Zeilen über, die meisten nur um 60–200 px. Ein Scroll-Container, der ein
+     bis zwei Radrasten schluckt, wird nicht als eigener Bereich gelesen — er
+     fühlt sich an, als hinge die Seite (Chrome hält vor dem Weiterreichen an
+     den Seiten-Scroll an). Also `min-height` statt `height`.
+
+     Was das für die Höhe kostet, über alle 99 Zeilen bei 1440 × 813 gemessen:
+     54 lassen die Zeile bei ihrer Grundhöhe, 36 dehnen sie um weniger als
+     150 px (ein Sechstel Bildschirm — beim Umschalten kaum zu sehen), 9 mehr;
+     am weitesten AccountSettings (1309 px) und Calendar (1229). Bei zehn
+     Komponenten wird die Zeile damit höher als der Bildschirm — für die
+     scrollt dann aber die SEITE, was hier der ganze Punkt ist. Die
+     naheliegende Alternative, die Zeile auf die höchste Vorschau zu stellen,
+     hätte den anderen 89 Zeilen 400–650 px Leerraum gegeben.
+
+     Die Inventarspalte BLEIBT ein Scroll-Container: 99 Zeilen unter einem
+     Filterfeld liest jeder als Liste, und sie schluckt 2700 px, nicht 60.
+     Sie klebt, damit sie im Bild bleibt, wenn die Vorschau die Zeile über
+     ihre Grundhöhe hinauszieht. */
   .row2 {
-    height: clamp(560px, 82vh, 860px);
+    --row2-pad: clamp(16px, 2vw, 32px);
+    --row2-base: clamp(560px, 82vh, 860px);
+    min-height: var(--row2-base);
     display: grid;
     grid-template-columns: clamp(26rem, 36vw, 34rem) minmax(0, 1fr);
     gap: clamp(1.5rem, 4vw, 4rem);
-    padding: clamp(16px, 2vw, 32px);
-    min-height: 0;
-    overflow: hidden;
+    padding: var(--row2-pad);
+    /* Ohne dies streckt das Grid beide Spalten auf die Zeilenhöhe — die
+       gewachsene Zeile zöge dann die klebende Liste mit in die Länge. */
+    align-items: start;
   }
   @media (max-width: 48rem) {
     .row2 {
-      height: auto;
       grid-template-columns: 1fr;
     }
   }
@@ -2162,8 +2233,22 @@
   .inv-col {
     display: flex;
     flex-direction: column;
+    /* Die Liste ist auf die Grundhöhe der Zeile begrenzt, nicht auf den
+       Viewport: sonst gäbe SIE der Zeile die Höhe und machte sie doch wieder
+       bildschirmfüllend — genau das, was die Zeile nicht sein will. */
+    max-height: calc(var(--row2-base) - 2 * var(--row2-pad));
+    position: sticky;
+    top: var(--row2-pad);
     min-height: 0;
     gap: 0.5rem;
+  }
+  /* Einspaltig gestapelt gibt es nichts, woran die Liste kleben könnte —
+     sie stünde sonst über der Vorschau fest, die unter ihr durchläuft. */
+  @media (max-width: 48rem) {
+    .inv-col {
+      position: static;
+      max-height: none;
+    }
   }
   .inv-head {
     max-width: 18rem;
@@ -2179,10 +2264,14 @@
       max-height: 45vh;
     }
   }
+  /* Nur die Deckung, NICHT das Pinning: das gehört der Table (`sticky="header"`
+     am Aufruf). Vorher stand hier ein eigenes `position: sticky` auf den `th`
+     — und es griff nie, weil TableDesktop einen `overflow-x-auto`-Wrapper
+     zwischen Tabelle und `.inventory` legt, der zum Scroll-Vorfahren wird.
+     Genau diesen Konflikt kennt die Komponente: mit `sticky` lässt sie den
+     Wrapper weg. Der Kopf trägt dann `bg-surface-elevated`; hier ist der Grund
+     Papier. */
   .inventory :global(thead th) {
-    position: sticky;
-    top: 0;
-    z-index: 1;
     background: var(--paper);
   }
   .fineprint {
@@ -2194,9 +2283,6 @@
   .preview {
     display: flex;
     flex-direction: column;
-    min-height: 0;
-    overflow-y: auto;
-    scrollbar-width: thin;
     gap: 1rem;
   }
   .title-row {
@@ -2351,6 +2437,40 @@
   .step-ink .cmd {
     background: var(--ink-solid);
     color: #f4f4f2;
+  }
+  /* Der Kasten mit Kopier-Knopf: der Befehl nimmt den Platz, den er braucht,
+     der Knopf steht rechts daran. `width: fit-content` von `.cmd` bleibt, die
+     zwei Kästen sind also weiter unterschiedlich breit — sie auf eine Breite
+     zu ziehen machte aus zwei Befehlen einen Block.
+
+     Der lange Befehl wird dadurch zweizeilig, und das ist Absicht statt
+     Versehen. Nachgerechnet bei 1440 px Fensterbreite: der Befehl misst
+     327.6 px, der Kasten polstert 19.2, Fuge 9.6, Knopf 30.3 — Bedarf 386.7
+     gegen 369 px Spaltenbreite. Es fehlen 18 px, und ohne Knopf lagen nur
+     22 px Luft im Kasten. Die 18 px wären aus Fuge, Polsterung und
+     Schriftgrad zusammenzukratzen; das hielte genau bei DIESER Breite und
+     risse bei 1280 wieder, wo die Spalte nur 330 px hat — eine Scheinlösung
+     für eine Fenstergröße. Also bricht der Befehl, der Kasten hält ihn
+     zusammen, und der Umbruch sitzt vor `@urbicon-ui`.
+
+     Der Knopf ist quadratisch statt in Button-Textbreite (39 px): ein
+     Icon-Knopf braucht keine Polsterung für Text. Das Maß steht hier und
+     nicht in `slotClasses` — es ist eine Aussage über diese Spalte, keine
+     über den Knopf.
+
+     Die negativen Ränder halten die Kastenhöhe bei der des Befehls; ohne sie
+     schiebt der Knopf sie um seine eigene Höhe auf. */
+  .cmd-copy {
+    display: flex;
+    align-items: center;
+    gap: 0.6rem;
+    padding-block: 0.2rem;
+    padding-inline-end: 0.3rem;
+  }
+  .cmd-copy :global(button) {
+    inline-size: 2rem;
+    padding-inline: 0;
+    margin-block: -0.35rem;
   }
 
   /* Der Ship-Schritt stapelt Karte und Titelgruppe mit fester Fuge statt

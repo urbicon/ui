@@ -49,6 +49,21 @@ The same split, one level down. A prop's own JSDoc is the contract; an optional 
 - **Only *direct* props carry a hint.** A tv() axis gets the "V" badge and no hint line at all, so its generated description ("Determines the component's visual treatment. Available options: …") never reaches a reader and needs no summary. The first version of the gate missed this and reported 56 knobs that show nothing to anyone.
 - The API table on the docs page keeps showing the **description** — that is where the contract belongs. Measured on Dialog: 53 characters beside the knob, 375 in the table, same prop.
 
+## Placement — JSDoc vs docs page
+
+The sentence rules of `docs/EDITORIAL.md` (checklist items 9–15) apply in JSDoc unchanged. What
+belongs where:
+
+- **The JSDoc carries the full contract of its prop** — every rule a caller needs at the call
+  site, including the exceptions a page would push into a note. Agents read the generated output
+  *instead of* the page and follow no links, so nothing may live "on the page instead".
+- **The page carries what no single JSDoc can:** which of several props to reach for, how they
+  resolve against each other, the worked wiring.
+- **The test is the subject.** A sentence about one prop and its rules → JSDoc. A sentence about
+  two props in relation → page.
+- **Where page and JSDoc disagree, the JSDoc is the copy to trust** and the page is the copy to
+  fix — it sits next to the code and ships to every generated surface.
+
 ## Regeneration is two-step — run `docs:gen:all`, not `docs:gen:<target>`
 
 `docs:gen:<target>` only writes `apps/docs/static/<group>/_catalog.json` + per-component `llm.txt`; the `MCPCatalogAssembler` (runs only in `docs:gen:all` / `build`) globs every `_catalog.json` into `apps/docs/static/mcp/component-catalog.json` — the file the MCP server actually loads for `find_components`/`suggest_implementation`. Editing `*Props` JSDoc and running only `docs:gen:<target>` leaves that file **stale**. All three artifacts are git-ignored (CI rebuilds them on `build`).

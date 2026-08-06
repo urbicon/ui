@@ -31,6 +31,7 @@ Then reach for the rest as you need it.
 - [TailwindCaveats.md](TailwindCaveats.md) — Tailwind 4 specifics, `@theme`, Svelte integration
 - [ResponsiveGuidelines.md](ResponsiveGuidelines.md) — breakpoints, touch targets, overlay patterns
 - [DocsPageGuide.md](DocsPageGuide.md) — building component documentation pages
+- [EDITORIAL.md](EDITORIAL.md) — how the prose on those pages is written: principles, canon pages, and the editing checklist the `docs-editor` skill runs
 - [DOCS-SURFACES.md](DOCS-SURFACES.md) — where docs live, who owns them, how they reach consumers
 - [AI-NATIVE-DX.md](AI-NATIVE-DX.md) — what an agent is served and from where: the `urbicon` CLI (the consumer surface), the MCP adapter, the closed design loop
 - [VERSIONING.md](VERSIONING.md) — bump levels, bump-script steps, commit-type → changelog mapping

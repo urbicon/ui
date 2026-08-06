@@ -145,7 +145,7 @@ ${scriptClose}
 
   <Section id="merge-semantics" title="Buffer & merge semantics">
     <div class="border-border-subtle bg-surface-elevated rounded-2xl border p-6">
-      <ul class="text-text-secondary list-inside list-disc space-y-2 text-sm">
+      <ul class="text-text-secondary list-outside list-disc space-y-2 pl-5 text-sm">
         <li>
           <code class="text-text-primary">pushInsert</code> deduplicates by row ID — pushing the same
           row twice keeps only the latest version

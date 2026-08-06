@@ -86,7 +86,7 @@
     <em>not</em> rely on CSS <code class="text-text-primary">overflow-anchor</code> (Safari has none),
     so it corrects the scroll offset itself in every case.
   </p>
-  <ul class="text-text-secondary mt-3 list-inside list-disc space-y-1.5 text-sm">
+  <ul class="text-text-secondary mt-3 list-outside list-disc space-y-1.5 pl-5 text-sm">
     <li>
       <strong>Follow while at the bottom.</strong> New content keeps the viewport pinned to the latest
       message — ideal for a streaming answer.

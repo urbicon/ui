@@ -74,6 +74,8 @@ const UNLISTED: ReadonlyArray<readonly [route: string, why: string]> = [
  * catalogue.
  */
 const PAGELESS: Record<string, string> = {
+  InlineCode:
+    'embedded rendering detail of CodeExample/ApiReference/PlaygroundConfigurator (backtick spans in generated descriptions become <code>) — aliased onto /docs/components/code-example, where its effect is on screen',
   GuideArticle: 'guide surface — documented as a family on /blocks/components/guide',
   GuideBeacon: 'guide surface — documented as a family on /blocks/components/guide',
   GuideHint: 'guide surface — documented as a family on /blocks/components/guide',

@@ -287,7 +287,7 @@ export type PresetMap = Record<string, Record<string, ComponentPreset>>;`;
       class="bg-surface-subtle text-text-secondary rounded-contain mt-4 border p-4 text-sm leading-relaxed"
     >
       <strong class="text-text-primary">Priority (lowest to highest):</strong>
-      <ol class="mt-2 list-inside list-decimal space-y-1">
+      <ol class="mt-2 list-outside list-decimal space-y-1 pl-5">
         <li>
           <code class="text-xs">tv()</code> variant styles (library default)
         </li>
@@ -329,7 +329,7 @@ export type PresetMap = Record<string, Record<string, ComponentPreset>>;`;
     >
       <strong class="text-text-primary">Why presets over <code class="text-xs">class</code>?</strong
       >
-      <ul class="mt-2 list-inside list-disc space-y-1">
+      <ul class="mt-2 list-outside list-disc space-y-1 pl-5">
         <li>Reusable — define once, opt-in everywhere with a short name.</li>
         <li>
           Maintains slot-level control — hover/focus/dark-mode logic stays inside the
@@ -396,7 +396,7 @@ export type PresetMap = Record<string, Record<string, ComponentPreset>>;`;
       class="bg-surface-subtle text-text-secondary rounded-contain mt-6 border p-4 text-sm leading-relaxed"
     >
       <strong class="text-text-primary">overrides vs. preset vs. slotClasses</strong>
-      <ul class="mt-2 list-inside list-disc space-y-1">
+      <ul class="mt-2 list-outside list-disc space-y-1 pl-5">
         <li><code class="text-xs">slotClasses</code> — unconditional, every instance.</li>
         <li>
           <code class="text-xs">preset</code> — opt-in per instance via

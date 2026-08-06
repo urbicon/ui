@@ -1,7 +1,7 @@
 <script lang="ts">
   import { Badge } from '@urbicon-ui/blocks';
   import { type Column, Table } from '@urbicon-ui/table';
-  import { InfoCard } from '$lib';
+  import { InfoCard, InlineCode } from '$lib';
   import { useDocsI18n } from '$lib/i18n';
   import { revealTableRow } from '$lib/utils/cross-reference.js';
   import { tokenizeTypeExpression } from '$lib/utils/type-links.js';
@@ -260,7 +260,7 @@
           {#if value || item.seeAlsoRefs?.length}
             <div class={slot('descriptionCell')}>
               {#if value}
-                <span class={slot('description')}>{value}</span>
+                <span class={slot('description')}><InlineCode text={String(value)} /></span>
               {/if}
               {#if item.seeAlsoRefs?.length}
                 <!-- Prose `@see` values (`HTMLButtonAttributes.value`,
@@ -280,7 +280,7 @@
             <span class={slot('placeholder')}>—</span>
           {/if}
         {:else if value}
-          <span class={slot('description')}>{value}</span>
+          <span class={slot('description')}><InlineCode text={String(value)} /></span>
         {:else}
           <span class={slot('placeholder')}>—</span>
         {/if}

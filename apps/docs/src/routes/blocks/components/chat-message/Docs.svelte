@@ -48,7 +48,7 @@
     them in order and picks a renderer per <code class="text-text-primary">type</code> — this is what
     lets a single component present a plain answer and a full agentic transcript alike.
   </p>
-  <ul class="text-text-secondary mt-3 list-inside list-disc space-y-1.5 text-sm">
+  <ul class="text-text-secondary mt-3 list-outside list-disc space-y-1.5 pl-5 text-sm">
     <li>
       <code class="text-text-primary">text</code> → rendered through
       <a href={r('/blocks/components/streaming-markdown')} class="text-primary hover:underline"

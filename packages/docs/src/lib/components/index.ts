@@ -31,6 +31,8 @@ export type {
 export { default as DocsLayout, docsLayoutVariants, setDocsPageNav } from './DocsLayout';
 export type { InfoCardProps, InfoCardSlots, InfoCardVariantProps } from './InfoCard';
 export { default as InfoCard, infoCardVariants } from './InfoCard';
+export type { InlineCodeProps } from './InlineCode';
+export { InlineCode } from './InlineCode';
 export type {
   NoteListProps,
   NoteListSlots,

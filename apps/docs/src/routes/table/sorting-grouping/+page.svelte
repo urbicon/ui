@@ -119,7 +119,7 @@
       </p>
 
       <p class="text-text-secondary text-sm">
-        <strong class="text-text-primary">Summaries are a preference, not a view axis.</strong>
+        <strong class="text-text-primary">Summaries are a preference, not a view setting.</strong>
         Sorting and grouping decide
         <em>which</em> rows a reader sees, which makes them worth sharing and worth putting in a
         link — they live on the view. A summary row changes how the same rows are presented, so it

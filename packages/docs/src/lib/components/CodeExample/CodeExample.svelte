@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { InfoCard } from '$lib';
+  import { InfoCard, InlineCode } from '$lib';
   import { useDocsI18n } from '$lib/i18n';
   import { getCodeVisibilityContext } from '$lib/stores/code-visibility.svelte';
   import CodePanel from '../CodePanel/CodePanel.svelte';
@@ -100,7 +100,7 @@
 
   {#if description}
     <div class={slot('description')}>
-      {description}
+      <InlineCode text={description} />
     </div>
   {/if}
 

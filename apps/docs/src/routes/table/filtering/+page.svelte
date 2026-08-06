@@ -438,12 +438,12 @@ ${scriptClose}
   <Section id="external-search" title="Search from Outside">
     <div class="space-y-8">
       <p class="text-text-secondary text-sm">
-        The search term is one of the six axes of the table's view. Hand the table a view of your
-        own — <code class="text-text-primary">createTableView()</code> — and the axis is yours: an
-        effect pushes your field into <code class="text-text-primary">view.search</code>, and
-        reading it back is just <code class="text-text-primary">view.search</code>, with no callback
-        in between. The table's own search field writes the same axis, so the readout below shows
-        what the table is filtering by, whichever of the two was typed into last.
+        The search term is one of the six settings of the table's view. Hand the table a view of
+        your own — <code class="text-text-primary">createTableView()</code> — and the setting is
+        yours: an effect pushes your field into <code class="text-text-primary">view.search</code>,
+        and reading it back is just <code class="text-text-primary">view.search</code>, with no
+        callback in between. The table's own search field writes the same setting, so the readout
+        below shows what the table is filtering by, whichever of the two was typed into last.
       </p>
 
       <p class="text-text-secondary text-sm">
@@ -451,13 +451,13 @@ ${scriptClose}
         <strong class="text-text-primary">does not reset the page</strong> — the table's own
         handlers do that on a new search, so write
         <code class="text-text-primary">view.page = 1</code> alongside if you want the same behaviour.
-        Writing an axis does not subscribe the effect to it, so the effect above runs when your field
-        changes and not when the table writes the same axis.
+        Writing a setting does not subscribe the effect to it, so the effect above runs when your field
+        changes and not when the table writes the same setting.
       </p>
 
       <p class="text-text-secondary text-sm">
-        Steering an axis from outside and persisting the view are independent. An axis whose value
-        comes from outside is usually one you do not want stored — name the others instead:
+        Steering a setting from outside and persisting the view are independent. A setting whose
+        value comes from outside is usually one you do not want stored — name the others instead:
         <code class="text-text-primary"
           >bindViewToStorage(view, &#123; key: 'employees', axes: ['sort', 'filters', 'pageSize',
           'groupBy'] &#125;)</code
@@ -466,7 +466,7 @@ ${scriptClose}
 
       <CodeExample
         title="External Search Field"
-        description="One view, two writers: the input pushes into view.search, the table's own search field writes the same axis, and the readout reads it straight back."
+        description="One view, two writers: the input pushes into view.search, the table's own search field writes the same setting, and the readout reads it straight back."
         code={codeExternalSearch}
       >
         <div class="space-y-4">

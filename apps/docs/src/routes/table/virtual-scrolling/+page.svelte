@@ -48,7 +48,7 @@
 
     <div class="border-border-subtle bg-surface-elevated rounded-2xl border p-6">
       <h3 class="text-text-primary mb-4 text-sm font-semibold">Notes</h3>
-      <ul class="text-text-secondary list-inside list-disc space-y-2 text-sm">
+      <ul class="text-text-secondary list-outside list-disc space-y-2 pl-5 text-sm">
         <li>
           Pagination is automatically disabled when
           <code class="text-text-primary">virtualized</code> is true

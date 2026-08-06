@@ -89,7 +89,7 @@
   <p class="text-text-secondary text-sm leading-relaxed">
     <strong>Chat</strong> is deliberately thin: three stacked regions and nothing else.
   </p>
-  <ul class="text-text-secondary mt-3 list-inside list-disc space-y-1.5 text-sm">
+  <ul class="text-text-secondary mt-3 list-outside list-disc space-y-1.5 pl-5 text-sm">
     <li>
       <code class="text-text-primary">header</code> — an optional pinned bar (border-b). Put a title,
       model picker, or connection badge here. Never scrolls.

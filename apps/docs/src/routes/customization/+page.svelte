@@ -177,7 +177,7 @@
       <code class="text-xs">rounded-none</code>
       defeats a default
       <code class="text-xs">rounded-full</code>); non-conflicting classes accumulate.
-      <ol class="mt-2 list-inside list-decimal space-y-1">
+      <ol class="mt-2 list-outside list-decimal space-y-1 pl-5">
         {#each precedence as step (step)}
           <li><code class="text-xs">{step}</code></li>
         {/each}

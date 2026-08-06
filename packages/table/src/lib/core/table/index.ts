@@ -834,22 +834,25 @@ export interface TableProps<T = TableItem> {
   initialSelectedIds?: Array<string | number>;
 
   /**
-   * Controlled selected row IDs. When provided, the component reflects this
-   * value instead of managing selection internally: it seeds the selection at
-   * construction — SSR-visible, the server HTML carries the selected rows —
-   * and every later prop value replaces the selection. User interaction still
-   * changes the selection immediately (it is not frozen to the prop); hand
-   * the change back via {@link onSelectionChange} to keep the two in sync,
-   * or the next prop value reverts it. Never written to
-   * `prefs.persistSelection` storage, and a stored selection never overrides
-   * it — the prop is the source of truth.
+   * Controlled selected row ids. When set, `initialSelectedIds` is ignored
+   * and the table adopts this value: it seeds the selection at construction —
+   * the server HTML carries the selected rows — and every later prop value
+   * replaces the selection. An empty array is a valid value — nothing
+   * selected; `undefined` returns ownership to the table. User clicks still
+   * change the selection and fire {@link onSelectionChange} — write the new
+   * ids back into this prop, or the next change to it discards what the user
+   * clicked. Never written to storage (`prefs.persistSelection` has no
+   * effect), and a stored selection never overrides it — the prop is the
+   * source of truth.
    * @default undefined
    */
   selectedIds?: Array<string | number>;
 
   /**
-   * Callback fired when the selection changes.
-   * Receives the array of currently selected items.
+   * Callback fired when the selection changes. Receives the currently
+   * selected items — the rows themselves, not their ids. With controlled
+   * {@link selectedIds}, this is where the new value is written back:
+   * `(items) => (selectedIds = items.map((item) => item.id))`.
    * @default undefined
    */
   onSelectionChange?: (selectedItems: T[]) => void;

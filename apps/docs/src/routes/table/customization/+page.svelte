@@ -1,7 +1,7 @@
 <script lang="ts">
   import SeoMeta from '$lib/SeoMeta.svelte';
   import { SearchIcon } from '@urbicon-ui/blocks';
-  import { CodeExample, DocsLayout as DocsPageLayout, Section } from '@urbicon-ui/docs';
+  import { CodeExample, DocsLayout as DocsPageLayout, Note, NoteList } from '@urbicon-ui/docs';
   import { Table } from '@urbicon-ui/table';
   import { resolve } from '$app/paths';
   import { basicColumns, scriptClose, scriptOpen } from '../_data';
@@ -136,50 +136,39 @@ ${scriptClose}
     <CodeExample
       headingLevel={2}
       title="Narrowing What Is Stored"
-      description="axes narrows what is remembered — the default is every axis but the page number. storage takes any Storage object, so sessionStorage scopes the memory to the tab; the preferences channel spells that same choice as its own kind option. Writes are debounced, and bindViewToStorage hands back the two affordances that go with a debounce."
+      description="axes narrows what is remembered — the default is every setting but the page number. storage takes any Storage object, so sessionStorage scopes the memory to the tab; the preferences channel spells that same choice as its own kind option. Writes are debounced, and bindViewToStorage hands back the two affordances that go with a debounce."
       code={codePersistenceScope}
       preview={false}
     />
 
-    <div class="border-border-subtle bg-surface-elevated rounded-2xl border p-6">
-      <h3 class="text-text-primary mb-4 text-sm font-semibold">What Gets Stored</h3>
-      <ul class="text-text-secondary list-inside list-disc space-y-2 text-sm">
-        <li>
-          <strong class="text-text-primary">Every view axis except the page number.</strong>
-          Naming a page is what a link is for, so the URL keeps that axis and storage does not — a fresh
-          visit starts on page one. The page
-          <em>size</em> is stored — "yesterday's page size is still set" is squarely this binding's promise,
-          and it is a change from v7, which persisted no pagination at all.
-        </li>
-        <li>
-          <strong class="text-text-primary">Only what the reader changed.</strong>
-          A default is never written back, so a value you change in
-          <code class="text-text-primary">defaults</code> later reaches everyone who has not overridden
-          that axis. What a binding applies is not the reader's doing either — arriving on someone else's
-          link leaves the saved view alone.
-        </li>
-        <li>
-          <strong class="text-text-primary">Clearing is a state.</strong>
-          An axis the reader emptied — no sort, no filters, no grouping, no summaries, no hidden columns
-          — restores empty and wins over the matching default. Only a missing or unreadable entry falls
-          back.
-        </li>
-        <li>
-          <strong class="text-text-primary">Selection is off by default.</strong>
-          <code class="text-text-primary">persistSelection</code> keys rows by
-          <code class="text-text-primary">item.id</code>; without stable ids the selection falls
-          back to the row position and restores onto different rows after a reorder.
-        </li>
-        <li>
-          <strong class="text-text-primary">Upgrading from v7:</strong>
-          the preferences keep their storage keys, so a reader's column layout survives. The view axes
-          moved into one entry per view — the per-axis keys v7 wrote (<code
-            class="text-text-primary">table_sort_*</code
-          >, <code class="text-text-primary">table_search_*</code>,
-          <code class="text-text-primary">table_filters_*</code>,
-          <code class="text-text-primary">table_group_by_*</code>) are no longer read.
-        </li>
-      </ul>
-    </div>
+    <NoteList variant="flush">
+      <Note title="Every view setting except the page number is stored">
+        Naming a page is what a link is for, so the URL keeps that setting and storage does not — a
+        fresh visit starts on page one. The page <em>size</em> is stored — "yesterday's page size is still
+        set" is squarely this binding's promise, and it is a change from v7, which persisted no pagination
+        at all.
+      </Note>
+      <Note title="Only what the reader changed">
+        A default is never written back, so a value you change in <code>defaults</code> later reaches
+        everyone who has not overridden that setting. What a binding applies is not the reader's doing
+        either — arriving on someone else's link leaves the saved view alone.
+      </Note>
+      <Note title="Clearing is a state">
+        A setting the reader emptied — no sort, no filters, no grouping, no summaries, no hidden
+        columns — restores empty and wins over the matching default. Only a missing or unreadable
+        entry falls back.
+      </Note>
+      <Note title="Selection is off by default">
+        <code>persistSelection</code> keys rows by <code>item.id</code>; without stable ids the
+        selection falls back to the row position and restores onto different rows after a reorder.
+      </Note>
+      <Note title="Upgrading from v7">
+        The preferences keep their storage keys, so a reader's column layout survives. The view
+        settings moved into one entry per view — the per-setting keys v7 wrote (<code
+          >table_sort_*</code
+        >, <code>table_search_*</code>, <code>table_filters_*</code>,
+        <code>table_group_by_*</code>) are no longer read.
+      </Note>
+    </NoteList>
   </div>
 </DocsPageLayout>
