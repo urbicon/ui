@@ -298,9 +298,9 @@ export interface TableQuery {
   itemsPerPage: number;
   /** Column ID to sort by, or empty string if no sort is active */
   sortColumn: string;
-  /** Sort direction */
+  /** Sort direction. Always set — only meaningful once `sortColumn` is non-empty. */
   sortDirection: 'asc' | 'desc';
-  /** Full-text search term */
+  /** Full-text search term, exactly as typed. Not trimmed. */
   searchTerm: string;
   /** Active column filters */
   activeFilters: Filter[];

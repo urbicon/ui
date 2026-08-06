@@ -806,15 +806,23 @@ export interface TableProps<T = TableItem> {
   initialSelectedIds?: Array<string | number>;
 
   /**
-   * Controlled selected row IDs. When provided, the component reflects this value
-   * instead of managing selection internally.
+   * Controlled selected row ids. When set, the table adopts this value
+   * whenever it changes, `initialSelectedIds` is ignored, and nothing is
+   * written to storage
+   * (`persistenceConfig.persistSelection` has no effect). An empty array is a
+   * valid value — nothing selected; `undefined` returns ownership to the
+   * table. User clicks still change the selection and fire
+   * {@link onSelectionChange} — write the new ids back into this prop, or the
+   * next change to it discards what the user clicked.
    * @default undefined
    */
   selectedIds?: Array<string | number>;
 
   /**
-   * Callback fired when the selection changes.
-   * Receives the array of currently selected items.
+   * Callback fired when the selection changes. Receives the currently
+   * selected items — the rows themselves, not their ids. With controlled
+   * {@link selectedIds}, this is where the new value is written back:
+   * `(items) => (selectedIds = items.map((item) => item.id))`.
    * @default undefined
    */
   onSelectionChange?: (selectedItems: T[]) => void;
