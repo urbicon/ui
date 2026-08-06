@@ -27,7 +27,7 @@ export function usePagination(
   /**
    * The page actually rendered: `currentPage` clamped into range.
    *
-   * `currentPage` derives from the `initialPage` prop and is written by
+   * `currentPage` derives from the view's `page` axis and is written by
    * pagination, search, filtering and grouping — none of which can know whether
    * the page still exists after `itemsPerPage` or the item count changed. Before
    * 2026-08 the reset rode along inside `setItemsPerPage` (which set
@@ -37,8 +37,8 @@ export function usePagination(
    * pager reading "5 / 1".
    *
    * Clamping here makes that state unrepresentable instead of relying on every
-   * writer to remember the reset. It also covers an out-of-range `initialPage`,
-   * which never had a guard at all.
+   * writer to remember the reset. It also covers an out-of-range page arriving
+   * from the view (its defaults, a URL, storage), which never had a guard at all.
    */
   const effectivePage = $derived(Math.min(Math.max(state.currentPage, 1), totalPages));
 

@@ -1,6 +1,6 @@
 import { createPersistentState, type FilterPersistenceConfig } from '@urbicon-ui/blocks';
 import type { SummaryConfig } from '$lib/stores/TableStore.svelte';
-import type { Column, Filter, TableItem } from '$lib/types/tableTypes';
+import type { Column, TableItem } from '$lib/types/tableTypes';
 
 /**
  * Retrieves a nested value from an object using dot notation
@@ -346,59 +346,17 @@ export function splitSearchSegments(text: string, searchTerm: string): TextSegme
     }));
 }
 
-export function createPersistentFilters(config: FilterPersistenceConfig) {
-  return createPersistentState({
-    key: `table_filters_${config.tableId}`,
-    defaultValue: [] as Filter[],
-    storage: config.storage || 'localStorage',
-    debounceMs: config.debounceMs || 500
-  });
-}
-
-/**
- * Specialized hook for search term persistence
- */
-export function createPersistentSearchTerm(config: FilterPersistenceConfig) {
-  return createPersistentState({
-    key: `table_search_${config.tableId}`,
-    defaultValue: '',
-    storage: config.storage || 'localStorage',
-    debounceMs: config.debounceMs || 500
-  });
-}
-
-export function createPersistentGroupByKey(config: FilterPersistenceConfig) {
-  return createPersistentState({
-    key: `table_group_by_${config.tableId}`,
-    defaultValue: null as string | null,
-    storage: config.storage || 'localStorage',
-    debounceMs: config.debounceMs || 500
-  });
-}
-
+// The four view axes that used to be persisted per key here — filters, search,
+// group-by and sort — moved to `bindViewToStorage`, which writes one entry for
+// the whole view (`urbicon_table_view_<key>_v1`) instead of one per axis. Their
+// v7 factories are gone with the v8 cut; the keys they wrote are orphaned and
+// listed as such in docs/MIGRATION-V8.md. What stays here is the prefs channel:
+// summaries, hidden columns, column order, selection — same keys as v7, so a
+// reader's preferences survive the upgrade.
 export function createPersistentSummaryConfigs(config: FilterPersistenceConfig) {
   return createPersistentState({
     key: `table_summary_configs_${config.tableId}`,
     defaultValue: [] as SummaryConfig[],
-    storage: config.storage || 'localStorage',
-    debounceMs: config.debounceMs || 500
-  });
-}
-
-/**
- * Sort state shape persisted across reloads. `column === ''` represents
- * "no active sort" — `useSorting.handleSort` clears the column on the
- * third click.
- */
-export interface PersistedSortState {
-  column: string;
-  direction: 'asc' | 'desc';
-}
-
-export function createPersistentSortState(config: FilterPersistenceConfig) {
-  return createPersistentState({
-    key: `table_sort_${config.tableId}`,
-    defaultValue: { column: '', direction: 'asc' } as PersistedSortState,
     storage: config.storage || 'localStorage',
     debounceMs: config.debounceMs || 500
   });

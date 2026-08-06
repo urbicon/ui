@@ -26,10 +26,10 @@ export interface TableState {
 
   groupByKey: string | null;
   /**
-   * The grouping key declared via `initialGroupBy`, recorded once and never
-   * rewritten. Grouping accepts any item field, so this may name something that
-   * has no column — which is exactly the case the grouping menu needs it for.
-   * See the note on the property in TableStore.
+   * The grouping key declared via `view.defaults.groupBy`, recorded once and
+   * never rewritten. Grouping accepts any item field, so this may name something
+   * that has no column — which is exactly the case the grouping menu needs it
+   * for. See the note on the property in TableStore.
    */
   declaredGroupByKey: string | null;
   collapsedGroups: Set<string>;

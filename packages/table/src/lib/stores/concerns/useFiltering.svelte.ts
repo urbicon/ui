@@ -146,7 +146,7 @@ export function useFiltering(state: TableState) {
           // the numeric path did not (`Number('')` is 0, so `greaterThan ''`
           // meant "> 0") and the date path excluded every row. The filter menu
           // guards on `.trim()`, so this is only reachable through
-          // `initialFilters`, restored persistence or a programmatic addFilter.
+          // the view's filter axis (defaults, URL, storage) or a programmatic addFilter.
           if (filter.value.trim() === '') return true;
 
           // Synthetic columns carry no `dataType`, so narrow before reading it —
