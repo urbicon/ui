@@ -19,7 +19,7 @@
 <div class="mx-auto flex max-w-xl flex-col gap-3">
   {#if rejections.length > 0}
     <Alert intent="danger" title="Some files were rejected">
-      <ul class="list-inside list-disc text-sm">
+      <ul class="list-outside list-disc pl-5 text-sm">
         {#each rejections as r (r.file.name)}
           <li>{r.file.name} — {r.errors[0]?.message}</li>
         {/each}

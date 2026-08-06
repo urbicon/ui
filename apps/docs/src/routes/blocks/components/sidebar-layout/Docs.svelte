@@ -18,7 +18,7 @@
   <p class="text-text-secondary mt-3 text-sm leading-relaxed">
     Pick a different layout or overlay if you need:
   </p>
-  <ul class="text-text-secondary mt-2 list-inside list-disc space-y-1.5 text-sm">
+  <ul class="text-text-secondary mt-2 list-outside list-disc space-y-1.5 pl-5 text-sm">
     <li>
       A custom outer grid (multi-region layout, header bar with brand controls, full bleed sections)
       — build it yourself with the

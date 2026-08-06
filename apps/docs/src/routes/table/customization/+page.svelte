@@ -94,8 +94,8 @@
     <CodeExample
       headingLevel={2}
       title="State Persistence"
-      description="Pass a single tableId to persist every view-state axis across reloads — filters, search, grouping, summary configs, sort, hidden columns, and column order. Defaults to localStorage. Pagination is intentionally not persisted. Clearing counts as state: an axis the user emptied (no sort, no filters, no grouping) restores empty and wins over the matching initial* seed — the seed only fills an axis nothing is stored for."
-      code={`<!-- Opt every axis in with one line -->
+      description="Pass a single tableId to persist every view-state setting across reloads — filters, search, grouping, summary configs, sort, hidden columns, and column order. Defaults to localStorage. Pagination is intentionally not persisted. Clearing counts as state: a setting the user emptied (no sort, no filters, no grouping) restores empty and wins over the matching initial* seed — the seed only fills a setting nothing is stored for."
+      code={`<!-- Opt every setting in with one line -->
 <Table {items} {columns} persistenceConfig={{ tableId: 'team-roster' }} />
 
 <!-- Granular opt-out: keep the user's column layout, drop their search -->

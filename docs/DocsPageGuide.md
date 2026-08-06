@@ -35,23 +35,14 @@ marker, so Examples starts at `"01"`; the count then runs through `Docs.svelte` 
 in `+page.svelte` for API Reference and Installation (Button: `01` Examples → `06` Installation).
 A marker is editorial, not structural — nothing reads it.
 
-The Playground does carry a **title**, though — `<Section id="playground" title="Playground">` on
-all 87 pages that have one. 59 of them add `titleHidden`, which keeps the heading in the outline
-and in the screen-reader layer while the stage speaks for itself visually; the rest show it. Either
-is fine. What is not fine is dropping the title: the TOC entry then points at a section with no
-heading, which is what 57 pages did until 2026-08.
+The Playground does carry a **title**, though. Add `titleHidden` to keep the heading in the outline
+and in the screen-reader layer while the stage speaks for itself visually, or show it — either is
+fine. Dropping the title is not: the TOC entry then points at a section with no heading.
 
-**Intent is set on two sections and left off the rest** — `playground` takes `intent="primary"`
-(86 of 87) and `api` takes `intent="secondary"` (101 of 104). Examples, Customization,
-Accessibility and Installation pass no intent at all: 85 / 57 / 86 / 101 sections, not one of them
-with an intent. Adding one there makes the page's headings step out of line with every other page.
-
-<!-- The six counts above were wrong until 2026-08-03 (76/82, 97/98, 91/83/79/55) and carried a
-     "measured across the site" stamp, which is worse than no number at all: they were taken
-     against a working tree that was never committed, so no state of the repo ever matched them.
-     Re-measure with a parser that resolves the `Section as X` alias and handles multi-line tags —
-     a naive `<Section[^>]*>` regex undercounts, which is how they drifted. The claim they support
-     held under every reading: 0 of the 329 sections in the second group carry an intent. -->
+**Intent is set on two sections and left off the rest** — `playground` takes `intent="primary"`,
+`api` takes `intent="secondary"`. Examples, Customization, Accessibility and Installation pass none
+at all: zero of the 329 such sections on the site carry one. Adding an intent there makes the page's
+headings step out of line with every other page.
 
 
 **The Types section is two halves, and one half alone is worse than neither.** A page documents
@@ -92,35 +83,13 @@ The Playground is the canonical variant/size/intent explorer. Pages should NOT d
 5. **Customization examples stay separate.** The Customization section (slotClasses, preset, unstyled) is its own scope per XC-4 and not part of this Examples count.
 6. **Mint examples count as use-cases.** "Mint micro-interactions" patterns belong in Examples, not in a separate variant grid.
 
-**`bun run examples:budget` enforces rules 3, 5 and 6** (`apps/docs/scripts/example-budget-lint.ts`,
-wired into the `gates` job in `ci.yml`). Until 2026-08 the budget lived only in this file — and a
-rule that is only prose is a rule the next page does not inherit. Measured against `main` on
-2026-08-04 the script reported **17 pages over the ceiling** (calendar at nine) **and 2 under the
-floor**. Do not confuse it with `examples:lint`, which type-checks `@example` JSDoc blocks and is a
-different check entirely.
-
-The lint had to settle four things this section leaves open:
-
-- **A Mint section counts together with `examples`.** Rule 6 puts Mint patterns *in* Examples, so a
-  standalone Mint section must not buy a page extra budget. Button proved why: one example in
-  `examples` and four in `mint` made the reference implementation read as **under** budget while it
-  carried five. The id is matched as `/^mints?$/i`, because the pages disagree on the spelling —
-  `checkbox` writes `id="mint"`, `segment-group` writes `id="mints"`. Keying the rule to one
-  spelling left segment-group (4 + 1, i.e. over budget) certified clean by the gate written to
-  catch it. Button's, Toggle's and Tab's Mint sections were folded away in the 2026-08 sweep;
-  checkbox's and segment-group's remain and are counted.
-- **`installation` never counts**, and neither do `customization` (rule 5), `api` or `types`.
-- **A component-specific section may not exceed the page's whole budget.** The counted set is a
-  whitelist, so every other id was silently free: 14 pages held 32 further examples outside it, and
-  `badge` carried five numbered demos under `patterns` while reporting 3. One or two demos in a
-  topical deep-dive stay legitimate; a section bigger than the budget is a second Examples section
-  under another name. A section keyed to an API surface rather than to drift takes an `OVERSIZE_OK`
-  entry with a reason (badge's `patterns` is one per `purpose` value, and the axis has five).
-- **A page with no `examples` section** needs a `NO_EXAMPLES` entry with a reason. `components/guide`
-  is the one entry: a subsystem page cut into eight topical sections. That excuses the page total
-  only — the per-section ceiling still applies to it, so the reason it gives ("none of them over
-  budget") is the check that actually runs. Stale entries are errors in both maps, same contract as
-  `registry-lint`'s UNLISTED.
+**`bun run examples:budget` enforces rules 3, 5 and 6** (wired into the `gates` job in `ci.yml`).
+It also settles four things this section leaves open: a Mint section counts *with* `examples`;
+`installation`, `customization`, `api` and `types` never count; no single section may exceed the
+whole page budget; a page without an `examples` section needs a `NO_EXAMPLES` entry with a reason.
+Which ids count, why, and what the exemption maps mean: the head of
+`apps/docs/scripts/example-budget-lint.ts` and its `.rules.ts`. Not to be confused with
+`examples:lint`, which type-checks `@example` JSDoc blocks.
 
 ### Sections to remove on sight
 
@@ -399,9 +368,9 @@ Typical subsections: Built-in ARIA, Keyboard, Reduced Motion. Add component-spec
 
 ## Design Philosophy
 
-The docs follow a "Quiet Confidence" approach: the same precision as the components themselves. No overcompensation with emojis or playful decoration – clarity, structure, and restraint. A visitor should think within 5 seconds: "This works. I can use this."
-
-Reference aesthetic: shadcn/ui's sober elegance, Bits UI's Svelte-native feel, Radix's technical depth.
+The docs hold the same line as the components: no emoji, no decorative flourish. Reference points
+are shadcn/ui, Bits UI and Radix. How the prose on a page is written — what to cut, and what is
+deliberately left free — is [EDITORIAL.md](EDITORIAL.md).
 
 Core principles:
 
@@ -427,10 +396,7 @@ so a subsection can keep `h3` semantics at the primary type scale without breaki
 
 Which intent goes where is settled by what the pages do, not by preference: the Playground takes
 `primary` and the API Reference takes `secondary`; Examples, Customization, Accessibility and
-Installation take none, and so render at 18px. (Counted 2026-08-03 — `primary` on 86 of 87
-playgrounds, `secondary` on 101 of 104 API sections, and not one intent across the 329 sections of
-the other four. This paragraph previously claimed the opposite for the content sections; the pages
-never did it.)
+Installation take none, and so render at 18px.
 
 ## Table of Contents
 
@@ -445,6 +411,17 @@ The PlaygroundConfigurator groups controls by type for visual clarity:
 3. **Text/Number/Other** – inline with booleans
 
 Reference implementation: `apps/docs/src/routes/blocks/primitives/button/+page.svelte`
+
+### Auth playgrounds carry no knobs
+
+The auth family has no variants — it has API paths and callbacks, so there is nothing to turn. The
+`PlaygroundConfigurator` still earns its place for its second half, the code panel: without it the
+landing hero showed a finished panel and no hint of how to call it. Stage and snippet are two
+versions of one example on purpose — the preview runs against a mocked demo API
+(`BasicDemo.svelte`), the printed source is the production form (`Basic.svelte`), and
+`codeGenerator` prints it verbatim instead of assembling it from knob values that do not exist. The
+docs page shows the same pair through its own `CodeExample`; both read the same two files, so
+neither can drift. Signature: `$lib/playground-host.ts`.
 
 ## Styling Rules
 

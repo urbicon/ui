@@ -1,13 +1,20 @@
 <script lang="ts">
   import SeoMeta from '$lib/SeoMeta.svelte';
   import { resolve } from '$app/paths';
-  import { CodeExample, DocsLayout as DocsPageLayout, Section } from '@urbicon-ui/docs';
+  import {
+    CodeExample,
+    DocsLayout as DocsPageLayout,
+    Note,
+    NoteList,
+    Section
+  } from '@urbicon-ui/docs';
   import { scriptClose, scriptOpen } from '../_data';
   import UrlStateDemo from './UrlStateDemo.svelte';
 
   const navigation = [
     { id: 'url-sync', title: 'View State in the URL' },
-    { id: 'precedence', title: 'URL, Storage, Seed' },
+    { id: 'two-props', title: 'The Two Props' },
+    { id: 'precedence', title: 'Order of Precedence' },
     { id: 'between-visits', title: 'Keeping It Between Visits' },
     { id: 'server', title: 'What the Server Renders' }
   ];
@@ -27,7 +34,7 @@ ${scriptClose}
   onQueryChange={sync.syncQuery}
 />`;
 
-  const codePersistControlled = `<!-- The link wins while it carries state; localStorage fills the rest -->
+  const codePersistControlled = `<!-- The URL wins while it carries state; localStorage fills the rest -->
 <Table
   {items}
   {columns}
@@ -49,217 +56,288 @@ export const load = async ({ url }) => {
 
 <SeoMeta
   title="URL State & Persistence - Table"
-  description="Put the table's view state in the URL so it is shareable, survives a reload and is visible to the server — and decide what localStorage keeps on top of it."
+  description="Write the table's view state to the URL, so a view can be reloaded, shared as a link and read by the server. Plus what localStorage keeps on top of it."
 />
 
 <DocsPageLayout
   title="URL State & Persistence"
-  description="Put the table's view state in the URL so it is shareable, survives a reload and is visible to the server — and decide what localStorage keeps on top of it."
+  description="Write the table's view state to the URL, so a view can be reloaded, shared as a link and read by the server. Plus what localStorage keeps on top of it."
   breadcrumbs={[{ label: 'Table', href: resolve('/table/table') }]}
   {navigation}
 >
   <Section id="url-sync" title="View State in the URL">
-    <p class="text-text-secondary mb-6 text-sm">
-      Search, sort, page, page size, filters and grouping are the axes that decide <em>which</em>
-      rows a reader is looking at. Mirror them onto query params and that view becomes a link: it survives
-      a reload, can be pasted into a ticket, and — unlike
-      <code class="text-text-primary">localStorage</code> — the server can read it. The wiring is two
-      props.
+    <p class="text-text-secondary mb-4 text-sm">
+      Six settings decide <em>which</em> rows someone sees:
     </p>
 
-    <CodeExample
-      title="Two props, both directions"
-      description="`query` reads the URL (a controlled prop, per axis), `onQueryChange` writes it back. The demo below is the real thing running against this page's address bar, with every key namespaced by prefix: 'demo_'."
-      code={codeUrlSync}
-    >
+    <ul class="text-text-secondary mb-6 list-outside list-disc space-y-1 pl-5 text-sm">
+      <li>search</li>
+      <li>sort</li>
+      <li>page</li>
+      <li>page size</li>
+      <li>filters</li>
+      <li>grouping</li>
+    </ul>
+
+    <p class="text-text-secondary mb-6 text-sm">
+      These settings can be written to the URL as query parameters. Reloading the page then restores
+      the view, and the address can be sent to someone else, who opens the same view.
+    </p>
+  </Section>
+
+  <Section id="two-props" title="The Two Props">
+    <p class="text-text-secondary mb-6 text-sm">
+      Two props keep the six settings in step with the address bar. Both come from one call to
+      <code class="text-text-primary">createTableQueryUrlSync</code>.
+    </p>
+
+    <h3 class="text-text-primary mb-2 text-sm font-semibold">query</h3>
+    <p class="text-text-secondary mb-4 text-sm">
+      Reads the URL and hands the table the settings it names. It re-reads on every navigation, so
+      going back to an address without <code class="text-text-primary">?sort</code> returns the table
+      to its unsorted view.
+    </p>
+    <p class="text-text-secondary mb-4 text-sm">
+      Presence is the switch. A field that is present takes control of its setting. A field left
+      <code class="text-text-primary">undefined</code> changes nothing, and that setting keeps
+      whatever
+      <code class="text-text-primary">localStorage</code> or an
+      <code class="text-text-primary">initial*</code> seed supplied.
+    </p>
+    <p class="text-text-secondary mb-4 text-sm">
+      So pass only the settings you mean to control. An object with every field filled in claims
+      every setting, on every URL, including one without parameters.
+    </p>
+    <p class="text-text-secondary mb-6 text-sm">
+      The prop fetches nothing. In client mode the table applies the settings to the rows it already
+      has; in server mode fetching the matching rows is the job of your load function.
+    </p>
+
+    <h3 class="text-text-primary mb-2 text-sm font-semibold">onQueryChange</h3>
+    <p class="text-text-secondary mb-6 text-sm">
+      Writes changes back to the URL. It runs when someone sorts a column, types in the search box
+      or turns a page.
+    </p>
+
+    <p class="text-text-secondary mb-6 text-sm">
+      The demo below runs against this page's own address bar. Every key carries the
+      <code class="text-text-primary">demo_</code> prefix — the
+      <code class="text-text-primary">prefix</code> option, which keeps one table's parameters apart from
+      anything else on the page.
+    </p>
+
+    <CodeExample title="Live — the table and the address bar" code={codeUrlSync}>
       <UrlStateDemo />
     </CodeExample>
 
-    <div class="border-border-subtle bg-surface-elevated mt-8 rounded-2xl border p-6">
-      <h3 class="text-text-primary mb-4 text-sm font-semibold">Two details worth knowing</h3>
-      <ul class="text-text-secondary list-inside list-disc space-y-2 text-sm">
-        <li>
-          <strong class="text-text-primary"
-            >Pass <code>viewState</code>, never
-            <code>initialQuery</code>.</strong
-          >
-          Both come from the same sync.
-          <code class="text-text-primary">viewState</code> carries only the axes the URL actually
-          names, so an absent one keeps whatever persistence or a seed supplied.
-          <code class="text-text-primary">initialQuery</code> describes
-          <em>every</em>
-          axis — including the ones it filled in from the defaults — so a table wired to it ignores
-          <code class="text-text-primary">persistenceConfig</code>,
-          <code class="text-text-primary">initialSort</code>,
-          <code class="text-text-primary">initialFilters</code> and
-          <code class="text-text-primary">initialGroupBy</code> on every URL. DEV warns about both halves,
-          but the page still renders the wrong view. It is a snapshot to seed a fetch with, which is what
-          the server example below uses it for.
-        </li>
-        <li>
-          <strong class="text-text-primary">Values equal to the defaults are not written.</strong>
-          Set <code class="text-text-primary">defaults</code> to the table's own initial props (
-          <code class="text-text-primary">itemsPerPage</code>,
-          <code class="text-text-primary">initialPage</code>,
-          <code class="text-text-primary">initialGroupBy</code>, plus
-          <code class="text-text-primary">sortColumn</code>/<code class="text-text-primary"
-            >sortDirection</code
-          >
-          for a baked-in <code class="text-text-primary">initialSort</code>) so the baseline matches
-          the state the table starts in — otherwise its opening view writes params describing
-          itself.
-        </li>
-      </ul>
-    </div>
+    <NoteList variant="flush" class="mt-8">
+      <Note>
+        {#snippet titleSnippet()}
+          Pass <code>viewState</code>, never <code>initialQuery</code>
+        {/snippet}
+        Both come from the same sync. <code>viewState</code> carries the settings the URL names.
+        <code>initialQuery</code> carries all six, filled in from the defaults, so it claims every
+        setting by the rule above — storage and the seeds are ignored on every URL. It is also a
+        snapshot that never re-reads the URL, so the back button stops changing the view. Use
+        <code>initialQuery</code> to seed a fetch, as the server example below does.
+      </Note>
+      <Note title="Set the defaults to what the table starts with">
+        Values equal to the defaults are not written to the URL, so
+        <code>defaults</code> has to match the table's own initial props:
+        <code>itemsPerPage</code>, <code>page</code> for <code>initialPage</code>,
+        <code>groupByKey</code> for <code>initialGroupBy</code>, and
+        <code>sortColumn</code>/<code>sortDirection</code> for a baked-in
+        <code>initialSort</code>. If they differ, the table writes parameters for its own opening
+        view.
+      </Note>
+    </NoteList>
   </Section>
 
-  <Section id="precedence" title="URL, Storage, Seed">
+  <Section id="precedence" title="Order of Precedence">
     <p class="text-text-secondary mb-6 text-sm">
-      Three layers can supply the same axis. They are resolved <strong class="text-text-primary"
-        >per axis, in this order</strong
-      >:
+      Three layers can set the same setting. Every setting is resolved on its own, in this order:
     </p>
 
-    <div class="border-border-subtle bg-surface-elevated rounded-2xl border p-6">
-      <ol class="text-text-secondary list-inside list-decimal space-y-3 text-sm">
-        <li>
-          <strong class="text-text-primary">The <code>query</code> prop</strong> — a field that is present
-          controls its axis. This is a derivation, not a write, which is why it also resolves during server
-          rendering.
-        </li>
-        <li>
-          <strong class="text-text-primary"
-            ><code>persistenceConfig</code> (<code>localStorage</code>)</strong
-          > — restores the axes the query says nothing about.
-        </li>
-        <li>
-          <strong class="text-text-primary">The <code>initial*</code> seeds</strong> —
-          <code class="text-text-primary">initialSort</code>,
-          <code class="text-text-primary">initialFilters</code>,
-          <code class="text-text-primary">initialGroupBy</code>,
-          <code class="text-text-primary">initialSummaryConfigs</code>,
-          <code class="text-text-primary">initialSelectedIds</code>. They fill only what neither of
-          the two above supplied.
-        </li>
-      </ol>
+    <ol class="text-text-secondary mb-6 list-outside list-decimal space-y-3 pl-5 text-sm">
+      <li>
+        <strong class="text-text-primary">The <code>query</code> prop.</strong> A field that is present
+        controls its setting. This is a derivation rather than a write, so it also resolves while the
+        server renders.
+      </li>
+      <li>
+        <strong class="text-text-primary"
+          ><code>persistenceConfig</code> (<code>localStorage</code>).</strong
+        > Fills the settings the query leaves out.
+      </li>
+      <li>
+        <strong class="text-text-primary">The <code>initial*</code> seeds.</strong> Fill the settings
+        neither of the two above supplied.
+      </li>
+    </ol>
+
+    <p class="text-text-secondary mb-4 text-sm">
+      Which layer can set which setting, and under which name:
+    </p>
+
+    <div class="border-border-hairline mb-6 overflow-x-auto border-y">
+      <table class="w-full text-left text-sm">
+        <thead class="text-text-primary border-border-hairline border-b">
+          <tr>
+            <th class="py-2 pr-4 font-semibold">Setting</th>
+            <th class="py-2 pr-4 font-semibold">As a query field</th>
+            <th class="py-2 pr-4 font-semibold">In storage</th>
+            <th class="py-2 font-semibold">As a seed</th>
+          </tr>
+        </thead>
+        <tbody class="text-text-secondary divide-border-hairline divide-y">
+          <tr>
+            <td class="py-2 pr-4">search</td>
+            <td class="py-2 pr-4"><code>searchTerm</code></td>
+            <td class="py-2 pr-4">yes</td>
+            <td class="py-2">—</td>
+          </tr>
+          <tr>
+            <td class="py-2 pr-4">sort</td>
+            <td class="py-2 pr-4"><code>sortColumn</code> + <code>sortDirection</code></td>
+            <td class="py-2 pr-4">yes</td>
+            <td class="py-2"><code>initialSort</code></td>
+          </tr>
+          <tr>
+            <td class="py-2 pr-4">page</td>
+            <td class="py-2 pr-4"><code>page</code></td>
+            <td class="py-2 pr-4">never</td>
+            <td class="py-2"><code>initialPage</code></td>
+          </tr>
+          <tr>
+            <td class="py-2 pr-4">page size</td>
+            <td class="py-2 pr-4"><code>itemsPerPage</code></td>
+            <td class="py-2 pr-4">never</td>
+            <td class="py-2"><code>itemsPerPage</code></td>
+          </tr>
+          <tr>
+            <td class="py-2 pr-4">filters</td>
+            <td class="py-2 pr-4"><code>activeFilters</code></td>
+            <td class="py-2 pr-4">yes</td>
+            <td class="py-2"><code>initialFilters</code></td>
+          </tr>
+          <tr>
+            <td class="py-2 pr-4">grouping</td>
+            <td class="py-2 pr-4"><code>groupByKey</code></td>
+            <td class="py-2 pr-4">yes</td>
+            <td class="py-2"><code>initialGroupBy</code></td>
+          </tr>
+          <tr>
+            <td class="py-2 pr-4">column visibility, column order</td>
+            <td class="py-2 pr-4">never</td>
+            <td class="py-2 pr-4">yes</td>
+            <td class="py-2">—</td>
+          </tr>
+        </tbody>
+      </table>
     </div>
 
-    <div class="border-border-subtle bg-surface-elevated mt-6 rounded-2xl border p-6">
-      <h3 class="text-text-primary mb-4 text-sm font-semibold">Consequences</h3>
-      <ul class="text-text-secondary list-inside list-disc space-y-2 text-sm">
-        <li>
-          <strong class="text-text-primary"
-            >Empty is a value — for every axis that can carry a default.</strong
-          >
-          A URL with <code class="text-text-primary">?sort=</code> says "no sort", and no seed slips
-          past it; storage has always worked the same way, an axis the reader cleared restores
-          cleared.
-          <code class="text-text-primary">activeFilters</code> is the exception:
-          <code class="text-text-primary">defaults</code> has no field for it, so an emptied filter
-          set writes no marker and an <code class="text-text-primary">initialFilters</code> seed returns
-          on the next load.
-        </li>
-        <li>
-          <strong class="text-text-primary">Column visibility and column order are not axes.</strong
-          >
-          They are presentation, not selection, so they stay in
-          <code class="text-text-primary">localStorage</code> and never enter the URL — nobody wants to
-          share a link that hides columns on the other end. The server renders every column.
-        </li>
-        <li>
-          <strong class="text-text-primary">Grouping keeps its gate.</strong> A
-          <code class="text-text-primary">groupByKey</code> from the URL is refused on a
-          <code class="text-text-primary">virtualized</code> table, exactly like every other route into
-          grouping — a link must not be able to switch a large table into a mode that renders the full
-          item set.
-        </li>
-        <li>
-          <strong class="text-text-primary">The back button works.</strong>
-          <code class="text-text-primary">viewState</code> re-reads the URL rather than capturing it
-          once, so navigating back to an address without
-          <code class="text-text-primary">?sort</code> returns the table to its unsorted view. SvelteKit
-          does not remount a page for a query-string change, so a captured value never could.
-        </li>
-      </ul>
-    </div>
+    <p class="text-text-secondary mb-6 text-sm">
+      A virtualized table refuses grouping, from the URL like from every other route — a link must
+      not switch a large table into a mode that renders every item. DEV warns when it drops one.
+    </p>
+
+    <NoteList variant="flush">
+      <Note title="Column visibility and column order stay in localStorage">
+        They are display settings and never enter the URL, so a shared link shows every column the
+        recipient normally sees. The server renders every column.
+      </Note>
+      <Note title="An empty value is a value">
+        A URL with <code>?sort=</code> means "no sort", and no seed overrides it. Storage behaves
+        the same way, and a setting someone cleared is restored as cleared. Filters are the
+        exception, in the URL only:
+        <code>defaults</code> has no field for <code>activeFilters</code>, so an emptied filter set
+        writes no marker and an <code>initialFilters</code> seed returns on the next load.
+      </Note>
+    </NoteList>
   </Section>
 
   <Section id="between-visits" title="Keeping It Between Visits">
-    <p class="text-text-secondary mb-6 text-sm">
-      Reading and writing are gated differently, and the asymmetry is deliberate. Restoring is per
-      axis: storage fills the axes the query says nothing about. Writing is per table: as soon as a
-      <code class="text-text-primary">query</code> prop is wired at all — even one that currently
-      names no axis — none of the shareable axes (sort, search, filters, grouping) go to storage.
-      The reason is a race: a setter runs synchronously while the URL only catches up after a
-      debounce and an async <code class="text-text-primary">goto</code>, so a per-axis write gate
-      would store the first sort and drop the ones after it.
-    </p>
-    <p class="text-text-secondary mb-6 text-sm">
-      While the URL carries the state, the URL <em>is</em> the state. What that does not survive is opening
-      the page from a bare link — nothing was stored, so the reader starts clean. For a business table
-      that is usually the wrong answer, since "my filters are still there tomorrow" is expected.
+    <p class="text-text-secondary mb-4 text-sm">Reading and writing are gated differently.</p>
+
+    <p class="text-text-secondary mb-4 text-sm">
+      <strong class="text-text-primary">Reading is per setting.</strong> Storage fills the settings the
+      URL leaves out.
     </p>
 
-    <CodeExample
-      title="persistControlled"
-      description="Stores the controlled axes as well, and hands them back on a visit without params. Writes happen on the reader's own edits only — never when a controlled value resolves — so following someone else's link stores nothing. The reading order is unchanged: a URL that names an axis still wins over the stored value."
-      code={codePersistControlled}
-      preview={false}
-    />
+    <p class="text-text-secondary mb-4 text-sm">
+      <strong class="text-text-primary">Writing is per table.</strong> As soon as a
+      <code class="text-text-primary">query</code> prop is wired, the shareable settings (sort, search,
+      filters, grouping) are no longer written to storage. This holds even for a query that currently
+      names no setting.
+    </p>
+
+    <p class="text-text-secondary mb-6 text-sm">
+      Someone opening the page from a bare link starts with the default view, because nothing was
+      stored. Business tables usually want the opposite, since people expect yesterday's filters to
+      still be there.
+    </p>
+
+    <p class="text-text-secondary mb-6 text-sm">
+      <code class="text-text-primary">persistControlled</code> stores the controlled settings as well
+      and restores them on a visit without parameters. Storage is written on the reader's own edits, not
+      when a controlled value resolves, so following someone else's link stores nothing. A URL that names
+      a setting still wins over the stored value.
+    </p>
+
+    <CodeExample title="persistControlled" code={codePersistControlled} preview={false} />
 
     <p class="text-text-secondary mt-6 text-sm">
-      Pick a stable, unique <code class="text-text-primary">tableId</code> per table — two tables
-      sharing one id overwrite each other. Pagination is never persisted (page 1 on navigation is
-      standard UX), though the URL does carry it. See
+      Give every table a stable, unique <code class="text-text-primary">tableId</code>, since two
+      tables sharing one id overwrite each other. Pagination is never persisted — neither the page
+      nor the page size — though the URL carries both.
       <a class="text-primary hover:underline" href={resolve('/table/customization')}
         >Customization</a
       >
-      for the per-axis opt-outs and <code class="text-text-primary">sessionStorage</code>.
+      covers the per-setting opt-outs and <code class="text-text-primary">sessionStorage</code>.
     </p>
   </Section>
 
   <Section id="server" title="What the Server Renders">
     <p class="text-text-secondary mb-6 text-sm">
-      This is the reason the axes are controlled props rather than state written on startup.
-      <code class="text-text-primary">$effect</code> never runs during server rendering, so any view
-      state ingested in one is absent from the prerendered HTML — the server would send an unsorted,
-      unfiltered table that the client swaps out on hydration, with the reader watching. A
-      <code class="text-text-primary">$derived</code> is evaluated on the server, so the linked view is
-      in the markup that arrives.
-    </p>
-    <p class="text-text-secondary mb-6 text-sm">
-      The same argument is why <code class="text-text-primary">localStorage</code> cannot be the only
-      home for view state: the server cannot see it, so a persisted sort produces one row order on the
-      server and another after hydration. The URL is visible to both.
-    </p>
-    <p class="text-text-secondary mb-6 text-sm">
-      The demo above cannot show you this half, and it is worth saying why: this docs site is
-      <em>prerendered</em>
-      — one HTML file per route, built before any query string exists — so its server render is the default
-      view by definition, and the demo does its work after hydration. In an app that renders per request
-      (a SvelteKit
-      <code class="text-text-primary">load</code> without
-      <code class="text-text-primary">prerender</code>, or server mode below) the very same wiring
-      puts the sorted, filtered view into the first response. The
-      <code class="text-text-primary">building</code> guard that makes the demo prerender-safe is in its
-      source, six lines from the top.
+      The table reads <code class="text-text-primary">query</code> as a
+      <code class="text-text-primary">$derived</code>, which runs while the server renders — the
+      linked view is already in the markup that arrives. An
+      <code class="text-text-primary">$effect</code> does not run there: view state applied through one
+      is missing from the server's HTML, and the client replaces the table on hydration.
     </p>
 
-    <CodeExample
-      title="Seeding the first fetch"
-      description="In server mode the same params answer the load function. `searchParamsToTableQuery` is a pure serializer — no SvelteKit import — and returns a complete query, which is exactly what a fetch needs. Give the table its `query` prop from the same sync alongside, so its own controls stay in step with the link."
-      code={codeServer}
-      preview={false}
-    />
+    <p class="text-text-secondary mb-6 text-sm">
+      The same applies to <code class="text-text-primary">localStorage</code> as a home for view state.
+      The server cannot read it, so a persisted sort produces one row order on the server and another
+      after hydration.
+    </p>
+
+    <p class="text-text-secondary mb-6 text-sm">
+      These docs are prerendered, with one HTML file per route, built before any query string
+      exists. Their server render is the default view, and the demo above does its work after
+      hydration. An app that renders per request puts the linked view into the first response with
+      the same wiring.
+    </p>
+
+    <p class="text-text-secondary mb-6 text-sm">
+      In server mode the load function reads the same parameters.
+      <code class="text-text-primary">searchParamsToTableQuery</code> has no SvelteKit import and
+      returns a complete query, the shape a fetch wants. The table still gets its
+      <code class="text-text-primary">query</code> prop from
+      <code class="text-text-primary">createTableQueryUrlSync</code>, with the same
+      <code class="text-text-primary">defaults</code>, so its controls stay in step with the link.
+    </p>
+
+    <CodeExample title="Seeding the first fetch" code={codeServer} preview={false} />
 
     <p class="text-text-secondary mt-6 text-sm">
       The serializers live in <code class="text-text-primary"
         >@urbicon-ui/sveltekit-utils/table-query</code
       >
-      and work without SvelteKit;
+      and work without SvelteKit.
       <code class="text-text-primary">createTableQueryUrlSync</code> in
-      <code class="text-text-primary">/url.svelte</code> is the reactive half that needs it. See
-      <a class="text-primary hover:underline" href={resolve('/table/remote-data')}>Remote Data</a> for
+      <code class="text-text-primary">/url.svelte</code> is the reactive half that needs it.
+      <a class="text-primary hover:underline" href={resolve('/table/remote-data')}>Remote Data</a> covers
       the fetch side.
     </p>
   </Section>

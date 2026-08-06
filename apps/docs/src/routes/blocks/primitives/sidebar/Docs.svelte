@@ -28,7 +28,7 @@
   <p class="text-text-secondary mt-3 text-sm leading-relaxed">
     Pick a different overlay if you need:
   </p>
-  <ul class="text-text-secondary mt-2 list-inside list-disc space-y-1.5 text-sm">
+  <ul class="text-text-secondary mt-2 list-outside list-disc space-y-1.5 pl-5 text-sm">
     <li>
       A ready-made app shell with mobile hamburger, header slot, and centered content column →
       <a href={r('/blocks/components/sidebar-layout')} class="text-primary hover:underline"

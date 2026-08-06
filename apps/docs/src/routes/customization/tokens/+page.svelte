@@ -449,7 +449,7 @@
       class="border-warning/40 bg-warning-subtle text-text-secondary rounded-contain mb-6 border p-4 text-sm leading-relaxed"
     >
       <strong class="text-warning-emphasis">Two things to get right.</strong>
-      <ul class="mt-2 list-inside list-disc space-y-1">
+      <ul class="mt-2 list-outside list-disc space-y-1 pl-5">
         <li>
           <strong class="text-text-primary">Change the paired line-height too.</strong> Tailwind's
           built-in sizes each ship a companion

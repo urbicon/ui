@@ -1,47 +1,23 @@
 <!--
-  Getting started — the "build guide". Five real steps (install → tokens →
-  first component → theme → agent) with big poster numerals on the left; on
-  the right a sticky "Your app so far" specimen card that grows as the reader
-  scrolls: empty after 01, token swatches after 02, the live Bleecker & Bond
-  mini-booking after 03 (the salon fiction the landing established — not
-  another hello world), at 04 the reader repaints the preview themselves via
-  four paint switches — the landing promises "repaint the building", this page
-  lets you do it — and 05 mirrors the landing's second install command
-  (`bunx urbicon init`), so both entry points tell the same story. A numeral-00
-  pre-step (create the app via `sv create --add @urbicon-ui`) sits above 01 but
-  deliberately OUTSIDE the STEPS scrollspy: at 00 there is no app to preview
+  Getting started — five steps (install → tokens → component → theme → agent)
+  beside a sticky preview card that grows with each one.
+
+  Steps 00–02 are a FORK, not a sequence: the sv add-on does all three in one
+  command, so 00 is the greenfield path (`sv create` needs an empty directory)
+  and 01 opens with the brownfield form. The manual steps stay in full — they
+  are what a reader needs in order to change what the add-on did, and the
+  card's choreography hangs off them. The add-on is also the only
+  SvelteKit-bound piece (the library imports neither `$app/*` nor
+  `@sveltejs/kit`), which is why 00 closes by pointing non-Kit readers at the
+  manual fork.
+
+  00 sits outside the STEPS scrollspy on purpose: there is no app to preview
   yet, and readers already inside a SvelteKit project skip it.
 
-  The sv add-on covers 00–02 in one command, so those steps are a FORK, not a
-  sequence: 00 is the greenfield path (`sv create` needs an empty directory),
-  01 opens with the brownfield form (`sv add`) and then gives the manual
-  install, 02 states up front that the add-on already wrote it. The manual
-  steps stay in full — they are what the reader needs in order to understand
-  (and later change) what the add-on did, and the preview card's five-step
-  choreography hangs off them.
-
-  The add-on is also the only SvelteKit-bound piece (`sv` add-ons run on Kit
-  projects; the library imports neither `$app/*` nor `@sveltejs/kit`), so 00
-  closes by pointing non-Kit readers at the manual fork rather than leaving
-  them to infer that a Kit-shaped page excludes them.
-
-  The card follows a MONOTONIC step latch (reachedStep), not the raw
-  scrollspy: the app you've built must not un-build when you scroll back up to
-  re-read — or when focusing the card's input jiggles the viewport out of
-  section 04 and would otherwise dissolve the repaint buttons mid-click (the
-  same latch pattern the landing hero uses for its height).
-
-  The preview card reuses the landing's poster grammar (.poster-card +
-  .room-accent from $lib/style/rooms.css — imported here too; Vite dedupes):
-  a fixed cream+ink artboard (color-scheme: light) whose whole primary-derived
-  token family re-resolves from the inline --room-accent, so the real library
-  components repaint live. The four paints come from the docs' own channel
-  register — the same colours the component pages wear per family.
-
-  Step tracking reuses the shared ScrollSpy from @urbicon-ui/docs (same class
-  DocsLayout, TableOfContents and /blocks use). Below lg the card is not
-  sticky and sits AFTER the steps — by then the last step is active, so the
-  mobile reader gets the finished, playable app as the closer.
+  The preview card reuses the landing's .poster-card + .room-accent from
+  $lib/style/rooms.css (imported here too; Vite dedupes): a fixed cream+ink
+  artboard whose primary-derived token family re-resolves from the inline
+  --room-accent, so the real library components repaint live.
 -->
 <script lang="ts">
   import SeoMeta from '$lib/SeoMeta.svelte';
@@ -64,8 +40,8 @@
   // Before the first section crosses the trigger line spy.active is '' →
   // findIndex -1 → clamp to step 1, so the card never shows "step 0".
   const activeStep = $derived(Math.max(1, STEPS.findIndex((step) => step.id === spy.active) + 1));
-  // Monotonic latch for the card (see head comment): scrolling back up — or
-  // the focus jiggle from clicking INTO the card — must never un-build the app.
+  // Monotonic latch: scrolling back up — or the focus jiggle from clicking
+  // INTO the card — must never un-build the app the reader has built.
   let reachedStep = $state(1);
   $effect(() => {
     if (activeStep > reachedStep) reachedStep = activeStep;
@@ -301,9 +277,8 @@ export default {
           />
         </div>
         <p class="text-text-secondary mt-6 max-w-2xl leading-relaxed">
-          By hand it is one package, zero runtime dependencies — the components ship as compiled
-          Svelte plus a CSS token ledger, and only what you import ends up in your bundle. Any
-          package manager works.
+          By hand it is one package with zero runtime dependencies: compiled Svelte plus a CSS token
+          file. Only what you import ends up in your bundle, and any package manager works.
         </p>
         <div class="mt-4">
           <CodeExample
@@ -344,26 +319,28 @@ export default {
           />
         </div>
         <p class="text-text-secondary mt-6 max-w-2xl leading-relaxed">
-          Then two imports wire everything up — Tailwind itself, and the token sheet: OKLCH color
-          ramps, semantic tokens, typography and spacing, dark mode included via
+          Then two imports: Tailwind, and the token sheet — OKLCH color ramps, semantic tokens,
+          typography, spacing, and dark mode via
           <code class="bg-surface-elevated rounded-modify px-1.5 py-0.5 font-mono text-xs"
             >light-dark()</code
-          >, no configuration. The blocks stylesheet also carries its own
+          >. The blocks stylesheet brings its own
           <code class="bg-surface-elevated rounded-modify px-1.5 py-0.5 font-mono text-xs"
             >@source</code
           >
-          directives, so Tailwind generates the components&rsquo; classes without any extra setup. Load
-          the file once, wherever your app loads CSS — in SvelteKit that is
+          directives, so Tailwind finds the components&rsquo; classes without extra config. Load the file
+          once, wherever your app loads CSS:
           <code class="bg-surface-elevated rounded-modify px-1.5 py-0.5 font-mono text-xs"
             >import './app.css'</code
           >
           in
           <code class="bg-surface-elevated rounded-modify px-1.5 py-0.5 font-mono text-xs"
             >+layout.svelte</code
-          >, in a plain Vite + Svelte app your entry module
+          >
+          for SvelteKit, in your entry module
           <code class="bg-surface-elevated rounded-modify px-1.5 py-0.5 font-mono text-xs"
             >src/main.js</code
-          >:
+          >
+          for plain Vite + Svelte:
         </p>
         <div class="mt-4">
           <CodeExample
@@ -434,8 +411,8 @@ export default {
             >@theme</code
           >
           — no component needs to know. The preview’s four paints are this site’s own room colours, one
-          per component family; flip one and watch every component follow. In your codebase, it’s one
-          line:
+          per component family; flip one and watch every component follow. In your codebase it is a declaration
+          in your own stylesheet:
         </p>
         <div class="mt-6">
           <CodeExample title="Custom theme" code={themeExample} language="css" preview={false} />
@@ -459,8 +436,8 @@ export default {
           {STEPS[4].title}
         </h2>
         <p class="text-text-secondary mt-4 max-w-2xl leading-relaxed">
-          Agents are first-class consumers of this library. One command writes the AGENTS.md block —
-          the component grammar, the token rules, where to look things up. Add
+          One command writes the AGENTS.md block: the component grammar, the token rules, where to
+          look things up. With
           <code class="bg-surface-elevated rounded-modify px-1.5 py-0.5 font-mono text-xs"
             >--hook</code
           >
@@ -468,12 +445,11 @@ export default {
           <code class="bg-surface-elevated rounded-modify px-1.5 py-0.5 font-mono text-xs"
             >--ci</code
           >
-          and the design gate arms too: every file your agent touches gets scored on correctness and craft
-          before it ships. On the add-on path
+          the design gate arms too, and every file your agent writes is linted against the library&rsquo;s
+          own rules before it ships. The add-on already installed
           <code class="bg-surface-elevated rounded-modify px-1.5 py-0.5 font-mono text-xs"
             >@urbicon-ui/design</code
-          >
-          is already a devDependency; on the manual path add it once (<code
+          >; by hand, add it once (<code
             class="bg-surface-elevated rounded-modify px-1.5 py-0.5 font-mono text-xs"
             >bun add -d @urbicon-ui/design</code
           >) so the knowledge the CLI serves stays pinned to the library version you installed.
