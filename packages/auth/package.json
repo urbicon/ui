@@ -1,6 +1,6 @@
 {
   "name": "@urbicon-ui/auth",
-  "version": "7.0.1",
+  "version": "8.0.0",
   "description": "Authentication for SvelteKit — JWT sessions, passkeys/WebAuthn, notifications and email with zero runtime dependencies",
   "license": "MIT",
   "repository": {
@@ -99,8 +99,8 @@
   "peerDependencies": {
     "svelte": "catalog:",
     "@sveltejs/kit": "catalog:",
-    "@urbicon-ui/blocks": "^7.0.0",
-    "@urbicon-ui/i18n": "^7.0.0"
+    "@urbicon-ui/blocks": "^8.0.0",
+    "@urbicon-ui/i18n": "^8.0.0"
   },
   "dependencies": {},
   "devDependencies": {

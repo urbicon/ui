@@ -4,6 +4,27 @@ All notable changes to this project will be documented in this file.
 This changelog is automatically generated from [Conventional Commits](https://www.conventionalcommits.org).
 
 
+## [8.0.0] - 2026-08-06
+
+### Breaking Changes
+- **table**: Rebuild view state around the consumer-owned view object (v8) (#158)
+> **BREAKING:** the v7 view-state props (itemsPerPage, initialPage, initialSort, initialFilters, initialGroupBy, initialSummaryConfigs, searchTerm, onSearchTermChange, query, onQueryChange, queryDebounceMs, mode, serverTotalItems, queryFn, loading, error, persistenceConfig) are replaced by view/viewDefaults/source; createTableQueryUrlSync and the per-axis view persistence factories are removed; TableContext is narrowed to the documented consumer surface; FilterPersistenceConfig is renamed to PersistenceKeyConfig.
+
+### Bug Fixes
+- **docs-app**: Let row 2 grow instead of trapping the scroll
+
+### Documentation
+- **table**: Carry the caller's rules in the selection and query JSDoc
+- **docs-app**: Rewrite the table view-state pages; sweep prose debts
+- Editorial guide as a checklist, with writer and editor skills
+
+### Features
+- **docs**: Render backtick spans in generated descriptions as code
+- **docs-app**: Reading typography and a measured column for docs prose
+
+### Testing
+- **e2e**: Re-baseline the pixel shots after the 2026-08-06 design commits
+
 ## [7.0.1] - 2026-08-05
 
 ### Bug Fixes

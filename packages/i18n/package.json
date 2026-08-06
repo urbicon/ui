@@ -1,6 +1,6 @@
 {
   "name": "@urbicon-ui/i18n",
-  "version": "7.0.1",
+  "version": "8.0.0",
   "description": "Runes-based localization for Svelte 5 apps and the Urbicon UI design system",
   "license": "MIT",
   "repository": {
@@ -58,7 +58,7 @@
   "peerDependencies": {
     "svelte": "catalog:",
     "typescript": "catalog:",
-    "@urbicon-ui/shared-types": "^7.0.0"
+    "@urbicon-ui/shared-types": "^8.0.0"
   },
   "peerDependenciesMeta": {
     "typescript": {

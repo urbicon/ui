@@ -1,6 +1,6 @@
 {
   "name": "@urbicon-ui/table",
-  "version": "7.0.1",
+  "version": "8.0.0",
   "description": "Data table for Svelte 5 — sorting, filtering, grouping, selection, keyboard navigation, virtualization and live updates",
   "license": "MIT",
   "repository": {
@@ -72,9 +72,9 @@
   ],
   "peerDependencies": {
     "svelte": "catalog:",
-    "@urbicon-ui/blocks": "^7.0.0",
-    "@urbicon-ui/i18n": "^7.0.0",
-    "@urbicon-ui/shared-types": "^7.0.0"
+    "@urbicon-ui/blocks": "^8.0.0",
+    "@urbicon-ui/i18n": "^8.0.0",
+    "@urbicon-ui/shared-types": "^8.0.0"
   },
   "devDependencies": {
     "@sveltejs/kit": "catalog:",
