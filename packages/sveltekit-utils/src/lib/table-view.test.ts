@@ -2,6 +2,8 @@ import { describe, expect, it } from 'vitest';
 import type { TableQueryFilter } from './table-query';
 import {
   searchParamsToViewPartial,
+  searchParamsToViewQuery,
+  searchParamsToViewSnapshot,
   type TableViewSnapshot,
   viewAxesNamedBy,
   viewSnapshotToSearchParams
@@ -76,6 +78,57 @@ describe('viewAxesNamedBy — the presence oracle', () => {
     expect(viewAxesNamedBy(sp, 't_')).toEqual(['search', 'groupBy']);
     // …and the prefixless reading sees the complementary slice.
     expect(viewAxesNamedBy(sp)).toEqual(['search', 'page']);
+  });
+});
+
+describe('the load path resolves against the view defaults, not a second spelling', () => {
+  /**
+   * `searchParamsToViewQuery` exists so a server `load` can take the *same*
+   * defaults object the component hands `createTableView`. The older
+   * `searchParamsToTableQuery` takes its baseline in the wire vocabulary and
+   * has no filter field at all, so these two assertions are what the wire
+   * spelling could not express.
+   */
+  it('an absent param resolves to the view default, in view vocabulary', () => {
+    const query = searchParamsToViewQuery(new URLSearchParams('q=ada'), {
+      pageSize: 25,
+      sort: { column: 'date', direction: 'desc' },
+      groupBy: 'team'
+    });
+    expect(query).toEqual({
+      page: 1,
+      itemsPerPage: 25,
+      sortColumn: 'date',
+      sortDirection: 'desc',
+      searchTerm: 'ada',
+      activeFilters: [],
+      groupByKey: 'team'
+    });
+  });
+
+  it('carries a default filter set — the axis the wire defaults had no field for', () => {
+    const query = searchParamsToViewQuery(new URLSearchParams(), { filters: [aFilter] });
+    expect(query.activeFilters).toEqual([aFilter]);
+
+    // …and the empty marker still means "explicitly none", not "unset".
+    expect(
+      searchParamsToViewQuery(new URLSearchParams('filter='), { filters: [aFilter] }).activeFilters
+    ).toEqual([]);
+  });
+
+  it('resolves the same view a URL binding would apply at init', () => {
+    const defaults = { pageSize: 25, sort: { column: 'date', direction: 'desc' as const } };
+    const sp = new URLSearchParams('page=3&sort=');
+    const resolved = searchParamsToViewSnapshot(sp, defaults);
+    expect(resolved).toEqual({
+      search: '',
+      sort: null, // `sort=` — explicitly unsorted beats the default
+      page: 3,
+      pageSize: 25,
+      filters: [],
+      groupBy: null
+    });
+    expect(searchParamsToViewQuery(sp, defaults).sortColumn).toBe('');
   });
 });
 

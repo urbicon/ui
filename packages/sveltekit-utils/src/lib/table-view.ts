@@ -14,7 +14,11 @@
  * to `sort=`, so a cleared filter set elides like every other axis (the
  * shipped read side already tolerated it).
  */
-import { TABLE_QUERY_FILTER_OPERATORS, type TableQueryFilter } from './table-query';
+import {
+  TABLE_QUERY_FILTER_OPERATORS,
+  type TableQueryFilter,
+  type TableQueryParams
+} from './table-query';
 
 /** One of the six view axes. Mirrors `ViewAxis` from `@urbicon-ui/table`. */
 export type TableViewAxis = 'search' | 'sort' | 'page' | 'pageSize' | 'filters' | 'groupBy';
@@ -176,6 +180,81 @@ export function searchParamsToViewPartial(
   if (rawGroup !== null) partial.groupBy = rawGroup === '' ? null : rawGroup;
 
   return partial;
+}
+
+/**
+ * Resolve a full view snapshot from search params: every axis the URL names
+ * comes from the URL, every other one from `defaults` — the same resolution
+ * the URL binding performs at init, for code that has no view (a server
+ * `load`).
+ */
+export function searchParamsToViewSnapshot(
+  sp: URLSearchParams,
+  defaults: Partial<TableViewSnapshot> = {},
+  prefix = ''
+): TableViewSnapshot {
+  const resolved = resolveViewDefaults(defaults);
+  return { ...resolved, ...searchParamsToViewPartial(sp, resolved, prefix) };
+}
+
+/** Fill an unset axis with the table's own default — never `undefined` anywhere. */
+function resolveViewDefaults(defaults: Partial<TableViewSnapshot>): TableViewSnapshot {
+  return {
+    search: defaults.search ?? '',
+    sort: defaults.sort ?? null,
+    page: defaults.page ?? 1,
+    pageSize: defaults.pageSize ?? 10,
+    filters: defaults.filters ?? [],
+    groupBy: defaults.groupBy || null
+  };
+}
+
+/**
+ * Project a view snapshot into the wire shape a backend speaks — the same
+ * mapping the table applies before calling a managed `source.query`, so a
+ * server `load` and the table's own fetches send identical field names.
+ */
+export function viewSnapshotToTableQuery(snapshot: TableViewSnapshot): TableQueryParams {
+  return {
+    page: snapshot.page,
+    itemsPerPage: snapshot.pageSize,
+    sortColumn: snapshot.sort?.column ?? '',
+    sortDirection: snapshot.sort?.direction ?? 'asc',
+    searchTerm: snapshot.search,
+    activeFilters: [...snapshot.filters],
+    groupByKey: snapshot.groupBy
+  };
+}
+
+/**
+ * The load-path counterpart of the URL binding: parse search params against
+ * the **view's own defaults** and hand back the query a fetch needs.
+ *
+ * The point is the defaults argument. `searchParamsToTableQuery` takes its
+ * baseline in the wire vocabulary (`itemsPerPage`, `sortColumn`/`sortDirection`,
+ * `groupByKey`) and has no field for filters at all, so a `load` had to keep a
+ * second, differently-spelled copy of what `createTableView({ defaults })`
+ * already says — and could not express a default filter set no matter how it
+ * was written (#157 finding 2). This one takes the very object the view takes:
+ * one spelling, all six axes, so the server cannot resolve an absent param
+ * differently from the client.
+ *
+ * @example
+ * ```ts
+ * // shared with the component that calls createTableView({ defaults })
+ * export const invoiceView = { pageSize: 25, sort: { column: 'date', direction: 'desc' } };
+ *
+ * export const load = async ({ url }) => ({
+ *   initialResult: await fetchInvoices(searchParamsToViewQuery(url.searchParams, invoiceView))
+ * });
+ * ```
+ */
+export function searchParamsToViewQuery(
+  sp: URLSearchParams,
+  defaults: Partial<TableViewSnapshot> = {},
+  prefix = ''
+): TableQueryParams {
+  return viewSnapshotToTableQuery(searchParamsToViewSnapshot(sp, defaults, prefix));
 }
 
 /**

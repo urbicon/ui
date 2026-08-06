@@ -5,7 +5,7 @@ Small, focused SvelteKit helpers that Urbicon apps share. Zero runtime dependenc
 Currently shipping:
 
 - **URL-state runes** — reactive `useUrlParam` / `useUrlArrayParam` that keep component state in sync with `?query=` parameters
-- **Table-query URL sync** — opt-in `?q=…&sort=…&page=…` mirroring for `@urbicon-ui/table` server mode, plus the pure serializers behind it
+- **Table view ↔ URL** — `bindViewToUrl`, the URL home for a `@urbicon-ui/table` view object (`?q=…&sort=…&page=…`), plus the pure serializers for the load path
 - **Cron runner** — interval-based background fetcher for scheduled server endpoints
 - **SSE stream reader** — `streamSse`, a spec-correct async-generator client for one-shot POST `text/event-stream` endpoints (LLM relays)
 
@@ -57,60 +57,60 @@ updateUrlSearchParams({ page: '1', tag: ['a', 'b'] }, { replaceState: true });
 - URL updates use `goto()` with `replaceState: true`, `noScroll: true`, `keepFocus: true` — suited for filter/pagination UIs, not full page transitions.
 - `useUrlParam` returns getters (not Svelte stores) so consumers can read the value lazily inside `$derived`/`$effect`.
 
-## Table Query ↔ URL (`table-query` + `url.svelte`)
+## Table View ↔ URL (`url.svelte` + `table-query`)
 
-Opt-in URL sync for `@urbicon-ui/table`, in client mode as well as `mode="server"`: the `TableQuery` the table emits (search, sort, page, page size, filters, grouping) is mirrored onto query parameters (`?q=…&sort=…&page=…`), so the view state survives reloads, can be shared as a link, and — unlike `localStorage` — is visible to the server.
+`bindViewToUrl` gives the view object of `@urbicon-ui/table` — search, sort, page, page size, filters, grouping — the URL as its home: the axes are mirrored onto query parameters (`?q=…&sort=…&page=…`), so the view survives a reload, can be shared as a link, and — unlike `localStorage` — is visible to the server.
 
 ```svelte
 <script lang="ts">
-  import { Table } from '@urbicon-ui/table';
-  import { tableQueryToSearchParams } from '@urbicon-ui/sveltekit-utils/table-query';
-  import { createTableQueryUrlSync } from '@urbicon-ui/sveltekit-utils/url.svelte';
+  import { Table, createTableView } from '@urbicon-ui/table';
+  import { bindViewToUrl } from '@urbicon-ui/sveltekit-utils/url.svelte';
 
-  const sync = createTableQueryUrlSync({ defaults: { itemsPerPage: 25 } });
+  const view = createTableView({ defaults: { pageSize: 25 } });
+  bindViewToUrl(view);
 </script>
 
-<Table
-  mode="server"
-  {columns}
-  itemsPerPage={25}
-  query={sync.viewState}
-  queryFn={async (query, { signal }) => {
-    sync.syncQuery(query); // mirror the query onto the URL (replaceState)
-    const res = await fetch(`/api/users?${tableQueryToSearchParams(query)}`, { signal });
-    const data = await res.json();
-    return { items: data.results, totalItems: data.total };
-  }}
-/>
+<Table {items} {columns} {view} />
 ```
 
-`viewState` carries **only the axes the URL actually names**, and the table's `query` prop reads it by field presence: a present field controls that axis, an absent one leaves persistence and the `initial*` seeds alone. That is why this is not `initialQuery` — that one describes every axis, including the ones it filled in from the defaults, so a table wired to it ignores `persistenceConfig`, `initialSort`, `initialFilters` and `initialGroupBy` on every URL. `initialQuery` stays what its name says: a complete snapshot, parsed once, to seed a fetch with.
+Both calls belong in the component's initialisation. The init half runs synchronously — a `?sort=…` link renders sorted server HTML — and the runtime halves are effects: URL navigations apply to the view, the reader's changes reach the URL debounced.
 
-Because `viewState` re-reads the URL rather than capturing it, the browser's back button works: navigating back to a URL without `?sort` returns the table to its unsorted view.
+The second argument is optional; every option has a default:
 
-A controlled axis is not written to `localStorage` by default, so a visit that arrives without query params starts clean. For a business table where "my filters are still there tomorrow" is expected, pair the sync with `persistenceConfig={{ tableId: '…', persistControlled: true }}` — the table then stores what the reader themselves changed (never what a shared link brought), and hands it back on a bare visit. Reading order is unaffected: the URL still wins.
+| Option            | Default | Effect                                                                                                                                                                                                            |
+| ----------------- | ------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `axes`            | all six | Which axes this binding manages. An unbound axis never reaches the URL, whatever the view holds.                                                                                                                  |
+| `debounceMs`      | `300`   | Delay before a view change is written to the URL.                                                                                                                                                                 |
+| `replaceState`    | `true`  | Replace the current history entry instead of pushing one, so rapid sort/filter/page edits do not flood the back button.                                                                                           |
+| `prefix`          | `''`    | Key namespace (`prefix: 't_'` → `?t_q=…&t_page=…`) for a second bound table on the same page.                                                                                                                     |
+| `reflectExternal` | `false` | Mirror an externally applied value (a storage seed) into the URL immediately. Off by default: the address bar does not change without reader interaction, and the seed reaches the URL with the first one anyway. |
 
-With manual control (`onQueryChange` instead of `queryFn`), pass `sync.syncQuery` directly — note that `onQueryChange` does not fire when `queryFn` is set, which is why the managed variant calls it inside `queryFn`.
+Because the binding re-reads the URL rather than capturing it, the browser's back button works: navigating back to a URL that no longer names `?sort` returns the table to its default sort.
 
-The pure serializers live under `@urbicon-ui/sveltekit-utils/table-query` and work without SvelteKit — e.g. to parse the initial query in a server `load` and fetch the first page during SSR:
+The pure serializers work without SvelteKit — e.g. to parse the incoming query in a server `load` and fetch the first page during SSR. Use `searchParamsToViewQuery` from `./table-view`: it takes the *same* defaults object the component hands `createTableView`, so the server cannot resolve an absent param differently from the client.
 
 ```typescript
-// +page.server.ts
-import { searchParamsToTableQuery } from '@urbicon-ui/sveltekit-utils/table-query';
+// view-defaults.ts — imported by both the component and the load function
+export const userView = { pageSize: 25, sort: { column: 'joined', direction: 'desc' } };
 
-export const load = async ({ url }) => {
-  const query = searchParamsToTableQuery(url.searchParams, { defaults: { itemsPerPage: 25 } });
-  return { initialResult: await fetchUsers(query) };
-};
+// +page.server.ts
+import { searchParamsToViewQuery } from '@urbicon-ui/sveltekit-utils/table-view';
+import { userView } from './view-defaults';
+
+export const load = async ({ url }) => ({
+  initialResult: await fetchUsers(searchParamsToViewQuery(url.searchParams, userView))
+});
 ```
+
+`searchParamsToTableQuery` in `./table-query` does the same job with a baseline in the wire vocabulary (`itemsPerPage`, `sortColumn`/`sortDirection`, `groupByKey`). It has no field for a default filter set, which is why the view-vocabulary function exists.
 
 **Design notes**
 
-- **Default elision** — values equal to `defaults` are not written; a table in its default state leaves the URL clean. Set `defaults` to the table's initial props (`itemsPerPage`, `initialPage`, `initialGroupBy`, and `sortColumn`/`sortDirection` when the table ships a baked-in `initialSort`) so the elision baseline matches the state the table starts in.
-- **Read tolerant, write strict** — unparsable params fall back to the defaults and malformed `filter` entries are skipped; serializing a structurally invalid query (non-positive page, unknown operator) throws instead of writing corrupt state.
-- **Namespacing** — `prefix: 't_'` scopes all keys (`?t_q=…`) for multiple synced tables on one page; unrelated params are always preserved.
-- **Types** — `TableQueryParams` is a structural mirror of the table's `TableQuery` (no dependency on `@urbicon-ui/table`; a parity test in the table package guards against drift).
-- **Seeding, the variant without `query`** — every axis the URL carries can also be handed to the table as a seed: `initialPage`, `initialGroupBy`, `initialSort`, `initialFilters` (plus a controlled `searchTerm` with an `onSearchTermChange` write-back). The seeds land before the table's first query emission, so a shared URL's sort/filter params survive it — the header indicator and filter chips show the URL state instead of the first emission wiping it. Its precedence is the **inverse** of `query`'s, and that is the reason to prefer `query`: an `initial*` prop seeds only an axis `persistenceConfig` has nothing stored for, so with both active a persisted sort/filter/group beats the link — including a persisted _empty_ value (the user cleared that axis once, so it stays cleared). The seeds do reach the server-rendered HTML — they are applied during construction, which runs under SSR too (measured: `initialSort`, `initialFilters`, `initialGroupBy` and `initialPage` all land in the server markup; only a controlled `searchTerm`, applied in an effect, does not). What they lack is the per-axis precedence above and any reaction to the back button, since a seed is read once. Use them only where the axis must not be controlled; otherwise `query={sync.viewState}` (+ `persistControlled` when the reader's own state should outlive the link).
+- **Default elision** — an axis whose value equals its default is not written; a table in its default state leaves the URL clean. The baseline *is* `view.defaults`, read off the object the binding decorates, so there is no second copy of the defaults to keep in step with the table's own.
+- **Read tolerant, write strict** — an unparsable value on a param the URL actually carries falls back to that axis' default, and malformed `filter` entries are skipped individually; the `table-query` serializer throws on a structurally invalid query (non-positive page, unknown operator) instead of writing corrupt state.
+- **Namespacing** — `prefix: 't_'` scopes all keys (`?t_q=…`) for multiple bound tables on one page; unrelated params are always preserved. Two prefixless bindings would manage the same keys, so that throws at registration instead of producing a link that loads the wrong table.
+- **One writer per page** — every binding submits into one coalescing URL writer, so two tables land in a single navigation, each replacing only its own keys. A landing URL the writer itself sent is not applied back onto the view: an edit made while that navigation was in flight survives instead of being overwritten by the URL it raced.
+- **Types** — `TableQueryParams` mirrors the table's `TableQuery`, and `TableViewLike` / `TableViewSnapshot` (from `./table-view`) mirror its view object structurally — so this package carries no dependency on `@urbicon-ui/table`. A parity test in the table package (`tableQuery.parity.test.ts`) pins both mirrors: the snapshot shapes must stay mutually assignable, and the real `TableView` must satisfy `TableViewLike`, which is the entire mechanism by which this binding decorates a view it never imports.
 
 ## Cron Runner (`cron`)
 
@@ -207,13 +207,16 @@ export const POST = async ({ request }) => {
 
 ## Exports
 
-| Subpath         | Contents                                                                                                           |
-| --------------- | ------------------------------------------------------------------------------------------------------------------ |
-| `.`             | Barrel of all modules                                                                                              |
-| `./url.svelte`  | `useUrlParam`, `useUrlArrayParam`, `createUrlParam`, `updateUrlSearchParams`, `createTableQueryUrlSync`, types     |
-| `./table-query` | `tableQueryToSearchParams`, `searchParamsToTableQuery`, `applyTableQueryToSearchParams`, `TableQueryParams`, types |
-| `./cron`        | `createCronRunner`, `CronJob`, `CronRunnerConfig`, `CronRunner`                                                    |
-| `./sse`         | `streamSse`, `SseEvent`, `StreamSseOptions`, `SseRequestError`                                                     |
+| Subpath         | Contents                                                                                                                                           |
+| --------------- | -------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `.`             | Barrel of all modules                                                                                                                              |
+| `./url.svelte`  | `useUrlParam`, `useUrlArrayParam`, `createUrlParam`, `updateUrlSearchParams`, `bindViewToUrl`, types                                               |
+| `./table-view`  | `searchParamsToViewQuery`, `searchParamsToViewSnapshot`, `viewSnapshotToTableQuery`, `searchParamsToViewPartial`, `viewSnapshotToSearchParams`, `viewAxesNamedBy`, `viewAxisKeys`, `TABLE_VIEW_AXES`, `TableViewLike`, types |
+| `./table-query` | `tableQueryToSearchParams`, `searchParamsToTableQuery`, `applyTableQueryToSearchParams`, `TABLE_QUERY_FILTER_OPERATORS`, `TableQueryParams`, types |
+| `./cron`        | `createCronRunner`, `CronJob`, `CronRunnerConfig`, `CronRunner`                                                                                    |
+| `./sse`         | `streamSse`, `SseEvent`, `StreamSseOptions`, `SseRequestError`                                                                                     |
+
+`bindViewToUrl` lives in its own module (`view-binding.svelte.ts`) and is re-exported from `./url.svelte`, which is its documented import path — it has no subpath of its own. `./table-view` and `./table-query` are SvelteKit-free (they touch no `$app/*`), which is what lets a `load` function and a plain test use them; `./url.svelte` is the half that needs the router.
 
 ## Development
 
