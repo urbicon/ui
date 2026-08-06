@@ -83,11 +83,12 @@ describe('bindViewToUrl — init', () => {
     expect(view.sort).toBeNull();
   });
 
-  // Deliberately untested: the `building` guard (prerender reads no query
-  // string). Vitest resolves `$app/environment` into a second module
-  // instance for the production module, so a test-side flag flip never
-  // reaches it — and the guard is the same one-line pattern `useUrlParam`
-  // ships (equally untested there). Verified by reading, not by a test.
+  // The `building` guard (prerender reads no query string) is tested in
+  // `view-binding.ssr.test.ts` — against the server build, where
+  // prerendering actually runs and effects are genuinely absent. (An older
+  // comment here declared it untestable on a second-module-instance theory;
+  // measured false — the alias is one module instance and `__setBuilding`
+  // reaches the production module.)
 
   it('is fail-loud on a second url binding claiming the same axis', () => {
     const view = new TestView();

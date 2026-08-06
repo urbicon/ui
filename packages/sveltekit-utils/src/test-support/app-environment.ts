@@ -1,13 +1,15 @@
-// `$app/environment` alias target — see vitest.config.ts.
+// `$app/environment` alias target for the **client** vitest project — see
+// vitest.config.ts; the server half lives in app-environment.server.ts.
 //
-// NOTE: flipping `building` from a test does NOT reach the production
-// modules — vitest resolves this alias into a second module instance for
-// them (measured; the diagnostic read in the test file saw `true` while
-// `view-binding.svelte` read `false`). The `building` guard therefore stays
-// untested; do not write a test that relies on this flag.
+// One module instance: the production modules resolve `$app/environment`
+// through this same alias, so `__setBuilding(true)` reaches them. (An older
+// NOTE here claimed the opposite — a second module instance per alias — and
+// declared the `building` guard untestable; a re-measurement falsified that.
+// The guard is tested in view-binding.ssr.test.ts, against the server build,
+// where prerendering actually runs.)
 export let building = false;
 
-/** @internal kept for the harness's reset only. */
+/** @internal test-only — flips the prerender flag; the harness resets it. */
 export function __setBuilding(value: boolean): void {
   building = value;
 }

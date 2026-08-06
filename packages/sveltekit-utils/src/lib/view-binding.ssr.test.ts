@@ -14,7 +14,11 @@
  * measured 500-on-every-request-after-the-first for a Node-adapter consumer,
  * and the unbounded leak across disjoint routes.
  */
-import { beforeEach, describe, expect, it } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it } from 'vitest';
+// The relative import resolves to the same file the `$app/environment`
+// alias serves this project — one module instance, so the flip below
+// reaches the production module.
+import { __setBuilding } from '../test-support/app-environment.server';
 import { page, resetMockApp } from '../test-support/app-harness.svelte';
 import { TestView } from '../test-support/test-view.svelte';
 import {
@@ -58,5 +62,36 @@ describe('bindViewToUrl — SSR requests against the module-global writer', () =
     expect(view.search).toBe('ada');
     expect(view.page).toBe(3);
     expect(page.url.search).toBe('?q=ada&page=3');
+  });
+});
+
+describe('bindViewToUrl — prerendering (building)', () => {
+  // Red seen (2026-08-06): with the `building` short-circuit in the init
+  // phase sabotaged (`building ? '' : …` read unconditionally), the trapped
+  // getter threw "prerender read url.search" — proving the guard, not the
+  // absence of a query string, is what keeps prerendering clean.
+  afterEach(() => {
+    __setBuilding(false);
+  });
+
+  it('reads no query string, applies nothing, registers nothing, throws nothing', () => {
+    // SvelteKit forbids touching the URL's query during prerendering — a
+    // throwing `search` getter proves "no read" rather than assuming it.
+    const trapped = new Proxy(new URL('http://localhost/?q=forbidden'), {
+      get(target, prop) {
+        if (prop === 'search') throw new Error('prerender read url.search');
+        return Reflect.get(target, prop, target);
+      }
+    });
+    page._set(trapped as URL);
+    __setBuilding(true);
+
+    const view = new TestView();
+    expect(() => bindViewToUrl(view)).not.toThrow();
+    // Nothing applied: the defaults are the truth for the prerendered HTML.
+    expect(view.snapshot()).toEqual(view.defaults);
+    expect(view.wasInitApplied('search')).toBe(false);
+    // Nothing registered: the writer registry stays untouched while building.
+    expect(__urlWriterLiveKeyCountForTests()).toBe(0);
   });
 });
