@@ -8,6 +8,22 @@ is decided by *bindings you apply to the object*, not by props of the table.
 
 Nothing about columns, cells, selection, virtualization, styling or snippets changed.
 
+## Already on 8.0?
+
+8.1 tightened two things v8 shipped with. Both are quick, both are compiler-caught.
+
+**`source` is always an object.** The bare-array arm is gone: it resolved into exactly the
+same thing as `{ items }`, so "how do I pass rows?" had three correct answers and no rule
+for choosing.
+
+```svelte
+<Table {columns} source={rows} />           <!-- 8.0 -->
+<Table {columns} source={{ items: rows }} /> <!-- 8.1 — or just items={rows} -->
+```
+
+The rule that remains: `items` for rows and nothing else, `source` for rows plus how they
+arrive (loading, error, a server total, a fetch function).
+
 ## The shape of the change
 
 ```svelte
@@ -62,12 +78,12 @@ is a value now, not a convention.
 
 ### Data source
 
-The four `mode`/`queryFn`/`loading`/`error`/`serverTotalItems` combinations became one union,
-in which the invalid combinations are not expressible:
+The `mode`/`queryFn`/`loading`/`error`/`serverTotalItems` combinations became one union of
+three object shapes, in which the invalid combinations are not expressible:
 
 | v7 | v8 |
 | --- | --- |
-| `items={rows}` | `items={rows}` (unchanged) or `source={rows}` |
+| `items={rows}` | `items={rows}` (unchanged) or `source={{ items: rows }}` |
 | `{items}` + `{loading}` + `{error}` in client mode | `source={{ items, loading, error }}` |
 | `mode="server"` + `serverTotalItems` + `{items}` + `{loading}` + `{error}` + `onQueryChange` | `source={{ kind: 'server', items, total, loading, error }}` + `observeView(view, cb)` |
 | `mode="server"` + `queryFn` + `queryDebounceMs` | `source={{ query, debounceMs }}` |
@@ -80,6 +96,12 @@ The managed source (`{ query }`) owns loading and error itself, aborts supersede
 and issues the first fetch immediately, later ones debounced. It has no `loading`/`error`
 fields at all, so the v7 rule "those props are ignored when `queryFn` is set" no longer has
 anything to warn about.
+
+That variant is deliberately the short path and nothing more: the view is the only thing
+that triggers a fetch, and it will stay that way. Re-running the same query (a refresh
+button, polling, resync after a failed optimistic update), caching, deduplication and
+invalidation after a mutation belong to a data layer — bring your own, and hand the table
+its result through `kind: 'server'`, which only asks for rows and a total.
 
 ### Persistence
 

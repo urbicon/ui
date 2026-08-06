@@ -134,6 +134,11 @@ export interface TableSeedState {
 // as an items change.
 const NO_ITEMS: TableItem[] = [];
 
+// The `source`-less fallback (no `source`, no `items`): a table with no rows
+// yet. Hoisted for the same reason as `NO_ITEMS` — a literal here would be a
+// fresh object on every re-evaluation of the derived below.
+const NO_SOURCE: TableSource = { items: NO_ITEMS };
+
 /**
  * Creates the table state by composing independent concerns.
  *
@@ -172,7 +177,7 @@ export function createTableState(
   // string, the items reference, booleans), and Svelte skips propagation
   // when a derived's new value is referentially identical to the old one —
   // so nothing downstream re-runs unless the content actually changed.
-  const resolvedSource = $derived(resolveSource(props?.source?.() ?? NO_ITEMS));
+  const resolvedSource = $derived(resolveSource(props?.source?.() ?? NO_SOURCE));
   const sourceMode = $derived(resolvedSource.mode);
   const sourceItems = $derived(
     resolvedSource.mode === 'server-managed' ? NO_ITEMS : resolvedSource.items

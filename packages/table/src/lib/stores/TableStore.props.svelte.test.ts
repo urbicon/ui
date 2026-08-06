@@ -185,8 +185,8 @@ describe('TableStore — the source union feeds the derived slots', () => {
     value = { kind: 'server', items: ITEMS, total: 12 };
     expect(store.state.serverTotalItems).toBe(12);
 
-    // Back to a plain array: the mode is derived, so it follows.
-    value = ITEMS;
+    // Back to a client source: the mode is derived, so it follows.
+    value = { items: ITEMS };
     expect(store.state.mode).toBe('client');
     expect(store.state.serverTotalItems).toBe(0);
   });
@@ -230,7 +230,7 @@ describe('TableStore — a controlled flag comes from the prop, not from a write
   it('selection stays consumer-owned while the prop is present', () => {
     let present = $state(true);
     const store = createTableState(undefined, undefined, {
-      source: () => ITEMS,
+      source: () => ({ items: ITEMS }),
       selectionMode: () => 'multi',
       selectionControlled: () => present
     });

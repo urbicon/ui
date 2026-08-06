@@ -19,14 +19,20 @@ declare const query: (q: TableQuery, o: { signal: AbortSignal }) => Promise<Tabl
 
 declare function acceptSource<T>(source: TableSource<T>): void;
 
-// ── The four intended shapes all pass ─────────────────────────────────────
-acceptSource(items);
+// ── The three intended shapes all pass ────────────────────────────────────
 acceptSource({ items });
 acceptSource({ items, loading: true, error: null });
 acceptSource({ kind: 'server', items, total: 120 });
 acceptSource({ kind: 'server', items, total: 120, loading: false });
 acceptSource({ query });
 acceptSource({ query, debounceMs: 500 });
+
+// ── #161: the bare-array arm is gone ──────────────────────────────────────
+// It resolved into exactly the same internal shape as `{ items }`, so it was
+// a third spelling of one thing. This probe is what keeps it from creeping
+// back in: re-add `T[]` to the union and this line stops erroring.
+// @ts-expect-error a bare array is no longer a source — use `{ items }`
+acceptSource(items);
 
 // ── Prüfstein 19: the silent mode switch is a type error ──────────────────
 
@@ -69,7 +75,7 @@ interface NaiveClient<T> {
   loading?: boolean;
   error?: string | null;
 }
-type NaiveSource<T> = T[] | NaiveClient<T>;
+type NaiveSource<T> = NaiveClient<T>;
 declare function acceptNaive<T>(source: NaiveSource<T>): void;
 acceptNaive(informativeTotal); // compiles — the silent switch M5 warns about
 

@@ -200,7 +200,9 @@ describe('fetch counter (Prüfstein 12)', () => {
     const results: TableQueryResult[] = [];
     const cleanup = $effect.root(() => {
       const view = createTableView();
-      createManagedFetch(view, () => [{ id: 1 }], { onResult: (r) => results.push(r) });
+      createManagedFetch(view, () => ({ items: [{ id: 1 }] }), {
+        onResult: (r) => results.push(r)
+      });
       flushSync();
       view.page = 2;
       flushSync();
@@ -273,7 +275,7 @@ describe('a live source flip away from managed (the isManaged gate)', () => {
     await flushMicrotasks();
     expect(calls).toHaveLength(1);
 
-    source = [{ id: 1 }]; // the parent flips to a client array mid-flight
+    source = { items: [{ id: 1 }] }; // the parent flips to a client source mid-flight
     flushSync();
     expect(seenSignals[0].aborted).toBe(true); // aborted at the flip, not on supersede
 

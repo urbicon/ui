@@ -258,7 +258,11 @@ export interface TableContext {
  */
 export interface TableProps<T = TableItem> {
   /**
-   * Array of data items to display in the table.
+   * Array of data items to display in the table — the shorthand for
+   * `source={{ items }}`, and the right prop whenever the rows are all you
+   * have to say. Reach for {@link source} once loading, error or a server
+   * total come into it.
+   *
    * Items with an `id` property get better key stability for animations.
    * If no `id` is present, the array index is used as fallback key.
    * @default []
@@ -359,10 +363,10 @@ export interface TableProps<T = TableItem> {
   viewDefaults?: TableViewDefaults;
 
   /**
-   * Where the rows come from. Four shapes, and the invalid combinations of
-   * the old `mode`/`queryFn`/`loading`/`error`/`serverTotalItems` props are
-   * not expressible:
-   * - `T[]` — plain client items ({@link items} is the shorthand)
+   * Where the rows come from — rows *plus how they arrive*. Three shapes, and
+   * the invalid combinations of the old
+   * `mode`/`queryFn`/`loading`/`error`/`serverTotalItems` props are not
+   * expressible:
    * - `{ items, loading?, error? }` — client items you fetch yourself
    * - `{ kind: 'server', items, total, loading?, error? }` — manual server
    *   flow; `kind: 'server'` is mandatory, because server mode hands
@@ -371,7 +375,8 @@ export interface TableProps<T = TableItem> {
    *   `query` when the view changes (first fetch immediate, later ones
    *   debounced), manages loading/error and aborts superseded requests
    *
-   * Wins over {@link items} when both are set.
+   * For rows and nothing else, reach for {@link items} — `source={{ items }}`
+   * says the same thing. `source` wins when both are set.
    *
    * @example Managed server flow
    * ```svelte

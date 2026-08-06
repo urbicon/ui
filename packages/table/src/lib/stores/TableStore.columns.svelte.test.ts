@@ -96,7 +96,7 @@ describe('TableStore — state.items', () => {
   ] as TableItem[];
 
   it('reflects a plain-array source without a tracking context', () => {
-    const store = createTableState(undefined, undefined, { source: () => ITEMS });
+    const store = createTableState(undefined, undefined, { source: () => ({ items: ITEMS }) });
     expect(store.state.items.map((i) => i.name)).toEqual(['Ada', 'Grace']);
   });
 
@@ -112,7 +112,7 @@ describe('TableStore — state.items', () => {
   it('a second writer overrides, a new source re-seeds', () => {
     const cleanup = $effect.root(() => {
       let items = $state<TableItem[]>(ITEMS);
-      const store = createTableState(undefined, undefined, { source: () => items });
+      const store = createTableState(undefined, undefined, { source: () => ({ items }) });
 
       // What useLiveUpdates / setServerResult do.
       store.state.items = [...store.state.items, { id: 3, name: 'Radia' } as TableItem];
@@ -132,7 +132,7 @@ describe('TableStore — state.items', () => {
     // A derivation has no such asymmetry, and the honest reading of "items=[]"
     // is an empty table.
     let items = $state<TableItem[]>(ITEMS);
-    const store = createTableState(undefined, undefined, { source: () => items });
+    const store = createTableState(undefined, undefined, { source: () => ({ items }) });
     expect(store.state.items).toHaveLength(2);
 
     items = [];
@@ -185,7 +185,7 @@ describe('TableStore — state.items', () => {
     const seen: number[] = [];
     const cleanup = $effect.root(() => {
       const store = createTableState(undefined, undefined, {
-        source: () => [{ id: 1, name: 'Ada' }] as TableItem[]
+        source: () => ({ items: [{ id: 1, name: 'Ada' }] as TableItem[] })
       });
       $effect(() => {
         seen.push(store.state.items.length);
@@ -211,7 +211,7 @@ describe('TableStore — state.items', () => {
     // the key-stability fallback. The derived has to run it for the same reason
     // `setItems` did, so the server render keys rows the way the client will.
     const store = createTableState(undefined, undefined, {
-      source: () => [{ name: 'no id' }] as TableItem[]
+      source: () => ({ items: [{ name: 'no id' }] as TableItem[] })
     });
     expect(store.state.items[0].__index).toBe(0);
   });

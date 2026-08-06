@@ -18,8 +18,8 @@ const ITEMS = [
 ];
 
 describe('resolveSource — dispatch', () => {
-  it('a bare array is client mode', () => {
-    expect(resolveSource(ITEMS)).toEqual({
+  it('an items object is client mode, loading/error defaulted', () => {
+    expect(resolveSource({ items: ITEMS })).toEqual({
       mode: 'client',
       items: ITEMS,
       loading: false,

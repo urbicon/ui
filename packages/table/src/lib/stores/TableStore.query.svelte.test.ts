@@ -54,7 +54,7 @@ describe('view — externally applied axes resolve without a tracking context', 
     const store = createTableState(
       linkedView({ sort: { column: 'name', direction: 'asc' } }),
       undefined,
-      { source: () => ITEMS, columns: () => COLUMNS }
+      { source: () => ({ items: ITEMS }), columns: () => COLUMNS }
     );
 
     expect(names(store.paginatedItems)).toEqual(['Ada', 'Barbara', 'Grace']);
@@ -62,7 +62,7 @@ describe('view — externally applied axes resolve without a tracking context', 
 
   it('searches from the linked view', () => {
     const store = createTableState(linkedView({ search: 'ada' }), undefined, {
-      source: () => ITEMS,
+      source: () => ({ items: ITEMS }),
       columns: () => COLUMNS
     });
 
@@ -71,7 +71,7 @@ describe('view — externally applied axes resolve without a tracking context', 
 
   it('pages from the linked view', () => {
     const store = createTableState(linkedView({ page: 2, pageSize: 2 }), undefined, {
-      source: () => ITEMS,
+      source: () => ({ items: ITEMS }),
       columns: () => COLUMNS
     });
 
@@ -85,7 +85,7 @@ describe('view — externally applied axes resolve without a tracking context', 
     const store = createTableState(
       linkedView({ filters: [{ column: 'name', operator: 'contains', value: 'ra' }] as Filter[] }),
       undefined,
-      { source: () => ITEMS, columns: () => COLUMNS }
+      { source: () => ({ items: ITEMS }), columns: () => COLUMNS }
     );
 
     expect(store.state.activeFilters).toHaveLength(1);
@@ -97,7 +97,7 @@ describe('view — externally applied axes resolve without a tracking context', 
     // string changes; the URL binding calls `applyExternal` on the SAME view.
     const view = linkedView({ sort: { column: 'name', direction: 'asc' } });
     const store = createTableState(view, undefined, {
-      source: () => ITEMS,
+      source: () => ({ items: ITEMS }),
       columns: () => COLUMNS
     });
     expect(names(store.paginatedItems)).toEqual(['Ada', 'Barbara', 'Grace']);
@@ -114,7 +114,7 @@ describe('view — externally applied axes resolve without a tracking context', 
     const view = createTableView({ defaults: { sort: { column: 'name', direction: 'asc' } } });
     view.applyExternal({ page: 2 }, 'external');
     const store = createTableState(view, undefined, {
-      source: () => ITEMS,
+      source: () => ({ items: ITEMS }),
       columns: () => COLUMNS
     });
 
@@ -129,7 +129,7 @@ describe('view — externally applied axes resolve without a tracking context', 
     const view = createTableView({ defaults: { sort: { column: 'amount', direction: 'desc' } } });
     view.applyExternal({ sort: null }, 'external');
     const store = createTableState(view, undefined, {
-      source: () => ITEMS,
+      source: () => ({ items: ITEMS }),
       columns: () => COLUMNS
     });
 
@@ -146,7 +146,7 @@ describe('view — the six state axes are pass-throughs onto the view', () => {
   it('state writes land on the view, view writes land on the state', () => {
     const view = createTableView();
     const store = createTableState(view, undefined, {
-      source: () => ITEMS,
+      source: () => ({ items: ITEMS }),
       columns: () => COLUMNS
     });
     expect(store.view).toBe(view);
@@ -184,7 +184,7 @@ describe('view — the six state axes are pass-throughs onto the view', () => {
     const store = createTableState(
       createTableView({ defaults: { sort: { column: 'name', direction: 'desc' } } }),
       undefined,
-      { source: () => ITEMS, columns: () => COLUMNS }
+      { source: () => ({ items: ITEMS }), columns: () => COLUMNS }
     );
 
     store.state.sortColumn = '';
@@ -197,7 +197,7 @@ describe('view — the six state axes are pass-throughs onto the view', () => {
     // normalize it away the same way), so `sortDirection = 'desc'` without an
     // active sort changes nothing instead of storing a dangling direction.
     const store = createTableState(undefined, undefined, {
-      source: () => ITEMS,
+      source: () => ({ items: ITEMS }),
       columns: () => COLUMNS
     });
 
@@ -222,7 +222,7 @@ describe('view — grouping keeps its gate', () => {
     // runtime *discard* — cleaning the URL via a `system` write — is
     // `TableProvider`'s half, not the store's.)
     const store = createTableState(linkedView({ groupBy: 'name' }), undefined, {
-      source: () => ITEMS,
+      source: () => ({ items: ITEMS }),
       columns: () => COLUMNS,
       virtualized: () => true
     });
@@ -233,7 +233,7 @@ describe('view — grouping keeps its gate', () => {
 
   it('and accepted when the table is not virtualized', () => {
     const store = createTableState(linkedView({ groupBy: 'name' }), undefined, {
-      source: () => ITEMS,
+      source: () => ({ items: ITEMS }),
       columns: () => COLUMNS
     });
 
