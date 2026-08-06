@@ -97,8 +97,8 @@ ${scriptClose}
       <code class="text-text-primary">source</code> with a
       <code class="text-text-primary">query</code> function lets the table run the fetch itself. The
       manual shape, tagged <code class="text-text-primary">kind: 'server'</code>, leaves the fetch
-      to your code: <code class="text-text-primary">observeView</code> hands you the query, the source
-      carries the rows back.
+      to your code: <code class="text-text-primary">observeView</code> reports every view change, the
+      source carries the rows back.
     </p>
 
     <p class="text-text-secondary mb-6 text-sm">
@@ -218,17 +218,17 @@ ${scriptClose}
 
   <Section id="manual" title="Fetching It Yourself">
     <p class="text-text-secondary mb-6 text-sm">
-      <code class="text-text-primary">observeView</code> hands you the query and stops there. Your
-      code fetches and sets <code class="text-text-primary">items</code>,
+      <code class="text-text-primary">observeView</code> reports every view change and stops there.
+      Your code fetches and sets <code class="text-text-primary">items</code>,
       <code class="text-text-primary">total</code>,
       <code class="text-text-primary">loading</code> and
       <code class="text-text-primary">error</code> on the source.
     </p>
 
     <p class="text-text-secondary mb-6 text-sm">
-      The <code class="text-text-primary">kind: 'server'</code> tag is mandatory, and that is the
-      point: server mode turns the table's own sorting and filtering off, so it stays a decision you
-      spell out — an object with <code class="text-text-primary">items</code> and
+      The <code class="text-text-primary">kind: 'server'</code> tag is mandatory. Server mode turns
+      the table's own sorting and filtering off, so it stays a decision you spell out — an object
+      with <code class="text-text-primary">items</code> and
       <code class="text-text-primary">total</code> but no tag does not compile.
     </p>
 

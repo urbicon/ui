@@ -104,8 +104,8 @@ export const load = async ({ url }) => {
     <h3 class="text-text-primary mt-8 mb-2 text-sm font-semibold">defaults</h3>
     <p class="text-text-secondary mb-4 text-sm">
       <code class="text-text-primary">defaults</code> is written once and does two jobs: it is the
-      state the table starts in <em>and</em> the baseline the URL elides against. A table sitting in
-      its default state writes no parameters at all, and a reader who clears search and sort gets a
+      state the table starts in <em>and</em> what the URL does not repeat. A table sitting in its
+      default state writes no parameters at all, and a reader who clears search and sort gets a
       clean address back. A table that never needs the object itself can skip it —
       <code class="text-text-primary"
         >{'<Table {items} {columns} viewDefaults={{ pageSize: 25 }} />'}</code
@@ -213,7 +213,7 @@ export const load = async ({ url }) => {
       <Note title="An empty value is a value">
         A URL saying <code>?sort=</code> means "unsorted", <code>?filter=</code> "no filters". The
         markers only appear where the default is not empty — otherwise empty <em>is</em> the default and
-        elides — so a setting the reader cleared stays cleared across a reload.
+        nothing is written — so a setting the reader cleared stays cleared across a reload.
       </Note>
       <Note title="Two URL bindings need distinct prefixes">
         Two bindings claiming the same URL key throw at registration — a programming error, not a
@@ -232,9 +232,9 @@ export const load = async ({ url }) => {
     </p>
 
     <p class="text-text-secondary mb-6 text-sm">
-      <code class="text-text-primary">bindViewToStorage</code> is kit-free — it lives in
-      <code class="text-text-primary">@urbicon-ui/table</code>, because web storage is a browser
-      API, not a SvelteKit one.
+      <code class="text-text-primary">bindViewToStorage</code> lives in
+      <code class="text-text-primary">@urbicon-ui/table</code>, not in the SvelteKit utilities: web
+      storage is a browser API, not a SvelteKit one.
     </p>
 
     <CodeExample title="Two bindings, one view" code={codeStorage} preview={false} />
@@ -268,11 +268,11 @@ export const load = async ({ url }) => {
 
     <h3 class="text-text-primary mb-2 text-sm font-semibold">clear and flush</h3>
     <p class="text-text-secondary mb-6 text-sm">
-      The binding hands back <code class="text-text-primary">{'{ clear, flush }'}</code>:
-      <code class="text-text-primary">clear()</code> is the "reset saved view" button — it empties
-      the entry and leaves the live view alone — and
+      The binding hands back <code class="text-text-primary">{'{ clear, flush }'}</code>.
+      <code class="text-text-primary">clear()</code> is the "reset saved view" button: it empties
+      the entry and leaves the live view alone.
       <code class="text-text-primary">flush()</code> forces a pending write out before a programmatic
-      navigation, since the teardown drops one still inside the debounce window rather than letting an
+      navigation — the teardown drops a write still inside the debounce window rather than letting an
       unmounted table write.
     </p>
 

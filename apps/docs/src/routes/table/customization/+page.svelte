@@ -66,7 +66,7 @@ ${scriptClose}
     <CodeExample
       headingLevel={2}
       title="Custom Empty State"
-      description="Override the default empty state with a branded illustration or call-to-action. The snippet renders into the desktop <tbody>, so it must be table-row markup — on mobile the card list shows the plain noDataText instead, since <tr>/<td> cannot live in a <div>. Same for loadingState and errorState."
+      description="The snippet renders into the desktop `<tbody>`, so it must be table-row markup."
       code={`<Table {items} {columns}>
   {#snippet emptyState()}
     <tr>
@@ -98,10 +98,19 @@ ${scriptClose}
       </Table>
     </CodeExample>
 
+    <p class="text-text-secondary text-sm">
+      On mobile the card list shows the plain <code class="text-text-primary">noDataText</code>
+      instead, since <code class="text-text-primary">&lt;tr&gt;</code> and
+      <code class="text-text-primary">&lt;td&gt;</code> cannot live in a
+      <code class="text-text-primary">&lt;div&gt;</code>.
+      <code class="text-text-primary">loadingState</code> and
+      <code class="text-text-primary">errorState</code> behave the same way.
+    </p>
+
     <CodeExample
       headingLevel={2}
       title="Style Slot Overrides"
-      description="Use slotClasses to add custom classes to specific rendering slots, or unstyled to strip all variant classes for full control."
+      description="Use `slotClasses` to add your own classes to specific rendering slots, or `unstyled` to strip all variant classes."
       code={`<Table
   {items}
   {columns}
@@ -128,18 +137,38 @@ ${scriptClose}
     <CodeExample
       headingLevel={2}
       title="State Persistence"
-      description="Two kinds of state, two channels. The view — search, sort, page, page size, filters, grouping — decides which rows a reader sees; it lives on a view object the consumer owns, and bindViewToStorage gives that object a memory. The preferences — hidden columns, column order, summaries, and opt-in selection — decide how the table looks; they belong to the table and go through prefs. Preferences are the table's, the view is the consumer's: nobody wants to share a link that hides columns at the other end. The two channels write separate entries and only share the key here because one name is easier to remember."
+      description="Two kinds of state, two channels — the view is yours, the preferences are the table's."
       code={codePersistence}
       preview={false}
     />
 
+    <p class="text-text-secondary text-sm">
+      The view — search, sort, page, page size, filters, grouping — decides which rows a reader
+      sees. It lives on a view object you own, and
+      <code class="text-text-primary">bindViewToStorage</code> gives that object a memory. The
+      preferences — hidden columns, column order, summaries, and opt-in selection — decide how the
+      table looks; they belong to the table and travel through
+      <code class="text-text-primary">prefs</code>. The two channels write separate entries and only
+      share the key here because one name is easier to remember.
+    </p>
+
     <CodeExample
       headingLevel={2}
       title="Narrowing What Is Stored"
-      description="axes narrows what is remembered — the default is every setting but the page number. storage takes any Storage object, so sessionStorage scopes the memory to the tab; the preferences channel spells that same choice as its own kind option. Writes are debounced, and bindViewToStorage hands back the two affordances that go with a debounce."
+      description="`axes` narrows what is remembered — the default is every setting but the page number."
       code={codePersistenceScope}
       preview={false}
     />
+
+    <p class="text-text-secondary text-sm">
+      <code class="text-text-primary">storage</code> takes any
+      <code class="text-text-primary">Storage</code> object, so
+      <code class="text-text-primary">sessionStorage</code> scopes the memory to the tab; the
+      preferences channel spells the same choice as its own
+      <code class="text-text-primary">kind</code> option. Writes are debounced, and the binding
+      hands back <code class="text-text-primary">flush</code> and
+      <code class="text-text-primary">clear</code>.
+    </p>
 
     <NoteList variant="flush">
       <Note title="Every view setting except the page number is stored">

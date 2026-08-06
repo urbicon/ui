@@ -135,7 +135,7 @@ ${scriptClose}
       The table owns the selection until you pass
       <code class="text-text-primary">selectedIds</code> — then your code does. Take it over when
       the set has a life outside the table: preselected from the URL, cleared after a bulk action,
-      shared with another view. For only a starting value,
+      shared with another view. If all you need is a starting value,
       <code class="text-text-primary">initialSelectedIds</code> seeds the table-owned selection once;
       later changes to the prop are ignored.
     </p>

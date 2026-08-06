@@ -15,9 +15,9 @@
 
   // ── External-search demo ───────────────────────────────────────────────────
   //
-  // The view belongs to this page, so the search axis is ours to write. Writing
-  // an axis does not subscribe this effect to it — only `term` decides when it
-  // runs — so the table's own search field keeps working alongside.
+  // The view belongs to this page, so the search setting is ours to write.
+  // Writing a setting does not subscribe this effect to it — only `term` decides
+  // when it runs — so the table's own search field keeps working alongside.
   const view = createTableView({ defaults: { pageSize: 6 } });
   let term = $state('');
 
@@ -168,8 +168,8 @@
   const view = createTableView({ defaults: { pageSize: 6 } });
   let term = $state('');
 
-  // Outside → view. Writing an axis never subscribes the effect to it, so the
-  // table's own search field keeps working alongside this one.
+  // Outside → view. Writing a setting never subscribes the effect to it, so
+  // the table's own search field keeps working alongside this one.
   $effect(() => {
     view.search = term;
     view.page = 1; // a direct field write does not reset the page
@@ -466,7 +466,7 @@ ${scriptClose}
 
       <CodeExample
         title="External Search Field"
-        description="One view, two writers: the input pushes into view.search, the table's own search field writes the same setting, and the readout reads it straight back."
+        description="One view, two writers: the input pushes into `view.search`, the table's own search field writes the same setting, and the readout reads it straight back."
         code={codeExternalSearch}
       >
         <div class="space-y-4">
