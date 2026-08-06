@@ -56,6 +56,9 @@ describe('Table — server render', () => {
   });
 
   it('honours viewDefaults.pageSize on the server, so page one is not the whole set', () => {
+    // Positive control (red seen): `resolveViewProp` dropping its
+    // `viewDefaults` argument → 3 tests red (this one, the mounted twin in
+    // Table.render.svelte.test.ts, and the unit case in view.svelte.test.ts).
     const many = Array.from({ length: 25 }, (_, i) => ({
       id: i,
       name: `Person ${i}`,
@@ -85,6 +88,10 @@ describe('Table — server render of a shared link', () => {
   // `stores/TableStore.viewwiring.svelte.test.ts`; it cannot live here
   // because a `svelte/server` render needs the node environment, where
   // `$effect.root` does not run.
+  //
+  // Positive control (red seen): `applyExternal` cut to a no-op → 8 tests
+  // red — all four cases below, the virtualized-grouping control, and three
+  // in view.ssr.test.ts. The link's application path IS the measurement.
 
   // Constructing a view outside a component warns on the server (module-scope
   // views are cross-request state) — correct in production, noise here.

@@ -78,6 +78,9 @@ describe('bindViewToUrl — init', () => {
   });
 
   it('treats `?sort=` as explicitly unsorted against a sorting default', () => {
+    // Positive control (red seen): the parser treating the empty `sort=`
+    // marker as an absent param → 2 tests red (this one and the snapshot
+    // resolution in table-view.test.ts).
     resetMockApp('?sort=');
     const view = new TestView({ sort: { column: 'date', direction: 'desc' } });
     inRoot(() => bindViewToUrl(view));
@@ -127,6 +130,25 @@ describe('bindViewToUrl — view to URL', () => {
     expect(sp.get('q')).toBe('ada');
     expect(sp.get('page')).toBe('3');
     expect(sp.get('size')).toBeNull(); // equals default 25 → elided
+  });
+
+  it('the default debounce is 300ms — pinned at the boundary', async () => {
+    // Prüfstein 22 names the value, so the value is the assertion: without a
+    // `debounceMs` option, 299ms of silence must not navigate and the 300th
+    // millisecond must. Every other test here passes the knob explicitly, so
+    // only this boundary notices the default itself drifting — measured: with
+    // the default changed to 0 the whole suite stayed green until this test
+    // existed. Positive control (red seen): default `?? 0` → this test red.
+    // (The knob itself is measured too: hard-coding 300 over the option went
+    // red in 4 tests that bind with 100/400.)
+    const view = new TestView();
+    inRoot(() => bindViewToUrl(view));
+    view.search = 'ada';
+    flushSync();
+    await advance(299);
+    expect(navigationLog.gotoCount).toBe(0);
+    await advance(1);
+    expect(navigationLog.gotoCount).toBe(1);
   });
 
   it('coalesces edits inside the debounce window into one navigation with the last state', async () => {
@@ -222,6 +244,11 @@ describe('bindViewToUrl — view to URL', () => {
 
 describe('bindViewToUrl — URL to view', () => {
   it('back button: a bound axis whose param disappears returns to the default', async () => {
+    // Positive control (red seen): the runtime effect applying only the axes
+    // the URL names (instead of a full snapshot with defaults for the
+    // missing ones) → 4 tests red — this one, the A5 foreign-navigation
+    // case below, the two-bindings back test, and the prefix suite's
+    // foreign-landing test.
     const view = new TestView();
     inRoot(() => bindViewToUrl(view, { replaceState: false, debounceMs: 100 }));
     view.search = 'a';

@@ -57,6 +57,10 @@ const seedStorage = (value: Record<string, unknown>) => {
 };
 
 describe('origin discrimination through the binding (§7.1, candidate 1)', () => {
+  // Positive control (red seen): the write effect's origin gate widened to
+  // also store `external` applications → 4 tests red (the coalescing case,
+  // the same-axis last-writer case, "defaults and external hydration alone
+  // never write storage", and the viewwiring back-to-bare-URL test).
   it('a user edit and an external apply on DIFFERENT axes coalesce into one flush without mixing origins', () => {
     // Observer with the same dependencies as the storage effect — proves the
     // "one run for both writes" half directly instead of inferring it from
@@ -92,6 +96,9 @@ describe('origin discrimination through the binding (§7.1, candidate 1)', () =>
   });
 
   it('an echo on the SAME axis in the same flush is a no-op and cannot re-label the user edit', () => {
+    // Positive control (red seen): the filters branch of `axisEqual` reduced
+    // to reference equality → 3 tests red (this one plus the two structural
+    // echo cases in view.svelte.test.ts).
     const cleanup = $effect.root(() => {
       const view = createTableView();
       bindViewToStorage(view, { key: 'bind', storage, debounceMs: 100 });
@@ -157,6 +164,9 @@ describe('origin discrimination through the binding (§7.1, candidate 1)', () =>
   });
 
   it('defaults and external hydration alone never write storage', () => {
+    // This is the seed-resync delta of Prüfstein 21: v7 wrote resolved seeds
+    // back into storage, v8 writes only reader changes. Red seen under the
+    // widened origin gate above — the delta is measured, not asserted.
     const cleanup = $effect.root(() => {
       const view = createTableView({ defaults: { pageSize: 25 } });
       bindViewToStorage(view, { key: 'bind', storage, debounceMs: 100 });
@@ -172,6 +182,9 @@ describe('origin discrimination through the binding (§7.1, candidate 1)', () =>
 });
 
 describe('M4 — the resurrection guard for consumer-driven axes', () => {
+  // Positive control (red seen): the `axes` option ignored (all six axes
+  // bound regardless) → 2 tests red (this one and the STORAGE_DEFAULT_AXES
+  // behaviour test below).
   it('an axis excluded from the storage binding is never written', () => {
     const cleanup = $effect.root(() => {
       const view = createTableView();
@@ -309,6 +322,12 @@ describe('phase contract — defaults → init application → storage (post-hyd
 });
 
 describe('a foreign link stores nothing (wiring combination 3, storage half)', () => {
+  // Positive control (red seen): `writePending` writing every bound axis
+  // instead of only the pending set → 10 tests red, this one included. The
+  // widened-origin-gate sabotage does NOT redden this test — the revision
+  // baseline taken at bind time is a second, independent line of defence for
+  // the init-applied axis — so the write *shape* is the sabotage that
+  // measures it.
   it('an init-applied search is not persisted; the reader’s own filter is', () => {
     const cleanup = $effect.root(() => {
       const view = createTableView();
@@ -365,6 +384,29 @@ describe('the storage-only wiring combinations (§7.2)', () => {
 });
 
 describe('write mechanics', () => {
+  it('the default debounce is 500ms — pinned at the boundary', () => {
+    // Prüfstein 22 names the value, so the value is the assertion: without a
+    // `debounceMs` option, 499ms of silence must not write and the 500th
+    // millisecond must. Every other timed test here passes the knob
+    // explicitly, so only this boundary notices the default itself drifting —
+    // measured: with the default changed to 0 both storage suites stayed
+    // green until this test existed. Positive control (red seen): default
+    // `?? 0` → this test red. (The knob itself is measured too: hard-coding
+    // 500 over the option went red in 11 tests that bind with 100/300.)
+    const cleanup = $effect.root(() => {
+      const view = createTableView();
+      bindViewToStorage(view, { key: 'bind', storage });
+      flushSync();
+      view.search = 'ada';
+      flushSync();
+    });
+    vi.advanceTimersByTime(499);
+    expect(storedView()).toBeNull();
+    vi.advanceTimersByTime(1);
+    expect(storedView()).toEqual({ search: 'ada' });
+    cleanup();
+  });
+
   it('two edits inside the debounce window produce ONE write carrying the last value', () => {
     let sets = 0;
     const counting = {
@@ -433,6 +475,10 @@ describe('write mechanics', () => {
 });
 
 describe('shape validation on read — malformed reads as “nothing stored”', () => {
+  // Positive control (red seen): the `search` case of `validateAxisValue`
+  // returning the raw value unchecked → the garbage test below red (the
+  // stored 42 reached the view). One removed check stands in for the set —
+  // every axis case follows the same validate-or-undefined pattern.
   it('per-axis garbage is not applied; valid filter elements survive; other axes stay untouched', () => {
     seedStorage({
       search: 42,
@@ -522,14 +568,30 @@ describe('shape validation on read — malformed reads as “nothing stored”',
     cleanup();
   });
 
-  it('a stored root that is not a plain object counts as nothing stored', () => {
+  it('a stored root that is not a plain object counts as nothing stored — and cannot eat the next write', () => {
     storage.setItem(KEY, JSON.stringify([{ search: 'x' }]));
     const cleanup = $effect.root(() => {
       const view = createTableView();
       bindViewToStorage(view, { key: 'bind', storage, debounceMs: 100 });
       flushSync();
+      // The read half is safe by construction — a JSON array can never carry
+      // axis keys, so `axis in stored` yields nothing even without the root
+      // check (measured: removing `!Array.isArray` from the construction read
+      // left this assertion green). The root check that IS load-bearing sits
+      // in the write path, pinned below.
       expect(view.search).toBe('');
+
+      // The write half: merging into an array root would set named props on
+      // the array, which JSON.stringify silently drops — the reader's edit
+      // would vanish. The write-side root check replaces the corrupt root.
+      // Positive control (red seen): `!Array.isArray` removed from the
+      // writePending read-back → the stored entry stayed the array and the
+      // final assertion failed.
+      view.search = 'ada';
+      flushSync();
     });
+    vi.advanceTimersByTime(150);
+    expect(storedView()).toEqual({ search: 'ada' });
     cleanup();
   });
 

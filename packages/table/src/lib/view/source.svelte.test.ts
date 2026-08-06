@@ -47,6 +47,9 @@ describe('resolveSource — dispatch', () => {
   });
 
   it('a query function is managed server mode, with the debounce defaulted', () => {
+    // Positive control (red seen): the resolver default changed to `?? 50`
+    // → exactly this test red — the one pin on the managed-fetch default
+    // (Prüfstein 22); the fetch tests all pass `debounceMs` explicitly.
     const query = async (): Promise<TableQueryResult> => ({ items: [], totalItems: 0 });
     const resolved = resolveSource({ query });
     expect(resolved.mode).toBe('server-managed');

@@ -52,6 +52,17 @@ function makeCountingQuery() {
 }
 
 describe('fetch counter (Prüfstein 12)', () => {
+  // Positive controls (red seen), one sabotage per guarantee:
+  // - `initialDone` seeded true (first fetch debounced instead of immediate)
+  //   → 11 tests red across the file;
+  // - the supersede abort removed from `execute` → the abort test red;
+  // - the debounce reset (`clearTimeout`) removed from the fetch effect →
+  //   the coalescing test red;
+  // - echo-freedom is DOUBLY carried: cutting only the structural filters
+  //   guard in `axisEqual` left the echo test green (the structural
+  //   `viewKey` held), cutting only `viewKey` to identity leaves the guard
+  //   holding — red required both cut at once. Two independent lines, both
+  //   measured.
   it('fires exactly once at init, immediately (delay 0)', async () => {
     const { calls, query } = makeCountingQuery();
     const results: TableQueryResult[] = [];
@@ -353,6 +364,11 @@ describe('the sink contract', () => {
 });
 
 describe('observeView (Prüfstein 13)', () => {
+  // Positive controls (red seen): the initial synchronous emission removed →
+  // 2 tests red (this one and the teardown test's baseline); the debounce
+  // replaced with a synchronous callback → the same 2 red, at the debounce
+  // assertions. Echo-freedom rides the write surface's structural guard,
+  // measured at view.svelte.test.ts.
   it('fires synchronously once on registration, then debounced per change, echo-free', async () => {
     const seen: TableViewSnapshot[] = [];
     const cleanup = $effect.root(() => {
@@ -374,6 +390,32 @@ describe('observeView (Prüfstein 13)', () => {
       vi.advanceTimersByTime(400);
     });
 
+    expect(seen).toHaveLength(2);
+    cleanup();
+  });
+
+  it('the default debounce is 300ms — pinned at the boundary', () => {
+    // Prüfstein 22 names the value, so the value is the assertion: without a
+    // `debounceMs` option, 299ms of silence must not call and the 300th
+    // millisecond must. The suite's other observeView tests pass the knob
+    // explicitly, so only this boundary notices the default itself drifting —
+    // measured: with the default changed to 50 the suite stayed green until
+    // this test existed. Positive control (red seen): default `?? 50` → this
+    // test red. (The managed-fetch debounce knob and default are pinned
+    // separately: hard-coding 300 over `resolved.debounceMs` went red in the
+    // two 100ms tests here, and the source-level `?? 300` default is pinned
+    // by source.svelte.test.ts.)
+    const seen: TableViewSnapshot[] = [];
+    const cleanup = $effect.root(() => {
+      const view = createTableView();
+      observeView(view, (s) => seen.push(s));
+      flushSync();
+      view.search = 'ada';
+      flushSync();
+      vi.advanceTimersByTime(299);
+      expect(seen).toHaveLength(1); // still only the initial emission
+      vi.advanceTimersByTime(1);
+    });
     expect(seen).toHaveLength(2);
     cleanup();
   });

@@ -44,6 +44,12 @@ describe('construction — defaults resolution', () => {
 });
 
 describe('echo suppression at the write surface', () => {
+  // Positive control (red seen): the filters branch of `axisEqual` reduced
+  // to reference equality → 3 tests red (the two structural cases here plus
+  // the same-flush echo in storage-binding.svelte.test.ts). Note for the
+  // fetch layer: its echo test stays green under that single cut — the
+  // structural `viewKey` is a second line — and goes red only with both cut,
+  // documented at the fetch suite.
   it('Object.is protects the primitive axes: same-value writes do not notify', () => {
     let runs = 0;
     const cleanup = $effect.root(() => {
@@ -399,6 +405,10 @@ describe('markInitApplied — init application is a historical fact', () => {
 });
 
 describe('resolveViewProp — the viewDefaults shorthand (M7)', () => {
+  // Positive controls (red seen), one per half of Prüfstein 9:
+  // `resolveViewProp` dropping its defaults argument → 3 tests red (the
+  // one-liner case here, Table.render, Table.ssr); the zero-config default
+  // itself changed (pageSize 10 → 12) → the zero-config test below red.
   it('viewDefaults alone builds an internal view with those defaults', () => {
     const view = resolveViewProp(undefined, { pageSize: 25 });
     expect(view.pageSize).toBe(25);
@@ -423,6 +433,10 @@ describe('resolveViewProp — the viewDefaults shorthand (M7)', () => {
 });
 
 describe('onReady contract (Prüfstein 20)', () => {
+  // Positive controls (red seen), one per liveness half: the `search` getter
+  // returning construction-time state → 5 tests red including both below
+  // (the held reference read stale values); `$state` removed from `#search`
+  // → the effect-reactivity test below red (values stayed correct but dead).
   it('a held state-bag reference with getter pass-throughs onto the view stays live', () => {
     const cleanup = $effect.root(() => {
       const view = createTableView();

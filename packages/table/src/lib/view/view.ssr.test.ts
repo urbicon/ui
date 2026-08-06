@@ -20,6 +20,9 @@ import { createTableView } from './view.svelte';
  */
 
 describe('SSR renders the applied view (Prüfstein 1, unit scale)', () => {
+  // Positive control (red seen): `applyExternal` cut to a no-op → 3 tests
+  // red in this file (the two init-application cases and the first
+  // request-isolation probe) plus 5 in Table.ssr.test.ts.
   it('an init-applied sort/search/page reaches the server HTML synchronously', () => {
     const { body } = render(ViewSsrHarness, {
       props: {
@@ -42,6 +45,9 @@ describe('SSR renders the applied view (Prüfstein 1, unit scale)', () => {
   });
 
   it('“empty is a value”: an init-applied null sort renders unsorted even against a default sort', () => {
+    // Positive control (red seen): `applyExternal` skipping `null` values —
+    // treating null as absence, the exact confusion Prüfstein 3 bans — →
+    // exactly this test red.
     const { body } = render(ViewSsrHarness, {
       props: {
         defaults: { sort: { column: 'date', direction: 'desc' } },
