@@ -38,6 +38,7 @@
     "dist",
     "!dist/**/*.test.*",
     "!dist/**/*.spec.*",
+    "!dist/**/*.typecheck.*",
     "!dist/**/__fixtures__/**"
   ],
   "types": "./dist/index.d.ts",

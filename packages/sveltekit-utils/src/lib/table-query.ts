@@ -76,9 +76,13 @@ export interface TableQueryParams {
  * Baseline used for default elision: query values equal to these defaults are
  * omitted from the URL, and missing params parse back to them.
  *
- * Set the defaults to the view's defaults (`createTableView({ defaults })`,
- * projected into the wire shape). Unset fields fall back to the table's own
- * defaults (page 1, 10 items per page, no sort, empty search, ungrouped).
+ * A **wire-codec** baseline in the query shape — when your defaults live on a
+ * view object (`createTableView({ defaults })`), skip the manual projection
+ * and use `searchParamsToViewQuery` from `./table-view`, which takes the view
+ * itself. Unset fields fall back to the table's own defaults (page 1, 10
+ * items per page, no sort, empty search, ungrouped). Filters have no default
+ * field: active filters are always written, an absent `filter` param parses
+ * to none.
  */
 export interface TableQueryDefaults {
   /** Default page. @default 1 */
@@ -259,8 +263,11 @@ export function tableQueryToSearchParams(
  * unknown `dir` becomes `'asc'`, and malformed `filter` entries (wrong shape,
  * unknown operator, broken percent-encoding) are skipped individually.
  *
- * Works anywhere a `URLSearchParams` exists — including `url.searchParams`
- * in a server `load`, to run the initial server-mode fetch during SSR.
+ * The wire-level codec, for consumers who hold their defaults in the query
+ * shape. For the SSR load path of a v8 view — running the initial fetch in a
+ * server `load` from `url.searchParams` — prefer `searchParamsToViewQuery`
+ * from `./table-view`: same keys, but it reads the defaults off the view
+ * object instead of a hand-projected baseline.
  *
  * @param params - Search params to read (not mutated).
  * @param options - Fallback defaults + key prefix.

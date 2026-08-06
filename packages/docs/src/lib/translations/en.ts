@@ -18,7 +18,6 @@ export default {
   requiredCount: '{{count}} required',
   filterProperties: 'Filter properties…',
   noMatchingProperties: 'No matching properties',
-  loadingProperties: 'Loading properties…',
   badgeVariant: 'variant',
   badgeInherited: 'inherited',
   badgeRequired: 'required',

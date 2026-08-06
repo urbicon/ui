@@ -29,15 +29,6 @@ import { useSorting } from './concerns/useSorting.svelte.js';
 import { useSummary } from './concerns/useSummary.svelte.js';
 
 /**
- * Table context key (deprecated — kept for backwards compatibility).
- * Prefer `setTableContext()`/`getTableContext()` directly; the value is
- * no longer used internally now that the context goes through
- * `createContext<T>()`.
- * @deprecated Use `setTableContext`/`getTableContext` instead.
- */
-export const TABLE_CONTEXT_KEY = 'table';
-
-/**
  * Column summary configuration.
  * Defines which column to aggregate and how.
  */

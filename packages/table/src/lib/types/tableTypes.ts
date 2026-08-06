@@ -309,7 +309,9 @@ export interface TableQuery {
 }
 
 /**
- * Result returned by `queryFn` in server mode.
+ * Result a server source resolves with — the return shape of `source.query`
+ * (managed flow), and the shape `setServerResult` accepts in the manual
+ * `kind: 'server'` flow.
  */
 export interface TableQueryResult {
   /** Items for the current page/query */

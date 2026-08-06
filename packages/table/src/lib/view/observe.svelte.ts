@@ -18,7 +18,7 @@ import type { TableQuery, TableQueryResult } from '$lib/types/tableTypes';
 import { resolveSource, type TableSource } from './source';
 import type { TableView, TableViewSnapshot } from './view.svelte';
 
-/** Project a view snapshot into the `TableQuery` shape `queryFn` receives. */
+/** Project a view snapshot into the `TableQuery` shape `source.query` receives. */
 export function viewToQuery(snapshot: TableViewSnapshot): TableQuery {
   return {
     page: snapshot.page,
@@ -27,8 +27,9 @@ export function viewToQuery(snapshot: TableViewSnapshot): TableQuery {
     sortDirection: snapshot.sort?.direction ?? 'asc',
     searchTerm: snapshot.search,
     // A defensive copy, like v7's hand-projected query: the query object
-    // leaves the table (queryFn, observers) — a consumer mutating it must
-    // not mutate the view's live filter state through the shared reference.
+    // leaves the table (`source.query`, observers) — a consumer mutating it
+    // must not mutate the view's live filter state through the shared
+    // reference.
     activeFilters: [...snapshot.filters],
     groupByKey: snapshot.groupBy
   };
