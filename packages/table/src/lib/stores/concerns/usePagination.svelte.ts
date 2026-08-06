@@ -31,10 +31,10 @@ export function usePagination(
    * The page actually rendered: `view.page` clamped into range.
    *
    * `view.page` is written by pagination, search, filtering and grouping —
-   * none of which can know whether
-   * the page still exists after `itemsPerPage` or the item count changed. Before
-   * 2026-08 the reset rode along inside `setPageSize` (which set
-   * `currentPage = 1` as a side effect), so raising a rows-per-page control from
+   * none of which can know whether the page still exists after the page size
+   * or the item count changed. Before 2026-08 the reset rode along inside
+   * `setPageSize` (which reset the page as a side effect), so raising a
+   * rows-per-page control from
    * 3 to 20 while on page 5 left the page at 5 against a single page —
    * `slice(80, 100)` on 100 rows, an empty body with the data right there, and a
    * pager reading "5 / 1".

@@ -11,7 +11,7 @@
   const tt = useTableI18n();
 
   const tableContext = getTableContext();
-  const { state: tableState, view: tableView, setGroupBy } = tableContext;
+  const { state: tableState, setGroupBy } = tableContext;
 
   const entries = $derived(
     buildGroupingEntries(

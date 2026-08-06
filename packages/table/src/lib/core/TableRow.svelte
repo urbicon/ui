@@ -20,7 +20,7 @@
   const tt = useTableI18n();
 
   const tableContext = getInternalTableContext();
-  const { state: tableState, view: tableView, toggleExpand, isItemExpanded } = tableContext;
+  const { state: tableState, toggleExpand, isItemExpanded } = tableContext;
   const styleConfig = getTableStyleConfig();
 
   let selectable = $derived(tableState.selectionMode !== 'none');

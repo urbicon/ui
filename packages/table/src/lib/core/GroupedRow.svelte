@@ -57,13 +57,7 @@
 
   // Table context
   const tableContext = getInternalTableContext();
-  const {
-    state: tableState,
-    view: tableView,
-    toggleGroup,
-    toggleExpand,
-    isItemExpanded
-  } = tableContext;
+  const { state: tableState, toggleGroup, toggleExpand, isItemExpanded } = tableContext;
 
   // Reactive computations
   const computedTestId = $derived.by(() => {

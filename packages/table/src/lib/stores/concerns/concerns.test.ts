@@ -51,9 +51,9 @@ function fakeView(overrides: Partial<TableViewSnapshot> = {}): TableView {
 // These tests validate the concern API contracts.
 
 describe('useSearch', () => {
-  // Search concern mutates state.searchTerm and state.currentPage.
-  // Since $state requires Svelte runtime, we test the contract:
-  // setSearch(term) should update searchTerm and reset page.
+  // The concern writes `view.search` and `view.page`. Since $state needs the
+  // Svelte runtime, we test the contract: setSearch(term) updates the term
+  // and resets the page.
 
   it('contract: setSearch updates term and resets page', () => {
     const view = fakeView({ page: 5 });

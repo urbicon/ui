@@ -23,9 +23,10 @@ import type { TableSlotClasses } from '../table-style-context';
  * (since v8): wiring and lifecycle members — column set/order/visibility
  * plumbing, focus internals, the managed-fetch sink, preference persistence —
  * are not part of the contract. Prefer the action methods here over writing
- * the equivalent `state` fields directly: the methods enforce the interaction
- * side effects (a new search, filter or grouping resets to page 1; a summary
- * mutation keeps the summary row's visibility consistent).
+ * the matching `view` axis directly: the methods enforce the interaction side
+ * effects (a new search, filter or grouping resets to page 1; a summary
+ * mutation keeps the summary row's visibility consistent). A bare
+ * `view.search = 'x'` is legitimate — it just changes only the search.
  */
 export interface TableContext {
   /**
@@ -83,6 +84,10 @@ export interface TableContext {
    * that slipped through would render every row). Same distinction as
    * {@link effectivePage}: read `view.groupBy` for what the reader asked
    * for, this for what they are looking at.
+   *
+   * This is the address to use. `state.effectiveGroupBy` holds the same
+   * value — it is the channel the store's concerns share it through, and the
+   * gate lives there so it cannot be applied twice.
    */
   readonly effectiveGroupBy: string | null;
 

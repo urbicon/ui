@@ -81,6 +81,55 @@ describe('construction — defaults resolution', () => {
   });
 });
 
+describe('degenerate spellings of "off" collapse on every write path (#166 review)', () => {
+  // Both composite axes have a second way to say `null` that the type admits
+  // and nothing downstream recognises. `groupBy: ''` was normalised in the
+  // field setter since v8; `sort` with an empty column was normalised inside
+  // the store's `sortColumn` setter, which the #166 cut removed — so
+  // `setSort({ column: '', direction })` started leaving a sort naming no
+  // column, `SortMenu` reported "sorted" over a table rendering unsorted, and
+  // `assertValidViewSnapshot` threw when that view reached the URL codec.
+  //
+  // Positive control: remove either branch from `normaliseAxis` and the
+  // matching pair below goes red.
+  it('a sort with an empty column is unsorted, whichever path writes it', () => {
+    const view = createTableView();
+
+    view.sort = { column: '', direction: 'desc' };
+    expect(view.sort).toBeNull();
+
+    view.applyExternal({ sort: { column: '', direction: 'asc' } }, 'external');
+    expect(view.sort).toBeNull();
+
+    expect(
+      createTableView({ defaults: { sort: { column: '', direction: 'asc' } } }).sort
+    ).toBeNull();
+  });
+
+  it("groupBy '' is ungrouped, whichever path writes it", () => {
+    const view = createTableView();
+
+    view.groupBy = '';
+    expect(view.groupBy).toBeNull();
+
+    view.applyExternal({ groupBy: '' }, 'external');
+    expect(view.groupBy).toBeNull();
+
+    expect(createTableView({ defaults: { groupBy: '' } }).groupBy).toBeNull();
+  });
+
+  it('normalising happens before the echo guard, so it is not a change', () => {
+    // An already-unsorted view written with the degenerate spelling must not
+    // count as an edit — otherwise it bumps the revision and a storage
+    // binding persists a no-op as the reader's wish.
+    const view = createTableView();
+    const before = view.originOf('sort').revision;
+
+    view.sort = { column: '', direction: 'desc' };
+    expect(view.originOf('sort').revision).toBe(before);
+  });
+});
+
 describe('snapshot() is a snapshot — the composite axes are copied (#162)', () => {
   // The copy used to live in `viewToQuery`, so it only protected consumers who
   // went through that projection; `observeView(view, cb)` handed the callback

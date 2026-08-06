@@ -88,6 +88,19 @@ function axisEqual(axis: ViewAxis, a: unknown, b: unknown): boolean {
 }
 
 /**
+ * Collapse an axis' degenerate spellings onto the single one the rest of the
+ * library recognises. See the call site in {@link TableView.#write}.
+ */
+function normaliseAxis(axis: ViewAxis, value: unknown): unknown {
+  if (axis === 'groupBy') return (value as string | null) || null;
+  if (axis === 'sort') {
+    const sort = value as ViewSort | null;
+    return sort && sort.column ? sort : null;
+  }
+  return value;
+}
+
+/**
  * Detects whether we are inside component initialisation. `hasContext` is the
  * one public API that throws (`lifecycle_outside_component`) outside of it —
  * on the server and in module scope alike.
@@ -177,7 +190,7 @@ export class TableView {
     // line — and with it what does and does not reach the URL.
     this.defaults = {
       search: defaults.search ?? '',
-      sort: defaults.sort ? { ...defaults.sort } : null,
+      sort: defaults.sort?.column ? { ...defaults.sort } : null,
       page: defaults.page ?? 1,
       pageSize: defaults.pageSize ?? 10,
       filters: defaults.filters ? [...defaults.filters] : [],
@@ -243,10 +256,8 @@ export class TableView {
     return this.#groupBy;
   }
   set groupBy(value: string | null) {
-    // `|| null`: same normalisation as the constructor — `null` stays the
-    // single spelling of "ungrouped", so a consumer's `''` never reaches
-    // serialization or storage as a distinct third state.
-    this.#write('groupBy', value || null, 'user');
+    // `''` collapses to `null` in `#write`, for this path and every other.
+    this.#write('groupBy', value, 'user');
   }
 
   // ── The binding/system write surface ────────────────────────────────────
@@ -265,7 +276,18 @@ export class TableView {
     }
   }
 
-  #write(axis: ViewAxis, value: unknown, origin: ViewOrigin): void {
+  #write(axis: ViewAxis, raw: unknown, origin: ViewOrigin): void {
+    // Normalise BEFORE the echo guard, and on every write path — a field
+    // setter, `applyExternal`, a binding. Both composite axes have a
+    // degenerate spelling of "off" that the type admits and the meaning does
+    // not: `groupBy: ''` and a sort naming no column. Left alone they are a
+    // second way to say `null` that nothing downstream recognises —
+    // `SortMenu` reports "sorted" over a table rendering unsorted, and
+    // `assertValidViewSnapshot` throws when the same view reaches the URL
+    // codec. Normalising here is what the `sort` half was missing (#166
+    // review): until v9 it happened inside the store's `sortColumn` setter,
+    // which this cut removed.
+    const value = normaliseAxis(axis, raw);
     // `untrack` around the read is what makes writing an axis from inside an
     // `$effect` safe. Without it the echo guard's own read subscribes the
     // effect to the axis it writes, so the obvious way to drive the search

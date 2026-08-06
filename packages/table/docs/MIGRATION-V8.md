@@ -131,7 +131,7 @@ getters onto the very same view. `context.view` is the one address now:
 | `ctx.state.itemsPerPage` | `ctx.view.pageSize` |
 | `ctx.state.activeFilters` | `ctx.view.filters` |
 | `ctx.state.sortColumn` + `.sortDirection` | `ctx.view.sort` — `{ column, direction }` or `null` |
-| `ctx.state.groupByKey` | `ctx.view.groupBy`, or `ctx.effectiveGroupBy` — see below |
+| `ctx.state.groupByKey` | **`ctx.effectiveGroupBy`** — the drop-in; `ctx.view.groupBy` is the *requested* one, see below |
 | `ctx.totalItems` | `ctx.total` |
 | `ctx.setSearchTerm(t)` | `ctx.setSearch(t)` |
 | `ctx.setItemsPerPage(n)` | `ctx.setPageSize(n)` |

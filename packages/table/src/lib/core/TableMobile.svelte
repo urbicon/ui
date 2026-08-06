@@ -21,7 +21,7 @@
   } = $props();
 
   const tableContext = getInternalTableContext();
-  const { state: tableState, view: tableView, groupedSummaryData } = tableContext;
+  const { state: tableState, groupedSummaryData } = tableContext;
   const filteredItems = $derived(tableContext.filteredItems);
   const paginatedItems = $derived(tableContext.paginatedItems);
   const grouped = $derived(tableContext.grouped);

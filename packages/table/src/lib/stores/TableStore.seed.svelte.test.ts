@@ -48,8 +48,7 @@ describe('view defaults: sort', () => {
   it('seeds sort state at construction — indicator source and first query contain it', () => {
     const ts = seeded({ sort: { column: 'age', direction: 'desc' } });
 
-    // `state.sortColumn`/`state.sortDirection` are what TableHead's active
-    // indicator and SortMenu read.
+    // `view.sort` is what TableHead's active indicator and SortMenu read.
     expect(ts.view.sort).toEqual({ column: 'age', direction: 'desc' });
 
     // The snapshot — what the managed fetch hands `source.query`, and what

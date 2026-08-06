@@ -56,15 +56,20 @@ export function useGrouping(state: TableState, view: TableView, getSortedItems: 
   });
 
   function setGroupBy(key: string | null) {
-    // One gate for every path into grouping (header menu, toolbar menu, a
-    // consumer writing `view.groupBy`): grouped virtualization is not
-    // implemented, and letting a key through here used to deactivate
-    // virtualization and render the *full* item set — the failure mode
-    // `virtualized` is meant to prevent. Clearing stays allowed, so a key
-    // restored before the mode was known can still be undone. The paths that
-    // arrive through a binding (view defaults, URL, storage) are gated in
-    // `TableProvider` instead, as a *system* discard: it cleans the URL but
-    // never lands in storage as the reader's wish.
+    // The write-side gate, for the paths that come through this setter: the
+    // header menu and the toolbar menus. Grouped virtualization is not
+    // implemented, and letting a key through used to deactivate virtualization
+    // and render the *full* item set — the failure mode `virtualized` exists
+    // to prevent. Clearing stays allowed, so a key restored before the mode
+    // was known can still be undone.
+    //
+    // It is NOT every path, and the JSDoc used to claim it was (#166 review).
+    // A consumer writing `view.groupBy` directly, and every binding (view
+    // defaults, URL, storage), bypass this setter entirely. Two other gates
+    // cover them: `TableProvider`'s `system` discard, which cleans the URL
+    // without persisting the discard as the reader's wish, and — for anything
+    // that reaches neither — the read gate behind `state.effectiveGroupBy`,
+    // which is what actually decides what renders.
     if (key && state.virtualized) {
       if (import.meta.env?.DEV) {
         console.warn(

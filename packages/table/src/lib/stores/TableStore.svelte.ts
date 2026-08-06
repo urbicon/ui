@@ -145,11 +145,11 @@ const NO_SOURCE: TableSource = { processing: 'client', items: NO_ITEMS };
  * Derived chain: items → filteredItems → sortedItems → grouped → paginatedItems
  *
  * Each concern owns a slice of functionality (search, filtering, sorting, etc.)
- * but all read from and write to a shared reactive state object. Since v8 the
- * six view axes on that object are pass-throughs onto the {@link TableView}:
- * a concern writing `state.currentPage = 1` writes `view.page`, with `user`
- * origin — which is what lets the bindings tell a reader's change from an
- * applied one without the store keeping any ownership bookkeeping of its own.
+ * and shares a reactive state object. The six view axes are NOT on it (#166):
+ * the concerns that own an axis take the {@link TableView} itself, so a
+ * concern writing `view.page = 1` writes the consumer's object directly, with
+ * `user` origin — which is what lets the bindings tell a reader's change from
+ * an applied one without the store keeping ownership bookkeeping of its own.
  *
  * **Generic T erasure**: The consumer-facing `TableProps<T>` is generic, but the
  * store operates on `TableItem` (`Record<string, unknown>`). This is intentional —
@@ -220,13 +220,11 @@ export function createTableState(
 
   // ── Shared reactive state ──
   //
-  // The six view axes are pass-throughs onto the view object — reading tracks
-  // the view's `$state` fields, writing goes through the view's field setters
-  // and therefore counts as the reader's own change (`user` origin). The
-  // sort pair maps onto the single `view.sort` value: clearing the column
-  // clears the sort, and a direction write on an unsorted view is a no-op
-  // (an unsorted view has no direction — the serializers normalize it away
-  // the same way).
+  // What the table owns, and nothing the view does (#166): rows, columns, load
+  // state, expansion, grouping chrome, summaries, selection, and the
+  // prop-driven switches. The one derived value with an axis shape is
+  // `effectiveGroupBy`, and it is here because several concerns need the
+  // gated grouping and the gate must exist once.
   const state: TableState = $state({
     get items() {
       return items;
@@ -634,9 +632,9 @@ export function createTableState(
     /**
      * The page actually rendered — `view.page` clamped into range.
      *
-     * Everything user-facing reads this, never `state.currentPage`: the raw
-     * value is the reader's *intent* and can sit out of range after
-     * `itemsPerPage` or the item count changed under it. Displaying it produced
+     * Everything user-facing reads this, never `view.page`: the raw value is
+     * the reader's *intent* and can sit out of range after the page size or
+     * the item count changed under it. Displaying it produced
      * a pager reading "5 / 1", and paging keys computed from it went dead in
      * both directions — `PageDown` compares `5 < 3`, `PageUp` asks `goToPage(4)`
      * which the range check rejects.

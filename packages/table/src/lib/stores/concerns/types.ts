@@ -13,9 +13,11 @@ import type { SummaryConfig } from '../TableStore.svelte';
  * and the view does not: rows, columns, load state, expansion, grouping
  * chrome, summaries, selection, and the prop-driven switches.
  *
- * The one axis-shaped value that survived is on the *context*, not here:
- * `effectiveGroupBy`, the grouping actually applied. It is not a spelling of
- * `view.groupBy` — it can differ from it, which is the whole reason it exists.
+ * The one axis-shaped value that survived is `effectiveGroupBy`, the grouping
+ * actually applied. It is not a spelling of `view.groupBy` — it can differ
+ * from it, which is the whole reason it exists. It sits here because the
+ * concerns share it through this object; consumers read it as
+ * `context.effectiveGroupBy`.
  */
 export interface TableState {
   items: TableItem[];

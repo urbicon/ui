@@ -137,7 +137,7 @@
   // Reset focus when page/sort/filter changes
   $effect(() => {
     // Track dependencies so we reset on any data change.
-    // `effectivePage`, not `state.currentPage` — what matters is whether the
+    // `effectivePage`, not `view.page` — what matters is whether the
     // rendered rows changed, and the raw value misses that in both directions:
     // 5 → 6 against three pages renders the same rows (reset was firing for
     // nothing), while a new page size re-slices them without moving it at all.
@@ -253,7 +253,7 @@
         }
         break;
       }
-      // Both keys step from `effectivePage`, not `state.currentPage`: the raw
+      // Both keys step from `effectivePage`, not `view.page`: the raw
       // value can sit past the last page after the page size or the row count
       // changed, and stepping from there lands outside the range `goToPage`
       // accepts — which killed paging in BOTH directions rather than one.

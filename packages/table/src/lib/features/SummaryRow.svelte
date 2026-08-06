@@ -13,7 +13,7 @@
   } = $props();
 
   const tableContext = getInternalTableContext();
-  const { state: tableState, view: tableView } = tableContext;
+  const { state: tableState } = tableContext;
   const styleConfig = getTableStyleConfig();
 
   let summaryData = $derived(groupSummaryData || tableContext.summaryData);

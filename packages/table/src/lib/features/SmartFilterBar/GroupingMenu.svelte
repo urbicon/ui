@@ -15,7 +15,7 @@
   const LayersIcon = resolveIcon('layers', LayersIconDefault);
 
   const tableContext = getTableContext();
-  const { state: tableState, view: tableView, setGroupBy } = tableContext;
+  const { state: tableState, setGroupBy } = tableContext;
 
   const currentValue = $derived(tableState.effectiveGroupBy || '');
   const isActive = $derived(!!currentValue);
