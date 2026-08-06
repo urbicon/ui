@@ -61,6 +61,7 @@ export const componentLinks: Record<string, string> = {
   GuideProvider: '/blocks/components/guide',
   GuideRef: '/blocks/components/guide',
   InfoCard: '/docs/components/info-card',
+  InlineCode: '/docs/components/code-example',
   Input: '/blocks/primitives/input',
   JourneyTimeline: '/blocks/primitives/journey-timeline',
   Kbd: '/blocks/primitives/kbd',

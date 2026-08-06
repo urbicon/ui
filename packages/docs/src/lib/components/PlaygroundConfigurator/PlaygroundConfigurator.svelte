@@ -1,4 +1,5 @@
 <script lang="ts" generics="TValues extends Record<string, unknown>">
+  import { InlineCode } from '$lib';
   import { useDocsI18n } from '$lib/i18n';
   import {
     Input,
@@ -663,7 +664,9 @@
                    `aria-describedby` pointed at an id that did not exist — the
                    exact "dangling idref" the comment at the top of this block
                    warns about, on all seven control types at once. -->
-              <div class={slot('controlHint')} id="{ctlId(control.key)}-hint">{description}</div>
+              <div class={slot('controlHint')} id="{ctlId(control.key)}-hint">
+                <InlineCode text={description} />
+              </div>
             {/if}
           {/each}
         </div>
