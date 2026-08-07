@@ -223,6 +223,29 @@ jobs:
     # its own server, so that isolation gets stronger, not weaker.
     name: E2E (Playwright)
     runs-on: ubuntu-latest
+    # PINNED IMAGE, so that a screenshot means something. The `@pixel` tests used
+    # to be excluded here because the baselines were host-bound: generated on the
+    # deploy host, compared on a GitHub runner, and every shot drifted on font
+    # rasterisation alone. The runner is not the problem — an unpinned rendering
+    # environment is. This image fixes fontconfig, FreeType and the browser build,
+    # so a baseline generated in it reproduces in it, on any machine.
+    #
+    # The tag is written out rather than derived, and it cannot drift silently:
+    # the browser-install step below is gone, so `/ms-playwright` holds exactly
+    # one Chromium and Playwright fails loudly ("Executable doesn't exist at
+    # /ms-playwright/chromium-<rev>") the moment the workspace expects another.
+    # That is Playwright's own check, not a hand-written one — and it stays quiet
+    # across a patch bump that ships the same browser build, which is the correct
+    # sensitivity: it fires when the rendering can actually change.
+    #
+    # THE SAME TAG APPEARS IN e2e-baselines.yml and the two have to move
+    # together: one image generates the baselines, this one compares them. The
+    # duplication is deliberately left rather than gated — a gate keeping two
+    # hand-written copies of one string agreeing is the shape AGENTS.md argues
+    # against, and this pair cannot drift quietly anyway. Different tags means
+    # different rendering, which means every shot red on the next run.
+    container:
+      image: mcr.microsoft.com/playwright:v1.62.1-noble
     permissions:
       contents: read
     strategy:
@@ -233,32 +256,34 @@ jobs:
         shard: [1, 2, 3, 4]
     steps:
       - uses: actions/checkout@v7
+      # `oven-sh/setup-bun` unpacks a .zip and the Playwright image ships no
+      # unzip. Nothing else in the job needs apt, so this is the whole delta the
+      # container costs on the tooling side.
+      - run: apt-get update && apt-get install -y --no-install-recommends unzip
       - uses: oven-sh/setup-bun@v2
       - run: bun install --frozen-lockfile
       - run: bun run build
-      # ~120 MB per shard, three shards, every push. Keyed on the resolved
-      # Playwright version so a bump re-downloads instead of testing against a
-      # stale binary.
-      - name: Resolve Playwright version
-        id: pw
-        run: echo "version=$(node -p "require('./node_modules/@playwright/test/package.json').version")" >> "$GITHUB_OUTPUT"
-      - uses: actions/cache@v6
-        with:
-          path: ~/.cache/ms-playwright
-          key: playwright-${{ runner.os }}-${{ steps.pw.outputs.version }}
-      # `--with-deps` still runs on a cache hit: the apt libraries the browser
-      # links against live outside the cached path.
-      - run: bunx playwright install --with-deps chromium
-      # `--grep-invert @pixel` drops the 26 screenshot-comparing tests (of 146)
-      # across visual-regression, visual-regression-interaction, floating and
-      # the `Guide — visual` block. NOT because pixel tests do not belong in CI,
-      # but because these baselines are host-bound: the -chromium-linux set was
-      # generated on the deploy host on purpose — the machine that would run
-      # them — rather than matched to some CI renderer. A GitHub runner is a
-      # different machine, so every shot would drift on font rendering alone and
-      # the suite would be red for a reason that says nothing about the code.
-      # visual-regression-interaction has no linux baselines at all and would
-      # write them on first run.
+      # No `playwright install` and no browser cache: the image already carries
+      # the browser this Playwright expects, and installing over it would defeat
+      # the pin — a workspace/image version drift would quietly download the
+      # matching build instead of failing, which is the silent case the container
+      # exists to remove. See the note on `container` above.
+      # `--grep-invert @pixel` still drops the 26 screenshot-comparing tests (of
+      # 146) across visual-regression, visual-regression-interaction, floating
+      # and the `Guide — visual` block — but no longer for the old reason. The
+      # container above settles the host-bound baselines that made them
+      # meaningless here; what is left is that the committed baselines predate
+      # it. They were generated on the deploy host, so every one of them would
+      # drift against this image, and `visual-regression-interaction` has no
+      # linux set at all (0 shots, against 48 under darwin) — it would write
+      # them on first run rather than compare.
+      #
+      # THE EXCLUSION COMES OUT once `e2e-baselines.yml` has regenerated the set
+      # in this image and the result is committed. That workflow exists for
+      # exactly this and is the only supported way to produce them: it runs on a
+      # native amd64 runner, which an Apple-Silicon machine cannot reproduce
+      # under emulation with any confidence, and these shots compare at
+      # `threshold: 0` where one pixel is a failure.
       #
       # Tagging (rather than excluding whole files) keeps guide.spec.ts's 15
       # functional tests in CI; only its 3 screenshot tests sit out.
