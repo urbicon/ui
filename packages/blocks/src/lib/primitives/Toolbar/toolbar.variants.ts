@@ -49,6 +49,24 @@ export const toolbarVariants = tv({
       xl: { base: 'p-3' }
     }
   },
+  compoundVariants: [
+    {
+      // A horizontal toolbar is a scroll container (`overflow-x-auto` above),
+      // and a scroll container clips at its padding box — so its padding is
+      // also the room a child's focus ring has to survive in. `ring-2` +
+      // `ring-offset-2` reaches 4px, which every step from `sm` up already
+      // covers; `xs` is 2px and cut half the ring off. Measured rather than
+      // reasoned, and guarded — e2e/tab-focus-ring.spec.ts walks every padding
+      // step here and every Tab variant, which is where the shape was found.
+      //
+      // Only the vertical padding is raised: `xs` exists to be tight, and on
+      // this axis the tightness a caller asked for is the horizontal one.
+      // Vertical toolbars scroll on no axis and need none of this.
+      orientation: 'horizontal',
+      padding: 'xs',
+      class: { base: 'py-1' }
+    }
+  ],
   defaultVariants: {
     variant: 'quiet',
     orientation: 'horizontal',
