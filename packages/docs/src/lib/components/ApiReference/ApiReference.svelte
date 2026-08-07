@@ -145,15 +145,35 @@
       groupable: false,
       summable: false
     },
+    // `width`, not just `minWidth`: only `width` reaches the DOM (as a
+    // `<col style>` — `minWidth` is inert by design, see the columnTrackGroup
+    // note in TableDesktop), and without a resolved column width the two-line
+    // clamp on the description has nothing to clamp against: in an auto-layout
+    // table the column simply grows to fit the longest prose. A percentage
+    // keeps the split proportional at any container width.
     {
       id: 'description',
       accessor: 'description',
       title: dt('description'),
+      width: '38%',
       minWidth: '240px',
       groupable: false,
       summable: false
     }
   ]);
+
+  /** Literal-value chips shown inline; the rest waits in the expanded row. */
+  const INLINE_VALUES = 4;
+
+  /**
+   * The prop's declaration line, e.g. `disabled?: boolean`. Spread entries
+   * (`...HTMLButtonAttributes`) have no `name: type` form — they are the spread
+   * itself, so they print as written.
+   */
+  function signatureOf(prop: ApiProp): string {
+    if (prop.name.startsWith('...')) return prop.name;
+    return `${prop.name}${prop.required ? '' : '?'}: ${prop.type}`;
+  }
 </script>
 
 {#if sortedProps.length === 0}
@@ -208,10 +228,18 @@
         {:else if column.id === 'type'}
           {#if item.values?.length}
             <div class={slot('typeChips')}>
-              <!-- Keyed on value+index: a literal union may legitimately repeat a value. -->
-              {#each item.values as val, i (`${val}-${i}`)}
+              <!-- Keyed on value+index: a literal union may legitimately repeat a value.
+                   Capped at INLINE_VALUES — a union with a dozen members made the
+                   cell as tall as the clamped description next to it. The full
+                   list is in the expanded row. -->
+              {#each item.values.slice(0, INLINE_VALUES) as val, i (`${val}-${i}`)}
                 <span class={slot('typeChip')}>{val}</span>
               {/each}
+              {#if item.values.length > INLINE_VALUES}
+                <span class={slot('placeholder')}>
+                  {dt('moreValues', { count: item.values.length - INLINE_VALUES })}
+                </span>
+              {/if}
             </div>
           {:else if item.type}
             {#if item.seeAlso?.startsWith('http')}
@@ -257,25 +285,10 @@
             <span class={slot('placeholder')}>—</span>
           {/if}
         {:else if column.id === 'description'}
-          {#if value || item.seeAlsoRefs?.length}
-            <div class={slot('descriptionCell')}>
-              {#if value}
-                <span class={slot('description')}><InlineCode text={String(value)} /></span>
-              {/if}
-              {#if item.seeAlsoRefs?.length}
-                <!-- Prose `@see` values (`HTMLButtonAttributes.value`,
-                     `CartesianDatum`). They name a type or member rather than a
-                     doc URL, so they render as literal text — a link here would
-                     have nowhere to point. Navigable `@see` targets live in
-                     `seeAlso` and decorate the Type column instead. -->
-                <span class={slot('seeAlsoRefs')}>
-                  {dt('seeAlsoLabel')}
-                  {#each item.seeAlsoRefs as ref, i (`${ref}-${i}`)}
-                    <code class={slot('seeAlsoRef')}>{ref}</code>
-                  {/each}
-                </span>
-              {/if}
-            </div>
+          {#if value}
+            <span class={[slot('description'), slot('descriptionClamped')]}>
+              <InlineCode text={String(value)} />
+            </span>
           {:else}
             <span class={slot('placeholder')}>—</span>
           {/if}
@@ -284,6 +297,65 @@
         {:else}
           <span class={slot('placeholder')}>—</span>
         {/if}
+      {/snippet}
+
+      <!-- The disclosure carries what the row cannot: the declaration line, the
+           description in full (the cell clamps it at two lines), the complete
+           literal union, and where the prop is declared. That last one is in
+           the generated data for every prop and used to be visible nowhere —
+           the badge said a prop was inherited, never from what. -->
+      {#snippet expandedRowContent(rawItem)}
+        {@const item = rawItem as unknown as ApiProp}
+        <div class={slot('expandedPanel')}>
+          <pre class={slot('signature')}><code>{signatureOf(item)}</code></pre>
+
+          {#if item.description}
+            <p class={slot('description')}><InlineCode text={item.description} /></p>
+          {/if}
+
+          {#if (item.values?.length ?? 0) > INLINE_VALUES}
+            <div class={slot('valuesSection')}>
+              {dt('allValues')}
+              <!-- Keyed on value+index: a literal union may legitimately repeat a value. -->
+              {#each item.values ?? [] as val, i (`${val}-${i}`)}
+                <span class={slot('typeChip')}>{val}</span>
+              {/each}
+            </div>
+          {/if}
+
+          {#if item.source?.name}
+            <div class={slot('sourceSection')}>
+              {dt('declaredIn')}
+              {#if item.source.url}
+                <a
+                  href={item.source.url}
+                  class={slot('sourceLink')}
+                  target="_blank"
+                  rel="noopener external">{item.source.name}</a
+                >
+              {:else}
+                <code class={slot('sourceName')}>{item.source.name}</code>
+              {/if}
+              {#if item.source.package}
+                <code class={slot('sourceName')}>{item.source.package}</code>
+              {/if}
+            </div>
+          {/if}
+
+          {#if item.seeAlsoRefs?.length}
+            <!-- Prose `@see` values (`HTMLButtonAttributes.value`,
+                 `CartesianDatum`). They name a type or member rather than a doc
+                 URL, so they render as literal text — a link here would have
+                 nowhere to point. Navigable `@see` targets live in `seeAlso`
+                 and decorate the Type column instead. -->
+            <div class={slot('seeAlsoRefs')}>
+              {dt('seeAlsoLabel')}
+              {#each item.seeAlsoRefs as ref, i (`${ref}-${i}`)}
+                <code class={slot('seeAlsoRef')}>{ref}</code>
+              {/each}
+            </div>
+          {/if}
+        </div>
       {/snippet}
       {#snippet pagination()}{/snippet}
     </Table>

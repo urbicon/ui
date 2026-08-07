@@ -36,4 +36,30 @@ if (typeof window !== 'undefined') {
       disconnect() {}
     } as unknown as typeof ResizeObserver;
   }
+
+  // Expanding a table row mounts `transition:slide`, which calls
+  // `element.animate()` — the Web Animations API, which jsdom does not
+  // implement. Without this every expand-row assertion dies on a TypeError
+  // thrown from inside the transition, not from the code under test.
+  // The stub finishes immediately: the tests assert what the expanded row
+  // CONTAINS, never how it got there.
+  if (!Element.prototype.animate) {
+    Element.prototype.animate = function animate() {
+      return {
+        cancel() {},
+        finish() {},
+        pause() {},
+        play() {},
+        reverse() {},
+        addEventListener() {},
+        removeEventListener() {},
+        currentTime: 0,
+        playState: 'finished',
+        startTime: 0,
+        effect: null,
+        finished: Promise.resolve(),
+        onfinish: null
+      } as unknown as Animation;
+    } as typeof Element.prototype.animate;
+  }
 }
