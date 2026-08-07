@@ -1,0 +1,98 @@
+name: E2E baselines
+
+# Regenerates the `@pixel` suite's screenshot baselines and hands them back as an
+# artefact. Manual only — a baseline that regenerates itself on a schedule or on
+# push is not a baseline, it is a recording of whatever the code currently does,
+# and every regression it was meant to catch would be absorbed silently.
+#
+# WHY THIS EXISTS AT ALL. The shots compare at `threshold: 0` (see
+# playwright.config.ts), so a single differing pixel fails. That only works if
+# the machine generating them and the machine comparing them render identically,
+# which is what the pinned Playwright image buys — the same image the `e2e` job
+# in ci.yml runs in. Regenerating anywhere else, including a developer's machine
+# under `docker run --platform linux/amd64`, is emulation and cannot be trusted
+# to be pixel-identical to a native amd64 runner. This workflow is the only
+# supported producer of the `-chromium-linux` set.
+#
+# WHY IT UPLOADS INSTEAD OF PUSHING. ci.yml narrows the token to `contents: read`
+# with an argued comment: a job that installs and executes the whole workspace
+# must not be able to write to the repo. Regenerating baselines is exactly such a
+# job — it runs every dependency and the site itself. So the new shots come back
+# as a downloadable artefact and a human commits them, which also means the diff
+# gets looked at. That is not overhead: a re-baseline is where an unnoticed
+# regression gets blessed into the expected state, and the review is the only
+# thing standing between those two.
+#
+# HOW TO USE IT
+#   1. gh workflow run e2e-baselines.yml --ref <branch>
+#   2. download the `pixel-baselines` artefact when it finishes
+#   3. unzip it over e2e/snapshots/ and read the diff before committing
+#
+# The darwin set is untouched by this and stays a local-only convenience;
+# `-chromium-linux` is the set CI enforces.
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: e2e-baselines-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  baselines:
+    name: Regenerate pixel baselines
+    runs-on: ubuntu-latest
+    # Same image as the `e2e` job in ci.yml, and it has to stay the same one:
+    # a baseline generated in a different rendering environment than the one
+    # comparing it is the defect this whole arrangement removes. Bump both tags
+    # together or neither.
+    container:
+      image: mcr.microsoft.com/playwright:v1.62.1-noble
+    permissions:
+      contents: read
+    # Unsharded on purpose. `--update-snapshots` writes files, and four shards
+    # would each write their own slice into their own workspace — assembling
+    # them afterwards is a merge nobody asked for. 26 tests run in well under
+    # the time the shards save.
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v7
+      # `oven-sh/setup-bun` unpacks a .zip and the Playwright image ships no
+      # unzip (same as the e2e job).
+      - run: apt-get update && apt-get install -y --no-install-recommends unzip
+      - uses: oven-sh/setup-bun@v2
+      - run: bun install --frozen-lockfile
+      - run: bun run build
+
+      # `--update-snapshots=all`, never the default `changed`: that mode leaves a
+      # baseline alone when the diff sits under the threshold, so sub-threshold
+      # drift accumulates and a shot stays stale while reporting green. This repo
+      # has already paid for that once — eight stale shots survived exactly that
+      # way (see the note in playwright.config.ts).
+      #
+      # `--grep @pixel` is the complement of ci.yml's `--grep-invert @pixel`:
+      # only the screenshot tests write anything, and running the other 120 here
+      # would just be a second e2e run with no output.
+      - run: bunx playwright test --grep @pixel --update-snapshots=all
+        # A regenerating run reports "failures" for every shot it rewrote, which
+        # is the normal outcome and not a signal. The artefact below is what
+        # carries the result, and the diff is where the judgement happens.
+        continue-on-error: true
+
+      - name: Show what changed
+        # Read-only inspection, so the step says out loud what the artefact
+        # contains before anyone downloads it. `--porcelain` over the snapshot
+        # directory alone — the build touches other paths and they are noise here.
+        run: |
+          git status --porcelain -- e2e/snapshots || true
+          echo "---"
+          echo "changed/new shots: $(git status --porcelain -- e2e/snapshots | wc -l)"
+
+      - uses: actions/upload-artifact@v7
+        with:
+          name: pixel-baselines
+          path: e2e/snapshots/
+          retention-days: 7

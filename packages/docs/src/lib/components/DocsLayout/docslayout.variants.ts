@@ -120,6 +120,15 @@ export const docsLayoutVariants = tv({
     // (measured: 208px at 1440, 568px at 1920) with the tables scrolling inside
     // 736px right next to it.
     //
+    // What actually binds `main` is the SHELL cap, not the one written here:
+    // `--docs-shell` is defined as the column plus the rail, the gap and both
+    // gutters, so a flex child beside the rail lands on the column width whether
+    // or not it caps itself. Measured — swapping this back to `max-w-none` moves
+    // nothing at any width. It stays because a cap named after the thing it
+    // produces survives someone retuning `--docs-shell` for a reason that has
+    // nothing to do with the body column; without it that retune would silently
+    // widen the prose column instead of the margins.
+    //
     // `headerInner`/`stickyBarInner` take the SAME cap and the SAME gutter as
     // `wrapper`: all three centre their border box in the same parent, so the
     // h1, the breadcrumb and the first paragraph land on one left edge. Change

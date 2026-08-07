@@ -8,6 +8,11 @@ import { defineConfig, devices } from '@playwright/test';
 const PORT = Number(process.env.PORT ?? 5174);
 const BASE_URL = `http://localhost:${PORT}`;
 
+// `process.getuid` is POSIX-only and absent on Windows, hence the guard rather
+// than a bare call. See the `launchOptions` note in `use` below for why this is
+// asked at all.
+const RUNNING_AS_ROOT = typeof process.getuid === 'function' && process.getuid() === 0;
+
 export default defineConfig({
   testDir: './e2e',
   outputDir: './e2e/test-results',
@@ -66,7 +71,18 @@ export default defineConfig({
   use: {
     baseURL: BASE_URL,
     trace: 'on-first-retry',
-    actionTimeout: 15_000
+    actionTimeout: 15_000,
+    // Chromium refuses to start as root — "Running as root without --no-sandbox
+    // is not supported" — and a GitHub Actions `container:` job runs as root by
+    // default. Asked of the process rather than read from an env var, so the
+    // flag appears exactly where it is required and there is no knob anyone can
+    // forget: a developer's machine and the deploy host are not root, so they
+    // keep the sandbox and their baselines are untouched by this.
+    //
+    // It does not move a pixel either way — sandboxing is a process-isolation
+    // boundary, not a rendering path — so a shot taken with it compares against
+    // one taken without.
+    launchOptions: RUNNING_AS_ROOT ? { args: ['--no-sandbox'] } : undefined
   },
   projects: [
     {
