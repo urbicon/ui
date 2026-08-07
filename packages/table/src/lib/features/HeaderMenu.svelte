@@ -1,6 +1,10 @@
 <script lang="ts">
   import { getInternalTableContext } from '$lib/stores/TableStore.svelte';
-  import { isColumnSummable } from '$lib/utils/summable';
+  import {
+    isColumnGroupable,
+    isColumnSortable,
+    isColumnSummable
+  } from '$lib/utils/column-capabilities';
   import { headerMenuItemVariants, headerMenuVariants } from '$lib/variants';
   import {
     Button,
@@ -52,14 +56,13 @@
   let menuOpen = $state(false);
 
   const columnId = $derived(resolveColumnId(column));
-  // Synthetic columns (no accessor) cannot participate in derived ops.
-  const canSort = $derived(column.accessor !== undefined && column.sortable !== false);
-  // Grouping is not implemented for the virtual list — offering it there used to
-  // silently deactivate virtualization and dump every row into the DOM, which is
-  // exactly what `virtualized` exists to prevent. The mode wins; the affordance goes.
-  const canGroup = $derived(
-    column.accessor !== undefined && column.groupable !== false && !tableState.virtualized
-  );
+  const canSort = $derived(isColumnSortable(column));
+  // The column's own capability, plus the one condition that belongs to the
+  // *table*: grouping is not implemented for the virtual list, and offering it
+  // there used to silently deactivate virtualization and dump every row into
+  // the DOM, which is exactly what `virtualized` exists to prevent. The mode
+  // wins; the affordance goes.
+  const canGroup = $derived(isColumnGroupable(column) && !tableState.virtualized);
   // Column visibility can be switched off table-wide, or pinned per column via `hideable: false`.
   const canHide = $derived(tableState.enableColumnVisibility && column.hideable !== false);
 

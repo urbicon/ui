@@ -9,6 +9,7 @@
   } from '@urbicon-ui/blocks';
   import { getInternalTableContext } from '$lib/stores/TableStore.svelte';
   import { resolveColumnId } from '$lib/utils';
+  import { isColumnSortable } from '$lib/utils/column-capabilities';
 
   const ChevronDownIcon = resolveIcon('chevronDown', ChevronDownIconDefault);
   const ChevronUpIcon = resolveIcon('chevronUp', ChevronUpIconDefault);
@@ -207,8 +208,7 @@
       {@const actionIndicators = getActionIndicators(columnId)}
       {@const isActiveSorted = tableView.sort?.column === columnId}
       {@const sortedState = isActiveSorted ? (tableView.sort?.direction ?? 'none') : 'none'}
-      {@const isSortable =
-        column.accessor !== undefined && (column.sortable === undefined || column.sortable)}
+      {@const isSortable = isColumnSortable(column)}
       {@const columnStyles = tableHeaderVariants({
         size,
         sortable: isSortable,

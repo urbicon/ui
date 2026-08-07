@@ -1,5 +1,6 @@
 import type { Column } from '$lib/types/tableTypes';
 import { resolveColumnId } from '$lib/utils';
+import { isColumnSearchable, isColumnSortable } from '$lib/utils/column-capabilities';
 
 /**
  * Validation utilities for column configurations.
@@ -216,16 +217,11 @@ export const ValidationHelpers = {
       suggestions.push('Actions column is typically placed as the last column');
     }
 
-    // Check for sortable/searchable balance — synthetic columns are
-    // structurally excluded from both via the Column shape, so we only
-    // count data columns here.
-    const dataColumns = columns.filter((col) => col.accessor !== undefined);
-    const sortableCount = dataColumns.filter(
-      (col) => (col as { sortable?: boolean }).sortable !== false
-    ).length;
-    const searchableCount = dataColumns.filter(
-      (col) => (col as { searchable?: boolean }).searchable !== false
-    ).length;
+    // Check for sortable/searchable balance. The predicates already exclude
+    // synthetic columns, and asking them rather than re-reading the flags is
+    // what keeps this advice from contradicting what the table actually offers.
+    const sortableCount = columns.filter(isColumnSortable).length;
+    const searchableCount = columns.filter(isColumnSearchable).length;
 
     if (sortableCount === 0) {
       suggestions.push('Consider making at least one column sortable for better UX');

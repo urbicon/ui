@@ -1,5 +1,6 @@
 import type { Filter, FilterOperator, TableItem } from '$lib/types/tableTypes';
 import { findColumnById, resolveColumnId, resolveColumnValue, resolveValueById } from '$lib/utils';
+import { isColumnSearchable } from '$lib/utils/column-capabilities';
 import type { TableView } from '$lib/view/view.svelte';
 import type { TableState } from './types';
 
@@ -119,9 +120,9 @@ export function useFiltering(state: TableState, view: TableView) {
       const matchesSearchTerm =
         view.search === '' ||
         state.columns
-          // Discriminate synthetic columns first — afterwards TS narrows to
-          // DataColumnString | DataColumnFunction, which carries `searchable`.
-          .filter((col) => col.accessor !== undefined && col.searchable !== false)
+          // Same question the filter menu asks, so a column cannot be matched
+          // by the search field while being absent from its own filter entry.
+          .filter(isColumnSearchable)
           .some((column) => {
             const raw = resolveColumnValue(column, item);
             // Object/array values stringify to "[object Object]" and produce

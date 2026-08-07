@@ -3,6 +3,7 @@
   import { getTableContext } from '$lib/stores/TableStore.svelte';
   import type { FilterOperator } from '$lib/types/tableTypes';
   import { resolveColumnId, resolveColumnLabel, resolveValueById } from '$lib/utils';
+  import { isColumnSearchable } from '$lib/utils/column-capabilities';
   import { filterPanelVariants } from '$lib/variants';
   import {
     Button,
@@ -95,17 +96,15 @@
 
   const activeFilters = $derived(tableView.filters);
   const filterOptions = $derived.by(() => {
-    return tableState.columns
-      .filter((col) => col.accessor !== undefined && col.searchable !== false)
-      .map((col) => {
-        const dataType = 'dataType' in col ? col.dataType || 'text' : 'text';
-        return {
-          key: resolveColumnId(col),
-          label: resolveColumnLabel(col),
-          dataType,
-          operators: getOperatorsForType(dataType)
-        };
-      });
+    return tableState.columns.filter(isColumnSearchable).map((col) => {
+      const dataType = 'dataType' in col ? col.dataType || 'text' : 'text';
+      return {
+        key: resolveColumnId(col),
+        label: resolveColumnLabel(col),
+        dataType,
+        operators: getOperatorsForType(dataType)
+      };
+    });
   });
 
   let filterStates = $state<
@@ -227,7 +226,7 @@
                     intent="danger"
                     onclick={() =>
                       handleRemoveSpecificFilter(filter.column, filter.operator, filter.value)}
-                    class="ml-2 flex-shrink-0"
+                    class="ml-2 shrink-0"
                     aria-label={tt('filter.button.remove')}
                   >
                     <CloseIcon class="h-3 w-3" />
