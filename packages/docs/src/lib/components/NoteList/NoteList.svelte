@@ -28,8 +28,13 @@
 
 <!-- No landmark role and no heading of its own: the enclosing <Section> already
      labels this content, and a second nested region would only add a stop that
-     announces nothing new. -->
-<div {...restProps} class={[slot('root'), className]}>
+     announces nothing new.
+
+     `data-docs-note` is part of the data-docs-* theming contract: it marks this
+     as reading material, so a skin that runs a narrower reading edge than its
+     exhibit edge (the docs app does) keeps notes with the prose instead of
+     letting them stretch to the width a table gets. -->
+<div {...restProps} class={[slot('root'), className]} data-docs-note>
   <div class={slot('list')}>
     {@render children?.()}
   </div>

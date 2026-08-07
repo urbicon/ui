@@ -2,7 +2,30 @@ import { type SlotNames, tv, type VariantProps } from '@urbicon-ui/blocks';
 
 export const docsLayoutVariants = tv({
   slots: {
-    container: ['min-h-screen bg-surface-base'],
+    // The two-column shell's measurements, declared once here so `wrapper`,
+    // `main`, `headerInner` and `stickyBarInner` cannot drift apart — they are
+    // four elements that have to share one left edge and one outer cap, and
+    // four hand-kept numbers is how they stopped sharing it.
+    //
+    //   --docs-gutter    the bundsteg: sidebar → text on the left, TOC → viewport
+    //                    on the right. 1.5rem below lg (no TOC there), 2.5rem on
+    //                    lg+; the old 0.5rem/px-6 left the body hugging the nav.
+    //   --docs-column    the exhibit edge — `main`'s content box. Tables, code
+    //                    panels and stages fill it; prose is capped narrower by
+    //                    the app's reading measure (see rooms-docs.css).
+    //   --docs-rail-gap  main → TOC. This is the WHOLE corridor: the gutters
+    //                    live on `wrapper`, so `main` has no inner padding of
+    //                    its own to add to it. At 1.5rem a full-width table sat
+    //                    24px off the TOC.
+    //   --docs-toc-w     mirrors TableOfContents' `width="md"` (w-52). A page
+    //                    that sets `sm`/`lg` only shifts where `main` gives up
+    //                    width; nothing misaligns.
+    container: [
+      'min-h-screen bg-surface-base',
+      '[--docs-gutter:1.5rem] lg:[--docs-gutter:2.5rem]',
+      '[--docs-column:60rem] [--docs-rail-gap:4rem] [--docs-toc-w:13rem]',
+      '[--docs-shell:calc(var(--docs-column)+var(--docs-rail-gap)+var(--docs-toc-w)+2*var(--docs-gutter))]'
+    ],
     // `pt-8` lives on the wrapper (not `main`) so BOTH columns — the body and
     // the TOC aside — start at the same top edge below the header band; the
     // TOC kicker lines up with the playground stage instead of hanging higher.
@@ -67,16 +90,27 @@ export const docsLayoutVariants = tv({
       '2xl': { main: 'max-w-6xl mx-auto', headerInner: 'max-w-6xl', stickyBarInner: 'max-w-6xl' },
       '7xl': { main: 'max-w-7xl mx-auto', headerInner: 'max-w-7xl', stickyBarInner: 'max-w-7xl' }
     },
-    // Applied AFTER `maxWidth` (object-key order), so `max-w-screen-2xl` /
-    // `max-w-none` win the `max-w` conflict bucket in tv() and override the cap
-    // for two-column pages: the body fills its column and the band spans the
-    // full inner width above main + toc.
+    // Applied AFTER `maxWidth` (object-key order), so these win the `max-w` and
+    // `px` conflict buckets in tv() and override the single-column caps.
+    //
+    // `main` is capped at the exhibit column and the gutters move to `wrapper`,
+    // so ONE element owns the horizontal padding for both columns. Before this,
+    // `main` was `flex-1 max-w-none` and swallowed every pixel the TOC did not
+    // take, while the app capped each `section` at the reading measure — the
+    // difference showed up as a corridor of nothing between text and TOC
+    // (measured: 208px at 1440, 568px at 1920) with the tables scrolling inside
+    // 736px right next to it.
+    //
+    // `headerInner`/`stickyBarInner` take the SAME cap and the SAME gutter as
+    // `wrapper`: all three centre their border box in the same parent, so the
+    // h1, the breadcrumb and the first paragraph land on one left edge. Change
+    // one of the three and you have to change all three.
     sidebar: {
       true: {
-        wrapper: 'gap-8',
-        main: 'min-w-0 max-w-none',
-        headerInner: 'max-w-screen-2xl',
-        stickyBarInner: 'max-w-screen-2xl'
+        wrapper: 'max-w-(--docs-shell) gap-(--docs-rail-gap) px-(--docs-gutter)',
+        main: 'min-w-0 max-w-(--docs-column) px-0',
+        headerInner: 'max-w-(--docs-shell) px-(--docs-gutter)',
+        stickyBarInner: 'max-w-(--docs-shell) px-(--docs-gutter)'
       }
     },
     centered: {
