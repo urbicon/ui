@@ -66,7 +66,16 @@
       chips.push({
         type: 'group',
         id: 'group',
-        content: getColumnTitle(tableState.effectiveGroupBy),
+        // Qualified like both its neighbours: the filter chip names the column
+        // that qualifies its value, the summary chip names the aggregate that
+        // qualifies its column. This one carried the bare column name, so the
+        // only thing saying what it WAS is the hue it wears — and a hue is not a
+        // label. It is unreadable to anyone who cannot separate the three
+        // ramps, and it is silent in the accessible name the chip announces.
+        //
+        // `grouping.button` is the tool's name, not a button caption: ToolsSheet
+        // already titles its grouping section with it.
+        content: `${tt('grouping.button')}: ${getColumnTitle(tableState.effectiveGroupBy)}`,
         onRemove: () => setGroupBy(null)
       });
     }
