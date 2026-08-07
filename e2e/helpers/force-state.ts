@@ -37,22 +37,41 @@ export type ForcedPseudoClass = 'hover' | 'active' | 'focus' | 'focus-visible' |
  * would have masked the regression the shot exists for: with the library's ring
  * gone, the picture is still full of rectangles.
  *
- * Nothing is lost by narrowing. Every group/peer focus idiom in the library
- * hangs off an element that is itself focusable — the 21 `peer-focus-visible:`
- * peers are real `<input>`s, `group-focus-visible/step` sits on a `div` with
- * `tabindex="0"` — and `focus-within`, the one idiom that genuinely needs a
- * container, stays in the subtree set below.
+ * No REACHABLE ring is lost by narrowing, and the qualifier was earned: the
+ * first cut of this excluded `tabindex="-1"` and silently dropped TabPanel's
+ * ring, which is very much reachable (see FOCUSABLE_SELECTOR). What the current
+ * set still drops are four wrappers in the nav fixture that carry
+ * `focus-visible:ring-*` while having neither `role` nor `tabindex` — dead
+ * styling that no user can trigger, so a shot of it was showing something that
+ * cannot happen.
+ *
+ * Every group/peer idiom survives: the 21 `peer-focus-visible:` peers are real
+ * `<input>`s, `group-focus-visible/step` sits on a `div` with `tabindex="0"`,
+ * and `focus-within` — the one idiom that genuinely needs a container — is in
+ * the subtree set below.
  */
 const FOCUS_ONLY: readonly ForcedPseudoClass[] = ['focus', 'focus-visible'];
 
 /**
- * Matches what Chromium will focus. `[tabindex]:not([tabindex="-1"])` is what
- * catches the library's `role="button"` divs (Stepper's step, among others);
- * `-1` is excluded because it means "programmatically focusable only", which no
- * keyboard ring follows.
+ * Matches what Chromium will focus — `[tabindex]` at ANY value, including `-1`.
+ *
+ * `-1` was excluded here at first, on the reasoning that it means
+ * "programmatically focusable only" and no keyboard ring follows. That was
+ * wrong, and measurably: `TabPanel` renders `tabindex={isActive ? 0 : -1}` and
+ * styles both states with `focus-visible:ring-2`, so excluding `-1` dropped a
+ * real library ring — white 2px offset plus a 4px primary ring — from the
+ * `nav-focus-*` shots. `-1` keeps an element out of the TAB ORDER; it does not
+ * make it unfocusable, and a panel focused by script after a tab activates is
+ * exactly the case these shots should show.
+ *
+ * The measurement that caught it is worth repeating on any future change here:
+ * force the state both ways and diff the computed `box-shadow` per element. The
+ * two rings are separable by property — Tailwind's `ring-*` is a box-shadow,
+ * Chromium's own focus ring is an `outline` — so "did the library lose a ring"
+ * is a question with a number for an answer, which no screenshot of this fixture
+ * can give (with the state forced on everything, every box has a border).
  */
-const FOCUSABLE_SELECTOR =
-  'a[href], button, input, select, textarea, summary, [tabindex]:not([tabindex="-1"])';
+const FOCUSABLE_SELECTOR = 'a[href], button, input, select, textarea, summary, [tabindex]';
 
 export async function openCdp(page: Page): Promise<CDPSession> {
   const cdp = await page.context().newCDPSession(page);
