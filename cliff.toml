@@ -3,6 +3,13 @@ header = """# Changelog\n
 All notable changes to this project will be documented in this file.
 This changelog is automatically generated from [Conventional Commits](https://www.conventionalcommits.org).\n
 """
+# The BREAKING note is truncated at 600 characters. git-cliff reads everything
+# after a `BREAKING CHANGE:` token as that footer's value, and a squash-merge
+# body is the concatenation of every commit in the PR — so a 20-commit PR
+# produced a single 4348-character blockquote on one line (v8.1.0, before this).
+# The cap is above every hand-written breaking note in the history bar two, and
+# a note that needs more than 600 characters belongs in the migration docs the
+# entry links to, not in the changelog line.
 body = """
 {%- if version %}
 ## [{{ version | trim_start_matches(pat="v") }}] - {{ timestamp | date(format="%Y-%m-%d") }}
@@ -16,7 +23,7 @@ body = """
 {%- if commit.footers %}
 {%- for footer in commit.footers %}
 {%- if footer.token == "BREAKING CHANGE" or footer.token == "BREAKING-CHANGE" %}
-  > **BREAKING:** {{ footer.value | trim | replace(from="\n", to=" ") | replace(from="  ", to=" ") }}
+  > **BREAKING:** {{ footer.value | trim | replace(from="\n", to=" ") | replace(from="  ", to=" ") | truncate(length=600, end=" …") }}
 {%- endif %}
 {%- endfor %}
 {%- endif %}
