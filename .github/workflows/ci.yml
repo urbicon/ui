@@ -268,29 +268,24 @@ jobs:
       # the pin — a workspace/image version drift would quietly download the
       # matching build instead of failing, which is the silent case the container
       # exists to remove. See the note on `container` above.
-      # `--grep-invert @pixel` still drops the 26 screenshot-comparing tests (of
-      # 146) across visual-regression, visual-regression-interaction, floating
-      # and the `Guide — visual` block — but no longer for the old reason. The
-      # container above settles the host-bound baselines that made them
-      # meaningless here; what is left is that the committed baselines predate
-      # it. They were generated on the deploy host, so every one of them would
-      # drift against this image, and `visual-regression-interaction` has no
-      # linux set at all (0 shots, against 48 under darwin) — it would write
-      # them on first run rather than compare.
+      # The 26 `@pixel` tests RUN here. They were excluded until the baselines
+      # matched this image: the committed set came from the deploy host, so
+      # every shot would have drifted against the container, and
+      # `visual-regression-interaction` had no linux baselines at all (0 against
+      # 48 under darwin) — it would have written them on first run rather than
+      # compared. Both halves are now generated in this image by
+      # `e2e-baselines.yml` and committed, 154 per platform.
       #
-      # THE EXCLUSION COMES OUT once `e2e-baselines.yml` has regenerated the set
-      # in this image and the result is committed. That workflow exists for
-      # exactly this and is the only supported way to produce them: it runs on a
-      # native amd64 runner, which an Apple-Silicon machine cannot reproduce
-      # under emulation with any confidence, and these shots compare at
-      # `threshold: 0` where one pixel is a failure.
+      # That workflow stays the only supported way to regenerate them: it runs
+      # on a native amd64 runner, which an Apple-Silicon machine cannot
+      # reproduce under emulation with any confidence, and these shots compare
+      # at `threshold: 0` where one pixel is a failure. Re-baselining by hand
+      # from a laptop is how the drift got in.
       #
-      # Tagging (rather than excluding whole files) keeps guide.spec.ts's 15
-      # functional tests in CI; only its 3 screenshot tests sit out.
-      #
-      # Locally and on the deploy host, a bare `bunx playwright test` still runs
-      # everything — the tag only ever subtracts here.
-      - run: bunx playwright test --grep-invert @pixel --shard=${{ matrix.shard }}/4
+      # The `@pixel` tag stays on the tests. It is what makes the regeneration
+      # workflow able to select them, and it keeps the option of subtracting
+      # them again in one place rather than by file.
+      - run: bunx playwright test --shard=${{ matrix.shard }}/4
         env:
           # Switches the reporter to `blob`, the only format `merge-reports`
           # can recombine. See playwright.config.ts.
