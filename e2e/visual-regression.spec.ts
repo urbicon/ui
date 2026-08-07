@@ -82,6 +82,43 @@ test.use({ channel: 'chromium' });
  */
 const EXACT = { threshold: 0, maxDiffPixelRatio: 0 } as const;
 
+/**
+ * The interaction block below, one notch looser — and only on `threshold`.
+ *
+ * The paragraph above earns exactness from properties the RESTING matrix has:
+ * static, no transition, no pointer. The interaction shots have none of them —
+ * they drive a real pointer and a real focus — and they flake at `threshold: 0`.
+ * Measured, not suspected: `ix-input-hover-light-rooms` failed one run in three
+ * on an otherwise idle machine, and the whole diff was 191 pixels along the
+ * field's antialiased underline differing by ±1 in ONE channel —
+ * `(206,200,196)` against `(205,200,196)`. That is compositing rounding, not a
+ * state.
+ *
+ * Read `threshold` carefully before retuning it: pixelmatch calls two pixels
+ * different when their squared YIQ distance exceeds `35215 * threshold²`. It is
+ * SQUARED, and the first cut of this constant got that wrong — 2e-5, derived by
+ * dividing by 35215 instead of taking the root, absorbed nothing at all and a
+ * deliberate ±1 perturbation still failed.
+ *
+ * `0.004` is the smallest value that covers the flake with room to spare:
+ *
+ *   ±1 in one channel   needs ≥ 0.00266 (green, the costliest)
+ *   ±1 in all three     needs ≥ 0.00379
+ *   ±2 in red           needs ≥ 0.00426  ← still caught
+ *   ±4 in any channel   needs ≥ 0.00507  ← still caught
+ *
+ * So it swallows rounding and nothing else. One overlap is unavoidable rather
+ * than chosen: ±2 in blue alone (0.00253) sits BELOW ±1 in green, so no
+ * threshold can absorb the flake and catch that particular change. No token in
+ * this library moves blue by two and nothing else.
+ *
+ * `maxDiffPixelRatio` stays 0 deliberately. The looser knob is "how different
+ * may one pixel be", never "how many pixels may differ" — the latter is what
+ * made the project defaults useless here (a 98-pixel label vanishing against a
+ * whole section).
+ */
+const EXACT_INTERACTION = { threshold: 0.004, maxDiffPixelRatio: 0 } as const;
+
 async function setup(page: Page, scheme: (typeof SCHEMES)[number], theme: (typeof THEMES)[number]) {
   page.on('pageerror', (err) => {
     throw new Error(`Uncaught page error: ${err.message}`);
@@ -217,12 +254,18 @@ test.describe('Primitive visual regression', { tag: '@pixel' }, () => {
           await park();
           await wrapper.hover();
           await arrived(wrapper, (el) => el.matches(':hover'));
-          await expect(wrapper).toHaveScreenshot(`ix-${name}-hover-${scheme}-${theme}.png`, EXACT);
+          await expect(wrapper).toHaveScreenshot(
+            `ix-${name}-hover-${scheme}-${theme}.png`,
+            EXACT_INTERACTION
+          );
 
           await park();
           await control.focus();
           await arrived(wrapper, (el) => el.contains(document.activeElement));
-          await expect(wrapper).toHaveScreenshot(`ix-${name}-focus-${scheme}-${theme}.png`, EXACT);
+          await expect(wrapper).toHaveScreenshot(
+            `ix-${name}-focus-${scheme}-${theme}.png`,
+            EXACT_INTERACTION
+          );
         }
       });
     }
