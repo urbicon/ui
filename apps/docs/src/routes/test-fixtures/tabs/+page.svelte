@@ -14,7 +14,7 @@
   {#each PADDINGS as padding (padding)}
     <div data-probe={`toolbar-${padding}`} class="max-w-md">
       <p class="text-text-tertiary mb-2 text-xs">toolbar · padding {padding}</p>
-      <Toolbar {padding} variant="outlined">
+      <Toolbar {padding} variant="outlined" aria-label={`toolbar ${padding}`}>
         <Button size="sm">One</Button>
         <Button size="sm">Two</Button>
       </Toolbar>
