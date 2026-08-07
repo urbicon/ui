@@ -38,6 +38,7 @@
   title="Sticky Pinning"
   description="Pin the toolbar, column header, and group header to the top of the scroll ancestor on long lists. Keeps context visible while scrolling through hundreds of rows."
   {navigation}
+  showToc={true}
   breadcrumbs={[{ label: 'Table', href: resolve('/table/table') }]}
 >
   <Section id="overview" title="Overview">
@@ -104,8 +105,8 @@
   <Section id="modes" title="Modes">
     <div class="space-y-8">
       <CodeExample
-        title="sticky (defaults to both)"
-        description="Pin toolbar + header + group header. The visual stack mirrors the DOM order."
+        title="sticky on its own"
+        description="No pinning is the default. The bare prop is the same as both: toolbar, header and group header all pin."
         code={`<Table
   {items}
   {columns}
@@ -228,11 +229,23 @@
         scrolling — switch to <code class="text-text-primary">fit="viewport"</code> to contain it instead.
       </li>
       <li>
-        <code class="text-text-primary">unstyled</code> mode strips the sticky classes — pinning is
-        a layout function, not pure styling. Apply your own via
+        <code class="text-text-primary">unstyled</code> mode strips the sticky classes, because
+        pinning is a layout function rather than pure styling. Apply your own via
         <code class="text-text-primary">slotClasses.toolbar</code>
         /
         <code class="text-text-primary">slotClasses.thead</code> when running unstyled.
+      </li>
+      <li>
+        A <code class="text-text-primary">fit="viewport"</code> box reaches the bottom of the
+        viewport, so it assumes nothing sits below it. Bottom padding on an ancestor, or a following
+        sibling, pushes the page past
+        <code class="text-text-primary">100dvh</code> and you get a second scrollbar next to the
+        table's own. The container reports its resolved mode as
+        <code class="text-text-primary">data-fit</code>, so a layout can drop that inset for the
+        desktop widths where the cap applies:
+        <code class="text-text-primary"
+          >{"@media (min-width: 48rem) { main:has([data-fit='viewport']) { padding-block-end: 0 } }"}</code
+        >.
       </li>
     </ul>
   </Section>

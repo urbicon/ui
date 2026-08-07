@@ -135,30 +135,30 @@
   <Table {items} {columns} enableSmartFilter />
 </div>`;
 
+  // Which operator the menu offers for which `dataType` is `OPERATORS_BY_TYPE`
+  // in SmartFilterBar/FilterPanel.svelte; the matching itself is `useFiltering`.
   const operators = [
     {
       op: 'contains',
-      desc: 'Case-insensitive substring match. Offered for text columns (the default).'
+      matches: 'Substring, case-insensitive',
+      offeredFor: 'text (the default)'
     },
     {
       op: 'equals',
-      desc: 'Case-insensitive exact match on the stringified value. Offered for text, number, and date columns (labeled "on date" for dates).'
+      matches: 'The whole stringified value, case-insensitive',
+      offeredFor: 'text, number, date (labelled “on date”)'
     },
-    {
-      op: 'startsWith',
-      desc: 'Case-insensitive prefix match. Offered for text columns.'
-    },
-    {
-      op: 'endsWith',
-      desc: 'Case-insensitive suffix match. Offered for text columns.'
-    },
+    { op: 'startsWith', matches: 'Prefix, case-insensitive', offeredFor: 'text' },
+    { op: 'endsWith', matches: 'Suffix, case-insensitive', offeredFor: 'text' },
     {
       op: 'greaterThan',
-      desc: 'Numeric comparison when both sides convert via Number(), otherwise a date comparison. Offered for number columns and as "after" for date columns.'
+      matches: 'Numbers when both sides convert, instants otherwise',
+      offeredFor: 'number, date (labelled “after”)'
     },
     {
       op: 'lessThan',
-      desc: 'Numeric comparison when both sides convert via Number(), otherwise a date comparison. Offered for number columns and as "before" for date columns.'
+      matches: 'Numbers when both sides convert, instants otherwise',
+      offeredFor: 'number, date (labelled “before”)'
     }
   ];
 
@@ -193,6 +193,7 @@ ${scriptClose}
   description="Built-in search, column filters, summary controls, and column visibility via the SmartFilterBar — plus an external search field wired through the table's view."
   breadcrumbs={[{ label: 'Table', href: resolve('/table/table') }]}
   {navigation}
+  showToc={true}
 >
   <Section id="filtering" title="Smart Filter Bar">
     <div class="space-y-8">
@@ -261,7 +262,7 @@ ${scriptClose}
         inside a card is narrower than the sheet on a phone too.
       </p>
 
-      <div class="space-y-4">
+      <div class="w-full space-y-4">
         <Slider
           bind:value={demoWidth}
           min={320}
@@ -367,16 +368,25 @@ ${scriptClose}
         do not appear in the filter menu at all.
       </p>
 
-      <div class="border-border-subtle bg-surface-elevated rounded-2xl border p-6">
-        <h3 class="text-text-primary mb-4 text-sm font-semibold">Operator Reference</h3>
-        <div class="grid grid-cols-1 gap-x-8 gap-y-3 text-sm md:grid-cols-2">
-          {#each operators as item (item.op)}
-            <div>
-              <code class="text-primary text-xs">{item.op}</code>
-              <p class="text-text-tertiary text-xs">{item.desc}</p>
-            </div>
-          {/each}
-        </div>
+      <div class="border-border-hairline overflow-x-auto border-y">
+        <table class="w-full text-left text-sm">
+          <thead class="text-text-primary border-border-hairline border-b">
+            <tr>
+              <th class="py-2 pr-4 font-semibold">Operator</th>
+              <th class="py-2 pr-4 font-semibold">Matches</th>
+              <th class="py-2 font-semibold">Offered for</th>
+            </tr>
+          </thead>
+          <tbody class="text-text-secondary divide-border-hairline divide-y">
+            {#each operators as item (item.op)}
+              <tr>
+                <td class="py-2 pr-4"><code class="text-text-primary">{item.op}</code></td>
+                <td class="py-2 pr-4">{item.matches}</td>
+                <td class="py-2">{item.offeredFor}</td>
+              </tr>
+            {/each}
+          </tbody>
+        </table>
       </div>
 
       <p class="text-text-secondary text-sm">
@@ -421,15 +431,14 @@ ${scriptClose}
 
       <p class="text-text-secondary text-sm">
         Both search and filters match against the column accessor's output — not against what a
-        custom cell renders. With a server source (<code class="text-text-primary"
-          >source=&#123;&#123; query &#125;&#125;</code
-        >
-        or
+        custom cell renders. With
         <code class="text-text-primary"
           >source=&#123;&#123; processing: 'server', &hellip; &#125;&#125;</code
-        >) the table does not filter locally: active filters arrive as
-        <code class="text-text-primary">filters</code> on the view the query receives — see
-        <a href={resolve('/table/remote-data')} class="text-primary hover:underline">Remote Data</a
+        >
+        the table does not filter locally: the active filters arrive as
+        <code class="text-text-primary">filters</code> on the view your backend is given — see
+        <a href={resolve('/table/server-processing')} class="text-primary hover:underline"
+          >Server Processing</a
         >.
       </p>
     </div>
@@ -469,7 +478,7 @@ ${scriptClose}
         description="One view, two writers: the input pushes into `view.search`, the table's own search field writes the same setting, and the readout reads it straight back."
         code={codeExternalSearch}
       >
-        <div class="space-y-4">
+        <div class="w-full space-y-4">
           <Input
             bind:value={term}
             label="Search from outside the table"

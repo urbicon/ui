@@ -66,6 +66,7 @@ ${scriptClose}
   description="Checkbox selection for one row or many, with a select-all across every filtered page. The table owns the selected set until you pass selectedIds."
   breadcrumbs={[{ label: 'Table', href: resolve('/table/table') }]}
   {navigation}
+  showToc={true}
 >
   <Section id="modes" title="Selection Modes">
     <p class="text-text-secondary mb-6 text-sm">
@@ -90,7 +91,7 @@ ${scriptClose}
     </p>
 
     <CodeExample title="Live — select-all spans both pages" code={codeMultiSelect}>
-      <div class="space-y-4">
+      <div class="w-full space-y-4">
         <Table
           items={employees.slice(0, 8)}
           columns={basicColumns}
@@ -153,7 +154,7 @@ ${scriptClose}
       title="Controlled — buttons and checkboxes write the same set"
       code={codeControlled}
     >
-      <div class="space-y-4">
+      <div class="w-full space-y-4">
         <div class="flex flex-wrap items-center gap-3">
           <Button
             size="sm"

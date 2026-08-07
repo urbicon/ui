@@ -1,6 +1,6 @@
 <script lang="ts">
   import SeoMeta from '$lib/SeoMeta.svelte';
-  import { CodeExample, DocsLayout as DocsPageLayout, Section } from '@urbicon-ui/docs';
+  import { CodeExample, DocsLayout as DocsPageLayout, Note, NoteList } from '@urbicon-ui/docs';
   import { resolve } from '$app/paths';
 </script>
 
@@ -27,53 +27,48 @@
        page (measured, 2026-08). -->
   <div class="space-y-8">
     <p class="text-text-secondary text-sm">
-      For large datasets (&gt;1,000 rows), enable
-      <code class="text-text-primary">virtualized</code> to render only visible rows. The table uses a
-      lightweight custom virtualizer (zero dependencies) that keeps ~20 rows in the DOM regardless of
-      dataset size.
+      <code class="text-text-primary">virtualized</code> renders only the rows in view, plus five above
+      and five below. A 400&nbsp;px viewport holds about seven rows at the default size, so the table
+      keeps under twenty in the DOM whether the set has a thousand rows or a million. Reach for it once
+      the browser is doing more drawing than the reader can see.
     </p>
 
     <CodeExample
       headingLevel={2}
       title="10,000 Rows"
-      description="Only ~20 rows are in the DOM. Pagination is bypassed – all items are in a scrollable container."
+      description="One scrollable container instead of pages."
       code={`<Table
   items={largeDataset}
-  columns={columns}
-  virtualized={true}
+  {columns}
+  virtualized
   virtualHeight="400px"
 />`}
       preview={false}
     />
 
-    <div class="border-border-subtle bg-surface-elevated rounded-2xl border p-6">
-      <h3 class="text-text-primary mb-4 text-sm font-semibold">Notes</h3>
-      <ul class="text-text-secondary list-outside list-disc space-y-2 pl-5 text-sm">
-        <li>
-          Pagination is automatically disabled when
-          <code class="text-text-primary">virtualized</code> is true
-        </li>
-        <li>
-          Virtualization wins over grouping – grouped virtualization is not implemented, so the
-          grouping affordances (header menu, toolbar menu) are suppressed and a grouping is
-          discarded no matter which way it arrives (view defaults, URL, storage), with a dev
-          warning. The discard is the system's decision, not the reader's: the URL is cleaned, but
-          nothing is written to storage, so a stored grouping applies again on the next load without
-          <code class="text-text-primary">virtualized</code>. Group server-side, or drop
-          <code class="text-text-primary">virtualized</code>
-        </li>
-        <li>
-          Row heights are fixed per <code class="text-text-primary">size</code> (sm/md/lg) — rows with
-          dynamic height (wrapping text, expanded content) are not supported in virtualized mode
-        </li>
-        <li>Selection and keyboard navigation work normally with virtualized rows</li>
-        <li>
-          <code class="text-text-primary">virtualHeight</code> accepts any CSS value:
-          <code class="text-text-primary">'400px'</code>,
-          <code class="text-text-primary">'60vh'</code>,
-          <code class="text-text-primary">'calc(100vh - 200px)'</code>
-        </li>
-      </ul>
-    </div>
+    <p class="text-text-secondary text-sm">
+      Every row is in one scrollable container, so there are no pages to turn: the pager is gone
+      while <code class="text-text-primary">virtualized</code> is set.
+      <code class="text-text-primary">virtualHeight</code> takes any CSS length, so
+      <code class="text-text-primary">'60vh'</code> and
+      <code class="text-text-primary">'calc(100vh - 200px)'</code> work as well as a pixel value. Selection
+      and keyboard navigation behave as they do anywhere else.
+    </p>
+
+    <NoteList variant="flush">
+      <Note title="Grouping is switched off, not just hidden">
+        Grouped virtualization is not implemented, and a grouping that slipped through would put
+        every row back in the DOM. So the table drops it whichever way it arrives — view defaults,
+        URL, storage — and hides the grouping affordances, with a warning in dev. The discard is the
+        table's decision rather than the reader's: the URL is cleaned, storage is left alone, and a
+        grouping the reader chose earlier applies again on a page without
+        <code>virtualized</code>. Group on the server, or drop <code>virtualized</code>.
+      </Note>
+      <Note title="Row heights are fixed">
+        The virtualizer computes positions from one height per
+        <code>size</code> (48, 56 and 64&nbsp;px for sm, md and lg), so a row that grows — wrapping text,
+        expanded content — lands in the wrong place. Those rows need the unvirtualized table.
+      </Note>
+    </NoteList>
   </div>
 </DocsPageLayout>

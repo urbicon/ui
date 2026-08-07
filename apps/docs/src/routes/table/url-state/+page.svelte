@@ -68,6 +68,7 @@ export const load = async ({ url }) => {
   description="Write the table's view state to the URL, so a view can be reloaded, shared as a link and read by the server. Plus what localStorage keeps on top of it."
   breadcrumbs={[{ label: 'Table', href: resolve('/table/table') }]}
   {navigation}
+  showToc={true}
 >
   <Section id="url-sync" title="View State in the URL">
     <p class="text-text-secondary mb-4 text-sm">
@@ -101,7 +102,7 @@ export const load = async ({ url }) => {
       <UrlStateDemo />
     </CodeExample>
 
-    <h3 class="text-text-primary mt-8 mb-2 text-sm font-semibold">defaults</h3>
+    <h3 class="text-text-primary mt-8 mb-2 text-base font-semibold">defaults</h3>
     <p class="text-text-secondary mb-4 text-sm">
       <code class="text-text-primary">defaults</code> is written once and does two jobs: it is the
       state the table starts in <em>and</em> what the URL does not repeat. A table sitting in its
@@ -112,7 +113,7 @@ export const load = async ({ url }) => {
       > owns its view.
     </p>
 
-    <h3 class="text-text-primary mb-2 text-sm font-semibold">What gets written</h3>
+    <h3 class="text-text-primary mb-2 text-base font-semibold">What gets written</h3>
     <p class="text-text-secondary mb-6 text-sm">
       Writes are debounced (300 ms) and replace the current history entry, so a burst of sort clicks
       does not flood the back button. <code class="text-text-primary">replaceState: false</code>
@@ -239,7 +240,7 @@ export const load = async ({ url }) => {
 
     <CodeExample title="Two bindings, one view" code={codeStorage} preview={false} />
 
-    <h3 class="text-text-primary mt-8 mb-2 text-sm font-semibold">What is stored</h3>
+    <h3 class="text-text-primary mt-8 mb-2 text-base font-semibold">What is stored</h3>
     <p class="text-text-secondary mb-4 text-sm">
       Five of the six settings, by default: search, sort, page size, filters and grouping.
       <code class="text-text-primary">page</code>
@@ -266,7 +267,7 @@ export const load = async ({ url }) => {
       its own keys).
     </p>
 
-    <h3 class="text-text-primary mb-2 text-sm font-semibold">clear and flush</h3>
+    <h3 class="text-text-primary mb-2 text-base font-semibold">clear and flush</h3>
     <p class="text-text-secondary mb-6 text-sm">
       The binding hands back <code class="text-text-primary">{'{ clear, flush }'}</code>.
       <code class="text-text-primary">clear()</code> is the "reset saved view" button: it empties
@@ -276,7 +277,7 @@ export const load = async ({ url }) => {
       unmounted table write.
     </p>
 
-    <h3 class="text-text-primary mb-2 text-sm font-semibold">The prefs channel</h3>
+    <h3 class="text-text-primary mb-2 text-base font-semibold">The prefs channel</h3>
     <p class="text-text-secondary mb-6 text-sm">
       Column visibility, column order and summaries are <em>not</em> view settings. They are
       presentation rather than selection, so they travel in
@@ -317,7 +318,8 @@ export const load = async ({ url }) => {
     </p>
 
     <p class="text-text-secondary mb-6 text-sm">
-      In server mode the load function reads the same parameters.
+      With <code class="text-text-primary">processing: 'server'</code> the load function reads the
+      same parameters.
       <code class="text-text-primary">searchParamsToViewSnapshot</code> resolves them against the
       same defaults object the component hands
       <code class="text-text-primary">createTableView</code>, and returns the very shape a managed
@@ -334,8 +336,9 @@ export const load = async ({ url }) => {
       and work without SvelteKit.
       <code class="text-text-primary">bindViewToUrl</code> in
       <code class="text-text-primary">/url.svelte</code> is the reactive half that needs it.
-      <a class="text-primary hover:underline" href={resolve('/table/remote-data')}>Remote Data</a> covers
-      the fetch side.
+      <a class="text-primary hover:underline" href={resolve('/table/server-processing')}
+        >Server Processing</a
+      > covers the fetch side.
     </p>
   </Section>
 </DocsPageLayout>

@@ -1,6 +1,6 @@
 <script lang="ts">
   import SeoMeta from '$lib/SeoMeta.svelte';
-  import { CodeExample, DocsLayout as DocsPageLayout, Section } from '@urbicon-ui/docs';
+  import { CodeExample, DocsLayout as DocsPageLayout } from '@urbicon-ui/docs';
   import { resolveColumnId, Table, type Column } from '@urbicon-ui/table';
   import { Badge } from '@urbicon-ui/blocks';
   import { resolve } from '$app/paths';
@@ -91,10 +91,10 @@
        page (measured, 2026-08). -->
   <div class="space-y-8">
     <p class="text-text-secondary text-sm">
-      Two ways to customise rendering: <strong>per-column snippets</strong> via the column's
-      <code class="text-text-primary">cell</code> property, or a
-      <strong>global cell snippet</strong> on the Table itself. Snippets receive the row item and the
-      resolved cell value.
+      A column's <code class="text-text-primary">cell</code> property takes a snippet, and the table itself
+      takes one that covers every column at once. Both receive the row item and the resolved cell value.
+      Whatever they render, search, sort, grouping and summaries keep working on the accessor's output,
+      so a badge or a progress bar never changes what a column sorts by.
     </p>
 
     <CodeExample
@@ -127,10 +127,10 @@
       <Table
         items={employees.slice(0, 6)}
         columns={[
-          { accessor: 'name', title: 'Name', sortable: true, searchable: true },
-          { accessor: 'role', title: 'Role', sortable: true },
+          { accessor: 'name', title: 'Name', sortable: true },
+          { accessor: 'role', title: 'Role' },
           { accessor: 'status', title: 'Status', cell: statusCell },
-          { accessor: 'projects', title: 'Projects', cell: projectsCell, align: 'left' }
+          { accessor: 'projects', title: 'Projects', cell: projectsCell }
         ] as Column<Employee>[]}
         enableSmartFilter={false}
         viewDefaults={{ pageSize: 6 }}
@@ -181,7 +181,7 @@
     <CodeExample
       headingLevel={2}
       title="Heat Map Cells"
-      description="Conditional background coloring to highlight data patterns – great for KPI dashboards."
+      description="A background colour derived from the value, so a pattern across rows is visible without reading them."
       code={`{#snippet heatCell(item, value)}
   {@const pct = Math.min(value / 20, 1)}
   {@const hue = pct * 142}
@@ -215,7 +215,7 @@
     <CodeExample
       headingLevel={2}
       title="Global Cell Override"
-      description="A table-level cell snippet overrides rendering for every column at once – useful for uniform styling."
+      description="One snippet renders every column. resolveColumnId tells you which one you are in."
       code={`<Table {items} {columns}>
   {#snippet cell(item, value, column)}
     {#if resolveColumnId(column) === 'department'}
@@ -241,5 +241,17 @@
         {/snippet}
       </Table>
     </CodeExample>
+
+    <p class="text-text-secondary text-sm">
+      A cell that grows past a few lines is easier to keep as a component:
+      <code class="text-text-primary">column.component</code> renders a Svelte component per cell
+      and always passes the row as <code class="text-text-primary">item</code>, with
+      <code class="text-text-primary">componentProps</code> supplying anything else. It types
+      cleanly where a snippet's argument annotations do not. When several of these are set on one
+      column, the first of table <code class="text-text-primary">cell</code>,
+      <code class="text-text-primary">column.cell</code>,
+      <code class="text-text-primary">column.component</code> and
+      <code class="text-text-primary">column.formatter</code> wins, in that order.
+    </p>
   </div>
 </DocsPageLayout>

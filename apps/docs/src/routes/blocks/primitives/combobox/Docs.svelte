@@ -59,8 +59,8 @@
   // ── Async search (queryFn) demo ─────────────────────────────────────────
   // Deterministic in-memory mock backend: a fixed city list, a constant
   // artificial latency, and a request counter. No network, no Math.random —
-  // the same demo-fetcher pattern as the Table server-mode demo
-  // (/table/remote-data) and the e2e remote fixture.
+  // the same demo-fetcher pattern as the Table query-function demo
+  // (/table/query) and the e2e remote fixture.
   const cities: ComboboxOption[] = [
     'Amsterdam',
     'Athens',
@@ -298,8 +298,8 @@ ${asyncScriptClose}
       For values that are pre-selected before any search has run — an edit form binding
       <code class="text-text-primary">value</code> on mount — pass
       <code class="text-text-primary">seedOptions</code> so the selection renders its label instead
-      of the raw value. The same mock-backend pattern drives the Table's server mode; see
-      <a href={resolve('/table/remote-data')} class="text-primary hover:underline">Remote Data</a>.
+      of the raw value. The same mock-backend pattern drives the Table's query demo; see
+      <a href={resolve('/table/query')} class="text-primary hover:underline">Query Function</a>.
     </p>
   </div>
 </Section>

@@ -3,7 +3,7 @@
   import { CodeExample, DocsLayout as DocsPageLayout, Section } from '@urbicon-ui/docs';
   import { Table, type Column } from '@urbicon-ui/table';
   import { resolve } from '$app/paths';
-  import { employees, basicColumns, richColumns, type Employee } from '../_data';
+  import { employees, basicColumns, type Employee } from '../_data';
 
   const navigation = [
     { id: 'sorting-grouping', title: 'Sorting & Grouping' },
@@ -24,20 +24,22 @@
     }
   ];
 
-  const aggregationTypes = [
-    { type: 'sum', label: '∑', desc: 'Total of all values in the column' },
-    { type: 'avg', label: '⌀', desc: 'Arithmetic mean' },
-    { type: 'count', label: '#', desc: 'Number of rows with a value' },
-    { type: 'min', label: '↓', desc: 'Smallest value' },
-    { type: 'max', label: '↑', desc: 'Largest value' }
-  ];
-
+  // One row per entry HeaderMenu renders, with the predicate behind it from
+  // utils/column-capabilities.ts. The toolbar's tools ask the same predicates,
+  // so this table describes both surfaces.
   const menuActions = [
-    { action: 'Sort ascending / descending', gate: 'sortable: true' },
-    { action: 'Group by column / Remove grouping', gate: 'groupable: true' },
-    { action: 'Add summary / Remove summary', gate: "summable: true, or dataType: 'number'" },
-    { action: 'Hide column', gate: 'hideable ≠ false and enableColumnVisibility' },
-    { action: 'Show "Column"', gate: 'listed for every currently hidden column' }
+    { action: 'Sort ascending / descending', gate: 'a data column, unless sortable: false' },
+    { action: 'Remove filters', gate: 'a filter on this column is active' },
+    {
+      action: 'Group by column / Remove grouping',
+      gate: 'groupable: true, or sortable: true when groupable is unset — never while virtualized'
+    },
+    {
+      action: 'Add summary / Remove summary',
+      gate: "summable: true, or dataType: 'number' when summable is unset"
+    },
+    { action: 'Hide column', gate: 'enableColumnVisibility and hideable ≠ false' },
+    { action: 'Show "Column"', gate: 'one entry per currently hidden column' }
   ];
 </script>
 
@@ -57,14 +59,23 @@
   description="Sort by clicking column headers, group rows by any groupable column, and aggregate numeric columns with summary rows."
   breadcrumbs={[{ label: 'Table', href: resolve('/table/table') }]}
   {navigation}
+  showToc={true}
 >
   <Section id="sorting-grouping" title="Sorting & Grouping">
     <div class="space-y-8">
       <p class="text-text-secondary text-sm">
-        Columns with <code class="text-text-primary">sortable: true</code> support click-to-sort
-        (ascending / descending / none). Columns with
-        <code class="text-text-primary">groupable: true</code> can be grouped via the SmartFilterBar,
-        the column's header menu, or programmatically.
+        Every data column sorts on a header click, cycling ascending, descending, unsorted.
+        <code class="text-text-primary">sortable: false</code> takes that away; a synthetic column has
+        no value to sort by and never had it.
+      </p>
+
+      <p class="text-text-secondary text-sm">
+        Grouping is the other way round: you opt a column in. Bucketing an email or a free-text note
+        makes one group per row, so it is not offered to every column that holds a value.
+        <code class="text-text-primary">groupable: true</code> says yes,
+        <code class="text-text-primary">groupable: false</code> says no, and with neither set the
+        column follows <code class="text-text-primary">sortable: true</code> — marking a column sortable
+        already says it is a dimension worth organising the table by.
       </p>
 
       <CodeExample
@@ -147,27 +158,26 @@
         />
       </CodeExample>
 
-      <div class="border-border-subtle bg-surface-elevated rounded-2xl border p-6">
-        <h4 class="text-text-primary mb-4 text-sm font-semibold">SummaryConfig Reference</h4>
-        <div class="mb-5 grid grid-cols-1 gap-x-8 gap-y-3 text-sm md:grid-cols-2">
-          {#each [{ prop: 'column', desc: 'Column id to aggregate (the accessor name for string accessors)' }, { prop: 'type', desc: '"sum" | "avg" | "count" | "min" | "max"' }, { prop: 'formatter', desc: 'Optional (value: number) => string for the rendered aggregate, e.g. currency formatting' }] as item (item.prop)}
-            <div>
-              <code class="text-primary text-xs">{item.prop}</code>
-              <p class="text-text-tertiary text-xs">{item.desc}</p>
-            </div>
-          {/each}
-        </div>
-        <div class="grid grid-cols-2 gap-x-8 gap-y-2 text-sm md:grid-cols-5">
-          {#each aggregationTypes as agg (agg.type)}
-            <div>
-              <code class="text-primary text-xs"
-                >{agg.type} <span aria-hidden="true">{agg.label}</span></code
-              >
-              <p class="text-text-tertiary text-xs">{agg.desc}</p>
-            </div>
-          {/each}
-        </div>
-      </div>
+      <p class="text-text-secondary text-sm">
+        A summary is <code class="text-text-primary">{'{ column, type }'}</code> plus an optional
+        <code class="text-text-primary">formatter</code>; the full shape is
+        <a
+          class="text-primary hover:underline"
+          href={resolve('/table/table') + '#type-SummaryConfig'}>SummaryConfig</a
+        >.
+        <code class="text-text-primary">type</code> is
+        <code class="text-text-primary">sum</code>, <code class="text-text-primary">avg</code>,
+        <code class="text-text-primary">min</code>, <code class="text-text-primary">max</code> or
+        <code class="text-text-primary">count</code>, and
+        <code class="text-text-primary">count</code> is the one that does not do arithmetic: it counts
+        the rows that have a value at all. The four others skip rows whose value is not a number, and
+        show a dash when none is.
+      </p>
+
+      <p class="text-text-secondary text-sm">
+        A summary covers every row matching the current search and filters, not the page on screen.
+        The pager moves under a total that stays put.
+      </p>
 
       <p class="text-text-secondary text-sm">
         Which columns offer summaries is controlled per column:
@@ -188,35 +198,50 @@
     <div class="space-y-8">
       <p class="text-text-secondary text-sm">
         Every column header exposes a <code class="text-text-primary">⋮</code> menu (visible on hover
-        and keyboard focus) that bundles the per-column actions — no SmartFilterBar required. Entries
-        appear only when the column's flags allow the action:
+        and keyboard focus) that bundles the per-column actions, with no SmartFilterBar required. Each
+        entry asks the same question the toolbar's tool of that name asks, so a column is never groupable
+        from one and not from the other:
       </p>
 
-      <div class="border-border-subtle bg-surface-elevated rounded-2xl border p-6">
-        <h3 class="text-text-primary mb-4 text-sm font-semibold">Menu Actions</h3>
-        <div class="grid grid-cols-1 gap-x-8 gap-y-3 text-sm md:grid-cols-2">
-          {#each menuActions as item (item.action)}
-            <div>
-              <span class="text-text-primary text-xs font-medium">{item.action}</span>
-              <p class="text-text-tertiary text-xs"><code>{item.gate}</code></p>
-            </div>
-          {/each}
-        </div>
+      <div class="border-border-hairline overflow-x-auto border-y">
+        <table class="w-full text-left text-sm">
+          <thead class="text-text-primary border-border-hairline border-b">
+            <tr>
+              <th class="py-2 pr-4 font-semibold">Entry</th>
+              <th class="py-2 font-semibold">Shown when</th>
+            </tr>
+          </thead>
+          <tbody class="text-text-secondary divide-border-hairline divide-y">
+            {#each menuActions as item (item.action)}
+              <tr>
+                <td class="py-2 pr-4">{item.action}</td>
+                <td class="py-2">{item.gate}</td>
+              </tr>
+            {/each}
+          </tbody>
+        </table>
       </div>
 
       <CodeExample
         title="Try It"
-        description="Hover a column header and open the ⋮ menu — sort, group by department, summarize salary, or hide a column."
+        description="Hover a column header and open the ⋮ menu: sort, group by department, summarize salary, or hide a column."
         code={`const columns: Column<Employee>[] = [
   { accessor: 'name', title: 'Name', sortable: true },
   { accessor: 'department', title: 'Department', sortable: true, groupable: true },
-  { accessor: 'salary', title: 'Salary', sortable: true, summable: true, dataType: 'number' }
+  {
+    accessor: 'salary',
+    title: 'Salary',
+    sortable: true,
+    summable: true,
+    dataType: 'number',
+    align: 'right'
+  }
 ];`}
         language="typescript"
       >
         <Table
           items={employees}
-          columns={richColumns}
+          columns={summaryColumns}
           viewDefaults={{ pageSize: 5 }}
           enableSmartFilter={false}
         />

@@ -19,11 +19,23 @@
   const cols = [
     TableColumns.userAvatar('name', 'Employee'),
     TableColumns.text('role', 'Role'),
-    TableColumns.text('department', 'Department'),
-    TableColumns.status('status', 'Status'),
+    // StatusBadge knows active/pending/archived and nine more; anything else
+    // reads "Unknown" until you name it here.
+    TableColumns.status('status', 'Status', {
+      statusMap: {
+        'on-leave': { intent: 'warning', text: 'On leave', icon: true },
+        offboarding: { intent: 'neutral', text: 'Offboarding', icon: false }
+      }
+    }),
     TableColumns.number('salary', 'Salary'),
     TableColumns.date('joinedAt', 'Joined'),
-    TableColumns.actions('Actions', { onView: () => {}, onEdit: () => {} })
+    // showView defaults to false; showDelete to true
+    TableColumns.actions('Actions', {
+      onView: () => {},
+      onEdit: () => {},
+      showView: true,
+      showDelete: false
+    })
   ];
 ${scriptClose}
 
@@ -32,9 +44,28 @@ ${scriptClose}
   const navigation = [
     { id: 'playground', title: 'Playground' },
     { id: 'column-factories', title: 'Column Factories' },
+    { id: 'next', title: 'Where to go next' },
     { id: 'api', title: 'API Reference' },
     { id: 'types', title: 'Types' },
     { id: 'installation', title: 'Installation' }
+  ];
+
+  // `TableColumns` is a value export, so no generated Types entry carries it —
+  // this list is the only documentation the nine factories have, and it is
+  // therefore worth keeping against `packages/table/src/lib/factories/
+  // TableColumns.ts`. It listed eight until 2026-08-07: `custom` had been
+  // missing since it was added, which presents as an absent feature rather
+  // than a wrong one and so goes unreported.
+  const factories = [
+    { name: 'text', desc: 'Plain text, with an optional formatter' },
+    { name: 'number', desc: 'Right-aligned, locale-aware number formatting' },
+    { name: 'date', desc: 'Locale-aware date formatting' },
+    { name: 'status', desc: 'Coloured badge, centred and groupable' },
+    { name: 'userAvatar', desc: 'Avatar next to the name' },
+    { name: 'link', desc: 'Renders the value as an anchor' },
+    { name: 'copy', desc: 'Click-to-copy button, centred and unsortable' },
+    { name: 'custom', desc: 'Text content with styling of your own' },
+    { name: 'actions', desc: 'View / edit / delete buttons; synthetic, no accessor' }
   ];
 </script>
 
@@ -46,23 +77,21 @@ ${scriptClose}
 
 <SeoMeta
   title="Table Component"
-  description="Advanced data table with smart filtering, column factories, grouping, summaries, and responsive mobile layout."
+  description="A data table that sorts, filters, groups and pages your rows, in the browser or against your backend. Falls back to a card list on narrow screens."
 />
 
 <DocsPageLayout
   title="Table"
-  description="Advanced data table with smart filtering, column factories, grouping, summaries, and responsive mobile layout."
+  description="A data table that sorts, filters, groups and pages your rows, in the browser or against your backend. Falls back to a card list on narrow screens."
   maxWidth="2xl"
   showToc={true}
   breadcrumbs={[{ label: 'Home', href: resolve('/') }]}
   {navigation}
 >
-  <!--
-    Der frühere "Full Setup"-Kasten ist weg: Er hielt eine zweite, von Hand
-    gepflegte Kopie der Spalten und Daten als Text — die weder die
-    Live-Einstellungen abbildete noch die Tabelle selbst zeigte. Der Playground
-    druckt beides jetzt aus denselben Objekten, die er rendert.
-  -->
+  <!-- The former "Full Setup" box is gone: it held a second, hand-maintained
+       copy of the columns and the data as text, which neither reflected the
+       live settings nor showed the table itself. The playground now prints
+       both from the very objects it renders. -->
   <Section id="playground" title="Playground" titleHidden intent="primary">
     <Playground />
   </Section>
@@ -70,13 +99,13 @@ ${scriptClose}
   <Section id="column-factories" title="Column Factories">
     <div class="space-y-8">
       <p class="text-text-secondary text-sm">
-        <code class="text-text-primary">TableColumns</code> creates pre-configured columns with the right
-        cell components, alignment, and sorting – no manual wiring.
+        <code class="text-text-primary">TableColumns</code> builds a column with the cell component, the
+        alignment and the flags already set, so a typed column is one call instead of six properties.
       </p>
 
       <CodeExample
         title="Factory-Powered Table"
-        description="Avatar, text, status badge, number, date, and action columns – six lines of config."
+        description="Six columns: an avatar, a text column, a status badge, a number, a date and the action buttons."
         code={codeFactoryTable}
       >
         <Table
@@ -87,17 +116,77 @@ ${scriptClose}
         />
       </CodeExample>
 
-      <div class="border-border-subtle bg-surface-elevated rounded-2xl border p-6">
-        <h4 class="text-text-primary mb-4 text-sm font-semibold">Available Factories</h4>
-        <div class="grid grid-cols-2 gap-x-8 gap-y-3 text-sm md:grid-cols-4">
-          {#each [{ name: 'text', desc: 'Plain text with optional formatter' }, { name: 'number', desc: 'Right-aligned numeric values' }, { name: 'date', desc: 'Formatted date display' }, { name: 'status', desc: 'Colored status badges' }, { name: 'userAvatar', desc: 'Avatar + name combo' }, { name: 'link', desc: 'Clickable URL cells' }, { name: 'copy', desc: 'Copy-to-clipboard button' }, { name: 'actions', desc: 'View / Edit / Delete buttons' }] as factory (factory.name)}
-            <div>
-              <code class="text-primary text-xs">{factory.name}</code>
-              <p class="text-text-tertiary text-xs">{factory.desc}</p>
-            </div>
-          {/each}
-        </div>
+      <p class="text-text-secondary text-sm">All nine:</p>
+
+      <div class="border-border-hairline overflow-x-auto border-y">
+        <table class="w-full text-left text-sm">
+          <thead class="text-text-primary border-border-hairline border-b">
+            <tr>
+              <th class="py-2 pr-4 font-semibold">Factory</th>
+              <th class="py-2 font-semibold">What it builds</th>
+            </tr>
+          </thead>
+          <tbody class="text-text-secondary divide-border-hairline divide-y">
+            {#each factories as factory (factory.name)}
+              <tr>
+                <td class="py-2 pr-4"><code class="text-text-primary">{factory.name}</code></td>
+                <td class="py-2">{factory.desc}</td>
+              </tr>
+            {/each}
+          </tbody>
+        </table>
       </div>
+    </div>
+  </Section>
+
+  <Section id="next" title="Where to go next">
+    <div class="space-y-4">
+      <p class="text-text-secondary text-sm">
+        <strong class="text-text-primary">Who does the work.</strong> A few hundred rows sort,
+        filter and page in the browser:
+        <a class="text-primary hover:underline" href={resolve('/table/client-processing')}
+          >Client Processing</a
+        >. Past a few thousand it becomes the backend's job, and you hand the table one page at a
+        time:
+        <a class="text-primary hover:underline" href={resolve('/table/server-processing')}
+          >Server Processing</a
+        >. Give it a
+        <code class="text-text-primary">query</code> function and it runs the fetch itself:
+        <a class="text-primary hover:underline" href={resolve('/table/query')}>Query Function</a>.
+      </p>
+
+      <p class="text-text-secondary text-sm">
+        <strong class="text-text-primary">What the reader can change.</strong> Six settings decide
+        which rows they see: search, sort, page, page size, filters and grouping. They live in one
+        view object, and
+        <a class="text-primary hover:underline" href={resolve('/table/url-state')}>URL State</a>
+        puts it in the address bar, so a view can be reloaded, shared and read by the server. What each
+        setting does is on
+        <a class="text-primary hover:underline" href={resolve('/table/filtering')}
+          >Filtering &amp; Search</a
+        >
+        and
+        <a class="text-primary hover:underline" href={resolve('/table/sorting-grouping')}
+          >Sorting, Grouping &amp; Summaries</a
+        >.
+      </p>
+
+      <p class="text-text-secondary text-sm">
+        <strong class="text-text-primary">Once it is a working surface.</strong>
+        <a class="text-primary hover:underline" href={resolve('/table/selection')}>Row Selection</a>
+        for acting on rows,
+        <a class="text-primary hover:underline" href={resolve('/table/custom-cells')}
+          >Custom Cells</a
+        >
+        for rendering them your way,
+        <a class="text-primary hover:underline" href={resolve('/table/virtual-scrolling')}
+          >Virtual Scrolling</a
+        >
+        and
+        <a class="text-primary hover:underline" href={resolve('/table/sticky-pinning')}
+          >Sticky Pinning</a
+        > for long lists.
+      </p>
     </div>
   </Section>
 

@@ -10,6 +10,41 @@
     { id: 'column-visibility', title: 'Column Visibility' }
   ];
 
+  // How the five capability flags relate — which is page material, not
+  // per-prop material: three of them fall back to another flag, and a reader
+  // deciding what to declare needs them side by side. The per-flag contract is
+  // the JSDoc on `DerivableMixin` / `BaseColumn` in packages/table, which is
+  // what an editor shows on hover. It does not reach the generated Types
+  // section: docs-gen slices an interface's own members and does not follow
+  // `extends`, so `Column` there resolves to `id` + `accessor` and nothing else.
+  const capabilityFlags = [
+    {
+      name: 'sortable',
+      unset: 'sorts',
+      governs: 'the header click, the header menu, the toolbar’s sort tool'
+    },
+    {
+      name: 'searchable',
+      unset: 'matches',
+      governs: 'the search field and the column’s own filter entry — one flag for both'
+    },
+    {
+      name: 'groupable',
+      unset: 'follows sortable',
+      governs: 'the header menu and the toolbar’s grouping tool'
+    },
+    {
+      name: 'summable',
+      unset: "follows dataType: 'number'",
+      governs: 'whether Sum / Avg / Min / Max / Count are offered for the column'
+    },
+    {
+      name: 'hideable',
+      unset: 'can be hidden',
+      governs: 'the visibility menu and the header menu’s hide action'
+    }
+  ];
+
   const visibilityColumns: Column<Employee>[] = [
     { accessor: 'name', title: 'Name', sortable: true, hideable: false },
     { accessor: 'role', title: 'Role', sortable: true },
@@ -20,69 +55,6 @@
       sortable: true,
       dataType: 'number',
       align: 'right'
-    }
-  ];
-
-  const columnProps = [
-    {
-      prop: 'accessor',
-      desc: 'Row property name (primitive value) or function (item) => value. Omit it for synthetic columns (action buttons, derived visuals) — they carry no data.'
-    },
-    {
-      prop: 'id',
-      desc: 'Stable column identifier — required for function accessors and synthetic columns; defaults to the accessor name for string accessors'
-    },
-    {
-      prop: 'title',
-      desc: 'Column header label — may be an empty string for icon-only columns such as action columns'
-    },
-    {
-      prop: 'menuTitle',
-      desc: 'Name used wherever the column is referenced by name in table chrome (visibility, header, filter/group/summary menus) — falls back to title, then a humanized id. Set it on icon-only columns with an empty title.'
-    },
-    { prop: 'sortable', desc: 'Enable click-to-sort (default: false)' },
-    {
-      prop: 'searchable',
-      desc: 'Include in SmartFilterBar search and the per-column filter menu (default: true)'
-    },
-    {
-      prop: 'groupable',
-      desc: 'Allow group-by via SmartFilterBar or header menu — follows `sortable` when unset'
-    },
-    {
-      prop: 'summable',
-      desc: 'Allow sum/avg/count via SmartFilterBar or header menu — auto-detected for number columns when unset'
-    },
-    {
-      prop: 'dataType',
-      desc: '"text" | "number" | "date" | "boolean" | "email" | "url" — drives which filter operators the filter menu offers, the filter input type, and number-column detection for summaries'
-    },
-    {
-      prop: 'hideable',
-      desc: 'Allow hiding via the visibility or header menu (default: true) — set false to pin a column as always-visible'
-    },
-    {
-      prop: 'priority',
-      desc: '1/unset = primary (mobile card title), 2 = secondary detail, 3 = desktop-only (hidden in card)'
-    },
-    { prop: 'align', desc: '"left" | "center" | "right" — cell text alignment' },
-    { prop: 'width / minWidth', desc: 'Fixed or minimum column width (CSS string)' },
-    { prop: 'flex', desc: 'Use flex layout inside the header cell' },
-    {
-      prop: 'formatter',
-      desc: '(value, item) => string | null — plain-text cell formatting; applies only when neither cell nor component is set'
-    },
-    {
-      prop: 'cell',
-      desc: 'Snippet (item, value) for custom cell rendering — takes precedence over component and formatter'
-    },
-    {
-      prop: 'component',
-      desc: 'Svelte component rendered for the cells of this column — receives the row item as a prop'
-    },
-    {
-      prop: 'componentProps',
-      desc: '(item) => props factory for component — the item itself is always passed automatically'
     }
   ];
 </script>
@@ -103,6 +75,7 @@
   description="Rich column properties to control sorting, filtering, grouping, summaries, visibility, responsive priority, and custom cell rendering."
   breadcrumbs={[{ label: 'Table', href: resolve('/table/table') }]}
   {navigation}
+  showToc={true}
 >
   <Section id="column-config" title="Column Properties">
     <div class="space-y-8">
@@ -122,7 +95,7 @@
     searchable: true,
     width: '200px',        // fixed width
     minWidth: '120px',     // minimum on resize
-    priority: 1            // primary — becomes the mobile card title
+    priority: 1            // primary; first card column, so it is the card title
   },
   {
     accessor: 'department',
@@ -201,17 +174,39 @@
         > for snippet and component recipes.
       </p>
 
-      <div class="border-border-subtle bg-surface-elevated rounded-2xl border p-6">
-        <h4 class="text-text-primary mb-4 text-sm font-semibold">Column Properties Reference</h4>
-        <div class="grid grid-cols-1 gap-x-8 gap-y-3 text-sm md:grid-cols-2">
-          {#each columnProps as item (item.prop)}
-            <div>
-              <code class="text-primary text-xs">{item.prop}</code>
-              <p class="text-text-tertiary text-xs">{item.desc}</p>
-            </div>
-          {/each}
-        </div>
+      <p class="text-text-secondary text-sm">
+        Five flags decide what a column can be asked to do. They are not independent, and two of
+        them are off until something turns them on:
+      </p>
+
+      <div class="border-border-hairline overflow-x-auto border-y">
+        <table class="w-full text-left text-sm">
+          <thead class="text-text-primary border-border-hairline border-b">
+            <tr>
+              <th class="py-2 pr-4 font-semibold">Flag</th>
+              <th class="py-2 pr-4 font-semibold">Unset means</th>
+              <th class="py-2 font-semibold">What it governs</th>
+            </tr>
+          </thead>
+          <tbody class="text-text-secondary divide-border-hairline divide-y">
+            {#each capabilityFlags as flag (flag.name)}
+              <tr>
+                <td class="py-2 pr-4"><code class="text-text-primary">{flag.name}</code></td>
+                <td class="py-2 pr-4">{flag.unset}</td>
+                <td class="py-2">{flag.governs}</td>
+              </tr>
+            {/each}
+          </tbody>
+        </table>
       </div>
+
+      <p class="text-text-secondary text-sm">
+        <code class="text-text-primary">dataType</code> is the one to set first: it picks the filter
+        operators the menu offers, the alignment, and whether the column can be summed at all. And
+        <code class="text-text-primary">priority</code> decides only whether a column reaches the mobile
+        card — which of the ones that do becomes the card's title and subtitle is their order in the array,
+        not their number.
+      </p>
     </div>
   </Section>
 

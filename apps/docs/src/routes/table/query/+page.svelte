@@ -10,7 +10,7 @@
   } from '@urbicon-ui/docs';
   import { resolve } from '$app/paths';
   import { scriptClose } from '../_data';
-  import RemoteDataDemo from './RemoteDataDemo.svelte';
+  import QueryDemo from './QueryDemo.svelte';
 
   // `<script lang="ts">` as an opener is safe inside a template literal (the
   // parser only looks for the closing tag); the closer comes from `_data`.
@@ -19,8 +19,8 @@
   const navigation = [
     { id: 'overview', title: 'Letting the table fetch' },
     { id: 'demo', title: 'Demo' },
-    { id: 'query', title: 'The query function' },
-    { id: 'server-mode', title: 'What server mode changes' }
+    { id: 'params', title: 'From the view to your parameters' },
+    { id: 'limits', title: 'What it will not do' }
   ];
 
   const codeManaged = `${scriptOpenTs}
@@ -73,23 +73,25 @@ function toParams(view: TableViewSnapshot) {
 </script>
 
 <SeoMeta
-  title="Remote Data - Table"
-  description="The browser fetches the data: give source a query function and the table calls your backend whenever the reader sorts, filters or pages."
+  title="Query Function - Table"
+  description="Give source a query function and the table calls your backend itself, whenever the reader sorts, filters or pages."
 />
 
 <DocsPageLayout
-  title="Remote Data"
-  description="The browser fetches the data. Give source a query function, and the table calls your backend whenever the reader sorts, filters or pages."
+  title="Query Function"
+  description="Give source a query function and the table calls your backend itself, whenever the reader sorts, filters or pages."
   {navigation}
+  showToc={true}
   breadcrumbs={[{ label: 'Table', href: resolve('/table/table') }]}
 >
   <Section id="overview" title="Letting the table fetch">
     <div class="space-y-4">
       <p class="text-text-secondary text-sm">
-        Past a few thousand rows you stop sending the whole set to the browser. Give
-        <code class="text-text-primary">source</code> a
-        <code class="text-text-primary">query</code> function instead: your backend sorts, filters and
-        pages, and the table calls the function whenever the reader changes what they see.
+        A <code class="text-text-primary">query</code> function is the second way to run
+        <a class="text-primary hover:underline" href={resolve('/table/server-processing')}
+          >server processing</a
+        >: instead of fetching each page yourself, you hand the table a function and it calls that
+        function whenever the reader changes what they see.
       </p>
 
       <CodeExample
@@ -105,17 +107,14 @@ function toParams(view: TableViewSnapshot) {
         <code class="text-text-primary">message</code>. You render neither yourself.
       </p>
 
-      <p class="text-text-secondary text-sm">
-        For a few hundred rows you don't need any of this. Pass the array to the
-        <code class="text-text-primary">items</code> prop and the browser sorts, filters and pages it.
-      </p>
-
       <InfoCard title="The rows already arrive some other way?">
         A <code class="text-text-primary">query</code> function fetches in the browser, after
         hydration, so the server's HTML carries the empty state. When the rows come from a SvelteKit
         <code class="text-text-primary">load</code>, a store or a cache of your own, you hand the
         table finished rows instead:
-        <a class="text-primary hover:underline" href={resolve('/table/ssr')}>SSR</a>.
+        <a class="text-primary hover:underline" href={resolve('/table/server-processing')}
+          >Server Processing</a
+        >.
       </InfoCard>
     </div>
   </Section>
@@ -126,22 +125,22 @@ function toParams(view: TableViewSnapshot) {
         The demo runs against an in-memory list of 56 users, behind a delay you can set.
       </p>
 
-      <RemoteDataDemo />
+      <QueryDemo />
     </div>
   </Section>
 
-  <Section id="query" title="The query function">
+  <Section id="params" title="From the view to your parameters">
     <div class="space-y-4">
       <p class="text-text-secondary text-sm">
-        <code class="text-text-primary">query</code> receives the current view itself — the six axes
-        under the names the reader's controls write — plus the
+        <code class="text-text-primary">query</code> receives the current view itself, the six
+        settings under the names the reader's controls write, plus the
         <code class="text-text-primary">signal</code> for that request. Turn it into whatever your endpoint
         reads:
       </p>
 
       <CodeExample
-        title="Translating the query into your parameters"
-        description="All six view axes as URL parameters."
+        title="Translating the view into your parameters"
+        description="All six settings as URL parameters."
         code={codeParams}
         language="typescript"
         preview={false}
@@ -167,12 +166,9 @@ function toParams(view: TableViewSnapshot) {
 
       <p class="text-text-secondary text-sm">
         Return <code class="text-text-primary">{'{ items, total }'}</code>.
-        <code class="text-text-primary">items</code> is the page you were asked for.
-        <code class="text-text-primary">total</code> counts every row matching the query, and the
-        pager divides it by the page size, so it decides how far the reader can page — the same
-        field, under the same name, that
-        <code class="text-text-primary">{"source={{ processing: 'server' }}"}</code> takes when you drive
-        the fetch yourself.
+        <code class="text-text-primary">items</code> is the page you were asked for, and
+        <code class="text-text-primary">total</code> counts every row matching the query. It is the same
+        field, under the same name, that a manual server source takes.
       </p>
 
       <NoteList variant="flush">
@@ -182,7 +178,8 @@ function toParams(view: TableViewSnapshot) {
         </Note>
         <Note title="Search waits twice">
           A keystroke reaches the view after <code>searchDebounceMs</code> (300) and the network
-          after <code>debounceMs</code> on top, so search sits about 600 ms behind. The two sit on
+          after
+          <code>debounceMs</code> on top, so search sits about 600 ms behind. The two sit on
           different objects: <code>{'<Table searchDebounceMs={100} />'}</code> and
           <code>{"source={{ processing: 'server', query: loadUsers, debounceMs: 100 }}"}</code>.
         </Note>
@@ -191,49 +188,34 @@ function toParams(view: TableViewSnapshot) {
           <code>signal</code> to <code>fetch</code> is what carries that abort to the network, and an
           aborted request never reaches your error handling.
         </Note>
-        <Note title="Only the view starts a fetch">
-          Writing a value the view already holds changes nothing, so a
-          <code>query</code> function cannot ask the server the same question twice. A refresh
-          button or a poll belongs to the manual flow on
-          <a class="text-primary hover:underline" href={resolve('/table/ssr')}>SSR</a>. When rows
-          change under the reader, push them into the table instead:
-          <a class="text-primary hover:underline" href={resolve('/table/live-updates')}
-            >Live Updates</a
-          >.
-        </Note>
       </NoteList>
     </div>
   </Section>
 
-  <Section id="server-mode" title="What server mode changes">
+  <Section id="limits" title="What it will not do">
     <div class="space-y-4">
       <p class="text-text-secondary text-sm">
-        Sorting, filtering, search and paging are requests now. The controls behave the same way for
-        the reader, but each one only changes the query, so a parameter your endpoint ignores is a
-        control that quietly does nothing. <code class="text-text-primary">sortable: false</code>
-        and
-        <code class="text-text-primary">groupable: false</code> on a column remove the affordances you
-        cannot serve.
+        The view is the only thing that starts a fetch. Writing a value the view already holds
+        changes nothing, so a <code class="text-text-primary">query</code> function cannot ask the server
+        the same question twice.
       </p>
 
       <p class="text-text-secondary text-sm">
-        Search is not one of them:
-        <code class="text-text-primary">searchable</code> gates the browser's own matcher, which server
-        mode has already switched off, and the search term reaches your endpoint either way.
+        That is the whole remit, deliberately. A refresh button, a poll, a cache, retries, a refetch
+        after a mutation: that is a data layer, and yours will do it better than one grown inside a
+        table. TanStack Query and SvelteKit's remote functions both already have it. Hand their
+        result to the manual flow, which asks only for rows and a total:
+        <a class="text-primary hover:underline" href={resolve('/table/server-processing')}
+          >Server Processing</a
+        >.
       </p>
 
       <p class="text-text-secondary text-sm">
-        Grouping is the one axis the table does not hand over. It travels as
-        <code class="text-text-primary">groupBy</code>, and the table also buckets the rows that
-        come back. A grouped table shows every row it holds, so it renders no pager while a grouping
-        is active. Group server-side only if a page of rows is a meaningful group.
-      </p>
-
-      <p class="text-text-secondary text-sm">
-        Selection reaches as far as the loaded page. Select-all marks the rows the table holds, and
-        <code class="text-text-primary">onSelectionChange</code> reports those. Ids from earlier
-        pages stay in <code class="text-text-primary">state.selectedIds</code> on the table context; their
-        rows are gone. For an action across the whole result set, send the query instead of the selection.
+        Rows changing under the reader are the third case. Push them into the table rather than
+        refetching:
+        <a class="text-primary hover:underline" href={resolve('/table/live-updates')}
+          >Live Updates</a
+        >.
       </p>
     </div>
   </Section>
