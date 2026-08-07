@@ -494,9 +494,12 @@
   display: none;
 }
 
-/* Scrollspy badge (shown once scrolled) would clash primary-on-primary on the
- * accent strip; flip it to a translucent-foreground inlay so it reads as a
- * chip regardless of room. Breadcrumb + source read via the token remap above. */
+/* The sticky bar's table-of-contents trigger would clash primary-on-primary on
+ * the accent strip; flip it to a translucent-foreground inlay so it reads as a
+ * chip regardless of room. Breadcrumb + source read via the token remap above.
+ * It used to be a scrollspy badge that only appeared once scrolled — hence the
+ * attribute name; it is now always present (icon alone at the top of the page,
+ * with the active section's title expanding in beside it further down). */
 .docs-rooms [data-docs-sticky-bar] [data-docs-scrollspy] {
   background: color-mix(in oklab, var(--room-accent-fg) 16%, transparent);
   color: var(--room-accent-fg);
