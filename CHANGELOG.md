@@ -4,6 +4,16 @@ All notable changes to this project will be documented in this file.
 This changelog is automatically generated from [Conventional Commits](https://www.conventionalcommits.org).
 
 
+## [8.1.0] - 2026-08-07
+
+### Breaking Changes
+- **table**: Settle the v8 vocabulary, and bring the docs with it (#168)
+> **BREAKING:** TypesReference's `root`, `header`, `title` and `description` slots are gone — the section, its heading and its description belong to `<Section>` now. `card` is `expandedPanel`, `toolbarText` is gone, and `size` no longer scales the heading. New props: `id`, `marker`, `meta`. * fix(docs,docs-app): dock the TOC to the reading column, give exhibits their own edge The reading measure was capping `section` while `main` stayed `flex-1 max-w-none`, so `main` swallowed everything the TOC did not take and the difference became a corridor of nothing: 208px at 1440, 568px at 1920. The same line left ever …
+> **BREAKING:** the `desktop-only` / `mobile-only` marker classes are gone. They named no CSS anywhere in the repo; the hook is `data-table-layout` ("desktop" | "mobile"). A mobile record no longer carries a frame of its own — style the list through `slotClasses.scrollArea`, a record through `slotClasses.mobileCard`. Verified in the browser at 360–1600px: exactly one layout at every width, and container- rather than viewport-keyed (a 1280px window with a 608px reading column renders the record list). Reactivity fix along the way: the grouped totals were destructured off the context, so they were captured once …
+
+### Miscellaneous
+- Cap the changelog's breaking note at 600 characters
+
 ## [8.0.0] - 2026-08-06
 
 ### Breaking Changes
@@ -39,7 +49,7 @@ This changelog is automatically generated from [Conventional Commits](https://ww
 ### Breaking Changes
 - Derive prop-driven state instead of syncing it in $effect (#153)
 - **docs**: Highlight and seed synchronously, so the server renders them too (#155)
-> **BREAKING:** `highlighterService.highlightCode()` returns a string instead of a `Promise<string>`, `getHighlighter()` returns `HighlighterCore` instead of `Highlighter`, `CodePanelSlots` no longer carries `loadingContainer` / `loadingText`, and `@shikijs/langs` joins `shiki` as a required peer. * fix(docs): key the highlight cache on a colon, not on a NUL byte The separator was a literal NUL. It parses — a template literal takes any character — so tests, svelte-check, Biome and Prettier all passed it. What it broke is everything that decides text-vs-binary by scanning for a zero byte: `file` reported the source as `data`, `rg` refused to search it, and `git diff` showed "Bin 6828 -> 6840 bytes" instead of a diff, which is how it surfaced. A colon is unambiguous for this key: a language id never contains one. ---------
+> **BREAKING:** `highlighterService.highlightCode()` returns a string instead of a `Promise<string>`, `getHighlighter()` returns `HighlighterCore` instead of `Highlighter`, `CodePanelSlots` no longer carries `loadingContainer` / `loadingText`, and `@shikijs/langs` joins `shiki` as a required peer. * fix(docs): key the highlight cache on a colon, not on a NUL byte The separator was a literal NUL. It parses — a template literal takes any character — so tests, svelte-check, Biome and Prettier all passed it. What it broke is everything that decides text-vs-binary by scanning for a zero byte: `file` reported the s …
 - **table**: Let the view state live in the URL, so the server can see it (#154)
 
 ### Bug Fixes
@@ -1188,7 +1198,7 @@ This changelog is automatically generated from [Conventional Commits](https://ww
 
 ### Breaking Changes
 - **blocks**: Tighten the tv() API surface — type-safe slots, fail-loud config, ClassValue parity
-> **BREAKING:** four narrowings of the tv() call surface (no runtime consumer existed for any of them — verified repo-wide): - the React-era `className` alias is gone everywhere (props, compound  entries, matchesCompound). Svelte has one class prop. - `base` and `slots` are mutually exclusive: the primary slot is declared  as `slots.base`. Historically a top-level base was silently dropped  unless a slot happened to be named 'base'. - the slot-mode resolve call takes no top-level `class` (it had no slot to  attach to and was silently ignored) — class overrides belong to the slot  functions; a DEV warning covers untyped callers. - no-slot variant values are class strings/arrays; an object (slot map)  there is now a config error. Found one real instance: table's  headerMenuItemVariants marker axis used {} instead of ''. Completeness upgrades: - slot-name type safety: slot-map keys in variant values and compound  classes are compile-checked against the declared slots  (ValidSlotVariants intersection — a 'wrapeer' typo is now a type error  at that key). Closes the biggest documented trade-off of the engine. - config-time runtime validation (covers JS callers and configs built from  imported constants): unknown slot keys, unknown compound axes/values,  undeclared defaultVariants values and no-slot slot-maps all throw at  module init with precise messages. Half-declared boolean axes  (loading: { true } + a compound on loading: false) stay idiomatic. - call-site class inputs mirror Svelte 5's ClassValue: cx() and every  `class` override accept clsx-shaped records ({ active: cond }), nested  arrays included. Config-side values deliberately keep object = slot map. - every resolver exposes its config as a non-enumerable `.config` for  tooling (variants linter, docs-gen). - micro: single-lookup bucket cache; slot bases tokenized once per config.
+> **BREAKING:** four narrowings of the tv() call surface (no runtime consumer existed for any of them — verified repo-wide): - the React-era `className` alias is gone everywhere (props, compound  entries, matchesCompound). Svelte has one class prop. - `base` and `slots` are mutually exclusive: the primary slot is declared  as `slots.base`. Historically a top-level base was silently dropped  unless a slot happened to be named 'base'. - the slot-mode resolve call takes no top-level `class` (it had no slot to  attach to and was silently ignored) — class overrides belong to the slot  functions; a DEV warning cove …
 
 ### Bug Fixes
 - **blocks**: Redirect GuidePanel focus on article switch, reset search on close
