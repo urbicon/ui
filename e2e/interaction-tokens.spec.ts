@@ -1,5 +1,5 @@
 import { expect, test } from '@playwright/test';
-import { force, nodeIdsWithin, openCdp } from './helpers/force-state';
+import { forceWithin, openCdp } from './helpers/force-state';
 
 /**
  * Resolved-value gate for hover fills — the half a screenshot cannot prove.
@@ -115,7 +115,6 @@ test.describe('Hover fills resolve to a visible colour', () => {
         try {
           for (const group of GROUPS) {
             const testId = `vr-ix-${group}`;
-            const nodeIds = await nodeIdsWithin(cdp, testId);
 
             const rest = (await page.evaluate(PROBE(testId))) as { bg: string; label: string }[];
             expect(
@@ -123,13 +122,13 @@ test.describe('Hover fills resolve to a visible colour', () => {
               `no hover-fill elements found in ${testId} — this gate would be a silent no-op`
             ).toBeGreaterThan(0);
 
-            await force(cdp, nodeIds, ['hover']);
+            await forceWithin(cdp, testId, ['hover']);
             const hovered = (await page.evaluate(PROBE(testId))) as {
               bg: string;
               backdrop: string;
               label: string;
             }[];
-            await force(cdp, nodeIds, []);
+            await forceWithin(cdp, testId, []);
 
             const probes: Probe[] = hovered.map((h, i) => ({
               label: h.label,
