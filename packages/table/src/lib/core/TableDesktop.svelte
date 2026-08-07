@@ -51,7 +51,7 @@
   } = $props();
 
   const tableContext = getInternalTableContext();
-  const { state: tableState } = tableContext;
+  const { state: tableState, view: tableView } = tableContext;
   const filteredItems = $derived(tableContext.filteredItems);
   const paginatedItems = $derived(tableContext.paginatedItems);
   /** Rendered rows in visual order — what the keyboard navigates. Equals
@@ -83,7 +83,7 @@
   const totalColSpan = $derived.by(() => {
     let count = tableState.columns.length;
     if (expandable) count += 1;
-    if (tableState.groupByKey) count += 1;
+    if (tableState.effectiveGroupBy) count += 1;
     if (selectable) count += 1;
     return count;
   });
@@ -99,7 +99,7 @@
   // without this the virtualized table would answer "loading" with the empty
   // state ("No data found.") while mobile says "Loading…".
   const virtualizedActive = $derived(
-    virtualized && !tableState.groupByKey && !tableState.loading && !tableState.error
+    virtualized && !tableState.effectiveGroupBy && !tableState.loading && !tableState.error
   );
   const virtualItems = $derived(tableContext.sortedItems);
   const rowHeight = $derived(ROW_HEIGHTS[size] ?? ROW_HEIGHTS.md);
@@ -137,19 +137,18 @@
   // Reset focus when page/sort/filter changes
   $effect(() => {
     // Track dependencies so we reset on any data change.
-    // `effectivePage`, not `state.currentPage` — what matters is whether the
+    // `effectivePage`, not `view.page` — what matters is whether the
     // rendered rows changed, and the raw value misses that in both directions:
     // 5 → 6 against three pages renders the same rows (reset was firing for
     // nothing), while a new page size re-slices them without moving it at all.
     void tableContext.effectivePage;
-    void tableState.sortColumn;
-    void tableState.sortDirection;
-    void tableState.searchTerm;
-    void tableState.activeFilters;
+    void tableView.sort;
+    void tableView.search;
+    void tableView.filters;
     // Grouping reshapes the index space just as much as paging does: switching
     // the group key reorders every row, and collapsing a group removes a run of
     // them, so a held index would land on a different item.
-    void tableState.groupByKey;
+    void tableState.effectiveGroupBy;
     void tableState.collapsedGroups.size;
     tableContext.resetFocus();
   });
@@ -254,7 +253,7 @@
         }
         break;
       }
-      // Both keys step from `effectivePage`, not `state.currentPage`: the raw
+      // Both keys step from `effectivePage`, not `view.page`: the raw
       // value can sit past the last page after the page size or the row count
       // changed, and stepping from there lands outside the range `goToPage`
       // accepts — which killed paging in BOTH directions rather than one.
@@ -335,8 +334,9 @@
       tableStyles.scrollArea,
       styleConfig.slotClasses.scrollArea,
       styleConfig.unstyled,
-      'desktop-only relative max-md:hidden'
+      `relative ${tableStyles.desktopOnly()}`
     )}
+    data-table-layout="desktop"
     role="region"
     aria-label={tt('aria.tableData')}
     style="width: {tableDomWidth};"
@@ -467,8 +467,12 @@
       tableStyles.scrollArea,
       styleConfig.slotClasses.scrollArea,
       styleConfig.unstyled,
-      ['desktop-only relative max-md:hidden', scrollAreaOverflow].filter(Boolean).join(' ')
+      // The layout switch itself is declared once, next to its mobile half, in
+      // `tableContainerVariants` — see the note there for why both literals live
+      // in one place.
+      [`relative ${tableStyles.desktopOnly()}`, scrollAreaOverflow].filter(Boolean).join(' ')
     )}
+    data-table-layout="desktop"
     role="region"
     aria-label={tt('aria.tableData')}
     style="width: {tableDomWidth};"
@@ -516,7 +520,7 @@
               colSpan={totalColSpan}
             />
           {/if}
-        {:else if tableState.groupByKey}
+        {:else if tableState.effectiveGroupBy}
           {#if filteredItems.length === 0}
             {#if emptyState}
               {@render emptyState()}

@@ -126,11 +126,13 @@ describe('view axes: bindViewToStorage vs the view defaults', () => {
       const view = createTableView({ defaults: { sort: { column: 'name', direction: 'desc' } } });
       bindViewToStorage(view, { key: 't1', storage: window.localStorage });
       const store = createTableState(view, undefined, {
-        source: () =>
-          [
+        source: () => ({
+          processing: 'client' as const,
+          items: [
             { id: 1, name: 'Ada', amount: 300 },
             { id: 2, name: 'Grace', amount: 100 }
-          ] as never,
+          ]
+        }),
         columns: () => COLUMNS
       });
 
@@ -143,7 +145,7 @@ describe('view axes: bindViewToStorage vs the view defaults', () => {
 
       expect(view.sort).toEqual({ column: 'amount', direction: 'asc' });
       expect(store.paginatedItems.map((r) => r.name)).toEqual(['Grace', 'Ada']);
-      expect(store.state.sortColumn).toBe('amount');
+      expect(store.view.sort?.column).toBe('amount');
     });
     cleanup();
   });
@@ -618,9 +620,9 @@ describe('storage hygiene: only reader actions create entries', () => {
       createTableState(undefined, { storage: 't19' }, { columns: () => COLUMNS })
     );
 
-    expect(ts.state.sortColumn).toBe('');
-    expect(ts.state.activeFilters).toEqual([]);
-    expect(ts.state.groupByKey).toBeNull();
+    expect(ts.view.sort).toBeNull();
+    expect(ts.view.filters).toEqual([]);
+    expect(ts.state.effectiveGroupBy).toBeNull();
   });
 
   it('clearAllPersistentData removes the entries for good', () => {

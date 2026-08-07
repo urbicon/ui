@@ -8,6 +8,151 @@ is decided by *bindings you apply to the object*, not by props of the table.
 
 Nothing about columns, cells, selection, virtualization, styling or snippets changed.
 
+## Already on 8.0?
+
+v9 tightens four things v8 shipped with. All are quick, and TypeScript names every call
+site that has to move. In plain JavaScript there is no compiler to do that, so the two
+changes that alter a *shape* — the dropped array arm and the required `processing` — throw
+on the first render with a message that names them. The two renames cannot: a
+`{ items, totalItems }` your query still returns simply leaves `total` undefined, and the
+pager reads "1 / NaN". Grep for `totalItems` before you run it.
+
+**`source` is always an object.** The bare-array arm is gone: it resolved into exactly the
+same thing as `{ items }`, so "how do I pass rows?" had three correct answers and no rule
+for choosing.
+
+```svelte
+<Table {columns} source={rows} />           <!-- 8.0 -->
+<Table {columns} source={{ processing: 'client', items: rows }} /> <!-- v9 — or items={rows} -->
+```
+
+The rule that remains: `items` for rows and nothing else, `source` for rows plus how they
+arrive (loading, error, a server total, a fetch function).
+
+**The query speaks the view's vocabulary.** v8.0 shipped `TableQuery` unchanged from v7, so
+the same six axes had two spellings depending on which side of `source.query` you stood on —
+and the row count was `total` going in, `totalItems` coming out. There is one vocabulary now:
+
+| 8.0 | v9 |
+| --- | --- |
+| `q.searchTerm` | `q.search` |
+| `q.itemsPerPage` | `q.pageSize` |
+| `q.activeFilters` | `q.filters` |
+| `q.groupByKey` | `q.groupBy` |
+| `q.sortColumn` + `q.sortDirection` | `q.sort` — `{ column, direction }` or `null` |
+| `return { items, totalItems }` | `return { items, total }` |
+
+`TableQuery` is gone as a type: what `source.query` receives *is* a `TableViewSnapshot`. So
+is `viewToQuery`, which had nothing left to project — `observeView(view, cb)` hands `cb`
+the snapshot, and you pass it straight on:
+
+```ts
+observeView(view, (snapshot) => fetchPage(viewToQuery(snapshot))); // 8.0
+observeView(view, (snapshot) => fetchPage(snapshot));              // v9
+```
+
+The one axis that changed shape rather than name is `sort`. `sortColumn: ''` was a sentinel
+for "unsorted" that left `sortDirection` holding a direction for no column; `sort: null`
+cannot express that at all. Where you wrote `if (q.sortColumn)`, write `if (q.sort)`.
+
+In `@urbicon-ui/sveltekit-utils` the `./table-query` subpath is gone with the vocabulary it
+served. Its codec was the same URL scheme under the old spellings, so it now lives in
+`./table-view` (also exported from the package root):
+
+| 8.0 | v9 |
+| --- | --- |
+| `searchParamsToTableQuery` · `searchParamsToViewQuery` | `searchParamsToViewSnapshot` |
+| `tableQueryToSearchParams` | `viewSnapshotToSearchParams` |
+| `applyTableQueryToSearchParams` | `applyViewToSearchParams` (axis-scoped) |
+| `viewSnapshotToTableQuery` | gone — it was the identity |
+| `TableQueryParams` | `TableViewSnapshot` |
+| `TableQueryFilter` · `TABLE_QUERY_FILTER_OPERATORS` | `TableViewFilter` · `TABLE_VIEW_FILTER_OPERATORS` |
+| `TableQuerySortDirection` · `TableQueryFilterOperator` | `TableViewSort['direction']` · `TableViewFilterOperator` |
+| `TableQueryDefaults` · `TableQueryUrlOptions` | no successor — see below |
+
+**The options object became positional parameters**, so this is not a pure rename:
+
+```ts
+tableQueryToSearchParams(q, { defaults, prefix });                  // 8.0
+viewSnapshotToSearchParams(snapshot, defaults, axes, prefix);       // v9
+```
+
+`defaults` is required now rather than optional, and it is a full snapshot rather than the
+partial `TableQueryDefaults` — which is what lets a default *filter set* participate in
+elision at all, the one axis the old baseline had no field for. `axes` is new: pass a subset
+to restrict the output to one binding's axes, or omit it for all six. TypeScript flags every
+call site, but the shape of the fix is worth knowing before you start.
+
+The write-strict validation the old serializer performed inline is now
+`assertValidViewSnapshot`, called by `applyViewToSearchParams` and deliberately not by
+`viewSnapshotToSearchParams` — that one runs inside the URL binding on every view change,
+where a throw over a `view.page = 0` would take the table down rather than the URL. If you
+used `tableQueryToSearchParams` to build a backend query string and relied on it rejecting a
+bad page or an unknown operator, call `assertValidViewSnapshot` yourself first: nothing in
+the type system will point out that the guard left.
+
+**`kind: 'server'` became `processing`, required on every variant.** The tag decides who
+sorts, filters, searches and pages — the table or your backend — and `kind` said none of
+that. It read as a statement about where the data comes from, which is a different question
+and one the tag never answered: the client variant fetches from a server too.
+
+```svelte
+<Table {columns} source={{ items: rows }} />                              <!-- 8.0 -->
+<Table {columns} source={{ processing: 'client', items: rows }} />        <!-- v9 -->
+
+<Table {columns} source={{ kind: 'server', items, total }} />             <!-- 8.0 -->
+<Table {columns} source={{ processing: 'server', items, total }} />       <!-- v9 -->
+
+<Table {columns} source={{ query: loadUsers }} />                         <!-- 8.0 -->
+<Table {columns} source={{ processing: 'server', query: loadUsers }} />   <!-- v9 -->
+```
+
+`items={rows}` is untouched — it is still the shorthand for a client source, and still the
+right prop when rows are all you have to say.
+
+Required is the point, not the spelling. In 8.0 the tag sat on one variant out of three, so
+the union leaned on `?: never` fields to keep a tagless server config — `{ items, total }` —
+from matching the *client* variant structurally. That worked: it was a compile error in 8.0,
+and it still is. What the required tag adds is a second, independent line under the same
+shape, and one thing the `never` fields could never provide — a consumer writing plain
+JavaScript now gets a named error at the first render instead of a table that quietly sorts
+a page of server-paged rows in the browser. Which of the two lines carries which case is
+measured probe by probe in `source.typecheck.ts`.
+
+**The context stopped mirroring the view axes.** `TableContext.state` carried a second
+spelling of all six — `state.searchTerm`, `state.currentPage`, `state.sortColumn` +
+`state.sortDirection`, `state.activeFilters`, `state.itemsPerPage`, `state.groupByKey` — as
+getters onto the very same view. `context.view` is the one address now:
+
+| 8.0 | v9 |
+| --- | --- |
+| `ctx.state.searchTerm` | `ctx.view.search` |
+| `ctx.state.currentPage` | `ctx.view.page` |
+| `ctx.state.itemsPerPage` | `ctx.view.pageSize` |
+| `ctx.state.activeFilters` | `ctx.view.filters` |
+| `ctx.state.sortColumn` + `.sortDirection` | `ctx.view.sort` — `{ column, direction }` or `null` |
+| `ctx.state.groupByKey` | **`ctx.effectiveGroupBy`** — the drop-in; `ctx.view.groupBy` is the *requested* one, see below |
+| `ctx.totalItems` | `ctx.total` |
+| `ctx.setSearchTerm(t)` | `ctx.setSearch(t)` |
+| `ctx.setItemsPerPage(n)` | `ctx.setPageSize(n)` |
+| `ctx.setGroupByKey(k)` | `ctx.setGroupBy(k)` |
+| `ctx.setSort(column, direction)` | `ctx.setSort({ column, direction })`, or `setSort(null)` |
+| `ctx.state.serverTotalItems` | `ctx.state.serverTotal` |
+
+Everything else on `state` is untouched — `items`, `columns`, `loading`, `error`,
+`selectedIds`, the expansion, grouping and summary chrome, the prop-driven switches. Those
+are the table's own; the axes never were.
+
+**`ctx.effectiveGroupBy` is new, and it is not a rename.** `state.groupByKey` was the only
+one of the six that did not simply mirror the view: on a virtualized table it read `null`
+while `view.groupBy` named a column, because grouped virtualization is not implemented and
+a key slipping through would render every row. That distinction survives under a name that
+states it, next to the `effectivePage` that already draws the same one — read `view.groupBy`
+for what the reader asked for, `effectiveGroupBy` for what they are looking at.
+
+**`TableQueryResult` became `TablePage`.** With `TableQuery` gone (above) the old name was
+half of a pair whose other half no longer existed. Same shape, `{ items, total }`.
+
 ## The shape of the change
 
 ```svelte
@@ -43,7 +188,7 @@ unbound view of its own.
 | `searchTerm={term}` + `onSearchTermChange={…}` | `view.search` — read it, write it |
 | `groupByKey` (on `TableProvider`) | `view.groupBy` |
 | `query={sync.viewState}` + `onQueryChange={sync.syncQuery}` | `bindViewToUrl(view)` |
-| `queryDebounceMs={300}` | `bindViewToUrl(view, { debounceMs: 300 })` / `source={{ query, debounceMs: 300 }}` |
+| `queryDebounceMs={300}` | `bindViewToUrl(view, { debounceMs: 300 })` / `source={{ processing: 'server', query, debounceMs: 300 }}` |
 | `initialSummaryConfigs={[…]}` | `prefs={{ defaults: { summaries: […] } }}` — summaries are a preference, not a view axis |
 
 Several axes collapse into **one** `viewDefaults` object rather than several props:
@@ -62,24 +207,30 @@ is a value now, not a convention.
 
 ### Data source
 
-The four `mode`/`queryFn`/`loading`/`error`/`serverTotalItems` combinations became one union,
-in which the invalid combinations are not expressible:
+The `mode`/`queryFn`/`loading`/`error`/`serverTotalItems` combinations became one union of
+three object shapes, in which the invalid combinations are not expressible:
 
 | v7 | v8 |
 | --- | --- |
-| `items={rows}` | `items={rows}` (unchanged) or `source={rows}` |
-| `{items}` + `{loading}` + `{error}` in client mode | `source={{ items, loading, error }}` |
-| `mode="server"` + `serverTotalItems` + `{items}` + `{loading}` + `{error}` + `onQueryChange` | `source={{ kind: 'server', items, total, loading, error }}` + `observeView(view, cb)` |
-| `mode="server"` + `queryFn` + `queryDebounceMs` | `source={{ query, debounceMs }}` |
+| `items={rows}` | `items={rows}` (unchanged) or `source={{ processing: 'client', items: rows }}` |
+| `{items}` + `{loading}` + `{error}` in client mode | `source={{ processing: 'client', items, loading, error }}` |
+| `mode="server"` + `serverTotalItems` + `{items}` + `{loading}` + `{error}` + `onQueryChange` | `source={{ processing: 'server', items, total, loading, error }}` + `observeView(view, cb)` |
+| `mode="server"` + `queryFn` + `queryDebounceMs` | `source={{ processing: 'server', query, debounceMs }}` |
 
-`kind: 'server'` is mandatory on the manual server source. Server mode hands sorting and
+`processing: 'server'` is mandatory on both server sources. It hands sorting and
 filtering to the server, so it has to be a decision you took, not a shape you fell into —
-`{ items, total }` without the tag is a type error.
+`{ items, total }` without the tag matches no variant at all.
 
 The managed source (`{ query }`) owns loading and error itself, aborts superseded requests
 and issues the first fetch immediately, later ones debounced. It has no `loading`/`error`
 fields at all, so the v7 rule "those props are ignored when `queryFn` is set" no longer has
 anything to warn about.
+
+That variant is deliberately the short path and nothing more: the view is the only thing
+that triggers a fetch, and it will stay that way. Re-running the same query (a refresh
+button, polling, resync after a failed optimistic update), caching, deduplication and
+invalidation after a mutation belong to a data layer — bring your own, and hand the table
+its result through `processing: 'server'` with rows and a total.
 
 ### Persistence
 
@@ -135,10 +286,10 @@ state, so they cannot disagree with each other.
 Two bound tables on one page still namespace with `prefix`. The URL **format is unchanged**
 for readers: existing deep links keep working.
 
-The pure serializers are unchanged and still SvelteKit-free. For the load path, prefer
-`searchParamsToViewQuery` from `@urbicon-ui/sveltekit-utils/table-view`: it takes the *same*
-defaults object the component hands `createTableView`, so the server cannot resolve an
-absent param differently from the client.
+The pure serializers are still SvelteKit-free. For the load path, use
+`searchParamsToViewSnapshot` from `@urbicon-ui/sveltekit-utils/table-view`: it takes the
+*same* defaults object the component hands `createTableView`, so the server cannot resolve
+an absent param differently from the client.
 
 ```ts
 // view-defaults.ts — imported by both the component and the load function
@@ -146,13 +297,12 @@ export const invoiceView = { pageSize: 25, sort: { column: 'date', direction: 'd
 
 // +page.server.ts
 export const load = async ({ url }) => ({
-  initialResult: await fetchInvoices(searchParamsToViewQuery(url.searchParams, invoiceView))
+  initialResult: await fetchInvoices(searchParamsToViewSnapshot(url.searchParams, invoiceView))
 });
 ```
 
-`searchParamsToTableQuery` in `/table-query` still works and still takes its baseline in the
-wire vocabulary (`itemsPerPage`, `sortColumn`/`sortDirection`, `groupByKey`) — but it has no
-field for a default filter set, which is why the view-vocabulary function exists.
+What it hands back is the same shape a managed `source.query` receives, so the `load` and
+the table's own fetches speak to your backend identically.
 
 ### The context surface (`onReady` / `getTableContext`)
 
@@ -162,14 +312,15 @@ type was an alias for everything the internal store returned, so the store's wir
 and some sixty other members — was formally public API and every internal restructuring a
 breaking change. v8 keeps the parts that were meant for consumers:
 
-- **`state`** (the reactive read surface) and **`view`** (the six shareable axes),
+- **`state`** (what the table owns: rows, columns, load state, selection, chrome) and
+  **`view`** (the six shareable axes),
 - the **derived collections** — `filteredItems`, `sortedItems`, `paginatedItems`,
-  `totalItems`, `totalPages`, `effectivePage`, `selectedItems`, `allSelected`,
-  `someSelected`,
-- the **action families** — search (`setSearchTerm`), filters (`addFilter`,
+  `total`, `totalPages`, `effectivePage`, `effectiveGroupBy`, `selectedItems`,
+  `allSelected`, `someSelected`,
+- the **action families** — search (`setSearch`), filters (`addFilter`,
   `removeFilter`, `removeFiltersByColumn`, `clearAllFilters`, `hasFilterForColumn`),
-  sort (`handleSort`, `setSort`), pagination (`goToPage`, `setItemsPerPage`), grouping
-  (`setGroupByKey`), selection (`selectItem` … `setSelectedIds`, `isSelected`) and
+  sort (`handleSort`, `setSort`), pagination (`goToPage`, `setPageSize`), grouping
+  (`setGroupBy`), selection (`selectItem` … `setSelectedIds`, `isSelected`) and
   summaries (`addSummaryConfig`, `removeSummaryConfig`, `toggleSummary`,
   `setSummaryConfigs`),
 - the **live-update family** — `pushInsert`/`pushUpdate`/`pushDelete`, the apply/dismiss
@@ -179,9 +330,9 @@ What no longer appears on the type, and where its job went:
 
 | v7 context member | v8 |
 | --- | --- |
-| `setItems` / `setLoading` / `setError` | the `source` union: `source={{ items, loading, error }}` |
-| `setServerResult` / `setServerError` / `setServerLoading` | a `kind: 'server'` source, or the managed `{ query }` source |
-| `query` / `queryKey` | `viewToQuery(view.snapshot())`, or `observeView(view, cb)` |
+| `setItems` / `setLoading` / `setError` | the `source` union: `source={{ processing: 'client', items, loading, error }}` |
+| `setServerResult` / `setServerError` / `setServerLoading` | a `processing: 'server'` source, with rows or with a `query` |
+| `query` / `queryKey` | `view.snapshot()`, or `observeView(view, cb)` |
 | `setColumns` | the `columns` prop |
 | `hideColumn` / `showColumn` / `toggleColumnVisibility` / `showAllColumns` / `allColumns` / `hiddenColumnKeys` | the built-in visibility UI (`enableColumnVisibility`), initial state via `prefs.defaults.hiddenColumns` |
 | `reorderColumn` / `resetColumnOrder` / `orderedColumns` / `columnOrder` / `getColumnIndex` / `initColumnOrder` | `enableColumnReorder` (drag + keyboard), initial order via `prefs.defaults.columnOrder` |
@@ -246,12 +397,10 @@ What follows from it:
 6. **A grouping discarded by `virtualized` is a system decision.** It cleans the URL but never
    reaches storage as your wish, so the stored grouping applies again on the next load
    without `virtualized`.
-7. **A `sortDirection` write on an unsorted view is a no-op.** On the context surface,
-   `state.sortDirection = 'desc'` only re-directions an existing sort: direction is half of
-   the sort *value* (`view.sort = { column, direction }`), and unsorted is `null`, so there
-   is no direction to flip. In v7 the two lived in separate fields and a direction written
-   while unsorted was picked up by the next column write; in v8, set the column and the
-   direction together.
+7. **A direction is half of a sort value, not a field of its own.** `view.sort` is
+   `{ column, direction }` or `null`, so there is no way to write a direction while nothing
+   is sorted. In v7 the two lived in separate fields and a direction written while unsorted
+   was picked up by the next column write; now you set both together, or `null`.
 8. **Inside the URL write debounce, a foreign navigation wins.** If something else navigates
    the same path without a bound axis's param before the binding's debounced write fires —
    a link elsewhere on the page, a router redirect — the runtime rule applies: absence on a
@@ -264,17 +413,15 @@ Analytics, a manual fetch, a server sync — anything that wanted to *observe* t
 than put it in the address bar:
 
 ```ts
-import { observeView, viewToQuery } from '@urbicon-ui/table';
+import { observeView } from '@urbicon-ui/table';
 
-observeView(view, (snapshot) => fetchPage(viewToQuery(snapshot)), { debounceMs: 300 });
+observeView(view, (snapshot) => fetchPage(snapshot), { debounceMs: 300 });
 ```
 
 It fires once synchronously on registration (the parity with `onQueryChange`'s initial
-emission), then debounced on every structural change, and it is echo-free.
-`viewToQuery` projects a snapshot into the `TableQuery` shape your backend already speaks —
-that type and its field names (`itemsPerPage`, `sortColumn`, `sortDirection`, `searchTerm`,
-`activeFilters`, `groupByKey`) are unchanged, because they are the server contract, not the
-view vocabulary.
+emission), then debounced on every structural change, and it is echo-free. The snapshot is
+the same object a managed `source.query` receives — project it onto your backend's
+parameter names where you build the request.
 
 ## Sharing one view across tables
 
@@ -288,7 +435,7 @@ third table can join later. Two limits are worth knowing:
   grouping the reader sets later is taken back in the same flush.
 - **A shared view is not a shared cache.** A managed source (`{ query }`) on both tables
   fetches once *per table* per interaction. If one fetch should serve both, run it yourself
-  (`observeView` + your fetch) and hand each table a manual `kind: 'server'` source.
+  (`observeView` + your fetch) and hand each table a manual `processing: 'server'` source.
 
 ## Where to construct the view
 

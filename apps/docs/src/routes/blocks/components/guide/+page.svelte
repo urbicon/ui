@@ -269,7 +269,7 @@
 
   <CustomDocs />
 
-  <Section marker="09" id="api" title="API Reference" intent="secondary" meta="9 surfaces">
+  <Section marker id="api" title="API Reference" intent="secondary" meta="9 surfaces">
     <div class="space-y-10">
       <div>
         <h3 class="text-text-primary mb-1 text-lg font-semibold">Guide (tour renderer)</h3>
@@ -318,7 +318,7 @@
 
   <TypesReference types={componentData?.types ?? []} />
 
-  <Section marker="10" id="installation" title="Installation">
+  <Section marker id="installation" title="Installation">
     <CodeExample
       title="Import"
       code={`import {

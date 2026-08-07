@@ -16,7 +16,13 @@ describe('apiReferenceVariants', () => {
       'typeChip',
       'defaultCode',
       'description',
-      'descriptionCell',
+      'descriptionClamped',
+      'expandedPanel',
+      'signature',
+      'sourceSection',
+      'sourceName',
+      'sourceLink',
+      'valuesSection',
       'seeAlsoRefs',
       'seeAlsoRef',
       'placeholder',
@@ -59,9 +65,28 @@ describe('apiReferenceVariants', () => {
     expect(styles.seeAlsoRef()).not.toContain('underline');
   });
 
-  it('stacks the description cell so refs sit under the description text', () => {
+  it('clamps the in-row description without clamping the expanded one', () => {
+    // The clamp is a separate slot rather than part of `description`, because
+    // the same slot styles the full text in the expanded row — folded into one,
+    // the disclosure would show the same two lines the cell already showed.
     const styles = apiReferenceVariants();
-    expect(styles.descriptionCell()).toContain('flex');
-    expect(styles.descriptionCell()).toContain('flex-col');
+
+    expect(styles.descriptionClamped()).toContain('line-clamp-2');
+    expect(styles.description()).not.toContain('line-clamp');
+  });
+
+  it('prints the declaration line as a quiet code block, not as a link', () => {
+    // The expanded row's counterpart to the type definition TypesReference
+    // shows there: same quiet tint, same mono, and no link treatment.
+    const styles = apiReferenceVariants();
+
+    expect(styles.signature()).toContain('bg-surface-quiet');
+    expect(styles.signature()).toContain('font-mono');
+    // On a word boundary, not as a substring: the signature carries
+    // `text-text-primary`, which contains `text-primary` and would pass a
+    // `toContain` check that is supposed to reject the link colour.
+    expect(styles.signature().split(/\s+/)).not.toContain('text-primary');
+    expect(styles.sourceName()).toContain('bg-surface-quiet');
+    expect(styles.sourceName()).not.toContain('underline');
   });
 });

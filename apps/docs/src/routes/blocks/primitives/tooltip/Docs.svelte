@@ -11,7 +11,7 @@
 
 <!-- ─── Examples ─── -->
 
-<Section marker="01" id="examples" title="Examples">
+<Section marker id="examples" title="Examples">
   <div class="space-y-8">
     <CodeExample
       title="Formatting Toolbar"
@@ -84,7 +84,7 @@
 
 <!-- ─── Customization ─── -->
 
-<Section marker="02" id="customization" title="Customization">
+<Section marker id="customization" title="Customization">
   <div class="space-y-8">
     <CodeExample
       title="Branded Gradient"
@@ -157,7 +157,7 @@
 
 <!-- ─── Accessibility ─── -->
 
-<Section marker="03" id="accessibility" title="Accessibility">
+<Section marker id="accessibility" title="Accessibility">
   <NoteList>
     <Note title="Built-in ARIA">
       <p>

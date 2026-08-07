@@ -3,7 +3,7 @@
   import { Badge, Button } from '@urbicon-ui/blocks';
 </script>
 
-<Section marker="01" id="examples" title="Examples" subtitle="The core props in action">
+<Section marker id="examples" title="Examples" subtitle="The core props in action">
   <div class="flex flex-col gap-6">
     <CodeExample
       title="Preview + code"

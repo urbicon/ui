@@ -1,6 +1,5 @@
 import { afterAll, beforeAll, describe, expect, it, vi } from 'vitest';
 import type { Column, Filter } from '$lib/types/tableTypes';
-import { viewToQuery } from '$lib/view/observe.svelte';
 import { createTableView, type TableViewDefaults } from '$lib/view/view.svelte';
 import { createTableState, type SummaryConfig } from './TableStore.svelte.js';
 
@@ -49,18 +48,14 @@ describe('view defaults: sort', () => {
   it('seeds sort state at construction — indicator source and first query contain it', () => {
     const ts = seeded({ sort: { column: 'age', direction: 'desc' } });
 
-    // `state.sortColumn`/`state.sortDirection` are what TableHead's active
-    // indicator and SortMenu read.
-    expect(ts.state.sortColumn).toBe('age');
-    expect(ts.state.sortDirection).toBe('desc');
+    // `view.sort` is what TableHead's active indicator and SortMenu read.
+    expect(ts.view.sort).toEqual({ column: 'age', direction: 'desc' });
 
-    // The view projected into the `TableQuery` shape — what the managed
-    // fetch and `observeView` consumers see (the context's `query` getter
-    // left with the v8 cut; this is the same projection they use). The first
-    // emission must CONTAIN the seeded sort instead of wiping it.
-    const query = viewToQuery(ts.view.snapshot());
-    expect(query.sortColumn).toBe('age');
-    expect(query.sortDirection).toBe('desc');
+    // The snapshot — what the managed fetch hands `source.query`, and what
+    // `observeView` consumers see (the context's `query` getter left with the
+    // v8 cut). The first emission must CONTAIN the seeded sort instead of
+    // wiping it.
+    expect(ts.view.snapshot().sort).toEqual({ column: 'age', direction: 'desc' });
   });
 
   it('sorts client-mode items by the seeded sort', () => {
@@ -76,20 +71,18 @@ describe('view defaults: sort', () => {
 
     // handleSort on the seeded column at `desc` cycles to "no sort".
     ts.handleSort('age');
-    expect(ts.state.sortColumn).toBe('');
-    expect(viewToQuery(ts.view.snapshot()).sortColumn).toBe('');
+    expect(ts.view.sort).toBeNull();
+    expect(ts.view.snapshot().sort?.column ?? '').toBe('');
     expect(ts.view.sort).toBeNull();
 
     // Re-sorting by another column works normally; the seed never re-asserts.
     ts.handleSort('name');
-    expect(ts.state.sortColumn).toBe('name');
-    expect(ts.state.sortDirection).toBe('asc');
+    expect(ts.view.sort).toEqual({ column: 'name', direction: 'asc' });
   });
 
   it('treats `sort: null` as "unsorted" — a value, not a missing seed', () => {
     const ts = seeded({ sort: null });
-    expect(ts.state.sortColumn).toBe('');
-    expect(ts.state.sortDirection).toBe('asc');
+    expect(ts.view.sort).toBeNull();
     expect(ts.view.defaults.sort).toBeNull();
   });
 });
@@ -100,8 +93,8 @@ describe('view defaults: filters', () => {
   it('seeds filters at construction — chips source and first query contain them', () => {
     const ts = seeded({ filters: seedFilters });
 
-    expect(ts.state.activeFilters).toEqual(seedFilters);
-    expect(viewToQuery(ts.view.snapshot()).activeFilters).toEqual(seedFilters);
+    expect(ts.view.filters).toEqual(seedFilters);
+    expect(ts.view.snapshot().filters).toEqual(seedFilters);
   });
 
   it('does not alias the consumer array', () => {
@@ -124,8 +117,8 @@ describe('view defaults: filters', () => {
     const ts = seeded({ filters: seedFilters });
 
     ts.clearAllFilters();
-    expect(ts.state.activeFilters).toEqual([]);
-    expect(viewToQuery(ts.view.snapshot()).activeFilters).toEqual([]);
+    expect(ts.view.filters).toEqual([]);
+    expect(ts.view.snapshot().filters).toEqual([]);
   });
 });
 
@@ -138,8 +131,8 @@ describe('view defaults: page and pageSize', () => {
     ts.setColumns(columns);
     ts.setItems(items);
 
-    expect(ts.state.currentPage).toBe(2);
-    expect(ts.state.itemsPerPage).toBe(2);
+    expect(ts.view.page).toBe(2);
+    expect(ts.view.pageSize).toBe(2);
     expect(ts.paginatedItems.map((i) => i.id)).toEqual([3]);
   });
 
@@ -149,7 +142,7 @@ describe('view defaults: page and pageSize', () => {
     ts.setItems(items);
 
     ts.goToPage(1);
-    expect(ts.state.currentPage).toBe(1);
+    expect(ts.view.page).toBe(1);
   });
 });
 
@@ -159,15 +152,15 @@ describe('view defaults: search', () => {
     ts.setColumns(columns);
     ts.setItems(items);
 
-    expect(ts.state.searchTerm).toBe('ali');
-    expect(viewToQuery(ts.view.snapshot()).searchTerm).toBe('ali');
+    expect(ts.view.search).toBe('ali');
+    expect(ts.view.snapshot().search).toBe('ali');
     expect(ts.filteredItems.map((i) => i.id)).toEqual([1]);
   });
 
   it('is seed-once — clearing the search sticks', () => {
     const ts = seeded({ search: 'ali' });
-    ts.setSearchTerm('');
-    expect(ts.state.searchTerm).toBe('');
+    ts.setSearch('');
+    expect(ts.view.search).toBe('');
   });
 });
 
@@ -213,7 +206,7 @@ describe('view defaults: groupBy', () => {
     ts.setColumns(columns);
     ts.setItems(items);
 
-    expect(ts.state.groupByKey).toBe('department');
+    expect(ts.state.effectiveGroupBy).toBe('department');
     expect(Object.keys(ts.grouped).sort()).toEqual(['Design', 'Engineering']);
     expect(ts.grouped.Engineering.map((i) => i.id)).toEqual([1, 3]);
     expect(ts.grouped.Design.map((i) => i.id)).toEqual([2]);
@@ -226,7 +219,7 @@ describe('view defaults: groupBy', () => {
     const ts = seeded({ groupBy: 'department' });
     expect(ts.state.declaredGroupByKey).toBe('department');
 
-    ts.setGroupByKey(null);
+    ts.setGroupBy(null);
     expect(ts.state.declaredGroupByKey).toBe('department');
   });
 
@@ -234,16 +227,16 @@ describe('view defaults: groupBy', () => {
     const ts = seeded({ groupBy: 'department' });
 
     // Clearing to ungrouped sticks — there is no effect that re-asserts the seed.
-    ts.setGroupByKey(null);
-    expect(ts.state.groupByKey).toBeNull();
+    ts.setGroupBy(null);
+    expect(ts.state.effectiveGroupBy).toBeNull();
 
     // Grouping by another column works normally; the seed never re-applies.
-    ts.setGroupByKey('age');
-    expect(ts.state.groupByKey).toBe('age');
+    ts.setGroupBy('age');
+    expect(ts.state.effectiveGroupBy).toBe('age');
   });
 
   it('treats a nullish/empty seed as "no grouping"', () => {
-    expect(seeded({ groupBy: null }).state.groupByKey).toBeNull();
+    expect(seeded({ groupBy: null }).state.effectiveGroupBy).toBeNull();
 
     // `''` is a degenerate input the type admits; it must not group anything
     // and must not become a menu declaration.
@@ -307,13 +300,13 @@ describe('prefs defaults: summaries', () => {
 describe('absent seeds are inert', () => {
   it('no arguments leave every axis at its default', () => {
     const ts = createTableState();
-    expect(ts.state.sortColumn).toBe('');
-    expect(ts.state.activeFilters).toEqual([]);
-    expect(ts.state.currentPage).toBe(1);
-    expect(ts.state.itemsPerPage).toBe(10);
-    expect(ts.state.searchTerm).toBe('');
+    expect(ts.view.sort).toBeNull();
+    expect(ts.view.filters).toEqual([]);
+    expect(ts.view.page).toBe(1);
+    expect(ts.view.pageSize).toBe(10);
+    expect(ts.view.search).toBe('');
     expect(ts.state.selectedIds.size).toBe(0);
-    expect(ts.state.groupByKey).toBeNull();
+    expect(ts.state.effectiveGroupBy).toBeNull();
     expect(ts.state.summaryConfigs).toEqual([]);
   });
 
@@ -324,7 +317,7 @@ describe('absent seeds are inert', () => {
       undefined,
       { selectedIds: [] }
     );
-    expect(ts.state.activeFilters).toEqual([]);
+    expect(ts.view.filters).toEqual([]);
     expect(ts.state.selectedIds.size).toBe(0);
     expect(ts.state.summaryConfigs).toEqual([]);
   });

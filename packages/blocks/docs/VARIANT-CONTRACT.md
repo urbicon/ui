@@ -111,6 +111,11 @@ The two disclosure siblings share one vocabulary:
 | `surface` | `bg-surface-quiet` — a gentle tinted zone, no border | The table needs to read as its own zone without a frame |
 | `framed` | `surface-elevated` + `border-default` + `rounded-contain` + `shadow-sm` | The table is a standalone block among other blocks |
 
+The frame belongs to the table, not to one of its layouts: below the mobile
+breakpoint the same treatment wraps the record list, and the records inside it
+are separated by hairlines rather than each carrying a frame of its own. One
+`slotClasses.scrollArea` override therefore reaches both.
+
 ---
 
 ## 6 · Dialog & Drawer — intent without a colour bar
@@ -170,15 +175,15 @@ Since v8 those two live on the data source rather than on the table itself:
 | `errorState` | `source.error?: string \| null` |
 
 ```svelte
-<Table {columns} source={{ items, loading: pending, error: failure }}>
+<Table {columns} source={{ processing: 'client', items, loading: pending, error: failure }}>
   {#snippet emptyState()}
     <tr><td colspan="99">Nothing here</td></tr>
   {/snippet}
 </Table>
 ```
 
-A managed source (`source={{ query }}`) owns both states itself and has no such fields —
-what used to be a DEV warning is a shape that cannot be written.
+A managed source (`source={{ processing: 'server', query }}`) owns both states itself and has
+no such fields — what used to be a DEV warning is a shape that cannot be written.
 
 ---
 

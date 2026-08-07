@@ -8,7 +8,7 @@
   import fromStreamingMarkdownCode from './examples/FromStreamingMarkdown.svelte?raw';
 </script>
 
-<Section marker="01" id="examples" title="Examples">
+<Section marker id="examples" title="Examples">
   <div class="space-y-10">
     <CodeExample
       title="Standalone source footer"
@@ -36,7 +36,7 @@
   </div>
 </Section>
 
-<Section marker="02" id="accessibility" title="Accessibility">
+<Section marker id="accessibility" title="Accessibility">
   <NoteList>
     <Note title="Descriptive trigger label">
       <p>
@@ -67,7 +67,7 @@
   </NoteList>
 </Section>
 
-<Section marker="03" id="related" title="Related">
+<Section marker id="related" title="Related">
   <div class="text-text-secondary space-y-3 text-sm leading-relaxed">
     <p>
       For the streaming flow that produces these chips automatically, see

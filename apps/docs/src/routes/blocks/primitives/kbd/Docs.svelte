@@ -3,7 +3,7 @@
   import { Kbd } from '@urbicon-ui/blocks';
 </script>
 
-<Section marker="01" id="examples" title="Examples">
+<Section marker id="examples" title="Examples">
   <div class="space-y-8">
     <CodeExample
       title="Keycaps"
@@ -49,7 +49,7 @@
   </div>
 </Section>
 
-<Section marker="02" id="accessibility" title="Accessibility">
+<Section marker id="accessibility" title="Accessibility">
   <NoteList>
     <Note title="Semantic element">
       <p>

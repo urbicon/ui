@@ -6,7 +6,7 @@
 
 <!-- ─── When to use ─── -->
 
-<Section marker="01" id="usage" title="When to use">
+<Section marker id="usage" title="When to use">
   <p class="text-text-secondary text-sm leading-relaxed">
     <strong>SidebarLayout</strong> is the ready-made app shell — it wires a <code>Sidebar</code>, a
     centered main column, and an optional mobile header into a responsive layout. Use it when you
@@ -43,7 +43,7 @@
 
 <!-- ─── Examples ─── -->
 
-<Section marker="02" id="examples" title="Examples">
+<Section marker id="examples" title="Examples">
   <div class="space-y-8">
     <CodeExample
       title="Default app shell"
@@ -188,7 +188,7 @@
 
 <!-- ─── Customization ─── -->
 
-<Section marker="03" id="customization" title="Customization">
+<Section marker id="customization" title="Customization">
   <div class="space-y-8">
     <CodeExample
       title="Branded shell via slotClasses"
@@ -248,7 +248,7 @@
 
 <!-- ─── Accessibility ─── -->
 
-<Section marker="04" id="accessibility" title="Accessibility">
+<Section marker id="accessibility" title="Accessibility">
   <NoteList>
     <Note title="Skip-link target">
       <p>

@@ -13,7 +13,7 @@
 </script>
 
 <!-- ─── Examples ─── -->
-<Section marker="01" id="examples" title="Examples">
+<Section marker id="examples" title="Examples">
   <div class="space-y-8">
     <CodeExample
       title="Line vs. area"
@@ -79,7 +79,7 @@
 </Section>
 
 <!-- ─── Accessibility ─── -->
-<Section marker="02" id="accessibility" title="Accessibility">
+<Section marker id="accessibility" title="Accessibility">
   <NoteList>
     <Note title="Decorative by default">
       <p>

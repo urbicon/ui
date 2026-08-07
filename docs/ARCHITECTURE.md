@@ -526,11 +526,13 @@ applies, storage only writes, and an axis is stored when its last change came fr
 reader. Preferences (column visibility and order, summaries, opt-in selection) are a
 separate channel — the `prefs` prop — and never enter the URL.
 
-**Client and server mode.** The data source is one union (`source`): plain items, items you
-fetch yourself, `{ kind: 'server', items, total, … }` for the manual flow, or `{ query }`
-for the managed one. The tag is mandatory because server mode hands sorting and filtering to
-the server; the invalid combinations of the old `mode`/`queryFn`/`loading` props are not
-expressible. In server mode the derived chain passes `state.items` through unchanged and
+**Who processes the rows.** The data source is one union (`source`), and every variant
+carries a `processing` tag: `{ processing: 'client', items, … }` when the table sorts,
+filters and pages in the browser, `{ processing: 'server', items, total, … }` when your
+backend does that work and you fetch each page, `{ processing: 'server', query }` when it
+does that work and the table drives the fetch. The tag is required on all three because it
+decides where the reader's sort headers act; the invalid combinations of the old
+`mode`/`queryFn`/`loading` props are not expressible. In server mode the derived chain passes `state.items` through unchanged and
 `totalPages` comes from the source's `total`. The managed path fetches, aborts superseded
 requests and owns loading/error; `observeView(view, cb)` is the observer channel for
 consumers who want view changes without a URL.

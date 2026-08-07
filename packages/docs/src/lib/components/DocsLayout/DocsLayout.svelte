@@ -4,14 +4,20 @@
     setCodeVisibilityContext
   } from '$lib/stores/code-visibility.svelte';
   import { ScrollSpy } from '$lib/stores/scroll-spy.svelte';
-  import { Breadcrumb, ChevronDownIcon } from '@urbicon-ui/blocks';
+  import { Breadcrumb, ChevronDownIcon, ListIcon, Popover } from '@urbicon-ui/blocks';
   import { useDocsI18n } from '$lib/i18n';
   import TableOfContents from '../TableOfContents/TableOfContents.svelte';
+  import { createSectionNumbering } from '../Section/section-numbering.svelte.js';
   import { docsLayoutVariants } from './docslayout.variants';
   import { getPageNav } from './page-nav';
   import type { DocsLayoutProps } from './index.js';
 
   const dt = useDocsI18n();
+
+  // One counter per page, so a `<Section marker>` gets its number from where it
+  // sits rather than from a literal someone kept in step by hand. See
+  // `section-numbering.svelte.ts` for what claims a number and what does not.
+  createSectionNumbering();
 
   let {
     title,
@@ -132,6 +138,8 @@
 
   // Legacy mobile TOC state
   let mobileTocOpen = $state(false);
+  /** The sticky bar's own table of contents — see the control in that bar. */
+  let stickyTocOpen = $state(false);
   // pageToolbar is the legacy-layout's stand-in for the sticky-bar;
   // the global code-toggle migrated to the TOC, so the toolbar only
   // earns its presence now when there's a mobile-TOC button or a
@@ -255,27 +263,64 @@
             }}
           />
 
-          <!-- Scrollspy badge: slides in with a staggered delay when scrolled.
-               Hidden on mobile, where the bar has no room for it beside the
-               title and the source link. -->
-          <div
-            class="hidden items-center overflow-hidden transition-[max-width,opacity,margin-left] duration-300 ease-out sm:flex
-              {scrolledPastHeader && activeSectionTitle
-              ? 'ml-2 max-w-56 opacity-100'
-              : 'ml-0 max-w-0 opacity-0'}"
-            style="transition-delay: {scrolledPastHeader ? '80ms' : '0ms'}"
-            aria-hidden={!scrolledPastHeader || !activeSectionTitle}
-          >
-            <span class="bg-text-tertiary/40 mr-2 size-1 shrink-0 rounded-full" aria-hidden="true"
-            ></span>
-            <a
-              href="#{activeTopSection?.id ?? activeSection}"
-              data-docs-scrollspy
-              class="text-primary bg-primary-subtle hover:bg-primary-subtle/80 rounded-modify max-w-40 shrink-0 truncate px-2 py-0.5 text-xs font-medium whitespace-nowrap transition-colors"
-              tabindex={scrolledPastHeader ? 0 : -1}
-            >
-              {activeSectionTitle}
-            </a>
+          <!--
+            The section control. It was a scrollspy *badge* — a link to the
+            section you are already in, which is the one section nobody needs a
+            link to. It is the page's table of contents now, because on a
+            collapsing-header page it was the only thing left: `mobileToc` in
+            the page toolbar below is gated on `!useCollapsingHeader`, and
+            passing `breadcrumbs` sets that. Measured 2026-08-07: 124 of the 127
+            pages with a `navigation` array render no page navigation at all
+            below the TOC rail's breakpoint.
+
+            The gate is `lg:hidden` against TableOfContents' `max-lg:hidden`:
+            Tailwind's two halves of ONE named breakpoint, so exactly one of the
+            two is on at every width and no literal can drift from its partner.
+            Whether `lg` is the right place for that boundary is a separate
+            question — it is not, the exhibit column collapses to 352px at
+            1024 — but moving it moves both halves at once.
+
+            The badge's motion is kept and re-aimed: the trigger is always
+            there (the icon), and the active section's title expands in beside
+            it once the hero is scrolled past.
+          -->
+          <div class={slot('stickyToc')}>
+            <Popover bind:open={stickyTocOpen} placement="bottom-start">
+              {#snippet trigger()}
+                <button
+                  type="button"
+                  class={slot('stickyTocButton')}
+                  aria-expanded={stickyTocOpen}
+                  aria-label={dt('tocOnThisPage')}
+                  data-docs-scrollspy
+                >
+                  <ListIcon class="size-3.5 shrink-0" aria-hidden="true" />
+                  <span
+                    class="overflow-hidden transition-[max-width,opacity] duration-300 ease-out {scrolledPastHeader &&
+                    activeSectionTitle
+                      ? 'max-w-40 opacity-100'
+                      : 'max-w-0 opacity-0'}"
+                    style="transition-delay: {scrolledPastHeader ? '80ms' : '0ms'}"
+                  >
+                    <span class="block truncate whitespace-nowrap">{activeSectionTitle}</span>
+                  </span>
+                </button>
+              {/snippet}
+              <nav class={slot('stickyTocNav')} aria-label={dt('tocOnThisPage')}>
+                {#each navigation as item (item.id)}
+                  <a
+                    href={`#${item.id}`}
+                    class={slot('stickyTocLink')}
+                    aria-current={item.id === (activeTopSection?.id ?? activeSection)
+                      ? 'location'
+                      : undefined}
+                    onclick={() => (stickyTocOpen = false)}
+                  >
+                    {item.title}
+                  </a>
+                {/each}
+              </nav>
+            </Popover>
           </div>
 
           <span class="min-w-0 flex-1"></span>

@@ -94,7 +94,7 @@
 
   <CustomDocs />
 
-  <Section marker="02" id="accessibility" title="Accessibility">
+  <Section marker id="accessibility" title="Accessibility">
     <NoteList>
       <Note title="Named landmarks, because there are several">
         <p>
@@ -139,7 +139,7 @@
   </Section>
 
   <Section
-    marker="03"
+    marker
     id="api"
     title="API Reference"
     subtitle="Complete list of component properties and their configurations"
@@ -150,7 +150,7 @@
 
   <TypesReference types={componentData?.types ?? []} />
 
-  <Section marker="04" id="installation" title="Installation">
+  <Section marker id="installation" title="Installation">
     <CodeExample
       title="Import"
       code={`import { TableOfContents } from '@urbicon-ui/docs';`}

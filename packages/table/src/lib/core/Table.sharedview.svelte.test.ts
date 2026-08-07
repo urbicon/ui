@@ -106,7 +106,7 @@ describe('two tables, one view — the axes are shared, by construction', () => 
     expect(a.rows()).toHaveLength(3);
     expect(b.rows()).toHaveLength(3);
 
-    a.ctx.setSearchTerm('ada');
+    a.ctx.setSearch('ada');
     flushSync();
 
     // Not a defect: one view IS one sight. Two tables that must filter
@@ -122,7 +122,7 @@ describe('two tables, one view — the axes are shared, by construction', () => 
     const a = mountTable({ view });
     const b = mountTable({ view });
 
-    a.ctx.setSort('amount', 'asc');
+    a.ctx.setSort({ column: 'amount', direction: 'asc' });
     flushSync();
 
     expect(view.sort).toEqual({ column: 'amount', direction: 'asc' });
@@ -151,7 +151,7 @@ describe('two tables, one view — unmounting one', () => {
     const a = mountTable({ view });
     const b = mountTable({ view });
 
-    a.ctx.setSearchTerm('ada');
+    a.ctx.setSearch('ada');
     flushSync();
     unmountOne(a);
     flushSync();
@@ -161,7 +161,7 @@ describe('two tables, one view — unmounting one', () => {
     expect(view.search).toBe('ada');
     expect(b.rows()).toHaveLength(1);
 
-    b.ctx.setSearchTerm('');
+    b.ctx.setSearch('');
     flushSync();
     expect(view.search).toBe('');
     expect(b.rows()).toHaveLength(3);
@@ -170,7 +170,7 @@ describe('two tables, one view — unmounting one', () => {
   it('lets a third table mount onto the same view and inherit its state', () => {
     const view = createTableView();
     const a = mountTable({ view });
-    a.ctx.setSort('amount', 'asc');
+    a.ctx.setSort({ column: 'amount', direction: 'asc' });
     flushSync();
     unmountOne(a);
 
@@ -200,18 +200,18 @@ describe('two tables, one view — where the sharing bites', () => {
     const plain = mountTable({ view });
 
     // Control first, in the same test: alone, the grouping stands — so the
-    // discard below cannot be "setGroupByKey never worked".
-    plain.ctx.setGroupByKey('name');
+    // discard below cannot be "setGroupBy never worked".
+    plain.ctx.setGroupBy('name');
     flushSync();
     expect(view.groupBy).toBe('name');
-    expect(plain.ctx.state.groupByKey).toBe('name');
+    expect(plain.ctx.state.effectiveGroupBy).toBe('name');
 
     mountTable({ view, virtualized: true });
     flushSync();
 
     expect(view.groupBy).toBeNull();
     expect(view.originOf('groupBy').origin).toBe('system');
-    expect(plain.ctx.state.groupByKey).toBeNull();
+    expect(plain.ctx.state.effectiveGroupBy).toBeNull();
   });
 
   it('KNOWN-LIMIT: a mounted virtualized table reverts a sibling grouping made later', () => {
@@ -221,7 +221,7 @@ describe('two tables, one view — where the sharing bites', () => {
     // flush. The reader sees a grouping control that does nothing.
     const view = createTableView();
     const plain = mountTable({ view });
-    const control = plain.ctx.setGroupByKey;
+    const control = plain.ctx.setGroupBy;
     mountTable({ view, virtualized: true });
     flushSync();
 
@@ -230,23 +230,27 @@ describe('two tables, one view — where the sharing bites', () => {
 
     expect(view.groupBy).toBeNull();
     expect(view.originOf('groupBy').origin).toBe('system');
-    expect(plain.ctx.state.groupByKey).toBeNull();
+    expect(plain.ctx.state.effectiveGroupBy).toBeNull();
   });
 
   it('KNOWN-LIMIT: a managed source on both tables fetches twice per interaction', async () => {
     // Each table runs its own `createManagedFetch` over the shared view, so
     // one reader interaction produces one fetch PER table. Two tables sharing
     // a view and a managed source is therefore a doubling, not a cache —
-    // wire the fetch once and hand both tables a manual `kind: 'server'`
+    // wire the fetch once and hand both tables a manual `processing: 'server'`
     // source if that matters. `debounceMs: 0` only shortens the wait; the
     // first fetch is immediate on either setting.
     const view = createTableView();
-    const query = vi.fn(async () => ({ items: ROWS, totalItems: 3 }));
-    const a = mountTable({ items: undefined, source: { query, debounceMs: 0 }, view });
-    mountTable({ items: undefined, source: { query, debounceMs: 0 }, view });
+    const query = vi.fn(async () => ({ items: ROWS, total: 3 }));
+    const a = mountTable({
+      items: undefined,
+      source: { processing: 'server', query, debounceMs: 0 },
+      view
+    });
+    mountTable({ items: undefined, source: { processing: 'server', query, debounceMs: 0 }, view });
     await vi.waitFor(() => expect(query).toHaveBeenCalledTimes(2)); // one per table, at mount
 
-    a.ctx.setSearchTerm('ada');
+    a.ctx.setSearch('ada');
     flushSync();
     await vi.waitFor(() => expect(query).toHaveBeenCalledTimes(4)); // ONE interaction
   });

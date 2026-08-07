@@ -41,6 +41,128 @@ describe('construction — defaults resolution', () => {
     });
     expect(view.snapshot()).toEqual(view.defaults);
   });
+
+  it('copies the composite defaults instead of aliasing the consumer objects', () => {
+    // `defaults` IS the elision baseline every binding compares against, so a
+    // consumer who pushes onto the array they passed in would silently move
+    // the "this axis is at its default" line — and with it what reaches the
+    // URL. Positive control: drop the spread in the constructor and both
+    // `toHaveLength(0)`/`direction` assertions go red.
+    const consumerFilters: Filter[] = [];
+    const consumerSort = { column: 'date', direction: 'desc' as const };
+    const view = createTableView({ defaults: { filters: consumerFilters, sort: consumerSort } });
+
+    consumerFilters.push({ column: 'name', operator: 'contains', value: 'ada' });
+    consumerSort.column = 'amount';
+
+    expect(view.defaults.filters).toHaveLength(0);
+    expect(view.defaults.sort).toEqual({ column: 'date', direction: 'desc' });
+  });
+
+  it('an in-place write to a live axis does not move the baseline with it', () => {
+    // Reported by review as a defect (`#sort` is assigned `defaults.sort`
+    // rather than a copy, unlike `#filters`) — measured 2026-08-06 and it does
+    // NOT reproduce: the `$state` proxy around the assigned object keeps its
+    // writes in its own signals. Pinned as the property rather than the
+    // mechanism, so the day Svelte's proxy semantics change, this goes red
+    // here instead of silently in a consumer's elided URL.
+    const view = createTableView({
+      defaults: { sort: { column: 'date', direction: 'desc' }, filters: [aFilter] }
+    });
+
+    if (view.sort) view.sort.direction = 'asc';
+    view.filters[0].value = 'zz';
+
+    expect(view.defaults.sort).toEqual({ column: 'date', direction: 'desc' });
+    expect(view.defaults.filters).toEqual([aFilter]);
+    // …and the change IS visible on the live axis, so the isolation is not
+    // simply the write being dropped.
+    expect(view.sort?.direction).toBe('asc');
+  });
+});
+
+describe('degenerate spellings of "off" collapse on every write path (#166 review)', () => {
+  // Both composite axes have a second way to say `null` that the type admits
+  // and nothing downstream recognises. `groupBy: ''` was normalised in the
+  // field setter since v8; `sort` with an empty column was normalised inside
+  // the store's `sortColumn` setter, which the #166 cut removed — so
+  // `setSort({ column: '', direction })` started leaving a sort naming no
+  // column, `SortMenu` reported "sorted" over a table rendering unsorted, and
+  // `assertValidViewSnapshot` threw when that view reached the URL codec.
+  //
+  // Positive control: remove either branch from `normaliseAxis` and the
+  // matching pair below goes red.
+  it('a sort with an empty column is unsorted, whichever path writes it', () => {
+    const view = createTableView();
+
+    view.sort = { column: '', direction: 'desc' };
+    expect(view.sort).toBeNull();
+
+    view.applyExternal({ sort: { column: '', direction: 'asc' } }, 'external');
+    expect(view.sort).toBeNull();
+
+    expect(
+      createTableView({ defaults: { sort: { column: '', direction: 'asc' } } }).sort
+    ).toBeNull();
+  });
+
+  it("groupBy '' is ungrouped, whichever path writes it", () => {
+    const view = createTableView();
+
+    view.groupBy = '';
+    expect(view.groupBy).toBeNull();
+
+    view.applyExternal({ groupBy: '' }, 'external');
+    expect(view.groupBy).toBeNull();
+
+    expect(createTableView({ defaults: { groupBy: '' } }).groupBy).toBeNull();
+  });
+
+  it('normalising happens before the echo guard, so it is not a change', () => {
+    // An already-unsorted view written with the degenerate spelling must not
+    // count as an edit — otherwise it bumps the revision and a storage
+    // binding persists a no-op as the reader's wish.
+    const view = createTableView();
+    const before = view.originOf('sort').revision;
+
+    view.sort = { column: '', direction: 'desc' };
+    expect(view.originOf('sort').revision).toBe(before);
+  });
+});
+
+describe('snapshot() is a snapshot — the composite axes are copied (#162)', () => {
+  // The copy used to live in `viewToQuery`, so it only protected consumers who
+  // went through that projection; `observeView(view, cb)` handed the callback
+  // the view's own array. With the query and view vocabularies unified the
+  // projection is gone, and the guarantee belongs to `snapshot()` itself.
+  // Positive control: remove the spreads in `snapshot()` and every `not.toBe`
+  // below goes red.
+  it('hands out a filters array the caller cannot write through', () => {
+    const view = createTableView();
+    view.filters = [{ column: 'name', operator: 'contains', value: 'ad' }];
+
+    const snap = view.snapshot();
+    expect(snap.filters).toEqual(view.filters);
+    expect(snap.filters).not.toBe(view.filters);
+
+    snap.filters.push({ column: 'x', operator: 'equals', value: 'y' });
+    expect(view.filters).toHaveLength(1);
+  });
+
+  it('hands out a sort object the caller cannot write through', () => {
+    const view = createTableView();
+    view.sort = { column: 'amount', direction: 'asc' };
+
+    const snap = view.snapshot();
+    expect(snap.sort).not.toBe(view.sort);
+
+    if (snap.sort) snap.sort.direction = 'desc';
+    expect(view.sort?.direction).toBe('asc');
+  });
+
+  it('keeps null sort as null rather than an empty object', () => {
+    expect(createTableView().snapshot().sort).toBeNull();
+  });
 });
 
 describe('echo suppression at the write surface', () => {

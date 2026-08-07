@@ -1,5 +1,6 @@
 import type { Column } from '$lib/types/tableTypes';
 import { findColumnById, humanizeColumnId, resolveColumnId, resolveColumnLabel } from '$lib/utils';
+import { isColumnGroupable, isColumnSortable } from '$lib/utils/column-capabilities';
 
 /**
  * Which columns each filter-bar tool may act on, as plain functions.
@@ -30,14 +31,11 @@ function toEntry(column: Column): ToolColumnEntry {
  * Columns the sort tool offers. Sorting is otherwise only reachable by clicking
  * a column header, which the mobile card layout has no equivalent of.
  *
- * Synthetic columns have no accessor — sorting by them is undefined — and an
- * explicit `sortable: false` opts out; anything else is sortable.
+ * The rule itself is {@link isColumnSortable}, shared with the header click and
+ * the header menu, so the three cannot answer differently.
  */
 export function selectSortableColumns(columns: Column[]): Column[] {
-  return columns.filter((col) => {
-    if (col.accessor === undefined) return false;
-    return col.sortable === undefined || col.sortable === true;
-  });
+  return columns.filter(isColumnSortable);
 }
 
 /** {@link selectSortableColumns} as `{ id, label }` rows. */
@@ -48,26 +46,21 @@ export function buildSortEntries(columns: Column[]): ToolColumnEntry[] {
 /**
  * Columns the grouping tool offers.
  *
- * `groupable` decides when set. Otherwise the flag is derived from what the
- * column declares (`sortable === true`), never from what it is called — this
- * read `id !== 'actions' && !id.includes('action')` until 2026-07-31, which was
- * wrong in both directions: a legitimate `transaction` column was silently
- * ungroupable, while the synthetic-column check above already covers the case
- * the name was standing in for.
+ * The rule is {@link isColumnGroupable}, shared with the column's header menu.
+ * It was a second copy here until it turned out the two had drifted apart: this
+ * list required `groupable: true` or `sortable: true` while the header menu
+ * accepted anything that was not `groupable: false`, so an unflagged column was
+ * groupable from one surface and not from the other.
  */
 export function selectGroupableColumns(columns: Column[]): Column[] {
-  return columns.filter((col) => {
-    if (col.accessor === undefined) return false;
-    if (col.groupable !== undefined) return col.groupable === true;
-    return col.sortable === true;
-  });
+  return columns.filter(isColumnGroupable);
 }
 
 /**
  * The grouping tool's rows, including the two keys that are legitimately absent
  * from {@link selectGroupableColumns}.
  *
- * Grouping is a superset of the column list: `view.groupBy` / `setGroupByKey`
+ * Grouping is a superset of the column list: `view.groupBy` / `setGroupBy`
  * accept any item field, so a table can group by something it shows no column
  * for — the landing journey groups bookings by `day` while displaying no Day
  * column, because the day belongs in the group header and would be redundant in
@@ -80,7 +73,7 @@ export function selectGroupableColumns(columns: Column[]): Column[] {
  *   instead would make the row vanish on ungroup, i.e. leave the reported
  *   symptom ("no way back to it") exactly as it was.
  * - the **active** key, when it is neither listed nor declared — reachable
- *   through a programmatic `setGroupByKey`, or through a column the header menu
+ *   through a programmatic `setGroupBy`, or through a column the header menu
  *   offers but this list filters out. Without it the Select holds a value it
  *   cannot display and DEV-logs `value "…" has no matching option`.
  *

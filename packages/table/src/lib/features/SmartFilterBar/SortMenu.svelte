@@ -19,11 +19,11 @@
   const ArrowUpDownIcon = resolveIcon('arrowUpDown', ArrowUpDownIconDefault);
 
   const tableContext = getTableContext();
-  const { state: tableState, setSort } = tableContext;
+  const { state: tableState, view: tableView, setSort } = tableContext;
 
   const entries = $derived(buildSortEntries(tableState.columns));
 
-  const isActive = $derived(!!tableState.sortColumn);
+  const isActive = $derived(tableView.sort !== null);
 
   // No counter beside the icon: the store holds ONE sort column, so any number
   // rendered here would forever read "1". The lit ground is the whole signal —
@@ -35,7 +35,7 @@
   // Encode the active sort as `${columnId}:${direction}` so the column and the
   // direction can travel through the single-value Select; '' means unsorted.
   const currentValue = $derived(
-    tableState.sortColumn ? `${tableState.sortColumn}:${tableState.sortDirection}` : ''
+    tableView.sort ? `${tableView.sort.column}:${tableView.sort.direction}` : ''
   );
 
   const sortOptions = $derived.by(() => {
@@ -54,12 +54,12 @@
 
   function handleValueChange(value: string) {
     if (!value) {
-      setSort('', 'asc');
+      setSort(null);
       return;
     }
     const [columnId, direction] = value.split(':');
     if (columnId && (direction === 'asc' || direction === 'desc')) {
-      setSort(columnId, direction);
+      setSort({ column: columnId, direction });
     }
   }
 </script>

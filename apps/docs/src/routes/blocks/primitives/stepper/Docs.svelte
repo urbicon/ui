@@ -13,7 +13,7 @@
 
 <!-- ─── Examples ─── -->
 
-<Section marker="01" id="examples" title="Examples">
+<Section marker id="examples" title="Examples">
   <div class="space-y-8">
     <CodeExample
       title="Checkout wizard"
@@ -81,7 +81,7 @@
 
 <!-- ─── Vertical ─── -->
 
-<Section marker="02" id="vertical" title="Vertical Stepper">
+<Section marker id="vertical" title="Vertical Stepper">
   <div class="space-y-8">
     <CodeExample
       title="Vertical with content per step"
@@ -140,7 +140,7 @@
 
 <!-- ─── Customization ─── -->
 
-<Section marker="03" id="customization" title="Customization">
+<Section marker id="customization" title="Customization">
   <div class="space-y-8">
     <CodeExample
       title="slotClasses Override"
@@ -285,7 +285,7 @@
 
 <!-- ─── Accessibility ─── -->
 
-<Section marker="04" id="accessibility" title="Accessibility">
+<Section marker id="accessibility" title="Accessibility">
   <NoteList>
     <Note title="Built-in ARIA">
       <p>

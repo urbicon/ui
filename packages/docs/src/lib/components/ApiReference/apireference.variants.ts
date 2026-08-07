@@ -21,11 +21,45 @@ export const apiReferenceVariants = tv({
     ],
     defaultCode: ['font-mono text-xs text-text-tertiary'],
     description: ['text-sm leading-relaxed text-text-secondary'],
-    // Description cell wrapper — only needed when a prop also carries prose
-    // `@see` references, which stack under the description text.
-    descriptionCell: ['flex flex-col items-start gap-1'],
+    // In-row description. Capped at two lines: a handful of props carry prose
+    // an order of magnitude longer than the rest (median 62 characters, 90th
+    // percentile 259, longest 1996), and those turned single rows six lines
+    // tall — a grid you cannot scan any more. The full text is one disclosure
+    // away, in `expandedPanel` below.
+    descriptionClamped: ['line-clamp-2'],
+    // --- expanded row -------------------------------------------------------
+    // Mirrors TypesReference's expanded panel: a declaration line first, then
+    // the prose, then the references. Same order, same slots, so the two
+    // reference tables answer a disclosure the same way.
+    expandedPanel: ['flex flex-col gap-2'],
+    // The prop's declaration (`disabled?: boolean`) — the API's counterpart to
+    // the type definition TypesReference prints here. It is what makes the
+    // disclosure worth opening on a prop with a one-line description: required
+    // vs optional and the exact type, neither of which the row spells out.
+    signature: [
+      'bg-surface-quiet text-text-primary',
+      'overflow-x-auto rounded-contain p-3 font-mono text-xs'
+    ],
+    // Where the prop is declared (`ButtonProps`, `Omit<HTMLButtonAttributes,
+    // 'children'>` from `svelte/elements`).
+    sourceSection: ['flex flex-wrap items-center gap-1 text-2xs text-text-tertiary'],
+    sourceName: [
+      'inline-flex items-center rounded-modify',
+      'bg-surface-quiet px-1.5 py-0.5 font-mono text-2xs leading-none text-text-secondary'
+    ],
+    sourceLink: [
+      'text-primary underline decoration-primary/40 hover:decoration-primary',
+      'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40',
+      'focus-visible:rounded-modify'
+    ],
+    // The complete literal union. The row shows the first few as chips; a prop
+    // like `icon` has dozens, and printing all of them in the cell is what the
+    // clamp above exists to prevent.
+    valuesSection: ['flex flex-wrap items-center gap-1 text-2xs text-text-tertiary'],
     // Prose `@see` references (`HTMLButtonAttributes.value`): a real reference,
-    // but one with no doc URL, so it reads as a quiet footnote rather than a link.
+    // but one with no doc URL, so it reads as a quiet footnote rather than a
+    // link. Lives in the expanded panel — in the cell it competed with the
+    // description for the two lines the clamp allows.
     seeAlsoRefs: ['flex flex-wrap items-center gap-1 text-2xs text-text-tertiary'],
     seeAlsoRef: [
       'inline-flex items-center rounded-modify',

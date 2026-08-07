@@ -13,7 +13,7 @@
   let chartType = $state('line');
 </script>
 
-<Section marker="01" id="examples" title="Examples">
+<Section marker id="examples" title="Examples">
   <div class="space-y-8">
     <CodeExample
       title="Time-Range Selector"
@@ -63,7 +63,7 @@
 
 <!-- ─── Micro-Interactions ─── -->
 
-<Section marker="02" id="mints" title="Micro-Interactions">
+<Section marker id="mints" title="Micro-Interactions">
   <div class="space-y-8">
     <CodeExample
       title="Configured Mint"
@@ -85,7 +85,7 @@
 
 <!-- ─── Comparison ─── -->
 
-<Section marker="03" id="comparison" title="Choosing the Right Component">
+<Section marker id="comparison" title="Choosing the Right Component">
   <NoteList>
     <Note title="SegmentGroup">
       <p>
@@ -122,7 +122,7 @@
 
 <!-- ─── Customization ─── -->
 
-<Section marker="04" id="customization" title="Customization">
+<Section marker id="customization" title="Customization">
   <div class="space-y-8">
     <CodeExample
       title="Gradient Pricing Toggle"
@@ -243,7 +243,7 @@
 
 <!-- ─── Accessibility ─── -->
 
-<Section marker="05" id="accessibility" title="Accessibility">
+<Section marker id="accessibility" title="Accessibility">
   <NoteList>
     <Note title="ARIA">
       <p>

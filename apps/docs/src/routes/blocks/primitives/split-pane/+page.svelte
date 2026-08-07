@@ -83,7 +83,7 @@
   <CustomDocs />
 
   <Section
-    marker="03"
+    marker
     id="api"
     title="API Reference"
     intent="secondary"
@@ -94,7 +94,7 @@
 
   <TypesReference types={componentData?.types ?? []} />
 
-  <Section marker="04" id="installation" title="Installation">
+  <Section marker id="installation" title="Installation">
     <CodeExample
       title="Import"
       code={`import { SplitPane } from '@urbicon-ui/blocks';

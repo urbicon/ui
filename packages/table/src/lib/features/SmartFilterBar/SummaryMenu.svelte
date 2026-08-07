@@ -1,6 +1,6 @@
 <script lang="ts">
   import { getTableContext, useTableI18n } from '$lib';
-  import { isColumnSummable } from '$lib/utils/summable';
+  import { isColumnSummable } from '$lib/utils/column-capabilities';
   import { resolveColumnId, resolveColumnLabel } from '$lib/utils';
   import { smartFilterBarTriggerVariants } from '$lib/variants';
   import {
@@ -38,7 +38,7 @@
   let menuOpen = $state(false);
 
   // Capability follows configuration, never the column's name — see
-  // utils/summable.ts for what that replaced and why.
+  // utils/column-capabilities.ts for what that replaced and why.
   const summableColumns = $derived.by(() => tableState.columns.filter(isColumnSummable));
 
   const summaryTypes = [

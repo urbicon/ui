@@ -25,36 +25,67 @@ export const smartFilterBarVariants = tv({
     // stacks the search above the actions until the *bar itself* (not the
     // viewport) is wide enough, so the search input is never crushed to ~0 by
     // the shrink-0 action buttons on a narrow screen (Codeberg #28).
-    controls: ['flex gap-2'],
+    controls: [
+      'flex gap-2',
+      // ── Where the capsule/sheet threshold is written down ──────────────────
+      //
+      // The bar has to KNOW which of the two it is showing (the sheet is a
+      // different component tree, not a different style), and it used to know by
+      // comparing its measured px width against `28 * 16` — a second copy of the
+      // `@md` step above, in a second unit. The two agree only at a 16px root
+      // font: raise the browser's text size and a band opened where the capsule
+      // was back under the search field, which is the exact state compact mode
+      // exists to remove (#133).
+      //
+      // So CSS decides and JS reads the decision off this element. One `@md`,
+      // one container, one engine resolving one `rem` — the two cannot disagree,
+      // because there is no longer a second thing to disagree with.
+      '[--blocks-table-tools:sheet]',
+      '@md:[--blocks-table-tools:capsule]'
+    ],
     searchSection: ['w-full min-w-0'],
-    // Touch targets: enlarge the menu *trigger* buttons to ≥44px while the bar is
-    // stacked, reverting at `@md`. Triggers carry `aria-haspopup`; the
+    // Touch targets: enlarge the menu *trigger* buttons to the 44px
+    // docs/ResponsiveGuidelines.md asks for. Triggers carry `aria-haspopup`; the
     // `:not([popover] *)` guard excludes the panels they open — those are DOM
     // descendants of this toolbar (native top-layer popover, not portalled) and
     // carry their own haspopup controls (e.g. the filter operator selects), so a
     // blanket rule would wrongly size them too.
     //
-    // Reachable only under an explicit `layout="vertical"`/`"horizontal"`: at the
-    // default `responsive`, `@md` and COMPACT_MAX_WIDTH are the same 28rem step
-    // measured on the same content box, so below it the tools have left the bar
-    // for the sheet and this slot renders nothing. Kept because those two
-    // layouts are instructions the consumer gave, not states the bar chose.
+    // `pointer-coarse:`, NOT the container width it used to be
+    // (`min-h-11` … `@md:min-h-0`). Width is not the question a touch target
+    // asks: a table in a 400px desktop pane got 44px buttons nobody was going to
+    // tap, and a wide tablet got 32px ones somebody was — the rule fired on
+    // exactly the wrong two cases. The pointer media query is what the guideline
+    // is written against (`--blocks-touch-target-min` under
+    // `@media (pointer: coarse)`), and it is the idiom Input already uses to
+    // floor its font size on touch.
+    //
+    // Now reachable in every layout, including the compact one — the narrow bar
+    // renders its single tool button inside this same capsule.
     actionsSection: [
       'flex items-center',
-      '[&_button[aria-haspopup]:not(:where([popover]_*))]:min-h-11',
-      '[&_button[aria-haspopup]:not(:where([popover]_*))]:min-w-11',
-      '@md:[&_button[aria-haspopup]:not(:where([popover]_*))]:min-h-0',
-      '@md:[&_button[aria-haspopup]:not(:where([popover]_*))]:min-w-0'
+      'pointer-coarse:[&_button[aria-haspopup]:not(:where([popover]_*))]:min-h-11',
+      'pointer-coarse:[&_button[aria-haspopup]:not(:where([popover]_*))]:min-w-11'
     ],
     chipsSection: ['w-full'],
     // The upright rule inside the capsule, between "changes which rows/values
-    // the grid shows" and "changes only what is on screen". Capsule-only: the
-    // compact branch renders no triggers at all, so there is nothing to divide.
+    // the grid shows" and "changes only what is on screen". Wide bar only: the
+    // compact capsule holds a single button, so there is nothing to divide.
     // Explicit height because Separator's own `h-full` resolves against an
     // auto-height flex row — i.e. to nothing.
     rule: ['mx-0.5 !h-5'],
     // The narrow bar's single tool button — see the switch in SmartFilterBar.
-    toolsTrigger: ['min-h-11 min-w-11 shrink-0 gap-1.5']
+    //
+    // Size and shape do not live here: it is the sixth instance of the
+    // MenuTrigger shape, inside the same `actionsSection` toolbar, so the radius
+    // (`tier="modify"` via TierContext) and the touch floor reach it the way
+    // they reach the other five. It used to stand outside that toolbar with a
+    // hard `min-h-11 min-w-11` and the Button default `tier="commit"` — a 44px
+    // pill beside a 40px search field and its own 32px siblings.
+    //
+    // The GROUND is the one thing it carries itself rather than inheriting, and
+    // `toolsActive` below says why.
+    toolsTrigger: ['shrink-0']
   },
 
   variants: {
@@ -111,11 +142,38 @@ export const smartFilterBarVariants = tv({
      */
     compact: {
       true: {
-        // The button sits beside the search field, so the row must not stack.
+        // The button sits beside the search field, so the row must not stack —
+        // and the toolbar keeps its width while the field takes the rest.
         controls: 'flex-row items-center',
-        searchSection: 'flex-1'
+        searchSection: 'flex-1',
+        actionsSection: 'shrink-0'
       },
       false: {}
+    },
+
+    /**
+     * Whether the closed tool button has something to report — and, with it,
+     * WHO paints the ground in the compact bar.
+     *
+     * Exactly one element may: the toolbar around five triggers is a grouping
+     * surface, and grouping is what a toolbar holding ONE button has nothing
+     * left to do. Its `surface-quiet` then stopped reading as the button's body
+     * and started reading as a pale frame around it — invisible while the button
+     * was transparent, a second rounded rect the moment the button lit up.
+     *
+     * So the compact toolbar is `variant="ghost"` (see SmartFilterBar: chrome
+     * off, tier and touch floor still on) and the ground rides the button:
+     * `surface-quiet` at rest — the same tone, one element in — and nothing here
+     * when lit, because `smartFilterBarTriggerVariants` brings `primary-subtle`.
+     * The two are arms of one axis on purpose: as two classes on one element
+     * they would both be emitted and resolve by stylesheet order, which is not a
+     * decision anybody made.
+     */
+    toolsActive: {
+      true: {},
+      false: {
+        toolsTrigger: 'bg-surface-quiet'
+      }
     },
 
     variant: {
@@ -134,7 +192,8 @@ export const smartFilterBarVariants = tv({
     layout: 'responsive',
     elevated: false,
     variant: 'framed',
-    compact: false
+    compact: false,
+    toolsActive: false
   }
 });
 

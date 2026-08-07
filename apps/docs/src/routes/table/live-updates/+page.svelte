@@ -82,17 +82,17 @@ ${scriptClose}
   title="Live Updates"
   description="Non-disruptive real-time data updates with buffering and user-controlled application."
   {navigation}
+  showToc={true}
   breadcrumbs={[{ label: 'Table', href: resolve('/table/table') }]}
 >
   <Section id="overview" title="Overview">
     <div class="space-y-4">
       <p class="text-text-secondary text-sm">
-        Live-injecting rows into a filtered, sorted, paginated table is disorienting: rows jump
-        position mid-read, disappear behind active filters, or conflict with a selection the user is
-        building. With <code class="text-text-primary">enableLiveUpdates</code>, the table follows
-        the <strong>notification + merge</strong> pattern instead — incoming inserts, updates, and deletes
-        are buffered, a banner summarizes what is pending (&ldquo;3 new, 2 updated&rdquo;), and the user
-        merges them at a moment of their choosing.
+        Writing rows straight into a filtered, sorted, paged table is disorienting: rows jump
+        position mid-read, disappear behind an active filter, or land in a selection the reader is
+        still building. <code class="text-text-primary">enableLiveUpdates</code> buffers them instead.
+        A banner above the rows counts what is waiting (&ldquo;3 new, 2 updated&rdquo;), and the reader
+        merges it when they are ready.
       </p>
       <p class="text-text-secondary text-sm">
         You push changes from any data source — WebSocket, SSE, or polling — through three methods
@@ -144,35 +144,23 @@ ${scriptClose}
   </Section>
 
   <Section id="merge-semantics" title="Buffer & merge semantics">
-    <div class="border-border-subtle bg-surface-elevated rounded-2xl border p-6">
-      <ul class="text-text-secondary list-outside list-disc space-y-2 pl-5 text-sm">
-        <li>
-          <code class="text-text-primary">pushInsert</code> deduplicates by row ID — pushing the same
-          row twice keeps only the latest version
-        </li>
-        <li>
-          <code class="text-text-primary">pushUpdate</code> merges consecutive changes for the same row;
-          only the combined latest state is applied
-        </li>
-        <li>
-          A <code class="text-text-primary">pushDelete</code> for a row that is still a pending insert
-          cancels both — the row never appears
-        </li>
-        <li>
-          A <code class="text-text-primary">pushUpdate</code> for a row that is still a pending insert
-          is folded into that insert, so the row lands already updated (updates apply before inserts,
-          so a separate buffer entry would be dropped as unknown)
-        </li>
-        <li>On apply, deletes run first, then updates, then inserts</li>
-        <li>
-          Rows that just received an applied update are highlighted for three seconds, so the change
-          is visible even in a long list
-        </li>
-        <li>Applied deletes also remove the affected rows from the current selection</li>
-        <li>
-          Updates or deletes for unknown row IDs are skipped (with a console warning in dev builds)
-        </li>
-      </ul>
+    <div class="space-y-4">
+      <p class="text-text-secondary text-sm">
+        The buffer holds at most one pending outcome per row, so a busy feed cannot make it grow
+        past the number of rows it touched. A second
+        <code class="text-text-primary">pushInsert</code> replaces the first, consecutive
+        <code class="text-text-primary">pushUpdate</code> calls merge into one, a
+        <code class="text-text-primary">pushDelete</code> for a row that is still a pending insert
+        cancels both, and a <code class="text-text-primary">pushUpdate</code> for one is folded into the
+        insert so the row lands already updated. Order of arrival does not matter.
+      </p>
+
+      <p class="text-text-secondary text-sm">
+        Applying runs deletes, then updates, then inserts. A row that just took an update is
+        highlighted for three seconds, so the change is findable in a long list, and a deleted row
+        leaves the selection along with the table. An update or delete naming a row the table does
+        not hold is skipped, with a warning in dev.
+      </p>
     </div>
   </Section>
 

@@ -16,6 +16,10 @@ describe('docsLayoutVariants', () => {
       'stickyBar',
       'stickyBarInner',
       'pageToolbar',
+      'stickyToc',
+      'stickyTocButton',
+      'stickyTocNav',
+      'stickyTocLink',
       'mobileToc',
       'mobileTocButton',
       'mobileTocNav',
@@ -99,15 +103,33 @@ describe('docsLayoutVariants', () => {
   });
 
   describe('sidebar variant', () => {
-    it('adds gap and min-width when sidebar is true', () => {
+    it('caps main at the exhibit column and moves its padding to the wrapper', () => {
       const styles = docsLayoutVariants({ sidebar: true });
-      expect(styles.wrapper()).toContain('gap-8');
+      expect(styles.wrapper()).toContain('gap-(--docs-rail-gap)');
       expect(styles.main()).toContain('min-w-0');
+      expect(styles.main()).toContain('max-w-(--docs-column)');
+      // `main` used to be `max-w-none` and swallowed everything the TOC did not
+      // take. Both halves matter: a cap without dropping `px-6` would double the
+      // gutter, since `wrapper` now carries it for both columns.
+      expect(styles.main()).not.toContain('max-w-none');
+      expect(styles.main()).not.toContain('px-6');
     });
 
-    it('has no gap by default', () => {
+    it('gives wrapper, header and sticky bar the same cap and gutter', () => {
+      // The alignment invariant: all three centre their border box in the same
+      // parent, so an equal cap plus an equal gutter is what puts the h1, the
+      // breadcrumb and the first paragraph on one left edge. Drift here is
+      // invisible in a unit test of any single slot and obvious on the page.
+      const styles = docsLayoutVariants({ sidebar: true });
+      for (const slot of [styles.wrapper(), styles.headerInner(), styles.stickyBarInner()]) {
+        expect(slot).toContain('max-w-(--docs-shell)');
+        expect(slot).toContain('px-(--docs-gutter)');
+      }
+    });
+
+    it('has no rail gap by default', () => {
       const styles = docsLayoutVariants({ sidebar: false });
-      expect(styles.wrapper()).not.toContain('gap-8');
+      expect(styles.wrapper()).not.toContain('gap-(--docs-rail-gap)');
     });
   });
 

@@ -14,31 +14,14 @@
  * #153-regression-1 class).
  */
 import { untrack } from 'svelte';
-import type { TableQuery, TableQueryResult } from '$lib/types/tableTypes';
+import type { TablePage } from '$lib/types/tableTypes';
 import { resolveSource, type TableSource } from './source';
 import type { TableView, TableViewSnapshot } from './view.svelte';
-
-/** Project a view snapshot into the `TableQuery` shape `source.query` receives. */
-export function viewToQuery(snapshot: TableViewSnapshot): TableQuery {
-  return {
-    page: snapshot.page,
-    itemsPerPage: snapshot.pageSize,
-    sortColumn: snapshot.sort?.column ?? '',
-    sortDirection: snapshot.sort?.direction ?? 'asc',
-    searchTerm: snapshot.search,
-    // A defensive copy, like v7's hand-projected query: the query object
-    // leaves the table (`source.query`, observers) — a consumer mutating it
-    // must not mutate the view's live filter state through the shared
-    // reference.
-    activeFilters: [...snapshot.filters],
-    groupByKey: snapshot.groupBy
-  };
-}
 
 /** Where a managed fetch reports its lifecycle — the store's server setters. */
 export interface FetchSink {
   onLoading?: () => void;
-  onResult: (result: TableQueryResult) => void;
+  onResult: (result: TablePage) => void;
   /** `null` = the rejection carried no message — the sink supplies its own (i18n) fallback. */
   onError?: (message: string | null) => void;
 }
@@ -48,6 +31,11 @@ export interface FetchSink {
  * immediate, every later one debounced (`source.debounceMs`, default 300).
  * In-flight requests are aborted when superseded. Call during component
  * initialisation (the lifecycle is effects).
+ *
+ * Feature-frozen with `ServerManagedSource` (2026-08-06, #160; reasoning in
+ * the `source.ts` header): no `refetch()`, no cache, no retry, no
+ * invalidation hook. Each of those turns this into a data layer. Fix bugs
+ * here, send capabilities to the manual `processing: 'server'` flow.
  */
 export function createManagedFetch<T>(
   view: TableView,
@@ -123,7 +111,7 @@ export function createManagedFetch<T>(
     sink.onLoading?.();
     try {
       const result = await resolved.query(
-        untrack(() => viewToQuery(view.snapshot())),
+        untrack(() => view.snapshot()),
         { signal }
       );
       if (signal.aborted) return;
@@ -153,7 +141,7 @@ export interface ObserveViewOptions {
  * @example Manual server flow
  * ```ts
  * const view = createTableView();
- * observeView(view, (snapshot) => fetchPage(viewToQuery(snapshot)));
+ * observeView(view, (snapshot) => fetchPage(snapshot));
  * ```
  */
 export function observeView(

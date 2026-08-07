@@ -16,7 +16,13 @@
   let { class: className = '' } = $props();
 
   const tableContext = getTableContext();
-  const { state: tableState, removeFilter, setGroupByKey, removeSummaryConfig } = tableContext;
+  const {
+    state: tableState,
+    view: tableView,
+    removeFilter,
+    setGroupBy,
+    removeSummaryConfig
+  } = tableContext;
 
   function getColumnTitle(id: string): string {
     // Raw-id fallback for persisted state that references a removed column.
@@ -47,7 +53,7 @@
     const chips: ChipItem[] = [];
 
     // Filter Chips
-    tableState.activeFilters.forEach((filter, index) => {
+    tableView.filters.forEach((filter, index) => {
       chips.push({
         type: 'filter',
         id: `filter-${index}`,
@@ -56,12 +62,21 @@
       });
     });
 
-    if (tableState.groupByKey) {
+    if (tableState.effectiveGroupBy) {
       chips.push({
         type: 'group',
         id: 'group',
-        content: getColumnTitle(tableState.groupByKey),
-        onRemove: () => setGroupByKey(null)
+        // Qualified like both its neighbours: the filter chip names the column
+        // that qualifies its value, the summary chip names the aggregate that
+        // qualifies its column. This one carried the bare column name, so the
+        // only thing saying what it WAS is the hue it wears — and a hue is not a
+        // label. It is unreadable to anyone who cannot separate the three
+        // ramps, and it is silent in the accessible name the chip announces.
+        //
+        // `grouping.button` is the tool's name, not a button caption: ToolsSheet
+        // already titles its grouping section with it.
+        content: `${tt('grouping.button')}: ${getColumnTitle(tableState.effectiveGroupBy)}`,
+        onRemove: () => setGroupBy(null)
       });
     }
 

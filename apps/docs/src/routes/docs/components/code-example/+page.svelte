@@ -87,7 +87,7 @@
   <CustomDocs />
 
   <Section
-    marker="02"
+    marker
     id="usage"
     title="Usage Notes"
     subtitle="Best practices and important considerations"
@@ -114,7 +114,7 @@
     </div>
   </Section>
 
-  <Section marker="03" id="accessibility" title="Accessibility">
+  <Section marker id="accessibility" title="Accessibility">
     <NoteList>
       <Note title="Preview and code are one figure, two regions">
         <p>
@@ -141,7 +141,7 @@
   </Section>
 
   <Section
-    marker="04"
+    marker
     id="api"
     title="API Reference"
     subtitle="Complete list of component properties and their configurations"
@@ -152,7 +152,7 @@
 
   <TypesReference types={componentData?.types ?? []} />
 
-  <Section marker="05" id="installation" title="Installation">
+  <Section marker id="installation" title="Installation">
     <CodeExampleComponent
       title="Import"
       code={`import { CodeExample } from '@urbicon-ui/docs';`}

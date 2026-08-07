@@ -494,9 +494,12 @@
   display: none;
 }
 
-/* Scrollspy badge (shown once scrolled) would clash primary-on-primary on the
- * accent strip; flip it to a translucent-foreground inlay so it reads as a
- * chip regardless of room. Breadcrumb + source read via the token remap above. */
+/* The sticky bar's table-of-contents trigger would clash primary-on-primary on
+ * the accent strip; flip it to a translucent-foreground inlay so it reads as a
+ * chip regardless of room. Breadcrumb + source read via the token remap above.
+ * It used to be a scrollspy badge that only appeared once scrolled — hence the
+ * attribute name; it is now always present (icon alone at the top of the page,
+ * with the active section's title expanding in beside it further down). */
 .docs-rooms [data-docs-sticky-bar] [data-docs-scrollspy] {
   background: color-mix(in oklab, var(--room-accent-fg) 16%, transparent);
   color: var(--room-accent-fg);
@@ -586,33 +589,49 @@
 
 /* ── Reading layer — the measure, the prose scale, the aside ─────────────
  *
- * One column width governs everything in a section: heading, paragraph, rule,
- * example frame and aside are the same width, because they are one reading
- * column and not five independent blocks. A page with a table of contents gets
- * `main: max-w-none` from DocsLayout's `sidebar` variant, so without this the
- * column is as wide as the viewport allows and a paragraph capped on its own
- * disagrees with every rule and frame around it.
- *
  * The scale is set here rather than per page: the pages hand-write
  * `text-sm text-text-secondary` on every paragraph, which is 14px at reduced
  * contrast. Body copy is neither.
  */
 .docs-rooms {
-  --docs-measure: 46rem; /* the reading column — everything in a section */
+  --docs-measure: 46rem; /* the reading edge — the argument */
   --docs-prose-size: 1.0625rem; /* 17px, was 14px */
   --docs-prose-leading: 1.7;
 }
 
-.docs-rooms #main-content section {
+/* Two edges, and only one of them is enumerated.
+ *
+ * `--docs-column` (60rem, DocsLayout's `main` box) is the EXHIBIT edge: tables,
+ * code panels, live stages — the things a reader looks at rather than reads.
+ * `--docs-measure` is the READING edge. The measure cannot absorb an exhibit
+ * and must not be widened to try: at 17px it already runs 84 characters per
+ * line, past the readable window, so every rem added to it costs the prose.
+ *
+ * The READING side is the one listed here, and that is the point. Prose is a
+ * closed set — paragraph, list, heading, rule, section header, note card —
+ * while exhibits are an open one that grows with every component the docs learn
+ * to show. Enumerating the closed set leaves a new exhibit right by default;
+ * enumerating exhibits would leave every new one silently capped at 46rem, which
+ * is the failure this replaces.
+ *
+ * That failure was one line: `section { max-width: var(--docs-measure) }`. It
+ * put the measure on the wrong element — `main` stayed `flex-1 max-w-none`, so
+ * the TOC was pushed to the far edge and the difference became a corridor of
+ * nothing (208px at 1440, 568px at 1920) while the API table, the Types table
+ * and half the code blocks scrolled inside 736px right beside it.
+ *
+ * `[data-docs-stage] *` is excluded because a stage owns its inner layout: a
+ * CodeExample's description belongs to the frame it sits in, not to the page's
+ * reading column. `#playground` is excluded for the same reason one level up —
+ * that section is all exhibit.
+ */
+.docs-rooms #main-content section:not(#playground) > header,
+.docs-rooms #main-content section:not(#playground) [data-docs-note],
+.docs-rooms
+  #main-content
+  section:not(#playground)
+  :is(p, ul, ol, dl, blockquote, hr, h2, h3, h4):not([data-docs-stage] *) {
   max-width: var(--docs-measure);
-}
-
-/* The playground is the one section that is all exhibit. Anywhere else a stage
- * sits *inside* a reading section, so exempting `:has([data-docs-stage])` gives
- * the whole section back its full width — which is the same disagreement one
- * level up. */
-.docs-rooms #main-content section#playground {
-  max-width: none;
 }
 
 /* Structural, not class-keyed: a paragraph is body copy because of where it

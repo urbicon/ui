@@ -10,7 +10,9 @@ export interface TableSlotClasses {
   /** Toolbar wrapper around `SmartFilterBar` or custom `toolbar` snippet (Sticky-Layer L1) */
   toolbar?: string;
   /**
-   * Visible table frame (border, radius, shadow). Holds `<table>`.
+   * Visible table frame (border, radius, shadow) — whichever layout is showing:
+   * it holds the `<table>` above the mobile breakpoint and the record list below
+   * it, so a frame override reaches both.
    * Replaces the former `wrapper` slot from v1.4.x — see docs/STICKY-PINNING.md.
    */
   scrollArea?: string;
@@ -53,7 +55,7 @@ export interface TableSlotClasses {
   errorState?: string;
   /** Default SmartFilterBar inner container */
   filterBar?: string;
-  /** Mobile card wrapper */
+  /** One record of the mobile list (the stacked form of a `row`) */
   mobileCard?: string;
 }
 

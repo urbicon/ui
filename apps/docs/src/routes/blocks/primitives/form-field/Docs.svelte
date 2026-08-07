@@ -4,7 +4,7 @@
   import { resolve } from '$app/paths';
 </script>
 
-<Section marker="01" id="examples" title="Examples">
+<Section marker id="examples" title="Examples">
   <div class="space-y-8">
     <CodeExample
       title="Wrapping a custom file input"
@@ -60,7 +60,7 @@
   </div>
 </Section>
 
-<Section marker="02" id="customization" title="Customization">
+<Section marker id="customization" title="Customization">
   <div class="space-y-3">
     <p class="text-text-secondary text-sm leading-relaxed">
       Built-in form primitives (<code class="text-text-primary">Input</code>,
@@ -89,7 +89,7 @@
   </div>
 </Section>
 
-<Section marker="03" id="accessibility" title="Accessibility">
+<Section marker id="accessibility" title="Accessibility">
   <NoteList>
     <Note title="Label association">
       <p>

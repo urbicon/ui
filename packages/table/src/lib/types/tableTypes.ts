@@ -76,7 +76,15 @@ interface BaseColumn<T> {
   width?: string;
   /** Minimum column width (CSS value) */
   minWidth?: string;
-  /** Column flexibility */
+  /**
+   * Lay the column's cells out as a column instead of a row: adds `flex-col`
+   * to this column's header cell **and** its body cells, so a cell holding
+   * several elements stacks them rather than putting them side by side.
+   *
+   * Only the flex direction — it does not make the column itself flexible in
+   * the table's width distribution. That is `width` / `minWidth`.
+   * @default false
+   */
   flex?: boolean;
   /**
    * Responsive priority — controls how the column appears in the **mobile card**
@@ -140,14 +148,31 @@ interface BaseColumn<T> {
  * grouping by an actions column.
  */
 interface DerivableMixin {
-  /** Whether this column is sortable */
+  /**
+   * Whether the column sorts — on a header click, from its header menu and
+   * from the toolbar's sort tool. Sorting works on any value, so this is how
+   * you take it *away* from a column nobody would order by.
+   * @default true
+   */
   sortable?: boolean;
-  /** Whether this column is searchable */
+  /**
+   * Whether the column takes part in the search field's matching and offers a
+   * per-column filter. Both follow this one flag: a column kept out of search
+   * has no filter entry either.
+   * @default true
+   */
   searchable?: boolean;
-  /** Whether this column is groupable. Falls back to `sortable === true`. */
+  /**
+   * Whether the column may be grouped by. Opt-in, unlike {@link sortable} and
+   * {@link searchable}: bucketing a high-cardinality column (an email, a free
+   * text note) makes one group per row. Falls back to `sortable === true`,
+   * which is the consumer saying the column is a dimension worth organising
+   * the table by.
+   * @default false (`true` when `sortable` is `true`)
+   */
   groupable?: boolean;
   /**
-   * Whether this column offers Sum / Avg / Min / Max. Falls back to
+   * Whether this column offers Sum / Avg / Min / Max / Count. Falls back to
    * `dataType === 'number'`.
    *
    * Never inferred from the column's **name**. Until 2026-07-31 an accessor
@@ -155,6 +180,7 @@ interface DerivableMixin {
    * treated as numeric — so a `price` column yielding strings was offered a sum
    * that could not work, a numeric `throughput` was offered none, and the
    * feature did not exist at all for columns named in another language.
+   * @default false (`true` when `dataType` is `'number'`)
    */
   summable?: boolean;
   /**
@@ -287,37 +313,20 @@ export type FilterOperator =
   | 'lessThan';
 
 /**
- * Query object emitted by the table in server mode.
- * Contains the full query state for server-side data fetching.
- * Compatible with any HTTP library — convert to URL params, GraphQL variables, etc.
+ * Result a server source resolves with — the return shape of `source.query`,
+ * and the same pair of fields a manual `processing: 'server'` source carries
+ * as `items` and `total`.
+ *
+ * `total` is spelled the same here as on `ServerManualSource` (#162): both
+ * mean "how many rows match this query", and until v9 the managed flow
+ * called it `totalItems` purely because that name came through unchanged
+ * from v7. Which flow you use no longer changes what the field is called.
  */
-export interface TableQuery {
-  /** Current page (1-based) */
-  page: number;
-  /** Number of items per page */
-  itemsPerPage: number;
-  /** Column ID to sort by, or empty string if no sort is active */
-  sortColumn: string;
-  /** Sort direction. Always set — only meaningful once `sortColumn` is non-empty. */
-  sortDirection: 'asc' | 'desc';
-  /** Full-text search term, exactly as typed. Not trimmed. */
-  searchTerm: string;
-  /** Active column filters */
-  activeFilters: Filter[];
-  /** Column ID for grouping, or null if ungrouped */
-  groupByKey: string | null;
-}
-
-/**
- * Result a server source resolves with — the return shape of `source.query`
- * (managed flow), and the shape `setServerResult` accepts in the manual
- * `kind: 'server'` flow.
- */
-export interface TableQueryResult {
+export interface TablePage {
   /** Items for the current page/query */
   items: TableItem[];
-  /** Total number of items matching the query (for pagination) */
-  totalItems: number;
+  /** Total number of items matching the query — drives pagination. */
+  total: number;
 }
 
 /**

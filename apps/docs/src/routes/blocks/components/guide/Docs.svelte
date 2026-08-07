@@ -47,7 +47,7 @@
 
 <!-- ─── Setup ─── -->
 
-<Section marker="01" id="setup" title="Setup">
+<Section marker id="setup" title="Setup">
   <p class="text-text-secondary mb-4 max-w-2xl text-sm leading-relaxed">
     Mount one <code>GuideProvider</code> near your app root. It instantiates a
     <code>GuideController</code> and shares it with every Guide surface via context. Mark any UI
@@ -80,7 +80,7 @@
 
 <!-- ─── The help panel ─── -->
 
-<Section marker="02" id="panel" title="The help panel">
+<Section marker id="panel" title="The help panel">
   <p class="text-text-secondary mb-4 max-w-2xl text-sm leading-relaxed">
     The <code>GuidePanel</code> is a small help center living inside your product. Its index is
     nothing more than the <code>GuideArticle</code>s you mount — and it scales with them: bucket
@@ -231,7 +231,7 @@
 
 <!-- ─── Contextual hints ─── -->
 
-<Section marker="03" id="hint" title="Contextual hints">
+<Section marker id="hint" title="Contextual hints">
   <p class="text-text-secondary mb-4 max-w-2xl text-sm leading-relaxed">
     A <code>GuideHint</code> waits at the right element instead of interrupting. Show it on mount,
     or drive it from your own route/condition with <code>trigger="manual"</code> and
@@ -276,7 +276,7 @@
 
 <!-- ─── Guided tour + beacon ─── -->
 
-<Section marker="04" id="tour" title="Guided tour & beacon">
+<Section marker id="tour" title="Guided tour & beacon">
   <p class="text-text-secondary mb-4 max-w-2xl text-sm leading-relaxed">
     The guided tour is the deliberately opt-in, intrusive surface: a spotlight that dims everything
     but the current step's target, plus an anchored bubble. A <code>GuideBeacon</code> is the gentle entry
@@ -371,7 +371,7 @@
 
 <!-- ─── Analytics ─── -->
 
-<Section marker="05" id="analytics" title="Analytics">
+<Section marker id="analytics" title="Analytics">
   <p class="text-text-secondary mb-4 max-w-2xl text-sm leading-relaxed">
     The real value of a tour is its funnel and drop-off signal. A <code>GuideTour</code> carries
     three optional hooks fired from the engine, so they trigger no matter which surface drives the
@@ -401,7 +401,7 @@
 
 <!-- ─── data-guide namespace ─── -->
 
-<Section marker="06" id="namespace" title="The data-guide namespace">
+<Section marker id="namespace" title="The data-guide namespace">
   <p class="text-text-secondary mb-4 max-w-2xl text-sm leading-relaxed">
     Every guide target is identified by a string id. There are two ways to register one — both feed
     the same registry, so a tour step, a hint, a marker, and a mention can all point at the same id.
@@ -430,7 +430,7 @@
 
 <!-- ─── Accessibility ─── -->
 
-<Section marker="07" id="accessibility" title="Accessibility">
+<Section marker id="accessibility" title="Accessibility">
   <NoteList>
     <Note title="Keyboard parity">
       <p>
@@ -462,7 +462,7 @@
 
 <!-- ─── Customization ─── -->
 
-<Section marker="08" id="customization" title="Customization">
+<Section marker id="customization" title="Customization">
   <p class="text-text-secondary mb-4 max-w-2xl text-sm leading-relaxed">
     Every surface supports <code>unstyled</code>, per-slot <code>slotClasses</code>, and named
     <code>preset</code>s. Two tokens tune the tour's spotlight scrim and the additive highlight

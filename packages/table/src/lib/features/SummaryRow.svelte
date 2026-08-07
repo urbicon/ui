@@ -56,7 +56,7 @@
       <td class="{summaryStyles.cell()} w-12" aria-hidden="true"></td>
     {/if}
 
-    {#if tableState.groupByKey}
+    {#if tableState.effectiveGroupBy}
       <td class="{summaryStyles.cell()} w-10" aria-hidden="true"></td>
     {/if}
 

@@ -2,10 +2,11 @@ import { describe, expect, it } from 'vitest';
 import { tableContainerVariants, tableHeaderVariants, tableRowVariants } from './table.variants';
 import {
   filterPanelVariants,
+  smartFilterBarTriggerVariants,
   smartFilterBarVariants,
   toolsSheetVariants
 } from './table-features.variants';
-import { mobileCardVariants } from './table-states.variants';
+import { mobileCardVariants, mobileListVariants } from './table-states.variants';
 
 describe('tableContainerVariants', () => {
   it('produces base container, toolbar, scrollArea, table and body classes', () => {
@@ -47,6 +48,50 @@ describe('tableContainerVariants', () => {
     if (scrollArea.includes('shadow')) {
       expect(scrollArea).not.toMatch(/(?<!\[var\(--blocks-)shadow-(sm|md|lg)\b/);
     }
+  });
+
+  // The layout switch is two class strings that have to be exact complements.
+  // Nothing about either file looks wrong when they drift — the symptom is that
+  // BOTH layouts render, or NEITHER does, at some width nobody tested. They now
+  // live side by side in one config; this is the part a comment cannot enforce.
+  describe('the layout switch', () => {
+    const desktop = tableContainerVariants({}).desktopOnly();
+    const mobile = tableContainerVariants({}).mobileOnly();
+
+    it('hides each layout on exactly the other side of one container step', () => {
+      const step = /^@(max-)?(\w+):hidden$/;
+      const d = desktop.trim().match(step);
+      const m = mobile.trim().match(step);
+
+      expect(
+        d,
+        `desktopOnly should be a single container-hidden rule, got "${desktop}"`
+      ).toBeTruthy();
+      expect(
+        m,
+        `mobileOnly should be a single container-hidden rule, got "${mobile}"`
+      ).toBeTruthy();
+      // Same step…
+      expect(d?.[2]).toBe(m?.[2]);
+      // …opposite direction. Exactly one of the two may carry `max-`.
+      expect(Boolean(d?.[1])).not.toBe(Boolean(m?.[1]));
+    });
+
+    it('asks the container, never the viewport', () => {
+      // `md:hidden` / `max-md:hidden` is what this used to be, and a table in
+      // any column narrower than the window then rendered the wrong layout.
+      for (const cls of [desktop, mobile]) {
+        expect(cls).toMatch(/^@/);
+      }
+    });
+
+    it('carries no class that names no CSS', () => {
+      // `desktop-only` / `mobile-only` were markers with no rule anywhere; the
+      // hook is `data-table-layout` now. variants:lint would catch a relapse,
+      // but only for as long as these strings stay inside a tv() config.
+      expect(desktop).not.toMatch(/\bdesktop-only\b/);
+      expect(mobile).not.toMatch(/\bmobile-only\b/);
+    });
   });
 
   it('enables sticky toolbar pinning when stickyToolbar=true', () => {
@@ -109,6 +154,48 @@ describe('tableRowVariants', () => {
   });
 });
 
+describe('mobileCardVariants — the record is not a box', () => {
+  // The whole point of the 2026-08-07 rework: the frame, the surface and the
+  // radius belong to the list (`tableStyles.scrollArea`), so a record may draw
+  // nothing but its separator. A regression here is invisible in a unit test of
+  // any single state — it shows up as the stack of outlined panels that used to
+  // be there — so this asserts the absence directly.
+  it('draws no frame of its own in any state', () => {
+    const states = [
+      {},
+      { selected: true },
+      { active: true },
+      { expanded: true },
+      { interactive: true },
+      { collapsed: true }
+    ] as const;
+    for (const state of states) {
+      const card = mobileCardVariants(state).card();
+      const utilities = card.split(/\s+/);
+      // A radius, an outer margin or a resting elevation would each re-box it.
+      expect(card).not.toMatch(/\brounded-/);
+      expect(card).not.toMatch(/\bm[btlrxy]?-\d/);
+      expect(card).not.toMatch(/\bshadow-\[var\(/);
+      // The separator is the ONLY edge — a border on any other side (or on all
+      // four) is a ring around the record.
+      expect(utilities).not.toContain('border');
+      expect(card).not.toMatch(/\bborder-(t|l|r|x|y)\b/);
+      // And it is drawn from the container family: VARIANT-CONTRACT §7 reserves
+      // `border-subtle` for input affordances.
+      expect(card).not.toMatch(/\bborder-border-subtle\b/);
+    }
+  });
+
+  it('separates two records exactly the way two desktop rows are separated', () => {
+    const card = mobileCardVariants({}).card();
+    expect(card).toMatch(/\bborder-b\b/);
+    expect(card).toMatch(/\bborder-border-hairline\b/);
+    // The list's last record closes the list; the rule below it would be a
+    // line into empty space.
+    expect(card).toMatch(/\blast:border-b-0\b/);
+  });
+});
+
 describe('mobileCardVariants — active card', () => {
   it('marks the active card without borrowing the selected look', () => {
     const plain = mobileCardVariants({}).card();
@@ -130,6 +217,38 @@ describe('mobileCardVariants — active card', () => {
     expect(both).not.toMatch(/\bbg-surface-hover\b/);
     expect(both.split(/\s+/).sort()).toEqual(selected.split(/\s+/).sort());
   });
+
+  // Without a border to recolour, a ground alone is not enough: `surface-hover`
+  // is exactly what the record under the cursor gets, so the reader could not
+  // tell the active record from a hovered one — the same reason the desktop row
+  // carries a rail (TABLE_STATES.row.active).
+  it('gives both marked states an inset rail, in their own colour', () => {
+    const selected = mobileCardVariants({ selected: true }).card();
+    const active = mobileCardVariants({ active: true }).card();
+
+    expect(selected).toMatch(/shadow-\[inset_2px_0_0_0_var\(--color-primary\)\]/);
+    expect(active).toMatch(/shadow-\[inset_2px_0_0_0_var\(--color-border-strong\)\]/);
+  });
+
+  it('keeps the hover tint off a record that already carries one', () => {
+    // A hover ground would repaint the very ground that says "selected".
+    expect(mobileCardVariants({ interactive: true }).header()).toMatch(/hover:bg-surface-hover/);
+    expect(mobileCardVariants({ interactive: true, selected: true }).header()).not.toMatch(
+      /hover:bg-surface-hover/
+    );
+    expect(mobileCardVariants({ interactive: true, active: true }).header()).not.toMatch(
+      /hover:bg-surface-hover/
+    );
+  });
+
+  it('stops the hover ground at the header, never over the detail grid', () => {
+    // An open record is several hundred pixels of consumer markup; a tint across
+    // all of it promises a click only the headline delivers.
+    const styles = mobileCardVariants({ interactive: true, expanded: true });
+    expect(styles.card()).not.toMatch(/hover:bg-/);
+    expect(styles.content()).not.toMatch(/hover:bg-/);
+    expect(styles.expandedContent()).not.toMatch(/hover:bg-/);
+  });
 });
 
 describe('mobileCardVariants — closed card', () => {
@@ -138,9 +257,9 @@ describe('mobileCardVariants — closed card', () => {
   // gap to the detail grid underneath it.
   it('balances the header padding per size', () => {
     const pairs = [
-      { size: 'sm', top: 'pt-3', bottom: 'pb-3' },
-      { size: 'md', top: 'pt-4', bottom: 'pb-4' },
-      { size: 'lg', top: 'pt-5', bottom: 'pb-5' }
+      { size: 'sm', top: 'pt-2\\.5', bottom: 'pb-2\\.5' },
+      { size: 'md', top: 'pt-3', bottom: 'pb-3' },
+      { size: 'lg', top: 'pt-4', bottom: 'pb-4' }
     ] as const;
     for (const { size, top, bottom } of pairs) {
       const header = mobileCardVariants({ size, collapsed: true }).header();
@@ -183,6 +302,57 @@ describe('mobileCardVariants — closed card', () => {
   });
 });
 
+describe('mobileListVariants — the chrome around the records', () => {
+  // Both used to be `bg-surface-elevated border border-border-subtle
+  // rounded-contain p-4` boxes floated on a margin — the one thing that would
+  // still read as a panel once the records stopped being panels.
+  it('bands the group header and the totals instead of boxing them', () => {
+    const styles = mobileListVariants({});
+    for (const band of [styles.groupHeader(), styles.summary()]) {
+      expect(band).not.toMatch(/\brounded-/);
+      expect(band).not.toMatch(/\bm[btlrxy]?-\d/);
+      expect(band).not.toMatch(/\bshadow-/);
+      // A single rule on the side that separates it — never a ring.
+      expect(band.split(/\s+/)).not.toContain('border');
+    }
+    expect(styles.summary()).toMatch(/\bborder-t-2\b/);
+  });
+
+  it('draws the rule between two groups once, on the group', () => {
+    // Not on the header and not on the record above it: a record that ends its
+    // group has already dropped its own separator via `last:border-b-0`, so a
+    // header with a top rule of its own would leave the first group underlined
+    // for no reason and every later one ruled twice.
+    expect(mobileListVariants({}).group()).toMatch(/not-first:border-t\b/);
+    expect(mobileListVariants({}).groupHeader()).not.toMatch(/\bborder-[tb]\b/);
+  });
+
+  it('keeps the group header in the label register of the list, at every size', () => {
+    // It is a section label, not a heading that grows with the table — a
+    // `font-medium` title at `text-lg` read as one more record with a bold name.
+    for (const size of ['sm', 'md', 'lg'] as const) {
+      const title = mobileListVariants({ size }).groupTitle();
+      expect(title).toMatch(/\buppercase\b/);
+      expect(title).toMatch(/\btext-(2xs|xs|sm)\b/);
+    }
+  });
+
+  // Same table, one vocabulary: the mobile totals speak the desktop `<tfoot>`'s
+  // language (summary accent, tabular figures), not a second one of their own.
+  it('phrases the totals the way the desktop summary row does', () => {
+    const styles = mobileListVariants({});
+    expect(styles.summary()).toMatch(/\bborder-summary\b/);
+    expect(styles.summary()).toMatch(/\bbg-summary-subtle\b/);
+    expect(styles.summaryValue()).toMatch(/\btabular-nums\b/);
+    expect(styles.summaryLabel()).toMatch(/\btext-text-secondary\b/);
+  });
+
+  it('marks only the error state as danger', () => {
+    expect(mobileListVariants({ intent: 'danger' }).state()).toMatch(/\btext-danger\b/);
+    expect(mobileListVariants({}).state()).not.toMatch(/\btext-danger\b/);
+  });
+});
+
 describe('smartFilterBarVariants — compact bar', () => {
   // Compact means the five tools moved out of the bar and into a sheet reached
   // from one button, so the search field and that button share a row instead of
@@ -193,12 +363,54 @@ describe('smartFilterBarVariants — compact bar', () => {
     expect(controls).toMatch(/\bitems-center\b/);
   });
 
-  it('gives the tool button a touch-sized target', () => {
-    const trigger = smartFilterBarVariants({ compact: true }).toolsTrigger();
-    expect(trigger).toMatch(/\bmin-h-11\b/);
-    expect(trigger).toMatch(/\bmin-w-11\b/);
+  it('keeps the tool button from shrinking beside the search field', () => {
     // It sits next to a field that may shrink to nothing; the button may not.
-    expect(trigger).toMatch(/\bshrink-0\b/);
+    expect(smartFilterBarVariants({ compact: true }).toolsTrigger()).toMatch(/\bshrink-0\b/);
+  });
+
+  // Exactly one element paints a ground in the compact bar. Two of them is not a
+  // subtler version of one: the toolbar's `surface-quiet` behind a lit button
+  // read as a pale frame around it, which is what a toolbar holding a single
+  // control has no business drawing (it is a grouping surface, and there is
+  // nothing to group). The toolbar goes `variant="ghost"` there and the ground
+  // rides the button — these two arms are how it stays exactly one.
+  it('hands the ground to the resting button and to the lit treatment, never to both', () => {
+    const resting = smartFilterBarVariants({ compact: true, toolsActive: false }).toolsTrigger();
+    const lit = smartFilterBarVariants({ compact: true, toolsActive: true }).toolsTrigger();
+
+    expect(resting).toMatch(/\bbg-surface-quiet\b/);
+    // Nothing at all when lit: `smartFilterBarTriggerVariants` supplies
+    // `bg-primary-subtle`, and a second `bg-*` on the same element would resolve
+    // by stylesheet order rather than by anyone's decision.
+    expect(lit).not.toMatch(/\bbg-/);
+    expect(smartFilterBarTriggerVariants({ intent: 'primary' })).toMatch(/\bbg-primary-subtle\b/);
+  });
+
+  it('asks for the touch target on a coarse pointer, not on a narrow box', () => {
+    // Width was the wrong question: a table in a 400px desktop pane got 44px
+    // buttons nobody was going to tap, a wide tablet got 32px ones somebody was.
+    // The same slot now serves the compact bar too, whose single tool button
+    // lives in this capsule.
+    const actions = smartFilterBarVariants({ compact: true }).actionsSection();
+    expect(actions).toMatch(/pointer-coarse:\[&_button\[aria-haspopup\]/);
+    expect(actions).toMatch(/min-h-11/);
+    expect(actions).toMatch(/min-w-11/);
+    // No width-keyed survivor: the old rule fired unconditionally and cancelled
+    // itself at `@md`, so either half left behind would resurrect it.
+    expect(actions).not.toMatch(/@md:\[&_button/);
+    expect(actions).not.toMatch(/(?<!pointer-coarse:)\[&_button\[aria-haspopup\][^\s]*min-h-11/);
+  });
+
+  // #133: the bar knew its capsule/sheet threshold twice — as `@md` in CSS and
+  // as `28 * 16` in JS — and the two parted company at any root font size but
+  // 16px. CSS decides now and the component reads the answer; this pins that the
+  // declaration is there to be read.
+  it('publishes the capsule/sheet decision as a custom property on one container step', () => {
+    const controls = smartFilterBarVariants({}).controls();
+    expect(controls).toMatch(/\[--blocks-table-tools:sheet\]/);
+    expect(controls).toMatch(/@md:\[--blocks-table-tools:capsule\]/);
+    // Same step as the stacked/row switch beside it — one threshold, not two.
+    expect(smartFilterBarVariants({ layout: 'responsive' }).controls()).toMatch(/@md:flex-row/);
   });
 
   it('only stacks the search row once the bar is compact', () => {

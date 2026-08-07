@@ -39,11 +39,12 @@ use(
   pub.filteredItems,
   pub.sortedItems,
   pub.paginatedItems,
-  pub.totalItems,
+  pub.total,
   pub.totalPages,
-  pub.effectivePage
+  pub.effectivePage,
+  pub.effectiveGroupBy
 );
-use(pub.setSearchTerm);
+use(pub.setSearch);
 use(
   pub.addFilter,
   pub.removeFilter,
@@ -52,8 +53,8 @@ use(
   pub.hasFilterForColumn
 );
 use(pub.handleSort, pub.setSort);
-use(pub.goToPage, pub.setItemsPerPage);
-use(pub.setGroupByKey);
+use(pub.goToPage, pub.setPageSize);
+use(pub.setGroupBy);
 use(
   pub.selectedItems,
   pub.allSelected,
@@ -153,7 +154,7 @@ void pub.moveFocus;
 // @ts-expect-error isFocusedRow is internal
 void pub.isFocusedRow;
 
-// Managed-fetch sink — the consumer path is a `kind: 'server'` or `{ query }` source.
+// Managed-fetch sink — the consumer path is a `processing: 'server'` source.
 // @ts-expect-error setServerResult is internal
 void pub.setServerResult;
 // @ts-expect-error setServerError is internal
@@ -179,7 +180,7 @@ void pub.forceSavePersistentData;
 
 // ── Removed from the store entirely (v8 cut, C8) — gone from BOTH types ───
 
-// @ts-expect-error query left with the projection — use viewToQuery(view.snapshot())
+// @ts-expect-error query left with the projection — use view.snapshot()
 void wide.query;
 // @ts-expect-error queryKey left with the projection
 void wide.queryKey;

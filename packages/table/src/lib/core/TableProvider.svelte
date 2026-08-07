@@ -25,7 +25,7 @@
   attachCellLocale(() => resolveDateLocale('auto', i18n.locale));
 
   export type TableProviderProps = {
-    /** Shorthand for the plain-array variant of {@link source}. */
+    /** Shorthand for `source={{ processing: 'client', items }}` — just the rows. */
     items?: TableItem[];
     columns: Column[];
     /** Where the rows come from — see the `TableSource` union. Wins over `items`. */
@@ -82,6 +82,13 @@
   // svelte-ignore state_referenced_locally
   const tableView = resolveViewProp(view, viewDefaults);
 
+  // `source` wins over the `items` shorthand, which is exactly the union's
+  // client arm — wrapping it here is the whole resolution. A `$derived` rather
+  // than an inline expression at each of the two use sites: it caches, so the
+  // shorthand path hands out ONE object identity for as long as `items` itself
+  // is stable, instead of a fresh literal per read.
+  const resolvedSource = $derived<TableSource>(source ?? { processing: 'client', items });
+
   // Store is built once from the initial prefs config — not meant to
   // re-create if the prop changes reactively. `initialSelectedIds` is
   // construction-time-only (seed-once); a controlled `selectedIds` wins over
@@ -97,9 +104,9 @@
     // during SSR, so the server renders the actual rows and columns instead
     // of an empty table (#10). See docs/SVELTE5-PATTERNS.md → "Prop-derived state".
     {
-      // `source` wins over the `items` shorthand; the store's resolution
-      // stages harden everything downstream against fresh source literals.
-      source: () => source ?? (items as TableItem[]),
+      // The store's resolution stages harden everything downstream against
+      // fresh source literals a consumer hands in per render.
+      source: () => resolvedSource,
       columns: () => columns,
       multiExpand: () => multiExpand,
       groupOrder: () => groupOrder,
@@ -146,14 +153,14 @@
   // The collapse set holds *group names* — values of whatever column is grouped
   // by — so it cannot outlive its key: after regrouping, those names mean
   // nothing, and one that happens to match collapses a group nobody touched.
-  // `setGroupByKey` clears it for every imperative path, but `state.groupByKey`
+  // `setGroupBy` clears it for every imperative path, but the applied grouping
   // also changes when a URL binding applies a navigation — no setter involved.
-  // Watching the value covers that door. `currentPage` deliberately stays out
+  // Watching the value covers that door. The page deliberately stays out
   // of it: resetting to page 1 belongs to a click, not to a link that names
   // its own page.
   let lastGroupKey: string | null | undefined;
   $effect(() => {
-    const key = state.groupByKey;
+    const key = state.effectiveGroupBy;
     const previous = untrack(() => lastGroupKey);
     lastGroupKey = key;
     if (previous === undefined || key === previous) return;
@@ -193,7 +200,7 @@
     // (read-tolerant), so surface it. This value usually comes from a URL or
     // the view defaults, so it can be set by whoever sent the link rather
     // than by the developer.
-    const sortColumn = state.sortColumn;
+    const sortColumn = tableView.sort?.column;
     if (sortColumn && !findColumnById(columns, sortColumn)) {
       console.warn(
         `[Table] the view's sort column "${sortColumn}" does not match any column id — the table renders unsorted.`
@@ -247,7 +254,7 @@
   // managed source wired" — never the source object or its `query` function,
   // so a fresh inline `source={{ query: … }}` literal per parent render does
   // not refetch. A no-op for client and manual-server sources.
-  createManagedFetch(tableView, () => source ?? (items as TableItem[]), {
+  createManagedFetch(tableView, () => resolvedSource, {
     onLoading: tableState.setServerLoading,
     onResult: tableState.setServerResult,
     onError: (message) => tableState.setServerError(message ?? tt('error.fetchFailed'))

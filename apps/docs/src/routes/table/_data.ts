@@ -197,16 +197,37 @@ export const richColumns: Column<Employee>[] = [
   { accessor: 'location', title: 'Location', sortable: true, priority: 3 }
 ];
 
+/**
+ * `StatusBadge` knows eleven statuses (`active`, `pending`, `archived`, …) and
+ * labels anything else "Unknown". Two of this fixture's three are its own
+ * vocabulary, so without a `statusMap` the flagship example on `/table/table`
+ * rendered two grey "Unknown" badges out of six visible rows.
+ */
+const employeeStatuses = {
+  'on-leave': { intent: 'warning' as const, text: 'On leave', icon: true },
+  offboarding: { intent: 'neutral' as const, text: 'Offboarding', icon: false }
+};
+
+/**
+ * Six columns, not seven. The exhibit column on a docs page is 60rem, and a
+ * `<CodeExample>` preview keeps 24px of gutter on each side, so a demo table
+ * has 912px. With `department` in it this one measured 941 and scrolled
+ * sideways at every viewport width — on the section's own landing page.
+ * Grouping by department is demonstrated on /table/sorting-grouping, which has
+ * fewer columns to carry.
+ */
 export const factoryColumns = [
   TableColumns.userAvatar<Employee>('name', 'Employee'),
   TableColumns.text<Employee>('role', 'Role'),
-  TableColumns.text<Employee>('department', 'Department'),
-  TableColumns.status<Employee>('status', 'Status'),
+  TableColumns.status<Employee>('status', 'Status', { statusMap: employeeStatuses }),
   TableColumns.number<Employee>('salary', 'Salary'),
   TableColumns.date<Employee>('joinedAt', 'Joined'),
+  // `showView` defaults to false, so an `onView` handler on its own renders no
+  // button — the snippet on /table/table showed two actions and one icon.
   TableColumns.actions<Employee>('Actions', {
     onView: () => {},
     onEdit: () => {},
+    showView: true,
     showDelete: false
   })
 ];

@@ -94,7 +94,7 @@ const events: CalendarEvent[] = [
 
 <!-- ─── Examples ─── -->
 
-<Section marker="01" id="examples" title="Examples">
+<Section marker id="examples" title="Examples">
   <div class="space-y-10">
     <CodeExample
       title="Events in a month view"
@@ -143,7 +143,7 @@ const events: CalendarEvent[] = [
 
 <!-- ─── Accessibility ─── -->
 
-<Section marker="02" id="accessibility" title="Accessibility">
+<Section marker id="accessibility" title="Accessibility">
   <NoteList>
     <Note title="ARIA Roles">
       <p>

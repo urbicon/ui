@@ -86,7 +86,7 @@
   <CustomDocs />
 
   <Section
-    marker="04"
+    marker
     id="api"
     title="API Reference"
     intent="secondary"
@@ -97,7 +97,7 @@
 
   <TypesReference types={componentData?.types ?? []} />
 
-  <Section marker="05" id="installation" title="Installation">
+  <Section marker id="installation" title="Installation">
     <CodeExample
       title="Import"
       code={`import { FileUpload, IMAGE_MIME_TYPES, PDF_MIME_TYPE } from '@urbicon-ui/blocks';

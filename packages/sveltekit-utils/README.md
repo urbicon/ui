@@ -57,7 +57,7 @@ updateUrlSearchParams({ page: '1', tag: ['a', 'b'] }, { replaceState: true });
 - URL updates use `goto()` with `replaceState: true`, `noScroll: true`, `keepFocus: true` — suited for filter/pagination UIs, not full page transitions.
 - `useUrlParam` returns getters (not Svelte stores) so consumers can read the value lazily inside `$derived`/`$effect`.
 
-## Table View ↔ URL (`url.svelte` + `table-query`)
+## Table View ↔ URL (`url.svelte` + `table-view`)
 
 `bindViewToUrl` gives the view object of `@urbicon-ui/table` — search, sort, page, page size, filters, grouping — the URL as its home: the axes are mirrored onto query parameters (`?q=…&sort=…&page=…`), so the view survives a reload, can be shared as a link, and — unlike `localStorage` — is visible to the server.
 
@@ -87,30 +87,30 @@ The second argument is optional; every option has a default:
 
 Because the binding re-reads the URL rather than capturing it, the browser's back button works: navigating back to a URL that no longer names `?sort` returns the table to its default sort.
 
-The pure serializers work without SvelteKit — e.g. to parse the incoming query in a server `load` and fetch the first page during SSR. Use `searchParamsToViewQuery` from `./table-view`: it takes the *same* defaults object the component hands `createTableView`, so the server cannot resolve an absent param differently from the client.
+The pure serializers work without SvelteKit — e.g. to parse the incoming query in a server `load` and fetch the first page during SSR. Use `searchParamsToViewSnapshot` from `./table-view`: it takes the *same* defaults object the component hands `createTableView`, so the server cannot resolve an absent param differently from the client, and it hands back the very shape a managed `source.query` receives.
 
 ```typescript
 // view-defaults.ts — imported by both the component and the load function
 export const userView = { pageSize: 25, sort: { column: 'joined', direction: 'desc' } };
 
 // +page.server.ts
-import { searchParamsToViewQuery } from '@urbicon-ui/sveltekit-utils/table-view';
+import { searchParamsToViewSnapshot } from '@urbicon-ui/sveltekit-utils/table-view';
 import { userView } from './view-defaults';
 
 export const load = async ({ url }) => ({
-  initialResult: await fetchUsers(searchParamsToViewQuery(url.searchParams, userView))
+  initialResult: await fetchUsers(searchParamsToViewSnapshot(url.searchParams, userView))
 });
 ```
 
-`searchParamsToTableQuery` in `./table-query` does the same job with a baseline in the wire vocabulary (`itemsPerPage`, `sortColumn`/`sortDirection`, `groupByKey`). It has no field for a default filter set, which is why the view-vocabulary function exists.
+The `./table-query` subpath that used to hold a second copy of this codec — same URL scheme, wire-vocabulary spellings, no field for a default filter set — retired with the vocabulary split it served (#162).
 
 **Design notes**
 
 - **Default elision** — an axis whose value equals its default is not written; a table in its default state leaves the URL clean. The baseline *is* `view.defaults`, read off the object the binding decorates, so there is no second copy of the defaults to keep in step with the table's own.
-- **Read tolerant, write strict** — an unparsable value on a param the URL actually carries falls back to that axis' default, and malformed `filter` entries are skipped individually; the `table-query` serializer throws on a structurally invalid query (non-positive page, unknown operator) instead of writing corrupt state.
+- **Read tolerant, write strict** — an unparsable value on a param the URL actually carries falls back to that axis' default, and malformed `filter` entries are skipped individually. `assertValidViewSnapshot` is the strict half: it throws on a structurally invalid view (non-positive page, unknown operator) instead of writing corrupt state, and `applyViewToSearchParams` calls it. `viewSnapshotToSearchParams` deliberately does not — it runs inside the binding on every view change, where a throw would cost the page rather than the URL.
 - **Namespacing** — `prefix: 't_'` scopes all keys (`?t_q=…`) for multiple bound tables on one page; unrelated params are always preserved. Two prefixless bindings would manage the same keys, so that throws at registration instead of producing a link that loads the wrong table.
 - **One writer per page** — every binding submits into one coalescing URL writer, so two tables land in a single navigation, each replacing only its own keys. A landing URL the writer itself sent is not applied back onto the view: an edit made while that navigation was in flight survives instead of being overwritten by the URL it raced.
-- **Types** — `TableQueryParams` mirrors the table's `TableQuery`, and `TableViewLike` / `TableViewSnapshot` (from `./table-view`) mirror its view object structurally — so this package carries no dependency on `@urbicon-ui/table`. A parity test in the table package (`tableQuery.parity.test.ts`) pins both mirrors: the snapshot shapes must stay mutually assignable, and the real `TableView` must satisfy `TableViewLike`, which is the entire mechanism by which this binding decorates a view it never imports.
+- **Types** — `TableViewLike`, `TableViewSnapshot` and `TableViewFilter` mirror the table's view object structurally, so this package carries no dependency on `@urbicon-ui/table`. A parity test in the table package (`viewMirror.parity.test.ts`) pins the mirror: the shapes must stay mutually assignable, and the real `TableView` must satisfy `TableViewLike`, which is the entire mechanism by which this binding decorates a view it never imports.
 
 ## Cron Runner (`cron`)
 
@@ -211,12 +211,11 @@ export const POST = async ({ request }) => {
 | --------------- | -------------------------------------------------------------------------------------------------------------------------------------------------- |
 | `.`             | Barrel of all modules                                                                                                                              |
 | `./url.svelte`  | `useUrlParam`, `useUrlArrayParam`, `createUrlParam`, `updateUrlSearchParams`, `bindViewToUrl`, types                                               |
-| `./table-view`  | `searchParamsToViewQuery`, `searchParamsToViewSnapshot`, `viewSnapshotToTableQuery`, `searchParamsToViewPartial`, `viewSnapshotToSearchParams`, `viewAxesNamedBy`, `viewAxisKeys`, `TABLE_VIEW_AXES`, `TableViewLike`, types |
-| `./table-query` | `tableQueryToSearchParams`, `searchParamsToTableQuery`, `applyTableQueryToSearchParams`, `TABLE_QUERY_FILTER_OPERATORS`, `TableQueryParams`, types |
+| `./table-view`  | `searchParamsToViewSnapshot`, `searchParamsToViewPartial`, `viewSnapshotToSearchParams`, `applyViewToSearchParams`, `assertValidViewSnapshot`, `viewAxesNamedBy`, `viewAxisKeys`, `TABLE_VIEW_AXES`, `TABLE_VIEW_FILTER_OPERATORS`, `TableViewLike`, types |
 | `./cron`        | `createCronRunner`, `CronJob`, `CronRunnerConfig`, `CronRunner`                                                                                    |
 | `./sse`         | `streamSse`, `SseEvent`, `StreamSseOptions`, `SseRequestError`                                                                                     |
 
-`bindViewToUrl` lives in its own module (`view-binding.svelte.ts`) and is re-exported from `./url.svelte`, which is its documented import path — it has no subpath of its own. `./table-view` and `./table-query` are SvelteKit-free (they touch no `$app/*`), which is what lets a `load` function and a plain test use them; `./url.svelte` is the half that needs the router.
+`bindViewToUrl` lives in its own module (`view-binding.svelte.ts`) and is re-exported from `./url.svelte`, which is its documented import path — it has no subpath of its own. `./table-view` is SvelteKit-free (it touches no `$app/*`), which is what lets a `load` function and a plain test use it; `./url.svelte` is the half that needs the router.
 
 ## Development
 

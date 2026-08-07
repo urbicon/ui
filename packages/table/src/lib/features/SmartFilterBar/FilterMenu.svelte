@@ -26,11 +26,11 @@
   const CloseIcon = resolveIcon('close', CloseIconDefault);
 
   const tableContext = getTableContext();
-  const { state: tableState } = tableContext;
+  const { state: tableState, view: tableView } = tableContext;
 
   let isOpen = $state(false);
 
-  const activeFilters = $derived(tableState.activeFilters);
+  const activeFilters = $derived(tableView.filters);
   const isActive = $derived(activeFilters.length > 0);
   const triggerClass = $derived(
     isActive ? smartFilterBarTriggerVariants({ intent: 'filter' }) : undefined

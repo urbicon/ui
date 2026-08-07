@@ -35,10 +35,21 @@ export interface SectionProps
   title?: string;
 
   /**
-   * Optional editorial marker before the title (e.g. `"01"` renders as a
-   * quieter monospace stamp).
+   * Editorial marker before the title — a quieter monospace stamp.
+   *
+   * Pass it bare (`<Section marker …>`) and the page numbers the section for
+   * you: sections that ask for a marker are counted in render order within the
+   * enclosing `DocsLayout`, so inserting one renumbers the rest by itself.
+   * A section nested inside another never claims a number, which is what keeps
+   * a `<TypesReference>` inside a playground stage unnumbered while the same
+   * component at page level is numbered.
+   *
+   * A string still wins, for the rare page that numbers by hand. Prefer the
+   * bare form: the hand-written literals were wrong on four pages
+   * (a duplicate `04`, two skipped numbers, one page starting at `02`) and
+   * nothing reported it.
    */
-  marker?: string;
+  marker?: string | boolean;
 
   /**
    * Optional right-aligned monospace meta information in the title row

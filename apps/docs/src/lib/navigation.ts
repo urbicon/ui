@@ -251,7 +251,17 @@ const allNavigationItems: NavItem[] = [
         nameKey: 'nav.tableVirtualScrolling',
         href: '/table/virtual-scrolling'
       },
-      { name: 'Remote Data', nameKey: 'nav.tableRemoteData', href: '/table/remote-data' },
+      {
+        name: 'Client Processing',
+        nameKey: 'nav.tableClientProcessing',
+        href: '/table/client-processing'
+      },
+      {
+        name: 'Server Processing',
+        nameKey: 'nav.tableServerProcessing',
+        href: '/table/server-processing'
+      },
+      { name: 'Query Function', nameKey: 'nav.tableQuery', href: '/table/query' },
       { name: 'URL State', nameKey: 'nav.tableUrlState', href: '/table/url-state' },
       { name: 'Live Updates', nameKey: 'nav.tableLiveUpdates', href: '/table/live-updates' },
       {

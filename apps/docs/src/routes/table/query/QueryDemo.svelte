@@ -1,5 +1,5 @@
 <script lang="ts">
-  // Live managed-source demo: `source={{ query, debounceMs }}` runs against a
+  // Live managed-source demo: `source={{ processing: 'server', query, debounceMs }}` runs against a
   // deterministic in-memory mock backend — search, sort, and pagination are
   // applied server-side (here: in this module) after an adjustable artificial
   // latency. A request counter and an in-flight badge make the request
@@ -7,7 +7,7 @@
   // superseded ones aborted. The same demo-fetcher pattern drives the Combobox
   // async-search demo and the e2e remote fixture. Fully deterministic — no
   // network, no Math.random.
-  import { Table, type Column, type TableQuery, type TableQueryResult } from '@urbicon-ui/table';
+  import { Table, type Column, type TablePage, type TableViewSnapshot } from '@urbicon-ui/table';
   import { Badge, SegmentGroup, SegmentItem } from '@urbicon-ui/blocks';
 
   type User = {
@@ -63,24 +63,24 @@
   }
 
   async function mockServer(
-    query: TableQuery,
+    query: TableViewSnapshot,
     { signal }: { signal: AbortSignal }
-  ): Promise<TableQueryResult> {
+  ): Promise<TablePage> {
     requestCount += 1;
     inFlight += 1;
     try {
       await delay(Number(latency), signal);
 
-      const term = query.searchTerm.trim().toLowerCase();
+      const term = query.search.trim().toLowerCase();
       let rows = term
         ? users.filter((u) =>
             [u.name, u.role, u.team].some((field) => field.toLowerCase().includes(term))
           )
         : [...users];
 
-      if (query.sortColumn) {
-        const key = query.sortColumn as keyof User;
-        const dir = query.sortDirection === 'desc' ? -1 : 1;
+      if (query.sort) {
+        const key = query.sort.column as keyof User;
+        const dir = query.sort.direction === 'desc' ? -1 : 1;
         rows = [...rows].sort((a, b) => {
           if (a[key] < b[key]) return -1 * dir;
           if (a[key] > b[key]) return 1 * dir;
@@ -90,8 +90,8 @@
 
       matchTotal = rows.length;
 
-      const start = (Math.max(1, query.page) - 1) * query.itemsPerPage;
-      return { items: rows.slice(start, start + query.itemsPerPage), totalItems: rows.length };
+      const start = (Math.max(1, query.page) - 1) * query.pageSize;
+      return { items: rows.slice(start, start + query.pageSize), total: rows.length };
     } finally {
       inFlight -= 1;
     }
@@ -125,14 +125,14 @@
 
   <Table
     {columns}
-    source={{ query: mockServer, debounceMs: 300 }}
+    source={{ processing: 'server', query: mockServer, debounceMs: 300 }}
     viewDefaults={{ pageSize: 8 }}
     searchPlaceholder="Search users…"
     ariaLabel="Server-mode users table"
   />
 
   <p class="text-text-tertiary text-xs">
-    Sort a column, change the page, or search (try “ada”, or “zz” for the empty state) — every
+    Sort a column, change the page, or search (try “ada”, or “zz” for the empty state). Every
     interaction issues a fresh request. Type fast at 1.2 s latency to see superseded requests being
     aborted: the counter climbs, but only the newest response renders.
   </p>

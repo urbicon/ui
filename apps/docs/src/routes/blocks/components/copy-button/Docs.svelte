@@ -8,7 +8,7 @@
   let copies = $state(0);
 </script>
 
-<Section marker="01" id="examples" title="Examples">
+<Section marker id="examples" title="Examples">
   <div class="space-y-8">
     <CodeExample
       title="Icon-only (default)"
@@ -51,7 +51,7 @@
   </div>
 </Section>
 
-<Section marker="02" id="in-context" title="In context">
+<Section marker id="in-context" title="In context">
   <div class="space-y-8">
     <CodeExample
       title="Copy an install command"
@@ -93,7 +93,7 @@
   </div>
 </Section>
 
-<Section marker="03" id="accessibility" title="Accessibility">
+<Section marker id="accessibility" title="Accessibility">
   <NoteList>
     <Note title="Stable name in icon-only mode">
       <p>

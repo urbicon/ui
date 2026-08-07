@@ -57,7 +57,7 @@
   <CustomDocs />
 
   <Section
-    marker="05"
+    marker
     id="api"
     title="API Reference"
     intent="secondary"
@@ -66,7 +66,7 @@
     <ApiReference props={componentData?.props ?? []} types={componentData?.types ?? []} />
   </Section>
 
-  <Section marker="06" id="types" title="Types">
+  <Section marker id="types" title="Types">
     <!-- The wrapping Section owns `types` — that is the TOC anchor. The
          component renders its own `id="types"` by default (it is one half of
          the anchor pair ApiReference jumps to), so on this page, the only one
@@ -79,7 +79,7 @@
     />
   </Section>
 
-  <Section marker="07" id="installation" title="Installation">
+  <Section marker id="installation" title="Installation">
     <CodeExample
       title="Import"
       code={`import { Toaster, toaster } from '@urbicon-ui/blocks';`}

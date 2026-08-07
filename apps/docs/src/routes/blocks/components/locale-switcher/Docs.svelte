@@ -8,7 +8,7 @@
   import { Kbd, LocaleSwitcher, Select } from '@urbicon-ui/blocks';
 </script>
 
-<Section marker="01" id="examples" title="Examples">
+<Section marker id="examples" title="Examples">
   <div class="space-y-8">
     <CodeExample
       title="Basic"
@@ -56,7 +56,7 @@
   </div>
 </Section>
 
-<Section marker="02" id="customization" title="Customization">
+<Section marker id="customization" title="Customization">
   <CodeExample
     title="Branded trigger"
     description="Override the underlying Select trigger slot with a gradient brand-look."
@@ -73,7 +73,7 @@
   </CodeExample>
 </Section>
 
-<Section marker="03" id="accessibility" title="Accessibility">
+<Section marker id="accessibility" title="Accessibility">
   <div class="border-border-subtle bg-surface-elevated rounded-2xl border p-6">
     <p class="text-text-secondary text-sm leading-relaxed">
       Inherits the Select listbox semantics —

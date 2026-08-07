@@ -57,7 +57,7 @@
 
   const totalColumnsCount = $derived.by(() => {
     let count = tableState.columns.length;
-    if (tableState.groupByKey) count += 1;
+    if (tableState.effectiveGroupBy) count += 1;
     if (expandable) count += 1;
     if (selectable) count += 1;
     return count;

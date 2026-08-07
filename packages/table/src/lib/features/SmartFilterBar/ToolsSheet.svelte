@@ -61,7 +61,7 @@
   const tt = useTableI18n();
 
   const tableContext = getInternalTableContext();
-  const { state: tableState } = tableContext;
+  const { state: tableState, view: tableView } = tableContext;
 
   /**
    * Which section is unfolded. Local, and deliberately not reset on close: a
@@ -99,7 +99,7 @@
     if (next) mountedSections.add(next);
   }
 
-  const filterCount = $derived(tableState.activeFilters.length);
+  const filterCount = $derived(tableView.filters.length);
   // Gated on `showSummary` like the bar's own tool count (SmartFilterBar), not
   // on the config list alone: `toggleSummary` is public on the context, so a
   // consumer can leave configs in place while the summary row is off — and a
@@ -112,18 +112,18 @@
   // section head carries the column NAME instead — which is the thing actually
   // lost when the section folds away.
   const sortLabel = $derived.by(() => {
-    if (!tableState.sortColumn) return '';
-    const column = findColumnById(tableState.columns, tableState.sortColumn);
-    const name = column ? resolveColumnLabel(column) : tableState.sortColumn;
-    const direction =
-      tableState.sortDirection === 'desc' ? tt('sort.descending') : tt('sort.ascending');
+    const sort = tableView.sort;
+    if (!sort) return '';
+    const column = findColumnById(tableState.columns, sort.column);
+    const name = column ? resolveColumnLabel(column) : sort.column;
+    const direction = sort.direction === 'desc' ? tt('sort.descending') : tt('sort.ascending');
     return `${name} · ${direction}`;
   });
 
   const groupLabel = $derived.by(() => {
-    if (!tableState.groupByKey) return '';
-    const column = findColumnById(tableState.columns, tableState.groupByKey);
-    return column ? resolveColumnLabel(column) : tableState.groupByKey;
+    if (!tableState.effectiveGroupBy) return '';
+    const column = findColumnById(tableState.columns, tableState.effectiveGroupBy);
+    return column ? resolveColumnLabel(column) : tableState.effectiveGroupBy;
   });
 </script>
 

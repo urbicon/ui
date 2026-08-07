@@ -68,7 +68,14 @@
 {#if href}
   <!-- The href is provided by the consumer; this component does not own the
        SvelteKit routing layer, so resolve() is the caller's responsibility. -->
-  <a {...restProps} {href} class={[slot('container'), 'block', className]} aria-label={title}>
+  <!-- `data-docs-note` — see the <aside> branch below. -->
+  <a
+    {...restProps}
+    {href}
+    class={[slot('container'), 'block', className]}
+    aria-label={title}
+    data-docs-note
+  >
     {@render body()}
   </a>
 {:else}
@@ -77,11 +84,17 @@
        page. InfoCards are typically used inline in docs content (often 3–4
        per page), so a label sourced from the title prop disambiguates them
        for assistive tech. Falls back to a generic "Note" when no title is
-       provided. -->
+       provided.
+
+       `data-docs-note` is part of the data-docs-* theming contract: it marks
+       the card as reading material, so a skin running a narrower reading edge
+       than its exhibit edge (the docs app does) keeps notes with the prose
+       instead of letting them stretch to the width a table gets. -->
   <aside
     {...restProps}
     class={[slot('container'), className]}
     aria-label={title ?? dt('noteLabel')}
+    data-docs-note
   >
     {@render body()}
   </aside>

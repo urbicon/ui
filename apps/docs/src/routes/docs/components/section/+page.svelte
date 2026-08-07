@@ -118,7 +118,7 @@
 
   <CustomDocs />
 
-  <SectionComponent marker="03" id="accessibility" title="Accessibility">
+  <SectionComponent marker id="accessibility" title="Accessibility">
     <NoteList>
       <Note title="Only a titled section is a region">
         <p>
@@ -151,11 +151,19 @@
           "Examples", not "01 Examples". Nothing reads it back — the numbering is for the eye.
         </p>
       </Note>
+      <Note title="The page counts, not you">
+        <p>
+          Write <code>marker</code> without a value and the section takes the next number in its page.
+          Insert a section and everything after it renumbers itself; a section nested inside another never
+          takes a number, so a demo inside a stage stays unstamped. A string still wins where a page numbers
+          by hand.
+        </p>
+      </Note>
     </NoteList>
   </SectionComponent>
 
   <SectionComponent
-    marker="04"
+    marker
     id="api"
     title="API Reference"
     subtitle="Complete list of component properties and their configurations"
@@ -166,7 +174,7 @@
 
   <TypesReference types={componentData?.types ?? []} />
 
-  <SectionComponent marker="05" id="installation" title="Installation">
+  <SectionComponent marker id="installation" title="Installation">
     <CodeExample
       title="Import"
       code={`import { Section } from '@urbicon-ui/docs';`}

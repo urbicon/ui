@@ -7,7 +7,7 @@
 </script>
 
 <!-- ─── When to use ─── -->
-<Section marker="01" id="when-to-use" title="When to use">
+<Section marker id="when-to-use" title="When to use">
   <div class="text-text-secondary space-y-3 text-sm leading-relaxed">
     <p>
       ChartFrame is the low-level shell every cartesian chart in the family is built on. It owns the
@@ -36,7 +36,7 @@
 </Section>
 
 <!-- ─── Examples ─── -->
-<Section marker="02" id="examples" title="Examples">
+<Section marker id="examples" title="Examples">
   <div class="space-y-10">
     <CodeExample
       title="Custom marks"
@@ -69,7 +69,7 @@
 </Section>
 
 <!-- ─── Accessibility ─── -->
-<Section marker="03" id="accessibility" title="Accessibility">
+<Section marker id="accessibility" title="Accessibility">
   <NoteList>
     <Note title="One named image">
       <p>

@@ -14,7 +14,7 @@
 
 <!-- ─── Examples ─── -->
 
-<Section marker="01" id="examples" title="Examples">
+<Section marker id="examples" title="Examples">
   <div class="space-y-8">
     <CodeExample
       title="Border (visual separation on colored surfaces)"
@@ -61,7 +61,7 @@
 
 <!-- ─── Patterns ─── -->
 
-<Section marker="02" id="patterns" title="Patterns">
+<Section marker id="patterns" title="Patterns">
   <p class="text-text-secondary mb-6 text-sm leading-relaxed">
     Badge serves five distinct use cases that look alike but behave differently. Picking the right
     pattern up-front avoids API-shape regret later — particularly around removable vs interactive,
@@ -241,7 +241,7 @@
 
 <!-- ─── Customization ─── -->
 
-<Section marker="03" id="customization" title="Customization">
+<Section marker id="customization" title="Customization">
   <div class="space-y-8">
     <CodeExample
       title="Gradient Tags"
@@ -357,7 +357,7 @@
 
 <!-- ─── Accessibility ─── -->
 
-<Section marker="04" id="accessibility" title="Accessibility">
+<Section marker id="accessibility" title="Accessibility">
   <NoteList>
     <Note title="Built-in ARIA">
       <p>

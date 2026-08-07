@@ -106,7 +106,7 @@
 
   <CustomDocs {SAMPLE} />
 
-  <Section marker="02" id="usage" title="Usage Notes">
+  <Section marker id="usage" title="Usage Notes">
     <div class="space-y-6">
       <InfoCard intent="info" title="Reach for CodeExample first">
         <p>
@@ -134,7 +134,7 @@
     </div>
   </Section>
 
-  <Section marker="03" id="accessibility" title="Accessibility">
+  <Section marker id="accessibility" title="Accessibility">
     <NoteList>
       <Note title="Built-in ARIA">
         <p>
@@ -161,7 +161,7 @@
   </Section>
 
   <Section
-    marker="04"
+    marker
     id="api"
     title="API Reference"
     subtitle="Complete list of component properties and their configurations"
@@ -172,7 +172,7 @@
 
   <TypesReference types={componentData?.types ?? []} />
 
-  <Section marker="05" id="installation" title="Installation">
+  <Section marker id="installation" title="Installation">
     <CodeExample
       title="Import"
       code={`import { CodePanel } from '@urbicon-ui/docs';`}

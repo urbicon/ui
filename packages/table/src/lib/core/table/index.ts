@@ -5,7 +5,7 @@ import type { LiveUpdateCounts } from '$lib/stores/concerns/useLiveUpdates.svelt
 import type { SummaryConfig } from '$lib/stores/TableStore.svelte';
 import type { Filter, FilterOperator } from '$lib/types/tableTypes';
 import type { TableSource } from '$lib/view/source';
-import type { TableView, TableViewDefaults } from '$lib/view/view.svelte';
+import type { TableView, TableViewDefaults, ViewSort } from '$lib/view/view.svelte';
 import type { TableSlotClasses } from '../table-style-context';
 
 /**
@@ -23,18 +23,22 @@ import type { TableSlotClasses } from '../table-style-context';
  * (since v8): wiring and lifecycle members — column set/order/visibility
  * plumbing, focus internals, the managed-fetch sink, preference persistence —
  * are not part of the contract. Prefer the action methods here over writing
- * the equivalent `state` fields directly: the methods enforce the interaction
- * side effects (a new search, filter or grouping resets to page 1; a summary
- * mutation keeps the summary row's visibility consistent).
+ * the matching `view` axis directly: the methods enforce the interaction side
+ * effects (a new search, filter or grouping resets to page 1; a summary
+ * mutation keeps the summary row's visibility consistent). A bare
+ * `view.search = 'x'` is legitimate — it just changes only the search.
  */
 export interface TableContext {
   /**
-   * The shared reactive state — the read surface for custom toolbars and
-   * cells (`state.searchTerm`, `state.sortColumn`, `state.activeFilters`,
-   * `state.selectedIds`, …). Fields are reactive to *replacement*, not to
-   * writes reaching inside them: `state.items[0].name = 'x'` re-renders
-   * nothing — edit a row through {@link pushUpdate}, or assign a new array.
-   * For writes, prefer the action methods on this context.
+   * The shared reactive state — what the *table* owns: `state.items`,
+   * `state.columns`, `state.loading`, `state.selectedIds`, the expansion and
+   * grouping chrome, the summaries. The six view axes are not here; they live
+   * on {@link view}, under one set of names (#166).
+   *
+   * Fields are reactive to *replacement*, not to writes reaching inside them:
+   * `state.items[0].name = 'x'` re-renders nothing — edit a row through
+   * {@link pushUpdate}, or assign a new array. For writes, prefer the action
+   * methods on this context.
    */
   readonly state: TableState;
 
@@ -43,6 +47,11 @@ export interface TableContext {
    * (search, sort, page, pageSize, filters, groupBy), fully resolved against
    * its defaults. For a zero-config table this is the table-owned view; with
    * a `view` prop it is that same object.
+   *
+   * This is the one address for an axis. Read `view.search`, write
+   * `view.page = 2`; the action methods below exist for the ones that carry
+   * an interaction side effect (a new search or filter resets to page 1) and
+   * write the same fields.
    */
   readonly view: TableView;
 
@@ -54,28 +63,44 @@ export interface TableContext {
   readonly sortedItems: TableItem[];
   /** The rows of the current page — what the desktop body renders when ungrouped. */
   readonly paginatedItems: TableItem[];
-  /** Total row count after filtering (server total in server mode). */
-  readonly totalItems: number;
-  /** Page count derived from {@link totalItems} and `state.itemsPerPage` (min. 1). */
+  /**
+   * Total row count after filtering — the server total in server mode.
+   * Spelled like the `total` on the source and on `TablePage` (#162): one
+   * word for "how many rows match", wherever you read it.
+   */
+  readonly total: number;
+  /** Page count derived from {@link total} and `view.pageSize` (min. 1). */
   readonly totalPages: number;
   /**
-   * The page actually rendered — `state.currentPage` clamped into range.
-   * Everything user-facing reads this, never `state.currentPage`: the raw
-   * value is the reader's *intent* and can sit out of range after
-   * `itemsPerPage` or the item count changed under it.
+   * The page actually rendered — `view.page` clamped into range. Everything
+   * user-facing reads this, never `view.page`: the raw value is the reader's
+   * *intent* and can sit out of range after the page size or the item count
+   * changed under it.
    */
   readonly effectivePage: number;
+  /**
+   * The grouping actually applied — `view.groupBy`, or `null` on a
+   * virtualized table (grouped virtualization is not implemented, and a key
+   * that slipped through would render every row). Same distinction as
+   * {@link effectivePage}: read `view.groupBy` for what the reader asked
+   * for, this for what they are looking at.
+   *
+   * This is the address to use. `state.effectiveGroupBy` holds the same
+   * value — it is the channel the store's concerns share it through, and the
+   * gate lives there so it cannot be applied twice.
+   */
+  readonly effectiveGroupBy: string | null;
 
   // ── Search ──
 
   /** Set the search term. A *new* term resets to page 1; re-applying the current one does not. */
-  setSearchTerm(term: string): void;
+  setSearch(term: string): void;
 
   // ── Filtering ──
 
   /** Append a filter and reset to page 1. */
   addFilter(filter: Filter): void;
-  /** Remove the filter at `index` in `state.activeFilters` and reset to page 1. */
+  /** Remove the filter at `index` in `view.filters` and reset to page 1. */
   removeFilter(index: number): void;
   /**
    * Remove every filter matching `column` — narrowed further by `operator`
@@ -93,16 +118,16 @@ export interface TableContext {
   handleSort(column: string): void;
   /**
    * Set an exact sort, no cycling — for controls without a header to click.
-   * Pass an empty `column` to clear the sort.
+   * `null` clears it; "unsorted" is a value, not an empty column name.
    */
-  setSort(column: string, direction: 'asc' | 'desc'): void;
+  setSort(sort: ViewSort | null): void;
 
   // ── Pagination ──
 
   /** Navigate to `page` if it is within `1..totalPages`; out-of-range calls are ignored. */
   goToPage(page: number): void;
   /** Set the page size and reset to page 1. */
-  setItemsPerPage(count: number): void;
+  setPageSize(count: number): void;
 
   // ── Grouping ──
 
@@ -112,7 +137,7 @@ export interface TableContext {
    * virtualized table a non-null key is refused (grouped virtualization is
    * not implemented); clearing stays allowed.
    */
-  setGroupByKey(key: string | null): void;
+  setGroupBy(key: string | null): void;
 
   // ── Selection ──
   // Rows are keyed by `item.id`, with the row index as fallback. All
@@ -231,8 +256,9 @@ export interface TableContext {
  * <Table
  *   columns={columns}
  *   source={{
- *     query: async (query, { signal }) => {
- *       const res = await fetch(`/api/users?page=${query.page}`, { signal });
+ *     processing: 'server',
+ *     query: async (view, { signal }) => {
+ *       const res = await fetch(`/api/users?page=${view.page}`, { signal });
  *       return await res.json();
  *     }
  *   }}
@@ -258,7 +284,11 @@ export interface TableContext {
  */
 export interface TableProps<T = TableItem> {
   /**
-   * Array of data items to display in the table.
+   * Array of data items to display in the table — the shorthand for
+   * `source={{ processing: 'client', items }}`, and the right prop whenever the rows are all you
+   * have to say. Reach for {@link source} once loading, error or a server
+   * total come into it.
+   *
    * Items with an `id` property get better key stability for animations.
    * If no `id` is present, the array index is used as fallback key.
    * @default []
@@ -294,6 +324,10 @@ export interface TableProps<T = TableItem> {
    * - `flush` (default): no outer frame, sits inline in the reading flow
    * - `surface`: gentle `surface-quiet` tinted zone, no border
    * - `framed`: bordered + rounded + shadowed standalone block
+   *
+   * Applies to both layouts — on a narrow container the same frame wraps the
+   * mobile record list, whose records are separated by hairlines instead of
+   * each carrying a frame.
    * @default "flush"
    * @summary How much chrome the table carries: none, a tinted zone, or a framed block.
    */
@@ -317,7 +351,7 @@ export interface TableProps<T = TableItem> {
    * The table's own interaction handlers reset the page on a new search,
    * filter or grouping; a *direct field write* (`view.search = 'x'`) does
    * not — write `view.page = 1` alongside, or go through the context's
-   * `setSearchTerm`.
+   * `setSearch`.
    *
    * **Sharing one view across tables.** Several tables may mount the same
    * view: they read and write the same six axes, and a table takes no claim
@@ -328,7 +362,7 @@ export interface TableProps<T = TableItem> {
    * grouping it could render, so give the virtualized table its own view.
    * And a **managed source** (`{ query }`) on both tables fetches once *per
    * table* per interaction — a shared view is not a shared cache; wire the
-   * fetch once yourself and hand both tables a manual `kind: 'server'`
+   * fetch once yourself and hand both tables a manual `processing: 'server'`
    * source if that matters.
    *
    * @example A view whose state lives in the URL
@@ -359,27 +393,36 @@ export interface TableProps<T = TableItem> {
   viewDefaults?: TableViewDefaults;
 
   /**
-   * Where the rows come from. Four shapes, and the invalid combinations of
-   * the old `mode`/`queryFn`/`loading`/`error`/`serverTotalItems` props are
-   * not expressible:
-   * - `T[]` — plain client items ({@link items} is the shorthand)
-   * - `{ items, loading?, error? }` — client items you fetch yourself
-   * - `{ kind: 'server', items, total, loading?, error? }` — manual server
-   *   flow; `kind: 'server'` is mandatory, because server mode hands
-   *   sorting/filtering to the server and must be an explicit decision
-   * - `{ query, debounceMs? }` — managed server flow: the table calls
-   *   `query` when the view changes (first fetch immediate, later ones
+   * Where the rows come from, and **who processes them** — sorts, filters,
+   * searches and pages. Three shapes, and the invalid combinations of the old
+   * `mode`/`queryFn`/`loading`/`error`/`serverTotal` props are not
+   * expressible:
+   * - `{ processing: 'client', items, loading?, error? }` — the table does
+   *   that work in the browser; you fetched the rows, so `loading`/`error`
+   *   are yours to report
+   * - `{ processing: 'server', items, total, loading?, error? }` — your
+   *   backend does it; you fetch and hand in each page
+   * - `{ processing: 'server', query, debounceMs? }` — same, and the table
+   *   calls `query` when the view changes (first fetch immediate, later ones
    *   debounced), manages loading/error and aborts superseded requests
    *
-   * Wins over {@link items} when both are set.
+   * `processing` is required on every variant: it decides whether the reader's
+   * sort headers reorder the page in front of them or ask your backend for a
+   * different one, which is too visible a difference to be inferred from a
+   * `total` that happened to be passed.
+   *
+   * For rows and nothing else, reach for {@link items} —
+   * `source={{ processing: 'client', items }}` says the same thing. `source`
+   * wins when both are set.
    *
    * @example Managed server flow
    * ```svelte
    * <Table
    *   {columns}
    *   source={{
-   *     query: async (query, { signal }) => {
-   *       const res = await fetch(`/api/users?page=${query.page}`, { signal });
+   *     processing: 'server',
+   *     query: async (view, { signal }) => {
+   *       const res = await fetch(`/api/users?page=${view.page}`, { signal });
    *       return await res.json();
    *     }
    *   }}
@@ -426,8 +469,9 @@ export interface TableProps<T = TableItem> {
   multiExpand?: boolean;
 
   /**
-   * How much of a record a mobile card shows before it is opened. Below the
-   * `md` breakpoint the table renders one card per row instead of a grid.
+   * How much of a record a mobile card shows before it is opened. Below 48rem
+   * of the table's **own container** — not of the window — the table renders one
+   * card per row instead of the grid.
    * - `collapsed` (default): the card shows the first two card columns —
    *   title and label-less subtitle — and opens the rest on tap. A record
    *   costs roughly a third of the height, so a phone screen holds three
@@ -696,7 +740,11 @@ export interface TableProps<T = TableItem> {
    *   consumer, and it adapts to whatever sits above the table (tabs, banners).
    *
    * Notes for `'viewport'`:
-   * - Desktop only (`md`+); mobile keeps normal document-level scroll.
+   * - Desktop only (`md`+ **viewport**); mobile keeps normal document-level
+   *   scroll. This is the one thing the table decides from the window rather
+   *   than from its own container — a nested scroll box is wrong on a phone
+   *   whatever the container measures, and only the viewport knows which one
+   *   it is.
    * - Supersedes `sticky`: header/group pinning is intrinsic to the box, so the
    *   `sticky` prop is ignored. `stickyOffset` is ignored too — the measured top
    *   absorbs app-shell offsets automatically.

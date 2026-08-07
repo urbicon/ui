@@ -455,6 +455,7 @@ Feedback / Ambient components (Toast, Spinner, Progress, Skeleton) and Identity 
 | `data-docs-stage="example|playground"` | `CodeExample` and `PlaygroundConfigurator` outer wrappers | Background flattens to transparent in `.docs-rooms` |
 | `data-docs-stage-frame` | Inner preview frame (Code / Playground) | Same — flattens against cream paper |
 | `data-docs-subtitle` | `description` paragraph in `DocsLayout` | `display: none` in the docs scope (field is title-first) |
+| `data-docs-note` | `NoteList` and `InfoCard` roots | Marks reading material rather than an exhibit. A skin running a narrower reading edge than its exhibit edge (the docs app: 46rem prose inside a 60rem column) caps these with the prose instead of letting them stretch to the width a table gets |
 | `data-room-hero` | hand-rolled section-landing heroes | Full-width colour-field band flush to the app sidebar (the page nests an inner `max-w` wrapper for alignment); `data-room-chip` flips a room-tinted chip to read on the fill |
 
 Consumers writing their own theme can hook the same attributes. The library defaults remain unchanged. See [the docs-site README § The Color Rooms theme](../apps/docs/README.md#the-color-rooms-theme) for the full theme architecture.

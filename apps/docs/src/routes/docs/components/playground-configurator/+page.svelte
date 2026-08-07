@@ -138,7 +138,7 @@
 
   <CustomDocs />
 
-  <Section marker="05" id="accessibility" title="Accessibility">
+  <Section marker id="accessibility" title="Accessibility">
     <NoteList>
       <Note title="Every control is a labelled form control">
         <p>
@@ -172,7 +172,7 @@
   </Section>
 
   <Section
-    marker="06"
+    marker
     id="api"
     title="API Reference"
     subtitle="Complete list of component properties and their configurations"
@@ -183,7 +183,7 @@
 
   <TypesReference types={componentData?.types ?? []} />
 
-  <Section marker="07" id="installation" title="Installation">
+  <Section marker id="installation" title="Installation">
     <CodeExample
       title="Import"
       code={`import { PlaygroundConfigurator } from '@urbicon-ui/docs';`}

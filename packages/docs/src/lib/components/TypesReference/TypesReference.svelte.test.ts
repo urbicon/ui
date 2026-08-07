@@ -34,22 +34,34 @@ describe('TypesReference', () => {
     const section = target.querySelector('section');
     const labelledBy = section?.getAttribute('aria-labelledby');
 
-    // The contract is the relationship, not the literal: the heading id is
-    // instance-local (`$props.id()`), because it was hardcoded and the docs
-    // page renders three instances — which left the second and third section
-    // named by the FIRST one's heading. Asserting the string would pin the
-    // very defect this became.
     expect(labelledBy).toBeTruthy();
     // The IDREF has to resolve, or the label is a dead end.
     expect(document.getElementById(labelledBy as string)?.tagName).toBe('H2');
   });
 
+  it('derives the heading id from the section id', () => {
+    // The single contract that replaced two half-solutions. While this
+    // component hand-built its section, the heading id was instance-local
+    // (`$props.id()`) but the section id was the hardcoded `types` — so two
+    // instances announced different names from two elements sharing one id,
+    // which is invalid HTML and sends the `#types` anchor to whichever came
+    // first. Rendering a real `<Section>` ties both halves to `id`: rename it
+    // once and the anchor, the region and its label move together.
+    const target = render({ types: TYPES, id: 'types-button', title: 'Button types' });
+    const section = target.querySelector('section');
+
+    expect(section?.id).toBe('types-button');
+    expect(section?.getAttribute('aria-labelledby')).toBe('types-button-title');
+    expect(document.getElementById('types-button-title')?.textContent?.trim()).toBe('Button types');
+  });
+
   it('gives two instances on one page two different names', () => {
     // The types-reference docs page renders three (one in the playground, two
-    // in Docs.svelte). With the id hardcoded, all three `<section>` pointed at
-    // the first heading, so the second and third announced someone else's
-    // title. This is the assertion that catches that; the one above cannot.
-    const first = render({ types: TYPES, title: 'Button types' });
+    // in Docs.svelte), and each already passes its own id — which is what makes
+    // this pass. The assertion is that the id reaches BOTH halves: a component
+    // that took the id for the section but kept a fixed heading id would give
+    // the second instance the first one's name.
+    const first = render({ types: TYPES, id: 'types-button', title: 'Button types' });
     const firstLabel = first.querySelector('section')?.getAttribute('aria-labelledby');
     const firstCleanup = cleanup;
 
@@ -57,7 +69,7 @@ describe('TypesReference', () => {
     document.body.appendChild(second);
     const instance = mount(TypesReference, {
       target: second,
-      props: { types: TYPES, title: 'Table types' } as TypesReferenceProps
+      props: { types: TYPES, id: 'types-table', title: 'Table types' } as TypesReferenceProps
     });
     const secondLabel = second.querySelector('section')?.getAttribute('aria-labelledby');
 
@@ -65,21 +77,19 @@ describe('TypesReference', () => {
     expect(secondLabel).toBeTruthy();
     expect(secondLabel).not.toBe(firstLabel);
     // Each label resolves to ITS OWN heading, not the other one's.
-    expect(document.getElementById(secondLabel as string)?.textContent).toBe('Table types');
-    expect(document.getElementById(firstLabel as string)?.textContent).toBe('Button types');
+    expect(document.getElementById(secondLabel as string)?.textContent?.trim()).toBe('Table types');
+    expect(document.getElementById(firstLabel as string)?.textContent?.trim()).toBe('Button types');
 
     unmount(instance);
     second.remove();
     cleanup = firstCleanup;
   });
 
-  it('points the label at the heading that is actually rendered', () => {
-    // Positive control for the test above: a fixed IDREF matching a fixed id
-    // would pass even if the two were wired to different elements, so pin the
-    // reference to a title only this test supplies.
-    render({ types: TYPES, title: 'Exported types' });
-    const labelledBy = document.querySelector('section')?.getAttribute('aria-labelledby') as string;
-
-    expect(document.getElementById(labelledBy)?.textContent?.trim()).toBe('Exported types');
+  it('anchors on `types` by default', () => {
+    // The other half of the anchor pair ApiReference jumps to
+    // (`fallbackSectionId: 'types'`). A page that renders one instance — every
+    // component page — must not have to know that.
+    const target = render({ types: TYPES });
+    expect(target.querySelector('section')?.id).toBe('types');
   });
 });

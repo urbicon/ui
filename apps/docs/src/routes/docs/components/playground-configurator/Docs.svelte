@@ -8,7 +8,7 @@
 
 <!-- All Control Types -->
 <Section
-  marker="01"
+  marker
   id="control-types"
   title="Control Types"
   subtitle="Every supported control in action"
@@ -78,7 +78,7 @@
 
 <!-- Conditional Controls -->
 <Section
-  marker="02"
+  marker
   id="conditional"
   title="Conditional Controls"
   subtitle="Controls that appear based on other values"
@@ -149,7 +149,7 @@
 
 <!-- Custom Code Generator -->
 <Section
-  marker="03"
+  marker
   id="code-gen"
   title="Custom Code Generator"
   subtitle="Pass your own code generator for tailored output"
@@ -222,7 +222,7 @@
 
 <!-- PropDocs + VariantKeys -->
 <Section
-  marker="04"
+  marker
   id="prop-docs"
   title="PropDocs & VariantKeys"
   subtitle="Info tooltips and variant badges for controls"

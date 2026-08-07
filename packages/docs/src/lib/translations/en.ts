@@ -27,6 +27,12 @@ export default {
   description: 'Description',
   noApiProperties: 'No API Properties',
   noApiPropertiesBody: 'No API properties found for this component.',
+  // Expanded prop row. `declaredIn` names the interface a prop comes from —
+  // present on every prop in the generated data but, until the row became
+  // expandable, visible nowhere: the `inherited`/`variant` badge said THAT a
+  // prop was inherited, never from what.
+  declaredIn: 'Declared in:',
+  allValues: 'Values:',
 
   // TypesReference
   typesTitle: 'Types',

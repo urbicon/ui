@@ -2,7 +2,7 @@
   import { CodeExample, Section, InfoCard } from '@urbicon-ui/docs';
 </script>
 
-<Section marker="01" id="examples" title="Examples" subtitle="Context information blocks">
+<Section marker id="examples" title="Examples" subtitle="Context information blocks">
   <div class="flex flex-col gap-6">
     <CodeExample title="Basic Usage" language="svelte" isolate>
       <InfoCard intent="info" title="Note">Use InfoCard to display tips.</InfoCard>

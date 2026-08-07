@@ -14,7 +14,7 @@
   const exportedAsMajor = $derived(centsToMajor(majorBackedCents));
 </script>
 
-<Section marker="01" id="examples" title="Examples">
+<Section marker id="examples" title="Examples">
   <div class="space-y-8">
     <CodeExample
       title="Default — follows the active i18n locale"
@@ -66,7 +66,7 @@
   </div>
 </Section>
 
-<Section marker="02" id="major-units" title="Working with major units">
+<Section marker id="major-units" title="Working with major units">
   <div class="text-text-secondary space-y-3 text-sm leading-relaxed">
     <p>
       <code>CurrencyInput</code> stores values in <strong>minor units</strong> (cents) so summing,
@@ -110,7 +110,7 @@
   </div>
 </Section>
 
-<Section marker="03" id="customization" title="Customization">
+<Section marker id="customization" title="Customization">
   <div class="text-text-secondary space-y-3 text-sm leading-relaxed">
     <p>
       <code>CurrencyInput</code> wraps <code>&lt;Input&gt;</code>, so all
@@ -126,7 +126,7 @@
   </div>
 </Section>
 
-<Section marker="04" id="accessibility" title="Accessibility">
+<Section marker id="accessibility" title="Accessibility">
   <NoteList>
     <Note title="Inherited from Input">
       <p>

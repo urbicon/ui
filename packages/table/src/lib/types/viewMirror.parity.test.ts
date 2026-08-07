@@ -1,20 +1,25 @@
 import type {
+  TableViewFilter,
   TableViewLike,
   TableViewSnapshot as TableViewSnapshotMirror
 } from '@urbicon-ui/sveltekit-utils';
-import type { TableQueryFilter, TableQueryParams } from '@urbicon-ui/sveltekit-utils/table-query';
 import { describe, expect, it } from 'vitest';
 import type { TableView, TableViewSnapshot } from '$lib/view/view.svelte';
-import type { Filter, TableQuery } from './tableTypes';
+import type { Filter } from './tableTypes';
 
 /**
- * `@urbicon-ui/sveltekit-utils` mirrors this package's query and view types
+ * `@urbicon-ui/sveltekit-utils` mirrors this package's view types
  * structurally (deliberately, so it carries no dependency on
  * `@urbicon-ui/table`). This test pins the shapes together: if a mirrored
  * type gains, loses or re-types a field, the assignability assertions below
  * stop compiling and force the mirror in
- * `packages/sveltekit-utils/src/lib/table-query.ts` / `table-view.ts` to be
- * updated.
+ * `packages/sveltekit-utils/src/lib/table-view.ts` to be updated.
+ *
+ * There used to be a second pair here — `TableQuery` against
+ * `TableQueryParams` — because the query spoke its own vocabulary. Since #162
+ * it does not: the snapshot below IS what a managed `source.query` receives,
+ * so one parity block covers both roles, and the kit's `./table-query` module
+ * that held the second spelling is gone.
  *
  * The view-side mirror is the v8 structure contract: `TableViewSnapshot` must
  * be the same shape on both sides, and the real `TableView` class must be
@@ -32,14 +37,9 @@ import type { Filter, TableQuery } from './tableTypes';
 type MutuallyAssignable<A, B> = [A] extends [B] ? ([B] extends [A] ? true : false) : false;
 type Extends<A, B> = [A] extends [B] ? true : false;
 
-describe('TableQuery ↔ TableQueryParams structural parity', () => {
-  it('keeps TableQuery and TableQueryParams mutually assignable', () => {
-    const queryParity: MutuallyAssignable<TableQuery, TableQueryParams> = true;
-    expect(queryParity).toBe(true);
-  });
-
-  it('keeps Filter and TableQueryFilter mutually assignable', () => {
-    const filterParity: MutuallyAssignable<Filter, TableQueryFilter> = true;
+describe('Filter ↔ TableViewFilter structural parity', () => {
+  it('keeps Filter and TableViewFilter mutually assignable', () => {
+    const filterParity: MutuallyAssignable<Filter, TableViewFilter> = true;
     expect(filterParity).toBe(true);
   });
 });

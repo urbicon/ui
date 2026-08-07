@@ -57,7 +57,7 @@ const system = [
 ].join('\\n\\n');`;
 </script>
 
-<Section marker="01" id="concept" title="How it works">
+<Section marker id="concept" title="How it works">
   <div class="space-y-6">
     <p class="text-text-secondary max-w-3xl leading-relaxed">
       A2UI (Agent-to-UI) lets an agent describe an interface as <strong>data</strong>, not
@@ -115,7 +115,7 @@ const system = [
   </div>
 </Section>
 
-<Section marker="02" id="examples" title="Examples">
+<Section marker id="examples" title="Examples">
   <div class="space-y-10">
     <CodeExample
       title="Golden-file replay — progressive rendering"
@@ -143,7 +143,7 @@ const system = [
   </div>
 </Section>
 
-<Section marker="03" id="integration" title="Integration">
+<Section marker id="integration" title="Integration">
   <div class="space-y-10">
     <div>
       <h3 class="text-text-primary mb-2 text-base font-semibold">
@@ -177,7 +177,7 @@ const system = [
   </div>
 </Section>
 
-<Section marker="04" id="accessibility" title="Accessibility">
+<Section marker id="accessibility" title="Accessibility">
   <NoteList>
     <Note title="Real controls, real labels">
       <p>

@@ -88,6 +88,19 @@ function axisEqual(axis: ViewAxis, a: unknown, b: unknown): boolean {
 }
 
 /**
+ * Collapse an axis' degenerate spellings onto the single one the rest of the
+ * library recognises. See the call site in {@link TableView.#write}.
+ */
+function normaliseAxis(axis: ViewAxis, value: unknown): unknown {
+  if (axis === 'groupBy') return (value as string | null) || null;
+  if (axis === 'sort') {
+    const sort = value as ViewSort | null;
+    return sort && sort.column ? sort : null;
+  }
+  return value;
+}
+
+/**
  * Detects whether we are inside component initialisation. `hasContext` is the
  * one public API that throws (`lifecycle_outside_component`) outside of it —
  * on the server and in module scope alike.
@@ -171,18 +184,31 @@ export class TableView {
         '[TableView] constructed outside component initialisation on the server — a module-scope view is shared between requests. Construct it inside the component (or request-scoped load) that owns it.'
       );
     }
+    // Copied, not referenced: `defaults` IS the elision baseline every
+    // binding compares against, so a consumer who later pushes onto the array
+    // they passed in would silently move the "this axis is at its default"
+    // line — and with it what does and does not reach the URL.
     this.defaults = {
       search: defaults.search ?? '',
-      sort: defaults.sort ?? null,
+      sort: defaults.sort?.column ? { ...defaults.sort } : null,
       page: defaults.page ?? 1,
       pageSize: defaults.pageSize ?? 10,
-      filters: defaults.filters ?? [],
+      filters: defaults.filters ? [...defaults.filters] : [],
       // `|| null` on top of the nullish fallback: an empty string is not a
       // grouping — normalising it here keeps `groupBy === null` the single
       // spelling of "ungrouped" for strict consumer checks.
       groupBy: defaults.groupBy || null
     };
     this.#search = this.defaults.search;
+    // No spread on `sort` here, deliberately, and it is not the asymmetry with
+    // `filters` below that it looks like: assigning to a `$state` field wraps
+    // the value in Svelte's proxy, whose writes land in its own signals rather
+    // than in the assigned object — so `view.sort.direction = 'asc'` leaves
+    // `defaults.sort` alone already (measured 2026-08-06, both ways: adding
+    // the spread changed no observable, including the serialized URL). The
+    // `filters` copy is not redundant for the same reason it is not here: an
+    // array literal that reaches BOTH slots would still be one array, and the
+    // spread is what `#filters` is seeded from.
     this.#sort = this.defaults.sort;
     this.#page = this.defaults.page;
     this.#pageSize = this.defaults.pageSize;
@@ -230,10 +256,8 @@ export class TableView {
     return this.#groupBy;
   }
   set groupBy(value: string | null) {
-    // `|| null`: same normalisation as the constructor — `null` stays the
-    // single spelling of "ungrouped", so a consumer's `''` never reaches
-    // serialization or storage as a distinct third state.
-    this.#write('groupBy', value || null, 'user');
+    // `''` collapses to `null` in `#write`, for this path and every other.
+    this.#write('groupBy', value, 'user');
   }
 
   // ── The binding/system write surface ────────────────────────────────────
@@ -252,7 +276,18 @@ export class TableView {
     }
   }
 
-  #write(axis: ViewAxis, value: unknown, origin: ViewOrigin): void {
+  #write(axis: ViewAxis, raw: unknown, origin: ViewOrigin): void {
+    // Normalise BEFORE the echo guard, and on every write path — a field
+    // setter, `applyExternal`, a binding. Both composite axes have a
+    // degenerate spelling of "off" that the type admits and the meaning does
+    // not: `groupBy: ''` and a sort naming no column. Left alone they are a
+    // second way to say `null` that nothing downstream recognises —
+    // `SortMenu` reports "sorted" over a table rendering unsorted, and
+    // `assertValidViewSnapshot` throws when the same view reaches the URL
+    // codec. Normalising here is what the `sort` half was missing (#166
+    // review): until v9 it happened inside the store's `sortColumn` setter,
+    // which this cut removed.
+    const value = normaliseAxis(axis, raw);
     // `untrack` around the read is what makes writing an axis from inside an
     // `$effect` safe. Without it the echo guard's own read subscribes the
     // effect to the axis it writes, so the obvious way to drive the search
@@ -317,14 +352,36 @@ export class TableView {
     return { revision, origin };
   }
 
-  /** Reactive full snapshot — reads (and therefore tracks) all six axes. */
+  /**
+   * Reactive full snapshot — reads (and therefore tracks) all six axes.
+   *
+   * The two composite axes are copied, so the returned object earns its name:
+   * a snapshot that writes through to the live view is not one. The copy used
+   * to sit in `viewToQuery`, which meant it only protected consumers who went
+   * through that projection — `observeView(view, cb)` handed the callback the
+   * view's own `filters` array, and a `cb` that sorted it in place was
+   * reordering view state. Moving it here covers every caller.
+   *
+   * Shallow on purpose: the filter entries are three-string value objects
+   * nothing edits in place, and a deep clone per snapshot would be paid on
+   * every view change to guard against a write nobody makes.
+   *
+   * The copy is not free of consequence, so: spreading the array reads the
+   * state proxy's length and indices, which widens what a reader of this
+   * method tracks. Measured — an effect over `void view.snapshot()` now also
+   * re-runs on an in-place `view.filters.push(…)`, where before it did not.
+   * That is a *more* honest dependency set (the snapshot's value really did
+   * change), and the bindings are unaffected: they track the axes through
+   * `readAxes`, and an in-place push still reaches neither the URL nor
+   * storage, because `#write` is what moves the origin bookkeeping.
+   */
   snapshot(): TableViewSnapshot {
     return {
       search: this.#search,
-      sort: this.#sort,
+      sort: this.#sort === null ? null : { ...this.#sort },
       page: this.#page,
       pageSize: this.#pageSize,
-      filters: this.#filters,
+      filters: [...this.#filters],
       groupBy: this.#groupBy
     };
   }

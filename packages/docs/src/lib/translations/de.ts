@@ -27,6 +27,12 @@ export default {
   description: 'Beschreibung',
   noApiProperties: 'Keine API-Properties',
   noApiPropertiesBody: 'Für diese Komponente wurden keine API-Properties gefunden.',
+  // Ausgeklappte Prop-Zeile. `declaredIn` benennt das Interface, aus dem eine
+  // Prop stammt — in den generierten Daten bei jeder Prop vorhanden, aber bis
+  // zur ausklappbaren Zeile nirgends sichtbar: das Badge „geerbt"/„Variante"
+  // sagte, DASS eine Prop geerbt ist, nie woher.
+  declaredIn: 'Deklariert in:',
+  allValues: 'Werte:',
 
   // TypesReference
   typesTitle: 'Typen',

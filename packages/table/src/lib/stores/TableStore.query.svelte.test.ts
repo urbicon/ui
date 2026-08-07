@@ -54,7 +54,7 @@ describe('view — externally applied axes resolve without a tracking context', 
     const store = createTableState(
       linkedView({ sort: { column: 'name', direction: 'asc' } }),
       undefined,
-      { source: () => ITEMS, columns: () => COLUMNS }
+      { source: () => ({ processing: 'client' as const, items: ITEMS }), columns: () => COLUMNS }
     );
 
     expect(names(store.paginatedItems)).toEqual(['Ada', 'Barbara', 'Grace']);
@@ -62,7 +62,7 @@ describe('view — externally applied axes resolve without a tracking context', 
 
   it('searches from the linked view', () => {
     const store = createTableState(linkedView({ search: 'ada' }), undefined, {
-      source: () => ITEMS,
+      source: () => ({ processing: 'client' as const, items: ITEMS }),
       columns: () => COLUMNS
     });
 
@@ -71,7 +71,7 @@ describe('view — externally applied axes resolve without a tracking context', 
 
   it('pages from the linked view', () => {
     const store = createTableState(linkedView({ page: 2, pageSize: 2 }), undefined, {
-      source: () => ITEMS,
+      source: () => ({ processing: 'client' as const, items: ITEMS }),
       columns: () => COLUMNS
     });
 
@@ -85,10 +85,10 @@ describe('view — externally applied axes resolve without a tracking context', 
     const store = createTableState(
       linkedView({ filters: [{ column: 'name', operator: 'contains', value: 'ra' }] as Filter[] }),
       undefined,
-      { source: () => ITEMS, columns: () => COLUMNS }
+      { source: () => ({ processing: 'client' as const, items: ITEMS }), columns: () => COLUMNS }
     );
 
-    expect(store.state.activeFilters).toHaveLength(1);
+    expect(store.view.filters).toHaveLength(1);
     expect(names(store.paginatedItems)).toEqual(['Grace', 'Barbara']);
   });
 
@@ -97,7 +97,7 @@ describe('view — externally applied axes resolve without a tracking context', 
     // string changes; the URL binding calls `applyExternal` on the SAME view.
     const view = linkedView({ sort: { column: 'name', direction: 'asc' } });
     const store = createTableState(view, undefined, {
-      source: () => ITEMS,
+      source: () => ({ processing: 'client' as const, items: ITEMS }),
       columns: () => COLUMNS
     });
     expect(names(store.paginatedItems)).toEqual(['Ada', 'Barbara', 'Grace']);
@@ -114,12 +114,12 @@ describe('view — externally applied axes resolve without a tracking context', 
     const view = createTableView({ defaults: { sort: { column: 'name', direction: 'asc' } } });
     view.applyExternal({ page: 2 }, 'external');
     const store = createTableState(view, undefined, {
-      source: () => ITEMS,
+      source: () => ({ processing: 'client' as const, items: ITEMS }),
       columns: () => COLUMNS
     });
 
-    expect(store.state.currentPage).toBe(2);
-    expect(store.state.sortColumn).toBe('name');
+    expect(store.view.page).toBe(2);
+    expect(store.view.sort?.column).toBe('name');
   });
 
   it('an explicitly applied "unsorted" beats the defaults — no seed slips past it', () => {
@@ -129,87 +129,99 @@ describe('view — externally applied axes resolve without a tracking context', 
     const view = createTableView({ defaults: { sort: { column: 'amount', direction: 'desc' } } });
     view.applyExternal({ sort: null }, 'external');
     const store = createTableState(view, undefined, {
-      source: () => ITEMS,
+      source: () => ({ processing: 'client' as const, items: ITEMS }),
       columns: () => COLUMNS
     });
 
-    expect(store.state.sortColumn).toBe('');
+    expect(store.view.sort).toBeNull();
     expect(names(store.paginatedItems)).toEqual(['Ada', 'Grace', 'Barbara']);
   });
 });
 
-describe('view — the six state axes are pass-throughs onto the view', () => {
-  // The v8 equivalence contract: writing through `state` or through `view`
-  // is the same write (`user` origin), and both read the same signal. A
-  // sabotage that decouples one axis — a stray local `$state` shadowing the
-  // view — turns exactly one of these red.
-  it('state writes land on the view, view writes land on the state', () => {
+describe("view — the store reads and writes the consumer's view object", () => {
+  // What the six `state` mirrors used to assert (writing through `state` or
+  // through `view` is the same write) collapsed with them in #166: there is
+  // one address now. What still needs pinning is that the store did not keep
+  // a copy — a stray local `$state` shadowing an axis would make the table
+  // and the consumer's bindings disagree, and turn exactly one of these red.
+  it('the store holds the very object it was handed', () => {
     const view = createTableView();
     const store = createTableState(view, undefined, {
-      source: () => ITEMS,
+      source: () => ({ processing: 'client' as const, items: ITEMS }),
       columns: () => COLUMNS
     });
     expect(store.view).toBe(view);
 
-    store.state.searchTerm = 'gr';
-    expect(view.search).toBe('gr');
-    view.search = '';
-    expect(store.state.searchTerm).toBe('');
+    view.search = 'gr';
+    expect(store.view.search).toBe('gr');
 
-    store.state.activeFilters = [{ column: 'name', operator: 'contains', value: 'a' }] as Filter[];
-    expect(view.filters).toHaveLength(1);
+    view.filters = [{ column: 'name', operator: 'contains', value: 'a' }] as Filter[];
+    expect(store.view.filters).toHaveLength(1);
 
-    store.state.currentPage = 3;
-    expect(view.page).toBe(3);
-    view.page = 1;
-    expect(store.state.currentPage).toBe(1);
+    view.page = 3;
+    expect(store.view.page).toBe(3);
 
-    store.state.itemsPerPage = 25;
-    expect(view.pageSize).toBe(25);
+    view.pageSize = 25;
+    expect(store.view.pageSize).toBe(25);
 
-    store.state.sortColumn = 'name';
-    expect(view.sort).toEqual({ column: 'name', direction: 'asc' });
-    store.state.sortDirection = 'desc';
-    expect(view.sort).toEqual({ column: 'name', direction: 'desc' });
-    view.sort = null;
-    expect(store.state.sortColumn).toBe('');
+    view.sort = { column: 'name', direction: 'desc' };
+    expect(store.view.sort).toEqual({ column: 'name', direction: 'desc' });
 
-    store.state.groupByKey = 'name';
-    expect(view.groupBy).toBe('name');
-    view.groupBy = null;
-    expect(store.state.groupByKey).toBeNull();
+    view.groupBy = 'name';
+    expect(store.view.groupBy).toBe('name');
+    expect(store.state.effectiveGroupBy).toBe('name'); // not virtualized: applied as requested
   });
 
-  it('clearing the sort column clears the whole sort', () => {
-    const store = createTableState(
-      createTableView({ defaults: { sort: { column: 'name', direction: 'desc' } } }),
-      undefined,
-      { source: () => ITEMS, columns: () => COLUMNS }
-    );
-
-    store.state.sortColumn = '';
-    expect(store.view.sort).toBeNull();
-    expect(store.state.sortDirection).toBe('asc');
-  });
-
-  it('a direction write on an unsorted view is a no-op', () => {
-    // Deliberate v8 delta: an unsorted view has no direction (the serializers
-    // normalize it away the same way), so `sortDirection = 'desc'` without an
-    // active sort changes nothing instead of storing a dangling direction.
-    const store = createTableState(undefined, undefined, {
-      source: () => ITEMS,
+  it('the action methods write the same axes, with their side effects', () => {
+    // The reason the methods exist next to the plain fields: a new search or
+    // filter resets to page 1, which a bare `view.search = …` does not.
+    const view = createTableView({ defaults: { page: 4 } });
+    const store = createTableState(view, undefined, {
+      source: () => ({ processing: 'client' as const, items: ITEMS }),
       columns: () => COLUMNS
     });
 
-    store.state.sortDirection = 'desc';
-    expect(store.view.sort).toBeNull();
-    expect(store.state.sortColumn).toBe('');
-    expect(store.state.sortDirection).toBe('asc');
+    store.setSearch('ada');
+    expect(view.search).toBe('ada');
+    expect(view.page).toBe(1);
 
-    // With a sort active, the same write applies.
-    store.state.sortColumn = 'name';
-    store.state.sortDirection = 'desc';
+    view.page = 4;
+    store.addFilter({ column: 'name', operator: 'contains', value: 'a' });
+    expect(view.filters).toHaveLength(1);
+    expect(view.page).toBe(1);
+
+    store.setPageSize(25);
+    expect(view.pageSize).toBe(25);
+  });
+
+  it('handleSort cycles asc → desc → null, and never leaves a dangling direction', () => {
+    // The v7 pair could hold a direction for no column; `ViewSort | null`
+    // cannot express that, and this is the cycle that used to produce it.
+    const store = createTableState(createTableView(), undefined, {
+      source: () => ({ processing: 'client' as const, items: ITEMS }),
+      columns: () => COLUMNS
+    });
+
+    store.handleSort('name');
+    expect(store.view.sort).toEqual({ column: 'name', direction: 'asc' });
+    store.handleSort('name');
     expect(store.view.sort).toEqual({ column: 'name', direction: 'desc' });
+    store.handleSort('name');
+    expect(store.view.sort).toBeNull();
+  });
+
+  it('setSort takes the whole sort, and null clears it', () => {
+    const store = createTableState(
+      createTableView({ defaults: { sort: { column: 'name', direction: 'desc' } } }),
+      undefined,
+      { source: () => ({ processing: 'client' as const, items: ITEMS }), columns: () => COLUMNS }
+    );
+
+    store.setSort({ column: 'age', direction: 'asc' });
+    expect(store.view.sort).toEqual({ column: 'age', direction: 'asc' });
+
+    store.setSort(null);
+    expect(store.view.sort).toBeNull();
   });
 });
 
@@ -222,21 +234,21 @@ describe('view — grouping keeps its gate', () => {
     // runtime *discard* — cleaning the URL via a `system` write — is
     // `TableProvider`'s half, not the store's.)
     const store = createTableState(linkedView({ groupBy: 'name' }), undefined, {
-      source: () => ITEMS,
+      source: () => ({ processing: 'client' as const, items: ITEMS }),
       columns: () => COLUMNS,
       virtualized: () => true
     });
 
-    expect(store.state.groupByKey).toBeNull();
+    expect(store.state.effectiveGroupBy).toBeNull();
     expect(store.grouped).toHaveProperty('ungrouped');
   });
 
   it('and accepted when the table is not virtualized', () => {
     const store = createTableState(linkedView({ groupBy: 'name' }), undefined, {
-      source: () => ITEMS,
+      source: () => ({ processing: 'client' as const, items: ITEMS }),
       columns: () => COLUMNS
     });
 
-    expect(store.state.groupByKey).toBe('name');
+    expect(store.state.effectiveGroupBy).toBe('name');
   });
 });

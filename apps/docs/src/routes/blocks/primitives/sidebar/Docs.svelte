@@ -17,7 +17,7 @@
 
 <!-- ─── When to use ─── -->
 
-<Section marker="01" id="usage" title="When to use">
+<Section marker id="usage" title="When to use">
   <p class="text-text-secondary text-sm leading-relaxed">
     <strong>Sidebar</strong> is an <code>&lt;aside&gt;</code> landmark for a side panel that is
     <em>part of the page layout</em>. Use it for persistent app navigation that slides in as an
@@ -49,7 +49,7 @@
 
 <!-- ─── Examples ─── -->
 
-<Section marker="02" id="examples" title="Examples">
+<Section marker id="examples" title="Examples">
   <div class="space-y-8">
     <CodeExample
       title="Right-Side Detail Panel"
@@ -182,7 +182,7 @@
 
 <!-- ─── Customization ─── -->
 
-<Section marker="03" id="customization" title="Customization">
+<Section marker id="customization" title="Customization">
   <div class="space-y-8">
     <CodeExample
       title="Branded Sidebar"
@@ -280,7 +280,7 @@
 
 <!-- ─── Accessibility ─── -->
 
-<Section marker="04" id="accessibility" title="Accessibility">
+<Section marker id="accessibility" title="Accessibility">
   <NoteList>
     <Note title="Semantic Landmark">
       <p>

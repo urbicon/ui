@@ -10,7 +10,7 @@
   let twoFactorCode = $state('');
 </script>
 
-<Section marker="01" id="examples" title="Examples">
+<Section marker id="examples" title="Examples">
   <div class="space-y-8">
     <CodeExample
       title="Six-digit OTP with a completion callback"
@@ -80,7 +80,7 @@
   </div>
 </Section>
 
-<Section marker="02" id="two-factor" title="Two-factor / OTP">
+<Section marker id="two-factor" title="Two-factor / OTP">
   <div class="text-text-secondary space-y-3 text-sm leading-relaxed">
     <p>
       <code>PinInput</code> is purpose-built for the one-time-code step of a two-factor flow. The
@@ -116,7 +116,7 @@
   </CodeExample>
 </Section>
 
-<Section marker="03" id="customization" title="Customization">
+<Section marker id="customization" title="Customization">
   <div class="text-text-secondary space-y-3 text-sm leading-relaxed">
     <p>
       Every visual surface is a named slot: <code>root</code> (what <code>class</code> also
@@ -155,7 +155,7 @@
   </CodeExample>
 </Section>
 
-<Section marker="04" id="accessibility" title="Accessibility">
+<Section marker id="accessibility" title="Accessibility">
   <NoteList>
     <Note title="Group semantics">
       <p>

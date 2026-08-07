@@ -47,23 +47,13 @@
   outline-offset: var(--blocks-focus-ring-offset);
 }
 
-/* Table Container - Complex layout component */
-.table-container {
-  /* Use blocks foundation tokens */
-  font-family: var(--blocks-font-family);
-  font-size: var(--text-sm);
-  line-height: var(--blocks-leading-normal);
-  color: var(--color-text-primary);
-
-  /* Container styling */
-  background: var(--color-surface-base);
-  border: 1px solid var(--color-border-default);
-  border-radius: var(--blocks-radius-lg);
-  overflow: hidden;
-
-  /* Modern scrolling */
-  container-type: inline-size;
-}
+/* A `.table-container` rule used to sit here — chrome (font, surface, border,
+ * radius) plus `container-type: inline-size`. No element ever carried the class:
+ * the chrome comes from `tableContainerVariants`, and the container-type was
+ * therefore declared on nothing, which is why the two `@container` helper blocks
+ * below it queried no container. Both are gone. The real container now lives on
+ * the root the variants render (`@container` in table.variants.ts), where the
+ * desktop/mobile switch reads it. */
 
 /* === SEARCH HIGHLIGHT === */
 /* Applied via @html injection — must be global */
@@ -102,25 +92,11 @@
   top: 6px;
 }
 
-/* === RESPONSIVE HELPERS === */
-/* Complex responsive patterns */
-
-@container (max-width: 768px) {
-  .table-hide-mobile {
-    display: none;
-  }
-
-  .table-mobile-stack {
-    flex-direction: column;
-    gap: var(--spacing-2);
-  }
-}
-
-@container (min-width: 769px) {
-  .table-hide-desktop {
-    display: none;
-  }
-}
+/* The responsive helpers that used to sit here (`.table-hide-mobile`,
+ * `.table-hide-desktop`, `.table-mobile-stack`) are gone with the dead
+ * `.table-container` block above: nothing applied them, and their `@container`
+ * queries had no container to measure. The switch they were meant to serve is
+ * `@3xl` / `@max-3xl` on the desktop and mobile roots. */
 
 /* === PRINT OPTIMIZATIONS === */
 @media print {

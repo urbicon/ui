@@ -11,7 +11,7 @@
   } from '@urbicon-ui/blocks';
 </script>
 
-<Section marker="01" id="examples" title="Examples">
+<Section marker id="examples" title="Examples">
   <div class="space-y-8">
     <CodeExample
       title="With icon and CTA"
@@ -86,7 +86,7 @@
   </div>
 </Section>
 
-<Section marker="02" id="customization" title="Customization">
+<Section marker id="customization" title="Customization">
   <div class="text-text-secondary space-y-3 text-sm leading-relaxed">
     <p>
       Pair with any icon from <code>@urbicon-ui/blocks</code>. The container picks up the semantic
@@ -100,7 +100,7 @@
   </div>
 </Section>
 
-<Section marker="03" id="accessibility" title="Accessibility">
+<Section marker id="accessibility" title="Accessibility">
   <NoteList>
     <Note title="The icon is decorative">
       <p>

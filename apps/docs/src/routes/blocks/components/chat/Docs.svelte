@@ -6,7 +6,7 @@
 
 <!-- ─── Examples ─── -->
 
-<Section marker="01" id="examples" title="Examples">
+<Section marker id="examples" title="Examples">
   <div class="space-y-8">
     <CodeExample
       title="Full conversation surface"
@@ -85,7 +85,7 @@
 
 <!-- ─── Anatomy ─── -->
 
-<Section marker="02" id="anatomy" title="Anatomy">
+<Section marker id="anatomy" title="Anatomy">
   <p class="text-text-secondary text-sm leading-relaxed">
     <strong>Chat</strong> is deliberately thin: three stacked regions and nothing else.
   </p>
@@ -120,7 +120,7 @@
 
 <!-- ─── Accessibility ─── -->
 
-<Section marker="03" id="accessibility" title="Accessibility">
+<Section marker id="accessibility" title="Accessibility">
   <NoteList>
     <Note title="Structure, not a landmark">
       <p>

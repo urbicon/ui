@@ -114,9 +114,9 @@
     >
       {#snippet children(values)}
         <!-- `id` because this page shows three TypesReference at once (this one
-             plus the two examples below), and the component's default `id="types"`
-             is a fixed anchor — the escape hatch is `restProps`, which is exactly
-             what this demonstrates. -->
+             plus the two examples below) and the default `id="types"` is a fixed
+             anchor. It is a real prop, and it renames both halves at once: the
+             `<Section>` the component renders derives its heading id from it. -->
         <TypesReference
           id="types-playground"
           types={playgroundTypes}
@@ -130,7 +130,7 @@
 
   <CustomDocs />
 
-  <Section marker="03" id="accessibility" title="Accessibility">
+  <Section marker id="accessibility" title="Accessibility">
     <NoteList>
       <Note title="A named region with its own heading">
         <p>
@@ -163,7 +163,7 @@
   </Section>
 
   <Section
-    marker="04"
+    marker
     id="api"
     title="API Reference"
     subtitle="Complete list of component properties and their configurations"
@@ -174,7 +174,7 @@
 
   <TypesReference types={componentData?.types ?? []} />
 
-  <Section marker="05" id="installation" title="Installation">
+  <Section marker id="installation" title="Installation">
     <CodeExample
       title="Import"
       code={`import { TypesReference } from '@urbicon-ui/docs';`}

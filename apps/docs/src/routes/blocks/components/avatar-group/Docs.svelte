@@ -15,7 +15,7 @@
   const spacings = ['tight', 'normal', 'loose'] as const;
 </script>
 
-<Section marker="01" id="examples" title="Examples">
+<Section marker id="examples" title="Examples">
   <div class="space-y-8">
     <CodeExample
       title="Basic stack"
@@ -62,7 +62,7 @@
   </div>
 </Section>
 
-<Section marker="02" id="appearance" title="Appearance">
+<Section marker id="appearance" title="Appearance">
   <div class="space-y-8">
     <CodeExample
       title="Spacing"
@@ -107,7 +107,7 @@
   </div>
 </Section>
 
-<Section marker="03" id="accessibility" title="Accessibility">
+<Section marker id="accessibility" title="Accessibility">
   <NoteList>
     <Note title="Group semantics">
       <p>

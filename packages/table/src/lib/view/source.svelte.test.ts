@@ -1,14 +1,14 @@
 // @vitest-environment jsdom
 import { flushSync } from 'svelte';
 import { describe, expect, it } from 'vitest';
-import type { TableQueryResult } from '$lib/types/tableTypes';
+import type { TablePage } from '$lib/types/tableTypes';
 import { resolveSource, type TableSource } from './source';
 
 /**
  * Runtime half of the source union, ported from the v8 spike (§7.3,
  * spike.source at 5c0f42f8): dispatch correctness and the identity-tracking
  * measurement (M2). The type-level half (excess-property guards on the
- * `kind?: never` / `total?: never` fields) lives in the svelte-check gate,
+ * required `processing` tag and the `?: never` fields) lives in the svelte-check gate,
  * not here.
  */
 
@@ -18,8 +18,8 @@ const ITEMS = [
 ];
 
 describe('resolveSource — dispatch', () => {
-  it('a bare array is client mode', () => {
-    expect(resolveSource(ITEMS)).toEqual({
+  it('an items object is client mode, loading/error defaulted', () => {
+    expect(resolveSource({ processing: 'client' as const, items: ITEMS })).toEqual({
       mode: 'client',
       items: ITEMS,
       loading: false,
@@ -28,7 +28,9 @@ describe('resolveSource — dispatch', () => {
   });
 
   it('an items object is client mode with pass-through loading/error', () => {
-    expect(resolveSource({ items: ITEMS, loading: true, error: 'boom' })).toEqual({
+    expect(
+      resolveSource({ processing: 'client' as const, items: ITEMS, loading: true, error: 'boom' })
+    ).toEqual({
       mode: 'client',
       items: ITEMS,
       loading: true,
@@ -36,8 +38,8 @@ describe('resolveSource — dispatch', () => {
     });
   });
 
-  it('kind: server is manual server mode', () => {
-    expect(resolveSource({ kind: 'server', items: ITEMS, total: 120 })).toEqual({
+  it('processing: server with rows is manual server mode', () => {
+    expect(resolveSource({ processing: 'server', items: ITEMS, total: 120 })).toEqual({
       mode: 'server-manual',
       items: ITEMS,
       total: 120,
@@ -50,8 +52,8 @@ describe('resolveSource — dispatch', () => {
     // Positive control (red seen): the resolver default changed to `?? 50`
     // → exactly this test red — the one pin on the managed-fetch default
     // (Prüfstein 22); the fetch tests all pass `debounceMs` explicitly.
-    const query = async (): Promise<TableQueryResult> => ({ items: [], totalItems: 0 });
-    const resolved = resolveSource({ query });
+    const query = async (): Promise<TablePage> => ({ items: [], total: 0 });
+    const resolved = resolveSource({ processing: 'server' as const, query });
     expect(resolved.mode).toBe('server-managed');
     if (resolved.mode === 'server-managed') {
       expect(resolved.debounceMs).toBe(300);
@@ -65,11 +67,11 @@ describe('identity tracking (M2) — per-render fresh source literals', () => {
     let downstreamRuns = 0;
     const cleanup = $effect.root(() => {
       let renderTrigger = $state(0);
-      // What a parent re-render does: a fresh `source={{ items }}` object
+      // What a parent re-render does: a fresh `source={{ processing: 'client' as const, items }}` object
       // identity on every render, the items reference itself stable.
       const getSource = (): TableSource => {
         void renderTrigger;
-        return { items: ITEMS };
+        return { processing: 'client' as const, items: ITEMS };
       };
       const items = $derived(resolveSource(getSource()));
       const itemsRef = $derived(items.mode === 'server-managed' ? [] : items.items);
@@ -99,7 +101,7 @@ describe('identity tracking (M2) — per-render fresh source literals', () => {
       let renderTrigger = $state(0);
       const getSource = (): TableSource => {
         void renderTrigger;
-        return { items: [...ITEMS] }; // consumer builds the array inline
+        return { processing: 'client' as const, items: [...ITEMS] }; // consumer builds the array inline
       };
       const items = $derived(resolveSource(getSource()));
       const itemsRef = $derived(items.mode === 'server-managed' ? [] : items.items);
@@ -127,7 +129,7 @@ describe('identity tracking (M2) — per-render fresh source literals', () => {
       const getSource = (): TableSource => {
         void renderTrigger;
         // fresh arrow on every render — the #153-regression-1 shape
-        return { query: async () => ({ items: [], totalItems: 0 }) };
+        return { processing: 'server' as const, query: async () => ({ items: [], total: 0 }) };
       };
       const isManaged = $derived(resolveSource(getSource()).mode === 'server-managed');
 
@@ -144,5 +146,69 @@ describe('identity tracking (M2) — per-render fresh source literals', () => {
     // does not re-run — the `hasQueryFn` technique, carried over.
     expect(effectRuns).toBe(1);
     cleanup();
+  });
+});
+
+describe('resolveSource — the untyped consumer gets a named failure', () => {
+  // The type rules all of these out, so the probes go through `as never`: they
+  // stand in for a plain-JS consumer with no compiler. Each used to fail late
+  // and anonymously — `items: undefined` reaching `normalizeItems` two frames
+  // away as `Cannot read properties of undefined (reading 'map')`. Positive
+  // control for each: remove its guard from `resolveSource` and the matching
+  // `toThrow` goes red because nothing is thrown.
+  it('names the removed array arm when handed a bare array (#161)', () => {
+    expect(() => resolveSource(ITEMS as never)).toThrow(/does not take a bare array/);
+  });
+
+  it('names the missing tag, and reports what it got instead (#165)', () => {
+    // The dangerous one: without the required tag this shape resolved as
+    // *client*, so the table sorted a page of server-paged rows locally and
+    // the reader got sort headers that reorder 20 rows out of 5000.
+    expect(() => resolveSource({ items: ITEMS, total: 500 } as never)).toThrow(
+      /needs `processing: 'client'` or `processing: 'server'`/
+    );
+    expect(() => resolveSource({ processing: 'remote', items: ITEMS } as never)).toThrow(
+      /Got "remote"/
+    );
+  });
+
+  it("does not let a `query` overrule an explicit `processing: 'client'`", () => {
+    // Found by the #165 review. The resolver dispatched on `typeof query ===
+    // "function"` BEFORE reading the tag, so this resolved as server-managed:
+    // the table fetched and handed sorting to a backend the consumer had just
+    // said was not doing the work. Positive control: move the `hasQuery`
+    // branch back above the `processing` split and this goes red.
+    const query = async () => ({ items: [], total: 0 });
+    expect(() => resolveSource({ processing: 'client', query } as never)).toThrow(
+      /has `processing: 'client'` and a `query` function/
+    );
+    // …and with rows alongside, which used to silently drop them.
+    expect(() => resolveSource({ processing: 'client', items: ITEMS, query } as never)).toThrow(
+      /`processing: 'client'` and a `query`/
+    );
+  });
+
+  it('rejects a manual server source with rows but no total', () => {
+    // Also from the #165 review: `total` came back `undefined` — a value
+    // `ResolvedSource` forbids — and reached `Math.ceil(undefined / pageSize)`,
+    // so the pager rendered "1 / NaN". Positive control: drop the
+    // `typeof source.total !== 'number'` check and this goes red.
+    expect(() => resolveSource({ processing: 'server', items: ITEMS } as never)).toThrow(
+      /needs a numeric `total`/
+    );
+    expect(() =>
+      resolveSource({ processing: 'server', items: ITEMS, total: Number.NaN } as never)
+    ).toThrow(/needs a numeric `total`/);
+    // A zero total is legitimate — an empty result set, not a missing field.
+    expect(resolveSource({ processing: 'server', items: [], total: 0 }).mode).toBe('server-manual');
+  });
+
+  it('names the missing rows once the tag is right', () => {
+    expect(() => resolveSource({ processing: 'client' } as never)).toThrow(
+      /`processing: 'client'` needs an `items` array/
+    );
+    expect(() => resolveSource({ processing: 'server' } as never)).toThrow(
+      /needs an `items` array and a `total`, or a `query` function/
+    );
   });
 });

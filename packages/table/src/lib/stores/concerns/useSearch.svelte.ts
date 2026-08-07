@@ -1,10 +1,10 @@
-import type { TableState } from './types';
+import type { TableView } from '$lib/view/view.svelte';
 
 /**
  * Search concern: manages the search term (the page-1-reset side effect).
  */
-export function useSearch(state: TableState) {
-  function setSearchTerm(term: string) {
+export function useSearch(view: TableView) {
+  function setSearch(term: string) {
     // Page 1 belongs to a *new* search, not to re-applying the current one.
     // Without the guard, re-applying an unchanged term reset the page — so a
     // shared `?page=3&q=ada` rendered page 3 on the server and snapped back to
@@ -12,12 +12,12 @@ export function useSearch(state: TableState) {
     // the URL exists to remove (#152). The view object's own echo guard now
     // stops an identical write one layer earlier; this one keeps the reset
     // honest for callers that reach the setter directly.
-    if (state.searchTerm === term) return;
-    state.searchTerm = term;
-    state.currentPage = 1;
+    if (view.search === term) return;
+    view.search = term;
+    view.page = 1;
   }
 
   return {
-    setSearchTerm
+    setSearch
   };
 }

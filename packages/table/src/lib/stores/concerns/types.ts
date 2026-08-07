@@ -1,8 +1,23 @@
-import type { Column, Filter, TableItem } from '$lib/types/tableTypes';
+import type { Column, TableItem } from '$lib/types/tableTypes';
 import type { SummaryConfig } from '../TableStore.svelte';
 
 /**
  * Shared reactive table state. All concerns read from and write to this object.
+ *
+ * The six view axes are **not** here (#166). Until v9 this interface mirrored
+ * them — `searchTerm`, `activeFilters`, `currentPage`, `itemsPerPage`,
+ * `sortColumn`/`sortDirection`, `groupByKey` — as getters onto the view, so
+ * every axis had two names and a consumer had no rule for choosing. The view
+ * object is the one address now: `context.view.search`, `.filters`, `.page`,
+ * `.pageSize`, `.sort`, `.groupBy`. What remains here is what the table owns
+ * and the view does not: rows, columns, load state, expansion, grouping
+ * chrome, summaries, selection, and the prop-driven switches.
+ *
+ * The one axis-shaped value that survived is `effectiveGroupBy`, the grouping
+ * actually applied. It is not a spelling of `view.groupBy` — it can differ
+ * from it, which is the whole reason it exists. It sits here because the
+ * concerns share it through this object; consumers read it as
+ * `context.effectiveGroupBy`.
  */
 export interface TableState {
   items: TableItem[];
@@ -10,20 +25,17 @@ export interface TableState {
   loading: boolean;
   error: string | null;
 
-  searchTerm: string;
-  activeFilters: Filter[];
-
-  currentPage: number;
-  itemsPerPage: number;
-
-  sortColumn: string;
-  sortDirection: 'asc' | 'desc';
-
   expandedItemId: string | number | null;
   expandedItemIds: Set<string | number>;
   multiExpand: boolean;
 
-  groupByKey: string | null;
+  /**
+   * The grouping actually applied — `view.groupBy`, or `null` when the table
+   * is virtualized (grouped virtualization is not implemented). Read-only:
+   * write `view.groupBy`. Not a mirror of the axis, which is why it survived
+   * the #166 cut — it can legitimately differ from what the view holds.
+   */
+  readonly effectiveGroupBy: string | null;
   /**
    * The grouping key declared via `view.defaults.groupBy`, recorded once and
    * never rewritten. Grouping accepts any item field, so this may name something
@@ -76,9 +88,11 @@ export interface TableState {
   readonly mode: 'client' | 'server';
   /**
    * Server-side total for pagination. Derived from a manual server source's
-   * `total`; a managed fetch writes it via `setServerResult`.
+   * `total`; a managed fetch writes it via `setServerResult`. Spelled like the
+   * `total` on the source and on `TablePage` (#162), scoped to say which
+   * one it holds.
    */
-  serverTotalItems: number;
+  serverTotal: number;
 
   /** Table-level switch for the column-visibility feature (visibility menu + header hide action). */
   enableColumnVisibility: boolean;

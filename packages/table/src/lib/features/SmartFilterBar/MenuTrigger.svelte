@@ -6,9 +6,12 @@
    * The shared shell of the five filter-bar triggers. They differ in icon,
    * label, lit hue and counter — not in shape.
    *
-   * Capsule-only: the narrow bar has no triggers at all any more, it has sheet
-   * sections (see ToolsSheet). This carried a `stacked` mode for the popover
-   * stack that preceded the sheet; the mode is gone with the stack.
+   * The five that use this shell are capsule-only: the narrow bar has sheet
+   * sections instead (see ToolsSheet), reached from one button that repeats the
+   * shape by hand — ghost / neutral / `sm`, lit when it has something to report
+   * — but skips the Tooltip, which is there to tell five glyphs apart. This
+   * carried a `stacked` mode for the popover stack that preceded the sheet; the
+   * mode is gone with the stack.
    */
   let {
     label,

@@ -47,17 +47,25 @@
   ];
 
   /**
-   * The bar's own switch, copied from `COMPACT_MAX_WIDTH` in
-   * `packages/table/src/lib/features/SmartFilterBar/SmartFilterBar.svelte` —
-   * a hardcoded `28 * 16` there, so a hardcoded 448 here. Nothing links the two;
-   * if the library ever moves that number, the `switch` mark below and the three
-   * figures in the prose move with it by hand.
+   * Where to put the `switch` mark on the slider: 28rem, the container step the
+   * bar's own `@container` rules use, resolved against THIS page's root font.
    *
-   * The bar's own padding and border are deliberately NOT copied — they are
-   * measured off the live element instead (see `measured`), because that is the
-   * part most likely to drift and the part this whole section is about.
+   * It used to say `448` and explain that it copied a hardcoded `28 * 16` from
+   * the library. The library has no such number any more — CSS declares the
+   * threshold once and the bar reads it (#133) — so copying a pixel value would
+   * now be the only place a second one exists. Reading `28rem` off the document
+   * keeps the mark honest at any text size, which is exactly the failure the fix
+   * removed.
+   *
+   * The bar's own padding and border are deliberately NOT copied either — they
+   * are measured off the live element (see `measured`), because that is the part
+   * most likely to drift and the part this whole section is about.
    */
-  const COMPACT_MAX_WIDTH = 448;
+  const COMPACT_MAX_WIDTH = $derived.by(() => {
+    if (typeof document === 'undefined') return 448;
+    const root = parseFloat(getComputedStyle(document.documentElement).fontSize);
+    return 28 * (Number.isFinite(root) && root > 0 ? root : 16);
+  });
 
   let demoWidth = $state(360);
 
@@ -135,30 +143,30 @@
   <Table {items} {columns} enableSmartFilter />
 </div>`;
 
+  // Which operator the menu offers for which `dataType` is `OPERATORS_BY_TYPE`
+  // in SmartFilterBar/FilterPanel.svelte; the matching itself is `useFiltering`.
   const operators = [
     {
       op: 'contains',
-      desc: 'Case-insensitive substring match. Offered for text columns (the default).'
+      matches: 'Substring, case-insensitive',
+      offeredFor: 'text (the default)'
     },
     {
       op: 'equals',
-      desc: 'Case-insensitive exact match on the stringified value. Offered for text, number, and date columns (labeled "on date" for dates).'
+      matches: 'The whole stringified value, case-insensitive',
+      offeredFor: 'text, number, date (labelled “on date”)'
     },
-    {
-      op: 'startsWith',
-      desc: 'Case-insensitive prefix match. Offered for text columns.'
-    },
-    {
-      op: 'endsWith',
-      desc: 'Case-insensitive suffix match. Offered for text columns.'
-    },
+    { op: 'startsWith', matches: 'Prefix, case-insensitive', offeredFor: 'text' },
+    { op: 'endsWith', matches: 'Suffix, case-insensitive', offeredFor: 'text' },
     {
       op: 'greaterThan',
-      desc: 'Numeric comparison when both sides convert via Number(), otherwise a date comparison. Offered for number columns and as "after" for date columns.'
+      matches: 'Numbers when both sides convert, instants otherwise',
+      offeredFor: 'number, date (labelled “after”)'
     },
     {
       op: 'lessThan',
-      desc: 'Numeric comparison when both sides convert via Number(), otherwise a date comparison. Offered for number columns and as "before" for date columns.'
+      matches: 'Numbers when both sides convert, instants otherwise',
+      offeredFor: 'number, date (labelled “before”)'
     }
   ];
 
@@ -193,6 +201,7 @@ ${scriptClose}
   description="Built-in search, column filters, summary controls, and column visibility via the SmartFilterBar — plus an external search field wired through the table's view."
   breadcrumbs={[{ label: 'Table', href: resolve('/table/table') }]}
   {navigation}
+  showToc={true}
 >
   <Section id="filtering" title="Smart Filter Bar">
     <div class="space-y-8">
@@ -261,7 +270,7 @@ ${scriptClose}
         inside a card is narrower than the sheet on a phone too.
       </p>
 
-      <div class="space-y-4">
+      <div class="w-full space-y-4">
         <Slider
           bind:value={demoWidth}
           min={320}
@@ -307,20 +316,15 @@ ${scriptClose}
       </p>
 
       <p class="text-text-secondary text-sm">
-        The threshold is meant to line up with the <code class="text-text-primary">28rem</code> step
-        the bar's own <code class="text-text-primary">@container</code> rules use for the
-        stacked/row switch, so that the capsule is not left standing in a layout too narrow to hold
-        it. The two line up <strong class="text-text-primary">at a 16px root font size</strong>,
-        which is the default and the common case — but only there: the tool switch compares a
-        hardcoded 448px, while <code class="text-text-primary">@container</code> resolves
-        <code class="text-text-primary">28rem</code> against the root. Raise the browser's text size
-        and a band opens between them in which the capsule is back under the search field. Tracked
-        as
-        <a
-          href="https://github.com/urbicon/ui/issues/133"
-          class="text-primary hover:underline"
-          rel="noreferrer">#133</a
-        >.
+        <strong class="text-text-primary">There is only one threshold, and CSS owns it.</strong> The
+        same <code class="text-text-primary">28rem</code> step the bar's
+        <code class="text-text-primary">@container</code> rules use for the stacked/row switch also
+        decides this one — it sets a custom property, and the component reads which side of it the
+        bar is on. So the capsule can never be left standing in a layout too narrow to hold it, at
+        any root font size. It could before: the tool switch compared a hardcoded 448px while
+        <code class="text-text-primary">@container</code> resolved
+        <code class="text-text-primary">28rem</code> against the root, so raising the browser's text size
+        opened a band where the bar had already stacked and the capsule was still there.
       </p>
 
       <p class="text-text-secondary text-sm">
@@ -367,16 +371,25 @@ ${scriptClose}
         do not appear in the filter menu at all.
       </p>
 
-      <div class="border-border-subtle bg-surface-elevated rounded-2xl border p-6">
-        <h3 class="text-text-primary mb-4 text-sm font-semibold">Operator Reference</h3>
-        <div class="grid grid-cols-1 gap-x-8 gap-y-3 text-sm md:grid-cols-2">
-          {#each operators as item (item.op)}
-            <div>
-              <code class="text-primary text-xs">{item.op}</code>
-              <p class="text-text-tertiary text-xs">{item.desc}</p>
-            </div>
-          {/each}
-        </div>
+      <div class="border-border-hairline overflow-x-auto border-y">
+        <table class="w-full text-left text-sm">
+          <thead class="text-text-primary border-border-hairline border-b">
+            <tr>
+              <th class="py-2 pr-4 font-semibold">Operator</th>
+              <th class="py-2 pr-4 font-semibold">Matches</th>
+              <th class="py-2 font-semibold">Offered for</th>
+            </tr>
+          </thead>
+          <tbody class="text-text-secondary divide-border-hairline divide-y">
+            {#each operators as item (item.op)}
+              <tr>
+                <td class="py-2 pr-4"><code class="text-text-primary">{item.op}</code></td>
+                <td class="py-2 pr-4">{item.matches}</td>
+                <td class="py-2">{item.offeredFor}</td>
+              </tr>
+            {/each}
+          </tbody>
+        </table>
       </div>
 
       <p class="text-text-secondary text-sm">
@@ -421,15 +434,14 @@ ${scriptClose}
 
       <p class="text-text-secondary text-sm">
         Both search and filters match against the column accessor's output — not against what a
-        custom cell renders. With a server source (<code class="text-text-primary"
-          >source=&#123;&#123; query &#125;&#125;</code
-        >
-        or
+        custom cell renders. With
         <code class="text-text-primary"
-          >source=&#123;&#123; kind: 'server', &hellip; &#125;&#125;</code
-        >) the table does not filter locally: active filters arrive as
-        <code class="text-text-primary">activeFilters</code> on the query object — see
-        <a href={resolve('/table/remote-data')} class="text-primary hover:underline">Remote Data</a
+          >source=&#123;&#123; processing: 'server', &hellip; &#125;&#125;</code
+        >
+        the table does not filter locally: the active filters arrive as
+        <code class="text-text-primary">filters</code> on the view your backend is given — see
+        <a href={resolve('/table/server-processing')} class="text-primary hover:underline"
+          >Server Processing</a
         >.
       </p>
     </div>
@@ -469,7 +481,7 @@ ${scriptClose}
         description="One view, two writers: the input pushes into `view.search`, the table's own search field writes the same setting, and the readout reads it straight back."
         code={codeExternalSearch}
       >
-        <div class="space-y-4">
+        <div class="w-full space-y-4">
           <Input
             bind:value={term}
             label="Search from outside the table"

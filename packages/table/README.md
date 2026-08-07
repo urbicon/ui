@@ -31,7 +31,7 @@ Peer dependencies: `svelte` (^5), `@urbicon-ui/blocks`, `@urbicon-ui/i18n`. No S
 | Virtualization      | `computeVirtualItems` for 10k+ rows (custom, zero deps); `virtualHeight` prop; falls back to normal rendering when inactive                                                       |
 | Column ordering     | Pointer-event drag-and-drop + `Shift+ArrowLeft/Right` keyboard reorder via shared `createDraggable` action                                                                        |
 | Column visibility   | Header menu + `prefs` storage; opt out per column (`hideable: false`) or table-wide (`enableColumnVisibility={false}`)                                                            |
-| Remote mode         | `source={{ query }}` — managed fetch with `AbortSignal`, debounced, cancellation-safe — or `source={{ kind: 'server', items, total }}` when you drive the fetch                   |
+| Remote mode         | `source={{ processing: 'server', query }}` — managed fetch with `AbortSignal`, debounced, cancellation-safe — or `source={{ processing: 'server', items, total }}` when you drive the fetch                   |
 | URL / view state    | One `view` object carries search, sort, page, page size, filters and grouping; `bindViewToUrl` applies a deep link at init — during SSR too, so a shared link renders server-side |
 | Live updates        | `pushInsert/Update/Delete` pending-buffer, `LiveUpdateBanner`, auto-apply on navigation                                                                                           |
 | Styling             | `unstyled`, `slotClasses`, `TableStyleContext` — every subcomponent respects the 17-slot map                                                                                      |
@@ -64,19 +64,22 @@ Peer dependencies: `svelte` (^5), `@urbicon-ui/blocks`, `@urbicon-ui/i18n`. No S
 <Table
   {columns}
   source={{
+    processing: 'server',
     query: async (q, { signal }) => {
-      const res = await fetch(`/api/users?page=${q.page}&size=${q.itemsPerPage}`, { signal });
-      return res.json(); // { items, totalItems }
+      const res = await fetch(`/api/users?page=${q.page}&size=${q.pageSize}`, { signal });
+      return res.json(); // { items, total }
     }
   }}
 />
 ```
 
-The table calls `query` whenever the view changes — the first fetch immediately, later ones debounced (`debounceMs`, default 300) — and aborts superseded requests through the `AbortSignal`. Loading, error and the total row count are the table's in this flow; they are not expressible on a managed source. When you drive the fetch yourself, hand in what you have instead: `source={{ kind: 'server', items, total, loading, error }}`. The tag is mandatory — server mode hands sorting and filtering to the server, so it is an explicit decision rather than something inferred from a `total` that happened to be passed.
+`q` is the view itself — the same six axes (`search`, `sort`, `page`, `pageSize`, `filters`, `groupBy`) a reader manipulates, under the same names; project them onto your backend's parameters inside the function.
+
+The table calls `query` whenever the view changes — the first fetch immediately, later ones debounced (`debounceMs`, default 300) — and aborts superseded requests through the `AbortSignal`. Loading, error and the total row count are the table's in this flow; they are not expressible on a managed source. When you drive the fetch yourself, hand in what you have instead: `source={{ processing: 'server', items, total, loading, error }}`. `processing` is required on every variant, and it is the whole decision: it names who sorts, filters, searches and pages — the table or your backend. Not where the data comes from; the client variant fetches from a server too.
 
 ### Live updates
 
-`onReady` hands you the table context from outside the table's tree — the imperative API (`pushInsert` / `pushUpdate` / `pushDelete`, `applyAllUpdates`) plus the reactive `state`:
+`onReady` hands you the table context from outside the table's tree — the imperative API (`pushInsert` / `pushUpdate` / `pushDelete`, `applyAllUpdates`), the reactive `state` (rows, columns, selection, load state) and the `view` (the six axes — `ctx.view.search`, `ctx.view.sort`, …):
 
 ```svelte
 <script lang="ts">

@@ -18,7 +18,7 @@ import {
   setNavigationLatency
 } from '../test-support/app-harness.svelte';
 import { TestView } from '../test-support/test-view.svelte';
-import type { TableQueryFilter } from './table-query';
+import type { TableViewFilter } from './table-view';
 import { __resetUrlWriterForTests, bindViewToUrl } from './view-binding.svelte';
 
 // ── Harness plumbing ────────────────────────────────────────────────────────
@@ -186,7 +186,7 @@ describe('bindViewToUrl — view to URL', () => {
   });
 
   it('writes the empty filter marker when a filtering default is cleared', async () => {
-    const filter: TableQueryFilter = { column: 'status', operator: 'equals', value: 'open' };
+    const filter: TableViewFilter = { column: 'status', operator: 'equals', value: 'open' };
     const view = new TestView({ filters: [filter] });
     inRoot(() => bindViewToUrl(view));
     view.filters = [];

@@ -14,7 +14,7 @@
   let payload = $state('https://ui.urbicon.de/docs');
 </script>
 
-<Section marker="01" id="examples" title="Examples">
+<Section marker id="examples" title="Examples">
   <div class="space-y-8">
     <CodeExample
       title="Basic — encode a URL"
@@ -82,7 +82,7 @@
   </div>
 </Section>
 
-<Section marker="02" id="auth-2fa" title="2FA & auth">
+<Section marker id="auth-2fa" title="2FA & auth">
   <div class="text-text-secondary space-y-3 text-sm leading-relaxed">
     <p>
       <code>QRCode</code> completes the auth package's zero-dependency 2FA story. Instead of wiring
@@ -113,7 +113,7 @@
   </CodeExample>
 </Section>
 
-<Section marker="03" id="encoding" title="Encoding capacity & errors">
+<Section marker id="encoding" title="Encoding capacity & errors">
   <div class="text-text-secondary space-y-3 text-sm leading-relaxed">
     <p>
       The encoder picks the smallest QR version (1–40) that fits and the most efficient mode for
@@ -156,7 +156,7 @@
   </CodeExample>
 </Section>
 
-<Section marker="04" id="accessibility" title="Accessibility">
+<Section marker id="accessibility" title="Accessibility">
   <NoteList>
     <Note title="One named image">
       <p>
