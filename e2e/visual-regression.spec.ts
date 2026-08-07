@@ -104,6 +104,32 @@ async function setup(page: Page, scheme: (typeof SCHEMES)[number], theme: (typeo
   // display face), then a short settle for the rooms token re-resolution.
   await page.evaluate(() => document.fonts.ready);
   await page.waitForTimeout(300);
+
+  await expectRoomStamped(page, theme);
+}
+
+/**
+ * The shots cannot see this, so it is asserted instead.
+ *
+ * `/test-fixtures/*` has no area entry in the channel register, so it resolves
+ * to `DEFAULT_CHANNEL` — and the default's accent is byte-identical to the
+ * un-stamped fallback in rooms-channels.gen.css (both `oklch(0.67 0.21 40)`).
+ * A room stamped correctly and a room never stamped at all therefore render the
+ * same on this fixture: if `data-room` stopped being applied, every shot here
+ * would stay green while the whole colour-room mechanism was dead.
+ *
+ * The `.docs-room-scope` wrapper is the one that matters — it carries the stamp
+ * server-side and is what the content reads. The `<html>` mirror is for portaled
+ * popovers and only lands after mount.
+ */
+async function expectRoomStamped(page: Page, theme: (typeof THEMES)[number]) {
+  if (theme !== 'rooms') return;
+  const room = await page.getAttribute('.docs-room-scope', 'data-room');
+  expect(
+    room,
+    'no data-room on .docs-room-scope — the rooms skin would fall back to the un-stamped accent, ' +
+      'which on this route is the same colour and so invisible in every shot below'
+  ).toBeTruthy();
 }
 
 test.describe('Primitive visual regression', { tag: '@pixel' }, () => {

@@ -1,5 +1,5 @@
 import { expect, type Page, test } from '@playwright/test';
-import { type ForcedPseudoClass, force, nodeIdsWithin, openCdp } from './helpers/force-state';
+import { type ForcedPseudoClass, forceWithin, nodeIdsWithin, openCdp } from './helpers/force-state';
 
 /**
  * Visual-regression baseline for INTERACTION states, against the fixture at
@@ -85,6 +85,18 @@ async function setup(page: Page, scheme: (typeof SCHEMES)[number], theme: (typeo
 
   await page.evaluate(() => document.fonts.ready);
   await page.waitForTimeout(300);
+
+  // Same blind spot as the resting suite, same assertion — see the note on
+  // `expectRoomStamped` in visual-regression.spec.ts. This fixture resolves to
+  // the default channel too, whose accent equals the un-stamped fallback, so a
+  // dead `data-room` would leave all 24 rooms shots here green.
+  if (theme === 'rooms') {
+    const room = await page.getAttribute('.docs-room-scope', 'data-room');
+    expect(
+      room,
+      'no data-room on .docs-room-scope — the rooms accent would be the fallback'
+    ).toBeTruthy();
+  }
 }
 
 test.describe('Interaction-state visual regression', { tag: '@pixel' }, () => {
@@ -105,13 +117,19 @@ test.describe('Interaction-state visual regression', { tag: '@pixel' }, () => {
             ).toBeGreaterThan(0);
 
             for (const [state, pseudoClasses] of Object.entries(STATES)) {
-              await force(cdp, nodeIds, pseudoClasses);
+              // `forceWithin` decides which elements each pseudo-class lands on:
+              // hover on the whole subtree (`group-hover:` needs the ancestor),
+              // focus only on what can actually be focused. Forcing focus on
+              // everything made Chromium draw its own `outline: auto` around
+              // every layout div, which dominated all 16 `*-focus-*` shots and
+              // was not the library's ring at all.
+              await forceWithin(cdp, `vr-ix-${group}`, pseudoClasses);
               await expect(section).toHaveScreenshot(`${group}-${state}-${scheme}-${theme}.png`);
             }
 
             // Clear before moving on, so a group's state cannot leak into the
             // next one through a shared ancestor.
-            await force(cdp, nodeIds, []);
+            await forceWithin(cdp, `vr-ix-${group}`, []);
           }
         } finally {
           await cdp.detach();
