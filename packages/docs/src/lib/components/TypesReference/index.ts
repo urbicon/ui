@@ -71,7 +71,11 @@ export interface TypesReferenceProps
   extends Omit<TypesReferenceVariantProps, 'size'>,
     Omit<HTMLAttributes<HTMLElement>, 'children'> {
   /**
-   * Controls the density – text size, padding, badge size.
+   * Density of the expanded panel — code block, badges, footnotes. It does not
+   * reach the heading (that is `<Section intent="secondary">`, pinned so the
+   * types section reads as a sibling of the API Reference above it) nor the
+   * table rows (pinned to `sm`, so both reference tables on a page share one
+   * row rhythm).
    * @default 'md'
    */
   size?: 'sm' | 'md' | 'lg';
@@ -87,6 +91,35 @@ export interface TypesReferenceProps
 
   /** Descriptive text below the title. */
   description?: string;
+
+  /**
+   * Anchor id of the rendered `<Section>`, and the stem its heading id is
+   * derived from (`{id}-title`). Keep the default on a component page: it is
+   * one half of the anchor pair `ApiReference` jumps to. A page rendering
+   * several instances gives each its own.
+   * @default 'types'
+   */
+  id?: string;
+
+  /**
+   * Editorial marker before the heading. `true` (the default) claims the
+   * page's next section number — the same automatic numbering every other
+   * `<Section marker>` on the page uses, so inserting or removing a section
+   * renumbers this one too. A string numbers it by hand; `false` leaves it
+   * unstamped.
+   *
+   * An instance rendered inside another section (a playground stage, a code
+   * example) never claims a number, whatever this says.
+   * @default true
+   */
+  marker?: string | boolean;
+
+  /**
+   * Right-aligned counter in the section header, e.g. `"27 types"` — the same
+   * slot the API Reference section uses for its prop count. Unset by default;
+   * the toolbar above the table already states the count of what is visible.
+   */
+  meta?: string;
 
   /** Extra CSS classes merged onto the root section element. */
   class?: string;

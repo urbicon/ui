@@ -39,7 +39,7 @@
 
 <!-- Basic Usage -->
 <Section
-  marker="01"
+  marker
   id="examples"
   title="Examples"
   subtitle="How TypesReference renders type definitions"
@@ -55,12 +55,7 @@
 </Section>
 
 <!-- Empty State -->
-<Section
-  marker="02"
-  id="empty"
-  title="Empty State"
-  subtitle="What happens when no types are provided"
->
+<Section marker id="empty" title="Empty State" subtitle="What happens when no types are provided">
   <CodeExample title="No Types" isolate>
     <TypesReference
       id="types-empty"
