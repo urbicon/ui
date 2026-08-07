@@ -15,7 +15,7 @@
 
 <!-- ─── Examples ─── -->
 
-<Section marker="01" id="examples" title="Examples">
+<Section marker id="examples" title="Examples">
   <div class="space-y-10">
     <CodeExample
       title="IDE layout — file tree + editor"
@@ -201,7 +201,7 @@
 
 <!-- ─── Accessibility ─── -->
 
-<Section marker="02" id="accessibility" title="Accessibility">
+<Section marker id="accessibility" title="Accessibility">
   <NoteList>
     <Note>
       {#snippet titleSnippet()}

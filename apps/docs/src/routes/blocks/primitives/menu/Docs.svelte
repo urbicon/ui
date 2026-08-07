@@ -29,7 +29,7 @@
 
 <!-- ─── When Menu vs Select ─── -->
 
-<Section marker="01" id="when-to-use" title="When to use Menu (vs. Select)">
+<Section marker id="when-to-use" title="When to use Menu (vs. Select)">
   <InfoCard intent="info" title="Menu is for actions, not selection">
     <p class="text-text-secondary text-sm leading-relaxed">
       <strong>Menu</strong> (<code>role="menu"</code>) is for invoking verbs — Edit, Delete, Share,
@@ -45,7 +45,7 @@
 
 <!-- ─── Examples ─── -->
 
-<Section marker="02" id="examples" title="Examples">
+<Section marker id="examples" title="Examples">
   <div class="space-y-8">
     <CodeExample
       title="Basic actions"
@@ -86,7 +86,7 @@
 
 <!-- ─── Customization ─── -->
 
-<Section marker="03" id="customization" title="Customization">
+<Section marker id="customization" title="Customization">
   <div class="space-y-8">
     <CodeExample
       title="Soft panel via slotClasses"
@@ -117,7 +117,7 @@
 
 <!-- ─── Accessibility ─── -->
 
-<Section marker="04" id="accessibility" title="Accessibility">
+<Section marker id="accessibility" title="Accessibility">
   <NoteList>
     <Note title="Built-in ARIA">
       <p>

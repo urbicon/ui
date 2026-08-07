@@ -6,7 +6,7 @@
 
 <!-- ─── Examples ─── -->
 
-<Section marker="01" id="examples" title="Examples">
+<Section marker id="examples" title="Examples">
   <div class="space-y-8">
     <CodeExample
       title="Streaming append"
@@ -80,7 +80,7 @@
 
 <!-- ─── Scroll engine ─── -->
 
-<Section marker="02" id="scroll-engine" title="Scroll engine">
+<Section marker id="scroll-engine" title="Scroll engine">
   <p class="text-text-secondary text-sm leading-relaxed">
     The list owns one scrolling element and a deterministic engine on top of it — it does
     <em>not</em> rely on CSS <code class="text-text-primary">overflow-anchor</code> (Safari has none),
@@ -113,7 +113,7 @@
 
 <!-- ─── Accessibility ─── -->
 
-<Section marker="03" id="accessibility" title="Accessibility">
+<Section marker id="accessibility" title="Accessibility">
   <NoteList>
     <Note>
       {#snippet titleSnippet()}

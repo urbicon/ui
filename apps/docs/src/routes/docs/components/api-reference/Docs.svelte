@@ -27,7 +27,7 @@
   ];
 </script>
 
-<Section marker="01" id="examples" title="Examples" subtitle="Rendering a generated prop table">
+<Section marker id="examples" title="Examples" subtitle="Rendering a generated prop table">
   <div class="flex flex-col gap-6">
     <InfoCard intent="info" title="The props come from the build, not from the page">
       <p>
@@ -46,7 +46,7 @@
   import { componentData } from './api';
 <\/script>
 
-<Section marker="05" id="api" title="API Reference" intent="secondary">
+<Section marker id="api" title="API Reference" intent="secondary">
   <ApiReference props={componentData?.props ?? []} types={componentData?.types ?? []} />
 </Section>
 

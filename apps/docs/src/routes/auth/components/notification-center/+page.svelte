@@ -46,13 +46,13 @@
   sourceHref={componentData?.sourceHref}
   related={relatedLinks}
 >
-  <Section marker="01" id="usage" title="Usage" intent="primary">
+  <Section marker id="usage" title="Usage" intent="primary">
     <CodeExample title="Basic" code={basicCode} language="svelte">
       <BasicExample />
     </CodeExample>
   </Section>
 
-  <Section marker="02" id="accessibility" title="Accessibility">
+  <Section marker id="accessibility" title="Accessibility">
     <NoteList>
       <Note title="Each notification is a button, not a clickable row">
         <p>
@@ -98,13 +98,13 @@
     </NoteList>
   </Section>
 
-  <Section marker="03" id="api" title="API Reference" intent="secondary">
+  <Section marker id="api" title="API Reference" intent="secondary">
     <ApiReference props={componentData?.props ?? []} types={componentData?.types ?? []} />
   </Section>
 
   <TypesReference types={componentData?.types ?? []} />
 
-  <Section marker="04" id="installation" title="Installation">
+  <Section marker id="installation" title="Installation">
     <CodeExample
       title="Import"
       code={`import { NotificationCenter } from '@urbicon-ui/auth';`}

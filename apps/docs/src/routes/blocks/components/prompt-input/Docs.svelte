@@ -12,7 +12,7 @@
 
 <!-- ─── Examples ─── -->
 
-<Section marker="01" id="examples" title="Examples">
+<Section marker id="examples" title="Examples">
   <div class="space-y-10">
     <CodeExample
       title="Chat composer with stop"
@@ -42,7 +42,7 @@
 
 <!-- ─── Accessibility ─── -->
 
-<Section marker="02" id="accessibility" title="Accessibility">
+<Section marker id="accessibility" title="Accessibility">
   <NoteList>
     <Note title="Built-in ARIA">
       <p>

@@ -8,7 +8,7 @@
   import customRendererCode from './examples/CustomRenderer.svelte?raw';
 </script>
 
-<Section marker="01" id="examples" title="Examples">
+<Section marker id="examples" title="Examples">
   <div class="space-y-10">
     <CodeExample
       title="Static markdown — tables and task lists"
@@ -44,7 +44,7 @@
   </div>
 </Section>
 
-<Section marker="02" id="customization" title="Customization">
+<Section marker id="customization" title="Customization">
   <div class="text-text-secondary space-y-3 text-sm leading-relaxed">
     <p>
       Every element maps to a named slot (<code>paragraph</code>, <code>heading1</code>–<code
@@ -63,7 +63,7 @@
   </div>
 </Section>
 
-<Section marker="03" id="accessibility" title="Accessibility">
+<Section marker id="accessibility" title="Accessibility">
   <NoteList>
     <Note title="Heading hierarchy">
       <p>

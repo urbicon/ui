@@ -43,7 +43,7 @@
 >
   <CustomDocs />
 
-  <Section marker="02" id="accessibility" title="Accessibility">
+  <Section marker id="accessibility" title="Accessibility">
     <NoteList>
       <Note title="It is a table, and it says so">
         <p>
@@ -68,13 +68,13 @@
     </NoteList>
   </Section>
 
-  <Section marker="03" id="api" title="API Reference" intent="secondary">
+  <Section marker id="api" title="API Reference" intent="secondary">
     <ApiReferenceComponent props={componentData?.props ?? []} types={componentData?.types ?? []} />
   </Section>
 
   <TypesReference types={componentData?.types ?? []} />
 
-  <Section marker="04" id="installation" title="Installation">
+  <Section marker id="installation" title="Installation">
     <CodeExample
       title="Import"
       code={`import { ApiReference } from '@urbicon-ui/docs';`}

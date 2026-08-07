@@ -7,11 +7,17 @@
   import { Breadcrumb, ChevronDownIcon } from '@urbicon-ui/blocks';
   import { useDocsI18n } from '$lib/i18n';
   import TableOfContents from '../TableOfContents/TableOfContents.svelte';
+  import { createSectionNumbering } from '../Section/section-numbering.svelte.js';
   import { docsLayoutVariants } from './docslayout.variants';
   import { getPageNav } from './page-nav';
   import type { DocsLayoutProps } from './index.js';
 
   const dt = useDocsI18n();
+
+  // One counter per page, so a `<Section marker>` gets its number from where it
+  // sits rather than from a literal someone kept in step by hand. See
+  // `section-numbering.svelte.ts` for what claims a number and what does not.
+  createSectionNumbering();
 
   let {
     title,

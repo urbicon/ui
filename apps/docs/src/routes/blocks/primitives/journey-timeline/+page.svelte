@@ -78,7 +78,7 @@
   <CustomDocs />
 
   <Section
-    marker="07"
+    marker
     id="api"
     title="API Reference"
     intent="secondary"
@@ -89,7 +89,7 @@
 
   <TypesReference types={componentData?.types ?? []} />
 
-  <Section marker="08" id="installation" title="Installation">
+  <Section marker id="installation" title="Installation">
     <CodeExample
       title="Import"
       code={`import { JourneyTimeline, type JourneyNode } from '@urbicon-ui/blocks';`}

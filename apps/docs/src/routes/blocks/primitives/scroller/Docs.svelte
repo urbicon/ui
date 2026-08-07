@@ -24,7 +24,7 @@
 
 <!-- ─── Examples ─── -->
 
-<Section marker="01" id="examples" title="Examples">
+<Section marker id="examples" title="Examples">
   <div class="space-y-10">
     <CodeExample
       title="The same row, twice — it scrolls only when it must"
@@ -127,7 +127,7 @@
 
 <!-- ─── Customization ─── -->
 
-<Section marker="02" id="customization" title="Customization">
+<Section marker id="customization" title="Customization">
   <div class="space-y-10">
     <CodeExample
       title="Responsive item widths"
@@ -189,7 +189,7 @@
 
 <!-- ─── Accessibility ─── -->
 
-<Section marker="03" id="accessibility" title="Accessibility">
+<Section marker id="accessibility" title="Accessibility">
   <NoteList>
     <Note title="Keyboard">
       <p>

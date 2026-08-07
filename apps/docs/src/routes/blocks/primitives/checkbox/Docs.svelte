@@ -11,7 +11,7 @@
 
 <!-- ─── Examples ─── -->
 
-<Section marker="01" id="examples" title="Examples">
+<Section marker id="examples" title="Examples">
   <div class="space-y-8">
     <CodeExample
       title="Task list"
@@ -41,7 +41,7 @@
 
 <!-- ─── Micro-Interactions ─── -->
 
-<Section marker="02" id="mint" title="Micro-Interactions (Mint)">
+<Section marker id="mint" title="Micro-Interactions (Mint)">
   <div class="space-y-8">
     <CodeExample
       title="Mint Presets"
@@ -58,7 +58,7 @@
 
 <!-- ─── Customization ─── -->
 
-<Section marker="03" id="customization" title="Customization">
+<Section marker id="customization" title="Customization">
   <div class="space-y-8">
     <CodeExample
       title="Slot Class Overrides"
@@ -111,7 +111,7 @@
 
 <!-- ─── Accessibility ─── -->
 
-<Section marker="04" id="accessibility" title="Accessibility">
+<Section marker id="accessibility" title="Accessibility">
   <NoteList>
     <Note title="Native Semantics">
       <p>

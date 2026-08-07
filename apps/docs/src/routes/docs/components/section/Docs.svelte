@@ -10,16 +10,16 @@
      This note lives outside the CodeExample on purpose: `isolate` extracts the
      children markup verbatim as the shown snippet, comments included, so an
      authoring note placed inside becomes four lines of the reader's example. -->
-<Section marker="01" id="examples" title="Examples" subtitle="Structuring a page">
+<Section marker id="examples" title="Examples" subtitle="Structuring a page">
   <div class="flex flex-col gap-6">
     <CodeExample
       title="A numbered section"
-      description="The everyday shape: an editorial marker, a title, a subtitle, and an id the table of contents can point at."
+      description="The everyday shape: an editorial marker, a title, a subtitle, and an id the table of contents can point at. On a page you write `marker` bare and the page counts — the literal is here because a demo section sits inside another section, and a nested one claims no number."
       isolate
     >
       <Section
         id="demo-basic"
-        marker="02"
+        marker="01"
         headingLevel={4}
         title="Customization"
         subtitle="slotClasses, preset and unstyled"

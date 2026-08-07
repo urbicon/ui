@@ -2,13 +2,13 @@
   import { CodeExample, Note, NoteList, Section } from '@urbicon-ui/docs';
 </script>
 
-<Section marker="01" id="examples" title="Examples" subtitle="Notes as they appear on a page">
+<Section marker id="examples" title="Examples" subtitle="Notes as they appear on a page">
   <div class="flex flex-col gap-6">
     <CodeExample
       title="An accessibility card"
       description="The shape this component exists for: three short notes about ARIA, keyboard and motion, in the card that closes almost every component page."
       language="svelte"
-      code={`<Section marker="04" id="accessibility" title="Accessibility">
+      code={`<Section marker id="accessibility" title="Accessibility">
   <NoteList>
     <Note title="Built-in ARIA">
       <p>The trigger carries <code>aria-expanded</code> and points at the panel it opens.</p>
@@ -85,7 +85,7 @@
   </div>
 </Section>
 
-<Section marker="02" id="accessibility" title="Accessibility">
+<Section marker id="accessibility" title="Accessibility">
   <NoteList>
     <Note title="No landmark, no heading of its own">
       <p>

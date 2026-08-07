@@ -45,7 +45,7 @@
   sourceHref={componentData?.sourceHref}
   related={relatedLinks}
 >
-  <Section marker="01" id="usage" title="Usage" intent="primary">
+  <Section marker id="usage" title="Usage" intent="primary">
     <CodeExample
       title="Basic"
       description="The live preview runs against a mocked demo API (injected via the fetcher prop) — sending and deleting invitations works on demo data. The snippet shows the production setup."
@@ -56,7 +56,7 @@
     </CodeExample>
   </Section>
 
-  <Section marker="02" id="accessibility" title="Accessibility">
+  <Section marker id="accessibility" title="Accessibility">
     <NoteList>
       <Note title="Every delete button names its invitation">
         <p>
@@ -93,13 +93,13 @@
     </NoteList>
   </Section>
 
-  <Section marker="03" id="api" title="API Reference" intent="secondary">
+  <Section marker id="api" title="API Reference" intent="secondary">
     <ApiReference props={componentData?.props ?? []} types={componentData?.types ?? []} />
   </Section>
 
   <TypesReference types={componentData?.types ?? []} />
 
-  <Section marker="04" id="installation" title="Installation">
+  <Section marker id="installation" title="Installation">
     <CodeExample
       title="Import"
       code={`import { InvitationManager } from '@urbicon-ui/auth';`}

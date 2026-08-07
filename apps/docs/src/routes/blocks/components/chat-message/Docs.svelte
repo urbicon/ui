@@ -12,7 +12,7 @@
 
 <!-- ─── Examples ─── -->
 
-<Section marker="01" id="examples" title="Examples">
+<Section marker id="examples" title="Examples">
   <div class="space-y-10">
     <CodeExample
       title="An agentic message"
@@ -42,7 +42,7 @@
 
 <!-- ─── Part dispatch ─── -->
 
-<Section marker="02" id="part-dispatch" title="Part dispatch">
+<Section marker id="part-dispatch" title="Part dispatch">
   <p class="text-text-secondary text-sm leading-relaxed">
     A message is an ordered list of <code class="text-text-primary">parts</code>. ChatMessage walks
     them in order and picks a renderer per <code class="text-text-primary">type</code> — this is what
@@ -87,7 +87,7 @@
 
 <!-- ─── Accessibility ─── -->
 
-<Section marker="03" id="accessibility" title="Accessibility">
+<Section marker id="accessibility" title="Accessibility">
   <NoteList>
     <Note title="Labelled actions">
       <p>

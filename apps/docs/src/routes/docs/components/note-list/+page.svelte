@@ -98,7 +98,7 @@
   <CustomDocs />
 
   <Section
-    marker="03"
+    marker
     id="api"
     title="API Reference"
     subtitle="Complete list of component properties and their configurations"
@@ -109,7 +109,7 @@
 
   <TypesReference types={componentData?.types ?? []} />
 
-  <Section marker="04" id="installation" title="Installation">
+  <Section marker id="installation" title="Installation">
     <CodeExample
       title="Import"
       code={`import { NoteList, Note } from '@urbicon-ui/docs';`}

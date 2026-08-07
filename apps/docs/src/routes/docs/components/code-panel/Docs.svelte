@@ -9,7 +9,7 @@
   const ONE_LINER = `bun add @urbicon-ui/blocks`;
 </script>
 
-<Section marker="01" id="examples" title="Examples">
+<Section marker id="examples" title="Examples">
   <div class="space-y-8">
     <CodeExample
       title="Line numbers below the threshold"

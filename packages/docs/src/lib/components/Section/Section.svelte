@@ -1,7 +1,13 @@
 <script lang="ts">
+  import { untrack } from 'svelte';
   import { type SectionSlots, sectionVariants } from './section.variants';
   import type { SectionProps } from './index.js';
   import { Badge } from '@urbicon-ui/blocks';
+  import {
+    isInsideSection,
+    markInsideSection,
+    useSectionNumbering
+  } from './section-numbering.svelte.js';
 
   let {
     id,
@@ -24,6 +30,35 @@
     slotClasses = {},
     ...restProps
   }: SectionProps = $props();
+
+  // Numbering, in this order and at the top level on purpose:
+  //   1. read whether a section already encloses this one — AFTER
+  //      `markInsideSection()` the component would read its own value;
+  //   2. mark the subtree, so nested sections see it;
+  //   3. claim a number, but only for `marker` passed bare and only at page
+  //      level. A nested section (a `<TypesReference>` inside a playground
+  //      stage) asks for no number, so the count stays the page's.
+  // Claiming happens once, during init, so the number is the section's render
+  // position on the server and in the browser alike.
+  const nestedInSection = isInsideSection();
+  markInsideSection();
+  const numbering = useSectionNumbering();
+  // `untrack` because reading the initial value is the point, not an oversight:
+  // a number claimed once must not move when the props object is re-read. Both
+  // inputs are fixed per instance anyway — a page does not swap a section's id
+  // or turn its marker on midway.
+  const claimedNumber = untrack(() =>
+    marker === true && !nestedInSection && numbering ? numbering.claim(id) : undefined
+  );
+
+  /** Two digits, like the hand-written markers this replaced. */
+  const resolvedMarker = $derived(
+    typeof marker === 'string'
+      ? marker
+      : claimedNumber === undefined
+        ? undefined
+        : String(claimedNumber).padStart(2, '0')
+  );
 
   // Generate TV classes
   const styles = $derived(sectionVariants({ size, intent, centered }));
@@ -78,12 +113,12 @@
         <!-- Title: Snippet takes precedence over prop -->
         {#if titleSnippet}
           <svelte:element this={headingTag} id={headingId} class={slot('title')}>
-            {#if marker}<span class={slot('marker')}>{marker}</span>{/if}
+            {#if resolvedMarker}<span class={slot('marker')}>{resolvedMarker}</span>{/if}
             {@render titleSnippet()}
           </svelte:element>
         {:else if title}
           <svelte:element this={headingTag} id={headingId} class={slot('title')}>
-            {#if marker}<span class={slot('marker')}>{marker}</span>{/if}
+            {#if resolvedMarker}<span class={slot('marker')}>{resolvedMarker}</span>{/if}
             {title}
           </svelte:element>
         {/if}

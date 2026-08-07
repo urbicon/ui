@@ -158,7 +158,7 @@ ${asyncScriptClose}
 
 <!-- ─── Examples ─── -->
 
-<Section marker="01" id="examples" title="Examples">
+<Section marker id="examples" title="Examples">
   <div class="space-y-8">
     <CodeExample
       title="Multi-select with tags"
@@ -250,7 +250,7 @@ ${asyncScriptClose}
 
 <!-- ─── Async Search ─── -->
 
-<Section marker="02" id="async-search" title="Async Search">
+<Section marker id="async-search" title="Async Search">
   <div class="space-y-8">
     <p class="text-text-secondary text-sm leading-relaxed">
       Pass <code class="text-text-primary">queryFn</code> and the Combobox stops filtering
@@ -306,7 +306,7 @@ ${asyncScriptClose}
 
 <!-- ─── Customization ─── -->
 
-<Section marker="03" id="customization" title="Customization">
+<Section marker id="customization" title="Customization">
   <div class="space-y-8">
     <CodeExample
       title="Command Palette"
@@ -403,7 +403,7 @@ ${asyncScriptClose}
 
 <!-- ─── Accessibility ─── -->
 
-<Section marker="04" id="accessibility" title="Accessibility">
+<Section marker id="accessibility" title="Accessibility">
   <NoteList>
     <Note title="Built-in ARIA">
       <p>

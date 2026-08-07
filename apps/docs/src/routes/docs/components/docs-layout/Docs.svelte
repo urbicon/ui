@@ -2,7 +2,7 @@
   import { CodeExample, Section, InfoCard } from '@urbicon-ui/docs';
 </script>
 
-<Section marker="01" id="examples" title="Examples" subtitle="Page-level layout, shown as code">
+<Section marker id="examples" title="Examples" subtitle="Page-level layout, shown as code">
   <div class="flex flex-col gap-6">
     <InfoCard intent="info" title="Why there is no live preview">
       DocsLayout is a full-page layout — it renders the header, sticky table of contents, and

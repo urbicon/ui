@@ -13,7 +13,7 @@
 
 <!-- ─── Examples ─── -->
 
-<Section marker="01" id="examples" title="Examples">
+<Section marker id="examples" title="Examples">
   <div class="space-y-8">
     <CodeExample
       title="Duration, progress and dismissal"
@@ -173,7 +173,7 @@ toaster.clear();`}
 
 <!-- ─── Store API ─── -->
 
-<Section marker="02" id="store-api" title="Store API">
+<Section marker id="store-api" title="Store API">
   <div class="space-y-8">
     <CodeExample
       title="Toaster Store API"
@@ -207,7 +207,7 @@ toaster.clear();      // remove all`}
 
 <!-- ─── Customization ─── -->
 
-<Section marker="03" id="customization" title="Customization">
+<Section marker id="customization" title="Customization">
   <div class="space-y-8">
     <CodeExample
       title="slotClasses Override"
@@ -236,7 +236,7 @@ toaster.clear();      // remove all`}
 
 <!-- ─── Accessibility ─── -->
 
-<Section marker="04" id="accessibility" title="Accessibility">
+<Section marker id="accessibility" title="Accessibility">
   <NoteList>
     <Note title="Live Region">
       <p>

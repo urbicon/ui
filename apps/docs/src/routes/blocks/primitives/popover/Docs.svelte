@@ -22,7 +22,7 @@
 
 <!-- ─── When to use ─── -->
 
-<Section marker="01" id="usage" title="When to use">
+<Section marker id="usage" title="When to use">
   <p class="text-text-secondary text-sm leading-relaxed">
     <strong>Popover</strong> is a floating panel anchored to a trigger element. Use it for
     contextual surfaces — action menus, date pickers, inline help — that should appear next to the
@@ -71,7 +71,7 @@
 
 <!-- ─── Examples ─── -->
 
-<Section marker="02" id="examples" title="Examples">
+<Section marker id="examples" title="Examples">
   <div class="space-y-8">
     <CodeExample
       title="Placements"
@@ -208,7 +208,7 @@
 
 <!-- ─── Customization ─── -->
 
-<Section marker="03" id="customization" title="Customization">
+<Section marker id="customization" title="Customization">
   <div class="space-y-8">
     <CodeExample
       title="Gradient Action Panel"
@@ -283,7 +283,7 @@
 
 <!-- ─── Accessibility ─── -->
 
-<Section marker="04" id="accessibility" title="Accessibility">
+<Section marker id="accessibility" title="Accessibility">
   <NoteList>
     <Note title="ARIA Attributes">
       <p>

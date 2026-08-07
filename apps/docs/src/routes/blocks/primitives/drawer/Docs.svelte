@@ -14,7 +14,7 @@
 
 <!-- ─── When to use ─── -->
 
-<Section marker="01" id="usage" title="When to use">
+<Section marker id="usage" title="When to use">
   <p class="text-text-secondary text-sm leading-relaxed">
     <strong>Drawer</strong> is a <code>&lt;dialog&gt;</code> — always modal, with a backdrop and a
     focus trap. Use it for a transient panel that opens on user action, pulls focus, and closes when
@@ -42,7 +42,7 @@
 
 <!-- ─── Examples ─── -->
 
-<Section marker="02" id="examples" title="Examples">
+<Section marker id="examples" title="Examples">
   <div class="space-y-8">
     <CodeExample title="Placements" isolate>
       <Button variant="outlined" onclick={() => (leftOpen = true)}>Left</Button>
@@ -125,7 +125,7 @@
 
 <!-- ─── Customization ─── -->
 
-<Section marker="03" id="customization" title="Customization">
+<Section marker id="customization" title="Customization">
   <div class="space-y-8">
     <CodeExample
       title="slotClasses Override"
@@ -163,7 +163,7 @@
 
 <!-- ─── Stacking & Nesting ─── -->
 
-<Section marker="04" id="stacking" title="Stacking & Nested Drawers">
+<Section marker id="stacking" title="Stacking & Nested Drawers">
   <div class="border-border-subtle bg-surface-elevated rounded-2xl border p-6">
     <p class="text-text-secondary mb-4 text-sm leading-relaxed">
       Multiple Drawers can be open at the same time — for example a wizard that opens a preview,
@@ -234,7 +234,7 @@ overlayStack.topId;   // string | null`}</code
 
 <!-- ─── Accessibility ─── -->
 
-<Section marker="05" id="accessibility" title="Accessibility">
+<Section marker id="accessibility" title="Accessibility">
   <NoteList>
     <Note title="Focus Trap">
       <p>

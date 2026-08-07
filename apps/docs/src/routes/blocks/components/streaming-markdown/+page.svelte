@@ -100,7 +100,7 @@ for await (const chunk of stream) render(chunk);
   <CustomDocs />
 
   <Section
-    marker="04"
+    marker
     id="api"
     title="API Reference"
     intent="secondary"
@@ -111,7 +111,7 @@ for await (const chunk of stream) render(chunk);
 
   <TypesReference types={componentData?.types ?? []} />
 
-  <Section marker="05" id="installation" title="Installation">
+  <Section marker id="installation" title="Installation">
     <CodeExample
       title="Import"
       code={`import { StreamingMarkdown } from '@urbicon-ui/blocks';

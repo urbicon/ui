@@ -9,7 +9,7 @@
 </script>
 
 <!-- ─── Examples ─── -->
-<Section marker="01" id="examples" title="Examples">
+<Section marker id="examples" title="Examples">
   <div class="space-y-10">
     <CodeExample
       title="Weekly meal plan"
@@ -30,7 +30,7 @@
 </Section>
 
 <!-- ─── Customization ─── -->
-<Section marker="02" id="customization" title="Customization">
+<Section marker id="customization" title="Customization">
   <div class="space-y-10">
     <CodeExample
       title="slotClasses + selected day"
@@ -59,7 +59,7 @@ export async function load({ url }) {
 </Section>
 
 <!-- ─── Accessibility ─── -->
-<Section marker="03" id="accessibility" title="Accessibility">
+<Section marker id="accessibility" title="Accessibility">
   <NoteList>
     <Note title="The ARIA grid pattern">
       <p>

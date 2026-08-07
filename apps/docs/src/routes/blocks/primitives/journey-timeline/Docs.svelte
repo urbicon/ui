@@ -136,7 +136,7 @@
 </script>
 
 <!-- ─── Examples ─── -->
-<Section marker="02" id="examples" title="Examples">
+<Section marker id="examples" title="Examples">
   <div class="space-y-8">
     <CodeExample
       title="Vertical chronicle with inline detail"
@@ -252,7 +252,7 @@
 </Section>
 
 <!-- ─── Statuses ─── -->
-<Section marker="03" id="statuses" title="Statuses">
+<Section marker id="statuses" title="Statuses">
   <div class="space-y-4">
     <p class="text-text-secondary text-sm">
       Each node's <code>status</code> maps to a semantic dot: <strong>complete</strong> (success,
@@ -282,7 +282,7 @@
 </Section>
 
 <!-- ─── When to use ─── -->
-<Section marker="04" id="when-to-use" title="JourneyTimeline vs. Stepper vs. Tab">
+<Section marker id="when-to-use" title="JourneyTimeline vs. Stepper vs. Tab">
   <div class="space-y-4">
     <p class="text-text-secondary text-sm">
       Three components, three different jobs — the overlap is smaller than it looks:
@@ -324,7 +324,7 @@
 </Section>
 
 <!-- ─── Customization ─── -->
-<Section marker="05" id="customization" title="Customization">
+<Section marker id="customization" title="Customization">
   <div class="space-y-4">
     <p class="text-text-secondary text-sm">
       Every family member supports <code>unstyled</code>, <code>slotClasses</code> and
@@ -354,7 +354,7 @@
 </Section>
 
 <!-- ─── Accessibility ─── -->
-<Section marker="06" id="accessibility" title="Accessibility">
+<Section marker id="accessibility" title="Accessibility">
   <NoteList>
     <Note title="Structure and ARIA">
       <p>
