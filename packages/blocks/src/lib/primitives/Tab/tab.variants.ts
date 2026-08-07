@@ -30,7 +30,17 @@ export const tabVariants = tv({
     // `py-1` is the house idiom for this, not a local invention — Scroller's
     // viewport carries the same 4px for the same reason (see
     // scroller.variants.ts). Tab is the scroll container that never got it.
-    list: ['relative flex gap-1'],
+    //
+    // `focus-visible:outline-none` without a replacement ring, unlike `trigger`
+    // and `panel` which set both: this element carries `tabindex="-1"` so the
+    // scroll container stays out of the tab order, and nothing in Tab.svelte
+    // ever focuses it — `tabListElement` is read for the indicator geometry,
+    // and keyboard navigation moves focus to a tab BUTTON. So there is no state
+    // to design, only Chromium's own `outline: auto` to suppress if focus ever
+    // arrives by script. It was the last thing in these fixtures still drawing
+    // a UA ring, and a platform-dependent one: black on linux, blue on darwin,
+    // which put a difference into the pixel baselines that guards nothing.
+    list: ['relative flex gap-1', 'focus-visible:outline-none'],
     trigger: [
       'relative z-10 flex items-center justify-center gap-2',
       'font-medium whitespace-nowrap cursor-pointer select-none',
