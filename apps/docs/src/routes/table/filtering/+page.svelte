@@ -308,20 +308,15 @@ ${scriptClose}
       </p>
 
       <p class="text-text-secondary text-sm">
-        The threshold is meant to line up with the <code class="text-text-primary">28rem</code> step
-        the bar's own <code class="text-text-primary">@container</code> rules use for the
-        stacked/row switch, so that the capsule is not left standing in a layout too narrow to hold
-        it. The two line up <strong class="text-text-primary">at a 16px root font size</strong>,
-        which is the default and the common case — but only there: the tool switch compares a
-        hardcoded 448px, while <code class="text-text-primary">@container</code> resolves
-        <code class="text-text-primary">28rem</code> against the root. Raise the browser's text size
-        and a band opens between them in which the capsule is back under the search field. Tracked
-        as
-        <a
-          href="https://github.com/urbicon/ui/issues/133"
-          class="text-primary hover:underline"
-          rel="noreferrer">#133</a
-        >.
+        <strong class="text-text-primary">There is only one threshold, and CSS owns it.</strong> The
+        same <code class="text-text-primary">28rem</code> step the bar's
+        <code class="text-text-primary">@container</code> rules use for the stacked/row switch also
+        decides this one — it sets a custom property, and the component reads which side of it the
+        bar is on. So the capsule can never be left standing in a layout too narrow to hold it, at
+        any root font size. It could before: the tool switch compared a hardcoded 448px while
+        <code class="text-text-primary">@container</code> resolved
+        <code class="text-text-primary">28rem</code> against the root, so raising the browser's text size
+        opened a band where the bar had already stacked and the capsule was still there.
       </p>
 
       <p class="text-text-secondary text-sm">

@@ -10,12 +10,20 @@
     Toolbar,
     resolveIcon,
     SearchIcon as SearchIconDefault,
-    SettingsIcon as SettingsIconDefault
+    SlidersHorizontalIcon as SlidersHorizontalIconDefault
   } from '@urbicon-ui/blocks';
 
   const SearchIcon = resolveIcon('search', SearchIconDefault);
-  const SettingsIcon = resolveIcon('settings', SettingsIconDefault);
-  import { smartFilterBarVariants, type SmartFilterBarVariantProps } from '$lib/variants';
+  // Sliders, not the gear it used to be: the button opens filtering, sorting,
+  // grouping, summaries and column visibility — how this view is tuned. A gear
+  // is the glyph for configuring the application, which is a different promise
+  // and the one every other product reserves it for.
+  const ToolsIcon = resolveIcon('slidersHorizontal', SlidersHorizontalIconDefault);
+  import {
+    smartFilterBarTriggerVariants,
+    smartFilterBarVariants,
+    type SmartFilterBarVariantProps
+  } from '$lib/variants';
   import ChipsField from './ChipsField.svelte';
   import ColumnVisibilityMenu from './ColumnVisibilityMenu.svelte';
   import FilterMenu from './FilterMenu.svelte';
@@ -85,40 +93,37 @@
   // same reason `layout` has a `responsive` mode driven by `@container`. Only
   // that mode switches — `horizontal` and `vertical` are explicit instructions.
   let barElement = $state<HTMLDivElement>();
+  let controlsElement = $state<HTMLDivElement>();
   let compact = $state(false);
   let toolsOpen = $state(false);
 
-  // 28rem — the same step `@md` uses for the row/stack switch in the variants,
-  // so the capsule never exists in a layout narrow enough to strand it.
-  const COMPACT_MAX_WIDTH = 28 * 16;
-
+  // The threshold is NOT here. It is the `@md` step on the bar's own container,
+  // declared once beside the row/stack switch it has to agree with
+  // (`smartFilterBarVariants.controls`); this only reads which side of it the
+  // bar is on, off the custom property that rule sets. Comparing a measured px
+  // width against a hardcoded `28 * 16` was the same threshold a second time, in
+  // a second unit, and the two parted company at any root font size but 16px
+  // (#133).
+  //
+  // The ResizeObserver stays, but as a *when to look*, not a *what to compare*:
+  // a container query re-evaluates without telling anyone, so something has to
+  // notice the box changed. Its callback runs after layout and before paint, so
+  // the computed value it reads is the current one.
   $effect(() => {
-    const el = barElement;
-    if (!el || layout !== 'responsive') {
+    const probe = controlsElement;
+    if (!probe || layout !== 'responsive') {
       compact = false;
       return;
     }
-    // The CONTENT box, which is what `@container` queries measure — `clientWidth`
-    // includes the container's own padding (`p-3` at size `md`), so measuring
-    // that left a 24px band where neither this switch nor `@md:flex-row` fired
-    // and the capsule sat stranded under the search field again: exactly the
-    // state the compact mode exists to remove.
-    const measure = (entry?: ResizeObserverEntry) => {
-      const width =
-        entry?.contentBoxSize?.[0]?.inlineSize ?? entry?.contentRect.width ?? contentWidth(el);
-      compact = width > 0 && width < COMPACT_MAX_WIDTH;
+    const read = () => {
+      compact = getComputedStyle(probe).getPropertyValue('--blocks-table-tools').trim() === 'sheet';
     };
-    const ro = new ResizeObserver(([entry]) => measure(entry));
-    ro.observe(el);
-    measure();
+    const ro = new ResizeObserver(read);
+    // The container is the bar, so that is the box whose size decides.
+    if (barElement) ro.observe(barElement);
+    read();
     return () => ro.disconnect();
   });
-
-  function contentWidth(el: HTMLElement): number {
-    const cs = getComputedStyle(el);
-    const padX = (parseFloat(cs.paddingLeft) || 0) + (parseFloat(cs.paddingRight) || 0);
-    return el.clientWidth - padX;
-  }
 
   // The sheet only exists in the compact branch, and unmounting it does not
   // write `open` back — so a bar that grows past the threshold with the sheet
@@ -148,8 +153,33 @@
       layout,
       elevated: responsive,
       variant: styleConfig.variant,
-      compact
+      compact,
+      toolsActive: activeToolCount > 0
     })
+  );
+
+  // The lit look of the five capsule triggers, applied to the sixth — the same
+  // construction `SummaryMenu` and friends use for their own `triggerClass`.
+  //
+  // Without it the button keeps Button's `active` + `ghost` compound, which adds
+  // `ring-1 ring-inset` on top of the subtle ground. That ring is right where it
+  // was written for — a ghost button lit on `surface-base`, where the subtle
+  // tone alone is too faint to read (BGR-2) — and wrong here: inside the
+  // toolbar's own `surface-quiet` capsule it is the redundant chrome
+  // `smartFilterBarTriggerVariants` exists to strip, which is why the other five
+  // do not have it. Moving this button into the capsule without also giving it
+  // the capsule's lit treatment left it as the only trigger in the bar still
+  // drawing an outline.
+  //
+  // `primary` is the hue for a tool with no feature ramp of its own (sort and
+  // column visibility take it too); this button speaks for all five.
+  const toolsTriggerClass = $derived(
+    [
+      filterBarStyles.toolsTrigger(),
+      activeToolCount > 0 ? smartFilterBarTriggerVariants({ intent: 'primary' }) : ''
+    ]
+      .filter(Boolean)
+      .join(' ')
   );
 </script>
 
@@ -162,7 +192,7 @@
     className
   )}
 >
-  <div class={filterBarStyles.controls()}>
+  <div bind:this={controlsElement} class={filterBarStyles.controls()}>
     <div class={filterBarStyles.searchSection()}>
       {#snippet searchIcon()}
         <SearchIcon class="h-4 w-4" />
@@ -181,33 +211,62 @@
 
     {#if compact}
       <!--
-        A plain button owning its own state, not a Popover trigger: the sheet is
+        The same `Toolbar` the wide bar uses, holding one button instead of five
+        — but `variant="ghost"`, which is the only difference between the two
+        modes and the whole point of using it here.
+
+        What the toolbar is for at this width is the two things `ghost` keeps:
+        `tier="modify"` through TierContext (outside it, the Button default
+        `tier="commit"` made a 44px pill beside a 40px search field and its own
+        32px siblings), and the `actionsSection` touch floor. What `ghost` drops
+        is the `surface-quiet` ground, because grouping is the one job a toolbar
+        around a SINGLE control does not have — and an unearned ground is not
+        neutral: it read as a pale frame around the button, invisible while the
+        button was transparent and a second rounded rect the moment it lit up.
+        The ground moved onto the button itself (`toolsActive` in the variants),
+        so there is exactly one at every state.
+
+        A plain Button owning its own state, not a Popover trigger: the sheet is
         a modal `<dialog>` and opens by being told to, so there is no light
         dismiss to coordinate with and no reason to route the click through an
-        overlay primitive.
+        overlay primitive. No `Tooltip` either, unlike the five — they need one
+        because they are five undifferentiated glyphs; one glyph with an
+        `aria-label` is not.
       -->
-      <Button
+      <Toolbar
+        aria-label={tt('aria.filterBar')}
         variant="ghost"
-        intent="neutral"
-        size="sm"
-        active={activeToolCount > 0}
-        class={filterBarStyles.toolsTrigger()}
-        aria-label={activeToolCount > 0
-          ? tt('aria.toolsActive', { count: String(activeToolCount) })
-          : tt('aria.tools')}
-        aria-haspopup="dialog"
-        aria-expanded={toolsOpen}
-        onclick={() => (toolsOpen = true)}
+        gap="xs"
+        padding="xs"
+        class={filterBarStyles.actionsSection()}
       >
-        <SettingsIcon class="h-4 w-4" />
-        {#if activeToolCount > 0}
-          <!-- The lit triggers are behind a closed door; the count is what is
-               left to say that the grid is not showing everything there is. -->
-          <Badge variant="soft" size="xs" counter class="bg-surface-base text-primary-emphasis">
-            {activeToolCount}
-          </Badge>
-        {/if}
-      </Button>
+        <Button
+          variant="ghost"
+          intent="neutral"
+          size="sm"
+          active={activeToolCount > 0}
+          class={toolsTriggerClass}
+          aria-label={activeToolCount > 0
+            ? tt('aria.toolsActive', { count: String(activeToolCount) })
+            : tt('aria.tools')}
+          aria-haspopup="dialog"
+          aria-expanded={toolsOpen}
+          onclick={() => (toolsOpen = true)}
+          data-testid="tools-trigger"
+        >
+          <ToolsIcon class="h-4 w-4" />
+          {#if activeToolCount > 0}
+            <!-- The lit triggers are behind a closed door; the count is what is
+                 left to say that the grid is not showing everything there is.
+                 Ground and hue exactly as the five siblings phrase it (see
+                 SummaryMenu for why `soft` + a neutral ground rather than
+                 `filled`); `primary` because this button speaks for all five. -->
+            <Badge variant="soft" size="xs" counter class="bg-surface-base text-primary-emphasis">
+              {activeToolCount}
+            </Badge>
+          {/if}
+        </Button>
+      </Toolbar>
 
       <ToolsSheet bind:open={toolsOpen} />
     {:else}

@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest';
 import { tableContainerVariants, tableHeaderVariants, tableRowVariants } from './table.variants';
 import {
   filterPanelVariants,
+  smartFilterBarTriggerVariants,
   smartFilterBarVariants,
   toolsSheetVariants
 } from './table-features.variants';
@@ -362,12 +363,54 @@ describe('smartFilterBarVariants — compact bar', () => {
     expect(controls).toMatch(/\bitems-center\b/);
   });
 
-  it('gives the tool button a touch-sized target', () => {
-    const trigger = smartFilterBarVariants({ compact: true }).toolsTrigger();
-    expect(trigger).toMatch(/\bmin-h-11\b/);
-    expect(trigger).toMatch(/\bmin-w-11\b/);
+  it('keeps the tool button from shrinking beside the search field', () => {
     // It sits next to a field that may shrink to nothing; the button may not.
-    expect(trigger).toMatch(/\bshrink-0\b/);
+    expect(smartFilterBarVariants({ compact: true }).toolsTrigger()).toMatch(/\bshrink-0\b/);
+  });
+
+  // Exactly one element paints a ground in the compact bar. Two of them is not a
+  // subtler version of one: the toolbar's `surface-quiet` behind a lit button
+  // read as a pale frame around it, which is what a toolbar holding a single
+  // control has no business drawing (it is a grouping surface, and there is
+  // nothing to group). The toolbar goes `variant="ghost"` there and the ground
+  // rides the button — these two arms are how it stays exactly one.
+  it('hands the ground to the resting button and to the lit treatment, never to both', () => {
+    const resting = smartFilterBarVariants({ compact: true, toolsActive: false }).toolsTrigger();
+    const lit = smartFilterBarVariants({ compact: true, toolsActive: true }).toolsTrigger();
+
+    expect(resting).toMatch(/\bbg-surface-quiet\b/);
+    // Nothing at all when lit: `smartFilterBarTriggerVariants` supplies
+    // `bg-primary-subtle`, and a second `bg-*` on the same element would resolve
+    // by stylesheet order rather than by anyone's decision.
+    expect(lit).not.toMatch(/\bbg-/);
+    expect(smartFilterBarTriggerVariants({ intent: 'primary' })).toMatch(/\bbg-primary-subtle\b/);
+  });
+
+  it('asks for the touch target on a coarse pointer, not on a narrow box', () => {
+    // Width was the wrong question: a table in a 400px desktop pane got 44px
+    // buttons nobody was going to tap, a wide tablet got 32px ones somebody was.
+    // The same slot now serves the compact bar too, whose single tool button
+    // lives in this capsule.
+    const actions = smartFilterBarVariants({ compact: true }).actionsSection();
+    expect(actions).toMatch(/pointer-coarse:\[&_button\[aria-haspopup\]/);
+    expect(actions).toMatch(/min-h-11/);
+    expect(actions).toMatch(/min-w-11/);
+    // No width-keyed survivor: the old rule fired unconditionally and cancelled
+    // itself at `@md`, so either half left behind would resurrect it.
+    expect(actions).not.toMatch(/@md:\[&_button/);
+    expect(actions).not.toMatch(/(?<!pointer-coarse:)\[&_button\[aria-haspopup\][^\s]*min-h-11/);
+  });
+
+  // #133: the bar knew its capsule/sheet threshold twice — as `@md` in CSS and
+  // as `28 * 16` in JS — and the two parted company at any root font size but
+  // 16px. CSS decides now and the component reads the answer; this pins that the
+  // declaration is there to be read.
+  it('publishes the capsule/sheet decision as a custom property on one container step', () => {
+    const controls = smartFilterBarVariants({}).controls();
+    expect(controls).toMatch(/\[--blocks-table-tools:sheet\]/);
+    expect(controls).toMatch(/@md:\[--blocks-table-tools:capsule\]/);
+    // Same step as the stacked/row switch beside it — one threshold, not two.
+    expect(smartFilterBarVariants({ layout: 'responsive' }).controls()).toMatch(/@md:flex-row/);
   });
 
   it('only stacks the search row once the bar is compact', () => {
