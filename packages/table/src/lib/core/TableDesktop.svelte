@@ -334,8 +334,9 @@
       tableStyles.scrollArea,
       styleConfig.slotClasses.scrollArea,
       styleConfig.unstyled,
-      'desktop-only relative max-md:hidden'
+      `relative ${tableStyles.desktopOnly()}`
     )}
+    data-table-layout="desktop"
     role="region"
     aria-label={tt('aria.tableData')}
     style="width: {tableDomWidth};"
@@ -466,8 +467,12 @@
       tableStyles.scrollArea,
       styleConfig.slotClasses.scrollArea,
       styleConfig.unstyled,
-      ['desktop-only relative max-md:hidden', scrollAreaOverflow].filter(Boolean).join(' ')
+      // The layout switch itself is declared once, next to its mobile half, in
+      // `tableContainerVariants` — see the note there for why both literals live
+      // in one place.
+      [`relative ${tableStyles.desktopOnly()}`, scrollAreaOverflow].filter(Boolean).join(' ')
     )}
+    data-table-layout="desktop"
     role="region"
     aria-label={tt('aria.tableData')}
     style="width: {tableDomWidth};"

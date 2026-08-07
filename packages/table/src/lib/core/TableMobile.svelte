@@ -3,12 +3,15 @@
   import { useTableI18n } from '$lib/i18n';
   import MobileCard from './MobileCard.svelte';
   import { resolveColumnId } from '$lib/utils';
+  import { mobileListVariants } from '$lib/variants';
+  import { getTableStyleConfig, resolveSlotClass } from './table-style-context';
   import type { Column, TableItem } from '$lib/types/tableTypes';
   import type { Snippet } from 'svelte';
 
   const tt = useTableI18n();
 
   let {
+    tableStyles,
     size = 'md' as 'sm' | 'md' | 'lg',
     expandable = false,
     details = 'collapsed' as 'collapsed' | 'expanded',
@@ -18,16 +21,81 @@
     loadingText = '',
     errorText = '',
     onRowClick = undefined as ((item: TableItem) => void) | undefined
+  }: {
+    /** The resolved `tableContainerVariants` slots, shared with `TableDesktop`. */
+    tableStyles: {
+      scrollArea: (opts?: { class?: (string | undefined)[] }) => string;
+      mobileOnly: () => string;
+    };
+    size?: 'sm' | 'md' | 'lg';
+    expandable?: boolean;
+    details?: 'collapsed' | 'expanded';
+    expandedRowContent?: Snippet<[item: TableItem]>;
+    cell?: Snippet<[item: TableItem, value: unknown, column: Column]>;
+    noDataText?: string;
+    loadingText?: string;
+    errorText?: string;
+    onRowClick?: (item: TableItem) => void;
   } = $props();
 
   const tableContext = getInternalTableContext();
-  const { state: tableState, groupedSummaryData } = tableContext;
+  const { state: tableState } = tableContext;
   const filteredItems = $derived(tableContext.filteredItems);
   const paginatedItems = $derived(tableContext.paginatedItems);
   const grouped = $derived(tableContext.grouped);
+  // `$derived`, not destructured off the context: every other field here is
+  // read the same way, and this one was the exception — destructuring a getter
+  // captures the totals once, so a grouped table kept showing the first render's
+  // sums after the rows changed.
+  const groupedSummaryData = $derived(tableContext.groupedSummaryData);
+
+  const styleConfig = getTableStyleConfig();
+  const listStyles = $derived(mobileListVariants({ size }));
+  const errorStyles = $derived(mobileListVariants({ size, intent: 'danger' }));
+
+  const hasSummary = $derived(tableState.showSummary && tableState.summaryConfigs.length > 0);
+
+  function columnTitle(columnId: string): string {
+    return tableState.columns.find((c) => resolveColumnId(c) === columnId)?.title || columnId;
+  }
 </script>
 
-<div class="mobile-only md:hidden" data-testid="mobile-table">
+{#snippet summaryBand(title: string, values: Record<string, number>)}
+  <div class={listStyles.summary()}>
+    <h4 class={listStyles.summaryTitle()}>{title}</h4>
+    {#each tableState.summaryConfigs as config (config.column)}
+      {#if values[config.column] !== undefined}
+        <div class={listStyles.summaryRow()}>
+          <span class={listStyles.summaryLabel()}>{columnTitle(config.column)}</span>
+          <span class={listStyles.summaryValue()}>
+            {tableContext.getFormattedSummaryValue(config.column, values[config.column])}
+          </span>
+        </div>
+      {/if}
+    {/each}
+  </div>
+{/snippet}
+
+<!-- The records form ONE list, not a stack of boxes: the surface, the frame and
+     the radius belong to this element (`tableStyles.scrollArea`, the very slot
+     the desktop table frames itself with), and a record draws nothing but a
+     hairline to the next one. That also settles a documented prop that had no
+     mobile effect whatsoever — `variant="framed"` used to frame the desktop
+     table and leave the phone with bare cards on the page ground.
+
+     Which of the two layouts shows is not decided here: `mobileOnly` and its
+     complement `desktopOnly` are declared together in `tableContainerVariants`,
+     because they are one decision and a copy of half of it drifts silently. -->
+<div
+  class={resolveSlotClass(
+    tableStyles.scrollArea,
+    styleConfig.slotClasses.scrollArea,
+    styleConfig.unstyled,
+    tableStyles.mobileOnly()
+  )}
+  data-table-layout="mobile"
+  data-testid="mobile-table"
+>
   <!--
     All three state snippets (`loadingState` / `errorState` / `emptyState`) are
     table-row markup (`<tr><td colspan>`, as the customization docs show), so none
@@ -41,30 +109,24 @@
     to be rendered here anyway; that was the odd one out, not the rule.
   -->
   {#if tableState.loading}
-    <div
-      class="text-text-secondary py-6 text-center text-sm"
-      role="status"
-      data-testid="loading-state-mobile"
-    >
+    <div class={listStyles.state()} role="status" data-testid="loading-state-mobile">
       {loadingText}
     </div>
   {:else if tableState.error}
-    <div class="text-danger py-6 text-center text-sm" role="alert" data-testid="error-state-mobile">
+    <div class={errorStyles.state()} role="alert" data-testid="error-state-mobile">
       {errorText}
-      <span class="text-text-secondary mt-1 block">{tableState.error}</span>
+      <span class={listStyles.stateDetail()}>{tableState.error}</span>
     </div>
   {:else if filteredItems.length === 0}
-    <div class="text-text-secondary py-6 text-center text-sm" data-testid="empty-state-mobile">
+    <div class={listStyles.state()} data-testid="empty-state-mobile">
       {noDataText}
     </div>
   {:else if tableState.effectiveGroupBy}
     {#each Object.entries(grouped) as [groupName, groupItems] (groupName)}
-      <div class="mb-6">
-        <h3
-          class="text-text-primary border-border-subtle mb-3 flex min-h-11 items-center border-b pb-2 text-base font-semibold"
-        >
-          {groupName}
-          <span class="text-text-tertiary ml-1.5 text-sm font-normal">
+      <div class={listStyles.group()}>
+        <h3 class={listStyles.groupHeader()}>
+          <span class={listStyles.groupTitle()}>{groupName}</span>
+          <span class={listStyles.groupCount()}>
             ({groupItems.length}
             {groupItems.length === 1 ? tt('group.item') : tt('group.items')})
           </span>
@@ -81,31 +143,13 @@
           />
         {/each}
 
-        {#if tableState.showSummary && tableState.summaryConfigs.length > 0}
-          <div class="bg-surface-elevated border-border-subtle rounded-contain mt-3 border p-4">
-            <h4 class="text-text-primary mb-2 text-sm font-semibold">
-              {tt('group.summaryFor')}
-              {groupName}:
-            </h4>
-            <div class="space-y-1.5 text-sm">
-              {#each tableState.summaryConfigs as config (config.column)}
-                {#if groupedSummaryData[groupName] && groupedSummaryData[groupName][config.column] !== undefined}
-                  <div class="flex min-h-8 items-center justify-between">
-                    <span class="text-text-secondary">
-                      {tableState.columns.find((c) => resolveColumnId(c) === config.column)
-                        ?.title || config.column}:
-                    </span>
-                    <span class="text-text-primary font-medium">
-                      {tableContext.getFormattedSummaryValue(
-                        config.column,
-                        groupedSummaryData[groupName][config.column]
-                      )}
-                    </span>
-                  </div>
-                {/if}
-              {/each}
-            </div>
-          </div>
+        {#if hasSummary && groupedSummaryData[groupName]}
+          <!-- No trailing colon: the band's title is a label in the list's
+               uppercase register, not a sentence introducing the rows. -->
+          {@render summaryBand(
+            `${tt('group.summaryFor')} ${groupName}`,
+            groupedSummaryData[groupName]
+          )}
         {/if}
       </div>
     {/each}
@@ -122,30 +166,8 @@
       />
     {/each}
 
-    {#if tableState.showSummary && tableState.summaryConfigs.length > 0}
-      <div class="bg-surface-elevated border-border-subtle rounded-contain mt-4 border p-4">
-        <h4 class="text-text-primary mb-2 text-sm font-semibold">
-          {tt('table.summary.totalSummary')}
-        </h4>
-        <div class="space-y-1.5 text-sm">
-          {#each tableState.summaryConfigs as config (config.column)}
-            {#if tableContext.summaryData[config.column] !== undefined}
-              <div class="flex min-h-8 items-center justify-between">
-                <span class="text-text-secondary">
-                  {tableState.columns.find((c) => resolveColumnId(c) === config.column)?.title ||
-                    config.column}:
-                </span>
-                <span class="text-text-primary font-medium">
-                  {tableContext.getFormattedSummaryValue(
-                    config.column,
-                    tableContext.summaryData[config.column]
-                  )}
-                </span>
-              </div>
-            {/if}
-          {/each}
-        </div>
-      </div>
+    {#if hasSummary}
+      {@render summaryBand(tt('table.summary.totalSummary'), tableContext.summaryData)}
     {/if}
   {/if}
 </div>

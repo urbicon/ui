@@ -324,6 +324,10 @@ export interface TableProps<T = TableItem> {
    * - `flush` (default): no outer frame, sits inline in the reading flow
    * - `surface`: gentle `surface-quiet` tinted zone, no border
    * - `framed`: bordered + rounded + shadowed standalone block
+   *
+   * Applies to both layouts — on a narrow container the same frame wraps the
+   * mobile record list, whose records are separated by hairlines instead of
+   * each carrying a frame.
    * @default "flush"
    * @summary How much chrome the table carries: none, a tinted zone, or a framed block.
    */
@@ -465,8 +469,9 @@ export interface TableProps<T = TableItem> {
   multiExpand?: boolean;
 
   /**
-   * How much of a record a mobile card shows before it is opened. Below the
-   * `md` breakpoint the table renders one card per row instead of a grid.
+   * How much of a record a mobile card shows before it is opened. Below 48rem
+   * of the table's **own container** — not of the window — the table renders one
+   * card per row instead of the grid.
    * - `collapsed` (default): the card shows the first two card columns —
    *   title and label-less subtitle — and opens the rest on tap. A record
    *   costs roughly a third of the height, so a phone screen holds three
@@ -735,7 +740,11 @@ export interface TableProps<T = TableItem> {
    *   consumer, and it adapts to whatever sits above the table (tabs, banners).
    *
    * Notes for `'viewport'`:
-   * - Desktop only (`md`+); mobile keeps normal document-level scroll.
+   * - Desktop only (`md`+ **viewport**); mobile keeps normal document-level
+   *   scroll. This is the one thing the table decides from the window rather
+   *   than from its own container — a nested scroll box is wrong on a phone
+   *   whatever the container measures, and only the viewport knows which one
+   *   it is.
    * - Supersedes `sticky`: header/group pinning is intrinsic to the box, so the
    *   `sticky` prop is ignored. `stickyOffset` is ignored too — the measured top
    *   absorbs app-shell offsets automatically.

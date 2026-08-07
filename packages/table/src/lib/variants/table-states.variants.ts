@@ -4,7 +4,7 @@
  */
 
 import { tv, type VariantProps } from '@urbicon-ui/blocks';
-import { TABLE_ANIMATIONS, TABLE_DIMENSIONS } from './table.system';
+import { TABLE_ANIMATIONS, TABLE_BORDERS, TABLE_DIMENSIONS } from './table.system';
 
 /**
  * EMPTY STATE VARIANTS
@@ -288,24 +288,44 @@ export const skeletonRowVariants = tv({
 
 /**
  * MOBILE CARD VARIANTS
- * Mobile-optimized card display.
+ * One record of the mobile list — the stacked form of a table row.
+ *
+ * A record, not a box. Until 2026-08-07 each one carried its own frame
+ * (`border-border-subtle` + `rounded-contain` + `mb-3` + a hover shadow), so a
+ * phone showed a stack of outlined panels inside whatever surface the table
+ * already had — and it drew that outline from the FORM family, which the
+ * variant contract (§7) reserves for input affordances; container surfaces take
+ * `border-hairline`.
+ *
+ * The frame and the surface now belong to the list instead: `TableMobile`
+ * applies the table's own `scrollArea` slot, so `variant` (flush / surface /
+ * framed) finally reaches mobile — it used to be desktop-only, i.e. a documented
+ * prop with no mobile effect at all. What is left per record is a hairline to
+ * the next one, drawn exactly the way `tableRowVariants` draws it between two
+ * desktop rows.
+ *
+ * Consequently no state may reach for a border colour or a shadow to mark
+ * itself: `selected` and `active` tint the ground and add the same 2px inset
+ * rail the desktop row uses (see TABLE_STATES.row.active).
  */
 export const mobileCardVariants = tv({
   slots: {
     card: [
-      'bg-surface-base',
-      'border border-border-subtle',
-      'rounded-contain overflow-hidden',
-      'mb-3',
-      // `scale` is listed because the `interactive` axis adds `active:scale-[0.995]`
-      // — Tailwind 4 emits that as the discrete `scale:` property, which no other
-      // entry in this list covers.
-      'transition-[color,background-color,border-color,box-shadow,opacity,scale] duration-[var(--blocks-duration-fast)]',
-      'hover:border-border-default hover:shadow-[var(--blocks-shadow-sm)]'
+      // Same separator idiom as `tableRowVariants.row` — carried by the record
+      // rather than by a `divide-y` on the list, because the last record is not
+      // always the list's last child (a group summary can follow it) and only
+      // the record itself knows it is the one closing the list.
+      'border-b border-border-hairline last:border-b-0',
+      'transition-[color,background-color,box-shadow] duration-[var(--blocks-duration-fast)]'
     ],
     // Title region — the primary identifier, emphasized and label-less. Lays out
-    // the optional selection checkbox and the detail toggle next to the title.
-    header: ['flex items-center gap-3', 'px-4 pt-4 pb-1'],
+    // the optional selection checkbox and the detail toggle next to the title,
+    // and carries the record's hover ground (see the compound below).
+    header: [
+      'flex items-center gap-3',
+      'px-4 pt-3 pb-1',
+      'transition-colors duration-[var(--blocks-duration-fast)]'
+    ],
     // Title + subtitle share one shrinking column between checkbox and chevron.
     headline: ['min-w-0 flex-1 text-left'],
     // The headline as a control (row click, or opening the card's own details).
@@ -325,7 +345,7 @@ export const mobileCardVariants = tv({
       'flex h-11 w-11 shrink-0 items-center justify-center rounded-modify',
       'hover:bg-surface-hover transition-colors duration-[var(--blocks-duration-fast)]'
     ],
-    content: ['px-4 pb-4 pt-2'],
+    content: ['px-4 pb-3 pt-2'],
     // Detail fields in a compact 2-column grid (was a tall single-column stack,
     // which made a 4-field card ~266px tall — only ~2 fit per phone screen).
     grid: ['grid grid-cols-2 gap-x-4 gap-y-3'],
@@ -334,27 +354,34 @@ export const mobileCardVariants = tv({
     // Wrap instead of truncate — a full-width card has room, and truncation
     // hides data with no tooltip on touch.
     value: ['text-sm text-text-primary break-words'],
-    expandIcon: ['transition-transform duration-[var(--blocks-duration-fast)]'],
-    expandedContent: ['px-4 pb-4', 'border-t border-border-subtle pt-4']
+    // Tertiary, like the desktop group header's chevron: the affordance has to
+    // be findable without competing with the record's own title.
+    expandIcon: ['text-text-tertiary transition-transform duration-[var(--blocks-duration-fast)]'],
+    // Hairline, not `border-subtle`: this rule sits INSIDE a record, so it must
+    // read lighter than the hairline separating two records, never heavier.
+    expandedContent: ['px-4 pb-3', 'border-t border-border-hairline pt-3']
   },
 
   variants: {
     size: {
       sm: {
-        header: 'px-3 pt-3 pb-1',
-        content: 'px-3 pb-3 pt-1.5',
+        header: 'px-3 pt-2.5 pb-1',
+        content: 'px-3 pb-2.5 pt-1.5',
+        expandedContent: 'px-3 pb-2.5 pt-2.5',
         grid: 'gap-x-3 gap-y-2',
         title: 'text-sm',
         subtitle: 'text-xs'
       },
       md: {
-        header: 'px-4 pt-4 pb-1',
-        content: 'px-4 pb-4 pt-2',
+        header: 'px-4 pt-3 pb-1',
+        content: 'px-4 pb-3 pt-2',
+        expandedContent: 'px-4 pb-3 pt-3',
         grid: 'gap-x-4 gap-y-3'
       },
       lg: {
-        header: 'px-5 pt-5 pb-1.5',
-        content: 'px-5 pb-5 pt-2.5',
+        header: 'px-5 pt-4 pb-1.5',
+        content: 'px-5 pb-4 pt-2.5',
+        expandedContent: 'px-5 pb-4 pt-4',
         grid: 'gap-x-5 gap-y-4',
         title: 'text-lg',
         subtitle: 'text-base'
@@ -373,44 +400,51 @@ export const mobileCardVariants = tv({
       false: {}
     },
 
+    /**
+     * Ground plus a 2px inset rail — the same pair the desktop row uses, now for
+     * the same reason on both sides: a record in a seamless list has no border
+     * of its own to recolour, and a ground alone would be indistinguishable from
+     * the hovered record right above it.
+     */
     selected: {
       true: {
-        card: 'border-primary bg-primary-subtle'
+        card: 'bg-primary-subtle shadow-[inset_2px_0_0_0_var(--color-primary)]'
       },
       false: {}
     },
 
     /**
-     * The card whose record is being shown elsewhere (master/detail). A step
-     * below `selected`, which keeps the accent because it carries consequences;
-     * a compound below drops this whenever both are set.
-     *
-     * A card carries its own border, so the border colour is the distinction
-     * here — the rows' inset rail exists because a `<tr>` has no border to
-     * darken without `border-collapse` eating it.
+     * The record being shown elsewhere (master/detail). A step below `selected`,
+     * which keeps the accent because it carries consequences; the compound below
+     * drops this whenever both are set. Identical to TABLE_STATES.row.active —
+     * the neutral rail says "this is the one you are reading", the accent rail
+     * says "this one is picked".
      */
     active: {
       true: {
-        card: 'border-border-strong bg-surface-hover'
+        card: 'bg-surface-hover shadow-[inset_2px_0_0_0_var(--color-border-strong)]'
       },
       false: {}
     },
 
-    // The press cue rides the headline button, not the card: the card stopped
-    // being a control (see mobile-card-shape.ts), and a card-wide
-    // `cursor-pointer` on a surface where only the headline responds promises a
-    // click the detail grid never delivers.
+    // `cursor-pointer` stays off the record: the record is not a control (see
+    // mobile-card-shape.ts), and a record-wide pointer on a surface where only
+    // the headline responds promises a click the detail grid never delivers.
+    // The press ground rides the headline for a second reason — iOS Safari fires
+    // `:active` on a real control, not on an arbitrary `<div>`.
     interactive: {
       true: {
-        headlineButton: 'cursor-pointer active:scale-[0.995]'
+        headlineButton: 'cursor-pointer active:bg-surface-active'
       },
       false: {}
     },
 
+    // The rotated chevron and the revealed content are the whole signal. The
+    // open record used to add `shadow-md`, which only ever read as "this box
+    // floats higher" — there is no box left to float.
     expanded: {
       true: {
-        expandIcon: 'rotate-180',
-        card: 'shadow-[var(--blocks-shadow-md)]'
+        expandIcon: 'rotate-180'
       },
       false: {}
     }
@@ -418,18 +452,33 @@ export const mobileCardVariants = tv({
 
   compoundVariants: [
     // Both at once: selection owns the look, so the active ground does not
-    // fight the accent. Two backgrounds on one card would resolve by order,
+    // fight the accent. Two backgrounds on one record would resolve by order,
     // not by meaning.
     {
       selected: true,
       active: true,
-      class: { card: 'border-primary bg-primary-subtle' }
+      class: { card: 'bg-primary-subtle shadow-[inset_2px_0_0_0_var(--color-primary)]' }
     },
 
-    // ── Closed card: symmetric header padding per size ──
-    { collapsed: true, size: 'sm', class: { header: 'pb-3' } },
-    { collapsed: true, size: 'md', class: { header: 'pb-4' } },
-    { collapsed: true, size: 'lg', class: { header: 'pb-5' } }
+    // Hover tints the header strip — the full width of it, checkbox and chevron
+    // included, so it reads as "this record", not as a highlighted button. It
+    // deliberately stops where the detail grid starts: on an open record the
+    // whole card is several hundred pixels of consumer markup, and tinting all
+    // of it both drowns the page and promises a click the grid never delivers.
+    // Restricted to the plain record, like the desktop row's `state: 'default'`
+    // — a hover tint over a selected record repaints the very ground that says
+    // "selected".
+    {
+      interactive: true,
+      selected: false,
+      active: false,
+      class: { header: 'hover:bg-surface-hover' }
+    },
+
+    // ── Closed record: symmetric header padding per size ──
+    { collapsed: true, size: 'sm', class: { header: 'pb-2.5' } },
+    { collapsed: true, size: 'md', class: { header: 'pb-3' } },
+    { collapsed: true, size: 'lg', class: { header: 'pb-4' } }
   ],
 
   defaultVariants: {
@@ -439,6 +488,90 @@ export const mobileCardVariants = tv({
     interactive: false,
     expanded: false,
     collapsed: false
+  }
+});
+
+/**
+ * MOBILE LIST VARIANTS
+ * The chrome AROUND the mobile records — group headers, the totals band and the
+ * three data states.
+ *
+ * It exists because those three were hand-written Tailwind strings in
+ * `TableMobile.svelte`, and two of them were the same bordered box the records
+ * have now shed: `bg-surface-elevated border border-border-subtle
+ * rounded-contain p-4`, floated on `mt-3`. Inside a seamless list a boxed total
+ * is the one thing left that still reads as a panel.
+ *
+ * The totals band is the mobile phrasing of `summaryRowVariants` in its
+ * `highlighted` default: a 2px summary rule on the side that separates it, an
+ * uppercase label, a tabular value — same table, one vocabulary.
+ *
+ * The group header cannot be phrased that way. What tells the desktop group row
+ * apart from a data row is its chevron and its indent, and the mobile list has
+ * neither; a mobile header borrowing the desktop's `font-medium` title read as
+ * one more record with a bold name and no subtitle. It takes the vocabulary of
+ * the list it lives in instead — uppercase micro-type, the same register as the
+ * detail grid's field labels — which is what separates chrome from content on
+ * this side, in every `variant`, without a tint that only works over one ground.
+ */
+export const mobileListVariants = tv({
+  slots: {
+    // The rule between two groups rides the GROUP, not the record above it: a
+    // record ends its group, so `last:border-b-0` has already dropped its own
+    // separator by the time the next header follows.
+    group: ['not-first:border-t not-first:border-border-hairline'],
+    // No bottom rule — the header belongs to the records under it, and the
+    // group's top rule is already the boundary between two sections.
+    groupHeader: ['flex items-baseline gap-1.5 flex-wrap', 'px-4 pt-4 pb-1.5'],
+    groupTitle: ['text-xs font-semibold uppercase tracking-wide text-text-secondary'],
+    groupCount: ['text-text-tertiary text-xs font-normal'],
+    // `border-t-2` in the summary accent, exactly like the desktop `<tfoot>`
+    // row: the band is separated from the records by a rule, never framed.
+    summary: ['px-4 py-3', 'bg-summary-subtle', 'border-t-2', TABLE_BORDERS.color.summary],
+    summaryTitle: ['text-text-secondary text-xs uppercase tracking-wide', 'mb-2'],
+    summaryRow: ['flex min-h-8 items-center justify-between gap-4'],
+    summaryLabel: ['text-text-secondary min-w-0 text-sm'],
+    summaryValue: ['text-summary font-mono font-semibold tabular-nums'],
+    // Loading / error / empty. Mobile renders all three as plain text — the
+    // three snippets are table-row markup and cannot land here (see TableMobile).
+    state: ['px-4 py-8 text-center text-sm'],
+    stateDetail: ['text-text-secondary mt-1 block']
+  },
+
+  variants: {
+    size: {
+      sm: {
+        groupHeader: 'px-3 pt-3 pb-1',
+        summary: 'px-3 py-2.5',
+        summaryValue: 'text-sm'
+      },
+      md: {
+        summaryValue: 'text-base'
+      },
+      lg: {
+        groupHeader: 'px-5 pt-5 pb-2',
+        // The header stays micro-type at every size — it is a label, not a
+        // heading that grows with the table.
+        groupTitle: 'text-sm',
+        groupCount: 'text-sm',
+        summary: 'px-5 py-4',
+        summaryValue: 'text-lg'
+      }
+    },
+
+    intent: {
+      neutral: {
+        state: 'text-text-secondary'
+      },
+      danger: {
+        state: 'text-danger'
+      }
+    }
+  },
+
+  defaultVariants: {
+    size: 'md',
+    intent: 'neutral'
   }
 });
 
@@ -510,4 +643,5 @@ export type LoadingStateVariantProps = VariantProps<typeof loadingStateVariants>
 export type ErrorStateVariantProps = VariantProps<typeof errorStateVariants>;
 export type SkeletonRowVariantProps = VariantProps<typeof skeletonRowVariants>;
 export type MobileCardVariantProps = VariantProps<typeof mobileCardVariants>;
+export type MobileListVariantProps = VariantProps<typeof mobileListVariants>;
 export type InlineEditVariantProps = VariantProps<typeof inlineEditVariants>;

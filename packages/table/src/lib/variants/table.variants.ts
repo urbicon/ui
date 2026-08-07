@@ -315,7 +315,51 @@ export type HeaderIndicatorVariantProps = VariantProps<typeof headerIndicatorVar
  */
 export const tableContainerVariants = tv({
   slots: {
-    container: ['flex flex-col gap-2 w-full'],
+    // `@container` is what makes the desktop-table/mobile-record switch measure
+    // the box the table actually got instead of the browser window. The two are
+    // not the same question and used to be answered by `md:hidden` /
+    // `max-md:hidden`, i.e. the viewport: a table in any column narrower than
+    // 768px inside a wide window rendered its desktop layout and scrolled
+    // sideways in place. The docs' own reading column (736px) hit exactly that.
+    // A component that decides its layout from the viewport while living in a
+    // capped container can always disagree with its box; reading the box is the
+    // only version of this that cannot.
+    //
+    // Everything the table switches on now reads a box rather than the window —
+    // the layout below, and the filter bar's stacked/row and capsule/sheet steps
+    // (`@md` on the bar's own container). The ONE deliberate exception is
+    // `contained` further down; its comment says why.
+    //
+    // The container belonged here all along: `style/index.css` declared
+    // `container-type: inline-size` on a `.table-container` class that no
+    // element ever carried, so the `@container` helper rules beside it queried
+    // nothing. That dead block is gone with this.
+    container: ['@container flex flex-col gap-2 w-full'],
+
+    // ── The layout switch, both halves in one place ──────────────────────────
+    //
+    // `@3xl` is 48rem on the container declared above. The two lines are one
+    // decision and have to stay each other's exact complement, so they are
+    // written down together instead of being hand-typed into `TableDesktop` and
+    // `TableMobile` — the failure mode of two copies is that BOTH layouts render
+    // or NEITHER does, and nothing about either file would look wrong.
+    // `table.variants.test.ts` pins that they name the same step with opposite
+    // polarity.
+    //
+    // The classes must stay literal here: Tailwind finds class names by scanning
+    // source text, so a `@${STEP}:hidden` built from a constant would compile to
+    // no CSS at all — a "single source of truth" that silently renders both
+    // layouts at once. One place, two literals, one test is the honest shape.
+    //
+    // The two roots also carry `data-table-layout="desktop" | "mobile"` — that
+    // is the hook to query them by. It used to be a `desktop-only` /
+    // `mobile-only` CLASS, which named no CSS anywhere in the repo; moving these
+    // strings into a tv() config is what surfaced that, because `variants:lint`
+    // compiles what a config declares and reports whatever emits no rule. A
+    // marker is an attribute, not a class that pretends to style something.
+    desktopOnly: ['@max-3xl:hidden'],
+    mobileOnly: ['@3xl:hidden'],
+
     // The toolbar inherits the scrollArea bg instead of setting its own
     // surface-elevated — otherwise a flush table would show a visibly
     // separated toolbar strip.
@@ -380,7 +424,20 @@ export const tableContainerVariants = tv({
     // flexbox keeps the toolbar + pagination (shrink-0) outside the scrolling
     // `scrollArea`. The scrollArea is `flex-auto` (NOT `flex-1`/basis-0, which
     // would collapse the box for short tables) + `min-h-0` so only the rows
-    // scroll. Desktop-only (md+); mobile keeps document-level scroll.
+    // scroll.
+    //
+    // ── The one switch here that is deliberately NOT container-keyed ─────────
+    //
+    // `md:` is the VIEWPORT, and on purpose: everything else the table switches
+    // on asks "how much room did this box get", but this asks "would a nested
+    // scroll box be the wrong thing here" — and on a phone it is, whatever the
+    // box measures, because the reader would be dragging one scroller inside
+    // another. A wide-window sidebar 400px across is a perfectly good scroll
+    // box; a 400px phone is not, and only the viewport can tell those apart.
+    //
+    // Also note the cap has to live on the container slot, which IS the
+    // `@container` — a container query cannot style its own container, so this
+    // could not be `@3xl:` even if the question were the right one.
     contained: {
       true: {
         container: ['md:max-h-[calc(100dvh-var(--blocks-table-avail-top,0px))]'],
