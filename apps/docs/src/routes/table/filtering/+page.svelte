@@ -47,17 +47,25 @@
   ];
 
   /**
-   * The bar's own switch, copied from `COMPACT_MAX_WIDTH` in
-   * `packages/table/src/lib/features/SmartFilterBar/SmartFilterBar.svelte` —
-   * a hardcoded `28 * 16` there, so a hardcoded 448 here. Nothing links the two;
-   * if the library ever moves that number, the `switch` mark below and the three
-   * figures in the prose move with it by hand.
+   * Where to put the `switch` mark on the slider: 28rem, the container step the
+   * bar's own `@container` rules use, resolved against THIS page's root font.
    *
-   * The bar's own padding and border are deliberately NOT copied — they are
-   * measured off the live element instead (see `measured`), because that is the
-   * part most likely to drift and the part this whole section is about.
+   * It used to say `448` and explain that it copied a hardcoded `28 * 16` from
+   * the library. The library has no such number any more — CSS declares the
+   * threshold once and the bar reads it (#133) — so copying a pixel value would
+   * now be the only place a second one exists. Reading `28rem` off the document
+   * keeps the mark honest at any text size, which is exactly the failure the fix
+   * removed.
+   *
+   * The bar's own padding and border are deliberately NOT copied either — they
+   * are measured off the live element (see `measured`), because that is the part
+   * most likely to drift and the part this whole section is about.
    */
-  const COMPACT_MAX_WIDTH = 448;
+  const COMPACT_MAX_WIDTH = $derived.by(() => {
+    if (typeof document === 'undefined') return 448;
+    const root = parseFloat(getComputedStyle(document.documentElement).fontSize);
+    return 28 * (Number.isFinite(root) && root > 0 ? root : 16);
+  });
 
   let demoWidth = $state(360);
 
