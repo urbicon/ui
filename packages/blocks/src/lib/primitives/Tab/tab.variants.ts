@@ -8,10 +8,29 @@ import { type SlotNames, tv, type VariantProps } from '$lib/utils/variants';
 export const tabVariants = tv({
   slots: {
     base: ['relative w-full'],
-    list: [
-      'relative flex gap-1',
-      'before:absolute before:z-0 before:transition-all before:duration-[var(--blocks-duration-normal)]'
-    ],
+    // `relative` is the positioning context for three things: the `line`
+    // indicator, and — on the horizontal compounds below — the strip underline,
+    // drawn as a `before:` pseudo rather than as this element's `border-b`.
+    //
+    // Why a pseudo: the horizontal orientation makes this element a scroll
+    // container (`overflow-x-auto`), and a scroll container clips its content at
+    // the PADDING box. The trigger's focus ring reaches 4px past its border box
+    // (`ring-2` + `ring-offset-2`), so it survives only if the trigger is inset
+    // 4px from that padding box — which puts anything painted at the BORDER box
+    // edge, i.e. a `border-b`, at least 4px below the tabs. `pills` and `solid`
+    // already pay that 4px as `p-1` and have no underline to misplace; `line`
+    // and `enclosed` do, so they buy the same room and re-draw the line where
+    // the border used to sit.
+    //
+    // Measured, because the plausible cheaper fixes are not fixes: `overflow-y`
+    // cannot stay `visible` next to a scrolling `overflow-x` (CSS computes it to
+    // `auto`), and Chromium clips an `outline` exactly like a `box-shadow`, so
+    // swapping the ring's property changes nothing.
+    //
+    // `py-1` is the house idiom for this, not a local invention — Scroller's
+    // viewport carries the same 4px for the same reason (see
+    // scroller.variants.ts). Tab is the scroll container that never got it.
+    list: ['relative flex gap-1'],
     trigger: [
       'relative z-10 flex items-center justify-center gap-2',
       'font-medium whitespace-nowrap cursor-pointer select-none',
@@ -36,13 +55,15 @@ export const tabVariants = tv({
   variants: {
     variant: {
       line: {
-        list: 'border-b border-border-subtle',
+        // Colour only — WHERE the rule is drawn is orientation-specific:
+        // `border-l` when vertical, the `before:` underline when horizontal.
+        list: 'border-border-subtle',
         trigger: [
           'px-4 py-2 text-text-tertiary',
           'hover:text-text-primary',
           'data-[state=active]:text-primary'
         ],
-        indicator: 'h-0.5 bottom-0'
+        indicator: 'h-0.5'
       },
       pills: {
         list: 'p-1 bg-surface-interactive',
@@ -57,7 +78,7 @@ export const tabVariants = tv({
         ]
       },
       enclosed: {
-        list: 'border-b border-border-subtle',
+        list: 'border-border-subtle',
         trigger: [
           'px-4 py-2 border border-b-0 -mb-px',
           'text-text-tertiary border-transparent',
@@ -160,18 +181,46 @@ export const tabVariants = tv({
       orientation: 'horizontal',
       class: { trigger: 'rounded-t-commit' }
     },
+    // ── Horizontal underline + focus-ring room (see the `list` slot) ──
+    //
+    // `py-1` is the ring's 4px, and `before:bottom-1` puts the rule back exactly
+    // where the old `border-b` sat: flush with the triggers' bottom edge. The
+    // indicator moves with it, so the active underline and the rule stay one
+    // line rather than two.
     {
       variant: 'line',
       orientation: 'horizontal',
       class: {
-        indicator: 'left-0 w-full'
+        list: [
+          'py-1',
+          "before:content-[''] before:absolute before:z-0 before:inset-x-0",
+          'before:bottom-1 before:h-px before:bg-border-subtle'
+        ],
+        indicator: 'bottom-1 left-0 w-full'
+      }
+    },
+    {
+      // Enclosed pays 1px more at the bottom than `line` does: its trigger
+      // carries `-mb-px` to tuck under the rule (that overlap is what makes the
+      // active tab read as merging into the panel), which eats 1px of the room
+      // the ring needs. `pb-1.5` restores it — 5px of clip room below, 4px
+      // above, and the rule follows at `before:bottom-1.5`.
+      variant: 'enclosed',
+      orientation: 'horizontal',
+      class: {
+        list: [
+          'pt-1 pb-1.5',
+          "before:content-[''] before:absolute before:z-0 before:inset-x-0",
+          'before:bottom-1.5 before:h-px before:bg-border-subtle'
+        ]
       }
     },
     {
       variant: 'line',
       orientation: 'vertical',
       class: {
-        list: 'border-b-0 border-l',
+        // No scroll container on this axis, so the rule can stay a real border.
+        list: 'border-l',
         indicator: 'w-0.5 h-full top-0 left-0'
       }
     },
@@ -179,7 +228,7 @@ export const tabVariants = tv({
       variant: 'enclosed',
       orientation: 'vertical',
       class: {
-        list: 'border-b-0 border-r',
+        list: 'border-r',
         trigger: [
           'border-b border-r-0 rounded-t-none -mb-0 -mr-px',
           'data-[state=active]:border-r-surface-base data-[state=active]:border-b-border-subtle'
