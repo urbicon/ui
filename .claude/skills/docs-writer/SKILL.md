@@ -5,9 +5,13 @@ description: Driving a docs-page write or migration — role split (writer vs do
 
 # Writing or migrating a docs page
 
-Two contexts, always: a writer and a separate editor (`docs-editor` skill). A context does not see
+Two contexts, always: a writer and a separate review (`docs-editor` skill). A context does not see
 its own style violations (measured twice, 2026-08-05/06). A typo or a single sentence needs no
-editor pass.
+review pass.
+
+**The acceptance test is the reader pass, not the checklist** — pass 1 of `docs-editor`, blind,
+without the library source. A page that survives the checklist can still leave its reader unable
+to write the code, and that is the failure that gets the page rejected.
 
 ## Writer briefing (both cases)
 
