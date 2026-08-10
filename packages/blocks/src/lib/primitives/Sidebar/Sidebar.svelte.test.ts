@@ -115,13 +115,21 @@ describe('Sidebar (scroll-lock lifecycle)', () => {
 // `aria-hidden-focus` scan in `e2e/a11y.spec.ts`, whose baseline exception for
 // this defect is removed in the same commit.
 describe('Sidebar (hidden panel is inert, per mode)', () => {
-  /** Both halves of the pair, read off the panel. */
+  /**
+   * Both halves of the pair, read off the panel.
+   *
+   * Deliberately NOT reporting "does the panel contain something focusable":
+   * the first version asked `panel?.querySelector(…) !== null`, which is `true`
+   * even when there is no panel at all (`undefined !== null`) and stays `true`
+   * for `tabindex="-1"` children — it could not go false in any reachable state.
+   * Whether focus can actually enter is measured in the browser, by the axe
+   * `aria-hidden-focus` scan; jsdom implements no part of `inert`.
+   */
   function panelState() {
     const panel = document.querySelector('aside');
     return {
-      ariaHidden: panel?.getAttribute('aria-hidden'),
-      inert: panel?.hasAttribute('inert'),
-      focusable: panel?.querySelector('a,button,input,[tabindex]') !== null
+      ariaHidden: panel?.getAttribute('aria-hidden') ?? null,
+      inert: panel?.hasAttribute('inert') ?? false
     };
   }
 
@@ -132,28 +140,28 @@ describe('Sidebar (hidden panel is inert, per mode)', () => {
     stubViewport(false);
     renderSidebar({ open: false, mode: 'collapsible', children: nav() });
 
-    expect(panelState()).toEqual({ ariaHidden: 'true', inert: true, focusable: true });
+    expect(panelState()).toEqual({ ariaHidden: 'true', inert: true });
   });
 
   it('collapsible + desktop + open: neither', () => {
     stubViewport(false);
     renderSidebar({ open: true, mode: 'collapsible', children: nav() });
 
-    expect(panelState()).toEqual({ ariaHidden: null, inert: false, focusable: true });
+    expect(panelState()).toEqual({ ariaHidden: null, inert: false });
   });
 
   it('responsive + mobile + closed: hidden from AT and out of the tab order', () => {
     stubViewport(true);
     renderSidebar({ open: false, mode: 'responsive', children: nav() });
 
-    expect(panelState()).toEqual({ ariaHidden: 'true', inert: true, focusable: true });
+    expect(panelState()).toEqual({ ariaHidden: 'true', inert: true });
   });
 
   it('responsive + mobile + open: neither', () => {
     stubViewport(true);
     renderSidebar({ open: true, mode: 'responsive', children: nav() });
 
-    expect(panelState()).toEqual({ ariaHidden: null, inert: false, focusable: true });
+    expect(panelState()).toEqual({ ariaHidden: null, inert: false });
   });
 
   it('responsive + desktop: persistent layout, never hidden either way', () => {
@@ -163,14 +171,14 @@ describe('Sidebar (hidden panel is inert, per mode)', () => {
     stubViewport(false);
     renderSidebar({ open: false, mode: 'responsive', children: nav() });
 
-    expect(panelState()).toEqual({ ariaHidden: null, inert: false, focusable: true });
+    expect(panelState()).toEqual({ ariaHidden: null, inert: false });
   });
 
   it('collapsible + mobile + closed: hidden from AT and out of the tab order', () => {
     stubViewport(true);
     renderSidebar({ open: false, mode: 'collapsible', children: nav() });
 
-    expect(panelState()).toEqual({ ariaHidden: 'true', inert: true, focusable: true });
+    expect(panelState()).toEqual({ ariaHidden: 'true', inert: true });
   });
 
   it('follows `open` without a remount, in both directions', async () => {
@@ -185,10 +193,81 @@ describe('Sidebar (hidden panel is inert, per mode)', () => {
 
     props.open = true;
     await tick();
-    expect(panelState()).toEqual({ ariaHidden: null, inert: false, focusable: true });
+    expect(panelState()).toEqual({ ariaHidden: null, inert: false });
 
     props.open = false;
     await tick();
-    expect(panelState()).toEqual({ ariaHidden: 'true', inert: true, focusable: true });
+    expect(panelState()).toEqual({ ariaHidden: 'true', inert: true });
+  });
+
+  it('really is the same element throughout — the attributes track, not a remount', () => {
+    stubViewport(false);
+    const props = $state({ open: false, mode: 'collapsible' as const, children: nav() });
+    const instance = mount(Sidebar, { target: document.body, props: props as SidebarProps });
+    dispose = () => unmount(instance);
+    flushSync();
+
+    // Without this the previous test passes for a component that tears the
+    // <aside> down and rebuilds it per toggle, which would lose focus, scroll
+    // position and any transition.
+    const first = document.querySelector('aside');
+    props.open = true;
+    flushSync();
+    expect(document.querySelector('aside')).toBe(first);
+  });
+});
+
+// #138 follow-up: making a subtree inert while focus is inside it makes the
+// browser drop focus to <body>. The mobile path always restored it; the
+// desktop-collapsible path — the one the fix is about — never captured anything
+// to restore, so the fix would have cost the keyboard user their place.
+describe('Sidebar (focus handover when the panel hides)', () => {
+  const nav = (): Snippet =>
+    createRawSnippet(() => ({ render: () => '<nav><button type="button">Nav</button></nav>' }));
+
+  it('returns focus to the control that opened the panel', async () => {
+    stubViewport(false);
+    const opener = document.createElement('button');
+    opener.textContent = 'Toggle';
+    document.body.append(opener);
+    opener.focus();
+    expect(document.activeElement).toBe(opener);
+
+    const props = $state({ open: false, mode: 'collapsible' as const, children: nav() });
+    const instance = mount(Sidebar, { target: document.body, props: props as SidebarProps });
+    dispose = () => unmount(instance);
+    flushSync();
+
+    // Open, then move focus into the panel the way a keyboard user would.
+    props.open = true;
+    await tick();
+    const inPanel = document.querySelector('aside button') as HTMLElement;
+    inPanel.focus();
+    expect(document.activeElement).toBe(inPanel);
+
+    // Closing from inside the panel is exactly what the docs demo does.
+    props.open = false;
+    await tick();
+
+    expect(document.activeElement).toBe(opener);
+    opener.remove();
+  });
+
+  it('leaves focus alone when it was never inside the panel', async () => {
+    stubViewport(false);
+    const outside = document.createElement('button');
+    document.body.append(outside);
+
+    const props = $state({ open: true, mode: 'collapsible' as const, children: nav() });
+    const instance = mount(Sidebar, { target: document.body, props: props as SidebarProps });
+    dispose = () => unmount(instance);
+    flushSync();
+
+    outside.focus();
+    props.open = false;
+    await tick();
+
+    expect(document.activeElement).toBe(outside);
+    outside.remove();
   });
 });
