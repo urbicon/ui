@@ -27,6 +27,23 @@
   overflow-x: clip;
 }
 
+/* ── The house shot ─────────────────────────────────────────────────────────
+ * One AI-generated architecture image per house, placed between the hero and
+ * the price sheet. The markup is identical for every house; how the image is
+ * FRAMED is part of the layout idiom, so those rules live in the per-layout
+ * blocks below (courtyard crops it to an arch, scatter pins it as a keepsake,
+ * horizon runs it as a panorama). Pillar currently ships no image at all —
+ * the figure block collapses, nothing here needs a special case. */
+[data-house='figure'] {
+  margin-block: 0 5.5rem;
+}
+[data-house='figure'] img {
+  display: block;
+  width: 100%;
+  height: auto;
+  object-fit: cover;
+}
+
 /* ── courtyard — a symmetric centred column; arches over the section heads ── */
 [data-layout='courtyard'] [data-house='hero'] {
   min-height: 80vh;
@@ -63,6 +80,20 @@
   border-radius: 999px 999px 0 0;
   opacity: 0.45;
   margin: 0 auto 1.25rem;
+}
+/* The house shot IS that arch at architectural size: a half-round opening cut
+   into the page, narrower than the measure — a courtyard is a room, not a
+   screen. The slash syntax makes the top a true half-circle on a 4:3 image
+   (50% of the width = 66.7% of the height) without CSS's overlap reduction
+   collapsing the small bottom radii, which a bare `999px` shorthand would. */
+[data-layout='courtyard'] [data-house='figure'] {
+  max-width: 46rem;
+  margin-inline: auto;
+}
+[data-layout='courtyard'] [data-house='figure'] img {
+  aspect-ratio: 4 / 3;
+  border-radius: 50% 50% var(--radius-contain, 0.75rem) var(--radius-contain, 0.75rem) / 66.7%
+    66.7% var(--radius-contain, 0.75rem) var(--radius-contain, 0.75rem);
 }
 
 /* ── scatter — no centre; fragments pinned across a wide grid ──────────────── */
@@ -119,6 +150,18 @@
 [data-layout='scatter'] [data-house='list'] > * > :only-child {
   grid-column: 1 / span 12;
   justify-self: start;
+}
+/* The house shot is a keepsake, not a banner: pinned right of the measure with
+   a hairline passe-partout, hard-edged like everything else in this house.
+   The offset stays inside the wrapper's 1.5rem padding. */
+[data-layout='scatter'] [data-house='figure'] img {
+  width: min(36rem, 72%);
+  margin-left: auto;
+  margin-right: 6%;
+  aspect-ratio: 4 / 3;
+  border-radius: 0;
+  outline: 1px solid var(--color-border-subtle);
+  outline-offset: 0.875rem;
 }
 
 /* ── pillar — one narrow column; the wordmark stands vertical at the edge ──── */
@@ -237,6 +280,17 @@
 [data-layout='horizon'] [data-house='list'] > * {
   padding-block: 1.4rem;
 }
+/* The house shot is the land under the hero's horizon line: the 4:3 source
+   cropped to a full-measure band. The 45% focus keeps the thatched roofline
+   and the sea in frame and gives the sky and the terrace floor to the crop. */
+[data-layout='horizon'] [data-house='figure'] {
+  margin-top: 5rem;
+}
+[data-layout='horizon'] [data-house='figure'] img {
+  aspect-ratio: 5 / 2;
+  object-position: center 45%;
+  border-radius: var(--radius-contain, 0.75rem);
+}
 
 /* Hide the scatter layout's per-letter spread everywhere else: the wordmark is
    one word in three of the four houses. */
@@ -277,5 +331,17 @@
   [data-layout='horizon'] [data-house='kicker'] {
     margin-bottom: 0;
     padding-top: 0;
+  }
+  /* The house shot goes full width at its native 4:3 on a phone — a 5:2 band
+     is a letterbox slit at 375px, and the scatter keepsake would shrink to a
+     stamp. The arch and the passe-partout survive the fallback; both scale. */
+  [data-layout] [data-house='figure'] {
+    margin-block: 0 4rem;
+  }
+  [data-layout] [data-house='figure'] img {
+    width: 100%;
+    margin: 0;
+    aspect-ratio: 4 / 3;
+    object-position: center;
   }
 }

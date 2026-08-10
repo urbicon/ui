@@ -36,6 +36,36 @@
   // Livery ids are house ids — the join the head comment promises.
   const house = $derived(houseById(livery.id) ?? HOUSES[0]);
 
+  /**
+   * One AI-generated architecture shot per house (static/hotel/*.avif).
+   * Presentation only, so it lives here and not in the hotel-tools register:
+   * the register is what the model's tool calls return, and an image path has
+   * no business in a tool payload. Mori deliberately brings none — the Kyoto
+   * shots never reached the bar the other three set, and three strong images
+   * beat a fourth that dilutes; the figure block simply collapses for a house
+   * without one. How each image sits (arch, keepsake, panorama) is the
+   * house's layout idiom in layouts.css, not styling here.
+   */
+  const HOUSE_IMAGES: Record<'cala' | 'firn' | 'duna', { src: string; alt: string }> = {
+    cala: {
+      src: '/hotel/cala.avif',
+      alt: 'Whitewashed courtyard at Cala — an arched opening onto the sea, sage-green chairs in the shade, bougainvillea along the top of the wall.'
+    },
+    firn: {
+      src: '/hotel/firn.avif',
+      alt: 'A guest room at Firn — dry-stone and pale timber, a window bench framing the snowed-in valley outside.'
+    },
+    duna: {
+      src: '/hotel/duna.avif',
+      alt: 'The house at Duna — sand-toned plaster and a thatched roofline over the terrace, evening light on the beach behind.'
+    }
+  };
+  const houseImage = $derived(
+    Object.hasOwn(HOUSE_IMAGES, house.id)
+      ? HOUSE_IMAGES[house.id as keyof typeof HOUSE_IMAGES]
+      : undefined
+  );
+
   let booking: ReturnType<typeof HotelBooking> | undefined = $state();
 
   // On the full page the livery hangs off the document root, so it also reaches
@@ -86,6 +116,11 @@
     name="description"
     content="A fictional hotel group built entirely from Urbicon UI — the livery demo behind the examples on the landing page and in the getting-started guide."
   />
+  <!-- ~60 KB each: fetching the other houses' shots up front keeps the house
+       switch a cut, not a cut followed by an image popping in. -->
+  {#each Object.values(HOUSE_IMAGES) as image (image.src)}
+    <link rel="prefetch" as="image" href={image.src} />
+  {/each}
 </svelte:head>
 
 <BlocksProvider defaults={livery.defaults}>
@@ -133,6 +168,23 @@
         Find a room ↓
       </a>
     </section>
+
+    <!-- ── The house, seen — one shot per house, framed by its layout idiom ──
+         The hero stays type only (it IS the livery thesis); the image is the
+         second act. Cala crops to its arch, Firn hangs a keepsake, Duna runs
+         a panorama on the horizon. Mori has no image and no placeholder. -->
+    {#if houseImage}
+      <figure data-house="figure" class="mx-auto max-w-6xl px-6">
+        <img
+          src={houseImage.src}
+          alt={houseImage.alt}
+          width="1280"
+          height="960"
+          loading="lazy"
+          decoding="async"
+        />
+      </figure>
+    {/if}
 
     <!-- ── Rooms — the group's one price sheet ──────────────────────────── -->
     <section
@@ -264,7 +316,7 @@
         <span class="max-w-xl">
           Fermata and its houses are a fiction — the component-library demo behind
           <a class="hover:text-text-primary underline underline-offset-2" href="/">urbicon ui</a>.
-          Nothing here is a real hotel, a real offer or a real price.
+          Nothing here is a real hotel, a real offer or a real price; the imagery is AI-generated.
         </span>
         <span class="flex gap-4">
           <a class="hover:text-text-primary" href="/imprint">Imprint</a>
