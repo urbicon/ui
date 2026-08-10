@@ -56,6 +56,11 @@ export function createMockInvitation(overrides: Partial<Invitation> = {}): Invit
     role: 'admin',
     usedAt: null,
     createdAt: new Date(),
+    // Live and undelivered by default: the state a test has to opt OUT of is
+    // the safe one. An expired fixture would make a passing test meaningless,
+    // and a pre-`emailedAt` one would silently grant `autoVerifyInvited`.
+    expiresAt: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000),
+    emailedAt: null,
     ...overrides
   };
 }

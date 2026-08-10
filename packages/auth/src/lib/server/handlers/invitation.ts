@@ -2,7 +2,7 @@ import type { RequestHandler } from '@sveltejs/kit';
 import { json } from '@sveltejs/kit';
 import type { AuthLocale } from '../../i18n/keys.js';
 import type { AuthUser } from '../../types.js';
-import { sanitizeUser } from '../auth.js';
+import { generateSecureToken, hashToken, sanitizeUser } from '../auth.js';
 import type { AuthDeps } from '../deps.js';
 import { resolveEmailSettings } from '../email/resolve.js';
 import { buildInvitationEmail } from '../email/templates.js';
@@ -32,10 +32,13 @@ export interface InvitationHandlerOptions<R extends string = string> {
   /**
    * Build the invitation email sent when the client requests it (the
    * `sendEmail` flag). Defaults to a localized template (`config.email.locale`)
-   * linking to `${appUrl}/auth/register?email=<invitee>`. Receives the resolved
-   * context — `from`, `appName`, and the `t` bundle — so a custom builder can
-   * reuse or override them. Return `{ subject, html, text? }` (optionally a
-   * `from` to override the configured sender).
+   * linking to `${appUrl}/auth/register?token=<secret>&email=<invitee>`.
+   * Receives the resolved context — `from`, `appName`, and the `t` bundle — so a
+   * custom builder can reuse or override them. Return `{ subject, html, text? }`
+   * (optionally a `from` to override the configured sender).
+   *
+   * The `url` carries the one-time invitation token: it IS the credential, so a
+   * custom builder must put it in the message and must not log it.
    */
   inviteEmail?: (ctx: {
     email: string;
@@ -50,7 +53,24 @@ export interface InvitationHandlerOptions<R extends string = string> {
     text?: string;
     from?: string;
   };
+
+  /**
+   * How long an invitation stays redeemable, in milliseconds.
+   * @default 7 days
+   *
+   * Deliberately far longer than the one-hour password-reset window: a reset is
+   * a response to something the user just did, while an invitation has to reach
+   * a person who may be on holiday. Before #149 there was no window at all —
+   * an invitation stayed open from the moment it was minted until someone used
+   * it, which is the interval the address-only gate left exploitable.
+   *
+   * Shorten it if invitations are handed over synchronously.
+   */
+  invitationTtlMs?: number;
 }
+
+/** 7 days. See {@link InvitationHandlerOptions.invitationTtlMs}. */
+const DEFAULT_INVITATION_TTL_MS = 7 * 24 * 60 * 60 * 1000;
 
 /**
  * Admin-facing invitation CRUD: the server half of `<InvitationManager>`.
@@ -78,7 +98,7 @@ export function createInvitationHandlers<R extends string>(
   deps: AuthDeps<R>,
   options: InvitationHandlerOptions<R>
 ): { POST: RequestHandler; GET: RequestHandler; DELETE: RequestHandler } {
-  const { authorize, roles, inviteEmail } = options;
+  const { authorize, roles, inviteEmail, invitationTtlMs = DEFAULT_INVITATION_TTL_MS } = options;
 
   // Resolve the caller from the session cookie and run the authorization gate.
   // Returns the sanitized user, or a Response the handler must return as-is.
@@ -123,11 +143,29 @@ export function createInvitationHandlers<R extends string>(
         return authError('email_invited', 409);
       }
 
+      // The raw token exists for exactly this request. It is hashed on the way
+      // into storage and returned to the admin once, in the URL below — there is
+      // no path that can produce it again, which is what makes a leaked database
+      // useless for redeeming invitations (#149).
+      const token = generateSecureToken();
       const invitation = await deps.repos.invitation.create({
         email,
         role,
-        invitedById: auth.user.id
+        invitedById: auth.user.id,
+        tokenHash: hashToken(token),
+        expiresAt: new Date(Date.now() + invitationTtlMs)
       });
+
+      // The register URL is built here and RETURNED, not built inside the mail
+      // path and discarded (#68). Without a mail transport — a configuration
+      // this package ships a console transport for, and the quickstart runs on —
+      // the admin otherwise had a freshly minted invitation and no way to hand
+      // it to anyone. The route belongs to the server, so the panel does not
+      // have to reconstruct it from `location.origin`.
+      const url = new URL('/auth/register', deps.config.appUrl);
+      url.searchParams.set('token', token);
+      url.searchParams.set('email', email);
+      const inviteUrl = url.toString();
 
       // The invitation row is the durable effect and has already succeeded;
       // emailing is best-effort so a mail outage can't fail the invite. The
@@ -139,16 +177,18 @@ export function createInvitationHandlers<R extends string>(
         // consumer-supplied `inviteEmail` builder is a programming error, not a
         // transient mail outage — let it surface (a real 500 + stack) rather
         // than masquerade as "email failed to send" on every invite forever.
-        const url = new URL('/auth/register', deps.config.appUrl);
-        url.searchParams.set('email', email);
         const { t, appName, from } = resolveEmailSettings(deps.config);
         const built = inviteEmail
-          ? inviteEmail({ email, role: role as R, url: url.toString(), from, appName, t })
-          : buildInvitationEmail({ url: url.toString(), appName }, t);
+          ? inviteEmail({ email, role: role as R, url: inviteUrl, from, appName, t })
+          : buildInvitationEmail({ url: inviteUrl, appName }, t);
 
         try {
           await deps.email.send({ from, ...built, to: email });
           emailSent = true;
+          // Recorded only after a send that did NOT throw. This timestamp is
+          // what lets `autoVerifyInvited` skip verification, so it has to mean
+          // "the mail went out", not "we tried".
+          await deps.repos.invitation.markEmailed(invitation.id, new Date());
         } catch (err) {
           // The invitee — not the API caller — is the one left unable to
           // register, so surface this loudly (error, not warn) and via the
@@ -166,7 +206,17 @@ export function createInvitationHandlers<R extends string>(
         }
       }
 
-      return json({ invitation, emailSent }, { status: 201 });
+      // `inviteUrl` carries the raw token and is returned ONCE — it is not in
+      // `list()`, because the hash is all the database holds. An admin who loses
+      // it deletes the invitation and mints a new one.
+      return json(
+        {
+          invitation: { ...invitation, emailedAt: emailSent ? new Date() : null },
+          emailSent,
+          inviteUrl
+        },
+        { status: 201, headers: NO_STORE }
+      );
     },
 
     DELETE: async ({ cookies, params }) => {

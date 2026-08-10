@@ -50,19 +50,47 @@ describe('validateLoginInput', () => {
 
 describe('validateRegisterInput', () => {
   it('should accept valid input', () => {
-    const result = validateRegisterInput({ email: 'a@b.c', name: 'Test', password: 'pw' });
+    const result = validateRegisterInput({
+      email: 'a@b.c',
+      name: 'Test',
+      password: 'pw',
+      token: 'invite-token'
+    });
     expect(result.success).toBe(true);
   });
 
   it('should collect multiple errors', () => {
     const result = validateRegisterInput({});
     expect(result.success).toBe(false);
-    expect(result.errors?.length).toBe(3);
+    expect(result.errors?.length).toBe(4);
   });
 
   it('should trim name', () => {
-    const result = validateRegisterInput({ email: 'a@b.c', name: '  Test  ', password: 'x' });
+    const result = validateRegisterInput({
+      email: 'a@b.c',
+      name: '  Test  ',
+      password: 'x',
+      token: 't'
+    });
     expect(result.data?.name).toBe('Test');
+  });
+
+  it('rejects a request without an invitation token (#149)', () => {
+    // The token is required, not optional: an optional one secures nothing,
+    // because an attacker takes the path that does not ask for one.
+    const result = validateRegisterInput({ email: 'a@b.c', name: 'Test', password: 'pw' });
+    expect(result.success).toBe(false);
+    expect(result.errors?.some((e) => e.field === 'token')).toBe(true);
+  });
+
+  it('trims the token', () => {
+    const result = validateRegisterInput({
+      email: 'a@b.c',
+      name: 'Test',
+      password: 'pw',
+      token: '  invite-token  '
+    });
+    expect(result.data?.token).toBe('invite-token');
   });
 });
 

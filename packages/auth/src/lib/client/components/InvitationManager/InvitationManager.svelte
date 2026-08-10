@@ -39,6 +39,28 @@
   let error = $state('');
   let loading = $state(true);
   let submitting = $state(false);
+  // The invite URL comes back from the 201 and is shown until the next submit.
+  // It carries the one-time token, so this is the only moment it exists outside
+  // the recipient's mailbox — `list()` cannot return it, because the server
+  // stores only the hash (#68).
+  let lastInvite = $state<{ email: string; url: string; emailed: boolean } | null>(null);
+  let copied = $state(false);
+
+  async function copyInviteUrl() {
+    if (!lastInvite) return;
+    try {
+      await navigator.clipboard.writeText(lastInvite.url);
+      copied = true;
+      setTimeout(() => {
+        copied = false;
+      }, 2000);
+    } catch {
+      // Clipboard access can be denied outright (permissions, insecure origin).
+      // The URL is on screen and selectable either way, so this is not an error
+      // state — it just means the button did nothing.
+      copied = false;
+    }
+  }
 
   async function loadInvitations() {
     loading = true;
@@ -79,6 +101,13 @@
         const data = (await res.json().catch(() => ({}))) as Record<string, unknown>;
         error = errorTextFromBody(data, t);
         return;
+      }
+      const created = (await res.json().catch(() => ({}))) as {
+        inviteUrl?: string;
+        emailSent?: boolean;
+      };
+      if (created.inviteUrl) {
+        lastInvite = { email, url: created.inviteUrl, emailed: created.emailSent === true };
       }
       email = '';
       await loadInvitations();
@@ -155,6 +184,47 @@
       {t.invitations.send}
     </Button>
   </form>
+
+  {#if lastInvite}
+    <!--
+      Shown once, right after creating. The link carries the invitation's
+      one-time token and the server keeps only its hash, so re-reading the list
+      can never produce it again — leaving this row is the only chance to hand
+      the invitation over without a mail transport (#68).
+    -->
+    <div
+      class={cls(
+        'border-border-subtle bg-surface-subtle flex flex-col gap-2 rounded-lg border px-4 py-3',
+        slotClasses.inviteLink
+      )}
+    >
+      <p class={cls('text-text-secondary text-sm')}>
+        {lastInvite.emailed
+          ? t.invitations.linkSentAndCopyable.replace('{email}', lastInvite.email)
+          : t.invitations.linkNotSent.replace('{email}', lastInvite.email)}
+      </p>
+      <div class={cls('flex items-center gap-2')}>
+        <code
+          class={cls(
+            'bg-surface-base border-border-subtle text-text-primary min-w-0 flex-1 truncate rounded border px-2 py-1 font-mono text-xs'
+          )}>{lastInvite.url}</code
+        >
+        <Button
+          type="button"
+          variant="outlined"
+          intent="neutral"
+          size="sm"
+          onclick={copyInviteUrl}
+          {unstyled}
+        >
+          {copied ? t.invitations.linkCopied : t.invitations.linkCopy}
+        </Button>
+      </div>
+      <p class={cls('text-text-tertiary text-xs')}>
+        {t.invitations.linkTrustNote}
+      </p>
+    </div>
+  {/if}
 
   <Separator {unstyled} />
 

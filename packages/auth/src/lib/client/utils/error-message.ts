@@ -11,6 +11,7 @@ import type { AuthLocale } from '../../i18n/keys.js';
 const CODE_TO_KEY: Record<string, keyof AuthLocale['auth']['errors']> = {
   invitation_required: 'invitationRequired',
   invitation_used: 'invitationUsed',
+  invitation_expired: 'invitationExpired',
   email_taken: 'emailTaken',
   email_invited: 'emailInvited',
   invalid_credentials: 'invalidCredentials',

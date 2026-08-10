@@ -74,7 +74,7 @@ describe('createAuthStore', () => {
     const store = createAuthStore({
       fetcher: fetcherReturning(new Response('<html>bad gateway</html>', { status: 502 }))
     });
-    const result = await store.register('A', 'a@b.c', 'pw');
+    const result = await store.register('A', 'a@b.c', 'pw', 'invite-token');
     expect(result.success).toBe(false);
     expect(result.code).toBeUndefined();
     expect(result.error).toBeUndefined();

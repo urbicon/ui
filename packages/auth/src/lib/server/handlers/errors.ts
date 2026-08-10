@@ -21,6 +21,7 @@ export const AUTH_ERROR_CODES = {
   // Registration / invitations
   invitation_required: 'invitation_required',
   invitation_used: 'invitation_used',
+  invitation_expired: 'invitation_expired',
   email_taken: 'email_taken',
   email_invited: 'email_invited',
   // Login
@@ -75,6 +76,7 @@ export type AuthErrorCode = (typeof AUTH_ERROR_CODES)[keyof typeof AUTH_ERROR_CO
 const DEFAULT_MESSAGES: Record<AuthErrorCode, string> = {
   invitation_required: 'An invitation is required to register.',
   invitation_used: 'This invitation has already been used.',
+  invitation_expired: 'This invitation has expired. Ask for a new one.',
   email_taken: 'This email is already registered.',
   email_invited: 'This email has already been invited.',
   invalid_credentials: 'Invalid email or password.',

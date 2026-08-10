@@ -1,4 +1,5 @@
 import type { RequestHandler } from '@sveltejs/kit';
+import type { Mock } from 'vitest';
 import { describe, expect, it, vi } from 'vitest';
 import type { AuthConfig, AuthUser } from '../../types.js';
 import type { InvitationRepository, UserRepository } from '../adapters/types.js';
@@ -51,6 +52,7 @@ function setup(opts?: {
   inviteEmail?: InvitationHandlerInviteEmail;
   hooks?: AuthConfig['hooks'];
   from?: string;
+  invitationTtlMs?: number;
 }) {
   const user = createMockUser(opts?.user ?? {});
   const deps = createMockAuthDeps({
@@ -67,6 +69,7 @@ function setup(opts?: {
       list: vi.fn().mockResolvedValue([]),
       findByEmail: vi.fn().mockResolvedValue(null),
       create: vi.fn().mockResolvedValue(createMockInvitation()),
+      markEmailed: vi.fn().mockResolvedValue(undefined),
       delete: vi.fn().mockResolvedValue(undefined),
       ...opts?.invitation
     },
@@ -75,7 +78,8 @@ function setup(opts?: {
   const handlers = createInvitationHandlers(deps, {
     authorize: opts?.authorize ?? ((u) => u.role === 'admin'),
     roles: ROLES,
-    inviteEmail: opts?.inviteEmail
+    inviteEmail: opts?.inviteEmail,
+    ...(opts?.invitationTtlMs === undefined ? {} : { invitationTtlMs: opts.invitationTtlMs })
   });
   return { deps, user, handlers };
 }
@@ -213,11 +217,58 @@ describe('createInvitationHandlers — POST', () => {
     expect(deps.repos.invitation.create).toHaveBeenCalledWith({
       email: 'new@b.com', // normalized
       role: 'member',
-      invitedById: user.id
+      invitedById: user.id,
+      // Hashed on the way in — the raw token exists only in the response below.
+      tokenHash: expect.stringMatching(/^[0-9a-f]{64}$/),
+      expiresAt: expect.any(Date)
     });
     const data = await res.json();
     expect(data.invitation).toBeDefined();
     expect(data.emailSent).toBe(false);
+    // #68: without a mail transport this URL is the ONLY way the invitation
+    // reaches anyone, so it has to come back even when nothing was sent.
+    expect(data.inviteUrl).toContain('/auth/register?token=');
+  });
+
+  it('defaults the invitation to a 7-day life, and honours an override', async () => {
+    const { deps, user, handlers } = setup();
+    const before = Date.now();
+    await handlers.POST(
+      makeEvent({
+        token: await tokenFor(deps, user),
+        body: { email: 'ttl@b.com', role: 'member', sendEmail: false }
+      })
+    );
+    const { expiresAt } = (deps.repos.invitation.create as Mock).mock.calls[0][0];
+    const sevenDays = 7 * 24 * 60 * 60 * 1000;
+    expect(expiresAt.getTime() - before).toBeGreaterThan(sevenDays - 5000);
+    expect(expiresAt.getTime() - before).toBeLessThan(sevenDays + 5000);
+
+    const short = setup({ invitationTtlMs: 60_000 });
+    await short.handlers.POST(
+      makeEvent({
+        token: await tokenFor(short.deps, short.user),
+        body: { email: 'short@b.com', role: 'member', sendEmail: false }
+      })
+    );
+    const shortExpiry = (short.deps.repos.invitation.create as Mock).mock.calls[0][0].expiresAt;
+    expect(shortExpiry.getTime() - Date.now()).toBeLessThan(61_000);
+  });
+
+  it('records emailedAt only when the mail actually went out', async () => {
+    // `emailedAt` is what lets `autoVerifyInvited` skip verification, so it has
+    // to mean "the mail went out", not "we tried" (#149/#68).
+    const failing = vi.fn().mockRejectedValue(new Error('smtp down'));
+    const { deps, user, handlers } = setup({ email: { send: failing } });
+    const res = await handlers.POST(
+      makeEvent({
+        token: await tokenFor(deps, user),
+        body: { email: 'nomail@b.com', role: 'member', sendEmail: true }
+      })
+    );
+
+    expect((await res.json()).emailSent).toBe(false);
+    expect(deps.repos.invitation.markEmailed).not.toHaveBeenCalled();
   });
 
   it('sends the invite email when sendEmail is true', async () => {
@@ -382,7 +433,11 @@ describe('createInvitationHandlers — POST', () => {
     );
     // Default template links to /auth/register?email=<normalized invitee>, the
     // param RegisterPage prefills from (Issue #14).
-    expect(send.mock.calls[0][0].html).toContain('/auth/register?email=invitee%40b.com');
+    // The link now leads with the one-time token — that IS the credential —
+    // and keeps the email param RegisterPage prefills from (Issue #14). The
+    // separator is `&amp;` because the template escapes for HTML.
+    const html = send.mock.calls[0][0].html;
+    expect(html).toMatch(/\/auth\/register\?token=[0-9a-f]+&(amp;)?email=invitee%40b\.com/);
   });
 });
 

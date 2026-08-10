@@ -114,12 +114,37 @@ export interface Invitation {
   role: string;
   usedAt: Date | null;
   createdAt: Date;
+  /**
+   * When the invitation stops being redeemable. Registration rejects an expired
+   * one even though `usedAt` is still null: without it the window between
+   * minting an invitation and someone using it never closes (#149).
+   */
+  expiresAt: Date;
+  /**
+   * When this invitation was actually delivered BY EMAIL, or `null` if it was
+   * only handed out as a copied link.
+   *
+   * This is the difference between two very different proofs. A mail that
+   * arrives at the invited address and is redeemed from there demonstrates the
+   * recipient controls that mailbox; a link the admin copies out of the panel
+   * demonstrates nothing about the address it names — it travelled whatever
+   * channel the admin chose. `autoVerifyInvited` may only skip verification for
+   * the first kind, which is why the distinction is persisted rather than
+   * inferred (#68).
+   *
+   * Deliberately NOT a boolean: a timestamp says when, which an audit needs and
+   * a flag cannot answer.
+   */
+  emailedAt: Date | null;
 }
 
 export interface CreateInvitationData {
   email: string;
   role: string;
   invitedById: string;
+  /** SHA-256 of the raw token; the raw value is never stored. */
+  tokenHash: string;
+  expiresAt: Date;
 }
 
 /**
@@ -368,7 +393,22 @@ export interface FederatedAccountRepository {
 }
 
 export interface InvitationRepository {
-  /** Emails arrive pre-normalized (see {@link UserRepository}); match verbatim. */
+  /**
+   * Look an invitation up by the SHA-256 of its token. This is the registration
+   * gate: holding the token is the proof, and it is the ONLY proof.
+   *
+   * Returns the row whatever its state — expired and already-used rows come
+   * back too, because the handler distinguishes them in its response and a
+   * `null` here would collapse three cases into one.
+   */
+  findByTokenHash(tokenHash: string): Promise<Invitation | null>;
+  /**
+   * Emails arrive pre-normalized (see {@link UserRepository}); match verbatim.
+   *
+   * NOT a registration gate — knowing an invited address is not proof of
+   * anything, which is exactly the hole #149 closed. This exists for the
+   * duplicate check on the create path and for the admin listing.
+   */
   findByEmail(email: string): Promise<Invitation | null>;
   /**
    * Atomically claim an invitation: flip `usedAt` from null to now in a single
@@ -378,6 +418,11 @@ export interface InvitationRepository {
    */
   markUsedIfUnused(id: string): Promise<boolean>;
   create(data: CreateInvitationData): Promise<Invitation>;
+  /**
+   * Record that this invitation went out by email. Silent no-op for a missing
+   * id, per the missing-target convention below.
+   */
+  markEmailed(id: string, at: Date): Promise<void>;
   list(): Promise<Invitation[]>;
   delete(id: string): Promise<void>;
 }
