@@ -1,7 +1,7 @@
 import type { ComponentDefaults } from '@urbicon-ui/blocks';
 
 /**
- * A livery is one salon's visual identity, in three layers:
+ * A livery is one house's visual identity, in three layers:
  *
  * 1. **Design tokens** (`liveries.css`, keyed by `data-livery`) — colour ramps,
  *    radius tiers, type, ground texture. Names no component, reaches every one
@@ -10,14 +10,21 @@ import type { ComponentDefaults } from '@urbicon-ui/blocks';
  *    border idiom, a type jump, a shape a token tier bundles with something
  *    else. Still project configuration, still zero call sites touched.
  * 3. **Layout** (`layout`, consumed by the page) — where things sit. Not a
- *    token and not pretending to be one: a scattered edge grid and a
- *    symmetrical column are different page structures, not different values.
+ *    token and not pretending to be one: a scattered edge grid and a vertical
+ *    pillar are different page structures, not different values.
  *
  * Layer 3 is the honest boundary of this demo. Layers 1 and 2 reach the
  * agent-generated surface automatically; layer 3 does not, because the agent
  * decides its own composition (Column, Row, Section). A house whose identity
  * lives mostly in its grid will theme the chrome perfectly and the generated
  * form only as far as colour and type carry it.
+ *
+ * Since the move to the hotel universe (2026-08-10) a livery IS a house of the
+ * Fermata group — the four sub-brands of `$lib/hotel-tools`, which is the real
+ * shape of this pattern in the wild: one booking platform, four identities.
+ * The ids here must therefore match `HOUSES[].id`; the full page joins the two
+ * registries by that key, and a livery without house data would be a switch
+ * position that renders an empty page.
  */
 export interface Livery {
   id: string;
@@ -34,79 +41,78 @@ export interface Livery {
 /**
  * Page structure, not decoration.
  *
- * - `immersive` — one field edge to edge, content centred in a lot of nothing.
+ * - `courtyard` — a symmetric centred column; every section head sits under a
+ *   whitewashed arch.
  * - `scatter`   — no centre: items pinned across a wide grid, big voids.
- * - `symmetric` — classical centred column, everything balanced.
- * - `edge`      — the wordmark runs past the text column and off the margin.
+ * - `pillar`    — one narrow column; the wordmark stands VERTICAL at the edge,
+ *   read top to bottom like a hanging scroll.
+ * - `horizon`   — everything sits on one full-bleed line, the wordmark resting
+ *   on it like the sun on the dune crest.
  */
-export type LiveryLayout = 'immersive' | 'scatter' | 'symmetric' | 'edge';
+export type LiveryLayout = 'courtyard' | 'scatter' | 'pillar' | 'horizon';
 
 /**
  * Nothing to do here any more — kept as a note because the absence is the point.
  *
- * Until 2026-07-31 every livery below carried a `CIRCULAR_RADIOS` provider
- * override, because `--radius-commit` drove BOTH the pill of a commit-tier
- * button and the circle of a radio indicator. A livery that squared its buttons
- * squared its radios with them, and a square radio is a checkbox to the eye —
- * shape is what carries "exactly one of these".
+ * Until 2026-07-31 every livery carried a `CIRCULAR_RADIOS` provider override,
+ * because `--radius-commit` drove BOTH the pill of a commit-tier button and the
+ * circle of a radio indicator. A livery that squared its buttons squared its
+ * radios with them, and a square radio is a checkbox to the eye — shape is
+ * what carries "exactly one of these".
  *
- * ALL FOUR houses needed the workaround, including the one that only softens the
- * tier to 2px rather than zeroing it (2px on a 20px control already reads as a
- * square). That is what made it a token problem rather than a livery quirk: any
- * theme touching the tier at all lost the affordance.
- *
- * The controls now have their own tokens (`--radius-control`,
- * `--radius-checkbox` in foundation.css), so squaring the pill leaves them
- * alone. If a livery ever needs to override a radio's shape again, that is a
- * deliberate choice rather than damage control.
+ * ALL houses needed the workaround, including one that only softened the tier
+ * to 2px (2px on a 20px control already reads as a square). That is what made
+ * it a token problem rather than a livery quirk: any theme touching the tier
+ * at all lost the affordance. The controls now have their own tokens
+ * (`--radius-control`, `--radius-checkbox` in foundation.css), so Cala and
+ * Duna pushing the commit tier to a full pill leaves them alone.
  */
 
-const IMMERSION: Livery = {
-  id: 'immersion',
-  name: 'Immersion',
-  tagline: 'A saturated violet fills everything. No white anywhere.',
-  mechanism: 'The ground is the brand — the neutral ramp itself carries chroma.',
-  layout: 'immersive',
+const CALA: Livery = {
+  id: 'cala',
+  name: 'Cala',
+  tagline: 'Whitewash over a shallow bay. The shadows are blue, never grey.',
+  mechanism: 'Overexposure — the ground is light itself; structure comes from shadow.',
+  layout: 'courtyard',
   defaults: {
-    // Cards must not read as panels floating on the field — they are the same
-    // violet, one shade apart, held by a hairline.
+    // A card is a whitewashed cube: one hairline, no floating. Depth on this
+    // page belongs to the blue of the type, not to drop shadows.
     Card: {
       slotClasses: { base: 'border border-border-subtle shadow-none' }
     },
     Button: {
       slotClasses: { base: 'shadow-none hover:shadow-none active:shadow-none' },
-      overrides: [{ variant: 'outlined', class: { base: 'border border-text-primary' } }]
+      overrides: [{ variant: 'outlined', class: { base: 'border border-primary-600' } }]
     },
-    // Underlines only. A boxed input would cut a second rectangle into a field
-    // whose whole idea is that it is uninterrupted.
+    // Boxed inputs, softly rounded — the one house that keeps its boxes, drawn
+    // as openings in a wall rather than panels on it.
     //
     // NOTE the two different slots: Input paints its fill on `base` and its
     // border on `container`, Textarea does both on `base`. Clearing only the
-    // container left the input sitting in a filled box under a bare underline
-    // while the textarea beside it was correctly transparent — visible only by
-    // looking, since both configs "read" right.
+    // container leaves the input in a filled box — visible only by looking,
+    // since both configs "read" right (learned in the salon universe).
     Input: {
       slotClasses: {
-        container: 'border-x-0 border-t-0 border-b bg-transparent',
+        container: 'border border-border-default bg-transparent',
         base: 'bg-transparent'
       }
     },
     Textarea: {
-      slotClasses: { base: 'border-x-0 border-t-0 border-b bg-transparent' }
+      slotClasses: { base: 'border border-border-default bg-transparent' }
     }
   }
 };
 
-const GRAIN: Livery = {
-  id: 'grain',
-  name: 'Grain',
-  tagline: 'Tinted off-white, visible noise, everything tiny and tracked out.',
-  mechanism: 'Near-zero contrast and violent type jumps — no comfortable middle.',
+const FIRN: Livery = {
+  id: 'firn',
+  name: 'Firn',
+  tagline: 'Ink on snow at 1,850 metres. One glacier line.',
+  mechanism: 'Thin air — near-nothing on the page; precision stands in for colour.',
   layout: 'scatter',
   defaults: {
     // The type jump has to reach the generated form too, or the house stops at
     // the page edge: labels drop to the smallest step the scale has, while the
-    // wordmark runs at 8xl. Nothing sits in between anywhere.
+    // wordmark spans the full measure. Nothing sits in between anywhere.
     RadioItem: {
       slotClasses: {
         label: 'text-2xs tracking-[0.18em] uppercase',
@@ -114,7 +120,7 @@ const GRAIN: Livery = {
       }
     },
     // The group's own label lives on RadioGroup, not RadioItem — two configs,
-    // two provider keys. Missing this left "Which cut?" at body size while
+    // two provider keys. Missing this left the question at body size while
     // every option under it was 10px caps, which read as an oversight rather
     // than a hierarchy.
     RadioGroup: {
@@ -144,57 +150,51 @@ const GRAIN: Livery = {
   }
 };
 
-const LACQUER: Livery = {
-  id: 'lacquer',
-  name: 'Lacquer',
-  tagline: 'Black and gold, a classical serif, nothing else.',
-  mechanism: 'A two-colour house: the second voice is the first, one step down.',
-  layout: 'symmetric',
+const MORI: Livery = {
+  id: 'mori',
+  name: 'Mori',
+  tagline: 'Cedar dusk, paper type, one lantern.',
+  mechanism: 'The ground is the forest at dusk — light is warm and pointed, never a flood.',
+  layout: 'pillar',
   defaults: {
-    // This house sets `--radius-commit: 2px` rather than 0, and I first assumed
-    // that was soft enough to leave the radio indicators alone. It is not: 2px
-    // on a 20px control is a square, and the rendered form showed six square
-    // "radios" that were indistinguishable from checkboxes.
-    //
-    // So all FOUR houses needed the override, not three — the radio circle did
-    // not survive any deviation from the pill default, however small. That was
-    // the strongest form of the argument for giving the indicator its own token,
-    // which it has since 2026-07-31 (`--radius-control`): this was never an edge
-    // case for austere themes, it was every theme that touched the tier.
+    // Shoji logic: surfaces are frames, not panels. A card is a hairline
+    // rectangle the dusk shows through.
     Card: {
-      slotClasses: { base: 'border border-primary-900 shadow-none' }
+      slotClasses: { base: 'border border-border-subtle bg-transparent shadow-none' }
     },
     Button: {
-      // Gold hairline, never a gold fill except on the one real commitment.
+      // Lantern hairline; the warm fill is reserved for the one commitment.
       slotClasses: { base: 'shadow-none hover:shadow-none active:shadow-none' },
-      overrides: [{ variant: 'outlined', class: { base: 'border border-primary-700' } }]
+      overrides: [{ variant: 'outlined', class: { base: 'border border-primary-600' } }]
     },
-    // This house keeps its boxes — it is the classical one — but they are drawn
-    // in gold hairline over the lacquer, never filled.
+    // Underlines only — a boxed input would cut a pane into the paper.
     Input: {
-      slotClasses: { container: 'border border-primary-900 bg-transparent', base: 'bg-transparent' }
+      slotClasses: {
+        container: 'border-x-0 border-t-0 border-b bg-transparent',
+        base: 'bg-transparent'
+      }
     },
     Textarea: {
-      slotClasses: { base: 'border border-primary-900 bg-transparent' }
+      slotClasses: { base: 'border-x-0 border-t-0 border-b bg-transparent' }
     }
   }
 };
 
-const VITRINE: Livery = {
-  id: 'vitrine',
-  name: 'Vitrine',
-  tagline: 'A duotone film grade over everything, display serif at the edge.',
-  mechanism: 'The ground is an image, not a colour — the page is graded, not painted.',
-  layout: 'edge',
+const DUNA: Livery = {
+  id: 'duna',
+  name: 'Duna',
+  tagline: 'Dune grass at last light. Everything on the horizon.',
+  mechanism: 'The ground is a gradient — the page is an evening, banded like sand.',
+  layout: 'horizon',
   defaults: {
-    // Everything is glass over the grade: surfaces stay translucent so the
+    // Everything is glass over the glow: surfaces stay translucent so the
     // light behind them keeps coming through.
     Card: {
       slotClasses: { base: 'border border-border-subtle bg-surface-base/70 shadow-none' }
     },
     Button: {
       slotClasses: { base: 'shadow-none hover:shadow-none active:shadow-none' },
-      overrides: [{ variant: 'outlined', class: { base: 'border border-primary-600' } }]
+      overrides: [{ variant: 'outlined', class: { base: 'border border-primary-500' } }]
     },
     Input: {
       slotClasses: {
@@ -208,9 +208,10 @@ const VITRINE: Livery = {
   }
 };
 
-export const LIVERIES: Livery[] = [IMMERSION, GRAIN, LACQUER, VITRINE];
+export const LIVERIES: Livery[] = [CALA, FIRN, MORI, DUNA];
 
-export const DEFAULT_LIVERY = IMMERSION;
+/** Cala is the group's first house — the page opens on the quietest one. */
+export const DEFAULT_LIVERY = CALA;
 
 /** Look up a livery by id, falling back to the default for unknown ids. */
 export function liveryById(id: string | null | undefined): Livery {

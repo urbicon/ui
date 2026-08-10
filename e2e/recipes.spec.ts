@@ -309,38 +309,38 @@ test.describe('recipe: a2ui-agent-ui', () => {
     const p = preview(page);
 
     // The agent-declared form renders as real components, with no chooser yet.
-    await expect(p.getByLabel('Date')).toBeVisible();
-    await expect(p.getByRole('radiogroup', { name: 'Free times' })).toBeHidden();
+    await expect(p.getByLabel('Check-in')).toBeVisible();
+    await expect(p.getByRole('radiogroup', { name: 'Free rooms' })).toBeHidden();
 
     // A value the user set BEFORE the patch — it must survive it. Compare
     // against what the field actually shows (the DatePicker renders a localized
     // string), so the assertion holds under any locale.
-    await p.getByLabel('Date').fill('2026-08-01');
-    await p.getByLabel('Date').press('Tab'); // commit: the field formats on blur
-    const beforePatch = await p.getByLabel('Date').inputValue();
+    await p.getByLabel('Check-in').fill('2026-09-01');
+    await p.getByLabel('Check-in').press('Tab'); // commit: the field formats on blur
+    const beforePatch = await p.getByLabel('Check-in').inputValue();
     expect(beforePatch).not.toBe('');
 
-    await p.getByRole('button', { name: 'Show available times' }).click();
+    await p.getByRole('button', { name: 'Show free rooms' }).click();
 
-    // The patch revealed a chooser bound to the fetched slots…
-    const times = p.getByRole('radiogroup', { name: 'Free times' });
-    await expect(times).toBeVisible();
-    await expect(p.getByRole('radio', { name: '13:45' })).toBeVisible();
+    // The patch revealed a chooser bound to the fetched rooms…
+    const rooms = p.getByRole('radiogroup', { name: 'Free rooms' });
+    await expect(rooms).toBeVisible();
+    await expect(p.getByRole('radio', { name: 'Corner Room — €360' })).toBeVisible();
     // …the surface was patched, not rebuilt: the entered date is still there.
-    await expect(p.getByLabel('Date')).toHaveValue(beforePatch);
+    await expect(p.getByLabel('Check-in')).toHaveValue(beforePatch);
     // …and the action reached the consumer with its declared name.
-    await expect(p.getByText('showTimes')).toBeVisible();
+    await expect(p.getByText('showRooms')).toBeVisible();
   });
 
-  test('picking a time selects it without a round-trip', async ({ page }) => {
+  test('picking a room selects it without a round-trip', async ({ page }) => {
     await gotoRecipe(page, 'a2ui-agent-ui');
     const p = preview(page);
-    await p.getByRole('button', { name: 'Show available times' }).click();
+    await p.getByRole('button', { name: 'Show free rooms' }).click();
 
-    const slot = p.getByRole('radio', { name: '10:30' });
-    await toggleViaLabel(page, slot);
+    const room = p.getByRole('radio', { name: 'Garden Room — €300' });
+    await toggleViaLabel(page, room);
 
     // Bound choice: the selection is visible immediately, no action dispatched.
-    await expect(slot).toBeChecked();
+    await expect(room).toBeChecked();
   });
 });

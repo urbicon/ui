@@ -18,7 +18,7 @@
   import { replayTurn, TURNS } from '$lib/replay/player';
 
   /**
-   * The booking assistant, embedded in the salon page.
+   * The booking assistant, embedded in the hotel page.
    *
    * Structurally the same client as the developer testbed on `/`: a splitter
    * turns the token stream into text + A2UI parts, a router delivers later
@@ -28,7 +28,7 @@
    * so the demo shows the same thing every time.
    *
    * There is deliberately NO styling of the generated surface here. Whatever
-   * livery is active reaches it through tokens alone.
+   * house is active reaches it through tokens alone.
    */
 
   let {
@@ -198,8 +198,8 @@
 <div class="flex min-h-0 flex-1 flex-col" bind:this={root}>
   <ChatMessageList
     {messages}
-    emptyTitle="Ask for an appointment"
-    emptyDescription="The assistant builds the form it needs — in this salon's own hand."
+    emptyTitle="Ask for a stay"
+    emptyDescription="The front desk builds the form it needs — in this house's own hand."
   >
     {#snippet message({ message: m })}
       {#snippet a2uiPart(part: Extract<ChatMessagePart, { type: 'a2ui' }>)}
@@ -221,7 +221,7 @@
         {busy}
         placeholder={cursor >= TURNS.length
           ? 'That is the end of the recording — reset to replay'
-          : 'Ask for an appointment…'}
+          : 'Ask for a stay…'}
         onSubmit={handleSubmit}
         onStop={() => controller?.abort()}
       />

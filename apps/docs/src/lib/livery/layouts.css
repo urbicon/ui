@@ -1,13 +1,14 @@
 /*
  * Layout per livery — the part that is NOT a token.
  *
- * The reference sites do not differ only in colour and type: one centres
- * everything in an empty field, one pins fragments to the edges of a wide grid
- * with nothing in the middle, one is classically symmetrical, one runs its
- * wordmark straight off the margin. That is page structure, and pretending it
- * were a design token would be a lie about where the boundary sits.
+ * The four houses do not differ only in colour and type: one centres
+ * everything under whitewashed arches, one pins fragments across a wide empty
+ * grid, one runs a narrow column with its wordmark standing vertical at the
+ * edge, one aligns the whole hero on a single horizon line. That is page
+ * structure, and pretending it were a design token would be a lie about where
+ * the boundary sits.
  *
- * So this file is scoped to the salon page's own elements (`[data-salon]`),
+ * So this file is scoped to the hotel page's own elements (`[data-house]`),
  * driven by `data-layout` on the page root. The agent-generated booking
  * surface is deliberately NOT addressed here — it re-skins through tokens and
  * provider defaults alone, which is the claim under test. Where a house's
@@ -18,38 +19,54 @@
 /* Bleed without a scrollbar.
  *
  * Two of these houses deliberately push elements past the text column, and one
- * pushes past the viewport edge. `clip` (not `hidden`) contains that overflow
- * without turning the page root into a scroll container — `hidden` here would
- * break the sticky masthead, since a sticky element needs its nearest scroll
- * container to be the viewport. */
+ * draws a line past the viewport edge. `clip` (not `hidden`) contains that
+ * overflow without turning the page root into a scroll container — `hidden`
+ * here would break the sticky masthead, since a sticky element needs its
+ * nearest scroll container to be the viewport. */
 [data-layout] {
   overflow-x: clip;
 }
 
-/* ── immersive — one field, content adrift in it ───────────────────────────── */
-[data-layout='immersive'] [data-salon='hero'] {
-  min-height: 82vh;
+/* ── courtyard — a symmetric centred column; arches over the section heads ── */
+[data-layout='courtyard'] [data-house='hero'] {
+  min-height: 80vh;
   display: flex;
   flex-direction: column;
   justify-content: center;
   align-items: center;
   text-align: center;
-  gap: 3rem;
+  gap: 2.5rem;
 }
-[data-layout='immersive'] [data-salon='wordmark'] {
-  font-size: clamp(3.5rem, 11vw, 10rem);
-  line-height: 0.95;
+[data-layout='courtyard'] [data-house='wordmark'] {
+  font-size: clamp(2.75rem, 8vw, 6.5rem);
+  line-height: 1.05;
 }
-[data-layout='immersive'] [data-salon='lede'] {
-  max-width: 28rem;
+[data-layout='courtyard'] [data-house='lede'] {
+  max-width: 30rem;
 }
-[data-layout='immersive'] [data-salon='section-body'] {
-  max-width: 46rem;
+[data-layout='courtyard'] [data-house='section'] {
+  text-align: center;
+}
+[data-layout='courtyard'] [data-house='section-body'] {
+  max-width: 40rem;
   margin-inline: auto;
+}
+/* The arch: a whitewashed opening over every section head — the house's one
+   structural signature, drawn with a border rather than an asset. */
+[data-layout='courtyard'] [data-house='section-head']::before {
+  content: '';
+  display: block;
+  width: 3.5rem;
+  height: 1.75rem;
+  border: 1px solid currentColor;
+  border-bottom: none;
+  border-radius: 999px 999px 0 0;
+  opacity: 0.45;
+  margin: 0 auto 1.25rem;
 }
 
 /* ── scatter — no centre; fragments pinned across a wide grid ──────────────── */
-[data-layout='scatter'] [data-salon='hero'] {
+[data-layout='scatter'] [data-house='hero'] {
   min-height: 88vh;
   display: grid;
   grid-template-columns: repeat(12, 1fr);
@@ -57,143 +74,208 @@
   align-content: center;
   gap: 1rem 0;
 }
-[data-layout='scatter'] [data-salon='kicker'] {
-  /* Wide enough for the address on one line — at `span 3` the tracking pushed
-     "NEW YORK" onto a second row, which in a layout this sparse looks like a
-     mistake rather than a break. */
+[data-layout='scatter'] [data-house='kicker'] {
+  /* Wide enough for the place line on one row — tracked-out caps push onto a
+     second line at anything narrower, which in a layout this sparse looks
+     like a mistake rather than a break. */
   grid-column: 1 / span 6;
   grid-row: 1;
 }
-[data-layout='scatter'] [data-salon='wordmark'] {
+[data-layout='scatter'] [data-house='wordmark'] {
   grid-column: 1 / span 12;
   grid-row: 3;
-  font-size: clamp(2rem, 5.5vw, 4.5rem);
+  font-size: clamp(2.5rem, 7vw, 6rem);
   line-height: 1;
-  /* The wordmark is a rule of letters across the full measure, not a word. */
+  /* The wordmark is a rule of letters across the full measure, not a word —
+     with four letters (F · I · R · N) the voids between them ARE the layout. */
   display: flex;
   justify-content: space-between;
 }
-[data-layout='scatter'] [data-salon='lede'] {
+[data-layout='scatter'] [data-house='lede'] {
   grid-column: 2 / span 4;
   grid-row: 5;
   max-width: none;
 }
-[data-layout='scatter'] [data-salon='cta'] {
+[data-layout='scatter'] [data-house='cta'] {
   grid-column: 10 / span 3;
   grid-row: 5;
   justify-self: end;
 }
 /* Lists lose their column and spread over the full width, aligned to nothing. */
-[data-layout='scatter'] [data-salon='list'] > * {
+[data-layout='scatter'] [data-house='list'] > * {
   display: grid;
   grid-template-columns: repeat(12, 1fr);
   align-items: baseline;
 }
-[data-layout='scatter'] [data-salon='list'] > * > :first-child {
+[data-layout='scatter'] [data-house='list'] > * > :first-child {
   grid-column: 1 / span 5;
 }
-[data-layout='scatter'] [data-salon='list'] > * > :last-child {
+[data-layout='scatter'] [data-house='list'] > * > :last-child {
   grid-column: 8 / span 5;
   justify-self: end;
 }
+/* A row with a single child (the house facts) is a line, not a pair — without
+   this it lands in the five-column start slot and wraps mid-fact. */
+[data-layout='scatter'] [data-house='list'] > * > :only-child {
+  grid-column: 1 / span 12;
+  justify-self: start;
+}
 
-/* ── symmetric — a classical centred column ───────────────────────────────── */
-[data-layout='symmetric'] [data-salon='hero'] {
-  min-height: 78vh;
-  display: flex;
-  flex-direction: column;
-  justify-content: center;
-  align-items: center;
-  text-align: center;
-  gap: 2rem;
+/* ── pillar — one narrow column; the wordmark stands vertical at the edge ──── */
+[data-layout='pillar'] [data-house='hero'] {
+  min-height: 90vh;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  grid-template-rows: 1fr auto;
+  column-gap: 3rem;
 }
-[data-layout='symmetric'] [data-salon='wordmark'] {
-  font-size: clamp(2.75rem, 7vw, 6rem);
-  line-height: 1.05;
+/* The hanging scroll: read top to bottom, standing clear of the text column.
+   `mixed` orientation keeps Latin glyphs rotated (a stack of upright letters
+   reads as a ransom note at display size — tried, rejected). */
+[data-layout='pillar'] [data-house='wordmark'] {
+  grid-column: 2;
+  grid-row: 1 / span 2;
+  writing-mode: vertical-rl;
+  text-orientation: mixed;
+  font-size: clamp(3rem, 11vh, 7rem);
+  line-height: 1;
+  align-self: start;
+  margin-top: 4vh;
 }
-[data-layout='symmetric'] [data-salon='lede'] {
+[data-layout='pillar'] [data-house='kicker'] {
+  grid-column: 1;
+  grid-row: 1;
+  align-self: end;
+  margin-bottom: 1.5rem;
+}
+[data-layout='pillar'] [data-house='lede'] {
+  grid-column: 1;
+  grid-row: 2;
+  max-width: 26rem;
+  margin-bottom: 3rem;
+}
+[data-layout='pillar'] [data-house='cta'] {
+  grid-column: 1;
+  grid-row: 3;
+  justify-self: start;
+  margin-bottom: 8vh;
+}
+/* The narrow column: everything reads like a single held breath. */
+[data-layout='pillar'] [data-house='section-body'] {
   max-width: 34rem;
-}
-[data-layout='symmetric'] [data-salon='section'] {
-  text-align: center;
-}
-[data-layout='symmetric'] [data-salon='section-body'] {
-  max-width: 38rem;
   margin-inline: auto;
 }
-/* A rule above each section head, centred — the oldest heading device there is. */
-[data-layout='symmetric'] [data-salon='section-head']::before {
+[data-layout='pillar'] [data-house='section-head'] {
+  text-align: center;
+}
+/* A single vertical stroke above each section head — the pillar, quoted. */
+[data-layout='pillar'] [data-house='section-head']::before {
   content: '';
   display: block;
-  width: 3rem;
-  height: 1px;
+  width: 1px;
+  height: 2.25rem;
   background: currentColor;
-  opacity: 0.5;
+  opacity: 0.4;
   margin: 0 auto 1.5rem;
 }
 
-/* ── edge — the wordmark runs past the column and off the margin ───────────── */
-[data-layout='edge'] [data-salon='hero'] {
-  min-height: 92vh;
+/* ── horizon — everything sits on one full-bleed line ──────────────────────── */
+[data-layout='horizon'] [data-house='hero'] {
+  position: relative;
+  min-height: 88vh;
   display: flex;
   flex-direction: column;
   justify-content: flex-end;
-  padding-bottom: 3rem;
+  padding-bottom: 5.5rem;
 }
-[data-layout='edge'] [data-salon='wordmark'] {
-  /* Sized to reach the margins and stop there. The first pass ran at 13vw with
-     `nowrap`, which cut "BOND" mid-word — that reads as a bug, not as a
-     decision, and it also blew the document out to 2494px against a 1280px
-     viewport (measured). A wordmark that touches both edges says the same
-     thing without either problem. */
-  font-size: clamp(2.5rem, 9.2vw, 9rem);
-  line-height: 0.86;
-  /* Past the text column but never past the viewport: the letterforms are the
-     picture, so they leave the container — `clip` on the page root (below)
-     keeps them from leaving the document. */
-  margin-inline: -4vw;
-  white-space: nowrap;
+/* The horizon itself: a full-viewport line the hero rests on. It fades out
+   toward the edges the way a real horizon dissolves in haze — and it glows
+   where the ground's radial puts the sun, because both are positioned from
+   the same bottom edge. */
+[data-layout='horizon'] [data-house='hero']::after {
+  content: '';
+  position: absolute;
+  left: 50%;
+  bottom: 5.5rem;
+  width: 100vw;
+  height: 1px;
+  transform: translateX(-50%);
+  background: linear-gradient(
+    90deg,
+    transparent,
+    oklch(0.78 0.09 48 / 0.55) 30%,
+    oklch(0.78 0.09 48 / 0.55) 70%,
+    transparent
+  );
+  pointer-events: none;
 }
-[data-layout='edge'] [data-salon='lede'] {
+/* The wordmark rests ON the line. `duna` is set lowercase italic and has no
+   descenders, so a tight line-height puts its baseline right at the hero's
+   bottom edge — half word, half setting sun. */
+[data-layout='horizon'] [data-house='wordmark'] {
+  font-size: clamp(3.5rem, 12vw, 10.5rem);
+  line-height: 0.78;
+  margin-bottom: 0;
+}
+[data-layout='horizon'] [data-house='kicker'] {
+  margin-bottom: auto;
+  padding-top: 18vh;
+}
+[data-layout='horizon'] [data-house='lede'] {
   align-self: flex-end;
   max-width: 24rem;
   text-align: right;
-  margin-bottom: 2rem;
+  margin-bottom: 2.5rem;
 }
-[data-layout='edge'] [data-salon='kicker'] {
-  align-self: flex-end;
-  margin-bottom: 0.5rem;
+/* Below the line — the one interactive element under the horizon. */
+[data-layout='horizon'] [data-house='cta'] {
+  position: absolute;
+  bottom: 2rem;
+  left: 0;
 }
-[data-layout='edge'] [data-salon='cta'] {
-  align-self: flex-start;
-  margin-top: 2rem;
+/* Lists ride the horizon logic: one full-width rule per row, generous air. */
+[data-layout='horizon'] [data-house='list'] > * {
+  padding-block: 1.4rem;
 }
 
 /* Hide the scatter layout's per-letter spread everywhere else: the wordmark is
    one word in three of the four houses. */
-[data-layout]:not([data-layout='scatter']) [data-salon='wordmark'] [data-letter-gap] {
+[data-layout]:not([data-layout='scatter']) [data-house='wordmark'] [data-letter-gap] {
   display: none;
 }
 
 @media (max-width: 640px) {
   /* Every house falls back to a plain stack on a phone. None of these grids
      survive a 375px viewport, and pretending otherwise would be the kind of
-     detail a demo quietly gets wrong. */
-  [data-layout] [data-salon='hero'] {
+     detail a demo quietly gets wrong. The pillar wordmark lies back down —
+     vertical type at phone width leaves a column three words wide beside it. */
+  [data-layout] [data-house='hero'] {
     display: flex;
     flex-direction: column;
     align-items: flex-start;
     text-align: left;
     min-height: 70vh;
+    justify-content: center;
   }
-  [data-layout] [data-salon='wordmark'] {
-    margin-inline: 0;
+  [data-layout] [data-house='wordmark'] {
+    margin: 0;
     white-space: normal;
     display: block;
+    writing-mode: horizontal-tb;
     font-size: clamp(2.25rem, 12vw, 4rem);
+    line-height: 1.05;
   }
-  [data-layout] [data-salon='lede'] {
+  [data-layout] [data-house='lede'] {
     align-self: flex-start;
     text-align: left;
+    max-width: none;
+  }
+  [data-layout='horizon'] [data-house='cta'] {
+    position: static;
+    margin-top: 2rem;
+  }
+  [data-layout='horizon'] [data-house='kicker'] {
+    margin-bottom: 0;
+    padding-top: 0;
   }
 }

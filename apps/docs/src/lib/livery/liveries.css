@@ -1,179 +1,187 @@
 /*
  * Four houses, one component library.
  *
- * ── What changed after the first attempt ────────────────────────────────────
- * The first three liveries (Atelier / Brutalist / Neon) were the three looks
- * every model reaches for, and they shared a flaw underneath the naming: all
- * three were a NEUTRAL PAGE WITH AN ACCENT ON IT. Paper plus ink plus a colour.
- * That is theming by the textbook, and it is why they read as generic.
+ * ── Where these skins come from ─────────────────────────────────────────────
+ * Each livery is one house of the Fermata group, and its palette is lifted
+ * from the piece of landscape the house is named after — not from a design
+ * trend. The test applied to every ramp below: could this be mistaken for a
+ * template? A cream page with a terracotta accent, a black page with one acid
+ * accent, a broadsheet of hairlines — all three were rejected on sight, and
+ * what stands here instead is grounded in a place:
  *
- * Salon sites with a real hand do the opposite — the brand IS the surface:
- * a saturated field edge to edge, a film tone over everything, black and gold
- * and nothing else, tinted white with visible grain. Four mechanisms recur:
+ *   CALA — midday over a whitewashed bay. Overexposed: the page is light
+ *          itself, and the second colour is the blue of hard shadows.
+ *   FIRN — old snow at 1,850 m. Thin air: ink on cold white, one glacier
+ *          line, contour lines instead of texture.
+ *   MORI — a cedar forest at dusk. Tone-on-tone dark green, paper-warm type,
+ *          one small lantern of warm light.
+ *   DUNA — dune grass at last light. The ground is a gradient, banded like
+ *          sand; the accent is the glow behind the crest.
  *
+ * Four mechanisms recur from the salon-era study and still hold:
  *   1. The ground carries the identity, not an accent sitting on it.
  *   2. Tone-on-tone rather than a contrast pair (deliberately quiet).
- *   3. Violent type jumps with nothing in the middle — 200px wordmark,
- *      11px body, no comfortable ladder between them.
- *   4. Texture instead of flat colour — grain, blurred light, duotone.
+ *   3. Type carries the place — a different face per house, not a weight axis.
+ *   4. Texture where the place has one — grain for sand, contours for snow.
  *
  * ── Why that reaches the agent's UI too ─────────────────────────────────────
  * Every semantic token in `@urbicon-ui/blocks` resolves through the three
  * foundation ramps, and `neutral` is the chassis: surfaces, text and borders
- * all descend from it. Giving that ramp real chroma (0.08–0.14 here, against
- * the ~0.01 the shipped themes use) tints the entire system at once — page
- * chrome and generated booking form alike. No component is named anywhere in
- * this file.
+ * all descend from it. Giving that ramp real chroma — or, in Mori's case, a
+ * hue that DRIFTS from paper-warm at the light end to cedar-green at the dark
+ * end — tints the entire system at once, page chrome and generated booking
+ * form alike. No component is named anywhere in this file.
  *
  * Scoped to `[data-livery]` rather than `@theme` because the switch happens at
  * RUNTIME: these are plain custom-property declarations, and being unlayered
  * they outrank Tailwind's `@layer theme` defaults regardless of order.
  *
  * ── The one thing that does NOT follow ──────────────────────────────────────
- * Tone-on-tone at the reference sites' own values breaks WCAG AA for body
- * text. Resolved deliberately and in one direction: the DECORATION may be as
- * quiet as the house wants, the INTERACTIVE text may not. Every ramp below is
- * built so the tokens the form uses (text-primary / text-secondary on
+ * Tone-on-tone at the reference landscapes' own values breaks WCAG AA for
+ * body text. Resolved deliberately and in one direction: the DECORATION may be
+ * as quiet as the house wants, the INTERACTIVE text may not. Every ramp below
+ * is built so the tokens the form uses (text-primary / text-secondary on
  * surface-base) still clear AA, while the flourishes go as soft as they like.
- * `--color-neutral-0…950` therefore spans a compressed, shifted range instead
- * of the usual near-white-to-near-black.
  */
 
 /* ═══════════════════════════════════════════════════════════════════════════
-   IMMERSION — a saturated violet fills the entire viewport. No white anywhere.
-   The one that proves the ground can be the brand.
+   CALA — whitewash over a shallow bay. Overexposed; the shadows are blue.
+   The one that proves a light page needs no grey: its dark end is sea shadow.
    ═══════════════════════════════════════════════════════════════════════════ */
-[data-livery='immersion'] {
-  /* `dark` because the ground is mid-dark and the type sits light on it. The
-     app ships no `dark:` variant — the library's light-dark() pairs do it. */
-  color-scheme: dark;
+:root[data-livery='cala'],
+[data-livery='cala'] {
+  color-scheme: light;
 
-  /* A violet ramp, not a grey one. Chroma 0.06–0.15 across the whole chassis:
-     there is no neutral left in the system, which is the entire point. */
-  --color-neutral-0: oklch(0.97 0.025 300);
-  --color-neutral-25: oklch(0.95 0.035 300);
-  --color-neutral-50: oklch(0.93 0.045 300);
-  --color-neutral-100: oklch(0.91 0.055 300);
-  --color-neutral-200: oklch(0.86 0.07 300);
-  --color-neutral-300: oklch(0.8 0.085 300);
-  --color-neutral-400: oklch(0.72 0.1 300);
-  --color-neutral-500: oklch(0.64 0.115 300);
-  --color-neutral-600: oklch(0.58 0.13 300);
-  --color-neutral-650: oklch(0.55 0.135 300);
-  --color-neutral-700: oklch(0.52 0.14 300);
-  --color-neutral-750: oklch(0.48 0.145 300);
-  /* surface-elevated in dark = neutral-800; kept just off the base so cards
-     lift by a hair rather than by a step. */
-  --color-neutral-800: oklch(0.45 0.145 300);
-  --color-neutral-850: oklch(0.43 0.15 300);
-  /* surface-base in dark. The house colour. */
-  --color-neutral-900: oklch(0.41 0.15 300);
-  --color-neutral-950: oklch(0.3 0.13 300);
+  /* The chassis drifts: chalk-warm at the light end, shadow-blue at the dark
+     end. There is no neutral grey anywhere between them — every mid tone is
+     already a shadow, which is what a bay at noon actually looks like. */
+  --color-neutral-0: oklch(0.976 0.006 90);
+  --color-neutral-25: oklch(0.97 0.006 90);
+  --color-neutral-50: oklch(0.963 0.007 88);
+  --color-neutral-100: oklch(0.95 0.008 85);
+  --color-neutral-200: oklch(0.91 0.012 75);
+  --color-neutral-300: oklch(0.83 0.02 260);
+  --color-neutral-400: oklch(0.67 0.032 255);
+  --color-neutral-500: oklch(0.54 0.042 252);
+  --color-neutral-600: oklch(0.44 0.048 250);
+  --color-neutral-650: oklch(0.4 0.05 250);
+  --color-neutral-700: oklch(0.36 0.052 250);
+  --color-neutral-750: oklch(0.32 0.052 250);
+  --color-neutral-800: oklch(0.29 0.052 250);
+  --color-neutral-850: oklch(0.27 0.05 250);
+  --color-neutral-900: oklch(0.26 0.05 250);
+  --color-neutral-950: oklch(0.18 0.04 250);
 
-  /* Chalk — the only near-white in the house, and it is still violet. */
-  --color-primary-50: oklch(0.98 0.015 300);
-  --color-primary-100: oklch(0.96 0.02 300);
-  --color-primary-200: oklch(0.94 0.03 300);
-  --color-primary-300: oklch(0.92 0.04 300);
-  --color-primary-400: oklch(0.9 0.05 300);
-  --color-primary-500: oklch(0.93 0.045 300);
-  --color-primary-600: oklch(0.9 0.055 300);
-  --color-primary-700: oklch(0.86 0.07 300);
-  --color-primary-800: oklch(0.8 0.085 300);
-  --color-primary-900: oklch(0.7 0.1 300);
-  --color-primary-950: oklch(0.55 0.12 300);
+  /* Sea ink — the one committed colour, for the one committed act. */
+  --color-primary-50: oklch(0.95 0.02 245);
+  --color-primary-100: oklch(0.9 0.035 245);
+  --color-primary-200: oklch(0.82 0.05 246);
+  --color-primary-300: oklch(0.72 0.07 247);
+  --color-primary-400: oklch(0.6 0.085 248);
+  --color-primary-500: oklch(0.48 0.095 250);
+  --color-primary-600: oklch(0.42 0.09 250);
+  --color-primary-700: oklch(0.36 0.08 251);
+  --color-primary-800: oklch(0.3 0.07 252);
+  --color-primary-900: oklch(0.25 0.055 252);
+  --color-primary-950: oklch(0.18 0.04 252);
 
-  /* Second voice: a cold green that only ever appears as a hairline. */
-  --color-secondary-50: oklch(0.96 0.03 165);
-  --color-secondary-100: oklch(0.93 0.05 165);
-  --color-secondary-200: oklch(0.9 0.08 165);
-  --color-secondary-300: oklch(0.87 0.1 165);
-  --color-secondary-400: oklch(0.84 0.11 165);
-  --color-secondary-500: oklch(0.82 0.12 165);
-  --color-secondary-600: oklch(0.76 0.12 165);
-  --color-secondary-700: oklch(0.64 0.11 165);
-  --color-secondary-800: oklch(0.5 0.09 165);
-  --color-secondary-900: oklch(0.38 0.07 165);
-  --color-secondary-950: oklch(0.26 0.05 165);
+  /* Shallow water over sand — a green-turquoise that only ever appears as a
+     hairline, never as a fill. */
+  --color-secondary-50: oklch(0.96 0.02 190);
+  --color-secondary-100: oklch(0.93 0.035 190);
+  --color-secondary-200: oklch(0.88 0.05 190);
+  --color-secondary-300: oklch(0.82 0.065 190);
+  --color-secondary-400: oklch(0.76 0.075 190);
+  --color-secondary-500: oklch(0.71 0.08 190);
+  --color-secondary-600: oklch(0.62 0.078 191);
+  --color-secondary-700: oklch(0.52 0.07 192);
+  --color-secondary-800: oklch(0.42 0.058 193);
+  --color-secondary-900: oklch(0.33 0.045 194);
+  --color-secondary-950: oklch(0.22 0.03 195);
 
-  --radius-xs: 0px;
-  --radius-sm: 0px;
-  --radius-md: 0px;
-  --radius-lg: 0px;
-  --radius-xl: 0px;
-  --radius-2xl: 0px;
-  --radius-3xl: 0px;
-  --radius-4xl: 0px;
-  --radius-modify: 0px;
-  --radius-commit: 0px;
-  --radius-contain: 0px;
-  --radius-bridge: 0px;
+  /* Soft arches, and a full pill on the commit tier: the house is built from
+     curves. The radio indicator is safe — it has its own token since #47. */
+  --radius-xs: 2px;
+  --radius-sm: 4px;
+  --radius-md: 6px;
+  --radius-lg: 10px;
+  --radius-xl: 12px;
+  --radius-2xl: 16px;
+  --radius-3xl: 20px;
+  --radius-4xl: 24px;
+  --radius-modify: 6px;
+  --radius-commit: 999px;
+  --radius-contain: 14px;
+  --radius-bridge: 10px;
 
-  --livery-display: 'Futura', 'Avenir Next', 'Century Gothic', system-ui, sans-serif;
-  --livery-body: 'Avenir Next', 'Helvetica Neue', system-ui, sans-serif;
-  --livery-display-weight: 500;
-  --livery-display-tracking: 0.02em;
+  --livery-display: 'Seravek', 'Optima', 'Gill Sans', system-ui, sans-serif;
+  --livery-body: 'Seravek', 'Avenir Next', system-ui, sans-serif;
+  --livery-display-weight: 300;
+  --livery-display-tracking: 0.3em;
   --livery-display-transform: uppercase;
-  --livery-label-tracking: 0.2em;
+  --livery-display-style: normal;
+  --livery-label-tracking: 0.18em;
   --livery-label-transform: uppercase;
-  /* Blurred light, the way a gradient mesh sits under the reference. */
+  /* Overexposure: a wash of white light from above, a breath of sea shadow
+     rising from below the fold. No texture — whitewash in the sun is flat. */
   --livery-ground:
-    radial-gradient(60% 50% at 20% 15%, oklch(0.52 0.16 310 / 0.9), transparent 70%),
-    radial-gradient(50% 45% at 85% 30%, oklch(0.34 0.14 285 / 0.85), transparent 70%),
-    radial-gradient(70% 60% at 60% 95%, oklch(0.56 0.13 330 / 0.55), transparent 70%);
+    radial-gradient(75% 55% at 50% 0%, oklch(0.99 0.004 90 / 0.9), transparent 70%),
+    radial-gradient(90% 40% at 50% 112%, oklch(0.84 0.024 255 / 0.4), transparent 72%);
   --livery-grain: none;
 }
 
 /* ═══════════════════════════════════════════════════════════════════════════
-   GRAIN — tinted off-white, visible noise, everything tiny and tracked out.
-   The one that proves near-zero contrast can still be a system.
+   FIRN — ink on old snow. Near-nothing; precision stands in for colour.
+   The one that proves emptiness can still be a system.
    ═══════════════════════════════════════════════════════════════════════════ */
-[data-livery='grain'] {
+:root[data-livery='firn'],
+[data-livery='firn'] {
   color-scheme: light;
 
-  /* Barely-there warm grey. The whole ramp lives in a narrow band at the top —
-     nothing in this house is ever black. */
-  --color-neutral-0: oklch(0.935 0.002 100);
-  --color-neutral-25: oklch(0.93 0.002 100);
-  --color-neutral-50: oklch(0.925 0.002 100);
-  --color-neutral-100: oklch(0.915 0.003 100);
-  --color-neutral-200: oklch(0.88 0.003 100);
-  --color-neutral-300: oklch(0.82 0.004 100);
-  --color-neutral-400: oklch(0.68 0.004 100);
-  --color-neutral-500: oklch(0.54 0.005 100);
-  --color-neutral-600: oklch(0.42 0.005 100);
-  --color-neutral-650: oklch(0.38 0.005 100);
-  --color-neutral-700: oklch(0.33 0.005 100);
-  --color-neutral-750: oklch(0.29 0.005 100);
-  --color-neutral-800: oklch(0.25 0.004 100);
-  --color-neutral-850: oklch(0.22 0.004 100);
-  --color-neutral-900: oklch(0.19 0.004 100);
-  --color-neutral-950: oklch(0.12 0.003 100);
+  /* Cold white through night-blue ink. The chroma never leaves a whisper —
+     the house is monochrome the way a snowfield at dusk is monochrome. */
+  --color-neutral-0: oklch(0.973 0.004 230);
+  --color-neutral-25: oklch(0.968 0.004 230);
+  --color-neutral-50: oklch(0.962 0.004 232);
+  --color-neutral-100: oklch(0.95 0.005 234);
+  --color-neutral-200: oklch(0.91 0.006 236);
+  --color-neutral-300: oklch(0.84 0.008 238);
+  --color-neutral-400: oklch(0.69 0.01 240);
+  --color-neutral-500: oklch(0.55 0.012 243);
+  --color-neutral-600: oklch(0.43 0.014 245);
+  --color-neutral-650: oklch(0.39 0.014 246);
+  --color-neutral-700: oklch(0.34 0.015 247);
+  --color-neutral-750: oklch(0.3 0.015 248);
+  --color-neutral-800: oklch(0.26 0.015 249);
+  --color-neutral-850: oklch(0.23 0.015 250);
+  --color-neutral-900: oklch(0.21 0.015 250);
+  --color-neutral-950: oklch(0.14 0.012 252);
 
-  --color-primary-50: oklch(0.93 0.002 100);
-  --color-primary-100: oklch(0.9 0.003 100);
-  --color-primary-200: oklch(0.84 0.004 100);
-  --color-primary-300: oklch(0.66 0.004 100);
-  --color-primary-400: oklch(0.44 0.005 100);
-  --color-primary-500: oklch(0.3 0.005 100);
-  --color-primary-600: oklch(0.19 0.004 100);
-  --color-primary-700: oklch(0.15 0.004 100);
-  --color-primary-800: oklch(0.13 0.003 100);
-  --color-primary-900: oklch(0.11 0.003 100);
-  --color-primary-950: oklch(0.09 0.002 100);
+  /* The ink again — a two-value house: snow, ink, and one line of ice. */
+  --color-primary-50: oklch(0.95 0.005 234);
+  --color-primary-100: oklch(0.91 0.006 236);
+  --color-primary-200: oklch(0.84 0.008 238);
+  --color-primary-300: oklch(0.66 0.011 241);
+  --color-primary-400: oklch(0.45 0.014 244);
+  --color-primary-500: oklch(0.32 0.015 247);
+  --color-primary-600: oklch(0.21 0.015 250);
+  --color-primary-700: oklch(0.18 0.014 250);
+  --color-primary-800: oklch(0.16 0.013 251);
+  --color-primary-900: oklch(0.13 0.012 251);
+  --color-primary-950: oklch(0.1 0.01 252);
 
-  /* A single dusty rose, used once per screen at most. */
-  --color-secondary-50: oklch(0.95 0.015 20);
-  --color-secondary-100: oklch(0.92 0.025 20);
-  --color-secondary-200: oklch(0.87 0.04 20);
-  --color-secondary-300: oklch(0.79 0.055 20);
-  --color-secondary-400: oklch(0.68 0.07 20);
-  --color-secondary-500: oklch(0.57 0.08 20);
-  --color-secondary-600: oklch(0.48 0.075 20);
-  --color-secondary-700: oklch(0.4 0.065 20);
-  --color-secondary-800: oklch(0.32 0.05 20);
-  --color-secondary-900: oklch(0.25 0.04 20);
-  --color-secondary-950: oklch(0.17 0.025 20);
+  /* Glacier ice — cold cyan-green, rationed to hairlines and the one rule. */
+  --color-secondary-50: oklch(0.96 0.025 200);
+  --color-secondary-100: oklch(0.93 0.045 200);
+  --color-secondary-200: oklch(0.89 0.06 199);
+  --color-secondary-300: oklch(0.84 0.075 198);
+  --color-secondary-400: oklch(0.79 0.082 197);
+  --color-secondary-500: oklch(0.74 0.085 196);
+  --color-secondary-600: oklch(0.64 0.08 196);
+  --color-secondary-700: oklch(0.53 0.07 197);
+  --color-secondary-800: oklch(0.42 0.055 198);
+  --color-secondary-900: oklch(0.32 0.042 199);
+  --color-secondary-950: oklch(0.21 0.028 200);
 
   --radius-xs: 0px;
   --radius-sm: 0px;
@@ -188,75 +196,89 @@
   --radius-contain: 0px;
   --radius-bridge: 0px;
 
-  --livery-display: 'Helvetica Neue', 'Inter', system-ui, sans-serif;
-  --livery-body: 'Helvetica Neue', 'Inter', system-ui, sans-serif;
-  --livery-display-weight: 300;
-  --livery-display-tracking: 0.42em;
+  /* Signage type — the condensed face of mountain-railway wayfinding. */
+  --livery-display: 'Avenir Next Condensed', 'Arial Narrow', 'Helvetica Neue', sans-serif;
+  --livery-body: 'Avenir Next', 'Helvetica Neue', system-ui, sans-serif;
+  --livery-display-weight: 500;
+  --livery-display-tracking: 0.05em;
   --livery-display-transform: uppercase;
-  --livery-label-tracking: 0.24em;
+  --livery-display-style: normal;
+  --livery-label-tracking: 0.28em;
   --livery-label-transform: uppercase;
-  --livery-ground: none;
-  /* Film grain as an inline SVG turbulence — texture without an asset. */
-  --livery-grain: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='140' height='140'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='3'/%3E%3C/filter%3E%3Crect width='140' height='140' filter='url(%23n)' opacity='0.42'/%3E%3C/svg%3E");
-  --livery-grain-blend: multiply;
-  --livery-grain-opacity: 0.22;
+  /* Contour lines around a summit somewhere past the top-right corner —
+     topography instead of texture, drawn at the edge of visibility. The cold
+     light radial keeps the rings from reading as a printed pattern. */
+  --livery-ground:
+    radial-gradient(60% 50% at 30% 0%, oklch(0.99 0.003 230 / 0.9), transparent 70%),
+    repeating-radial-gradient(
+      circle at 88% -14%,
+      transparent 0 46px,
+      oklch(0.32 0.02 246 / 0.05) 46px 47px
+    );
+  --livery-grain: none;
 }
 
 /* ═══════════════════════════════════════════════════════════════════════════
-   LACQUER — black and gold, a classical serif, everything symmetrical.
-   The one that proves a two-colour house needs no third.
+   MORI — a cedar house at dusk. Paper type on forest ground, one lantern.
+   The one that proves a dark theme needs neither black nor an acid accent.
    ═══════════════════════════════════════════════════════════════════════════ */
-[data-livery='lacquer'] {
+:root[data-livery='mori'],
+[data-livery='mori'] {
   color-scheme: dark;
 
-  /* Warm black through to warm bone. The chassis carries a trace of the gold
-     so nothing on screen is ever a cold grey. */
-  --color-neutral-0: oklch(0.97 0.015 85);
-  --color-neutral-25: oklch(0.95 0.018 85);
-  --color-neutral-50: oklch(0.93 0.02 85);
-  --color-neutral-100: oklch(0.9 0.025 85);
-  --color-neutral-200: oklch(0.83 0.03 85);
-  --color-neutral-300: oklch(0.75 0.035 85);
-  --color-neutral-400: oklch(0.62 0.04 85);
-  --color-neutral-500: oklch(0.5 0.035 85);
-  --color-neutral-600: oklch(0.4 0.03 85);
-  --color-neutral-650: oklch(0.35 0.028 85);
-  --color-neutral-700: oklch(0.3 0.025 85);
-  --color-neutral-750: oklch(0.24 0.02 85);
-  --color-neutral-800: oklch(0.19 0.016 85);
-  --color-neutral-850: oklch(0.15 0.013 85);
-  --color-neutral-900: oklch(0.115 0.011 85);
-  --color-neutral-950: oklch(0.06 0.008 85);
+  /* The chassis drifts along the ramp: washi-warm paper at the light end,
+     cedar green at the dark end — paper in the light, forest in the shade.
+     Chroma stays present at every step; nothing here is ever grey OR black. */
+  --color-neutral-0: oklch(0.95 0.018 95);
+  --color-neutral-25: oklch(0.93 0.02 95);
+  --color-neutral-50: oklch(0.91 0.022 98);
+  --color-neutral-100: oklch(0.88 0.024 100);
+  --color-neutral-200: oklch(0.8 0.026 110);
+  --color-neutral-300: oklch(0.7 0.03 125);
+  --color-neutral-400: oklch(0.6 0.035 140);
+  --color-neutral-500: oklch(0.5 0.04 148);
+  --color-neutral-600: oklch(0.42 0.045 152);
+  --color-neutral-650: oklch(0.39 0.045 154);
+  --color-neutral-700: oklch(0.36 0.048 155);
+  --color-neutral-750: oklch(0.33 0.048 156);
+  /* surface-elevated in dark = neutral-800; a shoji panel, one shade lighter
+     than the room behind it. */
+  --color-neutral-800: oklch(0.3 0.05 156);
+  --color-neutral-850: oklch(0.285 0.05 157);
+  /* surface-base in dark. The cedar dusk itself. */
+  --color-neutral-900: oklch(0.27 0.05 158);
+  --color-neutral-950: oklch(0.18 0.04 160);
 
-  /* Gold. In dark mode the library fills with primary-500 and writes
-     neutral-900 on it — so 500 must stay light enough to carry near-black. */
-  --color-primary-50: oklch(0.96 0.04 88);
-  --color-primary-100: oklch(0.93 0.07 88);
-  --color-primary-200: oklch(0.89 0.1 88);
-  --color-primary-300: oklch(0.86 0.12 88);
-  --color-primary-400: oklch(0.83 0.13 88);
-  --color-primary-500: oklch(0.81 0.135 88);
-  --color-primary-600: oklch(0.72 0.13 88);
-  --color-primary-700: oklch(0.6 0.11 88);
-  --color-primary-800: oklch(0.47 0.09 88);
-  --color-primary-900: oklch(0.35 0.07 88);
-  --color-primary-950: oklch(0.22 0.045 88);
+  /* The lantern — warm, small, and the only bright thing in the house. In
+     dark mode the library fills with primary-500 and writes neutral-900 on
+     it, so 500 must stay light enough to carry the cedar-dark text. */
+  --color-primary-50: oklch(0.97 0.02 85);
+  --color-primary-100: oklch(0.95 0.035 82);
+  --color-primary-200: oklch(0.92 0.055 80);
+  --color-primary-300: oklch(0.89 0.07 78);
+  --color-primary-400: oklch(0.87 0.085 76);
+  --color-primary-500: oklch(0.84 0.1 75);
+  --color-primary-600: oklch(0.76 0.1 72);
+  --color-primary-700: oklch(0.65 0.09 70);
+  --color-primary-800: oklch(0.52 0.08 68);
+  --color-primary-900: oklch(0.4 0.06 66);
+  --color-primary-950: oklch(0.26 0.04 64);
 
-  /* There is no third colour. Secondary is the same gold, one step quieter —
-     a house this strict would rather repeat itself than introduce a hue. */
-  --color-secondary-50: oklch(0.95 0.03 80);
-  --color-secondary-100: oklch(0.92 0.05 80);
-  --color-secondary-200: oklch(0.87 0.07 80);
-  --color-secondary-300: oklch(0.82 0.085 80);
-  --color-secondary-400: oklch(0.78 0.095 80);
-  --color-secondary-500: oklch(0.75 0.1 80);
-  --color-secondary-600: oklch(0.66 0.095 80);
-  --color-secondary-700: oklch(0.55 0.085 80);
-  --color-secondary-800: oklch(0.43 0.07 80);
-  --color-secondary-900: oklch(0.32 0.05 80);
-  --color-secondary-950: oklch(0.2 0.035 80);
+  /* Moss — the second green, one register brighter than the ground, used the
+     way moss appears: in patches, never as a field. */
+  --color-secondary-50: oklch(0.95 0.03 135);
+  --color-secondary-100: oklch(0.92 0.05 135);
+  --color-secondary-200: oklch(0.87 0.065 134);
+  --color-secondary-300: oklch(0.81 0.075 134);
+  --color-secondary-400: oklch(0.76 0.08 133);
+  --color-secondary-500: oklch(0.72 0.082 133);
+  --color-secondary-600: oklch(0.63 0.078 132);
+  --color-secondary-700: oklch(0.52 0.068 131);
+  --color-secondary-800: oklch(0.41 0.055 130);
+  --color-secondary-900: oklch(0.31 0.042 129);
+  --color-secondary-950: oklch(0.2 0.028 128);
 
-  /* Not square: this house is old, and old things have a little softness. */
+  /* Old timber softness: not square, never round. */
   --radius-xs: 1px;
   --radius-sm: 2px;
   --radius-md: 2px;
@@ -270,98 +292,115 @@
   --radius-contain: 2px;
   --radius-bridge: 2px;
 
-  --livery-display: 'Hoefler Text', 'Baskerville', 'Times New Roman', serif;
-  --livery-body: 'Hoefler Text', 'Baskerville', 'Times New Roman', serif;
-  --livery-display-weight: 400;
-  --livery-display-tracking: 0.06em;
+  /* Mincho — a Japanese serif whose Latin carries the same brush logic. No
+     uppercase anywhere: Mincho set in caps loses exactly the calm it is for. */
+  --livery-display: 'Hiragino Mincho ProN', 'Yu Mincho', 'Baskerville', 'Times New Roman', serif;
+  --livery-body: 'Hiragino Sans', 'Avenir Next', system-ui, sans-serif;
+  --livery-display-weight: 300;
+  --livery-display-tracking: 0.08em;
   --livery-display-transform: none;
-  --livery-label-tracking: 0.18em;
-  --livery-label-transform: uppercase;
-  --livery-ground: radial-gradient(80% 60% at 50% 0%, oklch(0.2 0.03 88 / 0.75), transparent 75%);
-  --livery-grain: none;
+  --livery-display-style: normal;
+  --livery-label-tracking: 0.16em;
+  --livery-label-transform: none;
+  /* Two clearings in the dusk, and one small warm pool top-right: the
+     lantern. It is the only warm light in the ground — pointed, not a flood. */
+  --livery-ground:
+    radial-gradient(50% 42% at 18% 8%, oklch(0.33 0.055 150 / 0.9), transparent 70%),
+    radial-gradient(62% 52% at 85% 92%, oklch(0.21 0.045 162 / 0.9), transparent 70%),
+    radial-gradient(16% 12% at 80% 20%, oklch(0.52 0.075 80 / 0.32), transparent 70%);
+  --livery-grain: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='140' height='140'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='3'/%3E%3C/filter%3E%3Crect width='140' height='140' filter='url(%23n)' opacity='0.35'/%3E%3C/svg%3E");
+  --livery-grain-blend: overlay;
+  --livery-grain-opacity: 0.3;
 }
 
 /* ═══════════════════════════════════════════════════════════════════════════
-   VITRINE — a duotone film tone over everything, display serif at the edge.
-   The one that proves the ground can be an IMAGE rather than a colour.
+   DUNA — last light over the dune grass. The ground is a gradient, banded
+   like sand. The one that proves the ground can be a TIME of day.
    ═══════════════════════════════════════════════════════════════════════════ */
-[data-livery='vitrine'] {
+:root[data-livery='duna'],
+[data-livery='duna'] {
   color-scheme: dark;
 
-  /* Sepia: the whole chassis pulled towards a single warm hue, as if the page
-     were graded rather than coloured. */
-  --color-neutral-0: oklch(0.97 0.03 75);
-  --color-neutral-25: oklch(0.95 0.035 75);
-  --color-neutral-50: oklch(0.93 0.04 75);
-  --color-neutral-100: oklch(0.91 0.045 75);
-  --color-neutral-200: oklch(0.85 0.055 75);
-  --color-neutral-300: oklch(0.77 0.065 72);
-  --color-neutral-400: oklch(0.64 0.07 70);
-  --color-neutral-500: oklch(0.52 0.07 68);
-  --color-neutral-600: oklch(0.42 0.065 65);
-  --color-neutral-650: oklch(0.37 0.06 65);
-  --color-neutral-700: oklch(0.32 0.055 62);
-  --color-neutral-750: oklch(0.27 0.05 60);
-  --color-neutral-800: oklch(0.23 0.045 58);
-  --color-neutral-850: oklch(0.2 0.04 58);
-  --color-neutral-900: oklch(0.17 0.035 58);
-  --color-neutral-950: oklch(0.1 0.025 58);
+  /* Evening earth: sand-lit at the top of the ramp, peat-warm at the bottom.
+     Everything keeps the same warm hue family — the page is one hour of one
+     evening, not a palette. */
+  --color-neutral-0: oklch(0.94 0.02 60);
+  --color-neutral-25: oklch(0.92 0.022 58);
+  --color-neutral-50: oklch(0.9 0.024 56);
+  --color-neutral-100: oklch(0.87 0.026 54);
+  --color-neutral-200: oklch(0.8 0.03 52);
+  --color-neutral-300: oklch(0.71 0.035 50);
+  --color-neutral-400: oklch(0.61 0.04 48);
+  --color-neutral-500: oklch(0.52 0.044 46);
+  --color-neutral-600: oklch(0.45 0.045 45);
+  --color-neutral-650: oklch(0.41 0.044 44);
+  --color-neutral-700: oklch(0.38 0.043 43);
+  --color-neutral-750: oklch(0.34 0.041 42);
+  --color-neutral-800: oklch(0.31 0.04 41);
+  --color-neutral-850: oklch(0.29 0.039 41);
+  --color-neutral-900: oklch(0.27 0.038 40);
+  --color-neutral-950: oklch(0.17 0.03 38);
 
-  /* Brass, lifted out of the same grade. */
-  --color-primary-50: oklch(0.96 0.03 80);
-  --color-primary-100: oklch(0.93 0.05 80);
-  --color-primary-200: oklch(0.9 0.08 80);
-  --color-primary-300: oklch(0.87 0.1 78);
-  --color-primary-400: oklch(0.84 0.11 78);
-  --color-primary-500: oklch(0.82 0.12 78);
-  --color-primary-600: oklch(0.73 0.115 78);
-  --color-primary-700: oklch(0.61 0.1 76);
-  --color-primary-800: oklch(0.48 0.085 74);
-  --color-primary-900: oklch(0.36 0.065 72);
-  --color-primary-950: oklch(0.23 0.04 70);
+  /* The glow behind the crest — rosé gold, carrying dark text when filled. */
+  --color-primary-50: oklch(0.96 0.025 55);
+  --color-primary-100: oklch(0.93 0.04 52);
+  --color-primary-200: oklch(0.9 0.06 50);
+  --color-primary-300: oklch(0.87 0.075 48);
+  --color-primary-400: oklch(0.84 0.09 47);
+  --color-primary-500: oklch(0.81 0.1 45);
+  --color-primary-600: oklch(0.73 0.105 43);
+  --color-primary-700: oklch(0.62 0.1 40);
+  --color-primary-800: oklch(0.5 0.085 38);
+  --color-primary-900: oklch(0.38 0.065 36);
+  --color-primary-950: oklch(0.25 0.045 34);
 
-  /* Cool counter-tone — the shadow side of the grade. */
-  --color-secondary-50: oklch(0.95 0.02 230);
-  --color-secondary-100: oklch(0.91 0.035 230);
-  --color-secondary-200: oklch(0.86 0.05 230);
-  --color-secondary-300: oklch(0.8 0.065 230);
-  --color-secondary-400: oklch(0.74 0.075 230);
-  --color-secondary-500: oklch(0.7 0.08 230);
-  --color-secondary-600: oklch(0.61 0.08 230);
-  --color-secondary-700: oklch(0.5 0.07 230);
-  --color-secondary-800: oklch(0.39 0.055 230);
-  --color-secondary-900: oklch(0.29 0.04 230);
-  --color-secondary-950: oklch(0.18 0.025 230);
+  /* Dune grass — a dry, silvery green; the counter-tone to the glow. */
+  --color-secondary-50: oklch(0.95 0.025 120);
+  --color-secondary-100: oklch(0.92 0.04 120);
+  --color-secondary-200: oklch(0.87 0.052 121);
+  --color-secondary-300: oklch(0.81 0.06 122);
+  --color-secondary-400: oklch(0.75 0.063 122);
+  --color-secondary-500: oklch(0.7 0.065 123);
+  --color-secondary-600: oklch(0.61 0.062 124);
+  --color-secondary-700: oklch(0.51 0.055 125);
+  --color-secondary-800: oklch(0.4 0.045 126);
+  --color-secondary-900: oklch(0.3 0.035 127);
+  --color-secondary-950: oklch(0.2 0.024 128);
 
-  --radius-xs: 0px;
-  --radius-sm: 0px;
-  --radius-md: 0px;
-  --radius-lg: 0px;
-  --radius-xl: 0px;
-  --radius-2xl: 0px;
-  --radius-3xl: 0px;
-  --radius-4xl: 0px;
-  --radius-modify: 0px;
-  --radius-commit: 0px;
-  --radius-contain: 0px;
-  --radius-bridge: 0px;
+  /* Wind-worn: everything soft, the commit tier a full pill. */
+  --radius-xs: 4px;
+  --radius-sm: 6px;
+  --radius-md: 8px;
+  --radius-lg: 12px;
+  --radius-xl: 16px;
+  --radius-2xl: 20px;
+  --radius-3xl: 24px;
+  --radius-4xl: 28px;
+  --radius-modify: 8px;
+  --radius-commit: 999px;
+  --radius-contain: 18px;
+  --radius-bridge: 12px;
 
-  --livery-display: 'Bodoni 72', 'Didot', 'Playfair Display', Georgia, serif;
-  --livery-body: 'Avenir Next', 'Helvetica Neue', system-ui, sans-serif;
+  /* An old-style serif in ITALIC — the lean of grass in an onshore wind. The
+     house writes itself lowercase; the evening does not raise its voice. */
+  --livery-display: 'Iowan Old Style', 'Palatino', Georgia, serif;
+  --livery-body: 'Avenir Next', 'Seravek', system-ui, sans-serif;
   --livery-display-weight: 400;
-  --livery-display-tracking: -0.02em;
-  --livery-display-transform: uppercase;
-  --livery-label-tracking: 0.16em;
+  --livery-display-tracking: 0em;
+  --livery-display-transform: lowercase;
+  --livery-display-style: italic;
+  --livery-label-tracking: 0.14em;
   --livery-label-transform: uppercase;
-  /* Studio light rather than a photograph: a warm key from the upper left,
-     a cool fill from the right, deep falloff into the corners. */
+  /* The evening, in three bands: dark sky settling from above, the glow low
+     behind the crest (at the horizon line the layout draws), sand shadow
+     rising from the bottom edge. */
   --livery-ground:
-    radial-gradient(55% 45% at 22% 8%, oklch(0.55 0.1 78 / 0.85), transparent 70%),
-    radial-gradient(45% 40% at 88% 35%, oklch(0.3 0.06 230 / 0.7), transparent 72%),
-    radial-gradient(90% 70% at 50% 110%, oklch(0.12 0.03 58 / 0.95), transparent 70%);
+    linear-gradient(oklch(0.19 0.028 42 / 0.9) 0%, transparent 42%),
+    radial-gradient(72% 46% at 50% 76%, oklch(0.56 0.12 45 / 0.5), transparent 70%),
+    linear-gradient(to top, oklch(0.22 0.032 40 / 0.95) 0%, transparent 28%);
   --livery-grain: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='120' height='120'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2'/%3E%3C/filter%3E%3Crect width='120' height='120' filter='url(%23n)' opacity='0.28'/%3E%3C/svg%3E");
   --livery-grain-blend: overlay;
-  --livery-grain-opacity: 0.5;
+  --livery-grain-opacity: 0.45;
 }
 
 /* ═══════════════════════════════════════════════════════════════════════════
@@ -373,7 +412,7 @@
  * The selectors above are attribute-only (`[data-livery='…']`, not
  * `:root[data-livery='…']`) so a house can be mounted on the document root OR
  * on any container. That is what lets one of these live as a tile inside a page
- * that has a look of its own — a violet dark house sitting in a light landing
+ * that has a look of its own — a cedar-dusk house sitting in a light landing
  * page without touching it.
  *
  * It works because `light-dark()` resolves against the NEAREST `color-scheme`,
@@ -433,9 +472,10 @@
   /* The blend mode has to follow the ground, not the other way round: on a
      dark field `overlay` lifts the grain into view, on a near-white one it
      does almost nothing (overlay lightens against a light backdrop) and
-     `multiply` is what actually bites. Measured, not guessed — the first pass
+     `multiply` is what actually bites. Measured, not guessed — an early pass
      shipped `overlay` for both and the light house had no visible texture at
-     all. */
+     all. (Cala and Firn carry no grain at all: whitewash in the sun and firn
+     snow are smooth; their texture budget went to the ground layers.) */
   mix-blend-mode: var(--livery-grain-blend, overlay);
   opacity: var(--livery-grain-opacity, 0.5);
 }
@@ -458,6 +498,7 @@
   font-family: var(--livery-display);
   font-weight: var(--livery-display-weight);
   letter-spacing: var(--livery-display-tracking);
+  font-style: var(--livery-display-style, normal);
 }
 
 /* The wordmark and section heads take the house's case; body copy never does. */

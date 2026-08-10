@@ -6,7 +6,7 @@
   // Livery zeigen, laden das CSS (in chat-demo lag es global in app.css).
   import '$lib/livery/liveries.css';
   import '$lib/livery/livery-shim.gen.css';
-  import SalonBooking from './SalonBooking.svelte';
+  import HotelBooking from './HotelBooking.svelte';
 
   /**
    * The chat/livery exhibit, as one self-contained tile.
@@ -15,7 +15,7 @@
    * three rules such a row needs:
    *
    * 1. **Self-contained.** The livery hangs off THIS element, not the document
-   *    root, so a violet dark house can sit inside a light page without
+   *    root, so a dusk-dark house can sit inside a light page without
    *    touching it. That works because `light-dark()` resolves against the
    *    nearest `color-scheme` — measured, not assumed. `isolation: isolate`
    *    (in liveries.css) keeps the grain layer's `mix-blend-mode` from
@@ -26,9 +26,9 @@
    *    viewport. Five live exhibits in one row would otherwise all boot at
    *    once, and a `Scroller` only ever shows one to three of them.
    *
-   * The tile deliberately carries NO composer and no salon chrome: it is a
-   * specimen, and the one gesture it offers is the livery switch — which is
-   * the thing being proven.
+   * The tile deliberately carries NO composer and no hotel chrome: it is a
+   * specimen, and the one gesture it offers is the house switch — which is
+   * the thing being proven: four sub-brands, one component library.
    */
 
   let {
@@ -84,7 +84,7 @@
 -->
 <div
   data-livery={livery.id}
-  class="flex h-full min-h-0 flex-col overflow-hidden rounded-contain border border-border-default bg-surface-base"
+  class="rounded-contain border-border-default bg-surface-base flex h-full min-h-0 flex-col overflow-hidden border"
   {@attach whenVisible}
 >
   <!--
@@ -103,30 +103,30 @@
     clear of the fade.
   -->
   <div class="relative min-h-0 flex-1">
-    <div class="stage h-full overflow-y-auto overflow-x-hidden pb-16">
+    <div class="stage h-full overflow-x-hidden overflow-y-auto pb-16">
       {#if mounted}
         <BlocksProvider defaults={livery.defaults}>
-          <SalonBooking instant autoStart composer={false} />
+          <HotelBooking instant autoStart composer={false} />
         </BlocksProvider>
       {/if}
     </div>
     <!-- Outside the scroller, so it stays put at the visual bottom edge: the
          faded surface reads as "continues" — and now it actually does. -->
     <div
-      class="pointer-events-none absolute inset-x-0 bottom-0 h-16 bg-gradient-to-t from-surface-base to-transparent"
+      class="from-surface-base pointer-events-none absolute inset-x-0 bottom-0 h-16 bg-gradient-to-t to-transparent"
       aria-hidden="true"
     ></div>
   </div>
 
   <!-- The one gesture. -->
-  <div class="flex flex-wrap items-center gap-2 border-t border-border-subtle px-4 py-3">
-    <span class="text-3xs uppercase tracking-[0.2em] text-text-tertiary">Livery</span>
-    <div class="flex flex-wrap gap-1.5" role="group" aria-label="Salon livery">
+  <div class="border-border-subtle flex flex-wrap items-center gap-2 border-t px-4 py-3">
+    <span class="text-3xs text-text-tertiary tracking-[0.2em] uppercase">House</span>
+    <div class="flex flex-wrap gap-1.5" role="group" aria-label="House">
       {#each LIVERIES as option (option.id)}
         <button
           type="button"
           class={[
-            'cursor-pointer rounded-modify border px-2.5 py-1 text-3xs uppercase tracking-[0.14em]',
+            'rounded-modify text-3xs cursor-pointer border px-2.5 py-1 tracking-[0.14em] uppercase',
             option.id === liveryId
               ? 'border-primary bg-primary text-text-on-primary'
               : 'border-border-default text-text-secondary hover:text-text-primary'

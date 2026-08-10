@@ -6,11 +6,16 @@
   import '$lib/livery/liveries.css';
   import '$lib/livery/livery-shim.gen.css';
   import '$lib/livery/layouts.css';
-  import SalonBooking from '$lib/salon/SalonBooking.svelte';
-  import { SALON_NAME, SERVICES, STYLISTS } from '$lib/salon-tools';
+  import HotelBooking from '$lib/hotel/HotelBooking.svelte';
+  import { GROUP_NAME, HOUSES, houseById, ROOM_TYPES } from '$lib/hotel-tools';
 
   /**
-   * One salon, four houses.
+   * One group, four houses — and here, unlike in the salon era, the switch
+   * changes the HOUSE, not just the paint: Cala, Firn, Mori and Duna are the
+   * sub-brands of Fermata (`$lib/hotel-tools`), which is the real shape of
+   * the livery pattern in the wild. Kicker, lede, facts and hosts follow the
+   * switch because livery ids ARE house ids; rooms and rates stay still
+   * because the group prices per type, not per house.
    *
    * Colour, edge, type and ground come from the active livery's design tokens;
    * where things sit comes from its `layout`. Both reach the page. Only the
@@ -19,14 +24,19 @@
    * component *names*, so the library can re-skin its output, but nobody can
    * re-compose it from the outside.
    *
-   * Nothing in this file styles that form. Nothing in the recorded payload
-   * does either.
+   * The recorded conversation is ONE conversation with the group's front desk
+   * (it asks for "quiet nights by the sea" and books Cala), whichever house
+   * the visitor is looking at — a group desk recommends a house, it does not
+   * re-book per skin. Nothing in this file styles that form. Nothing in the
+   * recorded payload does either.
    */
 
   let liveryId = $state(DEFAULT_LIVERY.id);
   const livery = $derived(liveryById(liveryId));
+  // Livery ids are house ids — the join the head comment promises.
+  const house = $derived(houseById(livery.id) ?? HOUSES[0]);
 
-  let booking: ReturnType<typeof SalonBooking> | undefined = $state();
+  let booking: ReturnType<typeof HotelBooking> | undefined = $state();
 
   // On the full page the livery hangs off the document root, so it also reaches
   // the parts a container cannot own: the scrollbar, form-control defaults and
@@ -45,31 +55,36 @@
     };
   });
 
-  const HOURS = [
-    { day: 'Tue – Fri', time: '10 — 20' },
-    { day: 'Saturday', time: '09 — 18' },
-    { day: 'Sun / Mon', time: 'Closed' }
+  /**
+   * The group's day, one rhythm for all four houses — a hotel that sells
+   * quiet publishes a day, not an amenity list.
+   */
+  const DAY = [
+    { time: '06 — 08', item: 'First light. The bath house opens' },
+    { time: 'till 12', item: 'Breakfast, unhurried' },
+    { time: '14 — 17', item: 'Quiet hours' },
+    { time: '20:00', item: 'One table, one sitting' }
   ];
-
-  const WEEKDAY_NAMES = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
-  const workdaysOf = (days: number[]) => days.map((d) => WEEKDAY_NAMES[d - 1]).join(' · ');
 
   // In the scatter house the wordmark is a rule of letters across the full
   // measure rather than a word; every other house renders it whole.
-  const letters = SALON_NAME.replace(/[^A-Za-z]/g, '')
-    .toUpperCase()
-    .split('');
+  const letters = $derived(
+    house.name
+      .replace(/[^A-Za-z]/g, '')
+      .toUpperCase()
+      .split('')
+  );
 </script>
 
 <!-- Not `SeoMeta`: it appends " – Urbicon UI" to every title, and this page is
-     a fiction — the salon the landing and the getting-started guide build their
-     examples around. The suffix would break it. The description says what the
-     page actually is, which the title deliberately does not. -->
+     a fiction — the hotel group the landing and the getting-started guide build
+     their examples around. The suffix would break it. The description says what
+     the page actually is, which the title deliberately does not. -->
 <svelte:head>
-  <title>{SALON_NAME} — Bleecker Street</title>
+  <title>{GROUP_NAME} — four quiet houses</title>
   <meta
     name="description"
-    content="A fictional salon site built entirely from Urbicon UI — the livery demo behind the examples on the landing page and in the getting-started guide."
+    content="A fictional hotel group built entirely from Urbicon UI — the livery demo behind the examples on the landing page and in the getting-started guide."
   />
 </svelte:head>
 
@@ -78,70 +93,69 @@
     <!-- ── Masthead ─────────────────────────────────────────────────────── -->
     <header class="bg-surface-base/80 sticky top-0 z-[var(--z-sticky)] backdrop-blur">
       <div class="mx-auto flex max-w-6xl items-baseline justify-between px-6 py-4">
-        <span class="livery-display text-base">{SALON_NAME}</span>
+        <span class="livery-display text-base">{GROUP_NAME}</span>
         <nav
-          aria-label="Salon"
+          aria-label="Hotel"
           class="text-2xs text-text-secondary flex gap-6 tracking-[0.2em] uppercase"
         >
-          <a class="hover:text-text-primary" href="#services">Services</a>
-          <a class="hover:text-text-primary" href="#room">The Room</a>
+          <a class="hover:text-text-primary" href="#rooms">Rooms</a>
+          <a class="hover:text-text-primary" href="#day">The day</a>
           <a class="hover:text-text-primary" href="#booking">Book</a>
         </nav>
       </div>
     </header>
 
-    <!-- ── Hero ─────────────────────────────────────────────────────────── -->
-    <section data-salon="hero" aria-label={SALON_NAME} class="mx-auto max-w-6xl px-6">
-      <p data-salon="kicker" class="text-2xs text-text-tertiary tracking-[0.32em] uppercase">
-        233 Bleecker Street · New York
+    <!-- ── Hero — the active house introduces itself ────────────────────── -->
+    <section data-house="hero" aria-label={house.name} class="mx-auto max-w-6xl px-6">
+      <p data-house="kicker" class="text-2xs text-text-tertiary tracking-[0.32em] uppercase">
+        {GROUP_NAME} · {house.place}
       </p>
 
-      <h1 data-salon="wordmark" class="livery-display text-text-primary">
+      <h1 data-house="wordmark" class="livery-display text-text-primary">
         {#if livery.layout === 'scatter'}
           {#each letters as letter, i (`${letter}-${i}`)}
             <span>{letter}</span>
           {/each}
         {:else}
-          {SALON_NAME}
+          {house.name}
         {/if}
       </h1>
 
-      <p data-salon="lede" class="text-text-secondary text-base leading-relaxed">
-        Six chairs, three cutters, no music you'd recognise. Booking runs about five months out —
-        the assistant finds what's actually free.
+      <p data-house="lede" class="text-text-secondary text-base leading-relaxed">
+        {house.line}
       </p>
 
       <a
-        data-salon="cta"
+        data-house="cta"
         href="#booking"
         class="text-2xs text-text-primary hover:text-text-secondary inline-block border-b border-current pb-1 tracking-[0.22em] uppercase"
       >
-        Find a chair ↓
+        Find a room ↓
       </a>
     </section>
 
-    <!-- ── Services ─────────────────────────────────────────────────────── -->
+    <!-- ── Rooms — the group's one price sheet ──────────────────────────── -->
     <section
-      data-salon="section"
-      id="services"
-      aria-labelledby="services-title"
+      data-house="section"
+      id="rooms"
+      aria-labelledby="rooms-title"
       class="border-border-subtle border-t"
     >
-      <div data-salon="section-body" class="mx-auto max-w-6xl px-6 py-20">
-        <h2 id="services-title" data-salon="section-head" class="livery-display mb-12 text-2xl">
-          Services
+      <div data-house="section-body" class="mx-auto max-w-6xl px-6 py-20">
+        <h2 id="rooms-title" data-house="section-head" class="livery-display mb-12 text-2xl">
+          Rooms
         </h2>
-        <ul data-salon="list" class="flex flex-col">
-          {#each SERVICES as service (service.id)}
+        <ul data-house="list" class="flex flex-col">
+          {#each ROOM_TYPES as room (room.id)}
             <li
               class="border-border-subtle flex items-baseline justify-between gap-6 border-b py-5"
             >
-              <span class="text-base">{service.label}</span>
+              <span class="text-base">{room.label}</span>
               <span class="flex shrink-0 items-baseline gap-6">
                 <span class="text-2xs text-text-tertiary tracking-[0.18em] uppercase">
-                  {service.minutes} min
+                  {room.line}
                 </span>
-                <span class="livery-display text-text-primary text-base">{service.price}</span>
+                <span class="livery-display text-text-primary text-base">€{room.price}</span>
               </span>
             </li>
           {/each}
@@ -149,39 +163,42 @@
       </div>
     </section>
 
-    <!-- ── The room ─────────────────────────────────────────────────────── -->
+    <!-- ── The day / the house ──────────────────────────────────────────── -->
     <section
-      data-salon="section"
-      id="room"
-      aria-labelledby="room-title"
+      data-house="section"
+      id="day"
+      aria-labelledby="day-title"
       class="border-border-subtle border-t"
     >
-      <div data-salon="section-body" class="mx-auto max-w-6xl px-6 py-20">
+      <div data-house="section-body" class="mx-auto max-w-6xl px-6 py-20">
         <div class="grid gap-16 sm:grid-cols-2">
           <div>
-            <h2 id="room-title" data-salon="section-head" class="livery-display mb-10 text-2xl">
-              The room
+            <h2 id="day-title" data-house="section-head" class="livery-display mb-10 text-2xl">
+              The day
             </h2>
-            <ul data-salon="list" class="flex flex-col gap-6">
-              {#each STYLISTS as stylist (stylist.id)}
+            <ul data-house="list" class="flex flex-col gap-6">
+              {#each DAY as entry (entry.time)}
                 <li class="flex items-baseline justify-between gap-4">
-                  <span class="livery-display text-xl">{stylist.name}</span>
                   <span class="text-2xs text-text-tertiary tracking-[0.18em] uppercase">
-                    {workdaysOf(stylist.workdays)}
+                    {entry.time}
                   </span>
+                  <span class="livery-display text-text-primary text-lg">{entry.item}</span>
                 </li>
               {/each}
             </ul>
           </div>
           <div>
-            <h2 data-salon="section-head" class="livery-display mb-10 text-2xl">Hours</h2>
-            <ul data-salon="list" class="flex flex-col gap-6">
-              {#each HOURS as entry (entry.day)}
+            <h2 data-house="section-head" class="livery-display mb-10 text-2xl">The house</h2>
+            <ul data-house="list" class="flex flex-col gap-6">
+              {#each house.facts as fact (fact)}
+                <li class="text-2xs text-text-tertiary tracking-[0.18em] uppercase">{fact}</li>
+              {/each}
+              {#each house.hosts as host (host.name)}
                 <li class="flex items-baseline justify-between gap-4">
+                  <span class="livery-display text-xl">{host.name}</span>
                   <span class="text-2xs text-text-tertiary tracking-[0.18em] uppercase">
-                    {entry.day}
+                    {host.status === 'busy' ? 'With guests' : 'At the desk'}
                   </span>
-                  <span class="livery-display text-text-primary text-lg">{entry.time}</span>
                 </li>
               {/each}
             </ul>
@@ -193,9 +210,9 @@
     <!-- ── Booking — the agent surface lives INSIDE the page ─────────────── -->
     <section id="booking" aria-labelledby="booking-title" class="border-border-subtle border-t">
       <div class="mx-auto max-w-3xl px-6 py-20">
-        <h2 id="booking-title" class="livery-display mb-4 text-2xl">Book a chair</h2>
+        <h2 id="booking-title" class="livery-display mb-4 text-2xl">Book a stay</h2>
         <p class="text-text-secondary mb-10 max-w-lg text-sm">
-          Tell the assistant what you want. It builds whatever form the answer needs — and the form
+          Tell the front desk what you need. It builds whatever form the answer takes — and the form
           belongs to this house, not to the model.
         </p>
 
@@ -212,7 +229,7 @@
               Reset
             </button>
           </div>
-          <SalonBooking bind:this={booking} />
+          <HotelBooking bind:this={booking} />
         </div>
 
         <button
@@ -229,10 +246,7 @@
       <div
         class="text-2xs text-text-tertiary mx-auto flex max-w-6xl flex-wrap items-baseline justify-between gap-4 px-6 py-10 tracking-[0.2em] uppercase"
       >
-        <!-- Der eine Gruppen-Marker der Vollseite: die Seite selbst IST das
-             Stammhaus (Kicker: 233 Bleecker St), die Landing erzählt die
-             Gruppe — der Footer schlägt die Brücke, mehr nicht. -->
-        <span>{SALON_NAME} · New York · London · Paris · Vienna</span>
+        <span>{GROUP_NAME} · {HOUSES.map((h) => h.name).join(' · ')}</span>
         <span>Built with @urbicon-ui/blocks</span>
       </div>
     </footer>
@@ -240,16 +254,16 @@
 
   <!-- ── The switch ───────────────────────────────────────────────────────
        Deliberately outside the page's own visual language: this is the demo
-       apparatus, not part of the salon. -->
+       apparatus, not part of the hotel. -->
   <div
     class="border-border-default bg-surface-elevated fixed inset-x-0 bottom-0 z-[var(--z-sticky)] border-t"
   >
     <div class="mx-auto flex max-w-6xl flex-wrap items-center gap-x-6 gap-y-2 px-6 py-3">
       <div class="flex min-w-0 shrink-0 flex-col">
-        <span class="text-2xs text-text-secondary tracking-[0.2em] uppercase">Livery</span>
+        <span class="text-2xs text-text-secondary tracking-[0.2em] uppercase">House</span>
         <span class="text-2xs text-text-tertiary truncate">{livery.tagline}</span>
       </div>
-      <div class="flex flex-wrap gap-2" role="group" aria-label="Livery">
+      <div class="flex flex-wrap gap-2" role="group" aria-label="House">
         {#each LIVERIES as option (option.id)}
           <button
             type="button"

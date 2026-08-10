@@ -1759,7 +1759,7 @@ Tokens switch light and dark automatically:
         </div>
       </div>
 
-      <!-- AvatarGroup ── 2×1 · the salon crew from the landing -->
+      <!-- AvatarGroup ── 2×1 · the hotel hosts from the landing -->
       <div class={cellWd} data-specimen="AvatarGroup">
         <a
           href={resolve('/blocks/components/avatar-group')}
@@ -1771,11 +1771,11 @@ Tokens switch light and dark automatically:
           <div class={demo}>
             <AvatarGroup
               items={[
-                { name: 'Io Nakamura' },
-                { name: 'Sable Adeyemi' },
-                { name: 'Ren Duval' },
-                { name: 'Mara Kovač' },
-                { name: 'Tomás Vidal' }
+                { name: 'Núria Pons' },
+                { name: 'Gian Caduff' },
+                { name: 'Aoi Takeda' },
+                { name: 'Inês Camacho' },
+                { name: 'Tomás Varela' }
               ]}
               max={4}
             />
