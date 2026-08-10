@@ -24,7 +24,7 @@
  */
 
 import { A2UI_ISSUE_CODES } from '../a2ui.types';
-import type { A2uiCatalogSpec } from '../a2ui-catalog';
+import type { A2uiCatalogSpec, A2uiComponentCheck } from '../a2ui-catalog';
 import { type A2uiComponentSpec, type A2uiPropSpec, lookupTable } from '../a2ui-registry';
 
 /**
@@ -879,7 +879,7 @@ export const urbiconA2uiCatalogSpec: A2uiCatalogSpec = {
   unsupportedComponents: UNSUPPORTED_URBICON_A2UI_COMPONENTS,
   ignoredProps: URBICON_A2UI_IGNORED_PROPS,
   flexContainers: new Set(['Row', 'Column']),
-  componentChecks: {
+  componentChecks: lookupTable<A2uiComponentCheck>({
     Text: ({ id, props, surfaceId, base }) => {
       const value = props.get('text');
       if (typeof value === 'string' && MARKDOWN_HINT_RE.test(value)) {
@@ -895,7 +895,7 @@ export const urbiconA2uiCatalogSpec: A2uiCatalogSpec = {
       }
       return [];
     }
-  }
+  })
 };
 
 /** The axis truth this registry couples to — re-exported for the drift test. */

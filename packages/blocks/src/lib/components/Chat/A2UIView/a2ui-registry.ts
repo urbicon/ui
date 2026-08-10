@@ -129,6 +129,23 @@ export function lookupTable<T>(entries: Record<string, T>): Readonly<Record<stri
 }
 
 /**
+ * Read one entry out of a lookup table by a key the PAYLOAD chose.
+ *
+ * `lookupTable` above hardens the tables this package ships, but `A2uiCatalog`
+ * is a documented extension point: a consumer registering their own catalog
+ * writes plain object literals, as anyone would, and their registry inherits
+ * from `Object.prototype` again. So the engine cannot rely on how a table was
+ * built — every lookup driven by payload text goes through here, and the two
+ * defences are deliberately redundant rather than alternatives.
+ */
+export function ownEntry<T>(
+  table: Readonly<Record<string, T>> | undefined,
+  key: string
+): T | undefined {
+  return table !== undefined && Object.hasOwn(table, key) ? table[key] : undefined;
+}
+
+/**
  * Props every component accepts (spread into each entry). `accessibility` maps
  * to ARIA; `weight` is flex-grow, honored only on a direct Row/Column child.
  */

@@ -33,7 +33,7 @@
   import { coerceText, dedupeOptions, splitDateTime } from '../a2ui-node-common';
   import type { A2uiNodeProps, A2uiRenderNode } from '../a2ui-render';
   import { bindingPointer, toInputString, toStringArray } from '../a2ui-render';
-  import { A2UI_SVG_PATH_RE } from '../a2ui-registry';
+  import { A2UI_SVG_PATH_RE, ownEntry } from '../a2ui-registry';
   import { URBICON_A2UI_REGISTRY } from './a2ui-urbicon-registry';
   import { a2uiUrbiconVariants } from './a2ui-urbicon.variants';
 
@@ -67,7 +67,7 @@
   const instance = $derived(node.instance);
   const nodeProps = $derived(instance?.props);
   const component = $derived(instance?.component ?? '');
-  const spec = $derived(component ? URBICON_A2UI_REGISTRY[component] : undefined);
+  const spec = $derived(ownEntry(URBICON_A2UI_REGISTRY, component));
 
   const missingRequired = $derived.by(() => {
     if (!spec || !instance) return false;
@@ -176,10 +176,14 @@
     }
     return undefined;
   });
-  const IconComp = $derived((iconName && context.icons[iconName]) || context.fallbackIcon);
+  // Both names can come from a `{path}` binding, i.e. an arbitrary string the
+  // validator never inspected — so these take own entries only (#134).
+  const IconComp = $derived(
+    (iconName && ownEntry(context.icons, iconName)) || context.fallbackIcon
+  );
   const emptyStateIcon = $derived.by(() => {
     const name = iconNameFrom('icon');
-    return name ? context.icons[name] : undefined;
+    return name ? ownEntry(context.icons, name) : undefined;
   });
 
   // ── Action (Button) ─────────────────────────────────────────────────────────

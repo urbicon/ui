@@ -6,8 +6,7 @@ import { exIncremental } from './__fixtures__/spec/ex_incremental';
 import { exLogin } from './__fixtures__/spec/ex_login';
 import { exSimpleText } from './__fixtures__/spec/ex_simple_text';
 import { A2UI_ISSUE_CODES, type A2uiValidationIssue } from './a2ui.types';
-import { basicA2uiCatalogSpec } from './a2ui-catalog';
-import { A2UI_REGISTRY } from './a2ui-registry';
+import { type A2uiCatalogSpec, basicA2uiCatalogSpec } from './a2ui-catalog';
 import {
   type A2uiProcessor,
   type A2uiSurfaceState,
@@ -15,6 +14,7 @@ import {
   createA2uiProcessor,
   normalizeA2uiPayload
 } from './a2ui-validate';
+import { urbiconA2uiCatalogSpec } from './urbicon/a2ui-urbicon-registry';
 
 // ── Helpers ──────────────────────────────────────────────────────────────────
 
@@ -397,14 +397,105 @@ describe('hostile fixtures never throw and produce the expected issues', () => {
     expect(root?.props.get('text')).toBe('hi');
   });
 
-  it('no lookup table on the A2UI path inherits from Object.prototype', () => {
+  it('no lookup table in a SHIPPED catalog inherits from Object.prototype', () => {
     // The guarantee behind the four fixtures above, asserted structurally: a
     // per-attack test only covers the names someone thought to write down.
-    expect(Object.getPrototypeOf(A2UI_REGISTRY)).toBe(null);
-    expect(Object.getPrototypeOf(basicA2uiCatalogSpec.componentChecks)).toBe(null);
-    for (const [name, spec] of Object.entries(A2UI_REGISTRY)) {
-      expect(Object.getPrototypeOf(spec.props), `${name}.props`).toBe(null);
+    //
+    // Enumerated from the catalogs rather than listed by hand, because the first
+    // version of this test named three tables, passed, and left a fourth
+    // (`urbicon.componentChecks`) inheriting in the tree — the very drift it
+    // exists to catch. Both catalogs, every `props` table, both icon maps.
+    const specs = [basicA2uiCatalogSpec, urbiconA2uiCatalogSpec];
+    const tables: Array<[string, object | undefined]> = [];
+
+    for (const spec of specs) {
+      tables.push([`${spec.catalogId} registry`, spec.registry]);
+      tables.push([`${spec.catalogId} componentChecks`, spec.componentChecks]);
+      for (const [name, component] of Object.entries(spec.registry)) {
+        tables.push([`${spec.catalogId} ${name}.props`, component.props]);
+      }
     }
+    // The icon maps are NOT enumerable here: `createIcons` is a factory that
+    // must run during component init (`resolveIcon` reads context), so it throws
+    // outside one. They are covered in `A2UIView.svelte.test.ts`, where a
+    // mounted view exercises the lookup that actually consumes them.
+
+    // A guard that measures nothing is the failure mode being avoided here.
+    expect(tables.length).toBeGreaterThan(40);
+    for (const [label, table] of tables) {
+      if (table === undefined) continue;
+      expect(Object.getPrototypeOf(table), label).toBe(null);
+    }
+  });
+
+  // F3 from the adversarial review, and the reason the engine does not trust how
+  // a table was built: `A2uiCatalog` is a documented extension point, so a
+  // consumer registering their own catalog writes plain object literals — as
+  // anyone would — and #134 reproduced line-for-line against it. Hardening the
+  // tables this package ships closed the instance; guarding the lookup closes
+  // the class.
+  describe('a consumer catalog built from plain object literals', () => {
+    /** Deliberately NOT via `lookupTable` — this is the consumer's code. */
+    const consumerCatalog: A2uiCatalogSpec = {
+      catalogId: 'consumer/test',
+      registry: {
+        Note: { description: 'A note', props: { text: { kind: 'string', description: 'Body' } } }
+      },
+      iconNames: [],
+      unsupportedComponents: new Set(),
+      ignoredProps: new Set(),
+      flexContainers: new Set(),
+      componentChecks: {}
+    };
+
+    function applyTo(envelopes: readonly unknown[]) {
+      const proc = createA2uiProcessor({ catalogs: [consumerCatalog] });
+      envelopes.forEach((envelope, index) => {
+        proc.apply(envelope, index);
+      });
+      return proc;
+    }
+
+    const surface = {
+      version: 'v0.9.1',
+      createSurface: { surfaceId: 'c', catalogId: 'consumer/test' }
+    };
+    const comps = (components: unknown[]) => ({
+      version: 'v0.9.1',
+      updateComponents: { surfaceId: 'c', components }
+    });
+
+    it('survives an inherited member as the component name', () => {
+      expect(() =>
+        applyTo([surface, comps([{ id: 'root', component: 'toString' }])])
+      ).not.toThrow();
+      const proc = applyTo([surface, comps([{ id: 'root', component: 'toString' }])]);
+      expect(codes(allIssues(proc))).toContain(A2UI_ISSUE_CODES.UNKNOWN_COMPONENT);
+    });
+
+    it('survives the same with a prop present', () => {
+      const run = () => applyTo([surface, comps([{ id: 'r', component: 'valueOf', text: 'x' }])]);
+      expect(run).not.toThrow();
+      expect(codes(allIssues(run()))).toContain(A2UI_ISSUE_CODES.UNKNOWN_COMPONENT);
+    });
+
+    it('survives an inherited member as a prop name on a valid component', () => {
+      const run = () =>
+        applyTo([
+          surface,
+          comps([{ id: 'root', component: 'Note', text: 'hi', toString: 'evil' }])
+        ]);
+      expect(run).not.toThrow();
+      const proc = run();
+      expect(codes(allIssues(proc))).toContain(A2UI_ISSUE_CODES.UNKNOWN_PROP);
+      expect(proc.surfaces.get('c')?.components.get('root')?.props.get('text')).toBe('hi');
+    });
+
+    it('survives an inherited member reaching componentChecks', () => {
+      const run = () => applyTo([surface, comps([{ id: 'root', component: 'hasOwnProperty' }])]);
+      expect(run).not.toThrow();
+      expect(codes(allIssues(run()))).toContain(A2UI_ISSUE_CODES.UNKNOWN_COMPONENT);
+    });
   });
 
   it('no hostile fixture ever throws', () => {
