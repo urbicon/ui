@@ -37,6 +37,13 @@ export interface RegisterHandlerOptions {
    * carries an `emailedAt` — an invitation minted without delivery gets the
    * ordinary verification token and mail, regardless of this setting.
    *
+   * Know precisely what `emailedAt` attests: **a transport accepted the
+   * message**. It is exactly as strong as the transport is. The bundled console
+   * transport — which the quickstart runs on — writes the mail, token and all,
+   * to the process log and never fails, so under it this flag turns log access
+   * into a pre-verified account. Enable it only with a transport that really
+   * delivers to the address.
+   *
    * Before #149 the flag rested on a claim the code did not check ("emailed to
    * that exact address"): registration was gated on knowing the address, and
    * nothing was ever emailed to prove it.
@@ -100,9 +107,9 @@ export function createRegisterHandler<R extends string>(
       // The email in the body is NOT trusted: the invitation names the address,
       // and a body naming a different one is a mismatched request, not a way to
       // redirect an invitation.
-      if (!token) {
-        return authError('invitation_required', 403);
-      }
+      // No `if (!token)` here: `validateRegisterInput` already rejects a missing
+      // or blank one with a 400, before anything is looked up. A second check
+      // would be unreachable, and its 403 would contradict that 400.
       const invitation = await deps.repos.invitation.findByTokenHash(hashToken(token));
       if (!invitation) {
         return authError('invitation_required', 403);

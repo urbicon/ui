@@ -124,13 +124,15 @@ export interface Invitation {
    * When this invitation was actually delivered BY EMAIL, or `null` if it was
    * only handed out as a copied link.
    *
-   * This is the difference between two very different proofs. A mail that
-   * arrives at the invited address and is redeemed from there demonstrates the
-   * recipient controls that mailbox; a link the admin copies out of the panel
-   * demonstrates nothing about the address it names — it travelled whatever
-   * channel the admin chose. `autoVerifyInvited` may only skip verification for
-   * the first kind, which is why the distinction is persisted rather than
-   * inferred (#68).
+   * This is the difference between two very different proofs. A mail accepted
+   * by a transport for the invited address is at least evidence aimed at that
+   * mailbox; a link the admin copies out of the panel is evidence of nothing —
+   * it travelled whatever channel the admin chose. `autoVerifyInvited` may only
+   * skip verification for the first kind, which is why the distinction is
+   * persisted rather than inferred (#68).
+   *
+   * Precisely: this records that `email.send` did not throw. It is as strong as
+   * the configured transport, and no stronger — a console transport sets it too.
    *
    * Deliberately NOT a boolean: a timestamp says when, which an audit needs and
    * a flag cannot answer.

@@ -453,8 +453,9 @@ function createInMemoryInvitationRepositoryInternal(): {
       if (inv) {
         byId.delete(id);
         byEmail.delete(inv.email);
-        // Every index has to drop with the row: a token index that outlived its
-        // invitation would keep a revoked invitation redeemable.
+        // Not a safety property — `findByTokenHash` resolves through `byId`, so a
+        // stale entry here would miss anyway. This is a plain map-leak fix: the
+        // process would otherwise hold one string per invitation ever revoked.
         byTokenHash.delete(inv.tokenHash);
       }
     }

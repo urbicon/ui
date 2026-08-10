@@ -255,6 +255,64 @@ describe('createInvitationHandlers — POST', () => {
     expect(shortExpiry.getTime() - Date.now()).toBeLessThan(61_000);
   });
 
+  it('withholds inviteUrl when the invitation was emailed', async () => {
+    // The invitee holds the token; handing the admin a second copy would put the
+    // credential in a second place for nothing — and an admin could redeem it as
+    // the invitee, landing a pre-verified account under `autoVerifyInvited`.
+    const send = vi.fn().mockResolvedValue(undefined);
+    const { deps, user, handlers } = setup({ email: { send } });
+    const res = await handlers.POST(
+      makeEvent({
+        token: await tokenFor(deps, user),
+        body: { email: 'mailed@b.com', role: 'member', sendEmail: true }
+      })
+    );
+
+    const data = await res.json();
+    expect(data.emailSent).toBe(true);
+    expect(data.inviteUrl).toBeUndefined();
+    expect(data.invitation.emailedAt).not.toBeNull();
+  });
+
+  it('reports the truth when the mail went out but recording it failed', async () => {
+    // `markEmailed` used to sit inside the send's try/catch, so a database
+    // failure after a successful send was reported as "the email failed" — the
+    // response claimed emailSent: true with emailedAt set, while the row said
+    // null, and a resend queue on onInvitationEmailFailed would post a SECOND
+    // mail carrying the same live token.
+    const send = vi.fn().mockResolvedValue(undefined);
+    const onInvitationEmailFailed = vi.fn();
+    const { deps, user, handlers } = setup({
+      email: { send },
+      hooks: { onInvitationEmailFailed },
+      invitation: { markEmailed: vi.fn().mockRejectedValue(new Error('deadlock')) }
+    });
+    const res = await handlers.POST(
+      makeEvent({
+        token: await tokenFor(deps, user),
+        body: { email: 'halfway@b.com', role: 'member', sendEmail: true }
+      })
+    );
+
+    const data = await res.json();
+    expect(send, 'the mail did go out').toHaveBeenCalledTimes(1);
+    expect(data.emailSent, 'and is reported as sent').toBe(true);
+    // The delivery record is what failed, so THAT is what the response reflects.
+    expect(data.invitation.emailedAt, 'but the record is missing').toBeNull();
+    // Not a mail failure — the resend hook must not fire and mail it twice.
+    expect(onInvitationEmailFailed).not.toHaveBeenCalled();
+    expect(deps.logger.error).toHaveBeenCalled();
+  });
+
+  it('refuses a TTL that cannot bound anything', () => {
+    // `Infinity` produced an Invalid Date, whose getTime() is NaN, and
+    // `NaN <= Date.now()` is false — every invitation lived forever, silently.
+    // Fail-open on the one value that bounds the credential's life.
+    for (const bad of [Number.POSITIVE_INFINITY, Number.NaN, 0, -1]) {
+      expect(() => setup({ invitationTtlMs: bad }), `ttl ${bad}`).toThrow(/invitationTtlMs/);
+    }
+  });
+
   it('records emailedAt only when the mail actually went out', async () => {
     // `emailedAt` is what lets `autoVerifyInvited` skip verification, so it has
     // to mean "the mail went out", not "we tried" (#149/#68).

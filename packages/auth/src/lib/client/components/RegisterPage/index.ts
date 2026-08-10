@@ -13,7 +13,12 @@ import type { AuthPageSlotClasses } from '../types.js';
  *
  * @example
  * ```svelte
- * <RegisterPage {t} onSuccess={() => goto('/')} />
+ * <RegisterPage
+ *   {t}
+ *   token={page.url.searchParams.get('token') ?? ''}
+ *   defaultEmail={page.url.searchParams.get('email') ?? ''}
+ *   onSuccess={() => goto('/')}
+ * />
  * ```
  */
 export interface RegisterPageProps {
@@ -49,9 +54,12 @@ export interface RegisterPageProps {
    *
    * It is a credential: keep it out of logs and analytics, and do not put it in
    * a page title or a shared screenshot.
-   * @default ''
+   *
+   * Required rather than optional-with-a-default on purpose: a page rendered
+   * without it can only ever produce a 400, and an optional prop makes that
+   * mistake type-check. This way the compiler names every call site.
    */
-  token?: string;
+  token: string;
   /** URL for the login page link. @default '/auth/login' */
   loginUrl?: string;
   /** API endpoint. @default '/api/auth/register' */

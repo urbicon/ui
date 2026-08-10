@@ -98,7 +98,20 @@ export function createInvitationHandlers<R extends string>(
   deps: AuthDeps<R>,
   options: InvitationHandlerOptions<R>
 ): { POST: RequestHandler; GET: RequestHandler; DELETE: RequestHandler } {
-  const { authorize, roles, inviteEmail, invitationTtlMs = DEFAULT_INVITATION_TTL_MS } = options;
+  const { authorize, roles, inviteEmail } = options;
+  // A non-finite or non-positive TTL fails OPEN, which is the wrong direction
+  // for the thing that bounds an invitation's life: `Infinity` produced an
+  // `Invalid Date`, whose `getTime()` is `NaN`, and `NaN <= Date.now()` is
+  // false — so every invitation lived forever, silently. "Never expires" is not
+  // a supported configuration; say so at wiring time rather than at 3am.
+  const configuredTtl = options.invitationTtlMs;
+  if (configuredTtl !== undefined && (!Number.isFinite(configuredTtl) || configuredTtl <= 0)) {
+    throw new Error(
+      `[auth] invitationTtlMs must be a positive finite number of milliseconds, got ${configuredTtl}. ` +
+        'Invitations cannot be made to never expire.'
+    );
+  }
+  const invitationTtlMs = configuredTtl ?? DEFAULT_INVITATION_TTL_MS;
 
   // Resolve the caller from the session cookie and run the authorization gate.
   // Returns the sanitized user, or a Response the handler must return as-is.
@@ -185,10 +198,6 @@ export function createInvitationHandlers<R extends string>(
         try {
           await deps.email.send({ from, ...built, to: email });
           emailSent = true;
-          // Recorded only after a send that did NOT throw. This timestamp is
-          // what lets `autoVerifyInvited` skip verification, so it has to mean
-          // "the mail went out", not "we tried".
-          await deps.repos.invitation.markEmailed(invitation.id, new Date());
         } catch (err) {
           // The invitee — not the API caller — is the one left unable to
           // register, so surface this loudly (error, not warn) and via the
@@ -206,14 +215,43 @@ export function createInvitationHandlers<R extends string>(
         }
       }
 
-      // `inviteUrl` carries the raw token and is returned ONCE — it is not in
-      // `list()`, because the hash is all the database holds. An admin who loses
-      // it deletes the invitation and mints a new one.
+      // Recorded OUTSIDE the send's try/catch, and only on a send that did not
+      // throw. Inside it, a failing `markEmailed` — a deadlock, a dropped
+      // connection — was reported as "the email failed to send" even though the
+      // mail had gone out: the response said `emailSent: true` while the
+      // database said `emailedAt: null`, and a resend queue hanging off
+      // `onInvitationEmailFailed` would post a second mail carrying the same
+      // live token. The write is now its own step, and the response reports what
+      // it actually achieved.
+      let emailedAt: Date | null = null;
+      if (emailSent) {
+        const at = new Date();
+        try {
+          await deps.repos.invitation.markEmailed(invitation.id, at);
+          emailedAt = at;
+        } catch (err) {
+          // The mail is out and the invitation is valid; only the delivery
+          // record is missing. That costs `autoVerifyInvited` for this one
+          // invitation — the invitee verifies by mail instead — so it is worth
+          // a loud log and nothing more.
+          deps.logger.error(
+            `[auth] invitation for ${email} was emailed but recording emailedAt failed; the invitee will be asked to verify their address:`,
+            err
+          );
+        }
+      }
+
+      // `inviteUrl` carries the raw token, so it comes back ONLY when nothing
+      // was mailed. When the mail went out, the invitee holds the credential and
+      // handing the admin a second copy would put it in a second place for no
+      // reason — an admin could redeem it as the invitee, and with
+      // `autoVerifyInvited` land a pre-verified account. It is never in
+      // `list()`: the hash is all the database holds.
       return json(
         {
-          invitation: { ...invitation, emailedAt: emailSent ? new Date() : null },
+          invitation: { ...invitation, emailedAt },
           emailSent,
-          inviteUrl
+          ...(emailSent ? {} : { inviteUrl })
         },
         { status: 201, headers: NO_STORE }
       );

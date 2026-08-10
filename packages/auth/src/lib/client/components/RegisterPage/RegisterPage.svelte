@@ -12,7 +12,7 @@
     t: tProp,
     onSuccess,
     defaultEmail,
-    token = '',
+    token,
     loginUrl = '/auth/login',
     apiPath = '/api/auth/register',
     csrf,

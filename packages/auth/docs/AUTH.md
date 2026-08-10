@@ -287,21 +287,48 @@ See `packages/auth/prisma/auth-schema.prisma` for the reference schema. Models: 
 
 ### Upgrading an existing database
 
-The `Invitation` model gained three columns: `tokenHash` (`@unique`), `expiresAt`
-and `emailedAt`. Two of them have no sensible default for rows that already
-exist, and that is deliberate — an invitation minted under the old rules is
-redeemable by anyone who knows the address, which is the hole this closes.
+The `Invitation` model gained three columns: `tokenHash` (`@unique`, NOT NULL),
+`expiresAt` (NOT NULL) and `emailedAt`. Two of them have no default, and that is
+deliberate — an invitation minted under the old rules is redeemable by anyone who
+knows the address, which is the hole this closes.
 
-**Existing unused invitations become invalid. Delete them and re-invite** — one
-line of SQL, and the admin panel now hands back a copyable link, so re-inviting
-does not depend on a mail transport:
+**Every unused invitation becomes invalid. The admins re-invite** — which no
+longer needs a mail transport, since the panel now hands back a copyable link.
+
+Adding two NOT NULL columns to a table that already has rows does not work in one
+statement, and a constant backfill collides with the unique index. Add them
+nullable, fill per row, then tighten — the shape below runs on PostgreSQL as
+written and translates directly to other engines:
 
 ```sql
+-- 1. Unused invitations are the ones that must not survive: under the old rules
+--    they are redeemable by anyone who knows the address.
 DELETE FROM "Invitation" WHERE "usedAt" IS NULL;
+
+-- 2. Add nullable, so existing (already-redeemed) rows are accepted.
+ALTER TABLE "Invitation"
+  ADD COLUMN "tokenHash" TEXT,
+  ADD COLUMN "expiresAt" TIMESTAMP(3),
+  ADD COLUMN "emailedAt" TIMESTAMP(3);
+
+-- 3. Backfill the surviving history. The values are inert — these invitations
+--    are spent — but `tokenHash` is UNIQUE, so a constant will not do. Anything
+--    per-row and unguessable works; the id is both.
+UPDATE "Invitation"
+   SET "tokenHash" = 'migrated:' || "id",
+       "expiresAt" = "createdAt"
+ WHERE "tokenHash" IS NULL;
+
+-- 4. Now the constraints hold.
+ALTER TABLE "Invitation"
+  ALTER COLUMN "tokenHash" SET NOT NULL,
+  ALTER COLUMN "expiresAt" SET NOT NULL;
+CREATE UNIQUE INDEX "Invitation_tokenHash_key" ON "Invitation"("tokenHash");
 ```
 
-Then apply the migration. Rows for accounts that already registered (`usedAt`
-set) are historical and can be backfilled with any values — nothing reads them.
+Redeemed rows are kept because the admin panel lists them (they render as
+`Registered`); their backfilled `expiresAt` sits in the past and their
+`tokenHash` matches no real token, so neither is redeemable.
 
 ## Adapter Authoring Guide
 

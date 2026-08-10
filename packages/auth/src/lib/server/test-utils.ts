@@ -123,14 +123,22 @@ export function createMockBackupCodeRepository(
 export function createMockInvitationRepository(
   overrides: Partial<InvitationRepository> = {}
 ): InvitationRepository {
-  return {
+  // No `as InvitationRepository`: the cast used to hide a mock that had stopped
+  // implementing the interface. When `findByTokenHash` was added, every test
+  // that forgot to override it got `findByTokenHash is not a function` at
+  // runtime instead of a compiler error naming the file. Typing the object
+  // literal directly is what makes the next added method a build failure.
+  const repo: InvitationRepository = {
+    findByTokenHash: vi.fn().mockResolvedValue(null),
     findByEmail: vi.fn(),
     markUsedIfUnused: vi.fn().mockResolvedValue(true),
+    markEmailed: vi.fn().mockResolvedValue(undefined),
     create: vi.fn(),
     list: vi.fn(),
     delete: vi.fn(),
     ...overrides
-  } as InvitationRepository;
+  };
+  return repo;
 }
 
 /**
