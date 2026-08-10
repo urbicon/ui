@@ -390,10 +390,8 @@ describe('createMicroInteraction — review fixes (re-sync, touch gate, orphaned
   });
 
   it('held hover does not engage on a touch-primary device', () => {
-    vi.stubGlobal('matchMedia', (query: string) => ({
-      // reduced-motion: no preference; (hover: hover): false — touch device.
-      matches: false
-    }));
+    // reduced-motion: no preference; (hover: hover): false — touch device.
+    vi.stubGlobal('matchMedia', () => ({ matches: false }));
     const mint = createMicroInteraction(
       'blocks-mint-scale',
       { trigger: 'hover' },
