@@ -50,7 +50,12 @@ interface BadgeBaseProps
    * value always wins over the derived default.
    */
   role?: 'status' | 'alert' | 'badge' | 'button';
-  /** Micro-interaction preset. Only applies when the badge is interactive. */
+  /**
+   * Micro-interaction preset applied to the badge. Only applies while
+   * interactive (`purpose="chip"`, `interactive`, or `onclick`) and not
+   * disabled.
+   * @default 'none'
+   */
   mint?: MintProp;
 }
 

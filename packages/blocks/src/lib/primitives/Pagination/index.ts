@@ -161,7 +161,11 @@ export interface PaginationProps
   /** Shows a loading state with reduced opacity. */
   loading?: boolean;
 
-  /** Micro-interaction animation applied to the pagination container. */
+  /**
+   * Micro-interaction preset forwarded to the inner buttons (page items,
+   * prev/next, first/last).
+   * @default 'none'
+   */
   mint?: MintProp;
 
   /** Additional CSS classes merged onto the root `<nav>` element. */
@@ -221,7 +225,10 @@ export interface PaginationItemProps
   /** Fires when the item is clicked. Receives the page number. */
   onPageClick?: (page?: number) => void;
 
-  /** Micro-interaction animation. */
+  /**
+   * Micro-interaction preset forwarded to the inner Button.
+   * @default 'none'
+   */
   mint?: MintProp;
 
   /** Custom content rendered inside the button. Falls back to the page number. */

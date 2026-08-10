@@ -124,9 +124,11 @@ export interface ButtonProps extends ButtonVariants, Omit<HTMLButtonAttributes, 
   preset?: string;
 
   /**
-   * Micro-interaction patterns
-   * Can be a string, array of strings, or array of config objects
+   * Micro-interaction preset applied to the button. Only applies while the
+   * button is neither disabled nor loading. Inside a ButtonGroup, the
+   * group's `mint` always wins over this prop.
    * @default 'scale'
+   * @summary Decorative feedback effect on the button — held on hover, or a one-shot on click.
    */
   mint?: MintProp;
 }

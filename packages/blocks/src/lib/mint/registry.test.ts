@@ -30,6 +30,18 @@ describe('mintRegistry resolution', () => {
     vi.restoreAllMocks();
   });
 
+  it('registerDefaultMints registers exactly the BUILTIN_MINT_NAMES set', async () => {
+    // The MintName union derives from BUILTIN_MINT_NAMES; this is the drift
+    // guard in the other direction — the constant against the real registry.
+    const { mintRegistry } = await import('./registry');
+    const { registerDefaultMints } = await import('./presets');
+    const { BUILTIN_MINT_NAMES } = await import('./types');
+
+    registerDefaultMints();
+
+    expect([...mintRegistry.list()].sort()).toEqual([...BUILTIN_MINT_NAMES].sort());
+  });
+
   it('demand-loads and registers the built-in mints on the first unresolved apply()', async () => {
     vi.stubGlobal('window', { matchMedia: () => ({ matches: true }) });
     const warnSpy = vi.spyOn(console, 'warn').mockImplementation(() => {});

@@ -51,7 +51,7 @@
     onValueChange,
     onOpenChange,
     disabled = false,
-    mint,
+    mint = 'none',
     defaultMonth,
     defaultYear,
     name,

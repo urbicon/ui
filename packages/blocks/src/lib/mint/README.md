@@ -1,154 +1,149 @@
 # Mint System 🌿
 
-Das **Mint-System** ist ein flexibles und erweiterbares Framework für Micro-Interactions in der Urbicon UI-Library. Es bietet eine elegante
-polymorphe API und optimale Performance.
+**Mint** (**M**icro-**int**eractions) is the opt-in layer of decorative feedback effects in
+the Urbicon UI library: one polymorphic `mint` prop across every supporting component, a
+registry for custom effects, and a shared stylesheet.
 
-## Konzept
-
-"Mint" steht für **M**icro-**int**eractions und umfasst alle subtilen Animationen und Feedback-Effekte, die eine Benutzeroberfläche lebendig
-und responsiv machen.
-
-## Features
-
-- ✨ **Polymorphe API**: Eine einzige `mint`-Property für alle Anwendungsfälle
-- 🎯 **Type-Safe**: Vollständig typisiert mit TypeScript
-- 🚀 **Performance**: Optimiert für 60fps mit Web Animations API
-- ♿ **Accessibility**: Respektiert `prefers-reduced-motion`
-- 🔧 **Erweiterbar**: Einfache Registrierung neuer Mints
-- 🎨 **Komposition**: Kombiniere mehrere Effekte
+Mints are decorative by contract — essential state feedback (hover colors, press cues,
+focus rings) lives in the component variants and never depends on this system.
 
 ## API
 
-### Polymorphe `mint`-Property
+### The polymorphic `mint` prop
 
 ```typescript
 type MintProp =
-  | string // Einzelner Mint
-  | { name: string; config?: MintConfig & Record<string, unknown> } // Einzelner Mint mit Config
-  | Array<string> // Mehrere Mints
-  | Array<string | { name: string; config?: MintConfig & Record<string, unknown> }>; // Gemischte Liste mit Configs
+  | MintName // single mint
+  | { name: MintName; config?: MintConfig & Record<string, unknown> } // with config
+  | Array<MintName> // several mints
+  | Array<MintName | { name: MintName; config?: MintConfig & Record<string, unknown> }>;
 ```
 
-Die `config`-Erweiterung mit `Record<string, unknown>` lässt mint-spezifische
-Felder durch (`intensity`, `color`, `opacity`), ohne dass der Caller den Typ
-aufweiten muss.
-
-### Grundlegende Verwendung
+`MintName` autocompletes the built-ins (derived from the runtime list
+`BUILTIN_MINT_NAMES`) and `'none'`, while staying open for consumer-registered names —
+`(string & {})` keeps any string compiling. The `Record<string, unknown>` widening lets
+mint-specific config fields (`intensity`, `color`, `opacity`) through without the caller
+widening the type.
 
 ```svelte
-<!-- Einzelner Mint -->
-<Button mint="scale">Hover mich</Button>
+<!-- single mint -->
+<Button mint="scale">Hover me</Button>
 
-<!-- Mehrere Mints -->
-<Button mint={['scale', 'glow']}>Multi-Effekt</Button>
+<!-- several mints -->
+<Button mint={['scale', 'glow']}>Layered</Button>
 
-<!-- Mit Konfiguration -->
-<Button mint={[{ name: 'scale', config: { intensity: 1.1 } }, 'ripple']}>Konfiguriert</Button>
+<!-- with config -->
+<Button mint={[{ name: 'scale', config: { intensity: 1.1 } }, 'ripple']}>Tuned</Button>
 
-<!-- Preset verwenden -->
-<Button mint={mintPresets['cta-primary']}>Call to Action</Button>
+<!-- preset -->
+<Button mint={mintPresets['cta-primary']}>Call to action</Button>
 ```
 
-## Eingebaute Mints
+## Built-in effects
 
-### Micro-Interactions
+| Mint        | Trigger | Behaviour                                          |
+| ----------- | ------- | -------------------------------------------------- |
+| `scale`     | hover   | Scales up slightly — **held** while hovered        |
+| `translate` | hover   | Lifts the element — held                           |
+| `rotate`    | hover   | Tilts the element — held                           |
+| `glow`      | hover   | Intent-aware glow — held                           |
+| `pulse`     | hover   | Pulses continuously — held                         |
+| `bounce`    | click   | One-shot bounce                                    |
+| `shake`     | click   | One-shot shake                                     |
+| `wiggle`    | hover   | One wiggle cycle per hover entry (not continuous)  |
+| `ripple`    | click   | Material-style ripple from the pointer position    |
+| `composite` | —       | Bundles several mints via `config.mints`           |
 
-| Mint        | Trigger | Beschreibung                     |
-| ----------- | ------- | -------------------------------- |
-| `scale`     | hover   | Skaliert das Element leicht hoch |
-| `translate` | hover   | Bewegt Element nach oben         |
-| `rotate`    | hover   | Rotiert Element leicht           |
-| `glow`      | hover   | Fügt einen Glüheffekt hinzu      |
-| `bounce`    | click   | Springende Animation             |
-| `pulse`     | hover   | Pulsierender Effekt              |
-| `shake`     | click   | Schüttel-Animation               |
-| `wiggle`    | hover   | Wackel-Effekt                    |
+### Two behaviour models
 
-### Spezial-Effekte
+- **hover / focus — a held state.** The effect applies on enter and releases on leave.
+  Held hover requires `(hover: hover)` (checked live, like Tailwind's `hover:` gating), so
+  tap-simulated hover on touch devices never sticks. Focus applies only for
+  `:focus-visible` focus — the repo-wide keyboard-only convention — and belongs on
+  focusable elements.
+- **click / load — a one-shot run.** The class applies and settles on the effect's own end
+  event (`animationend`, `animationiteration` for infinite animations, or the declared
+  `transitionend` properties), with a fallback timeout as the safety net.
 
-| Mint     | Beschreibung                  |
-| -------- | ----------------------------- |
-| `ripple` | Material Design Ripple-Effekt |
-
-## Konfiguration
+## Configuration
 
 ```typescript
 interface MintConfig {
   trigger?: 'hover' | 'click' | 'focus' | 'load';
-  duration?: number;
-  delay?: number;
-  easing?: string;
+  duration?: number; // ms — actually drives the CSS animation/transition
+  delay?: number; // ms before the effect applies
+  easing?: string; // CSS easing
   disabled?: boolean;
 }
 
 interface MicroInteractionConfig extends MintConfig {
-  intensity?: number; // Stärke des Effekts (nur `scale`)
+  intensity?: number; // scale factor, `scale` only
 }
 
 interface RippleConfig extends MintConfig {
-  color?: string; // Ripple-Farbe
-  opacity?: number; // Ripple-Transparenz
-  size?: number; // Ripple-Größe
+  color?: string;
+  opacity?: number;
+  size?: number;
 }
 ```
+
+Consumer-configured `duration`/`easing`/`intensity` are written as **per-effect inline
+custom properties** (`--blocks-mint-<effect>-duration`/`-easing`,
+`--blocks-mint-scale-intensity`) that the stylesheet reads with the theme tokens as
+fallback — so config actually changes the animation, per effect, including the exit
+transition. With no config, the theme duration/easing tokens stay in charge and remain
+the global tuning knobs. `ripple` is the exception: it animates via the Web Animations
+API with its own defaults (600 ms, confident easing), reads no custom properties and
+takes its tuning from `RippleConfig` only.
 
 ## Presets
 
 ```typescript
 import { mintPresets } from '@urbicon-ui/blocks';
 
-// Verfügbare Presets
-mintPresets['cta-primary']; // Für primäre Call-to-Action Buttons
-mintPresets['interactive-card']; // Für interaktive Karten
-mintPresets['playful-button']; // Für spielerische Buttons
-mintPresets['subtle-hover']; // Für subtile Hover-Effekte
-mintPresets['error-feedback']; // Für Fehler-Feedback
+mintPresets['cta-primary']; // primary call-to-action buttons
+mintPresets['interactive-card']; // interactive cards
+mintPresets['playful-button']; // playful buttons
+mintPresets['subtle-hover']; // subtle hover feedback
+mintPresets['error-feedback']; // error feedback
 ```
 
-## Svelte 5 Attachments
+## Svelte 5 attachments
 
-Auf eigenem Markup wird ein Mint über `mintAttachment` angebracht — dieselbe
-Factory, die auch jede Komponente der Library intern benutzt:
+On your own markup, attach a mint via `mintAttachment` — the same factory every library
+component uses internally:
 
 ```svelte
 <script>
   import { mintAttachment } from '@urbicon-ui/blocks';
 </script>
 
-<!-- Einzelner Mint -->
-<div {@attach mintAttachment('scale')}>Hover mich</div>
+<div {@attach mintAttachment('scale')}>Hover me</div>
 
-<!-- Mehrere Mints -->
-<div {@attach mintAttachment(['scale', 'glow'])}>Multi-Effekt</div>
+<div {@attach mintAttachment(['scale', 'glow'])}>Layered</div>
 
-<!-- Mit Konfiguration -->
-<div {@attach mintAttachment({ name: 'bounce', config: { trigger: 'click' } })}>
-  Click mich
-</div>
+<div {@attach mintAttachment({ name: 'bounce', config: { trigger: 'click' } })}>Click me</div>
 
-<!-- An Komponenten-Zustand gekoppelt: `enabled` false baut den Mint ab -->
-<button {@attach mintAttachment(mint, { enabled: !disabled && !loading })}>
-  Speichern
-</button>
+<!-- Tied to component state: `enabled` false tears the mint down -->
+<button {@attach mintAttachment(mint, { enabled: !disabled && !loading })}> Save </button>
 ```
 
-`mintAttachment` gibt `false` zurück, wenn nichts anzuwenden ist (`undefined`,
-`'none'`, `enabled: false`) — `{@attach false}` ist ein No-op, die Aufrufstelle
-braucht also keine eigene Bedingung.
+`mintAttachment` returns `false` when there is nothing to apply (`undefined`, `'none'`,
+`enabled: false`) — `{@attach false}` is a no-op, so the call site needs no conditional.
+A re-applied mint (enabled flip, prop identity change) re-syncs against the element's
+real `:hover`/`:focus-visible` state, so a resting pointer keeps its held effect.
 
-> **Ersetzt** die vormals exportierte Action `mint` und das Composable `useMint`. Die
-> Action war ein `use:`-Konstrukt, das dieses Repo generell durch `{@attach}`
-> ersetzt hat; `useMint` konnte sein Ziel gar nicht erreichen, weil es das
-> Element per Wert entgegennahm und `onMount` damit den `undefined`-Stand von
-> `bind:this` zur Init-Zeit las. Wer die Action benutzt hat, ersetzt
-> `use:mint={m}` durch `{@attach mintAttachment(m)}`.
+> **Replaces** the previously exported `mint` action and the `useMint` composable. The
+> action was a `use:` construct this repo has generally replaced with `{@attach}`;
+> `useMint` could never reach its target because it took the element by value and
+> `onMount` therefore read the `undefined` state of `bind:this` at init time. Replace
+> `use:mint={m}` with `{@attach mintAttachment(m)}`.
 
-## Eigene Mints registrieren
+## Registering custom mints
 
 ```typescript
 import { mintRegistry } from '@urbicon-ui/blocks';
 
-// Einfacher Mint
 mintRegistry.register('my-mint', (config) => ({
   init(el) {
     el.addEventListener('mouseenter', () => {
@@ -160,91 +155,50 @@ mintRegistry.register('my-mint', (config) => ({
     });
   },
   destroy(el) {
-    // Cleanup wenn nötig
+    // cleanup if needed
   }
 }));
-
-// Verwenden
-<Button mint="my-mint">Custom Mint</Button>
 ```
 
-## Performance-Optimierungen
+```svelte
+<Button mint="my-mint">Custom mint</Button>
+```
 
-- **Web Animations API**: Nutzt native Browser-Animationen
-- **will-change**: Optimiert GPU-Beschleunigung
-- **Throttling**: Verhindert Spam bei schnellen Interaktionen
-- **Cleanup**: Automatische Bereinigung bei Component-Unmount
+## Resolution & tree-shaking (the resolveIcon pattern)
 
-## Auflösung & Tree-Shaking (resolveIcon-Muster)
+`mintRegistry.apply(el, mint, fallbacks?)` resolves every mint name in this order:
 
-`mintRegistry.apply(el, mint, fallbacks?)` löst jeden Mint-Namen in dieser
-Reihenfolge auf:
+1. **Registry entry** — a consumer `register()` override or an already-loaded built-in
+   (always wins, like the IconProvider in `resolveIcon`).
+2. **`fallbacks`** — statically imported factories of the caller. Button imports
+   `scaleMint` directly (`{ scale: scaleMint }`) so its default ships tree-shaken without
+   dragging in the whole built-in set.
+3. **Demand-load** — unknown names load the built-in set once via a dynamic
+   `import('./presets')` (the chunk is only fetched when a dynamic mint name is actually
+   used) and apply the effect afterwards. `<Button mint="ripple">` works without a manual
+   `registerDefaultMints()`.
 
-1. **Registry-Eintrag** — Consumer-`register()`-Override oder bereits geladene
-   Built-ins (gewinnt immer, wie der IconProvider bei `resolveIcon`).
-2. **`fallbacks`** — statisch importierte Factories des Aufrufers. Button
-   importiert `scaleMint` direkt (`{ scale: scaleMint }`), damit sein Default
-   tree-shaken mitkommt, ohne das gesamte Built-in-Set zu ziehen.
-3. **Demand-Load** — unbekannte Namen laden das Built-in-Set einmalig per
-   dynamischem `import('./presets')` nach (Chunk wird nur gefetcht, wenn
-   tatsächlich ein dynamischer Mint-Name verwendet wird) und wenden den Effekt
-   danach an. `<Button mint="ripple">` funktioniert also weiterhin ohne
-   manuelles `registerDefaultMints()`.
+**Demand-load contract (documented):** mint effects are decorative. Interactions inside
+the fetch window are NOT replayed — on slow networks the first click for a not-yet-loaded
+click-triggered effect (`ripple`, `shake`, …) can be lost for that effect; hover-triggered
+effects re-sync on application, so a pointer already resting on the element engages the
+effect as soon as the chunk lands. Consumer overrides always survive the
+demand-load (built-ins only register onto free names — `registerBuiltin`). Apps that need
+first-interaction guarantees register the effect statically at startup:
+`registerDefaultMints()` or `mintRegistry.register(name, factory)` with a directly
+imported factory.
 
-**Kontrakt Demand-Load (dokumentiert):** Mint-Effekte sind dekorativ.
-Interaktionen im Fetch-Fenster werden NICHT nachgespielt — auf langsamen
-Netzen kann der erste Klick für einen noch nicht geladenen click-getriggerten
-Effekt (`ripple`, `shake`, …) verloren gehen; hover-getriggerte Effekte
-greifen ab dem nächsten `mouseenter`. Consumer-Overrides überleben den
-Demand-Load immer (die Built-ins registrieren sich nur auf freie Namen —
-`registerBuiltin`). Wer First-Interaction-Garantien braucht, registriert den
-Effekt statisch beim App-Start: `registerDefaultMints()` oder
-`mintRegistry.register(name, factory)` mit direkt importierter Factory.
-
-Modul-Layout (load-bearing für die Chunk-Zuordnung): `engine.ts` enthält die
-Micro-Interaction-Engine + `scaleMint` (schifft statisch mit Button);
-`micro-interactions.ts` enthält NUR die Registrierungen und ist ausschließlich
-über den demand-geladenen `presets.ts`-Chunk erreichbar. Neue statisch
-verschiffte Default-Effekte gehören in `engine.ts` (oder ein eigenes Modul),
-niemals in `micro-interactions.ts`.
+Module layout (load-bearing for chunk assignment): `engine.ts` contains the
+micro-interaction engine + `scaleMint` (ships statically with Button);
+`micro-interactions.ts` contains ONLY the registrations and is reachable exclusively
+through the demand-loaded `presets.ts` chunk. New statically-shipped default effects
+belong in `engine.ts` (or their own module), never in `micro-interactions.ts`.
 
 ## Accessibility
 
-Das Mint-System respektiert automatisch `prefers-reduced-motion`:
-
-```css
-@media (prefers-reduced-motion: reduce) {
-  .blocks-mint-* {
-    animation: none !important;
-    transition: none !important;
-    transform: none !important;
-  }
-}
-```
-
-## Erweiterte Beispiele
-
-### Komposite Mints
-
-```typescript
-// Mehrere Effekte kombinieren
-const complexMint = [
-  { name: 'scale', config: { intensity: 1.05, duration: 200 } },
-  { name: 'glow', config: { duration: 300 } },
-  { name: 'rotate', config: { trigger: 'click' } }
-];
-
-<Button mint={complexMint}>Komplex</Button>
-```
-
-### Bedingte Mints
-
-```svelte
-<script>
-  let isPlayful = $state(false);
-</script>
-
-<Button mint={isPlayful ? 'bounce' : 'scale'}>
-  {isPlayful ? 'Playful' : 'Professional'}
-</Button>
-```
+The mint system respects `prefers-reduced-motion` twice over: the engine skips
+initialisation entirely under reduced motion, and `mint/styles.css` neutralises every
+effect class inside the media query. Ripple is the exception in mechanism: it checks the
+preference at click time (so toggling the OS setting needs no remount) but still sets up
+its host positioning (`position: relative`, `overflow: hidden`) at init.
+`prefers-contrast: more` swaps the glow for a solid `currentColor` outline.
