@@ -48,6 +48,85 @@ describe('expandRecurrence', () => {
       expect(results).toHaveLength(4);
       expect(results.map((r) => r.start.getDate())).toEqual([1, 4, 7, 10]);
     });
+
+    // #136: `byDay` used to be ignored entirely on a daily rule, so the natural
+    // spelling of a weekday standup — the one a reader reaches for first — put
+    // events on Saturdays and Sundays. RFC 5545 defines BYDAY under FREQ=DAILY
+    // as a filter over the days the interval produces.
+    describe('byDay filters the generated days (RFC 5545)', () => {
+      it('keeps a weekday rule off the weekend', () => {
+        // Mar 1 2026 is a Sunday, so the range opens on a day byDay excludes.
+        const event = makeEvent({
+          start: new Date(2026, 2, 1),
+          recurrence: { frequency: 'daily', byDay: [1, 2, 3, 4, 5] }
+        });
+        const results = expandRecurrence(event, new Date(2026, 2, 1), new Date(2026, 2, 14));
+
+        expect(results.map((r) => r.start.getDate())).toEqual([2, 3, 4, 5, 6, 9, 10, 11, 12, 13]);
+        expect(results.every((r) => r.start.getDay() !== 0 && r.start.getDay() !== 6)).toBe(true);
+      });
+
+      it('filters rather than generates, so it composes with interval', () => {
+        // THE case that separates the two readings. Every other day from Mar 2
+        // is Mar 2,4,6,8,10,12,14 — of which Mar 8 (Sun) and Mar 14 (Sat) drop.
+        // Were byDay a generator (the `weekly` semantics), this would instead
+        // yield every weekday of every other week.
+        const event = makeEvent({
+          start: new Date(2026, 2, 2),
+          recurrence: { frequency: 'daily', interval: 2, byDay: [1, 2, 3, 4, 5] }
+        });
+        const results = expandRecurrence(event, new Date(2026, 2, 2), new Date(2026, 2, 14));
+
+        expect(results.map((r) => r.start.getDate())).toEqual([2, 4, 6, 10, 12]);
+      });
+
+      it('spends `count` on kept occurrences only, not on filtered-out days', () => {
+        // Ten weekday standups must span two working weeks, not one calendar
+        // week plus change — a filtered day must not consume the budget.
+        const event = makeEvent({
+          start: new Date(2026, 2, 2),
+          recurrence: { frequency: 'daily', byDay: [1, 2, 3, 4, 5], count: 10 }
+        });
+        const results = expandRecurrence(event, new Date(2026, 2, 1), new Date(2026, 2, 31));
+
+        expect(results).toHaveLength(10);
+        expect(results.map((r) => r.start.getDate())).toEqual([2, 3, 4, 5, 6, 9, 10, 11, 12, 13]);
+      });
+
+      it('a single-day byDay degenerates to a weekly cadence', () => {
+        const event = makeEvent({
+          start: new Date(2026, 2, 2),
+          recurrence: { frequency: 'daily', byDay: [3] }
+        });
+        const results = expandRecurrence(event, new Date(2026, 2, 1), new Date(2026, 2, 31));
+
+        expect(results.map((r) => r.start.getDate())).toEqual([4, 11, 18, 25]);
+      });
+
+      it('an empty byDay array is not a filter', () => {
+        // `[]` reads as "no restriction stated", not "exclude every day" — the
+        // latter would silently produce an empty calendar.
+        const event = makeEvent({
+          start: new Date(2026, 2, 1),
+          recurrence: { frequency: 'daily', byDay: [] }
+        });
+        const results = expandRecurrence(event, new Date(2026, 2, 1), new Date(2026, 2, 5));
+
+        expect(results).toHaveLength(5);
+      });
+
+      it('leaves the weekly branch generating, not filtering', () => {
+        // Same byDay, same interval, deliberately different result — the
+        // regression guard for anyone tempted to "unify" the two branches.
+        const event = makeEvent({
+          start: new Date(2026, 2, 2),
+          recurrence: { frequency: 'weekly', interval: 2, byDay: [1, 2, 3, 4, 5] }
+        });
+        const results = expandRecurrence(event, new Date(2026, 2, 2), new Date(2026, 2, 14));
+
+        expect(results.map((r) => r.start.getDate())).toEqual([2, 3, 4, 5, 6]);
+      });
+    });
   });
 
   // --- Weekly ---

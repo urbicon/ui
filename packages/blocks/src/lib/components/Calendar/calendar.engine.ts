@@ -479,6 +479,23 @@ function getOccurrencesForCursor(
 ): Date[] {
   switch (rule.frequency) {
     case 'daily':
+      // RFC 5545 reads BYDAY under FREQ=DAILY as a FILTER, not a generator: the
+      // cursor still advances one interval at a time, and an occurrence is kept
+      // only when it lands on a listed weekday. That is deliberately NOT what
+      // the `weekly` branch below does — it GENERATES one occurrence per listed
+      // day within the week — and the difference is why both spellings are
+      // needed. With `interval: 2`, `daily` means "every other day, but only on
+      // weekdays" while `weekly` means "weekdays of every other week"; neither
+      // can express the other.
+      //
+      // Returning an empty array rather than skipping the cursor is what keeps
+      // `count` honest: the caller only increments its occurrence counter per
+      // returned date, so a filtered-out day costs nothing against the limit —
+      // `{ daily, byDay: [1..5], count: 10 }` yields ten weekdays, not ten
+      // calendar days of which four were dropped (#136).
+      if (rule.byDay && rule.byDay.length > 0 && !rule.byDay.includes(cursor.getDay())) {
+        return [];
+      }
       return [new Date(cursor)];
 
     case 'weekly': {

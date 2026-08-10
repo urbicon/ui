@@ -42,7 +42,20 @@ export interface RecurrenceRule {
   frequency: 'daily' | 'weekly' | 'monthly' | 'yearly';
   /** Repeat every N periods (e.g. 2 = every 2 weeks). @default 1 */
   interval?: number;
-  /** Specific weekdays for weekly recurrence (0=Sun, 1=Mon, ..., 6=Sat). */
+  /**
+   * Weekdays the rule applies to (0=Sun, 1=Mon, ..., 6=Sat).
+   *
+   * Its meaning depends on `frequency`, following RFC 5545:
+   * - `weekly` — GENERATES one occurrence per listed day, in every interval-th
+   *   week. `{ weekly, interval: 2, byDay: [1,2,3,4,5] }` = weekdays of every
+   *   other week.
+   * - `daily` — FILTERS the days the rule would otherwise produce.
+   *   `{ daily, interval: 2, byDay: [1,2,3,4,5] }` = every other day, but only
+   *   when it falls on a weekday.
+   *
+   * The two are not interchangeable once `interval` is involved. Ignored by
+   * `monthly` and `yearly` (use `byMonthDay`).
+   */
   byDay?: number[];
   /** Specific day(s) of month for monthly recurrence (1-31). */
   byMonthDay?: number[];
