@@ -84,18 +84,18 @@ const CALA: Livery = {
       slotClasses: { base: 'shadow-none hover:shadow-none active:shadow-none' },
       overrides: [{ variant: 'outlined', class: { base: 'border border-primary-600' } }]
     },
-    // Boxed inputs, softly rounded — the one house that keeps its boxes, drawn
-    // as openings in a wall rather than panels on it.
+    // Boxed inputs: the library's own outlined chrome IS the house box — its
+    // border and radius already resolve through Cala's tokens.
     //
-    // NOTE the two different slots: Input paints its fill on `base` and its
-    // border on `container`, Textarea does both on `base`. Clearing only the
-    // container leaves the input in a filled box — visible only by looking,
-    // since both configs "read" right (learned in the salon universe).
+    // ANATOMY, measured 2026-08-10 (this corrects a salon-era comment that
+    // said the opposite): Input draws its field chrome on `base` — the input
+    // element itself — and `container` is a layout wrapper. The salon-era
+    // defaults styled the container, which stacked a second frame around
+    // every field; the DatePicker made it visible. The clean per-house idiom
+    // would be a VARIANT default (`underline` exists), but ComponentDefaults
+    // carries only slotClasses/overrides today — noted as a library follow-up.
     Input: {
-      slotClasses: {
-        container: 'border border-border-default bg-transparent',
-        base: 'bg-transparent'
-      }
+      slotClasses: { base: 'bg-transparent' }
     },
     Textarea: {
       slotClasses: { base: 'border border-border-default bg-transparent' }
@@ -129,12 +129,16 @@ const FIRN: Livery = {
     Input: {
       slotClasses: {
         label: 'text-3xs tracking-[0.24em]',
-        container: 'border-x-0 border-t-0 border-b bg-transparent',
-        base: 'text-xs bg-transparent'
+        // Underline = the library box minus three edges, ON `base` (see Cala's
+        // anatomy note): focus and error still repaint the remaining edge.
+        base: 'text-xs border-x-0 border-t-0 rounded-none bg-transparent'
       }
     },
     Textarea: {
-      slotClasses: { label: 'text-3xs tracking-[0.24em]', base: 'text-xs bg-transparent' }
+      slotClasses: {
+        label: 'text-3xs tracking-[0.24em]',
+        base: 'text-xs border-x-0 border-t-0 rounded-none bg-transparent'
+      }
     },
     Checkbox: {
       slotClasses: { label: 'text-2xs tracking-[0.18em] uppercase' }
@@ -170,8 +174,8 @@ const MORI: Livery = {
     // Underlines only — a boxed input would cut a pane into the paper.
     Input: {
       slotClasses: {
-        container: 'border-x-0 border-t-0 border-b bg-transparent',
-        base: 'bg-transparent'
+        // Underline on `base` — see Cala's anatomy note.
+        base: 'border-x-0 border-t-0 rounded-none bg-transparent'
       }
     },
     Textarea: {
@@ -198,8 +202,8 @@ const DUNA: Livery = {
     },
     Input: {
       slotClasses: {
-        container: 'border-x-0 border-t-0 border-b bg-transparent',
-        base: 'bg-transparent'
+        // Underline on `base` — see Cala's anatomy note.
+        base: 'border-x-0 border-t-0 rounded-none bg-transparent'
       }
     },
     Textarea: {
