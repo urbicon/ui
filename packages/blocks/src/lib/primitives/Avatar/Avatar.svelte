@@ -226,8 +226,14 @@
      The pulse override is scoped to the avatar root: an unscoped
      `:global(.blocks-mint-pulse)` redefined the pulse for every mint user on
      the page as soon as Avatar's CSS was loaded. */
+  /* Reads the same per-effect config vars as the shared pulse rule, so a
+     consumer-configured duration/easing works on Avatar too. Known limit of
+     the rename: the keyframes are not `blocks-mint-pulse`, so a click/focus
+     -triggered pulse on Avatar settles on the fallback timeout instead of
+     the iteration boundary (see MintSettleSignal). */
   :global(.blocks-avatar.blocks-mint-pulse) {
-    animation: avatar-pulse 2s var(--blocks-ease-smooth) infinite;
+    animation: avatar-pulse var(--blocks-mint-pulse-duration, 2s)
+      var(--blocks-mint-pulse-easing, var(--blocks-ease-smooth)) infinite;
   }
 
   @keyframes avatar-pulse {

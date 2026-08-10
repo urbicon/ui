@@ -70,7 +70,11 @@ export interface MicroInteractionConfig extends MintConfig {
  * `animation-iteration` is for classes whose animation runs `infinite`
  * (pulse): `animationend` never fires there, so the run settles at the end of
  * the current cycle instead of the fallback timeout cutting it mid-cycle.
- * Same keyframe-name convention as `animation`.
+ * Same keyframe-name convention as `animation` — and for an infinite
+ * animation the convention is load-bearing in the other direction too: with
+ * a foreign keyframe name the fallback timeout is the only end, and on an
+ * endless animation "late, never early" cannot hold — the timeout cuts
+ * mid-cycle (Avatar's renamed pulse override is the known case).
  */
 export type MintSettleSignal =
   | { via: 'animation' }

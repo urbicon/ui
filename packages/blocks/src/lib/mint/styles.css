@@ -38,12 +38,13 @@
   --blocks-mint-glow-color: color-mix(in oklch, var(--color-neutral) 40%, transparent);
 }
 
-/* Every effect reads its duration/easing through a per-effect custom
-   property (`--blocks-mint-<effect>-duration` / `-easing`) that the engine
-   sets INLINE only when the consumer configured a value — the theme tokens
-   in the fallback stay in charge otherwise. Per-effect (not one shared var):
-   an array mint puts several effects on one element, each with its own
-   config. */
+/* Every engine-backed effect reads its duration/easing through a per-effect
+   custom property (`--blocks-mint-<effect>-duration` / `-easing`) that the
+   engine sets INLINE only when the consumer configured a value — the theme
+   tokens in the fallback stay in charge otherwise. Per-effect (not one
+   shared var): an array mint puts several effects on one element, each with
+   its own config. `fade`/`slide` are static classes outside the engine and
+   take no config. */
 
 /* Transform-based interactions */
 .blocks-mint-scale {

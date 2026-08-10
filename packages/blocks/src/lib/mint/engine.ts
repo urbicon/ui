@@ -113,8 +113,17 @@ export function createMicroInteraction(
 
         const onEnter = () => {
           if (release || delayTimer) return;
-          // Keyboard-only, like every focus ring in the library. Browsers
-          // settle `:focus-visible` before dispatching the focus event.
+          // Touch has no hover: the tap-simulated mouseenter would stick the
+          // effect until the next tap elsewhere. Checked live (not at init)
+          // so hybrid devices follow the current pointer — the same line
+          // Tailwind draws by wrapping every `hover:` in `@media (hover:
+          // hover)`.
+          if (trigger === 'hover' && !window.matchMedia('(hover: hover)').matches) return;
+          // Gate on visible focus, like every focus ring in the library
+          // (spec: on text inputs that includes mouse focus). Browsers settle
+          // `:focus-visible` before dispatching the focus event. A focus mint
+          // belongs on a focusable element — on Checkbox/Toggle-style hidden
+          // inputs the box span never focuses and this trigger stays inert.
           if (trigger === 'focus' && !el.matches(':focus-visible')) return;
           if (delay > 0) {
             delayTimer = setTimeout(() => {
@@ -136,6 +145,14 @@ export function createMicroInteraction(
 
         el.addEventListener(enterEvent, onEnter, { passive: true });
         el.addEventListener(leaveEvent, onLeave, { passive: true });
+
+        // Re-sync with reality: mintAttachment tears down and re-applies on
+        // every prop identity change or enabled flip. A fresh instance that
+        // only waited for the NEXT enter would silently drop a hover/focus
+        // the element still has — the pointer never re-enters.
+        if (trigger === 'hover' ? el.matches(':hover') : el.matches(':focus-visible')) {
+          onEnter();
+        }
 
         this.destroy = () => {
           el.removeEventListener(enterEvent, onEnter);
@@ -165,13 +182,21 @@ export function createMicroInteraction(
       const listenOn = trigger === 'click' ? (el.closest('label') ?? el) : el;
 
       // Tracks the in-flight run so destroy() can end it — an element
-      // unmounting mid-animation must not leave its class behind.
+      // unmounting mid-animation must not leave its class behind. The delay
+      // timer and the load rAF are tracked for the same reason: a destroy
+      // during the delay window used to let the orphaned run apply its class
+      // (and its MutationObserver) to an element whose mint was already gone.
       let endCurrentRun: (() => void) | undefined;
+      let pendingDelay: ReturnType<typeof setTimeout> | undefined;
+      let loadRaf: number | undefined;
 
       const handler = () => {
-        // Skip if this specific animation is already running
+        // Skip if this specific animation is already running or scheduled —
+        // without the pending check, two clicks inside the delay window each
+        // started their own run (observer + timer), and destroy() ended only
+        // the last one.
         const animatingAttr = `data-animating-${className}`;
-        if (el.getAttribute(animatingAttr) === 'true') return;
+        if (pendingDelay || el.getAttribute(animatingAttr) === 'true') return;
 
         // Apply delay if specified
         const applyAnimation = () => {
@@ -235,7 +260,10 @@ export function createMicroInteraction(
         };
 
         if (delay > 0) {
-          setTimeout(applyAnimation, delay);
+          pendingDelay = setTimeout(() => {
+            pendingDelay = undefined;
+            applyAnimation();
+          }, delay);
         } else {
           applyAnimation();
         }
@@ -244,7 +272,7 @@ export function createMicroInteraction(
       // Special handling for load trigger
       if (trigger === 'load') {
         // Execute immediately if element is already loaded
-        requestAnimationFrame(() => handler());
+        loadRaf = requestAnimationFrame(() => handler());
       } else {
         listenOn.addEventListener('click', handler, { passive: true });
       }
@@ -253,6 +281,11 @@ export function createMicroInteraction(
       this.destroy = () => {
         if (trigger !== 'load') {
           listenOn.removeEventListener('click', handler);
+        }
+        if (loadRaf !== undefined) cancelAnimationFrame(loadRaf);
+        if (pendingDelay) {
+          clearTimeout(pendingDelay);
+          pendingDelay = undefined;
         }
         endCurrentRun?.();
         removeStyleVars();

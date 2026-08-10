@@ -38,8 +38,11 @@ let host: HTMLElement;
 
 beforeEach(() => {
   vi.useFakeTimers();
-  // The engine early-returns on reduced motion; report "no preference".
-  vi.stubGlobal('matchMedia', () => ({ matches: false }));
+  // The engine early-returns on reduced motion and gates held hover on
+  // `(hover: hover)` — report "no reduced-motion preference, real pointer".
+  vi.stubGlobal('matchMedia', (query: string) => ({
+    matches: query.includes('hover: hover')
+  }));
   host = document.createElement('button');
   document.body.append(host);
 });
@@ -353,27 +356,112 @@ describe('createMicroInteraction — held triggers (hover, focus)', () => {
     const mint = createMicroInteraction('blocks-mint-glow', { trigger: 'focus' }, undefined);
     mint.init(host);
 
-    // jsdom runs the real input-modality heuristic (measured here: fresh and
-    // after-mouse focus is NOT :focus-visible, after a keydown it is), with
-    // one quirk: the state updates only AFTER the focus event that focus()
-    // itself dispatches (browsers settle it before). The extra dispatch per
-    // phase exercises the gate against the now-current state.
+    // jsdom runs the real input-modality heuristic: fresh and after-mouse
+    // focus is NOT :focus-visible, after a keydown it is.
 
-    // Pointer-modality focus — the keyboard-only gate must reject it.
+    // Pointer-modality focus — the visible-focus gate must reject it.
     host.dispatchEvent(new MouseEvent('mousedown'));
     host.focus();
-    host.dispatchEvent(new FocusEvent('focus'));
     expect(host.classList.contains('blocks-mint-glow')).toBe(false);
     host.blur();
 
     // Keyboard-modality focus — this is what the effect exists for.
     document.dispatchEvent(new KeyboardEvent('keydown', { key: 'Tab' }));
     host.focus();
-    host.dispatchEvent(new FocusEvent('focus'));
     expect(host.classList.contains('blocks-mint-glow')).toBe(true);
 
     host.blur();
     expect(host.classList.contains('blocks-mint-glow')).toBe(false);
+  });
+});
+
+describe('createMicroInteraction — review fixes (re-sync, touch gate, orphaned runs)', () => {
+  it('a re-applied mint picks up focus the element already has', () => {
+    // mintAttachment tears down and re-applies on every enabled flip / prop
+    // identity change. The fresh instance must not wait for the NEXT enter —
+    // for a resting pointer or held focus that event never comes.
+    document.dispatchEvent(new KeyboardEvent('keydown', { key: 'Tab' }));
+    host.focus();
+
+    const mint = createMicroInteraction('blocks-mint-glow', { trigger: 'focus' }, undefined);
+    mint.init(host);
+
+    expect(host.classList.contains('blocks-mint-glow')).toBe(true);
+  });
+
+  it('held hover does not engage on a touch-primary device', () => {
+    vi.stubGlobal('matchMedia', (query: string) => ({
+      // reduced-motion: no preference; (hover: hover): false — touch device.
+      matches: false
+    }));
+    const mint = createMicroInteraction(
+      'blocks-mint-scale',
+      { trigger: 'hover' },
+      { via: 'transition', properties: ['transform'] }
+    );
+    mint.init(host);
+
+    // The tap-simulated mouseenter must not stick the effect.
+    host.dispatchEvent(new MouseEvent('mouseenter'));
+    expect(host.classList.contains('blocks-mint-scale')).toBe(false);
+  });
+
+  it('destroy during the run delay window cancels the scheduled run', () => {
+    const mint = createMicroInteraction(
+      'blocks-mint-shake',
+      { trigger: 'click', duration: 500, delay: 300 },
+      { via: 'animation' }
+    );
+    mint.init(host);
+    host.click();
+    mint.destroy?.(host);
+
+    vi.advanceTimersByTime(1000);
+    expect(host.classList.contains('blocks-mint-shake')).toBe(false);
+    expect(host.hasAttribute('data-animating-blocks-mint-shake')).toBe(false);
+  });
+
+  it('a second click inside the delay window does not start a second run', () => {
+    const mint = createMicroInteraction(
+      'blocks-mint-shake',
+      { trigger: 'click', duration: 500, delay: 300 },
+      { via: 'animation' }
+    );
+    mint.init(host);
+    host.click();
+    host.click();
+
+    vi.advanceTimersByTime(300);
+    expect(host.classList.contains('blocks-mint-shake')).toBe(true);
+
+    // One run, one cleanup: after the single fallback window the class is
+    // gone and STAYS gone — a second orphaned timer would have re-stripped
+    // a later run instead.
+    vi.advanceTimersByTime(550);
+    expect(host.classList.contains('blocks-mint-shake')).toBe(false);
+    expect(host.hasAttribute('data-animating-blocks-mint-shake')).toBe(false);
+  });
+
+  it('destroy before the load rAF fires cancels the run', () => {
+    const rafCallbacks: FrameRequestCallback[] = [];
+    vi.stubGlobal('requestAnimationFrame', (callback: FrameRequestCallback) => {
+      rafCallbacks.push(callback);
+      return rafCallbacks.length;
+    });
+    vi.stubGlobal('cancelAnimationFrame', (id: number) => {
+      rafCallbacks[id - 1] = () => {};
+    });
+
+    const mint = createMicroInteraction(
+      'blocks-mint-bounce',
+      { trigger: 'load', duration: 600 },
+      { via: 'animation' }
+    );
+    mint.init(host);
+    mint.destroy?.(host);
+
+    for (const callback of rafCallbacks) callback(0);
+    expect(host.classList.contains('blocks-mint-bounce')).toBe(false);
   });
 });
 
