@@ -181,6 +181,7 @@ export interface MenuSpecificProps<TItem extends MenuItemType = MenuItemType> {
    * and applied to each menu item row (per-item via context). Only applies
    * while not disabled.
    * @default 'none'
+   * @summary Decorative feedback effect on the trigger and every item row.
    */
   mint?: MintProp;
 }

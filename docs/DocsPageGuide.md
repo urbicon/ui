@@ -82,6 +82,17 @@ The Playground is the canonical variant/size/intent explorer. Pages should NOT d
 4. **A single comparison example is OK when it teaches a conceptual choice.** "Outlined vs. Filled vs. Ghost — when to pick which" is a legitimate teaching example because it answers a design question, not just shows what the Playground already shows. Keep these rare.
 5. **Customization examples stay separate.** The Customization section (slotClasses, preset, unstyled) is its own scope per XC-4 and not part of this Examples count.
 6. **Mint examples count as use-cases.** "Mint micro-interactions" patterns belong in Examples, not in a separate variant grid.
+7. **The mint knob is curated, not mirrored.** The Playground control panel shows a `mint`
+   dropdown only on components with action character and a single obvious target: Button,
+   ButtonGroup, Menu, Tab, SegmentGroup, Pagination, Toggle, Checkbox. The interactive
+   display cases (Avatar, Badge, Card) demo mint in Examples instead of a knob. Form input
+   fields (Input, Textarea, Select, Combobox, Slider, …) deliberately expose **no** mint
+   control — their JSDoc documents `'none'` as the recommendation, and a knob would
+   advertise what the design guidance advises against ("use mint sparingly"). The API
+   table still lists the prop wherever it exists; curation governs interactivity, not
+   documentation. The per-component dropdown contents are themselves curated (e.g. ripple
+   for single triggers, pulse/wiggle for radio-like groups) — they are hand-maintained
+   because `MintProp` is an open string union the extractor cannot enumerate.
 
 **`bun run examples:budget` enforces rules 3, 5 and 6** (wired into the `gates` job in `ci.yml`).
 It also settles four things this section leaves open: a Mint section counts *with* `examples`;
