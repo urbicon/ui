@@ -12,7 +12,21 @@ import {
 import { createRegisterHandler } from './register.js';
 
 const event = (body: unknown) => mockPostEvent(body) as unknown as RequestEvent;
-const validBody = { email: 'new@test.com', name: 'New User', password: 'a-good-password' };
+const validBody = {
+  email: 'new@test.com',
+  name: 'New User',
+  password: 'a-good-password',
+  // Registration is gated on holding this, and on nothing else (#149).
+  token: 'raw-invitation-token'
+};
+
+/**
+ * An invitation for the address `validBody` registers with. The handler now
+ * cross-checks the two, so a fixture whose email does not match `validBody`
+ * would be rejected for the wrong reason and hide whatever the test is about.
+ */
+const invited = (overrides: Parameters<typeof createMockInvitation>[0] = {}) =>
+  createMockInvitation({ email: validBody.email, ...overrides });
 
 describe('createRegisterHandler', () => {
   it('returns 400 on invalid input', async () => {
@@ -29,7 +43,7 @@ describe('createRegisterHandler', () => {
 
   it('returns 403 without an invitation', async () => {
     const deps = createMockAuthDeps({
-      invitation: { findByEmail: vi.fn().mockResolvedValue(null) }
+      invitation: { findByTokenHash: vi.fn().mockResolvedValue(null) }
     });
     const res = await createRegisterHandler(deps).POST(event(validBody));
     expect(res.status).toBe(403);
@@ -42,7 +56,7 @@ describe('createRegisterHandler', () => {
   it('returns 403 when the invitation is already used', async () => {
     const deps = createMockAuthDeps({
       invitation: {
-        findByEmail: vi.fn().mockResolvedValue(createMockInvitation({ usedAt: new Date() }))
+        findByTokenHash: vi.fn().mockResolvedValue(invited({ usedAt: new Date() }))
       }
     });
     const res = await createRegisterHandler(deps).POST(event(validBody));
@@ -53,7 +67,7 @@ describe('createRegisterHandler', () => {
   it('returns 409 when the email is already registered', async () => {
     const deps = createMockAuthDeps({
       user: { findByEmail: vi.fn().mockResolvedValue(createMockUser()) },
-      invitation: { findByEmail: vi.fn().mockResolvedValue(createMockInvitation()) }
+      invitation: { findByTokenHash: vi.fn().mockResolvedValue(invited()) }
     });
     const res = await createRegisterHandler(deps).POST(event(validBody));
     expect(res.status).toBe(409);
@@ -68,11 +82,11 @@ describe('createRegisterHandler', () => {
   // an attacker who doesn't already hold an admin-minted invitation.
   it('does not leak registration status to a non-invited request', async () => {
     const unregistered = createMockAuthDeps({
-      invitation: { findByEmail: vi.fn().mockResolvedValue(null) },
+      invitation: { findByTokenHash: vi.fn().mockResolvedValue(null) },
       user: { findByEmail: vi.fn().mockResolvedValue(null) }
     });
     const registered = createMockAuthDeps({
-      invitation: { findByEmail: vi.fn().mockResolvedValue(null) },
+      invitation: { findByTokenHash: vi.fn().mockResolvedValue(null) },
       user: { findByEmail: vi.fn().mockResolvedValue(createMockUser()) }
     });
 
@@ -92,7 +106,7 @@ describe('createRegisterHandler', () => {
         findByEmail: vi.fn().mockResolvedValue(null),
         create: vi.fn().mockRejectedValue(new Error('unique constraint violation'))
       },
-      invitation: { findByEmail: vi.fn().mockResolvedValue(createMockInvitation()) }
+      invitation: { findByTokenHash: vi.fn().mockResolvedValue(invited()) }
     });
     // The create throws; the handler propagates it (→ 500 at the framework
     // level). The point is the invitation must NOT have been consumed.
@@ -117,7 +131,7 @@ describe('createRegisterHandler', () => {
         })
       },
       invitation: {
-        findByEmail: vi.fn().mockResolvedValue(createMockInvitation()),
+        findByTokenHash: vi.fn().mockResolvedValue(invited()),
         markUsedIfUnused: vi.fn().mockResolvedValue(false)
       }
     });
@@ -146,7 +160,7 @@ describe('createRegisterHandler', () => {
           emailVerified: false
         })
       },
-      invitation: { findByEmail: vi.fn().mockResolvedValue(createMockInvitation()) }
+      invitation: { findByTokenHash: vi.fn().mockResolvedValue(invited()) }
     });
 
     const res = await createRegisterHandler(deps).POST(event(validBody));
@@ -172,7 +186,7 @@ describe('createRegisterHandler', () => {
           emailVerified: false
         })
       },
-      invitation: { findByEmail: vi.fn().mockResolvedValue(createMockInvitation()) }
+      invitation: { findByTokenHash: vi.fn().mockResolvedValue(invited()) }
     });
     const res = await createRegisterHandler(deps).POST(event(validBody));
     expect(res.status).toBe(500);
@@ -184,7 +198,7 @@ describe('createRegisterHandler', () => {
   it('returns 429 with a Retry-After header once the register rate limit is exceeded', async () => {
     const deps = createMockAuthDeps({
       config: { rateLimit: { register: { windowMs: 60_000, max: 1 } } },
-      invitation: { findByEmail: vi.fn().mockResolvedValue(null) }
+      invitation: { findByTokenHash: vi.fn().mockResolvedValue(null) }
     });
     const handler = createRegisterHandler(deps);
     // The first request spends the per-IP budget (its 403 outcome is irrelevant
@@ -198,7 +212,9 @@ describe('createRegisterHandler', () => {
   // --- Issue #15: localized default verification mail + builder hook ---
 
   // Deps wired for a successful registration (so the verification mail is sent).
-  function successDeps(send: Mock, config?: Partial<AuthConfig>) {
+  // `emailedAt` decides whether `autoVerifyInvited` may skip verification, so it
+  // is a parameter here rather than a fixed fixture.
+  function successDeps(send: Mock, config?: Partial<AuthConfig>, emailedAt: Date | null = null) {
     return createMockAuthDeps({
       config,
       user: {
@@ -208,10 +224,13 @@ describe('createRegisterHandler', () => {
           .mockResolvedValueOnce(createMockUser({ id: 'u-new', email: 'new@test.com' })),
         create: vi.fn().mockResolvedValue(createMockUser({ id: 'u-new', email: 'new@test.com' }))
       },
-      invitation: { findByEmail: vi.fn().mockResolvedValue(createMockInvitation()) },
+      invitation: { findByTokenHash: vi.fn().mockResolvedValue(invited({ emailedAt })) },
       email: { send: send as unknown as EmailTransport['send'] }
     });
   }
+
+  /** An invitation that actually went out by mail — the mailbox-ownership proof. */
+  const emailed = new Date('2026-08-01T10:00:00Z');
 
   it('sends a localized verification mail with an html + text part by default', async () => {
     const send = vi.fn().mockResolvedValue(undefined);
@@ -243,12 +262,13 @@ describe('createRegisterHandler', () => {
     expect(mail.html).toContain('/auth/verify-email?token=');
   });
 
-  // --- Issue #24: autoVerifyInvited — the invite already proves mailbox
-  // ownership, so the account is created pre-verified and no mail is sent. ---
+  // --- Issue #24: autoVerifyInvited — an EMAILED invite proves mailbox
+  // ownership, so the account is created pre-verified and no mail is sent.
+  // #149/#68: a copied link proves nothing, so it must not qualify. ---
 
   it('with autoVerifyInvited: creates the account pre-verified and sends no mail', async () => {
     const send = vi.fn().mockResolvedValue(undefined);
-    const deps = successDeps(send);
+    const deps = successDeps(send, undefined, emailed);
     const res = await createRegisterHandler(deps, { autoVerifyInvited: true }).POST(
       event(validBody)
     );
@@ -277,9 +297,99 @@ describe('createRegisterHandler', () => {
 
   it('still claims the invitation when autoVerifyInvited is on', async () => {
     const send = vi.fn().mockResolvedValue(undefined);
-    const deps = successDeps(send);
+    const deps = successDeps(send, undefined, emailed);
     await createRegisterHandler(deps, { autoVerifyInvited: true }).POST(event(validBody));
     // Pre-verifying must not short-circuit the one-invitation-one-account claim.
     expect(deps.repos.invitation.markUsedIfUnused).toHaveBeenCalledTimes(1);
+  });
+
+  it('with autoVerifyInvited but a NEVER-EMAILED invitation: verifies normally', async () => {
+    // The copy-link path (#68). The admin handed the URL over some channel the
+    // package knows nothing about, so nothing here proves the registrant reads
+    // the address — `autoVerifyInvited` must not skip verification, whatever
+    // the option says.
+    const send = vi.fn().mockResolvedValue(undefined);
+    const deps = successDeps(send, undefined, null);
+    const res = await createRegisterHandler(deps, { autoVerifyInvited: true }).POST(
+      event(validBody)
+    );
+
+    expect(res.status).toBe(201);
+    const createArg = (deps.repos.user.create as Mock).mock.calls[0][0];
+    expect(createArg.emailVerified).toBeUndefined();
+    expect(typeof createArg.verificationToken).toBe('string');
+    expect(send).toHaveBeenCalledTimes(1);
+  });
+});
+
+// #149: the gate is possession of the token, and nothing else.
+describe('createRegisterHandler — invitation token gate', () => {
+  function depsWith(invitation: unknown) {
+    return createMockAuthDeps({
+      user: {
+        findByEmail: vi
+          .fn()
+          .mockResolvedValueOnce(null)
+          .mockResolvedValueOnce(createMockUser({ id: 'u-new', email: validBody.email })),
+        create: vi.fn().mockResolvedValue(createMockUser({ id: 'u-new', email: validBody.email }))
+      },
+      invitation: { findByTokenHash: vi.fn().mockResolvedValue(invitation) }
+    });
+  }
+
+  it('rejects a request with no token at all', async () => {
+    const deps = depsWith(invited());
+    const { token: _dropped, ...noToken } = validBody;
+    const res = await createRegisterHandler(deps).POST(event(noToken));
+
+    // 400, not 403: a missing token is a malformed request, and the shape check
+    // runs before anything is looked up — so this leaks nothing either way.
+    expect(res.status).toBe(400);
+    expect(deps.repos.invitation.findByTokenHash).not.toHaveBeenCalled();
+  });
+
+  it('rejects an expired invitation even though it is unused', async () => {
+    const deps = depsWith(invited({ expiresAt: new Date(Date.now() - 1000) }));
+    const res = await createRegisterHandler(deps).POST(event(validBody));
+
+    expect(res.status).toBe(403);
+    expect((await res.json()).code).toBe('invitation_expired');
+    expect(deps.repos.user.create).not.toHaveBeenCalled();
+  });
+
+  it('accepts an invitation expiring one second from now', async () => {
+    // The boundary in the direction that must NOT reject — an off-by-one here
+    // would silently shorten every invitation's life.
+    const deps = depsWith(invited({ expiresAt: new Date(Date.now() + 1000) }));
+    const res = await createRegisterHandler(deps).POST(event(validBody));
+
+    expect(res.status).toBe(201);
+  });
+
+  it('refuses to redirect an invitation to a different address', async () => {
+    // The token names its invitee. Registering with someone else's address
+    // would let a leaked link be redeemed onto an attacker-chosen account.
+    const deps = depsWith(invited({ email: 'someone-else@test.com' }));
+    const res = await createRegisterHandler(deps).POST(event(validBody));
+
+    expect(res.status).toBe(403);
+    expect((await res.json()).code).toBe('invitation_required');
+    expect(deps.repos.user.create).not.toHaveBeenCalled();
+  });
+
+  it('knowing an invited address is no longer enough to register', async () => {
+    // THE regression guard for #149. Before, the gate was `findByEmail`, so
+    // anyone who guessed an address with an open invitation got an account on
+    // it — and `markUsedIfUnused` then locked the genuine invitee out. With a
+    // wrong token the lookup simply misses.
+    const deps = depsWith(null);
+    const res = await createRegisterHandler(deps).POST(
+      event({ ...validBody, token: 'a-guessed-token' })
+    );
+
+    expect(res.status).toBe(403);
+    expect((await res.json()).code).toBe('invitation_required');
+    expect(deps.repos.user.create).not.toHaveBeenCalled();
+    expect(deps.repos.invitation.markUsedIfUnused).not.toHaveBeenCalled();
   });
 });

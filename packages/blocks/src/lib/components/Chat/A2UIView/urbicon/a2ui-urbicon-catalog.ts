@@ -39,6 +39,7 @@ import TrashIconDefault from '$lib/icons/TrashIcon.svelte';
 import UserIconDefault from '$lib/icons/UserIcon.svelte';
 import WarningTriangleIconDefault from '$lib/icons/WarningTriangleIcon.svelte';
 import type { A2uiCatalog } from '../a2ui-catalog';
+import { lookupTable } from '../a2ui-registry';
 import { urbiconA2uiCatalogSpec } from './a2ui-urbicon-registry';
 import UrbiconA2UINode from './UrbiconA2UINode.svelte';
 
@@ -52,7 +53,7 @@ function createUrbiconIcons(): {
   fallbackIcon: IconComponent;
 } {
   return {
-    icons: {
+    icons: lookupTable<IconComponent>({
       // Basic 16
       add: resolveIcon('plus', PlusIconDefault),
       arrowBack: resolveIcon('arrowLeft', ArrowLeftIconDefault),
@@ -81,7 +82,7 @@ function createUrbiconIcons(): {
       refresh: resolveIcon('refresh', RefreshIconDefault),
       chevronRight: resolveIcon('chevronRight', ChevronRightIconDefault),
       link: resolveIcon('link', LinkIconDefault)
-    },
+    }),
     fallbackIcon: resolveIcon('circleHelp', CircleHelpIconDefault)
   };
 }

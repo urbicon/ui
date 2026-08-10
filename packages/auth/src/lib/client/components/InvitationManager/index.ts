@@ -32,7 +32,9 @@ export interface InvitationManagerProps {
   /** Strip all default styling. */
   unstyled?: boolean;
   /** Per-slot class overrides. See component source for available slot keys. */
-  slotClasses?: Partial<Record<'root' | 'title' | 'form' | 'list' | 'item' | 'error', string>>;
+  slotClasses?: Partial<
+    Record<'root' | 'title' | 'form' | 'list' | 'item' | 'error' | 'inviteLink', string>
+  >;
   /** Extra classes on the root element. */
   class?: string;
 }

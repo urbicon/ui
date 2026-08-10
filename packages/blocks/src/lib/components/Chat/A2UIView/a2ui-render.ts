@@ -20,7 +20,7 @@ import type { IconComponent } from '$lib/icons';
 import type { MarkdownUrlPolicy } from '../markdown/types';
 import type { A2uiActionEvent, A2uiValidationIssue } from './a2ui.types';
 import { getAtPointer } from './a2ui-data';
-import type { A2uiComponentSpec } from './a2ui-registry';
+import { type A2uiComponentSpec, ownEntry } from './a2ui-registry';
 import type { A2uiComponentInstance, A2uiSurfaceState } from './a2ui-validate';
 
 /** Default traversal bounds — mirror `collectGraphIssues` so the tree and the issue list agree. */
@@ -182,7 +182,7 @@ function childRefs(
   state: WalkState
 ): Array<{ id: string; scope: string | undefined; slot: string }> {
   const out: Array<{ id: string; scope: string | undefined; slot: string }> = [];
-  const spec = state.registry[instance.component];
+  const spec = ownEntry(state.registry, instance.component);
   if (!spec) return out;
 
   for (const [key, propSpec] of Object.entries(spec.props)) {

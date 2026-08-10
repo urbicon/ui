@@ -1,4 +1,4 @@
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
 import { getMonthGrid } from '$lib/date';
 import {
   expandRecurrence,
@@ -47,6 +47,145 @@ describe('expandRecurrence', () => {
       // Mar 1, 4, 7, 10
       expect(results).toHaveLength(4);
       expect(results.map((r) => r.start.getDate())).toEqual([1, 4, 7, 10]);
+    });
+
+    // #136: `byDay` used to be ignored entirely on a daily rule, so the natural
+    // spelling of a weekday standup — the one a reader reaches for first — put
+    // events on Saturdays and Sundays. RFC 5545 defines BYDAY under FREQ=DAILY
+    // as a filter over the days the interval produces.
+    describe('byDay filters the generated days (RFC 5545)', () => {
+      it('keeps a weekday rule off the weekend', () => {
+        // Mar 1 2026 is a Sunday, so the range opens on a day byDay excludes.
+        const event = makeEvent({
+          start: new Date(2026, 2, 1),
+          recurrence: { frequency: 'daily', byDay: [1, 2, 3, 4, 5] }
+        });
+        const results = expandRecurrence(event, new Date(2026, 2, 1), new Date(2026, 2, 14));
+
+        expect(results.map((r) => r.start.getDate())).toEqual([2, 3, 4, 5, 6, 9, 10, 11, 12, 13]);
+        expect(results.every((r) => r.start.getDay() !== 0 && r.start.getDay() !== 6)).toBe(true);
+      });
+
+      it('filters rather than generates, so it composes with interval', () => {
+        // THE case that separates the two readings. Every other day from Mar 2
+        // is Mar 2,4,6,8,10,12,14 — of which Mar 8 (Sun) and Mar 14 (Sat) drop.
+        // Were byDay a generator (the `weekly` semantics), this would instead
+        // yield every weekday of every other week.
+        const event = makeEvent({
+          start: new Date(2026, 2, 2),
+          recurrence: { frequency: 'daily', interval: 2, byDay: [1, 2, 3, 4, 5] }
+        });
+        const results = expandRecurrence(event, new Date(2026, 2, 2), new Date(2026, 2, 14));
+
+        expect(results.map((r) => r.start.getDate())).toEqual([2, 4, 6, 10, 12]);
+      });
+
+      it('spends `count` on kept occurrences only, not on filtered-out days', () => {
+        // Ten weekday standups must span two working weeks, not one calendar
+        // week plus change — a filtered day must not consume the budget.
+        const event = makeEvent({
+          start: new Date(2026, 2, 2),
+          recurrence: { frequency: 'daily', byDay: [1, 2, 3, 4, 5], count: 10 }
+        });
+        const results = expandRecurrence(event, new Date(2026, 2, 1), new Date(2026, 2, 31));
+
+        expect(results).toHaveLength(10);
+        expect(results.map((r) => r.start.getDate())).toEqual([2, 3, 4, 5, 6, 9, 10, 11, 12, 13]);
+      });
+
+      it('a single-day byDay degenerates to a weekly cadence', () => {
+        const event = makeEvent({
+          start: new Date(2026, 2, 2),
+          recurrence: { frequency: 'daily', byDay: [3] }
+        });
+        const results = expandRecurrence(event, new Date(2026, 2, 1), new Date(2026, 2, 31));
+
+        expect(results.map((r) => r.start.getDate())).toEqual([4, 11, 18, 25]);
+      });
+
+      it('an empty byDay array is not a filter', () => {
+        // `[]` reads as "no restriction stated", not "exclude every day" — the
+        // latter would silently produce an empty calendar.
+        const event = makeEvent({
+          start: new Date(2026, 2, 1),
+          recurrence: { frequency: 'daily', byDay: [] }
+        });
+        const results = expandRecurrence(event, new Date(2026, 2, 1), new Date(2026, 2, 5));
+
+        expect(results).toHaveLength(5);
+      });
+
+      // The filter removed the last thing bounding the loop: its three exits are
+      // "cursor past the range", "cursor past until" and the occurrence counter,
+      // and a filtered-out day advances none of them. An interval that does not
+      // move the cursor then hangs the tab — and `Number('')` is 0, so a form
+      // field reaches it. Each case gets a real deadline, because the failure
+      // mode under test is "never returns", which no assertion can catch.
+      it.each([
+        ['zero', 0],
+        ['negative', -1],
+        ['NaN', Number.NaN],
+        ['fractional', 0.5]
+      ])('terminates on a %s interval instead of hanging', (_label, interval) => {
+        const event = makeEvent({
+          start: new Date(2026, 2, 1),
+          recurrence: { frequency: 'daily', interval, byDay: [1] }
+        });
+
+        const started = performance.now();
+        const results = expandRecurrence(event, new Date(2026, 2, 1), new Date(2026, 2, 31));
+
+        expect(performance.now() - started).toBeLessThan(1000);
+        // A degenerate interval is read as 1, so the Mondays of March survive.
+        expect(results.map((r) => r.start.getDate())).toEqual([2, 9, 16, 23, 30]);
+      });
+
+      it('warns in DEV about a byDay value no weekday can equal', () => {
+        // `[7]` is the Monday=1..Sunday=7 reading, and it matches nothing:
+        // on `daily` the series silently empties, which is harder to notice
+        // than the bug this filter fixed.
+        const warn = vi.spyOn(console, 'warn').mockImplementation(() => {});
+        try {
+          const event = makeEvent({
+            start: new Date(2026, 2, 1),
+            recurrence: { frequency: 'daily', byDay: [7] }
+          });
+          const results = expandRecurrence(event, new Date(2026, 2, 1), new Date(2026, 2, 31));
+
+          expect(results).toEqual([]);
+          expect(warn).toHaveBeenCalledTimes(1);
+          expect(warn.mock.calls[0][0]).toContain('[7]');
+        } finally {
+          warn.mockRestore();
+        }
+      });
+
+      it('stays quiet for a byDay that is entirely in range', () => {
+        const warn = vi.spyOn(console, 'warn').mockImplementation(() => {});
+        try {
+          const event = makeEvent({
+            start: new Date(2026, 2, 1),
+            recurrence: { frequency: 'daily', byDay: [0, 6] }
+          });
+          expandRecurrence(event, new Date(2026, 2, 1), new Date(2026, 2, 31));
+
+          expect(warn).not.toHaveBeenCalled();
+        } finally {
+          warn.mockRestore();
+        }
+      });
+
+      it('leaves the weekly branch generating, not filtering', () => {
+        // Same byDay, same interval, deliberately different result — the
+        // regression guard for anyone tempted to "unify" the two branches.
+        const event = makeEvent({
+          start: new Date(2026, 2, 2),
+          recurrence: { frequency: 'weekly', interval: 2, byDay: [1, 2, 3, 4, 5] }
+        });
+        const results = expandRecurrence(event, new Date(2026, 2, 2), new Date(2026, 2, 14));
+
+        expect(results.map((r) => r.start.getDate())).toEqual([2, 3, 4, 5, 6]);
+      });
     });
   });
 

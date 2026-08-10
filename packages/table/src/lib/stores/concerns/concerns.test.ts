@@ -801,6 +801,49 @@ describe('server mode: concern passthrough', () => {
     expect(pagination.paginatedItems).toBe(items); // Passthrough
   });
 
+  // #159: grouping used to collapse `totalPages` to 1 in every mode. In server
+  // mode that turned a slice of a larger result into "this is everything", and
+  // the pager — gated on the same condition — disappeared with it, so the rest
+  // of the data had no affordance left.
+  it('keeps paging a grouped table in server mode', () => {
+    const state = {
+      mode: 'server',
+      serverTotal: 12000,
+      effectiveGroupBy: 'team'
+    } as unknown as TableState;
+    const view = fakeView({ page: 3, pageSize: 25 });
+    const items = [{ id: 1 }, { id: 2 }];
+
+    const pagination = usePagination(
+      state,
+      view,
+      () => items,
+      () => items
+    );
+
+    expect(pagination.totalPages, '12000/25, not 1').toBe(480);
+    expect(pagination.effectivePage, 'and page 3 is still in range').toBe(3);
+  });
+
+  it('still suspends paging for a grouped table in client mode', () => {
+    // The client-mode promise is unchanged: every row is already here, so a
+    // group can be shown whole — which is what a group means. The two modes
+    // differ because only one of them can keep that promise.
+    const items = Array.from({ length: 100 }, (_, i) => ({ id: i }));
+    const state = { mode: 'client', effectiveGroupBy: 'team' } as unknown as TableState;
+    const view = fakeView({ page: 1, pageSize: 25 });
+
+    const pagination = usePagination(
+      state,
+      view,
+      () => items,
+      () => items
+    );
+
+    expect(pagination.totalPages).toBe(1);
+    expect(pagination.paginatedItems, 'and every row is rendered').toHaveLength(100);
+  });
+
   it('effectivePage clamps a currentPage that outlived its range', () => {
     // The state reached by raising a rows-per-page control while on a later
     // page. Before the clamp `paginatedItems` sliced (80, 100) out of 100 rows

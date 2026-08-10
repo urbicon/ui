@@ -22,7 +22,16 @@ export function usePagination(
   );
 
   const totalPages = $derived.by(() => {
-    if (state.effectiveGroupBy) return 1;
+    // Grouping suspends paging in CLIENT mode only, where every row is already
+    // here and a group can therefore be shown whole — which is the thing a
+    // group means.
+    //
+    // Server mode cannot make that promise: the rest of a group may sit on pages
+    // this client has never fetched, and collapsing to one page here removed the
+    // pager, so a reader saw one page's worth of rows presented as the whole
+    // result and had no control left to reach the rest (#159). There, grouping
+    // buckets the page it has and paging stays.
+    if (state.effectiveGroupBy && state.mode !== 'server') return 1;
     if (totalItems === 0) return 1;
     return Math.ceil(totalItems / view.pageSize);
   });
@@ -51,7 +60,9 @@ export function usePagination(
     // In server mode, items are already paginated by the server
     if (state.mode === 'server') return items;
 
-    // Skip pagination when grouped (groups should be fully visible)
+    // Skip pagination when grouped, so groups are fully visible. Client mode
+    // only in effect — the server-mode branch above already returned, because
+    // there the server did the slicing (#159).
     if (state.effectiveGroupBy) return items;
 
     return items.slice((effectivePage - 1) * view.pageSize, effectivePage * view.pageSize);

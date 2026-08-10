@@ -12,6 +12,7 @@
     t: tProp,
     onSuccess,
     defaultEmail,
+    token,
     loginUrl = '/auth/login',
     apiPath = '/api/auth/register',
     csrf,
@@ -94,7 +95,14 @@
     submitting = true;
 
     try {
-      const { ok, data } = await postJson(apiPath, { name, email, password }, { csrf, fetcher });
+      // The token travels in the BODY, never as a query param on the POST:
+      // query strings land in server logs and the Referer header, and this one
+      // is a credential (#149).
+      const { ok, data } = await postJson(
+        apiPath,
+        { name, email, password, token },
+        { csrf, fetcher }
+      );
       if (!ok) {
         const w = wireError(data);
         error = errorMessageFromCode(w.code, t, w.error) ?? t.auth.errors.serverError;

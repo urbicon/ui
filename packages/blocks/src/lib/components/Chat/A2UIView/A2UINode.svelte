@@ -23,7 +23,7 @@
   import StreamingMarkdown from '../StreamingMarkdown/StreamingMarkdown.svelte';
   import { checkImageUrl, checkLinkUrl } from '../markdown/url-policy.js';
   import type { A2uiActionEvent } from './a2ui.types';
-  import { A2UI_REGISTRY, A2UI_SVG_PATH_RE } from './a2ui-registry';
+  import { A2UI_REGISTRY, A2UI_SVG_PATH_RE, ownEntry } from './a2ui-registry';
   import { dedupeOptions, splitDateTime } from './a2ui-node-common';
   import type { A2uiRenderContext, A2uiRenderNode } from './a2ui-render';
   import { bindingPointer, toInputString, toStringArray } from './a2ui-render';
@@ -65,7 +65,7 @@
   const instance = $derived(node.instance);
   const nodeProps = $derived(instance?.props);
   const component = $derived(instance?.component ?? '');
-  const spec = $derived(component ? A2UI_REGISTRY[component] : undefined);
+  const spec = $derived(ownEntry(A2UI_REGISTRY, component));
 
   // A component is a visible fault when it is unknown/unsupported or is missing
   // a required prop (the processor already emitted the reportable issue).
@@ -196,7 +196,11 @@
     }
     return undefined;
   });
-  const IconComp = $derived((iconName && context.icons[iconName]) || context.fallbackIcon);
+  // `iconName` can come from a `{path}` binding, i.e. an arbitrary string the
+  // validator never inspected — so this lookup takes own entries only (#134).
+  const IconComp = $derived(
+    (iconName && ownEntry(context.icons, iconName)) || context.fallbackIcon
+  );
 
   // ── Action ────────────────────────────────────────────────────────────────
   const actionEvent = $derived.by(() => {

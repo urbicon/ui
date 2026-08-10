@@ -33,6 +33,7 @@ import TrashIconDefault from '$lib/icons/TrashIcon.svelte';
 import WarningTriangleIconDefault from '$lib/icons/WarningTriangleIcon.svelte';
 import A2UINode from './A2UINode.svelte';
 import { type A2uiCatalog, basicA2uiCatalogSpec } from './a2ui-catalog';
+import { lookupTable } from './a2ui-registry';
 
 /**
  * Build the Basic catalog's A2UI icon-enum name → resolved Urbicon icon map.
@@ -45,7 +46,7 @@ function createBasicIcons(): {
   fallbackIcon: IconComponent;
 } {
   return {
-    icons: {
+    icons: lookupTable<IconComponent>({
       add: resolveIcon('plus', PlusIconDefault),
       arrowBack: resolveIcon('arrowLeft', ArrowLeftIconDefault),
       check: resolveIcon('check', CheckIconDefault),
@@ -62,7 +63,7 @@ function createBasicIcons(): {
       settings: resolveIcon('settings', SettingsIconDefault),
       star: resolveIcon('star', StarIconDefault),
       warning: resolveIcon('warning', WarningTriangleIconDefault)
-    },
+    }),
     fallbackIcon: resolveIcon('circleHelp', CircleHelpIconDefault)
   };
 }

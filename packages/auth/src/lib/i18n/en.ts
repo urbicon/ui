@@ -5,6 +5,7 @@ export const en = {
     errors: {
       invitationRequired: 'An invitation is required to register.',
       invitationUsed: 'This invitation has already been used.',
+      invitationExpired: 'This invitation has expired. Ask for a new one.',
       emailTaken: 'This email is already registered.',
       emailInvited: 'This email has already been invited.',
       invalidCredentials: 'Invalid email or password.',
@@ -152,7 +153,13 @@ export const en = {
     send: 'Send',
     empty: 'No invitations yet.',
     sendEmail: 'Send invitation email',
-    registered: 'Registered'
+    registered: 'Registered',
+    linkSentAndCopyable: 'Invitation emailed to {email}. The link is shown once:',
+    linkNotSent: 'Invitation created for {email}. No email was sent — copy the link:',
+    linkCopy: 'Copy link',
+    linkCopied: 'Copied',
+    linkTrustNote:
+      'Anyone with this link can create the account. A copied link is not proof that the recipient owns the address, so an account created from one still has to verify its email.'
   },
   passkeys: {
     title: 'Passkeys',

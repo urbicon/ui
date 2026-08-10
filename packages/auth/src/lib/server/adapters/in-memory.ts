@@ -371,6 +371,8 @@ export function createInMemoryUserRepository<R extends string = string>(): UserR
 // deliberately excludes it).
 interface StoredInvitation extends Invitation {
   invitedById: string;
+  /** Projected away by the contract-facing reads — the hash never leaves here. */
+  tokenHash: string;
 }
 
 function createInMemoryInvitationRepositoryInternal(): {
@@ -380,16 +382,25 @@ function createInMemoryInvitationRepositoryInternal(): {
 } {
   const byId = new Map<string, StoredInvitation>();
   const byEmail = new Map<string, string>(); // email → id (enforces @unique)
+  const byTokenHash = new Map<string, string>(); // tokenHash → id (also @unique)
 
   const project = (inv: StoredInvitation): Invitation => ({
     id: inv.id,
     email: inv.email,
     role: inv.role,
     usedAt: inv.usedAt,
-    createdAt: inv.createdAt
+    createdAt: inv.createdAt,
+    expiresAt: inv.expiresAt,
+    emailedAt: inv.emailedAt
   });
 
   const repo: InvitationRepository = {
+    async findByTokenHash(tokenHash) {
+      const id = byTokenHash.get(tokenHash);
+      const inv = id ? byId.get(id) : undefined;
+      return inv ? project(inv) : null;
+    },
+
     async findByEmail(email) {
       const id = byEmail.get(email);
       const inv = id ? byId.get(id) : undefined;
@@ -404,6 +415,12 @@ function createInMemoryInvitationRepositoryInternal(): {
       return true;
     },
 
+    async markEmailed(id, at) {
+      // Silent no-op for a missing id, per the missing-target contract.
+      const inv = byId.get(id);
+      if (inv) inv.emailedAt = at;
+    },
+
     async create(data: CreateInvitationData) {
       if (byEmail.has(data.email)) {
         throw new Error(`[auth:in-memory] invitation for ${data.email} already exists`);
@@ -414,10 +431,14 @@ function createInMemoryInvitationRepositoryInternal(): {
         role: data.role,
         invitedById: data.invitedById,
         usedAt: null,
-        createdAt: new Date()
+        createdAt: new Date(),
+        tokenHash: data.tokenHash,
+        expiresAt: data.expiresAt,
+        emailedAt: null
       };
       byId.set(inv.id, inv);
       byEmail.set(inv.email, inv.id);
+      byTokenHash.set(inv.tokenHash, inv.id);
       return project(inv);
     },
 
@@ -432,6 +453,10 @@ function createInMemoryInvitationRepositoryInternal(): {
       if (inv) {
         byId.delete(id);
         byEmail.delete(inv.email);
+        // Not a safety property — `findByTokenHash` resolves through `byId`, so a
+        // stale entry here would miss anyway. This is a plain map-leak fix: the
+        // process would otherwise hold one string per invitation ever revoked.
+        byTokenHash.delete(inv.tokenHash);
       }
     }
   };
@@ -443,6 +468,7 @@ function createInMemoryInvitationRepositoryInternal(): {
         if (inv.invitedById === inviterId) {
           byId.delete(id);
           byEmail.delete(inv.email);
+          byTokenHash.delete(inv.tokenHash);
         }
       }
     }

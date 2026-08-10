@@ -109,6 +109,14 @@ export const A2UI_ISSUE_CODES = {
   MISSING_ID: 'MISSING_ID',
   /** `__proto__`/`constructor`/`prototype` as an id, prop, pointer or context key. */
   PROTOTYPE_POLLUTION: 'PROTOTYPE_POLLUTION',
+  /**
+   * The engine itself threw while processing an envelope — always a bug in the
+   * engine, never a property of the payload. The surviving surfaces still render
+   * and the failure is reported here rather than taking the whole view down with
+   * it (#134). Never expected in a green suite: a hostile payload is supposed to
+   * become issues, not exceptions.
+   */
+  ENGINE_ERROR: 'ENGINE_ERROR',
   /** A JSON Pointer was malformed. */
   POINTER_ERROR: 'POINTER_ERROR',
   /** The component graph contains a cycle. */

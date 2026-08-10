@@ -5,6 +5,7 @@ export const de = {
     errors: {
       invitationRequired: 'Eine Einladung ist erforderlich.',
       invitationUsed: 'Diese Einladung wurde bereits verwendet.',
+      invitationExpired: 'Diese Einladung ist abgelaufen. Bitte um eine neue.',
       emailTaken: 'Diese E-Mail-Adresse ist bereits registriert.',
       emailInvited: 'Diese E-Mail-Adresse wurde bereits eingeladen.',
       invalidCredentials: 'Ungültige E-Mail oder Passwort.',
@@ -155,7 +156,13 @@ export const de = {
     send: 'Senden',
     empty: 'Noch keine Einladungen.',
     sendEmail: 'Einladungs-E-Mail senden',
-    registered: 'Registriert'
+    registered: 'Registriert',
+    linkSentAndCopyable: 'Einladung an {email} versendet. Der Link wird einmalig angezeigt:',
+    linkNotSent: 'Einladung für {email} erstellt. Es wurde keine E-Mail versendet — Link kopieren:',
+    linkCopy: 'Link kopieren',
+    linkCopied: 'Kopiert',
+    linkTrustNote:
+      'Wer diesen Link hat, kann das Konto anlegen. Ein kopierter Link belegt nicht, dass die empfangende Person die Adresse besitzt — ein damit angelegtes Konto muss seine E-Mail-Adresse weiterhin bestätigen.'
   },
   passkeys: {
     title: 'Passkeys',

@@ -31,6 +31,7 @@ import {
   type A2uiComponentSpec,
   type A2uiPropKind,
   type A2uiPropSpec,
+  lookupTable,
   UNSUPPORTED_A2UI_COMPONENTS
 } from './a2ui-registry';
 import type { A2uiNodeProps } from './a2ui-render';
@@ -127,7 +128,7 @@ export const basicA2uiCatalogSpec: A2uiCatalogSpec = {
   unsupportedComponents: UNSUPPORTED_A2UI_COMPONENTS,
   ignoredProps: A2UI_IGNORED_PROPS,
   flexContainers: new Set(['Row', 'Column']),
-  componentChecks: {
+  componentChecks: lookupTable<A2uiComponentCheck>({
     Tabs: ({ id, props, surfaceId, base }) => {
       // The spec marks `tabs` minItems: 1. An empty array is a well-formed
       // `labeledChildren` value, so the kind check passes it — but it renders a
@@ -177,5 +178,5 @@ export const basicA2uiCatalogSpec: A2uiCatalogSpec = {
       }
       return [];
     }
-  }
+  })
 };

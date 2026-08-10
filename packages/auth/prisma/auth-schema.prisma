@@ -74,6 +74,17 @@ model Invitation {
   invitedById String
   usedAt      DateTime?
   createdAt   DateTime  @default(now())
+  // SHA-256 of the invitation token. @unique because it is the lookup key on
+  // the registration path; the raw token is returned once, at creation, and
+  // never stored — a dump of this table cannot redeem anything.
+  tokenHash   String    @unique
+  // Registration rejects an invitation past this instant even while usedAt is
+  // still null, so the window between minting and use is bounded.
+  expiresAt   DateTime
+  // When the invitation was delivered BY EMAIL, null when it was only handed
+  // out as a copied link. Only the first is a mailbox-possession proof, and
+  // only it lets `autoVerifyInvited` skip verification.
+  emailedAt   DateTime?
 }
 
 model PushSubscription {

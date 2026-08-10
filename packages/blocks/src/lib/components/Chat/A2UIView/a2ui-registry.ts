@@ -110,6 +110,42 @@ export const A2UI_ICON_NAMES: readonly string[] = [
 export const A2UI_SVG_PATH_RE = /^[MmLlHhVvCcSsQqTtAaZz0-9\s,.+\-eE]+$/;
 
 /**
+ * Build a lookup table that inherits nothing.
+ *
+ * Every table on the A2UI path is keyed by a string the PAYLOAD chooses — a
+ * component name, a prop name, an icon name, a variant. On an ordinary object
+ * literal `table['toString']` resolves an `Object.prototype` member instead of
+ * missing, and the caller then reads `.props` off a function: one line of
+ * payload killed the whole surface (#134). A null prototype makes that state
+ * unrepresentable at the source, rather than asking every lookup site — the
+ * validator, the renderer, the prompt builder, and every one added later — to
+ * remember `Object.hasOwn`.
+ *
+ * `Object.assign` copies own enumerable keys only, so the result carries the
+ * table's real entries and nothing else.
+ */
+export function lookupTable<T>(entries: Record<string, T>): Readonly<Record<string, T>> {
+  return Object.freeze(Object.assign(Object.create(null) as Record<string, T>, entries));
+}
+
+/**
+ * Read one entry out of a lookup table by a key the PAYLOAD chose.
+ *
+ * `lookupTable` above hardens the tables this package ships, but `A2uiCatalog`
+ * is a documented extension point: a consumer registering their own catalog
+ * writes plain object literals, as anyone would, and their registry inherits
+ * from `Object.prototype` again. So the engine cannot rely on how a table was
+ * built — every lookup driven by payload text goes through here, and the two
+ * defences are deliberately redundant rather than alternatives.
+ */
+export function ownEntry<T>(
+  table: Readonly<Record<string, T>> | undefined,
+  key: string
+): T | undefined {
+  return table !== undefined && Object.hasOwn(table, key) ? table[key] : undefined;
+}
+
+/**
  * Props every component accepts (spread into each entry). `accessibility` maps
  * to ARIA; `weight` is flex-grow, honored only on a direct Row/Column child.
  */
@@ -127,10 +163,10 @@ const COMMON_PROPS: Record<string, A2uiPropSpec> = {
 };
 
 function withCommon(props: Record<string, A2uiPropSpec>): Record<string, A2uiPropSpec> {
-  return { ...props, ...COMMON_PROPS };
+  return lookupTable({ ...props, ...COMMON_PROPS });
 }
 
-export const A2UI_REGISTRY: Readonly<Record<string, A2uiComponentSpec>> = Object.freeze({
+export const A2UI_REGISTRY: Readonly<Record<string, A2uiComponentSpec>> = lookupTable({
   Column: {
     description:
       'A layout container that arranges its children vertically. Nest Rows inside a Column to build a grid.',

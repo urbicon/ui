@@ -23,22 +23,36 @@ export interface RegisterHandlerOptions {
   verificationEmail?: MailBuilder;
 
   /**
-   * Treat invitation-gated signups as already email-verified. Registration in
-   * this package is hard invitation-gated — every account is created from an
-   * invitation that was emailed to that exact address — so the invite plus the
-   * link-click already proves mailbox ownership. A separate verification mail
-   * therefore verifies nothing new (and, since register also auto-logs-in the
-   * user, it would arrive *after* they are already signed in).
+   * Treat signups from an **emailed** invitation as already email-verified.
    *
-   * When `true`, the handler creates the user with `emailVerified: true` and
-   * skips the verification token **and** the verification email entirely.
+   * The reasoning only works for one of the two ways an invitation reaches
+   * someone. A mail sent to the invited address, carrying a secret token, and
+   * redeemed with that token, demonstrates the registrant reads that mailbox —
+   * a separate verification mail would verify nothing new, and since register
+   * also auto-logs-in, it would arrive after they are already signed in.
    *
-   * Defaults to `false` — fully backwards-compatible: the verification token +
-   * mail are issued exactly as before, for consumers that do gate on
-   * `emailVerified`. This flag covers only the **register** path; email
-   * *change* always verifies the new address independently (see
-   * `createVerifyEmailChangeHandler`), since there is no prior proof of
-   * ownership for it.
+   * A link the admin copied out of the panel (#68) demonstrates nothing about
+   * the address it names: it travelled whatever channel the admin chose, to
+   * whoever they chose. So this flag is honoured **only** when the invitation
+   * carries an `emailedAt` — an invitation minted without delivery gets the
+   * ordinary verification token and mail, regardless of this setting.
+   *
+   * Know precisely what `emailedAt` attests: **a transport accepted the
+   * message**. It is exactly as strong as the transport is. The bundled console
+   * transport — which the quickstart runs on — writes the mail, token and all,
+   * to the process log and never fails, so under it this flag turns log access
+   * into a pre-verified account. Enable it only with a transport that really
+   * delivers to the address.
+   *
+   * Before #149 the flag rested on a claim the code did not check ("emailed to
+   * that exact address"): registration was gated on knowing the address, and
+   * nothing was ever emailed to prove it.
+   *
+   * Defaults to `false` — the verification token + mail are issued exactly as
+   * before, for consumers that gate on `emailVerified`. Covers only the
+   * **register** path; email *change* always verifies the new address
+   * independently (see `createVerifyEmailChangeHandler`), since there is no
+   * prior proof of ownership for it.
    */
   autoVerifyInvited?: boolean;
 }
@@ -61,7 +75,7 @@ export function createRegisterHandler<R extends string>(
 
       const body = await parseBody(request, validateRegisterInput);
       if (body instanceof Response) return body;
-      const { email, name, password } = body.data;
+      const { email, name, password, token } = body.data;
 
       // Password strength validation
       const passwordErrors = validatePasswordStrength(password, deps.config.password);
@@ -72,27 +86,42 @@ export function createRegisterHandler<R extends string>(
         });
       }
 
-      // Account-enumeration stance (Finding M2, Cluster G.2): registration is
-      // deliberately invitation-gated, and that gate IS the enumeration
-      // defense. The distinct 403 ("invitation required" / "already used") and
-      // 409 ("already registered") responses below are only ever observable to
-      // someone who already holds an unused invitation for this exact email —
-      // and invitations are minted by an admin (InvitationManager), never by
-      // the attacker. An attacker probing arbitrary emails without an
-      // invitation always gets the same 403 "invitation required", whether or
-      // not that email is registered, so registration status doesn't leak. We
-      // therefore keep the precise messages (they help the genuinely invited
-      // user) rather than collapsing them. See docs/AUTH.md.
+      // Registration is gated on POSSESSION OF THE TOKEN, and on nothing else.
       //
-      // This holds ONLY while invitations stay admin-minted. If a self-service
-      // invitation path is ever added, the 403-vs-409 distinction becomes an
-      // enumeration oracle for anyone — revisit (collapse the responses) then.
-      const invitation = await deps.repos.invitation.findByEmail(email);
+      // It used to be gated on knowing the invited address (#149): anyone who
+      // guessed an address with an open invitation could register an account on
+      // it with a password of their choosing, and `markUsedIfUnused` below then
+      // burned the invitation, so the genuine invitee was locked out with a 403.
+      // The window was not short — it ran from the moment the admin created the
+      // invitation until someone used it.
+      //
+      // Account-enumeration stance. The distinct 403s and the 409 below are only
+      // observable to someone holding a valid unused token, which is minted by
+      // an admin and never guessable. An attacker without one gets the same
+      // `invitation_required` for every address, registered or not, so
+      // registration status does not leak — and unlike the address gate, an
+      // attacker WITH a guessed address now gets that same 403 too, rather than
+      // an account. The precise messages help the genuinely invited user; see
+      // docs/AUTH.md.
+      //
+      // The email in the body is NOT trusted: the invitation names the address,
+      // and a body naming a different one is a mismatched request, not a way to
+      // redirect an invitation.
+      // No `if (!token)` here: `validateRegisterInput` already rejects a missing
+      // or blank one with a 400, before anything is looked up. A second check
+      // would be unreachable, and its 403 would contradict that 400.
+      const invitation = await deps.repos.invitation.findByTokenHash(hashToken(token));
       if (!invitation) {
         return authError('invitation_required', 403);
       }
       if (invitation.usedAt) {
         return authError('invitation_used', 403);
+      }
+      if (invitation.expiresAt.getTime() <= Date.now()) {
+        return authError('invitation_expired', 403);
+      }
+      if (invitation.email !== email) {
+        return authError('invitation_required', 403);
       }
 
       // Check existing user (cheap early reject; the email unique-constraint is
@@ -104,12 +133,16 @@ export function createRegisterHandler<R extends string>(
 
       const passwordHash = await hashPassword(password, deps.config.password);
 
-      // Invitation-gated signups already prove mailbox ownership: the invite
-      // was delivered to this exact address and its link-click proves receipt.
-      // With `autoVerifyInvited`, skip the verification token entirely and
-      // create the account pre-verified — a null token here means
-      // "auto-verified" and gates BOTH the create shape and the mail send below.
-      const verificationToken = options.autoVerifyInvited ? null : generateSecureToken();
+      // Skipping verification needs a proof of mailbox ownership, and only one
+      // of the two delivery routes provides one: a mail sent TO this address,
+      // carrying a secret, redeemed with that secret. A link the admin copied
+      // out of the panel (#68) travelled a channel the package knows nothing
+      // about, to a recipient it cannot vouch for — so `emailedAt` is checked,
+      // not just the option. A null token here means "auto-verified" and gates
+      // BOTH the create shape and the mail send below.
+      const provesMailbox = invitation.emailedAt !== null;
+      const verificationToken =
+        options.autoVerifyInvited && provesMailbox ? null : generateSecureToken();
 
       // Create the user BEFORE claiming the invitation. An invitation is bound
       // 1:1 to an email, so the email unique-constraint is the authoritative

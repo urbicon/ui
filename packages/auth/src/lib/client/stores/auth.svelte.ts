@@ -114,12 +114,14 @@ export function createAuthStore<R extends string>(config?: AuthStoreConfig) {
   async function register(
     name: string,
     email: string,
-    password: string
+    password: string,
+    /** The invitation token from the invite link's `?token=` — required (#149). */
+    token: string
   ): Promise<AuthActionResult> {
     try {
       const { ok, data } = await postJson(
         `${apiPath}/register`,
-        { name, email, password },
+        { name, email, password, token },
         { csrf, fetcher }
       );
       if (!ok) return failure(data);

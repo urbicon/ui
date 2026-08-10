@@ -229,8 +229,21 @@ ${scriptClose}
       <p class="text-text-secondary text-sm">
         Grouping is the one axis the table does not hand over. It travels as
         <code class="text-text-primary">groupBy</code>, and the table also buckets the rows that
-        come back. A grouped table shows every row it holds, so it renders no pager while a grouping
-        is active. Group server-side only if a page of rows is a meaningful group.
+        come back — but only the rows of the current page, since those are the only ones it has. The
+        groups are therefore page-local: the pager stays, each page is grouped on its own, and a
+        group header counts <em>this page's</em> rows rather than the group's size. Your endpoint
+        can make those groups more useful by ordering its result by
+        <code class="text-text-primary">groupBy</code>, so a page holds whole groups instead of
+        slices of several. The order the groups appear in follows the page's rows, so it can differ
+        from page to page unless your endpoint imposes one.
+      </p>
+
+      <p class="text-text-secondary text-sm">
+        Group summary rows aggregate the same page-local rows — a sum under a group of three is the
+        sum of those three, not of the group. Their labels do not say so; if the distinction matters
+        to your readers, compute the totals server-side and render them yourself. Collapsing follows
+        the group's <em>name</em>, so a group collapsed on one page stays collapsed on the next even
+        though its rows are different.
       </p>
 
       <p class="text-text-secondary text-sm">

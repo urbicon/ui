@@ -31,7 +31,8 @@ const events: CalendarEvent[] = [
   { id: '2', title: 'Sprint 14', start: new Date(2026, 2, 9), end: new Date(2026, 2, 20) },
 
   // A series: one object plus a rule, expanded by the calendar.
-  // byDay is 0-6 (Sunday-Saturday) and applies to \`frequency: 'weekly'\`;
+  // byDay is 0-6 (Sunday-Saturday): on \`weekly\` it generates one occurrence
+  // per listed day, on \`daily\` it filters the days the interval produces.
   // interval skips n periods; until ends the series (inclusive).
   {
     id: '3',

@@ -631,6 +631,11 @@ export function createPrismaUserRepository<R extends string>(
 export function createPrismaInvitationRepository(client: PrismaLike): InvitationRepository {
   const prisma = idSafeClient(client);
   return {
+    async findByTokenHash(tokenHash) {
+      const row = await prisma.invitation.findUnique({ where: { tokenHash } });
+      return row ? mapInvitation(row) : null;
+    },
+
     async findByEmail(email) {
       const row = await prisma.invitation.findUnique({ where: { email } });
       return row ? mapInvitation(row) : null;
@@ -650,10 +655,18 @@ export function createPrismaInvitationRepository(client: PrismaLike): Invitation
         data: {
           email: data.email,
           role: data.role,
-          invitedById: data.invitedById
+          invitedById: data.invitedById,
+          tokenHash: data.tokenHash,
+          expiresAt: data.expiresAt
         }
       });
       return mapInvitation(row);
+    },
+
+    async markEmailed(id, at) {
+      // updateMany, so a concurrently deleted invitation is a no-op rather than
+      // P2025 — see the missing-target contract in types.ts.
+      await prisma.invitation.updateMany({ where: { id }, data: { emailedAt: at } });
     },
 
     async list() {
@@ -1210,6 +1223,8 @@ interface InvitationRow {
   role: string;
   usedAt?: Date | null;
   createdAt: Date;
+  expiresAt: Date;
+  emailedAt?: Date | null;
 }
 
 /**
@@ -1224,8 +1239,13 @@ function mapInvitation(row: InvitationRow): Invitation {
     email: row.email,
     role: row.role,
     usedAt: row.usedAt ?? null,
-    createdAt: row.createdAt
+    createdAt: row.createdAt,
+    expiresAt: row.expiresAt,
+    emailedAt: row.emailedAt ?? null
   };
+  // `tokenHash` is deliberately absent: this projection is serialized straight
+  // into the admin HTTP response, and the hash is the only stored trace of the
+  // credential. It never leaves the server.
 }
 
 interface PushSubscriptionRow {

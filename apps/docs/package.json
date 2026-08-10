@@ -38,7 +38,7 @@
     "@tailwindcss/vite": "catalog:",
     "@types/node": "catalog:",
     "glob": "catalog:",
-    "marked": "^18.0.7",
+    "marked": "^18.0.9",
     "prettier": "catalog:",
     "prettier-plugin-svelte": "catalog:",
     "prettier-plugin-tailwindcss": "catalog:",
