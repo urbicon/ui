@@ -84,8 +84,9 @@ export interface CheckboxProps
 
   /**
    * Micro-interaction preset applied to the box (the visible control, not
-   * the sr-only input) — the click/keyboard trigger is the surrounding
-   * label. Only applies while not disabled.
+   * the sr-only input). Click-triggered engine mints listen on the
+   * surrounding label; `ripple` ignites only on the box itself. Only
+   * applies while not disabled.
    * @default 'none'
    * @summary Decorative feedback effect on the checkbox box.
    */

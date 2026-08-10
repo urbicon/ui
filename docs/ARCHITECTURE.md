@@ -366,8 +366,8 @@ wrapper is one line of `$derived` glue. The standalone `<FormField>` uses the sa
 
 `packages/blocks/src/lib/mint/` provides opt-in micro-interactions.
 
-- **Effects:** `scale`, `translate`, `rotate`, `glow`, `pulse` (hover), `bounce`, `shake`,
-  `ripple` (click) — composable via array; `composite` bundles several. `BUILTIN_MINT_NAMES`
+- **Effects:** `scale`, `translate`, `rotate`, `glow`, `pulse`, `wiggle` (hover), `bounce`,
+  `shake`, `ripple` (click) — composable via array; `composite` bundles several. `BUILTIN_MINT_NAMES`
   is the single runtime list; the `MintName` union derives from it.
 - **Two behaviour models:** hover/focus **hold** the effect while the pointer (or visible
   focus) stays on the element; click/load run it once and settle on the effect's own end

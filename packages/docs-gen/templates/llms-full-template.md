@@ -99,9 +99,9 @@ Each component documents its slots. Override without losing other styles:
 ### `mint` – Micro-Interactions (opt-in)
 
 No setup required — unknown names demand-load the built-in set on first use.
-Values: `'scale'` | `'translate'` | `'rotate'` | `'glow'` | `'pulse'` (hover, held while the
-pointer stays) | `'bounce'` | `'shake'` | `'ripple'` (click, one-shot) | `'none'` | array of
-these | `{ name, config }` entries with `duration`/`easing`/`intensity`.
+Values: `'scale'` | `'translate'` | `'rotate'` | `'glow'` | `'pulse'` | `'wiggle'` (hover, held
+while the pointer stays) | `'bounce'` | `'shake'` | `'ripple'` (click, one-shot) | `'none'` |
+array of these | `{ name, config }` entries with `duration`/`easing` (`intensity`: scale only).
 
 ```svelte
 <Button mint="scale">Hover me</Button>

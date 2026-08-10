@@ -60,7 +60,7 @@
     onFileRemove,
     size = 'md',
     intent = 'neutral',
-    mint,
+    mint = 'none',
     class: className = '',
     unstyled: unstyledProp = false,
     slotClasses: slotClassesProp,

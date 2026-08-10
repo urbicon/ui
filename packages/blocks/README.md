@@ -72,7 +72,7 @@ Opt-in micro-interactions, used via prop — no setup required (unknown names de
 <Card mint={['scale', 'ripple']}>Interactive card</Card>
 ```
 
-Built-in effects: `scale`, `translate`, `rotate`, `glow`, `pulse` (hover — held while the pointer stays), `bounce`, `shake`, `ripple` (click — one-shot). Configurable per entry (`duration`, `easing`, `intensity`); respects `prefers-reduced-motion` and applies hover effects only on hover-capable devices. Apps that need first-interaction guarantees on slow networks can still call `registerDefaultMints()` at startup to skip the demand-load. Full contract: `src/lib/mint/README.md`.
+Built-in effects: `scale`, `translate`, `rotate`, `glow`, `pulse`, `wiggle` (hover — held while the pointer stays), `bounce`, `shake`, `ripple` (click — one-shot). Configurable per entry (`duration`, `easing`, `intensity` for scale); respects `prefers-reduced-motion` and applies hover effects only on hover-capable devices. Apps that need first-interaction guarantees on slow networks can still call `registerDefaultMints()` at startup to skip the demand-load. Full contract: `src/lib/mint/README.md`.
 
 ## Presets & Defaults
 

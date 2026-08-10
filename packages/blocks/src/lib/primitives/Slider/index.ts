@@ -133,7 +133,8 @@ export interface SliderProps
   onValueChange?: (value: number | [number, number]) => void;
 
   /**
-   * Micro-interaction preset applied to the track. Only applies while not
+   * Micro-interaction preset applied to the slider's interactive area (the
+   * `base` slot — not the visual `track` slot). Only applies while not
    * disabled.
    * @default 'none'
    */

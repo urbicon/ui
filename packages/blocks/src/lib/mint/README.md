@@ -50,7 +50,7 @@ widening the type.
 | `pulse`     | hover   | Pulses continuously — held                         |
 | `bounce`    | click   | One-shot bounce                                    |
 | `shake`     | click   | One-shot shake                                     |
-| `wiggle`    | hover   | Wiggle animation                                   |
+| `wiggle`    | hover   | One wiggle cycle per hover entry (not continuous)  |
 | `ripple`    | click   | Material-style ripple from the pointer position    |
 | `composite` | —       | Bundles several mints via `config.mints`           |
 
@@ -92,7 +92,9 @@ custom properties** (`--blocks-mint-<effect>-duration`/`-easing`,
 `--blocks-mint-scale-intensity`) that the stylesheet reads with the theme tokens as
 fallback — so config actually changes the animation, per effect, including the exit
 transition. With no config, the theme duration/easing tokens stay in charge and remain
-the global tuning knobs.
+the global tuning knobs. `ripple` is the exception: it animates via the Web Animations
+API with its own defaults (600 ms, confident easing), reads no custom properties and
+takes its tuning from `RippleConfig` only.
 
 ## Presets
 
@@ -179,7 +181,8 @@ mintRegistry.register('my-mint', (config) => ({
 **Demand-load contract (documented):** mint effects are decorative. Interactions inside
 the fetch window are NOT replayed — on slow networks the first click for a not-yet-loaded
 click-triggered effect (`ripple`, `shake`, …) can be lost for that effect; hover-triggered
-effects engage from the next `mouseenter`. Consumer overrides always survive the
+effects re-sync on application, so a pointer already resting on the element engages the
+effect as soon as the chunk lands. Consumer overrides always survive the
 demand-load (built-ins only register onto free names — `registerBuiltin`). Apps that need
 first-interaction guarantees register the effect statically at startup:
 `registerDefaultMints()` or `mintRegistry.register(name, factory)` with a directly
@@ -195,6 +198,7 @@ belong in `engine.ts` (or their own module), never in `micro-interactions.ts`.
 
 The mint system respects `prefers-reduced-motion` twice over: the engine skips
 initialisation entirely under reduced motion, and `mint/styles.css` neutralises every
-effect class inside the media query (ripple checks again at click time, so toggling the
-OS setting needs no remount). `prefers-contrast: more` swaps the glow for a solid
-`currentColor` outline.
+effect class inside the media query. Ripple is the exception in mechanism: it checks the
+preference at click time (so toggling the OS setting needs no remount) but still sets up
+its host positioning (`position: relative`, `overflow: hidden`) at init.
+`prefers-contrast: more` swaps the glow for a solid `currentColor` outline.
