@@ -51,7 +51,7 @@ class MintRegistry {
 
   /**
    * Register a built-in mint — only if the name is still free. Used by the
-   * built-in set (`registerDefaultMints()` and the opt-in bundles) so the
+   * built-in set (`registerDefaultMints()`) so the
    * demand-load NEVER clobbers a consumer override: a `register()` entry
    * survives regardless of whether it ran before or during the load. A later
    * explicit `register()` call still overrides as before.

@@ -248,4 +248,3 @@ const complexMint = [
   {isPlayful ? 'Playful' : 'Professional'}
 </Button>
 ```
-

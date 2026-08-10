@@ -262,12 +262,16 @@ describe('Menu (mint propagation)', () => {
     renderMenu({
       placeholder: 'Actions',
       mint: 'probe',
-      items: [{ label: 'Edit' }, { label: 'Delete' }]
+      items: [{ label: 'Edit' }, { label: 'More', children: [{ label: 'Nested' }] }]
     });
 
     await user.click(trigger());
 
     expect((item('Edit') as HTMLElement).dataset.probeApplied).toBe('yes');
     expect(item('Edit').hasAttribute('data-mint')).toBe(false);
+
+    // The submenu row is the second wiring site (MenuSubmenu) — same contract.
+    expect((item('More') as HTMLElement).dataset.probeApplied).toBe('yes');
+    expect(item('More').hasAttribute('data-mint')).toBe(false);
   });
 });

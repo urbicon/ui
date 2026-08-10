@@ -177,8 +177,10 @@ export interface MenuSpecificProps<TItem extends MenuItemType = MenuItemType> {
   disabled?: boolean;
 
   /**
-   * Micro-interaction patterns for enhanced user feedback. Defaults to
-   * `'none'` — Action menus benefit from a clean, predictable feel.
+   * Micro-interaction preset applied to the default trigger button AND to
+   * every menu item row (per-item via context, like Tab/SegmentGroup).
+   * Defaults to `'none'` — action menus benefit from a clean, predictable
+   * feel.
    * @default 'none'
    */
   mint?: MintProp;
