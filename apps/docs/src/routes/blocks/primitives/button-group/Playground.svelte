@@ -35,10 +35,12 @@
       'mint'
     ],
     overrides: {
-      // `mint` ist vom Typ `MintProp`, den der Extractor nicht in Literale
-      // auflösen kann — ohne diesen expliziten `type` wirft `deriveControls`
-      // beim Rendern (und nimmt die ganze Seite mit). Gleiche Fassung wie bei
-      // SegmentGroup und Tab, damit die drei denselben Regler zeigen.
+      // `mint` ist vom Typ `MintProp` — durch `(string & {})` offen, also für
+      // den Extractor nicht in eine endliche Literalliste auflösbar; ohne
+      // diesen expliziten `type` wirft `deriveControls` beim Rendern (und
+      // nimmt die ganze Seite mit). Die Auswahl ist bewusst pro Komponente
+      // kuratiert: SegmentGroup zeigt dieselbe Fassung wie hier, Tab bietet
+      // ripple statt pulse/wiggle an (Einzel-Trigger vertragen Ripple).
       mint: {
         type: 'dropdown',
         label: 'Mint',
