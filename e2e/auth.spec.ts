@@ -17,6 +17,16 @@ import { expect, type Page, test } from '@playwright/test';
  */
 
 const TEST_USER = { email: 'alice@test.local', name: 'Alice', password: 'AliceSecret123' };
+/**
+ * The raw token of the invitation `seedWorld` creates for that address.
+ *
+ * Registration is gated on holding it and on nothing else (#149) — knowing the
+ * invited address stopped being proof of anything. The seed uses a fixed token
+ * (see `hashToken('seed-invitation-token')` in `test-auth.ts`) precisely so this
+ * walk-through can present one; a real invitation gets a random one that leaves
+ * the server once, in the invite link.
+ */
+const INVITATION_TOKEN = 'seed-invitation-token';
 // Mirrors playwright.config.ts's PORT override — a hardcoded 5174 here makes
 // the auth CSRF gate 403 every seed call under `PORT=<n>` session isolation.
 const ORIGIN = `http://localhost:${Number(process.env.PORT ?? 5174)}`;
@@ -30,7 +40,7 @@ async function seedWorld(page: Page) {
 
 async function register(page: Page) {
   const res = await page.request.post('/test-fixtures/auth/api/register', {
-    data: TEST_USER,
+    data: { ...TEST_USER, token: INVITATION_TOKEN },
     headers: { origin: ORIGIN }
   });
   expect(res.status()).toBe(201);
@@ -55,6 +65,36 @@ test.describe('Auth kernel flow', () => {
   test('register → protected route renders the user', async ({ page }) => {
     await register(page);
 
+    await page.goto('/test-fixtures/auth/protected');
+    await expect(page.getByTestId('protected-user')).toHaveText(`Signed in as ${TEST_USER.email}`);
+  });
+
+  // #149. The unit tests pin the handler's decision; this pins the whole path —
+  // real CSRF gate, real handler, real adapter — because the property being
+  // defended is "no account exists at the end", and only this layer can say so.
+  test('registration without the invitation token creates no account', async ({ page }) => {
+    const noToken = await page.request.post('/test-fixtures/auth/api/register', {
+      data: TEST_USER,
+      headers: { origin: ORIGIN }
+    });
+    expect(noToken.status(), 'a missing token is a malformed request').toBe(400);
+
+    // Knowing the invited address used to be the entire proof. It is now worth
+    // nothing without the token that came with it.
+    const guessed = await page.request.post('/test-fixtures/auth/api/register', {
+      data: { ...TEST_USER, token: 'a-guessed-token' },
+      headers: { origin: ORIGIN }
+    });
+    expect(guessed.status()).toBe(403);
+    expect((await guessed.json()).code).toBe('invitation_required');
+
+    // And no session was established by either attempt.
+    await page.goto('/test-fixtures/auth/protected');
+    await expect(page.getByTestId('protected-user')).toHaveCount(0);
+
+    // The invitation survives both attempts — a failed guess must not burn it,
+    // which is how the original defect locked the genuine invitee out.
+    await register(page);
     await page.goto('/test-fixtures/auth/protected');
     await expect(page.getByTestId('protected-user')).toHaveText(`Signed in as ${TEST_USER.email}`);
   });
