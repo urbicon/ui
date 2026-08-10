@@ -43,7 +43,9 @@ export interface RecurrenceRule {
   /** Repeat every N periods (e.g. 2 = every 2 weeks). @default 1 */
   interval?: number;
   /**
-   * Weekdays the rule applies to (0=Sun, 1=Mon, ..., 6=Sat).
+   * Weekdays the rule applies to — 0=Sun, 1=Mon, ..., 6=Sat. Values outside
+   * that range match no day at all and warn in DEV. An empty array reads as
+   * "no restriction", not "exclude everything".
    *
    * Its meaning depends on `frequency`, following RFC 5545:
    * - `weekly` — GENERATES one occurrence per listed day, in every interval-th
@@ -53,15 +55,23 @@ export interface RecurrenceRule {
    *   `{ daily, interval: 2, byDay: [1,2,3,4,5] }` = every other day, but only
    *   when it falls on a weekday.
    *
-   * The two are not interchangeable once `interval` is involved. Ignored by
-   * `monthly` and `yearly` (use `byMonthDay`).
+   * The two are not interchangeable once `interval` is involved.
+   *
+   * Only the occurrence's START day is tested, so on a multi-day event a
+   * weekday-only rule still draws across the weekend. Read by `daily` and
+   * `weekly` only; `monthly` uses `byMonthDay`, `yearly` repeats the start date.
    */
   byDay?: number[];
-  /** Specific day(s) of month for monthly recurrence (1-31). */
+  /** Specific day(s) of month, 1-31. Read by `monthly` only. */
   byMonthDay?: number[];
   /** End date — recurrence stops after this date (inclusive). */
   until?: Date;
-  /** Maximum number of occurrences (including the original). */
+  /**
+   * Maximum number of occurrences the series yields. Days removed by `byDay`
+   * are not occurrences and do not count against it — `{ daily, count: 3,
+   * byDay: [1..5] }` starting on a Sunday yields the following Mon/Tue/Wed. The
+   * original start date counts when it is itself an occurrence.
+   */
   count?: number;
   /** Exception dates where the event does NOT occur. */
   exceptions?: Date[];
