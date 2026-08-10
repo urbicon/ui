@@ -3,7 +3,7 @@ import fixture from './booking-fixture.json';
 /**
  * Replays a recorded agent exchange.
  *
- * The hotel page is a claim about *design* — one agent payload, four houses —
+ * The hotel page is a claim about *design* — one agent payload, three houses —
  * so it must not be hostage to an API key, a network hop, or which way the
  * model felt like phrasing things today. What it plays back is real recorded
  * model output, not hand-written UI — captured by

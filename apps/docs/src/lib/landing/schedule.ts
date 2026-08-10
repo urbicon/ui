@@ -29,8 +29,8 @@ export const ROOM_CATEGORIES: CalendarEventCategory[] = [
 ];
 
 /**
- * Zwanzig Ziehungen im Verhältnis des Zimmerbestands der Gruppe (22 / 13 / 9 /
- * 6 ≈ 45 / 25 / 18 / 12 %). Ein festes Muster statt eines Zufallsgenerators:
+ * Zwanzig Ziehungen im Verhältnis des Zimmerbestands der Gruppe (17 / 10 / 7 /
+ * 5 ≈ 44 / 26 / 18 / 13 %). Ein festes Muster statt eines Zufallsgenerators:
  * es ist nachvollziehbar, prerender-fest und trifft die Anteile genauer als
  * eine kurze Zufallsreihe es täte.
  */

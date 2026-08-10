@@ -2,8 +2,8 @@
   Die Landing — "3-Zeilen-Journey": erinnern → staunen → erforschen → handeln.
   Zeile 1: Namens-Kachel + Scroller mit fünf Kanal-Kacheln (Cusp-Palette,
   light-dark()-Paare); die ersten vier Kacheln teilen das Hotel-Universum
-  "Fermata" ($lib/hotel-tools) — vier Häuser als Sub-Brands (Cala/Menorca,
-  Firn/Engadin, Mori/Kyoto, Duna/Comporta), damit Dashboard und Grid
+  "Fermata" ($lib/hotel-tools) — drei Häuser als Sub-Brands (Cala/Menorca,
+  Firn/Engadin, Duna/Comporta), damit Dashboard und Grid
   Betriebs-Maßstab zeigen und die Liveries ihre natürlichste Begründung haben.
   Jede Kachel scopet die primary-Familie
   auf ihren Kanal (`.room-accent` aus rooms.css) — die lebenden Komponenten
@@ -172,8 +172,8 @@
   }
 
   // ── Die Kacheln Blocks–Agents teilen sich EIN fiktives Universum: die
-  //    Hotelgruppe „Fermata" — vier Häuser: Cala (Menorca), Firn (Engadin),
-  //    Mori (Kyoto), Duna (Comporta). Anders als in der Salon-Ära gibt es
+  //    Hotelgruppe „Fermata" — drei Häuser: Cala (Menorca), Firn (Engadin),
+  //    Duna (Comporta). Anders als in der Salon-Ära gibt es
   //    keinen Maßstabs-Schnitt mehr: `get_hotel_info` kennt die GANZE Gruppe
   //    (Häuser, Zimmertypen, Bestand), und Namen, Orte und Teams kommen hier
   //    aus demselben Register wie auf der /hotel-Vollseite und in der
@@ -191,10 +191,10 @@
   // Set, ein Klick auseinander. Die Schwergewichte kamen auf der ganzen Landing
   // sonst nur als Wörter in der Typo-Treppe vor.
   //
-  // Die Zahlen der drei Ansichten sind EINE Wahrheit: die Wochensummen des
-  // Charts (47/55/51/66/72) sind die „+N more"-Zahlen des Planners, der Donut
-  // (412 guests) ist die Gesamtsumme des Sankey-Flusses, und der Umsatzmix
-  // (52/24/17/7 %) ist dessen letzte Ebene. Wer nachrechnet, findet keinen
+  // Die Zahlen der Ansichten sind EINE Wahrheit: der Donut (344 guests) ist
+  // die Gesamtsumme des Sankey-Flusses (die Haus-Kanten summieren exakt auf
+  // die guests-Werte je Haus), und der Umsatzmix (33/25/22/20 %) ist dessen
+  // letzte Ebene, auf ganze Prozent gerundet. Wer nachrechnet, findet keinen
   // Widerspruch — das ist der Sinn EINES Universums.
   type DashView = 'overview' | 'schedule' | 'flow';
   let dashView = $state<DashView>('overview');
@@ -228,7 +228,6 @@
   const OPS: Record<string, Omit<House, 'name' | 'city' | 'size' | 'team'>> = {
     cala: { load: 86, guests: 132, returning: 92, mix: [30, 26, 24, 20] },
     firn: { load: 94, guests: 64, returning: 41, mix: [40, 22, 18, 20] },
-    mori: { load: 78, guests: 96, returning: 71, mix: [34, 26, 22, 18] },
     duna: { load: 71, guests: 148, returning: 87, mix: [32, 25, 22, 21] }
   };
   const HOUSES: House[] = GROUP_HOUSES.map((house) => ({
@@ -238,7 +237,7 @@
     team: house.hosts.map((host): AvatarProps => ({ name: host.name, status: host.status })),
     ...OPS[house.id]
   }));
-  const GROUP_GUESTS = HOUSES.reduce((n, h) => n + h.guests, 0); // 440
+  const GROUP_GUESTS = HOUSES.reduce((n, h) => n + h.guests, 0); // 344
   /** Die Chip-Zeile über den Ansichten: die Gruppe plus je ein Haus. */
   const SCOPES: { key: string | null; label: string }[] = [
     { key: null, label: 'All' },
@@ -285,9 +284,9 @@
   );
   const team = $derived(activeHouse ? activeHouse.team : HOUSES.flatMap((h) => h.team));
   // Gästezahlen, keine Prozente: der Donut summiert seine Werte zur Mitte.
-  // Auf Gruppen-Maßstab (440 guests) liest die Mitte auch nicht versehentlich
+  // Auf Gruppen-Maßstab (344 guests) liest die Mitte auch nicht versehentlich
   // als „100 %", wie es eine 68/32-Summe täte.
-  const GROUP_RETURNING = HOUSES.reduce((n, h) => n + h.returning, 0); // 291
+  const GROUP_RETURNING = HOUSES.reduce((n, h) => n + h.returning, 0); // 220
   const returnMix = $derived([
     { label: 'Returning', value: activeHouse?.returning ?? GROUP_RETURNING },
     {
@@ -326,7 +325,7 @@
   // Ankünfte der GRUPPE je Wochentag (Index 0 = Montag) — dieselben Summen,
   // die der Chart der Overview zeichnet: alle sieben Tage, Wochenende voran.
   const GROUP_DAY_TOTALS = [34, 28, 32, 39, 58, 71, 44];
-  // Ein Zeitraster zeigt einen Empfang, keine Gruppe: vier Häuser übereinander
+  // Ein Zeitraster zeigt einen Empfang, keine Gruppe: drei Häuser übereinander
   // wären Tapete. Die Ansicht zeigt darum EIN Haus — das gewählte, sonst das
   // Stammhaus — und die Kopfzeile sagt es. Der Umschalter dafür steht schon
   // da: die Belegungszeilen der Overview.
@@ -350,18 +349,18 @@
   const TIME_FMT = new Intl.DateTimeFormat('en-GB', { hour: '2-digit', minute: '2-digit' });
 
   // Die Unterzeile der Karte. In der Schedule-Ansicht nennt sie IMMER ein Haus,
-  // auch wenn keins gewählt ist — sonst verspräche „All four houses" über einem
+  // auch wenn keins gewählt ist — sonst verspräche „All three houses" über einem
   // Zeitraster, das nur eines zeigt.
   const cardSubtitle = $derived(
     dashView === 'schedule'
       ? `${scheduleHouse.name} · ${scheduleHouse.city}`
       : activeHouse
         ? `${activeHouse.name} · ${activeHouse.city}`
-        : 'All four houses'
+        : 'All three houses'
   );
 
-  // ── Flow: woher die 440 Gäste kommen und wo sie schlafen ───────────
-  // Drei Ebenen, und jede Ebene summiert sich auf dieselben 440 wie der Donut;
+  // ── Flow: woher die 344 Gäste kommen und wo sie schlafen ───────────
+  // Drei Ebenen, und jede Ebene summiert sich auf dieselben 344 wie der Donut;
   // die letzte Ebene trägt die Zimmertypen, deren Umsatzanteile die
   // CompositionBar zeigt (33/25/22/20).
   const FLOW_NODES = [
@@ -381,15 +380,12 @@
   const FLOW_LINKS = [
     { source: 'direct', target: 'cala', value: 58 },
     { source: 'direct', target: 'firn', value: 30 },
-    { source: 'direct', target: 'mori', value: 38 },
     { source: 'direct', target: 'duna', value: 62 },
     { source: 'website', target: 'cala', value: 51 },
     { source: 'website', target: 'firn', value: 22 },
-    { source: 'website', target: 'mori', value: 40 },
     { source: 'website', target: 'duna', value: 55 },
     { source: 'partners', target: 'cala', value: 23 },
     { source: 'partners', target: 'firn', value: 12 },
-    { source: 'partners', target: 'mori', value: 18 },
     { source: 'partners', target: 'duna', value: 31 },
     { source: 'cala', target: 'room', value: 40 },
     { source: 'cala', target: 'garden', value: 34 },
@@ -399,10 +395,6 @@
     { source: 'firn', target: 'garden', value: 14 },
     { source: 'firn', target: 'corner', value: 11 },
     { source: 'firn', target: 'suite', value: 13 },
-    { source: 'mori', target: 'room', value: 33 },
-    { source: 'mori', target: 'garden', value: 25 },
-    { source: 'mori', target: 'corner', value: 21 },
-    { source: 'mori', target: 'suite', value: 17 },
     { source: 'duna', target: 'room', value: 47 },
     { source: 'duna', target: 'garden', value: 37 },
     { source: 'duna', target: 'corner', value: 33 },
@@ -435,7 +427,7 @@
   // zeigt — ein Universum, eine Gästeliste.
   interface Arrival {
     id: string;
-    house: 'Cala' | 'Firn' | 'Mori' | 'Duna';
+    house: 'Cala' | 'Firn' | 'Duna';
     time: string;
     guest: string;
     room: string;
@@ -536,56 +528,6 @@
       nights: 7,
       status: 'pending',
       rate: 3640
-    },
-    {
-      id: 'a10',
-      house: 'Mori',
-      time: '14:00',
-      guest: 'K. Marsh',
-      room: 'Garden',
-      nights: 2,
-      status: 'confirmed',
-      rate: 600
-    },
-    {
-      id: 'a11',
-      house: 'Mori',
-      time: '14:45',
-      guest: 'N. Petit',
-      room: 'Room',
-      nights: 3,
-      status: 'confirmed',
-      rate: 720
-    },
-    {
-      id: 'a12',
-      house: 'Mori',
-      time: '15:30',
-      guest: 'L. Beaumont',
-      room: 'Corner',
-      nights: 2,
-      status: 'same-day',
-      rate: 720
-    },
-    {
-      id: 'a13',
-      house: 'Mori',
-      time: '16:15',
-      guest: 'Y. Tanaka',
-      room: 'Room',
-      nights: 5,
-      status: 'confirmed',
-      rate: 1200
-    },
-    {
-      id: 'a14',
-      house: 'Mori',
-      time: '18:00',
-      guest: 'F. Abadi',
-      room: 'Suite',
-      nights: 3,
-      status: 'confirmed',
-      rate: 1560
     },
     {
       id: 'a15',
@@ -1188,7 +1130,7 @@
                       viewDefaults={{ groupBy: 'house' }}
                       variant="flush"
                       size="sm"
-                      ariaLabel="Today's arrivals across the four houses of Fermata"
+                      ariaLabel="Today's arrivals across the three houses of Fermata"
                       slotClasses={{ table: '!min-w-0' }}
                     />
                   </div>

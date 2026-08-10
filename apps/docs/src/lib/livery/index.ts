@@ -10,8 +10,8 @@ import type { ComponentDefaults } from '@urbicon-ui/blocks';
  *    border idiom, a type jump, a shape a token tier bundles with something
  *    else. Still project configuration, still zero call sites touched.
  * 3. **Layout** (`layout`, consumed by the page) — where things sit. Not a
- *    token and not pretending to be one: a scattered edge grid and a vertical
- *    pillar are different page structures, not different values.
+ *    token and not pretending to be one: a scattered edge grid and a single
+ *    horizon line are different page structures, not different values.
  *
  * Layer 3 is the honest boundary of this demo. Layers 1 and 2 reach the
  * agent-generated surface automatically; layer 3 does not, because the agent
@@ -20,11 +20,12 @@ import type { ComponentDefaults } from '@urbicon-ui/blocks';
  * form only as far as colour and type carry it.
  *
  * Since the move to the hotel universe (2026-08-10) a livery IS a house of the
- * Fermata group — the four sub-brands of `$lib/hotel-tools`, which is the real
- * shape of this pattern in the wild: one booking platform, four identities.
+ * Fermata group — the sub-brands of `$lib/hotel-tools`, which is the real
+ * shape of this pattern in the wild: one booking platform, three identities.
  * The ids here must therefore match `HOUSES[].id`; the full page joins the two
  * registries by that key, and a livery without house data would be a switch
- * position that renders an empty page.
+ * position that renders an empty page. (A fourth livery, Mori — cedar dusk,
+ * `pillar` layout — was cut with its house on 2026-08-10.)
  */
 export interface Livery {
   id: string;
@@ -44,12 +45,10 @@ export interface Livery {
  * - `courtyard` — a symmetric centred column; every section head sits under a
  *   whitewashed arch.
  * - `scatter`   — no centre: items pinned across a wide grid, big voids.
- * - `pillar`    — one narrow column; the wordmark stands VERTICAL at the edge,
- *   read top to bottom like a hanging scroll.
  * - `horizon`   — everything sits on one full-bleed line, the wordmark resting
  *   on it like the sun on the dune crest.
  */
-export type LiveryLayout = 'courtyard' | 'scatter' | 'pillar' | 'horizon';
+export type LiveryLayout = 'courtyard' | 'scatter' | 'horizon';
 
 /**
  * Nothing to do here any more — kept as a note because the absence is the point.
@@ -154,36 +153,6 @@ const FIRN: Livery = {
   }
 };
 
-const MORI: Livery = {
-  id: 'mori',
-  name: 'Mori',
-  tagline: 'Cedar dusk, paper type, one lantern.',
-  mechanism: 'The ground is the forest at dusk — light is warm and pointed, never a flood.',
-  layout: 'pillar',
-  defaults: {
-    // Shoji logic: surfaces are frames, not panels. A card is a hairline
-    // rectangle the dusk shows through.
-    Card: {
-      slotClasses: { base: 'border border-border-subtle bg-transparent shadow-none' }
-    },
-    Button: {
-      // Lantern hairline; the warm fill is reserved for the one commitment.
-      slotClasses: { base: 'shadow-none hover:shadow-none active:shadow-none' },
-      overrides: [{ variant: 'outlined', class: { base: 'border border-primary-600' } }]
-    },
-    // Underlines only — a boxed input would cut a pane into the paper.
-    Input: {
-      slotClasses: {
-        // Underline on `base` — see Cala's anatomy note.
-        base: 'border-x-0 border-t-0 rounded-none bg-transparent'
-      }
-    },
-    Textarea: {
-      slotClasses: { base: 'border-x-0 border-t-0 border-b bg-transparent' }
-    }
-  }
-};
-
 const DUNA: Livery = {
   id: 'duna',
   name: 'Duna',
@@ -212,7 +181,7 @@ const DUNA: Livery = {
   }
 };
 
-export const LIVERIES: Livery[] = [CALA, FIRN, MORI, DUNA];
+export const LIVERIES: Livery[] = [CALA, FIRN, DUNA];
 
 /** Cala is the group's first house — the page opens on the quietest one. */
 export const DEFAULT_LIVERY = CALA;

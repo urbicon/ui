@@ -26,7 +26,7 @@ describe('executeHotelTool', () => {
       houseId: string;
       rooms: Array<{ roomId: string; free: number }>;
     }>;
-    expect(availability).toHaveLength(4);
+    expect(availability).toHaveLength(3);
     // Sold-out types are dropped, so every listed room is actually bookable.
     for (const house of availability) {
       for (const room of house.rooms) expect(room.free).toBeGreaterThan(0);

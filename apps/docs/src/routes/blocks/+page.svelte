@@ -1773,7 +1773,7 @@ Tokens switch light and dark automatically:
               items={[
                 { name: 'Núria Pons' },
                 { name: 'Gian Caduff' },
-                { name: 'Aoi Takeda' },
+                { name: 'Ladina Planta' },
                 { name: 'Inês Camacho' },
                 { name: 'Tomás Varela' }
               ]}

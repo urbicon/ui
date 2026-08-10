@@ -1,5 +1,5 @@
 /*
- * Four houses, one component library.
+ * Three houses, one component library.
  *
  * ── Where these skins come from ─────────────────────────────────────────────
  * Each livery is one house of the Fermata group, and its palette is lifted
@@ -13,10 +13,11 @@
  *          itself, and the second colour is the blue of hard shadows.
  *   FIRN — old snow at 1,850 m. Thin air: ink on cold white, one glacier
  *          line, contour lines instead of texture.
- *   MORI — a cedar forest at dusk. Tone-on-tone dark green, paper-warm type,
- *          one small lantern of warm light.
  *   DUNA — dune grass at last light. The ground is a gradient, banded like
  *          sand; the accent is the glow behind the crest.
+ *
+ * (A fourth skin, MORI — cedar dusk, washi-to-cedar hue drift — was cut with
+ * its house on 2026-08-10; git has it should a fourth house return.)
  *
  * Four mechanisms recur from the salon-era study and still hold:
  *   1. The ground carries the identity, not an accent sitting on it.
@@ -27,8 +28,8 @@
  * ── Why that reaches the agent's UI too ─────────────────────────────────────
  * Every semantic token in `@urbicon-ui/blocks` resolves through the three
  * foundation ramps, and `neutral` is the chassis: surfaces, text and borders
- * all descend from it. Giving that ramp real chroma — or, in Mori's case, a
- * hue that DRIFTS from paper-warm at the light end to cedar-green at the dark
+ * all descend from it. Giving that ramp real chroma — or, in Cala's case, a
+ * hue that DRIFTS from chalk-warm at the light end to shadow-blue at the dark
  * end — tints the entire system at once, page chrome and generated booking
  * form alike. No component is named anywhere in this file.
  *
@@ -221,102 +222,6 @@
 }
 
 /* ═══════════════════════════════════════════════════════════════════════════
-   MORI — a cedar house at dusk. Paper type on forest ground, one lantern.
-   The one that proves a dark theme needs neither black nor an acid accent.
-   ═══════════════════════════════════════════════════════════════════════════ */
-:root[data-livery='mori'],
-[data-livery='mori'] {
-  color-scheme: dark;
-
-  /* The chassis drifts along the ramp: washi-warm paper at the light end,
-     cedar green at the dark end — paper in the light, forest in the shade.
-     Chroma stays present at every step; nothing here is ever grey OR black. */
-  --color-neutral-0: oklch(0.95 0.018 95);
-  --color-neutral-25: oklch(0.93 0.02 95);
-  --color-neutral-50: oklch(0.91 0.022 98);
-  --color-neutral-100: oklch(0.88 0.024 100);
-  --color-neutral-200: oklch(0.8 0.026 110);
-  --color-neutral-300: oklch(0.7 0.03 125);
-  --color-neutral-400: oklch(0.6 0.035 140);
-  --color-neutral-500: oklch(0.5 0.04 148);
-  --color-neutral-600: oklch(0.42 0.045 152);
-  --color-neutral-650: oklch(0.39 0.045 154);
-  --color-neutral-700: oklch(0.36 0.048 155);
-  --color-neutral-750: oklch(0.33 0.048 156);
-  /* surface-elevated in dark = neutral-800; a shoji panel, one shade lighter
-     than the room behind it. */
-  --color-neutral-800: oklch(0.3 0.05 156);
-  --color-neutral-850: oklch(0.285 0.05 157);
-  /* surface-base in dark. The cedar dusk itself. */
-  --color-neutral-900: oklch(0.27 0.05 158);
-  --color-neutral-950: oklch(0.18 0.04 160);
-
-  /* The lantern — warm, small, and the only bright thing in the house. In
-     dark mode the library fills with primary-500 and writes neutral-900 on
-     it, so 500 must stay light enough to carry the cedar-dark text. */
-  --color-primary-50: oklch(0.97 0.02 85);
-  --color-primary-100: oklch(0.95 0.035 82);
-  --color-primary-200: oklch(0.92 0.055 80);
-  --color-primary-300: oklch(0.89 0.07 78);
-  --color-primary-400: oklch(0.87 0.085 76);
-  --color-primary-500: oklch(0.84 0.1 75);
-  --color-primary-600: oklch(0.76 0.1 72);
-  --color-primary-700: oklch(0.65 0.09 70);
-  --color-primary-800: oklch(0.52 0.08 68);
-  --color-primary-900: oklch(0.4 0.06 66);
-  --color-primary-950: oklch(0.26 0.04 64);
-
-  /* Moss — the second green, one register brighter than the ground, used the
-     way moss appears: in patches, never as a field. */
-  --color-secondary-50: oklch(0.95 0.03 135);
-  --color-secondary-100: oklch(0.92 0.05 135);
-  --color-secondary-200: oklch(0.87 0.065 134);
-  --color-secondary-300: oklch(0.81 0.075 134);
-  --color-secondary-400: oklch(0.76 0.08 133);
-  --color-secondary-500: oklch(0.72 0.082 133);
-  --color-secondary-600: oklch(0.63 0.078 132);
-  --color-secondary-700: oklch(0.52 0.068 131);
-  --color-secondary-800: oklch(0.41 0.055 130);
-  --color-secondary-900: oklch(0.31 0.042 129);
-  --color-secondary-950: oklch(0.2 0.028 128);
-
-  /* Old timber softness: not square, never round. */
-  --radius-xs: 1px;
-  --radius-sm: 2px;
-  --radius-md: 2px;
-  --radius-lg: 3px;
-  --radius-xl: 3px;
-  --radius-2xl: 4px;
-  --radius-3xl: 4px;
-  --radius-4xl: 4px;
-  --radius-modify: 1px;
-  --radius-commit: 2px;
-  --radius-contain: 2px;
-  --radius-bridge: 2px;
-
-  /* Mincho — a Japanese serif whose Latin carries the same brush logic. No
-     uppercase anywhere: Mincho set in caps loses exactly the calm it is for. */
-  --livery-display: 'Hiragino Mincho ProN', 'Yu Mincho', 'Baskerville', 'Times New Roman', serif;
-  --livery-body: 'Hiragino Sans', 'Avenir Next', system-ui, sans-serif;
-  --livery-display-weight: 300;
-  --livery-display-tracking: 0.08em;
-  --livery-display-transform: none;
-  --livery-display-style: normal;
-  --livery-heading-tracking: 0.05em;
-  --livery-label-tracking: 0.16em;
-  --livery-label-transform: none;
-  /* Two clearings in the dusk, and one small warm pool top-right: the
-     lantern. It is the only warm light in the ground — pointed, not a flood. */
-  --livery-ground:
-    radial-gradient(50% 42% at 18% 8%, oklch(0.33 0.055 150 / 0.9), transparent 70%),
-    radial-gradient(62% 52% at 85% 92%, oklch(0.21 0.045 162 / 0.9), transparent 70%),
-    radial-gradient(16% 12% at 80% 20%, oklch(0.52 0.075 80 / 0.32), transparent 70%);
-  --livery-grain: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='140' height='140'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='3'/%3E%3C/filter%3E%3Crect width='140' height='140' filter='url(%23n)' opacity='0.35'/%3E%3C/svg%3E");
-  --livery-grain-blend: overlay;
-  --livery-grain-opacity: 0.3;
-}
-
-/* ═══════════════════════════════════════════════════════════════════════════
    DUNA — last light over the dune grass. The ground is a gradient, banded
    like sand. The one that proves the ground can be a TIME of day.
    ═══════════════════════════════════════════════════════════════════════════ */
@@ -416,7 +321,7 @@
  * The selectors above are attribute-only (`[data-livery='…']`, not
  * `:root[data-livery='…']`) so a house can be mounted on the document root OR
  * on any container. That is what lets one of these live as a tile inside a page
- * that has a look of its own — a cedar-dusk house sitting in a light landing
+ * that has a look of its own — Duna's evening sitting in a light landing
  * page without touching it.
  *
  * It works because `light-dark()` resolves against the NEAREST `color-scheme`,

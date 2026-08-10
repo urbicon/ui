@@ -10,10 +10,10 @@
   import { GROUP_NAME, HOUSES, houseById, ROOM_TYPES } from '$lib/hotel-tools';
 
   /**
-   * One group, four houses — and here, unlike in the salon era, the switch
-   * changes the HOUSE, not just the paint: Cala, Firn, Mori and Duna are the
+   * One group, three houses — and here, unlike in the salon era, the switch
+   * changes the HOUSE, not just the paint: Cala, Firn and Duna are the
    * sub-brands of Fermata (`$lib/hotel-tools`), which is the real shape of
-   * the livery pattern in the wild. Kicker, lede, facts and hosts follow the
+   * the livery pattern in the wild. Kicker, image, facts and hosts follow the
    * switch because livery ids ARE house ids; rooms and rates stay still
    * because the group prices per type, not per house.
    *
@@ -40,13 +40,13 @@
    * One AI-generated architecture shot per house (static/hotel/*.avif).
    * Presentation only, so it lives here and not in the hotel-tools register:
    * the register is what the model's tool calls return, and an image path has
-   * no business in a tool payload. Mori deliberately brings none — the Kyoto
-   * shots never reached the bar the other three set, and three strong images
-   * beat a fourth that dilutes; the figure block simply collapses for a house
-   * without one. How each image sits (arch, keepsake, panorama) is the
-   * house's layout idiom in layouts.css, not styling here.
+   * no business in a tool payload. Every house ships exactly one — a house
+   * without a shot at the bar of these three would dilute the set, which is
+   * why Mori left entirely rather than run text-only (2026-08-10). How each
+   * image sits (arch, keepsake, panorama) is the house's layout idiom in
+   * layouts.css, not styling here.
    */
-  const HOUSE_IMAGES: Record<'cala' | 'firn' | 'duna', { src: string; alt: string }> = {
+  const HOUSE_IMAGES: Record<string, { src: string; alt: string }> = {
     cala: {
       src: '/hotel/cala.avif',
       alt: 'Whitewashed courtyard at Cala — an arched opening onto the sea, sage-green chairs in the shade, bougainvillea along the top of the wall.'
@@ -60,11 +60,7 @@
       alt: 'The house at Duna — sand-toned plaster and a thatched roofline over the terrace, evening light on the beach behind.'
     }
   };
-  const houseImage = $derived(
-    Object.hasOwn(HOUSE_IMAGES, house.id)
-      ? HOUSE_IMAGES[house.id as keyof typeof HOUSE_IMAGES]
-      : undefined
-  );
+  const houseImage = $derived(HOUSE_IMAGES[house.id]);
 
   let booking: ReturnType<typeof HotelBooking> | undefined = $state();
 
@@ -86,7 +82,7 @@
   });
 
   /**
-   * The group's day, one rhythm for all four houses — a hotel that sells
+   * The group's day, one rhythm for all three houses — a hotel that sells
    * quiet publishes a day, not an amenity list.
    */
   const DAY = [
@@ -111,7 +107,7 @@
      their examples around. The suffix would break it. The description says what
      the page actually is, which the title deliberately does not. -->
 <svelte:head>
-  <title>{GROUP_NAME} — four quiet houses</title>
+  <title>{GROUP_NAME} — three quiet houses</title>
   <meta
     name="description"
     content="A fictional hotel group built entirely from Urbicon UI — the livery demo behind the examples on the landing page and in the getting-started guide."
@@ -156,9 +152,9 @@
         {/if}
       </h1>
 
-      <p data-house="lede" class="text-text-secondary text-base leading-relaxed">
-        {house.line}
-      </p>
+      <!-- No lede. The house said its sentence in marketing copy once, and the
+           sentence was the weakest thing on the page (cut on review,
+           2026-08-10) — place, image and facts carry it now. -->
 
       <a
         data-house="cta"
@@ -172,19 +168,17 @@
     <!-- ── The house, seen — one shot per house, framed by its layout idiom ──
          The hero stays type only (it IS the livery thesis); the image is the
          second act. Cala crops to its arch, Firn hangs a keepsake, Duna runs
-         a panorama on the horizon. Mori has no image and no placeholder. -->
-    {#if houseImage}
-      <figure data-house="figure" class="mx-auto max-w-6xl px-6">
-        <img
-          src={houseImage.src}
-          alt={houseImage.alt}
-          width="1280"
-          height="960"
-          loading="lazy"
-          decoding="async"
-        />
-      </figure>
-    {/if}
+         a panorama on the horizon. -->
+    <figure data-house="figure" class="mx-auto max-w-6xl px-6">
+      <img
+        src={houseImage.src}
+        alt={houseImage.alt}
+        width="1280"
+        height="960"
+        loading="lazy"
+        decoding="async"
+      />
+    </figure>
 
     <!-- ── Rooms — the group's one price sheet ──────────────────────────── -->
     <section

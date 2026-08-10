@@ -5,11 +5,13 @@
 // calls `executeHotelTool` inside its tool loop, the unit tests call it
 // directly.
 //
-// The fiction: FERMATA, a group of four small houses named after the piece of
+// The fiction: FERMATA, a group of three small houses named after the piece of
 // landscape each one stands in, in the language of its place — Cala (cove,
-// Menorca), Firn (old snow, Engadin), Mori (forest, Kyoto), Duna (dune,
-// Comporta). A fermata is the mark a musician holds a note under for longer
-// than written; the group books quiet, not glamour.
+// Menorca), Firn (old snow, Engadin), Duna (dune, Comporta). A fermata is the
+// mark a musician holds a note under for longer than written; the group books
+// quiet, not glamour. (A fourth house, Mori/Kyoto, was cut on 2026-08-10
+// together with its pillar layout: three houses with strong imagery beat four
+// where one dilutes.)
 //
 // Scope note (2026-08-10, the salon universe's scale cut is retired): unlike
 // `get_salon_info`, which knew only the flagship while the landing told a
@@ -23,7 +25,7 @@ export const HOTEL_TOOLS = [
   {
     name: 'get_hotel_info',
     description:
-      'Returns the Fermata group: its four houses, their room types with nightly rates and, when ' +
+      'Returns the Fermata group: its houses, their room types with nightly rates and, when ' +
       'a date range (checkIn/checkOut, YYYY-MM-DD) is given, how many rooms of each type are ' +
       'free in each house for every night of the stay. ALWAYS call this before building a ' +
       'booking form or confirming a stay — never invent houses, room types, rates or ' +
@@ -62,11 +64,11 @@ export interface HotelHost {
 export interface HotelHouse {
   id: string;
   name: string;
-  /** Where the house stands — island, valley, forest edge, dune field. */
+  /** Where the house stands — island, valley, dune field. */
   place: string;
-  /** The house in one breath — the full page's lede. */
-  line: string;
-  /** Three short facts the full page shows beside the hosts. */
+  /** Three short facts the full page shows beside the hosts. No prose lede —
+   * the marketing sentence each house used to carry was cut on request
+   * (2026-08-10); the image and the facts say it better. */
   facts: [string, string, string];
   /** Rooms of each type the house physically has; their sum is the house size. */
   stock: Record<string, number>;
@@ -78,10 +80,10 @@ export interface HotelHouse {
 export const GROUP_NAME = 'Fermata';
 
 /**
- * One price sheet for the whole group. Four types is deliberately the same
- * cardinality as the landing's revenue mix, the Sankey's last tier and the
- * arrivals table's colour legend — one vocabulary, four consumers, and any
- * drift between them would be visible arithmetic.
+ * One price sheet for the whole group. The four types are deliberately the
+ * same cardinality as the landing's revenue mix, the Sankey's last tier and
+ * the arrivals table's colour legend — one vocabulary, four consumers, and
+ * any drift between them would be visible arithmetic.
  */
 export const ROOM_TYPES: HotelRoomType[] = [
   { id: 'room', label: 'Room', price: 240, line: 'A bed, a chair, a window that opens' },
@@ -95,7 +97,6 @@ export const HOUSES: HotelHouse[] = [
     id: 'cala',
     name: 'Cala',
     place: 'Menorca',
-    line: 'Whitewashed rooms over a shallow bay; the loudest thing is the water.',
     facts: ['14 rooms', 'the bay at 40 m', 'open Apr — Oct'],
     stock: { room: 6, garden: 4, corner: 2, suite: 2 },
     hosts: [
@@ -108,28 +109,14 @@ export const HOUSES: HotelHouse[] = [
     id: 'firn',
     name: 'Firn',
     place: 'Engadin',
-    line: 'Nine rooms at 1,850 metres. Snow keeps its own silence.',
     facts: ['9 rooms', '1,850 m', 'open all year'],
     stock: { room: 4, garden: 2, corner: 2, suite: 1 },
     hosts: [{ name: 'Gian Caduff', status: 'online' }, { name: 'Ladina Planta' }]
   },
   {
-    id: 'mori',
-    name: 'Mori',
-    place: 'Kyoto',
-    line: 'A cedar house at the edge of Ohara — paper doors, garden paths, evening baths.',
-    facts: ['11 rooms', 'the forest at the door', 'open all year'],
-    stock: { room: 5, garden: 3, corner: 2, suite: 1 },
-    hosts: [
-      { name: 'Aoi Takeda', status: 'online' },
-      { name: 'Haruki Ono', status: 'busy' }
-    ]
-  },
-  {
     id: 'duna',
     name: 'Duna',
     place: 'Comporta',
-    line: 'Low houses in the dune grass, an hour south of Lisbon. Dinner when the light goes.',
     facts: ['16 rooms', 'the ocean past the dunes', 'open Mar — Nov'],
     stock: { room: 7, garden: 4, corner: 3, suite: 2 },
     hosts: [

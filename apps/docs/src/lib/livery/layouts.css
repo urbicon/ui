@@ -1,12 +1,12 @@
 /*
  * Layout per livery — the part that is NOT a token.
  *
- * The four houses do not differ only in colour and type: one centres
+ * The three houses do not differ only in colour and type: one centres
  * everything under whitewashed arches, one pins fragments across a wide empty
- * grid, one runs a narrow column with its wordmark standing vertical at the
- * edge, one aligns the whole hero on a single horizon line. That is page
+ * grid, one aligns the whole hero on a single horizon line. That is page
  * structure, and pretending it were a design token would be a lie about where
- * the boundary sits.
+ * the boundary sits. (A `pillar` layout — narrow column, vertical wordmark —
+ * left with its house Mori on 2026-08-10.)
  *
  * So this file is scoped to the hotel page's own elements (`[data-house]`),
  * driven by `data-layout` on the page root. The agent-generated booking
@@ -32,8 +32,7 @@
  * the price sheet. The markup is identical for every house; how the image is
  * FRAMED is part of the layout idiom, so those rules live in the per-layout
  * blocks below (courtyard crops it to an arch, scatter pins it as a keepsake,
- * horizon runs it as a panorama). Pillar currently ships no image at all —
- * the figure block collapses, nothing here needs a special case. */
+ * horizon runs it as a panorama). */
 [data-house='figure'] {
   margin-block: 0 5.5rem;
 }
@@ -57,9 +56,6 @@
 [data-layout='courtyard'] [data-house='wordmark'] {
   font-size: clamp(2.75rem, 8vw, 6.5rem);
   line-height: 1.05;
-}
-[data-layout='courtyard'] [data-house='lede'] {
-  max-width: 30rem;
 }
 [data-layout='courtyard'] [data-house='section'] {
   text-align: center;
@@ -98,7 +94,10 @@
 
 /* ── scatter — no centre; fragments pinned across a wide grid ──────────────── */
 [data-layout='scatter'] [data-house='hero'] {
-  min-height: 88vh;
+  /* Short of a full screen on purpose: the keepsake image must break the fold
+     (review 2026-08-10 — at 88vh the first viewport was voids only, and the
+     page read as empty rather than as sparse). */
+  min-height: 64vh;
   display: grid;
   grid-template-columns: repeat(12, 1fr);
   grid-template-rows: repeat(6, auto);
@@ -121,11 +120,6 @@
      with four letters (F · I · R · N) the voids between them ARE the layout. */
   display: flex;
   justify-content: space-between;
-}
-[data-layout='scatter'] [data-house='lede'] {
-  grid-column: 2 / span 4;
-  grid-row: 5;
-  max-width: none;
 }
 [data-layout='scatter'] [data-house='cta'] {
   grid-column: 10 / span 3;
@@ -164,68 +158,12 @@
   outline-offset: 0.875rem;
 }
 
-/* ── pillar — one narrow column; the wordmark stands vertical at the edge ──── */
-[data-layout='pillar'] [data-house='hero'] {
-  min-height: 90vh;
-  display: grid;
-  grid-template-columns: minmax(0, 1fr) auto;
-  grid-template-rows: 1fr auto;
-  column-gap: 3rem;
-}
-/* The hanging scroll: read top to bottom, standing clear of the text column.
-   `mixed` orientation keeps Latin glyphs rotated (a stack of upright letters
-   reads as a ransom note at display size — tried, rejected). */
-[data-layout='pillar'] [data-house='wordmark'] {
-  grid-column: 2;
-  grid-row: 1 / span 2;
-  writing-mode: vertical-rl;
-  text-orientation: mixed;
-  font-size: clamp(3rem, 11vh, 7rem);
-  line-height: 1;
-  align-self: start;
-  margin-top: 4vh;
-}
-[data-layout='pillar'] [data-house='kicker'] {
-  grid-column: 1;
-  grid-row: 1;
-  align-self: end;
-  margin-bottom: 1.5rem;
-}
-[data-layout='pillar'] [data-house='lede'] {
-  grid-column: 1;
-  grid-row: 2;
-  max-width: 26rem;
-  margin-bottom: 3rem;
-}
-[data-layout='pillar'] [data-house='cta'] {
-  grid-column: 1;
-  grid-row: 3;
-  justify-self: start;
-  margin-bottom: 8vh;
-}
-/* The narrow column: everything reads like a single held breath. */
-[data-layout='pillar'] [data-house='section-body'] {
-  max-width: 34rem;
-  margin-inline: auto;
-}
-[data-layout='pillar'] [data-house='section-head'] {
-  text-align: center;
-}
-/* A single vertical stroke above each section head — the pillar, quoted. */
-[data-layout='pillar'] [data-house='section-head']::before {
-  content: '';
-  display: block;
-  width: 1px;
-  height: 2.25rem;
-  background: currentColor;
-  opacity: 0.4;
-  margin: 0 auto 1.5rem;
-}
-
 /* ── horizon — everything sits on one full-bleed line ──────────────────────── */
 [data-layout='horizon'] [data-house='hero'] {
   position: relative;
-  min-height: 88vh;
+  /* Short of a full screen on purpose — see the scatter note: the panorama
+     has to break the fold, or the first viewport is sky only. */
+  min-height: 68vh;
   display: flex;
   flex-direction: column;
   justify-content: flex-end;
@@ -262,13 +200,7 @@
 }
 [data-layout='horizon'] [data-house='kicker'] {
   margin-bottom: auto;
-  padding-top: 18vh;
-}
-[data-layout='horizon'] [data-house='lede'] {
-  align-self: flex-end;
-  max-width: 24rem;
-  text-align: right;
-  margin-bottom: 2.5rem;
+  padding-top: 6vh;
 }
 /* Below the line — the one interactive element under the horizon. */
 [data-layout='horizon'] [data-house='cta'] {
@@ -284,7 +216,7 @@
    cropped to a full-measure band. The 45% focus keeps the thatched roofline
    and the sea in frame and gives the sky and the terrace floor to the crop. */
 [data-layout='horizon'] [data-house='figure'] {
-  margin-top: 5rem;
+  margin-top: 2.5rem;
 }
 [data-layout='horizon'] [data-house='figure'] img {
   aspect-ratio: 5 / 2;
@@ -293,7 +225,7 @@
 }
 
 /* Hide the scatter layout's per-letter spread everywhere else: the wordmark is
-   one word in three of the four houses. */
+   one word in the other two houses. */
 [data-layout]:not([data-layout='scatter']) [data-house='wordmark'] [data-letter-gap] {
   display: none;
 }
@@ -301,28 +233,21 @@
 @media (max-width: 640px) {
   /* Every house falls back to a plain stack on a phone. None of these grids
      survive a 375px viewport, and pretending otherwise would be the kind of
-     detail a demo quietly gets wrong. The pillar wordmark lies back down —
-     vertical type at phone width leaves a column three words wide beside it. */
+     detail a demo quietly gets wrong. */
   [data-layout] [data-house='hero'] {
     display: flex;
     flex-direction: column;
     align-items: flex-start;
     text-align: left;
-    min-height: 70vh;
+    min-height: 60vh;
     justify-content: center;
   }
   [data-layout] [data-house='wordmark'] {
     margin: 0;
     white-space: normal;
     display: block;
-    writing-mode: horizontal-tb;
     font-size: clamp(2.25rem, 12vw, 4rem);
     line-height: 1.05;
-  }
-  [data-layout] [data-house='lede'] {
-    align-self: flex-start;
-    text-align: left;
-    max-width: none;
   }
   [data-layout='horizon'] [data-house='cta'] {
     position: static;
