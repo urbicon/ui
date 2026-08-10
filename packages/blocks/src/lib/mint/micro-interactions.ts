@@ -103,6 +103,9 @@ export function registerMicroInteractions(registry: typeof mintRegistry): void {
           stopPulse();
         };
       } else {
+        // The pulse animation runs `infinite`, so `animationend` never fires —
+        // settle at the end of the current cycle instead, otherwise the
+        // fallback timeout strips the class mid-cycle (a visible opacity snap).
         const standardPulse = createMicroInteraction(
           'blocks-mint-pulse',
           {
@@ -110,7 +113,7 @@ export function registerMicroInteractions(registry: typeof mintRegistry): void {
             duration: 1000,
             ...config
           },
-          { via: 'animation' }
+          { via: 'animation-iteration' }
         );
         return standardPulse.init(el, inputConfig);
       }

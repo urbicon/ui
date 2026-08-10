@@ -189,6 +189,85 @@ describe('createMicroInteraction — cleanup signal', () => {
   });
 });
 
+describe('createMicroInteraction — infinite animation (pulse shape)', () => {
+  function pulse() {
+    const mint = createMicroInteraction(
+      'blocks-mint-pulse',
+      { trigger: 'click', duration: 1000 },
+      { via: 'animation-iteration' }
+    );
+    mint.init(host);
+    return mint;
+  }
+
+  function animationIteration(animationName: string): Event {
+    const event = new Event('animationiteration', { bubbles: true });
+    Object.defineProperty(event, 'animationName', { value: animationName });
+    return event;
+  }
+
+  it('settles at the end of the cycle instead of the fallback timeout', () => {
+    pulse();
+    host.click();
+    expect(host.classList.contains('blocks-mint-pulse')).toBe(true);
+
+    // An `infinite` animation never fires `animationend`; the iteration
+    // boundary is the only clean moment to remove the class.
+    host.dispatchEvent(animationIteration('blocks-mint-pulse'));
+
+    expect(host.classList.contains('blocks-mint-pulse')).toBe(false);
+  });
+
+  it('ignores a foreign animation name on the iteration event', () => {
+    pulse();
+    host.click();
+
+    host.dispatchEvent(animationIteration('some-app-keyframes'));
+
+    expect(host.classList.contains('blocks-mint-pulse')).toBe(true);
+  });
+
+  it('still falls back to the timeout when no iteration ever completes', () => {
+    pulse();
+    host.click();
+
+    vi.advanceTimersByTime(1050);
+
+    expect(host.classList.contains('blocks-mint-pulse')).toBe(false);
+  });
+});
+
+describe('createMicroInteraction — intensity', () => {
+  function scale() {
+    const mint = createMicroInteraction(
+      'blocks-mint-scale',
+      { trigger: 'click', duration: 200 },
+      { via: 'transition', properties: ['transform'] }
+    );
+    mint.init(host, { intensity: 1.1 });
+    return mint;
+  }
+
+  it('writes the custom property the stylesheet actually reads', () => {
+    scale();
+    host.click();
+
+    // `.blocks-mint-scale` reads `--blocks-mint-scale-intensity`. The engine
+    // used to write the legacy `--scale-intensity`, whose styles.css alias
+    // maps old name → new only — configured intensity silently did nothing.
+    expect(host.style.getPropertyValue('--blocks-mint-scale-intensity')).toBe('1.1');
+    expect(host.style.getPropertyValue('--scale-intensity')).toBe('');
+  });
+
+  it('removes the property when the run settles', () => {
+    scale();
+    host.click();
+    host.dispatchEvent(transitionEnd('transform'));
+
+    expect(host.style.getPropertyValue('--blocks-mint-scale-intensity')).toBe('');
+  });
+});
+
 describe('createMicroInteraction — click surface', () => {
   it('hears a click on the label that owns the animated box', () => {
     // The Checkbox shape: the mint animates the box, but the click target a

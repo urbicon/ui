@@ -52,9 +52,15 @@ export interface MicroInteractionConfig extends MintConfig {
  * class name (`.blocks-mint-bounce` → `@keyframes blocks-mint-bounce`). A
  * custom effect that breaks that convention simply falls through to the
  * fallback timeout — late, never early.
+ *
+ * `animation-iteration` is for classes whose animation runs `infinite`
+ * (pulse): `animationend` never fires there, so the run settles at the end of
+ * the current cycle instead of the fallback timeout cutting it mid-cycle.
+ * Same keyframe-name convention as `animation`.
  */
 export type MintSettleSignal =
   | { via: 'animation' }
+  | { via: 'animation-iteration' }
   | { via: 'transition'; properties: readonly string[] };
 
 export interface RippleConfig extends MintConfig {
