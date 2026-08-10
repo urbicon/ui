@@ -66,7 +66,12 @@ interface TabBaseProps
    */
   tier?: InteractiveTier;
 
-  /** Micro-interaction animation applied to each tab trigger (per-item, not the container). @default 'none' */
+  /**
+   * Micro-interaction preset applied to each tab trigger (per-item via
+   * context). Only applies while the item is not disabled.
+   * @default 'none'
+   * @summary Decorative feedback effect on each tab trigger, not the container.
+   */
   mint?: MintProp;
 
   /** Additional CSS class merged onto the root element. */

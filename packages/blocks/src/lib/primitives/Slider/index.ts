@@ -132,7 +132,12 @@ export interface SliderProps
   /** Fires after the value changes. Receives the new value. */
   onValueChange?: (value: number | [number, number]) => void;
 
-  /** Micro-interaction preset. @default 'none' */
+  /**
+   * Micro-interaction preset applied to the slider's interactive area (the
+   * `base` slot — not the visual `track` slot). Only applies while not
+   * disabled.
+   * @default 'none'
+   */
   mint?: MintProp;
 
   /** Extra classes merged onto the root wrapper. */

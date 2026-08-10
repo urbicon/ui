@@ -65,14 +65,14 @@ Full walkthrough: [/customization/themes](https://ui.urbicon.de/customization/th
 
 ## Mint System (Micro-Interactions)
 
-Opt-in micro-interactions. Call `registerDefaultMints()` at app startup, then use via prop:
+Opt-in micro-interactions, used via prop — no setup required (unknown names demand-load the built-in set on first use):
 
 ```svelte
 <Button mint="scale">Hover me</Button>
 <Card mint={['scale', 'ripple']}>Interactive card</Card>
 ```
 
-Available effects: `scale`, `ripple`, `translate`, `glow`, `bounce`, `pulse`, `shake`, `wiggle`. Respects `prefers-reduced-motion` automatically.
+Built-in effects: `scale`, `translate`, `rotate`, `glow`, `pulse`, `wiggle` (hover — held while the pointer stays), `bounce`, `shake`, `ripple` (click — one-shot). Configurable per entry (`duration`, `easing`, `intensity` for scale); respects `prefers-reduced-motion` and applies hover effects only on hover-capable devices. Apps that need first-interaction guarantees on slow networks can still call `registerDefaultMints()` at startup to skip the demand-load. Full contract: `src/lib/mint/README.md`.
 
 ## Presets & Defaults
 

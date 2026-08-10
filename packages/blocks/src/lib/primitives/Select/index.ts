@@ -266,7 +266,12 @@ interface SelectBaseProps<T extends SelectValue = string>
    */
   onClickOutside?: () => void;
 
-  /** Micro-interaction preset. @default 'none' */
+  /**
+   * Micro-interaction preset applied to the trigger — the default trigger
+   * button, or the wrapper around a `customTrigger`. Only applies while
+   * not disabled.
+   * @default 'none'
+   */
   mint?: MintProp;
 
   /** Extra classes merged onto the root wrapper element. */

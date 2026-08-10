@@ -49,7 +49,11 @@ export interface AvatarProps
   /** Click handler. Automatically enables interactive styles. */
   onclick?: (event: MouseEvent) => void;
 
-  /** Micro-interaction preset. Only applies when the avatar is interactive. */
+  /**
+   * Micro-interaction preset applied to the avatar. Only applies while
+   * interactive (`clickable`, `interactive`, or `onclick`).
+   * @default 'none'
+   */
   mint?: MintProp;
 
   /** Called when the hover state changes. */

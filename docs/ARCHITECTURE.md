@@ -366,9 +366,17 @@ wrapper is one line of `$derived` glue. The standalone `<FormField>` uses the sa
 
 `packages/blocks/src/lib/mint/` provides opt-in micro-interactions.
 
-- **Effects:** `scale`, `translate`, `rotate`, `glow`, `bounce`, `pulse`, `shake`, `ripple`
-  — composable via array; `composite` bundles several
-- **Opt-in:** call `registerDefaultMints()` at app startup
+- **Effects:** `scale`, `translate`, `rotate`, `glow`, `pulse`, `wiggle` (hover), `bounce`,
+  `shake`, `ripple` (click) — composable via array; `composite` bundles several. `BUILTIN_MINT_NAMES`
+  is the single runtime list; the `MintName` union derives from it.
+- **Two behaviour models:** hover/focus **hold** the effect while the pointer (or visible
+  focus) stays on the element; click/load run it once and settle on the effect's own end
+  event. Held hover requires `(hover: hover)` — touch devices never stick.
+- **No setup required:** unknown names demand-load the built-in set on first use;
+  `registerDefaultMints()` at startup remains available for first-interaction guarantees.
+- **Config is real:** `duration`/`easing`/`intensity` become per-effect inline custom
+  properties (`--blocks-mint-<effect>-duration/-easing`) the stylesheet reads with the theme
+  tokens as fallback.
 - **Accessibility:** respects `prefers-reduced-motion` automatically
 - **Usage:** `<Button mint="scale">` or `<Card mint={['scale', 'ripple']}>`
 
