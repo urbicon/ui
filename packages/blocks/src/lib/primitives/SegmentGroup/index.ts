@@ -85,7 +85,8 @@ export interface SegmentGroupProps
   collapseOnOverflow?: boolean;
 
   /**
-   * Micro-interaction effect applied to each segment item (per-item, not the container).
+   * Micro-interaction preset applied to each segment item (per-item via
+   * context). Only applies while the item is not disabled.
    * Accepts a preset name, an array of names, or configured mint objects.
    *
    * @example

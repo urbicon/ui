@@ -168,7 +168,10 @@ export interface DatePickerProps extends Omit<HTMLAttributes<HTMLDivElement>, 'c
   // === Standard ===
   /** Disable the entire picker. @default false */
   disabled?: boolean;
-  /** Micro-interaction preset. */
+  /**
+   * Micro-interaction preset forwarded to the inner Input.
+   * @default 'none'
+   */
   mint?: MintProp;
   class?: string;
   /** Default month shown when the picker opens without a value. `0`–`11`. */
@@ -296,6 +299,10 @@ export interface DateRangePickerProps extends Omit<HTMLAttributes<HTMLDivElement
 
   // === Standard ===
   disabled?: boolean;
+  /**
+   * Micro-interaction preset forwarded to the inner Input.
+   * @default 'none'
+   */
   mint?: MintProp;
   class?: string;
   /** Default month shown when the picker opens without a value. `0`–`11`. */
