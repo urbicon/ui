@@ -25,7 +25,7 @@
 
 import { A2UI_ISSUE_CODES } from '../a2ui.types';
 import type { A2uiCatalogSpec } from '../a2ui-catalog';
-import type { A2uiComponentSpec, A2uiPropSpec } from '../a2ui-registry';
+import { type A2uiComponentSpec, type A2uiPropSpec, lookupTable } from '../a2ui-registry';
 
 /**
  * Axes shared across many components, defined ONCE so the prompt can document
@@ -135,7 +135,7 @@ const COMMON_PROPS: Record<string, UrbiconPropSpec> = {
 };
 
 function withCommon(props: Record<string, UrbiconPropSpec>): Record<string, UrbiconPropSpec> {
-  return { ...props, ...COMMON_PROPS };
+  return lookupTable({ ...props, ...COMMON_PROPS });
 }
 
 /** An `intent` prop drawn from the six shared intents, with a component-specific default. */
@@ -162,7 +162,7 @@ function sizeProp(description = 'Size of the component.'): UrbiconPropSpec {
   };
 }
 
-export const URBICON_A2UI_REGISTRY: Readonly<Record<string, UrbiconComponentSpec>> = Object.freeze({
+export const URBICON_A2UI_REGISTRY: Readonly<Record<string, UrbiconComponentSpec>> = lookupTable({
   // ── Layout ────────────────────────────────────────────────────────────────
   Column: {
     category: 'Layout',

@@ -6,6 +6,8 @@ import { exIncremental } from './__fixtures__/spec/ex_incremental';
 import { exLogin } from './__fixtures__/spec/ex_login';
 import { exSimpleText } from './__fixtures__/spec/ex_simple_text';
 import { A2UI_ISSUE_CODES, type A2uiValidationIssue } from './a2ui.types';
+import { basicA2uiCatalogSpec } from './a2ui-catalog';
+import { A2UI_REGISTRY } from './a2ui-registry';
 import {
   type A2uiProcessor,
   type A2uiSurfaceState,
@@ -364,6 +366,45 @@ describe('hostile fixtures never throw and produce the expected issues', () => {
     const proc = applyAll(attacks.envelopeSmuggling);
     expect(codes(allIssues(proc))).toContain(A2UI_ISSUE_CODES.UNKNOWN_PROP);
     expect(proc.surfaces.get('sm')?.components.has('root')).toBe(true);
+  });
+
+  // #134: an inherited Object.prototype member used where a payload-chosen
+  // string indexes a table. The name checks never fired — nothing is polluted —
+  // so the lookup resolved a function and the caller read `.props` off it,
+  // taking the whole surface down. The registries now inherit nothing, so these
+  // resolve to `undefined` and travel the ordinary unknown-name path.
+  it('an inherited member as a component name is UNKNOWN_COMPONENT, not a crash', () => {
+    const proc = applyAll(attacks.inheritedComponentName);
+    expect(codes(allIssues(proc))).toContain(A2UI_ISSUE_CODES.UNKNOWN_COMPONENT);
+  });
+
+  it('the same with a prop present also reports UNKNOWN_COMPONENT', () => {
+    const proc = applyAll(attacks.inheritedComponentNameWithProp);
+    expect(codes(allIssues(proc))).toContain(A2UI_ISSUE_CODES.UNKNOWN_COMPONENT);
+  });
+
+  it('an inherited member reaching the componentChecks table is UNKNOWN_COMPONENT', () => {
+    const proc = applyAll(attacks.inheritedComponentCheck);
+    expect(codes(allIssues(proc))).toContain(A2UI_ISSUE_CODES.UNKNOWN_COMPONENT);
+  });
+
+  it('an inherited member as a prop name is UNKNOWN_PROP and is not stored', () => {
+    const proc = applyAll(attacks.inheritedPropKey);
+    expect(codes(allIssues(proc))).toContain(A2UI_ISSUE_CODES.UNKNOWN_PROP);
+    const root = proc.surfaces.get('in4')?.components.get('root');
+    expect(root?.props.has('toString')).toBe(false);
+    // The valid sibling prop still lands — the component is not collateral.
+    expect(root?.props.get('text')).toBe('hi');
+  });
+
+  it('no lookup table on the A2UI path inherits from Object.prototype', () => {
+    // The guarantee behind the four fixtures above, asserted structurally: a
+    // per-attack test only covers the names someone thought to write down.
+    expect(Object.getPrototypeOf(A2UI_REGISTRY)).toBe(null);
+    expect(Object.getPrototypeOf(basicA2uiCatalogSpec.componentChecks)).toBe(null);
+    for (const [name, spec] of Object.entries(A2UI_REGISTRY)) {
+      expect(Object.getPrototypeOf(spec.props), `${name}.props`).toBe(null);
+    }
   });
 
   it('no hostile fixture ever throws', () => {

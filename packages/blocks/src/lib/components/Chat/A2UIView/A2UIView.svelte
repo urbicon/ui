@@ -2,7 +2,7 @@
   import { Alert } from '$lib/primitives';
   import { untrack } from 'svelte';
   import { getBlocksConfig, resolveSlotClasses } from '$lib/provider';
-  import type { A2uiValidationIssue } from './a2ui.types';
+  import { A2UI_ISSUE_CODES, type A2uiValidationIssue } from './a2ui.types';
   import { basicA2uiCatalog } from './a2ui-basic-catalog';
   import type { A2uiCatalog } from './a2ui-catalog';
   import { deleteAtPointer, resolveDynamic, setAtPointer } from './a2ui-data';
@@ -101,7 +101,26 @@
         generation++;
       }
       for (let i = consumed.length; i < envelopes.length; i++) {
-        processor.apply(envelopes[i], i);
+        // The engine's contract is that a hostile payload becomes ISSUES, never
+        // an exception — so this catch should never fire, and it reports loudly
+        // rather than swallowing. Before #134 the call was unguarded, and one
+        // envelope naming a prototype key (`"component": "toString"`) took the
+        // entire view down instead of the one node. Guarding here keeps the
+        // surfaces that already parsed on screen, and puts the engine bug in
+        // front of the reader where the issue list already lives.
+        try {
+          processor.apply(envelopes[i], i);
+        } catch (error) {
+          processor.globalIssues.push({
+            severity: 'error',
+            code: A2UI_ISSUE_CODES.ENGINE_ERROR,
+            message: `The A2UI engine failed on message ${i}: ${
+              error instanceof Error ? error.message : String(error)
+            }`,
+            path: `/messages/${i}`
+          });
+          if (import.meta.env?.DEV) console.error('[A2UIView] engine error', error);
+        }
       }
       consumed = envelopes.slice();
       normalizeIssue = issue;

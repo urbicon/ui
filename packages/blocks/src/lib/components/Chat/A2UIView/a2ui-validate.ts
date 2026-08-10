@@ -283,6 +283,16 @@ function validateProp(
       if (isPlainObject(value)) return { store: true, issues };
       return mismatch(`"${key}" on ${componentName} must be an object { label?, description? }`);
   }
+
+  // Unreachable for a registry-declared spec — `kind` is a closed union and every
+  // member has a case above, which is why TypeScript accepts the switch as the
+  // whole function body. It became reachable in #134, when a payload-supplied
+  // prop name resolved an INHERITED `Object.prototype` member as its "spec":
+  // `kind` was then undefined, the switch matched nothing, and the function
+  // returned `undefined` into `result.issues` — killing the surface from a prop
+  // called `toString` on an otherwise valid component. `lookupTable` removes the
+  // inheritance that produced it; this keeps the return type honest either way.
+  return mismatch(`"${key}" on ${componentName} has an unrecognised prop kind`);
 }
 
 function validateChildList(
