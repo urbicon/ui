@@ -3,6 +3,7 @@ import { screen } from '@testing-library/dom';
 import userEvent from '@testing-library/user-event';
 import { flushSync, mount, unmount } from 'svelte';
 import { afterEach, describe, expect, it, vi } from 'vitest';
+import * as attacks from './__fixtures__/hostile/attacks';
 import A2UIView from './A2UIView.svelte';
 import { A2UI_ISSUE_CODES, type A2uiActionEvent, type A2uiValidationIssue } from './a2ui.types';
 import type { A2UIViewProps } from './index';
@@ -1178,5 +1179,58 @@ describe('A2UIView — Tabs', () => {
     expect(screen.getAllByRole('tab')).toHaveLength(1);
     expect(screen.getByRole('tab', { name: 'A' }).getAttribute('aria-selected')).toBe('true');
     expect(screen.getByRole('tabpanel').textContent).toContain('PANEL-A');
+  });
+});
+
+// #134, renderer half. The processor suite asserts these payloads become issues;
+// the issue's actual claim was that "the entire view dies" — a DOM-level
+// statement no node test can make. These mount the real view.
+describe('A2UIView — inherited-member lookups never take the view down', () => {
+  it('keeps the surviving nodes when a component names a prototype member', () => {
+    render({
+      payload: [
+        surface(),
+        comps([
+          { id: 'root', component: 'Column', children: ['ok', 'evil'] },
+          { id: 'ok', component: 'Text', text: 'SURVIVES' },
+          { id: 'evil', component: 'toString' }
+        ])
+      ]
+    });
+
+    // The point of the issue: one bad node must not cost the whole surface.
+    expect(document.body.textContent).toContain('SURVIVES');
+  });
+
+  it('falls back to the fallback glyph for an icon name bound through {path}', () => {
+    // The one string on this path the validator never inspects: a `{path}`
+    // binding resolves at RENDER time, so the icon map is indexed with whatever
+    // the data model holds. `icons['toString']` used to resolve an inherited
+    // function — truthy, so `|| fallbackIcon` was skipped and a non-component
+    // was handed to Svelte.
+    render({
+      payload: [
+        surface(),
+        data({ glyph: 'toString' }),
+        comps([
+          { id: 'root', component: 'Column', children: ['i'] },
+          { id: 'i', component: 'Icon', name: { path: '/glyph' } }
+        ])
+      ]
+    });
+
+    expect(document.body.querySelector('svg')).not.toBe(null);
+  });
+
+  it('survives every hostile fixture with a mounted view, not just a processor', () => {
+    for (const [name, fixture] of Object.entries(attacks)) {
+      if (!Array.isArray(fixture)) continue;
+      expect(() => {
+        render({ payload: fixture });
+        dispose?.();
+        dispose = undefined;
+        document.body.replaceChildren();
+      }, name).not.toThrow();
+    }
   });
 });

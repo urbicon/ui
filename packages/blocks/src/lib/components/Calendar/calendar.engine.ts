@@ -358,14 +358,32 @@ export function expandRecurrence(
   const rule = event.recurrence;
   if (!rule) return [event];
 
-  const interval = rule.interval ?? 1;
+  warnUnusableByDay(rule, event.id);
+
+  // An interval that does not move the cursor forward is not a slower series,
+  // it is a loop that never ends: the only exits below are "cursor past the
+  // range", "cursor past `until`" and the occurrence counter, and the first two
+  // depend entirely on the cursor advancing. `0` is one keystroke away in any
+  // form (`Number('')` is 0, `parseInt('')` is NaN), and nothing between a
+  // consumer's input and here validates the rule.
+  //
+  // This used to be survivable by accident: the counter advanced once per
+  // cursor step, so the 1000 cap below stopped it after rendering 1000 events
+  // stacked on one day — wrong, but recoverable. Once `byDay` could filter a
+  // step out (#136), the counter stopped advancing too and the last bound was
+  // gone. Both readings of a degenerate interval are nonsense; the one that
+  // keeps the tab alive wins.
+  const interval = Math.max(1, Math.trunc(rule.interval ?? 1) || 1);
   const eventDuration = event.end ? event.end.getTime() - event.start.getTime() : 0;
 
   const exceptions = new Set((rule.exceptions ?? []).map((d) => toIso(d)));
 
   const results: CalendarEvent[] = [];
   let occurrenceCount = 0;
-  const maxOccurrences = rule.count ?? 1000; // safety limit
+  // Caps an unbounded series at a sane page's worth. NOT what keeps the loop
+  // finite — a filtered-out day never reaches this counter, so termination
+  // rests on the cursor advancing (see `interval` above) into `rangeEnd`/`until`.
+  const maxOccurrences = rule.count ?? 1000;
   const untilDate = rule.until ? stripTime(rule.until) : null;
 
   // Use a cursor starting from the event's original start date
@@ -470,6 +488,32 @@ export function expandRecurrence(
   return results;
 }
 
+/**
+ * Warn once per expansion about `byDay` entries no weekday can equal.
+ *
+ * `getDay()` returns 0–6, so a `7` (a reader counting Monday-as-1 through
+ * Sunday-as-7, which is how ISO-8601 and RFC 5545's `SU`/`MO` ordering read to
+ * many) or a `-1` matches nothing. On a `daily` rule that silently empties the
+ * series; on `weekly` it silently shifts the occurrence into the next week.
+ * Both are worse than the bug this file just fixed, because neither shows up as
+ * anything on screen — the series simply is not there.
+ *
+ * A warning rather than a rejection: reading tolerantly and reporting loudly is
+ * the house rule, and a thrown error in a `$derived` would take the calendar
+ * down over one typo.
+ */
+function warnUnusableByDay(rule: RecurrenceRule, eventId: string): void {
+  if (!import.meta.env?.DEV || !rule.byDay?.length) return;
+  const unusable = rule.byDay.filter((d) => !Number.isInteger(d) || d < 0 || d > 6);
+  if (unusable.length === 0) return;
+  console.warn(
+    `[Calendar] Event "${eventId}": recurrence.byDay contains ${JSON.stringify(unusable)}, ` +
+      `which no weekday can equal — byDay is 0=Sunday through 6=Saturday. ` +
+      `On a "${rule.frequency}" rule these entries ` +
+      (rule.frequency === 'daily' ? 'drop occurrences silently.' : 'shift into the next week.')
+  );
+}
+
 /** Get occurrence dates for a single cursor position. */
 function getOccurrencesForCursor(
   cursor: Date,
@@ -479,6 +523,23 @@ function getOccurrencesForCursor(
 ): Date[] {
   switch (rule.frequency) {
     case 'daily':
+      // RFC 5545 reads BYDAY under FREQ=DAILY as a FILTER, not a generator: the
+      // cursor still advances one interval at a time, and an occurrence is kept
+      // only when it lands on a listed weekday. That is deliberately NOT what
+      // the `weekly` branch below does — it GENERATES one occurrence per listed
+      // day within the week — and the difference is why both spellings are
+      // needed. With `interval: 2`, `daily` means "every other day, but only on
+      // weekdays" while `weekly` means "weekdays of every other week"; neither
+      // can express the other.
+      //
+      // Returning an empty array rather than skipping the cursor is what keeps
+      // `count` honest: the caller only increments its occurrence counter per
+      // returned date, so a filtered-out day costs nothing against the limit —
+      // `{ daily, byDay: [1..5], count: 10 }` yields ten weekdays, not ten
+      // calendar days of which four were dropped (#136).
+      if (rule.byDay && rule.byDay.length > 0 && !rule.byDay.includes(cursor.getDay())) {
+        return [];
+      }
       return [new Date(cursor)];
 
     case 'weekly': {

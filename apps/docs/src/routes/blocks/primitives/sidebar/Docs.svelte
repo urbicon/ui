@@ -286,9 +286,12 @@
       <p>
         Renders as an <code class="text-text-primary">&lt;aside&gt;</code> element, which screen
         readers announce as a complementary landmark. When the sidebar is closed (mobile overlay
-        dismissed, or collapsible mode closed),
-        <code class="text-text-primary">aria-hidden="true"</code> is applied to remove it from the accessibility
-        tree.
+        dismissed, or collapsible mode closed), it receives both
+        <code class="text-text-primary">aria-hidden="true"</code> and
+        <code class="text-text-primary">inert</code> — the panel keeps its children mounted, so removing
+        it from the accessibility tree without also removing it from the tab order would let a keyboard
+        user walk into a region their screen reader skips. Focus that was inside the panel returns to
+        whatever held it before the panel opened.
       </p>
     </Note>
     <Note title="Keyboard">
