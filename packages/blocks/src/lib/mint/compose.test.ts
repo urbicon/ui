@@ -23,7 +23,13 @@ describe('composeMints string resolution', () => {
   });
 
   const elementStub = () =>
-    ({ addEventListener: vi.fn(), removeEventListener: vi.fn() }) as unknown as HTMLElement;
+    ({
+      addEventListener: vi.fn(),
+      removeEventListener: vi.fn(),
+      // The engine's held triggers re-sync against the element's real state
+      // on init (matches(':hover') / matches(':focus-visible')).
+      matches: vi.fn(() => false)
+    }) as unknown as HTMLElement;
 
   it('demand-loads built-ins for string members and inits them after the load', async () => {
     vi.stubGlobal('window', { matchMedia: () => ({ matches: false }) });

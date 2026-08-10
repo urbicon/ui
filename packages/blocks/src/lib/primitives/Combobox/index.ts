@@ -145,7 +145,11 @@ interface ComboboxBaseProps<T extends SelectValue = string>
    */
   onClickOutside?: () => void;
 
-  /** Micro-interaction preset. Form controls default to 'none' for a clean feel. @default 'none' */
+  /**
+   * Micro-interaction preset applied to the search input (the
+   * `role="combobox"` element). Only applies while not disabled.
+   * @default 'none'
+   */
   mint?: MintProp;
   /** Extra classes merged onto the root wrapper element. */
   class?: string;

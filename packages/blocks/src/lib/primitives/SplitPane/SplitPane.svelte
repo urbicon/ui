@@ -1,6 +1,6 @@
 <script lang="ts">
   import { untrack } from 'svelte';
-  import { mintAttachment } from '$lib/mint';
+  import { mintAttachment } from '$lib';
   import { getBlocksConfig, resolveSlotClasses } from '$lib/provider';
   import type { SplitPaneProps } from './index';
   import { clampRatio, parseLimit, ratioFromPointer, resolveDragRatio } from './split-pane.utils';

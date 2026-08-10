@@ -73,6 +73,14 @@ export interface CurrencyInputProps
   value?: number | null;
 
   /**
+   * Micro-interaction preset forwarded to the inner Input. Redeclared from
+   * InputProps so the inheritance is a documented contract rather than an
+   * accident of the Omit list.
+   * @default 'none'
+   */
+  mint?: InputProps['mint'];
+
+  /**
    * Shared `name` for native form submission. When set, a hidden input
    * is rendered carrying the integer minor-unit value (matching
    * {@link CurrencyInputProps.value}) — never the locale-formatted display

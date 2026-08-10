@@ -43,9 +43,26 @@
       'loading',
       'variant',
       'intent',
-      'size'
+      'size',
+      'mint'
     ],
     overrides: {
+      // `mint` ist vom Typ `MintProp` — durch `(string & {})` offen, also für
+      // den Extractor nicht ableitbar; ohne expliziten `type` wirft
+      // `deriveControls`. Kuratierte Auswahl (DocsPageGuide → Mint-Knob-Regel):
+      // ripple auf den Item-Zeilen ist der Fall, für den die per-Item-
+      // Verdrahtung gebaut wurde.
+      mint: {
+        type: 'dropdown',
+        label: 'Mint',
+        items: [
+          { label: 'none', value: 'none' },
+          { label: 'scale', value: 'scale' },
+          { label: 'glow', value: 'glow' },
+          { label: 'ripple', value: 'ripple' }
+        ],
+        defaultValue: 'none'
+      },
       variant: {
         type: 'dropdown',
         label: 'Trigger Variant',

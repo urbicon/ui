@@ -53,6 +53,13 @@ export interface NumberInputProps
   > {
   /** Current numeric value. `null` when the field is empty. Supports `bind:value`. */
   value?: number | null;
+  /**
+   * Micro-interaction preset forwarded to the inner Input. Redeclared from
+   * InputProps so the inheritance is a documented contract rather than an
+   * accident of the Omit list.
+   * @default 'none'
+   */
+  mint?: InputProps['mint'];
   /** Minimum allowed value. Clamped on step / Arrow / blur. */
   min?: number;
   /** Maximum allowed value. Clamped on step / Arrow / blur. */

@@ -38,8 +38,11 @@ let host: HTMLElement;
 
 beforeEach(() => {
   vi.useFakeTimers();
-  // The engine early-returns on reduced motion; report "no preference".
-  vi.stubGlobal('matchMedia', () => ({ matches: false }));
+  // The engine early-returns on reduced motion and gates held hover on
+  // `(hover: hover)` — report "no reduced-motion preference, real pointer".
+  vi.stubGlobal('matchMedia', (query: string) => ({
+    matches: query.includes('hover: hover')
+  }));
   host = document.createElement('button');
   document.body.append(host);
 });
@@ -186,6 +189,277 @@ describe('createMicroInteraction — cleanup signal', () => {
     mint.destroy?.(host);
 
     expect(host.classList.contains(CLASS)).toBe(false);
+  });
+});
+
+describe('createMicroInteraction — infinite animation (pulse shape)', () => {
+  function pulse() {
+    const mint = createMicroInteraction(
+      'blocks-mint-pulse',
+      { trigger: 'click', duration: 1000 },
+      { via: 'animation-iteration' }
+    );
+    mint.init(host);
+    return mint;
+  }
+
+  function animationIteration(animationName: string): Event {
+    const event = new Event('animationiteration', { bubbles: true });
+    Object.defineProperty(event, 'animationName', { value: animationName });
+    return event;
+  }
+
+  it('settles at the end of the cycle instead of the fallback timeout', () => {
+    pulse();
+    host.click();
+    expect(host.classList.contains('blocks-mint-pulse')).toBe(true);
+
+    // An `infinite` animation never fires `animationend`; the iteration
+    // boundary is the only clean moment to remove the class.
+    host.dispatchEvent(animationIteration('blocks-mint-pulse'));
+
+    expect(host.classList.contains('blocks-mint-pulse')).toBe(false);
+  });
+
+  it('ignores a foreign animation name on the iteration event', () => {
+    pulse();
+    host.click();
+
+    host.dispatchEvent(animationIteration('some-app-keyframes'));
+
+    expect(host.classList.contains('blocks-mint-pulse')).toBe(true);
+  });
+
+  it('still falls back to the timeout when no iteration ever completes', () => {
+    pulse();
+    host.click();
+
+    vi.advanceTimersByTime(1050);
+
+    expect(host.classList.contains('blocks-mint-pulse')).toBe(false);
+  });
+});
+
+describe('createMicroInteraction — consumer config as inline custom properties', () => {
+  function scale(config?: Record<string, unknown>) {
+    const mint = createMicroInteraction(
+      'blocks-mint-scale',
+      { trigger: 'click', duration: 200 },
+      { via: 'transition', properties: ['transform'] }
+    );
+    mint.init(host, config);
+    return mint;
+  }
+
+  it('writes the intensity property the stylesheet actually reads', () => {
+    scale({ intensity: 1.1 });
+
+    // `.blocks-mint-scale` reads `--blocks-mint-scale-intensity`. The engine
+    // used to write the legacy `--scale-intensity`, whose styles.css alias
+    // maps old name → new only — configured intensity silently did nothing.
+    expect(host.style.getPropertyValue('--blocks-mint-scale-intensity')).toBe('1.1');
+    expect(host.style.getPropertyValue('--scale-intensity')).toBe('');
+  });
+
+  it('writes duration and easing as per-effect vars, for the mint lifetime', () => {
+    const mint = scale({ duration: 500, easing: 'linear' });
+
+    // Lifetime, not per run: the exit transition after a settle still reads
+    // them, so they only leave with destroy().
+    expect(host.style.getPropertyValue('--blocks-mint-scale-duration')).toBe('500ms');
+    expect(host.style.getPropertyValue('--blocks-mint-scale-easing')).toBe('linear');
+
+    host.click();
+    host.dispatchEvent(transitionEnd('transform'));
+    expect(host.style.getPropertyValue('--blocks-mint-scale-duration')).toBe('500ms');
+
+    mint.destroy?.(host);
+    expect(host.style.getPropertyValue('--blocks-mint-scale-duration')).toBe('');
+    expect(host.style.getPropertyValue('--blocks-mint-scale-easing')).toBe('');
+    expect(host.style.getPropertyValue('--blocks-mint-scale-intensity')).toBe('');
+  });
+
+  it('registration defaults do NOT become inline vars — theme tokens stay in charge', () => {
+    // The negative control: the factory's own default duration (200 above)
+    // must not override the theme's `--blocks-duration-*` tokens.
+    scale();
+
+    expect(host.style.getPropertyValue('--blocks-mint-scale-duration')).toBe('');
+    expect(host.style.getPropertyValue('--blocks-mint-scale-easing')).toBe('');
+  });
+});
+
+describe('createMicroInteraction — held triggers (hover, focus)', () => {
+  function hoverScale(config?: Record<string, unknown>) {
+    const mint = createMicroInteraction(
+      'blocks-mint-scale',
+      { trigger: 'hover', duration: 200 },
+      { via: 'transition', properties: ['transform'] }
+    );
+    mint.init(host, config);
+    return mint;
+  }
+
+  it('holds the class while hovered — no clock and no settle event end it', () => {
+    hoverScale();
+    host.dispatchEvent(new MouseEvent('mouseenter'));
+    expect(host.classList.contains('blocks-mint-scale')).toBe(true);
+
+    // The one-shot model used to remove the class on the enter transition's
+    // own transitionend (~150 ms) while the pointer was still on the element.
+    host.dispatchEvent(transitionEnd('transform'));
+    vi.advanceTimersByTime(10_000);
+
+    expect(host.classList.contains('blocks-mint-scale')).toBe(true);
+  });
+
+  it('releases on mouseleave', () => {
+    hoverScale();
+    host.dispatchEvent(new MouseEvent('mouseenter'));
+    host.dispatchEvent(new MouseEvent('mouseleave'));
+
+    expect(host.classList.contains('blocks-mint-scale')).toBe(false);
+  });
+
+  it('defends the class against a framework class rewrite while held', async () => {
+    hoverScale();
+    host.dispatchEvent(new MouseEvent('mouseenter'));
+
+    host.setAttribute('class', 'blocks-button is-active');
+    await Promise.resolve();
+    expect(host.classList.contains('blocks-mint-scale')).toBe(true);
+
+    host.dispatchEvent(new MouseEvent('mouseleave'));
+    host.setAttribute('class', 'blocks-button');
+    await Promise.resolve();
+    expect(host.classList.contains('blocks-mint-scale')).toBe(false);
+  });
+
+  it('a leave before the configured delay elapses never applies', () => {
+    hoverScale({ delay: 100 });
+    host.dispatchEvent(new MouseEvent('mouseenter'));
+    host.dispatchEvent(new MouseEvent('mouseleave'));
+
+    vi.advanceTimersByTime(200);
+    expect(host.classList.contains('blocks-mint-scale')).toBe(false);
+  });
+
+  it('destroy releases a held class', () => {
+    const mint = hoverScale();
+    host.dispatchEvent(new MouseEvent('mouseenter'));
+
+    mint.destroy?.(host);
+    expect(host.classList.contains('blocks-mint-scale')).toBe(false);
+  });
+
+  it('focus holds only for keyboard (focus-visible) focus, and blur releases', () => {
+    const mint = createMicroInteraction('blocks-mint-glow', { trigger: 'focus' }, undefined);
+    mint.init(host);
+
+    // jsdom runs the real input-modality heuristic: fresh and after-mouse
+    // focus is NOT :focus-visible, after a keydown it is.
+
+    // Pointer-modality focus — the visible-focus gate must reject it.
+    host.dispatchEvent(new MouseEvent('mousedown'));
+    host.focus();
+    expect(host.classList.contains('blocks-mint-glow')).toBe(false);
+    host.blur();
+
+    // Keyboard-modality focus — this is what the effect exists for.
+    document.dispatchEvent(new KeyboardEvent('keydown', { key: 'Tab' }));
+    host.focus();
+    expect(host.classList.contains('blocks-mint-glow')).toBe(true);
+
+    host.blur();
+    expect(host.classList.contains('blocks-mint-glow')).toBe(false);
+  });
+});
+
+describe('createMicroInteraction — review fixes (re-sync, touch gate, orphaned runs)', () => {
+  it('a re-applied mint picks up focus the element already has', () => {
+    // mintAttachment tears down and re-applies on every enabled flip / prop
+    // identity change. The fresh instance must not wait for the NEXT enter —
+    // for a resting pointer or held focus that event never comes.
+    document.dispatchEvent(new KeyboardEvent('keydown', { key: 'Tab' }));
+    host.focus();
+
+    const mint = createMicroInteraction('blocks-mint-glow', { trigger: 'focus' }, undefined);
+    mint.init(host);
+
+    expect(host.classList.contains('blocks-mint-glow')).toBe(true);
+  });
+
+  it('held hover does not engage on a touch-primary device', () => {
+    // reduced-motion: no preference; (hover: hover): false — touch device.
+    vi.stubGlobal('matchMedia', () => ({ matches: false }));
+    const mint = createMicroInteraction(
+      'blocks-mint-scale',
+      { trigger: 'hover' },
+      { via: 'transition', properties: ['transform'] }
+    );
+    mint.init(host);
+
+    // The tap-simulated mouseenter must not stick the effect.
+    host.dispatchEvent(new MouseEvent('mouseenter'));
+    expect(host.classList.contains('blocks-mint-scale')).toBe(false);
+  });
+
+  it('destroy during the run delay window cancels the scheduled run', () => {
+    const mint = createMicroInteraction(
+      'blocks-mint-shake',
+      { trigger: 'click', duration: 500, delay: 300 },
+      { via: 'animation' }
+    );
+    mint.init(host);
+    host.click();
+    mint.destroy?.(host);
+
+    vi.advanceTimersByTime(1000);
+    expect(host.classList.contains('blocks-mint-shake')).toBe(false);
+    expect(host.hasAttribute('data-animating-blocks-mint-shake')).toBe(false);
+  });
+
+  it('a second click inside the delay window does not start a second run', () => {
+    const mint = createMicroInteraction(
+      'blocks-mint-shake',
+      { trigger: 'click', duration: 500, delay: 300 },
+      { via: 'animation' }
+    );
+    mint.init(host);
+    host.click();
+    host.click();
+
+    vi.advanceTimersByTime(300);
+    expect(host.classList.contains('blocks-mint-shake')).toBe(true);
+
+    // One run, one cleanup: after the single fallback window the class is
+    // gone and STAYS gone — a second orphaned timer would have re-stripped
+    // a later run instead.
+    vi.advanceTimersByTime(550);
+    expect(host.classList.contains('blocks-mint-shake')).toBe(false);
+    expect(host.hasAttribute('data-animating-blocks-mint-shake')).toBe(false);
+  });
+
+  it('destroy before the load rAF fires cancels the run', () => {
+    const rafCallbacks: FrameRequestCallback[] = [];
+    vi.stubGlobal('requestAnimationFrame', (callback: FrameRequestCallback) => {
+      rafCallbacks.push(callback);
+      return rafCallbacks.length;
+    });
+    vi.stubGlobal('cancelAnimationFrame', (id: number) => {
+      rafCallbacks[id - 1] = () => {};
+    });
+
+    const mint = createMicroInteraction(
+      'blocks-mint-bounce',
+      { trigger: 'load', duration: 600 },
+      { via: 'animation' }
+    );
+    mint.init(host);
+    mint.destroy?.(host);
+
+    for (const callback of rafCallbacks) callback(0);
+    expect(host.classList.contains('blocks-mint-bounce')).toBe(false);
   });
 });
 

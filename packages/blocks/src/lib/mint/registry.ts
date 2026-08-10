@@ -51,7 +51,7 @@ class MintRegistry {
 
   /**
    * Register a built-in mint — only if the name is still free. Used by the
-   * built-in set (`registerDefaultMints()` and the opt-in bundles) so the
+   * built-in set (`registerDefaultMints()`) so the
    * demand-load NEVER clobbers a consumer override: a `register()` entry
    * survives regardless of whether it ran before or during the load. A later
    * explicit `register()` call still overrides as before.
@@ -93,7 +93,9 @@ class MintRegistry {
    * the instances map the first one registered, and the first cleanup then
    * deletes it — `update()` for the second application would go dead. Every
    * in-repo caller pairs exactly one apply() per element with its `$effect`
-   * teardown, which upholds this.
+   * teardown, which upholds this. The same effect name twice in one mint
+   * array is equally degenerate: the instances map keys by name, and the
+   * entries' inline config vars share one element — last writer wins.
    */
   apply(el: HTMLElement, mint: MintProp, fallbacks?: MintFallbacks): () => void {
     const mintDefinitions = this.normalizeMintProp(mint);

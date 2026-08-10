@@ -1,4 +1,4 @@
-import { createMicroInteraction, prefersReducedMotion, scaleMint } from './engine';
+import { createMicroInteraction, scaleMint } from './engine';
 import type { mintRegistry } from './registry';
 import type { MicroInteractionConfig } from './types';
 
@@ -69,53 +69,23 @@ export function registerMicroInteractions(registry: typeof mintRegistry): void {
     )
   );
 
-  registry.registerBuiltin('pulse', (config?: MicroInteractionConfig) => ({
-    init(el, inputConfig = {}) {
-      const finalConfig = { trigger: 'hover', ...config, ...inputConfig };
-
-      if (finalConfig.disabled || prefersReducedMotion()) return;
-
-      const trigger = finalConfig.trigger || 'hover';
-
-      if (trigger === 'hover') {
-        let isHovering = false;
-
-        const startPulse = () => {
-          if (!isHovering) {
-            isHovering = true;
-            el.classList.add('blocks-mint-pulse');
-          }
-        };
-
-        const stopPulse = () => {
-          if (isHovering) {
-            isHovering = false;
-            el.classList.remove('blocks-mint-pulse');
-          }
-        };
-
-        el.addEventListener('mouseenter', startPulse, { passive: true });
-        el.addEventListener('mouseleave', stopPulse, { passive: true });
-
-        this.destroy = () => {
-          el.removeEventListener('mouseenter', startPulse);
-          el.removeEventListener('mouseleave', stopPulse);
-          stopPulse();
-        };
-      } else {
-        const standardPulse = createMicroInteraction(
-          'blocks-mint-pulse',
-          {
-            trigger: trigger as MicroInteractionConfig['trigger'],
-            duration: 1000,
-            ...config
-          },
-          { via: 'animation' }
-        );
-        return standardPulse.init(el, inputConfig);
-      }
-    }
-  }));
+  // pulse needed a hand-written hold-while-hovering special case before the
+  // engine's held-trigger model existed; now it is a plain registration. On
+  // hover the engine holds the class (the infinite animation runs until the
+  // pointer leaves); on click/focus/load it runs once and settles at the
+  // iteration boundary — `animationend` never fires on an infinite animation,
+  // and the fallback timeout used to strip the class mid-cycle.
+  registry.registerBuiltin('pulse', (config?: MicroInteractionConfig) =>
+    createMicroInteraction(
+      'blocks-mint-pulse',
+      {
+        trigger: 'hover',
+        duration: 1000,
+        ...config
+      },
+      { via: 'animation-iteration' }
+    )
+  );
 
   registry.registerBuiltin('shake', (config?: MicroInteractionConfig) =>
     createMicroInteraction(
