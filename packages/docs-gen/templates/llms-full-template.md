@@ -98,12 +98,15 @@ Each component documents its slots. Override without losing other styles:
 
 ### `mint` – Micro-Interactions (opt-in)
 
-Requires `registerDefaultMints()` call at app startup.
-Values: `'scale'` | `'ripple'` | `'translate'` | `'glow'` | `'none'` | array
+No setup required — unknown names demand-load the built-in set on first use.
+Values: `'scale'` | `'translate'` | `'rotate'` | `'glow'` | `'pulse'` (hover, held while the
+pointer stays) | `'bounce'` | `'shake'` | `'ripple'` (click, one-shot) | `'none'` | array of
+these | `{ name, config }` entries with `duration`/`easing`/`intensity`.
 
 ```svelte
 <Button mint="scale">Hover me</Button>
 <Card mint={['scale', 'glow']}>Interactive</Card>
+<Button mint={[{ name: 'glow', config: { duration: 500 } }]}>Slow glow</Button>
 ```
 
 ### `preset` – Apply a Named Project Style
