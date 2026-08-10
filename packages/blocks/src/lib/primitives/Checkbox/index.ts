@@ -82,7 +82,14 @@ export interface CheckboxProps
    */
   preset?: string;
 
-  /** Micro-interaction preset applied to the control area on hover/click. */
+  /**
+   * Micro-interaction preset applied to the box (the visible control, not
+   * the sr-only input). Click-triggered engine mints listen on the
+   * surrounding label; `ripple` ignites only on the box itself. Only
+   * applies while not disabled.
+   * @default 'none'
+   * @summary Decorative feedback effect on the checkbox box.
+   */
   mint?: MintProp;
 
   /** Fired after the checked state changes. Receives the new `checked` value. */

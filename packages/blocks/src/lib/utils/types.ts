@@ -1,5 +1,3 @@
-import type { MintProp } from '$lib/mint';
-
 // === CORE DESIGN SYSTEM TYPES ===
 
 /**
@@ -56,21 +54,8 @@ export type Variant = ComponentVariant;
  */
 export type Size = (typeof SIZES)[number];
 
-// === BASE COMPONENT INTERFACES ===
-
-export interface BaseComponentProps {
-  size?: ComponentSize;
-  intent?: ComponentIntent;
-  variant?: ComponentVariant;
-  disabled?: boolean;
-  loading?: boolean;
-  mint?: MintProp;
-  tokens?: Record<string, string>;
-}
-
 // === ANIMATION & EFFECTS ===
 
 export interface AnimationProps {
-  rippleEffect?: boolean;
   chevronAnimation?: 'rotate' | 'translate' | 'fade' | 'none';
 }

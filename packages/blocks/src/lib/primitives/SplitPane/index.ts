@@ -83,7 +83,11 @@ export interface SplitPaneProps
   handleLabel?: string;
 
   // === Mint ===
-  /** Micro-interaction preset applied to the divider. @default 'none' */
+  /**
+   * Micro-interaction preset applied to the divider (the `role="separator"`
+   * handle). Only applies while not disabled.
+   * @default 'none'
+   */
   mint?: MintProp;
 
   // === Styling ===

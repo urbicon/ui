@@ -164,7 +164,11 @@ export interface FileUploadProps
   onFileRemove?: (file: FileUploadFile) => void;
 
   // ── Mint ──
-  /** Micro-interaction preset for the dropzone. */
+  /**
+   * Micro-interaction preset applied to the dropzone. Only applies while
+   * not disabled.
+   * @default 'none'
+   */
   mint?: MintProp;
 
   // ── Styling ──

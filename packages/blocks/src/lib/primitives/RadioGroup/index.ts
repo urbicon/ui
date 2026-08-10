@@ -94,7 +94,11 @@ export interface RadioGroupProps
    */
   preset?: string;
 
-  /** Micro-interaction preset propagated to child RadioItems. @default 'none' */
+  /**
+   * Micro-interaction preset applied to each RadioItem (per-item via
+   * context). Only applies while the item is not disabled.
+   * @default 'none'
+   */
   mint?: MintProp;
 
   /** Explicit `id` for the group element. Auto-generated if omitted. */

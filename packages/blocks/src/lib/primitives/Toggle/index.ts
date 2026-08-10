@@ -79,7 +79,11 @@ export interface ToggleProps
    */
   preset?: string;
 
-  /** Micro-interaction preset applied to the control area on hover/click. */
+  /**
+   * Micro-interaction preset applied to the track. Only applies while not
+   * disabled.
+   * @default 'none'
+   */
   mint?: MintProp;
 
   /** Fired after the checked state changes. Receives the new `checked` value. */

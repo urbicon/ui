@@ -98,12 +98,15 @@ Each component documents its slots. Override without losing other styles:
 
 ### `mint` – Micro-Interactions (opt-in)
 
-Requires `registerDefaultMints()` call at app startup.
-Values: `'scale'` | `'ripple'` | `'translate'` | `'glow'` | `'none'` | array
+No setup required — unknown names demand-load the built-in set on first use.
+Values: `'scale'` | `'translate'` | `'rotate'` | `'glow'` | `'pulse'` | `'wiggle'` (hover, held
+while the pointer stays) | `'bounce'` | `'shake'` | `'ripple'` (click, one-shot) | `'none'` |
+array of these | `{ name, config }` entries with `duration`/`easing` (`intensity`: scale only).
 
 ```svelte
 <Button mint="scale">Hover me</Button>
 <Card mint={['scale', 'glow']}>Interactive</Card>
+<Button mint={[{ name: 'glow', config: { duration: 500 } }]}>Slow glow</Button>
 ```
 
 ### `preset` – Apply a Named Project Style
@@ -815,8 +818,7 @@ Change the feel of all components at once:
 :root {
   --blocks-ease-confident: cubic-bezier(0.22, 1, 0.36, 1);
   --blocks-duration-normal: 300ms;
-  --blocks-scale-hover: 1.00;    /* disable scale on hover */
-  --blocks-scale-press: 0.98;
+  --blocks-mint-scale-intensity: 1.02; /* tone down the scale mint (1 disables it visually) */
   --blocks-focus-ring-width: 3px;
   --blocks-focus-ring-color: oklch(0.7 0.15 var(--primary-hue, 240));
 }

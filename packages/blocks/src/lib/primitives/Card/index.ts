@@ -90,7 +90,11 @@ export interface CardProps
    * and make the custom look reusable across the project.
    */
   preset?: string;
-  /** Micro-interaction preset. Only takes effect on interactive cards. */
+  /**
+   * Micro-interaction preset applied to the card. Only applies while the
+   * card is interactive (`clickable`, `onclick`, or `href`) and not disabled.
+   * @default 'none'
+   */
   mint?: MintProp;
 }
 
