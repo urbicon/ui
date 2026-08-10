@@ -291,7 +291,11 @@
     />
 
     {#if !tableState.loading && !tableState.error}
-      {#if tableContext.filteredItems.length > 0 && !tableState.effectiveGroupBy && !virtualized}
+      <!-- Grouping hides the pager only in client mode, where it genuinely has
+           nothing to page through (the groups hold every row). In server mode
+           the page is a slice of a larger result, so removing the pager left
+           the rest of the data unreachable (#159). -->
+      {#if tableContext.filteredItems.length > 0 && (tableState.mode === 'server' || !tableState.effectiveGroupBy) && !virtualized}
         {#if pagination}
           {@render pagination()}
         {:else}

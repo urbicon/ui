@@ -147,6 +147,10 @@ export default {
     noGroup: '(No group)',
     item: 'item',
     items: 'items',
+    // Server mode: the group holds only what this page fetched, so the count
+    // must not read as the group's size (#159).
+    itemOnPage: 'item on this page',
+    itemsOnPage: 'items on this page',
     summaryFor: 'Summary for'
   },
   number: {

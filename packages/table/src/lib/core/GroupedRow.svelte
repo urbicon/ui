@@ -93,6 +93,14 @@
 
   const itemCountText = $derived.by(() => {
     const count = items.length;
+    // `items` is what this component was handed, which in server mode is the
+    // slice of the group that happens to sit on the current page. Saying
+    // "(8 items)" there states the group's size, and states it wrongly — the
+    // server may hold 400 (#159). The wording is what makes the same number
+    // honest, so the count and its label are decided together.
+    if (tableState.mode === 'server') {
+      return `(${count} ${count === 1 ? tt('group.itemOnPage') : tt('group.itemsOnPage')})`;
+    }
     return `(${count} ${count === 1 ? tt('group.item') : tt('group.items')})`;
   });
 

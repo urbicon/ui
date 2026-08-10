@@ -136,6 +136,8 @@ export default {
     noGroup: '(Keine Gruppe)',
     item: 'Eintrag',
     items: 'Einträge',
+    itemOnPage: 'Eintrag auf dieser Seite',
+    itemsOnPage: 'Einträge auf dieser Seite',
     summaryFor: 'Zusammenfassung für'
   },
   number: {

@@ -22,7 +22,16 @@ export function usePagination(
   );
 
   const totalPages = $derived.by(() => {
-    if (state.effectiveGroupBy) return 1;
+    // Grouping suspends paging in CLIENT mode only, where every row is already
+    // here and a group can therefore be shown whole — which is the thing a
+    // group means.
+    //
+    // Server mode cannot make that promise: the rest of a group may sit on pages
+    // this client has never fetched, and collapsing to one page here removed the
+    // pager, so a reader saw one page's worth of rows presented as the whole
+    // result and had no control left to reach the rest (#159). There, grouping
+    // buckets the page it has and paging stays.
+    if (state.effectiveGroupBy && state.mode !== 'server') return 1;
     if (totalItems === 0) return 1;
     return Math.ceil(totalItems / view.pageSize);
   });
