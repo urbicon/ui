@@ -237,20 +237,19 @@ describe('createMicroInteraction — infinite animation (pulse shape)', () => {
   });
 });
 
-describe('createMicroInteraction — intensity', () => {
-  function scale() {
+describe('createMicroInteraction — consumer config as inline custom properties', () => {
+  function scale(config?: Record<string, unknown>) {
     const mint = createMicroInteraction(
       'blocks-mint-scale',
       { trigger: 'click', duration: 200 },
       { via: 'transition', properties: ['transform'] }
     );
-    mint.init(host, { intensity: 1.1 });
+    mint.init(host, config);
     return mint;
   }
 
-  it('writes the custom property the stylesheet actually reads', () => {
-    scale();
-    host.click();
+  it('writes the intensity property the stylesheet actually reads', () => {
+    scale({ intensity: 1.1 });
 
     // `.blocks-mint-scale` reads `--blocks-mint-scale-intensity`. The engine
     // used to write the legacy `--scale-intensity`, whose styles.css alias
@@ -259,12 +258,122 @@ describe('createMicroInteraction — intensity', () => {
     expect(host.style.getPropertyValue('--scale-intensity')).toBe('');
   });
 
-  it('removes the property when the run settles', () => {
-    scale();
+  it('writes duration and easing as per-effect vars, for the mint lifetime', () => {
+    const mint = scale({ duration: 500, easing: 'linear' });
+
+    // Lifetime, not per run: the exit transition after a settle still reads
+    // them, so they only leave with destroy().
+    expect(host.style.getPropertyValue('--blocks-mint-scale-duration')).toBe('500ms');
+    expect(host.style.getPropertyValue('--blocks-mint-scale-easing')).toBe('linear');
+
     host.click();
     host.dispatchEvent(transitionEnd('transform'));
+    expect(host.style.getPropertyValue('--blocks-mint-scale-duration')).toBe('500ms');
 
+    mint.destroy?.(host);
+    expect(host.style.getPropertyValue('--blocks-mint-scale-duration')).toBe('');
+    expect(host.style.getPropertyValue('--blocks-mint-scale-easing')).toBe('');
     expect(host.style.getPropertyValue('--blocks-mint-scale-intensity')).toBe('');
+  });
+
+  it('registration defaults do NOT become inline vars — theme tokens stay in charge', () => {
+    // The negative control: the factory's own default duration (200 above)
+    // must not override the theme's `--blocks-duration-*` tokens.
+    scale();
+
+    expect(host.style.getPropertyValue('--blocks-mint-scale-duration')).toBe('');
+    expect(host.style.getPropertyValue('--blocks-mint-scale-easing')).toBe('');
+  });
+});
+
+describe('createMicroInteraction — held triggers (hover, focus)', () => {
+  function hoverScale(config?: Record<string, unknown>) {
+    const mint = createMicroInteraction(
+      'blocks-mint-scale',
+      { trigger: 'hover', duration: 200 },
+      { via: 'transition', properties: ['transform'] }
+    );
+    mint.init(host, config);
+    return mint;
+  }
+
+  it('holds the class while hovered — no clock and no settle event end it', () => {
+    hoverScale();
+    host.dispatchEvent(new MouseEvent('mouseenter'));
+    expect(host.classList.contains('blocks-mint-scale')).toBe(true);
+
+    // The one-shot model used to remove the class on the enter transition's
+    // own transitionend (~150 ms) while the pointer was still on the element.
+    host.dispatchEvent(transitionEnd('transform'));
+    vi.advanceTimersByTime(10_000);
+
+    expect(host.classList.contains('blocks-mint-scale')).toBe(true);
+  });
+
+  it('releases on mouseleave', () => {
+    hoverScale();
+    host.dispatchEvent(new MouseEvent('mouseenter'));
+    host.dispatchEvent(new MouseEvent('mouseleave'));
+
+    expect(host.classList.contains('blocks-mint-scale')).toBe(false);
+  });
+
+  it('defends the class against a framework class rewrite while held', async () => {
+    hoverScale();
+    host.dispatchEvent(new MouseEvent('mouseenter'));
+
+    host.setAttribute('class', 'blocks-button is-active');
+    await Promise.resolve();
+    expect(host.classList.contains('blocks-mint-scale')).toBe(true);
+
+    host.dispatchEvent(new MouseEvent('mouseleave'));
+    host.setAttribute('class', 'blocks-button');
+    await Promise.resolve();
+    expect(host.classList.contains('blocks-mint-scale')).toBe(false);
+  });
+
+  it('a leave before the configured delay elapses never applies', () => {
+    hoverScale({ delay: 100 });
+    host.dispatchEvent(new MouseEvent('mouseenter'));
+    host.dispatchEvent(new MouseEvent('mouseleave'));
+
+    vi.advanceTimersByTime(200);
+    expect(host.classList.contains('blocks-mint-scale')).toBe(false);
+  });
+
+  it('destroy releases a held class', () => {
+    const mint = hoverScale();
+    host.dispatchEvent(new MouseEvent('mouseenter'));
+
+    mint.destroy?.(host);
+    expect(host.classList.contains('blocks-mint-scale')).toBe(false);
+  });
+
+  it('focus holds only for keyboard (focus-visible) focus, and blur releases', () => {
+    const mint = createMicroInteraction('blocks-mint-glow', { trigger: 'focus' }, undefined);
+    mint.init(host);
+
+    // jsdom runs the real input-modality heuristic (measured here: fresh and
+    // after-mouse focus is NOT :focus-visible, after a keydown it is), with
+    // one quirk: the state updates only AFTER the focus event that focus()
+    // itself dispatches (browsers settle it before). The extra dispatch per
+    // phase exercises the gate against the now-current state.
+
+    // Pointer-modality focus — the keyboard-only gate must reject it.
+    host.dispatchEvent(new MouseEvent('mousedown'));
+    host.focus();
+    host.dispatchEvent(new FocusEvent('focus'));
+    expect(host.classList.contains('blocks-mint-glow')).toBe(false);
+    host.blur();
+
+    // Keyboard-modality focus — this is what the effect exists for.
+    document.dispatchEvent(new KeyboardEvent('keydown', { key: 'Tab' }));
+    host.focus();
+    host.dispatchEvent(new FocusEvent('focus'));
+    expect(host.classList.contains('blocks-mint-glow')).toBe(true);
+
+    host.blur();
+    expect(host.classList.contains('blocks-mint-glow')).toBe(false);
   });
 });
 

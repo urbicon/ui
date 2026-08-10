@@ -30,8 +30,8 @@ type MintProp =
 ```
 
 Die `config`-Erweiterung mit `Record<string, unknown>` lässt mint-spezifische
-Felder durch (`intensity`, `transformOrigin`, `color`, `opacity`), ohne dass
-der Caller den Typ aufweiten muss.
+Felder durch (`intensity`, `color`, `opacity`), ohne dass der Caller den Typ
+aufweiten muss.
 
 ### Grundlegende Verwendung
 
@@ -84,8 +84,7 @@ interface MintConfig {
 }
 
 interface MicroInteractionConfig extends MintConfig {
-  intensity?: number; // Stärke des Effekts
-  transformOrigin?: string; // Transform-Ursprung
+  intensity?: number; // Stärke des Effekts (nur `scale`)
 }
 
 interface RippleConfig extends MintConfig {

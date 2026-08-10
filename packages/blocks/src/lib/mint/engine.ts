@@ -15,20 +15,35 @@ import type { MicroInteractionConfig, Mint, MintFactory, MintSettleSignal } from
  * never in `micro-interactions.ts`.
  */
 
-/**
- * Check if user prefers reduced motion
- * @internal Shared with ./micro-interactions.ts; not part of the public API.
- */
-export function prefersReducedMotion(): boolean {
+/** Check if user prefers reduced motion */
+function prefersReducedMotion(): boolean {
   return window.matchMedia('(prefers-reduced-motion: reduce)').matches;
 }
 
 /**
  * Generic micro-interaction factory.
  *
- * `settles` names the CSS mechanism the class drives (see MintSettleSignal).
- * Omitting it leaves the fallback timeout as the only cleanup — always safe,
- * just less precise than the effect's own end event.
+ * Two behaviour models, decided by the trigger:
+ *
+ * - **hover / focus — a held state.** The class goes on when the pointer
+ *   enters (or the element gains visible focus) and comes off when it leaves.
+ *   No clock is involved: a hover glow stays lit for as long as the pointer
+ *   stays, exactly what "hover grow"/"hover glow" reads as. Focus applies
+ *   only for `:focus-visible` focus — the repo-wide keyboard-only convention.
+ * - **click / load — a one-shot run.** The class goes on and settles off via
+ *   the effect's own end event (see MintSettleSignal), with a timeout as the
+ *   safety net.
+ *
+ * `settles` names the CSS mechanism the class drives; held triggers ignore it
+ * (their end is the leave event). Omitting it on a run trigger leaves the
+ * fallback timeout as the only cleanup — always safe, just less precise.
+ *
+ * Consumer-configured `duration`/`easing`/`intensity` are written as inline
+ * custom properties for the element's whole mint lifetime — the stylesheet
+ * reads them with the theme token as fallback, so the CSS animation actually
+ * runs at the configured speed AND the exit transition matches. Registration
+ * defaults deliberately do NOT become inline vars: with no consumer config
+ * the theme tokens stay in charge (they are the tunable default).
  */
 export function createMicroInteraction(
   className: string,
@@ -44,17 +59,94 @@ export function createMicroInteraction(
       if (finalConfig.disabled || prefersReducedMotion()) return;
 
       const trigger = finalConfig.trigger || 'hover';
-      const duration = finalConfig.duration || 200;
-      const delay = finalConfig.delay || 0;
+      const duration = finalConfig.duration ?? 200;
+      const delay = finalConfig.delay ?? 0;
 
-      // Determine event based on trigger
-      const eventMap = {
-        hover: 'mouseenter',
-        click: 'click',
-        focus: 'focus',
-        load: 'load'
+      // Only what the CONSUMER configured becomes an inline var (`config`,
+      // not `finalConfig` — registration defaults must leave the theme tokens
+      // in charge). Set for the whole mint lifetime, removed on destroy: the
+      // exit transition after a leave/settle still needs them.
+      const styleVars: Array<[string, string]> = [];
+      if (config.duration != null) {
+        styleVars.push([`--${className}-duration`, `${config.duration}ms`]);
+      }
+      if (config.easing) {
+        styleVars.push([`--${className}-easing`, config.easing]);
+      }
+      // The property name must be the one `.blocks-mint-scale` actually reads
+      // — the legacy `--scale-intensity` alias in styles.css maps old name →
+      // new for consumers, not the other way around.
+      if (finalConfig.intensity && className.includes('scale')) {
+        styleVars.push(['--blocks-mint-scale-intensity', finalConfig.intensity.toString()]);
+      }
+      for (const [property, value] of styleVars) {
+        el.style.setProperty(property, value);
+      }
+      const removeStyleVars = () => {
+        for (const [property] of styleVars) {
+          el.style.removeProperty(property);
+        }
       };
-      const event = eventMap[trigger] || 'mouseenter';
+
+      // ── Held triggers: hover and focus ─────────────────────────────────
+      if (trigger === 'hover' || trigger === 'focus') {
+        const enterEvent = trigger === 'hover' ? 'mouseenter' : 'focus';
+        const leaveEvent = trigger === 'hover' ? 'mouseleave' : 'blur';
+
+        let delayTimer: ReturnType<typeof setTimeout> | undefined;
+        let release: (() => void) | undefined;
+
+        const applyHold = () => {
+          el.classList.add(className);
+          // Svelte rewrites `class` wholesale on re-render (see the run-model
+          // comment below); defend the class for as long as it is held.
+          const classGuard = new MutationObserver(() => {
+            if (!el.classList.contains(className)) el.classList.add(className);
+          });
+          classGuard.observe(el, { attributeFilter: ['class'] });
+          release = () => {
+            classGuard.disconnect();
+            el.classList.remove(className);
+            release = undefined;
+          };
+        };
+
+        const onEnter = () => {
+          if (release || delayTimer) return;
+          // Keyboard-only, like every focus ring in the library. Browsers
+          // settle `:focus-visible` before dispatching the focus event.
+          if (trigger === 'focus' && !el.matches(':focus-visible')) return;
+          if (delay > 0) {
+            delayTimer = setTimeout(() => {
+              delayTimer = undefined;
+              applyHold();
+            }, delay);
+          } else {
+            applyHold();
+          }
+        };
+
+        const onLeave = () => {
+          if (delayTimer) {
+            clearTimeout(delayTimer);
+            delayTimer = undefined;
+          }
+          release?.();
+        };
+
+        el.addEventListener(enterEvent, onEnter, { passive: true });
+        el.addEventListener(leaveEvent, onLeave, { passive: true });
+
+        this.destroy = () => {
+          el.removeEventListener(enterEvent, onEnter);
+          el.removeEventListener(leaveEvent, onLeave);
+          onLeave();
+          removeStyleVars();
+        };
+        return;
+      }
+
+      // ── Run triggers: click and load ───────────────────────────────────
       const settleEvent =
         settles &&
         (settles.via === 'animation'
@@ -85,15 +177,6 @@ export function createMicroInteraction(
         const applyAnimation = () => {
           el.setAttribute(animatingAttr, 'true');
 
-          // Add dynamic styles if intensity is specified. The property name
-          // must be the one `.blocks-mint-scale` actually reads — the legacy
-          // `--scale-intensity` alias in styles.css maps old name → new for
-          // consumers, not the other way around, so writing the old name here
-          // silently did nothing.
-          if (finalConfig.intensity && className.includes('scale')) {
-            el.style.setProperty('--blocks-mint-scale-intensity', finalConfig.intensity.toString());
-          }
-
           el.classList.add(className);
 
           let fallbackTimer: ReturnType<typeof setTimeout>;
@@ -117,7 +200,6 @@ export function createMicroInteraction(
             classGuard.disconnect();
             el.classList.remove(className);
             el.removeAttribute(animatingAttr);
-            el.style.removeProperty('--blocks-mint-scale-intensity');
             clearTimeout(fallbackTimer);
             if (settleEvent) el.removeEventListener(settleEvent, onSettle);
             endCurrentRun = undefined;
@@ -164,15 +246,16 @@ export function createMicroInteraction(
         // Execute immediately if element is already loaded
         requestAnimationFrame(() => handler());
       } else {
-        listenOn.addEventListener(event, handler, { passive: true });
+        listenOn.addEventListener('click', handler, { passive: true });
       }
 
       // Store cleanup function
       this.destroy = () => {
-        if (event !== 'load') {
-          listenOn.removeEventListener(event, handler);
+        if (trigger !== 'load') {
+          listenOn.removeEventListener('click', handler);
         }
         endCurrentRun?.();
+        removeStyleVars();
       };
     }
   };

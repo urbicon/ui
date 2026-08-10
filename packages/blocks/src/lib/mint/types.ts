@@ -1,7 +1,21 @@
 export interface MintConfig {
+  /**
+   * `hover` and `focus` hold the effect while the pointer/visible focus stays
+   * on the element; `click` and `load` run it once.
+   */
   trigger?: 'hover' | 'click' | 'focus' | 'load';
+  /**
+   * Effect duration in ms. Written as an inline per-effect custom property
+   * (`--blocks-mint-<effect>-duration`), so the CSS transition/animation
+   * actually runs at this speed; unset, the theme duration tokens apply.
+   */
   duration?: number;
+  /** Delay in ms before the effect applies. */
   delay?: number;
+  /**
+   * CSS easing for the effect (`--blocks-mint-<effect>-easing` inline);
+   * unset, the per-effect theme default applies.
+   */
   easing?: string;
   disabled?: boolean;
 }
@@ -28,8 +42,8 @@ export interface MintInstance {
 
 // Specific mint configs
 export interface MicroInteractionConfig extends MintConfig {
+  /** Scale factor for the `scale` effect (`--blocks-mint-scale-intensity`). */
   intensity?: number;
-  transformOrigin?: string;
 }
 
 /**

@@ -38,26 +38,37 @@
   --blocks-mint-glow-color: color-mix(in oklch, var(--color-neutral) 40%, transparent);
 }
 
+/* Every effect reads its duration/easing through a per-effect custom
+   property (`--blocks-mint-<effect>-duration` / `-easing`) that the engine
+   sets INLINE only when the consumer configured a value — the theme tokens
+   in the fallback stay in charge otherwise. Per-effect (not one shared var):
+   an array mint puts several effects on one element, each with its own
+   config. */
+
 /* Transform-based interactions */
 .blocks-mint-scale {
   transform: scale(var(--blocks-mint-scale-intensity, 1.04));
-  transition: transform var(--blocks-duration-fast) var(--blocks-ease-confident);
+  transition: transform var(--blocks-mint-scale-duration, var(--blocks-duration-fast))
+    var(--blocks-mint-scale-easing, var(--blocks-ease-confident));
 }
 
 .blocks-mint-translate {
   transform: translateY(-2px);
-  transition: transform var(--blocks-duration-fast) var(--blocks-ease-confident);
+  transition: transform var(--blocks-mint-translate-duration, var(--blocks-duration-fast))
+    var(--blocks-mint-translate-easing, var(--blocks-ease-confident));
 }
 
 .blocks-mint-rotate {
   transform: rotate(2deg);
-  transition: transform var(--blocks-duration-fast) var(--blocks-ease-confident);
+  transition: transform var(--blocks-mint-rotate-duration, var(--blocks-duration-fast))
+    var(--blocks-mint-rotate-easing, var(--blocks-ease-confident));
 }
 
 /* Visual effects */
 .blocks-mint-glow {
   box-shadow: 0 0 var(--blocks-mint-glow-radius) var(--blocks-mint-glow-color);
-  transition: box-shadow var(--blocks-duration-normal) var(--blocks-ease-confident);
+  transition: box-shadow var(--blocks-mint-glow-duration, var(--blocks-duration-normal))
+    var(--blocks-mint-glow-easing, var(--blocks-ease-confident));
 }
 
 .blocks-mint-fade {
@@ -76,19 +87,23 @@
 
 /* Animation-based interactions */
 .blocks-mint-bounce {
-  animation: blocks-mint-bounce var(--blocks-duration-slower) var(--blocks-ease-springy);
+  animation: blocks-mint-bounce var(--blocks-mint-bounce-duration, var(--blocks-duration-slower))
+    var(--blocks-mint-bounce-easing, var(--blocks-ease-springy));
 }
 
 .blocks-mint-pulse {
-  animation: blocks-mint-pulse var(--blocks-duration-slowest) var(--blocks-ease-smooth) infinite;
+  animation: blocks-mint-pulse var(--blocks-mint-pulse-duration, var(--blocks-duration-slowest))
+    var(--blocks-mint-pulse-easing, var(--blocks-ease-smooth)) infinite;
 }
 
 .blocks-mint-shake {
-  animation: blocks-mint-shake var(--blocks-duration-slower) var(--blocks-ease-confident);
+  animation: blocks-mint-shake var(--blocks-mint-shake-duration, var(--blocks-duration-slower))
+    var(--blocks-mint-shake-easing, var(--blocks-ease-confident));
 }
 
 .blocks-mint-wiggle {
-  animation: blocks-mint-wiggle var(--blocks-duration-slower) ease-in-out;
+  animation: blocks-mint-wiggle var(--blocks-mint-wiggle-duration, var(--blocks-duration-slower))
+    var(--blocks-mint-wiggle-easing, ease-in-out);
 }
 
 /* === KEYFRAME ANIMATIONS === */
