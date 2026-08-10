@@ -3,6 +3,7 @@ import { screen } from '@testing-library/dom';
 import userEvent from '@testing-library/user-event';
 import { createRawSnippet, flushSync, mount, unmount } from 'svelte';
 import { afterEach, describe, expect, it, vi } from 'vitest';
+import { mintRegistry } from '../../mint/registry';
 import type { MenuProps } from './index';
 import Menu from './Menu.svelte';
 
@@ -244,5 +245,29 @@ describe('Menu (context menu)', () => {
 
     expect(onCut).toHaveBeenCalledOnce();
     expect(screen.queryByRole('menuitem', { hidden: true })).toBeNull();
+  });
+});
+
+describe('Menu (mint propagation)', () => {
+  // The positive control for the item-level mint: `mint` used to end up as a
+  // dead `data-mint` attribute on the items — no CSS rule, no reader, no
+  // effect. Only a mounted item can prove the context mint is now applied.
+  it('applies the context mint to the menu items', async () => {
+    const user = userEvent.setup();
+    mintRegistry.register('probe', () => ({
+      init(el) {
+        (el as HTMLElement).dataset.probeApplied = 'yes';
+      }
+    }));
+    renderMenu({
+      placeholder: 'Actions',
+      mint: 'probe',
+      items: [{ label: 'Edit' }, { label: 'Delete' }]
+    });
+
+    await user.click(trigger());
+
+    expect((item('Edit') as HTMLElement).dataset.probeApplied).toBe('yes');
+    expect(item('Edit').hasAttribute('data-mint')).toBe(false);
   });
 });

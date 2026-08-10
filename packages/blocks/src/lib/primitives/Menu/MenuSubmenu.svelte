@@ -2,6 +2,7 @@
   import type { Snippet } from 'svelte';
   import { resolveIcon } from '$lib/icons';
   import ChevronRightIconDefault from '$lib/icons/ChevronRightIcon.svelte';
+  import { mintAttachment } from '$lib';
   import { getMenuContext, setMenuParentId } from './menu.context';
   import MenuItemComp from './MenuItem.svelte';
   import type { MenuItemType, MenuObjectOption, MenuSectionHeader } from './index';
@@ -90,7 +91,7 @@
   aria-expanded={isOpen}
   aria-disabled={disabled || undefined}
   class={ctx.styles.item({ itemSize: ctx.itemSizeForDepth(0), disabled })}
-  data-mint={ctx.mint}
+  {@attach mintAttachment(ctx.mint, { enabled: !disabled })}
 >
   {#if icon}
     {@const Icon = icon as import('svelte').Component<{ class?: string }>}

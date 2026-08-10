@@ -9,7 +9,7 @@
   import CloseIconDefault from '$lib/icons/CloseIcon.svelte';
   import CheckCircleIconDefault from '$lib/icons/CheckCircleIcon.svelte';
   import DangerCircleIconDefault from '$lib/icons/DangerCircleIcon.svelte';
-  import { mintAttachment } from '$lib/mint';
+  import { mintAttachment } from '$lib';
   import { Progress } from '$lib/primitives/Progress';
   // internal core, not the public component — keeps the public-to-public import graph clean (see internal/core/)
   import CoreSpinner from '$lib/internal/core/CoreSpinner.svelte';

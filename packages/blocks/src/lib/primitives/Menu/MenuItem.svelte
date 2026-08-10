@@ -1,5 +1,6 @@
 <script lang="ts">
   import type { Snippet } from 'svelte';
+  import { mintAttachment } from '$lib';
   import { getMenuContext, getMenuParentId } from './menu.context';
 
   let {
@@ -110,7 +111,7 @@
         disabled,
         class: [ctx.slotClasses?.item, className]
       })}
-  data-mint={ctx.mint}
+  {@attach mintAttachment(ctx.mint, { enabled: !disabled })}
 >
   {#if icon}
     {@const Icon = icon as import('svelte').Component<{ class?: string }>}
