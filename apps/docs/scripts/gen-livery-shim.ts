@@ -98,8 +98,18 @@ const out = `/*
  * inheriting values already computed at :root. See the generator's header for
  * why this is necessary and when it is not.
  *
+ * The extra \`:root[data-livery]\` alternative is for PAGE scope: there the
+ * livery sits on <html> next to the app shell's \`.docs-rooms\` class, whose
+ * room theming re-declares the primary family at the same (0,1,0) specificity
+ * — source order then decides, and the app bundle wins. (0,2,0) settles it in
+ * the house's favour without touching the docs skin anywhere else. Found on
+ * the salon full page, where every primary fill rendered docs-orange in all
+ * four liveries; the tiles never showed it because a tile is a child element
+ * and its own declarations beat anything inherited from :root.
+ *
  * ${kept.length} declarations.
  */
+:root[data-livery],
 [data-livery] {
 ${kept.join('\n')}
 }
