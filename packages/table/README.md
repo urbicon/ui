@@ -27,7 +27,7 @@ Peer dependencies: `svelte` (^5), `@urbicon-ui/blocks`, `@urbicon-ui/i18n`. No S
 | Selection           | Single / multi, `onSelectionChange`, select-all spans all **filtered** rows, keyboard toggle (`Space`), row-click select (`rowClickSelects`, on by default in single mode)        |
 | Keyboard            | Roving tabindex, ARIA-Grid role, arrow keys, `Home`/`End`/`PageUp`/`PageDown`, Skip-Link                                                                                          |
 | Grouping            | `view.groupBy`, collapsible group headers, grouped summary rows                                                                                                                   |
-| Pagination          | Built-in paginator, auto-disable on grouping, mobile-friendly controls                                                                                                            |
+| Pagination          | Built-in paginator, auto-disable on grouping (client processing only — a grouped server table stays paged), mobile-friendly controls                                              |
 | Virtualization      | `computeVirtualItems` for 10k+ rows (custom, zero deps); `virtualHeight` prop; falls back to normal rendering when inactive                                                       |
 | Column ordering     | Pointer-event drag-and-drop + `Shift+ArrowLeft/Right` keyboard reorder via shared `createDraggable` action                                                                        |
 | Column visibility   | Header menu + `prefs` storage; opt out per column (`hideable: false`) or table-wide (`enableColumnVisibility={false}`)                                                            |

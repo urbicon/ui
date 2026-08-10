@@ -234,7 +234,16 @@ ${scriptClose}
         group header counts <em>this page's</em> rows rather than the group's size. Your endpoint
         can make those groups more useful by ordering its result by
         <code class="text-text-primary">groupBy</code>, so a page holds whole groups instead of
-        slices of several.
+        slices of several. The order the groups appear in follows the page's rows, so it can differ
+        from page to page unless your endpoint imposes one.
+      </p>
+
+      <p class="text-text-secondary text-sm">
+        Group summary rows aggregate the same page-local rows — a sum under a group of three is the
+        sum of those three, not of the group. Their labels do not say so; if the distinction matters
+        to your readers, compute the totals server-side and render them yourself. Collapsing follows
+        the group's <em>name</em>, so a group collapsed on one page stays collapsed on the next even
+        though its rows are different.
       </p>
 
       <p class="text-text-secondary text-sm">

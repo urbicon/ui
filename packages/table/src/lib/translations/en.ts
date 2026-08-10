@@ -121,6 +121,11 @@ export default {
     activeIndicator: '{{type}} active for this column',
     collapseAllGroups: 'Collapse all groups',
     expandAllGroups: 'Expand all groups',
+    // Singular: the group header toggles ITS group. The all-groups strings above
+    // belong to the toolbar control and were being reused here, telling screen
+    // reader users the wrong thing about what the row does.
+    collapseGroup: 'Collapse group',
+    expandGroup: 'Expand group',
     groupedColumn: 'Grouped column',
     summarizedColumn: 'Summarized column'
   },

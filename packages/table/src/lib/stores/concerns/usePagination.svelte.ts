@@ -60,7 +60,9 @@ export function usePagination(
     // In server mode, items are already paginated by the server
     if (state.mode === 'server') return items;
 
-    // Skip pagination when grouped (groups should be fully visible)
+    // Skip pagination when grouped, so groups are fully visible. Client mode
+    // only in effect — the server-mode branch above already returned, because
+    // there the server did the slicing (#159).
     if (state.effectiveGroupBy) return items;
 
     return items.slice((effectivePage - 1) * view.pageSize, effectivePage * view.pageSize);

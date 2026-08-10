@@ -16,6 +16,7 @@
   import { resolveRowClickActions } from './row-interaction';
   import { getStickyContext } from './sticky-context.svelte';
   import { resolveColumnId } from '$lib/utils';
+  import { groupCountText } from './group-count';
   import type { Column, TableItem } from '$lib/types/tableTypes';
   import type { Snippet } from 'svelte';
 
@@ -91,18 +92,7 @@
     return String(groupName);
   });
 
-  const itemCountText = $derived.by(() => {
-    const count = items.length;
-    // `items` is what this component was handed, which in server mode is the
-    // slice of the group that happens to sit on the current page. Saying
-    // "(8 items)" there states the group's size, and states it wrongly — the
-    // server may hold 400 (#159). The wording is what makes the same number
-    // honest, so the count and its label are decided together.
-    if (tableState.mode === 'server') {
-      return `(${count} ${count === 1 ? tt('group.itemOnPage') : tt('group.itemsOnPage')})`;
-    }
-    return `(${count} ${count === 1 ? tt('group.item') : tt('group.items')})`;
-  });
+  const itemCountText = $derived(groupCountText(items.length, tableState.mode, tt));
 
   // Tailwind-Variants styling
   const styles = $derived(groupHeaderVariants({ size, sticky: stickyContext.mode.group }));
@@ -174,9 +164,9 @@
     role="button"
     tabindex="0"
     aria-expanded={isExpanded}
-    aria-label="{displayGroupName} {isExpanded
-      ? tt('header.collapseAllGroups')
-      : tt('header.expandAllGroups')}"
+    aria-label="{displayGroupName} {itemCountText} {isExpanded
+      ? tt('header.collapseGroup')
+      : tt('header.expandGroup')}"
   >
     <div class={styles.content()}>
       <!-- Expand/Collapse Icon -->

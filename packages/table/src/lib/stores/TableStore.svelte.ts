@@ -403,8 +403,10 @@ export function createTableState(
    * keyboard navigation moves through.
    *
    * Ungrouped this is just the current page. Grouped it is NOT: `grouped` buckets
-   * every *sorted* item (grouping bypasses pagination entirely), and a collapsed
-   * group renders no item rows at all. Feeding `paginatedItems.length` to focus
+   * every item it is handed — which in client mode is the whole sorted set,
+   * because grouping suspends paging there, and in server mode is the current
+   * page, because paging continues (#159) — and a collapsed group renders no
+   * item rows at all. Feeding `paginatedItems.length` to focus
    * management was therefore wrong in both directions when grouped — it counted a
    * page's worth of rows against a full, partially-hidden list.
    *

@@ -5,6 +5,7 @@
   import { resolveColumnId } from '$lib/utils';
   import { mobileListVariants } from '$lib/variants';
   import { getTableStyleConfig, resolveSlotClass } from './table-style-context';
+  import { groupCountText } from './group-count';
   import type { Column, TableItem } from '$lib/types/tableTypes';
   import type { Snippet } from 'svelte';
 
@@ -127,8 +128,7 @@
         <h3 class={listStyles.groupHeader()}>
           <span class={listStyles.groupTitle()}>{groupName}</span>
           <span class={listStyles.groupCount()}>
-            ({groupItems.length}
-            {groupItems.length === 1 ? tt('group.item') : tt('group.items')})
+            {groupCountText(groupItems.length, tableState.mode, tt)}
           </span>
         </h3>
         {#each groupItems as item, i (item.id ?? i)}
