@@ -69,8 +69,6 @@ aufweiten muss.
 | Mint     | Beschreibung                  |
 | -------- | ----------------------------- |
 | `ripple` | Material Design Ripple-Effekt |
-| `fade`   | Opacity-Übergang              |
-| `slide`  | Slide-Transformation          |
 
 ## Konfiguration
 
@@ -251,15 +249,3 @@ const complexMint = [
 </Button>
 ```
 
-### Custom Mint Bundle
-
-```typescript
-import { registerPlayfulMints, registerBusinessMints } from '@urbicon-ui/blocks';
-
-// Je nach App-Kontext
-if (appTheme === 'playful') {
-  registerPlayfulMints();
-} else {
-  registerBusinessMints();
-}
-```

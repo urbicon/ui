@@ -43,8 +43,7 @@
    engine sets INLINE only when the consumer configured a value — the theme
    tokens in the fallback stay in charge otherwise. Per-effect (not one
    shared var): an array mint puts several effects on one element, each with
-   its own config. `fade`/`slide` are static classes outside the engine and
-   take no config. */
+   its own config. */
 
 /* Transform-based interactions */
 .blocks-mint-scale {
@@ -70,20 +69,6 @@
   box-shadow: 0 0 var(--blocks-mint-glow-radius) var(--blocks-mint-glow-color);
   transition: box-shadow var(--blocks-mint-glow-duration, var(--blocks-duration-normal))
     var(--blocks-mint-glow-easing, var(--blocks-ease-confident));
-}
-
-.blocks-mint-fade {
-  opacity: 0.8;
-  transition: opacity var(--blocks-duration-fast) ease;
-}
-
-.blocks-mint-fade:hover {
-  opacity: 1;
-}
-
-.blocks-mint-slide {
-  transform: translateX(0);
-  transition: transform var(--blocks-duration-normal) ease;
 }
 
 /* Animation-based interactions */
@@ -169,9 +154,7 @@
   .blocks-mint-scale,
   .blocks-mint-translate,
   .blocks-mint-rotate,
-  .blocks-mint-glow,
-  .blocks-mint-fade,
-  .blocks-mint-slide {
+  .blocks-mint-glow {
     transition: none !important;
     transform: none !important;
     box-shadow: none !important;
@@ -196,9 +179,5 @@
 @media (prefers-contrast: more) {
   .blocks-mint-glow {
     box-shadow: 0 0 0 2px currentColor;
-  }
-
-  .blocks-mint-fade {
-    opacity: 1;
   }
 }

@@ -23,36 +23,6 @@ export function registerDefaultMints(): void {
   registerComposite(mintRegistry);
 }
 
-/**
- * Register playful mints bundle.
- *
- * `bounce`, `shake`, `pulse` and `wiggle` are part of `registerDefaultMints()`
- * (with `prefers-reduced-motion` awareness and proper cleanup). This function
- * is reserved for future playful-only mints; calling it is currently a no-op.
- */
-export function registerPlayfulMints(): void {
-  // Reserved for future playful-only mints.
-}
-
-/**
- * Register business mints bundle.
- * Registered via `registerBuiltin`: a consumer override for these names wins.
- */
-export function registerBusinessMints(): void {
-  // Subtle mints for professional UIs
-  mintRegistry.registerBuiltin('fade', () => ({
-    init(el) {
-      el.classList.add('blocks-mint-fade');
-    }
-  }));
-
-  mintRegistry.registerBuiltin('slide', () => ({
-    init(el) {
-      el.classList.add('blocks-mint-slide');
-    }
-  }));
-}
-
 // Mint presets for common UI patterns
 export const mintPresets = {
   'cta-primary': [
