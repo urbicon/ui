@@ -221,8 +221,12 @@
   /* `.blocks-mint-*` rules live in `packages/blocks/src/lib/mint/styles.css`
      — see XC-12. Previously Avatar duplicated scale/translate/rotate/glow
      and used `currentColor` for the glow, which made it impossible to
-     consume the global intent-aware glow token. */
-  :global(.blocks-mint-pulse) {
+     consume the global intent-aware glow token.
+
+     The pulse override is scoped to the avatar root: an unscoped
+     `:global(.blocks-mint-pulse)` redefined the pulse for every mint user on
+     the page as soon as Avatar's CSS was loaded. */
+  :global(.blocks-avatar.blocks-mint-pulse) {
     animation: avatar-pulse 2s var(--blocks-ease-smooth) infinite;
   }
 
@@ -265,7 +269,7 @@
   }
 
   @media (prefers-reduced-motion: reduce) {
-    :global(.blocks-mint-pulse),
+    :global(.blocks-avatar.blocks-mint-pulse),
     :global(.blocks-avatar-status-pulse) {
       animation: none;
     }
