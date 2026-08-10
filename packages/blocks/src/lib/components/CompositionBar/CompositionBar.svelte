@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { useBlocksI18n, mintAttachment } from '$lib';
+  import { useBlocksI18n } from '$lib';
   import { useI18n } from '@urbicon-ui/i18n';
   import { getBlocksConfig, resolveSlotClasses } from '$lib/provider';
   import type { CompositionBarProps, CompositionBarIntent, CompositionItem } from './index';
@@ -24,7 +24,6 @@
     totalLabel,
     minSegmentPercent = 1.5,
     onItemSelect,
-    mint = 'none',
     class: className = '',
     unstyled: unstyledProp = false,
     slotClasses: slotClassesProp = {},
@@ -264,7 +263,6 @@
          role="img" — atomic is only correct without interactive descendants. -->
     <div
       bind:this={barRef}
-      {@attach mintAttachment(mint)}
       role="group"
       aria-label={ariaSummary}
       class={unstyled ? (slotClasses?.bar ?? '') : styles.bar({ class: slotClasses?.bar })}

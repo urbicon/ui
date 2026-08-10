@@ -1,6 +1,5 @@
 import type { Snippet } from 'svelte';
 import type { HTMLAttributes } from 'svelte/elements';
-import type { MintProp } from '$lib/mint';
 import type { CompositionBarSlots, CompositionBarVariants } from './composition-bar.variants';
 
 export type CompositionBarIntent =
@@ -121,12 +120,6 @@ export interface CompositionBarProps
    * click handler).
    */
   onItemSelect?: (item: CompositionItem, index: number) => void;
-
-  /**
-   * Micro-interaction preset applied to the bar (the `role="group"` element).
-   * @default 'none'
-   */
-  mint?: MintProp;
 
   /** Extra classes merged onto the wrapper. */
   class?: string;

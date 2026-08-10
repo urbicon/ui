@@ -43,6 +43,14 @@ export interface LocaleSwitcherProps
   /** Show flag emoji alongside locale name. @default false */
   showFlag?: boolean;
 
+  /**
+   * Micro-interaction preset forwarded to the inner Select trigger.
+   * Redeclared from SelectSingleProps so the inheritance is a documented
+   * contract rather than an accident of the Omit list.
+   * @default 'none'
+   */
+  mint?: SelectSingleProps<string>['mint'];
+
   /** Restrict the displayed locales. Defaults to all locales registered in i18n. */
   locales?: Locale[];
 
