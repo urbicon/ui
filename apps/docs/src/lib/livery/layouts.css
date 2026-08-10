@@ -145,14 +145,16 @@
   grid-column: 1 / span 12;
   justify-self: start;
 }
-/* The house shot is a keepsake, not a banner: pinned right of the measure with
-   a hairline passe-partout, hard-edged like everything else in this house.
-   The offset stays inside the wrapper's 1.5rem padding. */
+/* The house shot is one wide window across the full measure — which is what
+   the house's architecture IS. A first cut pinned it small and off-centre like
+   the hero fragments, and the asymmetry read as unmotivated rather than
+   composed (review 2026-08-10). Hard edges and the hairline passe-partout
+   stay; the 42% focus keeps the window seat and the snow in the band and
+   gives the floor to the crop. The offset stays inside the wrapper's 1.5rem
+   padding. */
 [data-layout='scatter'] [data-house='figure'] img {
-  width: min(36rem, 72%);
-  margin-left: auto;
-  margin-right: 6%;
-  aspect-ratio: 4 / 3;
+  aspect-ratio: 21 / 10;
+  object-position: center 42%;
   border-radius: 0;
   outline: 1px solid var(--color-border-subtle);
   outline-offset: 0.875rem;
@@ -161,9 +163,12 @@
 /* ── horizon — everything sits on one full-bleed line ──────────────────────── */
 [data-layout='horizon'] [data-house='hero'] {
   position: relative;
-  /* Short of a full screen on purpose — see the scatter note: the panorama
-     has to break the fold, or the first viewport is sky only. */
-  min-height: 68vh;
+  /* Deliberately the shortest hero of the three: this ground is one deep
+     even tone, and above ~56vh the evening above the wordmark stopped
+     reading as generous and started reading as nothing there (review
+     2026-08-10, on a tall viewport). The panorama below carries the height
+     the hero gives up. */
+  min-height: 56vh;
   display: flex;
   flex-direction: column;
   justify-content: flex-end;
@@ -200,7 +205,7 @@
 }
 [data-layout='horizon'] [data-house='kicker'] {
   margin-bottom: auto;
-  padding-top: 6vh;
+  padding-top: 4vh;
 }
 /* Below the line — the one interactive element under the horizon. */
 [data-layout='horizon'] [data-house='cta'] {
@@ -212,15 +217,16 @@
 [data-layout='horizon'] [data-house='list'] > * {
   padding-block: 1.4rem;
 }
-/* The house shot is the land under the hero's horizon line: the 4:3 source
-   cropped to a full-measure band. The 45% focus keeps the thatched roofline
-   and the sea in frame and gives the sky and the terrace floor to the crop. */
+/* The house shot is the land under the hero's horizon line. 16:9, not a
+   letterbox: the 5:2 first cut lost the dinner table and the terrace to the
+   bottom crop, and the terrace is half the story (review 2026-08-10). The
+   62% focus spends what still goes on the empty sky, not on the ground. */
 [data-layout='horizon'] [data-house='figure'] {
   margin-top: 2.5rem;
 }
 [data-layout='horizon'] [data-house='figure'] img {
-  aspect-ratio: 5 / 2;
-  object-position: center 45%;
+  aspect-ratio: 16 / 9;
+  object-position: center 62%;
   border-radius: var(--radius-contain, 0.75rem);
 }
 

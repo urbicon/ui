@@ -300,13 +300,23 @@
   --livery-heading-tracking: 0em;
   --livery-label-tracking: 0.14em;
   --livery-label-transform: uppercase;
-  /* The evening, in three bands: dark sky settling from above, the glow low
-     behind the crest (at the horizon line the layout draws), sand shadow
-     rising from the bottom edge. */
+  /* The evening: dark sky settling from above, the glow low behind the crest
+     (at the horizon line the layout draws), sand shadow rising from the
+     bottom edge — and underneath, actual sand banding: wide, soft repeating
+     tone steps, faint enough to be texture rather than stripes. The banding
+     is what keeps the sky above the wordmark from reading as a void on tall
+     viewports (review 2026-08-10) — and it is what "banded like sand" in the
+     switch's mechanism line had promised all along. */
   --livery-ground:
     linear-gradient(oklch(0.19 0.028 42 / 0.9) 0%, transparent 42%),
     radial-gradient(72% 46% at 50% 76%, oklch(0.56 0.12 45 / 0.5), transparent 70%),
-    linear-gradient(to top, oklch(0.22 0.032 40 / 0.95) 0%, transparent 28%);
+    linear-gradient(to top, oklch(0.22 0.032 40 / 0.95) 0%, transparent 28%),
+    repeating-linear-gradient(
+      to bottom,
+      oklch(0.62 0.07 48 / 0.05),
+      transparent 6.5rem,
+      oklch(0.62 0.07 48 / 0.05) 13rem
+    );
   --livery-grain: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='120' height='120'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2'/%3E%3C/filter%3E%3Crect width='120' height='120' filter='url(%23n)' opacity='0.28'/%3E%3C/svg%3E");
   --livery-grain-blend: overlay;
   --livery-grain-opacity: 0.45;
