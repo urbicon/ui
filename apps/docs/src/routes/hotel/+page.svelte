@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { BlocksProvider } from '@urbicon-ui/blocks';
+  import { BlocksProvider, Button } from '@urbicon-ui/blocks';
   import { DEFAULT_LIVERY, LIVERIES, liveryById } from '$lib/livery';
   // Livery-CSS route-lokal statt global (anders als in chat-demo): Tokens,
   // Container-Shim und die Layout-Schicht der Vollseite.
@@ -211,10 +211,24 @@
     <section id="booking" aria-labelledby="booking-title" class="border-border-subtle border-t">
       <div class="mx-auto max-w-3xl px-6 py-20">
         <h2 id="booking-title" class="livery-display mb-4 text-2xl">Book a stay</h2>
-        <p class="text-text-secondary mb-10 max-w-lg text-sm">
+        <p class="text-text-secondary mb-6 max-w-lg text-sm">
           Tell the front desk what you need. It builds whatever form the answer takes — and the form
           belongs to this house, not to the model.
         </p>
+
+        <!-- The one primary act on the page, ABOVE the desk: an empty chat
+             with a faint underlined link below it hid the whole demo
+             (review finding 2026-08-10). The desk plays a recording, so the
+             button says so — and the composer stays for anyone who would
+             rather type. -->
+        <div class="mb-4 flex flex-wrap items-center gap-4">
+          <Button intent="primary" onclick={() => booking?.start()}>
+            ▶ Play the recorded conversation
+          </Button>
+          <span class="text-2xs text-text-tertiary tracking-[0.14em] uppercase">
+            A real exchange, replayed — no key, no network
+          </span>
+        </div>
 
         <div class="rounded-contain border-border-default flex min-h-[36rem] flex-col border">
           <div
@@ -231,14 +245,6 @@
           </div>
           <HotelBooking bind:this={booking} />
         </div>
-
-        <button
-          type="button"
-          class="text-2xs text-text-tertiary hover:text-text-primary mt-4 cursor-pointer tracking-[0.2em] uppercase underline underline-offset-4"
-          onclick={() => booking?.start()}
-        >
-          Play the recorded conversation
-        </button>
       </div>
     </section>
 
@@ -248,6 +254,22 @@
       >
         <span>{GROUP_NAME} · {HOUSES.map((h) => h.name).join(' · ')}</span>
         <span>Built with @urbicon-ui/blocks</span>
+      </div>
+      <!-- The fiction, said plainly: this page wears no docs chrome, so
+           without this line nothing on it says demo — and the legal doors
+           every other page carries would be unreachable from here. -->
+      <div
+        class="text-2xs text-text-tertiary mx-auto flex max-w-6xl flex-wrap items-baseline justify-between gap-x-8 gap-y-2 px-6 pb-8"
+      >
+        <span class="max-w-xl">
+          Fermata and its houses are a fiction — the component-library demo behind
+          <a class="hover:text-text-primary underline underline-offset-2" href="/">urbicon ui</a>.
+          Nothing here is a real hotel, a real offer or a real price.
+        </span>
+        <span class="flex gap-4">
+          <a class="hover:text-text-primary" href="/imprint">Imprint</a>
+          <a class="hover:text-text-primary" href="/privacy">Privacy</a>
+        </span>
       </div>
     </footer>
   </div>

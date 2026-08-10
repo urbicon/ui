@@ -1,13 +1,10 @@
 /**
- * Die An- und Abreisewoche EINES Hauses für die Schedule-Ansicht der
- * Blocks-Kachel: Abreisen am Vormittag, Ankünfte am Nachmittag — die Woche,
- * wie sie am Empfang aussieht.
- *
- * Warum generiert und nicht getippt: Ein Zeitraster verspricht Vollständigkeit.
- * Wo der Planner drei Einträge zeigen und „+41 more" darunterschreiben konnte,
- * muss der Calendar den Tag wirklich füllen — sonst behauptet die Ansicht ein
- * leeres Haus, während die Overview daneben 86 % Belegung meldet. Von Hand
- * wären das ~70 Einträge je Haus.
+ * Die Empfangsvorgänge EINES Hauses für die Schedule-Ansicht der
+ * Blocks-Kachel: Abreisen am Vormittag, Ankünfte am Nachmittag. Erzeugt wird
+ * die ganze Woche; die Kachel zeigt davon einen TAG (Tagesansicht bzw.
+ * Agenda) — das Raster erzählt Vorgänge am Tresen, keine Belegung. Belegung
+ * wären mehrtägige Balken je Zimmer, und eine Resource-Timeline hat der
+ * Calendar nicht; die Wochen-Dichte erzählt der Chart der Overview.
  *
  * Deterministisch, ohne `Math.random()`: Die Seite wird prerendered, und ein
  * zufälliger Plan im HTML liefe beim Hydrieren gegen einen anderen. Dieselbe
@@ -114,9 +111,16 @@ export function buildSchedule({ weekStart, perDay }: ScheduleInput): CalendarEve
     const date = new Date(weekStart);
     date.setDate(date.getDate() + day);
 
-    const push = (kind: 'out' | 'in', index: number, startMinute: number): number => {
-      const roomType =
-        ROOM_TYPES[MIX[(day * 7 + index * 3 + (kind === 'in' ? 1 : 0)) % MIX.length]];
+    // Ein Zähler über BEIDE Läufe des Tages, damit jeder Gast an einem Tag
+    // genau einmal am Tresen steht. Die erste Fassung rechnete Vormittag und
+    // Nachmittag mit getrennten Modulo-Reihen, und dieselben Namen reisten um
+    // 9:00 ab und um 13:30 wieder an (Review-Befund 2026-08-10). 13 Vorgänge
+    // passen maximal in den Tag, die Gästeliste hat 24 Namen — der Tag bleibt
+    // also kollisionsfrei, solange beides so bleibt.
+    let seq = 0;
+
+    const push = (kind: 'out' | 'in', startMinute: number): number => {
+      const roomType = ROOM_TYPES[MIX[(day * 7 + seq * 3) % MIX.length]];
       if (startMinute + SLOT_MINUTES > DAY_END_MINUTE) return startMinute;
 
       const startDate = new Date(date);
@@ -125,8 +129,8 @@ export function buildSchedule({ weekStart, perDay }: ScheduleInput): CalendarEve
       endDate.setMinutes(endDate.getMinutes() + SLOT_MINUTES);
 
       events.push({
-        id: `s${day}-${kind}-${index}`,
-        title: CLIENTS[(day * 5 + index * (kind === 'in' ? 1 : 2)) % CLIENTS.length],
+        id: `s${day}-${kind}-${seq}`,
+        title: CLIENTS[(day * 13 + seq) % CLIENTS.length],
         start: startDate,
         end: endDate,
         allDay: false,
@@ -134,18 +138,19 @@ export function buildSchedule({ weekStart, perDay }: ScheduleInput): CalendarEve
         description: kind === 'in' ? `→ ${roomType.label}` : `${roomType.label} →`
       });
 
-      return startMinute + SLOT_MINUTES + GAPS[(index + day) % GAPS.length];
+      seq += 1;
+      return startMinute + SLOT_MINUTES + GAPS[(seq + day) % GAPS.length];
     };
 
     // Vormittag: Abreisen ab 9:00, bis der Block in die Ankünfte liefe.
     let cursor = DEPARTURES_FROM;
     for (let i = 0; i < departures && cursor + SLOT_MINUTES <= ARRIVALS_FROM; i++) {
-      cursor = push('out', i, cursor);
+      cursor = push('out', cursor);
     }
     // Nachmittag: Ankünfte ab 14:00 bis Rasterende.
     cursor = ARRIVALS_FROM;
     for (let i = 0; i < arrivals; i++) {
-      cursor = push('in', i, cursor);
+      cursor = push('in', cursor);
       if (cursor + SLOT_MINUTES > DAY_END_MINUTE) break;
     }
   }

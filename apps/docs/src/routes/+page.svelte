@@ -303,19 +303,25 @@
       : HOUSES.reduce((n, h) => n + Math.max(1, Math.round((h.size * (100 - h.load)) / 100)), 0)
   );
 
-  // ── Schedule: die Terminwoche EINES Hauses im Calendar ─────────────
+  // ── Schedule: der Empfangstag EINES Hauses im Calendar ─────────────
   // Der Calendar ist datumsindiziert, die Seite ist prerendered: ein
-  // `new Date()` im Initialwert stünde als Build-Woche im HTML und würde beim
-  // Hydrieren gegen die echte Woche laufen. Also SSR-stabil mit einem festen
-  // Anker starten und erst NACH der Hydration auf die laufende Woche schwenken
-  // — ein normales Update, kein Mismatch.
+  // `new Date()` im Initialwert stünde als Build-Datum im HTML und würde beim
+  // Hydrieren gegen das echte laufen. Also SSR-stabil mit festen Ankern
+  // starten und erst NACH der Hydration auf die laufende Woche und das echte
+  // Heute schwenken — ein normales Update, kein Mismatch. Der Wochen-Anker
+  // bleibt neben dem Tages-Anker, weil buildSchedule ganze Wochen erzeugt und
+  // die Tagesansicht nur ein Fenster darauf ist (Vor/Zurück bleibt möglich).
   const WEEK_ANCHOR = new Date(2026, 7, 3); // Montag, 2026-08-03
+  const DAY_ANCHOR = new Date(2026, 7, 7); // Freitag derselben Woche
   let weekStart = $state(WEEK_ANCHOR);
+  let today = $state(DAY_ANCHOR);
   $effect(() => {
     const now = new Date();
-    const monday = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+    const day = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+    const monday = new Date(day);
     monday.setDate(monday.getDate() - ((monday.getDay() + 6) % 7));
     weekStart = monday;
+    today = day;
   });
   // Ankünfte der GRUPPE je Wochentag (Index 0 = Montag) — dieselben Summen,
   // die der Chart der Overview zeichnet: alle sieben Tage, Wochenende voran.
@@ -334,13 +340,10 @@
       perDay: GROUP_DAY_TOTALS.map((n) => Math.round(n * (scheduleHouse.guests / GROUP_GUESTS)))
     })
   );
-  // Das Zeitraster der Wochenansicht degradiert nicht: sieben Spalten bleiben
-  // sieben Spalten, auch auf 390 px, und ein Terminblock ist dort 25 px breit
-  // mit senkrecht stehendem Namen. (Der Planner kann das — sein Wochenraster
-  // stapelt unter `md`.) Schmal zeigt die Kachel darum die Agenda: dieselben
-  // Termine als Liste, die Form, die ein Telefon ohnehin verlangt.
-  const wideEnoughForWeek = new MediaQuery('(min-width: 48rem)', true);
-  const scheduleView = $derived(wideEnoughForWeek.current ? 'week' : 'agenda');
+  // Breit das Tages-Zeitraster, schmal die Agenda desselben Tages: dieselben
+  // Vorgänge als Liste, die Form, die ein Telefon ohnehin verlangt.
+  const wideEnoughForGrid = new MediaQuery('(min-width: 48rem)', true);
+  const scheduleView = $derived(wideEnoughForGrid.current ? 'day' : 'agenda');
   // Fest auf `en-GB`, nicht auf die Laufzeit-Locale: die Seite ist auf `en`
   // gepinnt, und ein 24-Stunden-Format neben einem 24-Stunden-Zeitraster ist
   // das, was zusammenpasst.
@@ -954,53 +957,67 @@
                     </div>
                     {#if dashView === 'overview'}
                       <div class="dash-body">
-                        <!-- Der Chart nimmt die volle Kartenbreite: darunter
-                             tragen zwei Spalten ähnlich viel Höhe, statt dass
-                             die kürzere (früher links) unten ein Loch lässt. -->
-                        <div class="blk" data-blk="AreaChart">
-                          <AreaChart
-                            data={bookingsData}
-                            series={BOOKING_SERIES}
-                            height={88}
-                            showLegend={false}
-                            fillOpacity={0.25}
-                          />
+                        <!-- Jeder Block trägt seine eigene kleine Überschrift:
+                             ohne sie war der Chart eine unbeschriftete Kurve
+                             und der Umsatzmix vier Farben ohne Aussage
+                             (Review-Befund 2026-08-10). Der Chart nimmt die
+                             volle Kartenbreite; die Legende ist an, weil zwei
+                             ungelabelte Serien nicht selbsterklärend sind. -->
+                        <div>
+                          <p class="dash-sub">Arrivals this week</p>
+                          <div class="blk mt-2" data-blk="AreaChart">
+                            <AreaChart
+                              data={bookingsData}
+                              series={BOOKING_SERIES}
+                              height={84}
+                              showLegend
+                              fillOpacity={0.25}
+                            />
+                          </div>
                         </div>
                         <div class="dash-cols">
                           <div class="dash-main">
-                            <!-- Die Werte SIND Prozente: formatValue macht sie zur
-                               Anzeige, showPercentages bliebe sonst als Doppelung
-                               daneben stehen (Legende druckt Wert immer). -->
-                            <div class="blk" data-blk="CompositionBar">
-                              <CompositionBar
-                                items={revenueMix}
-                                size="sm"
-                                showLegend
-                                showPercentages={false}
-                                formatValue={(v) => `${v} %`}
-                                legendPlacement="bottom"
-                              />
-                            </div>
-                            <div class="dash-donut">
-                              <div class="blk" data-blk="DonutChart">
-                                <DonutChart
-                                  data={returnMix}
-                                  size={66}
-                                  showLegend={false}
-                                  showTotal
-                                  totalLabel="guests"
-                                  ariaLabel="Returning guests this week"
+                            <div>
+                              <p class="dash-sub">Revenue by room type</p>
+                              <!-- Die Werte SIND Prozente: formatValue macht sie
+                                 zur Anzeige, showPercentages bliebe sonst als
+                                 Doppelung daneben stehen (Legende druckt Wert
+                                 immer). -->
+                              <div class="blk mt-2" data-blk="CompositionBar">
+                                <CompositionBar
+                                  items={revenueMix}
+                                  size="sm"
+                                  showLegend
+                                  showPercentages={false}
+                                  formatValue={(v) => `${v} %`}
+                                  legendPlacement="bottom"
                                 />
                               </div>
-                              <p class="aside-note">
-                                <strong>{returnMix[0].value}</strong> of them had been in before.
-                              </p>
+                            </div>
+                            <div>
+                              <p class="dash-sub">Guests in house</p>
+                              <div class="dash-donut">
+                                <div class="blk" data-blk="DonutChart">
+                                  <DonutChart
+                                    data={returnMix}
+                                    size={72}
+                                    showLegend={false}
+                                    showTotal
+                                    totalLabel="guests"
+                                    ariaLabel="Returning guests this week"
+                                  />
+                                </div>
+                                <p class="aside-note">
+                                  <strong>{returnMix[0].value}</strong> returning ·
+                                  <strong>{returnMix[1].value}</strong> first stay
+                                </p>
+                              </div>
                             </div>
                           </div>
                           <div class="dash-side">
                             <div class="dash-head">
                               <p class="dash-sub">
-                                {activeHouse ? 'On the floor' : 'Houses today'}
+                                {activeHouse ? 'Occupancy · on duty' : 'Occupancy today'}
                               </p>
                               <!-- Die Gesichter sind nicht mehr Deko: sie zeigen
                                    das Team des gewählten Hauses und wechseln mit
@@ -1043,29 +1060,32 @@
                         </div>
                       </div>
                     {:else if dashView === 'schedule'}
-                      <!-- Die Belegung eines Hauses auf dem Zeitraster: wo die
-                           Blöcke dicht liegen, ist voll — die Ansicht ZEIGT die
-                           Auslastung, die die Overview daneben in Prozent
-                           behauptet. Mon/Sun bleiben leer, weil die Häuser dann
-                           geschlossen sind; das erklärt, warum der Chart bei
-                           Tue anfängt.
+                      <!-- Der Empfangstag EINES Hauses: Abreisen am Vormittag,
+                           Ankünfte am Nachmittag, jeder Block ein Vorgang am
+                           Tresen. Bewusst EIN Tag statt der Wochenansicht der
+                           ersten Fassung — sieben Spalten à ~10 Vorgänge waren
+                           Tapete, und ein Zeitraster erzählt Belegung ohnehin
+                           falsch (Aufenthalte sind Tage, keine Stunden; eine
+                           Resource-Timeline hat der Calendar nicht). Die
+                           Wochen-Dichte erzählt der Chart der Overview.
                            `{#key}`, weil `defaultDate` laut Vertrag nur beim
-                           Mounten gelesen wird — der Schwenk von der Anker- auf
-                           die laufende Woche nach der Hydration käme sonst nie
+                           Mounten gelesen wird — der Schwenk vom Anker- auf
+                           das echte Heute nach der Hydration käme sonst nie
                            an. Kein Wischen: die Kachel liegt in einem
                            waagerecht wischbaren Band, und dort muss die Geste
-                           die Kachel wechseln, nicht die Woche. -->
+                           die Kachel wechseln, nicht den Tag. -->
                       <div class="view-host">
-                        <div class="blk" data-blk="Calendar">
-                          {#key `${weekStart.getTime()}-${scheduleView}`}
+                        <p class="dash-sub">Front desk — departures, then arrivals</p>
+                        <div class="blk mt-2" data-blk="Calendar">
+                          {#key `${today.getTime()}-${scheduleView}`}
                             <Calendar
                               events={scheduleEvents}
                               categories={ROOM_CATEGORIES}
                               view={scheduleView}
                               views={[scheduleView]}
-                              agendaDays={7}
+                              agendaDays={1}
                               showViewSwitcher={false}
-                              defaultDate={weekStart}
+                              defaultDate={today}
                               size="sm"
                               showTimeGrid
                               timeGridStartHour={SCHEDULE_START_HOUR}
@@ -1074,33 +1094,26 @@
                               showEventList={false}
                               swipeable={false}
                               showLegend={false}
-                              slotClasses={{
-                                // Einspaltig scrollt die Woche durch die Karte —
-                                // ohne das Festheften wäre nach zwei Tagen nicht
-                                // mehr zu sehen, um welche Woche es geht.
-                                // `--z-docked` ist die Stufe für genau das:
-                                // festgeheftet INNERHALB eines Behälters (so
-                                // nutzt JourneyTimeline sie auch). Das
-                                // Namensschild des Röntgenmodus liegt bei
-                                // `z-index: 2`, aber auf −0.6rem, also über der
-                                // Blockkante — die beiden überlappen nicht.
-                                header: 'sticky top-0 z-[var(--z-docked)] bg-[var(--card-bg)]'
-                              }}
                               eventItem={agendaItem}
                             />
                           {/key}
                         </div>
                       </div>
                     {:else}
-                      <!-- Dieselben 412 Gäste wie im Donut, nur von der Seite
-                           gesehen: Kanal → Haus → Leistung. Die letzte Ebene
-                           trägt die Prozente des Umsatzmixes. -->
+                      <!-- Dieselben 440 Gäste wie im Donut, nur von der Seite
+                           gesehen: Kanal → Haus → Zimmertyp. Die Kopfzeile
+                           sagt, was fließt — ohne sie war der Sankey ein
+                           unbeschriftetes Diagramm in einer leeren Karte
+                           (Review-Befund 2026-08-10). -->
                       <div class="view-host">
-                        <div class="blk" data-blk="Sankey">
+                        <p class="dash-sub">
+                          Where {GROUP_GUESTS} guests came from — and where they sleep
+                        </p>
+                        <div class="blk mt-3" data-blk="Sankey">
                           <Sankey
                             nodes={flowNodes}
                             links={flowLinks}
-                            height={292}
+                            height={264}
                             nodeWidth={12}
                             nodePadding={10}
                             formatValue={(v) => `${v} guests`}
@@ -1108,11 +1121,16 @@
                         </div>
                       </div>
                     {/if}
-                    <div class="dash-foot">
-                      <div class="blk" data-blk="Toggle">
-                        <Toggle bind:checked={sameDay} label="Take same-day arrivals" size="sm" />
-                      </div>
-                      <!-- `modify` statt der Badge-Voreinstellung `commit`: die
+                    <!-- Nur in der Overview: der Toggle wirkt auf Chart-Serie
+                         und Badge — in Schedule und Flow stünde er als
+                         Schalter ohne Wirkung herum (Review-Befund
+                         2026-08-10). -->
+                    {#if dashView === 'overview'}
+                      <div class="dash-foot">
+                        <div class="blk" data-blk="Toggle">
+                          <Toggle bind:checked={sameDay} label="Take same-day arrivals" size="sm" />
+                        </div>
+                        <!-- `modify` statt der Badge-Voreinstellung `commit`: die
                          Pille sah aus wie ein Knopf und war keiner — auf einer
                          Fläche, auf der jetzt alles andere wirklich schaltet,
                          ist genau das die Irreführung. Als Status liest der
@@ -1122,16 +1140,17 @@
                          .room-accent-Scope auf den Kanal umgefärbt wurde. Seit
                          2026-07-31 tragen die nicht-primary Füllungen
                          text-on-fill, das kein Raum überschreibt (#47). -->
-                      <div class="blk" data-blk="Badge">
-                        <Badge
-                          intent={sameDay ? 'success' : 'neutral'}
-                          variant="soft"
-                          tier="modify"
-                        >
-                          {sameDay ? `${freeRooms} rooms free tonight` : 'Reservations only'}
-                        </Badge>
+                        <div class="blk" data-blk="Badge">
+                          <Badge
+                            intent={sameDay ? 'success' : 'neutral'}
+                            variant="soft"
+                            tier="modify"
+                          >
+                            {sameDay ? `${freeRooms} rooms free tonight` : 'Reservations only'}
+                          </Badge>
+                        </div>
                       </div>
-                    </div>
+                    {/if}
                   </div>
                 {:else if tile.key === 'table'}
                   <div class="card card-table">

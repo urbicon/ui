@@ -6,74 +6,19 @@
         {
           "event": "token",
           "data": {
-            "text": "I'll check what the group actually has by the water for those nights."
+            "text": "I'll check what the group has free"
+          }
+        },
+        {
+          "event": "token",
+          "data": {
+            "text": " by the sea in early September."
           }
         },
         {
           "event": "tool_start",
           "data": {
-            "id": "toolu_01FD8vLFR44ybSjHzWaDgCjj",
-            "name": "get_hotel_info",
-            "input": {}
-          }
-        },
-        {
-          "event": "tool_result",
-          "data": {
-            "id": "toolu_01FD8vLFR44ybSjHzWaDgCjj",
-            "output": {
-              "group": "Fermata",
-              "roomTypes": [
-                {
-                  "id": "room",
-                  "label": "Room",
-                  "pricePerNight": 240
-                },
-                {
-                  "id": "garden",
-                  "label": "Garden Room",
-                  "pricePerNight": 300
-                },
-                {
-                  "id": "corner",
-                  "label": "Corner Room",
-                  "pricePerNight": 360
-                },
-                {
-                  "id": "suite",
-                  "label": "Suite",
-                  "pricePerNight": 520
-                }
-              ],
-              "houses": [
-                {
-                  "id": "cala",
-                  "name": "Cala",
-                  "place": "Menorca"
-                },
-                {
-                  "id": "firn",
-                  "name": "Firn",
-                  "place": "Engadin"
-                },
-                {
-                  "id": "mori",
-                  "name": "Mori",
-                  "place": "Kyoto"
-                },
-                {
-                  "id": "duna",
-                  "name": "Duna",
-                  "place": "Comporta"
-                }
-              ]
-            }
-          }
-        },
-        {
-          "event": "tool_start",
-          "data": {
-            "id": "toolu_01Xr5DQfrz4uMSgK4wKAtsH9",
+            "id": "toolu_01VhT28sr1BprmbbQ4X1UQN2",
             "name": "get_hotel_info",
             "input": {
               "checkIn": "2026-09-04",
@@ -84,7 +29,7 @@
         {
           "event": "tool_result",
           "data": {
-            "id": "toolu_01Xr5DQfrz4uMSgK4wKAtsH9",
+            "id": "toolu_01VhT28sr1BprmbbQ4X1UQN2",
             "output": {
               "group": "Fermata",
               "roomTypes": [
@@ -205,163 +150,163 @@
         {
           "event": "token",
           "data": {
-            "text": "Two of the four Fermata houses s"
+            "text": "Two of the four Fermata houses sit by the water, and both have space"
           }
         },
         {
           "event": "token",
           "data": {
-            "text": "it on the coast, and both have space for those nights. **Firn** is up in the Engadin and **Mori** is in Kyoto, so neither g"
+            "text": " for those nights — **Cala** in Menorca and **Duna** in Comporta. Firn is in the Engadin (mountains) and Mori is in"
           }
         },
         {
           "event": "token",
           "data": {
-            "text": "ives you a morning swim — that leaves:\n\n- **Cala**, Menorca — Room €240, Garden Room €300, Suite €520 (all free for 4–7 Sept)\n- **Duna**, Comporta —"
+            "text": " Kyoto, so I've left those out.\n\nI've held 4 – 7 September 2026 (3 nights) as a starting point; change the dates and press"
           }
         },
         {
           "event": "token",
           "data": {
-            "text": " Garden Room €300 (2 free), Corner Room €360 (1 free)\n\nI've pencilled in **Fri 4 → Mon 7 September 2026**, three nights, two guests. Adjust anything below"
+            "text": " the update button to re-check.\n\n```a2ui\n{\"version\":\"v0.9.1\",\"createSurface\":{\"surfaceId\":\"stay-1"
           }
         },
         {
           "event": "token",
           "data": {
-            "text": " and send it over.\n\n```a2ui\n{\"version\":\"v0.9.1\",\"createSurface\":{\"surfaceId\":\"sea-sep-2026\",\"catalogId\":\"urbicon-ui/ur"
+            "text": "\",\"catalogId\":\"urbicon-ui/urbicon-catalog/v1\",\"sendDataModel\":true}}\n{\"version\":\"v0.9.1\",\"updateDataModel\":{\"surfaceId\":\"stay-1\",\"value"
           }
         },
         {
           "event": "token",
           "data": {
-            "text": "bicon-catalog/v1\",\"sendDataModel\":true}}\n{\"version\":\"v0.9.1\",\"updateDataModel\":{\"surfaceId\":\"sea-sep-2026\",\"value\":{\"name\":\"\",\"house\":[\"cala\"],\"room\":[\"room\"],\"checkIn\":\"2026-09"
+            "text": "\":{\"name\":\"\",\"house\":[\"cala\"],\"room\":[],\"checkIn\":\"2026-09-04\",\"checkOut\":\"2026-09-07\",\"guests\":2,\"notes\":\"\",\"agreed\":false,\"options\":[{\"label\":\"Room — €240/night ("
           }
         },
         {
           "event": "token",
           "data": {
-            "text": "-04\",\"checkOut\":\"2026-09-07\",\"guests\":2,\"notes\":\"\",\"agreed\":false,\"options\":[{\"label\":\"Room — €240/night (2 free)\",\"value\":\"room\"},{\"label\":\"Garden Room — €300/night (1 free)\",\"value\":\"garden\"},{\"label\":\"Su"
+            "text": "2 free)\",\"value\":\"room\"},{\"label\":\"Garden Room — €300/night (1 free)\",\"value\":\"garden\"},{\"label\":\"Suite — €520/night (1 free)\",\"value\":\"suite\"}]}}}\n{\"version\":\"v0.9.1\",\"updateComponents\":{\"surface"
           }
         },
         {
           "event": "token",
           "data": {
-            "text": "ite — €520/night (1 free)\",\"value\":\"suite\"}]}}}\n{\"version\":\"v0.9.1\",\"updateComponents\":{\"surfaceId\":\"sea-sep-2026\",\"components\":[{\"id\":\"root\",\"component\":\"Column\",\"children\":[\"title\",\"seaNote\",\"sec"
+            "text": "Id\":\"stay-1\",\"components\":[{\"id\":\"root\",\"component\":\"Column\",\"children\":[\"summary\",\"formCard\"]},{\"id\":\"formCard\",\"component\":\"Card\",\"variant\":\"outlined\",\"header\":\"cardHdr\",\"child\":\"formCol\",\"foot"
           }
         },
         {
           "event": "token",
           "data": {
-            "text": "Stay\",\"secYou\",\"ctaRow\"]},{\"id\":\"title\",\"component\":\"Text\",\"text\":\"Three quiet nights by the sea\",\"variant\":\"h3\"},{\"id\":\"seaNote\",\"component\":\"RichText\",\"content\":\"Coastal houses only: **Cala** (Menorca"
+            "text": "er\":\"footerRow\"},{\"id\":\"cardHdr\",\"component\":\"Text\",\"text\":\"Your stay\",\"variant\":\"h4\"},{\"id\":\"formCol\",\"component\":\"Column\",\"children\":[\"houseSel\",\"datesRow\",\"guests"
           }
         },
         {
           "event": "token",
           "data": {
-            "text": ") and **Duna** (Comporta). Rooms below are the ones actually free for your dates.\"},{\"id\":\"secStay\",\"component\":\"Section\",\"title\":\"Where & when\",\"description\":\"Change the"
+            "text": "\",\"roomSel\",\"refreshBtn\",\"nameInput\",\"notes\",\"agreed\"]},{\"id\":\"footerRow\",\"component\":\"Row\",\"justify\":\"spaceBetween\",\"children\":[\"footNote\",\"submitBtn\"]}]}}"
           }
         },
         {
           "event": "token",
           "data": {
-            "text": " house, then refresh the room list.\",\"child\":\"colStay\"},{\"id\":\"secYou\",\"component\":\"Section\",\"title\":\"Who's coming\",\"child\":\"colYou\"}]}}\n{\"version\":\"v0.9.1\",\"updateComponents\":{\"surfaceId"
+            "text": "\n{\"version\":\"v0.9.1\",\"updateComponents\":{\"surfaceId\":\"stay-1\",\"components\":[{\"id\":\"summary\",\"component\":\"RichText\",\"content\":\"**Free 4–7 Sep 2026, sea houses**\\n\\n"
           }
         },
         {
           "event": "token",
           "data": {
-            "text": "\":\"sea-sep-2026\",\"components\":[{\"id\":\"colStay\",\"component\":\"Column\",\"children\":[\"houseSel\",\"roomSel\",\"roomsBtn\",\"datesRow\"]},{\"id\":\"houseSel\",\"component\":\"Select\",\"label\":\"House\",\"options\":[{\"label\":\"Cala — Men"
+            "text": "- **Cala, Menorca** — Room €240, Garden Room €300, Suite €520\\n- **Duna, Comporta** — Garden Room €300, Corner Room €360\\n\\nRates are per night; three nights for two.\"},"
           }
         },
         {
           "event": "token",
           "data": {
-            "text": "orca\",\"value\":\"cala\"},{\"label\":\"Duna — Comporta\",\"value\":\"duna\"}],\"value\":{\"path\":\"/house\"}},{\"id\":\"roomSel\",\"component\":\"Select\",\"label\":\"Room type\",\"options\":{\"path\":\"/options\"},\"value\":{\"path\":\"/room\"},\"placeholder"
+            "text": "{\"id\":\"houseSel\",\"component\":\"Select\",\"label\":\"House\",\"value\":{\"path\":\"/house\"},\"options\":[{\"label\":\"Cala — Menorca\",\"value\":\"cala\"},{\"label\":\"Duna — Comporta\",\"value\":\"duna\"}]},{\"id\":\"datesRow\",\"component\":\"Row\",\""
           }
         },
         {
           "event": "token",
           "data": {
-            "text": "\":\"Pick a room\"},{\"id\":\"roomsBtn\",\"component\":\"Button\",\"child\":\"roomsBtnLabel\",\"variant\":\"outlined\",\"intent\":\"secondary\",\"size\":\"sm\",\"action\":{\"event\":{\"name\":\"list_roo"
+            "text": "children\":[\"ci\",\"co\"]},{\"id\":\"ci\",\"component\":\"DatePicker\",\"label\":\"Check in\",\"value\":{\"path\":\"/checkIn\"},\"min\":\"2026-01-01\",\"weight\":1},{\"id\":\"co\",\"component\":\"DatePicker\",\"label\":\""
           }
         },
         {
           "event": "token",
           "data": {
-            "text": "ms\",\"context\":{\"house\":{\"path\":\"/house\"},\"checkIn\":{\"path\":\"/checkIn\"},\"checkOut\":{\"path\":\"/checkOut\"}}}}},{\"id\":\"roomsBtnLabel\",\"component\":\"Text\",\"text\":\"Show rooms free"
+            "text": "Check out\",\"value\":{\"path\":\"/checkOut\"},\"min\":\"2026-01-02\",\"weight\":1}]}}\n{\"version\":\"v0.9.1\",\"updateComponents\":{\"surfaceId\":\"stay-1\",\"components\":[{\"id\":\"guests\",\"component\":\""
           }
         },
         {
           "event": "token",
           "data": {
-            "text": " in this house\"},{\"id\":\"datesRow\",\"component\":\"Row\",\"children\":[\"ciDate\",\"coDate\"],\"align\":\"start\"}]}}\n{\"version\":\"v0.9.1\",\"updateComponents\":{\"surfaceId\":"
+            "text": "Slider\",\"label\":\"Guests\",\"value\":{\"path\":\"/guests\"},\"min\":1,\"max\":4,\"step\":1},{\"id\":\"roomSel\",\"component\":\"Select\",\"label\":\"Room type\",\"placeholder\":\"Pick a room\",\"value\":{\"path\":\"/room\"},\"options"
           }
         },
         {
           "event": "token",
           "data": {
-            "text": "\"sea-sep-2026\",\"components\":[{\"id\":\"ciDate\",\"component\":\"DatePicker\",\"label\":\"Check in\",\"value\":{\"path\":\"/checkIn\"},\"min\":\"2026-08-28\",\"max\":\"2026-09-20\",\"weight\":1},{\"id\":\"coDate"
+            "text": "\":{\"path\":\"/options\"}},{\"id\":\"refreshBtn\",\"component\":\"Button\",\"intent\":\"secondary\",\"variant\":\"outlined\",\"child\":\"refreshLbl\",\"action\":{\"event\":{\"name\":\"refresh_rooms\",\"context\":{\"house\":{\"path\":\"/house\"},\"checkI"
           }
         },
         {
           "event": "token",
           "data": {
-            "text": "\",\"component\":\"DatePicker\",\"label\":\"Check out\",\"value\":{\"path\":\"/checkOut\"},\"min\":\"2026-08-29\",\"max\":\"2026-09-21\",\"weight\":1},{\"id\":\"colYou\",\"component\":\"Column\",\"children\":[\"nameInput\",\"guestsSlider\",\"notesArea\",\"agreeC"
+            "text": "n\":{\"path\":\"/checkIn\"},\"checkOut\":{\"path\":\"/checkOut\"}}}}},{\"id\":\"refreshLbl\",\"component\":\"Text\",\"text\":\"Update rooms & prices for these dates\"}]}}\n{\"version\":\"v0.9.1\",\""
           }
         },
         {
           "event": "token",
           "data": {
-            "text": "heck\"]},{\"id\":\"nameInput\",\"component\":\"Input\",\"label\":\"Name on the booking\",\"value\":{\"path\":\"/name\"},\"placeholder\":\"Your name\"},{\"id\":\"guestsSlider\",\"component\":\"Slider\",\"label\":\"Guests\",\"value\":{\""
+            "text": "updateComponents\":{\"surfaceId\":\"stay-1\",\"components\":[{\"id\":\"nameInput\",\"component\":\"Input\",\"label\":\"Name on the booking\",\"value\":{\"path\":\"/name\"},\"placeholder\":\"Your name\"},{\"id\":\"notes\",\"component\":\"Textarea"
           }
         },
         {
           "event": "token",
           "data": {
-            "text": "path\":\"/guests\"},\"min\":1,\"max\":4,\"step\":1},{\"id\":\"notesArea\",\"component\":\"Textarea\",\"label\":\"Anything we should know\",\"value\":{\"path\":\"/notes\"},\"rows\":3,\"placeholder\":\"Early bre"
+            "text": "\",\"label\":\"Notes\",\"rows\":2,\"value\":{\"path\":\"/notes\"},\"placeholder\":\"Early swimmers — sea access, quiet side"
           }
         },
         {
           "event": "token",
           "data": {
-            "text": "akfast, quiet side of the house…\"},{\"id\":\"agreeCheck\",\"component\":\"Checkbox\",\"label\":\"I've read the cancellation policy\",\"value\":{\"path\":\"/agreed\"}}]}}\n{\"version\":\"v0"
+            "text": " if possible\"},{\"id\":\"agreed\",\"component\":\"Checkbox\",\"label\":\"I accept the cancellation policy\",\"value\":{\"path\":\"/agreed\"}},{\"id\":\"footNote\",\"component\":\"Text\",\"text\":\"3 nights ·"
           }
         },
         {
           "event": "token",
           "data": {
-            "text": ".9.1\",\"updateComponents\":{\"surfaceId\":\"sea-sep-2026\",\"components\":[{\"id\":\"ctaRow\",\"component\":\"Row\",\"children\":[\"submitBtn\",\"priceNote\"],\"justify\":\"spaceBetween\"},{\"id\":\"submitBtn\",\"component\":\""
+            "text": " 2 guests\",\"variant\":\"caption\"},{\"id\":\"submitBtn\",\"component\":\"Button\",\"intent\":\"primary\",\"child\":\"submitLbl\",\"action\":{\"event\":{\"name\":\"request_booking\",\"context\":{}}}},{\"id\":\"submitLbl\",\"component\":\"Text\",\"text\":\"Request this"
           }
         },
         {
           "event": "token",
           "data": {
-            "text": "Button\",\"child\":\"submitLabel\",\"intent\":\"primary\",\"action\":{\"event\":{\"name\":\"request_booking\",\"context\":{}}}},{\"id\":\"submitLabel\",\"component\":\"Text\",\"text\":\"Request these nights\"},{\"id\":\"priceNote\",\"component\":\""
+            "text": " stay\"}]}}\n```\n\nBoth houses are on the water; Cala's Garden Room and Duna's Garden Rooms are the quietest stock. Pick a house, press update, and"
           }
         },
         {
           "event": "token",
           "data": {
-            "text": "Text\",\"text\":\"3 nights · rates are per night, per room\",\"variant\":\"caption\"}]}}\n```\n\nIf you switch the house to **Duna**, press *Show rooms free in this house* so I can repl"
-          }
-        },
-        {
-          "event": "token",
-          "data": {
-            "text": "ace the room list with Comporta's real availability."
+            "text": " I'll refresh the room list with what's actually free."
           }
         }
       ]
     },
     {
-      "wire": "[ui-action] {\"name\":\"list_rooms\",\"surfaceId\":\"sea-sep-2026\",\"sourceComponentId\":\"roomsBtn\",\"timestamp\":\"2026-09-01T10:12:00.000Z\",\"context\":{},\"dataModel\":{\"name\":\"Marlowe\",\"house\":[\"cala\"],\"room\":[\"garden\"],\"checkIn\":\"2026-09-03\",\"checkOut\":\"2026-09-06\",\"guests\":2,\"notes\":\"\",\"agreed\":true}}",
-      "display": "▸ list_rooms",
+      "wire": "[ui-action] {\"name\":\"refresh_rooms\",\"surfaceId\":\"stay-1\",\"sourceComponentId\":\"refreshBtn\",\"timestamp\":\"2026-09-01T10:12:00.000Z\",\"context\":{},\"dataModel\":{\"name\":\"Marlowe\",\"house\":[\"cala\"],\"room\":[\"garden\"],\"checkIn\":\"2026-09-03\",\"checkOut\":\"2026-09-06\",\"guests\":2,\"notes\":\"\",\"agreed\":true}}",
+      "display": "▸ refresh_rooms",
       "frames": [
+        {
+          "event": "token",
+          "data": {
+            "text": "Checking 3 – 6 September for you."
+          }
+        },
         {
           "event": "tool_start",
           "data": {
-            "id": "toolu_01XRSyD4v5R6uQGa4G5tdN7y",
+            "id": "toolu_0165x4bMuFoxqdYqMF7vncAN",
             "name": "get_hotel_info",
             "input": {
               "checkIn": "2026-09-03",
@@ -372,7 +317,7 @@
         {
           "event": "tool_result",
           "data": {
-            "id": "toolu_01XRSyD4v5R6uQGa4G5tdN7y",
+            "id": "toolu_0165x4bMuFoxqdYqMF7vncAN",
             "output": {
               "group": "Fermata",
               "roomTypes": [
@@ -493,61 +438,61 @@
         {
           "event": "token",
           "data": {
-            "text": "Refreshed for your new dates — **Thu 3 → Sun 6 September 2026** at Cala. All three room types are still open, though only one of"
+            "text": "Still fine on those dates — your Garden Room at Cala holds.\n\n```a"
           }
         },
         {
           "event": "token",
           "data": {
-            "text": " each, so it's tighter than the later window.\n\n```a2ui\n{\"version\":\"v0.9.1\",\"updateDataModel\":{\"surfaceId\":\"sea-sep-2026\",\"path\":\"/options\",\"value\":["
+            "text": "2ui\n{\"version\":\"v0.9.1\",\"updateDataModel\":{\"surfaceId\":\"stay-1\",\"path\":\"/options\",\"value\":[{\"label\":\"Room —"
           }
         },
         {
           "event": "token",
           "data": {
-            "text": "{\"label\":\"Room — €240/night (1 free)\",\"value\":\"room\"},{\"label\":\"Garden Room — €300/night (1 free)\",\"value\":\"garden\"},{\"label\":\"Suite — €520/night (1 free)\",\"value\":\"suite\"}]}}\n{\"version\":\"v0.9"
+            "text": " €240/night (1 left)\",\"value\":\"room\"},{\"label\":\"Garden Room — €300/night (1 left)\",\"value\":\"garden\"},{\"label\":\"Suite — €520/night (1 left)\",\"value\":\"suite\"}]}}\n{\"version\":\"v0.9.1\",\""
           }
         },
         {
           "event": "token",
           "data": {
-            "text": ".1\",\"updateComponents\":{\"surfaceId\":\"sea-sep-2026\",\"components\":[{\"id\":\"seaNote\",\"component\":\"RichText\",\"content\":\"Coastal houses only: **Cala** (Menorca) and **Duna** (Compor"
+            "text": "updateComponents\":{\"surfaceId\":\"stay-1\",\"components\":[{\"id\":\"summary\",\"component\":\"RichText\",\"content\":\"**Free 3–6 Sep 2026, sea houses**\\n\\n- **"
           }
         },
         {
           "event": "token",
           "data": {
-            "text": "ta). For **3–6 Sept** Cala has one Room, one Garden Room and one Suite left; Duna has only Garden Rooms (2 free) for those nights.\"},{\"id\":\""
+            "text": "Cala, Menorca** — Room €240 (1 left), Garden Room €300 (1 left), Suite €520 (1 left)\\n- **Duna, Comporta** — Garden Room €300 only (2 left)\\n\\nCala is down"
           }
         },
         {
           "event": "token",
           "data": {
-            "text": "priceNote\",\"component\":\"Text\",\"text\":\"Garden Room · 3 nights × €300 = €900\",\"variant\":\"caption\"}]}}\n```\n\nYour **Garden Room** pick survives the date change:"
+            "text": " to one of each room type for these nights.\"},{\"id\":\"footNote\",\"component\":\"Text\",\"text\":\"Cala · Garden Room · 3 nights · "
           }
         },
         {
           "event": "token",
           "data": {
-            "text": " €300 a night, **€900** for the three nights. Name and policy are done — press *Request these nights* and"
+            "text": "2 guests · €900 total\",\"variant\":\"caption\"}]}}\n```\n\nCala is thin on these dates — one of each room type left, so the Garden Room could go. Duna has"
           }
         },
         {
           "event": "token",
           "data": {
-            "text": " I'll put it through."
+            "text": " two Garden Rooms free if you'd rather have the slack. Everything else on the form is filled in (Marlowe, 2 guests, policy accepted), so press **Request this stay** when you're ready."
           }
         }
       ]
     },
     {
-      "wire": "[ui-action] {\"name\":\"request_booking\",\"surfaceId\":\"sea-sep-2026\",\"sourceComponentId\":\"submitBtn\",\"timestamp\":\"2026-09-01T10:13:00.000Z\",\"context\":{},\"dataModel\":{\"name\":\"Marlowe\",\"house\":[\"cala\"],\"room\":[\"garden\"],\"checkIn\":\"2026-09-03\",\"checkOut\":\"2026-09-06\",\"guests\":2,\"notes\":\"\",\"agreed\":true}}",
+      "wire": "[ui-action] {\"name\":\"request_booking\",\"surfaceId\":\"stay-1\",\"sourceComponentId\":\"submitBtn\",\"timestamp\":\"2026-09-01T10:13:00.000Z\",\"context\":{},\"dataModel\":{\"name\":\"Marlowe\",\"house\":[\"cala\"],\"room\":[\"garden\"],\"checkIn\":\"2026-09-03\",\"checkOut\":\"2026-09-06\",\"guests\":2,\"notes\":\"\",\"agreed\":true}}",
       "display": "▸ request_booking",
       "frames": [
         {
           "event": "tool_start",
           "data": {
-            "id": "toolu_01DG1dkShbukDjJkBPF9ANkK",
+            "id": "toolu_01HfxTbTHBi1Xan3GzneJEnj",
             "name": "get_hotel_info",
             "input": {
               "checkIn": "2026-09-03",
@@ -558,7 +503,7 @@
         {
           "event": "tool_result",
           "data": {
-            "id": "toolu_01DG1dkShbukDjJkBPF9ANkK",
+            "id": "toolu_01HfxTbTHBi1Xan3GzneJEnj",
             "output": {
               "group": "Fermata",
               "roomTypes": [
@@ -679,85 +624,97 @@
         {
           "event": "token",
           "data": {
-            "text": "Confirmed — the last Garden Room at Cala is yours.\n\n```a2ui\n{\"version\":\"v0.9.1\",\"updateComponents\":{\"sur"
+            "text": "Held — Cala had"
           }
         },
         {
           "event": "token",
           "data": {
-            "text": "faceId\":\"sea-sep-2026\",\"components\":[{\"id\":\"root\",\"component\":\"Column\",\"children\":[\"title\",\"confirmAlert\",\"summaryCard\",\"secStay\",\"secYou\",\"ctaRow\"]},{"
+            "text": " exactly one Garden Room left for those nights, and it's yours.\n\n```a2ui\n{\"version\":\"v0."
           }
         },
         {
           "event": "token",
           "data": {
-            "text": "\"id\":\"confirmAlert\",\"component\":\"Alert\",\"title\":\"Booked — Cala, Menorca\",\"description\":\"Garden Room for two, Thu 3 → Sun 6 September 2"
+            "text": "9.1\",\"updateComponents\":{\"surfaceId\":\"stay-1\",\"components\":[{\"id\":\"root\",\"component\":\"Column\",\"children\":[\"confirmAlert\",\"confirmCard\"]},{\"id\":\"confirmA"
           }
         },
         {
           "event": "token",
           "data": {
-            "text": "026. Reference FRM-CALA-2609.\",\"intent\":\"success\"},{\"id\":\"summaryCard\",\"component\":\"Card\",\"variant\":\"outlined\",\"child\":\"summaryCol\",\"header\":\"summaryHead\",\""
+            "text": "lert\",\"component\":\"Alert\",\"intent\":\"success\",\"title\":\"Booking requested\",\"description\":\"Marlowe · Cala, Menorca · 3–6 September 2026\"},{\"id\":\"confirmCard\",\"component\":\"Card\",\"variant\":\"outlined\",\"header\":\""
           }
         },
         {
           "event": "token",
           "data": {
-            "text": "footer\":\"summaryFoot\"},{\"id\":\"summaryHead\",\"component\":\"Row\",\"children\":[\"summaryTitle\",\"summaryBadge\"],\"justify\":\"spaceBetween\"},{\"id\":\"summaryTitle\",\"component\":\"Text\",\"text\":\"Your stay\",\"variant\":\"h5"
+            "text": "confHdr\",\"child\":\"confCol\",\"footer\":\"confFoot\"},{\"id\":\"confHdr\",\"component\":\"Row\",\"justify\":\"spaceBetween\",\"children\":[\"confHdrTxt\",\"confBadge\"]},{\"id\":\"confHdrTx"
           }
         },
         {
           "event": "token",
           "data": {
-            "text": "\"},{\"id\":\"summaryBadge\",\"component\":\"Badge\",\"text\":\"Confirmed\",\"intent\":\"success\",\"variant\":\"soft\"},{\"id\":\"summaryCol\",\"component\":\"RichText\",\"content\":\"**Guest** — Marlowe ("
+            "text": "t\",\"component\":\"Text\",\"text\":\"Cala — Menorca\",\"variant\":\"h4\"},{\"id\":\"confBadge\",\"component\":\"Badge\",\"text\":\"Last Garden Room\",\"intent\":\"warning\",\"variant\":\"soft\"}]}}\n{\"version\":\"v"
           }
         },
         {
           "event": "token",
           "data": {
-            "text": "2 guests)\\n\\n**House** — Cala, Menorca\\n\\n**Room** — Garden Room, €300 / night\\n\\n**Nights** — 3 (check in Thu 3 Sept"
+            "text": "0.9.1\",\"updateComponents\":{\"surfaceId\":\"stay-1\",\"components\":[{\"id\":\"confCol\",\"component\":\"Column\",\"children\":[\"confDetails\",\"confSep\",\"confTotal\"]},{\"id\":\"confDetails\",\"component\":\"RichText\",\"content"
           }
         },
         {
           "event": "token",
           "data": {
-            "text": ", check out Sun 6 Sept 2026)\"},{\"id\":\"summaryFoot\",\"component\":\"Row\",\"children\":[\"totalLabel\",\"totalValue\"],\"justify\":\"spaceBetween\"},{\"id\":\"totalLabel\",\"component\":\"Text\",\"text\":\"Total\",\""
+            "text": "\":\"- **Guest** — Marlowe, 2 people\\n- **Room** — Garden Room\\n- **Arrive** — Thursday 3 September 2026\\n- **Depart** — Sunday 6 "
           }
         },
         {
           "event": "token",
           "data": {
-            "text": "variant\":\"body\"},{\"id\":\"totalValue\",\"component\":\"Text\",\"text\":\"€900\",\"variant\":\"h5\"}]}}\n{\"version\":\"v0.9.1\",\"updateComponents\":{\"surfaceId\":\"sea-sep-2026\",\"components\":[{\"id\":\"secStay\",\"component"
+            "text": "September 2026\\n- **Nights** — 3\\n- **Cancellation policy** — accepted\"},{\"id\":\"confSep\",\"component\":\"Separator\"},{\"id\":\"confTotal\",\"component\":\"Row\",\"justify\":\"spaceBetween\",\"children\":[\"confTotalLbl\",\"confT"
           }
         },
         {
           "event": "token",
           "data": {
-            "text": "\":\"Section\",\"title\":\"Where & when\",\"description\":\"Locked in. Ask me if you need to move these dates.\",\"child\":\"colStay\"},{\"id\":\"submitBtn\",\"component\":\"Button\",\"child\":"
+            "text": "otalVal\"]},{\"id\":\"confTotalLbl\",\"component\":\"Text\",\"text\":\"3 nights × €300\",\"variant\":\"body\"},{\"id\":\"confTotalVal\",\"component\":\"Text\",\"text\":\"€900 total\",\"variant\":\"h5\"}]}}\n{"
           }
         },
         {
           "event": "token",
           "data": {
-            "text": "\"submitLabel\",\"intent\":\"success\",\"variant\":\"outlined\",\"disabled\":true,\"action\":{\"event\":{\"name\":\"request_booking\",\"context\":{}}}},{\"id\":\"submitLabel\",\"component\":\"Text\",\"text\":\"Booked"
+            "text": "\"version\":\"v0.9.1\",\"updateComponents\":{\"surfaceId\":\"stay-1\",\"components\":[{\"id\":\"confFoot\",\"component\":\"Row\",\"justify\":\"spaceBetween\",\"children\":[\"confFootTxt\",\"amendBtn\"]},{\"id\":\"confFootTxt\",\"component"
           }
         },
         {
           "event": "token",
           "data": {
-            "text": "\"},{\"id\":\"priceNote\",\"component\":\"Text\",\"text\":\"Free cancellation until 27 Aug 2026\",\"variant\":\"caption\"}]}}\n```\n\nThe cove is"
+            "text": "\":\"Text\",\"text\":\"Nothing charged yet — the house confirms by email.\",\"variant\":\"caption\"},{\"id\":\"amendBtn\",\"component\":\"Button\",\"intent\":\"secondary\",\"variant\":\"outlined\",\"child"
           }
         },
         {
           "event": "token",
           "data": {
-            "text": " a two-minute walk down from the house, so the pre-breakfast swim works. Breakfast runs from 8:00; t"
+            "text": "\":\"amendLbl\",\"action\":{\"event\":{\"name\":\"amend_booking\",\"context\":{\"house\":\"cala\",\"room\":\"garden\",\"checkIn\":\"2026-09-03\",\"checkOut\":\"2026-09-06\"}}}},{\"id\":\""
           }
         },
         {
           "event": "token",
           "data": {
-            "text": "ell me if you'd like it earlier and I'll pass a note to Cala."
+            "text": "amendLbl\",\"component\":\"Text\",\"text\":\"Change dates or room\"}]}}\n```\n\n**€900 for the three nights**, nothing charged yet. You left the notes field emp"
+          }
+        },
+        {
+          "event": "token",
+          "data": {
+            "text": "ty — if you want the quiet side of the house or early sea access mentioned to Cala, tell me and I'll add it. Otherwise, press **Change dates or room** if anything need"
+          }
+        },
+        {
+          "event": "token",
+          "data": {
+            "text": "s moving."
           }
         }
       ]

@@ -120,7 +120,8 @@
   --livery-display-tracking: 0.3em;
   --livery-display-transform: uppercase;
   --livery-display-style: normal;
-  --livery-label-tracking: 0.18em;
+  --livery-heading-tracking: 0.02em;
+  --livery-label-tracking: 0.14em;
   --livery-label-transform: uppercase;
   /* Overexposure: a wash of white light from above, a breath of sea shadow
      rising from below the fold. No texture — whitewash in the sun is flat. */
@@ -203,7 +204,8 @@
   --livery-display-tracking: 0.05em;
   --livery-display-transform: uppercase;
   --livery-display-style: normal;
-  --livery-label-tracking: 0.28em;
+  --livery-heading-tracking: 0.03em;
+  --livery-label-tracking: 0.2em;
   --livery-label-transform: uppercase;
   /* Contour lines around a summit somewhere past the top-right corner —
      topography instead of texture, drawn at the edge of visibility. The cold
@@ -300,6 +302,7 @@
   --livery-display-tracking: 0.08em;
   --livery-display-transform: none;
   --livery-display-style: normal;
+  --livery-heading-tracking: 0.05em;
   --livery-label-tracking: 0.16em;
   --livery-label-transform: none;
   /* Two clearings in the dusk, and one small warm pool top-right: the
@@ -389,6 +392,7 @@
   --livery-display-tracking: 0em;
   --livery-display-transform: lowercase;
   --livery-display-style: italic;
+  --livery-heading-tracking: 0em;
   --livery-label-tracking: 0.14em;
   --livery-label-transform: uppercase;
   /* The evening, in three bands: dark sky settling from above, the glow low
@@ -487,6 +491,18 @@
   z-index: 1;
 }
 
+/* Fill labels. `text-on-primary` aliases `text-on-fill` in the library, and
+   the landing's channel tiles (.room-accent) re-point it at THEIR on-colour —
+   which a livery tile INHERITS, painting the channel's ink on a house's
+   primary fill (found as dark violet on Firn's near-black button). Neither
+   token reaches the generated shim (`on-primary` is deliberately not
+   ramp-derived there), so both are pinned here: a house fills with its own
+   ramp, so its fill labels follow the library's own mode-aware rule. */
+[data-livery] {
+  --color-text-on-fill: light-dark(var(--color-neutral-0), var(--color-neutral-900));
+  --color-text-on-primary: var(--color-text-on-fill);
+}
+
 /* Type. The library sets no `font-family` anywhere, so one declaration on the
    livery root carries through every component inside it — page chrome and
    generated surface alike. */
@@ -494,15 +510,27 @@
   font-family: var(--livery-body);
 }
 
-[data-livery] :is(h1, h2, h3, h4, h5, .livery-display) {
+/* Headings inside the CONTENT (incl. the agent-generated form) take the
+   house's face at a reading-friendly tracking — never the wordmark's. The
+   first cut re-used `--livery-display-tracking` here, and Cala's 0.3em wordmark
+   spread turned every A2UI section title into "T h r e e  q u i e t …"
+   (found by review). Display-scale sperrung is an ornament for four letters,
+   not a rule for sentences. */
+[data-livery] :is(h1, h2, h3, h4, h5) {
+  font-family: var(--livery-display);
+  font-weight: var(--livery-display-weight);
+  letter-spacing: var(--livery-heading-tracking, 0.01em);
+  font-style: var(--livery-display-style, normal);
+}
+
+/* The wordmark and the page's own section heads carry the full display
+   treatment — spread, case and all. Later in the file, so its letter-spacing
+   wins over the heading rule on the h-elements that opt in. */
+[data-livery] .livery-display {
   font-family: var(--livery-display);
   font-weight: var(--livery-display-weight);
   letter-spacing: var(--livery-display-tracking);
   font-style: var(--livery-display-style, normal);
-}
-
-/* The wordmark and section heads take the house's case; body copy never does. */
-[data-livery] .livery-display {
   text-transform: var(--livery-display-transform);
 }
 

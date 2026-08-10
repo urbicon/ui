@@ -144,7 +144,7 @@ const FIRN: Livery = {
     },
     Button: {
       slotClasses: {
-        base: 'shadow-none hover:shadow-none active:shadow-none text-2xs tracking-[0.24em] uppercase'
+        base: 'shadow-none hover:shadow-none active:shadow-none text-2xs tracking-[0.12em] uppercase'
       }
     }
   }

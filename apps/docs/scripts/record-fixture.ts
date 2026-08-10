@@ -106,7 +106,14 @@ const GROUNDING_SECTION = [
   'surface or confirm a stay, CALL the tool and build the UI strictly from its',
   'data — never invent houses, room types, rates, dates or availability. If the',
   'user asks for something the data does not offer, say so in prose instead of',
-  'inventing options.'
+  'inventing options.',
+  '',
+  // One call, not two: the first recording opened with a parameterless catalog
+  // call followed by the dated one, and two identical tool chips in the
+  // transcript read as a retry to anyone watching the replay.
+  'One call with checkIn and checkOut returns everything at once — the houses,',
+  'the room types with rates, AND the availability. Never call the tool twice',
+  'in one turn, and never call it without dates when the user has given any.'
 ].join('\n');
 
 const SYSTEM_PROMPT = [
