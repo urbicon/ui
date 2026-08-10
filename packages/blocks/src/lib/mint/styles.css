@@ -40,7 +40,7 @@
 
 /* Transform-based interactions */
 .blocks-mint-scale {
-  transform: scale(var(--blocks-mint-scale-intensity, 1.05));
+  transform: scale(var(--blocks-mint-scale-intensity, 1.04));
   transition: transform var(--blocks-duration-fast) var(--blocks-ease-confident);
 }
 

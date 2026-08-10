@@ -56,7 +56,12 @@ export function createMicroInteraction(
       };
       const event = eventMap[trigger] || 'mouseenter';
       const settleEvent =
-        settles && (settles.via === 'animation' ? 'animationend' : 'transitionend');
+        settles &&
+        (settles.via === 'animation'
+          ? 'animationend'
+          : settles.via === 'animation-iteration'
+            ? 'animationiteration'
+            : 'transitionend');
 
       // A click on a <label>'s text toggles the control that label owns, so a
       // click-triggered mint has to hear it there — the box is what animates,
@@ -80,9 +85,13 @@ export function createMicroInteraction(
         const applyAnimation = () => {
           el.setAttribute(animatingAttr, 'true');
 
-          // Add dynamic styles if intensity is specified
+          // Add dynamic styles if intensity is specified. The property name
+          // must be the one `.blocks-mint-scale` actually reads — the legacy
+          // `--scale-intensity` alias in styles.css maps old name → new for
+          // consumers, not the other way around, so writing the old name here
+          // silently did nothing.
           if (finalConfig.intensity && className.includes('scale')) {
-            el.style.setProperty('--scale-intensity', finalConfig.intensity.toString());
+            el.style.setProperty('--blocks-mint-scale-intensity', finalConfig.intensity.toString());
           }
 
           el.classList.add(className);
@@ -108,7 +117,7 @@ export function createMicroInteraction(
             classGuard.disconnect();
             el.classList.remove(className);
             el.removeAttribute(animatingAttr);
-            el.style.removeProperty('--scale-intensity');
+            el.style.removeProperty('--blocks-mint-scale-intensity');
             clearTimeout(fallbackTimer);
             if (settleEvent) el.removeEventListener(settleEvent, onSettle);
             endCurrentRun = undefined;
@@ -121,7 +130,7 @@ export function createMicroInteraction(
           const onSettle = (settleEventObject: Event) => {
             if (settleEventObject.target !== el) return;
             if (
-              settles?.via === 'animation' &&
+              (settles?.via === 'animation' || settles?.via === 'animation-iteration') &&
               (settleEventObject as AnimationEvent).animationName !== className
             ) {
               return;
