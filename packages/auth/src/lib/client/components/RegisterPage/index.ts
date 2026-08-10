@@ -13,7 +13,12 @@ import type { AuthPageSlotClasses } from '../types.js';
  *
  * @example
  * ```svelte
- * <RegisterPage {t} onSuccess={() => goto('/')} />
+ * <RegisterPage
+ *   {t}
+ *   token={page.url.searchParams.get('token') ?? ''}
+ *   defaultEmail={page.url.searchParams.get('email') ?? ''}
+ *   onSuccess={() => goto('/')}
+ * />
  * ```
  */
 export interface RegisterPageProps {
@@ -26,15 +31,35 @@ export interface RegisterPageProps {
   onSuccess?: () => void;
   /**
    * Pre-fills the email field. Pass the `?email=` query param from the
-   * invitation link (`createInvitationHandlers` builds `/auth/register?email=<invitee>`)
-   * so an invited user lands on a ready-to-submit form instead of retyping —
-   * and a typo can't trigger the opaque "invitation required" 403. Following
-   * the same explicit-prop pattern as `ResetPasswordPage`/`VerifyEmailPage`'s
-   * `token`, read it from the page in your route (SSR-safe), e.g.
+   * invitation link (`createInvitationHandlers` builds
+   * `/auth/register?token=<secret>&email=<invitee>`) so an invited user lands on
+   * a ready-to-submit form instead of retyping. Following the same explicit-prop
+   * pattern as `ResetPasswordPage`/`VerifyEmailPage`'s `token`, read it from the
+   * page in your route (SSR-safe), e.g.
    * `defaultEmail={page.url.searchParams.get('email') ?? ''}`.
+   *
+   * Convenience only — the invitation names its own address, and registering
+   * with a different one is refused.
    * @default ''
    */
   defaultEmail?: string;
+
+  /**
+   * The invitation token from the `?token=` query param. **Required to
+   * register**: possession of it is the entire proof of invitation (#149), so
+   * without it the request is rejected before anything is looked up.
+   *
+   * Read it in your route the same way as `defaultEmail`:
+   * `token={page.url.searchParams.get('token') ?? ''}`.
+   *
+   * It is a credential: keep it out of logs and analytics, and do not put it in
+   * a page title or a shared screenshot.
+   *
+   * Required rather than optional-with-a-default on purpose: a page rendered
+   * without it can only ever produce a 400, and an optional prop makes that
+   * mistake type-check. This way the compiler names every call site.
+   */
+  token: string;
   /** URL for the login page link. @default '/auth/login' */
   loginUrl?: string;
   /** API endpoint. @default '/api/auth/register' */

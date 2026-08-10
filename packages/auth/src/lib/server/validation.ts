@@ -85,7 +85,7 @@ export function validateLoginInput(
 
 export function validateRegisterInput(
   body: unknown
-): ValidationResult<{ email: string; name: string; password: string }> {
+): ValidationResult<{ email: string; name: string; password: string; token: string }> {
   const errors: ValidationError[] = [];
   const obj = body as Record<string, unknown>;
 
@@ -93,10 +93,18 @@ export function validateRegisterInput(
   if (!isNonEmpty(obj?.name)) errors.push({ field: 'name', message: 'Name is required.' });
   if (!isNonEmpty(obj?.password))
     errors.push({ field: 'password', message: 'Password is required.' });
+  // The invitation token is required, not optional (#149): an optional token
+  // secures nothing, because an attacker simply takes the path that does not
+  // ask for one. Shape only — whether it matches an invitation is the handler's
+  // question, and answering it here would leak that through a 400 vs a 403.
+  if (!isNonEmpty(obj?.token))
+    errors.push({ field: 'token', message: 'Invitation token is required.' });
   const nameLen = tooLong(obj?.name, MAX_NAME_LENGTH, 'name');
   if (nameLen) errors.push(nameLen);
   const pwLen = tooLong(obj?.password, MAX_PASSWORD_LENGTH, 'password');
   if (pwLen) errors.push(pwLen);
+  const tokenLen = tooLong(obj?.token, MAX_TOKEN_LENGTH, 'token');
+  if (tokenLen) errors.push(tokenLen);
 
   if (errors.length > 0) return { success: false, errors };
   return {
@@ -104,7 +112,8 @@ export function validateRegisterInput(
     data: {
       email: (obj.email as string).trim().toLowerCase(),
       name: (obj.name as string).trim(),
-      password: obj.password as string
+      password: obj.password as string,
+      token: (obj.token as string).trim()
     }
   };
 }

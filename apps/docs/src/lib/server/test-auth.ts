@@ -23,7 +23,8 @@ import {
   type AuthDeps,
   createAuthDeps,
   createInMemoryRefreshTokenRepository,
-  hashPassword
+  hashPassword,
+  hashToken
 } from '@urbicon-ui/auth/server';
 
 type AppRole = 'ADMIN' | 'USER';
@@ -32,7 +33,8 @@ const store = {
   users: new Map<string, FullAuthUser<AppRole>>(),
   usersByEmail: new Map<string, string>(),
   invitations: new Map<string, Invitation>(),
-  invitationsByEmail: new Map<string, string>()
+  invitationsByEmail: new Map<string, string>(),
+  invitationsByTokenHash: new Map<string, string>()
 };
 
 const refreshRepo = createInMemoryRefreshTokenRepository();
@@ -240,9 +242,17 @@ function makeUserRepo(): UserRepository<AppRole> {
 
 function makeInvitationRepo(): InvitationRepository {
   return {
+    async findByTokenHash(tokenHash) {
+      const id = store.invitationsByTokenHash.get(tokenHash);
+      return id ? (store.invitations.get(id) ?? null) : null;
+    },
     async findByEmail(email) {
       const id = store.invitationsByEmail.get(email);
       return id ? (store.invitations.get(id) ?? null) : null;
+    },
+    async markEmailed(id, at) {
+      const inv = store.invitations.get(id);
+      if (inv) inv.emailedAt = at;
     },
     async markUsedIfUnused(id) {
       // CAS: flip usedAt null→now only if still unused; return whether we won.
@@ -260,10 +270,13 @@ function makeInvitationRepo(): InvitationRepository {
         email: data.email,
         role: data.role,
         usedAt: null,
-        createdAt: new Date()
+        createdAt: new Date(),
+        expiresAt: data.expiresAt,
+        emailedAt: null
       };
       store.invitations.set(id, inv);
       store.invitationsByEmail.set(data.email, id);
+      store.invitationsByTokenHash.set(data.tokenHash, id);
       return inv;
     },
     async list() {
@@ -274,6 +287,9 @@ function makeInvitationRepo(): InvitationRepository {
       if (inv) {
         store.invitations.delete(id);
         store.invitationsByEmail.delete(inv.email);
+        for (const [hash, id2] of store.invitationsByTokenHash) {
+          if (id2 === id) store.invitationsByTokenHash.delete(hash);
+        }
       }
     }
   };
@@ -316,6 +332,7 @@ export async function resetTestAuthWorld(): Promise<void> {
   store.usersByEmail.clear();
   store.invitations.clear();
   store.invitationsByEmail.clear();
+  store.invitationsByTokenHash.clear();
 
   const inviter = await testAuthRepos.user.create({
     email: 'seed-admin@test.local',
@@ -328,6 +345,11 @@ export async function resetTestAuthWorld(): Promise<void> {
   await testAuthRepos.invitation.create({
     email: 'alice@test.local',
     role: 'USER',
-    invitedById: inviter.id
+    invitedById: inviter.id,
+    // Seed data for the demo backend: the token is fixed so the docs can link
+    // to a working invite, and the expiry is far out so the fixture does not
+    // rot. A real invitation gets `generateSecureToken()` from the handler.
+    tokenHash: hashToken('seed-invitation-token'),
+    expiresAt: new Date('2099-01-01T00:00:00Z')
   });
 }

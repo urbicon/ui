@@ -121,6 +121,11 @@ export default {
     activeIndicator: '{{type}} active for this column',
     collapseAllGroups: 'Collapse all groups',
     expandAllGroups: 'Expand all groups',
+    // Singular: the group header toggles ITS group. The all-groups strings above
+    // belong to the toolbar control and were being reused here, telling screen
+    // reader users the wrong thing about what the row does.
+    collapseGroup: 'Collapse group',
+    expandGroup: 'Expand group',
     groupedColumn: 'Grouped column',
     summarizedColumn: 'Summarized column'
   },
@@ -147,6 +152,10 @@ export default {
     noGroup: '(No group)',
     item: 'item',
     items: 'items',
+    // Server mode: the group holds only what this page fetched, so the count
+    // must not read as the group's size (#159).
+    itemOnPage: 'item on this page',
+    itemsOnPage: 'items on this page',
     summaryFor: 'Summary for'
   },
   number: {

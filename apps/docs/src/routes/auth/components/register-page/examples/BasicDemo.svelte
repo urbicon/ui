@@ -11,6 +11,7 @@
 </script>
 
 <RegisterPage
+  token=""
   onSuccess={() => goto(resolve('/'))}
   loginUrl={resolve('/auth/components/login-page')}
 />

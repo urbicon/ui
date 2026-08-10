@@ -42,10 +42,18 @@ export const DELETE = invitations.DELETE;
   import { RegisterPage } from '@urbicon-ui/auth';
   import { en } from '@urbicon-ui/auth/i18n/en';
   import { goto } from '$app/navigation';
+  import { page } from '$app/state';
 </scr` +
     `ipt>
 
-<RegisterPage t={en} onSuccess={() => goto('/')} />
+<!-- The invite link is /auth/register?token=<secret>&email=<invitee>. The token
+     IS the proof of invitation — without it the request is refused. -->
+<RegisterPage
+  t={en}
+  token={page.url.searchParams.get('token') ?? ''}
+  defaultEmail={page.url.searchParams.get('email') ?? ''}
+  onSuccess={() => goto('/')}
+/>
 
 // 4. src/routes/admin/invitations/+page.svelte — admin panel
 <scr` +
@@ -72,8 +80,9 @@ export const DELETE = invitations.DELETE;
     <div class="xl:col-span-2">
       <Section id="preview" title="Live Preview">
         <InfoCard intent="info" title="Full-stack flow">
-          This preview renders the real <code>RegisterPage</code>. Registration only succeeds for an
-          email an admin has invited — wire the register handler and invitation routes from the code
+          This preview renders the real <code>RegisterPage</code>. Registration succeeds only for
+          someone holding a valid invitation token — the admin panel below mints one and hands back
+          the link that carries it. Wire the register handler and invitation routes from the code
           below.
         </InfoCard>
         <div
@@ -84,7 +93,7 @@ export const DELETE = invitations.DELETE;
                  docs page. A consuming app owns /auth/*; the docs site has no
                  such route, so the default would 404 on click. The snippet above
                  keeps the real-world defaults. -->
-            <RegisterPage loginUrl={resolve('/auth/components/login-page')} />
+            <RegisterPage token="" loginUrl={resolve('/auth/components/login-page')} />
           </div>
         </div>
       </Section>

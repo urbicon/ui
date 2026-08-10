@@ -200,6 +200,29 @@ function nextSeed(): number {
   seedCounter += 1;
   return seedCounter;
 }
+/**
+ * Invitation create payload with the token/expiry fields filled in.
+ *
+ * `tokenHash` is `@unique`, so every call needs its own — derived from the same
+ * monotonic seed as the emails, which is what keeps a check that mints several
+ * invitations from colliding on an adapter that actually enforces the
+ * constraint. Live by default; a check that wants an expired one overrides it.
+ */
+function inviteData(
+  email: string,
+  role: string,
+  invitedById: string,
+  overrides: { expiresAt?: Date } = {}
+) {
+  return {
+    email,
+    role,
+    invitedById,
+    tokenHash: `conformance-token-hash-${nextSeed()}`,
+    expiresAt: overrides.expiresAt ?? new Date(Date.now() + 7 * 24 * 60 * 60 * 1000)
+  };
+}
+
 /** Seed a user via the repo's own API; unique email per call within a check. */
 async function seedUser(repos: Repositories, role: string, label = 'u') {
   const seed = nextSeed();
@@ -263,11 +286,9 @@ async function retiredInvitationId(
   label: string
 ): Promise<string> {
   const [inviter] = await seedUserIds(repos, role, label);
-  const inv = await repos.invitation.create({
-    email: `${label}-retired-${nextSeed()}@conformance.test`,
-    role,
-    invitedById: inviter as string
-  });
+  const inv = await repos.invitation.create(
+    inviteData(`${label}-retired-${nextSeed()}@conformance.test`, role, inviter as string)
+  );
   await repos.invitation.delete(inv.id);
   return inv.id;
 }
@@ -478,12 +499,10 @@ export const conformanceChecks: readonly ConformanceCheck[] = [
     const inviter = await seedUser(repos, h.role, 'inviter');
     const other = await seedUser(repos, h.role, 'other');
     const doomedEmail = `invitee-${nextSeed()}@conformance.test`;
-    await repos.invitation.create({ email: doomedEmail, role: h.role, invitedById: inviter.id });
-    const kept = await repos.invitation.create({
-      email: `kept-${nextSeed()}@conformance.test`,
-      role: h.role,
-      invitedById: other.id
-    });
+    await repos.invitation.create(inviteData(doomedEmail, h.role, inviter.id));
+    const kept = await repos.invitation.create(
+      inviteData(`kept-${nextSeed()}@conformance.test`, h.role, other.id)
+    );
 
     await repos.user.delete(inviter.id);
 
@@ -580,11 +599,9 @@ export const conformanceChecks: readonly ConformanceCheck[] = [
   // -- Invitation: single claim -------------------------------------------
   check('invitation.markUsedIfUnused yields exactly one winner', [], async (repos, h) => {
     const [inviter] = await seedUserIds(repos, h.role, 'inv-winner');
-    const inv = await repos.invitation.create({
-      email: `inv-${nextSeed()}@conformance.test`,
-      role: h.role,
-      invitedById: inviter
-    });
+    const inv = await repos.invitation.create(
+      inviteData(`inv-${nextSeed()}@conformance.test`, h.role, inviter)
+    );
 
     const results = await parallel(5, () => repos.invitation.markUsedIfUnused(inv.id));
     expect(results.filter(Boolean), 'one invitation, one winner').toHaveLength(1);
@@ -595,16 +612,86 @@ export const conformanceChecks: readonly ConformanceCheck[] = [
     expect(await repos.invitation.markUsedIfUnused(gone), 'unknown → false').toBe(false);
   }),
 
+  // -- Invitation: token lookup (#149) --------------------------------------
+  check('invitation.findByTokenHash is the registration gate', [], async (repos, h) => {
+    const [inviter] = await seedUserIds(repos, h.role, 'inv-token');
+    const data = inviteData(`inv-token-${nextSeed()}@conformance.test`, h.role, inviter);
+    const created = await repos.invitation.create(data);
+
+    const found = await repos.invitation.findByTokenHash(data.tokenHash);
+    expect(found?.id, 'the token finds its own invitation').toBe(created.id);
+
+    expect(
+      await repos.invitation.findByTokenHash(`absent-${nextSeed()}`),
+      'an unknown token hash resolves null rather than throwing — it runs on every registration attempt'
+    ).toBeNull();
+
+    // A used invitation still comes BACK from the lookup: the handler tells
+    // "used" apart from "unknown" in its response, and an adapter that filtered
+    // used rows out would collapse the two into one.
+    await repos.invitation.markUsedIfUnused(created.id);
+    const afterUse = await repos.invitation.findByTokenHash(data.tokenHash);
+    expect(afterUse, 'a used invitation is still findable').not.toBeNull();
+    expect(afterUse?.usedAt, 'and reports when it was used').toBeInstanceOf(Date);
+  }),
+
+  check('invitation.findByTokenHash survives a deleted invitation', [], async (repos, h) => {
+    // A revoked invitation must stop being redeemable. An adapter keeping a
+    // token index alive past the row would leave a revoked invite working.
+    const [inviter] = await seedUserIds(repos, h.role, 'inv-token-del');
+    const data = inviteData(`inv-token-del-${nextSeed()}@conformance.test`, h.role, inviter);
+    const created = await repos.invitation.create(data);
+    await repos.invitation.delete(created.id);
+
+    expect(
+      await repos.invitation.findByTokenHash(data.tokenHash),
+      'a deleted invitation is not redeemable'
+    ).toBeNull();
+  }),
+
+  check('invitation round-trips expiresAt and emailedAt', [], async (repos, h) => {
+    // Both drive security decisions in the register handler — expiry gates
+    // redemption, emailedAt gates `autoVerifyInvited` — so an adapter that
+    // drops or coarsens them changes behaviour silently.
+    const [inviter] = await seedUserIds(repos, h.role, 'inv-dates');
+    const expiresAt = new Date(Date.now() + 3 * 24 * 60 * 60 * 1000);
+    const created = await repos.invitation.create(
+      inviteData(`inv-dates-${nextSeed()}@conformance.test`, h.role, inviter, { expiresAt })
+    );
+
+    expect(created.expiresAt.getTime(), 'expiresAt survives the write').toBe(expiresAt.getTime());
+    expect(created.emailedAt, 'a fresh invitation is undelivered').toBeNull();
+
+    const at = new Date();
+    await repos.invitation.markEmailed(created.id, at);
+    const after = await repos.invitation.findByEmail(created.email);
+    expect(after?.emailedAt?.getTime(), 'markEmailed is persisted').toBe(at.getTime());
+
+    // Missing-target convention: a no-op, never a throw.
+    await repos.invitation.markEmailed(`absent-${nextSeed()}`, new Date());
+  }),
+
   // -- Invitation: contract-field projection --------------------------------
   check('invitation results carry exactly the contract fields', [], async (repos, h) => {
     // Invitation results are serialized straight into the admin HTTP response
     // by createInvitationHandlers, so an adapter that passes raw rows through
     // leaks invitedById (and any consumer extra column) to the client. The
     // fake-Prisma harness stores invitedById on the row, giving this teeth.
-    const CONTRACT_FIELDS = ['createdAt', 'email', 'id', 'role', 'usedAt'];
+    // `tokenHash` is deliberately absent: it is the stored half of the
+    // credential, and an adapter that passes it through would put it in an
+    // admin HTTP response.
+    const CONTRACT_FIELDS = [
+      'createdAt',
+      'email',
+      'emailedAt',
+      'expiresAt',
+      'id',
+      'role',
+      'usedAt'
+    ];
     const email = `inv-shape-${nextSeed()}@conformance.test`;
     const [inviter] = await seedUserIds(repos, h.role, 'inv-shape');
-    const created = await repos.invitation.create({ email, role: h.role, invitedById: inviter });
+    const created = await repos.invitation.create(inviteData(email, h.role, inviter));
     expect(Object.keys(created).sort(), 'create projects to the contract').toEqual(CONTRACT_FIELDS);
 
     const listed = (await repos.invitation.list()).find((i) => i.email === email);
@@ -1001,11 +1088,9 @@ export const conformanceChecks: readonly ConformanceCheck[] = [
       'invitation.markUsedIfUnused → false'
     ).toBe(false);
 
-    const kept = await repos.invitation.create({
-      email: `unrep-keep-${nextSeed()}@conformance.test`,
-      role: h.role,
-      invitedById: inviter as string
-    });
+    const kept = await repos.invitation.create(
+      inviteData(`unrep-keep-${nextSeed()}@conformance.test`, h.role, inviter as string)
+    );
     await repos.invitation.delete(UNREPRESENTABLE_ID);
     expect(
       (await repos.invitation.list()).some((i) => i.id === kept.id),

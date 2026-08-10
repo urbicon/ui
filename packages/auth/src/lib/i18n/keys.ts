@@ -23,6 +23,7 @@ export interface AuthLocale {
     errors: {
       invitationRequired: string;
       invitationUsed: string;
+      invitationExpired: string;
       emailTaken: string;
       emailInvited: string;
       invalidCredentials: string;
@@ -186,6 +187,11 @@ export interface AuthLocale {
     empty: string;
     sendEmail: string;
     registered: string;
+    linkSentAndCopyable: string;
+    linkNotSent: string;
+    linkCopy: string;
+    linkCopied: string;
+    linkTrustNote: string;
   };
   passkeys: {
     title: string;

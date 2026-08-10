@@ -25,6 +25,21 @@ export function useSummary(
     return calculateSummary(getSortedItems(), state.summaryConfigs, getValue);
   });
 
+  /**
+   * Per-group aggregates over the rows the table holds.
+   *
+   * In server mode those are the rows of the current page, so a sum here is the
+   * sum of a slice — the same claim the group COUNT stopped making in #159, in
+   * currency rather than in rows. The count could be repaired by rewording it
+   * ("8 on this page"); a sum has no label to reword, and inventing one would be
+   * new UI on a summary row that today shows only values. So the scope is
+   * documented instead (the server-processing page says it plainly) and the
+   * honest total stays a server-side computation the consumer renders itself.
+   *
+   * Do not "fix" this by hiding group summaries in server mode: a page-local sum
+   * is genuinely useful when the endpoint orders by the grouping key, which is
+   * the arrangement that page advises.
+   */
   const groupedSummaryData = $derived.by((): Record<string, Record<string, number>> => {
     if (!state.showSummary || state.summaryConfigs.length === 0 || !state.effectiveGroupBy)
       return {};

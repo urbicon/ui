@@ -217,8 +217,15 @@ describe('in-memory user repository', () => {
 describe('in-memory invitation repository', () => {
   it('creates, lists, claims and deletes', async () => {
     const repo = createInMemoryInvitationRepository();
-    const inv = await repo.create({ email: 'i@test.com', role: 'admin', invitedById: 'u1' });
+    const inv = await repo.create({
+      email: 'i@test.com',
+      role: 'admin',
+      invitedById: 'u1',
+      tokenHash: 'hash-1',
+      expiresAt: new Date(Date.now() + 60_000)
+    });
     expect(await repo.findByEmail('i@test.com')).not.toBeNull();
+    expect(await repo.findByTokenHash('hash-1')).not.toBeNull();
     expect(await repo.list()).toHaveLength(1);
 
     expect(await repo.markUsedIfUnused(inv.id)).toBe(true);
