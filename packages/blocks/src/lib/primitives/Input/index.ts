@@ -72,7 +72,11 @@ export interface InputProps
   /** Adds a required asterisk to the label and sets the native `required` attribute. @default false */
   required?: boolean;
 
-  /** Micro-interaction preset applied to the input element. @default 'none' */
+  /**
+   * Micro-interaction preset applied to the input element. Only applies
+   * while not disabled.
+   * @default 'none'
+   */
   mint?: MintProp;
 
   /** Extra classes merged onto the root wrapper element. */

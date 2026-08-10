@@ -1,6 +1,5 @@
 import type { Snippet } from 'svelte';
 import type { HTMLAttributes } from 'svelte/elements';
-import type { MintProp } from '$lib/mint';
 import type {
   CalendarEvent,
   CalendarEventCategory,
@@ -360,8 +359,6 @@ export interface CalendarProps
    * and make the custom look reusable across the project.
    */
   preset?: string;
-  /** Micro-interaction preset. */
-  mint?: MintProp;
 }
 
 // ─── CalendarHeaderProps ──────────────────────────────────────

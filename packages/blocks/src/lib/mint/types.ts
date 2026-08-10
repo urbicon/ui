@@ -1,7 +1,21 @@
 export interface MintConfig {
+  /**
+   * `hover` and `focus` hold the effect while the pointer/visible focus stays
+   * on the element; `click` and `load` run it once.
+   */
   trigger?: 'hover' | 'click' | 'focus' | 'load';
+  /**
+   * Effect duration in ms. Written as an inline per-effect custom property
+   * (`--blocks-mint-<effect>-duration`), so the CSS transition/animation
+   * actually runs at this speed; unset, the theme duration tokens apply.
+   */
   duration?: number;
+  /** Delay in ms before the effect applies. */
   delay?: number;
+  /**
+   * CSS easing for the effect (`--blocks-mint-<effect>-easing` inline);
+   * unset, the per-effect theme default applies.
+   */
   easing?: string;
   disabled?: boolean;
 }
@@ -28,8 +42,8 @@ export interface MintInstance {
 
 // Specific mint configs
 export interface MicroInteractionConfig extends MintConfig {
+  /** Scale factor for the `scale` effect (`--blocks-mint-scale-intensity`). */
   intensity?: number;
-  transformOrigin?: string;
 }
 
 /**
@@ -56,7 +70,11 @@ export interface MicroInteractionConfig extends MintConfig {
  * `animation-iteration` is for classes whose animation runs `infinite`
  * (pulse): `animationend` never fires there, so the run settles at the end of
  * the current cycle instead of the fallback timeout cutting it mid-cycle.
- * Same keyframe-name convention as `animation`.
+ * Same keyframe-name convention as `animation` — and for an infinite
+ * animation the convention is load-bearing in the other direction too: with
+ * a foreign keyframe name the fallback timeout is the only end, and on an
+ * endless animation "late, never early" cannot hold — the timeout cuts
+ * mid-cycle (Avatar's renamed pulse override is the known case).
  */
 export type MintSettleSignal =
   | { via: 'animation' }
@@ -73,9 +91,43 @@ export interface CompositeConfig extends MintConfig {
   mints: Array<string | { name: string; config?: MintConfig }>;
 }
 
+/**
+ * The names `registerDefaultMints()` owns — a runtime constant so the type
+ * below derives from it and a registry test can assert the two never drift
+ * (registry.test.ts compares this list against what actually registers).
+ */
+export const BUILTIN_MINT_NAMES = [
+  'scale',
+  'translate',
+  'rotate',
+  'glow',
+  'bounce',
+  'pulse',
+  'shake',
+  'wiggle',
+  'ripple',
+  'composite'
+] as const;
+
+/**
+ * Built-in mint names as a literal union, so the `mint` prop autocompletes
+ * across every component — the single list the hand-curated playground knobs
+ * and docs used to drift away from.
+ */
+export type BuiltinMintName = (typeof BUILTIN_MINT_NAMES)[number];
+
+/**
+ * A mint name: a built-in (autocompleted), `'none'` to disable, or any
+ * consumer-registered name. `(string & {})` keeps the registry open — a
+ * custom name still type-checks, it just isn't suggested. A typo therefore
+ * also still compiles (it resolves like an unregistered custom name and
+ * warns at runtime); the union buys completion and docs, not validation.
+ */
+export type MintName = BuiltinMintName | 'none' | (string & {});
+
 // Polymorphic mint property type
 export type MintProp =
-  | string
-  | { name: string; config?: MintConfig & Record<string, unknown> }
-  | Array<string>
-  | Array<string | { name: string; config?: MintConfig & Record<string, unknown> }>;
+  | MintName
+  | { name: MintName; config?: MintConfig & Record<string, unknown> }
+  | Array<MintName>
+  | Array<MintName | { name: MintName; config?: MintConfig & Record<string, unknown> }>;

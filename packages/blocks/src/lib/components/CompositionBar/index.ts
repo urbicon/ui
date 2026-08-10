@@ -122,7 +122,10 @@ export interface CompositionBarProps
    */
   onItemSelect?: (item: CompositionItem, index: number) => void;
 
-  /** Micro-interaction preset. @default 'none' */
+  /**
+   * Micro-interaction preset applied to the bar (the `role="group"` element).
+   * @default 'none'
+   */
   mint?: MintProp;
 
   /** Extra classes merged onto the wrapper. */

@@ -74,7 +74,11 @@ export interface ButtonGroupProps extends Omit<HTMLAttributes<HTMLDivElement>, '
   /** Current selection value. Bind with `bind:value` for two-way sync. String for single, string[] for multiple. */
   value?: ButtonGroupValue;
 
-  /** Micro-interaction preset propagated to child Buttons. */
+  /**
+   * Micro-interaction preset applied to each child Button (per-item via
+   * context); overrides each button's own `mint` prop.
+   * @default 'none'
+   */
   mint?: MintProp;
   /** Fired when selection changes. Receives the new value and an array of all selected values. */
   onSelectionChange?: (value: ButtonGroupValue, selectedValues: string[]) => void;
