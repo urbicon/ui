@@ -101,7 +101,24 @@
     }
   }
 
-  const ariaHidden = $derived(!open && (mode === 'collapsible' || isMobile) ? true : undefined);
+  // The panel is out of sight in exactly two situations, and they use different
+  // mechanisms: a closed `collapsible` panel on desktop is 0px wide with its
+  // overflow hidden, and any closed panel on mobile is pushed off-screen by the
+  // transform. Both leave the children mounted.
+  //
+  // `aria-hidden` and `inert` therefore have to agree, and deriving BOTH from
+  // this one expression is what keeps them from drifting apart. Only half of the
+  // pair used to be implemented, which is the `aria-hidden-focus` violation axe
+  // rates serious: a keyboard user tabbed into a zero-width region their screen
+  // reader had been told to ignore, landing on links that were neither
+  // announced nor visible (#138).
+  //
+  // Applied the moment `open` flips, not at the end of the 200ms width/transform
+  // transition. A panel on its way out has nothing left worth clicking, and the
+  // keyboard must not be able to walk into it meanwhile; the opening direction
+  // costs nothing either way, since lifting `inert` immediately makes the panel
+  // usable while it is still animating in.
+  const hidden = $derived(!open && (mode === 'collapsible' || isMobile));
 </script>
 
 <svelte:window onkeydown={handleKeydown} />
@@ -129,7 +146,8 @@
   data-state={open ? 'open' : 'closed'}
   data-side={side}
   data-mode={mode}
-  aria-hidden={ariaHidden}
+  aria-hidden={hidden ? true : undefined}
+  inert={hidden ? true : undefined}
   {...restProps}
 >
   {#if header}

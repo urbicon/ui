@@ -101,3 +101,94 @@ describe('Sidebar (scroll-lock lifecycle)', () => {
     }
   });
 });
+
+// #138: the panel keeps its children mounted when it is out of sight, so
+// `aria-hidden` alone left them in the tab order — a keyboard user walked into
+// a region the screen reader had been told to skip. The two attributes are now
+// derived from one expression; these assert both halves in every mode, because
+// a regression that reintroduces the drift will only show on ONE of them.
+//
+// SCOPE: these assert the ATTRIBUTES, not their effect. jsdom implements no part
+// of `inert` — measured: it does not expose the `.inert` property and `focus()`
+// still lands inside an inert subtree — so nothing here could prove the tab
+// order. The effect is covered where a real engine applies it: the axe
+// `aria-hidden-focus` scan in `e2e/a11y.spec.ts`, whose baseline exception for
+// this defect is removed in the same commit.
+describe('Sidebar (hidden panel is inert, per mode)', () => {
+  /** Both halves of the pair, read off the panel. */
+  function panelState() {
+    const panel = document.querySelector('aside');
+    return {
+      ariaHidden: panel?.getAttribute('aria-hidden'),
+      inert: panel?.hasAttribute('inert'),
+      focusable: panel?.querySelector('a,button,input,[tabindex]') !== null
+    };
+  }
+
+  const nav = (): Snippet =>
+    createRawSnippet(() => ({ render: () => '<nav><a href="/x">Link</a></nav>' }));
+
+  it('collapsible + desktop + closed: hidden from AT and out of the tab order', () => {
+    stubViewport(false);
+    renderSidebar({ open: false, mode: 'collapsible', children: nav() });
+
+    expect(panelState()).toEqual({ ariaHidden: 'true', inert: true, focusable: true });
+  });
+
+  it('collapsible + desktop + open: neither', () => {
+    stubViewport(false);
+    renderSidebar({ open: true, mode: 'collapsible', children: nav() });
+
+    expect(panelState()).toEqual({ ariaHidden: null, inert: false, focusable: true });
+  });
+
+  it('responsive + mobile + closed: hidden from AT and out of the tab order', () => {
+    stubViewport(true);
+    renderSidebar({ open: false, mode: 'responsive', children: nav() });
+
+    expect(panelState()).toEqual({ ariaHidden: 'true', inert: true, focusable: true });
+  });
+
+  it('responsive + mobile + open: neither', () => {
+    stubViewport(true);
+    renderSidebar({ open: true, mode: 'responsive', children: nav() });
+
+    expect(panelState()).toEqual({ ariaHidden: null, inert: false, focusable: true });
+  });
+
+  it('responsive + desktop: persistent layout, never hidden either way', () => {
+    // On desktop a responsive panel is pinned at translateX(0) at full width
+    // regardless of `open` — marking it hidden would take a visible region out
+    // of the tab order.
+    stubViewport(false);
+    renderSidebar({ open: false, mode: 'responsive', children: nav() });
+
+    expect(panelState()).toEqual({ ariaHidden: null, inert: false, focusable: true });
+  });
+
+  it('collapsible + mobile + closed: hidden from AT and out of the tab order', () => {
+    stubViewport(true);
+    renderSidebar({ open: false, mode: 'collapsible', children: nav() });
+
+    expect(panelState()).toEqual({ ariaHidden: 'true', inert: true, focusable: true });
+  });
+
+  it('follows `open` without a remount, in both directions', async () => {
+    stubViewport(false);
+    // A reactive props object, so `open` can be driven the way a consumer does
+    // — remounting per state would not prove the attributes track the prop.
+    const props = $state({ open: false, mode: 'collapsible' as const, children: nav() });
+    const instance = mount(Sidebar, { target: document.body, props: props as SidebarProps });
+    dispose = () => unmount(instance);
+    flushSync();
+    expect(panelState().inert).toBe(true);
+
+    props.open = true;
+    await tick();
+    expect(panelState()).toEqual({ ariaHidden: null, inert: false, focusable: true });
+
+    props.open = false;
+    await tick();
+    expect(panelState()).toEqual({ ariaHidden: 'true', inert: true, focusable: true });
+  });
+});
