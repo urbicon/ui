@@ -815,8 +815,7 @@ Change the feel of all components at once:
 :root {
   --blocks-ease-confident: cubic-bezier(0.22, 1, 0.36, 1);
   --blocks-duration-normal: 300ms;
-  --blocks-scale-hover: 1.00;    /* disable scale on hover */
-  --blocks-scale-press: 0.98;
+  --blocks-mint-scale-intensity: 1.02; /* tone down the scale mint (1 disables) */
   --blocks-focus-ring-width: 3px;
   --blocks-focus-ring-color: oklch(0.7 0.15 var(--primary-hue, 240));
 }

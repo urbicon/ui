@@ -26,15 +26,6 @@
   --blocks-shadow-md: var(--color-shadow-md);
   --blocks-shadow-lg: var(--color-shadow-lg);
 
-  /* Transform Tokens */
-  --blocks-scale-hover: 1.025;
-  --blocks-scale-press: 0.975;
-  --blocks-scale-focus: 1.05;
-  --blocks-scale-enter: 0.95;
-  --blocks-translate-hover: translateY(-1px);
-  --blocks-translate-press: translateY(0px);
-  --blocks-translate-enter: translateY(4px);
-
   /* Focus Ring */
   --blocks-focus-ring-width: 2px;
   --blocks-focus-ring-offset: 2px;
@@ -56,41 +47,13 @@
      (black 50%); override per app via a `BlocksProvider` style block. */
   --blocks-guide-scrim: oklch(0 0 0 / 0.5);
 
-  /* Transition Presets */
-  --blocks-transition-base: all var(--blocks-duration-fast) var(--blocks-ease-gentle);
+  /* Transition preset. The lone survivor of a family of unused presets
+     (base/transform/shadow/opacity, interaction-*, delay-*, stagger-*) —
+     packages/table reads this one. */
   --blocks-transition-colors:
     background-color var(--blocks-duration-fast) var(--blocks-ease-gentle),
     border-color var(--blocks-duration-fast) var(--blocks-ease-gentle),
     color var(--blocks-duration-fast) var(--blocks-ease-gentle);
-  --blocks-transition-transform: transform var(--blocks-duration-fast) var(--blocks-ease-gentle);
-  --blocks-transition-shadow: box-shadow var(--blocks-duration-fast) var(--blocks-ease-gentle);
-  --blocks-transition-opacity: opacity var(--blocks-duration-fast) var(--blocks-ease-gentle);
-
-  /* Micro-interaction Presets */
-  --blocks-interaction-hover:
-    transform var(--blocks-duration-fast) var(--blocks-ease-gentle),
-    box-shadow var(--blocks-duration-fast) var(--blocks-ease-gentle),
-    background-color var(--blocks-duration-fast) var(--blocks-ease-gentle);
-
-  --blocks-interaction-press: transform var(--blocks-duration-instant) var(--blocks-ease-snappy);
-
-  --blocks-interaction-focus: box-shadow var(--blocks-duration-fast) var(--blocks-ease-gentle);
-
-  /* === ANIMATION DELAYS === */
-  --blocks-delay-0: 0ms;
-  --blocks-delay-75: 75ms;
-  --blocks-delay-100: 100ms;
-  --blocks-delay-150: 150ms;
-  --blocks-delay-200: 200ms;
-  --blocks-delay-300: 300ms;
-  --blocks-delay-500: 500ms;
-  --blocks-delay-700: 700ms;
-  --blocks-delay-1000: 1000ms;
-
-  /* === STAGGER ANIMATIONS === */
-  --blocks-stagger-children: 50ms;
-  --blocks-stagger-items: 100ms;
-  --blocks-stagger-cards: 150ms;
 
   /* === OVERLAY ANIMATION TOKENS (XC-11) ===
      Shared enter/exit motion for the panel overlays: Dialog, Drawer,
@@ -185,12 +148,6 @@
     --blocks-duration-slower: 1ms;
     --blocks-duration-slowest: 1ms;
 
-    /* Remove transforms that could cause motion sickness */
-    --blocks-scale-hover: 1;
-    --blocks-scale-press: 1;
-    --blocks-translate-hover: translateY(0);
-    --blocks-translate-press: translateY(0);
-
     /* Collapse overlay enter/exit motion (XC-11) */
     --blocks-overlay-enter-duration: 1ms;
     --blocks-overlay-exit-duration: 1ms;
@@ -240,106 +197,6 @@
   }
 }
 
-/* === ANIMATION KEYFRAMES === */
-@keyframes blocks-fade-in {
-  from {
-    opacity: 0;
-  }
-  to {
-    opacity: 1;
-  }
-}
-
-@keyframes blocks-slide-up {
-  from {
-    opacity: 0;
-    transform: translateY(10px);
-  }
-  to {
-    opacity: 1;
-    transform: translateY(0);
-  }
-}
-
-@keyframes blocks-slide-down {
-  from {
-    opacity: 0;
-    transform: translateY(-10px);
-  }
-  to {
-    opacity: 1;
-    transform: translateY(0);
-  }
-}
-
-@keyframes blocks-scale-in {
-  from {
-    opacity: 0;
-    transform: scale(0.95);
-  }
-  to {
-    opacity: 1;
-    transform: scale(1);
-  }
-}
-
-@keyframes blocks-bounce-in {
-  0% {
-    opacity: 0;
-    transform: scale(0.3);
-  }
-  50% {
-    opacity: 1;
-    transform: scale(1.05);
-  }
-  70% {
-    transform: scale(0.9);
-  }
-  100% {
-    opacity: 1;
-    transform: scale(1);
-  }
-}
-
-@keyframes blocks-shake {
-  0%,
-  100% {
-    transform: translateX(0);
-  }
-  10%,
-  30%,
-  50%,
-  70%,
-  90% {
-    transform: translateX(-2px);
-  }
-  20%,
-  40%,
-  60%,
-  80% {
-    transform: translateX(2px);
-  }
-}
-
-@keyframes blocks-pulse {
-  0%,
-  100% {
-    opacity: 1;
-  }
-  50% {
-    opacity: 0.5;
-  }
-}
-
-@keyframes blocks-spin {
-  from {
-    transform: rotate(0deg);
-  }
-  to {
-    transform: rotate(360deg);
-  }
-}
-
 /* Scroller `emphasis` — lifts whichever item currently sits in the middle of
    the scrollport. Driven by `animation-timeline: view(inline)` (applied by
    scroller.variants.ts), so "50%" is a POSITION, not a moment in time: the
@@ -362,31 +219,3 @@
   }
 }
 
-/* === ANIMATION UTILITY CLASSES === */
-.blocks-animate-fade-in {
-  animation: blocks-fade-in var(--blocks-duration-normal) var(--blocks-ease-gentle);
-}
-
-.blocks-animate-slide-up {
-  animation: blocks-slide-up var(--blocks-duration-normal) var(--blocks-ease-gentle);
-}
-
-.blocks-animate-slide-down {
-  animation: blocks-slide-down var(--blocks-duration-normal) var(--blocks-ease-gentle);
-}
-
-.blocks-animate-scale-in {
-  animation: blocks-scale-in var(--blocks-duration-normal) var(--blocks-ease-springy);
-}
-
-.blocks-animate-bounce-in {
-  animation: blocks-bounce-in var(--blocks-duration-slow) var(--blocks-ease-bounce);
-}
-
-.blocks-animate-pulse {
-  animation: blocks-pulse 2s var(--blocks-ease-gentle) infinite;
-}
-
-.blocks-animate-spin {
-  animation: blocks-spin 1s linear infinite;
-}
