@@ -19,7 +19,7 @@
   const SCHEMA: A2uiDataSchema = {
     '/name': { type: 'string', description: 'The guest name' },
     // Select writes a string ARRAY (single-select = a one-element array).
-    '/service': { type: 'array', description: 'Chosen service(s)' },
+    '/room': { type: 'array', description: 'Chosen room type(s)' },
     '/date': { type: 'string', format: 'date' },
     '/time': { type: 'string' }
   };
@@ -30,7 +30,7 @@
       version: 'v0.9.1',
       updateDataModel: {
         surfaceId: 'u',
-        value: { name: '', service: [], date: '', time: 'morning' }
+        value: { name: '', room: [], date: '', time: 'afternoon' }
       }
     },
     {
@@ -41,15 +41,15 @@
           {
             id: 'root',
             component: 'Section',
-            title: 'Book an appointment',
-            description: 'Pick a service and a time that suits you.',
+            title: 'Plan a stay',
+            description: 'Pick a room and the day you arrive.',
             child: 'card'
           },
           { id: 'card', component: 'Card', variant: 'elevated', child: 'form' },
           {
             id: 'form',
             component: 'Column',
-            children: ['intro', 'name', 'service', 'date', 'time', 'actions', 'faq']
+            children: ['intro', 'name', 'room', 'date', 'time', 'actions', 'faq']
           }
         ]
       }
@@ -62,7 +62,7 @@
           {
             id: 'intro',
             component: 'RichText',
-            content: 'Choose a **service** below — changes save as you go.'
+            content: 'Choose a **room** below — changes save as you go.'
           },
           {
             id: 'name',
@@ -72,14 +72,14 @@
             placeholder: 'Ada Lovelace'
           },
           {
-            id: 'service',
+            id: 'room',
             component: 'Select',
-            label: 'Service',
-            value: { path: '/service' },
+            label: 'Room',
+            value: { path: '/room' },
             options: [
-              { label: 'Haircut', value: 'haircut' },
-              { label: 'Colour', value: 'colour' },
-              { label: 'Style', value: 'style' }
+              { label: 'Garden Room', value: 'garden' },
+              { label: 'Corner Room', value: 'corner' },
+              { label: 'Suite', value: 'suite' }
             ]
           }
         ]
@@ -90,11 +90,11 @@
       updateComponents: {
         surfaceId: 'u',
         components: [
-          { id: 'date', component: 'DatePicker', label: 'Date', value: { path: '/date' } },
+          { id: 'date', component: 'DatePicker', label: 'Check-in', value: { path: '/date' } },
           {
             id: 'time',
             component: 'RadioGroup',
-            label: 'Time of day',
+            label: 'Arrival',
             value: { path: '/time' },
             orientation: 'horizontal',
             options: [
@@ -118,8 +118,8 @@
             align: 'center',
             children: ['dur', 'book']
           },
-          { id: 'dur', component: 'Badge', text: '30 min', intent: 'neutral', variant: 'soft' },
-          { id: 'book-label', component: 'Text', text: 'Book now' },
+          { id: 'dur', component: 'Badge', text: 'From €300', intent: 'neutral', variant: 'soft' },
+          { id: 'book-label', component: 'Text', text: 'Request the stay' },
           {
             id: 'book',
             component: 'Button',
@@ -128,7 +128,7 @@
             action: {
               event: {
                 name: 'book',
-                context: { name: { path: '/name' }, service: { path: '/service' } }
+                context: { name: { path: '/name' }, room: { path: '/room' } }
               }
             }
           }
@@ -144,19 +144,19 @@
             id: 'faq',
             component: 'Accordion',
             items: [
-              { label: 'Can I reschedule?', child: 'faq1' },
+              { label: 'Can I change my dates?', child: 'faq1' },
               { label: 'Cancellation policy', child: 'faq2' }
             ]
           },
           {
             id: 'faq1',
             component: 'Text',
-            text: 'Yes — reschedule up to 24 hours before your slot.'
+            text: 'Yes — move your stay up to a week before arrival.'
           },
           {
             id: 'faq2',
             component: 'Text',
-            text: 'Cancellations within 24 hours are charged in full.'
+            text: 'Cancellations within seven days are charged in full.'
           }
         ]
       }

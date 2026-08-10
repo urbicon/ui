@@ -1,92 +1,130 @@
 {
   "turns": [
     {
-      "wire": "I'd like to book a cut with Io next Wednesday — the 12th of August.",
+      "wire": "Two of us, three quiet nights by the sea in early September 2026 — somewhere we can swim before breakfast.",
       "frames": [
         {
           "event": "token",
           "data": {
-            "text": "I'll p"
-          }
-        },
-        {
-          "event": "token",
-          "data": {
-            "text": "ull up the salon's services, stylists, and Io's availability for August 12th."
+            "text": "I'll check what the group actually has free for early September."
           }
         },
         {
           "event": "tool_start",
           "data": {
-            "id": "toolu_01WdRfUCBhqXfVYFbT6YSp4k",
-            "name": "get_salon_info",
+            "id": "toolu_01MLDvmigHcWmQbhJ5u6g4At",
+            "name": "get_hotel_info",
             "input": {
-              "date": "2025-08-12"
+              "checkIn": "2026-09-02",
+              "checkOut": "2026-09-05"
             }
           }
         },
         {
           "event": "tool_result",
           "data": {
-            "id": "toolu_01WdRfUCBhqXfVYFbT6YSp4k",
+            "id": "toolu_01MLDvmigHcWmQbhJ5u6g4At",
             "output": {
-              "salon": "Bleecker & Bond",
-              "services": [
+              "group": "Fermata",
+              "roomTypes": [
                 {
-                  "id": "bleecker",
-                  "label": "The Bleecker Cut",
-                  "minutes": 45,
-                  "price": "$95"
+                  "id": "room",
+                  "label": "Room",
+                  "pricePerNight": 240
                 },
                 {
-                  "id": "dry",
-                  "label": "Dry Cut & Finish",
-                  "minutes": 30,
-                  "price": "$70"
+                  "id": "garden",
+                  "label": "Garden Room",
+                  "pricePerNight": 300
                 },
                 {
-                  "id": "beard",
-                  "label": "Beard Architecture",
-                  "minutes": 30,
-                  "price": "$55"
+                  "id": "corner",
+                  "label": "Corner Room",
+                  "pricePerNight": 360
                 },
                 {
-                  "id": "colour",
-                  "label": "Colour Consultation",
-                  "minutes": 20,
-                  "price": "$0"
+                  "id": "suite",
+                  "label": "Suite",
+                  "pricePerNight": 520
                 }
               ],
-              "stylists": [
+              "houses": [
                 {
-                  "id": "io",
-                  "name": "Io"
+                  "id": "cala",
+                  "name": "Cala",
+                  "place": "Menorca"
                 },
                 {
-                  "id": "sable",
-                  "name": "Sable"
+                  "id": "firn",
+                  "name": "Firn",
+                  "place": "Engadin"
                 },
                 {
-                  "id": "ren",
-                  "name": "Ren"
+                  "id": "duna",
+                  "name": "Duna",
+                  "place": "Comporta"
                 }
               ],
-              "date": "2025-08-12",
+              "checkIn": "2026-09-02",
+              "checkOut": "2026-09-05",
+              "nights": 3,
               "availability": [
                 {
-                  "stylistId": "io",
-                  "name": "Io",
-                  "slots": ["09:00", "10:30", "13:00", "13:45", "15:15", "16:00"]
+                  "houseId": "cala",
+                  "name": "Cala",
+                  "place": "Menorca",
+                  "rooms": [
+                    {
+                      "roomId": "room",
+                      "label": "Room",
+                      "pricePerNight": 240,
+                      "free": 1
+                    },
+                    {
+                      "roomId": "garden",
+                      "label": "Garden Room",
+                      "pricePerNight": 300,
+                      "free": 1
+                    },
+                    {
+                      "roomId": "suite",
+                      "label": "Suite",
+                      "pricePerNight": 520,
+                      "free": 1
+                    }
+                  ]
                 },
                 {
-                  "stylistId": "sable",
-                  "name": "Sable",
-                  "slots": ["09:45", "10:30", "14:30", "16:00"]
+                  "houseId": "firn",
+                  "name": "Firn",
+                  "place": "Engadin",
+                  "rooms": [
+                    {
+                      "roomId": "garden",
+                      "label": "Garden Room",
+                      "pricePerNight": 300,
+                      "free": 1
+                    }
+                  ]
                 },
                 {
-                  "stylistId": "ren",
-                  "name": "Ren",
-                  "slots": []
+                  "houseId": "duna",
+                  "name": "Duna",
+                  "place": "Comporta",
+                  "rooms": [
+                    {
+                      "roomId": "room",
+                      "label": "Room",
+                      "pricePerNight": 240,
+                      "free": 2
+                    },
+                    {
+                      "roomId": "garden",
+                      "label": "Garden Room",
+                      "pricePerNight": 300,
+                      "free": 2
+                    }
+                  ]
                 }
               ]
             }
@@ -95,352 +133,524 @@
         {
           "event": "token",
           "data": {
-            "text": "Great"
+            "text": "Firn is in the Engadin — beautiful, but the only swimming is a cold lake and a long wal"
           }
         },
         {
           "event": "token",
           "data": {
-            "text": " news — Io has openings on Wednesday, August 12th. Here's a booking form. There"
+            "text": "k. That leaves the two coastal houses, and both have space for three nights in early September:\n\n- **Cala** (Menorca) — Room €240,"
           }
         },
         {
           "event": "token",
           "data": {
-            "text": " are two \"cut\" services, so pick the one you want, choose a time, and add"
+            "text": " Garden Room €300, Suite €520 per night; one of each free.\n- **Duna** (Comporta) — Room €240, Garden Room €300 per night; two of each free.\n\nI've pencilled in"
           }
         },
         {
           "event": "token",
           "data": {
-            "text": " your name to confirm.\n\n```a2ui\n{\"version\":\"v0.9.1\",\"createSurface\":{\"surfaceId\":\"boo"
+            "text": " 2–5 September. Change the dates or the house and press **Check availability** and I'll refresh the room list.\n\n```a2ui\n{\"version\":\"v0.9.1\",\"create"
           }
         },
         {
           "event": "token",
           "data": {
-            "text": "king-io-0812\",\"catalogId\":\"urbicon-ui/urbicon-catalog/"
+            "text": "Surface\":{\"surfaceId\":\"fermata-sea\",\"catalogId\":\"urbicon-ui/urbicon-catalog/v1\",\"sendDataModel\":true}}\n{\"version\":\"v0.9.1\",\"updateDataModel\":{\"sur"
           }
         },
         {
           "event": "token",
           "data": {
-            "text": "v1\",\"sendDataModel\":true}}\n{\"version\":\"v0.9.1\",\"updateDataModel\":{\"surfaceId\":\"booking-io-0812\",\"value\":{\"name\":\"\",\"service"
+            "text": "faceId\":\"fermata-sea\",\"value\":{\"name\":\"\",\"house\":[\"cala\"],\"room\":[],\"checkIn\":\"2026-09-02\",\"checkOut\":\"2026-09-05\",\"guests\":2,\"notes\":\"\",\"agreed\":false,\"options\":[{\"label\":\"Room — €240/night · €720"
           }
         },
         {
           "event": "token",
           "data": {
-            "text": "\":[\"bleecker\"],\"stylist\":[\"io\"],\"date\":\"2025-08-12\",\"time\":\"\",\"party\":1,\"notes\":\"\",\"agreed\":false,\"slots\":[{\"label"
+            "text": " for 3 nights\",\"value\":\"room\"},{\"label\":\"Garden Room — €300/night · €900 for 3 nights\",\"value\":\"garden\"},{\"label\":\"Suite — €520/night · €1,560 for 3 nights\",\"value\":\"suite\"}]}}}\n{\"version\":\""
           }
         },
         {
           "event": "token",
           "data": {
-            "text": "\":\"9:00 AM\",\"value\":\"09:00\"},{\"label\":\"10:30 AM\",\"value\":\"10:30\"},{\"label\":\"1:00 PM\",\"value\":\"13:"
+            "text": "v0.9.1\",\"updateComponents\":{\"surfaceId\":\"fermata-sea\",\"components\":[{\"id\":\"root\",\"component\":\"Column\",\"children\":[\"alert-sea\",\"sec-dates\",\"sec-room\",\"sec-guest\",\"btn-book\"]},{\"id\":\"alert-sea\",\"component\":\"Alert\",\""
           }
         },
         {
           "event": "token",
           "data": {
-            "text": "00\"},{\"label\":\"1:45 PM\",\"value\":\"13:45\"},{\"label\":\"3:15 PM\",\"value\":\"15:15\"},{\"label\":\"4:00 PM\",\"value\":\"16:00\"}]"
+            "text": "title\":\"Two houses on the water\",\"description\":\"Cala sits above a cove in Menorca; Duna is behind the dunes in Comporta."
           }
         },
         {
           "event": "token",
           "data": {
-            "text": "}}}\n{\"version\":\"v0.9.1\",\"updateComponents\":{\"surfaceId\":\"booking-io-0812\",\"components\":[{\"id\":\"root\",\"component\":\""
+            "text": " Both are a short walk from a morning swim.\",\"intent\":\"info\",\"variant\":\"soft\"},{\"id\":\"sec-dates\",\"component\":\"Section\",\"title\":\"Your stay\",\"description\":\"Three nights, early September 2026.\",\"child\":\"col"
           }
         },
         {
           "event": "token",
           "data": {
-            "text": "Card\",\"variant\":\"elevated\",\"child\":\"body\",\"header\":\"header\"}]}}\n{\"version\":\"v0.9.1\",\"updateComponents\":"
+            "text": "-dates\"},{\"id\":\"sec-room\",\"component\":\"Section\",\"title\":\"House & room\",\"description\":\"Availability shown is for the dates above.\",\"child\":\"col-room\"},{\"id\":\"sec-guest\",\"component\":\"Section"
           }
         },
         {
           "event": "token",
           "data": {
-            "text": "{\"surfaceId\":\"booking-io-0812\",\"components\":[{\"id\":\"header\",\"component\":\"Row\",\"justify\":\"spaceBetween\",\"children\":[\"headerText"
+            "text": "\",\"title\":\"Who's coming\",\"child\":\"col-details\"}]}}\n{\"version\":\"v0.9.1\",\"updateComponents\":{\"surfaceId\":\"fermata-sea\",\"components\":[{\"id\":\"col-dates\",\"component\":\"Column\",\"children\":[\"row-dates\",\"in-guests\"]},{\"id"
           }
         },
         {
           "event": "token",
           "data": {
-            "text": "\",\"headerBadge\"]},{\"id\":\"headerText\",\"component\":\"Text\",\"text\":\"Book with Io\",\"variant\":\"h3\"},{\"id\":\"headerBadge\",\"component\":\""
+            "text": "\":\"row-dates\",\"component\":\"Row\",\"children\":[\"dp-in\",\"dp-out\"],\"justify\":\"spaceBetween\"},{\"id\":\"dp-in\",\"component\":\"DatePicker\",\"label\":\"Check-in\",\"value\":{\"path\":\"/checkIn\"},\"min"
           }
         },
         {
           "event": "token",
           "data": {
-            "text": "Badge\",\"text\":\"Wed, Aug 12\",\"intent\":\"primary\",\"variant\":\"soft\"}]}}\n{\"version\":\"v0"
+            "text": "\":\"2026-08-25\",\"max\":\"2026-09-20\",\"weight\":1},{\"id\":\"dp-out\",\"component\":\"DatePicker\",\"label\":\"Check-out\",\"value\":{\"path\":\"/checkOut\"},\"min\":\"2026-08-26\",\"max\":\"2026-"
           }
         },
         {
           "event": "token",
           "data": {
-            "text": ".9.1\",\"updateComponents\":{\"surfaceId\":\"booking-io-0812\",\"components\":[{\"id\":\"body\",\"component\":\"Column\",\"children\":[\"svcSection\",\"timeSection\",\"det"
+            "text": "09-21\",\"weight\":1},{\"id\":\"in-guests\",\"component\":\"Input\",\"label\":\"Guests\",\"value\":{\"path\":\"/guests\"},\"inputType\":\"number\"}]}}\n{\"version\":\"v0.9.1\",\"updateComponents\":{\"surfaceId\":\"fermata-sea\",\"components\":[{\""
           }
         },
         {
           "event": "token",
           "data": {
-            "text": "ailsSection\",\"policyRow\",\"submitBtn\",\"validationMsg\"]}]}}\n{\"version\":\"v0.9.1\",\"updateComponents\":{\"surfaceId\":\"boo"
+            "text": "id\":\"col-room\",\"component\":\"Column\",\"children\":[\"sel-house\",\"btn-check\",\"sel-room\",\"txt-note\"]},{\"id\":\"sel-house\",\"component\":\"Select\",\"label\":\"House\",\"value\":{\"path\":\"/house\"},\"options\":[{\"label\":\"Cala — Menorca\",\"value\":\"c"
           }
         },
         {
           "event": "token",
           "data": {
-            "text": "king-io-0812\",\"components\":[{\"id\":\"svcSection\",\"component\":\"Section\",\"title\":\"Service\",\"child\":\"svcRadio\"},{\"id\":\"svcRadio\",\"component\":\"Rad"
+            "text": "ala\"},{\"label\":\"Duna — Comporta\",\"value\":\"duna\"}]},{\"id\":\"btn-check\",\"component\":\"Button\",\"child\":\"lbl-check\",\"action\":{\"event\":{\"name\":\"check_availability\",\"context\":{\"house\":{\"path\":\"/house\"},"
           }
         },
         {
           "event": "token",
           "data": {
-            "text": "ioGroup\",\"label\":\"Which cut?\",\"value\":{\"path\":\"/service/0\"},\"options\":[{\"label\":\"The Bleecker Cut — 45 min ·"
+            "text": "\"checkIn\":{\"path\":\"/checkIn\"},\"checkOut\":{\"path\":\"/checkOut\"}}}},\"intent\":\"secondary\",\"variant\":\"outlined\",\"size\":\"sm\"},{\"id\":\"lbl-check\",\"component\":\"Text\",\"text\":\"Check availability\"},{\"id"
           }
         },
         {
           "event": "token",
           "data": {
-            "text": " $95\",\"value\":\"bleecker\"},{\"label\":\"Dry Cut & Finish — 30 min · $70\",\"value\":\"dry\"}]}]}}\n{\"version\":\"v0.9.1\",\"updateCom"
+            "text": "\":\"sel-room\",\"component\":\"Select\",\"label\":\"Room\",\"value\":{\"path\":\"/room\"},\"options\":{\"path\":\"/options\"},\"placeholder\":\"Choose a room\"},{\"id\":\"txt-note\",\"component\":\"Text\",\"text\":\"Rooms listed are"
           }
         },
         {
           "event": "token",
           "data": {
-            "text": "ponents\":{\"surfaceId\":\"booking-io-0812\",\"components\":[{\"id\":\"timeSection\",\"component\":\"Section\",\"title\":\"Time\",\"description\":\"Io's open slots on"
+            "text": " free for every night of the stay.\",\"variant\":\"caption\"}]}}\n{\"version\":\"v0.9.1\",\"updateComponents\":{\"surfaceId\":\"fermata-sea\",\"components\":[{\"id\":\"col-details\",\"component\":\"Column\",\"children\":[\"in-name\",\"ta-not"
           }
         },
         {
           "event": "token",
           "data": {
-            "text": " August 12th\",\"child\":\"timeRadio\"},{\"id\":\"timeRadio\",\"component\":\"RadioGroup\",\"label\":\"Available times\",\"value\":{\"path\":\"/time\"},\"options\":{"
+            "text": "es\",\"cb-agreed\"]},{\"id\":\"in-name\",\"component\":\"Input\",\"label\":\"Name on the booking\",\"value\":{\"path\":\"/name\"},\"placeholder\":\"e.g. Marta Rey\"},{\"id\":\""
           }
         },
         {
           "event": "token",
           "data": {
-            "text": "\"path\":\"/slots\"},\"orientation\":\"horizontal\"}]}}\n{\"version\":\"v0.9.1\",\"updateComponents\":{\"surfaceId\":\"booking-io-0812\",\"components\":[{"
+            "text": "ta-notes\",\"component\":\"Textarea\",\"label\":\"Anything we should know\",\"value\":{\"path\":\"/notes\"},\"rows\":3,\"placeholder\":\"Early breakfast, quiet side of the house, arrival time…\"},{\""
           }
         },
         {
           "event": "token",
           "data": {
-            "text": "\"id\":\"detailsSection\",\"component\":\"Section\",\"title\":\"Your details\",\"child\":\"detailsCol\"},{\"id\":\"detailsCol\",\"component\":\"Column\",\"children\":[\"nameInput\",\"notesIn"
+            "text": "id\":\"cb-agreed\",\"component\":\"Checkbox\",\"label\":\"I accept the cancellation policy\",\"value\":{\"path\":\"/agreed\"}},{\"id\":\"btn-book\",\"component\":\"Button\",\"child\":\"lbl-book\",\"action\":{\"event\":{\"name\":\"book\",\"context\":{}}},\"intent\":\""
           }
         },
         {
           "event": "token",
           "data": {
-            "text": "put\"]},{\"id\":\"nameInput\",\"component\":\"Input\",\"label\":\"Name\",\"value\":{\"path\":\"/name\"},\"placeholder\":\"Your name\"},{\"id\":\""
+            "text": "primary\"},{\"id\":\"lbl-book\",\"component\":\"Text\",\"text\":\"Request these three nights\"}]}}\n```\n\nTell me which coast appeals and I'll firm it up."
           }
-        },
-        {
-          "event": "token",
-          "data": {
-            "text": "notesInput\",\"component\":\"Textarea\",\"label\":\"Notes (optional)\",\"value\":{\"path\":\"/notes\"},\"rows\":2,\"placeholder\":\"Anything"
-          }
-        },
-        {
-          "event": "token",
-          "data": {
-            "text": " Io should know?\"}]}}\n{\"version\":\"v0.9.1\",\"updateComponents\":{\"surfaceId\":\"booking-io-0812\",\"components\":[{\"id\":\"policyRow\",\"component\":"
-          }
-        },
-        {
-          "event": "token",
-          "data": {
-            "text": "\"Checkbox\",\"label\":\"I agree to the 24-hour cancellation policy.\",\"value\":{\"path\":\"/agreed\"}}]}}\n{\"version\":\"v0.9.1\",\"upd"
-          }
-        },
-        {
-          "event": "token",
-          "data": {
-            "text": "ateComponents\":{\"surfaceId\":\"booking-io-0812\",\"components\":[{\"id\":\"submitBtn\",\"component\":\"Button\",\"intent\":\"primary\",\"child\":\"submitLabel\",\"action"
-          }
-        },
-        {
-          "event": "token",
-          "data": {
-            "text": "\":{\"event\":{\"name\":\"confirm_booking\",\"context\":{}}}},{\"id\":\"submitLabel\",\"component\":\"Text\",\"text\":\"Confirm appointment\"}]}}\n{"
-          }
-        },
-        {
-          "event": "token",
-          "data": {
-            "text": "\"version\":\"v0.9.1\",\"updateComponents\":{\"surfaceId\":\"booking-io-0812\",\"components\":[{\"id\":\"validationMsg\",\"component\":\"Text\",\"text\":\"\",\"variant\":\"caption"
-          }
-        },
-        {
-          "event": "token",
-          "data": {
-            "text": "\"}]}}\n```\n\nI've pre-selected The Bleecker Cut — just switch it to"
-          }
-        },
-        {
-          "event": "token",
-          "data": {
-            "text": " the Dry Cut if that's what you meant. Pick a time, add your name, tick the cancellation policy, and h"
-          }
-        },
-        {
-          "event": "token",
-          "data": {
-            "text": "it **Confirm appointment**."
-          }
-        },
-        {
-          "event": "done",
-          "data": {}
         }
       ]
     },
     {
-      "wire": "[ui-action] {\"name\":\"confirm_booking\",\"surfaceId\":\"booking-io-0812\",\"sourceComponentId\":\"submitBtn\",\"timestamp\":\"2026-08-05T10:12:00.000Z\",\"context\":{},\"dataModel\":{\"name\":\"Marlowe\",\"service\":[\"bleecker\"],\"stylist\":[\"io\"],\"date\":\"2026-08-12\",\"time\":\"13:45\",\"party\":1,\"notes\":\"\",\"agreed\":true}}",
-      "display": "▸ confirm_booking",
+      "wire": "[ui-action] {\"name\":\"check_availability\",\"surfaceId\":\"fermata-sea\",\"sourceComponentId\":\"btn-check\",\"timestamp\":\"2026-09-01T10:12:00.000Z\",\"context\":{},\"dataModel\":{\"name\":\"Marlowe\",\"house\":[\"cala\"],\"room\":[\"garden\"],\"checkIn\":\"2026-09-03\",\"checkOut\":\"2026-09-06\",\"guests\":2,\"notes\":\"\",\"agreed\":true}}",
+      "display": "▸ check_availability",
       "frames": [
         {
-          "event": "token",
+          "event": "tool_start",
           "data": {
-            "text": "You"
+            "id": "toolu_01159XZXD8EtEFJurg2iZj7b",
+            "name": "get_hotel_info",
+            "input": {
+              "checkIn": "2026-09-03",
+              "checkOut": "2026-09-06"
+            }
+          }
+        },
+        {
+          "event": "tool_result",
+          "data": {
+            "id": "toolu_01159XZXD8EtEFJurg2iZj7b",
+            "output": {
+              "group": "Fermata",
+              "roomTypes": [
+                {
+                  "id": "room",
+                  "label": "Room",
+                  "pricePerNight": 240
+                },
+                {
+                  "id": "garden",
+                  "label": "Garden Room",
+                  "pricePerNight": 300
+                },
+                {
+                  "id": "corner",
+                  "label": "Corner Room",
+                  "pricePerNight": 360
+                },
+                {
+                  "id": "suite",
+                  "label": "Suite",
+                  "pricePerNight": 520
+                }
+              ],
+              "houses": [
+                {
+                  "id": "cala",
+                  "name": "Cala",
+                  "place": "Menorca"
+                },
+                {
+                  "id": "firn",
+                  "name": "Firn",
+                  "place": "Engadin"
+                },
+                {
+                  "id": "duna",
+                  "name": "Duna",
+                  "place": "Comporta"
+                }
+              ],
+              "checkIn": "2026-09-03",
+              "checkOut": "2026-09-06",
+              "nights": 3,
+              "availability": [
+                {
+                  "houseId": "cala",
+                  "name": "Cala",
+                  "place": "Menorca",
+                  "rooms": [
+                    {
+                      "roomId": "room",
+                      "label": "Room",
+                      "pricePerNight": 240,
+                      "free": 1
+                    },
+                    {
+                      "roomId": "garden",
+                      "label": "Garden Room",
+                      "pricePerNight": 300,
+                      "free": 1
+                    },
+                    {
+                      "roomId": "suite",
+                      "label": "Suite",
+                      "pricePerNight": 520,
+                      "free": 1
+                    }
+                  ]
+                },
+                {
+                  "houseId": "firn",
+                  "name": "Firn",
+                  "place": "Engadin",
+                  "rooms": []
+                },
+                {
+                  "houseId": "duna",
+                  "name": "Duna",
+                  "place": "Comporta",
+                  "rooms": [
+                    {
+                      "roomId": "garden",
+                      "label": "Garden Room",
+                      "pricePerNight": 300,
+                      "free": 2
+                    }
+                  ]
+                }
+              ]
+            }
           }
         },
         {
           "event": "token",
           "data": {
-            "text": "'re all set, Marlowe! 🎉\n\n```a2ui\n{\"version\":\"v0.9.1\",\"updateComponents\":{\"surfaceId\":\""
+            "text": "Checked 3–6 September. Your pick still stands."
           }
         },
         {
           "event": "token",
           "data": {
-            "text": "booking-io-0812\",\"components\":[{\"id\":\"root\",\"component\":\"Card\",\"variant\":\"elevated\",\"child\":\"confirmBody\",\"header\":\"confirmHeader\"}]"
+            "text": "\n\n**Cala, Menorca** — one Room (€240), one Garden Room (€300), one Suite (€520) per night; a single one of each, so the Garden Room you've chosen is the last one"
           }
         },
         {
           "event": "token",
           "data": {
-            "text": "}}\n{\"version\":\"v0.9.1\",\"updateComponents\":{\"surfaceId\":\"booking-io-0812\",\"components\":[{\"id\":\"confirmHeader\",\"component\":\"Row\",\"justify\":\"sp"
+            "text": ". Three nights = **€900**.\n\nOver at Duna only the Garden Room is free for those dates now (two of them) — the plain Room is gone. Firn has"
           }
         },
         {
           "event": "token",
           "data": {
-            "text": "aceBetween\",\"children\":[\"confirmTitle\",\"confirmBadge\"]},{\"id\":\"confirmTitle\",\"component\":\"Text\",\"text\":\"Appointment confirmed\",\"variant\":\"h3\"},{"
+            "text": " nothing, as before.\n\n```a2ui\n{\"version\":\"v0.9.1\",\"updateDataModel\":"
           }
         },
         {
           "event": "token",
           "data": {
-            "text": "\"id\":\"confirmBadge\",\"component\":\"Badge\",\"text\":\"Confirmed\",\"intent\":\"success\",\"variant\":\"soft\"}]}}\n{\"version\":\"v0.9.1\",\"updateComponents"
+            "text": "{\"surfaceId\":\"fermata-sea\",\"path\":\"/options\",\"value\":[{\"label\":\"Room — €240/night · €720 total · last one\",\"value\":\"room\"},{\"label\":\"Garden Room — €300/night · €900 total · last one\",\"value\":\""
           }
         },
         {
           "event": "token",
           "data": {
-            "text": "\":{\"surfaceId\":\"booking-io-0812\",\"components\":[{\"id\":\"confirmBody\",\"component\":\"Column\",\"children\":[\"confirmAlert\",\"detailsList\"]}]}}"
+            "text": "garden\"},{\"label\":\"Suite — €520/night · €1,560 total · last one\",\"value\":\"suite\"}]}}\n{\"version\":\"v0.9.1\",\"updateComponents\":{\"surfaceId\":\"fermata-sea\",\"components\":[{\"id\":\"alert-sea\",\"component"
           }
         },
         {
           "event": "token",
           "data": {
-            "text": "\n{\"version\":\"v0.9.1\",\"updateComponents\":{\"surfaceId\":\"booking-io-0812\",\"components\":[{\"id\":\"confirmAlert\",\"component\":\"Alert\",\"title"
+            "text": "\":\"Alert\",\"title\":\"Cala, 3–6 September — Garden Room available\",\"description\":\"One of each room type left for these nights. The cove is a four-minute walk down from the ter"
           }
         },
         {
           "event": "token",
           "data": {
-            "text": "\":\"See you soon, Marlowe!\",\"description\":\"A confirmation is on its way. Please arrive a"
+            "text": "race.\",\"intent\":\"success\",\"variant\":\"soft\"},{\"id\":\"txt-note\",\"component\":\"Text\",\"text\":\"Checked 3–6 Sep. At Duna only"
           }
         },
         {
           "event": "token",
           "data": {
-            "text": " few minutes early.\",\"intent\":\"success\",\"variant\":\"soft\"}]}}\n{\"version\":\"v0.9.1\",\"updateComponents\":{\"surfaceId\":\"booking-io-0"
+            "text": " the Garden Room is free for these dates; Firn has no rooms.\",\"variant\":\"caption\"}]}}\n```\n\nEverything else on the form is filled in, Marlowe — press"
           }
         },
         {
           "event": "token",
           "data": {
-            "text": "812\",\"components\":[{\"id\":\"detailsList\",\"component\":\"Column\",\"children\":[\"rowService\",\"rowStylist\",\"rowDate\",\"rowTime\"]}]}}\n{\"version\":\"v0.9.1\",\"update"
+            "text": " **Request these three nights** and I'll put it through."
+          }
+        }
+      ]
+    },
+    {
+      "wire": "[ui-action] {\"name\":\"book\",\"surfaceId\":\"fermata-sea\",\"sourceComponentId\":\"btn-book\",\"timestamp\":\"2026-09-01T10:13:00.000Z\",\"context\":{},\"dataModel\":{\"name\":\"Marlowe\",\"house\":[\"cala\"],\"room\":[\"garden\"],\"checkIn\":\"2026-09-03\",\"checkOut\":\"2026-09-06\",\"guests\":2,\"notes\":\"\",\"agreed\":true}}",
+      "display": "▸ book",
+      "frames": [
+        {
+          "event": "tool_start",
+          "data": {
+            "id": "toolu_0133kJfeTaiExGx2sssRKd9y",
+            "name": "get_hotel_info",
+            "input": {
+              "checkIn": "2026-09-03",
+              "checkOut": "2026-09-06"
+            }
+          }
+        },
+        {
+          "event": "tool_result",
+          "data": {
+            "id": "toolu_0133kJfeTaiExGx2sssRKd9y",
+            "output": {
+              "group": "Fermata",
+              "roomTypes": [
+                {
+                  "id": "room",
+                  "label": "Room",
+                  "pricePerNight": 240
+                },
+                {
+                  "id": "garden",
+                  "label": "Garden Room",
+                  "pricePerNight": 300
+                },
+                {
+                  "id": "corner",
+                  "label": "Corner Room",
+                  "pricePerNight": 360
+                },
+                {
+                  "id": "suite",
+                  "label": "Suite",
+                  "pricePerNight": 520
+                }
+              ],
+              "houses": [
+                {
+                  "id": "cala",
+                  "name": "Cala",
+                  "place": "Menorca"
+                },
+                {
+                  "id": "firn",
+                  "name": "Firn",
+                  "place": "Engadin"
+                },
+                {
+                  "id": "duna",
+                  "name": "Duna",
+                  "place": "Comporta"
+                }
+              ],
+              "checkIn": "2026-09-03",
+              "checkOut": "2026-09-06",
+              "nights": 3,
+              "availability": [
+                {
+                  "houseId": "cala",
+                  "name": "Cala",
+                  "place": "Menorca",
+                  "rooms": [
+                    {
+                      "roomId": "room",
+                      "label": "Room",
+                      "pricePerNight": 240,
+                      "free": 1
+                    },
+                    {
+                      "roomId": "garden",
+                      "label": "Garden Room",
+                      "pricePerNight": 300,
+                      "free": 1
+                    },
+                    {
+                      "roomId": "suite",
+                      "label": "Suite",
+                      "pricePerNight": 520,
+                      "free": 1
+                    }
+                  ]
+                },
+                {
+                  "houseId": "firn",
+                  "name": "Firn",
+                  "place": "Engadin",
+                  "rooms": []
+                },
+                {
+                  "houseId": "duna",
+                  "name": "Duna",
+                  "place": "Comporta",
+                  "rooms": [
+                    {
+                      "roomId": "garden",
+                      "label": "Garden Room",
+                      "pricePerNight": 300,
+                      "free": 2
+                    }
+                  ]
+                }
+              ]
+            }
           }
         },
         {
           "event": "token",
           "data": {
-            "text": "Components\":{\"surfaceId\":\"booking-io-0812\",\"components\":[{\"id\":\"rowService\",\"component\":\"Row\",\"children\":[\"iconService\",\"tx"
+            "text": "Booked — the Garden Room at Cala was still free, and it's yours.\n\n**Marlowe · Cala, Menorca**"
           }
         },
         {
           "event": "token",
           "data": {
-            "text": "tService\"]},{\"id\":\"iconService\",\"component\":\"Icon\",\"name\":\"star\"},{\"id\":\"txtService\",\"component\":\"Text\",\"text\":\"The Bleecker Cut — 45 min · $95\"}"
+            "text": "\nThursday 3 September → Sunday 6 September 2026, 3 nights, 2 guests\nGarden Room, €300 per night — **€900 total**\n\n```a2"
           }
         },
         {
           "event": "token",
           "data": {
-            "text": "]}}\n{\"version\":\"v0.9.1\",\"updateComponents\":{\"surfaceId\":\"booking-io-0812\",\"components\":[{\"id\":\"rowStylist\",\"component\":\"Row\",\"children\":[\"icon"
+            "text": "ui\n{\"version\":\"v0.9.1\",\"updateComponents\":{\"surfaceId\":\"fermata-sea\",\"components\":[{\"id\":\"root\",\""
           }
         },
         {
           "event": "token",
           "data": {
-            "text": "Stylist\",\"txtStylist\"]},{\"id\":\"iconStylist\",\"component\":\"Icon\",\"name\":\"user\"},{\"id\":\"txtStylist\",\"component\":\"Text\",\"text\":\"With"
+            "text": "component\":\"Column\",\"children\":[\"alert-done\",\"card-conf\"]},{\"id\":\"alert-done\",\"component\":\"Alert\",\"title\":\"Confirmed — Cala, 3–6 September 2026\",\"description\":\"A"
           }
         },
         {
           "event": "token",
           "data": {
-            "text": " Io\"}]}}\n{\"version\":\"v0.9.1\",\"updateComponents\":{\"surfaceId\":\"booking-io-0812\",\"components\":[{\"id\":\"rowDate\",\"component\":\"Row\",\"children\":"
+            "text": " confirmation is on its way to you. The cove is a four-minute walk down from the terrace.\",\"intent\":\"success\",\"variant\":\"soft\"},{\"id\":\"card-conf\",\"component\":\"Card\",\"header\":\"conf-head\",\"child\":\"conf-body"
           }
         },
         {
           "event": "token",
           "data": {
-            "text": "[\"iconDate\",\"txtDate\"]},{\"id\":\"iconDate\",\"component\":\"Icon\",\"name\":\"calendar\"},{\"id\":\"txtDate\",\"component\":\"Text\",\"text\":\"Wednesday, August"
+            "text": "\",\"footer\":\"conf-foot\",\"variant\":\"outlined\"},{\"id\":\"conf-head\",\"component\":\"Row\",\"children\":[\"conf-title\",\"conf-badge\"],\"justify\":\"spaceBetween\"},{\"id\":\"conf-title\",\"component\":\"Text\",\"text\":\"Cala —"
           }
         },
         {
           "event": "token",
           "data": {
-            "text": " 12, 2026\"}]}}\n{\"version\":\"v0.9.1\",\"updateComponents\":{\"surfaceId\":\"booking-io-0812\",\"components\":[{\"id\":\"rowTime\",\"component\":\""
+            "text": " Menorca\",\"variant\":\"h4\"},{\"id\":\"conf-badge\",\"component\":\"Badge\",\"text\":\"Confirmed\",\"intent\":\"success\",\"variant\":\"soft\"}]}}\n{\"version\":\"v0.9.1\",\"updateComponents\":{\"surfaceId\":\"fermata-"
           }
         },
         {
           "event": "token",
           "data": {
-            "text": "Row\",\"children\":[\"iconTime\",\"txtTime\"]},{\"id\":\"iconTime\",\"component\":\"Icon\",\"name\":\"clock\"},{\"id\":\"txtTime\",\"component\":\"Text\",\"text\":\"1:45 "
+            "text": "sea\",\"components\":[{\"id\":\"conf-body\",\"component\":\"Column\",\"children\":[\"r-guest\",\"r-dates\",\"r-room\",\"sep-1\",\"r-total\"]},{\"id\":\"r-guest\",\"component\":\"Row\",\"children\":[\"l"
           }
         },
         {
           "event": "token",
           "data": {
-            "text": "PM\"}]}}\n```\n\nHere's your confirmation:\n\n- **Service:** The Bleecker Cut (45 min · $95)\n- **Stylist:** Io\n- **When"
+            "text": "-guest\",\"v-guest\"],\"justify\":\"spaceBetween\"},{\"id\":\"l-guest\",\"component\":\"Text\",\"text\":\"Guest\",\"variant\":\"caption\"},{\"id\":\"v-guest\",\"component\":\"Text\",\"text\":\"Marlowe · 2 guests\"},{\"id\":\"r-"
           }
         },
         {
           "event": "token",
           "data": {
-            "text": ":** Wednesday, August 12, 2026 at 1:45 PM\n\nJust a heads-up on the 24-hour cancellation policy you ag"
+            "text": "dates\",\"component\":\"Row\",\"children\":[\"l-dates\",\"v-dates\"],\"justify\":\"spaceBetween\"},{\"id\":\"l-dates\",\"component\":\"Text\",\"text\":\"Nights\",\"variant\":\"caption\"},{\"id\":\"v-dates\",\"component\":\"Text\",\"text"
           }
         },
         {
           "event": "token",
           "data": {
-            "text": "reed to — if plans change, let us know at least a day ahead. Anything else I can help with, like adding a treatment or booking some"
+            "text": "\":\"Thu 3 Sep → Sun 6 Sep 2026 · 3 nights\"},{\"id\":\"r-room\",\"component\":\"Row\",\"children\":[\"l-room\",\"v-room\"],\"justify\":\"spaceBetween\"},{\"id\":\"l-room\",\"component\":\"Text\",\"text\":\"Room\",\""
           }
         },
         {
           "event": "token",
           "data": {
-            "text": "one else in?"
+            "text": "variant\":\"caption\"},{\"id\":\"v-room\",\"component\":\"Text\",\"text\":\"Garden Room · €300 / night\"},{\"id\":\"sep-1\",\"component\":\"Separator\"},{\"id\":\"r-total\",\"component\":\"Row\",\"children\":[\"l-total\",\"v-total\"],"
           }
         },
         {
-          "event": "done",
-          "data": {}
+          "event": "token",
+          "data": {
+            "text": "\"justify\":\"spaceBetween\"},{\"id\":\"l-total\",\"component\":\"Text\",\"text\":\"Total\",\"variant\":\"h5\"},{\"id\":\"v-total\",\"component\":\"Text\",\"text\":\"€900\",\"variant\":\"h5\"}]}}\n{\"version\":\"v0.9.1\",\"updateComponents\":{\"sur"
+          }
+        },
+        {
+          "event": "token",
+          "data": {
+            "text": "faceId\":\"fermata-sea\",\"components\":[{\"id\":\"conf-foot\",\"component\":\"Text\",\"text\":\"Cancellation policy accepted. Need a change of dates or an early breakfast noted?"
+          }
+        },
+        {
+          "event": "token",
+          "data": {
+            "text": " Just say so.\",\"variant\":\"caption\"}]}}\n```\n\nThat was the last Garden Room at Cala for those nights. Want me to add an arrival time or a note for the kitchen?"
+          }
         }
       ]
     }

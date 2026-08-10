@@ -63,15 +63,15 @@
   let paint = $state(PAINTS[0]);
 
   // ── Live mini-booking state (steps 03/04 in the preview card) ──
-  // Same fiction as the landing tiles: Bleecker & Bond, the salon. The card
+  // Same fiction as the landing tiles: Fermata, the hotel group. The card
   // runs EXACTLY the code shown in step 03 — the options live here once so
   // the snippet and the live demo cannot drift apart in content.
-  const DEMO_SERVICES = [
-    { label: 'The Bleecker Cut — $95', value: 'bleecker' },
-    { label: 'Beard Architecture — $55', value: 'beard' }
+  const DEMO_ROOMS = [
+    { label: 'Garden Room — €300', value: 'garden' },
+    { label: 'Corner Room — €360', value: 'corner' }
   ];
   let demoName = $state('');
-  let demoService = $state<string | null>('bleecker');
+  let demoRoom = $state<string | null>('garden');
   let demoBooked = $state(false);
 
   const createProjectExample = `bunx sv create my-app --add @urbicon-ui`;
@@ -104,7 +104,7 @@ export default {
   import { Badge, Button, Input, Select } from '@urbicon-ui/blocks';
 
   let name = $state('');
-  let service = $state('bleecker');
+  let room = $state('garden');
   let booked = $state(false);
 </scr` +
     `ipt>
@@ -112,12 +112,12 @@ export default {
 <Input label="Your name" bind:value={name} placeholder="Ada" />
 
 <Select
-  label="Service"
+  label="Room"
   options={[
-    { label: 'The Bleecker Cut — $95', value: 'bleecker' },
-    { label: 'Beard Architecture — $55', value: 'beard' }
+    { label: 'Garden Room — €300', value: 'garden' },
+    { label: 'Corner Room — €360', value: 'corner' }
   ]}
-  bind:value={service}
+  bind:value={room}
 />
 
 <Button intent="primary" onclick={() => (booked = true)} disabled={!name}>
@@ -125,7 +125,7 @@ export default {
 </Button>
 
 {#if booked && name}
-  <Badge intent="success">Booked — see you soon, {name}.</Badge>
+  <Badge intent="success">Booked — see you in September, {name}.</Badge>
 {/if}`;
 
   const agentExample = `bunx urbicon init`;
@@ -369,7 +369,7 @@ export default {
         </h2>
         <p class="text-text-secondary mt-4 max-w-2xl leading-relaxed">
           Import and render — no provider, no context setup. This is the booking widget from
-          Bleecker &amp; Bond, the salon every demo on this site runs on, and it’s three components
+          Fermata, the quiet hotel group every demo on this site runs on, and it’s three components
           speaking one grammar:
           <code class="bg-surface-elevated rounded-modify px-1.5 py-0.5 font-mono text-xs"
             >label</code
@@ -382,10 +382,10 @@ export default {
             >intent</code
           >
           mean the same thing everywhere. The exact same code runs live in the “Your app so far” preview
-          — book yourself a chair.
+          — book yourself a night.
         </p>
         <div class="mt-6">
-          <CodeExample title="Book a chair" code={firstComponentExample} preview={false} />
+          <CodeExample title="Book a stay" code={firstComponentExample} preview={false} />
         </div>
       </section>
 
@@ -544,7 +544,7 @@ export default {
             </div>
             <div class="mt-5 flex flex-1 flex-col gap-4">
               <Input label="Your name" bind:value={demoName} placeholder="Ada" />
-              <Select label="Service" options={DEMO_SERVICES} bind:value={demoService} />
+              <Select label="Room" options={DEMO_ROOMS} bind:value={demoRoom} />
               <div>
                 <Button intent="primary" onclick={() => (demoBooked = true)} disabled={!demoName}>
                   Reserve
@@ -552,7 +552,7 @@ export default {
               </div>
               {#if demoBooked && demoName}
                 <div>
-                  <Badge intent="success">Booked — see you soon, {demoName}.</Badge>
+                  <Badge intent="success">Booked — see you in September, {demoName}.</Badge>
                 </div>
               {/if}
             </div>

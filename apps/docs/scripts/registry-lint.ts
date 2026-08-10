@@ -62,7 +62,7 @@ const UNLISTED: ReadonlyArray<readonly [route: string, why: string]> = [
   ],
   ['/imprint', 'legal page, reached from the footer'],
   ['/privacy', 'legal page, reached from the footer'],
-  ['/salon', 'landing-page exhibit — entered through the landing "visit the salon" door'],
+  ['/hotel', 'landing-page exhibit — entered through the landing "visit the hotel" door'],
   ['/ai/chat', 'live playground, deep-linked from the Chat / ChatMessage / ChatMessageList pages'],
   ['/ai/streaming-markdown', 'renderer harness over the markdown fixture corpus, not a doc page']
 ];

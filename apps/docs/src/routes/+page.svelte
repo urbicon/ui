@@ -1,10 +1,10 @@
 <!--
   Die Landing — "3-Zeilen-Journey": erinnern → staunen → erforschen → handeln.
   Zeile 1: Namens-Kachel + Scroller mit fünf Kanal-Kacheln (Cusp-Palette,
-  light-dark()-Paare); die ersten vier Kacheln teilen das Salon-Universum
-  "Bleecker & Bond" ($lib/salon-tools) — seit 2026-07-31 als GRUPPE erzählt:
-  vier Häuser (Bleecker/New York, Bond/London, Turenne/Paris, Neubau/Wien),
-  damit Dashboard und Grid Betriebs-Maßstab zeigen statt Terminzettel-Idylle.
+  light-dark()-Paare); die ersten vier Kacheln teilen das Hotel-Universum
+  "Fermata" ($lib/hotel-tools) — drei Häuser als Sub-Brands (Cala/Menorca,
+  Firn/Engadin, Duna/Comporta), damit Dashboard und Grid
+  Betriebs-Maßstab zeigen und die Liveries ihre natürlichste Begründung haben.
   Jede Kachel scopet die primary-Familie
   auf ihren Kanal (`.room-accent` aus rooms.css) — die lebenden Komponenten
   tragen die Livery ihrer Kachel. Zeile 2: das Hero-Inventar — Build-time-Daten
@@ -45,10 +45,11 @@
   import type { CalendarEvent } from '@urbicon-ui/blocks';
   import {
     buildSchedule,
+    ROOM_CATEGORIES,
     SCHEDULE_END_HOUR,
-    SCHEDULE_START_HOUR,
-    SERVICE_CATEGORIES
+    SCHEDULE_START_HOUR
   } from '$lib/landing/schedule';
+  import { HOUSES as GROUP_HOUSES, GROUP_NAME, ROOM_TYPES } from '$lib/hotel-tools';
   import AgentReplay from '$lib/landing/AgentReplay.svelte';
   import {
     BRAND,
@@ -60,8 +61,8 @@
   } from '$lib/landing/wordmark';
   import { asset } from '$app/paths';
   import { REPO_URL } from '$lib/seo';
-  import BookingCard from '$lib/salon/BookingCard.svelte';
-  import LiveryTile from '$lib/salon/LiveryTile.svelte';
+  import BookingCard from '$lib/hotel/BookingCard.svelte';
+  import LiveryTile from '$lib/hotel/LiveryTile.svelte';
   import {
     AreaChart,
     type AvatarProps,
@@ -103,7 +104,7 @@
     title: string;
     line: string;
     channel: Channel;
-    /** Optionale Tür aus der Kachel heraus (z. B. das volle Salon-Exponat). */
+    /** Optionale Tür aus der Kachel heraus (z. B. das volle Hotel-Exponat). */
     href?: string;
     linkLabel?: string;
   }
@@ -133,8 +134,8 @@
       title: 'A2UI',
       line: 'AI chat creates interactive components on the fly. Tool-controlled, safe, custom-themed.',
       channel: CHANNELS[TILE_CHANNEL.a2ui],
-      href: '/salon',
-      linkLabel: 'Visit the salon'
+      href: '/hotel',
+      linkLabel: 'Visit the hotel'
     },
     {
       key: 'agent',
@@ -171,17 +172,14 @@
   }
 
   // ── Die Kacheln Blocks–Agents teilen sich EIN fiktives Universum: die
-  //    Salon-GRUPPE „Bleecker & Bond" — vier Häuser: Bleecker (New York),
-  //    Bond (London), Turenne (Paris), Neubau (Wien). Entscheidung
-  //    2026-07-30: kohärente Fiktion statt strenger Selbstreferenz;
-  //    2026-07-31: die Gruppe statt des Einzel-Salons, damit die Kacheln
-  //    unter „Enterprise grid" keine Spielzeugdaten tragen. Maßstabs-Schnitt:
-  //    Dashboard + Grid zeigen die GRUPPE; das Tool (`get_salon_info`), das
-  //    aufgezeichnete Gespräch und die /salon-Vollseite bleiben das Stammhaus
-  //    in der Bleecker Street — die Aufnahme ist eine Konserve und darf
-  //    nicht von ihrer Datenbasis driften (Services/Slot-Zeiten weiter aus
-  //    $lib/salon-tools; die Teams der drei anderen Häuser erweitern nur die
-  //    Fiktion, das Tool kennt sie nicht).
+  //    Hotelgruppe „Fermata" — drei Häuser: Cala (Menorca), Firn (Engadin),
+  //    Duna (Comporta). Anders als in der Salon-Ära gibt es
+  //    keinen Maßstabs-Schnitt mehr: `get_hotel_info` kennt die GANZE Gruppe
+  //    (Häuser, Zimmertypen, Bestand), und Namen, Orte und Teams kommen hier
+  //    aus demselben Register wie auf der /hotel-Vollseite und in der
+  //    Aufnahme ($lib/hotel-tools). Nur die Betriebszahlen des Backoffice
+  //    (Belegung, Gäste, Umsatzmix) sind Landing-Fiktion — das Tool spricht
+  //    über Verfügbarkeit, nicht über Umsatz.
 
   // ── Blocks: das Gruppen-Backoffice in DREI Ansichten ───────────────
   //
@@ -193,14 +191,14 @@
   // Set, ein Klick auseinander. Die Schwergewichte kamen auf der ganzen Landing
   // sonst nur als Wörter in der Typo-Treppe vor.
   //
-  // Die Zahlen der drei Ansichten sind EINE Wahrheit: die Wochensummen des
-  // Charts (47/55/51/66/72) sind die „+N more"-Zahlen des Planners, der Donut
-  // (412 guests) ist die Gesamtsumme des Sankey-Flusses, und der Umsatzmix
-  // (52/24/17/7 %) ist dessen letzte Ebene. Wer nachrechnet, findet keinen
+  // Die Zahlen der Ansichten sind EINE Wahrheit: der Donut (344 guests) ist
+  // die Gesamtsumme des Sankey-Flusses (die Haus-Kanten summieren exakt auf
+  // die guests-Werte je Haus), und der Umsatzmix (33/25/22/20 %) ist dessen
+  // letzte Ebene, auf ganze Prozent gerundet. Wer nachrechnet, findet keinen
   // Widerspruch — das ist der Sinn EINES Universums.
   type DashView = 'overview' | 'schedule' | 'flow';
   let dashView = $state<DashView>('overview');
-  let walkIns = $state(true);
+  let sameDay = $state(true);
   /** Gewähltes Haus (Klick auf eine Auslastungszeile) — `null` = die Gruppe. */
   let house = $state<string | null>(null);
   /** Röntgenbild: zeigt, aus welchen Bauteilen die Fläche besteht. */
@@ -209,68 +207,37 @@
   interface House {
     name: string;
     city: string;
-    /** Auslastung in Prozent. */
+    /** Belegung in Prozent. */
     load: number;
-    /** Gäste diese Woche. */
+    /** Gäste diese Woche im Haus. */
     guests: number;
     /** …davon Wiederkehrer. */
     returning: number;
-    /** Umsatzmix des Hauses in Prozent — Paris färbt mehr, New York schneidet. */
+    /** Umsatzmix des Hauses in Prozent, je Zimmertyp (Room/Garden/Corner/Suite). */
     mix: [number, number, number, number];
+    /** Zimmer des Hauses — Summe des Tool-Bestands, für „rooms free tonight". */
+    size: number;
     team: AvatarProps[];
   }
-  // Auslastung je HAUS, nicht je Stuhl — die Gruppen-Sicht ist der Punkt der
-  // Kachel; die Stuhl-Sicht gehört dem einzelnen Front desk (/salon).
-  // Die Cutter des Stammhauses (Io/Sable/Ren) sind die des Tools; die der drei
-  // anderen Häuser sind Fiktions-Erweiterung, `get_salon_info` kennt sie nicht.
-  // Dieselben Vornamen wie in der Buchungsliste der Table-Kachel.
-  const HOUSES: House[] = [
-    {
-      name: 'Bleecker',
-      city: 'New York',
-      load: 82,
-      guests: 124,
-      returning: 88,
-      mix: [58, 22, 15, 5],
-      team: [
-        { name: 'Io Nakamura', status: 'online' },
-        { name: 'Sable Adeyemi', status: 'online' },
-        { name: 'Ren Duval', status: 'busy' }
-      ]
-    },
-    {
-      name: 'Bond',
-      city: 'London',
-      load: 64,
-      guests: 108,
-      returning: 76,
-      mix: [51, 26, 18, 5],
-      team: [
-        { name: 'Fen Whitlock', status: 'online' },
-        { name: 'Alba Ferrán' },
-        { name: 'Noor Haddad', status: 'busy' }
-      ]
-    },
-    {
-      name: 'Turenne',
-      city: 'Paris',
-      load: 47,
-      guests: 88,
-      returning: 58,
-      mix: [44, 22, 16, 18],
-      team: [{ name: 'Odile Brassard', status: 'online' }, { name: 'Marius Lenoir' }]
-    },
-    {
-      name: 'Neubau',
-      city: 'Vienna',
-      load: 71,
-      guests: 92,
-      returning: 62,
-      mix: [55, 25, 15, 5],
-      team: [{ name: 'Willa Berger' }, { name: 'Emil Radler', status: 'busy' }]
-    }
-  ];
-  const GROUP_GUESTS = HOUSES.reduce((n, h) => n + h.guests, 0); // 412
+  // Belegung je HAUS, nicht je Zimmer — die Gruppen-Sicht ist der Punkt der
+  // Kachel; die Zimmer-Sicht gehört dem einzelnen Front desk (/hotel).
+  // Namen, Orte, Teams und Zimmerbestand kommen aus $lib/hotel-tools (EIN
+  // Register mit Vollseite und Aufnahme); nur die Betriebszahlen sind
+  // Landing-Fiktion. Firn ist klein und praktisch voll — dieselbe Enge, die
+  // das Tool für Anfang September meldet.
+  const OPS: Record<string, Omit<House, 'name' | 'city' | 'size' | 'team'>> = {
+    cala: { load: 86, guests: 132, returning: 92, mix: [30, 26, 24, 20] },
+    firn: { load: 94, guests: 64, returning: 41, mix: [40, 22, 18, 20] },
+    duna: { load: 71, guests: 148, returning: 87, mix: [32, 25, 22, 21] }
+  };
+  const HOUSES: House[] = GROUP_HOUSES.map((house) => ({
+    name: house.name,
+    city: house.place,
+    size: Object.values(house.stock).reduce((a, b) => a + b, 0),
+    team: house.hosts.map((host): AvatarProps => ({ name: host.name, status: host.status })),
+    ...OPS[house.id]
+  }));
+  const GROUP_GUESTS = HOUSES.reduce((n, h) => n + h.guests, 0); // 344
   /** Die Chip-Zeile über den Ansichten: die Gruppe plus je ein Haus. */
   const SCOPES: { key: string | null; label: string }[] = [
     { key: null, label: 'All' },
@@ -280,29 +247,34 @@
   /** Anteil des gewählten Hauses an der Gruppe — skaliert Chart und Zahlen. */
   const share = $derived(activeHouse ? activeHouse.guests / GROUP_GUESTS : 1);
 
-  // Buchungen je Wochentag, Gruppe. Mon/Sun fehlen, weil die Häuser dann
-  // geschlossen sind — der Planner sagt das eine Ansicht weiter ausdrücklich.
-  const WEEK_BOOKINGS: CartesianDatum[] = [
-    { label: 'Tue', values: [38, 9] },
-    { label: 'Wed', values: [43, 12] },
-    { label: 'Thu', values: [35, 16] },
-    { label: 'Fri', values: [52, 14] },
-    { label: 'Sat', values: [61, 11] }
+  // Ankünfte je Wochentag, Gruppe — alle sieben Tage: ein Hotel kennt keinen
+  // Ruhetag. Freitag/Samstag tragen die Wochenend-Anreisen, genau die Kurve,
+  // die das Zeitraster der Schedule-Ansicht als Dichte zeigt.
+  const WEEK_ARRIVALS: CartesianDatum[] = [
+    { label: 'Mon', values: [30, 4] },
+    { label: 'Tue', values: [24, 4] },
+    { label: 'Wed', values: [27, 5] },
+    { label: 'Thu', values: [33, 6] },
+    { label: 'Fri', values: [49, 9] },
+    { label: 'Sat', values: [60, 11] },
+    { label: 'Sun', values: [38, 6] }
   ];
-  // Der Toggle ist keine Deko: ohne Walk-ins verschwindet die zweite Serie aus
+  // Der Toggle ist keine Deko: ohne Same-day verschwindet die zweite Serie aus
   // Chart UND Legende, und der Badge in der Fußzeile sagt etwas anderes.
   const BOOKING_SERIES: ChartSeries[] = $derived(
-    walkIns ? [{ label: 'Booked' }, { label: 'Walk-in' }] : [{ label: 'Booked' }]
+    sameDay ? [{ label: 'Reserved' }, { label: 'Same-day' }] : [{ label: 'Reserved' }]
   );
   const bookingsData = $derived(
-    WEEK_BOOKINGS.map((d) => ({
+    WEEK_ARRIVALS.map((d) => ({
       label: d.label,
-      values: (walkIns ? d.values : d.values.slice(0, 1)).map((v) => Math.round(v * share))
+      values: (sameDay ? d.values : d.values.slice(0, 1)).map((v) => Math.round(v * share))
     }))
   );
-  const MIX_LABELS = ['Bleecker Cut', 'Dry Cut', 'Beard', 'Colour'] as const;
+  // Die vier Zimmertypen der Gruppe — dasselbe Vokabular wie die Legende des
+  // Zeitrasters und die letzte Ebene des Sankey, aus $lib/hotel-tools.
+  const MIX_LABELS = ROOM_TYPES.map((room) => room.label.replace(' Room', ''));
   const MIX_INTENTS = ['primary', 'success', 'warning', 'neutral'] as const;
-  const GROUP_MIX: [number, number, number, number] = [52, 24, 17, 7];
+  const GROUP_MIX: [number, number, number, number] = [33, 25, 22, 20];
   const revenueMix: CompositionItem[] = $derived(
     (activeHouse?.mix ?? GROUP_MIX).map((value, i) => ({
       label: MIX_LABELS[i],
@@ -312,127 +284,121 @@
   );
   const team = $derived(activeHouse ? activeHouse.team : HOUSES.flatMap((h) => h.team));
   // Gästezahlen, keine Prozente: der Donut summiert seine Werte zur Mitte.
-  // Auf Gruppen-Maßstab (412 guests) liest die Mitte auch nicht mehr
-  // versehentlich als „100 %", wie es die alte 68/32-Summe tat.
+  // Auf Gruppen-Maßstab (344 guests) liest die Mitte auch nicht versehentlich
+  // als „100 %", wie es eine 68/32-Summe täte.
+  const GROUP_RETURNING = HOUSES.reduce((n, h) => n + h.returning, 0); // 220
   const returnMix = $derived([
-    { label: 'Returning', value: activeHouse?.returning ?? 284 },
+    { label: 'Returning', value: activeHouse?.returning ?? GROUP_RETURNING },
     {
-      label: 'First visit',
-      value: (activeHouse?.guests ?? GROUP_GUESTS) - (activeHouse?.returning ?? 284)
+      label: 'First stay',
+      value: (activeHouse?.guests ?? GROUP_GUESTS) - (activeHouse?.returning ?? GROUP_RETURNING)
     }
   ]);
-  const freeChairs = $derived(
-    activeHouse ? Math.max(1, Math.round((100 - activeHouse.load) / 9)) : 9
+  // Freie Zimmer heute Nacht: der unbelegte Anteil des Bestands — Bestand aus
+  // dem Tool-Register, Belegung aus der Backoffice-Fiktion.
+  const freeRooms = $derived(
+    activeHouse
+      ? Math.max(1, Math.round((activeHouse.size * (100 - activeHouse.load)) / 100))
+      : HOUSES.reduce((n, h) => n + Math.max(1, Math.round((h.size * (100 - h.load)) / 100)), 0)
   );
 
-  // ── Schedule: die Terminwoche EINES Hauses im Calendar ─────────────
+  // ── Schedule: der Empfangstag EINES Hauses im Calendar ─────────────
   // Der Calendar ist datumsindiziert, die Seite ist prerendered: ein
-  // `new Date()` im Initialwert stünde als Build-Woche im HTML und würde beim
-  // Hydrieren gegen die echte Woche laufen. Also SSR-stabil mit einem festen
-  // Anker starten und erst NACH der Hydration auf die laufende Woche schwenken
-  // — ein normales Update, kein Mismatch.
+  // `new Date()` im Initialwert stünde als Build-Datum im HTML und würde beim
+  // Hydrieren gegen das echte laufen. Also SSR-stabil mit festen Ankern
+  // starten und erst NACH der Hydration auf die laufende Woche und das echte
+  // Heute schwenken — ein normales Update, kein Mismatch. Der Wochen-Anker
+  // bleibt neben dem Tages-Anker, weil buildSchedule ganze Wochen erzeugt und
+  // die Tagesansicht nur ein Fenster darauf ist (Vor/Zurück bleibt möglich).
   const WEEK_ANCHOR = new Date(2026, 7, 3); // Montag, 2026-08-03
+  const DAY_ANCHOR = new Date(2026, 7, 7); // Freitag derselben Woche
   let weekStart = $state(WEEK_ANCHOR);
+  let today = $state(DAY_ANCHOR);
   $effect(() => {
     const now = new Date();
-    const monday = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+    const day = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+    const monday = new Date(day);
     monday.setDate(monday.getDate() - ((monday.getDay() + 6) % 7));
     weekStart = monday;
+    today = day;
   });
-  // Buchungen der GRUPPE je Wochentag (Index 0 = Montag) — dieselben Summen,
-  // die der Chart der Overview zeichnet. Mo und So fehlen, weil die Häuser dann
-  // geschlossen sind.
-  const GROUP_DAY_TOTALS = [0, 47, 55, 51, 66, 72, 0];
-  // Ein Zeitraster zeigt Stühle, keine Gruppen: vier Häuser übereinander wären
-  // Tapete. Die Ansicht zeigt darum EIN Haus — das gewählte, sonst das
+  // Ankünfte der GRUPPE je Wochentag (Index 0 = Montag) — dieselben Summen,
+  // die der Chart der Overview zeichnet: alle sieben Tage, Wochenende voran.
+  const GROUP_DAY_TOTALS = [34, 28, 32, 39, 58, 71, 44];
+  // Ein Zeitraster zeigt einen Empfang, keine Gruppe: drei Häuser übereinander
+  // wären Tapete. Die Ansicht zeigt darum EIN Haus — das gewählte, sonst das
   // Stammhaus — und die Kopfzeile sagt es. Der Umschalter dafür steht schon
-  // da: die Auslastungszeilen der Overview.
+  // da: die Belegungszeilen der Overview.
   const scheduleHouse = $derived(activeHouse ?? HOUSES[0]);
   const scheduleEvents = $derived(
     buildSchedule({
       weekStart,
-      // Zwei Stühle im Dienst — die Vornamen, die auch in der Buchungsliste
-      // der Table-Kachel stehen. Nicht das ganze Team: drei parallele Spalten
-      // je Tag lassen von einem Terminblock 70 px Breite übrig, in denen kein
-      // Name mehr steht. Zwei ist auch die ehrlichere Fiktion — ein Salon hat
-      // selten alle Stühle gleichzeitig besetzt. Wer wirklich alle sehen will,
-      // findet das Team eine Ansicht weiter in der AvatarGroup.
-      chairs: scheduleHouse.team.slice(0, 2).map((m) => String(m.name ?? '').split(' ')[0]),
       // Der Anteil des Hauses an den Tagessummen der Gruppe. Dass der Samstag
       // im Raster sichtbar voller ist als der Dienstag, ist keine Deko: es ist
       // dieselbe Kurve, die der Chart eine Ansicht weiter zeichnet.
       perDay: GROUP_DAY_TOTALS.map((n) => Math.round(n * (scheduleHouse.guests / GROUP_GUESTS)))
     })
   );
-  // Das Zeitraster der Wochenansicht degradiert nicht: sieben Spalten bleiben
-  // sieben Spalten, auch auf 390 px, und ein Terminblock ist dort 25 px breit
-  // mit senkrecht stehendem Namen. (Der Planner kann das — sein Wochenraster
-  // stapelt unter `md`.) Schmal zeigt die Kachel darum die Agenda: dieselben
-  // Termine als Liste, die Form, die ein Telefon ohnehin verlangt.
-  const wideEnoughForWeek = new MediaQuery('(min-width: 48rem)', true);
-  const scheduleView = $derived(wideEnoughForWeek.current ? 'week' : 'agenda');
+  // Breit das Tages-Zeitraster, schmal die Agenda desselben Tages: dieselben
+  // Vorgänge als Liste, die Form, die ein Telefon ohnehin verlangt.
+  const wideEnoughForGrid = new MediaQuery('(min-width: 48rem)', true);
+  const scheduleView = $derived(wideEnoughForGrid.current ? 'day' : 'agenda');
   // Fest auf `en-GB`, nicht auf die Laufzeit-Locale: die Seite ist auf `en`
   // gepinnt, und ein 24-Stunden-Format neben einem 24-Stunden-Zeitraster ist
   // das, was zusammenpasst.
   const TIME_FMT = new Intl.DateTimeFormat('en-GB', { hour: '2-digit', minute: '2-digit' });
 
   // Die Unterzeile der Karte. In der Schedule-Ansicht nennt sie IMMER ein Haus,
-  // auch wenn keins gewählt ist — sonst verspräche „All four houses" über einem
+  // auch wenn keins gewählt ist — sonst verspräche „All three houses" über einem
   // Zeitraster, das nur eines zeigt.
   const cardSubtitle = $derived(
     dashView === 'schedule'
       ? `${scheduleHouse.name} · ${scheduleHouse.city}`
       : activeHouse
         ? `${activeHouse.name} · ${activeHouse.city}`
-        : 'All four houses'
+        : 'All three houses'
   );
 
-  // ── Flow: woher die 412 Gäste kommen und wo sie landen ─────────────
-  // Drei Ebenen, und jede Ebene summiert sich auf dieselben 412 wie der Donut;
-  // die letzte Ebene trägt die Prozente des Umsatzmixes (52/24/17/7).
+  // ── Flow: woher die 344 Gäste kommen und wo sie schlafen ───────────
+  // Drei Ebenen, und jede Ebene summiert sich auf dieselben 344 wie der Donut;
+  // die letzte Ebene trägt die Zimmertypen, deren Umsatzanteile die
+  // CompositionBar zeigt (33/25/22/20).
   const FLOW_NODES = [
-    { id: 'online', label: 'Online', intent: 'primary' as const },
-    { id: 'walkin', label: 'Walk-in', intent: 'warning' as const },
-    { id: 'phone', label: 'Phone', intent: 'neutral' as const },
+    { id: 'direct', label: 'Direct', intent: 'primary' as const },
+    { id: 'website', label: 'Website', intent: 'warning' as const },
+    { id: 'partners', label: 'Partners', intent: 'neutral' as const },
     ...HOUSES.map((h) => ({
       id: h.name.toLowerCase(),
       label: h.name,
       intent: 'secondary' as const
     })),
-    { id: 'cut', label: 'Bleecker Cut', intent: 'primary' as const },
-    { id: 'dry', label: 'Dry Cut', intent: 'success' as const },
-    { id: 'beard', label: 'Beard', intent: 'warning' as const },
-    { id: 'colour', label: 'Colour', intent: 'neutral' as const }
+    { id: 'room', label: 'Room', intent: 'primary' as const },
+    { id: 'garden', label: 'Garden', intent: 'success' as const },
+    { id: 'corner', label: 'Corner', intent: 'warning' as const },
+    { id: 'suite', label: 'Suite', intent: 'neutral' as const }
   ];
   const FLOW_LINKS = [
-    { source: 'online', target: 'bleecker', value: 66 },
-    { source: 'online', target: 'bond', value: 56 },
-    { source: 'online', target: 'turenne', value: 44 },
-    { source: 'online', target: 'neubau', value: 44 },
-    { source: 'walkin', target: 'bleecker', value: 36 },
-    { source: 'walkin', target: 'bond', value: 30 },
-    { source: 'walkin', target: 'turenne', value: 26 },
-    { source: 'walkin', target: 'neubau', value: 26 },
-    { source: 'phone', target: 'bleecker', value: 22 },
-    { source: 'phone', target: 'bond', value: 22 },
-    { source: 'phone', target: 'turenne', value: 18 },
-    { source: 'phone', target: 'neubau', value: 22 },
-    { source: 'bleecker', target: 'cut', value: 64 },
-    { source: 'bleecker', target: 'dry', value: 30 },
-    { source: 'bleecker', target: 'beard', value: 21 },
-    { source: 'bleecker', target: 'colour', value: 9 },
-    { source: 'bond', target: 'cut', value: 56 },
-    { source: 'bond', target: 'dry', value: 26 },
-    { source: 'bond', target: 'beard', value: 18 },
-    { source: 'bond', target: 'colour', value: 8 },
-    { source: 'turenne', target: 'cut', value: 46 },
-    { source: 'turenne', target: 'dry', value: 21 },
-    { source: 'turenne', target: 'beard', value: 15 },
-    { source: 'turenne', target: 'colour', value: 6 },
-    { source: 'neubau', target: 'cut', value: 48 },
-    { source: 'neubau', target: 'dry', value: 22 },
-    { source: 'neubau', target: 'beard', value: 16 },
-    { source: 'neubau', target: 'colour', value: 6 }
+    { source: 'direct', target: 'cala', value: 58 },
+    { source: 'direct', target: 'firn', value: 30 },
+    { source: 'direct', target: 'duna', value: 62 },
+    { source: 'website', target: 'cala', value: 51 },
+    { source: 'website', target: 'firn', value: 22 },
+    { source: 'website', target: 'duna', value: 55 },
+    { source: 'partners', target: 'cala', value: 23 },
+    { source: 'partners', target: 'firn', value: 12 },
+    { source: 'partners', target: 'duna', value: 31 },
+    { source: 'cala', target: 'room', value: 40 },
+    { source: 'cala', target: 'garden', value: 34 },
+    { source: 'cala', target: 'corner', value: 32 },
+    { source: 'cala', target: 'suite', value: 26 },
+    { source: 'firn', target: 'room', value: 26 },
+    { source: 'firn', target: 'garden', value: 14 },
+    { source: 'firn', target: 'corner', value: 11 },
+    { source: 'firn', target: 'suite', value: 13 },
+    { source: 'duna', target: 'room', value: 47 },
+    { source: 'duna', target: 'garden', value: 37 },
+    { source: 'duna', target: 'corner', value: 33 },
+    { source: 'duna', target: 'suite', value: 31 }
   ];
   // Der Fluss bleibt bei einer Hausauswahl vollständig — die Gesamtsumme ist
   // der Punkt der Ansicht —, aber alles, was nicht durch das gewählte Haus
@@ -455,228 +421,177 @@
     )
   );
 
-  // ── Table: die heutige Buchungsliste der GRUPPE, gruppiert nach Haus ──
-  // Zeiten aus dem SLOT_GRID, Services/Preise aus salon-tools. Die Cutter des
-  // Stammhauses (Io/Sable/Ren) sind die des Tools; die der drei anderen
-  // Häuser sind Fiktions-Erweiterung — `get_salon_info` kennt sie nicht,
-  // und die Aufnahme (booking-fixture) bleibt davon unberührt.
-  interface Booking {
+  // ── Table: die heutigen Ankünfte der GRUPPE, gruppiert nach Haus ──
+  // Häuser und Zimmertypen aus $lib/hotel-tools, Raten = Typpreis × Nächte.
+  // Die Gäste sind dieselben Namen, die die Empfangswoche der Schedule-Ansicht
+  // zeigt — ein Universum, eine Gästeliste.
+  interface Arrival {
     id: string;
-    house: 'Bleecker' | 'Bond' | 'Turenne' | 'Neubau';
+    house: 'Cala' | 'Firn' | 'Duna';
     time: string;
-    client: string;
-    service: string;
-    stylist: string;
-    status: 'confirmed' | 'pending' | 'walk-in';
-    /** Zahl, nicht "$95": Suche, Sortierung UND Summe rechnen auf dem
+    guest: string;
+    room: string;
+    nights: number;
+    status: 'confirmed' | 'pending' | 'same-day';
+    /** Zahl, nicht "€900": Suche, Sortierung UND Summe rechnen auf dem
         Accessor-Wert. Das Währungszeichen ist Anzeige — `formatter`. */
-    price: number;
+    rate: number;
   }
   // Je Haus chronologisch — die Gruppenreihenfolge ist die Array-Reihenfolge.
-  const BOOKINGS: Booking[] = [
+  const ARRIVALS: Arrival[] = [
     {
-      id: 'b1',
-      house: 'Bleecker',
-      time: '09:45',
-      client: 'M. Okafor',
-      service: 'The Bleecker Cut',
-      stylist: 'Io',
+      id: 'a1',
+      house: 'Cala',
+      time: '14:00',
+      guest: 'M. Okafor',
+      room: 'Garden',
+      nights: 3,
       status: 'confirmed',
-      price: 95
+      rate: 900
     },
     {
-      id: 'b2',
-      house: 'Bleecker',
-      time: '10:30',
-      client: 'J. Laurent',
-      service: 'Beard Architecture',
-      stylist: 'Sable',
-      status: 'confirmed',
-      price: 55
-    },
-    {
-      id: 'b3',
-      house: 'Bleecker',
-      time: '13:00',
-      client: 'A. Reyes',
-      service: 'Dry Cut & Finish',
-      stylist: 'Ren',
-      status: 'walk-in',
-      price: 70
-    },
-    {
-      id: 'b4',
-      house: 'Bleecker',
-      time: '15:15',
-      client: 'T. Nguyen',
-      service: 'Colour Consultation',
-      stylist: 'Io',
-      status: 'pending',
-      price: 0
-    },
-    {
-      id: 'b5',
-      house: 'Bleecker',
-      time: '16:00',
-      client: 'E. Sato',
-      service: 'The Bleecker Cut',
-      stylist: 'Ren',
-      status: 'confirmed',
-      price: 95
-    },
-    {
-      id: 'b6',
-      house: 'Bond',
-      time: '09:00',
-      client: 'P. Whitfield',
-      service: 'The Bleecker Cut',
-      stylist: 'Fen',
-      status: 'confirmed',
-      price: 95
-    },
-    {
-      id: 'b7',
-      house: 'Bond',
-      time: '10:30',
-      client: 'G. Halloran',
-      service: 'Dry Cut & Finish',
-      stylist: 'Alba',
-      status: 'confirmed',
-      price: 70
-    },
-    {
-      id: 'b8',
-      house: 'Bond',
-      time: '11:15',
-      client: 'S. Duran',
-      service: 'Beard Architecture',
-      stylist: 'Noor',
-      status: 'pending',
-      price: 55
-    },
-    {
-      id: 'b9',
-      house: 'Bond',
-      time: '13:45',
-      client: 'R. Lindqvist',
-      service: 'The Bleecker Cut',
-      stylist: 'Fen',
-      status: 'confirmed',
-      price: 95
-    },
-    {
-      id: 'b10',
-      house: 'Bond',
-      time: '15:15',
-      client: 'K. Marsh',
-      service: 'Dry Cut & Finish',
-      stylist: 'Alba',
-      status: 'walk-in',
-      price: 70
-    },
-    {
-      id: 'b11',
-      house: 'Turenne',
-      time: '09:45',
-      client: 'N. Petit',
-      service: 'The Bleecker Cut',
-      stylist: 'Odile',
-      status: 'confirmed',
-      price: 95
-    },
-    {
-      id: 'b12',
-      house: 'Turenne',
-      time: '11:15',
-      client: 'L. Beaumont',
-      service: 'Colour Consultation',
-      stylist: 'Marius',
-      status: 'pending',
-      price: 0
-    },
-    {
-      id: 'b13',
-      house: 'Turenne',
-      time: '13:00',
-      client: 'Y. Tanaka',
-      service: 'Dry Cut & Finish',
-      stylist: 'Odile',
-      status: 'confirmed',
-      price: 70
-    },
-    {
-      id: 'b14',
-      house: 'Turenne',
+      id: 'a2',
+      house: 'Cala',
       time: '14:30',
-      client: 'F. Abadi',
-      service: 'Beard Architecture',
-      stylist: 'Marius',
+      guest: 'J. Laurent',
+      room: 'Room',
+      nights: 2,
       status: 'confirmed',
-      price: 55
+      rate: 480
     },
     {
-      id: 'b15',
-      house: 'Turenne',
-      time: '16:00',
-      client: 'C. Waweru',
-      service: 'The Bleecker Cut',
-      stylist: 'Odile',
-      status: 'walk-in',
-      price: 95
-    },
-    {
-      id: 'b16',
-      house: 'Neubau',
-      time: '09:00',
-      client: 'H. Sørensen',
-      service: 'Dry Cut & Finish',
-      stylist: 'Willa',
-      status: 'confirmed',
-      price: 70
-    },
-    {
-      id: 'b17',
-      house: 'Neubau',
-      time: '10:30',
-      client: 'A. Beck',
-      service: 'The Bleecker Cut',
-      stylist: 'Emil',
-      status: 'confirmed',
-      price: 95
-    },
-    {
-      id: 'b18',
-      house: 'Neubau',
-      time: '13:45',
-      client: 'T. Csorba',
-      service: 'Beard Architecture',
-      stylist: 'Willa',
-      status: 'pending',
-      price: 55
-    },
-    {
-      id: 'b19',
-      house: 'Neubau',
+      id: 'a3',
+      house: 'Cala',
       time: '15:15',
-      client: 'J. Kovács',
-      service: 'The Bleecker Cut',
-      stylist: 'Emil',
-      status: 'confirmed',
-      price: 95
+      guest: 'A. Reyes',
+      room: 'Suite',
+      nights: 4,
+      status: 'pending',
+      rate: 2080
     },
     {
-      id: 'b20',
-      house: 'Neubau',
+      id: 'a4',
+      house: 'Cala',
       time: '16:00',
-      client: 'O. Adebayo',
-      service: 'Dry Cut & Finish',
-      stylist: 'Willa',
+      guest: 'T. Nguyen',
+      room: 'Room',
+      nights: 3,
+      status: 'same-day',
+      rate: 720
+    },
+    {
+      id: 'a5',
+      house: 'Cala',
+      time: '16:45',
+      guest: 'E. Sato',
+      room: 'Corner',
+      nights: 5,
       status: 'confirmed',
-      price: 70
+      rate: 1800
+    },
+    {
+      id: 'a6',
+      house: 'Cala',
+      time: '17:30',
+      guest: 'P. Whitfield',
+      room: 'Garden',
+      nights: 2,
+      status: 'confirmed',
+      rate: 600
+    },
+    {
+      id: 'a7',
+      house: 'Firn',
+      time: '14:30',
+      guest: 'G. Halloran',
+      room: 'Room',
+      nights: 4,
+      status: 'confirmed',
+      rate: 960
+    },
+    {
+      id: 'a8',
+      house: 'Firn',
+      time: '15:45',
+      guest: 'S. Duran',
+      room: 'Corner',
+      nights: 3,
+      status: 'confirmed',
+      rate: 1080
+    },
+    {
+      id: 'a9',
+      house: 'Firn',
+      time: '17:00',
+      guest: 'R. Lindqvist',
+      room: 'Suite',
+      nights: 7,
+      status: 'pending',
+      rate: 3640
+    },
+    {
+      id: 'a15',
+      house: 'Duna',
+      time: '14:15',
+      guest: 'C. Waweru',
+      room: 'Room',
+      nights: 2,
+      status: 'confirmed',
+      rate: 480
+    },
+    {
+      id: 'a16',
+      house: 'Duna',
+      time: '15:00',
+      guest: 'H. Sørensen',
+      room: 'Garden',
+      nights: 4,
+      status: 'confirmed',
+      rate: 1200
+    },
+    {
+      id: 'a17',
+      house: 'Duna',
+      time: '15:45',
+      guest: 'A. Beck',
+      room: 'Corner',
+      nights: 3,
+      status: 'pending',
+      rate: 1080
+    },
+    {
+      id: 'a18',
+      house: 'Duna',
+      time: '16:30',
+      guest: 'T. Csorba',
+      room: 'Garden',
+      nights: 6,
+      status: 'confirmed',
+      rate: 1800
+    },
+    {
+      id: 'a19',
+      house: 'Duna',
+      time: '17:15',
+      guest: 'J. Kovács',
+      room: 'Room',
+      nights: 2,
+      status: 'same-day',
+      rate: 480
+    },
+    {
+      id: 'a20',
+      house: 'Duna',
+      time: '18:00',
+      guest: 'O. Adebayo',
+      room: 'Suite',
+      nights: 5,
+      status: 'confirmed',
+      rate: 2600
     }
   ];
 
-  // ── A2UI: das Salon-Exponat (LiveryTile) — echtes aufgezeichnetes
+  // ── A2UI: das Hotel-Exponat (LiveryTile) — echtes aufgezeichnetes
   //    Modell-Output im Replay, vier Liveries, ein Klick zur Vollseite. ─
 
   // ── Treppe: die restlichen Register — jede Stufe ist eine Tür ───
@@ -944,7 +859,7 @@
                   <div class={['card', 'dash2', xray && 'xray']}>
                     <div class="dash-head">
                       <div>
-                        <p class="dash-title">Bleecker &amp; Bond</p>
+                        <p class="dash-title">{GROUP_NAME}</p>
                         <p class="dash-sub">{cardSubtitle}</p>
                       </div>
                       <div class="blk" data-blk="SegmentGroup">
@@ -984,53 +899,67 @@
                     </div>
                     {#if dashView === 'overview'}
                       <div class="dash-body">
-                        <!-- Der Chart nimmt die volle Kartenbreite: darunter
-                             tragen zwei Spalten ähnlich viel Höhe, statt dass
-                             die kürzere (früher links) unten ein Loch lässt. -->
-                        <div class="blk" data-blk="AreaChart">
-                          <AreaChart
-                            data={bookingsData}
-                            series={BOOKING_SERIES}
-                            height={88}
-                            showLegend={false}
-                            fillOpacity={0.25}
-                          />
+                        <!-- Jeder Block trägt seine eigene kleine Überschrift:
+                             ohne sie war der Chart eine unbeschriftete Kurve
+                             und der Umsatzmix vier Farben ohne Aussage
+                             (Review-Befund 2026-08-10). Der Chart nimmt die
+                             volle Kartenbreite; die Legende ist an, weil zwei
+                             ungelabelte Serien nicht selbsterklärend sind. -->
+                        <div>
+                          <p class="dash-sub">Arrivals this week</p>
+                          <div class="blk mt-2" data-blk="AreaChart">
+                            <AreaChart
+                              data={bookingsData}
+                              series={BOOKING_SERIES}
+                              height={84}
+                              showLegend
+                              fillOpacity={0.25}
+                            />
+                          </div>
                         </div>
                         <div class="dash-cols">
                           <div class="dash-main">
-                            <!-- Die Werte SIND Prozente: formatValue macht sie zur
-                               Anzeige, showPercentages bliebe sonst als Doppelung
-                               daneben stehen (Legende druckt Wert immer). -->
-                            <div class="blk" data-blk="CompositionBar">
-                              <CompositionBar
-                                items={revenueMix}
-                                size="sm"
-                                showLegend
-                                showPercentages={false}
-                                formatValue={(v) => `${v} %`}
-                                legendPlacement="bottom"
-                              />
-                            </div>
-                            <div class="dash-donut">
-                              <div class="blk" data-blk="DonutChart">
-                                <DonutChart
-                                  data={returnMix}
-                                  size={66}
-                                  showLegend={false}
-                                  showTotal
-                                  totalLabel="guests"
-                                  ariaLabel="Returning guests this week"
+                            <div>
+                              <p class="dash-sub">Revenue by room type</p>
+                              <!-- Die Werte SIND Prozente: formatValue macht sie
+                                 zur Anzeige, showPercentages bliebe sonst als
+                                 Doppelung daneben stehen (Legende druckt Wert
+                                 immer). -->
+                              <div class="blk mt-2" data-blk="CompositionBar">
+                                <CompositionBar
+                                  items={revenueMix}
+                                  size="sm"
+                                  showLegend
+                                  showPercentages={false}
+                                  formatValue={(v) => `${v} %`}
+                                  legendPlacement="bottom"
                                 />
                               </div>
-                              <p class="aside-note">
-                                <strong>{returnMix[0].value}</strong> of them had been in before.
-                              </p>
+                            </div>
+                            <div>
+                              <p class="dash-sub">Guests in house</p>
+                              <div class="dash-donut">
+                                <div class="blk" data-blk="DonutChart">
+                                  <DonutChart
+                                    data={returnMix}
+                                    size={72}
+                                    showLegend={false}
+                                    showTotal
+                                    totalLabel="guests"
+                                    ariaLabel="Returning guests this week"
+                                  />
+                                </div>
+                                <p class="aside-note">
+                                  <strong>{returnMix[0].value}</strong> returning ·
+                                  <strong>{returnMix[1].value}</strong> first stay
+                                </p>
+                              </div>
                             </div>
                           </div>
                           <div class="dash-side">
                             <div class="dash-head">
                               <p class="dash-sub">
-                                {activeHouse ? 'On the floor' : 'Houses today'}
+                                {activeHouse ? 'Occupancy · on duty' : 'Occupancy today'}
                               </p>
                               <!-- Die Gesichter sind nicht mehr Deko: sie zeigen
                                    das Team des gewählten Hauses und wechseln mit
@@ -1073,29 +1002,32 @@
                         </div>
                       </div>
                     {:else if dashView === 'schedule'}
-                      <!-- Die Belegung eines Hauses auf dem Zeitraster: wo die
-                           Blöcke dicht liegen, ist voll — die Ansicht ZEIGT die
-                           Auslastung, die die Overview daneben in Prozent
-                           behauptet. Mon/Sun bleiben leer, weil die Häuser dann
-                           geschlossen sind; das erklärt, warum der Chart bei
-                           Tue anfängt.
+                      <!-- Der Empfangstag EINES Hauses: Abreisen am Vormittag,
+                           Ankünfte am Nachmittag, jeder Block ein Vorgang am
+                           Tresen. Bewusst EIN Tag statt der Wochenansicht der
+                           ersten Fassung — sieben Spalten à ~10 Vorgänge waren
+                           Tapete, und ein Zeitraster erzählt Belegung ohnehin
+                           falsch (Aufenthalte sind Tage, keine Stunden; eine
+                           Resource-Timeline hat der Calendar nicht). Die
+                           Wochen-Dichte erzählt der Chart der Overview.
                            `{#key}`, weil `defaultDate` laut Vertrag nur beim
-                           Mounten gelesen wird — der Schwenk von der Anker- auf
-                           die laufende Woche nach der Hydration käme sonst nie
+                           Mounten gelesen wird — der Schwenk vom Anker- auf
+                           das echte Heute nach der Hydration käme sonst nie
                            an. Kein Wischen: die Kachel liegt in einem
                            waagerecht wischbaren Band, und dort muss die Geste
-                           die Kachel wechseln, nicht die Woche. -->
+                           die Kachel wechseln, nicht den Tag. -->
                       <div class="view-host">
-                        <div class="blk" data-blk="Calendar">
-                          {#key `${weekStart.getTime()}-${scheduleView}`}
+                        <p class="dash-sub">Front desk — departures, then arrivals</p>
+                        <div class="blk mt-2" data-blk="Calendar">
+                          {#key `${today.getTime()}-${scheduleView}`}
                             <Calendar
                               events={scheduleEvents}
-                              categories={SERVICE_CATEGORIES}
+                              categories={ROOM_CATEGORIES}
                               view={scheduleView}
                               views={[scheduleView]}
-                              agendaDays={7}
+                              agendaDays={1}
                               showViewSwitcher={false}
-                              defaultDate={weekStart}
+                              defaultDate={today}
                               size="sm"
                               showTimeGrid
                               timeGridStartHour={SCHEDULE_START_HOUR}
@@ -1104,33 +1036,26 @@
                               showEventList={false}
                               swipeable={false}
                               showLegend={false}
-                              slotClasses={{
-                                // Einspaltig scrollt die Woche durch die Karte —
-                                // ohne das Festheften wäre nach zwei Tagen nicht
-                                // mehr zu sehen, um welche Woche es geht.
-                                // `--z-docked` ist die Stufe für genau das:
-                                // festgeheftet INNERHALB eines Behälters (so
-                                // nutzt JourneyTimeline sie auch). Das
-                                // Namensschild des Röntgenmodus liegt bei
-                                // `z-index: 2`, aber auf −0.6rem, also über der
-                                // Blockkante — die beiden überlappen nicht.
-                                header: 'sticky top-0 z-[var(--z-docked)] bg-[var(--card-bg)]'
-                              }}
                               eventItem={agendaItem}
                             />
                           {/key}
                         </div>
                       </div>
                     {:else}
-                      <!-- Dieselben 412 Gäste wie im Donut, nur von der Seite
-                           gesehen: Kanal → Haus → Leistung. Die letzte Ebene
-                           trägt die Prozente des Umsatzmixes. -->
+                      <!-- Dieselben 440 Gäste wie im Donut, nur von der Seite
+                           gesehen: Kanal → Haus → Zimmertyp. Die Kopfzeile
+                           sagt, was fließt — ohne sie war der Sankey ein
+                           unbeschriftetes Diagramm in einer leeren Karte
+                           (Review-Befund 2026-08-10). -->
                       <div class="view-host">
-                        <div class="blk" data-blk="Sankey">
+                        <p class="dash-sub">
+                          Where {GROUP_GUESTS} guests came from — and where they sleep
+                        </p>
+                        <div class="blk mt-3" data-blk="Sankey">
                           <Sankey
                             nodes={flowNodes}
                             links={flowLinks}
-                            height={292}
+                            height={264}
                             nodeWidth={12}
                             nodePadding={10}
                             formatValue={(v) => `${v} guests`}
@@ -1138,11 +1063,16 @@
                         </div>
                       </div>
                     {/if}
-                    <div class="dash-foot">
-                      <div class="blk" data-blk="Toggle">
-                        <Toggle bind:checked={walkIns} label="Accept walk-ins" size="sm" />
-                      </div>
-                      <!-- `modify` statt der Badge-Voreinstellung `commit`: die
+                    <!-- Nur in der Overview: der Toggle wirkt auf Chart-Serie
+                         und Badge — in Schedule und Flow stünde er als
+                         Schalter ohne Wirkung herum (Review-Befund
+                         2026-08-10). -->
+                    {#if dashView === 'overview'}
+                      <div class="dash-foot">
+                        <div class="blk" data-blk="Toggle">
+                          <Toggle bind:checked={sameDay} label="Take same-day arrivals" size="sm" />
+                        </div>
+                        <!-- `modify` statt der Badge-Voreinstellung `commit`: die
                          Pille sah aus wie ein Knopf und war keiner — auf einer
                          Fläche, auf der jetzt alles andere wirklich schaltet,
                          ist genau das die Irreführung. Als Status liest der
@@ -1152,30 +1082,37 @@
                          .room-accent-Scope auf den Kanal umgefärbt wurde. Seit
                          2026-07-31 tragen die nicht-primary Füllungen
                          text-on-fill, das kein Raum überschreibt (#47). -->
-                      <div class="blk" data-blk="Badge">
-                        <Badge
-                          intent={walkIns ? 'success' : 'neutral'}
-                          variant="soft"
-                          tier="modify"
-                        >
-                          {walkIns ? `${freeChairs} chairs free` : 'By appointment only'}
-                        </Badge>
+                        <div class="blk" data-blk="Badge">
+                          <Badge
+                            intent={sameDay ? 'success' : 'neutral'}
+                            variant="soft"
+                            tier="modify"
+                          >
+                            {sameDay ? `${freeRooms} rooms free tonight` : 'Reservations only'}
+                          </Badge>
+                        </div>
                       </div>
-                    </div>
+                    {/if}
                   </div>
                 {:else if tile.key === 'table'}
                   <div class="card card-table">
                     <Table
-                      items={BOOKINGS}
+                      items={ARRIVALS}
                       columns={[
                         { accessor: 'time', title: 'Time', sortable: true, width: '4.5rem' },
-                        { accessor: 'client', title: 'Client', sortable: true, searchable: true },
-                        { accessor: 'service', title: 'Service', searchable: true },
-                        { accessor: 'stylist', title: 'Chair', searchable: true, width: '4.5rem' },
+                        { accessor: 'guest', title: 'Guest', sortable: true, searchable: true },
+                        { accessor: 'room', title: 'Room', searchable: true, width: '4.5rem' },
+                        {
+                          accessor: 'nights',
+                          title: 'Nights',
+                          dataType: 'number',
+                          align: 'right',
+                          width: '4rem'
+                        },
                         { accessor: 'status', title: 'Status', cell: statusCell },
                         {
-                          accessor: 'price',
-                          title: 'Price',
+                          accessor: 'rate',
+                          title: 'Rate',
                           // `dataType` ist ab 2026-07-31 das, was die Spalte
                           // summierbar macht — vorher reichte der Name "price",
                           // was für Spalten in anderen Sprachen nie funktioniert
@@ -1183,22 +1120,22 @@
                           // deaktiviert.
                           dataType: 'number',
                           align: 'right',
-                          width: '4rem',
+                          width: '4.5rem',
                           // Trägt die Währung — für die Zelle UND für die
                           // Summenzeile (useSummary greift auf denselben
                           // Formatter zurück).
-                          formatter: (value) => `$${value}`
+                          formatter: (value) => `€${value}`
                         }
                       ]}
                       viewDefaults={{ groupBy: 'house' }}
                       variant="flush"
                       size="sm"
-                      ariaLabel="Today's bookings across the four houses of Bleecker & Bond"
+                      ariaLabel="Today's arrivals across the three houses of Fermata"
                       slotClasses={{ table: '!min-w-0' }}
                     />
                   </div>
                 {:else if tile.key === 'a2ui'}
-                  <div class="salon-host">
+                  <div class="hotel-host">
                     <LiveryTile />
                   </div>
                 {:else if tile.key === 'agent'}
@@ -1227,7 +1164,7 @@
                   >
                 {:else if tile.key === 'blocks'}
                   <!-- Der Schalter steht AUF der Kachel, nicht in der Karte: er
-                       spricht über die Fläche, nicht im Salon. Innerhalb der
+                       spricht über die Fläche, nicht im Hotel. Innerhalb der
                        Karte gilt die Fiktion, hier draußen die Bibliothek. -->
                   <button
                     type="button"
@@ -1452,7 +1389,7 @@
                der Prompt „violet" und liefert die Kachel Magenta, bricht genau
                der Beweis, für den dieser Satz hier steht. -->
           <code class="cmd"
-            >claude "a neon-magenta booking page for the salon — service, chair, time"</code
+            >claude "a neon-magenta booking page for the hotel — room, dates, guests"</code
           >
           <p class="step-line">In your words. No component names, no token names.</p>
         </div>
@@ -1565,12 +1502,12 @@
     ></span>
     <span class="agenda-time">{TIME_FMT.format(event.start)}</span>
     <span class="agenda-who">{event.title}</span>
-    <span class="agenda-chair">{event.description}</span>
+    <span class="agenda-room">{event.description}</span>
   </span>
 {/snippet}
 
 {#snippet statusCell(item: unknown)}
-  {@const s = (item as Booking).status}
+  {@const s = (item as Arrival).status}
   <Badge
     size="sm"
     variant="soft"
@@ -2019,7 +1956,7 @@
     white-space: nowrap;
     font-size: 0.85rem;
   }
-  .agenda-chair {
+  .agenda-room {
     margin-inline-start: auto;
     flex-shrink: 0;
     font-size: 0.75rem;
@@ -2089,7 +2026,7 @@
     .card-table {
       width: min(1000px, 100%);
     }
-    .salon-host {
+    .hotel-host {
       width: min(620px, 100%);
     }
   }
@@ -2099,9 +2036,9 @@
     z-index: 1;
     background: var(--card-bg);
   }
-  /* Das Salon-Exponat füllt die Kachel-Bühne; die LiveryTile bringt ihren
+  /* Das Hotel-Exponat füllt die Kachel-Bühne; die LiveryTile bringt ihren
      eigenen Grund (data-livery) und Rahmen mit. */
-  .salon-host {
+  .hotel-host {
     width: min(480px, 100%);
     height: 100%;
     min-height: 0;

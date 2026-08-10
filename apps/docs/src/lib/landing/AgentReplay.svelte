@@ -4,7 +4,7 @@
 
   The stage is the tile's proof, in two views. RESULT shows the working card;
   SOURCE shows the very file the agent wrote — the same
-  $lib/salon/BookingCard.svelte the validate lines were recorded against,
+  $lib/hotel/BookingCard.svelte the validate lines were recorded against,
   imported `?raw` at build time and shown VERBATIM, so it can never drift from
   what ships. That second view is what cashes the tile's claim ("readable
   code"): thirty-odd lines, and a visitor can check. Verbatim display is also
@@ -25,8 +25,8 @@
   import { MediaQuery } from 'svelte/reactivity';
   import { CodePanel } from '@urbicon-ui/docs';
   import { VALIDATE_OK, VALIDATE_SCORE } from '$lib/landing/agent-output';
-  import BookingCard from '$lib/salon/BookingCard.svelte';
-  import bookingCardSource from '$lib/salon/BookingCard.svelte?raw';
+  import BookingCard from '$lib/hotel/BookingCard.svelte';
+  import bookingCardSource from '$lib/hotel/BookingCard.svelte?raw';
 
   interface Frame {
     text: string;
@@ -38,8 +38,8 @@
   }
 
   const FRAMES: Frame[] = [
-    { text: '$ claude "add a booking card to the salon page"', kind: 'cmd', pause: 1000 },
-    { text: '✚ src/lib/salon/BookingCard.svelte', kind: 'add', step: 1, pause: 1300 },
+    { text: '$ claude "add a booking card to the hotel page"', kind: 'cmd', pause: 1000 },
+    { text: '✚ src/lib/hotel/BookingCard.svelte', kind: 'add', step: 1, pause: 1300 },
     {
       text: 'RadioGroup · Select · Button — semantic tokens only',
       kind: 'dim',
@@ -47,7 +47,7 @@
       pause: 1300
     },
     {
-      text: '▸ bunx urbicon validate src/lib/salon/BookingCard.svelte',
+      text: '▸ bunx urbicon validate src/lib/hotel/BookingCard.svelte',
       kind: 'run',
       step: 3,
       pause: 1000
@@ -148,7 +148,7 @@
 
   {#if step >= 1}
     <div
-      class="stagebox flex min-h-0 flex-col overflow-hidden rounded-contain border border-border-default bg-surface-base"
+      class="stagebox rounded-contain border-border-default bg-surface-base flex min-h-0 flex-col overflow-hidden border"
     >
       <div class="stage min-h-0 flex-1 overflow-y-auto">
         {#if view === 'result'}
@@ -167,13 +167,13 @@
       </div>
 
       <!-- The one gesture — same bar anatomy as the LiveryTile's livery switch. -->
-      <div class="flex flex-wrap items-center gap-2 border-t border-border-subtle px-4 py-3">
+      <div class="border-border-subtle flex flex-wrap items-center gap-2 border-t px-4 py-3">
         <div class="flex gap-1.5" role="group" aria-label="Stage view">
           {#each VIEWS as option (option.id)}
             <button
               type="button"
               class={[
-                'cursor-pointer rounded-modify border px-2.5 py-1 text-3xs uppercase tracking-[0.14em]',
+                'rounded-modify text-3xs cursor-pointer border px-2.5 py-1 tracking-[0.14em] uppercase',
                 option.id === view
                   ? 'border-primary bg-primary text-text-on-primary'
                   : 'border-border-default text-text-secondary hover:text-text-primary'
@@ -185,8 +185,8 @@
             </button>
           {/each}
         </div>
-        <span class="text-3xs ml-auto font-mono tracking-[0.08em] text-text-tertiary"
-          >src/lib/salon/BookingCard.svelte</span
+        <span class="text-3xs text-text-tertiary ml-auto font-mono tracking-[0.08em]"
+          >src/lib/hotel/BookingCard.svelte</span
         >
       </div>
     </div>

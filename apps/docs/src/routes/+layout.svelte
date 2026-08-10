@@ -81,16 +81,17 @@
   // how it will actually read. Those routes are excluded from sitemap and
   // search (sitemap.xml/+server.ts).
   //
-  // /salon is the livery showcase (ported from the former chat-demo app): a
-  // fictional salon site that brings its own masthead, footer and livery
-  // switch — docs chrome around it would break the exhibit.
+  // /hotel is the livery showcase (successor of the salon exhibit, which was
+  // ported from the former chat-demo app): a fictional hotel-group site that
+  // brings its own masthead, footer and house switch — docs chrome around it
+  // would break the exhibit.
   //
   // /test-fixtures/og is the template for static/og.png (captured by
   // `bun run shots`). It is one 1200 × 630 card and nothing else: the sidebar
   // would sit on top of it and land in the image.
   const isLanding = $derived(
     page.url.pathname === '/' ||
-      page.url.pathname === '/salon' ||
+      page.url.pathname === '/hotel' ||
       page.url.pathname === '/test-fixtures/og' ||
       page.url.pathname.startsWith('/test-fixtures/landing-')
   );

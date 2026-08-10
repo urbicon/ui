@@ -26,7 +26,7 @@
     { version: V, createSurface: { surfaceId: 'demo', catalogId: CATALOG, sendDataModel: true } },
     {
       version: V,
-      updateDataModel: { surfaceId: 'demo', value: { stylist: ['jonas'], date: '2026-07-25' } }
+      updateDataModel: { surfaceId: 'demo', value: { house: ['cala'], date: '2026-09-03' } }
     },
     {
       version: V,
@@ -37,33 +37,33 @@
           { id: 'body', component: 'Column', children: ['when', 'load'] },
           { id: 'when', component: 'Section', title: 'When', child: 'when-col' },
           { id: 'when-col', component: 'Column', children: ['date'] },
-          { id: 'date', component: 'DatePicker', label: 'Date', value: { path: '/date' } },
+          { id: 'date', component: 'DatePicker', label: 'Check-in', value: { path: '/date' } },
           {
             id: 'load',
             component: 'Button',
             intent: 'secondary',
             variant: 'outlined',
             child: 'load-label',
-            action: { event: { name: 'showTimes', context: { date: { path: '/date' } } } }
+            action: { event: { name: 'showRooms', context: { date: { path: '/date' } } } }
           },
-          { id: 'load-label', component: 'Text', text: 'Show available times' }
+          { id: 'load-label', component: 'Text', text: 'Show free rooms' }
         ]
       }
     }
   ];
 
-  // What the agent sends back once its tool returned: the slots go into the data
-  // model, and one re-sent container reveals a chooser bound to them.
+  // What the agent sends back once its tool returned: the free rooms go into
+  // the data model, and one re-sent container reveals a chooser bound to them.
   const patch: unknown[] = [
     {
       version: V,
       updateDataModel: {
         surfaceId: 'demo',
-        path: '/slots',
+        path: '/options',
         value: [
-          { label: '09:00', value: '09:00' },
-          { label: '10:30', value: '10:30' },
-          { label: '13:45', value: '13:45' }
+          { label: 'Garden Room — €300', value: 'garden' },
+          { label: 'Corner Room — €360', value: 'corner' },
+          { label: 'Suite — €520', value: 'suite' }
         ]
       }
     },
@@ -76,10 +76,10 @@
           {
             id: 'times',
             component: 'RadioGroup',
-            label: 'Free times',
+            label: 'Free rooms',
             orientation: 'horizontal',
-            value: { path: '/time' },
-            options: { path: '/slots' }
+            value: { path: '/room' },
+            options: { path: '/options' }
           }
         ]
       }
@@ -92,7 +92,7 @@
 
   function handleAction(event: A2uiActionEvent) {
     lastAction = event.name;
-    if (event.name === 'showTimes' && !patched) {
+    if (event.name === 'showRooms' && !patched) {
       // Append immutably — A2UIView applies only the new envelopes, so anything
       // the user already entered survives.
       payload = [...payload, ...patch];
@@ -118,7 +118,7 @@ const system = [
   a2uiSystemPrompt({ catalog: urbiconA2uiCatalogSpec }),
   a2uiDataSchemaSection(BOOKING_SCHEMA),
   a2uiFencedTransportSection(),
-  'Call get_availability before you offer any time slot. Never invent one.'
+  'Call get_hotel_info before you offer any room or rate. Never invent one.'
 ].join('\\n\\n');`;
 
   const recipeCode = `<script lang="ts">
@@ -270,8 +270,8 @@ const system = [
 
   <Section id="preview" title="Live Preview">
     <p class="text-text-secondary mb-4 text-sm">
-      Real envelopes, no network. Pressing <strong>Show available times</strong> appends the patch an
-      agent would send after calling its tool: the slots go into the data model and one re-sent container
+      Real envelopes, no network. Pressing <strong>Show free rooms</strong> appends the patch an agent
+      would send after calling its tool: the free rooms go into the data model and one re-sent container
       reveals a chooser bound to them. Nothing is rebuilt — a value you already picked survives the patch.
     </p>
     <Card variant="outlined">

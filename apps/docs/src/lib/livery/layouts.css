@@ -1,13 +1,14 @@
 /*
  * Layout per livery — the part that is NOT a token.
  *
- * The reference sites do not differ only in colour and type: one centres
- * everything in an empty field, one pins fragments to the edges of a wide grid
- * with nothing in the middle, one is classically symmetrical, one runs its
- * wordmark straight off the margin. That is page structure, and pretending it
- * were a design token would be a lie about where the boundary sits.
+ * The three houses do not differ only in colour and type: one centres
+ * everything under whitewashed arches, one pins fragments across a wide empty
+ * grid, one aligns the whole hero on a single horizon line. That is page
+ * structure, and pretending it were a design token would be a lie about where
+ * the boundary sits. (A `pillar` layout — narrow column, vertical wordmark —
+ * left with its house Mori on 2026-08-10.)
  *
- * So this file is scoped to the salon page's own elements (`[data-salon]`),
+ * So this file is scoped to the hotel page's own elements (`[data-house]`),
  * driven by `data-layout` on the page root. The agent-generated booking
  * surface is deliberately NOT addressed here — it re-skins through tokens and
  * provider defaults alone, which is the claim under test. Where a house's
@@ -18,160 +19,220 @@
 /* Bleed without a scrollbar.
  *
  * Two of these houses deliberately push elements past the text column, and one
- * pushes past the viewport edge. `clip` (not `hidden`) contains that overflow
- * without turning the page root into a scroll container — `hidden` here would
- * break the sticky masthead, since a sticky element needs its nearest scroll
- * container to be the viewport. */
+ * draws a line past the viewport edge. `clip` (not `hidden`) contains that
+ * overflow without turning the page root into a scroll container — `hidden`
+ * here would break the sticky masthead, since a sticky element needs its
+ * nearest scroll container to be the viewport. */
 [data-layout] {
   overflow-x: clip;
 }
 
-/* ── immersive — one field, content adrift in it ───────────────────────────── */
-[data-layout='immersive'] [data-salon='hero'] {
-  min-height: 82vh;
+/* ── The house shot ─────────────────────────────────────────────────────────
+ * One AI-generated architecture image per house, placed between the hero and
+ * the price sheet. The markup is identical for every house; how the image is
+ * FRAMED is part of the layout idiom, so those rules live in the per-layout
+ * blocks below (courtyard crops it to an arch, scatter pins it as a keepsake,
+ * horizon runs it as a panorama). */
+[data-house='figure'] {
+  margin-block: 0 5.5rem;
+}
+[data-house='figure'] img {
+  display: block;
+  width: 100%;
+  height: auto;
+  object-fit: cover;
+}
+
+/* ── courtyard — a symmetric centred column; arches over the section heads ── */
+[data-layout='courtyard'] [data-house='hero'] {
+  min-height: 80vh;
   display: flex;
   flex-direction: column;
   justify-content: center;
   align-items: center;
   text-align: center;
-  gap: 3rem;
+  gap: 2.5rem;
 }
-[data-layout='immersive'] [data-salon='wordmark'] {
-  font-size: clamp(3.5rem, 11vw, 10rem);
-  line-height: 0.95;
+[data-layout='courtyard'] [data-house='wordmark'] {
+  font-size: clamp(2.75rem, 8vw, 6.5rem);
+  line-height: 1.05;
 }
-[data-layout='immersive'] [data-salon='lede'] {
-  max-width: 28rem;
+[data-layout='courtyard'] [data-house='section'] {
+  text-align: center;
 }
-[data-layout='immersive'] [data-salon='section-body'] {
+[data-layout='courtyard'] [data-house='section-body'] {
+  max-width: 40rem;
+  margin-inline: auto;
+}
+/* The arch: a whitewashed opening over every section head — the house's one
+   structural signature, drawn with a border rather than an asset. */
+[data-layout='courtyard'] [data-house='section-head']::before {
+  content: '';
+  display: block;
+  width: 3.5rem;
+  height: 1.75rem;
+  border: 1px solid currentColor;
+  border-bottom: none;
+  border-radius: 999px 999px 0 0;
+  opacity: 0.45;
+  margin: 0 auto 1.25rem;
+}
+/* The house shot IS that arch at architectural size: a half-round opening cut
+   into the page, narrower than the measure — a courtyard is a room, not a
+   screen. The slash syntax makes the top a true half-circle on a 4:3 image
+   (50% of the width = 66.7% of the height) without CSS's overlap reduction
+   collapsing the small bottom radii, which a bare `999px` shorthand would. */
+[data-layout='courtyard'] [data-house='figure'] {
   max-width: 46rem;
   margin-inline: auto;
 }
+[data-layout='courtyard'] [data-house='figure'] img {
+  aspect-ratio: 4 / 3;
+  border-radius: 50% 50% var(--radius-contain, 0.75rem) var(--radius-contain, 0.75rem) / 66.7%
+    66.7% var(--radius-contain, 0.75rem) var(--radius-contain, 0.75rem);
+}
 
 /* ── scatter — no centre; fragments pinned across a wide grid ──────────────── */
-[data-layout='scatter'] [data-salon='hero'] {
-  min-height: 88vh;
+[data-layout='scatter'] [data-house='hero'] {
+  /* Short of a full screen on purpose: the keepsake image must break the fold
+     (review 2026-08-10 — at 88vh the first viewport was voids only, and the
+     page read as empty rather than as sparse). */
+  min-height: 64vh;
   display: grid;
   grid-template-columns: repeat(12, 1fr);
   grid-template-rows: repeat(6, auto);
   align-content: center;
   gap: 1rem 0;
 }
-[data-layout='scatter'] [data-salon='kicker'] {
-  /* Wide enough for the address on one line — at `span 3` the tracking pushed
-     "NEW YORK" onto a second row, which in a layout this sparse looks like a
-     mistake rather than a break. */
+[data-layout='scatter'] [data-house='kicker'] {
+  /* Wide enough for the place line on one row — tracked-out caps push onto a
+     second line at anything narrower, which in a layout this sparse looks
+     like a mistake rather than a break. */
   grid-column: 1 / span 6;
   grid-row: 1;
 }
-[data-layout='scatter'] [data-salon='wordmark'] {
+[data-layout='scatter'] [data-house='wordmark'] {
   grid-column: 1 / span 12;
   grid-row: 3;
-  font-size: clamp(2rem, 5.5vw, 4.5rem);
+  font-size: clamp(2.5rem, 7vw, 6rem);
   line-height: 1;
-  /* The wordmark is a rule of letters across the full measure, not a word. */
+  /* The wordmark is a rule of letters across the full measure, not a word —
+     with four letters (F · I · R · N) the voids between them ARE the layout. */
   display: flex;
   justify-content: space-between;
 }
-[data-layout='scatter'] [data-salon='lede'] {
-  grid-column: 2 / span 4;
-  grid-row: 5;
-  max-width: none;
-}
-[data-layout='scatter'] [data-salon='cta'] {
+[data-layout='scatter'] [data-house='cta'] {
   grid-column: 10 / span 3;
   grid-row: 5;
   justify-self: end;
 }
 /* Lists lose their column and spread over the full width, aligned to nothing. */
-[data-layout='scatter'] [data-salon='list'] > * {
+[data-layout='scatter'] [data-house='list'] > * {
   display: grid;
   grid-template-columns: repeat(12, 1fr);
   align-items: baseline;
 }
-[data-layout='scatter'] [data-salon='list'] > * > :first-child {
+[data-layout='scatter'] [data-house='list'] > * > :first-child {
   grid-column: 1 / span 5;
 }
-[data-layout='scatter'] [data-salon='list'] > * > :last-child {
+[data-layout='scatter'] [data-house='list'] > * > :last-child {
   grid-column: 8 / span 5;
   justify-self: end;
 }
-
-/* ── symmetric — a classical centred column ───────────────────────────────── */
-[data-layout='symmetric'] [data-salon='hero'] {
-  min-height: 78vh;
-  display: flex;
-  flex-direction: column;
-  justify-content: center;
-  align-items: center;
-  text-align: center;
-  gap: 2rem;
+/* A row with a single child (the house facts) is a line, not a pair — without
+   this it lands in the five-column start slot and wraps mid-fact. */
+[data-layout='scatter'] [data-house='list'] > * > :only-child {
+  grid-column: 1 / span 12;
+  justify-self: start;
 }
-[data-layout='symmetric'] [data-salon='wordmark'] {
-  font-size: clamp(2.75rem, 7vw, 6rem);
-  line-height: 1.05;
-}
-[data-layout='symmetric'] [data-salon='lede'] {
-  max-width: 34rem;
-}
-[data-layout='symmetric'] [data-salon='section'] {
-  text-align: center;
-}
-[data-layout='symmetric'] [data-salon='section-body'] {
-  max-width: 38rem;
-  margin-inline: auto;
-}
-/* A rule above each section head, centred — the oldest heading device there is. */
-[data-layout='symmetric'] [data-salon='section-head']::before {
-  content: '';
-  display: block;
-  width: 3rem;
-  height: 1px;
-  background: currentColor;
-  opacity: 0.5;
-  margin: 0 auto 1.5rem;
+/* The house shot is one wide window across the full measure — which is what
+   the house's architecture IS. A first cut pinned it small and off-centre like
+   the hero fragments, and the asymmetry read as unmotivated rather than
+   composed (review 2026-08-10). Hard edges and the hairline passe-partout
+   stay; the 42% focus keeps the window seat and the snow in the band and
+   gives the floor to the crop. The offset stays inside the wrapper's 1.5rem
+   padding. */
+[data-layout='scatter'] [data-house='figure'] img {
+  aspect-ratio: 21 / 10;
+  object-position: center 42%;
+  border-radius: 0;
+  outline: 1px solid var(--color-border-subtle);
+  outline-offset: 0.875rem;
 }
 
-/* ── edge — the wordmark runs past the column and off the margin ───────────── */
-[data-layout='edge'] [data-salon='hero'] {
-  min-height: 92vh;
+/* ── horizon — everything sits on one full-bleed line ──────────────────────── */
+[data-layout='horizon'] [data-house='hero'] {
+  position: relative;
+  /* Deliberately the shortest hero of the three: this ground is one deep
+     even tone, and above ~56vh the evening above the wordmark stopped
+     reading as generous and started reading as nothing there (review
+     2026-08-10, on a tall viewport). The panorama below carries the height
+     the hero gives up. */
+  min-height: 56vh;
   display: flex;
   flex-direction: column;
   justify-content: flex-end;
-  padding-bottom: 3rem;
+  padding-bottom: 5.5rem;
 }
-[data-layout='edge'] [data-salon='wordmark'] {
-  /* Sized to reach the margins and stop there. The first pass ran at 13vw with
-     `nowrap`, which cut "BOND" mid-word — that reads as a bug, not as a
-     decision, and it also blew the document out to 2494px against a 1280px
-     viewport (measured). A wordmark that touches both edges says the same
-     thing without either problem. */
-  font-size: clamp(2.5rem, 9.2vw, 9rem);
-  line-height: 0.86;
-  /* Past the text column but never past the viewport: the letterforms are the
-     picture, so they leave the container — `clip` on the page root (below)
-     keeps them from leaving the document. */
-  margin-inline: -4vw;
-  white-space: nowrap;
+/* The horizon itself: a full-viewport line the hero rests on. It fades out
+   toward the edges the way a real horizon dissolves in haze — and it glows
+   where the ground's radial puts the sun, because both are positioned from
+   the same bottom edge. */
+[data-layout='horizon'] [data-house='hero']::after {
+  content: '';
+  position: absolute;
+  left: 50%;
+  bottom: 5.5rem;
+  width: 100vw;
+  height: 1px;
+  transform: translateX(-50%);
+  background: linear-gradient(
+    90deg,
+    transparent,
+    oklch(0.78 0.09 48 / 0.55) 30%,
+    oklch(0.78 0.09 48 / 0.55) 70%,
+    transparent
+  );
+  pointer-events: none;
 }
-[data-layout='edge'] [data-salon='lede'] {
-  align-self: flex-end;
-  max-width: 24rem;
-  text-align: right;
-  margin-bottom: 2rem;
+/* The wordmark rests ON the line. `duna` is set lowercase italic and has no
+   descenders, so a tight line-height puts its baseline right at the hero's
+   bottom edge — half word, half setting sun. */
+[data-layout='horizon'] [data-house='wordmark'] {
+  font-size: clamp(3.5rem, 12vw, 10.5rem);
+  line-height: 0.78;
+  margin-bottom: 0;
 }
-[data-layout='edge'] [data-salon='kicker'] {
-  align-self: flex-end;
-  margin-bottom: 0.5rem;
+[data-layout='horizon'] [data-house='kicker'] {
+  margin-bottom: auto;
+  padding-top: 4vh;
 }
-[data-layout='edge'] [data-salon='cta'] {
-  align-self: flex-start;
-  margin-top: 2rem;
+/* Below the line — the one interactive element under the horizon. */
+[data-layout='horizon'] [data-house='cta'] {
+  position: absolute;
+  bottom: 2rem;
+  left: 0;
+}
+/* Lists ride the horizon logic: one full-width rule per row, generous air. */
+[data-layout='horizon'] [data-house='list'] > * {
+  padding-block: 1.4rem;
+}
+/* The house shot is the land under the hero's horizon line. 16:9, not a
+   letterbox: the 5:2 first cut lost the dinner table and the terrace to the
+   bottom crop, and the terrace is half the story (review 2026-08-10). The
+   62% focus spends what still goes on the empty sky, not on the ground. */
+[data-layout='horizon'] [data-house='figure'] {
+  margin-top: 2.5rem;
+}
+[data-layout='horizon'] [data-house='figure'] img {
+  aspect-ratio: 16 / 9;
+  object-position: center 62%;
+  border-radius: var(--radius-contain, 0.75rem);
 }
 
 /* Hide the scatter layout's per-letter spread everywhere else: the wordmark is
-   one word in three of the four houses. */
-[data-layout]:not([data-layout='scatter']) [data-salon='wordmark'] [data-letter-gap] {
+   one word in the other two houses. */
+[data-layout]:not([data-layout='scatter']) [data-house='wordmark'] [data-letter-gap] {
   display: none;
 }
 
@@ -179,21 +240,39 @@
   /* Every house falls back to a plain stack on a phone. None of these grids
      survive a 375px viewport, and pretending otherwise would be the kind of
      detail a demo quietly gets wrong. */
-  [data-layout] [data-salon='hero'] {
+  [data-layout] [data-house='hero'] {
     display: flex;
     flex-direction: column;
     align-items: flex-start;
     text-align: left;
-    min-height: 70vh;
+    min-height: 60vh;
+    justify-content: center;
   }
-  [data-layout] [data-salon='wordmark'] {
-    margin-inline: 0;
+  [data-layout] [data-house='wordmark'] {
+    margin: 0;
     white-space: normal;
     display: block;
     font-size: clamp(2.25rem, 12vw, 4rem);
+    line-height: 1.05;
   }
-  [data-layout] [data-salon='lede'] {
-    align-self: flex-start;
-    text-align: left;
+  [data-layout='horizon'] [data-house='cta'] {
+    position: static;
+    margin-top: 2rem;
+  }
+  [data-layout='horizon'] [data-house='kicker'] {
+    margin-bottom: 0;
+    padding-top: 0;
+  }
+  /* The house shot goes full width at its native 4:3 on a phone — a 5:2 band
+     is a letterbox slit at 375px, and the scatter keepsake would shrink to a
+     stamp. The arch and the passe-partout survive the fallback; both scale. */
+  [data-layout] [data-house='figure'] {
+    margin-block: 0 4rem;
+  }
+  [data-layout] [data-house='figure'] img {
+    width: 100%;
+    margin: 0;
+    aspect-ratio: 4 / 3;
+    object-position: center;
   }
 }
