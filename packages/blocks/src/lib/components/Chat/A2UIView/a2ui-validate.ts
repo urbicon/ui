@@ -24,7 +24,12 @@
 import { A2UI_ISSUE_CODES, type A2uiIssueSeverity, type A2uiValidationIssue } from './a2ui.types';
 import { type A2uiCatalogSpec, basicA2uiCatalogSpec, resolveCatalog } from './a2ui-catalog';
 import { cloneData, deleteAtPointer, getAtPointer, setAtPointer } from './a2ui-data';
-import { A2UI_SUPPORTED_VERSIONS, A2UI_SVG_PATH_RE, type A2uiPropSpec } from './a2ui-registry';
+import {
+  A2UI_SUPPORTED_VERSIONS,
+  A2UI_SVG_PATH_RE,
+  type A2uiPropSpec,
+  ownEntry
+} from './a2ui-registry';
 import { type A2uiDataSchema, validateSchemaWrite } from './a2ui-schema';
 
 const PROTO_KEYS: ReadonlySet<string> = new Set(['__proto__', 'constructor', 'prototype']);
@@ -283,6 +288,16 @@ function validateProp(
       if (isPlainObject(value)) return { store: true, issues };
       return mismatch(`"${key}" on ${componentName} must be an object { label?, description? }`);
   }
+
+  // Unreachable for a registry-declared spec — `kind` is a closed union and every
+  // member has a case above, which is why TypeScript accepts the switch as the
+  // whole function body. It became reachable in #134, when a payload-supplied
+  // prop name resolved an INHERITED `Object.prototype` member as its "spec":
+  // `kind` was then undefined, the switch matched nothing, and the function
+  // returned `undefined` into `result.issues` — killing the surface from a prop
+  // called `toString` on an otherwise valid component. `lookupTable` removes the
+  // inheritance that produced it; this keeps the return type honest either way.
+  return mismatch(`"${key}" on ${componentName} has an unrecognised prop kind`);
 }
 
 function validateChildList(
@@ -652,7 +667,7 @@ function validateComponent(
   }
 
   const catalog = surface.catalog;
-  const spec = catalog.registry[componentName];
+  const spec = ownEntry(catalog.registry, componentName);
   if (!spec) {
     if (catalog.unsupportedComponents.has(componentName)) {
       surface.issues.push(
@@ -711,7 +726,7 @@ function validateComponent(
       );
       continue;
     }
-    const propSpec = spec.props[key];
+    const propSpec = ownEntry(spec.props, key);
     if (!propSpec) {
       surface.issues.push(
         issue(
@@ -756,7 +771,7 @@ function validateComponent(
   // owns ChoicePicker chips-fallback and DateTimeInput missing-mode); the engine
   // stays free of catalog-specific branches. Message strings and issue paths are
   // byte-identical to the pre-refactor hardcoded blocks.
-  const check = catalog.componentChecks?.[componentName];
+  const check = ownEntry(catalog.componentChecks, componentName);
   if (check) {
     for (const checkIssue of check({ id, props, surfaceId, base })) surface.issues.push(checkIssue);
   }
@@ -1270,7 +1285,7 @@ export function collectGraphIssues(
     scopePrefix: string | undefined
   ): Array<{ id: string; scope: string | undefined }> => {
     const out: Array<{ id: string; scope: string | undefined }> = [];
-    const spec = registry[comp.component];
+    const spec = ownEntry(registry, comp.component);
     if (!spec) return out;
 
     for (const [key, propSpec] of Object.entries(spec.props)) {
@@ -1382,7 +1397,7 @@ export function collectGraphIssues(
     // undefined (the agent fills it in with a later updateDataModel); a warning
     // once it holds something that is not an option list, because the control
     // then renders empty and the user is stuck with no way to choose.
-    for (const [key, propSpec] of Object.entries(registry[comp.component]?.props ?? {})) {
+    for (const [key, propSpec] of Object.entries(ownEntry(registry, comp.component)?.props ?? {})) {
       if (propSpec.kind !== 'options' || !propSpec.dynamic) continue;
       const bound = comp.props.get(key);
       if (!isPlainObject(bound) || typeof bound.path !== 'string') continue;

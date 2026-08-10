@@ -291,6 +291,63 @@ export const invalidSvgPath: unknown[] = [
   }
 ];
 
+// ── Inherited-member lookups (#134) ──────────────────────────────────────────
+//
+// Distinct from the four `__proto__`/`constructor`/`prototype` vectors above:
+// those are names the validator explicitly rejects. These are ORDINARY
+// `Object.prototype` members — `toString`, `valueOf`, `hasOwnProperty` — used
+// where a table is indexed by a payload-chosen string. They pass every name
+// check because nothing is being polluted; the lookup simply RESOLVES when it
+// should have missed, and the caller then reads `.props` off a function.
+
+/** An inherited member as the component name, with no props. */
+export const inheritedComponentName: unknown[] = [
+  cs('in1'),
+  {
+    version: 'v0.9.1',
+    updateComponents: { surfaceId: 'in1', components: [{ id: 'root', component: 'toString' }] }
+  }
+];
+
+/** The same, carrying a prop — reaches the per-prop lookup one line earlier. */
+export const inheritedComponentNameWithProp: unknown[] = [
+  cs('in2'),
+  {
+    version: 'v0.9.1',
+    updateComponents: {
+      surfaceId: 'in2',
+      components: [{ id: 'root', component: 'valueOf', text: 'x' }]
+    }
+  }
+];
+
+/** An inherited member as the component name, reaching the componentChecks table. */
+export const inheritedComponentCheck: unknown[] = [
+  cs('in3'),
+  {
+    version: 'v0.9.1',
+    updateComponents: {
+      surfaceId: 'in3',
+      components: [{ id: 'root', component: 'hasOwnProperty' }]
+    }
+  }
+];
+
+/**
+ * An inherited member as a PROP name on a perfectly valid component — the
+ * cheapest form of the attack, needing no unknown component name at all.
+ */
+export const inheritedPropKey: unknown[] = [
+  cs('in4'),
+  {
+    version: 'v0.9.1',
+    updateComponents: {
+      surfaceId: 'in4',
+      components: [{ id: 'root', component: 'Text', text: 'hi', toString: 'evil' }]
+    }
+  }
+];
+
 /** An envelope with a valid op AND a smuggled extra top-level key. */
 export const envelopeSmuggling: unknown[] = [
   cs('sm'),

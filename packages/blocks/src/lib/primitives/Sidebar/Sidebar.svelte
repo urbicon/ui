@@ -101,7 +101,70 @@
     }
   }
 
-  const ariaHidden = $derived(!open && (mode === 'collapsible' || isMobile) ? true : undefined);
+  // The panel is out of sight in exactly two situations, and they use different
+  // mechanisms: a closed `collapsible` panel on desktop is 0px wide with its
+  // overflow hidden, and any closed panel on mobile is pushed off-screen by the
+  // transform. Both leave the children mounted.
+  //
+  // `aria-hidden` and `inert` therefore have to agree, and deriving BOTH from
+  // this one expression is what keeps them from drifting apart. Only half of the
+  // pair used to be implemented, which is the `aria-hidden-focus` violation axe
+  // rates serious: a keyboard user tabbed into a zero-width region their screen
+  // reader had been told to ignore, landing on links that were neither
+  // announced nor visible (#138).
+  //
+  // Applied the moment `open` flips, not at the end of the width/transform
+  // transition (--blocks-duration-normal, 250ms with the library stylesheet
+  // loaded, 200ms from the in-component fallback, 1ms under reduced motion). A
+  // panel on its way out has nothing left worth clicking, and the keyboard must
+  // not be able to walk into it meanwhile; the opening direction costs nothing
+  // either way, since lifting `inert` immediately makes the panel usable while
+  // it is still animating in.
+  //
+  // Two places where this props-derived condition and the rendered reality can
+  // part company, both known and neither closable here:
+  //  - `unstyled` drops the tv() classes, and `overflow-hidden` lives there —
+  //    so a 0px-wide panel paints its overflow and is now unreachable as well as
+  //    misrendered. The unstyled contract is that the consumer supplies the
+  //    clipping.
+  //  - Server-side `MediaQuery` reports its fallback, so SSR always renders the
+  //    desktop reading. A closed mobile panel arrives with neither attribute
+  //    until hydration corrects it.
+  const hidden = $derived(!open && (mode === 'collapsible' || isMobile));
+
+  // Making the panel inert while focus is INSIDE it makes the browser drop that
+  // focus to <body> — measured on this component's own docs demo, whose nav
+  // buttons close the panel from within. The keyboard user this fix exists for
+  // would land nowhere, announced by nothing.
+  //
+  // The mobile path already restored focus through `requestClose`, but its
+  // capture is gated on `open && isMobile`, so on the desktop-collapsible path —
+  // the one #138 is actually about — nothing was ever captured. Capturing runs
+  // for every mode that can hide, and the handover happens in `$effect.pre`,
+  // before the DOM update writes `inert`: afterwards the browser has already
+  // evicted focus and `document.activeElement` no longer says where it was.
+  let panel: HTMLElement | null = $state(null);
+  let wasHidden = false;
+
+  $effect.pre(() => {
+    const nowHidden = hidden;
+    const previous = wasHidden;
+    wasHidden = nowHidden;
+    if (!nowHidden || previous || !panel) return;
+    if (!panel.contains(document.activeElement)) return;
+    // Prefer the control that opened the panel; falling back to blur() at least
+    // makes the loss deliberate instead of leaving focus on a dead node.
+    if (previouslyFocused?.isConnected) previouslyFocused.focus();
+    else (document.activeElement as HTMLElement | null)?.blur();
+    previouslyFocused = null;
+  });
+
+  // Capture on the way IN, for every mode that can later hide the panel — the
+  // scroll-lock effect below captures too, but only for the mobile overlay.
+  $effect(() => {
+    if (!open || !(mode === 'collapsible' || isMobile)) return;
+    if (!previouslyFocused) previouslyFocused = document.activeElement as HTMLElement;
+  });
 </script>
 
 <svelte:window onkeydown={handleKeydown} />
@@ -119,6 +182,7 @@
 {/if}
 
 <aside
+  bind:this={panel}
   class={unstyled
     ? [slotClasses?.panel, className].filter(Boolean).join(' ')
     : styles.panel({ class: [slotClasses?.panel, className] })}
@@ -129,7 +193,8 @@
   data-state={open ? 'open' : 'closed'}
   data-side={side}
   data-mode={mode}
-  aria-hidden={ariaHidden}
+  aria-hidden={hidden ? true : undefined}
+  inert={hidden ? true : undefined}
   {...restProps}
 >
   {#if header}

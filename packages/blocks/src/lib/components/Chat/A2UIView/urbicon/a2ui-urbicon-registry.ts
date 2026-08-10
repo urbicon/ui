@@ -24,8 +24,8 @@
  */
 
 import { A2UI_ISSUE_CODES } from '../a2ui.types';
-import type { A2uiCatalogSpec } from '../a2ui-catalog';
-import type { A2uiComponentSpec, A2uiPropSpec } from '../a2ui-registry';
+import type { A2uiCatalogSpec, A2uiComponentCheck } from '../a2ui-catalog';
+import { type A2uiComponentSpec, type A2uiPropSpec, lookupTable } from '../a2ui-registry';
 
 /**
  * Axes shared across many components, defined ONCE so the prompt can document
@@ -135,7 +135,7 @@ const COMMON_PROPS: Record<string, UrbiconPropSpec> = {
 };
 
 function withCommon(props: Record<string, UrbiconPropSpec>): Record<string, UrbiconPropSpec> {
-  return { ...props, ...COMMON_PROPS };
+  return lookupTable({ ...props, ...COMMON_PROPS });
 }
 
 /** An `intent` prop drawn from the six shared intents, with a component-specific default. */
@@ -162,7 +162,7 @@ function sizeProp(description = 'Size of the component.'): UrbiconPropSpec {
   };
 }
 
-export const URBICON_A2UI_REGISTRY: Readonly<Record<string, UrbiconComponentSpec>> = Object.freeze({
+export const URBICON_A2UI_REGISTRY: Readonly<Record<string, UrbiconComponentSpec>> = lookupTable({
   // ── Layout ────────────────────────────────────────────────────────────────
   Column: {
     category: 'Layout',
@@ -879,7 +879,7 @@ export const urbiconA2uiCatalogSpec: A2uiCatalogSpec = {
   unsupportedComponents: UNSUPPORTED_URBICON_A2UI_COMPONENTS,
   ignoredProps: URBICON_A2UI_IGNORED_PROPS,
   flexContainers: new Set(['Row', 'Column']),
-  componentChecks: {
+  componentChecks: lookupTable<A2uiComponentCheck>({
     Text: ({ id, props, surfaceId, base }) => {
       const value = props.get('text');
       if (typeof value === 'string' && MARKDOWN_HINT_RE.test(value)) {
@@ -895,7 +895,7 @@ export const urbiconA2uiCatalogSpec: A2uiCatalogSpec = {
       }
       return [];
     }
-  }
+  })
 };
 
 /** The axis truth this registry couples to — re-exported for the drift test. */

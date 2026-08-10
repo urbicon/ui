@@ -56,7 +56,14 @@ import type { SidebarSlots, SidebarVariants } from './sidebar.variants';
  * ```
  */
 export interface SidebarProps extends Omit<HTMLAttributes<HTMLElement>, 'children'> {
-  /** Controls sidebar visibility. In `responsive` mode (default) this only affects the mobile overlay — on desktop the sidebar is always visible. In `collapsible` mode this controls visibility at all viewports. Supports bind:open. */
+  /** Controls sidebar visibility. In `responsive` mode (default) this only affects the mobile overlay — on desktop the sidebar is always visible. In `collapsible` mode this controls visibility at all viewports. Supports bind:open.
+   *
+   * While the panel is hidden it carries both `aria-hidden` and `inert`, so its
+   * children leave the accessibility tree AND the tab order together — they stay
+   * mounted, so one without the other would strand a keyboard user in an
+   * invisible region. `inert` also suppresses pointer events, applied the moment
+   * `open` flips rather than at the end of the transition. If focus was inside
+   * the panel, it returns to whatever held it when the panel opened. */
   open?: boolean;
 
   /** Controls sidebar behavior across viewports.
