@@ -82,7 +82,7 @@
     "channels:gen": "bun apps/docs/scripts/channels-gen.ts",
     "docs:scaffold": "cd packages/docs-gen && bun src/cli/index.ts scaffold",
     "build:ts": "bun --bun run scripts/build-packages.ts && bun docs:gen:ci",
-    "build": "bun run build:ts && bun --bun --filter='./apps/*' run build",
+    "build": "bun run build:ts && bun --filter='./apps/*' run build",
     "build:packages": "bun --bun --filter='./packages/*' run build",
     "build:docs": "bun --bun --filter='./packages/docs' run build",
     "build:blocks": "bun --bun --filter='./packages/blocks' run build",
