@@ -233,3 +233,126 @@ test.describe('Docs layout geometry', () => {
     expect(wide.tokens.gutter).toBeGreaterThan(narrow.tokens.gutter);
   });
 });
+
+/**
+ * Anchor jumps land clear of the pinned chrome.
+ *
+ * The defect: a table-of-contents link scrolled its section to the very top of
+ * the viewport, where the pinned breadcrumb strip covered the heading. It had
+ * gone unnoticed because the strip's height existed only as a rendered
+ * consequence of its padding — five places in the repo carried a hand-guessed
+ * copy of it and all five disagreed.
+ *
+ * Why this belongs here and not in a unit test: the fix is a chain across three
+ * files that no single one of them can see. `docslayout.variants` declares the
+ * height and derives `--docs-anchor-offset`; the strip's markup turns that
+ * number into its real height with `min-h-`; `section.variants` reads the offset
+ * as `scroll-mt`. Unit tests over the tv configs assert the two ends and cannot
+ * see the middle — delete the `min-h-` and the row collapses to `height: auto`
+ * with every one of them still green. The browser is the only thing that knows
+ * whether the heading is visible, so it is what gets asked.
+ *
+ * The assertion is a relation, never a number: the section's top edge against
+ * the bottom of whatever is actually pinned at that width. Below `lg` that is
+ * the mobile header plus the strip stacked on it, above `lg` the strip alone —
+ * no viewport-specific constant needed, and a retune of either moves both sides
+ * of the comparison together.
+ */
+test.describe('Anchor jumps clear the pinned chrome', () => {
+  for (const [name, width] of Object.entries(WIDTHS)) {
+    test(`${name} (${width}px): every in-page target lands below the pinned chrome`, async ({
+      page
+    }) => {
+      await page.setViewportSize({ width, height: 900 });
+      await page.goto(URL);
+      // `scroll-behavior: smooth` is set site-wide; without this a click has to
+      // be waited out rather than measured, and the wait is what would flake.
+      await page.addStyleTag({ content: 'html, * { scroll-behavior: auto !important; }' });
+
+      const ids: string[] = await page.evaluate(() => {
+        const pinned = [...document.querySelectorAll('body *')].filter((el) => {
+          const p = getComputedStyle(el).position;
+          return p === 'sticky' || p === 'fixed';
+        });
+        return [...document.querySelectorAll('a[href^="#"]')]
+          .map((a) => a.getAttribute('href')!.slice(1))
+          .filter((id, i, all) => id && all.indexOf(id) === i)
+          .filter((id) => {
+            const el = document.getElementById(id);
+            if (!el) return false;
+            // Skip the skip-link's target. It is the content landmark, which
+            // CONTAINS the pinned chrome, so its top edge sits above the strip
+            // by construction — and a skip link moves focus rather than
+            // clearing a heading, so there is nothing here for it to honour.
+            return !pinned.some((p) => el.contains(p));
+          });
+      });
+      expect(ids.length, 'the page under test has in-page anchors').toBeGreaterThan(0);
+
+      for (const id of ids) {
+        await page.evaluate(() => window.scrollTo(0, 0));
+        // A real click on the real anchor: the browser applies `scroll-margin`
+        // itself, so this exercises the contract rather than re-implementing it.
+        // The rail is `display:none` below lg — the default action still fires,
+        // and it is the same jump the strip's popover link performs.
+        await page.evaluate(
+          (i) => document.querySelector<HTMLElement>(`a[href="#${i}"]`)?.click(),
+          id
+        );
+        await page.waitForFunction(() => {
+          const y = window.scrollY;
+          const settled = (window as unknown as { __y?: number }).__y === y;
+          (window as unknown as { __y?: number }).__y = y;
+          return settled;
+        });
+
+        const landing = await page.evaluate((i) => {
+          const target = document.getElementById(i)!;
+          // Whatever is pinned across the top at this width, found by asking
+          // the layout rather than by naming the elements: full-width, stuck to
+          // the upper edge, and actually painted. Below lg two of them stack.
+          const pinned = [...document.querySelectorAll('body *')]
+            .filter((el) => {
+              const cs = getComputedStyle(el);
+              if (cs.position !== 'sticky' && cs.position !== 'fixed') return false;
+              const r = el.getBoundingClientRect();
+              return (
+                r.height > 0 &&
+                r.width > window.innerWidth * 0.5 &&
+                r.top <= window.innerHeight * 0.25 &&
+                cs.visibility !== 'hidden'
+              );
+            })
+            .map((el) => el.getBoundingClientRect().bottom);
+          const maxY = document.documentElement.scrollHeight - window.innerHeight;
+          return {
+            clearance: Math.round(
+              target.getBoundingClientRect().top - (pinned.length ? Math.max(...pinned) : 0)
+            ),
+            // The last section cannot honour the offset — the page runs out of
+            // height to scroll. Nothing is covered there either, so it is not a
+            // failure; excluding it keeps the assertion exact for the rest.
+            atPageEnd: Math.abs(window.scrollY - maxY) < 2
+          };
+        }, id);
+
+        if (landing.atPageEnd) continue;
+        // A range, not `toBe(0)`: the strip's real height carries a subpixel
+        // fraction, so a perfect landing rounds to -0 as often as to 0 — and
+        // `toBe(0)` rejects -0, which is a fact about `Object.is`, not about
+        // whether the reader can see the heading. The two bounds are the whole
+        // contract: nothing of the section hides behind the chrome, and it does
+        // not stop a visible gap below it either (the breathing room is
+        // `Section`'s own `mt-8`, inside the box being measured).
+        expect(
+          landing.clearance,
+          `#${id} landed ${-landing.clearance}px under the pinned chrome`
+        ).toBeGreaterThanOrEqual(0);
+        expect(
+          landing.clearance,
+          `#${id} stopped ${landing.clearance}px below the chrome instead of against it`
+        ).toBeLessThan(4);
+      }
+    });
+  }
+});

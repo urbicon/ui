@@ -169,7 +169,7 @@
         >
           {#each requirements as req (req.key)}
             <li
-              class={unstyled ? undefined : req.met ? 'text-success' : 'text-text-tertiary'}
+              class={unstyled ? undefined : req.met ? 'text-success-text' : 'text-text-tertiary'}
               data-met={req.met || undefined}
             >
               <span class={cls('mr-1 inline-block w-3')}>{req.met ? '\u2713' : '\u2717'}</span>

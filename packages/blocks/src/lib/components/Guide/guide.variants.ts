@@ -95,7 +95,7 @@ export const guideMarkerVariants = tv({
     marker: [
       'inline-flex shrink-0 items-center justify-center align-middle rounded-full',
       'text-text-tertiary transition-colors duration-[var(--blocks-duration-fast)]',
-      'hover:text-primary focus-visible:text-primary',
+      'hover:text-primary-text focus-visible:text-primary-text',
       'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-primary/50',
       'cursor-help'
     ],
@@ -121,7 +121,7 @@ export const guideMarkerVariants = tv({
 export const guideMentionVariants = tv({
   slots: {
     mention: [
-      'm-0 inline cursor-pointer border-0 bg-transparent p-0 text-left font-medium text-primary',
+      'm-0 inline cursor-pointer border-0 bg-transparent p-0 text-left font-medium text-primary-text',
       'underline decoration-dotted decoration-1 underline-offset-2',
       'transition-[text-decoration-color] duration-[var(--blocks-duration-fast)]',
       'hover:decoration-solid focus-visible:decoration-solid',
@@ -139,7 +139,7 @@ export const guideMentionVariants = tv({
 export const guideRefVariants = tv({
   slots: {
     ref: [
-      'm-0 inline cursor-pointer border-0 bg-transparent p-0 text-left font-medium text-primary',
+      'm-0 inline cursor-pointer border-0 bg-transparent p-0 text-left font-medium text-primary-text',
       'underline decoration-solid decoration-1 underline-offset-2',
       'transition-[text-decoration-thickness] duration-[var(--blocks-duration-fast)]',
       'hover:decoration-2 focus-visible:decoration-2',

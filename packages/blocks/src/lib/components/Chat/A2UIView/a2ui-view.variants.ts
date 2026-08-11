@@ -20,7 +20,7 @@ export const a2uiViewVariants = tv({
     /** Inline fault chip standing in for an un-renderable node (unknown/unsupported/dangling). */
     errorChip: [
       'inline-flex max-w-full items-center gap-1.5 rounded-modify',
-      'bg-danger-subtle px-2 py-1 text-xs text-danger'
+      'bg-danger-subtle px-2 py-1 text-xs text-danger-text'
     ],
     /** Icon inside a fault or blocked chip; size comes from the icon prop. */
     errorIcon: 'shrink-0',

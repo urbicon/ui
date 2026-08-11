@@ -180,11 +180,38 @@
 
   /* === PRIMARY INTENT ===
      emphasis flips to light shades in dark mode so `text-*-emphasis`
-     stays legible against dark surfaces. */
+     stays legible against dark surfaces.
+
+     `-text` is the intent in its SECOND job. The base token is tuned as a
+     fill — a surface with `text-on-fill` sitting on it — and read as text on
+     a calm ground it misses AA: measured across all six themes, the base
+     stops bottom out at 4.08:1 (primary, dark, surface-elevated) and 2.05:1
+     (warning, light — yellow on white, reachable by no stop of a yellow
+     ramp). `-text` is the same hue at the nearest ramp stop that clears AA
+     4.5 as text on EVERY reading surface and on the intent's own `-subtle`
+     (an Alert's ground), in both modes, in the worst of the six themes —
+     chosen by measurement (style/contrast.test.ts is the number, not this
+     comment), not taste, so it is the smallest visual step that is safe.
+
+     Two text tiers on purpose, not a duplicate: `-text` still reads as the
+     colour (danger text stays red); `-emphasis` is the near-ink tier for
+     strong statements and doubles as a fill. Same split as Radix's steps
+     11/12. The base token is for fills only — variants-lint errors on
+     `text-<intent>` in a tv() config.
+
+     `neutral` has no `-text` on purpose: its base already clears AA as text
+     on every ground in every theme (measured 5.29/5.20 at worst) because the
+     chassis ramp was text-tuned from the start — a role that would alias the
+     base is the kind of duplicate the ramp/alias revert just paid for.
+
+     primary's dark stop lands at exactly 4.50 in the worst case
+     (rose/own-subtle) — zero headroom, held by the gate; if a rose retune
+     ever trips it, the stop moves to -300, not the bar. */
   --color-primary: light-dark(var(--color-primary-600), var(--color-primary-500));
   --color-primary-hover: light-dark(var(--color-primary-700), var(--color-primary-400));
   --color-primary-active: light-dark(var(--color-primary-800), var(--color-primary-300));
   --color-primary-subtle: light-dark(var(--color-primary-50), var(--color-primary-900));
+  --color-primary-text: light-dark(var(--color-primary-700), var(--color-primary-400));
   --color-primary-emphasis: light-dark(var(--color-primary-900), var(--color-primary-200));
 
   /* === SECONDARY INTENT === */
@@ -192,6 +219,7 @@
   --color-secondary-hover: light-dark(var(--color-secondary-600), var(--color-secondary-300));
   --color-secondary-active: light-dark(var(--color-secondary-700), var(--color-secondary-200));
   --color-secondary-subtle: light-dark(var(--color-secondary-50), var(--color-secondary-900));
+  --color-secondary-text: light-dark(var(--color-secondary-600), var(--color-secondary-400));
   --color-secondary-emphasis: light-dark(var(--color-secondary-800), var(--color-secondary-200));
 
   /* === NEUTRAL INTENT ===
@@ -233,6 +261,7 @@
   --color-success-hover: light-dark(var(--color-success-600), var(--color-success-300));
   --color-success-active: light-dark(var(--color-success-700), var(--color-success-200));
   --color-success-subtle: light-dark(var(--color-success-50), var(--color-success-900));
+  --color-success-text: light-dark(var(--color-success-600), var(--color-success-400));
   --color-success-emphasis: light-dark(var(--color-success-800), var(--color-success-200));
 
   /* === WARNING INTENT === */
@@ -240,6 +269,10 @@
   --color-warning-hover: light-dark(var(--color-warning-600), var(--color-warning-300));
   --color-warning-active: light-dark(var(--color-warning-700), var(--color-warning-200));
   --color-warning-subtle: light-dark(var(--color-warning-50), var(--color-warning-900));
+  /* warning's light text stop is -800: the only rung of a yellow ramp that
+     reads on white. It lands amber-brown — that is not a compromise but what
+     every AA-clean system does with yellow text (the fill stays yellow). */
+  --color-warning-text: light-dark(var(--color-warning-800), var(--color-warning-400));
   --color-warning-emphasis: light-dark(var(--color-warning-800), var(--color-warning-200));
 
   /* === DANGER INTENT === */
@@ -247,6 +280,10 @@
   --color-danger-hover: light-dark(var(--color-danger-600), var(--color-danger-300));
   --color-danger-active: light-dark(var(--color-danger-700), var(--color-danger-200));
   --color-danger-subtle: light-dark(var(--color-danger-50), var(--color-danger-900));
+  /* danger's light stop IS the base stop — red already reads on paper. Dark
+     needs -300: sRGB red is so dim that even -400 misses on the lightened
+     elevated/subtle panels (4.25 at worst). */
+  --color-danger-text: light-dark(var(--color-danger-500), var(--color-danger-300));
   --color-danger-emphasis: light-dark(var(--color-danger-800), var(--color-danger-200));
 
   /* === INFO INTENT === */
@@ -254,6 +291,7 @@
   --color-info-hover: light-dark(var(--color-info-600), var(--color-info-300));
   --color-info-active: light-dark(var(--color-info-700), var(--color-info-200));
   --color-info-subtle: light-dark(var(--color-info-50), var(--color-info-900));
+  --color-info-text: light-dark(var(--color-info-600), var(--color-info-400));
   --color-info-emphasis: light-dark(var(--color-info-800), var(--color-info-200));
 
   /* === CHART CATEGORICAL PALETTE ===
@@ -462,9 +500,16 @@ body {
     --color-border-default: light-dark(var(--color-neutral-900), var(--color-neutral-900));
     --color-interactive-focus: light-dark(var(--color-neutral-900), var(--color-neutral-900));
     --color-secondary: light-dark(var(--color-secondary-700), var(--color-secondary-700));
+    /* The dark branch was -700 like the light one, which is backwards: on the
+       dark surfaces a DARKER neutral means LESS contrast — text-neutral
+       measured 1.49:1 in the mode that asked for more (found by adversarial
+       review of the intent-text-role change; the normal-cascade gate strips
+       @media blocks by design and could not see it). -200 steps one rung
+       lighter than the normal dark value's -400-derived resting tone, the
+       same direction every other override in this block takes. */
     --color-neutral: light-dark(
       oklch(from var(--color-warm-neutral-700) l c var(--neutral-chrome-hue)),
-      oklch(from var(--color-warm-neutral-700) l c var(--neutral-chrome-hue))
+      oklch(from var(--color-warm-neutral-200) l c var(--neutral-chrome-hue))
     );
   }
 }

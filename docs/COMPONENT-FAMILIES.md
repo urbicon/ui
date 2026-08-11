@@ -227,9 +227,9 @@ Four surfaces render option/item rows inside a floating panel: `Select` and `Com
 | | Form (Select / Combobox) | Action (Menu) | CommandPalette |
 |---|---|---|---|
 | Row typography | one step under the trigger: `text-xs/sm/sm/base/lg` (xs–xl) — options are data, quieter than the control | the Button ladder: `text-sm/base/lg` (sm–lg) — items read like the Button that opened them | `text-sm` fixed, rows `text-text-secondary` |
-| Selected | `bg-surface-selected font-medium` + trailing `text-primary` check (space reserved, opacity fade — no layout shift) | none — items dispatch, nothing holds a value | none — actions run and dismiss |
+| Selected | `bg-surface-selected font-medium` + trailing `text-primary-text` check (space reserved, opacity fade — no layout shift) | none — items dispatch, nothing holds a value | none — actions run and dismiss |
 | Header voice | uppercase `text-xs font-medium tracking-wider text-text-tertiary` | plain `text-xs font-medium text-text-tertiary` — sections label actions, not data groups | uppercase `text-2xs font-semibold text-text-quaternary` — micro command voice |
-| Keyboard cursor | `bg-surface-hover` via `aria-activedescendant` | `bg-surface-hover` + real roving focus (`focus-visible` ring) | `bg-primary-subtle text-primary` — "Enter runs this" |
+| Keyboard cursor | `bg-surface-hover` via `aria-activedescendant` | `bg-surface-hover` + real roving focus (`focus-visible` ring) | `bg-primary-subtle text-primary-text` — "Enter runs this" |
 | Empty/loading rows | `text-sm text-text-tertiary` centered, `py-4` | n/a (static action lists) | same signature, `py-8` (larger surface) |
 
 ---

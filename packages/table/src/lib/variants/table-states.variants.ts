@@ -62,13 +62,13 @@ export const emptyStateVariants = tv({
         icon: 'text-text-tertiary'
       },
       search: {
-        icon: 'text-primary'
+        icon: 'text-primary-text'
       },
       filter: {
         icon: 'text-filter'
       },
       error: {
-        icon: 'text-danger'
+        icon: 'text-danger-text'
       }
     },
 
@@ -144,7 +144,7 @@ export const loadingStateVariants = tv({
 export const errorStateVariants = tv({
   slots: {
     container: ['flex flex-col items-center justify-center', 'text-center'],
-    icon: ['text-danger'],
+    icon: ['text-danger-text'],
     iconSvg: ['stroke-[1.5]'],
     content: ['flex flex-col items-center gap-4 w-full'],
     title: ['font-semibold text-text-primary', 'leading-tight'],
@@ -206,7 +206,7 @@ export const errorStateVariants = tv({
 
     severity: {
       error: {
-        icon: 'text-danger',
+        icon: 'text-danger-text',
         retryButton: 'bg-danger hover:bg-danger-hover'
       },
       warning: {
@@ -214,7 +214,7 @@ export const errorStateVariants = tv({
         retryButton: 'bg-warning text-text-on-warning hover:bg-warning-hover'
       },
       info: {
-        icon: 'text-primary',
+        icon: 'text-primary-text',
         retryButton: 'bg-primary hover:bg-primary-hover'
       }
     },
@@ -564,7 +564,7 @@ export const mobileListVariants = tv({
         state: 'text-text-secondary'
       },
       danger: {
-        state: 'text-danger'
+        state: 'text-danger-text'
       }
     }
   },

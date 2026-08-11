@@ -71,7 +71,7 @@ export const tabVariants = tv({
         trigger: [
           'px-4 py-2 text-text-tertiary',
           'hover:text-text-primary',
-          'data-[state=active]:text-primary'
+          'data-[state=active]:text-primary-text'
         ],
         indicator: 'h-0.5'
       },
@@ -83,7 +83,7 @@ export const tabVariants = tv({
           // hover is the fill's own step — `surface-hover` resolves to the same
           // value as the fill in light mode and was a no-op there.
           'hover:text-text-primary hover:bg-surface-interactive-hover',
-          'data-[state=active]:bg-surface-base data-[state=active]:text-primary',
+          'data-[state=active]:bg-surface-base data-[state=active]:text-primary-text',
           'data-[state=active]:shadow-[var(--blocks-shadow-sm)]'
         ]
       },
@@ -93,7 +93,7 @@ export const tabVariants = tv({
           'px-4 py-2 border border-b-0 -mb-px',
           'text-text-tertiary border-transparent',
           'hover:text-text-primary hover:bg-surface-hover',
-          'data-[state=active]:bg-surface-base data-[state=active]:text-primary',
+          'data-[state=active]:bg-surface-base data-[state=active]:text-primary-text',
           'data-[state=active]:border-border-subtle data-[state=active]:border-b-surface-base'
         ]
       },

@@ -112,17 +112,17 @@ export const alertVariants = tv({
     {
       intent: 'primary',
       variant: 'inline',
-      class: { base: 'border-l-primary text-text-primary', icon: 'text-primary' }
+      class: { base: 'border-l-primary text-text-primary', icon: 'text-primary-text' }
     },
     {
       intent: 'info',
       variant: 'inline',
-      class: { base: 'border-l-info text-text-primary', icon: 'text-info' }
+      class: { base: 'border-l-info text-text-primary', icon: 'text-info-text' }
     },
     {
       intent: 'success',
       variant: 'inline',
-      class: { base: 'border-l-success text-text-primary', icon: 'text-success' }
+      class: { base: 'border-l-success text-text-primary', icon: 'text-success-text' }
     },
     {
       intent: 'warning',
@@ -132,7 +132,7 @@ export const alertVariants = tv({
     {
       intent: 'danger',
       variant: 'inline',
-      class: { base: 'border-l-danger text-text-primary', icon: 'text-danger' }
+      class: { base: 'border-l-danger text-text-primary', icon: 'text-danger-text' }
     },
     {
       intent: 'neutral',

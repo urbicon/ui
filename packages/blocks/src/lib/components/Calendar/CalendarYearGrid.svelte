@@ -124,7 +124,8 @@
             onclick={() => handleMonthClick(mini.month)}
             aria-label="{mini.label} {ctx.displayedYear}"
           >
-            <span class="{slot('yearMonthTitle')} {mini.isCurrent ? 'text-primary font-bold' : ''}"
+            <span
+              class="{slot('yearMonthTitle')} {mini.isCurrent ? 'text-primary-text font-bold' : ''}"
               >{mini.label}</span
             >
             <div class="grid w-full grid-cols-7 gap-px">

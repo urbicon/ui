@@ -136,10 +136,10 @@ export const numberCellVariants = tv({
         number: 'text-text-primary'
       },
       positive: {
-        number: 'text-success'
+        number: 'text-success-text'
       },
       negative: {
-        number: 'text-danger'
+        number: 'text-danger-text'
       },
       neutral: {
         number: 'text-text-secondary'
@@ -194,7 +194,7 @@ export const dateCellVariants = tv({
 
     interactive: {
       true: {
-        container: 'cursor-pointer hover:text-primary',
+        container: 'cursor-pointer hover:text-primary-text',
         date: 'underline decoration-dotted decoration-1 underline-offset-2'
       },
       false: {}
@@ -321,7 +321,7 @@ export const userCellVariants = tv({
     clickable: {
       true: {
         container: 'cursor-pointer hover:bg-surface-hover rounded-contain',
-        name: 'hover:text-primary'
+        name: 'hover:text-primary-text'
       },
       false: {}
     }
@@ -410,7 +410,12 @@ export const linkCellVariants = tv({
     container: CELL_BASE,
     link: [
       'inline-flex items-center gap-1.5',
-      'text-primary hover:text-primary-hover',
+      // Rest and hover must differ, and `-hover` no longer can: `-text`
+      // resolves to the SAME stops as `-hover` (700/400 — semantic.css), so
+      // `hover:text-primary-hover` became a no-op in both modes. `-emphasis`
+      // is the next tier and the pairing StreamingMarkdown and TypesReference
+      // links already use.
+      'text-primary-text hover:text-primary-emphasis',
       'underline decoration-1 underline-offset-2',
       'transition-colors duration-[var(--blocks-duration-fast)]',
       'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2'
@@ -441,7 +446,7 @@ export const linkCellVariants = tv({
     variant: {
       default: {},
       subtle: {
-        link: 'text-text-primary hover:text-primary no-underline hover:underline'
+        link: 'text-text-primary hover:text-primary-text no-underline hover:underline'
       },
       external: {
         icon: 'opacity-60'
@@ -539,7 +544,7 @@ export const copyButtonVariants = tv({
     container: [...CELL_BASE],
     button: [],
     text: ['text-xs font-medium leading-none', 'hidden sm:inline'],
-    textSuccess: ['text-xs font-medium leading-none text-success', 'hidden sm:inline'],
+    textSuccess: ['text-xs font-medium leading-none text-success-text', 'hidden sm:inline'],
     icon: ['w-4 h-4 flex-shrink-0']
   },
   variants: {

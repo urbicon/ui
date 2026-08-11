@@ -229,7 +229,7 @@
           toast region owns the announcement. The spinner follows the toast intent
           like every other status glyph: with no explicit colour it inherits
           `text-current` from the intent-coloured `slot('icon', intent)` span
-          (success → text-success, neutral → text-text-secondary, …), so a
+          (success → text-success-text, neutral → text-text-secondary, …), so a
           success/danger loading toast no longer shows a brand-primary spinner.
         -->
         <span class={slot('icon', toast.intent)}><CoreSpinner size="sm" /></span>

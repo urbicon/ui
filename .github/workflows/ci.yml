@@ -39,6 +39,10 @@ jobs:
       # for the fold semantics ("axis order is semantic"), where a
       # mis-ordered axis strips classes without any runtime error.
       - run: bun run variants:lint
+      # The livery shim re-declares every ramp-derived semantic token; it is
+      # generated from semantic.css and went stale twice in one week when that
+      # file gained tokens. Fails when semantic.css changed without a regen.
+      - run: bun run livery:check
       # Cross-component import guard: public blocks components must reach for
       # the behaviour-only cores in src/lib/internal/core instead of importing
       # each other. Unknown edges AND stale allowlist entries both fail.

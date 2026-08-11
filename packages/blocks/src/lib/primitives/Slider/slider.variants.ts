@@ -116,12 +116,12 @@ export const sliderVariants = tv({
     // Declared BEFORE `error` so the error tone wins the message-color
     // bucket in every call shape — `{ error: true }` alone must read red.
     messageType: {
-      error: { message: 'text-danger' },
+      error: { message: 'text-danger-text' },
       helper: { message: 'text-text-tertiary' }
     },
     error: {
       true: {
-        message: 'text-danger',
+        message: 'text-danger-text',
         // The control itself carries the fault, not just the sentence under it.
         // A slider has no unselected state to paint danger — it always holds a
         // value — so the ring rule for selected boolean controls
@@ -144,22 +144,22 @@ export const sliderVariants = tv({
       insideRecommended: {
         range: 'bg-success',
         thumb: 'border-success focus-visible:ring-success/50',
-        rangeStatus: 'text-success'
+        rangeStatus: 'text-success-text'
       },
       insideValidOnly: {
         range: 'bg-warning',
         thumb: 'border-warning focus-visible:ring-warning/50',
-        rangeStatus: 'text-warning'
+        rangeStatus: 'text-warning-text'
       },
       outsideValidDanger: {
         range: 'bg-danger',
         thumb: 'border-danger focus-visible:ring-danger/50',
-        rangeStatus: 'text-danger'
+        rangeStatus: 'text-danger-text'
       },
       outsideValidWarning: {
         range: 'bg-warning',
         thumb: 'border-warning focus-visible:ring-warning/50',
-        rangeStatus: 'text-warning'
+        rangeStatus: 'text-warning-text'
       }
     }
   },

@@ -113,10 +113,10 @@ export const FIELD_LABEL = 'block font-medium text-text-secondary text-sm';
 export const FIELD_LABEL_DISABLED = 'text-text-disabled';
 
 /** Required-marker asterisk appended after the label. */
-export const FIELD_REQUIRED_LABEL = "after:content-['*'] after:ml-1 after:text-danger";
+export const FIELD_REQUIRED_LABEL = "after:content-['*'] after:ml-1 after:text-danger-text";
 
 /** The two `messageType` message tones (error wins the fold when both apply). */
 export const FIELD_MESSAGE_TONES = {
-  error: 'text-danger',
+  error: 'text-danger-text',
   helper: 'text-text-tertiary'
 } as const;

@@ -441,7 +441,23 @@ Tokens switch light and dark automatically:
   </div>
 </nav>
 
-<div class="mx-auto max-w-7xl px-4 pb-12 sm:px-6 lg:px-8">
+<!-- `--docs-anchor-offset` is the same contract DocsLayout publishes on its
+     pages: how far below the viewport top a chapter jump has to land to clear
+     what is pinned above it. This page builds its own shell, so it declares its
+     own — the register's height on top of the mobile header. The chapters' own
+     `pt-14` supplies the breathing room, which is why nothing is added here.
+     It used to be this calc() written out at all eight chapters.
+
+     2.5rem is MEASURED, not derived: the register declares no height of its own
+     (its links' `py-2.5` and the 11.5px line make it), so this number can only
+     be taken from the rendered strip — 40.25px at 1400px, the odd quarter being
+     its border. The eight copies said 3.25rem, which was 11.75px of nothing
+     above every chapter heading; deduplicating them carried the wrong value
+     forward until it was checked in the browser. Re-measure it if the register's
+     type or padding changes. -->
+<div
+  class="mx-auto max-w-7xl px-4 pb-12 [--docs-anchor-offset:calc(var(--sidebar-layout-header-h)+2.5rem)] sm:px-6 lg:px-8"
+>
   {#snippet arrow()}
     <ArrowUpRightIcon
       class="text-text-quaternary h-3.5 w-3.5 -translate-x-1 opacity-0 transition-all duration-200 group-hover:translate-x-0 group-hover:opacity-100"
@@ -478,7 +494,7 @@ Tokens switch light and dark automatically:
     id="form"
     data-chapter
     aria-labelledby="form-title"
-    class="scroll-mt-[calc(var(--sidebar-layout-header-h)+3.25rem)]"
+    class="scroll-mt-[var(--docs-anchor-offset,0rem)]"
   >
     {@render chapterHead(0)}
     <div class={grid}>
@@ -759,7 +775,7 @@ Tokens switch light and dark automatically:
     id="actions"
     data-chapter
     aria-labelledby="actions-title"
-    class="scroll-mt-[calc(var(--sidebar-layout-header-h)+3.25rem)]"
+    class="scroll-mt-[var(--docs-anchor-offset,0rem)]"
   >
     {@render chapterHead(1)}
     <div class={grid}>
@@ -931,7 +947,7 @@ Tokens switch light and dark automatically:
     id="overlay"
     data-chapter
     aria-labelledby="overlay-title"
-    class="scroll-mt-[calc(var(--sidebar-layout-header-h)+3.25rem)]"
+    class="scroll-mt-[var(--docs-anchor-offset,0rem)]"
   >
     {@render chapterHead(2)}
     <div class={grid}>
@@ -1061,7 +1077,7 @@ Tokens switch light and dark automatically:
     id="feedback"
     data-chapter
     aria-labelledby="feedback-title"
-    class="scroll-mt-[calc(var(--sidebar-layout-header-h)+3.25rem)]"
+    class="scroll-mt-[var(--docs-anchor-offset,0rem)]"
   >
     {@render chapterHead(3)}
     <div class={grid}>
@@ -1207,7 +1223,7 @@ Tokens switch light and dark automatically:
     id="layout"
     data-chapter
     aria-labelledby="layout-title"
-    class="scroll-mt-[calc(var(--sidebar-layout-header-h)+3.25rem)]"
+    class="scroll-mt-[var(--docs-anchor-offset,0rem)]"
   >
     {@render chapterHead(4)}
     <div class={grid}>
@@ -1410,7 +1426,7 @@ Tokens switch light and dark automatically:
     id="navigation"
     data-chapter
     aria-labelledby="navigation-title"
-    class="scroll-mt-[calc(var(--sidebar-layout-header-h)+3.25rem)]"
+    class="scroll-mt-[var(--docs-anchor-offset,0rem)]"
   >
     {@render chapterHead(5)}
     <div class={grid}>
@@ -1538,7 +1554,7 @@ Tokens switch light and dark automatically:
     id="display"
     data-chapter
     aria-labelledby="display-title"
-    class="scroll-mt-[calc(var(--sidebar-layout-header-h)+3.25rem)]"
+    class="scroll-mt-[var(--docs-anchor-offset,0rem)]"
   >
     {@render chapterHead(6)}
     <div class={grid}>
@@ -1838,7 +1854,7 @@ Tokens switch light and dark automatically:
     id="ai"
     data-chapter
     aria-labelledby="ai-title"
-    class="scroll-mt-[calc(var(--sidebar-layout-header-h)+3.25rem)]"
+    class="scroll-mt-[var(--docs-anchor-offset,0rem)]"
   >
     {@render chapterHead(7)}
     <div class={grid}>

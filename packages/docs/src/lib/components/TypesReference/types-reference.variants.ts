@@ -37,7 +37,7 @@ export const typesReferenceVariants = tv({
     moreValues: ['text-text-tertiary text-2xs'],
     usedBySection: ['text-text-secondary mt-2'],
     usedByLink: [
-      'text-primary hover:text-primary-emphasis',
+      'text-primary-text hover:text-primary-emphasis',
       'hover:underline transition-colors',
       'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40 focus-visible:rounded-modify'
     ],
@@ -50,7 +50,7 @@ export const typesReferenceVariants = tv({
       'bg-surface-quiet px-1.5 py-0.5 font-mono leading-none text-text-secondary'
     ],
     seeAlsoLink: [
-      'text-primary underline decoration-primary/40 hover:decoration-primary',
+      'text-primary-text underline decoration-primary/40 hover:decoration-primary',
       'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40 focus-visible:rounded-modify'
     ],
     // Empty state when the "only referenced" filter matches nothing — was an

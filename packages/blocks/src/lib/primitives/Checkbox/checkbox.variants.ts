@@ -94,7 +94,7 @@ export const checkboxVariants = tv({
     },
     error: {
       true: {
-        message: 'text-danger'
+        message: 'text-danger-text'
       }
     }
   },
