@@ -48,7 +48,11 @@ describe('the --docs-* catalogue on /customization/rooms-theme', () => {
   });
 
   it('has a row for every token rooms-docs.css declares', () => {
-    expect(tokens.filter((t) => !rows.has(t.name)).map((t) => t.name)).toEqual([]);
+    expect(
+      tokens.filter((t) => !rows.has(t.name)).map((t) => t.name),
+      'a new base token needs a catalogue row — or, if it is plumbing a reader ' +
+        'never reaches for, an exception listed here with the reason'
+    ).toEqual([]);
   });
 
   it('invents no token rooms-docs.css does not declare', () => {
@@ -61,19 +65,47 @@ describe('the --docs-* catalogue on /customization/rooms-theme', () => {
     for (const { name, value } of tokens) {
       const row = rows.get(name);
       if (!row) continue;
-      const pair = /^light-dark\(\s*(#[0-9a-f]{3,8})\s*,\s*(#[0-9a-f]{3,8})\s*\)$/i.exec(value);
+      const effective = resolveWithinNamespace(value);
+      const pair = /^light-dark\(\s*(#[0-9a-f]{3,8})\s*,\s*(#[0-9a-f]{3,8})\s*\)$/i.exec(effective);
       if (pair) {
         // Printed as `light · dark`; the separator is the page's, the hexes are
         // the file's.
         if (!row.includes(pair[1]) || !row.includes(pair[2]))
-          wrong.push(`${name}: ${row} ≠ ${value}`);
+          wrong.push(`${name}: ${row} ≠ ${effective}`);
         continue;
       }
-      if (value.startsWith('var(')) {
-        if (row.trim() !== value) wrong.push(`${name}: ${row} ≠ ${value}`);
+      if (effective.startsWith('var(')) {
+        // An alias pointing OUT of the namespace — at a library token. There the
+        // indirection is the statement ("this couples to --color-primary"), so
+        // the row has to name it.
+        if (row.trim() !== effective) wrong.push(`${name}: ${row} ≠ ${effective}`);
       }
       // Anything else (rgb() alpha pairs, color-mix) is paraphrased on purpose.
     }
     expect(wrong).toEqual([]);
   });
 });
+
+/**
+ * Follows a `var(--docs-…)` chain while it stays inside the namespace, and
+ * returns what the token ultimately resolves to.
+ *
+ * Without this, a token refactored into an alias — `--docs-soft` becoming
+ * `var(--docs-soft-paper)` — would force the catalogue to print the indirection
+ * instead of the colour, which is the one thing a reader of a colour catalogue
+ * does not want. The gate should hold the page to the truth, not to the file's
+ * current shape.
+ */
+function resolveWithinNamespace(value: string): string {
+  const byName = new Map(tokens.map((t) => [t.name, t.value]));
+  const seen = new Set<string>();
+  let current = value;
+  for (;;) {
+    const alias = /^var\(\s*(--[a-z0-9-]+)\s*\)$/.exec(current);
+    if (!alias || seen.has(alias[1])) return current;
+    const target = byName.get(alias[1]);
+    if (target === undefined) return current;
+    seen.add(alias[1]);
+    current = target;
+  }
+}
