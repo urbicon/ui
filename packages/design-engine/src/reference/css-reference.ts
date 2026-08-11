@@ -160,25 +160,29 @@ Each intent has these variants (example: \`primary\`):
 
 | CSS Variable | Tailwind Utility | Purpose | Light | Dark |
 |---|---|---|---|---|
-| \`--color-primary\` | \`bg-primary\` / \`text-primary\` | Base intent color | primary-600 | primary-500 |
+| \`--color-primary\` | \`bg-primary\` | Base intent color — a FILL, never a text colour | primary-600 | primary-500 |
 | \`--color-primary-hover\` | \`bg-primary-hover\` | Hover state | primary-700 | primary-400 |
 | \`--color-primary-active\` | \`bg-primary-active\` | Pressed state | primary-800 | — |
 | \`--color-primary-subtle\` | \`bg-primary-subtle\` | Soft background | primary-50 | primary-900 |
-| \`--color-primary-emphasis\` | \`bg-primary-emphasis\` / \`text-primary-emphasis\` | Intent text on a surface | primary-900 | primary-200 |
+| \`--color-primary-text\` | \`text-primary-text\` | Intent-coloured text on a surface (AA-clean) | primary-700 | primary-400 |
+| \`--color-primary-emphasis\` | \`bg-primary-emphasis\` / \`text-primary-emphasis\` | Near-ink text tier / strong fill | primary-900 | primary-200 |
 
-Same pattern applies to: \`success-*\`, \`warning-*\`, \`danger-*\`, \`secondary-*\`, \`neutral-*\`.
+Same pattern applies to: \`success-*\`, \`warning-*\`, \`danger-*\`, \`secondary-*\`, \`neutral-*\`
+— except that \`neutral\` has no \`-text\` role: its base already clears AA as text on
+every ground (the chassis ramp is text-tuned), so \`text-neutral\` is fine as it is.
 
-**Intent text on a surface takes \`-emphasis\`, not the base.** \`text-primary\` is tuned
-as a *fill* colour and only just clears AA as text: measured in dark mode it runs
-4.07:1 on \`surface-elevated\` (fails), 4.54:1 on \`surface-quiet\` and 4.75:1 on
-\`surface-base\` — 0.25 of headroom across the whole surface ladder, so which side of
-the threshold a screen lands on is decided by the card variant it happens to sit in.
-\`text-primary-emphasis\` is the rung meant for this and clears it with room (9.77:1 on
-\`surface-elevated\`); it flips to a light shade in dark mode for exactly that reason.
-Keep \`text-primary\` for what it is good at — a link or a label that carries the brand
-on the base surface. (Not to be confused with \`text-text-primary\`, the body-copy token.)
+**Intent-coloured text takes \`-text\`, never the base.** The base token is tuned as a
+*fill* — a surface with \`text-text-on-fill\` sitting on it — and as text on a calm
+ground it misses AA: measured across all six themes the base stops bottom out at
+4.08:1 (primary, dark, \`surface-elevated\`) and 2.05:1 (warning, light — yellow on
+white). \`text-primary-text\` is the same hue at the nearest stop that clears AA 4.5 on
+every reading surface AND on the intent's own \`-subtle\` (an Alert's ground), in both
+modes, in every shipped theme — held by the library's contrast gate. Two text tiers on
+purpose, mirroring Radix's steps 11/12: \`-text\` still reads as the colour (danger text
+stays red); \`-emphasis\` is the near-ink tier for strong statements and doubles as a
+fill. (Not to be confused with \`text-text-primary\`, the body-copy token.)
 
-\`info-*\` has the identical shape (\`--color-info\`, \`-hover\`, \`-active\`, \`-subtle\`, \`-emphasis\` → \`bg-info\`, \`text-info\`, \`bg-info-subtle\`, …) — the status/feedback blue (hue 220) behind Alert and Toast's info state, \`--color-feedback-info\`, and \`--color-chart-5\`. It is NOT in the global \`ComponentIntent\` union above: only the feedback components (Alert, Toast) accept \`intent="info"\`, because only there does "informational" name a status. Everything else — Button, Badge, Tooltip, … — takes the six-value union, so reach for the \`bg-info\`/\`text-info\` utilities rather than \`intent="info"\`. (Tooltip carried \`info\` until v6.42; it rendered one hue step from \`primary\` and implied a distinction it could not show.)
+\`info-*\` has the identical shape (\`--color-info\`, \`-hover\`, \`-active\`, \`-subtle\`, \`-text\`, \`-emphasis\` → \`bg-info\`, \`text-info-text\`, \`bg-info-subtle\`, …) — the status/feedback blue (hue 220) behind Alert and Toast's info state, \`--color-feedback-info\`, and \`--color-chart-5\`. It is NOT in the global \`ComponentIntent\` union above: only the feedback components (Alert, Toast) accept \`intent="info"\`, because only there does "informational" name a status. Everything else — Button, Badge, Tooltip, … — takes the six-value union, so reach for the \`bg-info\`/\`text-info-text\` utilities rather than \`intent="info"\`. (Tooltip carried \`info\` until v6.42; it rendered one hue step from \`primary\` and implied a distinction it could not show.)
 
 ## Labels on Filled Intents
 
