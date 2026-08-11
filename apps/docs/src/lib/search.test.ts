@@ -20,10 +20,10 @@ const record = (over: Partial<SearchRecord>): SearchRecord => ({
 /** Shaped like the real index: prose from the HTML, API surface from `api.ts`. */
 const index: SearchRecord[] = [
   record({
-    r: '/customization/tokens',
+    r: '/customization/themes',
     a: 'dark-mode',
-    t: 'Dark Mode Support',
-    p: 'Tokens',
+    t: 'Dark Mode',
+    p: 'Themes',
     b: 'Design tokens automatically adapt to dark mode using light-dark().'
   }),
   record({
@@ -128,7 +128,7 @@ describe('searchRecords', () => {
 
   it('ranks a title hit above a body hit', () => {
     const [top] = searchRecords(index, 'dark mode');
-    expect(top.href).toBe('/customization/tokens#dark-mode');
+    expect(top.href).toBe('/customization/themes#dark-mode');
   });
 
   // Regression: one incidental name hit (Avatar has a `ring` prop) must not

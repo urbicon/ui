@@ -12,7 +12,7 @@
     { id: 'what', title: 'What it is' },
     { id: 'rooms', title: 'The Rooms' },
     { id: 'tokens', title: 'Token Catalogue' },
-    { id: 'activation', title: 'Activation' },
+    { id: 'activation', title: 'How It Is Wired Up' },
     { id: 'modes', title: 'Light & Dark' },
     { id: 'override', title: 'Override Recipes' }
   ];
@@ -90,12 +90,12 @@ export const ROUTE_CHANNEL = {
 
 <SeoMeta
   title="Color Rooms Theme"
-  description="Color Rooms — the theme that powers the Urbicon UI docs site. Schibsted Grotesk on warm cream paper, a per-family room accent that repaints every real component, and full-width colour-field headers. What it is, its tokens, how to activate or override it, and how Light/Dark works inside it."
+  description="Case study: Color Rooms, the theme that powers the Urbicon UI docs site. A scoped, token-only overlay with a per-family room accent, light/dark via light-dark()."
 />
 
 <DocsPageLayout
   title="Color Rooms"
-  description="A token-only overlay on top of the Urbicon UI library that drives the look of this docs site — Schibsted Grotesk on warm cream paper, with the accent set to the component family the page documents. Activated via a single root class; everything else is CSS custom properties."
+  description="A case study in scoped theming: the token-only overlay that drives the look of this docs site. Schibsted Grotesk on warm cream paper, with the accent set to the component family the page documents. Activated via a single root class; everything else is CSS custom properties."
   {navigation}
   showToc
   breadcrumbs={[{ label: 'Customization', href: resolve('/customization') }]}
@@ -103,22 +103,27 @@ export const ROUTE_CHANNEL = {
   <!-- What it is ──────────────────────────────────────────── -->
   <Section id="what" title="What it is" class="mb-12">
     <p class="text-text-secondary mb-4 leading-relaxed">
-      Color Rooms is the visual identity of this docs site — one grotesk (Schibsted Grotesk) for
-      both display and body, JetBrains Mono for meta and code, on warm cream paper. Its signature is
-      that <strong>the accent is the room you are in</strong>: each component family owns a
-      saturated colour, and the component-page and section-landing headers become a full-width
-      colour field that spans everything right of the app sidebar. It is implemented as a single CSS
-      file (<code class="text-text-primary">apps/docs/src/lib/style/rooms-docs.css</code>) that
-      defines a private <code class="text-text-primary">--docs-*</code> token namespace and
+      Color Rooms is the visual identity of this docs site: one grotesk (Schibsted Grotesk) for both
+      display and body, JetBrains Mono for meta and code, on warm cream paper. Its signature is that <strong
+        >the accent is the room you are in</strong
+      >: each component family owns a saturated colour, and the component-page and section-landing
+      headers become a full-width colour field that spans everything right of the app sidebar. It is
+      implemented as a single CSS file (<code class="text-text-primary"
+        >apps/docs/src/lib/style/rooms-docs.css</code
+      >) that defines a private <code class="text-text-primary">--docs-*</code> token namespace and
       re-derives the library's primary-token family from the active room when
       <code class="text-text-primary">.docs-rooms</code> is present on the
       <code class="text-text-primary">&lt;html&gt;</code> root.
     </p>
     <p class="text-text-secondary mb-4 leading-relaxed">
-      Nothing in the library has been forked or duplicated. Every primitive still ships with its
-      library-default look; Color Rooms is a thin token-override sheet over the top. Without
+      Three things here generalise to any scoped theme: a private token namespace, an accent
+      selected by a data attribute, and re-declared derived roles.
+    </p>
+    <p class="text-text-secondary mb-4 leading-relaxed">
+      Every primitive still ships with its library-default look; Color Rooms is a thin
+      token-override sheet over the top. Without
       <code class="text-text-primary">.docs-rooms</code> the same page renders in the library
-      defaults — that's the test of whether the docs site really is theme-only. The
+      defaults. That is the test of whether the docs site really is theme-only, and the
       <strong>Docs theme</strong> toggle in the sidebar footer (Rooms / Library) removes the class live
       to prove it.
     </p>
@@ -258,9 +263,10 @@ export const ROUTE_CHANNEL = {
       <code class="text-text-primary">var()</code> inside a
       <code class="text-text-primary">:root</code>
       token definition substitutes at the cascade level where it is defined, so overriding the ramp alone
-      won't re-resolve <code class="text-text-primary">--color-primary</code> &amp; co. — see
-      <a href={resolve('/customization/tier-system')} class="text-primary hover:underline"
-        >Tier System</a
+      won't re-resolve <code class="text-text-primary">--color-primary</code> &amp; co. The general
+      pattern is
+      <a href={`${resolve('/customization/themes')}#scoped`} class="text-primary hover:underline"
+        >Scoped Themes</a
       >.
     </p>
   </Section>
@@ -423,51 +429,40 @@ export const ROUTE_CHANNEL = {
     </div>
   </Section>
 
-  <!-- Activation ──────────────────────────────────────────── -->
-  <Section id="activation" title="Activation" class="mb-12">
+  <!-- How it is wired up ──────────────────────────────────── -->
+  <Section id="activation" title="How It Is Wired Up" class="mb-12">
     <p class="text-text-secondary mb-4 leading-relaxed">
       The theme activates when <code class="text-text-primary">.docs-rooms</code> sits on a parent
-      of your content. The docs site puts it on <code class="text-text-primary">&lt;html&gt;</code>
-      as the shipped default so the whole app inherits the warm canvas — and so the
+      of the content. The docs app puts it on <code class="text-text-primary">&lt;html&gt;</code>
+      so the whole app inherits the warm canvas, and so the
       <code class="text-text-primary">app.html</code> head script can flip it before first paint
       (the root element exists there, <code class="text-text-primary">&lt;body&gt;</code> does not
       yet). The per-route room accent then lives on the
       <code class="text-text-primary">.docs-room-scope</code> wrapper in the layout.
     </p>
 
-    <CodeExample
-      title="1. Set the root class"
-      code={activationExample}
-      language="html"
-      preview={false}
-    />
+    <CodeExample title="The root class" code={activationExample} language="html" preview={false} />
 
     <p class="text-text-secondary my-4 leading-relaxed">
-      And import the stylesheet alongside the library base:
+      The stylesheet is imported after the library base:
     </p>
 
-    <CodeExample
-      title="2. Import rooms-docs.css"
-      code={cssImportExample}
-      language="css"
-      preview={false}
-    />
+    <CodeExample title="The import" code={cssImportExample} language="css" preview={false} />
 
     <p class="text-text-secondary mt-4 leading-relaxed">
       Remove the class (the sidebar's <strong>Docs theme → Library</strong> toggle does exactly
-      this) and the page falls back to the bare library skin — no field header, no Schibsted, the
-      library's blue primary. The underlying override mechanism is the same CSS-custom-property
-      cascade documented in
-      <a href={resolve('/customization/tier-system')} class="text-primary hover:underline"
-        >Tier System</a
-      > — Color Rooms just rebinds a wider set of tokens and derives them from the room.
+      this) and the page falls back to the bare library skin: no field header, no Schibsted, the
+      library's blue primary. The underlying mechanism is the scoped-theme pattern from
+      <a href={`${resolve('/customization/themes')}#scoped`} class="text-primary hover:underline"
+        >Scoped Themes</a
+      >; Color Rooms just rebinds a wider set of tokens and derives them from the room.
     </p>
   </Section>
 
   <!-- Light & Dark ─────────────────────────────────────────── -->
   <Section id="modes" title="Light &amp; Dark" class="mb-12">
     <p class="text-text-secondary mb-4 leading-relaxed">
-      Color Rooms supports both light and dark out of the box — Light is warm cream paper with warm
+      Color Rooms supports both light and dark out of the box: Light is warm cream paper with warm
       dark ink, Dark is warm coffee paper with warm cream ink. The room accent is
       <strong>orthogonal</strong> to the mode: it repaints the primary family, not the paper, so a section
       stays the same colour in both modes and the docs' ThemeSwitcher keeps working.
@@ -510,9 +505,11 @@ export const ROUTE_CHANNEL = {
   <!-- Override Recipes ────────────────────────────────────── -->
   <Section id="override" title="Override Recipes" class="mb-12">
     <p class="text-text-secondary mb-6 leading-relaxed">
-      Because every value lives on a CSS custom property, you can adjust the theme at any scope —
-      globally inside <code class="text-text-primary">.docs-rooms</code>, per-room on
-      <code class="text-text-primary">.docs-room-scope</code>, or inline. A few common adjustments:
+      Every value lives on a CSS custom property, so the theme is adjustable at any scope: globally
+      inside <code class="text-text-primary">.docs-rooms</code>, per-room on
+      <code class="text-text-primary">.docs-room-scope</code>, or inline. Two moves worth copying
+      into a scoped theme of your own: repaint one scope's accent (both steps, or the generated text
+      step keeps the old hue), and re-point the geometry handles.
     </p>
 
     <CodeExample title="Common overrides" code={overrideExample} language="css" preview={false} />
@@ -522,7 +519,7 @@ export const ROUTE_CHANNEL = {
       <a href={resolve('/customization/theme-builder')} class="text-primary hover:underline">
         Theme Builder</a
       >
-      or write a custom <code class="text-text-primary">@theme</code> block — Color Rooms sits
+      or write a custom <code class="text-text-primary">@theme</code> block. Color Rooms sits
       <em>on top</em> of that and, per room, overrides the primary chain with the room accent.
     </p>
   </Section>

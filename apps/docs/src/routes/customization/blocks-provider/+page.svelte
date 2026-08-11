@@ -1,27 +1,40 @@
 <script lang="ts">
   import SeoMeta from '$lib/SeoMeta.svelte';
   import { resolve } from '$app/paths';
-  import { Separator } from '@urbicon-ui/blocks';
+  import {
+    Badge,
+    BlocksProvider,
+    BuildingIcon,
+    Button,
+    Card,
+    Input,
+    Separator
+  } from '@urbicon-ui/blocks';
   import { CodeExample, DocsLayout as DocsPageLayout, Section } from '@urbicon-ui/docs';
+  import { precedenceChain } from '$lib/customization-data';
+
+  const description =
+    'One context provider for app-wide styling: round every Card, register a named stat-card look, add a border only on variant="outlined", or strip all default styles and bring your own.';
 
   const navigation = [
-    { id: 'props', title: 'Props' },
     { id: 'global-defaults', title: 'Global Defaults' },
     { id: 'merge-behavior', title: 'Merge Behavior' },
     { id: 'presets', title: 'Presets' },
     { id: 'conditional-overrides', title: 'Conditional Defaults' },
     { id: 'unstyled-mode', title: 'Unstyled Mode' },
+    { id: 'props', title: 'Props' },
     { id: 'slot-names', title: 'Slot Names' }
   ];
 
   const basicExample =
-    `<scr` +
+    `<!-- src/routes/+layout.svelte -->
+<scr` +
     `ipt>
   import { BlocksProvider } from '@urbicon-ui/blocks';
+  let { children } = $props();
 </scr` +
     `ipt>
 
-<!-- Wrap your app layout -->
 <BlocksProvider
   defaults={{
     Button: {
@@ -36,7 +49,7 @@
     }
   }}
 >
-  <slot />
+  {@render children()}
 </BlocksProvider>`;
 
   const unstyledExample =
@@ -53,83 +66,10 @@
   <Card class="my-custom-card">Content</Card>
 </BlocksProvider>`;
 
-  const unstyledWithDefaultsExample =
-    `<scr` +
-    `ipt>
-  import { BlocksProvider } from '@urbicon-ui/blocks';
-</scr` +
-    `ipt>
-
-<!-- Unstyled + your own design system -->
-<BlocksProvider
-  unstyled
-  defaults={{
-    Button: {
-      slotClasses: {
-        base: 'inline-flex items-center gap-2 rounded-none border-2 border-current px-6 py-3 font-mono text-sm font-bold tracking-widest uppercase transition-colors hover:bg-current/10',
-        content: 'flex items-center gap-2'
-      }
-    },
-    Card: {
-      slotClasses: {
-        base: 'border-2 border-current p-6 font-mono',
-        header: 'border-b-2 border-current pb-4 mb-4 font-bold uppercase tracking-widest',
-        content: 'space-y-2',
-        footer: 'border-t-2 border-current pt-4 mt-4'
-      }
-    },
-    Input: {
-      slotClasses: {
-        base: 'w-full border-2 border-current bg-transparent px-4 py-3 font-mono focus-visible:outline-none',
-        label: 'font-mono text-xs uppercase tracking-widest mb-1'
-      }
-    }
-  }}
->
-  <slot />
-</BlocksProvider>`;
-
-  const overrideExample = `<!-- Global default: all Buttons get rounded-full -->
-<BlocksProvider defaults={{ Button: { slotClasses: { base: 'rounded-full' } } }}>
-
-  <!-- This button uses the global default (rounded-full) -->
-  <Button>Default</Button>
-
-  <!-- This button overrides with its own slotClasses -->
-  <Button slotClasses={{ base: 'rounded-none' }}>Override</Button>
-
-  <!-- class prop has highest priority -->
-  <Button class="rounded-lg">Class Override</Button>
-
-</BlocksProvider>`;
-
-  const conditionalOverridesExample = `<!-- Conditional: only the outlined Badge gets a 1px border -->
-<BlocksProvider
-  defaults={{
-    Badge: {
-      // unconditional — applies to every Badge
-      slotClasses: { base: 'tracking-wide' },
-      // prop-conditional — only when variant="outlined"
-      overrides: [{ variant: 'outlined', class: { base: 'border' } }]
-    }
-  }}
->
-  <Badge variant="outlined">1px border</Badge>  <!-- override applies, strips border-2 -->
-  <Badge variant="filled">untouched</Badge>      <!-- override skipped -->
-</BlocksProvider>`;
-
-  const slotNamesExample = `// Each component documents its slot names.
-// Check the component's Props type for the slotClasses type:
-
-// Button: 'base' | 'content' | 'spinner'
-// Card: 'base' | 'header' | 'content' | 'footer'
-// Input: 'wrapper' | 'container' | 'base' | 'label' | 'message' | 'iconContainer'
-// Accordion: 'base'
-// AccordionItem: 'item' | 'trigger' | 'chevron' | 'content' | 'contentInner'
-// Dialog: 'backdrop' | 'panel' | 'content' | 'header' | 'body' | 'footer'
-// Tab: 'base' | 'list' | 'indicator' | 'panel'
-// ...and more. See each component's API reference.`;
-
+  // Hand-written on purpose: BlocksProvider lives in src/lib/provider/, which
+  // docs-gen does not scan (it discovers primitives/ and components/), so
+  // there is no generated api.ts for it. Source of truth for these four props:
+  // packages/blocks/src/lib/provider/blocks-context.ts + BlocksProvider.svelte.
   const apiProps = [
     {
       name: 'unstyled',
@@ -139,15 +79,15 @@
     },
     {
       name: 'defaults',
-      type: 'Record<string, { slotClasses?: …; overrides?: ConditionalOverride[] }>',
+      type: 'Record<string, ComponentDefaults>',
       default: '{}',
       desc: 'Per-component defaults. slotClasses apply to every instance; overrides are prop-conditional rules (e.g. only variant="outlined"). Keys are component names (e.g. "Button", "Card").'
     },
     {
       name: 'presets',
-      type: 'Record<string, Record<string, { slotClasses?: …; overrides?: ConditionalOverride[] }>>',
+      type: 'PresetMap',
       default: '{}',
-      desc: 'Named looks per component, opt-in via the preset="name" prop. Each preset may carry its own conditional overrides. Useful for reusable variants beyond the semantic intent palette.'
+      desc: 'Named looks per component, opt-in via the preset="name" prop. Each preset may carry its own conditional overrides.'
     },
     {
       name: 'children',
@@ -157,56 +97,16 @@
     }
   ];
 
-  const presetsExample =
-    `<scr` +
-    `ipt>
-  import { BlocksProvider } from '@urbicon-ui/blocks';
-</scr` +
-    `ipt>
-
-<BlocksProvider
-  presets={{
-    Card: {
-      'round-icon-tile': {
-        slotClasses: {
-          base: 'rounded-2xl border-0 bg-primary-subtle hover:bg-primary-subtle/80 transition',
-          content: 'flex items-center gap-3 p-4'
-        }
-      },
-      'interactive-stat-card': {
-        slotClasses: {
-          base: 'rounded-xl shadow-sm transition hover:-translate-y-0.5 hover:shadow-lg',
-          content: 'p-5'
-        }
-      }
-    },
-    Spinner: {
-      brand: {
-        slotClasses: {
-          base: 'text-primary'
-        }
-      }
-    }
-  }}
->
-  <!-- Opt-in via the preset prop on any component -->
-  <Card preset="round-icon-tile">
-    <BuildingIcon /> 12 buildings
-  </Card>
-
-  <Card preset="interactive-stat-card" href="/revenue">
-    <p class="text-text-tertiary text-xs">Revenue</p>
-    <p class="text-2xl font-semibold">€42.1k</p>
-  </Card>
-
-  <Spinner preset="brand" />
-</BlocksProvider>`;
-
-  const presetsTypeExample = `// /packages/blocks/src/lib/provider/blocks-context.ts
+  const presetsTypeExample = `// packages/blocks/src/lib/provider/blocks-context.ts
 
 export interface ConditionalOverride {
   class: Record<string, string>;            // slot → classes
   [propCondition: string]: string | string[] | Record<string, string> | undefined;
+}
+
+export interface ComponentDefaults {
+  slotClasses?: Record<string, string>;     // unconditional
+  overrides?: ConditionalOverride[];        // prop-conditional
 }
 
 export interface ComponentPreset {
@@ -217,20 +117,246 @@ export interface ComponentPreset {
 // Outer key  = component name (e.g. 'Card', 'Spinner', 'Button')
 // Inner key  = preset name (whatever the consumer types into preset="...")
 export type PresetMap = Record<string, Record<string, ComponentPreset>>;`;
+
+  const slotNamesExample = `// Two examples; every component's API reference documents its own
+// slot map on the slotClasses prop (derived from its tv() config).
+
+// Card
+slotClasses?: { base?: string; header?: string; content?: string; footer?: string }
+
+// Input — the root slot is \`wrapper\`, the real <input> is \`base\`
+slotClasses?: {
+  wrapper?: string; container?: string; base?: string;
+  label?: string; message?: string; /* … icon slots */
+}`;
 </script>
 
-<SeoMeta
-  title="BlocksProvider"
-  description="BlocksProvider API for global unstyled mode and per-component default slotClasses in Urbicon UI."
-/>
+<SeoMeta title="BlocksProvider" {description} />
 
 <DocsPageLayout
   title="BlocksProvider"
-  description="A context provider that configures all descendant components. Set global defaults for slotClasses per component type, or switch all components to unstyled mode at once."
+  {description}
   {navigation}
   showToc
   breadcrumbs={[{ label: 'Customization', href: resolve('/customization') }]}
 >
+  <Section id="global-defaults" title="Global Component Defaults" class="mb-12">
+    <p class="text-text-secondary mb-6 leading-relaxed">
+      The provider is optional: components carry their full default look without it. Wrap your app
+      once to change that look globally, passing per-component
+      <code class="bg-surface-subtle rounded-modify px-1.5 py-0.5 text-sm">slotClasses</code>
+      via the <code class="bg-surface-subtle rounded-modify px-1.5 py-0.5 text-sm">defaults</code>
+      prop. Keys are the exported component names, case-sensitive; an unmatched key is ignored
+      without a warning (one exception: ConfirmDialog registers under the
+      <code class="bg-surface-subtle rounded-modify px-1.5 py-0.5 text-sm">Dialog</code> key).
+    </p>
+    <CodeExample title="Setting global defaults" code={basicExample} preview={false} />
+  </Section>
+
+  <Separator class="mb-12" />
+
+  <Section id="merge-behavior" title="Merge Behavior" class="mb-12">
+    <p class="text-text-secondary mb-6 leading-relaxed">
+      Global defaults and instance
+      <code class="bg-surface-subtle rounded-modify px-1.5 py-0.5 text-sm">slotClasses</code> are
+      merged per slot: on the slot they share, conflicting Tailwind utilities resolve in favor of
+      the later source, and non-conflicting classes accumulate. The instance
+      <code class="bg-surface-subtle rounded-modify px-1.5 py-0.5 text-sm">class</code> prop is
+      different: it is appended to the root slot after that resolution, so use it to add utilities;
+      to override a conflicting one, reach for
+      <code class="bg-surface-subtle rounded-modify px-1.5 py-0.5 text-sm">slotClasses</code>. All
+      three buttons below live inside one provider that defaults Button to
+      <code class="text-xs">rounded-none</code>:
+    </p>
+    <CodeExample title="Override behavior" isolate>
+      <BlocksProvider defaults={{ Button: { slotClasses: { base: 'rounded-none' } } }}>
+        <Button>Default (square)</Button>
+        <Button slotClasses={{ base: 'rounded-full' }}>slotClasses wins the conflict</Button>
+        <Button class="tracking-widest uppercase">class adds utilities</Button>
+      </BlocksProvider>
+    </CodeExample>
+    <p class="text-text-secondary mt-4 text-sm leading-relaxed">
+      The imports are the same as the first example; the live snippets on this page show only the
+      markup.
+    </p>
+    <div
+      class="bg-surface-subtle text-text-secondary rounded-contain mt-4 border p-4 text-sm leading-relaxed"
+    >
+      <strong class="text-text-primary">Priority (lowest to highest):</strong>
+      <ol class="mt-2 list-outside list-decimal space-y-1 pl-5">
+        {#each precedenceChain as step (step)}
+          <li><code class="text-xs">{step}</code></li>
+        {/each}
+      </ol>
+    </div>
+  </Section>
+
+  <Separator class="mb-12" />
+
+  <Section id="presets" title="Presets" class="mb-12">
+    <p class="text-text-secondary mb-6 leading-relaxed">
+      <code class="bg-surface-subtle rounded-modify px-1.5 py-0.5 text-sm">defaults</code>
+      apply globally to <em>every</em> instance. Presets are different: register named looks once,
+      then opt-in per component via the
+      <code class="bg-surface-subtle rounded-modify px-1.5 py-0.5 text-sm">preset="name"</code>
+      prop, for looks that fall outside the semantic intent palette but should stay reusable across the
+      project. An unregistered preset name warns in the browser console in dev and falls through to the
+      provider defaults.
+    </p>
+
+    <div
+      class="bg-surface-subtle text-text-secondary rounded-contain mb-6 border p-4 text-sm leading-relaxed"
+    >
+      <strong class="text-text-primary">Why presets over <code class="text-xs">class</code>?</strong
+      >
+      <ul class="mt-2 list-outside list-disc space-y-1 pl-5">
+        <li>Reusable: define once, opt-in everywhere with a short name.</li>
+        <li>
+          Maintains slot-level control: hover/focus/dark-mode logic stays inside the
+          <code class="text-xs">slotClasses</code> map, not scattered across instance class strings.
+        </li>
+        <li>
+          Composes with intent: a card with <code class="text-xs">preset="stat-tile"</code> still
+          honors <code class="text-xs">intent</code>, <code class="text-xs">size</code>, etc.
+        </li>
+      </ul>
+    </div>
+
+    <CodeExample
+      title="Two curated presets"
+      description="Round-Icon-Tile (sub-cards in a dashboard) and Stat-Tile (compact KPI tiles)."
+      isolate
+      previewClass="flex flex-wrap items-center gap-4"
+    >
+      <BlocksProvider
+        presets={{
+          Card: {
+            'round-icon-tile': {
+              slotClasses: {
+                base: 'rounded-2xl border-0 bg-primary-subtle',
+                content: 'flex items-center gap-3 p-4'
+              }
+            },
+            'stat-tile': {
+              slotClasses: {
+                base: 'rounded-xl shadow-sm',
+                content: 'p-5'
+              }
+            }
+          }
+        }}
+      >
+        <Card preset="round-icon-tile" padding="none">
+          <div class="text-primary">
+            <BuildingIcon size={20} />
+          </div>
+          <span class="text-text-primary text-sm font-medium">12 buildings</span>
+        </Card>
+
+        <Card preset="stat-tile" padding="none">
+          <p class="text-text-tertiary text-xs">Revenue</p>
+          <p class="text-text-primary text-2xl font-semibold">€42.1k</p>
+        </Card>
+      </BlocksProvider>
+    </CodeExample>
+
+    <p class="text-text-secondary mt-6 mb-3 leading-relaxed">The full type definitions:</p>
+    <CodeExample
+      title="ComponentDefaults and PresetMap"
+      code={presetsTypeExample}
+      language="typescript"
+      preview={false}
+    />
+  </Section>
+
+  <Separator class="mb-12" />
+
+  <Section id="conditional-overrides" title="Conditional Defaults (overrides)" class="mb-12">
+    <p class="text-text-secondary mb-6 leading-relaxed">
+      <code class="bg-surface-subtle rounded-modify px-1.5 py-0.5 text-sm">slotClasses</code>
+      apply to <em>every</em> instance regardless of variant. When a rule must target a specific
+      variant / intent / state, e.g. a 1px border only on the
+      <code class="bg-surface-subtle rounded-modify px-1.5 py-0.5 text-sm">outlined</code>
+      variant, use
+      <code class="bg-surface-subtle rounded-modify px-1.5 py-0.5 text-sm">overrides</code>. Each
+      entry is a <code class="text-xs">compoundVariant</code>-shaped matcher (prop conditions →
+      per-slot classes); on a match its classes join the cascade, where the
+      <code class="text-xs">tv()</code> conflict resolver strips the library's conflicting class
+      (here the outlined variant's <code class="text-xs">border-2</code>).
+    </p>
+
+    <CodeExample
+      title="Style only the outlined variant"
+      description="Entries match active prop values, so it is irrelevant whether the library defines border-2 in a variant or a compoundVariant. string = equals, string[] = one-of; multiple matches merge additively."
+      isolate
+    >
+      <BlocksProvider
+        defaults={{
+          Badge: {
+            slotClasses: { base: 'tracking-wide' },
+            overrides: [{ variant: 'outlined', class: { base: 'border' } }]
+          }
+        }}
+      >
+        <Badge variant="outlined">1px border</Badge>
+        <Badge variant="filled">untouched</Badge>
+      </BlocksProvider>
+    </CodeExample>
+
+    <p class="text-text-secondary mt-6 leading-relaxed">
+      When to reach for which of the three: the
+      <a href={resolve('/customization')} class="text-primary hover:underline"
+        >Customization hub's decision table</a
+      > settles it in one look.
+    </p>
+  </Section>
+
+  <Separator class="mb-12" />
+
+  <Section id="unstyled-mode" title="Global Unstyled Mode" class="mb-12">
+    <p class="text-text-secondary mb-6 leading-relaxed">
+      Set <code class="bg-surface-subtle rounded-modify px-1.5 py-0.5 text-sm">unstyled</code> to strip
+      all default styles from every component. They render their HTML structure but no visual styling.
+      This is useful when building a completely custom design system on top of Urbicon UI components.
+    </p>
+    <CodeExample title="Unstyled mode" code={unstyledExample} preview={false} />
+    <p class="text-text-secondary mt-6 leading-relaxed">
+      Combine <code class="bg-surface-subtle rounded-modify px-1.5 py-0.5 text-sm">unstyled</code>
+      with
+      <code class="bg-surface-subtle rounded-modify px-1.5 py-0.5 text-sm">defaults</code> to build a
+      complete custom design system. Everything below renders live with every library default stripped;
+      the brutalist look is carried by the two slotClasses maps:
+    </p>
+    <CodeExample
+      title="Unstyled + custom defaults (Brutalist example)"
+      isolate
+      previewClass="text-text-primary w-full max-w-md space-y-6"
+    >
+      <BlocksProvider
+        unstyled
+        defaults={{
+          Button: {
+            slotClasses: {
+              base: 'inline-flex items-center gap-2 rounded-none border-2 border-current px-6 py-3 font-mono text-sm font-bold tracking-widest uppercase transition-colors hover:bg-current/10',
+              content: 'flex items-center gap-2'
+            }
+          },
+          Input: {
+            slotClasses: {
+              base: 'w-full border-2 border-current bg-transparent px-4 py-3 font-mono focus-visible:outline-none',
+              label: 'font-mono text-xs uppercase tracking-widest mb-1'
+            }
+          }
+        }}
+      >
+        <Input label="Callsign" placeholder="ORBIT-7" />
+        <Button>Transmit</Button>
+      </BlocksProvider>
+    </CodeExample>
+  </Section>
+
+  <Separator class="mb-12" />
+
   <Section id="props" title="Props" class="mb-12">
     <div class="overflow-x-auto">
       <table class="w-full text-left text-sm">
@@ -262,187 +388,19 @@ export type PresetMap = Record<string, Record<string, ComponentPreset>>;`;
 
   <Separator class="mb-12" />
 
-  <Section id="global-defaults" title="Global Component Defaults" class="mb-12">
-    <p class="text-text-secondary mb-6 leading-relaxed">
-      Pass per-component
-      <code class="bg-surface-subtle rounded-modify px-1.5 py-0.5 text-sm">slotClasses</code>
-      via the <code class="bg-surface-subtle rounded-modify px-1.5 py-0.5 text-sm">defaults</code> prop.
-      Every instance of that component type inherits the classes. Instance-level slotClasses are merged
-      on top (both class lists apply).
-    </p>
-    <CodeExample title="Setting global defaults" code={basicExample} preview={false} />
-  </Section>
-
-  <Separator class="mb-12" />
-
-  <Section id="merge-behavior" title="Merge Behavior" class="mb-12">
-    <p class="text-text-secondary mb-6 leading-relaxed">
-      Global defaults and instance overrides are merged per slot. Conflicting Tailwind utilities are
-      resolved by bucket — a later source in the chain wins (e.g. an instance
-      <code class="text-xs">rounded-none</code> defeats a default
-      <code class="text-xs">rounded-full</code>); non-conflicting classes accumulate.
-    </p>
-    <CodeExample title="Override behavior" code={overrideExample} preview={false} />
-    <div
-      class="bg-surface-subtle text-text-secondary rounded-contain mt-4 border p-4 text-sm leading-relaxed"
-    >
-      <strong class="text-text-primary">Priority (lowest to highest):</strong>
-      <ol class="mt-2 list-outside list-decimal space-y-1 pl-5">
-        <li>
-          <code class="text-xs">tv()</code> variant styles (library default)
-        </li>
-        <li>
-          <code class="text-xs">defaults.slotClasses</code> (unconditional)
-        </li>
-        <li>
-          <code class="text-xs">defaults.overrides</code> (prop-conditional)
-        </li>
-        <li>
-          <code class="text-xs">presets[name].slotClasses</code> /
-          <code class="text-xs">.overrides</code>
-        </li>
-        <li>
-          Instance <code class="text-xs">slotClasses</code> prop
-        </li>
-        <li>
-          Instance <code class="text-xs">class</code> prop
-        </li>
-      </ol>
-    </div>
-  </Section>
-
-  <Separator class="mb-12" />
-
-  <Section id="presets" title="Presets" class="mb-12">
-    <p class="text-text-secondary mb-6 leading-relaxed">
-      <code class="bg-surface-subtle rounded-modify px-1.5 py-0.5 text-sm">defaults</code>
-      apply globally to <em>every</em> instance. Presets are different: register named looks once,
-      then opt-in per component via the
-      <code class="bg-surface-subtle rounded-modify px-1.5 py-0.5 text-sm">preset="name"</code>
-      prop. Use this when the requested look falls outside the semantic intent palette but should stay
-      reusable across the project — round-icon tiles, interactive stat cards, brand spinners, compact
-      toolbars, etc.
-    </p>
-
-    <div
-      class="bg-surface-subtle text-text-secondary rounded-contain mb-6 border p-4 text-sm leading-relaxed"
-    >
-      <strong class="text-text-primary">Why presets over <code class="text-xs">class</code>?</strong
-      >
-      <ul class="mt-2 list-outside list-disc space-y-1 pl-5">
-        <li>Reusable — define once, opt-in everywhere with a short name.</li>
-        <li>
-          Maintains slot-level control — hover/focus/dark-mode logic stays inside the
-          <code class="text-xs">slotClasses</code> map, not scattered across instance class strings.
-        </li>
-        <li>
-          Compose with intent — a card with <code class="text-xs">preset="stat-card"</code> still
-          honors <code class="text-xs">intent</code>, <code class="text-xs">size</code>, etc.
-        </li>
-      </ul>
-    </div>
-
-    <CodeExample
-      title="Three curated presets"
-      description="Round-Icon-Tile (sub-cards in a dashboard), Interactive-Stat-Card (KPI link tiles with hover-lift), and Brand-Spinner (uses the project's primary color)."
-      code={presetsExample}
-      preview={false}
-    />
-
-    <p class="text-text-secondary mt-6 mb-3 leading-relaxed">
-      The full type definition for <code class="text-xs">PresetMap</code>:
-    </p>
-    <CodeExample
-      title="PresetMap type"
-      code={presetsTypeExample}
-      language="typescript"
-      preview={false}
-    />
-
-    <div
-      class="border-info/30 bg-info-subtle text-text-secondary rounded-contain mt-6 border p-4 text-sm leading-relaxed"
-    >
-      <strong class="text-info-emphasis">Missing presets warn in dev.</strong>
-      If a component requests <code class="text-xs">preset="foo"</code> but no entry exists in
-      <code class="text-xs">presets[ComponentName].foo</code>, the resolver logs a console warning
-      (development only). The component falls back to its default look.
-    </div>
-  </Section>
-
-  <Separator class="mb-12" />
-
-  <Section id="conditional-overrides" title="Conditional Defaults (overrides)" class="mb-12">
-    <p class="text-text-secondary mb-6 leading-relaxed">
-      <code class="bg-surface-subtle rounded-modify px-1.5 py-0.5 text-sm">slotClasses</code>
-      apply to <em>every</em> instance regardless of variant. When a rule must target a specific
-      variant / intent / state — e.g. a 1px border only on the
-      <code class="bg-surface-subtle rounded-modify px-1.5 py-0.5 text-sm">outlined</code>
-      variant — use
-      <code class="bg-surface-subtle rounded-modify px-1.5 py-0.5 text-sm">overrides</code>. Each
-      entry is a <code class="text-xs">compoundVariant</code>-shaped matcher (prop conditions →
-      per-slot classes); on a match its classes join the cascade, where the
-      <code class="text-xs">tv()</code> conflict resolver strips the library's conflicting class
-      (here the outlined variant's <code class="text-xs">border-2</code>).
-    </p>
-
-    <CodeExample
-      title="Style only the outlined variant"
-      description="Entries match active prop values, so it is irrelevant whether the library defines border-2 in a variant or a compoundVariant. string = equals, string[] = one-of; multiple matches merge additively."
-      code={conditionalOverridesExample}
-      preview={false}
-    />
-
-    <div
-      class="bg-surface-subtle text-text-secondary rounded-contain mt-6 border p-4 text-sm leading-relaxed"
-    >
-      <strong class="text-text-primary">overrides vs. preset vs. slotClasses</strong>
-      <ul class="mt-2 list-outside list-disc space-y-1 pl-5">
-        <li><code class="text-xs">slotClasses</code> — unconditional, every instance.</li>
-        <li>
-          <code class="text-xs">preset</code> — opt-in per instance via
-          <code class="text-xs">preset="name"</code>; for reusable named looks.
-        </li>
-        <li>
-          <code class="text-xs">overrides</code> — automatic but prop-conditional; for "only this variant/state"
-          rules.
-        </li>
-      </ul>
-    </div>
-  </Section>
-
-  <Separator class="mb-12" />
-
-  <Section id="unstyled-mode" title="Global Unstyled Mode" class="mb-12">
-    <p class="text-text-secondary mb-6 leading-relaxed">
-      Set <code class="bg-surface-subtle rounded-modify px-1.5 py-0.5 text-sm">unstyled</code> to strip
-      all default styles from every component. They render their HTML structure but no visual styling.
-      This is useful when building a completely custom design system on top of Urbicon UI components.
-    </p>
-    <CodeExample title="Unstyled mode" code={unstyledExample} preview={false} />
-    <p class="text-text-secondary mt-6 leading-relaxed">
-      Combine <code class="bg-surface-subtle rounded-modify px-1.5 py-0.5 text-sm">unstyled</code>
-      with
-      <code class="bg-surface-subtle rounded-modify px-1.5 py-0.5 text-sm">defaults</code> to build a
-      complete custom design system:
-    </p>
-    <CodeExample
-      title="Unstyled + custom defaults (Brutalist example)"
-      code={unstyledWithDefaultsExample}
-      preview={false}
-    />
-  </Section>
-
-  <Separator class="mb-12" />
-
   <Section id="slot-names" title="Slot Names Reference">
     <p class="text-text-secondary mb-6 leading-relaxed">
-      Each component defines its own set of named slots. Use the API reference for each component to
-      see its available slot names, or check the
-      <code class="bg-surface-subtle rounded-modify px-1.5 py-0.5 text-sm">slotClasses</code> type in
-      the Props interface.
+      Each component defines its own set of named slots: the keys
+      <code class="bg-surface-subtle rounded-modify px-1.5 py-0.5 text-sm">slotClasses</code>
+      accepts. The authoritative slot map lives in each component's API reference, on the
+      <code class="bg-surface-subtle rounded-modify px-1.5 py-0.5 text-sm">slotClasses</code> prop
+      row (generated from the component's <code class="text-xs">tv()</code> config, so it cannot go
+      stale), and your editor autocompletes the same keys. For example:
+      <a href={resolve('/blocks/primitives/card')} class="text-primary hover:underline">Card</a>,
+      <a href={resolve('/blocks/primitives/input')} class="text-primary hover:underline">Input</a>.
     </p>
     <CodeExample
-      title="Common slot names"
+      title="Reading a slot map"
       code={slotNamesExample}
       language="typescript"
       preview={false}

@@ -12,6 +12,7 @@
     Toggle
   } from '@urbicon-ui/blocks';
   import { DocsLayout as DocsPageLayout } from '@urbicon-ui/docs';
+  import { generateChassis, generatePalette, previewVars } from '$lib/theme-preview';
 
   let brandHue = $state(240);
   let brandChroma = $state(0.15);
@@ -44,37 +45,9 @@
     }
   });
 
-  // Foundation neutral ramp — lightness + base chroma per stop (hue 240 by
-  // default). The builder keeps L fixed (so WCAG contrast is preserved) and
-  // only shifts the hue + scales the chroma.
-  const neutralRamp = [
-    { shade: 25, l: 0.99, c: 0.002 },
-    { shade: 50, l: 0.98, c: 0.005 },
-    { shade: 100, l: 0.95, c: 0.008 },
-    { shade: 200, l: 0.89, c: 0.012 },
-    { shade: 300, l: 0.83, c: 0.014 },
-    { shade: 400, l: 0.7, c: 0.015 },
-    { shade: 500, l: 0.55, c: 0.016 },
-    { shade: 600, l: 0.42, c: 0.017 },
-    { shade: 650, l: 0.38, c: 0.016 },
-    { shade: 700, l: 0.32, c: 0.016 },
-    { shade: 750, l: 0.28, c: 0.014 },
-    { shade: 800, l: 0.23, c: 0.015 },
-    { shade: 850, l: 0.18, c: 0.014 },
-    { shade: 900, l: 0.15, c: 0.012 },
-    { shade: 950, l: 0.08, c: 0.008 }
-  ] as const;
-
-  function roundChroma(value: number): number {
-    return Math.round(value * 10000) / 10000;
-  }
-
-  const chassisPalette = $derived(
-    neutralRamp.map(({ shade, l, c }) => ({
-      shade,
-      value: oklch(l, roundChroma(c * chassisTint), chassisHue)
-    }))
-  );
+  // Chassis stops from the shared palette model ($lib/theme-preview.ts) —
+  // the ramp profile mirrors foundation.css and is guarded by its test.
+  const chassisPalette = $derived(generateChassis(chassisHue, chassisTint));
 
   // The chassis equals the library default when hue is 240 at full tint —
   // no point emitting a no-op override in that case.
@@ -154,26 +127,6 @@
     return vars;
   });
 
-  function oklch(l: number, c: number, h: number): string {
-    return `oklch(${l} ${c} ${h})`;
-  }
-
-  function generatePalette(h: number, c: number, l500: number) {
-    return {
-      50: oklch(0.95, c * 0.2, h),
-      100: oklch(0.9, c * 0.33, h),
-      200: oklch(0.82, c * 0.53, h),
-      300: oklch(0.74, c * 0.73, h),
-      400: oklch(0.66, c * 0.87, h),
-      500: oklch(l500, c, h),
-      600: oklch(0.52, c, h),
-      700: oklch(0.44, c * 0.87, h),
-      800: oklch(0.36, c * 0.73, h),
-      900: oklch(0.28, c * 0.53, h),
-      950: oklch(0.18, c * 0.33, h)
-    };
-  }
-
   let palette = $derived(generatePalette(brandHue, brandChroma, brandLightness));
   let secondaryPalette = $derived(generatePalette(secondaryHue, secondaryChroma, 0.55));
 
@@ -239,49 +192,11 @@
     return lines.join('\n');
   });
 
+  // Ramps + role re-declarations for the preview scope, both modes via
+  // light-dark() — shared with /customization/themes ($lib/theme-preview.ts).
+  // Only the radius overrides are builder-specific.
   let previewStyle = $derived.by(() => {
-    const vars: string[] = [];
-    for (const [shade, value] of Object.entries(palette)) {
-      vars.push(`--color-primary-${shade}: ${value}`);
-    }
-    vars.push(`--color-primary: ${palette[600]}`);
-    vars.push(`--color-primary-hover: ${palette[700]}`);
-    vars.push(`--color-primary-active: ${palette[800]}`);
-    vars.push(`--color-primary-subtle: ${palette[50]}`);
-    vars.push(`--color-primary-emphasis: ${palette[900]}`);
-    for (const [shade, value] of Object.entries(secondaryPalette)) {
-      vars.push(`--color-secondary-${shade}: ${value}`);
-    }
-    vars.push(`--color-secondary: ${secondaryPalette[500]}`);
-    vars.push(`--color-secondary-hover: ${secondaryPalette[600]}`);
-    vars.push(`--color-secondary-active: ${secondaryPalette[700]}`);
-    vars.push(`--color-secondary-subtle: ${secondaryPalette[50]}`);
-    vars.push(`--color-secondary-emphasis: ${secondaryPalette[800]}`);
-    const byShade = Object.fromEntries(chassisPalette.map((s) => [s.shade, s.value] as const));
-    for (const { shade, value } of chassisPalette) {
-      vars.push(`--color-neutral-${shade}: ${value}`);
-    }
-    // Re-declare the light-mode chassis-derived tokens. In an inline scope
-    // the var() in the :root semantic definitions won't re-substitute against
-    // the overridden neutral ramp on its own (the same trap rooms-docs.css
-    // solves), so push direct light-mode values mirroring semantic.css.
-    vars.push(`--color-surface-quiet: ${byShade[25]}`);
-    vars.push(`--color-surface-elevated: ${byShade[50]}`);
-    vars.push(`--color-surface-subtle: ${byShade[50]}`);
-    vars.push(`--color-surface-hover: ${byShade[100]}`);
-    vars.push(`--color-surface-active: ${byShade[200]}`);
-    vars.push(`--color-surface-interactive: ${byShade[100]}`);
-    // The fill's own hover rung — mirrors semantic.css, where `surface-hover`
-    // resolves to the same value as `surface-interactive` itself.
-    vars.push(`--color-surface-interactive-hover: ${byShade[200]}`);
-    vars.push(`--color-text-primary: ${byShade[900]}`);
-    vars.push(`--color-text-secondary: ${byShade[700]}`);
-    vars.push(`--color-text-tertiary: ${byShade[600]}`);
-    vars.push(`--color-text-quaternary: ${byShade[500]}`);
-    vars.push(`--color-border-subtle: ${byShade[200]}`);
-    vars.push(`--color-border-default: ${byShade[300]}`);
-    vars.push(`--color-border-emphasis: ${byShade[400]}`);
-    vars.push(`--color-border-strong: ${byShade[500]}`);
+    const vars = [previewVars({ palette, secondaryPalette, chassis: chassisPalette })];
     for (const [name, value] of Object.entries(radiusVars)) {
       vars.push(`${name}: ${value}`);
     }
@@ -316,7 +231,7 @@
 
 <DocsPageLayout
   title="Theme Builder"
-  description="Pick your brand color and instantly generate a complete, perceptually-uniform palette — accent plus a matched neutral chassis so surfaces, text and borders share its temperature. Uses OKLCH for consistent contrast across all shades."
+  description="Pick your brand color and generate a matched palette: accent plus a neutral chassis, so surfaces, text and borders share its temperature. Uses OKLCH for consistent contrast across all shades."
   maxWidth="2xl"
   breadcrumbs={[{ label: 'Customization', href: resolve('/customization') }]}
 >
@@ -612,8 +527,8 @@
               <span class="block">
                 <strong>{c.role}</strong> sits {c.distance}° from
                 <strong>{c.intent}</strong>
-                (hue {c.intentHue}) — a
-                <code class="text-xs">{c.intent}</code> state will look like your accent, not like a status.
+                (hue {c.intentHue}). A
+                <code class="text-xs">{c.intent}</code> state will read as your accent, not as a status.
               </span>
             {/each}
           </p>
@@ -621,7 +536,11 @@
             Fix it in your theme file: re-tune the colliding
             <code class="text-xs">--color-*</code> ramp 15–25° away (keep each stop's lightness and
             chroma, move only the hue).
-            <code class="text-xs">forest.css</code> does this for both
+            <a
+              href={`${resolve('/customization/themes')}#create`}
+              class="text-warning-emphasis underline">forest.css</a
+            >
+            does this for both
             <code class="text-xs">success</code> and <code class="text-xs">warning</code>. The
             builder flags it rather than "fixing" it, because which color moves is your call.
           </p>
@@ -691,7 +610,7 @@
 
             <!-- Alert -->
             <Alert intent="primary" variant="soft" size="sm">
-              This preview updates live as you adjust the controls.
+              Soft fills like this one read the 50/900 stops of your generated ramp.
             </Alert>
           </div>
         </Card>
@@ -730,7 +649,11 @@
               >
               <div>
                 <p class="text-text-primary font-medium">Adjust the sliders</p>
-                <p>Pick a hue, chroma, and lightness that match your brand identity.</p>
+                <p>
+                  Pick a hue, chroma, and lightness that match your brand identity. Coming from a
+                  hex value? Start from the preset nearest your brand, then nudge the hue until the
+                  500 swatch matches.
+                </p>
               </div>
             </li>
             <li class="flex gap-3">
@@ -741,9 +664,10 @@
               <div>
                 <p class="text-text-primary font-medium">Copy the CSS output</p>
                 <p>
-                  Click "Copy CSS" and paste the <code
-                    class="bg-surface-subtle rounded-modify px-1.5 py-0.5 text-xs">@theme</code
-                  > block into your stylesheet.
+                  Click "Copy CSS" and save it as
+                  <code class="bg-surface-subtle rounded-modify px-1.5 py-0.5 text-xs"
+                    >my-theme.css</code
+                  >, or paste it at the end of app.css, below the imports.
                 </p>
               </div>
             </li>
@@ -753,10 +677,19 @@
                 >3</span
               >
               <div>
-                <p class="text-text-primary font-medium">Overrides are applied automatically</p>
+                <p class="text-text-primary font-medium">Import it after the base styles</p>
                 <p>
-                  Tailwind 4's @theme directive merges with the default tokens. All components pick
-                  up your custom colors.
+                  In app.css:
+                  <code class="bg-surface-subtle rounded-modify px-1.5 py-0.5 text-xs"
+                    >@import '@urbicon-ui/blocks/style/index.css';</code
+                  >
+                  then
+                  <code class="bg-surface-subtle rounded-modify px-1.5 py-0.5 text-xs"
+                    >@import './my-theme.css';</code
+                  >. The
+                  <code class="bg-surface-subtle rounded-modify px-1.5 py-0.5 text-xs">@theme</code> block
+                  needs Tailwind 4; it merges into the library tokens. If the builder flagged an intent
+                  collision above, re-tune that ramp before shipping.
                 </p>
               </div>
             </li>

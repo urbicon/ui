@@ -73,7 +73,7 @@
 
 <DocsPageLayout
   title="Figma Token Export"
-  description="Export the Urbicon UI design tokens — foundation palettes, semantic surface/text/border roles (light-mode values), spacing, radii, and shadows — as Figma-compatible JSON. Works with the Tokens Studio for Figma plugin."
+  description="Export the Urbicon UI design tokens (foundation palettes, semantic surface/text/border roles with light-mode values, spacing, radii, and shadows) as Figma-compatible JSON. Works with the Tokens Studio for Figma plugin."
   maxWidth="2xl"
   breadcrumbs={[{ label: 'Customization', href: resolve('/customization') }]}
 >
@@ -93,7 +93,7 @@
   <div class="mb-8 flex flex-wrap gap-3">
     <Button intent="primary" onclick={downloadTokens}>
       <DownloadIcon size={16} class="mr-2" />
-      Download JSON ({(tokensCompact.length / 1024).toFixed(1)} KB)
+      Download JSON ({(tokensJSON.length / 1024).toFixed(1)} KB)
     </Button>
     <Button variant="outlined" intent={copied ? 'success' : 'neutral'} onclick={copyTokens}>
       {copied ? 'Copied!' : 'Copy to Clipboard'}
@@ -178,8 +178,7 @@
               <h3 class="text-text-primary text-sm font-semibold">Sync with Code</h3>
             </div>
             <p class="text-text-secondary text-xs">
-              Changes in Figma can be synced back to code via Tokens Studio's Git integration,
-              keeping design and code tokens in sync.
+              Changes in Figma can be synced back to code via Tokens Studio's Git integration.
             </p>
           </div>
         </Card>
