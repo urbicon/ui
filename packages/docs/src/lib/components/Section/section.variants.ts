@@ -2,7 +2,12 @@ import { type SlotNames, tv, type VariantProps } from '@urbicon-ui/blocks';
 
 export const sectionVariants = tv({
   slots: {
-    root: ['relative'],
+    // Every in-page anchor on a docs page targets a `<Section id>`, so the
+    // offset that clears the pinned chrome belongs here — once — rather than on
+    // each page next to each id. `--docs-anchor-offset` is published by
+    // DocsLayout (mobile header + breadcrumb strip + breathing room); the 0rem
+    // fallback covers a `<Section>` used outside one, where nothing is pinned.
+    root: ['relative scroll-mt-[var(--docs-anchor-offset,0rem)]'],
     header: ['flex flex-col'],
     headerRow: ['flex items-center gap-4 flex-wrap mb-4'],
     marker: ['inline-block font-mono text-text-tertiary mr-2 select-none'],

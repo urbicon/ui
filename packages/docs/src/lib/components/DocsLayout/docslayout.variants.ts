@@ -20,12 +20,37 @@ export const docsLayoutVariants = tv({
     //   --docs-toc-w     mirrors TableOfContents' `width="md"` (w-52). A page
     //                    that sets `sm`/`lg` only shifts where `main` gives up
     //                    width; nothing misaligns.
+    //   --docs-anchor-offset  how far below the viewport top an anchor jump has
+    //                    to land: exactly the pinned chrome above it —
+    //                    SidebarLayout's mobile header plus this layout's own
+    //                    breadcrumb strip — and nothing else. Every jump target
+    //                    reads it (`Section`'s `scroll-mt`), so a page never
+    //                    carries an offset of its own; the five hand-guessed
+    //                    copies of the strip height it replaces all disagreed
+    //                    with each other and with the strip.
+    //
+    //                    No breathing room is added here. `Section` already puts
+    //                    `mt-8` above its heading, so a landing that stops flush
+    //                    under the strip reads as a full line of air; adding a
+    //                    second helping only opens a gap for the PREVIOUS
+    //                    section's last line to show through, which is how it
+    //                    looked when this carried +1.5rem.
     container: [
       'min-h-screen bg-surface-base',
       '[--docs-gutter:1.5rem] lg:[--docs-gutter:2.5rem]',
       '[--docs-column:60rem] [--docs-rail-gap:4rem] [--docs-toc-w:13rem]',
-      '[--docs-shell:calc(var(--docs-column)+var(--docs-rail-gap)+var(--docs-toc-w)+2*var(--docs-gutter))]'
+      '[--docs-shell:calc(var(--docs-column)+var(--docs-rail-gap)+var(--docs-toc-w)+2*var(--docs-gutter))]',
+      '[--docs-anchor-offset:calc(var(--sidebar-layout-header-h,0rem)+var(--docs-sticky-bar-h,0rem))]'
     ],
+    // The strip's height, declared rather than emergent — `stickyBar` sets it as
+    // a real `h-`, so the number here IS the rendered height and cannot drift
+    // from what the anchor offset and the TOC rail assume. DocsLayout applies it
+    // to `container` under the same `showStickyBar` that renders the strip;
+    // without it the `var()` fallback above leaves the offset at the mobile
+    // header alone. It declares a DIFFERENT property than the offset above, so
+    // both sit on the same element without a conflict bucket between them and
+    // stylesheet order cannot pick a winner.
+    stickyBarHeight: ['[--docs-sticky-bar-h:2.5rem]'],
     // `pt-8` lives on the wrapper (not `main`) so BOTH columns — the body and
     // the TOC aside — start at the same top edge below the header band; the
     // TOC kicker lines up with the playground stage instead of hanging higher.
@@ -53,12 +78,6 @@ export const docsLayoutVariants = tv({
     stickyBar: ['sticky top-[var(--sidebar-layout-header-h,0rem)] z-(--z-sticky) bg-surface-base'],
     stickyBarInner: ['mx-auto px-6'],
 
-    pageToolbar: [
-      'flex items-center gap-2',
-      'sticky top-[var(--sidebar-layout-header-h,0rem)] z-(--z-sticky)',
-      'bg-surface-base py-3 mb-3',
-      'lg:justify-end'
-    ],
     // The sticky bar's table of contents. `lg:hidden` is the exact complement
     // of TableOfContents' `max-lg:hidden` rail — one named breakpoint, two
     // halves, so there is no width with both controls or neither.
@@ -76,22 +95,6 @@ export const docsLayoutVariants = tv({
       'transition-colors duration-(--blocks-duration-fast)',
       'hover:text-text-primary hover:bg-surface-hover',
       'aria-[current]:text-primary aria-[current]:font-medium',
-      'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40 focus-visible:rounded-modify'
-    ],
-    mobileToc: ['flex-1 lg:hidden'],
-    mobileTocButton: [
-      'flex w-full items-center justify-between rounded-contain',
-      'border border-border-subtle px-4 py-2.5',
-      'text-sm text-text-secondary',
-      'transition-colors duration-(--blocks-duration-fast)',
-      'hover:border-border-default',
-      'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40 focus-visible:rounded-modify'
-    ],
-    mobileTocNav: ['mt-2 flex flex-col rounded-contain border border-border-subtle py-2'],
-    mobileTocLink: [
-      'px-4 py-1.5 text-sm text-text-tertiary',
-      'transition-colors duration-(--blocks-duration-fast)',
-      'hover:text-text-primary',
       'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40 focus-visible:rounded-modify'
     ]
   },

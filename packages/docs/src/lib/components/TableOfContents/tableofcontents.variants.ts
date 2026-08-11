@@ -2,10 +2,15 @@ import { type SlotNames, tv, type VariantProps } from '@urbicon-ui/blocks';
 
 export const tableOfContentsVariants = tv({
   slots: {
-    // Desktop-only (max-lg:hidden), so no mobile-header offset applies:
-    // top-20 = the pinned breadcrumb strip (~2.6rem) + breathing room,
-    // roughly matching the wrapper's pt-8 content edge.
-    aside: ['max-lg:hidden sticky top-20 shrink-0 self-start'],
+    // Desktop-only (max-lg:hidden), so no mobile-header offset applies: the
+    // rail pins below the breadcrumb strip, reading the strip's declared height
+    // instead of the `top-20` that guessed it at ~2.6rem. The 2.5rem is the
+    // rail's own breathing room — it lands the kicker on the wrapper's pt-8
+    // content edge — not a second copy of the strip height. Without a strip
+    // (TableOfContents outside DocsLayout) the fallback pins it at that gap.
+    aside: [
+      'max-lg:hidden sticky top-[calc(var(--docs-sticky-bar-h,0rem)+2.5rem)] shrink-0 self-start'
+    ],
     // `text-text-tertiary` and uppercase are kept as fallback for pages
     // without the rooms scope; `meta-marker` (in rooms-docs.css) overrides
     // font + colour when the host root has `docs-rooms`.

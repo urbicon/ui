@@ -37,6 +37,26 @@ if (typeof window !== 'undefined') {
     } as unknown as typeof ResizeObserver;
   }
 
+  // `DocsLayout` watches its hero with an IntersectionObserver to know when the
+  // breadcrumb strip has to take over the title. jsdom ships none. This only
+  // started to bite when the strip stopped being gated on `breadcrumbs`: before
+  // that a test mounting a layout without them took the other branch and never
+  // reached the observer. Never firing is the correct stub — the callback only
+  // drives the collapse animation, and no assertion here describes it.
+  if (!('IntersectionObserver' in window)) {
+    window.IntersectionObserver = class {
+      readonly root = null;
+      readonly rootMargin = '';
+      readonly thresholds: readonly number[] = [];
+      observe() {}
+      unobserve() {}
+      disconnect() {}
+      takeRecords(): IntersectionObserverEntry[] {
+        return [];
+      }
+    } as unknown as typeof IntersectionObserver;
+  }
+
   // Expanding a table row mounts `transition:slide`, which calls
   // `element.animate()` — the Web Animations API, which jsdom does not
   // implement. Without this every expand-row assertion dies on a TypeError

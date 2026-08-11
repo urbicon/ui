@@ -4,7 +4,7 @@
     setCodeVisibilityContext
   } from '$lib/stores/code-visibility.svelte';
   import { ScrollSpy } from '$lib/stores/scroll-spy.svelte';
-  import { Breadcrumb, ChevronDownIcon, ListIcon, Popover } from '@urbicon-ui/blocks';
+  import { Breadcrumb, ListIcon, Popover } from '@urbicon-ui/blocks';
   import { useDocsI18n } from '$lib/i18n';
   import TableOfContents from '../TableOfContents/TableOfContents.svelte';
   import { createSectionNumbering } from '../Section/section-numbering.svelte.js';
@@ -74,14 +74,24 @@
   const codeVisibility = new CodeVisibilityStore();
   setCodeVisibilityContext(codeVisibility);
 
-  const useCollapsingHeader = $derived(breadcrumbs != null && breadcrumbs.length > 0);
-
   // The sticky-header trail is the consumer's ancestor breadcrumbs with the
   // current page (the `title`) appended as the final crumb — matching the
-  // Breadcrumb primitive's "last item is the current page" contract.
+  // Breadcrumb primitive's "last item is the current page" contract. A page
+  // with no ancestors (a top-level one like /auth) yields a trail of just its
+  // title, which is exactly what the strip should say there.
   const breadcrumbTrail = $derived(
     title ? [...(breadcrumbs ?? []), { label: title }] : (breadcrumbs ?? [])
   );
+
+  // The strip renders whenever there is something to put in it. It used to be
+  // gated on `breadcrumbs` specifically, which split the layout in two: pages
+  // that passed ancestors got the strip (with its popover TOC), pages without
+  // got a second, lesser implementation — a `pageToolbar` holding an inline
+  // mobile TOC. Two code paths for one job, and the lesser one had no declared
+  // height, so anchor jumps landed under it (measured 2026-08-11: headings
+  // clipped by 24px on lg+, 66px below it, on /i18n and /auth). There is one
+  // path now; the toolbar and its four mobile-TOC slots are gone.
+  const showStickyBar = $derived(breadcrumbTrail.length > 0);
 
   let headerEl: HTMLElement | undefined = $state();
   let scrolledPastHeader = $state(false);
@@ -97,7 +107,7 @@
   // Reading `spy.active` is what starts the scroll listener, so the same
   // condition that used to gate the `observe()` effect gates the read here —
   // a layout with neither a collapsing header nor a TOC still costs nothing.
-  const spyConsumed = $derived(useCollapsingHeader || (showToc && navigation.length > 0));
+  const spyConsumed = $derived(showStickyBar || (showToc && navigation.length > 0));
   // Read the getter EXACTLY once per frame and pass this derived on — including
   // to the TOC below. `spy.active` is not a stored value: every read walks the
   // id list calling `getBoundingClientRect`, which forces layout. The markup
@@ -117,13 +127,13 @@
   });
   const activeSectionTitle = $derived(activeTopSection?.title ?? '');
 
-  // Separate $effect for the hero observer: reactive to `useCollapsingHeader`
-  // and `headerEl` — when a navigation toggles breadcrumbs from `undefined`
-  // to `[…]` (or vice versa), the header element mounts/unmounts and the
-  // observer needs to be re-wired. onMount would capture the initial value
-  // only and leave the layout without the collapse transition afterwards.
+  // Separate $effect for the hero observer: reactive to `showStickyBar` and
+  // `headerEl` — when a navigation changes what the strip has to show, the
+  // header element mounts/unmounts and the observer needs to be re-wired.
+  // onMount would capture the initial value only and leave the layout without
+  // the collapse transition afterwards.
   $effect(() => {
-    if (!useCollapsingHeader || !headerEl) return;
+    if (!showStickyBar || !headerEl) return;
 
     const observer = new IntersectionObserver(
       ([entry]) => {
@@ -136,15 +146,8 @@
     return () => observer.disconnect();
   });
 
-  // Legacy mobile TOC state
-  let mobileTocOpen = $state(false);
   /** The sticky bar's own table of contents — see the control in that bar. */
   let stickyTocOpen = $state(false);
-  // pageToolbar is the legacy-layout's stand-in for the sticky-bar;
-  // the global code-toggle migrated to the TOC, so the toolbar only
-  // earns its presence now when there's a mobile-TOC button or a
-  // source-link to show.
-  const showToolbar = $derived((showToc && navigation.length > 0) || sourceHref != null);
 </script>
 
 <!-- urbicon-ignore animated-dimensions — the sticky breadcrumb shrinks its
@@ -181,9 +184,8 @@
 {/snippet}
 
 <!--
-  Source-Link: occupies the
-  slot the global code-toggle previously held (right edge of the
-  sticky bar / pageToolbar). The code-toggle now lives in the TOC.
+  Source-Link: occupies the slot the global code-toggle previously held (right
+  edge of the sticky bar). The code-toggle now lives in the TOC.
   External link to the GitHub blob — the href is not a SvelteKit route.
 -->
 {#snippet sourceLink()}
@@ -201,12 +203,11 @@
 {/snippet}
 
 <!--
-  Hero header — shared by the collapsing-hero and legacy layouts (one markup,
-  two call sites). `data-docs-header` is part of the data-docs-* theming
-  contract: the rooms skin paints it as the room colour field. `headerEl`
-  only matters for the collapsing layout's IntersectionObserver; binding it
-  in the legacy layout is inert (the observer effect gates on
-  `useCollapsingHeader`).
+  Hero header. `data-docs-header` is part of the data-docs-* theming contract:
+  the rooms skin paints it as the room colour field. `headerEl` is what the
+  IntersectionObserver watches to know when the strip has to take the title
+  over — it was a snippet with two call sites while the legacy layout existed,
+  and is kept as one because the observer binds inside it.
 -->
 {#snippet heroHeader()}
   <header bind:this={headerEl} class={slot('header')} data-docs-header>
@@ -225,9 +226,16 @@
   </header>
 {/snippet}
 
-<div class={[slot('container'), className]}>
-  {#if useCollapsingHeader}
-    <!-- ═══ COLLAPSING HERO — full-width header band ═══ -->
+<!--
+  `stickyBarHeight` rides along exactly when the sticky strip renders, so the
+  anchor offset declared on `container` accounts for it. Deriving it from the
+  same `showStickyBar` that gates the strip below is the point: a prop of its
+  own would be a second source for one fact, which is how the offset drifted
+  from the strip in the first place.
+-->
+<div class={[slot('container'), showStickyBar && slot('stickyBarHeight'), className]}>
+  {#if showStickyBar}
+    <!-- ═══ PINNED STRIP — full-width band above the hero ═══ -->
     <!--
       The sticky strip and the hero header are direct children of `container`
       (not nested in the body column), so the colour band spans the full width
@@ -237,7 +245,11 @@
     -->
     <div class={slot('stickyBar')} data-docs-sticky-bar>
       <div class={slot('stickyBarInner')}>
-        <div class="flex items-center py-2.5">
+        <!-- A declared height, not one that falls out of padding: the anchor
+             offset and the TOC rail both read `--docs-sticky-bar-h`, and this
+             is what makes that value true. It also holds the strip steady while
+             the crumb type shrinks on scroll. -->
+        <div class="flex h-(--docs-sticky-bar-h) items-center">
           <!--
             Dogfood the Breadcrumb primitive. `wrap={false}` keeps the trail on
             one line: ancestor links hold their width while the current page
@@ -266,12 +278,16 @@
           <!--
             The section control. It was a scrollspy *badge* — a link to the
             section you are already in, which is the one section nobody needs a
-            link to. It is the page's table of contents now, because on a
-            collapsing-header page it was the only thing left: `mobileToc` in
-            the page toolbar below is gated on `!useCollapsingHeader`, and
-            passing `breadcrumbs` sets that. Measured 2026-08-07: 124 of the 127
-            pages with a `navigation` array render no page navigation at all
-            below the TOC rail's breakpoint.
+            link to. It is the page's table of contents now, and since the page
+            toolbar's inline mobile TOC was deleted it is the ONLY one below the
+            rail's breakpoint — for every page, not just those passing
+            breadcrumbs. Measured 2026-08-07, when the split still existed: 124
+            of the 127 pages with a `navigation` array rendered no page
+            navigation at all down there.
+
+            Gated on having entries: an empty popover behind a list icon is a
+            control that promises navigation and opens onto nothing. The gate
+            only started to matter once every page came through here.
 
             The gate is `lg:hidden` against TableOfContents' `max-lg:hidden`:
             Tailwind's two halves of ONE named breakpoint, so exactly one of the
@@ -284,44 +300,46 @@
             there (the icon), and the active section's title expands in beside
             it once the hero is scrolled past.
           -->
-          <div class={slot('stickyToc')}>
-            <Popover bind:open={stickyTocOpen} placement="bottom-start">
-              {#snippet trigger()}
-                <button
-                  type="button"
-                  class={slot('stickyTocButton')}
-                  aria-expanded={stickyTocOpen}
-                  aria-label={dt('tocOnThisPage')}
-                  data-docs-scrollspy
-                >
-                  <ListIcon class="size-3.5 shrink-0" aria-hidden="true" />
-                  <span
-                    class="overflow-hidden transition-[max-width,opacity] duration-300 ease-out {scrolledPastHeader &&
-                    activeSectionTitle
-                      ? 'max-w-40 opacity-100'
-                      : 'max-w-0 opacity-0'}"
-                    style="transition-delay: {scrolledPastHeader ? '80ms' : '0ms'}"
+          {#if navigation.length > 0}
+            <div class={slot('stickyToc')}>
+              <Popover bind:open={stickyTocOpen} placement="bottom-start">
+                {#snippet trigger()}
+                  <button
+                    type="button"
+                    class={slot('stickyTocButton')}
+                    aria-expanded={stickyTocOpen}
+                    aria-label={dt('tocOnThisPage')}
+                    data-docs-scrollspy
                   >
-                    <span class="block truncate whitespace-nowrap">{activeSectionTitle}</span>
-                  </span>
-                </button>
-              {/snippet}
-              <nav class={slot('stickyTocNav')} aria-label={dt('tocOnThisPage')}>
-                {#each navigation as item (item.id)}
-                  <a
-                    href={`#${item.id}`}
-                    class={slot('stickyTocLink')}
-                    aria-current={item.id === (activeTopSection?.id ?? activeSection)
-                      ? 'location'
-                      : undefined}
-                    onclick={() => (stickyTocOpen = false)}
-                  >
-                    {item.title}
-                  </a>
-                {/each}
-              </nav>
-            </Popover>
-          </div>
+                    <ListIcon class="size-3.5 shrink-0" aria-hidden="true" />
+                    <span
+                      class="overflow-hidden transition-[max-width,opacity] duration-300 ease-out {scrolledPastHeader &&
+                      activeSectionTitle
+                        ? 'max-w-40 opacity-100'
+                        : 'max-w-0 opacity-0'}"
+                      style="transition-delay: {scrolledPastHeader ? '80ms' : '0ms'}"
+                    >
+                      <span class="block truncate whitespace-nowrap">{activeSectionTitle}</span>
+                    </span>
+                  </button>
+                {/snippet}
+                <nav class={slot('stickyTocNav')} aria-label={dt('tocOnThisPage')}>
+                  {#each navigation as item (item.id)}
+                    <a
+                      href={`#${item.id}`}
+                      class={slot('stickyTocLink')}
+                      aria-current={item.id === (activeTopSection?.id ?? activeSection)
+                        ? 'location'
+                        : undefined}
+                      onclick={() => (stickyTocOpen = false)}
+                    >
+                      {item.title}
+                    </a>
+                  {/each}
+                </nav>
+              </Popover>
+            </div>
+          {/if}
 
           <span class="min-w-0 flex-1"></span>
 
@@ -339,12 +357,9 @@
         ></div>
       </div>
     </div>
+  {/if}
 
-    {#if title || description}
-      {@render heroHeader()}
-    {/if}
-  {:else if title || description}
-    <!-- ═══ LEGACY — full-width header band (no breadcrumbs, no sticky strip) ═══ -->
+  {#if title || description}
     {@render heroHeader()}
   {/if}
 
@@ -356,43 +371,6 @@
          DocsLayout without such a shell owns the landmark. -->
     <div class={slot('main')}>
       <div class={slot('content')}>
-        {#if !useCollapsingHeader && showToolbar}
-          <div class={slot('pageToolbar')}>
-            {#if showToc && navigation.length > 0}
-              <div class={slot('mobileToc')}>
-                <button
-                  class={slot('mobileTocButton')}
-                  onclick={() => (mobileTocOpen = !mobileTocOpen)}
-                  aria-expanded={mobileTocOpen}
-                >
-                  <span>{dt('tocOnThisPage')}</span>
-                  <ChevronDownIcon
-                    class="h-4 w-4 transition-transform duration-(--blocks-duration-fast) {mobileTocOpen
-                      ? 'rotate-180'
-                      : ''}"
-                    aria-hidden="true"
-                  />
-                </button>
-                {#if mobileTocOpen}
-                  <nav class={slot('mobileTocNav')}>
-                    {#each navigation as item (item.id)}
-                      <a
-                        href={`#${item.id}`}
-                        class={slot('mobileTocLink')}
-                        onclick={() => (mobileTocOpen = false)}
-                      >
-                        {item.title}
-                      </a>
-                    {/each}
-                  </nav>
-                {/if}
-              </div>
-            {/if}
-
-            {@render sourceLink()}
-          </div>
-        {/if}
-
         {@render children?.()}
 
         {@render pageNav?.()}
