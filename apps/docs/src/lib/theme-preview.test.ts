@@ -2,46 +2,230 @@ import { readdirSync, readFileSync } from 'node:fs';
 import { dirname, join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { describe, expect, it } from 'vitest';
+import { buildTokenGraph, derivedDeclarations, references } from './css-declarations';
 import {
-  DERIVED_RADIUS_TIERS,
   generateChassis,
-  LITERAL_RADIUS_TIERS,
   neutralRamp,
   oklch,
   parseThemeRamps,
-  SEMANTIC_MIRROR,
+  previewVars,
   UNTINTED_NEUTRAL_STOP
 } from './theme-preview';
 
 /**
- * theme-preview.ts claims to mirror three library files: the neutral-ramp
- * profile and tier radii of foundation.css, and the per-mode role→stop
- * mappings of semantic.css. Every copy here is checked against the real file,
- * in BOTH directions — the mirror having fewer roles than semantic.css is the
- * failure that shipped once already (ten neutral-derived roles missing, so the
- * previews rendered Toggle thumbs and on-fill labels in the site's own chassis
- * instead of the previewed theme's).
+ * theme-preview.ts derives the preview scope's re-declarations from the shipped
+ * stylesheets instead of mirroring them by hand. What can go wrong is therefore
+ * no longer "the list is stale" but one of two things, and both are tested here:
+ *
+ *   - UNDER-emission — a role that reads a re-tinted ramp is left out, so a
+ *     component inside the preview keeps wearing the site's own chassis. That
+ *     is the bug that shipped once (ten neutral-derived roles missing, Toggle
+ *     thumbs and on-fill labels wrong);
+ *   - OVER-emission — something that does NOT read the ramps gets re-declared,
+ *     which pins a value the preview has no business pinning.
+ *
+ * The assertions run against `packages/blocks/src/lib/style/*`, the source of
+ * truth, rather than against the built package the module itself imports.
  */
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const styleDir = resolve(__dirname, '../../../../packages/blocks/src/lib/style');
-const foundation = readFileSync(resolve(styleDir, 'foundation.css'), 'utf8');
-const semantic = readFileSync(resolve(styleDir, 'semantic.css'), 'utf8');
+const read = (file: string) => readFileSync(resolve(styleDir, file), 'utf8');
+const foundation = read('foundation.css');
+const semantic = read('semantic.css');
+const interaction = read('interaction.css');
+
+/** Same order as style/index.css, which is what the module builds too. */
+const graph = buildTokenGraph([foundation, semantic, interaction]);
 
 /**
- * The base `:root` block only. The `@media (prefers-contrast: more)` and
- * `@media print` blocks below re-declare a handful of the same roles with
- * different stops; a preview scope must mirror the base cascade, and the
- * accessibility overrides keep applying on top of it as they do everywhere
- * else.
+ * semantic.css up to its first at-rule — the base cascade, which is what a
+ * preview scope re-declares. Below it, `@media (prefers-contrast: more)`
+ * re-declares a handful of roles against different stops (`--color-border-hairline`
+ * becomes neutral-derived there, having been an alpha literal above), and those
+ * are deliberately NOT in the closure: an inline declaration on the container
+ * outranks them anyway, so pinning them would only freeze the base value into a
+ * high-contrast session.
  */
-const baseBlock = semantic.slice(0, semantic.indexOf('@media'));
+const semanticBase = semantic.slice(0, semantic.indexOf('@media'));
 
-describe('the base-block slice the mirrors are checked against', () => {
-  it('is a real prefix containing the role declarations', () => {
-    expect(semantic.indexOf('@media')).toBeGreaterThan(0);
-    expect(baseBlock).toContain('--color-text-primary:');
-    expect(baseBlock).toContain('--color-interactive-disabled:');
+/** Every role the base block derives from the neutral ramp, by pattern rather
+ * than through the parser — a second opinion on what the closure must find. */
+function neutralDerivedRoles(): string[] {
+  return [
+    ...semanticBase.matchAll(
+      /(--color-[a-z0-9-]+):\s*light-dark\(\s*var\(--color-neutral-\d+\),\s*var\(--color-neutral-\d+\)\s*\)/g
+    )
+  ].map((m) => m[1]);
+}
+
+/** What a themes-gallery preview overrides: the three ramps plus both knobs. */
+const RAMP_SEEDS = [
+  ...neutralRamp.map((s) => `--color-neutral-${s.shade}`),
+  ...[50, 100, 200, 300, 400, 500, 600, 700, 800, 900, 950].flatMap((stop) => [
+    `--color-primary-${stop}`,
+    `--color-secondary-${stop}`
+  ]),
+  '--blocks-shadow-tint',
+  '--neutral-chrome-hue'
+];
+
+const RADIUS_SEEDS = ['xs', 'sm', 'md', 'lg', 'xl', '2xl', '3xl', '4xl'].map(
+  (step) => `--radius-${step}`
+);
+
+const closure = derivedDeclarations(graph, RAMP_SEEDS);
+const closureNames = new Set(closure.map((d) => d.name));
+
+describe('the token graph the closure walks', () => {
+  it('reads all three layers, base values only', () => {
+    const names = new Set(graph.declarations.map((d) => d.name));
+    expect(names.has('--color-neutral-500'), 'foundation.css').toBe(true);
+    expect(names.has('--color-surface-base'), 'semantic.css').toBe(true);
+    expect(names.has('--blocks-shadow-md'), 'interaction.css').toBe(true);
+    // Declared only under `@media (pointer: coarse)` / `(pointer: fine)`, so it
+    // is not a library default and must not be published as one.
+    expect(names.has('--blocks-touch-target-min'), 'at-rule-only token').toBe(false);
+  });
+
+  it('declares no name twice across the three layers', () => {
+    // first-wins is unambiguous only while that holds; a name declared at
+    // depth 1 in two layers would mean the closure silently picks one file's
+    // value and the browser possibly the other's.
+    const seen = new Map<string, string>();
+    const collisions: string[] = [];
+    for (const [file, css] of [
+      ['foundation.css', foundation],
+      ['semantic.css', semantic],
+      ['interaction.css', interaction]
+    ] as const) {
+      for (const { name } of buildTokenGraph([css]).declarations) {
+        const first = seen.get(name);
+        if (first) collisions.push(`${name}: ${first} + ${file}`);
+        else seen.set(name, file);
+      }
+    }
+    expect(collisions).toEqual([]);
+  });
+});
+
+describe('the closure covers what reads the ramps', () => {
+  it('reaches every neutral-derived role semantic.css declares', () => {
+    const declared = neutralDerivedRoles();
+    expect(declared.length).toBeGreaterThan(20);
+    expect(declared.filter((name) => !closureNames.has(name))).toEqual([]);
+  });
+
+  it('reaches every accent-derived role, the ramp-named ones and the rest', () => {
+    const declared = [
+      ...semanticBase.matchAll(
+        /(--color-[a-z0-9-]+):\s*light-dark\(\s*var\(--color-(?:primary|secondary)-\d+\),/g
+      )
+    ].map((m) => m[1]);
+    expect(declared).toContain('--color-primary-hover');
+    expect(declared).toContain('--color-surface-selected');
+    expect(declared).toContain('--color-chart-1');
+    expect(declared).toContain('--color-chart-4');
+    expect(declared.filter((name) => !closureNames.has(name))).toEqual([]);
+  });
+
+  it('follows the chains a hand-written list kept missing', () => {
+    // Each of these is one hop further than the mirror ever reached.
+    for (const [name, why] of [
+      ['--color-text-on-primary', 'alias of a re-declared role'],
+      ['--color-interactive-hover', 'primary-derived in relative-colour syntax'],
+      ['--color-shadow-md', 'shadow tint → semantic shadow'],
+      ['--blocks-shadow-md', 'semantic shadow → interaction alias'],
+      ['--color-neutral-emphasis', 'chrome hue → neutral intent'],
+      ['--blocks-focus-ring', 'primary → focus ring colour → composed ring']
+    ] as const) {
+      expect(closureNames.has(name), `${name} (${why})`).toBe(true);
+    }
+  });
+
+  it('re-declares the derived radius tiers, and only those, when the scale moves', () => {
+    const names = derivedDeclarations(graph, RADIUS_SEEDS).map((d) => d.name);
+    // Derived from the base scale, so a scope overriding it has to repeat them.
+    expect(names).toContain('--radius-modify');
+    expect(names).toContain('--radius-contain');
+    expect(names).toContain('--radius-bridge');
+    // Literals in foundation.css: a base-radius override does not move them,
+    // and pinning them here would be the over-emission failure. No tier name is
+    // hardcoded to reach that verdict — the value's shape decides.
+    expect(names).not.toContain('--radius-commit');
+    expect(names).not.toContain('--radius-control');
+  });
+});
+
+describe('the closure emits nothing it should not', () => {
+  it('leaves the intents the preview does not re-tint alone', () => {
+    for (const role of [
+      '--color-success',
+      '--color-warning-subtle',
+      '--color-danger-emphasis',
+      '--color-info',
+      '--color-feedback-error',
+      '--color-text-on-warning',
+      '--color-live',
+      '--color-avatar-1',
+      '--blocks-duration-fast',
+      '--blocks-transition-colors'
+    ]) {
+      expect(closureNames.has(role), role).toBe(false);
+    }
+  });
+
+  it('never repeats a name the caller already overrides', () => {
+    for (const seed of RAMP_SEEDS) expect(closureNames.has(seed), seed).toBe(false);
+  });
+
+  it('emits every declaration verbatim, so no formula is retyped here', () => {
+    const declared = new Map(graph.declarations.map((d) => [d.name, d.value]));
+    for (const { name, value } of closure) expect(value, name).toBe(declared.get(name));
+  });
+
+  it('leaves no dangling reference: every var() resolves in scope or at :root', () => {
+    const known = new Set([...RAMP_SEEDS, ...graph.declarations.map((d) => d.name)]);
+    const dangling = closure.flatMap(({ name, value }) =>
+      references(value)
+        .filter((ref) => !known.has(ref))
+        .map((ref) => `${name} → ${ref}`)
+    );
+    expect(dangling).toEqual([]);
+  });
+});
+
+describe('positive controls on the closure oracle', () => {
+  it('finds nothing when nothing is overridden', () => {
+    expect(derivedDeclarations(graph, [])).toEqual([]);
+  });
+
+  it('would report the neutral-derived roles as missing if the seeds were empty', () => {
+    // The completeness assertions above are only worth their green if they can
+    // go red. Same oracle, no seeds: every role has to come back missing.
+    const empty = new Set(derivedDeclarations(graph, []).map((d) => d.name));
+    const declared = neutralDerivedRoles();
+    expect(declared.filter((name) => !empty.has(name))).toEqual(declared);
+  });
+
+  it('walks a chain rather than one hop', () => {
+    const chain = buildTokenGraph([
+      ':root { --seed: 1; --hop-1: var(--seed); --hop-2: var(--hop-1); --unrelated: 2; }'
+    ]);
+    expect(derivedDeclarations(chain, ['--seed']).map((d) => d.name)).toEqual([
+      '--hop-1',
+      '--hop-2'
+    ]);
+  });
+
+  it('refuses to emit a scope at all when the stylesheets did not load', () => {
+    // Vite serves `.css` imports as empty modules outside a browser build, so
+    // an empty graph is a real shape this code can be handed. Emitting the
+    // ramps alone would look plausible and render the surrounding page's theme
+    // — the exact bug the closure exists to prevent — so it has to be loud.
+    expect(() =>
+      previewVars({ palette: {}, secondaryPalette: {}, chassis: [] }, buildTokenGraph([]))
+    ).toThrow(/empty token graph/);
   });
 });
 
@@ -71,145 +255,56 @@ describe('neutralRamp mirrors foundation.css', () => {
   });
 });
 
-describe('role mappings mirror semantic.css', () => {
-  /** First (base-block) declaration of a role as a light-dark stop pair. */
-  function shipped(role: string, base: string): [number, number] | null {
-    const match = baseBlock.match(
-      new RegExp(
-        `--color-${role}:\\s*light-dark\\(\\s*var\\(--color-${base}-(\\d+)\\),\\s*var\\(--color-${base}-(\\d+)\\)\\s*\\)`
-      )
-    );
-    return match ? [Number(match[1]), Number(match[2])] : null;
-  }
-
-  it('chassis-derived roles read the same neutral stops per mode', () => {
-    for (const [role, pair] of Object.entries(SEMANTIC_MIRROR.CHASSIS_ROLES)) {
-      expect(shipped(role, 'neutral'), `--color-${role}`).toEqual(pair);
-    }
-  });
-
-  it('mirrors EVERY neutral-derived role semantic.css declares', () => {
-    const declared = new Set(
-      [
-        ...baseBlock.matchAll(
-          /--color-([a-z0-9-]+):\s*light-dark\(\s*var\(--color-neutral-\d+\),\s*var\(--color-neutral-\d+\)\s*\)/g
-        )
-      ].map((m) => m[1])
-    );
-    expect(declared.size).toBeGreaterThan(20);
-    expect(new Set(Object.keys(SEMANTIC_MIRROR.CHASSIS_ROLES))).toEqual(declared);
-  });
-
-  it('accent roles read the same ramp stops per mode', () => {
-    for (const [intent, roles] of Object.entries(SEMANTIC_MIRROR.ACCENT_ROLES)) {
-      for (const [suffix, pair] of Object.entries(roles)) {
-        expect(shipped(`${intent}${suffix}`, intent), `--color-${intent}${suffix}`).toEqual(pair);
-      }
-    }
-  });
-
-  it('primary-derived roles that do not carry the ramp name still match', () => {
-    for (const [role, pair] of Object.entries(SEMANTIC_MIRROR.PRIMARY_RAMP_ROLES)) {
-      expect(shipped(role, 'primary'), `--color-${role}`).toEqual(pair);
-    }
-  });
-
-  it('relative-color roles match semantic.css verbatim', () => {
-    for (const [role, expression] of Object.entries(SEMANTIC_MIRROR.RELATIVE_PRIMARY_ROLES)) {
-      expect(baseBlock, `--color-${role}`).toContain(`--color-${role}: ${expression};`);
-    }
-  });
-});
-
-describe('radius tiers mirror foundation.css', () => {
-  it('derived tiers read the base radius the module claims', () => {
-    for (const [token, value] of Object.entries(DERIVED_RADIUS_TIERS)) {
-      expect(foundation, token).toContain(`${token}: ${value};`);
-    }
-  });
-
-  it('literal tiers are literals, so a base-radius override cannot move them', () => {
-    for (const [token, value] of Object.entries(LITERAL_RADIUS_TIERS)) {
-      expect(foundation, token).toContain(`${token}: ${value};`);
-    }
-  });
-
-  it('knows every tier token foundation.css declares', () => {
-    const declared = new Set(
-      [...foundation.matchAll(/(--radius-(?:commit|modify|contain|bridge|control)):/g)].map(
-        (m) => m[1]
-      )
-    );
-    const covered = new Set([
-      ...Object.keys(DERIVED_RADIUS_TIERS),
-      ...Object.keys(LITERAL_RADIUS_TIERS)
-    ]);
-    expect(covered).toEqual(declared);
-  });
-});
-
 describe('parseThemeRamps against the shipped themes', () => {
   const themesDir = resolve(styleDir, 'themes');
   const themeFiles = readdirSync(themesDir).filter((f) => f.endsWith('.css') && f !== 'index.css');
+  const usable = (value: string | undefined) =>
+    typeof value === 'string' &&
+    value.length > 0 &&
+    // balanced parentheses: a truncated value is the failure mode a `[^)]+`
+    // scan produces on relative-color syntax
+    value.split('(').length === value.split(')').length;
 
   it('finds the shipped themes', () => {
     expect(themeFiles.length).toBeGreaterThanOrEqual(5);
   });
 
   for (const file of themeFiles) {
-    it(`${file}: every stop the preview roles read is present and a usable colour`, () => {
+    it(`${file}: every stop a re-declared role reads is present and usable`, () => {
       const ramps = parseThemeRamps(readFileSync(join(themesDir, file), 'utf8'));
-      const usable = (value: string | undefined) =>
-        typeof value === 'string' &&
-        value.length > 0 &&
-        // balanced parentheses: a truncated value is the failure mode a
-        // `[^)]+` scan produces on relative-color syntax
-        value.split('(').length === value.split(')').length;
-
-      for (const roles of Object.values(SEMANTIC_MIRROR.ACCENT_ROLES)) {
-        for (const pair of Object.values(roles)) {
-          for (const stop of pair) {
-            expect(usable(ramps.primary[stop]), `primary-${stop} in ${file}`).toBe(true);
-            expect(usable(ramps.secondary[stop]), `secondary-${stop} in ${file}`).toBe(true);
-          }
-        }
-      }
-      for (const pair of Object.values(SEMANTIC_MIRROR.PRIMARY_RAMP_ROLES)) {
-        for (const stop of pair) {
-          expect(usable(ramps.primary[stop]), `primary-${stop} in ${file}`).toBe(true);
-        }
-      }
-
       const byShade = new Map(ramps.neutral.map((s) => [s.shade, s.value]));
-      for (const pair of Object.values(SEMANTIC_MIRROR.CHASSIS_ROLES)) {
-        for (const stop of pair) {
-          // neutral-0 is pure white and deliberately never re-tinted: roles
-          // reading it resolve from :root inside the preview scope.
-          if (stop === UNTINTED_NEUTRAL_STOP) continue;
-          expect(usable(byShade.get(stop)), `neutral-${stop} in ${file}`).toBe(true);
+      const available = (ref: string) => {
+        const stop = /^--color-(primary|secondary|neutral)-(\d+)$/.exec(ref);
+        if (!stop) return true; // not a re-tinted ramp: resolves at :root
+        const shade = Number(stop[2]);
+        // neutral-0 is pure white and deliberately never re-tinted.
+        if (stop[1] === 'neutral') {
+          return shade === UNTINTED_NEUTRAL_STOP || usable(byShade.get(shade));
         }
-      }
+        return usable((stop[1] === 'primary' ? ramps.primary : ramps.secondary)[shade]);
+      };
+
+      const missing = closure.flatMap(({ name, value }) =>
+        references(value)
+          .filter((ref) => !available(ref))
+          .map((ref) => `${name} → ${ref}`)
+      );
+      expect(missing).toEqual([]);
     });
   }
 
-  it('keeps nested parentheses intact instead of truncating at the inner one', () => {
-    const parsed = parseThemeRamps(`@theme {
-      --color-primary-500: oklch(from var(--color-primary-600) calc(l + 0.08) c h);
-      --color-neutral-500: color-mix(in oklab, #fff 20%, #000);
-    }`);
-    expect(parsed.primary[500]).toBe('oklch(from var(--color-primary-600) calc(l + 0.08) c h)');
-    expect(parsed.neutral).toContainEqual({
-      shade: 500,
-      value: 'color-mix(in oklab, #fff 20%, #000)'
-    });
+  it('reads the two :root knobs the four coloured themes set', () => {
+    const sunset = parseThemeRamps(readFileSync(join(themesDir, 'sunset.css'), 'utf8'));
+    expect(sunset.shadowTint).toBe('0.22 0.03 55');
+    expect(sunset.neutralChromeHue).toBe('50');
   });
 
-  it('ignores ramp names mentioned only in comments', () => {
-    const parsed = parseThemeRamps(`@theme {
-      /* … all shades --color-primary-200 to --color-primary-800 … */
-      --color-primary-500: oklch(0.58 0.15 280);
-    }`);
-    expect(Object.keys(parsed.primary)).toEqual(['500']);
+  it('reports no knobs for the theme that deliberately ships none', () => {
+    // neutral.css is grayscale: it has no temperature to match, so the library
+    // defaults are correct and the preview must not pin anything.
+    const neutral = parseThemeRamps(readFileSync(join(themesDir, 'neutral.css'), 'utf8'));
+    expect(neutral.shadowTint).toBeUndefined();
+    expect(neutral.neutralChromeHue).toBeUndefined();
   });
 
   it('does not mistake the warm-neutral ramp for the chassis', () => {
@@ -218,6 +313,55 @@ describe('parseThemeRamps against the shipped themes', () => {
       --color-neutral-500: oklch(0.55 0.016 200);
     }`);
     expect(parsed.neutral).toEqual([{ shade: 500, value: 'oklch(0.55 0.016 200)' }]);
+  });
+});
+
+describe('previewVars', () => {
+  const vars = previewVars(
+    {
+      palette: { 500: 'oklch(0.58 0.15 320)', 600: 'oklch(0.52 0.15 320)' },
+      secondaryPalette: { 500: 'oklch(0.55 0.12 0)' },
+      chassis: [{ shade: 900, value: 'oklch(0.15 0.012 320)' }],
+      shadowTint: '0.2 0.025 320',
+      neutralChromeHue: '320'
+    },
+    graph
+  );
+  const declared = new Map(
+    vars.split('; ').map((pair) => {
+      const at = pair.indexOf(': ');
+      return [pair.slice(0, at), pair.slice(at + 2)];
+    })
+  );
+
+  it('leads with the values the caller passed in', () => {
+    expect(declared.get('--color-primary-500')).toBe('oklch(0.58 0.15 320)');
+    expect(declared.get('--blocks-shadow-tint')).toBe('0.2 0.025 320');
+  });
+
+  it('declares each name exactly once, so no re-declaration undoes another', () => {
+    const names = vars.split('; ').map((pair) => pair.slice(0, pair.indexOf(': ')));
+    expect(names.length).toBe(new Set(names).size);
+  });
+
+  it('omits the radius tiers until the scale is actually overridden', () => {
+    expect(declared.has('--radius-modify')).toBe(false);
+    const withRadii = previewVars(
+      { palette: {}, secondaryPalette: {}, chassis: [], radii: { '--radius-sm': '0rem' } },
+      graph
+    );
+    expect(withRadii).toContain('--radius-modify: var(--radius-sm)');
+  });
+
+  it('pins no chroma knob the caller did not pass', () => {
+    const withoutKnobs = previewVars(
+      { palette: { 500: 'oklch(0.58 0.15 320)' }, secondaryPalette: {}, chassis: [] },
+      graph
+    );
+    expect(withoutKnobs).not.toContain('--blocks-shadow-tint');
+    expect(withoutKnobs).not.toContain('--neutral-chrome-hue');
+    // …and without the tint seeded, the shadow chain stays at :root too.
+    expect(withoutKnobs).not.toContain('--blocks-shadow-md');
   });
 });
 

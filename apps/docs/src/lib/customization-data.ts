@@ -12,13 +12,15 @@
  * `styles.base({ class: [slotClasses?.base, className] })`), which strips the
  * library's own conflicting classes — step 1.
  *
- * Hence the caveat on step 7: `class` outranks everything the library and the
- * provider set, but it shares its stage with instance `slotClasses`, and
- * within one source `variants.ts` leaves same-bucket pairs to the CSS cascade
- * rather than picking a winner.
+ * Hence the caveat on step 7, and it is narrower than it reads: `class` is
+ * inside that final source, not above it, so the only stage it reliably wins
+ * against is step 1. Against steps 2–6 it is a peer — `variants.ts` leaves
+ * same-bucket pairs within one source to the CSS cascade rather than picking a
+ * winner — so a provider `rounded-none` and an instance `class="rounded-full"`
+ * both survive and stylesheet order decides. Measured in precedence.test.ts.
  */
 export const precedenceChain = [
-  'tv() variant styles (library default)',
+  'tv() variant styles (library default — the only stage a class prop reliably beats)',
   'BlocksProvider defaults.slotClasses',
   'BlocksProvider defaults.overrides[match]',
   'preset.slotClasses (when preset="…" is set)',

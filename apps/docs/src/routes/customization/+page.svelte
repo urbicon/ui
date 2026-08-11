@@ -136,12 +136,14 @@
       class="bg-surface-subtle text-text-secondary rounded-contain mt-4 border p-4 text-sm leading-relaxed"
     >
       <strong class="text-text-primary">Full precedence chain (weakest → strongest):</strong>
-      Each source strips the earlier ones' conflicting Tailwind utilities on the slot they share, so the
-      later source wins (an instance <code class="text-xs">slotClasses</code>
+      Through step 6, each source strips the earlier ones' conflicting Tailwind utilities on the slot
+      they share, so the later source wins (an instance <code class="text-xs">slotClasses</code>
       <code class="text-xs">rounded-none</code> defeats a provider default
-      <code class="text-xs">rounded-full</code>), and non-conflicting classes accumulate. Steps 6
-      and 7 are one stage: both beat everything above them, but they do not resolve against
-      <em>each other</em>, so a utility written into both leaves the winner to stylesheet order. Use
+      <code class="text-xs">rounded-full</code>), and non-conflicting classes accumulate. Step 7 is
+      not a further rung: <code class="text-xs">class</code> joins steps 2–6 as one source, and
+      within a source conflicting utilities are left to the CSS cascade. So
+      <code class="text-xs">class</code> reliably beats the library defaults and nothing else —
+      against a provider or preset value, both utilities survive and stylesheet order decides. Use
       <code class="text-xs">slotClasses</code> to override a conflicting utility and
       <code class="text-xs">class</code> to add one.
       <ol class="mt-2 list-outside list-decimal space-y-1 pl-5">

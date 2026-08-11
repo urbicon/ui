@@ -62,13 +62,18 @@
   let activeTheme = $state(0);
   const active = $derived(themes[activeTheme]);
 
-  // Ramps + role re-declarations for the preview scope, both modes via
-  // light-dark(). Shared with the Theme Builder: $lib/theme-preview.ts.
+  // Ramps + every role that reads them, re-declared for the preview scope in
+  // both modes via light-dark(). Shared with the Theme Builder:
+  // $lib/theme-preview.ts. The two `:root` knobs come from the theme file as
+  // well — they are what carries the theme's temperature into the shadows and
+  // the neutral chrome, and neutral.css deliberately sets neither.
   const previewStyle = $derived(
     previewVars({
       palette: active.ramps.primary,
       secondaryPalette: active.ramps.secondary,
-      chassis: active.ramps.neutral
+      chassis: active.ramps.neutral,
+      shadowTint: active.ramps.shadowTint,
+      neutralChromeHue: active.ramps.neutralChromeHue
     })
   );
 

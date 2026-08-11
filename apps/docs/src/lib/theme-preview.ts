@@ -8,12 +8,42 @@
  * chassis-derived token, so on a dark page the previews half-broke: unreadable
  * labels, light card islands, glaring separators.
  *
- * The re-declarations here therefore keep the `light-dark(var(…), var(…))`
- * indirection of semantic.css instead of pinning resolved values — the preview
- * scope overrides the ramps, and the role tokens re-substitute against them in
- * both modes. The only mirrored knowledge is WHICH stop each role reads per
- * mode; theme-preview.test.ts parses semantic.css and fails on any divergence.
+ * ── Why a preview scope needs re-declarations at all ────────────────────────
+ * A custom property substitutes its `var()` references where it is DECLARED.
+ * The library declares its roles in one `@theme` block, which Tailwind emits at
+ * `:root`, so `--color-primary` is resolved against the DEFAULT ramp up there
+ * and inherits downward already-resolved. Re-tinting `--color-primary-*` on a
+ * preview container therefore changes nothing until every token that reads the
+ * ramp is re-declared, verbatim, in the same scope.
+ *
+ * ── Why this is derived and not a list ──────────────────────────────────────
+ * Which tokens those are used to be four hand-written tables in this file,
+ * guarded by a 150-line test that diffed them against semantic.css. The tables
+ * still missed `--color-text-on-primary`, `--color-chart-4`, the shadow chain
+ * and the whole neutral-intent chrome — a mirror is only ever as complete as
+ * its last edit, and the gate was paying rent on the duplication rather than
+ * removing it. So the set is now COMPUTED: seed it with what the preview
+ * overrides, then take the transitive closure over the shipped stylesheets —
+ * every declaration whose value reads a seeded name joins the set, and its own
+ * name seeds the next round. That reaches `--blocks-shadow-tint → --color-shadow-*
+ * → --blocks-shadow-*` and `--neutral-chrome-hue → --color-neutral*` without
+ * anyone naming a link, and a role the library adds tomorrow arrives on its own.
+ *
+ * `apps/docs/scripts/gen-livery-shim.ts` solves the same substitution problem
+ * for the landing-page liveries, generatively and for the same stated reason.
+ * The two extractors are deliberately not shared yet — that is a follow-up.
+ *
+ * ── One thing the scope does NOT keep ───────────────────────────────────────
+ * An inline declaration on the container beats every `:root` declaration,
+ * including those inside `@media print` / `prefers-contrast: more`. Inside a
+ * preview, the accessibility overrides for the re-declared roles therefore do
+ * not apply. That is acceptable here — the exhibit's job is to show the theme
+ * — but it is not the "they keep applying as everywhere else" this file used
+ * to claim.
  */
+
+import { baseDeclarations, derivedDeclarations, type TokenGraph } from './css-declarations';
+import { LIBRARY_TOKENS } from './library-tokens';
 
 /** Formats an oklch() color, rounding away float artifacts (0.12 × 0.87 must
  * never print as 0.10439999999999999 in copy-paste output). */
@@ -78,216 +108,103 @@ export function generateChassis(hue: number, tint = 1): { shade: number; value: 
   }));
 }
 
-/* Which neutral stop each chassis-derived role reads per mode, exactly as
- * semantic.css declares it. theme-preview.test.ts checks every entry against
- * the real file AND fails when semantic.css grows a neutral-derived role that
- * is missing here — the previews render more than surfaces and text, so an
- * omission shows up as a component still wearing the site's own chassis. */
-const CHASSIS_ROLES: Record<string, [light: number, dark: number]> = {
-  'surface-base': [0, 900],
-  'surface-quiet': [25, 850],
-  'surface-elevated': [50, 800],
-  'surface-overlay': [0, 850],
-  'surface-subtle': [50, 800],
-  'surface-hover': [100, 750],
-  'surface-active': [200, 700],
-  'surface-disabled': [100, 800],
-  'surface-inverted': [900, 100],
-  'surface-interactive': [100, 700],
-  'surface-interactive-hover': [200, 650],
-  'text-primary': [900, 100],
-  'text-secondary': [700, 300],
-  'text-tertiary': [600, 300],
-  'text-quaternary': [500, 400],
-  'text-inverted': [0, 900],
-  'text-disabled': [500, 500],
-  'text-on-dark': [0, 900],
-  'text-on-fill': [0, 900],
-  'text-on-surface': [900, 100],
-  'border-subtle': [200, 700],
-  'border-default': [300, 600],
-  'border-emphasis': [400, 500],
-  'border-strong': [500, 400],
-  'interactive-disabled': [200, 700]
-};
-
-/* Same for the accent role tokens, keyed by the ramp they read. */
-const ACCENT_ROLES: Record<
-  'primary' | 'secondary',
-  Record<string, [light: number, dark: number]>
-> = {
-  primary: {
-    '': [600, 500],
-    '-hover': [700, 400],
-    '-active': [800, 300],
-    '-subtle': [50, 900],
-    '-emphasis': [900, 200]
-  },
-  secondary: {
-    '': [500, 400],
-    '-hover': [600, 300],
-    '-active': [700, 200],
-    '-subtle': [50, 900],
-    '-emphasis': [800, 200]
-  }
-};
-
-/* Roles that read the primary ramp without carrying its name. */
-const PRIMARY_RAMP_ROLES: Record<string, [light: number, dark: number]> = {
-  'surface-selected': [50, 900],
-  'chart-1': [600, 400],
-  'interactive-focus': [500, 400]
-};
-
-/* Primary-derived roles written in relative-color syntax, which has no
- * stop pair to mirror. Held as exact strings and compared verbatim against
- * semantic.css by the test. */
-const RELATIVE_PRIMARY_ROLES: Record<string, string> = {
-  'interactive-hover': 'oklch(from var(--color-primary-500) l c h / 0.1)',
-  'interactive-active': 'oklch(from var(--color-primary-500) l c h / 0.2)'
-};
-
-/**
- * Tier radius tokens that DERIVE from the base radius scale, and therefore
- * need re-declaring in any scope that overrides `--radius-xs…4xl`: a `var()`
- * inside a token defined on `:root` substitutes there, so overriding the base
- * alone leaves the tier on its old value. The same substitution trap the
- * colour roles above solve.
- *
- * `--radius-commit` and `--radius-control` are deliberately absent: they are
- * literals in foundation.css (`9999px`), so a base-radius override does not
- * move them — in a preview scope or in a consumer's `@theme`. The test fails
- * if either ever starts deriving from a base radius.
- */
-export const DERIVED_RADIUS_TIERS: Record<string, string> = {
-  '--radius-modify': 'var(--radius-sm)',
-  '--radius-contain': 'var(--radius-xs)',
-  '--radius-bridge': 'var(--radius-md)'
-};
-
-/** Tier tokens that stay put under a base-radius override, with the literal
- * foundation.css value the test pins them to. */
-export const LITERAL_RADIUS_TIERS: Record<string, string> = {
-  '--radius-commit': '9999px',
-  '--radius-control': '9999px'
-};
-
-export const SEMANTIC_MIRROR = {
-  CHASSIS_ROLES,
-  ACCENT_ROLES,
-  PRIMARY_RAMP_ROLES,
-  RELATIVE_PRIMARY_ROLES
-};
-
 export interface ParsedThemeRamps {
   primary: Record<number, string>;
   secondary: Record<number, string>;
   neutral: { shade: number; value: string }[];
-}
-
-/** Strips CSS comments so prose like `… all shades 200–800 …` cannot be read
- * as a declaration. */
-function stripComments(css: string): string {
-  return css.replace(/\/\*[\s\S]*?\*\//g, '');
-}
-
-/**
- * Every `--color-<ramp>-<stop>` declaration and its full value. Scans to the
- * `;` at paren-depth zero rather than matching `oklch\([^)]+\)`, so a stop
- * written in relative-color syntax (`oklch(from var(--x) l c h)`) or with
- * `color-mix()` survives intact instead of being truncated at the inner `)`.
- */
-function rampDeclarations(css: string, ramp: string): Record<number, string> {
-  const out: Record<number, string> = {};
-  for (const match of css.matchAll(new RegExp(`--color-${ramp}-(\\d+)\\s*:`, 'g'))) {
-    const start = (match.index ?? 0) + match[0].length;
-    let depth = 0;
-    let end = start;
-    for (; end < css.length; end++) {
-      const ch = css[end];
-      if (ch === '(') depth++;
-      else if (ch === ')') depth--;
-      else if (ch === ';' && depth === 0) break;
-    }
-    out[Number(match[1])] = css.slice(start, end).trim();
-  }
-  return out;
+  /** The `:root` knobs, when the theme sets them. `neutral.css` deliberately
+   * sets neither — a grayscale chassis has no temperature to match — and then
+   * the library defaults (black shadows, hue 240) are the right answer. */
+  shadowTint?: string;
+  neutralChromeHue?: string;
 }
 
 /**
- * Reads the three ramps out of a shipped theme file (imported `?raw`). The
- * themes gallery renders these instead of approximating the palettes with
- * `generatePalette` — the approximation visibly disagreed with the shipped
- * values (Sunset/Rose chroma, Neutral's darkened 600), so swatch dot, palette
- * strip and live preview now all read the same source as the consumer's
- * `@import`.
+ * Reads the three ramps and the two chroma knobs out of a shipped theme file
+ * (imported `?raw`). The themes gallery renders these instead of approximating
+ * the palettes with `generatePalette` — the approximation visibly disagreed
+ * with the shipped values (Sunset/Rose chroma, Neutral's darkened 600), so
+ * swatch dot, palette strip and live preview now all read the same source as
+ * the consumer's `@import`.
  */
 export function parseThemeRamps(css: string): ParsedThemeRamps {
-  const source = stripComments(css);
-  const neutral = rampDeclarations(source, 'neutral');
-  return {
-    primary: rampDeclarations(source, 'primary'),
-    secondary: rampDeclarations(source, 'secondary'),
-    neutral: Object.entries(neutral).map(([shade, value]) => ({
-      shade: Number(shade),
-      value
-    }))
-  };
+  const primary: Record<number, string> = {};
+  const secondary: Record<number, string> = {};
+  const neutral: { shade: number; value: string }[] = [];
+  const parsed: ParsedThemeRamps = { primary, secondary, neutral };
+
+  for (const { name, value } of baseDeclarations([css])) {
+    const stop = /^--color-(primary|secondary|neutral)-(\d+)$/.exec(name);
+    if (stop) {
+      if (stop[1] === 'neutral') neutral.push({ shade: Number(stop[2]), value });
+      else if (stop[1] === 'primary') primary[Number(stop[2])] = value;
+      else secondary[Number(stop[2])] = value;
+      continue;
+    }
+    if (name === '--blocks-shadow-tint') parsed.shadowTint = value;
+    else if (name === '--neutral-chrome-hue') parsed.neutralChromeHue = value;
+  }
+
+  return parsed;
 }
 
-/**
- * The inline-style override set for a preview scope: the three re-tinted ramps
- * plus re-declarations of every role token that derives from them. The
- * re-declaration is needed because a `var()` inside a `:root` token definition
- * substitutes at the cascade level where it is defined — overriding the ramps
- * alone would not re-resolve `--color-primary` & co. in the preview subtree.
- *
- * Pass `radii` to override the base radius scale as well; the derived tier
- * tokens are re-declared alongside it for the same reason.
- */
-export function previewVars(options: {
+export interface PreviewOptions {
   palette: Record<number, string>;
   secondaryPalette: Record<number, string>;
   chassis: { shade: number; value: string }[];
+  /** Base radius scale (`--radius-xs` … `--radius-4xl`), when the scope moves it. */
   radii?: Record<string, string>;
-}): string {
-  const vars: string[] = [];
+  /** oklch `L C H` without alpha, as themes declare it on `:root`. */
+  shadowTint?: string;
+  neutralChromeHue?: string;
+}
+
+/**
+ * The inline-style override set for a preview scope: what the caller re-tints,
+ * followed by every library declaration that reads it (see the module header).
+ *
+ * `graph` defaults to the shipped stylesheets and is passed explicitly only by
+ * the tests, which read `packages/blocks/src/lib/style/*` off disk — Vite
+ * serves `.css` imports as empty modules outside a browser build, so the
+ * default is empty under Vitest. An empty graph would emit a ramps-only scope,
+ * i.e. exactly the half-broken preview this module exists to prevent, so it is
+ * a hard error rather than a fallback.
+ */
+export function previewVars(options: PreviewOptions, graph: TokenGraph = LIBRARY_TOKENS): string {
+  if (graph.declarations.length === 0) {
+    throw new Error(
+      'previewVars: empty token graph — the library stylesheets did not load, ' +
+        'so no derived role would be re-declared and the preview would render ' +
+        'the surrounding page’s theme.'
+    );
+  }
+  return scopeVars(options, graph);
+}
+
+function scopeVars(options: PreviewOptions, graph: TokenGraph): string {
+  const overrides: [name: string, value: string][] = [];
   for (const [shade, value] of Object.entries(options.palette)) {
-    vars.push(`--color-primary-${shade}: ${value}`);
+    overrides.push([`--color-primary-${shade}`, value]);
   }
   for (const [shade, value] of Object.entries(options.secondaryPalette)) {
-    vars.push(`--color-secondary-${shade}: ${value}`);
+    overrides.push([`--color-secondary-${shade}`, value]);
   }
   for (const { shade, value } of options.chassis) {
-    vars.push(`--color-neutral-${shade}: ${value}`);
+    overrides.push([`--color-neutral-${shade}`, value]);
   }
-  for (const [intent, roles] of Object.entries(ACCENT_ROLES)) {
-    for (const [suffix, [light, dark]] of Object.entries(roles)) {
-      vars.push(
-        `--color-${intent}${suffix}: light-dark(var(--color-${intent}-${light}), var(--color-${intent}-${dark}))`
-      );
-    }
+  for (const [name, value] of Object.entries(options.radii ?? {})) {
+    overrides.push([name, value]);
   }
-  for (const [role, [light, dark]] of Object.entries(PRIMARY_RAMP_ROLES)) {
-    vars.push(
-      `--color-${role}: light-dark(var(--color-primary-${light}), var(--color-primary-${dark}))`
-    );
+  if (options.shadowTint) overrides.push(['--blocks-shadow-tint', options.shadowTint]);
+  if (options.neutralChromeHue) {
+    overrides.push(['--neutral-chrome-hue', options.neutralChromeHue]);
   }
-  for (const [role, expression] of Object.entries(RELATIVE_PRIMARY_ROLES)) {
-    vars.push(`--color-${role}: ${expression}`);
-  }
-  for (const [role, [light, dark]] of Object.entries(CHASSIS_ROLES)) {
-    vars.push(
-      `--color-${role}: light-dark(var(--color-neutral-${light}), var(--color-neutral-${dark}))`
-    );
-  }
-  if (options.radii) {
-    for (const [name, value] of Object.entries(options.radii)) {
-      vars.push(`${name}: ${value}`);
-    }
-    for (const [name, value] of Object.entries(DERIVED_RADIUS_TIERS)) {
-      vars.push(`${name}: ${value}`);
-    }
-  }
-  return vars.join('; ');
+
+  const derived = derivedDeclarations(
+    graph,
+    overrides.map(([name]) => name)
+  );
+  return [...overrides, ...derived.map((d): [string, string] => [d.name, d.value])]
+    .map(([name, value]) => `${name}: ${value}`)
+    .join('; ');
 }

@@ -12,12 +12,7 @@
     Toggle
   } from '@urbicon-ui/blocks';
   import { DocsLayout as DocsPageLayout } from '@urbicon-ui/docs';
-  import {
-    LITERAL_RADIUS_TIERS,
-    generateChassis,
-    generatePalette,
-    previewVars
-  } from '$lib/theme-preview';
+  import { generateChassis, generatePalette, previewVars } from '$lib/theme-preview';
 
   let brandHue = $state(240);
   let brandChroma = $state(0.15);
@@ -63,6 +58,14 @@
   // temperature to match, so it keeps the library defaults — which is exactly
   // what neutral.css does (it ships no :root block at all).
   const emitChromaKnobs = $derived(!chassisIsDefault && chassisTint > 0);
+
+  // Written once, used twice: the CSS output below and the live preview beside
+  // it. Two copies of these strings is how a builder ends up previewing warm
+  // shadows the file it hands you does not produce.
+  const chromaKnobs = $derived({
+    shadowTint: `0.2 0.025 ${chassisHue}`,
+    neutralChromeHue: String(chassisHue)
+  });
 
   // Library intent hues (foundation.css). An accent landing on one of these is
   // indistinguishable from a status color, so we flag it — and deliberately do
@@ -162,15 +165,20 @@
     const rv = Object.entries(radiusVars);
     if (rv.length > 0) {
       lines.push(``);
-      lines.push(`  /* Border Radius – ${activeRadiusOption.label}. The modify and`);
-      lines.push(`     contain tiers read this scale. The pill tiers are literals,`);
-      lines.push(`     so uncomment to square buttons, badges and radios too. */`);
+      lines.push(`  /* Border Radius – ${activeRadiusOption.label}. The modify,`);
+      lines.push(`     contain and bridge tiers read this scale, so they follow it. */`);
       for (const [name, value] of rv) {
         lines.push(`  ${name}: ${value};`);
       }
-      for (const name of Object.keys(LITERAL_RADIUS_TIERS)) {
-        lines.push(`  /* ${name}: var(--radius-lg); */`);
-      }
+      lines.push(``);
+      lines.push(`  /* --radius-commit is a literal pill and does NOT follow the`);
+      lines.push(`     scale. Uncomment it with a literal of your own to square the`);
+      lines.push(`     commit tier (Button, Badge, Checkbox); 0 squares it fully. */`);
+      lines.push(`  /* --radius-commit: 0.5rem; */`);
+      lines.push(`  /* --radius-control (the radio dot) is deliberately not offered`);
+      lines.push(`     here: it was split off the pill so squaring your buttons keeps`);
+      lines.push(`     the radio a circle, which is the only thing telling it from a`);
+      lines.push(`     checkbox. Override it on purpose or not at all. */`);
     }
     lines.push(`}`);
     if (emitChromaKnobs) {
@@ -180,9 +188,9 @@
       lines.push(`:root {`);
       lines.push(`  /* oklch L C H, no alpha — shadows pick up the chassis temperature`);
       lines.push(`     instead of reading as cool smudges on tinted surfaces. */`);
-      lines.push(`  --blocks-shadow-tint: 0.2 0.025 ${chassisHue};`);
+      lines.push(`  --blocks-shadow-tint: ${chromaKnobs.shadowTint};`);
       lines.push(`  /* Neutral intent chrome (bg-neutral / text-neutral / borders). */`);
-      lines.push(`  --neutral-chrome-hue: ${chassisHue};`);
+      lines.push(`  --neutral-chrome-hue: ${chromaKnobs.neutralChromeHue};`);
       lines.push(`}`);
     }
     if (collisions.length > 0) {
@@ -202,14 +210,24 @@
     return lines.join('\n');
   });
 
-  // Ramps + role re-declarations for the preview scope, both modes via
-  // light-dark() — shared with /customization/themes ($lib/theme-preview.ts).
-  // Passing `radii` also re-declares the derived tier tokens, without which
-  // the picker moved nothing in the preview: `--radius-modify: var(--radius-sm)`
-  // substitutes at :root, so overriding the base scale in this inline scope
-  // left every component on its original corner.
+  // Ramps + every role that reads them, re-declared for the preview scope in
+  // both modes via light-dark() — shared with /customization/themes
+  // ($lib/theme-preview.ts). Passing `radii` pulls the derived tier tokens in
+  // too, without which the picker moved nothing in the preview:
+  // `--radius-modify: var(--radius-sm)` substitutes at :root, so overriding the
+  // base scale in this inline scope left every component on its original
+  // corner. The chroma knobs travel the same way — they are what carries the
+  // chassis temperature into shadows and neutral chrome — and only when the
+  // output file sets them, so the preview shows what the file produces.
   let previewStyle = $derived(
-    previewVars({ palette, secondaryPalette, chassis: chassisPalette, radii: radiusVars })
+    previewVars({
+      palette,
+      secondaryPalette,
+      chassis: chassisPalette,
+      radii: radiusVars,
+      shadowTint: emitChromaKnobs ? chromaKnobs.shadowTint : undefined,
+      neutralChromeHue: emitChromaKnobs ? chromaKnobs.neutralChromeHue : undefined
+    })
   );
 
   async function copyCSS() {
@@ -479,11 +497,14 @@
             </div>
             <p class="text-text-tertiary mt-2 text-xs leading-relaxed">
               This moves the base scale, which the
-              <code class="text-text-primary">modify</code> and
-              <code class="text-text-primary">contain</code> tiers read from. Pill-tier components
-              (Button, Badge) keep their pill:
+              <code class="text-text-primary">modify</code>,
+              <code class="text-text-primary">contain</code> and
+              <code class="text-text-primary">bridge</code> tiers read from — so fields, panels and
+              the middle tier (Menu panels, chat bubbles) all follow. Pill-tier components (Button,
+              Badge) keep their pill:
               <code class="text-text-primary">--radius-commit</code>
-              is a literal, so set it yourself to square them — see
+              is a literal, so set it yourself to square them. The radio dot has its own literal and stays
+              a circle either way — see
               <a href={resolve('/customization/tier-system')} class="text-primary hover:underline"
                 >Radius Tiers</a
               >.

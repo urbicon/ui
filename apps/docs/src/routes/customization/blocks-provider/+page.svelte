@@ -162,15 +162,16 @@ slotClasses?: {
       merged per slot, each source stripping the earlier ones' conflicting Tailwind utilities, so
       the later source wins and non-conflicting classes accumulate. That merged string and the
       instance <code class="bg-surface-subtle rounded-modify px-1.5 py-0.5 text-sm">class</code>
-      prop then reach the component's <code class="text-xs">tv()</code> slot together, where they
-      strip the library's own conflicting defaults. So
-      <code class="bg-surface-subtle rounded-modify px-1.5 py-0.5 text-sm">class</code> does beat
-      the library, but it is not resolved against
+      prop then reach the component's <code class="text-xs">tv()</code> slot as
+      <em>one</em> source, which strips the library's own conflicting defaults. So
+      <code class="bg-surface-subtle rounded-modify px-1.5 py-0.5 text-sm">class</code> beats the
+      library — and only the library. It is not resolved against anything in that merged string,
+      whether the utility came from a default, a preset or an instance
       <code class="bg-surface-subtle rounded-modify px-1.5 py-0.5 text-sm">slotClasses</code>: write
-      the same utility into both and stylesheet order decides. Override a conflicting utility with
-      <code class="text-xs">slotClasses</code>; add one with <code class="text-xs">class</code>. All
-      three buttons below live inside one provider that defaults Button to
-      <code class="text-xs">rounded-none</code>:
+      the same utility into both sides and stylesheet order decides. Override a conflicting utility
+      with <code class="text-xs">slotClasses</code>; add one with
+      <code class="text-xs">class</code>. All three buttons below live inside one provider that
+      defaults Button to <code class="text-xs">rounded-none</code>:
     </p>
     <CodeExample title="Override behavior" isolate>
       <BlocksProvider defaults={{ Button: { slotClasses: { base: 'rounded-none' } } }}>

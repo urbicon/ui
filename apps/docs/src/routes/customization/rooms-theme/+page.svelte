@@ -1,8 +1,8 @@
-<!-- urbicon-ignore token-hallucination font-weight-uniform — the `accent-fg`
-     hits are the CSS custom property `--room-accent-fg` inside quoted stylesheet
-     samples this page teaches from: a variable in the room register, not a
-     Tailwind utility. Five of the seven uniform weights are table header cells,
-     where one weight is correct. -->
+<!-- urbicon-ignore token-hallucination — the `accent-fg` hits are the CSS
+     custom property `--room-accent-fg` inside quoted stylesheet samples this
+     page teaches from: a variable in the room register, not a Tailwind
+     utility. -->
+
 <script lang="ts">
   import SeoMeta from '$lib/SeoMeta.svelte';
   import { resolve } from '$app/paths';
@@ -81,10 +81,12 @@ export const ROUTE_CHANNEL = {
   --room-accent-text: #17544e;  /* the same hue, deep enough for 4.5:1 on cream */
 }
 
-/* Tighter card geometry / louder lift — same --docs-* handles as before */
+/* Square cards / quieter lift — same --docs-* handles as before. The library
+   shadow scale tops out at lg, which is what Rooms already uses, so a LOUDER
+   lift means your own value rather than a token. */
 .docs-rooms {
-  --docs-radius-card: var(--radius-contain);
-  --docs-shadow-page: var(--blocks-shadow-xl);
+  --docs-radius-card: 0;
+  --docs-shadow-page: var(--blocks-shadow-sm);
 }`;
 </script>
 
@@ -327,19 +329,32 @@ export const ROUTE_CHANNEL = {
             <td class="px-4 py-3">Content surface — where library components sit.</td>
           </tr>
           <tr>
+            <td class="px-4 py-3"><code>--docs-lifted</code></td>
+            <td class="px-4 py-3"><code>#fefdfa · #2a2826</code></td>
+            <td class="px-4 py-3">Elevated surface — the cream ladder one step above paper.</td>
+          </tr>
+          <tr>
+            <td class="px-4 py-3"><code>--docs-floating</code></td>
+            <td class="px-4 py-3"><code>#ffffff · #322f2c</code></td>
+            <td class="px-4 py-3">Highest surface — dialogs, drawers, toasts.</td>
+          </tr>
+          <tr>
             <td class="px-4 py-3"><code>--docs-ink</code></td>
             <td class="px-4 py-3"><code>#17150f · #f0ede5</code></td>
             <td class="px-4 py-3">Primary text ink.</td>
           </tr>
           <tr>
             <td class="px-4 py-3"><code>--docs-soft</code></td>
-            <td class="px-4 py-3"><code>#6e6b64 · #a5a299</code></td>
-            <td class="px-4 py-3">Body-soft / meta ink (ON THIS PAGE labels, descriptions).</td>
+            <td class="px-4 py-3"><code>#635f58 · #aaa79d</code></td>
+            <td class="px-4 py-3"
+              >Body-soft / meta ink (ON THIS PAGE labels, descriptions) — carries secondary
+              <em>and</em> tertiary text.</td
+            >
           </tr>
           <tr>
             <td class="px-4 py-3"><code>--docs-softer</code></td>
             <td class="px-4 py-3"><code>#b8b5ad · #5a574f</code></td>
-            <td class="px-4 py-3">Decoration ink — kicker separators.</td>
+            <td class="px-4 py-3">Decoration ink — kicker separators. Never body text.</td>
           </tr>
           <tr>
             <td class="px-4 py-3"><code>--docs-hair</code></td>
@@ -347,9 +362,19 @@ export const ROUTE_CHANNEL = {
             <td class="px-4 py-3">Hairline — barely-visible structural lines.</td>
           </tr>
           <tr>
+            <td class="px-4 py-3"><code>--docs-line</code></td>
+            <td class="px-4 py-3"><code>ink/14% · cream/14%</code></td>
+            <td class="px-4 py-3">The visible rule — one step up from the hairline.</td>
+          </tr>
+          <tr>
             <td class="px-4 py-3"><code>--docs-accent</code></td>
             <td class="px-4 py-3"><code>var(--color-primary)</code></td>
             <td class="px-4 py-3">Link colour, section markers — couples to the room primary.</td>
+          </tr>
+          <tr>
+            <td class="px-4 py-3"><code>--docs-radius-pill</code></td>
+            <td class="px-4 py-3"><code>var(--radius-commit)</code></td>
+            <td class="px-4 py-3">Pill geometry for the editorial-lineage cards.</td>
           </tr>
           <tr>
             <td class="px-4 py-3"><code>--docs-radius-card</code></td>
@@ -411,6 +436,14 @@ export const ROUTE_CHANNEL = {
           <tr>
             <td class="px-4 py-3"><code>--color-surface-quiet</code></td>
             <td class="px-4 py-3"><code>var(--docs-bg)</code></td>
+          </tr>
+          <tr>
+            <td class="px-4 py-3"><code>--color-surface-elevated</code></td>
+            <td class="px-4 py-3"><code>var(--docs-lifted)</code></td>
+          </tr>
+          <tr>
+            <td class="px-4 py-3"><code>--color-surface-overlay</code></td>
+            <td class="px-4 py-3"><code>var(--docs-floating)</code></td>
           </tr>
           <tr>
             <td class="px-4 py-3"><code>--color-border-hairline</code></td>
