@@ -93,7 +93,7 @@ export const emptyStateVariants = tv({
 export const loadingStateVariants = tv({
   slots: {
     container: ['flex flex-col items-center justify-center', 'text-center'],
-    spinner: ['text-primary-text'],
+    spinner: ['text-primary'],
     spinnerSvg: [TABLE_ANIMATIONS.loading.spin],
     content: ['flex flex-col items-center gap-2'],
     text: ['font-medium text-text-primary', 'leading-tight'],

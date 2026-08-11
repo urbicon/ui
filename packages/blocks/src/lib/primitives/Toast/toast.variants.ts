@@ -63,10 +63,13 @@ export const toastVariants = tv({
       },
       warning: {
         toast: 'bg-surface-overlay text-text-primary',
-        // Was `-emphasis` while the base warning token missed AA on the overlay
-        // surface; the `-text` role clears every reading surface, so warning
-        // needs no special casing here anymore (same change in Dialog).
-        icon: 'text-warning-text',
+        // Deliberately `-emphasis` while the siblings ride `-text`. In light
+        // mode the two are byte-identical for warning (both -800); in dark
+        // `-text` is -400 against emphasis's -200, and on the overlay surface
+        // that trades roughly half the icon's contrast for nothing — a
+        // "simplification" to `-text` was made and reverted on review (same
+        // story in Dialog).
+        icon: 'text-warning-emphasis',
         progress: 'bg-warning'
       },
       danger: {

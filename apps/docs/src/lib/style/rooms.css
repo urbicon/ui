@@ -223,6 +223,13 @@
     color-mix(in oklab, var(--_a) 24%, var(--_ink))
   );
   --color-primary-emphasis: color-mix(in oklab, var(--_at) 88%, var(--_ink));
+  /* The text tier, re-derived like every token above — a :root-only role
+   * cannot see this scope's ramp (substitution happens where a custom
+   * property is declared). Follows the same asymmetry as `--color-primary`:
+   * the text step is a light-mode concern (one mix deeper into ink than the
+   * base, mirroring semantic.css's 600→700), dark keeps the accent, which
+   * already measures 5.9:1 on the night paper (see the note above). */
+  --color-primary-text: light-dark(color-mix(in oklab, var(--_at) 70%, var(--_ink)), var(--_a));
   --color-text-on-primary: light-dark(var(--_atfg), var(--_afg));
 
   --color-surface-selected: light-dark(

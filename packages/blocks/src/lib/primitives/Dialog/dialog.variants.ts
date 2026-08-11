@@ -102,11 +102,13 @@ export const dialogVariants = tv({
       primary: { title: 'text-primary-emphasis', icon: 'text-primary-text' },
       secondary: { title: 'text-secondary-emphasis', icon: 'text-secondary-text' },
       success: { title: 'text-success-emphasis', icon: 'text-success-text' },
-      // warning used to ride -emphasis on the icon too, because the old base
-      // token (a fill tone) dropped below contrast on the overlay surface. The
-      // `-text` role clears AA on every reading surface by construction, so the
-      // special case is gone and warning lines up with its siblings.
-      warning: { title: 'text-warning-emphasis', icon: 'text-warning-text' },
+      // warning rides -emphasis on both halves while its siblings split
+      // title/-emphasis from icon/-text. In light mode `-text` and `-emphasis`
+      // are byte-identical for warning (both -800), and in dark mode -200
+      // keeps roughly twice the icon contrast of -400 on the overlay surface —
+      // aligning it with the siblings was tried and reverted on review
+      // (mirrors the Toast).
+      warning: { title: 'text-warning-emphasis', icon: 'text-warning-emphasis' },
       danger: { title: 'text-danger-emphasis', icon: 'text-danger-text' }
     }
   },

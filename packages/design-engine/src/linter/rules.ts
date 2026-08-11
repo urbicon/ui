@@ -26,7 +26,7 @@ import {
 import type { Finding, Rule } from './types.js';
 
 const SHADCN_FIX =
-  'This is shadcn/ui vocabulary, not Urbicon UI. Use surface tokens (`bg-surface-base`/`-elevated`), text tokens (`text-text-primary`/`-secondary`), or intents (`bg-primary`, `text-success`).';
+  'This is shadcn/ui vocabulary, not Urbicon UI. Use surface tokens (`bg-surface-base`/`-elevated`), text tokens (`text-text-primary`/`-secondary`), or intents (`bg-primary` as a fill, `text-success-text` as text).';
 
 /** shadcn/ui-family cores (bare set + `-foreground` suffix + `fg`/`fg-`). */
 function isForeignVocab(core: string): boolean {
@@ -154,7 +154,7 @@ const rawTailwindColor: Rule = {
           severity: this.severity,
           kind: 'deterministic',
           message: `Raw Tailwind colour \`${m[0]}\` bypasses the token system (no dark-mode adaptation, no theming).`,
-          fix: 'Use a semantic token: `bg-surface-*`, `text-text-*`, `border-border-*`, or an intent (`bg-primary`, `text-success`).',
+          fix: 'Use a semantic token: `bg-surface-*`, `text-text-*`, `border-border-*`, or an intent (`bg-primary` as a fill, `text-success-text` as text).',
           line: i + 1,
           match: m[0]
         });

@@ -194,11 +194,11 @@ export const sliderVariants = tv({
     // bg-current picks up the text-color set here, so we map intent →
     // text-color once instead of overriding bg-primary/secondary/…
     // for every intent.
-    { variant: 'rail', intent: 'primary', class: { thumb: 'text-primary-text' } },
-    { variant: 'rail', intent: 'secondary', class: { thumb: 'text-secondary-text' } },
-    { variant: 'rail', intent: 'success', class: { thumb: 'text-success-text' } },
-    { variant: 'rail', intent: 'warning', class: { thumb: 'text-warning-text' } },
-    { variant: 'rail', intent: 'danger', class: { thumb: 'text-danger-text' } },
+    { variant: 'rail', intent: 'primary', class: { thumb: 'text-primary' } },
+    { variant: 'rail', intent: 'secondary', class: { thumb: 'text-secondary' } },
+    { variant: 'rail', intent: 'success', class: { thumb: 'text-success' } },
+    { variant: 'rail', intent: 'warning', class: { thumb: 'text-warning' } },
+    { variant: 'rail', intent: 'danger', class: { thumb: 'text-danger' } },
     { variant: 'rail', intent: 'neutral', class: { thumb: 'text-neutral' } }
   ],
   defaultVariants: {

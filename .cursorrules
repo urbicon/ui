@@ -33,7 +33,7 @@ import { LocaleSwitcher } from '@urbicon-ui/blocks';
 - `bg-surface-base`, `bg-surface-elevated`, `bg-surface-overlay`
 - `text-text-primary`, `text-text-secondary`, `text-text-tertiary`
 - `border-border-subtle`, `border-border-default`
-- `bg-primary`, `bg-primary-subtle`, `text-primary` (intent colors)
+- `bg-primary`, `bg-primary-subtle` (intent fills), `text-primary-text` (intent-coloured text — never bare `text-primary`, a fill tone)
 - `shadow-[var(--blocks-shadow-sm)]` through `shadow-[var(--blocks-shadow-lg)]`
 - `duration-[var(--blocks-duration-fast)]`, `var(--blocks-ease-confident)`
 - `z-[var(--z-modal)]`, `z-[var(--z-popover)]`, `z-[var(--z-tooltip)]`

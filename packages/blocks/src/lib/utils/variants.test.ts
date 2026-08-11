@@ -698,7 +698,7 @@ describe('tv – tailwind conflict resolver', () => {
 
     it('CHK-3: Checkbox error-state message wins text-color vs. slot-base text-text-tertiary', () => {
       // Real-world: helper-text slot defaults to `text-text-tertiary`; the
-      // error-variant adds `text-danger`. Browser-verified that pre-fix the
+      // error-variant adds `text-danger-text`. Browser-verified that pre-fix the
       // tertiary color won the cascade.
       const styles = checkboxVariants({ error: true });
       const cls = styles.message();

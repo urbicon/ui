@@ -115,5 +115,23 @@ ${kept.join('\n')}
 }
 `;
 
-await Bun.write(OUT, out);
-process.stdout.write(`✓ ${kept.length} declarations → ${OUT}\n`);
+// `--check` compares instead of writing — the CI mode. Twice now a semantic.css
+// change shipped with this artifact stale (the text-ramp revert would have
+// dropped 5 tokens; the intent `-text` roles were missing for two commits, so
+// every scoped livery rendered its intent text library-blue), and both were
+// found by review, not by a gate. A generated file whose generator only runs
+// when someone remembers is a hand list with extra steps.
+if (process.argv.includes('--check')) {
+  const current = await Bun.file(OUT).text();
+  if (current !== out) {
+    process.stderr.write(
+      `✖ ${OUT} is stale — semantic.css changed without regenerating the livery shim.\n` +
+        `  Run: bun apps/docs/scripts/gen-livery-shim.ts\n`
+    );
+    process.exit(1);
+  }
+  process.stdout.write(`✓ livery shim up to date (${kept.length} declarations)\n`);
+} else {
+  await Bun.write(OUT, out);
+  process.stdout.write(`✓ ${kept.length} declarations → ${OUT}\n`);
+}

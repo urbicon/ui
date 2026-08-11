@@ -500,9 +500,16 @@ body {
     --color-border-default: light-dark(var(--color-neutral-900), var(--color-neutral-900));
     --color-interactive-focus: light-dark(var(--color-neutral-900), var(--color-neutral-900));
     --color-secondary: light-dark(var(--color-secondary-700), var(--color-secondary-700));
+    /* The dark branch was -700 like the light one, which is backwards: on the
+       dark surfaces a DARKER neutral means LESS contrast — text-neutral
+       measured 1.49:1 in the mode that asked for more (found by adversarial
+       review of the intent-text-role change; the normal-cascade gate strips
+       @media blocks by design and could not see it). -200 steps one rung
+       lighter than the normal dark value's -400-derived resting tone, the
+       same direction every other override in this block takes. */
     --color-neutral: light-dark(
       oklch(from var(--color-warm-neutral-700) l c var(--neutral-chrome-hue)),
-      oklch(from var(--color-warm-neutral-700) l c var(--neutral-chrome-hue))
+      oklch(from var(--color-warm-neutral-200) l c var(--neutral-chrome-hue))
     );
   }
 }

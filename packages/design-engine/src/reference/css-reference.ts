@@ -571,9 +571,15 @@ Fix: inside the scoped block, re-declare the derived tokens too, so substitution
   --color-primary: light-dark(var(--color-primary-600), var(--color-primary-500));
   --color-primary-hover: light-dark(var(--color-primary-700), var(--color-primary-400));
   --color-primary-subtle: light-dark(var(--color-primary-50), var(--color-primary-900));
+  --color-primary-text: light-dark(var(--color-primary-700), var(--color-primary-400));
   /* ...and the same for any neutral-derived surface/text/border tokens you rely on */
 }
 \`\`\`
+The \`-text\` role is the easiest one to forget and the most visible when forgotten: every
+intent-coloured label in the scope silently keeps the DEFAULT palette while its fills take
+yours. The role and its ramp always move together — a theme that re-points only
+\`--color-primary\` (the minimal rebrand) must re-point \`--color-primary-text\` in the same
+block, or links render in the old brand's colour next to buttons in the new one.
 A global \`@theme\` block (the built-in themes, the Theme Builder output) does NOT hit this — everything lands on \`:root\`, the same element where the derived tokens compute, so re-declaration is unnecessary. Prefer global themes unless you genuinely need multiple themes live on one page. \`apps/docs/src/lib/style/rooms-docs.css\` is the canonical scoped example.
 
 ## Component-Level Overrides

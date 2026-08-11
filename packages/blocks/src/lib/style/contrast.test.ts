@@ -150,7 +150,8 @@ function readDecl(css: string, name: string): string | null {
  * Drop every `@media` block. `readDecl` takes the LAST declaration, so the
  * `@media (prefers-contrast: more)` overrides in semantic.css would otherwise
  * masquerade as the default value of --color-secondary / --color-neutral.
- * Those are a conditional scenario (measured separately below), not the
+ * Those are a conditional scenario this suite deliberately does NOT measure
+ * (an HC-mode audit would be its own pass with its own grounds), not the
  * cascade a default user sees.
  */
 function stripMediaBlocks(css: string): string {
@@ -902,13 +903,19 @@ describe('informative text on reading surfaces — WCAG contrast', () => {
       for (const intent of AS_TEXT) {
         for (const mode of MODES) {
           const fg = resolveToken(css, `--color-${intent}-text`, mode);
+          // Raw ratios, rounded only for display: `round2` before the
+          // comparison would let a true 4.4951 report as 4.5 and pass — a
+          // floor of 4.495 wearing a 4.5 label. It matters here because the
+          // binding pair (rose/primary-text/dark/own-subtle) clears by 0.0013.
           for (const surface of READING_SURFACES) {
-            roleText[`${theme}/${intent}-text/${mode}/${surface}`] = round2(
-              ratioOf(resolveToken(css, surfaceToken(surface), mode), fg)
+            roleText[`${theme}/${intent}-text/${mode}/${surface}`] = ratioOf(
+              resolveToken(css, surfaceToken(surface), mode),
+              fg
             );
           }
-          roleText[`${theme}/${intent}-text/${mode}/own-subtle`] = round2(
-            ratioOf(resolveToken(css, `--color-${intent}-subtle`, mode), fg)
+          roleText[`${theme}/${intent}-text/${mode}/own-subtle`] = ratioOf(
+            resolveToken(css, `--color-${intent}-subtle`, mode),
+            fg
           );
         }
       }
@@ -921,7 +928,9 @@ describe('informative text on reading surfaces — WCAG contrast', () => {
     });
 
     it.each(roleIds)('%s clears AA', (id) => {
-      expect(roleText[id], `${id} measures ${roleText[id]}:1`).toBeGreaterThanOrEqual(AA_NORMAL);
+      expect(roleText[id], `${id} measures ${round2(roleText[id])}:1`).toBeGreaterThanOrEqual(
+        AA_NORMAL
+      );
     });
 
     /**
@@ -939,18 +948,29 @@ describe('informative text on reading surfaces — WCAG contrast', () => {
         for (const mode of MODES) {
           const fg = resolveToken(css, '--color-neutral', mode);
           for (const surface of READING_SURFACES) {
-            neutral[`${theme}/neutral/${mode}/${surface}`] = round2(
-              ratioOf(resolveToken(css, surfaceToken(surface), mode), fg)
+            neutral[`${theme}/neutral/${mode}/${surface}`] = ratioOf(
+              resolveToken(css, surfaceToken(surface), mode),
+              fg
             );
           }
-          neutral[`${theme}/neutral/${mode}/own-subtle`] = round2(
-            ratioOf(resolveToken(css, '--color-neutral-subtle', mode), fg)
+          neutral[`${theme}/neutral/${mode}/own-subtle`] = ratioOf(
+            resolveToken(css, '--color-neutral-subtle', mode),
+            fg
           );
         }
       }
 
+      it('covers every ground × mode × theme', () => {
+        // Without this, an upstream rename emptying the loop would leave an
+        // it.each over zero cases — a describe that registers nothing and
+        // "passes". The sibling blocks all carry the same guard.
+        expect(Object.keys(neutral)).toHaveLength(6 * 2 * 6);
+      });
+
       it.each(Object.keys(neutral))('%s clears AA', (id) => {
-        expect(neutral[id], `${id} measures ${neutral[id]}:1`).toBeGreaterThanOrEqual(AA_NORMAL);
+        expect(neutral[id], `${id} measures ${round2(neutral[id])}:1`).toBeGreaterThanOrEqual(
+          AA_NORMAL
+        );
       });
     });
   });

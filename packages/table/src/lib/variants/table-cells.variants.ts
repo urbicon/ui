@@ -410,7 +410,12 @@ export const linkCellVariants = tv({
     container: CELL_BASE,
     link: [
       'inline-flex items-center gap-1.5',
-      'text-primary-text hover:text-primary-hover',
+      // Rest and hover must differ, and `-hover` no longer can: `-text`
+      // resolves to the SAME stops as `-hover` (700/400 — semantic.css), so
+      // `hover:text-primary-hover` became a no-op in both modes. `-emphasis`
+      // is the next tier and the pairing StreamingMarkdown and TypesReference
+      // links already use.
+      'text-primary-text hover:text-primary-emphasis',
       'underline decoration-1 underline-offset-2',
       'transition-colors duration-[var(--blocks-duration-fast)]',
       'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2'
