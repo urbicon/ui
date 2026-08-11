@@ -223,6 +223,13 @@
     color-mix(in oklab, var(--_a) 24%, var(--_ink))
   );
   --color-primary-emphasis: color-mix(in oklab, var(--_at) 88%, var(--_ink));
+  /* The text tier, re-derived like every token above — a :root-only role
+   * cannot see this scope's ramp (substitution happens where a custom
+   * property is declared). Follows the same asymmetry as `--color-primary`:
+   * the text step is a light-mode concern (one mix deeper into ink than the
+   * base, mirroring semantic.css's 600→700), dark keeps the accent, which
+   * already measures 5.9:1 on the night paper (see the note above). */
+  --color-primary-text: light-dark(color-mix(in oklab, var(--_at) 70%, var(--_ink)), var(--_a));
   --color-text-on-primary: light-dark(var(--_atfg), var(--_afg));
 
   --color-surface-selected: light-dark(
@@ -241,21 +248,20 @@
   --color-chart-4: color-mix(in oklab, var(--_a) 90%, #ffffff);
 }
 
-/* ── On-field text scope ────────────────────────────────────────────────
-   For token-driven components (e.g. the footer LocaleSwitcher) placed
-   directly on a saturated field rather than in a card: re-point the text +
-   border tokens to the field's own foreground (currentColor) so they read in
-   cream/ink instead of the ambient editorial ink. The Select dropdown renders
-   in a portaled popover (not a DOM descendant) so it keeps the normal cream
-   surface — only the trigger picks these up. */
-.on-field {
-  --color-text-primary: currentColor;
-  --color-text-secondary: color-mix(in oklab, currentColor 75%, transparent);
-  --color-text-tertiary: color-mix(in oklab, currentColor 62%, transparent);
-  --color-border-subtle: color-mix(in oklab, currentColor 32%, transparent);
-  --color-border-default: color-mix(in oklab, currentColor 45%, transparent);
-  --color-surface-hover: color-mix(in oklab, currentColor 12%, transparent);
-}
+/* `.on-field` lived here: a text/border remap for a token-driven component
+ * placed straight onto a saturated field (the footer LocaleSwitcher was the
+ * case). Removed 2026-08-11 — nothing has referenced it in any `.svelte` for a
+ * while, and it was carrying a claim that is not true of any popover: that the
+ * Select dropdown "renders in a portaled popover (not a DOM descendant), so it
+ * keeps the normal cream surface". A top-layer panel stays a DOM descendant of
+ * its trigger and inherits right through the promotion, which is exactly how
+ * the docs strip's table of contents ended up at 1.17:1 (see the overlay rule
+ * in rooms-docs.css). Kept as a note rather than deleted silently, because the
+ * sentence read as settled fact and a reader would reasonably build on it.
+ *
+ * Anything reviving this needs the overlay exception that rooms-docs.css spells
+ * out — and `currentColor` makes it sharper here, since a panel inherits the
+ * field's `color` too and would tint itself with it. */
 
 /* ── Feature ticker ─────────────────────────────────────────────────────
    Full-bleed marquee band between the rooms and the repaint section ("also

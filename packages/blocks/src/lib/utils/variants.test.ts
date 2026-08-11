@@ -698,13 +698,13 @@ describe('tv – tailwind conflict resolver', () => {
 
     it('CHK-3: Checkbox error-state message wins text-color vs. slot-base text-text-tertiary', () => {
       // Real-world: helper-text slot defaults to `text-text-tertiary`; the
-      // error-variant adds `text-danger`. Browser-verified that pre-fix the
+      // error-variant adds `text-danger-text`. Browser-verified that pre-fix the
       // tertiary color won the cascade.
       const styles = checkboxVariants({ error: true });
       const cls = styles.message();
       const tokens = cls.split(/\s+/);
       expect(tokens).not.toContain('text-text-tertiary');
-      expect(tokens).toContain('text-danger');
+      expect(tokens).toContain('text-danger-text');
       expect(tokens).toContain('text-xs'); // text-size bucket different — kept
     });
 
@@ -1117,7 +1117,7 @@ describe('tv – tailwind conflict resolver', () => {
       // `{ error: true }` call (public variants() API) must read red even
       // though the component couples `messageType: error ? 'error' : 'helper'`.
       const message = inputVariants({ error: true }).message().split(/\s+/);
-      expect(message).toContain('text-danger');
+      expect(message).toContain('text-danger-text');
       expect(message).not.toContain('text-text-tertiary');
     });
 

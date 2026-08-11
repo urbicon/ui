@@ -357,6 +357,20 @@ export const ROUTE_CHANNEL = {
             <td class="px-4 py-3">Decoration ink — kicker separators. Never body text.</td>
           </tr>
           <tr>
+            <td class="px-4 py-3"><code>--docs-soft-paper</code></td>
+            <td class="px-4 py-3"><code>#635f58 · #aaa79d</code></td>
+            <td class="px-4 py-3"
+              >The on-paper value the two above alias. A colour field re-points
+              <code>--docs-soft</code> at its own foreground; an overlay opened from inside one paints
+              paper, so it needs these back.</td
+            >
+          </tr>
+          <tr>
+            <td class="px-4 py-3"><code>--docs-softer-paper</code></td>
+            <td class="px-4 py-3"><code>#b8b5ad · #5a574f</code></td>
+            <td class="px-4 py-3">Same, for the decoration step.</td>
+          </tr>
+          <tr>
             <td class="px-4 py-3"><code>--docs-hair</code></td>
             <td class="px-4 py-3"><code>ink/8% · cream/8%</code></td>
             <td class="px-4 py-3">Hairline — barely-visible structural lines.</td>

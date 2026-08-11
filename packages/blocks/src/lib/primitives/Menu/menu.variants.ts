@@ -170,7 +170,7 @@ export const menuIconVariants = tv({
   variants: {
     type: {
       chevron: 'opacity-70',
-      checkmark: 'text-primary'
+      checkmark: 'text-primary-text'
     }
   },
   defaultVariants: {

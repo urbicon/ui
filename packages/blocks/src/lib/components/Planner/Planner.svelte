@@ -366,7 +366,7 @@
              header number — so switching the marker off still left today bold
              and primary-coloured at the top of the week column. -->
         {@const markToday = highlightToday && controller.isToday(info.date)}
-        <span class={['tabular-nums', markToday && 'text-primary font-bold']}>
+        <span class={['tabular-nums', markToday && 'text-primary-text font-bold']}>
           {info.date.getDate()}
         </span>
       {/if}
@@ -411,7 +411,7 @@
     {:else if p.items.length > 0}
       <!-- No cell snippet: a language-neutral count so bucketing is visible. -->
       <span
-        class="bg-primary-subtle text-primary inline-flex h-5 min-w-5 items-center justify-center rounded-full px-1 text-xs font-medium tabular-nums"
+        class="bg-primary-subtle text-primary-text inline-flex h-5 min-w-5 items-center justify-center rounded-full px-1 text-xs font-medium tabular-nums"
         aria-label={bt('planner.itemCount', { count: p.items.length })}
       >
         {p.items.length}

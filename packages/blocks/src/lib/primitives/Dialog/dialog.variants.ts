@@ -99,13 +99,17 @@ export const dialogVariants = tv({
     // The value is additionally exposed as `data-intent` on the panel.
     intent: {
       neutral: {},
-      primary: { title: 'text-primary-emphasis', icon: 'text-primary' },
-      secondary: { title: 'text-secondary-emphasis', icon: 'text-secondary' },
-      success: { title: 'text-success-emphasis', icon: 'text-success' },
-      // warning rides -emphasis on both: plain `text-warning` is the fill tone
-      // and drops below contrast on the overlay surface (mirrors the Toast).
+      primary: { title: 'text-primary-emphasis', icon: 'text-primary-text' },
+      secondary: { title: 'text-secondary-emphasis', icon: 'text-secondary-text' },
+      success: { title: 'text-success-emphasis', icon: 'text-success-text' },
+      // warning rides -emphasis on both halves while its siblings split
+      // title/-emphasis from icon/-text. In light mode `-text` and `-emphasis`
+      // are byte-identical for warning (both -800), and in dark mode -200
+      // keeps roughly twice the icon contrast of -400 on the overlay surface —
+      // aligning it with the siblings was tried and reverted on review
+      // (mirrors the Toast).
       warning: { title: 'text-warning-emphasis', icon: 'text-warning-emphasis' },
-      danger: { title: 'text-danger-emphasis', icon: 'text-danger' }
+      danger: { title: 'text-danger-emphasis', icon: 'text-danger-text' }
     }
   },
   compoundVariants: [

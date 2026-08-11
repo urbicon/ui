@@ -50,7 +50,7 @@ export const selectVariants = tv({
     ],
     optionLabel: ['truncate text-left flex-1'],
     optionCheck: [
-      'shrink-0 text-primary opacity-0 transition-opacity duration-[var(--blocks-duration-fast)]'
+      'shrink-0 text-primary-text opacity-0 transition-opacity duration-[var(--blocks-duration-fast)]'
     ],
     // Multi-select indicator. Leading position (before the label) mirrors the
     // native `<input type=checkbox>` placement so multi-select rows read like a
@@ -171,7 +171,7 @@ export const selectVariants = tv({
     },
     required: {
       true: {
-        label: "after:content-['*'] after:ml-1 after:text-danger"
+        label: "after:content-['*'] after:ml-1 after:text-danger-text"
       }
     },
     selected: {

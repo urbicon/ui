@@ -205,9 +205,9 @@ export const calendarVariants = tv({
       ghost: {
         base: 'bg-transparent',
         header: 'border-b-0 bg-transparent',
-        navButton: 'hover:bg-transparent hover:text-primary',
+        navButton: 'hover:bg-transparent hover:text-primary-text',
         weekday: 'text-text-quaternary font-normal',
-        day: 'hover:bg-transparent hover:text-primary',
+        day: 'hover:bg-transparent hover:text-primary-text',
         weekGrid: 'border-t-0',
         weekColumn: 'border-r-0',
         weekColumnHeader: 'border-b-0',
@@ -387,7 +387,7 @@ export const calendarVariants = tv({
       },
       selected: {
         day: 'bg-primary-subtle ring-1 ring-primary',
-        dayNumber: 'text-primary font-bold'
+        dayNumber: 'text-primary-text font-bold'
       },
       todaySelected: {
         day: 'bg-primary ring-2 ring-primary ring-offset-1',
@@ -403,15 +403,15 @@ export const calendarVariants = tv({
       },
       inRange: {
         day: 'bg-primary-subtle/50 rounded-none',
-        dayNumber: 'text-primary'
+        dayNumber: 'text-primary-text'
       },
       previewRange: {
         day: 'bg-primary-subtle/30 rounded-none',
-        dayNumber: 'text-primary/70'
+        dayNumber: 'text-primary-text/70'
       },
       previewRangeEnd: {
         day: 'bg-primary-subtle/50 ring-1 ring-primary/30 rounded-md',
-        dayNumber: 'text-primary font-medium'
+        dayNumber: 'text-primary-text font-medium'
       },
       outsideMonth: {
         day: 'cursor-pointer hover:bg-surface-hover/50',

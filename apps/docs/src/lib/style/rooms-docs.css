@@ -81,8 +81,17 @@
    * is decoration only (never body text — mirrors the mark-only quaternary rule in
    * blocks/semantic.css). */
   --docs-ink: light-dark(#17150f, #f0ede5);
-  --docs-soft: light-dark(#635f58, #aaa79d);
-  --docs-softer: light-dark(#b8b5ad, #5a574f);
+  /* `-paper` holds the on-paper value; the two live tokens alias it. A colour
+   * field re-points `--docs-soft`/`--docs-softer` at its own foreground (see
+   * the field block further down), and an overlay opened from inside a field
+   * has to get the paper values back — it paints its own panel, not the fill.
+   * Aliasing is what lets it, without a second copy of these stops that the
+   * next contrast tune would have to find. `--docs-ink` needs none: no field
+   * re-points it. */
+  --docs-soft-paper: light-dark(#635f58, #aaa79d);
+  --docs-softer-paper: light-dark(#b8b5ad, #5a574f);
+  --docs-soft: var(--docs-soft-paper);
+  --docs-softer: var(--docs-softer-paper);
 
   /* Elevated surfaces — continuation of the cream ladder above paper. */
   --docs-lifted: light-dark(#fefdfa, #2a2826);
@@ -349,6 +358,13 @@
   --color-primary-hover: light-dark(var(--color-primary-700), var(--color-primary-400));
   --color-primary-active: light-dark(var(--color-primary-800), var(--color-primary-300));
   --color-primary-subtle: light-dark(var(--color-primary-50), var(--color-primary-900));
+  /* Same stops as blocks' semantic.css gives the role. It MUST be repeated
+   * here like every derived token above (see the substitution note at the top
+   * of this block): declared only on :root it computes against the library
+   * ramp before this scope's re-derived stops exist, and the active TOC entry
+   * (`text-primary-text`) renders library-blue in every non-default room —
+   * found by adversarial review, measured in Chromium. */
+  --color-primary-text: light-dark(var(--color-primary-700), var(--color-primary-400));
   --color-primary-emphasis: light-dark(var(--color-primary-900), var(--color-primary-200));
 
   --color-surface-selected: light-dark(var(--color-primary-50), var(--color-primary-900));
@@ -472,6 +488,44 @@
   --color-text-quaternary: color-mix(in oklab, var(--room-accent-fg) 46%, transparent);
   --docs-soft: color-mix(in oklab, var(--room-accent-fg) 88%, transparent);
   --docs-softer: color-mix(in oklab, var(--room-accent-fg) 60%, transparent);
+}
+
+/* ── An overlay opened from inside a field paints its own panel ──────────────
+ *
+ * The remap above is scoped to a field so the content ON the fill reads. A
+ * `popover` renders in the top layer but stays a DOM DESCENDANT of its trigger,
+ * and inheritance follows the DOM — so the on-fill ramp travelled out with the
+ * panel onto the panel's own cream/near-black surface, describing a background
+ * that isn't there. Measured on the strip's table-of-contents links before this
+ * rule: 1.17:1 in dark mode. Light mode read 7.26:1, and that coincidence —
+ * a near-black on-accent ink happening to land on a light panel — is what kept
+ * it hidden.
+ *
+ * Restored to the SKIN's ramp, not the library's: `.docs-rooms` re-points these
+ * roles to the warm cream ink site-wide, and that is the correct ramp for a
+ * panel here. Only the field's on-fill variant of it has to come off — which is
+ * why this sits next to the field block rather than in `blocks`. A library-wide
+ * `[popover]` reset was built and reverted first: it cannot tell a field from a
+ * theme, so it also undid every consumer's own text override while leaving
+ * their surface override standing, measured at 1.04:1 on the theming recipe the
+ * library itself ships.
+ *
+ * `--color-primary` is deliberately NOT restored. Only `[data-room-register]`
+ * re-points it, and no popover is opened inside the register today; the day one
+ * is, its `aria-current` links land accent-on-accent and this is the block that
+ * has to grow a line. */
+.docs-rooms [data-docs-sticky-bar] [popover],
+.docs-rooms [data-docs-header] [popover],
+.docs-rooms [data-room-hero] [popover],
+.docs-rooms [data-room-register] [popover] {
+  /* First, because the roles below read them on this same element. */
+  --docs-soft: var(--docs-soft-paper);
+  --docs-softer: var(--docs-softer-paper);
+
+  --color-text-primary: var(--docs-ink);
+  --color-text-secondary: var(--docs-soft);
+  --color-text-tertiary: var(--docs-soft);
+  --color-text-quaternary: var(--docs-softer);
 }
 
 /* Hero title band — tight top (flush under the strip so the two merge into one

@@ -274,9 +274,8 @@ bg-success-hover         /* hover state */
 bg-success-active        /* pressed state */
 bg-success-subtle        /* soft background (e.g. success-50) */
 bg-success-emphasis      /* strong/dark variant */
-text-success             /* intent-colored text */
-text-success-hover       /* hover text */
-text-success-subtle      /* subtle intent text */
+text-success-text        /* intent-colored text — the AA-clean text tier; never text-success (a fill tone) */
+text-success-emphasis    /* near-ink text tier */
 border-success           /* intent-colored border */
 ```
 
@@ -303,7 +302,7 @@ text-status-danger       bg-status-warning       border-l-status-*
 text-feedback-success-fg text-feedback-danger-fg
 
 /* CORRECT equivalents */
-text-danger              bg-warning              border-l-danger
+text-danger-text         bg-warning              border-l-danger
 text-feedback-success    text-feedback-error
 ```
 

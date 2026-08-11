@@ -39,11 +39,6 @@
   const headingTitle = $derived(title ?? dt('typesTitle'));
   const headingDescription = $derived(description ?? dt('typesDescription'));
 
-  // `<Section class>` is typed as a plain string, so this is joined here rather
-  // than passed as an array. `scroll-mt-8` keeps the anchor jump from landing
-  // with the heading under the sticky breadcrumb bar.
-  const sectionClass = $derived(['scroll-mt-8', className].filter(Boolean).join(' '));
-
   type SlotName = keyof NonNullable<TypesReferenceProps['slotClasses']>;
   function slot(name: SlotName) {
     if (unstyled) return slotClasses?.[name] ?? '';
@@ -166,7 +161,7 @@
   title={headingTitle}
   subtitle={headingDescription}
   intent="secondary"
-  class={sectionClass}
+  class={className}
   {...restProps}
 >
   <div class={slot('stack')}>

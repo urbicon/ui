@@ -230,7 +230,7 @@
             type="button"
             class={[
               slot('title'),
-              'hover:text-primary inline-flex cursor-pointer items-center gap-1 transition-colors',
+              'hover:text-primary-text inline-flex cursor-pointer items-center gap-1 transition-colors',
               ctx.disabled && 'pointer-events-none cursor-not-allowed opacity-50'
             ]}
             aria-expanded={monthPickerOpen}
@@ -329,7 +329,7 @@
               <CoreIconButton
                 class="text-text-primary rounded-md px-2 py-1.5 text-sm transition-colors
                   {m.isCurrent
-                  ? 'bg-primary-subtle ring-primary text-primary font-semibold ring-1'
+                  ? 'bg-primary-subtle ring-primary text-primary-text font-semibold ring-1'
                   : 'hover:bg-surface-hover'}
                   focus-visible:ring-primary/50 focus-visible:ring-2"
                 onclick={() => selectMonth(m.index)}

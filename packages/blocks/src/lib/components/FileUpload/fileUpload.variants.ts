@@ -63,12 +63,12 @@ export const fileUploadVariants = tv({
     // tier: modify — small destructive sub-button.
     fileItemRemoveButton: [
       'flex items-center justify-center rounded-modify',
-      'text-text-quaternary hover:text-danger hover:bg-danger/10',
+      'text-text-quaternary hover:text-danger-text hover:bg-danger/10',
       'transition-[color,background-color] duration-[var(--blocks-duration-fast)]',
       'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/50 focus-visible:ring-offset-1'
     ],
 
-    fileItemError: ['text-danger'],
+    fileItemError: ['text-danger-text'],
 
     fileItemStatusIcon: [
       'flex-shrink-0',
@@ -133,7 +133,7 @@ export const fileUploadVariants = tv({
     invalid: {
       true: {
         dropzone: 'border-danger bg-danger/5',
-        dropzoneIcon: 'text-danger'
+        dropzoneIcon: 'text-danger-text'
       },
       false: {}
     },
@@ -158,7 +158,7 @@ export const fileUploadVariants = tv({
       dragging: false,
       invalid: false,
       class: {
-        dropzoneIcon: 'group-hover:text-primary'
+        dropzoneIcon: 'group-hover:text-primary-text'
       }
     },
     {
@@ -175,7 +175,7 @@ export const fileUploadVariants = tv({
       invalid: false,
       class: {
         dropzone: ['border-primary bg-primary/8 scale-[1.01]', 'shadow-[var(--blocks-shadow-md)]'],
-        dropzoneIcon: 'text-primary scale-110'
+        dropzoneIcon: 'text-primary-text scale-110'
       }
     },
     {

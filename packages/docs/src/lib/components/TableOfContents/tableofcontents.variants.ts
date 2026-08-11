@@ -2,10 +2,19 @@ import { type SlotNames, tv, type VariantProps } from '@urbicon-ui/blocks';
 
 export const tableOfContentsVariants = tv({
   slots: {
-    // Desktop-only (max-lg:hidden), so no mobile-header offset applies:
-    // top-20 = the pinned breadcrumb strip (~2.6rem) + breathing room,
-    // roughly matching the wrapper's pt-8 content edge.
-    aside: ['max-lg:hidden sticky top-20 shrink-0 self-start'],
+    // Desktop-only (max-lg:hidden), so no mobile-header offset applies: the
+    // rail pins below the breadcrumb strip, reading the strip's declared height
+    // instead of the `top-20` that guessed it at ~2.6rem. The added 2.5rem is
+    // the rail's own breathing room — it lands the kicker on the wrapper's pt-8
+    // content edge — not a second copy of the strip height. Inside DocsLayout
+    // the sum is the 5rem `top-20` used to be, so nothing moved.
+    //
+    // The fallback is the strip's height, not 0: used outside DocsLayout there
+    // is no strip to read, and a rail pinning at 2.5rem instead of 5rem would
+    // ride 40px higher than it did for no reason a caller could see.
+    aside: [
+      'max-lg:hidden sticky top-[calc(var(--docs-sticky-bar-h,2.5rem)+2.5rem)] shrink-0 self-start'
+    ],
     // `text-text-tertiary` and uppercase are kept as fallback for pages
     // without the rooms scope; `meta-marker` (in rooms-docs.css) overrides
     // font + colour when the host root has `docs-rooms`.
@@ -23,7 +32,7 @@ export const tableOfContentsVariants = tv({
     // as part of the indent column rather than glued to the container;
     // top-1/2 + -translate centers it against the link's line-height.
     linkActive: [
-      'font-medium text-primary',
+      'font-medium text-primary-text',
       'before:absolute before:left-1 before:top-1/2 before:-translate-y-1/2',
       "before:size-1.5 before:bg-primary before:content-['']"
     ],
@@ -36,7 +45,7 @@ export const tableOfContentsVariants = tv({
     // Child square sits at left-5 (20 px), one step smaller to match the
     // xs child text, indenting under the parent marker.
     childLinkActive: [
-      'font-medium text-primary',
+      'font-medium text-primary-text',
       'before:absolute before:left-5 before:top-1/2 before:-translate-y-1/2',
       "before:size-1 before:bg-primary before:content-['']"
     ],

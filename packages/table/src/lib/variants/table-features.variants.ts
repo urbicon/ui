@@ -476,7 +476,7 @@ export const columnMenuVariants = tv({
 
     destructive: {
       true: {
-        item: 'text-danger hover:bg-danger-subtle'
+        item: 'text-danger-text hover:bg-danger-subtle'
       },
       false: {}
     }

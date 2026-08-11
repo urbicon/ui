@@ -94,7 +94,7 @@ export const textareaVariants = tv({
     // Declared BEFORE `error` so the error tone wins the message-color
     // bucket in every call shape — `{ error: true }` alone must read red.
     messageType: {
-      error: { message: 'text-danger' },
+      error: { message: 'text-danger-text' },
       helper: { message: 'text-text-tertiary' }
     },
     // The error FRAME is not declared here — it lives in the compound stage
@@ -102,18 +102,18 @@ export const textareaVariants = tv({
     // on the first compound entry.
     error: {
       true: {
-        message: 'text-danger'
+        message: 'text-danger-text'
       }
     },
     required: {
       true: {
-        label: "after:content-['*'] after:ml-1 after:text-danger"
+        label: "after:content-['*'] after:ml-1 after:text-danger-text"
       }
     },
     counterState: {
       normal: {},
       warning: { counter: 'text-warning-emphasis' },
-      over: { counter: 'text-danger font-medium' }
+      over: { counter: 'text-danger-text font-medium' }
     }
   },
   compoundVariants: [

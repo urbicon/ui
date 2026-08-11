@@ -171,10 +171,12 @@ docs paper (1.4:1), so the docs room uses a neutral step computed by the same ru
 
 ### Why two colour steps and not one
 
-`--color-primary` is a **dual-role token** — it is both `bg-primary` (button, toggle,
-progress) and `text-primary` (body link, active nav entry, Tab label, Menu checkmark),
-inside the library components as much as in the docs app. So it has to carry the sharper of
-the two thresholds, 4.5:1: a 3:1 accent renders a 16 px link at 3.13:1.
+`--color-primary` **was a dual-role token** when this section was written — both
+`bg-primary` (button, toggle, progress) and `text-primary` (body link, active nav entry).
+The library has since split the roles: the base token is a fill, and intent-coloured text
+reads the `-text` tier (`text-primary-text`, re-derived in this skin's room scope like every
+other member of the family). The reasoning below still holds for the skin's own accent
+system, which is why the text step stays: a 3:1 accent renders a 16 px link at 3.13:1.
 
 What the split buys is that only the *token* takes the deeper step. The header bands, hero
 fields, register rail, wordmark cursor and playground tint read `var(--room-accent)`

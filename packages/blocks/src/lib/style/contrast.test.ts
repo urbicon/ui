@@ -150,7 +150,8 @@ function readDecl(css: string, name: string): string | null {
  * Drop every `@media` block. `readDecl` takes the LAST declaration, so the
  * `@media (prefers-contrast: more)` overrides in semantic.css would otherwise
  * masquerade as the default value of --color-secondary / --color-neutral.
- * Those are a conditional scenario (measured separately below), not the
+ * Those are a conditional scenario this suite deliberately does NOT measure
+ * (an HC-mode audit would be its own pass with its own grounds), not the
  * cascade a default user sees.
  */
 function stripMediaBlocks(css: string): string {
@@ -866,6 +867,111 @@ describe('informative text on reading surfaces — WCAG contrast', () => {
 
     it.each(Object.keys(disabled))('%s clears 3:1', (id) => {
       expect(disabled[id], `${id} measures ${disabled[id]}:1`).toBeGreaterThanOrEqual(AA_LARGE);
+    });
+  });
+
+  /**
+   * The intent colours used AS TEXT — the axis neither half above covered.
+   * The filled-surface block asserts `text-on-fill` ON `bg-danger`; the
+   * informative block asserts the ink ramp on calm grounds. Between them sat
+   * the most common thing an intent colour actually does: `text-danger` on a
+   * form, `text-primary` on the active nav link — found not by reading tokens
+   * but by measuring a rendered page (the docs table-of-contents' active
+   * entry: 4.08:1, dark, surface-elevated, every gate green).
+   *
+   * First measurement of the axis (2026-08-11) put 82 theme×mode×surface
+   * combinations below AA, bottoming at 2.0:1 (warning as text in light mode —
+   * yellow on white, reachable by no stop of a yellow ramp). The shared cause:
+   * the BASE tokens are tuned as fills and were never sized for this job. The
+   * fix is the `--color-<intent>-text` roles in semantic.css — the same hue at
+   * the nearest ramp stop that clears AA on every ground — and variants-lint
+   * errors on a base intent used as a text utility, which is what retires the
+   * 82-entry ledger that briefly lived here: the failing combination can no
+   * longer be written, and the roles are gated hard below.
+   *
+   * Grounds include the intent's OWN `-subtle`: an Alert pairs
+   * `bg-danger-subtle` with danger text, so the role has to read there too,
+   * and it is the binding constraint for most stops (see the worst-case notes
+   * in semantic.css).
+   */
+  describe('intent text roles on reading surfaces — WCAG contrast', () => {
+    const AS_TEXT = ['primary', 'secondary', 'success', 'warning', 'danger', 'info'] as const;
+
+    const roleText: Record<string, number> = {};
+    for (const theme of ['default', ...THEMES] as Theme[]) {
+      const css = stylesheetFor(theme);
+      for (const intent of AS_TEXT) {
+        for (const mode of MODES) {
+          const fg = resolveToken(css, `--color-${intent}-text`, mode);
+          // Raw ratios, rounded only for display: `round2` before the
+          // comparison would let a true 4.4951 report as 4.5 and pass — a
+          // floor of 4.495 wearing a 4.5 label. It matters here because the
+          // binding pair (rose/primary-text/dark/own-subtle) clears by 0.0013.
+          for (const surface of READING_SURFACES) {
+            roleText[`${theme}/${intent}-text/${mode}/${surface}`] = ratioOf(
+              resolveToken(css, surfaceToken(surface), mode),
+              fg
+            );
+          }
+          roleText[`${theme}/${intent}-text/${mode}/own-subtle`] = ratioOf(
+            resolveToken(css, `--color-${intent}-subtle`, mode),
+            fg
+          );
+        }
+      }
+    }
+    const roleIds = Object.keys(roleText);
+
+    it('covers every text role × ground (incl. own -subtle) × mode × theme', () => {
+      expect(roleIds).toHaveLength(6 * 6 * 2 * 6);
+      expect(roleIds).toContain('default/primary-text/dark/elevated');
+    });
+
+    it.each(roleIds)('%s clears AA', (id) => {
+      expect(roleText[id], `${id} measures ${round2(roleText[id])}:1`).toBeGreaterThanOrEqual(
+        AA_NORMAL
+      );
+    });
+
+    /**
+     * `neutral` is the one intent WITHOUT a `-text` role, and this is the
+     * measurement that justifies it: the base token already clears AA as text
+     * on every ground in every theme (worst 5.29 light / 5.20 dark), because
+     * the chassis ramp was text-tuned from the start. If a theme retune ever
+     * turns this red, the answer is a `--color-neutral-text` role like the
+     * others — not an entry in an exception list.
+     */
+    describe('neutral needs no -text role — its base already reads as text', () => {
+      const neutral: Record<string, number> = {};
+      for (const theme of ['default', ...THEMES] as Theme[]) {
+        const css = stylesheetFor(theme);
+        for (const mode of MODES) {
+          const fg = resolveToken(css, '--color-neutral', mode);
+          for (const surface of READING_SURFACES) {
+            neutral[`${theme}/neutral/${mode}/${surface}`] = ratioOf(
+              resolveToken(css, surfaceToken(surface), mode),
+              fg
+            );
+          }
+          neutral[`${theme}/neutral/${mode}/own-subtle`] = ratioOf(
+            resolveToken(css, '--color-neutral-subtle', mode),
+            fg
+          );
+        }
+      }
+
+      it('covers every ground × mode × theme', () => {
+        // Without this, an upstream rename emptying the loop would leave an
+        // it.each over zero cases — a describe that registers nothing and
+        // "passes". The sibling blocks all carry the same guard.
+        expect(Object.keys(neutral)).toHaveLength(6 * 2 * 6);
+      });
+
+      it.each(Object.keys(neutral))('%s clears AA', (id) => {
+        expect(neutral[id], `${id} measures ${round2(neutral[id])}:1`).toBeGreaterThanOrEqual(
+          AA_NORMAL
+        );
+      });
     });
   });
 });

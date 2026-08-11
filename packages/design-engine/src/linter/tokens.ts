@@ -72,6 +72,15 @@ const INTENT_NAMES = [
 
 const INTENT_VARIANTS = ['hover', 'active', 'subtle', 'emphasis'] as const;
 
+/**
+ * Intents that additionally carry a `-text` role — the AA-clean text tier
+ * (`text-danger-text`), added 2026-08-11. `neutral` is deliberately absent:
+ * its base clears AA as text on every ground, so no `--color-neutral-text`
+ * exists and accepting the core here would whitelist a class Tailwind emits
+ * no CSS for.
+ */
+const TEXT_ROLE_INTENTS = ['primary', 'secondary', 'success', 'warning', 'danger', 'info'] as const;
+
 /** Numbered foundation steps present on every intent scale. */
 const SCALE_STEPS = [
   '50',
@@ -156,6 +165,7 @@ function buildIntentCores(): string[] {
     for (const variant of INTENT_VARIANTS) cores.push(`${intent}-${variant}`); // `bg-primary-subtle`
     for (const step of SCALE_STEPS) cores.push(`${intent}-${step}`); // `bg-primary-500`
   }
+  for (const intent of TEXT_ROLE_INTENTS) cores.push(`${intent}-text`); // `text-danger-text`
   return cores;
 }
 

@@ -1,4 +1,6 @@
 import { describe, expect, it } from 'vitest';
+import { sectionVariants } from '../Section/section.variants';
+import { tableOfContentsVariants } from '../TableOfContents/tableofcontents.variants';
 import { docsLayoutVariants } from './docslayout.variants';
 
 describe('docsLayoutVariants', () => {
@@ -14,16 +16,12 @@ describe('docsLayoutVariants', () => {
       'title',
       'subtitle',
       'stickyBar',
+      'stickyBarHeight',
       'stickyBarInner',
-      'pageToolbar',
       'stickyToc',
       'stickyTocButton',
       'stickyTocNav',
-      'stickyTocLink',
-      'mobileToc',
-      'mobileTocButton',
-      'mobileTocNav',
-      'mobileTocLink'
+      'stickyTocLink'
     ];
 
     for (const slot of expectedSlots) {
@@ -52,7 +50,7 @@ describe('docsLayoutVariants', () => {
       docsLayoutVariants({}).title(),
       docsLayoutVariants({}).subtitle(),
       docsLayoutVariants({}).stickyBar(),
-      docsLayoutVariants({}).pageToolbar()
+      docsLayoutVariants({}).stickyTocButton()
     ].join(' ');
 
     expect(allClasses).not.toMatch(/\bdark:/);
@@ -80,6 +78,51 @@ describe('docsLayoutVariants', () => {
     const styles = docsLayoutVariants({});
     expect(styles.stickyBarInner()).toContain('mx-auto');
     expect(styles.stickyBarInner()).toContain('px-6');
+  });
+
+  /**
+   * These three cover the NAMES, not the behaviour: that three tv configs in
+   * three directories agree on two custom properties, which nothing in the type
+   * system relates and a rename breaks in silence.
+   *
+   * They cannot cover the middle of the chain — the strip's markup turning the
+   * declared number into its rendered height. Drop that `min-h-` and all three
+   * stay green while every heading lands under the strip again. `e2e/
+   * docs-layout.spec.ts` ("Anchor jumps clear the pinned chrome") is what asks
+   * the browser; keep the pair, and do not let this file grow assertions that
+   * pretend to be it.
+   */
+  describe('anchor offset', () => {
+    it('declares the strip height rather than letting it fall out of padding', () => {
+      // The strip renders this as a real `h-`, so the number IS its height.
+      // While it was `py-2.5` the height existed only as a rendered consequence
+      // and every offset that needed it was a guess — five of them, all
+      // different, all wrong by a different amount.
+      expect(docsLayoutVariants({}).stickyBarHeight()).toContain('[--docs-sticky-bar-h:2.5rem]');
+    });
+
+    it('derives the offset from the pinned chrome instead of restating it', () => {
+      const container = docsLayoutVariants({}).container();
+      expect(container).toContain('--docs-anchor-offset');
+      // Both halves of what is pinned: SidebarLayout's mobile header below lg,
+      // this layout's own strip. Read, never copied.
+      expect(container).toContain('var(--sidebar-layout-header-h,0rem)');
+      expect(container).toContain('var(--docs-sticky-bar-h,0rem)');
+    });
+
+    it('is the same custom property every consumer reads', () => {
+      // The coupling a rename would otherwise break in silence: three configs in
+      // three directories have to name the same two properties, and nothing in
+      // the type system relates them — Tailwind class strings are opaque text.
+      // A page whose headings land under the strip looks like a styling slip,
+      // not like a typo, which is why it stayed unnoticed through five copies.
+      // The property NAME is the contract; each consumer picks its own fallback
+      // for the case where no strip published one (Section: no offset at all,
+      // the rail: the gap it used to hardcode). Asserting a fallback here would
+      // freeze a design choice in a test about naming.
+      expect(sectionVariants({}).root()).toContain('scroll-mt-[var(--docs-anchor-offset');
+      expect(tableOfContentsVariants({}).aside()).toContain('var(--docs-sticky-bar-h');
+    });
   });
 
   it('wrapper owns the top padding so body and TOC share one top edge', () => {
@@ -133,20 +176,24 @@ describe('docsLayoutVariants', () => {
     });
   });
 
-  describe('legacy toolbar (backward compat)', () => {
-    it('preserves legacy pageToolbar slot', () => {
-      const styles = docsLayoutVariants({});
-      expect(styles.pageToolbar()).toContain('sticky');
-      expect(styles.pageToolbar()).toContain('top-[var(--sidebar-layout-header-h,0rem)]');
-    });
-
-    it('preserves mobile TOC slots', () => {
-      const styles = docsLayoutVariants({});
-      expect(typeof styles.mobileToc).toBe('function');
-      expect(typeof styles.mobileTocButton).toBe('function');
-      expect(typeof styles.mobileTocNav).toBe('function');
-      expect(typeof styles.mobileTocLink).toBe('function');
-    });
+  it('has one pinned strip, not two implementations of one', () => {
+    // `pageToolbar` + its four `mobileToc*` slots were the second one: a page
+    // that passed no breadcrumbs got them instead of the strip, with an inline
+    // mobile TOC in place of the strip's popover and no declared height, so
+    // anchor jumps landed underneath it. Deleted 2026-08-11. Asserting their
+    // absence is what stops a well-meaning restore — the slot roster above
+    // catches an addition, this says why this particular one must not come
+    // back.
+    const styles = docsLayoutVariants({}) as Record<string, unknown>;
+    for (const gone of [
+      'pageToolbar',
+      'mobileToc',
+      'mobileTocButton',
+      'mobileTocNav',
+      'mobileTocLink'
+    ]) {
+      expect(styles[gone]).toBeUndefined();
+    }
   });
 
   it('supports class merging via slotClasses', () => {

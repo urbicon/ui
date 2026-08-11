@@ -48,27 +48,33 @@ export const toastVariants = tv({
     intent: {
       primary: {
         toast: 'bg-surface-overlay text-text-primary',
-        icon: 'text-primary',
+        icon: 'text-primary-text',
         progress: 'bg-primary'
       },
       info: {
         toast: 'bg-surface-overlay text-text-primary',
-        icon: 'text-info',
+        icon: 'text-info-text',
         progress: 'bg-info'
       },
       success: {
         toast: 'bg-surface-overlay text-text-primary',
-        icon: 'text-success',
+        icon: 'text-success-text',
         progress: 'bg-success'
       },
       warning: {
         toast: 'bg-surface-overlay text-text-primary',
+        // Deliberately `-emphasis` while the siblings ride `-text`. In light
+        // mode the two are byte-identical for warning (both -800); in dark
+        // `-text` is -400 against emphasis's -200, and on the overlay surface
+        // that trades roughly half the icon's contrast for nothing — a
+        // "simplification" to `-text` was made and reverted on review (same
+        // story in Dialog).
         icon: 'text-warning-emphasis',
         progress: 'bg-warning'
       },
       danger: {
         toast: 'bg-surface-overlay text-text-primary',
-        icon: 'text-danger',
+        icon: 'text-danger-text',
         progress: 'bg-danger'
       },
       neutral: {

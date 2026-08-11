@@ -199,7 +199,7 @@ describe('ChatMessage', () => {
     });
     expect(document.body.textContent).toContain('search_web');
     expect(document.body.textContent).toContain('rate limited');
-    expect(document.querySelector('.text-danger')).not.toBeNull();
+    expect(document.querySelector('.text-danger-text')).not.toBeNull();
   });
 
   it('renders a running tool call through ToolCallCard with its status text', () => {
