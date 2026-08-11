@@ -3,7 +3,7 @@
   import { resolve } from '$app/paths';
   import { Alert, Badge, Button, Card, Checkbox, Separator, Toggle } from '@urbicon-ui/blocks';
   import { CodeExample, DocsLayout as DocsPageLayout, Section } from '@urbicon-ui/docs';
-  import { parseThemeRamps, previewVars } from '$lib/theme-preview';
+  import { parseTheme, previewVars } from '$lib/theme-preview';
   // The shipped themes themselves, not retyped excerpts — hand-copied palette
   // data drifted twice (a primary-only forest excerpt; Sunset/Rose chroma and
   // Neutral's 600 disagreeing with the package). Swatch dot, palette strip and
@@ -31,50 +31,45 @@
       name: 'Ocean',
       file: 'ocean.css',
       desc: 'Cool blue-teal palette with deeper saturation. Chassis tuned cool to match.',
-      ramps: parseThemeRamps(oceanTheme)
+      parsed: parseTheme(oceanTheme)
     },
     {
       name: 'Forest',
       file: 'forest.css',
       desc: 'Earthy green palette inspired by natural environments. Stone-grey chassis.',
-      ramps: parseThemeRamps(forestThemeSource)
+      parsed: parseTheme(forestThemeSource)
     },
     {
       name: 'Sunset',
       file: 'sunset.css',
       desc: 'Warm orange-amber palette for energetic interfaces. Chassis warmed to match.',
-      ramps: parseThemeRamps(sunsetTheme)
+      parsed: parseTheme(sunsetTheme)
     },
     {
       name: 'Rose',
       file: 'rose.css',
       desc: 'Soft pink-rose palette for elegant, modern interfaces. Warm rosé chassis.',
-      ramps: parseThemeRamps(roseTheme)
+      parsed: parseTheme(roseTheme)
     },
     {
       name: 'Neutral',
       file: 'neutral.css',
       desc: 'Desaturated grayscale for content-focused UIs. True temperature-free chassis.',
-      ramps: parseThemeRamps(neutralTheme)
+      parsed: parseTheme(neutralTheme)
     }
   ];
 
   let activeTheme = $state(0);
   const active = $derived(themes[activeTheme]);
 
-  // Ramps + every role that reads them, re-declared for the preview scope in
-  // both modes via light-dark(). Shared with the Theme Builder:
-  // $lib/theme-preview.ts. The two `:root` knobs come from the theme file as
-  // well — they are what carries the theme's temperature into the shadows and
-  // the neutral chrome, and neutral.css deliberately sets neither.
+  // The theme file's own declarations — all of them, not a chosen subset —
+  // plus every library role that reads one of them, re-declared for the preview
+  // scope in both modes via light-dark(). Shared with the Theme Builder:
+  // $lib/theme-preview.ts. "All of them" matters: forest.css re-tunes success
+  // and warning away from its green primary, and a preview that kept only the
+  // accent ramps would exhibit the collision the file exists to avoid.
   const previewStyle = $derived(
-    previewVars({
-      palette: active.ramps.primary,
-      secondaryPalette: active.ramps.secondary,
-      chassis: active.ramps.neutral,
-      shadowTint: active.ramps.shadowTint,
-      neutralChromeHue: active.ramps.neutralChromeHue
-    })
+    previewVars(active.parsed.declarations.map((d) => [d.name, d.value]))
   );
 
   const usageCode = $derived(
@@ -207,7 +202,7 @@ html.add('dark');             // force dark; add('light') forces light`;
           : 'border-border-subtle text-text-tertiary hover:border-border-default hover:text-text-secondary'}"
         onclick={() => (activeTheme = i)}
       >
-        <div class="h-4 w-4 rounded-full" style="background: {theme.ramps.primary[600]}"></div>
+        <div class="h-4 w-4 rounded-full" style="background: {theme.parsed.primary[600]}"></div>
         {theme.name}
       </button>
     {/each}
@@ -216,7 +211,7 @@ html.add('dark');             // force dark; add('light') forces light`;
   <!-- Palette strip -->
   <div class="mb-4">
     <div class="flex gap-1">
-      {#each Object.entries(active.ramps.primary) as [shade, color] (shade)}
+      {#each Object.entries(active.parsed.primary) as [shade, color] (shade)}
         <div class="flex-1">
           <div class="mb-1 aspect-square w-full rounded-md" style="background: {color}"></div>
           <div class="text-text-quaternary text-center font-mono text-[9px]">{shade}</div>

@@ -57,7 +57,23 @@ for (let i = css.indexOf('{', themeStart); i < css.length; i++) {
   }
 }
 if (themeEnd === -1) throw new Error('unterminated @theme block');
-const theme = css.slice(themeStart, themeEnd);
+/**
+ * Two things this slice has to get right, both of which it got wrong:
+ *
+ *  - it starts AFTER the opening brace. Starting at `@theme {` puts the block
+ *    header in the first buffer, so the first declaration reads
+ *    `@theme { --color-surface-base: …`, fails the `startsWith('--')` filter
+ *    below, and vanishes. The base page surface — the most consequential token
+ *    in the file — was missing from every livery for exactly that reason;
+ *  - comments come out BEFORE the split, not after. A `;` inside comment prose
+ *    ends a "declaration" in the middle of it, and the real declaration then
+ *    starts with the comment's tail rather than `--`, so it is dropped too.
+ *
+ * Measured against the previous output: 65 declarations, should have been 70.
+ */
+const theme = css
+  .slice(css.indexOf('{', themeStart) + 1, themeEnd)
+  .replace(/\/\*[\s\S]*?\*\//g, '');
 
 /**
  * Every declaration whose value reads a foundation ramp. Tokens that do not

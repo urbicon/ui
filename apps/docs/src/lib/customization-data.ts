@@ -19,6 +19,20 @@
  * winner — so a provider `rounded-none` and an instance `class="rounded-full"`
  * both survive and stylesheet order decides. Measured in precedence.test.ts.
  */
+/**
+ * What an instance `class` prop outranks, in one sentence, rendered wherever a
+ * page states it — the hub's decision table and the BlocksProvider page.
+ *
+ * Shared rather than retyped because it has now been wrong twice in the same
+ * direction, and the second time it was wrong in a table 110 lines above the
+ * paragraph that corrected it. One string cannot disagree with itself.
+ * Measured in precedence.test.ts.
+ */
+export const classCaveat =
+  "Beats the library's own defaults — and only those. Against a utility a " +
+  'provider, preset or slotClasses already set, both survive and stylesheet ' +
+  'order decides, so reach for slotClasses there.';
+
 export const precedenceChain = [
   'tv() variant styles (library default — the only stage a class prop reliably beats)',
   'BlocksProvider defaults.slotClasses',

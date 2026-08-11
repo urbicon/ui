@@ -24,22 +24,35 @@ const css = readFileSync(resolve(__dirname, '../../lib/style/rooms-docs.css'), '
 const page = readFileSync(resolve(__dirname, 'rooms-theme/+page.svelte'), 'utf8');
 
 /**
- * The base `.docs-rooms` block only. Later rules re-declare `--docs-soft` for
- * an inverted hero and add `--docs-measure` & co. for prose scopes; those are
- * scoped adjustments, not entries in the namespace catalogue.
+ * Declarations by the rule they sit in. Asking the parser for the selector
+ * beats slicing the file: `.docs-rooms` is only the first rule by convention,
+ * and a `String.slice` between two `indexOf`s silently returns nothing the day
+ * someone adds a `@font-face` above it — leaving the gate to fail with "found
+ * both sides to compare" while pointing at the wrong file.
  */
-const baseBlock = css.slice(css.indexOf('.docs-rooms {'), css.indexOf('\n}\n'));
-
-const tokens = parseDeclarations(baseBlock)
-  .filter((d) => d.depth === 1 && d.name.startsWith('--docs-'))
-  .map(({ name, value }) => ({ name, value }));
-
-/** `<code>--docs-x</code></td> … <code>VALUE</code>` — the catalogue rows. */
-const rows = new Map(
-  [...page.matchAll(/<code>(--docs-[a-z-]+)<\/code><\/td>\s*<td[^>]*><code>([^<]+)<\/code>/g)].map(
-    (m) => [m[1], m[2]]
-  )
+const roomsLayer = parseDeclarations(css).filter(
+  // Matched by containment, not equality: the file uses selector LISTS
+  // (`.docs-rooms, .docs-rooms .docs-room-scope`) and data-attribute variants,
+  // and every one of them is the Rooms layer declaring its own tokens. Depth 1
+  // still excludes the at-rule blocks.
+  (d) => d.depth === 1 && d.selector.includes('.docs-rooms')
 );
+
+/** The `--docs-*` namespace as the layer declares it, first value per name. */
+const tokens = [
+  ...new Map(roomsLayer.filter((d) => d.name.startsWith('--docs-')).map((d) => [d.name, d.value]))
+].map(([name, value]) => ({ name, value }));
+
+/** `<code>NAME</code></td> … <code>VALUE</code>` — one row of either table. */
+function tableRows(prefix: string): Map<string, string> {
+  const pattern = new RegExp(
+    `<code>(${prefix}[a-z0-9-]+)</code></td>\\s*<td[^>]*><code>([^<]+)</code>`,
+    'g'
+  );
+  return new Map([...page.matchAll(pattern)].map((m) => [m[1], m[2]]));
+}
+
+const rows = tableRows('--docs-');
 
 describe('the --docs-* catalogue on /customization/rooms-theme', () => {
   it('found both sides to compare', () => {
@@ -83,6 +96,39 @@ describe('the --docs-* catalogue on /customization/rooms-theme', () => {
       // Anything else (rgb() alpha pairs, color-mix) is paraphrased on purpose.
     }
     expect(wrong).toEqual([]);
+  });
+});
+
+describe('the library-semantic-override table below it', () => {
+  // Same drift class, second table: it lists which library token Color Rooms
+  // re-points at which `--docs-*` value. Only the rows whose target the file
+  // states as a plain alias are checked — `--color-primary` resolves through
+  // the room-accent ramp and the table names the accent, which is the useful
+  // answer rather than the literal one.
+  const remaps = new Map(
+    roomsLayer
+      .filter((d) => d.name.startsWith('--color-') && /^var\(--docs-[a-z-]+\)$/.test(d.value))
+      .map((d) => [d.name, d.value])
+  );
+  const listed = tableRows('--color-');
+
+  it('found rows and remaps to compare', () => {
+    expect(remaps.size).toBeGreaterThan(4);
+    expect(listed.size).toBeGreaterThan(4);
+  });
+
+  it('quotes the alias rooms-docs.css actually points each token at', () => {
+    const wrong: string[] = [];
+    for (const [name, value] of remaps) {
+      const row = listed.get(name);
+      if (row && row.trim() !== value) wrong.push(`${name}: ${row} ≠ ${value}`);
+    }
+    expect(wrong).toEqual([]);
+  });
+
+  it('lists no library token the file does not re-point', () => {
+    const declared = new Set(roomsLayer.map((d) => d.name));
+    expect([...listed.keys()].filter((name) => !declared.has(name))).toEqual([]);
   });
 });
 

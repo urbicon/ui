@@ -3,7 +3,7 @@
   import { resolve } from '$app/paths';
   import { Card, Input, Separator } from '@urbicon-ui/blocks';
   import { CodeExample, DocsLayout as DocsPageLayout, Section } from '@urbicon-ui/docs';
-  import { precedenceChain } from '$lib/customization-data';
+  import { classCaveat, precedenceChain } from '$lib/customization-data';
 
   const navigation = [
     { id: 'ladder', title: 'Which tool do I use?' },
@@ -20,7 +20,7 @@
       goal: 'Restyle one element on one instance',
       tool: 'class',
       example: '<Button class="rounded-full">',
-      note: "Beats the library's own defaults and everything BlocksProvider set. Merges onto the OUTERMOST (root) slot only, see the trap below; for a utility that also appears in slotClasses, use slotClasses instead."
+      note: `${classCaveat} Merges onto the OUTERMOST (root) slot only, see the trap below.`
     },
     {
       goal: 'Restyle an inner element (the <input> itself, a header, a chevron…)',

@@ -45,6 +45,14 @@ describe('value scanning', () => {
     expect(parsed.map((d) => d.name)).toEqual(['--a']);
   });
 
+  it('survives an unbalanced closing paren instead of losing the rest of the file', () => {
+    // Floor the paren depth or nothing after the stray `)` can ever terminate:
+    // one malformed value would silently truncate the whole graph, and a
+    // truncated graph renders as a half-themed preview with no error anywhere.
+    const parsed = parseDeclarations(':root { --a: 1; --bad: calc(1px)); --b: 2; --c: 3; }');
+    expect(parsed.map((d) => d.name)).toEqual(['--a', '--bad', '--b', '--c']);
+  });
+
   it('ignores token names that only appear in comments', () => {
     const parsed = parseDeclarations(`@theme {
       /* … all shades --color-primary-200 to --color-primary-800 … */
@@ -56,6 +64,28 @@ describe('value scanning', () => {
   it('does not read a var() reference as a declaration of that name', () => {
     const parsed = parseDeclarations(':root { --a: var(--b); }');
     expect(parsed.map((d) => d.name)).toEqual(['--a']);
+  });
+
+  it('does not read a modifier-style selector as a declaration', () => {
+    // `.card--wide:hover` matches the name pattern exactly. Taking it would
+    // also swallow the block's opening brace as part of the "value", leaving
+    // the depth short by one for everything after it.
+    const css = `:root { --base: 1; }
+      .card--wide:hover { color: red; }
+      @media print { :root { --conditional: 2; } }`;
+    const parsed = parseDeclarations(css);
+    expect(parsed.map((d) => [d.name, d.depth])).toEqual([
+      ['--base', 1],
+      ['--conditional', 2]
+    ]);
+  });
+
+  it('keeps the depth filter honest with a selector above an at-rule', () => {
+    // The end-to-end version of the case above: the at-rule token must not
+    // reach `baseDeclarations`, which is what publishes library defaults.
+    const css = `.card--wide { color: red; }
+      @media (pointer: coarse) { :root { --touch: 44px; } }`;
+    expect(baseDeclarations([css]).map((d) => d.name)).toEqual([]);
   });
 });
 

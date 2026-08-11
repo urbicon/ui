@@ -387,6 +387,21 @@ export const ROUTE_CHANNEL = {
             <td class="px-4 py-3">Lift shadow — bento, recipe, showcase stages.</td>
           </tr>
           <tr>
+            <td class="px-4 py-3"><code>--docs-measure</code></td>
+            <td class="px-4 py-3"><code>46rem</code></td>
+            <td class="px-4 py-3">The reading edge — prose only, not the exhibit column.</td>
+          </tr>
+          <tr>
+            <td class="px-4 py-3"><code>--docs-prose-size</code></td>
+            <td class="px-4 py-3"><code>1.0625rem</code></td>
+            <td class="px-4 py-3">Body copy — set here, not per page.</td>
+          </tr>
+          <tr>
+            <td class="px-4 py-3"><code>--docs-prose-leading</code></td>
+            <td class="px-4 py-3"><code>1.7</code></td>
+            <td class="px-4 py-3">Body leading, paired with the size above.</td>
+          </tr>
+          <tr>
             <td class="px-4 py-3"><code>--font-display / --font-sans</code></td>
             <td class="px-4 py-3">Schibsted Grotesk Variable</td>
             <td class="px-4 py-3">Display + body — one grotesk (self-hosted via @fontsource).</td>

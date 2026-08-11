@@ -12,7 +12,13 @@
     Toggle
   } from '@urbicon-ui/blocks';
   import { DocsLayout as DocsPageLayout } from '@urbicon-ui/docs';
-  import { generateChassis, generatePalette, previewVars } from '$lib/theme-preview';
+  import {
+    baseRadiusScale,
+    generateChassis,
+    generatePalette,
+    previewVars,
+    rampDeclarations
+  } from '$lib/theme-preview';
 
   let brandHue = $state(240);
   let brandChroma = $state(0.15);
@@ -111,16 +117,10 @@
     { value: 'full', label: 'Pill', scale: -1 }
   ];
 
-  const baseRadii: Record<string, number> = {
-    xs: 0.125,
-    sm: 0.25,
-    md: 0.375,
-    lg: 0.5,
-    xl: 0.75,
-    '2xl': 1,
-    '3xl': 1.5,
-    '4xl': 2
-  };
+  // Read out of foundation.css, not retyped: this page's output IS the
+  // consumer's override block, so a scale that has quietly stopped being a
+  // multiple of the library's is the one defect it must not ship.
+  const baseRadii = baseRadiusScale();
 
   const activeRadiusOption = $derived(radiusOptions.find((o) => o.value === radius)!);
 
@@ -135,8 +135,43 @@
     return vars;
   });
 
+  // What to suggest for the commit tier, which is a literal and does NOT follow
+  // the scale. It has to track the preset: a fixed value recommends re-rounding
+  // under "None" and squaring under "Pill" — the opposite of what was picked
+  // both times. Under Pill there is nothing to suggest at all, because the
+  // commit tier is already what the preset asks for.
+  const commitSuggestion = $derived.by(() => {
+    const opt = activeRadiusOption;
+    if (opt.scale === -1) return null;
+    return opt.scale === 0 ? '0' : `${((baseRadii.lg ?? 0.5) * opt.scale).toFixed(3)}rem`;
+  });
+
   let palette = $derived(generatePalette(brandHue, brandChroma, brandLightness));
   let secondaryPalette = $derived(generatePalette(secondaryHue, secondaryChroma, 0.55));
+
+  // The theme being built, as declarations. The preview scope applies these and
+  // derives the rest ($lib/theme-preview.ts); the copy-paste output below
+  // renders the same values with its prose around them.
+  const themeDeclarations = $derived.by(() => {
+    const out: [string, string][] = [
+      ...rampDeclarations('primary', palette),
+      ...rampDeclarations('secondary', secondaryPalette),
+      // The chassis goes into the PREVIEW unconditionally, including at the
+      // default hue — this exhibit sits inside the docs Rooms skin, whose :root
+      // neutrals are warm cream, so emitting the library profile is what makes
+      // it show the library's chassis instead of the page's. The output block
+      // below omits it when it would be a no-op in the consumer's own file.
+      ...chassisPalette.map(
+        ({ shade, value }) => [`--color-neutral-${shade}`, value] as [string, string]
+      ),
+      ...Object.entries(radiusVars)
+    ];
+    if (emitChromaKnobs) {
+      out.push(['--blocks-shadow-tint', chromaKnobs.shadowTint]);
+      out.push(['--neutral-chrome-hue', chromaKnobs.neutralChromeHue]);
+    }
+    return out;
+  });
 
   let cssOutput = $derived.by(() => {
     const chassisLabel = chassisTint === 0 ? 'grayscale' : `hue ${chassisHue}`;
@@ -146,12 +181,12 @@
       `  /* Primary Hue: ${brandHue} | Secondary Hue: ${secondaryHue} | Chassis: ${chassisLabel} */`,
       ``
     ];
-    for (const [shade, value] of Object.entries(palette)) {
-      lines.push(`  --color-primary-${shade}: ${value};`);
+    for (const [name, value] of rampDeclarations('primary', palette)) {
+      lines.push(`  ${name}: ${value};`);
     }
     lines.push(``);
-    for (const [shade, value] of Object.entries(secondaryPalette)) {
-      lines.push(`  --color-secondary-${shade}: ${value};`);
+    for (const [name, value] of rampDeclarations('secondary', secondaryPalette)) {
+      lines.push(`  ${name}: ${value};`);
     }
     if (!chassisIsDefault) {
       lines.push(``);
@@ -171,10 +206,15 @@
         lines.push(`  ${name}: ${value};`);
       }
       lines.push(``);
-      lines.push(`  /* --radius-commit is a literal pill and does NOT follow the`);
-      lines.push(`     scale. Uncomment it with a literal of your own to square the`);
-      lines.push(`     commit tier (Button, Badge, Checkbox); 0 squares it fully. */`);
-      lines.push(`  /* --radius-commit: 0.5rem; */`);
+      if (commitSuggestion === null) {
+        lines.push(`  /* --radius-commit is a 9999px literal, so the commit tier`);
+        lines.push(`     (Button, Badge, Checkbox) already matches this preset. */`);
+      } else {
+        lines.push(`  /* --radius-commit is a literal pill and does NOT follow the`);
+        lines.push(`     scale. Uncomment to bring the commit tier (Button, Badge,`);
+        lines.push(`     Checkbox) into line with ${activeRadiusOption.label}. */`);
+        lines.push(`  /* --radius-commit: ${commitSuggestion}; */`);
+      }
       lines.push(`  /* --radius-control (the radio dot) is deliberately not offered`);
       lines.push(`     here: it was split off the pill so squaring your buttons keeps`);
       lines.push(`     the radio a circle, which is the only thing telling it from a`);
@@ -219,16 +259,7 @@
   // corner. The chroma knobs travel the same way — they are what carries the
   // chassis temperature into shadows and neutral chrome — and only when the
   // output file sets them, so the preview shows what the file produces.
-  let previewStyle = $derived(
-    previewVars({
-      palette,
-      secondaryPalette,
-      chassis: chassisPalette,
-      radii: radiusVars,
-      shadowTint: emitChromaKnobs ? chromaKnobs.shadowTint : undefined,
-      neutralChromeHue: emitChromaKnobs ? chromaKnobs.neutralChromeHue : undefined
-    })
-  );
+  let previewStyle = $derived(previewVars(themeDeclarations));
 
   async function copyCSS() {
     await navigator.clipboard.writeText(cssOutput);

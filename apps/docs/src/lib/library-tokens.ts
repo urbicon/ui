@@ -12,13 +12,21 @@
  * it is handed is empty.
  */
 
+import mintCss from '@urbicon-ui/blocks/mint/styles.css?raw';
 import foundationCss from '@urbicon-ui/blocks/style/foundation.css?raw';
 import interactionCss from '@urbicon-ui/blocks/style/interaction.css?raw';
 import semanticCss from '@urbicon-ui/blocks/style/semantic.css?raw';
 import { buildTokenGraph, type TokenGraph } from './css-declarations';
 
+/**
+ * All four, in `index.css`'s own order. mint/styles.css is easy to forget and
+ * belongs here by the closure's own rule: `--blocks-mint-glow-color` reads
+ * `--color-primary`, so an element inside a preview scope that carries the glow
+ * without an intent hook would otherwise glow in the surrounding page's accent.
+ */
 export const LIBRARY_TOKENS: TokenGraph = buildTokenGraph([
   foundationCss,
   semanticCss,
-  interactionCss
+  interactionCss,
+  mintCss
 ]);

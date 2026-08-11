@@ -108,60 +108,87 @@ export function generateChassis(hue: number, tint = 1): { shade: number; value: 
   }));
 }
 
-export interface ParsedThemeRamps {
+export interface ParsedTheme {
+  /** EVERYTHING the theme file declares, in document order — the ramps, the
+   * re-tuned intent ramps, the `:root` chroma knobs. This is what a preview
+   * scope applies: the theme, not a chosen subset of it. */
+  declarations: { name: string; value: string }[];
+  /** The three ramps the gallery draws swatches from, keyed by stop. */
   primary: Record<number, string>;
   secondary: Record<number, string>;
   neutral: { shade: number; value: string }[];
-  /** The `:root` knobs, when the theme sets them. `neutral.css` deliberately
-   * sets neither — a grayscale chassis has no temperature to match — and then
-   * the library defaults (black shadows, hue 240) are the right answer. */
-  shadowTint?: string;
-  neutralChromeHue?: string;
 }
 
 /**
- * Reads the three ramps and the two chroma knobs out of a shipped theme file
- * (imported `?raw`). The themes gallery renders these instead of approximating
- * the palettes with `generatePalette` — the approximation visibly disagreed
- * with the shipped values (Sunset/Rose chroma, Neutral's darkened 600), so
- * swatch dot, palette strip and live preview now all read the same source as
- * the consumer's `@import`.
+ * Reads a shipped theme file (imported `?raw`). The themes gallery renders
+ * these instead of approximating the palettes with `generatePalette` — the
+ * approximation visibly disagreed with the shipped values (Sunset/Rose chroma,
+ * Neutral's darkened 600), so swatch dot, palette strip and live preview all
+ * read the same source as the consumer's `@import`.
+ *
+ * `declarations` is deliberately unfiltered. A theme is not only its accent
+ * ramps: forest.css re-tunes the whole `success` ramp to hue 172 and `warning`
+ * to 60, precisely because its green primary would otherwise be
+ * indistinguishable from a success state — and a preview that dropped those
+ * would exhibit the collision the file exists to avoid, right beside the prose
+ * telling the reader to fix it.
  */
-export function parseThemeRamps(css: string): ParsedThemeRamps {
+export function parseTheme(css: string): ParsedTheme {
   const primary: Record<number, string> = {};
   const secondary: Record<number, string> = {};
   const neutral: { shade: number; value: string }[] = [];
-  const parsed: ParsedThemeRamps = { primary, secondary, neutral };
+  const declarations = baseDeclarations([css]).map(({ name, value }) => ({ name, value }));
 
-  for (const { name, value } of baseDeclarations([css])) {
+  for (const { name, value } of declarations) {
     const stop = /^--color-(primary|secondary|neutral)-(\d+)$/.exec(name);
-    if (stop) {
-      if (stop[1] === 'neutral') neutral.push({ shade: Number(stop[2]), value });
-      else if (stop[1] === 'primary') primary[Number(stop[2])] = value;
-      else secondary[Number(stop[2])] = value;
-      continue;
-    }
-    if (name === '--blocks-shadow-tint') parsed.shadowTint = value;
-    else if (name === '--neutral-chrome-hue') parsed.neutralChromeHue = value;
+    if (!stop) continue;
+    if (stop[1] === 'neutral') neutral.push({ shade: Number(stop[2]), value });
+    else if (stop[1] === 'primary') primary[Number(stop[2])] = value;
+    else secondary[Number(stop[2])] = value;
   }
 
-  return parsed;
-}
-
-export interface PreviewOptions {
-  palette: Record<number, string>;
-  secondaryPalette: Record<number, string>;
-  chassis: { shade: number; value: string }[];
-  /** Base radius scale (`--radius-xs` … `--radius-4xl`), when the scope moves it. */
-  radii?: Record<string, string>;
-  /** oklch `L C H` without alpha, as themes declare it on `:root`. */
-  shadowTint?: string;
-  neutralChromeHue?: string;
+  return { declarations, primary, secondary, neutral };
 }
 
 /**
- * The inline-style override set for a preview scope: what the caller re-tints,
+ * The library's base radius scale, read out of the shipped stylesheets: every
+ * `--radius-<step>` whose value is a plain rem length, in file order.
+ *
+ * Derived rather than copied because the builder's whole job is to hand a
+ * consumer a correct override block: a hand-kept `{ xs: 0.125, … }` that
+ * disagrees with foundation.css emits a scale that is no longer the multiple of
+ * the library's it claims to be, silently. The tier tokens are excluded by the
+ * same test that excludes them from a preview scope — `--radius-commit` and
+ * `--radius-control` are `9999px` literals, `--radius-modify` & co. read the
+ * scale — so no tier name is hardcoded here either.
+ */
+export function baseRadiusScale(graph: TokenGraph = LIBRARY_TOKENS): Record<string, number> {
+  const scale: Record<string, number> = {};
+  for (const { name, value } of graph.declarations) {
+    const step = /^--radius-([a-z0-9]+)$/.exec(name);
+    const rem = step && /^([\d.]+)rem$/.exec(value);
+    if (step && rem) scale[step[1]] = Number(rem[1]);
+  }
+  return scale;
+}
+
+/** `--color-<family>-<stop>` declarations for a generated ramp. Shared by the
+ * builder's preview scope and its copy-paste output, so the two cannot name a
+ * stop differently. */
+export function rampDeclarations(
+  family: string,
+  stops: Record<number | string, string>
+): [name: string, value: string][] {
+  return Object.entries(stops).map(([stop, value]) => [`--color-${family}-${stop}`, value]);
+}
+
+/**
+ * The inline-style override set for a preview scope: what the caller declares,
  * followed by every library declaration that reads it (see the module header).
+ *
+ * `overrides` is the scope's own declarations, in the order they should appear.
+ * A duplicate name keeps its FIRST value — the caller's list is the authority
+ * on what the scope sets, and letting a later repeat win would silently undo it.
  *
  * `graph` defaults to the shipped stylesheets and is passed explicitly only by
  * the tests, which read `packages/blocks/src/lib/style/*` off disk — Vite
@@ -170,7 +197,10 @@ export interface PreviewOptions {
  * i.e. exactly the half-broken preview this module exists to prevent, so it is
  * a hard error rather than a fallback.
  */
-export function previewVars(options: PreviewOptions, graph: TokenGraph = LIBRARY_TOKENS): string {
+export function previewVars(
+  overrides: Iterable<readonly [name: string, value: string]>,
+  graph: TokenGraph = LIBRARY_TOKENS
+): string {
   if (graph.declarations.length === 0) {
     throw new Error(
       'previewVars: empty token graph — the library stylesheets did not load, ' +
@@ -178,33 +208,12 @@ export function previewVars(options: PreviewOptions, graph: TokenGraph = LIBRARY
         'the surrounding page’s theme.'
     );
   }
-  return scopeVars(options, graph);
-}
 
-function scopeVars(options: PreviewOptions, graph: TokenGraph): string {
-  const overrides: [name: string, value: string][] = [];
-  for (const [shade, value] of Object.entries(options.palette)) {
-    overrides.push([`--color-primary-${shade}`, value]);
-  }
-  for (const [shade, value] of Object.entries(options.secondaryPalette)) {
-    overrides.push([`--color-secondary-${shade}`, value]);
-  }
-  for (const { shade, value } of options.chassis) {
-    overrides.push([`--color-neutral-${shade}`, value]);
-  }
-  for (const [name, value] of Object.entries(options.radii ?? {})) {
-    overrides.push([name, value]);
-  }
-  if (options.shadowTint) overrides.push(['--blocks-shadow-tint', options.shadowTint]);
-  if (options.neutralChromeHue) {
-    overrides.push(['--neutral-chrome-hue', options.neutralChromeHue]);
-  }
+  const scope = new Map<string, string>();
+  for (const [name, value] of overrides) if (!scope.has(name)) scope.set(name, value);
 
-  const derived = derivedDeclarations(
-    graph,
-    overrides.map(([name]) => name)
-  );
-  return [...overrides, ...derived.map((d): [string, string] => [d.name, d.value])]
+  const derived = derivedDeclarations(graph, scope.keys());
+  return [...scope, ...derived.map((d): [string, string] => [d.name, d.value])]
     .map(([name, value]) => `${name}: ${value}`)
     .join('; ');
 }

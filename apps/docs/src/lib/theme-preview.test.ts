@@ -2,12 +2,17 @@ import { readdirSync, readFileSync } from 'node:fs';
 import { dirname, join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { describe, expect, it } from 'vitest';
-import { buildTokenGraph, derivedDeclarations, references } from './css-declarations';
+import {
+  buildTokenGraph,
+  derivedDeclarations,
+  parseDeclarations,
+  references
+} from './css-declarations';
 import {
   generateChassis,
   neutralRamp,
   oklch,
-  parseThemeRamps,
+  parseTheme,
   previewVars,
   UNTINTED_NEUTRAL_STOP
 } from './theme-preview';
@@ -34,9 +39,22 @@ const read = (file: string) => readFileSync(resolve(styleDir, file), 'utf8');
 const foundation = read('foundation.css');
 const semantic = read('semantic.css');
 const interaction = read('interaction.css');
+const mint = readFileSync(resolve(styleDir, '../mint/styles.css'), 'utf8');
 
-/** Same order as style/index.css, which is what the module builds too. */
-const graph = buildTokenGraph([foundation, semantic, interaction]);
+/**
+ * Every stylesheet `style/index.css` pulls in, in its order — which is what
+ * `library-tokens.ts` builds the shipped graph from. mint/styles.css is part of
+ * it: its two glow tokens read `--color-primary`, so by the closure's own rule
+ * they belong in a preview scope.
+ */
+const SOURCES = [
+  ['foundation.css', foundation],
+  ['semantic.css', semantic],
+  ['interaction.css', interaction],
+  ['mint/styles.css', mint]
+] as const;
+
+const graph = buildTokenGraph(SOURCES.map(([, css]) => css));
 
 /**
  * semantic.css up to its first at-rule — the base cascade, which is what a
@@ -57,6 +75,26 @@ function neutralDerivedRoles(): string[] {
       /(--color-[a-z0-9-]+):\s*light-dark\(\s*var\(--color-neutral-\d+\),\s*var\(--color-neutral-\d+\)\s*\)/g
     )
   ].map((m) => m[1]);
+}
+
+/**
+ * Names declared as a library DEFAULT more than once — the same name in a
+ * top-level `:root` or `@theme` rule twice, whether in one file or across them.
+ * Read off `parseDeclarations` rather than `baseDeclarations`, which is already
+ * first-wins-deduped and could therefore never report one.
+ */
+function duplicateDefaults(sources: readonly (readonly [string, string])[]): string[] {
+  const seen = new Map<string, string>();
+  const collisions: string[] = [];
+  for (const [file, css] of sources) {
+    for (const { name, depth, selector } of parseDeclarations(css)) {
+      if (depth !== 1 || !/^(@theme|:root)$/.test(selector)) continue;
+      const first = seen.get(name);
+      if (first) collisions.push(`${name}: ${first} + ${file}`);
+      else seen.set(name, file);
+    }
+  }
+  return collisions;
 }
 
 /** What a themes-gallery preview overrides: the three ramps plus both knobs. */
@@ -88,24 +126,29 @@ describe('the token graph the closure walks', () => {
     expect(names.has('--blocks-touch-target-min'), 'at-rule-only token').toBe(false);
   });
 
-  it('declares no name twice across the three layers', () => {
-    // first-wins is unambiguous only while that holds; a name declared at
-    // depth 1 in two layers would mean the closure silently picks one file's
-    // value and the browser possibly the other's.
-    const seen = new Map<string, string>();
-    const collisions: string[] = [];
-    for (const [file, css] of [
-      ['foundation.css', foundation],
-      ['semantic.css', semantic],
-      ['interaction.css', interaction]
-    ] as const) {
-      for (const { name } of buildTokenGraph([css]).declarations) {
-        const first = seen.get(name);
-        if (first) collisions.push(`${name}: ${first} + ${file}`);
-        else seen.set(name, file);
-      }
-    }
-    expect(collisions).toEqual([]);
+  it('declares no base name twice, in one file or across them', () => {
+    // first-wins is unambiguous only while that holds — CSS resolves the LAST
+    // declaration, so a duplicate default means the graph and the browser
+    // disagree. Counted off `parseDeclarations`, not `baseDeclarations`: the
+    // latter is already first-wins-deduped, so asking it could only ever
+    // surface cross-file collisions and never the intra-file one its own
+    // docstring calls a bug in that file.
+    expect(duplicateDefaults(SOURCES)).toEqual([]);
+  });
+
+  it('can tell a duplicate when there is one', () => {
+    // Positive control on the guard above: same shape, one file, one repeat.
+    expect(duplicateDefaults([['probe', ':root { --a: 1; } :root { --a: 2; }']])).toEqual([
+      '--a: probe + probe'
+    ]);
+  });
+
+  it('does not call a conditional rule a duplicate of the default', () => {
+    // mint/styles.css sets --blocks-mint-glow-color under :root and then under
+    // six .blocks-intent-* classes. That is a cascade, not a collision.
+    expect(
+      duplicateDefaults([['probe', ':root { --glow: blue; } .intent-success { --glow: green; }']])
+    ).toEqual([]);
   });
 });
 
@@ -218,13 +261,41 @@ describe('positive controls on the closure oracle', () => {
     ]);
   });
 
+  it('holds for the built stylesheets the pages actually read', () => {
+    // Everything above measures `packages/blocks/src`; `library-tokens.ts`
+    // imports the package exports, i.e. `dist`. Vite stubs `.css` imports
+    // outside a browser build, so that module cannot be imported here to
+    // compare — but the files it resolves to can be read directly, which is the
+    // same question without the stub.
+    const distDir = resolve(styleDir, '../../../dist');
+    let built: string[];
+    try {
+      built = [
+        'style/foundation.css',
+        'style/semantic.css',
+        'style/interaction.css',
+        'mint/styles.css'
+      ].map((f) => readFileSync(resolve(distDir, f), 'utf8'));
+    } catch (error) {
+      throw new Error(
+        `packages/blocks/dist is missing — run \`bun run build:packages\`. (${error})`
+      );
+    }
+    const shipped = new Set(buildTokenGraph(built).declarations.map((d) => d.name));
+    const source = graph.declarations.map((d) => d.name);
+    expect(
+      source.filter((name) => !shipped.has(name)),
+      'packages/blocks/dist is stale — the previews render it, these tests measure src'
+    ).toEqual([]);
+  });
+
   it('refuses to emit a scope at all when the stylesheets did not load', () => {
     // Vite serves `.css` imports as empty modules outside a browser build, so
     // an empty graph is a real shape this code can be handed. Emitting the
     // ramps alone would look plausible and render the surrounding page's theme
     // — the exact bug the closure exists to prevent — so it has to be loud.
     expect(() =>
-      previewVars({ palette: {}, secondaryPalette: {}, chassis: [] }, buildTokenGraph([]))
+      previewVars([['--color-primary-500', 'oklch(0.5 0.1 0)']], buildTokenGraph([]))
     ).toThrow(/empty token graph/);
   });
 });
@@ -255,7 +326,7 @@ describe('neutralRamp mirrors foundation.css', () => {
   });
 });
 
-describe('parseThemeRamps against the shipped themes', () => {
+describe('parseTheme against the shipped themes', () => {
   const themesDir = resolve(styleDir, 'themes');
   const themeFiles = readdirSync(themesDir).filter((f) => f.endsWith('.css') && f !== 'index.css');
   const usable = (value: string | undefined) =>
@@ -271,7 +342,7 @@ describe('parseThemeRamps against the shipped themes', () => {
 
   for (const file of themeFiles) {
     it(`${file}: every stop a re-declared role reads is present and usable`, () => {
-      const ramps = parseThemeRamps(readFileSync(join(themesDir, file), 'utf8'));
+      const ramps = parseTheme(readFileSync(join(themesDir, file), 'utf8'));
       const byShade = new Map(ramps.neutral.map((s) => [s.shade, s.value]));
       const available = (ref: string) => {
         const stop = /^--color-(primary|secondary|neutral)-(\d+)$/.exec(ref);
@@ -293,22 +364,39 @@ describe('parseThemeRamps against the shipped themes', () => {
     });
   }
 
-  it('reads the two :root knobs the four coloured themes set', () => {
-    const sunset = parseThemeRamps(readFileSync(join(themesDir, 'sunset.css'), 'utf8'));
-    expect(sunset.shadowTint).toBe('0.22 0.03 55');
-    expect(sunset.neutralChromeHue).toBe('50');
+  it('carries the two :root knobs the four coloured themes set', () => {
+    const sunset = parseTheme(readFileSync(join(themesDir, 'sunset.css'), 'utf8'));
+    const byName = new Map(sunset.declarations.map((d) => [d.name, d.value]));
+    expect(byName.get('--blocks-shadow-tint')).toBe('0.22 0.03 55');
+    expect(byName.get('--neutral-chrome-hue')).toBe('50');
   });
 
-  it('reports no knobs for the theme that deliberately ships none', () => {
+  it('carries no knobs for the theme that deliberately ships none', () => {
     // neutral.css is grayscale: it has no temperature to match, so the library
     // defaults are correct and the preview must not pin anything.
-    const neutral = parseThemeRamps(readFileSync(join(themesDir, 'neutral.css'), 'utf8'));
-    expect(neutral.shadowTint).toBeUndefined();
-    expect(neutral.neutralChromeHue).toBeUndefined();
+    const neutral = parseTheme(readFileSync(join(themesDir, 'neutral.css'), 'utf8'));
+    const names = neutral.declarations.map((d) => d.name);
+    expect(names).not.toContain('--blocks-shadow-tint');
+    expect(names).not.toContain('--neutral-chrome-hue');
+  });
+
+  it('carries the intent ramps a theme re-tunes, not just the accents', () => {
+    // forest.css moves success to hue 172 and warning to 60 because its green
+    // primary collides with the default success. Dropping those would make the
+    // preview exhibit the very collision the file exists to avoid — beside the
+    // prose telling the reader to fix it.
+    const forest = parseTheme(readFileSync(join(themesDir, 'forest.css'), 'utf8'));
+    const names = new Set(forest.declarations.map((d) => d.name));
+    expect(names.has('--color-success-500'), 'forest re-tunes success').toBe(true);
+    expect(names.has('--color-warning-500'), 'forest re-tunes warning').toBe(true);
+    // …and the closure then reaches the roles that read them.
+    const derived = derivedDeclarations(graph, names).map((d) => d.name);
+    expect(derived).toContain('--color-success');
+    expect(derived).toContain('--color-feedback-warning');
   });
 
   it('does not mistake the warm-neutral ramp for the chassis', () => {
-    const parsed = parseThemeRamps(`@theme {
+    const parsed = parseTheme(`@theme {
       --color-warm-neutral-500: oklch(0.5 0.008 45);
       --color-neutral-500: oklch(0.55 0.016 200);
     }`);
@@ -318,13 +406,14 @@ describe('parseThemeRamps against the shipped themes', () => {
 
 describe('previewVars', () => {
   const vars = previewVars(
-    {
-      palette: { 500: 'oklch(0.58 0.15 320)', 600: 'oklch(0.52 0.15 320)' },
-      secondaryPalette: { 500: 'oklch(0.55 0.12 0)' },
-      chassis: [{ shade: 900, value: 'oklch(0.15 0.012 320)' }],
-      shadowTint: '0.2 0.025 320',
-      neutralChromeHue: '320'
-    },
+    [
+      ['--color-primary-500', 'oklch(0.58 0.15 320)'],
+      ['--color-primary-600', 'oklch(0.52 0.15 320)'],
+      ['--color-secondary-500', 'oklch(0.55 0.12 0)'],
+      ['--color-neutral-900', 'oklch(0.15 0.012 320)'],
+      ['--blocks-shadow-tint', '0.2 0.025 320'],
+      ['--neutral-chrome-hue', '320']
+    ],
     graph
   );
   const declared = new Map(
@@ -346,18 +435,12 @@ describe('previewVars', () => {
 
   it('omits the radius tiers until the scale is actually overridden', () => {
     expect(declared.has('--radius-modify')).toBe(false);
-    const withRadii = previewVars(
-      { palette: {}, secondaryPalette: {}, chassis: [], radii: { '--radius-sm': '0rem' } },
-      graph
-    );
+    const withRadii = previewVars([['--radius-sm', '0rem']], graph);
     expect(withRadii).toContain('--radius-modify: var(--radius-sm)');
   });
 
   it('pins no chroma knob the caller did not pass', () => {
-    const withoutKnobs = previewVars(
-      { palette: { 500: 'oklch(0.58 0.15 320)' }, secondaryPalette: {}, chassis: [] },
-      graph
-    );
+    const withoutKnobs = previewVars([['--color-primary-500', 'oklch(0.58 0.15 320)']], graph);
     expect(withoutKnobs).not.toContain('--blocks-shadow-tint');
     expect(withoutKnobs).not.toContain('--neutral-chrome-hue');
     // …and without the tint seeded, the shadow chain stays at :root too.
