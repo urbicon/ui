@@ -868,6 +868,188 @@ describe('informative text on reading surfaces — WCAG contrast', () => {
       expect(disabled[id], `${id} measures ${disabled[id]}:1`).toBeGreaterThanOrEqual(AA_LARGE);
     });
   });
+
+  /**
+   * The intent colours used AS TEXT, which is the axis neither half above
+   * covered. The filled-surface block asserts `text-on-fill` ON `bg-danger`;
+   * the informative block asserts the ink ramp on calm grounds. Between them
+   * sat the most common thing an intent colour actually does: `text-danger` on
+   * a form, `text-primary` on the active nav link, `text-success` on a status
+   * label — 282 of them across the variant configs, 183 primary alone.
+   *
+   * Found by measuring a rendered page rather than by reading the tokens: the
+   * active entry in the docs table-of-contents popover came out at 4.08:1 in
+   * dark mode, on `surface-elevated`, with every existing gate green.
+   *
+   * Same 4.5 floor and same surfaces as the ink ramp, for the same reason —
+   * this is body text, not a state tint. Where an intent legitimately cannot
+   * reach it, the answer is a darker/lighter stop for the text role, not a
+   * lower bar here.
+   */
+  describe('intent colours used as text on reading surfaces — WCAG contrast', () => {
+    const AS_TEXT = ['primary', 'secondary', 'success', 'warning', 'danger', 'info'] as const;
+
+    const asText: Record<string, number> = {};
+    for (const theme of ['default', ...THEMES] as Theme[]) {
+      const css = stylesheetFor(theme);
+      for (const intent of AS_TEXT) {
+        for (const mode of MODES) {
+          for (const surface of READING_SURFACES) {
+            const id = `${theme}/${intent}-as-text/${mode}/${surface}`;
+            asText[id] = round2(
+              ratioOf(
+                resolveToken(css, surfaceToken(surface), mode),
+                resolveToken(css, `--color-${intent}`, mode)
+              )
+            );
+          }
+        }
+      }
+    }
+    const asTextIds = Object.keys(asText);
+
+    it('covers every intent × reading surface × mode × theme', () => {
+      expect(asTextIds).toHaveLength(6 * 6 * 2 * 5);
+      expect(asTextIds).toContain('default/primary-as-text/dark/elevated');
+    });
+
+    /**
+     * The 82 combinations that were already below AA when this axis was first
+     * measured (2026-08-11), each pinned at the ratio it had. This is a work
+     * list, not an allowance: every entry is a real miss.
+     *
+     * They are not fixable one at a time. The pattern behind them is that the
+     * intent tokens are tuned as FILLS — a surface with `text-on-fill` on top —
+     * and read as text on a calm ground they were never sized for. In dark mode
+     * the ladder is `-500 / hover -400 / active -300`, so lifting `--color-*` a
+     * stop for legibility lands it on its own hover value; the whole dark ladder
+     * has to move together, across six intents and six themes, or each intent
+     * needs a text-role of its own (`--color-danger-text`) that the 282 current
+     * `text-<intent>` usages migrate to. Either is a palette decision, not a
+     * repair.
+     *
+     * `warning` is the loudest at 2.0–2.3:1 in light mode: yellow on white. It
+     * cannot be reached by any stop of a yellow ramp and needs the text-role.
+     *
+     * The gate below holds three lines at once: nothing new may fail, nothing
+     * listed may get worse, and an entry that starts passing has to be deleted —
+     * so the list shrinks as the work happens and cannot quietly outlive it.
+     */
+    const KNOWN_BELOW_AA: Record<string, number> = {
+      'default/danger-as-text/dark/elevated': 4.27,
+      'default/danger-as-text/dark/subtle': 4.27,
+      'default/info-as-text/light/elevated': 4.14,
+      'default/info-as-text/light/quiet': 4.38,
+      'default/info-as-text/light/subtle': 4.14,
+      'default/primary-as-text/dark/elevated': 4.08,
+      'default/primary-as-text/dark/subtle': 4.08,
+      'default/warning-as-text/light/base': 2.27,
+      'default/warning-as-text/light/elevated': 2.05,
+      'default/warning-as-text/light/overlay': 2.27,
+      'default/warning-as-text/light/quiet': 2.17,
+      'default/warning-as-text/light/subtle': 2.05,
+      'forest/danger-as-text/dark/elevated': 4.26,
+      'forest/danger-as-text/dark/subtle': 4.26,
+      'forest/info-as-text/light/elevated': 4.16,
+      'forest/info-as-text/light/quiet': 4.4,
+      'forest/info-as-text/light/subtle': 4.16,
+      'forest/primary-as-text/dark/elevated': 4.17,
+      'forest/primary-as-text/dark/subtle': 4.17,
+      'forest/secondary-as-text/light/elevated': 4.42,
+      'forest/secondary-as-text/light/subtle': 4.42,
+      'forest/warning-as-text/light/base': 2.31,
+      'forest/warning-as-text/light/elevated': 2.1,
+      'forest/warning-as-text/light/overlay': 2.31,
+      'forest/warning-as-text/light/quiet': 2.22,
+      'forest/warning-as-text/light/subtle': 2.1,
+      'neutral/danger-as-text/dark/elevated': 4.27,
+      'neutral/danger-as-text/dark/subtle': 4.27,
+      'neutral/info-as-text/light/elevated': 4.13,
+      'neutral/info-as-text/light/quiet': 4.39,
+      'neutral/info-as-text/light/subtle': 4.13,
+      'neutral/primary-as-text/dark/elevated': 3.93,
+      'neutral/primary-as-text/dark/overlay': 4.36,
+      'neutral/primary-as-text/dark/quiet': 4.36,
+      'neutral/primary-as-text/dark/subtle': 3.93,
+      'neutral/warning-as-text/light/base': 2.27,
+      'neutral/warning-as-text/light/elevated': 2.05,
+      'neutral/warning-as-text/light/overlay': 2.27,
+      'neutral/warning-as-text/light/quiet': 2.17,
+      'neutral/warning-as-text/light/subtle': 2.05,
+      'ocean/danger-as-text/dark/elevated': 4.25,
+      'ocean/danger-as-text/dark/subtle': 4.25,
+      'ocean/info-as-text/light/elevated': 4.4,
+      'ocean/info-as-text/light/subtle': 4.4,
+      'ocean/primary-as-text/dark/elevated': 4.27,
+      'ocean/primary-as-text/dark/subtle': 4.27,
+      'ocean/primary-as-text/light/elevated': 4.46,
+      'ocean/primary-as-text/light/subtle': 4.46,
+      'ocean/secondary-as-text/light/elevated': 4.12,
+      'ocean/secondary-as-text/light/quiet': 4.39,
+      'ocean/secondary-as-text/light/subtle': 4.12,
+      'ocean/warning-as-text/light/base': 2.27,
+      'ocean/warning-as-text/light/elevated': 2.05,
+      'ocean/warning-as-text/light/overlay': 2.27,
+      'ocean/warning-as-text/light/quiet': 2.18,
+      'ocean/warning-as-text/light/subtle': 2.05,
+      'rose/danger-as-text/dark/elevated': 4.36,
+      'rose/danger-as-text/dark/subtle': 4.36,
+      'rose/info-as-text/light/elevated': 4.13,
+      'rose/info-as-text/light/quiet': 4.38,
+      'rose/info-as-text/light/subtle': 4.13,
+      'rose/primary-as-text/dark/elevated': 3.94,
+      'rose/primary-as-text/dark/overlay': 4.38,
+      'rose/primary-as-text/dark/quiet': 4.38,
+      'rose/primary-as-text/dark/subtle': 3.94,
+      'rose/warning-as-text/light/base': 2.27,
+      'rose/warning-as-text/light/elevated': 2.05,
+      'rose/warning-as-text/light/overlay': 2.27,
+      'rose/warning-as-text/light/quiet': 2.17,
+      'rose/warning-as-text/light/subtle': 2.05,
+      'sunset/danger-as-text/dark/elevated': 4.31,
+      'sunset/danger-as-text/dark/subtle': 4.31,
+      'sunset/info-as-text/light/elevated': 4.12,
+      'sunset/info-as-text/light/quiet': 4.37,
+      'sunset/info-as-text/light/subtle': 4.12,
+      'sunset/primary-as-text/dark/elevated': 4.41,
+      'sunset/primary-as-text/dark/subtle': 4.41,
+      'sunset/warning-as-text/light/base': 2.22,
+      'sunset/warning-as-text/light/elevated': 2,
+      'sunset/warning-as-text/light/overlay': 2.22,
+      'sunset/warning-as-text/light/quiet': 2.12,
+      'sunset/warning-as-text/light/subtle': 2
+    };
+
+    it('no combination outside the known list falls below AA', () => {
+      const unexpected = asTextIds
+        .filter((id) => asText[id] < AA_NORMAL && !(id in KNOWN_BELOW_AA))
+        .sort();
+      expect(
+        unexpected,
+        `New intent-as-text contrast regressions (below AA ${AA_NORMAL}:1):\n` +
+          unexpected.map((id) => `  ${id} = ${asText[id]}:1`).join('\n')
+      ).toEqual([]);
+    });
+
+    it('no known miss gets worse', () => {
+      const worse = Object.entries(KNOWN_BELOW_AA)
+        .filter(([id, pinned]) => asText[id] < pinned)
+        .map(([id, pinned]) => `${id}: ${pinned} → ${asText[id]}`);
+      expect(worse, `Known misses that regressed further:\n  ${worse.join('\n  ')}`).toEqual([]);
+    });
+
+    it('the known list has no stale entries', () => {
+      // An entry that now passes has been fixed — deleting it is what makes the
+      // list shrink. Left in, it would quietly re-permit a future regression.
+      const fixed = Object.keys(KNOWN_BELOW_AA)
+        .filter((id) => asText[id] >= AA_NORMAL)
+        .sort();
+      expect(
+        fixed,
+        `These now meet AA — remove them from KNOWN_BELOW_AA:\n  ${fixed.join('\n  ')}`
+      ).toEqual([]);
+    });
+  });
 });
 
 /**
