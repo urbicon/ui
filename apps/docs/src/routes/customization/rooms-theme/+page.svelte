@@ -494,9 +494,9 @@ export const ROUTE_CHANNEL = {
     />
 
     <p class="text-text-tertiary mt-3 text-xs leading-relaxed">
-      The same mechanism powers <code class="text-text-primary">semantic.css</code> — see
-      <a href={resolve('/customization/tokens')} class="text-primary hover:underline"
-        >Design Tokens</a
+      The same mechanism powers <code class="text-text-primary">semantic.css</code>: see
+      <a href={`${resolve('/customization/themes')}#dark-mode`} class="text-primary hover:underline"
+        >Themes → Dark Mode</a
       >
       for the library-side details.
     </p>

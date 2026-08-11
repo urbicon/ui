@@ -146,8 +146,8 @@ slotClasses?: {
       once to change that look globally, passing per-component
       <code class="bg-surface-subtle rounded-modify px-1.5 py-0.5 text-sm">slotClasses</code>
       via the <code class="bg-surface-subtle rounded-modify px-1.5 py-0.5 text-sm">defaults</code>
-      prop. Keys are the exported component names, case-sensitive; an unmatched key is ignored
-      without a warning (one exception: ConfirmDialog registers under the
+      prop. Keys are the exported component names, case-sensitive; an unmatched key is ignored without
+      a warning (one exception: ConfirmDialog registers under the
       <code class="bg-surface-subtle rounded-modify px-1.5 py-0.5 text-sm">Dialog</code> key).
     </p>
     <CodeExample title="Setting global defaults" code={basicExample} preview={false} />
@@ -157,14 +157,18 @@ slotClasses?: {
 
   <Section id="merge-behavior" title="Merge Behavior" class="mb-12">
     <p class="text-text-secondary mb-6 leading-relaxed">
-      Global defaults and instance
+      Defaults, presets and instance
       <code class="bg-surface-subtle rounded-modify px-1.5 py-0.5 text-sm">slotClasses</code> are
-      merged per slot: on the slot they share, conflicting Tailwind utilities resolve in favor of
-      the later source, and non-conflicting classes accumulate. The instance
-      <code class="bg-surface-subtle rounded-modify px-1.5 py-0.5 text-sm">class</code> prop is
-      different: it is appended to the root slot after that resolution, so use it to add utilities;
-      to override a conflicting one, reach for
-      <code class="bg-surface-subtle rounded-modify px-1.5 py-0.5 text-sm">slotClasses</code>. All
+      merged per slot, each source stripping the earlier ones' conflicting Tailwind utilities, so
+      the later source wins and non-conflicting classes accumulate. That merged string and the
+      instance <code class="bg-surface-subtle rounded-modify px-1.5 py-0.5 text-sm">class</code>
+      prop then reach the component's <code class="text-xs">tv()</code> slot together, where they
+      strip the library's own conflicting defaults. So
+      <code class="bg-surface-subtle rounded-modify px-1.5 py-0.5 text-sm">class</code> does beat
+      the library, but it is not resolved against
+      <code class="bg-surface-subtle rounded-modify px-1.5 py-0.5 text-sm">slotClasses</code>: write
+      the same utility into both and stylesheet order decides. Override a conflicting utility with
+      <code class="text-xs">slotClasses</code>; add one with <code class="text-xs">class</code>. All
       three buttons below live inside one provider that defaults Button to
       <code class="text-xs">rounded-none</code>:
     </p>
@@ -176,8 +180,11 @@ slotClasses?: {
       </BlocksProvider>
     </CodeExample>
     <p class="text-text-secondary mt-4 text-sm leading-relaxed">
-      The imports are the same as the first example; the live snippets on this page show only the
-      markup.
+      The live snippets on this page show markup only. Each needs the components it renders imported
+      alongside the provider, e.g.
+      <code class="bg-surface-subtle rounded-modify px-1.5 py-0.5 text-xs"
+        >import &#123; BlocksProvider, Button &#125; from '@urbicon-ui/blocks';</code
+      >.
     </p>
     <div
       class="bg-surface-subtle text-text-secondary rounded-contain mt-4 border p-4 text-sm leading-relaxed"

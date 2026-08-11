@@ -2,6 +2,10 @@
   import SeoMeta from '$lib/SeoMeta.svelte';
   import { resolve } from '$app/paths';
   import { CodeExample, DocsLayout as DocsPageLayout, Section } from '@urbicon-ui/docs';
+  import { parseInteractionTokens } from '$lib/interaction-tokens';
+  // The shipped stylesheet itself, so the tables below cannot quote a value
+  // the library does not have.
+  import interactionCss from '@urbicon-ui/blocks/style/interaction.css?raw';
 
   const description =
     'The tokens the library ships, layer by layer: color ramps, spacing, typography, radius, motion and depth. Look values up here; write and switch themes on the Themes page.';
@@ -142,44 +146,10 @@
     }
   ];
 
-  // Interaction layer — real CSS variables in blocks/src/lib/style/interaction.css.
-  const durationTokens = [
-    { name: '--blocks-duration-instant', value: '75ms' },
-    { name: '--blocks-duration-fast', value: '150ms' },
-    { name: '--blocks-duration-normal', value: '250ms' },
-    { name: '--blocks-duration-slow', value: '350ms' },
-    { name: '--blocks-duration-slower', value: '500ms' },
-    { name: '--blocks-duration-slowest', value: '750ms' }
-  ];
-
-  const easingTokens = [
-    { name: '--blocks-ease-linear', value: 'linear' },
-    { name: '--blocks-ease-gentle', value: 'cubic-bezier(0.25, 0.1, 0.25, 1)' },
-    { name: '--blocks-ease-springy', value: 'cubic-bezier(0.68, -0.55, 0.265, 1.55)' },
-    { name: '--blocks-ease-confident', value: 'cubic-bezier(0.4, 0, 0.2, 1)' },
-    { name: '--blocks-ease-bounce', value: 'cubic-bezier(0.68, -0.6, 0.32, 1.6)' },
-    { name: '--blocks-ease-smooth', value: 'cubic-bezier(0.4, 0, 0.6, 1)' },
-    { name: '--blocks-ease-snappy', value: 'cubic-bezier(0.4, 0, 0.2, 1)' }
-  ];
-
-  // Per-component aliases interaction.css documents as override points, plus
-  // the focus-ring knobs the media-query behaviour above builds on.
-  const overridePointTokens = [
-    { name: '--blocks-tooltip-duration', value: 'var(--blocks-duration-fast)' },
-    { name: '--blocks-popover-duration', value: 'var(--blocks-duration-fast)' },
-    { name: '--blocks-collapse-duration', value: 'var(--blocks-duration-normal)' },
-    { name: '--blocks-focus-ring-width', value: '2px' },
-    { name: '--blocks-focus-ring-offset', value: '2px' },
-    { name: '--blocks-focus-ring-color', value: 'var(--color-primary)' }
-  ];
-
-  const shadowTokens = [
-    { name: '--blocks-shadow-xs', source: 'var(--color-shadow-xs)' },
-    { name: '--blocks-shadow-sm', source: 'var(--color-shadow-sm)' },
-    { name: '--blocks-shadow-base', source: 'var(--color-shadow-base)' },
-    { name: '--blocks-shadow-md', source: 'var(--color-shadow-md)' },
-    { name: '--blocks-shadow-lg', source: 'var(--color-shadow-lg)' }
-  ];
+  // Interaction layer — parsed out of the shipped stylesheet, not copied.
+  // A retuned bezier or a new per-component override point appears here
+  // without a docs edit; a value quoted here cannot diverge from the library.
+  const { durations, easings, shadows, overridePoints } = parseInteractionTokens(interactionCss);
 
   // Both are declared on `:root` in semantic.css, NOT inside @theme — they are
   // raw partial values spliced into a color function, not standalone tokens.
@@ -279,6 +249,23 @@
         </li>
       </ul>
     </div>
+
+    <!-- Anchor targets for deep links published before the restructure:
+         /customization/tokens#custom-theming and #dark-mode both named
+         sections that now live on the Themes page. Without the ids, an old
+         bookmark or search hit lands at the top of this page with no hint
+         where the content went. -->
+    <p class="text-text-tertiary mt-6 text-sm leading-relaxed">
+      <span id="custom-theming"></span><span id="dark-mode"></span>Custom theming and dark mode used
+      to live on this page. They moved to
+      <a href={`${resolve('/customization/themes')}#create`} class="text-primary hover:underline"
+        >Themes → Write Your Own Theme</a
+      >
+      and
+      <a href={`${resolve('/customization/themes')}#dark-mode`} class="text-primary hover:underline"
+        >Themes → Dark Mode</a
+      >.
+    </p>
   </Section>
 
   <!-- Color System -->
@@ -340,25 +327,28 @@
       {/each}
     </div>
 
-    <h3 class="text-text-primary mb-4 text-lg font-semibold">Warm-Neutral Ramp</h3>
+    <h3 class="text-text-primary mb-4 text-lg font-semibold">Neutral Intent Chrome</h3>
     <p class="text-text-secondary mb-4">
-      A separate warm-grey ramp with its own 50–950 ladder powers the themeable neutral intent
-      chrome (<code class="bg-surface-subtle rounded-modify px-1.5 py-0.5 text-sm">bg-neutral</code
-      >,
-      <code class="bg-surface-subtle rounded-modify px-1.5 py-0.5 text-sm">text-neutral</code>,
-      neutral borders); its hue follows
+      The neutral intent (<code class="bg-surface-subtle rounded-modify px-1.5 py-0.5 text-sm"
+        >bg-neutral</code
+      >, <code class="bg-surface-subtle rounded-modify px-1.5 py-0.5 text-sm">text-neutral</code>,
+      neutral borders) is built from a separate
       <code class="bg-surface-subtle rounded-modify px-1.5 py-0.5 text-sm"
-        >--neutral-chrome-hue</code
-      > (see Motion &amp; Depth).
+        >--color-warm-neutral-*</code
+      >
+      ramp, but never renders it directly: each role re-derives the ramp stop through
+      <code class="bg-surface-subtle rounded-modify px-1.5 py-0.5 text-sm"
+        >oklch(from … l c var(--neutral-chrome-hue))</code
+      >, keeping the ramp's lightness and chroma and taking only the hue from the knob. The knob
+      defaults to 240, so the library's own chrome is cool, and re-tinting it is a one-line theme
+      move (see Motion &amp; Depth). The swatches below render in whatever theme is active: this
+      docs site re-pins them to the warm ramp directly, which is why they look warm here.
     </p>
-    <div class="mb-8 grid grid-cols-4 gap-1 sm:grid-cols-11">
-      {#each [50, 100, 200, 300, 400, 500, 600, 700, 800, 900, 950] as shade (shade)}
+    <div class="mb-8 grid grid-cols-2 gap-3 sm:grid-cols-5">
+      {#each ['neutral', 'neutral-hover', 'neutral-active', 'neutral-subtle', 'neutral-emphasis'] as role (role)}
         <div class="border-border-subtle bg-surface-base rounded-modify border p-2 text-center">
-          <div
-            class="rounded-modify mb-1 h-8 w-full"
-            style="background: var(--color-warm-neutral-{shade})"
-          ></div>
-          <div class="text-text-tertiary font-mono text-xs">{shade}</div>
+          <div class="rounded-modify mb-1 h-8 w-full" style="background: var(--color-{role})"></div>
+          <div class="text-text-tertiary font-mono text-xs">--color-{role}</div>
         </div>
       {/each}
     </div>
@@ -594,7 +584,7 @@
             </tr>
           </thead>
           <tbody class="divide-border-subtle divide-y">
-            {#each durationTokens as token (token.name)}
+            {#each durations as token (token.name)}
               <tr>
                 <td class="text-primary px-4 py-3 font-mono text-xs">{token.name}</td>
                 <td class="text-text-secondary px-4 py-3 font-mono">{token.value}</td>
@@ -613,10 +603,10 @@
             </tr>
           </thead>
           <tbody class="divide-border-subtle divide-y">
-            {#each shadowTokens as token (token.name)}
+            {#each shadows as token (token.name)}
               <tr>
                 <td class="text-primary px-4 py-3 font-mono text-xs">{token.name}</td>
-                <td class="text-text-tertiary px-4 py-3 font-mono text-xs">{token.source}</td>
+                <td class="text-text-tertiary px-4 py-3 font-mono text-xs">{token.value}</td>
               </tr>
             {/each}
           </tbody>
@@ -632,7 +622,7 @@
             </tr>
           </thead>
           <tbody class="divide-border-subtle divide-y">
-            {#each easingTokens as token (token.name)}
+            {#each easings as token (token.name)}
               <tr>
                 <td class="text-primary px-4 py-3 font-mono text-xs">{token.name}</td>
                 <td class="text-text-tertiary px-4 py-3 font-mono text-xs">{token.value}</td>
@@ -651,7 +641,7 @@
             </tr>
           </thead>
           <tbody class="divide-border-subtle divide-y">
-            {#each overridePointTokens as token (token.name)}
+            {#each overridePoints as token (token.name)}
               <tr>
                 <td class="text-primary px-4 py-3 font-mono text-xs">{token.name}</td>
                 <td class="text-text-tertiary px-4 py-3 font-mono text-xs">{token.value}</td>
@@ -665,7 +655,7 @@
     <h3 class="text-text-primary mt-10 mb-4 text-lg font-semibold">Theme-level chroma knobs</h3>
     <p class="text-text-secondary mb-6">
       Two tokens let a theme match its chrome to its chassis without touching contrast. The four
-      coloured themes set both — see
+      coloured themes set both; see
       <code class="bg-surface-subtle rounded-modify px-1.5 py-0.5 text-sm"
         >blocks/src/lib/style/themes/forest.css</code
       >. The Neutral theme sets neither, by design: it inherits the library-default cool grey chrome

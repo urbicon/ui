@@ -9,8 +9,9 @@
   let copied = $state(false);
   let showFull = $state(false);
 
+  // Pretty-printed: it is what both the copy button and the download hand over,
+  // so the KB label below must be measured on this string and no other.
   const tokensJSON = generateFigmaTokensJSON(true);
-  const tokensCompact = generateFigmaTokensJSON(false);
 
   const previewLines = tokensJSON.split('\n').slice(0, 30).join('\n') + '\n  ...';
 

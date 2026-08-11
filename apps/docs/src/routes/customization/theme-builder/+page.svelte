@@ -12,7 +12,12 @@
     Toggle
   } from '@urbicon-ui/blocks';
   import { DocsLayout as DocsPageLayout } from '@urbicon-ui/docs';
-  import { generateChassis, generatePalette, previewVars } from '$lib/theme-preview';
+  import {
+    LITERAL_RADIUS_TIERS,
+    generateChassis,
+    generatePalette,
+    previewVars
+  } from '$lib/theme-preview';
 
   let brandHue = $state(240);
   let brandChroma = $state(0.15);
@@ -157,9 +162,14 @@
     const rv = Object.entries(radiusVars);
     if (rv.length > 0) {
       lines.push(``);
-      lines.push(`  /* Border Radius – ${activeRadiusOption.label} */`);
+      lines.push(`  /* Border Radius – ${activeRadiusOption.label}. The modify and`);
+      lines.push(`     contain tiers read this scale. The pill tiers are literals,`);
+      lines.push(`     so uncomment to square buttons, badges and radios too. */`);
       for (const [name, value] of rv) {
         lines.push(`  ${name}: ${value};`);
+      }
+      for (const name of Object.keys(LITERAL_RADIUS_TIERS)) {
+        lines.push(`  /* ${name}: var(--radius-lg); */`);
       }
     }
     lines.push(`}`);
@@ -194,14 +204,13 @@
 
   // Ramps + role re-declarations for the preview scope, both modes via
   // light-dark() — shared with /customization/themes ($lib/theme-preview.ts).
-  // Only the radius overrides are builder-specific.
-  let previewStyle = $derived.by(() => {
-    const vars = [previewVars({ palette, secondaryPalette, chassis: chassisPalette })];
-    for (const [name, value] of Object.entries(radiusVars)) {
-      vars.push(`${name}: ${value}`);
-    }
-    return vars.join('; ');
-  });
+  // Passing `radii` also re-declares the derived tier tokens, without which
+  // the picker moved nothing in the preview: `--radius-modify: var(--radius-sm)`
+  // substitutes at :root, so overriding the base scale in this inline scope
+  // left every component on its original corner.
+  let previewStyle = $derived(
+    previewVars({ palette, secondaryPalette, chassis: chassisPalette, radii: radiusVars })
+  );
 
   async function copyCSS() {
     await navigator.clipboard.writeText(cssOutput);
@@ -468,6 +477,17 @@
                 </button>
               {/each}
             </div>
+            <p class="text-text-tertiary mt-2 text-xs leading-relaxed">
+              This moves the base scale, which the
+              <code class="text-text-primary">modify</code> and
+              <code class="text-text-primary">contain</code> tiers read from. Pill-tier components
+              (Button, Badge) keep their pill:
+              <code class="text-text-primary">--radius-commit</code>
+              is a literal, so set it yourself to square them — see
+              <a href={resolve('/customization/tier-system')} class="text-primary hover:underline"
+                >Radius Tiers</a
+              >.
+            </p>
           </div>
 
           <Separator />

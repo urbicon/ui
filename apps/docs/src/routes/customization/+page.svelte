@@ -20,7 +20,7 @@
       goal: 'Restyle one element on one instance',
       tool: 'class',
       example: '<Button class="rounded-full">',
-      note: 'Wins over provider defaults and presets. Merges onto the OUTERMOST (root) slot only, see the trap below; to override a conflicting utility, prefer slotClasses.'
+      note: "Beats the library's own defaults and everything BlocksProvider set. Merges onto the OUTERMOST (root) slot only, see the trap below; for a utility that also appears in slotClasses, use slotClasses instead."
     },
     {
       goal: 'Restyle an inner element (the <input> itself, a header, a chevron…)',
@@ -136,12 +136,14 @@
       class="bg-surface-subtle text-text-secondary rounded-contain mt-4 border p-4 text-sm leading-relaxed"
     >
       <strong class="text-text-primary">Full precedence chain (weakest → strongest):</strong>
-      Conflicting Tailwind utilities are resolved on the slot they share: the later source wins there
-      (an instance <code class="text-xs">slotClasses</code>
-      <code class="text-xs">rounded-none</code> defeats a default
-      <code class="text-xs">rounded-full</code>), and non-conflicting classes accumulate. The
-      <code class="text-xs">class</code> prop is appended last without that resolution, so to
-      override a conflicting utility reach for <code class="text-xs">slotClasses</code>.
+      Each source strips the earlier ones' conflicting Tailwind utilities on the slot they share, so the
+      later source wins (an instance <code class="text-xs">slotClasses</code>
+      <code class="text-xs">rounded-none</code> defeats a provider default
+      <code class="text-xs">rounded-full</code>), and non-conflicting classes accumulate. Steps 6
+      and 7 are one stage: both beat everything above them, but they do not resolve against
+      <em>each other</em>, so a utility written into both leaves the winner to stylesheet order. Use
+      <code class="text-xs">slotClasses</code> to override a conflicting utility and
+      <code class="text-xs">class</code> to add one.
       <ol class="mt-2 list-outside list-decimal space-y-1 pl-5">
         {#each precedenceChain as step (step)}
           <li><code class="text-xs">{step}</code></li>

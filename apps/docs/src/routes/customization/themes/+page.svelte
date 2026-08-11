@@ -1,16 +1,7 @@
 <script lang="ts">
   import SeoMeta from '$lib/SeoMeta.svelte';
   import { resolve } from '$app/paths';
-  import {
-    Alert,
-    Badge,
-    Button,
-    Card,
-    Checkbox,
-    Separator,
-    ThemeSwitcher,
-    Toggle
-  } from '@urbicon-ui/blocks';
+  import { Alert, Badge, Button, Card, Checkbox, Separator, Toggle } from '@urbicon-ui/blocks';
   import { CodeExample, DocsLayout as DocsPageLayout, Section } from '@urbicon-ui/docs';
   import { parseThemeRamps, previewVars } from '$lib/theme-preview';
   // The shipped themes themselves, not retyped excerpts — hand-copied palette
@@ -82,8 +73,13 @@
   );
 
   const usageCode = $derived(
-    `/* app.css */\n@import '@urbicon-ui/blocks/style/index.css';\n@import '@urbicon-ui/blocks/style/themes/${active.file}'; /* a shipped theme */\n/* …or your own file instead: */\n@import './my-theme.css';`
+    `/* app.css */\n@import '@urbicon-ui/blocks/style/index.css';\n@import '@urbicon-ui/blocks/style/themes/${active.file}';`
   );
+
+  const ownThemeImport = `/* app.css — your own file goes exactly where a shipped
+   theme would, after the library base styles. */
+@import '@urbicon-ui/blocks/style/index.css';
+@import './my-theme.css';`;
 
   const customThemeCode = `/* my-theme.css */
 @theme {
@@ -258,7 +254,8 @@ html.add('dark');             // force dark; add('light') forces light`;
         </div>
         <Separator />
         <Alert intent="primary" variant="soft" size="sm">
-          This card is itself a scoped theme: the ramps and roles are re-declared inline on it.
+          This stage is itself a scoped theme: the ramps and roles are re-declared inline on the
+          element wrapping these components.
           <a href="#scoped" class="underline">Scoped Themes</a> shows the pattern.
         </Alert>
       </div>
@@ -298,6 +295,15 @@ html.add('dark');             // force dark; add('light') forces light`;
       an amber one vs. <code class="text-xs">warning</code>).
     </div>
     <CodeExample title="Custom theme file" code={customThemeCode} language="css" preview={false} />
+    <p class="text-text-secondary mt-6 mb-6 leading-relaxed">
+      Import it where a shipped theme goes:
+    </p>
+    <CodeExample
+      title="Import your own theme"
+      code={ownThemeImport}
+      language="css"
+      preview={false}
+    />
     <p class="text-text-secondary mt-6 mb-6 leading-relaxed">
       When your accent lands within 20° of an intent hue (success 140, warning 80, danger 25, info
       220), move that intent's ramp so a status color still reads as status rather than as your
@@ -371,8 +377,8 @@ html.add('dark');             // force dark; add('light') forces light`;
       The leverage is lopsided:
       <code class="bg-surface-subtle rounded-modify px-1.5 py-0.5 text-sm">--text-sm</code> reaches
       the most call sites and nothing above
-      <code class="bg-surface-subtle rounded-modify px-1.5 py-0.5 text-sm">text-xl</code> is used by
-      the library at all, so overriding
+      <code class="bg-surface-subtle rounded-modify px-1.5 py-0.5 text-sm">text-2xl</code> is used
+      by the library at all, so overriding
       <code class="bg-surface-subtle rounded-modify px-1.5 py-0.5 text-sm">--text-6xl</code>
       changes nothing (the
       <a href={resolve('/customization/tokens')} class="text-primary hover:underline"
@@ -460,9 +466,13 @@ html.add('dark');             // force dark; add('light') forces light`;
       <code class="bg-surface-subtle rounded-modify px-1.5 py-0.5 text-sm">app.html</code> head snippet
       that keeps the first paint flash-free.
     </p>
-    <CodeExample title="The ready-made toggle" isolate>
-      <ThemeSwitcher />
-    </CodeExample>
+    <CodeExample
+      title="The ready-made toggle"
+      description="Not rendered here on purpose: it switches the whole site, and a second instance would fall out of step with the one in the sidebar."
+      code={`<ThemeSwitcher />`}
+      language="svelte"
+      preview={false}
+    />
     <p class="text-text-secondary mt-6 mb-6 leading-relaxed">Setting the class yourself:</p>
     <CodeExample
       title="Manual mode switch"

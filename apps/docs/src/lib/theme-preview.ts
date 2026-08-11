@@ -44,7 +44,8 @@ export function generatePalette(hue: number, chroma: number, l500 = 0.58): Recor
 /** Foundation neutral ramp — lightness + base chroma per stop, including the
  * 25 quiet-surface tint and the 650/750/850 half-steps that differentiate the
  * dark-mode elevation ladder. Mirrors foundation.css; only hue and a chroma
- * scale ever change in a re-tint. */
+ * scale ever change in a re-tint. `--color-neutral-0` is deliberately absent:
+ * it is pure white and no theme re-tints it. */
 export const neutralRamp = [
   { shade: 25, l: 0.985, c: 0.003 },
   { shade: 50, l: 0.965, c: 0.006 },
@@ -63,6 +64,11 @@ export const neutralRamp = [
   { shade: 950, l: 0.08, c: 0.008 }
 ] as const;
 
+/** The one neutral stop that is never re-tinted: pure white. Roles whose light
+ * branch reads it (surface-base, text-inverted, text-on-fill…) resolve it from
+ * `:root` inside a preview scope, which is exactly right. */
+export const UNTINTED_NEUTRAL_STOP = 0;
+
 /** Re-tinted chassis. `tint` scales the (already tiny) per-stop chroma:
  * 1 = the foundation profile at the new hue, 0 = pure grayscale. */
 export function generateChassis(hue: number, tint = 1): { shade: number; value: string }[] {
@@ -74,26 +80,38 @@ export function generateChassis(hue: number, tint = 1): { shade: number; value: 
 
 /* Which neutral stop each chassis-derived role reads per mode, exactly as
  * semantic.css declares it. theme-preview.test.ts checks every entry against
- * the real file. */
+ * the real file AND fails when semantic.css grows a neutral-derived role that
+ * is missing here — the previews render more than surfaces and text, so an
+ * omission shows up as a component still wearing the site's own chassis. */
 const CHASSIS_ROLES: Record<string, [light: number, dark: number]> = {
+  'surface-base': [0, 900],
   'surface-quiet': [25, 850],
   'surface-elevated': [50, 800],
+  'surface-overlay': [0, 850],
   'surface-subtle': [50, 800],
   'surface-hover': [100, 750],
   'surface-active': [200, 700],
+  'surface-disabled': [100, 800],
+  'surface-inverted': [900, 100],
   'surface-interactive': [100, 700],
   'surface-interactive-hover': [200, 650],
   'text-primary': [900, 100],
   'text-secondary': [700, 300],
   'text-tertiary': [600, 300],
   'text-quaternary': [500, 400],
+  'text-inverted': [0, 900],
+  'text-disabled': [500, 500],
+  'text-on-dark': [0, 900],
+  'text-on-fill': [0, 900],
+  'text-on-surface': [900, 100],
   'border-subtle': [200, 700],
   'border-default': [300, 600],
   'border-emphasis': [400, 500],
-  'border-strong': [500, 400]
+  'border-strong': [500, 400],
+  'interactive-disabled': [200, 700]
 };
 
-/* Same for the accent role tokens. */
+/* Same for the accent role tokens, keyed by the ramp they read. */
 const ACCENT_ROLES: Record<
   'primary' | 'secondary',
   Record<string, [light: number, dark: number]>
@@ -114,12 +132,86 @@ const ACCENT_ROLES: Record<
   }
 };
 
-export const SEMANTIC_MIRROR = { CHASSIS_ROLES, ACCENT_ROLES };
+/* Roles that read the primary ramp without carrying its name. */
+const PRIMARY_RAMP_ROLES: Record<string, [light: number, dark: number]> = {
+  'surface-selected': [50, 900],
+  'chart-1': [600, 400],
+  'interactive-focus': [500, 400]
+};
+
+/* Primary-derived roles written in relative-color syntax, which has no
+ * stop pair to mirror. Held as exact strings and compared verbatim against
+ * semantic.css by the test. */
+const RELATIVE_PRIMARY_ROLES: Record<string, string> = {
+  'interactive-hover': 'oklch(from var(--color-primary-500) l c h / 0.1)',
+  'interactive-active': 'oklch(from var(--color-primary-500) l c h / 0.2)'
+};
+
+/**
+ * Tier radius tokens that DERIVE from the base radius scale, and therefore
+ * need re-declaring in any scope that overrides `--radius-xs…4xl`: a `var()`
+ * inside a token defined on `:root` substitutes there, so overriding the base
+ * alone leaves the tier on its old value. The same substitution trap the
+ * colour roles above solve.
+ *
+ * `--radius-commit` and `--radius-control` are deliberately absent: they are
+ * literals in foundation.css (`9999px`), so a base-radius override does not
+ * move them — in a preview scope or in a consumer's `@theme`. The test fails
+ * if either ever starts deriving from a base radius.
+ */
+export const DERIVED_RADIUS_TIERS: Record<string, string> = {
+  '--radius-modify': 'var(--radius-sm)',
+  '--radius-contain': 'var(--radius-xs)',
+  '--radius-bridge': 'var(--radius-md)'
+};
+
+/** Tier tokens that stay put under a base-radius override, with the literal
+ * foundation.css value the test pins them to. */
+export const LITERAL_RADIUS_TIERS: Record<string, string> = {
+  '--radius-commit': '9999px',
+  '--radius-control': '9999px'
+};
+
+export const SEMANTIC_MIRROR = {
+  CHASSIS_ROLES,
+  ACCENT_ROLES,
+  PRIMARY_RAMP_ROLES,
+  RELATIVE_PRIMARY_ROLES
+};
 
 export interface ParsedThemeRamps {
   primary: Record<number, string>;
   secondary: Record<number, string>;
   neutral: { shade: number; value: string }[];
+}
+
+/** Strips CSS comments so prose like `… all shades 200–800 …` cannot be read
+ * as a declaration. */
+function stripComments(css: string): string {
+  return css.replace(/\/\*[\s\S]*?\*\//g, '');
+}
+
+/**
+ * Every `--color-<ramp>-<stop>` declaration and its full value. Scans to the
+ * `;` at paren-depth zero rather than matching `oklch\([^)]+\)`, so a stop
+ * written in relative-color syntax (`oklch(from var(--x) l c h)`) or with
+ * `color-mix()` survives intact instead of being truncated at the inner `)`.
+ */
+function rampDeclarations(css: string, ramp: string): Record<number, string> {
+  const out: Record<number, string> = {};
+  for (const match of css.matchAll(new RegExp(`--color-${ramp}-(\\d+)\\s*:`, 'g'))) {
+    const start = (match.index ?? 0) + match[0].length;
+    let depth = 0;
+    let end = start;
+    for (; end < css.length; end++) {
+      const ch = css[end];
+      if (ch === '(') depth++;
+      else if (ch === ')') depth--;
+      else if (ch === ';' && depth === 0) break;
+    }
+    out[Number(match[1])] = css.slice(start, end).trim();
+  }
+  return out;
 }
 
 /**
@@ -131,19 +223,11 @@ export interface ParsedThemeRamps {
  * `@import`.
  */
 export function parseThemeRamps(css: string): ParsedThemeRamps {
-  const ramp = (name: string) => {
-    const out: Record<number, string> = {};
-    for (const match of css.matchAll(
-      new RegExp(`--color-${name}-(\\d+):\\s*(oklch\\([^)]+\\))`, 'g')
-    )) {
-      out[Number(match[1])] = match[2];
-    }
-    return out;
-  };
-  const neutral = ramp('neutral');
+  const source = stripComments(css);
+  const neutral = rampDeclarations(source, 'neutral');
   return {
-    primary: ramp('primary'),
-    secondary: ramp('secondary'),
+    primary: rampDeclarations(source, 'primary'),
+    secondary: rampDeclarations(source, 'secondary'),
     neutral: Object.entries(neutral).map(([shade, value]) => ({
       shade: Number(shade),
       value
@@ -152,24 +236,20 @@ export function parseThemeRamps(css: string): ParsedThemeRamps {
 }
 
 /**
- * Roles that also derive from the primary ramp but are NOT re-declared by
- * `previewVars` (the preview stages render none of them): surface-selected,
- * chart-1, interactive-hover/-active/-focus. A scope that shows selections,
- * charts or focus rings has to re-declare those too — the Scoped Themes
- * section on /customization/themes names this boundary.
- */
-
-/**
  * The inline-style override set for a preview scope: the three re-tinted ramps
  * plus re-declarations of every role token that derives from them. The
  * re-declaration is needed because a `var()` inside a `:root` token definition
  * substitutes at the cascade level where it is defined — overriding the ramps
  * alone would not re-resolve `--color-primary` & co. in the preview subtree.
+ *
+ * Pass `radii` to override the base radius scale as well; the derived tier
+ * tokens are re-declared alongside it for the same reason.
  */
 export function previewVars(options: {
   palette: Record<number, string>;
   secondaryPalette: Record<number, string>;
   chassis: { shade: number; value: string }[];
+  radii?: Record<string, string>;
 }): string {
   const vars: string[] = [];
   for (const [shade, value] of Object.entries(options.palette)) {
@@ -188,10 +268,26 @@ export function previewVars(options: {
       );
     }
   }
+  for (const [role, [light, dark]] of Object.entries(PRIMARY_RAMP_ROLES)) {
+    vars.push(
+      `--color-${role}: light-dark(var(--color-primary-${light}), var(--color-primary-${dark}))`
+    );
+  }
+  for (const [role, expression] of Object.entries(RELATIVE_PRIMARY_ROLES)) {
+    vars.push(`--color-${role}: ${expression}`);
+  }
   for (const [role, [light, dark]] of Object.entries(CHASSIS_ROLES)) {
     vars.push(
       `--color-${role}: light-dark(var(--color-neutral-${light}), var(--color-neutral-${dark}))`
     );
+  }
+  if (options.radii) {
+    for (const [name, value] of Object.entries(options.radii)) {
+      vars.push(`${name}: ${value}`);
+    }
+    for (const [name, value] of Object.entries(DERIVED_RADIUS_TIERS)) {
+      vars.push(`${name}: ${value}`);
+    }
   }
   return vars.join('; ');
 }
