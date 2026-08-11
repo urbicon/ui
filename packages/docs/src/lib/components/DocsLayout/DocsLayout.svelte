@@ -83,15 +83,26 @@
     title ? [...(breadcrumbs ?? []), { label: title }] : (breadcrumbs ?? [])
   );
 
-  // The strip renders whenever there is something to put in it. It used to be
-  // gated on `breadcrumbs` specifically, which split the layout in two: pages
-  // that passed ancestors got the strip (with its popover TOC), pages without
-  // got a second, lesser implementation — a `pageToolbar` holding an inline
-  // mobile TOC. Two code paths for one job, and the lesser one had no declared
-  // height, so anchor jumps landed under it (measured 2026-08-11: headings
-  // clipped by 24px on lg+, 66px below it, on /i18n and /auth). There is one
-  // path now; the toolbar and its four mobile-TOC slots are gone.
-  const showStickyBar = $derived(breadcrumbTrail.length > 0);
+  /** The mobile half of `showToc` — the desktop rail's exact complement. */
+  const showMobileToc = $derived(showToc && navigation.length > 0);
+
+  // The strip renders whenever there is something to put in it — a trail, a
+  // source link, or the mobile TOC. It used to be gated on `breadcrumbs`
+  // specifically, which split the layout in two: pages that passed ancestors
+  // got the strip (with its popover TOC), pages without got a second, lesser
+  // implementation — a `pageToolbar` holding an inline mobile TOC. Two code
+  // paths for one job, and the lesser one had no declared height, so anchor
+  // jumps landed under it (measured 2026-08-11: headings clipped by 24px on
+  // lg+, 66px below it, on /i18n and /auth). There is one path now; the toolbar
+  // and its four mobile-TOC slots are gone.
+  //
+  // The trail is not the only trigger, because the toolbar's two other reasons
+  // to exist did not depend on breadcrumbs: `sourceHref` rendered above the
+  // content on any page, and the mobile TOC needed only `showToc`. Gating the
+  // strip on the trail alone would have made both silently inert for a page
+  // passing neither `title` nor `breadcrumbs` — no page in this repo, but a
+  // published component cannot assume its own repo is the whole audience.
+  const showStickyBar = $derived(breadcrumbTrail.length > 0 || sourceHref != null || showMobileToc);
 
   let headerEl: HTMLElement | undefined = $state();
   let scrolledPastHeader = $state(false);
@@ -104,10 +115,13 @@
     navigation.flatMap((n) => [n.id, ...(n.children?.map((c) => c.id) ?? [])])
   );
   const spy = new ScrollSpy(() => navIds);
-  // Reading `spy.active` is what starts the scroll listener, so the same
-  // condition that used to gate the `observe()` effect gates the read here —
-  // a layout with neither a collapsing header nor a TOC still costs nothing.
-  const spyConsumed = $derived(showStickyBar || (showToc && navigation.length > 0));
+  // Reading `spy.active` is what starts the scroll listener, so the read is
+  // gated on someone consuming the result: the strip's section badge or the
+  // rail's marker. With the strip now rendering for every page that has a
+  // title, this is true nearly everywhere — the gate earns its keep only for a
+  // layout used as a bare shell, and costs nothing when `navigation` is empty
+  // (zero ids to measure per frame).
+  const spyConsumed = $derived(showStickyBar || showMobileToc);
   // Read the getter EXACTLY once per frame and pass this derived on — including
   // to the TOC below. `spy.active` is not a stored value: every read walks the
   // id list calling `getBoundingClientRect`, which forces layout. The markup
@@ -248,8 +262,17 @@
         <!-- A declared height, not one that falls out of padding: the anchor
              offset and the TOC rail both read `--docs-sticky-bar-h`, and this
              is what makes that value true. It also holds the strip steady while
-             the crumb type shrinks on scroll. -->
-        <div class="flex h-(--docs-sticky-bar-h) items-center">
+             the crumb type shrinks on scroll.
+
+             `min-h`, not `h`: Chrome's minimum-font-size setting (Appearance →
+             Customize fonts) scales text without scaling `rem`, so at 24px the
+             row's content measured 44px inside a 40px box and spilled above and
+             below the painted band. The offset is then a little short rather
+             than the strip overflowing — a reader who forced larger type gets
+             a heading that sits high, not one cut in half. At every normal
+             metric the box is exactly the declared height, so the value the
+             offset reads stays true where it can. -->
+        <div class="flex min-h-(--docs-sticky-bar-h) items-center">
           <!--
             Dogfood the Breadcrumb primitive. `wrap={false}` keeps the trail on
             one line: ancestor links hold their width while the current page
@@ -285,9 +308,12 @@
             of the 127 pages with a `navigation` array rendered no page
             navigation at all down there.
 
-            Gated on having entries: an empty popover behind a list icon is a
-            control that promises navigation and opens onto nothing. The gate
-            only started to matter once every page came through here.
+            Gated on `showToc`, same as the rail: the prop's contract is "a
+            sticky ToC on desktop and a collapsible one on mobile", so a page
+            that switches it off must not keep the mobile half. Passing
+            `navigation` alone (for the scrollspy badge) is a real case and used
+            to be one gate short. The `navigation.length` half keeps an empty
+            popover from hiding behind a list icon that promises navigation.
 
             The gate is `lg:hidden` against TableOfContents' `max-lg:hidden`:
             Tailwind's two halves of ONE named breakpoint, so exactly one of the
@@ -300,7 +326,7 @@
             there (the icon), and the active section's title expands in beside
             it once the hero is scrolled past.
           -->
-          {#if navigation.length > 0}
+          {#if showMobileToc}
             <div class={slot('stickyToc')}>
               <Popover bind:open={stickyTocOpen} placement="bottom-start">
                 {#snippet trigger()}

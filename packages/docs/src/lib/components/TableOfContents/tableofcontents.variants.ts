@@ -4,12 +4,16 @@ export const tableOfContentsVariants = tv({
   slots: {
     // Desktop-only (max-lg:hidden), so no mobile-header offset applies: the
     // rail pins below the breadcrumb strip, reading the strip's declared height
-    // instead of the `top-20` that guessed it at ~2.6rem. The 2.5rem is the
-    // rail's own breathing room — it lands the kicker on the wrapper's pt-8
-    // content edge — not a second copy of the strip height. Without a strip
-    // (TableOfContents outside DocsLayout) the fallback pins it at that gap.
+    // instead of the `top-20` that guessed it at ~2.6rem. The added 2.5rem is
+    // the rail's own breathing room — it lands the kicker on the wrapper's pt-8
+    // content edge — not a second copy of the strip height. Inside DocsLayout
+    // the sum is the 5rem `top-20` used to be, so nothing moved.
+    //
+    // The fallback is the strip's height, not 0: used outside DocsLayout there
+    // is no strip to read, and a rail pinning at 2.5rem instead of 5rem would
+    // ride 40px higher than it did for no reason a caller could see.
     aside: [
-      'max-lg:hidden sticky top-[calc(var(--docs-sticky-bar-h,0rem)+2.5rem)] shrink-0 self-start'
+      'max-lg:hidden sticky top-[calc(var(--docs-sticky-bar-h,2.5rem)+2.5rem)] shrink-0 self-start'
     ],
     // `text-text-tertiary` and uppercase are kept as fallback for pages
     // without the rooms scope; `meta-marker` (in rooms-docs.css) overrides

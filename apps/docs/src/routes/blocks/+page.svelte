@@ -444,12 +444,19 @@ Tokens switch light and dark automatically:
 <!-- `--docs-anchor-offset` is the same contract DocsLayout publishes on its
      pages: how far below the viewport top a chapter jump has to land to clear
      what is pinned above it. This page builds its own shell, so it declares its
-     own — the register's rendered height (py-2.5 around the 11.5px line, plus
-     its border) on top of the mobile header. The chapters' own `pt-14` supplies
-     the breathing room, which is why nothing is added for it here. It used to
-     be this calc() written out at all eight chapters. -->
+     own — the register's height on top of the mobile header. The chapters' own
+     `pt-14` supplies the breathing room, which is why nothing is added here.
+     It used to be this calc() written out at all eight chapters.
+
+     2.5rem is MEASURED, not derived: the register declares no height of its own
+     (its links' `py-2.5` and the 11.5px line make it), so this number can only
+     be taken from the rendered strip — 40.25px at 1400px, the odd quarter being
+     its border. The eight copies said 3.25rem, which was 11.75px of nothing
+     above every chapter heading; deduplicating them carried the wrong value
+     forward until it was checked in the browser. Re-measure it if the register's
+     type or padding changes. -->
 <div
-  class="mx-auto max-w-7xl px-4 pb-12 [--docs-anchor-offset:calc(var(--sidebar-layout-header-h)+3.25rem)] sm:px-6 lg:px-8"
+  class="mx-auto max-w-7xl px-4 pb-12 [--docs-anchor-offset:calc(var(--sidebar-layout-header-h)+2.5rem)] sm:px-6 lg:px-8"
 >
   {#snippet arrow()}
     <ArrowUpRightIcon

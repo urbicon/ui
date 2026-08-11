@@ -38,11 +38,16 @@ if (typeof window !== 'undefined') {
   }
 
   // `DocsLayout` watches its hero with an IntersectionObserver to know when the
-  // breadcrumb strip has to take over the title. jsdom ships none. This only
-  // started to bite when the strip stopped being gated on `breadcrumbs`: before
-  // that a test mounting a layout without them took the other branch and never
-  // reached the observer. Never firing is the correct stub — the callback only
-  // drives the collapse animation, and no assertion here describes it.
+  // breadcrumb strip has to take over the title. jsdom ships none, and the
+  // section-numbering suite mounts a layout through
+  // `Section/__fixtures__/NumberingHarness.svelte` — the only route by which a
+  // test reaches this component, which is why a grep for `mount(DocsLayout)`
+  // finds nothing and removing this stub still turns the run red.
+  //
+  // It only started to bite when the strip stopped being gated on `breadcrumbs`:
+  // the harness passes none, so it used to take the branch that never reached
+  // the observer. Never firing is the correct stub — the callback drives the
+  // collapse animation alone, and no assertion here describes it.
   if (!('IntersectionObserver' in window)) {
     window.IntersectionObserver = class {
       readonly root = null;

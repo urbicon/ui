@@ -80,6 +80,18 @@ describe('docsLayoutVariants', () => {
     expect(styles.stickyBarInner()).toContain('px-6');
   });
 
+  /**
+   * These three cover the NAMES, not the behaviour: that three tv configs in
+   * three directories agree on two custom properties, which nothing in the type
+   * system relates and a rename breaks in silence.
+   *
+   * They cannot cover the middle of the chain — the strip's markup turning the
+   * declared number into its rendered height. Drop that `min-h-` and all three
+   * stay green while every heading lands under the strip again. `e2e/
+   * docs-layout.spec.ts` ("Anchor jumps clear the pinned chrome") is what asks
+   * the browser; keep the pair, and do not let this file grow assertions that
+   * pretend to be it.
+   */
   describe('anchor offset', () => {
     it('declares the strip height rather than letting it fall out of padding', () => {
       // The strip renders this as a real `h-`, so the number IS its height.
@@ -104,8 +116,12 @@ describe('docsLayoutVariants', () => {
       // the type system relates them — Tailwind class strings are opaque text.
       // A page whose headings land under the strip looks like a styling slip,
       // not like a typo, which is why it stayed unnoticed through five copies.
-      expect(sectionVariants({}).root()).toContain('scroll-mt-[var(--docs-anchor-offset,0rem)]');
-      expect(tableOfContentsVariants({}).aside()).toContain('var(--docs-sticky-bar-h,0rem)');
+      // The property NAME is the contract; each consumer picks its own fallback
+      // for the case where no strip published one (Section: no offset at all,
+      // the rail: the gap it used to hardcode). Asserting a fallback here would
+      // freeze a design choice in a test about naming.
+      expect(sectionVariants({}).root()).toContain('scroll-mt-[var(--docs-anchor-offset');
+      expect(tableOfContentsVariants({}).aside()).toContain('var(--docs-sticky-bar-h');
     });
   });
 

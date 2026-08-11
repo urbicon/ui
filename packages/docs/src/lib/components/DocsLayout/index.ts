@@ -11,12 +11,16 @@ export interface BreadcrumbItem {
 
 /**
  * Standard documentation page layout with optional table of contents.
- * Provides a responsive two-column layout with a mobile ToC fallback.
+ * Provides a responsive two-column layout: a rail on desktop, a popover in the
+ * pinned strip below it.
  *
- * When `breadcrumbs` is provided, the layout uses a collapsing-hero pattern:
- * a unified sticky bar shows breadcrumbs + code toggle initially, then
- * transitions to a compact bar with title + scrollspy when the header
- * scrolls out of view.
+ * The strip renders whenever it has something to carry — a title or
+ * `breadcrumbs` (shown as a trail), a `sourceHref`, or the mobile table of
+ * contents. It stays pinned for the whole scroll, and the hero title morphs
+ * into its last crumb once the header scrolls out of view.
+ *
+ * Anchor jumps land clear of it: the strip publishes its height, and every
+ * `<Section>` reads the resulting `--docs-anchor-offset` as its scroll margin.
  *
  * @example
  * ```svelte
@@ -43,7 +47,9 @@ export interface DocsLayoutProps extends DocsLayoutVariantProps {
   /** Short description rendered below the title. */
   description?: string;
   /**
-   * Show a sticky table of contents sidebar on desktop and a collapsible one on mobile.
+   * Show a table of contents: the sticky rail on desktop, a popover in the
+   * pinned strip below `lg`. Both halves follow this one prop, so switching it
+   * off leaves neither behind. Needs `navigation` to have entries.
    * @default false
    */
   showToc?: boolean;
@@ -53,8 +59,9 @@ export interface DocsLayoutProps extends DocsLayoutVariantProps {
    */
   navigation?: TocNavigationItem[];
   /**
-   * Structured breadcrumb trail (ancestors only, title is appended automatically).
-   * Enables the collapsing-hero sticky bar layout.
+   * Structured breadcrumb trail (ancestors only, title is appended
+   * automatically). A top-level page needs none — the strip then shows the
+   * title alone.
    */
   breadcrumbs?: BreadcrumbItem[];
   /**
