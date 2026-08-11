@@ -106,11 +106,11 @@ export const spinnerVariants = tv({
       }
     },
     intent: {
-      primary: { base: 'text-primary' },
-      secondary: { base: 'text-secondary' },
-      success: { base: 'text-success' },
+      primary: { base: 'text-primary-text' },
+      secondary: { base: 'text-secondary-text' },
+      success: { base: 'text-success-text' },
       warning: { base: 'text-warning-emphasis' },
-      danger: { base: 'text-danger' },
+      danger: { base: 'text-danger-text' },
       neutral: { base: 'text-text-secondary' },
       // `current` inherits the parent text-color via `currentColor`. Use
       // this when the spinner sits inside a coloured surface (filled

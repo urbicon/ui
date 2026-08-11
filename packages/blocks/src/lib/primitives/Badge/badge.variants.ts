@@ -210,21 +210,21 @@ export const badgeVariants = tv({
       intent: 'primary',
       variant: 'outlined',
       class: {
-        base: 'text-primary border-primary'
+        base: 'text-primary-text border-primary'
       }
     },
     {
       intent: 'secondary',
       variant: 'outlined',
       class: {
-        base: 'text-secondary border-secondary'
+        base: 'text-secondary-text border-secondary'
       }
     },
     {
       intent: 'success',
       variant: 'outlined',
       class: {
-        base: 'text-success border-success'
+        base: 'text-success-text border-success'
       }
     },
     {
@@ -238,7 +238,7 @@ export const badgeVariants = tv({
       intent: 'danger',
       variant: 'outlined',
       class: {
-        base: 'text-danger border-danger'
+        base: 'text-danger-text border-danger'
       }
     },
     {

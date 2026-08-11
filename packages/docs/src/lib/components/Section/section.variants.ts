@@ -47,7 +47,7 @@ export const sectionVariants = tv({
       hero: {
         header: 'mt-20 text-center',
         headerRow: 'justify-center mb-6',
-        title: 'text-3xl font-extrabold tracking-tight text-primary',
+        title: 'text-3xl font-extrabold tracking-tight text-primary-text',
         subtitle: 'text-lg text-text-secondary max-w-3xl mx-auto'
       },
       primary: {

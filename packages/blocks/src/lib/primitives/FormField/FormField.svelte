@@ -39,7 +39,7 @@
         .join(' ')}
     >
       {label}
-      {#if ff.required}<span class="text-danger ml-0.5" aria-hidden="true">*</span>{/if}
+      {#if ff.required}<span class="text-danger-text ml-0.5" aria-hidden="true">*</span>{/if}
     </label>
   {/if}
 
@@ -55,7 +55,7 @@
     <div
       id={ff.errorId}
       role="alert"
-      class={['text-danger text-xs', slotClasses.message].filter(Boolean).join(' ')}
+      class={['text-danger-text text-xs', slotClasses.message].filter(Boolean).join(' ')}
     >
       {error}
     </div>

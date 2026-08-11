@@ -21,7 +21,7 @@ export const citationChipVariants = tv({
     snippet: 'text-text-secondary text-sm line-clamp-3',
     link: [
       'inline-flex items-center gap-1 self-start',
-      'text-sm text-primary rounded-modify',
+      'text-sm text-primary-text rounded-modify',
       'hover:underline',
       'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary'
     ],

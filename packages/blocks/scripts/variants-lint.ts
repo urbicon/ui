@@ -58,6 +58,11 @@
  *            subtle`) instead of an interaction step. Invisible wherever the
  *            element already rests on that surface, which the component cannot
  *            know. See READING_SURFACE_FILLS below.
+ *   ✖ ERROR  intent fill used as text — a base intent token (`text-primary`,
+ *            `text-danger`, …) as a text colour. The base is sized as a FILL
+ *            and misses WCAG AA as text on calm grounds; the `-text` roles
+ *            exist for that job and are gated in style/contrast.test.ts. See
+ *            INTENT_AS_TEXT below.
  *   ⚠ WARN   partially stripped token — its removal changes some combinations
  *            but not others. Usually intentional (state overrides); the
  *            listing exists so axis-order decisions stay visible.
@@ -434,6 +439,32 @@ const READING_SURFACE_FILLS = new Set([
 ]);
 const HOVER_PREFIXES = new Set(['hover', 'group-hover', 'peer-hover']);
 
+/**
+ * Base intent tokens used as TEXT. The base token is a fill — sized for
+ * `text-on-fill` sitting on it — and as text on a calm ground it misses AA:
+ * first measurement of the axis (2026-08-11) put 82 theme×mode×surface
+ * combinations below 4.5:1, bottoming at 2.0:1 (warning on white). Each intent
+ * carries a `-text` role at the nearest AA-clean stop for exactly this job,
+ * gated hard in style/contrast.test.ts; `-emphasis` remains the near-ink tier.
+ *
+ * `text-neutral` is NOT in this set: its base clears AA as text on every
+ * ground in every theme (measured; the contrast suite pins it), because the
+ * chassis ramp was text-tuned from the start.
+ *
+ * Alpha'd forms (`text-danger/70`) are caught too — the modifier only lowers
+ * the contrast further. Reach caveat as for every rule here: `*.variants.ts`
+ * plus the spliced fragment tables; classes in `.svelte` markup are invisible
+ * to this lint (see the header).
+ */
+const INTENT_AS_TEXT = new Set([
+  'text-primary',
+  'text-secondary',
+  'text-success',
+  'text-warning',
+  'text-danger',
+  'text-info'
+]);
+
 const exemptionKey = (where: string, property: string) => `${where}\0${property}`;
 const exemptions = new Map(
   TRANSITION_EXEMPTIONS.map((e) => [exemptionKey(e.where, e.property), e])
@@ -503,6 +534,8 @@ const missingTransition: Finding[] = [];
 const missingTransitionSeen = new Set<string>();
 const readingSurfaceHover: Finding[] = [];
 const readingSurfaceHoverSeen = new Set<string>();
+const intentAsText: Finding[] = [];
+const intentAsTextSeen = new Set<string>();
 
 /** Remove every occurrence of `token` from a class value (string or nested array). */
 function removeToken(value: unknown, token: string): unknown {
@@ -724,6 +757,28 @@ for (const { file, name, fn, cfg } of loaded) {
     }
   }
 
+  // Intent-as-text guard — same rendered-output walk, so a class spliced in
+  // from a shared fragment table is caught exactly like an inline one. The
+  // alpha modifier is stripped before the lookup (`text-danger/70` bans the
+  // same as `text-danger`; the modifier only lowers the contrast further).
+  for (const slot of slotList) {
+    for (const bySlot of baseline) {
+      for (const token of (bySlot.get(slot) as string).split(/\s+/).filter(Boolean)) {
+        const { utility } = splitVariants(token);
+        if (!INTENT_AS_TEXT.has(utility.split('/')[0])) continue;
+        const where = `${file} › ${name}${slots ? ` › ${slot}` : ''}`;
+        const seenKey = `${where}\0${token}`;
+        if (intentAsTextSeen.has(seenKey)) continue;
+        intentAsTextSeen.add(seenKey);
+        intentAsText.push({
+          where,
+          token,
+          detail: `'${utility}' is the intent's FILL tone and misses WCAG AA as text on calm grounds (measured down to 2.0:1). Use the text tier '${utility}-text', or '${utility}-emphasis' for the near-ink tier`
+        });
+      }
+    }
+  }
+
   for (const [si, src] of sources.entries()) {
     for (const slot of slotList) {
       // Deduplicate per source+slot; leave-one-out removes all occurrences.
@@ -912,7 +967,7 @@ const staleHandWritten = Object.keys(HAND_WRITTEN_CSS).filter((t) => !handWritte
 // ─── report ──────────────────────────────────────────────────────────────────
 
 console.log(
-  `variants-lint: ${loaded.length} configs in ${files.length} files, ${themeVars.size} @theme keys, ${probe.checked} classes compiled — ${dead.length} lost, ${unknownTheme.length} unknown-theme, ${noCss.length} no-CSS, ${missingTransition.length} incomplete transition list(s), ${readingSurfaceHover.length} reading-surface hover(s), ${shadowed.length} shadowed, ${partial.length} partially-stripped token(s)`
+  `variants-lint: ${loaded.length} configs in ${files.length} files, ${themeVars.size} @theme keys, ${probe.checked} classes compiled — ${dead.length} lost, ${unknownTheme.length} unknown-theme, ${noCss.length} no-CSS, ${missingTransition.length} incomplete transition list(s), ${readingSurfaceHover.length} reading-surface hover(s), ${intentAsText.length} intent-as-text, ${shadowed.length} shadowed, ${partial.length} partially-stripped token(s)`
 );
 
 for (const err of fileErrors) console.error(`✖ ${err}`);
@@ -933,6 +988,9 @@ for (const f of missingTransition) {
 }
 for (const f of readingSurfaceHover) {
   console.error(`✖ hover on a resting surface '${f.token}' in ${f.where}\n    ${f.detail}`);
+}
+for (const f of intentAsText) {
+  console.error(`✖ intent fill used as text '${f.token}' in ${f.where}\n    ${f.detail}`);
 }
 const staleExemptions = [...exemptions.values()].filter(
   (e) => !exemptionsHit.has(exemptionKey(e.where, e.property))
@@ -960,6 +1018,7 @@ if (
   staleHandWritten.length > 0 ||
   missingTransition.length > 0 ||
   readingSurfaceHover.length > 0 ||
+  intentAsText.length > 0 ||
   staleExemptions.length > 0
 ) {
   process.exit(1);

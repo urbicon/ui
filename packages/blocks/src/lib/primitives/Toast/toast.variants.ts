@@ -48,27 +48,30 @@ export const toastVariants = tv({
     intent: {
       primary: {
         toast: 'bg-surface-overlay text-text-primary',
-        icon: 'text-primary',
+        icon: 'text-primary-text',
         progress: 'bg-primary'
       },
       info: {
         toast: 'bg-surface-overlay text-text-primary',
-        icon: 'text-info',
+        icon: 'text-info-text',
         progress: 'bg-info'
       },
       success: {
         toast: 'bg-surface-overlay text-text-primary',
-        icon: 'text-success',
+        icon: 'text-success-text',
         progress: 'bg-success'
       },
       warning: {
         toast: 'bg-surface-overlay text-text-primary',
-        icon: 'text-warning-emphasis',
+        // Was `-emphasis` while the base warning token missed AA on the overlay
+        // surface; the `-text` role clears every reading surface, so warning
+        // needs no special casing here anymore (same change in Dialog).
+        icon: 'text-warning-text',
         progress: 'bg-warning'
       },
       danger: {
         toast: 'bg-surface-overlay text-text-primary',
-        icon: 'text-danger',
+        icon: 'text-danger-text',
         progress: 'bg-danger'
       },
       neutral: {

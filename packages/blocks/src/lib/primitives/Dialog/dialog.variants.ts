@@ -99,13 +99,15 @@ export const dialogVariants = tv({
     // The value is additionally exposed as `data-intent` on the panel.
     intent: {
       neutral: {},
-      primary: { title: 'text-primary-emphasis', icon: 'text-primary' },
-      secondary: { title: 'text-secondary-emphasis', icon: 'text-secondary' },
-      success: { title: 'text-success-emphasis', icon: 'text-success' },
-      // warning rides -emphasis on both: plain `text-warning` is the fill tone
-      // and drops below contrast on the overlay surface (mirrors the Toast).
-      warning: { title: 'text-warning-emphasis', icon: 'text-warning-emphasis' },
-      danger: { title: 'text-danger-emphasis', icon: 'text-danger' }
+      primary: { title: 'text-primary-emphasis', icon: 'text-primary-text' },
+      secondary: { title: 'text-secondary-emphasis', icon: 'text-secondary-text' },
+      success: { title: 'text-success-emphasis', icon: 'text-success-text' },
+      // warning used to ride -emphasis on the icon too, because the old base
+      // token (a fill tone) dropped below contrast on the overlay surface. The
+      // `-text` role clears AA on every reading surface by construction, so the
+      // special case is gone and warning lines up with its siblings.
+      warning: { title: 'text-warning-emphasis', icon: 'text-warning-text' },
+      danger: { title: 'text-danger-emphasis', icon: 'text-danger-text' }
     }
   },
   compoundVariants: [

@@ -435,19 +435,19 @@
                   aria-live + an sr-only "Loading..." inside the file list's own
                   aria-live="polite" region (nested live regions); the core emits
                   no semantics — the list region owns announcements. The spinner
-                  stays `text-primary` deliberately: uploading is the IN-PROGRESS
+                  stays `text-primary-text` deliberately: uploading is the IN-PROGRESS
                   state, so it matches the always-primary progress bar above
                   (Progress resolves fileUpload's primary|neutral intent to primary
-                  either way); the sibling text-success/text-danger icons mark the
+                  either way); the sibling text-success-text/text-danger-text icons mark the
                   TERMINAL states. It wins the duel against the core's
                   `text-current` by stylesheet order (theme colors sort after
                   keyword colors).
                 -->
-                <CoreSpinner size="xs" class="text-primary" />
+                <CoreSpinner size="xs" class="text-primary-text" />
               {:else if entry.status === 'complete'}
-                <CheckCircleIcon size={itemIconSize} class="text-success" />
+                <CheckCircleIcon size={itemIconSize} class="text-success-text" />
               {:else if entry.status === 'error'}
-                <DangerIcon size={itemIconSize} class="text-danger" />
+                <DangerIcon size={itemIconSize} class="text-danger-text" />
               {/if}
             </div>
 

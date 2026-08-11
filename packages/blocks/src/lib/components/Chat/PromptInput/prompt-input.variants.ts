@@ -78,7 +78,7 @@ export const promptInputVariants = tv({
     ],
     // Compact inline validation line (first rejection). role=status is set in
     // the component; the empty state renders no box.
-    error: ['px-3 pb-2 text-xs text-danger'],
+    error: ['px-3 pb-2 text-xs text-danger-text'],
     // Helper line under the composer (e.g. "Enter to send").
     hint: ['px-3 pb-2 text-xs text-text-tertiary']
   },

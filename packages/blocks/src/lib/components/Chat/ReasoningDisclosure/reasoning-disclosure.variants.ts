@@ -9,7 +9,7 @@ export const reasoningDisclosureVariants = tv({
       'flex w-full items-center justify-between gap-2 text-left',
       'cursor-pointer py-2 text-sm font-medium text-text-secondary',
       'transition-[color] duration-[var(--blocks-duration-fast)]',
-      'hover:text-primary',
+      'hover:text-primary-text',
       'focus-visible:rounded-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/50',
       'disabled:cursor-not-allowed disabled:opacity-50'
     ],

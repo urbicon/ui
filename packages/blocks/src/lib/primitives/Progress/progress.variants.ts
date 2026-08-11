@@ -28,11 +28,11 @@ export const progressVariants = tv({
   },
   variants: {
     intent: {
-      primary: { fill: 'bg-primary', circularFill: 'text-primary' },
-      secondary: { fill: 'bg-secondary', circularFill: 'text-secondary' },
-      success: { fill: 'bg-success', circularFill: 'text-success' },
+      primary: { fill: 'bg-primary', circularFill: 'text-primary-text' },
+      secondary: { fill: 'bg-secondary', circularFill: 'text-secondary-text' },
+      success: { fill: 'bg-success', circularFill: 'text-success-text' },
       warning: { fill: 'bg-warning', circularFill: 'text-warning-emphasis' },
-      danger: { fill: 'bg-danger', circularFill: 'text-danger' },
+      danger: { fill: 'bg-danger', circularFill: 'text-danger-text' },
       neutral: { fill: 'bg-neutral', circularFill: 'text-neutral' }
     },
     size: {

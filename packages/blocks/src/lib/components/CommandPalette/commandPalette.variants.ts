@@ -28,7 +28,7 @@ export const commandPaletteVariants = tv({
       'flex w-full items-center gap-2 rounded-modify px-3 py-2 text-sm min-h-[2.5rem]',
       'transition-colors cursor-pointer'
     ],
-    itemHighlighted: 'bg-primary-subtle text-primary',
+    itemHighlighted: 'bg-primary-subtle text-primary-text',
     itemDefault: 'text-text-secondary hover:bg-surface-hover',
     itemDisabled: 'text-text-quaternary cursor-not-allowed opacity-50',
     itemIcon: 'h-4 w-4 shrink-0',

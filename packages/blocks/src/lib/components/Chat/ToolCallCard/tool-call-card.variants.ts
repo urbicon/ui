@@ -34,7 +34,7 @@ export const toolCallCardVariants = tv({
     // of its own, which is what removed a whole chrome level from the card.
     section: 'flex flex-col',
     // Error message line shown above the sections.
-    errorMessage: 'text-sm text-danger'
+    errorMessage: 'text-sm text-danger-text'
   }
 });
 

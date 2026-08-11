@@ -14,12 +14,12 @@ export const radioGroupVariants = tv({
     },
     required: {
       true: {
-        label: "after:content-['*'] after:ml-1 after:text-danger"
+        label: "after:content-['*'] after:ml-1 after:text-danger-text"
       }
     },
     error: {
       true: {
-        message: 'text-danger'
+        message: 'text-danger-text'
       }
     },
     disabled: {
@@ -94,7 +94,7 @@ export const radioItemVariants = tv({
         // floor (`text-xs`) instead of continuing the ladder down to `text-3xs`
         // (10px) — 2xs/3xs are for marks, hints and dense grids, never for prose
         // (see the tokens page). At this size the label/description hierarchy is
-        // carried by colour (text-primary vs text-tertiary) rather than size.
+        // carried by colour (text-primary-text vs text-tertiary) rather than size.
         description: 'text-xs'
       },
       sm: {

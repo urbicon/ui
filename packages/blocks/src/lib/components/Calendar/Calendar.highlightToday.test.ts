@@ -163,14 +163,14 @@ describe('Calendar highlightToday', () => {
 
     it('emphasises today by default', () => {
       expect(dayHeader(renderCalendar({ view: 'agenda', events }))).toContain(
-        'text-primary font-bold'
+        'text-primary-text font-bold'
       );
     });
 
     it('drops the emphasis when switched off', () => {
       expect(
         dayHeader(renderCalendar({ view: 'agenda', events, highlightToday: false }))
-      ).not.toContain('text-primary font-bold');
+      ).not.toContain('text-primary-text font-bold');
     });
   });
 

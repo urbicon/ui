@@ -704,7 +704,7 @@ describe('tv – tailwind conflict resolver', () => {
       const cls = styles.message();
       const tokens = cls.split(/\s+/);
       expect(tokens).not.toContain('text-text-tertiary');
-      expect(tokens).toContain('text-danger');
+      expect(tokens).toContain('text-danger-text');
       expect(tokens).toContain('text-xs'); // text-size bucket different — kept
     });
 
@@ -1117,7 +1117,7 @@ describe('tv – tailwind conflict resolver', () => {
       // `{ error: true }` call (public variants() API) must read red even
       // though the component couples `messageType: error ? 'error' : 'helper'`.
       const message = inputVariants({ error: true }).message().split(/\s+/);
-      expect(message).toContain('text-danger');
+      expect(message).toContain('text-danger-text');
       expect(message).not.toContain('text-text-tertiary');
     });
 

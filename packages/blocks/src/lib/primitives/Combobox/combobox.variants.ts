@@ -5,7 +5,7 @@ export const comboboxVariants = tv({
   slots: {
     base: 'flex w-full flex-col gap-1.5',
     label: 'text-text-secondary block text-sm font-medium',
-    requiredMark: 'text-danger ml-0.5',
+    requiredMark: 'text-danger-text ml-0.5',
     inputWrapper: 'relative w-full',
     input: [
       // Radius driven by `tier` axis below; the `underline` variant overrides
@@ -58,7 +58,7 @@ export const comboboxVariants = tv({
     // rendered with reserved space, fades in via opacity — no layout shift
     // when a row becomes selected. Sized one step with the option per size.
     optionCheck: [
-      'shrink-0 text-primary opacity-0 transition-opacity duration-[var(--blocks-duration-fast)]'
+      'shrink-0 text-primary-text opacity-0 transition-opacity duration-[var(--blocks-duration-fast)]'
     ],
     // Grouped options (parity with Select). `group` carries the same
     // item-to-item rhythm as the flat listbox (`space-y-0.5` there lives on

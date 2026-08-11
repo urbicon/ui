@@ -122,7 +122,7 @@ export const stepperVariants = tv({
       },
       error: {
         indicator: 'border-danger bg-danger text-text-on-fill',
-        label: 'text-danger'
+        label: 'text-danger-text'
       },
       warning: {
         indicator: 'border-warning bg-warning text-text-on-warning',

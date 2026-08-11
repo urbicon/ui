@@ -32,7 +32,7 @@ export const tableOfContentsVariants = tv({
     // as part of the indent column rather than glued to the container;
     // top-1/2 + -translate centers it against the link's line-height.
     linkActive: [
-      'font-medium text-primary',
+      'font-medium text-primary-text',
       'before:absolute before:left-1 before:top-1/2 before:-translate-y-1/2',
       "before:size-1.5 before:bg-primary before:content-['']"
     ],
@@ -45,7 +45,7 @@ export const tableOfContentsVariants = tv({
     // Child square sits at left-5 (20 px), one step smaller to match the
     // xs child text, indenting under the parent marker.
     childLinkActive: [
-      'font-medium text-primary',
+      'font-medium text-primary-text',
       'before:absolute before:left-5 before:top-1/2 before:-translate-y-1/2',
       "before:size-1 before:bg-primary before:content-['']"
     ],

@@ -120,7 +120,9 @@
                  screen reader announces one unnamed region per day. -->
             <section class={slot('agendaDayGroup')} aria-label={entry.dateLabel}>
               <div
-                class="{slot('agendaDayHeader')} {entry.isToday ? 'text-primary font-bold' : ''}"
+                class="{slot('agendaDayHeader')} {entry.isToday
+                  ? 'text-primary-text font-bold'
+                  : ''}"
               >
                 {entry.dateLabel}
               </div>

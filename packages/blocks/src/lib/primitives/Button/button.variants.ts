@@ -312,21 +312,21 @@ export const buttonVariants = tv({
       intent: 'primary',
       variant: 'text',
       class: {
-        base: 'text-primary'
+        base: 'text-primary-text'
       }
     },
     {
       intent: 'secondary',
       variant: 'text',
       class: {
-        base: 'text-secondary'
+        base: 'text-secondary-text'
       }
     },
     {
       intent: 'success',
       variant: 'text',
       class: {
-        base: 'text-success'
+        base: 'text-success-text'
       }
     },
     {
@@ -340,7 +340,7 @@ export const buttonVariants = tv({
       intent: 'danger',
       variant: 'text',
       class: {
-        base: 'text-danger'
+        base: 'text-danger-text'
       }
     },
     {
@@ -480,19 +480,19 @@ export const buttonVariants = tv({
       active: true,
       variant: 'text',
       intent: 'primary',
-      class: { base: 'text-primary font-semibold underline underline-offset-4 decoration-2' }
+      class: { base: 'text-primary-text font-semibold underline underline-offset-4 decoration-2' }
     },
     {
       active: true,
       variant: 'text',
       intent: 'secondary',
-      class: { base: 'text-secondary font-semibold underline underline-offset-4 decoration-2' }
+      class: { base: 'text-secondary-text font-semibold underline underline-offset-4 decoration-2' }
     },
     {
       active: true,
       variant: 'text',
       intent: 'success',
-      class: { base: 'text-success font-semibold underline underline-offset-4 decoration-2' }
+      class: { base: 'text-success-text font-semibold underline underline-offset-4 decoration-2' }
     },
     {
       active: true,
@@ -506,7 +506,7 @@ export const buttonVariants = tv({
       active: true,
       variant: 'text',
       intent: 'danger',
-      class: { base: 'text-danger font-semibold underline underline-offset-4 decoration-2' }
+      class: { base: 'text-danger-text font-semibold underline underline-offset-4 decoration-2' }
     },
     {
       active: true,

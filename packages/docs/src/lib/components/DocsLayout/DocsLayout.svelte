@@ -184,10 +184,10 @@
   {#if stability && stability !== 'stable'}
     {@const stabilityIntent =
       stability === 'experimental'
-        ? 'text-warning border-warning/40'
+        ? 'text-warning-text border-warning/40'
         : stability === 'beta'
-          ? 'text-info border-info/40'
-          : 'text-danger border-danger/40'}
+          ? 'text-info-text border-info/40'
+          : 'text-danger-text border-danger/40'}
     <span
       class="font-meta rounded-modify ml-2 inline-flex items-center border px-1.5 py-0.5 align-middle text-xs tracking-wider uppercase {stabilityIntent}"
       aria-label={dt('stabilityLabel', { stability })}

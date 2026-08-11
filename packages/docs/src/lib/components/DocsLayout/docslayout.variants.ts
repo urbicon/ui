@@ -84,7 +84,7 @@ export const docsLayoutVariants = tv({
     stickyToc: ['ml-2 flex min-w-0 items-center lg:hidden'],
     stickyTocButton: [
       'flex items-center gap-1.5 rounded-modify px-2 py-0.5',
-      'text-primary bg-primary-subtle hover:bg-primary-subtle/80',
+      'text-primary-text bg-primary-subtle hover:bg-primary-subtle/80',
       'text-xs font-medium whitespace-nowrap',
       'transition-colors duration-(--blocks-duration-fast)',
       'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40'
@@ -94,7 +94,7 @@ export const docsLayoutVariants = tv({
       'px-3 py-1.5 text-sm text-text-tertiary',
       'transition-colors duration-(--blocks-duration-fast)',
       'hover:text-text-primary hover:bg-surface-hover',
-      'aria-[current]:text-primary aria-[current]:font-medium',
+      'aria-[current]:text-primary-text aria-[current]:font-medium',
       'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40 focus-visible:rounded-modify'
     ]
   },

@@ -6,7 +6,7 @@ export const apiReferenceVariants = tv({
     stats: ['flex flex-wrap items-center gap-3 text-xs text-text-tertiary'],
     // The "N required" half of the stats line — the only part that carries an
     // intent colour, so it is its own slot rather than a literal in the markup.
-    requiredCount: ['text-danger'],
+    requiredCount: ['text-danger-text'],
     // Wrapper around the prop name and its badges (variant/inherited/required).
     nameCell: ['flex flex-wrap items-center gap-1.5'],
     // Wrapper around the literal-value chips in the Type column.
@@ -48,7 +48,7 @@ export const apiReferenceVariants = tv({
       'bg-surface-quiet px-1.5 py-0.5 font-mono text-2xs leading-none text-text-secondary'
     ],
     sourceLink: [
-      'text-primary underline decoration-primary/40 hover:decoration-primary',
+      'text-primary-text underline decoration-primary/40 hover:decoration-primary',
       'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40',
       'focus-visible:rounded-modify'
     ],
@@ -66,14 +66,14 @@ export const apiReferenceVariants = tv({
       'bg-surface-quiet px-1.5 py-0.5 font-mono text-2xs leading-none text-text-secondary'
     ],
     placeholder: ['text-text-tertiary'],
-    link: ['text-primary underline decoration-primary/40 hover:decoration-primary'],
+    link: ['text-primary-text underline decoration-primary/40 hover:decoration-primary'],
     // Cross-reference to a TypesReference entry. Reads as prose-quiet inline
     // reference, not a link: the dotted underline is the only affordance until
     // hover, so a type-heavy table doesn't turn into a wall of blue.
     typeLink: [
       'text-text-primary underline decoration-dotted decoration-border-emphasis underline-offset-2',
       'transition-colors duration-(--blocks-duration-fast)',
-      'hover:text-primary hover:decoration-primary',
+      'hover:text-primary-text hover:decoration-primary',
       'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40',
       'focus-visible:rounded-modify focus-visible:ring-offset-1'
     ],

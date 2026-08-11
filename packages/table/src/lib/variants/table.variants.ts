@@ -85,11 +85,11 @@ export const tableHeaderVariants = tv({
       },
       asc: {
         cell: TABLE_STATES.cell.sorted,
-        sortIcon: 'text-primary'
+        sortIcon: 'text-primary-text'
       },
       desc: {
         cell: TABLE_STATES.cell.sorted,
-        sortIcon: 'text-primary'
+        sortIcon: 'text-primary-text'
       }
     },
 
