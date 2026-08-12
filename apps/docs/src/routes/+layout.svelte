@@ -5,6 +5,7 @@
   import { afterNavigate } from '$app/navigation';
   import SidebarNavigation from '$lib/SidebarNavigation.svelte';
   import CommandSearch from '$lib/CommandSearch.svelte';
+  import { setCommandSearchToggle } from '$lib/command-search.context';
   import DocsThemeToggle from '$lib/DocsThemeToggle.svelte';
   import { navigationItems } from '$lib/navigation';
   import { channelNameForRoute } from '$lib/landing/route-channel.gen';
@@ -68,6 +69,10 @@
 
   let sidebarOpen = $state(false);
   let commandSearch: ReturnType<typeof CommandSearch> | undefined;
+
+  // Der sichtbare Such-Trigger lebte bisher nur im Sidebar-Chrome; die Landing
+  // (und jede andere chromfreie Seite) bekommt ihn über diesen Context.
+  setCommandSearchToggle(() => commandSearch?.toggle());
 
   afterNavigate(() => {
     sidebarOpen = false;

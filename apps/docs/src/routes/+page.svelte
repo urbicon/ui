@@ -12,9 +12,10 @@
   Familien-Kanal der Auswahl als Farb-Echo. Zeile 3: ein Befehl, ein Satz, ein
   Ergebnis — drei Vollton-Schritte (Ink → Agents-Grün → Magenta), von denen der
   dritte die im zweiten bestellte Farbe trägt und eine echte BookingCard darauf
-  zeigt. Fußzeile auf Ink: die Türen nach draußen, die die Zeilen darüber
-  bewusst nicht haben. Alle Farben aus dem generierten Register
-  ($lib/landing/channels).
+  zeigt. Über allem eine schmale Ink-Kopfleiste (LandingHeader): die vier
+  meistgebrauchten Türen plus Suche, sticky — die Seitenmitte war sonst türlos.
+  Fußzeile auf Ink: die vollständige Liste der Türen nach draußen. Alle Farben
+  aus dem generierten Register ($lib/landing/channels).
   Konzept: docs/internal/LANDING-CONCEPT-2026-07.md → "Struktur v2".
 -->
 <!-- urbicon-ignore important-modifier — the `!` modifiers are all slot overrides
@@ -51,14 +52,8 @@
   } from '$lib/landing/schedule';
   import { HOUSES as GROUP_HOUSES, GROUP_NAME, ROOM_TYPES } from '$lib/hotel-tools';
   import AgentReplay from '$lib/landing/AgentReplay.svelte';
-  import {
-    BRAND,
-    BRAND_SUFFIX,
-    CLAIM_LEAD,
-    CLAIM_POINT,
-    EYEBROW,
-    PROOF
-  } from '$lib/landing/wordmark';
+  import LandingHeader from '$lib/landing/LandingHeader.svelte';
+  import { BRAND, BRAND_SUFFIX, CLAIM_LEAD, CLAIM_POINT, PROOF } from '$lib/landing/wordmark';
   import { asset } from '$app/paths';
   import { REPO_URL } from '$lib/seo';
   import BookingCard from '$lib/hotel/BookingCard.svelte';
@@ -81,7 +76,6 @@
     Scroller,
     SegmentGroup,
     SegmentItem,
-    ThemeSwitcher,
     Toggle
   } from '@urbicon-ui/blocks';
   import { I18nProvider } from '@urbicon-ui/i18n';
@@ -686,6 +680,9 @@
   // Zustand innerhalb einer Ansicht, keine Navigation — dieselbe Einordnung wie
   // Sortierung oder Filter. Am Deeplink ändert das nichts: `?c=calendar` lädt
   // unverändert dieselbe Ansicht, geteilte Links bleiben gültig.
+  /** Ziel des Beobachters der Kopfleiste: die große Marke (LandingHeader). */
+  let brandEl = $state<HTMLElement | undefined>();
+
   const [selectedSlug, setSelectedSlug] = useUrlParam<string | null>('c', {
     parse: (sp) => sp.get('c'),
     serialize: (value) => new URLSearchParams(value ? { c: value } : {}),
@@ -757,20 +754,14 @@
 <!-- Englisch gepinnt wie im Hero: sonst rutschen Playground-Labels und
      Calendar-Monatsnamen in die Browser-Sprache, mitten in eine englische Seite. -->
 <I18nProvider locale="en">
+  <LandingHeader watch={brandEl} />
   <main class="proto" lang="en">
     <!-- ── Zeile 1: erinnern + staunen ─────────────────────────────── -->
     <section class="row1" aria-label="Hero">
       <div class="name-tile">
-        <div class="tile-head">
-          <p class="eyebrow">{EYEBROW}</p>
-          <!-- Die Kachel ist in beiden Modi Ink; der `color-scheme: dark`-Scope
-               lässt die Tokens des Switchers dunkel auflösen (helles Icon auf
-               dunklem Grund), wie bei der LiveryTile. Persistenz + <html>-Klasse
-               teilen sich Landing und Doku-Chrome (gleicher localStorage-Key). -->
-          <div style="color-scheme: dark">
-            <ThemeSwitcher size="sm" />
-          </div>
-        </div>
+        <!-- Eyebrow und ThemeSwitcher wohnen seit 2026-08-12 in der Kopfleiste
+             (LandingHeader) — die Kachel ist reine Titelseite: Name mittig,
+             Beweis unten. -->
         <div class="name-mid">
           <!-- The page h1. It was a `<p>`, so the site's own front page had no
                top-level heading at all: the outline started at h2 and heading
@@ -782,7 +773,7 @@
                the h1 was named "urbicon ui Highlights" (measured). `aria-label`
                pins the name to the wordmark; the five buttons stay in the tree,
                focusable and individually named. -->
-          <h1 class="brand" aria-label={`${BRAND} ${BRAND_SUFFIX}`}>
+          <h1 class="brand" aria-label={`${BRAND} ${BRAND_SUFFIX}`} bind:this={brandEl}>
             {BRAND} <span class="brand-suffix">{BRAND_SUFFIX}</span><span
               class="ticks"
               role="group"
@@ -1436,9 +1427,12 @@
     </section>
 
     <!-- Die Seite endet, wo sie angefangen hat: derselbe Ink-Grund wie die
-         Namens-Kachel und wie Schritt 01, dieselbe Signatur. Bis hierher war
-         die Landing ohne jedes Chrom — die Türen nach draußen (Register,
-         Repo, Rechtliches) gehören genau hierher und nirgends höher. -->
+         Namens-Kachel und wie Schritt 01, dieselbe Signatur. Der Footer ist
+         die VOLLSTÄNDIGE Liste der Türen nach draußen (Register, Repo,
+         Maschinenlesbares, Rechtliches); die Kopfleiste darüber trägt nur die
+         vier meistgebrauchten. „Ohne jedes Chrom" galt bis 2026-08-12 — beim
+         Benutzen fehlte der direkte Sprung in die Docs, und die Suche gab es
+         auf der Landing nur als unsichtbares Tastenkürzel. -->
     <footer class="foot">
       <div class="foot-brand">
         <p class="brand-sm">
@@ -1546,21 +1540,8 @@
     flex-direction: column;
     gap: 2rem;
   }
-  .tile-head {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    gap: 1rem;
-  }
-  .eyebrow {
-    font-family: 'JetBrains Mono', monospace;
-    font-size: 0.72rem;
-    text-transform: uppercase;
-    letter-spacing: 0.14em;
-    opacity: 0.6;
-  }
-  /* Name + Anspruch sitzen mittig zwischen Eyebrow und Fußzeile — die Kachel
-     ist eine Titelseite, keine Kopfzeile mit Anhang. */
+  /* Name + Anspruch sitzen mittig über der Fußzeile — die Kachel ist eine
+     Titelseite, keine Kopfzeile mit Anhang (Eyebrow: siehe LandingHeader). */
   .name-mid {
     flex: 1;
     display: flex;
