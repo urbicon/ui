@@ -1114,13 +1114,13 @@
                               // beide Achsen gehören demselben Container, sonst
                               // liefe die Spaltenausrichtung auseinander.
                               track: 'rooms-track max-h-full',
-                              // `z-30`, nicht 20: die Spur-Spalte der Komponente
-                              // klebt mit `z-20` nach links, und bei gleichem
-                              // Wert malt das spätere Element im DOM — die
-                              // Spur-Beschriftung — über die klebende Kopfzeile
-                              // (im Browser gesehen: eine durchscheinende
-                              // Zimmerzeile in der Datumsleiste).
-                              dayHeaderRow: 'sticky top-0 z-30 bg-surface-base'
+                              // Nur `sticky` und die Deckfläche: die Stapelhöhe
+                              // gegenüber der klebenden Spur-Spalte gehört der
+                              // Komponente (`z-30` im dayHeaderRow-Slot), nicht
+                              // dem Aufrufer — ein Zahlenwert hier wäre ein
+                              // hartkodierter z-index neben einer Skala, die er
+                              // nicht kennt.
+                              dayHeaderRow: 'sticky top-0 bg-surface-base'
                             }}
                             onNavigate={(date) => (windowStart = date)}
                           />

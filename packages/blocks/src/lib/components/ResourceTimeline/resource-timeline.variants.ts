@@ -39,9 +39,16 @@ export const resourceTimelineVariants = tv({
     // it, so the day header scrolls in lockstep with the lanes.
     track: ['w-full overflow-x-auto overscroll-x-contain', '[--rt-bar-inset:2px]'],
 
-    // Day-axis header
+    // Day-axis header. `z-30` is inert as long as the row is not positioned
+    // (a non-positioned block child ignores z-index) — it is there for the
+    // consumer who caps the track's height and pins this row with
+    // `slotClasses.dayHeaderRow: 'sticky top-0 bg-surface-base'`: the row has to
+    // outrank the resource column, which sticks to the left at `z-20`, and at
+    // equal values the later element in the DOM — a lane label — paints over the
+    // date strip. The relationship between the two is the component's to own,
+    // not the call site's (the docs landing had the number and its gate said so).
     dayHeaderRow: [
-      'grid grid-cols-[var(--rt-cols)] min-w-[var(--rt-min-w)]',
+      'z-30 grid grid-cols-[var(--rt-cols)] min-w-[var(--rt-min-w)]',
       'border-b border-border-subtle'
     ],
     corner: [
