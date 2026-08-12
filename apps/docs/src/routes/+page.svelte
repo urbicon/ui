@@ -12,9 +12,10 @@
   Familien-Kanal der Auswahl als Farb-Echo. Zeile 3: ein Befehl, ein Satz, ein
   Ergebnis — drei Vollton-Schritte (Ink → Agents-Grün → Magenta), von denen der
   dritte die im zweiten bestellte Farbe trägt und eine echte BookingCard darauf
-  zeigt. Fußzeile auf Ink: die Türen nach draußen, die die Zeilen darüber
-  bewusst nicht haben. Alle Farben aus dem generierten Register
-  ($lib/landing/channels).
+  zeigt. Über allem eine schmale Ink-Kopfleiste (LandingHeader): die vier
+  meistgebrauchten Türen plus Suche, sticky — die Seitenmitte war sonst türlos.
+  Fußzeile auf Ink: die vollständige Liste der Türen nach draußen. Alle Farben
+  aus dem generierten Register ($lib/landing/channels).
   Konzept: docs/internal/LANDING-CONCEPT-2026-07.md → "Struktur v2".
 -->
 <!-- urbicon-ignore important-modifier — the `!` modifiers are all slot overrides
@@ -51,14 +52,8 @@
   } from '$lib/landing/schedule';
   import { HOUSES as GROUP_HOUSES, GROUP_NAME, ROOM_TYPES } from '$lib/hotel-tools';
   import AgentReplay from '$lib/landing/AgentReplay.svelte';
-  import {
-    BRAND,
-    BRAND_SUFFIX,
-    CLAIM_LEAD,
-    CLAIM_POINT,
-    EYEBROW,
-    PROOF
-  } from '$lib/landing/wordmark';
+  import LandingHeader from '$lib/landing/LandingHeader.svelte';
+  import { BRAND, BRAND_SUFFIX, CLAIM_LEAD, CLAIM_POINT, PROOF } from '$lib/landing/wordmark';
   import { asset } from '$app/paths';
   import { REPO_URL } from '$lib/seo';
   import BookingCard from '$lib/hotel/BookingCard.svelte';
@@ -81,7 +76,6 @@
     Scroller,
     SegmentGroup,
     SegmentItem,
-    ThemeSwitcher,
     Toggle
   } from '@urbicon-ui/blocks';
   import { I18nProvider } from '@urbicon-ui/i18n';
@@ -287,11 +281,18 @@
   // Auf Gruppen-Maßstab (344 guests) liest die Mitte auch nicht versehentlich
   // als „100 %", wie es eine 68/32-Summe täte.
   const GROUP_RETURNING = HOUSES.reduce((n, h) => n + h.returning, 0); // 220
+  // Explizite Serienfarben, damit die Textzeile neben dem Ring dieselben Töne
+  // als Punkte tragen kann — ohne sie waren die zwei Segmente nicht zuordenbar.
   const returnMix = $derived([
-    { label: 'Returning', value: activeHouse?.returning ?? GROUP_RETURNING },
+    {
+      label: 'Returning',
+      value: activeHouse?.returning ?? GROUP_RETURNING,
+      color: 'var(--color-primary)'
+    },
     {
       label: 'First stay',
-      value: (activeHouse?.guests ?? GROUP_GUESTS) - (activeHouse?.returning ?? GROUP_RETURNING)
+      value: (activeHouse?.guests ?? GROUP_GUESTS) - (activeHouse?.returning ?? GROUP_RETURNING),
+      color: 'var(--color-neutral-500)'
     }
   ]);
   // Freie Zimmer heute Nacht: der unbelegte Anteil des Bestands — Bestand aus
@@ -325,38 +326,70 @@
   // Ankünfte der GRUPPE je Wochentag (Index 0 = Montag) — dieselben Summen,
   // die der Chart der Overview zeichnet: alle sieben Tage, Wochenende voran.
   const GROUP_DAY_TOTALS = [34, 28, 32, 39, 58, 71, 44];
-  // Ein Zeitraster zeigt einen Empfang, keine Gruppe: drei Häuser übereinander
-  // wären Tapete. Die Ansicht zeigt darum EIN Haus — das gewählte, sonst das
-  // Stammhaus — und die Kopfzeile sagt es. Der Umschalter dafür steht schon
-  // da: die Belegungszeilen der Overview.
-  const scheduleHouse = $derived(activeHouse ?? HOUSES[0]);
+  // Die Empfangswoche der GRUPPE, EINMAL erzeugt (warum Tresen-Lanes, warum
+  // disjunkte Namens-Drittel: Kopf von $lib/landing/schedule). Die
+  // Einzelhaus-Sicht ist ein FILTER dieser einen Menge, kein zweiter
+  // Generator-Lauf — sonst wechselten Gäste beim Umschalten des
+  // Geltungsbereichs das Haus (Review-Befund 2026-08-12: vier Duna-Gäste
+  // standen einen Klick später bei Cala).
+  const houseShare = (h: House) =>
+    GROUP_DAY_TOTALS.map((n) => Math.round(n * (h.guests / GROUP_GUESTS)));
+  const groupSchedule = $derived(
+    HOUSES.flatMap((h, i) =>
+      buildSchedule({
+        weekStart,
+        perDay: houseShare(h),
+        houseName: h.name,
+        guestPool: (i % 3) as 0 | 1 | 2
+      })
+    ).sort((a, b) => a.start.getTime() - b.start.getTime())
+  );
   const scheduleEvents = $derived(
-    buildSchedule({
-      weekStart,
-      // Der Anteil des Hauses an den Tagessummen der Gruppe. Dass der Samstag
-      // im Raster sichtbar voller ist als der Dienstag, ist keine Deko: es ist
-      // dieselbe Kurve, die der Chart eine Ansicht weiter zeichnet.
-      perDay: GROUP_DAY_TOTALS.map((n) => Math.round(n * (scheduleHouse.guests / GROUP_GUESTS)))
-    })
+    activeHouse ? groupSchedule.filter((e) => e.meta?.house === activeHouse.name) : groupSchedule
   );
   // Breit das Tages-Zeitraster, schmal die Agenda desselben Tages: dieselben
   // Vorgänge als Liste, die Form, die ein Telefon ohnehin verlangt.
   const wideEnoughForGrid = new MediaQuery('(min-width: 48rem)', true);
   const scheduleView = $derived(wideEnoughForGrid.current ? 'day' : 'agenda');
+  // Schmal bekommt die Agenda NUR die Ereignisse des heutigen Tages: die
+  // Agenda-Ansicht ankert am Monatsersten, `agendaDays={1}` zeigte damit fast
+  // immer einen leeren 1. (#95-Kommentar), und ungefiltert wäre die Liste die
+  // ganze Woche und begänne zwei Tage in der Vergangenheit (Review-Befund
+  // 2026-08-12: 390 Einträge, der heutige Tag erst ~3.800 px tief).
+  const sameLocalDay = (a: Date, b: Date) =>
+    a.getFullYear() === b.getFullYear() &&
+    a.getMonth() === b.getMonth() &&
+    a.getDate() === b.getDate();
+  const visibleScheduleEvents = $derived(
+    scheduleView === 'agenda'
+      ? scheduleEvents.filter((e) => sameLocalDay(e.start, today))
+      : scheduleEvents
+  );
+  // Die Stundenhöhe rechnet sich aus der gemessenen Bühne: Host-Höhe minus
+  // gemessenem Chrome über dem Raster (Legendenzeile + Datumsleiste +
+  // Tageskopf = 104 px), verteilt auf die SIEBEN Stunden des Empfangstags.
+  // Erst das Sieben-Stunden-Fenster macht die Rechnung lebendig — mit acht
+  // lag der Wert am 72vh-Kachel-Deckel auf JEDER Bildschirmgröße unter dem
+  // 40-px-Boden und die ganze Messkette war tote Mechanik (Review-Befund
+  // 2026-08-12, sechs Viewports). Kleine Bühnen (Laptop-Höhen) scrollen
+  // weiterhin innen; dafür stehen die Scroll-Schatten der Karte. Die
+  // Host-Höhe ist von außen fixiert (Grid-Zeile der Karte), die Messung
+  // schaukelt sich nicht am eigenen Ergebnis auf.
+  let scheduleHostHeight = $state(0);
+  const scheduleHourHeight = $derived(
+    Math.max(40, Math.floor((scheduleHostHeight - 104) / (SCHEDULE_END_HOUR - SCHEDULE_START_HOUR)))
+  );
   // Fest auf `en-GB`, nicht auf die Laufzeit-Locale: die Seite ist auf `en`
   // gepinnt, und ein 24-Stunden-Format neben einem 24-Stunden-Zeitraster ist
   // das, was zusammenpasst.
   const TIME_FMT = new Intl.DateTimeFormat('en-GB', { hour: '2-digit', minute: '2-digit' });
 
-  // Die Unterzeile der Karte. In der Schedule-Ansicht nennt sie IMMER ein Haus,
-  // auch wenn keins gewählt ist — sonst verspräche „All three houses" über einem
-  // Zeitraster, das nur eines zeigt.
+  // Die Unterzeile der Karte. Seit die Schedule-Sicht bei „All" wirklich alle
+  // drei Häuser mischt (das Haus je Vorgang nennen Hover-Popover und
+  // Agenda-Eintrag — im 20-px-Rasterblock ist die zweite Zeile nicht lesbar),
+  // braucht sie keine Sonderregel mehr.
   const cardSubtitle = $derived(
-    dashView === 'schedule'
-      ? `${scheduleHouse.name} · ${scheduleHouse.city}`
-      : activeHouse
-        ? `${activeHouse.name} · ${activeHouse.city}`
-        : 'All three houses'
+    activeHouse ? `${activeHouse.name} · ${activeHouse.city}` : 'All three houses'
   );
 
   // ── Flow: woher die 344 Gäste kommen und wo sie schlafen ───────────
@@ -378,27 +411,36 @@
     { id: 'suite', label: 'Suite', intent: 'neutral' as const }
   ];
   const FLOW_LINKS = [
-    { source: 'direct', target: 'cala', value: 58 },
-    { source: 'direct', target: 'firn', value: 30 },
-    { source: 'direct', target: 'duna', value: 62 },
-    { source: 'website', target: 'cala', value: 51 },
-    { source: 'website', target: 'firn', value: 22 },
-    { source: 'website', target: 'duna', value: 55 },
-    { source: 'partners', target: 'cala', value: 23 },
-    { source: 'partners', target: 'firn', value: 12 },
-    { source: 'partners', target: 'duna', value: 31 },
-    { source: 'cala', target: 'room', value: 40 },
-    { source: 'cala', target: 'garden', value: 34 },
-    { source: 'cala', target: 'corner', value: 32 },
-    { source: 'cala', target: 'suite', value: 26 },
-    { source: 'firn', target: 'room', value: 26 },
-    { source: 'firn', target: 'garden', value: 14 },
-    { source: 'firn', target: 'corner', value: 11 },
-    { source: 'firn', target: 'suite', value: 13 },
-    { source: 'duna', target: 'room', value: 47 },
-    { source: 'duna', target: 'garden', value: 37 },
-    { source: 'duna', target: 'corner', value: 33 },
-    { source: 'duna', target: 'suite', value: 31 }
+    // Stufe 1 fließt in secondary — dem Ton der Haus-Säulen, in die sie
+    // mündet. Farbe BEDEUTET im Fluss damit genau eines, den Zimmertyp
+    // (Stufe 2); erbten die Kanal-Kanten ihre Knoten-Intents, hieße Orange
+    // links „Direct" und rechts „Room" im selben Bild (Review-Befund
+    // 2026-08-12). Die Kanal-Knoten selbst bleiben farbig unterscheidbar.
+    { source: 'direct', target: 'cala', value: 58, intent: 'secondary' as const },
+    { source: 'direct', target: 'firn', value: 30, intent: 'secondary' as const },
+    { source: 'direct', target: 'duna', value: 62, intent: 'secondary' as const },
+    { source: 'website', target: 'cala', value: 51, intent: 'secondary' as const },
+    { source: 'website', target: 'firn', value: 22, intent: 'secondary' as const },
+    { source: 'website', target: 'duna', value: 55, intent: 'secondary' as const },
+    { source: 'partners', target: 'cala', value: 23, intent: 'secondary' as const },
+    { source: 'partners', target: 'firn', value: 12, intent: 'secondary' as const },
+    { source: 'partners', target: 'duna', value: 31, intent: 'secondary' as const },
+    // Stufe 2 trägt den Zimmertyp als expliziten Link-intent — dieselben vier
+    // Töne wie Umsatzmix und Raster-Legende. Ohne ihn erbten alle zwölf Kanten
+    // das secondary der Häuser, und die rechte Bildhälfte war ein einziger
+    // einfarbiger Strang (Screenshot-Befund 2026-08-12).
+    { source: 'cala', target: 'room', value: 40, intent: 'primary' as const },
+    { source: 'cala', target: 'garden', value: 34, intent: 'success' as const },
+    { source: 'cala', target: 'corner', value: 32, intent: 'warning' as const },
+    { source: 'cala', target: 'suite', value: 26, intent: 'neutral' as const },
+    { source: 'firn', target: 'room', value: 26, intent: 'primary' as const },
+    { source: 'firn', target: 'garden', value: 14, intent: 'success' as const },
+    { source: 'firn', target: 'corner', value: 11, intent: 'warning' as const },
+    { source: 'firn', target: 'suite', value: 13, intent: 'neutral' as const },
+    { source: 'duna', target: 'room', value: 47, intent: 'primary' as const },
+    { source: 'duna', target: 'garden', value: 37, intent: 'success' as const },
+    { source: 'duna', target: 'corner', value: 33, intent: 'warning' as const },
+    { source: 'duna', target: 'suite', value: 31, intent: 'neutral' as const }
   ];
   // Der Fluss bleibt bei einer Hausauswahl vollständig — die Gesamtsumme ist
   // der Punkt der Ansicht —, aber alles, was nicht durch das gewählte Haus
@@ -420,11 +462,22 @@
         : { ...l, intent: 'neutral' as const }
     )
   );
+  // Sankey-Höhe aus der gemessenen Bühne statt fixer 264 px: die Karte ist so
+  // hoch wie die Kachel (72vh-Klammer), und ein fixes SVG ließ auf großen
+  // Bühnen ein halbes Kartenfeld leer. Abzug 30 px = gemessener Chrome über
+  // dem SVG (Kopfzeile 18 + mt-3 12); Boden 200, weil der alte 264er-Boden
+  // auf 900-px-Schirmen die Ansicht um 7 px überlaufen ließ (beides
+  // Review-Befunde 2026-08-12).
+  let flowHostHeight = $state(0);
+  const flowHeight = $derived(Math.max(200, flowHostHeight - 30));
 
   // ── Table: die heutigen Ankünfte der GRUPPE, gruppiert nach Haus ──
   // Häuser und Zimmertypen aus $lib/hotel-tools, Raten = Typpreis × Nächte.
-  // Die Gäste sind dieselben Namen, die die Empfangswoche der Schedule-Ansicht
-  // zeigt — ein Universum, eine Gästeliste.
+  // Die Gäste sind Namen aus der Gästeliste der Schedule-Ansicht, und ihre
+  // Haus-Zuordnung folgt DERSELBEN Drittel-Partition (CLIENTS-Index % 3,
+  // $lib/landing/schedule): wo ein Name im Raster auftaucht, trägt er dort
+  // dasselbe Haus wie hier. Vorher widersprachen sich Tabelle und Raster für
+  // bis zu 10 von 15 Gästen sichtbar (Review-Befund 2026-08-12).
   interface Arrival {
     id: string;
     house: 'Cala' | 'Firn' | 'Duna';
@@ -453,21 +506,21 @@
       id: 'a2',
       house: 'Cala',
       time: '14:30',
-      guest: 'J. Laurent',
+      guest: 'G. Halloran',
       room: 'Room',
-      nights: 2,
+      nights: 4,
       status: 'confirmed',
-      rate: 480
+      rate: 960
     },
     {
       id: 'a3',
       house: 'Cala',
-      time: '15:15',
-      guest: 'A. Reyes',
-      room: 'Suite',
+      time: '15:00',
+      guest: 'H. Sørensen',
+      room: 'Garden',
       nights: 4,
-      status: 'pending',
-      rate: 2080
+      status: 'confirmed',
+      rate: 1200
     },
     {
       id: 'a4',
@@ -482,35 +535,25 @@
     {
       id: 'a5',
       house: 'Cala',
-      time: '16:45',
-      guest: 'E. Sato',
-      room: 'Corner',
-      nights: 5,
-      status: 'confirmed',
-      rate: 1800
+      time: '17:15',
+      guest: 'J. Kovács',
+      room: 'Room',
+      nights: 2,
+      status: 'same-day',
+      rate: 480
     },
     {
       id: 'a6',
-      house: 'Cala',
-      time: '17:30',
-      guest: 'P. Whitfield',
-      room: 'Garden',
+      house: 'Firn',
+      time: '14:30',
+      guest: 'J. Laurent',
+      room: 'Room',
       nights: 2,
       status: 'confirmed',
-      rate: 600
+      rate: 480
     },
     {
       id: 'a7',
-      house: 'Firn',
-      time: '14:30',
-      guest: 'G. Halloran',
-      room: 'Room',
-      nights: 4,
-      status: 'confirmed',
-      rate: 960
-    },
-    {
-      id: 'a8',
       house: 'Firn',
       time: '15:45',
       guest: 'S. Duran',
@@ -520,8 +563,68 @@
       rate: 1080
     },
     {
+      id: 'a8',
+      house: 'Firn',
+      time: '16:15',
+      guest: 'A. Beck',
+      room: 'Corner',
+      nights: 3,
+      status: 'pending',
+      rate: 1080
+    },
+    {
       id: 'a9',
       house: 'Firn',
+      time: '16:45',
+      guest: 'E. Sato',
+      room: 'Corner',
+      nights: 5,
+      status: 'confirmed',
+      rate: 1800
+    },
+    {
+      id: 'a10',
+      house: 'Firn',
+      time: '18:00',
+      guest: 'O. Adebayo',
+      room: 'Suite',
+      nights: 5,
+      status: 'confirmed',
+      rate: 2600
+    },
+    {
+      id: 'a11',
+      house: 'Duna',
+      time: '14:15',
+      guest: 'C. Waweru',
+      room: 'Room',
+      nights: 2,
+      status: 'confirmed',
+      rate: 480
+    },
+    {
+      id: 'a12',
+      house: 'Duna',
+      time: '15:15',
+      guest: 'A. Reyes',
+      room: 'Suite',
+      nights: 4,
+      status: 'pending',
+      rate: 2080
+    },
+    {
+      id: 'a13',
+      house: 'Duna',
+      time: '16:30',
+      guest: 'T. Csorba',
+      room: 'Garden',
+      nights: 6,
+      status: 'confirmed',
+      rate: 1800
+    },
+    {
+      id: 'a14',
+      house: 'Duna',
       time: '17:00',
       guest: 'R. Lindqvist',
       room: 'Suite',
@@ -532,62 +635,12 @@
     {
       id: 'a15',
       house: 'Duna',
-      time: '14:15',
-      guest: 'C. Waweru',
-      room: 'Room',
+      time: '17:30',
+      guest: 'P. Whitfield',
+      room: 'Garden',
       nights: 2,
       status: 'confirmed',
-      rate: 480
-    },
-    {
-      id: 'a16',
-      house: 'Duna',
-      time: '15:00',
-      guest: 'H. Sørensen',
-      room: 'Garden',
-      nights: 4,
-      status: 'confirmed',
-      rate: 1200
-    },
-    {
-      id: 'a17',
-      house: 'Duna',
-      time: '15:45',
-      guest: 'A. Beck',
-      room: 'Corner',
-      nights: 3,
-      status: 'pending',
-      rate: 1080
-    },
-    {
-      id: 'a18',
-      house: 'Duna',
-      time: '16:30',
-      guest: 'T. Csorba',
-      room: 'Garden',
-      nights: 6,
-      status: 'confirmed',
-      rate: 1800
-    },
-    {
-      id: 'a19',
-      house: 'Duna',
-      time: '17:15',
-      guest: 'J. Kovács',
-      room: 'Room',
-      nights: 2,
-      status: 'same-day',
-      rate: 480
-    },
-    {
-      id: 'a20',
-      house: 'Duna',
-      time: '18:00',
-      guest: 'O. Adebayo',
-      room: 'Suite',
-      nights: 5,
-      status: 'confirmed',
-      rate: 2600
+      rate: 600
     }
   ];
 
@@ -686,6 +739,9 @@
   // Zustand innerhalb einer Ansicht, keine Navigation — dieselbe Einordnung wie
   // Sortierung oder Filter. Am Deeplink ändert das nichts: `?c=calendar` lädt
   // unverändert dieselbe Ansicht, geteilte Links bleiben gültig.
+  /** Ziel des Beobachters der Kopfleiste: die große Marke (LandingHeader). */
+  let brandEl = $state<HTMLElement | undefined>();
+
   const [selectedSlug, setSelectedSlug] = useUrlParam<string | null>('c', {
     parse: (sp) => sp.get('c'),
     serialize: (value) => new URLSearchParams(value ? { c: value } : {}),
@@ -757,20 +813,14 @@
 <!-- Englisch gepinnt wie im Hero: sonst rutschen Playground-Labels und
      Calendar-Monatsnamen in die Browser-Sprache, mitten in eine englische Seite. -->
 <I18nProvider locale="en">
+  <LandingHeader watch={brandEl} />
   <main class="proto" lang="en">
     <!-- ── Zeile 1: erinnern + staunen ─────────────────────────────── -->
     <section class="row1" aria-label="Hero">
       <div class="name-tile">
-        <div class="tile-head">
-          <p class="eyebrow">{EYEBROW}</p>
-          <!-- Die Kachel ist in beiden Modi Ink; der `color-scheme: dark`-Scope
-               lässt die Tokens des Switchers dunkel auflösen (helles Icon auf
-               dunklem Grund), wie bei der LiveryTile. Persistenz + <html>-Klasse
-               teilen sich Landing und Doku-Chrome (gleicher localStorage-Key). -->
-          <div style="color-scheme: dark">
-            <ThemeSwitcher size="sm" />
-          </div>
-        </div>
+        <!-- Eyebrow und ThemeSwitcher wohnen seit 2026-08-12 in der Kopfleiste
+             (LandingHeader) — die Kachel ist reine Titelseite: Name mittig,
+             Beweis unten. -->
         <div class="name-mid">
           <!-- The page h1. It was a `<p>`, so the site's own front page had no
                top-level heading at all: the outline started at h2 and heading
@@ -782,7 +832,7 @@
                the h1 was named "urbicon ui Highlights" (measured). `aria-label`
                pins the name to the wordmark; the five buttons stay in the tree,
                focusable and individually named. -->
-          <h1 class="brand" aria-label={`${BRAND} ${BRAND_SUFFIX}`}>
+          <h1 class="brand" aria-label={`${BRAND} ${BRAND_SUFFIX}`} bind:this={brandEl}>
             {BRAND} <span class="brand-suffix">{BRAND_SUFFIX}</span><span
               class="ticks"
               role="group"
@@ -904,16 +954,22 @@
                              und der Umsatzmix vier Farben ohne Aussage
                              (Review-Befund 2026-08-10). Der Chart nimmt die
                              volle Kartenbreite; die Legende ist an, weil zwei
-                             ungelabelte Serien nicht selbsterklärend sind. -->
+                             ungelabelte Serien nicht selbsterklärend sind.
+                             Gestapelt, weil Same-day ein TEIL der Tages-
+                             ankünfte ist: als eigene Fläche kroch die kleine
+                             Serie (4–11 gegen 24–60) als Strich am Chart-Boden
+                             und las sich als Renderfehler; als Band auf
+                             Reserved ist die Summe die Kurve — dieselben
+                             Tagessummen, deren Dichte das Zeitraster zeigt. -->
                         <div>
                           <p class="dash-sub">Arrivals this week</p>
                           <div class="blk mt-2" data-blk="AreaChart">
                             <AreaChart
                               data={bookingsData}
                               series={BOOKING_SERIES}
-                              height={84}
+                              height={96}
                               showLegend
-                              fillOpacity={0.25}
+                              stacked
                             />
                           </div>
                         </div>
@@ -950,8 +1006,15 @@
                                   />
                                 </div>
                                 <p class="aside-note">
-                                  <strong>{returnMix[0].value}</strong> returning ·
-                                  <strong>{returnMix[1].value}</strong> first stay
+                                  <span class="mix-pair"
+                                    ><span class="mix-dot" style:background={returnMix[0].color}
+                                    ></span><strong>{returnMix[0].value}</strong> returning</span
+                                  >
+                                  ·
+                                  <span class="mix-pair"
+                                    ><span class="mix-dot" style:background={returnMix[1].color}
+                                    ></span><strong>{returnMix[1].value}</strong> first stay</span
+                                  >
                                 </p>
                               </div>
                             </div>
@@ -959,11 +1022,14 @@
                           <div class="dash-side">
                             <div class="dash-head">
                               <p class="dash-sub">
-                                {activeHouse ? 'Occupancy · on duty' : 'Occupancy today'}
+                                {activeHouse ? 'Occupancy · on duty' : 'Occupancy today · on duty'}
                               </p>
                               <!-- Die Gesichter sind nicht mehr Deko: sie zeigen
                                    das Team des gewählten Hauses und wechseln mit
-                                   ihm. -->
+                                   ihm. Die Zeile benennt sie in BEIDEN Sichten
+                                   („on duty") — unbeschriftete Status-Avatare
+                                   neben einer Belegungsliste waren ein
+                                   Fragezeichen (Screenshot-Befund 2026-08-12). -->
                               <div class="blk" data-blk="AvatarGroup">
                                 <AvatarGroup items={team} max={4} size="sm" />
                               </div>
@@ -1002,30 +1068,46 @@
                         </div>
                       </div>
                     {:else if dashView === 'schedule'}
-                      <!-- Der Empfangstag EINES Hauses: Abreisen am Vormittag,
-                           Ankünfte am Nachmittag, jeder Block ein Vorgang am
-                           Tresen. Bewusst EIN Tag statt der Wochenansicht der
-                           ersten Fassung — sieben Spalten à ~10 Vorgänge waren
-                           Tapete, und ein Zeitraster erzählt Belegung ohnehin
-                           falsch (Aufenthalte sind Tage, keine Stunden; eine
-                           Resource-Timeline hat der Calendar nicht). Die
-                           Wochen-Dichte erzählt der Chart der Overview.
-                           `{#key}`, weil `defaultDate` laut Vertrag nur beim
-                           Mounten gelesen wird — der Schwenk vom Anker- auf
-                           das echte Heute nach der Hydration käme sonst nie
-                           an. Kein Wischen: die Kachel liegt in einem
-                           waagerecht wischbaren Band, und dort muss die Geste
-                           die Kachel wechseln, nicht den Tag. -->
-                      <div class="view-host">
-                        <p class="dash-sub">Front desk — departures, then arrivals</p>
+                      <!-- Der Empfangstag der Gruppe im Zeitraster — warum
+                           parallele Tresen, disjunkte Gäste-Drittel und EIN
+                           Tag statt einer Woche, steht am Kopf von
+                           $lib/landing/schedule (die eine Stelle für diese
+                           Erzählung); Belegung wäre die Resource-Timeline
+                           (#185). Das Hover-/Fokus-Popover ist an: im
+                           20-px-Block ist die zweite Zeile (Haus · Typ) nicht
+                           lesbar, das Popover nennt beides. `{#key}`, weil
+                           `defaultDate` laut Vertrag nur beim Mounten gelesen
+                           wird — der Schwenk vom Anker- auf das echte Heute
+                           nach der Hydration käme sonst nie an. Kein Wischen:
+                           die Kachel liegt in einem waagerecht wischbaren
+                           Band, und dort muss die Geste die Kachel wechseln,
+                           nicht den Tag. -->
+                      <div class="view-host" bind:clientHeight={scheduleHostHeight}>
+                        <!-- Die Zimmertyp-Legende steht HIER in der Kopfzeile,
+                             die komponenteneigene ist aus (showLegend unten):
+                             die säße unterhalb der View und läge genau dann im
+                             unsichtbaren Scroll-Rest, wenn das Raster die
+                             Bühne füllt — eine Legende, die man nur per Scroll
+                             findet, erklärt nichts. -->
+                        <div class="legend-row">
+                          <p class="dash-sub">Front desk — departures, then arrivals</p>
+                          <p class="dash-sub">
+                            {#each ROOM_CATEGORIES as c (c.id)}
+                              <span class="mix-pair"
+                                ><span class="mix-dot" style:background={c.color}
+                                ></span>{c.label}</span
+                              >
+                            {/each}
+                          </p>
+                        </div>
                         <div class="blk mt-2" data-blk="Calendar">
                           {#key `${today.getTime()}-${scheduleView}`}
                             <Calendar
-                              events={scheduleEvents}
+                              events={visibleScheduleEvents}
                               categories={ROOM_CATEGORIES}
                               view={scheduleView}
                               views={[scheduleView]}
-                              agendaDays={1}
+                              agendaDays={31}
                               showViewSwitcher={false}
                               defaultDate={today}
                               size="sm"
@@ -1033,21 +1115,32 @@
                               timeGridStartHour={SCHEDULE_START_HOUR}
                               timeGridEndHour={SCHEDULE_END_HOUR}
                               timeGridInterval={60}
+                              timeGridHourHeight={scheduleHourHeight}
                               showEventList={false}
                               swipeable={false}
                               showLegend={false}
+                              eventPopover
                               eventItem={agendaItem}
+                              slotClasses={{
+                                // Die zweite Block-Zeile (Haus · Typ) passt bei
+                                // ~24 px Blockhöhe nur angeschnitten ins Raster
+                                // und las sich als Glitch — Popover und Agenda
+                                // tragen dieselbe Information vollständig.
+                                timeEvent: '[&>span:nth-of-type(2)]:hidden'
+                              }}
                             />
                           {/key}
                         </div>
                       </div>
                     {:else}
-                      <!-- Dieselben 440 Gäste wie im Donut, nur von der Seite
+                      <!-- Dieselben 344 Gäste wie im Donut, nur von der Seite
                            gesehen: Kanal → Haus → Zimmertyp. Die Kopfzeile
                            sagt, was fließt — ohne sie war der Sankey ein
                            unbeschriftetes Diagramm in einer leeren Karte
-                           (Review-Befund 2026-08-10). -->
-                      <div class="view-host">
+                           (Review-Befund 2026-08-10). Die Höhe ist gemessen
+                           (bind:clientHeight), nicht fix: ein 264-px-SVG in
+                           einer 72vh-Karte ließ das halbe Feld leer. -->
+                      <div class="view-host" bind:clientHeight={flowHostHeight}>
                         <p class="dash-sub">
                           Where {GROUP_GUESTS} guests came from — and where they sleep
                         </p>
@@ -1055,7 +1148,7 @@
                           <Sankey
                             nodes={flowNodes}
                             links={flowLinks}
-                            height={264}
+                            height={flowHeight}
                             nodeWidth={12}
                             nodePadding={10}
                             formatValue={(v) => `${v} guests`}
@@ -1436,9 +1529,12 @@
     </section>
 
     <!-- Die Seite endet, wo sie angefangen hat: derselbe Ink-Grund wie die
-         Namens-Kachel und wie Schritt 01, dieselbe Signatur. Bis hierher war
-         die Landing ohne jedes Chrom — die Türen nach draußen (Register,
-         Repo, Rechtliches) gehören genau hierher und nirgends höher. -->
+         Namens-Kachel und wie Schritt 01, dieselbe Signatur. Der Footer ist
+         die VOLLSTÄNDIGE Liste der Türen nach draußen (Register, Repo,
+         Maschinenlesbares, Rechtliches); die Kopfleiste darüber trägt nur die
+         vier meistgebrauchten. „Ohne jedes Chrom" galt bis 2026-08-12 — beim
+         Benutzen fehlte der direkte Sprung in die Docs, und die Suche gab es
+         auf der Landing nur als unsichtbares Tastenkürzel. -->
     <footer class="foot">
       <div class="foot-brand">
         <p class="brand-sm">
@@ -1493,9 +1589,10 @@
 
 <!-- Der Eintrag der Agenda-Ansicht (schmale Viewports). Eigener Snippet, weil
      der eingebaute Eintrag Titel, Beschreibung und Hilfstext rendert — aber
-     nie die Uhrzeit, auch bei `allDay: false` nicht. Eine Terminliste ohne
-     Uhrzeit ist keine. Das Zeitraster der Wochenansicht ist davon unberührt:
-     dort steht der Block an seiner Uhrzeit, eine zweite wäre Doppelung. -->
+     nie die Uhrzeit, auch bei `allDay: false` nicht (#95; sobald das landet,
+     kann dieser Snippet fallen). Eine Terminliste ohne Uhrzeit ist keine. Das
+     Zeitraster der Tagesansicht ist davon unberührt: dort steht der Block an
+     seiner Uhrzeit, eine zweite wäre Doppelung. -->
 {#snippet agendaItem({ event, category }: { event: CalendarEvent; category?: { color: string } })}
   <span class="agenda-row">
     <span class="agenda-bar" style:background={category?.color ?? 'var(--color-border-default)'}
@@ -1546,21 +1643,8 @@
     flex-direction: column;
     gap: 2rem;
   }
-  .tile-head {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    gap: 1rem;
-  }
-  .eyebrow {
-    font-family: 'JetBrains Mono', monospace;
-    font-size: 0.72rem;
-    text-transform: uppercase;
-    letter-spacing: 0.14em;
-    opacity: 0.6;
-  }
-  /* Name + Anspruch sitzen mittig zwischen Eyebrow und Fußzeile — die Kachel
-     ist eine Titelseite, keine Kopfzeile mit Anhang. */
+  /* Name + Anspruch sitzen mittig über der Fußzeile — die Kachel ist eine
+     Titelseite, keine Kopfzeile mit Anhang (Eyebrow: siehe LandingHeader). */
   .name-mid {
     flex: 1;
     display: flex;
@@ -1822,6 +1906,11 @@
     display: grid;
     gap: 0.75rem;
     min-width: 0;
+    /* Die Spaltenzeile nimmt die Resthöhe des Bodys — erst damit greift das
+       space-between in den Spalten. Ohne dieses Wachsen sammelte sich die
+       Resthöhe als Loch zwischen Donut und Fußzeile (Screenshot-Befund
+       2026-08-12). */
+    flex: 1;
   }
   /* Einspaltig (schmale Karte) steht die Auslastung der Häuser VOR dem
      Umsatzmix: sie ist die Aussage der Kachel, und was hier unten steht,
@@ -1840,6 +1929,9 @@
   @container (min-width: 30rem) {
     .dash-cols {
       grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+      /* Die eine Grid-Zeile spannt die volle Resthöhe auf — sonst bliebe das
+         flex-Wachsen der Zeile ohne Wirkung auf die Spalten darin. */
+      grid-template-rows: minmax(0, 1fr);
       gap: 1.6rem;
       align-items: stretch;
     }
@@ -1864,9 +1956,38 @@
     justify-content: space-between;
     gap: 1rem;
   }
-  /* Planner und Sankey bekommen die Bühne der Karte allein — und füllen sie:
-     ohne das Strecken stünde ein Wochenraster mit drei Terminen je Spalte oben
-     im Kasten und ließe darunter ein halbes Kartenfeld leer.
+  /* Farbpunkte für Donut-Textzeile und Schedule-Legende — dieselben Töne wie
+     die Flächen, die sie erklären. Ein Paar aus Punkt und Wort bricht nie
+     intern um (.mix-pair), sonst hängt ein Punkt allein am Zeilenende. */
+  .mix-dot {
+    display: inline-block;
+    /* 10 px, nicht 8: die Punkte sind bedeutungstragende Grafik, und der
+       Corner-Ton liegt im Hellmodus unter 3:1 — Größe ist der Hebel, der ohne
+       Eingriff ins Token-System bleibt (Review-Befund 2026-08-12). */
+    inline-size: 0.625rem;
+    block-size: 0.625rem;
+    border-radius: 50%;
+    margin-inline-end: 0.3rem;
+  }
+  .mix-pair {
+    white-space: nowrap;
+  }
+  .mix-pair + .mix-pair {
+    margin-inline-start: 0.55rem;
+  }
+  /* Kopfzeile der Schedule-Ansicht: Untertitel links, Legende rechts. */
+  .legend-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+    gap: 0.5rem 1rem;
+    flex-wrap: wrap;
+  }
+  /* Zeitraster und Sankey bekommen die Bühne der Karte allein — und füllen
+     sie doppelt: der Host streckt sich (flex), und beide Bauteile rechnen ihre
+     Pixelhöhe zusätzlich aus der gemessenen Host-Höhe (timeGridHourHeight
+     bzw. height), denn ein gestrecktes Wrapper-Div macht ein fixes SVG oder
+     Stundenraster nicht höher.
      Der Scroll-Container und das Bauteil sind absichtlich ZWEI Elemente: trug
      ein Element beide Rollen, schnitt es im Röntgenbild sein eigenes
      Namensschild ab — das sitzt über der Oberkante, und ein `overflow: auto`
