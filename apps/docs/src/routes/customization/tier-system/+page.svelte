@@ -15,9 +15,9 @@
   let demoTier = $state<'commit' | 'modify'>('commit');
   let commitOverride = $state('9999px');
 
-  const tokenExample = `/* foundation.css — the three tier tokens */
+  const tokenExample = `/* foundation.css — the tier tokens */
 @theme {
-  --radius-commit:  9999px;                    /* pill — Button, ButtonGroup, Toolbar */
+  --radius-commit:  9999px;                    /* pill — Button, ButtonGroup, Badge */
   --radius-modify:  var(--radius-sm);          /* tap surface — Input, Select, Tab */
   --radius-contain: var(--radius-xs);          /* container — Card, Alert, Dialog */
   --radius-bridge:  var(--radius-md);          /* middle rung — adjacency + small content surfaces */
@@ -55,13 +55,13 @@
 </script>
 
 <SeoMeta
-  title="Tier System"
-  description="The three-tier semantic radius system (commit / modify / contain) — how Urbicon UI primitives pick a border-radius and how consumers override per brand or per scope."
+  title="Radius Tiers"
+  description="The three-tier semantic radius system (commit / modify / contain): how Urbicon UI primitives pick a border-radius and how consumers override per brand or per scope."
 />
 
 <DocsPageLayout
-  title="Tier System"
-  description="A semantic vocabulary for border-radius. Three tiers — commit, modify, contain — let components, brand themes, and inline overrides speak the same language without anyone reaching for a raw pixel value."
+  title="Radius Tiers"
+  description="A semantic vocabulary for border-radius. Three tiers (commit, modify, contain) let components, brand themes, and inline overrides speak the same language without anyone reaching for a raw pixel value."
   {navigation}
   showToc
   breadcrumbs={[{ label: 'Customization', href: resolve('/customization') }]}
@@ -71,68 +71,71 @@
     <p class="text-text-secondary mb-6 leading-relaxed">
       Every primitive in the library belongs to exactly one of three tiers. The tier dictates the
       component's default radius and how it responds to a wrapping context. Brands tune the visual
-      identity by changing the three token values once; component code never touches a raw pixel
-      value.
+      identity by changing the three token values once, e.g.
+      <code class="text-text-primary">@theme {'{'} --radius-commit: var(--radius-lg); {'}'}</code>
+      (<a href="#override-pathway" class="text-primary hover:underline">Override Pathway</a>);
+      component code never touches a raw pixel value.
     </p>
 
+    <!-- Each swatch is shaped like the tier's typical component (pill button,
+         input field, panel) — on identical 64px squares, modify's ~4px and
+         contain's ~2px were indistinguishable, which is exactly the
+         optical-size effect the Bridge section below describes. -->
     <div
       class="border-border-subtle bg-surface-elevated mb-6 grid gap-4 rounded-2xl border p-6 sm:grid-cols-3"
     >
       <div class="text-center">
-        <div class="bg-primary rounded-commit mx-auto mb-3 h-16 w-16"></div>
+        <div class="bg-primary rounded-commit mx-auto mb-3 h-11 w-36"></div>
         <h3 class="text-text-primary mb-1 text-sm font-semibold">commit</h3>
         <p class="text-text-tertiary text-xs leading-relaxed">
-          Pill (9999px). Action, identity, status. Buttons, ButtonGroup, Badge, Toolbar,
-          SegmentGroup, Toggle, Stepper.
+          Pill (9999px). Action, identity, status. Buttons, ButtonGroup, Badge, SegmentGroup,
+          Toggle, Stepper.
         </p>
       </div>
       <div class="text-center">
-        <div class="bg-primary rounded-modify mx-auto mb-3 h-16 w-16"></div>
+        <div
+          class="border-primary rounded-modify bg-primary-subtle mx-auto mb-3 h-11 w-36 border-2"
+        ></div>
         <h3 class="text-text-primary mb-1 text-sm font-semibold">modify</h3>
         <p class="text-text-tertiary text-xs leading-relaxed">
-          Small (~4px). Tap surface, editable. Input, Select, Combobox, Textarea, Checkbox,
-          RadioGroup, Tab, Menu-Item.
+          Small (~4px). Tap surface, editable. Input, Select, Combobox, Textarea, Checkbox, Tab,
+          Menu-Item.
         </p>
       </div>
       <div class="text-center">
-        <div class="bg-primary rounded-contain mx-auto mb-3 h-16 w-16"></div>
+        <div
+          class="border-border-default rounded-contain bg-surface-base mx-auto mb-3 h-11 w-full border shadow-[var(--blocks-shadow-sm)]"
+        ></div>
         <h3 class="text-text-primary mb-1 text-sm font-semibold">contain</h3>
         <p class="text-text-tertiary text-xs leading-relaxed">
           Barely-rounded (~2px). Architectural surface, panel. Card, Alert, Dialog, Drawer, Tooltip,
-          Popover.
+          Popover, Toolbar (whose children inherit modify).
         </p>
       </div>
     </div>
 
-    <CodeExample title="The four tokens" code={tokenExample} language="css" preview={false} />
+    <CodeExample title="The tier tokens" code={tokenExample} language="css" preview={false} />
 
     <p class="text-text-tertiary mt-3 text-xs leading-relaxed">
       The token names are also the public-API vocabulary: a component reads <code
         class="text-text-primary">tier="commit"</code
       >
-      and applies <code class="text-text-primary">rounded-commit</code> — the contract is symmetric.
-    </p>
-    <p class="text-text-secondary mt-3 text-sm leading-relaxed">
-      One deliberate exception: the <strong>radio indicator</strong> reads
-      <code class="text-text-primary">--radius-control</code>, not the tier's radius. Its circle is
-      the only thing distinguishing it from a checkbox, so squaring the commit tier for austere
-      buttons used to square the radios along with them. The token defaults to the same
-      <code class="text-text-primary">9999px</code>, so nothing changes until you say so — set
-      <code class="text-text-primary">--radius-control</code> if you want square radios too. The
-      checkbox keeps following the tier: a pill-shaped box there is a look you asked for by writing
-      <code class="text-text-primary">tier="commit"</code>, not one a button theme imposed on you.
+      and applies <code class="text-text-primary">rounded-commit</code>. The contract is symmetric.
+      One exception: radio indicators keep their circle via
+      <code class="text-text-primary">--radius-control</code> (see
+      <a href="#override-pathway" class="text-primary hover:underline">Override Pathway</a>).
     </p>
   </Section>
 
   <!-- Tier-aware components ────────────────────────────────── -->
   <Section id="tier-aware-components" title="Tier-aware Components" class="mb-12">
     <p class="text-text-secondary mb-6 leading-relaxed">
-      Seven primitives expose a <code class="text-text-primary">tier</code> prop AND read from a
-      wrapping
-      <code class="text-text-primary">TierContext</code> when the prop is unset. The other
-      primitives use a fixed tier per component family — see
-      <a href={resolve('/blocks')} class="text-primary hover:underline">the Blocks index</a> for the per-component
-      defaults.
+      Interactive primitives take a <code class="text-text-primary">tier</code> prop and fall back
+      to a wrapping
+      <code class="text-text-primary">TierContext</code> when the prop is unset (<a
+        href={resolve('/blocks')}
+        class="text-primary hover:underline">the Blocks index</a
+      > carries the per-component defaults). The defaults worth knowing:
     </p>
 
     <div class="border-border-subtle bg-surface-base rounded-contain overflow-hidden border">
@@ -152,7 +155,7 @@
             <td class="text-text-primary px-4 py-3 font-medium">Button</td>
             <td class="px-4 py-3"><code>commit</code></td>
             <td class="px-4 py-3">Action</td>
-            <td class="px-4 py-3">Identity declaration — buttons read as decisive.</td>
+            <td class="px-4 py-3">Identity declaration: buttons read as decisive.</td>
           </tr>
           <tr>
             <td class="text-text-primary px-4 py-3 font-medium">Toggle</td>
@@ -187,7 +190,7 @@
             <td class="px-4 py-3"><code>modify</code></td>
             <td class="px-4 py-3">Form</td>
             <td class="px-4 py-3"
-              >Box is the canonical input-tap surface — modify is its native tier.</td
+              >Box is the canonical input-tap surface: modify is its native tier.</td
             >
           </tr>
           <tr>
@@ -247,10 +250,20 @@
   <!-- Override pathway ─────────────────────────────────────── -->
   <Section id="override-pathway" title="Override Pathway" class="mb-12">
     <p class="text-text-secondary mb-6 leading-relaxed">
-      The three tier tokens are CSS custom properties. Override them at any scope — global
+      The tier tokens are CSS custom properties. Override them at any scope: global
       <code class="text-text-primary">@theme</code> for brand identity, a wrapping selector for a
       stage-specific look, or an inline <code class="text-text-primary">style</code> attribute for one-off
       experiments. The same Button code re-flows across all three.
+    </p>
+    <p class="text-text-secondary mb-6 leading-relaxed">
+      One deliberate exception: the <strong>radio indicator</strong> reads
+      <code class="text-text-primary">--radius-control</code>, not the tier's radius. Its circle is
+      the only thing distinguishing it from a checkbox, so squaring the commit tier for austere
+      buttons used to square the radios along with them. The token defaults to the same
+      <code class="text-text-primary">9999px</code>, so nothing changes until you set
+      <code class="text-text-primary">--radius-control</code> yourself. The checkbox keeps following
+      the tier: a pill-shaped box there is a look you asked for by writing
+      <code class="text-text-primary">tier="commit"</code>, not one a button theme imposed on you.
     </p>
 
     <div class="border-border-subtle bg-surface-elevated mb-4 rounded-2xl border p-6">
@@ -280,9 +293,9 @@
       </div>
 
       <p class="text-text-tertiary mt-4 text-xs leading-relaxed">
-        The override sits on the parent <code class="text-text-primary">&lt;div style&gt;</code> —
+        The override sits on the parent <code class="text-text-primary">&lt;div style&gt;</code>:
         every <code class="text-text-primary">rounded-commit</code> utility inside that subtree picks
-        up the new value. No prop changes, no component edits.
+        up the new value.
       </p>
     </div>
 
@@ -297,8 +310,10 @@
   <!-- Bridge token ──────────────────────────────────────────── -->
   <Section id="bridge" title="Bridge Token" class="mb-12">
     <p class="text-text-secondary mb-6 leading-relaxed">
-      <code class="text-text-primary">--radius-bridge</code> is the middle rung —
-      <code class="text-text-primary">var(--radius-md)</code> by default — for the two cases where
+      <code class="text-text-primary">--radius-bridge</code> is the middle rung (<code
+        class="text-text-primary">var(--radius-md)</code
+      >
+      by default) for the two cases where
       <code class="text-text-primary">contain</code> is too hard and
       <code class="text-text-primary">commit</code> too soft. The first is
       <strong>adjacency</strong>: a floating panel anchored to a commit-tier (pill) trigger is
@@ -309,7 +324,7 @@
     <p class="text-text-secondary mb-6 leading-relaxed">
       The second is <strong>optical size</strong>: radius scales with the area it turns, so the 2px
       edge that reads as precise on a 600px Card reads as a plain rectangle on a ~200px tile. A
-      small tinted surface is <em>content</em>, not architecture, and takes the middle rung — the
+      small tinted surface is <em>content</em>, not architecture, and takes the middle rung: the
       <code class="text-text-primary">ChatMessage</code> bubble,
       <code class="text-text-primary">Textarea</code> at
       <code class="text-text-primary">tier="commit"</code> (a pill would be absurd on a multi-line

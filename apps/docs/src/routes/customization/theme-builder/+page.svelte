@@ -12,6 +12,13 @@
     Toggle
   } from '@urbicon-ui/blocks';
   import { DocsLayout as DocsPageLayout } from '@urbicon-ui/docs';
+  import {
+    baseRadiusScale,
+    generateChassis,
+    generatePalette,
+    previewVars,
+    rampDeclarations
+  } from '$lib/theme-preview';
 
   let brandHue = $state(240);
   let brandChroma = $state(0.15);
@@ -44,37 +51,9 @@
     }
   });
 
-  // Foundation neutral ramp — lightness + base chroma per stop (hue 240 by
-  // default). The builder keeps L fixed (so WCAG contrast is preserved) and
-  // only shifts the hue + scales the chroma.
-  const neutralRamp = [
-    { shade: 25, l: 0.99, c: 0.002 },
-    { shade: 50, l: 0.98, c: 0.005 },
-    { shade: 100, l: 0.95, c: 0.008 },
-    { shade: 200, l: 0.89, c: 0.012 },
-    { shade: 300, l: 0.83, c: 0.014 },
-    { shade: 400, l: 0.7, c: 0.015 },
-    { shade: 500, l: 0.55, c: 0.016 },
-    { shade: 600, l: 0.42, c: 0.017 },
-    { shade: 650, l: 0.38, c: 0.016 },
-    { shade: 700, l: 0.32, c: 0.016 },
-    { shade: 750, l: 0.28, c: 0.014 },
-    { shade: 800, l: 0.23, c: 0.015 },
-    { shade: 850, l: 0.18, c: 0.014 },
-    { shade: 900, l: 0.15, c: 0.012 },
-    { shade: 950, l: 0.08, c: 0.008 }
-  ] as const;
-
-  function roundChroma(value: number): number {
-    return Math.round(value * 10000) / 10000;
-  }
-
-  const chassisPalette = $derived(
-    neutralRamp.map(({ shade, l, c }) => ({
-      shade,
-      value: oklch(l, roundChroma(c * chassisTint), chassisHue)
-    }))
-  );
+  // Chassis stops from the shared palette model ($lib/theme-preview.ts) —
+  // the ramp profile mirrors foundation.css and is guarded by its test.
+  const chassisPalette = $derived(generateChassis(chassisHue, chassisTint));
 
   // The chassis equals the library default when hue is 240 at full tint —
   // no point emitting a no-op override in that case.
@@ -85,6 +64,14 @@
   // temperature to match, so it keeps the library defaults — which is exactly
   // what neutral.css does (it ships no :root block at all).
   const emitChromaKnobs = $derived(!chassisIsDefault && chassisTint > 0);
+
+  // Written once, used twice: the CSS output below and the live preview beside
+  // it. Two copies of these strings is how a builder ends up previewing warm
+  // shadows the file it hands you does not produce.
+  const chromaKnobs = $derived({
+    shadowTint: `0.2 0.025 ${chassisHue}`,
+    neutralChromeHue: String(chassisHue)
+  });
 
   // Library intent hues (foundation.css). An accent landing on one of these is
   // indistinguishable from a status color, so we flag it — and deliberately do
@@ -130,16 +117,10 @@
     { value: 'full', label: 'Pill', scale: -1 }
   ];
 
-  const baseRadii: Record<string, number> = {
-    xs: 0.125,
-    sm: 0.25,
-    md: 0.375,
-    lg: 0.5,
-    xl: 0.75,
-    '2xl': 1,
-    '3xl': 1.5,
-    '4xl': 2
-  };
+  // Read out of foundation.css, not retyped: this page's output IS the
+  // consumer's override block, so a scale that has quietly stopped being a
+  // multiple of the library's is the one defect it must not ship.
+  const baseRadii = baseRadiusScale();
 
   const activeRadiusOption = $derived(radiusOptions.find((o) => o.value === radius)!);
 
@@ -154,28 +135,43 @@
     return vars;
   });
 
-  function oklch(l: number, c: number, h: number): string {
-    return `oklch(${l} ${c} ${h})`;
-  }
-
-  function generatePalette(h: number, c: number, l500: number) {
-    return {
-      50: oklch(0.95, c * 0.2, h),
-      100: oklch(0.9, c * 0.33, h),
-      200: oklch(0.82, c * 0.53, h),
-      300: oklch(0.74, c * 0.73, h),
-      400: oklch(0.66, c * 0.87, h),
-      500: oklch(l500, c, h),
-      600: oklch(0.52, c, h),
-      700: oklch(0.44, c * 0.87, h),
-      800: oklch(0.36, c * 0.73, h),
-      900: oklch(0.28, c * 0.53, h),
-      950: oklch(0.18, c * 0.33, h)
-    };
-  }
+  // What to suggest for the commit tier, which is a literal and does NOT follow
+  // the scale. It has to track the preset: a fixed value recommends re-rounding
+  // under "None" and squaring under "Pill" — the opposite of what was picked
+  // both times. Under Pill there is nothing to suggest at all, because the
+  // commit tier is already what the preset asks for.
+  const commitSuggestion = $derived.by(() => {
+    const opt = activeRadiusOption;
+    if (opt.scale === -1) return null;
+    return opt.scale === 0 ? '0' : `${((baseRadii.lg ?? 0.5) * opt.scale).toFixed(3)}rem`;
+  });
 
   let palette = $derived(generatePalette(brandHue, brandChroma, brandLightness));
   let secondaryPalette = $derived(generatePalette(secondaryHue, secondaryChroma, 0.55));
+
+  // The theme being built, as declarations. The preview scope applies these and
+  // derives the rest ($lib/theme-preview.ts); the copy-paste output below
+  // renders the same values with its prose around them.
+  const themeDeclarations = $derived.by(() => {
+    const out: [string, string][] = [
+      ...rampDeclarations('primary', palette),
+      ...rampDeclarations('secondary', secondaryPalette),
+      // The chassis goes into the PREVIEW unconditionally, including at the
+      // default hue — this exhibit sits inside the docs Rooms skin, whose :root
+      // neutrals are warm cream, so emitting the library profile is what makes
+      // it show the library's chassis instead of the page's. The output block
+      // below omits it when it would be a no-op in the consumer's own file.
+      ...chassisPalette.map(
+        ({ shade, value }) => [`--color-neutral-${shade}`, value] as [string, string]
+      ),
+      ...Object.entries(radiusVars)
+    ];
+    if (emitChromaKnobs) {
+      out.push(['--blocks-shadow-tint', chromaKnobs.shadowTint]);
+      out.push(['--neutral-chrome-hue', chromaKnobs.neutralChromeHue]);
+    }
+    return out;
+  });
 
   let cssOutput = $derived.by(() => {
     const chassisLabel = chassisTint === 0 ? 'grayscale' : `hue ${chassisHue}`;
@@ -185,12 +181,12 @@
       `  /* Primary Hue: ${brandHue} | Secondary Hue: ${secondaryHue} | Chassis: ${chassisLabel} */`,
       ``
     ];
-    for (const [shade, value] of Object.entries(palette)) {
-      lines.push(`  --color-primary-${shade}: ${value};`);
+    for (const [name, value] of rampDeclarations('primary', palette)) {
+      lines.push(`  ${name}: ${value};`);
     }
     lines.push(``);
-    for (const [shade, value] of Object.entries(secondaryPalette)) {
-      lines.push(`  --color-secondary-${shade}: ${value};`);
+    for (const [name, value] of rampDeclarations('secondary', secondaryPalette)) {
+      lines.push(`  ${name}: ${value};`);
     }
     if (!chassisIsDefault) {
       lines.push(``);
@@ -204,10 +200,25 @@
     const rv = Object.entries(radiusVars);
     if (rv.length > 0) {
       lines.push(``);
-      lines.push(`  /* Border Radius – ${activeRadiusOption.label} */`);
+      lines.push(`  /* Border Radius – ${activeRadiusOption.label}. The modify,`);
+      lines.push(`     contain and bridge tiers read this scale, so they follow it. */`);
       for (const [name, value] of rv) {
         lines.push(`  ${name}: ${value};`);
       }
+      lines.push(``);
+      if (commitSuggestion === null) {
+        lines.push(`  /* --radius-commit is a 9999px literal, so the commit tier`);
+        lines.push(`     (Button, Badge, Checkbox) already matches this preset. */`);
+      } else {
+        lines.push(`  /* --radius-commit is a literal pill and does NOT follow the`);
+        lines.push(`     scale. Uncomment to bring the commit tier (Button, Badge,`);
+        lines.push(`     Checkbox) into line with ${activeRadiusOption.label}. */`);
+        lines.push(`  /* --radius-commit: ${commitSuggestion}; */`);
+      }
+      lines.push(`  /* --radius-control (the radio dot) is deliberately not offered`);
+      lines.push(`     here: it was split off the pill so squaring your buttons keeps`);
+      lines.push(`     the radio a circle, which is the only thing telling it from a`);
+      lines.push(`     checkbox. Override it on purpose or not at all. */`);
     }
     lines.push(`}`);
     if (emitChromaKnobs) {
@@ -217,9 +228,9 @@
       lines.push(`:root {`);
       lines.push(`  /* oklch L C H, no alpha — shadows pick up the chassis temperature`);
       lines.push(`     instead of reading as cool smudges on tinted surfaces. */`);
-      lines.push(`  --blocks-shadow-tint: 0.2 0.025 ${chassisHue};`);
+      lines.push(`  --blocks-shadow-tint: ${chromaKnobs.shadowTint};`);
       lines.push(`  /* Neutral intent chrome (bg-neutral / text-neutral / borders). */`);
-      lines.push(`  --neutral-chrome-hue: ${chassisHue};`);
+      lines.push(`  --neutral-chrome-hue: ${chromaKnobs.neutralChromeHue};`);
       lines.push(`}`);
     }
     if (collisions.length > 0) {
@@ -239,54 +250,16 @@
     return lines.join('\n');
   });
 
-  let previewStyle = $derived.by(() => {
-    const vars: string[] = [];
-    for (const [shade, value] of Object.entries(palette)) {
-      vars.push(`--color-primary-${shade}: ${value}`);
-    }
-    vars.push(`--color-primary: ${palette[600]}`);
-    vars.push(`--color-primary-hover: ${palette[700]}`);
-    vars.push(`--color-primary-active: ${palette[800]}`);
-    vars.push(`--color-primary-subtle: ${palette[50]}`);
-    vars.push(`--color-primary-emphasis: ${palette[900]}`);
-    for (const [shade, value] of Object.entries(secondaryPalette)) {
-      vars.push(`--color-secondary-${shade}: ${value}`);
-    }
-    vars.push(`--color-secondary: ${secondaryPalette[500]}`);
-    vars.push(`--color-secondary-hover: ${secondaryPalette[600]}`);
-    vars.push(`--color-secondary-active: ${secondaryPalette[700]}`);
-    vars.push(`--color-secondary-subtle: ${secondaryPalette[50]}`);
-    vars.push(`--color-secondary-emphasis: ${secondaryPalette[800]}`);
-    const byShade = Object.fromEntries(chassisPalette.map((s) => [s.shade, s.value] as const));
-    for (const { shade, value } of chassisPalette) {
-      vars.push(`--color-neutral-${shade}: ${value}`);
-    }
-    // Re-declare the light-mode chassis-derived tokens. In an inline scope
-    // the var() in the :root semantic definitions won't re-substitute against
-    // the overridden neutral ramp on its own (the same trap rooms-docs.css
-    // solves), so push direct light-mode values mirroring semantic.css.
-    vars.push(`--color-surface-quiet: ${byShade[25]}`);
-    vars.push(`--color-surface-elevated: ${byShade[50]}`);
-    vars.push(`--color-surface-subtle: ${byShade[50]}`);
-    vars.push(`--color-surface-hover: ${byShade[100]}`);
-    vars.push(`--color-surface-active: ${byShade[200]}`);
-    vars.push(`--color-surface-interactive: ${byShade[100]}`);
-    // The fill's own hover rung — mirrors semantic.css, where `surface-hover`
-    // resolves to the same value as `surface-interactive` itself.
-    vars.push(`--color-surface-interactive-hover: ${byShade[200]}`);
-    vars.push(`--color-text-primary: ${byShade[900]}`);
-    vars.push(`--color-text-secondary: ${byShade[700]}`);
-    vars.push(`--color-text-tertiary: ${byShade[600]}`);
-    vars.push(`--color-text-quaternary: ${byShade[500]}`);
-    vars.push(`--color-border-subtle: ${byShade[200]}`);
-    vars.push(`--color-border-default: ${byShade[300]}`);
-    vars.push(`--color-border-emphasis: ${byShade[400]}`);
-    vars.push(`--color-border-strong: ${byShade[500]}`);
-    for (const [name, value] of Object.entries(radiusVars)) {
-      vars.push(`${name}: ${value}`);
-    }
-    return vars.join('; ');
-  });
+  // Ramps + every role that reads them, re-declared for the preview scope in
+  // both modes via light-dark() — shared with /customization/themes
+  // ($lib/theme-preview.ts). Passing `radii` pulls the derived tier tokens in
+  // too, without which the picker moved nothing in the preview:
+  // `--radius-modify: var(--radius-sm)` substitutes at :root, so overriding the
+  // base scale in this inline scope left every component on its original
+  // corner. The chroma knobs travel the same way — they are what carries the
+  // chassis temperature into shadows and neutral chrome — and only when the
+  // output file sets them, so the preview shows what the file produces.
+  let previewStyle = $derived(previewVars(themeDeclarations));
 
   async function copyCSS() {
     await navigator.clipboard.writeText(cssOutput);
@@ -316,7 +289,7 @@
 
 <DocsPageLayout
   title="Theme Builder"
-  description="Pick your brand color and instantly generate a complete, perceptually-uniform palette — accent plus a matched neutral chassis so surfaces, text and borders share its temperature. Uses OKLCH for consistent contrast across all shades."
+  description="Pick your brand color and generate a matched palette: accent plus a neutral chassis, so surfaces, text and borders share its temperature. Uses OKLCH for consistent contrast across all shades."
   maxWidth="2xl"
   breadcrumbs={[{ label: 'Customization', href: resolve('/customization') }]}
 >
@@ -553,6 +526,20 @@
                 </button>
               {/each}
             </div>
+            <p class="text-text-tertiary mt-2 text-xs leading-relaxed">
+              This moves the base scale, which the
+              <code class="text-text-primary">modify</code>,
+              <code class="text-text-primary">contain</code> and
+              <code class="text-text-primary">bridge</code> tiers read from — so fields, panels and
+              the middle tier (Menu panels, chat bubbles) all follow. Pill-tier components (Button,
+              Badge) keep their pill:
+              <code class="text-text-primary">--radius-commit</code>
+              is a literal, so set it yourself to square them. The radio dot has its own literal and stays
+              a circle either way — see
+              <a href={resolve('/customization/tier-system')} class="text-primary hover:underline"
+                >Radius Tiers</a
+              >.
+            </p>
           </div>
 
           <Separator />
@@ -612,8 +599,8 @@
               <span class="block">
                 <strong>{c.role}</strong> sits {c.distance}° from
                 <strong>{c.intent}</strong>
-                (hue {c.intentHue}) — a
-                <code class="text-xs">{c.intent}</code> state will look like your accent, not like a status.
+                (hue {c.intentHue}). A
+                <code class="text-xs">{c.intent}</code> state will read as your accent, not as a status.
               </span>
             {/each}
           </p>
@@ -621,7 +608,11 @@
             Fix it in your theme file: re-tune the colliding
             <code class="text-xs">--color-*</code> ramp 15–25° away (keep each stop's lightness and
             chroma, move only the hue).
-            <code class="text-xs">forest.css</code> does this for both
+            <a
+              href={`${resolve('/customization/themes')}#create`}
+              class="text-warning-emphasis underline">forest.css</a
+            >
+            does this for both
             <code class="text-xs">success</code> and <code class="text-xs">warning</code>. The
             builder flags it rather than "fixing" it, because which color moves is your call.
           </p>
@@ -691,7 +682,7 @@
 
             <!-- Alert -->
             <Alert intent="primary" variant="soft" size="sm">
-              This preview updates live as you adjust the controls.
+              Soft fills like this one read the 50/900 stops of your generated ramp.
             </Alert>
           </div>
         </Card>
@@ -730,7 +721,11 @@
               >
               <div>
                 <p class="text-text-primary font-medium">Adjust the sliders</p>
-                <p>Pick a hue, chroma, and lightness that match your brand identity.</p>
+                <p>
+                  Pick a hue, chroma, and lightness that match your brand identity. Coming from a
+                  hex value? Start from the preset nearest your brand, then nudge the hue until the
+                  500 swatch matches.
+                </p>
               </div>
             </li>
             <li class="flex gap-3">
@@ -741,9 +736,10 @@
               <div>
                 <p class="text-text-primary font-medium">Copy the CSS output</p>
                 <p>
-                  Click "Copy CSS" and paste the <code
-                    class="bg-surface-subtle rounded-modify px-1.5 py-0.5 text-xs">@theme</code
-                  > block into your stylesheet.
+                  Click "Copy CSS" and save it as
+                  <code class="bg-surface-subtle rounded-modify px-1.5 py-0.5 text-xs"
+                    >my-theme.css</code
+                  >, or paste it at the end of app.css, below the imports.
                 </p>
               </div>
             </li>
@@ -753,10 +749,19 @@
                 >3</span
               >
               <div>
-                <p class="text-text-primary font-medium">Overrides are applied automatically</p>
+                <p class="text-text-primary font-medium">Import it after the base styles</p>
                 <p>
-                  Tailwind 4's @theme directive merges with the default tokens. All components pick
-                  up your custom colors.
+                  In app.css:
+                  <code class="bg-surface-subtle rounded-modify px-1.5 py-0.5 text-xs"
+                    >@import '@urbicon-ui/blocks/style/index.css';</code
+                  >
+                  then
+                  <code class="bg-surface-subtle rounded-modify px-1.5 py-0.5 text-xs"
+                    >@import './my-theme.css';</code
+                  >. The
+                  <code class="bg-surface-subtle rounded-modify px-1.5 py-0.5 text-xs">@theme</code> block
+                  needs Tailwind 4; it merges into the library tokens. If the builder flagged an intent
+                  collision above, re-tune that ramp before shipping.
                 </p>
               </div>
             </li>

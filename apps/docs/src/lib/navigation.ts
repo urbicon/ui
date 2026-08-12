@@ -352,26 +352,30 @@ const allNavigationItems: NavItem[] = [
     name: 'Customization',
     nameKey: 'nav.customization',
     href: '/customization',
+    // Ordered as a reading path, not alphabetically: brand the library
+    // (Themes → Theme Builder), restyle components (BlocksProvider), look
+    // things up (Token Reference → Radius Tiers), hand off to design (Figma
+    // Export), then the docs site's own theme as a worked case study last.
     children: [
-      { name: 'CSS Token Themes', nameKey: 'nav.cssTokenThemes', href: '/customization/themes' },
-      {
-        name: 'BlocksProvider',
-        nameKey: 'nav.blocksProvider',
-        href: '/customization/blocks-provider'
-      },
+      { name: 'Themes', nameKey: 'nav.themes', href: '/customization/themes' },
       {
         name: 'Theme Builder',
         nameKey: 'nav.themeBuilder',
         href: '/customization/theme-builder'
       },
-      { name: 'Design Tokens', nameKey: 'nav.designTokens', href: '/customization/tokens' },
-      { name: 'Tier System', nameKey: 'nav.tierSystem', href: '/customization/tier-system' },
+      {
+        name: 'BlocksProvider',
+        nameKey: 'nav.blocksProvider',
+        href: '/customization/blocks-provider'
+      },
+      { name: 'Token Reference', nameKey: 'nav.tokenReference', href: '/customization/tokens' },
+      { name: 'Radius Tiers', nameKey: 'nav.radiusTiers', href: '/customization/tier-system' },
+      { name: 'Figma Export', nameKey: 'nav.figmaExport', href: '/customization/figma-tokens' },
       {
         name: 'Color Rooms',
         nameKey: 'nav.roomsTheme',
         href: '/customization/rooms-theme'
-      },
-      { name: 'Figma Tokens', nameKey: 'nav.figmaTokens', href: '/customization/figma-tokens' }
+      }
     ]
   },
   {
