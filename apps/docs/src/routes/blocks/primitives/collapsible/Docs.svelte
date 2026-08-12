@@ -89,9 +89,14 @@
             triggerId: string;
             contentId: string;
           })}
+            <!-- The custom trigger fills the card's own top edge, so its hover
+                 fill has to carry the frame's radius — otherwise it squares off
+                 the rounded corners it sits in (invisible at the 2px default,
+                 obvious in a theme that rounds containers). Open: only the top
+                 two, the body continues the fill below. -->
             <button
               onclick={toggle}
-              class="hover:bg-surface-hover flex w-full items-center gap-3 px-4 py-3 text-left transition-colors"
+              class="hover:bg-surface-hover rounded-t-contain flex w-full items-center gap-3 px-4 py-3 text-left transition-colors"
             >
               <div
                 class="bg-primary/10 text-primary flex size-8 items-center justify-center rounded-lg"

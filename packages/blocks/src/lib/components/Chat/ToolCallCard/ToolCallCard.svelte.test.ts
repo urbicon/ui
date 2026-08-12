@@ -58,44 +58,155 @@ function hasBadgeLabel(label: string): boolean {
   );
 }
 
-describe('ToolCallCard — status header', () => {
-  it('shows a spinner + sr status text + neutral badge while running', () => {
+// How often the label appears in the header for a sighted reader AND for
+// assistive tech — the accessible name is built from the same nodes, so a
+// duplicate here is a status announced twice.
+function labelOccurrences(label: string): number {
+  return (getTrigger().textContent?.split(label).length ?? 1) - 1;
+}
+
+describe('ToolCallCard — plain header (default)', () => {
+  it('states the status as visible text, not as a badge', () => {
+    render({ toolCall: part('complete') });
+    expect(hasBadgeLabel('Done')).toBe(false);
+    expect(getTrigger().textContent).toContain('Done');
+  });
+
+  it('carries the status exactly once (no sr-only duplicate of the visible text)', () => {
+    render({ toolCall: part('complete') });
+    expect(srStatus()).toBe('');
+    expect(labelOccurrences('Done')).toBe(1);
+  });
+
+  it('shows a spinner beside the status while running', () => {
     render({ toolCall: part('running') });
+    expect(hasSpinner()).toBe(true);
+    expect(getTrigger().textContent).toContain('Running');
+  });
+
+  it('shows no spinner once the call is complete', () => {
+    render({ toolCall: part('complete') });
+    expect(hasSpinner()).toBe(false);
+  });
+
+  it('draws no frame of its own — the row sits in the message flow', () => {
+    render({ toolCall: part('complete') });
+    const root = getTrigger().closest('[data-state]');
+    expect(root, 'collapsible root').not.toBeNull();
+    expect(root?.className, 'no outline').not.toMatch(/(^|\s)border(-|\s|$)/);
+    expect(root?.className, 'no shadow').not.toMatch(/\bshadow-/);
+    expect(root?.className, 'no radius').not.toMatch(/\brounded-/);
+  });
+
+  /**
+   * The row hovers as one thing. A child that sets its own text colour opts out
+   * of the trigger's hover, and the two neighbouring ink steps it would reach
+   * for (`secondary` / `tertiary`) are the SAME value in dark mode — so a child
+   * colour here is either a dead hover or a partial one (review finding).
+   * Monospace and size carry the hierarchy instead; `error` is the exception,
+   * and it is asserted right below.
+   */
+  it('lets the whole row inherit one ink, so the hover moves all of it', () => {
+    render({ toolCall: part('complete') });
+    const trigger = getTrigger();
+    expect(trigger.className, 'trigger owns the resting ink').toMatch(/\btext-text-tertiary\b/);
+    expect(trigger.className, 'and the hover step').toMatch(/\bhover:text-primary-text\b/);
+
+    for (const el of trigger.querySelectorAll('span, svg')) {
+      expect(el.className.toString(), `${el.tagName} sets no ink of its own`).not.toMatch(
+        /\btext-text-(primary|secondary|tertiary|quaternary)\b/
+      );
+    }
+  });
+
+  it('gives the failed status a colour of its own', () => {
+    render({ toolCall: part('error', { errorMessage: 'boom' }) });
+    // The innermost span carrying the label — its wrapper reports the same text.
+    const status = [...getTrigger().querySelectorAll('span')].find(
+      (el) => el.children.length === 0 && el.textContent?.trim() === 'Failed'
+    );
+    expect(status?.className).toMatch(/\btext-danger-text\b/);
+  });
+
+  it('honors custom status labels', () => {
+    render({ toolCall: part('running'), runningLabel: 'Working…' });
+    expect(getTrigger().textContent).toContain('Working…');
+  });
+});
+
+describe('ToolCallCard — card header', () => {
+  /**
+   * The frame itself comes from the Collapsible the card maps onto, not from
+   * this component's own tv() — so the variant mapping is the whole substance
+   * of `card`, and nothing else in this file would notice it regressing to the
+   * unframed default.
+   */
+  it('puts the header back in a frame', () => {
+    render({ toolCall: part('complete'), variant: 'card' });
+    const root = getTrigger().closest('[data-state]');
+    expect(root?.className, 'outline').toMatch(/(^|\s)border(\s|$)/);
+    expect(root?.className, 'radius').toMatch(/\brounded-contain\b/);
+    expect(root?.className, 'shadow').toMatch(/\bshadow-/);
+  });
+
+  it('shows a spinner + sr status text + neutral badge while running', () => {
+    render({ toolCall: part('running'), variant: 'card' });
     expect(hasSpinner()).toBe(true);
     expect(srStatus()).toBe('Running');
     expect(hasBadgeLabel('Running')).toBe(true);
   });
 
   it('shows a spinner + sr status text while pending', () => {
-    render({ toolCall: part('pending') });
+    render({ toolCall: part('pending'), variant: 'card' });
     expect(hasSpinner()).toBe(true);
     expect(srStatus()).toBe('Pending');
     expect(hasBadgeLabel('Pending')).toBe(true);
   });
 
   it('shows no spinner and a done badge when complete', () => {
-    render({ toolCall: part('complete') });
+    render({ toolCall: part('complete'), variant: 'card' });
     expect(hasSpinner()).toBe(false);
     expect(srStatus()).toBe('Done');
     expect(hasBadgeLabel('Done')).toBe(true);
   });
 
   it('shows no spinner and a failed badge when in error', () => {
-    render({ toolCall: part('error') });
+    render({ toolCall: part('error'), variant: 'card' });
     expect(hasSpinner()).toBe(false);
     expect(srStatus()).toBe('Failed');
     expect(hasBadgeLabel('Failed')).toBe(true);
   });
 
+  it('honors custom status labels', () => {
+    render({ toolCall: part('running'), variant: 'card', runningLabel: 'Working…' });
+    expect(srStatus()).toBe('Working…');
+    expect(hasBadgeLabel('Working…')).toBe(true);
+  });
+
+  /**
+   * The header is a rectangle inside a rounded frame that does not clip, so its
+   * hover fill has to carry the radius itself or it squares off the corners it
+   * sits in (invisible at the 2px default `--radius-contain`, glaring in a
+   * rounded theme). Collapsed the header IS the frame → all four corners; open
+   * → only the top two, because the body continues the fill below.
+   */
+  it('rounds its hover fill with the frame', async () => {
+    const user = userEvent.setup();
+    render({ toolCall: part('complete'), variant: 'card' });
+
+    expect(getTrigger().className).toMatch(/\brounded-contain\b/);
+
+    await user.click(getTrigger());
+    flushSync();
+    expect(getTrigger().className).toMatch(/\brounded-t-contain\b/);
+    expect(getTrigger().className).not.toMatch(/\brounded-contain\b/);
+  });
+});
+
+describe('ToolCallCard — header', () => {
   it('renders the tool name in the header', () => {
     render({ toolCall: part('complete') });
     expect(getTrigger().textContent).toContain('search_web');
-  });
-
-  it('honors custom status labels', () => {
-    render({ toolCall: part('running'), runningLabel: 'Working…' });
-    expect(srStatus()).toBe('Working…');
-    expect(hasBadgeLabel('Working…')).toBe(true);
   });
 });
 

@@ -45,7 +45,7 @@
   }
 
   const controls = deriveControls(componentData, {
-    pick: [],
+    pick: ['variant'],
     extra: [
       {
         type: 'dropdown',
@@ -86,7 +86,7 @@
   {#snippet children(values)}
     <div class="mx-auto max-w-lg">
       {#key values.state}
-        <ToolCallCard {toolCall} />
+        <ToolCallCard {toolCall} variant={values.variant as 'plain' | 'card'} />
       {/key}
     </div>
   {/snippet}

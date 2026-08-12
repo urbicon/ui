@@ -10,8 +10,9 @@ import type { CodeBlockSlots, CodeBlockVariants } from './code-block.variants';
  * StreamingMarkdown renderer can layer highlighting in via a snippet. Used by
  * StreamingMarkdown for fenced code blocks, and standalone for any code snippet.
  * `variant="card"` (default) brings its own surface, outline and radius;
- * `variant="plain"` drops all three for embedding inside a container that already
- * frames the content (as ToolCallCard does), so nested outlines never stack.
+ * `variant="plain"` drops all three for embedding inside something that already
+ * owns the framing decision — a container that frames the content, or one that
+ * deliberately frames nothing (ToolCallCard is both, per its own variant).
  *
  * @tag ai
  * @tag display
