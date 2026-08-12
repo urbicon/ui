@@ -48,7 +48,13 @@
 
   const pathItems = itemsFromPath('/settings/team/billing');
   // Live-preview only: block navigation to routes this docs site doesn't own.
-  const pathPreviewItems = pathItems.map((item) => ({ ...item, onclick: demoNoop }));
+  // The prerender crawler reads the rendered `href` and never sees `onclick`,
+  // so the href has to go too — otherwise `/settings` fails the build.
+  const pathPreviewItems = pathItems.map((item) => ({
+    ...item,
+    href: '#',
+    onclick: demoNoop
+  }));
 
   const galleryItems = [
     { label: 'Home', href: '#', onclick: demoNoop },
@@ -139,7 +145,7 @@
         items={galleryItems}
         slotClasses={{
           link: 'rounded-commit border border-border-subtle bg-surface-interactive px-2.5 py-1 text-text-secondary hover:bg-surface-selected hover:text-primary hover:no-underline focus-visible:rounded-commit',
-          currentPage: 'rounded-commit bg-primary px-2.5 py-1 text-on-primary',
+          currentPage: 'rounded-commit bg-primary px-2.5 py-1 text-text-on-primary',
           separator: 'mx-1'
         }}
       >

@@ -226,7 +226,7 @@
 
       <CodeExample
         title="Pinned Columns and the Table-Level Switch"
-        description="Name is pinned via hideable: false — it has no hide action and is omitted from the visibility menu. Set enableColumnVisibility={false} to turn the whole feature off."
+        description={'Name is pinned via hideable: false — it has no hide action and is omitted from the visibility menu. Set enableColumnVisibility={false} to turn the whole feature off.'}
         code={`const columns: Column<Employee>[] = [
   { accessor: 'name', title: 'Name', sortable: true, hideable: false }, // pinned
   { accessor: 'role', title: 'Role', sortable: true },

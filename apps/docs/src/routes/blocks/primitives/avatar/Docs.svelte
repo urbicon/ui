@@ -45,7 +45,7 @@
     >
       <Avatar src="https://i.pravatar.cc/96?img=12" name="Marcus Chen" size="lg" />
       <Avatar src="https://i.pravatar.cc/96?img=5" name="Sarah Okoro" size="lg" />
-      <Avatar src="/broken/photo.jpg" name="Priya Nair" size="lg" />
+      <Avatar src="data:image/jpeg,broken" name="Priya Nair" size="lg" />
     </CodeExample>
 
     <CodeExample

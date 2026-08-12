@@ -84,7 +84,7 @@
       previewClass="flex justify-center max-w-md w-full mx-auto"
       code={`<script>
   let selectedPlan = $state('pro');
-</script>
+<\/script>
 
 <RadioGroup label="Choose your plan" name="plan" bind:value={selectedPlan}>
   <RadioItem value="free" label="Free" description="3 projects, 1 GB storage, community support" />

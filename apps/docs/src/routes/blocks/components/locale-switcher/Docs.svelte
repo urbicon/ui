@@ -12,7 +12,7 @@
   <div class="space-y-8">
     <CodeExample
       title="Basic"
-      description="Default trigger with flags; pass showFlag={false} to drop them."
+      description={'Default trigger with flags; pass showFlag={false} to drop them.'}
       isolate
       previewClass="flex items-center gap-4"
     >

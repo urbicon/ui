@@ -52,7 +52,7 @@
 
     <CodeExample
       title="JPY — zero decimal precision"
-      description="Currencies like JPY have no minor units. Set precision={0} so the integer value is treated as-is."
+      description={'Currencies like JPY have no minor units. Set precision={0} so the integer value is treated as-is.'}
       code={`<CurrencyInput
   bind:value={yen}
   locale="ja-JP"

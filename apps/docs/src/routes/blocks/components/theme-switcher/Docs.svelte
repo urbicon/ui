@@ -56,7 +56,7 @@
 <Section marker id="customization" title="Customization">
   <CodeExample
     title="Branded trigger"
-    description="Override the button and icon slots for a gradient brand-look. Pass storageKey={false} for ephemeral switching without persistence."
+    description={'Override the button and icon slots for a gradient brand-look. Pass storageKey={false} for ephemeral switching without persistence.'}
     isolate
     previewClass="flex items-center gap-4"
   >
