@@ -3,7 +3,7 @@
   import type { Snippet } from 'svelte';
   import { fly } from 'svelte/transition';
   import { getCalendarContext, createSlotHelper } from './calendar.context';
-  import { formatDate, toIso, stripTime } from '$lib/date';
+  import { formatDate, toIso } from '$lib/date';
   import { swipeable } from '$lib/utils/swipeable';
   import type { CalendarEvent, EventDayInfo, EventItemContext } from './calendar.types';
   import CalendarEventRenderer from './CalendarEventRenderer.svelte';
@@ -13,23 +13,23 @@
   interface CalendarAgendaViewInternalProps {
     eventItem?: Snippet<[EventItemContext]>;
     onEventClick?: (event: CalendarEvent) => void;
-    agendaDays?: number;
     class?: string;
   }
 
   let {
     eventItem,
     onEventClick,
-    agendaDays = 30,
     class: className = ''
   }: CalendarAgendaViewInternalProps = $props();
 
   const ctx = getCalendarContext();
   const slot = createSlotHelper(ctx);
 
-  // Generate days with events for the agenda period
+  // The days with events inside the agenda's window. The window itself comes
+  // from the context (`agendaDays` days from the reference date) rather than
+  // being recomputed here — the header names the same window in its title.
   const agendaEntries = $derived.by(() => {
-    const start = stripTime(new Date(ctx.displayedYear, ctx.displayedMonth, 1));
+    const { start, days } = ctx.agendaWindow;
     const entries: Array<{
       date: Date;
       dateLabel: string;
@@ -37,7 +37,7 @@
       events: EventDayInfo[];
     }> = [];
 
-    for (let i = 0; i < agendaDays; i++) {
+    for (let i = 0; i < days; i++) {
       const d = new Date(start);
       d.setDate(start.getDate() + i);
       const dayEvents = ctx.getEventsWithDayInfo(d);
@@ -62,7 +62,9 @@
     return entries;
   });
 
-  const agendaKey = $derived(`${ctx.displayedYear}-${ctx.displayedMonth}`);
+  // Keyed on the window's first day: one enter/exit transition per navigation
+  // step, whether or not the step crossed a month boundary.
+  const agendaKey = $derived(toIso(ctx.agendaWindow.start));
 
   function handleKeydown(e: KeyboardEvent) {
     // Direction-gated like the swipes and header arrows (the DateGridScaffold

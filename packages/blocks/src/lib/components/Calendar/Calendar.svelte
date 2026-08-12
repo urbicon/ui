@@ -6,6 +6,8 @@
   import { setCalendarContext, type CalendarContext } from './calendar.context';
   import {
     getYearMonths,
+    formatDateRange,
+    formatDayTitle,
     formatMonthYear,
     isInMonth,
     toIso,
@@ -190,9 +192,16 @@
   const displayedYear = $derived(referenceDate.getFullYear());
 
   // Calendar exposes five views; the headless core handles only cell-based ones.
-  // Map year/agenda onto `month` (they reuse month geometry + month navigation).
+  // `year` maps onto `month` (it reuses month geometry + month navigation).
+  //
+  // `agenda` maps onto `day`, because that is what its window is anchored on:
+  // the list runs `agendaDays` days FROM the reference date, so the bounds that
+  // gate its arrows are the day-granular ones (`referenceDate` against
+  // minDate/maxDate), not a month's. Until 2026-08-12 it mapped onto `month`
+  // and started at the 1st, which made the smallest honest configuration —
+  // `defaultDate` + `agendaDays={1}`, "today's list" — unreachable (#95).
   const gridViewMode = $derived<DateGridView>(
-    view === 'year' || view === 'agenda' ? 'month' : view
+    view === 'year' ? 'month' : view === 'agenda' ? 'day' : view
   );
 
   // --- Extra disable predicate (min/max handled by the controller) ---
@@ -249,9 +258,9 @@
   });
 
   // The controller hands back its own cell range, which is right for month/week/
-  // day but wrong for the two views Calendar maps onto month geometry: year spans
-  // a whole year, agenda `agendaDays` from the 1st. `visibleRange` already
-  // computes exactly that per view (recurrence expansion relies on it), so
+  // day but wrong for the two views whose window Calendar owns: year spans a
+  // whole year, agenda `agendaDays` from the reference date. `visibleRange`
+  // already computes exactly that per view (recurrence expansion relies on it), so
   // onNavigate reports it rather than the controller's argument. Read after the
   // `referenceDate` assignment, so the $derived has already been invalidated.
   //
@@ -269,7 +278,11 @@
     referenceDate = next;
     if (view === 'week') onWeekChange?.(next);
     else if (view === 'day') onDayChange?.(next);
-    else onMonthChange?.(next.getMonth(), next.getFullYear());
+    // The agenda's unit is a WINDOW of days, which none of the three per-view
+    // callbacks can express — it reports through `onNavigate` (date + range)
+    // alone. `goToClampedMonth` still reports `onMonthChange` in agenda view:
+    // there a month really is what the caller picked.
+    else if (view !== 'agenda') onMonthChange?.(next.getMonth(), next.getFullYear());
     emitNavigate(next);
   }
 
@@ -355,10 +368,36 @@
     return showTimeGridProp ?? events.some((e) => e.allDay === false);
   });
 
+  // --- Derived: the agenda's window ---
+  // `agendaDays` days FROM the reference date, both ends inclusive. Computed
+  // once here and shared through the context, so the list, the header title and
+  // `visibleRange` cannot disagree about which days the agenda covers.
+  const agendaWindow = $derived.by(() => {
+    const start = stripTime(referenceDate);
+    const days = Math.max(1, Math.floor(agendaDays));
+    return { start, end: addDays(start, days - 1), days };
+  });
+  if (import.meta.env?.DEV) {
+    $effect(() => {
+      if (agendaDays < 1 || !Number.isInteger(agendaDays)) {
+        console.warn(
+          `[Calendar] agendaDays must be a whole number ≥ 1 — received ${agendaDays}; ` +
+            `listing ${agendaWindow.days} day(s).`
+        );
+      }
+    });
+  }
+
   // --- Derived: view-aware header title (year/agenda are Calendar-specific) ---
   const headerTitle = $derived.by(() => {
     if (view === 'year') return String(displayedYear);
-    if (view === 'agenda') return formatMonthYear(displayedYear, displayedMonth, resolvedLocale);
+    // The agenda names its window, not the month it happens to start in: one
+    // day reads as a day title, several as a date range.
+    if (view === 'agenda') {
+      return agendaWindow.days === 1
+        ? formatDayTitle(agendaWindow.start, resolvedLocale)
+        : formatDateRange(agendaWindow.start, agendaWindow.end, resolvedLocale);
+    }
     return controller.title; // month / week / day
   });
 
@@ -370,10 +409,7 @@
       return { start: new Date(displayedYear, 0, 1), end: new Date(displayedYear, 11, 31) };
     }
     if (view === 'agenda') {
-      const start = new Date(displayedYear, displayedMonth, 1);
-      const end = new Date(start);
-      end.setDate(end.getDate() + agendaDays);
-      return { start, end };
+      return { start: agendaWindow.start, end: agendaWindow.end };
     }
     // month / week / day: the controller's cell-edge range
     return { start: controller.rangeStart, end: controller.rangeEnd };
@@ -462,9 +498,29 @@
   function navigate(delta: number) {
     if (view === 'year') {
       navigateYear(delta);
+    } else if (view === 'agenda') {
+      navigateAgenda(delta);
     } else {
-      controller.navigate(delta); // month / week / day (agenda maps to month)
+      controller.navigate(delta); // month / week / day
     }
+  }
+
+  // The agenda steps its own window: `delta` × `agendaDays` days, so the next
+  // list starts where the current one ended. Clamped like the other named
+  // navigators, and inert when the clamp cannot move the anchor — that keeps a
+  // swipe or arrow key at the bound from emitting a no-op navigation, the same
+  // guarantee the header arrows get from `canGoBack`/`canGoForward` (which are
+  // day-granular here, because `gridViewMode` maps agenda onto `day`).
+  function navigateAgenda(delta: number) {
+    // Stepped from the window's own (stripped) start, so the comparison below is
+    // between two local midnights even when the caller's `defaultDate` carried a
+    // clock time.
+    const from = agendaWindow.start;
+    const next = clampDate(addDays(from, delta * agendaWindow.days), minDate, maxDate);
+    if (next.getTime() === from.getTime()) return;
+    controller.navDirection = delta > 0 ? 'forward' : 'backward';
+    referenceDate = next;
+    emitNavigate(next);
   }
 
   // Move `referenceDate` to a bounded month/year, then report the landing.
@@ -574,6 +630,9 @@
     },
     get displayedDate() {
       return referenceDate;
+    },
+    get agendaWindow() {
+      return agendaWindow;
     },
     get today() {
       return controller.today;
@@ -799,7 +858,7 @@
           {:else if view === 'day'}
             <CalendarDayView {onEventClick} />
           {:else if view === 'agenda'}
-            <CalendarAgendaView {eventItem} {onEventClick} {agendaDays} />
+            <CalendarAgendaView {eventItem} {onEventClick} />
           {/if}
         </div>
       </div>
@@ -812,7 +871,7 @@
     {:else if view === 'day'}
       <CalendarDayView {onEventClick} />
     {:else if view === 'agenda'}
-      <CalendarAgendaView {eventItem} {onEventClick} {agendaDays} />
+      <CalendarAgendaView {eventItem} {onEventClick} />
     {/if}
 
     {#if effectiveShowLegend}

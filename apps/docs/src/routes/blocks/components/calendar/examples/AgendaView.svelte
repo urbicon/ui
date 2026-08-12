@@ -86,7 +86,6 @@
     showLegend
     agendaDays={21}
     locale="en-US"
-    defaultMonth={2}
-    defaultYear={2026}
+    defaultDate={new Date(2026, 2, 10)}
   />
 </div>

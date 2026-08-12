@@ -13,6 +13,14 @@ export interface CalendarContext {
   readonly displayedMonth: number;
   readonly displayedYear: number;
   readonly displayedDate: Date;
+  /**
+   * The agenda view's window: `agendaDays` days starting at the reference date,
+   * both ends inclusive, plus the resolved day count (`agendaDays` clamped to
+   * ≥ 1). Derived once by `Calendar` and read by the list *and* the header, so
+   * the days the agenda lists and the days its title names cannot drift apart.
+   * Present in every view — only the agenda reads it.
+   */
+  readonly agendaWindow: { start: Date; end: Date; days: number };
   readonly today: Date;
 
   // View

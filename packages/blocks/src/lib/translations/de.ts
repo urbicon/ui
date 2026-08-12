@@ -80,6 +80,8 @@ export default {
     nextWeek: 'Nächste Woche',
     previousDay: 'Vorheriger Tag',
     nextDay: 'Nächster Tag',
+    previousRange: 'Vorheriger Zeitraum',
+    nextRange: 'Nächster Zeitraum',
     previousYear: 'Vorheriges Jahr',
     nextYear: 'Nächstes Jahr',
     today: 'Heute',

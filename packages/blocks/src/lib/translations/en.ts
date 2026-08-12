@@ -80,6 +80,10 @@ export default {
     nextWeek: 'Next week',
     previousDay: 'Previous day',
     nextDay: 'Next day',
+    // The agenda's arrows step its whole window, so they name a range rather
+    // than a month (a one-day agenda uses previousDay/nextDay instead).
+    previousRange: 'Previous range',
+    nextRange: 'Next range',
     previousYear: 'Previous year',
     nextYear: 'Next year',
     today: 'Today',

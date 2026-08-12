@@ -292,17 +292,22 @@ export interface CalendarProps
   // === Callbacks ===
   /** Fires when the selected date(s) change. */
   onValueChange?: (value: CalendarSelection) => void;
-  /** Fires when the displayed month/year changes via navigation. */
+  /**
+   * Fires when the displayed month/year changes via navigation — the month and
+   * year views, and the header's month picker in any view. The agenda's arrows
+   * step a window of days instead of a month and report through `onNavigate`.
+   */
   onMonthChange?: (month: number, year: number) => void;
   /**
    * Fires after **any** navigation, in every view, with the new reference date
    * and the visible range — load data here. The per-view callbacks
    * (`onMonthChange` / `onWeekChange` / `onDayChange`) still fire and are the
    * better fit when you only care about one view; this one spares you
-   * reconstructing the window yourself. The range is view-accurate: month spans
-   * the padded cell grid (spill days included), week/day the visible days, year
-   * 1 Jan–31 Dec, agenda `agendaDays` from the 1st. Matches `Planner`'s
-   * `onNavigate`.
+   * reconstructing the window yourself — and in the agenda it is the *only*
+   * navigation callback, whose window no per-view callback can name. The range
+   * is view-accurate: month spans the padded cell grid (spill days included),
+   * week/day the visible days, year 1 Jan–31 Dec, agenda `agendaDays` from the
+   * reference date. Matches `Planner`'s `onNavigate`.
    * @summary Fires on every navigation with the new visible range — the data-loading hook.
    */
   onNavigate?: (date: Date, range: DateRange) => void;
@@ -348,7 +353,23 @@ export interface CalendarProps
   showEventList?: boolean;
 
   // === Agenda ===
-  /** Number of days shown in agenda view. @default 30 */
+  /**
+   * How many days the agenda lists, counted **from the reference date** — the
+   * day `value`/`defaultDate` anchors on, or today. So `agendaDays={1}` next to
+   * a `defaultDate` is one day's list, and the default is roughly a month ahead
+   * of that day rather than the calendar month it sits in.
+   *
+   * The arrows, `ArrowLeft`/`ArrowRight` and the swipe step the whole window, so
+   * the next list starts the day after the current one ends. That step reports
+   * through `onNavigate` (a window is neither a month nor a single day, so none
+   * of the per-view callbacks can name it); the header's month picker still
+   * reports `onMonthChange`, because a month is what it picks.
+   *
+   * Days without events are skipped, so a window is as long as its content
+   * needs — one day of nothing renders the empty state, not an empty heading.
+   * @default 30
+   * @summary How many days the list covers, counted from the reference date.
+   */
   agendaDays?: number;
 
   // === Time grid ===

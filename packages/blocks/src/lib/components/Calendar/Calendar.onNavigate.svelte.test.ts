@@ -73,13 +73,15 @@ function click(el: HTMLElement) {
 const anchor = new Date(2026, 5, 15); // Mon 15 Jun 2026
 
 describe('Calendar onNavigate — header arrows, every view', () => {
-  // The arrow path runs through `controller.navigate` for month/week/day/agenda
-  // and through `navigateYear` for year — the one that bypassed the controller.
+  // The arrow path runs through `controller.navigate` for month/week/day,
+  // through `navigateYear` for year — the one that bypassed the controller —
+  // and through `navigateAgenda` for the agenda, whose window is its own step
+  // (hence the range label, not a month's).
   const cases = [
     { view: 'month', next: bt.nextMonth },
     { view: 'week', next: bt.nextWeek },
     { view: 'day', next: bt.nextDay },
-    { view: 'agenda', next: bt.nextMonth },
+    { view: 'agenda', next: bt.nextRange },
     { view: 'year', next: bt.nextYear }
   ] as const;
 
@@ -173,8 +175,10 @@ describe('Calendar onNavigate — the year grid month tile', () => {
 
 describe('Calendar onNavigate — the mini calendar', () => {
   it('fires when a day from a neighbouring month is clicked', () => {
-    // The mini calendar's spill days route through ctx.goToMonth (agenda view)
-    // / ctx.goToDate (week/day). Agenda exercises the goToMonth arm.
+    // The mini calendar's day click routes through `ctx.goToDate` in all three
+    // views it appears in. Until 2026-08-12 the agenda took a `goToMonth` arm
+    // instead (its list started at the 1st) and landed on the month's anchor;
+    // now the clicked DAY is the anchor, which is what this asserts.
     const { onNavigate, calls } = renderCalendar({
       view: 'agenda',
       defaultDate: anchor,
@@ -184,14 +188,13 @@ describe('Calendar onNavigate — the mini calendar', () => {
     if (!spill) throw new Error('no July spill day in the June mini month');
     click(spill);
     expect(onNavigate).toHaveBeenCalledTimes(1);
-    expect(calls[0].date.getMonth()).toBe(6); // July
+    expect(iso(calls[0].date)).toBe('2026-07-01');
   });
 
   // COVERAGE, NOT REGRESSION: the only case in this file that also passed
-  // before the fix. Week/day view routes the mini calendar through
-  // `ctx.goToDate` → controller → `handleNavigate`, which already emitted; the
-  // agenda case above is the one that exercises the broken `goToMonth` arm.
-  // Kept so the arm stays covered if it is ever rewired.
+  // before the `onNavigate` fix — week view already routed the mini calendar
+  // through `ctx.goToDate` → controller → `handleNavigate`, which emitted. Kept
+  // so the path stays covered now that the agenda shares it.
   it('fires when a neighbouring-month day is clicked in week view', () => {
     const { onNavigate } = renderCalendar({
       view: 'week',

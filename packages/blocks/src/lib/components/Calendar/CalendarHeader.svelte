@@ -52,8 +52,12 @@
         return bt('calendar.previousWeek');
       case 'day':
         return bt('calendar.previousDay');
+      // The agenda steps its own window, so the label names what actually
+      // moves: a single day when `agendaDays` is 1, a range otherwise.
       case 'agenda':
-        return bt('calendar.previousMonth');
+        return ctx.agendaWindow.days === 1
+          ? bt('calendar.previousDay')
+          : bt('calendar.previousRange');
     }
   });
 
@@ -68,7 +72,7 @@
       case 'day':
         return bt('calendar.nextDay');
       case 'agenda':
-        return bt('calendar.nextMonth');
+        return ctx.agendaWindow.days === 1 ? bt('calendar.nextDay') : bt('calendar.nextRange');
     }
   });
 
@@ -175,8 +179,10 @@
   //
   // Month-based views only. `week`/`day` titles carry day numbers that vary in
   // width on their own, so there is no fixed set to reserve for; `year` is a
-  // bare number and never moved.
-  const reservesMonthWidth = $derived(ctx.view === 'month' || ctx.view === 'agenda');
+  // bare number and never moved. The agenda left this set on 2026-08-12: its
+  // title names its own window (a date range, or a day title at
+  // `agendaDays={1}`), so there is no twelve-month set to reserve either.
+  const reservesMonthWidth = $derived(ctx.view === 'month');
   const monthTitleVariants = $derived(
     reservesMonthWidth
       ? Array.from({ length: 12 }, (_, month) => ({

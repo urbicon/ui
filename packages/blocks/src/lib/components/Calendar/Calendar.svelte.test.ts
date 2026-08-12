@@ -227,21 +227,45 @@ describe('Calendar view swipes are direction-gated at the bounds', () => {
     expect(iso(onDayChange.mock.calls[0][0] as Date)).toBe('2026-06-16');
   });
 
-  it('agenda view: swiping at a one-month window fires no onMonthChange', () => {
-    const onMonthChange = vi.fn();
+  // The agenda reports through `onNavigate` — its unit is a window of days, and
+  // since 2026-08-12 a step moves the anchor by `agendaDays`, not by a month.
+  // A one-DAY [minDate, maxDate] is what pins its anchor, so both directions are
+  // inert; the month bounds the other views use would still leave room to move.
+  it('agenda view: swiping at a one-day window fires no onNavigate', () => {
+    const onNavigate = vi.fn();
     renderCalendar({
       view: 'agenda',
       defaultDate: anchor,
       animated: false,
-      ...monthBounds,
-      onMonthChange
+      minDate: anchor,
+      maxDate: anchor,
+      onNavigate
     });
 
     const region = document.querySelector('[role="region"]');
     swipe(region, 'left');
     swipe(region, 'right');
 
-    expect(onMonthChange).not.toHaveBeenCalled();
+    expect(onNavigate).not.toHaveBeenCalled();
+  });
+
+  it('agenda view: an in-bounds swipe steps the window by agendaDays', () => {
+    const onNavigate = vi.fn();
+    renderCalendar({
+      view: 'agenda',
+      defaultDate: anchor,
+      agendaDays: 7,
+      animated: false,
+      onNavigate
+    });
+
+    swipe(document.querySelector('[role="region"]'), 'left');
+
+    expect(onNavigate).toHaveBeenCalledTimes(1);
+    const [date, range] = onNavigate.mock.calls[0] as [Date, { start: Date; end: Date }];
+    expect(iso(date)).toBe('2026-06-22'); // anchor + 7 days
+    expect(iso(range.start)).toBe('2026-06-22');
+    expect(iso(range.end)).toBe('2026-06-28'); // seven days, both ends inclusive
   });
 
   it('year view: swiping at a one-month window fires no onMonthChange', () => {
@@ -289,8 +313,6 @@ describe('Calendar view swipes are direction-gated at the bounds', () => {
 });
 
 describe('Calendar day/agenda keyboard navigation is direction-gated at the bounds', () => {
-  const monthBounds = { minDate: new Date(2026, 5, 1), maxDate: new Date(2026, 5, 30) };
-
   /** ArrowLeft/ArrowRight on a view root — the keyboard twin of `swipe`. */
   function press(el: Element | null, key: 'ArrowLeft' | 'ArrowRight') {
     expect(el).not.toBeNull();
@@ -348,31 +370,61 @@ describe('Calendar day/agenda keyboard navigation is direction-gated at the boun
     expect(iso(onDayChange.mock.calls[0][0] as Date)).toBe('2026-06-14');
   });
 
-  it('agenda view: arrow keys at a one-month window fire no onMonthChange', () => {
-    const onMonthChange = vi.fn();
+  it('agenda view: arrow keys at a one-day window fire no onNavigate', () => {
+    const onNavigate = vi.fn();
     renderCalendar({
       view: 'agenda',
       defaultDate: anchor,
       animated: false,
-      ...monthBounds,
-      onMonthChange
+      minDate: anchor,
+      maxDate: anchor,
+      onNavigate
     });
 
     const region = document.querySelector('[role="region"]');
     press(region, 'ArrowRight');
     press(region, 'ArrowLeft');
 
-    expect(onMonthChange).not.toHaveBeenCalled();
+    expect(onNavigate).not.toHaveBeenCalled();
   });
 
-  it('agenda view: an in-bounds ArrowRight reports the next month', () => {
+  it('agenda view: an in-bounds ArrowRight steps the window, not the month', () => {
+    const onNavigate = vi.fn();
     const onMonthChange = vi.fn();
-    renderCalendar({ view: 'agenda', defaultDate: anchor, animated: false, onMonthChange });
+    renderCalendar({
+      view: 'agenda',
+      defaultDate: anchor,
+      agendaDays: 7,
+      animated: false,
+      onNavigate,
+      onMonthChange
+    });
 
     press(document.querySelector('[role="region"]'), 'ArrowRight');
 
-    expect(onMonthChange).toHaveBeenCalledTimes(1);
-    expect(onMonthChange).toHaveBeenLastCalledWith(6, 2026); // July
+    expect(iso(onNavigate.mock.calls[0][0] as Date)).toBe('2026-06-22');
+    // A window is neither a month nor a single day, so no per-view callback
+    // fires — `onNavigate` is the agenda's only navigation report.
+    expect(onMonthChange).not.toHaveBeenCalled();
+  });
+
+  it('agenda view: a partial step at maxDate clamps to the bound', () => {
+    // The clamp is `clampDate` on the anchor, so a 30-day step three days short
+    // of maxDate lands ON maxDate rather than being refused — the same
+    // partial-shift behaviour the week/day views have.
+    const onNavigate = vi.fn();
+    renderCalendar({
+      view: 'agenda',
+      defaultDate: anchor,
+      maxDate: new Date(2026, 5, 18),
+      animated: false,
+      onNavigate
+    });
+
+    press(document.querySelector('[role="region"]'), 'ArrowRight');
+
+    expect(onNavigate).toHaveBeenCalledTimes(1);
+    expect(iso(onNavigate.mock.calls[0][0] as Date)).toBe('2026-06-18');
   });
 
   it('disabled calendar: arrow keys are inert entirely', () => {
