@@ -18,7 +18,7 @@ Conversational surface for an LLM assistant or copilot — a streaming message l
 | One message | `ChatMessage` | Rendered per entry by default; override the `message` snippet only for a bespoke row |
 | The composer | `PromptInput` | `onSubmit({ text, attachments })`, `onStop`, `busy`; `allowAttachments` + `accept` / `maxFiles` for files |
 | Markdown answer | `StreamingMarkdown` | The default text-part renderer — settles block by block, repairs the streaming tail, no `{@html}` |
-| A tool invocation | `ToolCallCard` | The default tool-call-part renderer — status badge, JSON input/output, auto-open on error; replaceable via `partRenderers['tool-call']` |
+| A tool invocation | `ToolCallCard` | The default tool-call-part renderer — a quiet status line, JSON input/output, auto-open on error; `variant="card"` frames it for a trace view; replaceable via `partRenderers['tool-call']` |
 | Model reasoning | `ReasoningDisclosure` | The default reasoning-part renderer — collapsed "Thought for Xs", pulsing while streaming; replaceable via `partRenderers['reasoning']` |
 | A cited source | `CitationChip` | `[n]` markers in markdown resolve to chips when `sources` are supplied; policy-checked link |
 | Chat + artifact layout | `SplitPane` | Chat in one pane, the live artifact (editor / preview / table) in the other |
@@ -29,6 +29,7 @@ Conversational surface for an LLM assistant or copilot — a streaming message l
 A conversation nests deeper than any other surface in this library — shell → message → tool call → payload — which makes it the one place where framing mistakes compound. Three rules keep it readable.
 
 - **Only the outermost frame draws an outline.** A block that frames itself *and* is framed by its parent stacks two outlines at the same radius, which reads as depth that is not there. `CodeBlock` has `variant="plain"` (no surface, outline, radius or padding) for exactly this: `ToolCallCard` renders its JSON payloads with it, and any custom `partRenderers` block inside a card should too. The parent owns the frame, the child owns the content.
+- **Machinery is not content.** A reader following an answer is not reading the tool calls, so the parts that report *how* the answer was produced stay in the same muted register as each other: `ToolCallCard` (default `variant="quiet"`) and `ReasoningDisclosure` are single lines that hover by darkening their text, never framed bands. Reach for `variant="card"` only on a surface someone opened to read the calls themselves — an agent trace, a run log.
 - **Differentiate message surfaces by tint, not by border.** `ChatMessage` tints the assistant bubble (`surface-elevated`) and the user's (`primary-subtle`) and draws no outline on either. Adding one per message turns a conversation into a stack of boxes.
 - **One caption per thing.** A section heading above a block whose own header repeats the same fact ("Input" over "json") is one chrome row too many. Pass `label` to the block instead.
 
@@ -71,6 +72,7 @@ A message's `status` is the state machine; the consumer owns `ChatMessageData[]`
 - Do not put `Chat` inside a scrolling `min-h-auto` ancestor. One non-`min-h-0` link breaks the height chain and the log grows the page.
 - Do not hand-roll the message row when `partRenderers` will do — override renderers for tool calls / reasoning, not the whole `message` snippet.
 - Do not put a framed block inside a framed block. A default `CodeBlock` (or your own bordered card) inside a `ToolCallCard` stacks two outlines at the same radius; use `variant="plain"` for the inner one.
+- Do not frame tool calls in a chat stream. `variant="card"` belongs to trace and log surfaces; in a conversation it turns every call the model makes into a box the reader has to step over.
 - Do not outline message bubbles. They differentiate by tint; a border per message turns the conversation into a stack of boxes.
 - Do not reach for a raw radius (`rounded-lg`) on a chat surface. Use the tier tokens so a brand can retune the whole family at once.
 - Do not index `messages` position to identify a turn in `{#each}` — key by `message.id`.

@@ -18,7 +18,7 @@
 </script>
 
 <!-- The children snippet replaces the default JSON body with a domain view of
-     the same part — the header (status badge + tool name) stays intact. -->
+     the same part — the header (status + tool name) stays intact. -->
 <ToolCallCard toolCall={call}>
   {#snippet children(part)}
     {@const hits = (part.output ?? []) as SearchHit[]}

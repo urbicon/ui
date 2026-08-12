@@ -208,11 +208,12 @@ describe('ChatMessage', () => {
         parts: [{ type: 'tool-call', id: 't1', name: 'search_web', state: 'running' }]
       })
     });
-    // ToolCallCard's CoreSpinner is deliberately ARIA-free chrome; the sr-only
-    // status text inside the trigger is the accessible signal.
+    // ToolCallCard's CoreSpinner is deliberately ARIA-free chrome; the status
+    // text inside the trigger is the accessible signal (visible text in the
+    // default quiet header, an sr-only line in `variant="card"`).
     expect(document.body.textContent).toContain('Running');
     expect(document.body.textContent).toContain('search_web');
-    expect(screen.getByRole('button', { name: /Running search_web/ })).not.toBeNull();
+    expect(screen.getByRole('button', { name: /search_web Running/ })).not.toBeNull();
   });
 
   it('labels a reasoning part with its rounded duration', () => {
