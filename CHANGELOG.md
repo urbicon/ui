@@ -4,6 +4,52 @@ All notable changes to this project will be documented in this file.
 This changelog is automatically generated from [Conventional Commits](https://www.conventionalcommits.org).
 
 
+## [8.2.0] - 2026-08-12
+
+### Breaking Changes
+- **auth,table**: Invitation tokens, and a grouped server table that tells the truth (#181)
+- AA-clean intent text roles and a single pinned-strip docs layout (#184)
+> **BREAKING:** DocsLayout drops the `pageToolbar`, `mobileToc`, `mobileTocButton`, `mobileTocNav` and `mobileTocLink` slots. A consumer styling them via `slotClasses` should move to `stickyToc*`, which the single strip uses for the same control. * fix(docs-app): an overlay opened from a colour field reads the paper ramp A field re-points the text roles at its own foreground so the content ON the fill reads. A `popover` renders in the top layer but stays a DOM descendant of its trigger, and inheritance follows the DOM — so the on-fill ramp travelled out with the panel onto the panel's own cream/near-black sur …
+- **blocks**: One quiet register for tool calls and reasoning, and a hover fill that respects its frame (#187)
+> **BREAKING:** ToolCallCard renders unframed by default. Pass `variant="card"` to keep the previous look. * refactor(blocks)!: one register for the parts that report how an answer came about Three adversarial reviews of the previous commit, three findings that stood up to measurement. `quiet` → `plain`. VARIANT-CONTRACT.md gives `quiet` to a TINTED surface (Card, Toolbar) and `ghost` to "no chrome"; the Chat family already calls the unframed pole of a `card` axis `plain` — CodeBlock does, ChatMessage does, and this component renders its payloads with it. The register claim is now true. It read "the same regi …
+- **blocks**: Agenda lists from the reference date, not the month's 1st
+- **blocks**: One vocabulary and one toolbar for the date surfaces
+
+### Bug Fixes
+- **e2e**: Force focus only on what can be focused, and assert the room stamp (#170)
+- **blocks**: Stop the horizontal scroll containers clipping the focus ring (#171)
+- **repo**: Run the app builds under Node, not under Bun's runtime (#177)
+- **blocks**: The three size:S P1s — A2UI prototype keys, Sidebar inert, daily byDay (#173)
+- **blocks**: Measured mint defects — intensity token, infinite pulse settle, Avatar pulse leak (#174)
+- **blocks**: Calendar week view scrolls horizontally with a pinned time column (#189)
+- **blocks**: Calendar list views render the time and sort each day chronologically (#188)
+- **blocks**: Close the review findings on the date-surface pass
+- **docs**: The occupancy generator keeps its floor at any load
+- **docs-app**: Stop Svelte reading docs prose as code
+- **docs-app**: Keep deliberate demo dead ends out of the prerender crawl
+- **docs-app**: Three AA contrast failures from names that resolve to nothing
+- **blocks**: Narrow SegmentGroup slotClasses to the slots it applies
+- **docs**: The tile's date axis stays put, and its badge counts the grid
+
+### Documentation
+- **docs-app**: Restructure the Customization section (#183)
+- **docs-app**: Rework primitive pages through the editorial 4-pass review
+- Re-capture the README shots after the tile's view rename
+
+### Features
+- **docs-app**: Retire the salon — the demo universe is now Fermata, a four-house hotel group (#175)
+- **docs-app**: Blocks tile — parallel front-desk lanes, stage-filling views (#186)
+- **blocks**: ResourceTimeline — occupancy lanes on the date-grid layer (#190)
+- **docs**: The Blocks tile shows real occupancy, not front-desk operations
+
+### Miscellaneous
+- Update dependencies
+- **blocks**: Refresh the bundle-size baseline
+
+### Testing
+- **e2e**: Measure the docs shell, and pin the pixel suite to an image (#169)
+- **e2e**: Run the pixel suite in CI, on baselines that match the image (#172)
+
 ## [8.1.0] - 2026-08-07
 
 ### Breaking Changes
