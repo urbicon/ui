@@ -76,6 +76,15 @@ export const calendarVariants = tv({
       'hover:shadow-[var(--blocks-shadow-sm)] hover:border-border-default'
     ],
     colorBar: 'shrink-0 rounded-full self-stretch',
+    // Sits inline ahead of the title, not on a line of its own: the time costs
+    // no row of its own in a timed agenda. It does cost width — `shrink-0`
+    // keeps "09:05" from being squeezed into two lines, and `eventTitle` is a
+    // flex item at the default `min-width: auto`, so it wraps rather than
+    // truncates. In a narrow list (a `max-w-md` column) a long title can
+    // therefore break one word earlier than it did before the time existed.
+    // Tertiary + tabular-nums so the column of times reads as a rail beside the
+    // titles rather than competing with them.
+    eventTime: 'text-text-tertiary shrink-0 tabular-nums',
     eventTitle: 'font-semibold text-text-primary',
     eventDescription: 'text-text-secondary',
     eventHelper: 'text-text-tertiary',
@@ -285,6 +294,7 @@ export const calendarVariants = tv({
         dateHeader: 'text-sm mb-1.5',
         item: 'p-2 gap-2',
         colorBar: 'w-0.5',
+        eventTime: 'text-2xs',
         eventTitle: 'text-sm',
         eventDescription: 'text-xs',
         eventHelper: 'text-xs',
@@ -342,6 +352,7 @@ export const calendarVariants = tv({
         dateHeader: 'text-base mb-2',
         item: 'p-3 gap-3',
         colorBar: 'w-1',
+        eventTime: 'text-xs',
         eventTitle: 'text-base',
         eventDescription: 'text-sm',
         eventHelper: 'text-sm',
@@ -395,6 +406,7 @@ export const calendarVariants = tv({
         dateHeader: 'text-lg mb-2.5',
         item: 'p-4 gap-3',
         colorBar: 'w-1',
+        eventTime: 'text-sm',
         eventTitle: 'text-lg',
         eventDescription: 'text-base',
         eventHelper: 'text-sm',

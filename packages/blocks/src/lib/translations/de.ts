@@ -97,6 +97,9 @@ export default {
     viewWeek: 'Woche',
     viewDay: 'Tag',
     multiDayLabel: 'Tag {{current}} von {{total}}',
+    // Zeitzeile am LETZTEN Tag eines mehrtägigen Termins mit Uhrzeit: nur das
+    // Ende gilt für diesen Tag, und nackt gesetzt läse es sich als Startzeit.
+    untilTime: 'bis {{time}}',
     agendaView: 'Listenansicht',
     viewAgenda: 'Liste',
     viewSwitcher: 'Ansichtsmodus',

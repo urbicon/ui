@@ -6,6 +6,7 @@ import {
   formatDayTitle,
   formatMonthShort,
   formatMonthYear,
+  formatTimeRange,
   formatWeekRange,
   formatWeekTitle,
   getWeekdayNames
@@ -149,6 +150,64 @@ describe('formatDayTitle', () => {
     expect(result).toMatch(/March/);
     expect(result).toMatch(/19/);
     expect(result).toMatch(/2026/);
+  });
+});
+
+describe('formatTimeRange', () => {
+  // Every case passes its locale explicitly: vitest runs under the machine's
+  // LANG (de_DE here), so an assertion against the default would be an
+  // assertion about the runtime, not about the function.
+  //
+  // Why the single-time cases assert exactly and the range case does not — both
+  // measured 2026-08-12 in this worktree, Node 25.2.1 / Node 26.3.0 / Bun 1.4.0:
+  // the single-time pattern is character-identical in all three ("9:05",
+  // "9:05 AM" with a plain U+0020 before the marker). The RANGE pattern is not:
+  // Node appends " Uhr" to de-DE and Bun does not, and en-US wraps the dash in
+  // U+2009 under Node against U+0020 under Bun. So the looseness sits exactly
+  // where a disagreement was observed, not as a blanket hedge.
+  const start = new Date(2026, 5, 16, 9, 5);
+  const end = new Date(2026, 5, 16, 10, 30);
+
+  it('formats a lone start time in the locale form', () => {
+    expect(formatTimeRange(start, undefined, 'de-DE')).toBe('9:05');
+    expect(formatTimeRange(start, undefined, 'en-US')).toBe('9:05 AM');
+  });
+
+  it('formats a start–end span within one day', () => {
+    // Both times, not the exact punctuation: ICU decides the separator, the
+    // padding and the suffix, and the runtimes disagree — Node renders de-DE as
+    // "09:05–10:30 Uhr", Bun drops the "Uhr". The `\s` before the meridiem is
+    // one character, not an optional one: every runtime measured puts exactly
+    // one space there, and `\s` also covers the narrow no-break space a later
+    // CLDR could switch to.
+    expect(formatTimeRange(start, end, 'de-DE')).toMatch(/^0?9:05\D+10:30/);
+    expect(formatTimeRange(start, end, 'en-US')).toMatch(/^9:05\D+10:30\s(AM|am)/);
+  });
+
+  it('reuses one formatter per locale', () => {
+    // The cache is an optimisation, so what is asserted is that it stays
+    // invisible: two calls for two locales must not bleed into each other.
+    expect(formatTimeRange(start, undefined, 'de-DE')).toBe('9:05');
+    expect(formatTimeRange(start, undefined, 'en-US')).toBe('9:05 AM');
+    expect(formatTimeRange(start, undefined, 'de-DE')).toBe('9:05');
+  });
+
+  it('follows the locale hour cycle rather than a hardcoded 24h clock', () => {
+    const afternoon = new Date(2026, 5, 16, 14, 0);
+    expect(formatTimeRange(afternoon, undefined, 'de-DE')).toBe('14:00');
+    expect(formatTimeRange(afternoon, undefined, 'en-US')).toBe('2:00 PM');
+  });
+
+  it('drops an end that falls on another day — that range would print full dates', () => {
+    const nextDay = new Date(2026, 5, 18, 17, 0);
+    expect(formatTimeRange(start, nextDay, 'de-DE')).toBe('9:05');
+    expect(formatTimeRange(start, nextDay, 'de-DE')).not.toMatch(/2026/);
+  });
+
+  it('survives an unparseable end instead of throwing inside a derived', () => {
+    // Intl.formatRange throws a RangeError on an invalid date; the same-day
+    // guard filters it out first (NaN is never "the same day").
+    expect(formatTimeRange(start, new Date(Number.NaN), 'de-DE')).toBe('9:05');
   });
 });
 

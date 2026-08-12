@@ -29,6 +29,7 @@ export {
   formatDayTitle,
   formatMonthShort,
   formatMonthYear,
+  formatTimeRange,
   formatWeekRange,
   formatWeekTitle,
   getWeekdayNames
@@ -41,4 +42,12 @@ export {
   getWeekNumber,
   getYearMonths
 } from './geometry';
-export { addDays, eachDayOfRange, endOfWeek, isoToDate, startOfWeek, toIso } from './range';
+export {
+  addDays,
+  eachDayOfRange,
+  endOfWeek,
+  isoToDate,
+  startOfWeek,
+  toIso,
+  toIsoDateTime
+} from './range';

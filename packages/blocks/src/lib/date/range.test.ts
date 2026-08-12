@@ -1,5 +1,13 @@
 import { describe, expect, it } from 'vitest';
-import { addDays, eachDayOfRange, endOfWeek, isoToDate, startOfWeek, toIso } from './range';
+import {
+  addDays,
+  eachDayOfRange,
+  endOfWeek,
+  isoToDate,
+  startOfWeek,
+  toIso,
+  toIsoDateTime
+} from './range';
 
 describe('toIso', () => {
   it('returns YYYY-MM-DD format', () => {
@@ -14,6 +22,23 @@ describe('toIso', () => {
     // Late-evening local time must still report the local date, even where the
     // UTC date has already rolled over.
     expect(toIso(new Date(2026, 5, 16, 23, 30))).toBe('2026-06-16');
+  });
+});
+
+describe('toIsoDateTime', () => {
+  it('returns YYYY-MM-DDTHH:mm', () => {
+    expect(toIsoDateTime(new Date(2026, 5, 16, 9, 5))).toBe('2026-06-16T09:05');
+  });
+
+  it('zero-pads the hour and the minute', () => {
+    expect(toIsoDateTime(new Date(2026, 0, 5, 0, 0))).toBe('2026-01-05T00:00');
+  });
+
+  it('reports the local wall clock, not UTC', () => {
+    // The `<time datetime>` must agree with the Intl output next to it, and that
+    // one is local too — a UTC string would disagree by the zone offset.
+    const date = new Date(2026, 5, 16, 23, 30);
+    expect(toIsoDateTime(date)).toBe(`${toIso(date)}T23:30`);
   });
 });
 

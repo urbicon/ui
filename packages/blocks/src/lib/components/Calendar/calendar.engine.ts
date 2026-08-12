@@ -35,6 +35,43 @@ export function getEventDayInfo(
 }
 
 /**
+ * Order the events of ONE day for a list: all-day first, then timed events by
+ * start; ties go to the longer event.
+ *
+ * The reading order of a day is a property of the day, not of the array a
+ * consumer happened to build. Events generated per resource (chairs, rooms,
+ * staff) arrive grouped by resource — 12:20, 12:15, 13:20, 13:15 — and the
+ * list-based views rendered exactly that (#95). The time grid hid it, because
+ * it positions by the hour rather than by array index.
+ *
+ * All-day before timed follows the convention every calendar app uses: an
+ * all-day event has no hour to sort against, so it heads the day rather than
+ * landing at midnight among the timed ones. `allDay` is read the way the rest
+ * of the component reads it — `!== false`, since the documented default is
+ * `true` and only an explicit `false` marks an event as timed.
+ *
+ * The tie-break repeats the stacking rule of `getMultiDayEventLayout` and
+ * `resolveOverlaps` (longer first), so a day's list order matches the order the
+ * same events stack in the grid. `Array.prototype.sort` is stable, so events
+ * that are equal under both keys keep the order they were passed in.
+ */
+export function compareDayEvents(
+  a: { start: Date; end?: Date; allDay?: boolean },
+  b: { start: Date; end?: Date; allDay?: boolean }
+): number {
+  const aAllDay = a.allDay !== false;
+  const bAllDay = b.allDay !== false;
+  if (aAllDay !== bAllDay) return aAllDay ? -1 : 1;
+
+  const byStart = a.start.getTime() - b.start.getTime();
+  if (byStart !== 0) return byStart;
+
+  const aEnd = a.end ? a.end.getTime() : a.start.getTime();
+  const bEnd = b.end ? b.end.getTime() : b.start.getTime();
+  return bEnd - aEnd;
+}
+
+/**
  * Determine whether text on a given background color should be light or dark.
  * Supports hex (#rgb, #rrggbb), rgb(), oklch(), and CSS named colors.
  * Returns 'white' or 'black' based on perceived luminance.

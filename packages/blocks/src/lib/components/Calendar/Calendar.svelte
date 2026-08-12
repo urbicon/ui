@@ -17,7 +17,7 @@
   } from '$lib/date';
   import { DateGridController } from '$lib/internal/date-grid';
   import type { DateGridSelection, DateGridView } from '$lib/internal/date-grid';
-  import { getEventDayInfo, expandRecurrence } from './calendar.engine';
+  import { compareDayEvents, getEventDayInfo, expandRecurrence } from './calendar.engine';
   import type { CalendarProps } from './index';
   import type {
     CalendarEvent,
@@ -405,6 +405,15 @@
         }
         current = addDays(current, 1);
       }
+    }
+    // One sort per day, here rather than in each list view: every view reads its
+    // day through this index, so ordering it once is what keeps the agenda, the
+    // month event list, the day-view all-day band and the "+n" popover telling
+    // the same story. The two order-sensitive consumers are unaffected — the
+    // time grid re-sorts by position (`resolveOverlaps`), and the multi-day bar
+    // layout re-sorts by start day and duration (`getMultiDayEventLayout`).
+    for (const dayEvents of map.values()) {
+      dayEvents.sort(compareDayEvents);
     }
     return map;
   });
