@@ -18,7 +18,7 @@
 
     <CodeExample
       title="Code-only"
-      description="preview={false} hides the preview stage — for snippets that are not renderable UI."
+      description={'preview={false} hides the preview stage — for snippets that are not renderable UI.'}
       language="typescript"
       preview={false}
       code={`import { codeExampleVariants } from '@urbicon-ui/docs';
@@ -28,7 +28,7 @@ const styles = codeExampleVariants({ size: 'sm' });`}
 
     <CodeExample
       title="Collapsed by default"
-      description="defaultExpanded={false} starts with the code panel folded, overriding the page-wide toggle."
+      description={'defaultExpanded={false} starts with the code panel folded, overriding the page-wide toggle.'}
       language="svelte"
       defaultExpanded={false}
       code={`<CodeExample title="Status" defaultExpanded={false} code={badgeSnippet}>
