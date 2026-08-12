@@ -34,8 +34,8 @@ const windows = Array.from({ length: 30 }, (_, i) => {
   return start;
 });
 
-describe('landing occupancy — the grid shows the percentages the card claims', () => {
-  it('hits each house load within 2 percentage points, over 30 windows', () => {
+describe('Landing-Belegung — das Raster zeigt die Prozente der Karte', () => {
+  it('trifft jede Hausauslastung auf 2 Prozentpunkte, über 30 Fenster', () => {
     let worst = 0;
     for (const windowStart of windows) {
       const occupancy = buildOccupancy({ houses: GROUP, windowStart, nights: NIGHTS });
@@ -44,13 +44,12 @@ describe('landing occupancy — the grid shows the percentages the card claims',
         worst = Math.max(worst, Math.abs(measured - house.load));
       }
     }
-    // Der Rest ist Rundung: je Zimmer wird auf ganze Nächte gerundet
-    // (1/14 = 7,1 Prozentpunkte Granularität), und die Versätze aus
-    // LOAD_SPREAD gehen nur bei einer durch 6 teilbaren Zimmerzahl exakt auf.
+    // Der Rest ist Rundung: die Hausumme ist exakt, aber sie wird auf ganze
+    // Nächte gerundet (1/14 = 7,1 Prozentpunkte Granularität je Zimmer).
     expect(worst).toBeLessThan(2);
   });
 
-  it('gives every room at least one occupied night and no room a full house', () => {
+  it('belegt jedes Zimmer mindestens einmal und nicht jedes durchgehend', () => {
     // Positivkontrolle in beide Richtungen: ein Generator, der nichts oder
     // alles belegt, würde die Prozent-Zusage oben je nach Last auch erfüllen.
     const occupancy = buildOccupancy({ houses: GROUP, windowStart: ANCHOR, nights: NIGHTS });
@@ -67,8 +66,8 @@ describe('landing occupancy — the grid shows the percentages the card claims',
   });
 });
 
-describe('landing occupancy — every stay is a plausible stay', () => {
-  it('never ends a stay before it starts, over 30 windows', () => {
+describe('Landing-Belegung — jeder Aufenthalt ist ein plausibler Aufenthalt', () => {
+  it('beendet keinen Aufenthalt vor seinem Beginn, über 30 Fenster', () => {
     // Der Fund, der diese Datei gerettet hat: `seed >> 3` auf einem Hash bis
     // 2³²−1 ist negativ, also war der Überhang am Fensterrand negativ und ein
     // Aufenthalt lief rückwärts. Die Timeline dreht so einen Bereich still um
@@ -84,7 +83,38 @@ describe('landing occupancy — every stay is a plausible stay', () => {
     }
   });
 
-  it('keeps every stay between 3 and 12 nights, over 30 windows', () => {
+  it('hält den Drei-Nächte-Boden auch bei Lasten, die die Kachel nicht nutzt', () => {
+    // Der Bereich, in den die Zahlen der Kachel (71–94 %) nie kommen — und in
+    // dem dieser Generator zweimal brach: der Nachbartausch prüfte jede Grenze
+    // nur an EINEM Zimmer (vorwärts legal, rückwärts nicht), und unter etwa
+    // einem Drittel Auslastung ist der Anteil je Zimmer kleiner als ein
+    // Aufenthalt — der geht jetzt auf WENIGER Zimmer statt auf kürzere
+    // Aufenthalte.
+    for (const load of [20, 35, 50, 65]) {
+      for (const rooms of [1, 2, 3, 5, 9]) {
+        const house: OccupancyHouse = {
+          id: 'probe',
+          name: 'Probe',
+          place: 'Nowhere',
+          stock: { room: rooms },
+          load
+        };
+        for (const windowStart of windows.slice(0, 8)) {
+          const { stays } = buildOccupancy({ houses: [house], windowStart, nights: NIGHTS });
+          for (const stay of stays) {
+            const nights =
+              Math.round((stay.lastNight.getTime() - stay.firstNight.getTime()) / 86_400_000) + 1;
+            expect(
+              nights,
+              `${load} % / ${rooms} Zimmer: ${stay.id} dauert ${nights}`
+            ).toBeGreaterThanOrEqual(3);
+          }
+        }
+      }
+    }
+  });
+
+  it('hält jeden Aufenthalt zwischen 3 und 12 Nächten, über 30 Fenster', () => {
     // MIN_STAY = 3 und MAX_STAY = 9 plus höchstens drei Nächte Überhang am
     // Fensterrand. Ein Ein-Nacht-Aufenthalt widerspricht dem Haus, das laut
     // Generator ruhig bucht — und entstand zweimal: einmal aus dem
@@ -100,7 +130,7 @@ describe('landing occupancy — every stay is a plausible stay', () => {
     }
   });
 
-  it('never stacks two stays of one room on the same night', () => {
+  it('stapelt nie zwei Aufenthalte eines Zimmers auf derselben Nacht', () => {
     // Zwei Balken übereinander in einer Spur wären zwei Gäste in einem Zimmer.
     // Berühren dürfen sie sich (Check-out-Morgen = Check-in-Tag), überlappen nie.
     for (const windowStart of windows) {
@@ -120,8 +150,8 @@ describe('landing occupancy — every stay is a plausible stay', () => {
   });
 });
 
-describe('landing occupancy — one guest, one room', () => {
-  it('never puts a guest in two rooms at once, over 30 windows', () => {
+describe('Landing-Belegung — ein Gast, ein Zimmer', () => {
+  it('legt keinen Gast in zwei Zimmer gleichzeitig, über 30 Fenster', () => {
     for (const windowStart of windows) {
       const { stays } = buildOccupancy({ houses: GROUP, windowStart, nights: NIGHTS });
       const byGuest = new Map<string, { from: number; to: number }[]>();
@@ -142,8 +172,8 @@ describe('landing occupancy — one guest, one room', () => {
     }
   });
 
-  it('stays inside the name pool of every house', () => {
-    // Die konstruktive Zusage aus dem Kopf von occupancy.ts: 41 Namen je Haus,
+  it('bleibt im Namensvorrat jedes Hauses', () => {
+    // Die gemessene Zusage aus dem Kopf von occupancy.ts: 41 Namen je Haus,
     // und das gemessene Maximum liegt darunter. Bricht das, rotiert der Vorrat
     // und ein Gast steht zweimal im Raster.
     let mostStaysPerHouse = 0;
@@ -161,14 +191,14 @@ describe('landing occupancy — one guest, one room', () => {
   });
 });
 
-describe('landing occupancy — deterministic, and different per window', () => {
-  it('renders the same plan twice for the same window', () => {
+describe('Landing-Belegung — deterministisch, und je Fenster verschieden', () => {
+  it('ergibt für dasselbe Fenster zweimal denselben Plan', () => {
     const a = buildOccupancy({ houses: GROUP, windowStart: ANCHOR, nights: NIGHTS });
     const b = buildOccupancy({ houses: GROUP, windowStart: ANCHOR, nights: NIGHTS });
     expect(JSON.stringify(b.stays)).toBe(JSON.stringify(a.stays));
   });
 
-  it('renders a different plan for the next window', () => {
+  it('ergibt für das nächste Fenster einen anderen Plan', () => {
     const a = buildOccupancy({ houses: GROUP, windowStart: ANCHOR, nights: NIGHTS });
     const next = new Date(ANCHOR);
     next.setDate(next.getDate() + NIGHTS);
@@ -181,8 +211,8 @@ describe('landing occupancy — deterministic, and different per window', () => 
   });
 });
 
-describe('landing occupancy — the lanes are the register', () => {
-  it('makes one lane per room the register declares', () => {
+describe('Landing-Belegung — die Spuren sind das Register', () => {
+  it('macht eine Spur je Zimmer, das das Register nennt', () => {
     const { resources, groups } = buildOccupancy({
       houses: GROUP,
       windowStart: ANCHOR,

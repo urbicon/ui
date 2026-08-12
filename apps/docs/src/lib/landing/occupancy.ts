@@ -309,6 +309,17 @@ function isoDay(date: Date): string {
  */
 function roomsOf(house: OccupancyHouse): TimelineResource[] {
   const remaining = ROOM_TYPES.map((type) => ({ type, left: house.stock[type.id] ?? 0 }));
+  // Ein Bestandsschlüssel, den das Preisblatt nicht kennt, hätte hier keine
+  // Spur — das Haus wäre im Raster kleiner als auf /hotel, ohne ein Wort.
+  if (import.meta.env?.DEV) {
+    const known = new Set(ROOM_TYPES.map((type) => type.id));
+    const unknown = Object.keys(house.stock).filter((id) => !known.has(id));
+    if (unknown.length > 0) {
+      console.warn(
+        `[occupancy] ${house.name} stocks room type(s) the register has no price for: ${unknown.join(', ')} — those rooms get no lane`
+      );
+    }
+  }
   const rooms: TimelineResource[] = [];
   let number = 1;
   while (remaining.some((entry) => entry.left > 0)) {
@@ -341,12 +352,35 @@ function roomsOf(house: OccupancyHouse): TimelineResource[] {
  */
 function occupiedPerRoom(seed: number, rooms: number, nights: number, load: number): number[] {
   const total = Math.round((rooms * nights * load) / 100);
-  const base = Math.floor(total / rooms);
-  const counts = Array.from({ length: rooms }, (_, i) => base + (i < total % rooms ? 1 : 0));
+  // Wie viele Zimmer die Summe überhaupt mit einem echten Aufenthalt tragen
+  // können. Bei den Lasten der Kachel (71–94 %) sind das alle; bei 20 % nicht —
+  // dort verteilt der Generator die Nächte auf ein Fünftel der Zimmer und lässt
+  // die anderen LEER, statt jedem Zimmer zwei Nächte zu geben. So sieht ein
+  // schwach belegtes Haus wirklich aus, und der Mindestaufenthalt bleibt eine
+  // Zusage statt einer Näherung (gemessen: bei 20 % und drei Zimmern stand
+  // vorher ein Zwei-Nacht-Aufenthalt im Raster).
+  const usable = Math.max(1, Math.min(rooms, Math.floor(total / MIN_STAY)));
+  const base = Math.floor(total / usable);
+  const counts = Array.from({ length: rooms }, (_, i) =>
+    i < usable ? base + (i < total % usable ? 1 : 0) : 0
+  );
 
-  for (let i = 0; i + 1 < rooms; i += 2) {
+  for (let i = 0; i + 1 < usable; i += 2) {
     const delta = SPREAD_NIGHTS[(seed + i) % SPREAD_NIGHTS.length];
-    const give = Math.min(delta, counts[i] - MIN_STAY, nights - counts[i + 1]);
+    // Der Tausch muss in BEIDE Richtungen legal sein, also binden ihn beide
+    // Zimmer — was das eine abgeben kann und was das andere aufnehmen kann. Die
+    // erste Fassung prüfte je Grenze nur ein Zimmer und war damit nur für die
+    // Vorwärtsrichtung korrekt: bei ungerader Gesamtsumme (ein Zimmer trägt den
+    // Rest) konnte der Rücktausch das hintere Zimmer unter MIN_STAY drücken —
+    // ein Zwei-Nacht-Aufenthalt in einem Haus, das laut Generator ruhig bucht.
+    // Bei den Lasten der Kachel (71–94 %) trat es nicht auf, bei 50 % schon.
+    const give = Math.min(
+      delta,
+      counts[i] - MIN_STAY,
+      counts[i + 1] - MIN_STAY,
+      nights - counts[i],
+      nights - counts[i + 1]
+    );
     if (give <= 0) continue;
     // Richtung aus dem Seed, damit nicht immer das vordere Zimmer das leerere
     // ist (das wäre ein Gefälle von oben nach unten, kein Betrieb).
