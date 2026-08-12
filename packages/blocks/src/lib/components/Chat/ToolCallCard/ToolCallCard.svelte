@@ -13,7 +13,7 @@
 
   let {
     toolCall,
-    variant = 'quiet',
+    variant = 'plain',
     open = $bindable(),
     defaultOpen,
     onOpenChange,
@@ -41,25 +41,31 @@
   // budget. A plain record spread carries the attributes through cleanly.
   const rootProps = $derived(restProps as Record<string, unknown>);
 
-  const variantProps: ToolCallCardVariants = $derived({ variant });
+  // Uncontrolled seed: expanded by default only for an already-failed call.
+  // svelte-ignore state_referenced_locally
+  let internalOpen = $state(defaultOpen ?? toolCall.state === 'error');
+  const isOpen = $derived(open !== undefined ? open : internalOpen);
+
+  // Both the disclosure state and the call state are tv() axes, not classes
+  // passed in from here: an axis resolves in the config, where a consumer's
+  // `slotClasses` is a later source and can strip what it conflicts with. As a
+  // class merged in alongside that override, the CSS cascade would decide
+  // instead — i.e. by alphabet (review finding).
+  const variantProps: ToolCallCardVariants = $derived({
+    variant,
+    open: isOpen,
+    callState: toolCall.state
+  });
   const styles = $derived(toolCallCardVariants(variantProps));
   const slotClasses = $derived(
     resolveSlotClasses(blocksConfig, 'ToolCallCard', preset, variantProps, slotClassesProp)
   );
 
-  function cls(name: keyof typeof slotClasses, extra?: string | (string | undefined)[]) {
-    const extras = Array.isArray(extra) ? extra : [extra];
-    if (unstyled) {
-      return [slotClasses?.[name], ...extras].filter(Boolean).join(' ');
-    }
+  function cls(name: keyof typeof slotClasses) {
+    if (unstyled) return slotClasses?.[name] ?? '';
     const slotFns = styles as Record<string, (args: { class?: unknown }) => string>;
-    return slotFns[name]({ class: [slotClasses?.[name], ...extras] });
+    return slotFns[name]({ class: slotClasses?.[name] });
   }
-
-  // Uncontrolled seed: expanded by default only for an already-failed call.
-  // svelte-ignore state_referenced_locally
-  let internalOpen = $state(defaultOpen ?? toolCall.state === 'error');
-  const isOpen = $derived(open !== undefined ? open : internalOpen);
 
   // Tracks whether the user has toggled the card. Once they have, auto-open is
   // disabled — a manual choice always wins.
@@ -111,22 +117,6 @@
 
   const isBusy = $derived(toolCall.state === 'pending' || toolCall.state === 'running');
 
-  // A failure is the one state allowed to raise its voice in the quiet header —
-  // everything else stays tertiary. The card header carries the intent in its
-  // Badge instead.
-  const statusTone = $derived(toolCall.state === 'error' ? 'text-danger-text' : undefined);
-
-  // The card header is a rectangle sitting inside a rounded, un-clipped frame,
-  // so its hover fill has to carry the frame's radius itself — otherwise the
-  // fill squares off the corners it sits in, which is invisible at the default
-  // 2px `--radius-contain` and glaring in a theme that rounds containers. Only
-  // the top corners while open: the body continues the same fill area below.
-  // Clipping the frame instead (`overflow-hidden`) would eat both the focus
-  // ring and anything a `children` snippet pops out of the body.
-  const cardTriggerRadius = $derived(
-    variant === 'card' ? (isOpen ? 'rounded-t-contain' : 'rounded-contain') : undefined
-  );
-
   // JSON.stringify can throw on circular structures, or return `undefined` for
   // a non-serializable value (function, symbol) — fall back to String() so the
   // CodeBlock always receives a string.
@@ -151,7 +141,7 @@
     <button
       id={triggerId}
       type="button"
-      class={cls('trigger', cardTriggerRadius)}
+      class={cls('trigger')}
       aria-expanded={isOpen}
       aria-controls={contentId}
       onclick={toggle}
@@ -162,21 +152,20 @@
             <CoreSpinner size="xs" class={cls('spinner')} />
           </span>
         {/if}
-        {#if variant === 'card'}
-          <!-- CoreSpinner and Badge carry no ARIA (the badge is aria-hidden chrome),
-               so this sr-only line is the single textual status for assistive tech.
-               The quiet header needs none — its status is visible text. -->
-          <span class="sr-only">{statusLabel}</span>
-        {/if}
         <span class={cls('toolName')}>{toolCall.name}</span>
       </span>
       <span class={cls('triggerRight')}>
         {#if variant === 'card'}
+          <!-- CoreSpinner and Badge carry no ARIA (the badge is aria-hidden chrome),
+               so this sr-only line is the single textual status for assistive tech.
+               It sits where the visible status sits in the plain header, so the
+               accessible name reads "<tool> <status>" in both variants. -->
+          <span class="sr-only">{statusLabel}</span>
           <Badge intent={badgeIntent} variant="soft" aria-hidden="true">{statusLabel}</Badge>
         {:else}
-          <span class={cls('statusText', statusTone)}>{statusLabel}</span>
+          <span class={cls('statusText')}>{statusLabel}</span>
         {/if}
-        <ChevronDownIcon class={cls('chevron', isOpen ? 'rotate-180' : undefined)} />
+        <ChevronDownIcon class={cls('chevron')} />
       </span>
     </button>
   {/snippet}
@@ -187,7 +176,7 @@
     <!--
       The payloads render as `plain` CodeBlocks: in `card` the frame is already
       drawn one level up, so a bordered child would stack a second outline at the
-      same radius inside the first; in `quiet` the whole point is that nothing
+      same radius inside the first; in `plain` the whole point is that nothing
       here draws a box. The section caption moved into the block's own header
       too — "Input" above a header reading "json" was one chrome row and one
       label too many for a single payload.

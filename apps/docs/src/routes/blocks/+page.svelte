@@ -1943,7 +1943,12 @@ Tokens switch light and dark automatically:
         </div>
       </div>
 
-      <!-- ToolCallCard ── 2×1 · a completed call -->
+      <!-- ToolCallCard ── 2×1 · a completed call, both registers.
+           The default is one muted row — right inside a message, too little to
+           recognise in a gallery cell on its own. Showing it above its framed
+           sibling fills the cell and says what the component's one variant is
+           for; expanding it instead would push the header out of a 160px cell
+           and leave the reader looking at raw JSON. -->
       <div class={cellWd} data-specimen="ToolCallCard">
         <a
           href={resolve('/blocks/components/tool-call-card')}
@@ -1952,8 +1957,9 @@ Tokens switch light and dark automatically:
         ></a>
         <div class={inner} inert>
           {@render heading('ToolCallCard')}
-          <div class="flex flex-1 flex-col justify-center">
+          <div class="flex flex-1 flex-col justify-center gap-2 overflow-hidden">
             <ToolCallCard toolCall={toolCallDemo} />
+            <ToolCallCard toolCall={toolCallDemo} variant="card" />
           </div>
         </div>
       </div>

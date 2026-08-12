@@ -9,10 +9,12 @@ import type { ReasoningDisclosureSlots } from './reasoning-disclosure.variants';
  * model's thinking trace in a collapsed, muted disclosure: the header shows a
  * state label ("Thinking" while streaming, "Thought for Xs" once settled with a
  * duration, otherwise "Reasoning"), the body renders the reasoning text through
- * StreamingMarkdown in a damped tertiary tone. Stays collapsed by default —
- * including while streaming — so a growing reasoning trace never steals the
- * answer's space; the caller drives the `streaming` flag (the part carries no
- * status).
+ * StreamingMarkdown in a damped tertiary tone, indented rather than boxed. Stays
+ * collapsed by default — including while streaming — so a growing reasoning
+ * trace never steals the answer's space; the caller drives the `streaming` flag
+ * (the part carries no status). Renders in the same register as ToolCallCard's
+ * default header: both report how an answer came about, and a reader should be
+ * able to tell at a glance that they are the same kind of thing.
  * @tag ai
  * @related ChatMessage
  * @related ToolCallCard

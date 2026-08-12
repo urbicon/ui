@@ -8,9 +8,10 @@ import type { ToolCallCardSlots } from './tool-call-card.variants';
  * @description Collapsible disclosure for one agent tool-call part (`type: 'tool-call'`)
  * — a status indicator + monospaced tool name in the header, and the JSON input/output (or an
  * error message) in the expandable body. It is the default renderer ChatMessage reaches for on
- * `tool-call` parts (wire it in via `partRenderers`). By default it renders `quiet`: one muted
- * line in the message flow, because a reader following prose is not reading the machinery.
- * Switch to `variant="card"` where the call is the content — an agent trace, a tool-run log.
+ * `tool-call` parts (wire it in via `partRenderers`). By default it renders `plain`: one muted
+ * line in the message flow, in the same register as ReasoningDisclosure, because a reader
+ * following prose is not reading the machinery. Switch to `variant="card"` where the call is
+ * the content — an agent trace, a tool-run log.
  * Opens itself when a call fails so the error is visible without a click; a manual toggle always
  * wins afterwards. Pass a `children` snippet to replace the default JSON body with a
  * domain-specific view of the same part.
@@ -44,15 +45,16 @@ export interface ToolCallCardProps
   /** The tool-call part to render. Required. */
   toolCall: ChatToolCallPart;
   /**
-   * How loudly the header presents itself. `quiet` is one muted line in the
-   * message flow — no outline, no surface, no badge, as wide as its own text.
-   * `card` is the framed header (outline, radius, shadow, status badge, full
-   * width) for surfaces where the tool call is the subject rather than a
-   * footnote.
+   * How loudly the header presents itself. `plain` is one muted line in the
+   * message flow — no outline, no surface, no badge, as wide as its own text —
+   * the same word CodeBlock uses for the same idea, and the same register
+   * ReasoningDisclosure renders in. `card` is the framed header (outline,
+   * radius, shadow, status badge, the container's full width) for surfaces
+   * where the tool call is the subject rather than a footnote.
    * @summary A muted line in the message flow, or a framed header for a trace view.
-   * @default 'quiet'
+   * @default 'plain'
    */
-  variant?: 'quiet' | 'card';
+  variant?: 'plain' | 'card';
   /**
    * Whether the card is expanded. Supports `bind:open`. Left uncontrolled, the
    * card starts collapsed for `pending` / `running` / `complete` and expanded
@@ -92,7 +94,7 @@ export interface ToolCallCardProps
   unstyled?: boolean;
   /**
    * Per-slot class overrides. Slots: `trigger` (header button), `triggerLeft`,
-   * `triggerRight`, `spinner`, `toolName`, `statusText` (the quiet header's
+   * `triggerRight`, `spinner`, `toolName`, `statusText` (the plain header's
    * status; `card` uses a Badge instead), `chevron`, `body`, `section`,
    * `errorMessage`. The payloads render as `variant="plain"` CodeBlocks — style
    * those through `<BlocksProvider presets={{ CodeBlock: {...} }}>`.

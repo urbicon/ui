@@ -16,7 +16,7 @@
   <div class="space-y-10">
     <CodeExample
       title="Lifecycle: running to complete"
-      description="The consumer owns the tool-call part and mutates its state and output as the real call resolves. While busy the header shows a spinner beside the tool name; on completion the status flips to Done and the output becomes available. It stays collapsed the whole time — a successful call is not worth a click, and the default quiet header keeps it out of the reader's way."
+      description="The consumer owns the tool-call part and mutates its state and output as the real call resolves. While busy the header shows a spinner beside the tool name; on completion the status flips to Done and the output becomes available. It stays collapsed the whole time — a successful call is not worth a click, and the default plain header keeps it out of the reader's way."
       code={lifecycleCode}
     >
       <Lifecycle />
@@ -32,7 +32,7 @@
 
     <CodeExample
       title="Framed, where the call is the content"
-      description="variant=&quot;card&quot; puts the header back in a frame: outline, radius, status badge, full width. That is the right register for a run log or an agent trace — a surface someone opened to read the calls themselves. In a chat stream it is the wrong one, which is why quiet is the default."
+      description="variant=&quot;card&quot; puts the header back in a frame: outline, radius, status badge, and the full width of whatever holds it. That is the right register for a run log or an agent trace — a surface someone opened to read the calls themselves. In a chat stream it is the wrong one, which is why plain is the default."
       code={framedTraceCode}
     >
       <FramedTrace />
@@ -59,7 +59,7 @@
         / <code class="text-text-primary">Running</code>
         / <code class="text-text-primary">Done</code> /
         <code class="text-text-primary">Failed</code>) is always in the header, and always exactly
-        once: the quiet header prints it as visible text, the framed one shows it as a decorative
+        once: the plain header prints it as visible text, the framed one shows it as a decorative
         <code class="text-text-primary">Badge</code>
         (<code class="text-text-primary">aria-hidden</code>) paired with a single
         <code class="text-text-primary">sr-only</code> line. The spinner is decorative in both, so assistive

@@ -65,7 +65,7 @@ function labelOccurrences(label: string): number {
   return (getTrigger().textContent?.split(label).length ?? 1) - 1;
 }
 
-describe('ToolCallCard — quiet header (default)', () => {
+describe('ToolCallCard — plain header (default)', () => {
   it('states the status as visible text, not as a badge', () => {
     render({ toolCall: part('complete') });
     expect(hasBadgeLabel('Done')).toBe(false);
@@ -98,6 +98,36 @@ describe('ToolCallCard — quiet header (default)', () => {
     expect(root?.className, 'no radius').not.toMatch(/\brounded-/);
   });
 
+  /**
+   * The row hovers as one thing. A child that sets its own text colour opts out
+   * of the trigger's hover, and the two neighbouring ink steps it would reach
+   * for (`secondary` / `tertiary`) are the SAME value in dark mode — so a child
+   * colour here is either a dead hover or a partial one (review finding).
+   * Monospace and size carry the hierarchy instead; `error` is the exception,
+   * and it is asserted right below.
+   */
+  it('lets the whole row inherit one ink, so the hover moves all of it', () => {
+    render({ toolCall: part('complete') });
+    const trigger = getTrigger();
+    expect(trigger.className, 'trigger owns the resting ink').toMatch(/\btext-text-tertiary\b/);
+    expect(trigger.className, 'and the hover step').toMatch(/\bhover:text-primary-text\b/);
+
+    for (const el of trigger.querySelectorAll('span, svg')) {
+      expect(el.className.toString(), `${el.tagName} sets no ink of its own`).not.toMatch(
+        /\btext-text-(primary|secondary|tertiary|quaternary)\b/
+      );
+    }
+  });
+
+  it('gives the failed status a colour of its own', () => {
+    render({ toolCall: part('error', { errorMessage: 'boom' }) });
+    // The innermost span carrying the label — its wrapper reports the same text.
+    const status = [...getTrigger().querySelectorAll('span')].find(
+      (el) => el.children.length === 0 && el.textContent?.trim() === 'Failed'
+    );
+    expect(status?.className).toMatch(/\btext-danger-text\b/);
+  });
+
   it('honors custom status labels', () => {
     render({ toolCall: part('running'), runningLabel: 'Working…' });
     expect(getTrigger().textContent).toContain('Working…');
@@ -105,6 +135,20 @@ describe('ToolCallCard — quiet header (default)', () => {
 });
 
 describe('ToolCallCard — card header', () => {
+  /**
+   * The frame itself comes from the Collapsible the card maps onto, not from
+   * this component's own tv() — so the variant mapping is the whole substance
+   * of `card`, and nothing else in this file would notice it regressing to the
+   * unframed default.
+   */
+  it('puts the header back in a frame', () => {
+    render({ toolCall: part('complete'), variant: 'card' });
+    const root = getTrigger().closest('[data-state]');
+    expect(root?.className, 'outline').toMatch(/(^|\s)border(\s|$)/);
+    expect(root?.className, 'radius').toMatch(/\brounded-contain\b/);
+    expect(root?.className, 'shadow').toMatch(/\bshadow-/);
+  });
+
   it('shows a spinner + sr status text + neutral badge while running', () => {
     render({ toolCall: part('running'), variant: 'card' });
     expect(hasSpinner()).toBe(true);

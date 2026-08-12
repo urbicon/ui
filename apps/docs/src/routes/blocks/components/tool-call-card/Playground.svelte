@@ -86,7 +86,7 @@
   {#snippet children(values)}
     <div class="mx-auto max-w-lg">
       {#key values.state}
-        <ToolCallCard {toolCall} variant={values.variant as 'quiet' | 'card'} />
+        <ToolCallCard {toolCall} variant={values.variant as 'plain' | 'card'} />
       {/key}
     </div>
   {/snippet}
