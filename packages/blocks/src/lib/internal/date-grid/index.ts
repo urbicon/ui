@@ -21,3 +21,4 @@ export type {
   DayHeaderInfo,
   NavDirection
 } from './date-grid.types';
+export { type PackedSpan, packSpans } from './pack-spans';

@@ -10,39 +10,39 @@
   },
   "sizes": {
     "A2UIView": {
-      "min": 389955,
-      "gz": 101182,
+      "min": 390846,
+      "gz": 101388,
       "net": {
-        "min": 375929,
-        "gz": 96605
+        "min": 376820,
+        "gz": 96808
       },
       "lazy": {
-        "min": 7096,
-        "gz": 3135
+        "min": 7359,
+        "gz": 3191
       },
       "pkg": "blocks",
       "exports": ["A2UIView"]
     },
     "A2UIViewUrbicon": {
-      "min": 498708,
-      "gz": 126485,
+      "min": 499639,
+      "gz": 126695,
       "net": {
-        "min": 484688,
-        "gz": 121912
+        "min": 485619,
+        "gz": 122121
       },
       "lazy": {
-        "min": 7096,
-        "gz": 3133
+        "min": 7359,
+        "gz": 3193
       },
       "pkg": "blocks",
       "exports": ["A2UIView", "urbiconA2uiCatalog"]
     },
     "Accordion": {
-      "min": 26119,
-      "gz": 8044,
+      "min": 26129,
+      "gz": 8047,
       "net": {
-        "min": 12095,
-        "gz": 3450
+        "min": 12105,
+        "gz": 3454
       },
       "lazy": {
         "min": 0,
@@ -52,99 +52,99 @@
       "exports": ["Accordion", "AccordionItem"]
     },
     "AccountSettings": {
-      "min": 113648,
-      "gz": 32239,
+      "min": 113979,
+      "gz": 32311,
       "net": {
-        "min": 99624,
-        "gz": 27647
+        "min": 99955,
+        "gz": 27717
       },
       "lazy": {
-        "min": 7096,
-        "gz": 3136
+        "min": 7359,
+        "gz": 3192
       },
       "pkg": "auth",
       "exports": ["AccountSettings"]
     },
     "Alert": {
-      "min": 36533,
-      "gz": 12041,
+      "min": 36789,
+      "gz": 12097,
       "net": {
-        "min": 22509,
-        "gz": 7458
+        "min": 22765,
+        "gz": 7513
       },
       "lazy": {
-        "min": 4660,
-        "gz": 2121
+        "min": 4923,
+        "gz": 2177
       },
       "pkg": "blocks",
       "exports": ["Alert"]
     },
     "AreaChart": {
-      "min": 38650,
-      "gz": 13228,
+      "min": 38886,
+      "gz": 13275,
       "net": {
-        "min": 24627,
-        "gz": 8627
+        "min": 24863,
+        "gz": 8674
       },
       "lazy": {
-        "min": 4660,
-        "gz": 2121
+        "min": 4923,
+        "gz": 2177
       },
       "pkg": "blocks",
       "exports": ["AreaChart"]
     },
     "Avatar": {
-      "min": 36506,
-      "gz": 12426,
+      "min": 36742,
+      "gz": 12472,
       "net": {
-        "min": 22482,
-        "gz": 7837
+        "min": 22718,
+        "gz": 7886
       },
       "lazy": {
-        "min": 9489,
-        "gz": 3946
+        "min": 9752,
+        "gz": 4003
       },
       "pkg": "blocks",
       "exports": ["Avatar"]
     },
     "AvatarGroup": {
-      "min": 38805,
-      "gz": 13036,
+      "min": 39041,
+      "gz": 13082,
       "net": {
-        "min": 24781,
-        "gz": 8456
+        "min": 25017,
+        "gz": 8504
       },
       "lazy": {
-        "min": 9489,
-        "gz": 3945
+        "min": 9752,
+        "gz": 4004
       },
       "pkg": "blocks",
       "exports": ["AvatarGroup"]
     },
     "Badge": {
-      "min": 41334,
-      "gz": 13502,
+      "min": 41590,
+      "gz": 13553,
       "net": {
-        "min": 27310,
-        "gz": 8905
+        "min": 27566,
+        "gz": 8958
       },
       "lazy": {
-        "min": 9489,
-        "gz": 3946
+        "min": 9752,
+        "gz": 4001
       },
       "pkg": "blocks",
       "exports": ["Badge"]
     },
     "BarChart": {
-      "min": 38854,
-      "gz": 13338,
+      "min": 39090,
+      "gz": 13385,
       "net": {
-        "min": 24831,
-        "gz": 8735
+        "min": 25067,
+        "gz": 8782
       },
       "lazy": {
-        "min": 4660,
-        "gz": 2121
+        "min": 4923,
+        "gz": 2177
       },
       "pkg": "blocks",
       "exports": ["BarChart"]
@@ -164,29 +164,29 @@
       "exports": ["BlocksProvider"]
     },
     "Breadcrumb": {
-      "min": 33718,
-      "gz": 11456,
+      "min": 33954,
+      "gz": 11502,
       "net": {
-        "min": 19694,
-        "gz": 6871
+        "min": 19930,
+        "gz": 6917
       },
       "lazy": {
-        "min": 4660,
-        "gz": 2121
+        "min": 4923,
+        "gz": 2177
       },
       "pkg": "blocks",
       "exports": ["Breadcrumb"]
     },
     "Button": {
-      "min": 32806,
-      "gz": 9776,
+      "min": 32846,
+      "gz": 9787,
       "net": {
-        "min": 18780,
-        "gz": 5194
+        "min": 18820,
+        "gz": 5203
       },
       "lazy": {
         "min": 2436,
-        "gz": 1014
+        "gz": 1015
       },
       "pkg": "blocks",
       "exports": ["Button"]
@@ -206,15 +206,15 @@
       "exports": ["ButtonGroup"]
     },
     "Calendar": {
-      "min": 177660,
-      "gz": 47626,
+      "min": 178426,
+      "gz": 47815,
       "net": {
-        "min": 163637,
-        "gz": 43034
+        "min": 164403,
+        "gz": 43217
       },
       "lazy": {
-        "min": 7096,
-        "gz": 3135
+        "min": 7359,
+        "gz": 3191
       },
       "pkg": "blocks",
       "exports": [
@@ -280,39 +280,39 @@
       "exports": ["Chat"]
     },
     "ChatMessage": {
-      "min": 158048,
-      "gz": 43379,
+      "min": 158389,
+      "gz": 43457,
       "net": {
-        "min": 144023,
-        "gz": 38789
+        "min": 144364,
+        "gz": 38865
       },
       "lazy": {
-        "min": 7096,
-        "gz": 3134
+        "min": 7359,
+        "gz": 3190
       },
       "pkg": "blocks",
       "exports": ["ChatMessage"]
     },
     "ChatMessageList": {
-      "min": 168258,
-      "gz": 45994,
+      "min": 168604,
+      "gz": 46072,
       "net": {
-        "min": 154233,
-        "gz": 41410
+        "min": 154579,
+        "gz": 41487
       },
       "lazy": {
-        "min": 7096,
-        "gz": 3136
+        "min": 7359,
+        "gz": 3192
       },
       "pkg": "blocks",
       "exports": ["ChatMessageList"]
     },
     "Checkbox": {
-      "min": 28624,
-      "gz": 9172,
+      "min": 28629,
+      "gz": 9175,
       "net": {
-        "min": 14600,
-        "gz": 4593
+        "min": 14605,
+        "gz": 4595
       },
       "lazy": {
         "min": 4829,
@@ -336,11 +336,11 @@
       "exports": ["CheckIcon"]
     },
     "CitationChip": {
-      "min": 33264,
-      "gz": 11239,
+      "min": 33269,
+      "gz": 11242,
       "net": {
-        "min": 19240,
-        "gz": 6650
+        "min": 19245,
+        "gz": 6653
       },
       "lazy": {
         "min": 0,
@@ -364,11 +364,11 @@
       "exports": ["CodeBlock"]
     },
     "Collapsible": {
-      "min": 20927,
-      "gz": 7013,
+      "min": 20932,
+      "gz": 7016,
       "net": {
-        "min": 6901,
-        "gz": 2426
+        "min": 6906,
+        "gz": 2429
       },
       "lazy": {
         "min": 0,
@@ -378,151 +378,151 @@
       "exports": ["Collapsible"]
     },
     "Combobox": {
-      "min": 60439,
-      "gz": 19256,
+      "min": 60690,
+      "gz": 19314,
       "net": {
-        "min": 46420,
-        "gz": 14670
+        "min": 46671,
+        "gz": 14727
       },
       "lazy": {
-        "min": 9489,
-        "gz": 3945
+        "min": 9752,
+        "gz": 4003
       },
       "pkg": "blocks",
       "exports": ["Combobox"]
     },
     "CommandPalette": {
-      "min": 55476,
-      "gz": 17630,
+      "min": 55737,
+      "gz": 17683,
       "net": {
-        "min": 41454,
-        "gz": 13026
+        "min": 41715,
+        "gz": 13079
       },
       "lazy": {
-        "min": 4660,
-        "gz": 2121
+        "min": 4923,
+        "gz": 2177
       },
       "pkg": "blocks",
       "exports": ["CommandPalette"]
     },
     "CompositionBar": {
-      "min": 44611,
-      "gz": 14351,
+      "min": 44847,
+      "gz": 14400,
       "net": {
-        "min": 30586,
-        "gz": 9771
+        "min": 30822,
+        "gz": 9820
       },
       "lazy": {
-        "min": 4660,
-        "gz": 2121
+        "min": 4923,
+        "gz": 2177
       },
       "pkg": "blocks",
       "exports": ["CompositionBar"]
     },
     "ConfirmDialog": {
-      "min": 62126,
-      "gz": 18957,
+      "min": 62422,
+      "gz": 19015,
       "net": {
-        "min": 48102,
-        "gz": 14357
+        "min": 48398,
+        "gz": 14415
       },
       "lazy": {
-        "min": 7096,
-        "gz": 3136
+        "min": 7359,
+        "gz": 3191
       },
       "pkg": "blocks",
       "exports": ["ConfirmDialog"]
     },
     "CopyButton": {
-      "min": 51397,
-      "gz": 15932,
+      "min": 51673,
+      "gz": 15987,
       "net": {
-        "min": 37373,
-        "gz": 11353
+        "min": 37649,
+        "gz": 11408
       },
       "lazy": {
-        "min": 7096,
-        "gz": 3136
+        "min": 7359,
+        "gz": 3190
       },
       "pkg": "blocks",
       "exports": ["CopyButton"]
     },
     "CurrencyInput": {
-      "min": 48480,
-      "gz": 16175,
+      "min": 48726,
+      "gz": 16223,
       "net": {
-        "min": 34455,
-        "gz": 11586
+        "min": 34701,
+        "gz": 11632
       },
       "lazy": {
-        "min": 9489,
-        "gz": 3947
+        "min": 9752,
+        "gz": 4002
       },
       "pkg": "blocks",
       "exports": ["CurrencyInput"]
     },
     "DatePicker": {
-      "min": 211839,
-      "gz": 55718,
+      "min": 212615,
+      "gz": 55896,
       "net": {
-        "min": 197811,
-        "gz": 51123
+        "min": 198587,
+        "gz": 51304
       },
       "lazy": {
-        "min": 7096,
-        "gz": 3132
+        "min": 7359,
+        "gz": 3191
       },
       "pkg": "blocks",
       "exports": ["DatePicker", "DateRangePicker"]
     },
     "Dialog": {
-      "min": 43100,
-      "gz": 14562,
+      "min": 43356,
+      "gz": 14610,
       "net": {
-        "min": 29079,
-        "gz": 9965
+        "min": 29335,
+        "gz": 10012
       },
       "lazy": {
-        "min": 4660,
-        "gz": 2121
+        "min": 4923,
+        "gz": 2177
       },
       "pkg": "blocks",
       "exports": ["Dialog"]
     },
     "DonutChart": {
-      "min": 34741,
-      "gz": 12026,
+      "min": 34977,
+      "gz": 12073,
       "net": {
-        "min": 20717,
-        "gz": 7456
+        "min": 20953,
+        "gz": 7503
       },
       "lazy": {
-        "min": 4660,
-        "gz": 2121
+        "min": 4923,
+        "gz": 2177
       },
       "pkg": "blocks",
       "exports": ["DonutChart"]
     },
     "Drawer": {
-      "min": 42915,
-      "gz": 14272,
+      "min": 43151,
+      "gz": 14317,
       "net": {
-        "min": 28894,
-        "gz": 9676
+        "min": 29130,
+        "gz": 9722
       },
       "lazy": {
-        "min": 4660,
-        "gz": 2121
+        "min": 4923,
+        "gz": 2177
       },
       "pkg": "blocks",
       "exports": ["Drawer"]
     },
     "EmptyState": {
-      "min": 17077,
-      "gz": 5622,
+      "min": 17082,
+      "gz": 5626,
       "net": {
-        "min": 3051,
-        "gz": 1051
+        "min": 3056,
+        "gz": 1054
       },
       "lazy": {
         "min": 0,
@@ -532,39 +532,39 @@
       "exports": ["EmptyState"]
     },
     "FileUpload": {
-      "min": 56160,
-      "gz": 17847,
+      "min": 56431,
+      "gz": 17905,
       "net": {
-        "min": 42134,
-        "gz": 13254
+        "min": 42405,
+        "gz": 13311
       },
       "lazy": {
-        "min": 9489,
-        "gz": 3946
+        "min": 9752,
+        "gz": 4003
       },
       "pkg": "blocks",
       "exports": ["FileUpload"]
     },
     "ForgotPasswordPage": {
-      "min": 96300,
-      "gz": 28254,
+      "min": 96606,
+      "gz": 28316,
       "net": {
-        "min": 82274,
-        "gz": 23662
+        "min": 82580,
+        "gz": 23724
       },
       "lazy": {
-        "min": 7096,
-        "gz": 3134
+        "min": 7359,
+        "gz": 3191
       },
       "pkg": "auth",
       "exports": ["ForgotPasswordPage"]
     },
     "FormField": {
-      "min": 2585,
-      "gz": 1027,
+      "min": 2595,
+      "gz": 1030,
       "net": {
-        "min": 2490,
-        "gz": 852
+        "min": 2500,
+        "gz": 855
       },
       "lazy": {
         "min": 0,
@@ -574,15 +574,15 @@
       "exports": ["FormField"]
     },
     "Guide": {
-      "min": 97996,
-      "gz": 28630,
+      "min": 98292,
+      "gz": 28693,
       "net": {
-        "min": 83971,
-        "gz": 24036
+        "min": 84267,
+        "gz": 24098
       },
       "lazy": {
-        "min": 7096,
-        "gz": 3134
+        "min": 7359,
+        "gz": 3190
       },
       "pkg": "blocks",
       "exports": [
@@ -612,43 +612,43 @@
       "exports": ["Icon"]
     },
     "Input": {
-      "min": 44807,
-      "gz": 14825,
+      "min": 45053,
+      "gz": 14870,
       "net": {
-        "min": 30783,
-        "gz": 10242
+        "min": 31029,
+        "gz": 10289
       },
       "lazy": {
-        "min": 9489,
-        "gz": 3946
+        "min": 9752,
+        "gz": 4003
       },
       "pkg": "blocks",
       "exports": ["Input"]
     },
     "InvitationManager": {
-      "min": 148312,
-      "gz": 39630,
+      "min": 148653,
+      "gz": 39705,
       "net": {
-        "min": 134289,
-        "gz": 35048
+        "min": 134630,
+        "gz": 35121
       },
       "lazy": {
-        "min": 7096,
-        "gz": 3136
+        "min": 7359,
+        "gz": 3190
       },
       "pkg": "auth",
       "exports": ["InvitationManager"]
     },
     "JourneyTimeline": {
-      "min": 45309,
-      "gz": 14555,
+      "min": 45550,
+      "gz": 14605,
       "net": {
-        "min": 31282,
-        "gz": 9973
+        "min": 31523,
+        "gz": 10022
       },
       "lazy": {
-        "min": 4660,
-        "gz": 2121
+        "min": 4923,
+        "gz": 2177
       },
       "pkg": "blocks",
       "exports": ["JourneyTimeline"]
@@ -668,85 +668,85 @@
       "exports": ["Kbd"]
     },
     "LineChart": {
-      "min": 38286,
-      "gz": 13157,
+      "min": 38522,
+      "gz": 13202,
       "net": {
-        "min": 24263,
-        "gz": 8557
+        "min": 24499,
+        "gz": 8605
       },
       "lazy": {
-        "min": 4660,
-        "gz": 2121
+        "min": 4923,
+        "gz": 2177
       },
       "pkg": "blocks",
       "exports": ["LineChart"]
     },
     "LocaleSwitcher": {
-      "min": 60468,
-      "gz": 19104,
+      "min": 60719,
+      "gz": 19154,
       "net": {
-        "min": 46447,
-        "gz": 14525
+        "min": 46698,
+        "gz": 14573
       },
       "lazy": {
-        "min": 9489,
-        "gz": 3944
+        "min": 9752,
+        "gz": 4001
       },
       "pkg": "blocks",
       "exports": ["LocaleSwitcher"]
     },
     "LoginPage": {
-      "min": 111664,
-      "gz": 31351,
+      "min": 111975,
+      "gz": 31414,
       "net": {
-        "min": 97640,
-        "gz": 26748
+        "min": 97951,
+        "gz": 26813
       },
       "lazy": {
-        "min": 7096,
-        "gz": 3136
+        "min": 7359,
+        "gz": 3189
       },
       "pkg": "auth",
       "exports": ["LoginPage"]
     },
     "Menu": {
-      "min": 78116,
-      "gz": 23517,
+      "min": 78397,
+      "gz": 23578,
       "net": {
-        "min": 64085,
-        "gz": 18917
+        "min": 64366,
+        "gz": 18978
       },
       "lazy": {
-        "min": 7096,
-        "gz": 3134
+        "min": 7359,
+        "gz": 3191
       },
       "pkg": "blocks",
       "exports": ["Menu", "MenuDivider", "MenuItem", "MenuSection", "MenuSubmenu"]
     },
     "NotificationBadge": {
-      "min": 41762,
-      "gz": 13635,
+      "min": 42018,
+      "gz": 13686,
       "net": {
-        "min": 27738,
-        "gz": 9029
+        "min": 27994,
+        "gz": 9082
       },
       "lazy": {
-        "min": 9489,
-        "gz": 3945
+        "min": 9752,
+        "gz": 4002
       },
       "pkg": "auth",
       "exports": ["NotificationBadge"]
     },
     "NotificationCenter": {
-      "min": 63720,
-      "gz": 19235,
+      "min": 63760,
+      "gz": 19246,
       "net": {
-        "min": 49696,
-        "gz": 14654
+        "min": 49736,
+        "gz": 14663
       },
       "lazy": {
         "min": 2436,
-        "gz": 1013
+        "gz": 1014
       },
       "pkg": "auth",
       "exports": ["NotificationCenter"]
@@ -766,71 +766,71 @@
       "exports": ["NotificationListener"]
     },
     "NumberInput": {
-      "min": 48770,
-      "gz": 15975,
+      "min": 49016,
+      "gz": 16021,
       "net": {
-        "min": 34747,
-        "gz": 11392
+        "min": 34993,
+        "gz": 11442
       },
       "lazy": {
-        "min": 9489,
-        "gz": 3946
+        "min": 9752,
+        "gz": 4001
       },
       "pkg": "blocks",
       "exports": ["NumberInput"]
     },
     "Pagination": {
-      "min": 59588,
-      "gz": 16936,
+      "min": 59864,
+      "gz": 16992,
       "net": {
-        "min": 45561,
-        "gz": 12338
+        "min": 45837,
+        "gz": 12392
       },
       "lazy": {
-        "min": 7096,
-        "gz": 3133
+        "min": 7359,
+        "gz": 3192
       },
       "pkg": "blocks",
       "exports": ["Pagination", "PaginationItem"]
     },
     "PasskeyManager": {
-      "min": 89368,
-      "gz": 26148,
+      "min": 89664,
+      "gz": 26213,
       "net": {
-        "min": 75343,
-        "gz": 21551
+        "min": 75639,
+        "gz": 21616
       },
       "lazy": {
-        "min": 7096,
-        "gz": 3136
+        "min": 7359,
+        "gz": 3190
       },
       "pkg": "auth",
       "exports": ["PasskeyManager"]
     },
     "PinInput": {
-      "min": 37004,
-      "gz": 12745,
+      "min": 37250,
+      "gz": 12793,
       "net": {
-        "min": 22981,
-        "gz": 8178
+        "min": 23227,
+        "gz": 8227
       },
       "lazy": {
-        "min": 4660,
-        "gz": 2121
+        "min": 4923,
+        "gz": 2177
       },
       "pkg": "blocks",
       "exports": ["PinInput"]
     },
     "Planner": {
-      "min": 68747,
-      "gz": 22274,
+      "min": 68993,
+      "gz": 22328,
       "net": {
-        "min": 54723,
-        "gz": 17685
+        "min": 54969,
+        "gz": 17740
       },
       "lazy": {
-        "min": 4660,
-        "gz": 2121
+        "min": 4923,
+        "gz": 2177
       },
       "pkg": "blocks",
       "exports": ["Planner", "PlannerHeader"]
@@ -850,81 +850,81 @@
       "exports": ["Popover"]
     },
     "Progress": {
-      "min": 35336,
-      "gz": 11788,
+      "min": 35572,
+      "gz": 11835,
       "net": {
-        "min": 21312,
-        "gz": 7209
+        "min": 21548,
+        "gz": 7256
       },
       "lazy": {
-        "min": 4660,
-        "gz": 2121
+        "min": 4923,
+        "gz": 2177
       },
       "pkg": "blocks",
       "exports": ["Progress"]
     },
     "PromptInput": {
-      "min": 45439,
-      "gz": 15137,
+      "min": 45680,
+      "gz": 15186,
       "net": {
-        "min": 31417,
-        "gz": 10554
+        "min": 31658,
+        "gz": 10602
       },
       "lazy": {
-        "min": 4660,
-        "gz": 2121
+        "min": 4923,
+        "gz": 2177
       },
       "pkg": "blocks",
       "exports": ["PromptInput"]
     },
     "PushPermissionPrompt": {
-      "min": 80850,
-      "gz": 24318,
+      "min": 81146,
+      "gz": 24381,
       "net": {
-        "min": 66827,
-        "gz": 19729
+        "min": 67123,
+        "gz": 19792
       },
       "lazy": {
-        "min": 7096,
-        "gz": 3136
+        "min": 7359,
+        "gz": 3190
       },
       "pkg": "auth",
       "exports": ["PushPermissionPrompt"]
     },
     "QRCode": {
-      "min": 38983,
-      "gz": 13557,
+      "min": 39219,
+      "gz": 13605,
       "net": {
-        "min": 24960,
-        "gz": 8997
+        "min": 25196,
+        "gz": 9047
       },
       "lazy": {
-        "min": 4660,
-        "gz": 2121
+        "min": 4923,
+        "gz": 2177
       },
       "pkg": "blocks",
       "exports": ["QRCode"]
     },
     "RadioGroup": {
-      "min": 27748,
-      "gz": 9086,
+      "min": 27758,
+      "gz": 9091,
       "net": {
-        "min": 13723,
-        "gz": 4490
+        "min": 13733,
+        "gz": 4492
       },
       "lazy": {
         "min": 4829,
-        "gz": 1826
+        "gz": 1824
       },
       "pkg": "blocks",
       "exports": ["RadioGroup", "RadioItem"]
     },
     "ReasoningDisclosure": {
-      "min": 73659,
-      "gz": 22545,
+      "min": 73679,
+      "gz": 22559,
       "net": {
-        "min": 59637,
-        "gz": 17961
+        "min": 59657,
+        "gz": 17973
       },
       "lazy": {
         "min": 0,
@@ -934,57 +934,71 @@
       "exports": ["ReasoningDisclosure"]
     },
     "RegisterPage": {
-      "min": 98794,
-      "gz": 28969,
+      "min": 99105,
+      "gz": 29032,
       "net": {
-        "min": 84771,
-        "gz": 24379
+        "min": 85082,
+        "gz": 24443
       },
       "lazy": {
-        "min": 7096,
-        "gz": 3135
+        "min": 7359,
+        "gz": 3189
       },
       "pkg": "auth",
       "exports": ["RegisterPage"]
     },
     "ResetPasswordPage": {
-      "min": 96500,
-      "gz": 28284,
+      "min": 96806,
+      "gz": 28349,
       "net": {
-        "min": 82474,
-        "gz": 23693
+        "min": 82780,
+        "gz": 23760
       },
       "lazy": {
-        "min": 7096,
-        "gz": 3135
+        "min": 7359,
+        "gz": 3190
       },
       "pkg": "auth",
       "exports": ["ResetPasswordPage"]
     },
-    "Sankey": {
-      "min": 45335,
-      "gz": 14923,
+    "ResourceTimeline": {
+      "min": 74997,
+      "gz": 24273,
       "net": {
-        "min": 31309,
-        "gz": 10342
+        "min": 60972,
+        "gz": 19688
       },
       "lazy": {
-        "min": 4660,
-        "gz": 2121
+        "min": 4923,
+        "gz": 2177
+      },
+      "pkg": "blocks",
+      "exports": ["ResourceTimeline", "ResourceTimelineHeader"]
+    },
+    "Sankey": {
+      "min": 45571,
+      "gz": 14969,
+      "net": {
+        "min": 31545,
+        "gz": 10390
+      },
+      "lazy": {
+        "min": 4923,
+        "gz": 2177
       },
       "pkg": "blocks",
       "exports": ["Sankey"]
     },
     "Scroller": {
-      "min": 39234,
-      "gz": 13271,
+      "min": 39470,
+      "gz": 13320,
       "net": {
-        "min": 25210,
-        "gz": 8690
+        "min": 25446,
+        "gz": 8740
       },
       "lazy": {
-        "min": 4660,
-        "gz": 2121
+        "min": 4923,
+        "gz": 2177
       },
       "pkg": "blocks",
       "exports": ["Scroller"]
@@ -1004,15 +1018,15 @@
       "exports": ["SegmentGroup", "SegmentItem"]
     },
     "Select": {
-      "min": 58268,
-      "gz": 18378,
+      "min": 58519,
+      "gz": 18428,
       "net": {
-        "min": 44250,
-        "gz": 13799
+        "min": 44501,
+        "gz": 13850
       },
       "lazy": {
-        "min": 9489,
-        "gz": 3945
+        "min": 9752,
+        "gz": 4003
       },
       "pkg": "blocks",
       "exports": ["Select"]
@@ -1032,15 +1046,15 @@
       "exports": ["Separator"]
     },
     "SessionManager": {
-      "min": 99508,
-      "gz": 28005,
+      "min": 99824,
+      "gz": 28075,
       "net": {
-        "min": 85483,
-        "gz": 23414
+        "min": 85799,
+        "gz": 23484
       },
       "lazy": {
-        "min": 7096,
-        "gz": 3134
+        "min": 7359,
+        "gz": 3191
       },
       "pkg": "auth",
       "exports": ["SessionManager"]
@@ -1074,29 +1088,29 @@
       "exports": ["SidebarLayout"]
     },
     "Skeleton": {
-      "min": 32074,
-      "gz": 10912,
+      "min": 32310,
+      "gz": 10957,
       "net": {
-        "min": 18049,
-        "gz": 6331
+        "min": 18285,
+        "gz": 6379
       },
       "lazy": {
-        "min": 4660,
-        "gz": 2121
+        "min": 4923,
+        "gz": 2177
       },
       "pkg": "blocks",
       "exports": ["Skeleton"]
     },
     "Slider": {
-      "min": 47905,
-      "gz": 15130,
+      "min": 48171,
+      "gz": 15180,
       "net": {
-        "min": 33878,
-        "gz": 10551
+        "min": 34144,
+        "gz": 10602
       },
       "lazy": {
-        "min": 9489,
-        "gz": 3948
+        "min": 9752,
+        "gz": 4002
       },
       "pkg": "blocks",
       "exports": ["Slider"]
@@ -1144,25 +1158,25 @@
       "exports": ["SplitPane"]
     },
     "Stepper": {
-      "min": 40869,
-      "gz": 13539,
+      "min": 41110,
+      "gz": 13587,
       "net": {
-        "min": 26845,
-        "gz": 8937
+        "min": 27086,
+        "gz": 8985
       },
       "lazy": {
-        "min": 4660,
-        "gz": 2121
+        "min": 4923,
+        "gz": 2177
       },
       "pkg": "blocks",
       "exports": ["Stepper", "StepperStep"]
     },
     "StreamingMarkdown": {
-      "min": 65808,
-      "gz": 20715,
+      "min": 65818,
+      "gz": 20717,
       "net": {
-        "min": 51784,
-        "gz": 16125
+        "min": 51794,
+        "gz": 16127
       },
       "lazy": {
         "min": 0,
@@ -1172,39 +1186,39 @@
       "exports": ["StreamingMarkdown"]
     },
     "Tab": {
-      "min": 29076,
-      "gz": 9304,
+      "min": 29091,
+      "gz": 9307,
       "net": {
-        "min": 15052,
-        "gz": 4716
+        "min": 15067,
+        "gz": 4720
       },
       "lazy": {
         "min": 4829,
-        "gz": 1827
+        "gz": 1826
       },
       "pkg": "blocks",
       "exports": ["Tab", "TabItem", "TabPanel"]
     },
     "Table": {
-      "min": 362734,
-      "gz": 90061,
+      "min": 363158,
+      "gz": 90151,
       "net": {
-        "min": 348723,
-        "gz": 85452
+        "min": 349147,
+        "gz": 85540
       },
       "lazy": {
-        "min": 7096,
-        "gz": 3135
+        "min": 7359,
+        "gz": 3190
       },
       "pkg": "table",
       "exports": ["Table"]
     },
     "Textarea": {
-      "min": 25233,
-      "gz": 8554,
+      "min": 25253,
+      "gz": 8555,
       "net": {
-        "min": 11207,
-        "gz": 3980
+        "min": 11227,
+        "gz": 3982
       },
       "lazy": {
         "min": 4829,
@@ -1214,57 +1228,57 @@
       "exports": ["Textarea"]
     },
     "ThemeSwitcher": {
-      "min": 34299,
-      "gz": 11775,
+      "min": 34535,
+      "gz": 11824,
       "net": {
-        "min": 20275,
-        "gz": 7202
+        "min": 20511,
+        "gz": 7248
       },
       "lazy": {
-        "min": 4660,
-        "gz": 2121
+        "min": 4923,
+        "gz": 2177
       },
       "pkg": "blocks",
       "exports": ["ThemeSwitcher"]
     },
     "TimeInput": {
-      "min": 43795,
-      "gz": 14661,
+      "min": 44041,
+      "gz": 14709,
       "net": {
-        "min": 29772,
-        "gz": 10070
+        "min": 30018,
+        "gz": 10120
       },
       "lazy": {
-        "min": 4660,
-        "gz": 2121
+        "min": 4923,
+        "gz": 2177
       },
       "pkg": "blocks",
       "exports": ["TimeInput"]
     },
     "Toast": {
-      "min": 44636,
-      "gz": 14594,
+      "min": 44892,
+      "gz": 14646,
       "net": {
-        "min": 30611,
-        "gz": 10008
+        "min": 30867,
+        "gz": 10059
       },
       "lazy": {
-        "min": 4660,
-        "gz": 2121
+        "min": 4923,
+        "gz": 2177
       },
       "pkg": "blocks",
       "exports": ["Toaster"]
     },
     "Toggle": {
-      "min": 38224,
-      "gz": 12620,
+      "min": 38465,
+      "gz": 12667,
       "net": {
-        "min": 24199,
-        "gz": 8043
+        "min": 24440,
+        "gz": 8092
       },
       "lazy": {
-        "min": 9489,
-        "gz": 3948
+        "min": 9752,
+        "gz": 4003
       },
       "pkg": "blocks",
       "exports": ["Toggle"]
@@ -1284,15 +1298,15 @@
       "exports": ["Toolbar"]
     },
     "ToolCallCard": {
-      "min": 57351,
-      "gz": 17775,
+      "min": 57617,
+      "gz": 17839,
       "net": {
-        "min": 43327,
-        "gz": 13184
+        "min": 43593,
+        "gz": 13248
       },
       "lazy": {
-        "min": 9489,
-        "gz": 3948
+        "min": 9752,
+        "gz": 4002
       },
       "pkg": "blocks",
       "exports": ["ToolCallCard"]
@@ -1312,29 +1326,29 @@
       "exports": ["Tooltip"]
     },
     "TwoFactorManager": {
-      "min": 97020,
-      "gz": 28262,
+      "min": 97326,
+      "gz": 28329,
       "net": {
-        "min": 82997,
-        "gz": 23657
+        "min": 83303,
+        "gz": 23721
       },
       "lazy": {
-        "min": 7096,
-        "gz": 3133
+        "min": 7359,
+        "gz": 3192
       },
       "pkg": "auth",
       "exports": ["TwoFactorManager"]
     },
     "VerifyEmailPage": {
-      "min": 75008,
-      "gz": 22891,
+      "min": 75264,
+      "gz": 22949,
       "net": {
-        "min": 60983,
-        "gz": 18295
+        "min": 61239,
+        "gz": 18353
       },
       "lazy": {
-        "min": 9489,
-        "gz": 3947
+        "min": 9752,
+        "gz": 4002
       },
       "pkg": "auth",
       "exports": ["VerifyEmailPage"]

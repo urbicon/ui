@@ -198,6 +198,7 @@ const allNavigationItems: NavItem[] = [
           { name: 'LineChart', href: '/blocks/components/line-chart' },
           { name: 'Planner', href: '/blocks/components/planner' },
           { name: 'QRCode', href: '/blocks/components/qr-code' },
+          { name: 'ResourceTimeline', href: '/blocks/components/resource-timeline' },
           { name: 'Sankey', href: '/blocks/components/sankey' },
           { name: 'Sparkline', href: '/blocks/components/sparkline' },
           { name: 'Tooltip', href: '/blocks/primitives/tooltip' }

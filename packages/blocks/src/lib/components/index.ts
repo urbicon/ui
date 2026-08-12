@@ -78,6 +78,25 @@ export * from './Planner';
 export type { QRCodeProps } from './QRCode';
 export * from './QRCode';
 export type {
+  ResourceTimelineContext,
+  ResourceTimelineProps,
+  ResourceTimelineSlotName,
+  ResourceTimelineView,
+  TimelineCategory,
+  TimelineCellContext,
+  TimelineDayContext,
+  TimelineGroup,
+  TimelineGroupContext,
+  TimelineHeaderContext,
+  TimelineLaneContext,
+  TimelineLegendContext,
+  TimelineRange,
+  TimelineResource,
+  TimelineResourceContext,
+  TimelineSpanContext
+} from './ResourceTimeline';
+export * from './ResourceTimeline';
+export type {
   SankeyIntent,
   SankeyLaidOutLinkWithMeta,
   SankeyLaidOutNodeWithMeta,

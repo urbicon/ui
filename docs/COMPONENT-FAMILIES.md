@@ -8,7 +8,7 @@
 
 ## Why families exist
 
-The library exposes 40 primitives and 27 components. Without a shared mental model, choosing between `Menu` and `Select`, or between `Sidebar` and `Drawer`, becomes a memorisation task. Families give every component a position on three axes:
+The library exposes 40 primitives and 28 components. Without a shared mental model, choosing between `Menu` and `Select`, or between `Sidebar` and `Drawer`, becomes a memorisation task. Families give every component a position on three axes:
 
 1. **ARIA role** — what assistive technology calls it.
 2. **Tier membership** — does its radius react to a wrapping `tier`-aware context (commit/modify/contain), is it hardcoded to one tier, or does it sit outside the tier system entirely?

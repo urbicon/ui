@@ -70,6 +70,7 @@ export const ROUTE_CHANNEL = {
   '/blocks/components/prompt-input': 'magenta',
   '/blocks/components/qr-code': 'azure',
   '/blocks/components/reasoning-disclosure': 'magenta',
+  '/blocks/components/resource-timeline': 'azure',
   '/blocks/components/sankey': 'azure',
   '/blocks/components/sidebar-layout': 'ink',
   '/blocks/components/sparkline': 'azure',

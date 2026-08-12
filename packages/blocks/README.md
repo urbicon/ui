@@ -31,13 +31,15 @@ Agents get the component grammar, the token rules and an edit-time design gate f
 
 ## Components
 
-### Primitives (36)
+The live index with a playground per entry is [ui.urbicon.de/blocks](https://ui.urbicon.de/blocks); the names below are the top-level exports, without the compound children (`TabItem`, `MenuItem`, `ChatMessage`, …).
 
-Accordion, Alert, Avatar, Badge, Breadcrumb, Button, ButtonGroup, Card, Checkbox, Collapsible, Combobox, ConfirmDialog, Dialog, Drawer, FormField, Input, JourneyTimeline, Menu, Pagination, Popover, Progress, RadioGroup, SegmentGroup, Select, Separator, Sidebar, Skeleton, Slider, Spinner, Stepper, Tab, Textarea, Toast, Toggle, Toolbar, Tooltip
+### Primitives (39)
 
-### Components (19)
+Accordion, Alert, Avatar, Badge, Breadcrumb, Button, ButtonGroup, Card, Checkbox, Collapsible, Combobox, ConfirmDialog, Dialog, Drawer, FormField, Input, JourneyTimeline, Kbd, Menu, Pagination, Popover, Progress, RadioGroup, Scroller, SegmentGroup, Select, Separator, Sidebar, Skeleton, Slider, Spinner, SplitPane, Stepper, Tab, Textarea, Toast, Toggle, Toolbar, Tooltip
 
-AreaChart, BarChart, Calendar, ChartFrame, CommandPalette, CompositionBar, CurrencyInput, DatePicker, DonutChart, EmptyState, FileUpload, Guide, LineChart, LocaleSwitcher, Planner, Sankey, SidebarLayout, Sparkline, ThemeSwitcher
+### Components (27)
+
+AreaChart, AvatarGroup, BarChart, Calendar, ChartFrame, Chat, CommandPalette, CompositionBar, CopyButton, CurrencyInput, DatePicker, DonutChart, EmptyState, FileUpload, Guide, LineChart, LocaleSwitcher, NumberInput, PinInput, Planner, QRCode, ResourceTimeline, Sankey, SidebarLayout, Sparkline, ThemeSwitcher, TimeInput
 
 ### System
 
