@@ -48,7 +48,13 @@
 
   const pathItems = itemsFromPath('/settings/team/billing');
   // Live-preview only: block navigation to routes this docs site doesn't own.
-  const pathPreviewItems = pathItems.map((item) => ({ ...item, onclick: demoNoop }));
+  // The prerender crawler reads the rendered `href` and never sees `onclick`,
+  // so the href has to go too — otherwise `/settings` fails the build.
+  const pathPreviewItems = pathItems.map((item) => ({
+    ...item,
+    href: '#',
+    onclick: demoNoop
+  }));
 
   const galleryItems = [
     { label: 'Home', href: '#', onclick: demoNoop },
