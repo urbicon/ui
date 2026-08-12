@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { mintAttachment } from '$lib';
+  import { isMintOff, mintAttachment } from '$lib';
   // internal core, not the public component — keeps the public-to-public import graph clean (see internal/core/)
   import CoreSpinner from '$lib/internal/core/CoreSpinner.svelte';
   // Direct import (not the barrel): the resolveIcon tree-shaking pattern.
@@ -55,6 +55,12 @@
   const effectiveMint = $derived(groupCtx?.mint ?? mint);
   const effectiveActive = $derived(registration?.isSelected ?? active);
   const effectivePressed = $derived(pressed);
+  // `mint` is the button's micro-interaction switch, and the press cue is a
+  // micro-interaction — so `mint="none"` silences both (#192). Read through the
+  // same predicate `mintAttachment` uses, so the styling can't disagree with
+  // what the attachment does. A connected ButtonGroup sets `mint="none"` on its
+  // children, which is what stops the seam from breaking on click.
+  const pressCue = $derived(!isMintOff(effectiveMint));
   const ariaProps = $derived(registration?.getButtonProps() ?? {});
 
   // Variant props feed both the tv() style computation and the slot-class
@@ -67,6 +73,7 @@
     size: effectiveSize,
     loading: loading || undefined,
     loadingPlacement,
+    pressCue,
     pressed: effectivePressed || undefined,
     active: effectiveActive || undefined,
     buttonGroupConnected: groupCtx?.connected || undefined

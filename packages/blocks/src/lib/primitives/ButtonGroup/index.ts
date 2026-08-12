@@ -60,9 +60,12 @@ export interface ButtonGroupProps extends Omit<HTMLAttributes<HTMLDivElement>, '
   /** Visual weight propagated to child Buttons. */
   variant?: ButtonVariants['variant'];
   /**
-   * Semantic radius tier propagated to child Buttons. `commit` (default) →
-   * pill caps for the group; `modify` → soft caps. Inherits from a wrapping
-   * Toolbar via TierContext when not set explicitly.
+   * Semantic radius tier propagated to child Buttons. `commit` → pill caps for
+   * the group; `modify` → soft caps. Inherits from a wrapping Toolbar via
+   * TierContext when not set explicitly. The unset default is `commit`, except
+   * on a connected vertical group, where the pill cap domes the stack into a
+   * lozenge — that one defaults to `modify`. Set `tier="commit"` explicitly to
+   * get the capsule back (right for a narrow, icon-only stack).
    * @summary Corner rounding for the group: pill caps, or soft ones.
    */
   tier?: InteractiveTier;

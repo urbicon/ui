@@ -135,6 +135,28 @@ describe('Button (component interaction)', () => {
     expect(button().getAttribute('aria-pressed')).toBe('true');
   });
 
+  it('drops the press cue when the mint is off, and keeps it for every other mint (#192)', () => {
+    // The cue is a micro-interaction, so `mint` is its switch — the variant axis
+    // exists, but only this wiring decides which value it gets. `mint="none"` is
+    // the only way to reach the off state here: the prop defaults to 'scale', so
+    // an omitted mint is a mint. Any name other than 'none' keeps the cue, even
+    // one whose effect is unrelated to movement.
+    renderButton({ mint: 'none' });
+    expect(button().className).not.toContain('active:scale-');
+
+    dispose?.();
+    document.body.replaceChildren();
+
+    renderButton({ mint: 'glow' });
+    expect(button().className).toContain('active:scale-[var(--blocks-press-scale)]');
+
+    dispose?.();
+    document.body.replaceChildren();
+
+    renderButton({});
+    expect(button().className).toContain('active:scale-[var(--blocks-press-scale)]');
+  });
+
   it('exposes the underlying element via getElement()', () => {
     const instance = renderButton({});
     expect(instance.getElement()).toBe(button());

@@ -47,6 +47,17 @@
      (black 50%); override per app via a `BlocksProvider` style block. */
   --blocks-guide-scrim: oklch(0 0 0 / 0.5);
 
+  /* === PRESS CUE (#192) ===
+     How far a commit surface sinks under the pointer while it is held —
+     Button's `active:` cue, the same one Badge, Drawer and the Dialog close
+     control mirror. A token rather than a literal for two reasons: it is the
+     one place `prefers-reduced-motion` can take the movement out (below, the
+     way `--blocks-overlay-panel-scale-start` does for panels), and a brand
+     that wants a flatter or deeper press retunes every surface at once.
+     Set it to `1` to remove the sink globally while keeping the depth cue
+     (the paired shadow step), which is what reduced motion does. */
+  --blocks-press-scale: 0.98;
+
   /* Transition preset. The lone survivor of a family of unused presets
      (base/transform/shadow/opacity, interaction-*, delay-*, stagger-*) —
      packages/table reads this one. */
@@ -155,6 +166,11 @@
     --blocks-overlay-backdrop-exit-duration: 1ms;
     --blocks-overlay-panel-scale-start: 1;
     --blocks-overlay-panel-fly-distance: 0px;
+
+    /* Take the sink out of the press cue (#192). The durations above already
+       collapse to 1ms, which only makes the movement instant — this removes it.
+       The paired shadow step still reports the press. */
+    --blocks-press-scale: 1;
   }
 }
 

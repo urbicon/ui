@@ -31,11 +31,11 @@ export const drawerVariants = tv({
     closeButton: [
       'relative font-medium text-center whitespace-nowrap border overflow-hidden',
       // `scale`, NOT `transform` — mirrors buttonVariants.base: Tailwind 4 emits
-      // `scale-*` as the discrete `scale:` property, so `active:scale-[0.98]`
+      // `scale-*` as the discrete `scale:` property, so the `active:` press cue
       // below only animates if the list names `scale`.
       'transition-[color,background-color,border-color,box-shadow,opacity,scale] duration-[var(--blocks-duration-fast)] ease-out',
       'rounded-commit bg-transparent border-transparent shadow-none',
-      'hover:shadow-[var(--blocks-shadow-md)] active:scale-[0.98] active:shadow-[var(--blocks-shadow-sm)]',
+      'hover:shadow-[var(--blocks-shadow-md)] active:scale-[var(--blocks-press-scale)] active:shadow-[var(--blocks-shadow-sm)]',
       'h-8 px-3 text-sm gap-1.5 text-neutral-emphasis hover:bg-neutral-subtle',
       'focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-neutral/50'
     ],

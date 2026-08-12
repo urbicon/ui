@@ -46,10 +46,10 @@ export const badgeVariants = tv({
       'relative font-medium text-center whitespace-nowrap border overflow-hidden',
       'duration-[var(--blocks-duration-fast)] ease-out',
       'bg-transparent border-transparent shadow-none',
-      'hover:shadow-[var(--blocks-shadow-md)] active:scale-[0.98] active:shadow-[var(--blocks-shadow-sm)]',
+      'hover:shadow-[var(--blocks-shadow-md)] active:scale-[var(--blocks-press-scale)] active:shadow-[var(--blocks-shadow-sm)]',
       'h-6 px-2 text-xs gap-1 focus-visible:ring-offset-2',
       // remove-control overrides (won the fold over the ghost base)
-      // `scale` is named because the interactive compound adds `active:scale-[0.98]`:
+      // `scale` is named because the interactive compound adds the press cue:
       // Tailwind emits that as the discrete `scale` property, which `transition-colors`
       // does not cover — the press cue would snap. Same fold as Dialog/Drawer's closeButton.
       'ml-1 shrink-0 rounded-modify transition-[color,background-color,scale] text-current',

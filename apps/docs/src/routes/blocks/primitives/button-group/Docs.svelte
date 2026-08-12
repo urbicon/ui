@@ -34,7 +34,8 @@
   // Zoom control — no selection, plain action buttons.
   let zoom = $state(100);
 
-  // Text alignment — vertical single selection; tier="modify" softens the caps.
+  // Text alignment — vertical single selection; a connected vertical group
+  // softens its own caps (tier defaults to modify there).
   let align = $state<ButtonGroupValue>('left');
   const alignClass = $derived(
     align === 'center' ? 'text-center' : align === 'right' ? 'text-right' : 'text-left'
@@ -145,7 +146,7 @@
 
     <CodeExample
       title="Text alignment"
-      description="A vertical stack for a narrow inspector or side panel: orientation=vertical runs the segments top to bottom, and tier=modify softens the corners to suit a stacked control. Each button pairs an icon with a text label, so none needs an aria-label."
+      description="A vertical stack for a narrow inspector or side panel: orientation=vertical runs the segments top to bottom, and a connected vertical group softens its own caps — the pill radius that shapes the horizontal segmented control would dome a stack of text buttons into a capsule. Pass tier=commit to ask for that capsule anyway; it suits a narrow icon-only stack. Each button pairs an icon with a text label, so none needs an aria-label."
       isolate
       previewClass="flex flex-wrap items-start gap-5"
     >
@@ -153,7 +154,6 @@
         selection="single"
         bind:value={align}
         orientation="vertical"
-        tier="modify"
         size="sm"
         ariaLabel="Text alignment"
       >

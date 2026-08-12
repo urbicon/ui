@@ -46,7 +46,24 @@ export function mintAttachment(
   options: { enabled?: boolean; fallbacks?: MintFallbacks } = {}
 ): Attachment<HTMLElement> | false {
   const { enabled = true, fallbacks } = options;
-  if (!enabled || !mint || mint === 'none') return false;
+  if (!enabled || isMintOff(mint)) return false;
 
   return (node) => mintRegistry.apply(node, mint, fallbacks);
+}
+
+/**
+ * Did the consumer opt out of micro-interactions on this element?
+ *
+ * The one definition of "mint off", so a component that styles itself around
+ * the opt-out cannot disagree with the attachment that acts on it: Button
+ * suppresses its `active:` press cue for exactly the props that make
+ * `mintAttachment` a no-op (#192). A polymorphic mint (array / `{ name }`
+ * object) always names at least one effect, so only the scalar forms below mean
+ * "nothing". Written as a type predicate so the call sites keep narrowing `mint`
+ * to something `mintRegistry.apply` accepts; `''` is in the predicate because it
+ * is a `MintName` the falsy check catches, and a predicate that omitted it would
+ * be a lie the compiler believes.
+ */
+export function isMintOff(mint: MintProp | undefined): mint is undefined | '' | 'none' {
+  return !mint || mint === 'none';
 }

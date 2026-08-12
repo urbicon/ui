@@ -28,6 +28,17 @@ describe('dialogVariants', () => {
     expect(panel).toContain('border-border-hairline');
   });
 
+  it('resets the panel outline on plain :focus, not on :focus-visible (#195)', () => {
+    // The panel is `tabindex="-1"` and takes focus programmatically when the
+    // dialog opens (focusFirstElement). Safari paints its default outline for
+    // exactly that case, where Chrome/Firefox gate on :focus-visible and skip
+    // it — so the reset has to be the un-gated `focus:` form. `focus-visible:`
+    // here would leave the Safari ring untouched and read as a fix.
+    const panel = dialogVariants().panel();
+    expect(panel).toContain('focus:outline-none');
+    expect(panel).not.toContain('focus-visible:outline-none');
+  });
+
   it('applies size-specific max-width classes', () => {
     expect(dialogVariants({ size: 'sm' }).panel()).toContain('max-w-sm');
     expect(dialogVariants({ size: 'md' }).panel()).toContain('max-w-md');

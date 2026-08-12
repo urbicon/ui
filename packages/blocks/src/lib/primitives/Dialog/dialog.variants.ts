@@ -16,6 +16,13 @@ export const dialogVariants = tv({
     // Mobile bottom-sheet keeps top-only rounding; desktop rounds all corners.
     panel: [
       'relative flex flex-col bg-surface-overlay border border-border-hairline',
+      // `focus:outline-none`, NOT the usual `focus-visible:` form: the panel is
+      // `tabindex="-1"` and gets focus programmatically on open (focusFirstElement
+      // in Dialog.svelte), which is exactly the case Safari paints its default
+      // `:focus` outline for while Chrome/Firefox gate it on `:focus-visible` and
+      // skip it. The panel is never keyboard-reachable, so this costs no real
+      // focus indication — focusable children keep their `focus-visible:` rings.
+      'focus:outline-none',
       'rounded-t-contain sm:rounded-contain',
       'shadow-[var(--blocks-shadow-lg)] w-full z-[var(--z-modal)]',
       'max-h-[85dvh] sm:max-h-[calc(100vh-3rem)] lg:max-h-[calc(100vh-4rem)]',
@@ -48,11 +55,11 @@ export const dialogVariants = tv({
     closeButton: [
       'relative font-medium text-center whitespace-nowrap border overflow-hidden',
       // `scale`, NOT `transform` — mirrors buttonVariants.base: Tailwind 4 emits
-      // `scale-*` as the discrete `scale:` property, so `active:scale-[0.98]`
+      // `scale-*` as the discrete `scale:` property, so the `active:` press cue
       // below only animates if the list names `scale`.
       'transition-[color,background-color,border-color,box-shadow,opacity,scale] duration-[var(--blocks-duration-fast)] ease-out',
       'rounded-commit bg-transparent border-transparent shadow-none',
-      'hover:shadow-[var(--blocks-shadow-md)] active:scale-[0.98] active:shadow-[var(--blocks-shadow-sm)]',
+      'hover:shadow-[var(--blocks-shadow-md)] active:scale-[var(--blocks-press-scale)] active:shadow-[var(--blocks-shadow-sm)]',
       'h-8 px-3 text-sm gap-1.5 text-neutral-emphasis hover:bg-neutral-subtle',
       'focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-neutral/50'
     ],
