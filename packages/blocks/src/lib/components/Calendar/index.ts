@@ -75,6 +75,9 @@ export type CalendarSlotName =
   | 'dayViewHeader'
   // Time grid
   | 'timeGrid'
+  | 'timeGutter'
+  | 'timeHeadCell'
+  | 'timeCorner'
   | 'timeLabel'
   | 'timeSlotRow'
   | 'timeDayColumn'
@@ -133,6 +136,28 @@ export type CalendarSlotName =
  *   {/snippet}
  * </Calendar>
  * ```
+ *
+ * @example
+ * ```svelte
+ * <script lang="ts">
+ *   import { MediaQuery } from 'svelte/reactivity';
+ *
+ *   // A week keeps seven columns behind a horizontal scroll on a phone. Where a
+ *   // single day is the better answer, pick the view from the viewport and take
+ *   // `week` out of the switcher with it.
+ *   //
+ *   // The `false` is the SSR answer, not a default worth omitting: without it a
+ *   // prerendered page ships the wide branch and swaps to `day` on hydration —
+ *   // a visible flip on the phone this is for. Spell out whichever branch the
+ *   // server should render.
+ *   const narrow = new MediaQuery('(max-width: 48rem)', false);
+ * </script>
+ *
+ * <Calendar
+ *   view={narrow.current ? 'day' : 'week'}
+ *   views={narrow.current ? ['day', 'agenda'] : ['month', 'week', 'day', 'agenda']}
+ * />
+ * ```
  */
 export interface CalendarProps
   extends Omit<CalendarVariants, 'dayState' | 'hasEvents'>,
@@ -144,9 +169,37 @@ export interface CalendarProps
   categories?: CalendarEventCategory[];
 
   // === View ===
-  /** Active view mode. Supports bind:view. @default 'month' */
+  /**
+   * Active view mode. Supports bind:view.
+   *
+   * `week` and `day` are hour grids. The week's seven columns keep at least
+   * `--blocks-calendar-day-min-width` each (5 rem at `size="sm"`, 6 rem at `md`,
+   * 7 rem at `lg`); once they no longer fit, the grid scrolls sideways instead of
+   * shrinking the days to a stripe. The hour gutter stays pinned to the left
+   * while it does and the day heads — with the all-day band under them — to the
+   * top, and arrow-key navigation brings the focused day into view. Set the
+   * property on the calendar — `style="--blocks-calendar-day-min-width: 8rem"` —
+   * to trade more scrolling for wider days.
+   *
+   * While the week is scrolling, a horizontal touch drag belongs to the
+   * scroller: it moves the days rather than paging to the next week. A week that
+   * fits keeps the swipe. The header arrows, `ArrowLeft`/`ArrowRight` and
+   * `bind:view` are unaffected either way. On a phone the honest week is often
+   * no week at all: bind this prop to a `MediaQuery` and narrow `views` with it
+   * (the `MediaQuery` example on the component) rather than handing over seven
+   * columns behind a scrollbar.
+   * @default 'month'
+   * @summary Which view is on screen — month, week, day, year or agenda.
+   */
   view?: CalendarViewMode;
-  /** Which views appear in the view switcher. @default ['month', 'week', 'day', 'year', 'agenda'] */
+  /**
+   * Which views the header's switcher offers. It filters the switcher only: a
+   * `view` left out of the list still renders, so narrowing the list is how a
+   * layout hides a view it cannot serve while still choosing it itself — the
+   * viewport-driven pairing under `view`.
+   * @default ['month', 'week', 'day', 'year', 'agenda']
+   * @summary Which views the header's switcher offers.
+   */
   views?: CalendarViewMode[];
 
   // === Selection ===

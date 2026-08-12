@@ -34,6 +34,12 @@
   const textColor = $derived(getContrastTextColor(bgColor));
   const widthPercent = $derived(100 / totalColumns);
   const leftPercent = $derived(column * widthPercent);
+  // Overlap order, capped below the current-time line (z-10) and the pinned
+  // head strip (z-30…50) — the day column opens no stacking context, so an
+  // uncapped column index would eventually paint an event over the weekday
+  // buttons. Past the cap the ties resolve by DOM order, which is the same
+  // later-column-on-top the index expressed.
+  const stackIndex = $derived(Math.min(column + 1, 9));
   const isDraggable = $derived(ctx.draggable);
   const isResizable = $derived(ctx.resizable);
 
@@ -100,15 +106,19 @@
     ctx.onEventResize?.(ev, newEnd);
   }
 
-  function getGridEl(): HTMLElement | null {
-    let el: HTMLElement | null = eventEl ?? null;
-    while (el) {
-      if (el.scrollHeight > el.clientHeight && el.style.overflowY !== 'hidden') {
-        return el;
-      }
-      el = el.parentElement;
-    }
-    return eventEl?.closest('[class*="overflow-y"]') ?? null;
+  // The box the resize maps pixels to minutes against: the day column this event
+  // is positioned in, whose top edge IS `timeGridStartHour` and whose height is
+  // the whole day. Not the scroll port — that used to be found by sniffing for
+  // the nearest scrollable ancestor, and since #96 the nearest one is a grid
+  // that also carries the week's pinned head/all-day strip above the hours, so
+  // both the offset and the denominator were wrong: an event dragged to end at
+  // 12:00 committed as 13:00 at the md defaults (calendar.drag.test.ts pins the
+  // arithmetic for both views). The sniffing had a second, silent failure too —
+  // its `[class*="overflow-y"]` fallback stopped matching when the slot became
+  // `overflow-auto`. `parentElement` is the same element by construction; the
+  // attribute says so out loud and survives a wrapper.
+  function getDayColumnEl(): HTMLElement | null {
+    return eventEl?.closest<HTMLElement>('[data-day-column]') ?? eventEl?.parentElement ?? null;
   }
 </script>
 
@@ -123,7 +133,7 @@
     width: calc({widthPercent}% - 2px);
     background-color: {bgColor};
     color: {textColor};
-    z-index: {column + 1};
+    z-index: {stackIndex};
   "
   title={showPopoverEnabled ? undefined : event.title}
   onclick={() => onEventClick?.(event)}
@@ -143,7 +153,7 @@
       class="absolute right-0 bottom-0 left-0 h-1.5 cursor-row-resize rounded-b-md hover:bg-white/30"
       {@attach resizableEvent({
         event,
-        gridEl: getGridEl() ?? eventEl.parentElement!,
+        dayColumnEl: getDayColumnEl() ?? eventEl.parentElement!,
         eventEl,
         startHour: ctx.timeGridStartHour,
         endHour: ctx.timeGridEndHour,

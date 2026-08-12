@@ -198,8 +198,19 @@ export function draggableEvent(opts: DraggableEventOptions): Attachment<HTMLElem
 export interface ResizableEventOptions {
   /** The event being resized. */
   event: CalendarEvent;
-  /** Parent time-grid container element for coordinate calculations. */
-  gridEl: HTMLElement;
+  /**
+   * The box that spans exactly `startHour`…`endHour` — the event's own day
+   * column (`[data-day-column]` in CalendarTimeGrid), which is what pixels are
+   * mapped to minutes against.
+   *
+   * Explicitly NOT the scroll port: since #96 that port also carries the week's
+   * pinned head/all-day strip above the hours, so neither its top edge nor its
+   * height is the day. Its height is read from `getBoundingClientRect()` rather
+   * than `scrollHeight` for the same reason a column beats the port — an event
+   * dragged past the bottom edge grows the scrollable overflow and would move
+   * the denominator mid-gesture.
+   */
+  dayColumnEl: HTMLElement;
   /** The event block element whose height changes during resize. */
   eventEl: HTMLElement;
   /** Start hour of the time grid. */
@@ -261,14 +272,16 @@ export function resizableEvent(opts: ResizableEventOptions): Attachment<HTMLElem
 
       // Calculate new end time based on final position — measured BEFORE
       // cleanup(), which resets the inline height the calculation reads.
-      const gridRect = opts.gridEl.getBoundingClientRect();
+      const columnRect = opts.dayColumnEl.getBoundingClientRect();
       const eventRect = opts.eventEl.getBoundingClientRect();
       const gridTotalMinutes = (opts.endHour - opts.startHour) * 60;
-      const gridHeight = opts.gridEl.scrollHeight;
+      const columnHeight = columnRect.height;
 
-      // Bottom of the event relative to grid top (accounting for scroll)
-      const eventBottomInGrid = eventRect.bottom - gridRect.top + opts.gridEl.scrollTop;
-      const bottomPercent = eventBottomInGrid / gridHeight;
+      // Bottom of the event relative to the column's top edge = the start hour.
+      // Both rects are viewport-relative, so a scrolled port cancels out and no
+      // scroll term is needed.
+      const eventBottomInGrid = eventRect.bottom - columnRect.top;
+      const bottomPercent = eventBottomInGrid / columnHeight;
       const bottomMinutes = opts.startHour * 60 + bottomPercent * gridTotalMinutes;
 
       // Snap to interval
