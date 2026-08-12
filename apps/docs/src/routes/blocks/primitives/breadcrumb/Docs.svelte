@@ -145,7 +145,7 @@
         items={galleryItems}
         slotClasses={{
           link: 'rounded-commit border border-border-subtle bg-surface-interactive px-2.5 py-1 text-text-secondary hover:bg-surface-selected hover:text-primary hover:no-underline focus-visible:rounded-commit',
-          currentPage: 'rounded-commit bg-primary px-2.5 py-1 text-on-primary',
+          currentPage: 'rounded-commit bg-primary px-2.5 py-1 text-text-on-primary',
           separator: 'mx-1'
         }}
       >

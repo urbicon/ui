@@ -15,6 +15,12 @@
     '1y': 'year'
   };
 
+  // `item` is SegmentItem's slot, not the group's — the group only owns `base`
+  // and `indicator`. Shared here so the two items stay in step.
+  const tintedLabel = {
+    item: 'text-primary-text data-[state=active]:text-text-on-primary'
+  };
+
   let view = $state('cards');
   let range = $state('1w');
   let theme = $state('system');
@@ -174,7 +180,7 @@
   <div class="space-y-6">
     <CodeExample
       title="Primary-tinted control"
-      description="`slotClasses` recolours the track and the sliding indicator with the `primary` intent tokens and flips the active label to `text-on-primary`. Radius tier, padding, shadow and the slide animation stay, and because the look rides the intent palette it re-themes with the rest of the app."
+      description="The track and the sliding indicator take the `primary` intent tokens through the group's `slotClasses`; the label rides `item`, which belongs to each SegmentItem. Note the two text roles: `primary-text` is the AA-rated step for a label on paper, `text-on-primary` the one that reads on the indicator's fill. Radius tier, padding, shadow and the slide animation stay, and because the look rides the intent palette it re-themes with the rest of the app."
       isolate
       previewClass="flex justify-center"
     >
@@ -183,12 +189,11 @@
         ariaLabel="Billing plan"
         slotClasses={{
           base: 'bg-primary-subtle',
-          indicator: 'bg-primary',
-          item: 'text-primary data-[state=active]:text-text-on-primary'
+          indicator: 'bg-primary'
         }}
       >
-        <SegmentItem value="monthly">Monthly</SegmentItem>
-        <SegmentItem value="yearly">Yearly</SegmentItem>
+        <SegmentItem value="monthly" slotClasses={tintedLabel}>Monthly</SegmentItem>
+        <SegmentItem value="yearly" slotClasses={tintedLabel}>Yearly</SegmentItem>
       </SegmentGroup>
     </CodeExample>
 
