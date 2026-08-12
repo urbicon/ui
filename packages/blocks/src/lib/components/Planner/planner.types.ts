@@ -10,6 +10,7 @@
  * this module declared a shape-identical `PlannerRange` of its own (#191).
  */
 import type { DateRange } from '$lib/internal/date-grid';
+import type { PlannerSlots } from './planner.variants';
 
 export type { DateRange };
 
@@ -94,24 +95,18 @@ export interface PlannerHeaderContext {
   canGoToToday: boolean;
 }
 
-/** Every styleable slot Planner exposes through `slotClasses`. */
-export type PlannerSlotName =
-  | 'base'
-  | 'header'
-  | 'headerTitle'
-  | 'nav'
-  | 'navButton'
-  | 'grid'
-  | 'weekdayHeader'
-  | 'weekday'
-  | 'weekNumber'
-  | 'week'
-  | 'cell'
-  | 'cellHeader'
-  | 'cellWeekday'
-  | 'cellDate'
-  | 'cellItems'
-  | 'empty';
+/**
+ * Every styleable slot Planner exposes through `slotClasses`.
+ *
+ * Derived from the tv() config rather than hand-listed (ResourceTimeline's
+ * precedent, adopted 2026-08-12): the hand-written copy could disagree with the
+ * config silently — a slot renamed in `planner.variants.ts` alone type-checked
+ * everywhere and rendered `class=""` on both nav buttons, because the slot
+ * helper resolves an unknown name to the empty string. Now a rename is a type
+ * error. `planner.variants.ts` imports nothing from this module, so the
+ * direction is one-way and there is no cycle.
+ */
+export type PlannerSlotName = PlannerSlots;
 
 /**
  * The reactive surface Planner shares with `PlannerHeader` (and future

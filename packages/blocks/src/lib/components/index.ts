@@ -26,11 +26,13 @@ export {
   chartSlotResolver,
   chartVariants
 } from '$lib/internal/charts/variants';
-// The date surfaces' shared vocabulary — ONE definition for Calendar, Planner
-// and ResourceTimeline (internal/date-grid/date-grid.types.ts), listed once
-// here because all three re-export it and an explicit duplicate is a compile
-// error (#191).
-export type { DateCategory, DateRange } from '$lib/internal/date-grid';
+// `DateCategory` and `DateRange` — the date surfaces' shared vocabulary
+// (internal/date-grid/date-grid.types.ts) — are deliberately NOT listed here.
+// All three surfaces re-export them and the `export *` lines below carry them:
+// today each of those aliases the same declaration, so there is no ambiguity.
+// Re-pointing one surface at a different declaration would make the name
+// ambiguous and TS would say so (TS2308); an explicit line here would silently
+// pick a winner instead (#191).
 export * from './AreaChart';
 export type { AvatarGroupProps } from './AvatarGroup';
 export * from './AvatarGroup';

@@ -163,13 +163,42 @@ describe('Calendar onNavigate — the header month picker', () => {
 });
 
 describe('Calendar onNavigate — the year grid month tile', () => {
-  it('fires when a month tile is tapped', () => {
+  it('fires when a month tile is tapped, and lands on the month window', () => {
     const { onNavigate, calls } = renderCalendar({ view: 'year', defaultDate: anchor });
     const tiles = Array.from(document.querySelectorAll<HTMLElement>('[data-month]'));
     expect(tiles).toHaveLength(12);
     click(tiles[9]); // October
+
+    // TWO window changes in one tap, and each reports: the month jump (still in
+    // year view, so it carries the year's range) and the drill-down into month
+    // view (which is what a view switch has reported since 2026-08-12). The LAST
+    // emit is the one that describes what ends up on screen — a loader keyed on
+    // it fetches October, not the year.
+    expect(onNavigate).toHaveBeenCalledTimes(2);
+    expect(calls.at(-1)?.date.getMonth()).toBe(9);
+    expect(calls.at(-1)?.range.start.getTime()).toBeLessThanOrEqual(new Date(2026, 9, 1).getTime());
+    expect(calls.at(-1)?.range.end.getTime()).toBeGreaterThanOrEqual(
+      new Date(2026, 9, 31).getTime()
+    );
+  });
+
+  it("fires on a plain view switch, with the new view's window", () => {
+    // The hole this closed: the switcher changed the visible window without a
+    // word, so a loader rendered the agenda's days against the month grid's rows
+    // — up to 23 days of them unloaded but looking event-free.
+    const { onNavigate, calls } = renderCalendar({
+      view: 'month',
+      defaultDate: anchor,
+      views: ['month', 'agenda'],
+      agendaDays: 30
+    });
+    // By accessible name, not by text: the switcher shows condensed labels
+    // ("A") when space is short, and the full label stays the aria-label.
+    click(byLabel(en.calendar.viewAgenda));
+
     expect(onNavigate).toHaveBeenCalledTimes(1);
-    expect(calls[0].date.getMonth()).toBe(9);
+    expect(iso(calls[0].range.start)).toBe('2026-06-15'); // the anchor, not the month
+    expect(iso(calls[0].range.end)).toBe('2026-07-14'); // 30 days, inclusive
   });
 });
 

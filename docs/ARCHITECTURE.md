@@ -516,15 +516,21 @@ timeline's lane bars.
 **The facades share a vocabulary, not just an engine** (#191, 2026-08-12). Two public
 types live in `date-grid.types.ts` and are re-exported by every surface that speaks them:
 `DateRange` (the inclusive start/end pair) and `DateCategory` (the colour bucket behind
-bars, dots and legends). They replaced five twins — `DateGridRange`, Calendar's
+bars, dots and legends). They replaced six twins — `DateGridRange`, Calendar's
 `DateRange`, `PlannerRange` and an inline `{ start; end }` on the one side,
-`CalendarEventCategory` and `TimelineCategory` on the other — whose only difference was
-which component had declared them; moving categories from a Calendar to a Timeline mapped
-a type onto itself. `CalendarEventCategory.icon` did not survive the merge: no legend in
-either surface ever rendered it. The small toolbar twinned the same way and is now one
-internal core (`CoreDateGridHeader`) that Planner and ResourceTimeline style through their
-own variants slots; `CalendarHeader` stays its own — it carries a month picker, a view
-switcher and a narrow-viewport grid.
+`CalendarEventCategory` and `TimelineCategory` on the other — differing in which component
+had declared them and, on Calendar's category, in an `icon` no legend ever rendered;
+moving categories from a Calendar to a Timeline mapped a type onto itself. The `icon` did
+not survive the merge rather than spreading to a second surface.
+
+The small toolbar twinned the same way — 35 lines of markup in each of the two headers,
+plus four byte-identical `tv()` slots and their three size steps — and is now
+one internal core (`CoreDateGridHeader`) over one shared slot table
+(`internal/core/date-grid-header-slots.ts`), spread into each surface's own `tv()` config
+so the slots stay part of its public `slotClasses`. `CalendarHeader` stays its own: it
+carries a month picker, a view switcher and a narrow-viewport grid, names its title slot
+`title` rather than `headerTitle`, and resolves slots with a second `extra` argument the
+core's resolver does not take.
 
 What is deliberately **not** unified is the data vocabulary: `events`/`CalendarEvent`,
 `items`/`getDate`, `items`/`getResourceId`+`getRange`. Those differ because the data models

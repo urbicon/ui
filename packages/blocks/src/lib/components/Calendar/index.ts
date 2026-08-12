@@ -300,7 +300,10 @@ export interface CalendarProps
   onMonthChange?: (month: number, year: number) => void;
   /**
    * Fires after **any** navigation, in every view, with the new reference date
-   * and the visible range — load data here. The per-view callbacks
+   * and the visible range — load data here. A **view switch** counts as one: it
+   * changes the window (a padded month grid, seven days, `agendaDays` from the
+   * anchor …) without moving the reference date, and a loader that missed it
+   * rendered the new view against the old view's rows. The per-view callbacks
    * (`onMonthChange` / `onWeekChange` / `onDayChange`) still fire and are the
    * better fit when you only care about one view; this one spares you
    * reconstructing the window yourself — and in the agenda it is the *only*
@@ -311,7 +314,11 @@ export interface CalendarProps
    * @summary Fires on every navigation with the new visible range — the data-loading hook.
    */
   onNavigate?: (date: Date, range: DateRange) => void;
-  /** Fires when the view mode changes. */
+  /**
+   * Fires when the view mode changes — before `onNavigate`, which the switch
+   * also fires because the visible window changed with it. A switch to the view
+   * already on screen is a no-op and fires neither.
+   */
   onViewChange?: (view: CalendarViewMode) => void;
   /** Fires when a date cell is clicked (regardless of selection change). */
   onDateClick?: (date: Date) => void;
@@ -360,13 +367,19 @@ export interface CalendarProps
    * of that day rather than the calendar month it sits in.
    *
    * The arrows, `ArrowLeft`/`ArrowRight` and the swipe step the whole window, so
-   * the next list starts the day after the current one ends. That step reports
-   * through `onNavigate` (a window is neither a month nor a single day, so none
-   * of the per-view callbacks can name it); the header's month picker still
-   * reports `onMonthChange`, because a month is what it picks.
+   * the next list starts the day after the current one ends, and `minDate`/
+   * `maxDate` bound the WINDOW rather than its anchor: a step clamps
+   * span-preserving and the arrows disable once an edge is reached. Navigation
+   * reports through `onNavigate` — uniformly, including at `agendaDays={1}`,
+   * rather than switching callbacks on a prop value; the header's month picker
+   * still reports `onMonthChange`, because a month is what it picks.
    *
-   * Days without events are skipped, so a window is as long as its content
-   * needs — one day of nothing renders the empty state, not an empty heading.
+   * The window is always exactly this many days; the RENDERING skips days with
+   * no events, so a month-long window of one busy day is one heading, and a
+   * window of nothing renders the empty state.
+   *
+   * Values outside 1–366 (and non-numbers) fall back to the default and warn in
+   * DEV — a list is not a place to accidentally walk a decade.
    * @default 30
    * @summary How many days the list covers, counted from the reference date.
    */

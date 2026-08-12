@@ -68,8 +68,8 @@
 
   function handleKeydown(e: KeyboardEvent) {
     // Direction-gated like the swipes and header arrows (the DateGridScaffold
-    // pattern): an arrow key at the bound is inert — no navDirection flip, no
-    // clamped no-op onMonthChange emit. Disabled calendars ignore keys entirely.
+    // pattern): an arrow key at the window's bound is inert — no navDirection
+    // flip, no clamped no-op `onNavigate` emit. Disabled calendars ignore keys.
     if (ctx.disabled) return;
     switch (e.key) {
       case 'ArrowLeft':
@@ -92,7 +92,7 @@
   onkeydown={handleKeydown}
   {@attach swipeable({
     // Direction-gated like the header arrows (the DateGridScaffold pattern): a
-    // swipe at the bound is inert — no navDirection flip, no clamped no-op emit.
+    // swipe at the window's bound is inert — no navDirection flip, no no-op emit.
     onSwipeLeft: () => {
       if (ctx.canGoForward) ctx.navigate(1);
     },

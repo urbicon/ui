@@ -180,8 +180,15 @@
   // Month-based views only. `week`/`day` titles carry day numbers that vary in
   // width on their own, so there is no fixed set to reserve for; `year` is a
   // bare number and never moved. The agenda left this set on 2026-08-12: its
-  // title names its own window (a date range, or a day title at
-  // `agendaDays={1}`), so there is no twelve-month set to reserve either.
+  // title is a date range now (or a day title at `agendaDays={1}`), so it varies
+  // with its own content exactly like the week and day titles do — and those
+  // have never been reserved for. It is a real trade: adjacent agenda windows
+  // differ by up to 14 characters (a same-month window collapses its month, a
+  // year-crossing one spells out both years), so the header resizes as the list
+  // pages. Reserving the widest form would mean laying out a hidden
+  // year-crossing variant on every render to buy stability for one of five
+  // views; the family's own rule — month titles are reserved, date ranges are
+  // not — wins over that.
   const reservesMonthWidth = $derived(ctx.view === 'month');
   const monthTitleVariants = $derived(
     reservesMonthWidth

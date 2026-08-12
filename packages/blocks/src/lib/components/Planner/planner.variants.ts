@@ -1,3 +1,7 @@
+import {
+  dateGridHeaderSizes,
+  dateGridHeaderSlots
+} from '$lib/internal/core/date-grid-header-slots';
 import { type SlotNames, tv, type VariantProps } from '$lib/utils/variants';
 
 /**
@@ -12,28 +16,10 @@ export const plannerVariants = tv({
   slots: {
     base: 'w-full flex flex-col',
 
-    // Header / toolbar
-    header: ['flex items-center justify-between gap-2', 'border-b border-border-hairline'],
-    headerTitle: 'font-semibold text-text-primary select-none tabular-nums',
-    nav: 'flex items-center gap-1',
-    // Rendered on the internal CoreIconButton (behaviour-only base: inline-flex
-    // centring, cursor/select affordance, focus-visible reset, disabled
-    // opacity/cursor/inertness), so this slot carries only the visual identity
-    // on top — the classes the core already supplies (inline-flex items-center
-    // justify-center, focus-visible:outline-none, disabled:opacity-50,
-    // disabled:cursor-not-allowed) are not repeated here. Deliberate deltas vs.
-    // the old `<Button unstyled mint="none">` render (which had NO plumbing):
-    // `cursor-pointer` (was the UA arrow — Tailwind 4 preflight doesn't set it;
-    // now consistent with every styled Button) and `disabled:pointer-events-none`
-    // (a disabled nav button is fully inert: no more hover-bg feedback or
-    // not-allowed cursor while disabled — matching the styled Button base).
-    // Mirrors calendar.variants navButton. See internal/core/.
-    navButton: [
-      'rounded-md',
-      'text-text-secondary hover:bg-surface-hover hover:text-text-primary',
-      'transition-colors duration-[var(--blocks-duration-fast)]',
-      'focus-visible:ring-2 focus-visible:ring-primary/50 focus-visible:ring-offset-2'
-    ],
+    // Header / toolbar — the bar itself is the shared CoreDateGridHeader, and
+    // so is its look: one copy in internal/core/date-grid-header-slots, spread
+    // here so the four slots stay part of Planner's own slotClasses surface.
+    ...dateGridHeaderSlots,
 
     // Grid scaffolding
     grid: 'w-full',
@@ -80,9 +66,7 @@ export const plannerVariants = tv({
     },
     size: {
       sm: {
-        header: 'py-2',
-        headerTitle: 'text-sm',
-        navButton: 'h-7 w-7',
+        ...dateGridHeaderSizes.sm,
         weekday: 'text-xs',
         weekNumber: 'text-3xs',
         cellDate: 'text-xs h-5 min-w-5',
@@ -91,9 +75,7 @@ export const plannerVariants = tv({
         empty: 'text-xs'
       },
       md: {
-        header: 'py-3',
-        headerTitle: 'text-base',
-        navButton: 'h-8 w-8',
+        ...dateGridHeaderSizes.md,
         weekday: 'text-sm',
         weekNumber: 'text-xs',
         cellDate: 'text-sm h-6 min-w-6',
@@ -102,9 +84,7 @@ export const plannerVariants = tv({
         empty: 'text-sm'
       },
       lg: {
-        header: 'py-4',
-        headerTitle: 'text-lg',
-        navButton: 'h-9 w-9',
+        ...dateGridHeaderSizes.lg,
         weekday: 'text-base',
         weekNumber: 'text-sm',
         cellDate: 'text-base h-7 min-w-7',

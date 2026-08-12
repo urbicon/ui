@@ -408,10 +408,11 @@ describe('Calendar day/agenda keyboard navigation is direction-gated at the boun
     expect(onMonthChange).not.toHaveBeenCalled();
   });
 
-  it('agenda view: a partial step at maxDate clamps to the bound', () => {
-    // The clamp is `clampDate` on the anchor, so a 30-day step three days short
-    // of maxDate lands ON maxDate rather than being refused — the same
-    // partial-shift behaviour the week/day views have.
+  it('agenda view: a step that would carry the window past maxDate is refused', () => {
+    // The bounds gate the WINDOW: a 30-day window already reaches past a maxDate
+    // three days out, so forward has nothing left to reveal and the arrow, the
+    // key and the swipe are all inert. (Clamping the anchor instead — the first
+    // cut — stepped to maxDate and showed 29 days beyond it.)
     const onNavigate = vi.fn();
     renderCalendar({
       view: 'agenda',
@@ -423,8 +424,29 @@ describe('Calendar day/agenda keyboard navigation is direction-gated at the boun
 
     press(document.querySelector('[role="region"]'), 'ArrowRight');
 
+    expect(onNavigate).not.toHaveBeenCalled();
+  });
+
+  it('agenda view: a step with room left moves partially, up to the bound', () => {
+    // Same rule, the other side of it: a 7-day window with maxDate nine days out
+    // may still step — span-preserving, so it lands where its last day meets the
+    // bound (18 Jun + 6 = 24 Jun) instead of a full week further on.
+    const onNavigate = vi.fn();
+    renderCalendar({
+      view: 'agenda',
+      defaultDate: anchor,
+      agendaDays: 7,
+      maxDate: new Date(2026, 5, 24),
+      animated: false,
+      onNavigate
+    });
+
+    press(document.querySelector('[role="region"]'), 'ArrowRight');
+
     expect(onNavigate).toHaveBeenCalledTimes(1);
-    expect(iso(onNavigate.mock.calls[0][0] as Date)).toBe('2026-06-18');
+    const [date, range] = onNavigate.mock.calls[0] as [Date, { start: Date; end: Date }];
+    expect(iso(date)).toBe('2026-06-18');
+    expect(iso(range.end)).toBe('2026-06-24');
   });
 
   it('disabled calendar: arrow keys are inert entirely', () => {

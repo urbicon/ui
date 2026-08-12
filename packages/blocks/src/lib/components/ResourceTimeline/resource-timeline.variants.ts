@@ -1,3 +1,7 @@
+import {
+  dateGridHeaderSizes,
+  dateGridHeaderSlots
+} from '$lib/internal/core/date-grid-header-slots';
 import { type SlotNames, tv, type VariantProps } from '$lib/utils/variants';
 
 /**
@@ -26,20 +30,10 @@ export const resourceTimelineVariants = tv({
   slots: {
     base: 'w-full flex flex-col',
 
-    // Header / toolbar — same shape as Planner's, so the two read as siblings.
-    header: ['flex items-center justify-between gap-2', 'border-b border-border-hairline'],
-    headerTitle: 'font-semibold text-text-primary select-none tabular-nums',
-    nav: 'flex items-center gap-1',
-    // Rendered on the internal CoreIconButton, which already supplies the
-    // plumbing (inline-flex centring, focus-visible reset, disabled
-    // opacity/cursor/inertness) — this slot carries only the visual identity.
-    // Mirrors planner.variants navButton. See internal/core/.
-    navButton: [
-      'rounded-md',
-      'text-text-secondary hover:bg-surface-hover hover:text-text-primary',
-      'transition-colors duration-[var(--blocks-duration-fast)]',
-      'focus-visible:ring-2 focus-visible:ring-primary/50 focus-visible:ring-offset-2'
-    ],
+    // Header / toolbar — the same bar as Planner's, down to the classes: one
+    // copy in internal/core/date-grid-header-slots, spread here so the four
+    // slots stay part of ResourceTimeline's own slotClasses surface.
+    ...dateGridHeaderSlots,
 
     // The scroll port. Everything that has to stay column-aligned lives inside
     // it, so the day header scrolls in lockstep with the lanes.
@@ -136,9 +130,7 @@ export const resourceTimelineVariants = tv({
           '[--rt-bar-gap:2px]',
           '[--rt-bar-top:3px]'
         ],
-        header: 'py-2',
-        headerTitle: 'text-sm',
-        navButton: 'h-7 w-7',
+        ...dateGridHeaderSizes.sm,
         corner: 'px-2 py-1',
         dayHeader: 'px-0.5 py-1',
         dayHeaderWeekday: 'text-3xs',
@@ -164,9 +156,7 @@ export const resourceTimelineVariants = tv({
           '[--rt-bar-gap:3px]',
           '[--rt-bar-top:4px]'
         ],
-        header: 'py-3',
-        headerTitle: 'text-base',
-        navButton: 'h-8 w-8',
+        ...dateGridHeaderSizes.md,
         corner: 'px-3 py-1.5',
         dayHeader: 'px-1 py-1.5',
         dayHeaderWeekday: 'text-2xs',
@@ -192,9 +182,7 @@ export const resourceTimelineVariants = tv({
           '[--rt-bar-gap:4px]',
           '[--rt-bar-top:6px]'
         ],
-        header: 'py-4',
-        headerTitle: 'text-lg',
-        navButton: 'h-9 w-9',
+        ...dateGridHeaderSizes.lg,
         corner: 'px-4 py-2',
         dayHeader: 'px-1.5 py-2',
         dayHeaderWeekday: 'text-xs',

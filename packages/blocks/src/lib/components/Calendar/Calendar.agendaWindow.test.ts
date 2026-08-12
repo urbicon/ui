@@ -48,6 +48,23 @@ function agenda(props: Record<string, unknown>) {
   }).body;
 }
 
+/**
+ * Whether the button carrying `label` is rendered disabled. Matched as an
+ * ATTRIBUTE, not as a substring: the core's class string carries
+ * `disabled:opacity-50 disabled:cursor-not-allowed`, so a plain `toContain`
+ * reports every nav button as disabled — the first cut of this helper did. SSR
+ * writes the boolean as `disabled=""`, hence the `=` in the lookahead; the
+ * second cut of this helper missed that and reported none.
+ */
+function isDisabled(body: string, label: string): boolean {
+  const hit = body.indexOf(`aria-label="${label}"`);
+  expect(hit, `no control labelled "${label}"`).toBeGreaterThan(-1);
+  const open = body.lastIndexOf('<button', hit);
+  expect(open).toBeGreaterThan(-1);
+  const tag = body.slice(open, body.indexOf('>', hit));
+  return /\sdisabled(?=[\s>=])/.test(tag);
+}
+
 describe('Calendar agenda window — anchored on the reference date', () => {
   it('lists the reference day at agendaDays={1} (#95 repro)', () => {
     const body = agenda({
@@ -95,6 +112,64 @@ describe('Calendar agenda window — anchored on the reference date', () => {
     // inherits that ordering rather than having an anchor of its own.
     const body = agenda({ value: new Date(2026, 5, 20), agendaDays: 1, events: [onDay(20)] });
     expect(body).toContain(title(20));
+  });
+});
+
+describe('Calendar agenda window — garbage in, degraded out', () => {
+  // The library never crashes on caller garbage-in (the maxim `timeGridHourHeight`
+  // is guarded by, in the same file). `Math.max(1, NaN)` is NaN, and an
+  // Invalid-Date window threw a RangeError out of `formatDateRange` — i.e. a 500
+  // for `agendaDays={Number(input)}` over an empty field. Infinity additionally
+  // made the list's day loop infinite.
+  const garbage: Array<[label: string, value: number]> = [
+    ['NaN', Number.NaN],
+    ['Infinity', Number.POSITIVE_INFINITY],
+    ['zero', 0],
+    ['negative', -7],
+    ['a decade in days', 3650]
+  ];
+
+  for (const [label, value] of garbage) {
+    it(`renders and stays finite for agendaDays=${label}`, () => {
+      const body = agenda({ defaultDate: ANCHOR, agendaDays: value, events: [onDay(16)] });
+      expect(body).toContain(title(16));
+      expect(body).not.toContain('Invalid Date');
+    });
+  }
+
+  it('keeps a fractional value as its floor', () => {
+    const body = agenda({
+      defaultDate: ANCHOR,
+      agendaDays: 3.7,
+      events: [onDay(18), onDay(19)]
+    });
+    expect(body).toContain(title(18)); // day 3 of the window
+    expect(body).not.toContain(title(19)); // day 4 — floor(3.7) = 3
+  });
+});
+
+describe('Calendar agenda window — bounds gate the window, not the anchor', () => {
+  it('disables the forward arrow once the window covers maxDate', () => {
+    // The regression this replaced: the bounds came from the controller, whose
+    // `day` view compares the ANCHOR to maxDate. With a 30-day window and
+    // maxDate three days out, "forward" read as open and the step revealed
+    // nothing but days past the bound.
+    const body = agenda({
+      defaultDate: ANCHOR,
+      agendaDays: 30,
+      maxDate: new Date(2026, 5, 18)
+    });
+    expect(isDisabled(body, bt.nextRange)).toBe(true);
+  });
+
+  it('leaves the forward arrow open while the window still fits', () => {
+    // Positive control for the case above: same window, a bound past its end.
+    const body = agenda({
+      defaultDate: ANCHOR,
+      agendaDays: 7,
+      maxDate: new Date(2026, 6, 31)
+    });
+    expect(isDisabled(body, bt.nextRange)).toBe(false);
   });
 });
 

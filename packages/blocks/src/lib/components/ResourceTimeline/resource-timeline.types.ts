@@ -8,7 +8,7 @@
  *
  * Span colours and navigable windows come from the date surfaces' shared
  * vocabulary in `internal/date-grid/date-grid.types.ts`: `DateCategory` (until
- * 2026-08-12 a shape-identical `DateCategory` lived here) and `DateRange`
+ * 2026-08-12 a shape-identical `TimelineCategory` lived here) and `DateRange`
  * (#191).
  */
 
