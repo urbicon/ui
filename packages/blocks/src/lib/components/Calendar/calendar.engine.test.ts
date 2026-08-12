@@ -1,6 +1,7 @@
 import { describe, expect, it, vi } from 'vitest';
 import { getMonthGrid } from '$lib/date';
 import {
+  compareDayEvents,
   expandRecurrence,
   generateTimeSlots,
   getContrastTextColor,
@@ -646,6 +647,85 @@ describe('generateTimeSlots', () => {
 
   it('returns empty for startHour >= endHour', () => {
     expect(generateTimeSlots(12, 12, 60)).toHaveLength(0);
+  });
+});
+
+// ---------------------------------------------------------------------------
+// compareDayEvents
+// ---------------------------------------------------------------------------
+describe('compareDayEvents', () => {
+  const day = 16; // every event below lives on 2026-06-16
+  const at = (hour: number, minute: number) => new Date(2026, 5, day, hour, minute);
+
+  /** Timed event; the `allDay: false` is what makes it one. */
+  const timed = (id: string, start: Date, end?: Date): CalendarEvent => ({
+    id,
+    title: id,
+    start,
+    end,
+    allDay: false
+  });
+
+  const sorted = (events: CalendarEvent[]) => [...events].sort(compareDayEvents).map((e) => e.id);
+
+  it('orders a day interleaved by resource chronologically (#95 repro)', () => {
+    // The array shape a per-resource generator produces: chair 1 first, then
+    // chair 2 — which read 12:20, 12:15, 13:20, 13:15 in the agenda.
+    const events = [
+      timed('chair1-12:20', at(12, 20)),
+      timed('chair1-13:20', at(13, 20)),
+      timed('chair2-12:15', at(12, 15)),
+      timed('chair2-13:15', at(13, 15))
+    ];
+    expect(sorted(events)).toEqual([
+      'chair2-12:15',
+      'chair1-12:20',
+      'chair2-13:15',
+      'chair1-13:20'
+    ]);
+  });
+
+  it('puts all-day events ahead of timed ones regardless of their clock time', () => {
+    const allDayAtNoon: CalendarEvent = {
+      id: 'holiday',
+      title: 'holiday',
+      start: at(12, 0),
+      allDay: true
+    };
+    expect(sorted([timed('early', at(8, 0)), allDayAtNoon])).toEqual(['holiday', 'early']);
+  });
+
+  it('treats a missing allDay as all-day — the documented default is true', () => {
+    const unmarked: CalendarEvent = { id: 'unmarked', title: 'unmarked', start: at(23, 0) };
+    expect(sorted([timed('timed', at(1, 0)), unmarked])).toEqual(['unmarked', 'timed']);
+  });
+
+  it('breaks a start-time tie in favour of the longer event', () => {
+    // Same rule as the grid's stacking (getMultiDayEventLayout, resolveOverlaps),
+    // so the list order matches the order the same events stack.
+    const short = timed('short', at(9, 0), at(9, 30));
+    const long = timed('long', at(9, 0), at(11, 0));
+    expect(sorted([short, long])).toEqual(['long', 'short']);
+  });
+
+  it('keeps the input order for events that are equal under both keys', () => {
+    const a = timed('a', at(9, 0), at(10, 0));
+    const b = timed('b', at(9, 0), at(10, 0));
+    expect(sorted([a, b])).toEqual(['a', 'b']);
+    expect(sorted([b, a])).toEqual(['b', 'a']);
+  });
+
+  it('sorts a continuing multi-day span ahead of the day it continues into', () => {
+    // On 2026-06-16 the span started the day before, so its start is earlier.
+    const span: CalendarEvent = {
+      id: 'span',
+      title: 'span',
+      start: new Date(2026, 5, 15),
+      end: new Date(2026, 5, 17),
+      allDay: true
+    };
+    const sameDay: CalendarEvent = { id: 'sameDay', title: 'sameDay', start: at(0, 0) };
+    expect(sorted([sameDay, span])).toEqual(['span', 'sameDay']);
   });
 });
 

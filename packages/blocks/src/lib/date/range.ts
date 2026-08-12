@@ -71,6 +71,18 @@ export function toIso(date: Date): string {
 }
 
 /**
+ * Format a date as a `YYYY-MM-DDTHH:mm` string using its **local** wall clock —
+ * the machine-readable form of a `<time datetime>` attribute (HTML's "local date
+ * and time string"). Local rather than UTC on purpose: it must agree with what
+ * the neighbouring `Intl` output renders, and that is the local time too.
+ */
+export function toIsoDateTime(date: Date): string {
+  const h = String(date.getHours()).padStart(2, '0');
+  const min = String(date.getMinutes()).padStart(2, '0');
+  return `${toIso(date)}T${h}:${min}`;
+}
+
+/**
  * Parse a strict `YYYY-MM-DD` string into a **local** midnight `Date`.
  * Validates both the format and that the day actually exists (rejects
  * `2026-02-30`), throwing a `RangeError` otherwise — a malformed day key is a
