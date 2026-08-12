@@ -8,9 +8,25 @@
 
 <Section marker id="examples" title="Examples">
   <div class="space-y-8">
+    <p class="text-text-secondary text-sm leading-relaxed">
+      You render a Skeleton while the data loads and swap in the real content once it arrives, with
+      a plain Svelte if-block around the two. <code
+        class="bg-surface-base rounded px-1.5 py-0.5 text-xs">variant</code
+      >
+      picks the shape, <code class="bg-surface-base rounded px-1.5 py-0.5 text-xs">count</code>
+      repeats lines, and <code class="bg-surface-base rounded px-1.5 py-0.5 text-xs">size</code> or
+      an explicit
+      <code class="bg-surface-base rounded px-1.5 py-0.5 text-xs">width</code>/<code
+        class="bg-surface-base rounded px-1.5 py-0.5 text-xs">height</code
+      >
+      set the dimensions.
+      <code class="bg-surface-base rounded px-1.5 py-0.5 text-xs">animation</code>
+      runs a fade (pulse), a shimmer (wave), or nothing (none).
+    </p>
+
     <CodeExample
       title="Text Placeholder"
-      description="Multi-line text loading state via the `count` prop — the most common pattern for paragraphs and copy blocks."
+      description="Multi-line text loading state via the `count` prop, the most common pattern for paragraphs and copy blocks."
       isolate
       previewClass="w-full max-w-sm"
     >
@@ -19,7 +35,7 @@
 
     <CodeExample
       title="Profile Card"
-      description="Avatar + text combo with a trailing action button — a complete loading state for user cards."
+      description="An avatar and text combo with a trailing action button, a complete loading state for user cards."
       isolate
       previewClass="flex justify-center w-full"
     >
@@ -107,7 +123,7 @@
 
     <CodeExample
       title="Fully Custom (unstyled)"
-      description="Drop all defaults and build unique placeholder shapes — e.g. for dark, branded surfaces."
+      description="Drop all defaults and build unique placeholder shapes, for example on dark or branded surfaces."
       isolate
       previewClass="flex flex-col gap-4 rounded-xl bg-neutral-950 px-8 py-6 w-full max-w-sm"
     >
@@ -134,7 +150,7 @@
     </CodeExample>
 
     <p class="text-text-secondary text-sm leading-relaxed">
-      Branded placeholder shimmer repeats by design — register the look once under
+      Branded placeholder shimmer repeats by design. Register the look once under
       <code class="text-text-primary">presets.Skeleton</code> on
       <code class="text-text-primary">BlocksProvider</code>
       and apply it with <code class="text-text-primary">preset</code>. See
@@ -150,26 +166,19 @@
     <Note title="Screen Reader">
       <p>
         Uses <code class="text-text-primary">role="status"</code> with
-        <code class="text-text-primary">aria-label="Loading"</code>. A visually hidden "Loading…"
-        text ensures screen readers announce the placeholder's purpose. When
-        <code class="text-text-primary">count &gt; 1</code>, individual items are marked
-        <code class="text-text-primary">aria-hidden="true"</code> so only the wrapper is announced.
+        <code class="text-text-primary">aria-label="Loading"</code>, a live region that announces
+        the placeholder when it appears. When <code class="text-text-primary">count &gt; 1</code>,
+        the individual items are marked <code class="text-text-primary">aria-hidden="true"</code> so only
+        the wrapper is announced. It does not announce completion: on load the skeleton unmounts, and
+        announcing the loaded content is your job.
       </p>
     </Note>
     <Note title="Reduced Motion">
       <p>
         Both <code class="text-text-primary">pulse</code> and
         <code class="text-text-primary">wave</code> animations respect
-        <code class="text-text-primary">prefers-reduced-motion: reduce</code> via Tailwind's
-        <code class="text-text-primary">motion-reduce:</code> variant. The skeleton still renders as a
-        static colored block to indicate loading.
-      </p>
-    </Note>
-    <Note title="Semantic Role">
-      <p>
-        The <code class="text-text-primary">role="status"</code> attribute identifies the skeleton as
-        a live region, allowing assistive technology to announce when loading completes and content replaces
-        the placeholder.
+        <code class="text-text-primary">prefers-reduced-motion: reduce</code>. The skeleton still
+        renders as a static colored block to indicate loading.
       </p>
     </Note>
   </NoteList>

@@ -18,7 +18,7 @@
   const navigation = [
     { id: 'playground', title: 'Playground' },
     { id: 'examples', title: 'Examples' },
-    { id: 'collapsible', title: 'Built on Collapsible' },
+    { id: 'collapsible', title: 'Accordion or Collapsible' },
     { id: 'customization', title: 'Customization' },
     { id: 'accessibility', title: 'Accessibility' },
     { id: 'api', title: 'API Reference' },
@@ -29,12 +29,12 @@
 
 <SeoMeta
   title="Accordion Component"
-  description="Collapsible content sections with expand/collapse animation, single or multiple mode, and full keyboard navigation."
+  description="Collapsible content sections with an expand/collapse animation, one or several open at a time."
 />
 
 <DocsPageLayout
   title="Accordion"
-  description="Collapsible content sections with expand/collapse animation. Supports single or multiple open items, three visual variants, keyboard navigation, and full ARIA accordion pattern."
+  description="Collapsible content sections with an expand/collapse animation, one or several open at a time."
   maxWidth="2xl"
   showToc={true}
   breadcrumbs={[

@@ -30,12 +30,12 @@
 
 <SeoMeta
   title="Sidebar Component"
-  description="Responsive sidebar navigation — permanent on desktop, overlay on mobile. Collapsible mode for toggleable sidebars at all viewports."
+  description="Fixed-position side panel, permanent on desktop and overlay on mobile."
 />
 
 <DocsPageLayout
   title="Sidebar"
-  description="Sidebar primitive — fixed-position panel, permanent on desktop and overlay on mobile. Use directly for detail panels and custom shells. For a standard application chrome (left rail + mobile hamburger), use SidebarLayout."
+  description="Fixed-position side panel, permanent on desktop and overlay on mobile."
   maxWidth="2xl"
   showToc={true}
   breadcrumbs={[
@@ -57,10 +57,6 @@
           >SidebarLayout</a
         >. It wraps this primitive and resolves the CSS-variable scoping that otherwise leaves your
         main content underneath the sidebar.
-      </p>
-      <p class="text-text-secondary mt-2 text-sm leading-relaxed">
-        Use the <code class="text-text-primary">Sidebar</code> primitive directly for right-side detail
-        panels, custom shells, or any sidebar that opens as an overlay on click.
       </p>
     </div>
   </Section>

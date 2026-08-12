@@ -54,12 +54,12 @@
 
 <SeoMeta
   title="JourneyTimeline Component"
-  description="Retrospective chronicle timeline: one node in focus with rich detail, quiet context rows, a first-class time axis and meaning-bearing connectors."
+  description="A retrospective timeline that holds one event in focus with rich detail and keeps the rest as quiet context along a time axis."
 />
 
 <DocsPageLayout
   title="JourneyTimeline"
-  description="A retrospective chronicle (focus + context): an ordered record of what happened and where things stand — shipment tracking, audit trails, billing runs, travel logs. One node is in focus and shows rich detail inline or in a stable readout panel; the rest stay quiet context rows along a first-class time axis. Reach for Stepper for prospective wizards and Tab for peer views."
+  description="A retrospective timeline that holds one event in focus with rich detail and keeps the rest as quiet context along a time axis."
   maxWidth="2xl"
   showToc={true}
   breadcrumbs={[

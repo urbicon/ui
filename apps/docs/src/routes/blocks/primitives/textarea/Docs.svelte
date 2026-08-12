@@ -1,10 +1,19 @@
 <script lang="ts">
   import { CodeExample, Note, NoteList, Section } from '@urbicon-ui/docs';
-  import { Textarea } from '@urbicon-ui/blocks';
+  import { Button, Textarea } from '@urbicon-ui/blocks';
   import { resolve } from '$app/paths';
 
   let bio = $state('');
   let feedback = $state('');
+  let feedbackError = $state('');
+  let sent = $state(false);
+
+  function handleFeedback(event: SubmitEvent) {
+    event.preventDefault();
+    const text = String(new FormData(event.currentTarget as HTMLFormElement).get('feedback') ?? '');
+    feedbackError = text.trim().length < 20 ? 'Tell us a little more, at least 20 characters' : '';
+    sent = !feedbackError;
+  }
 </script>
 
 <!-- ─── Examples ─── -->
@@ -13,13 +22,13 @@
   <div class="space-y-8">
     <CodeExample
       title="Auto-resizing notes field"
-      description="Pair `autoResize` with `minRows`/`maxRows` to grow the field as the user writes and cap the height before it dominates the layout."
+      description="`autoResize` measures the text after every keystroke and after a `value` you assign yourself. `maxRows` is where the growing stops and the field starts scrolling. `minRows` is a floor it never shrinks below, and the `size` brings a floor of its own that a small `minRows` disappears under."
       isolate
       previewClass="flex flex-col gap-3 max-w-md"
     >
       <Textarea
         label="Notes"
-        placeholder="Start typing — the field will grow..."
+        placeholder="Start typing and the field will grow..."
         autoResize
         minRows={2}
         maxRows={10}
@@ -28,7 +37,7 @@
 
     <CodeExample
       title="Character-limited composer"
-      description="Combine `maxlength`, `showCounter`, and `autoResize` for tweet/comment-style inputs. The counter announces remaining characters via `aria-live`."
+      description="`showCounter` needs a `maxlength` to count against and then reads `count/limit`. It switches to the warning colour at 90 percent of the limit, which `counterWarningThreshold` moves, and typing stops at the limit itself."
       isolate
       previewClass="flex flex-col gap-3 max-w-md"
     >
@@ -43,33 +52,21 @@
     </CodeExample>
 
     <CodeExample
-      title="Helper & error"
-      description="Helper text and error text follow the same form-field contract as Input — `error` overrides `helper` when both are set and toggles `aria-invalid`."
-      isolate
-      previewClass="flex flex-col gap-4 max-w-md"
-    >
-      <Textarea
-        label="Bio"
-        helper="Write a short bio for your profile page"
-        placeholder="I'm a..."
-      />
-      <Textarea
-        label="Required field"
-        error="This field is required"
-        placeholder="Cannot be empty"
-      />
-    </CodeExample>
-
-    <CodeExample
-      title="Feedback Form"
-      description="Textarea in a realistic form context with bound value and character counter."
+      title="In a form"
+      description="A real `<textarea>` sits underneath, so `name` submits the text and `required`, `readonly` or an `oninput` handler all reach it. `error` is yours to set from whatever the submit finds out, and it takes the helper text's place while it is there."
       isolate
       previewClass="flex justify-center max-w-md w-full mx-auto"
     >
-      <div class="border-border-subtle bg-surface-elevated w-full space-y-4 rounded-2xl border p-5">
+      <form
+        class="border-border-subtle bg-surface-elevated w-full space-y-4 rounded-2xl border p-5"
+        onsubmit={handleFeedback}
+      >
         <Textarea
-          label="Your Feedback"
+          name="feedback"
+          label="Your feedback"
           placeholder="What could we improve?"
+          helper="Anything from a typo to a missing feature"
+          error={feedbackError}
           maxlength={500}
           showCounter
           autoResize
@@ -77,10 +74,11 @@
           maxRows={8}
           bind:value={feedback}
         />
-        <p class="text-text-tertiary text-xs">
-          {feedback.length > 0 ? `${feedback.length} characters entered` : 'No feedback yet'}
-        </p>
-      </div>
+        <Button type="submit" size="sm">Send feedback</Button>
+        {#if sent}
+          <p class="text-success text-xs">Thanks, that went through.</p>
+        {/if}
+      </form>
     </CodeExample>
   </div>
 </Section>
@@ -88,50 +86,43 @@
 <!-- ─── Customization ─── -->
 
 <Section marker id="customization" title="Customization">
-  <div class="space-y-8">
+  <div class="space-y-6">
     <CodeExample
-      title="Code Input"
-      description="Use slotClasses to create a code-friendly textarea with monospace font."
+      title="A quieter field"
+      description="The bare-line look is the `underline` variant, so it costs no classes at all. What is left for `slotClasses` is the counter row underneath, addressed by the `footer` and `counter` slots."
       isolate
       previewClass="flex flex-col gap-3 max-w-md"
     >
       <Textarea
-        label="JSON Config"
-        placeholder={'{"key": "value"}'}
-        slotClasses={{ base: 'font-mono text-sm' }}
-        minRows={5}
-      />
-    </CodeExample>
-
-    <CodeExample
-      title="Fully Custom (unstyled)"
-      description="Strip all defaults and build from scratch. All behavioral features still work."
-      isolate
-      previewClass="flex flex-col gap-3 max-w-md"
-    >
-      <Textarea
-        unstyled
+        variant="underline"
+        label="Release note"
         autoResize
+        minRows={4}
         maxlength={200}
         showCounter
-        placeholder="Minimal textarea..."
+        placeholder="What changed in this version?"
         bind:value={bio}
         slotClasses={{
-          wrapper: 'flex flex-col gap-1',
-          base: 'bg-transparent border-b-2 border-text-tertiary px-0 py-2 text-text-primary placeholder:text-text-quaternary focus-visible:outline-none focus-visible:border-primary resize-none transition-colors',
-          footer: 'flex justify-end',
-          counter: 'text-xs text-text-tertiary tabular-nums'
+          footer: 'justify-start',
+          counter: 'tabular-nums tracking-wide'
         }}
       />
     </CodeExample>
 
     <p class="text-text-secondary text-sm leading-relaxed">
-      A field treatment shared with Input and Select belongs in a <code class="text-text-primary"
-        >BlocksProvider</code
-      >
-      preset (<code class="text-text-primary">presets.Textarea</code>) so the whole form speaks one
-      language — see
-      <a href={resolve('/customization')} class="text-primary hover:underline">Customization</a>.
+      A treatment the whole form shares belongs on a
+      <code class="text-text-primary">BlocksProvider</code>, as a
+      <code class="text-text-primary">defaults</code> entry for
+      <code class="text-text-primary">Textarea</code> next to the same entry for
+      <a href={resolve('/blocks/primitives/input')} class="text-primary hover:underline">Input</a>
+      and
+      <a href={resolve('/blocks/primitives/select')} class="text-primary hover:underline">Select</a
+      >. See
+      <a href={resolve('/customization')} class="text-primary hover:underline">Customization</a>
+      for <code class="text-text-primary">class</code>,
+      <code class="text-text-primary">slotClasses</code>,
+      <code class="text-text-primary">unstyled</code>, <code class="text-text-primary">preset</code>
+      and provider-level overrides.
     </p>
   </div>
 </Section>
@@ -140,36 +131,25 @@
 
 <Section marker id="accessibility" title="Accessibility">
   <NoteList>
-    <Note title="Labels & Descriptions">
+    <Note title="Labels and messages">
       <p>
-        The <code class="text-text-primary">label</code> prop creates an associated
-        <code class="text-text-primary">&lt;label&gt;</code> element linked via
-        <code class="text-text-primary">for</code>/<code class="text-text-primary">id</code>. Helper
-        and error text are linked via
-        <code class="text-text-primary">aria-describedby</code>, and errors set
+        The <code class="text-text-primary">label</code> prop renders a
+        <code class="text-text-primary">&lt;label&gt;</code> linked through
+        <code class="text-text-primary">for</code>/<code class="text-text-primary">id</code>, and
+        the id is generated unless you pass one. Helper and error text reach the field through
+        <code class="text-text-primary">aria-describedby</code>, and an
+        <code class="text-text-primary">error</code> sets
         <code class="text-text-primary">aria-invalid</code>.
       </p>
     </Note>
-    <Note title="Character Counter">
+    <Note title="Character counter">
       <p>
-        The character counter uses
-        <code class="text-text-primary">aria-live="polite"</code> to announce remaining characters to
-        screen readers. Color changes at warning/over thresholds are paired with text for non-color-dependent
-        feedback.
+        The counter is <code class="text-text-primary">aria-live="polite"</code>, so a screen reader
+        speaks the new count once the user pauses instead of cutting in on every keystroke.
       </p>
     </Note>
     <Note title="Keyboard">
-      <p>
-        Standard textarea keyboard behavior. Focus rings use
-        <code class="text-text-primary">focus-visible:</code> for keyboard-only visibility. Auto-resize
-        does not interfere with keyboard interaction or scroll position.
-      </p>
-    </Note>
-    <Note title="Reduced Motion">
-      <p>
-        Mint effects respect <code class="text-text-primary">prefers-reduced-motion</code>. The
-        auto-resize height adjustment is instantaneous and does not animate.
-      </p>
+      <p>The focus ring shows for keyboard users only.</p>
     </Note>
   </NoteList>
 </Section>

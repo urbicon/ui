@@ -29,12 +29,12 @@
 
 <SeoMeta
   title="Checkbox Component"
-  description="Accessible checkboxes with indeterminate state, labels, validation, and form integration."
+  description="A box for a single on/off choice, with an indeterminate state for partial selections."
 />
 
 <DocsPageLayout
   title="Checkbox"
-  description="Accessible checkboxes with indeterminate state, labels, validation, and form integration."
+  description="A box for a single on/off choice, with an indeterminate state for partial selections."
   maxWidth="2xl"
   showToc={true}
   breadcrumbs={[

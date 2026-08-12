@@ -26,14 +26,11 @@
   ];
 </script>
 
-<SeoMeta
-  title="Slider Component"
-  description="Numeric slider with single and range modes, step snapping, tick marks, and touch support."
-/>
+<SeoMeta title="Slider Component" description="Numeric slider with single and range modes." />
 
 <DocsPageLayout
   title="Slider"
-  description="Numeric slider with single and range modes, step snapping, tick marks, and touch support."
+  description="Numeric slider with single and range modes."
   maxWidth="2xl"
   showToc={true}
   {navigation}

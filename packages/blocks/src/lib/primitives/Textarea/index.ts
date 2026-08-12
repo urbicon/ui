@@ -43,7 +43,7 @@ export interface TextareaProps
   /** Helper text below the textarea. Hidden when `error` is set. */
   helper?: string;
 
-  /** Show a live character counter. Requires `maxlength` to display remaining count. */
+  /** Show a live character counter. Requires `maxlength`; shows the current count against the limit (e.g. `42/280`). */
   showCounter?: boolean;
 
   /** Character threshold (percentage of maxlength) at which the counter turns warning color. @default 0.9 */

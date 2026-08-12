@@ -28,12 +28,12 @@
 
 <SeoMeta
   title="Separator Component"
-  description="Visual divider for separating content sections with horizontal and vertical orientations."
+  description="Visual divider for content sections, horizontal or vertical."
 />
 
 <DocsPageLayout
   title="Separator"
-  description="Visual divider for separating content sections with horizontal and vertical orientations."
+  description="Visual divider for content sections, horizontal or vertical."
   maxWidth="2xl"
   showToc={true}
   {navigation}

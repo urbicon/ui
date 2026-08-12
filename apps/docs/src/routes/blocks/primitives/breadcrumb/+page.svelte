@@ -24,19 +24,16 @@
     { id: 'types', title: 'Types' },
     { id: 'installation', title: 'Installation' }
   ];
-
-  // Demo-only items don't navigate — `href: '#'` + preventDefault keeps the
-  // playground in view. Real consumers pass real hrefs and omit the onclick.
 </script>
 
 <SeoMeta
   title="Breadcrumb Component"
-  description="Navigation aid showing the current page's location in a hierarchy with customizable separators and sizes."
+  description="Navigation aid showing the current page's location in a hierarchy."
 />
 
 <DocsPageLayout
   title="Breadcrumb"
-  description="Navigation aid showing the current page's location in a hierarchy with customizable separators and sizes."
+  description="Navigation aid showing the current page's location in a hierarchy."
   maxWidth="2xl"
   showToc={true}
   breadcrumbs={[

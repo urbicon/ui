@@ -17,6 +17,7 @@
 
   const navigation = [
     { id: 'playground', title: 'Playground' },
+    { id: 'purpose', title: 'Purpose' },
     { id: 'examples', title: 'Examples' },
     { id: 'customization', title: 'Customization' },
     { id: 'accessibility', title: 'Accessibility' },
@@ -28,12 +29,12 @@
 
 <SeoMeta
   title="Scroller Component"
-  description="Horizontal row that becomes scrollable only when it runs out of room — snap points, a keyboard-reachable scroll region, optional jump buttons and dots, and a CSS-only centred stage."
+  description="A horizontal row of equal-rank items that scrolls only when it runs out of room."
 />
 
 <DocsPageLayout
   title="Scroller"
-  description="A horizontal row of equal-rank items that scrolls only when it has to. On a wide viewport it is an ordinary row — no scrolling, no arrows, no dots, and none of the accessibility duties a scroll container carries. Once it overflows it snaps to item boundaries and becomes a named, keyboard-reachable scroll region. It never auto-rotates."
+  description="A horizontal row of equal-rank items that scrolls only when it runs out of room."
   maxWidth="2xl"
   showToc={true}
   breadcrumbs={[

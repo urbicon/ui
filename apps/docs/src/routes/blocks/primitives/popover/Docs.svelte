@@ -1,8 +1,3 @@
-<!-- urbicon-ignore raw-tailwind-color — the 6 raw colours are the Customization
-     section's subject. Those demos exist to show what `slotClasses`/`unstyled` reach
-     that the token system deliberately does not: glassmorphism, a terminal look, a neon
-     outline. Tokenising them would delete the example. Every other section on this page
-     stays under the rule. -->
 <script lang="ts">
   import { CodeExample, Note, NoteList, Section } from '@urbicon-ui/docs';
   import {
@@ -15,57 +10,90 @@
     SettingsIcon,
     UserIcon
   } from '@urbicon-ui/blocks';
-  import { r } from '$lib/route';
+  import { resolve } from '$app/paths';
 
   let controlledOpen = $state(false);
 </script>
 
-<!-- ─── When to use ─── -->
+<!-- ─── Purpose ─── -->
 
-<Section marker id="usage" title="When to use">
+<Section marker id="purpose" title="Purpose">
   <p class="text-text-secondary text-sm leading-relaxed">
-    <strong>Popover</strong> is a floating panel anchored to a trigger element. Use it for
-    contextual surfaces — action menus, date pickers, inline help — that should appear next to the
-    element the user just interacted with. Placement comes from the library's built-in
-    zero-dependency floating engine (flip, shift, offset), with native
-    <code>popover="auto"</code> for the open/close lifecycle. Not modal.
+    <strong>Popover</strong> is a floating panel anchored to a trigger. Reach for it for contextual surfaces
+    like pickers, inline help or a profile panel that sit next to the element the user acted on without
+    blocking the page. You supply the trigger button and the panel content. The popover positions itself,
+    flips when space runs out, and opens and closes on its own.
   </p>
-  <p class="text-text-secondary mt-3 text-sm leading-relaxed">
-    Pick a different overlay if you need:
-  </p>
-  <ul class="text-text-secondary mt-2 list-outside list-disc space-y-1.5 pl-5 text-sm">
-    <li>
-      A modal sheet that opens from the edge of the viewport (focus trap, backdrop) →
-      <a href={r('/blocks/primitives/drawer')} class="text-primary hover:underline">Drawer</a>.
-    </li>
-    <li>
-      A hover-only description tied to <code>aria-describedby</code> →
-      <a href={r('/blocks/primitives/tooltip')} class="text-primary hover:underline">Tooltip</a>.
-    </li>
-    <li>
-      A list of selectable actions or items with full keyboard semantics →
-      <a href={r('/blocks/primitives/menu')} class="text-primary hover:underline">Menu</a>.
-    </li>
-    <li>
-      A centered, blocking modal (confirmation, short form) →
-      <a href={r('/blocks/primitives/dialog')} class="text-primary hover:underline">Dialog</a>.
-    </li>
-  </ul>
 
-  <h3 class="text-text-primary mt-6 text-sm font-semibold">Inside a paragraph</h3>
-  <p class="text-text-secondary mt-2 text-sm leading-relaxed">
-    A popover whose trigger sits in flowing text — a citation marker in a sentence, a term with a
-    definition — needs <code>inline</code>. By default the trigger wrapper and the panel are both
-    <code>&lt;div&gt;</code>s, and a <code>&lt;div&gt;</code> start tag closes an open
-    <code>&lt;p&gt;</code> however deeply it is nested. On a server-rendered page the browser repairs
-    that by ending the paragraph early, so the DOM it builds no longer matches the component tree and
-    hydration reports a mismatch.
-  </p>
-  <p class="text-text-secondary mt-2 text-sm leading-relaxed">
-    <code>inline</code> makes the wrapper a <code>&lt;span&gt;</code> and withholds the panel from the
-    server render, adding it on mount. The cost is that the panel's content is absent from the prerendered
-    HTML, so a non-rendering crawler never sees it — which is why it is opt-in rather than the default.
-    There is nothing to see in the playground: the difference is entirely in the server output.
+  <div class="mt-6 overflow-x-auto">
+    <table class="w-full text-left text-sm">
+      <thead class="text-text-primary border-border-subtle border-b">
+        <tr>
+          <th class="py-2 pr-4 font-semibold">Reach for</th>
+          <th class="py-2 pr-4 font-semibold">When you need</th>
+          <th class="py-2 font-semibold">Focus</th>
+        </tr>
+      </thead>
+      <tbody class="text-text-secondary divide-border-subtle divide-y">
+        <tr>
+          <td class="py-3 pr-4 align-top">
+            <span class="text-text-primary font-medium">Popover</span>
+            <span class="text-text-tertiary">(this)</span>
+          </td>
+          <td class="py-3 pr-4 align-top">
+            A contextual panel by the trigger: a picker, inline help, a profile panel.
+          </td>
+          <td class="py-3 align-top">Non-modal; focus flows past.</td>
+        </tr>
+        <tr>
+          <td class="py-3 pr-4 align-top">
+            <a href={resolve('/blocks/primitives/tooltip')} class="text-primary hover:underline"
+              >Tooltip</a
+            >
+          </td>
+          <td class="py-3 pr-4 align-top">
+            A short hover/focus description tied to
+            <code class="text-text-primary">aria-describedby</code>.
+          </td>
+          <td class="py-3 align-top">Non-interactive.</td>
+        </tr>
+        <tr>
+          <td class="py-3 pr-4 align-top">
+            <a href={resolve('/blocks/primitives/menu')} class="text-primary hover:underline"
+              >Menu</a
+            >
+          </td>
+          <td class="py-3 pr-4 align-top">
+            A list of selectable actions with arrow-key navigation.
+          </td>
+          <td class="py-3 align-top">Roving focus.</td>
+        </tr>
+        <tr>
+          <td class="py-3 pr-4 align-top">
+            <a href={resolve('/blocks/primitives/dialog')} class="text-primary hover:underline"
+              >Dialog</a
+            >
+            /
+            <a href={resolve('/blocks/primitives/drawer')} class="text-primary hover:underline"
+              >Drawer</a
+            >
+          </td>
+          <td class="py-3 pr-4 align-top"
+            >A blocking, modal flow: confirmation, form, edge sheet.</td
+          >
+          <td class="py-3 align-top">Focus trapped.</td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+
+  <p class="text-text-tertiary mt-4 text-xs leading-relaxed">
+    <strong class="text-text-secondary font-medium">Inside flowing text:</strong> a trigger that
+    sits in a paragraph needs <code class="text-text-primary">inline</code>, which makes its wrapper
+    a
+    <code class="text-text-primary">&lt;span&gt;</code> so a
+    <code class="text-text-primary">&lt;div&gt;</code> panel cannot break the surrounding
+    <code class="text-text-primary">&lt;p&gt;</code>.
   </p>
 </Section>
 
@@ -74,35 +102,15 @@
 <Section marker id="examples" title="Examples">
   <div class="space-y-8">
     <CodeExample
-      title="Placements"
-      description="The popover auto-flips when the preferred side runs out of space."
-      isolate
-      previewClass="flex flex-wrap items-center justify-center gap-3 py-16"
-    >
-      {#each [{ label: 'Top', placement: 'top' }, { label: 'Top Start', placement: 'top-start' }, { label: 'Top End', placement: 'top-end' }, { label: 'Bottom', placement: 'bottom' }, { label: 'Left', placement: 'left' }, { label: 'Right', placement: 'right' }] as const as { label, placement } (placement)}
-        <Popover {placement}>
-          {#snippet trigger()}
-            <Button variant="outlined" size="sm">{label}</Button>
-          {/snippet}
-          <div class="text-text-secondary px-3 py-2 whitespace-nowrap">
-            Placed at <span class="text-text-primary font-medium">{placement}</span>
-          </div>
-        </Popover>
-      {/each}
-    </CodeExample>
-
-    <CodeExample
-      title="Rich Content – User Profile"
-      description="A popover is a surface, not just a tooltip — it can carry structured content, avatars and its own actions, and the focus order follows the markup you put inside."
+      title="Rich content"
+      description="A popover carries structured content a Menu cannot. You provide the trigger button in the `trigger` snippet, and the panel is whatever markup you put inside."
       code={`<Popover placement="bottom-end">
   {#snippet trigger()}
-    <div class="avatar-trigger">JD</div>
+    <button aria-label="Open user menu">JD</button>
   {/snippet}
-  {#snippet children()}
-    <div class="w-64">
-      <!-- profile card content -->
-    </div>
-  {/snippet}
+  <div class="w-64">
+    <!-- profile header, actions, sign-out -->
+  </div>
 </Popover>`}
       isolate
       previewClass="flex justify-center"
@@ -112,7 +120,7 @@
           <button
             type="button"
             aria-label="Open user menu"
-            class="bg-primary/10 text-primary-emphasis hover:ring-primary/30 flex h-10 w-10 cursor-pointer items-center justify-center rounded-full text-sm font-semibold transition-all hover:ring-2"
+            class="bg-primary/10 text-primary-emphasis hover:ring-primary/30 flex h-10 w-10 cursor-pointer items-center justify-center rounded-full text-sm font-semibold transition hover:ring-2"
           >
             JD
           </button>
@@ -155,8 +163,8 @@
     </CodeExample>
 
     <CodeExample
-      title="Controlled State"
-      description="Bind the open state to react to or drive popover visibility from outside."
+      title="Controlled open state"
+      description="`bind:open` lets outside code read and drive the panel."
       code={`<` +
         `script>
   let open = $state(false);
@@ -165,12 +173,10 @@
 
 <Popover bind:open>
   {#snippet trigger()}
-    <Button>{open ? 'Viewing' : 'View'} Status</Button>
+    <Button>{open ? 'Viewing' : 'View'} status</Button>
   {/snippet}
-  {#snippet children()}
-    <div class="p-3">...</div>
-    <Button onclick={() => open = false}>Dismiss</Button>
-  {/snippet}
+  <div class="p-3">...</div>
+  <Button onclick={() => (open = false)}>Dismiss</Button>
 </Popover>`}
       isolate
       previewClass="flex justify-center"
@@ -181,13 +187,13 @@
             variant={controlledOpen ? 'filled' : 'outlined'}
             intent={controlledOpen ? 'primary' : 'neutral'}
           >
-            {controlledOpen ? 'Viewing' : 'View'} Status
+            {controlledOpen ? 'Viewing' : 'View'} status
           </Button>
         {/snippet}
         <div class="w-56 p-3">
           <div class="mb-2 flex items-center gap-2">
             <span class="bg-success h-2 w-2 rounded-full"></span>
-            <span class="text-text-primary text-sm font-semibold">All Systems Operational</span>
+            <span class="text-text-primary text-sm font-semibold">All systems operational</span>
           </div>
           <p class="text-text-tertiary mb-3 text-xs leading-relaxed">
             Last checked 2 min ago. Uptime 99.98 % over 30 days.
@@ -209,74 +215,34 @@
 <!-- ─── Customization ─── -->
 
 <Section marker id="customization" title="Customization">
-  <div class="space-y-8">
+  <div class="space-y-6">
     <CodeExample
-      title="Gradient Action Panel"
-      description="Override the panel surface with slotClasses for a branded popover."
+      title="Primary-framed callout"
+      description="One `class` frames the panel in the primary token, a `border-primary` edge and a soft primary ring, to mark a branded or high-priority surface. Only the border and ring change. The fill, radius and motion stay as they are."
       isolate
       previewClass="flex justify-center"
     >
-      <Popover
-        slotClasses={{
-          base: 'bg-linear-to-br from-violet-600 to-indigo-700 border-none shadow-xl shadow-violet-500/20 text-white'
-        }}
-        size="md"
-      >
+      <Popover class="border-primary ring-primary/35 ring-2">
         {#snippet trigger()}
-          <Button intent="primary">Upgrade Plan</Button>
+          <Button intent="primary">Upgrade plan</Button>
         {/snippet}
-        <div class="w-64 p-4">
-          <div class="mb-1 text-sm font-bold text-white">Go Premium</div>
-          <p class="mb-3 text-xs leading-relaxed text-white/75">
-            Unlock advanced analytics, priority support, and unlimited projects.
+        <div class="w-60 p-1">
+          <div class="text-primary-emphasis text-sm font-semibold">Go Premium</div>
+          <p class="text-text-secondary mt-1 mb-3 text-xs leading-relaxed">
+            Unlock advanced analytics, priority support and unlimited projects.
           </p>
-          <Button
-            unstyled
-            class="w-full rounded-lg bg-white px-3 py-2 text-center text-sm font-semibold text-violet-700 transition-all hover:bg-white/90"
-          >
-            Start Free Trial
-          </Button>
-        </div>
-      </Popover>
-    </CodeExample>
-
-    <CodeExample
-      title="Glass Morphism (unstyled)"
-      description="Strip all defaults and rebuild with a translucent glass aesthetic."
-      isolate
-      previewClass="flex justify-center rounded-xl bg-linear-to-br from-rose-500 via-fuchsia-500 to-indigo-500 px-8 py-12"
-    >
-      <Popover
-        unstyled
-        class="w-56 rounded-2xl border border-white/20 bg-white/10 p-4 text-white shadow-2xl backdrop-blur-xl"
-      >
-        {#snippet trigger()}
-          <Button
-            unstyled
-            class="rounded-full border border-white/30 bg-white/10 px-5 py-2.5 text-sm font-medium text-white backdrop-blur-sm transition-all hover:bg-white/20"
-          >
-            Quick Actions
-          </Button>
-        {/snippet}
-        <div class="space-y-1">
-          {#each ['New Project', 'Import Data', 'Invite Team'] as action (action)}
-            <div
-              class="cursor-pointer rounded-lg px-3 py-2 text-sm text-white/90 transition-colors hover:bg-white/10"
-            >
-              {action}
-            </div>
-          {/each}
+          <Button intent="primary" size="sm" class="w-full">Start free trial</Button>
         </div>
       </Popover>
     </CodeExample>
 
     <p class="text-text-secondary text-sm leading-relaxed">
-      A branded panel that several popovers share belongs in a <code class="text-text-primary"
-        >BlocksProvider</code
-      >
-      preset (<code class="text-text-primary">presets.Popover</code>), applied via
-      <code class="text-text-primary">preset</code>
-      — see <a href={r('/customization')} class="text-primary hover:underline">Customization</a>.
+      This is one of five ways to restyle a block. See
+      <a href={resolve('/customization')} class="text-primary hover:underline">Customization</a>
+      for <code class="text-text-primary">class</code>,
+      <code class="text-text-primary">slotClasses</code>,
+      <code class="text-text-primary">unstyled</code>, <code class="text-text-primary">preset</code>
+      and provider-level overrides.
     </p>
   </div>
 </Section>
@@ -285,15 +251,14 @@
 
 <Section marker id="accessibility" title="Accessibility">
   <NoteList>
-    <Note title="ARIA Attributes">
+    <Note title="ARIA attributes">
       <p>
-        The trigger wrapper sets
+        The trigger's first interactive element receives
         <code class="text-text-primary">aria-haspopup="dialog"</code> and
-        <code class="text-text-primary">aria-expanded</code> reflecting the current open state. The
-        floating panel receives
-        <code class="text-text-primary">role="dialog"</code> by default.
-        <code class="text-text-primary">aria-modal</code> is passed through as an attribute only —
-        the popover never traps focus, so leave it unset and reach for
+        <code class="text-text-primary">aria-expanded</code> reflecting the open state. The floating
+        panel carries <code class="text-text-primary">role="dialog"</code> by default.
+        <code class="text-text-primary">aria-modal</code> is passed through as an attribute only.
+        The popover never traps focus, so leave it unset and reach for
         <code class="text-text-primary">Dialog</code> when a flow is genuinely modal.
       </p>
     </Note>
@@ -301,45 +266,27 @@
       <p>
         <Kbd keys="Enter" />
         /
-        <Kbd keys="Space" />
-        toggle the popover when the trigger is focused.
-        <Kbd keys="Escape" />
-        closes the popover and returns focus to the trigger.
-        <Kbd keys="Tab" />
-        moves through focusable content inside the popover.
+        <Kbd keys="Space" /> toggle the popover when the trigger is focused.
+        <Kbd keys="Escape" /> closes it and returns focus to the trigger.
+        <Kbd keys="Tab" /> moves through the focusable content inside.
       </p>
     </Note>
-    <Note title="Click Outside">
+    <Note title="Focus & dismissal">
       <p>
-        Clicking outside the popover or its trigger closes it automatically. Set
+        Clicking outside dismisses the popover automatically. Set
         <code class="text-text-primary">closeOnClickOutside</code> to
-        <code class="text-text-primary">false</code> to pin the popover open until you toggle
-        <code class="text-text-primary">open</code> yourself; the
-        <code class="text-text-primary">onClickOutside</code> callback fires after an outside click has
-        dismissed it.
-      </p>
-    </Note>
-    <Note title="Focus Management">
-      <p>
-        The popover never traps focus — it is a non-modal surface, and Tab moves on past its
-        content. Closing with Escape returns focus to the trigger. For forms or critical actions
-        that must hold focus until dismissed, use
-        <code class="text-text-primary">Dialog</code> or
+        <code class="text-text-primary">false</code> to pin it open until you toggle
+        <code class="text-text-primary">open</code> yourself. For a flow that must hold focus until
+        dismissed, use <code class="text-text-primary">Dialog</code> or
         <code class="text-text-primary">ConfirmDialog</code> instead.
       </p>
     </Note>
-    <Note title="Motion &amp; Reduced Motion">
+    <Note title="Motion & reduced motion">
       <p>
-        The panel fades and scales in over the
-        <code class="text-text-primary">--blocks-popover-duration</code> /
-        <code class="text-text-primary">--blocks-popover-easing</code> tokens (150 ms by default,
-        CSS-native via <code class="text-text-primary">@starting-style</code> and discrete
-        transitions — Menu inherits it). Override per instance with
+        The panel fades and scales in over about 150 ms. Override the timing per instance with
         <code class="text-text-primary">transitionDuration</code> /
-        <code class="text-text-primary">transitionEasing</code>; under
-        <code class="text-text-primary">prefers-reduced-motion</code> both collapse to near-instant
-        automatically. With <code class="text-text-primary">unstyled</code>, rebuild motion on the
-        panel's <code class="text-text-primary">data-state</code> attribute.
+        <code class="text-text-primary">transitionEasing</code>, and under
+        <code class="text-text-primary">prefers-reduced-motion</code> the motion collapses to near-instant.
       </p>
     </Note>
   </NoteList>

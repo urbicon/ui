@@ -1,7 +1,5 @@
 <script lang="ts">
-  import { Button, Menu, type MenuObjectOption, getIcon } from '@urbicon-ui/blocks';
-
-  const MoreHorizontalIcon = getIcon('moreHorizontal');
+  import { Button, Menu, type MenuObjectOption, MoreHorizontalIcon } from '@urbicon-ui/blocks';
 
   let lastAction = $state('—');
 

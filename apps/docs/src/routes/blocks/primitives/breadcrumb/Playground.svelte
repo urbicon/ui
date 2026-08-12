@@ -23,15 +23,15 @@
 
   const demoNoop = (event: MouseEvent) => event.preventDefault();
 
-  // Sechs Stufen, nicht vier: `maxItems` kollabiert erst, wenn es etwas zu
-  // kollabieren gibt, und `wrap` zeigt sich erst an einem Trail, das die Zeile
-  // wirklich füllt. Mit dem alten Vier-Stufen-Trail wären beide Regler
-  // folgenlos gewesen — die Klasse Fehler, die dieser Durchgang neunmal fand.
+  // Fünf Items, nicht sechs: `maxItems` ist eine Schwelle, kein Zähler. Es
+  // faltet die Mitte erst, wenn es etwas zu falten gibt, und liefert dann
+  // immer dasselbe „before … after". Bei sechs Items kollabierten 3/4/5 also
+  // ununterscheidbar; bei fünf zeigt `maxItems=5` (und „off") die volle Spur,
+  // `maxItems≤4` klappt sie sichtbar zu „…" — mindestens ein echter Wechsel.
   const playgroundItems = [
     { label: 'Home', href: '#', onclick: demoNoop },
     { label: 'Store', href: '#', onclick: demoNoop },
     { label: 'Audio', href: '#', onclick: demoNoop },
-    { label: 'Products', href: '#', onclick: demoNoop },
     { label: 'Headphones', href: '#', onclick: demoNoop },
     { label: 'AirPods Max' }
   ];
@@ -78,12 +78,21 @@
   }}
 >
   {#snippet children(values)}
-    <Breadcrumb
-      items={playgroundItems}
-      size={values.size}
-      maxItems={values.maxItems}
-      expandLabel={values.expandLabel}
-      wrap={values.wrap}
-    />
+    <!--
+      Vorschau bewusst schmal gekappt: `wrap` wirkt erst, wenn die Spur die
+      Zeile sprengt — ohne Breitendruck sieht `true` wie `false` aus. Der Deckel
+      ist Doku-Harnisch (wie der `onclick`-Blocker oben) und bleibt aus dem
+      generierten Snippet heraus. `true` bricht in eine zweite Zeile um, `false`
+      hält eine Zeile und lässt die aktuelle Seite abschneiden.
+    -->
+    <div class="w-full max-w-xs">
+      <Breadcrumb
+        items={playgroundItems}
+        size={values.size}
+        maxItems={values.maxItems}
+        expandLabel={values.expandLabel}
+        wrap={values.wrap}
+      />
+    </div>
   {/snippet}
 </PlaygroundConfigurator>

@@ -28,12 +28,12 @@
 
 <SeoMeta
   title="Spinner Component"
-  description="Loading indicators with multiple animation styles, semantic colors, and configurable speed."
+  description="Loading indicators with multiple animation styles."
 />
 
 <DocsPageLayout
   title="Spinner"
-  description="Loading indicators with multiple animation styles, semantic colors, and configurable speed."
+  description="Loading indicators with multiple animation styles."
   maxWidth="2xl"
   showToc={true}
   {navigation}

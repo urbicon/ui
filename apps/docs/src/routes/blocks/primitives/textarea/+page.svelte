@@ -26,14 +26,11 @@
   ];
 </script>
 
-<SeoMeta
-  title="Textarea Component"
-  description="Multi-line text input with auto-resize, character counter, validation, and semantic variants."
-/>
+<SeoMeta title="Textarea Component" description="A multi-line text field." />
 
 <DocsPageLayout
   title="Textarea"
-  description="Multi-line text input with auto-resize, character counter, validation, and semantic variants."
+  description="A multi-line text field."
   maxWidth="2xl"
   showToc={true}
   {navigation}

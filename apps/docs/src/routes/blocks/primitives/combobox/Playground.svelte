@@ -62,6 +62,7 @@
       <Combobox
         options={demoOptions}
         size={values.size}
+        variant={values.variant}
         tier={values.tier}
         aria-label="Country"
         placeholder={values.placeholder || undefined}

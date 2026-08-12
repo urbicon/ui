@@ -7,7 +7,6 @@
     Section,
     TypesReference
   } from '@urbicon-ui/docs';
-  import { SegmentGroup, SegmentItem } from '@urbicon-ui/blocks';
   import CustomDocs from './Docs.svelte';
   import Playground from './Playground.svelte';
   import { componentData } from './api';
@@ -17,9 +16,8 @@
 
   const navigation = [
     { id: 'playground', title: 'Playground' },
+    { id: 'purpose', title: 'Purpose' },
     { id: 'examples', title: 'Examples' },
-    { id: 'mints', title: 'Micro-Interactions' },
-    { id: 'comparison', title: 'Choosing the Right Component' },
     { id: 'customization', title: 'Customization' },
     { id: 'accessibility', title: 'Accessibility' },
     { id: 'api', title: 'API Reference' },
@@ -30,12 +28,12 @@
 
 <SeoMeta
   title="Segment Group Component"
-  description="Segment control with an animated sliding indicator for single selection; collapses to a vertical stack when its row can't fit."
+  description="A compact control for switching between a few mutually exclusive views or modes."
 />
 
 <DocsPageLayout
   title="Segment Group"
-  description="Segment control with an animated sliding indicator for single selection; collapses to a vertical stack when its row can't fit."
+  description="A compact control for switching between a few mutually exclusive views or modes."
   maxWidth="2xl"
   showToc={true}
   {navigation}

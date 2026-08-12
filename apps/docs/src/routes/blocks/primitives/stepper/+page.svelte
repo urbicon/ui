@@ -62,12 +62,12 @@
 
 <SeoMeta
   title="Stepper Component"
-  description="Multi-step progress indicator with horizontal/vertical layout, clickable navigation, and per-step state overrides."
+  description="Multi-step progress indicator with clickable navigation."
 />
 
 <DocsPageLayout
   title="Stepper"
-  description="Multi-step progress indicator with horizontal/vertical layout, clickable navigation, and per-step state overrides."
+  description="Multi-step progress indicator with clickable navigation."
   maxWidth="2xl"
   showToc={true}
   breadcrumbs={[

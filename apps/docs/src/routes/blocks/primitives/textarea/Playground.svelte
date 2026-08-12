@@ -40,7 +40,8 @@
         items: [
           { label: 'outlined', value: 'outlined' },
           { label: 'filled', value: 'filled' },
-          { label: 'ghost', value: 'ghost' }
+          { label: 'ghost', value: 'ghost' },
+          { label: 'underline', value: 'underline' }
         ],
         defaultValue: 'outlined'
       },

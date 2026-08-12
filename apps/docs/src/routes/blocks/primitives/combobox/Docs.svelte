@@ -1,8 +1,7 @@
-<!-- urbicon-ignore raw-tailwind-color — the 15 raw colours are the Customization
-     section's subject. Those demos exist to show what `slotClasses`/`unstyled` reach
-     that the token system deliberately does not: glassmorphism, a terminal look, a neon
-     outline. Tokenising them would delete the example. Every other section on this page
-     stays under the rule. -->
+<!-- urbicon-ignore raw-tailwind-color — the Customization demo tints the Combobox's input and
+     listbox surfaces with `slotClasses`: it keeps the field's radius tier, spacing and keyboard
+     behaviour, and only the fill, border and blur are raw — a frosted-glass look the token palette
+     has no equivalent for. Every other section on this page stays under the rule. -->
 <script lang="ts">
   import { CodeExample, Note, NoteList, Section } from '@urbicon-ui/docs';
   import { Avatar, Badge, CheckIcon, Combobox, Kbd } from '@urbicon-ui/blocks';
@@ -134,7 +133,7 @@
 
   // Forward the signal to fetch: when a newer query supersedes this request,
   // the Combobox aborts it and the browser cancels the HTTP request. Aborted
-  // rejections are swallowed — only real failures reach onError.
+  // rejections are swallowed; only real failures reach onError.
   async function searchCities(query: string, signal: AbortSignal): Promise<ComboboxOption[]> {
     searchError = undefined;
     const res = await fetch(\`/api/cities?q=\${encodeURIComponent(query)}\`, { signal });
@@ -151,7 +150,7 @@ ${asyncScriptClose}
   loadingText="Searching cities…"
   bind:value={city}
   error={searchError}
-  onError={() => (searchError = 'Search failed — previous results are kept')}
+  onError={() => (searchError = 'Search failed. Previous results are kept.')}
   clearable
 />`;
 </script>
@@ -159,10 +158,21 @@ ${asyncScriptClose}
 <!-- ─── Examples ─── -->
 
 <Section marker id="examples" title="Examples">
+  <p class="text-text-secondary mb-6 text-sm leading-relaxed">
+    Each option is an object with a <code class="text-text-primary">label</code> and a
+    <code class="text-text-primary">value</code>, and <code class="text-text-primary">options</code>
+    is an array of them. Bind a single selection with
+    <code class="text-text-primary">bind:value</code> (the picked value, or
+    <code class="text-text-primary">null</code> when empty), or pass
+    <code class="text-text-primary">multiple</code> to bind an array rendered as removable tags. Reach
+    for Combobox over Select when the list is long enough to search or its values load from a server.
+    Select suits a short, fixed set.
+  </p>
+
   <div class="space-y-8">
     <CodeExample
       title="Multi-select with tags"
-      description="Pass `multiple` to bind an array of values. Picks render as removable tag chips below the search input, the listbox stays open across selections, Backspace on an empty field removes the last tag, and `maxItems` caps the count — non-selected options grey out once the cap is reached."
+      description="Pass `multiple` to bind an array of values. Picks render as removable tag chips and the listbox stays open across selections. `maxItems` caps the count, and Backspace on an empty field removes the last tag."
       isolate
       previewClass="flex flex-col gap-4 max-w-sm"
     >
@@ -179,7 +189,7 @@ ${asyncScriptClose}
 
     <CodeExample
       title="Helper, error & required"
-      description="Combobox follows the same form-field contract as Input and Select — label, helper, error, and required all work as expected. `error` overrides `helper` when both are set."
+      description="Combobox follows the same form-field contract as Input and Select. `error` overrides `helper` when both are set."
       isolate
       previewClass="flex flex-col gap-4 max-w-xs"
     >
@@ -202,7 +212,7 @@ ${asyncScriptClose}
 
     <CodeExample
       title="Custom filter"
-      description="Replace the default case-insensitive contains-match with your own predicate — here, strict `startsWith` matching for command-style input."
+      description="Replace the default case-insensitive contains-match with your own predicate. Here, strict `startsWith` matching suits command-style input."
       isolate
       previewClass="flex flex-col gap-4 max-w-xs"
     >
@@ -218,9 +228,9 @@ ${asyncScriptClose}
 
     <CodeExample
       title="Custom option renderer"
-      description="Use the `customOption` snippet for rich list items — avatars, badges, secondary descriptions, status indicators."
+      description="Use the `customOption` snippet for rich list items: an avatar, the name, and a role badge on each row."
       isolate
-      previewClass="flex flex-col gap-4 max-w-sm"
+      previewClass="flex flex-col gap-4 w-full max-w-md mx-auto"
     >
       <Combobox
         label="Team member"
@@ -232,14 +242,17 @@ ${asyncScriptClose}
         {#snippet customOption(opt: ComboboxOption, isSelected: boolean)}
           <div class="flex w-full items-center gap-3">
             <Avatar src={avatars[opt.value]} size="xs" />
-            <div class="flex flex-1 items-center gap-2 truncate">
-              <span class="truncate text-sm">{opt.label.split(' — ')[0]}</span>
-              <Badge size="xs" variant="soft" intent={isSelected ? 'success' : 'neutral'}>
-                {opt.label.split(' — ')[1]}
-              </Badge>
-            </div>
+            <span class="flex-1 truncate text-sm">{opt.label.split(' — ')[0]}</span>
+            <Badge
+              size="xs"
+              variant="soft"
+              intent={isSelected ? 'success' : 'neutral'}
+              class="shrink-0"
+            >
+              {opt.label.split(' — ')[1]}
+            </Badge>
             {#if isSelected}
-              <CheckIcon size={14} class="text-primary" />
+              <CheckIcon size={14} class="text-primary shrink-0" />
             {/if}
           </div>
         {/snippet}
@@ -254,23 +267,24 @@ ${asyncScriptClose}
   <div class="space-y-8">
     <p class="text-text-secondary text-sm leading-relaxed">
       Pass <code class="text-text-primary">queryFn</code> and the Combobox stops filtering
-      client-side: on each query change it calls your async function — debounced by
-      <code class="text-text-primary">debounceMs</code> (default 250&thinsp;ms) — and replaces the
-      option list with the resolved result.
-      <code class="text-text-primary">options</code>, <code class="text-text-primary">groups</code>,
-      and <code class="text-text-primary">filter</code> are ignored in this mode — the server does
-      the filtering. Requests run only while the listbox is open, and each request receives an
-      <code class="text-text-primary">AbortSignal</code> that is aborted the moment a newer query
-      supersedes it, so a slow stale response never clobbers a fresh one. While a request is in
-      flight the listbox shows <code class="text-text-primary">loadingText</code>; zero matches
-      render <code class="text-text-primary">noResultsText</code>. A rejection ends the loading
-      state, keeps the previous options in place, and is reported via
+      client-side. On each query change it calls your async function, debounced by
+      <code class="text-text-primary">debounceMs</code> (250&thinsp;ms by default), and replaces the
+      option list with the resolved result. In this mode
+      <code class="text-text-primary">options</code>,
+      <code class="text-text-primary">groups</code> and
+      <code class="text-text-primary">filter</code>
+      are ignored, since the server does the filtering. Each request receives an
+      <code class="text-text-primary">AbortSignal</code> that fires the moment a newer query
+      supersedes it, so a slow stale response never overwrites a fresh one. The listbox shows
+      <code class="text-text-primary">loadingText</code> while a request is in flight and
+      <code class="text-text-primary">noResultsText</code> on zero matches. A rejection ends the
+      loading state, keeps the previous options in place, and is reported via
       <code class="text-text-primary">onError</code>.
     </p>
 
     <CodeExample
       title="Server-side search"
-      description="The live demo runs against a deterministic in-memory mock backend with 450 ms of artificial latency (no real network requests) — the code shows the real fetch-based consumer pattern. Type “ber” and watch the loading row, try a query with no match for the empty state, or type “error” to trigger a simulated server failure surfaced via `onError`."
+      description="The live demo runs against a deterministic in-memory mock backend with 450 ms of artificial latency and no real network requests. The code shows the real fetch-based consumer pattern."
       code={asyncSearchCode}
     >
       <div class="flex max-w-sm flex-col gap-3">
@@ -283,7 +297,7 @@ ${asyncScriptClose}
           placeholder="Type to search…"
           helper="Try “ber”, a nonsense query, or “error” for a simulated failure"
           error={cityError}
-          onError={() => (cityError = 'Search failed — previous results are kept')}
+          onError={() => (cityError = 'Search failed. Previous results are kept.')}
           bind:value={cityValue}
           clearable
         />
@@ -295,10 +309,10 @@ ${asyncScriptClose}
     </CodeExample>
 
     <p class="text-text-secondary text-sm leading-relaxed">
-      For values that are pre-selected before any search has run — an edit form binding
-      <code class="text-text-primary">value</code> on mount — pass
+      For values pre-selected before any search has run (an edit form binding
+      <code class="text-text-primary">value</code> on mount), pass
       <code class="text-text-primary">seedOptions</code> so the selection renders its label instead
-      of the raw value. The same mock-backend pattern drives the Table's query demo; see
+      of the raw value. The same mock-backend pattern drives the Table's query demo. See
       <a href={resolve('/table/query')} class="text-primary hover:underline">Query Function</a>.
     </p>
   </div>
@@ -309,94 +323,36 @@ ${asyncScriptClose}
 <Section marker id="customization" title="Customization">
   <div class="space-y-8">
     <CodeExample
-      title="Command Palette"
-      description="A Spotlight-style command palette built with slotClasses on the base and input slots."
+      title="Frosted glass"
+      description="`slotClasses` tints the input and listbox into a glass look. It keeps the field's radius tier, spacing and keyboard behaviour. Only the fill, border and blur change, in raw colours because glass has no token equivalent."
       isolate
-      previewClass="flex flex-col items-center gap-4 max-w-lg w-full mx-auto"
-    >
-      <Combobox
-        options={[
-          { label: '⌘K  Open Command Palette', value: 'cmd-k' },
-          { label: '⌘P  Quick Open File', value: 'cmd-p' },
-          { label: '⌘⇧P  Show All Commands', value: 'cmd-shift-p' },
-          { label: '⌘B  Toggle Sidebar', value: 'cmd-b' },
-          { label: '⌘J  Toggle Terminal', value: 'cmd-j' },
-          { label: '⌘,  Open Settings', value: 'cmd-comma' }
-        ]}
-        aria-label="Command palette"
-        placeholder="Type a command…"
-        size="lg"
-        slotClasses={{
-          base: 'w-full',
-          input:
-            'rounded-xl shadow-[var(--blocks-shadow-lg)] ring-2 ring-primary/20 focus-visible:ring-primary/50 transition-all',
-          listbox: 'rounded-xl shadow-[var(--blocks-shadow-lg)]'
-        }}
-      />
-    </CodeExample>
-
-    <CodeExample
-      title="Glassmorphism"
-      description="Frosted glass input for hero sections or overlay contexts."
-      isolate
-      previewClass="flex flex-col items-center gap-4 max-w-md w-full mx-auto rounded-xl bg-linear-to-br from-indigo-600 via-purple-600 to-pink-500 px-8 py-10"
+      previewClass="mx-auto flex w-full max-w-md flex-col rounded-xl bg-linear-to-br from-indigo-600 via-purple-600 to-pink-500 px-8 pt-10 pb-60"
     >
       <Combobox
         aria-label="Timezone"
         options={timezones}
         placeholder="Select your timezone…"
-        unstyled
         slotClasses={{
-          base: 'relative w-full',
           input:
-            'w-full rounded-xl border border-white/20 bg-white/10 px-5 py-3 text-white placeholder-white/50 shadow-lg backdrop-blur-md transition-all focus-visible:border-white/40 focus-visible:bg-white/15 focus-visible:outline-none',
-          listbox:
-            'absolute z-[var(--z-dropdown)] mt-2 w-full rounded-xl border border-white/20 bg-white/10 p-1 shadow-xl backdrop-blur-xl max-h-60 overflow-y-auto',
-          option:
-            'flex w-full items-center gap-2 rounded-lg px-4 py-2.5 text-white/80 cursor-pointer transition-colors hover:bg-white/15',
+            'border-white/20 bg-white/10 text-white placeholder:text-white/60 backdrop-blur-md hover:border-white/30 focus-visible:border-white/40 focus-visible:bg-white/15',
+          listbox: 'border-white/20 bg-white/10 text-white backdrop-blur-xl',
+          option: 'text-white/80',
           optionActive: 'bg-white/20 text-white',
-          optionSelected: 'text-white font-medium',
-          noResults: 'px-4 py-3 text-center text-white/50 text-sm',
-          chevron:
-            'absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-white/40 pointer-events-none'
-        }}
-      />
-    </CodeExample>
-
-    <CodeExample
-      title="Terminal / Monospace"
-      description="Fully unstyled rebuild with a terminal aesthetic."
-      isolate
-      previewClass="flex flex-col items-center gap-4 max-w-md w-full mx-auto"
-    >
-      <Combobox
-        aria-label="Language"
-        options={languages}
-        placeholder="$ select --lang"
-        unstyled
-        slotClasses={{
-          base: 'relative w-full font-mono',
-          input:
-            'w-full bg-neutral-950 text-green-400 border-2 border-green-600/50 rounded-none px-4 py-3 text-sm placeholder:text-green-600/50 focus-visible:outline-none focus-visible:border-green-400',
-          listbox:
-            'absolute z-[var(--z-dropdown)] mt-0 w-full bg-neutral-950 border-2 border-t-0 border-green-600/50 max-h-60 overflow-y-auto',
-          option:
-            'flex w-full items-center gap-2 px-4 py-2 text-sm text-green-300 cursor-pointer hover:bg-green-900/30',
-          optionActive: 'bg-green-800/40 text-green-200',
-          optionSelected: 'text-green-100 font-bold',
-          noResults: 'px-4 py-3 text-center text-green-700 text-sm',
-          chevron:
-            'absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-green-600/50 pointer-events-none'
+          optionSelected: 'bg-white/15 text-white',
+          optionCheck: 'text-white',
+          noResults: 'text-white/60',
+          chevronButton: 'text-white/60 hover:text-white'
         }}
       />
     </CodeExample>
 
     <p class="text-text-secondary text-sm leading-relaxed">
-      A search-field skin used in more than one place — command palette, hero search — is better
-      registered as a <code class="text-text-primary">BlocksProvider</code> preset (<code
-        class="text-text-primary">presets.Combobox</code
-      >) than repeated <code class="text-text-primary">slotClasses</code>. See
-      <a href={resolve('/customization')} class="text-primary hover:underline">Customization</a>.
+      This is one of five ways to restyle a block. See
+      <a href={resolve('/customization')} class="text-primary hover:underline">Customization</a>
+      for <code class="text-text-primary">class</code>,
+      <code class="text-text-primary">slotClasses</code>,
+      <code class="text-text-primary">unstyled</code>, <code class="text-text-primary">preset</code>
+      and provider-level overrides.
     </p>
   </div>
 </Section>

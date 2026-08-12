@@ -26,7 +26,7 @@
   <Menu placeholder="Actions" {items}>
     {#snippet customItem(item)}
       <!--
-        Render visible content only — Menu's outer button handles activation.
+        Render visible content only: Menu's outer button handles activation.
         Putting another <button> inside would nest interactive elements and
         fire the item's onSelect twice via event bubbling.
       -->

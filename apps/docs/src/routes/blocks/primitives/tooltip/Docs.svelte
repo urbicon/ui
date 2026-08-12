@@ -1,78 +1,101 @@
-<!-- urbicon-ignore raw-tailwind-color — the 7 raw colours are the Customization
-     section's subject. Those demos exist to show what `slotClasses`/`unstyled` reach
-     that the token system deliberately does not: glassmorphism, a terminal look, a neon
-     outline. Tokenising them would delete the example. Every other section on this page
-     stays under the rule. -->
+<!-- urbicon-ignore raw-tailwind-color — the Customization demo tints the tooltip panel with
+     `class`: it keeps the tooltip's radius tier, fade and layering, and only the fill, border and
+     blur are raw — a frosted-glass look the token palette has no equivalent for. Every other
+     section on this page stays under the rule. -->
 <script lang="ts">
   import { CodeExample, Note, NoteList, Section } from '@urbicon-ui/docs';
-  import { Badge, Button, Kbd, Tooltip } from '@urbicon-ui/blocks';
+  import { Badge, Button, Kbd, Separator, Toolbar, Tooltip } from '@urbicon-ui/blocks';
   import { resolve } from '$app/paths';
+
+  const services = [
+    {
+      service: 'API Gateway',
+      status: 'Operational',
+      intent: 'success',
+      detail: 'API Gateway, 99.99% uptime over 30 days'
+    },
+    {
+      service: 'Auth Service',
+      status: 'Degraded',
+      intent: 'warning',
+      detail: 'Auth Service, elevated latency since 14:20 UTC'
+    },
+    {
+      service: 'Database',
+      status: 'Incident',
+      intent: 'danger',
+      detail: 'Database, failover active, primary unreachable'
+    }
+  ] as const;
+
+  const files = [
+    { name: 'Q4-roadmap-final-with-stakeholder-feedback-v3.pdf', size: '2.4 MB' },
+    { name: 'design-system-token-migration-notes.md', size: '18 KB' },
+    { name: 'customer-interview-transcripts-jan-2026.zip', size: '14.2 MB' }
+  ];
 </script>
 
 <!-- ─── Examples ─── -->
 
 <Section marker id="examples" title="Examples">
+  <p class="text-text-secondary mb-6 text-sm leading-relaxed">
+    Wrap the trigger element as the child and pass the hint text in
+    <code class="text-text-primary">label</code>. The tooltip opens on hover or focus after
+    <code class="text-text-primary">showDelay</code> (200 ms) and follows
+    <code class="text-text-primary">placement</code> (default
+    <code class="text-text-primary">top</code>, auto-flipping when clipped). Set
+    <code class="text-text-primary">disabled</code> to suppress it, or turn off the
+    <code class="text-text-primary">arrow</code> for a plain chip.
+  </p>
+
   <div class="space-y-8">
     <CodeExample
-      title="Formatting Toolbar"
-      description="The canonical tooltip use case — icon-only buttons paired with keyboard shortcut hints."
-      code={`<Tooltip label="Bold (⌘B)">
-  <button class="toolbar-btn">B</button>
-</Tooltip>`}
+      title="Formatting toolbar"
+      description="Icon-only controls need a name. The tooltip carries the label and its keyboard shortcut, on hover or focus."
       isolate
       previewClass="flex justify-center py-6"
     >
-      <div
-        class="bg-surface-elevated border-border-subtle inline-flex items-center gap-0.5 rounded-xl border p-1.5 shadow-[var(--blocks-shadow-sm)]"
-      >
-        {#each [{ icon: 'B', hint: 'Bold (⌘B)', style: 'font-bold' }, { icon: 'I', hint: 'Italic (⌘I)', style: 'italic' }, { icon: 'U', hint: 'Underline (⌘U)', style: 'underline' }, { icon: 'S', hint: 'Strikethrough (⌘⇧X)', style: 'line-through' }, { icon: '🔗', hint: 'Insert Link (⌘K)', style: '' }, { icon: '<>', hint: 'Inline Code (⌘E)', style: 'font-mono text-xs' }, { icon: '📷', hint: 'Insert Image', style: '' }] as tool (tool.hint)}
-          <Tooltip label={tool.hint} size="sm">
-            <button
-              class="text-text-secondary hover:bg-surface-hover hover:text-text-primary rounded-modify flex h-8 w-8 items-center justify-center text-sm transition-colors {tool.style}"
-            >
-              {tool.icon}
-            </button>
-          </Tooltip>
-        {/each}
-      </div>
+      <Toolbar aria-label="Text formatting">
+        <Tooltip label="Bold (⌘B)" size="sm">
+          <Button variant="ghost" size="sm"><span class="font-bold">B</span></Button>
+        </Tooltip>
+        <Tooltip label="Italic (⌘I)" size="sm">
+          <Button variant="ghost" size="sm"><span class="italic">I</span></Button>
+        </Tooltip>
+        <Tooltip label="Underline (⌘U)" size="sm">
+          <Button variant="ghost" size="sm"><span class="underline">U</span></Button>
+        </Tooltip>
+        <Separator orientation="vertical" size="sm" />
+        <Tooltip label="Strikethrough (⌘⇧X)" size="sm">
+          <Button variant="ghost" size="sm"><span class="line-through">S</span></Button>
+        </Tooltip>
+      </Toolbar>
     </CodeExample>
 
     <CodeExample
-      title="Status Dashboard"
-      description="Color-coded tooltips on icon-only status indicators communicate severity at a glance."
+      title="Severity-matched tooltips"
+      description="`intent` tints the tooltip to the state it reports, so the colour reinforces the message."
       isolate
-      previewClass="flex flex-col items-center gap-3 py-4"
+      previewClass="flex flex-wrap items-center justify-center gap-3 py-6"
     >
-      <div
-        class="bg-surface-elevated border-border-subtle divide-border-subtle w-full max-w-sm divide-y rounded-xl border"
-      >
-        {#each [{ service: 'API Gateway', status: 'Operational – 99.99 % uptime', intent: 'success', dot: 'bg-success' }, { service: 'Auth Service', status: '⚠ Degraded – elevated latency', intent: 'warning', dot: 'bg-warning' }, { service: 'CDN', status: 'Operational – 34 ms avg', intent: 'success', dot: 'bg-success' }, { service: 'Database', status: '✗ Incident – failover active', intent: 'danger', dot: 'bg-danger' }] as const as row (row.service)}
-          <div class="flex items-center justify-between px-4 py-2.5">
-            <span class="text-text-primary text-sm">{row.service}</span>
-            <Tooltip label={row.status} intent={row.intent} placement="left">
-              <span class="flex h-5 w-5 items-center justify-center">
-                <span class="{row.dot} inline-block h-2.5 w-2.5 rounded-full"></span>
-              </span>
-            </Tooltip>
-          </div>
-        {/each}
-      </div>
+      {#each services as row (row.service)}
+        <Tooltip label={row.detail} intent={row.intent} placement="bottom">
+          <Badge variant="soft" intent={row.intent}>{row.status}</Badge>
+        </Tooltip>
+      {/each}
     </CodeExample>
 
     <CodeExample
-      title="Truncated Text Reveal"
-      description="Wrap truncated text with a tooltip to expose the full value on hover or focus."
+      title="Reveal truncated text"
+      description="Wrap clipped text so the full value shows on hover."
       isolate
-      previewClass="flex justify-center py-6"
+      previewClass="w-full"
     >
-      <ul
-        class="bg-surface-elevated border-border-subtle divide-border-subtle w-full max-w-sm divide-y rounded-xl border"
-      >
-        {#each [{ name: 'Q4-roadmap-final-with-stakeholder-feedback-v3.pdf', size: '2.4 MB' }, { name: 'design-system-token-migration-notes.md', size: '18 KB' }, { name: 'customer-interview-transcripts-jan-2026.zip', size: '14.2 MB' }] as file (file.name)}
-          <li class="flex items-center justify-between gap-3 px-4 py-2.5">
+      <ul class="divide-border-subtle mx-auto w-full max-w-sm divide-y text-sm">
+        {#each files as file (file.name)}
+          <li class="flex items-center justify-between gap-3 py-2.5">
             <Tooltip label={file.name} placement="top-start" size="sm">
-              <span class="text-text-primary block max-w-[14rem] truncate text-sm">{file.name}</span
-              >
+              <span class="text-text-primary block max-w-[14rem] truncate">{file.name}</span>
             </Tooltip>
             <span class="text-text-tertiary shrink-0 text-xs">{file.size}</span>
           </li>
@@ -85,72 +108,33 @@
 <!-- ─── Customization ─── -->
 
 <Section marker id="customization" title="Customization">
-  <div class="space-y-8">
+  <div class="space-y-6">
     <CodeExample
-      title="Branded Gradient"
-      description="Override the tooltip surface with slotClasses for a branded look."
-      isolate
-      previewClass="flex justify-center py-8"
-    >
-      <Tooltip
-        label="✨ Premium feature unlocked"
-        slotClasses={{
-          base: 'bg-linear-to-r from-violet-600 to-indigo-600 text-white shadow-lg shadow-violet-500/25 font-semibold'
-        }}
-        size="md"
-      >
-        <Button intent="primary" variant="filled">Upgrade</Button>
-      </Tooltip>
-    </CodeExample>
-
-    <CodeExample
-      title="Glass Morphism (unstyled)"
-      description="Strip all defaults and rebuild with a translucent glass aesthetic."
+      title="Frosted glass"
+      description="Tint just the panel with `class`. It keeps the tooltip's radius tier, fade and layering. The arrow is turned off, since a translucent panel reads cleaner as a plain chip. Raw colours because glass has no token equivalent."
       isolate
       previewClass="flex justify-center rounded-xl bg-linear-to-br from-rose-500 via-fuchsia-500 to-indigo-500 px-8 py-12"
     >
       <Tooltip
-        unstyled
         label="Frosted glass tooltip"
-        class="rounded-xl border border-white/20 bg-white/15 px-3 py-1.5 text-sm font-medium text-white shadow-2xl backdrop-blur-xl"
-        slotClasses={{
-          arrow: 'h-2 w-2 rotate-45 border border-white/20 bg-white/15 backdrop-blur-xl'
-        }}
+        arrow={false}
+        class="border border-white/20 bg-white/15 text-white shadow-[var(--blocks-shadow-lg)] backdrop-blur-xl"
       >
         <Button
-          unstyled
-          class="rounded-full border border-white/30 bg-white/10 px-5 py-2.5 text-sm font-medium text-white backdrop-blur-sm transition-all hover:bg-white/20"
+          class="border border-white/30 bg-white/10 text-white shadow-none backdrop-blur-sm hover:bg-white/20"
         >
           Hover for glass
         </Button>
       </Tooltip>
     </CodeExample>
 
-    <CodeExample
-      title="Terminal / Monospace"
-      description="A developer-friendly tooltip with monospace font and dark aesthetic."
-      isolate
-      previewClass="flex justify-center py-8"
-    >
-      <Tooltip
-        label="git commit -m 'fix: resolve race condition'"
-        slotClasses={{
-          base: 'font-mono bg-neutral-900 text-emerald-400 border border-emerald-500/30 shadow-lg shadow-emerald-500/10'
-        }}
-        size="sm"
-      >
-        <Badge variant="outlined" intent="neutral">
-          <span class="font-mono text-xs">$ git</span>
-        </Badge>
-      </Tooltip>
-    </CodeExample>
-
     <p class="text-text-secondary text-sm leading-relaxed">
-      A branded tooltip surface belongs in a <code class="text-text-primary">BlocksProvider</code>
-      preset (<code class="text-text-primary">presets.Tooltip</code>): registered once, every
-      <code class="text-text-primary">preset</code>
-      instance matches — see
-      <a href={resolve('/customization')} class="text-primary hover:underline">Customization</a>.
+      This is one of five ways to restyle a block. See
+      <a href={resolve('/customization')} class="text-primary hover:underline">Customization</a>
+      for <code class="text-text-primary">class</code>,
+      <code class="text-text-primary">slotClasses</code>,
+      <code class="text-text-primary">unstyled</code>, <code class="text-text-primary">preset</code>
+      and provider-level overrides.
     </p>
   </div>
 </Section>
@@ -161,47 +145,41 @@
   <NoteList>
     <Note title="Built-in ARIA">
       <p>
-        Uses <code class="text-text-primary">role="tooltip"</code> with
-        <code class="text-text-primary">aria-describedby</code> linking the trigger to the tooltip content.
-        A unique ID is generated automatically for each instance.
+        Renders with <code class="text-text-primary">role="tooltip"</code> and links the trigger to
+        it through <code class="text-text-primary">aria-describedby</code>. Each instance gets a
+        unique id automatically, so a screen reader reads the tooltip as the trigger's description.
+      </p>
+    </Note>
+    <Note title="Keyboard">
+      <p>
+        Tooltips open on hover or focus and dismiss with
+        <Kbd keys="Escape" />. The panel itself is never focusable. It only supplements the
+        trigger's accessible description.
+      </p>
+    </Note>
+    <Note title="Timing">
+      <p>
+        A <code class="text-text-primary">showDelay</code> (default 200 ms) keeps the tooltip from
+        flashing as the pointer passes over the trigger. A
+        <code class="text-text-primary">hideDelay</code> (default 100 ms) lets the pointer cross a small
+        gap without dismissing it.
+      </p>
+    </Note>
+    <Note title="Reduced motion">
+      <p>
+        The fade runs on the <code class="text-text-primary">--blocks-tooltip-duration</code> token,
+        an alias of <code class="text-text-primary">--blocks-duration-fast</code>. Under
+        <code class="text-text-primary">prefers-reduced-motion</code>, that token collapses to 1 ms,
+        so the tooltip appears and hides without a visible fade.
       </p>
     </Note>
     <Note title="Valid inside a paragraph">
       <p>
         Trigger, panel and arrow are all <code class="text-text-primary">&lt;span&gt;</code>, so a
-        tooltip is valid inside a paragraph — the position it exists for. A
-        <code class="text-text-primary">&lt;div&gt;</code>
-        would close the enclosing <code class="text-text-primary">&lt;p&gt;</code> as the parser
-        repairs the document, and the server-rendered HTML would then stop matching the client tree.
-        <code class="text-text-primary">Popover</code>
-        needs its <code class="text-text-primary">inline</code> prop for the same reason; Tooltip
-        needs no opt-in. Two things stay yours: what you put in the trigger has to be phrasing-level
-        too, and the trigger wrapper is <code class="text-text-primary">inline-flex</code> — atomic, so
-        a multi-word trigger will not wrap across lines the way surrounding text does.
-      </p>
-    </Note>
-    <Note title="Keyboard">
-      <p>
-        Tooltips appear on
-        <Kbd keys="Focus" />
-        and dismiss with
-        <Kbd keys="Escape" />. The tooltip itself is never focusable – it supplements the trigger's
-        accessible description.
-      </p>
-    </Note>
-    <Note title="Timing">
-      <p>
-        A configurable <code class="text-text-primary">showDelay</code> (default 200 ms) prevents
-        accidental activation during mouse movement. The
-        <code class="text-text-primary">hideDelay</code> (default 100 ms) allows users to briefly move
-        away without the tooltip disappearing.
-      </p>
-    </Note>
-    <Note title="Reduced Motion">
-      <p>
-        The tooltip uses <code class="text-text-primary">opacity</code> transitions with the
-        system's <code class="text-text-primary">--blocks-duration-fast</code> token. In reduced motion
-        mode, the transition duration is automatically shortened.
+        tooltip is valid inside a paragraph, the position it is built for. Two things stay yours:
+        the trigger's own content has to be phrasing-level too, and the trigger wrapper is
+        <code class="text-text-primary">inline-flex</code>, so a multi-word trigger is atomic and
+        will not wrap across lines the way surrounding text does.
       </p>
     </Note>
   </NoteList>

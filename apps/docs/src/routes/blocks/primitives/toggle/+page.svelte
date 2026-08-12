@@ -26,14 +26,11 @@
   ];
 </script>
 
-<SeoMeta
-  title="Toggle Component"
-  description="Accessible on/off switches with labels, sizes, intent-based styling, and micro-interactions."
-/>
+<SeoMeta title="Toggle Component" description="An on/off switch for a single setting." />
 
 <DocsPageLayout
   title="Toggle"
-  description="Accessible on/off switches with labels, sizes, intent-based styling, and micro-interactions."
+  description="An on/off switch for a single setting."
   maxWidth="2xl"
   showToc={true}
   {navigation}

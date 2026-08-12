@@ -18,6 +18,7 @@
   const navigation = [
     { id: 'playground', title: 'Playground' },
     { id: 'examples', title: 'Examples' },
+    { id: 'status', title: 'Status' },
     { id: 'customization', title: 'Customization' },
     { id: 'accessibility', title: 'Accessibility' },
     { id: 'api', title: 'API Reference' },
@@ -28,12 +29,12 @@
 
 <SeoMeta
   title="Avatar Component"
-  description="User profile images with fallback initials, status indicators, and configurable shapes."
+  description="User profile images with fallback initials and status indicators."
 />
 
 <DocsPageLayout
   title="Avatar"
-  description="User profile images with fallback initials, status indicators, and configurable shapes."
+  description="User profile images with fallback initials and status indicators."
   maxWidth="2xl"
   showToc={true}
   breadcrumbs={[

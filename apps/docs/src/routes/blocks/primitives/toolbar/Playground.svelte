@@ -8,7 +8,16 @@
 -->
 <script lang="ts">
   import type { PlaygroundHostProps } from '$lib/playground-host';
-  import { Button, Separator, Toolbar } from '@urbicon-ui/blocks';
+  import {
+    AlignCenterIcon,
+    AlignLeftIcon,
+    AlignRightIcon,
+    Button,
+    ImageIcon,
+    LinkIcon,
+    Separator,
+    Toolbar
+  } from '@urbicon-ui/blocks';
   import {
     defaultValuesOf,
     deriveControls,
@@ -57,12 +66,16 @@
       <Button variant="ghost" size="sm" class="italic">I</Button>
       <Button variant="ghost" size="sm" class="underline">U</Button>
       <Separator orientation="vertical" size="sm" />
-      <Button variant="ghost" size="sm">⇤</Button>
-      <Button variant="ghost" size="sm">≡</Button>
-      <Button variant="ghost" size="sm">⇥</Button>
+      <Button variant="ghost" size="sm" aria-label="Align left"><AlignLeftIcon size={16} /></Button>
+      <Button variant="ghost" size="sm" aria-label="Align center"
+        ><AlignCenterIcon size={16} /></Button
+      >
+      <Button variant="ghost" size="sm" aria-label="Align right"
+        ><AlignRightIcon size={16} /></Button
+      >
       <Separator orientation="vertical" size="sm" />
-      <Button variant="ghost" size="sm">🔗</Button>
-      <Button variant="ghost" size="sm">📷</Button>
+      <Button variant="ghost" size="sm" aria-label="Insert link"><LinkIcon size={16} /></Button>
+      <Button variant="ghost" size="sm" aria-label="Insert image"><ImageIcon size={16} /></Button>
     </Toolbar>
   {/snippet}
 </PlaygroundConfigurator>

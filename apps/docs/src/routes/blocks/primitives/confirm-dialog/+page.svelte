@@ -1,6 +1,6 @@
 <script lang="ts">
   import SeoMeta from '$lib/SeoMeta.svelte';
-  import { asset } from '$app/paths';
+  import { asset, resolve } from '$app/paths';
   import {
     ApiReference,
     CodeExample,
@@ -28,17 +28,17 @@
 
 <SeoMeta
   title="ConfirmDialog Component"
-  description="Pre-configured dialog for confirming a single, often destructive action."
+  description="Pre-configured dialog for confirming a single, often destructive action: a styleable, focus-trapped replacement for window.confirm()."
 />
 
 <DocsPageLayout
   maxWidth="2xl"
   showToc={true}
   title="ConfirmDialog"
-  description="Pre-configured dialog for confirming a single, often destructive action. Replaces window.confirm() with a styleable, focus-trapped modal that supports async onConfirm handlers."
+  description="Pre-configured dialog for confirming a single, often destructive action: a styleable, focus-trapped replacement for window.confirm()."
   breadcrumbs={[
-    { label: 'Blocks', href: '/blocks' },
-    { label: 'Primitives', href: '/blocks/primitives' }
+    { label: 'Blocks', href: resolve('/blocks') },
+    { label: 'Primitives', href: resolve('/blocks/primitives') }
   ]}
   {navigation}
   stability={componentData?.stability}
@@ -74,12 +74,9 @@
 
   <div class="mt-6 text-right">
     <a
+      class="text-text-tertiary hover:text-text-secondary text-sm underline"
       href={asset('/blocks/primitives/confirm-dialog/llm.txt')}
-      target="_blank"
-      rel="noopener"
-      class="text-text-tertiary hover:text-primary text-xs transition-colors"
+      rel="noopener">llm.txt</a
     >
-      llm.txt
-    </a>
   </div>
 </DocsPageLayout>

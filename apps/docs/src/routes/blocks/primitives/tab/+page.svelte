@@ -33,7 +33,7 @@
 
 <DocsPageLayout
   title="Tab"
-  description="Tabbed navigation for organizing content into switchable panels. Supports four visual variants, vertical orientation, icons, badges, and full keyboard navigation."
+  description="Tabbed navigation for organizing content into switchable panels."
   maxWidth="2xl"
   showToc={true}
   {navigation}

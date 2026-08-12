@@ -17,8 +17,8 @@
 
   const navigation = [
     { id: 'playground', title: 'Playground' },
+    { id: 'purpose', title: 'Purpose' },
     { id: 'examples', title: 'Examples' },
-    { id: 'patterns', title: 'Patterns' },
     { id: 'customization', title: 'Customization' },
     { id: 'accessibility', title: 'Accessibility' },
     { id: 'api', title: 'API Reference' },
@@ -29,12 +29,12 @@
 
 <SeoMeta
   title="Badge Component"
-  description="Compact labels for status, categories, and counts with multiple visual styles."
+  description="Compact labels for status, counts, and removable tags."
 />
 
 <DocsPageLayout
   title="Badge"
-  description="Compact labels for status, categories, and counts with multiple visual styles."
+  description="Compact labels for status, counts, and removable tags."
   maxWidth="2xl"
   showToc={true}
   breadcrumbs={[

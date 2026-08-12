@@ -1,6 +1,6 @@
 <script lang="ts">
   import SeoMeta from '$lib/SeoMeta.svelte';
-  import { asset } from '$app/paths';
+  import { asset, resolve } from '$app/paths';
   import {
     ApiReference,
     CodeExample,
@@ -28,17 +28,17 @@
 
 <SeoMeta
   title="FormField Component"
-  description="Layout wrapper for composite form fields with label, helper text, and error message."
+  description="Label, helper and error around a control that has none of its own."
 />
 
 <DocsPageLayout
   maxWidth="2xl"
   showToc={true}
   title="FormField"
-  description="Layout wrapper for composite form fields that need a label, helper text, and error message but cannot rely on the built-in slots of Input/Select/Textarea."
+  description="Label, helper and error around a control that has none of its own."
   breadcrumbs={[
-    { label: 'Blocks', href: '/blocks' },
-    { label: 'Primitives', href: '/blocks/primitives' }
+    { label: 'Blocks', href: resolve('/blocks') },
+    { label: 'Primitives', href: resolve('/blocks/primitives') }
   ]}
   {navigation}
   stability={componentData?.stability}
@@ -74,12 +74,9 @@
 
   <div class="mt-6 text-right">
     <a
+      class="text-text-tertiary hover:text-text-secondary text-sm underline"
       href={asset('/blocks/primitives/form-field/llm.txt')}
-      target="_blank"
-      rel="noopener"
-      class="text-text-tertiary hover:text-primary text-xs transition-colors"
+      rel="noopener">llm.txt</a
     >
-      llm.txt
-    </a>
   </div>
 </DocsPageLayout>

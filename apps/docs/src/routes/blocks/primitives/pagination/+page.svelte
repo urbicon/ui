@@ -17,6 +17,7 @@
 
   const navigation = [
     { id: 'playground', title: 'Playground' },
+    { id: 'layouts', title: 'Layouts' },
     { id: 'examples', title: 'Examples' },
     { id: 'customization', title: 'Customization' },
     { id: 'accessibility', title: 'Accessibility' },
@@ -28,12 +29,12 @@
 
 <SeoMeta
   title="Pagination Component"
-  description="Page navigation with customizable range, layouts, intents, and boundary control."
+  description="Page navigation with a configurable range and layouts."
 />
 
 <DocsPageLayout
   title="Pagination"
-  description="Page navigation with customizable range, layouts, intents, and boundary control."
+  description="Page navigation with a configurable range and layouts."
   maxWidth="2xl"
   showToc={true}
   breadcrumbs={[

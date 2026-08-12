@@ -1,6 +1,6 @@
 <script lang="ts">
   import SeoMeta from '$lib/SeoMeta.svelte';
-  import { asset } from '$app/paths';
+  import { asset, resolve } from '$app/paths';
   import {
     ApiReference,
     CodeExample,
@@ -27,17 +27,17 @@
 
 <SeoMeta
   title="Kbd Component"
-  description="Render one or more keyboard keys as a compact keycap — the canonical way to show shortcuts like ⌘K or Ctrl + S."
+  description="Render one or more keys as a compact keycap for shortcuts like ⌘K or Ctrl + S. Pure display, emitting a semantic <kbd> element."
 />
 
 <DocsPageLayout
   maxWidth="2xl"
   showToc={true}
   title="Kbd"
-  description="Renders one or more keys as a compact, physical-looking keycap — the canonical way to show shortcuts (⌘K, Ctrl + S) in menus, tooltips, command palettes and docs. Pure display; emits a semantic <kbd> element."
+  description="Render one or more keys as a compact keycap for shortcuts like ⌘K or Ctrl + S. Pure display, emitting a semantic <kbd> element."
   breadcrumbs={[
-    { label: 'Blocks', href: '/blocks' },
-    { label: 'Primitives', href: '/blocks/primitives' }
+    { label: 'Blocks', href: resolve('/blocks') },
+    { label: 'Primitives', href: resolve('/blocks/primitives') }
   ]}
   {navigation}
   stability={componentData?.stability}
@@ -73,12 +73,9 @@
 
   <div class="mt-6 text-right">
     <a
+      class="text-text-tertiary hover:text-text-secondary text-sm underline"
       href={asset('/blocks/primitives/kbd/llm.txt')}
-      target="_blank"
-      rel="noopener"
-      class="text-text-tertiary hover:text-primary text-xs transition-colors"
+      rel="noopener">llm.txt</a
     >
-      llm.txt
-    </a>
   </div>
 </DocsPageLayout>

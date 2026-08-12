@@ -50,10 +50,20 @@
 <!-- ─── Examples ─── -->
 
 <Section marker id="examples" title="Examples">
+  <p class="text-text-secondary mb-6 text-sm leading-relaxed">
+    A Toolbar wraps your own controls (Buttons, Separators, ButtonGroups) and adds
+    <code class="text-text-primary">role="toolbar"</code> with the required
+    <code class="text-text-primary">aria-label</code>. It holds no state, so each control drives its
+    own <code class="text-text-primary">variant</code> and
+    <code class="text-text-primary">aria-pressed</code>. Group related controls with a vertical
+    <code class="text-text-primary">Separator</code>, and reach for ButtonGroup instead when the
+    buttons form one connected segmented control.
+  </p>
+
   <div class="space-y-8">
     <CodeExample
       title="Rich Text Editor"
-      description="Realistic text formatting toolbar with grouped controls and active states."
+      description="Drive each button's `variant` and `aria-pressed` from your own toggle state. Separators split the bar into formatting, alignment and insert groups."
       isolate
       previewClass="flex flex-col items-start gap-4 w-full"
     >
@@ -130,7 +140,7 @@
       </Toolbar>
 
       <div
-        class="bg-surface-base border-border-subtle rounded-contain w-full border p-4 text-sm transition-all"
+        class="bg-surface-base border-border-subtle rounded-contain w-full border p-4 text-sm"
         style="text-align: {alignment};"
       >
         <p
@@ -157,7 +167,7 @@
     -->
     <CodeExample
       title="Vertical Tools Palette"
-      description="Sidebar-style toolbar with selectable tools and active indicator."
+      description="A vertical toolbar whose selected tool drives `variant` and `aria-pressed` per button."
       isolate
       previewClass="flex gap-6 items-start"
     >
@@ -178,7 +188,7 @@
       </Toolbar>
 
       <div class="bg-surface-base border-border-subtle flex-1 rounded-xl border p-6">
-        <p class="text-text-tertiary text-center text-sm">
+        <p class="text-text-tertiary text-sm">
           Active tool: <Badge size="sm" intent="primary">{activeTool}</Badge>
         </p>
       </div>
@@ -186,7 +196,7 @@
 
     <CodeExample
       title="Media Controls"
-      description="Centered playback toolbar with action groups."
+      description="Playback controls split into groups by vertical `Separator`s."
       isolate
       previewClass="flex justify-center w-full"
     >
@@ -246,7 +256,7 @@
           class="flex items-center gap-1.5 rounded-lg bg-amber-500/15 px-3 py-1.5 text-xs font-semibold text-amber-400 transition-colors hover:bg-amber-500/25"
           ><PauseIcon size={14} /> Debug</Button
         >
-        <Separator orientation="vertical" size="sm" class="!border-neutral-600" />
+        <Separator orientation="vertical" size="sm" />
         <Button
           unstyled
           class="flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-medium text-neutral-400 transition-colors hover:bg-neutral-700/50 hover:text-neutral-200"
@@ -262,7 +272,7 @@
 
     <CodeExample
       title="Floating Glass Toolbar"
-      description="Glassmorphism toolbar floating over a vibrant background — built with unstyled + custom classes."
+      description="Glassmorphism toolbar floating over a vibrant background, built with unstyled and custom classes."
       isolate
       previewClass="flex justify-center rounded-xl bg-linear-to-br from-violet-600 via-fuchsia-500 to-rose-500 px-8 py-12"
     >
@@ -273,18 +283,18 @@
       >
         <Button
           unstyled
-          class="flex items-center gap-1.5 rounded-xl px-3 py-1.5 text-sm font-medium text-white/90 transition-all hover:bg-white/15"
+          class="flex items-center gap-1.5 rounded-xl px-3 py-1.5 text-sm font-medium text-white/90 transition-colors hover:bg-white/15"
           ><SparklesIcon size={15} /> New</Button
         >
         <Button
           unstyled
-          class="flex items-center gap-1.5 rounded-xl px-3 py-1.5 text-sm font-medium text-white/90 transition-all hover:bg-white/15"
+          class="flex items-center gap-1.5 rounded-xl px-3 py-1.5 text-sm font-medium text-white/90 transition-colors hover:bg-white/15"
           ><FolderOpenIcon size={15} /> Open</Button
         >
         <div class="mx-1 h-5 w-px bg-white/20"></div>
         <Button
           unstyled
-          class="flex items-center gap-1.5 rounded-xl bg-white/20 px-3 py-1.5 text-sm font-semibold text-white shadow-lg shadow-black/10 backdrop-blur-sm transition-all hover:bg-white/30"
+          class="flex items-center gap-1.5 rounded-xl bg-white/20 px-3 py-1.5 text-sm font-semibold text-white shadow-lg shadow-black/10 backdrop-blur-sm transition-colors hover:bg-white/30"
           ><SaveIcon size={15} /> Save</Button
         >
       </Toolbar>
@@ -292,7 +302,7 @@
 
     <CodeExample
       title="Pill Toolbar"
-      description="Fully rounded toolbar with pill-shaped items — using slotClasses for the container."
+      description="Fully rounded toolbar with pill-shaped items, using slotClasses for the container."
       isolate
       previewClass="flex justify-center w-full"
     >
@@ -314,8 +324,7 @@
         >BlocksProvider</code
       >
       preset (<code class="text-text-primary">presets.Toolbar</code>), applied via
-      <code class="text-text-primary">preset</code>
-      — see
+      <code class="text-text-primary">preset</code>. See
       <a href={resolve('/customization')} class="text-primary hover:underline">Customization</a>.
     </p>
   </div>

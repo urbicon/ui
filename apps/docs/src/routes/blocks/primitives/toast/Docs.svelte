@@ -14,10 +14,21 @@
 <!-- ─── Examples ─── -->
 
 <Section marker id="examples" title="Examples">
+  <p class="text-text-secondary mb-6 text-sm leading-relaxed">
+    Toasts fire from the global <code class="text-text-primary">toaster</code> store, so render
+    <code class="text-text-primary">&lt;Toaster /&gt;</code> once in your root layout first (its
+    <code class="text-text-primary">placement</code> picks the screen corner, default
+    <code class="text-text-primary">bottom-right</code>). Then call
+    <code class="text-text-primary">toaster.success(title, options)</code> (or
+    <code class="text-text-primary">.info</code> / <code class="text-text-primary">.warning</code> /
+    <code class="text-text-primary">.danger</code>) from anywhere. Without a mounted
+    <code class="text-text-primary">&lt;Toaster /&gt;</code> nothing appears.
+  </p>
+
   <div class="space-y-8">
     <CodeExample
       title="Duration, progress and dismissal"
-      description={`Three settings decide how long a toast lives and how it leaves: duration in milliseconds (0 keeps it up until the reader acts), showProgress for the bar that counts the remaining time down, and dismissible={false} for toasts that may only auto-close.`}
+      description={`Three settings decide how long a toast lives and how it leaves: duration (0 keeps it up until the reader acts), showProgress, and dismissible={false} for toasts that may only auto-close.`}
       code={`// duration in ms – 0 keeps the toast up until the reader acts
 toaster.success('Auto-saved', { duration: 2000 });
 toaster.danger('Action required', {
@@ -130,7 +141,7 @@ toaster.clear();`}
 
     <CodeExample
       title="Document Editor"
-      description="A real-world pattern: contextual toasts triggered by app actions."
+      description="Fire the toast from the same handler that does the work, and pass the result into the description."
       code={`<Button onclick={() => toaster.success('Saved', {
   description: 'Draft saved at ' + new Date().toLocaleTimeString()
 })}>Save Draft</Button>`}
@@ -181,7 +192,7 @@ toaster.clear();`}
       code={`import { toaster } from '@urbicon-ui/blocks';
 
 // Shorthand methods – set intent automatically
-toaster.info(title, opts?)      // intent: 'primary'
+toaster.info(title, opts?)      // intent: 'info'
 toaster.success(title, opts?)   // intent: 'success'
 toaster.warning(title, opts?)   // intent: 'warning'
 toaster.danger(title, opts?)    // intent: 'danger'
@@ -193,7 +204,9 @@ toaster.add({
   description: 'All tasks completed.',
   duration: 5000,        // ms, 0 = persistent
   dismissible: true,     // show close button
-  showProgress: true     // animated progress bar
+  showProgress: true,    // animated progress bar
+  action: { label: 'Undo', onClick: (id) => restore(id) },  // primary button
+  cancel: { label: 'Dismiss' }                              // secondary/quiet button
 }); // → returns toast ID
 
 // Manage toasts
@@ -224,7 +237,7 @@ toaster.clear();      // remove all`}
     <p class="text-text-secondary text-sm leading-relaxed">
       The <code class="text-text-primary">Toaster</code> is one instance per app, so its
       <code class="text-text-primary">slotClasses</code>
-      already act globally; a <code class="text-text-primary">BlocksProvider</code> preset (<code
+      already act globally. A <code class="text-text-primary">BlocksProvider</code> preset (<code
         class="text-text-primary">presets.Toaster</code
       >, applied via
       <code class="text-text-primary">preset</code>) is mainly useful for sharing a skin between
@@ -264,17 +277,18 @@ toaster.clear();      // remove all`}
         <code class="text-text-primary">aria-label="Dismiss"</code>.
       </p>
     </Note>
-    <Note title="Focus Management">
+    <Note title="Non-blocking">
       <p>
         Toasts use <code class="text-text-primary">pointer-events-none</code> on the container so they
-        never block interaction with the underlying page. Only the dismiss button within each toast captures
-        pointer events.
+        never block interaction with the underlying page. Only the toasts themselves capture pointer events,
+        so the buttons inside them still work.
       </p>
     </Note>
     <Note title="Reduced Motion">
       <p>
-        Fly transitions use the system's <code class="text-text-primary">duration</code> tokens. The progress
-        bar animation uses a linear timing function that remains functional under reduced motion preferences.
+        Fly transitions use the system's <code class="text-text-primary">duration</code> tokens and are
+        retuned under reduced motion. The countdown progress bar is hidden entirely (a bar that can't
+        animate carries no information). Auto-dismiss timing is unchanged.
       </p>
     </Note>
   </NoteList>

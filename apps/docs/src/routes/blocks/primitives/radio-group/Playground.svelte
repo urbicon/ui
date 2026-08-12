@@ -84,6 +84,7 @@
       orientation={values.orientation}
       disabled={values.disabled}
       required={values.required}
+      error={values.error || undefined}
     >
       <RadioItem value="all" label="All notifications" />
       <RadioItem value="mentions" label="Mentions only" />

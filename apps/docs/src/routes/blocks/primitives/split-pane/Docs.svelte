@@ -11,20 +11,33 @@
   import { resolve } from '$app/paths';
 
   let sidebarCollapsed = $state(false);
+  // Controlled share: bind:ratio reads and writes the first pane's 0-1 fraction.
+  let ideRatio = $state(0.28);
 </script>
 
 <!-- ─── Examples ─── -->
 
 <Section marker id="examples" title="Examples">
+  <p class="text-text-secondary mb-8 text-sm leading-relaxed">
+    SplitPane fills its container, so give that container a height. The first pane's share is a 0 to
+    1 number: start it with <code class="text-text-primary">defaultRatio</code>, or take control
+    with
+    <code class="text-text-primary">bind:ratio</code> to read and persist the layout (to
+    <code class="text-text-primary">localStorage</code>, say), while
+    <code class="text-text-primary">defaultRatio</code> stays the double-click reset target.
+    <code class="text-text-primary">min</code> and <code class="text-text-primary">max</code> bound
+    the pane as a px number or a percentage string, and
+    <code class="text-text-primary">onRatioChange</code> fires after each drag or keyboard resize.
+  </p>
   <div class="space-y-10">
     <CodeExample
-      title="IDE layout — file tree + editor"
-      description="The canonical two-pane workspace: a narrow, resizable file tree next to the editor. Each pane clips its own overflow, so long lists and long files scroll independently. Drag the divider or focus it and use the arrow keys; double-click resets to defaultRatio."
+      title="IDE layout: file tree and editor"
+      description="A two-pane workspace: a file tree bound with `bind:ratio` next to the editor. Drag the divider or focus it and use the arrow keys. Double-click resets to `defaultRatio`."
       isolate
       previewClass="w-full"
     >
       <div class="border-border-subtle h-80 w-full overflow-hidden rounded-xl border">
-        <SplitPane defaultRatio={0.28} min="18%" max="55%">
+        <SplitPane bind:ratio={ideRatio} defaultRatio={0.28} min="18%" max="55%">
           {#snippet start()}
             <nav aria-label="Demo sidebar" class="bg-surface-elevated h-full overflow-auto p-3">
               <p class="text-text-tertiary mb-2 px-1 text-xs font-semibold tracking-wide uppercase">
@@ -64,7 +77,7 @@
     </CodeExample>
 
     <CodeExample
-      title="Vertical split — output over log"
+      title="Vertical split: output over log"
       description="Set orientation='vertical' to stack the panes with a horizontal divider. Ideal for a preview or output region above a scrolling console. The arrow-key axis follows the layout: Up/Down resize a vertical split."
       isolate
       previewClass="w-full"
@@ -95,7 +108,7 @@
 
     <CodeExample
       title="Collapsible sidebar with onCollapsedChange"
-      description="With collapsible, dragging the first pane below collapseThreshold — or pressing Enter on the focused divider — snaps it fully shut with hysteresis, and onCollapsedChange fires on the transition. Track that flag to swap a 'Show panel' affordance in and out."
+      description="With collapsible, dragging the first pane below collapseThreshold (or pressing Enter on the focused divider) snaps it fully shut, and onCollapsedChange fires on the transition. Track that flag to swap a 'Show panel' affordance in and out."
       isolate
       previewClass="w-full"
     >
@@ -130,8 +143,8 @@
             {#snippet end()}
               <main class="h-full overflow-auto p-4">
                 <p class="text-text-secondary text-sm leading-relaxed">
-                  Main content. Collapse the sidebar to reclaim its width; re-expand it by pressing
-                  Enter on the divider — the previous ratio is restored.
+                  Main content. Collapse the sidebar to reclaim its width. Re-expand it by pressing
+                  Enter on the divider, and the previous ratio is restored.
                 </p>
               </main>
             {/snippet}
@@ -142,7 +155,7 @@
 
     <CodeExample
       title="Chat beside a live artifact"
-      description="An AI pattern: the conversation on the left, the generated artifact on the right. Compose SplitPane with the Chat surfaces — see the Chat component for the message list and PromptInput composer that fill the left pane."
+      description="An AI pattern: the conversation on the left, the generated artifact on the right. Compose SplitPane with the Chat surfaces. See the Chat component for the message list and PromptInput composer that fill the left pane."
       isolate
       previewClass="w-full"
     >
@@ -156,7 +169,7 @@
                 </div>
                 <div class="text-text-secondary flex max-w-[85%] items-start gap-2 text-sm">
                   <SparklesIcon class="text-primary mt-0.5 size-4 shrink-0" />
-                  <span>Done — the component is rendering in the panel on the right.</span>
+                  <span>Done. The component is rendering in the panel on the right.</span>
                 </div>
               </div>
               <div class="border-border-subtle border-t p-3">
@@ -194,7 +207,7 @@
       <a href={resolve('/blocks/primitives/sidebar')} class="text-primary hover:underline"
         >Sidebar</a
       >
-      instead — SplitPane is for when both panes are primary content.
+      instead. SplitPane is for when both panes are primary content.
     </p>
   </div>
 </Section>
@@ -221,11 +234,12 @@
         (percentages, clamped into the configured
         <code class="text-text-primary">min</code>/<code class="text-text-primary">max</code>). Its
         <code class="text-text-primary">aria-orientation</code>
-        is the axis of movement — <code class="text-text-primary">vertical</code> for a horizontal
-        layout, <code class="text-text-primary">horizontal</code> for a vertical one. Give it a
-        meaningful name via <code class="text-text-primary">handleLabel</code> (default "Resize
-        panes"). When <code class="text-text-primary">disabled</code>, the divider drops out of the
-        tab order and reports <code class="text-text-primary">aria-disabled</code>.
+        reflects the divider bar itself, across the drag axis:
+        <code class="text-text-primary">vertical</code> for a horizontal layout,
+        <code class="text-text-primary">horizontal</code> for a vertical one. Give it a meaningful
+        name via <code class="text-text-primary">handleLabel</code> (default "Resize panes"). When
+        <code class="text-text-primary">disabled</code>, the divider drops out of the tab order and
+        reports <code class="text-text-primary">aria-disabled</code>.
       </p>
     </Note>
     <Note title="Keyboard">
@@ -259,8 +273,8 @@
           </li>
           <li>
             <Kbd keys="Enter" />
-            toggles collapse when <code class="text-text-primary">collapsible</code> is set;
-            otherwise it resets to <code class="text-text-primary">defaultRatio</code> — the keyboard
+            toggles collapse when <code class="text-text-primary">collapsible</code> is set.
+            Otherwise it resets to <code class="text-text-primary">defaultRatio</code>, the keyboard
             equivalent of the double-click reset.
           </li>
         </ul>
@@ -269,9 +283,9 @@
     <Note title="Pointer & touch target">
       <p>
         Drag uses <code class="text-text-primary">setPointerCapture</code>, so a resize keeps
-        tracking even if the pointer leaves the divider — no stray window listeners to leak. The
-        divider is a comfortable, full-length hit area along the split axis rather than a hairline,
-        keeping it reachable for touch and coarse pointers. The
+        tracking even if the pointer leaves the divider. The divider is a full-length hit area along
+        the split axis rather than a hairline, keeping it reachable for touch and coarse pointers.
+        The
         <code class="text-text-primary">data-dragging</code>
         and <code class="text-text-primary">data-collapsed</code> attributes on the root expose the live
         state for CSS-only styling.

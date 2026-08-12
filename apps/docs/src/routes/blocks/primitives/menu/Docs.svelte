@@ -3,83 +3,115 @@
     BasicSingle,
     CustomHeaderFooter,
     CustomItemRenderer,
-    CustomTriggerContent,
-    DeclarativeChildren
+    CustomTriggerContent
   } from './examples';
   import basicSingleCode from './examples/BasicSingle.svelte?raw';
   import customHeaderFooterCode from './examples/CustomHeaderFooter.svelte?raw';
   import customItemRendererCode from './examples/CustomItemRenderer.svelte?raw';
   import customTriggerContentCode from './examples/CustomTriggerContent.svelte?raw';
-  import declarativeChildrenCode from './examples/DeclarativeChildren.svelte?raw';
 
-  import { CodeExample, InfoCard, Note, NoteList, Section } from '@urbicon-ui/docs';
+  import { CodeExample, Note, NoteList, Section } from '@urbicon-ui/docs';
   import { Kbd, Menu } from '@urbicon-ui/blocks';
   import { resolve } from '$app/paths';
-
-  // The snippet example shows two demo files in one code block — each keeps its
-  // own script block, so they are labelled rather than spliced together.
-  const customSnippetsCode = [
-    '<!-- CustomHeaderFooter.svelte -->',
-    customHeaderFooterCode.trimEnd(),
-    '',
-    '<!-- CustomItemRenderer.svelte -->',
-    customItemRendererCode.trimEnd()
-  ].join('\n');
 </script>
 
-<!-- ─── When Menu vs Select ─── -->
+<!-- ─── When to use Menu ─── -->
 
-<Section marker id="when-to-use" title="When to use Menu (vs. Select)">
-  <InfoCard intent="info" title="Menu is for actions, not selection">
-    <p class="text-text-secondary text-sm leading-relaxed">
-      <strong>Menu</strong> (<code>role="menu"</code>) is for invoking verbs — Edit, Delete, Share,
-      Export. Each item dispatches an <code>onSelect</code> callback when activated.
-    </p>
-    <p class="text-text-secondary mt-2 text-sm leading-relaxed">
-      To pick a value from a list use <strong>Select</strong> (<code>role="listbox"</code>) — it
-      supports single + multi modes, validation, and binds to form values.
-      <strong>Combobox</strong> is the searchable variant.
-    </p>
-  </InfoCard>
+<Section marker id="when-to-use" title="When to use Menu">
+  <p class="text-text-secondary mb-6 text-sm leading-relaxed">
+    Menu invokes actions. To pick a value that binds to a form, reach for
+    <a href={resolve('/blocks/primitives/select')} class="text-primary hover:underline">Select</a>
+    or
+    <a href={resolve('/blocks/primitives/combobox')} class="text-primary hover:underline"
+      >Combobox</a
+    > instead.
+  </p>
+
+  <div class="overflow-x-auto">
+    <table class="w-full text-left text-sm">
+      <thead class="text-text-primary border-border-subtle border-b">
+        <tr>
+          <th class="py-2 pr-4 font-semibold">Component</th>
+          <th class="py-2 pr-4 font-semibold">Role</th>
+          <th class="py-2 font-semibold">Reach for it when</th>
+        </tr>
+      </thead>
+      <tbody class="text-text-secondary divide-border-subtle divide-y">
+        <tr>
+          <td class="py-3 pr-4 align-top">
+            <code class="text-text-primary">Menu</code>
+            <span class="text-text-tertiary">(this)</span>
+          </td>
+          <td class="py-3 pr-4 align-top"><code class="text-text-primary">menu</code></td>
+          <td class="py-3 align-top">
+            The items are verbs: Edit, Delete, Share, Export. Each runs its
+            <code class="text-text-primary">onSelect</code>, and Menu keeps no selection state.
+          </td>
+        </tr>
+        <tr>
+          <td class="py-3 pr-4 align-top"><code class="text-text-primary">Select</code></td>
+          <td class="py-3 pr-4 align-top"><code class="text-text-primary">listbox</code></td>
+          <td class="py-3 align-top">The user commits a value to a form. Single or multiple.</td>
+        </tr>
+        <tr>
+          <td class="py-3 pr-4 align-top"><code class="text-text-primary">Combobox</code></td>
+          <td class="py-3 pr-4 align-top"><code class="text-text-primary">listbox</code></td>
+          <td class="py-3 align-top">A value from a long list, narrowed by type-ahead.</td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
 </Section>
 
 <!-- ─── Examples ─── -->
 
 <Section marker id="examples" title="Examples">
+  <p class="text-text-secondary mb-6 text-sm leading-relaxed">
+    Each item is an object with a <code class="text-text-primary">label</code> and an
+    <code class="text-text-primary">onSelect</code> that runs when it is activated (a bare string is
+    shorthand for a label-only item). Add
+    <code class="text-text-primary">id</code>, <code class="text-text-primary">disabled</code>,
+    <code class="text-text-primary">keepOpen</code> for repeated picks, or
+    <code class="text-text-primary">children</code> for a submenu, and a
+    <code class="text-text-primary">type: 'section'</code> entry heads a group. Build the menu from
+    an
+    <code class="text-text-primary">items</code> array as shown here, or declaratively with
+    <code class="text-text-primary">&lt;MenuItem&gt;</code>,
+    <code class="text-text-primary">&lt;MenuSection&gt;</code> and
+    <code class="text-text-primary">&lt;MenuDivider&gt;</code> children.
+  </p>
+
   <div class="space-y-8">
     <CodeExample
       title="Basic actions"
-      description="Items array — each item carries an onSelect callback. Sections group related actions; the menu closes after activation unless keepOpen is set on the item."
+      description="The items array is the quickest way to build a menu: each item runs its onSelect when activated. A section header groups related actions, and the menu closes on activation unless the item sets keepOpen."
       code={basicSingleCode}
     >
       <BasicSingle />
     </CodeExample>
 
     <CodeExample
-      title="Declarative children"
-      description="Build the menu with MenuItem, MenuSection and MenuDivider instead of an items array. Pass onSelect on each MenuItem to wire the action."
-      code={declarativeChildrenCode}
-    >
-      <DeclarativeChildren />
-    </CodeExample>
-
-    <CodeExample
-      title="Custom trigger (icon button)"
-      description="Replace the default trigger entirely via the customTrigger snippet. Receives dismiss + open — typical pattern is an icon-only button like MoreHorizontal."
+      title="Icon-only trigger"
+      description="customTrigger replaces the default button. It receives toggle and open. Wire toggle to onclick and open to aria-expanded. The usual shape is a compact icon button for row or card overflow actions."
       code={customTriggerContentCode}
     >
       <CustomTriggerContent />
     </CodeExample>
 
     <CodeExample
-      title="Custom snippets"
-      description="customHeader, customFooter and customItem replace the regions an items array cannot express — a sign-in banner, a destructive footer action, a row with an avatar and a shortcut. customItem takes one positional argument, the item, and should render visible content only: Menu already provides the surrounding role='menuitem' button, so an interactive element inside the snippet nests one control in another and fires the action twice."
-      code={customSnippetsCode}
+      title="Account menu"
+      description="customHeader and customFooter frame the item list with regions the array cannot express: a signed-in banner above, a destructive Sign out below."
+      code={customHeaderFooterCode}
     >
-      <div class="flex flex-col gap-6">
-        <CustomHeaderFooter />
-        <CustomItemRenderer />
-      </div>
+      <CustomHeaderFooter />
+    </CodeExample>
+
+    <CodeExample
+      title="Custom item content"
+      description="customItem takes over an item's inner content, here pairing an icon with each label. Render visible content only, not an interactive element, since Menu supplies the surrounding button."
+      code={customItemRendererCode}
+    >
+      <CustomItemRenderer />
     </CodeExample>
   </div>
 </Section>
@@ -87,30 +119,29 @@
 <!-- ─── Customization ─── -->
 
 <Section marker id="customization" title="Customization">
-  <div class="space-y-8">
+  <div class="space-y-6">
     <CodeExample
-      title="Soft panel via slotClasses"
-      description="Menu exposes its full anatomy as slots — trigger, content, item, section, divider, indicator, submenu, and footer among them. Here the floating panel gets a softer radius and shadow while the items pick up a primary hover tint; placement, keyboard navigation, and dark mode stay untouched."
+      title="Primary-accented panel via slotClasses"
+      description="slotClasses reaches any slot by name. Open the menu: the panel takes a primary-tinted border and a lifted shadow, and hovering an item tints it primary. Radius, spacing and dismiss behavior stay on the component."
       isolate
     >
       <Menu
         placeholder="Actions"
         items={['Rename', 'Duplicate', 'Archive']}
         slotClasses={{
-          content: 'rounded-xl shadow-[var(--blocks-shadow-lg)]',
-          item: 'rounded-lg hover:bg-primary/10 hover:text-primary'
+          content: 'border-primary/30 shadow-[var(--blocks-shadow-lg)]',
+          item: 'hover:bg-primary/10 hover:text-primary'
         }}
       />
     </CodeExample>
+
     <p class="text-text-secondary text-sm leading-relaxed">
-      <code class="text-text-primary">unstyled</code> strips the default classes from every slot
-      while keeping <code class="text-text-primary">role="menu"</code> semantics, roving focus, and
-      dismiss behavior — rebuild the look entirely through
-      <code class="text-text-primary">slotClasses</code>. A context-menu skin you repeat across the
-      app belongs in a <code class="text-text-primary">BlocksProvider</code> preset (registered
-      under <code class="text-text-primary">presets.Menu</code>, applied per instance via
-      <code class="text-text-primary">preset</code>) — see
-      <a href={resolve('/customization')} class="text-primary hover:underline">Customization</a>.
+      This is one of five ways to restyle a block. See
+      <a href={resolve('/customization')} class="text-primary hover:underline">Customization</a>
+      for <code class="text-text-primary">class</code>,
+      <code class="text-text-primary">slotClasses</code>,
+      <code class="text-text-primary">unstyled</code>, <code class="text-text-primary">preset</code>
+      and provider-level overrides.
     </p>
   </div>
 </Section>
@@ -139,7 +170,7 @@
         <Kbd keys="End" />
         jump to the first/last item, and
         <Kbd keys="Tab" />
-        moves focus out and closes the menu (W3C menu pattern);
+        moves focus out and closes the menu (W3C menu pattern).
         <Kbd keys="Enter" />
         /
         <Kbd keys="Space" />
@@ -151,7 +182,7 @@
     <Note title="Focus Management">
       <p>
         On activation the menu closes and focus returns to the trigger. Items with
-        <code class="text-text-primary">keepOpen</code> dispatch their action without closing — useful
+        <code class="text-text-primary">keepOpen</code> dispatch their action without closing. Useful
         for repeated actions like "Add tag".
       </p>
     </Note>

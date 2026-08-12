@@ -28,12 +28,12 @@
 
 <SeoMeta
   title="Skeleton Component"
-  description="Placeholder loading animations that mimic content layout to reduce perceived loading time."
+  description="Placeholder loading animations that mimic content layout."
 />
 
 <DocsPageLayout
   title="Skeleton"
-  description="Placeholder loading animations that mimic content layout to reduce perceived loading time."
+  description="Placeholder loading animations that mimic content layout."
   maxWidth="2xl"
   showToc={true}
   {navigation}

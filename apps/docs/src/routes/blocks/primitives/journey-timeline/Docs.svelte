@@ -8,6 +8,7 @@
     type JourneyNode,
     type JourneyStatus
   } from '@urbicon-ui/blocks';
+  import { resolve } from '$app/paths';
 
   // A utility-billing run — a retrospective chronicle with a time axis.
   const billing: JourneyNode[] = [
@@ -64,6 +65,15 @@
     { id: 'open', title: 'Open', status: 'active', meta: '5 Mar' },
     { id: 'due', title: 'Due', status: 'pending', meta: '19 Mar' },
     { id: 'paid', title: 'Paid', status: 'pending' }
+  ];
+
+  // A document-approval flow — the Customization restyle subject.
+  const approval: JourneyNode[] = [
+    { id: 'submitted', title: 'Submitted', status: 'complete' },
+    { id: 'review', title: 'In review', status: 'active' },
+    { id: 'revise', title: 'Revisions', status: 'attention', subtitle: 'Two comments to address' },
+    { id: 'approved', title: 'Approved', status: 'pending' },
+    { id: 'published', title: 'Published', status: 'pending' }
   ];
 
   // Every status, plus a non-focusable waypoint.
@@ -137,6 +147,20 @@
 
 <!-- ─── Examples ─── -->
 <Section marker id="examples" title="Examples">
+  <p class="text-text-secondary mb-6 text-sm leading-relaxed">
+    Each node needs an <code class="text-text-primary">id</code>, a
+    <code class="text-text-primary">title</code> and a
+    <code class="text-text-primary">status</code>.
+    <code class="text-text-primary">subtitle</code>,
+    <code class="text-text-primary">meta</code> (its label on the time axis),
+    <code class="text-text-primary">connector</code> and
+    <code class="text-text-primary">segmentLabel</code> are optional. One focusable node holds focus
+    at a time and renders its detail through the <code class="text-text-primary">node</code>
+    snippet, starting at <code class="text-text-primary">defaultFocusId</code> or the first
+    <code class="text-text-primary">active</code> node and readable or drivable with
+    <code class="text-text-primary">bind:focusId</code>.
+  </p>
+
   <div class="space-y-8">
     <CodeExample
       title="Vertical chronicle with inline detail"
@@ -162,8 +186,8 @@
           {#snippet node(item)}
             <div class="flex flex-col gap-2 py-0.5">
               <p class="text-text-secondary text-sm">
-                Full record for <strong>{item.title}</strong> — assignments, anomalies and the audit trail
-                live here.
+                Full record for <strong>{item.title}</strong>: assignments, anomalies and the audit
+                trail live here.
               </p>
               <div>
                 <Button size="sm" variant="outlined">Open {item.title.toLowerCase()}</Button>
@@ -175,8 +199,8 @@
     </CodeExample>
 
     <CodeExample
-      title="Stable readout with detail=&quot;panel&quot;"
-      description="The rail stays rigid — rows never change height. The focused node's detail renders in a panel beside the rail on wide viewports and docks to the viewport bottom on narrow ones. Pick this for long chronicles or when the detail is tall."
+      title="Stable readout with detail=panel"
+      description="The rail stays rigid: rows never change height. The focused node's detail renders in a panel beside the rail on wide viewports and docks to the viewport bottom on narrow ones. Reach for this on long chronicles, or when the detail is tall."
       isolate
     >
       <div class="w-full">
@@ -198,14 +222,14 @@
 
     <CodeExample
       title="Horizontal lifecycle"
-      description="Horizontal always renders the shared panel below the rail — the same rail + readout model, rotated. Meta renders as a kicker line above each title."
+      description="Horizontal always renders the shared panel below the rail: the same rail and readout model, rotated. Meta renders as a kicker line above each title."
       isolate
     >
       <div class="w-full">
         <JourneyTimeline items={lifecycle} orientation="horizontal">
           {#snippet node(item)}
             <p class="text-text-secondary text-sm">
-              Invoice events during “{item.title}” — issued, reminders, payments.
+              Invoice events during “{item.title}”: issued, reminders, payments.
             </p>
           {/snippet}
         </JourneyTimeline>
@@ -213,8 +237,8 @@
     </CodeExample>
 
     <CodeExample
-      title="Cockpit rows: glyph markers, attention + trailing"
-      description="The rich-row recipe: the marker snippet puts glyphs inside the status dots (scaled up via slotClasses.marker), status attention flags the optional-but-noteworthy row, and the trailing snippet adds badges and a help action per row. Trailing renders outside the trigger button — pressing “?” never moves the focus."
+      title="Cockpit rows: glyph markers, attention and trailing"
+      description="The rich-row recipe: the marker snippet puts glyphs inside the status dots (scaled up via slotClasses.marker), status attention flags the optional-but-noteworthy row, and the trailing snippet adds badges and a help action per row. Trailing renders outside the trigger button, so pressing the help button never moves the focus."
       isolate
     >
       <div class="flex w-full max-w-lg flex-col gap-3">
@@ -255,13 +279,54 @@
 <Section marker id="statuses" title="Statuses">
   <div class="space-y-4">
     <p class="text-text-secondary text-sm">
-      Each node's <code>status</code> maps to a semantic dot: <strong>complete</strong> (success,
-      filled), <strong>active</strong> (primary, ringed), <strong>pending</strong> (hollow),
-      <strong>attention</strong> (hollow on the warning token — worth a look, does not block),
-      <strong>blocked</strong> (danger — the title turns danger too, so colour is never the only
-      cue) and <strong>skipped</strong> (muted). The connector leaving a completed node reads as
-      “travelled”. Set <code>focusable: false</code> for pure waypoints — they render a marker and label
-      but never take focus and are skipped by keyboard navigation.
+      Each node's <code>status</code> sets its marker and its title tone:
+    </p>
+    <div class="overflow-x-auto">
+      <table class="w-full text-left text-sm">
+        <thead class="text-text-primary border-border-subtle border-b">
+          <tr>
+            <th class="py-2 pr-4 font-semibold"><code class="text-text-primary">status</code></th>
+            <th class="py-2 pr-4 font-semibold">Marker</th>
+            <th class="py-2 font-semibold">Meaning</th>
+          </tr>
+        </thead>
+        <tbody class="text-text-secondary divide-border-subtle divide-y">
+          <tr>
+            <td class="py-3 pr-4 align-top"><code class="text-text-primary">complete</code></td>
+            <td class="py-3 pr-4 align-top">Filled success dot</td>
+            <td class="py-3 align-top">Done. The connector leaving it reads as “travelled”.</td>
+          </tr>
+          <tr>
+            <td class="py-3 pr-4 align-top"><code class="text-text-primary">active</code></td>
+            <td class="py-3 pr-4 align-top">Ringed primary dot</td>
+            <td class="py-3 align-top">The step in progress right now.</td>
+          </tr>
+          <tr>
+            <td class="py-3 pr-4 align-top"><code class="text-text-primary">pending</code></td>
+            <td class="py-3 pr-4 align-top">Hollow dot</td>
+            <td class="py-3 align-top">Work not yet started.</td>
+          </tr>
+          <tr>
+            <td class="py-3 pr-4 align-top"><code class="text-text-primary">attention</code></td>
+            <td class="py-3 pr-4 align-top">Hollow warning dot</td>
+            <td class="py-3 align-top">Worth a look, but it does not block.</td>
+          </tr>
+          <tr>
+            <td class="py-3 pr-4 align-top"><code class="text-text-primary">blocked</code></td>
+            <td class="py-3 pr-4 align-top">Danger dot, and the title turns danger too</td>
+            <td class="py-3 align-top">A hard stop, so colour is never the only cue.</td>
+          </tr>
+          <tr>
+            <td class="py-3 pr-4 align-top"><code class="text-text-primary">skipped</code></td>
+            <td class="py-3 pr-4 align-top">Muted dot</td>
+            <td class="py-3 align-top">Not applicable to this run.</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+    <p class="text-text-secondary text-sm">
+      Set <code>focusable: false</code> for pure waypoints: they render a marker and label but never take
+      focus and are skipped by keyboard navigation.
     </p>
     <CodeExample
       title="All statuses"
@@ -272,7 +337,7 @@
         <JourneyTimeline items={statuses} defaultFocusId="s-active">
           {#snippet node(item)}
             <p class="text-text-secondary text-sm">
-              This node is <code>{item.status}</code> — its detail renders only while focused.
+              This node is <code>{item.status}</code>. Its detail renders only while focused.
             </p>
           {/snippet}
         </JourneyTimeline>
@@ -285,35 +350,48 @@
 <Section marker id="when-to-use" title="JourneyTimeline vs. Stepper vs. Tab">
   <div class="space-y-4">
     <p class="text-text-secondary text-sm">
-      Three components, three different jobs — the overlap is smaller than it looks:
+      Three components, three different jobs, and the overlap is smaller than it looks:
     </p>
-    <div class="grid gap-4 sm:grid-cols-3">
-      <div class="border-border-subtle rounded-lg border p-4">
-        <p class="text-text-primary text-sm font-semibold">JourneyTimeline</p>
-        <p class="text-text-secondary mt-2 text-sm">
-          <strong>Retrospective observation.</strong> An ordered record of what happened / where
-          things stand: shipment tracking, audit trails, billing runs, travel logs. Time (<code
-            >meta</code
-          >) is the first axis; connectors and segment labels describe the stretches between events.
-          Focus reveals detail — it never advances a process.
-        </p>
-      </div>
-      <div class="border-border-subtle rounded-lg border p-4">
-        <p class="text-text-primary text-sm font-semibold">Stepper</p>
-        <p class="text-text-secondary mt-2 text-sm">
-          <strong>Prospective process.</strong> A wizard the user walks through: checkout, onboarding,
-          multi-step forms. Steps are tasks to complete (often with embedded inputs), progress moves forward,
-          and the component may gate navigation. No time axis — the user is the timeline.
-        </p>
-      </div>
-      <div class="border-border-subtle rounded-lg border p-4">
-        <p class="text-text-primary text-sm font-semibold">Tab</p>
-        <p class="text-text-secondary mt-2 text-sm">
-          <strong>Peer views.</strong> Unordered, equivalent surfaces of one thing — Account / Billing
-          / Team. No sequence, no status, no chronology. If reordering the items would change their meaning,
-          they are not tabs.
-        </p>
-      </div>
+    <div class="overflow-x-auto">
+      <table class="w-full text-left text-sm">
+        <thead class="text-text-primary border-border-subtle border-b">
+          <tr>
+            <th class="py-2 pr-4 font-semibold">Component</th>
+            <th class="py-2 pr-4 font-semibold">Its job</th>
+            <th class="py-2 font-semibold">Reach for it when</th>
+          </tr>
+        </thead>
+        <tbody class="text-text-secondary divide-border-subtle divide-y">
+          <tr>
+            <td class="text-text-primary py-3 pr-4 align-top font-semibold">JourneyTimeline</td>
+            <td class="py-3 pr-4 align-top">Retrospective observation</td>
+            <td class="py-3 align-top">
+              An ordered record of what happened or where things stand: shipment tracking, audit
+              trails, billing runs, travel logs. Time (<code class="text-text-primary">meta</code>)
+              is the first axis, and connectors and segment labels describe the stretches between
+              events. Focus reveals detail. It never advances a process.
+            </td>
+          </tr>
+          <tr>
+            <td class="text-text-primary py-3 pr-4 align-top font-semibold">Stepper</td>
+            <td class="py-3 pr-4 align-top">Prospective process</td>
+            <td class="py-3 align-top">
+              A wizard the user walks through: checkout, onboarding, multi-step forms. Steps are
+              tasks to complete (often with embedded inputs), progress moves forward, and the
+              component may gate navigation. No time axis. The user is the timeline.
+            </td>
+          </tr>
+          <tr>
+            <td class="text-text-primary py-3 pr-4 align-top font-semibold">Tab</td>
+            <td class="py-3 pr-4 align-top">Peer views</td>
+            <td class="py-3 align-top">
+              Unordered, equivalent surfaces of one thing: Account, Billing, Team. No sequence, no
+              status, no chronology. If reordering the items would change their meaning, they are
+              not tabs.
+            </td>
+          </tr>
+        </tbody>
+      </table>
     </div>
     <p class="text-text-secondary text-sm">
       Rule of thumb: does each item carry a <em>status</em> and does their
@@ -325,31 +403,38 @@
 
 <!-- ─── Customization ─── -->
 <Section marker id="customization" title="Customization">
-  <div class="space-y-4">
-    <p class="text-text-secondary text-sm">
-      Every family member supports <code>unstyled</code>, <code>slotClasses</code> and
-      <code>preset</code>. Slots: <code>base</code>, <code>rail</code>, <code>node</code>,
-      <code>metaColumn</code>, <code>meta</code>, <code>markerColumn</code>, <code>marker</code>,
-      <code>connector</code>, <code>content</code>, <code>card</code>, <code>header</code>,
-      <code>trigger</code>, <code>trailing</code>, <code>labelGroup</code>, <code>title</code>,
-      <code>subtitle</code>, <code>segment</code>, <code>detail</code>, <code>detailInner</code>,
-      <code>detailContent</code> and <code>panel</code>.
-    </p>
+  <div class="space-y-6">
     <CodeExample
-      title="Restyle markers and the docked panel"
-      code={`<JourneyTimeline
-  items={stages}
-  detail="panel"
-  slotClasses={{
-    marker: 'ring-2 ring-offset-2 ring-primary/20',
-    panel: 'sm:top-20'  /* clear a fixed page header */
-  }}
->
-  {#snippet node(item)}…{/snippet}
-</JourneyTimeline>`}
-      language="svelte"
-      preview={false}
-    />
+      title="A primary-accented readout"
+      description="slotClasses haloes the markers and tints the docked panel into a milestone look the props don't offer. It stays token-native, so it tracks light and dark, and keeps the panel's radius tier, shadow and docking behaviour."
+      isolate
+    >
+      <div class="w-full">
+        <JourneyTimeline
+          items={approval}
+          detail="panel"
+          slotClasses={{
+            marker: 'ring-2 ring-primary/30 ring-offset-2 ring-offset-surface-base',
+            panel: 'bg-surface-selected border-primary/40'
+          }}
+        >
+          {#snippet node(item)}
+            <p class="text-text-secondary text-sm">
+              Comments, reviewers and version history for “{item.title}” live here.
+            </p>
+          {/snippet}
+        </JourneyTimeline>
+      </div>
+    </CodeExample>
+
+    <p class="text-text-secondary text-sm leading-relaxed">
+      This is one of five ways to restyle a block. See
+      <a href={resolve('/customization')} class="text-primary hover:underline">Customization</a>
+      for <code class="text-text-primary">class</code>,
+      <code class="text-text-primary">slotClasses</code>,
+      <code class="text-text-primary">unstyled</code>, <code class="text-text-primary">preset</code>
+      and provider-level overrides.
+    </p>
   </div>
 </Section>
 
@@ -360,11 +445,11 @@
       <p>
         The rail is an ordered list. Each node carries
         <code class="text-text-primary">aria-current="step"</code> while its status is
-        <code class="text-text-primary">active</code>; the focusable trigger exposes
+        <code class="text-text-primary">active</code>. The focusable trigger exposes
         <code class="text-text-primary">aria-expanded</code> and
         <code class="text-text-primary">aria-controls</code> for its detail region (a per-node
         inline region, or the shared panel in panel/horizontal mode). The status is announced
-        through a visually-hidden label, so the dot markers stay decorative — including any glyphs
+        through a visually-hidden label, so the dot markers stay decorative, including any glyphs
         rendered through the <code class="text-text-primary">marker</code> snippet.
       </p>
     </Note>
@@ -391,7 +476,7 @@
         Expand/collapse runs on the motion-duration tokens, which collapse to 1&nbsp;ms under
         <code class="text-text-primary">prefers-reduced-motion: reduce</code>. When activating a
         node makes another card collapse above it, the component counter-scrolls so the activated
-        header stays visually stationary — real user scrolling cancels this immediately.
+        header stays visually stationary. Real user scrolling cancels it immediately.
       </p>
     </Note>
   </NoteList>

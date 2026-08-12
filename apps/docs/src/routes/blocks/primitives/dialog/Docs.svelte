@@ -1,8 +1,7 @@
-<!-- urbicon-ignore raw-tailwind-color — the 14 raw colours are the Customization
-     section's subject. Those demos exist to show what `slotClasses`/`unstyled` reach
-     that the token system deliberately does not: glassmorphism, a terminal look, a neon
-     outline. Tokenising them would delete the example. Every other section on this page
-     stays under the rule. -->
+<!-- urbicon-ignore raw-tailwind-color — the Customization demo restyles the dialog panel into a
+     terminal with `slotClasses`: it keeps the panel's radius tier, centering, focus trap and
+     scroll lock, and only the fill, border and neon glow are raw — a terminal green the token
+     palette has no equivalent for. Every other section on this page stays under the rule. -->
 <script lang="ts">
   import { CodeExample, Note, NoteList, Section } from '@urbicon-ui/docs';
   import { Button, Dialog, Input, Kbd, SearchIcon, TrashIcon } from '@urbicon-ui/blocks';
@@ -12,8 +11,7 @@
   let topOpen = $state(false);
   let formOpen = $state(false);
   let scrollOpen = $state(false);
-  let customOpen = $state(false);
-  let unstyledOpen = $state(false);
+  let terminalOpen = $state(false);
 
   let formName = $state('');
   let formEmail = $state('');
@@ -25,7 +23,7 @@
   <div class="space-y-8">
     <CodeExample
       title="Confirmation (content-only)"
-      description="Without a title prop, Dialog renders your content directly — ideal for short confirmation flows with full layout freedom."
+      description="Without a title, Dialog renders your content straight into the panel with no header or close button, so you wire the actions yourself. Reach for it in short confirmation flows."
       code={`<Dialog bind:open>
   <p class="text-text-primary text-sm font-medium">Delete this item?</p>
   <p class="text-text-tertiary mt-1 text-sm">This action cannot be undone.</p>
@@ -63,7 +61,7 @@
 
     <CodeExample
       title="Form Dialog"
-      description="Pass a title to enable the structured layout with header, scrollable body, and footer — the standard pattern for forms and editors."
+      description="Pass a title to switch on the structured layout: a header with a built-in close button, a scrollable body, and a footer. The standard pattern for forms and editors."
       code={`<Dialog bind:open title="Create Account" size="md">
   <form>
     <Input label="Name" bind:value={name} />
@@ -100,7 +98,7 @@
 
     <CodeExample
       title="Top Placement (command palette)"
-      description="Use placement='top' for search or command-palette flows — anchored near the top of the viewport so results don't shift below the fold as users type."
+      description="Use placement='top' for search or command-palette flows: anchored near the top of the viewport, results don't shift below the fold as the user types."
       code={`<Dialog bind:open placement="top" size="md">
   <input type="text" placeholder="Search..." />
   ...results...
@@ -134,7 +132,7 @@
 
     <CodeExample
       title="Scrollable Content"
-      description="Long body content scrolls automatically while header and footer stay pinned — useful for terms, changelogs, or any read-heavy dialog."
+      description="Long body content scrolls within the panel while the header and footer stay pinned. Reach for it for terms, changelogs, or any read-heavy dialog."
       code={`<Dialog bind:open title="Terms of Service" size="lg">
   <div class="space-y-4"><p>Long content here...</p></div>
   {#snippet footer()}
@@ -193,77 +191,25 @@
 <Section marker id="customization" title="Customization">
   <div class="space-y-8">
     <CodeExample
-      title="Slot Class Overrides"
-      description="Fine-tune individual slots without going fully unstyled."
+      title="Neon terminal"
+      description="Restyle the panel with slotClasses. It keeps the dialog's radius tier, centering, focus trap and scroll lock. Only the fill, border and neon glow are raw (a terminal green the token palette has no equivalent for)."
       code={`<Dialog
   bind:open
-  title="Quick Settings"
   slotClasses={{
-    panel: 'rounded-2xl',
-    header: 'bg-surface-subtle',
-    body: 'bg-surface-base',
-    footer: 'bg-surface-subtle'
+    panel: 'border-green-500/30 bg-black text-green-400 shadow-[0_0_30px_rgba(34,197,94,0.15)]',
+    content: 'font-mono text-xs'
   }}
 >
   ...
 </Dialog>`}
     >
-      <Button variant="outlined" onclick={() => (customOpen = true)}>Quick Settings</Button>
+      <Button variant="ghost" onclick={() => (terminalOpen = true)}>Launch Terminal</Button>
       <Dialog
-        bind:open={customOpen}
-        title="Quick Settings"
+        bind:open={terminalOpen}
         slotClasses={{
-          panel: 'rounded-2xl',
-          header: 'bg-surface-subtle',
-          body: 'bg-surface-base',
-          footer: 'bg-surface-subtle'
-        }}
-      >
-        <div class="space-y-3">
-          <div class="flex items-center justify-between">
-            <span class="text-text-primary text-sm">Dark Mode</span>
-            <span class="text-text-tertiary text-sm">System</span>
-          </div>
-          <div class="flex items-center justify-between">
-            <span class="text-text-primary text-sm">Notifications</span>
-            <span class="text-text-tertiary text-sm">On</span>
-          </div>
-        </div>
-        {#snippet footer()}
-          <div class="flex justify-end gap-2">
-            <Button variant="ghost" onclick={() => (customOpen = false)}>Cancel</Button>
-            <Button onclick={() => (customOpen = false)}>Save</Button>
-          </div>
-        {/snippet}
-      </Dialog>
-    </CodeExample>
-
-    <CodeExample
-      title="Fully Custom (unstyled)"
-      description="Strip defaults with unstyled and rebuild the look entirely via slotClasses."
-      code={`<Dialog
-  unstyled
-  bind:open
-  slotClasses={{
-    dialog: 'fixed inset-0 z-[var(--z-modal)] flex items-center justify-center p-4',
-    backdrop: 'fixed inset-0 bg-black/80',
-    panel: 'relative w-full max-w-xs border border-green-500/30 bg-black text-green-400',
-    content: 'p-5 font-mono text-xs'
-  }}
->
-  ...
-</Dialog>`}
-    >
-      <Button variant="ghost" onclick={() => (unstyledOpen = true)}>Launch Terminal</Button>
-      <Dialog
-        unstyled
-        bind:open={unstyledOpen}
-        slotClasses={{
-          dialog: 'fixed inset-0 z-[var(--z-modal)] flex items-center justify-center p-4',
-          backdrop: 'fixed inset-0 bg-black/80',
           panel:
-            'relative w-full max-w-xs border border-green-500/30 bg-black text-green-400 rounded-none shadow-[0_0_30px_rgba(34,197,94,0.15)]',
-          content: 'p-5 font-mono text-xs'
+            'border-green-500/30 bg-black text-green-400 shadow-[0_0_30px_rgba(34,197,94,0.15)]',
+          content: 'font-mono text-xs'
         }}
       >
         <div class="mb-3 flex items-center gap-2 border-b border-green-500/20 pb-2">
@@ -278,13 +224,13 @@
         <div class="mt-4 flex gap-2">
           <button
             class="flex-1 cursor-pointer rounded-none border border-green-500/30 bg-transparent px-3 py-1.5 font-mono text-xs text-green-400 transition-colors hover:bg-green-500/10"
-            onclick={() => (unstyledOpen = false)}
+            onclick={() => (terminalOpen = false)}
           >
             [n] Abort
           </button>
           <button
             class="flex-1 cursor-pointer rounded-none border border-green-500 bg-green-500/10 px-3 py-1.5 font-mono text-xs text-green-400 transition-colors hover:bg-green-500/20"
-            onclick={() => (unstyledOpen = false)}
+            onclick={() => (terminalOpen = false)}
           >
             [Y] Confirm
           </button>
@@ -293,13 +239,12 @@
     </CodeExample>
 
     <p class="text-text-secondary text-sm leading-relaxed">
-      A dialog chrome shared across the app belongs in <code class="text-text-primary"
-        >presets.Dialog</code
-      >
-      on
-      <code class="text-text-primary">BlocksProvider</code> — and because ConfirmDialog forwards its
-      styling props to the inner Dialog, the same preset covers both components. See
-      <a href={resolve('/customization')} class="text-primary hover:underline">Customization</a>.
+      This is one of five ways to restyle a block. See
+      <a href={resolve('/customization')} class="text-primary hover:underline">Customization</a>
+      for <code class="text-text-primary">class</code>,
+      <code class="text-text-primary">slotClasses</code>,
+      <code class="text-text-primary">unstyled</code>, <code class="text-text-primary">preset</code>
+      and provider-level overrides.
     </p>
   </div>
 </Section>
@@ -310,25 +255,27 @@
   <NoteList>
     <Note title="Native Dialog">
       <p>
-        Built on <code class="text-text-primary">&lt;dialog&gt;</code> with
-        <code class="text-text-primary">showModal()</code> for native inertness and stacking
-        context. Screen readers announce it automatically via
-        <code class="text-text-primary">aria-modal="true"</code>. When a
-        <code class="text-text-primary">title</code> is set, it is linked via
+        Built on the native <code class="text-text-primary">&lt;dialog&gt;</code> element opened
+        with
+        <code class="text-text-primary">showModal()</code>, so the page behind it goes inert. A
+        <code class="text-text-primary">title</code> becomes the dialog's accessible name through
         <code class="text-text-primary">aria-labelledby</code>.
       </p>
     </Note>
     <Note title="Focus Trap">
       <p>
-        When open, focus is trapped inside the dialog.
-        <Kbd keys="Tab" />
-        cycles through interactive elements. On close, focus returns to the element that opened the dialog.
+        On open, focus moves to the first interactive element inside the panel. While open, focus is
+        trapped: <Kbd keys="Tab" /> cycles the interactive elements and never leaves. On close, focus
+        returns to the element that opened the dialog.
       </p>
     </Note>
-    <Note title="Keyboard">
+    <Note title="Dismissal">
       <p>
         <Kbd keys="Escape" />
-        closes the dialog (configurable via <code class="text-text-primary">closeOnEscape</code>).
+        closes the dialog (<code class="text-text-primary">closeOnEscape</code>), and so does a
+        click on the backdrop (<code class="text-text-primary">closeOnBackdropClick</code>). Both
+        are on by default. <code class="text-text-primary">onClose</code> fires on any dismissal, so reset
+        your state there.
       </p>
     </Note>
     <Note title="Scroll Lock">
