@@ -83,7 +83,7 @@
     "docs:scaffold": "cd packages/docs-gen && bun src/cli/index.ts scaffold",
     "build:ts": "bun --bun run scripts/build-packages.ts && bun docs:gen:ci",
     "build": "bun run build:ts && bun --filter='./apps/*' run build",
-    "build:packages": "bun run build:shared-types && bun run build:i18n && bun run build:blocks && bun --bun --filter='./packages/*' run build",
+    "build:packages": "bun --bun run scripts/build-packages.ts",
     "build:docs": "bun --bun --filter='./packages/docs' run build",
     "build:blocks": "bun --bun --filter='./packages/blocks' run build",
     "build:table": "bun --bun --filter='./packages/table' run build",
