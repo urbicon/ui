@@ -45,8 +45,12 @@ export interface DateRange {
  * exercise.
  *
  * `color` takes any CSS colour value: hex, `rgb()`, `oklch()` or a
- * `var(--token)` reference. The label colour on top of it is computed, so a bar
- * stays legible on both a pale and a deep bucket.
+ * `var(--token)` reference. Where a surface writes a LABEL on the colour (a
+ * timeline bar, a calendar event chip), it picks black or white by measuring
+ * that value — which only works for a value it can read. A `var()` or a
+ * `color-mix()` is resolved by the browser, not by the component, so those fall
+ * back to white: pass a colour dark enough to carry it, or set the label colour
+ * yourself through the surface's `slotClasses`.
  */
 export interface DateCategory {
   /** Stable id — what an item's category accessor returns. */
