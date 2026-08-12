@@ -1,12 +1,23 @@
-<!-- urbicon-ignore raw-tailwind-color — the 10 raw colours are the Customization
-     section's subject. Those demos exist to show what `slotClasses`/`unstyled` reach
-     that the token system deliberately does not: glassmorphism, a terminal look, a neon
-     outline. Tokenising them would delete the example. Every other section on this page
-     stays under the rule. -->
+<!-- urbicon-ignore raw-tailwind-color — the Customization demo gives the button a neon outline
+     with one `class`: it keeps the button's radius tier, padding and press behaviour, and only
+     the border, text and glow are raw — a neon hue the token palette has no equivalent for. Every
+     other section on this page stays under the rule. -->
 <script lang="ts">
   import { CodeExample, Note, NoteList, Section } from '@urbicon-ui/docs';
-  import { Button, CheckIcon, CloseIcon, Kbd } from '@urbicon-ui/blocks';
+  import { ArrowRightIcon, Button, DownloadIcon, Kbd, PlusIcon } from '@urbicon-ui/blocks';
   import { resolve } from '$app/paths';
+
+  let formats = $state([
+    { name: 'Bold', on: true },
+    { name: 'Italic', on: false },
+    { name: 'Underline', on: false }
+  ]);
+
+  let saving = $state(false);
+  function save() {
+    saving = true;
+    setTimeout(() => (saving = false), 1500);
+  }
 </script>
 
 <!-- ─── Examples ─── -->
@@ -14,77 +25,48 @@
 <Section marker id="examples" title="Examples">
   <div class="space-y-8">
     <CodeExample
-      title="States Matrix"
-      description="Same visual state, different semantics: active = persistent selection (e.g., a radio-style segment), pressed = transient toggle (e.g., bold/italic in a toolbar), loading = busy. ARIA mirrors the chosen prop — active → aria-pressed=true; pressed → aria-pressed=true; both off → omitted."
+      title="Toggle buttons"
+      description="`active` marks a button as selected or on and sets `aria-pressed` for you. Reach for it when the choice persists, like a formatting toggle that stays lit. `pressed` is its momentary cousin for a press-and-release cue. Both are booleans you drive from your own state."
       isolate
+      previewClass="flex flex-wrap items-center gap-2"
     >
-      <div
-        role="group"
-        aria-label="Visual states reference — non-interactive demo grid"
-        class="flex flex-col items-start gap-3"
-      >
-        <div class="flex flex-wrap items-center gap-3">
-          <Button variant="filled" intent="primary">Default</Button>
-          <Button variant="filled" intent="primary" active>Active</Button>
-          <Button variant="filled" intent="primary" pressed>Pressed</Button>
-          <Button variant="filled" intent="primary" loading>Loading</Button>
-          <Button variant="filled" intent="primary" disabled>Disabled</Button>
-        </div>
-        <div class="flex flex-wrap items-center gap-3">
-          <Button variant="outlined" intent="primary">Default</Button>
-          <Button variant="outlined" intent="primary" active>Active</Button>
-          <Button variant="outlined" intent="primary" pressed>Pressed</Button>
-          <Button variant="outlined" intent="primary" loading>Loading</Button>
-          <Button variant="outlined" intent="primary" disabled>Disabled</Button>
-        </div>
-        <div class="flex flex-wrap items-center gap-3">
-          <Button variant="ghost" intent="primary">Default</Button>
-          <Button variant="ghost" intent="primary" active>Active</Button>
-          <Button variant="ghost" intent="primary" pressed>Pressed</Button>
-          <Button variant="ghost" intent="primary" loading>Loading</Button>
-          <Button variant="ghost" intent="primary" disabled>Disabled</Button>
-        </div>
-        <div class="flex flex-wrap items-center gap-3">
-          <Button variant="text" intent="primary">Default</Button>
-          <Button variant="text" intent="primary" active>Active</Button>
-          <Button variant="text" intent="primary" pressed>Pressed</Button>
-          <Button variant="text" intent="primary" loading>Loading</Button>
-          <Button variant="text" intent="primary" disabled>Disabled</Button>
-        </div>
-      </div>
+      {#each formats as fmt (fmt.name)}
+        <Button variant="ghost" intent="primary" active={fmt.on} onclick={() => (fmt.on = !fmt.on)}>
+          {fmt.name}
+        </Button>
+      {/each}
     </CodeExample>
 
     <CodeExample
-      title="Mint micro-interactions"
-      description="Mint (Micro-interactions) adds motion feedback and respects prefers-reduced-motion on its own. What matters when picking one is the trigger, not the name: the first row answers the pointer arriving, the second answers the click — use a hover effect to invite, a click effect to confirm. All nine registered effects are here because this is the only place they are listed: the Playground's Mint control offers four of them, and the generated API renders mint as an opaque MintProp with no value list."
+      title="Icons and labels"
+      description="Put an icon in the button's content, before or after the label. The gap between icon and label comes from the button's `size`, so it tracks the button, while the glyph keeps whatever size you set on the icon (`size={18}` here)."
       isolate
-      previewClass="flex flex-col gap-3"
+      previewClass="flex flex-wrap items-center gap-3"
     >
-      <div class="flex flex-wrap items-center gap-3">
-        <Button intent="primary" mint="scale">Scale</Button>
-        <Button intent="primary" mint="translate">Translate</Button>
-        <Button intent="primary" mint="rotate">Rotate</Button>
-        <Button intent="primary" mint="glow">Glow</Button>
-        <Button intent="secondary" mint="pulse">Pulse</Button>
-        <Button intent="secondary" mint="wiggle">Wiggle</Button>
-      </div>
-      <div class="flex flex-wrap items-center gap-3">
-        <Button intent="primary" mint="ripple">Ripple</Button>
-        <Button intent="primary" mint="bounce">Bounce</Button>
-        <Button intent="danger" mint="shake">Shake</Button>
-      </div>
+      <Button intent="primary"><PlusIcon size={18} />New project</Button>
+      <Button variant="outlined" intent="neutral"><DownloadIcon size={18} />Export</Button>
+      <Button variant="text" intent="primary">Continue<ArrowRightIcon size={18} /></Button>
     </CodeExample>
 
     <CodeExample
-      title="Layering and tuning effects"
-      description="An array layers effects on one element, and an entry can be a config object instead of a name to tune its duration. This is the part the Playground cannot show — its Mint control picks a single value."
+      title="Submit with a loading state"
+      description="Flip `loading` while a request is in flight. The button blocks activation but stays focusable, so the action can't double-fire. `loadingPlacement=start` keeps the label beside the spinner, where the default `overlay` hides it behind the spinner instead."
       isolate
+      previewClass="flex flex-wrap items-center gap-3"
+    >
+      <Button intent="primary" loading={saving} loadingPlacement="start" onclick={save}>
+        {saving ? 'Saving…' : 'Save changes'}
+      </Button>
+    </CodeExample>
+
+    <CodeExample
+      title="Composing micro-interactions"
+      description="`mint` layers motion feedback: pass an array to stack effects, or an object to tune a duration. The Playground's Mint control picks one effect at a time, so arrays and per-effect config appear only here. Nine effects ship. Six are held on hover (`scale`, `translate`, `rotate`, `glow`, `pulse`, `wiggle`) and three fire on click (`ripple`, `bounce`, `shake`)."
+      isolate
+      previewClass="flex flex-wrap items-center gap-3"
     >
       <Button intent="primary" mint={['scale', 'ripple']}>Scale + Ripple</Button>
       <Button intent="success" mint={['glow', 'bounce']}>Glow + Bounce</Button>
-      <Button intent="primary" mint={[{ name: 'scale', config: { duration: 200 } }, 'ripple']}
-        >Fast Scale + Ripple</Button
-      >
       <Button intent="warning" mint={[{ name: 'glow', config: { duration: 500 } }]}
         >Slow Glow</Button
       >
@@ -95,98 +77,32 @@
 <!-- ─── Customization ─── -->
 
 <Section marker id="customization" title="Customization">
-  <div class="space-y-8">
+  <div class="space-y-6">
     <CodeExample
-      title="Gradient CTA"
-      description="A single slotClasses override turns a standard button into a vibrant call-to-action."
+      title="Neon outline"
+      description="One `class` gives the button a neon outline glowing on a dark panel. It keeps the button's radius tier, padding and press behaviour, and only the border, text and glow are raw. The colours are raw because a neon hue has no token equivalent."
       isolate
+      previewClass="flex flex-wrap items-center gap-4 rounded-xl bg-neutral-950 px-8 py-6"
     >
       <Button
-        size="lg"
-        mint={['scale', 'ripple']}
-        slotClasses={{
-          base: 'bg-linear-to-r from-violet-600 to-fuchsia-500 border-none shadow-lg shadow-violet-500/30 hover:shadow-violet-500/50'
-        }}
+        class="border border-emerald-400 bg-transparent text-emerald-400 shadow-[0_0_15px_rgba(52,211,153,0.3)] hover:bg-emerald-400/10 hover:shadow-[0_0_25px_rgba(52,211,153,0.5)]"
       >
-        Launch Project
-      </Button>
-    </CodeExample>
-
-    <CodeExample
-      title="Pill & Icon-only"
-      description="Override the base slot's border-radius with slotClasses – tailwind-merge resolves the conflict automatically."
-      isolate
-    >
-      <Button variant="outlined" intent="primary" slotClasses={{ base: 'rounded-full' }}
-        >Subscribe</Button
-      >
-      <Button
-        variant="ghost"
-        intent="neutral"
-        aria-label="Confirm"
-        slotClasses={{ base: 'rounded-full p-0 w-10' }}
-      >
-        <CheckIcon size={20} />
+        Deploy
       </Button>
       <Button
-        variant="filled"
-        intent="danger"
-        aria-label="Cancel"
-        slotClasses={{ base: 'rounded-full p-0 w-10' }}
+        class="border border-sky-400 bg-transparent text-sky-400 shadow-[0_0_15px_rgba(56,189,248,0.3)] hover:bg-sky-400/10 hover:shadow-[0_0_25px_rgba(56,189,248,0.5)]"
       >
-        <CloseIcon size={20} />
-      </Button>
-    </CodeExample>
-
-    <CodeExample
-      title="Neon Outline"
-      description="For custom glow shadows, unstyled gives full control – no conflicts with the variant's built-in shadow tokens."
-      isolate
-      previewClass="flex items-center gap-4 rounded-xl bg-neutral-950 px-8 py-6"
-    >
-      <Button
-        unstyled
-        class="rounded-lg border border-emerald-400 px-5 py-2.5 font-medium text-emerald-400 shadow-[0_0_15px_rgba(52,211,153,0.3)] transition-all hover:bg-emerald-400/10 hover:shadow-[0_0_25px_rgba(52,211,153,0.5)]"
-      >
-        Neon Green
-      </Button>
-      <Button
-        unstyled
-        class="rounded-lg border border-sky-400 px-5 py-2.5 font-medium text-sky-400 shadow-[0_0_15px_rgba(56,189,248,0.3)] transition-all hover:bg-sky-400/10 hover:shadow-[0_0_25px_rgba(56,189,248,0.5)]"
-      >
-        Neon Blue
-      </Button>
-    </CodeExample>
-
-    <CodeExample
-      title="Fully Custom (unstyled)"
-      description="Drop all default styles and build from scratch. Loading, disabled, mint – all behavioral props still work."
-      isolate
-    >
-      <Button
-        unstyled
-        mint="scale"
-        class="inline-flex items-center gap-3 rounded-2xl bg-linear-to-br from-amber-200 to-orange-400 px-8 py-4 font-bold text-neutral-900 shadow-xl transition-all hover:shadow-2xl"
-      >
-        Unstyled Magic
-      </Button>
-      <Button
-        unstyled
-        mint="scale"
-        class="text-text-primary hover:bg-text-primary hover:text-surface-base inline-flex items-center gap-2 rounded-none border-2 border-current px-6 py-3 font-mono text-sm font-bold tracking-widest uppercase transition-all"
-      >
-        Brutalist
+        Preview
       </Button>
     </CodeExample>
 
     <p class="text-text-secondary text-sm leading-relaxed">
-      The gradient CTA is the canonical preset case: register it once under
-      <code class="text-text-primary">presets.Button</code> on
-      <code class="text-text-primary">BlocksProvider</code>
-      and every call site becomes
-      <code class="text-text-primary">preset="cta"</code> — hover, dark mode, and Mint stay
-      coherent. See
-      <a href={resolve('/customization')} class="text-primary hover:underline">Customization</a>.
+      This is one of five ways to restyle a block. See
+      <a href={resolve('/customization')} class="text-primary hover:underline">Customization</a>
+      for <code class="text-text-primary">class</code>,
+      <code class="text-text-primary">slotClasses</code>,
+      <code class="text-text-primary">unstyled</code>, <code class="text-text-primary">preset</code>
+      and provider-level overrides.
     </p>
   </div>
 </Section>
@@ -197,39 +113,23 @@
   <NoteList>
     <Note title="Built-in ARIA">
       <p>
-        Automatically manages <code class="text-text-primary">aria-pressed</code> for toggle
-        buttons,
-        <code class="text-text-primary">aria-busy</code> during loading, and
+        The button manages <code class="text-text-primary">aria-pressed</code> for toggle and
+        selected states, <code class="text-text-primary">aria-busy</code> while loading, and
         <code class="text-text-primary">aria-disabled</code> when disabled. Focus indication uses
-        <code class="text-text-primary">focus-visible:</code> so mouse users see no ring.
-      </p>
-    </Note>
-    <Note title="State Semantics">
-      <p>
-        <code class="text-text-primary">active</code> = persistent selection (a radio-style segment,
-        the current sort column, the selected tool). Set this when the button represents an enduring
-        chosen state.
-        <code class="text-text-primary">pressed</code> = transient toggle (bold/italic in a toolbar,
-        mute/unmute). Set this on a button that flips between two complementary states.
-        <code class="text-text-primary">loading</code> = busy; suppresses interaction without removing
+        <code class="text-text-primary">focus-visible</code>, so the ring appears only for keyboard
         focus.
       </p>
     </Note>
     <Note title="Keyboard">
       <p>
-        <Kbd keys="Tab" />
-        to focus,
-        <Kbd keys="Enter" />
-        /
-        <Kbd keys="Space" /> to activate. Loading state disables interaction automatically while keeping
-        the button focusable.
+        <Kbd keys="Tab" /> moves focus. <Kbd keys="Enter" /> / <Kbd keys="Space" /> activate. While loading,
+        the button ignores activation but stays focusable.
       </p>
     </Note>
-    <Note title="Reduced Motion">
+    <Note title="Reduced motion">
       <p>
-        All Mint effects are suppressed when the user enables
-        <code class="text-text-primary">prefers-reduced-motion</code>. Transitions, transforms, and
-        ripple animations are removed entirely.
+        Mint effects respect <code class="text-text-primary">prefers-reduced-motion</code>: with it
+        enabled, the hover and click animations are suppressed and the ripple is never drawn.
       </p>
     </Note>
   </NoteList>

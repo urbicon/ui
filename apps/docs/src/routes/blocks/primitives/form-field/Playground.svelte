@@ -8,7 +8,7 @@
 -->
 <script lang="ts">
   import type { PlaygroundHostProps } from '$lib/playground-host';
-  import { FormField, Input } from '@urbicon-ui/blocks';
+  import { FormField } from '@urbicon-ui/blocks';
   import {
     defaultValuesOf,
     deriveControls,
@@ -49,24 +49,13 @@
     <div class="w-full max-w-md">
       <FormField {...values}>
         {#snippet children(ctx)}
-          <!--
-            Das Kind ist ein `<Input>`, kein rohes `<input>`: FormField reicht
-            `id`/`describedBy`/`invalid`/`required` an ein *beliebiges* Control
-            durch, und genau diesen Vertrag soll das Beispiel zeigen — aber im
-            eigenen Vokabular. Vorher stand hier ein `<input type="file">` mit
-            acht handgeschriebenen Tailwind-Klassen; wer den Schnipsel kopierte,
-            kopierte eine Anleitung, an der Bibliothek vorbeizubauen (und
-            ausgerechnet für den Fall, für den es `FileUpload` gibt).
-
-            Kein eigenes `label` am Input: Das trägt der FormField, sonst steht
-            es doppelt.
-          -->
-          <Input
+          <input
             id={ctx.id}
-            placeholder="Invoice 2026-07.pdf"
+            type="file"
             aria-describedby={ctx.describedBy}
-            aria-invalid={ctx.invalid}
+            aria-invalid={ctx.invalid || undefined}
             required={ctx.required}
+            class="border-border-subtle w-full rounded-md border px-3 py-2 text-sm"
           />
         {/snippet}
       </FormField>

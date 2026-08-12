@@ -65,6 +65,18 @@ whoever drives the session.
 against the page items (9–13), reported separately. This is sentence hygiene and the cheapest
 of the three — it cannot see a missing paragraph, so it never runs first.
 
+## 4. The demo pass — render and interact
+
+The three passes above read text; none of them renders the page. Layout and interaction defects
+survive all three and `validate` too: an overflow example that does not overflow at the page's own
+width, an `align` control that never centres the item, a hand-built card where the library's own
+`Card` belongs, an arrow jump that leaves items half-visible. After the checklist pass, render the
+interactive examples against the running dev server and click through the core interaction each one
+claims — the overflow, the binding, the arrows, the keyboard nav — not just the first paint. A real
+component defect goes to whoever drives the session (and onto the bug list); a demo
+mis-configuration is fixed in the page. Measured 2026-08-12: a full three-pass wave shipped four such
+defects that only a human sight-check caught, which is what added this pass.
+
 ## Gates and reporting
 
 `bunx prettier --write <page>`, then `bun --filter='@urbicon-ui/docs-app' run sections:lint` — and

@@ -26,14 +26,11 @@
   ];
 </script>
 
-<SeoMeta
-  title="Button Component"
-  description="Versatile, accessible buttons with variants, loading states, and micro-interactions."
-/>
+<SeoMeta title="Button Component" description="The control that triggers an action." />
 
 <DocsPageLayout
   title="Button"
-  description="Versatile, accessible buttons with variants, loading states, and micro-interactions."
+  description="The control that triggers an action."
   maxWidth="2xl"
   showToc={true}
   {navigation}

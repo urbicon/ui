@@ -1,22 +1,24 @@
+<!-- urbicon-ignore raw-tailwind-color — the Customization demo tints the drawer panel into a
+     frosted-glass sheet with `class` + `slotClasses`: it keeps the drawer's contain radius tier,
+     slide animation, focus trap and scroll lock, and only the fill, borders and blur are raw — a
+     glass look the token palette has no equivalent for. Every other section on this page stays
+     under the rule. -->
 <script lang="ts">
   import { CodeExample, Note, NoteList, Section } from '@urbicon-ui/docs';
   import { Button, Drawer, Input, Kbd, Separator, Toggle } from '@urbicon-ui/blocks';
   import { r } from '$lib/route';
 
-  let rightOpen = $state(false);
-  let leftOpen = $state(false);
-  let topOpen = $state(false);
-  let bottomOpen = $state(false);
   let settingsOpen = $state(false);
   let navOpen = $state(false);
   let footerOpen = $state(false);
+  let glassOpen = $state(false);
 </script>
 
 <!-- ─── When to use ─── -->
 
 <Section marker id="usage" title="When to use">
   <p class="text-text-secondary text-sm leading-relaxed">
-    <strong>Drawer</strong> is a <code>&lt;dialog&gt;</code> — always modal, with a backdrop and a
+    <strong>Drawer</strong> is a <code>&lt;dialog&gt;</code>: always modal, with a backdrop and a
     focus trap. Use it for a transient panel that opens on user action, pulls focus, and closes when
     the action is done. The four <code>placement</code> values (left / right / top / bottom) cover side
     sheets, top notification bars, and mobile bottom-sheets.
@@ -44,29 +46,9 @@
 
 <Section marker id="examples" title="Examples">
   <div class="space-y-8">
-    <CodeExample title="Placements" isolate>
-      <Button variant="outlined" onclick={() => (leftOpen = true)}>Left</Button>
-      <Button variant="outlined" onclick={() => (rightOpen = true)}>Right</Button>
-      <Button variant="outlined" onclick={() => (topOpen = true)}>Top</Button>
-      <Button variant="outlined" onclick={() => (bottomOpen = true)}>Bottom</Button>
-
-      <Drawer bind:open={leftOpen} title="Left Drawer" placement="left">
-        <p>This drawer slides in from the left edge.</p>
-      </Drawer>
-      <Drawer bind:open={rightOpen} title="Right Drawer" placement="right">
-        <p>This drawer slides in from the right edge.</p>
-      </Drawer>
-      <Drawer bind:open={topOpen} title="Top Drawer" placement="top">
-        <p>This drawer slides in from the top edge.</p>
-      </Drawer>
-      <Drawer bind:open={bottomOpen} title="Bottom Drawer" placement="bottom">
-        <p>This drawer slides in from the bottom edge.</p>
-      </Drawer>
-    </CodeExample>
-
     <CodeExample
       title="With Footer"
-      description="Action buttons rendered in a sticky footer area."
+      description="bind:open drives the drawer from your own trigger. A title gives it a header with a built-in close button, and the footer snippet holds the actions."
       isolate
     >
       <Button onclick={() => (footerOpen = true)}>Open with Footer</Button>
@@ -81,7 +63,7 @@
 
     <CodeExample
       title="Settings Panel"
-      description="A realistic settings drawer with form controls."
+      description="placement sets the edge the drawer slides from and size its width. Here, the right edge at sm."
       isolate
     >
       <Button onclick={() => (settingsOpen = true)}>Open Settings</Button>
@@ -103,7 +85,7 @@
 
     <CodeExample
       title="Navigation Menu"
-      description="A mobile-style navigation drawer from the left."
+      description="A left-side navigation menu, the common mobile pattern. Each item closes the drawer when picked."
       isolate
     >
       <Button onclick={() => (navOpen = true)}>Open Menu</Button>
@@ -126,37 +108,71 @@
 <!-- ─── Customization ─── -->
 
 <Section marker id="customization" title="Customization">
-  <div class="space-y-8">
+  <div class="space-y-6">
     <CodeExample
-      title="slotClasses Override"
-      description="Drawer exposes dialog, backdrop, panel, header, title, body, and footer as slots. Here the backdrop loses its blur, the panel gets a square edge with a stronger border, and the body more breathing room — slide animation, focus trap, and stacking stay untouched."
+      title="Frosted glass sheet"
+      description="Tint the panel into frosted glass with `class`, wash the backdrop in colour, and neutralise the header and footer hairlines with `slotClasses`. The contain radius tier, slide animation, focus trap and scroll lock all stay. Raw colours because glass has no token equivalent."
       code={`<Drawer
   bind:open
   title="Filters"
   placement="right"
+  size="sm"
+  class="border-white/20 bg-white/10 text-white backdrop-blur-xl"
   slotClasses={{
-    backdrop: 'backdrop-blur-none bg-black/30',
-    panel: 'rounded-none border-l-2 border-border-default',
-    body: 'px-8'
+    backdrop: 'bg-linear-to-br from-fuchsia-600/50 via-purple-600/50 to-indigo-700/50',
+    header: 'border-white/15',
+    title: 'text-white',
+    closeButton: 'text-white/70 hover:bg-white/10',
+    footer: 'border-white/15'
   }}
 >
   …
 </Drawer>`}
-      language="svelte"
-      preview={false}
-    />
+    >
+      <Button variant="ghost" onclick={() => (glassOpen = true)}>Open glass panel</Button>
+      <Drawer
+        bind:open={glassOpen}
+        title="Filters"
+        placement="right"
+        size="sm"
+        class="border-white/20 bg-white/10 text-white backdrop-blur-xl"
+        slotClasses={{
+          backdrop: 'bg-linear-to-br from-fuchsia-600/50 via-purple-600/50 to-indigo-700/50',
+          header: 'border-white/15',
+          title: 'text-white',
+          closeButton: 'text-white/70 hover:bg-white/10',
+          footer: 'border-white/15'
+        }}
+      >
+        <div class="space-y-3 text-sm text-white/90">
+          {#each ['Available now', 'Free cancellation', 'Breakfast included', 'Pet friendly'] as label (label)}
+            <label class="flex items-center gap-3">
+              <input type="checkbox" class="h-4 w-4 accent-white" />
+              {label}
+            </label>
+          {/each}
+        </div>
+        {#snippet footer()}
+          <Button
+            variant="ghost"
+            class="border-transparent text-white/80 hover:bg-white/10"
+            onclick={() => (glassOpen = false)}>Clear</Button
+          >
+          <Button
+            class="border-white/20 bg-white/15 text-white shadow-none hover:bg-white/25"
+            onclick={() => (glassOpen = false)}>Apply</Button
+          >
+        {/snippet}
+      </Drawer>
+    </CodeExample>
 
     <p class="text-text-secondary text-sm leading-relaxed">
-      <code class="text-text-primary">unstyled</code> strips the panel chrome (surface, border,
-      shadow) while the native <code class="text-text-primary">&lt;dialog&gt;</code>, focus trap,
-      and placement transitions keep working — rebuild the sheet through
-      <code class="text-text-primary">slotClasses</code>. A drawer treatment shared across the app
-      (e.g. a brand filter sheet) belongs in a
-      <code class="text-text-primary">BlocksProvider</code> preset (<code class="text-text-primary"
-        >presets.Drawer</code
-      >, applied via
-      <code class="text-text-primary">preset</code>) — see
-      <a href={r('/customization')} class="text-primary hover:underline">Customization</a>.
+      This is one of five ways to restyle a block. See
+      <a href={r('/customization')} class="text-primary hover:underline">Customization</a>
+      for <code class="text-text-primary">class</code>,
+      <code class="text-text-primary">slotClasses</code>,
+      <code class="text-text-primary">unstyled</code>, <code class="text-text-primary">preset</code>
+      and provider-level overrides.
     </p>
   </div>
 </Section>
@@ -164,71 +180,68 @@
 <!-- ─── Stacking & Nesting ─── -->
 
 <Section marker id="stacking" title="Stacking & Nested Drawers">
-  <div class="border-border-subtle bg-surface-elevated rounded-2xl border p-6">
-    <p class="text-text-secondary mb-4 text-sm leading-relaxed">
-      Multiple Drawers can be open at the same time — for example a wizard that opens a preview,
-      which opens a calculation trace. Drawer is rendered with a native
-      <code class="text-text-primary">&lt;dialog&gt;</code>, so the browser handles the top-layer
-      stacking order automatically.
-    </p>
-    <div class="divide-border-subtle divide-y">
-      <div class="pb-4">
-        <h3 class="text-text-primary mb-1.5 text-sm font-semibold">Stack order is LIFO</h3>
-        <p class="text-text-secondary text-sm leading-relaxed">
-          The most recently opened Drawer renders on top. Pressing
-          <Kbd keys="Escape" />
-          closes the topmost drawer; the underlying ones stay open. Each Drawer manages its own focus-trap,
-          so keyboard navigation stays inside the topmost panel.
-        </p>
-      </div>
-      <div class="py-4">
-        <h3 class="text-text-primary mb-1.5 text-sm font-semibold">Backdrop & body-scroll</h3>
-        <p class="text-text-secondary text-sm leading-relaxed">
-          Each open Drawer adds its own backdrop. The body-scroll lock is reference-counted — scroll
-          stays locked until <em>every</em> Drawer is closed. Closing the topmost panel revives keyboard
-          interaction with the panel underneath.
-        </p>
-      </div>
-      <div class="py-4">
-        <h3 class="text-text-primary mb-1.5 text-sm font-semibold">Recommended depth: 2–3</h3>
-        <p class="text-text-secondary text-sm leading-relaxed">
-          Two or three layers (e.g. <em>wizard → preview → trace</em>) work well in practice. Beyond
-          that, the visual stack becomes cramped, especially on mobile. Consider a
-          <em>master-detail</em> pattern (list + replaceable detail panel) instead of deep nesting.
-        </p>
-      </div>
-      <div class="py-4">
-        <h3 class="text-text-primary mb-1.5 text-sm font-semibold">Mobile caveat</h3>
-        <p class="text-text-secondary text-sm leading-relaxed">
-          Each Drawer caps its size at <code class="text-text-primary">100dvw</code> /
-          <code class="text-text-primary">100dvh</code>, so a stacked Drawer on a 320 px viewport
-          becomes effectively full-width. Two or three identical-size Drawers stack visually as a
-          single panel — open them with different sizes (e.g. <code>md</code> →
-          <code>lg</code>) so the user can see the layering on narrow screens.
-        </p>
-      </div>
-      <div class="pt-4">
-        <h3 class="text-text-primary mb-1.5 text-sm font-semibold">
-          Programmatic <code class="text-text-primary">overlayStack</code>
-        </h3>
-        <p class="text-text-secondary text-sm leading-relaxed">
-          Drawer, Dialog, and (mobile) Sidebar all auto-register with a shared
-          <code class="text-text-primary">overlayStack</code> singleton on open. Use this for app-level
-          cleanup that has to span unknown overlay depth — typically logout, route changes, or auth expiry.
-          The stack stays untouched on Desktop sidebars (they're persistent layout, not modal overlays).
-        </p>
-        <pre class="text-text-primary bg-surface-subtle rounded-modify mt-2 p-3 text-xs"><code
-            >{`import { overlayStack } from '@urbicon-ui/blocks';
+  <p class="text-text-secondary mb-6 text-sm leading-relaxed">
+    Several Drawers can be open at once: a wizard that opens a preview, which opens a calculation
+    trace. Each renders through its own native <code class="text-text-primary">&lt;dialog&gt;</code
+    >, so the browser stacks them in the top layer for you.
+  </p>
+
+  <NoteList>
+    <Note title="Stack order is LIFO">
+      <p>
+        The most recently opened Drawer renders on top.
+        <Kbd keys="Escape" /> closes that topmost panel and leaves the ones beneath it open. Each Drawer
+        keeps its own focus trap, so keyboard focus stays inside the top panel.
+      </p>
+    </Note>
+    <Note title="Backdrop and body scroll">
+      <p>
+        Every open Drawer adds its own backdrop. The body-scroll lock is reference-counted: the page
+        stays locked until the last Drawer closes, and closing the top panel hands keyboard control
+        back to the one underneath.
+      </p>
+    </Note>
+    <Note title="Keep the depth to two or three">
+      <p>
+        A wizard, then a preview, then a trace reads well; past three layers the panels crowd each
+        other, especially on mobile. For a deeper flow, reach for a master-detail pattern (a list
+        beside one replaceable detail panel) instead of nesting.
+      </p>
+    </Note>
+    <Note title="Vary the size on narrow screens">
+      <p>
+        Each Drawer caps at <code class="text-text-primary">100dvw</code> /
+        <code class="text-text-primary">100dvh</code>, so on a 320px viewport a stacked Drawer fills
+        the screen and identical sizes merge into one panel. Give stacked Drawers different sizes (<code
+          class="text-text-primary">md</code
+        >
+        then <code class="text-text-primary">lg</code>) so the layering stays legible.
+      </p>
+    </Note>
+    <Note title="Close every overlay at once">
+      <p>
+        Drawer, Dialog, and the mobile Sidebar register with a shared
+        <code class="text-text-primary">overlayStack</code> singleton on open. Reach for it when app-level
+        cleanup spans an unknown overlay depth: logout, a route change, or an expired session. Desktop
+        Sidebars stay out of the stack, since they are persistent layout rather than modal overlays.
+      </p>
+    </Note>
+  </NoteList>
+
+  <div class="mt-6">
+    <CodeExample
+      title="overlayStack"
+      code={`import { overlayStack } from '@urbicon-ui/blocks';
 
 // Close every open Drawer, Dialog, and mobile Sidebar (top-down)
 overlayStack.closeAll();
 
 // Inspect the stack
-overlayStack.depth;   // number
-overlayStack.topId;   // string | null`}</code
-          ></pre>
-      </div>
-    </div>
+overlayStack.depth; // number
+overlayStack.topId; // string | null`}
+      language="ts"
+      preview={false}
+    />
   </div>
 </Section>
 
@@ -254,16 +267,20 @@ overlayStack.topId;   // string | null`}</code
     <Note title="Keyboard">
       <p>
         <Kbd keys="Escape" />
-        closes the drawer (configurable via
-        <code class="text-text-primary">closeOnEscape</code>). Backdrop click dismiss is also
-        configurable.
+        closes the drawer (<code class="text-text-primary">closeOnEscape</code>) and so does a click
+        on the backdrop (<code class="text-text-primary">closeOnBackdropClick</code>). Both are on
+        by default.
       </p>
     </Note>
     <Note title="Reduced Motion">
       <p>
-        Slide and fade transitions respect
-        <code class="text-text-primary">prefers-reduced-motion</code>. The drawer appears and
-        disappears instantly without animation.
+        The slide and fade run on the overlay duration tokens (<code class="text-text-primary"
+          >--blocks-overlay-enter-duration</code
+        >
+        /
+        <code class="text-text-primary">--blocks-overlay-exit-duration</code>). Under
+        <code class="text-text-primary">prefers-reduced-motion</code> they collapse to 1ms, so the drawer
+        opens and closes in place.
       </p>
     </Note>
   </NoteList>

@@ -9,28 +9,23 @@
 <Section marker id="examples" title="Examples">
   <div class="space-y-8">
     <CodeExample
-      title="Inline Vertical Separator"
-      description="Vertical separators as dividers between navigation items — a classic breadcrumb pattern."
+      title="Inline metadata"
+      description="A vertical separator is `h-full`, so give it an explicit height (here `h-4`) inside a flex row."
       isolate
+      previewClass="flex justify-center w-full"
     >
-      <nav aria-label="Breadcrumb" class="flex items-center text-sm">
-        <a href="#!" class="text-text-tertiary hover:text-text-primary transition-colors">Home</a>
-        <Separator orientation="vertical" size="sm" class="mx-3 h-4" />
-        <a href="#!" class="text-text-tertiary hover:text-text-primary transition-colors"
-          >Products</a
-        >
-        <Separator orientation="vertical" size="sm" class="mx-3 h-4" />
-        <a href="#!" class="text-text-tertiary hover:text-text-primary transition-colors"
-          >Electronics</a
-        >
-        <Separator orientation="vertical" size="sm" class="mx-3 h-4" />
-        <span class="text-text-primary font-medium">Headphones</span>
-      </nav>
+      <div class="text-text-secondary flex items-center gap-3 text-sm">
+        <span>Engineering</span>
+        <Separator orientation="vertical" class="h-4" />
+        <span>12 min read</span>
+        <Separator orientation="vertical" class="h-4" />
+        <time datetime="2024-03">March 2024</time>
+      </div>
     </CodeExample>
 
     <CodeExample
-      title="Settings Card"
-      description="Separators structuring a realistic settings panel — as a section divider and between in-list rows."
+      title="Section boundaries in a card"
+      description="Reach for a Separator to set off a distinct region. Use `divide-y` for the rules between repeated rows."
       isolate
       previewClass="flex justify-center w-full"
     >
@@ -40,11 +35,11 @@
             <h3 class="text-text-primary text-sm font-semibold">Account</h3>
             <p class="text-text-tertiary text-xs">Manage your profile and preferences</p>
           </div>
-          <Separator size="sm" />
-          <div class="divide-border-subtle space-y-0 divide-y">
+          <Separator />
+          <div class="divide-border-subtle divide-y">
             <div class="flex items-center justify-between px-5 py-3">
               <div class="flex items-center gap-3">
-                <Avatar size="sm" name="JD" />
+                <Avatar size="sm" name="Jane Doe" randomColor />
                 <div>
                   <p class="text-text-primary text-sm font-medium">Jane Doe</p>
                   <p class="text-text-tertiary text-xs">jane@example.com</p>
@@ -61,11 +56,24 @@
               <span class="text-text-tertiary text-sm">UTC+1</span>
             </div>
           </div>
-          <Separator size="sm" />
+          <Separator />
           <div class="px-5 py-3">
-            <Button variant="ghost" intent="danger" size="sm">Delete Account</Button>
+            <Button variant="ghost" intent="danger" size="sm">Delete account</Button>
           </div>
         </Card>
+      </div>
+    </CodeExample>
+
+    <CodeExample
+      title="Labeled divider"
+      description="Separator draws only the rule, so build a labeled break yourself: two `flex-1` separators around a centered label make the 'or continue with' divider on a sign-in form."
+      isolate
+      previewClass="flex justify-center w-full"
+    >
+      <div class="flex w-full max-w-sm items-center gap-3">
+        <Separator class="flex-1" />
+        <span class="text-text-tertiary text-xs font-medium uppercase">or continue with</span>
+        <Separator class="flex-1" />
       </div>
     </CodeExample>
   </div>
@@ -74,45 +82,28 @@
 <!-- ─── Customization ─── -->
 
 <Section marker id="customization" title="Customization">
-  <div class="space-y-8">
+  <div class="space-y-6">
     <CodeExample
-      title="Separator with Label"
-      description="A common pattern: text centered over a horizontal rule — typical for 'OR continue with' auth flows."
+      title="Custom rules"
+      description="A `class` swaps the fill while the rule keeps its width and thickness. The first is a gradient that fades at both ends, the second a dashed border. Both clear the default flat fill with `bg-transparent` and take their colour from the `border-strong` token. Neither is reachable through the standard props."
       isolate
-      previewClass="flex flex-col gap-6"
+      previewClass="w-full py-6"
     >
-      <div class="relative flex items-center">
-        <Separator class="flex-1" />
-        <span class="text-text-tertiary bg-surface-base px-3 text-xs font-medium uppercase"
-          >or continue with</span
-        >
-        <Separator class="flex-1" />
-      </div>
-      <div class="relative flex items-center">
+      <div class="mx-auto flex w-full max-w-sm flex-col gap-6">
         <Separator
-          class="!my-0 flex-1"
-          slotClasses={{ base: 'bg-linear-to-r from-transparent to-border-subtle' }}
+          class="via-border-strong bg-transparent bg-linear-to-r from-transparent to-transparent"
         />
-        <span class="text-text-secondary bg-surface-base px-4 text-sm font-semibold tracking-wide"
-          >Chapter 2</span
-        >
-        <Separator
-          class="!my-0 flex-1"
-          slotClasses={{ base: 'bg-linear-to-l from-transparent to-border-subtle' }}
-        />
+        <Separator class="border-border-strong border-t border-dashed bg-transparent" />
       </div>
     </CodeExample>
 
     <p class="text-text-secondary text-sm leading-relaxed">
-      Separator supports the standard <code class="text-text-primary">unstyled</code> /
-      <code class="text-text-primary">slotClasses</code>
-      /
-      <code class="text-text-primary">preset</code> trio despite its single
-      <code class="text-text-primary">base</code>
-      slot — a recurring rule treatment like the gradient fade can live in
-      <code class="text-text-primary">presets.Separator</code>
-      on <code class="text-text-primary">BlocksProvider</code>. See
-      <a href={resolve('/customization')} class="text-primary hover:underline">Customization</a>.
+      This is one of five ways to restyle a block. See
+      <a href={resolve('/customization')} class="text-primary hover:underline">Customization</a>
+      for <code class="text-text-primary">class</code>,
+      <code class="text-text-primary">slotClasses</code>,
+      <code class="text-text-primary">unstyled</code>, <code class="text-text-primary">preset</code>
+      and provider-level overrides.
     </p>
   </div>
 </Section>
@@ -121,31 +112,25 @@
 
 <Section marker id="accessibility" title="Accessibility">
   <NoteList>
-    <Note title="ARIA Roles">
+    <Note title="Roles and semantics">
       <p>
-        By default, <code class="text-text-primary">decorative={'{'}true}</code> renders
-        <code class="text-text-primary">role="none"</code> so screen readers skip the element
-        entirely. Set <code class="text-text-primary">decorative={'{'}false}</code> to use
-        <code class="text-text-primary">role="separator"</code> with
-        <code class="text-text-primary">aria-orientation</code>, announcing it as a meaningful
+        Separator renders a <code class="text-text-primary">&lt;div&gt;</code> rather than an
+        <code class="text-text-primary">&lt;hr&gt;</code>, so its role is set explicitly. The
+        default
+        <code class="text-text-primary">decorative={'{'}true}</code> gives it
+        <code class="text-text-primary">role="none"</code>, and screen readers skip it. Set
+        <code class="text-text-primary">decorative={'{'}false}</code> for
+        <code class="text-text-primary">role="separator"</code> with a matching
+        <code class="text-text-primary">aria-orientation</code>, which announces the line as a real
         content boundary.
       </p>
     </Note>
     <Note title="When to use semantic mode">
       <p>
-        Use <code class="text-text-primary">decorative={'{'}false}</code> when the separator marks a thematic
-        shift — e.g. between unrelated content sections. Keep the default for purely visual spacing between
-        related items.
-      </p>
-    </Note>
-    <Note title="HTML Semantics">
-      <p>
-        Renders as a <code class="text-text-primary">&lt;div&gt;</code> rather than
-        <code class="text-text-primary">&lt;hr&gt;</code> for full ARIA control. The
-        <code class="text-text-primary">role</code> and
-        <code class="text-text-primary">aria-orientation</code> attributes are set automatically
-        based on the <code class="text-text-primary">decorative</code> and
-        <code class="text-text-primary">orientation</code> props.
+        Keep the default for spacing between related items. Reach for
+        <code class="text-text-primary">decorative={'{'}false}</code> when the line marks a thematic shift,
+        such as a boundary between two unrelated sections, where a screen reader announcing the break
+        helps.
       </p>
     </Note>
   </NoteList>

@@ -1,49 +1,156 @@
-<!-- urbicon-ignore raw-tailwind-color — the 17 raw colours are the Customization
-     section's subject. Those demos exist to show what `slotClasses`/`unstyled` reach
-     that the token system deliberately does not: glassmorphism, a terminal look, a neon
-     outline. Tokenising them would delete the example. Every other section on this page
-     stays under the rule. -->
 <script lang="ts">
   import { CodeExample, Note, NoteList, Section } from '@urbicon-ui/docs';
-  import { Kbd, SegmentGroup, SegmentItem } from '@urbicon-ui/blocks';
+  import { Card, Kbd, SegmentGroup, SegmentItem } from '@urbicon-ui/blocks';
   import { resolve } from '$app/paths';
 
+  const teams = [
+    { id: 'atlas', name: 'Atlas', meta: '12 members' },
+    { id: 'nova', name: 'Nova', meta: '8 members' },
+    { id: 'orbit', name: 'Orbit', meta: '5 members' }
+  ];
+  const rangeLabels: Record<string, string> = {
+    '1d': 'day',
+    '1w': 'week',
+    '1m': 'month',
+    '1y': 'year'
+  };
+
+  let view = $state('cards');
+  let range = $state('1w');
   let theme = $state('system');
-  let pricing = $state('pro');
-  let chartType = $state('line');
+  let plan = $state('yearly');
+
+  // Stands in for the fetch a real dashboard would fire here.
+  let loadedRange = $state(rangeLabels['1w']);
+  function loadRevenue(next: string) {
+    loadedRange = rangeLabels[next];
+  }
 </script>
+
+<!-- ─── Purpose ─── -->
+
+<Section marker id="purpose" title="Purpose">
+  <p class="text-text-secondary mb-4 text-sm leading-relaxed">
+    Reach for a SegmentGroup when a handful of options are mutually exclusive and switching between
+    them is the whole interaction: a view mode, a time range, a display density. It shows every
+    option at once and slides the selection between them.
+  </p>
+
+  <p class="text-text-secondary mb-4 text-sm leading-relaxed">
+    Each option is a <code class="text-text-primary">SegmentItem</code> with a
+    <code class="text-text-primary">value</code>, and the group's
+    <code class="text-text-primary">value</code> is whichever one is selected.
+    <code class="text-text-primary">bind:value</code> keeps it in a variable,
+    <code class="text-text-primary">onValueChange</code> gives you the new value for a side effect
+    like refetching. Where the row runs out of width,
+    <code class="text-text-primary">collapseOnOverflow</code> turns it into a vertical stack instead of
+    letting it overflow, so every option stays visible.
+  </p>
+
+  <div class="overflow-x-auto">
+    <table class="w-full text-left text-sm">
+      <thead class="text-text-primary border-border-subtle border-b">
+        <tr>
+          <th class="py-2 pr-4 font-semibold">Component</th>
+          <th class="py-2 font-semibold">Reach for it when</th>
+        </tr>
+      </thead>
+      <tbody class="text-text-secondary divide-border-subtle divide-y">
+        <tr>
+          <td class="py-3 pr-4 align-top"><code class="text-text-primary">SegmentGroup</code></td>
+          <td class="py-3 align-top">
+            2–5 mutually exclusive views or modes, in one neutral style. The group hands you a value
+            and you decide what to render with it.
+          </td>
+        </tr>
+        <tr>
+          <td class="py-3 pr-4 align-top">
+            <code class="text-text-primary">ButtonGroup</code>
+            <span class="text-text-tertiary">selection="single"</span>
+          </td>
+          <td class="py-3 align-top">
+            You need button variants and intents, connected borders, or multi-select.
+          </td>
+        </tr>
+        <tr>
+          <td class="py-3 pr-4 align-top"><code class="text-text-primary">RadioGroup</code></td>
+          <td class="py-3 align-top">
+            You're collecting a value in a form: labels, descriptions, helper and error text.
+          </td>
+        </tr>
+        <tr>
+          <td class="py-3 pr-4 align-top"><code class="text-text-primary">Tab</code></td>
+          <td class="py-3 align-top">
+            Each option owns a panel that assistive technology should tie to it. Tab renders
+            <code class="text-text-primary">role="tablist"</code> with
+            <code class="text-text-primary">aria-controls</code>, where a SegmentGroup is a
+            <code class="text-text-primary">radiogroup</code> that knows nothing about your markup.
+          </td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+</Section>
+
+<!-- ─── Examples ─── -->
 
 <Section marker id="examples" title="Examples">
   <div class="space-y-8">
     <CodeExample
-      title="Time-Range Selector"
-      description="Compact range picker for charts and dashboards. Works well with 2 to 5 options — beyond that, consider a Menu or Tab."
+      title="View switcher"
+      description="The common case: one dataset, a few mutually exclusive views."
       isolate
+      previewClass="flex flex-col items-center gap-5"
     >
-      <SegmentGroup value="1h" ariaLabel="Time range">
-        <SegmentItem value="1h">1H</SegmentItem>
-        <SegmentItem value="6h">6H</SegmentItem>
+      <SegmentGroup bind:value={view} size="sm" ariaLabel="View mode">
+        <SegmentItem value="list">List</SegmentItem>
+        <SegmentItem value="cards">Cards</SegmentItem>
+      </SegmentGroup>
+
+      {#if view === 'list'}
+        <ul
+          class="border-border-subtle divide-border-subtle w-full max-w-md divide-y rounded-xl border"
+        >
+          {#each teams as team (team.id)}
+            <li class="flex items-center justify-between px-4 py-3">
+              <span class="text-text-primary text-sm font-medium">{team.name}</span>
+              <span class="text-text-tertiary text-xs">{team.meta}</span>
+            </li>
+          {/each}
+        </ul>
+      {:else}
+        <div class="grid w-full max-w-md grid-cols-3 gap-3">
+          {#each teams as team (team.id)}
+            <Card variant="outlined" padding="sm" class="text-center">
+              <p class="text-text-primary text-sm font-medium">{team.name}</p>
+              <p class="text-text-tertiary mt-1 text-xs">{team.meta}</p>
+            </Card>
+          {/each}
+        </div>
+      {/if}
+    </CodeExample>
+
+    <CodeExample
+      title="Time-range selector"
+      description="A compact range switch for a chart or dashboard header. `bind:value` keeps the current range, and `onValueChange` is where the refetch goes. Two to five options fit, past that reach for a Menu."
+      isolate
+      previewClass="flex flex-col items-center gap-4"
+    >
+      <SegmentGroup bind:value={range} onValueChange={loadRevenue} size="sm" ariaLabel="Time range">
         <SegmentItem value="1d">1D</SegmentItem>
         <SegmentItem value="1w">1W</SegmentItem>
         <SegmentItem value="1m">1M</SegmentItem>
+        <SegmentItem value="1y">1Y</SegmentItem>
       </SegmentGroup>
+      <p class="text-text-secondary text-sm">
+        Showing revenue for the last
+        <span class="text-text-primary font-medium">{loadedRange}</span>.
+      </p>
     </CodeExample>
 
     <CodeExample
-      title="Per-Item Disabled"
-      description="Disable individual segments while the rest of the group stays interactive. Keyboard navigation skips disabled items."
-      isolate
-    >
-      <SegmentGroup value="a" ariaLabel="Partial disabled example">
-        <SegmentItem value="a">Available</SegmentItem>
-        <SegmentItem value="b" disabled>Unavailable</SegmentItem>
-        <SegmentItem value="c">Available</SegmentItem>
-      </SegmentGroup>
-    </CodeExample>
-
-    <CodeExample
-      title="Theme Switcher"
-      description="Embedded in a settings panel with two-way binding."
+      title="Inside a settings panel"
+      description="`mint=scale` grows a segment slightly while the pointer rests on it, which suits a control that sits quietly in a settings row until someone reaches for it."
       isolate
       previewClass="flex justify-center"
     >
@@ -61,182 +168,37 @@
   </div>
 </Section>
 
-<!-- ─── Micro-Interactions ─── -->
-
-<Section marker id="mints" title="Micro-Interactions">
-  <div class="space-y-8">
-    <CodeExample
-      title="Configured Mint"
-      description="The Playground toggles single mints — for richer effects, combine multiple mints in an array, or use the object form to fine-tune intensity and duration."
-      isolate
-    >
-      <SegmentGroup
-        value="pro"
-        mint={[{ name: 'scale', config: { intensity: 1.03, duration: 200 } }, 'glow']}
-        ariaLabel="Configured mint"
-      >
-        <SegmentItem value="free">Free</SegmentItem>
-        <SegmentItem value="pro">Pro</SegmentItem>
-        <SegmentItem value="enterprise">Enterprise</SegmentItem>
-      </SegmentGroup>
-    </CodeExample>
-  </div>
-</Section>
-
-<!-- ─── Comparison ─── -->
-
-<Section marker id="comparison" title="Choosing the Right Component">
-  <NoteList>
-    <Note title="SegmentGroup">
-      <p>
-        Compact mode/view switcher with animated sliding indicator. Best for 2-5 mutually exclusive
-        options that don't control content panels. Minimal API, single neutral style.
-      </p>
-    </Note>
-    <Note>
-      {#snippet titleSnippet()}
-        ButtonGroup
-        <code class="text-text-tertiary font-normal">selection="single"</code>
-      {/snippet}
-      <p>
-        Toolbar-style toggle with full button styling (variants, intents, connected borders). Choose
-        this when you need visual customization, multi-select, or connected button layouts.
-      </p>
-    </Note>
-    <Note title="RadioGroup">
-      <p>
-        Form input with labels, descriptions, helper/error text, and native
-        <code class="text-text-primary">&lt;input type="radio"&gt;</code>. Choose this when
-        collecting data in forms or when options need descriptions.
-      </p>
-    </Note>
-    <Note title="Tab">
-      <p>
-        Content panel navigation where each option reveals a different panel. Uses
-        <code class="text-text-primary">role="tablist"</code> semantics. Choose this when switching between
-        content sections, not selecting a value.
-      </p>
-    </Note>
-  </NoteList>
-</Section>
-
 <!-- ─── Customization ─── -->
 
 <Section marker id="customization" title="Customization">
-  <div class="space-y-8">
+  <div class="space-y-6">
     <CodeExample
-      title="Gradient Pricing Toggle"
-      description="slotClasses transforms the neutral control into a branded pricing switcher."
+      title="Primary-tinted control"
+      description="`slotClasses` recolours the track and the sliding indicator with the `primary` intent tokens and flips the active label to `text-on-primary`. Radius tier, padding, shadow and the slide animation stay, and because the look rides the intent palette it re-themes with the rest of the app."
       isolate
       previewClass="flex justify-center"
     >
       <SegmentGroup
-        bind:value={pricing}
-        mint={['scale', 'glow']}
+        bind:value={plan}
+        ariaLabel="Billing plan"
         slotClasses={{
-          base: 'bg-linear-to-r from-violet-500/15 to-fuchsia-500/15 border border-violet-500/20',
-          indicator: 'bg-linear-to-r from-violet-600 to-fuchsia-500 shadow-lg shadow-violet-500/30',
-          item: 'text-violet-300 data-[state=active]:text-white'
+          base: 'bg-primary-subtle',
+          indicator: 'bg-primary',
+          item: 'text-primary data-[state=active]:text-text-on-primary'
         }}
-        ariaLabel="Pricing tier"
       >
-        <SegmentItem value="free">Free</SegmentItem>
-        <SegmentItem value="pro">Pro</SegmentItem>
-        <SegmentItem value="enterprise">Enterprise</SegmentItem>
-      </SegmentGroup>
-    </CodeExample>
-
-    <CodeExample
-      title="Neon Chart Switcher"
-      description="Dark-themed control with neon glow – all via slotClasses, no unstyled needed."
-      isolate
-      previewClass="flex justify-center rounded-xl bg-neutral-950 px-8 py-6"
-    >
-      <SegmentGroup
-        bind:value={chartType}
-        mint="scale"
-        slotClasses={{
-          base: 'bg-neutral-900 border border-emerald-500/20',
-          indicator:
-            'bg-emerald-500/20 shadow-[0_0_15px_rgba(52,211,153,0.25)] border border-emerald-400/40',
-          item: 'text-neutral-500 data-[state=active]:text-emerald-400'
-        }}
-        ariaLabel="Chart type"
-      >
-        <SegmentItem value="line">Line</SegmentItem>
-        <SegmentItem value="bar">Bar</SegmentItem>
-        <SegmentItem value="area">Area</SegmentItem>
-      </SegmentGroup>
-    </CodeExample>
-
-    <CodeExample
-      title="Glassmorphism"
-      description="Frosted glass effect with backdrop-blur on a vibrant background."
-      isolate
-      previewClass="flex justify-center rounded-xl bg-linear-to-br from-sky-400 via-indigo-500 to-purple-600 px-8 py-8"
-    >
-      <SegmentGroup
-        value="overview"
-        mint="scale"
-        slotClasses={{
-          base: 'bg-white/10 backdrop-blur-md border border-white/20 shadow-lg',
-          indicator: 'bg-white/25 backdrop-blur-sm shadow-lg',
-          item: 'text-white/60 data-[state=active]:text-white'
-        }}
-        ariaLabel="Glass navigation"
-      >
-        <SegmentItem value="overview">Overview</SegmentItem>
-        <SegmentItem value="details">Details</SegmentItem>
-        <SegmentItem value="history">History</SegmentItem>
-      </SegmentGroup>
-    </CodeExample>
-
-    <CodeExample
-      title="Fully Custom (unstyled)"
-      description="Drop all default styles. The sliding indicator, keyboard nav, and mint still work."
-      isolate
-      previewClass="flex flex-col items-center gap-6"
-    >
-      <SegmentGroup
-        value="bold"
-        unstyled
-        mint="scale"
-        class="inline-flex gap-1 rounded-2xl bg-linear-to-br from-amber-200 to-orange-400 p-1.5 shadow-xl"
-        slotClasses={{
-          indicator: 'rounded-xl bg-white/80 shadow-md',
-          item: 'relative z-[var(--z-docked)] rounded-xl px-5 py-2 text-sm font-bold text-orange-950/80 transition-colors data-[state=active]:text-orange-900'
-        }}
-        ariaLabel="Unstyled warm"
-      >
-        <SegmentItem value="bold">Bold</SegmentItem>
-        <SegmentItem value="vibrant">Vibrant</SegmentItem>
-        <SegmentItem value="muted">Muted</SegmentItem>
-      </SegmentGroup>
-      <SegmentGroup
-        value="deploy"
-        unstyled
-        class="inline-flex gap-0 border-2 border-current p-0 font-mono text-sm"
-        slotClasses={{
-          indicator: 'bg-text-primary',
-          item: 'text-text-primary relative z-[var(--z-docked)] border-r border-current px-5 py-2.5 font-bold tracking-widest uppercase transition-colors last:border-r-0 data-[state=active]:text-surface-base'
-        }}
-        ariaLabel="Unstyled brutalist"
-      >
-        <SegmentItem value="staging">Staging</SegmentItem>
-        <SegmentItem value="deploy">Deploy</SegmentItem>
-        <SegmentItem value="rollback">Rollback</SegmentItem>
+        <SegmentItem value="monthly">Monthly</SegmentItem>
+        <SegmentItem value="yearly">Yearly</SegmentItem>
       </SegmentGroup>
     </CodeExample>
 
     <p class="text-text-secondary text-sm leading-relaxed">
-      A switcher chrome reused across settings panels belongs in <code class="text-text-primary"
-        >BlocksProvider</code
-      >
-      presets (<code class="text-text-primary">presets.SegmentGroup</code>, item styling under
-      <code class="text-text-primary">presets.SegmentItem</code>) — apply with
-      <code class="text-text-primary">preset</code>
-      instead of repeating <code class="text-text-primary">slotClasses</code>. See
-      <a href={resolve('/customization')} class="text-primary hover:underline">Customization</a>.
+      This is one of five ways to restyle a block. See
+      <a href={resolve('/customization')} class="text-primary hover:underline">Customization</a>
+      for <code class="text-text-primary">class</code>,
+      <code class="text-text-primary">slotClasses</code>,
+      <code class="text-text-primary">unstyled</code>, <code class="text-text-primary">preset</code>
+      and provider-level overrides.
     </p>
   </div>
 </Section>
@@ -245,32 +207,33 @@
 
 <Section marker id="accessibility" title="Accessibility">
   <NoteList>
-    <Note title="ARIA">
+    <Note title="Built-in ARIA">
       <p>
-        The container uses <code class="text-text-primary">role="radiogroup"</code> with each item
-        as <code class="text-text-primary">role="radio"</code> +
-        <code class="text-text-primary">aria-checked</code>. Provide
-        <code class="text-text-primary">ariaLabel</code> to describe the group's purpose.
+        The container is a <code class="text-text-primary">role="radiogroup"</code> and each segment
+        a
+        <code class="text-text-primary">role="radio"</code> carrying
+        <code class="text-text-primary">aria-checked</code>, so the active option is announced as a
+        selected radio. The sliding indicator is
+        <code class="text-text-primary">aria-hidden</code>, so it is never announced. Pass
+        <code class="text-text-primary">ariaLabel</code> to name the group's purpose.
       </p>
     </Note>
     <Note title="Keyboard">
       <p>
-        <Kbd keys="Arrow" />
-        keys move between options and select immediately.
+        <Kbd keys="Arrow" /> keys move between segments and select as they go.
         <Kbd keys="Home" />
-        /
-        <Kbd keys="End" />
-        jump to first/last option. Only the active item is in the tab order (roving tabindex).
+        and
+        <Kbd keys="End" /> do the same for the first and last, so both of them change the value. Only
+        the active segment is in the tab order (roving
+        <code class="text-text-primary">tabindex</code>), so
+        <Kbd keys="Tab" /> enters and leaves the group as a single stop.
       </p>
     </Note>
-    <Note title="Visual States">
+    <Note title="Reduced motion">
       <p>
-        Active items expose
-        <code class="text-text-primary">data-state="active"</code> for CSS-only styling in
-        <code class="text-text-primary">unstyled</code> mode. The sliding indicator uses
-        <code class="text-text-primary">aria-hidden="true"</code> since it is purely decorative.
-        Focus rings use
-        <code class="text-text-primary">focus-visible:</code> for keyboard-only visibility.
+        Under <code class="text-text-primary">prefers-reduced-motion</code> the indicator moves to
+        its new segment without the slide, and a
+        <code class="text-text-primary">mint</code> preset plays nothing at all.
       </p>
     </Note>
   </NoteList>

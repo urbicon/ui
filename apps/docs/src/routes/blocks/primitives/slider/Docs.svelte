@@ -15,9 +15,22 @@
 
 <Section marker id="examples" title="Examples">
   <div class="space-y-8">
+    <p class="text-text-secondary text-sm leading-relaxed">
+      A Slider binds a single number with <code
+        class="bg-surface-base rounded px-1.5 py-0.5 text-xs">bind:value</code
+      >. <code class="bg-surface-base rounded px-1.5 py-0.5 text-xs">min</code>,
+      <code class="bg-surface-base rounded px-1.5 py-0.5 text-xs">max</code> and
+      <code class="bg-surface-base rounded px-1.5 py-0.5 text-xs">step</code> default to 0, 100 and
+      1. Add <code class="bg-surface-base rounded px-1.5 py-0.5 text-xs">range</code> to bind a
+      <code class="bg-surface-base rounded px-1.5 py-0.5 text-xs">[min, max]</code> tuple instead,
+      and
+      <code class="bg-surface-base rounded px-1.5 py-0.5 text-xs">onValueChange</code> fires after every
+      change when you need to react beyond the binding.
+    </p>
+
     <CodeExample
       title="Price filter (range mode)"
-      description="range binds a [min, max] tuple instead of a single number — two thumbs, one value. Shown here as the product filter it is usually built for."
+      description="Two thumbs bind the [min, max] tuple, and formatValue receives that tuple, so this example branches on Array.isArray. Shown as the product filter it is usually built for."
       isolate
       previewClass="flex justify-center max-w-sm w-full mx-auto"
     >
@@ -118,7 +131,7 @@
 
     <CodeExample
       title="Helper & Error"
-      description="Group-level helper and error text follow the same form-field contract as Input — `error` overrides `helper` when both are set."
+      description="Group-level helper and error text follow the same form-field contract as Input: `error` overrides `helper` when both are set."
       isolate
       previewClass="flex flex-col gap-5 max-w-sm w-full"
     >
@@ -146,7 +159,7 @@
   <div class="space-y-8">
     <CodeExample
       title="Slot Overrides"
-      description="track, range, and thumb carry the visual weight (wrapper, label, valueText, mark, and message round out the slot set). A slimmer track with a tinted fill and a larger thumb — pointer, keyboard, and range logic stay untouched."
+      description="track, range, and thumb carry the visual weight, with label, valueText, mark and more among the other slots. A slimmer track with a tinted fill and a larger thumb, with pointer, keyboard, and range logic untouched."
       isolate
       previewClass="flex flex-col gap-3 max-w-sm w-full"
     >
@@ -166,12 +179,12 @@
     <p class="text-text-secondary text-sm leading-relaxed">
       <code class="text-text-primary">unstyled</code> removes all default classes while
       <code class="text-text-primary">role="slider"</code>, pointer capture, and keyboard stepping
-      keep working — rebuild track and thumb through
-      <code class="text-text-primary">slotClasses</code>. A control skin shared across sliders (e.g.
-      a media-player look) belongs in a
+      keep working. Rebuild track and thumb through
+      <code class="text-text-primary">slotClasses</code>. A control skin shared across sliders (for
+      example a media-player look) belongs in a
       <code class="text-text-primary">BlocksProvider</code> preset (<code class="text-text-primary"
         >presets.Slider</code
-      >) — see
+      >). See
       <a href={resolve('/customization')} class="text-primary hover:underline">Customization</a>.
     </p>
   </div>
@@ -201,13 +214,6 @@
         moves by 10x step.
         <Kbd keys="Home/End" />
         jump to min/max.
-      </p>
-    </Note>
-    <Note title="Touch Support">
-      <p>
-        Uses Pointer Events for unified mouse, touch, and pen support. The
-        <code class="text-text-primary">touch-none</code> CSS property prevents browser scroll interference
-        during thumb dragging.
       </p>
     </Note>
     <Note title="Focus & Color">

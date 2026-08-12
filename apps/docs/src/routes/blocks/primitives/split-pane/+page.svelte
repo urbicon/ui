@@ -59,12 +59,12 @@
 
 <SeoMeta
   title="SplitPane Component"
-  description="Resizable two-pane layout with a draggable divider — keyboard-accessible (WAI-ARIA window splitter), collapsible, horizontal or vertical."
+  description="Resizable two-pane layout with a draggable divider."
 />
 
 <DocsPageLayout
   title="SplitPane"
-  description="Resizable two-pane layout with a draggable divider. The divider is the WAI-ARIA 'window splitter' — focusable, keyboard-resizable, and optionally collapsible. Panes clip their own overflow and scroll independently. Reach for it when both regions are primary content the user should be able to rebalance."
+  description="Resizable two-pane layout with a draggable divider."
   maxWidth="2xl"
   showToc={true}
   breadcrumbs={[

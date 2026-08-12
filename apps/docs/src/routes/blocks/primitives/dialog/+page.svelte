@@ -28,12 +28,12 @@
 
 <SeoMeta
   title="Dialog Component"
-  description="Overlay dialog with optional structured layout (title/footer/intent), focus trapping, and keyboard management. Built on native <dialog>."
+  description="A modal overlay for a task the user must complete or dismiss before returning to the page. Built on the native <dialog> element."
 />
 
 <DocsPageLayout
   title="Dialog"
-  description="Overlay dialog with optional structured layout (title/footer/intent), focus trapping, and keyboard management. Built on native <dialog>."
+  description="A modal overlay for a task the user must complete or dismiss before returning to the page. Built on the native <dialog> element."
   stability={componentData?.stability}
   sourceHref={componentData?.sourceHref}
   related={relatedLinks}

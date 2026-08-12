@@ -7,7 +7,6 @@
     Section,
     TypesReference
   } from '@urbicon-ui/docs';
-  import { Select } from '@urbicon-ui/blocks';
   import CustomDocs from './Docs.svelte';
   import Playground from './Playground.svelte';
   import { componentData } from './api';
@@ -17,6 +16,7 @@
 
   const navigation = [
     { id: 'playground', title: 'Playground' },
+    { id: 'purpose', title: 'Purpose' },
     { id: 'examples', title: 'Examples' },
     { id: 'customization', title: 'Customization' },
     { id: 'accessibility', title: 'Accessibility' },
@@ -28,12 +28,12 @@
 
 <SeoMeta
   title="Select Component"
-  description="Form-focused select dropdown with label, validation, keyboard navigation, grouped options, and form integration."
+  description="A dropdown for choosing from a list of options, wired for forms."
 />
 
 <DocsPageLayout
   title="Select"
-  description="Form-focused select dropdown with label, validation, keyboard navigation, grouped options, and form integration."
+  description="A dropdown for choosing from a list of options, wired for forms."
   maxWidth="2xl"
   showToc={true}
   {navigation}

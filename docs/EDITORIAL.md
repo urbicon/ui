@@ -57,7 +57,9 @@ What they do that we copy:
 
 ## Page shape
 
-1. What it is, and when to reach for it. One or two sentences.
+1. What it is, and when to reach for it. One or two sentences — one, for a primitive whose function
+   is already known, with no marketing in the hero. The Playground speaks first; orientation beyond
+   that sentence moves to a section below.
 2. The smallest working example. Complete, copy-paste-runnable, imports included.
 3. The two or three props everyone will touch, each shown as a one-line change to the
    first example.

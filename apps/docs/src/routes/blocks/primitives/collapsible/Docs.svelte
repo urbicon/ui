@@ -1,8 +1,7 @@
-<!-- urbicon-ignore raw-tailwind-color — the 8 raw colours are the Customization
-     section's subject. Those demos exist to show what `slotClasses`/`unstyled` reach
-     that the token system deliberately does not: glassmorphism, a terminal look, a neon
-     outline. Tokenising them would delete the example. Every other section on this page
-     stays under the rule. -->
+<!-- urbicon-ignore raw-tailwind-color — the Customization demo tints the panel into a glass look
+     with `class` + `slotClasses`: it keeps the card radius tier, padding and the grid-rows expand
+     animation, and only the fill, border, blur and text are raw — a frosted-glass look the token
+     palette has no equivalent for. Every other section on this page stays under the rule. -->
 <script lang="ts">
   import { CodeExample, Note, NoteList, Section } from '@urbicon-ui/docs';
   import { Badge, Button, ClipboardListIcon, Collapsible, Kbd } from '@urbicon-ui/blocks';
@@ -14,18 +13,26 @@
 <!-- ─── Examples ─── -->
 
 <Section marker id="examples" title="Examples">
+  <p class="text-text-secondary mb-6 text-sm leading-relaxed">
+    A Collapsible is a single panel: <code class="text-text-primary">title</code> sets its trigger
+    text and the default slot is the content it reveals. Leave it uncontrolled with
+    <code class="text-text-primary">defaultOpen</code>, or drive it from your own state with
+    <code class="text-text-primary">bind:open</code>. For a set of panels where only one stays open
+    at a time, reach for Accordion instead.
+  </p>
+
   <div class="space-y-8">
     <!-- FAQ item -->
     <CodeExample
       title="FAQ item"
-      description="Stack multiple independent Collapsibles to build a FAQ list. Each panel opens and closes on its own — for single-open-at-a-time coordination, reach for Accordion instead."
+      description="Stack independent Collapsibles to build a FAQ list where any number of panels can be open at once."
       isolate
       previewClass="flex flex-col gap-3"
     >
       <div class="flex w-full max-w-lg flex-col gap-3">
         <Collapsible variant="card" title="What are design tokens?" defaultOpen>
           <p class="text-text-secondary text-sm leading-relaxed">
-            Named values — colors, spacing, radii — that form the single source of truth for your
+            Named values (colors, spacing, radii) that form the single source of truth for your
             design system. They bridge the gap between design tools and code.
           </p>
         </Collapsible>
@@ -49,7 +56,7 @@
     <!-- Controlled (section toggle) -->
     <CodeExample
       title="Controlled section toggle"
-      description="Drive the open state from outside via bind:open — useful for filter panels, settings sections, or any UI that needs to coordinate state with the rest of the page."
+      description="Drive the open state from outside via bind:open. Useful for filter panels, settings sections, or any UI that coordinates state with the rest of the page."
       isolate
     >
       <div class="flex w-full max-w-lg flex-col gap-4">
@@ -74,18 +81,19 @@
     <!-- Custom trigger -->
     <CodeExample
       title="Release-notes item with custom trigger"
-      description="Replace the default trigger via the trigger snippet to surface rich metadata — icons, badges, secondary text — while keeping the expand/collapse mechanics."
+      description="Replace the default trigger via the trigger snippet to surface rich metadata (icons, badges, secondary text) while keeping the expand/collapse mechanics."
       isolate
     >
       <div class="w-full max-w-lg">
         <Collapsible variant="card" defaultOpen>
           {#snippet trigger({
             open,
-            toggle
+            toggle,
+            triggerId,
+            contentId
           }: {
             open: boolean;
             toggle: () => void;
-            disabled: boolean;
             triggerId: string;
             contentId: string;
           })}
@@ -95,8 +103,12 @@
                  obvious in a theme that rounds containers). Open: only the top
                  two, the body continues the fill below. -->
             <button
+              id={triggerId}
+              type="button"
               onclick={toggle}
-              class="hover:bg-surface-hover rounded-t-contain flex w-full items-center gap-3 px-4 py-3 text-left transition-colors"
+              aria-expanded={open}
+              aria-controls={contentId}
+              class="hover:bg-surface-hover rounded-t-contain focus-visible:ring-primary/50 flex w-full items-center gap-3 px-4 py-3 text-left transition-colors focus-visible:ring-2 focus-visible:outline-none focus-visible:ring-inset"
             >
               <div
                 class="bg-primary/10 text-primary flex size-8 items-center justify-center rounded-lg"
@@ -130,95 +142,38 @@
 <!-- ─── Customization ─── -->
 
 <Section marker id="customization" title="Customization">
-  <div class="space-y-8">
-    <!-- slotClasses -->
+  <div class="space-y-6">
     <CodeExample
-      title="slotClasses Override"
-      description="Restyle individual slots — trigger background, content padding, chevron color."
+      title="Frosted glass"
+      description="`class` tints the panel and `slotClasses` recolours the trigger, chevron and content. It keeps the card radius tier, padding and the expand animation. Only the fill, border, blur and text change, in raw colours because glass has no token equivalent."
       isolate
-      previewClass="w-full"
+      previewClass="flex justify-center rounded-xl bg-linear-to-br from-rose-500 via-fuchsia-500 to-indigo-500 px-8 py-10"
     >
-      <div class="w-full max-w-lg">
+      <div class="w-full max-w-sm">
         <Collapsible
           variant="card"
           defaultOpen
-          title="Custom styled"
-          slotClasses={{
-            base: 'border-primary/20',
-            trigger: 'hover:text-primary font-semibold',
-            chevron: 'text-primary',
-            contentInner: 'text-text-secondary text-sm leading-relaxed'
-          }}
-        >
-          Override individual slots without touching the component source. The card gets a
-          primary-tinted border, the trigger uses a semibold font, and the chevron matches the
-          primary intent.
-        </Collapsible>
-      </div>
-    </CodeExample>
-
-    <!-- Glassmorphism -->
-    <CodeExample
-      title="Glassmorphism (unstyled)"
-      description="Fully custom frosted-glass panel built entirely with class overrides."
-      isolate
-      previewClass="rounded-2xl bg-gradient-to-br from-indigo-500 via-purple-500 to-pink-500 p-8"
-    >
-      <div class="w-full max-w-lg">
-        <Collapsible
-          unstyled
-          defaultOpen
           title="Frosted Glass"
-          class="overflow-hidden rounded-xl"
+          class="border-white/20 bg-white/10 shadow-[var(--blocks-shadow-lg)] backdrop-blur-xl"
           slotClasses={{
-            trigger:
-              'flex w-full items-center justify-between rounded-t-xl bg-white/15 px-5 py-3.5 text-sm font-medium text-white backdrop-blur-md transition-colors hover:bg-white/20',
-            chevron: 'size-4 text-white/60 transition-transform duration-200',
-            contentInner: 'bg-white/10 px-5 py-4 text-sm text-white/80 backdrop-blur-sm'
+            trigger: 'text-white hover:text-white',
+            chevron: 'text-white/60',
+            contentInner: 'text-sm text-white/80'
           }}
         >
-          The component strips all defaults in unstyled mode. Every visual detail is hand-crafted
-          through class props — background, blur, text color, spacing, and border radius.
-        </Collapsible>
-      </div>
-    </CodeExample>
-
-    <!-- Terminal -->
-    <CodeExample
-      title="Terminal (unstyled)"
-      description="Monospace hacker aesthetic built entirely with class overrides."
-      isolate
-      previewClass="rounded-2xl bg-neutral-950 p-6"
-    >
-      <div class="w-full max-w-lg">
-        <Collapsible
-          unstyled
-          defaultOpen
-          title="$ cat /etc/config"
-          class="font-mono"
-          slotClasses={{
-            trigger:
-              'flex w-full items-center justify-between py-3 text-xs text-emerald-300 transition-colors hover:text-emerald-400',
-            chevron: 'size-3.5 text-emerald-400 transition-transform duration-200',
-            contentInner: 'pb-3 text-xs leading-relaxed text-emerald-200'
-          }}
-        >
-          <p>NODE_ENV=production</p>
-          <p>PORT=3000</p>
-          <p>LOG_LEVEL=info</p>
-          <p class="mt-2 text-emerald-300">Process exited with code 0</p>
+          Frosted surfaces read best over a photograph or gradient, where the blur lifts the panel
+          off the busy background behind it.
         </Collapsible>
       </div>
     </CodeExample>
 
     <p class="text-text-secondary text-sm leading-relaxed">
-      Panel skins that recur (glass, terminal) belong in a <code class="text-text-primary"
-        >BlocksProvider</code
-      >
-      preset (<code class="text-text-primary">presets.Collapsible</code>), applied per instance via
-      <code class="text-text-primary">preset</code>
-      — see
-      <a href={resolve('/customization')} class="text-primary hover:underline">Customization</a>.
+      This is one of five ways to restyle a block. See
+      <a href={resolve('/customization')} class="text-primary hover:underline">Customization</a>
+      for <code class="text-text-primary">class</code>,
+      <code class="text-text-primary">slotClasses</code>,
+      <code class="text-text-primary">unstyled</code>, <code class="text-text-primary">preset</code>
+      and provider-level overrides.
     </p>
   </div>
 </Section>
@@ -267,10 +222,10 @@
     </Note>
     <Note title="Reduced Motion">
       <p>
-        The expand/collapse animation uses CSS
-        <code class="text-text-primary">grid-template-rows</code> transitions. When
-        <code class="text-text-primary">prefers-reduced-motion</code> is enabled, transition durations
-        are reduced via the design token system.
+        The expand/collapse is tied to the
+        <code class="text-text-primary">--blocks-collapse-duration</code>
+        token. Under <code class="text-text-primary">prefers-reduced-motion</code> that token collapses
+        to 1 ms, so the panel opens and closes without a visible slide.
       </p>
     </Note>
   </NoteList>

@@ -26,14 +26,11 @@
   ];
 </script>
 
-<SeoMeta
-  title="Input Component"
-  description="Text input fields with validation states, icons, and form integration."
-/>
+<SeoMeta title="Input Component" description="A single-line text field." />
 
 <DocsPageLayout
   title="Input"
-  description="Text input fields with validation states, icons, and form integration."
+  description="A single-line text field."
   maxWidth="2xl"
   showToc={true}
   breadcrumbs={[

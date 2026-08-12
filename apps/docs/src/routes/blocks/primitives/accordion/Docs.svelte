@@ -1,12 +1,16 @@
-<!-- urbicon-ignore raw-tailwind-color — the 24 raw colours are the Customization
-     section's subject. Those demos exist to show what `slotClasses`/`unstyled` reach
-     that the token system deliberately does not: glassmorphism, a terminal look, a neon
-     outline. Tokenising them would delete the example. Every other section on this page
-     stays under the rule. -->
 <script lang="ts">
   import { resolve } from '$app/paths';
   import { CodeExample, Note, NoteList, Section } from '@urbicon-ui/docs';
-  import { Accordion, AccordionItem, Badge, Collapsible, Kbd, ZapIcon } from '@urbicon-ui/blocks';
+  import {
+    Accordion,
+    AccordionItem,
+    Badge,
+    BlocksProvider,
+    Collapsible,
+    GiftIcon,
+    Kbd,
+    ZapIcon
+  } from '@urbicon-ui/blocks';
 
   let faqValue = $state<string>('what-is');
 </script>
@@ -15,10 +19,17 @@
 
 <Section marker id="examples" title="Examples">
   <div class="space-y-8">
+    <p class="text-text-secondary text-sm leading-relaxed">
+      Each <code class="bg-surface-base rounded px-1.5 py-0.5 text-xs">AccordionItem</code> takes a
+      <code class="bg-surface-base rounded px-1.5 py-0.5 text-xs">value</code> that identifies it, a
+      <code class="bg-surface-base rounded px-1.5 py-0.5 text-xs">title</code> for its header, and its
+      panel content as children.
+    </p>
+
     <!-- FAQ real-world example -->
     <CodeExample
       title="FAQ Section"
-      description="A realistic FAQ layout with rich content — the canonical real-world use case for Accordion."
+      description="A FAQ with the first panel open on load via defaultValue."
       isolate
     >
       <div
@@ -46,9 +57,8 @@
                 We use a 3-layer token system: foundation, semantic, and interaction tokens. Dark
                 mode is handled automatically via <code
                   class="bg-surface-base rounded px-1.5 py-0.5 text-xs">light-dark()</code
-                >
-                — no manual <code class="bg-surface-base rounded px-1.5 py-0.5 text-xs">dark:</code> classes
-                needed.
+                >. No manual
+                <code class="bg-surface-base rounded px-1.5 py-0.5 text-xs">dark:</code> classes needed.
               </p>
             </AccordionItem>
             <AccordionItem value="faq-3" title="Can I use only some components?">
@@ -73,7 +83,7 @@
     <!-- Controlled value -->
     <CodeExample
       title="Controlled State"
-      description="Bind the open item via bind:value for external state management — useful when the accordion's selection drives other UI."
+      description="Bind the open item with bind:value when its selection drives other UI."
       isolate
     >
       <div class="flex w-full flex-col gap-4">
@@ -87,7 +97,7 @@
             dark mode.
           </AccordionItem>
           <AccordionItem value="pricing" title="Is it free?">
-            Yes — Urbicon UI is free and open-source under the MIT license.
+            Yes. Urbicon UI is free and open-source under the MIT license.
           </AccordionItem>
           <AccordionItem value="support" title="Where do I get help?">
             Check the documentation, open a GitHub issue, or join the community Discord.
@@ -96,10 +106,30 @@
       </div>
     </CodeExample>
 
+    <!-- Multiple open -->
+    <CodeExample
+      title="Several panels open"
+      description="type=multiple lets any number of panels stay open at once. value and defaultValue are then arrays of the open item values."
+      isolate
+      previewClass="mx-auto w-full max-w-lg"
+    >
+      <Accordion type="multiple" variant="card" defaultValue={['shipping', 'items']}>
+        <AccordionItem value="items" title="Items (2)">
+          Two products, shipped together in one parcel.
+        </AccordionItem>
+        <AccordionItem value="shipping" title="Shipping address">
+          Ada Lovelace, 12 Analytical Ave, London.
+        </AccordionItem>
+        <AccordionItem value="payment" title="Payment">
+          Visa ending 4242, billed monthly.
+        </AccordionItem>
+      </Accordion>
+    </CodeExample>
+
     <!-- Custom Trigger -->
     <CodeExample
       title="Custom Trigger"
-      description="Replace the default trigger with a custom snippet for full control over the header layout — icons, badges, multi-line metadata."
+      description="A trigger snippet replaces the header label with your own markup: icons, badges, multi-line metadata. The chevron and the toggle behaviour stay."
       isolate
     >
       <Accordion variant="card" defaultValue="pro">
@@ -107,9 +137,9 @@
           {#snippet trigger({ open: _open })}
             <div class="flex w-full items-center gap-3">
               <div
-                class="bg-surface-hover rounded-modify flex size-8 items-center justify-center text-sm"
+                class="bg-surface-hover text-text-secondary rounded-modify flex size-8 items-center justify-center"
               >
-                🆓
+                <GiftIcon size={16} />
               </div>
               <div class="flex-1 text-left">
                 <p class="text-text-primary text-sm font-semibold">Free Plan</p>
@@ -148,11 +178,11 @@
 
 <!-- ─── Collapsible Foundation ─── -->
 
-<Section marker id="collapsible" title="Built on Collapsible">
+<Section marker id="collapsible" title="Accordion or Collapsible">
   <div class="space-y-8">
     <CodeExample
       title="Accordion vs Collapsible"
-      description="Accordion coordinates multiple panels via a shared context. For a single expand/collapse panel, use Collapsible directly."
+      description="Accordion coordinates several panels together. For a single expand/collapse panel, use Collapsible directly."
       isolate
       previewClass="flex flex-col gap-8 w-full"
     >
@@ -163,8 +193,8 @@
         <Collapsible variant="card" title="Standalone expand/collapse" defaultOpen>
           <p class="text-text-secondary text-sm">
             Use <code class="bg-surface-base rounded px-1.5 py-0.5 text-xs">Collapsible</code> when you
-            need a single panel that manages its own state. No context, no coordination — just expand
-            and collapse.
+            need a single panel that manages its own state. No context, no coordination, just expand and
+            collapse.
           </p>
         </Collapsible>
       </div>
@@ -178,189 +208,58 @@
             shared context.
           </AccordionItem>
           <AccordionItem value="a2" title="Coordinated panel B">
-            Single-mode, multiple-mode, non-collapsible — all managed by the Accordion wrapper.
+            Single, multiple and non-collapsible modes, all managed by the Accordion wrapper.
           </AccordionItem>
         </Accordion>
       </div>
     </CodeExample>
 
-    <div class="border-border-subtle bg-surface-elevated rounded-xl border p-5">
-      <p class="text-text-secondary text-sm leading-relaxed">
-        <strong class="text-text-primary">Architecture note:</strong> Each
-        <code class="bg-surface-base rounded px-1.5 py-0.5 text-xs">AccordionItem</code> uses
-        <code class="bg-surface-base rounded px-1.5 py-0.5 text-xs">Collapsible</code> internally
-        for its expand/collapse animation and ARIA attributes. The Accordion component adds
-        multi-item coordination (single/multiple mode, non-collapsible, disabled) on top. See the
-        <a href={resolve('/blocks/primitives/collapsible')} class="text-primary underline"
-          >Collapsible docs</a
-        > for the standalone API.
-      </p>
-    </div>
+    <p class="text-text-secondary text-sm leading-relaxed">
+      See the <a href={resolve('/blocks/primitives/collapsible')} class="text-primary underline"
+        >Collapsible</a
+      > page for that standalone case.
+    </p>
   </div>
 </Section>
 
 <!-- ─── Customization ─── -->
 
 <Section marker id="customization" title="Customization">
-  <div class="space-y-8">
-    <!-- slotClasses -->
+  <div class="space-y-6">
     <CodeExample
-      title="slotClasses Override"
-      description="Restyle individual slots with overrides that win the cascade — wider border in primary, tinted background, bold primary-colored trigger text, and an inset content rail."
+      title="One provider default"
+      description="One BlocksProvider default styles every AccordionItem at once, so the tint is set in one place rather than repeated on each item. The card variant keeps its padding, spacing, animation and focus ring."
       isolate
-      previewClass="w-full"
+      previewClass="mx-auto w-full max-w-lg"
     >
-      <Accordion
-        variant="card"
-        defaultValue="styled"
-        slotClasses={{
-          item: 'border-2 border-primary/40 rounded-2xl bg-primary/5',
-          trigger: 'text-primary font-bold',
-          chevron: 'text-primary',
-          contentInner: 'text-text-primary border-l-2 border-primary/40 pl-4'
+      <BlocksProvider
+        defaults={{
+          AccordionItem: {
+            slotClasses: {
+              item: 'border border-primary/40 bg-primary/10',
+              chevron: 'text-primary'
+            }
+          }
         }}
       >
-        <AccordionItem value="styled" title="Restyled via slotClasses">
-          Every slot is overridable: the item gets a two-pixel primary border + tinted background,
-          the trigger inherits the primary intent in bold, the chevron matches, and the content
-          inner pane adds a primary left rail for emphasis.
-        </AccordionItem>
-        <AccordionItem value="another" title="Consistent overrides">
-          slotClasses are applied to every item in the accordion, keeping the visual language
-          consistent across sections.
-        </AccordionItem>
-      </Accordion>
-    </CodeExample>
-
-    <!-- Glassmorphism unstyled -->
-    <CodeExample
-      title="Glassmorphism (unstyled)"
-      description="Fully custom frosted-glass accordion built entirely with class overrides."
-      isolate
-      previewClass="rounded-2xl bg-gradient-to-br from-indigo-500 via-purple-500 to-pink-500 p-8"
-    >
-      <Accordion unstyled defaultValue="glass-1" class="flex w-full flex-col gap-3">
-        <AccordionItem
-          unstyled
-          value="glass-1"
-          title="Frosted Glass Header"
-          class="overflow-hidden rounded-xl border border-white/20 bg-white/10 backdrop-blur-md transition-colors hover:bg-white/15"
-          slotClasses={{
-            trigger:
-              'flex w-full items-center justify-between px-5 py-3.5 text-sm font-medium text-white',
-            chevron: 'size-4 text-white/60 transition-transform duration-200',
-            contentInner: 'px-5 pb-4 pt-1 text-sm text-white/80'
-          }}
-        >
-          The accordion strips all defaults in unstyled mode. Every visual detail — background,
-          blur, text color, spacing — is hand-crafted through class props.
-        </AccordionItem>
-        <AccordionItem
-          unstyled
-          value="glass-2"
-          title="Layered Transparency"
-          class="overflow-hidden rounded-xl border border-white/20 bg-white/10 backdrop-blur-md transition-colors hover:bg-white/15"
-          slotClasses={{
-            trigger:
-              'flex w-full items-center justify-between px-5 py-3.5 text-sm font-medium text-white',
-            chevron: 'size-4 text-white/60 transition-transform duration-200',
-            contentInner: 'px-5 pb-4 pt-1 text-sm text-white/80'
-          }}
-        >
-          A single backdrop-blur layer on the item wraps both trigger and content — no seams, no
-          double-blur where the two panes meet.
-        </AccordionItem>
-        <AccordionItem
-          unstyled
-          value="glass-3"
-          title="Creative Freedom"
-          class="overflow-hidden rounded-xl border border-white/20 bg-white/10 backdrop-blur-md transition-colors hover:bg-white/15"
-          slotClasses={{
-            trigger:
-              'flex w-full items-center justify-between px-5 py-3.5 text-sm font-medium text-white',
-            chevron: 'size-4 text-white/60 transition-transform duration-200',
-            contentInner: 'px-5 pb-4 pt-1 text-sm text-white/80'
-          }}
-        >
-          Proof that <code class="rounded bg-white/15 px-1.5 py-0.5">unstyled</code> gives full creative
-          freedom while keeping structure, animation, and accessibility intact.
-        </AccordionItem>
-      </Accordion>
-    </CodeExample>
-
-    <!-- Terminal style unstyled -->
-    <CodeExample
-      title="Terminal (unstyled)"
-      description="Monospace hacker aesthetic built entirely with class overrides."
-      isolate
-      previewClass="rounded-2xl bg-neutral-950 p-6"
-    >
-      <Accordion
-        unstyled
-        defaultValue="term-1"
-        class="w-full divide-y divide-emerald-500/20 font-mono"
-      >
-        <AccordionItem
-          unstyled
-          value="term-1"
-          title="$ cat /etc/config"
-          slotClasses={{
-            trigger:
-              'flex w-full items-center justify-between py-3 text-xs text-emerald-300 transition-colors hover:text-emerald-400',
-            chevron: 'size-3.5 text-emerald-400 transition-transform duration-200',
-            contentInner: 'pb-3 text-xs leading-relaxed text-emerald-200'
-          }}
-        >
-          <p>NODE_ENV=production</p>
-          <p>PORT=3000</p>
-          <p>LOG_LEVEL=info</p>
-          <p class="mt-2 text-emerald-300">Process exited with code 0</p>
-        </AccordionItem>
-        <AccordionItem
-          unstyled
-          value="term-2"
-          title="$ systemctl status app"
-          slotClasses={{
-            trigger:
-              'flex w-full items-center justify-between py-3 text-xs text-emerald-300 transition-colors hover:text-emerald-400',
-            chevron: 'size-3.5 text-emerald-400 transition-transform duration-200',
-            contentInner: 'pb-3 text-xs leading-relaxed text-emerald-200'
-          }}
-        >
-          <p class="text-emerald-400">● app.service - Application Server</p>
-          <p class="text-emerald-400">
-            &nbsp;&nbsp;Active: <span class="text-emerald-300">active (running)</span>
-          </p>
-          <p class="text-emerald-400">&nbsp;&nbsp;Memory: 128.4M</p>
-        </AccordionItem>
-        <AccordionItem
-          unstyled
-          value="term-3"
-          title="$ tail -f /var/log/app.log"
-          slotClasses={{
-            trigger:
-              'flex w-full items-center justify-between py-3 text-xs text-emerald-300 transition-colors hover:text-emerald-400',
-            chevron: 'size-3.5 text-emerald-400 transition-transform duration-200',
-            contentInner: 'pb-3 text-xs leading-relaxed text-emerald-200'
-          }}
-        >
-          <p class="text-emerald-400">[12:34:01] GET /api/health 200 2ms</p>
-          <p class="text-emerald-400">[12:34:03] POST /api/users 201 45ms</p>
-          <p class="text-emerald-300">[12:34:05] Listening on :3000</p>
-        </AccordionItem>
-      </Accordion>
+        <Accordion variant="card" defaultValue="brand-1">
+          <AccordionItem value="brand-1" title="How is this styled?">
+            A single provider default paints every item from one place.
+          </AccordionItem>
+          <AccordionItem value="brand-2" title="Does the behaviour survive?">
+            Yes. Only the surface tint, border and accent colour change.
+          </AccordionItem>
+        </Accordion>
+      </BlocksProvider>
     </CodeExample>
 
     <p class="text-text-secondary text-sm leading-relaxed">
-      The frosted-glass and terminal treatments above are preset material: register the
-      <code class="text-text-primary">slotClasses</code> combination once under
-      <code class="text-text-primary">presets.Accordion</code>
-      /
-      <code class="text-text-primary">presets.AccordionItem</code> on
-      <code class="text-text-primary">BlocksProvider</code>
-      and opt in per instance via
-      <code class="text-text-primary">preset</code> — see
-      <a href={resolve('/customization')} class="text-primary hover:underline">Customization</a>.
+      This is one of five ways to restyle a block. See
+      <a href={resolve('/customization')} class="text-primary hover:underline">Customization</a>
+      for <code class="text-text-primary">class</code>,
+      <code class="text-text-primary">slotClasses</code>,
+      <code class="text-text-primary">unstyled</code>, <code class="text-text-primary">preset</code>
+      and provider-level overrides.
     </p>
   </div>
 </Section>
@@ -396,19 +295,16 @@
     </Note>
     <Note title="Disabled State">
       <p>
-        Disabled triggers get the native
-        <code class="text-text-primary">disabled</code> attribute, removing them from the tab order
-        and preventing activation. Visual feedback via
-        <code class="text-text-primary">opacity-50</code> and
-        <code class="text-text-primary">cursor-not-allowed</code>.
+        Set <code class="text-text-primary">disabled</code> on an
+        <code class="text-text-primary">AccordionItem</code> to give its trigger the native
+        <code class="text-text-primary">disabled</code> attribute, which removes it from the tab order
+        and blocks activation.
       </p>
     </Note>
     <Note title="Reduced Motion">
       <p>
-        The expand/collapse animation uses CSS
-        <code class="text-text-primary">grid-template-rows</code> transitions. When
-        <code class="text-text-primary">prefers-reduced-motion</code> is enabled, transition durations
-        are reduced via the design token system.
+        When <code class="text-text-primary">prefers-reduced-motion</code> is set, panels open and close
+        without animating.
       </p>
     </Note>
   </NoteList>

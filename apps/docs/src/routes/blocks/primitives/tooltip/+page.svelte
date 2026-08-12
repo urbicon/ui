@@ -26,14 +26,11 @@
   ];
 </script>
 
-<SeoMeta
-  title="Tooltip Component"
-  description="Contextual hints that appear on hover or focus. Supports placement, intents, sizes, and custom delays."
-/>
+<SeoMeta title="Tooltip Component" description="Contextual hints that appear on hover or focus." />
 
 <DocsPageLayout
   title="Tooltip"
-  description="Contextual hints that appear on hover or focus. Supports placement, intents, sizes, and custom delays."
+  description="Contextual hints that appear on hover or focus."
   maxWidth="2xl"
   showToc={true}
   {navigation}

@@ -1,89 +1,175 @@
-<!-- urbicon-ignore raw-tailwind-color — the 2 raw colours are the Customization
-     section's subject. Those demos exist to show what `slotClasses`/`unstyled` reach
-     that the token system deliberately does not: glassmorphism, a terminal look, a neon
-     outline. Tokenising them would delete the example. Every other section on this page
-     stays under the rule. -->
 <script lang="ts">
   import { CodeExample, Note, NoteList, Section } from '@urbicon-ui/docs';
   import { Kbd, Pagination } from '@urbicon-ui/blocks';
   import { resolve } from '$app/paths';
 
-  let pg3 = $state(7);
-  let pg6 = $state(1);
+  const orders = Array.from({ length: 96 }, (_, i) => ({
+    id: i + 1,
+    name: `Order #${1042 - i}`
+  }));
+  const perPage = 6;
+  let listPage = $state(1);
+  const visibleOrders = $derived(orders.slice((listPage - 1) * perPage, listPage * perPage));
+  const listTotalPages = Math.ceil(orders.length / perPage);
+
+  let tablePage = $state(1);
+  let customPage = $state(3);
 </script>
+
+<!-- ─── Layouts ─── -->
+
+<Section marker id="layouts" title="Layouts">
+  <p class="text-text-secondary mb-6 text-sm leading-relaxed">
+    <code class="text-text-primary">layout</code> decides what the bar is made of. Pick the one that fits
+    the surface. The Playground above lets you flip between them live.
+  </p>
+
+  <div class="overflow-x-auto">
+    <table class="w-full text-left text-sm">
+      <thead class="text-text-primary border-border-subtle border-b">
+        <tr>
+          <th class="py-2 pr-4 font-semibold"><code class="text-text-primary">layout</code></th>
+          <th class="py-2 pr-4 font-semibold">What it renders</th>
+          <th class="py-2 font-semibold">When to reach for it</th>
+        </tr>
+      </thead>
+      <tbody class="text-text-secondary divide-border-subtle divide-y">
+        <tr>
+          <td class="py-3 pr-4 align-top">
+            <code class="text-text-primary">default</code>
+            <span class="text-text-tertiary">(default)</span>
+          </td>
+          <td class="py-3 pr-4 align-top">
+            A number window with ellipses, prev / next, and ellipsis-gated first / last.
+          </td>
+          <td class="py-3 align-top">List and search-result pages.</td>
+        </tr>
+        <tr>
+          <td class="py-3 pr-4 align-top"><code class="text-text-primary">navigation</code></td>
+          <td class="py-3 pr-4 align-top">Previous / Next buttons only, with no page numbers.</td>
+          <td class="py-3 align-top"
+            >Article or record flows where the page number does not matter.</td
+          >
+        </tr>
+        <tr>
+          <td class="py-3 pr-4 align-top"><code class="text-text-primary">table</code></td>
+          <td class="py-3 pr-4 align-top">
+            A row-count summary (e.g. "1&ndash;25 of 500") beside prev / next.
+          </td>
+          <td class="py-3 align-top">
+            The footer of a data table. Pair it with <code class="text-text-primary"
+              >itemsPerPage</code
+            >
+            /
+            <code class="text-text-primary">totalItems</code>.
+          </td>
+        </tr>
+        <tr>
+          <td class="py-3 pr-4 align-top"><code class="text-text-primary">minimal</code></td>
+          <td class="py-3 pr-4 align-top">A single "Page 3 of 20" indicator, no buttons.</td>
+          <td class="py-3 align-top">Tight toolbars and mobile bars.</td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+</Section>
 
 <!-- ─── Examples ─── -->
 
 <Section marker id="examples" title="Examples">
+  <p class="text-text-secondary mb-8 text-sm leading-relaxed">
+    Pagination is controlled: you hold the 1-based <code class="text-text-primary">currentPage</code
+    >
+    in your own state and update it from <code class="text-text-primary">onPageChange</code>. The
+    bar reports the page the user picked and never changes it on its own.
+  </p>
   <div class="space-y-8">
     <CodeExample
-      title="Layouts"
-      description="Four layout presets cover the common contexts: a full page bar for list views, prev/next-only for article flows, a table footer with row counts, and a minimal page indicator for tight UI."
-      isolate
-      previewClass="flex flex-col gap-10"
+      title="Browsing a long list"
+      description="Slice your data by the current page. Here `currentPage` indexes a `$derived` slice of the orders, so picking a page swaps the visible rows. The bar stays presentational: it reports the page and leaves the data to you."
+      previewClass="w-full"
+      code={`<script lang="ts">
+  import { Pagination } from '@urbicon-ui/blocks';
+
+  const perPage = 6;
+  let page = $state(1);
+
+  // currentPage indexes the slice; onPageChange moves it.
+  const visible = $derived(orders.slice((page - 1) * perPage, page * perPage));
+  const totalPages = Math.ceil(orders.length / perPage);
+<\/script>
+
+<ul>
+  {#each visible as order (order.id)}
+    <li>{order.name}</li>
+  {/each}
+</ul>
+
+<Pagination currentPage={page} {totalPages} visiblePages={5} onPageChange={(p) => (page = p)} />`}
     >
-      <div class="flex flex-col gap-2.5">
-        <p class="text-text-tertiary text-xs font-medium tracking-wider uppercase">
-          Default — full page bar
-        </p>
+      <div class="w-full">
+        <ul
+          class="border-border-subtle divide-border-subtle text-text-secondary mb-4 divide-y rounded-lg border text-sm"
+        >
+          {#each visibleOrders as order (order.id)}
+            <li class="px-4 py-2.5 tabular-nums">{order.name}</li>
+          {/each}
+        </ul>
         <Pagination
-          currentPage={pg3}
-          totalPages={20}
-          showFirstLast
+          currentPage={listPage}
+          totalPages={listTotalPages}
           visiblePages={5}
-          onPageChange={(p: number) => (pg3 = p)}
+          onPageChange={(p: number) => (listPage = p)}
         />
-      </div>
-      <div class="flex flex-col gap-2.5">
-        <p class="text-text-tertiary text-xs font-medium tracking-wider uppercase">
-          Navigation — prev / next only
-        </p>
-        <Pagination
-          currentPage={pg3}
-          totalPages={20}
-          layout="navigation"
-          onPageChange={(p: number) => (pg3 = p)}
-        />
-      </div>
-      <div class="flex flex-col gap-2.5">
-        <p class="text-text-tertiary text-xs font-medium tracking-wider uppercase">
-          Table — info + controls
-        </p>
-        <Pagination
-          currentPage={pg3}
-          totalPages={20}
-          layout="table"
-          itemsPerPage={25}
-          totalItems={500}
-          onPageChange={(p: number) => (pg3 = p)}
-        />
-      </div>
-      <div class="flex flex-col gap-2.5">
-        <p class="text-text-tertiary text-xs font-medium tracking-wider uppercase">
-          Minimal — page indicator
-        </p>
-        <Pagination currentPage={pg3} totalPages={20} layout="minimal" />
       </div>
     </CodeExample>
 
     <CodeExample
-      title="Data Table Row"
-      description="Table layout embedded in a surface panel — a common real-world pattern."
+      title="Data-table footer"
+      description="`layout=table` swaps the number window for a row-count summary and pins prev / next to the right. `totalPages` still drives the buttons, while `itemsPerPage` and `totalItems` only build the summary. On the first page Previous is disabled in place."
       isolate
       previewClass="w-full"
     >
-      <div class="border-border-subtle bg-surface-elevated rounded-xl border px-5 py-3">
-        <Pagination
-          currentPage={pg6}
-          totalPages={42}
-          layout="table"
-          variant="ghost"
-          intent="neutral"
-          size="sm"
-          itemsPerPage={25}
-          totalItems={1042}
-          onPageChange={(p: number) => (pg6 = p)}
-        />
+      <div class="border-border-subtle w-full overflow-hidden rounded-lg border">
+        <table class="w-full text-left text-sm">
+          <thead class="text-text-secondary border-border-subtle bg-surface-quiet border-b">
+            <tr>
+              <th class="px-4 py-2 font-medium">Invoice</th>
+              <th class="px-4 py-2 font-medium">Customer</th>
+              <th class="px-4 py-2 pr-4 text-right font-medium">Amount</th>
+            </tr>
+          </thead>
+          <tbody class="text-text-secondary divide-border-subtle divide-y">
+            <tr>
+              <td class="px-4 py-2.5">INV-1042</td>
+              <td class="px-4 py-2.5">Northwind Traders</td>
+              <td class="px-4 py-2.5 text-right tabular-nums">$2,400.00</td>
+            </tr>
+            <tr>
+              <td class="px-4 py-2.5">INV-1041</td>
+              <td class="px-4 py-2.5">Aperture Labs</td>
+              <td class="px-4 py-2.5 text-right tabular-nums">$980.00</td>
+            </tr>
+            <tr>
+              <td class="px-4 py-2.5">INV-1040</td>
+              <td class="px-4 py-2.5">Soylent Corp</td>
+              <td class="px-4 py-2.5 text-right tabular-nums">$12,150.00</td>
+            </tr>
+          </tbody>
+        </table>
+        <div class="border-border-subtle border-t px-4 py-3">
+          <Pagination
+            currentPage={tablePage}
+            totalPages={48}
+            layout="table"
+            variant="ghost"
+            intent="neutral"
+            size="sm"
+            itemsPerPage={3}
+            totalItems={142}
+            onPageChange={(p: number) => (tablePage = p)}
+          />
+        </div>
       </div>
     </CodeExample>
   </div>
@@ -92,70 +178,32 @@
 <!-- ─── Customization ─── -->
 
 <Section marker id="customization" title="Customization">
-  <div class="space-y-8">
+  <div class="space-y-6">
     <CodeExample
-      title="slotClasses Override"
-      description="Widen the gap, tint the info text, and style the ellipsis."
+      title="Segmented bar"
+      description="Group the whole pager into one tinted segment: `slotClasses` gives the `base` slot a `surface-quiet` fill, a subtle border and a container radius. The buttons keep their own radius tier and behaviour."
       isolate
+      previewClass="flex justify-center"
     >
       <Pagination
-        currentPage={pg6}
-        totalPages={15}
-        showInfo
-        slotClasses={{
-          base: 'gap-2',
-          info: 'text-primary font-medium',
-          ellipsis: 'text-danger font-bold'
-        }}
-        onPageChange={(p: number) => (pg6 = p)}
-      />
-    </CodeExample>
-
-    <CodeExample
-      title="Pill Buttons"
-      description="Round buttons via slotClasses on the controls slot."
-      isolate
-    >
-      <Pagination
-        currentPage={pg6}
-        totalPages={10}
-        variant="filled"
-        intent="secondary"
-        slotClasses={{ controls: '[&>*]:rounded-full' }}
-        onPageChange={(p: number) => (pg6 = p)}
-      />
-    </CodeExample>
-
-    <CodeExample
-      title="Terminal Style (unstyled)"
-      description="Drop all defaults for a monospace, dark-themed pagination."
-      isolate
-      previewClass="rounded-xl bg-neutral-950 px-6 py-4"
-    >
-      <Pagination
-        unstyled
-        currentPage={4}
+        currentPage={customPage}
         totalPages={12}
-        showInfo
-        showNumbers={false}
-        variant="ghost"
-        intent="neutral"
-        class="terminal-pagination flex items-center justify-between gap-4 font-mono text-sm text-emerald-300"
+        visiblePages={5}
+        showFirstLast={false}
         slotClasses={{
-          info: 'tabular-nums text-emerald-300',
-          controls: 'flex gap-2'
+          base: 'border-border-subtle bg-surface-quiet w-fit rounded-lg border px-1.5 py-1'
         }}
-        previousLabel="← prev"
-        nextLabel="next →"
+        onPageChange={(p: number) => (customPage = p)}
       />
     </CodeExample>
 
     <p class="text-text-secondary text-sm leading-relaxed">
-      Used on more than one list, the pill or terminal styles above become one
-      <code class="text-text-primary">BlocksProvider</code> preset (<code class="text-text-primary"
-        >presets.Pagination</code
-      >) applied via <code class="text-text-primary">preset</code> — see
-      <a href={resolve('/customization')} class="text-primary hover:underline">Customization</a>.
+      This is one of five ways to restyle a block. See
+      <a href={resolve('/customization')} class="text-primary hover:underline">Customization</a>
+      for <code class="text-text-primary">class</code>,
+      <code class="text-text-primary">slotClasses</code>,
+      <code class="text-text-primary">unstyled</code>, <code class="text-text-primary">preset</code>
+      and provider-level overrides.
     </p>
   </div>
 </Section>
@@ -166,45 +214,26 @@
   <NoteList>
     <Note title="Built-in ARIA">
       <p>
-        The root <code class="text-text-primary">&lt;nav&gt;</code> carries
-        <code class="text-text-primary">role="navigation"</code> and an
-        <code class="text-text-primary">aria-label</code>. The active page button sets
-        <code class="text-text-primary">aria-current="page"</code>. Disabled boundary buttons expose
-        <code class="text-text-primary">aria-disabled</code> so screen readers can announce their state.
+        The root element is a <code class="text-text-primary">&lt;nav&gt;</code> landmark carrying
+        an
+        <code class="text-text-primary">aria-label</code>, so assistive tech lists it as a named
+        navigation region. Pass your own <code class="text-text-primary">aria-label</code> to name
+        each pager when a page carries more than one. The active page button sets
+        <code class="text-text-primary">aria-current="page"</code>. A disabled boundary button
+        (Previous on the first page, Next on the last) is inert and marked
+        <code class="text-text-primary">aria-disabled</code>.
       </p>
     </Note>
     <Note title="Keyboard">
       <p>
         <Kbd keys="Tab" />
-        moves focus between pagination buttons in DOM order.
+        moves through the controls in DOM order.
         <Kbd keys="Enter" />
         /
         <Kbd keys="Space" />
-        activates the focused button. First/last, prev/next, and numbered buttons are all focusable in
-        natural tab order.
-      </p>
-    </Note>
-    <Note title="Reduced Motion">
-      <p>
-        Mint effects respect
-        <code class="text-text-primary">prefers-reduced-motion</code>. Transitions and hover/active
-        feedback are reduced or removed when the user has requested less motion.
+        activates the focused one. Every enabled control (first / last, prev / next, and the numbered
+        buttons) is reachable this way, and a disabled boundary button is skipped.
       </p>
     </Note>
   </NoteList>
 </Section>
-
-<style>
-  /* Terminal-style pagination: force emerald text on every nested button/link.
-     Tailwind child-selector utilities lose the specificity war against the
-     Button component's compound variant classes, so plain CSS with
-     :where() keeps the override simple without raising specificity noise. */
-  :global(.terminal-pagination :is(button, a)),
-  :global(.terminal-pagination :is(button, a) *) {
-    color: var(--color-emerald-300);
-  }
-  :global(.terminal-pagination :is(button, a):hover),
-  :global(.terminal-pagination :is(button, a):hover *) {
-    color: var(--color-emerald-200);
-  }
-</style>

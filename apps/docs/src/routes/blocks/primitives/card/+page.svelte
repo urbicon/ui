@@ -17,6 +17,7 @@
 
   const navigation = [
     { id: 'playground', title: 'Playground' },
+    { id: 'variants', title: 'Variants' },
     { id: 'examples', title: 'Examples' },
     { id: 'customization', title: 'Customization' },
     { id: 'accessibility', title: 'Accessibility' },
@@ -28,12 +29,12 @@
 
 <SeoMeta
   title="Card Component"
-  description="Flexible container for grouping related content with headers, footers, and interactive states."
+  description="Container that groups related content and can render as a link or button."
 />
 
 <DocsPageLayout
   title="Card"
-  description="Flexible container for grouping related content with headers, footers, and interactive states."
+  description="Container that groups related content and can render as a link or button."
   maxWidth="2xl"
   showToc={true}
   breadcrumbs={[

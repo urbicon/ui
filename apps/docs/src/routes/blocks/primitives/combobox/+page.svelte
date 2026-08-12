@@ -29,12 +29,12 @@
 
 <SeoMeta
   title="Combobox Component"
-  description="Searchable autocomplete input with keyboard navigation and custom filtering."
+  description="Searchable autocomplete input for choosing from a long list of options."
 />
 
 <DocsPageLayout
   title="Combobox"
-  description="Searchable autocomplete input with keyboard navigation and custom filtering."
+  description="Searchable autocomplete input for choosing from a long list of options."
   maxWidth="2xl"
   showToc={true}
   breadcrumbs={[

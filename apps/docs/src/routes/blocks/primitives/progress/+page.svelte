@@ -17,6 +17,7 @@
 
   const navigation = [
     { id: 'playground', title: 'Playground' },
+    { id: 'purpose', title: 'Purpose' },
     { id: 'examples', title: 'Examples' },
     { id: 'customization', title: 'Customization' },
     { id: 'accessibility', title: 'Accessibility' },
@@ -28,12 +29,12 @@
 
 <SeoMeta
   title="Progress Component"
-  description="Linear and circular progress indicators with semantic intents, labels, stripes, and indeterminate mode."
+  description="Shows task progress as a linear bar or circular ring."
 />
 
 <DocsPageLayout
   title="Progress"
-  description="Linear and circular progress indicators with semantic intents, labels, stripes, and indeterminate mode."
+  description="Shows task progress as a linear bar or circular ring."
   maxWidth="2xl"
   showToc={true}
   {navigation}

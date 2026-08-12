@@ -13,6 +13,14 @@
 
 <Section marker id="examples" title="Examples">
   <div class="space-y-8">
+    <p class="text-text-secondary text-sm leading-relaxed">
+      For a button's loading state, use the Button's own
+      <code class="bg-surface-base rounded px-1.5 py-0.5 text-xs">loading</code> prop, which renders the
+      spinner for you. Reach for Spinner directly everywhere else: a list row, an inline status, an overlay.
+      Use it for an indeterminate wait, and reach for Progress when you can show a percentage or Skeleton
+      when you know the shape of what loads.
+    </p>
+
     <CodeExample
       title="In a list"
       description="The two places a list needs a spinner: on a single row while its action runs and the rest of the list stays interactive, and at the foot of the list while the next page is fetched."
@@ -38,9 +46,9 @@
 
       <div class="border-border-subtle bg-surface-elevated w-full rounded-2xl border p-4">
         <ul class="space-y-2.5">
-          <li class="text-text-primary text-sm">Item 1 — Loaded</li>
-          <li class="text-text-primary text-sm">Item 2 — Loaded</li>
-          <li class="text-text-primary text-sm">Item 3 — Loaded</li>
+          <li class="text-text-primary text-sm">Q3 revenue report</li>
+          <li class="text-text-primary text-sm">Onboarding checklist</li>
+          <li class="text-text-primary text-sm">API keys rotated</li>
         </ul>
         <div class="border-border-subtle mt-4 flex items-center justify-center gap-2 border-t pt-4">
           <Spinner size="sm" variant="dots" intent="primary" />
@@ -51,7 +59,7 @@
 
     <CodeExample
       title="Color inheritance"
-      description="Use `intent='current'` so the spinner picks up the surrounding text color via `currentColor` — ideal inside coloured surfaces, badges, or alerts where a fixed intent would clash."
+      description="Use `intent='current'` so the spinner picks up the surrounding text color via `currentColor`, ideal inside coloured surfaces, badges, or alerts where a fixed intent would clash."
       isolate
       previewClass="flex flex-wrap items-center gap-4"
     >
@@ -198,8 +206,7 @@
         >BlocksProvider</code
       >
       preset (<code class="text-text-primary">presets.Spinner</code>), applied via
-      <code class="text-text-primary">preset</code>
-      — see
+      <code class="text-text-primary">preset</code>. See
       <a href={resolve('/customization')} class="text-primary hover:underline">Customization</a>.
     </p>
   </div>
@@ -213,7 +220,7 @@
       <p>
         Uses <code class="text-text-primary">role="status"</code> with
         <code class="text-text-primary">aria-label</code> from the
-        <code class="text-text-primary">label</code> prop (defaults to "Loading…"). The
+        <code class="text-text-primary">label</code> prop (defaults to "Loading..."). The
         <code class="text-text-primary">aria-live="polite"</code> region announces loading state without
         interrupting the user.
       </p>
@@ -221,7 +228,7 @@
     <Note title="Visibility">
       <p>
         When <code class="text-text-primary">visible={'{'}false}</code>, the spinner is removed from
-        the DOM entirely — no visual output and no accessibility tree entry.
+        the DOM entirely, with no visual output and no accessibility tree entry.
       </p>
     </Note>
     <Note title="Reduced Motion">
@@ -230,12 +237,6 @@
         <code class="text-text-primary">prefers-reduced-motion: reduce</code> via Tailwind's
         <code class="text-text-primary">motion-reduce:</code> variant. In reduced-motion mode the spinner
         still renders statically to indicate loading.
-      </p>
-    </Note>
-    <Note title="Print">
-      <p>
-        Spinners are hidden from print output via a
-        <code class="text-text-primary">@media print</code> rule.
       </p>
     </Note>
   </NoteList>

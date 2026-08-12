@@ -28,12 +28,12 @@
 
 <SeoMeta
   title="Alert Component"
-  description="Persistent inline notifications for status, warnings, errors, and informational messages with icons, actions, and dismissal."
+  description="Persistent inline notifications for status, warnings, errors, and hints."
 />
 
 <DocsPageLayout
   title="Alert"
-  description="Persistent inline notifications for status, warnings, errors, and informational messages with icons, actions, and dismissal."
+  description="Persistent inline notifications for status, warnings, errors, and hints."
   maxWidth="2xl"
   showToc={true}
   breadcrumbs={[

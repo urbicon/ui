@@ -7,16 +7,17 @@
     Section,
     TypesReference
   } from '@urbicon-ui/docs';
-  import { RadioGroup, RadioItem } from '@urbicon-ui/blocks';
   import CustomDocs from './Docs.svelte';
   import Playground from './Playground.svelte';
   import { componentData } from './api';
   import { buildRelatedLinks } from '$lib/component-links';
   import { asset, resolve } from '$app/paths';
+
   const relatedLinks = buildRelatedLinks(componentData);
 
   const navigation = [
     { id: 'playground', title: 'Playground' },
+    { id: 'purpose', title: 'Purpose' },
     { id: 'examples', title: 'Examples' },
     { id: 'customization', title: 'Customization' },
     { id: 'accessibility', title: 'Accessibility' },
@@ -26,21 +27,18 @@
   ];
 </script>
 
-<SeoMeta
-  title="RadioGroup Component"
-  description="Accessible radio group for single-option selection with semantic intents, keyboard navigation, and form integration."
-/>
+<SeoMeta title="RadioGroup Component" description="Radio group for single-option selection." />
 
 <DocsPageLayout
   title="RadioGroup"
-  description="Accessible radio group for single-option selection with semantic intents, keyboard navigation, and form integration."
+  description="Radio group for single-option selection."
   maxWidth="2xl"
   showToc={true}
-  {navigation}
   breadcrumbs={[
     { label: 'Blocks', href: resolve('/blocks') },
     { label: 'Primitives', href: resolve('/blocks/primitives') }
   ]}
+  {navigation}
   stability={componentData?.stability}
   sourceHref={componentData?.sourceHref}
   related={relatedLinks}

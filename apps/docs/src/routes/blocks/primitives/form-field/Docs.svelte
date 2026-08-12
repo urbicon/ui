@@ -5,30 +5,41 @@
 </script>
 
 <Section marker id="examples" title="Examples">
+  <p class="text-text-secondary mb-6 text-sm leading-relaxed">
+    Reach for <code class="text-text-primary">FormField</code> around a control that brings no
+    label, helper or error of its own: a native file or colour input, a widget from somewhere else.
+    The form blocks here take <code class="text-text-primary">label</code>,
+    <code class="text-text-primary">helper</code> and <code class="text-text-primary">error</code>
+    as props, so a <code class="text-text-primary">FormField</code> around one of them puts a second
+    label above the first. The <code class="text-text-primary">children</code> snippet hands out a
+    <code class="text-text-primary">FormFieldSlotContext</code>, and each of its fields reaches the
+    control through a line you write.
+  </p>
+
   <div class="space-y-8">
     <CodeExample
-      title="Wrapping a custom file input"
-      description="The slot receives wiring metadata (id, describedBy, invalid, required, disabled). Spread or apply these so screen readers can find the label and any error/helper text."
-      code={`<FormField label="Document" required helper="PDF, JPG, PNG — max 10 MB">
+      title="Wrapping a native file input"
+      description="`required` puts the asterisk on the label and appears in the snippet context. Whether the control enforces anything is down to the attribute you set on it, which is the same division of labour as for the id and the description."
+      code={`<FormField label="Document" required helper="PDF, JPG or PNG, max 10 MB">
   {#snippet children({ id, describedBy, invalid, required })}
     <input
       {id}
       type="file"
       aria-describedby={describedBy}
-      aria-invalid={invalid}
+      aria-invalid={invalid || undefined}
       {required}
     />
   {/snippet}
 </FormField>`}
       language="svelte"
     >
-      <FormField label="Document" required helper="PDF, JPG, PNG — max 10 MB">
+      <FormField label="Document" required helper="PDF, JPG or PNG, max 10 MB">
         {#snippet children(ctx)}
           <input
             id={ctx.id}
             type="file"
             aria-describedby={ctx.describedBy}
-            aria-invalid={ctx.invalid}
+            aria-invalid={ctx.invalid || undefined}
             required={ctx.required}
             class="border-border-subtle w-full rounded-md border px-3 py-2 text-sm"
           />
@@ -37,22 +48,28 @@
     </CodeExample>
 
     <CodeExample
-      title="With error"
-      code={`<FormField label="Document" error="Required" required>
+      title="A native control with an error"
+      description="Setting `error` swaps the helper for the message, points `describedBy` at that message instead, and flips `invalid` for the control to pick up. `invalid` is a boolean, so pass it on as `invalid || undefined` unless you want an `aria-invalid=false` sitting in the markup."
+      code={`<FormField label="Brand color" error="Pick a color with more contrast">
   {#snippet children({ id, describedBy, invalid })}
-    <input {id} type="file" aria-describedby={describedBy} aria-invalid={invalid} />
+    <input
+      {id}
+      type="color"
+      aria-describedby={describedBy}
+      aria-invalid={invalid || undefined}
+    />
   {/snippet}
 </FormField>`}
       language="svelte"
     >
-      <FormField label="Document" error="Required" required>
+      <FormField label="Brand color" error="Pick a color with more contrast">
         {#snippet children(ctx)}
           <input
             id={ctx.id}
-            type="file"
+            type="color"
             aria-describedby={ctx.describedBy}
-            aria-invalid={ctx.invalid}
-            class="border-border-subtle w-full rounded-md border px-3 py-2 text-sm"
+            aria-invalid={ctx.invalid || undefined}
+            class="border-border-subtle h-10 w-16 rounded-md border"
           />
         {/snippet}
       </FormField>
@@ -63,52 +80,40 @@
 <Section marker id="customization" title="Customization">
   <div class="space-y-3">
     <p class="text-text-secondary text-sm leading-relaxed">
-      Built-in form primitives (<code class="text-text-primary">Input</code>,
-      <code class="text-text-primary">Select</code>,
-      <code class="text-text-primary">Textarea</code>) already render their own label + helper +
-      error — <em>FormField is not needed there</em>. Use
-      <code class="text-text-primary">FormField</code> only for composite controls that don't have
-      those slots, e.g. <code class="text-text-primary">FileUpload</code>, custom number-spinner
-      combinations, or media uploaders.
+      FormField takes <code class="text-text-primary">class</code> on its outer element and
+      <code class="text-text-primary">slotClasses</code> keyed by
+      <code class="text-text-primary">wrapper</code>, <code class="text-text-primary">label</code>,
+      <code class="text-text-primary">helper</code> and
+      <code class="text-text-primary">message</code>, which is the error. It carries no
+      <code class="text-text-primary">tv()</code> config of its own, so
+      <code class="text-text-primary">unstyled</code> and
+      <code class="text-text-primary">preset</code> stop at this one block.
     </p>
     <p class="text-text-secondary text-sm leading-relaxed">
-      FormField is a documented deviation from the standard styling contract: as a bare layout
-      wrapper without a <code class="text-text-primary">tv()</code> config it has no
-      <code class="text-text-primary">unstyled</code> mode and no
-      <code class="text-text-primary">preset</code> support. Restyle it via
-      <code class="text-text-primary">class</code> (the wrapper element) and
-      <code class="text-text-primary">slotClasses</code> with the hand-maintained keys
-      <code class="text-text-primary">wrapper</code>, <code class="text-text-primary">label</code>,
-      <code class="text-text-primary">message</code>, and
-      <code class="text-text-primary">helper</code> — e.g. a bolder label via the
-      <code class="text-text-primary">label</code> key. The wrapped control keeps its own styling
-      API. See
-      <a href={resolve('/customization')} class="text-primary hover:underline">Customization</a> for the
-      general contract.
+      See <a href={resolve('/customization')} class="text-primary hover:underline">Customization</a>
+      for the <code class="text-text-primary">class</code> and
+      <code class="text-text-primary">slotClasses</code> contract shared across blocks.
     </p>
   </div>
 </Section>
 
 <Section marker id="accessibility" title="Accessibility">
   <NoteList>
-    <Note title="Label association">
+    <Note title="One label, one control">
       <p>
-        The wrapper renders a <code class="text-text-primary">&lt;label for=…&gt;</code> linked to
-        the slot's <code class="text-text-primary">id</code>.
-      </p>
-    </Note>
-    <Note title="Description and error share one slot">
-      <p>
-        Helper text gets an <code class="text-text-primary">id</code> referenced via
-        <code class="text-text-primary">aria-describedby</code>. When an error is present the error
-        message takes the spot and the helper is hidden — this matches WCAG guidance to surface the
-        most actionable message to AT users.
+        The <code class="text-text-primary">&lt;label for=…&gt;</code> points at the single
+        <code class="text-text-primary">id</code> the snippet hands out, so a FormField labels one
+        control. Two controls in one field want a
+        <code class="text-text-primary">&lt;fieldset&gt;</code> with a legend instead, and a control
+        that is not a labelable element wants
+        <code class="text-text-primary">aria-labelledby</code> pointing at your own label.
       </p>
     </Note>
     <Note title="Errors are announced">
       <p>
-        The error renders with <code class="text-text-primary">role="alert"</code>, so it is
-        announced when the value changes during validation.
+        The error message renders with <code class="text-text-primary">role="alert"</code>, so a
+        message that appears after a failed submit is read out without the user going looking for
+        it.
       </p>
     </Note>
   </NoteList>

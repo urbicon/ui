@@ -9,6 +9,7 @@ import type { AvatarSlots, AvatarVariants } from './avatar.variants';
  *
  * @tag display
  * @related Badge
+ * @related AvatarGroup
  *
  * @example
  * ```svelte

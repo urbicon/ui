@@ -28,14 +28,11 @@
   ];
 </script>
 
-<SeoMeta
-  title="Drawer Component"
-  description="Slide-in panel overlay from any viewport edge with focus trap, backdrop dismiss, and keyboard support."
-/>
+<SeoMeta title="Drawer Component" description="Slide-in panel overlay from any viewport edge." />
 
 <DocsPageLayout
   title="Drawer"
-  description="Slide-in panel overlay from any viewport edge with focus trap, backdrop dismiss, and keyboard support."
+  description="Slide-in panel overlay from any viewport edge."
   maxWidth="2xl"
   showToc={true}
   {navigation}

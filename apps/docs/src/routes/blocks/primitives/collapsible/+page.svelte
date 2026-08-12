@@ -57,12 +57,12 @@
 
 <SeoMeta
   title="Collapsible Component"
-  description="A single expand/collapse panel with animated content, trigger button, and full ARIA support."
+  description="A single expand/collapse panel with a default or custom trigger, the low-level primitive behind Accordion."
 />
 
 <DocsPageLayout
   title="Collapsible"
-  description="A single expand/collapse panel with smooth animation, a default or custom trigger, and full ARIA support. The low-level primitive behind Accordion — use it standalone for simple show/hide patterns or as a building block for compound components."
+  description="A single expand/collapse panel with a default or custom trigger, the low-level primitive behind Accordion."
   maxWidth="2xl"
   showToc={true}
   breadcrumbs={[

@@ -1,88 +1,98 @@
-<!-- urbicon-ignore raw-tailwind-color — the 20 raw colours are the Customization
-     section's subject. Those demos exist to show what `slotClasses`/`unstyled` reach
-     that the token system deliberately does not: glassmorphism, a terminal look, a neon
-     outline. Tokenising them would delete the example. Every other section on this page
-     stays under the rule. -->
+<!-- urbicon-ignore raw-tailwind-color — the Customization demo gives the badge a frosted-glass
+     look with one `class`. The pill shape and padding stay. Only the fill, border and blur are raw,
+     because frosted glass has no token equivalent. Every other section on this page stays under the
+     rule. -->
 <script lang="ts">
   import { CodeExample, Note, NoteList, Section } from '@urbicon-ui/docs';
-  import { Badge, Button, Kbd, StarIcon } from '@urbicon-ui/blocks';
+  import { Avatar, Badge, Button, Kbd } from '@urbicon-ui/blocks';
   import { resolve } from '$app/paths';
 
   let filters = $state<string[]>(['Active', 'Premium', 'Last 7 days']);
   const removeFilter = (f: string) => (filters = filters.filter((x) => x !== f));
 </script>
 
+<!-- ─── Purpose ─── -->
+
+<Section marker id="purpose" title="Purpose">
+  <p class="text-text-secondary mb-6 text-sm leading-relaxed">
+    Three props shape a badge. <code class="text-text-primary">purpose</code> sets what it is,
+    <code class="text-text-primary">intent</code> sets the colour, and
+    <code class="text-text-primary">variant</code> sets how much weight it carries: a solid
+    <code class="text-text-primary">filled</code>, a quiet
+    <code class="text-text-primary">soft</code>, or a light
+    <code class="text-text-primary">outlined</code>.
+  </p>
+
+  <div class="overflow-x-auto">
+    <table class="w-full text-left text-sm">
+      <thead class="text-text-primary border-border-subtle border-b">
+        <tr>
+          <th class="py-2 pr-4 font-semibold"><code class="text-text-primary">purpose</code></th>
+          <th class="py-2 pr-4 font-semibold">What it renders</th>
+          <th class="py-2 font-semibold">Example</th>
+        </tr>
+      </thead>
+      <tbody class="text-text-secondary divide-border-subtle divide-y">
+        <tr>
+          <td class="py-3 pr-4 align-top">
+            <code class="text-text-primary">status</code>
+            <span class="text-text-tertiary">(default)</span>
+          </td>
+          <td class="py-3 pr-4 align-top">A coloured label for an entity's state.</td>
+          <td class="py-3 align-top"><Badge variant="soft" intent="success">Active</Badge></td>
+        </tr>
+        <tr>
+          <td class="py-3 pr-4 align-top"><code class="text-text-primary">tag</code></td>
+          <td class="py-3 pr-4 align-top">
+            A neutral label for a category. Defaults
+            <code class="text-text-primary">intent</code> to
+            <code class="text-text-primary">neutral</code>, because a category carries no severity.
+          </td>
+          <td class="py-3 align-top"><Badge purpose="tag" variant="outlined">Beta</Badge></td>
+        </tr>
+        <tr>
+          <td class="py-3 pr-4 align-top"><code class="text-text-primary">counter</code></td>
+          <td class="py-3 pr-4 align-top">A circular numeric pill for a count.</td>
+          <td class="py-3 align-top"><Badge intent="primary" purpose="counter">8</Badge></td>
+        </tr>
+        <tr>
+          <td class="py-3 pr-4 align-top"><code class="text-text-primary">dot</code></td>
+          <td class="py-3 pr-4 align-top">A contentless indicator for presence or unread state.</td>
+          <td class="py-3 align-top"><Badge intent="success" purpose="dot" /></td>
+        </tr>
+        <tr>
+          <td class="py-3 pr-4 align-top"><code class="text-text-primary">chip</code></td>
+          <td class="py-3 pr-4 align-top">
+            An interactive label (focusable, <code class="text-text-primary">role="button"</code>).
+            Pair with <code class="text-text-primary">onclick</code>.
+          </td>
+          <td class="py-3 align-top">
+            <Badge purpose="chip" variant="soft" intent="primary" onclick={() => {}}
+              >Clickable</Badge
+            >
+          </td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+
+  <p class="text-text-tertiary mt-4 text-xs leading-relaxed">
+    <code class="text-text-primary">removable</code> is separate from
+    <code class="text-text-primary">purpose</code>. It adds a dismiss button to any badge, so a
+    <code class="text-text-primary">tag</code> or <code class="text-text-primary">status</code> can be
+    removed too (see Filter chips below).
+  </p>
+</Section>
+
 <!-- ─── Examples ─── -->
 
 <Section marker id="examples" title="Examples">
   <div class="space-y-8">
     <CodeExample
-      title="Border (visual separation on colored surfaces)"
-      description="The border prop adds a 2px ring in the page surface color — invisible on the default page background, but it cuts a clean halo when the badge overlays a colored avatar, image, or button."
+      title="Status labels"
+      description="An entity's state. Use `soft` for ambient lists and `outlined` where a table needs more contrast."
       isolate
-      previewClass="flex items-center gap-8"
-    >
-      <div
-        class="bg-primary relative flex h-16 w-16 items-center justify-center rounded-full text-white"
-      >
-        JD
-        <Badge intent="success" variant="dot" placement="bottom-end" />
-      </div>
-      <div
-        class="bg-primary relative flex h-16 w-16 items-center justify-center rounded-full text-white"
-      >
-        JD
-        <Badge intent="success" variant="dot" placement="bottom-end" border />
-      </div>
-      <div
-        class="bg-warning text-text-on-warning relative flex h-16 w-16 items-center justify-center rounded-full"
-      >
-        AB
-        <Badge intent="danger" counter placement="top-end" border size="sm">5</Badge>
-      </div>
-    </CodeExample>
-
-    <CodeExample title="Notification Counter" isolate previewClass="flex items-center gap-8">
-      <div class="relative inline-block">
-        <Button variant="outlined" intent="neutral">Inbox</Button>
-        <Badge intent="danger" counter placement="top-end" border size="sm">3</Badge>
-      </div>
-      <div class="relative inline-block">
-        <Button variant="outlined" intent="neutral">Updates</Button>
-        <Badge intent="primary" counter placement="top-end" border size="sm">12</Badge>
-      </div>
-      <div class="relative inline-block">
-        <Button variant="outlined" intent="neutral">Alerts</Button>
-        <Badge intent="success" variant="dot" placement="top-end" border />
-      </div>
-    </CodeExample>
-  </div>
-</Section>
-
-<!-- ─── Patterns ─── -->
-
-<Section marker id="patterns" title="Patterns">
-  <p class="text-text-secondary mb-6 text-sm leading-relaxed">
-    Badge serves five distinct use cases that look alike but behave differently. Picking the right
-    pattern up-front avoids API-shape regret later — particularly around removable vs interactive,
-    counter sizing, and placement-anchoring. The
-    <code class="text-text-primary">purpose</code> axis makes that taxonomy first-class:
-    <code class="text-text-primary">status</code> / <code class="text-text-primary">tag</code> /
-    <code class="text-text-primary">counter</code> / <code class="text-text-primary">dot</code> /
-    <code class="text-text-primary">chip</code> orchestrate the low-level visual props, so you
-    rarely set them by hand. One of them also picks a colour:
-    <code class="text-text-primary">purpose="tag"</code> defaults to
-    <code class="text-text-primary">intent="neutral"</code>, because a category (a stage, a type, a
-    version) carries no severity — painting one as a status is the most common colour defect there
-    is. Pass <code class="text-text-primary">intent</code> explicitly to override.
-  </p>
-
-  <div class="space-y-8">
-    <CodeExample
-      title="1. Status Tag — stateful label"
-      description="Communicate the current state of an entity (Active/Inactive, Draft/Published, Online/Offline). Use `variant=soft` for ambient lists, `variant=outlined` for higher-contrast tables. Never removable, never a number."
-      isolate
-      previewClass="flex items-center gap-3"
+      previewClass="flex flex-wrap items-center gap-3"
     >
       <Badge variant="soft" intent="success">Active</Badge>
       <Badge variant="soft" intent="warning">Pending</Badge>
@@ -92,47 +102,28 @@
     </CodeExample>
 
     <CodeExample
-      title="2. Counter — numeric pill"
-      description="`counter` locks min-width to height, so a single digit renders as a circle rather than a squat pill — the first badge below is the same intent without it, for comparison. It holds 1–3 digits cleanly. Always pair with a `placement` when anchoring to a Button or Avatar — see the Notification Counter example above."
+      title="Counters and dots on other components"
+      description="Anchor a badge to an edge or corner of any `position: relative` parent with `placement`. Over a coloured surface, `border` cuts a ring in the page background so the badge stays legible."
       isolate
-      previewClass="flex items-center gap-3"
+      previewClass="flex flex-wrap items-center gap-8"
     >
-      <Badge intent="primary" size="sm">3 unread</Badge>
-      <Badge intent="primary" counter size="sm">3</Badge>
-      <Badge intent="danger" counter size="sm">12</Badge>
-      <Badge intent="success" counter size="sm">99+</Badge>
-      <Badge intent="warning" counter>247</Badge>
-    </CodeExample>
-
-    <CodeExample
-      title="3. Indicator Dot — presence/state marker"
-      description="`variant=dot` strips all content and shrinks the badge to a presence indicator — typical on avatars (online/away/busy) or buttons (unread bell). Pair with `border` when overlaying a colored surface to cut a clean halo."
-      isolate
-      previewClass="flex items-center gap-6"
-    >
-      <div
-        class="bg-primary-subtle text-primary-emphasis relative flex h-10 w-10 items-center justify-center rounded-full text-sm font-bold"
-      >
-        JD
-        <Badge intent="success" variant="dot" placement="bottom-end" border />
+      <div class="relative inline-block">
+        <Button variant="filled" intent="primary">Messages</Button>
+        <Badge intent="danger" purpose="counter" placement="top-end" border size="sm">8</Badge>
       </div>
-      <div
-        class="bg-warning-subtle text-warning-emphasis relative flex h-10 w-10 items-center justify-center rounded-full text-sm font-bold"
-      >
-        AB
-        <Badge intent="warning" variant="dot" placement="bottom-end" border />
+      <div class="relative inline-block">
+        <Avatar name="Ada Lovelace" randomColor />
+        <Badge intent="danger" purpose="counter" placement="top-end" border size="sm">3</Badge>
       </div>
-      <div
-        class="bg-danger-subtle text-danger-emphasis relative flex h-10 w-10 items-center justify-center rounded-full text-sm font-bold"
-      >
-        MK
-        <Badge intent="danger" variant="dot" placement="bottom-end" border />
+      <div class="relative inline-block">
+        <Button variant="filled" intent="neutral">Alerts</Button>
+        <Badge intent="success" purpose="dot" placement="top-end" border />
       </div>
     </CodeExample>
 
     <CodeExample
-      title="4. Filter Chip — removable, user-applied"
-      description="Use `removable` to show user-applied filters or selected tags that can be dismissed. Pair with `onRemove`. Press Delete / Backspace while focused to remove via keyboard."
+      title="Filter chips"
+      description="`removable` adds a dismiss button for user-applied filters or selected tags. Pair it with `onRemove`."
       isolate
       previewClass="flex flex-wrap items-center gap-2"
     >
@@ -159,198 +150,43 @@
     </CodeExample>
 
     <CodeExample
-      title="5. Inline Label — categorization in prose"
-      description="Plain, read-only marker rendered inside a sentence or list item. Prefer `variant=outlined` or `variant=soft` over `filled` so the badge reads as taxonomy, not as a state change."
+      title="Inline tags"
+      description="`purpose=tag` keeps a category label neutral inside prose, and `variant=outlined` keeps it light against body text."
       isolate
     >
       <p class="text-text-secondary text-sm leading-loose">
-        The <Badge variant="outlined" intent="neutral" size="sm">Beta</Badge> release adds support for
-        <Badge variant="soft" intent="primary" size="sm">OKLCH</Badge>
+        The <Badge purpose="tag" variant="outlined" size="sm">Beta</Badge> release adds support for
+        <Badge purpose="tag" variant="outlined" size="sm">OKLCH</Badge>
         color tokens and a redesigned
-        <Badge variant="soft" intent="success" size="sm">Tier API</Badge>. Existing consumers can
+        <Badge purpose="tag" variant="outlined" size="sm">Tier API</Badge>. Existing consumers can
         opt-in per component.
       </p>
     </CodeExample>
-
-    <div class="border-border-subtle bg-surface-elevated mt-6 rounded-2xl border p-6">
-      <h4 class="text-text-primary mb-3 text-sm font-semibold">When to pick which</h4>
-      <div class="overflow-x-auto">
-        <table class="text-text-secondary w-full text-left text-sm">
-          <thead class="border-border-subtle text-text-primary border-b">
-            <tr>
-              <th class="py-2 pr-4 font-semibold">Pattern</th>
-              <th class="py-2 pr-4 font-semibold">Key Prop</th>
-              <th class="py-2 font-semibold">Recommended Variant</th>
-            </tr>
-          </thead>
-          <tbody class="divide-border-subtle divide-y">
-            <tr>
-              <td class="py-2 pr-4 font-medium">Status Tag</td>
-              <td class="py-2 pr-4">
-                <code class="text-text-primary">variant</code>
-              </td>
-              <td class="py-2"
-                ><code class="text-text-primary">soft</code> or
-                <code class="text-text-primary">outlined</code></td
-              >
-            </tr>
-            <tr>
-              <td class="py-2 pr-4 font-medium">Counter</td>
-              <td class="py-2 pr-4">
-                <code class="text-text-primary">counter</code> ·
-                <code class="text-text-primary">placement</code>
-              </td>
-              <td class="py-2"><code class="text-text-primary">filled</code></td>
-            </tr>
-            <tr>
-              <td class="py-2 pr-4 font-medium">Indicator Dot</td>
-              <td class="py-2 pr-4">
-                <code class="text-text-primary">variant="dot"</code> ·
-                <code class="text-text-primary">border</code>
-              </td>
-              <td class="py-2"><code class="text-text-primary">dot</code> (locked)</td>
-            </tr>
-            <tr>
-              <td class="py-2 pr-4 font-medium">Filter Chip</td>
-              <td class="py-2 pr-4">
-                <code class="text-text-primary">removable</code> ·
-                <code class="text-text-primary">onRemove</code>
-              </td>
-              <td class="py-2"><code class="text-text-primary">soft</code></td>
-            </tr>
-            <tr>
-              <td class="py-2 pr-4 font-medium">Inline Label</td>
-              <td class="py-2 pr-4">—</td>
-              <td class="py-2"
-                ><code class="text-text-primary">outlined</code> or
-                <code class="text-text-primary">soft</code></td
-              >
-            </tr>
-          </tbody>
-        </table>
-      </div>
-      <p class="text-text-tertiary mt-4 text-xs leading-relaxed">
-        Mixing patterns (e.g. counter + removable, or filter-chip with `intent=danger`) usually
-        points at a different component — a deletable counter is a <code class="text-text-primary"
-          >Chip</code
-        >, a danger-tinted filter is a state-tag of the search itself.
-      </p>
-    </div>
   </div>
 </Section>
 
 <!-- ─── Customization ─── -->
 
 <Section marker id="customization" title="Customization">
-  <div class="space-y-8">
+  <div class="space-y-6">
     <CodeExample
-      title="Gradient Tags"
-      description="Use slotClasses to turn badges into vibrant category tags."
-      isolate
-    >
-      <Badge
-        slotClasses={{
-          base: 'bg-linear-to-r from-violet-500 to-fuchsia-500 text-white border-none shadow-md shadow-violet-500/20'
-        }}
-      >
-        Featured
-      </Badge>
-      <Badge
-        slotClasses={{
-          base: 'bg-linear-to-r from-cyan-500 to-blue-500 text-white border-none shadow-md shadow-cyan-500/20'
-        }}
-      >
-        New Release
-      </Badge>
-      <Badge
-        slotClasses={{
-          base: 'bg-linear-to-r from-amber-500 to-orange-500 text-white border-none shadow-md shadow-amber-500/20'
-        }}
-      >
-        Trending
-      </Badge>
-    </CodeExample>
-
-    <CodeExample
-      title="Glassmorphism"
-      description="Frosted glass badges over rich backgrounds."
+      title="Frosted glass"
+      description="One `class` gives the badge a frosted-glass look for a dark or photographic background: a translucent fill, a hairline border, and a blur behind it. It keeps the pill shape and padding."
       isolate
       previewClass="flex items-center gap-3 rounded-xl bg-linear-to-br from-indigo-600 via-purple-600 to-pink-500 px-8 py-6"
     >
-      <Badge
-        unstyled
-        class="rounded-full border border-white/20 bg-white/15 px-3 py-1 text-xs font-medium text-white backdrop-blur-md"
-      >
-        PRO
-      </Badge>
-      <Badge
-        unstyled
-        class="rounded-full border border-white/20 bg-white/15 px-3 py-1 text-xs font-medium text-white backdrop-blur-md"
-      >
-        Beta
-      </Badge>
-      <Badge
-        unstyled
-        class="rounded-full border border-white/20 bg-white/15 px-3 py-1 text-xs font-medium text-white backdrop-blur-md"
-        pulse
-      >
-        Live
-      </Badge>
-    </CodeExample>
-
-    <CodeExample
-      title="Neon Glow"
-      description="High-contrast neon badges for dark interfaces."
-      isolate
-      previewClass="flex items-center gap-3 rounded-xl bg-neutral-950 px-8 py-6"
-    >
-      <Badge
-        unstyled
-        class="rounded-full border border-emerald-400/60 bg-emerald-400/10 px-3 py-1 text-xs font-semibold text-emerald-400 shadow-[0_0_12px_rgba(52,211,153,0.3)]"
-      >
-        Online
-      </Badge>
-      <Badge
-        unstyled
-        class="rounded-full border border-sky-400/60 bg-sky-400/10 px-3 py-1 text-xs font-semibold text-sky-400 shadow-[0_0_12px_rgba(56,189,248,0.3)]"
-      >
-        Syncing
-      </Badge>
-      <Badge
-        unstyled
-        class="rounded-full border border-rose-400/60 bg-rose-400/10 px-3 py-1 text-xs font-semibold text-rose-400 shadow-[0_0_12px_rgba(251,113,133,0.3)]"
-      >
-        Offline
-      </Badge>
-    </CodeExample>
-
-    <CodeExample
-      title="Fully Custom (unstyled)"
-      description="Drop all defaults and build a completely unique badge."
-      isolate
-    >
-      <Badge
-        unstyled
-        class="text-text-primary inline-flex items-center gap-1.5 rounded-none border-2 border-current px-3 py-1 font-mono text-xs font-bold tracking-widest uppercase"
-      >
-        v2.4.0
-      </Badge>
-      <Badge
-        unstyled
-        class="inline-flex items-center gap-1.5 rounded-2xl bg-linear-to-br from-amber-200 to-orange-300 px-4 py-1.5 text-xs font-bold text-neutral-900 shadow-lg"
-      >
-        <StarIcon size={14} /> Editor's Pick
-      </Badge>
+      <Badge size="sm" class="border-white/20 bg-white/15 text-white backdrop-blur-md">PRO</Badge>
+      <Badge size="sm" class="border-white/20 bg-white/15 text-white backdrop-blur-md">Beta</Badge>
+      <Badge size="sm" class="border-white/20 bg-white/15 text-white backdrop-blur-md">Live</Badge>
     </CodeExample>
 
     <p class="text-text-secondary text-sm leading-relaxed">
-      A tag style that repeats across the app — like the gradient categories above — is one
-      <code class="text-text-primary">BlocksProvider</code> preset (<code class="text-text-primary"
-        >presets.Badge</code
-      >) applied via <code class="text-text-primary">preset</code>, not a copied
-      <code class="text-text-primary">slotClasses</code>
-      block. See
-      <a href={resolve('/customization')} class="text-primary hover:underline">Customization</a>.
+      This is one of five ways to restyle a block. See
+      <a href={resolve('/customization')} class="text-primary hover:underline">Customization</a>
+      for <code class="text-text-primary">class</code>,
+      <code class="text-text-primary">slotClasses</code>,
+      <code class="text-text-primary">unstyled</code>, <code class="text-text-primary">preset</code>
+      and provider-level overrides.
     </p>
   </div>
 </Section>
@@ -362,28 +198,28 @@
     <Note title="Built-in ARIA">
       <p>
         Badges render with <code class="text-text-primary">role="status"</code> by default,
-        announcing content changes to screen readers. Removable badges include an accessible label
-        for the remove button. Set <code class="text-text-primary">role="alert"</code> for time-sensitive
-        notifications.
+        announcing content changes to screen readers. An interactive badge (<code
+          class="text-text-primary">onclick</code
+        >
+        or
+        <code class="text-text-primary">purpose="chip"</code>) is announced as a
+        <code class="text-text-primary">button</code> instead. Removable badges include an
+        accessible label for the remove button. Set
+        <code class="text-text-primary">role="alert"</code> for time-sensitive notifications.
       </p>
     </Note>
     <Note title="Keyboard">
       <p>
-        Interactive badges are focusable via
-        <Kbd keys="Tab" />
-        and activate with
+        An interactive badge (<code class="text-text-primary">onclick</code> or
+        <code class="text-text-primary">purpose="chip"</code>) is focusable via
+        <Kbd keys="Tab" /> and carries <code class="text-text-primary">role="button"</code>. With an
+        <code class="text-text-primary">onclick</code> it activates on
         <Kbd keys="Enter" />
         /
-        <Kbd keys="Space" />. Removable badges also respond to
+        <Kbd keys="Space" />. On a removable badge the remove button takes focus, and
         <Kbd keys="Delete" />
         /
-        <Kbd keys="Backspace" />.
-      </p>
-    </Note>
-    <Note title="Reduced Motion">
-      <p>
-        Pulse animations and Mint effects are suppressed when
-        <code class="text-text-primary">prefers-reduced-motion</code> is enabled.
+        <Kbd keys="Backspace" /> there removes it.
       </p>
     </Note>
   </NoteList>

@@ -7,7 +7,7 @@
   <div class="space-y-8">
     <CodeExample
       title="Keycaps"
-      description="Pass a string to keys for one keycap. Symbols like ⌘, ⇧ and ⌥ render as-is, and spelled-out names work the same way — useful for keys with no glyph."
+      description="Pass a string to `keys` for a single keycap. Symbols like ⌘, ⇧ and ⌥ render as-is, and spelled-out names cover the keys that have no glyph."
       code={`<Kbd keys="⌘K" />
 <Kbd keys="Esc" />
 <Kbd keys="Enter" />
@@ -24,7 +24,7 @@
 
     <CodeExample
       title="Multi-key combos"
-      description="An array joins each entry with the separator (default +). Use it for chorded shortcuts."
+      description="An array shows several keys in one keycap, joined by the separator (default +). Reach for it when a shortcut uses more than one key."
       code={`<Kbd keys={['Ctrl', 'K']} />
 <Kbd keys={['⌘', '⇧', 'P']} />`}
       language="svelte"
@@ -37,7 +37,7 @@
 
     <CodeExample
       title="Inline in a sentence"
-      description="Kbd sits on the text baseline, so it reads naturally inside running copy or a tooltip."
+      description="Kbd is inline and vertically centered on the text, so it reads naturally inside running copy or a tooltip."
       code={`<p>Press <Kbd keys="/" size="sm" /> to search, or <Kbd keys={['⌘', 'K']} size="sm" /> for the command palette.</p>`}
       language="svelte"
     >
@@ -60,13 +60,6 @@
     </Note>
     <Note title="Announced as shown">
       <p>Every key is visible text, so screen readers read the shortcut exactly as it is shown.</p>
-    </Note>
-    <Note title="Decorative separator">
-      <p>
-        The <code class="text-text-primary">separator</code> drawn between keys carries
-        <code class="text-text-primary">aria-hidden="true"</code> — assistive tech reads the keys,
-        not the connective <code class="text-text-primary">+</code>.
-      </p>
     </Note>
     <Note title="A hint, not a control">
       <p>

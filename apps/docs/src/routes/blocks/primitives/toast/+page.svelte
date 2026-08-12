@@ -33,12 +33,12 @@
 
 <SeoMeta
   title="Toast Component"
-  description="Non-blocking notifications triggered via a global store. Supports intents, auto-dismiss, progress bars, and custom placements."
+  description="Non-blocking notifications triggered via a global store."
 />
 
 <DocsPageLayout
   title="Toast"
-  description="Non-blocking notifications triggered via a global store. Supports intents, auto-dismiss, progress bars, and custom placements."
+  description="Non-blocking notifications triggered via a global store."
   maxWidth="2xl"
   showToc={true}
   {navigation}
@@ -75,7 +75,7 @@
       id="types-table"
       types={componentData?.types ?? []}
       title="Store & Type Definitions"
-      description="Types for the toaster store API. ToastInput defines what you pass to toaster.add(), the shorthand methods accept ToastShorthandOpts."
+      description="Types for the toaster store API. ToastInput defines what you pass to toaster.add(). The shorthand methods accept ToastShorthandOpts."
     />
   </Section>
 

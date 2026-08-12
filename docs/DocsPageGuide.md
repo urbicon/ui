@@ -122,10 +122,26 @@ Which ids count, why, and what the exemption maps mean: the head of
 - **Realistic content, not lorem ipsum.** An example is the component's first impression; the
   content it carries is part of what is being shown.
 - **Never hand-build what a prop already does.** A colour showcase passes `intent`, it does not
-  assemble coloured buttons out of utility classes. Customization examples are the deliberate
-  exception — they show designs that are *not* reachable through the standard props
-  (glassmorphism, terminal look, neon outline), which is the whole point of `slotClasses` /
-  `unstyled`.
+  assemble coloured buttons out of utility classes. The Customization section is the one place a
+  demo reaches past the props, but **library-native** and via the **lightest rung of the ladder
+  that fits**: `class` → `slotClasses` (an inner slot) → `preset` → `BlocksProvider`
+  defaults / `overrides`. Pick the rung the case wants — when the same per-child override would
+  repeat (e.g. a look on every `AccordionItem`), set it once with
+  `<BlocksProvider defaults={{ Component: { slotClasses } }}>` rather than copy-pasting it onto each
+  child. The `tv()` conflict resolver drops the defaults an override conflicts with, so plain
+  `class` / `slotClasses` keep the component's radius tier, spacing, shadow tokens and behaviour.
+  Use the system for everything it *has* — radius from the tiers (usually by deleting a raw
+  `rounded-*`), shadow from `--blocks-shadow-*` — and raw values only for what it genuinely lacks (a
+  translucent glass fill, a neon hue). Neutralise an unwanted default with
+  `border-transparent` / `shadow-none`, not `unstyled`. **Vary the look across pages:** prefer a
+  **token-native** restyle where the palette carries the look (a primary/intent tint, a soft
+  surface — it needs no `raw-tailwind-color` pragma and dogfoods the system harder), and reserve
+  frosted-glass / neon for genuinely tokenless looks. Do not default every page to the card/tooltip
+  glass; a site-wide glass monoculture is itself a "twice the same". **`unstyled` is the rare escape
+  hatch:** it strips behaviour-carrying classes too (it broke the Tooltip arrow and fade, and
+  collapsed the Dialog panel top-left), so reach for it only when a default truly cannot be
+  overridden. Role models: `primitives/card` (`class`), `primitives/confirm-dialog` (token-native
+  `slotClasses`), and a `BlocksProvider` default for a repeated per-child look.
 - **Interactive where the component is interactive.** Clickable pagination, a toggle that actually
   toggles. Local state with `$state` in `Docs.svelte`.
 
@@ -256,7 +272,15 @@ Track this when sweeping a page: report before-/after-line-count in commit body 
   not hand-written. They render the stability chip, the "view source" link and the related-component
   chips. `buildRelatedLinks` silently drops a name that is not in `$lib/component-links` — if a
   chip does not appear, the component is unregistered, and `bun run registry:lint` says so.
-- **Description**: identical text in `SeoMeta` and `DocsPageLayout` – single source.
+- **Description**: one concise sentence saying what the component *is*, in plain functional terms,
+  identical in `SeoMeta` and `DocsPageLayout` (single source). No marketing adjective whose opposite
+  we would never ship (`versatile`, `powerful`, `flexible`, `seamless`) and no feature roll-call —
+  the Playground shows the variants, sizes and states, so the hero never pre-announces them. On a
+  primitive whose function every developer already knows, the hero sells nothing and the page opens
+  straight into the Playground. Orientation a reader needs beyond that one sentence — when to reach
+  for this over a sibling, how the props relate — moves to a titled section below, in the order
+  [EDITORIAL.md](EDITORIAL.md) sets, and is never crammed back into the hero. A complex component or
+  recipe page may carry a concise, non-marketing intro where it genuinely orients.
 
 ## Docs.svelte – Structure
 
@@ -319,7 +343,7 @@ With `isolate`, a default preview wrapper with `flex flex-wrap items-center gap-
   isolate
   previewClass="flex items-center gap-4 rounded-xl bg-neutral-950 px-8 py-6"
 >
-  <Button unstyled class="...">Neon Green</Button>
+  <Button class="...">Neon Green</Button>
 </CodeExample>
 ```
 
@@ -386,7 +410,7 @@ deliberately left free — is [EDITORIAL.md](EDITORIAL.md).
 Core principles:
 
 - **Semantic tokens in the docs app itself** – the docs must follow the same token rules as the component library (no `dark:` overrides, no hardcoded colors)
-- **Benefit-oriented descriptions** – "Display user profile images with fallback initials and status indicators", not "Documentation for the Avatar component"
+- **Functional, not promotional descriptions** – "Display user profile images with fallback initials and status indicators", not "Documentation for the Avatar component" and not "Beautiful, versatile avatars". The hero says what the component does, never how good it is (see **Description** under Key Details)
 - **Dogfooding** – use own components wherever possible (Breadcrumb for navigation, Dialog for search, CodeExample for code blocks)
 - **Consistently English** UI and content
 
@@ -453,7 +477,7 @@ Semantic tokens automatically adapt between light and dark mode.
 
 - [ ] `+page.svelte`: `breadcrumbs` prop with `resolve()` links (not a snippet, not a hand-rolled row)
 - [ ] `+page.svelte`: `navigation` array matching the sections — `bun run sections:lint` is green
-- [ ] `+page.svelte`: `<SeoMeta title description />`, description identical to `DocsPageLayout`
+- [ ] `+page.svelte`: `<SeoMeta title description />`, description a single concise non-marketing sentence, identical in `SeoMeta` and `DocsPageLayout`; longer orientation sits in a section below, not the hero
 - [ ] `+page.svelte`: `stability` / `sourceHref` / `related` wired from `componentData`
 - [ ] `+page.svelte`: PlaygroundConfigurator with `showHeader={false}`, in `Playground.svelte` if it is more than a handful of controls
 - [ ] `+page.svelte`: ApiReference directly in Section (no wrapper div)

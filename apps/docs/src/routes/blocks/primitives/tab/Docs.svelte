@@ -1,8 +1,7 @@
-<!-- urbicon-ignore raw-tailwind-color — the 22 raw colours are the Customization
-     section's subject. Those demos exist to show what `slotClasses`/`unstyled` reach
-     that the token system deliberately does not: glassmorphism, a terminal look, a neon
-     outline. Tokenising them would delete the example. Every other section on this page
-     stays under the rule. -->
+<!-- urbicon-ignore raw-tailwind-color — the raw colours are the Customization section's
+     subject. That demo exists to show what `slotClasses`/`unstyled` reach that the token
+     system deliberately does not: a frosted-glass look. Tokenising it would delete the
+     example. Every other section on this page stays under the rule. -->
 <script lang="ts">
   import { CodeExample, Note, NoteList, Section } from '@urbicon-ui/docs';
   import {
@@ -29,10 +28,22 @@
 <!-- ─── Examples ─── -->
 
 <Section marker id="examples" title="Examples">
+  <p class="text-text-secondary mb-8 text-sm leading-relaxed">
+    Tab takes two snippets: <code class="text-text-primary">tabs()</code> for the strip and
+    <code class="text-text-primary">panels()</code> for the content, and a
+    <code class="text-text-primary">TabItem</code> pairs with its
+    <code class="text-text-primary">TabPanel</code> by a matching
+    <code class="text-text-primary">value</code> string. Drive the active tab with
+    <code class="text-text-primary">bind:value</code> (or set an uncontrolled
+    <code class="text-text-primary">defaultValue</code>), and
+    <code class="text-text-primary">onValueChange</code> fires on every switch. An inactive panel
+    drops its content by default, so pass <code class="text-text-primary">keepMounted</code> to keep
+    a panel's state or <code class="text-text-primary">lazy</code> to defer its first render.
+  </p>
   <div class="space-y-8">
     <!-- Vertical Orientation -->
     <CodeExample
-      title="Vertical Orientation"
+      title="Settings sidebar"
       description="Sidebar-style navigation for settings pages and multi-section forms."
       isolate
       previewClass="w-full"
@@ -113,7 +124,7 @@
       isolate
       previewClass="w-full"
     >
-      <Tab defaultValue="inbox" bind:value={activeProject}>
+      <Tab bind:value={activeProject}>
         {#snippet tabs()}
           <TabItem value="inbox">
             {#snippet icon()}
@@ -182,8 +193,8 @@
 
     <!-- Full Width -->
     <CodeExample
-      title="Full Width"
-      description="Tabs stretch equally across the container — useful for mobile layouts and modal headers."
+      title="Pricing switch"
+      description="Tabs stretch equally across the container, useful for mobile layouts and modal headers."
       isolate
     >
       <Tab variant="solid" fullWidth defaultValue="monthly">
@@ -211,51 +222,29 @@
 
     <!-- Disabled -->
     <CodeExample
-      title="Disabled Tabs"
-      description="Globally disabled via the Tab prop, or per-tab on individual TabItems."
+      title="Disabling a single tab"
+      description="A disabled TabItem is skipped by roving keyboard navigation while the rest stay interactive."
       isolate
-      previewClass="flex flex-col gap-8 w-full"
+      previewClass="w-full"
     >
-      <div class="flex flex-col gap-2.5">
-        <p class="text-text-tertiary text-xs font-medium tracking-wider uppercase">All disabled</p>
-        <Tab disabled defaultValue="a">
-          {#snippet tabs()}
-            <TabItem value="a">Account</TabItem>
-            <TabItem value="b">Billing</TabItem>
-            <TabItem value="c">Team</TabItem>
-          {/snippet}
-          {#snippet panels()}
-            <TabPanel value="a"
-              ><p class="text-text-tertiary text-sm">All interaction is disabled.</p></TabPanel
-            >
-            <TabPanel value="b"><p class="text-text-tertiary text-sm">—</p></TabPanel>
-            <TabPanel value="c"><p class="text-text-tertiary text-sm">—</p></TabPanel>
-          {/snippet}
-        </Tab>
-      </div>
-      <div class="flex flex-col gap-2.5">
-        <p class="text-text-tertiary text-xs font-medium tracking-wider uppercase">
-          Single tab disabled
-        </p>
-        <Tab variant="pills" defaultValue="a">
-          {#snippet tabs()}
-            <TabItem value="a">Active</TabItem>
-            <TabItem value="b" disabled>Locked</TabItem>
-            <TabItem value="c">Available</TabItem>
-          {/snippet}
-          {#snippet panels()}
-            <TabPanel value="a"
-              ><p class="text-text-secondary text-sm">
-                This tab is active and interactive.
-              </p></TabPanel
-            >
-            <TabPanel value="b"><p class="text-text-tertiary text-sm">—</p></TabPanel>
-            <TabPanel value="c"
-              ><p class="text-text-secondary text-sm">This tab is also interactive.</p></TabPanel
-            >
-          {/snippet}
-        </Tab>
-      </div>
+      <Tab variant="pills" defaultValue="a">
+        {#snippet tabs()}
+          <TabItem value="a">Active</TabItem>
+          <TabItem value="b" disabled>Locked</TabItem>
+          <TabItem value="c">Available</TabItem>
+        {/snippet}
+        {#snippet panels()}
+          <TabPanel value="a"
+            ><p class="text-text-secondary text-sm">
+              This tab is active and interactive.
+            </p></TabPanel
+          >
+          <TabPanel value="b"><p class="text-text-tertiary text-sm">—</p></TabPanel>
+          <TabPanel value="c"
+            ><p class="text-text-secondary text-sm">This tab is also interactive.</p></TabPanel
+          >
+        {/snippet}
+      </Tab>
     </CodeExample>
   </div>
 </Section>
@@ -267,7 +256,7 @@
     <!-- slotClasses -->
     <CodeExample
       title="slotClasses Override"
-      description="Style individual slots — list background, panel padding, trigger rounding."
+      description="Style individual slots: list background, panel padding, trigger rounding."
       isolate
       previewClass="w-full"
     >
@@ -308,7 +297,7 @@
     <!-- Glassmorphism unstyled -->
     <CodeExample
       title="Glassmorphism (unstyled)"
-      description="Fully custom glass-effect tabs using unstyled mode."
+      description="Drop the tokens with `unstyled` and hand-build the strip and panels through `class`, here into frosted-glass tabs. The `data-[state=active]` selector drives the active styling."
       isolate
       previewClass="w-full rounded-2xl bg-gradient-to-br from-indigo-500 via-purple-500 to-pink-500 p-8"
     >
@@ -318,21 +307,21 @@
             <TabItem
               unstyled
               value="home"
-              class="flex-1 rounded-lg px-4 py-2.5 text-center text-sm font-medium text-white/60 transition-all data-[state=active]:bg-white/20 data-[state=active]:text-white data-[state=active]:shadow-lg"
+              class="flex-1 rounded-lg px-4 py-2.5 text-center text-sm font-medium text-white/60 transition data-[state=active]:bg-white/20 data-[state=active]:text-white data-[state=active]:shadow-lg"
             >
               Home
             </TabItem>
             <TabItem
               unstyled
               value="explore"
-              class="flex-1 rounded-lg px-4 py-2.5 text-center text-sm font-medium text-white/60 transition-all data-[state=active]:bg-white/20 data-[state=active]:text-white data-[state=active]:shadow-lg"
+              class="flex-1 rounded-lg px-4 py-2.5 text-center text-sm font-medium text-white/60 transition data-[state=active]:bg-white/20 data-[state=active]:text-white data-[state=active]:shadow-lg"
             >
               Explore
             </TabItem>
             <TabItem
               unstyled
               value="library"
-              class="flex-1 rounded-lg px-4 py-2.5 text-center text-sm font-medium text-white/60 transition-all data-[state=active]:bg-white/20 data-[state=active]:text-white data-[state=active]:shadow-lg"
+              class="flex-1 rounded-lg px-4 py-2.5 text-center text-sm font-medium text-white/60 transition data-[state=active]:bg-white/20 data-[state=active]:text-white data-[state=active]:shadow-lg"
             >
               Library
             </TabItem>
@@ -344,76 +333,22 @@
             value="home"
             class="mt-4 rounded-xl bg-white/10 p-5 text-sm text-white/90 backdrop-blur-md"
           >
-            Frosted glass panels with gradient backdrop. The <code
-              class="rounded bg-white/15 px-1.5 py-0.5">data-[state=active]</code
-            > selector drives the active styling.
+            Frosted glass panels over a gradient backdrop.
           </TabPanel>
           <TabPanel
             unstyled
             value="explore"
             class="mt-4 rounded-xl bg-white/10 p-5 text-sm text-white/90 backdrop-blur-md"
           >
-            Zero default styles — everything is hand-crafted via class props.
+            Zero default styles. Every style here comes from the class props.
           </TabPanel>
           <TabPanel
             unstyled
             value="library"
             class="mt-4 rounded-xl bg-white/10 p-5 text-sm text-white/90 backdrop-blur-md"
           >
-            Proof that <code class="rounded bg-white/15 px-1.5 py-0.5">unstyled</code> gives full creative
-            freedom.
-          </TabPanel>
-        {/snippet}
-      </Tab>
-    </CodeExample>
-
-    <!-- Terminal style unstyled -->
-    <CodeExample
-      title="Terminal (unstyled)"
-      description="Monospace hacker aesthetic built entirely with class overrides."
-      isolate
-      previewClass="w-full rounded-2xl bg-neutral-950 p-6"
-    >
-      <Tab unstyled defaultValue="stdout" class="w-full font-mono">
-        {#snippet tabs()}
-          <div class="flex gap-px border-b border-emerald-500/20">
-            <TabItem
-              unstyled
-              value="stdout"
-              class="border-b-2 border-transparent px-4 py-2 text-xs text-emerald-300 transition-colors data-[state=active]:border-emerald-400 data-[state=active]:text-emerald-400"
-            >
-              stdout
-            </TabItem>
-            <TabItem
-              unstyled
-              value="stderr"
-              class="border-b-2 border-transparent px-4 py-2 text-xs text-emerald-300 transition-colors data-[state=active]:border-emerald-400 data-[state=active]:text-emerald-400"
-            >
-              stderr
-            </TabItem>
-            <TabItem
-              unstyled
-              value="logs"
-              class="border-b-2 border-transparent px-4 py-2 text-xs text-emerald-300 transition-colors data-[state=active]:border-emerald-400 data-[state=active]:text-emerald-400"
-            >
-              logs
-            </TabItem>
-          </div>
-        {/snippet}
-        {#snippet panels()}
-          <TabPanel unstyled value="stdout" class="py-4 text-xs leading-relaxed text-emerald-200">
-            <p>$ bun run build</p>
-            <p class="text-emerald-400">✓ 247 modules transformed.</p>
-            <p class="text-emerald-400">✓ built in 1.23s</p>
-            <p class="mt-2 text-emerald-300">Process exited with code 0</p>
-          </TabPanel>
-          <TabPanel unstyled value="stderr" class="py-4 text-xs leading-relaxed text-red-400/80">
-            <p>No errors.</p>
-          </TabPanel>
-          <TabPanel unstyled value="logs" class="py-4 text-xs leading-relaxed text-emerald-200">
-            <p class="text-emerald-400">[12:34:01] Starting compilation...</p>
-            <p class="text-emerald-400">[12:34:02] Bundling assets...</p>
-            <p class="text-emerald-300">[12:34:03] Done.</p>
+            With <code class="rounded bg-white/15 px-1.5 py-0.5">unstyled</code>, the class props
+            own the entire look.
           </TabPanel>
         {/snippet}
       </Tab>
@@ -425,7 +360,7 @@
       >
       presets (<code class="text-text-primary">presets.Tab</code>, per-trigger styling under
       <code class="text-text-primary">presets.TabItem</code>, panel styling under
-      <code class="text-text-primary">presets.TabPanel</code>) — applied via
+      <code class="text-text-primary">presets.TabPanel</code>), applied via
       <code class="text-text-primary">preset</code>
       instead of repeating
       <code class="text-text-primary">slotClasses</code>. See
@@ -476,9 +411,9 @@
     </Note>
     <Note title="Reduced Motion">
       <p>
-        The sliding indicator and Mint effects respect
-        <code class="text-text-primary">prefers-reduced-motion</code>. Transitions are shortened or
-        removed when the user has requested less motion.
+        The sliding indicator respects
+        <code class="text-text-primary">prefers-reduced-motion</code>, shortening or removing its
+        transition when the user has requested less motion.
       </p>
     </Note>
   </NoteList>

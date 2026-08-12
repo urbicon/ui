@@ -20,10 +20,10 @@
 <Section marker id="usage" title="When to use">
   <p class="text-text-secondary text-sm leading-relaxed">
     <strong>Sidebar</strong> is an <code>&lt;aside&gt;</code> landmark for a side panel that is
-    <em>part of the page layout</em>. Use it for persistent app navigation that slides in as an
-    overlay on mobile (<code>mode="responsive"</code>) or width-collapses at all viewports (<code
-      >mode="collapsible"</code
-    >). On desktop there is no backdrop — the panel sits alongside the main content.
+    <em>part of the page layout</em>. Reach for it directly for a right-side detail panel or a
+    custom shell whose layout you own. In <code>mode="responsive"</code> (the default) it is
+    permanent on desktop and slides in as a mobile overlay. In <code>mode="collapsible"</code> it toggles
+    at every width. On desktop there is no backdrop, so it never dims the page.
   </p>
   <p class="text-text-secondary mt-3 text-sm leading-relaxed">
     Pick a different overlay if you need:
@@ -129,7 +129,7 @@
 
     <CodeExample
       title="Collapsible App Navigation"
-      description="The second of the two modes, and the one the Playground cannot reach. In `responsive` mode (the default) `open` only drives the mobile overlay — on a desktop width the panel is always there. In `collapsible` mode `open` drives it at every width: the panel stays mounted and animates its width to 0 instead of sliding away, which is why the button below toggles rather than opens. Keep it mounted — wrapping it in a conditional block gets you a disappearing panel in either mode and no animation in this one."
+      description="`mode=collapsible` is the second mode, and the one the Playground cannot reach. It drives `open` at every width: on desktop it animates the panel between full width and 0 (which is why the button toggles rather than opens), and on a phone it falls back to the same slide-in overlay as `responsive`. So one collapsible sidebar covers both the desktop collapse and the mobile overlay. Keep it mounted: wrapping it in a conditional block gets you a disappearing panel and no width animation."
       code={`<!-- The panel stays mounted; open animates its width, it does not unmount. -->
 <Button variant="outlined" onclick={() => (navOpen = !navOpen)}>
   {navOpen ? 'Collapse' : 'Expand'} navigation
@@ -186,7 +186,7 @@
   <div class="space-y-8">
     <CodeExample
       title="Branded Sidebar"
-      description="Use slotClasses to create a dark-themed branded sidebar."
+      description="slotClasses paints the panel, header and footer slots for a dark branded shell. The active nav item is your own markup, since Sidebar styles the frame, not its contents."
       code={`<Sidebar
   bind:open
   slotClasses={{
@@ -272,8 +272,8 @@
       <code class="text-text-primary">presets.Sidebar</code>
       on
       <code class="text-text-primary">BlocksProvider</code> and apply it via
-      <code class="text-text-primary">preset</code>
-      — see <a href={r('/customization')} class="text-primary hover:underline">Customization</a>.
+      <code class="text-text-primary">preset</code>. See
+      <a href={r('/customization')} class="text-primary hover:underline">Customization</a>.
     </p>
   </div>
 </Section>
@@ -288,10 +288,10 @@
         readers announce as a complementary landmark. When the sidebar is closed (mobile overlay
         dismissed, or collapsible mode closed), it receives both
         <code class="text-text-primary">aria-hidden="true"</code> and
-        <code class="text-text-primary">inert</code> — the panel keeps its children mounted, so removing
-        it from the accessibility tree without also removing it from the tab order would let a keyboard
-        user walk into a region their screen reader skips. Focus that was inside the panel returns to
-        whatever held it before the panel opened.
+        <code class="text-text-primary">inert</code>. The panel keeps its children mounted, so
+        removing it from the accessibility tree without also removing it from the tab order would
+        let a keyboard user walk into a region their screen reader skips. Focus that was inside the
+        panel returns to whatever held it before the panel opened.
       </p>
     </Note>
     <Note title="Keyboard">
@@ -305,7 +305,7 @@
     <Note title="Responsive Behavior">
       <p>
         In <code class="text-text-primary">responsive</code> mode (default): on desktop (≥1024px)
-        the sidebar is always visible as a fixed panel — the
+        the sidebar is always visible as a fixed panel, and the
         <code class="text-text-primary">open</code> prop only controls the mobile overlay. Below 1024px
         it slides in as an overlay with backdrop and body scroll lock.
       </p>
@@ -313,9 +313,13 @@
         In <code class="text-text-primary">collapsible</code> mode: the
         <code class="text-text-primary">open</code> prop controls the sidebar at all viewports. On
         desktop it animates its width (no backdrop or scroll lock). On mobile it behaves as an
-        overlay like responsive mode. Use
-        <code class="text-text-primary">--sidebar-effective-width</code> (0px when closed, full width
-        when open) to transition your main content offset.
+        overlay like responsive mode. The panel exposes
+        <code class="text-text-primary">--sidebar-effective-width</code> (0px when closed, full
+        width when open), but it inherits only inside the sidebar, not to sibling content. To offset
+        the main content beside it, reach for
+        <a href={r('/blocks/components/sidebar-layout')} class="text-primary hover:underline"
+          >SidebarLayout</a
+        >, which lifts the variable to the layout for you.
       </p>
     </Note>
     <Note title="Reduced Motion">

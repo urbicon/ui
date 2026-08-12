@@ -29,7 +29,7 @@
 
 <SeoMeta
   title="Menu Component"
-  description="Action menu with sections, sub-menus, custom triggers, and keyboard navigation."
+  description="Action menu for invoking actions. Items dispatch onSelect callbacks. For selecting a value from a list, use Select."
 />
 
 <DocsPageLayout

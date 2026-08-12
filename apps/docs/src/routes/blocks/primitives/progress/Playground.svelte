@@ -50,7 +50,8 @@
   {#snippet children(values)}
     <div class="w-full max-w-sm">
       <Progress
-        value={playgroundValue}
+        value={values.indeterminate ? undefined : playgroundValue}
+        indeterminate={values.indeterminate}
         label="Upload progress"
         intent={values.intent}
         size={values.size}

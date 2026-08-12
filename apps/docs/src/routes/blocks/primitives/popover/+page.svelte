@@ -7,7 +7,6 @@
     Section,
     TypesReference
   } from '@urbicon-ui/docs';
-  import { Popover } from '@urbicon-ui/blocks';
   import CustomDocs from './Docs.svelte';
   import Playground from './Playground.svelte';
   import { componentData } from './api';
@@ -17,7 +16,7 @@
 
   const navigation = [
     { id: 'playground', title: 'Playground' },
-    { id: 'usage', title: 'When to use' },
+    { id: 'purpose', title: 'Purpose' },
     { id: 'examples', title: 'Examples' },
     { id: 'customization', title: 'Customization' },
     { id: 'accessibility', title: 'Accessibility' },
@@ -27,14 +26,11 @@
   ];
 </script>
 
-<SeoMeta
-  title="Popover Component"
-  description="Floating content panel anchored to a trigger with precise positioning, portal rendering, and size syncing."
-/>
+<SeoMeta title="Popover Component" description="Floating content panel anchored to a trigger." />
 
 <DocsPageLayout
   title="Popover"
-  description="Floating content panel anchored to a trigger with precise positioning, portal rendering, and size syncing."
+  description="Floating content panel anchored to a trigger."
   maxWidth="2xl"
   showToc={true}
   {navigation}

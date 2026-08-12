@@ -1,6 +1,13 @@
+<!-- urbicon-ignore raw-tailwind-color — the Customization demo tints the group into a glass
+     control cluster with `slotClasses`: it keeps the pill radius tier, size and behaviour, and
+     the raw colours cover the glass fill, border, blur and white icons — a frosted-glass look the
+     token palette has no equivalent for. Every other section on this page stays under the rule. -->
 <script lang="ts">
   import { CodeExample, Note, NoteList, Section } from '@urbicon-ui/docs';
   import {
+    AlignCenterIcon,
+    AlignLeftIcon,
+    AlignRightIcon,
     BoldIcon,
     Button,
     ButtonGroup,
@@ -15,6 +22,7 @@
     ZoomInIcon,
     ZoomOutIcon
   } from '@urbicon-ui/blocks';
+  import { resolve } from '$app/paths';
 
   // View switcher — single selection. ButtonGroupValue is string | string[] | undefined.
   let view = $state<ButtonGroupValue>('list');
@@ -25,15 +33,34 @@
 
   // Zoom control — no selection, plain action buttons.
   let zoom = $state(100);
+
+  // Text alignment — vertical single selection; tier="modify" softens the caps.
+  let align = $state<ButtonGroupValue>('left');
+  const alignClass = $derived(
+    align === 'center' ? 'text-center' : align === 'right' ? 'text-right' : 'text-left'
+  );
 </script>
 
 <!-- ─── Examples ─── -->
 
 <Section marker id="examples" title="Examples">
+  <p class="text-text-secondary mb-8 text-sm leading-relaxed">
+    A ButtonGroup joins related buttons into one control with shared borders,
+    <code class="text-text-primary">connected</code> by default and spaced out when you set
+    <code class="text-text-primary">connected</code> to
+    <code class="text-text-primary">false</code>.
+    <code class="text-text-primary">selection</code> sets the behaviour:
+    <code class="text-text-primary">single</code> is a radio group,
+    <code class="text-text-primary">multiple</code> a checkbox group, and
+    <code class="text-text-primary">none</code> (the default) a plain row of actions. Set
+    <code class="text-text-primary">size</code>, <code class="text-text-primary">intent</code>,
+    <code class="text-text-primary">variant</code> or <code class="text-text-primary">mint</code>
+    once on the group and every button inherits it.
+  </p>
   <div class="space-y-8">
     <CodeExample
       title="View switcher"
-      description="Single selection acts as a radio-group: bind:value (a ButtonGroupValue, declared as $state in the script) drives which panel renders. Clicking the active segment again clears the selection, so handle the undefined case."
+      description="Single selection acts as a radio-group: bind:value holds the current ButtonGroupValue and drives which panel renders. Clicking the active segment again clears the selection, so handle the undefined case."
       isolate
       previewClass="mx-auto w-full max-w-md"
     >
@@ -72,7 +99,7 @@
 
     <CodeExample
       title="Formatting toggles"
-      description="Multiple selection acts as a checkbox-group: value holds a string[] of the pressed toggles (the hasFormat helper in the script narrows the union). Icon-only buttons need an aria-label each; the group carries an ariaLabel for its purpose. tier=modify gives the soft caps of a toolbar surface."
+      description="Multiple selection acts as a checkbox-group: value holds a string[] of the pressed toggles (the hasFormat helper narrows the ButtonGroupValue union before reading it). Icon-only buttons each need an aria-label, and the group carries an ariaLabel for its purpose. tier=modify softens the group's corner rounding from the default pill caps, which suits a toolbar."
       isolate
       previewClass="flex flex-col items-start gap-5"
     >
@@ -102,7 +129,7 @@
 
     <CodeExample
       title="Zoom control"
-      description="With selection=none (the default) the group is purely visual: three plain Buttons share size, intent, and connected borders while onclick does the work. Per-button disabled still applies on top of the group, guarding the range; clicking the value resets it."
+      description="With selection=none (the default) the group is purely visual: three plain Buttons share size, intent, and connected borders while onclick does the work. Per-button disabled still applies on top of the group to guard the range, and the middle button resets the zoom."
       isolate
     >
       <ButtonGroup ariaLabel="Zoom">
@@ -115,83 +142,72 @@
         </Button>
       </ButtonGroup>
     </CodeExample>
+
+    <CodeExample
+      title="Text alignment"
+      description="A vertical stack for a narrow inspector or side panel: orientation=vertical runs the segments top to bottom, and tier=modify softens the corners to suit a stacked control. Each button pairs an icon with a text label, so none needs an aria-label."
+      isolate
+      previewClass="flex flex-wrap items-start gap-5"
+    >
+      <ButtonGroup
+        selection="single"
+        bind:value={align}
+        orientation="vertical"
+        tier="modify"
+        size="sm"
+        ariaLabel="Text alignment"
+      >
+        <Button value="left"><AlignLeftIcon size={16} />Left</Button>
+        <Button value="center"><AlignCenterIcon size={16} />Center</Button>
+        <Button value="right"><AlignRightIcon size={16} />Right</Button>
+      </ButtonGroup>
+
+      <p class={['text-text-primary max-w-xs text-sm leading-relaxed', alignClass]}>
+        Sunlit corner studio with a reading nook, one block from the park and the market.
+      </p>
+    </CodeExample>
   </div>
 </Section>
 
 <!-- ─── Customization ─── -->
 
 <Section marker id="customization" title="Customization">
-  <div class="space-y-8">
+  <div class="space-y-6">
     <CodeExample
-      title="Full-width group"
-      description="ButtonGroup has a single slot, base — the group container itself. Stretch it and give every child equal width for form footers or mobile-friendly switchers; tailwind-merge resolves the conflict with the default inline-flex."
+      title="Floating glass controls"
+      description="One `slotClasses` tints the group into a translucent control cluster for a map overlay. It keeps the pill radius tier, size and behaviour, and the raw colours cover only the glass fill, border, blur and the white icons. Glass has no token equivalent."
       isolate
-      previewClass="mx-auto w-full max-w-md"
+      previewClass="flex justify-center rounded-xl bg-linear-to-br from-indigo-600 via-blue-600 to-cyan-500 px-8 py-12"
     >
       <ButtonGroup
-        selection="single"
-        value="all"
-        slotClasses={{ base: 'flex w-full [&>*]:flex-1' }}
-        ariaLabel="Filter scope"
-      >
-        <Button value="all">All</Button>
-        <Button value="active">Active</Button>
-        <Button value="archived">Archived</Button>
-      </ButtonGroup>
-    </CodeExample>
-
-    <CodeExample
-      title="Unstyled: wrapping filter chips"
-      description="unstyled drops the default single-row layout so you own it — here a wrapping chip row. Selection state, ARIA roles, and prop propagation to the child Buttons keep working. Setting connected to false lets each chip keep its own rounded caps."
-      isolate
-      previewClass="flex justify-center"
-    >
-      <ButtonGroup
-        unstyled
-        selection="multiple"
+        ariaLabel="Map controls"
         connected={false}
+        variant="ghost"
         size="sm"
-        class="flex max-w-sm flex-wrap gap-2"
-        ariaLabel="Amenity filters"
+        slotClasses={{
+          base: 'rounded-commit border border-white/20 bg-white/10 p-1 shadow-[var(--blocks-shadow-lg)] backdrop-blur-xl'
+        }}
       >
-        <Button value="balcony">Balcony</Button>
-        <Button value="garden">Garden</Button>
-        <Button value="parking">Parking</Button>
-        <Button value="elevator">Elevator</Button>
-        <Button value="furnished">Furnished</Button>
-        <Button value="pets">Pets allowed</Button>
+        <Button aria-label="Zoom in" class="text-white hover:bg-white/20">
+          <ZoomInIcon size={16} />
+        </Button>
+        <Button aria-label="Zoom out" class="text-white hover:bg-white/20">
+          <ZoomOutIcon size={16} />
+        </Button>
+        <Button aria-label="Recenter" class="text-white hover:bg-white/20">
+          <MapPinIcon size={16} />
+        </Button>
       </ButtonGroup>
     </CodeExample>
 
-    <CodeExample
-      title="Reusable preset via BlocksProvider"
-      description="For a recurring off-palette look — here a floating map-overlay pill — register a ButtonGroup preset once at the app root and reference it by name. Presets keep hover, active, and dark-mode logic coherent instead of scattering class overrides."
-      preview={false}
-      code={`<BlocksProvider
-  presets={{
-    ButtonGroup: {
-      floating: {
-        slotClasses: {
-          base: 'bg-surface-overlay border-border-subtle rounded-full border p-1 shadow-[var(--blocks-shadow-md)]'
-        }
-      }
-    }
-  }}
->
-  <ButtonGroup
-    preset="floating"
-    connected={false}
-    variant="ghost"
-    size="sm"
-    selection="single"
-    value="standard"
-    ariaLabel="Map style"
-  >
-    <Button value="standard">Standard</Button>
-    <Button value="satellite">Satellite</Button>
-  </ButtonGroup>
-</BlocksProvider>`}
-    />
+    <p class="text-text-secondary text-sm leading-relaxed">
+      This is one of five ways to restyle a block. See
+      <a href={resolve('/customization')} class="text-primary hover:underline">Customization</a>
+      for <code class="text-text-primary">class</code>,
+      <code class="text-text-primary">slotClasses</code>,
+      <code class="text-text-primary">unstyled</code>, <code class="text-text-primary">preset</code>
+      and provider-level overrides.
+    </p>
   </div>
 </Section>
 
@@ -215,12 +231,17 @@
     </Note>
     <Note title="Keyboard">
       <p>
-        <Kbd keys="Tab" />
-        moves focus between buttons.
-        <Kbd keys="Enter" />
-        /
-        <Kbd keys="Space" />
-        toggles selection.
+        Single-selection groups are a radiogroup:
+        <Kbd keys="Tab" /> moves focus into the group (to the selected segment, or the first when none
+        is selected), and
+        <Kbd keys="ArrowLeft" /> / <Kbd keys="ArrowRight" /> (or <Kbd keys="ArrowUp" /> /
+        <Kbd keys="ArrowDown" />), <Kbd keys="Home" /> and <Kbd keys="End" /> move between segments and
+        change the selection. Multiple-selection and plain (<code class="text-text-primary"
+          >selection="none"</code
+        >) groups place every button in the tab order, so <Kbd keys="Tab" /> moves between them. <Kbd
+          keys="Enter"
+        /> / <Kbd keys="Space" />
+        activates the focused button.
       </p>
     </Note>
     <Note title="Prop Inheritance">
@@ -229,7 +250,7 @@
         <code class="text-text-primary">intent</code>,
         <code class="text-text-primary">variant</code>, and
         <code class="text-text-primary">mint</code> propagate to child Buttons via context, and the
-        group wins — the same prop set on an individual Button inside a group is ignored, so
+        group wins: the same prop set on an individual Button inside a group is ignored, so
         configure these once on the group. <code class="text-text-primary">disabled</code>
         combines: a disabled group disables every child, and a child can additionally disable itself.
         Only <code class="text-text-primary">tier</code> can be overridden per Button.

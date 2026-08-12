@@ -1,8 +1,7 @@
-<!-- urbicon-ignore raw-tailwind-color — the 6 raw colours are the Customization
-     section's subject. Those demos exist to show what `slotClasses`/`unstyled` reach
-     that the token system deliberately does not: glassmorphism, a terminal look, a neon
-     outline. Tokenising them would delete the example. Every other section on this page
-     stays under the rule. -->
+<!-- urbicon-ignore raw-tailwind-color — the Customization demo paints each avatar disc with
+     `slotClasses.frame`: it keeps the avatar's circular shape, `size` and centering, and only the
+     per-identity gradient fill and initials colour are raw — a fill the intent palette has no
+     equivalent for. Every other section on this page stays under the rule. -->
 <script lang="ts">
   import { CodeExample, Note, NoteList, Section } from '@urbicon-ui/docs';
   import { Avatar, Kbd, UserIcon } from '@urbicon-ui/blocks';
@@ -13,30 +12,47 @@
 
 <Section marker id="examples" title="Examples">
   <div class="space-y-8">
+    <p class="text-text-secondary text-sm leading-relaxed">
+      An Avatar shows the <code class="bg-surface-base rounded px-1.5 py-0.5 text-xs">src</code>
+      photo, or the initials from
+      <code class="bg-surface-base rounded px-1.5 py-0.5 text-xs">name</code>
+      (the first letter of each word, up to two) when there is none.
+      <code class="bg-surface-base rounded px-1.5 py-0.5 text-xs">randomColor</code> gives each name
+      a stable colour, and
+      <code class="bg-surface-base rounded px-1.5 py-0.5 text-xs">children</code>
+      replace the initials with your own content.
+    </p>
+
     <CodeExample
-      title="Team Row"
-      description="Overlapping avatars with a children-based overflow counter — the standard way to show a member list in a row that has no room for one."
+      title="Identity colours"
+      description="`randomColor` hashes each `name` to a fixed hue from the identity palette, so people without a photo stay distinct and one person keeps the same colour everywhere."
       isolate
-      previewClass="flex items-center"
+      previewClass="flex flex-wrap items-center gap-3"
     >
-      <div class="flex -space-x-3">
-        <Avatar name="Anna" size="lg" randomColor ring ringIntent="neutral" />
-        <Avatar name="Ben" size="lg" randomColor ring ringIntent="neutral" />
-        <Avatar name="Cleo" size="lg" randomColor ring ringIntent="neutral" />
-        <Avatar name="Dan" size="lg" randomColor ring ringIntent="neutral" />
-        <Avatar
-          unstyled
-          class="bg-surface-elevated text-text-secondary ring-surface-base flex h-12 w-12 items-center justify-center rounded-full text-xs font-semibold ring-2"
-        >
-          +5
-        </Avatar>
-      </div>
+      <Avatar name="Ada Lovelace" randomColor size="lg" />
+      <Avatar name="Alan Turing" randomColor size="lg" />
+      <Avatar name="Grace Hopper" randomColor size="lg" />
+      <Avatar name="Katherine Johnson" randomColor size="lg" />
+      <Avatar name="Barbara Liskov" randomColor size="lg" />
+      <Avatar name="Edsger Dijkstra" randomColor size="lg" />
     </CodeExample>
 
     <CodeExample
-      title="Custom Children"
-      description="Use children to render arbitrary content instead of auto-generated initials — an icon for a system account, a count for a group, a glyph for a placeholder."
+      title="Photo, with initials as the fallback"
+      description="`src` renders the photo. If it is missing or fails to load, the avatar falls back to the initials from `name` inside the same fixed box, so the layout never shifts."
       isolate
+      previewClass="flex flex-wrap items-center gap-3"
+    >
+      <Avatar src="https://i.pravatar.cc/96?img=12" name="Marcus Chen" size="lg" />
+      <Avatar src="https://i.pravatar.cc/96?img=5" name="Sarah Okoro" size="lg" />
+      <Avatar src="/broken/photo.jpg" name="Priya Nair" size="lg" />
+    </CodeExample>
+
+    <CodeExample
+      title="Custom content"
+      description="`children` replace the initials: an icon for a system account, a count for a group, a glyph for a placeholder."
+      isolate
+      previewClass="flex flex-wrap items-center gap-3"
     >
       <Avatar size="xl" intent="primary">
         <UserIcon size={24} />
@@ -48,62 +64,95 @@
         <span class="text-base">!</span>
       </Avatar>
     </CodeExample>
+  </div>
 
-    <CodeExample
-      title="Mint micro-interactions"
-      description="Mints only apply when the avatar is interactive (clickable, interactive, or onclick). Recommended: scale and glow — they read as 'this profile is tappable' without being playful. Avoid bounce, rotate, and wiggle on profile pictures — they undermine the calm a face conveys."
-      isolate
-    >
-      <Avatar name="Scale" clickable mint="scale" size="lg" />
-      <Avatar name="Glow" clickable mint="glow" intent="primary" size="lg" />
-      <Avatar name="Static" clickable size="lg" />
-    </CodeExample>
+  <p class="text-text-secondary mt-6 text-sm leading-relaxed">
+    For overlapping stacks with an overflow count, see
+    <a href={resolve('/blocks/components/avatar-group')} class="text-primary underline"
+      >AvatarGroup</a
+    >.
+  </p>
+</Section>
+
+<!-- ─── Status ─── -->
+
+<Section marker id="status" title="Status">
+  <p class="text-text-secondary mb-6 text-sm leading-relaxed">
+    <code class="text-text-primary">status</code> adds a presence dot in the corner set by
+    <code class="text-text-primary">statusPosition</code>. Each value carries its own colour, and
+    <code class="text-text-primary">pulse</code> adds a radar ring in the same hue that draws the eye
+    to a presence change.
+  </p>
+
+  <div class="overflow-x-auto">
+    <table class="w-full text-left text-sm">
+      <thead class="text-text-primary border-border-subtle border-b">
+        <tr>
+          <th class="py-2 pr-4 font-semibold"><code class="text-text-primary">status</code></th>
+          <th class="py-2 font-semibold">Example</th>
+        </tr>
+      </thead>
+      <tbody class="text-text-secondary divide-border-subtle divide-y">
+        <tr>
+          <td class="py-3 pr-4 align-top"><code class="text-text-primary">online</code></td>
+          <td class="py-3 align-top"><Avatar name="Ada Lovelace" randomColor status="online" /></td>
+        </tr>
+        <tr>
+          <td class="py-3 pr-4 align-top"><code class="text-text-primary">away</code></td>
+          <td class="py-3 align-top"><Avatar name="Alan Turing" randomColor status="away" /></td>
+        </tr>
+        <tr>
+          <td class="py-3 pr-4 align-top"><code class="text-text-primary">busy</code></td>
+          <td class="py-3 align-top"><Avatar name="Grace Hopper" randomColor status="busy" /></td>
+        </tr>
+        <tr>
+          <td class="py-3 pr-4 align-top"><code class="text-text-primary">offline</code></td>
+          <td class="py-3 align-top">
+            <Avatar name="Katherine Johnson" randomColor status="offline" />
+          </td>
+        </tr>
+      </tbody>
+    </table>
   </div>
 </Section>
 
 <!-- ─── Customization ─── -->
 
 <Section marker id="customization" title="Customization">
-  <div class="space-y-8">
+  <div class="space-y-6">
     <CodeExample
-      title="Gradient Avatar"
-      description="Use unstyled with children for fully custom styling."
+      title="Gradient identities"
+      description="Paint the disc with `slotClasses.frame`: it keeps the avatar's circular shape, `size` and centering, and only the gradient fill and initials colour are raw. The intent palette carries no per-identity gradient."
       isolate
+      previewClass="flex flex-wrap items-center gap-4"
     >
       <Avatar
-        unstyled
-        class="flex h-14 w-14 items-center justify-center rounded-full bg-linear-to-br from-violet-500 to-fuchsia-500 text-lg font-bold text-white shadow-lg shadow-violet-500/25"
+        size="lg"
+        slotClasses={{ frame: 'bg-linear-to-br from-violet-500 to-fuchsia-500 text-white' }}
       >
         FD
       </Avatar>
       <Avatar
-        unstyled
-        class="flex h-14 w-14 items-center justify-center rounded-full bg-linear-to-br from-cyan-500 to-blue-500 text-lg font-bold text-white shadow-lg shadow-cyan-500/25"
+        size="lg"
+        slotClasses={{ frame: 'bg-linear-to-br from-cyan-500 to-blue-500 text-white' }}
       >
         AK
       </Avatar>
       <Avatar
-        unstyled
-        class="flex h-14 w-14 items-center justify-center rounded-2xl bg-linear-to-br from-amber-400 to-orange-500 text-lg font-bold text-neutral-900 shadow-lg shadow-amber-500/25"
+        size="lg"
+        slotClasses={{ frame: 'bg-linear-to-br from-amber-400 to-orange-500 text-neutral-900' }}
       >
         ST
       </Avatar>
     </CodeExample>
 
     <p class="text-text-secondary text-sm leading-relaxed">
-      Beyond <code class="text-text-primary">unstyled</code> +
-      <code class="text-text-primary">class</code>, Avatar exposes
-      <code class="text-text-primary">base</code>,
-      <code class="text-text-primary">frame</code>, <code class="text-text-primary">image</code>,
-      <code class="text-text-primary">fallback</code>, and
-      <code class="text-text-primary">status</code>
-      through
-      <code class="text-text-primary">slotClasses</code>. A recurring identity treatment — like the
-      gradient tiles above — is best registered as a
-      <code class="text-text-primary">BlocksProvider</code>
-      preset (<code class="text-text-primary">presets.Avatar</code>) and applied via
-      <code class="text-text-primary">preset</code>; see
-      <a href={resolve('/customization')} class="text-primary hover:underline">Customization</a>.
+      This is one of five ways to restyle a block. See
+      <a href={resolve('/customization')} class="text-primary hover:underline">Customization</a>
+      for <code class="text-text-primary">class</code>,
+      <code class="text-text-primary">slotClasses</code>,
+      <code class="text-text-primary">unstyled</code>, <code class="text-text-primary">preset</code>
+      and provider-level overrides.
     </p>
   </div>
 </Section>
@@ -114,28 +163,40 @@
   <NoteList>
     <Note title="ARIA">
       <p>
-        The <code class="text-text-primary">aria-label</code> is derived from
-        <code class="text-text-primary">alt</code> or
-        <code class="text-text-primary">name</code>. Interactive avatars receive
-        <code class="text-text-primary">role="button"</code>. Purely decorative avatars can be
-        hidden via <code class="text-text-primary">aria-hidden</code>.
+        An interactive avatar (<code class="text-text-primary">clickable</code>,
+        <code class="text-text-primary">interactive</code>, or
+        <code class="text-text-primary">onclick</code>) carries
+        <code class="text-text-primary">role="button"</code> and an
+        <code class="text-text-primary">aria-label</code> taken from
+        <code class="text-text-primary">alt</code> or <code class="text-text-primary">name</code>. A
+        static avatar exposes its name through the image's
+        <code class="text-text-primary">alt</code>, or renders initials. The presence dot is
+        announced separately, as an image labelled “Status: online”. Hide a purely decorative avatar
+        with <code class="text-text-primary">aria-hidden</code>.
       </p>
     </Note>
     <Note title="Keyboard">
       <p>
-        Interactive avatars are focusable via
+        Interactive avatars are focusable with
         <Kbd keys="Tab" />
-        and activate with
+        and activate on
         <Kbd keys="Enter" />
         /
-        <Kbd keys="Space" />. Non-interactive avatars are skipped in the tab order.
+        <Kbd keys="Space" />. A static avatar is skipped in the tab order.
       </p>
     </Note>
-    <Note title="Image Fallback">
+    <Note title="Image fallback">
       <p>
-        When the image fails to load, the component falls back to
-        <code class="text-text-primary">children</code> (if provided) or initials generated from
-        <code class="text-text-primary">name</code>, ensuring content is always visible.
+        When the image is missing or fails to load, the avatar falls back to
+        <code class="text-text-primary">children</code> if given, otherwise to the initials from
+        <code class="text-text-primary">name</code>, so it is never empty.
+      </p>
+    </Note>
+    <Note title="Motion and contrast">
+      <p>
+        The <code class="text-text-primary">pulse</code> ring stops animating under
+        <code class="text-text-primary">prefers-reduced-motion</code>. Under
+        <code class="text-text-primary">prefers-contrast: more</code> the disc gains a delineating outline.
       </p>
     </Note>
   </NoteList>

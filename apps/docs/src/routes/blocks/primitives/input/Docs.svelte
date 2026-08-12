@@ -1,11 +1,7 @@
-<!-- urbicon-ignore raw-tailwind-color — the 3 raw colours are the Customization
-     section's subject. Those demos exist to show what `slotClasses`/`unstyled` reach
-     that the token system deliberately does not: glassmorphism, a terminal look, a neon
-     outline. Tokenising them would delete the example. Every other section on this page
-     stays under the rule. -->
 <script lang="ts">
   import { CodeExample, Note, NoteList, Section } from '@urbicon-ui/docs';
   import {
+    Button,
     EyeIcon,
     EyeOffIcon,
     Input,
@@ -19,6 +15,18 @@
   let searchValue = $state('Svelte components');
   let passwordValue = $state('');
   let passwordVisible = $state(false);
+  let brandedSearch = $state('Design tokens');
+
+  const takenAddresses = ['ada@example.com'];
+  let emailError = $state('');
+  let signedUp = $state(false);
+
+  function handleSignup(event: SubmitEvent) {
+    event.preventDefault();
+    const address = String(new FormData(event.currentTarget as HTMLFormElement).get('email') ?? '');
+    emailError = takenAddresses.includes(address) ? 'That address is already registered' : '';
+    signedUp = !emailError;
+  }
 </script>
 
 <!-- ─── Examples ─── -->
@@ -27,7 +35,7 @@
   <div class="space-y-8">
     <CodeExample
       title="Search input"
-      description="Pair `clearable` with a left search icon — the most common real-world pattern. Press Escape or click the clear button to reset."
+      description="Pair `clearable` with a left search icon. Press Escape or click the clear button to reset."
       isolate
       previewClass="flex flex-col gap-4 max-w-sm"
     >
@@ -45,7 +53,7 @@
 
     <CodeExample
       title="Password with visibility toggle"
-      description="Combine `type='password'` with a clickable right icon — `onRightIconClick` turns the icon into an accessible button (note the required `rightIconAriaLabel`)."
+      description="Giving an icon a click handler turns it into a real button, which then needs its own `rightIconAriaLabel` or `leftIconAriaLabel` for a name. A right icon and `clearable` share the same corner: while the field holds a value, the clear control takes it."
       isolate
       previewClass="flex flex-col gap-4 max-w-sm"
     >
@@ -71,23 +79,31 @@
     </CodeExample>
 
     <CodeExample
-      title="Email field with validation error"
-      description="`error` overrides `helper` and forces danger styling regardless of `intent`. Combined with a left icon for visual context."
+      title="Validated in a form"
+      description="`type` and `required` sit on a real input, so the browser checks the address shape and the empty case before the handler runs, while `name` is what puts the value into the `FormData`. `error` covers what only your code knows, an answer from the server for instance, and it overrides `helper` and any `intent` for as long as it is set."
       isolate
       previewClass="flex flex-col gap-4 max-w-sm"
     >
-      <Input
-        type="email"
-        label="Email"
-        placeholder="name@example.com"
-        value="not-an-email"
-        error="Please enter a valid email address"
-        required
-      >
-        {#snippet leftIcon()}
-          <MailIcon />
-        {/snippet}
-      </Input>
+      <form class="flex flex-col gap-4" onsubmit={handleSignup}>
+        <Input
+          type="email"
+          name="email"
+          label="Email"
+          placeholder="name@example.com"
+          value="ada@example.com"
+          error={emailError}
+          helper="We send one confirmation mail and nothing else"
+          required
+        >
+          {#snippet leftIcon()}
+            <MailIcon />
+          {/snippet}
+        </Input>
+        <Button type="submit" size="sm" class="self-start">Sign up</Button>
+        {#if signedUp}
+          <p class="text-success text-xs">Address accepted.</p>
+        {/if}
+      </form>
     </CodeExample>
   </div>
 </Section>
@@ -95,75 +111,47 @@
 <!-- ─── Customization ─── -->
 
 <Section marker id="customization" title="Customization">
-  <div class="space-y-8">
+  <div class="space-y-6">
     <CodeExample
-      title="Branded Search Bar"
-      description="The container acts as the visual boundary with ring and shadow. The input's own border is suppressed via slotClasses."
+      title="Prominent search bar"
+      description="The frame belongs to the `container` slot and the text field to `base`, so a treatment on the outside goes on the first while the second gives up its own border and ring."
       isolate
       previewClass="flex flex-col items-center gap-4 max-w-lg w-full mx-auto"
     >
       <Input
-        size="xl"
-        placeholder="Search components, patterns, tokens..."
+        tier="commit"
+        size="lg"
         clearable
+        bind:value={brandedSearch}
+        placeholder="Search components, patterns, tokens..."
+        aria-label="Search"
         slotClasses={{
           container:
-            'rounded-2xl bg-surface-base shadow-[var(--blocks-shadow-lg)] ring-2 ring-primary/20 focus-within:ring-primary/50 transition-all overflow-hidden',
-          base: 'border-0 bg-transparent rounded-2xl focus-visible:ring-0'
+            'shadow-[var(--blocks-shadow-lg)] ring-2 ring-primary/25 focus-within:ring-primary/50 transition-shadow overflow-hidden',
+          base: 'border-transparent bg-transparent focus-visible:ring-0'
         }}
-      />
-    </CodeExample>
-
-    <CodeExample
-      title="Glassmorphism Input"
-      description="Frosted glass input for overlay or hero contexts."
-      isolate
-      previewClass="flex flex-col items-center gap-4 max-w-md w-full mx-auto rounded-xl bg-linear-to-br from-indigo-600 via-purple-600 to-pink-500 px-8 py-10"
-    >
-      <Input
-        unstyled
-        placeholder="Enter your email"
-        slotClasses={{
-          base: 'w-full rounded-xl border border-white/20 bg-white/10 px-5 py-3 text-white placeholder-white/50 shadow-lg backdrop-blur-md transition-all focus-visible:border-white/40 focus-visible:bg-white/15 focus-visible:outline-none'
-        }}
-      />
-    </CodeExample>
-
-    <CodeExample
-      title="Underline Form"
-      description="The underline variant pairs well with compact forms."
-      isolate
-      previewClass="flex flex-col gap-4 max-w-sm"
-    >
-      <Input variant="underline" label="Full Name" placeholder="Jane Doe" />
-      <Input variant="underline" label="Email" placeholder="jane@acme.com" />
-      <Input variant="underline" label="Phone" placeholder="+49 123 456 789" helper="Optional" />
-    </CodeExample>
-
-    <CodeExample
-      title="Fully Custom (unstyled)"
-      description="Drop all defaults for complete control."
-      isolate
-      previewClass="flex flex-col gap-4 max-w-sm"
-    >
-      <Input
-        unstyled
-        label="Brutalist Input"
-        placeholder="Type something..."
-        class="text-text-primary placeholder:text-text-tertiary w-full border-2 border-current bg-transparent px-4 py-3 font-mono text-sm focus-visible:outline-none"
-        slotClasses={{
-          label: 'font-mono text-xs uppercase tracking-widest text-text-secondary mb-1'
-        }}
-      />
+      >
+        {#snippet leftIcon()}
+          <SearchIcon />
+        {/snippet}
+      </Input>
     </CodeExample>
 
     <p class="text-text-secondary text-sm leading-relaxed">
-      A field treatment shared across forms belongs in a <code class="text-text-primary"
-        >BlocksProvider</code
-      >
-      preset (<code class="text-text-primary">presets.Input</code>) — register matching presets for
-      Select and Textarea under the same name to keep the form language consistent. See
-      <a href={resolve('/customization')} class="text-primary hover:underline">Customization</a>.
+      A treatment every field should share belongs on a
+      <code class="text-text-primary">BlocksProvider</code> instead, as a
+      <code class="text-text-primary">defaults</code> entry for
+      <code class="text-text-primary">Input</code> and the same one for
+      <a href={resolve('/blocks/primitives/select')} class="text-primary hover:underline">Select</a>
+      and
+      <a href={resolve('/blocks/primitives/textarea')} class="text-primary hover:underline"
+        >Textarea</a
+      >. See
+      <a href={resolve('/customization')} class="text-primary hover:underline">Customization</a>
+      for that and for <code class="text-text-primary">class</code>,
+      <code class="text-text-primary">slotClasses</code>,
+      <code class="text-text-primary">unstyled</code> and
+      <code class="text-text-primary">preset</code>.
     </p>
   </div>
 </Section>
@@ -172,27 +160,35 @@
 
 <Section marker id="accessibility" title="Accessibility">
   <NoteList>
-    <Note title="Built-in ARIA">
+    <Note title="Labels and messages">
       <p>
-        Labels are automatically associated via <code class="text-text-primary">for</code> and
-        <code class="text-text-primary">id</code>. Error and helper messages are linked through
-        <code class="text-text-primary">aria-describedby</code>. Validation states set
-        <code class="text-text-primary">aria-invalid</code> automatically.
+        The <code class="text-text-primary">label</code> links to the field via
+        <code class="text-text-primary">for</code>/<code class="text-text-primary">id</code>.
+        <code class="text-text-primary">helper</code> and
+        <code class="text-text-primary">error</code> text is announced through
+        <code class="text-text-primary">aria-describedby</code>, and an
+        <code class="text-text-primary">error</code> also sets
+        <code class="text-text-primary">aria-invalid</code> on the input.
       </p>
     </Note>
     <Note title="Keyboard">
       <p>
-        <Kbd keys="Tab" />
-        to focus. Native text input behavior for all key combinations. Clearable inputs respond to
-        <Kbd keys="Escape" />
-        to clear the value. Focus indication uses
-        <code class="text-text-primary">focus-visible:</code> for keyboard-only visibility.
+        <Kbd keys="Tab" /> focuses the field. On a
+        <code class="text-text-primary">clearable</code> field that holds a value,
+        <Kbd keys="Escape" /> clears it and puts focus back in the input, which is also the one case where
+        a field inside a dialog keeps that Escape to itself. An icon with a click handler is a real
+        <code class="text-text-primary">&lt;button&gt;</code>
+        with its own
+        <Kbd keys="Tab" /> stop, before the field on the left and after it on the right, and the clear
+        control is another one.
       </p>
     </Note>
-    <Note title="Color Contrast">
+    <Note title="Colour is not the only signal">
       <p>
-        Error, warning, and success states use both color and text to convey status – never color
-        alone. Helper and error messages meet WCAG AA contrast ratios against all surface tokens.
+        An <code class="text-text-primary">intent</code> tints the field's frame and nothing else,
+        so a state carried by it wants <code class="text-text-primary">helper</code> text saying the
+        same thing in words. An <code class="text-text-primary">error</code> arrives with its message
+        already attached.
       </p>
     </Note>
   </NoteList>

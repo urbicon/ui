@@ -28,12 +28,12 @@
 
 <SeoMeta
   title="Button Group Component"
-  description="Group related buttons with single/multi selection, orientation options, and connected styling."
+  description="Group related buttons with single or multiple selection."
 />
 
 <DocsPageLayout
   title="Button Group"
-  description="Group related buttons with single/multi selection, orientation options, and connected styling."
+  description="Group related buttons with single or multiple selection."
   maxWidth="2xl"
   showToc={true}
   {navigation}

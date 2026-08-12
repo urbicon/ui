@@ -68,14 +68,7 @@ const NO_EXAMPLES: Record<string, string> = {
  * `<page>#<section>`, with the reason. Same contract as `NO_EXAMPLES`: a stale
  * entry is an error.
  */
-const OVERSIZE_OK: Record<string, string> = {
-  'primitives/badge#patterns':
-    "One demo per value of Badge's `purpose` axis, and the axis has five (status / tag / counter " +
-    '/ dot / chip). The section is the taxonomy that stops the most common colour defect on the ' +
-    'page — painting a category as a status — so capping it at four would mean documenting four ' +
-    'fifths of an enum. The ceiling is right for a section that has drifted into a second ' +
-    'Examples dump; this one is keyed to an API surface and grows only when that surface does.'
-};
+const OVERSIZE_OK: Record<string, string> = {};
 
 /**
  * A collapse here means the parser drifted, not that the docs got clean. The

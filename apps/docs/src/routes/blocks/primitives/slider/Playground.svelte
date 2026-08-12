@@ -132,6 +132,7 @@
           showValue={values.showValue}
           marks={values.showMarks ? demoMarks : undefined}
           disabled={values.disabled}
+          error={values.error || undefined}
           range
         />
       {:else}
@@ -145,6 +146,7 @@
           showValue={values.showValue}
           marks={values.showMarks ? demoMarks : undefined}
           disabled={values.disabled}
+          error={values.error || undefined}
         />
       {/if}
     </div>

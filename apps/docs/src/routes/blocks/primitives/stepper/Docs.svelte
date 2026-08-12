@@ -1,8 +1,7 @@
-<!-- urbicon-ignore raw-tailwind-color — the 17 raw colours are the Customization
-     section's subject. Those demos exist to show what `slotClasses`/`unstyled` reach
-     that the token system deliberately does not: glassmorphism, a terminal look, a neon
-     outline. Tokenising them would delete the example. Every other section on this page
-     stays under the rule. -->
+<!-- urbicon-ignore raw-tailwind-color — the raw colours are the Customization section's
+     subject. That demo exists to show what `slotClasses`/`unstyled` reach that the token
+     system deliberately does not: a frosted-glass look. Tokenising it would delete the
+     example. Every other section on this page stays under the rule. -->
 <script lang="ts">
   import { CodeExample, Note, NoteList, Section } from '@urbicon-ui/docs';
   import { Badge, Button, Kbd, Stepper, StepperStep } from '@urbicon-ui/blocks';
@@ -14,10 +13,22 @@
 <!-- ─── Examples ─── -->
 
 <Section marker id="examples" title="Examples">
+  <p class="text-text-secondary mb-8 text-sm leading-relaxed">
+    Stepper is controlled by a 0-based <code class="text-text-primary">activeStep</code> (<code
+      class="text-text-primary">bind:activeStep</code
+    >
+    for two-way). Each indicator shows its step number, a checkmark once the step is complete, or a status
+    icon for an <code class="text-text-primary">error</code> or
+    <code class="text-text-primary">warning</code> step.
+    <code class="text-text-primary">clickable</code> lets users jump to a step (updating
+    <code class="text-text-primary">activeStep</code> and firing
+    <code class="text-text-primary">onStepChange</code>), and
+    <code class="text-text-primary">linear</code> limits that to completed steps plus the next one.
+  </p>
   <div class="space-y-8">
     <CodeExample
       title="Checkout wizard"
-      description="Bound activeStep with Back/Next navigation — the canonical multi-step form pattern."
+      description="Bind `activeStep` and drive it with Back/Next buttons."
       isolate
     >
       <div class="flex w-full flex-col gap-4">
@@ -53,7 +64,7 @@
 
     <CodeExample
       title="Mixed per-step states"
-      description="Override auto-derived states with error or warning for individual steps — e.g. a checkout where payment failed but shipping needs review."
+      description="Override the auto-derived state of individual steps with error or warning. For example, a checkout where payment failed but shipping needs review."
       isolate
     >
       <Stepper activeStep={2}>
@@ -66,7 +77,7 @@
 
     <CodeExample
       title="Optional steps in onboarding"
-      description="Mark non-required steps with the optional flag — users see an 'Optional' hint and can skip them."
+      description="Mark non-required steps with the `optional` flag, and users see an 'Optional' hint below the description."
       isolate
     >
       <Stepper activeStep={1}>
@@ -85,7 +96,7 @@
   <div class="space-y-8">
     <CodeExample
       title="Vertical with content per step"
-      description="Vertical orientation exposes a content slot per step — useful for inline instructions or embedded forms."
+      description="Vertical orientation exposes a content slot per step, useful for inline instructions or embedded forms."
       isolate
       previewClass="flex flex-col gap-4 max-w-md w-full"
     >
@@ -119,7 +130,7 @@
 
     <CodeExample
       title="Vertical with error state"
-      description="A failed step blocks progress until resolved — surface the error inline via the step content slot."
+      description="Surface a failed step's cause inline via the step content slot. Gate progress with `linear` or your own navigation, because `state=error` is visual only."
       isolate
       previewClass="flex flex-col gap-4 max-w-md w-full"
     >
@@ -144,7 +155,7 @@
   <div class="space-y-8">
     <CodeExample
       title="slotClasses Override"
-      description="Restyle individual slots — indicator color, label styling, separator thickness."
+      description="Nudge one slot while the rest keep their defaults. Here `slotClasses` thickens the separator into a square bar."
       isolate
     >
       <Stepper
@@ -161,7 +172,7 @@
 
     <CodeExample
       title="Dark Glassmorphism"
-      description="Fully custom frosted-glass stepper with unstyled mode."
+      description="Drop the tokens with `unstyled` and rebuild every slot through `slotClasses`, here into a frosted-glass stepper on a gradient."
       isolate
       previewClass="rounded-2xl bg-gradient-to-br from-indigo-500 via-purple-500 to-pink-500 p-8 w-full"
     >
@@ -209,75 +220,13 @@
       </Stepper>
     </CodeExample>
 
-    <CodeExample
-      title="Terminal Progress"
-      description="Monospace hacker aesthetic."
-      isolate
-      previewClass="rounded-2xl bg-neutral-950 p-8 w-full"
-    >
-      <Stepper
-        unstyled
-        activeStep={2}
-        class="flex w-full items-center font-mono [&>li:last-child_[data-stepper-separator]]:hidden"
-      >
-        <StepperStep
-          unstyled
-          label="BUILD"
-          slotClasses={{
-            stepItem: 'flex items-center [&:not(:last-child)]:flex-1',
-            step: 'flex items-center gap-2 shrink-0',
-            indicator:
-              'flex size-7 items-center justify-center rounded text-xs font-bold bg-emerald-500/20 text-emerald-400 border border-emerald-500/30',
-            label: 'text-xs text-emerald-300 tracking-wider',
-            separator: 'h-px flex-1 mx-3 bg-emerald-500/20'
-          }}
-        />
-        <StepperStep
-          unstyled
-          label="TEST"
-          slotClasses={{
-            stepItem: 'flex items-center [&:not(:last-child)]:flex-1',
-            step: 'flex items-center gap-2 shrink-0',
-            indicator:
-              'flex size-7 items-center justify-center rounded text-xs font-bold bg-emerald-500/20 text-emerald-400 border border-emerald-500/30',
-            label: 'text-xs text-emerald-300 tracking-wider',
-            separator: 'h-px flex-1 mx-3 bg-emerald-500/20'
-          }}
-        />
-        <StepperStep
-          unstyled
-          label="DEPLOY"
-          slotClasses={{
-            stepItem: 'flex items-center [&:not(:last-child)]:flex-1',
-            step: 'flex items-center gap-2 shrink-0',
-            indicator:
-              'flex size-7 items-center justify-center rounded text-xs font-bold bg-emerald-500 text-neutral-950 border border-emerald-400 shadow-[0_0_12px_rgba(52,211,153,0.3)]',
-            label: 'text-xs text-emerald-300 tracking-wider font-bold',
-            separator: 'h-px flex-1 mx-3 bg-emerald-500/20'
-          }}
-        />
-        <StepperStep
-          unstyled
-          label="MONITOR"
-          slotClasses={{
-            stepItem: 'flex items-center',
-            step: 'flex items-center gap-2 shrink-0',
-            indicator:
-              'flex size-7 items-center justify-center rounded text-xs font-bold bg-transparent text-neutral-400 border border-neutral-600',
-            label: 'text-xs text-neutral-400 tracking-wider',
-            separator: 'hidden'
-          }}
-        />
-      </Stepper>
-    </CodeExample>
-
     <p class="text-text-secondary text-sm leading-relaxed">
-      Wizard chrome like the glass or terminal looks above belongs in <code
-        class="text-text-primary">BlocksProvider</code
+      Wizard chrome like the glass look above belongs in <code class="text-text-primary"
+        >BlocksProvider</code
       >
-      presets — <code class="text-text-primary">presets.Stepper</code> for the shell,
+      presets (<code class="text-text-primary">presets.Stepper</code> for the shell,
       <code class="text-text-primary">presets.StepperStep</code>
-      for the per-step slots — applied via <code class="text-text-primary">preset</code>. See
+      for the per-step slots), applied via <code class="text-text-primary">preset</code>. See
       <a href={resolve('/customization')} class="text-primary hover:underline">Customization</a>.
     </p>
   </div>
@@ -311,9 +260,12 @@
       <p>
         Completed, error, and warning steps use distinct icons (checkmark, X, warning triangle) in
         addition to color, ensuring status is never conveyed by color alone. Disabled steps are
-        removed from the tab order via
-        <code class="text-text-primary">pointer-events-none</code> and visual
-        <code class="text-text-primary">opacity-50</code>.
+        non-interactive (<code class="text-text-primary">cursor-not-allowed</code>,
+        <code class="text-text-primary">pointer-events-none</code>) and never receive a
+        <code class="text-text-primary">tabindex</code> or
+        <code class="text-text-primary">role</code>, so they stay out of the tab order. They
+        intentionally skip an <code class="text-text-primary">opacity</code> wash, which would drop the
+        label below the WCAG AA contrast threshold. The muted indicator carries the disabled look.
       </p>
     </Note>
     <Note title="Reduced Motion">
