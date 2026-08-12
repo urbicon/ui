@@ -2,8 +2,17 @@
  * Shared types for the headless date-grid core (`lib/internal/date-grid`).
  *
  * This layer knows only about dates, cells, navigation, focus and selection —
- * never about events or domain items. Calendar and Planner build their visible
- * markup on top of it.
+ * never about events or domain items. Calendar, Planner and ResourceTimeline
+ * build their visible markup on top of it.
+ *
+ * Two of these types are **public**, re-exported by the surfaces that share
+ * them: `DateRange` and `DateCategory`. The module itself stays internal (see
+ * `index.ts`); what is public is the vocabulary, not the controller. Each of
+ * them replaced a set of per-component twins — `DateRange` stood as
+ * `DateGridRange` + Calendar's `DateRange` + `PlannerRange` + an inline
+ * `{ start; end }` on ResourceTimeline's `onNavigate`, and `DateCategory` as
+ * `CalendarEventCategory` + `TimelineCategory` (#191). Twins of one shape are
+ * what let two facades drift while the engine underneath stays shared.
  */
 
 /** View modes the grid can lay out. Cell-based views (month/week/range) render
@@ -14,14 +23,39 @@ export type DateGridView = 'month' | 'week' | 'range' | 'day';
 /** Selection cardinality. Planner uses only `single`; Calendar uses all three. */
 export type DateGridSelectionMode = 'single' | 'range' | 'multiple';
 
-/** An inclusive start/end date pair. */
-export interface DateGridRange {
+/**
+ * An inclusive start/end date pair — a selected range, a visible window, the
+ * range `onNavigate` reports. PUBLIC: the one such pair the date surfaces share.
+ *
+ * `ResourceTimeline.getRange` is deliberately *not* this type: it also accepts
+ * local date strings (`'2026-06-16'`), which a selection value must not.
+ */
+export interface DateRange {
   start: Date;
   end: Date;
 }
 
+/**
+ * A colour bucket for the items a date surface draws — Calendar's events,
+ * ResourceTimeline's spans — and the entries of the legend below the grid.
+ * PUBLIC: one type for every surface, so moving categories between them is not
+ * a mapping exercise.
+ *
+ * `color` takes any CSS colour value: hex, `rgb()`, `oklch()` or a
+ * `var(--token)` reference. Contrast against it is computed, so a bar's label
+ * stays legible on both a pale and a deep bucket (see `internal/contrast.ts`).
+ */
+export interface DateCategory {
+  /** Stable id — what an item's category accessor returns. */
+  id: string;
+  /** Display label, shown in the legend. */
+  label: string;
+  /** CSS colour value for the dot, bar or border. */
+  color: string;
+}
+
 /** The current selection value, shaped by the active `DateGridSelectionMode`. */
-export type DateGridSelection = Date | Date[] | DateGridRange;
+export type DateGridSelection = Date | Date[] | DateRange;
 
 /** Direction of the most recent navigation, for enter/exit transitions. */
 export type NavDirection = 'forward' | 'backward' | null;

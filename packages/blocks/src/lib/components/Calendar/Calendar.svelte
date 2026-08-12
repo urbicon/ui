@@ -23,7 +23,7 @@
   import type { CalendarProps } from './index';
   import type {
     CalendarEvent,
-    CalendarEventCategory,
+    DateCategory,
     CalendarViewMode,
     DateRange,
     EventDayInfo
@@ -456,7 +456,7 @@
 
   // --- Derived: category lookup ---
   const categoryMap = $derived.by(() => {
-    const map = new SvelteMap<string, CalendarEventCategory>();
+    const map = new SvelteMap<string, DateCategory>();
     for (const cat of categories) {
       map.set(cat.id, cat);
     }
@@ -487,7 +487,7 @@
     });
   }
 
-  function getCategoryById(id: string): CalendarEventCategory | undefined {
+  function getCategoryById(id: string): DateCategory | undefined {
     return categoryMap.get(id);
   }
 

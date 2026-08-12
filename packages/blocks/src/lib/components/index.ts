@@ -26,6 +26,11 @@ export {
   chartSlotResolver,
   chartVariants
 } from '$lib/internal/charts/variants';
+// The date surfaces' shared vocabulary — ONE definition for Calendar, Planner
+// and ResourceTimeline (internal/date-grid/date-grid.types.ts), listed once
+// here because all three re-export it and an explicit duplicate is a compile
+// error (#191).
+export type { DateCategory, DateRange } from '$lib/internal/date-grid';
 export * from './AreaChart';
 export type { AvatarGroupProps } from './AvatarGroup';
 export * from './AvatarGroup';
@@ -33,13 +38,11 @@ export * from './BarChart';
 export type {
   CalendarContext,
   CalendarEvent,
-  CalendarEventCategory,
   CalendarHeaderProps,
   CalendarProps,
   CalendarSelection,
   CalendarSlotName,
   CalendarViewMode,
-  DateRange,
   DayCellContext,
   EventItemContext,
   HeaderContext
@@ -70,7 +73,6 @@ export type {
   PlannerDayContext,
   PlannerHeaderContext,
   PlannerProps,
-  PlannerRange,
   PlannerSlotName,
   PlannerView
 } from './Planner';
@@ -82,7 +84,6 @@ export type {
   ResourceTimelineProps,
   ResourceTimelineSlotName,
   ResourceTimelineView,
-  TimelineCategory,
   TimelineCellContext,
   TimelineDayContext,
   TimelineGroup,

@@ -4,16 +4,17 @@
  * Planner buckets a generic `T[]` by calendar day and renders each day through
  * a consumer `cell` snippet. These types describe the snippet contexts the
  * consumer receives and the internal Svelte context `PlannerHeader` reads.
+ *
+ * The visible window is a `DateRange` — the date surfaces' shared start/end
+ * pair, defined in `internal/date-grid/date-grid.types.ts`. Until 2026-08-12
+ * this module declared a shape-identical `PlannerRange` of its own (#191).
  */
+import type { DateRange } from '$lib/internal/date-grid';
+
+export type { DateRange };
 
 /** Cell-based views Planner lays out. (`day`/`agenda`/`year` stay Calendar's.) */
 export type PlannerView = 'week' | 'month' | 'range';
-
-/** An inclusive start/end date pair — the visible window of the current view. */
-export interface PlannerRange {
-  start: Date;
-  end: Date;
-}
 
 /**
  * The value the `cell` snippet receives per day — the heart of the API. `items`

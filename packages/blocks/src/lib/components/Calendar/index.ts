@@ -2,9 +2,9 @@ import type { Snippet } from 'svelte';
 import type { HTMLAttributes } from 'svelte/elements';
 import type {
   CalendarEvent,
-  CalendarEventCategory,
   CalendarSelection,
   CalendarViewMode,
+  DateCategory,
   DateRange,
   DayCellContext,
   EventItemContext,
@@ -167,7 +167,7 @@ export interface CalendarProps
   /** Array of events to display on the calendar. @default [] */
   events?: CalendarEvent[];
   /** Event categories for color coding and legend. @default [] */
-  categories?: CalendarEventCategory[];
+  categories?: DateCategory[];
 
   // === View ===
   /**
@@ -485,9 +485,11 @@ export type { CalendarContext } from './calendar.context';
 export { createSlotHelper } from './calendar.context';
 export type {
   CalendarEvent,
-  CalendarEventCategory,
   CalendarSelection,
   CalendarViewMode,
+  // Shared date-surface vocabulary, defined in internal/date-grid and
+  // re-exported by every surface that speaks it (#191).
+  DateCategory,
   DateRange,
   DayCellContext,
   EventDayInfo,

@@ -21,8 +21,8 @@ import { addDays, daysBetween, eachDayOfRange, isoToDate, startOfWeek, stripTime
 import { packSpans } from '$lib/internal/date-grid/pack-spans';
 import { toDateKey } from '../Planner/planner.bucket';
 import type {
+  DateCategory,
   ResourceTimelineView,
-  TimelineCategory,
   TimelineGroup,
   TimelineLaneContext,
   TimelineRange,
@@ -98,7 +98,7 @@ export interface TimelineLayoutOptions<T> {
   /** The item's category id; falls back to `resource.categoryId`. */
   getCategoryId?: (item: T) => string | undefined;
   /** Colour buckets, looked up by id. */
-  categories?: readonly TimelineCategory[];
+  categories?: readonly DateCategory[];
   /** The visible window. */
   window: TimelineWindow;
   /** Bar rows to keep per lane; the rest are counted as overflow. */

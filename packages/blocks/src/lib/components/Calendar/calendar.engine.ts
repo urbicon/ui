@@ -75,9 +75,10 @@ export function compareDayEvents(
 /**
  * Foreground colour for a consumer-supplied background. The implementation
  * moved to `$lib/internal/contrast` when ResourceTimeline became its second
- * caller — a bar coloured from `TimelineCategory.color` faces exactly the
- * question a bar coloured from `CalendarEventCategory.color` does. Re-exported
- * here so Calendar's own sub-components keep importing it from the engine.
+ * caller — a timeline bar and a calendar event chip both paint a surface from a
+ * `DateCategory.color` the consumer chose, and face the same question.
+ * Re-exported here so Calendar's own sub-components keep importing it from the
+ * engine.
  */
 export { getContrastTextColor } from '$lib/internal/contrast';
 

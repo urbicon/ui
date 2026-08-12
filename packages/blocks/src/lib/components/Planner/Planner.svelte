@@ -7,7 +7,7 @@
     DateGridController,
     DateGridScaffold,
     setDateGridContext,
-    type DateGridRange,
+    type DateRange,
     type DateGridSelection,
     type DateGridView,
     type DayCellInfo,
@@ -189,7 +189,7 @@
     onSelect: handleSelect
   });
 
-  function handleNavigate(next: Date, range: DateGridRange) {
+  function handleNavigate(next: Date, range: DateRange) {
     setReference(next);
     if (view === 'range') {
       // The range window follows rangeStart/rangeEnd, so navigation rebinds them

@@ -1,68 +1,39 @@
 <!--
   ResourceTimelineHeader — the default ResourceTimeline toolbar.
 
-  prev / title / today / next, reading mechanics from the ResourceTimeline
-  context. The whole bar is replaceable via the `header` snippet; this is the
-  fallback. Same shape as PlannerHeader, deliberately.
+  prev / title / today / next. The bar itself is the shared
+  `CoreDateGridHeader` (behaviour only, see internal/core/) — the same one
+  PlannerHeader renders; what stays here is which i18n keys name the arrows and
+  which variants slots paint them. The whole bar is replaceable via the `header`
+  snippet; this is the fallback.
 -->
 <script lang="ts">
   import { useBlocksI18n } from '$lib';
   // internal core, not the public component — keeps the public-to-public import graph clean (see internal/core/)
-  import CoreIconButton from '$lib/internal/core/CoreIconButton.svelte';
-  import { resolveIcon } from '$lib/icons';
-  import CalendarDaysIconDefault from '$lib/icons/CalendarDaysIcon.svelte';
-  import ChevronLeftIconDefault from '$lib/icons/ChevronLeftIcon.svelte';
-  import ChevronRightIconDefault from '$lib/icons/ChevronRightIcon.svelte';
-  import { Tooltip } from '$lib/primitives/Tooltip';
+  import CoreDateGridHeader from '$lib/internal/core/CoreDateGridHeader.svelte';
   import { getResourceTimelineContext } from './resource-timeline.context';
 
   const bt = useBlocksI18n();
   const ctx = getResourceTimelineContext();
 
-  const ChevronLeftIcon = resolveIcon('chevronLeft', ChevronLeftIconDefault);
-  const ChevronRightIcon = resolveIcon('chevronRight', ChevronRightIconDefault);
-  const CalendarDaysIcon = resolveIcon('calendarDays', CalendarDaysIconDefault);
-
-  const prevLabel = $derived(
-    ctx.view === 'week' ? bt('resourceTimeline.previousWeek') : bt('resourceTimeline.previousRange')
-  );
-  const nextLabel = $derived(
-    ctx.view === 'week' ? bt('resourceTimeline.nextWeek') : bt('resourceTimeline.nextRange')
-  );
+  const labels = $derived({
+    previous:
+      ctx.view === 'week'
+        ? bt('resourceTimeline.previousWeek')
+        : bt('resourceTimeline.previousRange'),
+    next: ctx.view === 'week' ? bt('resourceTimeline.nextWeek') : bt('resourceTimeline.nextRange'),
+    today: bt('resourceTimeline.today')
+  });
 </script>
 
-<div class={ctx.slot('header')}>
-  <div class={ctx.slot('nav')}>
-    <CoreIconButton
-      class={ctx.slot('navButton')}
-      onclick={() => ctx.navigate(-1)}
-      disabled={!ctx.canGoBack || ctx.disabled}
-      aria-label={prevLabel}
-    >
-      <ChevronLeftIcon size={16} />
-    </CoreIconButton>
-  </div>
-
-  <span class={ctx.slot('headerTitle')}>{ctx.title}</span>
-
-  <div class={ctx.slot('nav')}>
-    <Tooltip label={bt('resourceTimeline.today')}>
-      <CoreIconButton
-        class={ctx.slot('navButton')}
-        onclick={() => ctx.goToToday()}
-        disabled={!ctx.canGoToToday || ctx.disabled}
-        aria-label={bt('resourceTimeline.today')}
-      >
-        <CalendarDaysIcon size={16} />
-      </CoreIconButton>
-    </Tooltip>
-    <CoreIconButton
-      class={ctx.slot('navButton')}
-      onclick={() => ctx.navigate(1)}
-      disabled={!ctx.canGoForward || ctx.disabled}
-      aria-label={nextLabel}
-    >
-      <ChevronRightIcon size={16} />
-    </CoreIconButton>
-  </div>
-</div>
+<CoreDateGridHeader
+  {labels}
+  title={ctx.title}
+  canGoBack={ctx.canGoBack}
+  canGoForward={ctx.canGoForward}
+  canGoToToday={ctx.canGoToToday}
+  disabled={ctx.disabled}
+  navigate={(delta) => ctx.navigate(delta)}
+  goToToday={() => ctx.goToToday()}
+  slotClass={(slot) => ctx.slot(slot)}
+/>

@@ -1,8 +1,8 @@
 import { createOptionalContext } from '$lib/utils/optional-context';
 import type {
   CalendarEvent,
-  CalendarEventCategory,
   CalendarViewMode,
+  DateCategory,
   DateRange,
   EventDayInfo
 } from './calendar.types';
@@ -35,10 +35,10 @@ export interface CalendarContext {
 
   // Events
   readonly events: CalendarEvent[];
-  readonly categories: CalendarEventCategory[];
+  readonly categories: DateCategory[];
   getEventsForDate: (date: Date) => CalendarEvent[];
   getEventsWithDayInfo: (date: Date) => EventDayInfo[];
-  getCategoryById: (id: string) => CalendarEventCategory | undefined;
+  getCategoryById: (id: string) => DateCategory | undefined;
 
   // Styling
   readonly size: 'sm' | 'md' | 'lg';

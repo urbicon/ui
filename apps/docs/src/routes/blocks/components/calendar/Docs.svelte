@@ -120,7 +120,7 @@ const events: CalendarEvent[] = [
 
     <CodeExample
       title="Week, year and agenda views"
-      description="Same component, same events, one prop. Pick week with a time grid when the hour matters, year when the question is distribution across months, and agenda when the reader wants a list rather than a grid. The agenda's window runs `agendaDays` days from the reference date and its arrows step that whole window, so a one-day list is `agendaDays={1}` beside a `defaultDate`. The snippet shows only what differs between the three."
+      description="Same component, same events, one prop. Pick week with a time grid when the hour matters, year when the question is distribution across months, and agenda when the reader wants a list rather than a grid. The agenda's window runs `agendaDays` days from the reference date and its arrows step that whole window, so a one-day list is `agendaDays=&#123;1&#125;` beside a `defaultDate`. The snippet shows only what differs between the three."
       code={viewsCode}
     >
       <div class="space-y-10">

@@ -4,12 +4,12 @@
   import { getCalendarContext, createSlotHelper } from './calendar.context';
   import { draggableEvent, resizableEvent } from './calendar.drag';
   import { getContrastTextColor } from './calendar.engine';
-  import type { CalendarEvent, CalendarEventCategory } from './calendar.types';
+  import type { CalendarEvent, DateCategory } from './calendar.types';
   import CalendarEventPopover from './CalendarEventPopover.svelte';
 
   interface CalendarTimeEventInternalProps {
     event: CalendarEvent;
-    category?: CalendarEventCategory;
+    category?: DateCategory;
     top: number;
     height: number;
     column: number;

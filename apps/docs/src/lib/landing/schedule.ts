@@ -17,7 +17,7 @@
  * zufälliger Plan im HTML liefe beim Hydrieren gegen einen anderen. Dieselbe
  * Woche ergibt darum immer denselben Plan.
  */
-import type { CalendarEvent, CalendarEventCategory } from '@urbicon-ui/blocks';
+import type { CalendarEvent, DateCategory } from '@urbicon-ui/blocks';
 import { ROOM_TYPES } from '$lib/hotel-tools';
 
 /**
@@ -29,7 +29,7 @@ import { ROOM_TYPES } from '$lib/hotel-tools';
  * ist, sagt sein Text. Im `.room-accent`-Scope der Kachel wird `primary` zum
  * Kanalton, der Kalender färbt sich also mit der Kachel um.
  */
-export const ROOM_CATEGORIES: CalendarEventCategory[] = [
+export const ROOM_CATEGORIES: DateCategory[] = [
   { id: 'room', label: 'Room', color: 'var(--color-primary)' },
   { id: 'garden', label: 'Garden', color: 'var(--color-success)' },
   { id: 'corner', label: 'Corner', color: 'var(--color-warning)' },

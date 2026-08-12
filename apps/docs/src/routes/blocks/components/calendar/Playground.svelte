@@ -9,7 +9,7 @@
 <script lang="ts">
   import type { PlaygroundHostProps } from '$lib/playground-host';
   import { Calendar } from '@urbicon-ui/blocks';
-  import type { CalendarEvent, CalendarEventCategory } from '@urbicon-ui/blocks';
+  import type { CalendarEvent, DateCategory } from '@urbicon-ui/blocks';
   import {
     defaultValuesOf,
     deriveControls,
@@ -22,7 +22,7 @@
 
   const { propDocs, variantKeys } = extractPlaygroundDocs(componentData?.props ?? []);
 
-  const demoCategories: CalendarEventCategory[] = [
+  const demoCategories: DateCategory[] = [
     { id: 'meeting', label: 'Meeting', color: '#8b5cf6' },
     { id: 'deadline', label: 'Deadline', color: '#ef4444' },
     { id: 'focus', label: 'Fokuszeit', color: '#3b82f6' },

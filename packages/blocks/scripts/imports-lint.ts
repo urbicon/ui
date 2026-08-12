@@ -65,10 +65,10 @@ const ALLOWLIST: ReadonlyArray<readonly [edge: string, why: string]> = [
   ['LocaleSwitcher -> Select', 'is-a select over the available locales'],
   // (FileUpload→Spinner, PlannerHeader→Button, CalendarHeader→Button,
   //  CalendarMiniMonth→Button removed: nav buttons / busy spinners now compose
-  //  the internal cores — see src/lib/internal/core/.)
+  //  the internal cores — see src/lib/internal/core/. PlannerHeader→Tooltip and
+  //  ResourceTimelineHeader→Tooltip left with the same move on 2026-08-12: both
+  //  bars ARE CoreDateGridHeader now, and the today-button hint lives there.)
   ['FileUpload -> Progress', 'per-file upload progress'],
-  ['PlannerHeader -> Tooltip', 'nav button hints'],
-  ['ResourceTimelineHeader -> Tooltip', 'nav button hints'],
   ['Guide -> Button', 'panel action buttons'],
   ['CalendarHeader -> Tooltip', 'nav button hints'],
   ['CalendarHeader -> Popover', 'view/date picker overlay'],

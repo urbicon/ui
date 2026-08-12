@@ -66,6 +66,14 @@ The axis count is the fastest way to tell them apart: Calendar and Planner lay o
 - ResourceTimeline's `getRange` is **inclusive** on both ends, the same convention as `CalendarEvent.end`: a hotel stay's last night is `checkOut − 1`.
 - All three share the headless `DateGridController` under the hood (navigation, bounds, ISO weeks, today) and the packer in `internal/date-grid/pack-spans` lays out both Calendar's month bars and ResourceTimeline's lane bars, so none of them is "lighter" — pick on the data model, not on weight.
 
+### Moving between them
+
+Two public types are shared, not per-component: **`DateRange`** (inclusive start/end) and **`DateCategory`** (`{ id, label, color }` — the colour bucket behind bars, dots and legends). One `DateCategory[]` therefore drives a Calendar's legend and a ResourceTimeline's legend unchanged.
+
+The data vocabularies stay different because the models do — and the **accessors are what bridges them**, not a conversion step: a `CalendarEvent[]` you already hold becomes a timeline by pointing `getResourceId` at the lane id (`meta.roomId`) and `getRange` at `{ start, end ?? start }`. Worked example: the "same rows on two surfaces" case on the [ResourceTimeline doc page](../apps/docs/src/routes/blocks/components/resource-timeline/examples/SameEventsTwoSurfaces.svelte). Write a converted copy only when the two views genuinely need different data, never to satisfy a type.
+
+The reverse direction does cost a map: `Calendar.events` takes the fixed `CalendarEvent` shape, so feeding it from your own row type means building events. That asymmetry is the price of Calendar's clock times, recurrence and drag-resize.
+
 ### Code anchors
 
 - Planner board recipe: [/recipes/meal-planner](../apps/docs/src/routes/recipes/meal-planner/+page.svelte) — weekly plan with bucketed cards and an add affordance.

@@ -1,7 +1,7 @@
 import { describe, expect, it, vi } from 'vitest';
 import { handleDateGridKeydown } from './date-grid.keyboard';
 import { DateGridController, type DateGridOptions } from './date-grid.svelte';
-import type { DateGridRange, DateGridSelection, DateGridView } from './date-grid.types';
+import type { DateGridSelection, DateGridView, DateRange } from './date-grid.types';
 
 /** Minimal KeyboardEvent stand-in (the test env is `node` — no DOM). */
 function keyEvent(key: string, shiftKey = false): KeyboardEvent {
@@ -53,7 +53,7 @@ class Harness {
   disabled = $state(false);
   isDateDisabled: ((d: Date) => boolean) | undefined;
 
-  navigations: Array<{ date: Date; range: DateGridRange }> = [];
+  navigations: Array<{ date: Date; range: DateRange }> = [];
   selections: DateGridSelection[] = [];
   controller: DateGridController;
 
@@ -650,7 +650,7 @@ describe('DateGridController — selection', () => {
       end: new Date(2026, 5, 20)
     });
     h.controller.selectDate(new Date(2026, 5, 15)); // earlier → becomes start
-    const range = h.selections.at(-1) as DateGridRange;
+    const range = h.selections.at(-1) as DateRange;
     expect(range.start.getDate()).toBe(15);
     expect(range.end.getDate()).toBe(20);
   });

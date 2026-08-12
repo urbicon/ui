@@ -3,11 +3,7 @@
   import { useBlocksI18n } from '$lib';
   import { formatDateRange, stripTime, toIso } from '$lib/date';
   import { getContrastTextColor } from '$lib/internal/contrast';
-  import {
-    DateGridController,
-    type DateGridRange,
-    type DateGridView
-  } from '$lib/internal/date-grid';
+  import { DateGridController, type DateRange, type DateGridView } from '$lib/internal/date-grid';
   import { getBlocksConfig, resolveSlotClasses } from '$lib/provider';
   import type { ResourceTimelineProps } from './index';
   import { setResourceTimelineContext } from './resource-timeline.context';
@@ -168,7 +164,7 @@
     onNavigate: handleNavigate
   });
 
-  function handleNavigate(next: Date, _range: DateGridRange) {
+  function handleNavigate(next: Date, _range: DateRange) {
     setReference(next);
     const shifted = getTimelineWindow(next, view, dayCount, weekStartsOn);
     onNavigate?.(next, { start: shifted.start, end: shifted.end });

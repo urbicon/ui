@@ -513,6 +513,25 @@ merged. What it does share is `pack-spans.ts`, the greedy first-fit row packer l
 of `calendar.engine.ts`: one packer now stacks both Calendar's month bars and the
 timeline's lane bars.
 
+**The facades share a vocabulary, not just an engine** (#191, 2026-08-12). Two public
+types live in `date-grid.types.ts` and are re-exported by every surface that speaks them:
+`DateRange` (the inclusive start/end pair) and `DateCategory` (the colour bucket behind
+bars, dots and legends). They replaced five twins — `DateGridRange`, Calendar's
+`DateRange`, `PlannerRange` and an inline `{ start; end }` on the one side,
+`CalendarEventCategory` and `TimelineCategory` on the other — whose only difference was
+which component had declared them; moving categories from a Calendar to a Timeline mapped
+a type onto itself. `CalendarEventCategory.icon` did not survive the merge: no legend in
+either surface ever rendered it. The small toolbar twinned the same way and is now one
+internal core (`CoreDateGridHeader`) that Planner and ResourceTimeline style through their
+own variants slots; `CalendarHeader` stays its own — it carries a month picker, a view
+switcher and a narrow-viewport grid.
+
+What is deliberately **not** unified is the data vocabulary: `events`/`CalendarEvent`,
+`items`/`getDate`, `items`/`getResourceId`+`getRange`. Those differ because the data models
+do (see [COMPONENT-DECISION-MATRICES.md](COMPONENT-DECISION-MATRICES.md) → Date Surfaces),
+and the accessor props are what carries one array onto a second surface without a
+conversion step.
+
 ---
 
 ## 4 · The packages in profile
