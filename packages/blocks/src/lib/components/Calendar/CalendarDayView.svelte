@@ -71,7 +71,13 @@
 >
   <div class="grid [&>*]:col-start-1 [&>*]:row-start-1">
     {#key dayKey}
+      <!-- `min-w-0` for the same reason as the week's wrapper: a grid item with
+           visible overflow is at least as wide as the hour grid's min-content,
+           and a card narrower than the gutter plus one day-column minimum would
+           otherwise clip instead of scroll. One column, so it takes a much
+           narrower card than the week's seven to reach it. -->
       <div
+        class="min-w-0"
         in:fly={ctx.shouldAnimate && ctx.navDirection
           ? { x: ctx.navDirection === 'forward' ? 40 : -40, duration: 200 }
           : { duration: 0 }}

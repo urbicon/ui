@@ -140,11 +140,53 @@ export const calendarVariants = tv({
     ],
     agendaEventList: 'flex flex-col',
 
-    // Time grid
-    timeGrid: ['overflow-y-auto overflow-x-hidden', 'border-t border-border-hairline'],
+    // Time grid. One scroll port for both axes, and a single column system: the
+    // track list lives HERE rather than in an inline style, so `unstyled` strips
+    // it with everything else and `slotClasses.timeGrid` can replace it — the
+    // month view's `grid-cols-7` rows work the same way. Only the day count is
+    // inline (`--blocks-calendar-day-count`, set by CalendarTimeGrid), because
+    // it is data, not a layout decision; custom properties substitute into
+    // `repeat()` at computed-value time (measured: Chromium 141 and WebKit both
+    // resolve `repeat(var(--n), …)` to seven 96 px tracks at `--n: 7`). Below
+    // seven fitting columns the grid scrolls sideways rather than shrinking the
+    // days to a stripe (#96). `relative` is load-bearing: the auto-scroll to the
+    // current time reads the hour rows' `offsetTop` against this box.
+    timeGrid: [
+      'relative grid overflow-auto',
+      'grid-cols-[auto_repeat(var(--blocks-calendar-day-count,1),minmax(var(--blocks-calendar-day-min-width,6rem),1fr))]',
+      'border-t border-border-hairline'
+    ],
+    // The three pinned cells. `bg-surface-base/95 backdrop-blur-sm` mirrors the
+    // agenda's sticky day header — the calendar draws no surface of its own, so
+    // a pinned cell has to bring one or the columns scroll through it. (On a
+    // tinted ground, retint them through `slotClasses.timeGutter` /
+    // `.timeHeadCell` / `.timeCorner`; the agenda header takes the same route.)
+    //
+    // Stacking, top down: corner (50) > gutter (40) > head strip (30) >
+    // current-time line (10) > events (inline z-index = the overlap column,
+    // capped at 9 in CalendarTimeEvent so a crowded day cannot climb out of the
+    // grid). The line has to stay BELOW the strip — the day columns and the head
+    // cells resolve in the same stacking context (`timeDayColumn` is `relative`
+    // with `z-index: auto`, so it opens none), and the columns come later in the
+    // tree, so an equal z-index would paint "now" over the weekday buttons the
+    // moment the grid is scrolled past it. calendar.variants.test.ts asserts the
+    // order numerically.
+    //
+    // `timeHeadCell` is one cell carrying BOTH the day head and the all-day band
+    // (`flex flex-col`): a single `sticky top-0` then keeps the two on screen
+    // together. Split across two grid rows the band would need a second sticky
+    // offset — the head's measured height — and without one it scrolls away,
+    // which the on-mount jump to the current time does immediately.
+    timeGutter: ['sticky left-0 z-40 flex flex-col', 'bg-surface-base/95 backdrop-blur-sm'],
+    timeHeadCell: ['sticky top-0 z-30 flex flex-col', 'bg-surface-base/95 backdrop-blur-sm'],
+    timeCorner: [
+      'sticky left-0 top-0 z-50',
+      'bg-surface-base/95 backdrop-blur-sm',
+      'border-b border-border-hairline'
+    ],
     timeLabel: 'text-text-tertiary tabular-nums text-right select-none pr-2 leading-none',
     timeSlotRow: 'border-b border-border-hairline/50',
-    timeDayColumn: ['relative flex-1', 'border-l border-border-hairline'],
+    timeDayColumn: ['relative', 'border-l border-border-hairline'],
     timeEvent: [
       'absolute rounded-md overflow-hidden',
       'text-text-on-fill px-1.5 py-0.5',
@@ -153,9 +195,14 @@ export const calendarVariants = tv({
       'hover:shadow-[var(--blocks-shadow-sm)] hover:brightness-110',
       'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/50'
     ],
-    allDayArea: ['border-b border-border-hairline'],
+    // `grow` bites only inside the pinned head strip, where the band is the last
+    // child of a flex column and its bottom border has to land on the strip's
+    // edge rather than under the tallest column's events. In the day view the
+    // band is a plain block child and the declaration is inert.
+    allDayArea: ['grow border-b border-border-hairline'],
     // `live` is the dedicated "now" accent (red by convention, themes via
-    // --color-live) — deliberately not `danger`, which signals errors.
+    // --color-live) — deliberately not `danger`, which signals errors. z-10 puts
+    // it over every event (inline 1…n) and under the pinned strip (30…50).
     currentTimeLine: 'absolute left-0 right-0 z-10 pointer-events-none border-t-2 border-live',
 
     // Week time grid mode (replaces weekGrid when showTimeGrid)
@@ -211,14 +258,21 @@ export const calendarVariants = tv({
         weekGrid: 'border-t-0',
         weekColumn: 'border-r-0',
         weekColumnHeader: 'border-b-0',
+        // The corner carries the head row's bottom line across the gutter, so it
+        // drops it with the heads rather than leaving a stub over the labels.
+        timeCorner: 'border-b-0',
         item: 'border-transparent shadow-none hover:shadow-none',
         multiDayBar: 'opacity-90'
       }
     },
 
+    // `--blocks-calendar-day-min-width` rides on the ROOT, not on the grid: a
+    // declaration on the grid itself would win over anything a consumer sets
+    // further up, and the root is the element their `style` prop lands on. Below
+    // seven of these the week view scrolls (CalendarTimeGrid builds the tracks).
     size: {
       sm: {
-        base: 'gap-1',
+        base: 'gap-1 [--blocks-calendar-day-min-width:5rem]',
         header: 'px-2 py-1.5',
         title: 'text-sm',
         navButton: 'size-7 rounded-md',
@@ -257,10 +311,14 @@ export const calendarVariants = tv({
         agendaDayGroup: 'gap-1',
         agendaDayHeader: 'text-xs py-1 px-2',
         agendaEventList: 'gap-1',
-        timeGrid: 'max-h-[360px]',
+        // `scroll-pl-*` matches the hour gutter's width (the `timeLabel` box
+        // below): arrow-keying back to the first day scrolls it into view, and
+        // without the padding the browser's minimal alignment parks the head
+        // under the pinned gutter. Deterministic instead of engine-dependent.
+        timeGrid: 'max-h-[360px] scroll-pl-8',
         timeLabel: 'text-2xs w-8',
         timeEvent: 'text-2xs px-1 py-px',
-        allDayArea: 'py-0.5 px-0.5 gap-px',
+        allDayArea: 'py-0.5 px-0.5',
         eventPopover: 'gap-0.5 max-h-32',
         eventPopoverItem: 'px-1.5 py-1 text-xs',
         miniCalendar: 'w-44 p-1.5 gap-1 hidden',
@@ -271,7 +329,7 @@ export const calendarVariants = tv({
         miniCalendarDay: 'size-5 text-2xs'
       },
       md: {
-        base: 'gap-2',
+        base: 'gap-2 [--blocks-calendar-day-min-width:6rem]',
         header: 'px-3 py-2.5',
         title: 'text-base',
         navButton: 'size-8 rounded-md',
@@ -310,10 +368,10 @@ export const calendarVariants = tv({
         agendaDayGroup: 'gap-1.5',
         agendaDayHeader: 'text-sm py-1.5 px-3',
         agendaEventList: 'gap-1.5',
-        timeGrid: 'max-h-[480px]',
+        timeGrid: 'max-h-[480px] scroll-pl-10',
         timeLabel: 'text-xs w-10',
         timeEvent: 'text-xs px-1.5 py-0.5',
-        allDayArea: 'py-1 px-1 gap-0.5',
+        allDayArea: 'py-1 px-1',
         eventPopover: 'gap-1 max-h-48',
         eventPopoverItem: 'px-2 py-1.5 text-sm',
         miniCalendar: 'w-52 p-2 gap-1.5',
@@ -324,7 +382,7 @@ export const calendarVariants = tv({
         miniCalendarDay: 'size-6 text-xs'
       },
       lg: {
-        base: 'gap-3',
+        base: 'gap-3 [--blocks-calendar-day-min-width:7rem]',
         header: 'px-4 py-3',
         title: 'text-lg',
         navButton: 'size-10 rounded-lg',
@@ -363,10 +421,10 @@ export const calendarVariants = tv({
         agendaDayGroup: 'gap-2',
         agendaDayHeader: 'text-base py-2 px-4',
         agendaEventList: 'gap-2',
-        timeGrid: 'max-h-[600px]',
+        timeGrid: 'max-h-[600px] scroll-pl-12',
         timeLabel: 'text-sm w-12',
         timeEvent: 'text-sm px-2 py-1',
-        allDayArea: 'py-1.5 px-1.5 gap-1',
+        allDayArea: 'py-1.5 px-1.5',
         eventPopover: 'gap-1.5 max-h-64',
         eventPopoverItem: 'px-2.5 py-2 text-base',
         miniCalendar: 'w-60 p-3 gap-2',

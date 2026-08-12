@@ -184,10 +184,24 @@ const events: CalendarEvent[] = [
     </Note>
     <Note title="Touch & Gestures">
       <p>
-        Horizontal swiping navigates between months/weeks/days. Touch input is handled through the
-        Pointer Events API. Swipe gestures can be disabled via
+        Horizontal swiping navigates between months and days. The week view arbitrates instead of
+        guessing: while its time grid actually overflows sideways (narrow viewports), the finger
+        pans the grid and the swipe stands down; once everything fits, swiping navigates weeks
+        again. Touch input is handled through the Pointer Events API. Swipe gestures can be disabled
+        via
         <code class="text-text-primary">swipeable={'{false}'}</code>. Animations respect
         <code class="text-text-primary">prefers-reduced-motion</code>.
+      </p>
+    </Note>
+    <Note title="Narrow Viewports">
+      <p>
+        Below phone widths the week keeps its seven columns behind a horizontal scroll with a sticky
+        time column — no information is dropped. Where a single day is the better answer, pick the
+        view from the viewport (<code class="text-text-primary">MediaQuery</code>) and pass
+        <code class="text-text-primary">views</code>
+        without
+        <code class="text-text-primary">week</code>; the
+        <code class="text-text-primary">views</code> prop's API docs carry the SSR-safe recipe.
       </p>
     </Note>
     <Note title="Internationalization">

@@ -14,6 +14,51 @@ describe('calendarVariants', () => {
     }
   });
 
+  it('stacks the pinned strip over the current-time line and the events (#96)', () => {
+    // One stacking context for all of them: `timeDayColumn` is `relative` with
+    // `z-index: auto`, so it opens none and the line's z resolves against the
+    // head cell's. Equal values would hand the win to the later-in-tree day
+    // columns — "now" painted across the weekday buttons whenever the grid is
+    // scrolled past it, which is the normal state after the mount auto-scroll.
+    const s = calendarVariants();
+    const z = (classes: string) =>
+      Number(/(?:^|\s)z-(\d+)(?:\s|$)/.exec(classes)?.[1] ?? Number.NaN);
+    const corner = z(s.timeCorner());
+    const gutter = z(s.timeGutter());
+    const head = z(s.timeHeadCell());
+    const line = z(s.currentTimeLine());
+
+    expect(corner).toBeGreaterThan(gutter);
+    expect(gutter).toBeGreaterThan(head);
+    expect(head).toBeGreaterThan(line);
+    // Events carry an inline `z-index` of their overlap column, capped at 9 in
+    // CalendarTimeEvent, so the line has to clear 9 and stay under the strip.
+    expect(line).toBeGreaterThan(9);
+  });
+
+  it('keeps the time grid positioned and its track list in a class, not in markup', () => {
+    // `relative` is load-bearing: CalendarTimeGrid's auto-scroll reads the hour
+    // rows' `offsetTop` against this box. The track list is a class rather than
+    // an inline style so `unstyled` strips the column system with the rest of
+    // the look and `slotClasses.timeGrid` can replace it — an inline
+    // `grid-template-columns` beats every class a consumer could write.
+    const base = calendarVariants().timeGrid();
+    expect(base).toContain('relative');
+    expect(base).toContain('grid-cols-[auto_repeat(var(--blocks-calendar-day-count,1)');
+    expect(base).toContain('minmax(var(--blocks-calendar-day-min-width,6rem),1fr)');
+
+    // Scroll padding = the hour gutter's width per size, so arrow-keying back to
+    // the first day reveals it beside the pinned gutter instead of under it.
+    for (const [size, pad, gutterWidth] of [
+      ['sm', 'scroll-pl-8', 'w-8'],
+      ['md', 'scroll-pl-10', 'w-10'],
+      ['lg', 'scroll-pl-12', 'w-12']
+    ] as const) {
+      expect(calendarVariants({ size }).timeGrid()).toContain(pad);
+      expect(calendarVariants({ size }).timeLabel()).toContain(gutterWidth);
+    }
+  });
+
   it('scales the day cell height with size', () => {
     expect(calendarVariants({ size: 'sm' }).day()).toContain('h-8');
     expect(calendarVariants({ size: 'md' }).day()).toContain('h-12');
