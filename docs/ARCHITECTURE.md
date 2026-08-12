@@ -72,7 +72,7 @@ graph TD
 | --- | --- | --- |
 | `shared-types` | Shared TypeScript types, no runtime code | `src/index.ts` |
 | `i18n` | Runes-based localization + translation audit | `src/lib/i18n/registry.svelte.ts` |
-| `blocks` | 40 primitives + 27 components, the token system, the `tv()` engine | `src/lib/index.ts` |
+| `blocks` | 40 primitives + 28 components, the token system, the `tv()` engine | `src/lib/index.ts` |
 | `table` | Data table: sorting, filtering, grouping, selection, keyboard nav, virtualization, remote mode | `src/lib/stores/TableStore.svelte.ts` |
 | `auth` | JWT sessions, refresh rotation, passkeys, Web Push, notifications | `src/lib/server/index.ts` |
 | `sveltekit-utils` | SvelteKit helpers (`createCronRunner`, URL-state runes) | `src/lib/index.ts` |
@@ -490,11 +490,11 @@ Locales: `en`, `de` (data); `fr`/`es`/`it`/`nl` declared. Server-side resolution
 
 ### Date & planning infrastructure
 
-Calendar and `Planner<T>` share a headless date-grid core.
+Calendar, `Planner<T>` and `ResourceTimeline<T>` share a headless date-grid core.
 `packages/blocks/src/lib/internal/date-grid/` holds the `DateGridController`, its context,
-the keyboard model and `DateGridScaffold` — deliberately **not** exported: two in-repo
-consumers don't yet justify the API-stability cost, and a re-export is a one-line
-`package.json` change if that ever shifts.
+the keyboard model, the span packer and `DateGridScaffold` — deliberately **not** exported:
+three in-repo consumers don't yet justify the API-stability cost, and a re-export is a
+one-line `package.json` change if that ever shifts.
 
 Pure date math lives in `packages/blocks/src/lib/date/` (`geometry`, `range`, `compare`,
 `format`) and **is** public via the `./date` subpath export.
@@ -504,6 +504,15 @@ caller-supplied (`T`, not a fixed `CalendarEvent`), view-parametrised. Calendar 
 own month-view rendering by design: the scaffold owns time-grid mechanics, not month-grid
 layout.
 
+`ResourceTimeline<T>` is the third consumer and the one with a second axis: one lane per
+resource against a day window, items drawn as bars over an inclusive `[start, end]` day
+range. It takes the controller's navigation, bounds and today handling but **not**
+`DateGridScaffold` or `handleDateGridKeydown` — that grid's vertical axis is the week
+(`ArrowUp` = −7 days), and here it is the lane, so the two keyboard models cannot be
+merged. What it does share is `pack-spans.ts`, the greedy first-fit row packer lifted out
+of `calendar.engine.ts`: one packer now stacks both Calendar's month bars and the
+timeline's lane bars.
+
 ---
 
 ## 4 · The packages in profile
@@ -512,7 +521,7 @@ Each package's own README is the authoritative reference; these are orientation 
 
 ### `blocks`
 
-40 primitives and 27 components, the token system, the `tv()` engine, the Mint system, the
+40 primitives and 28 components, the token system, the `tv()` engine, the Mint system, the
 icon set (358 icons) and the provider. Everything in §2 lives here.
 
 Icons are tree-shaking-sensitive: **never call `getIcon('name')` inside a component** — the
