@@ -13,15 +13,17 @@
  * Cala 86 %, Firn 94 %, Duna 71 % — also füllt dieser Generator genau diesen
  * Anteil der Zimmernächte je Haus. Wer die Balken im Raster abzählt, kommt auf
  * die Prozente der Progress-Zeile daneben: `occupancy.test.ts` misst die
- * Abweichung über 30 Fenster und hält sie unter 2 Prozentpunkten (gemessen 1,1
- * — der Rest ist die Rundung auf ganze Nächte). Ohne diese Kopplung wäre die
- * Kachel zwei Fiktionen in einer Karte.
+ * Abweichung über 30 Fenster und hält sie unter 2 Prozentpunkten — gemessen
+ * 0,35 über 730 Fenster, und das ist reine Rundung auf ganze Nächte (die
+ * Hausumme selbst ist exakt). Ohne diese Kopplung wäre die Kachel zwei
+ * Fiktionen in einer Karte.
  *
- * Deterministisch, ohne `Math.random()`: Die Seite wird prerendered, und ein
- * zufälliger Belegungsplan im HTML liefe beim Hydrieren gegen einen anderen.
- * Derselbe Fenster-Anfang ergibt darum immer denselben Plan — und ein ANDERER
- * Fenster-Anfang einen anderen, sonst zeigte die Woche nach einem Klick auf „›"
- * dasselbe Bild.
+ * Deterministisch, ohne `Math.random()`, und der Grund ist NICHT die Hydration:
+ * die Kachel startet auf „Overview", das Raster ist also nie Teil des
+ * prerenderten HTML (nachgesehen am ausgelieferten Dokument). Der Grund ist die
+ * Navigation — derselbe Fenster-Anfang muss denselben Plan ergeben, sonst
+ * zeichnete „‹" nach „›" eine andere Belegung derselben Woche; und ein ANDERER
+ * Fenster-Anfang einen anderen, sonst zeigte „›" dasselbe Bild.
  */
 import type { DateCategory, TimelineGroup, TimelineResource } from '@urbicon-ui/blocks';
 import { ROOM_TYPES } from '$lib/hotel-tools';
@@ -72,12 +74,13 @@ export const ROOM_CATEGORIES: DateCategory[] = [
  * zieht aus seinem eigenen Drittel der Liste (Index % 3 = Haus-Index), und
  * genau dieselbe Partition benutzt die Ankunftstabelle der Table-Kachel: wo ein
  * Name im Raster auftaucht, trägt er dort dasselbe Haus wie in der Tabelle (der
- * doppelt reisende Gast war Review-Befund 2026-08-10). Die ersten 24 Namen sind
- * die der Tabelle — ein Universum, eine Gästeliste.
+ * doppelt reisende Gast war Review-Befund 2026-08-10). Die 15 Namen der Tabelle
+ * stehen in dieser Liste an den Indizes 0–19 — ein Universum, eine Gästeliste.
  *
  * 123 Namen, also 41 je Haus: `occupancy.test.ts` misst über 30 aufeinander
  * folgende Fenster, dass kein Haus mehr Aufenthalte erzeugt als sein Drittel
- * Namen hat — gemessenes Maximum über 60 Fenster: 37 von 41. Und
+ * Namen hat — gemessenes Maximum über 730 Fenster: 38 von 41, also drei Namen
+ * Luft. Und
  * `buildOccupancy` warnt im DEV, sollte eine Fenster- oder Bestandsänderung den
  * Vorrat doch sprengen: ein Gast, der im sichtbaren Raster zweimal steht, soll
  * laut werden, nicht still rotieren.
@@ -254,6 +257,16 @@ const MIN_STAY = 3;
 const MAX_STAY = 9;
 
 /**
+ * Kleinstes Fenster, für das die Aufenthaltslängen noch gelten: bei sieben
+ * Nächten füllt ein Aufenthalt samt Überhang das ganze Fenster (gemessen: 13
+ * Nächte lang, also über MAX_STAY + Überhang), und bei 21 oder 30 Nächten
+ * sprengen die Aufenthalte den Namensvorrat je Haus (58 bzw. 85 gegen 41
+ * Namen). Die Kachel fährt 14; ein anderer Wert warnt im DEV, statt still eine
+ * andere Erzählung zu erzeugen.
+ */
+const NIGHTS_RANGE = { min: 10, max: 16 };
+
+/**
  * Streuung der Zimmerbelegung um den Hausschnitt, in Nächten. Angewandt als
  * TAUSCH zwischen zwei Nachbarzimmern (das eine bekommt `d` Nächte mehr, das
  * andere `d` weniger), damit die Hausumme exakt bleibt: ohne Streuung hätte
@@ -346,9 +359,10 @@ function roomsOf(house: OccupancyHouse): TimelineResource[] {
  * Zuerst gleichmäßig (Basis plus Rest auf die vorderen Zimmer), dann
  * Nachbartausch aus `SPREAD_NIGHTS`: jeder Tausch nimmt einem Zimmer Nächte und
  * gibt sie dem nächsten, die Summe bleibt also die des Hauses — das ist der
- * Unterschied zwischen „im Schnitt 86 %" und „86 %, nachzählbar". Jedes Zimmer
- * behält mindestens MIN_STAY belegte und höchstens `nights` Nächte, sonst hätte
- * eine Spur nichts zu zeigen oder der Tausch liefe ins Leere.
+ * Unterschied zwischen „im Schnitt 86 %" und „86 %, nachzählbar". Jedes Zimmer,
+ * das überhaupt belegt wird, behält dabei mindestens MIN_STAY und höchstens
+ * `nights` Nächte; welche Zimmer das sind, entscheidet `usable` unten — bei
+ * schwacher Last bleiben Spuren absichtlich LEER.
  */
 function occupiedPerRoom(seed: number, rooms: number, nights: number, load: number): number[] {
   const total = Math.round((rooms * nights * load) / 100);
@@ -471,6 +485,13 @@ export function buildOccupancy({
   const stays: Stay[] = [];
   const window = isoDay(windowStart);
 
+  if (import.meta.env?.DEV && (nights < NIGHTS_RANGE.min || nights > NIGHTS_RANGE.max)) {
+    console.warn(
+      `[occupancy] nights=${nights} is outside ${NIGHTS_RANGE.min}–${NIGHTS_RANGE.max} — ` +
+        `stay lengths and the guest pool are only measured for that range (see NIGHTS_RANGE)`
+    );
+  }
+
   houses.forEach((house, houseIndex) => {
     groups.push({ id: house.id, label: `${house.name} · ${house.place}` });
     const rooms = roomsOf(house);
@@ -572,4 +593,25 @@ export function measuredLoad(
     }
   }
   return (nightsInWindow.size / (rooms.length * nights)) * 100;
+}
+
+/**
+ * Zimmer, die in DIESER Nacht frei sind — was die erste Spalte des Rasters
+ * zeigt.
+ *
+ * Der Badge der Overview („N rooms free tonight") rechnete es aus der
+ * Auslastungsprozentzahl (`Bestand × (100 − load)/100`) und widersprach damit
+ * dem Raster daneben: 8 gegen gezählte 7, an einem Tag stand Firn im Raster auf
+ * 0 von 9 während der Badge bei 1 floorte (Review-Befund 2026-08-12). Beide
+ * lesen jetzt dieselbe Menge — die Prozentzahl gilt dem Fenster, diese Zahl der
+ * Nacht.
+ */
+export function freeRoomsOn(occupancy: Occupancy, night: Date): number {
+  const day = new Date(night.getFullYear(), night.getMonth(), night.getDate()).getTime();
+  const occupied = new Set(
+    occupancy.stays
+      .filter((stay) => stay.firstNight.getTime() <= day && stay.lastNight.getTime() >= day)
+      .map((stay) => stay.roomId)
+  );
+  return occupancy.resources.filter((room) => !occupied.has(room.id)).length;
 }

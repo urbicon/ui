@@ -43,7 +43,12 @@
   import { type Channel, CHANNELS, channelForFamily, TILE_CHANNEL } from '$lib/landing/channels';
   import HeroSpecimen from '$lib/landing/HeroSpecimen.svelte';
   import { formatKb, type HeroRow, SHARED_PREVIEW_NOTES } from '$lib/landing/hero';
-  import { buildOccupancy, type OccupancyHouse, ROOM_CATEGORIES } from '$lib/landing/occupancy';
+  import {
+    buildOccupancy,
+    freeRoomsOn,
+    type OccupancyHouse,
+    ROOM_CATEGORIES
+  } from '$lib/landing/occupancy';
   import { HOUSES as GROUP_HOUSES, GROUP_NAME, ROOM_TYPES } from '$lib/hotel-tools';
   import AgentReplay from '$lib/landing/AgentReplay.svelte';
   import LandingHeader from '$lib/landing/LandingHeader.svelte';
@@ -193,6 +198,11 @@
   let xray = $state(false);
 
   interface House {
+    /** Der Registerschlüssel aus `$lib/hotel-tools` — NICHT aus dem Namen
+     *  abgeleitet: jeder Seed der Belegung und jede Spur-Id beginnt damit, und
+     *  ein aus dem Anzeigenamen gebauter Schlüssel stimmte nur so lange mit dem
+     *  des Tests überein, wie beide zufällig gleich hießen (Review-Befund). */
+    id: string;
     name: string;
     city: string;
     /** Belegung in Prozent. */
@@ -203,24 +213,28 @@
     returning: number;
     /** Umsatzmix des Hauses in Prozent, je Zimmertyp (Room/Garden/Corner/Suite). */
     mix: [number, number, number, number];
-    /** Zimmer des Hauses — Summe des Tool-Bestands, für „rooms free tonight". */
+    /** Zimmer je Typ, aus dem Register — die Belegung baut daraus ihre Spuren. */
+    stock: Record<string, number>;
+    /** Zimmer des Hauses — die Summe des Bestands. */
     size: number;
     team: AvatarProps[];
   }
-  // Belegung je HAUS, nicht je Zimmer — die Gruppen-Sicht ist der Punkt der
-  // Kachel; die Zimmer-Sicht gehört dem einzelnen Front desk (/hotel).
-  // Namen, Orte, Teams und Zimmerbestand kommen aus $lib/hotel-tools (EIN
-  // Register mit Vollseite und Aufnahme); nur die Betriebszahlen sind
-  // Landing-Fiktion. Firn ist klein und praktisch voll — dieselbe Enge, die
-  // das Tool für Anfang September meldet.
-  const OPS: Record<string, Omit<House, 'name' | 'city' | 'size' | 'team'>> = {
+  // Die Auslastungszeile der Overview zeigt die Belegung je HAUS; die
+  // Rooms-Ansicht darunter zeigt dieselbe Zahl je ZIMMER (das Raster wird aus
+  // `load` gebaut, s. $lib/landing/occupancy). Namen, Orte, Teams und
+  // Zimmerbestand kommen aus $lib/hotel-tools (EIN Register mit Vollseite und
+  // Aufnahme); nur die Betriebszahlen sind Landing-Fiktion. Firn ist klein und
+  // praktisch voll — dieselbe Enge, die das Tool für Anfang September meldet.
+  const OPS: Record<string, Omit<House, 'id' | 'name' | 'city' | 'stock' | 'size' | 'team'>> = {
     cala: { load: 86, guests: 132, returning: 92, mix: [30, 26, 24, 20] },
     firn: { load: 94, guests: 64, returning: 41, mix: [40, 22, 18, 20] },
     duna: { load: 71, guests: 148, returning: 87, mix: [32, 25, 22, 21] }
   };
   const HOUSES: House[] = GROUP_HOUSES.map((house) => ({
+    id: house.id,
     name: house.name,
     city: house.place,
+    stock: house.stock,
     size: Object.values(house.stock).reduce((a, b) => a + b, 0),
     team: house.hosts.map((host): AvatarProps => ({ name: host.name, status: host.status })),
     ...OPS[house.id]
@@ -289,31 +303,25 @@
       color: 'var(--color-neutral-500)'
     }
   ]);
-  // Freie Zimmer heute Nacht: der unbelegte Anteil des Bestands — Bestand aus
-  // dem Tool-Register, Belegung aus der Backoffice-Fiktion.
-  const freeRooms = $derived(
-    activeHouse
-      ? Math.max(1, Math.round((activeHouse.size * (100 - activeHouse.load)) / 100))
-      : HOUSES.reduce((n, h) => n + Math.max(1, Math.round((h.size * (100 - h.load)) / 100)), 0)
-  );
 
   // ── Rooms: die Belegung im Zimmer-×-Nächte-Raster ──────────────────
-  // Die Timeline ist datumsindiziert, die Seite ist prerendered: ein
-  // `new Date()` im Initialwert stünde als Build-Datum im HTML und würde beim
-  // Hydrieren gegen das echte laufen. Also SSR-stabil mit einem festen Anker
-  // starten und erst NACH der Hydration auf das echte Heute schwenken — ein
-  // normales Update, kein Mismatch.
+  // Das Fenster beginnt HEUTE: die Unterzeile sagt „14 ahead", und der
+  // Heute-Knopf der Timeline landet ohnehin auf dem laufenden Tag — ein
+  // Wochen-Anker hätte zwei verschiedene Startpunkte für dieselbe Ansicht
+  // bedeutet.
   //
-  // Das Fenster beginnt HEUTE, nicht am Wochenanfang: die Unterzeile sagt
-  // „14 ahead", und der Heute-Knopf der Timeline landet ohnehin auf dem
-  // laufenden Tag — ein Montags-Anker hätte zwei verschiedene Startpunkte für
-  // dieselbe Ansicht bedeutet.
-  const DAY_ANCHOR = new Date(2026, 7, 12); // Mittwoch, 2026-08-12
-  let windowStart = $state(DAY_ANCHOR);
-  $effect(() => {
+  // Kein Anker-plus-$effect-Tanz gegen einen Hydrations-Mismatch, wie ihn die
+  // Kachel sonst braucht: die Ansicht startet auf „Overview", das Raster ist
+  // also NIE Teil des prerenderten HTML (gemessen am ausgelieferten Dokument:
+  // kein `data-blk=\"ResourceTimeline\"`, keine Spur, kein Balken). Was nicht
+  // gerendert wird, kann beim Hydrieren nicht widersprechen — deterministisch
+  // muss der Generator trotzdem sein, damit „›" und „‹" dasselbe Fenster
+  // gleich zeichnen.
+  let windowStart = $state(stripToday());
+  function stripToday(): Date {
     const now = new Date();
-    windowStart = new Date(now.getFullYear(), now.getMonth(), now.getDate());
-  });
+    return new Date(now.getFullYear(), now.getMonth(), now.getDate());
+  }
   // Vierzehn Nächte breit, zwei Wochen: die Fenstergröße, in der ein Balken von
   // drei bis neun Nächten (der Aufenthalt der Gruppe, s. occupancy.ts) als
   // Balken lesbar ist statt als Punkt — und in der die Auslastung eines Zimmers
@@ -324,11 +332,11 @@
   // Wert, zwei Anzeigen — occupancy.test.ts misst, dass das Raster die Prozente
   // der Balken trifft.
   const OCCUPANCY_HOUSES: OccupancyHouse[] = $derived(
-    (activeHouse ? HOUSES.filter((h) => h.name === activeHouse.name) : HOUSES).map((h) => ({
-      id: h.name.toLowerCase(),
+    (activeHouse ? [activeHouse] : HOUSES).map((h) => ({
+      id: h.id,
       name: h.name,
       place: h.city,
-      stock: GROUP_HOUSES.find((g) => g.name === h.name)!.stock,
+      stock: h.stock,
       load: h.load
     }))
   );
@@ -342,16 +350,13 @@
   // Ein Haus braucht keine Gruppenzeile — sein Name steht in der Unterzeile der
   // Karte. Die Gruppen-Sicht braucht sie: sonst wäre die Spur „101" dreimal da.
   const occupancyGroups = $derived(activeHouse ? undefined : occupancy.groups);
-  // Schmal schrumpfen Spur- und Tagesspalte: bei 260 px Bühne zeigt die
-  // Voreinstellung (7rem + 2,25rem) drei Nächte, mit 4,5rem + 1,75rem sechs.
-  // Der Tagesstreifen scrollt in beiden Fällen waagerecht — er ist der
-  // Scroll-Container, nicht die Kachel (die Kachel liegt selbst in einem
-  // waagerecht wischbaren Band, und der innere Streifen fängt die Geste dort ab,
-  // wo sie hingehört).
-  const wideEnoughForGrid = new MediaQuery('(min-width: 48rem)', true);
-  const occupancyTrackClasses = $derived(
-    wideEnoughForGrid.current ? '' : '[--rt-lane-w:4.5rem] [--rt-day-w:1.75rem]'
-  );
+  // Freie Zimmer heute Nacht — GEZÄHLT, in derselben Menge, die das Raster
+  // zeichnet. Vorher stand hier der unbelegte Anteil des Bestands
+  // (`size × (100 − load)/100`, mit einem Boden von 1) und widersprach der
+  // ersten Rasterspalte daneben: 8 gegen gezählte 7, und an einem Tag stand
+  // Firn im Raster auf 0 von 9, während der Badge 1 behauptete (Review-Befund
+  // 2026-08-12). Die Prozentzahl gilt dem Fenster, diese Zahl der Nacht.
+  const freeRooms = $derived(freeRoomsOn(occupancy, windowStart));
 
   // Die Unterzeile der Karte. Bei „All" zeigt die Rooms-Ansicht alle drei
   // Häuser mit Gruppenzeilen, bei einem Haus trägt DIESE Zeile den Namen —
@@ -1053,8 +1058,21 @@
                            und hier ist er echt: die Pfeile verschieben das
                            Fenster, der Generator baut die nächsten vierzehn
                            Nächte. Ohne diese Zeile zeigte „›" ein leeres
-                           Raster. -->
-                      <div class="view-host">
+                           Raster.
+
+                           `.rooms-host` statt der scrollenden `.view-host`: 39
+                           Spuren sind höher als jede Kachelbühne, und wenn die
+                           BÜHNE scrollt, fahren Datumsachse und Legende mit
+                           hinaus — gemessen 2026-08-12: nach 600 px Scroll
+                           standen Balken über unbeschrifteten Spalten
+                           (Review-Befund). Also scrollt der Spur-Körper, nicht
+                           die Bühne: der Tagesstreifen der Komponente bekommt
+                           eine Höhengrenze und wird damit selbst zum
+                           Scroll-Container, und die Kopfzeile klebt an seinem
+                           oberen Rand (`sticky`, was nur INNERHALB desselben
+                           Scroll-Containers wirkt — darum die Grenze am Track
+                           und nicht am Host). -->
+                      <div class="rooms-host">
                         <!-- Die Zimmertyp-Legende steht HIER in der Kopfzeile,
                              die komponenteneigene ist aus (showLegend unten):
                              die säße unterhalb der View und läge genau dann im
@@ -1089,7 +1107,21 @@
                             getLabel={(stay) => stay.guest}
                             getId={(stay) => stay.id}
                             showLegend={false}
-                            slotClasses={{ track: occupancyTrackClasses }}
+                            slotClasses={{
+                              // Die Höhengrenze macht den Track zum
+                              // Scroll-Container; `dayHeaderRow` klebt darin
+                              // oben. Die Spur-Spalte klebt weiterhin links —
+                              // beide Achsen gehören demselben Container, sonst
+                              // liefe die Spaltenausrichtung auseinander.
+                              track: 'rooms-track max-h-full',
+                              // `z-30`, nicht 20: die Spur-Spalte der Komponente
+                              // klebt mit `z-20` nach links, und bei gleichem
+                              // Wert malt das spätere Element im DOM — die
+                              // Spur-Beschriftung — über die klebende Kopfzeile
+                              // (im Browser gesehen: eine durchscheinende
+                              // Zimmerzeile in der Datumsleiste).
+                              dayHeaderRow: 'sticky top-0 z-30 bg-surface-base'
+                            }}
                             onNavigate={(date) => (windowStart = date)}
                           />
                         </div>
@@ -1827,6 +1859,42 @@
     overflow-y: auto;
     min-height: 0;
     scrollbar-width: thin;
+  }
+  /* Die Rooms-Ansicht scrollt NICHT als Bühne: 39 Spuren sind höher als jede
+     Kachelbühne, und mit der Bühne fahren Datumsachse und Legende hinaus (nach
+     600 px Scroll standen Balken über unbeschrifteten Spalten — Review-Befund
+     2026-08-12). Stattdessen bekommt der Tagesstreifen der Komponente die
+     Resthöhe und scrollt selbst; seine Kopfzeile klebt an seinem oberen Rand.
+     Die Kette braucht auf jeder Ebene `min-height: 0`, sonst gibt der
+     Flex-Kasten die Höhe seines Inhalts weiter statt sie zu begrenzen. */
+  .rooms-host {
+    min-width: 0;
+    min-height: 0;
+    display: flex;
+    flex-direction: column;
+  }
+  .rooms-host > .blk {
+    min-height: 0;
+    flex: 1;
+    display: flex;
+  }
+  .rooms-host > .blk > :global(*) {
+    min-height: 0;
+    flex: 1;
+  }
+  .rooms-host :global(.rooms-track) {
+    scrollbar-width: thin;
+  }
+  /* Enge Karte, engere Spalten — an der KARTE gemessen, nicht am Viewport: bei
+     1024 px Viewport ist die Bühne 467 px breit, also so eng wie auf dem
+     Telefon, bekam aber die weite Geometrie (Review-Befund). Dieselbe
+     30rem-Schwelle, an der die Overview zweispaltig wird; der Wert steht in CSS,
+     weil CSS die Breite kennt (vgl. #133). */
+  @container (max-width: 30rem) {
+    .rooms-host :global(.rooms-track) {
+      --rt-lane-w: 4.5rem;
+      --rt-day-w: 1.75rem;
+    }
   }
   /* Die Namensschilder des Röntgenbilds sitzen über der Oberkante ihres
      Bauteils — im scrollenden Body würde das oberste abgeschnitten. Das Polster

@@ -49,9 +49,13 @@ describe('Landing-Belegung — das Raster zeigt die Prozente der Karte', () => {
     expect(worst).toBeLessThan(2);
   });
 
-  it('belegt jedes Zimmer mindestens einmal und nicht jedes durchgehend', () => {
+  it('belegt jedes Zimmer mindestens einmal und lässt freie Nächte übrig', () => {
     // Positivkontrolle in beide Richtungen: ein Generator, der nichts oder
     // alles belegt, würde die Prozent-Zusage oben je nach Last auch erfüllen.
+    // „Nicht jedes durchgehend" stand vorher im Namen und wurde nie geprüft —
+    // und wäre falsch gewesen: 7 der 39 Spuren sind im aktuellen Fenster 14/14
+    // belegt (25 % über 730 Fenster gemessen). Was gilt, ist der Satz unten:
+    // wo Auslastung unter 100 % steht, MUSS es freie Nächte geben.
     const occupancy = buildOccupancy({ houses: GROUP, windowStart: ANCHOR, nights: NIGHTS });
     const perRoom = new Map<string, number>();
     for (const room of occupancy.resources) perRoom.set(room.id, 0);
