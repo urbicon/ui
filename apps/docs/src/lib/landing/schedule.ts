@@ -37,12 +37,14 @@ export const ROOM_CATEGORIES: CalendarEventCategory[] = [
 ];
 
 /**
- * Zwanzig Ziehungen im Verhältnis des Zimmerbestands der Gruppe (17 / 10 / 7 /
- * 5 ≈ 44 / 26 / 18 / 13 %). Ein festes Muster statt eines Zufallsgenerators:
- * es ist nachvollziehbar, prerender-fest und trifft die Anteile genauer als
- * eine kurze Zufallsreihe es täte.
+ * Zwanzig Ziehungen entlang des Zimmerbestands der Gruppe (17 / 10 / 7 / 5 ≈
+ * 44 / 26 / 18 / 13 %; das Muster liefert 9/5/4/2 = 45/25/20/10 — näher geht
+ * es mit zwanzig Ziehungen nicht). Ein festes Muster statt eines
+ * Zufallsgenerators: nachvollziehbar und prerender-fest. Die Vorfassung
+ * behauptete dieselben Prozente für ein 10/5/3/2-Muster (50/25/15/10) —
+ * Review-Befund 2026-08-12, nachgezählt.
  */
-const MIX: number[] = [0, 1, 0, 2, 0, 3, 0, 1, 0, 2, 0, 1, 3, 0, 1, 0, 2, 0, 1, 0];
+const MIX: number[] = [0, 1, 2, 0, 1, 0, 2, 3, 0, 1, 0, 2, 0, 1, 3, 0, 1, 2, 0, 0];
 
 /**
  * Gäste der Gruppe — Initial + Nachname, wie sie am Empfang stehen. 78 Namen,
@@ -140,19 +142,28 @@ const CLIENTS = [
   'Y. Ono'
 ];
 
-// Acht Stunden: Der Empfangstag läuft von den ersten Abreisen bis zur letzten
-// Ankunft. Die Stundenhöhe rechnet die Kachel aus ihrer Bühne und gibt sie als
-// `timeGridHourHeight` weiter — das Fenster hier bleibt fix.
-const DAY_START_MINUTE = 9 * 60;
+// Sieben Stunden, 10–17: Der Empfangstag läuft vom Check-out bis zur letzten
+// Ankunft. Sieben statt der früheren acht, damit die aus der Bühne gerechnete
+// Stundenhöhe (`timeGridHourHeight`) den 40-px-Boden überhaupt übersteigen
+// kann — mit acht Stunden war die Rechnung an jeder Bildschirmgröße vom
+// Kachel-Deckel (72vh, max. 800 px) auf den Boden gedrückt und damit tote
+// Mechanik (Review-Befund 2026-08-12, über sechs Viewports gemessen).
+const DAY_START_MINUTE = 10 * 60;
 const DAY_END_MINUTE = 17 * 60;
 
 /** Erster sichtbarer / letzter sichtbarer Stundenstrich der Schedule-Ansicht. */
 export const SCHEDULE_START_HOUR = DAY_START_MINUTE / 60;
 export const SCHEDULE_END_HOUR = DAY_END_MINUTE / 60;
 
-/** Abreisen räumen den Vormittag, Ankünfte füllen den Nachmittag. */
-const DEPARTURES_FROM = 9 * 60;
-const ARRIVALS_FROM = 14 * 60;
+/**
+ * Abreisen räumen den Vormittag (10–13), Ankünfte füllen den Nachmittag
+ * (13–17). Das Ankunftsfenster ist bewusst das größere: mit dem alten
+ * 14-Uhr-Schnitt (5 h gegen 3 h) stellte der Samstag — der Ankunfts-Spitzentag
+ * der Overview-Kurve — mehr Abreise- als Ankunftsbalken und las sich im
+ * Raster als Abreisetag (Review-Befund 2026-08-12, gemessen 44 gegen 26).
+ */
+const DEPARTURES_FROM = 10 * 60;
+const ARRIVALS_FROM = 13 * 60;
 /** Ein Empfangsvorgang im Raster — kurz, aber mit lesbarem Namen. */
 const SLOT_MINUTES = 30;
 /** Pausen zwischen zwei Vorgängen am SELBEN Tresen, in Minuten. */
@@ -189,9 +200,10 @@ export interface ScheduleInput {
    */
   guestPool?: 0 | 1 | 2;
   /**
-   * Deckel für die parallelen Tresen. Einzelhaus-Sicht: 3 (volle Spreizung).
-   * Gruppen-Sicht: 2 je Haus, sonst schnürt die Spitzen-Parallelität dreier
-   * Häuser die Spalten des Overlap-Layouts zu schmal.
+   * Deckel für die parallelen Tresen, Default 2. Mehr schnürt die
+   * Spitzen-Parallelität dreier gemischter Häuser die Spalten des
+   * Overlap-Layouts zu schmal — und die Einzelhaus-Sicht ist ein FILTER der
+   * Gruppen-Menge (Kachel), läuft also zwangsläufig mit derselben Spreizung.
    */
   maxLanes?: number;
 }
@@ -202,16 +214,19 @@ export interface ScheduleInput {
  * die Ankünfte; beide reihum über die Zimmertypen des `MIX` und reihum über
  * die Tresen des Tages. Die Tresen-Zahl skaliert mit der Last (eine je sechs
  * Ankünfte, gedeckelt), der Versatz zwischen ihnen erzeugt die Überlappungen.
- * Was auch in Lanes nicht mehr in den Tag passt, entfällt — die Kapazität ist
- * jetzt Lanes × Fenster, die Kappung trifft nur noch Ausreißer statt jeder
- * zweiten Samstagsankunft.
+ * Was auch in Lanes nicht in den Tag passt, entfällt still — die Kappung ist
+ * an Spitzentagen erheblich und gewollt (das Raster ist Erzählung, keine
+ * Buchhaltung): gemessen 2026-08-12 in der Gruppen-Sicht platziert der
+ * Samstag 39 von 71 gewollten Ankünften und bleibt mit 69 Vorgängen trotzdem
+ * sichtbar der dichteste Tag der Woche (Mo–Mi ≈ 46–49); dank des
+ * 13-Uhr-Schnitts überwiegen die Ankünfte an jedem Tag die Abreisen.
  */
 export function buildSchedule({
   weekStart,
   perDay,
   houseName,
   guestPool,
-  maxLanes = 3
+  maxLanes = 2
 }: ScheduleInput): CalendarEvent[] {
   const events: CalendarEvent[] = [];
   const idPrefix = houseName ? `s-${houseName.toLowerCase()}` : 's';
@@ -250,10 +265,23 @@ export function buildSchedule({
         end: endDate,
         allDay: false,
         categoryId: roomType.id,
-        description: houseName ? `${houseName} · ${typeText}` : typeText
+        description: houseName ? `${houseName} · ${typeText}` : typeText,
+        // Fürs Filtern der Einzelhaus-Sicht (Kachel) — die Sicht ist eine
+        // Teilmenge der Gruppen-Menge, kein zweiter Generator-Lauf, damit
+        // ein Gast beim Umschalten des Geltungsbereichs nicht das Haus
+        // wechselt (Review-Befund 2026-08-12).
+        meta: houseName ? { house: houseName } : undefined
       });
 
       seq += 1;
+      // Der Namensvorrat ist konstruktiv bemessen (s. `CLIENTS`) — sollte eine
+      // Fenster-/Lane-Änderung ihn doch sprengen, ist das ein Duplikat im
+      // sichtbaren Raster und soll laut werden, nicht still rotieren.
+      if (import.meta.env?.DEV && seq > pool.length) {
+        console.warn(
+          `[schedule] guest pool exhausted on day ${day}: ${seq} operations > ${pool.length} names — duplicates on screen`
+        );
+      }
       return startMinute + SLOT_MINUTES + GAPS[(seq + day + lane) % GAPS.length];
     };
 
