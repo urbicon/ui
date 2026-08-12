@@ -1,23 +1,27 @@
 <script lang="ts">
   import SeoMeta from '$lib/SeoMeta.svelte';
   import { resolve } from '$app/paths';
-  import { Badge, Card } from '@urbicon-ui/blocks';
   import { CodeExample, DocsLayout as DocsPageLayout, Section } from '@urbicon-ui/docs';
+  import { parseInteractionTokens } from '$lib/interaction-tokens';
+  // The shipped stylesheet itself, so the tables below cannot quote a value
+  // the library does not have.
+  import interactionCss from '@urbicon-ui/blocks/style/interaction.css?raw';
+
+  const description =
+    'The tokens the library ships, layer by layer: color ramps, spacing, typography, radius, motion and depth. Look values up here; write and switch themes on the Themes page.';
 
   const navigation = [
     { id: 'architecture', title: 'Token Architecture' },
     { id: 'colors', title: 'Color System' },
-    { id: 'spacing', title: 'Spacing' },
-    { id: 'typography', title: 'Typography' },
+    { id: 'spacing', title: 'Spacing Scale' },
+    { id: 'typography', title: 'Typography Scale' },
     { id: 'radius', title: 'Border Radius' },
-    { id: 'interaction', title: 'Motion & Depth' },
-    { id: 'custom-theming', title: 'Custom Theming' },
-    { id: 'dark-mode', title: 'Dark Mode' }
+    { id: 'interaction', title: 'Motion & Depth' }
   ];
 
   const colorTokenExample = `@theme {
   /* Foundation Colors (oklch for better perception) */
-  --color-neutral-50: oklch(0.98 0.005 240);
+  --color-neutral-50: oklch(0.965 0.006 240);
   --color-neutral-500: oklch(0.55 0.016 240);
   --color-neutral-900: oklch(0.15 0.012 240);
 
@@ -50,43 +54,9 @@
 --blocks-shadow-sm: var(--color-shadow-sm);
 --blocks-shadow-md: var(--color-shadow-md);`;
 
-  const customThemeExample = `@import '@urbicon-ui/blocks/style/index.css';
-
-/* Option A — import a shipped theme
-   (neutral, ocean, forest, rose, sunset) */
-@import '@urbicon-ui/blocks/style/themes/ocean.css';
-
-/* Option B — re-tint the ramps yourself. The semantic layer
-   consumes several stops (600/500 base, 700/400 hover,
-   800/300 active, 900/200 emphasis, 50/900 subtle), so
-   override the WHOLE ramp: keep each stop's lightness and
-   chroma, swap only the hue. */
-@theme {
-  --color-primary-500: oklch(0.58 0.15 280);
-  --color-primary-600: oklch(0.52 0.15 280);
-  --color-primary-700: oklch(0.44 0.13 280);
-  /* … all stops 50–950 with the new hue */
-
-  /* The chassis, NOT optional: surface/text/border derive
-     from neutral, so a purple brand on the default cool
-     240 chassis reads broken. Same L/C, hue → 290. */
-  --color-neutral-50: oklch(0.98 0.005 290);
-  --color-neutral-500: oklch(0.55 0.016 290);
-  --color-neutral-900: oklch(0.15 0.012 290);
-  /* … all 15 stops (25–950) with the new hue. Leave
-     --color-neutral-0 (pure white) alone — tinting it
-     tints your white. */
-}
-
-/* Raw partial values — :root, never @theme (see Motion & Depth). */
-:root {
-  --blocks-shadow-tint: 0.2 0.025 290;
-  --neutral-chrome-hue: 290;
-}
-
-/* Custom brand tokens get Tailwind utilities for free
-   (bg-brand-500, text-brand-500, …) */
-@theme {
+  // Custom brand tokens get Tailwind utilities for free.
+  const brandTokenExample = `@theme {
+  /* bg-brand-500, text-brand-500, border-brand-500, … */
   --color-brand-500: oklch(0.5 0.25 45);
 }`;
 
@@ -115,7 +85,7 @@
   const typographyScale = [
     { utility: 'text-3xs', variable: '--text-3xs', value: '0.625rem', pixels: '10px', uses: 13 },
     { utility: 'text-2xs', variable: '--text-2xs', value: '0.6875rem', pixels: '11px', uses: 18 },
-    { utility: 'text-xs', variable: '--text-xs', value: '0.75rem', pixels: '12px', uses: 118 },
+    { utility: 'text-xs', variable: '--text-xs', value: '0.75rem', pixels: '12px', uses: 119 },
     { utility: 'text-sm', variable: '--text-sm', value: '0.875rem', pixels: '14px', uses: 163 },
     { utility: 'text-base', variable: '--text-base', value: '1rem', pixels: '16px', uses: 91 },
     { utility: 'text-lg', variable: '--text-lg', value: '1.125rem', pixels: '18px', uses: 39 },
@@ -125,34 +95,10 @@
 
   const weightScale = [
     { utility: 'font-normal', variable: '--font-weight-normal', value: '400', uses: 5 },
-    { utility: 'font-medium', variable: '--font-weight-medium', value: '500', uses: 66 },
+    { utility: 'font-medium', variable: '--font-weight-medium', value: '500', uses: 65 },
     { utility: 'font-semibold', variable: '--font-weight-semibold', value: '600', uses: 51 },
     { utility: 'font-bold', variable: '--font-weight-bold', value: '700', uses: 12 }
   ];
-
-  const typographyOverrideExample = `/* app.css — the SAME @theme block that retunes color.
-   Safe because the library never re-imports Tailwind: your
-   @theme is compiled last and wins. */
-@import 'tailwindcss';
-@import '@urbicon-ui/blocks/style/index.css';
-
-@theme {
-  /* Families — blocks never sets \`font-sans\`, so body type simply
-     inherits from your page. It DOES use \`font-mono\` (CommandPalette
-     shortcut keys, JourneyTimeline meta), so this retunes those. */
-  --font-sans: 'Inter Variable', system-ui, sans-serif;
-  --font-mono: 'JetBrains Mono', ui-monospace, monospace;
-
-  /* Size AND its paired line-height. Tailwind's built-in sizes each
-     ship a --text-*--line-height; changing the size alone leaves the
-     old rhythm behind on all ~128 text-sm call sites. */
-  --text-sm: 0.9375rem;
-  --text-sm--line-height: calc(1.375 / 0.9375);
-
-  --font-weight-medium: 550;
-  --leading-tight: 1.3;
-  --tracking-wide: 0.02em;
-}`;
 
   // Physical radius scale — real CSS variables defined in
   // blocks/src/lib/style/foundation.css, each with a matching Tailwind utility.
@@ -200,88 +146,55 @@
     }
   ];
 
-  // Interaction layer — real CSS variables in blocks/src/lib/style/interaction.css.
-  const durationTokens = [
-    { name: '--blocks-duration-instant', value: '75ms' },
-    { name: '--blocks-duration-fast', value: '150ms' },
-    { name: '--blocks-duration-normal', value: '250ms' },
-    { name: '--blocks-duration-slow', value: '350ms' },
-    { name: '--blocks-duration-slower', value: '500ms' },
-    { name: '--blocks-duration-slowest', value: '750ms' }
-  ];
+  // Interaction layer — parsed out of the shipped stylesheet, not copied.
+  // A retuned bezier or a new per-component override point appears here
+  // without a docs edit; a value quoted here cannot diverge from the library.
+  const { durations, easings, shadows, overridePoints } = parseInteractionTokens(interactionCss);
 
-  const shadowTokens = [
-    { name: '--blocks-shadow-xs', source: 'var(--color-shadow-xs)' },
-    { name: '--blocks-shadow-sm', source: 'var(--color-shadow-sm)' },
-    { name: '--blocks-shadow-base', source: 'var(--color-shadow-base)' },
-    { name: '--blocks-shadow-md', source: 'var(--color-shadow-md)' },
-    { name: '--blocks-shadow-lg', source: 'var(--color-shadow-lg)' },
-    { name: '--blocks-shadow-tint', source: '0 0 0 · oklch L C H, no alpha' }
-  ];
-
-  // Both are declared on `:root`, NOT inside @theme — they are raw partial
-  // values spliced into a color function, not standalone tokens. See the
-  // caveat rendered below the table.
+  // Both are declared on `:root` in semantic.css, NOT inside @theme — they are
+  // raw partial values spliced into a color function, not standalone tokens.
+  // See the caveat rendered below the table.
   const chromaTokens = [
     {
       name: '--blocks-shadow-tint',
       value: '0 0 0',
-      usage:
-        'oklch L C H triplet (no alpha) spliced into every --color-shadow-*. Re-tint so shadows match your chassis instead of reading as cool smudges.'
+      usage: 'Re-tint so shadows match your chassis. Declare on :root, see below.'
     },
     {
       name: '--neutral-chrome-hue',
       value: '240',
       usage:
-        'Hue of the neutral intent chrome (bg-neutral / text-neutral / neutral borders). Keeps the warm-neutral ramp lightness — only the hue moves, so contrast is untouched.'
+        'Hue of the neutral intent chrome (bg-neutral / text-neutral / neutral borders). Keeps the warm-neutral ramp lightness; only the hue moves, so contrast is untouched.'
     }
   ];
 </script>
 
-<!-- urbicon-ignore placeholder-content card-monotony — 'The quick brown fox'
-     is a type specimen, the one place filler copy is the content: it shows the
-     typography scale at each size. The five cards are the token layers,
-     deliberately equal in weight. -->
+<!-- urbicon-ignore placeholder-content — 'The quick brown fox' is a type
+     specimen, the one place filler copy is the content: it shows the
+     typography scale at each size. -->
 
-<SeoMeta
-  title="Design Tokens"
-  description="Comprehensive design token system for colors, typography, spacing, and more. Built with CSS custom properties and Tailwind 4."
-/>
+<SeoMeta title="Token Reference" {description} />
 
 <DocsPageLayout
-  title="Design Tokens"
-  description="A comprehensive design token system built with CSS custom properties and Tailwind 4. Organized in semantic layers for consistent theming and easy customization."
+  title="Token Reference"
+  {description}
   maxWidth="2xl"
   {navigation}
   showToc
   breadcrumbs={[{ label: 'Customization', href: resolve('/customization') }]}
 >
   <Section id="architecture" title="Token Architecture" class="mb-16">
-    <div class="mb-8 grid grid-cols-1 gap-6 lg:grid-cols-3">
-      <Card padding="lg" class="text-center">
-        <h3 class="text-text-primary mb-3 text-lg font-semibold">Foundation Layer</h3>
-        <p class="text-text-secondary mb-4 text-sm">
-          Base design decisions like colors, spacing, and typography scales.
-        </p>
-        <Badge variant="soft" intent="primary">Raw Values</Badge>
-      </Card>
-
-      <Card padding="lg" class="text-center">
-        <h3 class="text-text-primary mb-3 text-lg font-semibold">Semantic Layer</h3>
-        <p class="text-text-secondary mb-4 text-sm">
-          Intent-based tokens that map foundation tokens to semantic meanings.
-        </p>
-        <Badge variant="soft" intent="success">Contextual</Badge>
-      </Card>
-
-      <Card padding="lg" class="text-center">
-        <h3 class="text-text-primary mb-3 text-lg font-semibold">Interaction Layer</h3>
-        <p class="text-text-secondary mb-4 text-sm">
-          Motion, shadow, and focus tokens for consistent animations and depth.
-        </p>
-        <Badge variant="soft" intent="warning">Motion &amp; Depth</Badge>
-      </Card>
-    </div>
+    <p class="text-text-secondary mb-6 leading-relaxed">
+      Three layers. The <strong>foundation</strong> holds the raw ramps a theme re-tints; the
+      <strong>semantic</strong> layer maps them to roles like
+      <code class="bg-surface-subtle rounded-modify px-1.5 py-0.5 text-sm">surface-elevated</code>
+      and resolves both modes via
+      <code class="bg-surface-subtle rounded-modify px-1.5 py-0.5 text-sm">light-dark()</code>; the
+      <strong>interaction</strong> layer times motion and stacks depth. How to write, scope and
+      switch a theme is the
+      <a href={resolve('/customization/themes')} class="text-primary hover:underline">Themes</a> page;
+      this one lists what exists.
+    </p>
 
     <div class="grid grid-cols-1 gap-6 lg:grid-cols-3">
       <CodeExample
@@ -303,6 +216,56 @@
         preview={false}
       />
     </div>
+
+    <div class="bg-primary-subtle border-primary/20 mt-8 rounded-xl border p-6">
+      <h3 class="text-primary-emphasis mb-3 font-semibold">Override at the right layer</h3>
+      <ul class="text-text-secondary space-y-3 text-sm">
+        <li>
+          <strong class="text-text-primary">Re-tint a hue → foundation ramp.</strong> Override every stop
+          of the ramp, keeping each stop's lightness/chroma profile: the WCAG-tuned contrast survives,
+          and the semantic layer picks the new hue up in both modes automatically. This is exactly what
+          the shipped themes do.
+        </li>
+        <li>
+          <strong class="text-text-primary">Change a role → semantic token.</strong> To alter what
+          "elevated" or "subtle" means, override the semantic token itself, and supply a
+          <code class="bg-surface-base rounded-modify px-1.5 py-0.5">light-dark(light, dark)</code>
+          pair, otherwise the token is pinned to one look in both modes.
+        </li>
+        <li>
+          <strong class="text-text-primary"
+            >Restyle one component → the component API, not CSS.</strong
+          >
+          That is a job for
+          <code class="bg-surface-base rounded-modify px-1.5 py-0.5">class</code>,
+          <code class="bg-surface-base rounded-modify px-1.5 py-0.5">slotClasses</code> and
+          <a href={resolve('/customization/blocks-provider')} class="text-primary hover:underline"
+            >BlocksProvider</a
+          >, never for
+          <code class="bg-surface-base rounded-modify px-1.5 py-0.5">!</code> color overrides; the
+          <a href={resolve('/customization')} class="text-primary hover:underline"
+            >Customization hub</a
+          > carries the decision table.
+        </li>
+      </ul>
+    </div>
+
+    <!-- Anchor targets for deep links published before the restructure:
+         /customization/tokens#custom-theming and #dark-mode both named
+         sections that now live on the Themes page. Without the ids, an old
+         bookmark or search hit lands at the top of this page with no hint
+         where the content went. -->
+    <p class="text-text-tertiary mt-6 text-sm leading-relaxed">
+      <span id="custom-theming"></span><span id="dark-mode"></span>Custom theming and dark mode used
+      to live on this page. They moved to
+      <a href={`${resolve('/customization/themes')}#create`} class="text-primary hover:underline"
+        >Themes → Write Your Own Theme</a
+      >
+      and
+      <a href={`${resolve('/customization/themes')}#dark-mode`} class="text-primary hover:underline"
+        >Themes → Dark Mode</a
+      >.
+    </p>
   </Section>
 
   <!-- Color System -->
@@ -310,7 +273,9 @@
     <div class="mb-8">
       <h3 class="text-text-primary mb-4 text-lg font-semibold">Neutral Palette</h3>
       <p class="text-text-secondary mb-4">
-        The neutral ramp has 16 steps: alongside the standard 50–950 ladder it ships a
+        The neutral ramp has 16 steps: alongside
+        <code class="bg-surface-subtle rounded-modify px-1.5 py-0.5 text-sm">0</code> (pure white)
+        and the standard 50–950 ladder it ships a
         <code class="bg-surface-subtle rounded-modify px-1.5 py-0.5 text-sm">25</code> tint (the
         quiet-surface ground) and the half-steps
         <code class="bg-surface-subtle rounded-modify px-1.5 py-0.5 text-sm">650/750/850</code>,
@@ -331,19 +296,17 @@
 
     <h3 class="text-text-primary mb-4 text-lg font-semibold">Intent Ramps</h3>
     <p class="text-text-secondary mb-4">
-      Six intent ramps — primary, secondary, success, warning, danger, info — each a full 50–950
-      ladder. The 500/600/700 stops are tuned dark enough that white
+      Six intent ramps (primary, secondary, success, warning, danger, info), each a full 50–950
+      ladder. The ramps are tuned so
       <code class="bg-surface-subtle rounded-modify px-1.5 py-0.5 text-sm">text-on-fill</code>
-      passes WCAG AA on the solid fills — that is the label colour for
+      clears WCAG AA on every solid fill: white on the 500/600/700 fills in light mode, near-black on
+      the lighter 400/500 fills in dark mode. It is the label colour for
       <em>every</em> solid intent, which is why it is not named after one of them.
       <code class="bg-surface-subtle rounded-modify px-1.5 py-0.5 text-sm">text-on-primary</code>
       still exists, resolves to the same value and governs the primary fill alone, so retuning it cannot
       repaint success or danger along with it. Warning is the deliberate exception (its fill stays light
       in both modes and pairs with its own warm-dark
       <code class="bg-surface-subtle rounded-modify px-1.5 py-0.5 text-sm">text-on-warning</code>).
-      A separate
-      <code class="bg-surface-subtle rounded-modify px-1.5 py-0.5 text-sm">warm-neutral</code>
-      ramp powers the themeable neutral intent chrome.
     </p>
     <div class="mb-8 grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-3">
       {#each ['primary', 'secondary', 'success', 'warning', 'danger', 'info'] as color (color)}
@@ -363,12 +326,52 @@
         </div>
       {/each}
     </div>
+
+    <h3 class="text-text-primary mb-4 text-lg font-semibold">Neutral Intent Chrome</h3>
+    <p class="text-text-secondary mb-4">
+      The neutral intent (<code class="bg-surface-subtle rounded-modify px-1.5 py-0.5 text-sm"
+        >bg-neutral</code
+      >, <code class="bg-surface-subtle rounded-modify px-1.5 py-0.5 text-sm">text-neutral</code>,
+      neutral borders) is built from a separate
+      <code class="bg-surface-subtle rounded-modify px-1.5 py-0.5 text-sm"
+        >--color-warm-neutral-*</code
+      >
+      ramp, but never renders it directly: each role re-derives the ramp stop through
+      <code class="bg-surface-subtle rounded-modify px-1.5 py-0.5 text-sm"
+        >oklch(from … l c var(--neutral-chrome-hue))</code
+      >, keeping the ramp's lightness and chroma and taking only the hue from the knob. The knob
+      defaults to 240, so the library's own chrome is cool, and re-tinting it is a one-line theme
+      move (see Motion &amp; Depth). The swatches below render in whatever theme is active: this
+      docs site re-pins them to the warm ramp directly, which is why they look warm here.
+    </p>
+    <div class="mb-8 grid grid-cols-2 gap-3 sm:grid-cols-5">
+      {#each ['neutral', 'neutral-hover', 'neutral-active', 'neutral-subtle', 'neutral-emphasis'] as role (role)}
+        <div class="border-border-subtle bg-surface-base rounded-modify border p-2 text-center">
+          <div class="rounded-modify mb-1 h-8 w-full" style="background: var(--color-{role})"></div>
+          <div class="text-text-tertiary font-mono text-xs">--color-{role}</div>
+        </div>
+      {/each}
+    </div>
+
+    <p class="text-text-secondary mb-4">
+      Your own color tokens live in the same system: any
+      <code class="bg-surface-subtle rounded-modify px-1.5 py-0.5 text-sm">--color-*</code>
+      variable declared in
+      <code class="bg-surface-subtle rounded-modify px-1.5 py-0.5 text-sm">@theme</code> gets its Tailwind
+      utilities for free.
+    </p>
+    <CodeExample
+      title="Custom brand token"
+      code={brandTokenExample}
+      language="css"
+      preview={false}
+    />
   </Section>
 
   <!-- Spacing Scale -->
   <Section id="spacing" title="Spacing Scale" class="mb-16">
     <p class="text-text-secondary mb-6">
-      Urbicon UI does not ship a custom spacing token layer — it uses
+      Urbicon UI does not ship a custom spacing token layer. It uses
       <a
         href="https://tailwindcss.com/docs/padding"
         class="text-primary hover:underline"
@@ -385,7 +388,7 @@
       <code class="bg-surface-subtle rounded-modify px-1.5 py-0.5 text-sm">--spacing</code> variable.
     </p>
 
-    <div class="border-border-subtle bg-surface-base overflow-hidden rounded-xl border">
+    <div class="border-border-subtle bg-surface-base rounded-contain overflow-hidden border">
       <div class="overflow-x-auto">
         <table class="w-full text-sm">
           <thead class="border-border-subtle bg-surface-subtle border-b">
@@ -419,87 +422,19 @@
   <!-- Typography Scale -->
   <Section id="typography" title="Typography Scale" class="mb-16">
     <p class="text-text-secondary mb-6">
-      Type is themeable exactly like color. Sizes, weights, leading, tracking and font families are
-      Tailwind
-      <code class="bg-surface-subtle rounded-modify px-1.5 py-0.5 text-sm">@theme</code>
-      variables —
-      <code class="bg-surface-subtle rounded-modify px-1.5 py-0.5 text-sm">--text-sm</code>,
+      Sizes, weights, leading, tracking and families are Tailwind
+      <code class="bg-surface-subtle rounded-modify px-1.5 py-0.5 text-sm">@theme</code> variables;
+      override them alongside your color ramps (<a
+        href={resolve('/customization/themes')}
+        class="text-primary hover:underline">Themes → Typography</a
+      >, including the paired
       <code class="bg-surface-subtle rounded-modify px-1.5 py-0.5 text-sm"
-        >--font-weight-medium</code
-      >,
-      <code class="bg-surface-subtle rounded-modify px-1.5 py-0.5 text-sm">--leading-tight</code>,
-      <code class="bg-surface-subtle rounded-modify px-1.5 py-0.5 text-sm">--tracking-wide</code>,
-      <code class="bg-surface-subtle rounded-modify px-1.5 py-0.5 text-sm">--font-sans</code>,
-      <code class="bg-surface-subtle rounded-modify px-1.5 py-0.5 text-sm">--font-mono</code> — and
-      you override them in the
-      <em>same</em>
-      <code class="bg-surface-subtle rounded-modify px-1.5 py-0.5 text-sm">@theme</code> block that
-      retunes
-      <code class="bg-surface-subtle rounded-modify px-1.5 py-0.5 text-sm">--color-primary-500</code
-      >. This docs site is the proof: it rethemes the whole library's type by overriding
-      <code class="bg-surface-subtle rounded-modify px-1.5 py-0.5 text-sm">--font-mono</code>
-      and
-      <code class="bg-surface-subtle rounded-modify px-1.5 py-0.5 text-sm">--font-sans</code> — see
-      <code class="bg-surface-subtle rounded-modify px-1.5 py-0.5 text-sm"
-        >apps/docs/src/lib/style/rooms-docs.css</code
-      >.
+        >--text-*--line-height</code
+      > rule). The two sub-xs steps are library-added and ship size-only; every other row re-tunes a Tailwind
+      built-in.
     </p>
 
-    <div
-      class="border-warning/40 bg-warning-subtle text-text-secondary rounded-contain mb-6 border p-4 text-sm leading-relaxed"
-    >
-      <strong class="text-warning-emphasis">Two things to get right.</strong>
-      <ul class="mt-2 list-outside list-disc space-y-1 pl-5">
-        <li>
-          <strong class="text-text-primary">Change the paired line-height too.</strong> Tailwind's
-          built-in sizes each ship a companion
-          <code class="text-xs">--text-*--line-height</code>. Resize without it and the rhythm goes
-          subtly wrong everywhere the size is used. The two library-added steps (<code
-            class="text-xs">--text-2xs</code
-          >, <code class="text-xs">--text-3xs</code>) are deliberately size-only — Tailwind emits a
-          <code class="text-xs">line-height</code> only when the paired key exists, so they inherit
-          it from the cascade. Add the paired key in your own
-          <code class="text-xs">@theme</code> if you want one.
-        </li>
-        <li>
-          <strong class="text-text-primary">This works because of one property:</strong> the library
-          deliberately does not
-          <code class="text-xs">@import 'tailwindcss'</code>, so there is exactly one Tailwind
-          compilation — yours — and it wins. If your tooling introduces a second one, typography
-          overrides silently revert, exactly like color overrides do. See
-          <a
-            href="https://github.com/urbicon/ui/blob/main/docs/TailwindCaveats.md"
-            class="text-primary hover:underline"
-            target="_blank"
-            rel="noreferrer">docs/TailwindCaveats.md</a
-          >.
-        </li>
-      </ul>
-    </div>
-
-    <CodeExample
-      title="Theme the type scale"
-      code={typographyOverrideExample}
-      language="css"
-      preview={false}
-    />
-
-    <p class="text-text-secondary mt-6 mb-6">
-      <strong class="text-text-primary">Know where the leverage is.</strong> The library's usage is
-      steep and lopsided:
-      <code class="bg-surface-subtle rounded-modify px-1.5 py-0.5 text-sm">--text-sm</code> reaches
-      the most call sites by a wide margin, while
-      <strong>nothing above <code class="text-xs">text-xl</code> is used at all</strong> — so
-      overriding
-      <code class="bg-surface-subtle rounded-modify px-1.5 py-0.5 text-sm">--text-6xl</code>
-      changes nothing in the library, and
-      <code class="bg-surface-subtle rounded-modify px-1.5 py-0.5 text-sm">--text-sm</code> reshapes
-      it. And because blocks never sets
-      <code class="bg-surface-subtle rounded-modify px-1.5 py-0.5 text-sm">font-sans</code>, body
-      type inherits from your page: <strong>you already own the font decision</strong> — no override needed.
-    </p>
-
-    <div class="border-border-subtle bg-surface-base mb-8 overflow-hidden rounded-xl border">
+    <div class="border-border-subtle bg-surface-base rounded-contain mb-8 overflow-hidden border">
       <div class="overflow-x-auto">
         <table class="w-full text-sm">
           <thead class="border-border-subtle bg-surface-subtle border-b">
@@ -535,7 +470,7 @@
     </div>
 
     <h3 class="text-text-primary mb-4 text-lg font-semibold">Weights</h3>
-    <div class="border-border-subtle bg-surface-base overflow-hidden rounded-xl border">
+    <div class="border-border-subtle bg-surface-base rounded-contain overflow-hidden border">
       <div class="overflow-x-auto">
         <table class="w-full text-sm">
           <thead class="border-border-subtle bg-surface-subtle border-b">
@@ -583,15 +518,14 @@
     <h3 class="text-text-primary mb-4 text-lg font-semibold">Semantic Tiers</h3>
     <p class="text-text-secondary mb-6">
       Components consume a 3-tier semantic vocabulary, not raw radii. Re-tint the three tier
-      variables to reshape the whole library at once — see the
+      variables to reshape the whole library at once (the full cascade:
       <a href={resolve('/customization/tier-system')} class="text-primary hover:underline"
-        >Tier System</a
-      >
-      for the full cascade. A fourth token,
+        >Radius Tiers</a
+      >). A fourth token,
       <code class="bg-surface-subtle rounded-modify px-1.5 py-0.5 text-sm">--radius-bridge</code>,
-      is not a tier — it pairs pill triggers with their dropdown panels.
+      is not a tier: it pairs pill triggers with their dropdown panels.
     </p>
-    <div class="border-border-subtle bg-surface-base overflow-hidden rounded-xl border">
+    <div class="border-border-subtle bg-surface-base rounded-contain overflow-hidden border">
       <div class="overflow-x-auto">
         <table class="w-full text-sm">
           <thead class="border-border-subtle bg-surface-subtle border-b">
@@ -635,12 +569,13 @@
       <code class="bg-surface-subtle rounded-modify px-1.5 py-0.5 text-sm"
         >prefers-contrast: more</code
       >
-      widens the focus ring to 3px and promotes hairline borders; in print, shadows drop to
-      <code class="bg-surface-subtle rounded-modify px-1.5 py-0.5 text-sm">none</code>.
+      widens the focus ring to 3px and darkens subtle borders to text colour; in print, shadows drop to
+      <code class="bg-surface-subtle rounded-modify px-1.5 py-0.5 text-sm">none</code> and hairlines promote
+      to a real grey rule.
     </p>
 
     <div class="grid grid-cols-1 gap-6 lg:grid-cols-2">
-      <div class="border-border-subtle bg-surface-base overflow-hidden rounded-xl border">
+      <div class="border-border-subtle bg-surface-base rounded-contain overflow-hidden border">
         <table class="w-full text-sm">
           <thead class="border-border-subtle bg-surface-subtle border-b">
             <tr>
@@ -649,7 +584,7 @@
             </tr>
           </thead>
           <tbody class="divide-border-subtle divide-y">
-            {#each durationTokens as token (token.name)}
+            {#each durations as token (token.name)}
               <tr>
                 <td class="text-primary px-4 py-3 font-mono text-xs">{token.name}</td>
                 <td class="text-text-secondary px-4 py-3 font-mono">{token.value}</td>
@@ -659,7 +594,7 @@
         </table>
       </div>
 
-      <div class="border-border-subtle bg-surface-base overflow-hidden rounded-xl border">
+      <div class="border-border-subtle bg-surface-base rounded-contain overflow-hidden border">
         <table class="w-full text-sm">
           <thead class="border-border-subtle bg-surface-subtle border-b">
             <tr>
@@ -668,10 +603,48 @@
             </tr>
           </thead>
           <tbody class="divide-border-subtle divide-y">
-            {#each shadowTokens as token (token.name)}
+            {#each shadows as token (token.name)}
               <tr>
                 <td class="text-primary px-4 py-3 font-mono text-xs">{token.name}</td>
-                <td class="text-text-tertiary px-4 py-3 font-mono text-xs">{token.source}</td>
+                <td class="text-text-tertiary px-4 py-3 font-mono text-xs">{token.value}</td>
+              </tr>
+            {/each}
+          </tbody>
+        </table>
+      </div>
+
+      <div class="border-border-subtle bg-surface-base rounded-contain overflow-hidden border">
+        <table class="w-full text-sm">
+          <thead class="border-border-subtle bg-surface-subtle border-b">
+            <tr>
+              <th class="text-text-primary px-4 py-3 text-left font-semibold">Easing token</th>
+              <th class="text-text-primary px-4 py-3 text-left font-semibold">Value</th>
+            </tr>
+          </thead>
+          <tbody class="divide-border-subtle divide-y">
+            {#each easings as token (token.name)}
+              <tr>
+                <td class="text-primary px-4 py-3 font-mono text-xs">{token.name}</td>
+                <td class="text-text-tertiary px-4 py-3 font-mono text-xs">{token.value}</td>
+              </tr>
+            {/each}
+          </tbody>
+        </table>
+      </div>
+
+      <div class="border-border-subtle bg-surface-base rounded-contain overflow-hidden border">
+        <table class="w-full text-sm">
+          <thead class="border-border-subtle bg-surface-subtle border-b">
+            <tr>
+              <th class="text-text-primary px-4 py-3 text-left font-semibold">Override point</th>
+              <th class="text-text-primary px-4 py-3 text-left font-semibold">Default</th>
+            </tr>
+          </thead>
+          <tbody class="divide-border-subtle divide-y">
+            {#each overridePoints as token (token.name)}
+              <tr>
+                <td class="text-primary px-4 py-3 font-mono text-xs">{token.name}</td>
+                <td class="text-text-tertiary px-4 py-3 font-mono text-xs">{token.value}</td>
               </tr>
             {/each}
           </tbody>
@@ -682,13 +655,13 @@
     <h3 class="text-text-primary mt-10 mb-4 text-lg font-semibold">Theme-level chroma knobs</h3>
     <p class="text-text-secondary mb-6">
       Two tokens let a theme match its chrome to its chassis without touching contrast. The four
-      coloured themes set both — see
+      coloured themes set both; see
       <code class="bg-surface-subtle rounded-modify px-1.5 py-0.5 text-sm"
         >blocks/src/lib/style/themes/forest.css</code
       >. The Neutral theme sets neither, by design: it inherits the library-default cool grey chrome
       and leaves the shadow tint untouched.
     </p>
-    <div class="border-border-subtle bg-surface-base overflow-hidden rounded-xl border">
+    <div class="border-border-subtle bg-surface-base rounded-contain overflow-hidden border">
       <div class="overflow-x-auto">
         <table class="w-full text-sm">
           <thead class="border-border-subtle bg-surface-subtle border-b">
@@ -729,112 +702,6 @@
       gets you nothing. The shipped themes declare them in a
       <code class="text-xs">:root</code> block after their <code class="text-xs">@theme</code> for exactly
       this reason.
-    </div>
-  </Section>
-
-  <!-- Custom Theming -->
-  <Section id="custom-theming" title="Custom Theming" class="mb-16">
-    <p class="text-text-secondary mb-6">
-      Use Tailwind 4's
-      <code class="bg-surface-subtle rounded-modify px-2 py-1 text-sm">@theme</code>
-      directive to override tokens, or import one of the shipped themes — see
-      <a href={resolve('/customization/themes')} class="text-primary hover:underline">Themes</a> for the
-      full gallery.
-    </p>
-
-    <CodeExample
-      title="Custom Theme Example"
-      code={customThemeExample}
-      language="css"
-      preview={false}
-    />
-
-    <div class="bg-primary-subtle border-primary/20 mt-6 rounded-xl border p-6">
-      <h3 class="text-primary-emphasis mb-3 font-semibold">Override at the right layer</h3>
-      <ul class="text-text-secondary space-y-3 text-sm">
-        <li>
-          <strong class="text-text-primary">Re-tint a hue → foundation ramp.</strong> Override every stop
-          of the ramp, keeping each stop's lightness/chroma profile — the WCAG-tuned contrast survives,
-          and the semantic layer picks the new hue up in both modes automatically. This is exactly what
-          the shipped themes do.
-        </li>
-        <li>
-          <strong class="text-text-primary">Change a role → semantic token.</strong> To alter what
-          "elevated" or "subtle" means, override the semantic token itself — and supply a
-          <code class="bg-surface-base rounded-modify px-1.5 py-0.5">light-dark(light, dark)</code>
-          pair, otherwise the token is pinned to one look in both modes.
-        </li>
-        <li>
-          <strong class="text-text-primary"
-            >Restyle one component → the component API, not CSS.</strong
-          >
-          Use the override ladder:
-          <code class="bg-surface-base rounded-modify px-1.5 py-0.5">class</code>
-          → <code class="bg-surface-base rounded-modify px-1.5 py-0.5">slotClasses</code> →
-          <code class="bg-surface-base rounded-modify px-1.5 py-0.5">BlocksProvider</code>
-          presets/overrides →
-          <code class="bg-surface-base rounded-modify px-1.5 py-0.5">unstyled</code>. Never force
-          colors with <code class="bg-surface-base rounded-modify px-1.5 py-0.5">!</code> overrides
-          — see
-          <a href={resolve('/customization/blocks-provider')} class="text-primary hover:underline"
-            >BlocksProvider</a
-          >.
-        </li>
-      </ul>
-    </div>
-  </Section>
-
-  <!-- Dark Mode -->
-  <Section id="dark-mode" title="Dark Mode Support" class="mb-16">
-    <p class="text-text-secondary mb-6">
-      Design tokens automatically adapt to dark mode using
-      <code class="bg-surface-subtle rounded-modify px-2 py-1 text-sm">light-dark()</code>:
-      <code class="bg-surface-subtle rounded-modify px-2 py-1 text-sm">:root</code> declares
-      <code class="bg-surface-subtle rounded-modify px-2 py-1 text-sm"
-        >color-scheme: light dark</code
-      >, so the browser resolves the matching branch from the user's preference. A manual toggle
-      only sets
-      <code class="bg-surface-subtle rounded-modify px-2 py-1 text-sm">:root.light</code>
-      /
-      <code class="bg-surface-subtle rounded-modify px-2 py-1 text-sm">:root.dark</code> to override
-      the
-      <code class="bg-surface-subtle rounded-modify px-2 py-1 text-sm">color-scheme</code> — no
-      token duplication, and no manual
-      <code class="bg-surface-subtle rounded-modify px-2 py-1 text-sm">dark:</code> overrides needed.
-    </p>
-
-    <div class="grid grid-cols-1 gap-6 lg:grid-cols-2">
-      <Card padding="lg">
-        <h3 class="text-text-primary mb-4 font-semibold">Light Mode Tokens</h3>
-        <div class="space-y-2 text-sm">
-          <div class="flex justify-between">
-            <span class="font-mono">--color-surface-base</span>
-            <span class="bg-surface-subtle rounded-modify px-2 py-1 text-xs">neutral-0</span>
-          </div>
-          <div class="flex justify-between">
-            <span class="font-mono">--color-text-primary</span>
-            <span class="bg-surface-subtle rounded-modify px-2 py-1 text-xs">neutral-900</span>
-          </div>
-        </div>
-      </Card>
-
-      <Card padding="lg">
-        <h3 class="text-text-primary mb-4 font-semibold">Dark Mode Tokens</h3>
-        <div class="space-y-2 text-sm">
-          <div class="flex justify-between">
-            <span class="font-mono">--color-surface-base</span>
-            <span class="bg-surface-inverted text-text-on-dark rounded-modify px-2 py-1 text-xs"
-              >neutral-900</span
-            >
-          </div>
-          <div class="flex justify-between">
-            <span class="font-mono">--color-text-primary</span>
-            <span class="bg-surface-inverted text-text-on-dark rounded-modify px-2 py-1 text-xs"
-              >neutral-100</span
-            >
-          </div>
-        </div>
-      </Card>
     </div>
   </Section>
 </DocsPageLayout>

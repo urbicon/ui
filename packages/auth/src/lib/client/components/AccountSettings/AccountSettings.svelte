@@ -291,7 +291,7 @@
     >
       <h3
         id={dangerTitleId}
-        class={cls('text-danger text-sm font-semibold', slotClasses.sectionTitle)}
+        class={cls('text-danger-text text-sm font-semibold', slotClasses.sectionTitle)}
       >
         {t.account.delete.title}
       </h3>

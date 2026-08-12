@@ -9,7 +9,7 @@ export const accordionVariants = tv({
       'flex w-full items-center justify-between py-4 text-left font-medium cursor-pointer',
       'text-text-primary',
       'transition-[color,background-color,border-color,box-shadow,opacity] duration-[var(--blocks-duration-fast)]',
-      'hover:text-primary',
+      'hover:text-primary-text',
       'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/50 focus-visible:ring-offset-2 focus-visible:rounded-sm',
       'disabled:opacity-50 disabled:cursor-not-allowed'
     ],

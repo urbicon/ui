@@ -46,6 +46,15 @@
 
   const hasAnyAllDay = $derived(allDayByDate.size > 0);
 
+  // Who owns a horizontal finger drag: the hour grid's scroller while the seven
+  // columns overflow it, this layout's swipe while they fit. Measured by the
+  // grid (below) rather than assumed, because passing the axis to the scroller
+  // unconditionally gives the swipe up at every width — Chromium fires
+  // `pointercancel` on a horizontal drag whenever `touch-action` is left at
+  // `auto`, whether or not anything can scroll (the measurement is in
+  // `swipeable`'s `touchAction` doc).
+  let daysOverflow = $state(false);
+
   function handleDayClick(date: Date) {
     ctx.selectDate(date);
   }
@@ -86,6 +95,10 @@
 
     if (nextIdx !== currentIdx) {
       e.preventDefault();
+      // The day heads live inside the horizontally scrolling grid, so moving the
+      // roving focus also brings the day into view — `focus()` scrolls its
+      // scroll ports to the element by default. That is the whole reason the
+      // heads sit in the grid instead of above it.
       headers[nextIdx]?.focus();
     }
   }
@@ -107,12 +120,30 @@
     onSwipeRight: () => {
       if (ctx.canGoBack) ctx.navigate(-1);
     },
-    enabled: ctx.swipeable && !ctx.disabled
+    enabled: ctx.swipeable && !ctx.disabled,
+    // `pan-y` on an ancestor forbids the browser the very pan the hour grid
+    // needs once seven columns no longer fit (Blink intersects the property down
+    // the tree), so the axis is handed over — but only while there is something
+    // to scroll. Giving it up unconditionally would cost the swipe at every
+    // width, not just the narrow ones: see `daysOverflow` above.
+    touchAction: daysOverflow ? null : 'pan-y'
   })}
 >
   <div class="grid [&>*]:col-start-1 [&>*]:row-start-1">
     {#key weekKey}
+      <!--
+        `min-w-0` is what lets the grid inside scroll instead of being clipped.
+        This div is a grid item with visible overflow, so its automatic minimum
+        size is the hour grid's min-content width — seven day tracks at their
+        minimum. Measured in Chromium against a 360 px card: without it the
+        wrapper lays out at 712 px and nothing ever scrolls (clientWidth 712 =
+        scrollWidth 712, the layout's `overflow: hidden` swallowing the rest);
+        with it, clientWidth 360 against scrollWidth 712. The scroll container
+        itself is exempt from the rule (`overflow: auto` ⇒ automatic minimum size
+        0) — only this wrapper between it and the layout needs telling.
+      -->
       <div
+        class="min-w-0"
         in:fly={ctx.shouldAnimate && ctx.navDirection
           ? { x: ctx.navDirection === 'forward' ? 40 : -40, duration: 200 }
           : { duration: 0 }}
@@ -120,63 +151,66 @@
           ? { x: ctx.navDirection === 'forward' ? -40 : 40, duration: 150 }
           : { duration: 0 }}
       >
-        <!-- Day headers row. `markToday` gates the *look* (this is the
-             full-bleed primary block issue #97 was filed over); `aria-current`
-             stays on the raw `isToday` so the semantics survive the preference. -->
-        <div class="grid grid-cols-7">
-          {#each ctx.weekDates as date, dayIdx (toIso(date))}
-            {@const isToday = isSameDay(date, ctx.today)}
-            {@const markToday = isToday && ctx.highlightToday}
-            {@const isSelected = ctx.isDateSelected(date)}
-            <button
-              type="button"
-              class="{slot('weekColumnHeader')} {markToday
-                ? 'bg-primary text-text-on-primary'
-                : ''} {isSelected && !markToday ? 'bg-primary-subtle' : ''}"
-              data-weekday={dayIdx}
-              onclick={() => handleDayClick(date)}
-              tabindex={dayIdx === 0 ? 0 : -1}
-              aria-label="{weekdayNames[dayIdx]} {date.getDate()}"
-              aria-current={isToday ? 'date' : undefined}
-            >
-              <span class="{slot('weekColumnDayName')} {markToday ? 'text-text-on-primary' : ''}">
-                {weekdayNames[dayIdx]}
-              </span>
-              <span class="{slot('weekColumnDayNumber')} {markToday ? 'text-text-on-primary' : ''}">
-                {date.getDate()}
-              </span>
-            </button>
-          {/each}
-        </div>
-
-        <!-- All-day events band -->
-        {#if hasAnyAllDay}
-          <div class="grid grid-cols-7 {slot('allDayArea')}">
-            {#each ctx.weekDates as date (toIso(date))}
-              {@const key = toIso(date)}
-              {@const items = allDayByDate.get(key) ?? []}
-              <div class="flex min-h-5 flex-col gap-px px-0.5">
-                {#each items as item (item.event.id)}
-                  <button
-                    type="button"
-                    class={slot('weekAllDayEvent')}
-                    style="background-color: {item.color}; color: {getContrastTextColor(
-                      item.color
-                    )};"
-                    onclick={() => onEventClick?.(item.event)}
-                    title={item.event.title}
-                  >
-                    {item.event.title}
-                  </button>
-                {/each}
-              </div>
-            {/each}
-          </div>
-        {/if}
-
-        <!-- Hour grid -->
-        <CalendarTimeGrid dates={ctx.weekDates} {onEventClick} />
+        <!-- Heads and all-day band are rendered BY the hour grid, as one pinned
+             strip in its top row: it owns the column track list, so this is the
+             only way the three stay in one column system while the grid scrolls
+             sideways — and being pinned is what keeps the all-day band on screen
+             when the grid jumps to the current time on mount. -->
+        <CalendarTimeGrid
+          dates={ctx.weekDates}
+          {onEventClick}
+          columnHeader={weekdayHead}
+          columnAllDay={hasAnyAllDay ? allDayCell : undefined}
+          onHorizontalOverflow={(overflowing) => (daysOverflow = overflowing)}
+        />
       </div>
     {/key}
   </div>
 </div>
+
+<!-- Day head. `markToday` gates the *look* (this is the full-bleed primary block
+     issue #97 was filed over); `aria-current` stays on the raw `isToday` so the
+     semantics survive the preference. No width class: the head is the first
+     child of its cell's flex column, so stretch alignment already gives it the
+     full column — including under `unstyled`, where a hardcoded one would have
+     been the single class the consumer could not strip. -->
+{#snippet weekdayHead({ date, index }: { date: Date; index: number })}
+  {@const isToday = isSameDay(date, ctx.today)}
+  {@const markToday = isToday && ctx.highlightToday}
+  {@const isSelected = ctx.isDateSelected(date)}
+  <button
+    type="button"
+    class="{slot('weekColumnHeader')} {markToday
+      ? 'bg-primary text-text-on-primary'
+      : ''} {isSelected && !markToday ? 'bg-primary-subtle' : ''}"
+    data-weekday={index}
+    onclick={() => handleDayClick(date)}
+    tabindex={index === 0 ? 0 : -1}
+    aria-label="{weekdayNames[index]} {date.getDate()}"
+    aria-current={isToday ? 'date' : undefined}
+  >
+    <span class="{slot('weekColumnDayName')} {markToday ? 'text-text-on-primary' : ''}">
+      {weekdayNames[index]}
+    </span>
+    <span class="{slot('weekColumnDayNumber')} {markToday ? 'text-text-on-primary' : ''}">
+      {date.getDate()}
+    </span>
+  </button>
+{/snippet}
+
+{#snippet allDayCell({ date }: { date: Date; index: number })}
+  {@const items = allDayByDate.get(toIso(date)) ?? []}
+  <div class="flex min-h-5 flex-col gap-px">
+    {#each items as item (item.event.id)}
+      <button
+        type="button"
+        class={slot('weekAllDayEvent')}
+        style="background-color: {item.color}; color: {getContrastTextColor(item.color)};"
+        onclick={() => onEventClick?.(item.event)}
+        title={item.event.title}
+      >
+        {item.event.title}
+      </button>
+    {/each}
+  </div>
+{/snippet}

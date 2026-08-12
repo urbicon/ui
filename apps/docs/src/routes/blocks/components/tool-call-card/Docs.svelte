@@ -3,10 +3,12 @@
   import { CodeExample, Note, NoteList, Section } from '@urbicon-ui/docs';
   import Lifecycle from './examples/Lifecycle.svelte';
   import ErrorState from './examples/ErrorState.svelte';
+  import FramedTrace from './examples/FramedTrace.svelte';
   import CustomBody from './examples/CustomBody.svelte';
 
   import lifecycleCode from './examples/Lifecycle.svelte?raw';
   import errorStateCode from './examples/ErrorState.svelte?raw';
+  import framedTraceCode from './examples/FramedTrace.svelte?raw';
   import customBodyCode from './examples/CustomBody.svelte?raw';
 </script>
 
@@ -14,7 +16,7 @@
   <div class="space-y-10">
     <CodeExample
       title="Lifecycle: running to complete"
-      description="The consumer owns the tool-call part and mutates its state and output as the real call resolves. While busy the header shows a spinner and a neutral status; on completion it flips to a success badge and reveals the output. The card stays collapsed the whole time — a successful call is not worth a click."
+      description="The consumer owns the tool-call part and mutates its state and output as the real call resolves. While busy the header shows a spinner beside the tool name; on completion the status flips to Done and the output becomes available. It stays collapsed the whole time — a successful call is not worth a click, and the default plain header keeps it out of the reader's way."
       code={lifecycleCode}
     >
       <Lifecycle />
@@ -29,8 +31,16 @@
     </CodeExample>
 
     <CodeExample
+      title="Framed, where the call is the content"
+      description="variant=&quot;card&quot; puts the header back in a frame: outline, radius, status badge, and the full width of whatever holds it. That is the right register for a run log or an agent trace — a surface someone opened to read the calls themselves. In a chat stream it is the wrong one, which is why plain is the default."
+      code={framedTraceCode}
+    >
+      <FramedTrace />
+    </CodeExample>
+
+    <CodeExample
       title="Domain-specific body via the children snippet"
-      description="Pass a children snippet to replace the default JSON input/output with a view built for the tool. The snippet receives the same part; the status header (badge + monospaced tool name) and the collapse mechanics stay. Here a web_search result set renders as a ranked list instead of raw JSON."
+      description="Pass a children snippet to replace the default JSON input/output with a view built for the tool. The snippet receives the same part; the status header (status + monospaced tool name) and the collapse mechanics stay. Here a web_search result set renders as a ranked list instead of raw JSON."
       code={customBodyCode}
     >
       <CustomBody />
@@ -45,16 +55,15 @@
         Status is text, not just color
       {/snippet}
       <p>
-        The spinner and the status <code class="text-text-primary">Badge</code> are decorative (<code
-          class="text-text-primary">aria-hidden</code
-        >). The header carries a single
-        <code class="text-text-primary">sr-only</code> line with the current state label (<code
-          class="text-text-primary">Pending</code
-        >
+        The state label (<code class="text-text-primary">Pending</code>
         / <code class="text-text-primary">Running</code>
         / <code class="text-text-primary">Done</code> /
-        <code class="text-text-primary">Failed</code>), so assistive tech reads the status once and
-        never announces a spinner as content.
+        <code class="text-text-primary">Failed</code>) is always in the header, and always exactly
+        once: the plain header prints it as visible text, the framed one shows it as a decorative
+        <code class="text-text-primary">Badge</code>
+        (<code class="text-text-primary">aria-hidden</code>) paired with a single
+        <code class="text-text-primary">sr-only</code> line. The spinner is decorative in both, so assistive
+        tech reads the status once and never announces a spinner as content.
       </p>
     </Note>
     <Note title="Disclosure semantics">

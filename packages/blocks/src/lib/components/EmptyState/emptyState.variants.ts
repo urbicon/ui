@@ -5,7 +5,7 @@ export const emptyStateVariants = tv({
     base: 'flex flex-col items-center justify-center text-center',
     // tier: commit — icon container is an identity circle.
     iconWrapper:
-      'bg-primary-subtle text-primary mb-4 flex items-center justify-center rounded-commit',
+      'bg-primary-subtle text-primary-text mb-4 flex items-center justify-center rounded-commit',
     title: 'text-text-primary font-semibold',
     description: 'text-text-secondary mt-1.5 max-w-md text-sm leading-relaxed',
     children: 'mt-3',

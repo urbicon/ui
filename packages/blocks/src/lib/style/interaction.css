@@ -183,6 +183,17 @@
     --color-surface-elevated: white;
     --color-text-primary: black;
     --color-text-secondary: #333;
+    /* Print forces the surfaces white regardless of colour scheme, so every
+       intent text role must sit on its LIGHT stop — a page printed from dark
+       mode otherwise puts the light-on-dark stops on white paper (measured:
+       danger at 2.42:1). Pinned to the stops semantic.css gives the light
+       branch, spelled as var() so themes keep re-tinting them. */
+    --color-primary-text: var(--color-primary-700);
+    --color-secondary-text: var(--color-secondary-600);
+    --color-success-text: var(--color-success-600);
+    --color-warning-text: var(--color-warning-800);
+    --color-danger-text: var(--color-danger-500);
+    --color-info-text: var(--color-info-600);
     --color-border-default: #000;
     /* hairline at 8 % alpha disappears under most print drivers — promote
        to a real grey rule for structural trennlinien (rows, dividers). */

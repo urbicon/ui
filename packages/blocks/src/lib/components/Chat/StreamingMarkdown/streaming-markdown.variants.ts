@@ -14,7 +14,7 @@ export const streamingMarkdownVariants = tv({
     heading6: 'mt-4 text-sm font-medium text-text-secondary first:mt-0',
     inlineCode: 'rounded-modify bg-neutral-subtle px-1 py-0.5 font-mono text-[0.9em]',
     link: [
-      'rounded-modify text-primary underline underline-offset-2',
+      'rounded-modify text-primary-text underline underline-offset-2',
       'hover:text-primary-emphasis',
       'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/50'
     ],

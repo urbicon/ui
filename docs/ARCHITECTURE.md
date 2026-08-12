@@ -88,15 +88,27 @@ site. End-to-end suites live in `e2e/`.
 
 ### Build order
 
-`bun run build:ts` builds `shared-types` first and then everything else in parallel,
-because only `shared-types` has to exist before any other package's type emit:
+`bun run build:ts` (and `build:packages`, since 2026-08-12) runs
+`scripts/build-packages.ts`, which derives **layered build order from the
+`workspace:*` edges** between the packages — each layer builds in parallel,
+the next starts only when the previous finished. A flat
+`--filter='./packages/*'` sweep is not equivalent: it races the topology, and
+a package that types against a not-yet-built neighbour (docs against blocks'
+`VariantProps`, table against sveltekit-utils, …) gets its inferred exports
+silently emitted as `any` — exit code 0, declaration file present, every
+variant prop gone (measured 2026-07-31 and again 2026-08-12; details in the
+script header).
 
 ```mermaid
 graph LR
-    A[shared-types] --> B["all other packages<br/>(parallel)"]
-    B --> C["docs:gen:ci<br/><i>api.ts, catalogs, llms-full</i>"]
-    C --> D["apps/* build"]
+    A["layer 1<br/>shared-types, …"] --> B["layer 2<br/>i18n, design-engine, …"]
+    B --> C["layer 3<br/>blocks, …"] --> D["layer 4<br/>docs, table, auth, …"]
+    D --> E["docs:gen:ci<br/><i>api.ts, catalogs, llms-full</i>"]
+    E --> F["apps/* build"]
 ```
+
+(The concrete layers are derived, not hand-written — run the script to see
+the current assignment.)
 
 Two things bite in a fresh worktree:
 

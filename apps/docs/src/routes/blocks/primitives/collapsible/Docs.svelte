@@ -97,13 +97,18 @@
             triggerId: string;
             contentId: string;
           })}
+            <!-- The custom trigger fills the card's own top edge, so its hover
+                 fill has to carry the frame's radius — otherwise it squares off
+                 the rounded corners it sits in (invisible at the 2px default,
+                 obvious in a theme that rounds containers). Open: only the top
+                 two, the body continues the fill below. -->
             <button
               id={triggerId}
               type="button"
               onclick={toggle}
               aria-expanded={open}
               aria-controls={contentId}
-              class="hover:bg-surface-hover focus-visible:ring-primary/50 flex w-full items-center gap-3 px-4 py-3 text-left transition-colors focus-visible:ring-2 focus-visible:outline-none focus-visible:ring-inset"
+              class="hover:bg-surface-hover rounded-t-contain focus-visible:ring-primary/50 flex w-full items-center gap-3 px-4 py-3 text-left transition-colors focus-visible:ring-2 focus-visible:outline-none focus-visible:ring-inset"
             >
               <div
                 class="bg-primary/10 text-primary flex size-8 items-center justify-center rounded-lg"

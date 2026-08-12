@@ -57,7 +57,23 @@ for (let i = css.indexOf('{', themeStart); i < css.length; i++) {
   }
 }
 if (themeEnd === -1) throw new Error('unterminated @theme block');
-const theme = css.slice(themeStart, themeEnd);
+/**
+ * Two things this slice has to get right, both of which it got wrong:
+ *
+ *  - it starts AFTER the opening brace. Starting at `@theme {` puts the block
+ *    header in the first buffer, so the first declaration reads
+ *    `@theme { --color-surface-base: …`, fails the `startsWith('--')` filter
+ *    below, and vanishes. The base page surface — the most consequential token
+ *    in the file — was missing from every livery for exactly that reason;
+ *  - comments come out BEFORE the split, not after. A `;` inside comment prose
+ *    ends a "declaration" in the middle of it, and the real declaration then
+ *    starts with the comment's tail rather than `--`, so it is dropped too.
+ *
+ * Measured against the previous output: 65 declarations, should have been 70.
+ */
+const theme = css
+  .slice(css.indexOf('{', themeStart) + 1, themeEnd)
+  .replace(/\/\*[\s\S]*?\*\//g, '');
 
 /**
  * Every declaration whose value reads a foundation ramp. Tokens that do not
@@ -98,12 +114,40 @@ const out = `/*
  * inheriting values already computed at :root. See the generator's header for
  * why this is necessary and when it is not.
  *
+ * The extra \`:root[data-livery]\` alternative is for PAGE scope: there the
+ * livery sits on <html> next to the app shell's \`.docs-rooms\` class, whose
+ * room theming re-declares the primary family at the same (0,1,0) specificity
+ * — source order then decides, and the app bundle wins. (0,2,0) settles it in
+ * the house's favour without touching the docs skin anywhere else. Found on
+ * the salon full page, where every primary fill rendered docs-orange in all
+ * four liveries; the tiles never showed it because a tile is a child element
+ * and its own declarations beat anything inherited from :root.
+ *
  * ${kept.length} declarations.
  */
+:root[data-livery],
 [data-livery] {
 ${kept.join('\n')}
 }
 `;
 
-await Bun.write(OUT, out);
-process.stdout.write(`✓ ${kept.length} declarations → ${OUT}\n`);
+// `--check` compares instead of writing — the CI mode. Twice now a semantic.css
+// change shipped with this artifact stale (the text-ramp revert would have
+// dropped 5 tokens; the intent `-text` roles were missing for two commits, so
+// every scoped livery rendered its intent text library-blue), and both were
+// found by review, not by a gate. A generated file whose generator only runs
+// when someone remembers is a hand list with extra steps.
+if (process.argv.includes('--check')) {
+  const current = await Bun.file(OUT).text();
+  if (current !== out) {
+    process.stderr.write(
+      `✖ ${OUT} is stale — semantic.css changed without regenerating the livery shim.\n` +
+        `  Run: bun apps/docs/scripts/gen-livery-shim.ts\n`
+    );
+    process.exit(1);
+  }
+  process.stdout.write(`✓ livery shim up to date (${kept.length} declarations)\n`);
+} else {
+  await Bun.write(OUT, out);
+  process.stdout.write(`✓ ${kept.length} declarations → ${OUT}\n`);
+}

@@ -65,6 +65,7 @@
     "./style/foundation.css": "./dist/style/foundation.css",
     "./style/semantic.css": "./dist/style/semantic.css",
     "./style/interaction.css": "./dist/style/interaction.css",
+    "./mint/styles.css": "./dist/mint/styles.css",
     "./style/themes/*": "./dist/style/themes/*",
     "./i18n/en": {
       "types": "./dist/translations/en.d.ts",

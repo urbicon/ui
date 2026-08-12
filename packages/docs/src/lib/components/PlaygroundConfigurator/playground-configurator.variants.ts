@@ -98,7 +98,7 @@ export const playgroundConfiguratorVariants = tv({
     ],
     // Applied additionally when helpVisible is true. Surfaces the
     // "hints on" state visually so the eye can find the toggle quickly.
-    helpToggleActive: ['text-primary border-primary/30 bg-primary/10 hover:bg-primary/15'],
+    helpToggleActive: ['text-primary-text border-primary/30 bg-primary/10 hover:bg-primary/15'],
     codePanel: ['border-t border-border-hairline']
   },
   variants: {

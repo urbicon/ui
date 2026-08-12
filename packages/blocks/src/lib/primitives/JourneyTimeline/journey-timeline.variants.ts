@@ -174,7 +174,7 @@ export const journeyTimelineVariants = tv({
       },
       blocked: {
         marker: 'bg-danger border-danger',
-        title: 'text-danger'
+        title: 'text-danger-text'
       },
       skipped: {
         marker: 'bg-surface-subtle border-border-subtle opacity-80',

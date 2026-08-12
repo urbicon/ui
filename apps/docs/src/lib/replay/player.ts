@@ -1,14 +1,16 @@
 import fixture from './booking-fixture.json';
 
 /**
- * Replays a recorded `/api/chat` exchange.
+ * Replays a recorded agent exchange.
  *
- * The salon page is a claim about *design* — one agent payload, three houses —
+ * The hotel page is a claim about *design* — one agent payload, three houses —
  * so it must not be hostage to an API key, a network hop, or which way the
  * model felt like phrasing things today. What it plays back is real recorded
- * model output, not hand-written UI — captured against the live chat relay of
- * the former `apps/chat-demo` (its `scripts/record-fixture.ts`); the fixture
- * is the versioned truth. A new recording needs a live relay again.
+ * model output, not hand-written UI — captured by
+ * `apps/docs/scripts/record-fixture.ts`, which runs the same tool loop a live
+ * relay would (Anthropic stream + `executeHotelTool`) and writes the frames
+ * verbatim; the fixture is the versioned truth. To re-record, run that script
+ * with `ANTHROPIC_API_KEY` set.
  *
  * Frames come back shaped exactly like `streamSse` yields them (`data` as a
  * JSON string), so the page consumes a replay and a live stream with the same

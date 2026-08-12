@@ -2,14 +2,18 @@ import { type SlotNames, tv, type VariantProps } from '$lib/utils/variants';
 
 export const reasoningDisclosureVariants = tv({
   slots: {
-    // The whole header row is the toggle. Muted (secondary) tone — reasoning is
-    // meta-content, subordinate to the answer. `size="sm"` rhythm, matching the
-    // Collapsible small size the disclosure sits on.
+    // The whole header row is the toggle. Muted (tertiary) tone — reasoning is
+    // meta-content, subordinate to the answer — and one row wide rather than one
+    // column wide: this and ToolCallCard's plain header are the two parts that
+    // report HOW an answer came about, they sit in the same stream, and a reader
+    // should be able to tell at a glance that they are the same kind of thing.
+    // Both are `inline-flex w-fit`, tertiary ink hovering to `primary-text`,
+    // `py-1`, 14px chevron. Change one, change the other.
     trigger: [
-      'flex w-full items-center justify-between gap-2 text-left',
-      'cursor-pointer py-2 text-sm font-medium text-text-secondary',
+      'inline-flex w-fit max-w-full items-center justify-between gap-2 text-left',
+      'cursor-pointer py-1 text-sm text-text-tertiary',
       'transition-[color] duration-[var(--blocks-duration-fast)]',
-      'hover:text-primary',
+      'hover:text-primary-text',
       'focus-visible:rounded-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/50',
       'disabled:cursor-not-allowed disabled:opacity-50'
     ],
@@ -18,16 +22,19 @@ export const reasoningDisclosureVariants = tv({
     // so it stays off the dead-token guard.
     label: 'min-w-0 truncate',
     // Chevron shares the collapse motion tokens so the spin stays in sync with
-    // the panel; rotate-180 is applied in the component when open.
+    // the panel; rotate-180 is applied in the component when open. No colour of
+    // its own — it inherits the trigger's, so the hover moves the whole row.
     chevron: [
-      'h-4 w-4 shrink-0 text-text-tertiary',
+      'h-3.5 w-3.5 shrink-0',
       'transition-transform duration-[var(--blocks-collapse-duration)] ease-[var(--blocks-collapse-easing)]',
       'motion-reduce:duration-[1ms]'
     ],
     // Wrapper around StreamingMarkdown. `text-text-tertiary` is the damped
     // reasoning tone; the markdown body inherits it (its base color override is
-    // `text-inherit`), while link/blockquote slots keep their own intents.
-    content: 'text-text-tertiary'
+    // `text-inherit`), while link/blockquote slots keep their own intents. The
+    // indent is the same one ToolCallCard's body uses: it says where the aside
+    // starts and where the answer resumes, without drawing a box to say it.
+    content: 'pl-3 text-text-tertiary'
   }
 });
 

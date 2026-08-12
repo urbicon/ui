@@ -114,7 +114,7 @@ export const toggleVariants = tv({
     },
     error: {
       true: {
-        message: 'text-danger'
+        message: 'text-danger-text'
       }
     },
     withBorder: {

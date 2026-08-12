@@ -164,7 +164,9 @@
         class="{slot('miniCalendarDay')}
           {!inMonth ? 'opacity-30' : ''}
           {markToday && inMonth ? 'bg-primary text-text-on-primary' : ''}
-          {isSelected && !markToday && inMonth ? 'bg-primary-subtle text-primary font-bold' : ''}
+          {isSelected && !markToday && inMonth
+          ? 'bg-primary-subtle text-primary-text font-bold'
+          : ''}
           {hasEvents && inMonth && !markToday && !isSelected ? 'font-bold' : ''}"
         tabindex={isFocusedMini || (!focusedMiniDate && isMiniFirstDay) ? 0 : -1}
         role="gridcell"

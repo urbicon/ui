@@ -25,7 +25,7 @@ export const a2uiUrbiconVariants = tv({
     /** Plain body text (Text variant=body — PLAIN, no Markdown). */
     body: 'min-w-0 break-words text-sm text-text-primary',
     /** A form field's error message line (shown under a field when `error` is non-empty). */
-    fieldError: 'mt-1 text-xs text-danger',
+    fieldError: 'mt-1 text-xs text-danger-text',
     /** Wrapper around a form field + its error line. */
     field: 'flex min-w-0 flex-col',
     /** Wrapper for the EmptyState call-to-action. */

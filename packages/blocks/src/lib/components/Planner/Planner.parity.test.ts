@@ -254,14 +254,14 @@ describe('Planner highlightToday reaches the week column header', () => {
 
   it('marks the header number by default', () => {
     const { body } = renderPlanner({ view: 'week' });
-    expect(headerRow(body)).toContain('text-primary font-bold');
+    expect(headerRow(body)).toContain('text-primary-text font-bold');
   });
 
   it('drops the header mark when switched off', () => {
     // The bug this pass fixes: only the cell date was gated, so the header
     // number stayed bold and primary-coloured with highlightToday={false}.
     const { body } = renderPlanner({ view: 'week', highlightToday: false });
-    expect(headerRow(body)).not.toContain('text-primary font-bold');
+    expect(headerRow(body)).not.toContain('text-primary-text font-bold');
   });
 
   it('drops the cell date mark when switched off', () => {

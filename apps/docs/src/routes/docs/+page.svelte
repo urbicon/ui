@@ -103,7 +103,14 @@
       The structural components a documentation page is assembled from.
     </p>
     <div class="grid gap-4 sm:grid-cols-2">
-      {#each pageAnatomy as component (component.href)}
+      <!-- Keyed by name, not href: `componentLinks` deliberately points several
+           components at one page (every `Guide*` at the guide page, `InlineCode`
+           at the code-example page), so the href is not unique across a card
+           list. It was, until `InlineCode` joined this catalogue — and a
+           duplicate key does not degrade, it throws during hydration and takes
+           the whole page's client render with it. The card's identity is the
+           component it names. -->
+      {#each pageAnatomy as component (component.name)}
         <Card
           href={resolveNav(component.href)}
           class="border-border-subtle hover:border-primary/30 transition-colors"
@@ -122,7 +129,7 @@
       The building blocks that fill a page: examples, playgrounds, and reference tables.
     </p>
     <div class="grid gap-4 sm:grid-cols-2">
-      {#each contentBlocks as component (component.href)}
+      {#each contentBlocks as component (component.name)}
         <Card
           href={resolveNav(component.href)}
           class="border-border-subtle hover:border-primary/30 transition-colors"
