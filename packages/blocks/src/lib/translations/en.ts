@@ -97,6 +97,9 @@ export default {
     viewWeek: 'Week',
     viewDay: 'Day',
     multiDayLabel: 'Day {{current}} of {{total}}',
+    // The clock line on the LAST day of a multi-day timed event. Only the end
+    // is a true statement about that day, and set bare it would read as a start.
+    untilTime: 'until {{time}}',
     agendaView: 'Agenda view',
     viewAgenda: 'Agenda',
     viewSwitcher: 'View mode',
@@ -119,6 +122,17 @@ export default {
     today: 'Today',
     grid: 'Planner',
     itemCount: '{{count}} items'
+  },
+  resourceTimeline: {
+    previousWeek: 'Previous week',
+    nextWeek: 'Next week',
+    previousRange: 'Previous range',
+    nextRange: 'Next range',
+    today: 'Today',
+    grid: 'Resource timeline',
+    occupied: 'Occupied',
+    moreItems: '{{count}} more',
+    noResources: 'No resources'
   },
   commandPalette: {
     noResults: 'No results found.',

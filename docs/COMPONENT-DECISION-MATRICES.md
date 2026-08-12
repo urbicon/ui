@@ -40,31 +40,37 @@ If you find yourself disabling Drawer's backdrop and Escape-key handling, you pr
 
 ---
 
-## Date Surfaces — Calendar vs. Planner
+## Date Surfaces — Calendar vs. Planner vs. ResourceTimeline
 
-Two components lay things out on dates, and the MCP used to steer day-content boards toward `Calendar` (a timed-event scheduler). They do not overlap: **Calendar** schedules timed `CalendarEvent`s (clock times, multi-day bars, recurrence, drag-resize, a time grid); **Planner** buckets your own `T[]` onto calendar days and hands each day to a `cell` snippet.
+Three components lay things out on dates, and the MCP used to steer day-content boards toward `Calendar` (a timed-event scheduler). They do not overlap: **Calendar** schedules timed `CalendarEvent`s (clock times, multi-day bars, recurrence, drag-resize, a time grid); **Planner** buckets your own `T[]` onto calendar days and hands each day to a `cell` snippet; **ResourceTimeline** puts one lane per resource against a day axis and draws each item as a bar over the days it occupies.
+
+The axis count is the fastest way to tell them apart: Calendar and Planner lay out **dates**, ResourceTimeline lays out **resource × date**.
 
 ### Decision matrix
 
-| Question                                            | → Calendar                          | → Planner                                            |
-| --------------------------------------------------- | ----------------------------------- | --------------------------------------------------- |
-| Does the content have a **clock time**?             | yes (a 14:00–15:00 appointment)     | no (a meal / shift / day note)                      |
-| Should items **span multiple days**?                | yes (holiday, trip)                 | no (single-date bucketing)                          |
-| Is the cell content **your** domain markup + actions? | no — event list / bars            | yes — a `cell` snippet over your `T`                |
-| Do you need **time-grid / recurrence / drag-resize**? | yes                               | no                                                   |
-| Datatype in the snippet                             | `CalendarEvent`                     | your `T`                                             |
-| Typical cases                                       | booking calendar, bin collection, appointments | weekly meal / menu plan, shift roster, occupancy, content calendar |
+| Question                                            | → Calendar                          | → Planner                                            | → ResourceTimeline                                   |
+| --------------------------------------------------- | ----------------------------------- | --------------------------------------------------- | ---------------------------------------------------- |
+| Does the content have a **clock time**?             | yes (a 14:00–15:00 appointment)     | no (a meal / shift / day note)                      | no (whole days / nights)                             |
+| Should items **span multiple days**?                | yes (holiday, trip)                 | no (single-date bucketing)                          | yes — the span is the unit (`getRange`, inclusive)   |
+| Is there a **second axis** beside the date?         | no                                  | no                                                   | yes — one lane per room / vehicle / person           |
+| Is the cell content **your** domain markup + actions? | no — event list / bars            | yes — a `cell` snippet over your `T`                | yes — `span` and `cell` snippets over your `T`       |
+| Do you need **time-grid / recurrence / drag-resize**? | yes                               | no                                                   | no                                                    |
+| Datatype in the snippet                             | `CalendarEvent`                     | your `T`                                             | your `T`                                              |
+| Typical cases                                       | booking calendar, bin collection, appointments | weekly meal / menu plan, shift roster, content calendar | room occupancy, fleet utilisation, chair or staff scheduling |
 
 ### When it's still ambiguous
 
 - If you are about to cram a meal/task/shift into `CalendarEvent.meta` and cast it back out per cell, you want **Planner** — it carries your real type end to end.
 - If you are disabling Planner's single-date model to fake a multi-day bar, you want **Calendar** — spanning is its event-layout job.
-- Both share the headless `DateGridController` under the hood (geometry, navigation, ISO weeks, roving-focus a11y), so neither is "lighter" — pick on the data model, not on weight.
+- If you are drawing one row per room, vehicle or person and asking "who is where on which day", you want **ResourceTimeline** — the other two have one grid of dates and no lane axis to hang a resource on.
+- ResourceTimeline's `getRange` is **inclusive** on both ends, the same convention as `CalendarEvent.end`: a hotel stay's last night is `checkOut − 1`.
+- All three share the headless `DateGridController` under the hood (navigation, bounds, ISO weeks, today) and the packer in `internal/date-grid/pack-spans` lays out both Calendar's month bars and ResourceTimeline's lane bars, so none of them is "lighter" — pick on the data model, not on weight.
 
 ### Code anchors
 
 - Planner board recipe: [/recipes/meal-planner](../apps/docs/src/routes/recipes/meal-planner/+page.svelte) — weekly plan with bucketed cards and an add affordance.
 - Planner doc page: `apps/docs/src/routes/blocks/components/planner/Docs.svelte` — week, month, slotClasses, server-safe weeks.
+- ResourceTimeline doc page: `apps/docs/src/routes/blocks/components/resource-timeline/Docs.svelte` — occupancy with house groups, the free-cell add hook, custom bars.
 - Pattern: `get_pattern("planning-board")` — composition rules for date-indexed boards.
 
 ---

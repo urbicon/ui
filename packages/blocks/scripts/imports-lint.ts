@@ -68,6 +68,7 @@ const ALLOWLIST: ReadonlyArray<readonly [edge: string, why: string]> = [
   //  the internal cores — see src/lib/internal/core/.)
   ['FileUpload -> Progress', 'per-file upload progress'],
   ['PlannerHeader -> Tooltip', 'nav button hints'],
+  ['ResourceTimelineHeader -> Tooltip', 'nav button hints'],
   ['Guide -> Button', 'panel action buttons'],
   ['CalendarHeader -> Tooltip', 'nav button hints'],
   ['CalendarHeader -> Popover', 'view/date picker overlay'],

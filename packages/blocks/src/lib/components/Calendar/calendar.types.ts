@@ -22,7 +22,18 @@ export interface CalendarEvent {
   start: Date;
   /** End date/time. Optional for all-day events. */
   end?: Date;
-  /** Whether this is an all-day event. @default true */
+  /**
+   * Whether this is an all-day event. An explicit `false` is what marks an
+   * event as happening AT a time: it then lands on the week/day time grid, and
+   * the list-based views (agenda, month event list) print its clock time ahead
+   * of the title and sort it after the day's all-day events.
+   *
+   * A timed event spanning several days states one time per row, the one that
+   * is true for that day: `start` (with `end`, when `end` falls on the same
+   * calendar day) on its first day, "until <end>" on its last, and nothing on
+   * the days in between — those rows carry the "Day 2 of 3" badge instead.
+   * @default true
+   */
   allDay?: boolean;
   /** Category ID linking to CalendarEventCategory. */
   categoryId?: string;

@@ -278,6 +278,22 @@
     { label: 'Other', value: 98, intent: 'success' as const }
   ];
 
+  // ResourceTimeline sketch — three lanes over a seven-day window. `place` is
+  // the grid placement of a bar in the overlay grid: column 1 is the lane
+  // column, so day N starts at line N + 1.
+  const timelineLanes = [
+    { id: 'lane-1', label: 'w-7' },
+    { id: 'lane-2', label: 'w-5' },
+    { id: 'lane-3', label: 'w-8' }
+  ];
+
+  const timelineBars = [
+    { id: 'bar-1', tone: 'bg-primary/70', place: 'row-start-1 col-start-2 col-span-3' },
+    { id: 'bar-2', tone: 'bg-primary/30', place: 'row-start-2 col-start-4 col-span-4' },
+    { id: 'bar-3', tone: 'bg-primary/70', place: 'row-start-3 col-start-2 col-span-2' },
+    { id: 'bar-4', tone: 'bg-text-tertiary/20', place: 'row-start-3 col-start-6 col-span-3' }
+  ];
+
   const journeyItems = [
     { id: 'brief', title: 'Brief', status: 'complete' as const },
     { id: 'design', title: 'Design', status: 'active' as const },
@@ -1735,6 +1751,47 @@ Tokens switch light and dark automatically:
               <div class="bg-surface-elevated p-1"></div>
               <div class="bg-surface-elevated p-1">
                 <div class="bg-text-tertiary/20 mt-3 h-2.5 rounded-sm"></div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ResourceTimeline ── 2×1 · viewport-scale board, sketch.
+           Two grids over one another: the cells auto-place, the bars are
+           explicitly placed. One grid cannot do both — the placement algorithm
+           runs the explicit items first and then pushes the auto ones past
+           them, which shifts every cell out from under its bar. -->
+      <div class={cellWd} data-specimen="ResourceTimeline">
+        <a
+          href={resolve('/blocks/components/resource-timeline')}
+          class={cellLink}
+          aria-label="ResourceTimeline docs"
+        ></a>
+        <div class={inner} inert>
+          {@render heading('ResourceTimeline')}
+          <div class={demo}>
+            <div
+              class="border-border-subtle relative h-[76px] w-full max-w-[260px] overflow-hidden rounded-lg border"
+            >
+              <div
+                class="grid h-full grid-cols-[3rem_repeat(7,1fr)] grid-rows-3 gap-px bg-[var(--color-border-hairline)]"
+              >
+                {#each timelineLanes as lane (lane.id)}
+                  <div class="bg-surface-elevated flex items-center px-1.5">
+                    <div class="bg-text-tertiary/30 h-1.5 rounded-sm {lane.label}"></div>
+                  </div>
+                  {#each Array(7) as _, day (day)}
+                    <div class="bg-surface-elevated"></div>
+                  {/each}
+                {/each}
+              </div>
+              <div
+                class="pointer-events-none absolute inset-0 grid grid-cols-[3rem_repeat(7,1fr)] grid-rows-3 gap-px"
+              >
+                {#each timelineBars as bar (bar.id)}
+                  <div class="mx-[2px] my-auto h-2.5 rounded-sm {bar.tone} {bar.place}"></div>
+                {/each}
               </div>
             </div>
           </div>

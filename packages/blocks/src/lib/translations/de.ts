@@ -97,6 +97,9 @@ export default {
     viewWeek: 'Woche',
     viewDay: 'Tag',
     multiDayLabel: 'Tag {{current}} von {{total}}',
+    // Zeitzeile am LETZTEN Tag eines mehrtägigen Termins mit Uhrzeit: nur das
+    // Ende gilt für diesen Tag, und nackt gesetzt läse es sich als Startzeit.
+    untilTime: 'bis {{time}}',
     agendaView: 'Listenansicht',
     viewAgenda: 'Liste',
     viewSwitcher: 'Ansichtsmodus',
@@ -119,6 +122,17 @@ export default {
     today: 'Heute',
     grid: 'Planer',
     itemCount: '{{count}} Einträge'
+  },
+  resourceTimeline: {
+    previousWeek: 'Vorherige Woche',
+    nextWeek: 'Nächste Woche',
+    previousRange: 'Vorheriger Zeitraum',
+    nextRange: 'Nächster Zeitraum',
+    today: 'Heute',
+    grid: 'Ressourcen-Timeline',
+    occupied: 'Belegt',
+    moreItems: '{{count}} weitere',
+    noResources: 'Keine Ressourcen'
   },
   commandPalette: {
     noResults: 'Keine Ergebnisse gefunden.',

@@ -84,6 +84,7 @@ export const componentLinks: Record<string, string> = {
   RadioGroup: '/blocks/primitives/radio-group',
   RadioItem: '/blocks/primitives/radio-group',
   ReasoningDisclosure: '/blocks/components/reasoning-disclosure',
+  ResourceTimeline: '/blocks/components/resource-timeline',
   Sankey: '/blocks/components/sankey',
   Scroller: '/blocks/primitives/scroller',
   Section: '/docs/components/section',

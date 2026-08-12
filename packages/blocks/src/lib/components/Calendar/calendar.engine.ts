@@ -9,6 +9,7 @@
  */
 
 import { daysBetween, stripTime, toIso } from '$lib/date';
+import { packSpans } from '$lib/internal/date-grid/pack-spans';
 import type { CalendarEvent, PositionedEvent, RecurrenceRule, TimeSlot } from './calendar.types';
 
 /**
@@ -35,47 +36,50 @@ export function getEventDayInfo(
 }
 
 /**
- * Determine whether text on a given background color should be light or dark.
- * Supports hex (#rgb, #rrggbb), rgb(), oklch(), and CSS named colors.
- * Returns 'white' or 'black' based on perceived luminance.
+ * Order the events of ONE day for a list: all-day first, then timed events by
+ * start; ties go to the longer event.
+ *
+ * The reading order of a day is a property of the day, not of the array a
+ * consumer happened to build. Events generated per resource (chairs, rooms,
+ * staff) arrive grouped by resource — 12:20, 12:15, 13:20, 13:15 — and the
+ * list-based views rendered exactly that (#95). The time grid hid it, because
+ * it positions by the hour rather than by array index.
+ *
+ * All-day before timed follows the convention every calendar app uses: an
+ * all-day event has no hour to sort against, so it heads the day rather than
+ * landing at midnight among the timed ones. `allDay` is read the way the rest
+ * of the component reads it — `!== false`, since the documented default is
+ * `true` and only an explicit `false` marks an event as timed.
+ *
+ * The tie-break repeats the stacking rule of `getMultiDayEventLayout` and
+ * `resolveOverlaps` (longer first), so a day's list order matches the order the
+ * same events stack in the grid. `Array.prototype.sort` is stable, so events
+ * that are equal under both keys keep the order they were passed in.
  */
-export function getContrastTextColor(bgColor: string): 'white' | 'black' {
-  // Try to parse oklch
-  const oklchMatch = bgColor.match(/oklch\(\s*([\d.]+)/);
-  if (oklchMatch) {
-    const lightness = parseFloat(oklchMatch[1]);
-    // oklch lightness: 0 = black, 1 = white
-    return lightness > 0.6 ? 'black' : 'white';
-  }
+export function compareDayEvents(
+  a: { start: Date; end?: Date; allDay?: boolean },
+  b: { start: Date; end?: Date; allDay?: boolean }
+): number {
+  const aAllDay = a.allDay !== false;
+  const bAllDay = b.allDay !== false;
+  if (aAllDay !== bAllDay) return aAllDay ? -1 : 1;
 
-  // Try to parse hex
-  const hexMatch = bgColor.match(/^#?([\da-f]{3,8})$/i);
-  if (hexMatch) {
-    let hex = hexMatch[1];
-    if (hex.length === 3) {
-      hex = hex[0] + hex[0] + hex[1] + hex[1] + hex[2] + hex[2];
-    }
-    const r = parseInt(hex.slice(0, 2), 16);
-    const g = parseInt(hex.slice(2, 4), 16);
-    const b = parseInt(hex.slice(4, 6), 16);
-    // Relative luminance approximation
-    const luminance = (0.299 * r + 0.587 * g + 0.114 * b) / 255;
-    return luminance > 0.5 ? 'black' : 'white';
-  }
+  const byStart = a.start.getTime() - b.start.getTime();
+  if (byStart !== 0) return byStart;
 
-  // Try to parse rgb/rgba
-  const rgbMatch = bgColor.match(/rgba?\(\s*(\d+)\s*,?\s*(\d+)\s*,?\s*(\d+)/);
-  if (rgbMatch) {
-    const r = parseInt(rgbMatch[1], 10);
-    const g = parseInt(rgbMatch[2], 10);
-    const b = parseInt(rgbMatch[3], 10);
-    const luminance = (0.299 * r + 0.587 * g + 0.114 * b) / 255;
-    return luminance > 0.5 ? 'black' : 'white';
-  }
-
-  // Default: assume dark background
-  return 'white';
+  const aEnd = a.end ? a.end.getTime() : a.start.getTime();
+  const bEnd = b.end ? b.end.getTime() : b.start.getTime();
+  return bEnd - aEnd;
 }
+
+/**
+ * Foreground colour for a consumer-supplied background. The implementation
+ * moved to `$lib/internal/contrast` when ResourceTimeline became its second
+ * caller — a bar coloured from `TimelineCategory.color` faces exactly the
+ * question a bar coloured from `CalendarEventCategory.color` does. Re-exported
+ * here so Calendar's own sub-components keep importing it from the engine.
+ */
+export { getContrastTextColor } from '$lib/internal/contrast';
 
 /**
  * Compute layout segments for multi-day events in the month grid.
@@ -125,18 +129,18 @@ export function getMultiDayEventLayout(
   return grid.map((week) => {
     const weekStart = stripTime(week[0]);
     const weekEnd = stripTime(week[6]);
-    const occupiedRows: boolean[][] = [];
 
-    type Seg = {
+    // Clip each event to this week's columns; the stacking itself is the shared
+    // first-fit packer in internal/date-grid (ResourceTimeline packs its lane
+    // bars through the same one).
+    const clipped: Array<{
       eventId: string;
       startCol: number;
+      endCol: number;
       spanCols: number;
       isFirstSegment: boolean;
       isLastSegment: boolean;
-      row: number;
-    };
-
-    const allSegments: Seg[] = [];
+    }> = [];
 
     for (const event of multiDay) {
       const evStart = stripTime(event.start);
@@ -149,49 +153,35 @@ export function getMultiDayEventLayout(
 
       const startCol = daysBetween(weekStart, visStart);
       const endCol = daysBetween(weekStart, visEnd);
-      const spanCols = endCol - startCol + 1;
 
-      const isFirstSegment = evStart.getTime() >= weekStart.getTime();
-      const isLastSegment = evEnd.getTime() <= weekEnd.getTime();
-
-      // Find first available row
-      let assignedRow = 0;
-      while (true) {
-        if (!occupiedRows[assignedRow]) {
-          occupiedRows[assignedRow] = Array(7).fill(false);
-        }
-        let fits = true;
-        for (let c = startCol; c <= endCol; c++) {
-          if (occupiedRows[assignedRow][c]) {
-            fits = false;
-            break;
-          }
-        }
-        if (fits) break;
-        assignedRow++;
-      }
-
-      if (!occupiedRows[assignedRow]) {
-        occupiedRows[assignedRow] = Array(7).fill(false);
-      }
-      for (let c = startCol; c <= endCol; c++) {
-        occupiedRows[assignedRow][c] = true;
-      }
-
-      allSegments.push({
+      clipped.push({
         eventId: event.id,
         startCol,
-        spanCols,
-        isFirstSegment,
-        isLastSegment,
-        row: assignedRow
+        endCol,
+        spanCols: endCol - startCol + 1,
+        isFirstSegment: evStart.getTime() >= weekStart.getTime(),
+        isLastSegment: evEnd.getTime() <= weekEnd.getTime()
       });
     }
 
-    const visible = allSegments.filter((s) => s.row < maxRows);
-    const overflow = allSegments.filter((s) => s.row >= maxRows).length;
+    const { packed, overflow } = packSpans(
+      clipped,
+      7,
+      (seg) => ({ startCol: seg.startCol, endCol: seg.endCol }),
+      maxRows
+    );
 
-    return { segments: visible, overflow };
+    return {
+      segments: packed.map(({ span, row }) => ({
+        eventId: span.eventId,
+        startCol: span.startCol,
+        spanCols: span.spanCols,
+        isFirstSegment: span.isFirstSegment,
+        isLastSegment: span.isLastSegment,
+        row
+      })),
+      overflow
+    };
   });
 }
 

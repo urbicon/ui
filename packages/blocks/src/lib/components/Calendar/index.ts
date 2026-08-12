@@ -40,6 +40,7 @@ export type CalendarSlotName =
   | 'empty'
   | 'item'
   | 'colorBar'
+  | 'eventTime'
   | 'eventTitle'
   | 'eventDescription'
   | 'eventHelper'
@@ -231,8 +232,10 @@ export interface CalendarProps
 
   // === Locale & Formatting ===
   /**
-   * BCP 47 locale tag for date formatting — month names, weekday names and the
-   * header title. Defaults to `'auto'`, which follows the active
+   * BCP 47 locale tag for date formatting — month names, weekday names, the
+   * header title and the clock time of timed events in the list-based views
+   * (hour cycle, separator and padding all follow the locale, so a 12-hour
+   * locale renders "9:05 AM"). Defaults to `'auto'`, which follows the active
    * `<I18nProvider>` locale, so an app that already declares its language does
    * not have to repeat it here. SSR-safe: the locale comes from context, so the
    * server and the client resolve the same tag (`Intl` with `undefined` would
@@ -325,6 +328,16 @@ export interface CalendarProps
    * Custom snippet for rendering an event item in the list-based views (agenda
    * and the month event list). Time-grid views (week/day) render events through
    * their hour grid and ignore this snippet.
+   *
+   * Replaces the default row entirely, including the clock time an event with
+   * `allDay: false` shows there — format it from `event.start`/`event.end`
+   * yourself (`formatTimeRange` from `@urbicon-ui/blocks/date` is the same
+   * helper the default uses). For a multi-day event the context's `isStart` /
+   * `isEnd` say which end of the span this row is: the default prints `start`
+   * on the first day, "until <end>" on the last, nothing in between, because
+   * `event.start` is the same instant on every row. The chronological order of
+   * a day is not part of the snippet's job: the calendar sorts each day before
+   * rendering.
    */
   eventItem?: Snippet<[EventItemContext]>;
   /** Custom snippet for the header area. */
