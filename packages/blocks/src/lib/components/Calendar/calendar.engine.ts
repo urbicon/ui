@@ -9,6 +9,7 @@
  */
 
 import { daysBetween, stripTime, toIso } from '$lib/date';
+import { packSpans } from '$lib/internal/date-grid/pack-spans';
 import type { CalendarEvent, PositionedEvent, RecurrenceRule, TimeSlot } from './calendar.types';
 
 /**
@@ -72,47 +73,13 @@ export function compareDayEvents(
 }
 
 /**
- * Determine whether text on a given background color should be light or dark.
- * Supports hex (#rgb, #rrggbb), rgb(), oklch(), and CSS named colors.
- * Returns 'white' or 'black' based on perceived luminance.
+ * Foreground colour for a consumer-supplied background. The implementation
+ * moved to `$lib/internal/contrast` when ResourceTimeline became its second
+ * caller — a bar coloured from `TimelineCategory.color` faces exactly the
+ * question a bar coloured from `CalendarEventCategory.color` does. Re-exported
+ * here so Calendar's own sub-components keep importing it from the engine.
  */
-export function getContrastTextColor(bgColor: string): 'white' | 'black' {
-  // Try to parse oklch
-  const oklchMatch = bgColor.match(/oklch\(\s*([\d.]+)/);
-  if (oklchMatch) {
-    const lightness = parseFloat(oklchMatch[1]);
-    // oklch lightness: 0 = black, 1 = white
-    return lightness > 0.6 ? 'black' : 'white';
-  }
-
-  // Try to parse hex
-  const hexMatch = bgColor.match(/^#?([\da-f]{3,8})$/i);
-  if (hexMatch) {
-    let hex = hexMatch[1];
-    if (hex.length === 3) {
-      hex = hex[0] + hex[0] + hex[1] + hex[1] + hex[2] + hex[2];
-    }
-    const r = parseInt(hex.slice(0, 2), 16);
-    const g = parseInt(hex.slice(2, 4), 16);
-    const b = parseInt(hex.slice(4, 6), 16);
-    // Relative luminance approximation
-    const luminance = (0.299 * r + 0.587 * g + 0.114 * b) / 255;
-    return luminance > 0.5 ? 'black' : 'white';
-  }
-
-  // Try to parse rgb/rgba
-  const rgbMatch = bgColor.match(/rgba?\(\s*(\d+)\s*,?\s*(\d+)\s*,?\s*(\d+)/);
-  if (rgbMatch) {
-    const r = parseInt(rgbMatch[1], 10);
-    const g = parseInt(rgbMatch[2], 10);
-    const b = parseInt(rgbMatch[3], 10);
-    const luminance = (0.299 * r + 0.587 * g + 0.114 * b) / 255;
-    return luminance > 0.5 ? 'black' : 'white';
-  }
-
-  // Default: assume dark background
-  return 'white';
-}
+export { getContrastTextColor } from '$lib/internal/contrast';
 
 /**
  * Compute layout segments for multi-day events in the month grid.
@@ -162,18 +129,18 @@ export function getMultiDayEventLayout(
   return grid.map((week) => {
     const weekStart = stripTime(week[0]);
     const weekEnd = stripTime(week[6]);
-    const occupiedRows: boolean[][] = [];
 
-    type Seg = {
+    // Clip each event to this week's columns; the stacking itself is the shared
+    // first-fit packer in internal/date-grid (ResourceTimeline packs its lane
+    // bars through the same one).
+    const clipped: Array<{
       eventId: string;
       startCol: number;
+      endCol: number;
       spanCols: number;
       isFirstSegment: boolean;
       isLastSegment: boolean;
-      row: number;
-    };
-
-    const allSegments: Seg[] = [];
+    }> = [];
 
     for (const event of multiDay) {
       const evStart = stripTime(event.start);
@@ -186,49 +153,35 @@ export function getMultiDayEventLayout(
 
       const startCol = daysBetween(weekStart, visStart);
       const endCol = daysBetween(weekStart, visEnd);
-      const spanCols = endCol - startCol + 1;
 
-      const isFirstSegment = evStart.getTime() >= weekStart.getTime();
-      const isLastSegment = evEnd.getTime() <= weekEnd.getTime();
-
-      // Find first available row
-      let assignedRow = 0;
-      while (true) {
-        if (!occupiedRows[assignedRow]) {
-          occupiedRows[assignedRow] = Array(7).fill(false);
-        }
-        let fits = true;
-        for (let c = startCol; c <= endCol; c++) {
-          if (occupiedRows[assignedRow][c]) {
-            fits = false;
-            break;
-          }
-        }
-        if (fits) break;
-        assignedRow++;
-      }
-
-      if (!occupiedRows[assignedRow]) {
-        occupiedRows[assignedRow] = Array(7).fill(false);
-      }
-      for (let c = startCol; c <= endCol; c++) {
-        occupiedRows[assignedRow][c] = true;
-      }
-
-      allSegments.push({
+      clipped.push({
         eventId: event.id,
         startCol,
-        spanCols,
-        isFirstSegment,
-        isLastSegment,
-        row: assignedRow
+        endCol,
+        spanCols: endCol - startCol + 1,
+        isFirstSegment: evStart.getTime() >= weekStart.getTime(),
+        isLastSegment: evEnd.getTime() <= weekEnd.getTime()
       });
     }
 
-    const visible = allSegments.filter((s) => s.row < maxRows);
-    const overflow = allSegments.filter((s) => s.row >= maxRows).length;
+    const { packed, overflow } = packSpans(
+      clipped,
+      7,
+      (seg) => ({ startCol: seg.startCol, endCol: seg.endCol }),
+      maxRows
+    );
 
-    return { segments: visible, overflow };
+    return {
+      segments: packed.map(({ span, row }) => ({
+        eventId: span.eventId,
+        startCol: span.startCol,
+        spanCols: span.spanCols,
+        isFirstSegment: span.isFirstSegment,
+        isLastSegment: span.isLastSegment,
+        row
+      })),
+      overflow
+    };
   });
 }
 

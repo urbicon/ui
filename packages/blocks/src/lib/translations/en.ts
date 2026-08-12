@@ -123,6 +123,17 @@ export default {
     grid: 'Planner',
     itemCount: '{{count}} items'
   },
+  resourceTimeline: {
+    previousWeek: 'Previous week',
+    nextWeek: 'Next week',
+    previousRange: 'Previous range',
+    nextRange: 'Next range',
+    today: 'Today',
+    grid: 'Resource timeline',
+    occupied: 'Occupied',
+    moreItems: '{{count}} more',
+    noResources: 'No resources'
+  },
   commandPalette: {
     noResults: 'No results found.',
     search: 'Search...',
