@@ -281,11 +281,18 @@
   // Auf Gruppen-Maßstab (344 guests) liest die Mitte auch nicht versehentlich
   // als „100 %", wie es eine 68/32-Summe täte.
   const GROUP_RETURNING = HOUSES.reduce((n, h) => n + h.returning, 0); // 220
+  // Explizite Serienfarben, damit die Textzeile neben dem Ring dieselben Töne
+  // als Punkte tragen kann — ohne sie waren die zwei Segmente nicht zuordenbar.
   const returnMix = $derived([
-    { label: 'Returning', value: activeHouse?.returning ?? GROUP_RETURNING },
+    {
+      label: 'Returning',
+      value: activeHouse?.returning ?? GROUP_RETURNING,
+      color: 'var(--color-primary)'
+    },
     {
       label: 'First stay',
-      value: (activeHouse?.guests ?? GROUP_GUESTS) - (activeHouse?.returning ?? GROUP_RETURNING)
+      value: (activeHouse?.guests ?? GROUP_GUESTS) - (activeHouse?.returning ?? GROUP_RETURNING),
+      color: 'var(--color-neutral-500)'
     }
   ]);
   // Freie Zimmer heute Nacht: der unbelegte Anteil des Bestands — Bestand aus
@@ -319,38 +326,52 @@
   // Ankünfte der GRUPPE je Wochentag (Index 0 = Montag) — dieselben Summen,
   // die der Chart der Overview zeichnet: alle sieben Tage, Wochenende voran.
   const GROUP_DAY_TOTALS = [34, 28, 32, 39, 58, 71, 44];
-  // Ein Zeitraster zeigt einen Empfang, keine Gruppe: drei Häuser übereinander
-  // wären Tapete. Die Ansicht zeigt darum EIN Haus — das gewählte, sonst das
-  // Stammhaus — und die Kopfzeile sagt es. Der Umschalter dafür steht schon
-  // da: die Belegungszeilen der Overview.
-  const scheduleHouse = $derived(activeHouse ?? HOUSES[0]);
+  // Das Zeitraster zeigt Vorgänge an Tresen — in der Gruppen-Sicht die aller
+  // DREI Häuser gemischt (das Haus steht im Eintrag, die Farbe bleibt der
+  // Zimmertyp), bei Auswahl nur das eine, dann mit voller Tresen-Spreizung.
+  // Die parallelen Tresen sind der Punkt: Überlappungen spaltet der Calendar
+  // selbst in Spalten (sein Overlap-Layout — der Showcase, den eine
+  // Ein-Tresen-Sequenz unsichtbar machte), und die Lane-Zahl wächst mit der
+  // Tageslast — der Samstag ist im Raster wirklich dichter als der Dienstag,
+  // dieselbe Kurve, die der Chart eine Ansicht weiter zeichnet.
+  const houseShare = (h: House) =>
+    GROUP_DAY_TOTALS.map((n) => Math.round(n * (h.guests / GROUP_GUESTS)));
   const scheduleEvents = $derived(
-    buildSchedule({
-      weekStart,
-      // Der Anteil des Hauses an den Tagessummen der Gruppe. Dass der Samstag
-      // im Raster sichtbar voller ist als der Dienstag, ist keine Deko: es ist
-      // dieselbe Kurve, die der Chart eine Ansicht weiter zeichnet.
-      perDay: GROUP_DAY_TOTALS.map((n) => Math.round(n * (scheduleHouse.guests / GROUP_GUESTS)))
-    })
+    activeHouse
+      ? buildSchedule({ weekStart, perDay: houseShare(activeHouse) })
+      : HOUSES.flatMap((h, i) =>
+          buildSchedule({
+            weekStart,
+            perDay: houseShare(h),
+            houseName: h.name,
+            guestPool: (i % 3) as 0 | 1 | 2,
+            maxLanes: 2
+          })
+        ).sort((a, b) => a.start.getTime() - b.start.getTime())
   );
   // Breit das Tages-Zeitraster, schmal die Agenda desselben Tages: dieselben
   // Vorgänge als Liste, die Form, die ein Telefon ohnehin verlangt.
   const wideEnoughForGrid = new MediaQuery('(min-width: 48rem)', true);
   const scheduleView = $derived(wideEnoughForGrid.current ? 'day' : 'agenda');
+  // Die Stundenhöhe rechnet sich aus der gemessenen Bühne: Host-Höhe minus
+  // Legendenzeile, Datumsleiste und Tageskopf (~116 px), verteilt auf die acht
+  // Stunden des Empfangstags. So füllt das Raster die Karte — und scrollt
+  // erst, wenn die Bühne wirklich kleiner ist als das Minimum (40 px, der
+  // sm-Default). Die Host-Höhe ist von außen fixiert (Grid-Zeile der Karte),
+  // die Messung kann sich also nicht am eigenen Ergebnis aufschaukeln.
+  let scheduleHostHeight = $state(0);
+  const scheduleHourHeight = $derived(
+    Math.max(40, Math.floor((scheduleHostHeight - 116) / (SCHEDULE_END_HOUR - SCHEDULE_START_HOUR)))
+  );
   // Fest auf `en-GB`, nicht auf die Laufzeit-Locale: die Seite ist auf `en`
   // gepinnt, und ein 24-Stunden-Format neben einem 24-Stunden-Zeitraster ist
   // das, was zusammenpasst.
   const TIME_FMT = new Intl.DateTimeFormat('en-GB', { hour: '2-digit', minute: '2-digit' });
 
-  // Die Unterzeile der Karte. In der Schedule-Ansicht nennt sie IMMER ein Haus,
-  // auch wenn keins gewählt ist — sonst verspräche „All three houses" über einem
-  // Zeitraster, das nur eines zeigt.
+  // Die Unterzeile der Karte. Seit die Schedule-Sicht bei „All" wirklich alle
+  // drei Häuser mischt, braucht sie keine Sonderregel mehr.
   const cardSubtitle = $derived(
-    dashView === 'schedule'
-      ? `${scheduleHouse.name} · ${scheduleHouse.city}`
-      : activeHouse
-        ? `${activeHouse.name} · ${activeHouse.city}`
-        : 'All three houses'
+    activeHouse ? `${activeHouse.name} · ${activeHouse.city}` : 'All three houses'
   );
 
   // ── Flow: woher die 344 Gäste kommen und wo sie schlafen ───────────
@@ -381,18 +402,22 @@
     { source: 'partners', target: 'cala', value: 23 },
     { source: 'partners', target: 'firn', value: 12 },
     { source: 'partners', target: 'duna', value: 31 },
-    { source: 'cala', target: 'room', value: 40 },
-    { source: 'cala', target: 'garden', value: 34 },
-    { source: 'cala', target: 'corner', value: 32 },
-    { source: 'cala', target: 'suite', value: 26 },
-    { source: 'firn', target: 'room', value: 26 },
-    { source: 'firn', target: 'garden', value: 14 },
-    { source: 'firn', target: 'corner', value: 11 },
-    { source: 'firn', target: 'suite', value: 13 },
-    { source: 'duna', target: 'room', value: 47 },
-    { source: 'duna', target: 'garden', value: 37 },
-    { source: 'duna', target: 'corner', value: 33 },
-    { source: 'duna', target: 'suite', value: 31 }
+    // Stufe 2 trägt den Zimmertyp als expliziten Link-intent — dieselben vier
+    // Töne wie Umsatzmix und Raster-Legende. Ohne ihn erbten alle zwölf Kanten
+    // das secondary der Häuser, und die rechte Bildhälfte war ein einziger
+    // einfarbiger Strang (Screenshot-Befund 2026-08-12).
+    { source: 'cala', target: 'room', value: 40, intent: 'primary' as const },
+    { source: 'cala', target: 'garden', value: 34, intent: 'success' as const },
+    { source: 'cala', target: 'corner', value: 32, intent: 'warning' as const },
+    { source: 'cala', target: 'suite', value: 26, intent: 'neutral' as const },
+    { source: 'firn', target: 'room', value: 26, intent: 'primary' as const },
+    { source: 'firn', target: 'garden', value: 14, intent: 'success' as const },
+    { source: 'firn', target: 'corner', value: 11, intent: 'warning' as const },
+    { source: 'firn', target: 'suite', value: 13, intent: 'neutral' as const },
+    { source: 'duna', target: 'room', value: 47, intent: 'primary' as const },
+    { source: 'duna', target: 'garden', value: 37, intent: 'success' as const },
+    { source: 'duna', target: 'corner', value: 33, intent: 'warning' as const },
+    { source: 'duna', target: 'suite', value: 31, intent: 'neutral' as const }
   ];
   // Der Fluss bleibt bei einer Hausauswahl vollständig — die Gesamtsumme ist
   // der Punkt der Ansicht —, aber alles, was nicht durch das gewählte Haus
@@ -414,6 +439,11 @@
         : { ...l, intent: 'neutral' as const }
     )
   );
+  // Sankey-Höhe aus der gemessenen Bühne statt fixer 264 px: die Karte ist so
+  // hoch wie die Kachel (72vh-Klammer), und ein fixes SVG ließ darunter ein
+  // halbes Kartenfeld leer. Abzug: die Kopfzeile der Ansicht (~44 px).
+  let flowHostHeight = $state(0);
+  const flowHeight = $derived(Math.max(264, flowHostHeight - 44));
 
   // ── Table: die heutigen Ankünfte der GRUPPE, gruppiert nach Haus ──
   // Häuser und Zimmertypen aus $lib/hotel-tools, Raten = Typpreis × Nächte.
@@ -895,16 +925,22 @@
                              und der Umsatzmix vier Farben ohne Aussage
                              (Review-Befund 2026-08-10). Der Chart nimmt die
                              volle Kartenbreite; die Legende ist an, weil zwei
-                             ungelabelte Serien nicht selbsterklärend sind. -->
+                             ungelabelte Serien nicht selbsterklärend sind.
+                             Gestapelt, weil Same-day ein TEIL der Tages-
+                             ankünfte ist: als eigene Fläche kroch die kleine
+                             Serie (4–11 gegen 24–60) als Strich am Chart-Boden
+                             und las sich als Renderfehler; als Band auf
+                             Reserved ist die Summe die Kurve — dieselben
+                             Tagessummen, deren Dichte das Zeitraster zeigt. -->
                         <div>
                           <p class="dash-sub">Arrivals this week</p>
                           <div class="blk mt-2" data-blk="AreaChart">
                             <AreaChart
                               data={bookingsData}
                               series={BOOKING_SERIES}
-                              height={84}
+                              height={96}
                               showLegend
-                              fillOpacity={0.25}
+                              stacked
                             />
                           </div>
                         </div>
@@ -941,8 +977,15 @@
                                   />
                                 </div>
                                 <p class="aside-note">
-                                  <strong>{returnMix[0].value}</strong> returning ·
-                                  <strong>{returnMix[1].value}</strong> first stay
+                                  <span class="mix-pair"
+                                    ><span class="mix-dot" style:background={returnMix[0].color}
+                                    ></span><strong>{returnMix[0].value}</strong> returning</span
+                                  >
+                                  ·
+                                  <span class="mix-pair"
+                                    ><span class="mix-dot" style:background={returnMix[1].color}
+                                    ></span><strong>{returnMix[1].value}</strong> first stay</span
+                                  >
                                 </p>
                               </div>
                             </div>
@@ -950,11 +993,14 @@
                           <div class="dash-side">
                             <div class="dash-head">
                               <p class="dash-sub">
-                                {activeHouse ? 'Occupancy · on duty' : 'Occupancy today'}
+                                {activeHouse ? 'Occupancy · on duty' : 'Occupancy today · on duty'}
                               </p>
                               <!-- Die Gesichter sind nicht mehr Deko: sie zeigen
                                    das Team des gewählten Hauses und wechseln mit
-                                   ihm. -->
+                                   ihm. Die Zeile benennt sie in BEIDEN Sichten
+                                   („on duty") — unbeschriftete Status-Avatare
+                                   neben einer Belegungsliste waren ein
+                                   Fragezeichen (Screenshot-Befund 2026-08-12). -->
                               <div class="blk" data-blk="AvatarGroup">
                                 <AvatarGroup items={team} max={4} size="sm" />
                               </div>
@@ -993,22 +1039,47 @@
                         </div>
                       </div>
                     {:else if dashView === 'schedule'}
-                      <!-- Der Empfangstag EINES Hauses: Abreisen am Vormittag,
-                           Ankünfte am Nachmittag, jeder Block ein Vorgang am
-                           Tresen. Bewusst EIN Tag statt der Wochenansicht der
-                           ersten Fassung — sieben Spalten à ~10 Vorgänge waren
-                           Tapete, und ein Zeitraster erzählt Belegung ohnehin
-                           falsch (Aufenthalte sind Tage, keine Stunden; eine
-                           Resource-Timeline hat der Calendar nicht). Die
-                           Wochen-Dichte erzählt der Chart der Overview.
+                      <!-- Der Empfangstag im Zeitraster: Abreisen am Vormittag,
+                           Ankünfte am Nachmittag, jeder Block ein Vorgang an
+                           einem von mehreren PARALLELEN Tresen — Überlappungen
+                           spaltet der Calendar selbst in Spalten (sein
+                           Overlap-Layout, der eigentliche Showcase dieser
+                           Ansicht). Bei „All" laufen die Tresen aller drei
+                           Häuser gemischt, das Haus steht im Eintrag. Bewusst
+                           EIN Tag statt der Wochenansicht der ersten Fassung —
+                           sieben Spalten erzählten Belegung, und Belegung
+                           (mehrtägige Balken je Zimmer) ist die
+                           Resource-Timeline, die dem Calendar noch fehlt
+                           (#185); die Wochen-Dichte erzählt der Chart der
+                           Overview. Die Stundenhöhe kommt aus der gemessenen
+                           Bühne (bind:clientHeight), damit das Raster die
+                           Karte füllt statt eine Restfläche zu lassen. Die
+                           Legende ist an: vier Zimmertyp-Farben ohne Legende
+                           waren ein Rätsel (Screenshot-Befund 2026-08-12).
                            `{#key}`, weil `defaultDate` laut Vertrag nur beim
                            Mounten gelesen wird — der Schwenk vom Anker- auf
                            das echte Heute nach der Hydration käme sonst nie
                            an. Kein Wischen: die Kachel liegt in einem
                            waagerecht wischbaren Band, und dort muss die Geste
                            die Kachel wechseln, nicht den Tag. -->
-                      <div class="view-host">
-                        <p class="dash-sub">Front desk — departures, then arrivals</p>
+                      <div class="view-host" bind:clientHeight={scheduleHostHeight}>
+                        <!-- Die Zimmertyp-Legende steht HIER, außerhalb des
+                             scrollenden Rasters: die Calendar-eigene Legende
+                             sitzt unterhalb der View und läge damit genau dann
+                             im unsichtbaren Scroll-Rest, wenn das Raster die
+                             Bühne füllt — eine Legende, die man nur per Scroll
+                             findet, erklärt nichts. -->
+                        <div class="legend-row">
+                          <p class="dash-sub">Front desk — departures, then arrivals</p>
+                          <p class="dash-sub">
+                            {#each ROOM_CATEGORIES as c (c.id)}
+                              <span class="mix-pair"
+                                ><span class="mix-dot" style:background={c.color}
+                                ></span>{c.label}</span
+                              >
+                            {/each}
+                          </p>
+                        </div>
                         <div class="blk mt-2" data-blk="Calendar">
                           {#key `${today.getTime()}-${scheduleView}`}
                             <Calendar
@@ -1016,7 +1087,7 @@
                               categories={ROOM_CATEGORIES}
                               view={scheduleView}
                               views={[scheduleView]}
-                              agendaDays={1}
+                              agendaDays={31}
                               showViewSwitcher={false}
                               defaultDate={today}
                               size="sm"
@@ -1024,6 +1095,7 @@
                               timeGridStartHour={SCHEDULE_START_HOUR}
                               timeGridEndHour={SCHEDULE_END_HOUR}
                               timeGridInterval={60}
+                              timeGridHourHeight={scheduleHourHeight}
                               showEventList={false}
                               swipeable={false}
                               showLegend={false}
@@ -1033,12 +1105,14 @@
                         </div>
                       </div>
                     {:else}
-                      <!-- Dieselben 440 Gäste wie im Donut, nur von der Seite
+                      <!-- Dieselben 344 Gäste wie im Donut, nur von der Seite
                            gesehen: Kanal → Haus → Zimmertyp. Die Kopfzeile
                            sagt, was fließt — ohne sie war der Sankey ein
                            unbeschriftetes Diagramm in einer leeren Karte
-                           (Review-Befund 2026-08-10). -->
-                      <div class="view-host">
+                           (Review-Befund 2026-08-10). Die Höhe ist gemessen
+                           (bind:clientHeight), nicht fix: ein 264-px-SVG in
+                           einer 72vh-Karte ließ das halbe Feld leer. -->
+                      <div class="view-host" bind:clientHeight={flowHostHeight}>
                         <p class="dash-sub">
                           Where {GROUP_GUESTS} guests came from — and where they sleep
                         </p>
@@ -1046,7 +1120,7 @@
                           <Sankey
                             nodes={flowNodes}
                             links={flowLinks}
-                            height={264}
+                            height={flowHeight}
                             nodeWidth={12}
                             nodePadding={10}
                             formatValue={(v) => `${v} guests`}
@@ -1487,9 +1561,10 @@
 
 <!-- Der Eintrag der Agenda-Ansicht (schmale Viewports). Eigener Snippet, weil
      der eingebaute Eintrag Titel, Beschreibung und Hilfstext rendert — aber
-     nie die Uhrzeit, auch bei `allDay: false` nicht. Eine Terminliste ohne
-     Uhrzeit ist keine. Das Zeitraster der Wochenansicht ist davon unberührt:
-     dort steht der Block an seiner Uhrzeit, eine zweite wäre Doppelung. -->
+     nie die Uhrzeit, auch bei `allDay: false` nicht (#95; sobald das landet,
+     kann dieser Snippet fallen). Eine Terminliste ohne Uhrzeit ist keine. Das
+     Zeitraster der Tagesansicht ist davon unberührt: dort steht der Block an
+     seiner Uhrzeit, eine zweite wäre Doppelung. -->
 {#snippet agendaItem({ event, category }: { event: CalendarEvent; category?: { color: string } })}
   <span class="agenda-row">
     <span class="agenda-bar" style:background={category?.color ?? 'var(--color-border-default)'}
@@ -1803,6 +1878,11 @@
     display: grid;
     gap: 0.75rem;
     min-width: 0;
+    /* Die Spaltenzeile nimmt die Resthöhe des Bodys — erst damit greift das
+       space-between in den Spalten. Ohne dieses Wachsen sammelte sich die
+       Resthöhe als Loch zwischen Donut und Fußzeile (Screenshot-Befund
+       2026-08-12). */
+    flex: 1;
   }
   /* Einspaltig (schmale Karte) steht die Auslastung der Häuser VOR dem
      Umsatzmix: sie ist die Aussage der Kachel, und was hier unten steht,
@@ -1821,6 +1901,9 @@
   @container (min-width: 30rem) {
     .dash-cols {
       grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+      /* Die eine Grid-Zeile spannt die volle Resthöhe auf — sonst bliebe das
+         flex-Wachsen der Zeile ohne Wirkung auf die Spalten darin. */
+      grid-template-rows: minmax(0, 1fr);
       gap: 1.6rem;
       align-items: stretch;
     }
@@ -1845,9 +1928,35 @@
     justify-content: space-between;
     gap: 1rem;
   }
-  /* Planner und Sankey bekommen die Bühne der Karte allein — und füllen sie:
-     ohne das Strecken stünde ein Wochenraster mit drei Terminen je Spalte oben
-     im Kasten und ließe darunter ein halbes Kartenfeld leer.
+  /* Farbpunkte für Donut-Textzeile und Schedule-Legende — dieselben Töne wie
+     die Flächen, die sie erklären. Ein Paar aus Punkt und Wort bricht nie
+     intern um (.mix-pair), sonst hängt ein Punkt allein am Zeilenende. */
+  .mix-dot {
+    display: inline-block;
+    inline-size: 0.5rem;
+    block-size: 0.5rem;
+    border-radius: 50%;
+    margin-inline-end: 0.3rem;
+  }
+  .mix-pair {
+    white-space: nowrap;
+  }
+  .mix-pair + .mix-pair {
+    margin-inline-start: 0.55rem;
+  }
+  /* Kopfzeile der Schedule-Ansicht: Untertitel links, Legende rechts. */
+  .legend-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+    gap: 0.5rem 1rem;
+    flex-wrap: wrap;
+  }
+  /* Zeitraster und Sankey bekommen die Bühne der Karte allein — und füllen
+     sie doppelt: der Host streckt sich (flex), und beide Bauteile rechnen ihre
+     Pixelhöhe zusätzlich aus der gemessenen Host-Höhe (timeGridHourHeight
+     bzw. height), denn ein gestrecktes Wrapper-Div macht ein fixes SVG oder
+     Stundenraster nicht höher.
      Der Scroll-Container und das Bauteil sind absichtlich ZWEI Elemente: trug
      ein Element beide Rollen, schnitt es im Röntgenbild sein eigenes
      Namensschild ab — das sitzt über der Oberkante, und ein `overflow: auto`
