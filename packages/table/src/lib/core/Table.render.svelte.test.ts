@@ -47,6 +47,33 @@ const ROWS = [
   { id: 3, name: 'Radia', amount: 300 }
 ];
 
+/**
+ * Stub a layout property jsdom does not compute, and hand back the undo.
+ *
+ * The prototype is looked up rather than assumed, because assuming it is how
+ * the previous version of the virtualization test leaked: it captured
+ * `clientHeight` from `HTMLElement.prototype`, where jsdom does not define it
+ * (it is on `Element.prototype`), so the captured descriptor was `undefined`,
+ * the guarded restore never ran, and every element in the worker reported a
+ * height of 400 for the rest of the file. `offsetHeight`, meanwhile, really is
+ * on `HTMLElement.prototype` — the two differ, which is exactly why neither
+ * should be written down here.
+ */
+function stubLayoutProp(prop: 'clientHeight' | 'offsetHeight', value: number): () => void {
+  let proto: object | null = HTMLElement.prototype;
+  while (proto && !Object.getOwnPropertyDescriptor(proto, prop)) {
+    proto = Object.getPrototypeOf(proto);
+  }
+  if (!proto) throw new Error(`jsdom defines no \`${prop}\` to stub.`);
+
+  const owner = proto;
+  const original = Object.getOwnPropertyDescriptor(owner, prop);
+  if (!original) throw new Error(`jsdom defines no \`${prop}\` to stub.`);
+
+  Object.defineProperty(owner, prop, { configurable: true, get: () => value });
+  return () => Object.defineProperty(owner, prop, original);
+}
+
 let target: HTMLElement | undefined;
 let comp: Record<string, unknown> | undefined;
 
@@ -459,6 +486,15 @@ describe('Table — the view object, mounted', () => {
     const reorderStops = [...withReorder.querySelectorAll('thead th [tabindex="0"]')];
     expect(reorderStops.length).toBe(2);
 
+    // Reachable is not the same as usable. Each stop has to say what it can do:
+    // the column title is its accessible name, and the shortcut is the part
+    // nothing in the markup could imply. Counting stops alone would have gone
+    // green over a stop that announces a name and no capability.
+    for (const stop of reorderStops) {
+      expect(stop.getAttribute('aria-keyshortcuts')).toBe('Shift+ArrowLeft Shift+ArrowRight');
+      expect(stop.textContent?.trim()).not.toBe('');
+    }
+
     unmount(comp as Record<string, unknown>);
     target?.remove();
 
@@ -467,6 +503,8 @@ describe('Table — the view object, mounted', () => {
     const plain = mountTable({ columns });
     const plainStops = [...plain.querySelectorAll('thead th [tabindex="0"]')];
     expect(plainStops.length).toBe(1);
+    // …and the sortable one left over advertises no shortcut it does not have.
+    expect(plainStops[0]?.getAttribute('aria-keyshortcuts')).toBeNull();
   });
 
   // The virtualized window is offset on the table, never on the rows. This is
@@ -480,23 +518,76 @@ describe('Table — the view object, mounted', () => {
     // jsdom reports every element as zero-height, and the virtualizer renders
     // the rows that fit in the viewport — without a height it renders none and
     // the assertions below would pass over an empty list.
-    const clientHeight = Object.getOwnPropertyDescriptor(HTMLElement.prototype, 'clientHeight');
-    Object.defineProperty(HTMLElement.prototype, 'clientHeight', {
-      configurable: true,
-      get: () => 400
-    });
+    const restoreViewport = stubLayoutProp('clientHeight', 400);
+    try {
+      const el = mountTable({ virtualized: true, virtualHeight: '400px' });
 
-    const el = mountTable({ virtualized: true, virtualHeight: '400px' });
+      const rows = [...el.querySelectorAll('tbody tr')];
+      expect(rows.length).toBeGreaterThan(0);
+      for (const row of rows) {
+        expect(row.getAttribute('style') ?? '').not.toContain('position: absolute');
+      }
 
-    const rows = [...el.querySelectorAll('tbody tr')];
-    expect(rows.length).toBeGreaterThan(0);
-    for (const row of rows) {
-      expect(row.getAttribute('style') ?? '').not.toContain('position: absolute');
+      const bodyTable = [...el.querySelectorAll('table')].find((t) => !t.querySelector('thead'));
+      expect(bodyTable?.getAttribute('style') ?? '').toContain('translateY');
+    } finally {
+      restoreViewport();
     }
+  });
 
-    const bodyTable = [...el.querySelectorAll('table')].find((t) => !t.querySelector('thead'));
-    expect(bodyTable?.getAttribute('style') ?? '').toContain('translateY');
+  // A `cardsBelow` the variant config has no classes for used to render BOTH
+  // layouts, one under the other: `tv()` skips an unrecognised variant value,
+  // which leaves the two halves of the switch empty, and empty complements hide
+  // nothing. The union type rules it out at a typed call site and nowhere else
+  // — plain JavaScript, a config object and a CMS field all reach this prop.
+  it('falls back to a known step when handed one it has no classes for', () => {
+    const warnings: string[] = [];
+    const realWarn = console.warn;
+    console.warn = (...args: unknown[]) => void warnings.push(String(args[0]));
 
-    if (clientHeight) Object.defineProperty(HTMLElement.prototype, 'clientHeight', clientHeight);
+    try {
+      const el = mountTable({ cardsBelow: '40rem' });
+
+      const desktop = el.querySelector('[data-table-layout="desktop"]');
+      const mobile = el.querySelector('[data-table-layout="mobile"]');
+      expect(desktop).not.toBeNull();
+      expect(mobile).not.toBeNull();
+
+      // Exactly one of them hides the other. Both empty is the failure.
+      const hidden = [desktop, mobile].filter((root) =>
+        /@(max|min)-\[[^\]]+\]:hidden/.test(root?.className ?? '')
+      );
+      expect(hidden).toHaveLength(2);
+    } finally {
+      console.warn = realWarn;
+    }
+  });
+
+  // The stride the window is offset by has to be the height a row actually
+  // renders at. It cannot be asserted in pixels here — jsdom lays nothing out,
+  // which is precisely why the assumed height and the rendered one could
+  // disagree by 16px per row for as long as they did. So this pins the wiring
+  // instead: change what a row measures, and the scroll spacer has to follow.
+  it('sizes the scroll spacer from the measured row height, not from a constant', () => {
+    const restoreViewport = stubLayoutProp('clientHeight', 400);
+    const restoreRow = stubLayoutProp('offsetHeight', 20);
+    try {
+      const items = Array.from({ length: 1000 }, (_, i) => ({
+        id: i,
+        name: `Row ${i}`,
+        amount: i
+      }));
+      const el = mountTable({ items, virtualized: true, virtualHeight: '400px' });
+
+      const scroller = el.querySelector<HTMLElement>('[data-testid="virtual-scroll-container"]');
+      const spacer = scroller?.firstElementChild as HTMLElement | null;
+
+      // 1000 rows measuring 20px each. The derived starting height (`h-10`, so
+      // 40px) would have produced 40 000px — the measurement has to win.
+      expect(spacer?.style.height).toBe('20000px');
+    } finally {
+      restoreRow();
+      restoreViewport();
+    }
   });
 });

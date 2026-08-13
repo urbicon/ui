@@ -113,17 +113,19 @@ describe('tableContainerVariants', () => {
       expect(m?.[1]).toBe('min');
     });
 
-    // The grid's floor and the width it is promised are one number in two
-    // places. Above the floor the table scrolls sideways rather than squeezing
-    // its columns — so a floor ABOVE the switch would hand the desktop layout a
-    // scrollbar at the very width it was told it fits. The old flat
-    // `min-w-[600px]` did exactly that at every step below 42rem.
-    it.each(STEPS)('keeps the grid floor below the step at %s', (cardsBelow) => {
-      const table = tableContainerVariants({ cardsBelow }).table();
-      const floor = table.match(/min-w-\[(\d+)rem\]/);
+    // Why `Table.svelte` validates the step before handing it over. `tv()` skips
+    // a variant value it does not recognise, so an unknown step leaves both
+    // halves of the switch at their (empty) base — and two empty complements
+    // hide nothing, which renders the grid and the card list at the same time.
+    // This is a property of the resolver, not a bug in it; pinning it here is
+    // what keeps the guard in `Table.svelte` from looking like superstition.
+    it('resolves an unknown step to no switch at all', () => {
+      const styles = tableContainerVariants({
+        cardsBelow: '40rem' as NonNullable<TableContainerVariantProps['cardsBelow']>
+      });
 
-      expect(floor, `table slot should carry a rem min-width, got "${table}"`).toBeTruthy();
-      expect(Number(floor?.[1])).toBeLessThan(Number.parseInt(cardsBelow, 10));
+      expect(styles.desktopOnly().trim()).toBe('');
+      expect(styles.mobileOnly().trim()).toBe('');
     });
 
     it('asks the container, never the viewport', () => {

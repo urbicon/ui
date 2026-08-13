@@ -102,7 +102,16 @@
     virtualized && !tableState.effectiveGroupBy && !tableState.loading && !tableState.error
   );
   const virtualItems = $derived(tableContext.sortedItems);
-  const rowHeight = $derived(ROW_HEIGHTS[size] ?? ROW_HEIGHTS.md);
+
+  // What a row is worth in pixels, measured rather than assumed. The
+  // virtualizer strides in this number twice over — it sizes the scroll spacer
+  // (`count * rowHeight`) and it offsets the rendered window — so any gap
+  // between it and the height a row actually renders at accumulates over the
+  // whole list. `ROW_HEIGHTS` is only the first frame's guess: it is derived
+  // from the row's Tailwind class, which is a `rem` value, and it knows nothing
+  // about a consumer's own `slotClasses.row`. See `measureRowHeight` below.
+  let measuredRowHeight = $state<number | null>(null);
+  const rowHeight = $derived(measuredRowHeight ?? ROW_HEIGHTS[size] ?? ROW_HEIGHTS.md);
 
   const virtualResult = $derived(
     virtualizedActive
@@ -132,6 +141,47 @@
       observer.observe(scrollContainerEl);
       return () => observer.disconnect();
     }
+  });
+
+  // Take the row height from a row.
+  //
+  // `offsetHeight`, not `getBoundingClientRect()`: an interactive row carries
+  // `active:scale-[0.995]`, and a rect measures the painted box, so measuring
+  // mid-press would shrink every row in the list by half a percent. The layout
+  // box ignores the transform.
+  //
+  // Guarded against re-entry by the equality check, which is what keeps this
+  // from oscillating: writing the height re-runs the virtualizer, which
+  // re-renders the window, which fires the observer again — but by then the
+  // measurement agrees with the state and the write does not happen.
+  $effect(() => {
+    // Both change the row's height without changing the container's, so the
+    // observer below would never hear about them.
+    void size;
+    void styleConfig.slotClasses.row;
+
+    if (!scrollContainerEl || !virtualizedActive) {
+      measuredRowHeight = null;
+      return;
+    }
+
+    const measure = () => {
+      const row = scrollContainerEl?.querySelector<HTMLElement>('tbody tr');
+      // A row with no height is a row that has not been laid out yet (or a test
+      // environment that lays nothing out) — keeping the previous value leaves
+      // the derived starting height in place rather than dividing by zero.
+      if (!row || row.offsetHeight === 0) return;
+      if (row.offsetHeight !== measuredRowHeight) measuredRowHeight = row.offsetHeight;
+    };
+
+    measure();
+
+    // Observing the container rather than the row: the rendered rows are
+    // replaced on every scroll tick, so an observer bound to one of them would
+    // outlive its target within a frame.
+    const observer = new ResizeObserver(measure);
+    observer.observe(scrollContainerEl);
+    return () => observer.disconnect();
   });
 
   // Reset focus when page/sort/filter changes
@@ -435,9 +485,6 @@
                     {expandedRowContent}
                     {cell}
                     {size}
-                    virtualized={true}
-                    virtualIndex={vItem.index}
-                    virtualItemHeight={rowHeight}
                     {onRowClick}
                     rowIndex={vItem.index}
                   />

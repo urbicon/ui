@@ -131,15 +131,6 @@
   const editVisible = $derived(showEdit ?? onEdit !== undefined);
   const deleteVisible = $derived(showDelete ?? onDelete !== undefined);
 
-  // Count visible buttons
-  const visibleButtonsCount = $derived(() => {
-    let count = 0;
-    if (viewVisible) count++;
-    if (editVisible) count++;
-    if (deleteVisible) count++;
-    return count;
-  });
-
   function handleEdit(event: MouseEvent) {
     event.stopPropagation();
     if (canEdit(item)) {

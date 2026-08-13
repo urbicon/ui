@@ -15,10 +15,13 @@
   }));
 
   // Every column carries a `width`. The virtualized layout renders header and
-  // body as separate `<table>` elements, and only an explicit width reaches
-  // both: without one the header distributes its columns evenly while the body
-  // sizes them to content, and the two grids stop lining up (measured
-  // 2026-08-13, header 160px per column against body 29/112/115/79).
+  // body as separate `<table>` elements, and two tables share no column tracks,
+  // so only an explicit width reaches both: without one the header distributes
+  // its columns evenly while the body sizes them to content, and the two grids
+  // stop lining up (measured 2026-08-13, header 160px per column against body
+  // 29/112/115/79). The row-positioning fix of the same day is about the cells
+  // *within* the body table and does not replace this — see the comment on the
+  // row in `packages/table/src/lib/core/TableRow.svelte`.
   const virtualColumns: Column<Employee>[] = [
     { accessor: 'id', title: '#', dataType: 'number', width: '4rem' },
     { accessor: 'name', title: 'Name', sortable: true, searchable: true, width: '13rem' },

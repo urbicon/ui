@@ -15,11 +15,17 @@
   // Written as `{#if}` blocks with a comma between them, the banner rendered
   // "2 new , 1 updated": Svelte keeps the whitespace that the source needs to
   // stay readable, and it lands in front of the comma.
+  // `kind` is the `{#each}` key, not `label`: a key has to be unique, and a
+  // label is whatever a locale says it is. Two identical translations — or a
+  // partial locale falling back to the key path or an empty string for more
+  // than one of the three — would throw `each_key_duplicate` at render time,
+  // and this banner only renders while updates are pending, so the crash would
+  // land mid-session on a live table rather than at mount.
   const segments = $derived(
     [
-      { count: counts.inserts, label: tt('liveUpdates.newItems') },
-      { count: counts.updates, label: tt('liveUpdates.updatedItems') },
-      { count: counts.deletes, label: tt('liveUpdates.deletedItems') }
+      { kind: 'inserts', count: counts.inserts, label: tt('liveUpdates.newItems') },
+      { kind: 'updates', count: counts.updates, label: tt('liveUpdates.updatedItems') },
+      { kind: 'deletes', count: counts.deletes, label: tt('liveUpdates.deletedItems') }
     ].filter((segment) => segment.count > 0)
   );
 </script>
@@ -41,7 +47,7 @@
 
       <span>
         <!-- prettier-ignore -->
-        {#each segments as segment, i (segment.label)}{#if i > 0}, {/if}<strong>{segment.count}</strong> {segment.label}{/each}
+        {#each segments as segment, i (segment.kind)}{#if i > 0}, {/if}<strong>{segment.count}</strong> {segment.label}{/each}
       </span>
     </div>
 

@@ -256,13 +256,25 @@
                unreachable for exactly the columns most likely to be moved —
                status, actions, anything unsorted: `handleHeaderKeyDown` sits on
                the `<th>` and only ever sees a key event that bubbles up from
-               this element. -->
+               this element.
+
+               Reaching the stop is half of it; knowing what it does is the
+               other. The column title inside supplies the accessible name, and
+               `aria-keyshortcuts` supplies the part no screen reader could
+               infer — that Shift+Arrow moves this column. Without it a reader
+               tabbing through a reorderable header lands on an element that
+               announces a name and no capability, which is a stop that costs
+               keystrokes and gives nothing back.
+
+               `role` stays unset when the column cannot be sorted: `button`
+               would promise that Enter does something, and here it does not. -->
           <!-- svelte-ignore a11y_no_noninteractive_tabindex -->
           <div
             class="{columnStyles.titleContainer()} {isSortable ? 'cursor-pointer' : ''}"
             onclick={() => isSortable && handleSort(columnId)}
             role={isSortable ? 'button' : undefined}
             tabindex={isSortable || enableColumnReorder ? 0 : undefined}
+            aria-keyshortcuts={enableColumnReorder ? 'Shift+ArrowLeft Shift+ArrowRight' : undefined}
             onkeydown={(e) => {
               if (isSortable && (e.key === 'Enter' || e.key === ' ')) {
                 e.preventDefault();

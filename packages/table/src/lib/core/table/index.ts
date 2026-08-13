@@ -4,6 +4,7 @@ import type { TableState } from '$lib/stores/concerns/types.js';
 import type { LiveUpdateCounts } from '$lib/stores/concerns/useLiveUpdates.svelte';
 import type { SummaryConfig } from '$lib/stores/TableStore.svelte';
 import type { Filter, FilterOperator } from '$lib/types/tableTypes';
+import type { CardsBelowStep } from '$lib/variants/table.variants';
 import type { TableSource } from '$lib/view/source';
 import type { TableView, TableViewDefaults, ViewSort } from '$lib/view/view.svelte';
 import type { TableSlotClasses } from '../table-style-context';
@@ -491,7 +492,7 @@ export interface TableProps<T = TableItem> {
    * @default "48rem"
    * @summary The container width below which rows become cards — pick it from your column widths.
    */
-  cardsBelow?: '24rem' | '28rem' | '32rem' | '36rem' | '42rem' | '48rem' | '56rem';
+  cardsBelow?: CardsBelowStep;
 
   /**
    * How much of a record a mobile card shows before it is opened. Below

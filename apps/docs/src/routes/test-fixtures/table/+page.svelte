@@ -24,10 +24,15 @@
   const selectionRows = makeRows(6);
   const reorderRows = makeRows(5);
 
+  // `align: 'right'` on score is load-bearing for `table-core.spec.ts`: a header
+  // sitting over the wrong edge of its own numbers is a layout fact, and jsdom
+  // has no layout, so the assertion has to live in a real browser. `dataType`
+  // alone would not do it — it drives operators and summability, never
+  // alignment.
   const columns: Column<Row>[] = [
     { accessor: 'name', title: 'Name', sortable: true },
     { accessor: 'category', title: 'Category', sortable: true },
-    { accessor: 'score', title: 'Score', sortable: true, dataType: 'number' }
+    { accessor: 'score', title: 'Score', sortable: true, dataType: 'number', align: 'right' }
   ];
 
   // Grouping fixture: six rows across three regions with distinct counts

@@ -6,6 +6,8 @@
  * compatible with Svelte 5 runes.
  */
 
+import { TABLE_ROW_HEIGHT_PX } from '../variants/table.system';
+
 export interface VirtualItem {
   /** Index in the source data array */
   index: number;
@@ -36,14 +38,14 @@ export interface VirtualizerResult {
 }
 
 /**
- * Row height in pixels for each table size variant.
- * Matches TABLE_DIMENSIONS.height.row in table.system.ts.
+ * Row height in pixels for each table size variant — the value the virtualizer
+ * starts from before {@link TableDesktop} measures a rendered row.
+ *
+ * Re-exported from the row height classes themselves rather than written out
+ * here: this constant and `TABLE_DIMENSIONS.height.row` used to be two
+ * hand-written copies of one number, and they disagreed by 16px per row.
  */
-export const ROW_HEIGHTS: Record<string, number> = {
-  sm: 48,
-  md: 56,
-  lg: 64
-};
+export const ROW_HEIGHTS: Record<string, number> = TABLE_ROW_HEIGHT_PX;
 
 /**
  * Computes which rows are visible given a scroll position and viewport height.

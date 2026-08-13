@@ -47,6 +47,49 @@ export const TABLE_DIMENSIONS = {
 } as const;
 
 /**
+ * The row heights above, as the pixel numbers the virtualizer strides in.
+ *
+ * Derived rather than written down a second time: for two years `ROW_HEIGHTS`
+ * said 48/56/64 while these classes said 32/40/48, and nothing could report the
+ * disagreement because one side was a Tailwind class and the other a JavaScript
+ * number. It stayed invisible only because every virtualized row was absolutely
+ * positioned at `index * rowHeight`, which pins a row wherever the number says
+ * regardless of how tall it renders. The moment the rows went back into normal
+ * flow (2026-08-13) the gap became a 208px blank strip at the end of a
+ * 10 000-row list.
+ *
+ * `rem` is the reason this is a starting value and not the truth: `h-10` is
+ * 2.5rem, so this arithmetic holds at the default root font size and nowhere
+ * else. `TableDesktop` measures a rendered row and takes over from there — see
+ * `measureRowHeight`. That measurement is what makes a consumer's own
+ * `slotClasses.row` height work too, which no constant here could.
+ */
+export const TABLE_ROW_HEIGHT_PX = {
+  sm: heightClassToPx(TABLE_DIMENSIONS.height.row.sm),
+  md: heightClassToPx(TABLE_DIMENSIONS.height.row.md),
+  lg: heightClassToPx(TABLE_DIMENSIONS.height.row.lg)
+} as const;
+
+/**
+ * `h-10` → 40. Tailwind's spacing scale is 0.25rem per step and a `rem` is
+ * 16px unless the page says otherwise, so a step is 4px.
+ *
+ * Throws on anything it cannot read. A silent 0 here would empty the
+ * virtualized viewport — `computeVirtualItems` divides by this number — and a
+ * silent fallback would restore exactly the quiet disagreement this constant
+ * exists to remove.
+ */
+function heightClassToPx(heightClass: string): number {
+  const step = /^h-(\d+(?:\.\d+)?)$/.exec(heightClass);
+  if (!step) {
+    throw new Error(
+      `TABLE_DIMENSIONS.height.row must be a Tailwind \`h-<step>\` class to convert to pixels, got "${heightClass}".`
+    );
+  }
+  return Number(step[1]) * 4;
+}
+
+/**
  * TABLE BORDERS
  */
 export const TABLE_BORDERS = {

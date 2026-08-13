@@ -1,11 +1,29 @@
 import { describe, expect, it } from 'vitest';
+import { TABLE_DIMENSIONS } from '../variants/table.system';
 import { computeVirtualItems, ROW_HEIGHTS } from './virtualizer';
 
 describe('ROW_HEIGHTS', () => {
-  it('matches TABLE_DIMENSIONS.height.row values', () => {
-    expect(ROW_HEIGHTS.sm).toBe(48);
-    expect(ROW_HEIGHTS.md).toBe(56);
-    expect(ROW_HEIGHTS.lg).toBe(64);
+  // The old version of this test asserted 48/56/64 under the name "matches
+  // TABLE_DIMENSIONS.height.row values" while those classes said h-8/h-10/h-12,
+  // i.e. 32/40/48. It compared numbers to numbers and never once looked at the
+  // classes it was named after, so it stayed green through the entire
+  // disagreement. Reading the class is the whole point.
+  it('is the row height class in pixels', () => {
+    const px = (heightClass: string) => Number(/^h-([\d.]+)$/.exec(heightClass)?.[1]) * 4;
+
+    expect(ROW_HEIGHTS.sm).toBe(px(TABLE_DIMENSIONS.height.row.sm));
+    expect(ROW_HEIGHTS.md).toBe(px(TABLE_DIMENSIONS.height.row.md));
+    expect(ROW_HEIGHTS.lg).toBe(px(TABLE_DIMENSIONS.height.row.lg));
+  });
+
+  it('keeps the row height in a shape the derivation can read', () => {
+    // The conversion throws on anything that is not `h-<step>`, which turns a
+    // row height written as `h-[42px]` or `min-h-10` into a module-load error
+    // rather than a silently wrong stride. Pinning the shape here says why the
+    // classes are not free-form.
+    for (const heightClass of Object.values(TABLE_DIMENSIONS.height.row)) {
+      expect(heightClass).toMatch(/^h-\d+(\.\d+)?$/);
+    }
   });
 });
 
@@ -98,15 +116,18 @@ describe('computeVirtualItems', () => {
   });
 
   it('works with different row heights (lg)', () => {
+    // Reads the constant instead of restating it: this test used to hard-code
+    // 64 next to `ROW_HEIGHTS.lg`, so correcting the constant broke a test that
+    // was not about the constant's value at all.
+    const lg = ROW_HEIGHTS.lg;
     const result = computeVirtualItems(0, 600, {
       count: 100,
-      rowHeight: ROW_HEIGHTS.lg, // 64px
+      rowHeight: lg,
       overscan: 5
     });
 
-    expect(result.totalHeight).toBe(100 * 64);
-    // visible: ceil(600/64) = 10, + 5 overscan = 15
-    expect(result.endIndex).toBe(15);
+    expect(result.totalHeight).toBe(100 * lg);
+    expect(result.endIndex).toBe(Math.ceil(600 / lg) + 5);
   });
 
   it('handles 10k items efficiently', () => {

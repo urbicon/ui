@@ -123,6 +123,86 @@ test.describe('Table core flows', () => {
     );
   });
 
+  // The stride the virtualizer scrolls in has to be the height a row actually
+  // renders at. These two were a hand-written constant (56) and a Tailwind class
+  // (`h-10`, so 40) for as long as the virtualizer existed, and nothing could
+  // report the disagreement: one side is CSS, the other JavaScript, and while
+  // every row was absolutely positioned at `index * 56` the rows went wherever
+  // the number said regardless of how tall they were. Putting the rows back into
+  // normal flow turned the gap into 16px of drift per row — at the end of a
+  // 10 000-row list, a 208px blank strip below the last row in a 400px viewport.
+  //
+  // Only a browser can answer this, which is why it is here and not in the jsdom
+  // suite: it compares a laid-out row against the scroll geometry.
+  test('virtualized rows are as tall as the scroll geometry assumes', async ({ page }) => {
+    await setupPage(page);
+
+    const virtual = page.getByTestId('table-virtual');
+    const scroller = virtual.getByTestId('virtual-scroll-container');
+
+    const geometry = await scroller.evaluate((el) => {
+      const spacer = el.firstElementChild as HTMLElement;
+      const rows = [...el.querySelectorAll<HTMLElement>('tbody tr')];
+      const tops = rows.map((r) => r.getBoundingClientRect().top);
+      return {
+        rowCount: rows.length,
+        rowHeights: [...new Set(rows.map((r) => r.offsetHeight))],
+        // The distance from one row to the next, which is what the virtualizer
+        // strides in when it offsets the window.
+        pitches: [...new Set(tops.slice(1).map((t, i) => Math.round(t - tops[i])))],
+        spacerHeight: spacer.getBoundingClientRect().height
+      };
+    });
+
+    expect(geometry.rowCount).toBeGreaterThan(0);
+    // A single height and a single pitch, and the two agree: no row overlaps its
+    // neighbour and none leaves a gap.
+    expect(geometry.rowHeights).toHaveLength(1);
+    expect(geometry.pitches).toEqual([geometry.rowHeights[0]]);
+    // The scroll space is exactly that pitch per row — the fixture holds 2000.
+    expect(geometry.spacerHeight).toBe(2000 * geometry.rowHeights[0]);
+
+    // Scrolled to the very end, the last row ends at the bottom of the viewport.
+    // This is the assertion the 208px strip failed.
+    const trailingGap = await scroller.evaluate(async (el) => {
+      el.scrollTop = el.scrollHeight;
+      await new Promise((resolve) => requestAnimationFrame(() => requestAnimationFrame(resolve)));
+      const rows = [...el.querySelectorAll<HTMLElement>('tbody tr')];
+      const last = rows[rows.length - 1].getBoundingClientRect();
+      return Math.round(el.getBoundingClientRect().bottom - last.bottom);
+    });
+
+    expect(trailingGap).toBe(0);
+  });
+
+  // A right-aligned column's header belongs over the right edge of its own
+  // numbers. The `align` axis existed on `tableHeaderVariants` from the start
+  // but was written onto a box that is exactly as wide as its text, where a
+  // `justify-*` has no free space to distribute and moves nothing. A class-name
+  // assertion goes green on that; only a measurement does not.
+  test('a right-aligned column header sits over the right edge of its cells', async ({ page }) => {
+    await setupPage(page);
+
+    const standard = page.getByTestId('table-standard');
+    const scoreHeader = standard.getByTestId('column-header-score');
+
+    const offsets = await scoreHeader.evaluate((th) => {
+      const title = [...th.querySelectorAll('span')].find((s) => s.textContent?.trim() === 'Score');
+      if (!title) throw new Error('No header title to measure.');
+      const thRect = th.getBoundingClientRect();
+      const titleRect = title.getBoundingClientRect();
+      return {
+        gapLeft: titleRect.left - thRect.left,
+        gapRight: thRect.right - titleRect.right
+      };
+    });
+
+    // Right-aligned: the title hugs the right edge, so the space to its left is
+    // the larger of the two. Before the fix both gaps were those of a
+    // left-aligned header (4px left, 52px right).
+    expect(offsets.gapLeft).toBeGreaterThan(offsets.gapRight);
+  });
+
   test('grouping renders headers in groupOrder with rows under their own group', async ({
     page
   }) => {
