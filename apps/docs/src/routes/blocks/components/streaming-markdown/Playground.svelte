@@ -45,6 +45,12 @@ for await (const chunk of stream) render(chunk);
     return out;
   })();
 
+  // Vorlesetempo, nicht Token-Rate: Ein Modell liefert schneller, als ein
+  // Mensch mitlesen kann — bei echten ~45 ms war die Demo nach anderthalb
+  // Sekunden vorbei und man sah kaum, dass etwas wuchs. So läuft sie gut vier
+  // Sekunden und bleibt trotzdem flott.
+  const CHUNK_MS = 110;
+
   let content = $state('');
 
   let pos = $state(0);
@@ -66,7 +72,7 @@ for await (const chunk of stream) render(chunk);
       content += chunks[pos];
       pos += 1;
       if (pos >= chunks.length) playing = false;
-    }, 45);
+    }, CHUNK_MS);
     return () => clearInterval(timer);
   });
 
@@ -108,7 +114,10 @@ for await (const chunk of stream) render(chunk);
   }}
 >
   {#snippet children(values)}
-    <div class="space-y-4">
+    <!-- `w-full` außen: Die Vorschaufläche zentriert ihren Inhalt, ohne sie
+         startete die Bühne auf der Breite des ersten Chunks und wüchse mit
+         jedem Wort in die Breite. -->
+    <div class="w-full space-y-4">
       <div class="flex items-center gap-2">
         <Button intent="primary" size="sm" onclick={replay} disabled={playing}>
           {pos === 0 ? 'Play stream' : 'Replay'}
