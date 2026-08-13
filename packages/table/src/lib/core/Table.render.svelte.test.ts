@@ -462,7 +462,16 @@ describe('Table — the view object, mounted', () => {
   // edge of its own numbers. `scope="col"` is asserted here too: HTML infers it
   // for a single header row, and the docs claimed it for years, but nothing in
   // the package emitted it.
-  it('aligns a header with its column and marks every header cell as a column header', () => {
+  // `scope="col"` only. A header does NOT follow its column's alignment — the
+  // axis that claimed to was removed rather than left in place doing nothing;
+  // see the note on `tableHeaderVariants`. This test used to assert alignment
+  // classes too, and passed through several shapes of "the class is emitted
+  // somewhere" while the header sat over the wrong edge of its own numbers,
+  // which is the reason the claim is gone rather than weakened.
+  //
+  // `scope` is worth its own line: HTML infers it for a single header row, and
+  // the docs claimed it for years, but nothing in the package emitted it.
+  it('marks every header cell as a column header', () => {
     const el = mountTable({
       columns: [
         { accessor: 'name', title: 'Name' },
@@ -473,29 +482,6 @@ describe('Table — the view object, mounted', () => {
     const headers = [...el.querySelectorAll('thead th')];
     expect(headers.length).toBeGreaterThan(0);
     expect(headers.every((th) => th.getAttribute('scope') === 'col')).toBe(true);
-
-    const amount = headers.find((th) => th.textContent?.includes('Amount'));
-    const name = headers.find((th) => th.textContent?.includes('Name'));
-
-    // What jsdom can answer is *where* the alignment landed, not whether it
-    // worked — there is no layout here, and a class-name assertion on its own
-    // passed happily while the header sat over the wrong edge for as long as
-    // the axis existed. The pixels are `e2e/table-core.spec.ts`.
-    //
-    // Right-aligned reverses two rows so the title's box reaches the cell edge
-    // (the header menu is its sibling and would otherwise hold 40px of it),
-    // and both live on boxes that own space — never on the text span, which is
-    // exactly as wide as its text.
-    const amountRows = [...(amount?.querySelectorAll('div') ?? [])].filter((d) =>
-      d.className.includes('flex-row-reverse')
-    );
-    expect(amountRows).toHaveLength(2);
-    for (const row of amountRows) {
-      expect(row.querySelector('span')?.className).not.toContain('flex-row-reverse');
-    }
-
-    expect(name?.innerHTML).toContain('justify-start');
-    expect(name?.innerHTML).not.toContain('flex-row-reverse');
   });
 
   // Keyboard column reorder lives on the `<th>`, but only a *focusable* child

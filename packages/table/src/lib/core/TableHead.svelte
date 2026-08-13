@@ -209,15 +209,18 @@
       {@const isActiveSorted = tableView.sort?.column === columnId}
       {@const sortedState = isActiveSorted ? (tableView.sort?.direction ?? 'none') : 'none'}
       {@const isSortable = isColumnSortable(column)}
+      <!-- No `align` here, deliberately: a header does NOT yet follow its
+           column's alignment, and the axis that used to be passed has been
+           removed rather than left in place doing nothing. Making it work is a
+           layout change, not a variant value — the header and the body cell are
+           two separately grown chains with their own inner padding and their own
+           chrome (menu, sort chevron, indicator dots), and every attempt to
+           align them by moving one class uncovered another layer. See the issue
+           linked from `tableHeaderVariants`. -->
       {@const columnStyles = tableHeaderVariants({
         size,
         sortable: isSortable,
-        sorted: sortedState,
-        // The variant config has carried an `align` axis all along; nobody
-        // passed it, so every header sat at the default while its body cells
-        // followed `column.align`. A right-aligned number column kept a header
-        // over the wrong edge of it.
-        align: column.align ?? 'left'
+        sorted: sortedState
       })}
       {@const isDragOver =
         dropIndicatorIndex === colIdx && dragFromIndex !== null && dragFromIndex !== colIdx}

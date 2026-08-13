@@ -9,6 +9,41 @@ import { TABLE_DIMENSIONS, TABLE_INDICATORS, TABLE_STATES } from './table.system
 
 /**
  * TABLE HEADER VARIANTS
+ *
+ * **No `align` axis, on purpose.** A header does not follow its column's
+ * alignment: a right-aligned number column carries a left-aligned title.
+ *
+ * Whether it *should* is an open design question, not a settled one — a steady
+ * left-aligned header row reads more calmly, while typographic practice for
+ * numeric columns is the opposite, and the field is split (MUI exposes a
+ * separate `headerAlign`; AG Grid leaves the header alone; Ant Design couples
+ * them). If it is ever wanted here, an opt-in `headerAlign` on the column is
+ * the shape to reach for, not a silent coupling to `align`.
+ *
+ * There was an axis, and it never moved a pixel — it wrote `justify-*` onto the
+ * box holding the title text, which is exactly as wide as that text. Four
+ * attempts at repairing it (2026-08-14) each uncovered another layer, because
+ * the header and the body cell are two separately grown chains:
+ *
+ *   - the cell puts its content in a container with its own horizontal padding;
+ *     the header has no counterpart, so titles sit 8px (at `md`) inside their
+ *     own column's text at every alignment;
+ *   - the header carries chrome the cell does not — a menu button that held
+ *     40px of every cell in the flow and painted over the title out of it, a
+ *     sort chevron, indicator dots — and each of them shifts the title;
+ *   - the two padding scales live in different files as independent literals,
+ *     so any fix that matches them by hand is a second copy that can drift
+ *     (and did, immediately, for snippet cells and at `size="lg"`).
+ *
+ * The first of those is worth separating out: it is not about alignment at all.
+ * A left-aligned header title already starts 8px inside its own column's text,
+ * in every table, because only the cell has that inner step. That one is a
+ * plain defect whoever decides the alignment question.
+ *
+ * Making alignment work would mean deriving one inner measure for both chains
+ * and giving the header chrome a place that does not move the text. That is a
+ * layout change with its own wave, not a variant value — so the axis is gone
+ * rather than sitting here looking available.
  */
 export const tableHeaderVariants = tv({
   slots: {
@@ -49,65 +84,18 @@ export const tableHeaderVariants = tv({
   },
 
   variants: {
-    // `cellContent` carries the same horizontal padding as a body cell's inner
-    // container (`customCellVariants.size.*`), because that is what a header
-    // has to line up with. The `<th>` and `<td>` paddings already match; what
-    // did not was this second, inner step, which only the cell had — so every
-    // header title sat 8px (at `md`) inside its own column's text, at every
-    // alignment. It read as correct for right-aligned columns only by accident:
-    // the always-rendered `indicators` box gave the title an 8px `space-x-2`
-    // margin that happened to cancel it out from the other side.
     size: {
       sm: {
         cell: [TABLE_DIMENSIONS.padding.headerCell.sm, TABLE_DIMENSIONS.height.header.sm],
-        cellContent: 'px-1',
         title: 'text-xs'
       },
       md: {
         cell: [TABLE_DIMENSIONS.padding.headerCell.md, TABLE_DIMENSIONS.height.header.md],
-        cellContent: 'px-2',
         title: 'text-sm'
       },
       lg: {
         cell: [TABLE_DIMENSIONS.padding.headerCell.lg, TABLE_DIMENSIONS.height.header.lg],
-        cellContent: 'px-3',
         title: 'text-base'
-      }
-    },
-
-    // Alignment has to be applied at the level that owns the space:
-    //
-    //   cellContent     →  [titleContainer (flex-1)]   (HeaderMenu is absolute)
-    //   titleContainer  →  [titleContent (content-width), sortIcon]
-    //   titleContent    →  [title, indicators]
-    //
-    // A `justify-*` on `title` moves nothing — that box is exactly as wide as
-    // its text, which is why this axis existed for versions while changing no
-    // pixel. `titleContainer` is the one box with space to distribute, and it
-    // only reaches the cell edge because `HeaderMenu` left the flow (see
-    // `headerMenuVariants.container`); as its sibling it held 40px of every
-    // cell and no alignment could get past it.
-    //
-    // `right` also reverses `titleContainer`, which puts the sort chevron on
-    // the leading side so the text itself stays flush with the numbers below.
-    // With a reversed main axis the start IS the right edge, hence
-    // `justify-start`. Safe to reverse here and not on `cellContent`: this row
-    // holds one tab stop (the container itself) and a decorative `<span>`, so
-    // there is no focus order to invert.
-    align: {
-      left: {
-        titleContainer: 'justify-start'
-      },
-      center: {
-        titleContainer: 'justify-center'
-      },
-      right: {
-        titleContainer: 'flex-row-reverse justify-start',
-        // The indicator dots and the sort chevron both move to the leading
-        // side, so the title itself keeps the trailing edge. Without this a
-        // column that gains a filter, grouping or summary dot pushes its own
-        // header off the numbers it aligns to.
-        titleContent: 'flex-row-reverse'
       }
     },
 
@@ -156,7 +144,6 @@ export const tableHeaderVariants = tv({
 
   defaultVariants: {
     size: 'md',
-    align: 'left',
     sortable: false,
     sorted: 'none',
     sticky: false
