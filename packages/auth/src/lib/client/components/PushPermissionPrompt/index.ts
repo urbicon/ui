@@ -2,9 +2,9 @@ import type { PartialAuthLocale } from '../../../i18n/keys.js';
 import type { CsrfClientOptions } from '../../csrf.js';
 
 /**
- * @summary Asks — once, politely — whether push notifications are welcome.
- * @description Dismissible prompt asking the user to enable push notifications.
- * Handles VAPID subscription and server-side registration.
+ * @summary Asks, once and politely, whether push notifications are welcome.
+ * @description A dismissible prompt that asks the user to enable push notifications,
+ * then registers the VAPID subscription with the server.
  *
  * @tag feedback
  * @related NotificationListener
@@ -38,8 +38,8 @@ export interface PushPermissionPromptProps {
    * Called when the prompt closes because push is not available: the user
    * declined the browser permission (`'denied'`) or the browser has no push
    * support (`'unsupported'`). Persist this to avoid remounting the prompt on
-   * every visit — without it, a denial is indistinguishable from never having
-   * shown the prompt. Operational failures do NOT close the prompt; they show
+   * every visit; without it, a denial is indistinguishable from never having
+   * shown the prompt. Operational failures do not close the prompt; they show
    * the error state instead.
    */
   onUnavailable?: (reason: 'denied' | 'unsupported') => void;

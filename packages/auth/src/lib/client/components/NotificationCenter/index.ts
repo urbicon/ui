@@ -35,7 +35,7 @@ export interface NotificationCenterProps {
   onDelete?: (id: string) => void;
   /**
    * Called when a notification is clicked (e.g. to navigate to a URL).
-   * SECURITY: `notification.url` is DB-/server-sourced and untrusted — before
+   * SECURITY: `notification.url` is DB-/server-sourced and untrusted; before
    * passing it to `goto()` / `window.location`, validate it is same-origin or
    * relative (reject `javascript:` and absolute cross-origin URLs). Never
    * navigate to a raw `notification.url`.
