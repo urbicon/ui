@@ -835,9 +835,16 @@
         <!-- Overlay-Steuerung als slotClasses-Experiment (keine Komponentenänderung):
            Pfeile links/rechts mittig, Dots als Chip unten mittig. Bewährt sich das,
            wird es eine echte Achse (controlsPlacement) am Scroller. -->
+        <!-- `itemBasis` gerundet, nicht schlicht `85%`: 85 % von 1012 px sind
+           860,195 px, und die Nachkommastelle summiert sich über die Reihe —
+           Kachel 3 begann bei x=2200,39. Eine Kachelkante auf einem halben Pixel
+           malt der Browser als Mischfarbe, und die las sich als weiße Haarlinie
+           links der Kachel (gemessen 2026-08-13; nach der Rundung liegen alle
+           fünf auf ganzen Pixeln). Welche Kachel es trifft, hängt an der
+           Fensterbreite — es war nie die A2UI-Kachel als solche. -->
         <Scroller
           label="Highlights"
-          itemBasis="85%"
+          itemBasis="round(85%, 1px)"
           snap="mandatory"
           indicator="dots"
           class="relative"
