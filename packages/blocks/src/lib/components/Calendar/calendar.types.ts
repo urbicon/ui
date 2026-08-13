@@ -4,7 +4,7 @@ import type { Snippet } from 'svelte';
 export interface CalendarEventCategory {
   /** Unique identifier for this category. */
   id: string;
-  /** Display label (e.g., "Restmuell", "Papier"). */
+  /** Display label (e.g., "Deadline", "Meeting"). */
   label: string;
   /** CSS color value (hex, oklch, rgb) or Tailwind class for dot/border rendering. */
   color: string;
