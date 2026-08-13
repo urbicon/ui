@@ -29,9 +29,12 @@
   // has no layout, so the assertion has to live in a real browser. `dataType`
   // alone would not do it — it drives operators and summability, never
   // alignment.
+  // All three alignments are represented, because the defect was never specific
+  // to `right`: the header menu held ~40px of every cell whatever the alignment
+  // said, and only the right-aligned column was measured while it was fixed.
   const columns: Column<Row>[] = [
     { accessor: 'name', title: 'Name', sortable: true },
-    { accessor: 'category', title: 'Category', sortable: true },
+    { accessor: 'category', title: 'Category', sortable: true, align: 'center' },
     { accessor: 'score', title: 'Score', sortable: true, dataType: 'number', align: 'right' }
   ];
 

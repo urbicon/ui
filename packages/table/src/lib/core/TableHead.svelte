@@ -285,31 +285,39 @@
             <div class={columnStyles.titleContent()}>
               <span class={columnStyles.title()}>{column.title}</span>
 
-              <div class={columnStyles.indicators()}>
-                {#if hasFilter}
-                  <div
-                    class={headerIndicatorVariants({ type: 'filter', state: 'default' })}
-                    title={tt('header.activeFilter')}
-                    data-testid={`filter-indicator-${columnId}`}
-                  ></div>
-                {/if}
+              <!-- Only when there is something to show. Rendered unconditionally
+                   it was still a sibling, so `titleContent`'s `space-x-2` gave
+                   the title an 8px trailing margin in every column — invisible
+                   on its own, and load-bearing by accident: it cancelled the
+                   header's missing inner padding for right-aligned columns
+                   while adding to it for left-aligned ones. -->
+              {#if hasFilter || isGrouped || columnHasSummary}
+                <div class={columnStyles.indicators()}>
+                  {#if hasFilter}
+                    <div
+                      class={headerIndicatorVariants({ type: 'filter', state: 'default' })}
+                      title={tt('header.activeFilter')}
+                      data-testid={`filter-indicator-${columnId}`}
+                    ></div>
+                  {/if}
 
-                {#if isGrouped}
-                  <div
-                    class={headerIndicatorVariants({ type: 'group', state: 'default' })}
-                    title={tt('header.groupedColumn')}
-                    data-testid={`group-indicator-${columnId}`}
-                  ></div>
-                {/if}
+                  {#if isGrouped}
+                    <div
+                      class={headerIndicatorVariants({ type: 'group', state: 'default' })}
+                      title={tt('header.groupedColumn')}
+                      data-testid={`group-indicator-${columnId}`}
+                    ></div>
+                  {/if}
 
-                {#if columnHasSummary}
-                  <div
-                    class={headerIndicatorVariants({ type: 'summary', state: 'default' })}
-                    title={tt('header.summarizedColumn') + ': ' + summaryTypes.join(', ')}
-                    data-testid={`summary-indicator-${columnId}`}
-                  ></div>
-                {/if}
-              </div>
+                  {#if columnHasSummary}
+                    <div
+                      class={headerIndicatorVariants({ type: 'summary', state: 'default' })}
+                      title={tt('header.summarizedColumn') + ': ' + summaryTypes.join(', ')}
+                      data-testid={`summary-indicator-${columnId}`}
+                    ></div>
+                  {/if}
+                </div>
+              {/if}
             </div>
 
             {#if isActiveSorted}

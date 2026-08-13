@@ -587,8 +587,32 @@ export const filterPanelVariants = tv({
  */
 export const headerMenuVariants = tv({
   slots: {
-    container: ['flex items-center justify-center flex-shrink-0'],
-    trigger: ['h-8 w-8 min-w-8', 'opacity-0 transition-opacity group-hover:opacity-100'],
+    // Out of the flow, pinned to the cell's trailing edge.
+    //
+    // In the flow it was a sibling of the header title under a `justify-between`
+    // row, and it always held its 32px plus the gap — so the title could never
+    // reach the cell edge whatever `align` said, and a right-aligned header sat
+    // ~40px inside the numbers it belongs over. Reversing that row instead made
+    // the title flush but put the menu button before the sort control visually
+    // while staying after it in the DOM, which is a focus order that travels
+    // right-to-left (WCAG 2.4.3).
+    //
+    // Absolute settles both: every alignment gets the full cell width, the menu
+    // stays at the same edge in every column, and DOM order is untouched. The
+    // containing block is the `<th>` (`relative` in `tableHeaderVariants.cell`).
+    // `right-1` matches the `md` header padding — one step off at `sm`/`lg`,
+    // which is invisible on a control that only appears on hover.
+    container: [
+      'flex items-center justify-center flex-shrink-0',
+      'absolute right-1 top-1/2 z-10 -translate-y-1/2'
+    ],
+    // The ground travels with the trigger's own opacity, so it appears only
+    // when the button does — and it has to appear, because the button now sits
+    // over the title rather than beside it.
+    trigger: [
+      'h-8 w-8 min-w-8 rounded-modify bg-surface-elevated',
+      'opacity-0 transition-opacity group-hover:opacity-100'
+    ],
     menu: ['p-1 min-w-[200px]'],
     separator: ['h-px bg-border-subtle my-1']
   },

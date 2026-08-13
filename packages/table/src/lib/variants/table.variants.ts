@@ -49,39 +49,51 @@ export const tableHeaderVariants = tv({
   },
 
   variants: {
+    // `cellContent` carries the same horizontal padding as a body cell's inner
+    // container (`customCellVariants.size.*`), because that is what a header
+    // has to line up with. The `<th>` and `<td>` paddings already match; what
+    // did not was this second, inner step, which only the cell had — so every
+    // header title sat 8px (at `md`) inside its own column's text, at every
+    // alignment. It read as correct for right-aligned columns only by accident:
+    // the always-rendered `indicators` box gave the title an 8px `space-x-2`
+    // margin that happened to cancel it out from the other side.
     size: {
       sm: {
         cell: [TABLE_DIMENSIONS.padding.headerCell.sm, TABLE_DIMENSIONS.height.header.sm],
+        cellContent: 'px-1',
         title: 'text-xs'
       },
       md: {
         cell: [TABLE_DIMENSIONS.padding.headerCell.md, TABLE_DIMENSIONS.height.header.md],
+        cellContent: 'px-2',
         title: 'text-sm'
       },
       lg: {
         cell: [TABLE_DIMENSIONS.padding.headerCell.lg, TABLE_DIMENSIONS.height.header.lg],
+        cellContent: 'px-3',
         title: 'text-base'
       }
     },
 
-    // Alignment has to be applied at the level that owns the space, and the
-    // header's chain hands it off twice:
+    // Alignment has to be applied at the level that owns the space:
     //
-    //   cellContent (justify-between)  →  [titleContainer (flex-1), HeaderMenu]
-    //   titleContainer                 →  [titleContent (content-width), sortIcon]
-    //   titleContent                   →  [title, indicators]
+    //   cellContent     →  [titleContainer (flex-1)]   (HeaderMenu is absolute)
+    //   titleContainer  →  [titleContent (content-width), sortIcon]
+    //   titleContent    →  [title, indicators]
     //
-    // A `justify-*` on `title` moves nothing: that box is exactly as wide as its
-    // text. And a `justify-end` on `titleContainer` alone still stops ~40px
-    // short of the cell's right edge, because `HeaderMenu` is its sibling and
-    // always occupies its 32px + gap — so a right-aligned header stood inside
-    // the edge its own numbers align to.
+    // A `justify-*` on `title` moves nothing — that box is exactly as wide as
+    // its text, which is why this axis existed for versions while changing no
+    // pixel. `titleContainer` is the one box with space to distribute, and it
+    // only reaches the cell edge because `HeaderMenu` left the flow (see
+    // `headerMenuVariants.container`); as its sibling it held 40px of every
+    // cell and no alignment could get past it.
     //
-    // Reversing each row instead moves the boundary rather than the content:
-    // `cellContent` reversed puts the menu on the outside and lets
-    // `titleContainer` reach the cell edge, and `titleContainer` reversed puts
-    // the sort chevron on the leading side, so the text stays flush. With a
-    // reversed main axis the start IS the right edge, hence `justify-start`.
+    // `right` also reverses `titleContainer`, which puts the sort chevron on
+    // the leading side so the text itself stays flush with the numbers below.
+    // With a reversed main axis the start IS the right edge, hence
+    // `justify-start`. Safe to reverse here and not on `cellContent`: this row
+    // holds one tab stop (the container itself) and a decorative `<span>`, so
+    // there is no focus order to invert.
     align: {
       left: {
         titleContainer: 'justify-start'
@@ -90,8 +102,12 @@ export const tableHeaderVariants = tv({
         titleContainer: 'justify-center'
       },
       right: {
-        cellContent: 'flex-row-reverse',
-        titleContainer: 'flex-row-reverse justify-start'
+        titleContainer: 'flex-row-reverse justify-start',
+        // The indicator dots and the sort chevron both move to the leading
+        // side, so the title itself keeps the trailing edge. Without this a
+        // column that gains a filter, grouping or summary dot pushes its own
+        // header off the numbers it aligns to.
+        titleContent: 'flex-row-reverse'
       }
     },
 
