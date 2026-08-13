@@ -166,7 +166,7 @@
       <div>
         <p class="text-text-primary text-sm font-medium">Simulated server feed</p>
         <p class="text-text-secondary text-xs">
-          Stand-in for a WebSocket/SSE handler — each button calls the corresponding push method.
+          Stand-in for a WebSocket/SSE handler: each button calls the corresponding push method.
         </p>
       </div>
       <div class="flex flex-wrap items-center gap-2">
@@ -184,12 +184,19 @@
     </div>
   </div>
 
+  <!-- Sorted by newest first, and a page big enough to hold a few arrivals.
+       An applied insert lands at the end of `items`, so with the seeded eight
+       rows on a page of eight it merged onto page 2 and Apply looked like it
+       did nothing (measured 2026-08-13: the row was in the data, just not on
+       screen). Under this sort an inserted order carries today's date and
+       appears at the top, which is what the section claims Apply does. -->
   <Table
+    cardsBelow="32rem"
     items={initialOrders}
     {columns}
     enableLiveUpdates
     autoApplyOnNavigation={false}
-    viewDefaults={{ pageSize: 8 }}
+    viewDefaults={{ pageSize: 12, sort: { column: 'placedAt', direction: 'desc' } }}
     onReady={(context) => (table = context)}
   >
     {#snippet toolbar()}

@@ -1189,9 +1189,17 @@
                     {/if}
                   </div>
                 {:else if tile.key === 'table'}
+                  <!-- `cardsBelow`: die Kachel ist 781px breit und verfehlte den
+                       Standardschritt (48rem = 768px) um vier Pixel — sie zeigte
+                       Karten, während das `thead`-CSS unten auf einen stehenden
+                       Tabellenkopf wartete. 36rem ist der Schritt über dem
+                       gemessenen Mindestbedarf dieser sechs Spalten (35.75rem):
+                       in der schmalen Kachelbreite (650px) steht die Tabelle
+                       noch, darunter kippt sie in die Karten. -->
                   <div class="card card-table">
                     <Table
                       items={ARRIVALS}
+                      cardsBelow="36rem"
                       columns={[
                         { accessor: 'time', title: 'Time', sortable: true, width: '4.5rem' },
                         { accessor: 'guest', title: 'Guest', sortable: true, searchable: true },
@@ -1225,7 +1233,6 @@
                       variant="flush"
                       size="sm"
                       ariaLabel="Today's arrivals across the three houses of Fermata"
-                      slotClasses={{ table: '!min-w-0' }}
                     />
                   </div>
                 {:else if tile.key === 'a2ui'}
@@ -1311,7 +1318,19 @@
            Auskunft darüber, dass 41.6 die kB-Spalte ist und nicht die Props —
            sie muss stehen bleiben. Die Table pinnt gegen ihren Scroll-Vorfahren
            (hier `.inventory`) und lässt dafür den eigenen `overflow-x`-Wrapper
-           weg, der jedes Pinning von außen aushebeln würde. -->
+           weg, der jedes Pinning von außen aushebeln würde.
+
+           `cardsBelow`: die Table misst ihre eigene Box, und diese Spalte ist
+           per Grid auf 34rem gedeckelt — beim Standardschritt (48rem) fiele sie
+           also bei JEDER Fensterbreite in die Kartenansicht, obwohl die vier
+           Spalten hier viel weniger brauchen. 32rem ist der nächste Schritt über
+           dem, was sie zusammen fordern: 29rem plus Zellpolster sind gemessene
+           487px, und der Schritt darunter (28rem = 448px) ließ die Tabelle bei
+           1300px Fensterbreite um 19px aus ihrer Spalte laufen. Die Spalte (36vw)
+           erreicht 32rem ab etwa 1420px Fensterbreite; darunter — und einspaltig
+           gestapelt unter 48rem sowieso — stehen die Karten.
+           Ein `!min-w-0` braucht die Tabelle dafür nicht mehr: die Mindestbreite
+           des Rasters hängt am selben Schritt und liegt jetzt darunter. -->
         <div class="inventory">
           <Table
             items={data.rows}
@@ -1320,14 +1339,14 @@
             variant="flush"
             size="sm"
             sticky="header"
+            cardsBelow="32rem"
             ariaLabel="Every component in the set"
             onRowClick={(row) => setSelectedSlug((row as HeroRow).slug)}
             activeRowId={selected.id}
             slotClasses={{
               headerCell: '!py-2 !text-[0.6875rem] !font-medium !uppercase !tracking-[0.14em]',
               row: '!border-b-0',
-              cell: '!py-[0.3rem] !align-middle',
-              table: '!min-w-0'
+              cell: '!py-[0.3rem] !align-middle'
             }}
             columns={[
               {

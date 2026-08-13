@@ -30,10 +30,10 @@
   // The very columns the example below renders — one declaration, so the
   // snippet and the live table cannot drift apart.
   const demoColumns: Column<Employee>[] = [
-    { accessor: 'name', title: 'Employee', sortable: true, searchable: true },
-    { accessor: 'role', title: 'Role', sortable: true, searchable: true },
-    { accessor: 'department', title: 'Department', sortable: true, groupable: true },
-    { accessor: 'location', title: 'Location', sortable: true }
+    { accessor: 'name', title: 'Employee' },
+    { accessor: 'role', title: 'Role' },
+    { accessor: 'department', title: 'Department', groupable: true },
+    { accessor: 'location', title: 'Location' }
   ];
 
   const codeItems = `${scriptOpenTs}
@@ -41,10 +41,10 @@
   import { employees } from ${dataPath};
 
   const columns = [
-    { accessor: 'name', title: 'Employee', sortable: true, searchable: true },
-    { accessor: 'role', title: 'Role', sortable: true, searchable: true },
-    { accessor: 'department', title: 'Department', sortable: true, groupable: true },
-    { accessor: 'location', title: 'Location', sortable: true }
+    { accessor: 'name', title: 'Employee' },
+    { accessor: 'role', title: 'Role' },
+    { accessor: 'department', title: 'Department', groupable: true },
+    { accessor: 'location', title: 'Location' }
   ];
 ${scriptClose}
 
@@ -101,11 +101,30 @@ ${scriptClose}
 
       <CodeExample
         title="An array and some columns"
-        description="Type in the search field, click a header, page through. Nothing else to wire."
+        description="Type in the search field, sort a column, page through. Nothing else to wire."
         code={codeItems}
       >
-        <Table columns={demoColumns} items={employees} viewDefaults={{ pageSize: 5 }} />
+        <Table
+          cardsBelow="32rem"
+          columns={demoColumns}
+          items={employees}
+          viewDefaults={{ pageSize: 5 }}
+        />
       </CodeExample>
+
+      <p class="text-text-secondary text-sm">
+        Every column sorts and answers the search field unless it opts out;
+        <code class="text-text-primary">groupable</code> is the one you opt into (<a
+          class="text-primary hover:underline"
+          href={resolve('/table/column-config')}>Column Configuration</a
+        >). <code class="text-text-primary">viewDefaults</code> sets where the view the table owns
+        starts. Once that state has to live somewhere the reader can share, hand in a
+        <code class="text-text-primary">view</code> of your own from
+        <code class="text-text-primary">createTableView</code> instead (<a
+          class="text-primary hover:underline"
+          href={resolve('/table/url-state')}>URL State</a
+        >); a table takes one or the other, never both.
+      </p>
 
       <p class="text-text-secondary text-sm">
         You don't need <code class="text-text-primary">source</code> for this. Reach for it once a loading
@@ -119,7 +138,7 @@ ${scriptClose}
       </p>
 
       <CodeExample
-        title="Rows from a SvelteKit load"
+        title="Every row, in one load"
         description="No fetch in the browser, no empty first paint."
         code={codeLoad}
         preview={false}
@@ -138,9 +157,9 @@ ${scriptClose}
 
       <p class="text-text-secondary text-sm">
         The table shows its loading row while <code class="text-text-primary">loading</code> is
-        true, and its error state with whatever <code class="text-text-primary">error</code> holds as
-        the message. You decide when each applies. The rows keep being sorted, filtered and paged in the
-        browser throughout.
+        true, in place of the rows and with the pager hidden until it clears. Its error state
+        carries whatever <code class="text-text-primary">error</code> holds as the message. You decide
+        when each applies; the search field and the rest of the toolbar stay put throughout.
       </p>
 
       <NoteList variant="flush">

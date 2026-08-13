@@ -5,7 +5,7 @@ description: Review pass for docs-site prose — a blind reader pass first, then
 
 # The review pass
 
-Three passes, three contexts, in this order. The order is the point: pass 1 decides what the page
+Four passes, four contexts, in this order. The order is the point: pass 1 decides what the page
 must contain, and passes 2 and 3 only work on what survives it. Run it the other way round and the
 page gets polished around its holes.
 

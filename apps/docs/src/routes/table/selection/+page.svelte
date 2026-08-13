@@ -10,7 +10,7 @@
   import { Table } from '@urbicon-ui/table';
   import { Button } from '@urbicon-ui/blocks';
   import { resolve } from '$app/paths';
-  import { employees, basicColumns, scriptOpen, scriptClose } from '../_data';
+  import { employees, basicColumns, scriptClose } from '../_data';
 
   const navigation = [
     { id: 'modes', title: 'Selection Modes' },
@@ -18,17 +18,22 @@
     { id: 'controlled', title: 'Controlled Selection' }
   ];
 
+  // The snippets declare typed state, which only compiles in a `lang="ts"`
+  // block — the same pair the other table pages use.
+  const scriptOpenTs = '<' + 'script lang="ts">';
+
   let multiSelected = $state<typeof employees>([]);
   let controlledIds = $state<Array<string | number>>([1, 3]);
 
-  const codeMultiSelect = `${scriptOpen}
-  let selected = $state([]);
+  const codeMultiSelect = `${scriptOpenTs}
+  let selected = $state<Employee[]>([]);
 ${scriptClose}
 
 <Table
   {items}
   {columns}
   selectionMode="multi"
+  viewDefaults={{ pageSize: 4 }}
   onSelectionChange={(items) => (selected = items)}
 />
 
@@ -41,8 +46,8 @@ ${scriptClose}
   onSelectionChange={(items) => handleSelect(items[0])}
 />`;
 
-  const codeControlled = `${scriptOpen}
-  let selectedIds = $state<Array<string | number>>([]);
+  const codeControlled = `${scriptOpenTs}
+  let selectedIds = $state<Array<string | number>>([1, 3]);
 ${scriptClose}
 
 <Table
@@ -50,7 +55,7 @@ ${scriptClose}
   {columns}
   selectionMode="multi"
   {selectedIds}
-  onSelectionChange={(items) => (selectedIds = items.map((item) => item.id))}
+  onSelectionChange={(items, ids) => (selectedIds = ids)}
 />
 
 <Button onclick={() => (selectedIds = [])}>Clear selection</Button>`;
@@ -72,27 +77,30 @@ ${scriptClose}
     <p class="text-text-secondary mb-6 text-sm">
       <code class="text-text-primary">selectionMode</code> switches on a checkbox column.
       <code class="text-text-primary">"multi"</code> lets the user mark any number of rows and adds
-      a select-all checkbox to the header; <code class="text-text-primary">"single"</code> keeps one row
-      at a time — selecting a row clears the one before.
+      a select-all checkbox to the header. <code class="text-text-primary">"single"</code> keeps one
+      row at a time: selecting a row clears the one before. The default,
+      <code class="text-text-primary">"none"</code>, is the table without a checkbox column.
     </p>
 
     <p class="text-text-secondary mb-6 text-sm">
-      Select-all covers every row that matches the current search and filters, on every page — not
+      Select-all covers every row that matches the current search and filters, on every page, not
       just the rows on screen. While only part of that set is selected, the checkbox shows as
       indeterminate.
     </p>
 
     <p class="text-text-secondary mb-6 text-sm">
-      The selection is a set of ids, keyed by <code class="text-text-primary">item.id</code> with
-      the row's position as fallback. Sorting, paging and filtering change what is on screen, not
-      the set — a selected row that moves to another page stays selected.
-      <code class="text-text-primary">onSelectionChange</code> reports the selected items — the rows themselves,
-      not their ids.
+      The selection is a set of ids, keyed by <code class="text-text-primary">item.id</code>, or by
+      the row's position in the <code class="text-text-primary">items</code> array you passed when a
+      row has none. Sorting, paging and filtering change what is on screen, not the set: a selected
+      row that moves to another page stays selected.
+      <code class="text-text-primary">onSelectionChange</code> reports each change, with the selected
+      rows and their ids; paging or sorting is not a change and does not fire it.
     </p>
 
     <CodeExample title="Live — select-all spans both pages" code={codeMultiSelect}>
       <div class="w-full space-y-4">
         <Table
+          cardsBelow="32rem"
           items={employees.slice(0, 8)}
           columns={basicColumns}
           selectionMode="multi"
@@ -103,25 +111,21 @@ ${scriptClose}
         <p class="text-text-secondary text-sm">{multiSelected.length} selected</p>
       </div>
     </CodeExample>
-
-    <p class="text-text-secondary mt-8 text-sm">
-      A row you only show somewhere else — the master/detail pattern — is not a selection.
-      <code class="text-text-primary">activeRowId</code> highlights it without bringing the checkbox column
-      along.
-    </p>
   </Section>
 
   <Section id="row-clicks" title="Selecting by Row Click">
     <p class="text-text-secondary mb-6 text-sm">
-      In <code class="text-text-primary">"single"</code> mode a click anywhere on the row selects it
-      — the checkbox is not the only target. With
-      <code class="text-text-primary">onRowClick</code> or expandable rows a click already means
-      something else, so only the checkbox selects.
-      <code class="text-text-primary">rowClickSelects</code> decides explicitly, in either mode.
+      In <code class="text-text-primary">"single"</code> mode a click anywhere on the row selects
+      it: the checkbox is not the only target. In
+      <code class="text-text-primary">"multi"</code> mode, and wherever
+      <code class="text-text-primary">onRowClick</code> or expandable rows already give a click
+      another meaning, only the checkbox selects.
+      <code class="text-text-primary">rowClickSelects</code> decides it explicitly in either mode.
     </p>
 
     <CodeExample title="Single select — click the row" code={codeSingle}>
       <Table
+        cardsBelow="32rem"
         items={employees.slice(0, 4)}
         columns={basicColumns}
         selectionMode="single"
@@ -129,25 +133,46 @@ ${scriptClose}
         viewDefaults={{ pageSize: 4 }}
       />
     </CodeExample>
+
+    <p class="text-text-secondary mt-8 text-sm">
+      A row you only show somewhere else, the master/detail pattern, is not a selection.
+      <code class="text-text-primary">activeRowId</code> highlights the row your
+      <code class="text-text-primary">onRowClick</code> handler opened, without bringing the checkbox
+      column along.
+    </p>
   </Section>
 
   <Section id="controlled" title="Controlled Selection">
     <p class="text-text-secondary mb-6 text-sm">
       The table owns the selection until you pass
-      <code class="text-text-primary">selectedIds</code> — then your code does. Take it over when
-      the set has a life outside the table: preselected from the URL, cleared after a bulk action,
-      shared with another view. If all you need is a starting value,
-      <code class="text-text-primary">initialSelectedIds</code> seeds the table-owned selection once;
-      later changes to the prop are ignored.
+      <code class="text-text-primary">selectedIds</code>, from then on your code does. Take it over
+      when the set has a life outside the table: preselected from the URL, cleared after a bulk
+      action, shared with another view. If all you need is a starting value,
+      <code class="text-text-primary">{'initialSelectedIds={[1, 3]}'}</code> seeds the table-owned
+      selection once. Later changes to that prop are ignored, and it is ignored altogether when
+      <code class="text-text-primary">selectedIds</code> is set.
     </p>
 
     <p class="text-text-secondary mb-6 text-sm">
-      <code class="text-text-primary">selectedIds</code> drives the table; clicks keep arriving
-      through <code class="text-text-primary">onSelectionChange</code> as items, and the write-back
-      maps them to ids. An empty array is a valid value — nothing selected;
-      <code class="text-text-primary">undefined</code> hands the selection back to the table. A
-      controlled selection is never written to storage —
-      <code class="text-text-primary">prefs.persistSelection</code> restores only a table-owned one.
+      Every value you pass in <code class="text-text-primary">selectedIds</code> becomes the table's
+      selection, and clicks keep arriving through
+      <code class="text-text-primary">onSelectionChange</code>, which hands you the selected rows
+      and their ids. Write the <em>ids</em> back: they are always the whole selection, while the
+      rows can only be the ones the table currently holds — under
+      <a href={resolve('/table/server-processing')} class="text-primary hover:underline"
+        >server processing</a
+      >
+      that is one page, so mapping the rows would drop everything selected on another page. An empty array
+      is a valid value (nothing selected);
+      <code class="text-text-primary">undefined</code> hands the selection back to the table. Your
+      own writes fire <code class="text-text-primary">onSelectionChange</code> as well, and writing
+      the same ids back is a no-op, so the Clear button below settles rather than looping. A
+      controlled selection is never written to storage:
+      <code class="text-text-primary">persistSelection</code> in the
+      <a
+        href={resolve('/table/customization') + '#persistence'}
+        class="text-primary hover:underline">preference channel</a
+      > restores only a table-owned one.
     </p>
 
     <CodeExample
@@ -166,11 +191,12 @@ ${scriptClose}
           <span class="text-text-secondary text-sm">{controlledIds.length} selected</span>
         </div>
         <Table
+          cardsBelow="32rem"
           items={employees.slice(0, 6)}
           columns={basicColumns}
           selectionMode="multi"
           selectedIds={controlledIds}
-          onSelectionChange={(items) => (controlledIds = items.map((item) => item.id))}
+          onSelectionChange={(items, ids) => (controlledIds = ids)}
           enableSmartFilter={false}
           viewDefaults={{ pageSize: 6 }}
         />
@@ -180,8 +206,8 @@ ${scriptClose}
     <NoteList variant="flush" class="mt-8">
       <Note title="Write every change back">
         When <code>onSelectionChange</code> does not feed
-        <code>selectedIds</code>, clicks still change the screen, nothing warns — and the next
-        change to the prop throws the user's clicks away.
+        <code>selectedIds</code>, clicks still change the screen and nothing warns; the next change
+        to the prop then throws the user's clicks away.
       </Note>
     </NoteList>
   </Section>

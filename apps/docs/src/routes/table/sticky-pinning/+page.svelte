@@ -11,7 +11,6 @@
 
   const stickyProp = $derived(stickyMode === 'false' ? false : stickyMode);
 
-  // Generate enough rows so the user has something to scroll through
   const navigation = [
     { id: 'overview', title: 'Overview' },
     { id: 'playground', title: 'Playground' },
@@ -21,6 +20,7 @@
     { id: 'caveats', title: 'Caveats' }
   ];
 
+  // Generate enough rows so the user has something to scroll through
   const manyEmployees = $derived([
     ...employees,
     ...employees.map((e) => ({ ...e, id: e.id + 100 })),
@@ -44,17 +44,18 @@
   <Section id="overview" title="Overview">
     <div class="space-y-4">
       <p class="text-text-secondary text-sm">
-        The <code class="text-text-primary">sticky</code> prop pins one or more of the table's three
-        contextual layers — <strong>toolbar</strong> (L1), <strong>column header</strong> (L2), and
-        <strong>group header</strong> (L3 when grouping is active). The pin position is offset by the
-        height of each preceding layer using CSS custom properties, so the layers stack naturally below
-        your app shell's top bar.
+        The <code class="text-text-primary">sticky</code> prop keeps the table's three contextual
+        layers in view while the rows scroll past them: the <strong>toolbar</strong> (L1), the
+        <strong>column header</strong>
+        (L2), and the <strong>group header</strong> (L3, when grouping is active). Each pinned layer
+        sits below the one above it, so they stack instead of overlapping. If your app shell has a
+        fixed top bar, <code class="text-text-primary">stickyOffset</code> moves the whole stack down
+        by its height.
       </p>
       <p class="text-text-secondary text-sm">
-        For tables wider than the viewport, reach for <code class="text-text-primary"
-          >fit="viewport"</code
-        >
-        (see below) — it contains both axes of scroll inside the table, so the page never scrolls sideways.
+        Columns scroll with their rows; nothing pins to the left or right edge. For a table wider
+        than the viewport, reach for <code class="text-text-primary">fit="viewport"</code> (see below):
+        it contains both axes of scroll inside the table, so the page never scrolls sideways.
       </p>
     </div>
   </Section>
@@ -91,6 +92,7 @@
       </p>
 
       <Table
+        cardsBelow="32rem"
         items={manyEmployees}
         columns={basicColumns}
         enableSmartFilter={true}
@@ -104,53 +106,85 @@
 
   <Section id="modes" title="Modes">
     <div class="space-y-8">
+      <p class="text-text-secondary text-sm">
+        <code class="text-text-primary">sticky</code> takes
+        <code class="text-text-primary">boolean | 'toolbar' | 'header' | 'both'</code>. Which layers
+        that pins:
+      </p>
+
+      <div class="border-border-hairline overflow-x-auto border-y">
+        <table class="w-full text-left text-sm">
+          <thead class="text-text-primary border-border-hairline border-b">
+            <tr>
+              <th class="py-2 pr-4 font-semibold">Value</th>
+              <th class="py-2 pr-4 font-semibold">Toolbar</th>
+              <th class="py-2 pr-4 font-semibold">Column header</th>
+              <th class="py-2 font-semibold">Group header</th>
+            </tr>
+          </thead>
+          <tbody class="text-text-secondary divide-border-hairline divide-y">
+            <tr>
+              <td class="py-2 pr-4"><code>false</code> (default)</td>
+              <td class="py-2 pr-4">scrolls</td>
+              <td class="py-2 pr-4">scrolls</td>
+              <td class="py-2">scrolls</td>
+            </tr>
+            <tr>
+              <td class="py-2 pr-4"><code>sticky</code> / <code>"both"</code></td>
+              <td class="py-2 pr-4">pins</td>
+              <td class="py-2 pr-4">pins</td>
+              <td class="py-2">pins</td>
+            </tr>
+            <tr>
+              <td class="py-2 pr-4"><code>"toolbar"</code></td>
+              <td class="py-2 pr-4">pins</td>
+              <td class="py-2 pr-4">scrolls</td>
+              <td class="py-2">scrolls</td>
+            </tr>
+            <tr>
+              <td class="py-2 pr-4"><code>"header"</code></td>
+              <td class="py-2 pr-4">scrolls</td>
+              <td class="py-2 pr-4">pins</td>
+              <td class="py-2">pins</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <p class="text-text-secondary text-sm">
+        <code class="text-text-primary">"header"</code> takes the group header with it: it is the section
+        marker of the same header, and a group whose name scrolls away tells the reader nothing.
+      </p>
+
       <CodeExample
         title="sticky on its own"
-        description="No pinning is the default. The bare prop is the same as both: toolbar, header and group header all pin."
+        description="The bare prop is the same as both. Scroll the demo's parent page to see all three layers hold."
         code={`<Table
   {items}
   {columns}
   sticky
 />`}
       >
-        <Table items={employees.slice(0, 6)} columns={basicColumns} sticky />
-      </CodeExample>
-
-      <CodeExample
-        title="Toolbar only"
-        description="Pin only the toolbar; the column header scrolls with the rest of the table."
-        code={`<Table
-  {items}
-  {columns}
-  sticky="toolbar"
-/>`}
-      >
-        <Table items={employees.slice(0, 6)} columns={basicColumns} sticky="toolbar" />
-      </CodeExample>
-
-      <CodeExample
-        title="Header only"
-        description="Pin only the column header (plus group header when grouping is active). The toolbar scrolls with the page."
-        code={`<Table
-  {items}
-  {columns}
-  sticky="header"
-/>`}
-      >
-        <Table items={employees.slice(0, 6)} columns={basicColumns} sticky="header" />
+        <Table cardsBelow="32rem" items={employees.slice(0, 6)} columns={basicColumns} sticky />
       </CodeExample>
 
       <CodeExample
         title="With stickyOffset for app-shell top bar"
-        description="If your layout has a fixed top bar, pass its height in pixels so the pin lands just below it."
+        description="Pass the height of your fixed top bar in pixels. It shifts whichever layer pins first, so it works with every value above."
         code={`<Table
   {items}
   {columns}
-  sticky
+  sticky="header"
   stickyOffset={64}
 />`}
       >
-        <Table items={employees.slice(0, 6)} columns={basicColumns} sticky stickyOffset={64} />
+        <Table
+          cardsBelow="32rem"
+          items={employees.slice(0, 6)}
+          columns={basicColumns}
+          sticky="header"
+          stickyOffset={64}
+        />
       </CodeExample>
     </div>
   </Section>
@@ -159,7 +193,7 @@
     <div class="space-y-4">
       <p class="text-text-secondary text-sm">
         The default toolbar is the <code class="text-text-primary">SmartFilterBar</code>. Override
-        it with the <code class="text-text-primary">toolbar</code> snippet — the custom content inherits
+        it with the <code class="text-text-primary">toolbar</code> snippet; the custom content inherits
         the same sticky wrapper.
       </p>
       <CodeExample
@@ -183,19 +217,21 @@
         Page-relative <code class="text-text-primary">sticky</code> pinning and in-table horizontal
         scroll are mutually exclusive: a single element cannot be both a sticky-pin host and a
         scroll ancestor. So with <code class="text-text-primary">sticky="header"</code>, a table
-        wider than the viewport pushes its horizontal overflow onto the <em>page</em> — the whole layout
-        scrolls sideways.
+        wider than the viewport pushes its horizontal overflow onto the <em>page</em>, and the whole
+        layout scrolls sideways.
       </p>
       <p class="text-text-secondary text-sm">
-        <code class="text-text-primary">fit="viewport"</code> resolves this by making the table its
-        own scroll container. It is height-capped to the viewport (measured automatically — no magic
-        <code class="text-text-primary">max-height</code>), the column and group headers pin to the
-        top of the <em>box</em>, and the toolbar + pagination stay fixed outside the scrolling area.
-        Only the rows scroll, horizontally and vertically.
+        <code class="text-text-primary">fit</code> picks between the two models.
+        <code class="text-text-primary">"content"</code>, the default, is the page-relative one
+        above. <code class="text-text-primary">"viewport"</code> makes the table its own scroll
+        container: it is height-capped to the viewport (measured for you, with no
+        <code class="text-text-primary">max-height</code> of your own), the column and group headers
+        pin to the top of the <em>box</em>, and the toolbar and pagination stay fixed outside the
+        scrolling area. Only the rows scroll, horizontally and vertically.
       </p>
       <CodeExample
         title="Full-height list page"
-        description="The table fills the available viewport height. Header pinned, toolbar + pagination fixed, rows scroll in both directions. Supersedes the sticky prop; desktop-only (mobile keeps document scroll)."
+        description="The table fills the available viewport height. Header pinned, toolbar and pagination fixed, rows scroll in both directions. Desktop only: below the `md` viewport width (48rem) the page scrolls as usual."
         code={`<Table
   {items}
   {columns}
@@ -206,8 +242,8 @@
         <code class="text-text-primary">fit="viewport"</code> supersedes
         <code class="text-text-primary">sticky</code>
         and <code class="text-text-primary">stickyOffset</code> (the measured top absorbs app-shell
-        offsets). It is mutually exclusive with
-        <code class="text-text-primary">virtualized</code>, which keeps its own
+        offsets), and it has no effect on a
+        <code class="text-text-primary">virtualized</code> table, which keeps its own
         <code class="text-text-primary">virtualHeight</code> scroll box.
       </p>
     </div>
@@ -216,24 +252,31 @@
   <Section id="caveats" title="Caveats">
     <ul class="text-text-secondary list-disc space-y-2 pl-5 text-sm">
       <li>
-        Sticky pinning anchors to the nearest scrollable ancestor. If you wrap the table in a
-        container with <code class="text-text-primary">overflow: auto/hidden</code>, the pin will
-        bind to that container — usually what you want inside a Drawer body, less so inside an
-        unintentional <code class="text-text-primary">overflow</code> wrapper.
+        Sticky pinning anchors to the nearest scrollable ancestor, so wrapping the table in a
+        container with <code class="text-text-primary">overflow: auto/hidden</code> binds the pin to
+        that container. Inside a Drawer body that is what you want. Inside an accidental
+        <code class="text-text-primary">overflow</code> wrapper it is why the header stops pinning to
+        the page.
       </li>
       <li>
         Enabling <code class="text-text-primary">sticky="header"</code> or
         <code class="text-text-primary">"both"</code>
-        disables the table's internal horizontal scrolling (the scroll area can't be both a sticky pin
-        host AND a scroll ancestor at the same time). Very wide tables fall back to page-level horizontal
-        scrolling — switch to <code class="text-text-primary">fit="viewport"</code> to contain it instead.
+        disables the table's internal horizontal scrolling, since the scroll area cannot be both a sticky
+        pin host and a scroll ancestor. Very wide tables fall back to page-level horizontal scrolling.
+        Switch to <code class="text-text-primary">fit="viewport"</code> to contain it instead.
       </li>
       <li>
         <code class="text-text-primary">unstyled</code> mode strips the sticky classes, because
-        pinning is a layout function rather than pure styling. Apply your own via
-        <code class="text-text-primary">slotClasses.toolbar</code>
-        /
-        <code class="text-text-primary">slotClasses.thead</code> when running unstyled.
+        pinning is a layout function rather than pure styling. Put them back on
+        <code class="text-text-primary">slotClasses.toolbar</code>,
+        <code class="text-text-primary">slotClasses.thead</code> and
+        <code class="text-text-primary">slotClasses.groupHeader</code>, using the offsets the table
+        publishes on its container:
+        <code class="text-text-primary">--blocks-table-sticky-top</code> (your
+        <code class="text-text-primary">stickyOffset</code>),
+        <code class="text-text-primary">--blocks-table-toolbar-h</code> and
+        <code class="text-text-primary">--blocks-table-thead-h</code> (both measured for you). Each
+        layer's <code class="text-text-primary">top</code> is the sum of the ones above it.
       </li>
       <li>
         A <code class="text-text-primary">fit="viewport"</code> box reaches the bottom of the
@@ -241,8 +284,9 @@
         sibling, pushes the page past
         <code class="text-text-primary">100dvh</code> and you get a second scrollbar next to the
         table's own. The container reports its resolved mode as
-        <code class="text-text-primary">data-fit</code>, so a layout can drop that inset for the
-        desktop widths where the cap applies:
+        <code class="text-text-primary">data-fit="viewport"</code> or
+        <code class="text-text-primary">data-fit="content"</code>, so a layout can drop that inset
+        for the desktop widths where the cap applies:
         <code class="text-text-primary"
           >{"@media (min-width: 48rem) { main:has([data-fit='viewport']) { padding-block-end: 0 } }"}</code
         >.

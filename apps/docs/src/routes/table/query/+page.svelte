@@ -24,19 +24,24 @@
   ];
 
   const codeManaged = `${scriptOpenTs}
-  import { Table, type Column, type TableViewSnapshot } from '@urbicon-ui/table';
+  import { Table, type Column, type TablePage, type TableViewSnapshot } from '@urbicon-ui/table';
 
   const columns: Column[] = [
     { accessor: 'name', title: 'Name', sortable: true },
     { accessor: 'team', title: 'Team', sortable: true }
   ];
 
-  async function loadUsers(view: TableViewSnapshot, { signal }: { signal: AbortSignal }) {
+  async function loadUsers(
+    view: TableViewSnapshot,
+    { signal }: { signal: AbortSignal }
+  ): Promise<TablePage> {
     const params = new URLSearchParams({
       page: String(view.page),
       size: String(view.pageSize),
       q: view.search
     });
+    // the backend sorts too — the table renders your page as you return it
+    if (view.sort) params.set('sort', \`\${view.sort.column}:\${view.sort.direction}\`);
     const response = await fetch(\`/api/users?\${params}\`, { signal });
     // fetch resolves for a 500; throw to reach the table's error state
     if (!response.ok) throw new Error(\`Users request failed: \${response.status}\`);
@@ -102,6 +107,12 @@ function toParams(view: TableViewSnapshot) {
       />
 
       <p class="text-text-secondary text-sm">
+        The table calls <code class="text-text-primary">query</code> once on mount, with the view's defaults,
+        and again on every change. It renders the rows you return in the order you return them: searching,
+        filtering, sorting and paging happen in your backend from here on.
+      </p>
+
+      <p class="text-text-secondary text-sm">
         While a request is open the table shows its loading state, and a rejected promise puts it
         into the error state with the rejection's
         <code class="text-text-primary">message</code>. You render neither yourself.
@@ -122,7 +133,10 @@ function toParams(view: TableViewSnapshot) {
   <Section id="demo" title="Demo">
     <div class="space-y-4">
       <p class="text-text-secondary text-sm">
-        The demo runs against an in-memory list of 56 users, behind a delay you can set.
+        The demo runs against an in-memory list of 56 users, behind a delay you can set. Its
+        <code class="text-text-primary">query</code> searches, sorts and pages that list the way
+        your backend would, then returns <code class="text-text-primary">{'{ items, total }'}</code> once
+        the delay is up.
       </p>
 
       <QueryDemo />
@@ -132,10 +146,10 @@ function toParams(view: TableViewSnapshot) {
   <Section id="params" title="From the view to your parameters">
     <div class="space-y-4">
       <p class="text-text-secondary text-sm">
-        <code class="text-text-primary">query</code> receives the current view itself, the six
-        settings under the names the reader's controls write, plus the
-        <code class="text-text-primary">signal</code> for that request. Turn it into whatever your endpoint
-        reads:
+        <code class="text-text-primary">query</code> receives two arguments: the view, holding the
+        six settings the reader's controls write, and the
+        <code class="text-text-primary">signal</code> for that request. Turn the view into whatever your
+        endpoint reads:
       </p>
 
       <CodeExample
@@ -147,17 +161,21 @@ function toParams(view: TableViewSnapshot) {
       />
 
       <p class="text-text-secondary text-sm">
+        <code class="text-text-primary">sort.column</code> is the column's id: a
+        <code class="text-text-primary">Column</code> without an explicit
+        <code class="text-text-primary">id</code> goes by its
+        <code class="text-text-primary">accessor</code> string, and that is what the header sends.
         <code class="text-text-primary">operator</code> is one of
         <code class="text-text-primary">contains</code>,
         <code class="text-text-primary">equals</code>,
         <code class="text-text-primary">startsWith</code>,
         <code class="text-text-primary">endsWith</code>,
         <code class="text-text-primary">greaterThan</code> or
-        <code class="text-text-primary">lessThan</code>.
-        <code class="text-text-primary">value</code> is always a string;
-        <code class="text-text-primary">greaterThan</code> and
-        <code class="text-text-primary">lessThan</code> read it as a number first and as a date
-        second. The full type is
+        <code class="text-text-primary">lessThan</code>, and
+        <code class="text-text-primary">value</code> is always a string, whatever the column holds.
+        In the browser the table reads <code class="text-text-primary">greaterThan</code> and
+        <code class="text-text-primary">lessThan</code> as a number first and as a date second;
+        match that if the same columns are also filtered client-side somewhere. The full type is
         <a
           class="text-primary hover:underline"
           href={resolve('/table/table') + '#type-TableViewSnapshot'}>TableViewSnapshot</a
@@ -165,10 +183,21 @@ function toParams(view: TableViewSnapshot) {
       </p>
 
       <p class="text-text-secondary text-sm">
-        Return <code class="text-text-primary">{'{ items, total }'}</code>.
-        <code class="text-text-primary">items</code> is the page you were asked for, and
-        <code class="text-text-primary">total</code> counts every row matching the query. It is the same
-        field, under the same name, that a manual server source takes.
+        <code class="text-text-primary">groupBy</code> is the one setting the table still acts on itself:
+        it buckets the rows you returned, page by page, and the group headers count what is on that page.
+        Send it along so your backend can order the rows into pages that group cleanly.
+      </p>
+
+      <p class="text-text-secondary text-sm">
+        Return a <code class="text-text-primary">TablePage</code>:
+        <code class="text-text-primary">{'{ items, total }'}</code>, where
+        <code class="text-text-primary">items</code> is the page you were asked for and
+        <code class="text-text-primary">total</code> counts every row matching the query, which is
+        what the pager divides by <code class="text-text-primary">pageSize</code>. An empty result
+        is
+        <code class="text-text-primary">{'{ items: [], total: 0 }'}</code> and the table shows its
+        empty state. Give every row a stable <code class="text-text-primary">id</code>: it is what
+        selection and live updates key on.
       </p>
 
       <NoteList variant="flush">
@@ -185,8 +214,9 @@ function toParams(view: TableViewSnapshot) {
         </Note>
         <Note title="Pass the signal on">
           When a newer request supersedes one in flight, the table aborts it. Handing
-          <code>signal</code> to <code>fetch</code> is what carries that abort to the network, and an
-          aborted request never reaches your error handling.
+          <code>signal</code> to <code>fetch</code> is what carries that abort to the network.
+          Whatever an aborted request then resolves or rejects with is ignored, error state
+          included, so a <code>try</code>/<code>catch</code> of your own cannot leak it into the table.
         </Note>
       </NoteList>
     </div>
@@ -195,16 +225,17 @@ function toParams(view: TableViewSnapshot) {
   <Section id="limits" title="What it will not do">
     <div class="space-y-4">
       <p class="text-text-secondary text-sm">
-        The view is the only thing that starts a fetch. Writing a value the view already holds
-        changes nothing, so a <code class="text-text-primary">query</code> function cannot ask the server
-        the same question twice.
+        A change to the view is the only thing that starts a fetch. Re-applying a setting the view
+        already holds is not a change, so <code class="text-text-primary">query</code> cannot ask the
+        server the same question twice, and a failed request goes out again when the reader next changes
+        something, not before.
       </p>
 
       <p class="text-text-secondary text-sm">
-        That is the whole remit, deliberately. A refresh button, a poll, a cache, retries, a refetch
-        after a mutation: that is a data layer, and yours will do it better than one grown inside a
-        table. TanStack Query and SvelteKit's remote functions both already have it. Hand their
-        result to the manual flow, which asks only for rows and a total:
+        A refresh button, a poll, a cache, retries, a refetch after a mutation: that is a data
+        layer, and yours will do it better than one grown inside a table. TanStack Query and
+        SvelteKit's remote functions both already have one. Hand its result to the manual flow,
+        which asks only for rows and a total:
         <a class="text-primary hover:underline" href={resolve('/table/server-processing')}
           >Server Processing</a
         >.

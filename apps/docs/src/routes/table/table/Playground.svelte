@@ -1,20 +1,20 @@
 <!--
-  Table-Playground — herausgelöst aus `+page.svelte`, damit ihn zwei Seiten
-  zeigen können: die Doku-Seite und der Landing-Hero. Siehe
-  `$lib/playground-host.ts`.
+  Table playground — split out of `+page.svelte` so that two pages can show it:
+  the docs page and the landing hero. See `$lib/playground-host.ts`.
 
-  Die Control-Werte kommen aus der generierten API (`deriveControls`); von Hand
-  steht hier nur, was sich nicht ableiten lässt.
+  The control values come from the generated API (`deriveControls`); only what
+  cannot be derived is written out by hand here.
 
-  `codeSetup` macht aus dem Schnipsel eine vollständige Datei: Eine Tabelle ohne
-  `columns` und `items` ist kein Beispiel, sondern ein Tag. Die Daten gehen als
-  *dieselben Objekte* hinein, die die Vorschau rendert — der Quelltext kann
-  deshalb nicht von dem abweichen, was darüber steht.
+  `codeSetup` turns the snippet into a complete file: a table without `columns`
+  and `items` is not an example, it is a tag. The data goes in as the *same
+  objects* the preview renders, so the source text cannot say anything other
+  than what stands above it.
 
-  Die Seitengröße läuft über ein eigenes View-Objekt statt über `viewDefaults`:
-  Defaults werden einmal bei Konstruktion aufgelöst, ein Regler daran bewegte
-  die Vorschau nicht. `bind:values` schließt den Kreis zum Schnipsel — der
-  gedruckte `createTableView`-Aufruf zeigt die Zahl, die gerade eingestellt ist.
+  The page size runs through a view object of its own rather than through
+  `viewDefaults`: defaults are resolved once, at construction, so a control on
+  them did not move the preview. `bind:values` closes the loop back to the
+  snippet: the printed `createTableView` call shows the number that is set right
+  now.
 -->
 <script lang="ts">
   import type { PlaygroundHostProps } from '$lib/playground-host';
@@ -39,8 +39,8 @@
     location: string;
   };
 
-  // Die Namen hier sind die Namen im Schnipsel — `codeSetup.consts` druckt sie
-  // wörtlich, also heißen sie so, wie ein Konsument sie schreiben würde.
+  // The names here are the names in the snippet: `codeSetup.consts` prints them
+  // verbatim, so they read the way a consumer would write them.
   const columns: Column<Employee>[] = [
     { accessor: 'name', title: 'Name', sortable: true, searchable: true },
     { accessor: 'role', title: 'Role', sortable: true, searchable: true },
@@ -89,23 +89,38 @@
     { id: 8, name: 'Lucas Weber', role: 'Backend Dev', department: 'Product', location: 'Berlin' }
   ];
 
-  // Startwert des Reglers UND Default des Views — eine Zahl, kein Paar, das
-  // auseinanderlaufen kann.
+  // The control's starting value AND the view's default: one number, not a pair
+  // that can drift apart.
   const PAGE_SIZE = 5;
 
   const controls = deriveControls(componentData, {
-    pick: ['variant', 'size', 'selectionMode', 'enableSmartFilter', 'searchPlaceholder'],
+    pick: [
+      'variant',
+      'size',
+      'selectionMode',
+      'enableSmartFilter',
+      'searchPlaceholder',
+      'cardsBelow'
+    ],
     overrides: {
       enableSmartFilter: { label: 'Smart Filter' },
-      searchPlaceholder: { label: 'Search Placeholder', defaultValue: 'Search team...' }
+      searchPlaceholder: { label: 'Search Placeholder', defaultValue: 'Search team...' },
+      // Measured on the docs page: the column this playground sits in is 608px
+      // wide at a 1280px viewport and 768px at 1440px. At the library default
+      // (48rem = 768px) the one demo that has to show a table showed a card
+      // list on every laptop below 1440px. Four columns read fine far below
+      // that (the prop's own guidance is about 29rem for a four-column index),
+      // so the demo starts one step above it and the control walks the reader
+      // across the switch in both directions.
+      cardsBelow: { defaultValue: '32rem' }
     },
     extra: [
       {
-        // Die Seitengröße ist keine Prop mehr, sondern eine Achse des Views —
-        // deshalb `extra` (der Regler steuert die Demo, nicht ein Attribut) und
-        // deshalb schreibt er unten auf `view.pageSize`. `at: 3` hält ihn an
-        // seinem Platz im Reglerstreifen. Grenzen sind eine
-        // Playground-Entscheidung; die Achse selbst hat nur einen Default (10).
+        // The page size is not a prop any more but an axis of the view, hence
+        // `extra` (the control drives the demo, not an attribute) and hence it
+        // writes to `view.pageSize` below. `at: 3` holds it in its place in the
+        // control strip. The bounds are a playground decision; the axis itself
+        // only has a default (10).
         type: 'number',
         key: 'pageSize',
         label: 'Items per page',
@@ -121,13 +136,14 @@
   let values = $state<Record<string, unknown>>(defaultValuesOf(controls));
   const pageSize = $derived((values.pageSize as number | undefined) ?? PAGE_SIZE);
 
-  // Das View gehört dem Playground — nur so wirkt der Regler. `viewDefaults`
-  // löst einmal bei Konstruktion auf, eine spätere Prop-Änderung nicht.
+  // The view belongs to the playground: that is the only way the control has an
+  // effect. `viewDefaults` resolves once, at construction, and a later change of
+  // that prop is ignored.
   const view = createTableView({ defaults: { pageSize: PAGE_SIZE } });
 
-  // Ein direkter Feldschreiber setzt die Seite nicht zurück (das tun nur die
-  // Handler der Tabelle) — hier folgenlos: die gerenderte Seite wird ohnehin in
-  // den gültigen Bereich geklemmt.
+  // A direct field write does not reset the page (only the table's own handlers
+  // do that). No consequence here: the rendered page is clamped into the valid
+  // range anyway.
   $effect(() => {
     view.pageSize = pageSize;
   });
@@ -151,9 +167,9 @@
     consts: {
       columns,
       items,
-      // Roh, weil ein konstruiertes View keine druckbare Wertform hat — und mit
-      // der *aktuellen* Reglerstellung darin, sonst zeigte der Schnipsel eine
-      // andere Tabelle als die Bühne darüber.
+      // Raw, because a constructed view has no printable value form, and with
+      // the *current* control setting in it, or the snippet would show a
+      // different table than the stage above it.
       view: { raw: `createTableView({ defaults: { pageSize: ${pageSize} } })` }
     },
     bind: ['columns', 'items', 'view']
@@ -166,6 +182,7 @@
       selectionMode={values.selectionMode}
       enableSmartFilter={values.enableSmartFilter}
       searchPlaceholder={values.searchPlaceholder}
+      cardsBelow={values.cardsBelow}
       {columns}
       {items}
       {view}

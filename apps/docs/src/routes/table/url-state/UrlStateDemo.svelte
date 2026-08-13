@@ -43,6 +43,7 @@
 
 <div class="space-y-4">
   <Table
+    cardsBelow="32rem"
     items={employees}
     columns={basicColumns}
     {view}
@@ -52,8 +53,8 @@
 
   <div class="border-border-subtle bg-surface-elevated rounded-xl border p-4">
     <p id={paramsLabelId} class="text-text-secondary text-xs">
-      Sort a column, search, or page — then look at the address bar. These are the params this table
-      owns right now:
+      Sort from the toolbar, search, or turn the page, then look at the address bar. These are the
+      params this table owns right now:
     </p>
     <!-- Live region because the address bar is not one: the sentence above tells
          a sighted reader where to look, and this list is the only place the same

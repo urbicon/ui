@@ -79,7 +79,7 @@ swap it in: the samples here do more work than the rules below.
 > changes the page:
 >
 > ```svelte
-> <Table source={{ query: loadUsers }} />
+> <Table source={{ processing: 'server', query: loadUsers }} />
 > ```
 >
 > `loadUsers` receives the current page, sort and filters, and returns the rows plus

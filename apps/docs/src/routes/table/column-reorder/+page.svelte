@@ -30,28 +30,41 @@
        page (measured, 2026-08). -->
   <div class="space-y-8">
     <p class="text-text-secondary text-sm">
-      Enable <code class="text-text-primary">enableColumnReorder</code> to let users drag column
-      headers into a new order. Also supports keyboard reorder via
-      <Kbd keys="Shift" />+<Kbd keys="Arrow Left/Right" />.
+      Set <code class="text-text-primary">enableColumnReorder</code> and users can drag column
+      headers into a new order. From the keyboard, focus a header and press
+      <Kbd keys="Shift" />+<Kbd keys="Arrow Left/Right" /> to move that column one step.
     </p>
 
     <CodeExample
       headingLevel={2}
-      title="Drag-and-Drop Column Reorder"
-      description="Drag headers to rearrange columns. Uses the shared createDraggable utility (zero dependencies)."
+      title="Reorderable Columns"
+      description="Drag a header, or focus one and press Shift + Arrow Left/Right. This demo has no storage key, so a reload puts the columns back in source order."
       code={`<Table
   {items}
   {columns}
-  enableColumnReorder={true}
+  enableColumnReorder
 />`}
     >
       <Table
+        cardsBelow="32rem"
         items={employees.slice(0, 5)}
         columns={basicColumns}
-        enableColumnReorder={true}
+        enableColumnReorder
         enableSmartFilter={false}
         viewDefaults={{ pageSize: 5 }}
       />
     </CodeExample>
+
+    <p class="text-text-secondary text-sm">
+      The order lives in the table, keyed by each column's
+      <code class="text-text-primary">id</code> (its
+      <code class="text-text-primary">accessor</code>, when the column has no explicit one). Passing
+      a fresh <code class="text-text-primary">columns</code> array therefore leaves it alone, and a
+      column you add later lands at the end. To keep the order across reloads, give the table a
+      <a href={resolve('/table/customization')} class="text-primary hover:underline"
+        >preferences storage key</a
+      >; <code class="text-text-primary">prefs.defaults.columnOrder</code> sets the order to start from,
+      such as one you loaded with the user's profile.
+    </p>
   </div>
 </DocsPageLayout>
