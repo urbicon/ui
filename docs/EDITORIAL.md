@@ -102,6 +102,11 @@ swap it in: the samples here do more work than the rules below.
 - Second person, present tense. The subject of the sentence is *you* or the code you write.
 - The API's own names: `source.query`, `total`. Never a noun invented for the page.
 - Plain words before precise-sounding ones: *file* over *ledger*, *setting* over *axis*.
+- Name the visible thing, not a category for it: *the calendar*, *the legend*, *the bar* over
+  *the surface*, *the element*, *the control*. "Surface" fits every component and so points at
+  none; say which grid, panel or list you mean. A shared family term (the *date surfaces*:
+  Calendar, Planner, ResourceTimeline) earns its place only where the concrete names sit in the
+  same sentence.
 - Every sentence should survive being said out loud to a colleague. If it sounds like a
   spec, rewrite it. If it sounds like marketing, cut it.
 - State what happens. A sentence about what does *not* happen earns its place only when
@@ -143,7 +148,8 @@ Sentence items (1–8), then page items (9–13).
    shows: when to reach for it, what it costs, what breaks.
 4. Internals with no consequence in the reader's code → cut. If the reader can't use the
    API without knowing them, that's an API finding. File it.
-5. Nouns invented for the page → the API's own names.
+5. Nouns invented for the page, or a generic stand-in ("surface", "element", "control") where
+   the reader can see the actual thing → the API's own names, or the visible thing by name.
 6. A sentence about what does not happen → cut it and state the behaviour. Keep it only
    for an error someone actually hit; if readers keep needing the sentence, file an API
    finding instead.
