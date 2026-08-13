@@ -22,20 +22,18 @@
     { id: 'types', title: 'Types' },
     { id: 'installation', title: 'Installation' }
   ];
-
-  // --- Demo data: a week of meals, anchored on Mon 15 Jun 2026 ---
 </script>
 
 <SeoMeta
   title="Planner Component"
-  description="Date-indexed planning grid whose cells hold your own domain content via a generic cell snippet — week, month or custom range."
+  description="A date grid for planning: give it items, a getDate to bucket them onto days, and a cell snippet that renders each day. Use it for a meal plan, a shift roster, or booking slots."
 />
 
 <DocsPageLayout
   maxWidth="2xl"
   showToc={true}
   title="Planner"
-  description="Date-indexed planning grid whose cells hold your own domain content via a generic cell snippet — week, month or custom range."
+  description="A date grid for planning: give it items, a getDate to bucket them onto days, and a cell snippet that renders each day. Use it for a meal plan, a shift roster, or booking slots."
   breadcrumbs={[
     { label: 'Blocks', href: '/blocks' },
     { label: 'Components', href: '/blocks/components' }

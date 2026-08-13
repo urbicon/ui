@@ -13,7 +13,7 @@
   <div class="space-y-10">
     <CodeExample
       title="Weekly meal plan"
-      description="The headline use case. Items bucket onto days by `getDate`, `sort` orders them within a cell, and the `cell` snippet renders your own markup. Because `cell` runs for empty days too, the “Add” button is available everywhere."
+      description="Items bucket onto days by `getDate`, `sort` orders them within a cell, and the `cell` snippet renders your own markup. `cell` runs for empty days too, so the “Add” button appears on every day."
       code={weekMealPlanCode}
     >
       <WeekMealPlan />
@@ -34,7 +34,7 @@
   <div class="space-y-10">
     <CodeExample
       title="slotClasses + selected day"
-      description="Restyle any slot (here the header and cells) via `slotClasses`, and track the active day with `bind:selectedDate` — `isSelected` reaches the cell snippet. Clicking a cell's body selects its day; clicks on interactive content keep their own behaviour."
+      description="Restyle any slot (here the header and cells) via `slotClasses`, and track the active day with `bind:selectedDate`; the cell snippet receives `isSelected`. Clicking a cell's body selects its day; clicks on interactive content keep their own behaviour."
       code={customStylingCode}
     >
       <CustomStyling />
@@ -42,7 +42,7 @@
 
     <CodeExample
       title="Server-safe weeks"
-      description="Planner and a SvelteKit load function agree on the same week because both use the Svelte-free `@urbicon-ui/blocks/date` subpath — no UTC drift between server and client."
+      description="Planner and a SvelteKit load function agree on the same week because both use the Svelte-free `@urbicon-ui/blocks/date` subpath, so the server and client resolve the same days."
       code={`// +page.server.ts
 import { startOfWeek, endOfWeek, toIso } from '@urbicon-ui/blocks/date';
 
@@ -76,15 +76,15 @@ export async function load({ url }) {
         jump to the week edges, <Kbd keys="PageUp" />/<Kbd keys="PageDown" /> step a month (<Kbd
           keys="Shift"
         />
-        a year), and <Kbd keys="Enter" />/<Kbd keys="Space" /> select. Navigation pulls the focus back
-        into view by paging when it crosses the visible window.
+        a year), and <Kbd keys="Enter" />/<Kbd keys="Space" /> select. When the focused day crosses the
+        visible window, the grid pages to keep it in view.
       </p>
     </Note>
     <Note title="Interactive cell content keeps its behaviour">
       <p>
         Interactive content inside a <code>cell</code> (buttons, links, inputs) keeps its own Enter/Space
-        and click behaviour — grid navigation only fires from the cell itself, and only a click on the
-        cell body selects the day.
+        and click behaviour. Grid navigation fires from the cell itself, and only a click on the cell
+        body selects the day.
       </p>
     </Note>
     <Note title="Navigation is announced">
