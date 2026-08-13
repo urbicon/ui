@@ -30,7 +30,7 @@ export interface ResetPasswordPageProps {
   token: string;
   /** URL for the login page link. @default '/auth/login' */
   loginUrl?: string;
-  /** API endpoint. @default '/api/auth/reset-password' */
+  /** API endpoint for the reset request. @default '/api/auth/reset-password' */
   apiPath?: string;
   /** CSRF cookie/header names — only needed when the server overrides the defaults via `config.csrf`. Mutating requests echo the token automatically. */
   csrf?: CsrfClientOptions;

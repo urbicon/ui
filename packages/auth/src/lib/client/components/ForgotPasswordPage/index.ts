@@ -25,7 +25,7 @@ export interface ForgotPasswordPageProps {
   t?: PartialAuthLocale;
   /** URL for the login page link. @default '/auth/login' */
   loginUrl?: string;
-  /** API endpoint. @default '/api/auth/forgot-password' */
+  /** API endpoint for the reset-request. @default '/api/auth/forgot-password' */
   apiPath?: string;
   /** CSRF cookie/header names — only needed when the server overrides the defaults via `config.csrf`. Mutating requests echo the token automatically. */
   csrf?: CsrfClientOptions;

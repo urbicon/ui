@@ -27,7 +27,7 @@ export interface VerifyEmailPageProps {
   t?: PartialAuthLocale;
   /** Verification token from URL query parameter. */
   token: string;
-  /** API endpoint. @default '/api/auth/verify-email' */
+  /** API endpoint for the verify-email request. @default '/api/auth/verify-email' */
   apiPath?: string;
   /** CSRF cookie/header names — only needed when the server overrides the defaults via `config.csrf`. Mutating requests echo the token automatically. */
   csrf?: CsrfClientOptions;
