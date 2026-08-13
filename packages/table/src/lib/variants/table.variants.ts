@@ -336,20 +336,15 @@ export const tableContainerVariants = tv({
     // nothing. That dead block is gone with this.
     container: ['@container flex flex-col gap-2 w-full'],
 
-    // ── The layout switch, both halves in one place ──────────────────────────
+    // ── The layout switch ────────────────────────────────────────────────────
     //
-    // `@3xl` is 48rem on the container declared above. The two lines are one
-    // decision and have to stay each other's exact complement, so they are
-    // written down together instead of being hand-typed into `TableDesktop` and
-    // `TableMobile` — the failure mode of two copies is that BOTH layouts render
-    // or NEITHER does, and nothing about either file would look wrong.
-    // `table.variants.test.ts` pins that they name the same step with opposite
-    // polarity.
-    //
-    // The classes must stay literal here: Tailwind finds class names by scanning
-    // source text, so a `@${STEP}:hidden` built from a constant would compile to
-    // no CSS at all — a "single source of truth" that silently renders both
-    // layouts at once. One place, two literals, one test is the honest shape.
+    // Which step the switch happens at is the `cardsBelow` axis below; these two
+    // slots are empty here so that every step lives in ONE place down there,
+    // both halves of it side by side. The two halves are one decision and have
+    // to stay each other's exact complement — the failure mode of two copies is
+    // that BOTH layouts render or NEITHER does, and nothing about either file
+    // would look wrong. `table.variants.test.ts` pins the complement for every
+    // step.
     //
     // The two roots also carry `data-table-layout="desktop" | "mobile"` — that
     // is the hook to query them by. It used to be a `desktop-only` /
@@ -357,8 +352,8 @@ export const tableContainerVariants = tv({
     // strings into a tv() config is what surfaced that, because `variants:lint`
     // compiles what a config declares and reports whatever emits no rule. A
     // marker is an attribute, not a class that pretends to style something.
-    desktopOnly: ['@max-3xl:hidden'],
-    mobileOnly: ['@3xl:hidden'],
+    desktopOnly: [],
+    mobileOnly: [],
 
     // The toolbar inherits the scrollArea bg instead of setting its own
     // surface-elevated — otherwise a flush table would show a visibly
@@ -401,11 +396,70 @@ export const tableContainerVariants = tv({
         table: 'text-base'
       }
     },
-    responsive: {
-      true: {
-        table: 'min-w-[600px]'
+    // ── Where the table stops being a grid and becomes a list of records ─────
+    //
+    // The step is a property of the COLUMNS, not of the component: a four-column
+    // index fits in 29rem, a twelve-column report does not fit in 60. One
+    // constant cannot serve both, and until this axis existed there was only
+    // one — 48rem, carried over unchanged from the viewport era (`md:hidden`),
+    // where it meant "is this a phone". Read against a box it means something
+    // else entirely, and the landing page's own 32rem inventory column was
+    // rendering cards while its four columns had room to spare.
+    //
+    // Each step carries THREE literals, and they belong together:
+    //   desktopOnly/mobileOnly — the complementary halves of the switch.
+    //   table `min-w`         — one step lower. This is the width the grid
+    //     refuses to go below (it scrolls sideways instead of turning to mush),
+    //     so it must never exceed the width the switch guarantees it, or the
+    //     table would arrive already overflowing at exactly the size it was
+    //     told it fits. One step of slack absorbs the frame border, a scrollbar
+    //     and subpixel rounding. It used to be a flat `min-w-[600px]` on a
+    //     `responsive` axis that no call site ever set to false — harmless
+    //     while the switch stood at 768px and always above it, a horizontal
+    //     scrollbar at every step below.
+    //
+    // The classes must stay literal: Tailwind finds class names by scanning
+    // source text, so `@max-[${step}]:hidden` built from a constant would
+    // compile to no CSS at all — a "single source of truth" that silently
+    // renders both layouts at once. Measured (Tailwind 4.3.3): `@max-[28rem]`
+    // is `(width < 28rem)` and `@min-[28rem]` is `(width >= 28rem)`, so the two
+    // halves meet exactly, with no width belonging to both or to neither.
+    cardsBelow: {
+      '24rem': {
+        desktopOnly: '@max-[24rem]:hidden',
+        mobileOnly: '@min-[24rem]:hidden',
+        table: 'min-w-[20rem]'
       },
-      false: {}
+      '28rem': {
+        desktopOnly: '@max-[28rem]:hidden',
+        mobileOnly: '@min-[28rem]:hidden',
+        table: 'min-w-[24rem]'
+      },
+      '32rem': {
+        desktopOnly: '@max-[32rem]:hidden',
+        mobileOnly: '@min-[32rem]:hidden',
+        table: 'min-w-[28rem]'
+      },
+      '36rem': {
+        desktopOnly: '@max-[36rem]:hidden',
+        mobileOnly: '@min-[36rem]:hidden',
+        table: 'min-w-[32rem]'
+      },
+      '42rem': {
+        desktopOnly: '@max-[42rem]:hidden',
+        mobileOnly: '@min-[42rem]:hidden',
+        table: 'min-w-[36rem]'
+      },
+      '48rem': {
+        desktopOnly: '@max-[48rem]:hidden',
+        mobileOnly: '@min-[48rem]:hidden',
+        table: 'min-w-[42rem]'
+      },
+      '56rem': {
+        desktopOnly: '@max-[56rem]:hidden',
+        mobileOnly: '@min-[56rem]:hidden',
+        table: 'min-w-[48rem]'
+      }
     },
     stickyToolbar: {
       true: {
@@ -450,7 +504,7 @@ export const tableContainerVariants = tv({
   defaultVariants: {
     variant: 'flush',
     size: 'md',
-    responsive: true,
+    cardsBelow: '48rem',
     stickyToolbar: false,
     contained: false
   }

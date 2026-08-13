@@ -133,9 +133,11 @@ export interface TableContext {
 
   /**
    * Group by an item field (any field, not only ones with a column), or
-   * `null` to ungroup. Collapsed-group state is cleared on change. On a
-   * virtualized table a non-null key is refused (grouped virtualization is
-   * not implemented); clearing stays allowed.
+   * `null` to ungroup. Collapsed-group state is cleared on change and the
+   * table resets to page 1 — the interaction side effect that makes this the
+   * method to call rather than writing `view.groupBy`. On a virtualized table
+   * a non-null key is refused (grouped virtualization is not implemented);
+   * clearing stays allowed.
    */
   setGroupBy(key: string | null): void;
 
@@ -469,9 +471,32 @@ export interface TableProps<T = TableItem> {
   multiExpand?: boolean;
 
   /**
-   * How much of a record a mobile card shows before it is opened. Below 48rem
-   * of the table's **own container** — not of the window — the table renders one
-   * card per row instead of the grid.
+   * The width below which the table stops being a grid and becomes one card per
+   * row. Measured on the table's **own container** — not on the window — so a
+   * table in a narrow column switches while the window stays wide.
+   *
+   * The right step depends on the columns, which is why it is a prop: a
+   * four-column index needs about 29rem and reads fine in a 32rem sidebar,
+   * while a twelve-column report is already cramped at 48rem. Add up the column
+   * `width`s and pick the next step above the sum.
+   *
+   * The grid never shrinks below one step under this value — past that it
+   * scrolls sideways instead of squeezing the columns to mush. Lowering the
+   * step therefore lowers that floor with it; the two cannot disagree.
+   *
+   * @example
+   * ```svelte
+   * <Table {items} {columns} cardsBelow="28rem" />
+   * ```
+   * @default "48rem"
+   * @summary The container width below which rows become cards — pick it from your column widths.
+   */
+  cardsBelow?: '24rem' | '28rem' | '32rem' | '36rem' | '42rem' | '48rem' | '56rem';
+
+  /**
+   * How much of a record a mobile card shows before it is opened. Below
+   * {@link TableProps.cardsBelow} of the table's **own container** — not of the
+   * window — the table renders one card per row instead of the grid.
    * - `collapsed` (default): the card shows the first two card columns —
    *   title and label-less subtitle — and opens the rest on tap. A record
    *   costs roughly a third of the height, so a phone screen holds three
@@ -599,7 +624,8 @@ export interface TableProps<T = TableItem> {
    * (renamed from `empty` in v6.41 — `loading` is now the boolean state prop).
    *
    * Must be table-row markup (`<tr><td colspan="99">…`) — it renders into the
-   * desktop `<tbody>`. **Desktop only:** the mobile card list renders
+   * grid's `<tbody>`. **Grid only:** the card list below
+   * {@link TableProps.cardsBelow} renders
    * {@link noDataText} instead, because row markup cannot live in a `<div>`
    * (the parser drops the tags). Same contract as the two state snippets below.
    * @default undefined
@@ -684,7 +710,7 @@ export interface TableProps<T = TableItem> {
   autoApplyOnNavigation?: boolean;
 
   /**
-   * Remove default tailwind-variants classes. Only user-provided `slotClasses` apply.
+   * Remove the default variant classes. Only user-provided `slotClasses` apply.
    * @default false
    */
   unstyled?: boolean;
@@ -897,11 +923,31 @@ export interface TableProps<T = TableItem> {
   selectedIds?: Array<string | number>;
 
   /**
-   * Callback fired when the selection changes. Receives the currently
-   * selected items — the rows themselves, not their ids. With controlled
-   * {@link selectedIds}, this is where the new value is written back:
-   * `(items) => (selectedIds = items.map((item) => item.id))`.
+   * Callback fired when the selection changes — and only then. Paging,
+   * sorting or a new page of server rows do not fire it.
+   *
+   * The first argument is the selected rows, the second their ids. The two are
+   * **not** interchangeable: rows can only be handed over for the items the
+   * table currently holds, so under `processing: 'server'` the first argument
+   * carries the selected rows *of the loaded page* while the second carries the
+   * whole selection.
+   *
+   * With controlled {@link TableProps.selectedIds}, write the **ids** back —
+   * `(items, ids) => (selectedIds = ids)`. Mapping the rows instead
+   * (`items.map((item) => item.id)`) is correct in client mode and silently
+   * drops every row from another page in server mode.
+   * @example
+   * ```svelte
+   * <Table
+   *   {items}
+   *   {columns}
+   *   selectionMode="multi"
+   *   {selectedIds}
+   *   onSelectionChange={(items, ids) => (selectedIds = ids)}
+   * />
+   * ```
    * @default undefined
+   * @summary Fires when the selection changes, with the selected rows and — always complete — their ids.
    */
-  onSelectionChange?: (selectedItems: T[]) => void;
+  onSelectionChange?: (selectedItems: T[], selectedIds: Array<string | number>) => void;
 }

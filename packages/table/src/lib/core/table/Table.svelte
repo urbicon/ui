@@ -44,6 +44,7 @@
     prefs = undefined,
     expandedRowContent = undefined,
     multiExpand = false,
+    cardsBelow = '48rem',
     mobileCardDetails = 'collapsed',
     onRowClick = undefined,
     virtualized = false,
@@ -214,7 +215,7 @@
   {@const tableStyles = tableContainerVariants({
     variant,
     size,
-    responsive: true,
+    cardsBelow,
     stickyToolbar: stickyMode.toolbar,
     contained
   })}
