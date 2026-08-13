@@ -222,13 +222,13 @@ export const factoryColumns = [
   TableColumns.status<Employee>('status', 'Status', { statusMap: employeeStatuses }),
   TableColumns.number<Employee>('salary', 'Salary'),
   TableColumns.date<Employee>('joinedAt', 'Joined'),
-  // `showView` defaults to false, so an `onView` handler on its own renders no
-  // button — the snippet on /table/table showed two actions and one icon.
+  // Each button follows its handler, so two handlers render two buttons —
+  // no `showView: true` to opt in and no `showDelete: false` to opt out. This
+  // demo has to keep matching the snippet on /table/table, which is the same
+  // two actions.
   TableColumns.actions<Employee>('Actions', {
     onView: () => {},
-    onEdit: () => {},
-    showView: true,
-    showDelete: false
+    onEdit: () => {}
   })
 ];
 

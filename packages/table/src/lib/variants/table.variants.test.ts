@@ -1,4 +1,5 @@
 import { describe, expect, it } from 'vitest';
+import type { TableContainerVariantProps } from './table.variants';
 import { tableContainerVariants, tableHeaderVariants, tableRowVariants } from './table.variants';
 import {
   filterPanelVariants,
@@ -54,12 +55,44 @@ describe('tableContainerVariants', () => {
   // Nothing about either file looks wrong when they drift — the symptom is that
   // BOTH layouts render, or NEITHER does, at some width nobody tested. They now
   // live side by side in one config; this is the part a comment cannot enforce.
+  //
+  // Since `cardsBelow` made the step a prop, "the switch" is seven pairs rather
+  // than one, so every assertion below runs per step. A pair that only holds at
+  // the default is not the property this guards.
   describe('the layout switch', () => {
-    const desktop = tableContainerVariants({}).desktopOnly();
-    const mobile = tableContainerVariants({}).mobileOnly();
+    // Read from the config rather than retyped here: a hand-kept list would be
+    // a third copy of the steps (config, prop union, test) and the one most
+    // likely to fall behind — it would go green by testing fewer steps than
+    // exist. The prop union is checked by the compiler instead: `Table.svelte`
+    // passes `cardsBelow` straight into this resolver, so a value the union
+    // offers and the config lacks fails `svelte-check`.
+    const STEPS = Object.keys(
+      tableContainerVariants.config.variants?.cardsBelow ?? {}
+    ) as NonNullable<TableContainerVariantProps['cardsBelow']>[];
 
-    it('hides each layout on exactly the other side of one container step', () => {
-      const step = /^@(max-)?(\w+):hidden$/;
+    // The positive control for the loops below: `it.each([])` passes silently,
+    // so an empty or renamed axis — including the `?? {}` above catching a
+    // renamed one — would take every assertion in this block with it and still
+    // report green.
+    it('reads every declared step', () => {
+      expect(STEPS.length).toBeGreaterThan(1);
+      expect(STEPS).toContain('48rem');
+    });
+
+    // Every step the config declares renders a switch — the failure this
+    // catches is a step that falls through to nothing, which shows both layouts
+    // at once and type-checks fine.
+    it.each(STEPS)('declares both halves at %s', (cardsBelow) => {
+      const styles = tableContainerVariants({ cardsBelow });
+      expect(styles.desktopOnly().trim()).not.toBe('');
+      expect(styles.mobileOnly().trim()).not.toBe('');
+    });
+
+    it.each(STEPS)('hides each layout on exactly the other side of %s', (cardsBelow) => {
+      const styles = tableContainerVariants({ cardsBelow });
+      const desktop = styles.desktopOnly();
+      const mobile = styles.mobileOnly();
+      const step = /^@(max|min)-\[([^\]]+)\]:hidden$/;
       const d = desktop.trim().match(step);
       const m = mobile.trim().match(step);
 
@@ -71,17 +104,37 @@ describe('tableContainerVariants', () => {
         m,
         `mobileOnly should be a single container-hidden rule, got "${mobile}"`
       ).toBeTruthy();
-      // Same step…
-      expect(d?.[2]).toBe(m?.[2]);
-      // …opposite direction. Exactly one of the two may carry `max-`.
-      expect(Boolean(d?.[1])).not.toBe(Boolean(m?.[1]));
+      // The step the prop names is the step both halves query…
+      expect(d?.[2]).toBe(cardsBelow);
+      expect(m?.[2]).toBe(cardsBelow);
+      // …from opposite directions. `@max-[X]` is `(width < X)` and `@min-[X]`
+      // is `(width >= X)`, so no width belongs to both halves or to neither.
+      expect(d?.[1]).toBe('max');
+      expect(m?.[1]).toBe('min');
+    });
+
+    // Why `Table.svelte` validates the step before handing it over. `tv()` skips
+    // a variant value it does not recognise, so an unknown step leaves both
+    // halves of the switch at their (empty) base — and two empty complements
+    // hide nothing, which renders the grid and the card list at the same time.
+    // This is a property of the resolver, not a bug in it; pinning it here is
+    // what keeps the guard in `Table.svelte` from looking like superstition.
+    it('resolves an unknown step to no switch at all', () => {
+      const styles = tableContainerVariants({
+        cardsBelow: '40rem' as NonNullable<TableContainerVariantProps['cardsBelow']>
+      });
+
+      expect(styles.desktopOnly().trim()).toBe('');
+      expect(styles.mobileOnly().trim()).toBe('');
     });
 
     it('asks the container, never the viewport', () => {
       // `md:hidden` / `max-md:hidden` is what this used to be, and a table in
       // any column narrower than the window then rendered the wrong layout.
-      for (const cls of [desktop, mobile]) {
-        expect(cls).toMatch(/^@/);
+      for (const cardsBelow of STEPS) {
+        const styles = tableContainerVariants({ cardsBelow });
+        expect(styles.desktopOnly()).toMatch(/^@/);
+        expect(styles.mobileOnly()).toMatch(/^@/);
       }
     });
 
@@ -89,6 +142,8 @@ describe('tableContainerVariants', () => {
       // `desktop-only` / `mobile-only` were markers with no rule anywhere; the
       // hook is `data-table-layout` now. variants:lint would catch a relapse,
       // but only for as long as these strings stay inside a tv() config.
+      const desktop = tableContainerVariants({}).desktopOnly();
+      const mobile = tableContainerVariants({}).mobileOnly();
       expect(desktop).not.toMatch(/\bdesktop-only\b/);
       expect(mobile).not.toMatch(/\bmobile-only\b/);
     });

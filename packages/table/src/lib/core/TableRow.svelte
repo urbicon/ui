@@ -28,9 +28,6 @@
   let {
     item,
     expandable = false,
-    virtualized = false,
-    virtualIndex = 0,
-    virtualItemHeight = 48,
     rowIndex = 0,
     expandedRowContent = undefined as Snippet<[item: TableItem]> | undefined,
     cell = undefined as Snippet<[item: TableItem, value: unknown, column: Column]> | undefined,
@@ -114,7 +111,20 @@
   );
 </script>
 
-<!-- Main row -->
+<!-- Main row.
+
+     A row carries no positioning of its own, virtualized or not: the window of
+     rendered rows is offset once, on the table in `TableDesktop`. Positioning
+     each `<tr>` absolutely blockified it — an absolutely positioned element is
+     never a `table-row` — so its cells left the table's own column tracks and
+     sized themselves from their content instead (measured on a four-column
+     body: 61/101/84/33 where the tracks called for equal quarters).
+
+     This is about the cells within ONE table. It does not make the virtualized
+     header line up with the virtualized body: those are two separate `<table>`
+     elements that share no tracks at all, so an explicit `column.width` remains
+     the only thing that reaches both — see the note in
+     `apps/docs/src/routes/table/virtual-scrolling/+page.svelte`. -->
 <tr
   id={String(itemId)}
   onclick={handleRowClick}
@@ -136,9 +146,6 @@
       .filter(Boolean)
       .join(' ')
   )}
-  style={virtualized
-    ? `position: absolute; transform: translateY(${virtualIndex * virtualItemHeight}px);`
-    : ''}
   tabindex={interactive ? (isFocused ? 0 : -1) : undefined}
   aria-rowindex={rowIndex + 1}
   aria-expanded={expandable ? isExpanded : undefined}

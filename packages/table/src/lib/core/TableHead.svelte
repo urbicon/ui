@@ -161,7 +161,7 @@
          chrome, not columns: they carry the header cell chrome but not
          `slotClasses.headerCell` — see TableSlotClasses.headerCell. -->
     {#if tableState.effectiveGroupBy}
-      <th class="{headerStyles.cell()} w-10 text-center">
+      <th scope="col" class="{headerStyles.cell()} w-10 text-center">
         <button
           onclick={() => toggleAllGroups()}
           class="text-text-secondary hover:text-text-primary hover:bg-surface-hover rounded-modify flex h-6 w-6 items-center justify-center transition-colors"
@@ -180,7 +180,7 @@
     {/if}
 
     {#if selectable}
-      <th class="{headerStyles.cell()} w-12 text-center" data-testid="selection-header">
+      <th scope="col" class="{headerStyles.cell()} w-12 text-center" data-testid="selection-header">
         {#if multiSelect}
           <Checkbox
             checked={tableContext.allSelected}
@@ -196,7 +196,7 @@
     {/if}
 
     {#if expandable}
-      <th class="{headerStyles.cell()} w-10 text-center" aria-hidden="true"></th>
+      <th scope="col" class="{headerStyles.cell()} w-10 text-center" aria-hidden="true"></th>
     {/if}
 
     {#each displayColumns as column, colIdx (resolveColumnId(column))}
@@ -209,6 +209,14 @@
       {@const isActiveSorted = tableView.sort?.column === columnId}
       {@const sortedState = isActiveSorted ? (tableView.sort?.direction ?? 'none') : 'none'}
       {@const isSortable = isColumnSortable(column)}
+      <!-- No `align` here, deliberately: a header does NOT yet follow its
+           column's alignment, and the axis that used to be passed has been
+           removed rather than left in place doing nothing. Making it work is a
+           layout change, not a variant value — the header and the body cell are
+           two separately grown chains with their own inner padding and their own
+           chrome (menu, sort chevron, indicator dots), and every attempt to
+           align them by moving one class uncovered another layer. See the issue
+           linked from `tableHeaderVariants`. -->
       {@const columnStyles = tableHeaderVariants({
         size,
         sortable: isSortable,
@@ -218,6 +226,7 @@
         dropIndicatorIndex === colIdx && dragFromIndex !== null && dragFromIndex !== colIdx}
 
       <th
+        scope="col"
         {@attach makeDraggable(colIdx)}
         style={column.width
           ? `width: ${column.width}; min-width: ${column.minWidth || '4rem'};`
@@ -245,12 +254,30 @@
         data-testid={`column-header-${columnId}`}
       >
         <div class={columnStyles.cellContent()}>
+          <!-- The tab stop follows what the header can do, which is sorting OR
+               reordering. Keyed on `isSortable` alone, keyboard reordering was
+               unreachable for exactly the columns most likely to be moved —
+               status, actions, anything unsorted: `handleHeaderKeyDown` sits on
+               the `<th>` and only ever sees a key event that bubbles up from
+               this element.
+
+               Reaching the stop is half of it; knowing what it does is the
+               other. The column title inside supplies the accessible name, and
+               `aria-keyshortcuts` supplies the part no screen reader could
+               infer — that Shift+Arrow moves this column. Without it a reader
+               tabbing through a reorderable header lands on an element that
+               announces a name and no capability, which is a stop that costs
+               keystrokes and gives nothing back.
+
+               `role` stays unset when the column cannot be sorted: `button`
+               would promise that Enter does something, and here it does not. -->
           <!-- svelte-ignore a11y_no_noninteractive_tabindex -->
           <div
             class="{columnStyles.titleContainer()} {isSortable ? 'cursor-pointer' : ''}"
             onclick={() => isSortable && handleSort(columnId)}
             role={isSortable ? 'button' : undefined}
-            tabindex={isSortable ? 0 : undefined}
+            tabindex={isSortable || enableColumnReorder ? 0 : undefined}
+            aria-keyshortcuts={enableColumnReorder ? 'Shift+ArrowLeft Shift+ArrowRight' : undefined}
             onkeydown={(e) => {
               if (isSortable && (e.key === 'Enter' || e.key === ' ')) {
                 e.preventDefault();
@@ -261,31 +288,40 @@
             <div class={columnStyles.titleContent()}>
               <span class={columnStyles.title()}>{column.title}</span>
 
-              <div class={columnStyles.indicators()}>
-                {#if hasFilter}
-                  <div
-                    class={headerIndicatorVariants({ type: 'filter', state: 'default' })}
-                    title={tt('header.activeFilter')}
-                    data-testid={`filter-indicator-${columnId}`}
-                  ></div>
-                {/if}
+              <!-- Only when there is something to show, and gated on the same
+                   `actionIndicators` the bar below reads — two copies of one
+                   condition would let the dots and the bar disagree. Rendered
+                   unconditionally the box was still a sibling, so
+                   `titleContent`'s `space-x-2` gave the title an 8px trailing
+                   margin in every column: invisible on its own, and
+                   load-bearing by accident during the alignment attempt. -->
+              {#if actionIndicators.length > 0}
+                <div class={columnStyles.indicators()}>
+                  {#if hasFilter}
+                    <div
+                      class={headerIndicatorVariants({ type: 'filter', state: 'default' })}
+                      title={tt('header.activeFilter')}
+                      data-testid={`filter-indicator-${columnId}`}
+                    ></div>
+                  {/if}
 
-                {#if isGrouped}
-                  <div
-                    class={headerIndicatorVariants({ type: 'group', state: 'default' })}
-                    title={tt('header.groupedColumn')}
-                    data-testid={`group-indicator-${columnId}`}
-                  ></div>
-                {/if}
+                  {#if isGrouped}
+                    <div
+                      class={headerIndicatorVariants({ type: 'group', state: 'default' })}
+                      title={tt('header.groupedColumn')}
+                      data-testid={`group-indicator-${columnId}`}
+                    ></div>
+                  {/if}
 
-                {#if columnHasSummary}
-                  <div
-                    class={headerIndicatorVariants({ type: 'summary', state: 'default' })}
-                    title={tt('header.summarizedColumn') + ': ' + summaryTypes.join(', ')}
-                    data-testid={`summary-indicator-${columnId}`}
-                  ></div>
-                {/if}
-              </div>
+                  {#if columnHasSummary}
+                    <div
+                      class={headerIndicatorVariants({ type: 'summary', state: 'default' })}
+                      title={tt('header.summarizedColumn') + ': ' + summaryTypes.join(', ')}
+                      data-testid={`summary-indicator-${columnId}`}
+                    ></div>
+                  {/if}
+                </div>
+              {/if}
             </div>
 
             {#if isActiveSorted}

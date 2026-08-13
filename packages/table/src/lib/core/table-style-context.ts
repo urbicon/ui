@@ -11,7 +11,7 @@ export interface TableSlotClasses {
   toolbar?: string;
   /**
    * Visible table frame (border, radius, shadow) — whichever layout is showing:
-   * it holds the `<table>` above the mobile breakpoint and the record list below
+   * it holds the `<table>` above the `cardsBelow` step and the record list below
    * it, so a frame override reaches both.
    * Replaces the former `wrapper` slot from v1.4.x — see docs/STICKY-PINNING.md.
    */
@@ -55,7 +55,7 @@ export interface TableSlotClasses {
   errorState?: string;
   /** Default SmartFilterBar inner container */
   filterBar?: string;
-  /** One record of the mobile list (the stacked form of a `row`) */
+  /** One record of the card list below `cardsBelow` (the stacked form of a `row`) */
   mobileCard?: string;
 }
 
@@ -91,8 +91,8 @@ export function getTableStyleConfig(): TableStyleConfig {
  * conflict fold, so a `slotClasses` (or `className`) utility that shares a
  * Tailwind bucket with a base/variant class **wins** instead of merely
  * co-existing and losing to stylesheet order — e.g. `slotClasses={{ table:
- * 'min-w-0' }}` now beats the base `min-w-[600px]` (previously both rendered
- * and a `!min-w-0` was needed). Both overrides (`slotClass` and `extra`) win
+ * 'w-auto' }}` now beats the slot's own `w-full` (previously both rendered and
+ * an `!` prefix was needed). Both overrides (`slotClass` and `extra`) win
  * over base/variant classes in the fold; between the two overrides themselves
  * nothing is stripped — they share one call-site source, so a direct conflict
  * there still resolves by stylesheet order, exactly as before.

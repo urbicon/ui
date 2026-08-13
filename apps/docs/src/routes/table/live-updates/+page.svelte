@@ -45,7 +45,7 @@ ${scriptClose}
   const liveFeedPath = `'./LiveFeed.svelte'`;
 
   const codeMount = `${scriptOpen}
-  // LiveFeed.svelte calls getTableContext() — so it must render inside the table
+  // LiveFeed.svelte calls getTableContext(), so it must render inside the table
   import { Table, SmartFilterBar } from '@urbicon-ui/table';
   import LiveFeed from ${liveFeedPath};
 ${scriptClose}
@@ -91,14 +91,19 @@ ${scriptClose}
         Writing rows straight into a filtered, sorted, paged table is disorienting: rows jump
         position mid-read, disappear behind an active filter, or land in a selection the reader is
         still building. <code class="text-text-primary">enableLiveUpdates</code> buffers them instead.
-        A banner above the rows counts what is waiting (&ldquo;3 new, 2 updated&rdquo;), and the reader
-        merges it when they are ready.
+        A banner above the rows counts what is waiting (&ldquo;3 new, 2 updated, 1 deleted&rdquo;) and
+        the reader merges it with a click. By default the table also merges at the next sort, filter or
+        page change, when the view is reorganizing anyway.
       </p>
       <p class="text-text-secondary text-sm">
-        You push changes from any data source — WebSocket, SSE, or polling — through three methods
-        on the table context: <code class="text-text-primary">pushInsert</code>,
-        <code class="text-text-primary">pushUpdate</code>, and
-        <code class="text-text-primary">pushDelete</code>.
+        You push changes from any data source (WebSocket, SSE, polling) through three methods on the
+        table context: <code class="text-text-primary">pushInsert</code>,
+        <code class="text-text-primary">pushUpdate</code> and
+        <code class="text-text-primary">pushDelete</code>. Rows are matched by
+        <code class="text-text-primary">item.id</code>, and
+        <code class="text-text-primary">pushUpdate(id, changes)</code> merges
+        <code class="text-text-primary">changes</code> into the row, so a message carrying only
+        <code class="text-text-primary">{'{ status }'}</code> leaves the other fields alone.
       </p>
     </div>
   </Section>
@@ -106,8 +111,8 @@ ${scriptClose}
   <Section id="demo" title="Demo">
     <div class="space-y-4">
       <p class="text-text-secondary text-sm">
-        The panel below plays the role of your backend. Push a few events — the
-        <code class="text-text-primary">LiveUpdateBanner</code> appears above the rows and counts
+        The panel below plays the role of your backend. Push a few events and the
+        <code class="text-text-primary">LiveUpdateBanner</code> appears above the rows, counting
         what is pending. <strong>Apply</strong> merges the buffer into the table,
         <strong>Dismiss</strong> drops it. The demo passes
         <code class="text-text-primary">autoApplyOnNavigation={'{false}'}</code> so pending changes always
@@ -129,14 +134,14 @@ ${scriptClose}
 
       <CodeExample
         title="Push changes from your data source"
-        description="onReady hands you the table context from outside the table — pushInsert, pushUpdate, and pushDelete. Wire them to whatever delivers your server events: WebSocket, SSE, or polling."
+        description="onReady hands you the table context from outside the table, with pushInsert, pushUpdate and pushDelete on it. Wire them to whatever delivers your server events: WebSocket, SSE, or polling."
         code={codeLiveFeed}
         preview={false}
       />
 
       <CodeExample
         title="Alternative: a feed component inside the table tree"
-        description="If the feed is its own component, it can call getTableContext() instead — that resolves through component context, so it must render inside the table; the toolbar snippet is the natural mount point. Re-add SmartFilterBar to keep the default search toolbar."
+        description="If the feed is its own component it can call getTableContext(), which resolves through component context: it has to render inside the table, and the toolbar snippet is the natural mount point. Overriding toolbar replaces the default one, so re-add SmartFilterBar to keep the search field."
         code={codeMount}
         preview={false}
       />
@@ -158,8 +163,10 @@ ${scriptClose}
       <p class="text-text-secondary text-sm">
         Applying runs deletes, then updates, then inserts. A row that just took an update is
         highlighted for three seconds, so the change is findable in a long list, and a deleted row
-        leaves the selection along with the table. An update or delete naming a row the table does
-        not hold is skipped, with a warning in dev.
+        drops out of the selection along with the table. Updates and deletes are matched against all
+        of <code class="text-text-primary">items</code>, not just the rows on screen, so a filter or
+        a page never swallows one; an id that is nowhere in the data is skipped, with a warning in
+        dev.
       </p>
     </div>
   </Section>
@@ -169,13 +176,13 @@ ${scriptClose}
       <p class="text-text-secondary text-sm">
         With <code class="text-text-primary">autoApplyOnNavigation</code> (default
         <code class="text-text-primary">true</code>), pending changes are merged automatically when
-        the user changes page, sort, filter, or search — the view is reorganizing anyway, so merging
+        the user changes page, sort, filter or search: the view is reorganizing anyway, so merging
         at that moment is non-disruptive. Set it to
         <code class="text-text-primary">false</code> to make the banner the only way changes are applied.
       </p>
       <CodeExample
         title="Explicit apply only"
-        description="Pending changes are never merged implicitly — the user must click Apply (or you call applyAllUpdates() on the context)."
+        description="Pending changes are never merged implicitly: the user clicks Apply, or you call applyAllUpdates() on the context. Its counterpart is dismissAllUpdates()."
         code={codeAutoApply}
         preview={false}
       />

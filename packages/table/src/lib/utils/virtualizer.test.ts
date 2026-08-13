@@ -1,11 +1,35 @@
 import { describe, expect, it } from 'vitest';
+import { TABLE_DIMENSIONS } from '../variants/table.system';
 import { computeVirtualItems, ROW_HEIGHTS } from './virtualizer';
 
 describe('ROW_HEIGHTS', () => {
-  it('matches TABLE_DIMENSIONS.height.row values', () => {
-    expect(ROW_HEIGHTS.sm).toBe(48);
-    expect(ROW_HEIGHTS.md).toBe(56);
-    expect(ROW_HEIGHTS.lg).toBe(64);
+  // Deliberately NOT re-deriving the numbers from the classes here. The first
+  // attempt at this test did — same regex, same `* 4` — which made it compare
+  // the derivation against itself and pass for every possible edit, including a
+  // wrong multiplier. What is worth pinning is the concrete result a reader can
+  // check against Tailwind's scale (`h-8` is 2rem is 32px) and the shape the
+  // derivation needs to keep working.
+  //
+  // Its predecessor asserted 48/56/64 under the name "matches
+  // TABLE_DIMENSIONS.height.row values" while those classes said h-8/h-10/h-12.
+  // It never looked at the classes it was named after, so it stayed green
+  // through the entire two-year disagreement.
+  it('is the row height class in pixels', () => {
+    // `toEqual` on the derived side, which is the one that can grow a key
+    // nobody meant: `toMatchObject` would let a fourth size or an alias through
+    // on exactly the output this test exists to pin.
+    expect(TABLE_DIMENSIONS.height.row).toEqual({ sm: 'h-8', md: 'h-10', lg: 'h-12' });
+    expect(ROW_HEIGHTS).toEqual({ sm: 32, md: 40, lg: 48 });
+  });
+
+  it('keeps the row height in a shape the derivation can read', () => {
+    // The conversion throws on anything that is not `h-<step>`, which turns a
+    // row height written as `h-[42px]` or `min-h-10` into a module-load error
+    // rather than a silently wrong stride. Pinning the shape here says why the
+    // classes are not free-form.
+    for (const heightClass of Object.values(TABLE_DIMENSIONS.height.row)) {
+      expect(heightClass).toMatch(/^h-\d+(\.\d+)?$/);
+    }
   });
 });
 
@@ -98,15 +122,18 @@ describe('computeVirtualItems', () => {
   });
 
   it('works with different row heights (lg)', () => {
+    // Reads the constant instead of restating it: this test used to hard-code
+    // 64 next to `ROW_HEIGHTS.lg`, so correcting the constant broke a test that
+    // was not about the constant's value at all.
+    const lg = ROW_HEIGHTS.lg;
     const result = computeVirtualItems(0, 600, {
       count: 100,
-      rowHeight: ROW_HEIGHTS.lg, // 64px
+      rowHeight: lg,
       overscan: 5
     });
 
-    expect(result.totalHeight).toBe(100 * 64);
-    // visible: ceil(600/64) = 10, + 5 overscan = 15
-    expect(result.endIndex).toBe(15);
+    expect(result.totalHeight).toBe(100 * lg);
+    expect(result.endIndex).toBe(Math.ceil(600 / lg) + 5);
   });
 
   it('handles 10k items efficiently', () => {

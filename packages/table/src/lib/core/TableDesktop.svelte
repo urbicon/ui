@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { untrack } from 'svelte';
   import { getInternalTableContext } from '$lib/stores/TableStore.svelte';
   import { useTableI18n } from '$lib/i18n';
   import EmptyState from './EmptyState.svelte';
@@ -102,7 +103,16 @@
     virtualized && !tableState.effectiveGroupBy && !tableState.loading && !tableState.error
   );
   const virtualItems = $derived(tableContext.sortedItems);
-  const rowHeight = $derived(ROW_HEIGHTS[size] ?? ROW_HEIGHTS.md);
+
+  // What a row is worth in pixels, measured rather than assumed. The
+  // virtualizer strides in this number twice over — it sizes the scroll spacer
+  // (`count * rowHeight`) and it offsets the rendered window — so any gap
+  // between it and the height a row actually renders at accumulates over the
+  // whole list. `ROW_HEIGHTS` is only the first frame's guess: it is derived
+  // from the row's Tailwind class, which is a `rem` value, and it knows nothing
+  // about a consumer's own `slotClasses.row`. See `measureRowHeight` below.
+  let measuredRowHeight = $state<number | null>(null);
+  const rowHeight = $derived(measuredRowHeight ?? ROW_HEIGHTS[size] ?? ROW_HEIGHTS.md);
 
   const virtualResult = $derived(
     virtualizedActive
@@ -132,6 +142,60 @@
       observer.observe(scrollContainerEl);
       return () => observer.disconnect();
     }
+  });
+
+  // Take the row height from a data row.
+  //
+  // `tr[data-row-index]`, not `tbody tr`: the empty state is a `<tr>` too, and
+  // several times as tall. A plain `tbody tr` latched onto it whenever a
+  // virtualized table started empty — remote data, or a filter that matched
+  // nothing and was then cleared — and nothing here would have looked again,
+  // because the container's height is pinned by `virtualHeight` so the observer
+  // never fires. The list then strode five rows for every row it drew.
+  //
+  // `offsetHeight`, not `getBoundingClientRect()`: an interactive row carries
+  // `active:scale-[0.995]`, and a rect measures the painted box, so measuring
+  // mid-press would shrink every row in the list by half a percent. The layout
+  // box ignores the transform.
+  $effect(() => {
+    // The inputs the observer below cannot see. `size` and a consumer's own row
+    // class change the height without changing the container's.
+    void size;
+    void styleConfig.slotClasses.row;
+    // Whether there are rows at all — NOT how many. What this effect needs to
+    // hear is the empty → non-empty transition, when the rows it measures come
+    // into existence. Depending on the count itself would rebuild the observer
+    // on every keystroke of a search and every live-update push, which is the
+    // churn the `untrack` below exists to avoid.
+    void (virtualItems.length === 0);
+
+    if (!scrollContainerEl || !virtualizedActive) {
+      measuredRowHeight = null;
+      return;
+    }
+
+    const measure = () => {
+      const row = scrollContainerEl?.querySelector<HTMLElement>('tbody tr[data-row-index]');
+      // A row with no height is a row that has not been laid out yet (or a test
+      // environment that lays nothing out) — keeping the previous value leaves
+      // the derived starting height in place rather than dividing by zero.
+      if (!row || row.offsetHeight === 0) return;
+      // `untrack`: this reads the state it writes, purely to avoid a redundant
+      // assignment. Tracked, it would make the effect its own dependency, so
+      // every height change would tear the observer down and build a new one.
+      if (row.offsetHeight !== untrack(() => measuredRowHeight)) {
+        measuredRowHeight = row.offsetHeight;
+      }
+    };
+
+    measure();
+
+    // Observing the container rather than the row: the rendered rows are
+    // replaced on every scroll tick, so an observer bound to one of them would
+    // outlive its target within a frame.
+    const observer = new ResizeObserver(measure);
+    observer.observe(scrollContainerEl);
+    return () => observer.disconnect();
   });
 
   // Reset focus when page/sort/filter changes
@@ -401,6 +465,13 @@
       {:else if virtualResult}
         <!-- Inner container with total height for scrollbar -->
         <div style="height: {virtualResult.totalHeight}px; position: relative;">
+          <!-- The rendered window is offset once, here, rather than per row:
+               `startIndex` is the first row the virtualizer kept, so the table
+               starts exactly where that row belongs. Offsetting each `<tr>`
+               instead (which is what this did until 2026-08-13) forced
+               `position: absolute` onto it, and an absolutely positioned
+               element is never a `table-row` — its cells then sized themselves
+               from their content instead of from the shared column tracks. -->
           <table
             class="{resolveSlotClass(
               tableStyles.table,
@@ -408,6 +479,7 @@
               styleConfig.unstyled,
               'table-fixed'
             )} absolute top-0 left-0 w-full"
+            style="transform: translateY({virtualResult.startIndex * rowHeight}px);"
             onkeydown={handleTableKeyDown}
           >
             {@render columnTrackGroup()}
@@ -427,9 +499,6 @@
                     {expandedRowContent}
                     {cell}
                     {size}
-                    virtualized={true}
-                    virtualIndex={vItem.index}
-                    virtualItemHeight={rowHeight}
                     {onRowClick}
                     rowIndex={vItem.index}
                   />

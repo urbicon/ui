@@ -96,7 +96,8 @@
  * `.table-hide-desktop`, `.table-mobile-stack`) are gone with the dead
  * `.table-container` block above: nothing applied them, and their `@container`
  * queries had no container to measure. The switch they were meant to serve is
- * `@3xl` / `@max-3xl` on the desktop and mobile roots. */
+ * the `cardsBelow` axis in `table.variants.ts`, which puts complementary
+ * `@min-[…]` / `@max-[…]` rules on the desktop and mobile roots. */
 
 /* === PRINT OPTIMIZATIONS === */
 @media print {

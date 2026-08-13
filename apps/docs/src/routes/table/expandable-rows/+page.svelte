@@ -29,18 +29,18 @@
        page (measured, 2026-08). -->
   <div class="space-y-8">
     <p class="text-text-secondary text-sm">
-      Provide an <code class="text-text-primary">expandedRowContent</code> snippet to enable row
-      expansion. Each row gets a toggle button. Use
-      <code class="text-text-primary">multiExpand</code> to allow multiple rows open at once.
+      Provide an <code class="text-text-primary">expandedRowContent</code> snippet and every row
+      gets a toggle that reveals it, with the row's item as its argument. Opening a row closes the
+      one before it; add <code class="text-text-primary">multiExpand</code> to keep several open at once.
     </p>
 
     <CodeExample
       headingLevel={2}
       title="Expandable Detail Panel"
-      description="Click the expand toggle to reveal additional detail for each row."
+      description="The panel is a row of its own that spans every column, so the layout inside it is yours to choose."
       code={`<Table {items} {columns}>
   {#snippet expandedRowContent(item)}
-    <div class="grid grid-cols-3 gap-4 p-4">
+    <div class="grid grid-cols-1 gap-4 p-4 md:grid-cols-3">
       <div>
         <span class="text-xs text-text-tertiary">Email</span>
         <p class="text-sm">{item.email}</p>
@@ -58,6 +58,7 @@
 </Table>`}
     >
       <Table
+        cardsBelow="32rem"
         items={employees.slice(0, 6)}
         columns={basicColumns}
         enableSmartFilter={false}
@@ -72,7 +73,7 @@
             <div>
               <span class="text-text-tertiary text-xs">Salary</span>
               <p class="text-text-primary text-sm">
-                {item.salary?.toLocaleString()} &euro;
+                {item.salary.toLocaleString()} &euro;
               </p>
             </div>
             <div>

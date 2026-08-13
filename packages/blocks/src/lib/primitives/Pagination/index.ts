@@ -170,7 +170,7 @@ export interface PaginationProps
 
   /** Additional CSS classes merged onto the root `<nav>` element. */
   class?: string;
-  /** Strip all default tailwind-variants classes for a fully custom build. */
+  /** Strip all default variant classes for a fully custom build. */
   unstyled?: boolean;
   /** Per-slot class overrides merged with (or replacing, when unstyled) tv styles. Slots: base, info, controls, ellipsis. */
   slotClasses?: Partial<Record<PaginationSlots, string>>;

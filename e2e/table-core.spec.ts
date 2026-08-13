@@ -123,6 +123,73 @@ test.describe('Table core flows', () => {
     );
   });
 
+  // The stride the virtualizer scrolls in has to be the height a row actually
+  // renders at. These two were a hand-written constant (56) and a Tailwind class
+  // (`h-10`, so 40) for as long as the virtualizer existed, and nothing could
+  // report the disagreement: one side is CSS, the other JavaScript, and while
+  // every row was absolutely positioned at `index * 56` the rows went wherever
+  // the number said regardless of how tall they were. Putting the rows back into
+  // normal flow turned the gap into 16px of drift per row — at the end of a
+  // 10 000-row list, a 208px blank strip below the last row in a 400px viewport.
+  //
+  // Only a browser can answer this, which is why it is here and not in the jsdom
+  // suite: it compares a laid-out row against the scroll geometry.
+  test('virtualized rows are as tall as the scroll geometry assumes', async ({ page }) => {
+    await setupPage(page);
+
+    const virtual = page.getByTestId('table-virtual');
+    const scroller = virtual.getByTestId('virtual-scroll-container');
+
+    const geometry = await scroller.evaluate((el) => {
+      const spacer = el.firstElementChild as HTMLElement;
+      const rows = [...el.querySelectorAll<HTMLElement>('tbody tr')];
+      const tops = rows.map((r) => r.getBoundingClientRect().top);
+      const pitches = tops.slice(1).map((t, i) => t - tops[i]);
+      return {
+        rowCount: rows.length,
+        pitchCount: pitches.length,
+        // Compared with a tolerance below rather than rounded into a Set:
+        // rounding reports two pitches for one uniform table whenever the true
+        // pitch is fractional — a collapsed 0.5px border, a non-default root
+        // font size, a fractional device pixel ratio — and fails on a table
+        // that is in fact perfect. `?? 0` because `Math.min()` of nothing is
+        // `Infinity`, which would satisfy the spread assertion vacuously.
+        minPitch: pitches.length ? Math.min(...pitches) : 0,
+        maxPitch: pitches.length ? Math.max(...pitches) : 0,
+        rowHeight: rows[0]?.getBoundingClientRect().height ?? 0,
+        // The stride the virtualizer itself used, which is `offsetHeight` — an
+        // integer. The spacer is a multiple of THAT, so it has to be compared
+        // against that number and not against the fractional rect height:
+        // 2000 × a 0.4px difference is 800px of false alarm.
+        strideUsed: rows[0]?.offsetHeight ?? 0,
+        spacerHeight: spacer.getBoundingClientRect().height
+      };
+    });
+
+    // Enough rows to have something to compare — the fixture renders a window
+    // of ~18. Without this the pitch assertions pass over a list they never saw.
+    expect(geometry.rowCount).toBeGreaterThan(1);
+    expect(geometry.pitchCount).toBeGreaterThan(0);
+    // One pitch for every pair of rows, and it is the row's own height: no row
+    // overlaps its neighbour and none leaves a gap.
+    expect(geometry.maxPitch - geometry.minPitch).toBeLessThan(0.5);
+    expect(Math.abs(geometry.minPitch - geometry.rowHeight)).toBeLessThan(0.5);
+    // The scroll space is exactly that stride per row — the fixture holds 2000.
+    expect(geometry.spacerHeight).toBe(2000 * geometry.strideUsed);
+
+    // Scrolled to the very end, the last row ends at the bottom of the viewport.
+    // This is the assertion the 208px strip failed.
+    const trailingGap = await scroller.evaluate(async (el) => {
+      el.scrollTop = el.scrollHeight;
+      await new Promise((resolve) => requestAnimationFrame(() => requestAnimationFrame(resolve)));
+      const rows = [...el.querySelectorAll<HTMLElement>('tbody tr')];
+      const last = rows[rows.length - 1].getBoundingClientRect();
+      return Math.round(el.getBoundingClientRect().bottom - last.bottom);
+    });
+
+    expect(trailingGap).toBe(0);
+  });
+
   test('grouping renders headers in groupOrder with rows under their own group', async ({
     page
   }) => {

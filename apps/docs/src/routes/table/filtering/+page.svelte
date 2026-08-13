@@ -137,8 +137,7 @@
 
   const codeNarrowBar = `<!-- The bar measures its own CONTENT box, so the wrapper has to be
      narrower than 28rem plus the bar's padding and border (~474px at
-     size="md") — max-w-md is exactly 28rem and still trips the switch.
-     Nothing is opted into here; the bar decides by itself. -->
+     size="md"): max-w-md is exactly 28rem and still trips the switch. -->
 <div class="max-w-sm">
   <Table {items} {columns} enableSmartFilter />
 </div>`;
@@ -153,7 +152,7 @@
     },
     {
       op: 'equals',
-      matches: 'The whole stringified value, case-insensitive',
+      matches: 'The whole stringified value, case-insensitive; on a date column, the whole UTC day',
       offeredFor: 'text, number, date (labelled “on date”)'
     },
     { op: 'startsWith', matches: 'Prefix, case-insensitive', offeredFor: 'text' },
@@ -176,8 +175,8 @@
   const view = createTableView({ defaults: { pageSize: 6 } });
   let term = $state('');
 
-  // Outside → view. Writing a setting never subscribes the effect to it, so
-  // the table's own search field keeps working alongside this one.
+  // Outside → view. The table's own search field keeps working alongside this
+  // one, and writing here never re-runs this effect.
   $effect(() => {
     view.search = term;
     view.page = 1; // a direct field write does not reset the page
@@ -206,14 +205,20 @@ ${scriptClose}
   <Section id="filtering" title="Smart Filter Bar">
     <div class="space-y-8">
       <p class="text-text-secondary text-sm">
-        Enable <code class="text-text-primary">enableSmartFilter</code> to get a full-featured toolbar
-        with search, per-column filters, grouping controls, summary aggregations, and a column visibility
-        menu.
+        Enable <code class="text-text-primary">enableSmartFilter</code> to get a toolbar with
+        search, per-column filters, grouping controls, summary aggregations, and a column visibility
+        menu. Which columns take part is decided on the column, not on the bar: a column with an
+        accessor is searched and gets its own filter entry unless it carries
+        <code class="text-text-primary">searchable: false</code>, and its
+        <code class="text-text-primary">dataType</code> decides which operators that filter offers (<a
+          href={resolve('/table/column-config')}
+          class="text-primary hover:underline">Column Configuration</a
+        >).
       </p>
 
       <CodeExample
         title="Smart Filter Bar"
-        description="Search across all searchable columns. Add per-column filters via the filter button. Debounce controls request frequency."
+        description="Search across all searchable columns. Add per-column filters via the filter button. searchDebounceMs waits out the typing: the term reaches the table 300ms after the last keystroke."
         code={`<Table
   {items}
   {columns}
@@ -224,6 +229,7 @@ ${scriptClose}
 />`}
       >
         <Table
+          cardsBelow="32rem"
           items={employees}
           columns={basicColumns}
           enableSmartFilter={true}
@@ -240,34 +246,31 @@ ${scriptClose}
       <p class="text-text-secondary text-sm">
         The bar's tools — filters, sort, grouping, summaries and column visibility — normally sit in
         a capsule beside the search field. Below
-        <strong class="text-text-primary">28rem (448px) of bar content box</strong> that capsule is gone:
-        the tools move into a bottom sheet reached from a single button. Nothing is taken away, only relocated
-        — each tool becomes a section of the sheet, rebuilt as a form instead of a menu. Sort, for instance,
-        splits into a column list plus a separate direction control rather than offering every column×direction
-        pair; summaries become one aggregation choice per summable column, which is why this demo declares
-        two numeric columns.
+        <strong class="text-text-primary">28rem of bar content box</strong> that capsule is gone: the
+        tools move into a bottom sheet reached from a single button. Nothing is taken away, only relocated.
+        Each tool becomes a section of the sheet, rebuilt as a form instead of a menu: sort splits into
+        a column list plus a separate direction control rather than offering every column×direction pair,
+        and summaries become one aggregation choice per summable column (which is why this demo declares
+        two numeric columns).
       </p>
 
       <p class="text-text-secondary text-sm">
-        There are <strong class="text-text-primary">up to five</strong> of them, not always five,
-        and the sheet mirrors the capsule exactly: grouping drops out while the table is
-        <code class="text-text-primary">virtualized</code>, column visibility when
-        <code class="text-text-primary">enableColumnVisibility</code> is off. Three is the floor. The
-        demo below has all five.
+        The sheet mirrors the capsule exactly, including what is missing from it: grouping drops out
+        while the table is <code class="text-text-primary">virtualized</code>, column visibility
+        when
+        <code class="text-text-primary">enableColumnVisibility</code> is off. The demo below has all five
+        tools.
       </p>
 
       <p class="text-text-secondary text-sm">
         Drag the slider to squeeze the container past the threshold, then open the sheet. The switch
-        is automatic — there is no prop for it. The readout is measured off the live bar rather than
-        computed from the slider, so if the page is too narrow to give the demo the width it asks
-        for, it says so instead of printing a number the bar never had. Note also that the sheet is
-        a bottom
+        is automatic; there is no prop for it. The sheet is a bottom
         <a href={resolve('/blocks/primitives/drawer')} class="text-primary hover:underline"
           >Drawer</a
         >, so it spans the
-        <em>window</em>, not the bar: here a 360px table opens a full-width sheet. That gap closes
-        when the bar is roughly the width of the window, which is the common phone case — but a bar
-        inside a card is narrower than the sheet on a phone too.
+        <em>window</em>, not the bar: here a 360px table opens a full-width sheet. On a phone the
+        two are usually the same width, though a bar inside a card is narrower than the sheet there
+        too.
       </p>
 
       <div class="w-full space-y-4">
@@ -291,6 +294,7 @@ ${scriptClose}
         -->
         <div {@attach measureBar} class="w-full" style="max-width: {demoWidth}px">
           <Table
+            cardsBelow="32rem"
             items={employees}
             columns={toolsColumns}
             enableSmartFilter={true}
@@ -301,55 +305,53 @@ ${scriptClose}
       </div>
 
       <p class="text-text-secondary text-sm">
+        <strong class="text-text-primary">This is not the table's own layout switch.</strong> Rows
+        become cards below <code class="text-text-primary">cardsBelow</code> of the table's
+        container (<code class="text-text-primary">48rem</code> by default), which is why the demo
+        above is a card list at every width the slider reaches. The bar's
+        <code class="text-text-primary">28rem</code> is separate from it and has no prop: set
+        <code class="text-text-primary">cardsBelow</code> to move the rows-to-cards step, and the tools
+        keep switching where they always did.
+      </p>
+
+      <p class="text-text-secondary text-sm">
         <strong class="text-text-primary"
           >The width is measured on the bar, not on the window.</strong
         >
         A filter bar can sit in a card, a drawer, a split pane or a dashboard tile, so a viewport media
-        query would happily leave a 400px bar in the wide layout it has no room for. The bar observes
-        its own
-        <strong class="text-text-primary">content box</strong> with a
-        <code class="text-text-primary">ResizeObserver</code> instead — the box a
-        <code class="text-text-primary">@container</code> query measures. Reading
-        <code class="text-text-primary">clientWidth</code> would include the bar's own padding and
-        leave a dead band (24px at <code class="text-text-primary">size="md"</code>) where neither
-        this switch nor the row/stack one fires.
+        query would happily leave a 400px bar in the wide layout it has no room for. The threshold is
+        one <code class="text-text-primary">28rem</code> container step, the same one that stacks the
+        search field above the tools, and it resolves against your root font size: at a larger text size
+        the same bar moves its tools into the sheet at a larger pixel width.
       </p>
 
       <p class="text-text-secondary text-sm">
-        <strong class="text-text-primary">There is only one threshold, and CSS owns it.</strong> The
-        same <code class="text-text-primary">28rem</code> step the bar's
-        <code class="text-text-primary">@container</code> rules use for the stacked/row switch also
-        decides this one — it sets a custom property, and the component reads which side of it the
-        bar is on. So the capsule can never be left standing in a layout too narrow to hold it, at
-        any root font size. It could before: the tool switch compared a hardcoded 448px while
-        <code class="text-text-primary">@container</code> resolved
-        <code class="text-text-primary">28rem</code> against the root, so raising the browser's text size
-        opened a band where the bar had already stacked and the capsule was still there.
-      </p>
-
-      <p class="text-text-secondary text-sm">
-        Only <code class="text-text-primary">layout="responsive"</code> — the default — switches.
+        Only <code class="text-text-primary">layout="responsive"</code>, the bar's default,
+        switches.
         <code class="text-text-primary">horizontal</code> and
-        <code class="text-text-primary">vertical</code> are explicit instructions from the consumer and
-        are left alone at any width. Growing back past the threshold closes the sheet, so a bar that is
-        narrowed again does not re-open it unprompted.
+        <code class="text-text-primary">vertical</code> are explicit instructions and are left alone
+        at any width; all three live on
+        <code class="text-text-primary">SmartFilterBar</code>, which you render yourself through the
+        table's <code class="text-text-primary">toolbar</code> snippet when you need one of them. Growing
+        back past the threshold closes the sheet, so a bar that is narrowed again does not re-open it
+        unprompted.
       </p>
 
       <p class="text-text-secondary text-sm">
         <strong class="text-text-primary">The badge on the button counts tools, not results.</strong
         >
         With the sheet shut, the lit triggers inside it are invisible, so the button carries the number
-        of things currently acting on the grid: one each for active filters (however many), a sort column,
-        a grouping, a summary row that is switched on, and hidden columns — at most five. The demo starts
+        of things currently acting on the grid, at most five: one each for active filters (however many),
+        a sort column, a grouping, a summary row that is switched on, and hidden columns. The demo starts
         at 1 because its
         <code class="text-text-primary">viewDefaults</code> seed a sort; add a filter or a grouping in
-        the sheet and watch it climb. Hidden columns count too — a column that is not on screen changes
-        what the reader sees just as much as a filter does.
+        the sheet and watch it climb. Hidden columns count too, because a column that is not on screen
+        changes what the reader sees just as much as a filter does.
       </p>
 
       <CodeExample
         title="Reproducing It"
-        description="Any container narrower than the threshold trips the switch — no prop, no media query, no viewport resize needed."
+        description="Any container narrower than the threshold trips the switch: no prop, no media query, no viewport resize needed."
         code={codeNarrowBar}
         preview={false}
       />
@@ -365,8 +367,12 @@ ${scriptClose}
         — and every active filter must match for a row to stay visible (AND semantics).
         <code class="text-text-primary">value</code> is always a string, even for the comparing
         operators — the comparison converts internally, which keeps filters serializable for
-        persistence. Which operators the menu offers is driven by the column's
-        <code class="text-text-primary">dataType</code>; columns with
+        persistence. The six operators below are the whole of
+        <code class="text-text-primary">FilterOperator</code>; which of them the menu offers is
+        driven by the column's <code class="text-text-primary">dataType</code>, and a type with no
+        set of its own (<code class="text-text-primary">boolean</code>,
+        <code class="text-text-primary">email</code>, <code class="text-text-primary">url</code>)
+        gets the text operators. Columns with
         <code class="text-text-primary">searchable: false</code> (and synthetic columns without an accessor)
         do not appear in the filter menu at all.
       </p>
@@ -401,40 +407,41 @@ ${scriptClose}
         ISO-8601 strings (<code class="text-text-primary">2021-03-15</code>,
         <code class="text-text-primary">2021-03-15T09:00</code>,
         <code class="text-text-primary">2021-03-15T09:00:00Z</code>). Any other string format never
-        matches, so a malformed or empty value filters everything out instead of matching
-        everything.
+        matches, so a malformed value filters everything out instead of matching everything. An
+        empty
+        <code class="text-text-primary">value</code> is not an assertion at all and keeps every row, whichever
+        operator it carries; the filter menu never produces one, but a seeded or stored filter can.
       </p>
 
       <p class="text-text-secondary text-sm">
         A <code class="text-text-primary">date</code> column's filter input emits a bare calendar
         date (<code class="text-text-primary">YYYY-MM-DD</code>), and for that shape
-        <em>after</em>/<em>before</em> compare on
+        <em>on date</em>, <em>after</em> and <em>before</em> compare on
         <strong class="text-text-primary">UTC day boundaries</strong>: "after 2021-03-15" starts at
-        the following midnight UTC and "before 2021-03-15" ends at that day's midnight UTC — a row
+        the following midnight UTC, "before 2021-03-15" ends at that day's midnight UTC, and a row
         stamped <code class="text-text-primary">2021-03-15T09:00Z</code> matches neither. A filter
-        value that carries a time of day compares instants strictly. Since a date-only string parses
-        as UTC midnight while a date-time string without an offset parses as local time, a
+        value that carries a time of day compares instants strictly. Store ISO strings or
+        UTC-constructed dates in those columns: a date-only string parses as UTC midnight while a
+        date-time string without an offset parses as local time, so a
         <code class="text-text-primary">Date</code> built from local parts (<code
           class="text-text-primary">new Date(2021, 2, 15)</code
-        >) can fall into the neighbouring UTC day — store ISO strings or UTC-constructed dates for
-        day-exact filtering.
+        >) can land in the neighbouring UTC day.
       </p>
 
       <p class="text-text-secondary text-sm">
         To start with filters active, pass
         <code class="text-text-primary"
           >viewDefaults=&#123;&#123; filters: [&hellip;] &#125;&#125;</code
-        >
-        — an array of the same
+        >, an array of the same
         <code class="text-text-primary">&#123; column, operator, value &#125;</code> objects. That
-        is the view's baseline: the chips show them, users can still remove or add filters, and
-        <code class="text-text-primary">bindViewToStorage(view, &#123; key &#125;)</code> applies a stored
-        set over it after hydration.
+        is the view's baseline: the chips show them, and users can still remove or add filters. The
+        same array is what <code class="text-text-primary">view.filters</code> holds, so assigning to
+        it drives filters from your own UI the way the next section drives the search term.
       </p>
 
       <p class="text-text-secondary text-sm">
-        Both search and filters match against the column accessor's output — not against what a
-        custom cell renders. With
+        The search field matches a case-insensitive substring, and both it and the filters read the
+        column accessor's output rather than what a custom cell renders. With
         <code class="text-text-primary"
           >source=&#123;&#123; processing: 'server', &hellip; &#125;&#125;</code
         >
@@ -450,18 +457,27 @@ ${scriptClose}
   <Section id="external-search" title="Search from Outside">
     <div class="space-y-8">
       <p class="text-text-secondary text-sm">
-        The search term is one of the six settings of the table's view. Hand the table a view of
-        your own — <code class="text-text-primary">createTableView()</code> — and the setting is
-        yours: an effect pushes your field into <code class="text-text-primary">view.search</code>,
-        and reading it back is just <code class="text-text-primary">view.search</code>, with no
-        callback in between. The table's own search field writes the same setting, so the readout
-        below shows what the table is filtering by, whichever of the two was typed into last.
+        The search term is one of the six settings of the table's view:
+        <code class="text-text-primary">search</code>, <code class="text-text-primary">sort</code>,
+        <code class="text-text-primary">filters</code>, <code class="text-text-primary">page</code>,
+        <code class="text-text-primary">pageSize</code> and
+        <code class="text-text-primary">groupBy</code>. Hand the table a view of your own (<code
+          class="text-text-primary">createTableView()</code
+        >) and they are yours to write: an effect pushes your field into
+        <code class="text-text-primary">view.search</code>, and reading it back is just
+        <code class="text-text-primary">view.search</code>, with no callback in between. Your own
+        view replaces
+        <code class="text-text-primary">viewDefaults</code> rather than joining it (passing both
+        throws), so its defaults go to
+        <code class="text-text-primary">createTableView(&#123; defaults &#125;)</code>. The table's
+        own search field writes the same setting, so the readout below shows what the table is
+        filtering by, whichever of the two was typed into last.
       </p>
 
       <p class="text-text-secondary text-sm">
         One thing comes with writing a field directly: it
-        <strong class="text-text-primary">does not reset the page</strong> — the table's own
-        handlers do that on a new search, so write
+        <strong class="text-text-primary">does not reset the page</strong>. The table's own handlers
+        do that on a new search, so write
         <code class="text-text-primary">view.page = 1</code> alongside if you want the same behaviour.
         Writing a setting does not subscribe the effect to it, so the effect above runs when your field
         changes and not when the table writes the same setting.
@@ -469,10 +485,16 @@ ${scriptClose}
 
       <p class="text-text-secondary text-sm">
         Steering a setting from outside and persisting the view are independent. A setting whose
-        value comes from outside is usually one you do not want stored — name the others instead:
+        value comes from outside is usually one you do not want stored, so name the others instead:
         <code class="text-text-primary"
           >bindViewToStorage(view, &#123; key: 'employees', axes: ['sort', 'filters', 'pageSize',
           'groupBy'] &#125;)</code
+        >. It ships with
+        <code class="text-text-primary">createTableView</code> in
+        <code class="text-text-primary">@urbicon-ui/table</code>; what it stores when and how it
+        meets the URL is
+        <a href={resolve('/table/url-state')} class="text-primary hover:underline"
+          >URL State &amp; Persistence</a
         >.
       </p>
 
@@ -492,7 +514,7 @@ ${scriptClose}
             The table is searching for:
             <code class="text-text-primary">{view.search || '—'}</code>
           </p>
-          <Table items={employees} columns={basicColumns} {view} />
+          <Table cardsBelow="32rem" items={employees} columns={basicColumns} {view} />
         </div>
       </CodeExample>
     </div>

@@ -31,21 +31,25 @@
       <p>
         Renders a native <code class="text-text-primary">&lt;table&gt;</code> with
         <code class="text-text-primary">&lt;thead&gt;</code>,
-        <code class="text-text-primary">&lt;tbody&gt;</code>, and
-        <code class="text-text-primary">&lt;th scope="col"&gt;</code> elements. The table container
-        uses <code class="text-text-primary">role="region"</code> with an
-        <code class="text-text-primary">aria-label</code> for screen reader context.
+        <code class="text-text-primary">&lt;tbody&gt;</code> and real
+        <code class="text-text-primary">&lt;th&gt;</code> header cells, so rows and columns arrive
+        as structure a screen reader already understands. Give the table its name with
+        <code class="text-text-primary">ariaLabel</code>: on a page with more than one table, that
+        is what tells them apart. Sortable headers carry
+        <code class="text-text-primary">aria-sort</code>, so the current direction is read out when
+        the reader arrives at the header.
       </p>
     </Note>
     <Note headingLevel={2} title="Keyboard Navigation">
       <p class="text-text-secondary mb-3 text-sm leading-relaxed">
-        Uses the <strong>Roving Tabindex</strong> pattern (WAI-ARIA Grid). When selection,
-        expansion, or row click is enabled, the table uses
-        <code class="text-text-primary">role="grid"</code>
-        with full keyboard support.
+        The table becomes a <code class="text-text-primary">role="grid"</code> with a roving
+        tabindex as soon as it is interactive: selection, expandable rows or
+        <code class="text-text-primary">onRowClick</code>. Without one of those it stays a plain
+        table and the shortcuts below do nothing; the sortable headers and the pager are still tab
+        stops.
       </p>
       <div class="grid grid-cols-2 gap-x-6 gap-y-1.5 text-xs">
-        {#each [{ key: 'Arrow Up/Down', action: 'Navigate between rows' }, { key: 'Home / End', action: 'Jump to first / last row' }, { key: 'Space', action: 'Toggle row selection' }, { key: 'Enter', action: 'Expand row or trigger onRowClick' }, { key: 'Page Up/Down', action: 'Previous / next page' }, { key: 'Escape', action: 'Clear selection' }, { key: 'Shift+Arrow L/R', action: 'Reorder column (on header)' }] as shortcut (shortcut.key)}
+        {#each [{ key: 'Arrow Up/Down', action: 'Navigate between rows' }, { key: 'Home / End', action: 'First / last row on the page' }, { key: 'Space', action: 'Toggle row selection' }, { key: 'Enter', action: 'Expand row, or onRowClick when rows do not expand' }, { key: 'Page Up/Down', action: 'Previous / next page' }, { key: 'Escape', action: 'Clear selection' }, { key: 'Shift+Arrow L/R', action: 'Reorder the focused column header' }] as shortcut (shortcut.key)}
           <div class="flex items-baseline gap-2">
             <Kbd keys={shortcut.key} />
             <span class="text-text-secondary">{shortcut.action}</span>
@@ -53,24 +57,21 @@
         {/each}
       </div>
     </Note>
-    <Note headingLevel={2} title="Sort Announcements">
-      <p>
-        Sortable column headers include
-        <code class="text-text-primary">aria-sort</code> attributes (<code class="text-text-primary"
-          >ascending</code
-        >
-        /
-        <code class="text-text-primary">descending</code> /
-        <code class="text-text-primary">none</code>). Direction changes are announced to screen
-        readers.
-      </p>
-    </Note>
     <Note headingLevel={2} title="Responsive Design">
       <p>
-        Below <code class="text-text-primary">768px</code>, the table switches to a card-based
-        mobile layout automatically. Column
-        <code class="text-text-primary">priority</code> levels control which fields remain visible at
-        each breakpoint. Both layouts are fully operable with assistive technology.
+        Below <code class="text-text-primary">cardsBelow</code> (default
+        <code class="text-text-primary">48rem</code>) the table renders one card per row. The step
+        is measured on the table's own container, not on the window, and the table sets that
+        container up itself: a table in a narrow sidebar switches while the window stays wide. It
+        moves both ways, from <code class="text-text-primary">24rem</code> to
+        <code class="text-text-primary">56rem</code>, so a three-column list can stay a grid in the
+        sidebar and a wide report can become cards before its columns get cramped.
+      </p>
+      <p class="mt-3">
+        A card is operable from the keyboard: whatever opens it, the headline or the chevron beside
+        it, is a real button. Column <code class="text-text-primary">priority</code> decides what a
+        card shows (<code class="text-text-primary">3</code> keeps a column out of it); the desktop grid
+        always shows every column.
       </p>
     </Note>
   </NoteList>

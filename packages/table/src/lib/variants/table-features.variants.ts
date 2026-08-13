@@ -587,6 +587,17 @@ export const filterPanelVariants = tv({
  */
 export const headerMenuVariants = tv({
   slots: {
+    // In the flow, as a sibling of the header title.
+    //
+    // It was briefly absolute (2026-08-14), to free the 32px + gap it holds so
+    // that a header title could reach its cell's edge. That trade turned out
+    // worse than the problem it solved: out of the flow the button paints over
+    // the title — permanently, not just on hover, for any sorted, grouped or
+    // summarised column — an `opacity: 0` button still takes clicks, so a tap
+    // on a right-aligned title opened the menu instead of sorting, and under
+    // `unstyled` the `<th>` loses its `relative` and every menu escapes to the
+    // table wrapper. See the `align` note on `tableHeaderVariants` for the wave
+    // that has to settle header alignment properly.
     container: ['flex items-center justify-center flex-shrink-0'],
     trigger: ['h-8 w-8 min-w-8', 'opacity-0 transition-opacity group-hover:opacity-100'],
     menu: ['p-1 min-w-[200px]'],

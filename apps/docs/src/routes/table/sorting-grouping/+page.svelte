@@ -29,17 +29,17 @@
   // so this table describes both surfaces.
   const menuActions = [
     { action: 'Sort ascending / descending', gate: 'a data column, unless sortable: false' },
-    { action: 'Remove filters', gate: 'a filter on this column is active' },
+    { action: 'Remove filter', gate: 'a filter on this column is active' },
     {
       action: 'Group by column / Remove grouping',
-      gate: 'groupable: true, or sortable: true when groupable is unset — never while virtualized'
+      gate: 'groupable: true, or sortable: true when groupable is unset (never while virtualized)'
     },
     {
       action: 'Add summary / Remove summary',
       gate: "summable: true, or dataType: 'number' when summable is unset"
     },
     { action: 'Hide column', gate: 'enableColumnVisibility and hideable ≠ false' },
-    { action: 'Show "Column"', gate: 'one entry per currently hidden column' }
+    { action: 'Show "Salary"', gate: 'one entry per currently hidden column, named after it' }
   ];
 </script>
 
@@ -64,23 +64,16 @@
   <Section id="sorting-grouping" title="Sorting & Grouping">
     <div class="space-y-8">
       <p class="text-text-secondary text-sm">
-        Every data column sorts on a header click, cycling ascending, descending, unsorted.
-        <code class="text-text-primary">sortable: false</code> takes that away; a synthetic column has
-        no value to sort by and never had it.
-      </p>
-
-      <p class="text-text-secondary text-sm">
-        Grouping is the other way round: you opt a column in. Bucketing an email or a free-text note
-        makes one group per row, so it is not offered to every column that holds a value.
-        <code class="text-text-primary">groupable: true</code> says yes,
-        <code class="text-text-primary">groupable: false</code> says no, and with neither set the
-        column follows <code class="text-text-primary">sortable: true</code> — marking a column sortable
-        already says it is a dimension worth organising the table by.
+        Every data column sorts on a header click, cycling ascending, descending, unsorted. One
+        column at a time: a click on another header moves the sort there.
+        <code class="text-text-primary">sortable: false</code> takes that away, and a synthetic
+        column (one with no <code class="text-text-primary">accessor</code>) has no value to sort by
+        and never had it.
       </p>
 
       <CodeExample
         title="Start Sorted"
-        description="viewDefaults.sort is the view's baseline — the header indicator shows it, and users can still change or clear it. A storage binding applies a stored sort after hydration and so beats the default; a stored sort: null is a real value, so a sort the user cleared stays cleared."
+        description="`viewDefaults.sort` is the view's baseline: the header indicator shows it, and users can still change or clear it."
         code={`<Table
   {items}
   {columns}
@@ -88,6 +81,7 @@
 />`}
       >
         <Table
+          cardsBelow="32rem"
           items={employees}
           columns={summaryColumns}
           viewDefaults={{ sort: { column: 'salary', direction: 'desc' }, pageSize: 5 }}
@@ -95,9 +89,37 @@
         />
       </CodeExample>
 
+      <p class="text-text-secondary text-sm">
+        A sort is view state: a shared link or a view restored from storage carries it, and either
+        one overrides this baseline.
+        <a href={resolve('/table/url-state') + '#phases'} class="text-primary hover:underline"
+          >URL State &amp; Persistence</a
+        > sets out which of the three wins.
+      </p>
+
+      <p class="text-text-secondary text-sm">
+        Grouping is opt-in: bucketing an email or a free-text note makes one group per row, so it is
+        not offered to every column that holds a value.
+        <code class="text-text-primary">groupable: true</code> says yes,
+        <code class="text-text-primary">groupable: false</code> says no, and with neither set an
+        explicit <code class="text-text-primary">sortable: true</code> grants it. A column that
+        declares nothing at all sorts, but does not group. Both flags sit on the column, beside the
+        rest of its
+        <a href={resolve('/table/column-config')} class="text-primary hover:underline">properties</a
+        >.
+      </p>
+
+      <p class="text-text-secondary text-sm">
+        A <a href={resolve('/table/virtual-scrolling')} class="text-primary hover:underline"
+          >virtualized</a
+        >
+        table never groups: the menu entry goes, and a grouping arriving from the view defaults, a URL
+        or storage is discarded.
+      </p>
+
       <CodeExample
         title="Grouping with Custom Order"
-        description="Group rows by any column. The groupOrder array controls the display sequence of groups."
+        description="`groupOrder` names the groups that come first; every other group follows in the order its rows arrive, and a name with no rows is skipped. Rows with no value in that column land in a group called Unassigned."
         code={`<Table
   {items}
   {columns}
@@ -106,6 +128,7 @@
 />`}
       >
         <Table
+          cardsBelow="32rem"
           items={employees}
           columns={basicColumns}
           viewDefaults={{ groupBy: 'department' }}
@@ -124,17 +147,19 @@
         <code class="text-text-primary"
           >prefs=&#123;&#123; defaults: &#123; summaries: [&hellip;] &#125; &#125;&#125;</code
         >
-        to enable summaries declaratively — users can also add and remove them at runtime via the
-        <a href="#header-menu" class="text-primary hover:underline">header menu</a> or the SmartFilterBar's
-        summary control.
+        to enable summaries declaratively. Users can also add and remove them at runtime via the
+        <a href="#header-menu" class="text-primary hover:underline">header menu</a>
+        or the
+        <a href={resolve('/table/filtering')} class="text-primary hover:underline">SmartFilterBar</a
+        >'s summary control.
       </p>
 
       <p class="text-text-secondary text-sm">
         <strong class="text-text-primary">Summaries are a preference, not a view setting.</strong>
         Sorting and grouping decide
-        <em>which</em> rows a reader sees, which makes them worth sharing and worth putting in a
-        link — they live on the view. A summary row changes how the same rows are presented, so it
-        belongs to this reader on this device and stays in web storage:
+        <em>which</em> rows a reader sees, so they live on the view and travel in a shared link. A
+        summary row changes how the same rows are presented, so it belongs to this reader on this
+        device and stays in web storage:
         <code class="text-text-primary">viewDefaults</code> for the former,
         <code class="text-text-primary">prefs</code> for the latter.
       </p>
@@ -150,6 +175,7 @@
 />`}
       >
         <Table
+          cardsBelow="32rem"
           items={employees}
           columns={summaryColumns}
           viewDefaults={{ groupBy: 'department', pageSize: 12 }}
@@ -160,7 +186,8 @@
 
       <p class="text-text-secondary text-sm">
         A summary is <code class="text-text-primary">{'{ column, type }'}</code> plus an optional
-        <code class="text-text-primary">formatter</code>; the full shape is
+        <code class="text-text-primary">{'formatter: (value: number) => string'}</code>; the full
+        shape is
         <a
           class="text-primary hover:underline"
           href={resolve('/table/table') + '#type-SummaryConfig'}>SummaryConfig</a
@@ -176,7 +203,12 @@
 
       <p class="text-text-secondary text-sm">
         A summary covers every row matching the current search and filters, not the page on screen.
-        The pager moves under a total that stays put.
+        The pager moves under a total that stays put. A table that leaves the work to the server
+        only holds the page it was handed, so there the total is that page's:
+        <a
+          href={resolve('/table/server-processing') + '#controls'}
+          class="text-primary hover:underline">Server Processing</a
+        > says what to do instead.
       </p>
 
       <p class="text-text-secondary text-sm">
@@ -184,12 +216,16 @@
         <code class="text-text-primary">summable: true</code> opts a column in,
         <code class="text-text-primary">summable: false</code> opts it out. When the flag is unset,
         columns with <code class="text-text-primary">dataType: 'number'</code> are summable
-        automatically. Give the table a
-        <a href={resolve('/table/customization')} class="text-primary hover:underline">
-          preference store</a
-        >
-        (<code class="text-text-primary">prefs=&#123;&#123; storage: 'employees' &#125;&#125;</code
-        >) and summary selections survive reloads, alongside column visibility and column order.
+        automatically. <code class="text-text-primary">storage</code> sits beside
+        <code class="text-text-primary">defaults</code> in the same object (<code
+          class="text-text-primary"
+          >prefs=&#123;&#123; storage: 'employees', defaults: &#123; summaries &#125; &#125;&#125;</code
+        >), and then summary choices survive reloads alongside column visibility and column order.
+        What the reader last chose wins over your defaults, an empty choice included:
+        <a
+          href={resolve('/table/customization') + '#persistence'}
+          class="text-primary hover:underline">What the table remembers</a
+        > has the rest of the channel.
       </p>
     </div>
   </Section>
@@ -198,9 +234,8 @@
     <div class="space-y-8">
       <p class="text-text-secondary text-sm">
         Every column header exposes a <code class="text-text-primary">⋮</code> menu (visible on hover
-        and keyboard focus) that bundles the per-column actions, with no SmartFilterBar required. Each
-        entry asks the same question the toolbar's tool of that name asks, so a column is never groupable
-        from one and not from the other:
+        and keyboard focus) that bundles the per-column actions, with no SmartFilterBar required. The
+        same column flags decide what each entry offers and what the toolbar's tool of that name offers:
       </p>
 
       <div class="border-border-hairline overflow-x-auto border-y">
@@ -240,6 +275,7 @@
         language="typescript"
       >
         <Table
+          cardsBelow="32rem"
           items={employees}
           columns={summaryColumns}
           viewDefaults={{ pageSize: 5 }}

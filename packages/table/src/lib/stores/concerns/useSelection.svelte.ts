@@ -79,7 +79,15 @@ export function useSelection(state: TableState, getFilteredItems: () => TableIte
 
   function toggleAll() {
     if (allSelected) {
-      deselectAll();
+      // The filtered rows, not the whole set — `selectAll` only ever adds those,
+      // so its undo may only remove those. `deselectAll()` here made the header
+      // checkbox asymmetric under a filter: it selected the twelve rows in view
+      // and then cleared all forty, including the twenty-eight the reader had
+      // picked before narrowing and could no longer see.
+      for (const item of getFilteredItems()) {
+        const id = resolveRowId(item);
+        if (id !== undefined) state.selectedIds.delete(id);
+      }
     } else {
       selectAll();
     }

@@ -3,7 +3,7 @@
   import type { TableItem, Column } from '$lib/types/tableTypes';
   import type { TableSource } from '$lib/view/source';
   import { getTableContext } from '$lib/stores/TableStore.svelte.js';
-  import { tableContainerVariants } from '$lib/variants';
+  import { CARDS_BELOW_VALUES, tableContainerVariants } from '$lib/variants';
   import {
     Pagination,
     resolveIcon,
@@ -44,6 +44,7 @@
     prefs = undefined,
     expandedRowContent = undefined,
     multiExpand = false,
+    cardsBelow = '48rem',
     mobileCardDetails = 'collapsed',
     onRowClick = undefined,
     virtualized = false,
@@ -109,6 +110,27 @@
   const onSelectionChangeErased = $derived(
     onSelectionChange as unknown as TableProps['onSelectionChange']
   );
+
+  /**
+   * A step the variant config has no classes for would leave both halves of the
+   * layout switch empty — `tv()` skips a variant value it does not recognise —
+   * and the table would render the grid AND the card list, one under the other.
+   * TypeScript rules that out at a typed call site and nowhere else: the value
+   * can arrive from plain JavaScript, a config object or a CMS field.
+   *
+   * Falling back keeps the table rendering something coherent; the warning is
+   * what keeps the fallback from being silent, because a table that quietly
+   * ignores the width you asked for is its own kind of bug.
+   */
+  const resolvedCardsBelow = $derived.by(() => {
+    if (CARDS_BELOW_VALUES.includes(cardsBelow)) return cardsBelow;
+    if (import.meta.env?.DEV) {
+      console.warn(
+        `<Table cardsBelow="${cardsBelow}">: not one of ${CARDS_BELOW_VALUES.join(', ')}. Falling back to "48rem".`
+      );
+    }
+    return '48rem' as const;
+  });
 
   setTableStyleContext({
     get unstyled() {
@@ -214,7 +236,7 @@
   {@const tableStyles = tableContainerVariants({
     variant,
     size,
-    responsive: true,
+    cardsBelow: resolvedCardsBelow,
     stickyToolbar: stickyMode.toolbar,
     contained
   })}

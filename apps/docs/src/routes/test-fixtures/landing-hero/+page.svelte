@@ -219,7 +219,13 @@
     <main>
       <!-- Kein Blättern durch das eigene Inventar: Die Spalte aus Nullen wirkt,
            weil sie nicht aufhört. Alle Zeilen auf einmal, der leere
-           `pagination`-Snippet nimmt dem Fuß das Chrom. -->
+           `pagination`-Snippet nimmt dem Fuß das Chrom.
+
+           `cardsBelow="32rem"`: dieselben vier Spalten wie auf der Landingpage
+           und damit derselbe Schritt (Begründung im Kommentar dort). Diese
+           Fixture ist die Vorlage der README-Bilder — stünde sie in der
+           Kartenansicht, während die Seite die Tabelle zeigt, zeigten die Bilder
+           eine Seite, die es nicht gibt. -->
       <section class="inventory" aria-label="Component inventory">
         <Table
           items={data.rows}
@@ -228,6 +234,7 @@
           variant="flush"
           size="sm"
           ariaLabel="Every component in the set"
+          cardsBelow="32rem"
           onRowClick={(row) => setSelectedSlug((row as HeroRow).slug)}
           activeRowId={selected.id}
           slotClasses={{
@@ -236,8 +243,7 @@
             // Gitter ist genau die Schwere, die dieser Entwurf vermeidet. Die
             // Spaltenausrichtung trägt die Lesbarkeit, der Hover die Führung.
             row: '!border-b-0',
-            cell: '!py-[0.3rem] !align-middle',
-            table: '!min-w-0'
+            cell: '!py-[0.3rem] !align-middle'
           }}
           columns={[
             {

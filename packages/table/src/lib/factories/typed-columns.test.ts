@@ -46,8 +46,10 @@ describe('Table generic preservation', () => {
     expectTypeOf<TableProps<Apartment>['onRowClick']>().toEqualTypeOf<
       ((item: Apartment) => void) | undefined
     >();
+    // The ids ride along untyped by the generic on purpose: they are whatever
+    // `item.id` is, plus the array-index fallback for rows without one.
     expectTypeOf<TableProps<Apartment>['onSelectionChange']>().toEqualTypeOf<
-      ((selectedItems: Apartment[]) => void) | undefined
+      ((selectedItems: Apartment[], selectedIds: Array<string | number>) => void) | undefined
     >();
   });
 

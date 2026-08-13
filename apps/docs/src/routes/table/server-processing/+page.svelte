@@ -27,7 +27,7 @@
     { id: 'controls', title: 'What changes for the reader' }
   ];
 
-  const codeShape = `<Table {columns} {view} source={{ processing: 'server', items, total }} />`;
+  const codeShape = `<Table {columns} source={{ processing: 'server', items, total }} />`;
 
   const codeLoad = `// view-defaults.ts — one declaration, read by both halves
 export const userView = { pageSize: 25 };
@@ -37,14 +37,16 @@ import { searchParamsToViewSnapshot } from '@urbicon-ui/sveltekit-utils/table-vi
 import { userView } from ${viewPath};
 
 export const load = async ({ url }) => {
-  const query = searchParamsToViewSnapshot(url.searchParams, userView);
-  return await fetchUsers(query); // { items, total }
+  // { search, sort, page, pageSize, filters, groupBy }, resolved against userView
+  const snapshot = searchParamsToViewSnapshot(url.searchParams, userView);
+  return await fetchUsers(snapshot); // { items, total }
 };
 
 // +page.svelte
 ${scriptOpenTs}
   import { Table, createTableView } from '@urbicon-ui/table';
   import { bindViewToUrl } from '@urbicon-ui/sveltekit-utils/url.svelte';
+  import { navigating } from '$app/state';
   import { userView } from ${viewPath};
   import { columns } from ${columnsPath};
 
@@ -54,7 +56,16 @@ ${scriptOpenTs}
   bindViewToUrl(view);
 ${scriptClose}
 
-<Table {columns} {view} source={{ processing: 'server', items: data.items, total: data.total }} />`;
+<Table
+  {columns}
+  {view}
+  source={{
+    processing: 'server',
+    items: data.items,
+    total: data.total,
+    loading: !!navigating.to
+  }}
+/>`;
 
   const codeObserve = `${scriptOpenTs}
   import { Table, createTableView, observeView } from '@urbicon-ui/table';
@@ -65,18 +76,22 @@ ${scriptClose}
   let total = $state(0);
   let loading = $state(false);
   let error = $state<string | null>(null);
+  let latest = 0;
 
   observeView(view, async (snapshot) => {
+    const run = ++latest;
     loading = true;
     try {
       const result = await fetchUsers(snapshot);
+      if (run !== latest) return; // a newer view has already asked
       items = result.items;
       total = result.total;
       error = null;
     } catch (e) {
+      if (run !== latest) return;
       error = e instanceof Error ? e.message : 'Could not load users';
     } finally {
-      loading = false;
+      if (run === latest) loading = false;
     }
   });
 ${scriptClose}
@@ -111,27 +126,31 @@ ${scriptClose}
       />
 
       <p class="text-text-secondary text-sm">
-        <code class="text-text-primary">total</code> counts every row matching the current view, not the
-        ones on this page. The pager divides it by the page size, so it is what decides how far the reader
-        can page.
+        <code class="text-text-primary">total</code> counts every row your endpoint matched for the current
+        search and filters, not just the ones on this page. The pager divides it by the page size, so
+        it is what decides how far the reader can page.
       </p>
 
       <p class="text-text-secondary text-sm">
-        There are two ways to run the fetch. You fetch and hand in each page (from a SvelteKit
-        <code class="text-text-primary">load</code>, a store, a cache of your own), which is what
-        the rest of this page shows. Or you give the table a
-        <code class="text-text-primary">query</code> function and it fetches for you:
+        There are two ways to run the fetch, and the tag is the same for both. A
+        <code class="text-text-primary">query</code> function lets the table fetch for you whenever
+        the view changes:
         <a class="text-primary hover:underline" href={resolve('/table/query')}>Query Function</a>.
-        The tag is the same for both.
+        Fetching yourself and handing in each page (from a SvelteKit
+        <code class="text-text-primary">load</code>, a store, a cache of your own) is what the rest
+        of this page shows; take it when something other than the view has to trigger a fetch too, a
+        refresh button or a poll.
       </p>
 
       <NoteList variant="flush">
-        <Note title="The tag is required, on every variant">
+        <Note title="source always carries the tag">
           Server processing takes controls away from the reader, so it is never inferred. A source
-          that carries <code>items</code> and a <code>total</code> but no tag matches no variant and does
-          not compile; from plain JavaScript the table throws and names the tag it wanted.
+          of
+          <code>items</code> and a <code>total</code> without the tag is a type error, and from
+          plain JavaScript the table throws and names the tag it wanted. The
+          <code>items</code> prop needs none: rows on their own mean client processing.
         </Note>
-        <Note title="A few hundred rows need none of this">
+        <Note title="A few thousand rows need none of this">
           Pass them to <code>items</code> and let the table sort and page them in the browser:
           <a class="text-primary hover:underline" href={resolve('/table/client-processing')}
             >Client Processing</a
@@ -157,6 +176,24 @@ ${scriptClose}
       />
 
       <p class="text-text-secondary text-sm">
+        The snapshot your fetch receives is the view itself, under the names the table uses:
+        <code class="text-text-primary">search</code> (a string),
+        <code class="text-text-primary">sort</code>
+        (<code class="text-text-primary">{'{ column, direction }'}</code>, or
+        <code class="text-text-primary">null</code>),
+        <code class="text-text-primary">page</code> and
+        <code class="text-text-primary">pageSize</code>,
+        <code class="text-text-primary">filters</code> (each
+        <code class="text-text-primary">{'{ column, operator, value }'}</code>) and
+        <code class="text-text-primary">groupBy</code>. Every
+        <code class="text-text-primary">column</code> is a column id. Projecting those six onto your
+        backend's parameters happens inside your fetch, and
+        <a class="text-primary hover:underline" href={resolve('/table/query') + '#params'}
+          >parameter translation</a
+        > walks through one.
+      </p>
+
+      <p class="text-text-secondary text-sm">
         <code class="text-text-primary">searchParamsToViewSnapshot</code> reads the URL against the
         same defaults you hand <code class="text-text-primary">createTableView</code>. Export those
         defaults from one module, as above, and both halves resolve a missing parameter the same
@@ -167,9 +204,13 @@ ${scriptClose}
       <p class="text-text-secondary text-sm">
         <code class="text-text-primary">loading</code> and
         <code class="text-text-primary">error</code>
-        are yours here, because the fetch is. The table renders both states; you say when they apply,
-        and whatever <code class="text-text-primary">error</code> holds is the message shown under the
-        error heading.
+        are yours here, because the fetch is. On this route the fetch is a navigation, and SvelteKit already
+        tracks it:
+        <code class="text-text-primary">navigating.to</code> stays set for as long as
+        <code class="text-text-primary">load</code> runs. A
+        <code class="text-text-primary">load</code> that throws renders your error page instead, so
+        <code class="text-text-primary">error</code> carries the failures you catch and return as data,
+        and whatever it holds is the message under the table's error heading.
       </p>
     </div>
   </Section>
@@ -180,12 +221,13 @@ ${scriptClose}
         Not every table wants its state in the address bar. Then
         <code class="text-text-primary">observeView</code> is what tells you to fetch. It fires once
         after mount, then debounced after every change (300 ms, or
-        <code class="text-text-primary">{'{ debounceMs }'}</code> as a third argument).
+        <code class="text-text-primary">{'{ debounceMs }'}</code> as a third argument to
+        <code class="text-text-primary">observeView</code>).
       </p>
 
       <CodeExample
         title="Refetching without the URL"
-        description="The table only aborts requests it started, so a superseded response here is yours to drop."
+        description="The table aborts only the requests it started, so the counter here is what drops a superseded response."
         code={codeObserve}
         preview={false}
       />
@@ -193,18 +235,14 @@ ${scriptClose}
       <p class="text-text-secondary text-sm">
         Call <code class="text-text-primary">observeView</code> during component initialisation,
         next to <code class="text-text-primary">createTableView</code>; the subscription ends with
-        the component, so there is nothing to unsubscribe. The snapshot it hands you is exactly what
-        a
-        <code class="text-text-primary">query</code> function receives, so the
-        <a class="text-primary hover:underline" href={resolve('/table/query') + '#params'}
-          >parameter translation</a
-        > works unchanged.
+        the component, so there is nothing to unsubscribe. The snapshot it hands you is the same
+        object the <code class="text-text-primary">load</code> above passes to its fetch, and the
+        same one a <code class="text-text-primary">query</code> function receives.
       </p>
 
       <p class="text-text-secondary text-sm">
-        This fetches in the browser, the same as a
-        <code class="text-text-primary">query</code> function does. What you get for the extra code is
-        the fetch itself: a refresh button, a poll, a cache in front of it.
+        This fetches in the browser, so the first rows arrive after mount rather than in the HTML
+        the reader receives.
       </p>
     </div>
   </Section>
@@ -221,36 +259,43 @@ ${scriptClose}
       </p>
 
       <p class="text-text-secondary text-sm">
-        Search is not one of them:
-        <code class="text-text-primary">searchable</code> gates the browser's own matcher, which server
-        processing has already switched off, and the search term reaches your endpoint either way.
+        The search field is the exception: its term travels whatever the columns say.
+        <code class="text-text-primary">searchable: false</code> takes a column out of the browser's own
+        matcher, which server processing has already switched off, and out of the filter menu, whose filters
+        do reach your endpoint. So it stays the flag for a column your endpoint cannot filter on.
       </p>
 
       <p class="text-text-secondary text-sm">
         Grouping is the one axis the table does not hand over. It travels as
-        <code class="text-text-primary">groupBy</code>, and the table also buckets the rows that
-        come back — but only the rows of the current page, since those are the only ones it has. The
-        groups are therefore page-local: the pager stays, each page is grouped on its own, and a
-        group header counts <em>this page's</em> rows rather than the group's size. Your endpoint
-        can make those groups more useful by ordering its result by
+        <code class="text-text-primary">groupBy</code>, and the table buckets the rows that come
+        back, which are only the rows of the current page. The groups are therefore page-local: the
+        pager stays, each page is grouped on its own, and a group header counts this page's rows and
+        says so: its count reads
+        <code class="text-text-primary">(3 items on this page)</code>. Your endpoint can make those
+        groups more useful by ordering its result by
         <code class="text-text-primary">groupBy</code>, so a page holds whole groups instead of
         slices of several. The order the groups appear in follows the page's rows, so it can differ
         from page to page unless your endpoint imposes one.
       </p>
 
       <p class="text-text-secondary text-sm">
-        Group summary rows aggregate the same page-local rows — a sum under a group of three is the
-        sum of those three, not of the group. Their labels do not say so; if the distinction matters
-        to your readers, compute the totals server-side and render them yourself. Collapsing follows
-        the group's <em>name</em>, so a group collapsed on one page stays collapsed on the next even
-        though its rows are different.
+        Group summary rows aggregate the same page-local rows, so a sum under a group of three is
+        the sum of those three, not of the group, and their labels do not say so. If that
+        distinction matters to your readers, compute the totals server-side and render them
+        yourself. Collapsing follows the group's <em>name</em>, so a group collapsed on one page
+        stays collapsed on the next even though its rows are different.
       </p>
 
       <p class="text-text-secondary text-sm">
-        Selection reaches as far as the loaded page. Select-all marks the rows the table holds, and
-        <code class="text-text-primary">onSelectionChange</code> reports those. Ids from earlier
-        pages stay in <code class="text-text-primary">state.selectedIds</code> on the table context; their
-        rows are gone. For an action across the whole result set, send the query instead of the selection.
+        Select-all marks the rows the table holds, which here is the loaded page. The selection
+        itself survives paging: a row ticked on page 1 is still ticked when the reader comes back,
+        and <code class="text-text-primary">onSelectionChange</code> does not fire on a page change.
+        This is why its second argument matters here — the ids are the whole selection, the rows
+        only the ones currently loaded, so a
+        <a href={resolve('/table/selection') + '#controlled'} class="text-primary hover:underline"
+          >controlled selection</a
+        > writes the ids back. For an action across the whole result set, send the query instead of the
+        selection.
       </p>
     </div>
   </Section>

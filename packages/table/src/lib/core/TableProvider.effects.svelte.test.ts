@@ -149,6 +149,51 @@ describe('TableProvider — onSelectionChange', () => {
       expect.objectContaining({ id: 3 })
     ]);
   });
+
+  // The ids are the half the table can always answer for: `selectedItems`
+  // resolves against `state.items`, which under `processing: 'server'` holds
+  // one page. A controlled parent round-trips these, not `items.map(…)`.
+  it('emits the full id set beside the items', () => {
+    const seen: Array<Array<string | number>> = [];
+    const el = mountTable({
+      selectionMode: 'multi',
+      rowClickSelects: true,
+      onSelectionChange: (_items: unknown, ids: Array<string | number>) => seen.push(ids)
+    });
+
+    clickRow(el, 1);
+    clickRow(el, 3);
+    expect(seen.at(-1)).toEqual([1, 3]);
+  });
+
+  // Paging is not a selection change. The effect used to key on `selectedItems`,
+  // so swapping in a new page of server rows re-fired it with only the selected
+  // rows of *that* page — and the documented controlled pattern wrote that
+  // shorter list back, dropping every row picked on another page.
+  it('does not fire when the rows are replaced under an unchanged selection', () => {
+    const props = $state<Record<string, unknown>>({
+      items: [ROWS[0], ROWS[1]],
+      selectionMode: 'multi',
+      selectedIds: [1]
+    });
+    const seen: Array<Array<string | number>> = [];
+    props.onSelectionChange = (_items: unknown, ids: Array<string | number>) => seen.push(ids);
+
+    target = document.createElement('div');
+    document.body.appendChild(target);
+    comp = mount(TableHarness, { target, props }) as Record<string, unknown>;
+    flushSync();
+
+    const before = seen.length;
+    expect(seen.at(-1)).toEqual([1]);
+
+    // Page 2 arrives: different rows, same selection.
+    props.items = [ROWS[2]];
+    flushSync();
+
+    expect(seen.length).toBe(before);
+    expect(seen.at(-1)).toEqual([1]);
+  });
 });
 
 describe('TableProvider — enableColumnVisibility={false}', () => {

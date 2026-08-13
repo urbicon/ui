@@ -14,13 +14,35 @@
   import { employees, factoryColumns, scriptOpen, scriptClose } from '../_data';
 
   const codeFactoryTable = `${scriptOpen}
-  import { Table, TableColumns } from '@urbicon-ui/table';
+  import { Table, TableColumns, type Column } from '@urbicon-ui/table';
 
-  const cols = [
+  type Employee = {
+    id: number;
+    name: string;
+    role: string;
+    status: string;
+    salary: number;
+    joinedAt: string;
+  };
+
+  // Rows are keyed by \`id\` when they have one, by array index otherwise.
+  const items: Employee[] = [
+    {
+      id: 1, name: 'Emma Wilson', role: 'Staff Engineer',
+      status: 'active', salary: 142000, joinedAt: '2021-03-15'
+    }
+    // …
+  ];
+
+  // The annotation is what checks the accessors: with \`Column<Employee>[]\`,
+  // a first argument that is not a key of the row is a type error. Without
+  // it, nothing checks them.
+  const cols: Column<Employee>[] = [
     TableColumns.userAvatar('name', 'Employee'),
     TableColumns.text('role', 'Role'),
-    // StatusBadge knows active/pending/archived and nine more; anything else
-    // reads "Unknown" until you name it here.
+    // StatusBadge knows eleven statuses: active, inactive, pending, online,
+    // offline, processing, completed, failed, draft, published, archived.
+    // Anything else reads "Unknown" until you name it here.
     TableColumns.status('status', 'Status', {
       statusMap: {
         'on-leave': { intent: 'warning', text: 'On leave', icon: true },
@@ -29,17 +51,25 @@
     }),
     TableColumns.number('salary', 'Salary'),
     TableColumns.date('joinedAt', 'Joined'),
-    // showView defaults to false; showDelete to true
+    // Every handler receives the row, and each button follows its own handler:
+    // pass onView and the view button appears, leave onDelete out and no delete
+    // button renders. The showView / showEdit / showDelete flags are for the
+    // two exceptions — rendering a button you handle elsewhere, or hiding one
+    // you do handle.
     TableColumns.actions('Actions', {
-      onView: () => {},
-      onEdit: () => {},
-      showView: true,
-      showDelete: false
+      onView: (employee) => {},
+      onEdit: (employee) => {}
     })
   ];
 ${scriptClose}
 
-<Table {items} columns={cols} />`;
+<Table
+  {items}
+  columns={cols}
+  cardsBelow="36rem"
+  viewDefaults={{ pageSize: 6 }}
+  enableSmartFilter={false}
+/>`;
 
   const navigation = [
     { id: 'playground', title: 'Playground' },
@@ -64,7 +94,10 @@ ${scriptClose}
     { name: 'userAvatar', desc: 'Avatar next to the name' },
     { name: 'link', desc: 'Renders the value as an anchor' },
     { name: 'copy', desc: 'Click-to-copy button, centred and unsortable' },
-    { name: 'custom', desc: 'Text content with styling of your own' },
+    {
+      name: 'custom',
+      desc: 'The value as text, with your own classes, wrapping and click handling'
+    },
     { name: 'actions', desc: 'View / edit / delete buttons; synthetic, no accessor' }
   ];
 </script>
@@ -77,12 +110,12 @@ ${scriptClose}
 
 <SeoMeta
   title="Table Component"
-  description="A data table that sorts, filters, groups and pages your rows, in the browser or against your backend. Falls back to a card list on narrow screens."
+  description="A data table that sorts, filters, groups and pages your rows, in the browser or against your backend. Becomes a card list when its own container gets too narrow for a grid."
 />
 
 <DocsPageLayout
   title="Table"
-  description="A data table that sorts, filters, groups and pages your rows, in the browser or against your backend. Falls back to a card list on narrow screens."
+  description="A data table that sorts, filters, groups and pages your rows, in the browser or against your backend. Becomes a card list when its own container gets too narrow for a grid."
   maxWidth="2xl"
   showToc={true}
   breadcrumbs={[{ label: 'Home', href: resolve('/') }]}
@@ -99,18 +132,23 @@ ${scriptClose}
   <Section id="column-factories" title="Column Factories">
     <div class="space-y-8">
       <p class="text-text-secondary text-sm">
-        <code class="text-text-primary">TableColumns</code> builds a column with the cell component, the
-        alignment and the flags already set, so a typed column is one call instead of six properties.
+        <code class="text-text-primary">TableColumns</code> builds a column with the cell component,
+        the alignment and the flags already set, so a typed column is one call. For a column no
+        factory covers, write the object yourself:
+        <a class="text-primary hover:underline" href={resolve('/table/column-config')}
+          >Column Configuration</a
+        >.
       </p>
 
       <CodeExample
         title="Factory-Powered Table"
-        description="Six columns: an avatar, a text column, a status badge, a number, a date and the action buttons."
+        description="Eight of the nine take (accessor, title, options); actions takes (title, options), since it reads no field."
         code={codeFactoryTable}
       >
         <Table
           items={employees}
           columns={factoryColumns}
+          cardsBelow="36rem"
           viewDefaults={{ pageSize: 6 }}
           enableSmartFilter={false}
         />
@@ -158,7 +196,10 @@ ${scriptClose}
       <p class="text-text-secondary text-sm">
         <strong class="text-text-primary">What the reader can change.</strong> Six settings decide
         which rows they see: search, sort, page, page size, filters and grouping. They live in one
-        view object, and
+        <code class="text-text-primary">view</code> object (<code class="text-text-primary"
+          >viewDefaults</code
+        >
+        sets its starting values), and
         <a class="text-primary hover:underline" href={resolve('/table/url-state')}>URL State</a>
         puts it in the address bar, so a view can be reloaded, shared and read by the server. What each
         setting does is on
@@ -172,7 +213,7 @@ ${scriptClose}
       </p>
 
       <p class="text-text-secondary text-sm">
-        <strong class="text-text-primary">Once it is a working surface.</strong>
+        <strong class="text-text-primary">Once the rows are on screen.</strong>
         <a class="text-primary hover:underline" href={resolve('/table/selection')}>Row Selection</a>
         for acting on rows,
         <a class="text-primary hover:underline" href={resolve('/table/custom-cells')}
@@ -200,7 +241,7 @@ ${scriptClose}
     <CodeExample
       title="Import"
       code={`import { Table, TableColumns } from '@urbicon-ui/table';`}
-      language="svelte"
+      language="typescript"
       preview={false}
     />
     <div class="mt-4">

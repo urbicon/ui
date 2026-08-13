@@ -44,8 +44,16 @@
     onView?: (item: Item) => void;
     canEdit?: (item: Item) => boolean;
     canDelete?: (item: Item) => boolean;
+    /**
+     * Whether to render the button. Unset, each one follows its handler: pass
+     * `onEdit` and the edit button appears, leave it out and it does not. Set
+     * it explicitly only to render a button you handle elsewhere, or to hide
+     * one you do handle.
+     */
     showEdit?: boolean;
+    /** See {@link ActionButtonsProps.showEdit} — follows `onDelete` when unset. */
     showDelete?: boolean;
+    /** See {@link ActionButtonsProps.showEdit} — follows `onView` when unset. */
     showView?: boolean;
     /**
      * Extra actions rendered before the built-in view/edit/delete buttons.
@@ -65,13 +73,13 @@
 
   let {
     item,
-    showEdit = true,
-    showDelete = true,
-    showView = false,
+    showEdit = undefined,
+    showDelete = undefined,
+    showView = undefined,
     extraActions = [],
-    onEdit = () => {},
-    onDelete = () => {},
-    onView = () => {},
+    onEdit = undefined,
+    onDelete = undefined,
+    onView = undefined,
     canEdit = () => true,
     canDelete = () => true,
     idProperty = 'id' as keyof Item,
@@ -113,32 +121,33 @@
     })
   );
 
-  // Count visible buttons
-  const visibleButtonsCount = $derived(() => {
-    let count = 0;
-    if (showView) count++;
-    if (showEdit) count++;
-    if (showDelete) count++;
-    return count;
-  });
+  // A button nobody handles is not a button. `showDelete` used to default to
+  // `true` and `onDelete` to a no-op, so `TableColumns.actions('Actions', {
+  // onEdit })` rendered a delete button that silently did nothing — the docs'
+  // own examples all carried a `showDelete: false` to undo it. The flags still
+  // win when set explicitly; unset, they follow the handler, which makes the
+  // silent state unrepresentable rather than merely discouraged.
+  const viewVisible = $derived(showView ?? onView !== undefined);
+  const editVisible = $derived(showEdit ?? onEdit !== undefined);
+  const deleteVisible = $derived(showDelete ?? onDelete !== undefined);
 
   function handleEdit(event: MouseEvent) {
     event.stopPropagation();
     if (canEdit(item)) {
-      onEdit(item);
+      onEdit?.(item);
     }
   }
 
   function handleDelete(event: MouseEvent) {
     event.stopPropagation();
     if (canDelete(item)) {
-      onDelete(item);
+      onDelete?.(item);
     }
   }
 
   function handleView(event: MouseEvent) {
     event.stopPropagation();
-    onView(item);
+    onView?.(item);
   }
 </script>
 
@@ -154,7 +163,7 @@
 >
   <!-- Button container -->
   <div class="{containerStyles.container()} w-full">
-    {#if showView}
+    {#if viewVisible}
       <Button
         variant="ghost"
         size="xs"
@@ -189,7 +198,7 @@
       {/if}
     {/each}
 
-    {#if showEdit}
+    {#if editVisible}
       <Button
         variant="ghost"
         size="xs"
@@ -205,7 +214,7 @@
       </Button>
     {/if}
 
-    {#if showDelete}
+    {#if deleteVisible}
       <Button
         variant="ghost"
         size="xs"

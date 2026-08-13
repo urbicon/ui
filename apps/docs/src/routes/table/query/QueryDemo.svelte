@@ -124,6 +124,7 @@
   </div>
 
   <Table
+    cardsBelow="32rem"
     {columns}
     source={{ processing: 'server', query: mockServer, debounceMs: 300 }}
     viewDefaults={{ pageSize: 8 }}
@@ -133,7 +134,9 @@
 
   <p class="text-text-tertiary text-xs">
     Sort a column, change the page, or search (try “ada”, or “zz” for the empty state). Every
-    interaction issues a fresh request. Type fast at 1.2 s latency to see superseded requests being
-    aborted: the counter climbs, but only the newest response renders.
+    interaction issues a fresh request; a fast typist still issues only one, because the search
+    waits 300 ms and the fetch another 300 on top. Set the latency to 1.2 s and click through three
+    sorts to watch requests supersede each other: the counter climbs, only the newest response
+    renders.
   </p>
 </div>

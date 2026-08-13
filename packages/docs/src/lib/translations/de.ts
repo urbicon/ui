@@ -68,7 +68,7 @@ export default {
   codeExampleLabeled: 'Code-Beispiel: {{title}}',
 
   // PlaygroundConfigurator
-  variantAxisTooltip: 'Stil-Variante (tailwind-variants)',
+  variantAxisTooltip: 'Stil-Variante',
   defaultBadge: 'Standard',
   resetControlTitle: 'Standard: {{value}}. Klicken zum Zurücksetzen.',
   resetControlLabel: '{{label}} auf den Standard zurücksetzen',

@@ -9,6 +9,41 @@ import { TABLE_DIMENSIONS, TABLE_INDICATORS, TABLE_STATES } from './table.system
 
 /**
  * TABLE HEADER VARIANTS
+ *
+ * **No `align` axis, on purpose.** A header does not follow its column's
+ * alignment: a right-aligned number column carries a left-aligned title.
+ *
+ * Whether it *should* is an open design question, not a settled one — a steady
+ * left-aligned header row reads more calmly, while typographic practice for
+ * numeric columns is the opposite, and the field is split (MUI exposes a
+ * separate `headerAlign`; AG Grid leaves the header alone; Ant Design couples
+ * them). If it is ever wanted here, an opt-in `headerAlign` on the column is
+ * the shape to reach for, not a silent coupling to `align`.
+ *
+ * There was an axis, and it never moved a pixel — it wrote `justify-*` onto the
+ * box holding the title text, which is exactly as wide as that text. Four
+ * attempts at repairing it (2026-08-14) each uncovered another layer, because
+ * the header and the body cell are two separately grown chains:
+ *
+ *   - the cell puts its content in a container with its own horizontal padding;
+ *     the header has no counterpart, so titles sit 8px (at `md`) inside their
+ *     own column's text at every alignment;
+ *   - the header carries chrome the cell does not — a menu button that held
+ *     40px of every cell in the flow and painted over the title out of it, a
+ *     sort chevron, indicator dots — and each of them shifts the title;
+ *   - the two padding scales live in different files as independent literals,
+ *     so any fix that matches them by hand is a second copy that can drift
+ *     (and did, immediately, for snippet cells and at `size="lg"`).
+ *
+ * The first of those is worth separating out: it is not about alignment at all.
+ * A left-aligned header title already starts 8px inside its own column's text,
+ * in every table, because only the cell has that inner step. That one is a
+ * plain defect whoever decides the alignment question.
+ *
+ * Making alignment work would mean deriving one inner measure for both chains
+ * and giving the header chrome a place that does not move the text. That is a
+ * layout change with its own wave, not a variant value — so the axis is gone
+ * rather than sitting here looking available.
  */
 export const tableHeaderVariants = tv({
   slots: {
@@ -25,13 +60,13 @@ export const tableHeaderVariants = tv({
     ],
     // compatibility: old code used `cellContent`
     cellContent: ['flex items-center justify-between gap-2'],
-    // No justify-between: the align axis (default left) always supplies
-    // the justify-* for this slot.
-    content: ['flex items-center gap-2'],
     // compatibility: old code used `titleContainer` and `titleContent`
     titleContainer: ['flex items-center flex-1'],
     titleContent: ['flex items-center space-x-2'],
-    title: ['flex items-center gap-2 flex-1'],
+    // No `flex-1` here: `titleContent` around it is content-width, so there is
+    // never a spare pixel for this box to grow into. It was the reason the
+    // align axis looked plausible while doing nothing.
+    title: ['flex items-center gap-2'],
     sortIcon: ['text-text-tertiary', 'transition-transform duration-[var(--blocks-duration-fast)]'],
     indicators: ['flex items-center gap-1'],
     // compatibility: additional action indicators under header
@@ -61,21 +96,6 @@ export const tableHeaderVariants = tv({
       lg: {
         cell: [TABLE_DIMENSIONS.padding.headerCell.lg, TABLE_DIMENSIONS.height.header.lg],
         title: 'text-base'
-      }
-    },
-
-    align: {
-      left: {
-        content: 'justify-start',
-        title: 'justify-start'
-      },
-      center: {
-        content: 'justify-center',
-        title: 'justify-center'
-      },
-      right: {
-        content: 'justify-end',
-        title: 'justify-end flex-row-reverse'
       }
     },
 
@@ -124,7 +144,6 @@ export const tableHeaderVariants = tv({
 
   defaultVariants: {
     size: 'md',
-    align: 'left',
     sortable: false,
     sorted: 'none',
     sticky: false
@@ -313,6 +332,76 @@ export type HeaderIndicatorVariantProps = VariantProps<typeof headerIndicatorVar
  *   --blocks-table-avail-top  (set internally; container's document-top offset,
  *                              consumed by the `contained` height cap)
  */
+
+/**
+ * ── Where the table stops being a grid and becomes a list of records ─────────
+ *
+ * The widths the switch offers.
+ *
+ * The step is a property of the COLUMNS, not of the component: a four-column
+ * index fits in 29rem, a twelve-column report does not fit in 60. One constant
+ * cannot serve both, and until this axis existed there was only one — 48rem,
+ * carried over unchanged from the viewport era (`md:hidden`), where it meant
+ * "is this a phone". Read against a box it means something else entirely, and
+ * the landing page's own 32rem inventory column was rendering cards while its
+ * four columns had room to spare.
+ *
+ * Spelled out rather than derived from the map (`keyof typeof …`), because this
+ * name is what a reader meets: it is the type of `TableProps.cardsBelow`, so
+ * docs-gen prints it on the component page, in `llms-full.txt` and in the MCP
+ * catalog. Derived, all three showed `keyof typeof CARDS_BELOW_STEPS` pointing
+ * at a module-private const — a type resolving to nothing anyone can read, and
+ * no way left to discover the seven values.
+ */
+export type CardsBelowStep = '24rem' | '28rem' | '32rem' | '36rem' | '42rem' | '48rem' | '56rem';
+
+/**
+ * The classes each step compiles to.
+ *
+ * Typed as a `Record` of {@link CardsBelowStep}, so the union above is the
+ * source and this map cannot drift from it: a width added to the type without
+ * classes fails to compile, and classes without a width in the type are an
+ * excess-property error. `Table.svelte` validates incoming values against
+ * `CARDS_BELOW_VALUES`, read off this map — so the accepted values, the
+ * compiled classes and the type are one decision in three places that the
+ * compiler keeps agreeing.
+ *
+ * Each step carries the two complementary halves of one switch, and they have
+ * to stay each other's exact complement — the failure mode of two copies is
+ * that BOTH layouts render or NEITHER does, and nothing about either file would
+ * look wrong. Measured (Tailwind 4.3.3): `@max-[28rem]` is `(width < 28rem)`
+ * and `@min-[28rem]` is `(width >= 28rem)`, so the halves meet exactly, with no
+ * width belonging to both or to neither.
+ *
+ * The classes must stay literal: Tailwind finds class names by scanning source
+ * text, so `@max-[${step}]:hidden` built from a constant would compile to no
+ * CSS at all — a "single source of truth" that silently renders both layouts at
+ * once.
+ *
+ * There used to be a third literal per step — a `min-w` on the table, one step
+ * lower, meant to stop the grid being squeezed to mush. It could never fire:
+ * the grid only renders at or above its own step, so the container is already
+ * wider than a floor set below it. Removed rather than kept as decoration.
+ */
+const CARDS_BELOW_STEPS: Record<CardsBelowStep, { desktopOnly: string; mobileOnly: string }> = {
+  '24rem': { desktopOnly: '@max-[24rem]:hidden', mobileOnly: '@min-[24rem]:hidden' },
+  '28rem': { desktopOnly: '@max-[28rem]:hidden', mobileOnly: '@min-[28rem]:hidden' },
+  '32rem': { desktopOnly: '@max-[32rem]:hidden', mobileOnly: '@min-[32rem]:hidden' },
+  '36rem': { desktopOnly: '@max-[36rem]:hidden', mobileOnly: '@min-[36rem]:hidden' },
+  '42rem': { desktopOnly: '@max-[42rem]:hidden', mobileOnly: '@min-[42rem]:hidden' },
+  '48rem': { desktopOnly: '@max-[48rem]:hidden', mobileOnly: '@min-[48rem]:hidden' },
+  '56rem': { desktopOnly: '@max-[56rem]:hidden', mobileOnly: '@min-[56rem]:hidden' }
+};
+
+/**
+ * The same widths at runtime. `Table.svelte` reads this to reject a step it has
+ * no classes for: `tv()` skips a variant value it does not recognise, which
+ * would leave both halves of the switch empty and render the grid and the card
+ * list at the same time. TypeScript cannot catch a value arriving from plain
+ * JavaScript, a config object or a CMS field.
+ */
+export const CARDS_BELOW_VALUES = Object.keys(CARDS_BELOW_STEPS) as CardsBelowStep[];
+
 export const tableContainerVariants = tv({
   slots: {
     // `@container` is what makes the desktop-table/mobile-record switch measure
@@ -336,20 +425,16 @@ export const tableContainerVariants = tv({
     // nothing. That dead block is gone with this.
     container: ['@container flex flex-col gap-2 w-full'],
 
-    // ── The layout switch, both halves in one place ──────────────────────────
+    // ── The layout switch ────────────────────────────────────────────────────
     //
-    // `@3xl` is 48rem on the container declared above. The two lines are one
-    // decision and have to stay each other's exact complement, so they are
-    // written down together instead of being hand-typed into `TableDesktop` and
-    // `TableMobile` — the failure mode of two copies is that BOTH layouts render
-    // or NEITHER does, and nothing about either file would look wrong.
-    // `table.variants.test.ts` pins that they name the same step with opposite
-    // polarity.
+    // Which step the switch happens at is the `cardsBelow` axis, whose steps
+    // live in `CARDS_BELOW_STEPS` above — both halves of each side by side.
+    // These two slots are empty here so that no step has a second home.
     //
-    // The classes must stay literal here: Tailwind finds class names by scanning
-    // source text, so a `@${STEP}:hidden` built from a constant would compile to
-    // no CSS at all — a "single source of truth" that silently renders both
-    // layouts at once. One place, two literals, one test is the honest shape.
+    // Empty is also why the value is validated before it reaches `tv()`: an
+    // unrecognised step leaves both of these at `[]`, and empty complements
+    // hide nothing, so the grid and the card list render at once.
+    // `table.variants.test.ts` pins the complement for every step.
     //
     // The two roots also carry `data-table-layout="desktop" | "mobile"` — that
     // is the hook to query them by. It used to be a `desktop-only` /
@@ -357,8 +442,8 @@ export const tableContainerVariants = tv({
     // strings into a tv() config is what surfaced that, because `variants:lint`
     // compiles what a config declares and reports whatever emits no rule. A
     // marker is an attribute, not a class that pretends to style something.
-    desktopOnly: ['@max-3xl:hidden'],
-    mobileOnly: ['@3xl:hidden'],
+    desktopOnly: [],
+    mobileOnly: [],
 
     // The toolbar inherits the scrollArea bg instead of setting its own
     // surface-elevated — otherwise a flush table would show a visibly
@@ -401,12 +486,17 @@ export const tableContainerVariants = tv({
         table: 'text-base'
       }
     },
-    responsive: {
-      true: {
-        table: 'min-w-[600px]'
-      },
-      false: {}
-    },
+    // ── Where the table stops being a grid and becomes a list of records ─────
+    //
+    // The step is a property of the COLUMNS, not of the component: a four-column
+    // index fits in 29rem, a twelve-column report does not fit in 60. One
+    // constant cannot serve both, and until this axis existed there was only
+    // one — 48rem, carried over unchanged from the viewport era (`md:hidden`),
+    // where it meant "is this a phone". Read against a box it means something
+    // else entirely, and the landing page's own 32rem inventory column was
+    // rendering cards while its four columns had room to spare.
+    //
+    cardsBelow: CARDS_BELOW_STEPS,
     stickyToolbar: {
       true: {
         toolbar: [
@@ -450,7 +540,7 @@ export const tableContainerVariants = tv({
   defaultVariants: {
     variant: 'flush',
     size: 'md',
-    responsive: true,
+    cardsBelow: '48rem',
     stickyToolbar: false,
     contained: false
   }

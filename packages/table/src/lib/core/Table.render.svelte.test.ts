@@ -47,16 +47,55 @@ const ROWS = [
   { id: 3, name: 'Radia', amount: 300 }
 ];
 
+/**
+ * Stub a layout property jsdom does not compute, and hand back the undo.
+ *
+ * The prototype is looked up rather than assumed, because assuming it is how
+ * the previous version of the virtualization test leaked: it captured
+ * `clientHeight` from `HTMLElement.prototype`, where jsdom does not define it
+ * (it is on `Element.prototype`), so the captured descriptor was `undefined`,
+ * the guarded restore never ran, and every element in the worker reported a
+ * height of 400 for the rest of the file. `offsetHeight`, meanwhile, really is
+ * on `HTMLElement.prototype` — the two differ, which is exactly why neither
+ * should be written down here.
+ */
+function stubLayoutProp(
+  prop: 'clientHeight' | 'offsetHeight',
+  value: number | ((el: HTMLElement) => number)
+): () => void {
+  let proto: object | null = HTMLElement.prototype;
+  while (proto && !Object.getOwnPropertyDescriptor(proto, prop)) {
+    proto = Object.getPrototypeOf(proto);
+  }
+  if (!proto) throw new Error(`jsdom defines no \`${prop}\` to stub.`);
+
+  const owner = proto;
+  const original = Object.getOwnPropertyDescriptor(owner, prop);
+  if (!original) throw new Error(`jsdom defines no \`${prop}\` to stub.`);
+
+  const read = typeof value === 'function' ? value : () => value;
+  Object.defineProperty(owner, prop, {
+    configurable: true,
+    get(this: HTMLElement) {
+      return read(this);
+    }
+  });
+  return () => Object.defineProperty(owner, prop, original);
+}
+
 let target: HTMLElement | undefined;
 let comp: Record<string, unknown> | undefined;
 
 function mountTable(props: Record<string, unknown> = {}) {
   target = document.createElement('div');
   document.body.appendChild(target);
-  comp = mount(TableHarness, { target, props: { items: ROWS, ...props } }) as Record<
-    string,
-    unknown
-  >;
+  // The object is handed over as-is rather than spread into a fresh one:
+  // spreading a `$state` props object copies the values out of the proxy, so a
+  // test that mounts and then assigns (`props.items = …`) would be writing to
+  // something the component no longer reads. Defaulting in place keeps both
+  // call styles on this one helper.
+  if (!('items' in props)) props.items = ROWS;
+  comp = mount(TableHarness, { target, props }) as Record<string, unknown>;
   flushSync();
   return target;
 }
@@ -117,17 +156,14 @@ describe('Table — mounted', () => {
   });
 
   it('a later items prop reaches the rendered rows', () => {
-    const props = $state({ items: ROWS });
-    target = document.createElement('div');
-    document.body.appendChild(target);
-    comp = mount(TableHarness, { target, props }) as Record<string, unknown>;
-    flushSync();
-    expect(target.querySelectorAll('tbody tr').length).toBe(3);
+    const props = $state<Record<string, unknown>>({ items: ROWS });
+    const el = mountTable(props);
+    expect(el.querySelectorAll('tbody tr').length).toBe(3);
 
     props.items = [...ROWS, { id: 4, name: 'Barbara', amount: 400 }];
     flushSync();
-    expect(target.querySelectorAll('tbody tr').length).toBe(4);
-    expect(target.textContent).toContain('Barbara');
+    expect(el.querySelectorAll('tbody tr').length).toBe(4);
+    expect(el.textContent).toContain('Barbara');
   });
 });
 
@@ -392,5 +428,229 @@ describe('Table — the view object, mounted', () => {
 
     expect(fetches).toBe(1);
     expect(el.textContent).toContain('Fetched');
+  });
+
+  // The banner's counts are a sentence, and a sentence is only ever right in
+  // the rendered output: written as three `{#if}` blocks with a comma between
+  // them it read "2 new , 1 updated", because the whitespace the source needs
+  // to stay readable lands in front of the comma. Asserted on textContent with
+  // its whitespace collapsed the way a reader sees it — the defect is invisible
+  // to any assertion that normalises more than the browser does.
+  it('joins the live-update counts without a space before the comma', async () => {
+    let ctx: TableContext | undefined;
+    const el = mountTable({
+      enableLiveUpdates: true,
+      onReady: (c: TableContext) => (ctx = c)
+    });
+
+    ctx?.pushInsert({ id: 4, name: 'Karen', amount: 400 });
+    ctx?.pushInsert({ id: 5, name: 'Barbara', amount: 500 });
+    ctx?.pushUpdate(1, { amount: 150 });
+    flushSync();
+
+    const banner = el.querySelector('[data-testid="live-update-banner"]');
+    expect(banner).toBeTruthy();
+    const text = (banner?.textContent ?? '').replace(/\s+/g, ' ').trim();
+
+    expect(text).toContain('2');
+    expect(text).not.toMatch(/\s+,/);
+  });
+
+  // The header follows its column's `align`, like the body cells below it.
+  // `tableHeaderVariants` has carried the axis since v1; `TableHead` never
+  // passed it, so a right-aligned numeric column had its title over the left
+  // edge of its own numbers. `scope="col"` is asserted here too: HTML infers it
+  // for a single header row, and the docs claimed it for years, but nothing in
+  // the package emitted it.
+  // `scope="col"` only. A header does NOT follow its column's alignment — the
+  // axis that claimed to was removed rather than left in place doing nothing;
+  // see the note on `tableHeaderVariants`. This test used to assert alignment
+  // classes too, and passed through several shapes of "the class is emitted
+  // somewhere" while the header sat over the wrong edge of its own numbers,
+  // which is the reason the claim is gone rather than weakened.
+  //
+  // `scope` is worth its own line: HTML infers it for a single header row, and
+  // the docs claimed it for years, but nothing in the package emitted it.
+  it('marks every header cell as a column header', () => {
+    const el = mountTable({
+      columns: [
+        { accessor: 'name', title: 'Name' },
+        { accessor: 'amount', title: 'Amount', align: 'right' }
+      ]
+    });
+
+    const headers = [...el.querySelectorAll('thead th')];
+    expect(headers.length).toBeGreaterThan(0);
+    expect(headers.every((th) => th.getAttribute('scope') === 'col')).toBe(true);
+  });
+
+  // Keyboard column reorder lives on the `<th>`, but only a *focusable* child
+  // ever sends it a key event. That child's tab stop used to follow
+  // `sortable` alone, so Shift+Arrow reached sortable columns and nothing else
+  // — status and action columns, the ones a reader most wants to move, could
+  // be dragged with a mouse and not moved at all from the keyboard.
+  it('gives every header a tab stop when columns can be reordered', () => {
+    const columns = [
+      { accessor: 'name', title: 'Name', sortable: true },
+      { accessor: 'amount', title: 'Amount', sortable: false }
+    ];
+
+    const withReorder = mountTable({ columns, enableColumnReorder: true });
+    const reorderStops = [...withReorder.querySelectorAll('thead th [tabindex="0"]')];
+    expect(reorderStops.length).toBe(2);
+
+    // Reachable is not the same as usable. Each stop has to say what it can do:
+    // the column title is its accessible name, and the shortcut is the part
+    // nothing in the markup could imply. Counting stops alone would have gone
+    // green over a stop that announces a name and no capability.
+    for (const stop of reorderStops) {
+      expect(stop.getAttribute('aria-keyshortcuts')).toBe('Shift+ArrowLeft Shift+ArrowRight');
+      expect(stop.textContent?.trim()).not.toBe('');
+    }
+
+    unmount(comp as Record<string, unknown>);
+    target?.remove();
+
+    // Without the feature an unsortable header stays out of the tab order:
+    // a tab stop that does nothing is its own defect.
+    const plain = mountTable({ columns });
+    const plainStops = [...plain.querySelectorAll('thead th [tabindex="0"]')];
+    expect(plainStops.length).toBe(1);
+    // …and the sortable one left over advertises no shortcut it does not have.
+    expect(plainStops[0]?.getAttribute('aria-keyshortcuts')).toBeNull();
+  });
+
+  // The virtualized window is offset on the table, never on the rows. This is
+  // a structural assertion because the symptom is a layout one and jsdom has no
+  // layout: `position: absolute` on a `<tr>` blockifies it, and a blockified
+  // row leaves the table's column tracks — measured in a browser on a
+  // four-column table with no explicit widths, header 213/213/213/213 against
+  // body 61/101/84/33. Keeping the rows unpositioned is what keeps them
+  // `table-row`, so this pins the mechanism rather than the pixels.
+  it('offsets the virtualized window on the table, not on its rows', () => {
+    // jsdom reports every element as zero-height, and the virtualizer renders
+    // the rows that fit in the viewport — without a height it renders none and
+    // the assertions below would pass over an empty list.
+    const restoreViewport = stubLayoutProp('clientHeight', 400);
+    try {
+      const el = mountTable({ virtualized: true, virtualHeight: '400px' });
+
+      const rows = [...el.querySelectorAll('tbody tr')];
+      expect(rows.length).toBeGreaterThan(0);
+      for (const row of rows) {
+        expect(row.getAttribute('style') ?? '').not.toContain('position: absolute');
+      }
+
+      const bodyTable = [...el.querySelectorAll('table')].find((t) => !t.querySelector('thead'));
+      expect(bodyTable?.getAttribute('style') ?? '').toContain('translateY');
+    } finally {
+      restoreViewport();
+    }
+  });
+
+  // A `cardsBelow` the variant config has no classes for used to render BOTH
+  // layouts, one under the other: `tv()` skips an unrecognised variant value,
+  // which leaves the two halves of the switch empty, and empty complements hide
+  // nothing. The union type rules it out at a typed call site and nowhere else
+  // — plain JavaScript, a config object and a CMS field all reach this prop.
+  it('falls back to a known step when handed one it has no classes for', () => {
+    const warnings: string[] = [];
+    const realWarn = console.warn;
+    console.warn = (...args: unknown[]) => void warnings.push(String(args[0]));
+
+    try {
+      const el = mountTable({ cardsBelow: '40rem' });
+
+      const desktop = el.querySelector('[data-table-layout="desktop"]');
+      const mobile = el.querySelector('[data-table-layout="mobile"]');
+      expect(desktop).not.toBeNull();
+      expect(mobile).not.toBeNull();
+
+      // Both roots carry a container-hidden rule, which is what makes them
+      // complements: each hides on the other's side of the step. Neither
+      // carrying one is the failure — that is the state where both render.
+      const hidden = [desktop, mobile].filter((root) =>
+        /@(max|min)-\[[^\]]+\]:hidden/.test(root?.className ?? '')
+      );
+      expect(hidden).toHaveLength(2);
+
+      // The fallback is only defensible because it is loud. Without this the
+      // whole `console.warn` block could be deleted and the suite stay green.
+      expect(warnings.some((line) => line.includes('40rem') && line.includes('48rem'))).toBe(true);
+    } finally {
+      console.warn = realWarn;
+    }
+  });
+
+  // The stride the window is offset by has to be the height a row actually
+  // renders at. It cannot be asserted in pixels here — jsdom lays nothing out,
+  // which is precisely why the assumed height and the rendered one could
+  // disagree by 16px per row for as long as they did. So this pins the wiring
+  // instead: change what a row measures, and the scroll spacer has to follow.
+  it('sizes the scroll spacer from the measured row height, not from a constant', () => {
+    const restoreViewport = stubLayoutProp('clientHeight', 400);
+    const restoreRow = stubLayoutProp('offsetHeight', 20);
+    try {
+      const items = Array.from({ length: 1000 }, (_, i) => ({
+        id: i,
+        name: `Row ${i}`,
+        amount: i
+      }));
+      const el = mountTable({ items, virtualized: true, virtualHeight: '400px' });
+
+      const scroller = el.querySelector<HTMLElement>('[data-testid="virtual-scroll-container"]');
+      const spacer = scroller?.firstElementChild as HTMLElement | null;
+
+      // 1000 rows measuring 20px each. The derived starting height (`h-10`, so
+      // 40px) would have produced 40 000px — the measurement has to win.
+      expect(spacer?.style.height).toBe('20000px');
+    } finally {
+      restoreRow();
+      restoreViewport();
+    }
+  });
+
+  // An empty virtualized table renders the EmptyState in a `<tr>` of its own,
+  // and that row is several times the height of a data row. Measuring whatever
+  // `tbody tr` happens to match would latch onto it and — with no dependency on
+  // the row count and a container whose height is pinned by `virtualHeight` —
+  // never look again: the spacer would stay `count * emptyStateHeight` and
+  // scrolling would stride five rows for every one.
+  it('does not take its row height from the empty state', () => {
+    const restoreViewport = stubLayoutProp('clientHeight', 400);
+    // A data row and the empty state have to measure differently, or the test
+    // cannot tell which one the measurement read.
+    //
+    // 30, deliberately NOT 40: `ROW_HEIGHTS.md` is 40, so a data row stubbed at
+    // 40 makes "measured a data row" and "never measured anything and fell back"
+    // produce the same spacer. With that value the re-measure dependency was
+    // unpinned — deleting it from TableDesktop left this green.
+    const restoreRow = stubLayoutProp('offsetHeight', (el) =>
+      el.hasAttribute('data-row-index') ? 30 : 200
+    );
+    try {
+      const props = $state<Record<string, unknown>>({
+        items: [],
+        virtualized: true,
+        virtualHeight: '400px'
+      });
+      const el = mountTable(props);
+
+      // Rows arrive after the empty state has been on screen.
+      props.items = Array.from({ length: 100 }, (_, i) => ({ id: i, name: `R${i}`, amount: i }));
+      flushSync();
+
+      const scroller = el.querySelector<HTMLElement>('[data-testid="virtual-scroll-container"]');
+      const spacer = scroller?.firstElementChild as HTMLElement | null;
+
+      // 100 data rows at 30px. Latched onto the 200px empty-state row it reads
+      // 20000px; never re-measured at all it reads 4000px, the `ROW_HEIGHTS.md`
+      // fallback. Only a fresh measurement of a data row gives 3000px.
+      expect(spacer?.style.height).toBe('3000px');
+      expect(el.querySelectorAll('tbody tr[data-row-index]').length).toBeGreaterThan(0);
+    } finally {
+      restoreRow();
+      restoreViewport();
+    }
   });
 });
