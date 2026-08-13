@@ -128,11 +128,12 @@ export interface ButtonProps extends ButtonVariants, Omit<HTMLButtonAttributes, 
    * button is neither disabled nor loading. Inside a ButtonGroup, the
    * group's `mint` always wins over this prop.
    *
-   * `mint="none"` also drops the press cue — the sink under a held pointer —
-   * leaving a button that reacts in colour and depth but never moves. That is
-   * what a connected ButtonGroup renders (it sets `mint="none"` on its
-   * children, so the shared seam stays put on click) and what a large or
-   * full-width trigger row wants, where the sink reads as a wobble.
+   * `mint="none"` also flattens the press sink — the dip under a held pointer —
+   * leaving a button that reacts in colour and depth but never moves. Every
+   * ButtonGroup renders its children that way by default (its own `mint`
+   * defaults to `'none'` and wins over this prop), which is what keeps a
+   * connected group's shared seam still on click; it is also what a large or
+   * full-width trigger row wants, where the dip reads as a wobble.
    * @default 'scale'
    * @summary Decorative feedback effect on the button — held on hover, or a one-shot on click.
    */

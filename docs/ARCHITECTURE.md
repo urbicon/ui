@@ -440,6 +440,23 @@ Svelte transitions need numeric inputs, so components call `getOverlayMotion(ove
 rather than hard-coding numbers. It resolves the live CSS values via `getComputedStyle`,
 parses ms/s/px, and falls back to the JS defaults on the server.
 
+### Press cue
+
+One more motion token sits outside that family, in the same file:
+
+| Custom property | Default | Purpose |
+| --- | --- | --- |
+| `--blocks-press-scale` | `0.98` | How far a held control dips (`1` disables) |
+
+Read by Button (its `active:` cue and its modelled `pressed` state), Badge's remove
+control and the Drawer / Dialog close buttons — the same ghost-Button fold. Three things
+set it: the theme, the reduced-motion block (to `1`, alongside the overlay scale), and
+Button itself, which writes `1` on an element whose `mint` is off so `mint="none"` also
+means "does not move". Only the movement goes either way; the paired `active:shadow-*`
+step keeps reporting the press, which matters on the flat variants that have no fill to
+darken. Interactive Badge/Avatar (`0.95`) and Table rows (`0.995`) are separate gestures
+and stay literals.
+
 The **anchored, native-popover surfaces** deliberately do *not* run Svelte transitions —
 their show/hide is owned by `showPopover()`/`hidePopover()` and native light dismiss, which
 no JS transition can animate. They run CSS-native motion on faster token pairs, both

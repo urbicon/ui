@@ -55,12 +55,19 @@
   const effectiveMint = $derived(groupCtx?.mint ?? mint);
   const effectiveActive = $derived(registration?.isSelected ?? active);
   const effectivePressed = $derived(pressed);
-  // `mint` is the button's micro-interaction switch, and the press cue is a
+  // `mint` is the button's micro-interaction switch, and the press SINK is a
   // micro-interaction — so `mint="none"` silences both (#192). Read through the
   // same predicate `mintAttachment` uses, so the styling can't disagree with
-  // what the attachment does. A connected ButtonGroup sets `mint="none"` on its
-  // children, which is what stops the seam from breaking on click.
-  const pressCue = $derived(!isMintOff(effectiveMint));
+  // what the attachment does. Every ButtonGroup passes `mint="none"` to its
+  // children by default, which is what stops a connected group's shared seam
+  // from breaking on click and a full-width trigger row from wobbling.
+  //
+  // Only the sink goes: `active:shadow-*` stays, so a quiet button still reports
+  // the press in depth (and a filled one in colour). Steering it by rewriting
+  // the press token locally, instead of via a variant axis, keeps the switch out
+  // of the public prop surface — the axis would be promoted to a documented
+  // `<Button pressCue>` prop that does nothing but stamp a stray DOM attribute.
+  const pressScaleOverride = $derived(isMintOff(effectiveMint) ? '1' : undefined);
   const ariaProps = $derived(registration?.getButtonProps() ?? {});
 
   // Variant props feed both the tv() style computation and the slot-class
@@ -73,7 +80,6 @@
     size: effectiveSize,
     loading: loading || undefined,
     loadingPlacement,
-    pressCue,
     pressed: effectivePressed || undefined,
     active: effectiveActive || undefined,
     buttonGroupConnected: groupCtx?.connected || undefined
@@ -132,6 +138,7 @@
   {...restProps}
   {type}
   disabled={effectiveDisabled}
+  style:--blocks-press-scale={pressScaleOverride}
   class={[
     'blocks-button',
     `blocks-intent-${effectiveIntent}`,

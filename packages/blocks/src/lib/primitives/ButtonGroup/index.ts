@@ -80,7 +80,13 @@ export interface ButtonGroupProps extends Omit<HTMLAttributes<HTMLDivElement>, '
   /**
    * Micro-interaction preset applied to each child Button (per-item via
    * context); overrides each button's own `mint` prop.
+   *
+   * The `'none'` default also flattens each button's press sink, so a connected
+   * group's shared seam stays still on click instead of one segment shrinking
+   * away from its neighbours. Buttons keep reporting the press in depth and
+   * colour. Name any real mint here to give the whole group its movement back.
    * @default 'none'
+   * @summary Decorative feedback effect on every button in the group.
    */
   mint?: MintProp;
   /** Fired when selection changes. Receives the new value and an array of all selected values. */

@@ -29,6 +29,27 @@
 @source '../primitives';
 @source '../components';
 
+/* === UA POPOVER RESET (#196) ===
+   The UA stylesheet paints every `[popover]` with `background-color: Canvas` —
+   pure white, square, and NOT one of our tokens. Tailwind's preflight already
+   flattens that block's border and padding but leaves the fill, so a popover
+   that paints its own surface on an inner element (Menu renders its wrapping
+   Popover `unstyled` to avoid a double surface) shows four white corners
+   sticking out behind the rounded panel, plus a hairline where #ffffff meets
+   the #fefdfa of `surface-elevated`.
+
+   `@layer base`, so it loses to every utility: a styled Popover's own
+   `bg-surface-elevated` (an `utilities`-layer rule) still wins, as does any
+   consumer rule. It is deliberately on the attribute rather than on a class of
+   ours — the defect belongs to the popover API, and every component in the
+   library that reaches for it (Popover, Menu, Select, Combobox, Tooltip,
+   DatePicker) would otherwise need its own copy of the same reset. */
+@layer base {
+  [popover] {
+    background-color: transparent;
+  }
+}
+
 /* === GLOBAL DESIGN SYSTEM CLASSES === */
 
 /* Screen reader only content */

@@ -62,22 +62,33 @@ describe('buttonVariants', () => {
       expect(base).not.toContain('active:scale-[0.98]');
     });
 
-    it('drops the sink AND its paired shadow step when pressCue is off', () => {
-      const quiet = buttonVariants({ pressCue: false }).base();
-      expect(quiet).not.toContain('active:scale-');
-      expect(quiet).not.toContain('active:shadow-');
-      // Colour still reacts — `mint="none"` quiets the movement, not the button.
-      expect(
-        buttonVariants({ pressCue: false, intent: 'primary', variant: 'filled' }).base()
-      ).toContain('active:bg-primary-active');
+    it('keeps the press DEPTH step on every variant, flat ones included', () => {
+      // The switch takes the movement out, not the feedback. A quiet outlined or
+      // ghost button — `outlined` is the ButtonGroup default — has no fill to
+      // darken, so without this step a click on it would report nothing at all.
+      for (const variant of ['filled', 'outlined', 'ghost', 'text'] as const) {
+        expect(buttonVariants({ variant }).base()).toContain(
+          'active:shadow-[var(--blocks-shadow-sm)]'
+        );
+      }
     });
 
-    it('leaves the modelled `pressed` state alone — that is not click feedback', () => {
-      // A toolbar toggle that reports "down" must keep reporting it even where
-      // the press cue is silenced.
-      const held = buttonVariants({ pressCue: false, pressed: true }).base();
+    it('shares the token with the modelled `pressed` state', () => {
+      // Reduced motion takes the size change out of both; brightness + shadow
+      // keep carrying the modelled state, which is not click feedback and so is
+      // never silenced by `mint="none"`.
+      const held = buttonVariants({ pressed: true }).base();
       expect(held).toContain('scale-[var(--blocks-press-scale)]');
       expect(held).toContain('brightness-90');
+    });
+
+    it('exposes no variant axis for the switch — it must not become a public prop', () => {
+      // Every tv() axis is promoted to a documented prop by docs-gen and reaches
+      // the element through restProps; a `pressCue` axis would therefore ship as
+      // `<Button pressCue>` and stamp a stray `presscue` attribute while doing
+      // nothing (Button never destructures it). The token carries the switch
+      // instead, so there is no axis to promote.
+      expect(Object.keys(buttonVariants.config.variants ?? {})).not.toContain('pressCue');
     });
 
     it('keeps the per-intent focus ring after the depth cues moved off the intent axis', () => {

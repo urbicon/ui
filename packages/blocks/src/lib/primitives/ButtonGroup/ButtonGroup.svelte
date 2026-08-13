@@ -46,8 +46,11 @@
   // a stacked group of text buttons domes top and bottom into a lozenge (#194).
   // Only the unset default softens; an explicit `tier="commit"` still gets the
   // capsule, which is what a narrow icon-only stack wants — a judgement about
-  // the content that CSS cannot make. Disconnected groups have no caps at all,
-  // so they keep the pill default their individual buttons read as.
+  // the content that CSS cannot make. A wrapping Toolbar's TierContext counts as
+  // set for the same reason (it is a deliberate setting one level out), so a
+  // vertical group inside `<Toolbar tier="commit">` is a capsule too; Toolbar
+  // itself defaults to `modify`. Disconnected groups have no caps at all, so
+  // they keep the pill default their individual buttons read as.
   const outerTierCtx = getTierContext();
   const defaultTier = $derived(connected && orientation === 'vertical' ? 'modify' : 'commit');
   const effectiveTier = $derived(tier ?? outerTierCtx?.tier ?? defaultTier);

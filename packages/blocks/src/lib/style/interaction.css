@@ -48,14 +48,22 @@
   --blocks-guide-scrim: oklch(0 0 0 / 0.5);
 
   /* === PRESS CUE (#192) ===
-     How far a commit surface sinks under the pointer while it is held —
-     Button's `active:` cue, the same one Badge, Drawer and the Dialog close
-     control mirror. A token rather than a literal for two reasons: it is the
-     one place `prefers-reduced-motion` can take the movement out (below, the
-     way `--blocks-overlay-panel-scale-start` does for panels), and a brand
-     that wants a flatter or deeper press retunes every surface at once.
-     Set it to `1` to remove the sink globally while keeping the depth cue
-     (the paired shadow step), which is what reduced motion does. */
+     How far a surface sinks under the pointer while it is held. Four controls
+     read it — Button (`active:` and the modelled `pressed` state), Badge's
+     remove control, and the Drawer / Dialog close buttons, which are the same
+     ghost-Button fold — so a brand retunes that family in one place.
+
+     A token rather than a literal because it is also the only place the sink
+     can be switched off without a second, competing declaration: reduced motion
+     flattens it to 1 below (the way `--blocks-overlay-panel-scale-start` already
+     does for panels), and Button rewrites it to 1 on itself when its `mint` is
+     off. Setting it to `1` removes the movement while leaving the paired shadow
+     step to report the press.
+
+     Deliberately NOT every `active:scale-*` in the library: the interactive
+     Badge and Avatar press to 0.95 and a Table row to 0.995, which are their own
+     gestures at their own depths, not this one retuned. Those are literals and
+     stay unswitchable until someone gives them tokens of their own. */
   --blocks-press-scale: 0.98;
 
   /* Transition preset. The lone survivor of a family of unused presets

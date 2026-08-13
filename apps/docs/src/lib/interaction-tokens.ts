@@ -38,6 +38,14 @@ const COMPONENT_ALIAS = /^--blocks-(?!duration-|ease-)[a-z][a-z-]*-(duration|eas
  * what this table lists, but only two of them move the ring's own value.
  */
 const FOCUS_RING = /^--blocks-focus-ring-(width|offset|color)$/;
+/**
+ * The press sink shared by Button, Badge's remove control and the Drawer /
+ * Dialog close buttons. Its own name rather than a shape, because it is the one
+ * motion knob that is neither a duration nor an easing: it is how FAR a held
+ * control dips, and `1` switches the movement off while the paired shadow step
+ * keeps reporting the press.
+ */
+const PRESS_SCALE = /^--blocks-press-scale$/;
 
 export interface InteractionTokens {
   durations: TokenRow[];
@@ -54,6 +62,6 @@ export function parseInteractionTokens(css: string): InteractionTokens {
     durations: pick(DURATION),
     easings: pick(EASING),
     shadows: pick(SHADOW),
-    overridePoints: [...pick(COMPONENT_ALIAS), ...pick(FOCUS_RING)]
+    overridePoints: [...pick(COMPONENT_ALIAS), ...pick(FOCUS_RING), ...pick(PRESS_SCALE)]
   };
 }

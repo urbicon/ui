@@ -20,10 +20,13 @@ export const guidePanelVariants = tv({
       'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-primary/50'
     ],
     // `tabindex="-1"` + programmatic focus target on article switch (a11y) — suppress the
-    // ring for the keyboard-navigation case; it is never a Tab stop.
+    // ring for the keyboard-navigation case; it is never a Tab stop. The un-gated
+    // `focus:` form is what Safari needs: it paints its default outline on a
+    // programmatically focused element where Chrome and Firefox gate on
+    // `:focus-visible` and skip it (#195).
     title: [
       'flex-1 text-base font-semibold text-text-primary truncate',
-      'focus-visible:outline-none'
+      'focus:outline-none focus-visible:outline-none'
     ],
     closeButton: [
       'inline-flex items-center justify-center rounded-md p-1',
@@ -199,7 +202,12 @@ export const guideTourVariants = tv({
       'z-[var(--z-guide)] m-0 w-[min(22rem,calc(100vw-2rem))] max-w-[calc(100vw-2rem)] overflow-visible',
       'rounded-xl border border-border-hairline bg-surface-overlay p-4',
       'text-sm text-text-secondary shadow-[var(--blocks-shadow-lg)]',
-      'focus-visible:outline-none'
+      // `focus:`, not just `focus-visible:` (#195): the bubble is `tabindex="-1"`
+      // and takes focus programmatically on every step change, which is exactly
+      // the case Safari paints its default outline for — Chrome and Firefox gate
+      // it on `:focus-visible` and skip it. The `focus-visible:` form stays for
+      // the keyboard path it was written for.
+      'focus:outline-none focus-visible:outline-none'
     ],
     // Rotated square in the bubble colour (borderless, like GuideHint/Tooltip).
     arrow: ['absolute h-2.5 w-2.5 rotate-45 bg-surface-overlay'],

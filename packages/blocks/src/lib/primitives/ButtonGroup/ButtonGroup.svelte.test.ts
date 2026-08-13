@@ -640,19 +640,33 @@ describe('ButtonGroup (multiple-select keyboard)', () => {
 });
 
 describe('ButtonGroup (press cue)', () => {
-  it('renders its children without the press sink — the shared seam must not break on click (#192)', () => {
-    // The group's `mint` default is 'none' and always wins over a child's own
-    // mint, so no button in a connected group sinks under the pointer while its
-    // neighbours stay put. Passing a real mint opts the whole group back in.
+  // The group's `mint` default is 'none' and always wins over a child's own,
+  // so no button in a group sinks under the pointer. In a connected group that
+  // is what stops the shared seam from breaking on click; the default is not
+  // conditional on `connected`, so a spaced group is just as quiet.
+  const pressScale = (name: string) =>
+    screen.getByRole('button', { name }).style.getPropertyValue('--blocks-press-scale');
+
+  it('renders its children without the press sink, connected or not (#192)', () => {
     renderGroup({ connected: true });
-    expect(screen.getByRole('button', { name: 'List' }).className).not.toContain('active:scale-');
+    expect(pressScale('List')).toBe('1');
 
     dispose?.();
     document.body.replaceChildren();
 
+    renderGroup({ connected: false });
+    expect(pressScale('List')).toBe('1');
+  });
+
+  it('opts the whole group back in when it is given a real mint', () => {
     renderGroup({ connected: true, mint: 'scale' });
+    expect(pressScale('List')).toBe('');
+  });
+
+  it('leaves the press depth step in place — a quiet button still reports a click', () => {
+    renderGroup({ connected: true });
     expect(screen.getByRole('button', { name: 'List' }).className).toContain(
-      'active:scale-[var(--blocks-press-scale)]'
+      'active:shadow-[var(--blocks-shadow-sm)]'
     );
   });
 });

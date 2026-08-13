@@ -17,11 +17,19 @@ export const dialogVariants = tv({
     panel: [
       'relative flex flex-col bg-surface-overlay border border-border-hairline',
       // `focus:outline-none`, NOT the usual `focus-visible:` form: the panel is
-      // `tabindex="-1"` and gets focus programmatically on open (focusFirstElement
-      // in Dialog.svelte), which is exactly the case Safari paints its default
-      // `:focus` outline for while Chrome/Firefox gate it on `:focus-visible` and
-      // skip it. The panel is never keyboard-reachable, so this costs no real
-      // focus indication — focusable children keep their `focus-visible:` rings.
+      // `tabindex="-1"` and gets focus programmatically (`focusFirstElement`,
+      // utils/overlay.ts), which is exactly the case Safari paints its default
+      // `:focus` outline for while Chrome/Firefox gate it on `:focus-visible`
+      // and skip it. The panel is never a Tab stop, so no keyboard-driven
+      // indication is lost and focusable children keep their `focus-visible:`
+      // rings.
+      //
+      // One case does land focus here for real: a dialog with NO focusable
+      // descendant (untitled, hence no close button), where `focusFirstElement`
+      // falls back to the panel to keep ESC and the Tab trap live. Safari drew a
+      // ring there and now does not — which is what Chrome and Firefox always
+      // did. The dialog is modal behind a backdrop, so "focus is in here" was
+      // never information that ring carried alone.
       'focus:outline-none',
       'rounded-t-contain sm:rounded-contain',
       'shadow-[var(--blocks-shadow-lg)] w-full z-[var(--z-modal)]',

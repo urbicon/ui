@@ -9,13 +9,26 @@ export const buttonVariants = tv({
       // CSS `scale:` property, so a list naming only `transform` never animates
       // the press cue (`active:scale-[0.98]` / `pressed`) — it would jump.
       'transition-[color,background-color,border-color,box-shadow,opacity,scale] duration-[var(--blocks-duration-fast)] ease-out overflow-hidden',
-      // Resting + hover depth. Identical for all six intents, so it lives here
-      // rather than six times over on the `intent` axis, which now carries only
-      // what actually differs per intent (the focus ring). The flat variants
-      // (ghost/text) drop it again via their own `shadow-none` — declared after
-      // this slot, so they win the bucket exactly as they did before.
+      // Resting + hover + press depth. Identical for all six intents, so it
+      // lives here rather than six times over on the `intent` axis, which now
+      // carries only what actually differs per intent (the focus ring). The flat
+      // variants (ghost/text) drop the resting step again via their own
+      // `shadow-none` — declared after this slot, so they win that bucket
+      // exactly as they did before; the `active:` steps sit in a different
+      // bucket and survive, which is what keeps a ghost button's press legible.
       'shadow-[var(--blocks-shadow-sm)]',
       'hover:shadow-[var(--blocks-shadow-md)]',
+      'active:shadow-[var(--blocks-shadow-sm)]',
+      // The press sink: the button dips while the pointer holds it. Reads
+      // `--blocks-press-scale`, which is 0.98 by default, 1 under
+      // `prefers-reduced-motion` (interaction.css), and 1 on a button whose
+      // `mint` is off — Button.svelte sets it locally for that case, which is
+      // every button inside a ButtonGroup unless the group asks for a mint (#192).
+      // Steering it through the token rather than a variant axis is what keeps
+      // the switch OUT of the public prop surface: a `pressCue` axis would be
+      // promoted to a documented `<Button pressCue>` prop by docs-gen and land
+      // in restProps as a stray DOM attribute, without doing anything.
+      'active:scale-[var(--blocks-press-scale)]',
       // Radius is driven by the `tier` variant axis below — see `tier`.
       'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2',
       'disabled:opacity-50 disabled:cursor-not-allowed disabled:pointer-events-none'
@@ -53,31 +66,19 @@ export const buttonVariants = tv({
       danger: { base: 'focus-visible:ring-danger/50' },
       neutral: { base: 'focus-visible:ring-neutral/50' }
     },
-    // The press affordance: the button sinks while the pointer holds it. Driven
-    // by `mint` in Button.svelte (`mint="none"` turns it off along with the
-    // hover flourish) — a connected ButtonGroup sets `mint="none"` on its
-    // children, so its seam no longer breaks on click, and a full-width trigger
-    // row no longer wobbles (#192).
-    //
-    // The sink reads `--blocks-press-scale`, which `prefers-reduced-motion`
-    // flattens to 1 in interaction.css; the paired shadow step still reports
-    // the press there. Declared BEFORE `variant` for the same reason `pressed`
-    // is — see below.
-    pressCue: {
-      true: {
-        base: 'active:scale-[var(--blocks-press-scale)] active:shadow-[var(--blocks-shadow-sm)]'
-      },
-      false: {}
-    },
     // Declared BEFORE `variant` so the flat variants (ghost/text
     // `shadow-none`) win the shadow bucket over the pressed depth cue —
     // a pressed ghost button stays flat. For filled/outlined (no shadow of
-    // their own) the pressed `shadow-xs` still applies.
+    // their own) the pressed `shadow-xs` still applies. (Measured: moving this
+    // axis after `variant` changes 3456 of the 27648 combinations; the same
+    // move on an `active:`-prefixed rule changes none, because a modifier puts
+    // the class in its own merge bucket.)
     //
-    // Unlike `pressCue` this is a MODELLED state, not click feedback: the
-    // consumer says the control is down (a toolbar toggle), so `mint="none"`
-    // does not clear it. It shares the press token so reduced motion takes the
-    // size change out of both, leaving brightness + shadow to carry the state.
+    // Unlike the `active:` press cue in `base` this is a MODELLED state, not
+    // click feedback: the consumer says the control is down (a toolbar toggle),
+    // so `mint="none"` does not clear it. It shares the press token so reduced
+    // motion takes the size change out of both, leaving brightness + shadow to
+    // carry the state.
     pressed: {
       true: {
         base: 'scale-[var(--blocks-press-scale)] brightness-90 shadow-[var(--blocks-shadow-xs)]'
@@ -549,7 +550,6 @@ export const buttonVariants = tv({
     variant: 'filled',
     size: 'md',
     loading: false,
-    pressCue: true,
     pressed: false,
     active: false,
     loadingPlacement: 'start'

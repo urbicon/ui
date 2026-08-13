@@ -79,7 +79,16 @@
       },
       size: { defaultValue: 'md' },
       selection: { defaultValue: 'single' },
-      connected: { type: 'checkbox', defaultValue: true }
+      connected: { type: 'checkbox', defaultValue: true },
+      // `defaultValue: undefined` statt des abgeleiteten `'commit'`: der
+      // Tier-Default der Komponente hängt von der Orientierung ab (eine
+      // verbundene vertikale Gruppe defaultet weich, sonst Pille — #194).
+      // Mit einem festen Startwert übergäbe der Playground `tier="commit"`
+      // immer explizit und zeigte beim Umschalten auf `vertical` weiter die
+      // Kapsel, also genau das, was die Komponente gerade nicht mehr tut.
+      // `defaultValuesOf` überspringt Controls ohne Default, die Auswahl
+      // commit/modify bleibt.
+      tier: { defaultValue: undefined }
     }
   });
 </script>

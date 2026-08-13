@@ -11,6 +11,13 @@ export const drawerVariants = tv({
     panel: [
       'relative flex flex-col bg-surface-overlay',
       'border border-border-hairline',
+      // Same construction as Dialog's panel and the same Safari artefact (#195):
+      // `focusFirstElement` (utils/overlay.ts, shared by both) focuses this
+      // `tabindex="-1"` panel when the drawer has no focusable child, and Safari
+      // paints its default outline for a programmatic focus where Chrome and
+      // Firefox gate on `:focus-visible` and skip it. Hence the un-gated
+      // `focus:` form; focusable children keep their `focus-visible:` rings.
+      'focus:outline-none',
       'overflow-hidden z-[var(--z-modal)]',
       'shadow-[var(--blocks-shadow-lg)]'
     ],

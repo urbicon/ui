@@ -56,13 +56,21 @@ export function mintAttachment(
  *
  * The one definition of "mint off", so a component that styles itself around
  * the opt-out cannot disagree with the attachment that acts on it: Button
- * suppresses its `active:` press cue for exactly the props that make
- * `mintAttachment` a no-op (#192). A polymorphic mint (array / `{ name }`
- * object) always names at least one effect, so only the scalar forms below mean
- * "nothing". Written as a type predicate so the call sites keep narrowing `mint`
- * to something `mintRegistry.apply` accepts; `''` is in the predicate because it
- * is a `MintName` the falsy check catches, and a predicate that omitted it would
- * be a lie the compiler believes.
+ * flattens its `active:` press sink for exactly the props that make
+ * `mintAttachment` a no-op (#192).
+ *
+ * It answers the DECLARED intent, not the effective outcome, and those come
+ * apart at the edges: `mint={[]}` applies nothing (`normalizeMintProp` returns
+ * the empty list untouched) yet reads as "on" here, and `mint={['none']}` /
+ * `mint={{ name: 'none' }}` resolve to an unregistered name and warn at runtime
+ * rather than disabling anything. All three are consumer mistakes with a
+ * clearer spelling one keystroke away, and reporting them as "off" would hide
+ * the warning that names them — so the scalar forms below stay the only "off".
+ *
+ * Written as a type predicate so the call sites keep narrowing `mint` to
+ * something `mintRegistry.apply` accepts; `''` is in the predicate because it is
+ * a `MintName` the falsy check catches, and a predicate that omitted it would be
+ * a lie the compiler believes.
  */
 export function isMintOff(mint: MintProp | undefined): mint is undefined | '' | 'none' {
   return !mint || mint === 'none';

@@ -11,6 +11,12 @@
     triggerElement = $bindable(),
 
     placement = 'bottom-start',
+    // 4 is a real 4 since #197. Before that fix the panel was measured mid-enter,
+    // while `popoverMotion` still had it at `scale(0.98)`, and the resulting
+    // origin error pulled it a further 1% of its own height towards the trigger —
+    // which is what "sits about two pixels too close" was. Raising the default
+    // was considered and dropped: it would have compensated a measurement bug
+    // with a design value. Menu overrides this per tier (8 / 4).
     offsetDistance = 4,
     shiftPadding = 8,
     syncWidth = false,
