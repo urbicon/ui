@@ -123,46 +123,55 @@ export const checkboxVariants = tv({
     // Hover/active darken through the intent interaction-layer tokens —
     // the same `bg-<intent>-hover` / `bg-<intent>-active` ladder Button
     // uses — via `group-*` so hovering/pressing the label counts too.
+    //
+    // The border goes transparent, for the reason spelled out in
+    // button.variants.ts (`variant.filled`): a filled box's border is a second
+    // copy of the fill colour, the ladder above moves only the fill, and what
+    // is left is a ring in the resting tone — light on light pages, dark in
+    // dark mode. `border` stays in the `box` slot for geometry; the background
+    // paints under it, so a checked box looks exactly as it did. The error
+    // compounds below use a ring rather than the border, so nothing here
+    // competes for it.
     {
       checked: true,
       intent: 'primary',
       class: {
-        box: 'bg-primary border-primary text-text-on-primary group-hover:bg-primary-hover group-active:bg-primary-active'
+        box: 'bg-primary border-transparent text-text-on-primary group-hover:bg-primary-hover group-active:bg-primary-active'
       }
     },
     {
       checked: true,
       intent: 'secondary',
       class: {
-        box: 'bg-secondary border-secondary text-text-on-fill group-hover:bg-secondary-hover group-active:bg-secondary-active'
+        box: 'bg-secondary border-transparent text-text-on-fill group-hover:bg-secondary-hover group-active:bg-secondary-active'
       }
     },
     {
       checked: true,
       intent: 'success',
       class: {
-        box: 'bg-success border-success text-text-on-fill group-hover:bg-success-hover group-active:bg-success-active'
+        box: 'bg-success border-transparent text-text-on-fill group-hover:bg-success-hover group-active:bg-success-active'
       }
     },
     {
       checked: true,
       intent: 'warning',
       class: {
-        box: 'bg-warning border-warning text-text-on-warning group-hover:bg-warning-hover group-active:bg-warning-active'
+        box: 'bg-warning border-transparent text-text-on-warning group-hover:bg-warning-hover group-active:bg-warning-active'
       }
     },
     {
       checked: true,
       intent: 'danger',
       class: {
-        box: 'bg-danger border-danger text-text-on-fill group-hover:bg-danger-hover group-active:bg-danger-active'
+        box: 'bg-danger border-transparent text-text-on-fill group-hover:bg-danger-hover group-active:bg-danger-active'
       }
     },
     {
       checked: true,
       intent: 'neutral',
       class: {
-        box: 'bg-neutral border-neutral text-text-on-fill group-hover:bg-neutral-hover group-active:bg-neutral-active'
+        box: 'bg-neutral border-transparent text-text-on-fill group-hover:bg-neutral-hover group-active:bg-neutral-active'
       }
     },
 
@@ -171,42 +180,42 @@ export const checkboxVariants = tv({
       indeterminate: true,
       intent: 'primary',
       class: {
-        box: 'bg-primary border-primary text-text-on-primary group-hover:bg-primary-hover group-active:bg-primary-active'
+        box: 'bg-primary border-transparent text-text-on-primary group-hover:bg-primary-hover group-active:bg-primary-active'
       }
     },
     {
       indeterminate: true,
       intent: 'secondary',
       class: {
-        box: 'bg-secondary border-secondary text-text-on-fill group-hover:bg-secondary-hover group-active:bg-secondary-active'
+        box: 'bg-secondary border-transparent text-text-on-fill group-hover:bg-secondary-hover group-active:bg-secondary-active'
       }
     },
     {
       indeterminate: true,
       intent: 'success',
       class: {
-        box: 'bg-success border-success text-text-on-fill group-hover:bg-success-hover group-active:bg-success-active'
+        box: 'bg-success border-transparent text-text-on-fill group-hover:bg-success-hover group-active:bg-success-active'
       }
     },
     {
       indeterminate: true,
       intent: 'warning',
       class: {
-        box: 'bg-warning border-warning text-text-on-warning group-hover:bg-warning-hover group-active:bg-warning-active'
+        box: 'bg-warning border-transparent text-text-on-warning group-hover:bg-warning-hover group-active:bg-warning-active'
       }
     },
     {
       indeterminate: true,
       intent: 'danger',
       class: {
-        box: 'bg-danger border-danger text-text-on-fill group-hover:bg-danger-hover group-active:bg-danger-active'
+        box: 'bg-danger border-transparent text-text-on-fill group-hover:bg-danger-hover group-active:bg-danger-active'
       }
     },
     {
       indeterminate: true,
       intent: 'neutral',
       class: {
-        box: 'bg-neutral border-neutral text-text-on-fill group-hover:bg-neutral-hover group-active:bg-neutral-active'
+        box: 'bg-neutral border-transparent text-text-on-fill group-hover:bg-neutral-hover group-active:bg-neutral-active'
       }
     },
 

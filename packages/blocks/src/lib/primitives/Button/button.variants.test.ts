@@ -130,6 +130,78 @@ describe('buttonVariants', () => {
     expect(content).not.toMatch(/\bgap-inherit\b/);
   });
 
+  describe('border vs. fill', () => {
+    const INTENTS = ['primary', 'secondary', 'success', 'warning', 'danger', 'neutral'] as const;
+    const VARIANTS = ['filled', 'outlined', 'ghost', 'text'] as const;
+    // `border-primary` is a prefix of `border-primary-active`, so a substring
+    // check cannot tell the resting stop from the interaction stops.
+    const restingBorder = (base: string, intent: string) =>
+      new RegExp(`(^| )border-${intent}( |$)`).test(base);
+
+    it('leaves a filled button no border colour to fall behind its fill', () => {
+      for (const intent of INTENTS) {
+        const base = buttonVariants({ intent, variant: 'filled' }).base();
+        expect(base, intent).toContain('border-transparent');
+        expect(restingBorder(base, intent), intent).toBe(false);
+        // The fill still walks the ladder — that is what carries the state.
+        expect(base, intent).toContain(`hover:bg-${intent}-hover`);
+        expect(base, intent).toContain(`active:bg-${intent}-active`);
+      }
+    });
+
+    it('holds it transparent through the modelled active state', () => {
+      for (const intent of INTENTS) {
+        const base = buttonVariants({ intent, variant: 'filled', active: true }).base();
+        expect(base, intent).toContain('border-transparent');
+        expect(base, intent).not.toContain(`border-${intent}-active`);
+      }
+    });
+
+    it('still paints the connected-group divider — a boundary, not a copy of a fill', () => {
+      // The compound has to win the bucket over `variant.filled`'s transparent,
+      // which is what the `not.toContain` pins: it is declared later, so it
+      // folds it. Without that the `-ml-px` overlap renders nothing (BGR-1).
+      for (const intent of INTENTS) {
+        const base = buttonVariants({
+          intent,
+          variant: 'filled',
+          buttonGroupConnected: true
+        }).base();
+        expect(base, intent).toContain(`border-${intent}-active`);
+        expect(base, intent).not.toContain('border-transparent');
+      }
+    });
+
+    it('moves an active outlined border with its fill, since there the border IS the variant', () => {
+      for (const intent of INTENTS) {
+        const base = buttonVariants({ intent, variant: 'outlined', active: true }).base();
+        expect(restingBorder(base, intent), intent).toBe(true);
+        expect(base, intent).toContain(`hover:border-${intent}-hover`);
+      }
+    });
+
+    it('never rests a border on the base stop while the fill steps away from it', () => {
+      // The general form of the halo: any combination whose fill darkens on
+      // hover must either carry no border in the resting tone, or move that
+      // border along. Stated over the whole matrix so a new axis or compound
+      // cannot reintroduce the gap in a corner nobody enumerated.
+      for (const intent of INTENTS) {
+        for (const variant of VARIANTS) {
+          for (const active of [false, true]) {
+            for (const buttonGroupConnected of [false, true]) {
+              const base = buttonVariants({ intent, variant, active, buttonGroupConnected }).base();
+              if (!base.includes(`hover:bg-${intent}-hover`)) continue;
+              if (!restingBorder(base, intent)) continue;
+              expect(base, `${variant}/${intent}/active=${active}`).toContain(
+                `hover:border-${intent}-hover`
+              );
+            }
+          }
+        }
+      }
+    });
+  });
+
   it('never outputs dark: overrides', () => {
     const intents = ['primary', 'secondary', 'success', 'warning', 'danger', 'neutral'] as const;
     const variants = ['filled', 'outlined', 'ghost', 'text'] as const;

@@ -173,7 +173,9 @@ export const radioItemVariants = tv({
     // Hover/active darken through the intent interaction-layer tokens — the
     // same `bg-<intent>-hover` / `bg-<intent>-active` ladder Button and
     // Checkbox use — via `group-*` so hovering/pressing the label counts too.
-    // The border stays on the base intent stop (as in Checkbox).
+    // The border goes transparent (as in Checkbox, and for the reason written
+    // out at `variant.filled` in button.variants.ts): it would otherwise be a
+    // second copy of the fill colour that the ladder above leaves behind.
     //
     // The dot keeps ONE colour across all three stops: it is the intent's
     // paired on-colour, and `style/contrast.test.ts` measures exactly that
@@ -190,7 +192,7 @@ export const radioItemVariants = tv({
       intent: 'primary',
       class: {
         indicator:
-          'bg-primary border-primary group-hover:bg-primary-hover group-active:bg-primary-active',
+          'bg-primary border-transparent group-hover:bg-primary-hover group-active:bg-primary-active',
         dot: 'bg-text-on-primary'
       }
     },
@@ -199,7 +201,7 @@ export const radioItemVariants = tv({
       intent: 'secondary',
       class: {
         indicator:
-          'bg-secondary border-secondary group-hover:bg-secondary-hover group-active:bg-secondary-active',
+          'bg-secondary border-transparent group-hover:bg-secondary-hover group-active:bg-secondary-active',
         dot: 'bg-text-on-fill'
       }
     },
@@ -208,7 +210,7 @@ export const radioItemVariants = tv({
       intent: 'success',
       class: {
         indicator:
-          'bg-success border-success group-hover:bg-success-hover group-active:bg-success-active',
+          'bg-success border-transparent group-hover:bg-success-hover group-active:bg-success-active',
         dot: 'bg-text-on-fill'
       }
     },
@@ -217,7 +219,7 @@ export const radioItemVariants = tv({
       intent: 'warning',
       class: {
         indicator:
-          'bg-warning border-warning group-hover:bg-warning-hover group-active:bg-warning-active',
+          'bg-warning border-transparent group-hover:bg-warning-hover group-active:bg-warning-active',
         dot: 'bg-text-on-warning'
       }
     },
@@ -226,7 +228,7 @@ export const radioItemVariants = tv({
       intent: 'danger',
       class: {
         indicator:
-          'bg-danger border-danger group-hover:bg-danger-hover group-active:bg-danger-active',
+          'bg-danger border-transparent group-hover:bg-danger-hover group-active:bg-danger-active',
         dot: 'bg-text-on-fill'
       }
     },
@@ -235,7 +237,7 @@ export const radioItemVariants = tv({
       intent: 'neutral',
       class: {
         indicator:
-          'bg-neutral border-neutral group-hover:bg-neutral-hover group-active:bg-neutral-active',
+          'bg-neutral border-transparent group-hover:bg-neutral-hover group-active:bg-neutral-active',
         dot: 'bg-text-on-fill'
       }
     },
