@@ -27,8 +27,8 @@
     </CodeExample>
 
     <CodeExample
-      title="Hostile input, neutralized"
-      description="Untrusted model output is safe by construction: the renderer never emits an HTML string. The strict-by-default URL policy turns scheme-smuggled links into inert text, blocks external images to an alt-text chip, and leaves raw HTML as literal text — no configuration required."
+      title="Untrusted input stays inert"
+      description="The renderer never emits an HTML string, so untrusted model output cannot inject markup. With the default URL policy, scheme-smuggled links become inert text, external images become an alt-text chip, and raw HTML stays literal text."
       code={urlPolicyCode}
     >
       <UrlPolicy />
@@ -36,7 +36,7 @@
 
     <CodeExample
       title="Custom node renderer"
-      description="A renderers snippet fully replaces the built-in renderer for one node type — the dependency-free hook point for syntax highlighting, lightboxes, or router-aware links. Here a custom code-block presentation."
+      description="A renderers snippet replaces the built-in renderer for one node type. Use it for syntax highlighting, lightboxes, or router-aware links; here, a custom code-block presentation."
       code={customRendererCode}
     >
       <CustomRenderer />
@@ -51,14 +51,14 @@
         >heading6</code
       >, <code>inlineCode</code>, <code>codeBlock</code>, <code>table</code>, …). Restyle any of
       them via <code>slotClasses</code>, or register a reusable look as a
-      <code>preset</code> on <code>BlocksProvider</code>. Reach for <code>renderers</code> only when
-      you need to replace a whole node type (highlighting, custom links); use
+      <code>preset</code> on <code>BlocksProvider</code>. Use <code>renderers</code> only when you
+      need to replace a whole node type (highlighting, custom links); use
       <code>slotClasses</code> for pure styling.
     </p>
     <p>
-      The <code>urlPolicy</code> is strict by default. Widen it deliberately and narrowly — allow a
-      specific image CDN via <code>allowedImagePrefixes</code>, never a broad prefix. Keep the
-      policy object referentially stable; a new reference re-parses the whole content.
+      The <code>urlPolicy</code> is strict by default. Widen it narrowly: allow a specific image CDN
+      via <code>allowedImagePrefixes</code> rather than a broad prefix. Keep the policy object referentially
+      stable; a new reference re-parses the whole content.
     </p>
   </div>
 </Section>
@@ -97,8 +97,8 @@
     <Note title="Blocked links and images">
       <p>
         A policy-blocked link renders as inert text with a dotted underline as the "this was a link"
-        cue; a blocked image becomes an alt-text chip. The blocked state is visible, not silent —
-        the reader can tell something was withheld.
+        cue; a blocked image becomes an alt-text chip. The blocked state is visible, so the reader
+        can tell something was withheld.
       </p>
     </Note>
   </NoteList>

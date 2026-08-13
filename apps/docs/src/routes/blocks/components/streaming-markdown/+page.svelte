@@ -7,7 +7,6 @@
     Section,
     TypesReference
   } from '@urbicon-ui/docs';
-  import { StreamingMarkdown } from '@urbicon-ui/blocks';
   import CustomDocs from './Docs.svelte';
   import Playground from './Playground.svelte';
   import { componentData } from './api';
@@ -24,64 +23,16 @@
     { id: 'types', title: 'Types' },
     { id: 'installation', title: 'Installation' }
   ];
-
-  // Live streaming demo — the content prop grows over time exactly as a chat
-  // surface would drive it from a model stream. Settled blocks never re-render.
-  const DEMO = `## Streaming answer
-
-The renderer parses **markdown** as it arrives — settled blocks are cached and
-never re-render, so a long answer stays cheap to append to.
-
-- Zero \`{@html}\`, safe by construction
-- Strict URL policy on by default
-
-\`\`\`ts
-for await (const chunk of stream) render(chunk);
-\`\`\`
-`;
-
-  // Word-ish chunks (1–3 tokens), close to how model output actually arrives.
-  const chunks = (() => {
-    const tokens = DEMO.split(/(?<=\s)/);
-    const out: string[] = [];
-    for (let i = 0; i < tokens.length;) {
-      const take = 1 + ((i * 7) % 3);
-      out.push(tokens.slice(i, i + take).join(''));
-      i += take;
-    }
-    return out;
-  })();
-
-  let content = $state('');
-  let pos = $state(0);
-  let playing = $state(false);
-  const done = $derived(pos >= chunks.length);
-
-  $effect(() => {
-    if (!playing || done) return;
-    const timer = setInterval(() => {
-      content += chunks[pos];
-      pos += 1;
-      if (pos >= chunks.length) playing = false;
-    }, 45);
-    return () => clearInterval(timer);
-  });
-
-  function codeGenerator(vals: Record<string, unknown>): string {
-    const size = vals.size === 'sm' ? ' size="sm"' : '';
-    const streaming = vals.streaming ? ' streaming' : '';
-    return `<StreamingMarkdown content={answer}${streaming}${size} />`;
-  }
 </script>
 
 <SeoMeta
   title="StreamingMarkdown Component"
-  description="Streaming-safe markdown renderer for LLM output: parses a growing string incrementally, caches settled blocks, and enforces a strict URL policy — rendering to a real component tree, so it is XSS-safe by construction."
+  description="A markdown renderer for streaming LLM output: it parses a growing string incrementally, caches settled blocks, and applies a strict URL policy. It renders to real components instead of an HTML string, so untrusted output cannot inject markup."
 />
 
 <DocsPageLayout
   title="StreamingMarkdown"
-  description="Streaming-safe markdown renderer for LLM output. Parses a growing string incrementally, caches settled blocks, and enforces a strict URL policy by default — rendering to a real component tree, never to an HTML string."
+  description="A markdown renderer for streaming LLM output. It parses a growing string incrementally, caches settled blocks, and applies a strict URL policy by default. Because it renders to real components instead of an HTML string, untrusted output cannot inject markup."
   maxWidth="2xl"
   showToc={true}
   breadcrumbs={[

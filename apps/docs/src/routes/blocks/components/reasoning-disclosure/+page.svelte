@@ -37,12 +37,12 @@
 
 <SeoMeta
   title="ReasoningDisclosure Component"
-  description="Collapsed, muted disclosure for a model's thinking trace — a pulsing 'Thinking' label while streaming, 'Thought for Xs' once settled, rendered through StreamingMarkdown."
+  description="A collapsed, muted disclosure for a model's thinking trace: a 'Thinking' label while it streams, 'Thought for Xs' once it settles."
 />
 
 <DocsPageLayout
   title="ReasoningDisclosure"
-  description="Collapsed, muted disclosure for a model's thinking trace — a pulsing 'Thinking' label while streaming, 'Thought for Xs' once settled, rendered through StreamingMarkdown."
+  description="A collapsed, muted disclosure for a model's thinking trace: a 'Thinking' label while it streams, 'Thought for Xs' once it settles."
   maxWidth="2xl"
   showToc={true}
   breadcrumbs={[

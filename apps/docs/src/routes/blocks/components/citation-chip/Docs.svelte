@@ -12,7 +12,7 @@
   <div class="space-y-10">
     <CodeExample
       title="Standalone source footer"
-      description="Use CitationChip on its own for a reference list under an answer or card — no streamed message required. Each chip opens a popover with the source title, snippet, and a policy-checked link."
+      description="Use CitationChip on its own for a reference list under an answer or card. Each chip opens a popover with the source title, snippet, and a policy-checked link."
       code={sourceFooterCode}
     >
       <SourceFooter />
@@ -20,14 +20,14 @@
 
     <CodeExample
       title="Numeric vs. label"
-      description="citationStyle picks what the chip shows. Reach for numeric — a compact footnote pill — when citations are dense and inline; reach for label — the truncated title — for a handful of named sources in a footer or sidebar."
+      description="citationStyle sets what the chip shows. Use numeric, a compact footnote pill, when citations are dense and inline; use label, the truncated title, for a handful of named sources in a footer or sidebar."
       code={citationStylesCode}
     >
       <CitationStyles />
     </CodeExample>
 
     <CodeExample
-      title="Wired up by StreamingMarkdown"
+      title="From StreamingMarkdown"
       description="Inside a streamed answer you rarely construct chips by hand: StreamingMarkdown resolves each [id] marker to a CitationChip from its sources prop, 1-based in array order. See the StreamingMarkdown page for the full streaming flow."
       code={fromStreamingMarkdownCode}
     >
@@ -50,18 +50,18 @@
     <Note title="Named popover">
       <p>
         The chip opens a <code class="text-text-primary">Popover</code>; the same
-        <code class="text-text-primary">aria-label</code> lands on the panel, so the opened dialog
-        is named rather than anonymous. Keyboard and focus behaviour (open, close on
+        <code class="text-text-primary">aria-label</code> lands on the panel, so the opened panel
+        carries a name. Keyboard and focus behaviour (open, close on
         <code class="text-text-primary">Escape</code>, focus return) come from the underlying
         Popover primitive.
       </p>
     </Note>
     <Note title="Policy-checked link">
       <p>
-        The outbound link runs the same strict
-        <code class="text-text-primary">urlPolicy</code> as the streaming-markdown engine. A blocked or
-        absent URL yields no link at all — only the title and snippet — so untrusted source URLs can never
-        smuggle a dangerous scheme into the popover.
+        The outbound link follows the same strict
+        <code class="text-text-primary">urlPolicy</code> as StreamingMarkdown. If the URL is blocked or
+        absent, the popover shows just the title and snippet with no link, so an untrusted source URL
+        cannot introduce a dangerous scheme.
       </p>
     </Note>
   </NoteList>
@@ -71,8 +71,8 @@
   <div class="text-text-secondary space-y-3 text-sm leading-relaxed">
     <p>
       For the streaming flow that produces these chips automatically, see
-      <a href={asset('/blocks/components/streaming-markdown')}>StreamingMarkdown</a> — its
-      <code>sources</code> prop drives marker resolution and forwards the same
+      <a href={asset('/blocks/components/streaming-markdown')}>StreamingMarkdown</a>. Its
+      <code>sources</code> prop resolves the markers and applies the same
       <code>urlPolicy</code> to every chip.
     </p>
   </div>
