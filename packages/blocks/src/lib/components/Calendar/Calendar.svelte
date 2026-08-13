@@ -6,6 +6,8 @@
   import { setCalendarContext, type CalendarContext } from './calendar.context';
   import {
     getYearMonths,
+    formatDateRange,
+    formatDayTitle,
     formatMonthYear,
     isInMonth,
     toIso,
@@ -21,7 +23,7 @@
   import type { CalendarProps } from './index';
   import type {
     CalendarEvent,
-    CalendarEventCategory,
+    DateCategory,
     CalendarViewMode,
     DateRange,
     EventDayInfo
@@ -190,9 +192,16 @@
   const displayedYear = $derived(referenceDate.getFullYear());
 
   // Calendar exposes five views; the headless core handles only cell-based ones.
-  // Map year/agenda onto `month` (they reuse month geometry + month navigation).
+  // `year` maps onto `month` (it reuses month geometry + month navigation).
+  //
+  // `agenda` maps onto `day`, because that is what its window is anchored on:
+  // the list runs `agendaDays` days FROM the reference date, so the bounds that
+  // gate its arrows are the day-granular ones (`referenceDate` against
+  // minDate/maxDate), not a month's. Until 2026-08-12 it mapped onto `month`
+  // and started at the 1st, which made the smallest honest configuration —
+  // `defaultDate` + `agendaDays={1}`, "today's list" — unreachable (#95).
   const gridViewMode = $derived<DateGridView>(
-    view === 'year' || view === 'agenda' ? 'month' : view
+    view === 'year' ? 'month' : view === 'agenda' ? 'day' : view
   );
 
   // --- Extra disable predicate (min/max handled by the controller) ---
@@ -249,9 +258,9 @@
   });
 
   // The controller hands back its own cell range, which is right for month/week/
-  // day but wrong for the two views Calendar maps onto month geometry: year spans
-  // a whole year, agenda `agendaDays` from the 1st. `visibleRange` already
-  // computes exactly that per view (recurrence expansion relies on it), so
+  // day but wrong for the two views whose window Calendar owns: year spans a
+  // whole year, agenda `agendaDays` from the reference date. `visibleRange`
+  // already computes exactly that per view (recurrence expansion relies on it), so
   // onNavigate reports it rather than the controller's argument. Read after the
   // `referenceDate` assignment, so the $derived has already been invalidated.
   //
@@ -269,7 +278,11 @@
     referenceDate = next;
     if (view === 'week') onWeekChange?.(next);
     else if (view === 'day') onDayChange?.(next);
-    else onMonthChange?.(next.getMonth(), next.getFullYear());
+    // The agenda's unit is a WINDOW of days, which none of the three per-view
+    // callbacks can express — it reports through `onNavigate` (date + range)
+    // alone. `goToClampedMonth` still reports `onMonthChange` in agenda view:
+    // there a month really is what the caller picked.
+    else if (view !== 'agenda') onMonthChange?.(next.getMonth(), next.getFullYear());
     emitNavigate(next);
   }
 
@@ -355,10 +368,62 @@
     return showTimeGridProp ?? events.some((e) => e.allDay === false);
   });
 
+  // --- Derived: the agenda's window ---
+  // `agendaDays` days FROM the reference date, both ends inclusive. Computed
+  // once here and shared through the context, so the list, the header title and
+  // `visibleRange` cannot disagree about which days the agenda covers.
+  //
+  // The clamp is the same shape as `timeGridHourHeight` above, for the same
+  // reason: `Math.max(1, NaN)` is NaN, `addDays` then yields an Invalid Date and
+  // `formatDateRange` throws a RangeError out of the component — a 500 for
+  // `agendaDays={Number(input)}` over an empty field. Infinity additionally
+  // turns the list's day loop into an infinite one. The library degrades on
+  // caller garbage-in, it does not crash. The 366 ceiling is what one screen can
+  // ever list; anything past it is a typo, not a plan.
+  const agendaDaysIsUsable = $derived(Number.isFinite(agendaDays) && agendaDays >= 1);
+  const agendaWindow = $derived.by(() => {
+    const start = stripTime(referenceDate);
+    const days = agendaDaysIsUsable ? Math.min(366, Math.floor(agendaDays)) : 30;
+    return { start, end: addDays(start, days - 1), days };
+  });
+  // Warned at setup, not in an effect: setup also runs during SSR, where an
+  // effect never fires — and SSR is exactly where a bad value used to throw.
+  // svelte-ignore state_referenced_locally
+  if (import.meta.env?.DEV && (!agendaDaysIsUsable || !Number.isInteger(agendaDays))) {
+    console.warn(
+      `[Calendar] agendaDays must be a whole number between 1 and 366, got ${agendaDays} — ` +
+        `the agenda lists ${agendaWindow.days} day(s) instead. Only the agenda view reads it.`
+    );
+  }
+
+  // --- Derived: navigation bounds ---
+  // Every view but the agenda takes the controller's: month-granular for
+  // month/year, day-granular against the visible edges for week/day. The agenda
+  // is the one view whose window is WIDER than its anchor, so the anchor's
+  // bounds are the wrong question — with `maxDate` inside the window, the
+  // controller still reported "forward is open" (the anchor was well before the
+  // bound), and the step revealed nothing but days past `maxDate`. The window's
+  // own edges are the honest gate, and `navigateAgenda` clamps span-preserving
+  // so a step that CAN move never overshoots them.
+  const canGoBack = $derived.by(() => {
+    if (view !== 'agenda') return controller.canGoBack;
+    return !minDate || agendaWindow.start > stripTime(minDate);
+  });
+  const canGoForward = $derived.by(() => {
+    if (view !== 'agenda') return controller.canGoForward;
+    return !maxDate || agendaWindow.end < stripTime(maxDate);
+  });
+
   // --- Derived: view-aware header title (year/agenda are Calendar-specific) ---
   const headerTitle = $derived.by(() => {
     if (view === 'year') return String(displayedYear);
-    if (view === 'agenda') return formatMonthYear(displayedYear, displayedMonth, resolvedLocale);
+    // The agenda names its window, not the month it happens to start in: one
+    // day reads as a day title, several as a date range.
+    if (view === 'agenda') {
+      return agendaWindow.days === 1
+        ? formatDayTitle(agendaWindow.start, resolvedLocale)
+        : formatDateRange(agendaWindow.start, agendaWindow.end, resolvedLocale);
+    }
     return controller.title; // month / week / day
   });
 
@@ -370,10 +435,7 @@
       return { start: new Date(displayedYear, 0, 1), end: new Date(displayedYear, 11, 31) };
     }
     if (view === 'agenda') {
-      const start = new Date(displayedYear, displayedMonth, 1);
-      const end = new Date(start);
-      end.setDate(end.getDate() + agendaDays);
-      return { start, end };
+      return { start: agendaWindow.start, end: agendaWindow.end };
     }
     // month / week / day: the controller's cell-edge range
     return { start: controller.rangeStart, end: controller.rangeEnd };
@@ -420,7 +482,7 @@
 
   // --- Derived: category lookup ---
   const categoryMap = $derived.by(() => {
-    const map = new SvelteMap<string, CalendarEventCategory>();
+    const map = new SvelteMap<string, DateCategory>();
     for (const cat of categories) {
       map.set(cat.id, cat);
     }
@@ -451,7 +513,7 @@
     });
   }
 
-  function getCategoryById(id: string): CalendarEventCategory | undefined {
+  function getCategoryById(id: string): DateCategory | undefined {
     return categoryMap.get(id);
   }
 
@@ -462,9 +524,42 @@
   function navigate(delta: number) {
     if (view === 'year') {
       navigateYear(delta);
+    } else if (view === 'agenda') {
+      navigateAgenda(delta);
     } else {
-      controller.navigate(delta); // month / week / day (agenda maps to month)
+      controller.navigate(delta); // month / week / day
     }
+  }
+
+  // The agenda steps its own window: `delta` × `agendaDays` days, so the next
+  // list starts where the current one ended.
+  //
+  // The clamp is span-preserving, like the controller's `range` navigation: the
+  // WINDOW has to stay inside [minDate, maxDate], so the earliest start is
+  // minDate and the latest is `maxDate − (days − 1)`. Clamping only the anchor
+  // (what the first cut did) let a step land a window whose visible days were
+  // all past maxDate. A step that cannot move at all returns without emitting —
+  // the header arrows are already gated on canGoBack/canGoForward, but the
+  // `header` snippet's `navigate()` is not, and a no-op emit would tell a data
+  // loader to refetch an unchanged window.
+  function navigateAgenda(delta: number) {
+    const from = agendaWindow.start;
+    const span = agendaWindow.days;
+    const earliest = minDate ? stripTime(minDate) : undefined;
+    // A window longer than the whole navigable interval cannot satisfy both
+    // bounds; minDate wins, matching clampDate's ordering and the controller's
+    // #clampWindowStart.
+    const latest = maxDate ? addDays(stripTime(maxDate), -(span - 1)) : undefined;
+    let next = addDays(from, delta * span);
+    if (latest && next > latest) next = latest;
+    if (earliest && next < earliest) next = earliest;
+    // A step never moves against its own direction. Without this, a forward step
+    // whose window would pass maxDate came back clamped BEFORE the current start
+    // (latest = maxDate − span + 1 can precede it) and "next" walked backwards.
+    if (delta > 0 ? next <= from : next >= from) return;
+    controller.navDirection = delta > 0 ? 'forward' : 'backward';
+    referenceDate = next;
+    emitNavigate(next);
   }
 
   // Move `referenceDate` to a bounded month/year, then report the landing.
@@ -483,7 +578,14 @@
   // the view-specific callback first, then `onNavigate`.
   function goToClampedMonth(month: number, year: number) {
     const clamped = clampMonth(month, year, minDate, maxDate);
-    const day = Math.min(referenceDate.getDate(), daysInMonth(clamped.year, clamped.month));
+    // The agenda is the one view whose window STARTS at the anchor instead of
+    // containing it, so a preserved day-of-month made the month picker lie:
+    // anchored on 31 Aug, picking September opened "30 Sep – 6 Oct". It lands on
+    // the 1st, which is what a month pick means for a list that runs forward.
+    const day =
+      view === 'agenda'
+        ? 1
+        : Math.min(referenceDate.getDate(), daysInMonth(clamped.year, clamped.month));
     referenceDate = clampDate(new Date(clamped.year, clamped.month, day), minDate, maxDate);
     onMonthChange?.(clamped.month, clamped.year);
     emitNavigate(referenceDate);
@@ -532,17 +634,37 @@
     goToClampedMonth(month, year);
   }
 
-  // Jump the reference date to a concrete day (mini-calendar drill-down into
-  // week/day view). Delegates to the controller, which clamps to
-  // [minDate, maxDate] and reports back through handleNavigate like every
-  // other controller-driven navigation path.
+  // Jump the reference date to a concrete day (the mini calendar's day click, in
+  // the week, day and agenda views). Delegates to the controller, which clamps
+  // to [minDate, maxDate] and reports back through handleNavigate like every
+  // other controller-driven navigation path. The direction is set here because
+  // the controller's `goTo` does not: without it a jump re-keys the view (the
+  // agenda keys on its window's first day) and replays the PREVIOUS step's
+  // enter/exit transition — a jump three months back animating forward.
   function goToDate(date: Date) {
-    controller.goTo(date);
+    const target = stripTime(date);
+    controller.navDirection =
+      target.getTime() === stripTime(referenceDate).getTime()
+        ? null
+        : target > referenceDate
+          ? 'forward'
+          : 'backward';
+    controller.goTo(target);
   }
 
+  // A view switch changes the visible window — month spans a padded grid, the
+  // agenda `agendaDays` from the anchor — so it reports through `onNavigate`
+  // like any other window change. Without it a data loader wired to onNavigate
+  // renders the new view against the old view's rows: switching month → agenda
+  // opens a window reaching up to 23 days past the month grid's last loaded day
+  // (measured over August 2026), and those days looked event-free rather than
+  // unloaded. `onViewChange` still fires first, for consumers who only track the
+  // mode.
   function setView(v: CalendarViewMode) {
+    if (v === view) return;
     view = v;
     onViewChange?.(v);
+    emitNavigate(referenceDate);
   }
 
   // --- Selection / focus / hover delegate straight to the controller ---
@@ -574,6 +696,9 @@
     },
     get displayedDate() {
       return referenceDate;
+    },
+    get agendaWindow() {
+      return agendaWindow;
     },
     get today() {
       return controller.today;
@@ -637,10 +762,10 @@
       return disabled;
     },
     get canGoBack() {
-      return controller.canGoBack;
+      return canGoBack;
     },
     get canGoForward() {
-      return controller.canGoForward;
+      return canGoForward;
     },
     get canGoToToday() {
       return controller.canGoToToday;
@@ -782,8 +907,8 @@
         navigate,
         navigateMonth,
         goToToday,
-        canGoBack: controller.canGoBack,
-        canGoForward: controller.canGoForward,
+        canGoBack,
+        canGoForward,
         canGoToToday: controller.canGoToToday
       })}
     {:else}
@@ -799,7 +924,7 @@
           {:else if view === 'day'}
             <CalendarDayView {onEventClick} />
           {:else if view === 'agenda'}
-            <CalendarAgendaView {eventItem} {onEventClick} {agendaDays} />
+            <CalendarAgendaView {eventItem} {onEventClick} />
           {/if}
         </div>
       </div>
@@ -812,7 +937,7 @@
     {:else if view === 'day'}
       <CalendarDayView {onEventClick} />
     {:else if view === 'agenda'}
-      <CalendarAgendaView {eventItem} {onEventClick} {agendaDays} />
+      <CalendarAgendaView {eventItem} {onEventClick} />
     {/if}
 
     {#if effectiveShowLegend}

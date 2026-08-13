@@ -148,3 +148,76 @@ test.describe('Popover motion (ACC-3 rest)', () => {
     expect(await duration(page.locator('[data-testid="pop-prop"]'))).toBe('0.001s');
   });
 });
+
+/**
+ * Where the motion and the anchoring meet. Both defects below were invisible to
+ * the motion specs above (the transition plays correctly either way) and to the
+ * `@pixel` fixtures (which disable transitions, so the panel is never measured
+ * mid-enter).
+ */
+test.describe('Popover anchoring', () => {
+  test('a panel opening from the enter scale still lands on its nominal offset (#197)', async ({
+    page
+  }) => {
+    await gotoHydrated(page);
+    await page.getByRole('button', { name: 'Menu' }).click();
+
+    const panel = page.locator('[role="menu"]');
+    await expect(panel).toBeVisible();
+    // Long past the 150ms enter — the position is written once, so a wrong
+    // first measurement stays wrong.
+    await page.waitForTimeout(400);
+
+    const geometry = await page.evaluate(() => {
+      const trigger = document.querySelector('button[aria-haspopup="menu"]') as HTMLElement;
+      const wrapper = (document.querySelector('[role="menu"]') as HTMLElement)
+        .parentElement as HTMLElement;
+      const t = trigger.getBoundingClientRect();
+      const p = wrapper.getBoundingClientRect();
+      return {
+        gap: p.y - (t.y + t.height),
+        cross: p.x - t.x,
+        panelWidth: wrapper.offsetWidth,
+        panelHeight: wrapper.offsetHeight
+      };
+    });
+
+    // Menu anchors a commit-tier trigger at 8px, `bottom-start` (flush left).
+    // The failure this guards is proportional to the panel's own size: the
+    // enter transition opens from `scale(0.98)`, and measuring the painted box
+    // instead of the layout box used to inset the origin by 1% of each
+    // dimension — so the assertions below would come in at 8 - height/100 and
+    // -width/100. Both are well outside this tolerance for any real panel.
+    expect(geometry.gap).toBeCloseTo(8, 1);
+    expect(geometry.cross).toBeCloseTo(0, 1);
+  });
+
+  test('the popover element paints no UA canvas behind a panel that owns its surface (#196)', async ({
+    page
+  }) => {
+    await gotoHydrated(page);
+    await page.getByRole('button', { name: 'Menu' }).click();
+    await expect(page.locator('[role="menu"]')).toBeVisible();
+
+    const paint = await page.evaluate(() => {
+      const menu = document.querySelector('[role="menu"]') as HTMLElement;
+      const unstyledWrapper = menu.parentElement as HTMLElement;
+      const styledPanel = document.querySelector('[data-testid="pop-default"]') as HTMLElement;
+      return {
+        // Menu renders its Popover `unstyled`, so nothing of ours paints here —
+        // and the UA `[popover]` rule used to fill it with `Canvas` (opaque
+        // white), whose square corners showed behind the rounded menu panel.
+        wrapperBg: getComputedStyle(unstyledWrapper).backgroundColor,
+        menuBg: getComputedStyle(menu).backgroundColor,
+        // The reset lives in `@layer base`, so a Popover that DOES paint its own
+        // surface keeps it — that utility outranks every layered rule.
+        styledBg: getComputedStyle(styledPanel).backgroundColor
+      };
+    });
+
+    expect(paint.wrapperBg).toBe('rgba(0, 0, 0, 0)');
+    expect(paint.menuBg).not.toBe('rgba(0, 0, 0, 0)');
+    expect(paint.styledBg).not.toBe('rgba(0, 0, 0, 0)');
+    expect(paint.styledBg).toBe(paint.menuBg);
+  });
+});

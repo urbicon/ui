@@ -11,6 +11,13 @@ export const drawerVariants = tv({
     panel: [
       'relative flex flex-col bg-surface-overlay',
       'border border-border-hairline',
+      // Same construction as Dialog's panel and the same Safari artefact (#195):
+      // `focusFirstElement` (utils/overlay.ts, shared by both) focuses this
+      // `tabindex="-1"` panel when the drawer has no focusable child, and Safari
+      // paints its default outline for a programmatic focus where Chrome and
+      // Firefox gate on `:focus-visible` and skip it. Hence the un-gated
+      // `focus:` form; focusable children keep their `focus-visible:` rings.
+      'focus:outline-none',
       'overflow-hidden z-[var(--z-modal)]',
       'shadow-[var(--blocks-shadow-lg)]'
     ],
@@ -31,11 +38,11 @@ export const drawerVariants = tv({
     closeButton: [
       'relative font-medium text-center whitespace-nowrap border overflow-hidden',
       // `scale`, NOT `transform` — mirrors buttonVariants.base: Tailwind 4 emits
-      // `scale-*` as the discrete `scale:` property, so `active:scale-[0.98]`
+      // `scale-*` as the discrete `scale:` property, so the `active:` press cue
       // below only animates if the list names `scale`.
       'transition-[color,background-color,border-color,box-shadow,opacity,scale] duration-[var(--blocks-duration-fast)] ease-out',
       'rounded-commit bg-transparent border-transparent shadow-none',
-      'hover:shadow-[var(--blocks-shadow-md)] active:scale-[0.98] active:shadow-[var(--blocks-shadow-sm)]',
+      'hover:shadow-[var(--blocks-shadow-md)] active:scale-[var(--blocks-press-scale)] active:shadow-[var(--blocks-shadow-sm)]',
       'h-8 px-3 text-sm gap-1.5 text-neutral-emphasis hover:bg-neutral-subtle',
       'focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-neutral/50'
     ],

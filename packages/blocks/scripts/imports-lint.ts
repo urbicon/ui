@@ -66,9 +66,10 @@ const ALLOWLIST: ReadonlyArray<readonly [edge: string, why: string]> = [
   // (FileUpload→Spinner, PlannerHeader→Button, CalendarHeader→Button,
   //  CalendarMiniMonth→Button removed: nav buttons / busy spinners now compose
   //  the internal cores — see src/lib/internal/core/.)
+  // internal/core → public: the cores are scanned as sources, so an edge OUT of
+  // the extraction layer is listed like any other rather than hidden by it.
+  ['CoreDateGridHeader -> Tooltip', "the shared date-surface toolbar's today-button hint"],
   ['FileUpload -> Progress', 'per-file upload progress'],
-  ['PlannerHeader -> Tooltip', 'nav button hints'],
-  ['ResourceTimelineHeader -> Tooltip', 'nav button hints'],
   ['Guide -> Button', 'panel action buttons'],
   ['CalendarHeader -> Tooltip', 'nav button hints'],
   ['CalendarHeader -> Popover', 'view/date picker overlay'],
@@ -229,6 +230,14 @@ function collectComponentFiles(dir: string): string[] {
   }
   return out;
 }
+
+// The internal cores are scanned as SOURCES (never as targets): they exist to
+// keep public→public edges out of the graph, so a core that reaches for a public
+// component itself has to say so. Before 2026-08-12 they were invisible in both
+// directions, and lifting the two headers' `Tooltip` import into
+// CoreDateGridHeader silently dropped two edges from the report rather than from
+// the bundle — the gate answered a smaller question than the one it advertises.
+dirFiles.set('internal/core', collectComponentFiles(join(LIB, 'internal/core')));
 
 for (const group of GROUPS) {
   const groupDir = join(LIB, group);

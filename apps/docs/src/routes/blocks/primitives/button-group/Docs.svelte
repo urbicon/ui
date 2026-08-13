@@ -20,7 +20,8 @@
     type ButtonGroupValue,
     UnderlineIcon,
     ZoomInIcon,
-    ZoomOutIcon
+    ZoomOutIcon,
+    BlocksProvider
   } from '@urbicon-ui/blocks';
   import { resolve } from '$app/paths';
 
@@ -34,7 +35,8 @@
   // Zoom control — no selection, plain action buttons.
   let zoom = $state(100);
 
-  // Text alignment — vertical single selection; tier="modify" softens the caps.
+  // Text alignment — vertical single selection; a connected vertical group
+  // softens its own caps (tier defaults to modify there).
   let align = $state<ButtonGroupValue>('left');
   const alignClass = $derived(
     align === 'center' ? 'text-center' : align === 'right' ? 'text-right' : 'text-left'
@@ -145,7 +147,7 @@
 
     <CodeExample
       title="Text alignment"
-      description="A vertical stack for a narrow inspector or side panel: orientation=vertical runs the segments top to bottom, and tier=modify softens the corners to suit a stacked control. Each button pairs an icon with a text label, so none needs an aria-label."
+      description="A vertical stack for a narrow inspector or side panel: orientation=vertical runs the segments top to bottom, and a connected vertical group softens its own caps — the pill radius that shapes the horizontal segmented control would dome a stack of text buttons into a capsule. Pass tier=commit to ask for that capsule anyway; it suits a narrow icon-only stack. Each button pairs an icon with a text label, so none needs an aria-label."
       isolate
       previewClass="flex flex-wrap items-start gap-5"
     >
@@ -153,7 +155,6 @@
         selection="single"
         bind:value={align}
         orientation="vertical"
-        tier="modify"
         size="sm"
         ariaLabel="Text alignment"
       >
@@ -179,25 +180,32 @@
       isolate
       previewClass="flex justify-center rounded-xl bg-linear-to-br from-indigo-600 via-blue-600 to-cyan-500 px-8 py-12"
     >
-      <ButtonGroup
-        ariaLabel="Map controls"
-        connected={false}
-        variant="ghost"
-        size="sm"
-        slotClasses={{
-          base: 'rounded-commit border border-white/20 bg-white/10 p-1 shadow-[var(--blocks-shadow-lg)] backdrop-blur-xl'
+      <BlocksProvider
+        defaults={{
+          ButtonGroup: {
+            slotClasses: {
+              base: 'rounded-commit border border-white/20 bg-white/10 p-1 shadow-[var(--blocks-shadow-lg)] backdrop-blur-xl'
+            }
+          },
+          Button: {
+            slotClasses: {
+              base: 'text-white hover:bg-white/20'
+            }
+          }
         }}
       >
-        <Button aria-label="Zoom in" class="text-white hover:bg-white/20">
-          <ZoomInIcon size={16} />
-        </Button>
-        <Button aria-label="Zoom out" class="text-white hover:bg-white/20">
-          <ZoomOutIcon size={16} />
-        </Button>
-        <Button aria-label="Recenter" class="text-white hover:bg-white/20">
-          <MapPinIcon size={16} />
-        </Button>
-      </ButtonGroup>
+        <ButtonGroup ariaLabel="Map controls" connected={false} variant="ghost" size="sm">
+          <Button aria-label="Zoom in">
+            <ZoomInIcon size={16} />
+          </Button>
+          <Button aria-label="Zoom out">
+            <ZoomOutIcon size={16} />
+          </Button>
+          <Button aria-label="Recenter">
+            <MapPinIcon size={16} />
+          </Button>
+        </ButtonGroup>
+      </BlocksProvider>
     </CodeExample>
 
     <p class="text-text-secondary text-sm leading-relaxed">

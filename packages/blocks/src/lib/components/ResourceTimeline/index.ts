@@ -1,8 +1,9 @@
 import type { Snippet } from 'svelte';
 import type { HTMLAttributes } from 'svelte/elements';
 import type {
+  DateCategory,
+  DateRange,
   ResourceTimelineView,
-  TimelineCategory,
   TimelineCellContext,
   TimelineDayContext,
   TimelineGroup,
@@ -124,7 +125,7 @@ export interface ResourceTimelineProps<T = unknown>
   /** The item's category id, looked up in `categories`. Falls back to `resource.categoryId`. */
   getCategoryId?: (item: T) => string | undefined;
   /** Colour buckets for the bars, and the legend below the grid. */
-  categories?: TimelineCategory[];
+  categories?: DateCategory[];
 
   // ── Window ───────────────────────────────────────────
   /** `week` snaps to the week containing `value`; `days` starts at `value`. @default 'week' */
@@ -187,7 +188,7 @@ export interface ResourceTimelineProps<T = unknown>
 
   // ── Callbacks ────────────────────────────────────────
   /** Fires after navigation with the new reference date and the visible window — load data here. */
-  onNavigate?: (date: Date, range: { start: Date; end: Date }) => void;
+  onNavigate?: (date: Date, range: DateRange) => void;
   /**
    * Fires when a bar is activated — a click on it, or Enter/Space on **any**
    * cell it covers (the bar overhangs those cells, so the keyboard reaches what
@@ -253,10 +254,13 @@ export {
 // model is the component's own, it only makes sense against its private target
 // surface, and Planner keeps its handler internal for the same reason.
 export type {
+  // Shared date-surface vocabulary, defined in internal/date-grid and
+  // re-exported by every surface that speaks it (#191).
+  DateCategory,
+  DateRange,
   ResourceTimelineContext,
   ResourceTimelineSlotName,
   ResourceTimelineView,
-  TimelineCategory,
   TimelineCellContext,
   TimelineDayContext,
   TimelineGroup,

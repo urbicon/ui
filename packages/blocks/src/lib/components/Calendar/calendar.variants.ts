@@ -21,6 +21,13 @@ export const calendarVariants = tv({
     // proportional digits give `2026` and `2031` different widths, and the
     // header drives the grid width, so the whole calendar twitched sideways
     // when paging across a year boundary.
+    //
+    // Named `title`, where Planner and ResourceTimeline call the same thing
+    // `headerTitle`. Kept: it is a published `slotClasses` key of the most-used
+    // component in this family, and renaming it would not make CalendarHeader a
+    // `CoreDateGridHeader` caller anyway — that bar carries a month picker, a
+    // view switcher and a narrow-viewport grid, and resolves its slots with a
+    // second `extra` argument the core's resolver does not take (#191).
     title: 'font-semibold text-text-primary select-none tabular-nums',
     nav: 'flex items-center gap-1 shrink-0',
     // Rendered on the internal CoreIconButton (behaviour-only base: inline-flex
@@ -34,7 +41,9 @@ export const calendarVariants = tv({
     // now consistent with every styled Button) and `disabled:pointer-events-none`
     // (a disabled nav button is fully inert: no more hover-bg feedback or
     // not-allowed cursor while disabled — matching the styled Button base).
-    // Mirrors planner.variants navButton. See internal/core/.
+    // The same classes as the shared toolbar's navButton
+    // (internal/core/date-grid-header-slots.ts), kept separate for the reason
+    // above: Calendar's header is its own component. See internal/core/.
     navButton: [
       'rounded-md',
       'text-text-secondary hover:bg-surface-hover hover:text-text-primary',

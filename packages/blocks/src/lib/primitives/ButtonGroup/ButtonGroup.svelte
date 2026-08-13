@@ -35,11 +35,25 @@
     ...restProps
   }: ButtonGroupProps = $props();
 
-  // Tier precedence: own prop → outer TierContext (e.g. Toolbar) → 'commit'.
-  // Re-propagate as our own TierContext so child Buttons inherit our tier
-  // (and not the outer one) when we override.
+  // Tier precedence: own prop → outer TierContext (e.g. Toolbar) → orientation
+  // default. Re-propagate as our own TierContext so child Buttons inherit our
+  // tier (and not the outer one) when we override.
+  //
+  // Why the fallback is orientation-aware: `commit` caps the group's outer
+  // corners at the pill radius, which is right horizontally (that IS the
+  // segmented-control pill — the cap is clamped to half the button height, the
+  // group's short side). Vertically the same cap is clamped by the *width*, so
+  // a stacked group of text buttons domes top and bottom into a lozenge (#194).
+  // Only the unset default softens; an explicit `tier="commit"` still gets the
+  // capsule, which is what a narrow icon-only stack wants — a judgement about
+  // the content that CSS cannot make. A wrapping Toolbar's TierContext counts as
+  // set for the same reason (it is a deliberate setting one level out), so a
+  // vertical group inside `<Toolbar tier="commit">` is a capsule too; Toolbar
+  // itself defaults to `modify`. Disconnected groups have no caps at all, so
+  // they keep the pill default their individual buttons read as.
   const outerTierCtx = getTierContext();
-  const effectiveTier = $derived(tier ?? outerTierCtx?.tier ?? 'commit');
+  const defaultTier = $derived(connected && orientation === 'vertical' ? 'modify' : 'commit');
+  const effectiveTier = $derived(tier ?? outerTierCtx?.tier ?? defaultTier);
   setTierContext({
     get tier() {
       return effectiveTier;

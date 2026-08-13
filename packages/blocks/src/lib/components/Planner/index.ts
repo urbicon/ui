@@ -1,10 +1,10 @@
 import type { Snippet } from 'svelte';
 import type { HTMLAttributes } from 'svelte/elements';
 import type {
+  DateRange,
   PlannerCellContext,
   PlannerDayContext,
   PlannerHeaderContext,
-  PlannerRange,
   PlannerView
 } from './planner.types';
 import type { PlannerSlots, PlannerVariants } from './planner.variants';
@@ -130,7 +130,7 @@ export interface PlannerProps<T = unknown>
 
   // ── Callbacks ────────────────────────────────────────
   /** Fires after navigation. Receives the new reference date and visible range — load data here. */
-  onNavigate?: (date: Date, range: PlannerRange) => void;
+  onNavigate?: (date: Date, range: DateRange) => void;
   /** Fires when a day cell is activated (click / Enter / Space). */
   onDateSelect?: (date: Date) => void;
 
@@ -167,10 +167,12 @@ export { default as Planner } from './Planner.svelte';
 export { default as PlannerHeader } from './PlannerHeader.svelte';
 export { bucketItemsByDate, type GetItemDate, toDateKey } from './planner.bucket';
 export type {
+  // Shared date-surface vocabulary, defined in internal/date-grid and
+  // re-exported by every surface that speaks it (#191).
+  DateRange,
   PlannerCellContext,
   PlannerDayContext,
   PlannerHeaderContext,
-  PlannerRange,
   PlannerSlotName,
   PlannerView
 } from './planner.types';

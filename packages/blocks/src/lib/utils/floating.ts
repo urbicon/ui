@@ -115,11 +115,44 @@ function getBaseCoords(
 function fixedOriginOffset(floating: HTMLElement): { x: number; y: number } {
   const prevLeft = floating.style.left;
   const prevTop = floating.style.top;
+  const prevOrigin = floating.style.transformOrigin;
   floating.style.left = '0px';
   floating.style.top = '0px';
+  // Pin the transform origin to the panel's own top-left corner for the length
+  // of the probe (#197).
+  //
+  // `getBoundingClientRect` reports the PAINTED box, and the panel is mid-enter
+  // when it is first positioned: `popoverMotion` opens from `scale(0.98)` via
+  // `@starting-style`. Around the default centre origin a 2 % shrink pulls that
+  // painted box inward by 1 % of the panel's own size, `viewportToLocal`
+  // subtracts the inflated origin from the coordinates, and the panel lands that
+  // far up and to the left of its anchor — measured 1.44 px and 2.18 px on a
+  // 144×218 menu, i.e. the reported "two pixels too close and a tick to the
+  // left". Scaling about the top-left corner leaves that corner where layout put
+  // it, whatever the scale factor, so the probe reads the LAYOUT origin.
+  //
+  // It has to be the ORIGIN that moves, not the transform: a running CSS
+  // transition outranks every author declaration including inline styles, so
+  // writing `scale: none` here changes the transition's target and leaves the
+  // current painted value exactly where it was (verified — the probe still read
+  // 0.98 with `style.scale === 'none'` set). `transform-origin` is not among the
+  // properties the library's panel motion transitions, so writing it lands at
+  // once.
+  //
+  // Two things this does not cover, both only reachable from outside the
+  // library: a caller that transitions `transform-origin` itself (an `unstyled`
+  // Popover with hand-built motion) puts the origin write back under the same
+  // rule and the error returns; and the correction is a scale correction — for a
+  // ROTATED panel the bounding box is not the corner, so it would still be
+  // measured wrong. No motion in the library does either.
+  //
+  // Ancestor transforms — the containing-block shift this probe exists to find —
+  // are unaffected either way; they are not on this element.
+  floating.style.transformOrigin = '0 0';
   const origin = floating.getBoundingClientRect();
   floating.style.left = prevLeft;
   floating.style.top = prevTop;
+  floating.style.transformOrigin = prevOrigin;
   return { x: origin.left, y: origin.top };
 }
 

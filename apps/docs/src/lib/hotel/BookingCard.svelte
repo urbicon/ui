@@ -1,11 +1,12 @@
 <script lang="ts">
   import { Button, Card, RadioGroup, RadioItem, Select } from '@urbicon-ui/blocks';
-  import { HOUSES, ROOM_TYPES } from '$lib/hotel-tools';
+  import { HOUSES, ROOM_TYPES, type HotelHouse } from '$lib/hotel-tools';
 
   let room = $state('garden');
   let house = $state<string | null>('cala');
 
   const chosen = $derived(ROOM_TYPES.find((r) => r.id === room));
+  const mapHouses = (h: HotelHouse) => ({ label: `${h.name} — ${h.place}`, value: h.id });
 </script>
 
 <Card>
@@ -20,16 +21,13 @@
   </RadioGroup>
 
   <div class="mt-4">
-    <Select
-      label="House"
-      size="sm"
-      options={HOUSES.map((h) => ({ label: `${h.name} — ${h.place}`, value: h.id }))}
-      bind:value={house}
-    />
+    <Select label="House" size="sm" options={HOUSES.map(mapHouses)} bind:value={house} />
   </div>
 
   <div class="mt-4 flex items-center justify-between gap-3">
-    <span class="text-text-tertiary text-xs">€{chosen?.price} a night · breakfast till noon</span>
+    <span class="text-text-tertiary text-xs">
+      €{chosen?.price} a night · breakfast till noon
+    </span>
     <Button intent="primary" size="sm">Reserve</Button>
   </div>
 </Card>

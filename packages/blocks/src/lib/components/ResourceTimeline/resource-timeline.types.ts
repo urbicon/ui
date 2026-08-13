@@ -5,9 +5,17 @@
  * a day axis — rooms × nights, chairs × sessions, staff × shifts. These types
  * describe the snippet contexts the consumer receives and the internal Svelte
  * context `ResourceTimelineHeader` reads.
+ *
+ * Span colours and navigable windows come from the date surfaces' shared
+ * vocabulary in `internal/date-grid/date-grid.types.ts`: `DateCategory` (until
+ * 2026-08-12 a shape-identical `TimelineCategory` lived here) and `DateRange`
+ * (#191).
  */
 
+import type { DateCategory, DateRange } from '$lib/internal/date-grid';
 import type { ResourceTimelineSlots } from './resource-timeline.variants';
+
+export type { DateCategory, DateRange };
 
 /**
  * Window mode. `week` is the ISO week containing the reference date; `days` is
@@ -39,13 +47,6 @@ export interface TimelineGroup {
   label: string;
 }
 
-/** A colour bucket for spans. `color` takes the same values as `CalendarEventCategory` — hex, `rgb()`, `oklch()` or `var(--…)`. */
-export interface TimelineCategory {
-  id: string;
-  label: string;
-  color: string;
-}
-
 /**
  * The **inclusive** day range a span occupies — both `start` and `end` are days
  * the bar covers. A hotel stay converts by subtracting one day from check-out
@@ -70,7 +71,7 @@ export interface TimelineSpanContext<T> {
   /** The lane the span sits on. */
   resource: TimelineResource;
   /** The resolved category, if `categories` and a category id matched. */
-  category?: TimelineCategory;
+  category?: DateCategory;
   /** First day of the span (local midnight), **unclipped** — may precede the window. */
   start: Date;
   /** Last day of the span (local midnight), inclusive and **unclipped**. */
@@ -169,7 +170,7 @@ export interface TimelineHeaderContext {
 
 /** Context for the `legend` snippet. */
 export interface TimelineLegendContext {
-  categories: TimelineCategory[];
+  categories: DateCategory[];
 }
 
 /** Context for the `groupLabel` snippet. */

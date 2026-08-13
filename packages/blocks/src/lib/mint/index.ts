@@ -9,5 +9,5 @@ export { type MintFallbacks, mintRegistry } from './registry';
 export { createRippleMint } from './ripple';
 
 // Svelte integration
-export { mintAttachment } from './svelte';
+export { isMintOff, mintAttachment } from './svelte';
 export * from './types';

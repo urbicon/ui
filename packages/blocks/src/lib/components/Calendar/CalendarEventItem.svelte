@@ -4,13 +4,13 @@
   import { getCalendarContext, createSlotHelper } from './calendar.context';
   import { draggableEvent } from './calendar.drag';
   import { formatTimeRange, toIsoDateTime } from '$lib/date';
-  import type { CalendarEvent, CalendarEventCategory } from './calendar.types';
+  import type { CalendarEvent, DateCategory } from './calendar.types';
 
   const bt = useBlocksI18n();
 
   interface CalendarEventItemInternalProps {
     event: CalendarEvent;
-    category?: CalendarEventCategory;
+    category?: DateCategory;
     onEventClick?: (event: CalendarEvent) => void;
     dayIndex?: number;
     totalDays?: number;

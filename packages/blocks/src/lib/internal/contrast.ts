@@ -2,9 +2,9 @@
  * Foreground colour for a consumer-supplied background (INTERNAL).
  *
  * Any component that paints a surface from a colour the *consumer* chose —
- * `CalendarEventCategory.color`, `TimelineCategory.color` — has to pick the
- * label colour itself, because a semantic token cannot know what it will sit
- * on. This module owns that decision for the whole package.
+ * a `DateCategory.color`, a chart series colour — has to pick the label colour
+ * itself, because a semantic token cannot know what it will sit on. This module
+ * owns that decision for the whole package.
  *
  * It lived in `Calendar/calendar.engine.ts` until ResourceTimeline became its
  * second caller. Importing it from there would have been a **value** import

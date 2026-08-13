@@ -170,15 +170,19 @@ export const toggleVariants = tv({
     // Hover/active darken through the intent interaction-layer tokens — the
     // same `bg-<intent>-hover` / `bg-<intent>-active` ladder Button and
     // Checkbox use — via `group-*` so hovering/pressing the label counts too.
-    // The border stays on the base intent stop (as in Checkbox), leaving a
-    // hairline rim that makes the fill step legible.
+    // No border here: the track's base already carries `border
+    // border-transparent`, and a `border-<intent>` on top would be a second
+    // copy of the fill that the ladder above leaves behind — a rim in the
+    // resting tone around a darkened track. It used to be justified as making
+    // the fill step legible; measured, it did the opposite, holding the old
+    // colour while the fill moved. The full argument is at `variant.filled`
+    // in button.variants.ts.
     {
       variant: 'default',
       checked: true,
       intent: 'primary',
       class: {
-        track:
-          'bg-primary border-primary group-hover:bg-primary-hover group-active:bg-primary-active'
+        track: 'bg-primary group-hover:bg-primary-hover group-active:bg-primary-active'
       }
     },
     {
@@ -186,8 +190,7 @@ export const toggleVariants = tv({
       checked: true,
       intent: 'secondary',
       class: {
-        track:
-          'bg-secondary border-secondary group-hover:bg-secondary-hover group-active:bg-secondary-active'
+        track: 'bg-secondary group-hover:bg-secondary-hover group-active:bg-secondary-active'
       }
     },
     {
@@ -195,8 +198,7 @@ export const toggleVariants = tv({
       checked: true,
       intent: 'success',
       class: {
-        track:
-          'bg-success border-success group-hover:bg-success-hover group-active:bg-success-active'
+        track: 'bg-success group-hover:bg-success-hover group-active:bg-success-active'
       }
     },
     {
@@ -204,8 +206,7 @@ export const toggleVariants = tv({
       checked: true,
       intent: 'warning',
       class: {
-        track:
-          'bg-warning border-warning group-hover:bg-warning-hover group-active:bg-warning-active'
+        track: 'bg-warning group-hover:bg-warning-hover group-active:bg-warning-active'
       }
     },
     {
@@ -213,7 +214,7 @@ export const toggleVariants = tv({
       checked: true,
       intent: 'danger',
       class: {
-        track: 'bg-danger border-danger group-hover:bg-danger-hover group-active:bg-danger-active'
+        track: 'bg-danger group-hover:bg-danger-hover group-active:bg-danger-active'
       }
     },
     {
@@ -221,8 +222,7 @@ export const toggleVariants = tv({
       checked: true,
       intent: 'neutral',
       class: {
-        track:
-          'bg-neutral border-neutral group-hover:bg-neutral-hover group-active:bg-neutral-active'
+        track: 'bg-neutral group-hover:bg-neutral-hover group-active:bg-neutral-active'
       }
     },
 
@@ -274,14 +274,18 @@ export const toggleVariants = tv({
       class: { track: 'border-border-default group-hover:border-border-emphasis' }
     },
     // Same intent interaction layer as the Switch-Pill above — the dot is a
-    // filled intent surface too, just a 14px one.
+    // filled intent surface too, just a 14px one. Which is also why its border
+    // had to go the same way: on a 14px circle the whole outline is curve, so
+    // a rim left on the resting stop was the most visible instance of the bug
+    // in the library — 32% of the dot's pixels moved between the two states
+    // while its edge did not. Off-state keeps its boundary above; only the
+    // checked (filled) stops drop it.
     {
       variant: 'dot',
       checked: true,
       intent: 'primary',
       class: {
-        track:
-          'border-primary bg-primary group-hover:bg-primary-hover group-active:bg-primary-active'
+        track: 'bg-primary group-hover:bg-primary-hover group-active:bg-primary-active'
       }
     },
     {
@@ -289,8 +293,7 @@ export const toggleVariants = tv({
       checked: true,
       intent: 'secondary',
       class: {
-        track:
-          'border-secondary bg-secondary group-hover:bg-secondary-hover group-active:bg-secondary-active'
+        track: 'bg-secondary group-hover:bg-secondary-hover group-active:bg-secondary-active'
       }
     },
     {
@@ -298,8 +301,7 @@ export const toggleVariants = tv({
       checked: true,
       intent: 'success',
       class: {
-        track:
-          'border-success bg-success group-hover:bg-success-hover group-active:bg-success-active'
+        track: 'bg-success group-hover:bg-success-hover group-active:bg-success-active'
       }
     },
     {
@@ -307,8 +309,7 @@ export const toggleVariants = tv({
       checked: true,
       intent: 'warning',
       class: {
-        track:
-          'border-warning bg-warning group-hover:bg-warning-hover group-active:bg-warning-active'
+        track: 'bg-warning group-hover:bg-warning-hover group-active:bg-warning-active'
       }
     },
     {
@@ -316,7 +317,7 @@ export const toggleVariants = tv({
       checked: true,
       intent: 'danger',
       class: {
-        track: 'border-danger bg-danger group-hover:bg-danger-hover group-active:bg-danger-active'
+        track: 'bg-danger group-hover:bg-danger-hover group-active:bg-danger-active'
       }
     },
     {
@@ -324,8 +325,7 @@ export const toggleVariants = tv({
       checked: true,
       intent: 'neutral',
       class: {
-        track:
-          'border-neutral bg-neutral group-hover:bg-neutral-hover group-active:bg-neutral-active'
+        track: 'bg-neutral group-hover:bg-neutral-hover group-active:bg-neutral-active'
       }
     },
 

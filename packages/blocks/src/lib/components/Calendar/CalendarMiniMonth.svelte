@@ -51,17 +51,18 @@
   }
 
   function handleDayClick(date: Date) {
-    // Navigate main calendar to this date and select it
+    // The mini calendar is rendered in the week, day and agenda views only (see
+    // Calendar's markup), and all three anchor on a DAY — so select the clicked
+    // day and move the anchor to it. `selectDate` only updates the selection; it
+    // never moves the reference date.
+    //
+    // The agenda used to take a month sync here instead (`goToMonth`, and only
+    // when the month differed), because its list started at the 1st of the
+    // displayed month. Since 2026-08-12 the window runs from the reference date,
+    // which makes the clicked day the anchor here too — and the mini calendar a
+    // real day picker for the agenda rather than a month switcher.
     ctx.selectDate(date);
-    if (ctx.view === 'week' || ctx.view === 'day') {
-      // selectDate only updates the selection — it never moves the reference
-      // date, so jump the week/day grid to the clicked day explicitly.
-      ctx.goToDate(date);
-    } else if (date.getMonth() !== ctx.displayedMonth || date.getFullYear() !== ctx.displayedYear) {
-      // Month-based views (month handled its own spill-jump in selectDate;
-      // agenda lands here) only need to sync to the clicked day's month.
-      ctx.goToMonth(date.getMonth(), date.getFullYear());
-    }
+    ctx.goToDate(date);
   }
 
   // Keyboard navigation for mini calendar grid

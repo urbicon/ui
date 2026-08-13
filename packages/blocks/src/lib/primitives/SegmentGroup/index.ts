@@ -59,8 +59,14 @@ export interface SegmentGroupProps
   /** Remove all default tv() classes. */
   unstyled?: boolean;
 
-  /** Per-slot class overrides merged with tv() styles. */
-  slotClasses?: Partial<Record<SegmentGroupSlots, string>>;
+  /**
+   * Per-slot class overrides merged with tv() styles.
+   *
+   * `item` is deliberately absent: the group renders only the track and the
+   * indicator, so an `item` entry here would type-check and then do nothing.
+   * It belongs on each `SegmentItem`, which owns that slot.
+   */
+  slotClasses?: Partial<Record<Exclude<SegmentGroupSlots, 'item'>, string>>;
 
   /**
    * Apply a named preset registered via `<BlocksProvider presets={{ SegmentGroup: {...} }}>`.

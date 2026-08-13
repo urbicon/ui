@@ -4,16 +4,18 @@
  * Planner buckets a generic `T[]` by calendar day and renders each day through
  * a consumer `cell` snippet. These types describe the snippet contexts the
  * consumer receives and the internal Svelte context `PlannerHeader` reads.
+ *
+ * The visible window is a `DateRange` — the date surfaces' shared start/end
+ * pair, defined in `internal/date-grid/date-grid.types.ts`. Until 2026-08-12
+ * this module declared a shape-identical `PlannerRange` of its own (#191).
  */
+import type { DateRange } from '$lib/internal/date-grid';
+import type { PlannerSlots } from './planner.variants';
+
+export type { DateRange };
 
 /** Cell-based views Planner lays out. (`day`/`agenda`/`year` stay Calendar's.) */
 export type PlannerView = 'week' | 'month' | 'range';
-
-/** An inclusive start/end date pair — the visible window of the current view. */
-export interface PlannerRange {
-  start: Date;
-  end: Date;
-}
 
 /**
  * The value the `cell` snippet receives per day — the heart of the API. `items`
@@ -93,24 +95,18 @@ export interface PlannerHeaderContext {
   canGoToToday: boolean;
 }
 
-/** Every styleable slot Planner exposes through `slotClasses`. */
-export type PlannerSlotName =
-  | 'base'
-  | 'header'
-  | 'headerTitle'
-  | 'nav'
-  | 'navButton'
-  | 'grid'
-  | 'weekdayHeader'
-  | 'weekday'
-  | 'weekNumber'
-  | 'week'
-  | 'cell'
-  | 'cellHeader'
-  | 'cellWeekday'
-  | 'cellDate'
-  | 'cellItems'
-  | 'empty';
+/**
+ * Every styleable slot Planner exposes through `slotClasses`.
+ *
+ * Derived from the tv() config rather than hand-listed (ResourceTimeline's
+ * precedent, adopted 2026-08-12): the hand-written copy could disagree with the
+ * config silently — a slot renamed in `planner.variants.ts` alone type-checked
+ * everywhere and rendered `class=""` on both nav buttons, because the slot
+ * helper resolves an unknown name to the empty string. Now a rename is a type
+ * error. `planner.variants.ts` imports nothing from this module, so the
+ * direction is one-way and there is no cycle.
+ */
+export type PlannerSlotName = PlannerSlots;
 
 /**
  * The reactive surface Planner shares with `PlannerHeader` (and future

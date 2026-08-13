@@ -157,8 +157,11 @@ Override per component via `class` / `slotClasses` when a heavier border is want
 
 Action components are the third case — they source their borders from **Intent** tokens
 (`border-neutral` and friends), deliberately darker than surface borders so a button never
-reads as a container. See [COMPONENT-FAMILIES.md] in the repo for the full family →
-border-source mapping.
+reads as a container. That holds where the border is a boundary: the `outlined` variants,
+and the divider between the members of a connected `ButtonGroup`. A **filled** surface
+takes `border-transparent` instead — there the intent colour is already the fill, and a
+border repeating it would only be left behind when hover and press move the fill on. See
+[COMPONENT-FAMILIES.md] in the repo for the full family → border-source mapping.
 
 ---
 

@@ -205,7 +205,7 @@
           { label: 'Price: high to low', value: 'price-desc' }
         ]}
         slotClasses={{
-          trigger: 'bg-primary-subtle border-primary text-primary hover:border-primary',
+          trigger: 'bg-primary-subtle border-primary text-primary-text hover:border-primary',
           chevron: 'text-primary',
           listbox: 'border-primary'
         }}

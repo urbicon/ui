@@ -28,6 +28,12 @@ export default {
       // apps/docs/src/routes/auth/components/*/examples/BasicDemo.svelte and
       // the three auth recipes. Keep it that way: an exemption list here would
       // hide real breakage.
+      //
+      // A demo that needs an image to *fail* (Avatar's initials fallback) has
+      // the same shape: a site-relative dead path like /broken/photo.jpg is
+      // indistinguishable from real breakage to the crawler and fails the
+      // build. Use an undecodable data: URL instead — `data:image/jpeg,broken`
+      // fires onerror with no request to crawl. See the avatar page.
     }
   }
 };

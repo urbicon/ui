@@ -8,7 +8,7 @@
     TypesReference
   } from '@urbicon-ui/docs';
   import { Calendar } from '@urbicon-ui/blocks';
-  import type { CalendarEvent, CalendarEventCategory } from '@urbicon-ui/blocks';
+  import type { CalendarEvent, DateCategory } from '@urbicon-ui/blocks';
   import CustomDocs from './Docs.svelte';
   import Playground from './Playground.svelte';
   import { componentData } from './api';
@@ -104,7 +104,7 @@
     <CodeExample
       title="Import"
       code={`import { Calendar, CalendarHeader, CalendarGrid } from '@urbicon-ui/blocks';
-import type { CalendarEvent, CalendarEventCategory } from '@urbicon-ui/blocks';`}
+import type { CalendarEvent, DateCategory } from '@urbicon-ui/blocks';`}
       language="svelte"
       preview={false}
     />

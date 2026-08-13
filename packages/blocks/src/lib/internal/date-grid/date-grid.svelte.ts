@@ -38,10 +38,10 @@ import {
   toIso
 } from '$lib/date';
 import type {
-  DateGridRange,
   DateGridSelection,
   DateGridSelectionMode,
   DateGridView,
+  DateRange,
   DayCellInfo,
   NavDirection
 } from './date-grid.types';
@@ -83,7 +83,7 @@ export interface DateGridOptions {
   /** Extra per-date disable predicate (on top of min/max). */
   isDateDisabled?: (date: Date) => boolean;
   /** Called when navigation wants a new reference date; the wrapper materialises it. */
-  onNavigate?: (date: Date, range: DateGridRange) => void;
+  onNavigate?: (date: Date, range: DateRange) => void;
   /** Called with the next selection value and the date that triggered it; the
    * wrapper materialises the selection. The trigger date lets consumers run
    * per-click side effects (Calendar's `onDateClick` / spill-day navigation,
@@ -560,7 +560,7 @@ export class DateGridController {
   }
 
   /** Visible range for an arbitrary reference date, derived from its cells. */
-  #rangeFor(reference: Date): DateGridRange {
+  #rangeFor(reference: Date): DateRange {
     const cells = this.#cellsFor(reference);
     const lastRow = cells[cells.length - 1];
     return { start: cells[0][0], end: lastRow[lastRow.length - 1] };
@@ -586,7 +586,7 @@ export class DateGridController {
   }
 
   /** The selection as a range, or null when it is not a (range-mode) range value. */
-  #asRange(): DateGridRange | null {
+  #asRange(): DateRange | null {
     const sel = this.#opts.selection;
     if (this.#opts.selectionMode !== 'range') return null;
     if (!sel || sel instanceof Date || Array.isArray(sel)) return null;

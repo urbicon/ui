@@ -54,7 +54,7 @@ describe('radioItemVariants', () => {
     for (const intent of intents) {
       const indicator = radioItemVariants({ checked: true, intent }).indicator();
       expect(indicator).toContain(`bg-${intent}`);
-      expect(indicator).toContain(`border-${intent}`);
+      expect(indicator).toContain('border-transparent');
     }
   });
 
@@ -106,11 +106,13 @@ describe('radioItemVariants', () => {
       }
     });
 
-    it('keeps the border on the base intent stop (only the fill steps)', () => {
+    it('gives the filled indicator no border colour to fall behind its fill', () => {
+      // Same rule as Checkbox and Button: only the fill steps, so a border on
+      // the intent's resting tone would be left ringing a darkened indicator.
       for (const intent of INTENTS) {
         const indicator = radioItemVariants({ checked: true, intent }).indicator();
-        expect(indicator, intent).toContain(`border-${intent}`);
-        expect(indicator, intent).not.toContain(`group-hover:border-${intent}-hover`);
+        expect(indicator, intent).toContain('border-transparent');
+        expect(indicator, intent).not.toMatch(new RegExp(`(^| )border-${intent}( |$)`));
       }
     });
 

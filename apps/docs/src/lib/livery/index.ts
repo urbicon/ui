@@ -30,10 +30,6 @@ import type { ComponentDefaults } from '@urbicon-ui/blocks';
 export interface Livery {
   id: string;
   name: string;
-  /** The house it stands for, in one line. */
-  tagline: string;
-  /** What the reference hand does that a neutral-page-plus-accent cannot. */
-  mechanism: string;
   layout: LiveryLayout;
   /** Component-level styling the token layer cannot reach. */
   defaults: Record<string, ComponentDefaults>;
@@ -70,8 +66,6 @@ export type LiveryLayout = 'courtyard' | 'scatter' | 'horizon';
 const CALA: Livery = {
   id: 'cala',
   name: 'Cala',
-  tagline: 'Whitewash over a shallow bay. The shadows are blue, never grey.',
-  mechanism: 'Overexposure — the ground is light itself; structure comes from shadow.',
   layout: 'courtyard',
   defaults: {
     // A card is a whitewashed cube: one hairline, no floating. Depth on this
@@ -79,8 +73,15 @@ const CALA: Livery = {
     Card: {
       slotClasses: { base: 'border border-border-subtle shadow-none' }
     },
+    // `px-6` because this house makes the commit tier a full pill. The library's
+    // 16px is measured against its own 6px radius; at radius 999px on a 40px
+    // control the first 20px of each end IS the curve, so the same 16px leaves
+    // the label sitting in the round (measured 2026-08-13: "Book these nights"
+    // came out 152px wide with the text hard against both bows). A pill wants
+    // more side room than a rounded rectangle — the theme chose the pill, so the
+    // theme pays for it.
     Button: {
-      slotClasses: { base: 'shadow-none hover:shadow-none active:shadow-none' },
+      slotClasses: { base: 'px-6 shadow-none hover:shadow-none active:shadow-none' },
       overrides: [{ variant: 'outlined', class: { base: 'border border-primary-600' } }]
     },
     // Boxed inputs: the library's own outlined chrome IS the house box — its
@@ -105,29 +106,51 @@ const CALA: Livery = {
 const FIRN: Livery = {
   id: 'firn',
   name: 'Firn',
-  tagline: 'Ink on snow at 1,850 metres. One glacier line.',
-  mechanism: 'Thin air — near-nothing on the page; precision stands in for colour.',
   layout: 'scatter',
   defaults: {
-    // The type jump has to reach the generated form too, or the house stops at
-    // the page edge: labels drop to the smallest step the scale has, while the
-    // wordmark spans the full measure. Nothing sits in between anywhere.
+    // ONE VALUE FOR LABEL TRACKING, AND IT IS THE TOKEN.
+    //
+    // The house states its tracking once, as `--livery-label-tracking`, and
+    // `liveries.css` applies it to every `<label>` element. Where a label slot
+    // IS that element — Input, Textarea — nothing is needed here: the rule
+    // already computes the em against the size set below.
+    //
+    // Where it is a `<span>` (Checkbox, RadioItem, RadioGroup), the property
+    // must be RE-DECLARED, and the reason is the trap this file fell into:
+    // `letter-spacing: 0.2em` resolves to an absolute px at the element that
+    // declares it, and that px is what inherits. Measured 2026-08-13: the
+    // wrapping `<label>` is 16px, so 0.2em becomes 3.2px, and on the 11px
+    // `text-2xs` span below that is 0.29em — half again too wide. Re-declaring
+    // re-anchors the em to the span's own size.
+    //
+    // What went, and why: three hand-written numbers (0.18em / 0.2em / 0.24em)
+    // for one intent, of which the two on Input/Textarea never even rendered
+    // (the rule outranks the utility there — 2px on 10px, measured), plus an
+    // `uppercase` that was always redundant, because `text-transform` inherits
+    // as a keyword and carries no size dependency.
+    //
+    // The type jump itself is real and stays: labels drop to the smallest step
+    // the scale has while the wordmark spans the full measure, and nothing
+    // sits in between anywhere.
     RadioItem: {
       slotClasses: {
-        label: 'text-2xs tracking-[0.18em] uppercase',
+        label: 'text-2xs tracking-[var(--livery-label-tracking)]',
         description: 'text-2xs'
       }
     },
-    // The group's own label lives on RadioGroup, not RadioItem — two configs,
-    // two provider keys. Missing this left the question at body size while
-    // every option under it was 10px caps, which read as an oversight rather
-    // than a hierarchy.
+    // A RadioGroup's own label is a `<span>` in a `<div>` — it labels a group,
+    // not a control, so it is correctly not a `<label>` and sits inside none.
+    // Nothing reaches it, by selector or by inheritance, so it is the one slot
+    // that also has to name the case.
     RadioGroup: {
-      slotClasses: { label: 'text-3xs tracking-[0.24em]', message: 'text-3xs' }
+      slotClasses: {
+        label: 'text-3xs tracking-[var(--livery-label-tracking)] uppercase',
+        message: 'text-3xs'
+      }
     },
     Input: {
       slotClasses: {
-        label: 'text-3xs tracking-[0.24em]',
+        label: 'text-3xs',
         // Underline = the library box minus three edges, ON `base` (see Cala's
         // anatomy note): focus and error still repaint the remaining edge.
         base: 'text-xs border-x-0 border-t-0 rounded-none bg-transparent'
@@ -135,12 +158,12 @@ const FIRN: Livery = {
     },
     Textarea: {
       slotClasses: {
-        label: 'text-3xs tracking-[0.24em]',
+        label: 'text-3xs',
         base: 'text-xs border-x-0 border-t-0 rounded-none bg-transparent'
       }
     },
     Checkbox: {
-      slotClasses: { label: 'text-2xs tracking-[0.18em] uppercase' }
+      slotClasses: { label: 'text-2xs tracking-[var(--livery-label-tracking)]' }
     },
     Card: {
       slotClasses: { base: 'border border-border-subtle shadow-none bg-transparent' }
@@ -156,8 +179,6 @@ const FIRN: Livery = {
 const DUNA: Livery = {
   id: 'duna',
   name: 'Duna',
-  tagline: 'Dune grass at last light. Everything on the horizon.',
-  mechanism: 'The ground is a gradient — the page is an evening, banded like sand.',
   layout: 'horizon',
   defaults: {
     // Everything is glass over the glow: surfaces stay translucent so the
@@ -165,8 +186,10 @@ const DUNA: Livery = {
     Card: {
       slotClasses: { base: 'border border-border-subtle bg-surface-base/70 shadow-none' }
     },
+    // `px-6` for the same reason as Cala: this house is the other one that
+    // pushes the commit tier to a full pill.
     Button: {
-      slotClasses: { base: 'shadow-none hover:shadow-none active:shadow-none' },
+      slotClasses: { base: 'px-6 shadow-none hover:shadow-none active:shadow-none' },
       overrides: [{ variant: 'outlined', class: { base: 'border border-primary-500' } }]
     },
     Input: {
@@ -175,8 +198,14 @@ const DUNA: Livery = {
         base: 'border-x-0 border-t-0 rounded-none bg-transparent'
       }
     },
+    // Identical to the Input above, deliberately: one house, one field idiom.
+    // It used to read `border-x-0 border-t-0 border-b bg-transparent` — the
+    // `border-b` was redundant (the base slot already carries `border`, and
+    // stripping three edges leaves the fourth at its width) and the missing
+    // `rounded-none` left the textarea with rounded corners on a field that
+    // has only a bottom edge, while its own Input had none.
     Textarea: {
-      slotClasses: { base: 'border-x-0 border-t-0 border-b bg-transparent' }
+      slotClasses: { base: 'border-x-0 border-t-0 rounded-none bg-transparent' }
     }
   }
 };

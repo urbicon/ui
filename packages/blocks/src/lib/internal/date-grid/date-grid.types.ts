@@ -1,9 +1,21 @@
 /**
  * Shared types for the headless date-grid core (`lib/internal/date-grid`).
  *
- * This layer knows only about dates, cells, navigation, focus and selection —
- * never about events or domain items. Calendar and Planner build their visible
- * markup on top of it.
+ * The CONTROLLER in this layer knows only about dates, cells, navigation, focus
+ * and selection — never about events or domain items. Calendar, Planner and
+ * ResourceTimeline build their visible markup on top of it.
+ *
+ * Two types here are the exception, and deliberately so: `DateRange` and
+ * `DateCategory` are the surfaces' shared FACADE vocabulary, public and
+ * re-exported by each surface (the module itself stays internal, see
+ * `index.ts`). `DateCategory` does name domain items — it is the colour bucket
+ * behind an event, a span and a legend row. It lives here because the
+ * alternative was worse: each of these types stood as a set of per-component
+ * twins (`DateRange` as `DateGridRange` + Calendar's `DateRange` +
+ * `PlannerRange` + an inline `{ start; end }`; `DateCategory` as
+ * `CalendarEventCategory` + `TimelineCategory`, identical but for an `icon` no
+ * legend ever rendered), and twins of one shape are what let two facades drift
+ * while the engine underneath stays shared (#191).
  */
 
 /** View modes the grid can lay out. Cell-based views (month/week/range) render
@@ -14,14 +26,43 @@ export type DateGridView = 'month' | 'week' | 'range' | 'day';
 /** Selection cardinality. Planner uses only `single`; Calendar uses all three. */
 export type DateGridSelectionMode = 'single' | 'range' | 'multiple';
 
-/** An inclusive start/end date pair. */
-export interface DateGridRange {
+/**
+ * An inclusive start/end date pair — a selected range, a visible window, the
+ * range `onNavigate` reports. One type for every date surface.
+ *
+ * `ResourceTimeline.getRange` is deliberately *not* this type: it also accepts
+ * local date strings (`'2026-06-16'`), which a selection value must not.
+ */
+export interface DateRange {
   start: Date;
   end: Date;
 }
 
+/**
+ * A colour bucket for the items a date surface draws — Calendar's events,
+ * ResourceTimeline's spans — and the entries of the legend below the grid. One
+ * type for every surface, so moving categories between them is not a mapping
+ * exercise.
+ *
+ * `color` takes any CSS colour value: hex, `rgb()`, `oklch()` or a
+ * `var(--token)` reference. Where a surface writes a LABEL on the colour (a
+ * timeline bar, a calendar event chip), it picks black or white by measuring
+ * that value — which only works for a value it can read. A `var()` or a
+ * `color-mix()` is resolved by the browser, not by the component, so those fall
+ * back to white: pass a colour dark enough to carry it, or set the label colour
+ * yourself through the surface's `slotClasses`.
+ */
+export interface DateCategory {
+  /** Stable id — what an item's category accessor returns. */
+  id: string;
+  /** Display label, shown in the legend. */
+  label: string;
+  /** CSS colour value for the dot, bar or border. */
+  color: string;
+}
+
 /** The current selection value, shaped by the active `DateGridSelectionMode`. */
-export type DateGridSelection = Date | Date[] | DateGridRange;
+export type DateGridSelection = Date | Date[] | DateRange;
 
 /** Direction of the most recent navigation, for enter/exit transitions. */
 export type NavDirection = 'forward' | 'backward' | null;

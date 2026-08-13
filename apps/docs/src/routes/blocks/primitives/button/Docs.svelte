@@ -39,7 +39,7 @@
 
     <CodeExample
       title="Icons and labels"
-      description="Put an icon in the button's content, before or after the label. The gap between icon and label comes from the button's `size`, so it tracks the button, while the glyph keeps whatever size you set on the icon (`size=&#123;18&#125;` here)."
+      description={"Put an icon in the button's content, before or after the label. The gap between icon and label comes from the button's `size`, so it tracks the button, while the glyph keeps whatever size you set on the icon (`size={18}` here)."}
       isolate
       previewClass="flex flex-wrap items-center gap-3"
     >

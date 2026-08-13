@@ -46,12 +46,14 @@ export const badgeVariants = tv({
       'relative font-medium text-center whitespace-nowrap border overflow-hidden',
       'duration-[var(--blocks-duration-fast)] ease-out',
       'bg-transparent border-transparent shadow-none',
-      'hover:shadow-[var(--blocks-shadow-md)] active:scale-[0.98] active:shadow-[var(--blocks-shadow-sm)]',
+      'hover:shadow-[var(--blocks-shadow-md)] active:scale-[var(--blocks-press-scale)] active:shadow-[var(--blocks-shadow-sm)]',
       'h-6 px-2 text-xs gap-1 focus-visible:ring-offset-2',
       // remove-control overrides (won the fold over the ghost base)
-      // `scale` is named because the interactive compound adds `active:scale-[0.98]`:
-      // Tailwind emits that as the discrete `scale` property, which `transition-colors`
-      // does not cover — the press cue would snap. Same fold as Dialog/Drawer's closeButton.
+      // `scale` is named because of this slot's OWN `active:scale-*` two lines
+      // up: Tailwind emits that as the discrete `scale` property, which
+      // `transition-colors` does not cover — the press cue would snap. (Not
+      // because of the `interactive` axis, which only ever writes into `base`.)
+      // Same fold as Dialog/Drawer's closeButton.
       'ml-1 shrink-0 rounded-modify transition-[color,background-color,scale] text-current',
       'hover:bg-neutral-950/10 focus-visible:ring-1 focus-visible:ring-current'
     ],
@@ -76,7 +78,13 @@ export const badgeVariants = tv({
       neutral: {}
     },
     variant: {
-      filled: {},
+      // Transparent, not the intent stop — the same rule Button states at
+      // length: a filled surface carries its state in the fill, and a border
+      // repeating that fill only falls behind when the `interactive`
+      // compounds below walk `hover:bg-*-hover` / `active:bg-*-active`.
+      // `border` stays in the base slot for geometry parity with `outlined`,
+      // and the background paints under it.
+      filled: { base: 'border-transparent' },
       outlined: {
         base: 'bg-transparent border-2'
       },
@@ -333,42 +341,42 @@ export const badgeVariants = tv({
       intent: 'primary',
       variant: 'filled',
       class: {
-        base: 'bg-primary text-text-on-primary border-primary'
+        base: 'bg-primary text-text-on-primary'
       }
     },
     {
       intent: 'secondary',
       variant: 'filled',
       class: {
-        base: 'bg-secondary text-text-on-fill border-secondary'
+        base: 'bg-secondary text-text-on-fill'
       }
     },
     {
       intent: 'success',
       variant: 'filled',
       class: {
-        base: 'bg-success text-text-on-fill border-success'
+        base: 'bg-success text-text-on-fill'
       }
     },
     {
       intent: 'warning',
       variant: 'filled',
       class: {
-        base: 'bg-warning text-text-on-warning border-warning'
+        base: 'bg-warning text-text-on-warning'
       }
     },
     {
       intent: 'danger',
       variant: 'filled',
       class: {
-        base: 'bg-danger text-text-on-fill border-danger'
+        base: 'bg-danger text-text-on-fill'
       }
     },
     {
       intent: 'neutral',
       variant: 'filled',
       class: {
-        base: 'bg-neutral text-text-on-fill border-neutral'
+        base: 'bg-neutral text-text-on-fill'
       }
     },
     // Dot color per intent

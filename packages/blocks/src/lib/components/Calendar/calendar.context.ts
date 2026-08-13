@@ -1,8 +1,8 @@
 import { createOptionalContext } from '$lib/utils/optional-context';
 import type {
   CalendarEvent,
-  CalendarEventCategory,
   CalendarViewMode,
+  DateCategory,
   DateRange,
   EventDayInfo
 } from './calendar.types';
@@ -13,6 +13,15 @@ export interface CalendarContext {
   readonly displayedMonth: number;
   readonly displayedYear: number;
   readonly displayedDate: Date;
+  /**
+   * The agenda view's window: `agendaDays` days starting at the reference date,
+   * both ends inclusive, plus the resolved day count — `agendaDays` when it is a
+   * whole number in 1–366, the default (30) otherwise. Derived once by `Calendar`
+   * and read by the list *and* the header, so the days the agenda lists and the
+   * days its title names cannot drift apart. Present in every view — only the
+   * agenda reads it.
+   */
+  readonly agendaWindow: { start: Date; end: Date; days: number };
   readonly today: Date;
 
   // View
@@ -27,10 +36,10 @@ export interface CalendarContext {
 
   // Events
   readonly events: CalendarEvent[];
-  readonly categories: CalendarEventCategory[];
+  readonly categories: DateCategory[];
   getEventsForDate: (date: Date) => CalendarEvent[];
   getEventsWithDayInfo: (date: Date) => EventDayInfo[];
-  getCategoryById: (id: string) => CalendarEventCategory | undefined;
+  getCategoryById: (id: string) => DateCategory | undefined;
 
   // Styling
   readonly size: 'sm' | 'md' | 'lg';

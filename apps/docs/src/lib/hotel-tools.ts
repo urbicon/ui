@@ -1,9 +1,13 @@
 // The demo's grounding layer: a deterministic mock "hotel backend" exposed to
-// the model as an Anthropic tool. Purpose: the agent must ASK for real data
+// the model as Anthropic tools. Purpose: the agent must ASK for real data
 // (houses, room types, what is actually free for a date range) before building
-// a booking surface, instead of hallucinating options. Pure TS — the recorder
-// calls `executeHotelTool` inside its tool loop, the unit tests call it
-// directly.
+// a booking surface, instead of hallucinating options — and must ASK to book
+// rather than narrating that it did. Pure TS — the recorder calls
+// `executeHotelTool` inside its tool loop, the unit tests call it directly.
+//
+// Nothing here persists: both tools derive their answer from their input, so a
+// replay cannot drift from the fixture it was recorded against, and no stay is
+// ever actually held.
 //
 // The fiction: FERMATA, a group of three small houses named after the piece of
 // landscape each one stands in, in the language of its place — Cala (cove,
@@ -28,8 +32,9 @@ export const HOTEL_TOOLS = [
       'Returns the Fermata group: its houses, their room types with nightly rates and, when ' +
       'a date range (checkIn/checkOut, YYYY-MM-DD) is given, how many rooms of each type are ' +
       'free in each house for every night of the stay. ALWAYS call this before building a ' +
-      'booking form or confirming a stay — never invent houses, room types, rates or ' +
-      'availability.',
+      'booking form — never invent houses, room types, rates or availability. To CONFIRM a ' +
+      'stay use create_booking, which re-checks availability itself; calling this one first ' +
+      'is redundant.',
     input_schema: {
       type: 'object' as const,
       properties: {
@@ -42,6 +47,26 @@ export const HOTEL_TOOLS = [
           description: 'Departure date as YYYY-MM-DD. Required when checkIn is given.'
         }
       }
+    }
+  },
+  {
+    name: 'create_booking',
+    description:
+      'Confirms a stay and returns its booking reference and total. Re-checks availability and ' +
+      'refuses if the room is gone. The reference, the total and the `note` come BACK from this ' +
+      'call — never invent them, and quote the note to the guest. Call this only once the guest ' +
+      'has pressed the booking button on the surface.',
+    input_schema: {
+      type: 'object' as const,
+      properties: {
+        house: { type: 'string', description: 'House id from get_hotel_info.' },
+        room: { type: 'string', description: 'Room type id from get_hotel_info.' },
+        checkIn: { type: 'string', description: 'Arrival date as YYYY-MM-DD.' },
+        checkOut: { type: 'string', description: 'Departure date as YYYY-MM-DD.' },
+        guests: { type: 'integer', description: 'Number of guests (1 or more).' },
+        name: { type: 'string', description: 'Name the stay is booked under.' }
+      },
+      required: ['house', 'room', 'checkIn', 'checkOut', 'name']
     }
   }
 ];
@@ -188,13 +213,16 @@ function freeForStay(houseId: string, roomId: string, checkIn: Date, nights: num
  * throwing — the recording stream must survive bad calls.
  */
 export function executeHotelTool(name: string, input: unknown): Record<string, unknown> {
-  if (name !== 'get_hotel_info') {
-    return { error: `Unknown tool "${name}"` };
-  }
   const params =
     input !== null && typeof input === 'object' && !Array.isArray(input)
       ? (input as Record<string, unknown>)
       : {};
+  if (name === 'get_hotel_info') return getHotelInfo(params);
+  if (name === 'create_booking') return createBooking(params);
+  return { error: `Unknown tool "${name}"` };
+}
+
+function getHotelInfo(params: Record<string, unknown>): Record<string, unknown> {
   const { checkIn, checkOut } = params;
 
   const base: Record<string, unknown> = {
@@ -236,5 +264,88 @@ export function executeHotelTool(name: string, input: unknown): Record<string, u
         free: freeForStay(house.id, room.id, arrival, nights)
       })).filter((room) => room.free > 0)
     }))
+  };
+}
+
+/**
+ * The write half of the fiction.
+ *
+ * It exists because the agent loop was a lie at its last step: with only a read
+ * tool, "Booked — €900 total" was the model doing arithmetic in prose. Now the
+ * reference and the total come back from a call, which is the pattern the demo
+ * is there to show — and which `get_hotel_info` already insists on for
+ * everything else ("never invent … rates or availability").
+ *
+ * Nothing is written anywhere. The booking is derived from its own input, so
+ * the same stay always yields the same reference and availability is unchanged
+ * afterwards — a recording plays once, and a demo that accumulated state would
+ * drift away from its fixture on every replay.
+ */
+function createBooking(params: Record<string, unknown>): Record<string, unknown> {
+  const { house: houseId, room: roomId, checkIn, checkOut, name: guestName, guests } = params;
+
+  if (typeof houseId !== 'string' || typeof roomId !== 'string') {
+    return { error: 'house and room must both be ids from get_hotel_info' };
+  }
+  const house = houseById(houseId);
+  const room = ROOM_TYPES.find((type) => type.id === roomId);
+  if (!house) return { error: `"${houseId}" is not a house of ${GROUP_NAME}` };
+  if (!room) return { error: `"${roomId}" is not a room type of ${GROUP_NAME}` };
+
+  if (typeof guestName !== 'string' || guestName.trim() === '') {
+    return { error: 'name is required — a stay is booked under someone' };
+  }
+  if (typeof checkIn !== 'string' || typeof checkOut !== 'string') {
+    return { error: 'checkIn and checkOut must both be YYYY-MM-DD strings' };
+  }
+  const arrival = parseIsoDate(checkIn);
+  const departure = parseIsoDate(checkOut);
+  if (arrival === null || departure === null) {
+    return { error: `"${arrival === null ? checkIn : checkOut}" is not a valid YYYY-MM-DD date` };
+  }
+  const nights = Math.round((departure.getTime() - arrival.getTime()) / NIGHT_MS);
+  if (nights < 1) return { error: 'checkOut must be at least one night after checkIn' };
+  if (
+    guests !== undefined &&
+    (typeof guests !== 'number' || !Number.isInteger(guests) || guests < 1)
+  ) {
+    return { error: 'guests must be a whole number of at least 1' };
+  }
+
+  // The same check the form was built from — a stay can sell out between the
+  // question and the answer, and a booking tool that skips its own backend's
+  // availability is the bug this whole tool exists to remove.
+  if (freeForStay(house.id, room.id, arrival, nights) < 1) {
+    return {
+      error: `No ${room.label} is free at ${house.name} for every night of ${checkIn} — ${checkOut}`,
+      house: house.name,
+      roomType: room.label
+    };
+  }
+
+  return {
+    // `DEMO-` is load-bearing, not decoration: this string is the one thing a
+    // visitor is likely to keep from the exchange, and it is quoted on the
+    // confirmation card. A reference that read like a real one would undo the
+    // banner and the notice the page carries.
+    reference: `DEMO-${hash(`${house.id}|${room.id}|${checkIn}|${checkOut}|${guestName.trim()}`)
+      .toString(36)
+      .toUpperCase()
+      .padStart(7, '0')}`,
+    guest: guestName.trim(),
+    guests: typeof guests === 'number' ? guests : 1,
+    house: house.name,
+    place: house.place,
+    roomType: room.label,
+    checkIn,
+    checkOut,
+    nights,
+    pricePerNight: room.price,
+    total: room.price * nights,
+    currency: 'EUR',
+    // Handed to the model rather than kept on the page, so the fiction is
+    // stated by the front desk itself instead of being edited into a recording
+    // afterwards. The tool description tells it to quote this.
+    note: 'This is a demonstration of an AI-generated interface. No reservation exists, no confirmation will be sent, and no payment is due.'
   };
 }

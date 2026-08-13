@@ -2,9 +2,9 @@ import type { Snippet } from 'svelte';
 import type { HTMLAttributes } from 'svelte/elements';
 import type {
   CalendarEvent,
-  CalendarEventCategory,
   CalendarSelection,
   CalendarViewMode,
+  DateCategory,
   DateRange,
   DayCellContext,
   EventItemContext,
@@ -167,7 +167,7 @@ export interface CalendarProps
   /** Array of events to display on the calendar. @default [] */
   events?: CalendarEvent[];
   /** Event categories for color coding and legend. @default [] */
-  categories?: CalendarEventCategory[];
+  categories?: DateCategory[];
 
   // === View ===
   /**
@@ -288,21 +288,33 @@ export interface CalendarProps
   // === Callbacks ===
   /** Fires when the selected date(s) change. */
   onValueChange?: (value: CalendarSelection) => void;
-  /** Fires when the displayed month/year changes via navigation. */
+  /**
+   * Fires when the displayed month/year changes via navigation — the month and
+   * year views, and the header's month picker in any view. The agenda's arrows
+   * step a window of days instead of a month and report through `onNavigate`.
+   */
   onMonthChange?: (month: number, year: number) => void;
   /**
    * Fires after **any** navigation, in every view, with the new reference date
-   * and the visible range — load data here. The per-view callbacks
+   * and the visible range — load data here. A **view switch** counts as one: it
+   * changes the window (a padded month grid, seven days, `agendaDays` from the
+   * anchor …) without moving the reference date, and a loader that missed it
+   * rendered the new view against the old view's rows. The per-view callbacks
    * (`onMonthChange` / `onWeekChange` / `onDayChange`) still fire and are the
    * better fit when you only care about one view; this one spares you
-   * reconstructing the window yourself. The range is view-accurate: month spans
-   * the padded cell grid (spill days included), week/day the visible days, year
-   * 1 Jan–31 Dec, agenda `agendaDays` from the 1st. Matches `Planner`'s
-   * `onNavigate`.
+   * reconstructing the window yourself — and in the agenda it is the *only*
+   * navigation callback, whose window no per-view callback can name. The range
+   * is view-accurate: month spans the padded cell grid (spill days included),
+   * week/day the visible days, year 1 Jan–31 Dec, agenda `agendaDays` from the
+   * reference date. Matches `Planner`'s `onNavigate`.
    * @summary Fires on every navigation with the new visible range — the data-loading hook.
    */
   onNavigate?: (date: Date, range: DateRange) => void;
-  /** Fires when the view mode changes. */
+  /**
+   * Fires when the view mode changes — before `onNavigate`, which the switch
+   * also fires because the visible window changed with it. A switch to the view
+   * already on screen is a no-op and fires neither.
+   */
   onViewChange?: (view: CalendarViewMode) => void;
   /** Fires when a date cell is clicked (regardless of selection change). */
   onDateClick?: (date: Date) => void;
@@ -344,7 +356,29 @@ export interface CalendarProps
   showEventList?: boolean;
 
   // === Agenda ===
-  /** Number of days shown in agenda view. @default 30 */
+  /**
+   * How many days the agenda lists, counted **from the reference date** — the
+   * day `value`/`defaultDate` anchors on, or today. So `agendaDays={1}` next to
+   * a `defaultDate` is one day's list, and the default is roughly a month ahead
+   * of that day rather than the calendar month it sits in.
+   *
+   * The arrows, `ArrowLeft`/`ArrowRight` and the swipe step the whole window, so
+   * the next list starts the day after the current one ends, and `minDate`/
+   * `maxDate` bound the WINDOW rather than its anchor: a step clamps
+   * span-preserving and the arrows disable once an edge is reached. Navigation
+   * reports through `onNavigate` — uniformly, including at `agendaDays={1}`,
+   * rather than switching callbacks on a prop value; the header's month picker
+   * still reports `onMonthChange`, because a month is what it picks.
+   *
+   * The window is always exactly this many days; the RENDERING skips days with
+   * no events, so a month-long window of one busy day is one heading, and a
+   * window of nothing renders the empty state.
+   *
+   * Values outside 1–366 (and non-numbers) fall back to the default and warn in
+   * DEV — a list is not a place to accidentally walk a decade.
+   * @default 30
+   * @summary How many days the list covers, counted from the reference date.
+   */
   agendaDays?: number;
 
   // === Time grid ===
@@ -460,9 +494,11 @@ export type { CalendarContext } from './calendar.context';
 export { createSlotHelper } from './calendar.context';
 export type {
   CalendarEvent,
-  CalendarEventCategory,
   CalendarSelection,
   CalendarViewMode,
+  // Shared date-surface vocabulary, defined in internal/date-grid and
+  // re-exported by every surface that speaks it (#191).
+  DateCategory,
   DateRange,
   DayCellContext,
   EventDayInfo,

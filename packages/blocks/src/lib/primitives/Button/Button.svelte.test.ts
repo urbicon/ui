@@ -135,6 +135,57 @@ describe('Button (component interaction)', () => {
     expect(button().getAttribute('aria-pressed')).toBe('true');
   });
 
+  it('flattens the press sink when the mint is off, and keeps it for every other mint (#192)', () => {
+    // The sink is a micro-interaction, so `mint` is its switch. It is steered by
+    // rewriting the press token on the element — deliberately not by a variant
+    // axis, which docs-gen would publish as a `<Button pressCue>` prop. The
+    // `active:scale-[var(…)]` class therefore stays put in every case; what
+    // changes is what the var resolves to.
+    //
+    // `mint="none"` is the only way to reach the off state here: the prop
+    // defaults to 'scale', so an omitted mint is a mint. Any name other than
+    // 'none' keeps the sink, even one whose effect is unrelated to movement.
+    const flattened = () => button().className.includes('[--blocks-press-scale:1]');
+
+    renderButton({ mint: 'none' });
+    expect(flattened()).toBe(true);
+    // The depth step is NOT silenced — a quiet button would otherwise report a
+    // click with nothing at all on any path that skips hover.
+    expect(button().className).toContain('active:shadow-[var(--blocks-shadow-sm)]');
+
+    dispose?.();
+    document.body.replaceChildren();
+
+    renderButton({ mint: 'glow' });
+    expect(flattened()).toBe(false);
+
+    dispose?.();
+    document.body.replaceChildren();
+
+    renderButton({});
+    expect(flattened()).toBe(false);
+  });
+
+  it('never leaks the press switch as a DOM attribute (#192)', () => {
+    // Regression guard for the shape this fix deliberately avoids: a `pressCue`
+    // tv() axis becomes a public prop that Button does not destructure, so it
+    // reaches the element through restProps and stamps `presscue="false"` while
+    // changing nothing.
+    renderButton({ mint: 'none' });
+    expect(button().getAttributeNames()).not.toContain('presscue');
+  });
+
+  it('leaves a consumer-set press scale alone (#192)', () => {
+    // A utility class, not a `style:` directive: `style:--blocks-press-scale`
+    // with an undefined value REMOVES the property from the style string
+    // restProps spread in, which would delete exactly the override the token
+    // reference documents. As a class it also loses to the inline value, which
+    // is the right way round for an explicit consumer setting.
+    renderButton({ mint: 'scale', style: 'color: rgb(1, 2, 3); --blocks-press-scale: 0.5' });
+    expect(button().style.getPropertyValue('--blocks-press-scale')).toBe('0.5');
+    expect(button().style.color).toBe('rgb(1, 2, 3)');
+  });
+
   it('exposes the underlying element via getElement()', () => {
     const instance = renderButton({});
     expect(instance.getElement()).toBe(button());

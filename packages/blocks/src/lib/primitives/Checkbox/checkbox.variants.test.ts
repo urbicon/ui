@@ -31,14 +31,14 @@ describe('checkboxVariants', () => {
     for (const intent of intents) {
       const box = checkboxVariants({ checked: true, intent }).box();
       expect(box).toContain(`bg-${intent}`);
-      expect(box).toContain(`border-${intent}`);
+      expect(box).toContain('border-transparent');
     }
   });
 
   it('mirrors checked style for indeterminate', () => {
     const indeterminate = checkboxVariants({ indeterminate: true, intent: 'primary' }).box();
     expect(indeterminate).toContain('bg-primary');
-    expect(indeterminate).toContain('border-primary');
+    expect(indeterminate).toContain('border-transparent');
   });
 
   it('shows icon when checked or indeterminate', () => {
@@ -100,12 +100,17 @@ describe('checkboxVariants', () => {
       }
     });
 
-    it('keeps the border on the base intent stop (only the fill steps)', () => {
+    it('gives the filled box no border colour to fall behind its fill', () => {
+      // Only the fill steps, so a border painted in the intent's resting tone
+      // would be left standing around a darkened box — a ring nobody designed
+      // (light halo on light pages, dark rim in dark mode). Transparent is
+      // what makes that disagreement unrepresentable; `border` itself stays in
+      // the slot for geometry and the background paints under it.
       for (const intent of INTENTS) {
         for (const key of ['checked', 'indeterminate'] as const) {
           const box = checkboxVariants({ [key]: true, intent }).box();
-          expect(box, `${key}/${intent}`).toContain(`border-${intent}`);
-          expect(box, `${key}/${intent}`).not.toContain(`group-hover:border-${intent}-hover`);
+          expect(box, `${key}/${intent}`).toContain('border-transparent');
+          expect(box, `${key}/${intent}`).not.toMatch(new RegExp(`(^| )border-${intent}( |$)`));
         }
       }
     });

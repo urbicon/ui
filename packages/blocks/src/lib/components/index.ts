@@ -26,6 +26,13 @@ export {
   chartSlotResolver,
   chartVariants
 } from '$lib/internal/charts/variants';
+// `DateCategory` and `DateRange` — the date surfaces' shared vocabulary
+// (internal/date-grid/date-grid.types.ts) — are deliberately NOT listed here.
+// All three surfaces re-export them and the `export *` lines below carry them:
+// today each of those aliases the same declaration, so there is no ambiguity.
+// Re-pointing one surface at a different declaration would make the name
+// ambiguous and TS would say so (TS2308); an explicit line here would silently
+// pick a winner instead (#191).
 export * from './AreaChart';
 export type { AvatarGroupProps } from './AvatarGroup';
 export * from './AvatarGroup';
@@ -33,13 +40,11 @@ export * from './BarChart';
 export type {
   CalendarContext,
   CalendarEvent,
-  CalendarEventCategory,
   CalendarHeaderProps,
   CalendarProps,
   CalendarSelection,
   CalendarSlotName,
   CalendarViewMode,
-  DateRange,
   DayCellContext,
   EventItemContext,
   HeaderContext
@@ -70,7 +75,6 @@ export type {
   PlannerDayContext,
   PlannerHeaderContext,
   PlannerProps,
-  PlannerRange,
   PlannerSlotName,
   PlannerView
 } from './Planner';
@@ -82,7 +86,6 @@ export type {
   ResourceTimelineProps,
   ResourceTimelineSlotName,
   ResourceTimelineView,
-  TimelineCategory,
   TimelineCellContext,
   TimelineDayContext,
   TimelineGroup,

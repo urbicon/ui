@@ -1,16 +1,19 @@
-import type { Snippet } from 'svelte';
+import type { DateCategory, DateRange } from '$lib/internal/date-grid';
 
-/** Category for grouping events by type with shared color coding. */
-export interface CalendarEventCategory {
-  /** Unique identifier for this category. */
-  id: string;
-  /** Display label (e.g., "Deadline", "Meeting"). */
-  label: string;
-  /** CSS color value (hex, oklch, rgb) or Tailwind class for dot/border rendering. */
-  color: string;
-  /** Optional icon snippet rendered alongside the label. */
-  icon?: Snippet;
-}
+/**
+ * Categories and ranges are the date surfaces' SHARED vocabulary, defined once
+ * in `internal/date-grid/date-grid.types.ts` and re-exported by every surface
+ * that speaks it (#191). Until 2026-08-12 Calendar owned a
+ * `CalendarEventCategory` and a `DateRange` of its own, and ResourceTimeline a
+ * shape-identical `TimelineCategory` — a consumer moving categories between the
+ * two mapped a type onto itself.
+ *
+ * `CalendarEventCategory.icon?: Snippet` did not survive the merge: nothing
+ * ever rendered it, in either surface's legend, so it was decorative config the
+ * component silently ignored. Compose your own legend (the `CalendarLegend`
+ * sub-component, or ResourceTimeline's `legend` snippet) when you want icons.
+ */
+export type { DateCategory, DateRange };
 
 /** A single calendar event/appointment. */
 export interface CalendarEvent {
@@ -35,7 +38,7 @@ export interface CalendarEvent {
    * @default true
    */
   allDay?: boolean;
-  /** Category ID linking to CalendarEventCategory. */
+  /** Category ID linking to a {@link DateCategory} in `categories`. */
   categoryId?: string;
   /** Optional description or status text. */
   description?: string;
@@ -91,12 +94,6 @@ export interface RecurrenceRule {
 /** Selection value depending on selection mode. */
 export type CalendarSelection = Date | DateRange | Date[];
 
-/** A date range with inclusive start and end. */
-export interface DateRange {
-  start: Date;
-  end: Date;
-}
-
 /** Context passed to custom dayCell snippets. */
 export interface DayCellContext {
   date: Date;
@@ -124,7 +121,7 @@ export interface EventDayInfo {
 /** Context passed to custom eventItem snippets. */
 export interface EventItemContext {
   event: CalendarEvent;
-  category?: CalendarEventCategory;
+  category?: DateCategory;
   /** 0-based index: which day of the multi-day event (only set for multi-day). */
   dayIndex?: number;
   /** Total duration in days (only set for multi-day, > 1). */

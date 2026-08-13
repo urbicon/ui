@@ -43,13 +43,12 @@
   import { type Channel, CHANNELS, channelForFamily, TILE_CHANNEL } from '$lib/landing/channels';
   import HeroSpecimen from '$lib/landing/HeroSpecimen.svelte';
   import { formatKb, type HeroRow, SHARED_PREVIEW_NOTES } from '$lib/landing/hero';
-  import type { CalendarEvent } from '@urbicon-ui/blocks';
   import {
-    buildSchedule,
-    ROOM_CATEGORIES,
-    SCHEDULE_END_HOUR,
-    SCHEDULE_START_HOUR
-  } from '$lib/landing/schedule';
+    buildOccupancy,
+    freeRoomsOn,
+    type OccupancyHouse,
+    ROOM_CATEGORIES
+  } from '$lib/landing/occupancy';
   import { HOUSES as GROUP_HOUSES, GROUP_NAME, ROOM_TYPES } from '$lib/hotel-tools';
   import AgentReplay from '$lib/landing/AgentReplay.svelte';
   import LandingHeader from '$lib/landing/LandingHeader.svelte';
@@ -63,7 +62,6 @@
     type AvatarProps,
     AvatarGroup,
     Badge,
-    Calendar,
     type CartesianDatum,
     type ChartSeries,
     CompositionBar,
@@ -72,6 +70,7 @@
     DonutChart,
     Input,
     Progress,
+    ResourceTimeline,
     Sankey,
     Scroller,
     SegmentGroup,
@@ -129,7 +128,7 @@
       line: 'AI chat creates interactive components on the fly. Tool-controlled, safe, custom-themed.',
       channel: CHANNELS[TILE_CHANNEL.a2ui],
       href: '/hotel',
-      linkLabel: 'Visit the hotel'
+      linkLabel: 'Visit the demo hotel'
     },
     {
       key: 'agent',
@@ -190,7 +189,7 @@
   // die guests-Werte je Haus), und der Umsatzmix (33/25/22/20 %) ist dessen
   // letzte Ebene, auf ganze Prozent gerundet. Wer nachrechnet, findet keinen
   // Widerspruch — das ist der Sinn EINES Universums.
-  type DashView = 'overview' | 'schedule' | 'flow';
+  type DashView = 'overview' | 'rooms' | 'flow';
   let dashView = $state<DashView>('overview');
   let sameDay = $state(true);
   /** Gewähltes Haus (Klick auf eine Auslastungszeile) — `null` = die Gruppe. */
@@ -199,6 +198,11 @@
   let xray = $state(false);
 
   interface House {
+    /** Der Registerschlüssel aus `$lib/hotel-tools` — NICHT aus dem Namen
+     *  abgeleitet: jeder Seed der Belegung und jede Spur-Id beginnt damit, und
+     *  ein aus dem Anzeigenamen gebauter Schlüssel stimmte nur so lange mit dem
+     *  des Tests überein, wie beide zufällig gleich hießen (Review-Befund). */
+    id: string;
     name: string;
     city: string;
     /** Belegung in Prozent. */
@@ -209,24 +213,28 @@
     returning: number;
     /** Umsatzmix des Hauses in Prozent, je Zimmertyp (Room/Garden/Corner/Suite). */
     mix: [number, number, number, number];
-    /** Zimmer des Hauses — Summe des Tool-Bestands, für „rooms free tonight". */
+    /** Zimmer je Typ, aus dem Register — die Belegung baut daraus ihre Spuren. */
+    stock: Record<string, number>;
+    /** Zimmer des Hauses — die Summe des Bestands. */
     size: number;
     team: AvatarProps[];
   }
-  // Belegung je HAUS, nicht je Zimmer — die Gruppen-Sicht ist der Punkt der
-  // Kachel; die Zimmer-Sicht gehört dem einzelnen Front desk (/hotel).
-  // Namen, Orte, Teams und Zimmerbestand kommen aus $lib/hotel-tools (EIN
-  // Register mit Vollseite und Aufnahme); nur die Betriebszahlen sind
-  // Landing-Fiktion. Firn ist klein und praktisch voll — dieselbe Enge, die
-  // das Tool für Anfang September meldet.
-  const OPS: Record<string, Omit<House, 'name' | 'city' | 'size' | 'team'>> = {
+  // Die Auslastungszeile der Overview zeigt die Belegung je HAUS; die
+  // Rooms-Ansicht darunter zeigt dieselbe Zahl je ZIMMER (das Raster wird aus
+  // `load` gebaut, s. $lib/landing/occupancy). Namen, Orte, Teams und
+  // Zimmerbestand kommen aus $lib/hotel-tools (EIN Register mit Vollseite und
+  // Aufnahme); nur die Betriebszahlen sind Landing-Fiktion. Firn ist klein und
+  // praktisch voll — dieselbe Enge, die das Tool für Anfang September meldet.
+  const OPS: Record<string, Omit<House, 'id' | 'name' | 'city' | 'stock' | 'size' | 'team'>> = {
     cala: { load: 86, guests: 132, returning: 92, mix: [30, 26, 24, 20] },
     firn: { load: 94, guests: 64, returning: 41, mix: [40, 22, 18, 20] },
     duna: { load: 71, guests: 148, returning: 87, mix: [32, 25, 22, 21] }
   };
   const HOUSES: House[] = GROUP_HOUSES.map((house) => ({
+    id: house.id,
     name: house.name,
     city: house.place,
+    stock: house.stock,
     size: Object.values(house.stock).reduce((a, b) => a + b, 0),
     team: house.hosts.map((host): AvatarProps => ({ name: host.name, status: host.status })),
     ...OPS[house.id]
@@ -243,7 +251,7 @@
 
   // Ankünfte je Wochentag, Gruppe — alle sieben Tage: ein Hotel kennt keinen
   // Ruhetag. Freitag/Samstag tragen die Wochenend-Anreisen, genau die Kurve,
-  // die das Zeitraster der Schedule-Ansicht als Dichte zeigt.
+  // die auch die Belegung der Rooms-Ansicht trägt.
   const WEEK_ARRIVALS: CartesianDatum[] = [
     { label: 'Mon', values: [30, 4] },
     { label: 'Tue', values: [24, 4] },
@@ -295,99 +303,64 @@
       color: 'var(--color-neutral-500)'
     }
   ]);
-  // Freie Zimmer heute Nacht: der unbelegte Anteil des Bestands — Bestand aus
-  // dem Tool-Register, Belegung aus der Backoffice-Fiktion.
-  const freeRooms = $derived(
-    activeHouse
-      ? Math.max(1, Math.round((activeHouse.size * (100 - activeHouse.load)) / 100))
-      : HOUSES.reduce((n, h) => n + Math.max(1, Math.round((h.size * (100 - h.load)) / 100)), 0)
-  );
 
-  // ── Schedule: der Empfangstag EINES Hauses im Calendar ─────────────
-  // Der Calendar ist datumsindiziert, die Seite ist prerendered: ein
-  // `new Date()` im Initialwert stünde als Build-Datum im HTML und würde beim
-  // Hydrieren gegen das echte laufen. Also SSR-stabil mit festen Ankern
-  // starten und erst NACH der Hydration auf die laufende Woche und das echte
-  // Heute schwenken — ein normales Update, kein Mismatch. Der Wochen-Anker
-  // bleibt neben dem Tages-Anker, weil buildSchedule ganze Wochen erzeugt und
-  // die Tagesansicht nur ein Fenster darauf ist (Vor/Zurück bleibt möglich).
-  const WEEK_ANCHOR = new Date(2026, 7, 3); // Montag, 2026-08-03
-  const DAY_ANCHOR = new Date(2026, 7, 7); // Freitag derselben Woche
-  let weekStart = $state(WEEK_ANCHOR);
-  let today = $state(DAY_ANCHOR);
-  $effect(() => {
+  // ── Rooms: die Belegung im Zimmer-×-Nächte-Raster ──────────────────
+  // Das Fenster beginnt HEUTE: die Unterzeile sagt „14 ahead", und der
+  // Heute-Knopf der Timeline landet ohnehin auf dem laufenden Tag — ein
+  // Wochen-Anker hätte zwei verschiedene Startpunkte für dieselbe Ansicht
+  // bedeutet.
+  //
+  // Kein Anker-plus-$effect-Tanz gegen einen Hydrations-Mismatch, wie ihn die
+  // Kachel sonst braucht: die Ansicht startet auf „Overview", das Raster ist
+  // also NIE Teil des prerenderten HTML (gemessen am ausgelieferten Dokument:
+  // kein `data-blk=\"ResourceTimeline\"`, keine Spur, kein Balken). Was nicht
+  // gerendert wird, kann beim Hydrieren nicht widersprechen — deterministisch
+  // muss der Generator trotzdem sein, damit „›" und „‹" dasselbe Fenster
+  // gleich zeichnen.
+  let windowStart = $state(stripToday());
+  function stripToday(): Date {
     const now = new Date();
-    const day = new Date(now.getFullYear(), now.getMonth(), now.getDate());
-    const monday = new Date(day);
-    monday.setDate(monday.getDate() - ((monday.getDay() + 6) % 7));
-    weekStart = monday;
-    today = day;
-  });
-  // Ankünfte der GRUPPE je Wochentag (Index 0 = Montag) — dieselben Summen,
-  // die der Chart der Overview zeichnet: alle sieben Tage, Wochenende voran.
-  const GROUP_DAY_TOTALS = [34, 28, 32, 39, 58, 71, 44];
-  // Die Empfangswoche der GRUPPE, EINMAL erzeugt (warum Tresen-Lanes, warum
-  // disjunkte Namens-Drittel: Kopf von $lib/landing/schedule). Die
-  // Einzelhaus-Sicht ist ein FILTER dieser einen Menge, kein zweiter
-  // Generator-Lauf — sonst wechselten Gäste beim Umschalten des
-  // Geltungsbereichs das Haus (Review-Befund 2026-08-12: vier Duna-Gäste
-  // standen einen Klick später bei Cala).
-  const houseShare = (h: House) =>
-    GROUP_DAY_TOTALS.map((n) => Math.round(n * (h.guests / GROUP_GUESTS)));
-  const groupSchedule = $derived(
-    HOUSES.flatMap((h, i) =>
-      buildSchedule({
-        weekStart,
-        perDay: houseShare(h),
-        houseName: h.name,
-        guestPool: (i % 3) as 0 | 1 | 2
-      })
-    ).sort((a, b) => a.start.getTime() - b.start.getTime())
+    return new Date(now.getFullYear(), now.getMonth(), now.getDate());
+  }
+  // Vierzehn Nächte breit, zwei Wochen: die Fenstergröße, in der ein Balken von
+  // drei bis neun Nächten (der Aufenthalt der Gruppe, s. occupancy.ts) als
+  // Balken lesbar ist statt als Punkt — und in der die Auslastung eines Zimmers
+  // überhaupt Stufen hat (bei sieben Nächten ist jede freie Nacht 14 %).
+  const OCCUPANCY_NIGHTS = 14;
+  // Die Häuser, wie die Belegung sie braucht: Bestand aus dem Register,
+  // Auslastung aus derselben OPS-Fiktion, die die Progress-Zeile zeigt. Ein
+  // Wert, zwei Anzeigen — occupancy.test.ts misst, dass das Raster die Prozente
+  // der Balken trifft.
+  const OCCUPANCY_HOUSES: OccupancyHouse[] = $derived(
+    (activeHouse ? [activeHouse] : HOUSES).map((h) => ({
+      id: h.id,
+      name: h.name,
+      place: h.city,
+      stock: h.stock,
+      load: h.load
+    }))
   );
-  const scheduleEvents = $derived(
-    activeHouse ? groupSchedule.filter((e) => e.meta?.house === activeHouse.name) : groupSchedule
+  const occupancy = $derived(
+    buildOccupancy({
+      houses: OCCUPANCY_HOUSES,
+      windowStart,
+      nights: OCCUPANCY_NIGHTS
+    })
   );
-  // Breit das Tages-Zeitraster, schmal die Agenda desselben Tages: dieselben
-  // Vorgänge als Liste, die Form, die ein Telefon ohnehin verlangt.
-  const wideEnoughForGrid = new MediaQuery('(min-width: 48rem)', true);
-  const scheduleView = $derived(wideEnoughForGrid.current ? 'day' : 'agenda');
-  // Schmal bekommt die Agenda NUR die Ereignisse des heutigen Tages: die
-  // Agenda-Ansicht ankert am Monatsersten, `agendaDays={1}` zeigte damit fast
-  // immer einen leeren 1. (#95-Kommentar), und ungefiltert wäre die Liste die
-  // ganze Woche und begänne zwei Tage in der Vergangenheit (Review-Befund
-  // 2026-08-12: 390 Einträge, der heutige Tag erst ~3.800 px tief).
-  const sameLocalDay = (a: Date, b: Date) =>
-    a.getFullYear() === b.getFullYear() &&
-    a.getMonth() === b.getMonth() &&
-    a.getDate() === b.getDate();
-  const visibleScheduleEvents = $derived(
-    scheduleView === 'agenda'
-      ? scheduleEvents.filter((e) => sameLocalDay(e.start, today))
-      : scheduleEvents
-  );
-  // Die Stundenhöhe rechnet sich aus der gemessenen Bühne: Host-Höhe minus
-  // gemessenem Chrome über dem Raster (Legendenzeile + Datumsleiste +
-  // Tageskopf = 104 px), verteilt auf die SIEBEN Stunden des Empfangstags.
-  // Erst das Sieben-Stunden-Fenster macht die Rechnung lebendig — mit acht
-  // lag der Wert am 72vh-Kachel-Deckel auf JEDER Bildschirmgröße unter dem
-  // 40-px-Boden und die ganze Messkette war tote Mechanik (Review-Befund
-  // 2026-08-12, sechs Viewports). Kleine Bühnen (Laptop-Höhen) scrollen
-  // weiterhin innen; dafür stehen die Scroll-Schatten der Karte. Die
-  // Host-Höhe ist von außen fixiert (Grid-Zeile der Karte), die Messung
-  // schaukelt sich nicht am eigenen Ergebnis auf.
-  let scheduleHostHeight = $state(0);
-  const scheduleHourHeight = $derived(
-    Math.max(40, Math.floor((scheduleHostHeight - 104) / (SCHEDULE_END_HOUR - SCHEDULE_START_HOUR)))
-  );
-  // Fest auf `en-GB`, nicht auf die Laufzeit-Locale: die Seite ist auf `en`
-  // gepinnt, und ein 24-Stunden-Format neben einem 24-Stunden-Zeitraster ist
-  // das, was zusammenpasst.
-  const TIME_FMT = new Intl.DateTimeFormat('en-GB', { hour: '2-digit', minute: '2-digit' });
+  // Ein Haus braucht keine Gruppenzeile — sein Name steht in der Unterzeile der
+  // Karte. Die Gruppen-Sicht braucht sie: sonst wäre die Spur „101" dreimal da.
+  const occupancyGroups = $derived(activeHouse ? undefined : occupancy.groups);
+  // Freie Zimmer heute Nacht — GEZÄHLT, in derselben Menge, die das Raster
+  // zeichnet. Vorher stand hier der unbelegte Anteil des Bestands
+  // (`size × (100 − load)/100`, mit einem Boden von 1) und widersprach der
+  // ersten Rasterspalte daneben: 8 gegen gezählte 7, und an einem Tag stand
+  // Firn im Raster auf 0 von 9, während der Badge 1 behauptete (Review-Befund
+  // 2026-08-12). Die Prozentzahl gilt dem Fenster, diese Zahl der Nacht.
+  const freeRooms = $derived(freeRoomsOn(occupancy, windowStart));
 
-  // Die Unterzeile der Karte. Seit die Schedule-Sicht bei „All" wirklich alle
-  // drei Häuser mischt (das Haus je Vorgang nennen Hover-Popover und
-  // Agenda-Eintrag — im 20-px-Rasterblock ist die zweite Zeile nicht lesbar),
-  // braucht sie keine Sonderregel mehr.
+  // Die Unterzeile der Karte. Bei „All" zeigt die Rooms-Ansicht alle drei
+  // Häuser mit Gruppenzeilen, bei einem Haus trägt DIESE Zeile den Namen —
+  // darum braucht das Raster dort keine Gruppenzeile (s. `occupancyGroups`).
   const cardSubtitle = $derived(
     activeHouse ? `${activeHouse.name} · ${activeHouse.city}` : 'All three houses'
   );
@@ -473,11 +446,11 @@
 
   // ── Table: die heutigen Ankünfte der GRUPPE, gruppiert nach Haus ──
   // Häuser und Zimmertypen aus $lib/hotel-tools, Raten = Typpreis × Nächte.
-  // Die Gäste sind Namen aus der Gästeliste der Schedule-Ansicht, und ihre
+  // Die Gäste sind Namen aus der Gästeliste der Rooms-Ansicht, und ihre
   // Haus-Zuordnung folgt DERSELBEN Drittel-Partition (CLIENTS-Index % 3,
-  // $lib/landing/schedule): wo ein Name im Raster auftaucht, trägt er dort
-  // dasselbe Haus wie hier. Vorher widersprachen sich Tabelle und Raster für
-  // bis zu 10 von 15 Gästen sichtbar (Review-Befund 2026-08-12).
+  // $lib/landing/occupancy): wo ein Name im Belegungsraster auftaucht, trägt er
+  // dort dasselbe Haus wie hier. Vorher widersprachen sich Tabelle und Raster
+  // für bis zu 10 von 15 Gästen sichtbar (Review-Befund 2026-08-12).
   interface Arrival {
     id: string;
     house: 'Cala' | 'Firn' | 'Duna';
@@ -862,9 +835,16 @@
         <!-- Overlay-Steuerung als slotClasses-Experiment (keine Komponentenänderung):
            Pfeile links/rechts mittig, Dots als Chip unten mittig. Bewährt sich das,
            wird es eine echte Achse (controlsPlacement) am Scroller. -->
+        <!-- `itemBasis` gerundet, nicht schlicht `85%`: 85 % von 1012 px sind
+           860,195 px, und die Nachkommastelle summiert sich über die Reihe —
+           Kachel 3 begann bei x=2200,39. Eine Kachelkante auf einem halben Pixel
+           malt der Browser als Mischfarbe, und die las sich als weiße Haarlinie
+           links der Kachel (gemessen 2026-08-13; nach der Rundung liegen alle
+           fünf auf ganzen Pixeln). Welche Kachel es trifft, hängt an der
+           Fensterbreite — es war nie die A2UI-Kachel als solche. -->
         <Scroller
           label="Highlights"
-          itemBasis="85%"
+          itemBasis="round(85%, 1px)"
           snap="mandatory"
           indicator="dots"
           class="relative"
@@ -915,7 +895,7 @@
                       <div class="blk" data-blk="SegmentGroup">
                         <SegmentGroup bind:value={dashView} size="sm" ariaLabel="Backoffice view">
                           <SegmentItem value="overview">Overview</SegmentItem>
-                          <SegmentItem value="schedule">Schedule</SegmentItem>
+                          <SegmentItem value="rooms">Rooms</SegmentItem>
                           <SegmentItem value="flow">Flow</SegmentItem>
                         </SegmentGroup>
                       </div>
@@ -924,8 +904,9 @@
                          auf alle drei wirkt. Bis 2026-08-03 war er nur eine
                          Auslastungszeile im Körper der Overview — also eine
                          Ebene unter dem, worauf er wirkt, und ausgerechnet in
-                         der Schedule-Ansicht unerreichbar, die per Bauart eine
-                         Ein-Haus-Ansicht ist. Die Zeilen bleiben zusätzlich
+                         der damaligen Schedule-Ansicht unerreichbar, die per
+                         Bauart eine Ein-Haus-Ansicht war. Die Zeilen bleiben
+                         zusätzlich
                          klickbar: zwei Wege, ein Zustand, wie Filterleiste und
                          Zeilenklick in einer Tabelle. -->
                     <div class="scope" role="group" aria-label="House">
@@ -1067,22 +1048,38 @@
                           </div>
                         </div>
                       </div>
-                    {:else if dashView === 'schedule'}
-                      <!-- Der Empfangstag der Gruppe im Zeitraster — warum
-                           parallele Tresen, disjunkte Gäste-Drittel und EIN
-                           Tag statt einer Woche, steht am Kopf von
-                           $lib/landing/schedule (die eine Stelle für diese
-                           Erzählung); Belegung wäre die Resource-Timeline
-                           (#185). Das Hover-/Fokus-Popover ist an: im
-                           20-px-Block ist die zweite Zeile (Haus · Typ) nicht
-                           lesbar, das Popover nennt beides. `{#key}`, weil
-                           `defaultDate` laut Vertrag nur beim Mounten gelesen
-                           wird — der Schwenk vom Anker- auf das echte Heute
-                           nach der Hydration käme sonst nie an. Kein Wischen:
-                           die Kachel liegt in einem waagerecht wischbaren
-                           Band, und dort muss die Geste die Kachel wechseln,
-                           nicht den Tag. -->
-                      <div class="view-host" bind:clientHeight={scheduleHostHeight}>
+                    {:else if dashView === 'rooms'}
+                      <!-- Die Belegung der Gruppe: je Zimmer eine Spur, je
+                           Nacht eine Spalte, je Aufenthalt ein Balken. Warum
+                           die Prozente hier und in der Progress-Zeile
+                           dieselben sind und woher Namen und Nächte kommen,
+                           steht am Kopf von $lib/landing/occupancy (die eine
+                           Stelle für diese Erzählung).
+
+                           Bis 2026-08-12 stand hier ein Calendar mit
+                           Empfangsvorgängen im Zeitraster — eine Erzählung,
+                           die nur deshalb Vorgänge zeigte, weil dem Set die
+                           Resource-Timeline fehlte (#185). Sie ist da (#190).
+
+                           `onNavigate` ist der Datenlade-Hook der Komponente,
+                           und hier ist er echt: die Pfeile verschieben das
+                           Fenster, der Generator baut die nächsten vierzehn
+                           Nächte. Ohne diese Zeile zeigte „›" ein leeres
+                           Raster.
+
+                           `.rooms-host` statt der scrollenden `.view-host`: 39
+                           Spuren sind höher als jede Kachelbühne, und wenn die
+                           BÜHNE scrollt, fahren Datumsachse und Legende mit
+                           hinaus — gemessen 2026-08-12: nach 600 px Scroll
+                           standen Balken über unbeschrifteten Spalten
+                           (Review-Befund). Also scrollt der Spur-Körper, nicht
+                           die Bühne: der Tagesstreifen der Komponente bekommt
+                           eine Höhengrenze und wird damit selbst zum
+                           Scroll-Container, und die Kopfzeile klebt an seinem
+                           oberen Rand (`sticky`, was nur INNERHALB desselben
+                           Scroll-Containers wirkt — darum die Grenze am Track
+                           und nicht am Host). -->
+                      <div class="rooms-host">
                         <!-- Die Zimmertyp-Legende steht HIER in der Kopfzeile,
                              die komponenteneigene ist aus (showLegend unten):
                              die säße unterhalb der View und läge genau dann im
@@ -1090,7 +1087,7 @@
                              Bühne füllt — eine Legende, die man nur per Scroll
                              findet, erklärt nichts. -->
                         <div class="legend-row">
-                          <p class="dash-sub">Front desk — departures, then arrivals</p>
+                          <p class="dash-sub">Rooms — nights booked, {OCCUPANCY_NIGHTS} ahead</p>
                           <p class="dash-sub">
                             {#each ROOM_CATEGORIES as c (c.id)}
                               <span class="mix-pair"
@@ -1100,36 +1097,40 @@
                             {/each}
                           </p>
                         </div>
-                        <div class="blk mt-2" data-blk="Calendar">
-                          {#key `${today.getTime()}-${scheduleView}`}
-                            <Calendar
-                              events={visibleScheduleEvents}
-                              categories={ROOM_CATEGORIES}
-                              view={scheduleView}
-                              views={[scheduleView]}
-                              agendaDays={31}
-                              showViewSwitcher={false}
-                              defaultDate={today}
-                              size="sm"
-                              showTimeGrid
-                              timeGridStartHour={SCHEDULE_START_HOUR}
-                              timeGridEndHour={SCHEDULE_END_HOUR}
-                              timeGridInterval={60}
-                              timeGridHourHeight={scheduleHourHeight}
-                              showEventList={false}
-                              swipeable={false}
-                              showLegend={false}
-                              eventPopover
-                              eventItem={agendaItem}
-                              slotClasses={{
-                                // Die zweite Block-Zeile (Haus · Typ) passt bei
-                                // ~24 px Blockhöhe nur angeschnitten ins Raster
-                                // und las sich als Glitch — Popover und Agenda
-                                // tragen dieselbe Information vollständig.
-                                timeEvent: '[&>span:nth-of-type(2)]:hidden'
-                              }}
-                            />
-                          {/key}
+                        <div class="blk mt-2" data-blk="ResourceTimeline">
+                          <ResourceTimeline
+                            view="days"
+                            days={OCCUPANCY_NIGHTS}
+                            value={windowStart}
+                            size="sm"
+                            locale="en-GB"
+                            resources={occupancy.resources}
+                            groups={occupancyGroups}
+                            items={occupancy.stays}
+                            categories={ROOM_CATEGORIES}
+                            getResourceId={(stay) => stay.roomId}
+                            getRange={(stay) => ({ start: stay.firstNight, end: stay.lastNight })}
+                            getCategoryId={(stay) => stay.typeId}
+                            getLabel={(stay) => stay.guest}
+                            getId={(stay) => stay.id}
+                            showLegend={false}
+                            slotClasses={{
+                              // Die Höhengrenze macht den Track zum
+                              // Scroll-Container; `dayHeaderRow` klebt darin
+                              // oben. Die Spur-Spalte klebt weiterhin links —
+                              // beide Achsen gehören demselben Container, sonst
+                              // liefe die Spaltenausrichtung auseinander.
+                              track: 'rooms-track max-h-full',
+                              // Nur `sticky` und die Deckfläche: die Stapelhöhe
+                              // gegenüber der klebenden Spur-Spalte gehört der
+                              // Komponente (`z-30` im dayHeaderRow-Slot), nicht
+                              // dem Aufrufer — ein Zahlenwert hier wäre ein
+                              // hartkodierter z-index neben einer Skala, die er
+                              // nicht kennt.
+                              dayHeaderRow: 'sticky top-0 bg-surface-base'
+                            }}
+                            onNavigate={(date) => (windowStart = date)}
+                          />
                         </div>
                       </div>
                     {:else}
@@ -1157,7 +1158,7 @@
                       </div>
                     {/if}
                     <!-- Nur in der Overview: der Toggle wirkt auf Chart-Serie
-                         und Badge — in Schedule und Flow stünde er als
+                         und Badge — in Rooms und Flow stünde er als
                          Schalter ohne Wirkung herum (Review-Befund
                          2026-08-10). -->
                     {#if dashView === 'overview'}
@@ -1587,22 +1588,6 @@
   <span class="num">{(item as HeroRow).props}</span>
 {/snippet}
 
-<!-- Der Eintrag der Agenda-Ansicht (schmale Viewports). Eigener Snippet, weil
-     der eingebaute Eintrag Titel, Beschreibung und Hilfstext rendert — aber
-     nie die Uhrzeit, auch bei `allDay: false` nicht (#95; sobald das landet,
-     kann dieser Snippet fallen). Eine Terminliste ohne Uhrzeit ist keine. Das
-     Zeitraster der Tagesansicht ist davon unberührt: dort steht der Block an
-     seiner Uhrzeit, eine zweite wäre Doppelung. -->
-{#snippet agendaItem({ event, category }: { event: CalendarEvent; category?: { color: string } })}
-  <span class="agenda-row">
-    <span class="agenda-bar" style:background={category?.color ?? 'var(--color-border-default)'}
-    ></span>
-    <span class="agenda-time">{TIME_FMT.format(event.start)}</span>
-    <span class="agenda-who">{event.title}</span>
-    <span class="agenda-room">{event.description}</span>
-  </span>
-{/snippet}
-
 {#snippet statusCell(item: unknown)}
   {@const s = (item as Arrival).status}
   <Badge
@@ -1882,6 +1867,42 @@
     min-height: 0;
     scrollbar-width: thin;
   }
+  /* Die Rooms-Ansicht scrollt NICHT als Bühne: 39 Spuren sind höher als jede
+     Kachelbühne, und mit der Bühne fahren Datumsachse und Legende hinaus (nach
+     600 px Scroll standen Balken über unbeschrifteten Spalten — Review-Befund
+     2026-08-12). Stattdessen bekommt der Tagesstreifen der Komponente die
+     Resthöhe und scrollt selbst; seine Kopfzeile klebt an seinem oberen Rand.
+     Die Kette braucht auf jeder Ebene `min-height: 0`, sonst gibt der
+     Flex-Kasten die Höhe seines Inhalts weiter statt sie zu begrenzen. */
+  .rooms-host {
+    min-width: 0;
+    min-height: 0;
+    display: flex;
+    flex-direction: column;
+  }
+  .rooms-host > .blk {
+    min-height: 0;
+    flex: 1;
+    display: flex;
+  }
+  .rooms-host > .blk > :global(*) {
+    min-height: 0;
+    flex: 1;
+  }
+  .rooms-host :global(.rooms-track) {
+    scrollbar-width: thin;
+  }
+  /* Enge Karte, engere Spalten — an der KARTE gemessen, nicht am Viewport: bei
+     1024 px Viewport ist die Bühne 467 px breit, also so eng wie auf dem
+     Telefon, bekam aber die weite Geometrie (Review-Befund). Dieselbe
+     30rem-Schwelle, an der die Overview zweispaltig wird; der Wert steht in CSS,
+     weil CSS die Breite kennt (vgl. #133). */
+  @container (max-width: 30rem) {
+    .rooms-host :global(.rooms-track) {
+      --rt-lane-w: 4.5rem;
+      --rt-day-w: 1.75rem;
+    }
+  }
   /* Die Namensschilder des Röntgenbilds sitzen über der Oberkante ihres
      Bauteils — im scrollenden Body würde das oberste abgeschnitten. Das Polster
      schafft ihm Platz, das negative Margin nimmt ihn dem Layout wieder ab,
@@ -1956,7 +1977,7 @@
     justify-content: space-between;
     gap: 1rem;
   }
-  /* Farbpunkte für Donut-Textzeile und Schedule-Legende — dieselben Töne wie
+  /* Farbpunkte für Donut-Textzeile und Rooms-Legende — dieselben Töne wie
      die Flächen, die sie erklären. Ein Paar aus Punkt und Wort bricht nie
      intern um (.mix-pair), sonst hängt ein Punkt allein am Zeilenende. */
   .mix-dot {
@@ -1975,7 +1996,7 @@
   .mix-pair + .mix-pair {
     margin-inline-start: 0.55rem;
   }
-  /* Kopfzeile der Schedule-Ansicht: Untertitel links, Legende rechts. */
+  /* Kopfzeile der Rooms-Ansicht: Untertitel links, Legende rechts. */
   .legend-row {
     display: flex;
     justify-content: space-between;
@@ -2047,42 +2068,6 @@
     display: block;
   }
 
-  /* Eintrag der Agenda-Ansicht: Farbstreifen, Uhrzeit, Gast, Stuhl — eine
-     Zeile, weil das Telefon keine zwei hergibt. Der Snippet ersetzt den
-     GANZEN Eintrag (nicht nur seinen Inhalt), also kommt auch das Layout von
-     hier; statt eines Kastens je Termin trennt eine Haarlinie. */
-  .agenda-row {
-    display: flex;
-    align-items: center;
-    gap: 0.6rem;
-    padding-block: 0.45rem;
-    border-block-end: 1px solid light-dark(rgb(0 0 0 / 0.07), rgb(255 255 255 / 0.09));
-  }
-  .agenda-bar {
-    width: 3px;
-    align-self: stretch;
-    border-radius: 2px;
-    flex-shrink: 0;
-  }
-  .agenda-time {
-    font-family: 'JetBrains Mono', monospace;
-    font-size: 0.75rem;
-    font-weight: 600;
-    flex-shrink: 0;
-  }
-  .agenda-who {
-    min-width: 0;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    white-space: nowrap;
-    font-size: 0.85rem;
-  }
-  .agenda-room {
-    margin-inline-start: auto;
-    flex-shrink: 0;
-    font-size: 0.75rem;
-    color: light-dark(#77776f, #8a8a84);
-  }
   .aside-note {
     font-size: 0.8rem;
     line-height: 1.45;

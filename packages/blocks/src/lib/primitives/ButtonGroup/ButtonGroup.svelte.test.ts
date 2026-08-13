@@ -638,3 +638,79 @@ describe('ButtonGroup (multiple-select keyboard)', () => {
     expect(onSelectionChange).not.toHaveBeenCalled();
   });
 });
+
+describe('ButtonGroup (press cue)', () => {
+  // The group's `mint` default is 'none' and always wins over a child's own,
+  // so no button in a group sinks under the pointer. In a connected group that
+  // is what stops the shared seam from breaking on click; the default is not
+  // conditional on `connected`, so a spaced group is just as quiet.
+  const flattened = (name: string) =>
+    screen.getByRole('button', { name }).className.includes('[--blocks-press-scale:1]');
+
+  it('renders its children without the press sink, connected or not (#192)', () => {
+    renderGroup({ connected: true });
+    expect(flattened('List')).toBe(true);
+
+    dispose?.();
+    document.body.replaceChildren();
+
+    renderGroup({ connected: false });
+    expect(flattened('List')).toBe(true);
+  });
+
+  it('opts the whole group back in when it is given a real mint', () => {
+    renderGroup({ connected: true, mint: 'scale' });
+    expect(flattened('List')).toBe(false);
+  });
+
+  it('leaves the press depth step in place — a quiet button still reports a click', () => {
+    // A connected child rests at `shadow-none` (buttonGroupConnected flattens
+    // it), so the step that reports the press is the full `sm` one — not the
+    // `xs` a standalone outlined button steps DOWN to from its resting `sm`.
+    renderGroup({ connected: true });
+    expect(screen.getByRole('button', { name: 'List' }).className).toContain(
+      'active:shadow-[var(--blocks-shadow-sm)]'
+    );
+  });
+});
+
+// The cap radius is a tv() compound (covered in buttongroup.variants.test.ts);
+// what these assert is the *default* the component feeds that axis, which only
+// exists here — `effectiveTier` in ButtonGroup.svelte.
+describe('ButtonGroup (tier default per orientation)', () => {
+  const group = () => screen.getByRole('group');
+
+  it('caps a connected vertical group softly — the pill cap would dome it into a lozenge (#194)', () => {
+    renderGroup({ orientation: 'vertical', connected: true });
+
+    // Horizontally the pill cap is clamped by the button height (the group's
+    // short side) and reads as a segmented control; vertically it is clamped by
+    // the width, so a stack of text buttons domes top and bottom into a capsule.
+    expect(group().className).toContain('[&>:first-child]:rounded-t-modify');
+    expect(group().className).toContain('[&>:last-child]:rounded-b-modify');
+    expect(group().className).not.toContain('rounded-t-commit');
+  });
+
+  it('keeps the pill cap horizontally — that IS the segmented control', () => {
+    renderGroup({ orientation: 'horizontal', connected: true });
+
+    expect(group().className).toContain('[&>:first-child]:rounded-l-commit');
+    expect(group().className).toContain('[&>:last-child]:rounded-r-commit');
+  });
+
+  it('honours an explicit tier="commit" on a vertical group — a narrow icon stack wants the capsule', () => {
+    renderGroup({ orientation: 'vertical', connected: true, tier: 'commit' });
+
+    expect(group().className).toContain('[&>:first-child]:rounded-t-commit');
+    expect(group().className).toContain('[&>:last-child]:rounded-b-commit');
+  });
+
+  it('leaves a DISCONNECTED vertical group on the pill default — it has no caps to dome', () => {
+    renderGroup({ orientation: 'vertical', connected: false });
+
+    // No cap compounds on the container at all; the child Buttons keep the pill
+    // radius a spaced vertical stack of buttons should read as.
+    expect(group().className).not.toContain('rounded-t-');
+    expect(screen.getByRole('button', { name: 'List' }).className).toContain('rounded-commit');
+  });
+});

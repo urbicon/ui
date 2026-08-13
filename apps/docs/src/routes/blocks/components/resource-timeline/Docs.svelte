@@ -1,11 +1,18 @@
 <script lang="ts">
   import { Kbd } from '@urbicon-ui/blocks';
   import { CodeExample, Note, NoteList, Section } from '@urbicon-ui/docs';
-  import { CustomBars, FreeNights, HotelOccupancy, SlotStyling } from './examples';
+  import {
+    CustomBars,
+    FreeNights,
+    HotelOccupancy,
+    SameEventsTwoSurfaces,
+    SlotStyling
+  } from './examples';
 
   import customBarsCode from './examples/CustomBars.svelte?raw';
   import freeNightsCode from './examples/FreeNights.svelte?raw';
   import hotelOccupancyCode from './examples/HotelOccupancy.svelte?raw';
+  import sameEventsCode from './examples/SameEventsTwoSurfaces.svelte?raw';
   import slotStylingCode from './examples/SlotStyling.svelte?raw';
 </script>
 
@@ -26,6 +33,14 @@
       code={freeNightsCode}
     >
       <FreeNights />
+    </CodeExample>
+
+    <CodeExample
+      title="The same rows on two surfaces"
+      description="Moving between the date surfaces is an accessor question, not a conversion one. Both views below read the *same* `CalendarEvent[]`: the timeline finds each lane with `getResourceId` and the nights with `getRange`, and both legends read the same `categories` — `DateCategory` is one type across Calendar, Planner and ResourceTimeline. Reach for a converted copy only when the two views need genuinely different data, not to satisfy a type."
+      code={sameEventsCode}
+    >
+      <SameEventsTwoSurfaces />
     </CodeExample>
 
     <CodeExample

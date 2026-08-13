@@ -440,6 +440,23 @@ Svelte transitions need numeric inputs, so components call `getOverlayMotion(ove
 rather than hard-coding numbers. It resolves the live CSS values via `getComputedStyle`,
 parses ms/s/px, and falls back to the JS defaults on the server.
 
+### Press cue
+
+One more motion token sits outside that family, in the same file:
+
+| Custom property | Default | Purpose |
+| --- | --- | --- |
+| `--blocks-press-scale` | `0.98` | How far a held control dips (`1` disables) |
+
+Read by Button (its `active:` cue and its modelled `pressed` state), Badge's remove
+control and the Drawer / Dialog close buttons — the same ghost-Button fold. Three things
+set it: the theme, the reduced-motion block (to `1`, alongside the overlay scale), and
+Button itself, which writes `1` on an element whose `mint` is off so `mint="none"` also
+means "does not move". Only the movement goes either way; the paired `active:shadow-*`
+step keeps reporting the press, which matters on the flat variants that have no fill to
+darken. Interactive Badge/Avatar (`0.95`) and Table rows (`0.995`) are separate gestures
+and stay literals.
+
 The **anchored, native-popover surfaces** deliberately do *not* run Svelte transitions —
 their show/hide is owned by `showPopover()`/`hidePopover()` and native light dismiss, which
 no JS transition can animate. They run CSS-native motion on faster token pairs, both
@@ -512,6 +529,31 @@ range. It takes the controller's navigation, bounds and today handling but **not
 merged. What it does share is `pack-spans.ts`, the greedy first-fit row packer lifted out
 of `calendar.engine.ts`: one packer now stacks both Calendar's month bars and the
 timeline's lane bars.
+
+**The facades share a vocabulary, not just an engine** (#191, 2026-08-12). Two public
+types live in `date-grid.types.ts` and are re-exported by every surface that speaks them:
+`DateRange` (the inclusive start/end pair) and `DateCategory` (the colour bucket behind
+bars, dots and legends). They replaced six twins — `DateGridRange`, Calendar's
+`DateRange`, `PlannerRange` and an inline `{ start; end }` on the one side,
+`CalendarEventCategory` and `TimelineCategory` on the other — differing in which component
+had declared them and, on Calendar's category, in an `icon` no legend ever rendered;
+moving categories from a Calendar to a Timeline mapped a type onto itself. The `icon` did
+not survive the merge rather than spreading to a second surface.
+
+The small toolbar twinned the same way — 35 lines of markup in each of the two headers,
+plus four byte-identical `tv()` slots and their three size steps — and is now
+one internal core (`CoreDateGridHeader`) over one shared slot table
+(`internal/core/date-grid-header-slots.ts`), spread into each surface's own `tv()` config
+so the slots stay part of its public `slotClasses`. `CalendarHeader` stays its own: it
+carries a month picker, a view switcher and a narrow-viewport grid, names its title slot
+`title` rather than `headerTitle`, and resolves slots with a second `extra` argument the
+core's resolver does not take.
+
+What is deliberately **not** unified is the data vocabulary: `events`/`CalendarEvent`,
+`items`/`getDate`, `items`/`getResourceId`+`getRange`. Those differ because the data models
+do (see [COMPONENT-DECISION-MATRICES.md](COMPONENT-DECISION-MATRICES.md) → Date Surfaces),
+and the accessor props are what carries one array onto a second surface without a
+conversion step.
 
 ---
 
