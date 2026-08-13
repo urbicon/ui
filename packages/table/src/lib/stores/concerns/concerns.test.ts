@@ -1332,6 +1332,25 @@ describe('useSelection', () => {
     sel.toggleAll();
     expect(state.selectedIds.size).toBe(3);
   });
+
+  // `selectAll` only ever adds the filtered rows, so its undo may only remove
+  // those. Until 2026-08-13 the second click called `deselectAll()` and cleared
+  // the whole set: narrow to one row, tick the header checkbox twice, and the
+  // rows picked before narrowing were gone — a bulk action then ran on a
+  // selection the reader never made.
+  it('contract: toggleAll only clears the filtered rows, never the whole selection', () => {
+    const state = makeState('multi');
+    // Charlie is out of view (a search, a filter, another page of the same set).
+    const filtered = () => state.items.filter((item) => item.id !== 3);
+    const sel = useSelection(state, filtered);
+
+    state.selectedIds.add(3);
+    sel.toggleAll(); // selects the two filtered rows, keeping 3
+    expect([...state.selectedIds].sort()).toEqual([1, 2, 3]);
+
+    sel.toggleAll(); // all filtered rows are selected → undo, filtered only
+    expect([...state.selectedIds]).toEqual([3]);
+  });
 });
 
 describe('useColumnVisibility', () => {

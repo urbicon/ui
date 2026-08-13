@@ -47,7 +47,7 @@
     activeRowId?: string | number | null;
     selectedIds?: Array<string | number>;
     initialSelectedIds?: Array<string | number>;
-    onSelectionChange?: (selectedItems: TableItem[]) => void;
+    onSelectionChange?: (selectedItems: TableItem[], selectedIds: Array<string | number>) => void;
     enableColumnVisibility?: boolean;
     onReady?: (context: TableContext) => void;
   };
@@ -229,10 +229,20 @@
     untrack(() => tableState.setSelectedIds(selectedIds));
   });
 
+  // Keyed on the selection itself, never on the rows the table happens to hold.
+  // `selectedItems` resolves ids against `state.items`, so under server paging a
+  // page change swapped those rows and re-fired this with a shorter list —
+  // whereupon the documented controlled pattern (`selectedIds = items.map(…)`)
+  // wrote that shorter list back and the selection lost every row the reader had
+  // picked on another page. Paging is not a selection change.
+  //
+  // The ids go out beside the items because they are the part the table can
+  // always answer for: in server mode `selectedItems` can only ever resolve the
+  // rows currently loaded, so a controlled parent has to round-trip the ids.
   $effect(() => {
+    const ids = [...state.selectedIds];
     if (onSelectionChange && state.selectionMode !== 'none') {
-      const selected = tableState.selectedItems;
-      onSelectionChange(selected);
+      untrack(() => onSelectionChange?.(tableState.selectedItems, ids));
     }
   });
 
