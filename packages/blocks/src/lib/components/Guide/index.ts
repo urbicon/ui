@@ -21,10 +21,10 @@ import type {
 } from './guide.variants';
 
 /**
- * @summary The root that wires every guide surface to one controller.
+ * @summary The root that wires every guide component to one controller.
  * @description Root provider for the Guide help system. Instantiates a `GuideController`
- * and shares it via context with all Guide surfaces (Panel, Marker, Mention, Hint, Tour).
- * Place once near the app root. The context is optional — a surface used without a provider
+ * and shares it via context with all Guide components (Panel, Marker, Mention, Hint, Tour).
+ * Place once near the app root. The context is optional: a component used without a provider
  * renders inert rather than throwing.
  * @tag overlay
  * @tag feedback
@@ -379,8 +379,8 @@ export interface GuideHintProps {
 
 /**
  * @summary The guided tour — opt-in, step by step, and only when the user asks for it.
- * @description The guided-tour renderer — the deliberately opt-in, intrusive Guide surface
- * (§6, low priority). Renders the active tour the controller drives (`startTour`/`next`/`prev`/
+ * @description The guided-tour renderer: the opt-in, intrusive Guide component.
+ * Renders the active tour the controller drives (`startTour`/`next`/`prev`/
  * `skip`/`finish`): a spotlight that dims everything but a cut-out hole over the current step's
  * target (the one *subtractive* Guide treatment, D5) plus an anchored bubble with the step
  * title, body, dot progress, and Back / Next / Skip controls. Mount once inside `GuideProvider`;

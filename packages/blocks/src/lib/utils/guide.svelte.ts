@@ -33,7 +33,7 @@ export interface GuideStep {
    * Optional route this step lives on — declarative cross-route touring. When set and different
    * from the current location, the controller calls its injected `navigate` hook to go there
    * **before** the spotlight, then re-anchors once the target appears on the new page (via the
-   * surface's existing `reapplyStepHighlight`). Such a tour-internal navigation keeps the tour
+   * renderer's existing `reapplyStepHighlight`). Such a tour-internal navigation keeps the tour
    * running; a *foreign* navigation (the user leaving on their own) still stops it. Compared
    * against `window.location.pathname` by default, so use a normalized path (no query/hash);
    * inject a {@link GuideControllerOptions.navigationSource} for a custom router or base path.
@@ -330,7 +330,7 @@ const HIGHLIGHT_ATTR = 'data-guide-highlight';
 
 /**
  * Headless engine for the Guide system — the UI-free state machine behind every
- * Guide surface (Panel, Marker, Mention, Hint, Tour).
+ * Guide component (Panel, Marker, Mention, Hint, Tour).
  *
  * One instance per `GuideProvider` (Phase 2) — *not* a singleton, so multiple scopes
  * can coexist and tests get a fresh instance. Modeled on `OverlayStack` (class with

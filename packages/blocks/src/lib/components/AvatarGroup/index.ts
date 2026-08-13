@@ -7,7 +7,7 @@ import type { AvatarGroupSlots, AvatarGroupVariants } from './avatar-group.varia
  * @description Stacks avatars into an overlapping row with an optional "+N" overflow chip,
  * for a set of collaborators, assignees or participants. Pass an `items` array of Avatar
  * props; a shared `size` and a cut-out ring apply to every avatar so the stack reads cleanly
- * on any surface.
+ * on any background.
  *
  * @tag display
  * @related Avatar
@@ -42,7 +42,7 @@ export interface AvatarGroupProps
   spacing?: 'tight' | 'normal' | 'loose';
   /**
    * Ring colour drawn around each avatar so the overlap reads as a cut-out. Any CSS colour;
-   * defaults to the base surface so the stack looks punched out of the page.
+   * defaults to the base background so the stack looks punched out of the page.
    * @default 'var(--color-surface-base)'
    */
   borderColor?: string;
