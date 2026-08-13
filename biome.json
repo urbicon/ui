@@ -28,6 +28,15 @@
           "suspicious": { "noExplicitAny": "off", "noTemplateCurlyInString": "off" }
         }
       }
+    },
+    {
+      "includes": ["**/tests/fixtures/**"],
+      "linter": {
+        "rules": {
+          "complexity": { "noBannedTypes": "off" },
+          "suspicious": { "noEmptyInterface": "off" }
+        }
+      }
     }
   ]
 }
