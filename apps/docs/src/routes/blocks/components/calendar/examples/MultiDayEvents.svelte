@@ -3,8 +3,8 @@
   import type { CalendarEvent, CalendarEventCategory } from '@urbicon-ui/blocks';
 
   const categories: CalendarEventCategory[] = [
-    { id: 'conf', label: 'Konferenz', color: '#8b5cf6' },
-    { id: 'vacation', label: 'Urlaub', color: '#06b6d4' },
+    { id: 'conf', label: 'Conference', color: '#8b5cf6' },
+    { id: 'vacation', label: 'Vacation', color: '#06b6d4' },
     { id: 'sprint', label: 'Sprint', color: '#f97316' },
     { id: 'deadline', label: 'Deadline', color: '#ef4444' }
   ];
@@ -16,7 +16,7 @@
       start: new Date(2026, 2, 5),
       end: new Date(2026, 2, 7),
       categoryId: 'conf',
-      description: 'Drei Tage Svelte-Konferenz in Berlin'
+      description: 'Three-day Svelte conference in Berlin'
     },
     {
       id: '2',
@@ -27,7 +27,7 @@
     },
     {
       id: '3',
-      title: 'Skiurlaub',
+      title: 'Ski trip',
       start: new Date(2026, 2, 14),
       end: new Date(2026, 2, 21),
       categoryId: 'vacation',

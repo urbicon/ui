@@ -28,14 +28,14 @@
 
 <SeoMeta
   title="LineChart Component"
-  description="Line chart for trends over an ordered category axis, one path per series."
+  description="Line chart for trends over an ordered category axis."
 />
 
 <DocsPageLayout
   maxWidth="2xl"
   showToc={true}
   title="LineChart"
-  description="Line chart for trends over an ordered category axis, one path per series."
+  description="Line chart for trends over an ordered category axis."
   breadcrumbs={[
     { label: 'Blocks', href: '/blocks' },
     { label: 'Components', href: '/blocks/components' }

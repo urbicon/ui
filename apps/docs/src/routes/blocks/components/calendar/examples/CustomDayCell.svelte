@@ -41,7 +41,7 @@
     { id: '32', title: 'Deploy', start: new Date(2026, 2, 25) },
     { id: '33', title: 'Standup', start: new Date(2026, 2, 26) },
     { id: '34', title: 'Standup', start: new Date(2026, 2, 30) },
-    { id: '35', title: 'Quartalsbericht', start: new Date(2026, 2, 31) },
+    { id: '35', title: 'Quarterly report', start: new Date(2026, 2, 31) },
     { id: '36', title: 'Deploy', start: new Date(2026, 2, 31) },
     { id: '37', title: 'Review', start: new Date(2026, 2, 31) }
   ];
@@ -77,22 +77,13 @@
 </script>
 
 <div class="max-w-sm">
-  <Calendar
-    {events}
-    showEventList
-    showViewSwitcher={false}
-    defaultMonth={2}
-    defaultYear={2026}
-    locale="de-DE"
-  >
+  <Calendar {events} showEventList showViewSwitcher={false} defaultMonth={2} defaultYear={2026}>
     {#snippet dayCell(ctx: DayCellContext)}
       {@const level = heatLevel(ctx.events.length)}
-      <button
-        class="flex h-10 w-full items-center justify-center rounded-md text-sm tabular-nums transition-all
+      <!-- A heatmap cell is read-only, so it renders as a div, not a button. -->
+      <div
+        class="flex h-10 w-full items-center justify-center rounded-md text-sm tabular-nums
           {ctx.isOutsideMonth ? 'opacity-20' : ''}
-          {ctx.isDisabled ? 'cursor-not-allowed opacity-30' : 'cursor-pointer'}
-          {ctx.isSelected ? 'ring-text-primary ring-2 ring-offset-1' : ''}
-          {!ctx.isDisabled && !ctx.isSelected ? 'hover:ring-border-default hover:ring-1' : ''}
           {heatBg[level]}
           {ctx.isToday ? 'font-black underline decoration-2 underline-offset-2' : ''}
           {level > 0
@@ -102,17 +93,17 @@
             : 'text-text-primary'}"
       >
         {ctx.date.getDate()}
-      </button>
+      </div>
     {/snippet}
   </Calendar>
 
   <!-- Heatmap legend -->
   <div class="mt-3 flex items-center justify-end gap-1.5 px-3">
-    <span class="text-text-tertiary text-xs">Weniger</span>
+    <span class="text-text-tertiary text-xs">Less</span>
     {#each [0, 1, 2, 3, 4] as lvl (lvl)}
       <span class="border-border-subtle size-3 rounded-sm border {heatBg[lvl] || 'bg-surface-base'}"
       ></span>
     {/each}
-    <span class="text-text-tertiary text-xs">Mehr</span>
+    <span class="text-text-tertiary text-xs">More</span>
   </div>
 </div>

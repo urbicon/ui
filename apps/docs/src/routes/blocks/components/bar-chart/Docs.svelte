@@ -23,10 +23,19 @@
 
 <!-- ─── Examples ─── -->
 <Section marker id="examples" title="Examples">
+  <p class="text-text-secondary mb-6 text-sm leading-relaxed">
+    Each datum has a <code class="text-text-primary">label</code> and a
+    <code class="text-text-primary">values</code> array, and
+    <code class="text-text-primary">values[i]</code> belongs to
+    <code class="text-text-primary">series[i]</code>. Pass
+    <code class="text-text-primary">series</code> to name and colour the bars and to drive the
+    legend; one value per datum needs no <code class="text-text-primary">series</code>.
+  </p>
+
   <div class="space-y-8">
     <CodeExample
       title="Grouped series"
-      description="Two series rendered side by side per category — the default when each datum carries more than one value."
+      description="Two series side by side per category, the default when a datum carries more than one value."
       isolate
       previewClass="flex w-full justify-center p-6"
     >
@@ -37,7 +46,7 @@
 
     <CodeExample
       title="Stacked"
-      description="Set `stacked` to stack the series into one bar per category — useful for part-to-whole comparisons over time."
+      description="Set `stacked` to stack the series into one bar per category, for part-to-whole comparisons."
       isolate
       previewClass="flex w-full justify-center p-6"
     >
@@ -97,16 +106,14 @@
     </Note>
     <Note title="Data-table fallback">
       <p>
-        A visually hidden (<code class="text-text-primary">sr-only</code>) table mirrors the data —
-        one row per category, one column per series — so screen-reader users get the exact values,
-        not just the visual summary.
+        A visually hidden (<code class="text-text-primary">sr-only</code>) table mirrors the data,
+        one row per category and one column per series, so screen-reader users get the exact values.
       </p>
     </Note>
     <Note title="Per-bar tooltips">
       <p>
         Each bar includes a native SVG <code class="text-text-primary">&lt;title&gt;</code> ("series —
-        category: value"), giving a zero-JavaScript hover tooltip that the browser also exposes to assistive
-        tech.
+        category: value"), so the browser shows a hover tooltip and exposes it to assistive tech.
       </p>
     </Note>
   </NoteList>

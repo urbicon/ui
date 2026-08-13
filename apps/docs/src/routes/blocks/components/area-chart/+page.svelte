@@ -28,14 +28,14 @@
 
 <SeoMeta
   title="AreaChart Component"
-  description="Area chart for trends with volume emphasis — filled regions, optionally stacked."
+  description="Area chart for trends, with the area under each series filled."
 />
 
 <DocsPageLayout
   maxWidth="2xl"
   showToc={true}
   title="AreaChart"
-  description="Area chart for trends with volume emphasis — filled regions, optionally stacked."
+  description="Area chart for trends, with the area under each series filled."
   breadcrumbs={[
     { label: 'Blocks', href: '/blocks' },
     { label: 'Components', href: '/blocks/components' }

@@ -23,10 +23,20 @@
 
 <!-- ─── Examples ─── -->
 <Section marker id="examples" title="Examples">
+  <p class="text-text-secondary mb-6 text-sm leading-relaxed">
+    Each datum has a <code class="text-text-primary">label</code> and a
+    <code class="text-text-primary">values</code> array, and
+    <code class="text-text-primary">values[i]</code> belongs to
+    <code class="text-text-primary">series[i]</code>. Pass
+    <code class="text-text-primary">series</code> to name and colour the bands and to drive the
+    legend; a single value per datum needs no <code class="text-text-primary">series</code>. Add
+    <code class="text-text-primary">stacked</code> to sum the bands into a running total.
+  </p>
+
   <div class="space-y-8">
     <CodeExample
       title="Single area"
-      description="A filled region under one series, anchored to the zero baseline — good for cumulative volume at a glance."
+      description="One series, filled down to the zero baseline."
       isolate
       previewClass="flex w-full justify-center p-6"
     >
@@ -37,23 +47,12 @@
 
     <CodeExample
       title="Stacked"
-      description="`stacked` accumulates series into bands, so the top edge reads as the total while each band shows its contribution."
+      description="`stacked` sums the series so the top edge is the running total."
       isolate
       previewClass="flex w-full justify-center p-6"
     >
       <div class="w-full max-w-2xl">
         <AreaChart stacked data={signups} series={channels} />
-      </div>
-    </CodeExample>
-
-    <CodeExample
-      title="Overlaid"
-      description="Without `stacked`, series overlay with a translucent fill so you can compare their shapes directly."
-      isolate
-      previewClass="flex w-full justify-center p-6"
-    >
-      <div class="w-full max-w-2xl">
-        <AreaChart data={signups} series={channels} />
       </div>
     </CodeExample>
   </div>
@@ -96,8 +95,8 @@
     </Note>
     <Note title="Data-table fallback">
       <p>
-        A visually hidden table mirrors every value per series so the filled regions are never the
-        only way to read the data.
+        A visually hidden table mirrors every value per series, so screen-reader users read the
+        exact values.
       </p>
     </Note>
   </NoteList>

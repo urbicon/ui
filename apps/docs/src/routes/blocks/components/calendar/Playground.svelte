@@ -25,7 +25,7 @@
   const demoCategories: CalendarEventCategory[] = [
     { id: 'meeting', label: 'Meeting', color: '#8b5cf6' },
     { id: 'deadline', label: 'Deadline', color: '#ef4444' },
-    { id: 'focus', label: 'Fokuszeit', color: '#3b82f6' },
+    { id: 'focus', label: 'Focus time', color: '#3b82f6' },
     { id: 'social', label: 'Social', color: '#06b6d4' }
   ];
 
@@ -35,7 +35,7 @@
       title: 'Sprint Planning',
       start: new Date(2026, 2, 2),
       categoryId: 'meeting',
-      description: 'Sprint 14 Planung'
+      description: 'Sprint 14 planning'
     },
     { id: '2', title: 'Design Review', start: new Date(2026, 2, 5), categoryId: 'meeting' },
     { id: '3', title: 'Release v3.0', start: new Date(2026, 2, 7), categoryId: 'deadline' },
@@ -68,11 +68,11 @@
     { id: '9', title: 'Code Freeze', start: new Date(2026, 2, 14), categoryId: 'deadline' },
     {
       id: '10',
-      title: 'Konferenz',
+      title: 'Conference',
       start: new Date(2026, 2, 16),
       end: new Date(2026, 2, 18),
       categoryId: 'social',
-      description: 'SvelteConf Berlin'
+      description: 'SvelteConf, Berlin'
     },
     { id: '11', title: 'Sprint Review', start: new Date(2026, 2, 19), categoryId: 'meeting' },
     {
@@ -82,7 +82,7 @@
       end: new Date(2026, 2, 24),
       categoryId: 'social'
     },
-    { id: '13', title: 'Quartalsbericht', start: new Date(2026, 2, 25), categoryId: 'deadline' },
+    { id: '13', title: 'Quarterly report', start: new Date(2026, 2, 25), categoryId: 'deadline' },
     { id: '14', title: 'Sprint Planning', start: new Date(2026, 2, 26), categoryId: 'meeting' },
     { id: '15', title: 'Go Live', start: new Date(2026, 2, 31), categoryId: 'deadline' }
   ];

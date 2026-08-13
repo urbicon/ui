@@ -28,14 +28,14 @@
 
 <SeoMeta
   title="Sankey Component"
-  description="Flow diagram for multi-stage data: nodes split into layers, paths drawn to scale as cubic Bezier curves, with an sr-only table as the screen-reader fallback."
+  description="Flow diagram for multi-stage data: nodes split into layers, and links are sized to the values that flow between them."
 />
 
 <DocsPageLayout
   maxWidth="2xl"
   showToc={true}
   title="Sankey"
-  description="Flow diagram for multi-stage data: nodes split into layers, paths drawn to scale as cubic Bezier curves, with an sr-only table as the screen-reader fallback."
+  description="Flow diagram for multi-stage data: nodes split into layers, and links are sized to the values that flow between them."
   breadcrumbs={[
     { label: 'Blocks', href: '/blocks' },
     { label: 'Components', href: '/blocks/components' }

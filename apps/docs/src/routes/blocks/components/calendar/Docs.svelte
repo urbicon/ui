@@ -17,11 +17,10 @@
 
   // The month group renders three demos, so its snippet shows the data model
   // they share rather than one of the three sources. `RecurrenceRule` is the
-  // least guessable part of the Calendar API and the page renders no
-  // TypesReference, so dropping it here would leave it documented nowhere on
-  // /blocks/components/calendar — which is what the first cut of this grouping
-  // did while the description still promised it.
-  const eventShapesCode = `import type { CalendarEvent } from '@urbicon-ui/blocks';
+  // least guessable part of the Calendar API, so the snippet spells its fields
+  // out; the full shapes (CalendarEvent, CalendarEventCategory, …) are in the
+  // page's Types section.
+  const eventShapesCode = `import type { CalendarEvent, CalendarEventCategory } from '@urbicon-ui/blocks';
 
 const events: CalendarEvent[] = [
   // One day: start only.
@@ -33,7 +32,7 @@ const events: CalendarEvent[] = [
   // A series: one object plus a rule, expanded by the calendar.
   // byDay is 0-6 (Sunday-Saturday): on \`weekly\` it generates one occurrence
   // per listed day, on \`daily\` it filters the days the interval produces.
-  // interval skips n periods; until ends the series (inclusive).
+  // interval repeats every n periods; until ends the series (inclusive).
   {
     id: '3',
     title: 'Standup',
@@ -50,6 +49,12 @@ const events: CalendarEvent[] = [
     start: new Date(2026, 2, 6),
     recurrence: { frequency: 'weekly', interval: 2, byDay: [5] }
   }
+];
+
+// A category colours its events' dots and labels the legend. \`color\` takes
+// any CSS colour or a Tailwind class; \`categoryId\` on an event points here.
+const categories: CalendarEventCategory[] = [
+  { id: 'deadline', label: 'Deadline', color: '#ef4444' }
 ];
 
 <Calendar {events} {categories} showLegend showWeekNumbers />`;
@@ -73,7 +78,7 @@ const events: CalendarEvent[] = [
 
 <Calendar view="agenda" {events} {categories} agendaDays={21} />`;
 
-  const constraintsCode = `<!-- Two clicks pick a range; minDate/maxDate bound both ends. -->
+  const constraintsCode = `<!-- Two clicks pick a range; minDate/maxDate cap what you can reach and pick. -->
 <Calendar
   selectionMode="range"
   bind:value
@@ -99,7 +104,7 @@ const events: CalendarEvent[] = [
   <div class="space-y-10">
     <CodeExample
       title="Events in a month view"
-      description="The month grid is the default and carries the whole event model. A one-day event needs only start; adding end draws it across a span (conferences, sprints, holidays); adding a recurrence rule expands one object into a series (a weekday standup, a biweekly review). Categories colour the entries and drive the legend, and clicking a day opens its detail list."
+      description="The month grid is the default. An event can cover a single day, span consecutive days, or repeat on a schedule; the calendar expands a recurrence rule into its occurrences, so you define it once. Clicking a day opens its detail list."
       code={eventShapesCode}
     >
       <div class="space-y-10">
@@ -111,7 +116,7 @@ const events: CalendarEvent[] = [
 
     <CodeExample
       title="Week, year and agenda views"
-      description="Same component, same events, one prop. Pick week with a time grid when the hour matters, year when the question is distribution across months, and agenda when the reader wants a list rather than a grid. The snippet shows only what differs between the three."
+      description="The view prop switches between them. Use week when the hour matters, year for distribution across months, and agenda for a list instead of a grid. `views` sets which buttons the switcher offers."
       code={viewsCode}
     >
       <div class="space-y-10">
@@ -123,7 +128,7 @@ const events: CalendarEvent[] = [
 
     <CodeExample
       title="Constrained selection"
-      description="Two ways to narrow what a reader may pick, usually used together: selectionMode='range' takes a start and an end in two clicks, while minDate/maxDate bound the navigable window, disabledDates locks named days such as public holidays, and isDateDisabled locks a rule such as weekends."
+      description="Set selectionMode='range' to pick a start and end in two clicks. Three props constrain what's pickable: minDate/maxDate bound the range, disabledDates locks named days like public holidays, and isDateDisabled locks a rule like weekends."
       code={constraintsCode}
     >
       <div class="space-y-10">
@@ -134,7 +139,7 @@ const events: CalendarEvent[] = [
 
     <CodeExample
       title="Custom day cells – heatmap"
-      description="Full control over day-cell rendering with the dayCell snippet — the escape hatch for anything the event model does not express. Here as a GitHub-style activity heatmap: the more events on a day, the more intense the green."
+      description="The dayCell snippet lets you render each day yourself, for anything the event model does not cover. Here it draws a GitHub-style heatmap: more events on a day, more intense green."
       code={customDayCellCode}
     >
       <CustomDayCell />
@@ -184,11 +189,9 @@ const events: CalendarEvent[] = [
     </Note>
     <Note title="Touch & Gestures">
       <p>
-        Horizontal swiping navigates between months and days. The week view arbitrates instead of
-        guessing: while its time grid actually overflows sideways (narrow viewports), the finger
-        pans the grid and the swipe stands down; once everything fits, swiping navigates weeks
-        again. Touch input is handled through the Pointer Events API. Swipe gestures can be disabled
-        via
+        Horizontal swiping navigates between months and days. In the week view, when the time grid
+        overflows sideways on a narrow screen, a horizontal drag pans the grid instead of
+        navigating; once it fits, swiping navigates weeks again. Swipe gestures can be disabled with
         <code class="text-text-primary">swipeable={'{false}'}</code>. Animations respect
         <code class="text-text-primary">prefers-reduced-motion</code>.
       </p>
@@ -196,18 +199,18 @@ const events: CalendarEvent[] = [
     <Note title="Narrow Viewports">
       <p>
         Below phone widths the week keeps its seven columns behind a horizontal scroll with a sticky
-        time column — no information is dropped. Where a single day is the better answer, pick the
-        view from the viewport (<code class="text-text-primary">MediaQuery</code>) and pass
-        <code class="text-text-primary">views</code>
-        without
-        <code class="text-text-primary">week</code>; the
-        <code class="text-text-primary">views</code> prop's API docs carry the SSR-safe recipe.
+        time column, so no information is dropped. Where a single day reads better, drive
+        <code class="text-text-primary">view</code> from a
+        <code class="text-text-primary">MediaQuery</code> (with a
+        <code class="text-text-primary">false</code> server fallback, so a prerendered page does not
+        flip on hydration) and pass <code class="text-text-primary">views</code> without
+        <code class="text-text-primary">week</code>, so the switcher offers day instead.
       </p>
     </Note>
     <Note title="Internationalization">
       <p>
-        All visible text and ARIA labels use i18n keys via
-        <code class="text-text-primary">bt()</code>. Date formatting relies on the native
+        All visible text and ARIA labels are localized through i18n keys. Date formatting relies on
+        the native
         <code class="text-text-primary">Intl.DateTimeFormat</code> with the configured
         <code class="text-text-primary">locale</code>. Weekday names, month names, and date formats
         adapt automatically.

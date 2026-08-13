@@ -81,10 +81,26 @@
 
 <!-- ─── Examples ─── -->
 <Section marker id="examples" title="Examples">
+  <p class="text-text-secondary mb-6 text-sm leading-relaxed">
+    A <code class="text-text-primary">SankeyNode</code> has an
+    <code class="text-text-primary">id</code>, a <code class="text-text-primary">label</code>, and
+    an
+    <code class="text-text-primary">intent</code> for its colour (<code class="text-text-primary"
+      >primary</code
+    >, <code class="text-text-primary">success</code>,
+    <code class="text-text-primary">warning</code>,
+    <code class="text-text-primary">danger</code>, <code class="text-text-primary">neutral</code>,
+    …). A <code class="text-text-primary">SankeyLink</code> joins a
+    <code class="text-text-primary">source</code> id to a
+    <code class="text-text-primary">target</code>
+    id with a <code class="text-text-primary">value</code>. The layout sizes and places every node
+    and band from those values, so you pass data, not coordinates.
+  </p>
+
   <div class="space-y-8">
     <CodeExample
-      title="5-Stage Heating Cost Flow"
-      description="Complete service-charge example: sources (gas, heat pump, maintenance, chimney sweep) → heating cost pot → heating/hot water → residential units."
+      title="Heating cost flow"
+      description="A multi-source, multi-sink flow: each band's thickness is its share of the pot."
       isolate
       previewClass="flex justify-center w-full p-6"
     >
@@ -94,8 +110,8 @@
     </CodeExample>
 
     <CodeExample
-      title="Salary Breakdown"
-      description="Gross salary → income tax / social contributions / net pay. Social contributions branch further into health, pension, unemployment, and care insurance."
+      title="Salary breakdown"
+      description="A node can be both a target and a source: social contributions receive from gross pay, then split again."
       isolate
       previewClass="flex justify-center w-full p-6"
     >
@@ -110,8 +126,8 @@
     </CodeExample>
 
     <CodeExample
-      title="Node Alignments"
-      description="Four layer alignments. The early sink (B) lands in different positions depending on alignment — justify pushes it all the way right, left keeps it at its source layer."
+      title="Node alignments"
+      description="Four layer alignments. A node whose links end before the last layer (B here) lands differently: `justify` pushes it to the right edge, `left` keeps it at its source layer."
       isolate
       previewClass="grid grid-cols-1 lg:grid-cols-2 gap-4 w-full p-6"
     >
@@ -132,8 +148,8 @@
     </CodeExample>
 
     <CodeExample
-      title="Compact Embedding"
-      description="A small height embedded in a card — the layout adapts automatically."
+      title="Compact embedding"
+      description="A small height inside a card; the layout adapts to fit."
       isolate
       previewClass="flex justify-center w-full p-6"
     >
@@ -159,8 +175,8 @@
 <Section marker id="customization" title="Customization">
   <div class="space-y-8">
     <CodeExample
-      title="Custom Tooltip"
-      description="Custom tooltip content with a conditionally formatted detail field."
+      title="Custom tooltip"
+      description="The `tooltip` snippet receives the hovered `datum` and a `kind` of `'node'` or `'link'`."
       isolate
       previewClass="flex justify-center w-full p-6"
     >
@@ -206,13 +222,13 @@
         value"). A screen reader announces the diagram in a single block.
       </p>
     </Note>
-    <Note title="Table Fallback">
+    <Note title="Table fallback">
       <p>
         An sr-only table (source / target / value) is rendered in addition — screen readers that
         prefer tables can query the data row by row.
       </p>
     </Note>
-    <Note title="Keyboard Navigation">
+    <Note title="Keyboard navigation">
       <p>
         <Kbd keys="Tab" />
         focuses every node and link in sequence. On a focused element,
@@ -220,7 +236,7 @@
         triggers the click handler (onNodeClick / onLinkClick).
       </p>
     </Note>
-    <Note title="Hover + Focus Highlight">
+    <Note title="Hover and focus highlight">
       <p>
         Hovering or focusing a node dims all unconnected paths and nodes and highlights its direct
         connections.

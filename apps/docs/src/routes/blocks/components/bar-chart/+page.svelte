@@ -28,14 +28,14 @@
 
 <SeoMeta
   title="BarChart Component"
-  description="Categorical bar chart — single, grouped, or stacked — on the design-token palette."
+  description="Bar chart for comparing values across categories."
 />
 
 <DocsPageLayout
   maxWidth="2xl"
   showToc={true}
   title="BarChart"
-  description="Categorical bar chart — single, grouped, or stacked — on the design-token palette."
+  description="Bar chart for comparing values across categories."
   breadcrumbs={[
     { label: 'Blocks', href: '/blocks' },
     { label: 'Components', href: '/blocks/components' }

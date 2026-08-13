@@ -14,10 +14,18 @@
 
 <!-- ─── Examples ─── -->
 <Section marker id="examples" title="Examples">
+  <p class="text-text-secondary mb-6 text-sm leading-relaxed">
+    <code class="text-text-primary">data</code> is a plain
+    <code class="text-text-primary">number[]</code>, scaled to fit the
+    <code class="text-text-primary">width</code> and <code class="text-text-primary">height</code>
+    you give it. It draws a line by default; add <code class="text-text-primary">area</code> to fill beneath
+    it.
+  </p>
+
   <div class="space-y-8">
     <CodeExample
       title="Line vs. area"
-      description="A bare trend line, and the same data with `area` filled — both shrink to whatever width and height you give them."
+      description="A bare trend line, and the same data with `area` filled."
       isolate
       previewClass="flex w-full items-center justify-center gap-8 p-6"
     >
@@ -27,7 +35,7 @@
 
     <CodeExample
       title="In a stat card"
-      description="A KPI number paired with its recent trend — the canonical sparkline use case."
+      description="A KPI number paired with its recent trend."
       isolate
       previewClass="flex w-full justify-center p-6"
     >
@@ -64,16 +72,6 @@
           {/each}
         </tbody>
       </table>
-    </CodeExample>
-
-    <CodeExample
-      title="Direction color"
-      description="Pass `color` to signal up vs. down at a glance."
-      isolate
-      previewClass="flex w-full items-center justify-center gap-8 p-6"
-    >
-      <Sparkline data={up} color="var(--color-success)" showEndPoint />
-      <Sparkline data={down} color="var(--color-danger)" showEndPoint />
     </CodeExample>
   </div>
 </Section>
