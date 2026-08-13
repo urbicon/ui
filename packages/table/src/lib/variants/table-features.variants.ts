@@ -609,16 +609,26 @@ export const headerMenuVariants = tv({
     // The ground travels with the trigger's own opacity, so it appears only
     // when the button does — and it has to appear, because the button now sits
     // over the title rather than beside it.
+    // `pointer-events-none` while invisible. Out of the flow the button sits
+    // ON the header title rather than beside it, and `opacity: 0` still takes
+    // clicks — so the trailing 32px of every header, which for a right-aligned
+    // column is its own title text, opened the column menu instead of sorting.
+    // On a touch device, where no hover ever reveals the button, that is the
+    // only thing a tap there could do.
     trigger: [
       'h-8 w-8 min-w-8 rounded-modify bg-surface-elevated',
-      'opacity-0 transition-opacity group-hover:opacity-100'
+      'pointer-events-none opacity-0 transition-opacity',
+      'group-hover:pointer-events-auto group-hover:opacity-100',
+      'focus-visible:pointer-events-auto focus-visible:opacity-100'
     ],
     menu: ['p-1 min-w-[200px]'],
     separator: ['h-px bg-border-subtle my-1']
   },
   variants: {
     active: {
-      true: { trigger: 'opacity-100' },
+      // Visible means clickable — the two have to move together now that the
+      // button overlaps the title instead of sitting next to it.
+      true: { trigger: 'pointer-events-auto opacity-100' },
       false: {}
     }
   },
