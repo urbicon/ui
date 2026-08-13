@@ -1,5 +1,5 @@
 /**
- * Public type contracts for the A2UI engine (AI-Kit P4).
+ * Public type contracts for the A2UI engine.
  *
  * A2UI is Google/A2UI-project's "Agent to UI" protocol. This engine targets the
  * **v0.9.1 `basic` catalog**, rendering a curated 12-component subset (see

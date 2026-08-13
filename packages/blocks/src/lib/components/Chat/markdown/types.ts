@@ -1,9 +1,9 @@
 /**
- * Shared contracts for the streaming markdown engine (AI-Kit P0).
+ * Shared contracts for the streaming markdown engine.
  *
  * The engine is a zero-dependency CommonMark/GFM *subset* parser that renders
- * to a component tree — never to an HTML string. Raw HTML in the source is
- * treated as plain text by design (see AI-KIT plan, decision A2).
+ * to a component tree, never to an HTML string. Raw HTML in the source is
+ * treated as plain text.
  *
  * Streaming model: `createIncrementalParser()` accepts append-only chunks.
  * Settled blocks keep object identity across appends (Svelte's keyed `{#each}`
