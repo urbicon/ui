@@ -170,14 +170,16 @@ export class LocalTypesExtractor extends TypeScriptBaseExtractor<
       return { ...base, type: 'type', definition: decl.type?.getText() || 'unknown' };
     }
     if (ts.isInterfaceDeclaration(decl)) {
-      const body = decl.members?.length
+      const own = decl.members?.length
         ? declSourceFile.text.slice(decl.members.pos, decl.members.end)
         : ' {}';
+      const inherited = this.renderInheritedMembers(decl);
+      const body = inherited.text ? `${own.trimEnd()}\n${inherited.text}` : own;
       return {
         ...base,
         type: 'interface',
         definition: body.trim(),
-        members: decl.members?.length ?? 0
+        members: (decl.members?.length ?? 0) + inherited.count
       };
     }
     if (ts.isEnumDeclaration(decl)) {
@@ -194,6 +196,78 @@ export class LocalTypesExtractor extends TypeScriptBaseExtractor<
       definition: this.renderClassSignature(decl, declSourceFile),
       members: decl.members.filter((m) => this.isPublicClassMember(m)).length
     };
+  }
+
+  /**
+   * The members an interface inherits through `extends`, rendered under the
+   * ones it declares itself.
+   *
+   * Slicing `decl.members` alone documents an interface by what it happens to
+   * add. `Column` is the case that surfaced it: every one of its three shapes
+   * extends `BaseColumn` and `DerivableMixin`, so the Types section offered
+   * `id` and `accessor` and stopped — `width`, `align`, `dataType`, `priority`
+   * and eleven more were unreachable from the docs site, and the pages had to
+   * restate the type unions in code comments. Two independent blind readers
+   * named the missing property list as their top blocker on two different
+   * pages (2026-08-13).
+   *
+   * Kept textual rather than going through `checker.getProperties()`: the
+   * per-member JSDoc *is* the documentation, and the checker hands back types
+   * without it. Bases are followed recursively, own-name members win (an
+   * interface may narrow what it inherits), and `resolveCrossFileInterface`
+   * keeps the walk inside the package being documented.
+   */
+  private renderInheritedMembers(
+    decl: ts.InterfaceDeclaration,
+    seen: Set<string> = new Set(),
+    ownNames: Set<string> = new Set()
+  ): { text: string; count: number } {
+    if (!decl.heritageClauses) return { text: '', count: 0 };
+
+    for (const member of decl.members) {
+      const name = member.name && ts.isIdentifier(member.name) ? member.name.text : null;
+      if (name) ownNames.add(name);
+    }
+
+    const blocks: string[] = [];
+    let count = 0;
+
+    for (const clause of decl.heritageClauses) {
+      if (clause.token !== ts.SyntaxKind.ExtendsKeyword) continue;
+      for (const heritageType of clause.types) {
+        const baseName = heritageType.expression.getText();
+        if (seen.has(baseName)) continue;
+        seen.add(baseName);
+
+        const baseDecl = this.resolveCrossFileInterface(heritageType.expression);
+        if (!baseDecl?.members.length) continue;
+
+        const baseFile = baseDecl.getSourceFile();
+        const kept = baseDecl.members.filter((member) => {
+          const name = member.name && ts.isIdentifier(member.name) ? member.name.text : null;
+          return !name || !ownNames.has(name);
+        });
+        if (kept.length > 0) {
+          const text = kept
+            .map((member) => baseFile.text.slice(member.pos, member.end).trim())
+            .join('\n  ');
+          blocks.push(`\n  // ── inherited from ${baseName} ──\n  ${text}`);
+          count += kept.length;
+        }
+        for (const member of baseDecl.members) {
+          const name = member.name && ts.isIdentifier(member.name) ? member.name.text : null;
+          if (name) ownNames.add(name);
+        }
+
+        const deeper = this.renderInheritedMembers(baseDecl, seen, ownNames);
+        if (deeper.text) {
+          blocks.push(deeper.text);
+          count += deeper.count;
+        }
+      }
+    }
+
+    return { text: blocks.join('\n'), count };
   }
 
   private renderClassSignature(cls: ts.ClassDeclaration, sourceFile: ts.SourceFile): string {
@@ -313,9 +387,12 @@ export class LocalTypesExtractor extends TypeScriptBaseExtractor<
       if (ts.isInterfaceDeclaration(node) && this.hasExportModifier(node)) {
         const name = node.name?.getText() || '';
         if (!name || existing.has(name)) return;
-        const body = node.members?.length
+        const own = node.members?.length
           ? sourceFile.text.slice(node.members.pos, node.members.end)
           : ' {}';
+        // Same rule as for imported types — see `renderInheritedMembers`.
+        const inherited = this.renderInheritedMembers(node);
+        const body = inherited.text ? `${own.trimEnd()}\n${inherited.text}` : own;
         out.push({
           name,
           type: 'interface',
@@ -324,7 +401,7 @@ export class LocalTypesExtractor extends TypeScriptBaseExtractor<
           documentation: this.extractJSDocComment(node) || '',
           ...this.extractSeeTags(node),
           ...this.exportedFlag(name),
-          members: node.members?.length ?? 0,
+          members: (node.members?.length ?? 0) + inherited.count,
           sourcePath
         });
         existing.add(name);
