@@ -117,6 +117,101 @@ describe('executeHotelTool', () => {
   });
 
   it('exposes exactly the tools the recorder advertises', () => {
-    expect(HOTEL_TOOLS.map((tool) => tool.name)).toEqual(['get_hotel_info']);
+    expect(HOTEL_TOOLS.map((tool) => tool.name)).toEqual(['get_hotel_info', 'create_booking']);
+  });
+});
+
+describe('create_booking', () => {
+  /** A stay the availability hash leaves free — the fixture's own three nights. */
+  const STAY = {
+    house: 'cala',
+    room: 'garden',
+    checkIn: '2026-09-03',
+    checkOut: '2026-09-06',
+    guests: 2,
+    name: 'Marlowe'
+  };
+
+  it('books a free stay and prices it from the group sheet', () => {
+    const out = executeHotelTool('create_booking', STAY);
+    expect(out.error).toBeUndefined();
+    expect(out.nights).toBe(3);
+    expect(out.pricePerNight).toBe(300);
+    expect(out.total).toBe(900);
+    expect(out.house).toBe('Cala');
+    expect(out.guest).toBe('Marlowe');
+  });
+
+  it('marks the reference as a demo, so the confirmation card cannot read as real', () => {
+    const out = executeHotelTool('create_booking', STAY);
+    expect(out.reference).toMatch(/^DEMO-[0-9A-Z]{7}$/);
+    expect(String(out.note)).toMatch(/No reservation exists/);
+  });
+
+  it('is deterministic and holds nothing — the same stay books identically twice', () => {
+    const first = executeHotelTool('create_booking', STAY);
+    const second = executeHotelTool('create_booking', STAY);
+    expect(second).toEqual(first);
+    // And availability is untouched by a booking, which is what keeps a replay
+    // agreeing with the fixture it was recorded against.
+    const after = executeHotelTool('get_hotel_info', {
+      checkIn: STAY.checkIn,
+      checkOut: STAY.checkOut
+    });
+    expect(after).toEqual(
+      executeHotelTool('get_hotel_info', { checkIn: STAY.checkIn, checkOut: STAY.checkOut })
+    );
+  });
+
+  it('gives a different reference to a different stay', () => {
+    const a = executeHotelTool('create_booking', STAY);
+    const b = executeHotelTool('create_booking', { ...STAY, name: 'Rey' });
+    expect(b.reference).not.toBe(a.reference);
+  });
+
+  it('refuses a room that is not free for every night of the stay', () => {
+    // Walk the room types until the hash sells one out for this stay, so the
+    // refusal path is exercised against the real availability rule rather than
+    // a hand-picked constant that a stock change could quietly make free.
+    const soldOut = ROOM_TYPES.map((room) => room.id).find((room) => {
+      const info = executeHotelTool('get_hotel_info', {
+        checkIn: '2026-09-03',
+        checkOut: '2026-09-10'
+      });
+      const house = (
+        info.availability as Array<{ houseId: string; rooms: Array<{ roomId: string }> }>
+      ).find((entry) => entry.houseId === 'cala');
+      return !house?.rooms.some((entry) => entry.roomId === room);
+    });
+    expect(soldOut).toBeDefined();
+
+    const out = executeHotelTool('create_booking', {
+      ...STAY,
+      room: soldOut,
+      checkOut: '2026-09-10'
+    });
+    expect(String(out.error)).toMatch(/free/);
+    expect(out.reference).toBeUndefined();
+  });
+
+  it('fails loud on an unknown house, room, name or date instead of booking something else', () => {
+    expect(String(executeHotelTool('create_booking', { ...STAY, house: 'mori' }).error)).toMatch(
+      /not a house/
+    );
+    expect(String(executeHotelTool('create_booking', { ...STAY, room: 'attic' }).error)).toMatch(
+      /not a room type/
+    );
+    expect(String(executeHotelTool('create_booking', { ...STAY, name: '  ' }).error)).toMatch(
+      /name is required/
+    );
+    expect(
+      String(executeHotelTool('create_booking', { ...STAY, checkIn: '2026-02-30' }).error)
+    ).toMatch(/not a valid/);
+    expect(
+      String(executeHotelTool('create_booking', { ...STAY, checkOut: STAY.checkIn }).error)
+    ).toMatch(/at least one night/);
+    expect(String(executeHotelTool('create_booking', { ...STAY, guests: 0 }).error)).toMatch(
+      /at least 1/
+    );
   });
 });

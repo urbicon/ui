@@ -5,12 +5,20 @@ import fixture from './booking-fixture.json';
  *
  * The hotel page is a claim about *design* — one agent payload, three houses —
  * so it must not be hostage to an API key, a network hop, or which way the
- * model felt like phrasing things today. What it plays back is real recorded
- * model output, not hand-written UI — captured by
+ * model felt like phrasing things today. What it plays back was captured by
  * `apps/docs/scripts/record-fixture.ts`, which runs the same tool loop a live
  * relay would (Anthropic stream + `executeHotelTool`) and writes the frames
  * verbatim; the fixture is the versioned truth. To re-record, run that script
  * with `ANTHROPIC_API_KEY` set.
+ *
+ * Where the line sits, since 2026-08-13: every **A2UI envelope is exactly as
+ * recorded** — the UI on screen is genuine model output, and a check that the
+ * payloads survive byte-for-byte is what any edit here has to pass. The
+ * **prose between them has been edited** for the demo (an unprompted upsell in
+ * the middle turn, a three-sentence aside in the last). So this is a recording
+ * with a cut, not a transcript, and the page says as much: "A fictional
+ * exchange, recorded and replayed". `apps/docs/scripts/validate-fixture.ts`
+ * runs the library's own processor over the result.
  *
  * Frames come back shaped exactly like `streamSse` yields them (`data` as a
  * JSON string), so the page consumes a replay and a live stream with the same
