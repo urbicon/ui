@@ -42,7 +42,7 @@
       parts: [
         {
           type: 'text',
-          text: 'It is pure structure — a pinned **header**, a scrollable **body**, and a pinned **composer**. The `min-h-0` flex chain hands scrolling to the body so the page itself never scrolls.'
+          text: 'A pinned **header**, a scrollable **body**, and a pinned **composer**. Only the body scrolls, so the page around it stays still.'
         }
       ],
       createdAt: new Date('2026-01-01T10:00:05'),

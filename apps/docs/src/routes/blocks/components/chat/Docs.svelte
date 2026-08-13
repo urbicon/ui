@@ -10,7 +10,7 @@
   <div class="space-y-8">
     <CodeExample
       title="Full conversation surface"
-      description="The canonical composition — the header and composer stay pinned while the ChatMessageList body owns the scroll. The consumer holds the messages array as $state and appends to it; ChatMessageList and PromptInput handle follow-scroll and input on their own."
+      description="The header and composer stay pinned while the ChatMessageList body scrolls. You hold the messages array in $state and append to it as answers stream in."
       preview={false}
       code={`<script lang="ts">
   import { Chat, ChatMessageList, PromptInput, type ChatMessageData } from '@urbicon-ui/blocks';
@@ -48,7 +48,7 @@
 
     <CodeExample
       title="Chat beside an artifact panel"
-      description="Drop the whole shell into a SplitPane's start pane and render a live artifact (preview, document, canvas) in the end pane. Each pane clips its own overflow, so the conversation and the artifact scroll independently."
+      description="Put the shell in a SplitPane's start pane and a live artifact (preview, document, canvas) in the end pane. Each pane scrolls independently."
       preview={false}
       code={`<script lang="ts">
   import { SplitPane, Chat, ChatMessageList, PromptInput } from '@urbicon-ui/blocks';
@@ -87,7 +87,7 @@
 
 <Section marker id="anatomy" title="Anatomy">
   <p class="text-text-secondary text-sm leading-relaxed">
-    <strong>Chat</strong> is deliberately thin: three stacked regions and nothing else.
+    <strong>Chat</strong> is three stacked regions:
   </p>
   <ul class="text-text-secondary mt-3 list-outside list-disc space-y-1.5 pl-5 text-sm">
     <li>
@@ -95,11 +95,12 @@
       model picker, or connection badge here. Never scrolls.
     </li>
     <li>
-      <code class="text-text-primary">children</code> — the scrollable body. Drop a
+      <code class="text-text-primary">children</code> — the scrollable body. This is the one region
+      that scrolls; drop a
       <a href={r('/blocks/components/chat-message-list')} class="text-primary hover:underline"
         >ChatMessageList</a
       >
-      here; <em>it</em> is the one element that scrolls, not the shell.
+      here.
     </li>
     <li>
       <code class="text-text-primary">composer</code> — an optional pinned footer (border-t) — e.g.
@@ -110,11 +111,10 @@
     </li>
   </ul>
   <p class="text-text-secondary mt-3 text-sm leading-relaxed">
-    The shell is a full-height flex column with <code class="text-text-primary">min-h-0</code> on
-    the body, so the body can shrink below its content and delegate overflow to its scrollable
-    child. Because of that, <strong>Chat fills its parent's height</strong> — give the parent a concrete
-    height (or put it inside another flex/grid track that does). Chat holds no state and opens no context;
-    the conversation array lives entirely in the consumer.
+    <strong>Chat fills its parent's height</strong>, so give the parent a concrete height (or place
+    it in a flex/grid track that provides one). Inside, the body carries
+    <code class="text-text-primary">min-h-0</code> so it can scroll instead of pushing the shell taller.
+    Chat keeps no state of its own; the messages array lives in your component.
   </p>
 </Section>
 
@@ -124,31 +124,30 @@
   <NoteList>
     <Note title="Structure, not a landmark">
       <p>
-        Chat renders plain <code class="text-text-primary">&lt;div&gt;</code> regions — it does not
-        impose <code class="text-text-primary">role="banner"</code>,
-        <code class="text-text-primary">&lt;main&gt;</code> or
+        Chat renders plain <code class="text-text-primary">&lt;div&gt;</code> regions. It adds no
+        <code class="text-text-primary">role="banner"</code>,
+        <code class="text-text-primary">&lt;main&gt;</code>, or
         <code class="text-text-primary">&lt;form&gt;</code> semantics, because those belong to the
-        page around it and the children within it. Rest attributes land on the root, so if the
-        conversation is a standalone view, name it — pass
+        page around it. If the conversation is a standalone view, give the root an
         <code class="text-text-primary">aria-label</code> or wrap it in a labelled
         <code class="text-text-primary">&lt;section&gt;</code>.
       </p>
     </Note>
     <Note title="Meaning comes from children">
       <p>
-        The accessible semantics are supplied by what you place inside:
-        <code class="text-text-primary">ChatMessageList</code> exposes the scrollable
-        <code class="text-text-primary">role="log"</code> region plus a screen-reader status
-        channel, and <code class="text-text-primary">PromptInput</code> ships the labelled textarea and
-        send/stop buttons. Chat only guarantees they stack in the right order.
+        The accessible semantics come from what you place inside.
+        <code class="text-text-primary">ChatMessageList</code> provides the scrollable
+        <code class="text-text-primary">role="log"</code> region and a screen-reader status channel;
+        <code class="text-text-primary">PromptInput</code> provides the labelled textarea and send/stop
+        buttons. Chat itself only stacks them in order.
       </p>
     </Note>
     <Note title="Scroll ownership">
       <p>
-        Because only the body scrolls, keyboard scrolling (<Kbd keys="Page Up" />
+        Because only the body scrolls, <Kbd keys="Page Up" />
         /
-        <Kbd keys="Page Down" />) lands on the focusable list region, never on the page — while the
-        header and composer stay reachable and in view.
+        <Kbd keys="Page Down" /> act on the focusable list region rather than the page, and the header
+        and composer stay in view.
       </p>
     </Note>
   </NoteList>

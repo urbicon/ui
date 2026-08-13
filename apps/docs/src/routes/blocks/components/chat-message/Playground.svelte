@@ -33,10 +33,10 @@
 
   const { propDocs, variantKeys } = extractPlaygroundDocs(componentData?.props ?? []);
 
-  const questionText = 'How does the renderer keep a long streamed answer cheap?';
+  const questionText = 'How do I center an element with flexbox?';
 
   const answerText =
-    'Here is the plan. The renderer parses the growing string into a **component tree** — no `{@html}` anywhere — so settled blocks stay cached and only the tail re-renders.\n\n1. Text parts flow through StreamingMarkdown\n2. Every link is checked against the URL policy\n3. `[1]` markers resolve to citation chips';
+    'Make the parent a flex container and center on both axes:\n\n1. `justify-content: center` sets the horizontal position\n2. `align-items: center` sets the vertical position\n\nThe child then sits in the **middle** of the container.';
 
   /**
    * Frage + Antwort. Die Frage ist immer die des Nutzers — sie stellt den

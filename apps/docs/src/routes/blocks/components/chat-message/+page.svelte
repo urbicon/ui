@@ -7,7 +7,6 @@
     Section,
     TypesReference
   } from '@urbicon-ui/docs';
-  import { ChatMessage, type ChatMessageData } from '@urbicon-ui/blocks';
   import CustomDocs from './Docs.svelte';
   import Playground from './Playground.svelte';
   import { componentData } from './api';
@@ -15,8 +14,6 @@
   import { asset, resolve } from '$app/paths';
 
   const relatedLinks = buildRelatedLinks(componentData);
-
-  ('Here is the plan. The renderer parses the growing string into a **component tree** — no `{@html}` anywhere — so settled blocks stay cached and only the tail re-renders.\n\n1. Text parts flow through StreamingMarkdown\n2. Every link is checked against the URL policy\n3. `[1]` markers resolve to citation chips');
 
   const navigation = [
     { id: 'playground', title: 'Playground' },
@@ -38,7 +35,7 @@
   maxWidth="2xl"
   showToc={true}
   title="ChatMessage"
-  description="Renders one message and its ordered parts — markdown text via StreamingMarkdown, reasoning, tool-call status, attachment chips, and a deduplicated citation footer — with a hover-revealed copy/regenerate bar and an error/aborted alert. bubble tints and aligns per role; plain is a document-like full-width column."
+  description="Renders one chat message and its ordered parts: markdown text, reasoning, tool calls, attachments, and a citation footer, with copy and regenerate actions and per-role styling."
   breadcrumbs={[
     { label: 'Blocks', href: resolve('/blocks') },
     { label: 'Components', href: resolve('/blocks/components') }
@@ -50,12 +47,12 @@
 >
   <Section id="playground" title="Playground" titleHidden intent="primary">
     <p class="text-text-secondary mb-6 text-sm leading-relaxed">
-      One message rendered on its own. Flip the layout between the tinted
-      <code class="text-text-primary">bubble</code> and the document-like
-      <code class="text-text-primary">plain</code> column, change the role to see the per-role tint
-      and alignment, and hover the message to reveal the copy / regenerate bar. For the whole
-      conversation in motion, open the
-      <a class="text-primary hover:underline" href={resolve('/ai/chat')}>live playground</a>.
+      Change the layout, reply role, and density to see how a message renders. The
+      <code class="text-text-primary">bubble</code> layout tints and aligns by role;
+      <code class="text-text-primary">plain</code> is a full-width column. Hover a message to reveal
+      its copy and regenerate bar. The
+      <a class="text-primary hover:underline" href={resolve('/ai/chat')}>live playground</a>
+      shows a full streaming conversation.
     </p>
     <Playground />
   </Section>
