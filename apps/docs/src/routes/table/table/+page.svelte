@@ -51,13 +51,14 @@
     }),
     TableColumns.number('salary', 'Salary'),
     TableColumns.date('joinedAt', 'Joined'),
-    // Every handler receives the row. showView defaults to false, showDelete
-    // to true, and a delete button with no handler still renders.
+    // Every handler receives the row, and each button follows its own handler:
+    // pass onView and the view button appears, leave onDelete out and no delete
+    // button renders. The showView / showEdit / showDelete flags are for the
+    // two exceptions — rendering a button you handle elsewhere, or hiding one
+    // you do handle.
     TableColumns.actions('Actions', {
       onView: (employee) => {},
-      onEdit: (employee) => {},
-      showView: true,
-      showDelete: false
+      onEdit: (employee) => {}
     })
   ];
 ${scriptClose}

@@ -80,6 +80,47 @@ async function openPage(target: Browser, path: string, scale: number): Promise<P
   return page;
 }
 
+/**
+ * Die Inventar-Table auf der Landing steht dicht an ihrer eigenen Kippkante:
+ * ihre Spalte ist 36vw, `cardsBelow` ist 32rem (512px), und beim gepinnten
+ * Viewport von 1440px misst die Spalte 518px — gemessen am 2026-08-14, also
+ * 20px Luft, umgerechnet 20px Fensterbreite. Unterhalb von 1420px zeigt die
+ * Seite Karten statt des Rasters.
+ *
+ * Das ist eine Design-Entscheidung mit Begründung (der Schritt darunter ließ
+ * die Table aus ihrer Spalte laufen), keine zu behebende Enge. Was nicht
+ * passieren darf, ist dass eine Änderung am Spaltenverhältnis, an der
+ * Seitenpolsterung oder an diesem Viewport die README-Bilder unbemerkt auf ein
+ * Layout umstellt, das die Seite bei ihrer üblichen Breite gar nicht zeigt.
+ * Also fragt der Lauf das DOM, statt sich auf die Rechnung zu verlassen.
+ */
+async function assertInventoryRendersAsGrid(page: Page, shot: string): Promise<void> {
+  const layout = await page.evaluate(() => {
+    const inventory = document.querySelector('.inventory');
+    if (!inventory) return null;
+    const shown = (selector: string) => {
+      const el = inventory.querySelector(selector);
+      return !!el && el.getBoundingClientRect().height > 0;
+    };
+    return {
+      grid: shown('[data-table-layout="desktop"]'),
+      cards: shown('[data-table-layout="mobile"]'),
+      columnWidth: Math.round(inventory.getBoundingClientRect().width)
+    };
+  });
+
+  // Kein Inventar auf dieser Seite: nichts zu prüfen.
+  if (!layout) return;
+
+  if (!layout.grid || layout.cards) {
+    throw new Error(
+      `${shot}: die Inventar-Table rendert als Kartenliste (Spalte ${layout.columnWidth}px, ` +
+        `cardsBelow-Schritt 512px). Das Bild zeigte ein Layout, das die Seite bei ${VIEWPORT.width}px ` +
+        'nicht hat — Spaltenverhältnis, Seitenpolsterung oder VIEWPORT prüfen.'
+    );
+  }
+}
+
 async function assertServerRunning(): Promise<void> {
   try {
     const response = await fetch(BASE);
@@ -110,6 +151,7 @@ const shots: { name: string; run: () => Promise<void> }[] = [
     name: 'landing.png',
     run: async () => {
       const page = await openPage(browser, '/', 2);
+      await assertInventoryRendersAsGrid(page, 'landing.png');
       await page.screenshot({ path: join(README_DIR, 'landing.png') });
       await page.context().close();
     }

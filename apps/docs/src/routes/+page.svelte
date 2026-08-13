@@ -1327,10 +1327,17 @@
            dem, was sie zusammen fordern: 29rem plus Zellpolster sind gemessene
            487px, und der Schritt darunter (28rem = 448px) ließ die Tabelle bei
            1300px Fensterbreite um 19px aus ihrer Spalte laufen. Die Spalte (36vw)
-           erreicht 32rem ab etwa 1420px Fensterbreite; darunter — und einspaltig
+           erreicht 32rem ab 1420px Fensterbreite; darunter — und einspaltig
            gestapelt unter 48rem sowieso — stehen die Karten.
-           Ein `!min-w-0` braucht die Tabelle dafür nicht mehr: die Mindestbreite
-           des Rasters hängt am selben Schritt und liegt jetzt darunter. -->
+           Ein `!min-w-0` braucht die Tabelle dafür nicht mehr: das Raster trägt
+           gar keine Mindestbreite mehr, weil der Schritt selbst schon garantiert,
+           dass es nur oberhalb seiner eigenen Breite rendert.
+
+           Die 1420px sind knapp: `scripts/capture-shots.ts` nimmt bei 1440px auf,
+           die Spalte misst dort 518px gegen 512px Schwelle. Deshalb prüft der
+           Aufnahmelauf am DOM nach, dass er das Raster fotografiert und nicht die
+           Karten (`assertInventoryRendersAsGrid`) — wer hier am Spaltenverhältnis
+           dreht, bekommt einen Fehlschlag statt vier still getauschter Bilder. -->
         <div class="inventory">
           <Table
             items={data.rows}
