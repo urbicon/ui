@@ -128,7 +128,7 @@
       line: 'AI chat creates interactive components on the fly. Tool-controlled, safe, custom-themed.',
       channel: CHANNELS[TILE_CHANNEL.a2ui],
       href: '/hotel',
-      linkLabel: 'Visit the hotel'
+      linkLabel: 'Visit the demo hotel'
     },
     {
       key: 'agent',

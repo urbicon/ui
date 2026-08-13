@@ -123,6 +123,17 @@
   <div data-layout={livery.layout} class="min-h-dvh pb-28">
     <!-- ── Masthead ─────────────────────────────────────────────────────── -->
     <header class="bg-surface-base/80 sticky top-0 z-[var(--z-sticky)] backdrop-blur">
+      <!-- The fiction, said before anything else and in a colour no house owns:
+           the liveries override only the primary/secondary/neutral ramps (see
+           liveries.css), so `warning` reads identically in all three and cannot
+           be mistaken for part of the hotel's own palette. Solid, not blurred
+           like the masthead behind it — a notice that dims with the backdrop is
+           a notice someone can miss. -->
+      <div class="bg-warning text-text-on-warning">
+        <p class="mx-auto max-w-6xl px-6 py-2 text-xs font-medium">
+          Demo only — Fermata is a fictional hotel group. Nothing on this page can be booked.
+        </p>
+      </div>
       <div class="mx-auto flex max-w-6xl items-baseline justify-between px-6 py-4">
         <span class="livery-display text-base">{GROUP_NAME}</span>
         <nav
@@ -258,8 +269,8 @@
       <div class="mx-auto max-w-3xl px-6 py-20">
         <h2 id="booking-title" class="livery-display mb-4 text-2xl">Book a stay</h2>
         <p class="text-text-secondary mb-6 max-w-lg text-sm">
-          Tell the front desk what you need. It builds whatever form the answer takes — and the form
-          belongs to this house, not to the model.
+          Tell the front desk what you need. AI will include the components it needs, from a set you
+          define.
         </p>
 
         <!-- The one primary act on the page, ABOVE the desk: an empty chat
@@ -272,9 +283,22 @@
             ▶ Play the recorded conversation
           </Button>
           <span class="text-2xs text-text-tertiary tracking-[0.14em] uppercase">
-            A real exchange, replayed — no key, no network
+            A fictional exchange, recorded and replayed
           </span>
         </div>
+
+        <!-- The consent this wanted to be is a checkbox INSIDE the generated
+             form, and A2UI cannot yet gate a button on one (no negation in a
+             data binding — see the engine issue). An ungated checkbox would
+             only look mandatory, and it would appear after the form is built,
+             so it would never reach anyone who does not play the recording.
+             Stated in the frame instead: always there, never optional. -->
+        <p
+          class="rounded-modify border-warning/30 bg-warning-subtle text-warning-emphasis mb-4 border px-3 py-2 text-xs"
+        >
+          The houses, rooms and prices are fictional, and so is the confirmation the front desk
+          hands back — nothing on this form makes a booking.
+        </p>
 
         <div class="rounded-contain border-border-default flex min-h-[36rem] flex-col border">
           <div
@@ -327,10 +351,7 @@
     class="border-border-default bg-surface-elevated fixed inset-x-0 bottom-0 z-[var(--z-sticky)] border-t"
   >
     <div class="mx-auto flex max-w-6xl flex-wrap items-center gap-x-6 gap-y-2 px-6 py-3">
-      <div class="flex min-w-0 shrink-0 flex-col">
-        <span class="text-2xs text-text-secondary tracking-[0.2em] uppercase">House</span>
-        <span class="text-2xs text-text-tertiary truncate">{livery.tagline}</span>
-      </div>
+      <span class="text-2xs text-text-secondary shrink-0 tracking-[0.2em] uppercase">House</span>
       <div class="flex flex-wrap gap-2" role="group" aria-label="House">
         {#each LIVERIES as option (option.id)}
           <button
@@ -348,9 +369,6 @@
           </button>
         {/each}
       </div>
-      <p class="text-2xs text-text-tertiary ml-auto hidden max-w-sm text-right lg:block">
-        {livery.mechanism}
-      </p>
     </div>
   </div>
 </BlocksProvider>
