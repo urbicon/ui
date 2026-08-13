@@ -29,12 +29,12 @@
 
 <SeoMeta
   title="LoginPage - Auth"
-  description="Pre-built login page using blocks primitives. Fully localizable and customizable."
+  description="An email/password login form with optional passkey and remember-me, posting to your login endpoint."
 />
 
 <DocsPageLayout
   title="LoginPage"
-  description="Pre-built login page using blocks primitives (Card, Input, Button, Alert). Fully localizable via AuthLocale, customizable via snippet overrides and slotClasses."
+  description="An email/password login form with optional passkey and remember-me, posting to your login endpoint. Localizable through AuthLocale; restyle it with snippet overrides or slotClasses."
   maxWidth="2xl"
   showToc={true}
   breadcrumbs={[
@@ -59,7 +59,7 @@
         <p>
           The shared error region below the heading is always in the DOM as
           <code class="text-text-primary">&lt;div aria-live="polite"&gt;</code>, empty until
-          something fails — a screen reader only announces changes inside a live region that already
+          something fails: a screen reader only announces changes inside a live region that already
           exists, so a region created together with its first error stays silent. A failed sign-in
           therefore reaches the reader while the caret stays in the password field.
         </p>
@@ -73,8 +73,7 @@
           <code class="text-text-primary">inputmode="numeric"</code> with
           <code class="text-text-primary">autoComplete="one-time-code"</code>. That is what lets a
           password manager fill the form and iOS/Android offer the code from the SMS or
-          authenticator — for users who cannot type a 30-character password by hand this is the
-          difference between usable and not.
+          authenticator.
         </p>
       </Note>
       <Note title="Keyboard">
@@ -94,7 +93,7 @@
       <Note title="Focus is not moved between the two steps">
         <p>
           When the password succeeds but the account has 2FA, the form is replaced by the code field
-          and the heading changes — but nothing moves focus there. A keyboard or screen-reader user
+          and the heading changes, but nothing moves focus there. A keyboard or screen-reader user
           hears the new heading only if they navigate back to it. Pair the component with your own
           focus call if the two-step path is your primary flow.
         </p>
