@@ -15,7 +15,7 @@
   import { untrack } from 'svelte';
   import { SvelteSet } from 'svelte/reactivity';
   import { BOOKING_SCHEMA } from '$lib/booking-schema';
-  import { replayTurn, TURNS } from '$lib/replay/player';
+  import { replayTurn, TURN_BY_ACTION, TURNS } from '$lib/replay/player';
 
   /**
    * The booking assistant, embedded in the hotel page.
@@ -74,9 +74,14 @@
   type ToolPart = Extract<ChatMessagePart, { type: 'tool-call' }>;
   type Segment = { splitter: A2uiStreamSplitter } | { tool: ToolPart };
 
-  async function play(displayText: string) {
-    if (busy || cursor >= TURNS.length) return;
-    const index = cursor++;
+  /**
+   * @param index which recorded turn answers this input. Typed input takes the
+   *   next one in line; a press on the surface takes the turn recorded for that
+   *   action (see `TURN_BY_ACTION`).
+   */
+  async function play(displayText: string, index = cursor) {
+    if (busy || index < 0 || index >= TURNS.length) return;
+    cursor = index + 1;
 
     messages = [
       ...messages,
@@ -160,16 +165,21 @@
   }
 
   /**
-   * A button on the generated surface. The recording's second turn IS the
-   * agent's answer to this press, so the round trip is real — the click drives
-   * the conversation forward rather than miming it.
+   * A button on the generated surface. The recorder pressed these same buttons,
+   * so the round trip is real — the click drives the conversation forward
+   * rather than miming it. Which answer comes back is looked up by action NAME,
+   * not by position: the visitor may skip "Check availability" and go straight
+   * for the primary button, and the next-in-line turn would then answer a press
+   * that never happened.
    */
   function handleAction(event: A2uiActionEvent) {
-    play(`▸ ${event.name}`);
+    const index = TURN_BY_ACTION.get(event.name);
+    if (index === undefined) return;
+    play(`▸ ${event.name}`, index);
   }
 
   export function start() {
-    play(TURNS[0]?.wire ?? '');
+    play(TURNS[0]?.wire ?? '', 0);
   }
 
   export function reset() {

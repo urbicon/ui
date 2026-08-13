@@ -29,6 +29,15 @@
    * The tile deliberately carries NO composer and no hotel chrome: it is a
    * specimen, and the one gesture it offers is the house switch — which is
    * the thing being proven: four sub-brands, one component library.
+   *
+   * The one thing above the specimen is the demo notice, and it is not chrome
+   * either — it is apparatus, like the switch below. It has to be here because
+   * the surface below is not inert: the recorded buttons work, so a visitor can
+   * reach a filled-in confirmation without ever leaving the landing page, where
+   * nothing else says the hotel is a fiction. Held outside the scrolling stage
+   * so it cannot be scrolled away from, and painted in `warning`, which no
+   * livery overrides — the notice is the one thing that does not change when
+   * the house does.
    */
 
   let {
@@ -87,6 +96,16 @@
   class="rounded-contain border-border-default bg-surface-base flex h-full min-h-0 flex-col overflow-hidden border"
   {@attach whenVisible}
 >
+  <!-- Quieter than the band on /hotel on purpose: that page impersonates a
+       hotel, this is one specimen in a row of them on the library's own
+       landing. Subtle fill, but the same opening words, so the two read as one
+       system rather than two unrelated warnings. -->
+  <div
+    class="border-warning/25 bg-warning-subtle text-warning-emphasis border-b px-4 py-2 text-center text-xs"
+  >
+    Demo only — a fictional hotel. Nothing here can be booked.
+  </div>
+
   <!--
     Stage.
 

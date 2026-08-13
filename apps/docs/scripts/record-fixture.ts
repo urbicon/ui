@@ -4,8 +4,13 @@
  * The hotel demo (`/hotel`, the landing's A2UI tile) plays this back instead
  * of calling the model: the showcase is the *design* claim (one payload, four
  * houses), so it must not depend on an API key, on the network, or on the
- * model's mood on the day. What it plays back is genuine model output all the
- * same — recorded, not authored.
+ * model's mood on the day.
+ *
+ * What this script writes is genuine model output throughout. The fixture in
+ * the repo is that, minus some prose: the A2UI envelopes are untouched, the
+ * sentences around them were tightened by hand on 2026-08-13. Re-running this
+ * script overwrites both — expect to redo that pass, and see the note in
+ * `src/lib/replay/player.ts` for which line is being held.
  *
  * This script IS the recording source the salon era lost when `apps/chat-demo`
  * was retired: instead of a dev-server relay it runs the same agent loop
@@ -103,17 +108,31 @@ const GROUNDING_SECTION = [
   '',
   'You have a tool for real hotel data (the houses of the group, room types,',
   'rates, and what is free for a date range). Before you build a booking-related',
-  'surface or confirm a stay, CALL the tool and build the UI strictly from its',
-  'data — never invent houses, room types, rates, dates or availability. If the',
-  'user asks for something the data does not offer, say so in prose instead of',
-  'inventing options.',
+  'surface, CALL get_hotel_info and build the UI strictly from its data — never',
+  'invent houses, room types, rates, dates or availability. If the user asks for',
+  'something the data does not offer, say so in prose instead of inventing',
+  'options.',
   '',
   // One call, not two: the first recording opened with a parameterless catalog
   // call followed by the dated one, and two identical tool chips in the
   // transcript read as a retry to anyone watching the replay.
   'One call with checkIn and checkOut returns everything at once — the houses,',
-  'the room types with rates, AND the availability. Never call the tool twice',
-  'in one turn, and never call it without dates when the user has given any.'
+  'the room types with rates, AND the availability. Never call get_hotel_info',
+  'twice in one turn, and never call it without dates when the user has given any.',
+  '',
+  // The write half. Without this the model narrates the booking: it has all the
+  // numbers from the read tool and no reason to believe a further call exists,
+  // so "Booked — €900 total" comes out as prose it computed itself.
+  '## Confirming a stay',
+  '',
+  'When the guest presses the button that commits the booking, CALL create_booking.',
+  'Do not announce a confirmed stay before that call returns, and do not call',
+  'get_hotel_info first — create_booking re-checks availability itself.',
+  '',
+  'The reference, the total and the `note` in its result are the authoritative',
+  'ones: quote them, never compute or invent them. The note states that this is a',
+  'demonstration — pass it on to the guest in your own confirmation, and keep the',
+  'reference visible on the surface you build.'
 ].join('\n');
 
 const SYSTEM_PROMPT = [
