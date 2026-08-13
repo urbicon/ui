@@ -32,6 +32,32 @@ export const TURNS = (fixture as { turns: RecordedTurn[] }).turns;
 /** The opening prompt, offered as a suggestion chip. */
 export const OPENING_PROMPT = TURNS[0]?.wire ?? '';
 
+const UI_ACTION_PREFIX = '[ui-action] ';
+
+/**
+ * Action name → the turn recorded as the agent's answer to THAT action.
+ *
+ * The recording is a sequence, but the surface is not: nothing stops a visitor
+ * from pressing the primary button without pressing "Check availability"
+ * first. Advancing a cursor on every press then answers a click that never
+ * happened — the transcript showed a `book` press followed by an availability
+ * re-check, because that was simply the next turn in line. Keyed by the action
+ * the recorder actually sent, each answer stays attached to its own press.
+ */
+export const TURN_BY_ACTION: ReadonlyMap<string, number> = new Map(
+  TURNS.flatMap((turn, index): [string, number][] => {
+    if (!turn.wire.startsWith(UI_ACTION_PREFIX)) return [];
+    try {
+      const { name } = JSON.parse(turn.wire.slice(UI_ACTION_PREFIX.length)) as { name?: string };
+      return typeof name === 'string' ? [[name, index]] : [];
+    } catch {
+      // A wire line that does not parse is a broken recording, not a runtime
+      // error — the turn stays reachable in sequence, it just has no action key.
+      return [];
+    }
+  })
+);
+
 export interface ReplayOptions {
   signal?: AbortSignal;
   /**
