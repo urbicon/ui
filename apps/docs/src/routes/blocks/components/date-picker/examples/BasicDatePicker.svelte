@@ -7,9 +7,8 @@
 <div class="max-w-xs">
   <DatePicker
     bind:value={selectedDate}
-    label="Geburtsdatum"
-    placeholder="Datum auswaehlen"
-    locale="de-DE"
+    label="Event date"
+    placeholder="Select a date"
     defaultMonth={2}
     defaultYear={2026}
   />
@@ -17,8 +16,8 @@
   {#if selectedDate}
     <div class="bg-surface-elevated border-border-subtle mt-3 rounded-lg border p-3">
       <p class="text-text-secondary text-sm">
-        <span class="text-text-primary font-medium">Gewaehlt:</span>
-        {selectedDate.toLocaleDateString('de-DE', {
+        <span class="text-text-primary font-medium">Selected:</span>
+        {selectedDate.toLocaleDateString('en-US', {
           weekday: 'long',
           day: 'numeric',
           month: 'long',

@@ -1,6 +1,7 @@
 <script lang="ts">
   import { Kbd } from '@urbicon-ui/blocks';
   import { CodeExample, Note, NoteList, Section } from '@urbicon-ui/docs';
+  import { resolve } from '$app/paths';
   import { BasicDatePicker, DateRangeExample, WithConstraints } from './examples';
 
   import basicDatePickerCode from './examples/BasicDatePicker.svelte?raw';
@@ -14,7 +15,7 @@
   <div class="space-y-10">
     <CodeExample
       title="Basic DatePicker"
-      description="A labelled date field with a calendar popover. Clicking the input opens the calendar; the chosen date is written back formatted."
+      description="A labelled date field with a calendar popover. The bound value is a Date; the field shows it formatted for the locale."
       code={basicDatePickerCode}
     >
       <BasicDatePicker />
@@ -22,7 +23,7 @@
 
     <CodeExample
       title="DateRangePicker"
-      description="Two clicks pick a start and an end date; the popover closes on its own once both are set. The shape bookings and report filters usually want."
+      description="The separate DateRangePicker picks a start and end date in two clicks, and closes once both are set. Use it for bookings or a report filter."
       code={dateRangeExampleCode}
     >
       <DateRangeExample />
@@ -30,7 +31,7 @@
 
     <CodeExample
       title="With Constraints"
-      description="minDate, maxDate, disabledDates and isDateDisabled together — only weekdays in March 2026 are selectable, weekends and holidays are locked out."
+      description="minDate, maxDate, disabledDates and isDateDisabled together: only weekdays in March 2026 stay selectable, with weekends and holidays locked out."
       code={withConstraintsCode}
     >
       <WithConstraints />
@@ -46,8 +47,11 @@
       <p>
         The trigger input carries <code class="text-text-primary">aria-haspopup="dialog"</code> and
         <code class="text-text-primary">aria-expanded</code>, so the popover's state is announced.
-        The embedded calendar is a <code class="text-text-primary">role="grid"</code> with the full ARIA
-        that implies.
+        The embedded calendar is a <code class="text-text-primary">role="grid"</code> of day cells,
+        with the same keyboard model as
+        <a href={resolve('/blocks/components/calendar')} class="text-primary hover:underline"
+          >Calendar</a
+        >.
       </p>
     </Note>
     <Note title="Keyboard Navigation">
