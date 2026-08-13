@@ -74,10 +74,6 @@ export interface PlannerProps<T = unknown>
    * follow the runtime and disagree across hydration). Falls back to the base
    * locale (`en`) when no provider is mounted. Pass an explicit tag
    * (e.g. `'de-DE'`, `'ja-JP'`) to override.
-   *
-   * Until 2026-07-31 this defaulted to the literal `'de-DE'`, so an
-   * English app rendered German month names unless every date component was
-   * passed `locale` by hand.
    * @default 'auto'
    * @summary Which language the month and weekday names are rendered in.
    */
@@ -86,8 +82,7 @@ export interface PlannerProps<T = unknown>
   showWeekNumbers?: boolean;
   /**
    * Renamed to `showWeekNumbers` for parity with `Calendar`, which has carried
-   * the plural since long before Planner existed. Still honoured, and warns in
-   * DEV; drop it before 1.0.
+   * the plural since long before Planner existed. Still honoured, and warns in DEV.
    * @deprecated Use `showWeekNumbers`.
    * @summary Deprecated spelling of `showWeekNumbers`.
    */
