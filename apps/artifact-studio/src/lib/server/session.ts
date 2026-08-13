@@ -66,15 +66,21 @@ export const SANDBOX_ORIGIN = 'http://127.0.0.1:5211';
 // ── API-Key ─────────────────────────────────────────────────────────────────
 /**
  * Der Key kommt aus einer lokalen `.env`, nie aus einer Umgebung, die irgendwo
- * deployt wird. Zwei Orte, weil `apps/chat-demo/.env` in diesem Repo bereits
- * existiert und niemand ihn zweimal pflegen soll.
+ * deployt wird.
+ *
+ * Die Wurzel-`.env` ist der eine Ort, den alle Key-Konsumenten dieses Repos
+ * teilen — `apps/docs/scripts/record-fixture.ts` liest ausschließlich von dort.
+ * Sie wird hier direkt gelesen statt über `process.env`, weil Bun `.env` NUR
+ * aus dem Arbeitsverzeichnis lädt und nicht nach oben läuft (gemessen): aus
+ * dem Paketverzeichnis gestartet, sähe dieser Prozess sie sonst nie.
+ *
+ * Das paketlokale `.env` bleibt davor, damit ein abweichender Key für das
+ * Studio möglich ist. (Ein dritter Kandidat, `apps/chat-demo/.env`, stand hier
+ * bis 2026-08-13 — die App ist längst stillgelegt, der Pfad zeigte ins Leere.)
  */
 function loadApiKey(): string {
   if (process.env.ANTHROPIC_API_KEY) return process.env.ANTHROPIC_API_KEY;
-  const candidates = [
-    join(REPO_ROOT, 'apps/artifact-studio/.env'),
-    join(REPO_ROOT, 'apps/chat-demo/.env')
-  ];
+  const candidates = [join(REPO_ROOT, 'apps/artifact-studio/.env'), join(REPO_ROOT, '.env')];
   for (const path of candidates) {
     if (!existsSync(path)) continue;
     const match = readFileSync(path, 'utf8').match(/^ANTHROPIC_API_KEY\s*=\s*(.+)$/m);
