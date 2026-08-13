@@ -288,13 +288,14 @@
             <div class={columnStyles.titleContent()}>
               <span class={columnStyles.title()}>{column.title}</span>
 
-              <!-- Only when there is something to show. Rendered unconditionally
-                   it was still a sibling, so `titleContent`'s `space-x-2` gave
-                   the title an 8px trailing margin in every column — invisible
-                   on its own, and load-bearing by accident: it cancelled the
-                   header's missing inner padding for right-aligned columns
-                   while adding to it for left-aligned ones. -->
-              {#if hasFilter || isGrouped || columnHasSummary}
+              <!-- Only when there is something to show, and gated on the same
+                   `actionIndicators` the bar below reads — two copies of one
+                   condition would let the dots and the bar disagree. Rendered
+                   unconditionally the box was still a sibling, so
+                   `titleContent`'s `space-x-2` gave the title an 8px trailing
+                   margin in every column: invisible on its own, and
+                   load-bearing by accident during the alignment attempt. -->
+              {#if actionIndicators.length > 0}
                 <div class={columnStyles.indicators()}>
                   {#if hasFilter}
                     <div
