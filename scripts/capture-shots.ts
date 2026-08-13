@@ -83,9 +83,9 @@ async function openPage(target: Browser, path: string, scale: number): Promise<P
 /**
  * Die Inventar-Table auf der Landing steht dicht an ihrer eigenen Kippkante:
  * ihre Spalte ist 36vw, `cardsBelow` ist 32rem (512px), und beim gepinnten
- * Viewport von 1440px misst die Spalte 518px — gemessen am 2026-08-14, also
- * 20px Luft, umgerechnet 20px Fensterbreite. Unterhalb von 1420px zeigt die
- * Seite Karten statt des Rasters.
+ * Viewport von 1440px misst die Spalte 518px — also **6px** Spaltenluft. Bei
+ * 36vw entspricht das rund 17px Fensterbreite; gemessen kippt die Seite bei
+ * 1420px, das sind 20px unter dem Aufnahme-Viewport (2026-08-14).
  *
  * Das ist eine Design-Entscheidung mit Begründung (der Schritt darunter ließ
  * die Table aus ihrer Spalte laufen), keine zu behebende Enge. Was nicht
@@ -109,8 +109,17 @@ async function assertInventoryRendersAsGrid(page: Page, shot: string): Promise<v
     };
   });
 
-  // Kein Inventar auf dieser Seite: nichts zu prüfen.
-  if (!layout) return;
+  // Kein `.inventory` gefunden — und das ist ein Fehlschlag, kein Freibrief.
+  // Der Selektor ist ein Klassenname auf einem gewöhnlichen `<div>`, den sonst
+  // nichts im Repo festhält; würde er hier still durchgewunken, schaltete sich
+  // der Wächter genau in dem Moment ab, in dem jemand die Landing umbaut — also
+  // dann, wenn er gebraucht wird.
+  if (!layout) {
+    throw new Error(
+      `${shot}: kein \`.inventory\` auf der Seite. Entweder wurde die Landing umgebaut ` +
+        '(dann diesen Wächter mitziehen) oder die Tabelle fehlt.'
+    );
+  }
 
   if (!layout.grid || layout.cards) {
     throw new Error(

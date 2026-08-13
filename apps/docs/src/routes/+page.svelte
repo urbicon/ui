@@ -1334,7 +1334,8 @@
            dass es nur oberhalb seiner eigenen Breite rendert.
 
            Die 1420px sind knapp: `scripts/capture-shots.ts` nimmt bei 1440px auf,
-           die Spalte misst dort 518px gegen 512px Schwelle. Deshalb prüft der
+           die Spalte misst dort 518px gegen 512px Schwelle — 6px Spaltenluft,
+           bei 36vw rund 17px Fensterbreite. Deshalb prüft der
            Aufnahmelauf am DOM nach, dass er das Raster fotografiert und nicht die
            Karten (`assertInventoryRendersAsGrid`) — wer hier am Spaltenverhältnis
            dreht, bekommt einen Fehlschlag statt vier still getauschter Bilder. -->

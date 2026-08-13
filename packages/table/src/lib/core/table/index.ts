@@ -481,9 +481,9 @@ export interface TableProps<T = TableItem> {
    * while a twelve-column report is already cramped at 48rem. Add up the column
    * `width`s and pick the next step above the sum.
    *
-   * The grid never shrinks below one step under this value — past that it
-   * scrolls sideways instead of squeezing the columns to mush. Lowering the
-   * step therefore lowers that floor with it; the two cannot disagree.
+   * Below the step the grid is not squeezed, it is replaced: the card list
+   * takes over, and the grid only ever renders at or above the width it was
+   * given. A grid wider than its container scrolls sideways.
    *
    * @example
    * ```svelte

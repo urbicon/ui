@@ -144,23 +144,28 @@ test.describe('Table core flows', () => {
       const spacer = el.firstElementChild as HTMLElement;
       const rows = [...el.querySelectorAll<HTMLElement>('tbody tr')];
       const tops = rows.map((r) => r.getBoundingClientRect().top);
+      const pitches = tops.slice(1).map((t, i) => t - tops[i]);
       return {
         rowCount: rows.length,
-        rowHeights: [...new Set(rows.map((r) => r.offsetHeight))],
-        // The distance from one row to the next, which is what the virtualizer
-        // strides in when it offsets the window.
-        pitches: [...new Set(tops.slice(1).map((t, i) => Math.round(t - tops[i])))],
+        // Both sides come off the same float source and are compared with a
+        // tolerance below. Rounding them into a Set instead reports two pitches
+        // for one uniform table whenever the true pitch is fractional — a
+        // collapsed 0.5px border, a non-default root font size, a fractional
+        // device pixel ratio — and fails on a table that is in fact perfect.
+        minPitch: Math.min(...pitches),
+        maxPitch: Math.max(...pitches),
+        rowHeight: rows[0].getBoundingClientRect().height,
         spacerHeight: spacer.getBoundingClientRect().height
       };
     });
 
     expect(geometry.rowCount).toBeGreaterThan(0);
-    // A single height and a single pitch, and the two agree: no row overlaps its
-    // neighbour and none leaves a gap.
-    expect(geometry.rowHeights).toHaveLength(1);
-    expect(geometry.pitches).toEqual([geometry.rowHeights[0]]);
+    // One pitch for every pair of rows, and it is the row's own height: no row
+    // overlaps its neighbour and none leaves a gap.
+    expect(geometry.maxPitch - geometry.minPitch).toBeLessThan(0.5);
+    expect(Math.abs(geometry.minPitch - geometry.rowHeight)).toBeLessThan(0.5);
     // The scroll space is exactly that pitch per row — the fixture holds 2000.
-    expect(geometry.spacerHeight).toBe(2000 * geometry.rowHeights[0]);
+    expect(Math.abs(geometry.spacerHeight - 2000 * geometry.rowHeight)).toBeLessThan(1);
 
     // Scrolled to the very end, the last row ends at the bottom of the viewport.
     // This is the assertion the 208px strip failed.
@@ -176,31 +181,40 @@ test.describe('Table core flows', () => {
   });
 
   // A right-aligned column's header belongs over the right edge of its own
-  // numbers. The `align` axis existed on `tableHeaderVariants` from the start
-  // but was written onto a box that is exactly as wide as its text, where a
-  // `justify-*` has no free space to distribute and moves nothing. A class-name
-  // assertion goes green on that; only a measurement does not.
+  // numbers — so the assertion compares it against a body cell, not against its
+  // own `<th>`. Measured against the `<th>` alone, two different half-fixes both
+  // look right: a `justify-end` that never leaves `titleContent` (which moves
+  // nothing at all), and one on `titleContainer` (which stops ~40px short,
+  // because `HeaderMenu` is its sibling). Only the cell-to-cell comparison
+  // distinguishes either from the thing the reader sees.
   test('a right-aligned column header sits over the right edge of its cells', async ({ page }) => {
     await setupPage(page);
 
     const standard = page.getByTestId('table-standard');
     const scoreHeader = standard.getByTestId('column-header-score');
+    const firstScoreCell = standard.locator('tr[data-row-index] td:nth-child(3)').first();
 
-    const offsets = await scoreHeader.evaluate((th) => {
-      const title = [...th.querySelectorAll('span')].find((s) => s.textContent?.trim() === 'Score');
-      if (!title) throw new Error('No header title to measure.');
-      const thRect = th.getBoundingClientRect();
-      const titleRect = title.getBoundingClientRect();
-      return {
-        gapLeft: titleRect.left - thRect.left,
-        gapRight: thRect.right - titleRect.right
-      };
-    });
+    // Both edges are read off the rendered TEXT, via a Range. Measuring the
+    // boxes instead compares things that are not the same thing: the cell's
+    // inner box carries 8px of padding the header's does not, so two perfectly
+    // aligned columns read as 8px apart and the assertion fails on a table that
+    // looks right.
+    const textRight = (locator: typeof scoreHeader, label: string) =>
+      locator.evaluate((el, name) => {
+        const host =
+          [...el.querySelectorAll('span')].find((s) => s.textContent?.trim() === name) ??
+          (el.firstElementChild as HTMLElement | null) ??
+          el;
+        const range = document.createRange();
+        range.selectNodeContents(host);
+        return range.getBoundingClientRect().right;
+      }, label);
 
-    // Right-aligned: the title hugs the right edge, so the space to its left is
-    // the larger of the two. Before the fix both gaps were those of a
-    // left-aligned header (4px left, 52px right).
-    expect(offsets.gapLeft).toBeGreaterThan(offsets.gapRight);
+    const headerRight = await textRight(scoreHeader, 'Score');
+    const cellRight = await textRight(firstScoreCell, ' ');
+
+    // Before the fix the header text sat ~40px inside the number's edge.
+    expect(Math.abs(headerRight - cellRight)).toBeLessThan(2);
   });
 
   test('grouping renders headers in groupOrder with rows under their own group', async ({

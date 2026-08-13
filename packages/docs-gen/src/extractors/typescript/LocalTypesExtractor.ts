@@ -195,25 +195,6 @@ export class LocalTypesExtractor extends TypeScriptBaseExtractor<
   }
 
   /**
-   * The members an interface inherits through `extends`, rendered under the
-   * ones it declares itself.
-   *
-   * Slicing `decl.members` alone documents an interface by what it happens to
-   * add. `Column` is the case that surfaced it: every one of its three shapes
-   * extends `BaseColumn` and `DerivableMixin`, so the Types section offered
-   * `id` and `accessor` and stopped — `width`, `align`, `dataType`, `priority`
-   * and eleven more were unreachable from the docs site, and the pages had to
-   * restate the type unions in code comments. Two independent blind readers
-   * named the missing property list as their top blocker on two different
-   * pages (2026-08-13).
-   *
-   * Kept textual rather than going through `checker.getProperties()`: the
-   * per-member JSDoc *is* the documentation, and the checker hands back types
-   * without it. Bases are followed recursively, own-name members win (an
-   * interface may narrow what it inherits), and `resolveCrossFileInterface`
-   * keeps the walk inside the package being documented.
-   */
-  /**
    * The interface body the renderers print between the braces they add
    * themselves (`interface ${name} {\n${definition}\n}`).
    *
@@ -235,6 +216,25 @@ export class LocalTypesExtractor extends TypeScriptBaseExtractor<
     return `${own.trimEnd()}\n${inherited.text}`.trim();
   }
 
+  /**
+   * The members an interface inherits through `extends`, rendered under the
+   * ones it declares itself.
+   *
+   * Slicing `decl.members` alone documents an interface by what it happens to
+   * add. `Column` is the case that surfaced it: every one of its three shapes
+   * extends `BaseColumn` and `DerivableMixin`, so the Types section offered
+   * `id` and `accessor` and stopped — `width`, `align`, `dataType`, `priority`
+   * and eleven more were unreachable from the docs site, and the pages had to
+   * restate the type unions in code comments. Two independent blind readers
+   * named the missing property list as their top blocker on two different
+   * pages (2026-08-13).
+   *
+   * Kept textual rather than going through `checker.getProperties()`: the
+   * per-member JSDoc *is* the documentation, and the checker hands back types
+   * without it. Bases are followed recursively, own-name members win (an
+   * interface may narrow what it inherits), and `resolveCrossFileInterface`
+   * keeps the walk inside the package being documented.
+   */
   private renderInheritedMembers(
     decl: ts.InterfaceDeclaration,
     seen: Set<string> = new Set(),

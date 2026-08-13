@@ -3,17 +3,20 @@ import { TABLE_DIMENSIONS } from '../variants/table.system';
 import { computeVirtualItems, ROW_HEIGHTS } from './virtualizer';
 
 describe('ROW_HEIGHTS', () => {
-  // The old version of this test asserted 48/56/64 under the name "matches
-  // TABLE_DIMENSIONS.height.row values" while those classes said h-8/h-10/h-12,
-  // i.e. 32/40/48. It compared numbers to numbers and never once looked at the
-  // classes it was named after, so it stayed green through the entire
-  // disagreement. Reading the class is the whole point.
+  // Deliberately NOT re-deriving the numbers from the classes here. The first
+  // attempt at this test did — same regex, same `* 4` — which made it compare
+  // the derivation against itself and pass for every possible edit, including a
+  // wrong multiplier. What is worth pinning is the concrete result a reader can
+  // check against Tailwind's scale (`h-8` is 2rem is 32px) and the shape the
+  // derivation needs to keep working.
+  //
+  // Its predecessor asserted 48/56/64 under the name "matches
+  // TABLE_DIMENSIONS.height.row values" while those classes said h-8/h-10/h-12.
+  // It never looked at the classes it was named after, so it stayed green
+  // through the entire two-year disagreement.
   it('is the row height class in pixels', () => {
-    const px = (heightClass: string) => Number(/^h-([\d.]+)$/.exec(heightClass)?.[1]) * 4;
-
-    expect(ROW_HEIGHTS.sm).toBe(px(TABLE_DIMENSIONS.height.row.sm));
-    expect(ROW_HEIGHTS.md).toBe(px(TABLE_DIMENSIONS.height.row.md));
-    expect(ROW_HEIGHTS.lg).toBe(px(TABLE_DIMENSIONS.height.row.lg));
+    expect(TABLE_DIMENSIONS.height.row).toEqual({ sm: 'h-8', md: 'h-10', lg: 'h-12' });
+    expect(ROW_HEIGHTS).toMatchObject({ sm: 32, md: 40, lg: 48 });
   });
 
   it('keeps the row height in a shape the derivation can read', () => {

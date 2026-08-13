@@ -91,8 +91,8 @@ export function getTableStyleConfig(): TableStyleConfig {
  * conflict fold, so a `slotClasses` (or `className`) utility that shares a
  * Tailwind bucket with a base/variant class **wins** instead of merely
  * co-existing and losing to stylesheet order — e.g. `slotClasses={{ table:
- * 'min-w-0' }}` now beats the grid floor `min-w-[42rem]` (previously both rendered
- * and a `!min-w-0` was needed). Both overrides (`slotClass` and `extra`) win
+ * 'w-auto' }}` now beats the slot's own `w-full` (previously both rendered and
+ * an `!` prefix was needed). Both overrides (`slotClass` and `extra`) win
  * over base/variant classes in the fold; between the two overrides themselves
  * nothing is stripped — they share one call-site source, so a direct conflict
  * there still resolves by stylesheet order, exactly as before.

@@ -59,7 +59,10 @@ const ROWS = [
  * on `HTMLElement.prototype` — the two differ, which is exactly why neither
  * should be written down here.
  */
-function stubLayoutProp(prop: 'clientHeight' | 'offsetHeight', value: number): () => void {
+function stubLayoutProp(
+  prop: 'clientHeight' | 'offsetHeight',
+  value: number | ((el: HTMLElement) => number)
+): () => void {
   let proto: object | null = HTMLElement.prototype;
   while (proto && !Object.getOwnPropertyDescriptor(proto, prop)) {
     proto = Object.getPrototypeOf(proto);
@@ -70,7 +73,13 @@ function stubLayoutProp(prop: 'clientHeight' | 'offsetHeight', value: number): (
   const original = Object.getOwnPropertyDescriptor(owner, prop);
   if (!original) throw new Error(`jsdom defines no \`${prop}\` to stub.`);
 
-  Object.defineProperty(owner, prop, { configurable: true, get: () => value });
+  const read = typeof value === 'function' ? value : () => value;
+  Object.defineProperty(owner, prop, {
+    configurable: true,
+    get(this: HTMLElement) {
+      return read(this);
+    }
+  });
   return () => Object.defineProperty(owner, prop, original);
 }
 
@@ -467,8 +476,26 @@ describe('Table — the view object, mounted', () => {
 
     const amount = headers.find((th) => th.textContent?.includes('Amount'));
     const name = headers.find((th) => th.textContent?.includes('Name'));
-    expect(amount?.innerHTML).toContain('justify-end');
+
+    // What jsdom can answer is *where* the alignment landed, not whether it
+    // worked — there is no layout here, and a class-name assertion on its own
+    // passed happily while the header sat over the wrong edge for as long as
+    // the axis existed. The pixels are `e2e/table-core.spec.ts`.
+    //
+    // Right-aligned reverses two rows so the title's box reaches the cell edge
+    // (the header menu is its sibling and would otherwise hold 40px of it),
+    // and both live on boxes that own space — never on the text span, which is
+    // exactly as wide as its text.
+    const amountRows = [...(amount?.querySelectorAll('div') ?? [])].filter((d) =>
+      d.className.includes('flex-row-reverse')
+    );
+    expect(amountRows).toHaveLength(2);
+    for (const row of amountRows) {
+      expect(row.querySelector('span')?.className).not.toContain('flex-row-reverse');
+    }
+
     expect(name?.innerHTML).toContain('justify-start');
+    expect(name?.innerHTML).not.toContain('flex-row-reverse');
   });
 
   // Keyboard column reorder lives on the `<th>`, but only a *focusable* child
@@ -553,11 +580,17 @@ describe('Table — the view object, mounted', () => {
       expect(desktop).not.toBeNull();
       expect(mobile).not.toBeNull();
 
-      // Exactly one of them hides the other. Both empty is the failure.
+      // Both roots carry a container-hidden rule, which is what makes them
+      // complements: each hides on the other's side of the step. Neither
+      // carrying one is the failure — that is the state where both render.
       const hidden = [desktop, mobile].filter((root) =>
         /@(max|min)-\[[^\]]+\]:hidden/.test(root?.className ?? '')
       );
       expect(hidden).toHaveLength(2);
+
+      // The fallback is only defensible because it is loud. Without this the
+      // whole `console.warn` block could be deleted and the suite stay green.
+      expect(warnings.some((line) => line.includes('40rem') && line.includes('48rem'))).toBe(true);
     } finally {
       console.warn = realWarn;
     }
@@ -585,6 +618,49 @@ describe('Table — the view object, mounted', () => {
       // 1000 rows measuring 20px each. The derived starting height (`h-10`, so
       // 40px) would have produced 40 000px — the measurement has to win.
       expect(spacer?.style.height).toBe('20000px');
+    } finally {
+      restoreRow();
+      restoreViewport();
+    }
+  });
+
+  // An empty virtualized table renders the EmptyState in a `<tr>` of its own,
+  // and that row is several times the height of a data row. Measuring whatever
+  // `tbody tr` happens to match would latch onto it and — with no dependency on
+  // the row count and a container whose height is pinned by `virtualHeight` —
+  // never look again: the spacer would stay `count * emptyStateHeight` and
+  // scrolling would stride five rows for every one.
+  it('does not take its row height from the empty state', () => {
+    const restoreViewport = stubLayoutProp('clientHeight', 400);
+    // A data row and the empty state have to measure differently, or the test
+    // cannot tell which one the measurement read.
+    const restoreRow = stubLayoutProp('offsetHeight', (el) =>
+      el.hasAttribute('data-row-index') ? 40 : 200
+    );
+    try {
+      const props = $state<Record<string, unknown>>({
+        items: [],
+        virtualized: true,
+        virtualHeight: '400px'
+      });
+      target = document.createElement('div');
+      document.body.appendChild(target);
+      comp = mount(TableHarness, { target, props }) as Record<string, unknown>;
+      flushSync();
+
+      // Rows arrive after the empty state has been on screen.
+      props.items = Array.from({ length: 100 }, (_, i) => ({ id: i, name: `R${i}`, amount: i }));
+      flushSync();
+
+      const scroller = target.querySelector<HTMLElement>(
+        '[data-testid="virtual-scroll-container"]'
+      );
+      const spacer = scroller?.firstElementChild as HTMLElement | null;
+
+      // 100 data rows at 40px. Latched onto the 200px empty-state row it would
+      // read 20000px, and every scroll offset would stride five rows per row.
+      expect(spacer?.style.height).toBe('4000px');
+      expect(target.querySelectorAll('tbody tr[data-row-index]').length).toBeGreaterThan(0);
     } finally {
       restoreRow();
       restoreViewport();

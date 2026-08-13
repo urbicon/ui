@@ -64,14 +64,24 @@ export const tableHeaderVariants = tv({
       }
     },
 
-    // The justify goes on `titleContainer`, which is the only element in the
-    // header's chain that owns any free space to distribute: `cellContent` >
-    // `titleContainer` (flex-1) > `titleContent` (content-width) > `title`.
-    // Writing it further in — as this axis did when it was first wired up — puts
-    // `justify-end` on a box that is already exactly as wide as its text, where
-    // it has nothing to move and changes no pixel. `table.variants.test.ts`
-    // pins the slot for that reason; a class-name assertion further in would
-    // have gone green over an unchanged layout.
+    // Alignment has to be applied at the level that owns the space, and the
+    // header's chain hands it off twice:
+    //
+    //   cellContent (justify-between)  →  [titleContainer (flex-1), HeaderMenu]
+    //   titleContainer                 →  [titleContent (content-width), sortIcon]
+    //   titleContent                   →  [title, indicators]
+    //
+    // A `justify-*` on `title` moves nothing: that box is exactly as wide as its
+    // text. And a `justify-end` on `titleContainer` alone still stops ~40px
+    // short of the cell's right edge, because `HeaderMenu` is its sibling and
+    // always occupies its 32px + gap — so a right-aligned header stood inside
+    // the edge its own numbers align to.
+    //
+    // Reversing each row instead moves the boundary rather than the content:
+    // `cellContent` reversed puts the menu on the outside and lets
+    // `titleContainer` reach the cell edge, and `titleContainer` reversed puts
+    // the sort chevron on the leading side, so the text stays flush. With a
+    // reversed main axis the start IS the right edge, hence `justify-start`.
     align: {
       left: {
         titleContainer: 'justify-start'
@@ -80,10 +90,8 @@ export const tableHeaderVariants = tv({
         titleContainer: 'justify-center'
       },
       right: {
-        // `flex-row-reverse` on the title puts the sort icon on the leading
-        // side, so the number and its header stay flush to the same edge.
-        titleContainer: 'justify-end',
-        title: 'flex-row-reverse'
+        cellContent: 'flex-row-reverse',
+        titleContainer: 'flex-row-reverse justify-start'
       }
     },
 
@@ -353,7 +361,23 @@ export type HeaderIndicatorVariantProps = VariantProps<typeof headerIndicatorVar
  * the grid only renders at or above its own step, so the container is already
  * wider than a floor set below it. Removed rather than kept as decoration.
  */
-const CARDS_BELOW_STEPS = {
+/**
+ * The widths the switch offers.
+ *
+ * Spelled out rather than derived from the map below (`keyof typeof …`),
+ * because this name is what a reader meets: it is the type of `TableProps.
+ * cardsBelow`, so docs-gen prints it on the component page, in `llms-full.txt`
+ * and in the MCP catalog. Derived, all three showed `keyof typeof
+ * CARDS_BELOW_STEPS` pointing at a module-private const — a type that resolves
+ * to nothing anyone can read, and no way left to discover the seven values.
+ *
+ * The map is then typed as a `Record` of this union, so the two cannot drift:
+ * a step added here without classes fails to compile, and classes without a
+ * step here are an excess-property error.
+ */
+export type CardsBelowStep = '24rem' | '28rem' | '32rem' | '36rem' | '42rem' | '48rem' | '56rem';
+
+const CARDS_BELOW_STEPS: Record<CardsBelowStep, { desktopOnly: string; mobileOnly: string }> = {
   '24rem': { desktopOnly: '@max-[24rem]:hidden', mobileOnly: '@min-[24rem]:hidden' },
   '28rem': { desktopOnly: '@max-[28rem]:hidden', mobileOnly: '@min-[28rem]:hidden' },
   '32rem': { desktopOnly: '@max-[32rem]:hidden', mobileOnly: '@min-[32rem]:hidden' },
@@ -361,10 +385,7 @@ const CARDS_BELOW_STEPS = {
   '42rem': { desktopOnly: '@max-[42rem]:hidden', mobileOnly: '@min-[42rem]:hidden' },
   '48rem': { desktopOnly: '@max-[48rem]:hidden', mobileOnly: '@min-[48rem]:hidden' },
   '56rem': { desktopOnly: '@max-[56rem]:hidden', mobileOnly: '@min-[56rem]:hidden' }
-} as const;
-
-/** The widths {@link CARDS_BELOW_STEPS} offers, as a type. */
-export type CardsBelowStep = keyof typeof CARDS_BELOW_STEPS;
+};
 
 /**
  * The same widths at runtime. `Table.svelte` reads this to reject a step it has

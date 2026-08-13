@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { untrack } from 'svelte';
   import { getInternalTableContext } from '$lib/stores/TableStore.svelte';
   import { useTableI18n } from '$lib/i18n';
   import EmptyState from './EmptyState.svelte';
@@ -143,22 +144,26 @@
     }
   });
 
-  // Take the row height from a row.
+  // Take the row height from a data row.
+  //
+  // `tr[data-row-index]`, not `tbody tr`: the empty state is a `<tr>` too, and
+  // several times as tall. A plain `tbody tr` latched onto it whenever a
+  // virtualized table started empty — remote data, or a filter that matched
+  // nothing and was then cleared — and nothing here would have looked again,
+  // because the container's height is pinned by `virtualHeight` so the observer
+  // never fires. The list then strode five rows for every row it drew.
   //
   // `offsetHeight`, not `getBoundingClientRect()`: an interactive row carries
   // `active:scale-[0.995]`, and a rect measures the painted box, so measuring
   // mid-press would shrink every row in the list by half a percent. The layout
   // box ignores the transform.
-  //
-  // Guarded against re-entry by the equality check, which is what keeps this
-  // from oscillating: writing the height re-runs the virtualizer, which
-  // re-renders the window, which fires the observer again — but by then the
-  // measurement agrees with the state and the write does not happen.
   $effect(() => {
-    // Both change the row's height without changing the container's, so the
-    // observer below would never hear about them.
+    // The three inputs the observer below cannot see. `size` and a consumer's
+    // own row class change the height without changing the container's; the row
+    // count matters because the rows this measures may not exist yet.
     void size;
     void styleConfig.slotClasses.row;
+    void virtualItems.length;
 
     if (!scrollContainerEl || !virtualizedActive) {
       measuredRowHeight = null;
@@ -166,12 +171,17 @@
     }
 
     const measure = () => {
-      const row = scrollContainerEl?.querySelector<HTMLElement>('tbody tr');
+      const row = scrollContainerEl?.querySelector<HTMLElement>('tbody tr[data-row-index]');
       // A row with no height is a row that has not been laid out yet (or a test
       // environment that lays nothing out) — keeping the previous value leaves
       // the derived starting height in place rather than dividing by zero.
       if (!row || row.offsetHeight === 0) return;
-      if (row.offsetHeight !== measuredRowHeight) measuredRowHeight = row.offsetHeight;
+      // `untrack`: this reads the state it writes, purely to avoid a redundant
+      // assignment. Tracked, it would make the effect its own dependency, so
+      // every height change would tear the observer down and build a new one.
+      if (row.offsetHeight !== untrack(() => measuredRowHeight)) {
+        measuredRowHeight = row.offsetHeight;
+      }
     };
 
     measure();
