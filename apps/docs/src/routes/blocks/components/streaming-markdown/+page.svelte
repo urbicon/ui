@@ -7,7 +7,6 @@
     Section,
     TypesReference
   } from '@urbicon-ui/docs';
-  import { StreamingMarkdown } from '@urbicon-ui/blocks';
   import CustomDocs from './Docs.svelte';
   import Playground from './Playground.svelte';
   import { componentData } from './api';
@@ -24,54 +23,6 @@
     { id: 'types', title: 'Types' },
     { id: 'installation', title: 'Installation' }
   ];
-
-  // Live streaming demo — the content prop grows over time exactly as a chat
-  // surface would drive it from a model stream. Settled blocks never re-render.
-  const DEMO = `## Streaming answer
-
-The renderer parses **markdown** as it arrives — settled blocks are cached and
-never re-render, so a long answer stays cheap to append to.
-
-- Zero \`{@html}\`, safe by construction
-- Strict URL policy on by default
-
-\`\`\`ts
-for await (const chunk of stream) render(chunk);
-\`\`\`
-`;
-
-  // Word-ish chunks (1–3 tokens), close to how model output actually arrives.
-  const chunks = (() => {
-    const tokens = DEMO.split(/(?<=\s)/);
-    const out: string[] = [];
-    for (let i = 0; i < tokens.length;) {
-      const take = 1 + ((i * 7) % 3);
-      out.push(tokens.slice(i, i + take).join(''));
-      i += take;
-    }
-    return out;
-  })();
-
-  let content = $state('');
-  let pos = $state(0);
-  let playing = $state(false);
-  const done = $derived(pos >= chunks.length);
-
-  $effect(() => {
-    if (!playing || done) return;
-    const timer = setInterval(() => {
-      content += chunks[pos];
-      pos += 1;
-      if (pos >= chunks.length) playing = false;
-    }, 45);
-    return () => clearInterval(timer);
-  });
-
-  function codeGenerator(vals: Record<string, unknown>): string {
-    const size = vals.size === 'sm' ? ' size="sm"' : '';
-    const streaming = vals.streaming ? ' streaming' : '';
-    return `<StreamingMarkdown content={answer}${streaming}${size} />`;
-  }
 </script>
 
 <SeoMeta

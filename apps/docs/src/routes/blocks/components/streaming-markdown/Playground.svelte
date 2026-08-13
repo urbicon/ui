@@ -53,6 +53,23 @@ for await (const chunk of stream) render(chunk);
 
   const done = $derived(pos >= chunks.length);
 
+  // Vor dem ersten Klick steht der fertige Text auf der Bühne; ab dem Klick
+  // zeigt sie, was wirklich angekommen ist — sonst bliebe der volle Text
+  // stehen, bis der erste Chunk ihn ersetzt.
+  const started = $derived(playing || pos > 0);
+
+  // Der Effekt liest `done`, nicht `pos`: `pos` wandert bei jedem Tick, würde
+  // den Effekt also neu starten und das Intervall bei jedem Chunk verwerfen.
+  $effect(() => {
+    if (!playing || done) return;
+    const timer = setInterval(() => {
+      content += chunks[pos];
+      pos += 1;
+      if (pos >= chunks.length) playing = false;
+    }, 45);
+    return () => clearInterval(timer);
+  });
+
   function replay() {
     content = '';
     pos = 0;
@@ -104,7 +121,7 @@ for await (const chunk of stream) render(chunk);
       </div>
       <div class="border-border-subtle bg-surface-base rounded-contain min-h-48 border p-5">
         <StreamingMarkdown
-          content={content || DEMO}
+          content={started ? content : DEMO}
           streaming={playing || (values.streaming as boolean)}
           size={values.size as 'sm' | 'md'}
           headingLevelStart={Number(values.headingLevelStart ?? 3) as 1 | 2 | 3 | 4 | 5 | 6}
