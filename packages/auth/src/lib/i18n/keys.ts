@@ -1,8 +1,8 @@
 /**
  * The complete auth locale bundle. Every key is required: the bundles this
  * package ships (`en`, `de`) satisfy the full shape, and consumer overrides
- * enter as {@link PartialAuthLocale} — deep-merged over the active built-in
- * bundle by `mergeAuthLocale` — so component markup reads keys directly,
+ * enter as {@link PartialAuthLocale}, deep-merged over the active built-in
+ * bundle by `mergeAuthLocale`, so component markup reads keys directly,
  * without per-key `?? '…'` fallback literals.
  *
  * Placeholder convention: dynamic values use **single-brace** tokens

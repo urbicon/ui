@@ -23,7 +23,7 @@ import type { AuthPageSlotClasses } from '../types.js';
 export interface ResetPasswordPageProps {
   /**
    * Locale overrides, deep-merged over the active built-in bundle (resolved
-   * from the i18n context). Pass any subset — a single string or a whole tree.
+   * from the i18n context). Pass any subset, from a single string to a whole tree.
    */
   t?: PartialAuthLocale;
   /** Reset token from URL query parameter. */
@@ -32,7 +32,7 @@ export interface ResetPasswordPageProps {
   loginUrl?: string;
   /** API endpoint for the reset request. @default '/api/auth/reset-password' */
   apiPath?: string;
-  /** CSRF cookie/header names — only needed when the server overrides the defaults via `config.csrf`. Mutating requests echo the token automatically. */
+  /** CSRF cookie/header names. Only needed when the server overrides the defaults via `config.csrf`. Mutating requests echo the token automatically. */
   csrf?: CsrfClientOptions;
   /** Custom fetch implementation for all API calls. Defaults to the global `fetch`. Useful for mock backends in demos/tests or custom retry/auth layers. */
   fetcher?: typeof globalThis.fetch;

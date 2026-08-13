@@ -24,7 +24,7 @@ import type { AuthPageSlotClasses } from '../types.js';
 export interface RegisterPageProps {
   /**
    * Locale overrides, deep-merged over the active built-in bundle (resolved
-   * from the i18n context). Pass any subset — a single string or a whole tree.
+   * from the i18n context). Pass any subset, from a single string to a whole tree.
    */
   t?: PartialAuthLocale;
   /** Called after successful registration. */

@@ -29,27 +29,27 @@ import type { CsrfClientOptions } from '../../csrf.js';
  */
 export interface TwoFactorManagerProps {
   /**
-   * The current authenticated user — its `totpEnabled` seeds the initial state
-   * and its `email` labels the otpauth entry. While `null` the panel renders
-   * nothing. Resolve `user` before mount, or remount with
+   * The current authenticated user: its `totpEnabled` seeds the initial state
+   * and its `email` labels the otpauth entry. While `null` nothing renders.
+   * Resolve `user` before mount, or remount with
    * `{#key user?.id}…{/key}` to re-seed after an async load.
    */
   user: AuthUser | null;
   /**
    * Locale overrides, deep-merged over the active built-in bundle (resolved
-   * from the i18n context). Pass any subset — a single string or a whole tree.
+   * from the i18n context). Pass any subset, from a single string to a whole tree.
    */
   t?: PartialAuthLocale;
   /** API base path for the 2FA account endpoints. @default '/api/auth/account/2fa' */
   apiPath?: string;
-  /** CSRF cookie/header names — only needed when the server overrides the defaults via `config.csrf`. Mutating requests echo the token automatically. */
+  /** CSRF cookie/header names. Only needed when the server overrides the defaults via `config.csrf`. Mutating requests echo the token automatically. */
   csrf?: CsrfClientOptions;
-  /** Custom fetch implementation for all API calls. Defaults to the global `fetch`. */
+  /** Custom fetch implementation for all API calls. Defaults to the global `fetch`. Useful for mock backends in demos/tests or custom retry/auth layers. */
   fetcher?: typeof globalThis.fetch;
   /**
    * QR-code renderer for the otpauth URI shown during setup. Receives the
-   * `otpauth://` `uri` and the Base32 `secret`. Optional — the package ships no
-   * QR encoder (zero-dep), so without this snippet only the URI + secret are
+   * `otpauth://` `uri` and the Base32 `secret`. Optional: the package ships no
+   * QR encoder (zero-dep), so without this snippet only the URI and secret are
    * shown for manual entry.
    */
   qr?: Snippet<[{ uri: string; secret: string }]>;

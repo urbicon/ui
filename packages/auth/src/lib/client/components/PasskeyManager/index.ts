@@ -8,6 +8,7 @@ import type { CsrfClientOptions } from '../../csrf.js';
  *
  * @tag form
  * @related LoginPage
+ * @stability beta
  *
  * @example
  * ```svelte
@@ -17,18 +18,18 @@ import type { CsrfClientOptions } from '../../csrf.js';
 export interface PasskeyManagerProps {
   /**
    * Locale overrides, deep-merged over the active built-in bundle (resolved
-   * from the i18n context). Pass any subset — a single string or a whole tree.
+   * from the i18n context). Pass any subset, from a single string to a whole tree.
    */
   t?: PartialAuthLocale;
   /** API base path for passkey operations. @default '/api/auth/passkey' */
   apiPath?: string;
-  /** CSRF cookie/header names — only needed when the server overrides the defaults via `config.csrf`. Mutating requests echo the token automatically. */
+  /** CSRF cookie/header names. Only needed when the server overrides the defaults via `config.csrf`. Mutating requests echo the token automatically. */
   csrf?: CsrfClientOptions;
   /** Custom fetch implementation for all API calls. Defaults to the global `fetch`. Useful for mock backends in demos/tests or custom retry/auth layers. */
   fetcher?: typeof globalThis.fetch;
   /** Strip all default styling. */
   unstyled?: boolean;
-  /** Per-slot class overrides. See component source for available slot keys. */
+  /** Per-slot class overrides. */
   slotClasses?: Partial<Record<'root' | 'title' | 'error' | 'list' | 'item' | 'empty', string>>;
   /** Extra classes on the root element. */
   class?: string;

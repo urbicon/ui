@@ -5,7 +5,7 @@ import { getJson, parseJsonBody, postJson, wireError } from '../utils/http.js';
 export interface NotificationStoreConfig {
   apiPath?: string;
   /**
-   * CSRF cookie/header names — only needed when the server overrides the
+   * CSRF cookie/header names. Only needed when the server overrides the
    * defaults via `config.csrf`. Omit to use the package defaults.
    */
   csrf?: CsrfClientOptions;
