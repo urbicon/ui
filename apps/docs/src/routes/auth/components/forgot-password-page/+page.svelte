@@ -28,12 +28,12 @@
 
 <SeoMeta
   title="ForgotPasswordPage - Auth"
-  description="Pre-built forgot-password page. Sends reset link, prevents email enumeration."
+  description="A form that requests a password-reset email."
 />
 
 <DocsPageLayout
   title="ForgotPasswordPage"
-  description="Pre-built forgot-password page. Sends reset link, prevents email enumeration."
+  description="A form that requests a password-reset email."
   maxWidth="2xl"
   showToc={true}
   breadcrumbs={[
@@ -58,9 +58,10 @@
           The error region below the heading is always mounted and
           <code class="text-text-primary">aria-live="polite"</code>, so a server or network failure
           is announced without moving focus. On success the form is replaced by an
-          <code class="text-text-primary">Alert</code>, which blocks renders with
-          <code class="text-text-primary">role="alert"</code> — so the outcome reaches the reader on either
-          path, and focus stays where the user left it.
+          <code class="text-text-primary">Alert</code> with
+          <code class="text-text-primary">role="alert"</code>, so the outcome reaches the reader on
+          either path and focus stays where the user left it. The success screen appears whether or
+          not the address has an account, so the page never reveals which emails are registered.
         </p>
       </Note>
       <Note title="A single labelled field">

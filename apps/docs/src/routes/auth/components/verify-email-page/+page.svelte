@@ -28,12 +28,12 @@
 
 <SeoMeta
   title="VerifyEmailPage - Auth"
-  description="Auto-verifying email confirmation page. Sends token on mount, shows result."
+  description="A page that verifies the email token from the URL on mount and shows the result."
 />
 
 <DocsPageLayout
   title="VerifyEmailPage"
-  description="Auto-verifying email confirmation page. Sends token on mount, shows result."
+  description="A page that verifies the email token from the URL on mount and shows the result. It has no loginUrl of its own; render the onward link through the links snippet."
   maxWidth="2xl"
   showToc={true}
   breadcrumbs={[
@@ -61,24 +61,23 @@
       <Note title="One region for a process the user never started">
         <p>
           Verification fires on mount from the token in the URL, so the user takes no action and has
-          nothing to watch. All three states — spinner, success, failure — render inside a single
+          nothing to watch. All three states (spinner, success, failure) render inside a single
           <code class="text-text-primary">aria-live="polite"</code> wrapper, so the outcome is announced
-          when it arrives. This is the one page that deliberately does not use the shell's shared error
-          region: it would have given the same page two live regions competing to report the same event.
+          when it arrives. It keeps to this one region instead of the shell's shared error region, which
+          would put two live regions on the page competing to report the same event.
         </p>
       </Note>
       <Note title="The spinner has words next to it">
         <p>
-          The loading state is not a bare spinner — it renders the localized "verifying" text inside
-          the live region alongside it. A spinner alone conveys nothing to a screen reader; the text
-          is what actually gets announced.
+          The loading state renders the localized "verifying" text inside the live region alongside
+          the spinner. A spinner alone conveys nothing to a screen reader; the text is what actually
+          gets announced.
         </p>
       </Note>
       <Note title="Focus stays where it was">
         <p>
           Nothing on this page moves focus when the result arrives. The live region carries the
-          announcement instead, which is the right trade for an automatic process — but it means a
-          user who tabs away mid-verification will not be returned to the result.
+          announcement instead. A user who tabs away mid-verification is not returned to the result.
         </p>
       </Note>
     </NoteList>
