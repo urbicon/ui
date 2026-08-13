@@ -66,7 +66,7 @@
 
     <CodeExample
       title="Total Override (Remainder)"
-      description="If the explicit total exceeds Σ items.value, the unaccounted share is rendered as a dashed remainder area."
+      description="If the explicit total exceeds the sum of the item values, the unaccounted share is rendered as a dashed remainder area."
       isolate
       previewClass="flex justify-center w-full p-6"
     >
@@ -84,7 +84,7 @@
 
     <CodeExample
       title="Raw Color Overrides"
-      description="Per-item color prop for brand-specific palettes (e.g. token allocations)."
+      description="Give each item a color (any CSS colour) instead of a semantic intent, for a brand-specific palette like this token allocation."
       isolate
       previewClass="flex justify-center w-full p-6"
     >
@@ -180,10 +180,10 @@
     </Note>
     <Note title="Bidirectional Highlight">
       <p>
-        Hovering or focusing a bar segment dims all other segments AND highlights the matching
-        legend entry (and vice versa) — the link runs through the shared
+        Hovering or focusing a bar segment dims the other segments and highlights the matching
+        legend entry, and the reverse holds too. The link runs through the shared
         <code class="text-text-primary">item.id</code>
-        (fallback: index).
+        (or the index as a fallback).
       </p>
     </Note>
   </NoteList>

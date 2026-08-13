@@ -89,7 +89,7 @@
 
     <CodeExample
       title="Minimal (no icons, no shortcuts)"
-      description="Clean list without icons or keyboard hints."
+      description="A list with no icons and no shortcut hints."
       isolate
     >
       <Button variant="outlined" intent="neutral" onclick={() => (minimalOpen = true)}>
@@ -105,7 +105,7 @@
 
     <CodeExample
       title="With Disabled Items"
-      description="Some commands can be disabled while remaining visible."
+      description="Set disabled: true on an item to show it greyed out and skip it in keyboard navigation."
       isolate
     >
       <Button variant="outlined" intent="neutral" onclick={() => (iconsOpen = true)}>
@@ -122,7 +122,7 @@
 
     <CodeExample
       title="Trigger with Shortcut Badge"
-      description="A search-bar style trigger matching common SaaS patterns."
+      description="A search-bar styled trigger with a Ctrl+K badge, instead of a plain button."
       isolate
     >
       <button

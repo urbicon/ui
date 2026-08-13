@@ -28,14 +28,14 @@
 
 <SeoMeta
   title="CompositionBar Component"
-  description="Stacked-Bar mit Legend zur Visualisierung von Aggregat-Kompositionen."
+  description="A horizontal stacked bar with a legend for showing how parts make up a total."
 />
 
 <DocsPageLayout
   maxWidth="2xl"
   showToc={true}
   title="CompositionBar"
-  description="Stacked-Bar mit Legend zur Visualisierung von Aggregat-Kompositionen."
+  description="A single horizontal stacked bar with a legend that shows how parts make up a total, such as a budget breakdown, a token allocation, or a storage split."
   breadcrumbs={[
     { label: 'Blocks', href: '/blocks' },
     { label: 'Components', href: '/blocks/components' }
