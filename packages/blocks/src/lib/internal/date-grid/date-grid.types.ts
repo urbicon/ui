@@ -27,11 +27,12 @@ export type DateGridView = 'month' | 'week' | 'range' | 'day';
 export type DateGridSelectionMode = 'single' | 'range' | 'multiple';
 
 /**
- * An inclusive start/end date pair — a selected range, a visible window, the
- * range `onNavigate` reports. One type for every date surface.
+ * An inclusive start/end date pair: a selected range, a visible window, the
+ * range `onNavigate` reports. One type for Calendar, Planner and
+ * ResourceTimeline alike.
  *
- * `ResourceTimeline.getRange` is deliberately *not* this type: it also accepts
- * local date strings (`'2026-06-16'`), which a selection value must not.
+ * `ResourceTimeline.getRange` is not this type: it also accepts local date
+ * strings (`'2026-06-16'`), which a selection value must not.
  */
 export interface DateRange {
   start: Date;
@@ -39,18 +40,17 @@ export interface DateRange {
 }
 
 /**
- * A colour bucket for the items a date surface draws — Calendar's events,
- * ResourceTimeline's spans — and the entries of the legend below the grid. One
- * type for every surface, so moving categories between them is not a mapping
- * exercise.
+ * A colour bucket for a calendar event, a timeline span, and the legend row
+ * below the grid. One type across Calendar, Planner and ResourceTimeline, so
+ * moving categories between them needs no mapping.
  *
  * `color` takes any CSS colour value: hex, `rgb()`, `oklch()` or a
- * `var(--token)` reference. Where a surface writes a LABEL on the colour (a
- * timeline bar, a calendar event chip), it picks black or white by measuring
- * that value — which only works for a value it can read. A `var()` or a
- * `color-mix()` is resolved by the browser, not by the component, so those fall
- * back to white: pass a colour dark enough to carry it, or set the label colour
- * yourself through the surface's `slotClasses`.
+ * `var(--token)` reference. Where a bar or event chip carries a LABEL on the
+ * colour, the component picks black or white by measuring that value, which
+ * only works for a value it can read. A `var()` or a `color-mix()` is resolved
+ * by the browser, not by the component, so those fall back to white: pass a
+ * colour dark enough to carry it, or set the label colour yourself through that
+ * component's `slotClasses`.
  */
 export interface DateCategory {
   /** Stable id — what an item's category accessor returns. */

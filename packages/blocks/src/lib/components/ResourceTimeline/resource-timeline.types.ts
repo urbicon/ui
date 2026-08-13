@@ -23,7 +23,7 @@ export type { DateCategory, DateRange };
  */
 export type ResourceTimelineView = 'week' | 'days';
 
-/** One lane of the timeline — a room, a chair, a vehicle, a person. */
+/** One lane of the timeline: a room, a chair, a vehicle, a person. */
 export interface TimelineResource {
   /** Stable identity; what `getResourceId` has to return. */
   id: string;
@@ -48,13 +48,13 @@ export interface TimelineGroup {
 }
 
 /**
- * The **inclusive** day range a span occupies — both `start` and `end` are days
+ * The **inclusive** day range a span occupies: both `start` and `end` are days
  * the bar covers. A hotel stay converts by subtracting one day from check-out
  * (the last *night* is `checkOut − 1`); the same convention `CalendarEvent.end`
  * and `getEventDayInfo` use.
  *
  * Strings are read as local calendar days, verbatim, through the same parser
- * `Planner.getDate` uses — `'2026-06-16'` is never UTC-parsed and so never
+ * `Planner.getDate` uses; `'2026-06-16'` is never UTC-parsed and so never
  * shifts a day west of Greenwich.
  */
 export interface TimelineRange {
@@ -62,7 +62,7 @@ export interface TimelineRange {
   end: Date | string;
 }
 
-/** The value the `span` snippet receives per bar — the heart of the API. */
+/** The value the `span` snippet receives per bar. */
 export interface TimelineSpanContext<T> {
   /** The consumer's item, with its real `T` type (no cast through an event shape). */
   item: T;
