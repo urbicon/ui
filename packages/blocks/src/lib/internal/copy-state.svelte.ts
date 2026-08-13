@@ -25,7 +25,10 @@
  * created and no consumer bundle grows a `Button` it never asked for.
  */
 
-/** Resting → confirmed → failed. `error` reverts on the same timer as `copied`. */
+/**
+ * The button's copy phase: `'idle'` before a copy, `'copied'` after a successful
+ * write, `'error'` on failure. `'error'` reverts on the same timer as `'copied'`.
+ */
 export type CopyPhase = 'idle' | 'copied' | 'error';
 
 export interface CopyStateOptions {
