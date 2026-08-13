@@ -86,8 +86,17 @@ jobs:
         # Read-only inspection, so the step says out loud what the artefact
         # contains before anyone downloads it. `--porcelain` over the snapshot
         # directory alone — the build touches other paths and they are noise here.
+        #
+        # `safe.directory` first, and no `|| true` any more. The checkout belongs
+        # to a different uid than the container's root, so every git call in this
+        # step died with "detected dubious ownership" — and the swallowed failure
+        # printed `changed/new shots: 0`, which is exactly what a clean run looks
+        # like. On 2026-08-13 it reported that for a run that had just rewritten
+        # 48 shots. A step whose whole purpose is to say what changed must fail
+        # loudly when it cannot find out.
         run: |
-          git status --porcelain -- e2e/snapshots || true
+          git config --global --add safe.directory "$GITHUB_WORKSPACE"
+          git status --porcelain -- e2e/snapshots
           echo "---"
           echo "changed/new shots: $(git status --porcelain -- e2e/snapshots | wc -l)"
 
