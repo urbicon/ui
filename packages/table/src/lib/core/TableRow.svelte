@@ -114,7 +114,16 @@
   );
 </script>
 
-<!-- Main row -->
+<!-- Main row.
+
+     A virtualized row carries no positioning of its own: the window of rendered
+     rows is offset once, on the table in `TableDesktop`. Positioning each `<tr>`
+     absolutely blockified it — an absolutely positioned element is never a
+     `table-row` — so its cells left the table's column tracks and sized
+     themselves from their own content. Measured on a four-column table with no
+     explicit widths: header 213/213/213/213 against body 61/101/84/33. Only
+     columns carrying an explicit `width` lined up, which is why every demo in
+     the docs had one. -->
 <tr
   id={String(itemId)}
   onclick={handleRowClick}
@@ -136,9 +145,6 @@
       .filter(Boolean)
       .join(' ')
   )}
-  style={virtualized
-    ? `position: absolute; transform: translateY(${virtualIndex * virtualItemHeight}px);`
-    : ''}
   tabindex={interactive ? (isFocused ? 0 : -1) : undefined}
   aria-rowindex={rowIndex + 1}
   aria-expanded={expandable ? isExpanded : undefined}

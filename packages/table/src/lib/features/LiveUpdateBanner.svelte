@@ -10,6 +10,18 @@
   const tableContext = getTableContext();
   const counts = $derived(tableContext.liveUpdateCounts);
   const hasPending = $derived(tableContext.hasPendingUpdates);
+
+  // The three counts as data, so the separator is a join rather than markup.
+  // Written as `{#if}` blocks with a comma between them, the banner rendered
+  // "2 new , 1 updated": Svelte keeps the whitespace that the source needs to
+  // stay readable, and it lands in front of the comma.
+  const segments = $derived(
+    [
+      { count: counts.inserts, label: tt('liveUpdates.newItems') },
+      { count: counts.updates, label: tt('liveUpdates.updatedItems') },
+      { count: counts.deletes, label: tt('liveUpdates.deletedItems') }
+    ].filter((segment) => segment.count > 0)
+  );
 </script>
 
 {#if hasPending}
@@ -28,19 +40,8 @@
       </span>
 
       <span>
-        {#if counts.inserts > 0}
-          <strong>{counts.inserts}</strong> {tt('liveUpdates.newItems')}
-        {/if}
-        {#if counts.inserts > 0 && (counts.updates > 0 || counts.deletes > 0)},
-        {/if}
-        {#if counts.updates > 0}
-          <strong>{counts.updates}</strong> {tt('liveUpdates.updatedItems')}
-        {/if}
-        {#if counts.updates > 0 && counts.deletes > 0},
-        {/if}
-        {#if counts.deletes > 0}
-          <strong>{counts.deletes}</strong> {tt('liveUpdates.deletedItems')}
-        {/if}
+        <!-- prettier-ignore -->
+        {#each segments as segment, i (segment.label)}{#if i > 0}, {/if}<strong>{segment.count}</strong> {segment.label}{/each}
       </span>
     </div>
 

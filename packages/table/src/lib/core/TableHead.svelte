@@ -161,7 +161,7 @@
          chrome, not columns: they carry the header cell chrome but not
          `slotClasses.headerCell` — see TableSlotClasses.headerCell. -->
     {#if tableState.effectiveGroupBy}
-      <th class="{headerStyles.cell()} w-10 text-center">
+      <th scope="col" class="{headerStyles.cell()} w-10 text-center">
         <button
           onclick={() => toggleAllGroups()}
           class="text-text-secondary hover:text-text-primary hover:bg-surface-hover rounded-modify flex h-6 w-6 items-center justify-center transition-colors"
@@ -180,7 +180,7 @@
     {/if}
 
     {#if selectable}
-      <th class="{headerStyles.cell()} w-12 text-center" data-testid="selection-header">
+      <th scope="col" class="{headerStyles.cell()} w-12 text-center" data-testid="selection-header">
         {#if multiSelect}
           <Checkbox
             checked={tableContext.allSelected}
@@ -196,7 +196,7 @@
     {/if}
 
     {#if expandable}
-      <th class="{headerStyles.cell()} w-10 text-center" aria-hidden="true"></th>
+      <th scope="col" class="{headerStyles.cell()} w-10 text-center" aria-hidden="true"></th>
     {/if}
 
     {#each displayColumns as column, colIdx (resolveColumnId(column))}
@@ -212,12 +212,18 @@
       {@const columnStyles = tableHeaderVariants({
         size,
         sortable: isSortable,
-        sorted: sortedState
+        sorted: sortedState,
+        // The variant config has carried an `align` axis all along; nobody
+        // passed it, so every header sat at the default while its body cells
+        // followed `column.align`. A right-aligned number column kept a header
+        // over the wrong edge of it.
+        align: column.align ?? 'left'
       })}
       {@const isDragOver =
         dropIndicatorIndex === colIdx && dragFromIndex !== null && dragFromIndex !== colIdx}
 
       <th
+        scope="col"
         {@attach makeDraggable(colIdx)}
         style={column.width
           ? `width: ${column.width}; min-width: ${column.minWidth || '4rem'};`
@@ -245,12 +251,18 @@
         data-testid={`column-header-${columnId}`}
       >
         <div class={columnStyles.cellContent()}>
+          <!-- The tab stop follows what the header can do, which is sorting OR
+               reordering. Keyed on `isSortable` alone, keyboard reordering was
+               unreachable for exactly the columns most likely to be moved —
+               status, actions, anything unsorted: `handleHeaderKeyDown` sits on
+               the `<th>` and only ever sees a key event that bubbles up from
+               this element. -->
           <!-- svelte-ignore a11y_no_noninteractive_tabindex -->
           <div
             class="{columnStyles.titleContainer()} {isSortable ? 'cursor-pointer' : ''}"
             onclick={() => isSortable && handleSort(columnId)}
             role={isSortable ? 'button' : undefined}
-            tabindex={isSortable ? 0 : undefined}
+            tabindex={isSortable || enableColumnReorder ? 0 : undefined}
             onkeydown={(e) => {
               if (isSortable && (e.key === 'Enter' || e.key === ' ')) {
                 e.preventDefault();

@@ -401,6 +401,13 @@
       {:else if virtualResult}
         <!-- Inner container with total height for scrollbar -->
         <div style="height: {virtualResult.totalHeight}px; position: relative;">
+          <!-- The rendered window is offset once, here, rather than per row:
+               `startIndex` is the first row the virtualizer kept, so the table
+               starts exactly where that row belongs. Offsetting each `<tr>`
+               instead (which is what this did until 2026-08-13) forced
+               `position: absolute` onto it, and an absolutely positioned
+               element is never a `table-row` — its cells then sized themselves
+               from their content instead of from the shared column tracks. -->
           <table
             class="{resolveSlotClass(
               tableStyles.table,
@@ -408,6 +415,7 @@
               styleConfig.unstyled,
               'table-fixed'
             )} absolute top-0 left-0 w-full"
+            style="transform: translateY({virtualResult.startIndex * rowHeight}px);"
             onkeydown={handleTableKeyDown}
           >
             {@render columnTrackGroup()}

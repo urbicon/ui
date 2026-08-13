@@ -74,7 +74,12 @@ interface BaseColumn<T> {
   menuTitle?: string;
   /** Optional column width (CSS value) */
   width?: string;
-  /** Minimum column width (CSS value) */
+  /**
+   * Floor for `width` (CSS value), and only alongside it: the
+   * header, body and summary cells emit `min-width` inside the same
+   * `column.width ?` branch, so a `minWidth` on a column without a `width`
+   * reaches no element. Defaults to `4rem` when `width` is set without it.
+   */
   minWidth?: string;
   /**
    * Lay the column's cells out as a column instead of a row: adds `flex-col`
@@ -184,9 +189,14 @@ interface DerivableMixin {
    */
   summable?: boolean;
   /**
-   * The column's data type. Drives alignment, the filter operators the menu
-   * offers, the quick-values list and summability — so declaring it is how a
-   * numeric column becomes numeric. `TableColumns.number()` sets it for you.
+   * The column's data type. Drives the filter operators the menu offers, the
+   * quick-values list and summability — so declaring it is how a numeric column
+   * becomes numeric. `TableColumns.number()` sets it for you.
+   *
+   * It does **not** drive alignment: cells read `align` and nothing else
+   * (`TableCell.svelte`). What made numeric columns look self-aligning is the
+   * `TableColumns.number()` / `.currency()` factories, which set `align: 'right'`
+   * themselves — a hand-written `dataType: 'number'` column stays left-aligned.
    */
   dataType?: 'text' | 'number' | 'date' | 'boolean' | 'email' | 'url';
 }
@@ -268,6 +278,12 @@ export type Column<T = TableItem> =
  * `value` is always a string — even for the comparing operators (`greaterThan`,
  * `lessThan`). This keeps filters serializable for persistence and consistent
  * with the text-input UI.
+ *
+ * An **empty** `value` (or one that is only whitespace) matches every row for
+ * every operator, rather than none: the filter is treated as not yet filled in.
+ * The filter menu cannot produce one — it guards on the same `.trim()` — so an
+ * empty value can only arrive through `viewDefaults`, a URL or storage binding,
+ * or a programmatic `addFilter`.
  *
  * The comparing operators resolve in two steps:
  *

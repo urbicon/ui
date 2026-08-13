@@ -393,4 +393,110 @@ describe('Table — the view object, mounted', () => {
     expect(fetches).toBe(1);
     expect(el.textContent).toContain('Fetched');
   });
+
+  // The banner's counts are a sentence, and a sentence is only ever right in
+  // the rendered output: written as three `{#if}` blocks with a comma between
+  // them it read "2 new , 1 updated", because the whitespace the source needs
+  // to stay readable lands in front of the comma. Asserted on textContent with
+  // its whitespace collapsed the way a reader sees it — the defect is invisible
+  // to any assertion that normalises more than the browser does.
+  it('joins the live-update counts without a space before the comma', async () => {
+    let ctx: TableContext | undefined;
+    const el = mountTable({
+      enableLiveUpdates: true,
+      onReady: (c: TableContext) => (ctx = c)
+    });
+
+    ctx?.pushInsert({ id: 4, name: 'Karen', amount: 400 });
+    ctx?.pushInsert({ id: 5, name: 'Barbara', amount: 500 });
+    ctx?.pushUpdate(1, { amount: 150 });
+    flushSync();
+
+    const banner = el.querySelector('[data-testid="live-update-banner"]');
+    expect(banner).toBeTruthy();
+    const text = (banner?.textContent ?? '').replace(/\s+/g, ' ').trim();
+
+    expect(text).toContain('2');
+    expect(text).not.toMatch(/\s+,/);
+  });
+
+  // The header follows its column's `align`, like the body cells below it.
+  // `tableHeaderVariants` has carried the axis since v1; `TableHead` never
+  // passed it, so a right-aligned numeric column had its title over the left
+  // edge of its own numbers. `scope="col"` is asserted here too: HTML infers it
+  // for a single header row, and the docs claimed it for years, but nothing in
+  // the package emitted it.
+  it('aligns a header with its column and marks every header cell as a column header', () => {
+    const el = mountTable({
+      columns: [
+        { accessor: 'name', title: 'Name' },
+        { accessor: 'amount', title: 'Amount', align: 'right' }
+      ]
+    });
+
+    const headers = [...el.querySelectorAll('thead th')];
+    expect(headers.length).toBeGreaterThan(0);
+    expect(headers.every((th) => th.getAttribute('scope') === 'col')).toBe(true);
+
+    const amount = headers.find((th) => th.textContent?.includes('Amount'));
+    const name = headers.find((th) => th.textContent?.includes('Name'));
+    expect(amount?.innerHTML).toContain('justify-end');
+    expect(name?.innerHTML).toContain('justify-start');
+  });
+
+  // Keyboard column reorder lives on the `<th>`, but only a *focusable* child
+  // ever sends it a key event. That child's tab stop used to follow
+  // `sortable` alone, so Shift+Arrow reached sortable columns and nothing else
+  // — status and action columns, the ones a reader most wants to move, could
+  // be dragged with a mouse and not moved at all from the keyboard.
+  it('gives every header a tab stop when columns can be reordered', () => {
+    const columns = [
+      { accessor: 'name', title: 'Name', sortable: true },
+      { accessor: 'amount', title: 'Amount', sortable: false }
+    ];
+
+    const withReorder = mountTable({ columns, enableColumnReorder: true });
+    const reorderStops = [...withReorder.querySelectorAll('thead th [tabindex="0"]')];
+    expect(reorderStops.length).toBe(2);
+
+    unmount(comp as Record<string, unknown>);
+    target?.remove();
+
+    // Without the feature an unsortable header stays out of the tab order:
+    // a tab stop that does nothing is its own defect.
+    const plain = mountTable({ columns });
+    const plainStops = [...plain.querySelectorAll('thead th [tabindex="0"]')];
+    expect(plainStops.length).toBe(1);
+  });
+
+  // The virtualized window is offset on the table, never on the rows. This is
+  // a structural assertion because the symptom is a layout one and jsdom has no
+  // layout: `position: absolute` on a `<tr>` blockifies it, and a blockified
+  // row leaves the table's column tracks — measured in a browser on a
+  // four-column table with no explicit widths, header 213/213/213/213 against
+  // body 61/101/84/33. Keeping the rows unpositioned is what keeps them
+  // `table-row`, so this pins the mechanism rather than the pixels.
+  it('offsets the virtualized window on the table, not on its rows', () => {
+    // jsdom reports every element as zero-height, and the virtualizer renders
+    // the rows that fit in the viewport — without a height it renders none and
+    // the assertions below would pass over an empty list.
+    const clientHeight = Object.getOwnPropertyDescriptor(HTMLElement.prototype, 'clientHeight');
+    Object.defineProperty(HTMLElement.prototype, 'clientHeight', {
+      configurable: true,
+      get: () => 400
+    });
+
+    const el = mountTable({ virtualized: true, virtualHeight: '400px' });
+
+    const rows = [...el.querySelectorAll('tbody tr')];
+    expect(rows.length).toBeGreaterThan(0);
+    for (const row of rows) {
+      expect(row.getAttribute('style') ?? '').not.toContain('position: absolute');
+    }
+
+    const bodyTable = [...el.querySelectorAll('table')].find((t) => !t.querySelector('thead'));
+    expect(bodyTable?.getAttribute('style') ?? '').toContain('translateY');
+
+    if (clientHeight) Object.defineProperty(HTMLElement.prototype, 'clientHeight', clientHeight);
+  });
 });
