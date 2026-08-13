@@ -28,12 +28,12 @@
 
 <SeoMeta
   title="PasskeyManager - Auth"
-  description="Admin panel for managing passkeys (WebAuthn credentials)."
+  description="Lists a user's registered passkeys and lets them add or remove one."
 />
 
 <DocsPageLayout
   title="PasskeyManager"
-  description="Admin panel for managing passkeys (WebAuthn credentials). Allows registering new passkeys and deleting existing ones."
+  description="Lists a user's registered passkeys (WebAuthn credentials) and lets them register a new one or delete an existing one."
   maxWidth="2xl"
   showToc={true}
   breadcrumbs={[
@@ -48,7 +48,7 @@
   <Section marker id="usage" title="Usage" intent="primary">
     <CodeExample
       title="Basic"
-      description="The live preview runs against a mocked demo API (injected via the fetcher prop) — deleting passkeys works, registering explains that it needs a real backend. The snippet shows the production setup."
+      description="The live preview runs against a mocked demo API (injected via the fetcher prop): deleting passkeys works, and registering explains that it needs a real backend. The snippet shows the production setup."
       code={basicCode}
       language="svelte"
     >
@@ -69,10 +69,10 @@
       </Note>
       <Note title="Errors announce in place">
         <p>
-          WebAuthn failures — a cancelled prompt, an unsupported authenticator, a rejected
-          registration — land in the always-mounted
+          WebAuthn failures (a cancelled prompt, an unsupported authenticator, a rejected
+          registration) land in the always-mounted
           <code class="text-text-primary">aria-live="polite"</code> region above the list, so the outcome
-          of a flow that happened inside the browser's own credential UI is reported back in the page.
+          of a flow that ran inside the browser's own credential UI is announced back on the page.
         </p>
       </Note>
       <Note title="The list is a list">
@@ -87,9 +87,8 @@
       <Note title="The credential prompt is the browser’s">
         <p>
           Once registration starts, the platform takes over with its own dialog for Touch ID,
-          Windows Hello or a security key. Its accessibility is the operating system's, not this
-          component's — the component's job is to report what came back, which it does through the
-          live region.
+          Windows Hello or a security key. That dialog's accessibility belongs to the operating
+          system, not this component; what comes back from it is announced through the live region.
         </p>
       </Note>
     </NoteList>
