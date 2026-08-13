@@ -121,7 +121,7 @@ export async function getSessionFromCookie<R extends string>(
  * Build the JWT session payload from a user row. One copy on purpose — this
  * literal existed five times (handle hook ×2, refresh handler ×2, here): a
  * field drifting in one copy (say, a forgotten `tokenVersion`) would mint
- * sessions that bypass the "log out everywhere" revocation check (review R14).
+ * sessions that bypass the "log out everywhere" revocation check.
  */
 export function sessionPayload<R extends string>(
   user: Pick<FullAuthUser<R>, 'id' | 'email' | 'role' | 'tokenVersion'>
@@ -137,7 +137,7 @@ export function sessionPayload<R extends string>(
 /**
  * Apply a refresh-rotation outcome to the response cookies — the single
  * policy shared by the transparent handle-hook path and the explicit refresh
- * endpoint (previously two full copies, review R14):
+ * endpoint (previously two full copies):
  *
  * - `'rotated'` — fresh access token AND the successor refresh cookie.
  * - `'race_ok'` — concurrent-rotation loser: fresh access token only. The

@@ -2,7 +2,7 @@
 // Implements FIDO2/WebAuthn Level 2 attestation and assertion verification.
 // This module holds the ceremony API (options generation + registration/
 // assertion verification); challenge storage lives in challenge-store.ts and
-// the byte-level authData/COSE work in cose.ts (R17 split).
+// the byte-level authData/COSE work in cose.ts.
 
 import { base64UrlDecode, base64UrlEncode, concatBytes, toArrayBuffer } from '../encoding.js';
 import { timingSafeEqual } from '../timing-safe.js';

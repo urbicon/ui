@@ -1,7 +1,7 @@
 // Authenticator-data parsing and COSE-key signature verification (ES256 /
 // RS256) — the byte-level half of WebAuthn verification, consumed by the
 // ceremony functions in webauthn.ts. Split out of the former webauthn.ts
-// god-file (R17).
+// god-file.
 
 import { derToRawEcdsaSignature } from '../ecdsa-der.js';
 import { base64UrlEncode, toArrayBuffer } from '../encoding.js';

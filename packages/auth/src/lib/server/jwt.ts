@@ -1,7 +1,7 @@
 // Session JWTs on Web Crypto — HS256 (default) or ES256, with key rotation via
 // `kid` / `previousSecrets` / `previousPublicKeys` — plus the generic
 // short-lived signed token (pending-2FA handle etc.), which stays HMAC-based
-// under every algorithm. Split out of the former auth.ts god-file (R17).
+// under every algorithm. Split out of the former auth.ts god-file.
 
 import type {
   AuthLogger,

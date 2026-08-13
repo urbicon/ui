@@ -16,7 +16,7 @@ export interface AuthStoreConfig {
   /**
    * Custom fetch implementation for all API calls. Defaults to the global
    * `fetch`. Useful for mock backends in demos/tests or custom retry layers —
-   * the same injection point every component exposes (review R18).
+   * the same injection point every component exposes.
    */
   fetcher?: typeof globalThis.fetch;
 }

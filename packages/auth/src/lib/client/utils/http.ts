@@ -12,7 +12,7 @@ export interface JsonResult {
 /**
  * POST a JSON body through the package's CSRF/fetcher plumbing and parse the
  * response tolerantly — the shared request core of the manager components
- * (was copied verbatim per component, review R14).
+ * (was copied verbatim per component).
  */
 export async function postJson(
   url: string,
@@ -35,7 +35,7 @@ export async function postJson(
 /**
  * GET a JSON resource with the same tolerant body handling as {@link postJson}.
  * No CSRF header — reads are not state-changing; the optional `fetcher` keeps
- * mock backends and custom retry layers injectable (review R18).
+ * mock backends and custom retry layers injectable.
  */
 export async function getJson(
   url: string,

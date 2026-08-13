@@ -281,7 +281,7 @@ function authenticationVerifyHandler<R extends string>(
 ): { POST: RequestHandler } {
   const rateLimiter = sharedPasskeyAuthLimiter(deps.config.rateLimit?.passkeyAuth);
 
-  // Audit-seam parity with the password login (review finding R10): every
+  // Audit-seam parity with the password login: every
   // terminal outcome of a passkey login fires the same consumer hooks, so an
   // audit log sees passkey logins too. The email argument is '' on paths where
   // the ceremony fails before a user is resolved — discoverable login knows no

@@ -156,7 +156,7 @@ function enableHandler<R extends string>(deps: AuthDeps<R>): { POST: RequestHand
 function disableHandler<R extends string>(deps: AuthDeps<R>): { POST: RequestHandler } {
   // Re-auth endpoints are credential-accepting: without a limiter a hijacked
   // session could brute-force the current password here — at the most valuable
-  // target of all, since success removes the second factor (review R4).
+  // target of all, since success removes the second factor.
   // `createAuthDeps` injects a strict default; explicit config tunes it.
   const rateLimiter = makeRateLimiter(deps.config.rateLimit?.twoFactorDisable);
 
