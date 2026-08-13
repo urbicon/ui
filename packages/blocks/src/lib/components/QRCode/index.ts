@@ -2,13 +2,11 @@ import type { QRCodeSlots, QRCodeVariants } from './qr-code.variants';
 
 /**
  * @summary Any text or link as a code a phone can read.
- * @description Renders any text or URL as a scannable QR code — SVG output, no
- * runtime dependency. The encoder (`encodeQr`, exported alongside) is a from-
- * scratch ISO/IEC 18004 implementation covering numeric / alphanumeric / byte
- * modes, all 40 versions, the four error-correction levels, and automatic mask
- * selection; every generated matrix is verified to round-trip through a real
- * decoder. This completes the auth package's zero-dependency 2FA story: pass an
- * `otpauth://` URI here instead of wiring an external QR library into
+ * @description Renders any text or URL as a scannable QR code. The output is a
+ * self-contained SVG with no runtime dependency: the encoder (`encodeQr`,
+ * exported alongside) covers numeric, alphanumeric and byte modes across all 40
+ * versions and the four error-correction levels. Pass an `otpauth://` URI here
+ * for 2FA enrolment instead of wiring an external QR library into
  * `TwoFactorManager`'s `qr` snippet.
  *
  * @tag display
@@ -40,8 +38,8 @@ export interface QRCodeProps extends QRCodeVariants {
   quietZone?: number;
   /**
    * Colour of the dark modules — any CSS colour. Defaults to `currentColor` so
-   * the code inherits the surrounding text colour. For guaranteed scannability
-   * keep a high-contrast dark-on-light pairing (see `frame="card"`).
+   * the code inherits the surrounding text colour. For reliable scanning keep a
+   * high-contrast dark-on-light pairing (see `frame="card"`).
    * @default 'currentColor'
    */
   foreground?: string;
@@ -49,7 +47,7 @@ export interface QRCodeProps extends QRCodeVariants {
   background?: string;
   /** Lower bound on the QR version (1–40) to force a minimum size. */
   minVersion?: number;
-  /** Upper bound on the QR version (1–40); encoding throws if the data does not fit. */
+  /** Upper bound on the QR version (1–40). Data that does not fit calls `onError` and renders the fallback instead of encoding. */
   maxVersion?: number;
 
   /** Called when the data cannot be encoded (e.g. too long for `maxVersion`). */

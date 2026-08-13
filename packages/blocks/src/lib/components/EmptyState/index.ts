@@ -29,7 +29,7 @@ export interface EmptyStateProps
   extends Omit<HTMLAttributes<HTMLDivElement>, 'children' | 'title'> {
   /**
    * Icon component rendered above the title. Pass any icon from
-   * `@urbicon-ui/blocks/icons` (or a compatible stroke icon).
+   * `@urbicon-ui/blocks` (or a compatible stroke icon).
    */
   icon?: Component<IconProps>;
 
@@ -42,7 +42,7 @@ export interface EmptyStateProps
   /** Action buttons rendered below the description. */
   cta?: Snippet;
 
-  /** Optional richer content rendered below the description (and replacing it visually). */
+  /** Optional richer content rendered below the description. */
   children?: Snippet;
 
   /**
