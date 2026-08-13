@@ -27,12 +27,12 @@
 
 <SeoMeta
   title="CodeBlock Component"
-  description="Read-only code display card with a one-click copy button, an accessible copy status, and horizontal scroll contained inside the block."
+  description="Read-only code display card with a copy button, an accessible copy status, and horizontal scroll kept inside the block."
 />
 
 <DocsPageLayout
   title="CodeBlock"
-  description="Read-only code display card with a one-click copy button, an accessible copy status, and horizontal scroll contained inside the block. Renders raw text — highlighting is layered in by a consumer or the StreamingMarkdown renderer."
+  description="Read-only code display card with a copy button, an accessible copy status, and horizontal scroll kept inside the block. It renders raw text, so syntax highlighting comes from a consumer or the StreamingMarkdown renderer."
   maxWidth="2xl"
   showToc={true}
   breadcrumbs={[

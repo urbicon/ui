@@ -35,7 +35,7 @@
   maxWidth="2xl"
   showToc={true}
   title="EmptyState"
-  description="Centered placeholder block for 'no data yet' and 'no results' states. Pairs an icon with a heading, supporting text, and an optional CTA."
+  description="Centered placeholder block for 'no data yet' and 'no results' states, built from an optional icon, a heading, supporting text, and an optional call-to-action."
   breadcrumbs={[
     { label: 'Blocks', href: '/blocks' },
     { label: 'Components', href: '/blocks/components' }

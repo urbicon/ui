@@ -28,14 +28,14 @@
 
 <SeoMeta
   title="AvatarGroup Component"
-  description="Stack avatars into an overlapping row with an optional +N overflow chip — collaborators, assignees or participants shown compactly."
+  description="Stack avatars into an overlapping row with a +N overflow chip for collaborators, assignees, or participants."
 />
 
 <DocsPageLayout
   maxWidth="2xl"
   showToc={true}
   title="AvatarGroup"
-  description="Stacks avatars into an overlapping row with an optional “+N” overflow chip — the canonical way to show a set of collaborators, assignees or participants compactly. Data-driven: pass an items array of Avatar props and the group propagates a shared size and a cut-out ring."
+  description="Stacks avatars into an overlapping row for a set of collaborators, assignees, or participants, with a “+N” chip once the count passes max. Pass an items array of Avatar props; a shared size and the cut-out ring apply to every avatar."
   breadcrumbs={[
     { label: 'Blocks', href: '/blocks' },
     { label: 'Components', href: '/blocks/components' }
