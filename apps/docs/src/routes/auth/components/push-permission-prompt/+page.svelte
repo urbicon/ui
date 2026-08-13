@@ -33,7 +33,7 @@
 
 <DocsPageLayout
   title="PushPermissionPrompt"
-  description="Dismissible prompt asking the user to enable push notifications. Handles VAPID subscription and server-side registration."
+  description="A dismissible prompt that asks the user to enable push notifications, then registers the VAPID subscription with your server."
   maxWidth="2xl"
   showToc={true}
   breadcrumbs={[
@@ -55,10 +55,9 @@
     <NoteList>
       <Note title="It never interrupts">
         <p>
-          The prompt is an ordinary card in the flow, not a modal. It does not trap focus, does not
-          steal it on mount, and both actions are real buttons — so it can be read, acted on, or
-          ignored entirely at the point the user reaches it, rather than seizing the page the moment
-          it appears.
+          The prompt is an ordinary card in the flow, not a modal: it keeps focus where it was on
+          mount, and both actions are buttons, so a user can read it, act on it, or ignore it when
+          they reach it.
         </p>
       </Note>
       <Note title="Failures are announced, dismissals are not">
@@ -72,8 +71,8 @@
       <Note title="Focus is dropped when the card closes">
         <p>
           Enabling or dismissing unmounts the whole card. If focus was on either button it falls
-          back to <code class="text-text-primary">&lt;body&gt;</code> — the component does not
-          restore it to a sensible neighbour. Where the prompt sits mid-page, move focus yourself in
+          back to <code class="text-text-primary">&lt;body&gt;</code>; the component does not move
+          it to a sensible neighbour. Where the prompt sits mid-page, move focus yourself in
           <code class="text-text-primary">onDismissed</code> /
           <code class="text-text-primary">onSubscribed</code>.
         </p>

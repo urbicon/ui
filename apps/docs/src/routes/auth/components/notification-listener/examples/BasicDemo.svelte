@@ -12,7 +12,7 @@
 </script>
 
 <Alert intent="primary" size="sm">
-  NotificationListener is a headless component with no visual output. It connects to an SSE stream
-  and fires <code>onNotification</code> callbacks. Reconnects automatically with exponential backoff (1s–30s,
-  max 5 attempts).
+  There is nothing to render here: the listener is headless. In your app,
+  <code>onNotification</code> fires on each message from the stream, and the connection reconnects on
+  drop with exponential backoff (1s–30s, up to 5 attempts).
 </Alert>

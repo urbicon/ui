@@ -37,7 +37,7 @@
 
 <DocsPageLayout
   title="NotificationListener"
-  description="Headless SSE listener that connects to the notification stream. Fires a callback on each incoming notification. No visual output."
+  description="A headless SSE listener that fires a callback on each incoming notification and renders no DOM."
   maxWidth="2xl"
   showToc={true}
   breadcrumbs={[
@@ -59,28 +59,28 @@
     <NoteList>
       <Note title="It renders no DOM at all">
         <p>
-          The component is a lifecycle hook around an
-          <code class="text-text-primary">EventSource</code> — there is no markup, so it adds nothing
-          to the accessibility tree, cannot be focused, and cannot be reached by a screen reader. Placing
-          it anywhere in the page is equally correct.
+          The component wraps an <code class="text-text-primary">EventSource</code> and renders no markup,
+          so it adds nothing to the accessibility tree and cannot be focused or reached by a screen reader.
+          It can sit anywhere in the page.
         </p>
       </Note>
       <Note title="Announcing an arrival is the consumer’s job">
         <p>
           Because it renders nothing, a notification arriving over the stream is completely silent
           for assistive tech. If arrival should be announced, route
-          <code class="text-text-primary">onNotification</code> somewhere that speaks — a live region
-          of your own, a toast, or the badge and centre this component is meant to feed.
+          <code class="text-text-primary">onNotification</code> somewhere that speaks: a live region
+          of your own, a toast, or the <code class="text-text-primary">NotificationBadge</code> and
+          <code class="text-text-primary">NotificationCenter</code> this component feeds.
         </p>
       </Note>
-      <Note title="Reconnection is silent by design">
+      <Note title="Reconnection is silent">
         <p>
           Dropped connections retry with exponential backoff and give up after
-          <code class="text-text-primary">maxReconnectAttempts</code>, reporting through
+          <code class="text-text-primary">maxReconnectAttempts</code>, calling the
           <code class="text-text-primary">onError</code> and
-          <code class="text-text-primary">onReconnect</code> callbacks rather than any UI. If a stalled
-          stream should be visible to the user, that surface is yours to build — silently missing notifications
-          is the failure mode worth designing against.
+          <code class="text-text-primary">onReconnect</code> callbacks rather than showing any UI. If
+          a stalled stream should be visible to the user, building that indicator is your job; silently
+          missing notifications is the failure mode worth designing against.
         </p>
       </Note>
     </NoteList>
