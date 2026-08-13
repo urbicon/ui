@@ -11,8 +11,8 @@
     multiple
     maxFiles={8}
     maxFileSize={5 * 1024 * 1024}
-    title="Bilder hochladen"
-    description="PNG, JPG, WebP, GIF, AVIF — max. 5 MB pro Bild"
+    title="Upload images"
+    description="PNG, JPG, WebP, GIF or AVIF, up to 5 MB each"
   />
 
   <!-- Custom grid preview below the component -->

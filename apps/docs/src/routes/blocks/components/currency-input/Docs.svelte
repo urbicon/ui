@@ -17,10 +17,11 @@
 <Section marker id="examples" title="Examples">
   <div class="space-y-8">
     <CodeExample
-      title="Default — follows the active i18n locale"
-      description="Cents are stored as integers; the € symbol is a static adornment. Grouping and decimal separators follow the active i18n locale (this site runs 'en', so 1,234.56), applied on blur — no explicit locale prop needed."
+      title="Follows the active locale"
+      description="With no locale prop, grouping and decimal separators follow the active <I18nProvider> locale, applied on blur. The bound value stays an integer count of cents; the currency symbol is a fixed adornment."
       code={`<` +
         `script>
+  import { CurrencyInput } from '@urbicon-ui/blocks';
   let priceCents = $state(1234_56); // grouped per the active locale
 <` +
         `/script>
@@ -51,7 +52,7 @@
     </CodeExample>
 
     <CodeExample
-      title="JPY — zero decimal precision"
+      title="JPY: zero decimal precision"
       description="Currencies like JPY have no minor units. Set precision={0} so the integer value is treated as-is."
       code={`<CurrencyInput
   bind:value={yen}
@@ -72,8 +73,8 @@
       <code>CurrencyInput</code> stores values in <strong>minor units</strong> (cents) so summing,
       sorting, and persisting amounts stay free of floating-point drift. When integrating with an
       API or datastore that uses major-unit floats (e.g. <code>1234.56</code> for €1.234,56), use
-      the exported <code>centsToMajor</code> / <code>majorToCents</code> helpers at the boundary — and
-      keep the in-memory representation in cents.
+      the exported <code>centsToMajor</code> / <code>majorToCents</code> helpers at the boundary, and
+      keep the in-memory value in cents.
     </p>
   </div>
 
@@ -113,11 +114,10 @@
 <Section marker id="customization" title="Customization">
   <div class="text-text-secondary space-y-3 text-sm leading-relaxed">
     <p>
-      <code>CurrencyInput</code> wraps <code>&lt;Input&gt;</code>, so all
-      <code>InputProps</code> (label, helper, error, slotClasses, …) flow through. The cents-based
+      <code>CurrencyInput</code> builds on <code>&lt;Input&gt;</code>, so its
+      <code>InputProps</code> (label, helper, error, slotClasses, …) apply here too. The cents-based
       <code>value</code>, <code>locale</code>, <code>currency</code>,
-      <code>symbolPosition</code>, and <code>precision</code> props add the locale-aware behaviour on
-      top.
+      <code>symbolPosition</code>, and <code>precision</code> props add the locale-aware behaviour.
     </p>
     <p>
       Use <code>symbolPosition="none"</code> for headless numeric editing where you want the locale formatting
@@ -144,8 +144,8 @@
     </Note>
     <Note title="Raw value while focused">
       <p>
-        Raw editing while focused — formatting happens on blur, so screen-reader users hear the
-        unambiguous typed value.
+        While the field is focused it shows the raw typed value and formats on blur, so
+        screen-reader users hear the number they typed.
       </p>
     </Note>
   </NoteList>

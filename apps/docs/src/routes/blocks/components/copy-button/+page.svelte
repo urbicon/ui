@@ -28,14 +28,14 @@
 
 <SeoMeta
   title="CopyButton Component"
-  description="One-tap copy-to-clipboard button with built-in success feedback — icon-only or labelled, with the full Button styling vocabulary."
+  description="A copy-to-clipboard button with success feedback, icon-only or labelled."
 />
 
 <DocsPageLayout
   maxWidth="2xl"
   showToc={true}
   title="CopyButton"
-  description="One-tap copy-to-clipboard button with built-in success feedback: the icon swaps to a check and the intent flips to success for a moment. Icon-only by default; pass label for a labelled variant. Forwards variant/intent/size/tier to the underlying Button."
+  description="A copy-to-clipboard button that confirms the copy: the icon becomes a check and the button shows the success colour for a moment. Icon-only by default; pass label for a labelled variant."
   breadcrumbs={[
     { label: 'Blocks', href: '/blocks' },
     { label: 'Components', href: '/blocks/components' }

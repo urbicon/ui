@@ -36,7 +36,7 @@
   maxWidth="2xl"
   showToc={true}
   title="TimeInput"
-  description="Segmented time-of-day field — hour / minute (/ second) cells in one unified control, with per-segment Arrow-key stepping, digit auto-advance, and 12- or 24-hour display. The value is always a canonical 24-hour HH:MM string."
+  description="A field for entering a time of day: hour, minute and optional seconds cells, stepped with the Arrow keys and shown in 12- or 24-hour. The bound value is a 24-hour string (HH:MM, or HH:MM:SS with seconds), or null when empty."
   breadcrumbs={[
     { label: 'Blocks', href: '/blocks' },
     { label: 'Components', href: '/blocks/components' }

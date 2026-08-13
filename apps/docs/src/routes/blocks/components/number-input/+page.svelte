@@ -26,7 +26,7 @@
   ];
 
   const DESC =
-    'Numeric input with steppers, a clamped range, and decimal precision. Built on Input, so it inherits its sizes, variants, and validation surface.';
+    'Numeric input with steppers, a clamped range, and decimal precision. It builds on Input, so its sizes, variants, and error/helper display carry over.';
 </script>
 
 <SeoMeta title="NumberInput Component" description={DESC} />
