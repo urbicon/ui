@@ -20,7 +20,8 @@
     type ButtonGroupValue,
     UnderlineIcon,
     ZoomInIcon,
-    ZoomOutIcon
+    ZoomOutIcon,
+    BlocksProvider
   } from '@urbicon-ui/blocks';
   import { resolve } from '$app/paths';
 
@@ -179,25 +180,32 @@
       isolate
       previewClass="flex justify-center rounded-xl bg-linear-to-br from-indigo-600 via-blue-600 to-cyan-500 px-8 py-12"
     >
-      <ButtonGroup
-        ariaLabel="Map controls"
-        connected={false}
-        variant="ghost"
-        size="sm"
-        slotClasses={{
-          base: 'rounded-commit border border-white/20 bg-white/10 p-1 shadow-[var(--blocks-shadow-lg)] backdrop-blur-xl'
+      <BlocksProvider
+        defaults={{
+          ButtonGroup: {
+            slotClasses: {
+              base: 'rounded-commit border border-white/20 bg-white/10 p-1 shadow-[var(--blocks-shadow-lg)] backdrop-blur-xl'
+            }
+          },
+          Button: {
+            slotClasses: {
+              base: 'text-white hover:bg-white/20'
+            }
+          }
         }}
       >
-        <Button aria-label="Zoom in" class="text-white hover:bg-white/20">
-          <ZoomInIcon size={16} />
-        </Button>
-        <Button aria-label="Zoom out" class="text-white hover:bg-white/20">
-          <ZoomOutIcon size={16} />
-        </Button>
-        <Button aria-label="Recenter" class="text-white hover:bg-white/20">
-          <MapPinIcon size={16} />
-        </Button>
-      </ButtonGroup>
+        <ButtonGroup ariaLabel="Map controls" connected={false} variant="ghost" size="sm">
+          <Button aria-label="Zoom in">
+            <ZoomInIcon size={16} />
+          </Button>
+          <Button aria-label="Zoom out">
+            <ZoomOutIcon size={16} />
+          </Button>
+          <Button aria-label="Recenter">
+            <MapPinIcon size={16} />
+          </Button>
+        </ButtonGroup>
+      </BlocksProvider>
     </CodeExample>
 
     <p class="text-text-secondary text-sm leading-relaxed">
