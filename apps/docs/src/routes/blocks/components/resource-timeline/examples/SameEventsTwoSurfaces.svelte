@@ -2,8 +2,8 @@
   import { Calendar, ResourceTimeline } from '@urbicon-ui/blocks';
   import type { CalendarEvent, DateCategory, TimelineResource } from '@urbicon-ui/blocks';
 
-  // One array, two surfaces. These are `CalendarEvent`s — the shape a Calendar
-  // already holds — and the timeline reads them through its accessors instead of
+  // One array, two views. These are `CalendarEvent`s (the shape a Calendar
+  // already holds), and the timeline reads them through its accessors instead of
   // a converted copy: `getResourceId` finds the lane, `getRange` the nights.
   const events: CalendarEvent[] = [
     {
@@ -33,7 +33,7 @@
   ];
 
   // The same categories drive both legends: `DateCategory` is one type across
-  // the date surfaces, so nothing is mapped here either.
+  // Calendar, Planner and ResourceTimeline, so nothing is mapped here either.
   const categories: DateCategory[] = [
     { id: 'garden', label: 'Garden Room', color: 'oklch(0.62 0.13 250)' },
     { id: 'suite', label: 'Suite', color: 'oklch(0.72 0.15 60)' }
@@ -62,7 +62,7 @@
   />
 
   <!-- The same three stays as month bars: one axis instead of two, which is the
-       whole difference between the surfaces. -->
+       whole difference between the two views. -->
   <Calendar
     view="month"
     views={['month']}
