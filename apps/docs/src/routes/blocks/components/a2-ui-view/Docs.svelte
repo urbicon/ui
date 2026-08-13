@@ -61,54 +61,54 @@ const system = [
   <div class="space-y-6">
     <p class="text-text-secondary max-w-3xl leading-relaxed">
       A2UI (Agent-to-UI) lets an agent describe an interface as <strong>data</strong>, not
-      executable code. The agent never ships components or scripts — it emits JSONL
-      <em>envelopes</em> that reference a <strong>trusted catalog</strong> your app already ships.
-      A2UIView is the renderer for the Urbicon subset of A2UI <code>v0.9.1</code>
+      executable code. The agent emits JSONL <em>envelopes</em> that reference a
+      <strong>trusted catalog</strong> your app already ships, rather than markup or scripts of its
+      own. A2UIView renders the Urbicon subset of A2UI <code>v0.9.1</code>
       <code>basic</code>: it maps the catalog components onto real Urbicon primitives and renders
       them live and interactive.
     </p>
 
     <div class="grid gap-4 sm:grid-cols-3">
       <InfoCard title="Data, not code">
-        Envelopes are inert JSON. Only the mapped components and their declared props ever reach the
-        DOM — nothing the payload says can execute.
+        Envelopes are inert JSON. Only the mapped components and their declared props reach the DOM,
+        so nothing in the payload can execute.
       </InfoCard>
-      <InfoCard title="Whitelist-only">
+      <InfoCard title="Catalog-only">
         Unknown components, unknown props, prototype-pollution keys and function-call bindings are
         rejected, never rendered.
       </InfoCard>
-      <InfoCard title="Fail-loud">
-        Every rejection surfaces as a spec-compatible issue through
-        <code>onValidationError</code> — a consumer can relay it to the agent verbatim.
+      <InfoCard title="Errors are reported">
+        Every rejection is reported as a spec-compatible issue through
+        <code>onValidationError</code>, which a consumer can relay to the agent verbatim.
       </InfoCard>
     </div>
 
     <NoteList>
-      <Note title="The enforcement thesis">
+      <Note title="Why an untrusted payload is safe">
         <p>
-          An agent is untrusted. If it could emit arbitrary markup or handlers, the surface would be
-          an injection vector. A2UIView removes that class of risk by construction: the payload is a
-          reference into a catalog <em>you</em> control. A component name the registry does not know
-          is a fault chip, not a mystery element; a prop the registry does not declare never reaches
-          a Svelte component; a <code>{'{ call }'}</code> function binding resolves to nothing.
-          There is no <code>{'{@html}'}</code>, no dynamic import, no
-          <code>restProps</code> spread from the payload anywhere in the path.
+          The payload only references a catalog <em>you</em> control, so nothing in it executes. A
+          component name the registry does not know renders a fault chip; a prop the registry does
+          not declare is dropped before it reaches a Svelte component; a
+          <code>{'{ call }'}</code> function binding does nothing. The payload never reaches
+          <code>{'{@html}'}</code>, a dynamic import, or a <code>restProps</code> spread.
         </p>
       </Note>
       <Note title="Incremental & two-way">
         <p>
-          The payload is the <em>accumulated</em> envelope array — stream by extending it immutably
-          (<code>{'[...prev, envelope]'}</code>). A2UIView applies only the newly appended
-          envelopes, so local input edits survive a mid-stream update. Inputs write straight into
-          the surface data model; bound text updates live; the model syncs to the agent only on an
-          action.
+          The payload is the <em>accumulated</em> envelope array: stream by extending it immutably (<code
+            >{'[...prev, envelope]'}</code
+          >). A2UIView applies only the newly appended envelopes, so local input edits survive a
+          mid-stream update. Inputs write straight into the surface data model, bound text updates
+          live, and the model syncs to the agent only on an action.
         </p>
       </Note>
       <Note title="Policy-gated media">
         <p>
           <code>Image</code> sources and <code>Text</code> markdown links pass the same
-          strict-by-default <code>urlPolicy</code> as StreamingMarkdown. Every external image is blocked
-          unless its prefix is allowlisted; a blocked image renders an alt chip instead.
+          strict-by-default <code>urlPolicy</code> as StreamingMarkdown. Every external image is
+          blocked unless its prefix is allowlisted; a blocked image shows a labelled placeholder (<code
+            >blockedImageLabel</code
+          >) instead.
         </p>
       </Note>
     </NoteList>
@@ -119,15 +119,15 @@ const system = [
   <div class="space-y-10">
     <CodeExample
       title="Golden-file replay — progressive rendering"
-      description="The agent's envelopes arrive one JSONL line at a time; the consumer only extends the payload array. While streaming, a reference to a not-yet-defined child renders a skeleton placeholder — components fill in as their envelopes land, and the Button dispatches a spec-exact action event when clicked."
+      description="The agent's envelopes arrive one JSONL line at a time; the consumer only extends the payload array. While streaming, a reference to a not-yet-defined child renders a skeleton placeholder, and each component fills in as its envelope lands. Clicking the button dispatches an action event."
       code={liveDemoCode}
     >
       <LiveDemo />
     </CodeExample>
 
     <CodeExample
-      title="Urbicon catalog — the full vocabulary"
-      description="The same engine against the opt-in Urbicon-native catalog (pass it via `catalogs`): real intents and variants, a Section structure layer, RichText (markdown) vs plain Text, a Select / RadioGroup / DatePicker form, an Accordion, and a data schema that type-checks every model write. Basic stays the default; Urbicon is tree-shaken out unless imported."
+      title="Urbicon catalog"
+      description="The same engine against the opt-in Urbicon-native catalog (pass it via `catalogs`): intents and variants, a Section structure layer, RichText (markdown) alongside plain Text, a Select / RadioGroup / DatePicker form, an Accordion, and a data schema that type-checks every model write. Basic stays the default; the Urbicon catalog is tree-shaken out unless you import it."
       code={urbiconDemoCode}
     >
       <UrbiconDemo />
@@ -135,7 +135,7 @@ const system = [
 
     <CodeExample
       title="A broken payload becomes a fault chip"
-      description="Video is not in the basic subset. Instead of rendering something the catalog never sanctioned, A2UIView drops a visible fault chip in its place and reports the fault through onValidationError as a spec-compatible issue the consumer can relay to the agent."
+      description="Video is not in the basic subset. Rather than render a component the catalog does not define, A2UIView shows a visible fault chip in its place and reports the fault through onValidationError as a spec-compatible issue the consumer can relay to the agent."
       code={brokenPayloadCode}
     >
       <BrokenPayload />
@@ -150,11 +150,11 @@ const system = [
         Wire it in via <code>partRenderers.a2ui</code>
       </h3>
       <p class="text-text-secondary mb-4 max-w-3xl text-sm leading-relaxed">
-        A2UIView is deliberately <strong>not</strong> a default ChatMessage part renderer — keeping
-        it opt-in keeps it out of the base conversation bundle. Register it per surface as the
+        A2UIView is <strong>not</strong> a default ChatMessage part renderer, so it stays out of the
+        base conversation bundle until you opt in. Register it per surface as the
         <code>a2ui</code> renderer; <code>ChatMessageList</code> forwards
         <code>partRenderers</code> to every <code>ChatMessage</code>. Couple the part's
-        <code>streaming</code> flag to the owning message's status so dangling references degrade to placeholders
+        <code>streaming</code> flag to the owning message's status, so dangling references show as placeholders
         while the reply is in flight and become faults once it settles.
       </p>
       <CodeExample title="ChatMessage wiring" code={wiringCode} language="svelte" preview={false} />
@@ -167,10 +167,10 @@ const system = [
         envelope rules, the component subset (props, required flags, enums), the binding forms (<code
           >{'{ path }'}</code
         >
-        only — function calls are explicitly forbidden), the
+        only; function calls are forbidden), the
         <code>root</code> rule, <code>child</code>-vs-<code>children</code>, the template form and
         the action rules, straight from the registry that validates the payload. It omits the
-        transport — how envelopes reach the client is app-specific, so append that yourself.
+        transport: how envelopes reach the client is app-specific, so append that yourself.
       </p>
       <CodeExample title="System prompt" code={promptCode} language="ts" preview={false} />
     </div>
@@ -179,13 +179,13 @@ const system = [
 
 <Section marker id="accessibility" title="Accessibility">
   <NoteList>
-    <Note title="Real controls, real labels">
+    <Note title="Controls come from real primitives">
       <p>
-        Each catalog component maps onto a real Urbicon primitive — <code>TextField</code> to
+        Each component in the basic catalog maps onto a Urbicon primitive: <code>TextField</code> to
         Input/Textarea, <code>CheckBox</code> to Checkbox, <code>ChoicePicker</code> to RadioGroup,
         <code>Slider</code>
-        to Slider, <code>DateTimeInput</code> to DatePicker/TimeInput — so labels, roles and
-        keyboard behaviour come from the library, not from ad-hoc markup. A component's
+        to Slider, <code>DateTimeInput</code> to DatePicker/TimeInput. So labels, roles and keyboard
+        behaviour come from the library rather than ad-hoc markup, and a component's
         <code>accessibility.label</code> becomes an <code>aria-label</code>.
       </p>
     </Note>
@@ -200,8 +200,8 @@ const system = [
       <p>
         A rejected component renders a fault chip with a readable label (<code
           >unsupportedLabel</code
-        >) alongside its danger icon — the reason is text, not colour alone. Envelope-level faults
-        render in a danger <code>Alert</code> with its
+        >) next to its danger icon, so the reason is conveyed as text and not by colour alone.
+        Envelope-level faults render in a danger <code>Alert</code> with its
         <code>errorTitle</code>.
       </p>
     </Note>

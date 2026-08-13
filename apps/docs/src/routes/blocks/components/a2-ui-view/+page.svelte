@@ -27,37 +27,16 @@
     { id: 'types', title: 'Types' },
     { id: 'installation', title: 'Installation' }
   ];
-
-  // Two clean catalog-conformant payloads for the playground. Both are what an
-  // agent would emit as JSONL — a `createSurface` header, one `updateComponents`
-  // tree of catalog components, and an `updateDataModel` seed. The consumer just
-  // hands the accumulated array to A2UIView.
-
-  function codeGenerator(vals: Record<string, unknown>): string {
-    const streaming = vals.streaming === true;
-    return `<!-- Wire A2UIView in as the 'a2ui' part renderer of a ChatMessage. -->
-<ChatMessageList {messages} partRenderers={{ a2ui: a2uiPart }} />
-
-{#snippet a2uiPart(part)}
-  <A2UIView
-    payload={part.payload}
-    streaming={${streaming}}
-    {urlPolicy}
-    onAction={(event) => sendUserTurn(\`[ui-action] \${JSON.stringify(event)}\`)}
-    onValidationError={(issues) => reportToAgent(issues)}
-  />
-{/snippet}`;
-  }
 </script>
 
 <SeoMeta
   title="A2UIView Component"
-  description="Renders a trusted-catalog A2UI (Agent-to-UI, v0.9.1 basic subset) payload into live, interactive Urbicon components — whitelist-only and fail-loud."
+  description="Renders an A2UI payload (a UI an agent describes as JSON) into live, interactive Urbicon components. Only components from a catalog you allow are rendered; anything outside it is reported, not shown."
 />
 
 <DocsPageLayout
   title="A2UIView"
-  description="Renders a trusted-catalog A2UI (Agent-to-UI, v0.9.1 basic subset) payload into live, interactive Urbicon components — whitelist-only and fail-loud."
+  description="Renders an A2UI payload (a UI an agent describes as JSON) into live, interactive Urbicon components. Only components from a catalog you allow are rendered; anything outside it is reported, not shown."
   maxWidth="2xl"
   showToc={true}
   breadcrumbs={[
