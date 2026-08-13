@@ -119,8 +119,7 @@
 <Section marker id="customization" title="Customization">
   <div class="text-text-secondary space-y-3 text-sm leading-relaxed">
     <p>
-      Every visual surface is a named slot: <code>root</code> (what <code>class</code> also
-      targets),
+      Every visible part is a named slot: <code>root</code> (what <code>class</code> also targets),
       <code>label</code>, <code>group</code> (the cell row), <code>cell</code>,
       <code>separator</code>, and <code>message</code>. Pass <code>slotClasses</code> to merge
       classes onto any of them, or <code>unstyled</code> to drop all default <code>tv()</code>

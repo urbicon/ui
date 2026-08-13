@@ -9,7 +9,7 @@
 <Section marker id="examples" title="Examples">
   <div class="space-y-8">
     <CodeExample
-      title="Full conversation surface"
+      title="Full conversation shell"
       description="The header and composer stay pinned while the ChatMessageList body scrolls. You hold the messages array in $state and append to it as answers stream in."
       preview={false}
       code={`<script lang="ts">

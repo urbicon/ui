@@ -136,7 +136,7 @@
       For a single date use
       <a href={resolve('/blocks/components/date-picker')} class="text-primary hover:underline"
         >DatePicker</a
-      >; for the calendar surface without an input, see
+      >; for the calendar without an input, see
       <a href={resolve('/blocks/components/calendar')} class="text-primary hover:underline"
         >Calendar</a
       >. See

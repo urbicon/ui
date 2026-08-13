@@ -130,8 +130,8 @@
     </Note>
     <Note title="The overlap ring is decorative">
       <p>
-        The overlap ring uses <code>borderColor</code> (default: the base surface). It is decorative;
-        set it to match the surface the group sits on so the cut-out effect holds.
+        The overlap ring uses <code>borderColor</code> (default: the background behind it). It is decorative;
+        set it to match the background the group sits on so the cut-out effect holds.
       </p>
     </Note>
   </NoteList>

@@ -98,7 +98,7 @@ const system = [
           The payload is the <em>accumulated</em> envelope array: stream by extending it immutably (<code
             >{'[...prev, envelope]'}</code
           >). A2UIView applies only the newly appended envelopes, so local input edits survive a
-          mid-stream update. Inputs write straight into the surface data model, bound text updates
+          mid-stream update. Inputs write straight into the view's data model, bound text updates
           live, and the model syncs to the agent only on an action.
         </p>
       </Note>
@@ -151,7 +151,7 @@ const system = [
       </h3>
       <p class="text-text-secondary mb-4 max-w-3xl text-sm leading-relaxed">
         A2UIView is <strong>not</strong> a default ChatMessage part renderer, so it stays out of the
-        base conversation bundle until you opt in. Register it per surface as the
+        base conversation bundle until you opt in. Register it as the
         <code>a2ui</code> renderer; <code>ChatMessageList</code> forwards
         <code>partRenderers</code> to every <code>ChatMessage</code>. Couple the part's
         <code>streaming</code> flag to the owning message's status, so dangling references show as placeholders

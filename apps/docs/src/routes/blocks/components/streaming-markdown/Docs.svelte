@@ -69,7 +69,7 @@
       <p>
         Markdown <code class="text-text-primary">#</code> maps to the DOM level set by
         <code class="text-text-primary">headingLevelStart</code> (deeper levels shift along, clamped
-        at <code class="text-text-primary">h6</code>). In a chat surface set it to
+        at <code class="text-text-primary">h6</code>). In a chat, set it to
         <code class="text-text-primary">3</code> so a message's own headings slot beneath the page
         <code class="text-text-primary">&lt;h1&gt;</code> instead of competing with it. Visual sizing
         keeps following the author's level independently.

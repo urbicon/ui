@@ -50,7 +50,7 @@
 <Section marker id="setup" title="Setup">
   <p class="text-text-secondary mb-4 max-w-2xl text-sm leading-relaxed">
     Mount one <code>GuideProvider</code> near your app root and give it a
-    <code>GuideController</code>. Every Guide surface inside then finds that controller
+    <code>GuideController</code>. Every Guide component inside then finds that controller
     automatically. Mark any UI element as a topic with <code>data-guide="&lt;id&gt;"</code>; tours,
     hints, markers, and mentions all resolve through that one namespace.
   </p>
@@ -276,7 +276,7 @@
 
 <Section marker id="tour" title="Guided tour & beacon">
   <p class="text-text-secondary mb-4 max-w-2xl text-sm leading-relaxed">
-    The guided tour is the most intrusive surface: a spotlight that dims everything but the current
+    The guided tour is the most intrusive of them: a spotlight that dims everything but the current
     step's target, plus an anchored bubble. A <code>GuideBeacon</code> is a pulsing hotspot that starts
     the tour when clicked.
   </p>
@@ -372,7 +372,7 @@
 <Section marker id="analytics" title="Analytics">
   <p class="text-text-secondary mb-4 max-w-2xl text-sm leading-relaxed">
     A tour reports its funnel and drop-off through three optional hooks on <code>GuideTour</code>,
-    which fire no matter which surface drives the tour. A throwing handler is caught, so it cannot
+    which fire no matter which component drives the tour. A throwing handler is caught, so it cannot
     stop the tour. See <code>GuideStepEvent</code> / <code>GuideEndEvent</code> in the API reference for
     the payloads.
   </p>
@@ -484,7 +484,8 @@
 
 <Section marker id="customization" title="Customization">
   <p class="text-text-secondary mb-4 max-w-2xl text-sm leading-relaxed">
-    Every surface supports <code>unstyled</code>, per-slot <code>slotClasses</code>, and named
+    Every Guide component supports <code>unstyled</code>, per-slot <code>slotClasses</code>, and
+    named
     <code>preset</code>s. Two tokens tune the tour's spotlight scrim and the additive highlight
     ring.
   </p>

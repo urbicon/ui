@@ -28,14 +28,14 @@
 
 <SeoMeta
   title="Chat Component"
-  description="A full-height layout shell for a chat surface: a pinned header, a scrollable message body, and a pinned composer."
+  description="A full-height layout shell for a chat: a pinned header, a scrollable message body, and a pinned composer."
 />
 
 <DocsPageLayout
   maxWidth="2xl"
   showToc={true}
   title="Chat"
-  description="A full-height layout shell for a chat surface: a pinned header, a scrollable message body, and a pinned composer. It holds no state of its own — the messages array lives in your component."
+  description="A full-height layout shell for a chat: a pinned header, a scrollable message body, and a pinned composer. It holds no state of its own — the messages array lives in your component."
   breadcrumbs={[
     { label: 'Blocks', href: resolve('/blocks') },
     { label: 'Components', href: resolve('/blocks/components') }
