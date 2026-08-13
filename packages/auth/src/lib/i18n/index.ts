@@ -6,7 +6,7 @@ import type { AuthLocale, DeepPartial, PartialAuthLocale } from './keys.js';
 // The package's locale bundles. en/de are `satisfies AuthLocale` (literal
 // structure preserved + parity enforced). The bundle-based API below
 // (useAuthLocale / resolveAuthLocale / mergeAuthLocale) is the only i18n
-// surface — the former key-based twin (authI18n/authT/at) was removed in R21:
+// surface — the former key-based twin (authI18n/authT/at) was removed:
 // nothing consumed it, and two competing APIs obscured the real one.
 const authTranslations = { en, de };
 
@@ -50,7 +50,7 @@ export function resolveAuthLocale(locale?: Locale): AuthLocale {
 
 /**
  * Deep-merge consumer locale `overrides` over a complete `base` bundle — THE
- * single place a `PartialAuthLocale` becomes a full `AuthLocale` (review R19).
+ * single place a `PartialAuthLocale` becomes a full `AuthLocale`.
  * Every component resolves its `t` prop through this, so overriding one string
  * (`{ auth: { login: { title: 'Welcome back' } } }`) keeps every other key from
  * the active built-in bundle instead of blanking whole subtrees. Objects merge

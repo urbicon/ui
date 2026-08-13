@@ -321,8 +321,8 @@ export interface EmailConfig {
  * fail the request (a failed refresh-token revoke on logout, a backup-code
  * cleanup error, an invitation-email failure). Console-compatible, so the
  * default is simply `console`; pass your structured logger to route these
- * into an error tracker instead of stdout (review R11 — previously these
- * paths were console-only and invisible to consumer logging).
+ * into an error tracker instead of stdout; previously these paths were
+ * console-only and invisible to consumer logging.
  *
  * Exceptions thrown by the sink are swallowed (`createAuthDeps` shields every
  * call): several sites log inside detached fire-and-forget work or after a
@@ -502,7 +502,7 @@ export interface AuthConfig<R extends string = string> {
     /**
      * Fires immediately **before** a self-service account deletion
      * (`createDeleteAccountHandler`) removes the row — the name says so, unlike
-     * the perfect-tense `onAccountDeleted` it replaces (review R24). Receives
+     * the perfect-tense `onAccountDeleted` it replaces. Receives
      * the sanitized user so the consumer can archive or anonymise app-owned
      * data while it still exists. It runs after re-auth and inside the request,
      * so a throw **aborts** the deletion (fail-closed: don't erase if archiving
