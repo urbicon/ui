@@ -103,16 +103,16 @@ export const POST = createForgotPasswordHandler(authDeps);
 
 <DocsPageLayout
   title="Auth"
-  description="Zero-dependency authentication, user management, and notification system for SvelteKit. JWT sessions, WebAuthn passkeys, push notifications, and pre-built UI — all powered by Web Crypto API."
+  description="Authentication, user management, and notifications for a SvelteKit app: password and passkey login, sessions, registration with invitation gates, password reset, two-factor, and push. No runtime dependencies; sessions, passwords, passkeys and push all run on the Web Crypto API."
   maxWidth="2xl"
   showToc={true}
   {navigation}
 >
   <Section id="overview" title="Overview" titleHidden intent="primary">
     <p class="text-text-secondary mb-4">
-      <code>@urbicon-ui/auth</code> provides everything you need for auth in a SvelteKit app: session
-      management, registration with invitation gates, password reset flows, passkey login, real-time notifications,
-      and push — with zero runtime dependencies.
+      <code>@urbicon-ui/auth</code> covers registration, login (password or passkey), password reset,
+      sessions, two-factor, and notifications, with zero runtime dependencies. Each flow has two halves:
+      a server handler you mount on an API route, and a UI component that calls it.
     </p>
     <p class="text-text-secondary">
       All UI components use <code>@urbicon-ui/blocks</code> primitives, support
@@ -120,20 +120,20 @@ export const POST = createForgotPasswordHandler(authDeps);
       from the <code>@urbicon-ui/i18n</code> context.
     </p>
     <p class="text-text-secondary mt-4">
-      The complete reference — architecture, staged setup, federation (SSO), the adapter contract,
-      and the known-limitations catalog with the production checklist — is the
+      For the complete reference — architecture, staged setup, federation (SSO), the adapter
+      contract, and the known-limitations catalog with the production checklist — see the
       <a href={resolve('/auth/guide')} class="text-primary hover:underline"
         >Auth Reference (AUTH.md)</a
-      >, rendered from the same document that ships inside the npm package.
+      >.
     </p>
   </Section>
 
   <Section id="architecture" title="Architecture">
     <p class="text-text-secondary mb-4">
       Each auth flow has two sides: a <strong>UI component</strong> (client) and a
-      <strong>handler factory</strong> (server). The UI components send <code>fetch</code> requests to
-      your SvelteKit API routes. The handler factories create those endpoints with all security built
-      in.
+      <strong>handler factory</strong> (server). The UI component sends a <code>fetch</code> to your SvelteKit
+      API route; the handler factory is the endpoint behind it. What each handler verifies, hashes, or
+      rate-limits is the last column below.
     </p>
 
     <div class="border-border-subtle overflow-x-auto rounded-lg border">
@@ -166,8 +166,8 @@ export const POST = createForgotPasswordHandler(authDeps);
     </div>
 
     <p class="text-text-tertiary mt-3 text-xs">
-      All server handlers are imported from <code>@urbicon-ui/auth/server</code>. Database access is
-      abstracted via the Adapter pattern — a Prisma adapter is included, custom adapters implement
+      All server handlers are imported from <code>@urbicon-ui/auth/server</code>. Database access
+      goes through the Adapter pattern: a Prisma adapter is included, and custom adapters implement
       the repository interfaces.
     </p>
   </Section>
@@ -181,7 +181,7 @@ export const POST = createForgotPasswordHandler(authDeps);
         Invitation-gated registration with password requirements checklist.
       </InfoCard>
       <InfoCard title="ForgotPasswordPage" href={resolve('/auth/components/forgot-password-page')}>
-        Password reset request — timing-safe to prevent email enumeration.
+        Password reset request; timing-safe to prevent email enumeration.
       </InfoCard>
       <InfoCard title="ResetPasswordPage" href={resolve('/auth/components/reset-password-page')}>
         Password reset with confirmation field.
@@ -198,10 +198,10 @@ export const POST = createForgotPasswordHandler(authDeps);
         Admin panel for invitation-gated registration with email toggle.
       </InfoCard>
       <InfoCard title="PasskeyManager" href={resolve('/auth/components/passkey-manager')}>
-        WebAuthn credential management — register and delete passkeys.
+        WebAuthn credential management: register and delete passkeys.
       </InfoCard>
       <InfoCard title="AccountSettings" href={resolve('/auth/components/account-settings')}>
-        Self-service panel — change name, email and password, delete the account.
+        Self-service panel: change name, email and password, or delete the account.
       </InfoCard>
       <InfoCard title="SessionManager" href={resolve('/auth/components/session-manager')}>
         Active-session list with "this device" badge and per-session sign-out.
@@ -218,7 +218,7 @@ export const POST = createForgotPasswordHandler(authDeps);
         Notification list with mark-as-read, relative timestamps, and custom items.
       </InfoCard>
       <InfoCard title="NotificationBadge" href={resolve('/auth/components/notification-badge')}>
-        Unread count badge — hidden when count is 0.
+        Unread count badge, hidden when the count is 0.
       </InfoCard>
       <InfoCard
         title="NotificationListener"
@@ -245,7 +245,8 @@ export const POST = createForgotPasswordHandler(authDeps);
 
     <h3 class="text-text-primary mt-6 mb-2 text-lg font-semibold">2. Add the SvelteKit hook</h3>
     <p class="text-text-secondary mb-2 text-sm">
-      The handle hook validates sessions, protects routes, adds CSRF and security headers.
+      The handle hook validates the session, redirects unauthenticated requests off protected
+      routes, and adds CSRF and security headers.
     </p>
     <CodeExample code={hookCode} language="typescript" preview={false} />
 
