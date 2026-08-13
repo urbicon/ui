@@ -147,25 +147,35 @@ test.describe('Table core flows', () => {
       const pitches = tops.slice(1).map((t, i) => t - tops[i]);
       return {
         rowCount: rows.length,
-        // Both sides come off the same float source and are compared with a
-        // tolerance below. Rounding them into a Set instead reports two pitches
-        // for one uniform table whenever the true pitch is fractional — a
-        // collapsed 0.5px border, a non-default root font size, a fractional
-        // device pixel ratio — and fails on a table that is in fact perfect.
-        minPitch: Math.min(...pitches),
-        maxPitch: Math.max(...pitches),
-        rowHeight: rows[0].getBoundingClientRect().height,
+        pitchCount: pitches.length,
+        // Compared with a tolerance below rather than rounded into a Set:
+        // rounding reports two pitches for one uniform table whenever the true
+        // pitch is fractional — a collapsed 0.5px border, a non-default root
+        // font size, a fractional device pixel ratio — and fails on a table
+        // that is in fact perfect. `?? 0` because `Math.min()` of nothing is
+        // `Infinity`, which would satisfy the spread assertion vacuously.
+        minPitch: pitches.length ? Math.min(...pitches) : 0,
+        maxPitch: pitches.length ? Math.max(...pitches) : 0,
+        rowHeight: rows[0]?.getBoundingClientRect().height ?? 0,
+        // The stride the virtualizer itself used, which is `offsetHeight` — an
+        // integer. The spacer is a multiple of THAT, so it has to be compared
+        // against that number and not against the fractional rect height:
+        // 2000 × a 0.4px difference is 800px of false alarm.
+        strideUsed: rows[0]?.offsetHeight ?? 0,
         spacerHeight: spacer.getBoundingClientRect().height
       };
     });
 
-    expect(geometry.rowCount).toBeGreaterThan(0);
+    // Enough rows to have something to compare — the fixture renders a window
+    // of ~18. Without this the pitch assertions pass over a list they never saw.
+    expect(geometry.rowCount).toBeGreaterThan(1);
+    expect(geometry.pitchCount).toBeGreaterThan(0);
     // One pitch for every pair of rows, and it is the row's own height: no row
     // overlaps its neighbour and none leaves a gap.
     expect(geometry.maxPitch - geometry.minPitch).toBeLessThan(0.5);
     expect(Math.abs(geometry.minPitch - geometry.rowHeight)).toBeLessThan(0.5);
-    // The scroll space is exactly that pitch per row — the fixture holds 2000.
-    expect(Math.abs(geometry.spacerHeight - 2000 * geometry.rowHeight)).toBeLessThan(1);
+    // The scroll space is exactly that stride per row — the fixture holds 2000.
+    expect(geometry.spacerHeight).toBe(2000 * geometry.strideUsed);
 
     // Scrolled to the very end, the last row ends at the bottom of the viewport.
     // This is the assertion the 208px strip failed.
@@ -201,17 +211,18 @@ test.describe('Table core flows', () => {
     // looks right.
     const textRight = (locator: typeof scoreHeader, label: string) =>
       locator.evaluate((el, name) => {
-        const host =
-          [...el.querySelectorAll('span')].find((s) => s.textContent?.trim() === name) ??
-          (el.firstElementChild as HTMLElement | null) ??
-          el;
+        const holdsOwnText = (node: Element) =>
+          [...node.childNodes].some((c) => c.nodeType === Node.TEXT_NODE && c.textContent?.trim());
+        const host = [el, ...el.querySelectorAll('*')].filter(holdsOwnText).at(-1);
+        if (!host) throw new Error(`No rendered text to measure in ${name}.`);
+
         const range = document.createRange();
         range.selectNodeContents(host);
         return range.getBoundingClientRect().right;
       }, label);
 
-    const headerRight = await textRight(scoreHeader, 'Score');
-    const cellRight = await textRight(firstScoreCell, ' ');
+    const headerRight = await textRight(scoreHeader, 'the score header');
+    const cellRight = await textRight(firstScoreCell, 'the score cell');
 
     // Before the fix the header text sat ~40px inside the number's edge.
     expect(Math.abs(headerRight - cellRight)).toBeLessThan(2);

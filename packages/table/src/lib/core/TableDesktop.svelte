@@ -158,12 +158,16 @@
   // mid-press would shrink every row in the list by half a percent. The layout
   // box ignores the transform.
   $effect(() => {
-    // The three inputs the observer below cannot see. `size` and a consumer's
-    // own row class change the height without changing the container's; the row
-    // count matters because the rows this measures may not exist yet.
+    // The inputs the observer below cannot see. `size` and a consumer's own row
+    // class change the height without changing the container's.
     void size;
     void styleConfig.slotClasses.row;
-    void virtualItems.length;
+    // Whether there are rows at all — NOT how many. What this effect needs to
+    // hear is the empty → non-empty transition, when the rows it measures come
+    // into existence. Depending on the count itself would rebuild the observer
+    // on every keystroke of a search and every live-update push, which is the
+    // churn the `untrack` below exists to avoid.
+    void (virtualItems.length === 0);
 
     if (!scrollContainerEl || !virtualizedActive) {
       measuredRowHeight = null;

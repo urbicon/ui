@@ -333,6 +333,8 @@ export type HeaderIndicatorVariantProps = VariantProps<typeof headerIndicatorVar
 /**
  * ── Where the table stops being a grid and becomes a list of records ─────────
  *
+ * The widths the switch offers.
+ *
  * The step is a property of the COLUMNS, not of the component: a four-column
  * index fits in 29rem, a twelve-column report does not fit in 60. One constant
  * cannot serve both, and until this axis existed there was only one — 48rem,
@@ -340,6 +342,26 @@ export type HeaderIndicatorVariantProps = VariantProps<typeof headerIndicatorVar
  * "is this a phone". Read against a box it means something else entirely, and
  * the landing page's own 32rem inventory column was rendering cards while its
  * four columns had room to spare.
+ *
+ * Spelled out rather than derived from the map (`keyof typeof …`), because this
+ * name is what a reader meets: it is the type of `TableProps.cardsBelow`, so
+ * docs-gen prints it on the component page, in `llms-full.txt` and in the MCP
+ * catalog. Derived, all three showed `keyof typeof CARDS_BELOW_STEPS` pointing
+ * at a module-private const — a type resolving to nothing anyone can read, and
+ * no way left to discover the seven values.
+ */
+export type CardsBelowStep = '24rem' | '28rem' | '32rem' | '36rem' | '42rem' | '48rem' | '56rem';
+
+/**
+ * The classes each step compiles to.
+ *
+ * Typed as a `Record` of {@link CardsBelowStep}, so the union above is the
+ * source and this map cannot drift from it: a width added to the type without
+ * classes fails to compile, and classes without a width in the type are an
+ * excess-property error. `Table.svelte` validates incoming values against
+ * `CARDS_BELOW_VALUES`, read off this map — so the accepted values, the
+ * compiled classes and the type are one decision in three places that the
+ * compiler keeps agreeing.
  *
  * Each step carries the two complementary halves of one switch, and they have
  * to stay each other's exact complement — the failure mode of two copies is
@@ -351,32 +373,13 @@ export type HeaderIndicatorVariantProps = VariantProps<typeof headerIndicatorVar
  * The classes must stay literal: Tailwind finds class names by scanning source
  * text, so `@max-[${step}]:hidden` built from a constant would compile to no
  * CSS at all — a "single source of truth" that silently renders both layouts at
- * once. Standing this map on its own is what lets everything else be derived
- * from it anyway: {@link CardsBelowStep} is its keys, and `Table.svelte`
- * validates against those same keys, so the accepted values, the compiled
- * classes and the type cannot drift apart.
+ * once.
  *
  * There used to be a third literal per step — a `min-w` on the table, one step
  * lower, meant to stop the grid being squeezed to mush. It could never fire:
  * the grid only renders at or above its own step, so the container is already
  * wider than a floor set below it. Removed rather than kept as decoration.
  */
-/**
- * The widths the switch offers.
- *
- * Spelled out rather than derived from the map below (`keyof typeof …`),
- * because this name is what a reader meets: it is the type of `TableProps.
- * cardsBelow`, so docs-gen prints it on the component page, in `llms-full.txt`
- * and in the MCP catalog. Derived, all three showed `keyof typeof
- * CARDS_BELOW_STEPS` pointing at a module-private const — a type that resolves
- * to nothing anyone can read, and no way left to discover the seven values.
- *
- * The map is then typed as a `Record` of this union, so the two cannot drift:
- * a step added here without classes fails to compile, and classes without a
- * step here are an excess-property error.
- */
-export type CardsBelowStep = '24rem' | '28rem' | '32rem' | '36rem' | '42rem' | '48rem' | '56rem';
-
 const CARDS_BELOW_STEPS: Record<CardsBelowStep, { desktopOnly: string; mobileOnly: string }> = {
   '24rem': { desktopOnly: '@max-[24rem]:hidden', mobileOnly: '@min-[24rem]:hidden' },
   '28rem': { desktopOnly: '@max-[28rem]:hidden', mobileOnly: '@min-[28rem]:hidden' },

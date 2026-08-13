@@ -15,8 +15,11 @@ describe('ROW_HEIGHTS', () => {
   // It never looked at the classes it was named after, so it stayed green
   // through the entire two-year disagreement.
   it('is the row height class in pixels', () => {
+    // `toEqual` on the derived side, which is the one that can grow a key
+    // nobody meant: `toMatchObject` would let a fourth size or an alias through
+    // on exactly the output this test exists to pin.
     expect(TABLE_DIMENSIONS.height.row).toEqual({ sm: 'h-8', md: 'h-10', lg: 'h-12' });
-    expect(ROW_HEIGHTS).toMatchObject({ sm: 32, md: 40, lg: 48 });
+    expect(ROW_HEIGHTS).toEqual({ sm: 32, md: 40, lg: 48 });
   });
 
   it('keeps the row height in a shape the derivation can read', () => {

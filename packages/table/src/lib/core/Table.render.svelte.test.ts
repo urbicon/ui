@@ -89,10 +89,13 @@ let comp: Record<string, unknown> | undefined;
 function mountTable(props: Record<string, unknown> = {}) {
   target = document.createElement('div');
   document.body.appendChild(target);
-  comp = mount(TableHarness, { target, props: { items: ROWS, ...props } }) as Record<
-    string,
-    unknown
-  >;
+  // The object is handed over as-is rather than spread into a fresh one:
+  // spreading a `$state` props object copies the values out of the proxy, so a
+  // test that mounts and then assigns (`props.items = …`) would be writing to
+  // something the component no longer reads. Defaulting in place keeps both
+  // call styles on this one helper.
+  if (!('items' in props)) props.items = ROWS;
+  comp = mount(TableHarness, { target, props }) as Record<string, unknown>;
   flushSync();
   return target;
 }
@@ -153,17 +156,14 @@ describe('Table — mounted', () => {
   });
 
   it('a later items prop reaches the rendered rows', () => {
-    const props = $state({ items: ROWS });
-    target = document.createElement('div');
-    document.body.appendChild(target);
-    comp = mount(TableHarness, { target, props }) as Record<string, unknown>;
-    flushSync();
-    expect(target.querySelectorAll('tbody tr').length).toBe(3);
+    const props = $state<Record<string, unknown>>({ items: ROWS });
+    const el = mountTable(props);
+    expect(el.querySelectorAll('tbody tr').length).toBe(3);
 
     props.items = [...ROWS, { id: 4, name: 'Barbara', amount: 400 }];
     flushSync();
-    expect(target.querySelectorAll('tbody tr').length).toBe(4);
-    expect(target.textContent).toContain('Barbara');
+    expect(el.querySelectorAll('tbody tr').length).toBe(4);
+    expect(el.textContent).toContain('Barbara');
   });
 });
 
@@ -634,8 +634,13 @@ describe('Table — the view object, mounted', () => {
     const restoreViewport = stubLayoutProp('clientHeight', 400);
     // A data row and the empty state have to measure differently, or the test
     // cannot tell which one the measurement read.
+    //
+    // 30, deliberately NOT 40: `ROW_HEIGHTS.md` is 40, so a data row stubbed at
+    // 40 makes "measured a data row" and "never measured anything and fell back"
+    // produce the same spacer. With that value the re-measure dependency was
+    // unpinned — deleting it from TableDesktop left this green.
     const restoreRow = stubLayoutProp('offsetHeight', (el) =>
-      el.hasAttribute('data-row-index') ? 40 : 200
+      el.hasAttribute('data-row-index') ? 30 : 200
     );
     try {
       const props = $state<Record<string, unknown>>({
@@ -643,24 +648,20 @@ describe('Table — the view object, mounted', () => {
         virtualized: true,
         virtualHeight: '400px'
       });
-      target = document.createElement('div');
-      document.body.appendChild(target);
-      comp = mount(TableHarness, { target, props }) as Record<string, unknown>;
-      flushSync();
+      const el = mountTable(props);
 
       // Rows arrive after the empty state has been on screen.
       props.items = Array.from({ length: 100 }, (_, i) => ({ id: i, name: `R${i}`, amount: i }));
       flushSync();
 
-      const scroller = target.querySelector<HTMLElement>(
-        '[data-testid="virtual-scroll-container"]'
-      );
+      const scroller = el.querySelector<HTMLElement>('[data-testid="virtual-scroll-container"]');
       const spacer = scroller?.firstElementChild as HTMLElement | null;
 
-      // 100 data rows at 40px. Latched onto the 200px empty-state row it would
-      // read 20000px, and every scroll offset would stride five rows per row.
-      expect(spacer?.style.height).toBe('4000px');
-      expect(target.querySelectorAll('tbody tr[data-row-index]').length).toBeGreaterThan(0);
+      // 100 data rows at 30px. Latched onto the 200px empty-state row it reads
+      // 20000px; never re-measured at all it reads 4000px, the `ROW_HEIGHTS.md`
+      // fallback. Only a fresh measurement of a data row gives 3000px.
+      expect(spacer?.style.height).toBe('3000px');
+      expect(el.querySelectorAll('tbody tr[data-row-index]').length).toBeGreaterThan(0);
     } finally {
       restoreRow();
       restoreViewport();
