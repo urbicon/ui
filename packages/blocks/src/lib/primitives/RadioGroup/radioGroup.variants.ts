@@ -177,6 +177,14 @@ export const radioItemVariants = tv({
     // out at `variant.filled` in button.variants.ts): it would otherwise be a
     // second copy of the fill colour that the ladder above leaves behind.
     //
+    // The Button comment's consolation — that the redrawn edge is confined to
+    // the rounded ends — does NOT transfer here, and the difference is worth
+    // knowing before someone reuses that sentence again: the indicator is a
+    // full circle (`--radius-control: 9999px`), so its entire outline is
+    // curve. 134 of 1600 px move at 2× DPR, ≈ the circumference. It is the
+    // same antialiasing seam, just everywhere at once — the fill and the dot
+    // are untouched, which is what carries the state.
+    //
     // The dot keeps ONE colour across all three stops: it is the intent's
     // paired on-colour, and `style/contrast.test.ts` measures exactly that
     // pairing (`--color-<intent>` / `-hover` / `-active` against

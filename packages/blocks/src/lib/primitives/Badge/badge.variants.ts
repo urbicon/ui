@@ -78,7 +78,13 @@ export const badgeVariants = tv({
       neutral: {}
     },
     variant: {
-      filled: {},
+      // Transparent, not the intent stop — the same rule Button states at
+      // length: a filled surface carries its state in the fill, and a border
+      // repeating that fill only falls behind when the `interactive`
+      // compounds below walk `hover:bg-*-hover` / `active:bg-*-active`.
+      // `border` stays in the base slot for geometry parity with `outlined`,
+      // and the background paints under it.
+      filled: { base: 'border-transparent' },
       outlined: {
         base: 'bg-transparent border-2'
       },
@@ -335,42 +341,42 @@ export const badgeVariants = tv({
       intent: 'primary',
       variant: 'filled',
       class: {
-        base: 'bg-primary text-text-on-primary border-primary'
+        base: 'bg-primary text-text-on-primary'
       }
     },
     {
       intent: 'secondary',
       variant: 'filled',
       class: {
-        base: 'bg-secondary text-text-on-fill border-secondary'
+        base: 'bg-secondary text-text-on-fill'
       }
     },
     {
       intent: 'success',
       variant: 'filled',
       class: {
-        base: 'bg-success text-text-on-fill border-success'
+        base: 'bg-success text-text-on-fill'
       }
     },
     {
       intent: 'warning',
       variant: 'filled',
       class: {
-        base: 'bg-warning text-text-on-warning border-warning'
+        base: 'bg-warning text-text-on-warning'
       }
     },
     {
       intent: 'danger',
       variant: 'filled',
       class: {
-        base: 'bg-danger text-text-on-fill border-danger'
+        base: 'bg-danger text-text-on-fill'
       }
     },
     {
       intent: 'neutral',
       variant: 'filled',
       class: {
-        base: 'bg-neutral text-text-on-fill border-neutral'
+        base: 'bg-neutral text-text-on-fill'
       }
     },
     // Dot color per intent

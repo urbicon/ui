@@ -132,7 +132,6 @@ describe('buttonVariants', () => {
 
   describe('border vs. fill', () => {
     const INTENTS = ['primary', 'secondary', 'success', 'warning', 'danger', 'neutral'] as const;
-    const VARIANTS = ['filled', 'outlined', 'ghost', 'text'] as const;
     // `border-primary` is a prefix of `border-primary-active`, so a substring
     // check cannot tell the resting stop from the interaction stops.
     const restingBorder = (base: string, intent: string) =>
@@ -180,26 +179,23 @@ describe('buttonVariants', () => {
       }
     });
 
-    it('never rests a border on the base stop while the fill steps away from it', () => {
-      // The general form of the halo: any combination whose fill darkens on
-      // hover must either carry no border in the resting tone, or move that
-      // border along. Stated over the whole matrix so a new axis or compound
-      // cannot reintroduce the gap in a corner nobody enumerated.
-      for (const intent of INTENTS) {
-        for (const variant of VARIANTS) {
-          for (const active of [false, true]) {
-            for (const buttonGroupConnected of [false, true]) {
-              const base = buttonVariants({ intent, variant, active, buttonGroupConnected }).base();
-              if (!base.includes(`hover:bg-${intent}-hover`)) continue;
-              if (!restingBorder(base, intent)) continue;
-              expect(base, `${variant}/${intent}/active=${active}`).toContain(
-                `hover:border-${intent}-hover`
-              );
-            }
-          }
-        }
-      }
-    });
+    // The general form of the rule — "no border on the resting stop while the
+    // fill steps off it" — is NOT stated here. It was, as a matrix loop over
+    // this component, and that version was worthless twice over: it could only
+    // see Button, and its own filters skipped every filled cell the moment the
+    // fix landed. It now lives in style/intent-fill-border.test.ts, across all
+    // five filled-intent surfaces and with a control on the oracle itself.
+    // What stays here are the four Button-specific consequences above.
+    //
+    // Note what the first assertion pins shut: `border-transparent` for every
+    // filled intent. `warning` is the one intent whose filled surface does not
+    // clear the 3:1 non-text floor against a light page (2.22–2.31:1 across
+    // themes, measured — and no gate covers that direction; contrast.test.ts
+    // measures label-on-fill). A darker border WOULD fix it (border-warning-
+    // active reaches 4.13:1), so if that case is ever taken up, this test is
+    // the thing that has to be argued with first. That is deliberate: the
+    // border would then be a boundary carrying contrast, not a copy of the
+    // fill, and the difference should be stated rather than discovered.
   });
 
   it('never outputs dark: overrides', () => {

@@ -129,9 +129,15 @@ export const checkboxVariants = tv({
     // copy of the fill colour, the ladder above moves only the fill, and what
     // is left is a ring in the resting tone — light on light pages, dark in
     // dark mode. `border` stays in the `box` slot for geometry; the background
-    // paints under it, so a checked box looks exactly as it did. The error
-    // compounds below use a ring rather than the border, so nothing here
-    // competes for it.
+    // paints under it, so a checked box keeps its silhouette — 44 of 1600 px
+    // move at 2× DPR, all on the 4px corner radius.
+    //
+    // The error compounds do not compete for the bucket, but by exclusion
+    // rather than by using a different property: the one that DOES paint a
+    // border (`error + unchecked + !indeterminate`) cannot co-occur with these
+    // compounds, and the two that can (`error + checked`, `error +
+    // indeterminate`) carry a ring instead. Widening either condition would
+    // put them back in the same bucket.
     {
       checked: true,
       intent: 'primary',

@@ -42,7 +42,7 @@ The split between `display`, `overlay`, `layout`, `feedback` etc. JSDoc tags col
 
 **Tier:** Default `commit` — buttons, menu triggers, toolbar surfaces declare identity and want the pill (or pill-adjacent) radius. All five components read `tier` from the wrapping `<TierContext>` (set by `<Toolbar tier="modify">` for compact strips, by `<Menu tier="modify">` for inline action lists), so a wrapping context cascades down.
 
-**Border source:** **Intent**. Action borders must read as interactive even in their neutral state — `border-neutral` is `~neutral-500` in light mode, deliberately darker than the surface borders below.
+**Border source:** **Intent**, wherever the border is a boundary — the `outlined` variants and the divider inside a connected `ButtonGroup`. Action borders must read as interactive even in their neutral state — `border-neutral` is `~neutral-500` in light mode, deliberately darker than the surface borders below. A **filled** action surface is the exception: its border is `transparent`, because the intent colour is already the fill and a second copy of it would sit on the resting stop while hover and press move the fill away.
 
 **Industry analogue:** Radix `DropdownMenu`, Headless UI `Menu`, Material `MenuItem`. The key trait: items dispatch `onSelect` callbacks; nothing holds a value.
 

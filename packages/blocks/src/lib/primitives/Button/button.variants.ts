@@ -110,16 +110,24 @@ export const buttonVariants = tv({
       // `transparent` makes that disagreement unrepresentable rather than
       // gating it: the background paints under the border (`background-clip`
       // is `border-box`), so nothing about the resting button moves, and there
-      // is no second value left to fall behind. It also gives forced-colors
-      // mode the border it needs to draw a boundary of its own.
+      // is no second value left to fall behind.
       //
       // Measured against the old rendering (Chromium, 2× DPR, md/commit, the
       // primary ramp): at rest 312 of 21120 px differ, ALL of them on the
       // pill's rounded ends — an antialiasing seam where the edge is now
-      // clipped background rather than painted border, invisible at 1×. At
-      // hover the difference is 1505 px with only half of it on the ends,
-      // i.e. a ring running the full outline: that is the halo, and removing
-      // it is the point.
+      // clipped background rather than painted border. At hover the difference
+      // is 1505 px with only half of it on the ends, i.e. a ring running the
+      // full outline: that is the halo, and removing it is the point. The
+      // seam does not scale down with DPR — at 1× the corner pixels differ by
+      // up to 109/255 — but it stays on the curve, so it reads as the same
+      // edge drawn slightly differently, not as a change of state.
+      //
+      // What this does NOT buy: forced-colors mode. Both forms come out
+      // identical there (`rgb(0,0,0)` on the same 1px, measured with
+      // `forcedColors: 'active'`) — the browser overrides a named border
+      // colour and a transparent one alike. Only a surface with NO border at
+      // all gains anything from `border-transparent`, and this one always had
+      // one.
       //
       // The one place a filled button still paints its border is the connected
       // ButtonGroup divider at the end of this list — that one is a boundary
@@ -597,8 +605,16 @@ export const buttonVariants = tv({
     // adjacent filled buttons (BGR-1). Since `variant.filled` went
     // `border-transparent`, this is the ONLY filled border that paints —
     // which is the right shape for it: it separates two buttons instead of
-    // tracing one, so it neither has to follow the fill's hover ladder nor
-    // can it fall behind it.
+    // tracing one, so it cannot fall behind the fill the way the resting-stop
+    // border did.
+    //
+    // It is not fully immune in the other direction, though, and that is
+    // pre-existing: the divider sits on `-active`, which is exactly where
+    // `active:bg-<intent>-active` takes the fill, so while a member is held
+    // down its own seam disappears into its fill. The neighbour's border
+    // still draws the edge (the two overlap by the `-ml-px`), so the group
+    // does not come apart — but nobody should read this compound as a border
+    // that never meets its fill.
     {
       buttonGroupConnected: true,
       variant: 'filled',

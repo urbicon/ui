@@ -116,12 +116,20 @@ describe('toggleVariants', () => {
       }
     });
 
-    it('keeps the border on the base intent stop (only the fill steps)', () => {
+    it('gives the checked track no border colour to fall behind its fill', () => {
+      // Only the fill steps, so a border on the intent's resting tone would be
+      // left ringing a track that has already moved — worst of all on `dot`,
+      // where the whole 14px outline is curve. The slot base keeps `border
+      // border-transparent`, so the geometry is unchanged and the background
+      // paints under it. Same rule as Button/Checkbox/Radio; the general form
+      // is asserted in style/intent-fill-border.test.ts.
       for (const variant of VARIANTS) {
         for (const intent of INTENTS) {
           const track = toggleVariants({ variant, checked: true, intent }).track();
-          expect(track, `${variant}/${intent}`).toContain(`border-${intent}`);
-          expect(track, `${variant}/${intent}`).not.toContain(`group-hover:border-${intent}-hover`);
+          expect(track, `${variant}/${intent}`).toContain('border-transparent');
+          expect(track, `${variant}/${intent}`).not.toMatch(
+            new RegExp(`(^| )border-${intent}( |$)`)
+          );
         }
       }
     });
@@ -196,15 +204,15 @@ describe('toggleVariants', () => {
     it('on state fills the dot in the intent colour', () => {
       const primary = toggleVariants({ variant: 'dot', checked: true, intent: 'primary' });
       expect(primary.track()).toContain('bg-primary');
-      expect(primary.track()).toContain('border-primary');
+      expect(primary.track()).toContain('border-transparent');
 
       const success = toggleVariants({ variant: 'dot', checked: true, intent: 'success' });
       expect(success.track()).toContain('bg-success');
-      expect(success.track()).toContain('border-success');
+      expect(success.track()).toContain('border-transparent');
 
       const danger = toggleVariants({ variant: 'dot', checked: true, intent: 'danger' });
       expect(danger.track()).toContain('bg-danger');
-      expect(danger.track()).toContain('border-danger');
+      expect(danger.track()).toContain('border-transparent');
     });
 
     it('does NOT apply the default-variant pill compounds (no thumb translate, no pill bg)', () => {
