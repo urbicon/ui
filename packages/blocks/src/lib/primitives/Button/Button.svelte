@@ -67,7 +67,27 @@
   // the press token locally, instead of via a variant axis, keeps the switch out
   // of the public prop surface — the axis would be promoted to a documented
   // `<Button pressCue>` prop that does nothing but stamp a stray DOM attribute.
-  const pressScaleOverride = $derived(isMintOff(effectiveMint) ? '1' : undefined);
+  //
+  // A CLASS, not a `style:` directive. `style:--blocks-press-scale={undefined}`
+  // does not merely skip the write: Svelte removes that property from the
+  // `style` string `{...restProps}` spread in, so a consumer setting the token
+  // inline — the override point the token reference documents — would have it
+  // deleted on every button with a live mint.
+  //
+  // Passed through `styles.base({ class })` below rather than sitting beside it,
+  // so the tv() engine buckets it against a consumer's own
+  // `[--blocks-press-scale:…]` class and the later one wins. Standing outside
+  // that merge, the two would both survive into the attribute and pure CSS
+  // source order would pick — and Tailwind sorts arbitrary properties
+  // lexicographically by candidate, so a consumer asking for a SMALLER sink
+  // (`:0.9` sorts before `:1`) would silently lose while a larger one won.
+  //
+  // An inline value still outranks both, which is right for something a consumer
+  // set on the element — and is the one way to get the sink back on a button
+  // whose mint is off, or under reduced motion. Inline motion values carry that
+  // responsibility everywhere in the library (see Tooltip/Popover's duration
+  // props, which need their own `motion-reduce:` guard for the same reason).
+  const pressCueClass = $derived(isMintOff(effectiveMint) ? '[--blocks-press-scale:1]' : '');
   const ariaProps = $derived(registration?.getButtonProps() ?? {});
 
   // Variant props feed both the tv() style computation and the slot-class
@@ -138,13 +158,12 @@
   {...restProps}
   {type}
   disabled={effectiveDisabled}
-  style:--blocks-press-scale={pressScaleOverride}
   class={[
     'blocks-button',
     `blocks-intent-${effectiveIntent}`,
     unstyled
-      ? [slotClasses?.base, className].filter(Boolean).join(' ')
-      : styles.base({ class: [slotClasses?.base, className] })
+      ? [pressCueClass, slotClasses?.base, className].filter(Boolean).join(' ')
+      : styles.base({ class: [pressCueClass, slotClasses?.base, className] })
   ]}
   onclick={handleClick}
   role={ariaProps.role ?? restProps.role}

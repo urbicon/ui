@@ -135,8 +135,16 @@ function fixedOriginOffset(floating: HTMLElement): { x: number; y: number } {
   // transition outranks every author declaration including inline styles, so
   // writing `scale: none` here changes the transition's target and leaves the
   // current painted value exactly where it was (verified — the probe still read
-  // 0.98 with `style.scale === 'none'` set). `transform-origin` is not in the
-  // transitioned property list, so it applies at once.
+  // 0.98 with `style.scale === 'none'` set). `transform-origin` is not among the
+  // properties the library's panel motion transitions, so writing it lands at
+  // once.
+  //
+  // Two things this does not cover, both only reachable from outside the
+  // library: a caller that transitions `transform-origin` itself (an `unstyled`
+  // Popover with hand-built motion) puts the origin write back under the same
+  // rule and the error returns; and the correction is a scale correction — for a
+  // ROTATED panel the bounding box is not the corner, so it would still be
+  // measured wrong. No motion in the library does either.
   //
   // Ancestor transforms — the containing-block shift this probe exists to find —
   // are unaffected either way; they are not on this element.

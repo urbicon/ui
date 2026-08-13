@@ -36,6 +36,113 @@ import { forceWithin, openCdp } from './helpers/force-state';
  * Focus rings are high-contrast enough for the pixel suite to hold.
  */
 
+/**
+ * The press cue is the same bug class one axis over, and it bit twice (#192):
+ *
+ *   1. `active:scale-*` written as a literal, so `prefers-reduced-motion` could
+ *      not reach it and no button could opt out.
+ *   2. `active:shadow-sm` on a variant that ALREADY rests at `sm` — a class that
+ *      is present, compiles, and changes nothing. A unit test on the class
+ *      string is green either way; only the resolved value tells them apart,
+ *      which is why this lives here rather than in `button.variants.test.ts`.
+ *
+ * The second one mattered because `mint="none"` (every ButtonGroup child, and
+ * `outlined` is the group default) removes the sink: with a dead shadow step
+ * next to it, an outlined button reported a press with nothing at all on any
+ * pointer-less path.
+ */
+const PRESS_URL = '/test-fixtures/primitives';
+const PRESSABLE = ['Primary', 'Outlined', 'Ghost', 'Text'] as const;
+
+test.describe('Press cue resolves to a visible step', () => {
+  for (const label of PRESSABLE) {
+    test(`${label} button: a press changes depth or fill`, async ({ page }) => {
+      await page.goto(PRESS_URL, { waitUntil: 'load' });
+      await page.waitForSelector('[data-testid="vr-button"]');
+
+      const button = page.getByRole('button', { name: label, exact: true });
+      const paint = () =>
+        button.evaluate((el) => {
+          const cs = getComputedStyle(el);
+          return { shadow: cs.boxShadow, fill: cs.backgroundColor };
+        });
+
+      const rest = await paint();
+      await button.hover();
+      const hovered = await paint();
+      await page.mouse.down();
+      const pressed = await paint();
+      await page.mouse.up();
+
+      // Depth OR fill: `filled` reports a press by darkening its fill and leaves
+      // the shadow where it rests, which is legible and deliberate. The flat
+      // variants have no fill, so for them the shadow is the whole signal.
+      // Touch and keyboard never pass through hover, so rest → pressed is the
+      // comparison most presses actually show.
+      expect(
+        `${pressed.shadow}|${pressed.fill}`,
+        `${label}: a press changes neither the box-shadow nor the fill — it reports nothing ` +
+          `on any path that does not pass through hover.`
+      ).not.toEqual(`${rest.shadow}|${rest.fill}`);
+
+      expect(
+        `${pressed.shadow}|${pressed.fill}`,
+        `${label}: a press looks exactly like a hover.`
+      ).not.toEqual(`${hovered.shadow}|${hovered.fill}`);
+    });
+  }
+});
+
+test.describe('Press sink resolves, and mint="none" flattens it', () => {
+  test('a plain button sinks on press', async ({ page }) => {
+    await page.goto(PRESS_URL, { waitUntil: 'load' });
+    await page.waitForSelector('[data-testid="vr-button"]');
+
+    const button = page.getByRole('button', { name: 'Primary', exact: true });
+    await button.hover();
+    await page.mouse.down();
+    const pressed = await button.evaluate((el) => getComputedStyle(el).scale);
+    await page.mouse.up();
+
+    // `scale: var(--blocks-press-scale)` resolving to the token's 0.98. A typo in
+    // the variable name would resolve to nothing and compute as `none` — the
+    // failure mode no lint catches, since the reference is inside an arbitrary
+    // value.
+    expect(pressed, 'the press sink does not resolve — check the token name').toBe('0.98');
+  });
+
+  test('a ButtonGroup child does not — its mint is off', async ({ page }) => {
+    await page.goto('/blocks/primitives/button-group', { waitUntil: 'load' });
+    // Scoped to the preview stage: the configurator's own Tier knob is a
+    // `role="radiogroup"` too, so a bare `.first()` would depend on the page
+    // putting the preview above the controls.
+    const group = page
+      .locator('[data-docs-stage="playground"]')
+      .locator('[role="radiogroup"], [role="group"]')
+      .first();
+    await group.waitFor();
+
+    // By tag, not by role: the playground group is a radiogroup by default, so
+    // its children carry `role="radio"` rather than `button`.
+    const button = group.locator('button').first();
+    await button.waitFor();
+    await button.hover();
+    await page.mouse.down();
+    // Past the 150ms scale transition: this page, unlike the fixture above, has
+    // motion on. Reading mid-flight would still catch a broken flatten (the value
+    // is on its way to 0.98 and not 1), just with a less legible number.
+    await page.waitForTimeout(300);
+    const pressed = await button.evaluate((el) => getComputedStyle(el).scale);
+    await page.mouse.up();
+
+    // Button flattens the token on itself with an arbitrary-property utility
+    // (`[--blocks-press-scale:1]`) written in Button.svelte, NOT in a tv() config
+    // — so `variants:lint` never sees it and this is the only check that it
+    // compiles to a rule at all.
+    expect(pressed, 'mint="none" did not flatten the sink — did the utility compile?').toBe('1');
+  });
+});
+
 const URL = '/test-fixtures/interaction';
 const GROUPS = ['field', 'choice', 'nav', 'action'] as const;
 const SCHEMES = ['light', 'dark'] as const;

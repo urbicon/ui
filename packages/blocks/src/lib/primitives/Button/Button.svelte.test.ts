@@ -145,25 +145,25 @@ describe('Button (component interaction)', () => {
     // `mint="none"` is the only way to reach the off state here: the prop
     // defaults to 'scale', so an omitted mint is a mint. Any name other than
     // 'none' keeps the sink, even one whose effect is unrelated to movement.
-    const pressScale = () => button().style.getPropertyValue('--blocks-press-scale');
+    const flattened = () => button().className.includes('[--blocks-press-scale:1]');
 
     renderButton({ mint: 'none' });
-    expect(pressScale()).toBe('1');
-    // The depth step is NOT silenced — a quiet outlined/ghost button would
-    // otherwise report a click with nothing at all.
+    expect(flattened()).toBe(true);
+    // The depth step is NOT silenced — a quiet button would otherwise report a
+    // click with nothing at all on any path that skips hover.
     expect(button().className).toContain('active:shadow-[var(--blocks-shadow-sm)]');
 
     dispose?.();
     document.body.replaceChildren();
 
     renderButton({ mint: 'glow' });
-    expect(pressScale()).toBe('');
+    expect(flattened()).toBe(false);
 
     dispose?.();
     document.body.replaceChildren();
 
     renderButton({});
-    expect(pressScale()).toBe('');
+    expect(flattened()).toBe(false);
   });
 
   it('never leaks the press switch as a DOM attribute (#192)', () => {
@@ -173,6 +173,17 @@ describe('Button (component interaction)', () => {
     // changing nothing.
     renderButton({ mint: 'none' });
     expect(button().getAttributeNames()).not.toContain('presscue');
+  });
+
+  it('leaves a consumer-set press scale alone (#192)', () => {
+    // A utility class, not a `style:` directive: `style:--blocks-press-scale`
+    // with an undefined value REMOVES the property from the style string
+    // restProps spread in, which would delete exactly the override the token
+    // reference documents. As a class it also loses to the inline value, which
+    // is the right way round for an explicit consumer setting.
+    renderButton({ mint: 'scale', style: 'color: rgb(1, 2, 3); --blocks-press-scale: 0.5' });
+    expect(button().style.getPropertyValue('--blocks-press-scale')).toBe('0.5');
+    expect(button().style.color).toBe('rgb(1, 2, 3)');
   });
 
   it('exposes the underlying element via getElement()', () => {

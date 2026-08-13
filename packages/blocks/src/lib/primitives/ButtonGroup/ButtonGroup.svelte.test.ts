@@ -644,26 +644,29 @@ describe('ButtonGroup (press cue)', () => {
   // so no button in a group sinks under the pointer. In a connected group that
   // is what stops the shared seam from breaking on click; the default is not
   // conditional on `connected`, so a spaced group is just as quiet.
-  const pressScale = (name: string) =>
-    screen.getByRole('button', { name }).style.getPropertyValue('--blocks-press-scale');
+  const flattened = (name: string) =>
+    screen.getByRole('button', { name }).className.includes('[--blocks-press-scale:1]');
 
   it('renders its children without the press sink, connected or not (#192)', () => {
     renderGroup({ connected: true });
-    expect(pressScale('List')).toBe('1');
+    expect(flattened('List')).toBe(true);
 
     dispose?.();
     document.body.replaceChildren();
 
     renderGroup({ connected: false });
-    expect(pressScale('List')).toBe('1');
+    expect(flattened('List')).toBe(true);
   });
 
   it('opts the whole group back in when it is given a real mint', () => {
     renderGroup({ connected: true, mint: 'scale' });
-    expect(pressScale('List')).toBe('');
+    expect(flattened('List')).toBe(false);
   });
 
   it('leaves the press depth step in place — a quiet button still reports a click', () => {
+    // A connected child rests at `shadow-none` (buttonGroupConnected flattens
+    // it), so the step that reports the press is the full `sm` one — not the
+    // `xs` a standalone outlined button steps DOWN to from its resting `sm`.
     renderGroup({ connected: true });
     expect(screen.getByRole('button', { name: 'List' }).className).toContain(
       'active:shadow-[var(--blocks-shadow-sm)]'

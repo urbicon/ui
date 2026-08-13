@@ -18,6 +18,19 @@ export const buttonVariants = tv({
       // bucket and survive, which is what keeps a ghost button's press legible.
       'shadow-[var(--blocks-shadow-sm)]',
       'hover:shadow-[var(--blocks-shadow-md)]',
+      // The press depth step. It has to DIFFER from whatever the button rests
+      // at, and the resting value is not one thing: `base` sets `sm`, the flat
+      // variants and a connected group drop it to `none`. So the step is `sm`
+      // here — a real change for everything resting at `none` — and the one
+      // combination that rests at `sm` without a colour change of its own
+      // overrides it below (see the `outlined` compounds).
+      //
+      // Measured, because the obvious "press = one step down everywhere" is
+      // wrong: moving this to `xs` weakened the cue on every flat surface
+      // instead (light ghost peaked at 22/255 differing pixels on `sm`, 8/255 on
+      // `xs`; dark ghost 7/255 → 4/255, which is not a visible press). Those
+      // variants rest at `none`, so their press makes a shadow appear rather
+      // than recede, and a smaller one says less.
       'active:shadow-[var(--blocks-shadow-sm)]',
       // The press sink: the button dips while the pointer holds it. Reads
       // `--blocks-press-scale`, which is 0.98 by default, 1 under
@@ -56,8 +69,7 @@ export const buttonVariants = tv({
       modify: { base: 'rounded-modify' }
     },
     // Only the focus ring differs per intent — the depth cues it used to repeat
-    // six times over now sit in `base` (resting/hover) and on `pressCue` (the
-    // held state).
+    // six times over (resting, hover and held) now sit once in `base`.
     intent: {
       primary: { base: 'focus-visible:ring-primary/50' },
       secondary: { base: 'focus-visible:ring-secondary/50' },
@@ -69,10 +81,11 @@ export const buttonVariants = tv({
     // Declared BEFORE `variant` so the flat variants (ghost/text
     // `shadow-none`) win the shadow bucket over the pressed depth cue —
     // a pressed ghost button stays flat. For filled/outlined (no shadow of
-    // their own) the pressed `shadow-xs` still applies. (Measured: moving this
-    // axis after `variant` changes 3456 of the 27648 combinations; the same
-    // move on an `active:`-prefixed rule changes none, because a modifier puts
-    // the class in its own merge bucket.)
+    // their own) the pressed `shadow-xs` still applies. (Measured on the config
+    // as it stood in a8632fc2: moving this axis after `variant` changed 3456 of
+    // 27648 combinations, while the same move on an `active:`-prefixed rule
+    // changed none — a modifier puts the class in its own merge bucket. The
+    // absolute counts track the axis list; the asymmetry is the point.)
     //
     // Unlike the `active:` press cue in `base` this is a MODELLED state, not
     // click feedback: the consumer says the control is down (a toolbar toggle),
@@ -143,6 +156,31 @@ export const buttonVariants = tv({
     }
   },
   compoundVariants: [
+    // The one hole in the press feedback, and its patch (#192).
+    //
+    // Every variant reports a press somehow: `filled` darkens its fill
+    // (`active:bg-<intent>-active`, below), and the flat ones plus every child
+    // of a connected group rest at `shadow-none`, so the `active:shadow-sm` in
+    // `base` is a real step for them. `outlined` is the exception — it rests at
+    // `sm` like `filled` but has no fill to darken, so that step lands on its
+    // own resting value and says nothing. With `mint="none"` taking the sink
+    // away too (every ButtonGroup child, and `outlined` is the group default), a
+    // standalone outlined button reported a click with NOTHING on any path that
+    // never passes through hover: touch, and keyboard activation.
+    //
+    // Stepping it down to `xs` is right precisely because it rests high. The
+    // second compound puts it back for a connected group, where
+    // `buttonGroupConnected` has already flattened the resting value to `none`
+    // and `xs` would be the weaker of the two available directions.
+    {
+      variant: 'outlined',
+      class: { base: 'active:shadow-[var(--blocks-shadow-xs)]' }
+    },
+    {
+      variant: 'outlined',
+      buttonGroupConnected: true,
+      class: { base: 'active:shadow-[var(--blocks-shadow-sm)]' }
+    },
     // Filled Variants per intent
     {
       intent: 'primary',

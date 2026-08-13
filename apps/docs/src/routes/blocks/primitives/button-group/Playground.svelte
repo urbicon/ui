@@ -88,7 +88,15 @@
       // Kapsel, also genau das, was die Komponente gerade nicht mehr tut.
       // `defaultValuesOf` überspringt Controls ohne Default, die Auswahl
       // commit/modify bleibt.
-      tier: { defaultValue: undefined }
+      //
+      // `componentDefault: undefined` muss mit: sonst bliebe der abgeleitete
+      // `'commit'` als „lässt sich weglassen" stehen, und ein bewusst
+      // gewähltes `tier="commit"` fiele aus dem Code-Snippet heraus — die
+      // Vorschau zeigte dann die Kapsel und der Code darunter etwas anderes.
+      // Preis dieser Konstruktion: Der Konfigurator kennt für diesen Knopf
+      // keinen Ausgangswert, zählt ihn also nicht als geändert und setzt ihn
+      // mit „Reset all" nicht zurück.
+      tier: { defaultValue: undefined, componentDefault: undefined }
     }
   });
 </script>

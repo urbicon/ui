@@ -58,19 +58,34 @@ describe('buttonVariants', () => {
       // literal would pass on a cue nobody can turn off.
       const base = buttonVariants({}).base();
       expect(base).toContain('active:scale-[var(--blocks-press-scale)]');
-      expect(base).toContain('active:shadow-[var(--blocks-shadow-sm)]');
       expect(base).not.toContain('active:scale-[0.98]');
     });
 
-    it('keeps the press DEPTH step on every variant, flat ones included', () => {
-      // The switch takes the movement out, not the feedback. A quiet outlined or
-      // ghost button — `outlined` is the ButtonGroup default — has no fill to
-      // darken, so without this step a click on it would report nothing at all.
-      for (const variant of ['filled', 'outlined', 'ghost', 'text'] as const) {
-        expect(buttonVariants({ variant }).base()).toContain(
-          'active:shadow-[var(--blocks-shadow-sm)]'
-        );
-      }
+    it('presses AWAY from whatever the variant rests at', () => {
+      // The switch takes the movement out, not the feedback — so the depth step
+      // has to be a step, and "one step down everywhere" is the wrong rule: the
+      // resting value differs per variant. `sm` is the step for everything
+      // resting at `none`; `outlined` is the only combination resting at `sm`
+      // with no fill of its own to darken, so it steps down instead. Whether the
+      // resolved values actually differ is a question for the browser —
+      // `e2e/interaction-tokens.spec.ts` asks it.
+      const press = (base: string) =>
+        base.includes('active:shadow-[var(--blocks-shadow-xs)]')
+          ? 'xs'
+          : base.includes('active:shadow-[var(--blocks-shadow-sm)]')
+            ? 'sm'
+            : 'none';
+
+      expect(press(buttonVariants({ variant: 'ghost' }).base())).toBe('sm');
+      expect(press(buttonVariants({ variant: 'text' }).base())).toBe('sm');
+      expect(press(buttonVariants({ variant: 'filled' }).base())).toBe('sm');
+      // Rests at sm → steps down.
+      expect(press(buttonVariants({ variant: 'outlined' }).base())).toBe('xs');
+      // …unless a connected group already flattened its resting value to none,
+      // where stepping down would be the weaker of the two directions.
+      expect(
+        press(buttonVariants({ variant: 'outlined', buttonGroupConnected: true }).base())
+      ).toBe('sm');
     });
 
     it('shares the token with the modelled `pressed` state', () => {
