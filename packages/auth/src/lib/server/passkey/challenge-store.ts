@@ -1,6 +1,6 @@
 // Pending-challenge storage for the WebAuthn ceremonies: the store contract,
 // the in-memory default and the store/consume primitives. Split out of the
-// former webauthn.ts god-file (R17).
+// former webauthn.ts god-file.
 
 import { base64UrlEncode } from '../encoding.js';
 

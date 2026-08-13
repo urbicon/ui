@@ -62,10 +62,10 @@ export interface CompositionBarProps
   items: CompositionItem[];
 
   /**
-   * Optional fixed total value. Default: Σ items.value. If the explicit total
-   * exceeds the sum, the remaining area is rendered neutrally ("unaccounted
-   * share"). If it is below the sum, segments are scaled to 100% and a
-   * console warning is emitted.
+   * Optional fixed total value. Default: the sum of the item values. If the
+   * explicit total exceeds the sum, the remaining area is rendered neutrally
+   * ("unaccounted share"). If it is below the sum, segments are scaled to 100%
+   * and a console warning is emitted.
    */
   total?: number;
 
@@ -91,11 +91,10 @@ export interface CompositionBarProps
   showTotal?: boolean;
 
   /**
-   * Render the value directly inside the bar segment (in addition to the
-   * legend). Narrow segments are skipped automatically to prevent overflow
-   * — only segments with sufficient width (≥ 8% or ~40 px) show their
-   * value. Useful for print, PDF attachments, or dense dashboards where
-   * hover tooltips are not enough.
+   * Render the value directly inside the bar segment, in addition to the
+   * legend. Only segments wide enough (≥ 8% or ~40 px) show their value, so
+   * narrow ones do not overflow. Handy for print or PDF export, where there is
+   * no hover tooltip.
    * @default false
    */
   showValues?: boolean;
@@ -108,16 +107,16 @@ export interface CompositionBarProps
 
   /**
    * Minimum segment width in percent. Values below it are raised to this
-   * width so they stay visible in the bar (nothing gets swallowed). Larger
-   * segments are shrunk proportionally so the sum still adds up to 100%.
+   * width so small shares stay visible. Larger segments are shrunk
+   * proportionally so the total still adds up to 100%.
    * @default 1.5
    */
   minSegmentPercent?: number;
 
   /**
    * Selection callback fired when a bar segment or legend entry is clicked.
-   * Receives the item and its index. Makes the bar interactive (cursor +
-   * click handler).
+   * Receives the item and its index. Providing it makes the segments
+   * interactive (pointer cursor and click handling).
    */
   onItemSelect?: (item: CompositionItem, index: number) => void;
 

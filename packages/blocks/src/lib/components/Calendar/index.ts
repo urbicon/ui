@@ -105,9 +105,12 @@ export type CalendarSlotName =
  * Renders timed appointments, multi-day spans and recurrence on a time grid, with
  * event display, date selection and configurable layout. For a headless grid that
  * buckets your own domain content (meals, shifts, bookings) per day, use `Planner`.
+ * For one lane per resource (rooms, chairs, vehicles) with bars spanning the days
+ * each is occupied, use `ResourceTimeline`.
  *
  * @tag display
  * @related Planner
+ * @related ResourceTimeline
  * @related DatePicker
  * @related DateRangePicker
  *
@@ -242,10 +245,6 @@ export interface CalendarProps
    * follow the runtime and disagree across hydration). Falls back to the base
    * locale (`en`) when no provider is mounted. Pass an explicit tag
    * (e.g. `'de-DE'`, `'ja-JP'`) to override.
-   *
-   * Until 2026-07-31 this defaulted to the literal `'de-DE'`, so an
-   * English app rendered German month names unless every date component was
-   * passed `locale` by hand.
    * @default 'auto'
    * @summary Which language the month and weekday names are rendered in.
    */

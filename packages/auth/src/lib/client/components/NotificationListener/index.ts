@@ -1,7 +1,7 @@
 /**
  * @summary Keeps the notification stream open and reconnects when it drops.
  * @description Headless SSE listener for real-time notifications. Reconnects with exponential backoff (1–30s).
- * Connects to `apiPath` (default `/api/notifications/stream`). Pair with `createStreamHandler(sse)` on the server — mount its `GET` on the stream route.
+ * Connects to `apiPath` (default `/api/notifications/stream`). Pair with `createStreamHandler(sse)` on the server; mount its `GET` on the stream route.
  *
  * @tag data
  * @related NotificationCenter
@@ -14,7 +14,7 @@
  */
 export interface NotificationListenerProps {
   /**
-   * SSE stream endpoint. Read once when the component mounts — to switch
+   * SSE stream endpoint. Read once when the component mounts; to switch
    * endpoints (e.g. after a user change), unmount and remount the listener.
    * @default '/api/notifications/stream'
    */

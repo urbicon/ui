@@ -20,7 +20,7 @@ import type { AuthPageSlotClasses } from '../types.js';
 export interface LoginPageProps {
   /**
    * Locale overrides, deep-merged over the active built-in bundle (resolved
-   * from the i18n context). Pass any subset — a single string or a whole tree.
+   * from the i18n context). Pass any subset, from a single string to a whole tree.
    */
   t?: PartialAuthLocale;
   /** Called after successful login. */
@@ -48,7 +48,7 @@ export interface LoginPageProps {
   twoFactorApiPath?: string;
   /** Passkey API base path. Required when mode is `'passkey'` or `'both'`. @default undefined */
   passkeyApiPath?: string;
-  /** CSRF cookie/header names — only needed when the server overrides the defaults via `config.csrf`. Mutating requests echo the token automatically. */
+  /** CSRF cookie/header names. Only needed when the server overrides the defaults via `config.csrf`. Mutating requests echo the token automatically. */
   csrf?: CsrfClientOptions;
   /** Custom fetch implementation for all API calls. Defaults to the global `fetch`. Useful for mock backends in demos/tests or custom retry/auth layers. */
   fetcher?: typeof globalThis.fetch;

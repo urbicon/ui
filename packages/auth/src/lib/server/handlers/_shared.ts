@@ -10,7 +10,7 @@ import { authError } from './errors.js';
 /**
  * Parse and validate a JSON request body, or produce the canonical
  * validation-error `400`. Result-or-Response form of the six-line block every
- * body-taking handler repeated verbatim (review R16):
+ * body-taking handler repeated verbatim:
  *
  * ```ts
  * const body = await parseBody(request, validateLoginInput);
@@ -41,7 +41,7 @@ export async function parseBody<T>(
  * `Cache-Control` for responses that carry session state or PII (the `me`
  * payload, freshly minted tokens, session/invitation lists, 2FA material) —
  * they must never park in a shared cache. One constant instead of the four
- * per-file copies review R14 counted.
+ * per-file copies counted.
  */
 export const NO_STORE = { 'Cache-Control': 'no-store' } as const;
 

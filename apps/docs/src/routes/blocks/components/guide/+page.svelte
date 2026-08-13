@@ -54,7 +54,10 @@
   // Passing a surface its *own* api.ts types instead would break the links that
   // do work: they would point at rows this page does not render.
   const surfaces = [
-    { data: providerData, blurb: 'Context root — wires every surface to one GuideController.' },
+    {
+      data: providerData,
+      blurb: 'Context root — wires every Guide component to one GuideController.'
+    },
     { data: panelData, blurb: 'The callable, non-modal help panel (D1).' },
     { data: articleData, blurb: 'A structured help article inside the panel.' },
     {
@@ -269,7 +272,7 @@
 
   <CustomDocs />
 
-  <Section marker id="api" title="API Reference" intent="secondary" meta="9 surfaces">
+  <Section marker id="api" title="API Reference" intent="secondary" meta="9 parts">
     <div class="space-y-10">
       <div>
         <h3 class="text-text-primary mb-1 text-lg font-semibold">Guide (tour renderer)</h3>

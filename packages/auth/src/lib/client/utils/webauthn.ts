@@ -3,7 +3,7 @@
  * credential ids arrive base64url-encoded from the server and must become
  * ArrayBuffers for `navigator.credentials`, and the credential payloads go
  * back the other way. One copy — LoginPage and PasskeyManager each carried a
- * verbatim clone (review R14).
+ * verbatim clone.
  */
 
 /** base64url (padded or not) → ArrayBuffer. */

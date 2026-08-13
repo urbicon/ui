@@ -107,8 +107,8 @@ export interface CommandPaletteProps {
    * Current search text. Supports `bind:query`. Reset to `''` whenever the
    * palette opens.
    *
-   * Bind it to source `items` asynchronously — derive your results from the
-   * query and pass them back in via `items`, with `filter={() => true}` so the
+   * For async or remote search, watch the bound `query`, fetch your own
+   * results, and pass them back via `items` with `filter={() => true}` so the
    * built-in label match does not filter them a second time.
    *
    * @default ''

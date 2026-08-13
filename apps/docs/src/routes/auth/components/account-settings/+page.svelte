@@ -34,7 +34,7 @@
 
 <DocsPageLayout
   title="AccountSettings"
-  description="Self-service account panel: change name, email and password, and delete the account. Each section talks to the account handlers; mutations except the profile rename are password re-auth gated."
+  description="Self-service account panel to change name, email and password, and delete the account. Every change except the profile rename asks for the current password first."
   maxWidth="2xl"
   showToc={true}
   breadcrumbs={[
@@ -49,7 +49,7 @@
   <Section marker id="usage" title="Usage" intent="primary">
     <CodeExample
       title="Basic"
-      description="The live preview runs against a mocked demo API (injected via the fetcher prop) — the profile rename succeeds, deleting explains that it needs a real backend. The snippet shows the production setup, where `user` comes from your auth store or `locals.user`."
+      description="The live preview runs against a mocked demo API (injected via the fetcher prop): the profile rename succeeds, and deleting explains that it needs a real backend. The snippet shows the production setup, where `user` comes from your auth store or `locals.user`."
       code={basicCode}
       language="svelte"
     >
@@ -59,42 +59,42 @@
 
   <Section marker id="accessibility" title="Accessibility">
     <NoteList>
-      <Note title="One live region per block, not one per page">
+      <Note title="One live region per block">
         <p>
-          Profile, email and password each own a separate
+          Profile, email and password each have a separate
           <code class="text-text-primary">aria-live="polite"</code> region inside their own
           <code class="text-text-primary">&lt;form&gt;</code>, and account deletion has a fourth in
-          its section. With three save buttons on one page, a single shared region would report
-          success with no way to tell which of the three it meant.
+          its section. With three save buttons on one page, one region per form is what lets a
+          reader tell which save just succeeded.
         </p>
       </Note>
       <Note title="The danger zone is a named landmark">
         <p>
           Account deletion sits in a <code class="text-text-primary">&lt;section&gt;</code> with
           <code class="text-text-primary">aria-labelledby</code> pointing at its own heading, so it
-          is reachable and distinguishable from the three ordinary save forms above it. The button
-          also stays
-          <code class="text-text-primary">disabled</code> until the password is typed, so it cannot be
-          triggered by a stray keypress while browsing the page.
+          is reachable and distinguishable from the three ordinary save forms above it. The delete
+          button stays
+          <code class="text-text-primary">disabled</code> until the password is typed, so enabling it
+          takes a deliberate entry.
         </p>
       </Note>
-      <Note title="The confirm step is a real modal dialog">
+      <Note title="The confirm step is a modal dialog">
         <p>
           Deletion routes through blocks' <code class="text-text-primary">ConfirmDialog</code>,
           which renders
           <code class="text-text-primary">aria-modal="true"</code>, takes its accessible name from
-          the dialog title, traps <Kbd keys="Tab" /> inside itself, and returns focus to the trigger on
-          close.
+          the dialog title, keeps <Kbd keys="Tab" /> within the dialog, and moves focus back to the trigger
+          on close.
         </p>
       </Note>
-      <Note title="Autofill hints, and no focus movement">
+      <Note title="Autofill hints, and focus stays put">
         <p>
           Every password field is <code class="text-text-primary"
             >autoComplete="current-password"</code
           >
           except the new one (<code class="text-text-primary">new-password</code>), and the name and
-          email fields are hinted too. What the page does not do is move focus: after a save, focus
-          stays on the button and the result is announced by that form's live region.
+          email fields are hinted too. After a save, focus stays on the button and that form's live
+          region announces the result.
         </p>
       </Note>
     </NoteList>

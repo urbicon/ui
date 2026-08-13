@@ -116,9 +116,9 @@
 
         <p class="text-text-primary text-lg font-semibold">Dashboard</p>
         <p class="text-text-secondary mt-2 text-sm leading-relaxed">
-          The main column offsets itself against <code>--sidebar-effective-width</code>, so the
-          content never sits underneath the rail. Below 1024px the rail becomes an overlay and this
-          column reflows to full width.
+          The main column is inset by <code>--sidebar-effective-width</code>, so the content never
+          sits underneath the rail. Below 1024px the rail becomes an overlay and this column reflows
+          to full width.
         </p>
         <!-- `collapsible` blendet die Leiste auf allen Viewports aus; ohne einen
              Öffner im Inhalt wäre der Modus in der Vorschau eine Sackgasse. -->

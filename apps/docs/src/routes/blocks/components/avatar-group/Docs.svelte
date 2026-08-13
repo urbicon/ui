@@ -44,7 +44,7 @@
 
     <CodeExample
       title="Sizes"
-      description="size is applied to every avatar and the overflow chip alike — sm, md (default), lg, xl (plus xs and 2xl)."
+      description="size applies to every avatar and the overflow chip alike. Available: xs, sm, md (default), lg, xl, 2xl."
       code={`{#each ['sm', 'md', 'lg', 'xl'] as size}
   <AvatarGroup items={team} max={4} {size} />
 {/each}`}
@@ -66,7 +66,7 @@
   <div class="space-y-8">
     <CodeExample
       title="Spacing"
-      description="spacing controls the overlap — tight packs the stack, loose spreads it out. normal is the default."
+      description="spacing controls the overlap: tight packs the stack, loose spreads it out, normal is the default."
       code={`{#each ['tight', 'normal', 'loose'] as spacing}
   <AvatarGroup items={team} max={4} {spacing} />
 {/each}`}
@@ -84,7 +84,7 @@
 
     <CodeExample
       title="Identity colours"
-      description="Set randomColor on an item to derive a deterministic background from its name — the same name always maps to the same colour, so people without a photo stay visually distinct. Give an item a src instead and it renders that photo, wearing the same cut-out ring; items without one keep their initials."
+      description="Set randomColor on an item to derive its background colour from its name; the same name always maps to the same colour, so people without a photo stay distinct. An item with a src shows that photo instead, with the same cut-out ring; the others keep their initials."
       code={`<AvatarGroup
   items={[
     { name: 'Ada Lovelace', randomColor: true },
@@ -111,8 +111,8 @@
   <NoteList>
     <Note title="Group semantics">
       <p>
-        The stack is a <code>role="group"</code> with a localized <code>aria-label</code> (e.g.
-        “Avatar group”). Override it with your own <code>aria-label</code> to name the specific set —
+        The stack is a <code>role="group"</code> with a localized <code>aria-label</code> (“User
+        avatars” by default). Override it with your own <code>aria-label</code> to name the specific set:
         “Project collaborators”, “Assignees”.
       </p>
     </Note>
@@ -125,13 +125,13 @@
     <Note title="The overflow chip is announced">
       <p>
         The <code>+N</code> overflow chip carries its own <code>aria-label</code> (<code>+2</code>,
-        <code>+9</code>), so the hidden count is announced rather than silently dropped.
+        <code>+9</code>), so the hidden count is announced.
       </p>
     </Note>
     <Note title="The overlap ring is decorative">
       <p>
-        The overlap ring is drawn with <code>borderColor</code> (default the base surface). It is decorative
-        — set it to match whatever surface the group sits on so the cut-out effect holds.
+        The overlap ring uses <code>borderColor</code> (default: the background behind it). It is decorative;
+        set it to match the background the group sits on so the cut-out effect holds.
       </p>
     </Note>
   </NoteList>

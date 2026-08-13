@@ -4,7 +4,7 @@
  * security-relevant (it feeds signatures and key material), and before this
  * module it existed 3-5× in parallel with the dependency arrows pointing the
  * wrong way (CSRF and the passkey stack imported base64url from the Web-Push
- * module — review R14). Everything here is Web-API-only (no `Buffer`).
+ * module). Everything here is Web-API-only (no `Buffer`).
  */
 
 const textEncoder = new TextEncoder();

@@ -19,10 +19,9 @@
 <div class="max-w-xs">
   <DatePicker
     bind:value={selectedDate}
-    label="Terminbuchung"
-    placeholder="Werktag waehlen"
-    helper="Nur Werktage im Maerz 2026, keine Feiertage."
-    locale="de-DE"
+    label="Appointment"
+    placeholder="Pick a weekday"
+    helper="Weekdays in March 2026 only, no holidays."
     {minDate}
     {maxDate}
     isDateDisabled={isWeekend}
@@ -34,8 +33,8 @@
   {#if selectedDate}
     <div class="bg-surface-elevated border-border-subtle mt-3 rounded-lg border p-3">
       <p class="text-text-secondary text-sm">
-        <span class="text-text-primary font-medium">Termin:</span>
-        {selectedDate.toLocaleDateString('de-DE', {
+        <span class="text-text-primary font-medium">Appointment:</span>
+        {selectedDate.toLocaleDateString('en-US', {
           weekday: 'long',
           day: 'numeric',
           month: 'long',

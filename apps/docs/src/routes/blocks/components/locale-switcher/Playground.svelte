@@ -46,7 +46,7 @@
         defaultValue: 'sm'
       },
       disabled: { type: 'checkbox', label: 'Disabled', defaultValue: false },
-      showFlag: { label: 'Show Flag', defaultValue: true }
+      showFlag: { label: 'Show Flag', defaultValue: false }
     }
   });
 </script>
@@ -63,6 +63,8 @@
   values={defaultValuesOf(controls)}
 >
   {#snippet children(values)}
-    <LocaleSwitcher {...values} />
+    <div class="mx-auto w-full max-w-xs">
+      <LocaleSwitcher {...values} />
+    </div>
   {/snippet}
 </PlaygroundConfigurator>

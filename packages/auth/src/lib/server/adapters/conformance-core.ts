@@ -1040,7 +1040,7 @@ export const conformanceChecks: readonly ConformanceCheck[] = [
     // The account can be deleted between a handler's session check and its
     // write; the contract demands a silent no-op, not a P2025-style throw
     // that surfaces as a 500. The reference Prisma adapter violated this on
-    // ~10 methods before the conformance pin (review R7).
+    // ~10 methods before the conformance pin.
     //
     // The id is a real one that has been deleted, not an invented literal —
     // this is exactly the race the check describes, and it is the only form

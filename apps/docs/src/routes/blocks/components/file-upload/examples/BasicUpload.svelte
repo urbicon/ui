@@ -8,14 +8,14 @@
   <FileUpload
     bind:files
     title="Drop a file here, or click"
-    description="Beliebiger Dateityp, max. 10 MB"
+    description="Any file type, up to 10 MB"
     maxFileSize={10 * 1024 * 1024}
   />
 
   {#if files.length > 0}
     <div class="bg-surface-elevated border-border-subtle mt-3 rounded-lg border p-3">
       <p class="text-text-secondary text-sm">
-        <span class="text-text-primary font-medium">{files.length}</span> Datei(en) ausgewaehlt
+        <span class="text-text-primary font-medium">{files.length}</span> file(s) selected
       </p>
     </div>
   {/if}

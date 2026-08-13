@@ -14,7 +14,7 @@
   <div class="space-y-10">
     <CodeExample
       title="Settled trace with a duration"
-      description="Once the model finishes thinking, pass the elapsed time as durationMs and the header reads 'Thought for Xs'. It stays collapsed — the reader expands it only if they care how the answer was reached. Inside, the trace renders through StreamingMarkdown in a damped tertiary tone."
+      description="Pass the elapsed time as durationMs and the header reads 'Thought for Xs'. It stays collapsed until the reader expands it. Inside, the trace renders through StreamingMarkdown."
       code={settledCode}
     >
       <Settled />
@@ -22,7 +22,7 @@
 
     <CodeExample
       title="Streaming: the label pulses 'Thinking'"
-      description="While the caller sets streaming, the header shows 'Thinking' with a gentle pulse (disabled under prefers-reduced-motion) and the trace grows live. When the stream ends, swap streaming off and hand it a durationMs — the label settles to 'Thought for Xs' without a layout jump."
+      description="While streaming is set, the header shows 'Thinking' and the trace grows as text arrives. When the stream ends, set streaming to false and pass a durationMs, and the label settles to 'Thought for Xs'."
       code={streamingSimCode}
     >
       <StreamingSim />
@@ -30,7 +30,7 @@
 
     <CodeExample
       title="Localized header"
-      description="The whole header is text-driven: formatDuration receives whole seconds, thinkingLabel and reasoningLabel cover the streaming and no-duration cases. Override all three to localize — here in German."
+      description="Every string in the header is a prop: formatDuration formats the seconds, thinkingLabel and reasoningLabel cover the streaming and no-duration cases. Override all three to localize; here in German."
       code={localizedCode}
     >
       <Localized />
@@ -44,7 +44,7 @@
       <p>
         The header is a real <code class="text-text-primary">&lt;button&gt;</code> carrying
         <code class="text-text-primary">aria-expanded</code> and
-        <code class="text-text-primary">aria-controls</code> for the trace region — the standard
+        <code class="text-text-primary">aria-controls</code> for the trace region, the standard
         Collapsible contract.
         <Kbd keys="Tab" />
         to reach it,
@@ -57,16 +57,15 @@
     <Note title="Reduced motion">
       <p>
         The "Thinking" pulse is guarded by
-        <code class="text-text-primary">motion-reduce:animate-none</code> — readers who set
+        <code class="text-text-primary">motion-reduce:animate-none</code>, so readers who set
         <code class="text-text-primary">prefers-reduced-motion</code> get the same label without the animation.
-        The label change itself is enough of a status cue.
       </p>
     </Note>
     <Note title="Untrusted output">
       <p>
-        The trace is model output, so it renders through StreamingMarkdown — never
-        <code class="text-text-primary">{'{@html}'}</code> — and any links inherit the same strict
-        <code class="text-text-primary">urlPolicy</code> as the rest of the chat surface.
+        The trace is model output, so it renders through StreamingMarkdown, not
+        <code class="text-text-primary">{'{@html}'}</code>, and its links follow the same strict
+        <code class="text-text-primary">urlPolicy</code>.
       </p>
     </Note>
   </NoteList>

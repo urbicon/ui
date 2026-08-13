@@ -28,12 +28,12 @@
 
 <SeoMeta
   title="RegisterPage - Auth"
-  description="Pre-built registration page with invitation-gated signup."
+  description="A registration form gated by an invitation token, with a live password-requirements checklist."
 />
 
 <DocsPageLayout
   title="RegisterPage"
-  description="Pre-built registration page with invitation-gated signup. Uses blocks primitives, fully localizable and customizable."
+  description="A registration form gated by an invitation token, with a live password-requirements checklist, posting to your register endpoint. Localizable through AuthLocale; restyle with snippet overrides or slotClasses."
   maxWidth="2xl"
   showToc={true}
   breadcrumbs={[
@@ -59,7 +59,7 @@
           carrying
           <code class="text-text-primary">aria-label</code>, so a reader announces it as a named
           list with a known item count instead of four orphaned lines under a text field. It is also
-          the only explanation for why the submit button is disabled — but it renders only once the
+          the only explanation for why the submit button is disabled, but it renders only once the
           password field has content, and not at all when
           <code class="text-text-primary">showRequirements</code> is
           <code class="text-text-primary">false</code>. In both of those states the button is
@@ -85,7 +85,7 @@
           sets
           <code class="text-text-primary">aria-invalid</code> and links the message through
           <code class="text-text-primary">aria-describedby</code>. The reader hears the problem
-          while focus is on the field that has it — server-side failures go to the page-level live
+          while focus is on the field that has it. Server-side failures go to the page-level live
           region instead.
         </p>
       </Note>

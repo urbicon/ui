@@ -21,10 +21,18 @@
 
 <!-- ─── Examples ─── -->
 <Section marker id="examples" title="Examples">
+  <p class="text-text-secondary mb-6 text-sm leading-relaxed">
+    Each <code class="text-text-primary">DonutDatum</code> is a
+    <code class="text-text-primary">label</code> and a <code class="text-text-primary">value</code>,
+    and <code class="text-text-primary">data</code> is the only required prop. Slices are sized by
+    value and coloured from the palette unless you set a slice
+    <code class="text-text-primary">color</code>.
+  </p>
+
   <div class="space-y-8">
     <CodeExample
       title="Donut with center total"
-      description="`showTotal` prints the summed value in the hole; `totalLabel` captions it. Ideal for a KPI surrounded by its breakdown."
+      description="`showTotal` prints the summed value in the hole; `totalLabel` captions it."
       isolate
       previewClass="flex w-full justify-center p-6"
     >

@@ -1,12 +1,10 @@
 <!--
-  Guide-Playground — aus dem Live-Beispiel der Doku-Seite herausgelöst, damit
-  ihn zwei Seiten zeigen können: die Doku-Seite und der Landing-Hero. Siehe
-  `$lib/playground-host.ts`.
+  Guide playground — lifted out of the doc page's live example so two pages can
+  show it: the doc page and the landing hero. See `$lib/playground-host.ts`.
 
-  Die Regler kommen aus `guide-panel/api.ts`, nicht aus der eigenen: Die Guide-
-  Familie hat neun Oberflächen, aber nur eine davon ist im Beispiel sichtbar
-  steuerbar — das Panel. Der Rest (Marker, Mention, Provider) ist Verdrahtung,
-  keine Stellschraube.
+  The controls come from `guide-panel/api.ts`, not this file's own: the Guide
+  family has nine surfaces, but only one is steerable in the example — the panel.
+  The rest (Marker, Mention, Provider) is wiring, not a knob.
 -->
 <script lang="ts">
   import type { PlaygroundHostProps } from '$lib/playground-host';
@@ -32,16 +30,15 @@
 
   const { propDocs, variantKeys } = extractPlaygroundDocs(panelData?.props ?? []);
 
-  // Ein Controller trägt das ganze Beispiel — einmal erzeugt, über den Kontext
-  // geteilt. `dev: false` hält die Konsole ruhig; das Beispiel merkt sich
-  // nichts ("seen"-Status bleibt ungespeichert).
+  // One controller carries the whole example — created once, shared through
+  // context. `dev: false` keeps the console quiet; the example remembers
+  // nothing (the "seen" status is never stored).
   const demoGuide = new GuideController({ dev: false });
 
   const controls = deriveControls(panelData, {
     pick: ['title', 'placement', 'size', 'searchable'],
     overrides: {
-      // Der Default ist ein i18n-Schlüssel, kein Literal — im Beispiel steht
-      // ein sprechender Titel.
+      // The default is an i18n key, not a literal — the example uses a plain title.
       title: { defaultValue: 'Help' }
     }
   });
@@ -61,9 +58,9 @@
 >
   {#snippet children(values)}
     <GuideProvider controller={demoGuide}>
-      <!-- `w-full` außen: Die Vorschaufläche zentriert ihren Inhalt, ohne sie
-           fiele die Karte auf ihre Inhaltsbreite zusammen und die
-           `justify-between`-Zeilen kleben aneinander. -->
+      <!-- `w-full` on the outside: the preview area centers its content; without
+           it the card would collapse to its content width and the
+           `justify-between` rows would stick together. -->
       <div
         class="border-border-subtle bg-surface-elevated mx-auto w-full max-w-md rounded-2xl border p-6"
       >
@@ -107,11 +104,10 @@
           </p>
         </GuideArticle>
         <!--
-          Der zweite Artikel ist das Ziel des `GuideRef` — und er macht die
-          `pg-seats`-Mention oben erst gültig, die vorher ins Leere zeigte.
-          `GuideRef` verlinkt *innerhalb* des Panels (Artikel → Artikel),
-          `GuideMention` verbindet die UI mit dem Panel: die zwei Richtungen,
-          die das Guide-System ausmachen.
+          The second article is the target of the `GuideRef`, and it makes the
+          `pg-seats` mention above resolve (before it pointed at nothing).
+          `GuideRef` links *within* the panel (article → article); `GuideMention`
+          connects the UI to the panel: the two directions the Guide system is built on.
         -->
         <GuideArticle id="pg-seats" title="Managing seats">
           <p>

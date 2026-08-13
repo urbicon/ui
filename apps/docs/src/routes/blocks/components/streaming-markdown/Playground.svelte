@@ -21,16 +21,16 @@
 
   const { propDocs, variantKeys } = extractPlaygroundDocs(componentData?.props ?? []);
 
-  const DEMO = `## Streaming answer
+  const DEMO = `## Rate limiting with a token bucket
 
-The renderer parses **markdown** as it arrives — settled blocks are cached and
-never re-render, so a long answer stays cheap to append to.
+A **token bucket** lets short bursts through while capping the long-run rate.
+The bucket refills at a steady pace, and each request spends one token.
 
-- Zero \`{@html}\`, safe by construction
-- Strict URL policy on by default
+- Refill tokens on a timer, up to a maximum
+- Allow a request when a token is free, otherwise reject it
 
 \`\`\`ts
-for await (const chunk of stream) render(chunk);
+if (tokens > 0) { tokens--; allow(); } else reject();
 \`\`\`
 `;
 

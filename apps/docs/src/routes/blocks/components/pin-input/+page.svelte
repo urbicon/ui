@@ -36,7 +36,7 @@
   maxWidth="2xl"
   showToc={true}
   title="PinInput"
-  description="Segmented one-time-code / PIN entry — a row of single-character cells with auto-advance, backspace-to-previous, paste-to-fill, and optional masking. Purpose-built for the 2FA/OTP flow."
+  description="A row of single-character cells for entering a short code like a 2FA one-time code or a PIN, with auto-advance, paste-to-fill, and optional masking."
   breadcrumbs={[
     { label: 'Blocks', href: '/blocks' },
     { label: 'Components', href: '/blocks/components' }

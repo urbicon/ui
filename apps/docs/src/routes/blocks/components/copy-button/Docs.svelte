@@ -12,7 +12,7 @@
   <div class="space-y-8">
     <CodeExample
       title="Icon-only (default)"
-      description="With no label the button is icon-only — drop it beside a value the user needs to grab. On success the icon swaps to a check and the intent flips to success for a moment."
+      description="With no label the button is icon-only. Drop it beside a value the user needs to grab, like a command or a token."
       code={`<code>npm i @urbicon-ui/blocks</code>
 <CopyButton value="npm i @urbicon-ui/blocks" />`}
       language="svelte"
@@ -36,7 +36,7 @@
 
     <CodeExample
       title="Variants"
-      description="CopyButton forwards variant to the underlying Button, so it speaks the full button styling vocabulary — ghost (default), outlined, filled and text."
+      description="CopyButton forwards variant to the underlying Button, so the same values apply: ghost (default), outlined, filled and text."
       code={`{#each ['ghost', 'outlined', 'filled'] as variant}
   <CopyButton value="urbicon" label="Copy" {variant} />
 {/each}`}
@@ -74,7 +74,7 @@
 
     <CodeExample
       title="onCopy callback"
-      description="onCopy fires with the copied value after a successful write — use it to log analytics, show a toast, or drive local state. onError fires on the failure path instead."
+      description="onCopy fires with the copied value after a successful write; use it to log analytics, show a toast, or update local state. onError fires on the failure path instead."
       code={`<` +
         `script>
   let copies = $state(0);
@@ -97,8 +97,9 @@
   <NoteList>
     <Note title="Stable name in icon-only mode">
       <p>
-        In icon-only mode the button keeps a stable accessible name (<em>Copy</em>, or your own
-        <code>aria-label</code>); the outcome is not baked into the name.
+        In icon-only mode the accessible name stays fixed (<em>Copy</em>, or your own
+        <code>aria-label</code>); the copied/failed outcome is announced by the live region below,
+        not by renaming the button.
       </p>
     </Note>
     <Note title="Label in Name in labelled mode">
@@ -109,11 +110,12 @@
     </Note>
     <Note title="The result is announced">
       <p>
-        A visually-hidden <code>role="status"</code> live region announces the result —
-        <em>Copied</em>
-        or <em>Copy failed</em> — the moment it happens, in both modes and without stealing focus.
-        (An <code>aria-label</code> change alone is not reliably announced, so the icon-only default would
-        otherwise be silent to a screen reader.)
+        A visually-hidden <code>role="status"</code> live region announces the result (<em
+          >Copied</em
+        >
+        or <em>Copy failed</em>) the moment it happens, in both modes and without moving focus. An
+        <code>aria-label</code> change alone is not reliably announced, so the icon-only default would
+        otherwise be silent to a screen reader.
       </p>
     </Note>
     <Note title="The icon is decorative">

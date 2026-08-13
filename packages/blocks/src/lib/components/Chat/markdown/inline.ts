@@ -5,7 +5,7 @@ import { checkImageUrl, checkLinkUrl } from './url-policy';
  * Inline parser for the streaming-markdown subset: code spans, links/images
  * (inline + reference + shortcut), citations, emphasis (`*`/`_`), strong,
  * strikethrough (`~~`), hard breaks, optional autolinks. Raw HTML is not a
- * concept here — angle brackets are plain text (decision A2).
+ * concept here; angle brackets are plain text.
  *
  * Two passes: tokenize into a flat list (code/link/image/citation/break/text
  * and emphasis delimiter runs), then match delimiter runs into a tree. The

@@ -16,8 +16,9 @@
   <div class="space-y-8">
     <CodeExample
       title="Display format vs. bound value"
-      description="format=&quot;12h&quot; adds an AM/PM segment and withSeconds adds a seconds segment, but both change only what the field shows. The bound value is always a canonical 24-hour string, or null when the field is empty — 14:15 displays as 02:15 PM and still binds as 14:15."
+      description="format=&quot;12h&quot; adds an AM/PM segment and withSeconds adds a seconds segment, but both change only what the field shows. The bound value stays a 24-hour string, or null when the field is empty: 14:15 displays as 02:15 PM and still binds as 14:15."
       code={`<script>
+  import { TimeInput } from '@urbicon-ui/blocks';
   let startTime = $state('09:30');
   let meetingTime = $state('14:15');
   let preciseTime = $state('13:45:30');
@@ -88,18 +89,17 @@
 <Section marker id="form-family" title="Date + Time">
   <div class="text-text-secondary space-y-3 text-sm leading-relaxed">
     <p>
-      <code>TimeInput</code> closes the last gap in the form family: <code>Calendar</code>,
-      <code>DatePicker</code> and <code>DateRangePicker</code> cover dates; <code>TimeInput</code>
-      covers the time of day. It edits a time in isolation, so pair it with a
-      <code>DatePicker</code> as two separate fields when you need a full timestamp — each keeps its
-      own canonical value (an ISO date from the picker, an <code>HH:MM</code> string from the time field),
-      which you combine at the boundary.
+      <code>TimeInput</code> is the form family's time field: <code>Calendar</code>,
+      <code>DatePicker</code> and <code>DateRangePicker</code> are for dates, <code>TimeInput</code>
+      for the time of day. It edits only the time, so for a full timestamp pair it with a
+      <code>DatePicker</code> as two separate fields. Each keeps its own value (an ISO date from the
+      picker, an <code>HH:MM</code> string from the time field), which you combine at the boundary.
     </p>
   </div>
 
   <CodeExample
     title="Date and time side by side"
-    description="A DatePicker for the day and a TimeInput for the time — two independent fields, two independent values."
+    description="A DatePicker for the day and a TimeInput for the time, kept as two separate values."
     code={`<script>
   import { DatePicker, TimeInput } from '@urbicon-ui/blocks';
 
@@ -126,9 +126,9 @@
 <Section marker id="customization" title="Customization">
   <div class="text-text-secondary space-y-3 text-sm leading-relaxed">
     <p>
-      Reach for named <code>preset</code>s registered on <code>&lt;BlocksProvider&gt;</code> for a
-      reusable look, or <code>slotClasses</code> to retouch individual parts — the slots are
-      <code>wrapper</code>, <code>label</code>, <code>field</code>, <code>icon</code>,
+      For a reusable look, register a named <code>preset</code> on
+      <code>&lt;BlocksProvider&gt;</code>; for individual parts, use <code>slotClasses</code>. The
+      slots are <code>wrapper</code>, <code>label</code>, <code>field</code>, <code>icon</code>,
       <code>segment</code>, <code>separator</code>, <code>meridiem</code>, and
       <code>message</code>. For a full ground-up restyle, set <code>unstyled</code> to drop every default
       class and rebuild from the slots.
@@ -150,7 +150,7 @@
     </Note>
     <Note title="Per-segment naming">
       <p>
-        Each segment — hour, minute, and (when present) second — carries its own
+        Each segment (hour, minute, and, when present, second) carries its own
         <code>aria-label</code>.
       </p>
     </Note>

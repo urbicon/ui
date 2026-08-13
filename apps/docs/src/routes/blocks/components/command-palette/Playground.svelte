@@ -104,8 +104,10 @@
         Open Command Palette
       </Button>
       <p class="text-text-tertiary text-sm">
-        The global hotkey (<Kbd keys={['Ctrl', 'K']} />
-        by default) is off here — this page already owns that key.
+        The global hotkey (<Kbd keys={['Cmd', 'K']} />
+        /
+        <Kbd keys={['Ctrl', 'K']} />
+        by default) is turned off in this demo, because the docs site already uses that key for its search.
       </p>
     </div>
     <!--

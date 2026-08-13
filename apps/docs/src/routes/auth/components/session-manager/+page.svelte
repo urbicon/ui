@@ -33,7 +33,7 @@
 
 <DocsPageLayout
   title="SessionManager"
-  description="Lists the user's active sessions (refresh-token families) with a device label, last-active time and a 'this device' badge, and lets them sign out one session or all other devices. Requires refresh-token rotation on the server."
+  description="Lists the user's active sessions, one row per signed-in device with a device label, last-active time and a 'this device' badge, and lets them sign out one session or all other devices. Requires refresh-token rotation on the server."
   maxWidth="2xl"
   showToc={true}
   breadcrumbs={[
@@ -48,7 +48,7 @@
   <Section marker id="usage" title="Usage" intent="primary">
     <CodeExample
       title="Basic"
-      description="The live preview runs against a mocked demo API (injected via the fetcher prop) — signing a session out updates the list. The snippet shows the production setup. Needs `config.refreshToken` rotation on the server; without it the component reports itself unavailable."
+      description="The live preview runs against a mocked demo API (injected via the fetcher prop): signing a session out updates the list. The snippet shows the production setup. Needs `config.refreshToken` rotation on the server; without it the list renders an unavailable message instead."
       code={basicCode}
       language="svelte"
     >
@@ -66,29 +66,30 @@
           navigation.
         </p>
       </Note>
-      <Note title="The current device is marked with a word, not a colour">
+      <Note title="The current device is marked with a word">
         <p>
-          The current session is marked with a <code class="text-text-primary">Badge</code> containing
-          localized text. Nothing on this page relies on colour alone to distinguish the session you are
-          sitting at from the ones you are about to revoke — which matters because that distinction is
-          the difference between signing out a stranger and signing out yourself.
+          The current session carries a <code class="text-text-primary">Badge</code> with localized text,
+          not colour alone, so the session you are sitting at stays distinguishable from the ones you
+          might revoke for a reader who cannot rely on colour.
         </p>
       </Note>
       <Note title="Only the row you acted on goes busy">
         <p>
-          Revoking one session sets <code class="text-text-primary">loading</code> and
-          <code class="text-text-primary">disabled</code> on that row's button alone, so the rest of
-          the list stays operable and blocks' Button reports
-          <code class="text-text-primary">aria-busy</code> only where something is actually happening.
+          During a revoke, only that row's button carries <code class="text-text-primary"
+            >loading</code
+          >
+          and
+          <code class="text-text-primary">disabled</code>, so the rest of the list stays operable
+          and blocks' Button exposes
+          <code class="text-text-primary">aria-busy</code> on the row that is actually working.
         </p>
       </Note>
-      <Note title="The per-row buttons share one accessible name">
+      <Note title="The sign-out buttons share one accessible name">
         <p>
-          Each row's sign-out button has no <code class="text-text-primary">aria-label</code>, so
-          its accessible name is just the localized "Sign out" — five sessions produce five
-          identically named buttons, and context has to come from list navigation. PasskeyManager
-          and InvitationManager solve the same problem by appending the row's subject to the label;
-          this list does not yet.
+          Each row's sign-out button takes its accessible name from the localized "Sign out" with no
+          per-row <code class="text-text-primary">aria-label</code>, so several sessions produce
+          several identically named buttons and a screen-reader user tells them apart through list
+          navigation rather than the button name.
         </p>
       </Note>
     </NoteList>

@@ -41,12 +41,12 @@
 
 <SeoMeta
   title="ToolCallCard Component"
-  description="Collapsible card that renders one agent tool call — a status header with the tool name and JSON input/output (or an error) in the body. Opens itself on failure."
+  description="A collapsible card for one agent tool call: a status header with the tool name, and JSON input/output (or an error) in the body. It starts expanded when the call fails."
 />
 
 <DocsPageLayout
   title="ToolCallCard"
-  description="Collapsible card that renders one agent tool call — a status header with the tool name and JSON input/output (or an error) in the body. Opens itself on failure."
+  description="A collapsible card for one agent tool call: a status header with the tool name, and JSON input/output (or an error) in the body. It starts expanded when the call fails."
   maxWidth="2xl"
   showToc={true}
   breadcrumbs={[

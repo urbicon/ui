@@ -61,7 +61,7 @@
 
     <CodeExample
       title="Embedded inside a Card"
-      description="The compact density shines when nested inside a container — Cards, table bodies, sidebar panels, search-result lists. The default density would dominate the parent; compact stays proportional."
+      description="Use density='compact' when the EmptyState sits inside a container like a Card or a table body, where the default density would be too tall for the parent."
       code={`<Card variant="outlined" padding="md">
   <h3 class="text-text-primary mb-3 text-sm font-semibold">Recent activity</h3>
   <EmptyState
@@ -89,12 +89,12 @@
 <Section marker id="customization" title="Customization">
   <div class="text-text-secondary space-y-3 text-sm leading-relaxed">
     <p>
-      Pair with any icon from <code>@urbicon-ui/blocks</code>. The container picks up the semantic
-      <code>bg-primary-subtle</code>
-      / <code>text-primary</code> tokens, so the look adapts automatically to your theme override.
+      Pair with any icon from <code>@urbicon-ui/blocks</code>. The icon and text use the
+      <code>primary</code> intent tokens, so they follow your theme; override any slot with
+      <code>slotClasses</code>, <code>unstyled</code>, or a <code>preset</code>.
     </p>
     <p>
-      Use the <code>cta</code> snippet for the primary action; render arbitrary markup via
+      Use the <code>cta</code> snippet for the primary action; render your own markup via
       <code>children</code> for richer empty states (e.g. tutorials, illustrations).
     </p>
   </div>
@@ -109,8 +109,8 @@
     </Note>
     <Note title="The title is an h3">
       <p>
-        The title renders as <code>&lt;h3&gt;</code> so it slots into existing page heading
-        hierarchy without competing with the page <code>&lt;h1&gt;</code>.
+        The title renders as an <code>&lt;h3&gt;</code>, so it nests under your page's
+        <code>&lt;h1&gt;</code> in the heading hierarchy.
       </p>
     </Note>
   </NoteList>

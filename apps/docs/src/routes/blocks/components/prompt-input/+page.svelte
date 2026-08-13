@@ -57,12 +57,12 @@
 
 <SeoMeta
   title="PromptInput Component"
-  description="The chat composer — an auto-growing textarea with a send button that flips to stop while streaming, opt-in attachments, and IME-safe Enter-to-send."
+  description="An auto-growing textarea for chat input: a send button that becomes a stop button while streaming, Enter-to-send, and opt-in attachments."
 />
 
 <DocsPageLayout
   title="PromptInput"
-  description="The chat composer: an auto-growing textarea with a send button that flips to a stop button while a response streams. Enter sends (Shift+Enter for a newline, IME-safe), and opt-in attachments support the paperclip picker, clipboard paste, and drag-and-drop over the shared file-intake core."
+  description="An auto-growing textarea for chat input, with a send button that becomes a stop button while a response streams. Enter sends, Shift+Enter inserts a newline, and opt-in attachments accept the paperclip picker, paste, and drag-and-drop."
   maxWidth="2xl"
   showToc={true}
   breadcrumbs={[

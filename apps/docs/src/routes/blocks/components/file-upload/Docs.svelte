@@ -22,7 +22,7 @@
   <div class="space-y-10">
     <CodeExample
       title="Basic upload"
-      description="One file, by drag-and-drop or click. The result renders as a file list with name, size and a remove button."
+      description="One file, by drag-and-drop or click. Each accepted file lists its name, size and a remove button."
       code={basicUploadCode}
     >
       <BasicUpload />
@@ -30,7 +30,7 @@
 
     <CodeExample
       title="Images with a preview"
-      description="Images become thumbnails on their own. Below the component sits a hand-built grid with overlaid filenames — FileUpload and a preview layout of your own, side by side."
+      description="FileUpload shows a thumbnail for each image. Below it, this example adds a grid of larger previews with overlaid filenames, to show pairing the component with a layout of your own."
       code={imagePreviewCode}
     >
       <ImagePreview />
@@ -38,7 +38,7 @@
 
     <CodeExample
       title="Validation with feedback"
-      description="File type (.pdf, .docx, .xlsx), a 2 MB size ceiling and a count of 3 are all checked. Rejections surface as an alert carrying structured messages."
+      description="accept, maxFileSize and maxFiles are all enforced: PDF, DOCX or XLSX only, 2 MB each, three files at most. A rejected file shows up in an Alert with a per-file reason."
       code={withValidationCode}
     >
       <WithValidation />
@@ -46,7 +46,7 @@
 
     <CodeExample
       title="Upload progress"
-      description="A simulated upload with a bar per file. The indicators walk the lifecycle — pending → uploading → complete/error — and the consumer drives the progress from outside."
+      description="A simulated upload with a bar per file. Each file moves through pending, uploading, then complete or error; your upload code sets the status and percentage as it goes."
       code={uploadProgressCode}
     >
       <UploadProgress />
@@ -59,8 +59,8 @@
 <Section marker id="customization" title="Customization">
   <div class="space-y-10">
     <CodeExample
-      title="Custom Dropzone Design"
-      description="The `children` snippet replaces the dropzone contents wholesale — here a gradient ground, an icon of its own and a call to action, with `slotClasses` handling the frame."
+      title="Custom dropzone design"
+      description="The `children` snippet replaces the dropzone contents: here a gradient background, an icon and a call to action, with `slotClasses` for the frame."
       code={customDropzoneCode}
     >
       <CustomDropzone />
@@ -81,7 +81,7 @@
         change without being asked; each entry is a
         <code class="text-text-primary">role="listitem"</code>. The real
         <code class="text-text-primary">&lt;input type="file"&gt;</code> stays in the DOM, visually hidden,
-        because nothing beats it for compatibility.
+        so native file selection and form submission keep working.
       </p>
     </Note>
     <Note title="Keyboard">
@@ -105,7 +105,7 @@
         and shadow tell the reader whether what they are dragging will be taken.
       </p>
     </Note>
-    <Note title="Document Drop Prevention">
+    <Note title="Document drop prevention">
       <p>
         On by default through <code class="text-text-primary">preventDocumentDrop</code>: a file
         dropped anywhere but the dropzone does not open in the browser. Without it, a near-miss

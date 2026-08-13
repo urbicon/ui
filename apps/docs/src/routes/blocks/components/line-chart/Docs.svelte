@@ -23,10 +23,19 @@
 
 <!-- ─── Examples ─── -->
 <Section marker id="examples" title="Examples">
+  <p class="text-text-secondary mb-6 text-sm leading-relaxed">
+    Each datum has a <code class="text-text-primary">label</code> and a
+    <code class="text-text-primary">values</code> array, and
+    <code class="text-text-primary">values[i]</code> belongs to
+    <code class="text-text-primary">series[i]</code>. Pass
+    <code class="text-text-primary">series</code> to name and colour the lines and to drive the
+    legend; a single value per datum needs no <code class="text-text-primary">series</code>.
+  </p>
+
   <div class="space-y-8">
     <CodeExample
       title="Single trend"
-      description="One series over an ordered axis. Points mark each value; the axis frames the data range."
+      description="One series over an ordered axis."
       isolate
       previewClass="flex w-full justify-center p-6"
     >
@@ -48,7 +57,7 @@
 
     <CodeExample
       title="Zero baseline"
-      description="By default the value axis frames the data to emphasise variation. Set `includeZero` to anchor it at zero when absolute magnitude matters."
+      description="By default the value axis fits the data range. Set `includeZero` to anchor the axis at zero when absolute magnitude matters."
       isolate
       previewClass="flex w-full justify-center p-6"
     >
@@ -96,8 +105,8 @@
     </Note>
     <Note title="Data-table fallback">
       <p>
-        A visually hidden table mirrors every point per series, so screen-reader users read exact
-        values rather than an inaccessible path.
+        A visually hidden table mirrors every point per series, so screen-reader users read the
+        exact values.
       </p>
     </Note>
     <Note title="Per-point tooltips">

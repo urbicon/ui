@@ -16,23 +16,23 @@
   <div class="space-y-10">
     <CodeExample
       title="Lifecycle: running to complete"
-      description="The consumer owns the tool-call part and mutates its state and output as the real call resolves. While busy the header shows a spinner beside the tool name; on completion the status flips to Done and the output becomes available. It stays collapsed the whole time — a successful call is not worth a click, and the default plain header keeps it out of the reader's way."
+      description="You hold the tool-call part and update its state and output as the real call resolves. While it runs, the header shows a spinner beside the tool name; when it completes, the status reads Done and the output is available. It stays collapsed throughout, so the plain header sits quietly in a chat stream."
       code={lifecycleCode}
     >
       <Lifecycle />
     </CodeExample>
 
     <CodeExample
-      title="Failure opens itself"
-      description="A call in the error state starts expanded so the failure is visible without a click, and shows errorMessage above the input. A manual toggle afterwards always wins — auto-open never fights the reader."
+      title="Failure starts expanded"
+      description="A call in the error state starts expanded, so the failure is visible without a click, and shows errorMessage above the input. A manual toggle afterwards overrides the auto-open."
       code={errorStateCode}
     >
       <ErrorState />
     </CodeExample>
 
     <CodeExample
-      title="Framed, where the call is the content"
-      description="variant=&quot;card&quot; puts the header back in a frame: outline, radius, status badge, and the full width of whatever holds it. That is the right register for a run log or an agent trace — a surface someone opened to read the calls themselves. In a chat stream it is the wrong one, which is why plain is the default."
+      title="Framed variant for run logs"
+      description="variant=&quot;card&quot; wraps the header in a frame: outline, radius, status badge, and full width. Use it for a run log or agent trace, where the calls are the content the reader came for. The default plain variant suits an inline chat stream."
       code={framedTraceCode}
     >
       <FramedTrace />
@@ -70,7 +70,7 @@
       <p>
         The header is a real <code class="text-text-primary">&lt;button&gt;</code> with
         <code class="text-text-primary">aria-expanded</code> and
-        <code class="text-text-primary">aria-controls</code> pointing at the body region — the same
+        <code class="text-text-primary">aria-controls</code> pointing at the body region, the same
         Collapsible contract as the rest of the library.
         <Kbd keys="Tab" />
         to reach it,
@@ -83,7 +83,7 @@
     <Note title="Untrusted output">
       <p>
         Input and output render as plain text inside <code class="text-text-primary">CodeBlock</code
-        >, never as interpreted HTML — tool results are untrusted data.
+        >, not interpreted HTML, because tool results are untrusted data.
       </p>
     </Note>
   </NoteList>

@@ -21,6 +21,14 @@ object to put it on, an undefined "column id", a subscription with no teardown �
 checklist passes with source access had both missed. One of them flagged the exact sentence the
 maintainer had rejected, unprompted.
 
+**On a component page the reader works from the RENDERED page, not the `.svelte` source.** Every
+component page carries a live Playground and generated API/Types tables. A reader handed the source
+is blind to all three: they report variant/size questions the Playground already answers and type
+shapes the Types section already lists as "never shown", and they cannot see a single visual or
+interaction defect. Measured 2026-08-13: a source-only reader marked three Calendar type shapes as
+missing that the rendered Types section documented in full. Point the reader at the running dev
+server — a text dump plus full-page screenshots, or a browser tab — never the file.
+
 Give the agent the page file **and nothing else**. Explicitly forbid: opening any other file —
 including `docs/EDITORIAL.md` and the canon in `apps/docs/canon/`, which would turn the reader
 into a reviewer — searching the repo, reading the library source, judging style, proposing
@@ -76,6 +84,15 @@ claims — the overflow, the binding, the arrows, the keyboard nav — not just 
 component defect goes to whoever drives the session (and onto the bug list); a demo
 mis-configuration is fixed in the page. Measured 2026-08-12: a full three-pass wave shipped four such
 defects that only a human sight-check caught, which is what added this pass.
+
+A screenshot-plus-console-check is **not** this pass. Measured 2026-08-13 on the component pages: a
+Playwright pass that only shot each page and read the console passed five defects a human caught in
+five minutes — a Playground control whose default contradicted the component's own default, a
+control stretched to the full stage width, whitespace left above the controls after a view switch,
+untranslated demo labels, and a heatmap cell styled as a clickable button with no action. The pass
+has to switch every view, open every menu and dropdown, click the interactive cells, and read every
+visible label — then split each finding into a page fix or a component bug. On an interactive
+component this pass runs **early**, not last: its findings decide what the prose must cover.
 
 ## Gates and reporting
 

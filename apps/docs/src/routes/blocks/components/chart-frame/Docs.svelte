@@ -11,10 +11,9 @@
   <div class="text-text-secondary space-y-3 text-sm leading-relaxed">
     <p>
       ChartFrame is the low-level shell every cartesian chart in the family is built on. It owns the
-      parts that are tedious to get right — responsive width via a
+      parts that are tedious to get right (responsive width via a
       <code>ResizeObserver</code>, plot margins, the <code>viewBox</code>, and the accessible
-      <code>role="img"</code> wrapper — and hands you the measured plot geometry so you only draw the
-      marks.
+      <code>role="img"</code> wrapper) and hands you the measured plot geometry so you only draw the marks.
     </p>
     <p>
       Reach for it <strong>only when the chart you need isn't already in the family</strong>. For
@@ -29,7 +28,7 @@
     </ul>
     <p>
       Use ChartFrame directly for a bespoke mark type the family doesn't cover (a candlestick, a
-      radial plot, a custom annotation layer) — you keep the responsive, accessible shell and own
+      radial plot, a custom annotation layer). You keep the responsive, accessible shell and own
       only the SVG inside it.
     </p>
   </div>
@@ -40,7 +39,7 @@
   <div class="space-y-10">
     <CodeExample
       title="Custom marks"
-      description="The core pattern: the `children` snippet receives the plot geometry — `width`, `height`, `innerWidth`, `innerHeight` and `margin`. Map your data onto `innerWidth`/`innerHeight` and draw raw SVG, styling strokes and fills with the design-token utilities (`stroke-primary`, `stroke-border-default`) so theming and dark mode flow automatically."
+      description="The `children` snippet receives the plot geometry (`width`, `height`, `innerWidth`, `innerHeight`, `margin`) and draws inside the plot area: (0,0) is the top-left after margins, so map onto `innerWidth`/`innerHeight` and never offset by `margin` yourself. Style strokes and fills with the design-token utilities (`stroke-primary`, `stroke-border-default`) so theming and dark mode follow."
       code={customMarksCode}
     >
       <CustomMarks />
@@ -48,7 +47,7 @@
 
     <CodeExample
       title="Legend & accessible fallback"
-      description="`ariaLabel` names the chart, the `legend` snippet renders HTML below the SVG, and the `fallback` snippet is rendered visually hidden for screen readers — a data table here, so the underlying numbers stay reachable."
+      description="`ariaLabel` names the chart, the `legend` snippet renders HTML below the SVG, and the `fallback` snippet is rendered visually hidden for screen readers: a data table here, so the underlying numbers stay reachable."
       code={legendFallbackCode}
     >
       <LegendAndFallback />
@@ -56,7 +55,7 @@
 
     <CodeExample
       title="Fixed width (SSR-stable)"
-      description="Omit `width` for responsive measurement (the common case). Set it to opt out — the SVG renders at exactly that width on the server with no layout shift, useful for emails, PDfs or snapshot tests."
+      description="Omit `width` for responsive measurement (the common case). Set it to opt out: the SVG renders at exactly that width on the server with no layout shift, which suits emails, PDFs, or snapshot tests."
       code={`<ChartFrame width={480} height={200} ariaLabel="Static chart">
   {#snippet children({ innerWidth, innerHeight })}
     <!-- drawn at a deterministic 480×200, no ResizeObserver -->
@@ -75,6 +74,8 @@
       <p>
         The SVG carries <code>role="img"</code> with your <code>ariaLabel</code>, so assistive tech
         announces the chart as a single named image rather than reading out every path and number.
+        Always pass one; without it the chart is an unlabelled image, fine only when an adjacent
+        caption already conveys the same information.
       </p>
     </Note>
     <Note title="Supply a fallback for the detail">
@@ -88,12 +89,6 @@
       <p>
         The <code>legend</code> snippet is ordinary HTML below the SVG, so its text is selectable and
         in the accessibility tree without extra work.
-      </p>
-    </Note>
-    <Note title="Always pass an ariaLabel">
-      <p>
-        Always pass an <code>ariaLabel</code>. Without it the chart is an unlabelled image — fine
-        only when an adjacent caption already conveys the same information.
       </p>
     </Note>
   </NoteList>

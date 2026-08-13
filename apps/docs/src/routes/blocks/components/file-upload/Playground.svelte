@@ -71,7 +71,7 @@
         allowPaste={values.allowPaste}
         disabled={values.disabled}
         title="Drop files here, or click"
-        description="Beliebiger Dateityp, max. 10 MB"
+        description="Any file type, up to 10 MB"
         maxFileSize={10 * 1024 * 1024}
       />
     </div>

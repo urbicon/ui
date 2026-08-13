@@ -33,7 +33,7 @@
 
 <DocsPageLayout
   title="TwoFactorManager"
-  description="Self-service two-factor (TOTP) management: enrol with an authenticator app, show one-time backup codes, and disable with a password re-auth. The core stays zero-dependency, so QR rendering is delegated to the `qr` snippet — without it the otpauth URI + Base32 secret are shown for manual entry."
+  description="Self-service two-factor (TOTP) management: enrol with an authenticator app, show one-time backup codes, and disable with a password re-auth. Pass a `qr` snippet to render the setup QR code; the package ships no QR encoder, so without one the otpauth URI and Base32 secret are shown as text to type in."
   maxWidth="2xl"
   showToc={true}
   breadcrumbs={[
@@ -48,7 +48,7 @@
   <Section marker id="usage" title="Usage" intent="primary">
     <CodeExample
       title="Basic"
-      description="The live preview runs against a mocked demo API (injected via the fetcher prop) — setup returns a demo secret + URI and any 6-digit code reveals demo backup codes (no real verification). The `qr` snippet is omitted here, so the zero-dep manual-entry fallback is shown. The snippet shows the production setup."
+      description="The live preview runs against a mocked demo API (injected via the fetcher prop): setup returns a demo secret and URI, and any 6-digit code reveals demo backup codes (nothing is verified). No `qr` snippet is passed here, so the page falls back to manual entry. The code below shows the production setup."
       code={basicCode}
       language="svelte"
     >
@@ -61,18 +61,18 @@
       <Note title="The error region outlives the step it came from">
         <p>
           The <code class="text-text-primary">aria-live="polite"</code> region sits directly under the
-          heading, above the idle/setup/backup branch — not inside it. An error raised while confirming
-          a code is therefore still announced after the view changes, which a region nested in the branch
-          would have destroyed before the reader got to it.
+          heading, above the idle/setup/backup branch rather than inside it. An error raised while confirming
+          a code is therefore still announced after the view changes; a region nested in the branch would
+          unmount with the step before the reader heard it.
         </p>
       </Note>
-      <Note title="The secret and the backup codes are real elements">
+      <Note title="The secret and the backup codes are text elements">
         <p>
           The TOTP secret renders in a <code class="text-text-primary">&lt;code&gt;</code> element
           and the backup codes in a <code class="text-text-primary">&lt;ul&gt;</code> of
-          <code class="text-text-primary">&lt;li&gt;</code>. A reader announces the list with its
-          item count and can step through the codes one at a time — the same content as a styled
-          grid of divs would be an unnavigable run of characters.
+          <code class="text-text-primary">&lt;li&gt;</code>. A screen reader announces the list with
+          its item count and steps through the codes one at a time, where the same content in a grid
+          of styled divs would be an unnavigable run of characters.
         </p>
       </Note>
       <Note title="Autofill hints on both entry paths">
@@ -85,15 +85,14 @@
           numeric keypad and lets the OS offer the code directly.
         </p>
       </Note>
-      <Note title="Step changes are neither focused nor announced">
+      <Note title="Advancing a step does not move focus">
         <p>
-          Moving from idle to setup to backup codes replaces the content in place, and nothing marks
-          it: focus is not moved, and the live region above carries only errors — a successful step
-          change clears the error first, so the region is empty exactly when the view swaps. A
-          screen-reader user is left on a page whose content silently became something else. Move
-          focus to the new step yourself if this flow matters to you. The QR code is a
-          consumer-supplied snippet, so its alternative text is yours to provide; the secret is
-          always available as text next to it for anyone who cannot scan.
+          Moving from idle to setup to backup codes swaps the content in place without moving focus,
+          and the live region above carries only errors; on a successful step it is cleared first,
+          so it is empty exactly when the view changes. A screen-reader user gets no cue that the
+          step advanced, so move focus to the new step yourself if this flow matters to you. The QR
+          code is your snippet, so its alternative text is yours to provide; the secret sits next to
+          it as text for anyone who cannot scan.
         </p>
       </Note>
     </NoteList>

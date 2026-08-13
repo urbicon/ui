@@ -1,7 +1,6 @@
 /**
- * @summary The unread count on a bell — invisible at zero.
- * @description Unread notification count badge. Uses blocks Badge primitive.
- * Renders nothing when count is 0.
+ * @summary The unread count on a bell, invisible at zero.
+ * @description An unread-count badge that renders nothing when the count is 0.
  *
  * @tag feedback
  * @related NotificationCenter

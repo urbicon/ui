@@ -20,7 +20,13 @@ imitated verbatim; pointers do not.
 
 - `docs/EDITORIAL.md`: Principles, Canon and "Before writing" are the writing basis. **The
   checklist is not the writer's job** — as writing instructions it only lengthens the page.
-- Read the canon pages; match structure, register, density.
+- Read the canon pages; match structure, register, density. **The canon is the only register model
+  — never a sibling shipped page.** Several shipped pages are off-register (Select's prose was
+  rejected as bad); copying one propagates the wrong voice. And write against the canon, **not
+  against the review's findings list** — patching blocker after blocker collapses the prose straight
+  back into the model's own register (measured 2026-08-13: a wave written to satisfy findings, with
+  the canon never opened, came back with "components that take full control", "so you store one
+  object instead of fifty", and an exception sentence the guide forbids).
 - Verify every behaviour claim in the package source before writing or keeping it.
 - Single-prop rules → the prop's JSDoc (`component-metadata` skill); the page explains relations
   between props.

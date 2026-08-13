@@ -5,7 +5,7 @@
   const categories: DateCategory[] = [
     { id: 'standup', label: 'Standup', color: '#8b5cf6' },
     { id: 'review', label: 'Review', color: '#3b82f6' },
-    { id: 'sport', label: 'Sport', color: '#22c55e' },
+    { id: 'sport', label: 'Sports', color: '#22c55e' },
     { id: 'waste', label: 'Waste collection', color: '#6b7280' }
   ];
 

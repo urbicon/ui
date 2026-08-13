@@ -28,12 +28,12 @@
 
 <SeoMeta
   title="InvitationManager - Auth"
-  description="Admin panel for managing invitation-gated registration."
+  description="Lists sent invitations and lets an admin send new ones or delete unused ones."
 />
 
 <DocsPageLayout
   title="InvitationManager"
-  description="Admin panel for managing invitation-gated registration. Lists invitations with status, allows sending new ones and deleting unused ones."
+  description="Lists sent invitations with their status and lets an admin invite someone new or delete an unused invitation."
   maxWidth="2xl"
   showToc={true}
   breadcrumbs={[
@@ -48,7 +48,7 @@
   <Section marker id="usage" title="Usage" intent="primary">
     <CodeExample
       title="Basic"
-      description="The live preview runs against a mocked demo API (injected via the fetcher prop) — sending and deleting invitations works on demo data. The snippet shows the production setup."
+      description="The live preview runs against a mocked demo API (injected via the fetcher prop): sending and deleting invitations works on demo data. The snippet shows the production setup."
       code={basicCode}
       language="svelte"
     >
@@ -60,26 +60,25 @@
     <NoteList>
       <Note title="Every delete button names its invitation">
         <p>
-          As in PasskeyManager, each row's button carries an
+          Each row's button carries an
           <code class="text-text-primary">aria-label</code> that appends the invitee's email to the visible
           "Delete", so a reader can tell the rows apart without first navigating into them.
         </p>
       </Note>
-      <Note title="Deliberately no autofill on the email field">
+      <Note title="The email field omits autofill on purpose">
         <p>
-          This is the one email field in the auth package without an
-          <code class="text-text-primary">autoComplete</code> hint — and that is correct. You are typing
-          someone else's address, so offering the signed-in user's own email would be wrong every single
+          The invite field carries no <code class="text-text-primary">autoComplete</code> hint. You are
+          typing someone else's address, so offering the signed-in user's own email would be wrong every
           time.
         </p>
       </Note>
       <Note title="Status is text inside a badge">
         <p>
           Pending and registered invitations differ by the localized word in the
-          <code class="text-text-primary">Badge</code>, not only by its colour. The role
+          <code class="text-text-primary">Badge</code>, not by colour alone. The role
           <code class="text-text-primary">Select</code> and the send-email
           <code class="text-text-primary">Checkbox</code>
-          take real labels through their <code class="text-text-primary">label</code> props, so the whole
+          get their labels through their <code class="text-text-primary">label</code> props, so the whole
           form is navigable by label.
         </p>
       </Note>

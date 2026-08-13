@@ -27,14 +27,14 @@
 
 <SeoMeta
   title="Sparkline Component"
-  description="Tiny inline trend line — no axes — sized to flow in table cells, cards, or text."
+  description="Tiny inline trend line without axes, sized to fit in table cells, cards, or text."
 />
 
 <DocsPageLayout
   maxWidth="2xl"
   showToc={true}
   title="Sparkline"
-  description="Tiny inline trend line — no axes — sized to flow in table cells, cards, or text."
+  description="Tiny inline trend line without axes, sized to fit in table cells, cards, or text."
   breadcrumbs={[
     { label: 'Blocks', href: '/blocks' },
     { label: 'Components', href: '/blocks/components' }

@@ -26,7 +26,7 @@
   ];
 
   const DESC =
-    'Range selection in two clicks — start and end date in one calendar popover, closing itself once both are set. Shares the DatePicker surface: same sizes, variants, constraints, and locale handling.';
+    'A calendar popover for picking a start and end date, for travel dates, a booking window, or a reporting period. It builds on DatePicker: same sizes, variants, constraints, and locale handling.';
 </script>
 
 <SeoMeta title="DateRangePicker Component" description={DESC} />

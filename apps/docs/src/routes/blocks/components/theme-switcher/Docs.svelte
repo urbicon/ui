@@ -28,7 +28,7 @@
 
     <CodeExample
       title="In a settings panel"
-      description="Realistic use — outlined trigger inline with related appearance preferences."
+      description="An outlined trigger inline with related appearance preferences."
       isolate
       previewClass="flex justify-center max-w-md w-full mx-auto"
     >
@@ -56,7 +56,7 @@
 <Section marker id="customization" title="Customization">
   <CodeExample
     title="Branded trigger"
-    description={'Override the button and icon slots for a gradient brand-look. Pass storageKey={false} for ephemeral switching without persistence.'}
+    description="Override the button and icon slots for a gradient brand look."
     isolate
     previewClass="flex items-center gap-4"
   >
@@ -82,9 +82,9 @@
       /
       <Kbd keys="Space" />; uses
       <code class="text-text-primary">focus-visible:</code> for keyboard-only rings. In system mode
-      the UI live-follows
-      <code class="text-text-primary">prefers-color-scheme</code> changes natively via
-      <code class="text-text-primary">color-scheme: light dark</code> — no JavaScript needed.
+      the theme follows the OS through
+      <code class="text-text-primary">color-scheme: light dark</code>, so
+      <code class="text-text-primary">prefers-color-scheme</code> changes take effect on their own.
     </p>
   </div>
 </Section>

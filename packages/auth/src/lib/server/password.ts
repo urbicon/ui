@@ -1,5 +1,5 @@
 // Password hashing (Web Crypto PBKDF2 + legacy bcrypt verification) and the
-// password strength policy. Split out of the former auth.ts god-file (R17).
+// password strength policy. Split out of the former auth.ts god-file.
 
 import { randomBytes } from 'node:crypto';
 import type { PasswordConfig } from '../types.js';

@@ -27,12 +27,12 @@
 
 <SeoMeta
   title="StreamingMarkdown Component"
-  description="Streaming-safe markdown renderer for LLM output: parses a growing string incrementally, caches settled blocks, and enforces a strict URL policy — rendering to a real component tree, so it is XSS-safe by construction."
+  description="A markdown renderer for streaming LLM output: it parses a growing string incrementally, caches settled blocks, and applies a strict URL policy. It renders to real components instead of an HTML string, so untrusted output cannot inject markup."
 />
 
 <DocsPageLayout
   title="StreamingMarkdown"
-  description="Streaming-safe markdown renderer for LLM output. Parses a growing string incrementally, caches settled blocks, and enforces a strict URL policy by default — rendering to a real component tree, never to an HTML string."
+  description="A markdown renderer for streaming LLM output. It parses a growing string incrementally, caches settled blocks, and applies a strict URL policy by default. Because it renders to real components instead of an HTML string, untrusted output cannot inject markup."
   maxWidth="2xl"
   showToc={true}
   breadcrumbs={[

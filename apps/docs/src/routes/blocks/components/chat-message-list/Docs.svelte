@@ -10,7 +10,7 @@
   <div class="space-y-8">
     <CodeExample
       title="Streaming append"
-      description="Appending to the messages array (or growing the last message's text part as chunks arrive) is all it takes — the list follows as long as the reader is at the bottom. onStickChange tells you when following breaks so you can reflect it in your own UI, e.g. a 'following / paused' badge."
+      description="Append to the messages array, or grow the last message's text part as chunks arrive, and the list follows while the reader is at the bottom. onStickChange fires when following breaks, so you can show your own state, such as a 'following / paused' badge."
       preview={false}
       code={`<script lang="ts">
   import { ChatMessageList, type ChatMessageData } from '@urbicon-ui/blocks';
@@ -35,7 +35,7 @@
 
     <CodeExample
       title="Load older history (prepend anchor)"
-      description="Prepending older messages when the reader hits the top would normally yank the viewport. The list detects the prepend and anchors the scroll position, so the message you were reading stays put while history grows above it."
+      description="Prepending older messages at the top would normally jump the viewport. The list detects the prepend and holds the scroll position, so the message you were reading stays in place as history loads above it."
       preview={false}
       code={`<script lang="ts">
   import { ChatMessageList, type ChatMessageData } from '@urbicon-ui/blocks';
@@ -60,7 +60,7 @@
 
     <CodeExample
       title="Custom per-message rendering"
-      description="The message snippet overrides how each entry renders — it receives message, index and isLast, and draws whatever you like. Reach for it to inject date separators, custom system notices, or a bespoke bubble; drop back to the default ChatMessage for the rest."
+      description="The message snippet overrides how each entry renders. It receives message, index, and isLast. Use it for date separators, custom system notices, or a different bubble, and fall back to the default ChatMessage for the rest."
       preview={false}
       code={`<ChatMessageList {messages}>
   {#snippet message({ message, isLast })}
@@ -82,32 +82,32 @@
 
 <Section marker id="scroll-engine" title="Scroll engine">
   <p class="text-text-secondary text-sm leading-relaxed">
-    The list owns one scrolling element and a deterministic engine on top of it — it does
-    <em>not</em> rely on CSS <code class="text-text-primary">overflow-anchor</code> (Safari has none),
-    so it corrects the scroll offset itself in every case.
+    The list adjusts the scroll position itself rather than through CSS
+    <code class="text-text-primary">overflow-anchor</code>, which Safari does not support. Four
+    behaviours follow from that:
   </p>
   <ul class="text-text-secondary mt-3 list-outside list-disc space-y-1.5 pl-5 text-sm">
     <li>
       <strong>Follow while at the bottom.</strong> New content keeps the viewport pinned to the latest
-      message — ideal for a streaming answer.
+      message.
     </li>
     <li>
-      <strong>Upward scroll breaks the follow.</strong> The moment you scroll away from the bottom the
-      list stops chasing new content and surfaces a floating jump-back pill counting what arrived since.
+      <strong>Upward scroll breaks the follow.</strong> When you scroll away from the bottom, the list
+      stops following and shows a floating jump-back pill with the count of new messages.
     </li>
     <li>
       <strong>Proximity re-stick.</strong> Scroll back near the bottom (or click the pill) and
       following resumes. <code class="text-text-primary">onStickChange</code> fires on every flip.
     </li>
     <li>
-      <strong>Prepend anchoring.</strong> When older messages are added to the front, the engine holds
-      the reader's current message in place instead of jumping.
+      <strong>Prepend anchoring.</strong> When older messages are added to the front, the current message
+      stays in place instead of jumping.
     </li>
   </ul>
   <p class="text-text-secondary mt-3 text-sm leading-relaxed">
     Note: rest attributes (including a raw <code class="text-text-primary">onscroll</code>) land on
-    the non-scrolling root — observe follow-state through
-    <code class="text-text-primary">onStickChange</code>, not a scroll listener.
+    the non-scrolling root, so observe follow-state through
+    <code class="text-text-primary">onStickChange</code> rather than a scroll listener.
   </p>
 </Section>
 
@@ -121,20 +121,19 @@
       {/snippet}
       <p>
         The messages render inside a <code class="text-text-primary">role="log"</code> region, but
-        its live channel is deliberately <strong>off</strong>. A streaming answer changes the DOM
-        dozens of times a second; a polite/assertive log would fire an announcement on every token
-        and drown the user in fragments. So the log itself stays silent.
+        its live channel is <strong>off</strong>. A streaming answer changes the DOM dozens of times
+        a second; a polite or assertive log would announce every token, so the log stays silent.
       </p>
     </Note>
     <Note title="The separate status region">
       <p>
         Announcements come instead from a visually hidden
-        <code class="text-text-primary">role="status"</code> region that speaks only the meaningful
+        <code class="text-text-primary">role="status"</code> region that carries only the meaningful
         transitions: <code class="text-text-primary">generatingLabel</code> once when an assistant
         message starts streaming, and the settled answer once when it completes (or
         <code class="text-text-primary">errorLabel</code> /
         <code class="text-text-primary">abortedLabel</code> for a failed stream). Screen-reader users
-        hear "generating…" then the final answer — never the token-by-token churn.
+        hear "generating…", then the final answer, rather than each token.
       </p>
     </Note>
     <Note>
@@ -156,8 +155,8 @@
         <code class="text-text-primary">aria-label</code> carries the pending count (<code
           class="text-text-primary">newMessagesLabel</code
         >) or falls back to
-        <code class="text-text-primary">scrollToBottomLabel</code> when nothing is pending — so its purpose
-        is announced, not implied by an icon.
+        <code class="text-text-primary">scrollToBottomLabel</code> when nothing is pending, so its purpose
+        is announced rather than implied by an icon.
       </p>
     </Note>
   </NoteList>

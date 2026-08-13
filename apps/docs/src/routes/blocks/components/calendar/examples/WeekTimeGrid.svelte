@@ -4,8 +4,8 @@
 
   const categories: DateCategory[] = [
     { id: 'meeting', label: 'Meeting', color: '#8b5cf6' },
-    { id: 'focus', label: 'Fokuszeit', color: '#3b82f6' },
-    { id: 'break', label: 'Pause', color: '#22c55e' }
+    { id: 'focus', label: 'Focus time', color: '#3b82f6' },
+    { id: 'break', label: 'Break', color: '#22c55e' }
   ];
 
   const monday = new Date(2026, 2, 9);
@@ -29,7 +29,7 @@
     },
     {
       id: '3',
-      title: 'Mittagspause',
+      title: 'Lunch break',
       start: new Date(2026, 2, 9, 12, 0),
       end: new Date(2026, 2, 9, 13, 0),
       allDay: false,
@@ -53,7 +53,7 @@
     },
     {
       id: '6',
-      title: '1:1 mit Sarah',
+      title: '1:1 with Sarah',
       start: new Date(2026, 2, 10, 10, 0),
       end: new Date(2026, 2, 10, 10, 45),
       allDay: false,
@@ -109,7 +109,7 @@
     },
     {
       id: '13',
-      title: 'Architektur-Review',
+      title: 'Architecture Review',
       start: new Date(2026, 2, 12, 11, 0),
       end: new Date(2026, 2, 12, 12, 30),
       allDay: false,
@@ -149,7 +149,7 @@
     },
     {
       id: '18',
-      title: 'Team-Event',
+      title: 'Team event',
       start: new Date(2026, 2, 13, 15, 0),
       end: new Date(2026, 2, 13, 17, 0),
       allDay: false,

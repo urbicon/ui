@@ -21,8 +21,8 @@
         <UploadCloudIcon strokeWidth={1.5} class="text-primary size-7" />
       </div>
       <div>
-        <p class="text-text-primary font-semibold">Design-Assets hochladen</p>
-        <p class="text-text-tertiary mt-1 text-sm">Bilder und PDFs, max. 8 MB pro Datei</p>
+        <p class="text-text-primary font-semibold">Upload design assets</p>
+        <p class="text-text-tertiary mt-1 text-sm">Images and PDFs, up to 8 MB each</p>
       </div>
       <div
         class="bg-primary text-text-on-primary mt-1 inline-flex items-center gap-2 rounded-lg px-4 py-2 text-sm font-medium"

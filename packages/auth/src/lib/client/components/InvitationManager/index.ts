@@ -9,6 +9,7 @@ import type { RoleOption } from '../types.js';
  *
  * @tag form
  * @related RegisterPage
+ * @stability beta
  *
  * @example
  * ```svelte
@@ -18,20 +19,20 @@ import type { RoleOption } from '../types.js';
 export interface InvitationManagerProps {
   /**
    * Locale overrides, deep-merged over the active built-in bundle (resolved
-   * from the i18n context). Pass any subset — a single string or a whole tree.
+   * from the i18n context). Pass any subset, from a single string to a whole tree.
    */
   t?: PartialAuthLocale;
   /** Available roles for the invitation menu. */
   roles: RoleOption[];
-  /** API endpoint. @default '/api/invitations' */
+  /** API base path for the invitation endpoints. @default '/api/invitations' */
   apiPath?: string;
-  /** CSRF cookie/header names — only needed when the server overrides the defaults via `config.csrf`. Mutating requests echo the token automatically. */
+  /** CSRF cookie/header names. Only needed when the server overrides the defaults via `config.csrf`. Mutating requests echo the token automatically. */
   csrf?: CsrfClientOptions;
   /** Custom fetch implementation for all API calls. Defaults to the global `fetch`. Useful for mock backends in demos/tests or custom retry/auth layers. */
   fetcher?: typeof globalThis.fetch;
   /** Strip all default styling. */
   unstyled?: boolean;
-  /** Per-slot class overrides. See component source for available slot keys. */
+  /** Per-slot class overrides. */
   slotClasses?: Partial<
     Record<'root' | 'title' | 'form' | 'list' | 'item' | 'error' | 'inviteLink', string>
   >;

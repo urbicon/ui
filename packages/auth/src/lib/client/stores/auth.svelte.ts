@@ -6,7 +6,7 @@ import { getJson, parseJsonBody, postJson, wireError } from '../utils/http.js';
 export interface AuthStoreConfig {
   apiPath?: string;
   /**
-   * CSRF cookie/header names — only needed when the server overrides the
+   * CSRF cookie/header names. Only needed when the server overrides the
    * defaults via `config.csrf.cookieName`/`headerName`. Omit to use the
    * package defaults. Mutating requests echo the CSRF token automatically;
    * when no token cookie exists the request is sent unchanged (origin-only
@@ -16,7 +16,7 @@ export interface AuthStoreConfig {
   /**
    * Custom fetch implementation for all API calls. Defaults to the global
    * `fetch`. Useful for mock backends in demos/tests or custom retry layers —
-   * the same injection point every component exposes (review R18).
+   * the same injection point every component exposes.
    */
   fetcher?: typeof globalThis.fetch;
 }

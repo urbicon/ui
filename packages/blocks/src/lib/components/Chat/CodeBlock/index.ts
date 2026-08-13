@@ -10,9 +10,8 @@ import type { CodeBlockSlots, CodeBlockVariants } from './code-block.variants';
  * StreamingMarkdown renderer can layer highlighting in via a snippet. Used by
  * StreamingMarkdown for fenced code blocks, and standalone for any code snippet.
  * `variant="card"` (default) brings its own surface, outline and radius;
- * `variant="plain"` drops all three for embedding inside something that already
- * owns the framing decision — a container that frames the content, or one that
- * deliberately frames nothing (ToolCallCard is both, per its own variant).
+ * `variant="plain"` drops all three for embedding inside a parent that supplies
+ * its own framing (as ToolCallCard does).
  *
  * @tag ai
  * @tag display
@@ -32,10 +31,10 @@ export interface CodeBlockProps
   /** Language label shown in the header. Display-only — does not drive highlighting. */
   lang?: string;
   /**
-   * Header caption, shown instead of `lang`. For an embedded block, what the
-   * payload *is* ("Input", "Response body") says more than the language it is
-   * serialised in — and rendering both states the same fact twice. `lang` still
-   * names the scrollable region for screen readers when both are given.
+   * Header caption, shown instead of `lang`. For an embedded block, naming what
+   * the payload *is* ("Input", "Response body") is often clearer than the
+   * language it is serialised in. `lang` still names the scrollable region for
+   * screen readers when both are given.
    */
   label?: string;
   /** Show the copy button in the header. */
@@ -48,11 +47,9 @@ export interface CodeBlockProps
   wrap?: boolean;
 
   /**
-   * Accessible label / tooltip for the copy button at rest. These three labels
-   * are plain English defaults rather than translations on purpose: pulling the
-   * i18n registry into this leaf costs +5 KB gz, which StreamingMarkdown and
-   * ReasoningDisclosure would inherit by embedding it. Pass your own strings to
-   * localise.
+   * Accessible label / tooltip for the copy button at rest. These labels are
+   * plain English defaults rather than i18n-resolved, so this leaf stays out of
+   * the i18n registry. Pass your own strings to localise.
    * @default 'Copy'
    */
   copyLabel?: string;
@@ -76,7 +73,7 @@ export interface CodeBlockProps
    */
   onCopyError?: (error: unknown) => void;
 
-  /** Extra header actions rendered to the right, before the copy button. */
+  /** Extra header actions rendered in the header, just before the copy button. */
   actions?: Snippet;
 
   /** Extra classes merged onto the root element. */

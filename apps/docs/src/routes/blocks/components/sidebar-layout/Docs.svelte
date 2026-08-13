@@ -8,10 +8,10 @@
 
 <Section marker id="usage" title="When to use">
   <p class="text-text-secondary text-sm leading-relaxed">
-    <strong>SidebarLayout</strong> is the ready-made app shell — it wires a <code>Sidebar</code>, a
-    centered main column, and an optional mobile header into a responsive layout. Use it when you
-    want a permanent sidebar on desktop with a hamburger overlay on mobile and you don't want to
-    write the surrounding grid yourself. The component exposes
+    <strong>SidebarLayout</strong> is an app shell: it wires a <code>Sidebar</code>, a centered main
+    column, and an optional mobile header into a responsive layout. Use it when you want a permanent
+    sidebar on desktop with a hamburger overlay on mobile and you don't want to write the
+    surrounding grid yourself. The component exposes
     <code>--sidebar-width</code> and <code>--sidebar-effective-width</code> on its root so the main-content
     offset animates in lockstep with the sidebar.
   </p>
@@ -21,7 +21,7 @@
   <ul class="text-text-secondary mt-2 list-outside list-disc space-y-1.5 pl-5 text-sm">
     <li>
       A custom outer grid (multi-region layout, header bar with brand controls, full bleed sections)
-      — build it yourself with the
+      →
       <a href={r('/blocks/primitives/sidebar')} class="text-primary hover:underline">Sidebar</a>
       primitive directly.
     </li>
@@ -47,7 +47,7 @@
   <div class="space-y-8">
     <CodeExample
       title="Default app shell"
-      description="The most common pattern — permanent sidebar on desktop, hamburger overlay on mobile. The layout exposes --sidebar-width and --sidebar-effective-width on its root, so the main content offset works without any CSS plumbing in the consumer."
+      description="Permanent sidebar on desktop, hamburger overlay on mobile. The layout sets --sidebar-width and --sidebar-effective-width on its root, so the main-content offset stays in sync with the sidebar."
       preview={false}
       code={`<script>
   import { Button, MenuIcon, SidebarLayout, ThemeSwitcher } from '@urbicon-ui/blocks';
@@ -88,7 +88,7 @@
 
     <CodeExample
       title="Grouped navigation with active state"
-      description="Sections, icons, and an active-link pattern using SvelteKit's $page store. The mobile header surfaces the current page title for context."
+      description="Sections, icons, and an active-link pattern using SvelteKit's page state. The mobile header shows the current page title for context."
       preview={false}
       code={`<script>
   import { page } from '$app/state';

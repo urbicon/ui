@@ -29,12 +29,12 @@
 
 <SeoMeta
   title="NotificationBadge - Auth"
-  description="Unread notification count badge. Uses blocks Badge primitive."
+  description="An unread-count badge that renders nothing when the count is 0."
 />
 
 <DocsPageLayout
   title="NotificationBadge"
-  description="Unread notification count badge. Uses blocks Badge primitive. Renders nothing when count is 0."
+  description="An unread-count badge that renders nothing when the count is 0."
   maxWidth="2xl"
   showToc={true}
   breadcrumbs={[
@@ -56,32 +56,30 @@
     <NoteList>
       <Note title="Nothing is rendered at zero">
         <p>
-          The badge only exists while <code class="text-text-primary">count &gt; 0</code>. It leaves
-          no empty element and no focusable stop behind, so tabbing past a quiet bell does not hit a
-          control that announces nothing.
+          The badge only exists while <code class="text-text-primary">count &gt; 0</code>. At zero
+          it renders nothing at all, so a keyboard user tabbing past a quiet bell moves straight to
+          the next control instead of stopping on an empty badge.
         </p>
       </Note>
       <Note title="It is always a button, even without a handler">
         <p>
-          The component passes <code class="text-text-primary">interactive</code> to blocks'
-          <code class="text-text-primary">Badge</code> unconditionally, so the badge always takes
-          <code class="text-text-primary">role="button"</code> and
-          <code class="text-text-primary">tabindex="0"</code> — but
-          <code class="text-text-primary">onclick</code> is optional, and the key handler only fires
-          when one was given. A badge rendered without a handler is therefore a focusable stop that
-          announces as a button and does nothing on
-          <Kbd keys="Enter" /> or <Kbd keys="Space" />. Pass an
-          <code class="text-text-primary">onclick</code>, or wrap the count in your own control
+          The badge always takes <code class="text-text-primary">role="button"</code> and
+          <code class="text-text-primary">tabindex="0"</code>, but
+          <code class="text-text-primary">onclick</code> is optional and the key handler fires only
+          when one was given. A badge with no handler is still a focusable stop that announces as a
+          button and does nothing on
+          <Kbd keys="Enter" /> or <Kbd keys="Space" />, so pass an
+          <code class="text-text-primary">onclick</code>, or wrap the count in your own button
           rather than leaving the badge to stand alone.
         </p>
       </Note>
       <Note title="The accessible name is only the number">
         <p>
           The badge's entire content is <code class="text-text-primary">3</code> or
-          <code class="text-text-primary">99+</code>, and its props do not accept an
-          <code class="text-text-primary">aria-label</code> — so on its own it announces a number with
-          no noun. Give the surrounding control the name instead: label the bell button "Notifications"
-          and let the badge supply the count inside it.
+          <code class="text-text-primary">99+</code>, and it takes no
+          <code class="text-text-primary">aria-label</code> of its own, so alone it announces a bare number.
+          Give the bell button the name instead: label it "Notifications" and let the badge supply the
+          count inside it.
         </p>
       </Note>
     </NoteList>

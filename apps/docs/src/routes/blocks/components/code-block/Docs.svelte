@@ -11,7 +11,7 @@
   <div class="space-y-10">
     <CodeExample
       title="Multi-line code"
-      description="Pass the code as a string. It renders as raw text — no built-in highlighting — and long lines scroll horizontally inside the block, never the page. The header shows the language label and a copy button."
+      description="Pass the code as a string. It renders as raw text with no built-in highlighting, and long lines scroll horizontally inside the block rather than the page."
       code={basicUsageCode}
     >
       <BasicUsage />
@@ -19,7 +19,7 @@
 
     <CodeExample
       title="Track copies with onCopy"
-      description="onCopy fires only after the clipboard write succeeds — the reliable hook for analytics like 'install command copied', with no clipboard polling."
+      description="onCopy fires only after the clipboard write succeeds, so it is a safe place to record an event like 'install command copied'."
       code={trackCopyCode}
     >
       <TrackCopy />
@@ -27,7 +27,7 @@
 
     <CodeExample
       title="Extra header actions"
-      description="The actions snippet renders custom controls in the header, to the left of the copy button — e.g. 'Run', 'Open in editor', or a language switch."
+      description="The actions snippet renders custom controls in the header, just before the copy button: a 'Run' button, 'Open in editor', or a language switch."
       code={headerActionsCode}
     >
       <HeaderActions />
@@ -41,18 +41,17 @@
       <p>
         The copy button carries an <code class="text-text-primary">aria-label</code> that swaps from
         <code class="text-text-primary">copyLabel</code>
-        ("Copy code") to
+        ("Copy") to
         <code class="text-text-primary">copiedLabel</code> ("Copied") for two seconds after a successful
         copy, so its accessible name always matches what the user sees. A denied or failed clipboard write
-        leaves the label untouched — the UI never falsely confirms a copy that did not happen.
+        leaves the label unchanged, so a copy is confirmed only when it actually happened.
       </p>
     </Note>
     <Note title="Status announcement">
       <p>
         A visually hidden <code class="text-text-primary">role="status"</code> region announces "Copied"
-        to screen readers. A label change on the button the user just pressed is not a reliable announcement;
-        a dedicated live region is, so the region ships in the DOM up front and only its text content
-        changes.
+        to screen readers. It ships in the DOM up front and only its text content changes, which assistive
+        tech announces reliably.
       </p>
     </Note>
     <Note title="Scrollable region">

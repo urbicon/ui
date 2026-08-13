@@ -45,14 +45,14 @@
 
 <SeoMeta
   title="ChartFrame Component"
-  description="Responsive SVG chart shell — measures its width, applies plot margins, and hands the drawable plot geometry to a child snippet. The building block under every cartesian chart."
+  description="Responsive SVG chart shell: it measures its width, applies plot margins, and hands the plot geometry to a child snippet. The building block under every cartesian chart."
 />
 
 <DocsPageLayout
   maxWidth="2xl"
   showToc={true}
   title="ChartFrame"
-  description="Responsive SVG chart shell — measures its width, applies plot margins, and hands the drawable plot geometry to a child snippet. The building block under every cartesian chart."
+  description="Responsive SVG chart shell: it measures its width, applies plot margins, and hands the plot geometry to a child snippet. The building block under every cartesian chart."
   breadcrumbs={[
     { label: 'Blocks', href: '/blocks' },
     { label: 'Components', href: '/blocks/components' }

@@ -37,12 +37,12 @@
 
 <SeoMeta
   title="CitationChip Component"
-  description="Compact source marker for a citation. Click opens a popover with the source title, snippet, and a policy-checked outbound link. StreamingMarkdown wires it up from its sources prop."
+  description="A compact source marker for a citation. Clicking opens a popover with the source title, snippet, and a policy-checked link. StreamingMarkdown creates these chips from its sources prop."
 />
 
 <DocsPageLayout
   title="CitationChip"
-  description="Compact source marker rendered for a citation. Clicking opens a popover with the source title, snippet, and a policy-checked outbound link — wired up automatically by StreamingMarkdown, or usable standalone for reference lists."
+  description="A compact chip that marks a citation. Clicking opens a popover with the source title, snippet, and a policy-checked link. StreamingMarkdown creates these chips from its sources prop, or use CitationChip on its own for a reference list."
   maxWidth="2xl"
   showToc={true}
   breadcrumbs={[

@@ -28,12 +28,12 @@
 
 <SeoMeta
   title="ResetPasswordPage - Auth"
-  description="Pre-built reset-password page with password confirmation."
+  description="A form to set a new password from a reset link, with a confirmation field."
 />
 
 <DocsPageLayout
   title="ResetPasswordPage"
-  description="Pre-built reset-password page with password confirmation."
+  description="A form to set a new password from a reset link, with a confirmation field."
   maxWidth="2xl"
   showToc={true}
   breadcrumbs={[
@@ -61,14 +61,12 @@
           spot, instead of having to hunt for which of two messages appeared.
         </p>
       </Note>
-      <Note title="The mismatch is not tied to either field">
+      <Note title="A mismatch is reported at the page level">
         <p>
-          Unlike RegisterPage — which passes the mismatch to the field as
-          <code class="text-text-primary">error</code> and gets
-          <code class="text-text-primary">aria-invalid</code>
-          — this page reports it only as page-level text. The reader hears
+          A confirm-password mismatch shows as page-level text rather than an
+          <code class="text-text-primary">error</code> on either field, so the reader hears
           <em>that</em> the passwords differ, not <em>which</em> field to fix. With exactly two fields
-          that is recoverable, but it is a real difference between the two pages.
+          that is easy to recover from.
         </p>
       </Note>
       <Note title="Autofill hints">

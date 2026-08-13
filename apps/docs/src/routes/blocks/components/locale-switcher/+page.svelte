@@ -29,12 +29,12 @@
 
 <SeoMeta
   title="LocaleSwitcher Component"
-  description="Language selector — a convenience wrapper around the Select primitive, powered by the i18n system with flag support and the Select styling axes."
+  description="Dropdown for switching the application's display language."
 />
 
 <DocsPageLayout
   title="LocaleSwitcher"
-  description="Language selector — a convenience wrapper around the Select primitive, powered by the i18n system with flag support and the Select styling axes."
+  description="Dropdown for switching the application's display language."
   stability={componentData?.stability}
   sourceHref={componentData?.sourceHref}
   related={relatedLinks}

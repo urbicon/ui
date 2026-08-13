@@ -22,7 +22,7 @@ import type { PartialAuthLocale } from '../../../i18n/keys.js';
 export interface NotificationCenterProps {
   /**
    * Locale overrides, deep-merged over the active built-in bundle (resolved
-   * from the i18n context). Pass any subset — a single string or a whole tree.
+   * from the i18n context). Pass any subset, from a single string to a whole tree.
    */
   t?: PartialAuthLocale;
   /** Notification records to display. */
@@ -35,7 +35,7 @@ export interface NotificationCenterProps {
   onDelete?: (id: string) => void;
   /**
    * Called when a notification is clicked (e.g. to navigate to a URL).
-   * SECURITY: `notification.url` is DB-/server-sourced and untrusted — before
+   * SECURITY: `notification.url` is DB-/server-sourced and untrusted; before
    * passing it to `goto()` / `window.location`, validate it is same-origin or
    * relative (reject `javascript:` and absolute cross-origin URLs). Never
    * navigate to a raw `notification.url`.
@@ -47,7 +47,7 @@ export interface NotificationCenterProps {
   item?: Snippet<[import('../../../server/adapters/types.js').NotificationRecord]>;
   /** Strip all default styling. */
   unstyled?: boolean;
-  /** Per-slot class overrides. See component source for available slot keys. */
+  /** Per-slot class overrides. */
   slotClasses?: Partial<Record<'root' | 'header' | 'list' | 'item' | 'empty', string>>;
   /** Extra classes on the root element. */
   class?: string;

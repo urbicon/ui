@@ -66,7 +66,7 @@ export interface StreamingMarkdownProps
   /**
    * DOM heading level that markdown `#` maps to (deeper levels shift along,
    * clamped at h6). Visual sizing keeps following the author's level. Set to
-   * 3 in chat surfaces so message headings stay out of the page outline.
+   * 3 in a chat so message headings stay out of the page outline.
    * @default 1
    * @summary Which DOM heading level a markdown hash maps to, keeping message headings out of the page outline.
    */

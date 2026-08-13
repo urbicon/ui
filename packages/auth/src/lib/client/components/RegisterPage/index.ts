@@ -24,7 +24,7 @@ import type { AuthPageSlotClasses } from '../types.js';
 export interface RegisterPageProps {
   /**
    * Locale overrides, deep-merged over the active built-in bundle (resolved
-   * from the i18n context). Pass any subset — a single string or a whole tree.
+   * from the i18n context). Pass any subset, from a single string to a whole tree.
    */
   t?: PartialAuthLocale;
   /** Called after successful registration. */
@@ -46,7 +46,7 @@ export interface RegisterPageProps {
 
   /**
    * The invitation token from the `?token=` query param. **Required to
-   * register**: possession of it is the entire proof of invitation (#149), so
+   * register**: possession of it is the entire proof of invitation, so
    * without it the request is rejected before anything is looked up.
    *
    * Read it in your route the same way as `defaultEmail`:
@@ -62,9 +62,9 @@ export interface RegisterPageProps {
   token: string;
   /** URL for the login page link. @default '/auth/login' */
   loginUrl?: string;
-  /** API endpoint. @default '/api/auth/register' */
+  /** API endpoint for the register request. @default '/api/auth/register' */
   apiPath?: string;
-  /** CSRF cookie/header names — only needed when the server overrides the defaults via `config.csrf`. Mutating requests echo the token automatically. */
+  /** CSRF cookie/header names, needed only when the server overrides the defaults via `config.csrf`. Mutating requests echo the token automatically. */
   csrf?: CsrfClientOptions;
   /** Custom fetch implementation for all API calls. Defaults to the global `fetch`. Useful for mock backends in demos/tests or custom retry/auth layers. */
   fetcher?: typeof globalThis.fetch;
@@ -74,7 +74,7 @@ export interface RegisterPageProps {
   requireUppercase?: boolean;
   /** Require lowercase letter. @default true */
   requireLowercase?: boolean;
-  /** Require digit. @default true */
+  /** Require at least one digit. @default true */
   requireDigit?: boolean;
   /** Require special character. @default false */
   requireSpecial?: boolean;

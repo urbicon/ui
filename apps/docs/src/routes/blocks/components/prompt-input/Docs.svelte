@@ -16,7 +16,7 @@
   <div class="space-y-10">
     <CodeExample
       title="Chat composer with stop"
-      description="The core AI pattern: bind the draft, drive busy from your streaming state. While busy the send button becomes a stop button and Enter no longer submits — onStop aborts the in-flight response. Type a message and watch the send/stop swap."
+      description="Bind the draft and set busy from your streaming state. While busy, the send button becomes a stop button, Enter no longer submits, and onStop aborts the in-flight response."
       code={chatComposerCode}
     >
       <ChatComposer />
@@ -24,7 +24,7 @@
 
     <CodeExample
       title="Attachments with validation"
-      description="Opt in with allowAttachments, then constrain with accept, maxFiles, and maxFileSize — the same file-intake core as FileUpload. Rejected files never enter the list; onAttachmentReject surfaces why. Add images via the paperclip, drag-and-drop, or paste a screenshot; try a non-image or a fourth file to see a rejection."
+      description="Opt in with allowAttachments, then constrain with accept, maxFiles, and maxFileSize. Rejected files never enter the list, and onAttachmentReject reports why. Add images through the paperclip, drag-and-drop, or paste."
       code={withAttachmentsCode}
     >
       <WithAttachments />
@@ -32,7 +32,7 @@
 
     <CodeExample
       title="Model picker in the trailing zone"
-      description="The trailing snippet renders in the composer's right action zone, before the send button — the natural home for a model selector, tool toggle, or temperature control. leading (after the attach button) and hint (a line below) are the companion slots."
+      description="The trailing snippet renders in the composer's right action zone, before the send button. Put a model selector, tool toggle, or temperature control here. leading (after the attach button) and hint (a line below) are the companion slots."
       code={withModelSelectCode}
     >
       <WithModelSelect />
@@ -50,10 +50,11 @@
         <code class="text-text-primary">label</code>
         prop, default "Message") and
         <code class="text-text-primary">aria-keyshortcuts</code>
-        that reflects the active submit gesture — <code class="text-text-primary">Enter</code> for
+        that reflects the active submit gesture: <code class="text-text-primary">Enter</code> for
         <code class="text-text-primary">submitOn="enter"</code>, or
-        <code class="text-text-primary">Meta+Enter Control+Enter</code>
-        for <code class="text-text-primary">mod-enter</code> — so assistive tech announces the real
+        <code class="text-text-primary">Meta+Enter</code>
+        (<code class="text-text-primary">Control+Enter</code> on Windows) for
+        <code class="text-text-primary">mod-enter</code>. Assistive tech then announces the real
         keystroke. The send, stop, and attach buttons each have their own
         <code class="text-text-primary">aria-label</code>
         (<code class="text-text-primary">sendLabel</code> /

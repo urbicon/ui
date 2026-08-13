@@ -17,8 +17,8 @@
     maxFileSize={2 * 1024 * 1024}
     maxFiles={3}
     multiple
-    title="Dokumente hochladen"
-    description="Nur PDF, DOCX, XLSX — max. 2 MB, max. 3 Dateien"
+    title="Upload documents"
+    description="PDF, DOCX or XLSX, up to 2 MB, 3 files max"
     onFileReject={handleReject}
   />
 

@@ -1,6 +1,6 @@
 // Small auth primitives that predate no feature module: opaque-token hashing,
 // CSPRNG token generation and the public-user projection. Password hashing
-// lives in password.ts, JWT signing/verification in jwt.ts (R17 split).
+// lives in password.ts, JWT signing/verification in jwt.ts.
 
 import { createHash, randomBytes } from 'node:crypto';
 import type { AuthUser } from '../types.js';

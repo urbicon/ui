@@ -4,7 +4,7 @@
  * `twoFactor.pendingTokenTtl`, …). One copy on purpose: the JWT `exp` claim
  * and the session cookie `maxAge` are derived from the SAME `expiresIn`
  * value, so two drifting parsers would silently desynchronize token and
- * cookie lifetime (review R14).
+ * cookie lifetime.
  */
 export function parseDurationSeconds(value: string): number {
   const match = value.match(/^(\d+)([smhd])$/);

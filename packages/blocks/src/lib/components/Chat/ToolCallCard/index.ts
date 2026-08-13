@@ -45,12 +45,10 @@ export interface ToolCallCardProps
   /** The tool-call part to render. Required. */
   toolCall: ChatToolCallPart;
   /**
-   * How loudly the header presents itself. `plain` is one muted line in the
-   * message flow — no outline, no surface, no badge, as wide as its own text —
-   * the same word CodeBlock uses for the same idea, and the same register
-   * ReasoningDisclosure renders in. `card` is the framed header (outline,
-   * radius, shadow, status badge, the container's full width) for surfaces
-   * where the tool call is the subject rather than a footnote.
+   * How prominent the header is. `plain` is one muted line in the message
+   * flow, with no outline, surface, or badge, as wide as its own text. `card`
+   * is a framed header (outline, radius, shadow, status badge, the container's
+   * full width) for surfaces where the tool call is the subject.
    * @summary A muted line in the message flow, or a framed header for a trace view.
    * @default 'plain'
    */

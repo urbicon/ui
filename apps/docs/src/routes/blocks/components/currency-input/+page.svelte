@@ -36,7 +36,7 @@
   maxWidth="2xl"
   showToc={true}
   title="CurrencyInput"
-  description="Locale-aware monetary input that stores values in minor units (cents). Raw editing on focus, formatted display with currency symbol on blur."
+  description="A monetary input that stores its value in minor units (cents) and formats it for the active locale."
   breadcrumbs={[
     { label: 'Blocks', href: '/blocks' },
     { label: 'Components', href: '/blocks/components' }

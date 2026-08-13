@@ -65,12 +65,12 @@
 
 <SeoMeta
   title="Calendar Component"
-  description="Feature-rich calendar with month, week, day, year, and agenda views. Supports events, time grid, drag & drop, recurrence, date range selection, and custom rendering."
+  description="An event calendar with month, week, day, year, and agenda views. It handles recurring events, date-range selection, and per-day constraints."
 />
 
 <DocsPageLayout
   title="Calendar"
-  description="Feature-rich calendar with month, week, day, year, and agenda views. Supports events, time grid, drag & drop, recurrence, date range selection, and custom rendering."
+  description="An event calendar with month, week, day, year, and agenda views. It handles recurring events, date-range selection, and per-day constraints."
   maxWidth="2xl"
   showToc={true}
   breadcrumbs={[

@@ -1,7 +1,7 @@
 <script lang="ts">
   import { ToolCallCard, type ChatToolCallPart } from '@urbicon-ui/blocks';
 
-  // A failed call: the card opens itself so the error is visible without a
+  // A failed call: the card starts expanded so the error is visible without a
   // click. `errorMessage` renders above the (still available) input.
   const call: ChatToolCallPart = {
     type: 'tool-call',

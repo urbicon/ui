@@ -29,12 +29,12 @@
 
 <SeoMeta
   title="ThemeSwitcher Component"
-  description="Light/dark/system theme switcher with localStorage persistence, system preference detection, and multiple interaction modes."
+  description="A button that switches the theme between light, dark, and system, and remembers the choice in localStorage."
 />
 
 <DocsPageLayout
   title="ThemeSwitcher"
-  description="Light/dark/system theme switcher with localStorage persistence, system preference detection, and multiple interaction modes."
+  description="A button that switches the theme between light, dark, and system, and remembers the choice in localStorage. It cycles through the three by default, or toggles between light and dark only."
   maxWidth="2xl"
   showToc={true}
   breadcrumbs={[

@@ -35,7 +35,7 @@
   maxWidth="2xl"
   showToc={true}
   title="ResourceTimeline"
-  description="One lane per room, chair or vehicle against a day axis: each item is a bar over the days it occupies, stacked where two overlap. Calendar and Planner lay out dates; this lays out resource × date."
+  description="One lane per room, chair or vehicle against a day axis: each item is a bar over the days it occupies, stacked where two overlap. Calendar and Planner map dates onto a grid; this one adds a lane per resource."
   breadcrumbs={[
     { label: 'Blocks', href: '/blocks' },
     { label: 'Components', href: '/blocks/components' }
