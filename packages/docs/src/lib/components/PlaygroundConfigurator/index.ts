@@ -184,7 +184,7 @@ export interface PlaygroundConfiguratorProps<
   /** Hand-written prop descriptions (from JSDoc). Shown as tooltip behind an info icon. */
   propDocs?: Record<string, string>;
 
-  /** Prop names originating from tailwind-variants. Shown with a "V" indicator. */
+  /** Prop names originating from a tv() variant axis. Shown with a "V" indicator. */
   variantKeys?: string[];
 
   /**

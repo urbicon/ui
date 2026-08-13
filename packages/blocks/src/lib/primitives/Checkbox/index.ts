@@ -64,7 +64,7 @@ export interface CheckboxProps
   /** Extra classes merged onto the wrapper element. */
   class?: string;
 
-  /** Strip all default tailwind-variants classes. Use with `slotClasses` for a fully custom look. The box exposes `data-state` for conditional styling. */
+  /** Strip all default variant classes. Use with `slotClasses` for a fully custom look. The box exposes `data-state` for conditional styling. */
   unstyled?: boolean;
 
   /**

@@ -61,7 +61,7 @@ export interface ToggleProps
   /** Extra classes merged onto the outermost wrapper element. */
   class?: string;
 
-  /** Strip all default tailwind-variants classes. Use with `slotClasses` for a fully custom look. The track exposes `data-state` for conditional styling. */
+  /** Strip all default variant classes. Use with `slotClasses` for a fully custom look. The track exposes `data-state` for conditional styling. */
   unstyled?: boolean;
 
   /**

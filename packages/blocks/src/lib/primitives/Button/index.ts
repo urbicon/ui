@@ -110,7 +110,7 @@ export interface ButtonProps extends ButtonVariants, Omit<HTMLButtonAttributes, 
    */
   class?: string;
 
-  /** Remove default tailwind-variants classes. Only user classes apply. */
+  /** Remove the default variant classes. Only user classes apply. */
   unstyled?: boolean;
   /** Per-slot class overrides merged with tv styles. Slots: base | content | spinner */
   slotClasses?: Partial<Record<ButtonSlots, string>>;

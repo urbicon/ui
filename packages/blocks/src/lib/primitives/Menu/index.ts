@@ -58,13 +58,13 @@ export interface MenuSpecificProps<TItem extends MenuItemType = MenuItemType> {
   children?: Snippet;
 
   /**
-   * Remove default tailwind-variants classes. Only user-supplied classes apply.
+   * Remove the default variant classes. Only user-supplied classes apply.
    * @default false
    */
   unstyled?: boolean;
 
   /**
-   * Per-slot class overrides merged with tailwind-variants styles.
+   * Per-slot class overrides merged with the variant styles.
    * Slots: base | trigger | triggerText | chevron | content | header | section |
    * divider | items | item | indicator | submenu | footer
    */
