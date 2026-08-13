@@ -21,6 +21,7 @@ import type { PlannerSlots, PlannerVariants } from './planner.variants';
  * @tag display
  * @tag layout
  * @related Calendar
+ * @related ResourceTimeline
  * @related DatePicker
  * @stability beta
  *

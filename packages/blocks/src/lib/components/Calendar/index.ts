@@ -105,9 +105,12 @@ export type CalendarSlotName =
  * Renders timed appointments, multi-day spans and recurrence on a time grid, with
  * event display, date selection and configurable layout. For a headless grid that
  * buckets your own domain content (meals, shifts, bookings) per day, use `Planner`.
+ * For one lane per resource (rooms, chairs, vehicles) with bars spanning the days
+ * each is occupied, use `ResourceTimeline`.
  *
  * @tag display
  * @related Planner
+ * @related ResourceTimeline
  * @related DatePicker
  * @related DateRangePicker
  *
