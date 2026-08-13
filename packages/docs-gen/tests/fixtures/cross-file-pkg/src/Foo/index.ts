@@ -20,4 +20,17 @@ export interface PlainProps extends BazProps {
   own?: string;
 }
 
+/**
+ * @description Fixture component that adds nothing to its base — the shape a
+ * re-export wrapper takes.
+ * @tag form
+ */
+export interface EmptyExtendsProps extends BazProps {}
+
+/**
+ * @description Fixture component with neither own members nor a base.
+ * @tag form
+ */
+export type BarrenProps = {};
+
 export type { BarProps, BazProps };

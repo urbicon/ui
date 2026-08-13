@@ -209,7 +209,14 @@ export class APIDataGenerator {
         // point at, and pretending otherwise would invent a link target.
         const owner = this.resolveTypeOwner(td);
         if (owner) td.owner = owner;
-        const defStr = String(td.definition || '');
+        // Only the type's OWN members decide what it is. Since a definition
+        // carries its inherited members inline, matching against the whole
+        // string asks "does anything in this type's ancestry mention tv()
+        // machinery" — so an interface extending a base that happens to declare
+        // a `VariantProps<…>` or `SlotNames<…>` field would be reclassified as
+        // 'variant' and silently drop out of the llm.txt Types section, which
+        // lists business types only. What a type inherits is not what it is.
+        const defStr = String(td.definition || '').split('// ── inherited from')[0] ?? '';
         // `SlotNames<…>` aliases (`XSlots`) are tv()-machinery like the
         // `VariantProps<…>` aliases — categorized 'variant' so type surfaces
         // (llm.txt Types section) list business types only.

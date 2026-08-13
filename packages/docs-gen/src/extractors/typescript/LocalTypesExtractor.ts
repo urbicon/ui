@@ -170,15 +170,11 @@ export class LocalTypesExtractor extends TypeScriptBaseExtractor<
       return { ...base, type: 'type', definition: decl.type?.getText() || 'unknown' };
     }
     if (ts.isInterfaceDeclaration(decl)) {
-      const own = decl.members?.length
-        ? declSourceFile.text.slice(decl.members.pos, decl.members.end)
-        : ' {}';
       const inherited = this.renderInheritedMembers(decl);
-      const body = inherited.text ? `${own.trimEnd()}\n${inherited.text}` : own;
       return {
         ...base,
         type: 'interface',
-        definition: body.trim(),
+        definition: this.composeInterfaceBody(decl.members, declSourceFile.text, inherited),
         members: (decl.members?.length ?? 0) + inherited.count
       };
     }
@@ -217,6 +213,28 @@ export class LocalTypesExtractor extends TypeScriptBaseExtractor<
    * interface may narrow what it inherits), and `resolveCrossFileInterface`
    * keeps the walk inside the package being documented.
    */
+  /**
+   * The interface body the renderers print between the braces they add
+   * themselves (`interface ${name} {\n${definition}\n}`).
+   *
+   * The `{}` for a memberless interface is a *whole* body, so it can only stand
+   * alone. Concatenated in front of an inherited block — which is what
+   * `export interface FooProps extends BarProps {}` produces — it renders
+   * `interface FooProps {\n{}\n  // ── inherited from BarProps ──\n  …\n}`:
+   * invalid TypeScript, in a published API reference. Both call sites go
+   * through here so the empty case cannot be handled correctly in one and not
+   * the other.
+   */
+  private composeInterfaceBody(
+    members: ts.NodeArray<ts.TypeElement> | undefined,
+    sourceText: string,
+    inherited: { text: string; count: number }
+  ): string {
+    const own = members?.length ? sourceText.slice(members.pos, members.end) : '';
+    if (!inherited.text) return (own || ' {}').trim();
+    return `${own.trimEnd()}\n${inherited.text}`.trim();
+  }
+
   private renderInheritedMembers(
     decl: ts.InterfaceDeclaration,
     seen: Set<string> = new Set(),
@@ -387,16 +405,12 @@ export class LocalTypesExtractor extends TypeScriptBaseExtractor<
       if (ts.isInterfaceDeclaration(node) && this.hasExportModifier(node)) {
         const name = node.name?.getText() || '';
         if (!name || existing.has(name)) return;
-        const own = node.members?.length
-          ? sourceFile.text.slice(node.members.pos, node.members.end)
-          : ' {}';
         // Same rule as for imported types — see `renderInheritedMembers`.
         const inherited = this.renderInheritedMembers(node);
-        const body = inherited.text ? `${own.trimEnd()}\n${inherited.text}` : own;
         out.push({
           name,
           type: 'interface',
-          definition: body.trim(),
+          definition: this.composeInterfaceBody(node.members, sourceFile.text, inherited),
           package: packageName,
           documentation: this.extractJSDocComment(node) || '',
           ...this.extractSeeTags(node),

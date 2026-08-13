@@ -51,6 +51,34 @@ describe('LocalTypesExtractor — heritage', () => {
     expect(plain.members).toBe(2);
   });
 
+  // Both renderers print `${type} ${name} {\n${definition}\n}`, so a definition
+  // that opens with its own `{}` becomes `interface X {\n{}\n  …\n}` — invalid
+  // TypeScript on the docs site and in llms-full.txt. `{}` is a whole body; it
+  // can only stand alone.
+  it('does not print an empty body in front of the members it inherits', async () => {
+    const types = await typesOf();
+    const empty = types.EmptyExtendsProps;
+
+    expect(empty, 'EmptyExtendsProps should be collected').toBeTruthy();
+    expect(empty.definition.startsWith('{}')).toBe(false);
+    expect(empty.definition).not.toContain('{}');
+    // The inherited members are the body.
+    expect(empty.definition).toContain('inherited from BazProps');
+    expect(empty.definition).toContain('duration?: number');
+    expect(empty.members).toBe(1);
+  });
+
+  it('still prints `{}` for an interface that inherits nothing either', async () => {
+    // The braces are right when they are all there is — the fix must not turn
+    // a genuinely empty interface into an empty string.
+    const types = await typesOf();
+    const barren = types.BarrenProps;
+
+    expect(barren, 'BarrenProps should be collected').toBeTruthy();
+    expect(barren.definition).toBe('{}');
+    expect(barren.members).toBe(0);
+  });
+
   it('leaves an `Omit<Base, …>` heritage clause alone', async () => {
     // The exclusion list makes this a different question — which member of the
     // base survives — and the props pipeline answers it separately
