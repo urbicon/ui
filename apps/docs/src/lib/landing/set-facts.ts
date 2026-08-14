@@ -31,7 +31,7 @@ export interface PackageMaturity {
  */
 export const SET_MATURITY: PackageMaturity[] = [
   { pkg: 'blocks', stable: 47, beta: 25, experimental: 12 },
-  { pkg: 'auth', stable: 11, beta: 3, experimental: 0 },
+  { pkg: 'auth', stable: 9, beta: 5, experimental: 0 },
   { pkg: 'table', stable: 1, beta: 0, experimental: 0 }
 ];
 
@@ -54,11 +54,11 @@ export interface FamilyMaturity {
  * Components per family, largest first — the six-family taxonomy as the
  * catalogue actually tags it, which is nine buckets rather than six.
  *
- * Carries a real statement, which is why it is worth a demo: the form family is
- * almost entirely settled, while every component tagged `ai` is still moving.
+ * Carries a real statement, which is why it is worth a demo: most of the form
+ * family has settled, while every component tagged `ai` is still moving.
  */
 export const SET_FAMILIES: FamilyMaturity[] = [
-  { family: 'form', settled: 20, inProgress: 5 },
+  { family: 'form', settled: 18, inProgress: 7 },
   { family: 'display', settled: 5, inProgress: 12 },
   { family: 'feedback', settled: 10, inProgress: 1 },
   { family: 'ai', settled: 0, inProgress: 10 },
@@ -84,7 +84,7 @@ export interface SetFlowEdge {
  * path and every sink already sits last. The third stage earns its place for a
  * different reason: it is where the set says something about itself. `ai` is one
  * package's ten components and all ten are still moving; `form` is the widest
- * family and almost all of it has settled.
+ * family and most of it has settled.
  */
 export const SET_PACKAGE_FAMILY: SetFlowEdge[] = [
   { source: 'blocks', target: 'form', count: 17 },
@@ -104,8 +104,8 @@ export const SET_PACKAGE_FAMILY: SetFlowEdge[] = [
 
 /** Family → maturity. The second half; the same components, split again. */
 export const SET_FAMILY_MATURITY: SetFlowEdge[] = [
-  { source: 'form', target: 'stable', count: 20 },
-  { source: 'form', target: 'beta', count: 5 },
+  { source: 'form', target: 'stable', count: 18 },
+  { source: 'form', target: 'beta', count: 7 },
   { source: 'display', target: 'beta', count: 12 },
   { source: 'display', target: 'stable', count: 5 },
   { source: 'ai', target: 'experimental', count: 10 },
