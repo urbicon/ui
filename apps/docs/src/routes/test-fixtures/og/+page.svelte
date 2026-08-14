@@ -17,15 +17,11 @@
 -->
 <script lang="ts">
   import { CHANNELS, TILE_CHANNEL } from '$lib/landing/channels';
-  import {
-    BRAND,
-    BRAND_SUFFIX,
-    CLAIM_LEAD,
-    CLAIM_POINT,
-    EYEBROW,
-    PROOF
-  } from '$lib/landing/wordmark';
+  import { BRAND, BRAND_SUFFIX, CLAIM, EYEBROW, PROOF } from '$lib/landing/wordmark';
   import { SITE_URL } from '$lib/seo';
+  // Dieselbe Schreibmaschine wie auf der Namens-Kachel — route-lokal geladen,
+  // wie dort begründet (+page.svelte).
+  import '@fontsource/special-elite/400.css';
 
   const TICKS = Object.values(TILE_CHANNEL).map((name) => CHANNELS[name].solid);
   const HOST = SITE_URL.replace(/^https?:\/\//, '');
@@ -41,7 +37,7 @@
           ></span>{/each}</span
       >
     </p>
-    <p class="claim">{CLAIM_LEAD} <strong>{CLAIM_POINT}</strong></p>
+    <p class="claim">{CLAIM}</p>
   </div>
 
   <p class="foot">
@@ -86,6 +82,9 @@
     display: flex;
     flex-direction: column;
     justify-content: center;
+    /* Wie auf der Kachel: optische statt geometrischer Mitte — exakt
+       zentriert wirkte der Block gesunken. */
+    padding-bottom: 36px;
   }
   .brand {
     font-size: 92px;
@@ -109,16 +108,15 @@
     vertical-align: baseline;
   }
   .claim {
-    margin-top: 18px;
-    font-size: 76px;
-    font-weight: 700;
-    line-height: 1.08;
-    letter-spacing: -0.025em;
-    color: #8f8f88;
-  }
-  .claim strong {
-    font-weight: inherit;
-    color: #f4f4f2;
+    margin-top: 40px;
+    font-family: 'Special Elite', 'Courier New', monospace;
+    /* Wie auf der Kachel: der Vermerk bleibt eine klare Stufe unter dem Namen
+       (92px, ~1.4:1) und endet deutlich vor der Kartenkante. */
+    font-size: 66px;
+    font-weight: 400;
+    line-height: 1.2;
+    /* Wie auf der Kachel: eine Tonstufe unter dem Namen, über den Mono-Klammern. */
+    color: #d6d6d1;
   }
   .foot {
     display: flex;

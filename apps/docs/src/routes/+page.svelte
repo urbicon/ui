@@ -52,7 +52,12 @@
   import { HOUSES as GROUP_HOUSES, GROUP_NAME, ROOM_TYPES } from '$lib/hotel-tools';
   import AgentReplay from '$lib/landing/AgentReplay.svelte';
   import LandingHeader from '$lib/landing/LandingHeader.svelte';
-  import { BRAND, BRAND_SUFFIX, CLAIM_LEAD, CLAIM_POINT, PROOF } from '$lib/landing/wordmark';
+  import { BRAND, BRAND_SUFFIX, CLAIM, PROOF } from '$lib/landing/wordmark';
+  // Die Schreibmaschine des Anspruchs — self-hosted wie Mono und Grotesk im
+  // Root-Layout (keine Drittanfragen, siehe /privacy), aber route-lokal
+  // importiert: außer der Namens-Kachel (und dem OG-Fixture) spricht niemand
+  // diese Schrift, also lädt sie auch nur hier.
+  import '@fontsource/special-elite/400.css';
   import { asset } from '$app/paths';
   import { REPO_URL } from '$lib/seo';
   import BookingCard from '$lib/hotel/BookingCard.svelte';
@@ -820,13 +825,14 @@
                 ></button>{/each}</span
             >
           </h1>
-          <!-- Der Anspruch trägt die Kachel: der zweite Satz ist das, was die
-               Aussage macht, also steht der erste zurück (Helligkeit, nicht
-               Farbe — die Striche bleiben die einzige Buntheit auf dieser
-               Fläche). Die erste Hälfte ist die Eintrittskarte (0 Deps hat
-               nicht nur diese Bibliothek), die zweite ist das Argument: dass
-               der Gate die Verwendung dort hält, wo sie hingehört. -->
-          <p class="claim">{CLAIM_LEAD} <strong>{CLAIM_POINT}</strong></p>
+          <!-- Der Anspruch wechselt die Stimme und tritt eine Tonstufe zurück:
+               getippt (Schreibmaschine) statt gesetzt, der menschliche Vermerk
+               zwischen den Maschinen-Klammern aus Mono (Eyebrow in der Leiste
+               darüber, Fußzeile darunter). Drei Töne tragen die Hierarchie —
+               der Name voll, der Vermerk eine Stufe darunter, die Klammern
+               gedämpft; die Striche bleiben die einzige Buntheit auf dieser
+               Fläche. -->
+          <p class="claim">{CLAIM}</p>
         </div>
         <p class="proof">{PROOF}</p>
       </div>
@@ -1655,18 +1661,24 @@
     flex-direction: column;
     gap: 2rem;
   }
-  /* Name + Anspruch sitzen mittig über der Fußzeile — die Kachel ist eine
-     Titelseite, keine Kopfzeile mit Anhang (Eyebrow: siehe LandingHeader). */
+  /* Name + Anspruch sitzen auf der OPTISCHEN Mitte, nicht der geometrischen —
+     die Kachel ist eine Titelseite, keine Kopfzeile mit Anhang (Eyebrow: siehe
+     LandingHeader). Exakt zentriert wirkte der Block gesunken; das Polster
+     hebt ihn in den oberen Bereich der Fläche und lässt die Leere unter ihm
+     als Absicht lesen (2026-08-14, gegen zwei Alternativen entschieden:
+     exakte Mitte mit Luft · Name im oberen Drittel mit abgesetztem Vermerk). */
   .name-mid {
     flex: 1;
     display: flex;
     flex-direction: column;
     justify-content: center;
+    padding-bottom: 16%;
   }
   /* Die Kachel ist 32vw breit, Name plus Signatur brauchen ~9em — mehr als
      ~2.9vw Schriftgrad passt nicht in eine Zeile, und ein Umbruch würde die
-     fünf Striche vom Namen abreißen. Der große Text dieser Kachel ist ohnehin
-     der Anspruch, nicht die Marke. */
+     fünf Striche vom Namen abreißen. Seit dem Schreibmaschinen-Vermerk ist
+     die Marke der große Text dieser Kachel; der Anspruch steht eine klare
+     Stufe darunter. */
   .brand {
     font-size: clamp(2rem, 2.9vw, 3.5rem);
     font-weight: 800;
@@ -1727,20 +1739,19 @@
     }
   }
   .claim {
-    margin-top: 1.1rem;
-    font-size: clamp(1.9rem, 3.4vw, 3.1rem);
-    font-weight: 700;
-    line-height: 1.08;
-    letter-spacing: -0.025em;
-    /* Genau breit genug für „Zero dependencies." in einer Zeile — der Umbruch
-       soll zwischen den beiden Sätzen liegen, nicht in einem von ihnen. */
-    max-width: 17ch;
-    text-wrap: balance;
-    color: #8f8f88;
-  }
-  .claim strong {
-    font-weight: inherit;
-    color: #f4f4f2;
+    margin-top: 1.75rem;
+    font-family: 'Special Elite', 'Courier New', monospace;
+    /* Bewusst NICHT auf Kachelbreite gezogen: der Vermerk endet deutlich vor
+       der Kante und bleibt gut eine Drittelstufe unter dem Namen (~1.4:1) —
+       auf gleicher Breite wären die beiden Zeilen ein Gedränge gleich lauter
+       Stimmen. Einzeilig bleibt er trotzdem (Schreibmaschine ≈0.55em/Zeichen,
+       geprüft bis 390px). */
+    font-size: clamp(1.5rem, 2.4vw, 1.9rem);
+    font-weight: 400;
+    line-height: 1.2;
+    /* Eine Tonstufe unter dem Namen (#f4f4f2) und deutlich über den 0.6-Klammern
+       — die mittlere Stimme der Kachel, auch im Ton. */
+    color: #d6d6d1;
   }
   .proof {
     font-family: 'JetBrains Mono', monospace;
