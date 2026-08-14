@@ -437,6 +437,23 @@ html.add('dark');             // force dark; add('light') forces light`;
         >Color Rooms</a
       >.
     </p>
+    <div
+      class="border-warning/40 bg-warning-subtle text-text-secondary rounded-contain mt-6 border p-4 text-sm leading-relaxed"
+    >
+      <strong class="text-warning-emphasis">Check what your bundler does to light-dark().</strong>
+      Vite 8 minifies CSS with Lightning CSS by default, and against a CSS target below Safari 17.5 that
+      rewrites <code class="text-xs">light-dark(a, b)</code> into two guard variables. Those are
+      substituted where the token is <em>declared</em>, not where it is read — so a scope carrying
+      its own
+      <code class="text-xs">color-scheme</code> can no longer switch any token it does not
+      re-declare itself, and a dark section inside a light page renders the light branch with no
+      warning. Raise
+      <code class="text-xs">build.cssTarget</code> to versions that ship
+      <code class="text-xs">light-dark()</code> natively (<code class="text-xs">chrome123</code>,
+      <code class="text-xs">edge123</code>,
+      <code class="text-xs">firefox120</code>, <code class="text-xs">safari17.5</code>). The tell is
+      <code class="text-xs">lightningcss-light</code> in your built CSS.
+    </div>
   </Section>
 
   <Separator class="mb-12" />

@@ -4,7 +4,7 @@
   "version": "0.0.1",
   "type": "module",
   "scripts": {
-    "build": "svelte-kit sync && vite build && bun scripts/build-search-index.ts",
+    "build": "svelte-kit sync && vite build && bun scripts/assert-native-light-dark.ts && bun scripts/build-search-index.ts",
     "check": "svelte-kit sync && svelte-check --tsconfig ./tsconfig.json",
     "check:watch": "svelte-kit sync && svelte-check --tsconfig ./tsconfig.json --watch",
     "clean": "rm -rf dist .svelte-kit",
