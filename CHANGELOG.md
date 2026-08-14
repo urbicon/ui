@@ -4,6 +4,15 @@ All notable changes to this project will be documented in this file.
 This changelog is automatically generated from [Conventional Commits](https://www.conventionalcommits.org).
 
 
+## [8.3.1] - 2026-08-14
+
+### Bug Fixes
+- **blocks**: Keep a button from shrinking through its own label
+- **docs-app**: Keep light-dark() native through the Vite 8 CSS minifier
+
+### Documentation
+- Rework the README pitch and de-slop its claims
+
 ## [8.3.0] - 2026-08-14
 
 ### Breaking Changes
