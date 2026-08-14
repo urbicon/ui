@@ -1,6 +1,6 @@
 <p align="center">
   <a href="https://ui.urbicon.de">
-    <img src="apps/docs/static/og.png" alt="urbicon ui — Zero dependencies. No drift." width="720" />
+    <img src="apps/docs/static/og.png" alt="urbicon ui — depends on nothing. Everything in it was made in it." width="720" />
   </a>
 </p>
 
@@ -20,37 +20,41 @@
 ---
 
 **Urbicon UI** is a Svelte 5 + Tailwind CSS 4 component platform with **zero runtime
-dependencies** — UI primitives, data grid, auth, i18n and an AI-native toolchain, versioned and
-shipped as one coherent set. Nothing in your `node_modules` graph but the library itself: JWT,
-passkeys and web push run on the Web Crypto API, the variant engine and the QR encoder are our
-own, and dark mode is native CSS `light-dark()`.
+dependencies**. It started as one table component for Svelte 5 and grew into close to a hundred:
+UI primitives, a data grid, auth, i18n and an AI-native toolchain, versioned and shipped as one
+set. Nothing lands in your `node_modules` but the library itself. The charts and the Sankey
+diagram draw without d3, the table virtualises its own rows, auth signs JWTs and verifies passkeys
+on the Web Crypto API, and the variant engine is ours instead of `tailwind-variants`.
 
-The short version: **one package · one grammar · one gate.**
+**Why another UI library?** A model can emit a whole app in one shot, markup and theming included.
+The context balloons, the parts drift, and in the end neither a person nor the next model can read
+the code. A component library abstracts exactly that noise away. What is left is structure and a
+theme: readable, and changeable in one consistent place, for people and agents alike.
 
-- **One package** — components, OKLCH design tokens, icons, docs and the design knowledge all
-  ship in the set. Install it and you have the whole system, not a starting point.
-- **One grammar** — every component speaks the same API: `intent` / `size` / `variant` axes, and
-  `unstyled` + `slotClasses` + `preset` everywhere when you need to take over the styling.
-- **One gate** — `urbicon validate` scores generated markup on two axes (correctness and craft)
-  before it ships, as a local CLI, a PostToolUse hook, or CI. Agents build with the set; the gate
-  keeps them honest.
+In practice, that means:
+
+- **One system.** Components, docs and the design knowledge share a single version.
+- **Every component speaks the same API.** The same `intent` / `size` / `variant` props, plus
+  `unstyled` + `slotClasses` + `preset` everywhere you need to take over the styling.
+- **It checks the code built with it.** `urbicon validate` scores what you or an agent writes on
+  correctness and craft, and runs as a local CLI, a PostToolUse hook, or in CI.
 
 ## See it
 
-Every pixel of the [documentation site](https://ui.urbicon.de) — landing included — is built
-from the library itself.
+Every pixel of the [documentation site](https://ui.urbicon.de), landing included, is built from
+the library itself.
 
 | | |
 | --- | --- |
 | <img src=".github/assets/landing.png" alt="Landing page: name tile beside a live dashboard composed from blocks" /> | <img src=".github/assets/specimen-book.png" alt="Specimen book: every cell renders the live component" /> |
-| The landing: a back-office dashboard composed from charts, controls and tokens — one card, container-adaptive. | The [specimen book](https://ui.urbicon.de/blocks): 75 living specimens, every cell the real component, linked to props, variants and playground. |
-| <img src=".github/assets/agents-tile.png" alt="Agents exhibit: terminal replay beside the actual component source" /> | <img src=".github/assets/install-ask-ship.png" alt="Install, Ask, Ship — the ordered neon-magenta booking page, delivered" /> |
-| An agent writes a component, the gate scores it — and the source view shows the very file, verbatim. Readable code is the point. | Install · Ask · Ship: the prompt orders *neon-magenta*, and the shipped page **is** that magenta. Theming proven, not promised. |
+| The landing: a back-office dashboard composed from charts, controls and tokens, in one container-adaptive card. | The [specimen book](https://ui.urbicon.de/blocks): the complete set as living specimens, every cell the real component, each linked to its props, variants and playground. |
+| <img src=".github/assets/agents-tile.png" alt="Agents exhibit: terminal replay beside the actual component source" /> | <img src=".github/assets/install-ask-ship.png" alt="Install, Ask, Ship: the ordered neon-magenta booking page, delivered" /> |
+| An agent writes a component and `urbicon validate` scores it; the source view then shows the very file, verbatim. Readable code is the point. | Install · Ask · Ship: the prompt asks for *neon-magenta*, and the shipped page **is** that magenta. |
 
 ## Quick start
 
 In a SvelteKit app the [`sv` add-on](https://www.npmjs.com/package/@urbicon-ui/sv) (beta) does the
-whole setup — packages, Tailwind, the stylesheet import — from an empty directory or inside an
+whole setup (packages, Tailwind, the stylesheet import), from an empty directory or inside an
 existing app:
 
 ```bash
@@ -58,11 +62,11 @@ bunx sv create my-app --add @urbicon-ui   # new project
 bunx sv add @urbicon-ui                   # existing project
 ```
 
-By hand it is one install and two imports — and that path needs no SvelteKit, just Svelte 5 with
-Vite and Tailwind 4:
+By hand it is one install and two imports. That path needs no SvelteKit, just Svelte 5 with Vite
+and Tailwind 4:
 
 ```bash
-bun add @urbicon-ui/blocks   # or npm/pnpm — the library doesn't care
+bun add @urbicon-ui/blocks   # or npm/pnpm, whichever you use
 ```
 
 ```css
@@ -94,39 +98,39 @@ setup and the first real page.
 
 | Package | What it gives you |
 | --- | --- |
-| [`@urbicon-ui/blocks`](https://ui.urbicon.de/blocks) | 80+ primitives & components — forms, overlays, charts, chat/AI surfaces — plus OKLCH tokens, the `tv()` variant engine and 300+ icons |
-| [`@urbicon-ui/table`](https://ui.urbicon.de/table) | The enterprise grid: sorting, grouping, selection, keyboard nav, virtual rows, remote data, live updates |
-| [`@urbicon-ui/auth`](https://ui.urbicon.de/auth) | Sessions, refresh rotation, passkeys/WebAuthn, notifications, email — Web Crypto only, adapter-based |
+| [`@urbicon-ui/blocks`](https://ui.urbicon.de/blocks) | 80+ primitives and components (forms, overlays, charts, chat/AI surfaces), plus OKLCH tokens, the `tv()` variant engine and 300+ icons |
+| [`@urbicon-ui/table`](https://ui.urbicon.de/table) | The data grid: sorting, grouping, selection, keyboard nav, virtual rows, remote data, live updates |
+| [`@urbicon-ui/auth`](https://ui.urbicon.de/auth) | Sessions, refresh rotation, passkeys/WebAuthn, notifications, email; Web Crypto only, adapter-based |
 | [`@urbicon-ui/i18n`](https://ui.urbicon.de/i18n) | Runes-based localisation with a data-level translation audit |
-| [`@urbicon-ui/design`](https://ui.urbicon.de/ai) | The `urbicon` CLI: design knowledge, the validate gate, `urbicon init` onboarding |
+| [`@urbicon-ui/design`](https://ui.urbicon.de/ai) | The `urbicon` CLI: design knowledge, `urbicon validate`, `urbicon init` onboarding |
 | `@urbicon-ui/sveltekit-utils` | URL-state runes, cron runner and other SvelteKit helpers |
 | [`@urbicon-ui/sv`](https://www.npmjs.com/package/@urbicon-ui/sv) | The Svelte CLI add-on (beta, SvelteKit only): `sv add @urbicon-ui` installs the library and wires the stylesheet |
 
 One version across all packages; supporting packages (`design-engine`, `docs-gen`, …) live in the
 same repo and release in lockstep.
 
-## Built for agents — readable by humans
+## Built for agents, readable by humans
 
 The library treats AI coding agents as first-class consumers without giving up on the people who
-review their work. `bunx urbicon init` writes the AGENTS.md block and installs the gate; from
-then on the loop closes itself:
+review their work. `bunx urbicon init` writes the AGENTS.md block and wires in `urbicon validate`;
+from then on the loop closes itself:
 
 ```mermaid
 flowchart LR
     P[your prompt] --> A[agent builds with the set]
-    A --> V["urbicon validate — correctness · craft"]
+    A --> V["urbicon validate: correctness + craft"]
     V -- "✓ no issues" --> S[ship]
     V -- notes --> A
 ```
 
-Because components carry their design knowledge with them — per-component `llms.txt`, machine-readable
-catalogs, a version-pinned CLI serving tokens, patterns and recipes — the agent composes from the
-system instead of improvising against it. The result stays small and legible: semantic tokens
-instead of pixel soup, one API grammar instead of per-component dialects.
+Because components carry their design knowledge with them (per-component `llms.txt`,
+machine-readable catalogs, a version-pinned CLI serving tokens, patterns and recipes), the agent
+composes from the system instead of improvising against it. The result stays small and legible:
+semantic tokens instead of pixel soup, one API grammar instead of per-component dialects.
 
 ## Theming
 
-The whole chassis re-tints from one `@theme` block — colour *and* typography:
+The whole chassis re-tints from one `@theme` block, colour and typography together:
 
 ```css
 /* app.css */
@@ -138,8 +142,8 @@ The whole chassis re-tints from one `@theme` block — colour *and* typography:
 }
 ```
 
-Dark mode is `light-dark()` + `color-scheme` — no `dark:` variants, no flash, follows the OS.
-See [customization](https://ui.urbicon.de/customization).
+Dark mode is `light-dark()` + `color-scheme`: no `dark:` variants, no flash, and it follows the
+OS. See [customization](https://ui.urbicon.de/customization).
 
 ## Developing this repo
 
@@ -154,7 +158,7 @@ bun run check      # svelte-check across the tree
 ```
 
 Start with [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) (§1 package map & build order, §2 the
-token → markup path); [docs/README.md](docs/README.md) indexes the rest — component families,
+token → markup path); [docs/README.md](docs/README.md) indexes the rest: component families,
 API conventions, Svelte 5 patterns, conscious trade-offs. Repository guidelines for agents and
 contributors live in [AGENTS.md](AGENTS.md), the merge workflow in
 [CONTRIBUTING.md](CONTRIBUTING.md).
