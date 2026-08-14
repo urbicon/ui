@@ -4,6 +4,22 @@ export const buttonVariants = tv({
   slots: {
     base: [
       'relative inline-flex items-center justify-center gap-2',
+      // `min-w-min` restores what `overflow-hidden` below takes away, and the
+      // two belong together: a flex item's automatic minimum size is `auto`
+      // ONLY while its overflow is visible — clipping it drops the floor to 0,
+      // so a button in a flex row shrinks straight through its own label, which
+      // `whitespace-nowrap` then cannot reflow. It clips instead, symmetrically,
+      // eating the padding first and the text after.
+      //
+      // Measured on the A2UI livery tile (a `justify-between` row: caption left,
+      // commit button right), 900px viewport: "Book these nights" overflowed its
+      // box by 27px in Duna and by 40px in Firn — past the 16px side padding, so
+      // the label rendered as "OOK THESE NIGHT". `min-content` is exactly the
+      // floor the spec would have applied unclipped, which is why this is a
+      // restoration and not a new rule: with `nowrap` it is the label's own
+      // width, and a button that wraps (`whitespace-normal` via `class`) still
+      // gets to shrink to its longest word.
+      'min-w-min',
       'font-medium text-center whitespace-nowrap border cursor-pointer select-none',
       // `scale`, NOT `transform`: Tailwind 4 emits `scale-*` as the discrete
       // CSS `scale:` property, so a list naming only `transform` never animates
