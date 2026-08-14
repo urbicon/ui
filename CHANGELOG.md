@@ -4,6 +4,95 @@ All notable changes to this project will be documented in this file.
 This changelog is automatically generated from [Conventional Commits](https://www.conventionalcommits.org).
 
 
+## [8.3.0] - 2026-08-14
+
+### Breaking Changes
+- **table**: The card switch is a property of the columns, not of the component
+> **BREAKING:** the `responsive` axis is gone from `tableContainerVariants`. It only ever carried the table's min-width, which is now derived from `cardsBelow`. No call site passed it; a direct `tv()` caller that did should drop it.
+- **table**: A virtualized row stays a table row, and a button follows its handler
+> **BREAKING:** `ActionButtons` renders a view/edit/delete button only when its handler is given. `showDelete` defaulted to `true` with a no-op `onDelete`, so `TableColumns.actions('Actions', { onEdit })` rendered a delete button that silently did nothing — the docs' own examples all carried a
+- **table**: A row is as tall as it renders, and an alignment moves something
+> **BREAKING:** ROW_HEIGHTS reports 32/40/48 instead of 48/56/64 — the heights table rows have actually rendered at all along.
+
+### Bug Fixes
+- **blocks**: The day-header's stacking height belongs to the timeline
+- **blocks**: The press cue is a mint, and a stacked group is not a capsule
+- **blocks**: A popover is measured where layout put it, not where the enter left it
+- **blocks**: The press step is relative to what the variant rests at
+- **blocks**: A filled surface carries its state in the fill, not in a second copy of it
+- **blocks**: Carry the same rule through Toggle and Badge, and give it one oracle
+- **docs-app**: A play button needs the clock that drives it
+- **docs-app**: A stage keeps its width, and a demo runs at reading speed
+- **table**: A selection survives paging, and select-all only undoes itself
+- **docs-gen**: A type is what it declares, and an empty body stands alone
+- **table**: Measure a data row, and let the header reach the cell edge
+- **table**: Pin what the tests claim to pin, and drop a NUL byte
+- **table**: A header lines up with its column at every alignment
+- **table**: An invisible header menu must not take the click
+- **docs-app**: Escape braces and script tag in two primitive doc examples
+- **docs-app**: Pull the set facts back to the catalogues
+
+### Build
+- **repo**: A linter must not normalise test fixtures
+
+### CI/CD
+- Make the baseline workflow's status step tell the truth
+
+### Documentation
+- Adjust custom example
+- **blocks,docs**: Stop naming a dependency this library does not have
+- **docs-app**: An editor pass over the table pages, and demos that show a table
+- **docs-app**: Say what the component does now, and check the shot
+- **docs-app**: Rework component pages through the editorial pass
+- **blocks**: Use english examples in CalendarEventCategory jsdoc
+- Sharpen docs-editor and docs-writer for interactive component pages
+- **docs-app**: Rework Chat, ChatMessage and ChatMessageList pages through the editorial pass
+- **docs-app**: Rework the five Chat-AI component pages through the editorial pass
+- **blocks**: Drop internal planning refs from Chat type docs
+- **blocks**: Name the real CopyPhase values in its type doc
+- **docs-app**: Rework the six input component pages through the editorial pass
+- **docs-app**: Rework the DatePicker and DateRangePicker pages through the editorial pass
+- **blocks**: Drop dated changelog and pre-1.0 notes from date-component prop docs
+- **docs-app**: Rework the Planner and ResourceTimeline pages through the editorial pass
+- **docs-app**: Rework the five switcher/display pages through the editorial pass
+- **blocks**: Correct prop docs the switcher/display review surfaced
+- **docs-app**: Rework the sidebar-layout, command-palette and composition-bar pages
+- **blocks**: Tidy CommandPalette and CompositionBar prop docs
+- **docs-app**: Rework the A2UIView page through the editorial pass
+- **blocks**: Drop the em-dash asides and slogan from A2UIView doc
+- **blocks**: De-slop ResourceTimeline and shared date-grid JSDoc
+- **docs-app**: De-slop the ResourceTimeline page prose
+- Name the visible element, not "surface" (EDITORIAL)
+- **docs-app**: Name the visible element, not "surface", across seven pages
+- **blocks**: Cross-link Calendar and Planner to ResourceTimeline
+- **blocks**: Sweep "surface" from the JSDoc that renders in API tables
+- **auth**: Strip internal review markers from public JSDoc
+- **docs-app**: De-slop the Auth landing page
+- **auth**: Remove the remaining internal review markers package-wide
+- **docs-app**: De-slop the LoginPage and RegisterPage pages
+- **auth**: Fix RegisterPage prop descriptions that docs-gen synthesized over
+- **docs-app**: De-slop the forgot/reset/verify-email pages
+- **auth**: Lengthen apiPath descriptions so docs-gen stops synthesizing
+- **docs-app**: De-slop the five auth manager pages
+- **auth**: Normalize manager and shared prop descriptions
+- **docs-app**: De-slop the four auth notification pages
+- **auth**: Drop em-dashes and internals from notification prop JSDoc
+- **docs-app**: De-slop the auth guide page intro
+
+### Features
+- **docs-gen**: A type is documented by everything it offers, not by what it adds
+- **docs-app**: Retype the landing claim as a typed remark
+
+### Refactoring
+- **table**: One condition for the indicator dots and their bar
+
+### Testing
+- **blocks**: Re-baseline the linux pixel set after the filled-border fix
+- **docs-gen**: Keep the empty-interface fixture an interface
+
+### Revert
+- **table**: Take header alignment back out, it is not a variant value
+
 ## [8.2.0] - 2026-08-12
 
 ### Breaking Changes
