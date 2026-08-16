@@ -108,8 +108,11 @@
   title={`${tt('status.tooltip', { text: config.text })}${isClickable ? ` ${tt('status.clickToChange')}` : ''}`}
 >
   <div class={containerStyles.content()}>
-    <!-- Badge with max-width and truncation -->
-    <div class="inline-block max-w-32">
+    <!-- min-w normalises the chips of one column to a shared width, so a
+         status scan reads down a calm rail instead of ragged pill edges;
+         longer labels may still grow to max-w before truncating. Badge
+         centres its content, so short texts sit centred in the shared box. -->
+    <div class="inline-block max-w-32 min-w-24">
       <Badge {size} {variant} intent={config.intent} class="w-full truncate">
         {#if config.icon}
           <div class="mr-1 h-1.5 w-1.5 shrink-0 rounded-full bg-current opacity-75"></div>
