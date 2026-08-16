@@ -61,7 +61,14 @@ export const tableHeaderVariants = tv({
     // compatibility: old code used `cellContent`
     cellContent: ['flex items-center justify-between gap-2'],
     // compatibility: old code used `titleContainer` and `titleContent`
-    titleContainer: ['flex items-center flex-1'],
+    // Focusable when the column sorts or reorders (TableHead sets tabindex),
+    // and until 2026-08-14 the only focus mark was the UA outline — which
+    // Safari draws torn on these flex boxes. Same ring the mobile card's
+    // headline button carries.
+    titleContainer: [
+      'flex items-center flex-1',
+      'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-primary/50 rounded-modify'
+    ],
     titleContent: ['flex items-center space-x-2'],
     // No `flex-1` here: `titleContent` around it is content-width, so there is
     // never a spare pixel for this box to grow into. It was the reason the
@@ -201,7 +208,13 @@ export const tableRowVariants = tv({
       'last:border-b-0',
       // `scale`: the interactive row adds `active:scale-[0.995]`, a discrete
       // property `transition-colors` cannot animate.
-      'transition-[color,background-color,border-color,scale] duration-[var(--blocks-duration-fast)]'
+      'transition-[color,background-color,border-color,scale] duration-[var(--blocks-duration-fast)]',
+      // Rows carry roving tabindex when interactive, and the UA outline was the
+      // only focus mark — on a `<tr>` under border-collapse Safari renders it
+      // as two detached blue strokes. An INSET ring, because a `<tr>` clips
+      // nothing outside its box; box-shadow layers, so the active row's rail
+      // (also an inset shadow) and this ring coexist.
+      'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-primary/50'
     ],
     cell: ['text-text-primary', 'transition-colors duration-[var(--blocks-duration-fast)]']
   },
