@@ -17,7 +17,9 @@
     label,
     description,
     icon,
-    state,
+    // Renamed locally: a binding called `state` would make `$state` below read
+    // as a store subscription (store_rune_conflict).
+    state: stateProp,
     optional = false,
     disabled: stepDisabled = false,
     children,
@@ -33,11 +35,30 @@
   const unstyled = $derived(unstyledProp || blocksConfig?.unstyled || false);
 
   const ctx = getStepperContext();
-  const stepIndex = ctx.registerStep();
+  // Init order is only the SSR/first-paint truth. Once mounted, the index
+  // follows the node's DOM position via the context, so a step inserted
+  // mid-list (keyed {#each} over a filtered list) numbers by where it SITS,
+  // not by when it initialised — see the note in Stepper.svelte.
+  const initIndex = ctx.registerStep();
+  let liNode = $state<HTMLElement | null>(null);
+  const stepIndex = $derived.by(() => {
+    if (!liNode) return initIndex;
+    const domIndex = ctx.stepIndexOf(liNode);
+    return domIndex === -1 ? initIndex : domIndex;
+  });
+
+  const attachStepNode = (node: HTMLElement) => {
+    liNode = node;
+    ctx.attachStep(node);
+    return () => {
+      ctx.detachStep(node);
+      liNode = null;
+    };
+  };
 
   const derivedState = $derived(
-    state
-      ? state
+    stateProp
+      ? stateProp
       : stepIndex < ctx.activeStep
         ? 'complete'
         : stepIndex === ctx.activeStep
@@ -142,6 +163,7 @@
     class={slot('stepItem', className)}
     aria-current={isActive ? 'step' : undefined}
     {...restProps}
+    {@attach attachStepNode}
   >
     <!-- svelte-ignore a11y_no_noninteractive_tabindex -->
     <div
@@ -159,7 +181,12 @@
     <div data-stepper-separator class={slot('separator')}></div>
   </li>
 {:else}
-  <li aria-current={isActive ? 'step' : undefined} class={className || undefined} {...restProps}>
+  <li
+    aria-current={isActive ? 'step' : undefined}
+    class={className || undefined}
+    {...restProps}
+    {@attach attachStepNode}
+  >
     <!-- svelte-ignore a11y_no_noninteractive_tabindex -->
     <div
       class={slot('step')}

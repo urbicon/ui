@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { SvelteSet } from 'svelte/reactivity';
   import { useBlocksI18n } from '$lib';
   import { getBlocksConfig, resolveSlotClasses } from '$lib/provider';
   import { getTierContext } from '$lib/utils';
@@ -74,6 +75,21 @@
 
   let nextIdx = 0;
 
+  // A step's index must follow DOM order, not initialisation order: with a
+  // keyed {#each}, a step inserted mid-list initialises LAST and a
+  // register-counter alone hands it the highest index — the rail then shows
+  // 1, 2, 4, 3 and complete/active are computed against the wrong positions
+  // (measured on the decision-tree wizard recipe, whose hybrid step joins the
+  // rail mid-flow). The counter stays as the SSR/first-paint value — server
+  // rendering is strictly in order, and attachments only run in the browser —
+  // and each mounted step re-derives its index from its node's position here.
+  const stepNodes = new SvelteSet<HTMLElement>();
+  const orderedStepNodes = $derived(
+    Array.from(stepNodes).sort((a, b) =>
+      a === b ? 0 : a.compareDocumentPosition(b) & Node.DOCUMENT_POSITION_FOLLOWING ? -1 : 1
+    )
+  );
+
   function goToStep(index: number) {
     if (disabled) return;
     if (index === activeStep) return;
@@ -85,6 +101,15 @@
   const ctx: StepperContext = {
     registerStep() {
       return nextIdx++;
+    },
+    attachStep(node) {
+      stepNodes.add(node);
+    },
+    detachStep(node) {
+      stepNodes.delete(node);
+    },
+    stepIndexOf(node) {
+      return orderedStepNodes.indexOf(node);
     },
     goToStep,
     get activeStep() {

@@ -13,7 +13,13 @@ export interface StepperContext {
   readonly linear: boolean;
   readonly clickable: boolean;
   readonly disabled: boolean;
+  /** SSR/first-paint index: the order steps initialise in. */
   registerStep: () => number;
+  /** Client-side: register the step's `<li>` so its index can follow DOM order. */
+  attachStep: (node: HTMLElement) => void;
+  detachStep: (node: HTMLElement) => void;
+  /** Index of the node in document order, or -1 while it is not attached. */
+  stepIndexOf: (node: HTMLElement) => number;
   goToStep: (index: number) => void;
 }
 

@@ -4,8 +4,13 @@ export const stepperVariants = tv({
   slots: {
     base: 'w-full',
     stepItem: '',
+    // No `shrink-0` here: a horizontal step must be allowed to shrink into its
+    // flex share, or a long label/description overflows the item and the next
+    // step's indicator paints on top of it (measured on the decision-tree
+    // wizard recipe). The min-w-0 chain + truncate below turn that overflow
+    // into an ellipsis instead.
     step: [
-      'group/step flex shrink-0 select-none',
+      'group/step flex select-none',
       'transition-[color,opacity] duration-[var(--blocks-duration-fast)]'
     ],
     indicatorColumn: 'flex shrink-0 items-center justify-center',
@@ -49,8 +54,13 @@ export const stepperVariants = tv({
     orientation: {
       horizontal: {
         base: 'flex items-center [&>li:last-child_[data-stepper-separator]]:hidden',
-        stepItem: 'flex items-center [&:not(:last-child)]:flex-1',
-        step: 'items-center',
+        stepItem: 'flex min-w-0 items-center [&:not(:last-child)]:flex-1',
+        step: 'min-w-0 items-center',
+        // Single-line with ellipsis: horizontal rails have no vertical room
+        // for wrapping, and an overflowing label used to slide under the next
+        // indicator. Vertical steps keep multi-line labels.
+        label: 'truncate',
+        description: 'truncate',
         separator: 'h-0.5 flex-1 mx-3'
       },
       vertical: {
