@@ -50,8 +50,11 @@
     [slotClasses.root, className].filter(Boolean).join(' ')
   )}
 >
+  <!-- `elevated`, not `outlined`: the auth card lifts off the page on its
+       shadow instead of fencing itself in — the same surface language the
+       blocks demos speak. Restyle via slotClasses.card / unstyled as before. -->
   <Card
-    variant="outlined"
+    variant="elevated"
     padding="xl"
     {unstyled}
     class={cls(centered ? 'w-full max-w-md text-center' : 'w-full max-w-md', slotClasses.card)}
