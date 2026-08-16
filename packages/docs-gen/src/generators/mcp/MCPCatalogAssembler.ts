@@ -130,8 +130,8 @@ export class MCPCatalogAssembler {
     const metaContent = await fs.readFile(metaPath, 'utf-8');
     const title = this.extractString(metaContent, 'title') || this.slugToTitle(id);
     const description = this.extractString(metaContent, 'description') || '';
-    const components = this.extractArray(metaContent, 'components');
-    const features = this.extractArray(metaContent, 'features');
+    const components = MCPCatalogAssembler.extractArray(metaContent, 'components');
+    const features = MCPCatalogAssembler.extractArray(metaContent, 'features');
     // `pattern` cross-links the recipe to its Layer-4 composition pattern (get_pattern).
     // Carried in the catalog so get_recipe can serve it without re-reading recipe source.
     const pattern = this.extractString(metaContent, 'pattern');
@@ -154,7 +154,17 @@ export class MCPCatalogAssembler {
     return { id, title, description, components, code, features, ...(pattern ? { pattern } : {}) };
   }
 
-  /** Extract the `const recipeCode = …` live-preview source from a recipe `+page.svelte`. */
+  /**
+   * Extract the `const recipeCode = …` live-preview source from a recipe
+   * `+page.svelte`.
+   *
+   * A backslash escape is skipped whole. Without that, an escaped backtick
+   * inside the literal — the legal way to write one, and the only way a prose
+   * comment in the snippet can quote a prop name — closed the scan early, and
+   * `get_recipe` shipped the recipe truncated at that point with nothing
+   * reporting it. (An *un*escaped backtick is a syntax error the Svelte
+   * compiler already catches, so this is the half no other gate sees.)
+   */
   static extractRecipeCode(content: string): string {
     const startMatch = content.match(RECIPE_CODE_START_RE);
     if (!startMatch) return '';
@@ -165,6 +175,10 @@ export class MCPCatalogAssembler {
     let depth = 0;
     let endIdx = -1;
     for (let i = 0; i < rest.length; i++) {
+      if (rest[i] === '\\') {
+        i++;
+        continue;
+      }
       if (rest[i] === '`') {
         depth = depth === 0 ? 1 : 0;
       }
@@ -177,7 +191,96 @@ export class MCPCatalogAssembler {
 
     const raw = rest.slice(0, endIdx);
     const parts = raw.split(RECIPE_CODE_CONCAT_RE);
-    return parts.map((p) => p.replace(/^\s*`|`\s*$/g, '')).join('');
+    const joined = parts.map((p) => p.replace(/^\s*`|`\s*$/g, '')).join('');
+    return MCPCatalogAssembler.cookTemplateLiteral(joined);
+  }
+
+  /**
+   * Resolve template-literal escape sequences the way JS does when the page
+   * renders the string. The literals escape more than the backtick: the
+   * closing `<\/script>` and — since the 2026-08-16 rollout — the OPENING
+   * `<\script` too (Vite's dependency scanner extracts script blocks from
+   * .svelte files with an HTML lexer, so a raw `<script` inside a string
+   * literal starts a phantom module whose `$lib/…` imports then fail the
+   * whole scan with ENOENT). Shipping the raw source would hand consumers
+   * those backslashes verbatim; what `get_recipe` must serve is the cooked
+   * string — exactly what the code panel displays.
+   */
+  static cookTemplateLiteral(source: string): string {
+    let out = '';
+    for (let i = 0; i < source.length; i++) {
+      const ch = source[i];
+      if (ch !== '\\') {
+        out += ch;
+        continue;
+      }
+      const next = source[i + 1];
+      if (next === undefined) {
+        out += ch;
+        break;
+      }
+      i++;
+      switch (next) {
+        case 'n':
+          out += '\n';
+          break;
+        case 't':
+          out += '\t';
+          break;
+        case 'r':
+          out += '\r';
+          break;
+        case 'b':
+          out += '\b';
+          break;
+        case 'f':
+          out += '\f';
+          break;
+        case 'v':
+          out += '\v';
+          break;
+        case '0':
+          out += '\0';
+          break;
+        case '\n':
+          // Line continuation: backslash-newline vanishes.
+          break;
+        case 'x': {
+          const hex = source.slice(i + 1, i + 3);
+          if (/^[0-9a-fA-F]{2}$/.test(hex)) {
+            out += String.fromCharCode(Number.parseInt(hex, 16));
+            i += 2;
+          } else {
+            out += next;
+          }
+          break;
+        }
+        case 'u': {
+          if (source[i + 1] === '{') {
+            const close = source.indexOf('}', i + 2);
+            const hex = close === -1 ? '' : source.slice(i + 2, close);
+            if (close !== -1 && /^[0-9a-fA-F]{1,6}$/.test(hex)) {
+              out += String.fromCodePoint(Number.parseInt(hex, 16));
+              i = close;
+              break;
+            }
+          }
+          const hex = source.slice(i + 1, i + 5);
+          if (/^[0-9a-fA-F]{4}$/.test(hex)) {
+            out += String.fromCharCode(Number.parseInt(hex, 16));
+            i += 4;
+          } else {
+            out += next;
+          }
+          break;
+        }
+        default:
+          // `\``, `\\`, `\$`, `\/`, `\s` (the opening-tag escape), …:
+          // the escape yields the character itself.
+          out += next;
+      }
+    }
+    return out;
   }
 
   private extractString(content: string, key: string): string {
@@ -186,13 +289,44 @@ export class MCPCatalogAssembler {
     return match[1].replace(/'\s*\+\s*\n?\s*'/g, '').trim();
   }
 
-  private extractArray(content: string, key: string): string[] {
-    const match = content.match(new RegExp(`${key}:\\s*\\[([^\\]]+)\\]`, 's'));
-    if (!match?.[1]) return [];
-    return match[1]
-      .split(',')
-      .map((s) => s.trim().replace(/^['"]|['"]$/g, ''))
-      .filter((s) => s.length > 0);
+  /**
+   * Read a `key: [ 'a', 'b' ]` array of string literals out of a `meta.ts`.
+   *
+   * Scans quote by quote rather than splitting on commas: a comma inside a
+   * literal is a character, not a separator. Splitting was the rule until
+   * 2026-08-14, so every feature line containing one arrived in the catalog as
+   * two or more entries, and `get_recipe` served the fragments to agents as if
+   * each were a feature of its own. Measured on filter-sidebar: its six lines
+   * came out as eleven, four of them the pieces of "Mixed filter controls" —
+   * "RadioGroup property type", "range Slider for rent", "SegmentGroup
+   * bedrooms", "Checkbox amenities".
+   */
+  static extractArray(content: string, key: string): string[] {
+    const head = new RegExp(`${key}:\\s*\\[`).exec(content);
+    if (!head) return [];
+
+    const values: string[] = [];
+    let quote: string | null = null;
+    let literal = '';
+    for (let i = head.index + head[0].length; i < content.length; i++) {
+      const char = content[i];
+      if (quote) {
+        if (char === '\\') {
+          literal += content[i + 1] ?? '';
+          i++;
+        } else if (char === quote) {
+          if (literal.length > 0) values.push(literal);
+          quote = null;
+          literal = '';
+        } else {
+          literal += char;
+        }
+        continue;
+      }
+      if (char === "'" || char === '"' || char === '`') quote = char;
+      else if (char === ']') break;
+    }
+    return values;
   }
 
   private slugToTitle(slug: string): string {
