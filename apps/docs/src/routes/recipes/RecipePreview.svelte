@@ -208,6 +208,40 @@
         {/each}
       </div>
     </div>
+  {:else if href === '/recipes/table-detail'}
+    <!-- Order rows beside the panel that reads the marked one. No shadow and no
+         backdrop: the panel is a column of the page, which is the recipe's
+         whole point, and an overlay drawing would say the opposite. -->
+    <div class="flex h-full gap-2 p-2">
+      <div class="flex min-w-0 flex-1 flex-col">
+        <div class="text-text-secondary mb-1.5 flex items-center gap-1 text-[7px] font-semibold">
+          <ReceiptIcon class="h-2.5 w-2.5" />
+          Orders
+        </div>
+        <div class="divide-border-subtle divide-y">
+          {#each [{ id: 'ORD-2418', open: false }, { id: 'ORD-2419', open: true }, { id: 'ORD-2420', open: false }, { id: 'ORD-2421', open: false }] as row (row.id)}
+            <div
+              class="flex items-center gap-1.5 py-1 pr-1 {row.open
+                ? 'bg-surface-hover pl-1 shadow-[inset_2px_0_0_0_var(--color-border-strong)]'
+                : 'pl-1'}"
+            >
+              <span class="text-text-secondary text-[6px] font-medium">{row.id}</span>
+              {@render line('h-1 flex-1')}
+            </div>
+          {/each}
+        </div>
+      </div>
+      <div class="border-border-subtle flex w-[58px] shrink-0 flex-col gap-1.5 border-l pl-2">
+        <div class="text-text-primary text-[7px] font-semibold">ORD-2419</div>
+        <div class="bg-success-subtle text-success w-fit rounded px-1 py-px text-[6px]">Paid</div>
+        {@render line('h-1 w-full')}
+        {@render line('h-1 w-2/3')}
+        <div class="border-border-subtle mt-auto flex items-baseline justify-between border-t pt-1">
+          <span class="text-text-quaternary text-[6px]">Total</span>
+          <span class="text-text-primary text-[6px] font-semibold">€79.00</span>
+        </div>
+      </div>
+    </div>
   {:else if href === '/recipes/settings'}
     <!-- Tabbed settings: identity above, switches below -->
     <div class="flex h-full flex-col p-2.5">

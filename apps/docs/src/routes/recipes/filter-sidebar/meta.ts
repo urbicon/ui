@@ -5,24 +5,30 @@ export const recipeMeta: RecipeMeta = {
   difficulty: 'Intermediate',
   title: 'Filter Sidebar',
   description:
-    'A filterable results page where the filter panel is a persistent left rail on desktop and a slide-in overlay on mobile — the exact lifecycle Sidebar mode="responsive" exists for. No backdrop or focus-trap on the desktop rail (that would be a Drawer); the panel is part of the page shell.',
+    'A listings page whose filter rail is persistent on desktop and a slide-in overlay behind a funnel button on mobile, built on Sidebar mode="responsive". Search, property type, rent range, bedrooms and amenities narrow the result grid live, with no Apply step.',
   components: [
     'Sidebar',
     'Input',
     'RadioGroup',
+    'RadioItem',
     'Slider',
     'SegmentGroup',
+    'SegmentItem',
     'Checkbox',
     'Card',
     'Button',
     'Badge'
   ],
+  // Nothing on the docs site renders these: the cookbook card shows title,
+  // description and components, and this page dropped the feature list in
+  // favour of the demo. Their one consumer is `get_recipe`, so they are written
+  // for an agent deciding whether this recipe fits — facts, not aphorisms.
   features: [
-    'Persistent on desktop, overlay on mobile via Sidebar mode="responsive" — no backdrop or focus-trap on the desktop rail',
-    'Live client-side filtering: a single $derived recomputes the result grid on every control change — no Apply step on desktop',
-    'Mixed filter controls — Input search, RadioGroup property type, range Slider for rent, SegmentGroup bedrooms, Checkbox amenities',
-    'Mobile funnel trigger opens the same Sidebar as a backdropped overlay; a "Show N results" button dismisses it',
-    'Active-filter count drives both the Reset button and the mobile trigger badge',
-    'Empty state with a one-tap Reset when no listing matches'
+    'Sidebar mode="responsive": one markup, a persistent rail above 1024px and a backdropped overlay below. The open prop governs only the overlay; the desktop rail ignores it.',
+    'Live client-side filtering: one $derived recomputes the results on every control change, no Apply step. The overlay\'s "Show N" button only closes it.',
+    'Five filter shapes: Input search over title + neighborhood, RadioGroup property type, a range Slider for rent, SegmentGroup bedrooms (3 = 3+), Checkbox amenities (AND-combined).',
+    'activeCount drives the Reset button label and disabled state, and the funnel trigger badge on mobile.',
+    'The main region is offset by hand: lg:pl-72 matches width="18rem" (the rail is position: fixed). SidebarLayout wires the offset instead.',
+    'Empty state with a Reset button when nothing matches.'
   ]
 };

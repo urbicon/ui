@@ -1,15 +1,14 @@
 <script lang="ts">
-  import SeoMeta from '$lib/SeoMeta.svelte';
-  import { Input, Card } from '@urbicon-ui/blocks';
-  import { CodeExample, Section } from '@urbicon-ui/docs';
+  import { Input } from '@urbicon-ui/blocks';
+  import { CodeExample, Note, NoteList, Section } from '@urbicon-ui/docs';
   import { recipeMeta } from './meta';
-  import RecipeHeader from '../RecipeHeader.svelte';
-  import RecipeFeatures from '../RecipeFeatures.svelte';
+  import RecipeShell from '../RecipeShell.svelte';
 
-  const { features } = recipeMeta;
+  // Input's own intent names: a status feeds intent with no mapping layer.
+  type RangeStatus = 'default' | 'success' | 'warning' | 'danger';
 
-  type Status = 'neutral' | 'success' | 'warning' | 'danger';
-
+  // One config per field, two shared functions: a new plausibility field is
+  // another config object, not a new component.
   interface RangeHintConfig {
     label: string;
     expectedRange: [number, number];
@@ -31,7 +30,7 @@
     label: 'Planned expense (€)',
     expectedRange: [800, 1200],
     tolerancePercent: 10,
-    helpOnDanger: 'Are you sure? The trend was €800–1,200.',
+    helpOnDanger: 'One-off purchase, or a typo?',
     formatRange: (n) => '€' + n.toLocaleString('en-US')
   };
   let budgetValue = $state<number | null>(null);
@@ -40,195 +39,210 @@
     label: 'Hours on the project this week',
     expectedRange: [7, 9],
     tolerancePercent: 25,
-    formatRange: (n) => `${n} h`
+    formatRange: (n) => n + ' h'
   };
   let timeValue = $state<number | null>(null);
 
-  function classifyStatus(value: number | null, config: RangeHintConfig): Status {
-    if (value === null || value === undefined || Number.isNaN(value)) return 'neutral';
+  function classifyStatus(value: number | null, config: RangeHintConfig): RangeStatus {
+    if (value == null || Number.isNaN(value)) return 'default';
     const [min, max] = config.expectedRange;
     if (value >= min && value <= max) return 'success';
+    // The buffer scales with the range width, so one percentage means the
+    // same "slightly outside" for 7–9 h as for 12,000–13,500 kWh.
     const tolerance = ((max - min) * (config.tolerancePercent ?? 15)) / 100;
     if (value >= min - tolerance && value <= max + tolerance) return 'warning';
     return 'danger';
   }
 
-  function formatHelper(value: number | null, config: RangeHintConfig, status: Status): string {
-    const fmt = config.formatRange ?? ((n: number) => `${n}`);
+  function formatHelper(config: RangeHintConfig, status: RangeStatus): string {
+    const fmt = config.formatRange ?? ((n: number) => String(n));
     const [min, max] = config.expectedRange;
-    if (status === 'success') return `Plausible. Expected: ${fmt(min)}–${fmt(max)}.`;
-    if (status === 'warning') return `Slightly outside. Expected: ${fmt(min)}–${fmt(max)}.`;
+    const range = `${fmt(min)}–${fmt(max)}`;
+    if (status === 'success') return `Plausible. Expected: ${range}.`;
+    if (status === 'warning') return `Slightly outside. Expected: ${range}.`;
     if (status === 'danger') {
-      const help = config.helpOnDanger ? ` ${config.helpOnDanger}` : '';
-      return `Unusual. Expected: ${fmt(min)}–${fmt(max)}.${help}`;
+      const help = config.helpOnDanger ? ' ' + config.helpOnDanger : '';
+      return `Unusual. Expected: ${range}.${help}`;
     }
-    return `Expected: ${fmt(min)}–${fmt(max)}.`;
+    return `Expected: ${range}.`;
   }
 
   const meterStatus = $derived(classifyStatus(meterValue, meterConfig));
-  const meterHelper = $derived(formatHelper(meterValue, meterConfig, meterStatus));
+  const meterHelper = $derived(formatHelper(meterConfig, meterStatus));
   const budgetStatus = $derived(classifyStatus(budgetValue, budgetConfig));
-  const budgetHelper = $derived(formatHelper(budgetValue, budgetConfig, budgetStatus));
+  const budgetHelper = $derived(formatHelper(budgetConfig, budgetStatus));
   const timeStatus = $derived(classifyStatus(timeValue, timeConfig));
-  const timeHelper = $derived(formatHelper(timeValue, timeConfig, timeStatus));
+  const timeHelper = $derived(formatHelper(timeConfig, timeStatus));
 
-  function intentFor(s: Status): 'default' | 'success' | 'warning' | 'danger' {
-    if (s === 'success') return 'success';
-    if (s === 'warning') return 'warning';
-    if (s === 'danger') return 'danger';
-    return 'default';
+  const recipeCode = `<\script lang="ts">
+  import { Input } from '@urbicon-ui/blocks';
+
+  // Input's own intent names: a status feeds intent with no mapping layer.
+  type RangeStatus = 'default' | 'success' | 'warning' | 'danger';
+
+  // One config per field, two shared functions: a new plausibility field is
+  // another config object, not a new component.
+  interface RangeHintConfig {
+    label: string;
+    expectedRange: [number, number];
+    tolerancePercent?: number;
+    helpOnDanger?: string;
+    formatRange?: (n: number) => string;
   }
 
-  function messageTypeFor(s: Status): 'helper' | 'error' {
-    return s === 'danger' ? 'error' : 'helper';
+  const meterConfig: RangeHintConfig = {
+    label: 'Heating meter reading',
+    expectedRange: [12000, 13500],
+    tolerancePercent: 15,
+    helpOnDanger: 'Typo or meter replaced?',
+    formatRange: (n) => n.toLocaleString('en-US') + ' kWh'
+  };
+  let meterValue = $state<number | null>(null);
+
+  const budgetConfig: RangeHintConfig = {
+    label: 'Planned expense (€)',
+    expectedRange: [800, 1200],
+    tolerancePercent: 10,
+    helpOnDanger: 'One-off purchase, or a typo?',
+    formatRange: (n) => '€' + n.toLocaleString('en-US')
+  };
+  let budgetValue = $state<number | null>(null);
+
+  const timeConfig: RangeHintConfig = {
+    label: 'Hours on the project this week',
+    expectedRange: [7, 9],
+    tolerancePercent: 25,
+    formatRange: (n) => n + ' h'
+  };
+  let timeValue = $state<number | null>(null);
+
+  function classifyStatus(value: number | null, config: RangeHintConfig): RangeStatus {
+    if (value == null || Number.isNaN(value)) return 'default';
+    const [min, max] = config.expectedRange;
+    if (value >= min && value <= max) return 'success';
+    // The buffer scales with the range width, so one percentage means the
+    // same "slightly outside" for 7–9 h as for 12,000–13,500 kWh.
+    const tolerance = ((max - min) * (config.tolerancePercent ?? 15)) / 100;
+    if (value >= min - tolerance && value <= max + tolerance) return 'warning';
+    return 'danger';
   }
+
+  function formatHelper(config: RangeHintConfig, status: RangeStatus): string {
+    const fmt = config.formatRange ?? ((n: number) => String(n));
+    const [min, max] = config.expectedRange;
+    const range = \`\${fmt(min)}–\${fmt(max)}\`;
+    if (status === 'success') return \`Plausible. Expected: \${range}.\`;
+    if (status === 'warning') return \`Slightly outside. Expected: \${range}.\`;
+    if (status === 'danger') {
+      const help = config.helpOnDanger ? ' ' + config.helpOnDanger : '';
+      return \`Unusual. Expected: \${range}.\${help}\`;
+    }
+    return \`Expected: \${range}.\`;
+  }
+
+  const meterStatus = $derived(classifyStatus(meterValue, meterConfig));
+  const meterHelper = $derived(formatHelper(meterConfig, meterStatus));
+  const budgetStatus = $derived(classifyStatus(budgetValue, budgetConfig));
+  const budgetHelper = $derived(formatHelper(budgetConfig, budgetStatus));
+  const timeStatus = $derived(classifyStatus(timeValue, timeConfig));
+  const timeHelper = $derived(formatHelper(timeConfig, timeStatus));
+<\/script>
+
+<!-- The form column: centre it in your page's own layout. -->
+<div class="w-full max-w-md space-y-6">
+  <!-- Plausibility, not validation: nothing gates the entry. intent tints
+       the field's border; the message stays in the quiet helper voice, and
+       the error prop stays free for hard constraints. -->
+  <Input
+    type="number"
+    label={meterConfig.label}
+    bind:value={meterValue}
+    intent={meterStatus}
+    helper={meterHelper}
+    placeholder="e.g. 12750"
+  />
+  <Input
+    type="number"
+    label={budgetConfig.label}
+    bind:value={budgetValue}
+    intent={budgetStatus}
+    helper={budgetHelper}
+    placeholder="e.g. 950"
+  />
+  <Input
+    type="number"
+    label={timeConfig.label}
+    bind:value={timeValue}
+    intent={timeStatus}
+    helper={timeHelper}
+    placeholder="e.g. 8"
+  />
+</div>`;
 </script>
 
-<SeoMeta
-  title="Range Hint Input Recipe"
-  description="Input with a plausibility range in the helper text that reacts to the value."
-/>
-
-<div class="mx-auto max-w-5xl px-6 py-12">
-  <RecipeHeader meta={recipeMeta} />
-
-  <Section id="preview" title="Live Preview">
-    <Card variant="outlined">
-      <div class="space-y-6 p-6">
+<RecipeShell meta={recipeMeta}>
+  <Section id="preview" title="Live preview" titleHidden>
+    <CodeExample
+      title="ReportPage.svelte"
+      description="Try `12500`, `11800` and `99` in the meter field to get all three verdicts: plausible, slightly outside, unusual."
+      code={recipeCode}
+      language="svelte"
+      headingLevel={2}
+    >
+      <div class="w-full max-w-md space-y-6">
         <Input
           type="number"
           label={meterConfig.label}
           bind:value={meterValue}
-          intent={intentFor(meterStatus)}
+          intent={meterStatus}
           helper={meterHelper}
-          messageType={messageTypeFor(meterStatus)}
           placeholder="e.g. 12750"
         />
         <Input
           type="number"
           label={budgetConfig.label}
           bind:value={budgetValue}
-          intent={intentFor(budgetStatus)}
+          intent={budgetStatus}
           helper={budgetHelper}
-          messageType={messageTypeFor(budgetStatus)}
           placeholder="e.g. 950"
         />
         <Input
           type="number"
           label={timeConfig.label}
           bind:value={timeValue}
-          intent={intentFor(timeStatus)}
+          intent={timeStatus}
           helper={timeHelper}
-          messageType={messageTypeFor(timeStatus)}
           placeholder="e.g. 8"
         />
-
-        <div class="border-border-subtle bg-surface-subtle rounded-md border p-3 text-xs">
-          <p class="text-text-secondary mb-1 font-medium">Try the three zones:</p>
-          <ul class="text-text-tertiary list-disc space-y-0.5 pl-4">
-            <li>
-              <strong class="text-success">Plausible:</strong> e.g. 12500 (within 12000–13500)
-            </li>
-            <li>
-              <strong class="text-warning">Slightly off:</strong> e.g. 11800 (within the 15% tolerance)
-            </li>
-            <li>
-              <strong class="text-danger">Unusual:</strong> e.g. 99 (far outside)
-            </li>
-          </ul>
-        </div>
       </div>
-    </Card>
+    </CodeExample>
   </Section>
 
-  <Section id="features" title="Features">
-    <RecipeFeatures {features} />
+  <Section id="decisions" title="Two decisions">
+    <NoteList>
+      <Note title="Unusual is not invalid">
+        <p>
+          A value far outside the range can still be right: a reading after a meter swap or a
+          one-off purchase lands there legitimately, so the field keeps accepting it and
+          <code class="text-text-primary">helpOnDanger</code> asks the question that separates a
+          typo from a real outlier. When a limit is hard, set Input's
+          <code class="text-text-primary">error</code> prop instead: it replaces
+          <code class="text-text-primary">helper</code> and outranks
+          <code class="text-text-primary">intent</code>, so a hard constraint takes the field over
+          while it is violated.
+        </p>
+      </Note>
+      <Note title="The range comes from data, the tolerance from the domain">
+        <p>
+          Derive <code class="text-text-primary">expectedRange</code> from what the app already
+          knows (last period's value, a trend over the last three); a hand-picked constant drifts as
+          consumption or prices move, and the hint starts flagging normal values.
+          <code class="text-text-primary">tolerancePercent</code> is a per-field judgment: tighter
+          where entries should be exact, wider for estimates, and never
+          <code class="text-text-primary">0</code>, which erases the warning zone and makes every
+          miss read as unusual.
+        </p>
+      </Note>
+    </NoteList>
   </Section>
-
-  <Section id="code" title="Code">
-    <CodeExample
-      title="RangeHintInput.svelte"
-      preview={false}
-      language="svelte"
-      code={`<script lang="ts">
-  import { Input } from '@urbicon-ui/blocks';
-
-  let { value = $bindable(), expectedRange, label, tolerancePercent = 15, helpOnDanger }: {
-    value: number | null;
-    expectedRange: [number, number];
-    label: string;
-    tolerancePercent?: number;
-    helpOnDanger?: string;
-  } = $props();
-
-  type Status = 'neutral' | 'success' | 'warning' | 'danger';
-
-  const status = $derived.by<Status>(() => {
-    if (value === null || value === undefined) return 'neutral';
-    const [min, max] = expectedRange;
-    if (value >= min && value <= max) return 'success';
-    const tolerance = (max - min) * (tolerancePercent / 100);
-    if (value >= min - tolerance && value <= max + tolerance) return 'warning';
-    return 'danger';
-  });
-
-  const message = $derived.by(() => {
-    const [min, max] = expectedRange;
-    const fmt = (n: number) => n.toLocaleString('en-US');
-    if (status === 'success')  return \`Plausible. Expected: \${fmt(min)}–\${fmt(max)}.\`;
-    if (status === 'warning')  return \`Slightly outside. Expected: \${fmt(min)}–\${fmt(max)}.\`;
-    if (status === 'danger')   return \`Unusual. Expected: \${fmt(min)}–\${fmt(max)}.\${helpOnDanger ? ' ' + helpOnDanger : ''}\`;
-    return \`Expected: \${fmt(min)}–\${fmt(max)}.\`;
-  });
-
-  const intentMap = { neutral: 'default', success: 'success', warning: 'warning', danger: 'danger' } as const;
-</scr` +
-        `ipt>
-
-<Input
-  {label}
-  type="number"
-  bind:value
-  intent={intentMap[status]}
-  helper={message}
-  messageType={status === 'danger' ? 'error' : 'helper'}
-/>`}
-    />
-  </Section>
-
-  <Section id="best-practices" title="Best Practices">
-    <Card variant="outlined">
-      <div class="divide-border-subtle divide-y">
-        <div class="px-4 py-3">
-          <h3 class="text-text-primary text-sm font-semibold">expectedRange from real data</h3>
-          <p class="text-text-secondary mt-1 text-sm">
-            Last year's value ± 15%, or a trend extrapolation from the last 3 periods. Hardcoded
-            ranges feel arbitrary — derived ranges signal to the user that the app understands them.
-          </p>
-        </div>
-        <div class="px-4 py-3">
-          <h3 class="text-text-primary text-sm font-semibold">Tolerance factor per domain</h3>
-          <p class="text-text-secondary mt-1 text-sm">
-            15% is a sensible default. Stricter for required fields (5%), wider for estimates (30%).
-            Never 0% — otherwise there is no "slightly off".
-          </p>
-        </div>
-        <div class="px-4 py-3">
-          <h3 class="text-text-primary text-sm font-semibold">Status never blocks</h3>
-          <p class="text-text-secondary mt-1 text-sm">
-            The input stays validation-free — the user can deliberately enter values outside the
-            range (meter replacement, special case, settlement value). For hard constraints, set an
-            <code class="text-text-primary">error</code> prop instead.
-          </p>
-        </div>
-        <div class="px-4 py-3">
-          <h3 class="text-text-primary text-sm font-semibold">Explain the why on danger</h3>
-          <p class="text-text-secondary mt-1 text-sm">
-            For values far outside the range, offer an additional contextual hint — "Typo? Meter
-            replaced? Special tariff?". That raises the correction rate without blocking the user.
-          </p>
-        </div>
-      </div>
-    </Card>
-  </Section>
-</div>
+</RecipeShell>

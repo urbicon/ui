@@ -1,27 +1,20 @@
 <script lang="ts">
-  import SeoMeta from '$lib/SeoMeta.svelte';
   import {
-    Stepper,
-    StepperStep,
+    Alert,
+    Button,
     Card,
     RadioGroup,
     RadioItem,
-    Button,
-    Alert
+    Stepper,
+    StepperStep
   } from '@urbicon-ui/blocks';
-  import { CodeExample, Section } from '@urbicon-ui/docs';
+  import { CodeExample, Note, NoteList, Section } from '@urbicon-ui/docs';
   import { recipeMeta } from './meta';
-  import RecipeHeader from '../RecipeHeader.svelte';
-  import RecipeFeatures from '../RecipeFeatures.svelte';
+  import RecipeShell from '../RecipeShell.svelte';
 
-  const { features } = recipeMeta;
-
-  // Example: system setup for heating-cost billing software
-  // — Question A: fuel configuration
-  // — Question B: heat meters installed?
-  // — Question C (only if A == 'hybrid'): how is the hybrid share determined?
-  // — Review: the system suggests a method
-
+  // One object holds every answer. The step list, the recommendation and the
+  // Next gate all derive from it, so revising an earlier answer reshapes the
+  // flow with no cleanup code.
   let answers = $state<{
     fuelType?: 'single' | 'hybrid';
     hasMeter?: 'yes' | 'no';
@@ -36,6 +29,9 @@
     skipIf?: () => boolean;
   };
 
+  // The full route is declared once; skipIf filters it whenever answers
+  // change. Pick a single fuel and the hybrid step leaves the rail, the count
+  // and the flow, with no navigation code running.
   const steps = $derived.by<StepDef[]>(() => {
     const all: StepDef[] = [
       { id: 'fuelType', title: 'Fuel', description: 'Energy source configuration' },
@@ -51,6 +47,9 @@
     return all.filter((s) => !s.skipIf?.());
   });
 
+  // Every branch matches fuelType before it reads a hybrid answer, so a value
+  // left behind by a hidden step (switch hybrid to single and hybridSplit
+  // stays set) never reaches the result.
   const recommendation = $derived.by(() => {
     if (answers.fuelType === 'single' && answers.hasMeter === 'yes') {
       return {
@@ -92,6 +91,8 @@
     return null;
   });
 
+  // Gates the Next button only: the current step's answer must exist.
+  // Back never validates.
   const canNext = $derived.by(() => {
     const currentId = steps[currentStep]?.id;
     if (currentId === 'fuelType') return answers.fuelType !== undefined;
@@ -111,196 +112,275 @@
     answers = {};
     currentStep = 0;
   }
-</script>
 
-<!-- urbicon-ignore font-weight-uniform — every one of them sits on a level-3
-     heading: one treatment applied consistently, not a flat page. The hierarchy
-     is carried by size (text-base for the step headings, text-sm for the notes)
-     and by the section heading above them, neither of which the weight
-     heuristic sees. (No angle brackets in this reason on purpose — the pragma
-     parser's id list stops at the first one; see issue #106.) -->
+  const recipeCode = `<\script lang="ts">
+  import {
+    Alert,
+    Button,
+    Card,
+    RadioGroup,
+    RadioItem,
+    Stepper,
+    StepperStep
+  } from '@urbicon-ui/blocks';
 
-<SeoMeta
-  title="Decision Tree Wizard Recipe"
-  description="Stepper wizard with dynamically changing steps and an auto-recommendation."
-/>
-
-<div class="mx-auto max-w-5xl px-6 py-12">
-  <RecipeHeader meta={recipeMeta} />
-
-  <Section id="preview" title="Live Preview">
-    <Card variant="outlined">
-      <div class="space-y-6 p-6">
-        <Stepper bind:activeStep={currentStep}>
-          {#each steps as step (step.id)}
-            <StepperStep label={step.title} description={step.description} />
-          {/each}
-        </Stepper>
-
-        <Card variant="outlined" padding="md">
-          {#if steps[currentStep]?.id === 'fuelType'}
-            <h3 class="text-text-primary mb-3 text-base font-semibold">
-              Which fuel configuration?
-            </h3>
-            <RadioGroup bind:value={answers.fuelType} name="fuelType">
-              <RadioItem value="single" label="Single fuel (gas, oil, or heat pump)" />
-              <RadioItem value="hybrid" label="Hybrid (e.g. gas + heat pump combined)" />
-            </RadioGroup>
-          {:else if steps[currentStep]?.id === 'hasMeter'}
-            <h3 class="text-text-primary mb-3 text-base font-semibold">
-              Are heat meters installed in each residential unit?
-            </h3>
-            <RadioGroup bind:value={answers.hasMeter} name="hasMeter">
-              <RadioItem value="yes" label="Yes, in every unit" />
-              <RadioItem value="no" label="No, no meters installed" />
-            </RadioGroup>
-          {:else if steps[currentStep]?.id === 'hybridSplit'}
-            <h3 class="text-text-primary mb-3 text-base font-semibold">
-              How is the hybrid share determined?
-            </h3>
-            <RadioGroup bind:value={answers.hybridSplit} name="hybridSplit">
-              <RadioItem value="meter" label="Separate metering per energy source" />
-              <RadioItem value="estimate" label="Flat-rate split (e.g. 70/30)" />
-              <RadioItem value="manual" label="Manual split with approval" />
-            </RadioGroup>
-          {:else if steps[currentStep]?.id === 'review' && recommendation}
-            <h3 class="text-text-primary mb-3 text-base font-semibold">System recommendation</h3>
-            <Alert intent={recommendation.intent} variant="soft" title={recommendation.method}>
-              {recommendation.reason}
-            </Alert>
-            <details class="mt-4">
-              <summary class="text-text-tertiary cursor-pointer text-xs">
-                Show answer path
-              </summary>
-              <!-- A raw <pre>, not a CodeExample: this is the demo's live state
-                   serialised on each render, not a snippet anyone should copy. -->
-              <pre
-                class="bg-surface-subtle text-text-secondary mt-2 overflow-x-auto rounded-md p-3 text-xs">{JSON.stringify(
-                  answers,
-                  null,
-                  2
-                )}</pre>
-            </details>
-          {/if}
-        </Card>
-
-        <div class="flex justify-between">
-          <Button intent="neutral" variant="outlined" onclick={back} disabled={currentStep === 0}>
-            Back
-          </Button>
-          {#if currentStep === steps.length - 1}
-            <Button intent="primary" onclick={reset}>Start over</Button>
-          {:else}
-            <Button intent="primary" onclick={next} disabled={!canNext}>Next</Button>
-          {/if}
-        </div>
-      </div>
-    </Card>
-  </Section>
-
-  <Section id="features" title="Features">
-    <RecipeFeatures {features} />
-  </Section>
-
-  <Section id="code" title="Code skeleton">
-    <CodeExample
-      title="DecisionTreeWizard.svelte"
-      preview={false}
-      language="svelte"
-      code={`<script lang="ts">
-  import { Stepper, StepperStep, Card, RadioGroup, RadioItem, Button, Alert } from '@urbicon-ui/blocks';
-
-  let answers = $state<{ fuelType?: string; hasMeter?: string; hybridSplit?: string }>({});
+  // One object holds every answer. The step list, the recommendation and the
+  // Next gate all derive from it, so revising an earlier answer reshapes the
+  // flow with no cleanup code.
+  let answers = $state<{
+    fuelType?: 'single' | 'hybrid';
+    hasMeter?: 'yes' | 'no';
+    hybridSplit?: 'meter' | 'estimate' | 'manual';
+  }>({});
   let currentStep = $state(0);
 
-  // Step 3 is skipped when answer 1 != "hybrid"
-  const steps = $derived.by(() => {
-    const all = [
-      { id: 'fuelType',    title: 'Fuel' },
-      { id: 'hasMeter',    title: 'Meters' },
-      { id: 'hybridSplit', title: 'Hybrid share', skipIf: () => answers.fuelType !== 'hybrid' },
-      { id: 'review',      title: 'Recommendation' }
+  type StepDef = {
+    id: string;
+    title: string;
+    description: string;
+    skipIf?: () => boolean;
+  };
+
+  // The full route is declared once; skipIf filters it whenever answers
+  // change. Pick a single fuel and the hybrid step leaves the rail, the count
+  // and the flow, with no navigation code running.
+  const steps = $derived.by<StepDef[]>(() => {
+    const all: StepDef[] = [
+      { id: 'fuelType', title: 'Fuel', description: 'Energy source configuration' },
+      { id: 'hasMeter', title: 'Heat meters', description: 'Check installation' },
+      {
+        id: 'hybridSplit',
+        title: 'Hybrid split',
+        description: 'Determine the share',
+        skipIf: () => answers.fuelType !== 'hybrid'
+      },
+      { id: 'review', title: 'Recommendation', description: 'System suggestion' }
     ];
     return all.filter((s) => !s.skipIf?.());
   });
 
-  // Auto-recommendation based on the answer path
+  // Every branch matches fuelType before it reads a hybrid answer, so a value
+  // left behind by a hidden step (switch hybrid to single and hybridSplit
+  // stays set) never reaches the result.
   const recommendation = $derived.by(() => {
-    if (answers.fuelType === 'single' && answers.hasMeter === 'yes') return 'HeizKV § 7';
-    if (answers.fuelType === 'single' && answers.hasMeter === 'no')  return 'HeizKV § 9a';
-    if (answers.fuelType === 'hybrid' && answers.hybridSplit === 'meter') return 'HeizKV § 9 (2)';
+    if (answers.fuelType === 'single' && answers.hasMeter === 'yes') {
+      return {
+        method: 'HeizKV § 7 — consumption-based (metered values)',
+        intent: 'success' as const,
+        reason:
+          'A single-fuel system with meters allows direct consumption metering per residential unit.'
+      };
+    }
+    if (answers.fuelType === 'single' && answers.hasMeter === 'no') {
+      return {
+        method: 'HeizKV § 9a — estimate by living area',
+        intent: 'warning' as const,
+        reason:
+          'Without meters, consumption cannot be measured. Area-based estimate with a correction factor.'
+      };
+    }
+    if (answers.fuelType === 'hybrid' && answers.hybridSplit === 'meter') {
+      return {
+        method: 'HeizKV § 9 (2) — hybrid with separate metering',
+        intent: 'success' as const,
+        reason: 'Separate metering per energy source allows a correct split.'
+      };
+    }
+    /* … the remaining hybrid paths (estimate, manual) follow the same shape … */
     return null;
   });
 
+  // Gates the Next button only: the current step's answer must exist.
+  // Back never validates.
   const canNext = $derived.by(() => {
-    const id = steps[currentStep]?.id;
-    if (id === 'fuelType')    return !!answers.fuelType;
-    if (id === 'hasMeter')    return !!answers.hasMeter;
-    if (id === 'hybridSplit') return !!answers.hybridSplit;
-    return true;
+    const currentId = steps[currentStep]?.id;
+    if (currentId === 'fuelType') return answers.fuelType !== undefined;
+    if (currentId === 'hasMeter') return answers.hasMeter !== undefined;
+    if (currentId === 'hybridSplit') return answers.hybridSplit !== undefined;
+    if (currentId === 'review') return true;
+    return false;
   });
-</scr` +
-        `ipt>
 
-<Stepper bind:activeStep={currentStep}>
-  {#each steps as step (step.id)}
-    <StepperStep label={step.title} />
-  {/each}
-</Stepper>
+  function next() {
+    if (currentStep < steps.length - 1) currentStep += 1;
+  }
+  function back() {
+    if (currentStep > 0) currentStep -= 1;
+  }
+  function reset() {
+    answers = {};
+    currentStep = 0;
+  }
+<\/script>
 
-<Card>
-  {#if steps[currentStep]?.id === 'fuelType'}
-    <RadioGroup bind:value={answers.fuelType} name="fuelType">
-      <RadioItem value="single" label="Single fuel" />
-      <RadioItem value="hybrid" label="Hybrid" />
-    </RadioGroup>
-  {:else if steps[currentStep]?.id === 'review'}
-    <Alert intent="success" title="Recommendation">{recommendation}</Alert>
-  {/if}
-</Card>
+<!-- Centre it in your page's own layout; the card caps its own width. -->
+<div class="w-full max-w-3xl">
+  <Card variant="elevated" padding="lg">
+    <div class="space-y-6">
+      <!-- The rail only shows position (clickable stays off): the buttons below
+           are the one way to move, so the canNext gate cannot be bypassed. -->
+      <Stepper activeStep={currentStep}>
+        {#each steps as step (step.id)}
+          <StepperStep label={step.title} description={step.description} />
+        {/each}
+      </Stepper>
 
-<div class="flex justify-between">
-  <Button onclick={() => currentStep--} disabled={currentStep === 0}>Back</Button>
-  <Button onclick={() => currentStep++} disabled={!canNext}>Next</Button>
-</div>`}
-    />
-  </Section>
-
-  <Section id="best-practices" title="Best Practices">
-    <Card variant="outlined">
-      <div class="divide-border-subtle divide-y">
-        <div class="px-4 py-3">
-          <h3 class="text-text-primary text-sm font-semibold">Don't put answers in URL params</h3>
-          <p class="text-text-secondary mt-1 text-sm">
-            Wizard state is usually ephemeral — URL state would affect bookmarks or refreshes in
-            unexpected ways. Only opt in with `?step=2` or similar when explicitly desired.
-          </p>
-        </div>
-        <div class="px-4 py-3">
-          <h3 class="text-text-primary text-sm font-semibold">
-            $derived instead of imperative skip logic
+      <div>
+        {#if steps[currentStep]?.id === 'fuelType'}
+          <h3 class="text-text-primary mb-3 text-base font-semibold">Which fuel configuration?</h3>
+          <RadioGroup bind:value={answers.fuelType} name="fuelType">
+            <RadioItem value="single" label="Single fuel (gas, oil, or heat pump)" />
+            <RadioItem value="hybrid" label="Hybrid (e.g. gas + heat pump combined)" />
+          </RadioGroup>
+        {:else if steps[currentStep]?.id === 'hasMeter'}
+          <h3 class="text-text-primary mb-3 text-base font-semibold">
+            Are heat meters installed in each residential unit?
           </h3>
-          <p class="text-text-secondary mt-1 text-sm">
-            The steps array is filtered at render time via `$derived.by`. As soon as an answer
-            changes, the next step is (de)activated automatically — no manual `goto()` or event
-            listeners.
-          </p>
-        </div>
-        <div class="px-4 py-3">
-          <h3 class="text-text-primary text-sm font-semibold">Auto-recommendation in the review</h3>
-          <p class="text-text-secondary mt-1 text-sm">
-            The last step shows not just the answers but also the derived recommendation. Optionally
-            the user can override it — add a "Choose a different one?" toggle for that.
-          </p>
-        </div>
-        <div class="px-4 py-3">
-          <h3 class="text-text-primary text-sm font-semibold">Back navigation always allowed</h3>
-          <p class="text-text-secondary mt-1 text-sm">
-            Forward may be locked while the current answer is missing. Back must never block —
-            otherwise the user can't escape a dead end.
-          </p>
-        </div>
+          <RadioGroup bind:value={answers.hasMeter} name="hasMeter">
+            <RadioItem value="yes" label="Yes, in every unit" />
+            <RadioItem value="no" label="No, no meters installed" />
+          </RadioGroup>
+        {:else if steps[currentStep]?.id === 'hybridSplit'}
+          <h3 class="text-text-primary mb-3 text-base font-semibold">
+            How is the hybrid share determined?
+          </h3>
+          <RadioGroup bind:value={answers.hybridSplit} name="hybridSplit">
+            <RadioItem value="meter" label="Separate metering per energy source" />
+            <RadioItem value="estimate" label="Flat-rate split (e.g. 70/30)" />
+            <RadioItem value="manual" label="Manual split with approval" />
+          </RadioGroup>
+        {:else if steps[currentStep]?.id === 'review' && recommendation}
+          <h3 class="text-text-primary mb-3 text-base font-semibold">System recommendation</h3>
+          <Alert intent={recommendation.intent} variant="soft" title={recommendation.method}>
+            {recommendation.reason}
+          </Alert>
+        {/if}
       </div>
-    </Card>
+
+      <div class="flex justify-between">
+        <Button intent="neutral" variant="outlined" onclick={back} disabled={currentStep === 0}>
+          Back
+        </Button>
+        {#if currentStep === steps.length - 1}
+          <Button intent="primary" onclick={reset}>Start over</Button>
+        {:else}
+          <Button intent="primary" onclick={next} disabled={!canNext}>Next</Button>
+        {/if}
+      </div>
+    </div>
+  </Card>
+</div>`;
+</script>
+
+<RecipeShell meta={recipeMeta}>
+  <Section id="preview" title="Live preview" titleHidden>
+    <CodeExample
+      title="HeatingSetupPage.svelte"
+      description="Pick `Hybrid` in the fuel step and the rail gains a fourth step; the recommendation at the end follows your answer path."
+      code={recipeCode}
+      language="svelte"
+      headingLevel={2}
+    >
+      <div class="w-full max-w-3xl">
+        <Card variant="elevated" padding="lg">
+          <div class="space-y-6">
+            <Stepper activeStep={currentStep}>
+              {#each steps as step (step.id)}
+                <StepperStep label={step.title} description={step.description} />
+              {/each}
+            </Stepper>
+
+            <div>
+              {#if steps[currentStep]?.id === 'fuelType'}
+                <h3 class="text-text-primary mb-3 text-base font-semibold">
+                  Which fuel configuration?
+                </h3>
+                <RadioGroup bind:value={answers.fuelType} name="fuelType">
+                  <RadioItem value="single" label="Single fuel (gas, oil, or heat pump)" />
+                  <RadioItem value="hybrid" label="Hybrid (e.g. gas + heat pump combined)" />
+                </RadioGroup>
+              {:else if steps[currentStep]?.id === 'hasMeter'}
+                <h3 class="text-text-primary mb-3 text-base font-semibold">
+                  Are heat meters installed in each residential unit?
+                </h3>
+                <RadioGroup bind:value={answers.hasMeter} name="hasMeter">
+                  <RadioItem value="yes" label="Yes, in every unit" />
+                  <RadioItem value="no" label="No, no meters installed" />
+                </RadioGroup>
+              {:else if steps[currentStep]?.id === 'hybridSplit'}
+                <h3 class="text-text-primary mb-3 text-base font-semibold">
+                  How is the hybrid share determined?
+                </h3>
+                <RadioGroup bind:value={answers.hybridSplit} name="hybridSplit">
+                  <RadioItem value="meter" label="Separate metering per energy source" />
+                  <RadioItem value="estimate" label="Flat-rate split (e.g. 70/30)" />
+                  <RadioItem value="manual" label="Manual split with approval" />
+                </RadioGroup>
+              {:else if steps[currentStep]?.id === 'review' && recommendation}
+                <h3 class="text-text-primary mb-3 text-base font-semibold">
+                  System recommendation
+                </h3>
+                <Alert intent={recommendation.intent} variant="soft" title={recommendation.method}>
+                  {recommendation.reason}
+                </Alert>
+              {/if}
+            </div>
+
+            <div class="flex justify-between">
+              <Button
+                intent="neutral"
+                variant="outlined"
+                onclick={back}
+                disabled={currentStep === 0}
+              >
+                Back
+              </Button>
+              {#if currentStep === steps.length - 1}
+                <Button intent="primary" onclick={reset}>Start over</Button>
+              {:else}
+                <Button intent="primary" onclick={next} disabled={!canNext}>Next</Button>
+              {/if}
+            </div>
+          </div>
+        </Card>
+      </div>
+    </CodeExample>
   </Section>
-</div>
+
+  <Section id="decisions" title="Three decisions">
+    <NoteList>
+      <Note title="A hidden step keeps its answer">
+        <p>
+          Answer the fuel step with hybrid, set the split, then go back and choose single fuel: the
+          split step leaves the rail, but <code class="text-text-primary">answers.hybridSplit</code>
+          keeps its value. The recipe tolerates the leftover instead of clearing it. Every
+          <code class="text-text-primary">recommendation</code> branch matches on
+          <code class="text-text-primary">fuelType</code> before it reads a hybrid answer, so a
+          stale key never reaches the result; clearing it would take an
+          <code class="text-text-primary">$effect</code> that repeats the
+          <code class="text-text-primary">skipIf</code> condition in a second place, and two copies of
+          one condition drift apart.
+        </p>
+      </Note>
+      <Note title="Back never validates">
+        <p>
+          <code class="text-text-primary">canNext</code> disables Next while the current step's
+          answer is missing; Back stops only at the first step. Validation gates progress, never
+          retreat: revising an earlier answer is how you leave a wrong path. Later answers stay in
+          <code class="text-text-primary">answers</code>, so Next re-enables from them on the way
+          forward.
+        </p>
+      </Note>
+      <Note title="The step index is not shareable state">
+        <p>
+          <code class="text-text-primary">currentStep</code> indexes the filtered list, so what it
+          points at depends on the answers: the third step is the hybrid split on one path and the
+          recommendation on the other. A bookmarked
+          <code class="text-text-primary">?step=2</code> restores none of that. When a draft must
+          survive a refresh, persist <code class="text-text-primary">answers</code> and reopen at the
+          first unanswered step; the rail re-derives from the answers alone.
+        </p>
+      </Note>
+    </NoteList>
+  </Section>
+</RecipeShell>

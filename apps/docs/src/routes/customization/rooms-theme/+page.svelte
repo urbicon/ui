@@ -398,7 +398,7 @@ export const ROUTE_CHANNEL = {
           <tr>
             <td class="px-4 py-3"><code>--docs-shadow-page</code></td>
             <td class="px-4 py-3"><code>var(--blocks-shadow-lg)</code></td>
-            <td class="px-4 py-3">Lift shadow — bento, recipe, showcase stages.</td>
+            <td class="px-4 py-3">Lift shadow — bento and recipe stages.</td>
           </tr>
           <tr>
             <td class="px-4 py-3"><code>--docs-measure</code></td>

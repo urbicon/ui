@@ -35,8 +35,8 @@
  *      UNLISTED below with a reason
  *   4. every recipe page is in the cookbook index (drafts excepted — they are
  *      pruned from both by `DRAFT_ROUTES`)
- *   5. every component chip on a recipe/showcase card resolves through
- *      `componentLinks`, rather than rendering as an unlinked badge
+ *   5. every component chip on a recipe card resolves through `componentLinks`,
+ *      rather than rendering as an unlinked badge
  *
  * An unlisted page and a stale UNLISTED entry (one that matches no page, or
  * only pages that are in the nav anyway) are both errors — the stale check is
@@ -440,7 +440,6 @@ for (const href of cookbookHrefs) {
 // are node ids and mean nothing here.
 const chipSources = [
   'src/routes/recipes/+page.svelte',
-  'src/routes/showcase/+page.svelte',
   ...recipePages.map((r) => `src/routes${r}/meta.ts`)
 ].filter((f) => existsSync(join(APP, f)));
 

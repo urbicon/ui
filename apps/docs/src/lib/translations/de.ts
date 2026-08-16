@@ -181,8 +181,6 @@ export default {
     wizard: 'Mehrstufiger Assistent',
     notificationCenter: 'Benachrichtigungszentrale',
     pricingCards: 'Preiskarten',
-    profileCard: 'Profilkarte',
-    showcase: 'Showcase',
     icons: 'Icons',
     i18n: 'Lokalisierung',
     i18nProvider: 'Provider & SSR',

@@ -1,24 +1,15 @@
 <script lang="ts">
-  import SeoMeta from '$lib/SeoMeta.svelte';
-  import {
-    A2UIView,
-    Button,
-    Card,
-    urbiconA2uiCatalog,
-    type A2uiActionEvent
-  } from '@urbicon-ui/blocks';
-  import { CodeExample, Section } from '@urbicon-ui/docs';
+  import { A2UIView, Button, urbiconA2uiCatalog, type A2uiActionEvent } from '@urbicon-ui/blocks';
+  import { CodeExample, Note, NoteList, Section } from '@urbicon-ui/docs';
+  import { resolve } from '$app/paths';
   import { recipeMeta } from './meta';
-  import RecipeHeader from '../RecipeHeader.svelte';
-  import RecipeFeatures from '../RecipeFeatures.svelte';
+  import RecipeShell from '../RecipeShell.svelte';
 
-  const { features } = recipeMeta;
-
-  // ── Live preview ───────────────────────────────────────────────────────────
-  // Real envelopes, no network: the payload below is exactly what an agent
-  // streams, and A2UIView renders it exactly as it would in a chat. "Show
-  // available times" appends the patch envelopes the agent would send after
-  // calling its tool — the same array-append the router performs.
+  // The seam between demo and code: the chat client below reads its envelopes
+  // off a stream, the demo feeds the same wire payloads to A2UIView from these
+  // fixtures. "Show free rooms" appends the patch envelopes the agent would
+  // send after calling its tool — the same array-append routeMessageParts
+  // performs in the client.
   const V = 'v0.9.1';
   const CATALOG = 'urbicon-ui/urbicon-catalog/v1';
 
@@ -121,7 +112,7 @@ const system = [
   'Call get_hotel_info before you offer any room or rate. Never invent one.'
 ].join('\\n\\n');`;
 
-  const recipeCode = `<script lang="ts">
+  const recipeCode = `<\script lang="ts">
   import {
     A2UIView,
     A2uiStreamSplitter,
@@ -151,7 +142,7 @@ const system = [
   const patchTargets = new SvelteSet<string>();
 
   let idSeq = 0;
-  const nextId = () => \`m-\${++idSeq}\`;
+  const nextId = () => \`msg-\${++idSeq}\`;
 
   function patchMessage(id: string, next: Partial<ChatMessageData>) {
     messages = messages.map((m) => (m.id === id ? { ...m, ...next } : m));
@@ -263,21 +254,18 @@ const system = [
 </Chat>`;
 </script>
 
-<SeoMeta title={recipeMeta.title} description={recipeMeta.description} />
-
-<div class="mx-auto max-w-4xl px-4 py-10">
-  <RecipeHeader meta={recipeMeta} />
-
-  <Section id="preview" title="Live Preview">
-    <p class="text-text-secondary mb-4 text-sm">
-      Real envelopes, no network. Pressing <strong>Show free rooms</strong> appends the patch an agent
-      would send after calling its tool: the free rooms go into the data model and one re-sent container
-      reveals a chooser bound to them. Nothing is rebuilt — a value you already picked survives the patch.
-    </p>
-    <Card variant="outlined">
-      <div class="flex flex-col gap-4 p-4">
+<RecipeShell meta={recipeMeta}>
+  <Section id="preview" title="Live preview" titleHidden>
+    <CodeExample
+      title="src/routes/chat/+page.svelte"
+      description="Press `Show free rooms`: the patch an agent sends after its tool call reveals a room chooser, and the date you picked survives it. The demo feeds `A2UIView` these envelopes from local fixtures; the code reads the same wire format off the chat stream."
+      code={recipeCode}
+      language="svelte"
+      headingLevel={2}
+    >
+      <div class="w-full max-w-xl space-y-4">
         <A2UIView {payload} catalogs={[urbiconA2uiCatalog]} onAction={handleAction} />
-        <div class="border-border-subtle flex items-center gap-3 border-t pt-3">
+        <div class="border-border-hairline flex items-center gap-3 border-t pt-3">
           <Button size="sm" variant="outlined" intent="neutral" onclick={reset} disabled={!patched}>
             Reset
           </Button>
@@ -290,40 +278,55 @@ const system = [
           </span>
         </div>
       </div>
-    </Card>
+    </CodeExample>
   </Section>
 
-  <Section id="features" title="Features">
-    <RecipeFeatures {features} />
-  </Section>
-
-  <Section id="server" title="Server — assembling the system prompt">
-    <p class="text-text-secondary mb-4 text-sm">
-      Three shipped sections plus your domain rules. The transport section is the prompt half of
-      <code class="font-mono text-xs">A2uiStreamSplitter</code>, so the format the agent is told to
-      write is by construction the format the client parses.
-    </p>
+  <Section id="prompt" title="The system prompt">
     <CodeExample
       title="src/routes/api/chat/+server.ts"
+      description="Three shipped sections plus your domain rules. The transport section is the prompt half of `A2uiStreamSplitter`: the format the agent is told to write is the format the client parses."
       preview={false}
-      language="ts"
+      language="typescript"
       code={serverCode}
+      headingLevel={2}
     />
   </Section>
 
-  <Section id="client" title="Client — splitter, router, view">
-    <p class="text-text-secondary mb-4 text-sm">
-      The three pieces in order: the splitter turns tokens into parts, the router delivers envelopes
-      to the message that owns their surface, and <code class="font-mono text-xs">A2UIView</code>
-      renders one payload. See the
-      <a href="https://ui.urbicon.de" class="text-primary underline">A2UI guide</a> for why a patched
-      message needs streaming grace and why a plain choice must not be an action.
+  <Section id="decisions" title="Two decisions">
+    <NoteList>
+      <Note title="Streaming grace follows the patch">
+        <p>
+          A patch lands in a message that completed an earlier turn, so its
+          <code class="text-text-primary">status</code> is already
+          <code class="text-text-primary">complete</code> and cannot flag that new envelopes are
+          arriving for it. While they are, references to components still on the wire would fail
+          strict validation and render fault chips. Only the router sees the delivery:
+          <code class="text-text-primary">routeMessageParts</code> returns the ids it wrote into as
+          <code class="text-text-primary">result.targets</code>, the page treats those messages as
+          streaming, and the <code class="text-text-primary">finally</code> block returns them to strict
+          validation.
+        </p>
+      </Note>
+      <Note title="Picking a room is not an action">
+        <p>
+          The chooser binds its selection to the data model (<code class="text-text-primary"
+            >value: {"{ path: '/room' }"}</code
+          >): picking a room is instant, and nothing round-trips. Actions are reserved for the steps
+          that need the agent or its tools, fetching the free rooms and committing the booking;
+          because the surface was created with
+          <code class="text-text-primary">sendDataModel: true</code>, the action that does fire
+          carries the whole form state, read at click time. Give a control an action only when the
+          agent has to react, and let everything else bind.
+        </p>
+      </Note>
+    </NoteList>
+
+    <p class="text-text-secondary mt-6 text-sm">
+      Why an untrusted payload is safe to render, what the catalog rejects, and how the generated
+      prompt stays in step with the validator: the
+      <a class="text-primary hover:underline" href={resolve('/blocks/components/a2-ui-view')}
+        >A2UIView</a
+      > page.
     </p>
-    <CodeExample
-      title="src/routes/chat/+page.svelte"
-      preview={false}
-      language="svelte"
-      code={recipeCode}
-    />
   </Section>
-</div>
+</RecipeShell>

@@ -148,24 +148,33 @@
           <p class="text-text-secondary mb-4 flex-1 text-sm leading-relaxed">
             {recipe.description}
           </p>
-          <div class="flex flex-wrap gap-1">
-            {#each recipe.components as comp (comp)}
-              <Badge variant="outlined" intent="primary" size="sm">{comp}</Badge>
-            {/each}
-          </div>
+          <!-- Mono manifest, matching the page header's register — and honest:
+               the card is one big <a>, so pill-shaped chips here LOOKED like
+               the header's links while being dead. Text does not promise a
+               click it cannot take. -->
+          <p class="font-meta text-text-tertiary text-xs leading-relaxed">
+            {recipe.components.join(' · ')}
+          </p>
         </div>
       </Card>
     {/each}
   </div>
 
-  <!-- Showcase CTA -->
+  <!-- Where to go when you came for a whole screen rather than a snippet. This
+       used to point at /showcase, a single demo app with no copyable code; the
+       cookbook took that role over, and the table recipe is the entry that
+       answers it with code. -->
   <div class="border-border-subtle bg-surface-elevated mt-16 rounded-xl border p-8 text-center">
-    <h2 class="text-text-primary mb-2 text-xl font-semibold">Want to see everything together?</h2>
+    <h2 class="text-text-primary mb-2 text-xl font-semibold">Building a list page?</h2>
     <p class="text-text-secondary mb-6">
-      The Showcase page demonstrates 20+ components working together in a realistic application.
+      Table with Detail Panel is the fullest recipe here: search, filters and paging come from the
+      table, and clicking down the list swaps what the panel beside it shows.
     </p>
-    <a href={resolve('/showcase')} class={buttonVariants({ intent: 'primary', size: 'lg' }).base()}>
-      View Showcase
+    <a
+      href={resolve('/recipes/table-detail')}
+      class={buttonVariants({ intent: 'primary', size: 'lg' }).base()}
+    >
+      Open the recipe
       <ArrowRightIcon size={16} />
     </a>
   </div>

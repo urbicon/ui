@@ -1,17 +1,13 @@
 <script lang="ts">
-  import SeoMeta from '$lib/SeoMeta.svelte';
-  import { Planner, Button, Badge, PlusIcon } from '@urbicon-ui/blocks';
-  import { CodeExample, Section } from '@urbicon-ui/docs';
+  import { Badge, Button, Planner, PlusIcon } from '@urbicon-ui/blocks';
+  import { CodeExample, Note, NoteList, Section } from '@urbicon-ui/docs';
   import { recipeMeta } from './meta';
-  import RecipeHeader from '../RecipeHeader.svelte';
-  import RecipeFeatures from '../RecipeFeatures.svelte';
-
-  const { components: usedComponents, features } = recipeMeta;
+  import RecipeShell from '../RecipeShell.svelte';
 
   type MealType = 'breakfast' | 'lunch' | 'dinner';
   interface MealEntry {
     id: string;
-    date: string; // local ISO date — never UTC-parsed
+    date: string; // local ISO date — Planner takes it verbatim, never UTC-parsed
     mealType: MealType;
     title: string;
     emoji: string;
@@ -34,13 +30,13 @@
     { id: '7', date: '2026-06-21', mealType: 'breakfast', title: 'Shakshuka', emoji: '🍳' }
   ]);
 
+  // Pinned to the sample week above, so the demo opens on its data.
   let referenceDate = $state(new Date(2026, 5, 15));
   let selectedDate = $state<Date | undefined>(new Date(2026, 5, 17));
-  let nextId = $state(8);
 
   function addMeal(isoDate: string) {
     entries.push({
-      id: String(nextId++),
+      id: crypto.randomUUID(),
       date: isoDate,
       mealType: 'lunch',
       title: 'New meal',
@@ -48,26 +44,40 @@
     });
   }
 
-  const recipeCode = `<script lang="ts">
-  import { Planner, Button, Badge, PlusIcon } from '@urbicon-ui/blocks';
-  import { endOfWeek, toIso } from '@urbicon-ui/blocks/date';
+  const recipeCode = `<\script lang="ts">
+  import { Badge, Button, Planner, PlusIcon } from '@urbicon-ui/blocks';
 
   type MealType = 'breakfast' | 'lunch' | 'dinner';
-  interface MealEntry { id: string; date: string; mealType: MealType; title: string; emoji: string; }
-
-  const MEAL_ORDER: Record<MealType, number> = { breakfast: 0, lunch: 1, dinner: 2 };
-
-  let entries = $state<MealEntry[]>(initialEntries);
-  let referenceDate = $state(new Date());
-  let selectedDate = $state<Date | undefined>();
-
-  // Fetch a week's worth of entries whenever navigation moves the window.
-  async function loadWeek(start: Date) {
-    entries = await db.meals.between(toIso(start), toIso(endOfWeek(start, 1)));
+  interface MealEntry {
+    id: string;
+    date: string; // local ISO date — Planner takes it verbatim, never UTC-parsed
+    mealType: MealType;
+    title: string;
+    emoji: string;
   }
 
+  const MEAL_ORDER: Record<MealType, number> = { breakfast: 0, lunch: 1, dinner: 2 };
+  const MEAL_INTENT: Record<MealType, 'warning' | 'primary' | 'success'> = {
+    breakfast: 'warning',
+    lunch: 'primary',
+    dinner: 'success'
+  };
+
+  // Stand-in for your data source — the demo pins one sample week and keeps it
+  // local. In an app, start referenceDate from new Date() and load entries in
+  // Planner's onNavigate, which hands you the visible range after every move.
+  let entries = $state<MealEntry[]>([/* … meals, dated inside the sample week … */]);
+  let referenceDate = $state(new Date(2026, 5, 15));
+  let selectedDate = $state<Date | undefined>(new Date(2026, 5, 17));
+
   function addMeal(isoDate: string) {
-    entries.push({ id: crypto.randomUUID(), date: isoDate, mealType: 'lunch', title: '', emoji: '🍽️' });
+    entries.push({
+      id: crypto.randomUUID(),
+      date: isoDate,
+      mealType: 'lunch',
+      title: 'New meal',
+      emoji: '🍽️'
+    });
   }
 <\/script>
 
@@ -78,17 +88,22 @@
   sort={(a, b) => MEAL_ORDER[a.mealType] - MEAL_ORDER[b.mealType]}
   bind:value={referenceDate}
   bind:selectedDate
-  onNavigate={(_, range) => loadWeek(range.start)}
 >
   {#snippet cell({ items, isoDate })}
     {#each items as meal (meal.id)}
       <div class="bg-surface-subtle flex items-center gap-2 rounded-md px-2 py-1.5">
         <span aria-hidden="true">{meal.emoji}</span>
-        <span class="text-text-secondary truncate text-sm">{meal.title}</span>
+        <span class="text-text-secondary min-w-0 truncate text-sm">{meal.title}</span>
+        <Badge variant="dot" intent={MEAL_INTENT[meal.mealType]} class="ml-auto shrink-0" />
       </div>
     {/each}
-    <!-- cell runs for empty days too → Add is reachable everywhere -->
-    <Button variant="ghost" size="sm" class="mt-auto justify-start" onclick={() => addMeal(isoDate)}>
+    <!-- cell runs for empty days too, so Add stays reachable everywhere -->
+    <Button
+      variant="ghost"
+      size="sm"
+      class="mt-auto justify-start"
+      onclick={() => addMeal(isoDate)}
+    >
       <PlusIcon size={14} /> Add
     </Button>
   {/snippet}
@@ -99,49 +114,81 @@
      iconography: a meal planner's entries carry whatever glyph the user picked
      for that dish. The icon set has no 'overnight oats' and should not. -->
 
-<SeoMeta
-  title="Meal Planner Recipe"
-  description="Weekly meal plan built on Planner — bucketed meals, intra-day sorting, and an add affordance on every day."
-/>
-
-<div class="mx-auto max-w-5xl px-6 py-12">
-  <RecipeHeader meta={recipeMeta} />
-
-  <Section id="preview" title="Live Preview">
-    <Planner
-      view="week"
-      items={entries}
-      getDate={(e) => e.date}
-      sort={(a, b) => MEAL_ORDER[a.mealType] - MEAL_ORDER[b.mealType]}
-      bind:value={referenceDate}
-      bind:selectedDate
-      locale="en-US"
+<RecipeShell meta={recipeMeta}>
+  <Section id="preview" title="Live preview" titleHidden>
+    <CodeExample
+      title="MealPlanPage.svelte"
+      description="Add a meal to any day with its ghost `Add` button; the header arrows move the week, and clicking a day's cell selects it."
+      code={recipeCode}
+      language="svelte"
+      headingLevel={2}
     >
-      {#snippet cell({ items, isoDate })}
-        {#each items as meal (meal.id)}
-          <div class="bg-surface-subtle flex items-center gap-2 rounded-md px-2 py-1.5">
-            <span aria-hidden="true">{meal.emoji}</span>
-            <span class="text-text-secondary min-w-0 truncate text-sm">{meal.title}</span>
-            <Badge variant="dot" intent={MEAL_INTENT[meal.mealType]} class="ml-auto shrink-0" />
-          </div>
-        {/each}
-        <Button
-          variant="ghost"
-          size="sm"
-          class="mt-auto justify-start"
-          onclick={() => addMeal(isoDate)}
-        >
-          <PlusIcon size={14} /> Add
-        </Button>
-      {/snippet}
-    </Planner>
+      <Planner
+        view="week"
+        items={entries}
+        getDate={(e) => e.date}
+        sort={(a, b) => MEAL_ORDER[a.mealType] - MEAL_ORDER[b.mealType]}
+        bind:value={referenceDate}
+        bind:selectedDate
+      >
+        {#snippet cell({ items, isoDate })}
+          {#each items as meal (meal.id)}
+            <div class="bg-surface-subtle flex items-center gap-2 rounded-md px-2 py-1.5">
+              <span aria-hidden="true">{meal.emoji}</span>
+              <span class="text-text-secondary min-w-0 truncate text-sm">{meal.title}</span>
+              <Badge variant="dot" intent={MEAL_INTENT[meal.mealType]} class="ml-auto shrink-0" />
+            </div>
+          {/each}
+          <!-- cell runs for empty days too, so Add stays reachable everywhere -->
+          <Button
+            variant="ghost"
+            size="sm"
+            class="mt-auto justify-start"
+            onclick={() => addMeal(isoDate)}
+          >
+            <PlusIcon size={14} /> Add
+          </Button>
+        {/snippet}
+      </Planner>
+    </CodeExample>
   </Section>
 
-  <Section id="features" title="Key Features">
-    <RecipeFeatures {features} />
+  <Section id="decisions" title="Loading, timezones, empty days">
+    <NoteList>
+      <Note title="Load a week at a time">
+        <p>
+          The demo holds one local array. In an app,
+          <code class="text-text-primary">onNavigate</code> fires after every navigation with the
+          new reference date and the visible range:
+          <code class="text-text-primary"
+            >onNavigate=&#123;(_, range) =&gt; loadWeek(range.start)&#125;</code
+          >. The Svelte-free <code class="text-text-primary">@urbicon-ui/blocks/date</code> subpath
+          (<code class="text-text-primary">toIso</code>,
+          <code class="text-text-primary">endOfWeek</code>) runs in a server route too, so the
+          endpoint can compute the same week boundaries the grid shows.
+        </p>
+      </Note>
+      <Note title="Dates stay local">
+        <p>
+          <code class="text-text-primary">getDate</code> returns the entry's
+          <code class="text-text-primary">date</code> string, and Planner buckets
+          <code class="text-text-primary">'2026-06-16'</code> as that calendar day wherever the user
+          is: a plain date string is taken verbatim, never UTC-parsed, so a dinner never slides
+          across midnight in another timezone. If your source stores UTC instants (<code
+            class="text-text-primary">'…T23:00:00Z'</code
+          >) and the local day matters, return
+          <code class="text-text-primary">new Date(value)</code> so the user's timezone applies.
+        </p>
+      </Note>
+      <Note title="An empty day still renders the cell">
+        <p>
+          The ghost Add button lives in the <code class="text-text-primary">cell</code> snippet
+          because <code class="text-text-primary">cell</code> runs for empty days too. Planner also
+          takes an <code class="text-text-primary">empty</code> snippet for a dedicated placeholder;
+          it replaces <code class="text-text-primary">cell</code> on empty days and would take the Add
+          button with it, so this recipe leaves it out.
+        </p>
+      </Note>
+    </NoteList>
   </Section>
-
-  <Section id="code" title="Code" class="mt-12">
-    <CodeExample title="Meal Planner Recipe" code={recipeCode} language="svelte" preview={false} />
-  </Section>
-</div>
+</RecipeShell>

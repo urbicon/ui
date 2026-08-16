@@ -2,7 +2,7 @@ import { resolve } from '$app/paths';
 
 /**
  * Maps component display names to their documentation page URLs.
- * Used by recipe and showcase pages to create linked component badges.
+ * Used by the recipe pages to create linked component badges.
  *
  * Alphabetical, and every catalogue component that has a page of its own must
  * be in here — `bun run registry:lint` checks both directions (a missing name

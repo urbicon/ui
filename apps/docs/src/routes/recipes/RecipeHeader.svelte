@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { ArrowLeftIcon, Badge } from '@urbicon-ui/blocks';
+  import { ArrowLeftIcon } from '@urbicon-ui/blocks';
   import { resolve } from '$app/paths';
   import { componentLinks } from '$lib/component-links';
   import { r } from '$lib/route';
@@ -12,6 +12,14 @@
    *
    * Everything shown here comes from that file, so the cookbook index, the
    * page heading and the SEO tags cannot drift apart again.
+   *
+   * The components list is a mono manifest line, not a row of badges. It used
+   * to be outlined pills — up to twelve per recipe, wrapping three rows of
+   * orange — which put the loudest element of the page on its least important
+   * fact. The list is meta ("what this is built from"), and the docs already
+   * have a register for meta: the quiet mono voice of the breadcrumb, the
+   * code-panel toolbar and the playground labels. Same data, same links, same
+   * `registry:lint` guarantees — only the volume changed.
    */
   interface Props {
     meta: {
@@ -34,24 +42,23 @@
   </a>
   <h1 class="text-text-primary mb-2 text-3xl font-extrabold tracking-tight">{meta.title}</h1>
   <p class="text-text-secondary mb-4 max-w-2xl text-lg leading-relaxed">{meta.description}</p>
-  <div class="flex flex-wrap gap-1.5">
-    {#each meta.components as comp (comp)}
+  <p class="font-meta text-text-tertiary flex flex-wrap items-baseline gap-x-2.5 gap-y-1 text-xs">
+    <span class="tracking-[0.08em] uppercase">Built with</span>
+    {#each meta.components as comp, i (comp)}
       {@const href = componentLinks[comp]}
-      <!-- No `?? '#'`: a chip with no page is a plain badge, not a link that
-           goes nowhere. `registry:lint` fails on an unresolvable chip anyway,
-           so this branch is the honest rendering of a state the gate catches. -->
+      {#if i > 0}<span aria-hidden="true" class="text-text-quaternary select-none">·</span>{/if}
+      <!-- No `?? '#'`: a name with no page is plain text, not a link that goes
+           nowhere. `registry:lint` fails on an unresolvable name anyway, so
+           this branch is the honest rendering of a state the gate catches. -->
       {#if href}
-        <a href={r(href)}>
-          <Badge
-            variant="outlined"
-            intent="primary"
-            size="sm"
-            class="hover:bg-primary-subtle transition-colors">{comp}</Badge
-          >
-        </a>
+        <a
+          href={r(href)}
+          class="text-text-secondary hover:text-primary-text underline-offset-4 transition-colors hover:underline"
+          >{comp}</a
+        >
       {:else}
-        <Badge variant="outlined" intent="neutral" size="sm">{comp}</Badge>
+        <span class="text-text-secondary">{comp}</span>
       {/if}
     {/each}
-  </div>
+  </p>
 </header>

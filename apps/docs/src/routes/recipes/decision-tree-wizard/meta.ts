@@ -5,13 +5,17 @@ export const recipeMeta: RecipeMeta = {
   difficulty: 'Advanced',
   title: 'Decision Tree Wizard',
   description:
-    'Stepper wizard where answers in step N change the options or the flow in step N+1. Pattern for auto-deriving complex configurations from simple user decisions.',
+    'A Stepper wizard whose route depends on the answers so far: a skipIf predicate filters the step list, so choosing a single fuel removes the hybrid step. The review step derives a recommendation from the answer path.',
   components: ['Stepper', 'StepperStep', 'Card', 'RadioGroup', 'RadioItem', 'Button', 'Alert'],
+  // Nothing on the docs site renders these: the cookbook card shows title,
+  // description and components, and this page dropped the feature list in
+  // favour of the demo. Their one consumer is `get_recipe`, so they are written
+  // for an agent deciding whether this recipe fits — facts, not aphorisms.
   features: [
-    'Dynamically visible steps via $derived and a skipIf predicate',
-    'Auto-derived recommendation in the review step',
-    'Answer path determines the options available in the next step',
-    'Back navigation always allowed, forward only once the current answer is given',
-    'No URL-state persistence — the wizard is ephemeral'
+    'The step list is $derived: any step can carry a skipIf predicate, and the rail, the flow and the step count follow the answers with no navigation code.',
+    'The review step derives { method, intent, reason } from the answer path and renders it as a soft Alert (success, warning or danger).',
+    "canNext gates the Next button on the current step's answer; Back never validates. The Stepper rail is display-only (clickable off), so the gate cannot be bypassed.",
+    'An answer left behind by a hidden step stays in answers; recommendation branches match fuelType first, so a stale key never selects a result.',
+    'No persistence: currentStep indexes a derived list, so the index alone is meaningless. A resumable draft would persist answers instead.'
   ]
 };

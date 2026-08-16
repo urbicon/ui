@@ -29,7 +29,7 @@ export interface RecipeMeta {
  * Cookbook order. Grouped by category, easiest first within a group — an
  * editorial call, which is why it is written out rather than sorted.
  *
- * Drafts are absent by omission (`profile-card` today), which keeps the rule
+ * Drafts are absent by omission — none today — which keeps the rule
  * `registry:lint` already enforces: a draft is hidden everywhere or nowhere.
  * That lint fails on a recipe directory missing here and on an entry with no
  * directory, so the list cannot quietly rot in either direction.
@@ -41,6 +41,7 @@ export const RECIPE_ORDER = [
   'auth-password-reset',
   'dashboard',
   'filter-sidebar',
+  'table-detail',
   'settings',
   'wizard',
   'notification-center',

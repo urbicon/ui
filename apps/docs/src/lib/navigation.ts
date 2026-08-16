@@ -38,7 +38,7 @@ export type NavItem = {
    * Excluded from the prev/next reading chain (and, for a group, so are its
    * children) while still shown in the sidebar. Set on jump-in / index / landing
    * surfaces that render their own bespoke layout instead of `DocsLayout` — home,
-   * the recipes cookbook, the icons gallery, showcase, the AI/DX page, changelog.
+   * the recipes cookbook, the icons gallery, the AI/DX page, changelog.
    * Those pages carry no page-nav, so keeping them out of the chain is what stops
    * a neighbouring page's next/prev from pointing at a dead end.
    */
@@ -65,8 +65,11 @@ export function useNavLabel(): (item: NavItem) => string {
  * disappears from the published site but stays reachable in dev for rework.
  * Re-publishing = remove the entry here + delete the prerender override.
  * Tracked in docs/internal/DOCS-PAGE-TRIAGE-2026-07.md.
+ *
+ * Empty today. `/recipes/profile-card` was the only draft and was deleted
+ * rather than reworked (2026-08-14), which is the other way a draft ends.
  */
-export const DRAFT_ROUTES: ReadonlySet<NavHref> = new Set<NavHref>(['/recipes/profile-card']);
+export const DRAFT_ROUTES: ReadonlySet<NavHref> = new Set<NavHref>([]);
 
 /** Drop draft entries (and any group left empty by the pruning). */
 function pruneDrafts(items: NavItem[]): NavItem[] {
@@ -406,15 +409,14 @@ const allNavigationItems: NavItem[] = [
       { name: 'Passkey Login', href: '/recipes/auth-passkey-login' },
       { name: 'Password Reset Flow', href: '/recipes/auth-password-reset' },
       { name: 'Pricing Cards', nameKey: 'nav.pricingCards', href: '/recipes/pricing' },
-      { name: 'Profile Card', nameKey: 'nav.profileCard', href: '/recipes/profile-card' },
       { name: 'Range Hint Input', href: '/recipes/range-hint-input' },
       { name: 'Settings Page', nameKey: 'nav.settingsPage', href: '/recipes/settings' },
       { name: 'Stat Tile', href: '/recipes/stat-tile' },
+      { name: 'Table with Detail Panel', href: '/recipes/table-detail' },
       { name: 'Trace Drawer', href: '/recipes/trace-drawer' },
       { name: 'Unsaved Changes Guard', href: '/recipes/unsaved-changes-guard' }
     ]
   },
-  { name: 'Showcase', nameKey: 'nav.showcase', href: '/showcase', standalone: true },
   { name: 'AI & DX', nameKey: 'nav.aiDx', href: '/ai', standalone: true },
   {
     name: 'Doc Components',

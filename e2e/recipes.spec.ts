@@ -5,7 +5,8 @@ import { expect, type Locator, type Page, test } from '@playwright/test';
  * pages promise actually work end-to-end: login (validation, failure, success
  * with fake latency), settings (tabs, switches, save feedback), wizard
  * (step gating, summary round-trip, submit), filter-sidebar (deterministic
- * 10-listing dataset: facet narrowing, empty state, reset) and the
+ * 10-listing dataset: facet narrowing, empty state, reset), table-detail (a row
+ * click opens the record and marks the row, Escape releases both) and the
  * unsaved-changes guard (ConfirmDialog only when dirty, save-and-leave).
  *
  * No snapshots — assertions are structural/ARIA-based, so the suite runs on
@@ -23,9 +24,14 @@ async function gotoRecipe(page: Page, slug: string) {
   await page.waitForSelector('html[data-hydrated]', { timeout: 30_000 });
 }
 
-// Every recipe page renders its interactive demo inside <Section id="preview">;
-// scoping there keeps queries away from code panels quoting the same strings.
-const preview = (page: Page) => page.locator('#preview');
+// Every recipe page renders its interactive demo as children of a CodeExample
+// inside <Section id="preview">, with its source in the same section — so the
+// scope must be the live stage, not the section: every string asserted below
+// also appears in the code panel, where Shiki splits it into bare token spans
+// that collide with getByText under strict mode (measured: 'House' resolved to
+// 5 elements section-wide). Overlays (Drawer, ConfirmDialog, listboxes) render
+// in the top layer outside this scope; query those via `page` directly.
+const preview = (page: Page) => page.locator('#preview [data-docs-preview]');
 
 // Checkbox/RadioItem/Toggle render an sr-only input behind a styled
 // `label[for=id]` that intercepts pointer events — Playwright's check() on
@@ -254,6 +260,73 @@ test.describe('Recipe: filter-sidebar', () => {
 
     await p.getByRole('button', { name: 'Reset filters' }).click();
     await expect(p.getByRole('heading', { name: '10 homes' })).toBeVisible();
+  });
+});
+
+test.describe('Recipe: table-detail', () => {
+  // Deterministic dataset: 12 orders, six per page. Assertions stay off the
+  // formatted amounts and dates — those follow the runtime locale, which is the
+  // browser's here and the provider's in a consumer app.
+  const row = (page: Page, id: string) => preview(page).getByRole('row').filter({ hasText: id });
+
+  test('clicking down the list swaps the panel, with no dialog in the way', async ({ page }) => {
+    await gotoRecipe(page, 'table-detail');
+    const p = preview(page);
+
+    await expect(p.getByText('Pick a row to read the order here.')).toBeVisible();
+    // Page two is not on screen, so the pager is doing its work.
+    await expect(p.getByRole('row').filter({ hasText: 'ORD-2424' })).toHaveCount(0);
+
+    await row(page, 'ORD-2420').click();
+    await expect(p.getByRole('heading', { name: 'Order ORD-2420' })).toBeVisible();
+    // The panel carries what the row does not: the address and the line items.
+    await expect(p.getByText('hanna.v@kotimail.fi')).toBeVisible();
+    await expect(p.getByText('3 × Beeswax candle')).toBeVisible();
+
+    // The whole point of a panel over a dialog: the next row needs no dismissal.
+    await row(page, 'ORD-2419').click();
+    await expect(p.getByRole('heading', { name: 'Order ORD-2419' })).toBeVisible();
+    await expect(p.getByText('1 × Cast-iron pan')).toBeVisible();
+    await expect(page.getByRole('dialog')).toHaveCount(0);
+
+    // activeRowId, not a selection: the row is marked and no checkbox column came with it.
+    await expect(row(page, 'ORD-2419')).toHaveAttribute('aria-current', 'true');
+    await expect(row(page, 'ORD-2420')).not.toHaveAttribute('aria-current', 'true');
+    await expect(p.locator('table').getByRole('checkbox')).toHaveCount(0);
+  });
+
+  test('a record picked on a wide window does not spring a drawer open on resize', async ({
+    page
+  }) => {
+    await gotoRecipe(page, 'table-detail');
+    await row(page, 'ORD-2420').click();
+    await expect(page.getByRole('dialog')).toHaveCount(0);
+
+    await page.setViewportSize({ width: 700, height: 900 });
+    // `openOrder` only arms the drawer when the media query already matches;
+    // arming it unconditionally opened it here, on a record picked minutes ago.
+    await expect(page.getByRole('dialog')).toHaveCount(0);
+  });
+
+  test('below 1024px the same detail arrives as a dismissible sheet', async ({ page }) => {
+    // 390px also puts the table under its own `cardsBelow="28rem"` step, so this
+    // covers the card list's headline button as the row-click target too.
+    await page.setViewportSize({ width: 390, height: 844 });
+    await gotoRecipe(page, 'table-detail');
+    const p = preview(page);
+
+    // No second column at this width, so the panel is not on the page.
+    await expect(p.getByText('Pick a row to read the order here.')).toBeHidden();
+
+    await p.getByRole('button', { name: /ORD-2420/ }).click();
+
+    const sheet = page.getByRole('dialog');
+    await expect(sheet).toBeVisible();
+    await expect(sheet.getByRole('heading', { name: 'Order ORD-2420' })).toBeVisible();
+    await expect(sheet.getByText('3 × Beeswax candle')).toBeVisible();
+
+    await page.keyboard.press('Escape');
+    await expect(page.getByRole('dialog')).toBeHidden();
   });
 });
 

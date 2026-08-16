@@ -1,8 +1,7 @@
 <script lang="ts">
-  import SeoMeta from '$lib/SeoMeta.svelte';
-  import { resolve } from '$app/paths';
   import {
     Button,
+    Card,
     FolderIcon,
     Guide,
     GuideArticle,
@@ -17,15 +16,23 @@
     UsersIcon
   } from '@urbicon-ui/blocks';
   import type { GuideTour } from '@urbicon-ui/blocks';
-  import { CodeExample, Section } from '@urbicon-ui/docs';
+  import { CodeExample, Note, NoteList, Section } from '@urbicon-ui/docs';
+  import { resolve } from '$app/paths';
   import { recipeMeta } from './meta';
-  import RecipeHeader from '../RecipeHeader.svelte';
-  import RecipeFeatures from '../RecipeFeatures.svelte';
+  import RecipeShell from '../RecipeShell.svelte';
 
-  // One controller drives every surface. dev:false keeps the docs console quiet.
+  // Demo = code, with the seam drawn here: the Guide parts — the tour object,
+  // beacon, marker, panel + article, hint and <Guide /> — are identical in the
+  // demo below and in recipeCode. The scenery around them is not: the demo
+  // dresses its workspace mock richer (elevated Card, icon tiles, the live
+  // analytics log) than the skeletal header + buttons the code sketches, and
+  // the demo's controller passes dev: false so the docs page's HMR
+  // re-registrations don't warn in the console; recipeCode shows a bare
+  // controller instead.
   const guide = new GuideController({ dev: false });
 
-  // A live event log so the analytics hooks are visible as the user moves through the tour.
+  // The analytics hooks made visible: the demo renders each callback into this
+  // log instead of sending it to a tracker.
   let seq = 0;
   let events = $state<{ id: number; text: string; tone: 'step' | 'done' | 'skip' }[]>([]);
   let hintOpen = $state(false);
@@ -34,27 +41,26 @@
   }
 
   const onboardingTour: GuideTour = {
-    id: 'recipe-onboarding',
-    once: false, // repeatable in the demo
+    id: 'onboarding',
+    once: false, // repeatable in the demo — see the comment in recipeCode
     steps: [
       {
-        target: 'ob-projects',
+        target: 'projects',
         title: 'Create your first project',
-        body: 'Everything starts with a project — your space for tasks, files, and docs.'
+        body: 'Everything starts with a project: your space for tasks, files, and docs.'
       },
       {
-        target: 'ob-team',
+        target: 'team',
         title: 'Invite your team',
         body: 'Bring teammates in so they can collaborate from day one.'
       },
       {
-        target: 'ob-api',
+        target: 'api',
         title: 'Generate an API key',
         body: 'Automate anything once you are set up.',
         interactive: true
       }
     ],
-    // The actual business value: a step-by-step funnel, completion, and drop-off signal.
     onStep: (e) => logEvent(`onStep → ${e.index + 1}/${e.total} (${e.via})`, 'step'),
     onComplete: () => {
       logEvent('onComplete → funnel finished', 'done');
@@ -69,11 +75,17 @@
     skip: 'text-warning'
   };
 
-  const recipeCode =
-    `<script lang="ts">
+  const recipeCode = `<\script lang="ts">
   import {
-    GuideProvider, Guide, GuideBeacon, GuidePanel, GuideArticle,
-    GuideMarker, GuideMention, GuideHint, GuideController
+    Guide,
+    GuideArticle,
+    GuideBeacon,
+    GuideController,
+    GuideHint,
+    GuideMarker,
+    GuideMention,
+    GuidePanel,
+    GuideProvider
   } from '@urbicon-ui/blocks';
   import type { GuideTour } from '@urbicon-ui/blocks';
 
@@ -82,179 +94,234 @@
 
   const onboardingTour: GuideTour = {
     id: 'onboarding',
+    // once: false — here, on the beacon and on the hint — keeps the docs demo
+    // repeatable. Drop all three in your app: the default (true) shows each
+    // once per user, remembered through the controller's storage adapter.
+    once: false,
     steps: [
-      { target: 'projects', title: 'Create your first project', body: 'Your space for tasks and files.' },
-      { target: 'team', title: 'Invite your team', body: 'Collaborate from day one.' },
-      { target: 'api', title: 'Generate an API key', body: 'Automate anything.', interactive: true }
+      {
+        target: 'projects',
+        title: 'Create your first project',
+        body: 'Everything starts with a project: your space for tasks, files, and docs.'
+      },
+      {
+        target: 'team',
+        title: 'Invite your team',
+        body: 'Bring teammates in so they can collaborate from day one.'
+      },
+      {
+        // interactive keeps the spotlit tile clickable during this step
+        target: 'api',
+        title: 'Generate an API key',
+        body: 'Automate anything once you are set up.',
+        interactive: true
+      }
     ],
-    // The business value of onboarding lives here, not in the tour mechanic.
-    onStep: ({ index, total, via }) => analytics.track('onboard_step', { step: index + 1, total, via }),
-    onComplete: () => { analytics.track('onboard_complete'); hintOpen = true; },
-    onSkip: ({ index }) => analytics.track('onboard_skip', { droppedAt: index })
+    // Stand-ins for your analytics calls — the demo pipes the same events into
+    // the log beside the workspace.
+    onStep: (e) =>
+      analytics.track('onboard_step', { step: e.index + 1, total: e.total, via: e.via }),
+    onComplete: () => {
+      analytics.track('onboard_complete');
+      hintOpen = true; // reveal the "new feature" hint once onboarding is done
+    },
+    onSkip: (e) => analytics.track('onboard_skip', { droppedAt: e.index + 1 })
   };
-</scr` +
-    `ipt>
+<\/script>
 
 <GuideProvider controller={guide}>
+  <!-- Your app shell — the provider wraps it once, near the root. -->
   <header>
     <span>Acme Workspace</span>
-    <!-- UI → guide: opens the help panel at the matching article -->
+    <!-- the ⓘ: opens the help panel at the matching article -->
     <GuideMarker for="projects" />
-    <!-- the gentle, opt-in tour entry — hides itself once the tour is seen -->
-    <GuideBeacon tour={onboardingTour} />
+    <!-- the opt-in tour entry; hides itself once the tour is seen -->
+    <GuideBeacon tour={onboardingTour} once={false} />
   </header>
 
-  <!-- data-guide marks each target once; tours, hints, markers + mentions all resolve to it -->
+  <!-- data-guide marks each target once; tour steps, the marker, the mentions
+       and the hint all resolve to it -->
   <button data-guide="projects">New project</button>
   <button data-guide="team">Invite team</button>
   <button data-guide="api">API keys</button>
 
-  <!-- non-modal help panel: stays open while a mention highlights the UI behind it -->
-  <GuidePanel title="Help">
+  <!-- non-modal help: the workspace stays usable behind the open panel -->
+  <GuidePanel title="Workspace help">
     <GuideArticle id="projects" title="Projects & workspace">
-      <p>A <GuideMention for="projects">project</GuideMention> groups your work.
-         Add people from <GuideMention for="team">team settings</GuideMention>.</p>
+      <p>
+        A <GuideMention for="projects">project</GuideMention> groups your tasks, files, and
+        docs. Start there, then add people from
+        <GuideMention for="team">team settings</GuideMention>.
+      </p>
+      <p>
+        Prefer automation? Generate an
+        <GuideMention for="api">API key</GuideMention> and drive everything from the API.
+      </p>
     </GuideArticle>
   </GuidePanel>
 
-  <!-- contextual hint, revealed after the tour completes -->
-  <GuideHint for="api" trigger="manual" open={hintOpen} title="New: API keys"
-    onDismiss={() => (hintOpen = false)}>
-    Generate scoped API keys for automation.
+  <!-- waits for onComplete to raise hintOpen -->
+  <GuideHint
+    for="api"
+    trigger="manual"
+    open={hintOpen}
+    once={false}
+    title="New: API keys"
+    onDismiss={() => (hintOpen = false)}
+  >
+    You can now generate scoped API keys for automation.
   </GuideHint>
 
-  <!-- mount the tour renderer once; invisible until a tour starts -->
+  <!-- the tour renderer: mount once; renders nothing until a tour starts -->
   <Guide />
 </GuideProvider>`;
 </script>
 
-<SeoMeta title="Onboarding Flow Recipe" description={recipeMeta.description} />
-
-<div class="mx-auto max-w-6xl px-6 py-12">
-  <RecipeHeader meta={recipeMeta} />
-
-  <Section id="preview" title="Live Preview">
-    <p class="text-text-tertiary mb-4 text-sm">
-      Click the pulsing beacon (or the ⓘ) to start. Move through the tour and watch the analytics
-      hooks fire on the right — completing it reveals the "new feature" hint.
-    </p>
-    <div class="grid grid-cols-1 gap-6 lg:grid-cols-3">
-      <!-- The app being onboarded -->
-      <div class="lg:col-span-2">
-        <GuideProvider controller={guide}>
-          <div class="border-border-subtle bg-surface-elevated rounded-2xl border p-6">
-            <div class="mb-5 flex items-center justify-between">
-              <div class="flex items-center gap-1.5">
-                <span class="text-text-primary font-semibold">Acme Workspace</span>
-                <GuideMarker for="ob-projects" />
-              </div>
-              <span class="relative inline-flex items-center gap-2">
-                <span class="text-text-tertiary text-xs">New here?</span>
-                <GuideBeacon tour={onboardingTour} once={false} />
-              </span>
-            </div>
-
-            <div class="grid grid-cols-1 gap-3 sm:grid-cols-3">
-              <button
-                data-guide="ob-projects"
-                class="border-border-subtle bg-surface-base hover:border-border-emphasis rounded-xl border px-4 py-5 text-left text-sm transition-colors"
-              >
-                <FolderIcon class="text-text-secondary mb-1 block h-5 w-5" />
-                <span class="text-text-primary font-medium">New project</span>
-              </button>
-              <button
-                data-guide="ob-team"
-                class="border-border-subtle bg-surface-base hover:border-border-emphasis rounded-xl border px-4 py-5 text-left text-sm transition-colors"
-              >
-                <UsersIcon class="text-text-secondary mb-1 block h-5 w-5" />
-                <span class="text-text-primary font-medium">Invite team</span>
-              </button>
-              <button
-                data-guide="ob-api"
-                class="border-border-subtle bg-surface-base hover:border-border-emphasis rounded-xl border px-4 py-5 text-left text-sm transition-colors"
-              >
-                <KeyIcon class="text-text-secondary mb-1 block h-5 w-5" />
-                <span class="text-text-primary font-medium">API keys</span>
-              </button>
-            </div>
-
-            <!-- Non-modal help panel (Direction A + B) -->
-            <GuidePanel title="Workspace help">
-              <GuideArticle id="ob-projects" title="Projects & workspace">
-                <p>
-                  A <GuideMention for="ob-projects">project</GuideMention> groups your tasks, files, and
-                  docs. Start there, then add people from
-                  <GuideMention for="ob-team">team settings</GuideMention>.
-                </p>
-                <p>
-                  Prefer automation? Generate an
-                  <GuideMention for="ob-api">API key</GuideMention> and drive everything from the API.
-                </p>
-              </GuideArticle>
-            </GuidePanel>
-
-            <!-- Contextual hint, revealed after onboarding completes -->
-            <GuideHint
-              for="ob-api"
-              trigger="manual"
-              open={hintOpen}
-              once={false}
-              title="New: API keys"
-              onDismiss={() => (hintOpen = false)}
-            >
-              You can now generate scoped API keys for automation.
-            </GuideHint>
-
-            <!-- Tour renderer (spotlight + bubble) -->
-            <Guide />
-          </div>
-        </GuideProvider>
-      </div>
-
-      <!-- Live analytics log -->
-      <div class="border-border-subtle bg-surface-base flex flex-col rounded-2xl border p-5">
-        <p class="text-text-primary text-sm font-semibold">Tour analytics</p>
-        <p class="text-text-tertiary mt-1 text-xs leading-relaxed">
-          <code>onStep</code> / <code>onComplete</code> / <code>onSkip</code> fire from the engine — the
-          funnel and drop-off signal that is the real value of onboarding.
-        </p>
-        <div class="mt-4 flex-1">
-          {#if events.length === 0}
-            <p class="text-text-tertiary text-xs italic">No events yet — start the tour.</p>
-          {:else}
-            <ul class="space-y-1.5 font-mono text-xs">
-              {#each events as ev (ev.id)}
-                <li class={toneClass[ev.tone]}>{ev.text}</li>
-              {/each}
-            </ul>
-          {/if}
-        </div>
-        {#if events.length > 0}
-          <Button
-            variant="ghost"
-            intent="neutral"
-            size="sm"
-            class="mt-3 self-start"
-            onclick={() => (events = [])}
-          >
-            Clear log
-          </Button>
-        {/if}
-      </div>
-    </div>
-  </Section>
-
-  <!-- Source Code -->
-  <Section id="features" title="Key Features" class="mt-12">
-    <RecipeFeatures features={recipeMeta.features} />
-  </Section>
-
-  <Section id="code" title="Code" class="mt-12">
+<RecipeShell meta={recipeMeta}>
+  <Section id="preview" title="Live preview" titleHidden>
     <CodeExample
-      title="Onboarding Flow Recipe"
+      title="WorkspacePage.svelte"
+      description="Click the pulsing beacon to take the three-step tour; the log beside the workspace follows with `onStep` / `onComplete` / `onSkip`, and finishing reveals the `New: API keys` hint. The ⓘ opens the help panel."
       code={recipeCode}
       language="svelte"
-      preview={false}
-    />
+      headingLevel={2}
+    >
+      <div class="grid w-full grid-cols-1 gap-6 lg:grid-cols-3">
+        <!-- The workspace being onboarded -->
+        <div class="lg:col-span-2">
+          <GuideProvider controller={guide}>
+            <Card variant="elevated">
+              <div class="mb-5 flex items-center justify-between">
+                <div class="flex items-center gap-1.5">
+                  <span class="text-text-primary font-semibold">Acme Workspace</span>
+                  <GuideMarker for="projects" />
+                </div>
+                <span class="inline-flex items-center gap-2">
+                  <span class="text-text-tertiary text-xs">New here?</span>
+                  <GuideBeacon tour={onboardingTour} once={false} />
+                </span>
+              </div>
+
+              <div class="grid grid-cols-1 gap-3 sm:grid-cols-3">
+                <Card tier="bridge" padding="sm" clickable data-guide="projects" class="text-left">
+                  <FolderIcon size={20} class="text-text-secondary mb-1 block" />
+                  <span class="text-text-primary block text-sm font-medium">New project</span>
+                </Card>
+                <Card tier="bridge" padding="sm" clickable data-guide="team" class="text-left">
+                  <UsersIcon size={20} class="text-text-secondary mb-1 block" />
+                  <span class="text-text-primary block text-sm font-medium">Invite team</span>
+                </Card>
+                <Card tier="bridge" padding="sm" clickable data-guide="api" class="text-left">
+                  <KeyIcon size={20} class="text-text-secondary mb-1 block" />
+                  <span class="text-text-primary block text-sm font-medium">API keys</span>
+                </Card>
+              </div>
+
+              <GuidePanel title="Workspace help">
+                <GuideArticle id="projects" title="Projects & workspace">
+                  <p>
+                    A <GuideMention for="projects">project</GuideMention> groups your tasks, files, and
+                    docs. Start there, then add people from
+                    <GuideMention for="team">team settings</GuideMention>.
+                  </p>
+                  <p>
+                    Prefer automation? Generate an
+                    <GuideMention for="api">API key</GuideMention> and drive everything from the API.
+                  </p>
+                </GuideArticle>
+              </GuidePanel>
+
+              <GuideHint
+                for="api"
+                trigger="manual"
+                open={hintOpen}
+                once={false}
+                title="New: API keys"
+                onDismiss={() => (hintOpen = false)}
+              >
+                You can now generate scoped API keys for automation.
+              </GuideHint>
+
+              <Guide />
+            </Card>
+          </GuideProvider>
+        </div>
+
+        <!-- The live analytics log (docs scenery: renders what the hooks fire) -->
+        <Card variant="quiet" class="flex flex-col">
+          <p class="text-text-primary text-sm font-semibold">Tour analytics</p>
+          <p class="text-text-tertiary mt-1 text-xs leading-relaxed">
+            <code>onStep</code> / <code>onComplete</code> / <code>onSkip</code> fire from the tour itself:
+            the funnel and drop-off signal onboarding is run for.
+          </p>
+          <div class="mt-4 flex-1">
+            {#if events.length === 0}
+              <p class="font-meta italic">No events yet. Start the tour.</p>
+            {:else}
+              <ul class="font-meta space-y-1.5">
+                {#each events as ev (ev.id)}
+                  <li class={toneClass[ev.tone]}>{ev.text}</li>
+                {/each}
+              </ul>
+            {/if}
+          </div>
+          {#if events.length > 0}
+            <Button
+              variant="ghost"
+              intent="neutral"
+              size="sm"
+              class="mt-3 self-start"
+              onclick={() => (events = [])}
+            >
+              Clear log
+            </Button>
+          {/if}
+        </Card>
+      </div>
+    </CodeExample>
   </Section>
-</div>
+
+  <Section id="decisions" title="Opt-in, drop-off, top layer">
+    <NoteList>
+      <Note title="The tour is offered, not imposed">
+        <p>
+          An auto-starting tour interrupts everyone to help a few.
+          <code class="text-text-primary">GuideBeacon</code> waits instead: it pulses beside the
+          header until clicked, and with <code class="text-text-primary">once</code> (the default)
+          the controller remembers a finished or skipped tour by its
+          <code class="text-text-primary">id</code>, so nobody is toured twice. That memory lives in
+          a storage adapter: localStorage out of the box, swappable through the controller's
+          <code class="text-text-primary">storage</code> option when seen-state should follow the account
+          instead of the browser.
+        </p>
+      </Note>
+      <Note title="Skip is a signal">
+        <p>
+          <code class="text-text-primary">onSkip</code> reports the step index where the user
+          dropped off, and it fires however the tour ends early: the Skip button, Escape, or a
+          foreign modal taking over. Programmatic teardown via
+          <code class="text-text-primary">stopTour()</code> stays silent on purpose, so a route change
+          does not count as a lost user.
+        </p>
+      </Note>
+      <Note title="The overlays out-stack the app">
+        <p>
+          The tour's spotlight and the hint render in the native popover top layer: they clear
+          whatever stacking contexts your app builds, which is also why they may reach over this
+          docs page. A foreign modal above them pauses the tour and hides the hint rather than
+          fighting for <code class="text-text-primary">z-index</code>.
+        </p>
+      </Note>
+    </NoteList>
+
+    <p class="text-text-secondary mt-6 text-sm">
+      The tour above is the smallest one. Steps can also gate on the user's real action (<code
+        class="text-text-primary">advance: 'action'</code
+      >) or live on another route (<code class="text-text-primary">route</code>, with a
+      <code class="text-text-primary">navigate</code> hook wired to
+      <code class="text-text-primary">goto</code>); the
+      <a class="text-primary hover:underline" href={resolve('/blocks/components/guide')}>Guide</a>
+      page documents both, together with the panel's search and article groups.
+    </p>
+  </Section>
+</RecipeShell>

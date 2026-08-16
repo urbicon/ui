@@ -181,8 +181,6 @@ export default {
     wizard: 'Multi-Step Wizard',
     notificationCenter: 'Notification Center',
     pricingCards: 'Pricing Cards',
-    profileCard: 'Profile Card',
-    showcase: 'Showcase',
     icons: 'Icons',
     i18n: 'Localization',
     i18nProvider: 'Provider & SSR',

@@ -461,7 +461,7 @@
  *      ribbon ("einfaltet auf den Breadcrumb").
  *
  *   [data-room-hero] — hand-rolled section-landing heroes (/blocks, /ai,
- *      /getting-started, /recipes, /showcase). Same full-width band; the page
+ *      /getting-started, /recipes). Same full-width band; the page
  *      nests an inner `max-w-* mx-auto px-*` wrapper (matching its body column)
  *      for alignment.
  *
@@ -622,6 +622,19 @@
  * over --docs-paper keeps it valid in both light and dark. */
 .docs-rooms [data-docs-stage='playground'] [data-docs-stage-frame] {
   background-color: color-mix(in oklab, var(--room-accent) 3%, var(--docs-paper));
+}
+
+/* A recipe page's one primary stage is its live demo — the same role the
+ * playground plays on a component page, so it carries the same whisper of the
+ * room colour (recipes live in the orange room). What sits on it follows the
+ * playground's surface language too: components flush or `quiet`, panels
+ * `elevated` — lifted by shadow, never fenced by a border. The scope is
+ * `[data-recipe-page]`, stamped once by RecipeShell, so a recipe cannot ship
+ * its demo on bare paper by forgetting a class. The extra block padding gives
+ * the field the playground's breathing room over the example default. */
+.docs-rooms [data-recipe-page] [data-docs-stage-frame] {
+  background-color: color-mix(in oklab, var(--room-accent) 3%, var(--docs-paper));
+  padding-block: 2rem;
 }
 
 /* Inverted accent block — one dominant room "moment" for the landing/CTA

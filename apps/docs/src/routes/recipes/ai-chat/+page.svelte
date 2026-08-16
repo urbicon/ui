@@ -1,6 +1,4 @@
 <script lang="ts">
-  import SeoMeta from '$lib/SeoMeta.svelte';
-  import { resolve } from '$app/paths';
   import {
     Badge,
     Card,
@@ -9,18 +7,19 @@
     type ChatMessageData,
     PromptInput
   } from '@urbicon-ui/blocks';
-  import { CodeExample, Section } from '@urbicon-ui/docs';
+  import { CodeExample, Note, NoteList, Section } from '@urbicon-ui/docs';
   import { recipeMeta } from './meta';
-  import RecipeHeader from '../RecipeHeader.svelte';
-  import RecipeFeatures from '../RecipeFeatures.svelte';
+  import RecipeShell from '../RecipeShell.svelte';
 
-  const { features } = recipeMeta;
-
-  // ── Live preview: a deterministic fixture replay, no network ────────────────
-  // The recipe CODE below streams from a real SSE endpoint. This on-page demo
-  // replays canned answers on a timer so the preview is reproducible offline —
-  // but it exercises the exact same surface (Chat + ChatMessageList +
-  // PromptInput) and the exact same in-place-append + abort state machine.
+  // ── The demo stages the transport, nothing else ────────────────────────────
+  // The recipe code is the real client: fetch to the SSE endpoint below, a
+  // ReadableStream reader, an AbortController behind Stop. This page replays
+  // canned answers on a timer instead, so the demo runs offline and
+  // deterministic. Markup, components, handler names and the in-place patch are
+  // shared with the recipe code; only the bodies of send, stop and regenerate
+  // swap the network for the timer. The elevated Card around the chat is recipe
+  // content, not docs chrome: Chat scrolls only its log, so it needs a bounded
+  // box, and demo and code carry the same one.
 
   const REPLIES = [
     `Streaming works in two hops. The **server** relays the model's token stream as \`text/event-stream\`; the **client** reads that response as a \`ReadableStream\` and appends each token to the last assistant message in place.
@@ -52,7 +51,7 @@ Scroll up while I type — the list stops following and shows a jump-back pill. 
   let timer: ReturnType<typeof setInterval> | undefined;
 
   let idSeq = 0;
-  const nextId = () => `demo-${++idSeq}`;
+  const nextId = () => 'm-' + ++idSeq;
 
   function patch(id: string, next: Partial<ChatMessageData>) {
     messages = messages.map((m) => (m.id === id ? { ...m, ...next } : m));
@@ -92,20 +91,20 @@ Scroll up while I type — the list stops following and shows a jump-back pill. 
     return reply;
   }
 
-  function handleSubmit(payload: { text: string }) {
+  function send({ text }: { text: string }) {
     messages = [
       ...messages,
       {
         id: nextId(),
         role: 'user',
-        parts: [{ type: 'text', text: payload.text }],
+        parts: [{ type: 'text', text }],
         status: 'complete'
       }
     ];
     setTimeout(() => streamReply(nextReply()), 300);
   }
 
-  function handleStop() {
+  function stop() {
     stopTimer();
     busy = false;
     const last = messages[messages.length - 1];
@@ -122,65 +121,15 @@ Scroll up while I type — the list stops following and shows a jump-back pill. 
 
   $effect(() => () => stopTimer());
 
-  // ── Recipe code (server + client) ──────────────────────────────────────────
-
-  const serverCode = `// src/routes/api/chat/+server.ts
-import Anthropic from '@anthropic-ai/sdk';
-import { ANTHROPIC_API_KEY } from '$env/static/private';
-import type { RequestHandler } from './$types';
-
-const client = new Anthropic({ apiKey: ANTHROPIC_API_KEY });
-
-// The client posts the flattened history. Any LLM stream works here — swap the
-// SDK call for your provider; only the token-forwarding shape below matters.
-interface WireMessage {
-  role: 'user' | 'assistant';
-  content: string;
-}
-
-export const POST: RequestHandler = async ({ request }) => {
-  const { messages } = (await request.json()) as { messages: WireMessage[] };
-
-  const encoder = new TextEncoder();
-  const stream = new ReadableStream({
-    async start(controller) {
-      const send = (event: string, data: unknown) =>
-        controller.enqueue(
-          encoder.encode('event: ' + event + '\\ndata: ' + JSON.stringify(data) + '\\n\\n')
-        );
-
-      try {
-        const run = client.messages.stream({
-          model: 'claude-opus-4-8',
-          max_tokens: 4096,
-          messages
-        });
-
-        // Forward the client's abort straight through to the model stream.
-        request.signal.addEventListener('abort', () => run.abort());
-
-        run.on('text', (delta) => send('token', { text: delta }));
-        await run.finalMessage();
-        send('done', {});
-      } catch (err) {
-        send('error', { message: err instanceof Error ? err.message : 'stream failed' });
-      } finally {
-        controller.close();
-      }
-    }
-  });
-
-  return new Response(stream, {
-    headers: {
-      'content-type': 'text/event-stream',
-      'cache-control': 'no-cache',
-      connection: 'keep-alive'
-    }
-  });
-};`;
-
-  const clientCode = `<script lang="ts">
-  import { Chat, ChatMessageList, PromptInput, type ChatMessageData } from '@urbicon-ui/blocks';
+  const recipeCode = `<\script lang="ts">
+  import {
+    Badge,
+    Card,
+    Chat,
+    ChatMessageList,
+    type ChatMessageData,
+    PromptInput
+  } from '@urbicon-ui/blocks';
 
   let messages = $state<ChatMessageData[]>([]);
   let busy = $state(false);
@@ -289,13 +238,35 @@ export const POST: RequestHandler = async ({ request }) => {
   }
 <\/script>
 
-<div class="h-[40rem] overflow-hidden rounded-contain border border-border-default">
+<!-- The chat needs a bounded box: Chat pins header and composer and scrolls
+     only the log, so the height must come from the host. Here that host is an
+     elevated Card — padding="none" hands the edges to the chat, overflow-hidden
+     clips the log to the card's rounding, and the content slot runs full
+     height. Centre it in your page's own layout and swap h-[34rem] for the
+     height it should fill there. -->
+<Card
+  variant="elevated"
+  padding="none"
+  class="h-[34rem] max-w-3xl overflow-hidden"
+  slotClasses={{ content: 'h-full' }}
+>
   <Chat>
     {#snippet header()}
-      <div class="px-4 py-2.5 text-sm font-medium text-text-primary">AI Assistant</div>
+      <div class="flex items-center gap-2 px-4 py-2.5">
+        <span class="text-text-primary text-sm font-medium">AI Assistant</span>
+        <Badge intent={busy ? 'primary' : 'neutral'} variant="soft" size="sm">
+          {busy ? 'streaming' : 'idle'}
+        </Badge>
+      </div>
     {/snippet}
 
-    <ChatMessageList {messages} onRegenerate={regenerate} onRetry={regenerate} />
+    <ChatMessageList
+      {messages}
+      onRegenerate={regenerate}
+      onRetry={regenerate}
+      emptyTitle="Start the conversation"
+      emptyDescription="Send a message to watch a reply stream in."
+    />
 
     {#snippet composer()}
       <div class="p-3">
@@ -303,89 +274,140 @@ export const POST: RequestHandler = async ({ request }) => {
       </div>
     {/snippet}
   </Chat>
-</div>`;
+</Card>`;
+
+  const serverCode = `import Anthropic from '@anthropic-ai/sdk';
+import { ANTHROPIC_API_KEY } from '$env/static/private';
+import type { RequestHandler } from './$types';
+
+const client = new Anthropic({ apiKey: ANTHROPIC_API_KEY });
+
+// The client posts the flattened history. Any LLM stream works here — swap the
+// SDK call for your provider; only the token-forwarding shape below matters.
+interface WireMessage {
+  role: 'user' | 'assistant';
+  content: string;
+}
+
+export const POST: RequestHandler = async ({ request }) => {
+  const { messages } = (await request.json()) as { messages: WireMessage[] };
+
+  const encoder = new TextEncoder();
+  const stream = new ReadableStream({
+    async start(controller) {
+      const send = (event: string, data: unknown) =>
+        controller.enqueue(
+          encoder.encode('event: ' + event + '\\ndata: ' + JSON.stringify(data) + '\\n\\n')
+        );
+
+      try {
+        const run = client.messages.stream({
+          model: 'claude-opus-4-8',
+          max_tokens: 4096,
+          messages
+        });
+
+        // Forward the client's abort straight through to the model stream.
+        request.signal.addEventListener('abort', () => run.abort());
+
+        run.on('text', (delta) => send('token', { text: delta }));
+        await run.finalMessage();
+        send('done', {});
+      } catch (err) {
+        send('error', { message: err instanceof Error ? err.message : 'stream failed' });
+      } finally {
+        controller.close();
+      }
+    }
+  });
+
+  return new Response(stream, {
+    headers: {
+      'content-type': 'text/event-stream',
+      'cache-control': 'no-cache',
+      connection: 'keep-alive'
+    }
+  });
+};`;
 </script>
 
-<SeoMeta
-  title="AI Chat Recipe"
-  description="A complete streaming chat surface on Urbicon UI — Chat shell, ChatMessageList, and PromptInput wired to a SvelteKit SSE endpoint relaying a Claude/LLM stream."
-/>
+<RecipeShell meta={recipeMeta}>
+  <Section id="preview" title="Live preview" titleHidden>
+    <CodeExample
+      title="ChatPage.svelte"
+      description="Send a message, then scroll up mid-stream or press Stop. The reply is staged from canned text so the demo runs offline; the code is what your app ships, streaming from the endpoint below."
+      code={recipeCode}
+      language="svelte"
+      headingLevel={2}
+    >
+      <Card
+        variant="elevated"
+        padding="none"
+        class="h-[34rem] max-w-3xl overflow-hidden"
+        slotClasses={{ content: 'h-full' }}
+      >
+        <Chat>
+          {#snippet header()}
+            <div class="flex items-center gap-2 px-4 py-2.5">
+              <span class="text-text-primary text-sm font-medium">AI Assistant</span>
+              <Badge intent={busy ? 'primary' : 'neutral'} variant="soft" size="sm">
+                {busy ? 'streaming' : 'idle'}
+              </Badge>
+            </div>
+          {/snippet}
 
-<div class="mx-auto max-w-5xl px-6 py-12">
-  <RecipeHeader meta={recipeMeta} />
+          <ChatMessageList
+            {messages}
+            onRegenerate={regenerate}
+            onRetry={regenerate}
+            emptyTitle="Start the conversation"
+            emptyDescription="Send a message to watch a reply stream in."
+          />
 
-  <Section id="preview" title="Live Preview">
-    <p class="text-text-secondary mb-4 text-sm">
-      This preview replays canned answers on a timer — no network — so it is reproducible offline.
-      The <a href={resolve('/recipes/ai-chat')} class="text-primary underline">code below</a>
-      streams from a real SSE endpoint, but drives the same surface and the same append/abort state machine.
-      Send a message, then scroll up mid-stream or press <strong>Stop</strong>.
-    </p>
-    <Card variant="outlined">
-      <div class="p-4">
-        <div class="rounded-contain border-border-default h-[34rem] overflow-hidden border">
-          <Chat>
-            {#snippet header()}
-              <div class="flex items-center gap-2 px-4 py-2.5">
-                <span class="text-text-primary text-sm font-medium">AI Assistant</span>
-                <Badge intent={busy ? 'primary' : 'neutral'} variant="soft" size="sm">
-                  {busy ? 'streaming' : 'idle'}
-                </Badge>
-              </div>
-            {/snippet}
-
-            <ChatMessageList
-              {messages}
-              onRegenerate={regenerate}
-              onRetry={regenerate}
-              emptyTitle="Start the conversation"
-              emptyDescription="Send a message to watch a reply stream in."
-            />
-
-            {#snippet composer()}
-              <div class="p-3">
-                <PromptInput
-                  {busy}
-                  placeholder="Ask anything…"
-                  onSubmit={handleSubmit}
-                  onStop={handleStop}
-                />
-              </div>
-            {/snippet}
-          </Chat>
-        </div>
-      </div>
-    </Card>
+          {#snippet composer()}
+            <div class="p-3">
+              <PromptInput {busy} placeholder="Ask anything…" onSubmit={send} onStop={stop} />
+            </div>
+          {/snippet}
+        </Chat>
+      </Card>
+    </CodeExample>
   </Section>
 
-  <Section id="features" title="Features">
-    <RecipeFeatures {features} />
-  </Section>
-
-  <Section id="server" title="Server — the SSE endpoint">
-    <p class="text-text-secondary mb-4 text-sm">
-      A plain SvelteKit <code class="font-mono text-xs">+server.ts</code> that relays the model
-      stream as <code class="font-mono text-xs">text/event-stream</code>. (The
-      <code class="font-mono text-xs">@urbicon-ui/auth</code> package ships
-      <code class="font-mono text-xs">createStreamHandler</code>, but that is a
-      <em>notification</em> SSE fan-out — GET-only, backed by an
-      <code class="font-mono text-xs">SSEManager</code> — not an LLM chat relay, which needs a POST body.
-      Write the endpoint directly, as here.)
-    </p>
+  <Section id="server" title="The SSE endpoint">
     <CodeExample
       title="src/routes/api/chat/+server.ts"
+      description="The other half of `send`: it takes the history as a POST body and answers with the `token`, `done` and `error` frames the reader above parses."
       preview={false}
-      language="ts"
+      language="typescript"
       code={serverCode}
+      headingLevel={2}
     />
   </Section>
 
-  <Section id="client" title="Client — the chat page">
-    <CodeExample
-      title="src/routes/chat/+page.svelte"
-      preview={false}
-      language="svelte"
-      code={clientCode}
-    />
+  <Section id="decisions" title="Two decisions">
+    <NoteList>
+      <Note title="POST and a stream reader, not EventSource">
+        <p>
+          The conversation travels as the request body, and
+          <code class="text-text-primary">EventSource</code> can only GET, so the client posts with
+          <code class="text-text-primary">fetch</code> and parses the SSE frames from
+          <code class="text-text-primary">res.body</code> itself. The same choice wires Stop end to
+          end: <code class="text-text-primary">controller.abort()</code> cancels the fetch,
+          <code class="text-text-primary">request.signal</code> fires in the route, and the route hands
+          the abort on to the model stream.
+        </p>
+      </Note>
+      <Note title="Why not createStreamHandler">
+        <p>
+          <code class="text-text-primary">@urbicon-ui/auth</code> ships
+          <code class="text-text-primary">createStreamHandler</code>, and it is tempting here. It is
+          the wrong shape: a GET-only notification fan-out on an
+          <code class="text-text-primary">SSEManager</code>, pushing events to every subscribed
+          client. A chat relay is the opposite, one POST carrying the history answered by one
+          stream, so the route is written by hand.
+        </p>
+      </Note>
+    </NoteList>
   </Section>
-</div>
+</RecipeShell>

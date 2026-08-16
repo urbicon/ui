@@ -1,27 +1,23 @@
 <script lang="ts">
-  import SeoMeta from '$lib/SeoMeta.svelte';
   import {
-    Stepper,
-    StepperStep,
-    Input,
-    Select,
-    RadioGroup,
-    RadioItem,
-    Textarea,
-    Checkbox,
+    Alert,
     Button,
     Card,
+    Checkbox,
+    Input,
     Progress,
-    Alert
+    RadioGroup,
+    RadioItem,
+    Select,
+    Stepper,
+    StepperStep,
+    Textarea
   } from '@urbicon-ui/blocks';
-  import { CodeExample, Section } from '@urbicon-ui/docs';
+  import { CodeExample, Note, NoteList, Section } from '@urbicon-ui/docs';
+  import { resolve } from '$app/paths';
   import { recipeMeta } from './meta';
-  import RecipeHeader from '../RecipeHeader.svelte';
-  import RecipeFeatures from '../RecipeFeatures.svelte';
+  import RecipeShell from '../RecipeShell.svelte';
 
-  const { features } = recipeMeta;
-
-  // --- Wizard state ---
   let step = $state(0);
   let submitted = $state(false);
 
@@ -51,6 +47,9 @@
 
   let progress = $derived(submitted ? 100 : Math.round((step / 3) * 100));
 
+  // What the current step requires, nothing else: Next stays disabled until
+  // this passes, and on the last step it holds Submit until the terms are
+  // accepted.
   let canNext = $derived.by(() => {
     if (step === 0) return fullName.trim() !== '' && email.trim() !== '';
     if (step === 1) return plan !== '' && region !== null;
@@ -81,11 +80,20 @@
     agreedToTerms = false;
   }
 
-  const recipeCode =
-    `<script lang="ts">
+  const recipeCode = `<\script lang="ts">
   import {
-    Stepper, StepperStep, Input, Select, RadioGroup, RadioItem,
-    Textarea, Checkbox, Button, Card, Progress, Alert
+    Alert,
+    Button,
+    Card,
+    Checkbox,
+    Input,
+    Progress,
+    RadioGroup,
+    RadioItem,
+    Select,
+    Stepper,
+    StepperStep,
+    Textarea
   } from '@urbicon-ui/blocks';
 
   let step = $state(0);
@@ -117,6 +125,9 @@
 
   let progress = $derived(submitted ? 100 : Math.round((step / 3) * 100));
 
+  // What the current step requires, nothing else: Next stays disabled until
+  // this passes, and on the last step it holds Submit until the terms are
+  // accepted.
   let canNext = $derived.by(() => {
     if (step === 0) return fullName.trim() !== '' && email.trim() !== '';
     if (step === 1) return plan !== '' && region !== null;
@@ -125,8 +136,11 @@
   });
 
   function next() {
-    if (step < 2) step += 1;
-    else if (canNext) submitted = true;
+    if (step < 2) {
+      step += 1;
+    } else if (canNext) {
+      submitted = true;
+    }
   }
 
   function back() {
@@ -143,226 +157,248 @@
     notes = '';
     agreedToTerms = false;
   }
-</scr` +
-    `ipt>
+<\/script>
 
-<div class="mx-auto max-w-xl p-8">
-  <Progress value={progress} size="sm" intent="primary" class="mb-6" />
+<!-- Centre it in your page's own layout; the card caps its own width. -->
+<div class="w-full max-w-xl">
+  <Card variant="elevated" padding="lg">
+    <Progress value={progress} size="sm" intent="primary" class="mb-6" />
 
-  <Stepper bind:activeStep={step} orientation="horizontal">
-    <StepperStep label="Account" description="Personal info" />
-    <StepperStep label="Preferences" description="Your choices" />
-    <StepperStep label="Review" description="Confirm details" />
-  </Stepper>
+    <!-- The rail only shows position: steps are not clickable, so the gated
+         Next is the only way forward. -->
+    <Stepper bind:activeStep={step} orientation="horizontal">
+      <StepperStep label="Account" description="Personal info" />
+      <StepperStep label="Preferences" description="Your choices" />
+      <StepperStep label="Review" description="Confirm details" />
+    </Stepper>
 
-  {#if submitted}
-    <div class="mt-8">
-      <Alert intent="success" variant="soft" title="All done!">
-        Your wizard has been submitted successfully.
-      </Alert>
-      <Button variant="outlined" intent="neutral" onclick={reset} class="mt-4">
-        Start Over
-      </Button>
-    </div>
-  {:else}
-    <Card class="mt-8">
-      <div class="space-y-5 p-6">
+    {#if submitted}
+      <div class="mt-8">
+        <Alert intent="success" variant="soft" title="All done!">
+          Your wizard has been submitted successfully.
+        </Alert>
+        <Button variant="outlined" intent="neutral" onclick={reset} class="mt-4">
+          Start Over
+        </Button>
+      </div>
+    {:else}
+      <div class="mt-8 space-y-5">
         {#if step === 0}
-          <Input label="Full Name" bind:value={fullName} required
-            placeholder="Jane Doe" />
-          <Input label="Email" type="email" bind:value={email} required
-            placeholder="jane@example.com" />
+          <Input label="Full Name" bind:value={fullName} required placeholder="Jane Doe" />
+          <Input label="Email" type="email" bind:value={email} required placeholder="jane@example.com" />
         {:else if step === 1}
           <RadioGroup bind:value={plan} label="Choose a plan">
-            <RadioItem value="starter" label="Starter"
-              description="For individuals and side projects" />
-            <RadioItem value="pro" label="Professional"
-              description="For growing teams" />
-            <RadioItem value="enterprise" label="Enterprise"
-              description="For large organizations" />
+            <RadioItem
+              value="starter"
+              label="Starter"
+              description="For individuals and side projects"
+            />
+            <RadioItem value="pro" label="Professional" description="For growing teams" />
+            <RadioItem
+              value="enterprise"
+              label="Enterprise"
+              description="For large organizations"
+            />
           </RadioGroup>
-          <Select label="Region" options={regionOptions}
-            bind:value={region} placeholder="Select a region" />
+          <Select
+            label="Region"
+            options={regionOptions}
+            bind:value={region}
+            placeholder="Select a region"
+          />
         {:else}
-          <Textarea label="Additional Notes" bind:value={notes}
-            autoResize showCounter maxlength={500}
-            placeholder="Anything else we should know?" />
-          <div class="bg-surface-subtle rounded-lg p-4">
-            <h4 class="text-text-primary mb-2 text-sm font-semibold">
-              Summary
-            </h4>
+          <Textarea
+            label="Additional Notes"
+            bind:value={notes}
+            autoResize
+            showCounter
+            maxlength={500}
+            placeholder="Anything else we should know?"
+          />
+          <Card variant="quiet" padding="sm">
+            <h3 class="text-text-primary mb-2 text-sm font-semibold">Summary</h3>
             <dl class="text-text-secondary space-y-1 text-sm">
               <div class="flex justify-between">
-                <dt>Name</dt><dd>{fullName}</dd>
+                <dt>Name</dt>
+                <dd class="text-text-primary font-medium">{fullName}</dd>
               </div>
               <div class="flex justify-between">
-                <dt>Email</dt><dd>{email}</dd>
+                <dt>Email</dt>
+                <dd class="text-text-primary font-medium">{email}</dd>
               </div>
               <div class="flex justify-between">
-                <dt>Plan</dt><dd>{planLabels[plan] ?? '—'}</dd>
+                <dt>Plan</dt>
+                <dd class="text-text-primary font-medium">{planLabels[plan] ?? '—'}</dd>
               </div>
               <div class="flex justify-between">
                 <dt>Region</dt>
-                <dd>{regionOptions.find((o) => o.value === region)?.label ?? '—'}</dd>
+                <dd class="text-text-primary font-medium">
+                  {regionOptions.find((o) => o.value === region)?.label ?? '—'}
+                </dd>
               </div>
             </dl>
-          </div>
-          <Checkbox label="I agree to the terms and conditions"
-            bind:checked={agreedToTerms} />
+          </Card>
+          <Checkbox label="I agree to the terms and conditions" bind:checked={agreedToTerms} />
         {/if}
       </div>
-    </Card>
 
-    <div class="mt-6 flex justify-between">
-      <Button variant="ghost" intent="neutral"
-        onclick={back} disabled={step === 0}>Back</Button>
-      <Button intent="primary" onclick={next}
-        disabled={!canNext}>
-        {step < 2 ? 'Next' : 'Submit'}
-      </Button>
-    </div>
-  {/if}
+      <div class="mt-6 flex justify-between">
+        <Button variant="ghost" intent="neutral" onclick={back} disabled={step === 0}>Back</Button>
+        <Button intent="primary" onclick={next} disabled={!canNext}>
+          {step < 2 ? 'Next' : 'Submit'}
+        </Button>
+      </div>
+    {/if}
+  </Card>
 </div>`;
 </script>
 
-<SeoMeta title="Multi-Step Wizard Recipe" description={recipeMeta.description} />
-
-<div class="mx-auto max-w-6xl px-6 py-12">
-  <RecipeHeader meta={recipeMeta} />
-
-  <div class="grid grid-cols-1 gap-10 xl:grid-cols-3">
-    <!-- Live Preview (2 cols) -->
-    <div class="xl:col-span-2">
-      <Section id="preview" title="Live Preview">
-        <div
-          class="border-border-subtle bg-surface-base mt-4 overflow-hidden rounded-xl border shadow-[var(--blocks-shadow-md)]"
-        >
-          <div class="mx-auto max-w-xl p-8">
-            <Progress value={progress} size="sm" intent="primary" class="mb-6" />
-
-            <Stepper bind:activeStep={step} orientation="horizontal">
-              <StepperStep label="Account" description="Personal info" />
-              <StepperStep label="Preferences" description="Your choices" />
-              <StepperStep label="Review" description="Confirm details" />
-            </Stepper>
-
-            {#if submitted}
-              <div class="mt-8">
-                <Alert intent="success" variant="soft" title="All done!">
-                  Your wizard has been submitted successfully.
-                </Alert>
-                <Button variant="outlined" intent="neutral" onclick={reset} class="mt-4">
-                  Start Over
-                </Button>
-              </div>
-            {:else}
-              <Card class="mt-8">
-                <div class="space-y-5 p-6">
-                  {#if step === 0}
-                    <Input
-                      label="Full Name"
-                      bind:value={fullName}
-                      required
-                      placeholder="Jane Doe"
-                    />
-                    <Input
-                      label="Email"
-                      type="email"
-                      bind:value={email}
-                      required
-                      placeholder="jane@example.com"
-                    />
-                  {:else if step === 1}
-                    <RadioGroup bind:value={plan} label="Choose a plan">
-                      <RadioItem
-                        value="starter"
-                        label="Starter"
-                        description="For individuals and side projects"
-                      />
-                      <RadioItem value="pro" label="Professional" description="For growing teams" />
-                      <RadioItem
-                        value="enterprise"
-                        label="Enterprise"
-                        description="For large organizations"
-                      />
-                    </RadioGroup>
-                    <Select
-                      label="Region"
-                      options={regionOptions}
-                      bind:value={region}
-                      placeholder="Select a region"
-                    />
-                  {:else}
-                    <Textarea
-                      label="Additional Notes"
-                      bind:value={notes}
-                      autoResize
-                      showCounter
-                      maxlength={500}
-                      placeholder="Anything else we should know?"
-                    />
-                    <div class="bg-surface-subtle rounded-lg p-4">
-                      <h3 class="text-text-primary mb-2 text-sm font-semibold">Summary</h3>
-                      <dl class="text-text-secondary space-y-1 text-sm">
-                        <div class="flex justify-between">
-                          <dt>Name</dt>
-                          <dd class="text-text-primary font-medium">{fullName}</dd>
-                        </div>
-                        <div class="flex justify-between">
-                          <dt>Email</dt>
-                          <dd class="text-text-primary font-medium">{email}</dd>
-                        </div>
-                        <div class="flex justify-between">
-                          <dt>Plan</dt>
-                          <dd class="text-text-primary font-medium">
-                            {planLabels[plan] ?? '\u2014'}
-                          </dd>
-                        </div>
-                        <div class="flex justify-between">
-                          <dt>Region</dt>
-                          <dd class="text-text-primary font-medium">
-                            {regionOptions.find((o) => o.value === region)?.label ?? '\u2014'}
-                          </dd>
-                        </div>
-                      </dl>
-                    </div>
-                    <Checkbox
-                      label="I agree to the terms and conditions"
-                      bind:checked={agreedToTerms}
-                    />
-                  {/if}
-                </div>
-              </Card>
-
-              <div class="mt-6 flex justify-between">
-                <Button variant="ghost" intent="neutral" onclick={back} disabled={step === 0}>
-                  Back
-                </Button>
-                <Button intent="primary" onclick={next} disabled={!canNext}>
-                  {step < 2 ? 'Next' : 'Submit'}
-                </Button>
-              </div>
-            {/if}
-          </div>
-        </div>
-      </Section>
-    </div>
-
-    <!-- Sidebar -->
-    <div class="space-y-8">
-      <Section id="features" title="Key Features">
-        <RecipeFeatures {features} />
-      </Section>
-    </div>
-  </div>
-
-  <!-- Source Code -->
-  <Section id="code" title="Code" class="mt-12">
+<RecipeShell meta={recipeMeta}>
+  <Section id="preview" title="Live preview" titleHidden>
     <CodeExample
-      title="Multi-Step Wizard Recipe"
+      title="SignupPage.svelte"
+      description="Fill a step to unlock `Next`; `Back` keeps everything you typed."
       code={recipeCode}
       language="svelte"
-      preview={false}
-    />
+      headingLevel={2}
+    >
+      <div class="w-full max-w-xl">
+        <Card variant="elevated" padding="lg">
+          <Progress value={progress} size="sm" intent="primary" class="mb-6" />
+
+          <!-- The rail only shows position: steps are not clickable, so the
+               gated Next is the only way forward. -->
+          <Stepper bind:activeStep={step} orientation="horizontal">
+            <StepperStep label="Account" description="Personal info" />
+            <StepperStep label="Preferences" description="Your choices" />
+            <StepperStep label="Review" description="Confirm details" />
+          </Stepper>
+
+          {#if submitted}
+            <div class="mt-8">
+              <Alert intent="success" variant="soft" title="All done!">
+                Your wizard has been submitted successfully.
+              </Alert>
+              <Button variant="outlined" intent="neutral" onclick={reset} class="mt-4">
+                Start Over
+              </Button>
+            </div>
+          {:else}
+            <div class="mt-8 space-y-5">
+              {#if step === 0}
+                <Input label="Full Name" bind:value={fullName} required placeholder="Jane Doe" />
+                <Input
+                  label="Email"
+                  type="email"
+                  bind:value={email}
+                  required
+                  placeholder="jane@example.com"
+                />
+              {:else if step === 1}
+                <RadioGroup bind:value={plan} label="Choose a plan">
+                  <RadioItem
+                    value="starter"
+                    label="Starter"
+                    description="For individuals and side projects"
+                  />
+                  <RadioItem value="pro" label="Professional" description="For growing teams" />
+                  <RadioItem
+                    value="enterprise"
+                    label="Enterprise"
+                    description="For large organizations"
+                  />
+                </RadioGroup>
+                <Select
+                  label="Region"
+                  options={regionOptions}
+                  bind:value={region}
+                  placeholder="Select a region"
+                />
+              {:else}
+                <Textarea
+                  label="Additional Notes"
+                  bind:value={notes}
+                  autoResize
+                  showCounter
+                  maxlength={500}
+                  placeholder="Anything else we should know?"
+                />
+                <Card variant="quiet" padding="sm">
+                  <h3 class="text-text-primary mb-2 text-sm font-semibold">Summary</h3>
+                  <dl class="text-text-secondary space-y-1 text-sm">
+                    <div class="flex justify-between">
+                      <dt>Name</dt>
+                      <dd class="text-text-primary font-medium">{fullName}</dd>
+                    </div>
+                    <div class="flex justify-between">
+                      <dt>Email</dt>
+                      <dd class="text-text-primary font-medium">{email}</dd>
+                    </div>
+                    <div class="flex justify-between">
+                      <dt>Plan</dt>
+                      <dd class="text-text-primary font-medium">{planLabels[plan] ?? '—'}</dd>
+                    </div>
+                    <div class="flex justify-between">
+                      <dt>Region</dt>
+                      <dd class="text-text-primary font-medium">
+                        {regionOptions.find((o) => o.value === region)?.label ?? '—'}
+                      </dd>
+                    </div>
+                  </dl>
+                </Card>
+                <Checkbox
+                  label="I agree to the terms and conditions"
+                  bind:checked={agreedToTerms}
+                />
+              {/if}
+            </div>
+
+            <div class="mt-6 flex justify-between">
+              <Button variant="ghost" intent="neutral" onclick={back} disabled={step === 0}>
+                Back
+              </Button>
+              <Button intent="primary" onclick={next} disabled={!canNext}>
+                {step < 2 ? 'Next' : 'Submit'}
+              </Button>
+            </div>
+          {/if}
+        </Card>
+      </div>
+    </CodeExample>
   </Section>
-</div>
+
+  <Section id="decisions" title="Two decisions">
+    <NoteList>
+      <Note title="The gate is the button, not the fields">
+        <p>
+          Each step folds its requirements into <code class="text-text-primary">canNext</code>, and
+          the disabled Next is where the user meets it. No field carries an
+          <code class="text-text-primary">error</code>, because presence is all this wizard checks.
+          When a step checks shape instead (an email format, a minimum length), hold the message
+          back until there is input, as the
+          <a class="text-primary hover:underline" href={resolve('/recipes/login')}>Login Form</a>
+          recipe does, and fold that field's validity into
+          <code class="text-text-primary">canNext</code> so the button and the message never disagree.
+        </p>
+      </Note>
+      <Note title="Back costs nothing because the page owns the values">
+        <p>
+          Moving between steps unmounts the fields you leave, but every value lives in the page, not
+          in the fields: Back returns to a filled step, and the review step reads the same variables
+          straight into its summary. There is no store and nothing to collect on submit; the whole
+          wizard is one component holding eight
+          <code class="text-text-primary">$state</code> variables.
+        </p>
+      </Note>
+    </NoteList>
+
+    <p class="text-text-secondary mt-6 text-sm">
+      The three steps here run in a fixed order. When an answer decides what the next step even
+      asks, derive the steps from the answers instead:
+      <a class="text-primary hover:underline" href={resolve('/recipes/decision-tree-wizard')}
+        >Decision Tree Wizard</a
+      >
+      builds its flow that way.
+    </p>
+  </Section>
+</RecipeShell>
