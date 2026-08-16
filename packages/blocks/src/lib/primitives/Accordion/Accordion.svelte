@@ -76,6 +76,9 @@
         update([...openItems, itemValue]);
       }
     },
+    get slotClasses() {
+      return slotClasses;
+    },
     isOpen(itemValue: string) {
       return openItems.includes(itemValue);
     },

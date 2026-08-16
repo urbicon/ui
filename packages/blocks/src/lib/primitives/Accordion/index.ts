@@ -9,6 +9,14 @@ export interface AccordionContext {
   variant: AccordionVariants['variant'];
   size: AccordionVariants['size'];
   disabled: boolean;
+  /**
+   * The accordion-level slotClasses, shared with every item. The Accordion
+   * prop TYPE always declared the item slots (trigger, contentInner, …), but
+   * only `base` ever reached the DOM — an accordion-wide
+   * `slotClasses={{ trigger: 'px-4' }}` was a type-checked no-op until
+   * 2026-08-16. Item-own slotClasses merge after these and win their bucket.
+   */
+  readonly slotClasses: Partial<Record<Exclude<AccordionSlots, 'base'>, string>> | undefined;
 }
 
 /**
@@ -79,7 +87,7 @@ export interface AccordionProps
   class?: string;
   /** Remove default styles */
   unstyled?: boolean;
-  /** Per-slot class overrides. Slots: base | item | trigger | chevron | content | contentInner */
+  /** Per-slot class overrides, accordion-wide: the item slots (item | trigger | chevron | content | contentInner) apply to every AccordionItem; an item's own slotClasses win their bucket. Slots: base | item | trigger | chevron | content | contentInner */
   slotClasses?: Partial<Record<AccordionSlots, string>>;
   /**
    * Apply a named preset registered via `<BlocksProvider presets={{ Accordion: {...} }}>`.

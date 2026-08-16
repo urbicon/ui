@@ -110,4 +110,16 @@ describe('Accordion (component interaction)', () => {
     expect(expanded('Returns')).toBe('false');
     expect(onValueChange).not.toHaveBeenCalled();
   });
+
+  it('accordion-level slotClasses reach the item slots', () => {
+    // The Accordion prop type always declared the item slots, but until the
+    // context handed them down, slotClasses={{ trigger }} on the Accordion was
+    // a type-checked no-op and only base ever reached the DOM (found live:
+    // the settings recipe padded its fold rows through exactly this prop).
+    renderAccordion({ slotClasses: { trigger: 'px-4' } });
+
+    for (const name of ['Shipping', 'Returns', 'Warranty']) {
+      expect(header(name).classList.contains('px-4')).toBe(true);
+    }
+  });
 });

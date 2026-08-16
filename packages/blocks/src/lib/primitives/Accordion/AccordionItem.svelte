@@ -37,7 +37,11 @@
   );
 
   function slot(key: Exclude<keyof typeof styles, 'base'>, extra?: string) {
-    const overrides = [slotClasses?.[key], extra].filter(Boolean).join(' ');
+    // Accordion-wide slotClasses first, the item's own after: both fold
+    // through tv(), so on a conflict the item-level class wins its bucket.
+    // Without the ctx half, the item slots the Accordion prop type declares
+    // (trigger, contentInner, …) never reached the DOM.
+    const overrides = [ctx.slotClasses?.[key], slotClasses?.[key], extra].filter(Boolean).join(' ');
     if (unstyled) return overrides;
     return styles[key]({ class: overrides });
   }
