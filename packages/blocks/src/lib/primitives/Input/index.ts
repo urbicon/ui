@@ -19,7 +19,11 @@ import type { InputSlots, InputVariants } from './input.variants';
  * ```
  */
 export interface InputProps
-  extends Omit<InputVariants, 'error'>,
+  // `error` and `messageType` are tv-internal axes derived from the `error`
+  // prop (Input.svelte: messageType = error ? 'error' : 'helper'). Leaving
+  // them in the props type let a caller pass messageType="error" and get a
+  // type-checked no-op — the range-hint-input recipe shipped exactly that.
+  extends Omit<InputVariants, 'error' | 'messageType'>,
     Omit<HTMLInputAttributes, 'size' | 'class' | 'disabled' | 'readonly' | 'children'> {
   /** Snippet content rendered below the input for advanced layouts. */
   children?: Snippet;
