@@ -118,6 +118,7 @@ ${scriptClose}
   description="A data table that sorts, filters, groups and pages your rows, in the browser or against your backend. Becomes a card list when its own container gets too narrow for a grid."
   maxWidth="2xl"
   showToc={true}
+  stability={componentData?.stability}
   breadcrumbs={[{ label: 'Home', href: resolve('/') }]}
   {navigation}
 >

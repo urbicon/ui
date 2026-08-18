@@ -511,6 +511,35 @@ defined (`role="toolbar"` static, `orientation` defaulted, `aria-label` a
 required destructured prop) and `aria-orientation` is valid on `role=toolbar`
 on both arms, so there is no removal case.
 
+## Stability
+
+Every `*Props` interface may carry a `@stability` JSDoc tag —
+`experimental | beta | stable | deprecated`, defaulting to `stable` when
+omitted (see the `component-metadata` skill). The tag drives the docs-page
+badge and the MCP catalog with the landing page's status column. The levels
+promise:
+
+- **`experimental`** – shipped to be used and judged, but the API may change
+  in any release without notice. Feedback is the point.
+- **`beta`** – the API shape is settled and documented; behaviour-level fixes
+  may still land as breaking changes in a minor.
+- **`stable`** (default) – the conventions in this document hold and breaking
+  changes follow the versioning policy ([VERSIONING.md](VERSIONING.md)).
+- **`deprecated`** – scheduled for removal; the JSDoc names the replacement.
+
+### Promotion: beta → stable
+
+A component is promoted when all four hold:
+
+1. Its docs page exists and has been through the editorial pass
+   ([EDITORIAL.md](EDITORIAL.md)).
+2. No open P1/P2 issue targets the component.
+3. Its public API is unchanged for at least two minor releases.
+4. Tests cover the core behaviour (interaction and, where applicable, a11y).
+
+The reverse move is not silent: discovering a violated criterion on a stable
+component is an issue against the component, not a quiet tag flip.
+
 ## Accessibility
 
 - All interactive elements must have `focus-visible` styles

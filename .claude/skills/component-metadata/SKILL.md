@@ -11,7 +11,7 @@ Every `*Props` interface in `index.ts` MUST have JSDoc tags — this is the sing
 - `@description` (required) — the long form: the contract an agent reads out of `llm.txt` and the MCP catalog. May name edge cases, subsets and failure modes; length is not capped here.
 - `@tag` (one or more) — category tags: `form`, `action`, `overlay`, `feedback`, `layout`, `navigation`, `display`, `data`, `ai` (the chat/agent family: conversation surfaces, streaming markdown, agent parts)
 - `@related` (zero or more) — related component names
-- `@stability` (optional, default `stable`) — `experimental | beta | stable | deprecated`; drives the Editorial stability badge in the doc-page header
+- `@stability` (optional, default `stable`) — `experimental | beta | stable | deprecated`; drives the Editorial stability badge in the doc-page header. Level semantics + the beta→stable promotion criteria: `docs/COMPONENT-API-CONVENTIONS.md` § Stability
 - `@standalone` (optional, multi-component `index.ts` only) — opt-in: this export gets its own MCP-catalog entry + `llm.txt` (e.g. the seven Guide surfaces). Without it, additional exports count as compound subcomponents (TabItem, MenuItem) and stay folded into the directory component's entry. Requires a matching `export { default as X } from './X.svelte'` in the same file.
 
 The two description tags are **not** interchangeable. They were one field until 2026-07-27; the median ran 259 characters over more than one sentence, so the landing page truncated it mid-clause while agents got no more detail for it.

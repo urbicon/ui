@@ -32,6 +32,7 @@
 <DocsPageLayout
   maxWidth="2xl"
   showToc={true}
+  stability={componentData?.stability}
   title="Planner"
   description="A date grid for planning: give it items, a getDate to bucket them onto days, and a cell snippet that renders each day. Use it for a meal plan, a shift roster, or booking slots."
   breadcrumbs={[
