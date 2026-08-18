@@ -191,4 +191,4 @@ What you need first: [ARCHITECTURE.md](docs/ARCHITECTURE.md) §1 package map & b
 
 ## Task-scoped skills
 
-Repo procedures live in `.claude/skills/` and load on demand: `blocks-testing` (test conventions), `component-metadata` (JSDoc contract for `index.ts` + JSDoc-vs-page placement), `add-icon` (icon contract + registration), `release-bump` (version/release flow), `docs-recipes` (recipe + component doc pages), `docs-writer` (driving a docs-page write/migration: briefing, order, gates), `docs-editor` (editing pass for docs prose — never in the context that wrote it).
+Repo procedures live in `.claude/skills/` and load on demand: `blocks-testing` (test conventions), `component-metadata` (JSDoc contract for `index.ts` + JSDoc-vs-page placement), `add-icon` (icon contract + registration), `release-bump` (version/release flow), `docs-recipes` (recipe + component doc pages), `docs-writer` (driving a docs-page write/migration: briefing, order, gates), `docs-editor` (editing pass for docs prose — never in the context that wrote it), `architecture-probe` (auditing a package's architecture — five sondes in order, never a judgement).
