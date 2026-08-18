@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { SvelteMap } from 'svelte/reactivity';
+  import { SvelteMap, SvelteSet } from 'svelte/reactivity';
   import { getBlocksConfig, resolveSlotClasses } from '$lib/provider';
   import { edgeEnabledIndex, getTierContext, nextEnabledIndex } from '$lib/utils';
   import { tabVariants, type TabVariants } from './tab.variants';
@@ -19,6 +19,11 @@
     fullWidth = false,
     disabled = false,
     mint = 'none',
+    // Retargeted onto the inner role="tablist" div: restProps land on the
+    // role-less root, which forbids aria-label (axe aria-prohibited-attr),
+    // and the tablist is the element screen readers announce by name (#135).
+    'aria-label': ariaLabel,
+    'aria-labelledby': ariaLabelledby,
     class: className = '',
     unstyled: unstyledProp = false,
     slotClasses: slotClassesProp = {},
@@ -46,6 +51,12 @@
   const activeValue = $derived(value !== undefined ? value : internalValue);
 
   const registeredTabs = new SvelteMap<string, HTMLElement>();
+
+  // Values whose TabPanel is actually in the DOM. TabItem reads this to emit
+  // aria-controls only for panels that exist — consumers may render panel
+  // content themselves (no TabPanel at all), and a lazy panel has no id in the
+  // document before its first activation (#109).
+  const registeredPanels = new SvelteSet<string>();
 
   const variantProps: TabVariants = $derived({
     variant,
@@ -88,6 +99,18 @@
       return () => {
         registeredTabs.delete(tabValue);
       };
+    },
+
+    registerPanel(panelValue: string) {
+      registeredPanels.add(panelValue);
+
+      return () => {
+        registeredPanels.delete(panelValue);
+      };
+    },
+
+    hasPanel(panelValue: string) {
+      return registeredPanels.has(panelValue);
     },
 
     selectTab(tabValue: string) {
@@ -206,6 +229,8 @@
     role="tablist"
     tabindex="-1"
     aria-orientation={orientation}
+    aria-label={ariaLabel}
+    aria-labelledby={ariaLabelledby}
     onkeydown={handleKeyDown}
   >
     {#if variant === 'line'}

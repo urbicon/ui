@@ -28,7 +28,9 @@ afterEach(() => {
   document.body.replaceChildren();
 });
 
-function renderTabs(props: Partial<TabProps> & { items?: Item[] } = {}) {
+function renderTabs(
+  props: Partial<TabProps> & { items?: Item[]; withPanels?: boolean; lazy?: boolean } = {}
+) {
   const instance = mount(TabHarness, { target: document.body, props });
   dispose = () => unmount(instance);
   flushSync();
@@ -158,5 +160,84 @@ describe('Tab (component interaction)', () => {
     // Negative half of the pair: without it the assertion above would also pass
     // on a component that hard-codes `flex-1` on every trigger.
     expect(tab('Overview').className).not.toContain('flex-1');
+  });
+
+  // #135 — restProps spread onto the role-less root div, so a consumer's
+  // aria-label landed on an element whose generic role forbids it (axe
+  // aria-prohibited-attr) while the tablist stayed nameless. Both label
+  // attributes are retargeted onto the inner role="tablist" element.
+  describe('tablist labelling (#135)', () => {
+    it('retargets aria-label onto the tablist, leaving the root unnamed', () => {
+      renderTabs({ defaultValue: 'overview', 'aria-label': 'Project sections' });
+
+      expect(screen.getByRole('tablist', { name: 'Project sections' })).toBeTruthy();
+      // The root wrapper must not carry the label — role=generic forbids it.
+      const root = document.querySelector('[data-orientation]') as HTMLElement;
+      expect(root.getAttribute('role')).toBeNull();
+      expect(root.getAttribute('aria-label')).toBeNull();
+    });
+
+    it('retargets aria-labelledby onto the tablist as well', () => {
+      const heading = document.createElement('h2');
+      heading.id = 'tabs-heading';
+      heading.textContent = 'Billing areas';
+      document.body.append(heading);
+
+      renderTabs({ defaultValue: 'overview', 'aria-labelledby': 'tabs-heading' });
+
+      expect(screen.getByRole('tablist', { name: 'Billing areas' })).toBeTruthy();
+      const root = document.querySelector('[data-orientation]') as HTMLElement;
+      expect(root.getAttribute('aria-labelledby')).toBeNull();
+    });
+
+    it('renders an unnamed tablist when no label prop is given', () => {
+      renderTabs({ defaultValue: 'overview' });
+
+      const tablist = screen.getByRole('tablist');
+      expect(tablist.getAttribute('aria-label')).toBeNull();
+      expect(tablist.getAttribute('aria-labelledby')).toBeNull();
+    });
+  });
+
+  // #109 — aria-controls was emitted unconditionally, so in snippet-only mode
+  // (consumer renders the panel content itself, no TabPanel) every tab pointed
+  // at an id missing from the document: axe aria-valid-attr-value, critical.
+  // TabPanel now claims its value in TabContext while its element is in the
+  // DOM, and TabItem emits aria-controls only for claimed values.
+  describe('aria-controls only for existing panels (#109)', () => {
+    it('links every tab to its panel id when TabPanels render', () => {
+      renderTabs({ defaultValue: 'overview' });
+
+      for (const label of ['Overview', 'Settings', 'Billing']) {
+        const controls = tab(label).getAttribute('aria-controls');
+        expect(controls).not.toBeNull();
+        // The referenced id must actually exist in the document.
+        expect(document.getElementById(controls as string)).not.toBeNull();
+      }
+    });
+
+    it('emits no aria-controls in snippet-only mode (no TabPanel at all)', () => {
+      renderTabs({ defaultValue: 'overview', withPanels: false });
+
+      for (const label of ['Overview', 'Settings', 'Billing']) {
+        expect(tab(label).getAttribute('aria-controls')).toBeNull();
+      }
+    });
+
+    it('withholds aria-controls from a lazy panel until its first activation', async () => {
+      const user = userEvent.setup();
+      renderTabs({ defaultValue: 'overview', lazy: true });
+
+      // A lazy panel that has never been active has no element (and no id) in
+      // the document — its tab must not point at the missing id.
+      expect(tab('Overview').getAttribute('aria-controls')).toBe('tabpanel-overview');
+      expect(tab('Settings').getAttribute('aria-controls')).toBeNull();
+
+      await user.click(tab('Settings'));
+
+      // First activation renders the panel; the link appears and resolves.
+      expect(tab('Settings').getAttribute('aria-controls')).toBe('tabpanel-settings');
+      expect(document.getElementById('tabpanel-settings')).not.toBeNull();
+    });
   });
 });

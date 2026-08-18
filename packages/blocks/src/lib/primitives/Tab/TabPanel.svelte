@@ -41,6 +41,15 @@
     return false;
   });
 
+  // Claim the value while the panel's element is actually in the DOM — keyed
+  // on shouldRender, not on mount, so a lazy panel that has never been active
+  // (its id does not exist yet) draws no aria-controls on its TabItem (#109).
+  $effect(() => {
+    if (shouldRender) {
+      return tabContext.registerPanel(value);
+    }
+  });
+
   const variantProps: TabVariants = $derived({
     size: tabContext.size
   });

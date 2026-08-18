@@ -530,14 +530,13 @@
 {:else if component === 'Tabs'}
   <!-- An empty strip would render role="tablist" with no role="tab" child
        (axe aria-required-children); the empty list is reported as TABS_EMPTY.
-       A labelled Tab root needs role="group" — its <div> is role=generic,
-       which forbids aria-label (axe aria-prohibited-attr), same as Column/Row. -->
+       Tab retargets aria-label onto its inner role="tablist" (#135), so the
+       label names the tablist itself — no role="group" workaround needed. -->
   {#if tabItems.length > 0}
     <Tab
       value={activeTab}
       onValueChange={(next) => (selectedTab = next)}
       style={weightStyle}
-      role={ariaLabel ? 'group' : undefined}
       aria-label={ariaLabel}
     >
       {#snippet tabs()}

@@ -68,7 +68,7 @@
     ? [slotClasses?.trigger, className].filter(Boolean).join(' ')
     : styles.trigger({ class: [slotClasses?.trigger, className] })}
   aria-selected={isActive}
-  aria-controls={`tabpanel-${value}`}
+  aria-controls={tabContext.hasPanel(value) ? `tabpanel-${value}` : undefined}
   id={`tab-${value}`}
   tabindex={isActive ? 0 : -1}
   data-state={isActive ? 'active' : 'inactive'}

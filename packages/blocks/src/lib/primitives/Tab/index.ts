@@ -6,6 +6,15 @@ import type { TabSlots, TabVariants } from './tab.variants';
 
 export interface TabContext {
   registerTab: (value: string, element: HTMLElement) => () => void;
+  /**
+   * Called by TabPanel while its element is actually in the DOM (rendering may
+   * be deferred by `lazy`). TabItem emits `aria-controls` only for a value a
+   * panel has claimed — consumers may render panel content themselves outside
+   * `panels`, and an `aria-controls` pointing at a missing id is an axe
+   * `aria-valid-attr-value` violation. Returns an unregister function.
+   */
+  registerPanel: (value: string) => () => void;
+  hasPanel: (value: string) => boolean;
   selectTab: (value: string) => void;
   isActive: (value: string) => boolean;
   readonly variant: TabVariants['variant'];
@@ -49,6 +58,23 @@ interface TabBaseProps
 
   /** Fires when the active tab changes. Receives the new tab value string. */
   onValueChange?: (value: string) => void;
+
+  /**
+   * Accessible name for the tab strip, applied to the inner `role="tablist"`
+   * element — not the root wrapper, whose role-less `<div>` forbids
+   * `aria-label`. Recommended whenever a page holds more than one tab strip;
+   * screen readers announce tablists only by this name.
+   * @summary Names the tab strip for screen readers — set it when a page has several.
+   */
+  'aria-label'?: string;
+
+  /**
+   * Id of a visible element that labels the tab strip. Like `aria-label`, it is
+   * retargeted onto the inner `role="tablist"` element. Prefer this over
+   * `aria-label` when a visible heading already names the strip.
+   * @summary Points at a visible heading that names the tab strip.
+   */
+  'aria-labelledby'?: string;
 
   /** Disables all tabs, preventing interaction and dimming the UI. @default false */
   disabled?: boolean;
