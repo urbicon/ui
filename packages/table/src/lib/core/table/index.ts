@@ -177,7 +177,10 @@ export interface TableContext {
   removeSummaryConfig(column: string): void;
   /** Toggle the summary row's visibility. */
   toggleSummary(): void;
-  /** Replace all summary configurations; summary row shows iff any remain. */
+  /**
+   * Replace all summary configurations; summary row shows iff any remain.
+   * At most one aggregation per column: duplicates collapse last-wins.
+   */
   setSummaryConfigs(configs: SummaryConfig[]): void;
 
   // ── Live updates ──

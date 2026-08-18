@@ -576,6 +576,57 @@ describe('useSummary', () => {
     expect(state.summaryConfigs).toHaveLength(1);
   });
 
+  it('contract: addSummaryConfig replaces per column, keeping the position', () => {
+    const state = {
+      summaryConfigs: [
+        { column: 'salary', type: 'sum' as const },
+        { column: 'age', type: 'avg' as const }
+      ],
+      showSummary: true,
+      groupByKey: null
+    } as unknown as TableState;
+
+    const s = useSummary(
+      state,
+      () => [],
+      () => ({})
+    );
+
+    s.addSummaryConfig({ column: 'salary', type: 'max' });
+    expect(state.summaryConfigs).toEqual([
+      { column: 'salary', type: 'max' },
+      { column: 'age', type: 'avg' }
+    ]);
+  });
+
+  it('contract: setSummaryConfigs enforces one aggregation per column (#92)', () => {
+    // Before the shared normalize funnel, this path assigned verbatim: a
+    // duplicate-carrying set was accepted, `find` readers saw only the first
+    // entry, and removing the column dropped both at once.
+    const state = {
+      summaryConfigs: [] as SummaryConfig[],
+      showSummary: false,
+      groupByKey: null
+    } as unknown as TableState;
+
+    const s = useSummary(
+      state,
+      () => [],
+      () => ({})
+    );
+
+    s.setSummaryConfigs([
+      { column: 'age', type: 'sum' },
+      { column: 'salary', type: 'count' },
+      { column: 'age', type: 'avg' }
+    ]);
+    expect(state.summaryConfigs).toEqual([
+      { column: 'age', type: 'avg' },
+      { column: 'salary', type: 'count' }
+    ]);
+    expect(state.showSummary).toBe(true);
+  });
+
   it('contract: removeSummaryConfig auto-disables when empty', () => {
     const state = {
       summaryConfigs: [{ column: 'salary', type: 'sum' as const }],

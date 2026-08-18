@@ -2,7 +2,8 @@ import {
   createPersistentColumnOrder,
   createPersistentHiddenColumns,
   createPersistentSelection,
-  createPersistentSummaryConfigs
+  createPersistentSummaryConfigs,
+  normalizeSummaryConfigs
 } from '$lib/utils';
 import type { SummaryConfig, TablePrefsConfig } from '../TableStore.svelte';
 import type { TableState } from './types';
@@ -88,7 +89,12 @@ export function usePrefs(state: TableState, prefs?: TablePrefsConfig) {
   const pending: Array<() => void> = [];
 
   if (persistentSummaryConfigs?.hasStoredValue && Array.isArray(persistentSummaryConfigs.value)) {
-    const configs = persistentSummaryConfigs.value.filter(isSummaryConfigShape);
+    // Normalized like every other writer: a value persisted before the
+    // one-aggregation-per-column invariant was enforced (#92) may hold
+    // duplicates, and hydration must not re-corrupt the state.
+    const configs = normalizeSummaryConfigs(
+      persistentSummaryConfigs.value.filter(isSummaryConfigShape)
+    );
     pending.push(() => {
       state.summaryConfigs = configs;
       // Only reveal the summary row when there is something to show — a

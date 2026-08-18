@@ -24,7 +24,9 @@ import { useSummary } from './concerns/useSummary.svelte.js';
 
 /**
  * Column summary configuration.
- * Defines which column to aggregate and how.
+ * Defines which column to aggregate and how. The store keeps at most one
+ * aggregation per column — when a set of configs carries duplicates, the
+ * later entry wins (same rule as re-adding a column).
  */
 export interface SummaryConfig {
   /** Column key to aggregate */
@@ -470,9 +472,9 @@ export function createTableState(
     state.summaryConfigs.length === 0 &&
     !prefsStore.hydratedSummaryConfigs
   ) {
-    // Copy so the default never aliases the consumer's array — the
-    // add/update path can mutate an entry in place.
-    summary.setSummaryConfigs([...summaryDefaults]);
+    // `setSummaryConfigs` normalizes into a fresh array, so the default never
+    // aliases the consumer's array (pinned by the seed tests).
+    summary.setSummaryConfigs(summaryDefaults);
   }
   if (
     seed?.selectedIds &&
