@@ -59,13 +59,13 @@ export interface FamilyMaturity {
  */
 export const SET_FAMILIES: FamilyMaturity[] = [
   { family: 'form', settled: 18, inProgress: 7 },
-  { family: 'display', settled: 5, inProgress: 12 },
+  { family: 'display', settled: 8, inProgress: 9 },
   { family: 'feedback', settled: 10, inProgress: 1 },
   { family: 'ai', settled: 0, inProgress: 10 },
   { family: 'layout', settled: 7, inProgress: 3 },
-  { family: 'navigation', settled: 5, inProgress: 3 },
+  { family: 'navigation', settled: 6, inProgress: 2 },
   { family: 'overlay', settled: 4, inProgress: 4 },
-  { family: 'action', settled: 6, inProgress: 2 },
+  { family: 'action', settled: 7, inProgress: 1 },
   { family: 'data', settled: 2, inProgress: 0 }
 ];
 
@@ -106,16 +106,16 @@ export const SET_PACKAGE_FAMILY: SetFlowEdge[] = [
 export const SET_FAMILY_MATURITY: SetFlowEdge[] = [
   { source: 'form', target: 'stable', count: 18 },
   { source: 'form', target: 'beta', count: 7 },
-  { source: 'display', target: 'beta', count: 12 },
-  { source: 'display', target: 'stable', count: 5 },
+  { source: 'display', target: 'beta', count: 9 },
+  { source: 'display', target: 'stable', count: 8 },
   { source: 'ai', target: 'experimental', count: 10 },
   { source: 'layout', target: 'stable', count: 7 },
   { source: 'layout', target: 'experimental', count: 2 },
   { source: 'layout', target: 'beta', count: 1 },
-  { source: 'action', target: 'stable', count: 6 },
-  { source: 'action', target: 'beta', count: 2 },
-  { source: 'navigation', target: 'stable', count: 5 },
-  { source: 'navigation', target: 'beta', count: 3 },
+  { source: 'action', target: 'stable', count: 7 },
+  { source: 'action', target: 'beta', count: 1 },
+  { source: 'navigation', target: 'stable', count: 6 },
+  { source: 'navigation', target: 'beta', count: 2 },
   { source: 'overlay', target: 'stable', count: 4 },
   { source: 'overlay', target: 'beta', count: 4 },
   { source: 'feedback', target: 'stable', count: 10 },
