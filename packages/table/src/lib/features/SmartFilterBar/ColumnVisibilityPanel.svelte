@@ -24,12 +24,8 @@
   <p class="text-text-secondary text-sm">{tt('columns.empty')}</p>
 {:else}
   <!--
-    `flex flex-col`, not `space-y-*`: Checkbox's root is `inline-flex`, so the
-    rows are inline boxes and flow onto one line — the vertical spacing utility
-    has nothing to space. A flex column makes them block-level children first.
-
-    No `fieldset`/`legend` either. The accordion trigger already names this
-    group (Collapsible marks its content `role="region"` + `aria-labelledby` the
+    No `fieldset`/`legend`. The accordion trigger already names this group
+    (Collapsible marks its content `role="region"` + `aria-labelledby` the
     trigger), so a legend repeated the section heading one line below itself —
     visible in the sheet and doubled for a screen reader.
   -->

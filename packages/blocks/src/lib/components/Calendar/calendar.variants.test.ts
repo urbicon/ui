@@ -36,6 +36,25 @@ describe('calendarVariants', () => {
     expect(line).toBeGreaterThan(9);
   });
 
+  it('gives every gridline of the time grid one owner (#210)', () => {
+    // The hairline token is translucent, so two stacked 1px borders composite
+    // visibly darker instead of merging. The grid owns its top edge alone, the
+    // strip's bottom edge lives on the head cell (flush with the corner) rather
+    // than on the all-day band inside it, and the head cell continues the day
+    // columns' vertical line through the pinned strip.
+    const s = calendarVariants();
+    expect(s.weekTimeLayout()).not.toContain('border-t');
+    expect(s.timeGrid()).toContain('border-t');
+    expect(s.allDayArea()).not.toContain('border-b');
+    expect(s.timeHeadCell()).toContain('border-b');
+    expect(s.timeCorner()).toContain('border-b');
+    expect(s.timeHeadCell()).toContain('border-l');
+    expect(s.timeDayColumn()).toContain('border-l');
+    // In a week without all-day events the head is the strip cell's last child
+    // and would stack its border-b onto the cell's — `last:` hands it over.
+    expect(s.weekColumnHeader()).toContain('last:border-b-0');
+  });
+
   it('keeps the time grid positioned and its track list in a class, not in markup', () => {
     // `relative` is load-bearing: CalendarTimeGrid's auto-scroll reads the hour
     // rows' `offsetTop` against this box. The track list is a class rather than

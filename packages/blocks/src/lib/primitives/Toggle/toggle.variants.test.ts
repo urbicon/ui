@@ -5,6 +5,12 @@ const INTENTS = ['primary', 'secondary', 'success', 'warning', 'danger', 'neutra
 const VARIANTS = ['default', 'dot'] as const;
 
 describe('toggleVariants', () => {
+  it('renders a block-level root so stacked toggles stack (#91)', () => {
+    const wrapper = toggleVariants().wrapper().split(' ');
+    expect(wrapper).toContain('flex');
+    expect(wrapper).not.toContain('inline-flex');
+  });
+
   it('provides all required slot functions', () => {
     const styles = toggleVariants();
     expect(typeof styles.wrapper).toBe('function');
