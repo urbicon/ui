@@ -493,6 +493,7 @@
         aria-label={labelId ? undefined : ariaLabel}
         aria-describedby={describedBy}
         aria-invalid={ff.invalid ? 'true' : undefined}
+        aria-required={ff.required ? 'true' : undefined}
         aria-activedescendant={activeIndex >= 0 ? getOptionId(activeIndex) : undefined}
         onclick={toggle}
         onkeydown={handleTriggerKeydown}
@@ -736,6 +737,32 @@
         {/if}
       {/if}
     </div>
+
+    {#if name && required && !disabled && !hasSelection}
+      <!--
+        Constraint-validation sentinel. The form-bridge inputs below are
+        `type="hidden"` and therefore barred from constraint validation, so a
+        required Select would let an empty form submit straight through. This
+        invisible input participates instead: it renders only while the field
+        is empty (and required, enabled, form-associated via `name`), so an
+        empty submit is blocked exactly like a native required `<select>`. It
+        carries no `name` of its own — it never contributes an entry to the
+        form payload. When the browser focuses it on a blocked submit, focus
+        is forwarded to the trigger so keyboard and screen-reader users land
+        on the visible control rather than on an invisible input. Covering the
+        `base` box (`inset-0`) anchors the browser's validation UI at the
+        trigger; `pointer-events-none` keeps clicks going through to it.
+      -->
+      <input
+        type="text"
+        required
+        tabindex={-1}
+        aria-hidden="true"
+        autocomplete="off"
+        class="pointer-events-none absolute inset-0 opacity-0"
+        onfocus={() => focusTrigger()}
+      />
+    {/if}
   </div>
 
   {#if name}

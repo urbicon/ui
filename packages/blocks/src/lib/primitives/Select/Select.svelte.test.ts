@@ -466,3 +466,96 @@ describe('Select (orphan warn dedup)', () => {
     warn.mockRestore();
   });
 });
+
+// ── required: aria-required + native constraint validation (#206) ──────────────
+// `required` used to draw the label asterisk and nothing else — the trigger
+// carried no aria-required, and the `type="hidden"` form bridge is barred from
+// constraint validation, so an empty required Select submitted straight
+// through. Now the trigger exposes aria-required, and while the field is empty
+// an invisible required sentinel input (no `name` — never part of the payload)
+// participates in the form's validation in the hidden bridge's place, matching
+// a native required <select> in both modes.
+describe('Select (required)', () => {
+  function renderInForm(props: SelectProps<string | number | boolean>) {
+    const form = document.createElement('form');
+    document.body.appendChild(form);
+    const instance = mount(Select, { target: form, props });
+    dispose = () => unmount(instance);
+    flushSync();
+    return form;
+  }
+
+  it('exposes aria-required on the trigger only while required is set', () => {
+    renderSelect({ options: OPTIONS, required: true });
+    expect(trigger().getAttribute('aria-required')).toBe('true');
+
+    dispose?.();
+    dispose = undefined;
+    document.body.replaceChildren();
+
+    renderSelect({ options: OPTIONS });
+    expect(trigger().hasAttribute('aria-required')).toBe(false);
+  });
+
+  it('blocks an empty native submit and passes once a value is selected (single)', async () => {
+    const user = userEvent.setup();
+    const form = renderInForm({ options: OPTIONS, name: 'country', required: true });
+
+    // Empty: the sentinel participates in constraint validation and fails it.
+    const sentinel = form.querySelector<HTMLInputElement>('input[required]');
+    expect(sentinel).toBeTruthy();
+    // The sentinel must never contribute a payload entry of its own.
+    expect(sentinel?.hasAttribute('name')).toBe(false);
+    expect(form.checkValidity()).toBe(false);
+
+    await user.click(trigger());
+    await user.click(option('Germany'));
+
+    // Selected: sentinel unmounts, the hidden bridge carries the value, form passes.
+    expect(form.querySelector('input[required]')).toBeNull();
+    expect(form.querySelector<HTMLInputElement>('input[name="country"]')?.value).toBe('de');
+    expect(form.checkValidity()).toBe(true);
+  });
+
+  it('blocks an empty native submit in multi mode until an option is ticked', async () => {
+    const user = userEvent.setup();
+    const form = renderInForm({
+      options: OPTIONS,
+      multiple: true,
+      name: 'countries',
+      required: true
+    });
+
+    expect(form.checkValidity()).toBe(false);
+
+    await user.click(trigger());
+    await user.click(option('France'));
+
+    expect(form.checkValidity()).toBe(true);
+    expect(form.querySelector<HTMLInputElement>('input[name="countries"]')?.value).toBe('fr');
+  });
+
+  it('forwards a validation focus on the sentinel to the trigger, and exempts disabled fields', () => {
+    const form = renderInForm({ options: OPTIONS, name: 'country', required: true });
+
+    // The browser focuses the invalid control on a blocked submit — that focus
+    // must land on the visible trigger, not on the invisible input.
+    form.querySelector<HTMLInputElement>('input[required]')?.focus();
+    flushSync();
+    expect(document.activeElement).toBe(trigger());
+
+    dispose?.();
+    dispose = undefined;
+    document.body.replaceChildren();
+
+    // Disabled: barred from constraint validation like any native disabled control.
+    const disabledForm = renderInForm({
+      options: OPTIONS,
+      name: 'country',
+      required: true,
+      disabled: true
+    });
+    expect(disabledForm.querySelector('input[required]')).toBeNull();
+    expect(disabledForm.checkValidity()).toBe(true);
+  });
+});
