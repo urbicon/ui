@@ -169,6 +169,11 @@ export const calendarVariants = tv({
     // seven fitting columns the grid scrolls sideways rather than shrinking the
     // days to a stripe (#96). `relative` is load-bearing: the auto-scroll to the
     // current time reads the hour rows' `offsetTop` against this box.
+    //
+    // Border ownership: the grid owns its top edge alone — the layouts above it
+    // (weekTimeLayout, the day view) draw none. The hairline token is
+    // translucent, so two stacked 1px borders composite visibly darker instead
+    // of merging (#210).
     timeGrid: [
       'relative grid overflow-auto',
       'grid-cols-[auto_repeat(var(--blocks-calendar-day-count,1),minmax(var(--blocks-calendar-day-min-width,6rem),1fr))]',
@@ -196,7 +201,14 @@ export const calendarVariants = tv({
     // offset — the head's measured height — and without one it scrolls away,
     // which the on-mount jump to the current time does immediately.
     timeGutter: ['sticky left-0 z-40 flex flex-col', 'bg-surface-base/95 backdrop-blur-sm'],
-    timeHeadCell: ['sticky top-0 z-30 flex flex-col', 'bg-surface-base/95 backdrop-blur-sm'],
+    // The head cell draws the strip's bottom edge (flush with `timeCorner`) and
+    // continues the day columns' vertical line through the pinned strip — both
+    // lines have exactly this one owner (#210).
+    timeHeadCell: [
+      'sticky top-0 z-30 flex flex-col',
+      'bg-surface-base/95 backdrop-blur-sm',
+      'border-b border-l border-border-hairline'
+    ],
     timeCorner: [
       'sticky left-0 top-0 z-50',
       'bg-surface-base/95 backdrop-blur-sm',
@@ -214,17 +226,20 @@ export const calendarVariants = tv({
       'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/50'
     ],
     // `grow` bites only inside the pinned head strip, where the band is the last
-    // child of a flex column and its bottom border has to land on the strip's
-    // edge rather than under the tallest column's events. In the day view the
-    // band is a plain block child and the declaration is inert.
-    allDayArea: ['grow border-b border-border-hairline'],
+    // child of a flex column and has to fill down to the strip's edge rather
+    // than stop under the tallest column's events. The band draws no border of
+    // its own: the strip's bottom edge belongs to `timeHeadCell`, and in the
+    // day view the grid's own `border-t` separates band and hours (#210). In
+    // the day view the declaration is inert.
+    allDayArea: ['grow'],
     // `live` is the dedicated "now" accent (red by convention, themes via
     // --color-live) — deliberately not `danger`, which signals errors. z-10 puts
     // it over every event (inline 1…n) and under the pinned strip (30…50).
     currentTimeLine: 'absolute left-0 right-0 z-10 pointer-events-none border-t-2 border-live',
 
-    // Week time grid mode (replaces weekGrid when showTimeGrid)
-    weekTimeLayout: ['w-full flex flex-col', 'border-t border-border-hairline'],
+    // Week time grid mode (replaces weekGrid when showTimeGrid). No top border
+    // here — the grid inside owns that edge (#210).
+    weekTimeLayout: ['w-full flex flex-col'],
 
     // Event popover
     eventPopover: 'flex flex-col overflow-y-auto',
@@ -276,8 +291,12 @@ export const calendarVariants = tv({
         weekGrid: 'border-t-0',
         weekColumn: 'border-r-0',
         weekColumnHeader: 'border-b-0',
-        // The corner carries the head row's bottom line across the gutter, so it
+        // Ghost drops the whole pinned-strip frame: the grid's top edge, and
+        // the strip's bottom/vertical lines on head cell and corner — the
+        // corner carries the head row's bottom line across the gutter, so it
         // drops it with the heads rather than leaving a stub over the labels.
+        timeGrid: 'border-t-0',
+        timeHeadCell: 'border-b-0 border-l-0',
         timeCorner: 'border-b-0',
         item: 'border-transparent shadow-none hover:shadow-none',
         multiDayBar: 'opacity-90'
