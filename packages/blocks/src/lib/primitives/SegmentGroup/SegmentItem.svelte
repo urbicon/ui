@@ -44,7 +44,10 @@
 
   onMount(() => {
     if (itemElement) {
-      return ctx.registerItem(value, itemElement);
+      // The getter, not `isDisabled` itself: the group has to see the state
+      // this segment is in *now*, and registration happens once. Passing the
+      // value would freeze it at mount time — see RegisteredSegment.
+      return ctx.registerItem(value, itemElement, () => isDisabled);
     }
   });
 

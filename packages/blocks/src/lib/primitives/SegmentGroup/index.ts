@@ -5,10 +5,22 @@ import type { InteractiveTier } from '$lib/utils';
 import type { SegmentGroupSlots, SegmentGroupVariants } from './segmentgroup.variants';
 
 /**
+ * One registered segment, as the group tracks it.
+ *
+ * `isDisabled` is a getter rather than a boolean so the group reads the item's
+ * live state instead of a snapshot: the item derives it from its own `disabled`
+ * prop OR the group's, and both can change after registration.
+ */
+export interface RegisteredSegment {
+  element: HTMLElement;
+  isDisabled: () => boolean;
+}
+
+/**
  * Reactive context exposed to child SegmentItem components.
  */
 export interface SegmentGroupContext {
-  registerItem: (value: string, element: HTMLElement) => () => void;
+  registerItem: (value: string, element: HTMLElement, isDisabled: () => boolean) => () => void;
   selectItem: (value: string) => void;
   isActive: (value: string) => boolean;
   isTabStop: (value: string) => boolean;

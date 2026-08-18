@@ -6,7 +6,7 @@
   import { type CollapseMark, hostHasRoomAgain } from './overflow';
   import { segmentGroupVariants, type SegmentGroupVariants } from './segmentgroup.variants';
   import { setSegmentGroupContext } from './segmentGroup.context';
-  import type { SegmentGroupContext, SegmentGroupProps } from './index';
+  import type { RegisteredSegment, SegmentGroupContext, SegmentGroupProps } from './index';
 
   let {
     children,
@@ -48,7 +48,16 @@
   let collapseMark: CollapseMark | null = null;
   // SvelteMap instead of `$state(new Map())` — `.set()`/`.delete()` must be
   // reactive so the indicator updates when new items register.
-  const registeredItems = new SvelteMap<string, HTMLElement>();
+  //
+  // The entry carries a `isDisabled` GETTER, not a boolean: a segment's
+  // disabled state is derived in the item (its own prop OR the group's), and
+  // reading it through the getter makes it a dependency of whoever reads it —
+  // so `isTabStop` re-runs when a segment is disabled at runtime. A snapshot
+  // boolean would need a second write path to stay true, and reading
+  // `element.disabled` off the DOM (what this did until 2026-08-18) is not
+  // tracked at all: disabling the segment that held the tab stop left it there,
+  // unfocusable, and the group fell out of the tab order — the very #205 state.
+  const registeredItems = new SvelteMap<string, RegisteredSegment>();
 
   const variantProps: SegmentGroupVariants = $derived({
     size,
@@ -70,7 +79,7 @@
       return;
     }
 
-    const activeItem = registeredItems.get(value);
+    const activeItem = registeredItems.get(value)?.element;
     if (!activeItem) {
       indicatorStyle = 'opacity: 0;';
       return;
@@ -88,8 +97,8 @@
   }
 
   const segmentContext: SegmentGroupContext = {
-    registerItem(itemValue: string, element: HTMLElement) {
-      registeredItems.set(itemValue, element);
+    registerItem(itemValue: string, element: HTMLElement, isDisabled: () => boolean) {
+      registeredItems.set(itemValue, { element, isDisabled });
       requestAnimationFrame(updateIndicator);
 
       return () => {
@@ -109,18 +118,22 @@
     },
 
     // Which segment holds the roving tab stop. Normally the selected one — but
-    // when nothing is selected (value unset, or pointing at no registered item)
-    // the first enabled segment takes it, so the group stays reachable with Tab
-    // (standard radiogroup entry behaviour; same fallback as ButtonGroup).
-    // Without it every segment would carry tabindex="-1" and an empty segment
-    // control would be keyboard-dead (#205).
+    // only a segment that can actually take focus may hold it, so the group
+    // stays reachable with Tab (standard radiogroup entry behaviour; same
+    // fallback as ButtonGroup). Three states hand the stop to the first enabled
+    // segment instead, and every one of them is the keyboard-dead group of
+    // #205: no `value` at all, a `value` naming no registered segment, and a
+    // `value` naming a DISABLED one — in the last case the selected segment
+    // keeps `aria-checked` (the selection is real) but a disabled button cannot
+    // hold focus, so the stop moves rather than stranding there.
     isTabStop(itemValue: string) {
-      if (value === itemValue) return true;
-      if (value !== undefined && registeredItems.has(value)) return false;
+      const selected = value !== undefined ? registeredItems.get(value) : undefined;
+      if (selected && !selected.isDisabled()) return value === itemValue;
+
       const itemValues = Array.from(registeredItems.keys());
       const firstEnabled = edgeEnabledIndex(itemValues.length, 1, (i) => {
-        const el = registeredItems.get(itemValues[i]);
-        return !el || (el as HTMLButtonElement).disabled;
+        const entry = registeredItems.get(itemValues[i]);
+        return !entry || entry.isDisabled();
       });
       return firstEnabled >= 0 && itemValues[firstEnabled] === itemValue;
     },
@@ -166,7 +179,7 @@
     if (!el) return;
     // Read the map so the observer re-subscribes when the item set changes —
     // a newly registered segment brings a box of its own.
-    const items = Array.from(registeredItems.values());
+    const items = Array.from(registeredItems.values(), (entry) => entry.element);
 
     const remeasure = () => {
       if (collapseOnOverflow) measureOverflow();
@@ -200,7 +213,7 @@
     if (!collapsed) {
       let minLeft = Infinity;
       let maxRight = -Infinity;
-      for (const item of registeredItems.values()) {
+      for (const { element: item } of registeredItems.values()) {
         const r = item.getBoundingClientRect();
         if (r.width === 0 && r.height === 0) continue; // not laid out yet
         minLeft = Math.min(minLeft, r.left);
@@ -239,9 +252,11 @@
 
     const itemValues = Array.from(registeredItems.keys());
     const currentIndex = value ? itemValues.indexOf(value) : -1;
+    // Same source as `isTabStop`, not the DOM: one answer to "can this segment
+    // take focus" keeps navigation and the tab stop from disagreeing.
     const isDisabled = (i: number) => {
-      const el = registeredItems.get(itemValues[i]);
-      return !el || (el as HTMLButtonElement).disabled;
+      const entry = registeredItems.get(itemValues[i]);
+      return !entry || entry.isDisabled();
     };
     let newIndex: number;
 
@@ -270,7 +285,7 @@
 
     if (newIndex !== currentIndex && newIndex >= 0 && itemValues[newIndex]) {
       segmentContext.selectItem(itemValues[newIndex]);
-      const newItem = registeredItems.get(itemValues[newIndex]);
+      const newItem = registeredItems.get(itemValues[newIndex])?.element;
       newItem?.focus();
     }
   }
