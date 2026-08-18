@@ -4,8 +4,27 @@ import type { MintProp } from '$lib/mint';
 import type { InteractiveTier } from '$lib/utils';
 import type { TabSlots, TabVariants } from './tab.variants';
 
+/**
+ * One registered tab, as the tablist tracks it.
+ *
+ * `isDisabled` is a getter rather than a boolean so the tablist reads the
+ * item's live state instead of a snapshot: the item derives it from its own
+ * `disabled` prop OR the group's, and both can change after registration.
+ * Mirrors `RegisteredSegment` in SegmentGroup, which answers the same question.
+ */
+export interface RegisteredTab {
+  element: HTMLElement;
+  isDisabled: () => boolean;
+}
+
 export interface TabContext {
-  registerTab: (value: string, element: HTMLElement) => () => void;
+  registerTab: (value: string, element: HTMLElement, isDisabled: () => boolean) => () => void;
+  /**
+   * Which tab holds the roving tab stop. Normally the active one — but a
+   * disabled tab cannot hold focus, so the stop moves to the first enabled tab
+   * rather than stranding there and dropping the tablist out of the tab order.
+   */
+  isTabStop: (value: string) => boolean;
   /**
    * Called by TabPanel while its element is actually in the DOM (rendering may
    * be deferred by `lazy`). TabItem emits `aria-controls` only for a value a

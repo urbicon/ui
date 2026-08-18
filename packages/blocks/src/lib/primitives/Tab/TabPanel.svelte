@@ -44,6 +44,12 @@
   // Claim the value while the panel's element is actually in the DOM — keyed
   // on shouldRender, not on mount, so a lazy panel that has never been active
   // (its id does not exist yet) draws no aria-controls on its TabItem (#109).
+  //
+  // Effects do not run during SSR, so server-rendered tabs carry no
+  // `aria-controls` and gain it on hydration. That is the safe direction: the
+  // attribute is optional on `role="tab"`, while pointing it at an id that is
+  // not in the document is an axe violation — which is what the unconditional
+  // version did for lazy and consumer-rendered panels.
   $effect(() => {
     if (shouldRender) {
       return tabContext.registerPanel(value);

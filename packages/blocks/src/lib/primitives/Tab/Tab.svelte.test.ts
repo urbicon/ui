@@ -73,6 +73,60 @@ describe('Tab (component interaction)', () => {
     expect(tabIndex('Billing')).toBe('-1');
   });
 
+  // A tabs widget always has exactly one selected tab. Both `value` and
+  // `defaultValue` are optional, and with neither the widget used to render
+  // nothing selected: no tab stop (keyboard-dead tablist), no panel, no
+  // aria-selected. The first enabled tab to register takes the selection, so
+  // the bare `<Tab>` cannot be in that state at all.
+  it('selects its first tab when given neither value nor defaultValue', () => {
+    renderTabs();
+
+    expect(selected('Overview')).toBe('true');
+    expect(tabIndex('Overview')).toBe('0');
+    expect(activePanel().textContent).toContain('Overview content');
+  });
+
+  it('skips a disabled first tab when seeding the selection', () => {
+    renderTabs({
+      items: [
+        { value: 'overview', label: 'Overview', disabled: true },
+        { value: 'settings', label: 'Settings' },
+        { value: 'billing', label: 'Billing' }
+      ]
+    });
+
+    expect(selected('Overview')).toBe('false');
+    expect(selected('Settings')).toBe('true');
+    expect(tabIndex('Settings')).toBe('0');
+  });
+
+  // A controlled value is the consumer's state: naming no tab is left alone
+  // rather than silently corrected — but the tablist still has to be reachable,
+  // so the stop goes to the first enabled tab without touching selection.
+  it('keeps a tab stop when a controlled value names no tab', () => {
+    renderTabs({ value: 'nonexistent' });
+
+    expect(selected('Overview')).toBe('false');
+    expect(selected('Settings')).toBe('false');
+    expect(tabIndex('Overview')).toBe('0');
+  });
+
+  // Same rule as SegmentGroup: only a tab that can take focus may hold the stop.
+  it('hands the tab stop on when the active tab is disabled', () => {
+    renderTabs({
+      value: 'overview',
+      items: [
+        { value: 'overview', label: 'Overview', disabled: true },
+        { value: 'settings', label: 'Settings' },
+        { value: 'billing', label: 'Billing' }
+      ]
+    });
+
+    expect(selected('Overview')).toBe('true');
+    expect(tabIndex('Overview')).toBe('-1');
+    expect(tabIndex('Settings')).toBe('0');
+  });
+
   it('ArrowRight moves selection AND focus to the next tab (automatic activation)', async () => {
     const user = userEvent.setup();
     const onValueChange = vi.fn();
