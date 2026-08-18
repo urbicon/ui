@@ -294,9 +294,16 @@ Fun, engaging, vibrant. Bold colors, bouncy motion.
 ### Glassmorphism
 Translucent, layered, modern. Blurred backgrounds, glass surfaces.
 - **Foundation:** moderate radii (`--radius-contain: var(--radius-lg)`), prominent shadows
-- **Semantic:** surface tokens use `oklch(... / 0.7)` transparency, heavy backdrop blur (`--blocks-overlay-backdrop-blur: 12px`)
+- **Semantic:** surface tokens use `oklch(... / 0.7)` transparency
 - **Interaction:** smooth easing, glow mint, standard durations
 - **Composition:** layered Cards, depth via shadow + transparency, minimal borders (use shadow for separation)
+- **How far the tokens carry it:** transparency and colour are token work and cost nothing.
+  The blur is not, except behind overlays: `--blocks-overlay-backdrop-blur` (default `8px`)
+  is read by the Dialog, Drawer and Sidebar backdrops, and raising it to `12px` gives those
+  the heavier glass. Blurring a *surface* — a Card, a panel — has no token; add
+  `backdrop-blur-*` through `class`/`slotClasses` on the components that need it. That is
+  deliberate: a resting blur/glow token set was weighed in 2026-08 and not built, because
+  shipping an aesthetic skin was decided against.
 
 ## Anti-Patterns
 

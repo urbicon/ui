@@ -82,9 +82,12 @@ describe('drawerVariants', () => {
     expect(lg).toContain('h-96');
   });
 
-  it('uses backdrop blur', () => {
+  // Through the token, not a Tailwind step: `--blocks-overlay-backdrop-blur` is
+  // documented as the backdrop's knob, and it had no readers at all until
+  // 2026-08-18 while every backdrop hardcoded its own blur.
+  it('takes its backdrop blur from the overlay token', () => {
     const backdrop = drawerVariants({}).backdrop();
-    expect(backdrop).toContain('backdrop-blur-sm');
+    expect(backdrop).toContain('backdrop-blur-[var(--blocks-overlay-backdrop-blur)]');
   });
 
   it('uses semantic border tokens', () => {

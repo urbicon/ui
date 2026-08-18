@@ -7,7 +7,9 @@ export const drawerVariants = tv({
       'p-0 bg-transparent border-none outline-none',
       'max-w-none max-h-none w-full h-full overflow-hidden'
     ],
-    backdrop: ['fixed inset-0 z-[var(--z-overlay)] bg-black/50 backdrop-blur-sm'],
+    backdrop: [
+      'fixed inset-0 z-[var(--z-overlay)] bg-black/50 backdrop-blur-[var(--blocks-overlay-backdrop-blur)]'
+    ],
     panel: [
       'relative flex flex-col bg-surface-overlay',
       'border border-border-hairline',

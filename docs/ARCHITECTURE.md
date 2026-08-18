@@ -430,7 +430,7 @@ constants in `utils/overlay-tokens.ts`:
 | `--blocks-overlay-easing` | `cubic-bezier(0.83, 0, 0.17, 1)` | Shared easing |
 | `--blocks-overlay-panel-scale-start` | `0.96` | Scale-in start (1 disables) |
 | `--blocks-overlay-panel-fly-distance` | `320px` | Fly-in distance along the placement axis |
-| `--blocks-overlay-backdrop-blur` | `4px` | Backdrop `backdrop-filter` |
+| `--blocks-overlay-backdrop-blur` | `8px` | Backdrop `backdrop-filter` (Dialog, Drawer, Sidebar) |
 
 `prefers-reduced-motion: reduce` collapses every duration to `1ms`, scale to `1` and
 fly-distance to `0px` in a single media-query block — components never check the query

@@ -87,21 +87,40 @@
     menuOpen = false;
   }
 
-  function handleToggleSummary() {
-    const hasSummary = tableState.summaryConfigs.some((c) => c.column === columnId);
+  /**
+   * The aggregations a column can carry, in the order the tools sheet lists
+   * them. The store keeps at most one per column, so this is a choice among
+   * six states rather than a set of switches — and "none" is one of the six.
+   */
+  const SUMMARY_TYPES = [
+    { value: 'sum', label: () => tt('summary.types.sum') },
+    { value: 'avg', label: () => tt('summary.types.average') },
+    { value: 'count', label: () => tt('summary.types.count') },
+    { value: 'min', label: () => tt('summary.types.minimum') },
+    { value: 'max', label: () => tt('summary.types.maximum') }
+  ] as const;
 
-    if (hasSummary) {
-      removeSummaryConfig(columnId);
+  /**
+   * The summary row expands instead of acting, because a column's aggregation
+   * is a choice and this menu used to make it silently: the entry was a toggle
+   * that picked `sum` for a number column and `count` for anything else, with
+   * no way to ask for an average. Expanding costs one click and puts the same
+   * six states here that the tools sheet offers, so the two surfaces can no
+   * longer disagree about what a column is set to.
+   */
+  let summaryOpen = $state(false);
+
+  const currentSummaryType = $derived(
+    tableState.summaryConfigs.find((config) => config.column === columnId)?.type
+  );
+
+  function handleSummaryType(type: string | undefined) {
+    if (type) {
+      addSummaryConfig({ column: columnId, type: type as (typeof SUMMARY_TYPES)[number]['value'] });
     } else {
-      // Synthetic columns can't reach this handler (gated by isColumnSummable),
-      // so `dataType` is reachable on the narrowed data-column shape.
-      const dataType = 'dataType' in column ? column.dataType : undefined;
-      const summaryType = dataType === 'number' ? 'sum' : 'count';
-      addSummaryConfig({
-        column: columnId,
-        type: summaryType
-      });
+      removeSummaryConfig(columnId);
     }
+    summaryOpen = false;
     menuOpen = false;
   }
 
@@ -124,7 +143,7 @@
 
   let isSorted = $derived(tableView.sort?.column === columnId);
   let isGrouped = $derived(tableState.effectiveGroupBy === columnId);
-  let hasSummary = $derived(tableState.summaryConfigs.some((c) => c.column === columnId));
+  const hasSummary = $derived(!!currentSummaryType);
   let hasFilter = $derived(tableView.filters.some((f) => f.column === columnId));
 
   const hiddenColumns = $derived.by(() =>
@@ -200,11 +219,46 @@
           variant="ghost"
           size="sm"
           class={itemClass(hasSummary ? 'summary' : 'default', hasSummary)}
-          onclick={handleToggleSummary}
+          aria-expanded={summaryOpen}
+          data-testid={`header-menu-summary-${columnId}`}
+          onclick={() => (summaryOpen = !summaryOpen)}
         >
           <CalculatorIcon class="h-4 w-4" />
-          {hasSummary ? tt('headerMenu.removeSummary') : tt('headerMenu.addSummary')}
+          {tt('headerMenu.summary')}
+          <span class={styles.itemValue()}>
+            {currentSummaryType
+              ? (SUMMARY_TYPES.find((t) => t.value === currentSummaryType)?.label() ?? '')
+              : tt('summary.none')}
+          </span>
         </Button>
+
+        {#if summaryOpen}
+          <div class={styles.submenu()} data-testid={`header-menu-summary-types-${columnId}`}>
+            {#each SUMMARY_TYPES as type (type.value)}
+              <Button
+                variant="ghost"
+                size="sm"
+                class={itemClass(
+                  currentSummaryType === type.value ? 'summary' : 'default',
+                  currentSummaryType === type.value
+                )}
+                aria-pressed={currentSummaryType === type.value}
+                onclick={() => handleSummaryType(type.value)}
+              >
+                {type.label()}
+              </Button>
+            {/each}
+            <Button
+              variant="ghost"
+              size="sm"
+              class={itemClass('default', !currentSummaryType)}
+              aria-pressed={!currentSummaryType}
+              onclick={() => handleSummaryType(undefined)}
+            >
+              {tt('summary.none')}
+            </Button>
+          </div>
+        {/if}
       {/if}
 
       {#if canHide}

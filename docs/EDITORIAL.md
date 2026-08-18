@@ -68,9 +68,14 @@ What they do that we copy:
 
 ## Model paragraphs
 
-These set the register. API details in them are illustrative; verify names against the
-source before shipping anything. When a shipped page has a better paragraph than these,
-swap it in: the samples here do more work than the rules below.
+Worked examples, not the register model — the canon above is that, and only that. These
+show the step the canon cannot: the same fact carried from our own API into plain prose,
+with the before/after pair as the sharpest form of it. API details are illustrative; verify
+names against the source before shipping anything.
+
+Do **not** replace them with a paragraph lifted from a shipped page. Several shipped pages
+are off-register, and copying one propagates the wrong voice — the reason the canon is
+vendored and frozen while pages keep moving.
 
 **Introducing a feature:**
 
@@ -175,5 +180,5 @@ Exhaustive is the system; the page stays minimal.
 ## Changing this file
 
 Budget: one page. A new rule needs a second offender; a single finding belongs in the
-change that found it. Keep the model paragraphs current. They are the part of this file
-that actually gets imitated.
+change that found it. The model paragraphs are the part of this file that actually gets
+imitated, so keep them good — by writing them, not by harvesting a shipped page.

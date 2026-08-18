@@ -121,8 +121,7 @@ export default {
     removeFilter: 'Filter entfernen',
     groupByColumn: 'Nach Spalte gruppieren',
     removeGrouping: 'Gruppierung aufheben',
-    addSummary: 'Zusammenfassung hinzufügen',
-    removeSummary: 'Zusammenfassung entfernen',
+    summary: 'Zusammenfassung',
     hideColumn: 'Spalte ausblenden',
     showColumn: 'Anzeigen',
     columnOptions: 'Spaltenoptionen für'

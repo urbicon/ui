@@ -2,7 +2,10 @@ import { type SlotNames, tv, type VariantProps } from '$lib/utils/variants';
 
 export const sidebarVariants = tv({
   slots: {
-    backdrop: ['fixed inset-0 z-[var(--z-overlay)]', 'bg-surface-inverted/50 backdrop-blur-sm'],
+    backdrop: [
+      'fixed inset-0 z-[var(--z-overlay)]',
+      'bg-surface-inverted/50 backdrop-blur-[var(--blocks-overlay-backdrop-blur)]'
+    ],
     panel: [
       'fixed inset-y-0 z-[var(--z-sidebar)]',
       'flex flex-col',
