@@ -24,7 +24,7 @@ urbicon pattern dashboard          # composition patterns per page archetype
 urbicon principles --topic theming # design heuristics + paradigm profiles
 urbicon css-reference intents      # the token truth: naming, dark mode, overrides
 
-# The closed design loop — generate → validate → judge:
+# The design loop — generate → validate (the gate) → judge (advisory):
 
 urbicon validate src/              # lint tokens, dark:/focus:, z-index; 0–100 scores
 urbicon principles --rubric        # 8-criterion rubric to judge a generated UI
@@ -90,15 +90,22 @@ let { variant, intent } = $props();`;
         >@urbicon-ui/design</code
       >, gives your agent the full design surface: component discovery, recipes, patterns,
       principles and the token reference — all pinned to the library version you installed. The same
-      package closes the loop: generated markup is linted by
+      package runs the loop: generated markup is gated by
       <code class="bg-surface-elevated rounded px-1.5 py-0.5 font-mono text-xs"
         >urbicon validate</code
       >
-      (as an edit-time hook and a CI gate), judged against a scoring rubric, and design intent survives
-      sessions in a
+      (an edit-time hook and a CI gate), judged against a scoring rubric, and design intent survives sessions
+      in a
       <code class="bg-surface-elevated rounded px-1.5 py-0.5 font-mono text-xs"
         >design.manifest.md</code
-      > in your repo.
+      >
+      in your repo. One measurement, so you can size the claim: Haiku 4.5, one task, CLI and gate against
+      neither. Reading the installed package on its own it shipped 373 findings, mostly raw Tailwind colours
+      and hand-written
+      <code class="bg-surface-elevated rounded px-1.5 py-0.5 font-mono text-xs">dark:</code>
+      patches; wired,
+      <code class="bg-surface-elevated rounded px-1.5 py-0.5 font-mono text-xs">validate</code>
+      came out clean. The design itself scored alike either way — this buys token discipline, not taste.
     </p>
 
     <CodeExample title="Setup" code={cliSetupExample} language="bash" preview={false} />
@@ -134,7 +141,7 @@ let { variant, intent } = $props();`;
         </p>
       </Card>
       <Card variant="outlined" padding="md">
-        <h3 class="text-text-primary mb-1 font-semibold">10 design verbs · enforced loop</h3>
+        <h3 class="text-text-primary mb-1 font-semibold">10 design verbs · gated correctness</h3>
         <p class="text-text-secondary text-sm">
           <span class="text-text-tertiary">Verbs:</span> onboard, adopt, compose, redesign, polish,
           critique, fix, retheme, audit, migrate — each a recipe over the design loop (<code

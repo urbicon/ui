@@ -11,6 +11,35 @@ cannot do. Under the hood it wraps the zero-dependency
 [`@urbicon-ui/design-engine`](../design-engine/); the same engine backs the remote
 `validate_design` MCP tool, so local and remote verdicts agree.
 
+**What the loop buys, measured.** One A/B pair on v8.3.1 (2026-08-18): Haiku 4.5
+built the same three-page auth app twice, with `@urbicon-ui/*` installed either
+way. One run had this CLI and its edit-time gate wired in, the other had neither.
+
+|                                   | left to itself | CLI + gate wired |
+| --------------------------------- | -------------- | ---------------- |
+| `urbicon validate src/`           | **373 errors** | **clean**        |
+| — raw Tailwind colours            | 273            | 0                |
+| — hand-written `dark:` patches    | 96             | 0                |
+| — focus not `focus-visible`       | 4              | 0                |
+| knowledge lookups / package reads | 0 / 8          | 23 / 0           |
+| catalog components re-implemented | 72             | 29               |
+| blind-judged design quality       | 16/40          | 17/40            |
+
+The mechanism is the lookups row: without the CLI the agent reads the installed
+package and guesses; with it, it asks and gets the answer for the version it
+actually has.
+
+The last three rows are the honest limits, and they matter more than the
+headline. A clean `validate` means the linter found nothing, which is not the
+same as correct — the wired run still shipped `text-on-surface-muted`, a class
+naming no token, which therefore renders as nothing, and the linter missed it.
+Re-implementation drops but does not stop: a wired agent still hand-builds
+components the catalog ships. And design quality does not move. Two further
+findings from the same eval: the loop raises craft scores on no model tier
+(three tiers, three arms), and it does not make runs cheaper (two independent
+pairs, no advantage either time). Token discipline is what you get; taste and
+budget stay with you.
+
 ## Install
 
 ```bash

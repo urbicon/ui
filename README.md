@@ -112,8 +112,8 @@ same repo and release in lockstep.
 ## Built for agents, readable by humans
 
 The library treats AI coding agents as first-class consumers without giving up on the people who
-review their work. `bunx urbicon init` writes the AGENTS.md block and wires in `urbicon validate`;
-from then on the loop closes itself:
+review their work. `bunx urbicon init` writes the AGENTS.md block and scaffolds the design
+manifest; add `--hook` and every edit runs through the gate on its way in:
 
 ```mermaid
 flowchart LR
@@ -127,6 +127,12 @@ Because components carry their design knowledge with them (per-component `llms.t
 machine-readable catalogs, a version-pinned CLI serving tokens, patterns and recipes), the agent
 composes from the system instead of improvising against it. The result stays small and legible:
 semantic tokens instead of pixel soup, one API grammar instead of per-component dialects.
+
+One measurement, so you can size the claim. Haiku 4.5 built the same three-page app twice, once
+reading the installed package on its own and once with the CLI and gate wired in. On its own it
+shipped 373 linter findings, mostly raw Tailwind colours and hand-written `dark:` overrides;
+wired, `urbicon validate` came out clean. The design itself scored alike either way. This buys
+token discipline, not taste.
 
 ## Theming
 
