@@ -11,6 +11,7 @@ export interface SegmentGroupContext {
   registerItem: (value: string, element: HTMLElement) => () => void;
   selectItem: (value: string) => void;
   isActive: (value: string) => boolean;
+  isTabStop: (value: string) => boolean;
   readonly size: NonNullable<SegmentGroupVariants['size']>;
   readonly variant: NonNullable<SegmentGroupVariants['variant']>;
   readonly tier: InteractiveTier;

@@ -108,6 +108,23 @@
       return value === itemValue;
     },
 
+    // Which segment holds the roving tab stop. Normally the selected one — but
+    // when nothing is selected (value unset, or pointing at no registered item)
+    // the first enabled segment takes it, so the group stays reachable with Tab
+    // (standard radiogroup entry behaviour; same fallback as ButtonGroup).
+    // Without it every segment would carry tabindex="-1" and an empty segment
+    // control would be keyboard-dead (#205).
+    isTabStop(itemValue: string) {
+      if (value === itemValue) return true;
+      if (value !== undefined && registeredItems.has(value)) return false;
+      const itemValues = Array.from(registeredItems.keys());
+      const firstEnabled = edgeEnabledIndex(itemValues.length, 1, (i) => {
+        const el = registeredItems.get(itemValues[i]);
+        return !el || (el as HTMLButtonElement).disabled;
+      });
+      return firstEnabled >= 0 && itemValues[firstEnabled] === itemValue;
+    },
+
     get size() {
       return size;
     },

@@ -62,6 +62,66 @@ describe('SegmentGroup (component interaction)', () => {
     expect(tabIndex('Month')).toBe('-1');
   });
 
+  // With nothing selected the group must still be reachable with Tab: the first
+  // enabled segment holds the tab stop (standard radiogroup entry behaviour,
+  // same fallback as ButtonGroup). Guards #205 — every segment carried -1 and an
+  // empty segment control was keyboard-dead.
+  it('gives the first segment the tab stop when nothing is selected', () => {
+    renderSegments();
+
+    expect(tabIndex('Day')).toBe('0');
+    expect(tabIndex('Week')).toBe('-1');
+    expect(tabIndex('Month')).toBe('-1');
+    // The fallback is a tab stop, not a selection.
+    expect(checked('Day')).toBe('false');
+  });
+
+  it('skips a disabled first segment for the no-selection tab stop', () => {
+    renderSegments({
+      items: [
+        { value: 'a', label: 'A', disabled: true },
+        { value: 'b', label: 'B' },
+        { value: 'c', label: 'C' }
+      ]
+    });
+
+    expect(tabIndex('A')).toBe('-1');
+    expect(tabIndex('B')).toBe('0');
+    expect(tabIndex('C')).toBe('-1');
+  });
+
+  it('falls back to the first segment when value matches no item', () => {
+    renderSegments({ value: 'quarter' });
+
+    expect(tabIndex('Day')).toBe('0');
+    expect(checked('Day')).toBe('false');
+  });
+
+  it('hands the tab stop from the fallback to the selected segment', async () => {
+    const user = userEvent.setup();
+    renderSegments();
+
+    expect(tabIndex('Day')).toBe('0');
+    await user.click(segment('Week'));
+
+    expect(tabIndex('Week')).toBe('0');
+    expect(tabIndex('Day')).toBe('-1');
+  });
+
+  it('lets the keyboard establish a selection from the empty state', async () => {
+    const user = userEvent.setup();
+    const onValueChange = vi.fn();
+    renderSegments({ onValueChange });
+
+    // Tab lands on the fallback stop; the first arrow press anchors just off
+    // the leading edge (roving.ts) and selects the first enabled segment.
+    segment('Day').focus();
+    await user.keyboard('{ArrowRight}');
+
+    expect(checked('Day')).toBe('true');
+    expect(onValueChange).toHaveBeenCalledWith('day');
+  });
+
   it('ArrowRight moves selection AND focus, wrapping past the end', async () => {
     const user = userEvent.setup();
     const onValueChange = vi.fn();
