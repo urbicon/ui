@@ -54,8 +54,8 @@ bunx sv add tailwindcss=plugins:none @urbicon-ui
 
 ## Components
 
-- **Layout**: Card, Modal, Dialog, Popover, Tooltip, Separator, Accordion
-- **Actions**: Button, ButtonGroup, Toolbar, Dropdown, Combobox
+- **Layout**: Card, Dialog, Popover, Tooltip, Separator, Accordion
+- **Actions**: Button, ButtonGroup, Toolbar, Menu, Combobox
 - **Forms**: Input, Checkbox, Toggle
 - **Feedback**: Badge, Spinner, Pagination, Alert, Toast, Skeleton
 - **Navigation**: Tab, Breadcrumb
@@ -67,3 +67,14 @@ bunx sv add tailwindcss=plugins:none @urbicon-ui
 All components share: `intent`, `size`, `variant`, `unstyled`, `slotClasses`, `preset`, `mint`, `class` props.
 For project-wide styling, `BlocksProvider` accepts `defaults` (every instance), named `presets` (opt-in), and prop-conditional `overrides` (e.g. style only `variant="outlined"`).
 Import from `@urbicon-ui/blocks`. Use semantic tokens (`bg-surface-base`, not `bg-white`). Use `focus-visible:` for focus styles.
+
+## Agent Tooling
+
+One dev-dependency, `@urbicon-ui/design`, ships the `urbicon` CLI: version-pinned component
+knowledge (`urbicon primer` / `find` / `get-component`) and a deterministic design linter
+(`urbicon validate`) that runs as an edit-time hook and CI gate; `bunx urbicon init` wires a
+project in. Ask the CLI rather than reading the package sources. One measurement (Haiku 4.5, one
+task, CLI plus edit-time gate against neither): reading the package it shipped 373 linter
+findings, mostly raw Tailwind colours and hand-written `dark:` overrides; with CLI and gate,
+`urbicon validate` came out clean. Design quality was unchanged either way — this buys token
+discipline, not taste.

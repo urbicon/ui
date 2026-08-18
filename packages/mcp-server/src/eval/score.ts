@@ -3,8 +3,11 @@
  * (no LLM): `scoreImplementation` runs the design-linter and returns the score
  * and finding counts. The rubric half is judge-supplied (1–5 per criterion);
  * `aggregateRubric` validates and sums it. `formatAbReport` renders the
- * baseline-vs-treatment comparison in the shape of experiment/round-2's summary
- * tables, so a new run is directly comparable to that +33.8% baseline.
+ * baseline-vs-treatment comparison as per-brief rows plus an aggregate.
+ *
+ * Compare arms *within* one round only. Rubric and capture rules have changed
+ * between rounds, and a delta taken across such a change measures the rule, not
+ * the arm.
  */
 
 import { lintDesign } from '@urbicon-ui/design-engine/linter';
@@ -13,8 +16,8 @@ import { MAX_RUBRIC_SCORE, RUBRIC_CRITERIA } from '@urbicon-ui/design-engine/rub
 export interface LinterScore {
   /**
    * Stage-1 correctness axis, 0–100 (deterministic defects only). The stable A/B
-   * headline metric: unaffected by the craft heuristics, so it stays directly
-   * comparable to the pre-craft-axis baseline (the +33.8% measurement).
+   * headline metric: unaffected by the craft heuristics, so adding or tuning
+   * those does not move it.
    */
   correctness: number;
   /** Stage-2 craft axis, 0–100 (system-agnostic "looks generic" heuristics). */

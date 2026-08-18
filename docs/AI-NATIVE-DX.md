@@ -59,7 +59,7 @@ server.
 Served locally by `urbicon principles` / `urbicon pattern`, remotely by
 `get_design_principles` / `get_pattern`, both out of the `design-content` bundle.
 
-## The closed design loop
+## The design loop
 
 Serving knowledge is only half of it. The loop is generate → validate → judge → synthesise:
 
@@ -75,3 +75,13 @@ Serving knowledge is only half of it. The loop is generate → validate → judg
 - **Enforcement is local**: a `PostToolUse` hook (`urbicon hook`) and CI (`urbicon validate`)
   turn the loop from advisory into required. Correctness always gates; the craft axis is
   opt-in via `--craft-floor`. Templates ship under `@urbicon-ui/design/templates`.
+
+**What it is measured to do — and not to do.** Blind-judged A/B runs (2026-08, waves 1–3 plus
+the replication of 2026-08-18; sources in `docs/internal/DESIGN-EVAL-2026-08/`) support one
+claim: the loop holds generated markup on the token system. On a budget model, the run reading
+the installed package on its own produced 373 linter findings where the wired run produced a
+clean `validate`. Three things it does **not** do, each measured rather than assumed: it does
+not raise design-craft scores on any model tier; it does not make runs cheaper (two independent
+pairs, no advantage either time); and a clean gate is not the same as correct — the wired run
+still shipped a class naming no token, and the linter missed it. Public claims are held to
+this list.

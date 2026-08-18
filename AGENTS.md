@@ -131,7 +131,7 @@ The DOM-test conventions were learned the hard way — **never "modernise" them 
 The library ships its own knowledge to agents: `llms.txt` / `llms-full.txt`, `.cursorrules`,
 the **`urbicon` CLI** (`packages/design`) — the primary consumer surface, one dev-dependency
 with version-pinned knowledge — and a remote MCP adapter over the same engine.
-`urbicon validate` closes the loop by linting generated markup, locally enforced through a
+`urbicon validate` gates the loop by linting generated markup, locally enforced through a
 `PostToolUse` hook and CI.
 
 Which command serves what, the `init` contract, why the MCP endpoint stays unhosted before

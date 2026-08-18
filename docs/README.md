@@ -33,7 +33,7 @@ Then reach for the rest as you need it.
 - [DocsPageGuide.md](DocsPageGuide.md) — building component documentation pages
 - [EDITORIAL.md](EDITORIAL.md) — how the prose on those pages is written: principles, canon pages, and the editing checklist the `docs-editor` skill runs
 - [DOCS-SURFACES.md](DOCS-SURFACES.md) — where docs live, who owns them, how they reach consumers
-- [AI-NATIVE-DX.md](AI-NATIVE-DX.md) — what an agent is served and from where: the `urbicon` CLI (the consumer surface), the MCP adapter, the closed design loop
+- [AI-NATIVE-DX.md](AI-NATIVE-DX.md) — what an agent is served and from where: the `urbicon` CLI (the consumer surface), the MCP adapter, the design loop and what it is measured to do
 - [VERSIONING.md](VERSIONING.md) — bump levels, bump-script steps, commit-type → changelog mapping
 
 ## Component reference
