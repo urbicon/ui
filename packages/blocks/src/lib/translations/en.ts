@@ -28,7 +28,6 @@ export default {
     timeMeridiem: 'AM or PM',
     toggle: 'Toggle',
     toggleOptions: 'Toggle options',
-    removableBadge: 'Removable badge',
     removeBadge: 'Remove badge',
     removeFile: 'Remove {{name}}',
     removeTag: 'Remove {{label}}'
@@ -172,6 +171,14 @@ export default {
     actionRequired: 'Complete the highlighted action to continue',
     filterPlaceholder: 'Filter topics…',
     noResults: 'No matching topics'
+  },
+  avatar: {
+    status: {
+      online: 'Online',
+      offline: 'Offline',
+      away: 'Away',
+      busy: 'Busy'
+    }
   },
   journeyTimeline: {
     label: 'Journey',

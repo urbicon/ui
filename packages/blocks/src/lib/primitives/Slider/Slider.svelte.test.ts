@@ -218,6 +218,85 @@ describe('Slider (external aria-labelledby)', () => {
   });
 });
 
+// #127 — the thumb's pointerdown calls preventDefault() (suppressing text
+// selection during a drag), which also suppresses the browser's default
+// focus-on-pointerdown; without an explicit .focus() the "point roughly, then
+// arrow-key to the exact value" gesture strands the arrow keys on whatever was
+// focused before. jsdom has no layout, so drag *positions* stay Playwright's
+// job — these tests pin the focus handoff itself, plus the track-click value
+// math (pure once getBoundingClientRect is pinned on the track).
+describe('Slider (pointer interaction hands focus to the thumb — #127)', () => {
+  function pointerDown(el: HTMLElement) {
+    // jsdom ships no PointerEvent constructor; the handler only reads members
+    // MouseEvent has too (pointerId lands on the stubbed setPointerCapture).
+    const Ctor = (window.PointerEvent ?? MouseEvent) as typeof MouseEvent;
+    el.dispatchEvent(new Ctor('pointerdown', { bubbles: true, cancelable: true }));
+  }
+
+  function pinTrackRect(thumb: HTMLElement) {
+    // The thumb's parent is the track wrapper carrying the click handler.
+    const track = thumb.parentElement as HTMLElement;
+    track.getBoundingClientRect = () =>
+      ({ left: 0, width: 100, top: 0, right: 100, bottom: 8, height: 8, x: 0, y: 0 }) as DOMRect;
+    return track;
+  }
+
+  it('focuses the thumb on pointerdown so arrow keys fine-tune afterwards', async () => {
+    const user = userEvent.setup();
+    renderSlider({ value: 50, label: 'Volume' });
+
+    const el = slider('Volume');
+    expect(document.activeElement).not.toBe(el);
+    pointerDown(el);
+    expect(document.activeElement).toBe(el);
+
+    await user.keyboard('{ArrowRight}');
+    expect(valueNow(el)).toBe('51');
+  });
+
+  it('focuses the pressed thumb in range mode', () => {
+    renderSlider({ value: [20, 80], range: true, label: 'Price' });
+
+    const end = slider('Price maximum');
+    pointerDown(end);
+    expect(document.activeElement).toBe(end);
+  });
+
+  it('does not take focus when disabled', () => {
+    renderSlider({ value: 50, disabled: true });
+
+    const el = slider();
+    pointerDown(el);
+    expect(document.activeElement).not.toBe(el);
+  });
+
+  it('hands focus to the thumb a track click moved', () => {
+    renderSlider({ value: 50, min: 0, max: 100 });
+
+    const el = slider();
+    const track = pinTrackRect(el);
+    track.dispatchEvent(new MouseEvent('click', { bubbles: true, clientX: 30 }));
+    flushSync();
+
+    expect(valueNow(el)).toBe('30');
+    expect(document.activeElement).toBe(el);
+  });
+
+  it('hands focus to the nearer thumb on a range track click', () => {
+    renderSlider({ value: [20, 80], range: true, label: 'Price' });
+
+    const start = slider('Price minimum');
+    const end = slider('Price maximum');
+    const track = pinTrackRect(start);
+    track.dispatchEvent(new MouseEvent('click', { bubbles: true, clientX: 90 }));
+    flushSync();
+
+    expect(valueNow(end)).toBe('90');
+    expect(valueNow(start)).toBe('20');
+    expect(document.activeElement).toBe(end);
+  });
+});
+
 // Point 20b's third shape: a slider always holds a value, so it has no
 // unselected state to paint danger — the error rides a ring on the thumb.
 // Before this, `error` coloured only the sentence under the control.

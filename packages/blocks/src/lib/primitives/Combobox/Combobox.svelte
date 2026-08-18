@@ -551,7 +551,13 @@
       case 'Home': {
         if (open) {
           event.preventDefault();
+          // First *activatable* option, not merely index 0 — same disabled /
+          // at-cap skip the arrow keys apply (see isOptionDisabled). If every
+          // option is disabled, stay at the start (mirrors ArrowUp's clamp).
           activeIndex = 0;
+          while (activeIndex < filtered.length && isOptionDisabled(filtered[activeIndex]))
+            activeIndex++;
+          if (activeIndex >= filtered.length) activeIndex = 0;
           scrollToActive();
         }
         break;
@@ -559,7 +565,11 @@
       case 'End': {
         if (open) {
           event.preventDefault();
+          // Last activatable option, scanning backwards past disabled ones;
+          // all-disabled clamps to the end (mirrors ArrowDown's clamp).
           activeIndex = filtered.length - 1;
+          while (activeIndex >= 0 && isOptionDisabled(filtered[activeIndex])) activeIndex--;
+          if (activeIndex < 0) activeIndex = filtered.length - 1;
           scrollToActive();
         }
         break;

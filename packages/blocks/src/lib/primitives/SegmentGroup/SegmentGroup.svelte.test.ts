@@ -1,7 +1,7 @@
 // @vitest-environment jsdom
 import { screen } from '@testing-library/dom';
 import userEvent from '@testing-library/user-event';
-import { flushSync, mount, unmount } from 'svelte';
+import { flushSync, mount, tick, unmount } from 'svelte';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import SegmentHarness from './__fixtures__/SegmentHarness.svelte';
 import type { SegmentGroupProps } from './index';
@@ -60,6 +60,112 @@ describe('SegmentGroup (component interaction)', () => {
     expect(tabIndex('Week')).toBe('0');
     expect(tabIndex('Day')).toBe('-1');
     expect(tabIndex('Month')).toBe('-1');
+  });
+
+  // With nothing selected the group must still be reachable with Tab: the first
+  // enabled segment holds the tab stop (standard radiogroup entry behaviour,
+  // same fallback as ButtonGroup). Guards #205 — every segment carried -1 and an
+  // empty segment control was keyboard-dead.
+  it('gives the first segment the tab stop when nothing is selected', () => {
+    renderSegments();
+
+    expect(tabIndex('Day')).toBe('0');
+    expect(tabIndex('Week')).toBe('-1');
+    expect(tabIndex('Month')).toBe('-1');
+    // The fallback is a tab stop, not a selection.
+    expect(checked('Day')).toBe('false');
+  });
+
+  it('skips a disabled first segment for the no-selection tab stop', () => {
+    renderSegments({
+      items: [
+        { value: 'a', label: 'A', disabled: true },
+        { value: 'b', label: 'B' },
+        { value: 'c', label: 'C' }
+      ]
+    });
+
+    expect(tabIndex('A')).toBe('-1');
+    expect(tabIndex('B')).toBe('0');
+    expect(tabIndex('C')).toBe('-1');
+  });
+
+  it('falls back to the first segment when value matches no item', () => {
+    renderSegments({ value: 'quarter' });
+
+    expect(tabIndex('Day')).toBe('0');
+    expect(checked('Day')).toBe('false');
+  });
+
+  // The invariant behind all the tab-stop cases: whatever holds the stop must
+  // be able to take focus. A disabled button cannot, so a selected-but-disabled
+  // segment keeps aria-checked and hands the stop on — otherwise the group's
+  // only tab stop sits on an unfocusable button and the group is keyboard-dead,
+  // which is #205 reached through a selection instead of through an empty one.
+  it('hands the tab stop on when the selected segment is disabled', () => {
+    renderSegments({
+      value: 'day',
+      items: [
+        { value: 'day', label: 'Day', disabled: true },
+        { value: 'week', label: 'Week' },
+        { value: 'month', label: 'Month' }
+      ]
+    });
+
+    // The selection is real and still announced.
+    expect(checked('Day')).toBe('true');
+    // But the stop sits where focus can actually land.
+    expect(tabIndex('Day')).toBe('-1');
+    expect(tabIndex('Week')).toBe('0');
+    expect(tabIndex('Month')).toBe('-1');
+  });
+
+  // The group reads each segment's disabled state through a getter rather than
+  // off the DOM, so disabling one at runtime re-runs the tab-stop derivation.
+  // Read from `element.disabled` it is not a tracked dependency at all: the
+  // stop stayed on the now-disabled segment and the group left the tab order.
+  it('moves the tab stop when the segment holding it is disabled at runtime', async () => {
+    const props = $state({
+      items: [
+        { value: 'day', label: 'Day', disabled: false },
+        { value: 'week', label: 'Week' },
+        { value: 'month', label: 'Month' }
+      ]
+    });
+    renderSegments(props);
+
+    expect(tabIndex('Day')).toBe('0');
+
+    props.items[0].disabled = true;
+    await tick();
+
+    expect(tabIndex('Day')).toBe('-1');
+    expect(tabIndex('Week')).toBe('0');
+  });
+
+  it('hands the tab stop from the fallback to the selected segment', async () => {
+    const user = userEvent.setup();
+    renderSegments();
+
+    expect(tabIndex('Day')).toBe('0');
+    await user.click(segment('Week'));
+
+    expect(tabIndex('Week')).toBe('0');
+    expect(tabIndex('Day')).toBe('-1');
+  });
+
+  it('lets the keyboard establish a selection from the empty state', async () => {
+    const user = userEvent.setup();
+    const onValueChange = vi.fn();
+    renderSegments({ onValueChange });
+
+    // Tab lands on the fallback stop; the first arrow press anchors just off
+    // the leading edge (roving.ts) and selects the first enabled segment.
+    segment('Day').focus();
+    await user.keyboard('{ArrowRight}');
+
+    expect(checked('Day')).toBe('true');
+    expect(onValueChange).toHaveBeenCalledWith('day');
   });
 
   it('ArrowRight moves selection AND focus, wrapping past the end', async () => {

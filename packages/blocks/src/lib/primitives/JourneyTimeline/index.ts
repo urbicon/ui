@@ -73,7 +73,6 @@ export interface JourneyNode {
  * @related Stepper
  * @related Tab
  * @related Accordion
- * @stability beta
  *
  * @example Vertical chronicle with inline detail
  * ```svelte

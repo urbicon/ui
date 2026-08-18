@@ -1,5 +1,10 @@
 import type { TableItem } from '$lib/types/tableTypes';
-import { calculateSummary, findColumnById, resolveValueById } from '$lib/utils';
+import {
+  calculateSummary,
+  findColumnById,
+  normalizeSummaryConfigs,
+  resolveValueById
+} from '$lib/utils';
 import type { SummaryConfig } from '../TableStore.svelte';
 import type { TableState } from './types';
 
@@ -51,19 +56,25 @@ export function useSummary(
     return result;
   });
 
+  /**
+   * Add one aggregation, or replace the existing one for that column (keeping
+   * its position). Delegates to {@link setSummaryConfigs} so the one-per-column
+   * invariant lives in exactly one place instead of a second findIndex copy
+   * (#92): appending the config and normalizing last-wins IS the replace.
+   */
   function addSummaryConfig(config: SummaryConfig) {
-    const existing = state.summaryConfigs.findIndex((c) => c.column === config.column);
-    if (existing >= 0) {
-      state.summaryConfigs[existing] = config;
-    } else {
-      state.summaryConfigs = [...state.summaryConfigs, config];
-    }
-
-    if (state.summaryConfigs.length > 0) {
-      state.showSummary = true;
-    }
+    setSummaryConfigs([...state.summaryConfigs, config]);
   }
 
+  /**
+   * Drop a column's aggregation. Deliberately NOT routed through
+   * {@link setSummaryConfigs}: a filter over an already-normalized list cannot
+   * introduce a duplicate, so the invariant is safe either way — but the funnel
+   * derives `showSummary` from the remaining count, which would switch the row
+   * back ON for a reader who had just hidden it with {@link toggleSummary}.
+   * Removing the last aggregation still hides the row, because there is nothing
+   * left to show.
+   */
   function removeSummaryConfig(column: string) {
     state.summaryConfigs = state.summaryConfigs.filter((c) => c.column !== column);
 
@@ -76,9 +87,19 @@ export function useSummary(
     state.showSummary = !state.showSummary;
   }
 
+  /**
+   * Replace the whole set. Every writer that can ADD a config lands here —
+   * {@link addSummaryConfig}, the store's public action and the
+   * `prefs.defaults.summaries` seed — so the one-per-column invariant is
+   * enforced in one place: duplicates collapse last-wins per column (#92),
+   * matching what re-adding a column has always done.
+   *
+   * {@link removeSummaryConfig} writes `state.summaryConfigs` on its own and
+   * says there why; it only ever filters, which cannot break the invariant.
+   */
   function setSummaryConfigs(configs: SummaryConfig[]) {
-    state.summaryConfigs = configs;
-    state.showSummary = configs.length > 0;
+    state.summaryConfigs = normalizeSummaryConfigs(configs);
+    state.showSummary = state.summaryConfigs.length > 0;
   }
 
   function getFormattedSummaryValue(column: string, value: number): string {

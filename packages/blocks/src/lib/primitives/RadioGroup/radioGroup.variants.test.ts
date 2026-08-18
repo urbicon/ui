@@ -216,6 +216,44 @@ describe('radioItemVariants', () => {
     expect(indicator).toContain('rounded-control');
   });
 
+  // ── Touch target — the family contract (#90) ──
+  // Checkbox and Toggle carry `min-h-11` on their `control` slot; RadioItem
+  // was the one sibling without it, so a `sm` row measured ~20px and the
+  // table's tools sheet had to re-impose the height consumer-side.
+  describe('touch target', () => {
+    const SIZES = ['xs', 'sm', 'md', 'lg'] as const;
+
+    it('gives the item the 44px minimum height at every size', () => {
+      for (const size of SIZES) {
+        expect(radioItemVariants({ size }).item().split(/\s+/), size).toContain('min-h-11');
+      }
+    });
+
+    it('centres a single-line row like its Checkbox/Toggle siblings', () => {
+      const item = radioItemVariants({}).item().split(/\s+/);
+      expect(item).toContain('items-center');
+      expect(item).not.toContain('items-start');
+      // Under `items-center` a one-sided margin would skew the indicator
+      // ~1px low — the first-line offsets belong to described rows only.
+      for (const size of SIZES) {
+        expect(radioItemVariants({ size }).indicator(), size).not.toMatch(/\bmt-/);
+      }
+    });
+
+    it('aligns a described row to the first text line instead', () => {
+      const item = radioItemVariants({ described: true }).item().split(/\s+/);
+      expect(item).toContain('items-start');
+      expect(item).not.toContain('items-center');
+      // The touch target stays regardless of alignment.
+      expect(item).toContain('min-h-11');
+      // Per-size optical offsets: half the gap between line box and indicator.
+      expect(radioItemVariants({ described: true, size: 'xs' }).indicator()).toContain('mt-px');
+      for (const size of ['sm', 'md', 'lg'] as const) {
+        expect(radioItemVariants({ described: true, size }).indicator(), size).toContain('mt-0.5');
+      }
+    });
+  });
+
   it('differentiates all sizes', () => {
     const xs = radioItemVariants({ size: 'xs' }).indicator();
     const sm = radioItemVariants({ size: 'sm' }).indicator();

@@ -252,3 +252,44 @@ describe('RadioGroup (error on the selected item)', () => {
     expect(indicatorOf('Medium').className).not.toContain('ring-danger');
   });
 });
+
+// `required` used to draw an asterisk and set aria-required, and nothing more:
+// an empty required group submitted straight through. The radios are real
+// `<input type="radio">` sharing one `name`, so the constraint belongs on them
+// — that is how HTML expresses a required radio group, and the browser then
+// blocks the submit and points at the group itself.
+describe('RadioGroup (required)', () => {
+  function renderInForm(props: Partial<RadioGroupProps> & { items?: Item[] } = {}) {
+    const form = document.createElement('form');
+    document.body.appendChild(form);
+    const instance = mount(RadioHarness, { target: form, props });
+    dispose = () => unmount(instance);
+    flushSync();
+    return form;
+  }
+
+  it('blocks an empty submit and clears once a radio is picked', async () => {
+    const user = userEvent.setup();
+    const form = renderInForm({ required: true });
+
+    expect(form.checkValidity()).toBe(false);
+
+    await user.click(radio('Medium'));
+
+    expect(form.checkValidity()).toBe(true);
+  });
+
+  it('leaves a group without `required` submittable while empty', () => {
+    const form = renderInForm();
+
+    expect(form.checkValidity()).toBe(true);
+  });
+
+  it('carries the constraint on every radio, so a conditional first item cannot drop it', () => {
+    renderInForm({ required: true });
+
+    expect(radio('Small').required).toBe(true);
+    expect(radio('Medium').required).toBe(true);
+    expect(radio('Large').required).toBe(true);
+  });
+});

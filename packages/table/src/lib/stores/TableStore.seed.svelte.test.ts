@@ -277,11 +277,10 @@ describe('prefs defaults: summaries', () => {
   });
 
   it('does not alias the consumer array', () => {
-    // The seed copies, so updating an *already-seeded* column — which
-    // `addSummaryConfig` handles by replacing the array slot in place — must
-    // not reach back into the consumer's array. (Adding a *new* column takes
-    // the reassignment branch and would leave the source intact either way, so
-    // it wouldn't guard the copy.)
+    // Seeding funnels through `setSummaryConfigs`, which normalizes into a
+    // fresh array — so updating an *already-seeded* column must not reach
+    // back into the consumer's array. Pins that the funnel keeps copying;
+    // handing the consumer's reference to the state would break this.
     const consumerArray: SummaryConfig[] = [{ column: 'age', type: 'sum' }];
     const ts = createTableState(undefined, { defaults: { summaries: consumerArray } });
 
@@ -294,6 +293,33 @@ describe('prefs defaults: summaries', () => {
     const ts = createTableState(undefined, { defaults: { summaries: [] } });
     expect(ts.state.summaryConfigs).toEqual([]);
     expect(ts.state.showSummary).toBe(false);
+  });
+
+  it('collapses a duplicate-carrying seed to one aggregation per column (#92)', () => {
+    // A seed used to be accepted verbatim; `find` readers then saw only the
+    // first entry while `calculateSummary` computed the last, and removing the
+    // column dropped both at once. The normalize funnel makes the duplicate
+    // unrepresentable: last entry wins, first-occurrence position kept.
+    const ts = createTableState(undefined, {
+      defaults: {
+        summaries: [
+          { column: 'age', type: 'sum' },
+          { column: 'age', type: 'avg' }
+        ]
+      }
+    });
+    expect(ts.state.summaryConfigs).toEqual([{ column: 'age', type: 'avg' }]);
+
+    ts.removeSummaryConfig('age');
+    expect(ts.state.summaryConfigs).toEqual([]);
+    expect(ts.state.showSummary).toBe(false);
+
+    // The public replace action runs through the same funnel.
+    ts.setSummaryConfigs([
+      { column: 'age', type: 'sum' },
+      { column: 'age', type: 'max' }
+    ]);
+    expect(ts.state.summaryConfigs).toEqual([{ column: 'age', type: 'max' }]);
   });
 });
 

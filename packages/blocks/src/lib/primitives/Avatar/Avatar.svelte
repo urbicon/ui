@@ -212,7 +212,7 @@
     <span
       class={unstyled ? (slotClasses?.status ?? '') : styles.status({ class: slotClasses?.status })}
       role="img"
-      aria-label={`Status: ${status}`}
+      aria-label={bt(`avatar.status.${status}`)}
     ></span>
   {/if}
 </div>

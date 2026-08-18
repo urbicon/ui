@@ -368,6 +368,24 @@ describe('prefs: summaries vs prefs.defaults.summaries', () => {
     expect(ts.state.showSummary).toBe(false);
   });
 
+  it('stored duplicates collapse to one aggregation per column on hydration (#92)', () => {
+    // A value persisted before the invariant was enforced may carry two
+    // aggregations for one column; hydration runs through the same normalize
+    // funnel as every writer, so it cannot re-corrupt the state.
+    window.localStorage.setItem(
+      SUMMARY_KEY('t16'),
+      JSON.stringify([
+        { column: 'age', type: 'sum' },
+        { column: 'age', type: 'avg' }
+      ] satisfies SummaryConfig[])
+    );
+
+    const ts = withRoot(() => createTableState(undefined, { storage: 't16' }));
+
+    expect(ts.state.summaryConfigs).toEqual([{ column: 'age', type: 'avg' }]);
+    expect(ts.state.showSummary).toBe(true);
+  });
+
   it('a corrupt summary entry is treated as absent — the defaults apply', () => {
     window.localStorage.setItem(SUMMARY_KEY('t14'), '[[');
 
@@ -398,10 +416,12 @@ describe('prefs: summaries vs prefs.defaults.summaries', () => {
     expect(second.state.showSummary).toBe(false);
   });
 
-  it('an in-place summary edit reaches storage', () => {
-    // `addSummaryConfig` mutates the array in place for an existing column, so
-    // syncing the live reference back would be no signal change at all — the
-    // edit would never be written. The syncs pass snapshots for that reason.
+  it('an update to an existing summary column reaches storage', () => {
+    // `addSummaryConfig` on an existing column replaces that column's entry
+    // (via the normalize funnel, #92). The syncs pass snapshots, never the
+    // live array, so the replacement value must land in storage — this pinned
+    // a bug from the in-place-mutation era, where syncing the live reference
+    // was no signal change at all and the edit was never written.
     const ts = withRoot(() => createTableState(undefined, { storage: 'fresh3' }));
     ts.addSummaryConfig({ column: 'age', type: 'sum' });
     ts.forceSavePersistentData();

@@ -132,8 +132,9 @@ export const badgeVariants = tv({
         // Tailwind's default `animate-pulse`. An opacity-based pulse drops
         // the text/bg contrast below WCAG AA at mid-animation; the ring
         // alternative keeps the solid fill static so the label stays
-        // readable.
-        base: 'animate-[badge-pulse_2s_cubic-bezier(0.4,0,0.6,1)_infinite]'
+        // readable. `motion-reduce:animate-none` stills it for vestibular
+        // users — the same guard Skeleton and the spinners carry (#201).
+        base: 'animate-[badge-pulse_2s_cubic-bezier(0.4,0,0.6,1)_infinite] motion-reduce:animate-none'
       }
     },
     // The removable right-padding lives in compoundVariants (after the

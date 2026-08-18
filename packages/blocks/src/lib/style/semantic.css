@@ -119,6 +119,28 @@
      they meet), and the floor covers the token alone, not what a component
      composes on top of it (an `opacity-*` wrapper can undo it). */
   --color-text-disabled: light-dark(var(--color-neutral-500), var(--color-neutral-500));
+  /* Link ink — the resting colour of an inline text link on a reading
+     surface. Aliases the primary intent's `-text` role, not the base intent
+     token: the base is tuned as a fill and misses AA as text on calm grounds
+     (which is why variants-lint bans `text-primary`), while `-text` is the
+     ramp stop measured to clear AA 4.5 as text on every reading surface in
+     both modes across all six themes — style/contrast.test.ts ("intent text
+     roles on reading surfaces") is the number. Mode- and theme-awareness ride
+     along: `primary-text` is light-dark() at its definition and every theme
+     re-tunes the primary ramp, so this alias needs neither its own branch nor
+     a `dark:` override. A token of its own (rather than spelling
+     `text-primary-text` at the call sites) keeps links an independent lever —
+     a consumer can restyle links without touching the primary intent, exactly
+     the on-primary/on-fill split below. Like every ink in this section it
+     answers reading surfaces only; a link sitting on a solid intent fill
+     pairs with the on-colors below instead.
+
+     Until 2026-08-18 this token did not exist: auth's five link call sites
+     spelled `text-text-link` into a theme-driven namespace with no such key,
+     Tailwind emitted no CSS for the class, and every auth link rendered in
+     whatever colour it inherited (#86 — the `text-2xs` bug class). Guarded by
+     style/semantic.test.ts. */
+  --color-text-link: var(--color-primary-text);
   /* The on-colors below pair text with a *fill* rather than a surface.
      text-on-dark and text-on-fill answer fills that are dark in light
      mode and light in dark mode, so the label has to travel the opposite

@@ -59,6 +59,9 @@
   const maxLabelId = `${uid}-max-label`;
 
   let trackRef = $state<HTMLDivElement>();
+  let singleThumbRef = $state<HTMLDivElement>();
+  let startThumbRef = $state<HTMLDivElement>();
+  let endThumbRef = $state<HTMLDivElement>();
   let dragging = $state<'single' | 'start' | 'end' | null>(null);
 
   const singleValue = $derived(typeof value === 'number' ? value : 0);
@@ -297,8 +300,16 @@
 
   function handlePointerDown(event: PointerEvent, target: 'single' | 'start' | 'end') {
     if (disabled) return;
+    // preventDefault() suppresses text selection during the drag — but also the
+    // browser's default focus-on-pointerdown, which would strand arrow keys on
+    // whatever was focused before (#127). Focus the thumb explicitly so
+    // "drag roughly, then arrow-key to the exact value" works. Script focus
+    // following pointer input does not match :focus-visible, so no ring appears
+    // on mouse-only use.
     event.preventDefault();
-    (event.target as HTMLElement).setPointerCapture(event.pointerId);
+    const thumb = event.currentTarget as HTMLElement;
+    thumb.setPointerCapture(event.pointerId);
+    thumb.focus();
     dragging = target;
   }
 
@@ -315,16 +326,22 @@
     if (disabled) return;
     const newVal = getValueFromPosition(event.clientX);
 
+    // A track click is the same "point roughly, then arrow-key" gesture as a
+    // thumb drag, so it hands focus to the thumb it moved (#127) — same
+    // :focus-visible reasoning as in handlePointerDown.
     if (range) {
       const distStart = Math.abs(newVal - rangeValue[0]);
       const distEnd = Math.abs(newVal - rangeValue[1]);
-      dragging = distStart <= distEnd ? 'start' : 'end';
+      const target = distStart <= distEnd ? 'start' : 'end';
+      dragging = target;
       updateValue(newVal);
       dragging = null;
+      (target === 'start' ? startThumbRef : endThumbRef)?.focus();
     } else {
       dragging = 'single';
       updateValue(newVal);
       dragging = null;
+      singleThumbRef?.focus();
     }
   }
 
@@ -407,7 +424,7 @@
     </div>
   {/if}
 
-  <!-- svelte-ignore a11y_click_events_have_key_events a11y_no_static_element_interactions -->
+  <!-- svelte-ignore a11y_click_events_have_key_events, a11y_no_static_element_interactions -->
   <div
     bind:this={trackRef}
     {@attach mintAttachment(mint, { enabled: !disabled })}
@@ -444,6 +461,7 @@
         <span id={maxLabelId} class="sr-only">{bt('accessibility.maximum') || 'Maximum'}</span>
       {/if}
       <div
+        bind:this={startThumbRef}
         role="slider"
         tabindex={disabled ? -1 : 0}
         aria-valuemin={min}
@@ -464,6 +482,7 @@
         onkeydown={(e) => handleKeydown(e, 'start')}
       ></div>
       <div
+        bind:this={endThumbRef}
         role="slider"
         tabindex={disabled ? -1 : 0}
         aria-valuemin={rangeValue[0]}
@@ -485,6 +504,7 @@
       ></div>
     {:else}
       <div
+        bind:this={singleThumbRef}
         role="slider"
         tabindex={disabled ? -1 : 0}
         aria-valuemin={min}

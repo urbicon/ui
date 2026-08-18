@@ -1001,7 +1001,9 @@ describe('A2UIView — Tabs', () => {
 
   // A plain <div> is role=generic, which forbids aria-label (axe
   // aria-prohibited-attr) — same rule the Column/Row/Card branches follow.
-  it('gives a labelled Tabs role=group so aria-label is valid', () => {
+  // Tab retargets aria-label onto its inner role="tablist" (#135), so the
+  // name lands on the tablist itself — no role="group" wrapper needed.
+  it('names the tablist itself from a labelled Tabs, with no bare aria-label div', () => {
     render({
       payload: [
         surface(),
@@ -1016,7 +1018,7 @@ describe('A2UIView — Tabs', () => {
         ])
       ]
     });
-    expect(screen.getByRole('group', { name: 'Booking steps' })).toBeTruthy();
+    expect(screen.getByRole('tablist', { name: 'Booking steps' })).toBeTruthy();
     expect(document.querySelector('div[aria-label="Booking steps"]:not([role])')).toBeNull();
   });
 

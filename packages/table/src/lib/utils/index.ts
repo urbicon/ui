@@ -293,6 +293,23 @@ export function calculateSummary(
 }
 
 /**
+ * Collapses summary configs to the store invariant: at most one aggregation
+ * per column (#92). Later entries win — the same rule `addSummaryConfig` has
+ * always applied when a column is re-aggregated — while a column keeps the
+ * position of its first occurrence, so a replace never reshuffles the row.
+ * Every writer of `state.summaryConfigs` funnels through this: the summary
+ * concern's setters, the `prefs.defaults.summaries` seed, and hydration from
+ * storage (where an older version may have persisted duplicates). Readers
+ * (`find` by column, `calculateSummary`'s per-column result keys) assume the
+ * deduped shape.
+ */
+export function normalizeSummaryConfigs(configs: SummaryConfig[]): SummaryConfig[] {
+  const byColumn = new Map<string, SummaryConfig>();
+  for (const config of configs) byColumn.set(config.column, config);
+  return [...byColumn.values()];
+}
+
+/**
  * Tests whether a single item value matches a filter condition.
  */
 export function matchesFilter(itemValue: string, filterValue: string, operator: string): boolean {

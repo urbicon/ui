@@ -157,13 +157,30 @@ describe('figma-token-export — foundation color palettes', () => {
 
 describe('figma-token-export — semantic surface/text/border roles', () => {
   // Light branch of every `--color-(surface|text|border)-*` role in semantic.css.
+  const semanticDeclMap = new Map(semanticDecls);
+
+  // One step of indirection: `--color-text-link` is `var(--color-primary-text)`,
+  // an intent-text step outside the surface/text/border namespaces, so neither
+  // reference pattern matches it. Resolve through the referenced declaration's
+  // own light branch to the foundation shade the export has to name.
+  function resolveSemanticIndirection(value: string): string | null {
+    const m = /^var\(--color-([\w-]+)\)$/.exec(value);
+    if (!m) return null;
+    const target = semanticDeclMap.get(`color-${m[1]}`);
+    if (!target) return null;
+    return foundationVarToFigmaRef(lightValue(target));
+  }
+
   const cssRoles = new Map<string, Map<string, string>>();
   for (const [name, value] of semanticDecls) {
     const match = /^color-(surface|text|border)-([\w-]+)$/.exec(name);
     if (!match) continue;
     const category = cssRoles.get(match[1]) ?? new Map<string, string>();
     const light = lightValue(value);
-    category.set(match[2], foundationVarToFigmaRef(light) ?? light);
+    category.set(
+      match[2],
+      foundationVarToFigmaRef(light) ?? resolveSemanticIndirection(light) ?? light
+    );
     cssRoles.set(match[1], category);
   }
 

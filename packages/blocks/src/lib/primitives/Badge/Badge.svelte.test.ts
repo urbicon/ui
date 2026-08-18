@@ -74,11 +74,17 @@ describe('Badge — purpose axis (BDG-1)', () => {
     expect(badge().className).toContain('blocks-intent-primary');
   });
 
-  it('purpose="chip" makes the badge interactive (focusable)', () => {
-    render({ purpose: 'chip', children: label('React') });
-    // A chip is now announced as a button (see the a11y-role suite) and stays
-    // focusable, so it is no longer queryable as a `status` region.
+  it('purpose="chip" with onclick makes the badge a focusable button', () => {
+    render({ purpose: 'chip', onclick: vi.fn(), children: label('React') });
     expect(screen.getByRole('button', { name: 'React' }).getAttribute('tabindex')).toBe('0');
+  });
+
+  it('purpose="chip" without onclick stays out of the tab order (#201)', () => {
+    // A chip with nothing to activate keeps the interactive look but must not
+    // be a focus stop: Enter and Space would answer with nothing.
+    render({ purpose: 'chip', children: label('React') });
+    expect(badge().getAttribute('tabindex')).toBeNull();
+    expect(screen.queryByRole('button')).toBeNull();
   });
 
   it('back-compat: variant="dot" still renders a dot without purpose', () => {
@@ -111,17 +117,33 @@ describe('Badge — remove & interaction', () => {
     expect(onclick).not.toHaveBeenCalled();
   });
 
-  it('labels a removable badge and removes it via Delete/Backspace', () => {
+  it('removes via Delete/Backspace without an aria-label masking the visible text (#201)', () => {
     const onRemove = vi.fn();
-    render({ removable: true, interactive: true, onRemove });
+    render({ removable: true, interactive: true, onRemove, children: label('React') });
 
-    // Interactive → role="button"; the aria-label is the button's accessible
-    // name (and disambiguates it from the inner "Remove badge" control).
-    const el = screen.getByRole('button', { name: 'Removable badge' });
-    expect(el.getAttribute('aria-label')).toBe('Removable badge');
+    // No onclick → the badge stays a `status` region and its accessible name
+    // is the visible content. The old removable aria-label replaced that name,
+    // so a screen reader heard "Removable badge" and never "React".
+    const el = badge();
+    expect(el.getAttribute('aria-label')).toBeNull();
+    expect(el.textContent).toContain('React');
+    // The Delete/Backspace wiring on the badge span stays (it also serves
+    // keydowns bubbling up from the focused ✕ control).
     fireEvent.keyDown(el, { key: 'Delete' });
     fireEvent.keyDown(el, { key: 'Backspace' });
     expect(onRemove).toHaveBeenCalledTimes(2);
+  });
+
+  it('Delete on the focused ✕ control reaches the badge handler via bubbling', () => {
+    // The badge span itself is no tab stop without onclick (#201) — the ✕
+    // button is. Its keydowns bubble to the span, so the Delete/Backspace
+    // shortcut still works from the one place keyboard focus can actually be.
+    const onRemove = vi.fn();
+    render({ removable: true, onRemove });
+
+    const removeBtn = screen.getByRole('button', { name: 'Remove badge' });
+    fireEvent.keyDown(removeBtn, { key: 'Delete' });
+    expect(onRemove).toHaveBeenCalledOnce();
   });
 
   it('Enter and Space activate an interactive badge', () => {
@@ -198,14 +220,23 @@ describe('Badge — interactive role (a11y)', () => {
     expect(btn.getAttribute('tabindex')).toBe('0');
   });
 
-  it('purpose="chip" is announced as a button', () => {
-    render({ purpose: 'chip', children: label('React') });
+  it('purpose="chip" with onclick is announced as a button', () => {
+    render({ purpose: 'chip', onclick: vi.fn(), children: label('React') });
     expect(screen.getByRole('button', { name: 'React' }).getAttribute('role')).toBe('button');
   });
 
   it('a static (non-interactive) badge stays role="status"', () => {
     render({ children: label('Active') });
     expect(screen.getByRole('status').getAttribute('role')).toBe('status');
+    expect(screen.queryByRole('button')).toBeNull();
+  });
+
+  it('interactive without onclick keeps status semantics and no tab stop (#201)', () => {
+    // The visual axis alone must not fabricate a button: there is no handler,
+    // so Enter/Space would be dead keys on an announced control.
+    render({ interactive: true, children: label('Hot') });
+    const el = screen.getByRole('status');
+    expect(el.getAttribute('tabindex')).toBeNull();
     expect(screen.queryByRole('button')).toBeNull();
   });
 
@@ -224,12 +255,32 @@ describe('Badge — interactive role (a11y)', () => {
     expect(screen.queryByRole('button')).toBeNull();
   });
 
-  it('a removable interactive badge takes its accessible name from the aria-label', () => {
-    render({ removable: true, interactive: true, onRemove: vi.fn(), children: label('React') });
-    // Two buttons render: the badge itself (named by its aria-label) and the
-    // inner remove control ("Remove badge"). The aria-label names the badge.
-    const el = screen.getByRole('button', { name: 'Removable badge' });
-    expect(el.getAttribute('role')).toBe('button');
+  it('a removable clickable chip is named by its visible label, not an aria-label (#201)', () => {
+    render({ removable: true, onclick: vi.fn(), onRemove: vi.fn(), children: label('React') });
+    // Two buttons render: the chip and its inner ✕ ("Remove badge"). The
+    // chip's name comes from its contents — the label is part of it, where the
+    // old aria-label ("Removable badge") suppressed it entirely.
+    const el = screen.getByRole('button', { name: /React/ });
+    expect(el.getAttribute('aria-label')).toBeNull();
+  });
+});
+
+// #201 carried the claim "pulse does not take effect initially, only after a
+// re-render". The class string is a pure derived of props, so the animation
+// utility must already sit on the very first mounted render — this is the
+// positive control for that claim (it does not reproduce), and the DOM-level
+// guard that the vestibular stop (`motion-reduce`) ships with the animation.
+describe('Badge — pulse (#201)', () => {
+  it('carries the pulse animation on the first render, paired with the motion-reduce stop', () => {
+    render({ pulse: true, children: label('Live') });
+    const cls = badge().className;
+    expect(cls).toContain('animate-[badge-pulse');
+    expect(cls).toContain('motion-reduce:animate-none');
+  });
+
+  it('omits the animation when pulse is off', () => {
+    render({ children: label('Idle') });
+    expect(badge().className).not.toContain('badge-pulse');
   });
 });
 

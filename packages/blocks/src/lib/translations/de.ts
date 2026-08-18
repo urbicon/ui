@@ -28,7 +28,6 @@ export default {
     timeMeridiem: 'AM oder PM',
     toggle: 'Umschalter',
     toggleOptions: 'Optionen umschalten',
-    removableBadge: 'Entfernbarer Badge',
     removeBadge: 'Badge entfernen',
     removeFile: '{{name}} entfernen',
     removeTag: '{{label}} entfernen'
@@ -170,6 +169,14 @@ export default {
     actionRequired: 'Führe die markierte Aktion aus, um fortzufahren',
     filterPlaceholder: 'Themen filtern…',
     noResults: 'Keine passenden Themen'
+  },
+  avatar: {
+    status: {
+      online: 'Online',
+      offline: 'Offline',
+      away: 'Abwesend',
+      busy: 'Beschäftigt'
+    }
   },
   journeyTimeline: {
     label: 'Verlauf',

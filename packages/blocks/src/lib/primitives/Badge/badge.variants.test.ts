@@ -38,6 +38,14 @@ describe('badgeVariants', () => {
     }
   });
 
+  it('pulse pairs its animation with the motion-reduce guard (#201)', () => {
+    // Same vestibular stop as Skeleton and the spinners: `animate-none` in the
+    // reduced-motion media block outranks the arbitrary animation utility.
+    const base = badgeVariants({ pulse: true }).base();
+    expect(base).toContain('animate-[badge-pulse_2s_cubic-bezier(0.4,0,0.6,1)_infinite]');
+    expect(base).toContain('motion-reduce:animate-none');
+  });
+
   it('never outputs dark: overrides', () => {
     const intents = ['primary', 'secondary', 'success', 'warning', 'danger', 'neutral'] as const;
     const variants = ['filled', 'outlined', 'soft', 'dot'] as const;

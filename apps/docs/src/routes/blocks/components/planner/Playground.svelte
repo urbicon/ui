@@ -49,7 +49,16 @@
     { id: '12', date: '2026-06-21', type: 'breakfast', title: 'Shakshuka', emoji: '🍳' }
   ];
 
+  const getDate = (meal: Meal) => meal.date;
+  const sort = (a: Meal, b: Meal) => MEAL_ORDER[a.type] - MEAL_ORDER[b.type];
+
+  // The demo pins its window: the meals are June 2026, so an unanchored grid
+  // would open on today and show empty days. `codeSetup` prints the same anchor
+  // from this one constant, so the copied snippet lands on the same window —
+  // the full trade-off is documented in the ResourceTimeline playground, which
+  // pins for the same reason.
   const anchor = new Date(2026, 5, 15);
+  const anchorSource = `new Date(${anchor.getFullYear()}, ${anchor.getMonth()}, ${anchor.getDate()})`;
 
   const controls = deriveControls(componentData, {
     pick: [
@@ -93,8 +102,14 @@
   values={defaultValuesOf(controls)}
   codeSetup={{
     imports: ["import { Planner } from '@urbicon-ui/blocks';"],
-    consts: { items: demoMeals },
-    bind: ['items']
+    consts: {
+      value: { raw: anchorSource },
+      items: demoMeals,
+      MEAL_ORDER,
+      getDate: { raw: '(meal) => meal.date' },
+      sort: { raw: '(a, b) => MEAL_ORDER[a.type] - MEAL_ORDER[b.type]' }
+    },
+    bind: ['value', 'items', 'getDate', 'sort']
   }}
 >
   {#snippet children(values)}
@@ -109,8 +124,8 @@
         animated={values.animated}
         disabled={values.disabled}
         items={demoMeals}
-        getDate={(m) => m.date}
-        sort={(a, b) => MEAL_ORDER[a.type] - MEAL_ORDER[b.type]}
+        {getDate}
+        {sort}
         value={anchor}
       >
         {#snippet cell({ items })}

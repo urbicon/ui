@@ -6,6 +6,7 @@ import {
   getNestedValue,
   groupItems,
   normalizeItems,
+  normalizeSummaryConfigs,
   resolveColumnLabel,
   splitSearchSegments
 } from './index';
@@ -230,6 +231,33 @@ describe('normalizeItems', () => {
     const result = normalizeItems(items);
     expect(result[0]).toBe(items[0]);
     expect(result[0]).not.toHaveProperty('__index');
+  });
+});
+
+describe('normalizeSummaryConfigs', () => {
+  it('collapses duplicates last-wins, keeping the first occurrence position', () => {
+    const result = normalizeSummaryConfigs([
+      { column: 'age', type: 'sum' },
+      { column: 'salary', type: 'count' },
+      { column: 'age', type: 'avg' }
+    ]);
+    expect(result).toEqual([
+      { column: 'age', type: 'avg' },
+      { column: 'salary', type: 'count' }
+    ]);
+  });
+
+  it('returns a fresh array even when nothing collapses', () => {
+    // The seed path relies on this: the consumer's defaults array must never
+    // alias the state.
+    const input = [{ column: 'age', type: 'sum' as const }];
+    const result = normalizeSummaryConfigs(input);
+    expect(result).toEqual(input);
+    expect(result).not.toBe(input);
+  });
+
+  it('passes an empty set through', () => {
+    expect(normalizeSummaryConfigs([])).toEqual([]);
   });
 });
 

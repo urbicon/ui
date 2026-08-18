@@ -185,7 +185,15 @@ const semanticTokens = {
       value: '{color.warning.950}',
       description: 'Text on the warning fill (warm dark in both modes)'
     },
-    'on-surface': { value: '{color.neutral.900}', description: 'Text on tinted surfaces' }
+    'on-surface': { value: '{color.neutral.900}', description: 'Text on tinted surfaces' },
+    // In CSS this is `var(--color-primary-text)` — the primary intent's AA text
+    // step — but the export has no intent-text group to reference, so the
+    // light-mode resolution is spelled out. A theme that moves primary-text
+    // must move this with it.
+    link: {
+      value: '{color.primary.700}',
+      description: 'Link ink on reading surfaces — follows the primary intent AA text step'
+    }
   },
   border: {
     hairline: {

@@ -62,7 +62,12 @@ export interface RadioGroupProps
   /** Disable all radio items in the group. */
   disabled?: boolean;
 
-  /** Mark the group as required for form validation. Adds an asterisk to the label. */
+  /**
+   * Require a selection: marks the label with an asterisk, sets `aria-required`
+   * on the group, and puts the constraint on the radios themselves — so an
+   * empty group blocks the form's submit like a native required control.
+   * @summary Require a selection; an empty group blocks the form's submit.
+   */
   required?: boolean;
 
   /** Error message below the group. Replaces `helper` and sets `aria-invalid`. */
@@ -116,6 +121,12 @@ export interface RadioGroupContext {
   readonly error: boolean;
   readonly value: string | undefined;
   readonly mint: MintProp;
+  /**
+   * Passed to every radio input, which is what makes the group's `required`
+   * real: HTML treats a radio group as required when any radio of the `name`
+   * carries the attribute, so the browser blocks an empty submit itself.
+   */
+  readonly required: boolean;
   select: (value: string) => void;
 }
 

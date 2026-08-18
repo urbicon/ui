@@ -24,6 +24,10 @@
   let itemElement = $state<HTMLButtonElement>();
 
   const isActive = $derived(ctx.isActive(value));
+  // Tab stop ≠ active: with nothing selected the group falls back to its first
+  // enabled segment so it stays reachable with Tab (see isTabStop in
+  // SegmentGroup.svelte).
+  const isTabStop = $derived(ctx.isTabStop(value));
   const isDisabled = $derived(disabled || ctx.disabled);
 
   const variantProps: SegmentGroupVariants = $derived({
@@ -40,7 +44,10 @@
 
   onMount(() => {
     if (itemElement) {
-      return ctx.registerItem(value, itemElement);
+      // The getter, not `isDisabled` itself: the group has to see the state
+      // this segment is in *now*, and registration happens once. Passing the
+      // value would freeze it at mount time — see RegisteredSegment.
+      return ctx.registerItem(value, itemElement, () => isDisabled);
     }
   });
 
@@ -60,7 +67,7 @@
     ? [slotClasses?.item, className].filter(Boolean).join(' ')
     : styles.item({ class: [slotClasses?.item, className] })}
   aria-checked={isActive}
-  tabindex={isActive ? 0 : -1}
+  tabindex={isTabStop ? 0 : -1}
   data-state={isActive ? 'active' : 'inactive'}
   disabled={isDisabled}
   onclick={handleClick}

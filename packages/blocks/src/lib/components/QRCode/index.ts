@@ -11,7 +11,6 @@ import type { QRCodeSlots, QRCodeVariants } from './qr-code.variants';
  *
  * @tag display
  * @related PinInput
- * @stability beta
  *
  * @example
  * ```svelte

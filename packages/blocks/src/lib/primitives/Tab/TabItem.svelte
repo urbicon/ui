@@ -31,6 +31,9 @@
 
   const isActive = $derived(tabContext.isActive(value));
   const isDisabled = $derived(disabled || tabContext.disabled);
+  // Tab stop ≠ active: a disabled active tab cannot hold focus, so the stop
+  // moves rather than stranding there (see isTabStop in Tab.svelte).
+  const isTabStop = $derived(tabContext.isTabStop(value));
 
   const variantProps: TabVariants = $derived({
     variant: tabContext.variant,
@@ -48,7 +51,10 @@
 
   onMount(() => {
     if (tabItemElement) {
-      return tabContext.registerTab(value, tabItemElement);
+      // The getter, not `isDisabled` itself: the tablist has to see the state
+      // this tab is in *now*, and registration happens once. Passing the value
+      // would freeze it at mount time — see RegisteredTab.
+      return tabContext.registerTab(value, tabItemElement, () => isDisabled);
     }
   });
 
@@ -68,9 +74,9 @@
     ? [slotClasses?.trigger, className].filter(Boolean).join(' ')
     : styles.trigger({ class: [slotClasses?.trigger, className] })}
   aria-selected={isActive}
-  aria-controls={`tabpanel-${value}`}
+  aria-controls={tabContext.hasPanel(value) ? `tabpanel-${value}` : undefined}
   id={`tab-${value}`}
-  tabindex={isActive ? 0 : -1}
+  tabindex={isTabStop ? 0 : -1}
   data-state={isActive ? 'active' : 'inactive'}
   disabled={isDisabled}
   onclick={handleClick}
