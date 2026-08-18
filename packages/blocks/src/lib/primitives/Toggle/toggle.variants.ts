@@ -2,7 +2,10 @@ import { type SlotNames, tv, type VariantProps } from '$lib/utils/variants';
 
 export const toggleVariants = tv({
   slots: {
-    wrapper: ['inline-flex flex-col gap-1.5'],
+    // Block-level like the rest of the form family: stacked toggles must
+    // stack (#91). Inline placement stays one token away — `class="inline-flex"`
+    // wins through the display conflict group.
+    wrapper: ['flex flex-col gap-1.5'],
     control: ['group inline-flex items-center gap-3 select-none cursor-pointer min-h-11'],
     // Geometry tier moves to the `tier` variant below. Track + thumb share
     // the same tier — commit yields the classic Switch-Pill, modify a soft-

@@ -180,17 +180,19 @@
     {/if}
 
     {#if selectable}
-      <th scope="col" class="{headerStyles.cell()} w-12 text-center" data-testid="selection-header">
+      <th scope="col" class="{headerStyles.cell()} w-12" data-testid="selection-header">
         {#if multiSelect}
-          <Checkbox
-            checked={tableContext.allSelected}
-            indeterminate={tableContext.someSelected}
-            onCheckedChange={() => tableContext.toggleAll()}
-            aria-label={tableContext.allSelected
-              ? tt('selection.deselectAllRows')
-              : tt('selection.selectAllRows')}
-            size="sm"
-          />
+          <div class="flex h-full w-full items-center justify-center">
+            <Checkbox
+              checked={tableContext.allSelected}
+              indeterminate={tableContext.someSelected}
+              onCheckedChange={() => tableContext.toggleAll()}
+              aria-label={tableContext.allSelected
+                ? tt('selection.deselectAllRows')
+                : tt('selection.selectAllRows')}
+              size="sm"
+            />
+          </div>
         {/if}
       </th>
     {/if}

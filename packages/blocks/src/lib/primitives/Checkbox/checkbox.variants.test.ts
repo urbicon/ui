@@ -5,6 +5,12 @@ const INTENTS = ['primary', 'secondary', 'success', 'warning', 'danger', 'neutra
 const VARIANTS = ['outlined', 'filled', 'ghost'] as const;
 
 describe('checkboxVariants', () => {
+  it('renders a block-level root so stacked checkboxes stack (#91)', () => {
+    const wrapper = checkboxVariants().wrapper().split(' ');
+    expect(wrapper).toContain('flex');
+    expect(wrapper).not.toContain('inline-flex');
+  });
+
   it('uses semantic tokens for unchecked outlined state', () => {
     const styles = checkboxVariants({ checked: false, indeterminate: false, variant: 'outlined' });
     const box = styles.box();

@@ -25,6 +25,14 @@ import type { CheckboxSlots, CheckboxVariants } from './checkbox.variants';
  *   onCheckedChange={(val) => console.log(val)}
  * />
  * ```
+ *
+ * @example
+ * ```svelte
+ * <div class="space-y-2">
+ *   <Checkbox label="Email updates" />
+ *   <Checkbox label="SMS alerts" />
+ * </div>
+ * ```
  */
 export interface CheckboxProps
   extends Omit<CheckboxVariants, 'error' | 'checked' | 'indeterminate'>,
