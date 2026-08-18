@@ -13,7 +13,7 @@ hallucinated tokens. Mechanical, behaviour-preserving corrections.
    every **error** and **warning** with its rule id and location. Ignore the
    craft notes here — that's `polish`.
 3. **Map each to its correct token.** `urbicon css-reference` for the real names:
-   - raw palette (`bg-red-500`) → the semantic intent (`bg-danger`, `text-on-primary`).
+   - raw palette (`bg-red-500`) → the semantic intent (`bg-danger`; ink on a fill is `text-text-on-fill`).
    - `dark:` override → delete it; semantic tokens handle dark mode via `light-dark()`.
    - `focus:` → `focus-visible:`.
    - hardcoded z-index → a `z-[var(--z-*)]` token.
