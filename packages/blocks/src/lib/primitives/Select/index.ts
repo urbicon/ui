@@ -177,7 +177,9 @@ interface SelectBaseProps<T extends SelectValue = string>
    * `aria-required` on the trigger. When `name` is set (and the field is not
    * disabled), an empty Select also blocks native form submission — the hidden
    * form-bridge input is exempt from constraint validation, so an invisible
-   * required input participates in its place while nothing is selected.
+   * required input participates in its place while nothing is selected. Focus
+   * then returns to the trigger, which means no native validation bubble; pass
+   * `error` to tell the reader what is wrong.
    * @default false
    * @summary Mandatory field — asterisk, aria-required, and a blocked empty submit when name is set.
    */

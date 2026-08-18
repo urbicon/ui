@@ -57,7 +57,13 @@
   codeSetup={{
     imports: ["import { PromptInput } from '@urbicon-ui/blocks';"],
     state: { value: draft },
-    bind: ['value'],
+    // `onSubmit` is required, and the demo passes it inline — without it here
+    // the copied snippet would leave out the one prop the component cannot do
+    // without (same slip as the Planner's `getDate`).
+    consts: {
+      onSubmit: { raw: '({ text, attachments }) => console.log(text, attachments)' }
+    },
+    bind: ['value', 'onSubmit'],
     twoWay: ['value']
   }}
 >
