@@ -4,6 +4,24 @@ All notable changes to this project will be documented in this file.
 This changelog is automatically generated from [Conventional Commits](https://www.conventionalcommits.org).
 
 
+## [8.4.0] - 2026-08-18
+
+### Bug Fixes
+- **blocks**: Derive the step index from DOM order, not init order
+- **blocks**: Omit the internal messageType axis from InputProps
+- **blocks**: Pass accordion-level slotClasses down to the items
+- **auth**: Lift the auth card on its shadow instead of fencing it
+- **table**: Normalise status chips to a shared minimum width
+- **table**: Draw the keyboard focus ring inset on rows
+- **docs-gen**: Extract recipe metadata safely and ship cooked code
+- Block-level Checkbox/Toggle roots, and one owner per calendar gridline (#222)
+> **BREAKING:** In normal block flow a Checkbox/Toggle root now fills the line and following content stacks below it. Restore inline placement with class="inline-flex".
+- The ready wave — twelve premise-checked fixes and the first stability promotions (#223)
+> **BREAKING:** A Tab without `value` or `defaultValue` now renders its first enabled tab selected instead of rendering nothing selected. Pass `defaultValue` to choose a different one. * fix(blocks): make RadioGroup's required block an empty submit Same class as Select's required (#206), found in its sibling while fixing it: the group drew an asterisk and set aria-required, and an empty required group submitted straight through. RadioGroup renders real radio inputs sharing one name, so unlike Select it needs no sentinel — the constraint goes on the radios, which is how HTML expresses a required radio group, a …
+
+### Documentation
+- **docs-app**: Rebuild every recipe page on the canonical shell
+
 ## [8.3.1] - 2026-08-14
 
 ### Bug Fixes
