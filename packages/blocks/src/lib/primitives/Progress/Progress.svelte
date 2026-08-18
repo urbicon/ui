@@ -97,7 +97,7 @@
       width={effectiveCircularSize}
       height={effectiveCircularSize}
       viewBox="0 0 {effectiveCircularSize} {effectiveCircularSize}"
-      class={isIndeterminate ? 'animate-spin' : undefined}
+      class={isIndeterminate ? 'animate-spin motion-reduce:animate-none' : undefined}
       style="transform: rotate(-90deg)"
     >
       <circle
