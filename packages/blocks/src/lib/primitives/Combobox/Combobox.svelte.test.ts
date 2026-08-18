@@ -675,6 +675,37 @@ describe('Combobox (multiple)', () => {
     expect(onValueChange).toHaveBeenCalledWith(['c']);
   });
 
+  it('Home and End land on the first and last activatable option (#198)', async () => {
+    const user = userEvent.setup();
+    const onValueChange = vi.fn();
+    renderCombobox({
+      options: [
+        { value: 'a', label: 'A', disabled: true },
+        { value: 'b', label: 'B' },
+        { value: 'c', label: 'C' },
+        { value: 'd', label: 'D', disabled: true }
+      ],
+      multiple: true,
+      value: [],
+      onValueChange
+    });
+
+    const input = screen.getByRole('combobox');
+    await user.click(input);
+
+    // End skips the disabled tail D and lands on C — same skip the arrows apply.
+    await user.keyboard('{End}');
+    expect(input.getAttribute('aria-activedescendant')).toMatch(/-option-c$/);
+    await user.keyboard('{Enter}');
+    expect(onValueChange).toHaveBeenLastCalledWith(['c']);
+
+    // Home skips the disabled head A and lands on B.
+    await user.keyboard('{Home}');
+    expect(input.getAttribute('aria-activedescendant')).toMatch(/-option-b$/);
+    await user.keyboard('{Enter}');
+    expect(onValueChange).toHaveBeenLastCalledWith(['c', 'b']);
+  });
+
   it('renders a removable fallback tag for an orphan value (bound but not in options)', async () => {
     const user = userEvent.setup();
     const onRemoveTag = vi.fn();
