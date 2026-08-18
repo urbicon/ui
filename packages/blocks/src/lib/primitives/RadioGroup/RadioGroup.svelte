@@ -145,6 +145,9 @@
     get mint() {
       return mint;
     },
+    get required() {
+      return required;
+    },
     select
   });
 </script>

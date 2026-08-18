@@ -79,6 +79,15 @@
   {@attach mintAttachment(ctx.mint, { enabled: !isDisabled })}
   for={id}
 >
+  <!--
+    `required` on every radio of the group, which is how HTML expresses a
+    required radio group: the constraint belongs to the `name`, and any one
+    radio carrying it makes the whole group required — so the browser blocks an
+    empty submit and points at the group itself. Setting it on all of them (not
+    just the first) keeps that true when items are conditional. Until
+    2026-08-18 the group's `required` drew an asterisk and set aria-required
+    and nothing stopped an empty submit.
+  -->
   <input
     {...restProps}
     {id}
@@ -87,6 +96,7 @@
     {value}
     checked={isChecked}
     disabled={isDisabled}
+    required={ctx.required}
     class="peer sr-only"
     tabindex={rovingTabindex}
     onchange={handleChange}
