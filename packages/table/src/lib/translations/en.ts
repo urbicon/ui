@@ -135,8 +135,7 @@ export default {
     removeFilter: 'Remove filter',
     groupByColumn: 'Group by column',
     removeGrouping: 'Remove grouping',
-    addSummary: 'Add summary',
-    removeSummary: 'Remove summary',
+    summary: 'Summary',
     hideColumn: 'Hide column',
     showColumn: 'Show',
     columnOptions: 'Column options for'

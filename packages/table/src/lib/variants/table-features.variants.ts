@@ -601,7 +601,16 @@ export const headerMenuVariants = tv({
     container: ['flex items-center justify-center flex-shrink-0'],
     trigger: ['h-8 w-8 min-w-8', 'opacity-0 transition-opacity group-hover:opacity-100'],
     menu: ['p-1 min-w-[200px]'],
-    separator: ['h-px bg-border-subtle my-1']
+    separator: ['h-px bg-border-subtle my-1'],
+    // The aggregation choice, one level in. Indented rather than floated as a
+    // real submenu: this menu is a Popover holding buttons, not a `role=menu`,
+    // so a flyout would mean rebuilding hover-intent, keyboard and placement
+    // that the Menu primitive already owns. Inside the popover the list keeps
+    // the menu's own keyboard order.
+    submenu: ['flex flex-col pl-6 border-l border-border-subtle ml-3'],
+    // The state the row currently carries, right-aligned in its own ink so the
+    // label stays the thing you read first.
+    itemValue: ['ml-auto text-text-tertiary text-xs']
   },
   variants: {
     active: {
