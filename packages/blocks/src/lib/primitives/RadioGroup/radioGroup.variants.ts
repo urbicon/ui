@@ -36,7 +36,15 @@ export const radioGroupVariants = tv({
 
 export const radioItemVariants = tv({
   slots: {
-    item: ['group inline-flex items-start gap-2 select-none cursor-pointer'],
+    // `min-h-11` is the family touch-target contract: Checkbox and Toggle
+    // carry it on their `control` slot (checkbox.variants.ts /
+    // toggle.variants.ts), and docs/ResponsiveGuidelines.md names it as the
+    // 44px mechanism. RadioItem was the one sibling without it — a `sm` row
+    // measured ~20px and the table's tools sheet had to re-impose the height
+    // consumer-side (#90). `items-center`, matching the siblings; the
+    // `described` variant below switches to `items-start` when a description
+    // makes the text block two lines tall.
+    item: ['group inline-flex items-center gap-2 select-none cursor-pointer min-h-11'],
     // Geometry tier moves to the `tier` variant below. Default `commit` —
     // a radio indicator declares status, conventionally circular.
     indicator: [
@@ -87,7 +95,7 @@ export const radioItemVariants = tv({
     size: {
       xs: {
         item: 'gap-1.5',
-        indicator: 'w-3.5 h-3.5 mt-px',
+        indicator: 'w-3.5 h-3.5',
         dot: 'w-1.5 h-1.5',
         label: 'text-xs',
         // `description` carries full sentences, so it stops at the body-copy
@@ -100,25 +108,35 @@ export const radioItemVariants = tv({
       },
       sm: {
         item: 'gap-2',
-        indicator: 'w-4 h-4 mt-0.5',
+        indicator: 'w-4 h-4',
         dot: 'w-2 h-2',
         label: 'text-sm',
         description: 'text-xs'
       },
       md: {
         item: 'gap-2.5',
-        indicator: 'w-5 h-5 mt-0.5',
+        indicator: 'w-5 h-5',
         dot: 'w-2.5 h-2.5',
         label: 'text-base',
         description: 'text-sm'
       },
       lg: {
         item: 'gap-3',
-        indicator: 'w-6 h-6 mt-0.5',
+        indicator: 'w-6 h-6',
         dot: 'w-3 h-3',
         label: 'text-lg',
         description: 'text-base'
       }
+    },
+    // Derived from the `description` prop in RadioItem.svelte, not a public
+    // prop — the same kind of internal axis as `checked`, which tracks group
+    // state. A described row aligns the indicator with the label's FIRST line
+    // (`items-start` + the per-size `mt-*` offsets in compoundVariants):
+    // centring it against a two-line text block would park the circle between
+    // the lines, belonging to neither. Single-line rows stay centred inside
+    // the 44px row like their Checkbox/Toggle siblings.
+    described: {
+      true: { item: 'items-start' }
     },
     intent: {
       primary: {},
@@ -148,6 +166,15 @@ export const radioItemVariants = tv({
     }
   },
   compoundVariants: [
+    // First-line alignment for described rows: under `items-start` the
+    // indicator tops out at the row edge, so these offsets drop it to the
+    // optical centre of the label's first line (half the gap between the
+    // line box and the indicator height). They must not apply to centred
+    // single-line rows — under `items-center` a one-sided margin is part of
+    // the centred box and would skew the indicator ~1px low.
+    { described: true, size: 'xs', class: { indicator: 'mt-px' } },
+    { described: true, size: ['sm', 'md', 'lg'], class: { indicator: 'mt-0.5' } },
+
     // Unchecked appearance per variant
     {
       checked: false,
@@ -281,6 +308,7 @@ export const radioItemVariants = tv({
     size: 'md',
     intent: 'primary',
     variant: 'outlined',
+    described: false,
     checked: false,
     disabled: false,
     error: false

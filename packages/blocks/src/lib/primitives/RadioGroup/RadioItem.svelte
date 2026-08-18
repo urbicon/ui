@@ -53,6 +53,9 @@
     variant: ctx.variant,
     tier: ctx.tier,
     checked: isChecked,
+    // Layout axis, not state: a described row aligns the indicator with the
+    // label's first line instead of centring it — see radioGroup.variants.ts.
+    described: !!description || undefined,
     disabled: isDisabled || undefined,
     error: ctx.error || undefined
   });
