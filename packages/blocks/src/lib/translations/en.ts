@@ -173,6 +173,14 @@ export default {
     filterPlaceholder: 'Filter topics…',
     noResults: 'No matching topics'
   },
+  avatar: {
+    status: {
+      online: 'Online',
+      offline: 'Offline',
+      away: 'Away',
+      busy: 'Busy'
+    }
+  },
   journeyTimeline: {
     label: 'Journey',
     status: {

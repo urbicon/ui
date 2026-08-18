@@ -171,6 +171,14 @@ export default {
     filterPlaceholder: 'Themen filtern…',
     noResults: 'Keine passenden Themen'
   },
+  avatar: {
+    status: {
+      online: 'Online',
+      offline: 'Offline',
+      away: 'Abwesend',
+      busy: 'Beschäftigt'
+    }
+  },
   journeyTimeline: {
     label: 'Verlauf',
     status: {
