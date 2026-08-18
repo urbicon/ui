@@ -103,7 +103,7 @@ Override example (dark neon theme):
 
 const TEXT = `# Text Tokens
 
-11 tokens for text colors. All auto-switch in dark mode except \`text-on-warning\`,
+12 tokens for text colors. All auto-switch in dark mode except \`text-on-warning\`,
 which is deliberately mode-invariant (warning's fill is light amber in both modes,
 so its label is a warm dark in both).
 
@@ -120,6 +120,7 @@ so its label is a warm dark in both).
 | \`--color-text-on-warning\` | \`text-text-on-warning\` | Text on the warning fill — warm dark (warning-950) in both modes |
 | \`--color-text-on-dark\` | \`text-text-on-dark\` | Text on dark surfaces |
 | \`--color-text-on-surface\` | \`text-text-on-surface\` | Text on any surface (auto-contrast) — never on intent fills |
+| \`--color-text-link\` | \`text-text-link\` | Link ink on reading surfaces; follows the primary intent's AA text step |
 
 Light → Dark mapping:
 - \`text-primary\`: neutral-900 (dark) → neutral-100 (light)

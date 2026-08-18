@@ -47,7 +47,10 @@ const TEXT_CORES = [
   'text-on-primary',
   'text-on-dark',
   'text-on-surface',
-  'text-on-warning'
+  'text-on-warning',
+  // Link ink on reading surfaces — follows the primary intent's AA text step,
+  // so a theme can restyle links without moving the intent (#86).
+  'text-link'
 ] as const;
 
 /** Border colour tokens → `border-border-*`. */

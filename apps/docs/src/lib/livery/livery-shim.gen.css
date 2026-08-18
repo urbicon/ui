@@ -16,7 +16,7 @@
  * four liveries; the tiles never showed it because a tile is a child element
  * and its own declarations beat anything inherited from :root.
  *
- * 77 declarations.
+ * 78 declarations.
  */
 :root[data-livery],
 [data-livery] {
@@ -38,6 +38,7 @@
   --color-text-tertiary: light-dark(var(--color-neutral-600), var(--color-neutral-300));
   --color-text-quaternary: light-dark(var(--color-neutral-500), var(--color-neutral-400));
   --color-text-disabled: light-dark(var(--color-neutral-500), var(--color-neutral-500));
+  --color-text-link: var(--color-primary-text);
   --color-text-on-dark: light-dark(var(--color-neutral-0), var(--color-neutral-900));
   --color-text-on-fill: light-dark(var(--color-neutral-0), var(--color-neutral-900));
   --color-text-on-warning: var(--color-warning-950);
