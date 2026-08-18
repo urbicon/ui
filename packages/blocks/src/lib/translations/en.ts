@@ -28,7 +28,6 @@ export default {
     timeMeridiem: 'AM or PM',
     toggle: 'Toggle',
     toggleOptions: 'Toggle options',
-    removableBadge: 'Removable badge',
     removeBadge: 'Remove badge',
     removeFile: 'Remove {{name}}',
     removeTag: 'Remove {{label}}'

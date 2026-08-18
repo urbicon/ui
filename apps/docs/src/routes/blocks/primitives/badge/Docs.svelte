@@ -63,8 +63,9 @@
         <tr>
           <td class="py-3 pr-4 align-top"><code class="text-text-primary">chip</code></td>
           <td class="py-3 pr-4 align-top">
-            An interactive label (focusable, <code class="text-text-primary">role="button"</code>).
-            Pair with <code class="text-text-primary">onclick</code>.
+            An action-styled label. With an <code class="text-text-primary">onclick</code> it
+            becomes focusable and carries <code class="text-text-primary">role="button"</code>;
+            without one it keeps the look and stays static.
           </td>
           <td class="py-3 align-top">
             <Badge purpose="chip" variant="soft" intent="primary" onclick={() => {}}
@@ -198,25 +199,25 @@
     <Note title="Built-in ARIA">
       <p>
         Badges render with <code class="text-text-primary">role="status"</code> by default,
-        announcing content changes to screen readers. An interactive badge (<code
-          class="text-text-primary">onclick</code
-        >
-        or
-        <code class="text-text-primary">purpose="chip"</code>) is announced as a
-        <code class="text-text-primary">button</code> instead. Removable badges include an
-        accessible label for the remove button. Set
+        announcing content changes to screen readers. Only a badge with an
+        <code class="text-text-primary">onclick</code> is announced as a
+        <code class="text-text-primary">button</code> —
+        <code class="text-text-primary">purpose="chip"</code>
+        without a handler keeps the chip look but stays a status region, so it never claims an
+        action it cannot perform. Removable badges include an accessible label for the remove
+        button. Set
         <code class="text-text-primary">role="alert"</code> for time-sensitive notifications.
       </p>
     </Note>
     <Note title="Keyboard">
       <p>
-        An interactive badge (<code class="text-text-primary">onclick</code> or
-        <code class="text-text-primary">purpose="chip"</code>) is focusable via
-        <Kbd keys="Tab" /> and carries <code class="text-text-primary">role="button"</code>. With an
-        <code class="text-text-primary">onclick</code> it activates on
+        A badge with an <code class="text-text-primary">onclick</code> is focusable via
+        <Kbd keys="Tab" />, carries <code class="text-text-primary">role="button"</code> and
+        activates on
         <Kbd keys="Enter" />
         /
-        <Kbd keys="Space" />. On a removable badge the remove button takes focus, and
+        <Kbd keys="Space" />; without a handler it takes no tab stop. On a removable badge the
+        remove button takes focus, and
         <Kbd keys="Delete" />
         /
         <Kbd keys="Backspace" /> there removes it.
