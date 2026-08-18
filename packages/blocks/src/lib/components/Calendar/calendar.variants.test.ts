@@ -50,6 +50,9 @@ describe('calendarVariants', () => {
     expect(s.timeCorner()).toContain('border-b');
     expect(s.timeHeadCell()).toContain('border-l');
     expect(s.timeDayColumn()).toContain('border-l');
+    // In a week without all-day events the head is the strip cell's last child
+    // and would stack its border-b onto the cell's — `last:` hands it over.
+    expect(s.weekColumnHeader()).toContain('last:border-b-0');
   });
 
   it('keeps the time grid positioned and its track list in a class, not in markup', () => {

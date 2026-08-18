@@ -122,7 +122,12 @@ export const calendarVariants = tv({
     weekColumn: ['flex flex-col', 'border-r border-border-hairline last:border-r-0'],
     weekColumnHeader: [
       'flex flex-col items-center cursor-pointer select-none',
-      'border-b border-border-hairline',
+      // `last:` keeps the one-owner rule (#210) in the week without all-day
+      // events: the head is then the strip cell's last child, sitting directly
+      // on the cell's own bottom border — so it hands the line over instead of
+      // stacking a second translucent hairline on it. With a band below, the
+      // head is not `:last-child` and keeps the head/band separator.
+      'border-b border-border-hairline last:border-b-0',
       'transition-colors duration-[var(--blocks-duration-fast)]',
       'hover:bg-surface-hover',
       'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/50 focus-visible:ring-offset-1'
