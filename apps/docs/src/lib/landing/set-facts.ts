@@ -30,7 +30,7 @@ export interface PackageMaturity {
  * without an explicit `@stability` tag counts as stable.
  */
 export const SET_MATURITY: PackageMaturity[] = [
-  { pkg: 'blocks', stable: 47, beta: 25, experimental: 12 },
+  { pkg: 'blocks', stable: 52, beta: 20, experimental: 12 },
   { pkg: 'auth', stable: 9, beta: 5, experimental: 0 },
   { pkg: 'table', stable: 1, beta: 0, experimental: 0 }
 ];

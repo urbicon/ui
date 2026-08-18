@@ -11,7 +11,6 @@ import type { KbdSlots, KbdVariants } from './kbd.variants';
  * @tag display
  * @related CommandPalette
  * @related Tooltip
- * @stability beta
  *
  * @example
  * ```svelte

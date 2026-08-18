@@ -16,7 +16,6 @@ import type { CopyButtonSlots } from './copy-button.variants';
  * @related Button
  * @related Kbd
  * @related Tooltip
- * @stability beta
  *
  * @example
  * ```svelte

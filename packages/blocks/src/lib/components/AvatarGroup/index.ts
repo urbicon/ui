@@ -11,7 +11,6 @@ import type { AvatarGroupSlots, AvatarGroupVariants } from './avatar-group.varia
  *
  * @tag display
  * @related Avatar
- * @stability beta
  *
  * @example
  * ```svelte
