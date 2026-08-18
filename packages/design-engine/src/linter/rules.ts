@@ -401,6 +401,11 @@ const hardcodedMotion: Rule = {
  * This is a gate-breaking change for a consumer whose generated markup contains
  * an invented token — which is the point, and the finding names the real token
  * to use.
+ *
+ * **Gate-breaking again since 2026-08-18** for `on-*` roots (`text-on-surface`,
+ * `bg-on-primary`): Material-style ink classes that name no token here and so
+ * render nothing. Previously skipped as an unknown root; a project's own `on-*`
+ * token goes through the manifest's Token Overrides.
  */
 const tokenHallucination: Rule = {
   id: 'token-hallucination',
@@ -413,8 +418,15 @@ const tokenHallucination: Rule = {
     // lintDesign, or the built-in set when the rule is invoked standalone.
     const validCores = ctx?.validTokenCores ?? VALID_TOKEN_CORES;
     const prefixAlt = COLOR_PREFIXES.join('|');
-    // capture: prefix, then the core up to a class boundary / opacity / end
-    const re = new RegExp(`\\b(${prefixAlt})-([a-z][a-z0-9-]*)(?:\\/\\d{1,3})?\\b`, 'g');
+    // capture: prefix, then the core up to a class boundary / opacity / end.
+    // The lookbehind keeps CSS-variable *mentions* out: in `--color-text-on-fill`
+    // (a script literal reading a custom property, or an arbitrary-property
+    // class) the char before `text` is `-`, while every real utility sits after
+    // whitespace, a quote, or a variant's `:`. Without it, adding the `on-`
+    // root would have newly flagged such mentions — measured on the actual
+    // regex, previously invisible only because `--color-text-primary`'s core
+    // happens to be valid.
+    const re = new RegExp(`(?<!-)\\b(${prefixAlt})-([a-z][a-z0-9-]*)(?:\\/\\d{1,3})?\\b`, 'g');
     const findings: Finding[] = [];
 
     lines.forEach((line, i) => {
@@ -446,7 +458,7 @@ const tokenHallucination: Rule = {
           severity: this.severity,
           kind: 'deterministic',
           message: `\`${m[1]}-${core}\` is not a real token — likely hallucinated.`,
-          fix: suggestForBadCore(core),
+          fix: suggestForBadCore(core, m[1], validCores),
           line: i + 1,
           match: m[0] // full token incl. any `/NN` opacity suffix
         });
@@ -463,6 +475,14 @@ function looksSemantic(core: string): boolean {
   if (isForeignVocab(core)) return true; // shadcn/ui vocabulary — always foreign
   if (SEMANTIC_NAMESPACES.some((ns) => core.startsWith(ns))) return true;
   if (core.startsWith('status-')) return true; // owned-looking, never valid → flag
+  // Material-style ink roots (`on-surface`, `on-primary`, …): never a Tailwind
+  // utility, and exactly one namespace step from the real ink family — the valid
+  // cores are `text-on-*`, so the *class* is `text-text-on-*`. Written plainly as
+  // `text-on-surface`, the class parses to core `on-surface`, which used to fall
+  // through every branch here: an eval run shipped `text-on-surface-muted`
+  // nineteen times, rendering no colour, behind a green gate. Project-own `on-*`
+  // tokens stay expressible via the manifest's Token Overrides (extraTokens).
+  if (core.startsWith('on-')) return true;
   // intent-with-suffix: `primary-muted`, `success-foo` (bare `primary` is valid and caught by the whitelist)
   for (const intent of INTENT_PREFIXES) {
     if (core.startsWith(`${intent}-`)) return true;
@@ -471,7 +491,22 @@ function looksSemantic(core: string): boolean {
   return false;
 }
 
-function suggestForBadCore(core: string): string {
+function suggestForBadCore(core: string, prefix = 'text', validCores = VALID_TOKEN_CORES): string {
+  // `on-*` is the Material ink idiom; ours is the `text-on-*` family, written
+  // with the namespace doubled (class `text-text-on-surface`). Name the exact
+  // token when one exists — but only for ink prefixes: `bg-on-primary` wants a
+  // fill, and recommending an ink class for a background repeats the category
+  // error the finding is correcting.
+  if (core.startsWith('on-')) {
+    const inkPrefix = prefix === 'text' || prefix === 'placeholder' || prefix === 'caret';
+    if (!inkPrefix) {
+      return `\`${prefix}-${core}\` mixes an ink idiom into a fill utility. Fills take an intent (\`bg-primary\`, \`bg-success\`) or a surface (\`bg-surface-*\`); the ink that sits on a fill is \`text-text-on-fill\`.`;
+    }
+    if (validCores.has(`text-${core}`)) {
+      return `The token is \`text-${core}\` — as a class that is \`text-text-${core}\` (the \`text-\` namespace repeats).`;
+    }
+    return 'No bare `on-*` utility resolves to a token. The ink family is `text-text-on-fill` (any solid intent), `text-text-on-surface`, or `text-text-primary`/`-secondary`; a project-own `on-*` token is declared under `## Token Overrides` in design.manifest.md.';
+  }
   // The `-foreground` family is the most common shadcn pattern — give the precise replacement first.
   if (
     core === 'foreground' ||
@@ -479,7 +514,7 @@ function suggestForBadCore(core: string): string {
     core === 'fg' ||
     core.endsWith('-fg')
   ) {
-    return 'Use `text-on-fill` / `text-on-surface` for foreground-on-intent text, or `text-text-primary`/`-secondary` for general text.';
+    return 'Use `text-text-on-fill` / `text-text-on-surface` for foreground-on-intent text, or `text-text-primary`/`-secondary` for general text.';
   }
   if (isForeignVocab(core)) return SHADCN_FIX;
   for (const [bad, hint] of Object.entries(KNOWN_BAD_NAMESPACES)) {

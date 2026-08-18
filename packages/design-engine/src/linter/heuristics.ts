@@ -488,7 +488,7 @@ function checkGreyOnIntent(lines: string[]): Finding[] {
     'grey-on-intent',
     hits,
     'Muted/grey text on a saturated intent background. Low contrast and muddy — the colour stops carrying meaning.',
-    'On an intent surface use the on-colour token (`text-on-fill`/`text-on-dark`). Reserve muted greys for neutral surfaces.'
+    'On an intent surface use the on-colour token (`text-text-on-fill`/`text-text-on-dark`). Reserve muted greys for neutral surfaces.'
   );
 }
 

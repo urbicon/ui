@@ -119,6 +119,60 @@ describe('token-hallucination', () => {
       '<div class="bg-surface-subtle text-text-primary bg-primary bg-primary-500 text-success bg-feedback-success-subtle border-border-strong">';
     expect(has(lintDesign(valid).findings, 'token-hallucination')).toBe(false);
   });
+  it('flags Material-style on-* ink roots, naming the doubled-namespace token when it exists', () => {
+    // The gap this closes was measured, not hypothesised: a wired eval run
+    // (P2E, 2026-08-18) shipped `text-on-surface-muted` nineteen times — a class
+    // naming no token, rendering no colour — behind a green gate, because the
+    // `on-` root fell through every looksSemantic branch.
+    const f = lintDesign('<div class="text-on-surface">').findings.find(
+      (x) => x.ruleId === 'token-hallucination'
+    );
+    expect(f).toBeDefined();
+    expect(f?.fix).toContain('text-text-on-surface');
+    expect(
+      has(lintDesign('<div class="text-on-surface-muted">').findings, 'token-hallucination')
+    ).toBe(true);
+    expect(has(lintDesign('<div class="bg-on-primary">').findings, 'token-hallucination')).toBe(
+      true
+    );
+  });
+  it('recommends a fill, not an ink class, when the on-* root sits on a fill utility', () => {
+    const f = lintDesign('<div class="bg-on-primary">').findings.find(
+      (x) => x.ruleId === 'token-hallucination'
+    );
+    expect(f?.fix).toContain('bg-primary');
+    expect(f?.fix).not.toContain('text-text-on-primary');
+  });
+  it('the recommended doubled-namespace class itself stays clean, plain and behind variants', () => {
+    // The greedy core capture must swallow `text-text-on-surface` whole — this is
+    // the regression the on- root could introduce, so it is pinned.
+    const clean = '<div class="text-text-on-surface hover:text-text-on-fill md:bg-primary">';
+    expect(has(lintDesign(clean).findings, 'token-hallucination')).toBe(false);
+  });
+  it('flags on-* roots behind variant prefixes and with opacity, but not CSS-variable mentions', () => {
+    expect(
+      has(
+        lintDesign('<div class="hover:text-on-surface md:bg-on-fill/50">').findings,
+        'token-hallucination'
+      )
+    ).toBe(true);
+    // A script literal reading a custom property is a mention, not a utility.
+    const mention =
+      "<script>const v = getComputedStyle(el).getPropertyValue('--color-text-on-fill');</script>";
+    expect(has(lintDesign(mention).findings, 'token-hallucination')).toBe(false);
+  });
+  it('does NOT flag a project-declared on-* token or hyphen-free on… words', () => {
+    expect(
+      has(
+        lintDesign('<div class="text-on-brand">', { extraTokens: ['on-brand'] }).findings,
+        'token-hallucination'
+      )
+    ).toBe(false);
+    // `online-…` must not match the `on-` root: the hyphen is the boundary.
+    expect(
+      has(lintDesign('<div class="bg-online-indicator">').findings, 'token-hallucination')
+    ).toBe(false);
+  });
   it('does NOT flag genuine Tailwind utilities or arbitrary values', () => {
     const { findings } = lintDesign(
       '<div class="bg-transparent bg-[#fff] text-sm bg-cover from-transparent">'
@@ -382,7 +436,10 @@ describe('craft-floor rules', () => {
       )
     ).toBe(true);
     expect(
-      has(lintDesign('<div class="bg-primary text-on-primary">x</div>').findings, 'grey-on-intent')
+      has(
+        lintDesign('<div class="bg-primary text-text-on-primary">x</div>').findings,
+        'grey-on-intent'
+      )
     ).toBe(false);
     expect(
       has(
@@ -750,8 +807,15 @@ describe('token-hallucination — intent typos', () => {
     );
   });
   it('does NOT flag arbitrary, far-from-intent cores (`bg-brand`, `bg-cover`)', () => {
-    const { findings } = lintDesign('<div class="bg-brand text-on-brand bg-cover">');
+    // `text-on-brand` used to sit in this list as a far-from-everything example.
+    // That was the hole, not the rule: `on-*` is the Material ink idiom, never a
+    // Tailwind utility, and undeclared it renders nothing (P2E, 2026-08-18). It
+    // is flagged now; a project's own `on-*` token goes through extraTokens.
+    const { findings } = lintDesign('<div class="bg-brand bg-cover">');
     expect(has(findings, 'token-hallucination')).toBe(false);
+    expect(has(lintDesign('<div class="text-on-brand">').findings, 'token-hallucination')).toBe(
+      true
+    );
   });
   it('does NOT flag a valid intent', () => {
     expect(

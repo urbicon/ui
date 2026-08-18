@@ -274,8 +274,11 @@ export const KNOWN_BAD_NAMESPACES: Record<string, string> = {
   // `status-*` is the most frequent invention observed. Map to feedback/intents.
   'status-':
     'Use a `feedback-*` token (feedback-success, feedback-error, …) or a bare intent (`success`, `danger`).',
-  // `-fg` / `-foreground` suffixes are invented; the system uses `text-on-fill` etc.
-  '-fg': 'Use `text-on-fill` for foreground-on-intent text (`text-on-warning` on warning fills).'
+  // `-fg` / `-foreground` suffixes are invented; the system's ink-on-fill cores are
+  // `text-on-*` — written as classes with the namespace doubled. The shorthand form
+  // used to stand right here and taught the exact class the rule now rejects.
+  '-fg':
+    'Use `text-text-on-fill` for foreground-on-intent text (`text-text-on-warning` on warning fills).'
 };
 
 /**
