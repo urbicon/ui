@@ -13,7 +13,7 @@ import type { BadgePlacement, BadgeSlots, BadgeVariants } from './badge.variants
 interface BadgeBaseProps
   extends Omit<BadgeVariants, 'variant' | 'counter' | 'removable' | 'interactive'>,
     Omit<HTMLAttributes<HTMLElement>, 'children'> {
-  /** Add a pulsing animation to draw attention (e.g. for live indicators). */
+  /** Add a pulsing animation to draw attention (e.g. for live indicators). Stilled under `prefers-reduced-motion`. */
   pulse?: boolean;
   /** Visually disable the badge (reduced opacity, no pointer events). */
   disabled?: boolean;
@@ -22,7 +22,7 @@ interface BadgeBaseProps
   /** Anchor the badge absolutely within a `position: relative` parent. */
   placement?: BadgePlacement;
 
-  /** Click handler. Automatically enables interactive styles (and `role="button"`). */
+  /** Click handler. Makes the badge operable: interactive styles, a tab stop, Enter/Space activation and `role="button"`. */
   onclick?: (event: MouseEvent) => void;
   /** Called when the hover state changes. */
   onHover?: (hovered: boolean) => void;
@@ -43,11 +43,13 @@ interface BadgeBaseProps
   preset?: string;
 
   /**
-   * ARIA role. A static badge is announced as `"status"`; an interactive badge
-   * (`onclick` or `purpose="chip"`, when not `disabled`) defaults to `"button"`
-   * so assistive tech announces its activation semantics. Set explicitly to
-   * override — e.g. `"alert"` for time-sensitive notifications. An explicit
-   * value always wins over the derived default.
+   * ARIA role. A static badge is announced as `"status"`; a badge with an
+   * `onclick` handler (when not `disabled`) defaults to `"button"` so
+   * assistive tech announces its activation semantics. `purpose="chip"` or
+   * `interactive` alone change only the look — without a handler there is
+   * nothing to activate, so the badge stays a `"status"` outside the tab
+   * order. Set explicitly to override — e.g. `"alert"` for time-sensitive
+   * notifications. An explicit value always wins over the derived default.
    */
   role?: 'status' | 'alert' | 'badge' | 'button';
   /**
@@ -132,7 +134,13 @@ interface BadgeStandardProps extends BadgeBaseProps {
   counter?: boolean;
   /** Show a remove (×) button. */
   removable?: boolean;
-  /** Enable hover/focus styles and keyboard activation. Automatically enabled when `onclick` is provided. */
+  /**
+   * Enable the interactive look (pointer cursor, hover/press scale, mint).
+   * Automatically enabled when `onclick` is provided — and only the handler
+   * makes the badge a tab stop with Enter/Space activation; `interactive`
+   * alone never creates a focus stop that answers no key.
+   * @summary Interactive look (cursor, hover scale); a keyboard tab stop only together with a click handler.
+   */
   interactive?: boolean;
   /** Fired when the remove button is clicked (only when `removable` is true). */
   onRemove?: () => void;
@@ -147,8 +155,10 @@ interface BadgeStandardProps extends BadgeBaseProps {
  * forbids `children` / `counter` / `removable` / `interactive` / `onRemove`
  * at the type level, while the label arms (`filled` / `outlined` / `soft`;
  * `purpose` `status` / `tag` / `counter` / `chip`) accept the full surface.
- * An interactive badge (`onclick` or `purpose="chip"`) is announced as a
- * `button`, a static one as `status` (override via `role`).
+ * A badge with an `onclick` handler is announced as a `button` and joins the
+ * tab order; a static one — including a chip without a handler — stays a
+ * `status` (override via `role`). Its accessible name is always the visible
+ * label; a removable badge's ✕ control names itself ("Remove badge").
  *
  * @tag feedback
  * @related Alert

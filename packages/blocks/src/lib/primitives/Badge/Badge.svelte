@@ -65,11 +65,22 @@
   const isInteractive = $derived(purpose === 'chip' || interactive || !!onclick);
   const isRemovable = $derived(removable && !isDot);
 
-  // An interactive badge (clickable chip / onclick) carries button semantics:
-  // it is focusable and Enter/Space-activatable, so screen readers must hear a
-  // button, not a `status` region. An explicit `role` always wins; a disabled
-  // badge is inert (pointer-events-none, guarded handlers) so it stays `status`.
-  const effRole = $derived(role ?? (isInteractive && !disabled ? 'button' : 'status'));
+  // Button semantics follow the activation contract, not the visual
+  // `interactive` axis: only an `onclick` badge answers Enter/Space, so only it
+  // joins the tab order and is announced as a button. `purpose="chip"` /
+  // `interactive` without a handler keep the interactive look (cursor, hover
+  // scale, mint) but stay a `status` region — a focus stop on which every key
+  // is dead helps nobody (#201). A removable badge's tab stop is its own ✕
+  // control; Delete/Backspace on the badge keep working there via bubbling.
+  // An explicit `role` always wins; a disabled badge is inert
+  // (pointer-events-none, guarded handlers) so it stays `status`.
+  //
+  // The root deliberately carries NO aria-label: the accessible name must be
+  // the visible label (name-from-contents). The removable aria-label this
+  // component used to set replaced it, so a screen reader heard "Removable
+  // badge" and never the text the badge carries (#201). The ✕ names itself.
+  const isActivatable = $derived(!!onclick && !disabled);
+  const effRole = $derived(role ?? (isActivatable ? 'button' : 'status'));
 
   const variantProps: BadgeVariants = $derived({
     tier: effectiveTier,
@@ -135,12 +146,11 @@
   ]}
   role={effRole}
   data-purpose={purpose}
-  tabindex={isInteractive && !disabled ? 0 : undefined}
+  tabindex={isActivatable ? 0 : undefined}
   onmouseenter={handleMouseEnter}
   onmouseleave={handleMouseLeave}
   onclick={handleClick}
   onkeydown={handleKeydown}
-  aria-label={isRemovable ? bt('accessibility.removableBadge') : undefined}
   aria-disabled={disabled}
   {...restProps}
 >
