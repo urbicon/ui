@@ -66,6 +66,15 @@ export function useSummary(
     setSummaryConfigs([...state.summaryConfigs, config]);
   }
 
+  /**
+   * Drop a column's aggregation. Deliberately NOT routed through
+   * {@link setSummaryConfigs}: a filter over an already-normalized list cannot
+   * introduce a duplicate, so the invariant is safe either way — but the funnel
+   * derives `showSummary` from the remaining count, which would switch the row
+   * back ON for a reader who had just hidden it with {@link toggleSummary}.
+   * Removing the last aggregation still hides the row, because there is nothing
+   * left to show.
+   */
   function removeSummaryConfig(column: string) {
     state.summaryConfigs = state.summaryConfigs.filter((c) => c.column !== column);
 
@@ -79,11 +88,14 @@ export function useSummary(
   }
 
   /**
-   * Replace the whole set. This is the single write path for
-   * `state.summaryConfigs` — {@link addSummaryConfig}, the store's public
-   * action and the `prefs.defaults.summaries` seed all land here — so the
-   * one-per-column invariant is enforced once: duplicates collapse last-wins
-   * per column (#92), matching what re-adding a column has always done.
+   * Replace the whole set. Every writer that can ADD a config lands here —
+   * {@link addSummaryConfig}, the store's public action and the
+   * `prefs.defaults.summaries` seed — so the one-per-column invariant is
+   * enforced in one place: duplicates collapse last-wins per column (#92),
+   * matching what re-adding a column has always done.
+   *
+   * {@link removeSummaryConfig} writes `state.summaryConfigs` on its own and
+   * says there why; it only ever filters, which cannot break the invariant.
    */
   function setSummaryConfigs(configs: SummaryConfig[]) {
     state.summaryConfigs = normalizeSummaryConfigs(configs);

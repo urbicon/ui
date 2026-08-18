@@ -128,9 +128,12 @@ export function usePrefs(state: TableState, prefs?: TablePrefsConfig) {
   }
 
   // ── Sync functions, called by the store's action wrappers after mutations.
-  // Every sync writes a *snapshot*, never the live array: the concerns mutate
-  // their arrays in place, so assigning the same reference back would be no
-  // signal change at all — the auto-save effect would not re-run.
+  // Every sync writes a *snapshot*, never the live array. The summary concern
+  // assigns fresh arrays today (#92 routed its writers through one funnel), but
+  // this stays a copy on purpose: it is the one line that keeps the persisted
+  // value from aliasing live state, and a concern that goes back to mutating in
+  // place would otherwise assign the same reference back — no signal change at
+  // all, and the auto-save effect would not re-run.
   function syncSummaryConfigs() {
     if (persistentSummaryConfigs) persistentSummaryConfigs.value = [...state.summaryConfigs];
   }
