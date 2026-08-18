@@ -122,6 +122,29 @@ describe('semantic.css — surface/border refinement tokens', () => {
   });
 
   /**
+   * `text-text-link` shipped in five auth link call sites while no
+   * `--color-text-link` token existed anywhere — a class in a theme-driven
+   * namespace whose key is missing produces NO CSS instead of failing, so
+   * every auth link silently rendered in the inherited colour (#86). Those
+   * call sites live in `.svelte` markup in `packages/auth`, which no variant
+   * lint reads; this test pins the token's existence at the definition side
+   * instead.
+   */
+  describe('--color-text-link exists and stays on the measured AA link ink', () => {
+    it('is defined inside the @theme block (Tailwind emits text-text-link only then)', () => {
+      expect(themeBlock).toMatch(/--color-text-link\s*:/);
+    });
+
+    it('aliases the primary intent `-text` role — the stop measured AA-safe as text', () => {
+      // The alias inherits mode-awareness (primary-text is light-dark() at its
+      // definition) and the per-theme primary re-tune; contrast.test.ts
+      // ("intent text roles on reading surfaces") carries the AA numbers. A
+      // deliberate re-pointing of link ink updates this expectation with it.
+      expect(themeBlock).toMatch(/--color-text-link\s*:\s*var\(--color-primary-text\)\s*;/);
+    });
+  });
+
+  /**
    * A hover token that resolves to its own resting value is not a subtle bug —
    * it is *no* hover. `bg-surface-interactive hover:bg-surface-hover` shipped
    * that way: identical in light mode (both neutral-100), so every filled

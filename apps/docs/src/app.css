@@ -25,6 +25,7 @@
 @source '../../../packages/blocks/dist';
 @source '../../../packages/docs/src/lib';
 @source '../../../packages/table/src/lib';
+@source '../../../packages/auth/src/lib';
 
 /* Custom documentation theme */
 @theme {
