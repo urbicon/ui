@@ -9,7 +9,8 @@ export const dialogVariants = tv({
       'bg-transparent border-none outline-none',
       'max-w-none max-h-none w-full h-full overflow-hidden'
     ],
-    backdrop: 'fixed inset-0 z-[var(--z-overlay)] bg-black/50 backdrop-blur-sm',
+    backdrop:
+      'fixed inset-0 z-[var(--z-overlay)] bg-black/50 backdrop-blur-[var(--blocks-overlay-backdrop-blur)]',
     // tier: contain — modal panel surface.
     // Panel border is a hairline (barely visible) — the shadow carries the
     // lift perception. Header/footer use a hairline border as well.

@@ -95,7 +95,11 @@
   --blocks-overlay-easing: cubic-bezier(0.83, 0, 0.17, 1); /* quintOut */
   --blocks-overlay-panel-scale-start: 0.96;
   --blocks-overlay-panel-fly-distance: 320px;
-  --blocks-overlay-backdrop-blur: 4px;
+  /* 8px, not the 4px this said until 2026-08-18: the token had no readers at all
+     while Dialog, Drawer and Sidebar hardcoded `backdrop-blur-sm`, which Tailwind 4
+     resolves to 8px. The declared value was never what shipped, so wiring the
+     backdrops to the token had to follow the rendering rather than change it. */
+  --blocks-overlay-backdrop-blur: 8px;
 
   /* === TOOLTIP FADE TOKENS (ACC-3 follow-up) ===
      The CSS opacity fade shared by the hover/focus tooltip. Deliberately faster

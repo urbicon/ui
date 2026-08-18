@@ -91,9 +91,11 @@ Aesthetics that cannot be expressed as tokens stay reachable through `unstyled` 
 Two consequences, because both look like gaps from the outside:
 
 - **Structural aesthetics need a generic token, never a theme-specific branch.** A resting glow
-  or a backdrop blur would take one bounded token set that primitives opt into generically.
-  Exactly one component hardcodes a blur today (`CompositionBar.svelte`) — the known exception,
-  not the pattern.
+  would take one bounded token set that primitives opt into generically. That set is not
+  being built: shipping an aesthetic skin was decided against in 2026-08, and without one the
+  investment has no consumer. Blur is the exception that already has its token —
+  `--blocks-overlay-backdrop-blur`, read by every backdrop — while a resting glow has none,
+  so a neon look stays a consumer's `class`/`slotClasses` job.
 - **Brand themes are unbounded; full aesthetic identities are not.** Palette, accent hue, radius
   and density cost one file each under `style/themes/`, so there can be any number. A complete
   visual identity is a larger one-time token investment, and those stay a small curated set —
