@@ -25,6 +25,14 @@ import type { ToggleSlots, ToggleVariants } from './toggle.variants';
  *   onCheckedChange={(val) => console.log('toggled', val)}
  * />
  * ```
+ *
+ * @example
+ * ```svelte
+ * <div class="space-y-2">
+ *   <Toggle label="Email notifications" />
+ *   <Toggle label="Push notifications" />
+ * </div>
+ * ```
  */
 export interface ToggleProps
   extends Omit<ToggleVariants, 'checked' | 'error'>,
