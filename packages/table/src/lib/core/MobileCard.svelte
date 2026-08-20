@@ -12,7 +12,7 @@
   const cellLocale = $derived(getCellLocale());
 
   const ChevronDownIcon = resolveIcon('chevronDown', ChevronDownIconDefault);
-  import { formatCellValue, resolveColumnId, resolveColumnValue } from '../utils';
+  import { formatCellValue, resolveColumnId, resolveColumnValue, resolveRowItemId } from '../utils';
   import { resolveMobileCardShape } from './mobile-card-shape';
   import type { Column, TableItem } from '$lib/types/tableTypes';
   import { mobileCardVariants } from '$lib/variants';
@@ -55,10 +55,7 @@
   } = tableContext;
   const styleConfig = getTableStyleConfig();
 
-  const itemId = $derived.by((): string | number => {
-    const candidate = item.id ?? item.__index;
-    return typeof candidate === 'string' || typeof candidate === 'number' ? candidate : -1;
-  });
+  const itemId = $derived(resolveRowItemId(item));
   const selectable = $derived(tableState.selectionMode !== 'none');
   const isItemSelected = $derived(selectable && checkSelected(itemId));
 

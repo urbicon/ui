@@ -11,7 +11,7 @@
   import SummaryRow from '../features/SummaryRow.svelte';
   import { getTableStyleConfig, resolveSlotClass } from './table-style-context';
   import { computeVirtualItems, ROW_HEIGHTS } from '$lib/utils/virtualizer';
-  import { resolveColumnId } from '$lib/utils';
+  import { resolveColumnId, resolveRowItemId } from '$lib/utils';
   import { getStickyContext } from './sticky-context.svelte';
   import type { Column, TableItem } from '$lib/types/tableTypes';
   import type { Snippet } from 'svelte';
@@ -290,8 +290,10 @@
   function getItemIdAtIndex(index: number): string | number | undefined {
     const item = navigableItems[index];
     if (!item) return undefined;
-    const id = item.id ?? item.__index;
-    return typeof id === 'string' || typeof id === 'number' ? id : undefined;
+    // Same rule as every renderer, but this caller's sentinel is `undefined`,
+    // not -1 — keyboard actions must no-op on an unidentifiable row.
+    const id = resolveRowItemId(item);
+    return id === -1 ? undefined : id;
   }
 
   function handleTableKeyDown(e: KeyboardEvent) {
@@ -727,7 +729,7 @@
           {#if body}
             {@render body()}
           {:else}
-            {#each Array.isArray(paginatedItems) ? paginatedItems : [] as item, i (item.id ?? i)}
+            {#each paginatedItems as item, i (resolveRowItemId(item))}
               <TableRow
                 {item}
                 {expandable}

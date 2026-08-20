@@ -371,14 +371,21 @@ describe('virtualization keeps the pager in server mode', () => {
     expect(t.ctx.view.page).toBe(2);
   });
 
-  it('positive control: client-virtualized still renders no pager', () => {
+  it('positive control: client-virtualized scopes the pager to the mobile layout', () => {
     const t = mountTable({
       view: pagedView(10),
       virtualized: true,
       virtualHeight: `${VIEWPORT}px`,
       selectionMode: 'multi'
     });
-    expect(t.target.querySelector('nav')).toBeNull();
+    // The desktop scroll container holds the whole list, so no desktop pager —
+    // but the always-mounted cards keep paging, and the shared pager renders
+    // hidden from the desktop layout by the container query.
+    const nav = t.target.querySelector('nav');
+    expect(nav).toBeTruthy();
+    expect(nav?.closest('div[class*="transition-opacity"]')?.className).toMatch(
+      /@min-\[\d+rem\]:hidden/
+    );
   });
 });
 

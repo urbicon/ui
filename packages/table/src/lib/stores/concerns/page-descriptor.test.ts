@@ -240,6 +240,43 @@ describe('resolvePageDescriptor', () => {
     });
   });
 
+  describe('pagerScope', () => {
+    it('client-side virtualization pages mobile-only — the cards have no window renderer', () => {
+      const d = resolvePageDescriptor({ ...base, virtualized: true, filteredCount: 100 });
+      expect(d.showPager).toBe(false);
+      expect(d.pagerScope).toBe('mobile-only');
+    });
+
+    it('an empty virtualized list pages nowhere', () => {
+      const d = resolvePageDescriptor({ ...base, virtualized: true, filteredCount: 0 });
+      expect(d.pagerScope).toBe('none');
+    });
+
+    it('follows showPager everywhere else', () => {
+      expect(resolvePageDescriptor({ ...base, filteredCount: 100 }).pagerScope).toBe('both');
+      expect(
+        resolvePageDescriptor({
+          ...base,
+          mode: 'server-manual',
+          virtualized: true,
+          serverTotal: 400
+        }).pagerScope
+      ).toBe('both');
+    });
+
+    it('domain pin: grouping suspends paging in both layouts, so never mobile-only', () => {
+      // The store cannot reach grouped × virtualized (the read gate nulls
+      // grouping), but the pure function's domain is wider.
+      const d = resolvePageDescriptor({
+        ...base,
+        virtualized: true,
+        grouped: true,
+        filteredCount: 100
+      });
+      expect(d.pagerScope).toBe('none');
+    });
+  });
+
   describe('pageSize guard', () => {
     it('clamps a zero (or negative) page size instead of dividing by it', () => {
       // Representable via `viewDefaults={{ pageSize: 0 }}` — unguarded this

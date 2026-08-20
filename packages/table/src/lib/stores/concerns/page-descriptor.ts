@@ -61,6 +61,15 @@ export interface PageDescriptor {
   rangeStart: number;
   /** Whether the pager renders. The rule: hide it only when there is genuinely nothing to page. */
   showPager: boolean;
+  /**
+   * Which layout the pager applies to. {@link showPager} stays the desktop
+   * truth; the one split case is client-side virtualization, which replaces
+   * paging with a scroll container ONLY in the desktop layout — the mobile
+   * cards have no window renderer and keep paging. `'mobile-only'` says:
+   * render the pager, scoped to the mobile layout by CSS, which owns the
+   * layout decision.
+   */
+  pagerScope: 'both' | 'mobile-only' | 'none';
 }
 
 /**
@@ -115,6 +124,17 @@ export function resolvePageDescriptor(input: PageDescriptorInput): PageDescripto
   const pagingSuspended = !serverProcessed && (input.grouped || input.virtualized);
   const rangeStart = pagingSuspended ? 1 : (effectivePage - 1) * pageSize + 1;
 
+  const showPager = resolveShowPager(input, serverProcessed);
+  // `!input.grouped` for the pure function's sake: grouping suspends paging
+  // in BOTH layouts, so a grouped list never pages mobile-only. The store can
+  // not reach that combination (the read gate nulls grouping while
+  // virtualized), but this function's domain is wider than the store's.
+  const pagerScope: PageDescriptor['pagerScope'] = showPager
+    ? 'both'
+    : input.virtualized && !input.grouped && !serverProcessed && input.filteredCount > 0
+      ? 'mobile-only'
+      : 'none';
+
   return {
     mode: input.mode,
     serverProcessed,
@@ -126,7 +146,8 @@ export function resolvePageDescriptor(input: PageDescriptorInput): PageDescripto
     loadedCount: input.loadedCount,
     pageSize,
     rangeStart,
-    showPager: resolveShowPager(input, serverProcessed)
+    showPager,
+    pagerScope
   };
 }
 
