@@ -1,4 +1,5 @@
 import type { Column, TableItem } from '$lib/types/tableTypes';
+import type { ProcessingMode } from '$lib/view/source';
 import type { SummaryConfig } from '../TableStore.svelte';
 
 /**
@@ -81,11 +82,13 @@ export interface TableState {
   virtualized: boolean;
 
   /**
-   * Data-processing mode, derived from the resolved {@link TableSource} —
-   * `'server'` covers both the manual and the managed server variant. Read by
-   * the sorting/pagination concerns; never written (the source is the truth).
+   * Data-processing mode, straight from the resolved {@link TableSource} —
+   * all three values, so the manual and the managed server arm stay
+   * distinguishable below the store. Concerns that only care where the
+   * processing happens compare against `'client'`. Never written (the source
+   * is the truth).
    */
-  readonly mode: 'client' | 'server';
+  readonly mode: ProcessingMode;
   /**
    * Server-side total for pagination. Derived from a manual server source's
    * `total`; a managed fetch writes it via `setServerResult`. Spelled like the

@@ -36,18 +36,31 @@ export interface FetchSink {
  * the `source.ts` header): no `refetch()`, no cache, no retry, no
  * invalidation hook. Each of those turns this into a data layer. Fix bugs
  * here, send capabilities to the manual `processing: 'server'` flow.
+ *
+ * `getFetchSnapshot` is what the fetch actually asks for — by default the raw
+ * view snapshot. The provider passes a projection whose `page` follows the
+ * *displayed* (clamped) page: key and execution read the same function, so
+ * when a response reveals the intent was out of range, the projected page
+ * changes, the key changes, and the debounced refetch recovers the reader —
+ * without anything writing the view (the raw intent stays, for a later
+ * page-size change to resurrect). No loop: the recovering response leaves the
+ * projection where it is.
  */
 export function createManagedFetch<T>(
   view: TableView,
   getSource: () => TableSource<T>,
-  sink: FetchSink
+  sink: FetchSink,
+  getFetchSnapshot: () => TableViewSnapshot = () => view.snapshot()
 ): void {
   // Boolean, structural: a fresh source literal with the same shape does not
   // change this derived, so the effect below never sees it.
   const isManaged = $derived(resolveSource(getSource()).mode === 'server-managed');
-  // Structural view identity: a filters array replaced by a structurally
-  // identical one serialises identically, so no fetch.
-  const viewKey = $derived(JSON.stringify(view.snapshot()));
+  // Structural fetch identity: a filters array replaced by a structurally
+  // identical one serialises identically, so no fetch. Built on the SAME
+  // snapshot the execution sends — a key over the raw view with an execution
+  // over the projection could skip exactly the refetch that recovers an
+  // out-of-range page.
+  const viewKey = $derived(JSON.stringify(getFetchSnapshot()));
 
   let initialDone = false;
   let timer: ReturnType<typeof setTimeout> | null = null;
@@ -111,7 +124,7 @@ export function createManagedFetch<T>(
     sink.onLoading?.();
     try {
       const result = await resolved.query(
-        untrack(() => view.snapshot()),
+        untrack(() => getFetchSnapshot()),
         { signal }
       );
       if (signal.aborted) return;

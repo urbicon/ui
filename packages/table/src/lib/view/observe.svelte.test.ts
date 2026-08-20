@@ -381,6 +381,40 @@ describe('the sink contract', () => {
   });
 });
 
+describe('getFetchSnapshot — the projection the fetch asks for', () => {
+  // The provider projects `page` onto the displayed (clamped) page. The
+  // contract that makes the recovery work is that the structural KEY and the
+  // EXECUTION read the same projection: a key over the raw view with an
+  // execution over the projection would skip exactly the refetch that
+  // recovers an out-of-range deep link. (The end-to-end recovery, against a
+  // mounted table, is pinned in Table.servermode.svelte.test.ts.)
+  it('a change in the projection alone refetches, and the query receives it', async () => {
+    const { calls, query } = makeCountingQuery();
+    let projectedPage = $state(99);
+    const cleanup = $effect.root(() => {
+      const view = createTableView();
+      createManagedFetch(
+        view,
+        () => ({ processing: 'server' as const, query, debounceMs: 100 }),
+        { onResult: () => {} },
+        () => ({ ...view.snapshot(), page: projectedPage })
+      );
+    });
+    flushSync();
+    vi.advanceTimersByTime(0);
+    await flushMicrotasks();
+    expect(calls.map((c) => c.page)).toEqual([99]);
+
+    // What a response revealing the total does to the provider's projection.
+    projectedPage = 20;
+    flushSync();
+    vi.advanceTimersByTime(100);
+    await flushMicrotasks();
+    expect(calls.map((c) => c.page)).toEqual([99, 20]);
+    cleanup();
+  });
+});
+
 describe('observeView (Prüfstein 13)', () => {
   // Positive controls (red seen): the initial synchronous emission removed →
   // 2 tests red (this one and the teardown test's baseline); the debounce

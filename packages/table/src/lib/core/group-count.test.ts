@@ -20,8 +20,8 @@ describe('groupCountText', () => {
   it('scopes the count to the page in server mode, where it is a slice', () => {
     // The number is unchanged — 8 rows were handed over either way. Only the
     // claim differs, because in server mode the server may hold 400.
-    expect(groupCountText(8, 'server', tt)).toBe('(8 group.itemsOnPage)');
-    expect(groupCountText(1, 'server', tt)).toBe('(1 group.itemOnPage)');
+    expect(groupCountText(8, 'server-manual', tt)).toBe('(8 group.itemsOnPage)');
+    expect(groupCountText(1, 'server-managed', tt)).toBe('(1 group.itemOnPage)');
   });
 
   it('keeps the singular/plural split in both modes', () => {
@@ -31,9 +31,9 @@ describe('groupCountText', () => {
       groupCountText(0, 'client', tt),
       groupCountText(1, 'client', tt),
       groupCountText(2, 'client', tt),
-      groupCountText(0, 'server', tt),
-      groupCountText(1, 'server', tt),
-      groupCountText(2, 'server', tt)
+      groupCountText(0, 'server-manual', tt),
+      groupCountText(1, 'server-manual', tt),
+      groupCountText(2, 'server-manual', tt)
     ];
     expect(cells).toEqual([
       '(0 group.items)',

@@ -1,4 +1,5 @@
 import type { useTableI18n } from '$lib/i18n';
+import type { ProcessingMode } from '$lib/view/source';
 
 /**
  * The `tt` a component gets from `useTableI18n()`. Derived rather than
@@ -24,8 +25,8 @@ type TranslateFn = ReturnType<typeof useTableI18n>;
  * printing the bug. Now they are, and a third renderer cannot reintroduce it
  * without going out of its way.
  */
-export function groupCountText(count: number, mode: string, tt: TranslateFn): string {
-  if (mode === 'server') {
+export function groupCountText(count: number, mode: ProcessingMode, tt: TranslateFn): string {
+  if (mode !== 'client') {
     return `(${count} ${count === 1 ? tt('group.itemOnPage') : tt('group.itemsOnPage')})`;
   }
   return `(${count} ${count === 1 ? tt('group.item') : tt('group.items')})`;

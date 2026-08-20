@@ -1,7 +1,7 @@
 import { createOptionalContext } from '@urbicon-ui/blocks';
 import { BASE_LOCALE } from '@urbicon-ui/i18n';
 import { SvelteSet } from 'svelte/reactivity';
-import type { Column, Filter, TableItem } from '$lib';
+import type { Column, TableItem } from '$lib';
 import type { TableContext } from '$lib/core/table/index.js';
 import { normalizeItems } from '$lib/utils';
 import { resolveSource, type TableSource } from '$lib/view/source';
@@ -142,6 +142,65 @@ const NO_ITEMS: TableItem[] = [];
 const NO_SOURCE: TableSource = { processing: 'client', items: NO_ITEMS };
 
 /**
+ * A source-seeded slot the server machinery may overwrite (`setServerResult`
+ * writes `loading`/`error`/`serverTotal`), with an EXPLICIT override
+ * lifetime: the override is valid for exactly one seed identity, and the
+ * seed's identity changes precisely when `epoch` (the source arm) or the
+ * seeded value changes — so an arm flip discards a standing server error, a
+ * fetched total, a settled loading, even where the two arms' seed VALUES
+ * coincide (error: null on both sides of a managed→client flip, total: 0 on
+ * both). Value-identical fresh source literals re-derive neither input
+ * (both are primitive intermediate deriveds), so a settled override survives
+ * parent re-renders (#153-R1).
+ *
+ * Deliberately NOT an overridable `$derived`: measured 2026-08-20, the
+ * built-in discard of a derived's override on dependency change is not
+ * reliable unowned — it varies with runtime environment and graph shape
+ * (observed both surviving and discarded for the same sequence). The store
+ * must behave the same mounted, unowned and in SSR, so the lifetime rule
+ * lives here, in plain state.
+ */
+function createServerSlot<T>(seed: () => T, epoch: () => unknown) {
+  // The box is the override's validity token: one object identity per
+  // (arm, seed value) EPISODE. Memoised by value in a plain closure — NOT by
+  // relying on the derived staying cached, because an unowned derived (SSR,
+  // store-level reads) re-evaluates on read after any write in the system,
+  // and a fresh box each time would kill every override on arrival. The
+  // memo is pure: same inputs, same box; a change to either input replaces
+  // the box for good, so an override from a previous episode can never come
+  // back — not even when a later episode carries the same values again
+  // (flip away and back), as long as the in-between state was observed by
+  // at least one read. An entirely unobserved in-between flip is the one
+  // case this cannot see (nothing effect-free can), and it requires that no
+  // derived, no DOM and no binding read the store across two consecutive
+  // source changes — unreachable in a mounted table.
+  let lastBox: { epoch: unknown; value: T } | null = null;
+  const seedBox = $derived.by(() => {
+    const e = epoch();
+    const v = seed();
+    if (lastBox === null || lastBox.epoch !== e || lastBox.value !== v) {
+      lastBox = { epoch: e, value: v };
+    }
+    return lastBox;
+  });
+  // `$state.raw`, necessarily: deep `$state` would proxy the stored box, and
+  // `o.box === box` compares that proxy against the original — never equal,
+  // so every override would be dead on arrival. The slot value is replaced
+  // wholesale, never mutated, which is exactly the raw contract.
+  let override = $state.raw<{ box: { epoch: unknown; value: T }; value: T } | null>(null);
+  return {
+    get value(): T {
+      const box = seedBox;
+      const o = override;
+      return o !== null && o.box === box ? o.value : box.value;
+    },
+    set value(next: T) {
+      override = { box: seedBox, value: next };
+    }
+  };
+}
+
+/**
  * Creates the table state by composing independent concerns.
  *
  * Derived chain: items → filteredItems → sortedItems → grouped → paginatedItems
@@ -184,26 +243,50 @@ export function createTableState(
   const sourceItems = $derived(
     resolvedSource.mode === 'server-managed' ? NO_ITEMS : resolvedSource.items
   );
+  // A managed source seeds `loading` TRUE: its first fetch is unavoidable, so
+  // "loading" is the honest construction-time state — and only a
+  // construction-time value reaches the SSR HTML (effects never run there).
+  // Seeding false shipped the empty state to every prerendered reader while
+  // the fetch had not even started. The overridable derived carries the rest:
+  // `setServerResult`/`setServerError` write false, and an arm flip re-seeds
+  // (the slots below track the mode as an input).
   const sourceLoading = $derived(
-    resolvedSource.mode === 'server-managed' ? false : resolvedSource.loading
+    resolvedSource.mode === 'server-managed' ? true : resolvedSource.loading
   );
   const sourceError = $derived(
     resolvedSource.mode === 'server-managed' ? null : resolvedSource.error
   );
   const sourceTotal = $derived(resolvedSource.mode === 'server-manual' ? resolvedSource.total : 0);
-  const mode = $derived(sourceMode === 'client' ? ('client' as const) : ('server' as const));
 
   // ── Prop-driven slots ────────────────────────────────────────────────────
   //
   // Overridable deriveds: evaluated during SSR (#10), still writable for the
   // second writers — live updates and managed fetches assign to
-  // `state.items`/`loading`/`error`/`serverTotal`. An assignment holds
-  // until the value behind it changes, which then re-seeds.
+  // `state.items`/`loading`/`error`/`serverTotal`. An assignment holds until
+  // a tracked input changes, which then re-seeds.
   // See docs/SVELTE5-PATTERNS.md → "Prop-derived state".
   let items = $derived(normalizeItems(sourceItems));
-  let loading = $derived(sourceLoading);
-  let error = $derived(sourceError);
-  let serverTotal = $derived(sourceTotal);
+  // The server-writable slots: seeded from the source, overwritable by
+  // `setServerResult`/`setServerError`/`setServerLoading` and live updates,
+  // and re-seeded on a genuine arm change — the override lifetime rule lives
+  // in {@link createServerSlot}. Measured before this: a server error and a
+  // stale serverTotal survived a flip to client (both arms seed the same
+  // value there), and the stale total then clamped a deep-link intent on the
+  // flip back to managed. `items` stays a plain overridable derived: its
+  // seeds differ by array identity on every arm change, so a flip re-seeds
+  // it without episode tracking.
+  const loadingSlot = createServerSlot(
+    () => sourceLoading,
+    () => sourceMode
+  );
+  const errorSlot = createServerSlot(
+    () => sourceError,
+    () => sourceMode
+  );
+  const serverTotalSlot = createServerSlot(
+    () => sourceTotal,
+    () => sourceMode
+  );
   let multiExpand = $derived(props?.multiExpand?.() ?? false);
   let groupOrder = $derived(props?.groupOrder?.() ?? []);
   let selectionMode = $derived(props?.selectionMode?.() ?? 'none');
@@ -241,16 +324,16 @@ export function createTableState(
       columnsWrite?.(next);
     },
     get loading() {
-      return loading;
+      return loadingSlot.value;
     },
     set loading(next: boolean) {
-      loading = next;
+      loadingSlot.value = next;
     },
     get error() {
-      return error;
+      return errorSlot.value;
     },
     set error(next: string | null) {
-      error = next;
+      errorSlot.value = next;
     },
 
     expandedItemId: null as string | number | null,
@@ -354,13 +437,13 @@ export function createTableState(
     },
 
     get mode() {
-      return mode;
+      return sourceMode;
     },
     get serverTotal() {
-      return serverTotal;
+      return serverTotalSlot.value;
     },
     set serverTotal(next: number) {
-      serverTotal = next;
+      serverTotalSlot.value = next;
     },
 
     get enableColumnVisibility() {
@@ -645,6 +728,14 @@ export function createTableState(
      */
     get effectivePage() {
       return pagination.effectivePage;
+    },
+    /**
+     * The resolved page descriptor — totals, clamped page, fetch page, range
+     * start and pager visibility, answered once for every reader. `total`,
+     * `totalPages` and `effectivePage` above are views into it.
+     */
+    get pageInfo() {
+      return pagination.descriptor;
     },
     get grouped() {
       return grouping.grouped;

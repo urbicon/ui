@@ -760,7 +760,7 @@ describe('useRemoteData', () => {
       serverTotal: 0,
       loading: false,
       error: null as string | null,
-      mode: 'server' as const
+      mode: 'server-manual' as const
     } as unknown as TableState;
   }
 
@@ -806,7 +806,7 @@ describe('useRemoteData', () => {
 describe('server mode: concern passthrough', () => {
   it('useFiltering passes through items in server mode', () => {
     const state = {
-      mode: 'server',
+      mode: 'server-manual',
       items: [
         { id: 1, name: 'Alice' },
         { id: 2, name: 'Bob' }
@@ -825,7 +825,7 @@ describe('server mode: concern passthrough', () => {
   });
 
   it('useSorting passes through items in server mode', () => {
-    const state = { mode: 'server' } as unknown as TableState;
+    const state = { mode: 'server-managed' } as unknown as TableState;
     const view = fakeView({ sort: { column: 'name', direction: 'desc' } });
 
     const items = [
@@ -840,9 +840,11 @@ describe('server mode: concern passthrough', () => {
 
   it('usePagination uses serverTotal in server mode', () => {
     const state = {
-      mode: 'server',
+      mode: 'server-manual',
       serverTotal: 500,
-      effectiveGroupBy: null
+      effectiveGroupBy: null,
+      items: [],
+      virtualized: false
     } as unknown as TableState;
     const view = fakeView({ page: 3, pageSize: 25 });
 
@@ -865,9 +867,11 @@ describe('server mode: concern passthrough', () => {
   // of the data had no affordance left.
   it('keeps paging a grouped table in server mode', () => {
     const state = {
-      mode: 'server',
+      mode: 'server-managed',
       serverTotal: 12000,
-      effectiveGroupBy: 'team'
+      effectiveGroupBy: 'team',
+      items: [],
+      virtualized: false
     } as unknown as TableState;
     const view = fakeView({ page: 3, pageSize: 25 });
     const items = [{ id: 1 }, { id: 2 }];
@@ -888,7 +892,12 @@ describe('server mode: concern passthrough', () => {
     // group can be shown whole — which is what a group means. The two modes
     // differ because only one of them can keep that promise.
     const items = Array.from({ length: 100 }, (_, i) => ({ id: i }));
-    const state = { mode: 'client', effectiveGroupBy: 'team' } as unknown as TableState;
+    const state = {
+      mode: 'client',
+      effectiveGroupBy: 'team',
+      items: [],
+      virtualized: false
+    } as unknown as TableState;
     const view = fakeView({ page: 1, pageSize: 25 });
 
     const pagination = usePagination(
@@ -907,7 +916,12 @@ describe('server mode: concern passthrough', () => {
     // page. Before the clamp `paginatedItems` sliced (80, 100) out of 100 rows
     // and rendered an empty body with the data right there.
     const items = Array.from({ length: 100 }, (_, i) => ({ id: i }));
-    const state = { mode: 'client', effectiveGroupBy: null } as unknown as TableState;
+    const state = {
+      mode: 'client',
+      effectiveGroupBy: null,
+      items: [],
+      virtualized: false
+    } as unknown as TableState;
     const view = fakeView({ page: 5, pageSize: 100 });
 
     const pagination = usePagination(
@@ -929,7 +943,12 @@ describe('server mode: concern passthrough', () => {
     // A page seed of 0 (or a negative) never had a guard of any kind —
     // `viewDefaults={{ page: 0 }}` today, `initialPage={0}` before v8.
     const items = Array.from({ length: 10 }, (_, i) => ({ id: i }));
-    const state = { mode: 'client', effectiveGroupBy: null } as unknown as TableState;
+    const state = {
+      mode: 'client',
+      effectiveGroupBy: null,
+      items: [],
+      virtualized: false
+    } as unknown as TableState;
     const view = fakeView({ page: 0, pageSize: 5 });
 
     const pagination = usePagination(

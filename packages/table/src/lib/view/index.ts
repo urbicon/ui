@@ -7,6 +7,7 @@
 export { type ObserveViewOptions, observeView } from './observe.svelte.js';
 export type {
   ClientItemsSource,
+  ProcessingMode,
   ServerManagedSource,
   ServerManualSource,
   TableSource

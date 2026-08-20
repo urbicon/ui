@@ -42,6 +42,7 @@ use(
   pub.total,
   pub.totalPages,
   pub.effectivePage,
+  pub.pageInfo,
   pub.effectiveGroupBy
 );
 use(pub.setSearch);
