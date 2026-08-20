@@ -480,7 +480,9 @@ export function createTableState(
     () => sorting.sortedItems,
     () => grouping.grouped
   );
-  const selection = useSelection(state, () => filtering.filteredItems);
+  const selection = useSelection(state, () => filtering.filteredItems, {
+    onPersist: () => prefsStore.syncSelection()
+  });
   const columnOrder = useColumnOrder(state);
 
   /**
@@ -508,7 +510,12 @@ export function createTableState(
 
   const focus = useFocusManagement(state, () => navigableItems.length);
   const remoteData = useRemoteData(state);
-  const liveUpdates = useLiveUpdates(state);
+  // Delete pruning goes through the selection's commit gate as a user-origin
+  // write, so it persists exactly like any other selection change — the pair
+  // of repair wrappers that re-synced storage after the fact is gone.
+  const liveUpdates = useLiveUpdates(state, {
+    pruneSelection: (ids) => selection.deselectMany(ids, 'user')
+  });
 
   /**
    * Apply everything storage supplied — summaries and selection on the shared
@@ -522,6 +529,7 @@ export function createTableState(
    * column is hidden in the server HTML too. A stored value arriving here
    * overrides the default, including a stored *empty* one.
    */
+  let appliedStoredSelection = false;
   function applyPersistedState() {
     prefsStore.applyPersistedState();
     const storedHidden = prefsStore.storedHiddenColumnIds;
@@ -531,6 +539,18 @@ export function createTableState(
     const storedOrder = prefsStore.storedColumnOrder;
     if (storedOrder !== null && storedOrder.length > 0) {
       columnOrder.applyOrder(storedOrder);
+    }
+    // The read-side mirror of syncSelection's guard: a controlled selection
+    // never reaches storage, and a stored one (from an earlier uncontrolled
+    // era) never overrides the controlled prop. Applied through the commit
+    // gate as `external`: hydration is not a user action and must not write
+    // back to storage. Once, ever — the drained-pending contract the prefs
+    // concern documents: a second call must not re-apply the stored snapshot
+    // over a value the user has since changed.
+    const storedSelection = prefsStore.storedSelectionIds;
+    if (!appliedStoredSelection && storedSelection !== null && !state.selectionControlled) {
+      appliedStoredSelection = true;
+      selection.setSelectedIds(storedSelection, 'external');
     }
   }
 
@@ -567,7 +587,8 @@ export function createTableState(
     // holds; only the uncontrolled initial seed yields to a stored value.
     (state.selectionControlled || !prefsStore.hydratedSelection)
   ) {
-    selection.setSelectedIds(seed.selectedIds);
+    // A seed is not a user action and must not write storage (origin rule).
+    selection.setSelectedIds(seed.selectedIds, 'external');
   }
   if (tableView.defaults.groupBy) {
     // Recorded even when grouping is not currently applied: it is a
@@ -631,56 +652,11 @@ export function createTableState(
     prefsStore.syncColumnOrder([]);
   }
 
-  // Selection mutations sync to storage after mutating (a no-op unless
-  // persistSelection is enabled). `isSelected` stays a passthrough (read-only).
-  function selectItem(id: string | number) {
-    selection.selectItem(id);
-    prefsStore.syncSelection();
-  }
-
-  function deselectItem(id: string | number) {
-    selection.deselectItem(id);
-    prefsStore.syncSelection();
-  }
-
-  function toggleItem(id: string | number) {
-    selection.toggleItem(id);
-    prefsStore.syncSelection();
-  }
-
-  function selectAll() {
-    selection.selectAll();
-    prefsStore.syncSelection();
-  }
-
-  function deselectAll() {
-    selection.deselectAll();
-    prefsStore.syncSelection();
-  }
-
-  function toggleAll() {
-    selection.toggleAll();
-    prefsStore.syncSelection();
-  }
-
-  function setSelectedIds(ids: Array<string | number>) {
-    selection.setSelectedIds(ids);
-    prefsStore.syncSelection();
-  }
-
-  // Live-update deletes prune deleted rows out of the selection
-  // (`applyDeletes`, and `applyAll` which calls it), mutating `selectedIds`
-  // outside the selection methods above — so they re-sync persisted selection
-  // too. `applyInserts`/`applyUpdates`/`dismissAll` never touch selection.
-  function applyAllUpdates() {
-    liveUpdates.applyAll();
-    prefsStore.syncSelection();
-  }
-
-  function applyDeletes() {
-    liveUpdates.applyDeletes();
-    prefsStore.syncSelection();
-  }
+  // Selection needs no wrappers: persistence is decided per write inside the
+  // concern's commit gate (`user` persists via `onPersist`, `external` never
+  // does) — not by call-site discipline out here. The pair of repair wrappers
+  // around the live-update apply path is gone for the same reason: delete
+  // pruning goes through the gate too.
 
   // ── Store surface ──
   // This object is the *internal* surface ({@link InternalTableContext});
@@ -813,14 +789,14 @@ export function createTableState(
     get someSelected() {
       return selection.someSelected;
     },
-    selectItem,
-    deselectItem,
-    toggleItem,
-    selectAll,
-    deselectAll,
-    toggleAll,
+    selectItem: selection.selectItem,
+    deselectItem: selection.deselectItem,
+    toggleItem: selection.toggleItem,
+    selectAll: selection.selectAll,
+    deselectAll: selection.deselectAll,
+    toggleAll: selection.toggleAll,
     isSelected: selection.isSelected,
-    setSelectedIds,
+    setSelectedIds: selection.setSelectedIds,
 
     // Column order
     get orderedColumns() {
@@ -858,10 +834,10 @@ export function createTableState(
     pushInsert: liveUpdates.pushInsert,
     pushUpdate: liveUpdates.pushUpdate,
     pushDelete: liveUpdates.pushDelete,
-    applyAllUpdates,
+    applyAllUpdates: liveUpdates.applyAll,
     applyInserts: liveUpdates.applyInserts,
     applyUpdates: liveUpdates.applyUpdates,
-    applyDeletes,
+    applyDeletes: liveUpdates.applyDeletes,
     dismissAllUpdates: liveUpdates.dismissAll,
     isRecentlyUpdated: liveUpdates.isRecentlyUpdated,
     isPendingDelete: liveUpdates.isPendingDelete,

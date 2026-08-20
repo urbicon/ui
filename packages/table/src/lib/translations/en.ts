@@ -187,7 +187,11 @@ export default {
     selectRow: 'Select row',
     deselectRow: 'Deselect row',
     selectAllRows: 'Select all rows',
-    deselectAllRows: 'Deselect all rows'
+    deselectAllRows: 'Deselect all rows',
+    selectPageRow: 'Select the row on this page',
+    deselectPageRow: 'Deselect the row on this page',
+    selectPageRows: 'Select the {{count}} rows on this page',
+    deselectPageRows: 'Deselect the {{count}} rows on this page'
   },
   table: {
     link: {

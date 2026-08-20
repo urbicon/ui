@@ -171,7 +171,11 @@ export default {
     selectRow: 'Zeile auswählen',
     deselectRow: 'Auswahl aufheben',
     selectAllRows: 'Alle Zeilen auswählen',
-    deselectAllRows: 'Auswahl aller Zeilen aufheben'
+    deselectAllRows: 'Auswahl aller Zeilen aufheben',
+    selectPageRow: 'Die Zeile dieser Seite auswählen',
+    deselectPageRow: 'Auswahl der Zeile dieser Seite aufheben',
+    selectPageRows: 'Die {{count}} Zeilen dieser Seite auswählen',
+    deselectPageRows: 'Auswahl der {{count}} Zeilen dieser Seite aufheben'
   },
   table: {
     link: {

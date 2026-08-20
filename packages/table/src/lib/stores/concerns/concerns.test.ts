@@ -964,6 +964,10 @@ describe('server mode: concern passthrough', () => {
 });
 
 describe('useLiveUpdates', () => {
+  // Concern-level rigs wire a no-op prune; the real wiring (deselect through
+  // the selection gate, persisted) is pinned at store level.
+  const noopLiveHooks = { pruneSelection: () => {} };
+
   function makeLiveState() {
     return {
       items: [
@@ -978,7 +982,7 @@ describe('useLiveUpdates', () => {
 
   it('contract: pushInsert adds item to pending', () => {
     const state = makeLiveState();
-    const live = useLiveUpdates(state);
+    const live = useLiveUpdates(state, noopLiveHooks);
 
     live.pushInsert({ id: 4, name: 'Diana' });
     expect(live.counts.inserts).toBe(1);
@@ -987,7 +991,7 @@ describe('useLiveUpdates', () => {
 
   it('contract: pushInsert deduplicates by id', () => {
     const state = makeLiveState();
-    const live = useLiveUpdates(state);
+    const live = useLiveUpdates(state, noopLiveHooks);
 
     live.pushInsert({ id: 4, name: 'Diana' });
     live.pushInsert({ id: 4, name: 'Diana Updated' });
@@ -997,7 +1001,7 @@ describe('useLiveUpdates', () => {
 
   it('contract: pushUpdate adds to pending updates', () => {
     const state = makeLiveState();
-    const live = useLiveUpdates(state);
+    const live = useLiveUpdates(state, noopLiveHooks);
 
     live.pushUpdate(1, { name: 'Alice Updated' });
     expect(live.counts.updates).toBe(1);
@@ -1005,7 +1009,7 @@ describe('useLiveUpdates', () => {
 
   it('contract: pushUpdate merges changes for same id', () => {
     const state = makeLiveState();
-    const live = useLiveUpdates(state);
+    const live = useLiveUpdates(state, noopLiveHooks);
 
     live.pushUpdate(1, { name: 'Alice v2' });
     live.pushUpdate(1, { age: 31 });
@@ -1015,7 +1019,7 @@ describe('useLiveUpdates', () => {
 
   it('contract: pushUpdate for a pending insert folds into that insert', () => {
     const state = makeLiveState();
-    const live = useLiveUpdates(state);
+    const live = useLiveUpdates(state, noopLiveHooks);
 
     live.pushInsert({ id: 4, name: 'Diana', age: 28 });
     live.pushUpdate(4, { age: 29 });
@@ -1029,7 +1033,7 @@ describe('useLiveUpdates', () => {
 
   it('contract: a folded update reaches state.items on apply', () => {
     const state = makeLiveState();
-    const live = useLiveUpdates(state);
+    const live = useLiveUpdates(state, noopLiveHooks);
 
     live.pushInsert({ id: 4, name: 'Diana', age: 28 });
     live.pushUpdate(4, { age: 29, name: 'Diana R.' });
@@ -1042,7 +1046,7 @@ describe('useLiveUpdates', () => {
 
   it('contract: pushUpdate for an existing row still buffers separately', () => {
     const state = makeLiveState();
-    const live = useLiveUpdates(state);
+    const live = useLiveUpdates(state, noopLiveHooks);
 
     live.pushInsert({ id: 4, name: 'Diana' });
     live.pushUpdate(1, { name: 'Alice Updated' });
@@ -1054,7 +1058,7 @@ describe('useLiveUpdates', () => {
 
   it('contract: pushDelete adds to pending deletes', () => {
     const state = makeLiveState();
-    const live = useLiveUpdates(state);
+    const live = useLiveUpdates(state, noopLiveHooks);
 
     live.pushDelete(2);
     expect(live.counts.deletes).toBe(1);
@@ -1063,7 +1067,7 @@ describe('useLiveUpdates', () => {
 
   it('contract: pushDelete of pending insert removes from both', () => {
     const state = makeLiveState();
-    const live = useLiveUpdates(state);
+    const live = useLiveUpdates(state, noopLiveHooks);
 
     live.pushInsert({ id: 4, name: 'Diana' });
     expect(live.counts.inserts).toBe(1);
@@ -1076,7 +1080,7 @@ describe('useLiveUpdates', () => {
 
   it('contract: applyInserts merges into state.items', () => {
     const state = makeLiveState();
-    const live = useLiveUpdates(state);
+    const live = useLiveUpdates(state, noopLiveHooks);
 
     live.pushInsert({ id: 4, name: 'Diana' });
     live.applyInserts();
@@ -1088,7 +1092,7 @@ describe('useLiveUpdates', () => {
 
   it('contract: applyUpdates modifies existing items', () => {
     const state = makeLiveState();
-    const live = useLiveUpdates(state);
+    const live = useLiveUpdates(state, noopLiveHooks);
 
     live.pushUpdate(1, { name: 'Alice Updated', age: 31 });
     live.applyUpdates();
@@ -1100,7 +1104,7 @@ describe('useLiveUpdates', () => {
 
   it('contract: applyDeletes removes items from state', () => {
     const state = makeLiveState();
-    const live = useLiveUpdates(state);
+    const live = useLiveUpdates(state, noopLiveHooks);
 
     live.pushDelete(2);
     live.applyDeletes();
@@ -1110,15 +1114,24 @@ describe('useLiveUpdates', () => {
     expect(live.counts.deletes).toBe(0);
   });
 
-  it('contract: applyDeletes cleans up selection', () => {
+  it('contract: applyDeletes prunes the selection through the hook, with exactly the deleted ids', () => {
     const state = makeLiveState();
     state.selectionMode = 'multi';
-    state.selectedIds = new Set([1, 2, 3]);
-    const live = useLiveUpdates(state);
+    for (const id of [1, 2, 3]) state.selectedIds.add(id);
+    const pruned: Array<string | number> = [];
+    const live = useLiveUpdates(state, {
+      pruneSelection: (ids) => {
+        for (const id of ids) {
+          pruned.push(id);
+          state.selectedIds.delete(id);
+        }
+      }
+    });
 
     live.pushDelete(2);
     live.applyDeletes();
 
+    expect(pruned).toEqual([2]);
     expect(state.selectedIds.has(2)).toBe(false);
     expect(state.selectedIds.has(1)).toBe(true);
     expect(state.selectedIds.has(3)).toBe(true);
@@ -1126,7 +1139,7 @@ describe('useLiveUpdates', () => {
 
   it('contract: applyAll applies all pending changes', () => {
     const state = makeLiveState();
-    const live = useLiveUpdates(state);
+    const live = useLiveUpdates(state, noopLiveHooks);
 
     live.pushInsert({ id: 4, name: 'Diana' });
     live.pushUpdate(1, { name: 'Alice Updated' });
@@ -1143,7 +1156,7 @@ describe('useLiveUpdates', () => {
 
   it('contract: dismissAll clears all pending without applying', () => {
     const state = makeLiveState();
-    const live = useLiveUpdates(state);
+    const live = useLiveUpdates(state, noopLiveHooks);
 
     live.pushInsert({ id: 4, name: 'Diana' });
     live.pushUpdate(1, { name: 'Updated' });
@@ -1158,7 +1171,7 @@ describe('useLiveUpdates', () => {
 
   it('contract: counts reflects all pending types', () => {
     const state = makeLiveState();
-    const live = useLiveUpdates(state);
+    const live = useLiveUpdates(state, noopLiveHooks);
 
     live.pushInsert({ id: 4, name: 'Diana' });
     live.pushInsert({ id: 5, name: 'Eve' });
@@ -1293,7 +1306,7 @@ describe('useSelection', () => {
 
   it('contract: deselectItem removes id', () => {
     const state = makeState('multi');
-    state.selectedIds = new Set([1, 2]);
+    for (const id of [1, 2]) state.selectedIds.add(id);
     const sel = useSelection(state, () => state.items);
 
     sel.deselectItem(1);
@@ -1333,7 +1346,7 @@ describe('useSelection', () => {
 
   it('contract: deselectAll clears all', () => {
     const state = makeState('multi');
-    state.selectedIds = new Set([1, 2, 3]);
+    for (const id of [1, 2, 3]) state.selectedIds.add(id);
     const sel = useSelection(state, () => state.items);
 
     sel.deselectAll();
@@ -1342,7 +1355,7 @@ describe('useSelection', () => {
 
   it('contract: isSelected checks membership', () => {
     const state = makeState('multi');
-    state.selectedIds = new Set([2]);
+    for (const id of [2]) state.selectedIds.add(id);
     const sel = useSelection(state, () => state.items);
 
     expect(sel.isSelected(1)).toBe(false);
@@ -1352,7 +1365,7 @@ describe('useSelection', () => {
 
   it('contract: setSelectedIds replaces the set', () => {
     const state = makeState('multi');
-    state.selectedIds = new Set([1]);
+    for (const id of [1]) state.selectedIds.add(id);
     const sel = useSelection(state, () => state.items);
 
     sel.setSelectedIds([2, 3]);
@@ -1382,8 +1395,12 @@ describe('useSelection', () => {
         return super.delete(value);
       }
     }
-    state.selectedIds = new CountingSet([2, 3]);
-    const sel = useSelection(state, () => state.items);
+    const countingState = {
+      items: state.items,
+      selectionMode: 'multi',
+      selectedIds: new CountingSet([2, 3])
+    } as unknown as TableState;
+    const sel = useSelection(countingState, () => countingState.items);
 
     mutations = 0;
     sel.setSelectedIds([3, 2]); // same ids, different order — still identical
@@ -1393,13 +1410,13 @@ describe('useSelection', () => {
     // cardinality: ['3','3'] has length 2 like the current {2,3}, but it is
     // NOT the same selection — the set must be replaced (deduplicated).
     sel.setSelectedIds([3, 3]);
-    expect(state.selectedIds.size).toBe(1);
-    expect(state.selectedIds.has(3)).toBe(true);
+    expect(countingState.selectedIds.size).toBe(1);
+    expect(countingState.selectedIds.has(3)).toBe(true);
 
     sel.setSelectedIds([1]); // genuinely different — replaces as before
     expect(mutations).toBeGreaterThan(0);
-    expect(state.selectedIds.size).toBe(1);
-    expect(state.selectedIds.has(1)).toBe(true);
+    expect(countingState.selectedIds.size).toBe(1);
+    expect(countingState.selectedIds.has(1)).toBe(true);
   });
 
   it('contract: toggleAll selects all when none selected', () => {
@@ -1664,5 +1681,77 @@ describe('usePrefs — surface contract', () => {
     const prefs = usePrefs(state, { storage: 'test-table' });
     expect(() => prefs.clearAllPersistentData()).not.toThrow();
     expect(() => prefs.forceSavePersistentData()).not.toThrow();
+  });
+});
+
+describe('useSelection — persist by origin (the one write path)', () => {
+  function makeRig(mode: 'none' | 'single' | 'multi' = 'multi') {
+    const persisted: number[] = [];
+    const state = {
+      items: [
+        { id: 1, name: 'Alice' },
+        { id: 2, name: 'Bob' },
+        { id: 3, name: 'Charlie' }
+      ],
+      selectionMode: mode,
+      selectedIds: new Set<string | number>()
+    } as unknown as TableState;
+    const sel = useSelection(state, () => state.items, {
+      onPersist: () => persisted.push(state.selectedIds.size)
+    });
+    return { state, sel, persisted };
+  }
+
+  it('every user op notifies onPersist', () => {
+    const { sel, persisted } = makeRig();
+    sel.selectItem(1);
+    sel.toggleItem(2);
+    sel.deselectItem(1);
+    sel.selectAll();
+    sel.toggleAll();
+    sel.deselectAll();
+    sel.setSelectedIds([1, 2]);
+    expect(persisted.length).toBe(7);
+  });
+
+  it('external writes mutate without notifying — a seed or hydration never reaches storage', () => {
+    const { state, sel, persisted } = makeRig();
+    sel.setSelectedIds([1, 2], 'external');
+    expect([...state.selectedIds]).toEqual([1, 2]);
+    expect(persisted).toEqual([]);
+  });
+
+  it('a value-identical user write still notifies — storage learns a seeded value on the first real action', () => {
+    // Idempotence gates the mutation, not the notification: the external
+    // seed left storage empty, and the user's confirming click — even one
+    // that changes nothing — is the moment storage may learn the value
+    // (pinned end to end in seed.persistence).
+    const { state, sel, persisted } = makeRig();
+    sel.setSelectedIds([1], 'external');
+    expect(persisted).toEqual([]);
+    sel.setSelectedIds([1]);
+    expect(persisted.length).toBe(1);
+    expect([...state.selectedIds]).toEqual([1]);
+  });
+
+  it('deselectMany removes many ids through the gate, notifying per origin', () => {
+    const { state, sel, persisted } = makeRig();
+    sel.setSelectedIds([1, 2, 3], 'external');
+    sel.deselectMany([2, 3, 99]);
+    expect([...state.selectedIds]).toEqual([1]);
+    expect(persisted.length).toBe(1);
+    sel.deselectMany([1], 'external');
+    expect(state.selectedIds.size).toBe(0);
+    expect(persisted.length).toBe(1);
+  });
+
+  it('a prune with an empty intersection neither mutates nor notifies', () => {
+    // A live-update delete is not a confirming user act: touching nothing
+    // must not hand a merely-seeded selection to storage.
+    const { state, sel, persisted } = makeRig();
+    sel.setSelectedIds([1], 'external');
+    sel.deselectMany([99, 100]);
+    expect([...state.selectedIds]).toEqual([1]);
+    expect(persisted).toEqual([]);
   });
 });

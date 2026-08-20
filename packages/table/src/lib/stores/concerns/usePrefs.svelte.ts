@@ -105,14 +105,10 @@ export function usePrefs(state: TableState, prefs?: TablePrefsConfig) {
   }
 
   if (persistentSelection?.hasStoredValue && Array.isArray(persistentSelection.value)) {
-    const ids = persistentSelection.value.filter(isRowId);
-    pending.push(() => {
-      // The read-side mirror of syncSelection's guard: a controlled
-      // selection never reaches storage, and a stored one (from an earlier
-      // uncontrolled era) never overrides the controlled prop.
-      if (state.selectionControlled) return;
-      for (const id of ids) state.selectedIds.add(id);
-    });
+    // Selection is NOT pushed onto `pending`: prefs no longer writes the
+    // selection itself. The store applies `storedSelectionIds` through the
+    // selection concern's commit gate (origin `external`), so hydration can
+    // never diverge from the one write path. Only the flag is decided here.
     hydratedSelection = true;
   }
 
@@ -191,6 +187,13 @@ export function usePrefs(state: TableState, prefs?: TablePrefsConfig) {
       const stored = persistentColumnOrder?.value;
       if (persistentColumnOrder?.hasStoredValue && Array.isArray(stored)) {
         return stored.filter((id): id is string => typeof id === 'string');
+      }
+      return null;
+    },
+    get storedSelectionIds(): Array<string | number> | null {
+      const stored = persistentSelection?.value;
+      if (persistentSelection?.hasStoredValue && Array.isArray(stored)) {
+        return stored.filter(isRowId);
       }
       return null;
     },

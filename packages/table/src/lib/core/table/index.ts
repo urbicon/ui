@@ -157,7 +157,13 @@ export interface TableContext {
 
   /** The currently selected rows, resolved from `state.selectedIds`. */
   readonly selectedItems: TableItem[];
-  /** Whether every *filtered* row is selected (the header checkbox state). */
+  /**
+   * Whether every *filtered* row is selected. In server mode the filtered
+   * rows are the loaded page, so this answers "is the page complete", never
+   * "is the whole result selected" — the header checkbox expresses that
+   * honestly (page-scoped it caps at `aria-checked="mixed"` and its label
+   * names the page).
+   */
   readonly allSelected: boolean;
   /** Whether some but not all filtered rows are selected (indeterminate). */
   readonly someSelected: boolean;
@@ -947,7 +953,10 @@ export interface TableProps<T = TableItem> {
    * **not** interchangeable: rows can only be handed over for the items the
    * table currently holds, so under `processing: 'server'` the first argument
    * carries the selected rows *of the loaded page* while the second carries the
-   * whole selection.
+   * whole selection. The header checkbox states the same scope: in server
+   * mode it selects the loaded page and says so (mixed state, page-scoped
+   * label) — a selection here never silently claims rows the table has not
+   * seen.
    *
    * With controlled {@link TableProps.selectedIds}, write the **ids** back —
    * `(items, ids) => (selectedIds = ids)`. Mapping the rows instead
