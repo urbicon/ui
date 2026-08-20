@@ -4,6 +4,18 @@ All notable changes to this project will be documented in this file.
 This changelog is automatically generated from [Conventional Commits](https://www.conventionalcommits.org).
 
 
+## [8.4.1] - 2026-08-20
+
+### Bug Fixes
+- **design-engine**: Flag Material-style on-* roots as token attempts (#238)
+- One aggregation model in the table, a wired blur token, and an editorial contradiction removed (#239)
+> **BREAKING:** The headerMenu.addSummary / headerMenu.removeSummary translation keys are gone, replaced by headerMenu.summary. A consumer overriding those strings needs to move them.
+- **blocks**: Carry the CurrencyInput caret as a digit, not an offset (#243)
+
+### Documentation
+- Reposition the design loop on what the eval actually shows (#237)
+- Capture the architecture-probe method as a repo skill
+
 ## [8.4.0] - 2026-08-18
 
 ### Bug Fixes

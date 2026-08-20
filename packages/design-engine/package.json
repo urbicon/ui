@@ -1,6 +1,6 @@
 {
   "name": "@urbicon-ui/design-engine",
-  "version": "8.4.0",
+  "version": "8.4.1",
   "description": "Deterministic design engine for Urbicon UI — the zero-dependency design linter, manifest parser and quality rubric that power the design loop (validate · context · judge).",
   "license": "MIT",
   "repository": {
