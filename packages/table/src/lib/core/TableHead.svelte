@@ -10,6 +10,7 @@
   import { getInternalTableContext } from '$lib/stores/TableStore.svelte';
   import { resolveColumnId } from '$lib/utils';
   import { isColumnSortable } from '$lib/utils/column-capabilities';
+  import { headerSelection } from './header-selection';
 
   const ChevronDownIcon = resolveIcon('chevronDown', ChevronDownIconDefault);
   const ChevronUpIcon = resolveIcon('chevronUp', ChevronUpIconDefault);
@@ -182,14 +183,26 @@
     {#if selectable}
       <th scope="col" class="{headerStyles.cell()} w-12" data-testid="selection-header">
         {#if multiSelect}
+          <!-- What the checkbox may claim is decided in headerSelection: in
+               server mode it acts on one page of a larger result, so a full
+               check stays unreachable and the label names the page. -->
+          {@const headerSel = headerSelection({
+            pageScoped:
+              tableContext.pageInfo.serverProcessed &&
+              tableContext.pageInfo.totalItems > tableContext.filteredItems.length,
+            pageComplete: tableContext.allSelected,
+            someSelected: tableContext.someSelected,
+            visibleCount: tableContext.filteredItems.length
+          })}
           <div class="flex h-full w-full items-center justify-center">
             <Checkbox
-              checked={tableContext.allSelected}
-              indeterminate={tableContext.someSelected}
+              checked={headerSel.checked}
+              indeterminate={headerSel.indeterminate}
+              disabled={headerSel.disabled}
               onCheckedChange={() => tableContext.toggleAll()}
-              aria-label={tableContext.allSelected
-                ? tt('selection.deselectAllRows')
-                : tt('selection.selectAllRows')}
+              aria-label={tt(headerSel.labelKey, {
+                count: String(headerSel.labelParams?.count ?? 0)
+              })}
               size="sm"
             />
           </div>

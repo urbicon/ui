@@ -514,6 +514,128 @@ describe('prefs: selection vs the selection seed', () => {
     expect(JSON.parse(window.localStorage.getItem(SELECTION_KEY('t8')) ?? 'null')).toEqual([1]);
   });
 
+  it('a seed alone never reaches storage — only a user action does (origin rule)', () => {
+    const ts = withRoot(() =>
+      createTableState(undefined, { storage: 't8s', persistSelection: true }, undefined, {
+        selectedIds: [1, 2]
+      })
+    );
+    expect([...ts.state.selectedIds]).toEqual([1, 2]);
+    ts.forceSavePersistentData();
+    // forceSave flushes what the persistence layer holds; the seed was an
+    // external write, so it never handed the layer a value.
+    expect(window.localStorage.getItem(SELECTION_KEY('t8s'))).toBeNull();
+  });
+
+  it('an applyDeletes that intersects nothing does not hand a seeded selection to storage', () => {
+    const ts = withRoot(() =>
+      createTableState(undefined, { storage: 't8n', persistSelection: true }, undefined, {
+        selectedIds: [1, 2]
+      })
+    );
+    ts.state.selectionMode = 'multi';
+    ts.setItems([
+      { id: 1, name: 'a' },
+      { id: 2, name: 'b' },
+      { id: 3, name: 'c' }
+    ]);
+
+    ts.pushDelete(3); // removes a row, touches no selected id
+    ts.applyDeletes();
+    ts.forceSavePersistentData();
+
+    expect([...ts.state.selectedIds]).toEqual([1, 2]);
+    expect(window.localStorage.getItem(SELECTION_KEY('t8n'))).toBeNull();
+  });
+
+  it('with a controlled selection from construction, hydration never overrides the prop value', () => {
+    window.localStorage.setItem(SELECTION_KEY('t8g'), JSON.stringify([5, 6]));
+
+    const ts = withRoot(() =>
+      createTableState(
+        undefined,
+        { storage: 't8g', persistSelection: true },
+        { selectionControlled: () => true },
+        { selectedIds: [7] }
+      )
+    );
+
+    // withRoot already ran applyPersistedState — the stale stored [5, 6]
+    // must not have replaced the controlled [7].
+    expect([...ts.state.selectedIds]).toEqual([7]);
+  });
+
+  it('hydration is a read — the stored entry is byte-identical afterwards', () => {
+    const raw = JSON.stringify([5, {}, null, 'a', [7]]);
+    window.localStorage.setItem(SELECTION_KEY('t8m'), raw);
+
+    withRoot(() => createTableState(undefined, { storage: 't8m', persistSelection: true }));
+
+    expect(window.localStorage.getItem(SELECTION_KEY('t8m'))).toBe(raw);
+  });
+
+  it('the controlled echo never reaches storage (end to end)', () => {
+    const ts = withRoot(() =>
+      createTableState(
+        undefined,
+        { storage: 't8e2', persistSelection: true },
+        { selectionControlled: () => true },
+        { selectedIds: [1] }
+      )
+    );
+    ts.state.selectionMode = 'multi';
+
+    // What the controlled effect relays: first the value-identical echo,
+    // then a genuine prop change.
+    ts.setSelectedIds([1]);
+    ts.setSelectedIds([2]);
+    ts.forceSavePersistentData();
+
+    expect([...ts.state.selectedIds]).toEqual([2]);
+    expect(window.localStorage.getItem(SELECTION_KEY('t8e2'))).toBeNull();
+  });
+
+  it('a second applyPersistedState cannot re-apply the stored snapshot over a user change', () => {
+    window.localStorage.setItem(SELECTION_KEY('t8r'), JSON.stringify([5]));
+
+    const ts = withRoot(() =>
+      createTableState(undefined, { storage: 't8r', persistSelection: true })
+    );
+    ts.state.selectionMode = 'multi';
+    expect([...ts.state.selectedIds]).toEqual([5]);
+
+    ts.setItems([
+      { id: 5, name: 'a' },
+      { id: 6, name: 'b' }
+    ]);
+    ts.setSelectedIds([6]);
+    ts.applyPersistedState();
+
+    expect([...ts.state.selectedIds]).toEqual([6]);
+  });
+
+  it('a live-update delete prunes the persisted selection too (end to end)', () => {
+    const ts = withRoot(() =>
+      createTableState(undefined, { storage: 't8p', persistSelection: true })
+    );
+    ts.state.selectionMode = 'multi';
+    ts.setItems([
+      { id: 1, name: 'a' },
+      { id: 2, name: 'b' }
+    ]);
+    ts.setSelectedIds([1, 2]);
+    ts.forceSavePersistentData();
+    expect(JSON.parse(window.localStorage.getItem(SELECTION_KEY('t8p')) ?? 'null')).toEqual([1, 2]);
+
+    // The old repair wrappers re-synced storage after the apply; the commit
+    // gate now persists the prune itself — same observable behaviour.
+    ts.pushDelete(1);
+    ts.applyDeletes();
+    ts.forceSavePersistentData();
+    expect(JSON.parse(window.localStorage.getItem(SELECTION_KEY('t8p')) ?? 'null')).toEqual([2]);
+    expect([...ts.state.selectedIds]).toEqual([2]);
+  });
+
   it('deselecting everything survives a reload instead of re-seeding (end to end)', () => {
     window.localStorage.setItem(SELECTION_KEY('t8d'), JSON.stringify([5]));
 

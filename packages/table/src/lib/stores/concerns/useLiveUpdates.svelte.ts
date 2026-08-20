@@ -26,6 +26,16 @@ export interface PendingUpdate {
   changes: Partial<TableItem>;
 }
 
+export interface LiveUpdateHooks {
+  /**
+   * Remove the given ids from the selection. Wired by the store to the
+   * selection concern's commit gate, so the prune persists (and no-ops)
+   * exactly like any other selection write — this concern never touches
+   * `state.selectedIds` itself.
+   */
+  pruneSelection: (ids: Iterable<string | number>) => void;
+}
+
 /**
  * Live updates concern: manages a pending buffer of inserts, updates, and deletes
  * that are NOT immediately applied to the visible table.
@@ -34,9 +44,16 @@ export interface PendingUpdate {
  * decides when to merge them. This avoids disorienting UX issues like rows
  * jumping, disappearing, or conflicting with active selection/editing.
  *
+ * In server mode, applying changes adjusts `serverTotal` optimistically by
+ * the applied delta: the backend owns that number, but a local insert makes
+ * the client's copy stale, and leaving it produced a visible row count
+ * contradicting the footer. The next fetch restores the server's truth
+ * (`setServerResult` overwrites the slot).
+ *
  * @param state - Shared table state (items are modified on apply).
+ * @param hooks - Cross-concern wiring (see {@link LiveUpdateHooks}).
  */
-export function useLiveUpdates(state: TableState) {
+export function useLiveUpdates(state: TableState, hooks: LiveUpdateHooks) {
   let inserts = $state<TableItem[]>([]);
   let updates = $state<PendingUpdate[]>([]);
   // Mutated in place — a plain `let` holding a SvelteSet is NOT reactive when the
@@ -124,8 +141,17 @@ export function useLiveUpdates(state: TableState) {
 
   function applyInserts() {
     if (inserts.length === 0) return;
+    const appliedCount = inserts.length;
     state.items = normalizeItems([...state.items, ...inserts]);
     inserts = [];
+    if (state.mode !== 'client') {
+      // Optimistic: the rows are visible now, so the total moves with them.
+      // The footer's range text stays approximate until the next fetch —
+      // rangeEnd is computed from page × size against this total, not from
+      // the loaded rows — which trades a small imprecision for ending the
+      // measured contradiction (23 rows rendered against "of 400").
+      state.serverTotal += appliedCount;
+    }
   }
 
   function applyUpdates() {
@@ -156,6 +182,7 @@ export function useLiveUpdates(state: TableState) {
 
   function applyDeletes() {
     if (deletes.size === 0) return;
+    const requested = deletes.size;
     const deletedIds = new SvelteSet(deletes);
     state.items = state.items.filter((item) => {
       const id = pickRowId(item);
@@ -165,6 +192,10 @@ export function useLiveUpdates(state: TableState) {
       }
       return true;
     });
+    // What remains in deletedIds are orphans — requested deletes that matched
+    // no loaded row. They were discarded (DEV warns below), so they must not
+    // move the total either.
+    const removedCount = requested - deletedIds.size;
 
     if (import.meta.env?.DEV && deletedIds.size > 0) {
       console.warn(`[Table] Live delete: ${deletedIds.size} orphaned ID(s) not found in items:`, [
@@ -172,14 +203,15 @@ export function useLiveUpdates(state: TableState) {
       ]);
     }
 
-    // Also remove from selection if selected
-    if (state.selectionMode !== 'none' && state.selectedIds.size > 0) {
-      const nextSelected = new SvelteSet(state.selectedIds);
-      for (const id of deletes) {
-        nextSelected.delete(id);
-      }
-      state.selectedIds = nextSelected;
+    if (state.mode !== 'client' && removedCount > 0) {
+      // Optimistic mirror of applyInserts; never below zero, in case the
+      // client's copy of the total was already stale-low.
+      state.serverTotal = Math.max(0, state.serverTotal - removedCount);
     }
+
+    // Deleted rows leave the selection through the selection gate, not by
+    // instance swap — the swap detached every derived tracking the old set.
+    hooks.pruneSelection(deletes);
 
     deletes.clear();
   }

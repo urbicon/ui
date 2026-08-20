@@ -52,7 +52,14 @@ export interface TableState {
   showSummary: boolean;
 
   selectionMode: 'none' | 'single' | 'multi';
-  selectedIds: Set<string | number>;
+  /**
+   * The selected row ids. `readonly` on purpose: the instance is mutated
+   * through the selection concern's one commit gate and must never be
+   * replaced — an instance swap detaches every derived tracking the old set
+   * (the live-update delete path did exactly that once). Writers go through
+   * `useSelection`; a swap is a compile error.
+   */
+  readonly selectedIds: Set<string | number>;
   /**
    * Whether `selectedIds` is driven by a controlled prop. When true, selection
    * persistence is suppressed so a controlled value is never mirrored to storage

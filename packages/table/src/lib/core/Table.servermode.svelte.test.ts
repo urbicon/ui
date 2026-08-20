@@ -477,3 +477,260 @@ describe('the pager stays in the DOM while loading', () => {
     expect(t.target.querySelector('nav')).toBeNull();
   });
 });
+
+describe('server mode — the header checkbox claims only the page', () => {
+  function headerCheckbox(target: HTMLElement): HTMLInputElement {
+    const input = target.querySelector<HTMLInputElement>('[data-testid="selection-header"] input');
+    if (!input) throw new Error('header checkbox not found');
+    return input;
+  }
+
+  it('selecting the page yields mixed, never a full check, and the label names the page', () => {
+    const t = mountTable({
+      source: { processing: 'server', items: ALL_ROWS.slice(0, PAGE_SIZE), total: TOTAL },
+      selectionMode: 'multi'
+    });
+    const checkbox = headerCheckbox(t.target);
+    expect(checkbox.getAttribute('aria-label')).toBe('Select the 20 rows on this page');
+
+    checkbox.click();
+    flushSync();
+
+    // The measured defect, inverted: one click selected 20 of 400 while the
+    // checkbox flipped to a full check and the label said "Deselect all
+    // rows" — a consumer's bulk action then acted on 20 where the reader was
+    // told "all".
+    expect(t.ctx.state.selectedIds.size).toBe(PAGE_SIZE);
+    expect(headerCheckbox(t.target).getAttribute('aria-checked')).toBe('mixed');
+    expect(headerCheckbox(t.target).checked).toBe(false);
+    expect(headerCheckbox(t.target).getAttribute('aria-label')).toBe(
+      'Deselect the 20 rows on this page'
+    );
+  });
+
+  it('client mode keeps the full check (positive control)', () => {
+    const t = mountTable({
+      items: ALL_ROWS.slice(0, 40),
+      selectionMode: 'multi',
+      viewDefaults: { pageSize: 40 }
+    });
+    const checkbox = headerCheckbox(t.target);
+    checkbox.click();
+    flushSync();
+
+    expect(t.ctx.state.selectedIds.size).toBe(40);
+    expect(headerCheckbox(t.target).checked).toBe(true);
+    expect(headerCheckbox(t.target).getAttribute('aria-checked')).toBeNull();
+    expect(headerCheckbox(t.target).getAttribute('aria-label')).toBe('Deselect all rows');
+  });
+
+  it('a one-page server result behaves like client mode — "all" is provable there', () => {
+    const t = mountTable({
+      source: { processing: 'server', items: ALL_ROWS.slice(0, PAGE_SIZE), total: PAGE_SIZE },
+      selectionMode: 'multi'
+    });
+    headerCheckbox(t.target).click();
+    flushSync();
+
+    expect(headerCheckbox(t.target).checked).toBe(true);
+    expect(headerCheckbox(t.target).getAttribute('aria-label')).toBe('Deselect all rows');
+  });
+
+  it('a partial selection reads mixed with the select label; deselecting one flips it back', () => {
+    const t = mountTable({
+      source: { processing: 'server', items: ALL_ROWS.slice(0, PAGE_SIZE), total: TOTAL },
+      selectionMode: 'multi'
+    });
+
+    t.ctx.selectItem(1);
+    flushSync();
+    expect(headerCheckbox(t.target).getAttribute('aria-checked')).toBe('mixed');
+    expect(headerCheckbox(t.target).getAttribute('aria-label')).toBe(
+      'Select the 20 rows on this page'
+    );
+
+    t.ctx.selectAll();
+    flushSync();
+    expect(headerCheckbox(t.target).getAttribute('aria-label')).toBe(
+      'Deselect the 20 rows on this page'
+    );
+
+    t.ctx.deselectItem(1);
+    flushSync();
+    expect(headerCheckbox(t.target).getAttribute('aria-checked')).toBe('mixed');
+    expect(headerCheckbox(t.target).getAttribute('aria-label')).toBe(
+      'Select the 20 rows on this page'
+    );
+  });
+
+  it('a single-row server page uses the singular label', () => {
+    const t = mountTable({
+      source: { processing: 'server', items: ALL_ROWS.slice(0, 1), total: TOTAL },
+      selectionMode: 'multi'
+    });
+    expect(headerCheckbox(t.target).getAttribute('aria-label')).toBe('Select the row on this page');
+  });
+
+  it('an empty server page disables the checkbox instead of offering "the 0 rows"', () => {
+    const t = mountTable({
+      source: { processing: 'server', items: [], total: TOTAL },
+      selectionMode: 'multi'
+    });
+    // The head keeps rendering over the empty state (probed), so the
+    // checkbox is present — and must be disabled rather than offering
+    // "Select the 0 rows on this page".
+    const input = headerCheckbox(t.target);
+    expect(input.disabled).toBe(true);
+    expect(input.getAttribute('aria-label')).toBe('Select all rows');
+    expect(t.rows()).toBe(0);
+  });
+});
+
+describe('server mode — applying live updates moves the total with the rows', () => {
+  it('manual arm: inserts raise the total, the pager follows, the next result re-seeds', () => {
+    const t = mountTable({
+      source: { processing: 'server', items: ALL_ROWS.slice(0, PAGE_SIZE), total: TOTAL },
+      enableLiveUpdates: true,
+      viewDefaults: { pageSize: PAGE_SIZE }
+    });
+    expect(t.ctx.pageInfo.totalItems).toBe(TOTAL);
+    expect(t.ctx.pageInfo.totalPages).toBe(20);
+
+    t.ctx.pushInsert({ id: 1001, name: 'New A', amount: 1 });
+    t.ctx.pushInsert({ id: 1002, name: 'New B', amount: 2 });
+    t.ctx.pushInsert({ id: 1003, name: 'New C', amount: 3 });
+    // Buffered: nothing moves until the user applies.
+    expect(t.ctx.pageInfo.totalItems).toBe(TOTAL);
+
+    t.ctx.applyAllUpdates();
+    flushSync();
+
+    expect(t.rows()).toBe(PAGE_SIZE + 3);
+    expect(t.ctx.pageInfo.totalItems).toBe(TOTAL + 3);
+    expect(t.ctx.pageInfo.totalPages).toBe(21);
+  });
+
+  it('manual arm: deletes lower the total only by rows that were actually removed', () => {
+    const t = mountTable({
+      source: { processing: 'server', items: ALL_ROWS.slice(0, PAGE_SIZE), total: TOTAL },
+      enableLiveUpdates: true
+    });
+
+    t.ctx.pushDelete(1);
+    t.ctx.pushDelete(9999); // orphan — not on the loaded page
+    t.ctx.applyDeletes();
+    flushSync();
+
+    expect(t.rows()).toBe(PAGE_SIZE - 1);
+    expect(t.ctx.pageInfo.totalItems).toBe(TOTAL - 1);
+    expect(warn).toHaveBeenCalledWith(expect.stringContaining('orphaned'), expect.anything());
+  });
+
+  it('managed arm: the applied delta shows until the next fetch restores the server truth', async () => {
+    const { query } = makePagedQuery();
+    const t = mountTable({ source: { processing: 'server', query }, enableLiveUpdates: true });
+    await vi.advanceTimersByTimeAsync(400);
+    await flushMicrotasks();
+    expect(t.ctx.pageInfo.totalItems).toBe(TOTAL);
+
+    t.ctx.pushInsert({ id: 1001, name: 'New A', amount: 1 });
+    t.ctx.applyAllUpdates();
+    flushSync();
+    expect(t.ctx.pageInfo.totalItems).toBe(TOTAL + 1);
+  });
+
+  it('auto-apply on navigation adjusts the total the same way', async () => {
+    const t = mountTable({
+      source: { processing: 'server', items: ALL_ROWS.slice(0, PAGE_SIZE), total: TOTAL },
+      enableLiveUpdates: true,
+      autoApplyOnNavigation: true
+    });
+
+    t.ctx.pushInsert({ id: 1001, name: 'New A', amount: 1 });
+    expect(t.ctx.pageInfo.totalItems).toBe(TOTAL);
+
+    t.ctx.setPage(2);
+    flushSync();
+    expect(t.ctx.pageInfo.totalItems).toBe(TOTAL + 1);
+  });
+
+  it('a mixed applyAll moves the total by the net delta', () => {
+    const t = mountTable({
+      source: { processing: 'server', items: ALL_ROWS.slice(0, PAGE_SIZE), total: TOTAL },
+      enableLiveUpdates: true,
+      viewDefaults: { pageSize: PAGE_SIZE }
+    });
+
+    t.ctx.pushInsert({ id: 1001, name: 'New A', amount: 1 });
+    t.ctx.pushDelete(1);
+    t.ctx.applyAllUpdates();
+    flushSync();
+
+    expect(t.rows()).toBe(PAGE_SIZE); // one in, one out
+    expect(t.ctx.pageInfo.totalItems).toBe(TOTAL);
+  });
+
+  it('an insert cancelled by a delete before the apply moves nothing', () => {
+    const t = mountTable({
+      source: { processing: 'server', items: ALL_ROWS.slice(0, PAGE_SIZE), total: TOTAL },
+      enableLiveUpdates: true
+    });
+
+    t.ctx.pushInsert({ id: 1001, name: 'New A', amount: 1 });
+    t.ctx.pushDelete(1001); // cancels the pending insert, deletes nothing
+    t.ctx.applyAllUpdates();
+    flushSync();
+
+    expect(t.rows()).toBe(PAGE_SIZE);
+    expect(t.ctx.pageInfo.totalItems).toBe(TOTAL);
+  });
+
+  it('pushing the same delete twice lowers the total exactly once', () => {
+    const t = mountTable({
+      source: { processing: 'server', items: ALL_ROWS.slice(0, PAGE_SIZE), total: TOTAL },
+      enableLiveUpdates: true
+    });
+
+    t.ctx.pushDelete(1);
+    t.ctx.pushDelete(1);
+    t.ctx.applyDeletes();
+    flushSync();
+
+    expect(t.rows()).toBe(PAGE_SIZE - 1);
+    expect(t.ctx.pageInfo.totalItems).toBe(TOTAL - 1);
+  });
+
+  it('more removals than a stale-low total leave zero, never a negative range', () => {
+    const t = mountTable({
+      source: { processing: 'server', items: ALL_ROWS.slice(0, 3), total: 2 },
+      enableLiveUpdates: true
+    });
+
+    t.ctx.pushDelete(1);
+    t.ctx.pushDelete(2);
+    t.ctx.pushDelete(3);
+    t.ctx.applyDeletes();
+    flushSync();
+
+    expect(t.rows()).toBe(0);
+    expect(t.ctx.pageInfo.totalItems).toBe(0);
+    expect(t.ctx.pageInfo.totalPages).toBe(1);
+    expect(t.ctx.pageInfo.rangeStart).toBeGreaterThanOrEqual(1);
+  });
+
+  it('client mode never touches serverTotal (positive control)', () => {
+    const t = mountTable({
+      items: ALL_ROWS.slice(0, 40),
+      enableLiveUpdates: true,
+      viewDefaults: { pageSize: 10 }
+    });
+    expect(t.ctx.pageInfo.totalItems).toBe(40);
+
+    t.ctx.pushInsert({ id: 1001, name: 'New A', amount: 1 });
+    t.ctx.applyAllUpdates();
+    flushSync();
+
+    expect(t.ctx.pageInfo.totalItems).toBe(41);
+    expect(t.ctx.state.serverTotal).toBe(0);
+  });
+});

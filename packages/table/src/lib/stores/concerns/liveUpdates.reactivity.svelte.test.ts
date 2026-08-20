@@ -23,6 +23,10 @@ import { useLiveUpdates } from './useLiveUpdates.svelte.js';
  * eight green; it now fails four of them.
  */
 
+// Concern-level rigs wire a no-op prune; the real wiring (deselect through
+// the selection gate, persisted) is pinned at store level.
+const noopLiveHooks = { pruneSelection: () => {} };
+
 function makeLiveState() {
   return {
     items: [
@@ -38,7 +42,7 @@ function makeLiveState() {
 describe('useLiveUpdates reactivity', () => {
   it('a delete-only push updates hasPending and counts immediately', () => {
     const cleanup = $effect.root(() => {
-      const live = useLiveUpdates(makeLiveState());
+      const live = useLiveUpdates(makeLiveState(), noopLiveHooks);
 
       let pending = false;
       let deletes = -1;
@@ -64,7 +68,7 @@ describe('useLiveUpdates reactivity', () => {
 
   it('isPendingDelete and dismissAll are observable for delete-only buffers', () => {
     const cleanup = $effect.root(() => {
-      const live = useLiveUpdates(makeLiveState());
+      const live = useLiveUpdates(makeLiveState(), noopLiveHooks);
 
       let rowPendingDelete = false;
       let pending = false;
@@ -89,7 +93,7 @@ describe('useLiveUpdates reactivity', () => {
   it('applyDeletes clears the pending buffer observably', () => {
     const cleanup = $effect.root(() => {
       const state = makeLiveState();
-      const live = useLiveUpdates(state);
+      const live = useLiveUpdates(state, noopLiveHooks);
 
       let pending = false;
       $effect(() => {
@@ -118,7 +122,7 @@ describe('useLiveUpdates reactivity', () => {
 
     it('applyUpdates marks rows as recently updated and clears after timeout', () => {
       const cleanup = $effect.root(() => {
-        const live = useLiveUpdates(makeLiveState());
+        const live = useLiveUpdates(makeLiveState(), noopLiveHooks);
 
         let highlighted = false;
         $effect(() => {
@@ -142,7 +146,7 @@ describe('useLiveUpdates reactivity', () => {
 
     it('a second apply within the window extends the highlight set', () => {
       const cleanup = $effect.root(() => {
-        const live = useLiveUpdates(makeLiveState());
+        const live = useLiveUpdates(makeLiveState(), noopLiveHooks);
 
         let first = false;
         let second = false;
@@ -175,7 +179,7 @@ describe('useLiveUpdates reactivity', () => {
   it('a push alone never mutates items — apply is deferred', () => {
     const cleanup = $effect.root(() => {
       const state = makeLiveState();
-      const live = useLiveUpdates(state);
+      const live = useLiveUpdates(state, noopLiveHooks);
 
       live.pushInsert({ id: 4, name: 'Diana' });
       live.pushUpdate(1, { name: 'Alice Updated' });
