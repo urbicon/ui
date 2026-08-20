@@ -1,0 +1,429 @@
+// @vitest-environment jsdom
+import { createRawSnippet, flushSync, mount, tick, unmount } from 'svelte';
+import { afterEach, beforeEach, describe, expect, it } from 'vitest';
+import { ROW_HEIGHTS } from '$lib/utils/virtualizer';
+import { createTableView } from '$lib/view/view.svelte';
+import type { InternalTableContext } from '../stores/TableStore.svelte';
+import TableHarness from './__fixtures__/TableHarness.svelte';
+import type { TableContext } from './table/index';
+
+/**
+ * Keyboard and ARIA in the virtualized branch, against a mounted table.
+ *
+ * Every finding these tests pin was measured against exactly this rig with a
+ * positive control on the non-virtualized branch: the focus that never moved
+ * (focusRow searched the header table, whose only children are colgroup and
+ * thead), the keyboard index space capped at pageSize while the scroll
+ * container rendered everything, and the rows living outside the one element
+ * that claimed role="grid".
+ *
+ * jsdom computes no layout, so the viewport height is stubbed and the scroll
+ * position is driven by hand — the sequence (set scrollTop → window re-derives
+ * → focus) is what is being proven; how it feels is the e2e suite's job.
+ */
+
+const COUNT = 200;
+const ROWS = Array.from({ length: COUNT }, (_, i) => ({
+  id: i + 1,
+  name: `Row ${i + 1}`,
+  amount: i
+}));
+const ROW_H = ROW_HEIGHTS.md;
+const VIEWPORT = 400;
+
+/**
+ * Stub a layout property jsdom does not compute — same lookup discipline as
+ * `Table.render.svelte.test.ts`: find the prototype that actually owns the
+ * property instead of assuming one.
+ */
+function stubLayoutProp(prop: 'clientHeight' | 'offsetHeight', value: number): () => void {
+  let proto: object | null = HTMLElement.prototype;
+  while (proto && !Object.getOwnPropertyDescriptor(proto, prop)) {
+    proto = Object.getPrototypeOf(proto);
+  }
+  if (!proto) throw new Error(`jsdom defines no \`${prop}\` to stub.`);
+  const owner = proto;
+  const original = Object.getOwnPropertyDescriptor(owner, prop);
+  if (!original) throw new Error(`jsdom defines no \`${prop}\` to stub.`);
+  Object.defineProperty(owner, prop, {
+    configurable: true,
+    get() {
+      return value;
+    }
+  });
+  return () => Object.defineProperty(owner, prop, original);
+}
+
+interface Mounted {
+  target: HTMLElement;
+  comp: Record<string, unknown>;
+  ctx: InternalTableContext;
+}
+
+let mounted: Mounted[] = [];
+let restoreViewport: (() => void) | undefined;
+
+function mountTable(props: Record<string, unknown>): Mounted {
+  const target = document.createElement('div');
+  document.body.appendChild(target);
+  let ctx: InternalTableContext | undefined;
+  const comp = mount(TableHarness, {
+    target,
+    props: {
+      items: ROWS,
+      onReady: (c: TableContext) => (ctx = c as InternalTableContext),
+      ...props
+    }
+  }) as Record<string, unknown>;
+  flushSync();
+  if (!ctx) throw new Error('onReady never fired');
+  const entry: Mounted = { target, comp, ctx };
+  mounted.push(entry);
+  return entry;
+}
+
+function pagedView(pageSize: number, page = 1) {
+  const view = createTableView();
+  view.applyExternal({ pageSize, page }, 'external');
+  return view;
+}
+
+/** Dispatch a key on the branch's ARIA surface and settle the async focus hop. */
+async function press(surface: Element, key: string) {
+  surface.dispatchEvent(new KeyboardEvent('keydown', { key, bubbles: true }));
+  flushSync();
+  await tick();
+  flushSync();
+}
+
+function gridOf(target: HTMLElement): HTMLElement {
+  const grid = target.querySelector<HTMLElement>('[data-testid="virtual-grid"]');
+  if (!grid) throw new Error('virtual grid wrapper not rendered');
+  return grid;
+}
+
+function scrollerOf(target: HTMLElement): HTMLElement {
+  const el = target.querySelector<HTMLElement>('[data-testid="virtual-scroll-container"]');
+  if (!el) throw new Error('virtual scroll container not rendered');
+  return el;
+}
+
+beforeEach(() => {
+  restoreViewport = stubLayoutProp('clientHeight', VIEWPORT);
+});
+
+afterEach(() => {
+  for (const entry of mounted) {
+    unmount(entry.comp);
+    entry.target.remove();
+  }
+  mounted = [];
+  restoreViewport?.();
+  restoreViewport = undefined;
+});
+
+describe('virtualized keyboard navigation moves the DOM focus', () => {
+  it('ArrowDown three times focuses the row the index points at', async () => {
+    const t = mountTable({
+      view: pagedView(10),
+      virtualized: true,
+      virtualHeight: `${VIEWPORT}px`,
+      selectionMode: 'multi'
+    });
+    const grid = gridOf(t.target);
+
+    await press(grid, 'ArrowDown');
+    await press(grid, 'ArrowDown');
+    await press(grid, 'ArrowDown');
+
+    expect(t.ctx.focusedRowIndex).toBe(3);
+    expect((document.activeElement as HTMLElement)?.getAttribute('data-row-index')).toBe('3');
+  });
+
+  it('positive control: the same walk works unvirtualized', async () => {
+    const t = mountTable({ view: pagedView(10), selectionMode: 'multi' });
+    const table = t.target.querySelector('[data-testid="table-element"]');
+    if (!table) throw new Error('table not rendered');
+
+    await press(table, 'ArrowDown');
+    await press(table, 'ArrowDown');
+    await press(table, 'ArrowDown');
+
+    expect((document.activeElement as HTMLElement)?.getAttribute('data-row-index')).toBe('3');
+  });
+
+  it('End reaches the last of ALL rows — the window moves, the row renders, the focus lands', async () => {
+    const t = mountTable({
+      view: pagedView(10),
+      virtualized: true,
+      virtualHeight: `${VIEWPORT}px`,
+      selectionMode: 'multi'
+    });
+    const grid = gridOf(t.target);
+    const scroller = scrollerOf(t.target);
+
+    await press(grid, 'End');
+
+    // Before the fix both halves were dead: the index capped at pageSize-1
+    // (9), and the focus never moved because focusRow searched the header
+    // table. The window must have scrolled far enough to render row 199.
+    expect(t.ctx.focusedRowIndex).toBe(COUNT - 1);
+    expect(scroller.scrollTop).toBeGreaterThanOrEqual((COUNT - VIEWPORT / ROW_H) * ROW_H);
+    const last = t.target.querySelector(`tr[data-row-index="${COUNT - 1}"]`);
+    expect(last).not.toBeNull();
+    expect(document.activeElement).toBe(last);
+  });
+
+  it('the keyboard index space is all sorted rows, not a page slice', () => {
+    const t = mountTable({
+      view: pagedView(10),
+      virtualized: true,
+      virtualHeight: `${VIEWPORT}px`,
+      selectionMode: 'multi'
+    });
+    expect(t.ctx.navigableItems.length).toBe(COUNT);
+  });
+
+  it('a scroll that unmounts the actually-focused row still hands the tab stop over', async () => {
+    const t = mountTable({
+      view: pagedView(10),
+      virtualized: true,
+      virtualHeight: `${VIEWPORT}px`,
+      selectionMode: 'multi'
+    });
+    const scroller = scrollerOf(t.target);
+
+    // Row 0 holds the REAL focus. The jump scrolls it out of the window, so
+    // this very scroll event unmounts it — at event time it is still the
+    // activeElement, which is why a pre-flush guard skipped and left zero
+    // rendered tab stops (measured: rendered tab stops: 0 at range 145..164).
+    const row0 = t.target.querySelector<HTMLElement>('tr[data-row-index="0"]');
+    if (!row0) throw new Error('row 0 not rendered');
+    row0.focus();
+    expect(document.activeElement).toBe(row0);
+
+    scroller.scrollTop = 150 * ROW_H;
+    scroller.dispatchEvent(new Event('scroll'));
+    flushSync();
+    await tick();
+    flushSync();
+    await tick();
+    flushSync();
+
+    const tabStops = t.target.querySelectorAll('tr[tabindex="0"]');
+    expect(tabStops.length).toBe(1);
+    const index = Number(tabStops[0]?.getAttribute('data-row-index'));
+    expect(index).toBeGreaterThanOrEqual(150);
+  });
+
+  it('scrolling the focused row out of the window hands the tab stop to a rendered row', async () => {
+    const t = mountTable({
+      view: pagedView(10),
+      virtualized: true,
+      virtualHeight: `${VIEWPORT}px`,
+      selectionMode: 'multi'
+    });
+    const scroller = scrollerOf(t.target);
+
+    // Row 0 holds the roving tab stop; a mouse scroll to the far end unmounts
+    // it. Without the handler's guard no rendered row carries tabindex="0" any
+    // more and the table loses its keyboard entry point.
+    scroller.scrollTop = (COUNT - VIEWPORT / ROW_H) * ROW_H;
+    scroller.dispatchEvent(new Event('scroll'));
+    flushSync();
+    await tick();
+    flushSync();
+    await tick();
+    flushSync();
+
+    const tabStops = t.target.querySelectorAll('tr[tabindex="0"]');
+    expect(tabStops.length).toBe(1);
+    const index = Number(tabStops[0]?.getAttribute('data-row-index'));
+    expect(index).toBeGreaterThanOrEqual(VIEWPORT / ROW_H);
+  });
+
+  it('PageDown no longer steps a page nobody renders — and still pages unvirtualized', async () => {
+    const virtual = mountTable({
+      view: pagedView(10),
+      virtualized: true,
+      virtualHeight: `${VIEWPORT}px`,
+      selectionMode: 'multi'
+    });
+    await press(gridOf(virtual.target), 'PageDown');
+    expect(virtual.ctx.effectivePage).toBe(1);
+
+    const standard = mountTable({ view: pagedView(10), selectionMode: 'multi' });
+    const table = standard.target.querySelector('[data-testid="table-element"]');
+    if (!table) throw new Error('table not rendered');
+    await press(table, 'PageDown');
+    expect(standard.ctx.effectivePage).toBe(2);
+  });
+});
+
+describe('the virtualized table is one grid', () => {
+  it('interactive: one grid contains every rendered row, and every gridcell has a grid ancestor', () => {
+    const t = mountTable({
+      virtualized: true,
+      virtualHeight: `${VIEWPORT}px`,
+      selectionMode: 'multi'
+    });
+
+    const grids = t.target.querySelectorAll('[role="grid"]');
+    expect(grids.length).toBe(1);
+    const grid = grids[0];
+    expect(grid.getAttribute('aria-rowcount')).toBe(String(COUNT));
+    expect(grid.getAttribute('aria-label')).toBe('Test table');
+
+    const rows = t.target.querySelectorAll('tr[data-row-index]');
+    expect(rows.length).toBeGreaterThan(0);
+    for (const row of rows) {
+      expect(grid.contains(row)).toBe(true);
+    }
+
+    const cells = t.target.querySelectorAll('[role="gridcell"]');
+    expect(cells.length).toBeGreaterThan(0);
+    for (const cell of cells) {
+      expect(cell.closest('[role="grid"]')).toBe(grid);
+    }
+
+    for (const table of t.target.querySelectorAll('table')) {
+      expect(table.getAttribute('role')).toBe('presentation');
+    }
+  });
+
+  it('non-interactive: a table role with the true row count, and no gridcells', () => {
+    const t = mountTable({ virtualized: true, virtualHeight: `${VIEWPORT}px` });
+
+    const wrapper = gridOf(t.target);
+    expect(wrapper.getAttribute('role')).toBe('table');
+    expect(wrapper.getAttribute('aria-rowcount')).toBe(String(COUNT));
+    expect(t.target.querySelector('[role="grid"]')).toBeNull();
+    expect(t.target.querySelectorAll('[role="gridcell"]').length).toBe(0);
+  });
+
+  it('regression pin: a non-interactive standard table claims no gridcells either', () => {
+    const t = mountTable({});
+    expect(t.target.querySelectorAll('[role="gridcell"]').length).toBe(0);
+  });
+});
+
+describe('virtualization keeps the pager in server mode', () => {
+  const TOTAL = 400;
+  const PAGE = 20;
+  const SERVER_ROWS = Array.from({ length: TOTAL }, (_, i) => ({
+    id: i + 1,
+    name: `Row ${i + 1}`,
+    amount: i
+  }));
+
+  it('a virtualized server table pages: nav present, one page rendered, honest counts', () => {
+    const t = mountTable({
+      view: pagedView(PAGE),
+      items: undefined,
+      source: { processing: 'server', items: SERVER_ROWS.slice(0, PAGE), total: TOTAL },
+      virtualized: true,
+      virtualHeight: `${VIEWPORT}px`,
+      selectionMode: 'multi'
+    });
+
+    expect(t.target.querySelector('nav')).not.toBeNull();
+    // The virtualizer renders its window OF the loaded page — the index space
+    // is the page (20), the DOM holds what fits the viewport plus overscan.
+    expect(t.ctx.navigableItems.length).toBe(PAGE);
+    const rendered = t.target.querySelectorAll('tr[data-row-index]').length;
+    expect(rendered).toBeGreaterThan(0);
+    expect(rendered).toBeLessThanOrEqual(PAGE);
+    expect(gridOf(t.target).getAttribute('aria-rowcount')).toBe(String(TOTAL));
+  });
+
+  it('page 2 announces rows 21..40', () => {
+    const t = mountTable({
+      view: pagedView(PAGE, 2),
+      items: undefined,
+      source: { processing: 'server', items: SERVER_ROWS.slice(PAGE, PAGE * 2), total: TOTAL },
+      virtualized: true,
+      virtualHeight: `${VIEWPORT}px`,
+      selectionMode: 'multi'
+    });
+
+    const first = t.target.querySelector('tr[data-row-index="0"]');
+    expect(first?.getAttribute('aria-rowindex')).toBe(String(PAGE + 1));
+  });
+
+  it('the next control writes the view page', () => {
+    const t = mountTable({
+      view: pagedView(PAGE),
+      items: undefined,
+      source: { processing: 'server', items: SERVER_ROWS.slice(0, PAGE), total: TOTAL },
+      virtualized: true,
+      virtualHeight: `${VIEWPORT}px`,
+      selectionMode: 'multi'
+    });
+
+    const nav = t.target.querySelector('nav');
+    if (!nav) throw new Error('pager not rendered');
+    const buttons = [...nav.querySelectorAll<HTMLButtonElement>('button:not(:disabled)')];
+    const next = buttons.find((b) => /next|weiter/i.test(b.getAttribute('aria-label') ?? ''));
+    if (!next) throw new Error('next control not found in the pager');
+    next.click();
+    flushSync();
+
+    expect(t.ctx.view.page).toBe(2);
+  });
+
+  it('positive control: client-virtualized still renders no pager', () => {
+    const t = mountTable({
+      view: pagedView(10),
+      virtualized: true,
+      virtualHeight: `${VIEWPORT}px`,
+      selectionMode: 'multi'
+    });
+    expect(t.target.querySelector('nav')).toBeNull();
+  });
+});
+
+describe('aria-colindex counts every column aria-colcount declares', () => {
+  it('virtualized: a gapless 1..N over structural and data cells, header and body agreeing', () => {
+    const t = mountTable({
+      virtualized: true,
+      virtualHeight: `${VIEWPORT}px`,
+      selectionMode: 'multi',
+      // `expandable` is derived from the snippet's presence.
+      expandedRowContent: createRawSnippet(() => ({ render: () => '<div>detail</div>' }))
+    });
+
+    const grid = gridOf(t.target);
+    const colcount = Number(grid.getAttribute('aria-colcount'));
+    // selection + expand + 3 data columns (name, category, score in the
+    // harness would be 2 — the default harness has name + amount).
+    expect(colcount).toBe(2 + 2);
+
+    // One data row: selection 1, expand 2, data 3..colcount — gapless.
+    const row = t.target.querySelector('tr[data-row-index="0"]');
+    if (!row) throw new Error('row 0 not rendered');
+    const indices = [...row.querySelectorAll('[aria-colindex]')].map((c) =>
+      Number(c.getAttribute('aria-colindex'))
+    );
+    expect(indices).toEqual([1, 2, 3, 4]);
+    expect(Math.max(...indices)).toBe(colcount);
+
+    // The header agrees where it renders a th: selection at 1, data at 3..N
+    // (the expand spacer is aria-hidden — the column counts, the header
+    // element does not).
+    const headerIndices = [...t.target.querySelectorAll('th[aria-colindex]')].map((c) =>
+      Number(c.getAttribute('aria-colindex'))
+    );
+    expect(headerIndices).toEqual([1, 3, 4]);
+  });
+
+  it('standard branch heals too: the selection cell is column 1, data starts at 2', () => {
+    const t = mountTable({ selectionMode: 'multi' });
+
+    const row = t.target.querySelector('tr[data-row-index="0"]');
+    if (!row) throw new Error('row 0 not rendered');
+    const indices = [...row.querySelectorAll('[aria-colindex]')].map((c) =>
+      Number(c.getAttribute('aria-colindex'))
+    );
+    expect(indices).toEqual([1, 2, 3]);
+  });
+});

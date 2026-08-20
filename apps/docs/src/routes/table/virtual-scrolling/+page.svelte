@@ -81,10 +81,11 @@
     </CodeExample>
 
     <p class="text-text-secondary text-sm">
-      Every row is in one scrollable container, so there are no pages to turn: the pager is gone
-      while <code class="text-text-primary">virtualized</code> is set. Sorting, filtering, search,
-      selection and keyboard navigation work as they do anywhere else, because what gets virtualized
-      is your filtered and sorted data.
+      Every row is in one scrollable container, so there are no pages to turn: with client-side data
+      the pager is gone while <code class="text-text-primary">virtualized</code> is set. A server
+      source keeps its pager — the container scrolls the loaded page, and paging stays the way to
+      the rest of the result. Sorting, filtering, search, selection and keyboard navigation work as
+      they do anywhere else, because what gets virtualized is your filtered and sorted data.
       <code class="text-text-primary">virtualHeight</code> bounds that container (default
       <code class="text-text-primary">'600px'</code>) and takes any CSS length, so
       <code class="text-text-primary">'60vh'</code> and

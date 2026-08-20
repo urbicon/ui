@@ -199,22 +199,44 @@ describe('resolvePageDescriptor', () => {
       });
     });
 
-    it('never pages a virtualized table, in any mode', () => {
-      // Virtualization replaces paging with a scroll container. (That it
-      // scrolls only the fetched page in server mode is a separate gap, not
-      // this one — the clause this pins is the one that changes for it.)
-      for (const mode of ['client', 'server-manual', 'server-managed'] as const) {
+    it('hides the pager for a virtualized table only where it holds the whole list — client mode', () => {
+      // Virtualization replaces paging with a scroll container in client
+      // mode, where the container really renders every row.
+      expect(
+        resolvePageDescriptor({
+          ...base,
+          mode: 'client',
+          filteredCount: 100,
+          virtualized: true
+        }).showPager
+      ).toBe(false);
+    });
+
+    it('keeps the pager for a virtualized table in server mode — the page is the only access to the rest', () => {
+      // The scroll container holds one loaded page; without the pager the
+      // remaining rows were reachable through no control at all.
+      for (const mode of ['server-manual', 'server-managed'] as const) {
         expect(
           resolvePageDescriptor({
             ...base,
             mode,
             serverTotal: 12000,
-            filteredCount: 100,
             virtualized: true
           }).showPager,
           mode
-        ).toBe(false);
+        ).toBe(true);
       }
+    });
+
+    it('still hides the pager for an empty virtualized server result', () => {
+      expect(
+        resolvePageDescriptor({
+          ...base,
+          mode: 'server-manual',
+          serverTotal: 0,
+          virtualized: true
+        }).showPager
+      ).toBe(false);
     });
   });
 
