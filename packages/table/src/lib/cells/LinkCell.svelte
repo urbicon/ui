@@ -1,6 +1,7 @@
 <script lang="ts" generics="Item">
   import { useTableI18n } from '../i18n';
   import { linkCellVariants, type LinkCellVariantProps } from '$lib/variants';
+  import { getNestedValue } from '$lib/utils';
   import { resolveIcon, ExternalLinkIcon as ExternalLinkIconDefault } from '@urbicon-ui/blocks';
 
   const tt = useTableI18n();
@@ -56,7 +57,7 @@
       return href;
     }
     if (urlKey) {
-      const value = item[urlKey];
+      const value = getNestedValue(item, String(urlKey));
       return typeof value === 'string' ? value : null;
     }
     return null;
@@ -71,7 +72,7 @@
       return text;
     }
     if (textKey) {
-      const value = item[textKey];
+      const value = getNestedValue(item, String(textKey));
       if (typeof value === 'string') return value;
     }
 

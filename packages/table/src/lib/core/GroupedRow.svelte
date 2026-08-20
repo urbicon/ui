@@ -15,7 +15,7 @@
   import { getTableStyleConfig, resolveSlotClass } from './table-style-context';
   import { resolveRowClickActions } from './row-interaction';
   import { getStickyContext } from './sticky-context.svelte';
-  import { resolveColumnId } from '$lib/utils';
+  import { resolveColumnId, resolveRowItemId } from '$lib/utils';
   import { groupCountText } from './group-count';
   import type { Column, TableItem } from '$lib/types/tableTypes';
   import type { Snippet } from 'svelte';
@@ -196,9 +196,12 @@
 
 <!-- Group Content Rows -->
 {#if isExpanded}
-  {#each items as item, index (item.id ?? index)}
-    {@const rowItemId =
-      typeof item.id === 'string' || typeof item.id === 'number' ? item.id : index}
+  <!-- Identity must match TableRow's rule exactly: `id`, else the list-wide
+       `__index` from normalizeItems. The group-local loop index used before
+       collided across groups — the first id-less row of every group shared
+       one identity, so selecting/expanding one hit them all (#231). -->
+  {#each items as item, index (resolveRowItemId(item))}
+    {@const rowItemId = resolveRowItemId(item)}
     {@const isRowExpanded = isItemExpanded(rowItemId)}
     {@const isRowSelected = selectable && tableContext.isSelected(rowItemId)}
     {@const isActiveRow = tableState.activeRowId != null && tableState.activeRowId === rowItemId}

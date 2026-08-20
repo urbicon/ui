@@ -2,6 +2,7 @@
   import { resolveDateLocale, useI18n } from '@urbicon-ui/i18n';
   import { useTableI18n } from '$lib/i18n';
   import { numberCellVariants, type NumberCellVariantProps } from '$lib/variants';
+  import { getNestedValue } from '$lib/utils';
 
   const tt = useTableI18n();
   const i18n = useI18n();
@@ -75,7 +76,7 @@
       return value;
     }
     if (valueKey) {
-      const extractedValue = item[valueKey];
+      const extractedValue = getNestedValue(item, String(valueKey));
       if (typeof extractedValue === 'number') return extractedValue;
       if (typeof extractedValue === 'string') {
         const parsed = parseFloat(extractedValue);

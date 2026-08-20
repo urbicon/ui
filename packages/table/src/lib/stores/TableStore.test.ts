@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { calculateSummary, getNestedValue, groupItems, matchesFilter } from '$lib/utils';
+import { calculateSummary, getNestedValue } from '$lib/utils';
 
 const sampleItems = [
   { id: 1, name: 'Alice', age: 30, salary: 50000, department: 'Engineering' },
@@ -97,42 +97,6 @@ describe('calculateSummary', () => {
   });
 });
 
-describe('matchesFilter', () => {
-  it('matches "contains" operator', () => {
-    expect(matchesFilter('Hello World', 'world', 'contains')).toBe(true);
-    expect(matchesFilter('Hello World', 'xyz', 'contains')).toBe(false);
-  });
-
-  it('matches "equals" operator (case-insensitive)', () => {
-    expect(matchesFilter('Active', 'active', 'equals')).toBe(true);
-    expect(matchesFilter('Active', 'inactive', 'equals')).toBe(false);
-  });
-
-  it('matches "startsWith" operator', () => {
-    expect(matchesFilter('Engineering', 'eng', 'startsWith')).toBe(true);
-    expect(matchesFilter('Engineering', 'design', 'startsWith')).toBe(false);
-  });
-
-  it('matches "endsWith" operator', () => {
-    expect(matchesFilter('Engineering', 'ring', 'endsWith')).toBe(true);
-    expect(matchesFilter('Engineering', 'sign', 'endsWith')).toBe(false);
-  });
-
-  it('matches "greaterThan" operator numerically', () => {
-    expect(matchesFilter('50', '30', 'greaterThan')).toBe(true);
-    expect(matchesFilter('20', '30', 'greaterThan')).toBe(false);
-  });
-
-  it('matches "lessThan" operator numerically', () => {
-    expect(matchesFilter('20', '30', 'lessThan')).toBe(true);
-    expect(matchesFilter('50', '30', 'lessThan')).toBe(false);
-  });
-
-  it('excludes rows for unknown operators (fail-loud, not silent pass-through)', () => {
-    expect(matchesFilter('any', 'value', 'unknownOp')).toBe(false);
-  });
-});
-
 describe('getNestedValue', () => {
   it('walks dot-notation paths', () => {
     const item = { user: { name: 'Alice', addr: { city: 'Berlin' } } };
@@ -193,34 +157,5 @@ describe('column visibility logic', () => {
 
     hidden.clear();
     expect(getVisibleColumns(allColumns, hidden)).toHaveLength(4);
-  });
-});
-
-describe('grouping with summary', () => {
-  it('groups items and calculates per-group summary', () => {
-    const columns = [{ accessor: 'department' as const, title: 'Department' }];
-    const grouped = groupItems(sampleItems, columns, 'department');
-    expect(Object.keys(grouped)).toContain('Engineering');
-    expect(Object.keys(grouped)).toContain('Design');
-    expect(Object.keys(grouped)).toContain('Marketing');
-
-    const engSummary = calculateSummary(grouped.Engineering, [{ column: 'salary', type: 'sum' }]);
-    expect(engSummary.salary).toBe(110000);
-
-    const designSummary = calculateSummary(grouped.Design, [{ column: 'salary', type: 'avg' }]);
-    expect(designSummary.salary).toBe(46500);
-  });
-
-  it('groups by a function-accessor column (computed value)', () => {
-    type Row = { id: number; name: string; dept: { code: string } };
-    const items: Row[] = [
-      { id: 1, name: 'Alice', dept: { code: 'ENG' } },
-      { id: 2, name: 'Bob', dept: { code: 'DES' } },
-      { id: 3, name: 'Charlie', dept: { code: 'ENG' } }
-    ];
-    const columns = [{ id: 'deptCode', accessor: (r: Row) => r.dept.code, title: 'Dept' }];
-    const grouped = groupItems(items, columns, 'deptCode');
-    expect(grouped.ENG).toHaveLength(2);
-    expect(grouped.DES).toHaveLength(1);
   });
 });

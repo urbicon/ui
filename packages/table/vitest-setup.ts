@@ -50,6 +50,45 @@ if (typeof window !== 'undefined') {
     Element.prototype.scrollIntoView = () => {};
   }
 
+  // GroupedRow's item rows and the expanded-row content enter through
+  // `transition:slide`, which Svelte 5 drives via the Web Animations API —
+  // missing in jsdom, so the intro would throw. Same stub and caveats as
+  // `packages/blocks/vitest-setup.ts`: `onfinish` never fires, teardown runs
+  // through `unmount()`'s abort path, fine for synchronous DOM assertions.
+  if (!Element.prototype.animate) {
+    Element.prototype.animate = function animate() {
+      let onfinish: ((this: unknown, ev: Event) => unknown) | null = null;
+      return {
+        currentTime: 0,
+        startTime: 0,
+        playbackRate: 1,
+        playState: 'finished',
+        pending: false,
+        finished: Promise.resolve(),
+        get onfinish() {
+          return onfinish;
+        },
+        set onfinish(fn) {
+          onfinish = fn;
+        },
+        oncancel: null,
+        play() {},
+        pause() {},
+        cancel() {},
+        finish() {},
+        reverse() {},
+        persist() {},
+        commitStyles() {},
+        updatePlaybackRate() {},
+        addEventListener() {},
+        removeEventListener() {},
+        dispatchEvent() {
+          return false;
+        }
+      } as unknown as Animation;
+    };
+  }
+
   // `prefers-reduced-motion` probes in the blocks primitives the table embeds.
   if (!window.matchMedia) {
     window.matchMedia = ((query: string) => ({

@@ -13,6 +13,7 @@
   const EyeIcon = resolveIcon('eye', EyeIconDefault);
   import { useTableI18n } from '../i18n';
   import { actionCellVariants, type ActionCellVariantProps } from '$lib/variants';
+  import { getNestedValue } from '$lib/utils';
 
   const tt = useTableI18n();
 
@@ -106,7 +107,7 @@
     };
   }
 
-  const id = $derived((item[idProperty] ?? '').toString());
+  const id = $derived(String(getNestedValue(item, String(idProperty)) ?? ''));
 
   const computedTestId = $derived(() => {
     if (testId) return testId;

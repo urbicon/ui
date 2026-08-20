@@ -13,7 +13,7 @@
   import { getTableStyleConfig, resolveSlotClass } from './table-style-context';
   import { resolveRowClickActions } from './row-interaction';
   import TableCell from './TableCell.svelte';
-  import { resolveColumnId } from '$lib/utils';
+  import { resolveColumnId, resolveRowItemId } from '$lib/utils';
   import type { Column, TableItem } from '$lib/types/tableTypes';
   import type { Snippet } from 'svelte';
 
@@ -40,10 +40,7 @@
   const selectsOnClick = $derived(tableState.rowClickSelects && selectable);
   const clickable = $derived(expandable || !!onRowClick || selectsOnClick);
 
-  const itemId = $derived.by((): string | number => {
-    const candidate = item.id ?? item.__index;
-    return typeof candidate === 'string' || typeof candidate === 'number' ? candidate : -1;
-  });
+  const itemId = $derived(resolveRowItemId(item));
   let isExpanded = $derived(isItemExpanded(itemId));
 
   let isRowSelected = $derived(selectable && tableContext.isSelected(itemId));

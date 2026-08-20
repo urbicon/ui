@@ -3,6 +3,7 @@
   import { Avatar } from '@urbicon-ui/blocks';
   import SearchHighlight from '../features/SearchHighlight.svelte';
   import { userCellVariants, type UserCellVariantProps } from '$lib/variants';
+  import { getNestedValue } from '$lib/utils';
 
   export type UserAvatarProps<Item> = {
     item: Item;
@@ -31,9 +32,13 @@
   }: UserAvatarProps<Item> = $props();
 
   // Performance-optimized values via $derived
-  const name = $derived.by(() => (item[nameKey] != null ? String(item[nameKey]) : ''));
-  const email = $derived.by(() => (item[emailKey] != null ? String(item[emailKey]) : ''));
-  const avatarUrl = $derived.by(() => (item[avatarKey] != null ? String(item[avatarKey]) : ''));
+  const textAt = (key: PropertyKey) => {
+    const value = getNestedValue(item, String(key));
+    return value != null ? String(value) : '';
+  };
+  const name = $derived.by(() => textAt(nameKey));
+  const email = $derived.by(() => textAt(emailKey));
+  const avatarUrl = $derived.by(() => textAt(avatarKey));
 
   const avatarSize = $derived(mobile ? (size === 'lg' ? 'md' : 'sm') : size);
 

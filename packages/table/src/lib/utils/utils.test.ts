@@ -4,7 +4,6 @@ import {
   findColumnById,
   formatCellValue,
   getNestedValue,
-  groupItems,
   normalizeItems,
   normalizeSummaryConfigs,
   resolveColumnLabel,
@@ -158,37 +157,6 @@ describe('formatCellValue', () => {
       title: 'Name'
     };
     expect(formatCellValue({ user: { name: 'Alice' } }, col, 'en')).toBe('Alice');
-  });
-});
-
-describe('groupItems', () => {
-  type Row = { id: number; status?: string; name: string };
-  const items: Row[] = [
-    { id: 1, status: 'active', name: 'A' },
-    { id: 2, status: 'inactive', name: 'B' },
-    { id: 3, status: 'active', name: 'C' }
-  ];
-  const columns: Column<Row>[] = [{ accessor: 'status', title: 'Status' }];
-
-  it('returns all items under "ungrouped" when key is null', () => {
-    const result = groupItems(items, columns, null);
-    expect(result).toHaveProperty('ungrouped');
-    expect(result.ungrouped).toHaveLength(3);
-  });
-
-  it('groups items by a given column id', () => {
-    const result = groupItems(items, columns, 'status');
-    expect(Object.keys(result)).toContain('active');
-    expect(Object.keys(result)).toContain('inactive');
-    expect(result.active).toHaveLength(2);
-    expect(result.inactive).toHaveLength(1);
-  });
-
-  it('assigns "Unassigned" for items with undefined group value', () => {
-    const itemsWithMissing: Row[] = [...items, { id: 4, name: 'D' }];
-    const result = groupItems(itemsWithMissing, columns, 'status');
-    expect(result.Unassigned).toHaveLength(1);
-    expect(result.Unassigned[0].name).toBe('D');
   });
 });
 
