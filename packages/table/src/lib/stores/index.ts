@@ -5,6 +5,9 @@
 // `export *` here is what made the whole store inside public in the first
 // place (#16). What consumers get is the narrow `TableContext` via
 // `getTableContext()` / `onReady`.
+// The resolved page — the type behind `TableContext.pageInfo`. The resolver
+// itself stays internal; the store owns the one derivation.
+export type { PageDescriptor } from './concerns/page-descriptor.js';
 export {
   getCellLocale,
   getTableContext,

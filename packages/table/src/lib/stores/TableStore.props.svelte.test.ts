@@ -183,7 +183,7 @@ describe('TableStore — the source union feeds the derived slots', () => {
     let value = $state<TableSource>({ processing: 'server', items: ITEMS, total: 500 });
     const store = createTableState(undefined, undefined, { source: () => value });
 
-    expect(store.state.mode).toBe('server');
+    expect(store.state.mode).toBe('server-manual');
     expect(store.state.serverTotal).toBe(500);
     expect(store.state.items).toHaveLength(2);
 
@@ -207,9 +207,12 @@ describe('TableStore — the source union feeds the derived slots', () => {
     // The fetch lifecycle lives in `createManagedFetch` (driven by the
     // provider); the store itself only reports the mode and waits for
     // `setServerResult`.
-    expect(store.state.mode).toBe('server');
+    expect(store.state.mode).toBe('server-managed');
     expect(store.state.items).toEqual([]);
-    expect(store.state.loading).toBe(false);
+    // The first fetch is unavoidable, so loading is the honest seed — it is
+    // what reaches the SSR HTML (a managed table used to prerender the empty
+    // state instead).
+    expect(store.state.loading).toBe(true);
   });
 
   it('mode is read-only derived — there is no mode prop to disagree with', () => {
@@ -218,7 +221,7 @@ describe('TableStore — the source union feeds the derived slots', () => {
     const store = createTableState(undefined, undefined, {
       source: () => ({ processing: 'server' as const, items: ITEMS, total: 2 })
     });
-    expect(store.state.mode).toBe('server');
+    expect(store.state.mode).toBe('server-manual');
     expect(Object.getOwnPropertyDescriptor(store.state, 'mode')?.set).toBeUndefined();
   });
 });

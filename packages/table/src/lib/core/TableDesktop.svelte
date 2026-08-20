@@ -416,7 +416,7 @@
       )}
       role={interactive ? 'grid' : undefined}
       aria-label={ariaLabel}
-      aria-rowcount={virtualItems.length}
+      aria-rowcount={tableContext.pageInfo.totalItems}
       onkeydown={handleTableKeyDown}
       data-testid="table-element"
     >
@@ -555,7 +555,7 @@
       )}
       role={interactive ? 'grid' : undefined}
       aria-label={ariaLabel}
-      aria-rowcount={filteredItems.length}
+      aria-rowcount={tableContext.pageInfo.totalItems}
       onkeydown={handleTableKeyDown}
       data-testid="table-element"
     >

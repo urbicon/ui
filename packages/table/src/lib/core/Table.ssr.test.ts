@@ -209,6 +209,32 @@ describe('Table — server render of a controlled selection', () => {
   });
 });
 
+describe('Table — server render of a managed server source', () => {
+  // Effects never run during SSR, so the fetch cannot even start here — the
+  // construction-time seed is ALL a prerendered reader gets. A managed source
+  // will fetch, unavoidably, so "loading" is the honest server HTML; this
+  // table used to ship "No data available" to every reader until hydration
+  // plus a macrotask.
+  it('ships the loading state, never the empty state', () => {
+    const body = bodyOf({
+      items: undefined,
+      source: { processing: 'server', query: async () => ({ items: [], total: 0 }) }
+    });
+
+    expect(body).toContain('data-testid="loading-state"');
+    expect(body).not.toContain('data-testid="empty-state"');
+  });
+
+  it('positive control: a manual server source reporting loading renders the same state', () => {
+    const body = bodyOf({
+      items: undefined,
+      source: { processing: 'server', items: [], total: 0, loading: true }
+    });
+
+    expect(body).toContain('data-testid="loading-state"');
+  });
+});
+
 // Deleted here: "renders every column, because storage does not exist here".
 // It ran in the node env, never wrote a key, and `getStorage()` returns null
 // without a `window` — so "both headers present" held for every conceivable

@@ -1,5 +1,6 @@
 import type { Snippet } from 'svelte';
 import type { Column, TableItem, TablePrefsConfig } from '$lib';
+import type { PageDescriptor } from '$lib/stores/concerns/page-descriptor';
 import type { TableState } from '$lib/stores/concerns/types.js';
 import type { LiveUpdateCounts } from '$lib/stores/concerns/useLiveUpdates.svelte';
 import type { SummaryConfig } from '$lib/stores/TableStore.svelte';
@@ -79,6 +80,14 @@ export interface TableContext {
    * changed under it.
    */
   readonly effectivePage: number;
+  /**
+   * The resolved page in one object: {@link total}, {@link totalPages} and
+   * {@link effectivePage} together with the processing mode, the fetch page
+   * and the 1-based index of the first rendered row. One derivation feeds the
+   * pager, the footer and the ARIA row counts, so they cannot disagree —
+   * read this when you need more than one of them.
+   */
+  readonly pageInfo: PageDescriptor;
   /**
    * The grouping actually applied — `view.groupBy`, or `null` on a
    * virtualized table (grouped virtualization is not implemented, and a key

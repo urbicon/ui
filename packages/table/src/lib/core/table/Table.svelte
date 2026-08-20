@@ -20,7 +20,6 @@
   import TableMobile from '../TableMobile.svelte';
   import TableProvider from '../TableProvider.svelte';
   import { setTableStyleContext, resolveSlotClass } from '../table-style-context';
-  import { shouldRenderPager } from '../pager-visibility';
   import { createStickyState, resolveStickyMode, setStickyContext } from '../sticky-context.svelte';
   import {
     measureToCssVar,
@@ -314,10 +313,10 @@
     />
 
     {#if !tableState.loading && !tableState.error}
-      <!-- The rule and its reasoning live in `shouldRenderPager` — as a function
-           because the inline version was unreadable and untestable, and #159 was
-           one of its clauses being wrong. -->
-      {#if shouldRenderPager( { mode: tableState.mode, serverTotal: tableState.serverTotal, filteredCount: tableContext.filteredItems.length, grouped: !!tableState.effectiveGroupBy, virtualized } )}
+      <!-- The rule and its reasoning live in the page descriptor — as a pure
+           function because the inline version was unreadable and untestable,
+           and #159 was one of its clauses being wrong. -->
+      {#if tableContext.pageInfo.showPager}
         {#if pagination}
           {@render pagination()}
         {:else}

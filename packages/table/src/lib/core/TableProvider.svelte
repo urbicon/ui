@@ -264,11 +264,21 @@
   // managed source wired" — never the source object or its `query` function,
   // so a fresh inline `source={{ query: … }}` literal per parent render does
   // not refetch. A no-op for client and manual-server sources.
-  createManagedFetch(tableView, () => resolvedSource, {
-    onLoading: tableState.setServerLoading,
-    onResult: tableState.setServerResult,
-    onError: (message) => tableState.setServerError(message ?? tt('error.fetchFailed'))
-  });
+  createManagedFetch(
+    tableView,
+    () => resolvedSource,
+    {
+      onLoading: tableState.setServerLoading,
+      onResult: tableState.setServerResult,
+      onError: (message) => tableState.setServerError(message ?? tt('error.fetchFailed'))
+    },
+    // The fetch asks for the page the reader is LOOKING at, not the raw
+    // intent: an out-of-range `?page=99` deep link fetches once, learns the
+    // total, and the next key change refetches the clamped page — instead of
+    // settling on an empty body the pager claims is full. `view.page` itself
+    // stays untouched (a later page-size change may make it valid again).
+    () => ({ ...tableView.snapshot(), page: tableState.pageInfo.fetchPage })
+  );
 
   // ── Live updates: auto-apply on navigation ──
   $effect(() => {

@@ -114,7 +114,7 @@ export function useFiltering(state: TableState, view: TableView) {
     if (!state.items.length) return [];
 
     // In server mode, items are already filtered by the server
-    if (state.mode === 'server') return state.items;
+    if (state.mode !== 'client') return state.items;
 
     return state.items.filter((item) => {
       const matchesSearchTerm =

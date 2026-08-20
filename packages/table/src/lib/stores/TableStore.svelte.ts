@@ -1,7 +1,7 @@
 import { createOptionalContext } from '@urbicon-ui/blocks';
 import { BASE_LOCALE } from '@urbicon-ui/i18n';
 import { SvelteSet } from 'svelte/reactivity';
-import type { Column, Filter, TableItem } from '$lib';
+import type { Column, TableItem } from '$lib';
 import type { TableContext } from '$lib/core/table/index.js';
 import { normalizeItems } from '$lib/utils';
 import { resolveSource, type TableSource } from '$lib/view/source';
@@ -184,14 +184,19 @@ export function createTableState(
   const sourceItems = $derived(
     resolvedSource.mode === 'server-managed' ? NO_ITEMS : resolvedSource.items
   );
+  // A managed source seeds `loading` TRUE: its first fetch is unavoidable, so
+  // "loading" is the honest construction-time state — and only a
+  // construction-time value reaches the SSR HTML (effects never run there).
+  // Seeding false shipped the empty state to every prerendered reader while
+  // the fetch had not even started. The overridable derived carries the rest:
+  // `setServerResult`/`setServerError` write false, a mode flip re-seeds.
   const sourceLoading = $derived(
-    resolvedSource.mode === 'server-managed' ? false : resolvedSource.loading
+    resolvedSource.mode === 'server-managed' ? true : resolvedSource.loading
   );
   const sourceError = $derived(
     resolvedSource.mode === 'server-managed' ? null : resolvedSource.error
   );
   const sourceTotal = $derived(resolvedSource.mode === 'server-manual' ? resolvedSource.total : 0);
-  const mode = $derived(sourceMode === 'client' ? ('client' as const) : ('server' as const));
 
   // ── Prop-driven slots ────────────────────────────────────────────────────
   //
@@ -354,7 +359,7 @@ export function createTableState(
     },
 
     get mode() {
-      return mode;
+      return sourceMode;
     },
     get serverTotal() {
       return serverTotal;
@@ -645,6 +650,14 @@ export function createTableState(
      */
     get effectivePage() {
       return pagination.effectivePage;
+    },
+    /**
+     * The resolved page descriptor — totals, clamped page, fetch page, range
+     * start and pager visibility, answered once for every reader. `total`,
+     * `totalPages` and `effectivePage` above are views into it.
+     */
+    get pageInfo() {
+      return pagination.descriptor;
     },
     get grouped() {
       return grouping.grouped;

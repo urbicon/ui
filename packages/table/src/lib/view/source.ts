@@ -64,6 +64,13 @@ export interface ClientItemsSource<T = TableItem> {
  * sorting, filtering, searching and paging off — a decision with visible
  * consequences for the reader, never something to be inferred from a `total`
  * field that happened to be passed through.
+ *
+ * Out-of-range pages are yours to handle: the table clamps what it *displays*
+ * into `1..totalPages`, but the snapshot your fetch layer observes carries the
+ * reader's raw intent, which a shared `?page=99` link can point past the end.
+ * Clamp `snapshot.page` against your total, or answer with the last page —
+ * an empty `items` with an unchanged `total` leaves the reader on an empty
+ * body the pager claims is full.
  */
 export interface ServerManualSource<T = TableItem> {
   processing: 'server';
@@ -129,6 +136,17 @@ export type TableSource<T = TableItem> =
   | ClientItemsSource<T>
   | ServerManualSource<T>
   | ServerManagedSource;
+
+/**
+ * Who processes the rows, with the server side split by who drives the fetch.
+ * This is {@link ResolvedSource}'s `mode` — and the store's: `state.mode`
+ * carries all three values, because collapsing the two server arms into one
+ * `'server'` made them indistinguishable below the store, and the managed
+ * arm's construction-time behaviour (it always fetches first) differs from
+ * the manual arm's (the consumer already has rows). Code that only cares
+ * about *where the processing happens* compares against `'client'`.
+ */
+export type ProcessingMode = 'client' | 'server-manual' | 'server-managed';
 
 /** The internal discriminated shape {@link resolveSource} narrows into. */
 export type ResolvedSource<T = TableItem> =

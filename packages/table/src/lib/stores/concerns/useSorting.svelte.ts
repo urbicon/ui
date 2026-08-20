@@ -32,7 +32,7 @@ export function useSorting(
     const items = getFilteredItems();
 
     // In server mode, items are already sorted by the server
-    if (state.mode === 'server') return items;
+    if (state.mode !== 'client') return items;
 
     const sort = view.sort;
     if (!items.length || !sort) return [...items];
