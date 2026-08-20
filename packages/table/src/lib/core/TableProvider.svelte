@@ -123,22 +123,6 @@
 
   const { state } = tableState;
 
-  // Virtualization vs. grouping, construction half: a grouping the view
-  // arrived with (defaults, or a URL binding's init) is discarded as a
-  // *system* decision — the read gate in the store already hides it (during
-  // SSR too), and the `system` origin is what lets the URL binding clean the
-  // param while the storage binding keeps the discard out of storage (a
-  // persisted grouping lives again on the next un-virtualized load).
-  // svelte-ignore state_referenced_locally
-  if (virtualized && tableView.groupBy) {
-    if (import.meta.env?.DEV) {
-      console.warn(
-        `[Table] Ignoring grouping ("${tableView.groupBy}") on a virtualized table — grouped virtualization is not implemented. Drop \`virtualized\` to group, or group server-side.`
-      );
-    }
-    tableView.applyExternal({ groupBy: null }, 'system');
-  }
-
   // Everything storage supplied lands here, and the `$effect` is the whole
   // point: it does not run on the server, so the server's HTML and the
   // client's first render agree, and the stored preferences arrive
@@ -170,28 +154,27 @@
     });
   });
 
-  // Virtualization vs. grouping, runtime half: a grouping that arrives while
-  // virtualized (runtime toggle into virtualization, a later URL navigation)
-  // is discarded the same way — as a `system` write, so view, URL and
-  // rendering agree instead of diverging for the table's lifetime.
-  $effect(() => {
-    if (!virtualized) return;
-    const active = tableView.groupBy;
-    if (!active) return;
-    if (import.meta.env?.DEV) {
-      console.warn(
-        `[Table] Ignoring grouping ("${active}") on a virtualized table — grouped virtualization is not implemented.`
-      );
-    }
-    untrack(() => {
-      tableView.applyExternal({ groupBy: null }, 'system');
-    });
-  });
-
   // ── DEV validation of the props the store derives from ──
   // Effects, legitimately: they only report.
+  let lastReportedGrouping: string | null = null;
   $effect(() => {
-    if (!import.meta.env?.DEV || !columns || columns.length === 0) return;
+    if (!import.meta.env?.DEV) return;
+    // Grouping has no effect while virtualized: the read gate in the store
+    // renders the table ungrouped (during SSR too), and the view keeps the
+    // value — a URL may carry it, an un-virtualized reader of the same view
+    // still groups. Report only; nothing is written back. Deduped on the
+    // ignored key: this effect also tracks `columns` and the sort, so
+    // without the memo every sort click repeated the warning.
+    const ignoredGrouping = state.virtualized ? tableView.groupBy : null;
+    if (ignoredGrouping !== lastReportedGrouping) {
+      lastReportedGrouping = ignoredGrouping;
+      if (ignoredGrouping) {
+        console.warn(
+          `[Table] Grouping ("${ignoredGrouping}") has no effect while virtualized — the table renders ungrouped. Drop \`virtualized\` to group, or group server-side.`
+        );
+      }
+    }
+    if (!columns || columns.length === 0) return;
     const result = ColumnValidation.validateColumns(columns);
     if (!result.isValid) {
       console.warn('[Table] Column validation:', result.errors);

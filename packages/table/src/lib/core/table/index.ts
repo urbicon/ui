@@ -377,12 +377,12 @@ export interface TableProps<T = TableItem> {
    * **Sharing one view across tables.** Several tables may mount the same
    * view: they read and write the same six axes, and a table takes no claim
    * of its own (a remounting `{#if}` child inherits the current state).
-   * Two limits are worth knowing. A **virtualized** table discards any
-   * grouping as a system decision, and on a shared view that discard is not
-   * scoped to the table that made it — an un-virtualized sibling loses a
-   * grouping it could render, so give the virtualized table its own view.
-   * And a **managed source** (`{ query }`) on both tables fetches once *per
-   * table* per interaction — a shared view is not a shared cache; wire the
+   * A **virtualized** table renders any grouping the view carries as
+   * ungrouped — for itself only: the value stays on the view, and an
+   * un-virtualized sibling of the same view keeps rendering it grouped.
+   * One limit is worth knowing: a **managed source** (`{ query }`) on both
+   * tables fetches once *per table* per interaction — a shared view is not
+   * a shared cache; wire the
    * fetch once yourself and hand both tables a manual `processing: 'server'`
    * source if that matters.
    *
@@ -543,10 +543,10 @@ export interface TableProps<T = TableItem> {
    * Pagination is bypassed — all filtered/sorted items are virtualized in a scrollable container.
    * Not compatible with grouping — and virtualization wins: the grouping
    * affordances are suppressed, and a grouping arriving through the view
-   * (its defaults, a URL, storage) is discarded as a *system* decision (DEV
-   * warns): the URL is cleaned, but the discard never reaches storage as a
-   * user wish, so a stored grouping applies again on the next load without
-   * `virtualized`.
+   * (its defaults, a URL, storage) renders ungrouped (DEV warns). The value
+   * itself stays on the view and in the URL — an un-virtualized table
+   * reading the same view still groups, and a stored grouping applies again
+   * on the next load without `virtualized`.
    * @default false
    */
   virtualized?: boolean;

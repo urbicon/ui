@@ -33,7 +33,7 @@ function axisEqual(axis: TableViewAxis, a: unknown, b: unknown): boolean {
   return Object.is(a, b);
 }
 
-type Origin = 'user' | 'external' | 'system' | 'init';
+type Origin = 'user' | 'external' | 'init';
 
 export class TestView implements TableViewLike {
   readonly defaults: TableViewSnapshot;
@@ -109,7 +109,7 @@ export class TestView implements TableViewLike {
     this.#write('groupBy', v, 'user');
   }
 
-  applyExternal(partial: Partial<TableViewSnapshot>, origin: 'external' | 'system'): void {
+  applyExternal(partial: Partial<TableViewSnapshot>, origin: 'external'): void {
     for (const axis of TABLE_VIEW_AXES) {
       if (partial[axis] !== undefined) this.#write(axis, partial[axis], origin);
     }

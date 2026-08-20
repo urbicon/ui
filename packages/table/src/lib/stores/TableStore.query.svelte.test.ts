@@ -230,8 +230,8 @@ describe('view — grouping keeps its gate', () => {
     // Grouped virtualization does not exist: a key that slips through
     // deactivates virtualization and renders the FULL item set. The read-side
     // gate on `state.groupByKey` holds during SSR too — a `?group=…` deep
-    // link on a virtualized table renders ungrouped on the server. (The
-    // runtime *discard* — cleaning the URL via a `system` write — is
+    // link on a virtualized table renders ungrouped on the server, while the
+    // value stays on the view. (The DEV report for the mismatch is
     // `TableProvider`'s half, not the store's.)
     const store = createTableState(linkedView({ groupBy: 'name' }), undefined, {
       source: () => ({ processing: 'client' as const, items: ITEMS }),

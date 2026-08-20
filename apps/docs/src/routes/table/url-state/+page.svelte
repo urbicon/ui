@@ -206,9 +206,10 @@ export const load = async ({ url }) => {
 
     <p class="text-text-secondary mb-6 text-sm">
       A virtualized table refuses grouping, from the URL like from every other route: a link must
-      not switch a large table into a mode that renders every item. That refusal is the table's own,
-      so the binding cleans the parameter while a grouping the reader chose earlier survives in
-      storage. DEV warns when it drops one.
+      not switch a large table into a mode that renders every item. The refusal happens in the
+      rendering alone — the parameter stays in the address bar, a grouping the reader chose earlier
+      survives in storage, and an un-virtualized table on the same view still groups. DEV warns when
+      a grouping goes unrendered.
     </p>
 
     <NoteList variant="flush">

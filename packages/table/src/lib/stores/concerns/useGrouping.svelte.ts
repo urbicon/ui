@@ -65,11 +65,10 @@ export function useGrouping(state: TableState, view: TableView, getSortedItems: 
     //
     // It is NOT every path, and the JSDoc used to claim it was (#166 review).
     // A consumer writing `view.groupBy` directly, and every binding (view
-    // defaults, URL, storage), bypass this setter entirely. Two other gates
-    // cover them: `TableProvider`'s `system` discard, which cleans the URL
-    // without persisting the discard as the reader's wish, and — for anything
-    // that reaches neither — the read gate behind `state.effectiveGroupBy`,
-    // which is what actually decides what renders.
+    // defaults, URL, storage), bypass this setter entirely. The read gate
+    // behind `state.effectiveGroupBy` covers them all — it is what actually
+    // decides what renders, and the value it ignores stays on the view
+    // (DEV reports the mismatch in `TableProvider`).
     if (key && state.virtualized) {
       if (import.meta.env?.DEV) {
         console.warn(

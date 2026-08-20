@@ -394,8 +394,9 @@ What follows from it:
    grouping. Write `view.page = 1` alongside if you want the reset.
 5. **The storage binding drops pending writes on teardown.** No side effects after the
    component is gone; call `flush()` first if a write must land.
-6. **A grouping discarded by `virtualized` is a system decision.** It cleans the URL but never
-   reaches storage as your wish, so the stored grouping applies again on the next load
+6. **A grouping on a `virtualized` table stays on the view, unrendered.** The table renders
+   ungrouped and warns in DEV; the value keeps standing on the view and in the URL, and it
+   never reaches storage unless the reader set it — so it applies again on the next load
    without `virtualized`.
 7. **A direction is half of a sort value, not a field of its own.** `view.sort` is
    `{ column, direction }` or `null`, so there is no way to write a direction while nothing
@@ -427,12 +428,15 @@ parameter names where you build the request.
 
 Several tables may mount the same view. They read and write the same six axes, and a table
 takes no claim of its own — a remounting `{#if}` child inherits the current state, and a
-third table can join later. Two limits are worth knowing:
+third table can join later.
 
-- **Give a virtualized table its own view.** A virtualized table discards grouping as a
-  system decision, and on a shared view that discard is not scoped to the table that made
-  it: an un-virtualized sibling loses a grouping it could perfectly well render, and a
-  grouping the reader sets later is taken back in the same flush.
+A virtualized table renders any grouping the view carries as ungrouped — for itself only.
+The value stays on the view, so an un-virtualized sibling of the same view keeps rendering
+it grouped, and a grouping the reader sets later still applies everywhere else; DEV logs a
+console warning on the virtualized table so the mismatch is visible while developing.
+
+One limit is worth knowing:
+
 - **A shared view is not a shared cache.** A managed source (`{ query }`) on both tables
   fetches once *per table* per interaction. If one fetch should serve both, run it yourself
   (`observeView` + your fetch) and hand each table a manual `processing: 'server'` source.

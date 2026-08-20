@@ -139,7 +139,7 @@ describe('origin discrimination through the binding (§7.1, candidate 1)', () =>
     cleanup();
   });
 
-  it('a system discard (virtualized × grouping) is not stored as a user wish', () => {
+  it('an external application inside the debounce window is not stored as a user wish', () => {
     const cleanup = $effect.root(() => {
       const view = createTableView();
       bindViewToStorage(view, { key: 'bind', storage, debounceMs: 100 });
@@ -147,18 +147,16 @@ describe('origin discrimination through the binding (§7.1, candidate 1)', () =>
 
       view.groupBy = 'status'; // the reader groups…
       flushSync();
-      // …the table discards it before the debounce fires (M6, third origin
-      // class — virtualized × grouping).
-      view.applyExternal({ groupBy: null }, 'system');
+      // …then a binding applies a different value before the debounce fires.
+      view.applyExternal({ groupBy: null }, 'external');
       flushSync();
     });
     vi.advanceTimersByTime(150);
 
-    // "Written only when the LAST change was the reader's": the system
-    // discard un-dirties the axis, so storage stays untouched and the
-    // grouping re-applies on a non-virtualized load. The first spike
-    // prototype stored `groupBy: null` here (the discard, recorded as a user
-    // wish) — that failure is what this test pins.
+    // "Written only when the LAST change was the reader's": the external
+    // application un-dirties the axis, so storage stays untouched. The
+    // first spike prototype stored `groupBy: null` here (the application,
+    // recorded as a user wish) — that failure is what this test pins.
     expect(storedView()).toBeNull();
     cleanup();
   });

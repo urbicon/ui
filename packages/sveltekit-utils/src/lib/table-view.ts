@@ -92,14 +92,14 @@ export interface TableViewLike {
   pageSize: number;
   filters: TableViewFilter[];
   groupBy: string | null;
-  applyExternal(partial: Partial<TableViewSnapshot>, origin: 'external' | 'system'): void;
+  applyExternal(partial: Partial<TableViewSnapshot>, origin: 'external'): void;
   claimAxes(kind: 'url' | 'storage', axes: readonly TableViewAxis[]): void;
   releaseAxes(kind: 'url' | 'storage', axes: readonly TableViewAxis[]): void;
   markInitApplied(axes: readonly TableViewAxis[]): void;
   wasInitApplied(axis: TableViewAxis): boolean;
   originOf(axis: TableViewAxis): {
     revision: number;
-    origin: 'user' | 'external' | 'system' | 'init';
+    origin: 'user' | 'external' | 'init';
   };
   snapshot(): TableViewSnapshot;
 }

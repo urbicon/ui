@@ -5,8 +5,7 @@
  * reaches server HTML — and only to axes no binding applied at init (the
  * deep-link precedence URL > storage). Writes on reader changes only: per
  * axis, the (revision, origin) pair decides, so an `external` application
- * (someone else's link) and a `system` discard (virtualized × grouping)
- * never land in storage.
+ * (someone else's link) never lands in storage.
  *
  * Phase contract: defaults (constructor) → URL (init, synchronous) →
  * storage (once, after hydration) → runtime (URL navigations apply; storage
@@ -255,10 +254,10 @@ export function bindViewToStorage(
             dirty = true;
           } else {
             // The design rule verbatim: an axis is written only when its LAST
-            // change was the reader's. A later external application or system
-            // discard un-dirties it — without this, a user edit followed by a
-            // system discard inside one debounce window stored the discard as
-            // if the reader had chosen it.
+            // change was the reader's. A later external application
+            // un-dirties it — without this, a user edit followed by an
+            // external application inside one debounce window stored that
+            // value as if the reader had chosen it.
             pending.delete(axis);
           }
         }

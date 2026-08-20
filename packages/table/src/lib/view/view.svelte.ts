@@ -6,23 +6,22 @@
  *
  * Construction and getters are SSR-safe — no effects anywhere (the #10
  * lesson). The table reads and writes the fields directly (`view.page = 3`);
- * bindings and system gates go through {@link TableView.applyExternal} so the
- * storage binding can tell a reader's change from an applied one.
+ * bindings go through {@link TableView.applyExternal} so the storage
+ * binding can tell a reader's change from an applied one.
  */
 import { hasContext, untrack } from 'svelte';
 import type { Filter } from '$lib/types/tableTypes';
 
 /**
- * Who last wrote an axis:
+ * Who last wrote an axis — the one question a binding needs answered:
+ * was this the reader?
  * - `user` — reader interaction through the table, or consumer code writing a
  *   field. May be persisted.
  * - `external` — a binding applied a value (URL navigation, storage
  *   hydration). Must never be persisted — "someone else's link stores
  *   nothing".
- * - `system` — the table itself discarded a value (virtualized × grouping).
- *   May clean the URL, must not land in storage as a user wish.
  */
-export type ViewOrigin = 'user' | 'external' | 'system';
+export type ViewOrigin = 'user' | 'external';
 
 /** Sort state of a view: a column and a direction, or `null` for unsorted. */
 export interface ViewSort {
@@ -121,9 +120,9 @@ function inComponentInit(): boolean {
  * Two write surfaces, deliberately:
  * - **Fields** (`view.page = 3`) — the table's interaction handlers and
  *   consumer code. Counts as the reader's own change (`user`).
- * - **{@link applyExternal}** — bindings applying a value and the table's own
- *   system discards. Never counts as the reader's change, so the storage
- *   binding can keep someone else's link out of storage.
+ * - **{@link applyExternal}** — bindings applying a value. Never counts as
+ *   the reader's change, so the storage binding can keep someone else's
+ *   link out of storage.
  *
  * Construct it in the component that owns it (or a request-scoped `load`),
  * never in module scope: on the server a module-scope view is state shared
@@ -260,15 +259,13 @@ export class TableView {
     this.#write('groupBy', value, 'user');
   }
 
-  // ── The binding/system write surface ────────────────────────────────────
+  // ── The binding write surface ───────────────────────────────────────────
 
   /**
-   * Apply a partial view without it counting as the reader's own change.
-   * `external` = a binding applies (URL navigation, storage hydration);
-   * `system` = the table itself discards a value (virtualized × grouping) —
-   * it may clean the URL but must not land in storage as a user wish.
+   * Apply a partial view without it counting as the reader's own change:
+   * a binding applies a value (URL navigation, storage hydration).
    */
-  applyExternal(partial: Partial<TableViewSnapshot>, origin: 'external' | 'system'): void {
+  applyExternal(partial: Partial<TableViewSnapshot>, origin: 'external'): void {
     for (const axis of VIEW_AXES) {
       if (partial[axis] !== undefined) {
         this.#write(axis, partial[axis], origin);

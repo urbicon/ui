@@ -357,12 +357,12 @@ describe('per-axis (revision, origin) bookkeeping — candidate 1', () => {
     expect(view.originOf('page')).toEqual({ revision: 2, origin: 'external' });
   });
 
-  it('a system discard is recorded as system, not as the reader’s change', () => {
+  it('an external overwrite of a user value is recorded as external, not as the reader’s change', () => {
     const view = createTableView();
     view.groupBy = 'status';
-    view.applyExternal({ groupBy: null }, 'system'); // virtualized × grouping
+    view.applyExternal({ groupBy: null }, 'external'); // a binding applies
     expect(view.groupBy).toBeNull();
-    expect(view.originOf('groupBy')).toEqual({ revision: 2, origin: 'system' });
+    expect(view.originOf('groupBy')).toEqual({ revision: 2, origin: 'external' });
   });
 
   it('applyExternal is a partial — unnamed axes keep their state and their origin', () => {

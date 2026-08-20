@@ -152,22 +152,13 @@ describe('Table — server render of a virtualized table with a grouped link', (
   // The url-state docs page says the server render is included; this makes
   // that claim true for the awkward corner: a `?group=…` deep link onto a
   // virtualized table renders UNGROUPED on the server — grouped
-  // virtualization is not implemented, the provider discards the grouping at
-  // construction (which runs during SSR) and the store's `groupByKey` read
-  // gate holds on the server too.
+  // virtualization is not implemented, and the store's `groupByKey` read
+  // gate holds on the server too. The gate is the only enforcement: the
+  // view keeps the value (nothing runs during SSR that could report or
+  // rewrite it — the DEV warning lives in an effect).
   //
-  // Red seen: with the construction discard and the read gate both sabotaged
-  // away, the virtualized server render carried the `grouped-item-`
-  // group-header rows.
-  beforeAll(() => {
-    // The construction discard warns in DEV — expected here, not noise worth
-    // printing 2× per run. Same containment as the shared-link describe.
-    vi.spyOn(console, 'warn').mockImplementation(() => {});
-  });
-  afterAll(() => {
-    vi.restoreAllMocks();
-  });
-
+  // Red seen: with the read gate sabotaged away, the virtualized server
+  // render carried the `grouped-item-` group-header rows.
   const groupedView = () => {
     const view = createTableView();
     view.applyExternal({ groupBy: 'name' }, 'external');
@@ -180,8 +171,11 @@ describe('Table — server render of a virtualized table with a grouped link', (
     const plain = bodyOf({ items: ROWS, view: groupedView() });
     expect(plain).toContain('grouped-item-');
 
-    const virtualized = bodyOf({ items: ROWS, view: groupedView(), virtualized: true });
+    const view = groupedView();
+    const virtualized = bodyOf({ items: ROWS, view, virtualized: true });
     expect(virtualized).not.toContain('grouped-item-');
+    // The value survives the server render — the read gate decides alone.
+    expect(view.groupBy).toBe('name');
   });
 });
 
