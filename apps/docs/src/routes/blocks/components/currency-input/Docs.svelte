@@ -18,7 +18,8 @@
   <div class="space-y-8">
     <CodeExample
       title="Follows the active locale"
-      description="With no locale prop, grouping and decimal separators follow the active <I18nProvider> locale, applied on blur. The bound value stays an integer count of cents; the currency symbol is a fixed adornment."
+      description="With no locale prop, grouping and decimal separators follow the active <I18nProvider> locale, applied on every keystroke. The bound value stays an integer count of cents; the currency symbol is a fixed adornment."
+      previewClass="flex w-full max-w-xs flex-col gap-4"
       code={`<` +
         `script>
   import { CurrencyInput } from '@urbicon-ui/blocks';
@@ -33,6 +34,7 @@
 
     <CodeExample
       title="USD with prefix symbol"
+      previewClass="flex w-full max-w-xs flex-col gap-4"
       code={`<CurrencyInput
   label="Amount"
   bind:value={amountCents}
@@ -54,6 +56,7 @@
     <CodeExample
       title="JPY: zero decimal precision"
       description={'Currencies like JPY have no minor units. Set precision={0} so the integer value is treated as-is.'}
+      previewClass="flex w-full max-w-xs flex-col gap-4"
       code={`<CurrencyInput
   bind:value={yen}
   locale="ja-JP"
@@ -81,6 +84,7 @@
   <CodeExample
     title="Cents in, major units out"
     description="majorToCents on ingest, centsToMajor on export. The bound value stays in cents."
+    previewClass="flex w-full max-w-xs flex-col gap-4"
     code={`<script>
   import { CurrencyInput, centsToMajor, majorToCents } from '@urbicon-ui/blocks';
 
@@ -95,7 +99,7 @@
     language="svelte"
   >
     <CurrencyInput label="Price" bind:value={majorBackedCents} />
-    <p class="text-text-secondary mt-2 text-sm">
+    <p class="text-text-secondary text-sm break-words">
       Stored as cents: <code>{majorBackedCents}</code> · Exported as major:
       <code>{exportedAsMajor}</code>
     </p>
@@ -142,10 +146,12 @@
         separator.
       </p>
     </Note>
-    <Note title="Raw value while focused">
+    <Note title="The caret stays where the user put it">
       <p>
-        While the field is focused it shows the raw typed value and formats on blur, so
-        screen-reader users hear the number they typed.
+        The field re-formats on every keystroke, so grouping separators appear and disappear under
+        the caret. It is carried across as a digit position rather than a character offset, and the
+        fraction is a fixed row of slots: deleting a cent digit zeroes it instead of pulling the
+        separator along.
       </p>
     </Note>
   </NoteList>

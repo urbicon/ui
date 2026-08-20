@@ -16,6 +16,7 @@
   <div class="space-y-8">
     <CodeExample
       title="Display format vs. bound value"
+      previewClass="flex w-full flex-col"
       description="format=&quot;12h&quot; adds an AM/PM segment and withSeconds adds a seconds segment, but both change only what the field shows. The bound value stays a 24-hour string, or null when the field is empty: 14:15 displays as 02:15 PM and still binds as 14:15."
       code={`<script>
   import { TimeInput } from '@urbicon-ui/blocks';
@@ -28,18 +29,18 @@
 <TimeInput label="Duration" withSeconds bind:value={preciseTime} />`}
       language="svelte"
     >
-      <div class="flex flex-wrap items-start gap-6">
-        <div>
+      <div class="flex w-full flex-wrap items-start gap-6">
+        <div class="min-w-44 flex-1">
           <TimeInput label="Start" bind:value={startTime} />
           <p class="text-text-secondary mt-2 text-sm">Value: <code>{startTime ?? '—'}</code></p>
         </div>
-        <div>
+        <div class="min-w-44 flex-1">
           <TimeInput label="Meeting" format="12h" bind:value={meetingTime} />
           <p class="text-text-secondary mt-2 text-sm">
             Value (24h): <code>{meetingTime ?? '—'}</code>
           </p>
         </div>
-        <div>
+        <div class="min-w-44 flex-1">
           <TimeInput label="Duration" withSeconds bind:value={preciseTime} />
           <p class="text-text-secondary mt-2 text-sm">Value: <code>{preciseTime ?? '—'}</code></p>
         </div>
@@ -48,6 +49,7 @@
 
     <CodeExample
       title="Range bounds"
+      previewClass="flex w-full max-w-xs flex-col"
       description="Values below min or above max clamp back into range when the field loses focus."
       code={`<script>
   let officeTime = $state('09:00');
@@ -73,6 +75,7 @@
 
     <CodeExample
       title="Error state"
+      previewClass="flex w-full max-w-xs flex-col"
       description="Pass error to colour the field danger, override the helper, and mark the segments aria-invalid; the message is announced via role=&quot;alert&quot;."
       code={`<script>
   let errorTime = $state(null);
@@ -99,6 +102,7 @@
 
   <CodeExample
     title="Date and time side by side"
+    previewClass="flex w-full max-w-lg flex-col"
     description="A DatePicker for the day and a TimeInput for the time, kept as two separate values."
     code={`<script>
   import { DatePicker, TimeInput } from '@urbicon-ui/blocks';

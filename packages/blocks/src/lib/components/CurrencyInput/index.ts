@@ -12,15 +12,19 @@ export type CurrencySymbolPosition = 'prefix' | 'suffix' | 'none';
 /**
  * @summary Money entry that counts in cents, so nothing is lost to rounding.
  * @description Locale-aware monetary input that stores values in **minor units**
- * (cents for EUR/USD, pennies for GBP, etc.). While focused the user types raw
- * digits with a single decimal separator; on blur the value is reformatted with
- * the locale's grouping separators. The currency symbol is rendered as a static
- * adornment (left or right of the field) and stays visible at all times.
+ * (cents for EUR/USD, pennies for GBP, etc.). The field is a fixed-scale mask
+ * rather than free text: it re-formats on every keystroke, the fraction is a
+ * fixed row of slots (deleting a cent digit zeroes it instead of pulling the
+ * separator along), and the caret is carried as a digit position so the grouping
+ * separators appearing and disappearing under it never move it. The currency
+ * symbol is rendered as a static adornment (left or right of the field) and
+ * stays visible at all times.
  *
  * Storing cents as integers avoids floating-point drift when summing, sorting,
  * or persisting amounts. Parsing also goes through string splits — never
- * `parseFloat * factor` — so values like `1,005` round to the expected
- * `100` minor units (instead of `99` due to IEEE-754 drift). Use
+ * `parseFloat * factor` — so `1,005` lands on the `100` minor units it reads as,
+ * rather than the `99` IEEE-754 drift produces. A digit past the last place is
+ * truncated, never rounded: `1,999` is `199`. Use
  * {@link CurrencyInputProps.precision} for currencies with non-2 decimal
  * places (JPY = 0, BHD = 3).
  *
