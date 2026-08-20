@@ -84,4 +84,53 @@ describe('grouped rows without an id (#231)', () => {
 
     expect(el.querySelectorAll('[data-testid^="expanded-row-"]').length).toBe(1);
   });
+
+  it('rows with id: null render without a duplicate-key crash and stay distinct', () => {
+    // `id: null` passes the type system and used to pass normalizeItems'
+    // guard unstamped — both rows then resolved to `-1`, which is not just a
+    // collision but a duplicate `{#each}` key: the grouped table threw.
+    const el = mountGrouped({
+      selectionMode: 'multi',
+      items: [
+        { id: null, dept: 'A', name: 'Ada' },
+        { id: null, dept: 'B', name: 'Grace' }
+      ]
+    });
+
+    const checkbox = el
+      .querySelector('tr[data-row-index="0"]')
+      ?.querySelector<HTMLInputElement>('input[type="checkbox"]');
+    checkbox?.click();
+    flushSync();
+
+    expect(el.querySelectorAll('tbody tr[aria-selected="true"]').length).toBe(1);
+  });
+
+  it('id-less rows from a managed server source render grouped without a crash', async () => {
+    // `setServerResult` is the one items write path that bypassed
+    // `normalizeItems` — id-less remote rows arrived unstamped, so a grouped
+    // server-managed table threw on the duplicate `-1` key.
+    const el = mountGrouped({
+      items: undefined,
+      source: {
+        processing: 'server',
+        query: async () => ({
+          items: [
+            { dept: 'A', name: 'Ada' },
+            { dept: 'B', name: 'Grace' }
+          ],
+          total: 2
+        })
+      }
+    });
+
+    // The managed fetch schedules from an effect via setTimeout(0); two turns
+    // let the schedule and the resolved query land.
+    await new Promise((resolve) => setTimeout(resolve, 0));
+    await new Promise((resolve) => setTimeout(resolve, 0));
+    flushSync();
+
+    expect(el.querySelectorAll('[data-testid="grouped-item-0"]').length).toBe(1);
+    expect(el.querySelector('[data-testid="grouped-item-1"]')).toBeTruthy();
+  });
 });

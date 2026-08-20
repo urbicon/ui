@@ -171,11 +171,19 @@ export function formatCellValue<T extends TableItem>(
 }
 
 /**
- * Normalizes items for table consumption. Items without an `id` property
- * get an `__index` assigned as stable fallback key.
+ * Normalizes items for table consumption. Items without a usable `id` — any
+ * value that is not a string or number, `null` included — get an `__index`
+ * assigned as stable fallback key. The guard must match what
+ * {@link resolveRowItemId} accepts, or an unusable `id` slips through
+ * unstamped and every such row resolves to the same `-1` — a duplicate
+ * `{#each}` key, which throws.
  */
 export function normalizeItems<T extends TableItem>(items: T[]): T[] {
-  return items.map((item, i) => (item.id !== undefined ? item : ({ ...item, __index: i } as T)));
+  return items.map((item, i) =>
+    typeof item.id === 'string' || typeof item.id === 'number'
+      ? item
+      : ({ ...item, __index: i } as T)
+  );
 }
 
 /**

@@ -172,6 +172,19 @@ describe('normalizeItems', () => {
     expect(result[0]).not.toHaveProperty('__index');
   });
 
+  it('stamps __index for id: null — an unusable id must not slip through', () => {
+    // `id: null` is type-legal (TableItem is Record<string, unknown>) and used
+    // to pass the old `id !== undefined` guard unstamped, so every such row
+    // resolved to `-1`: one shared identity, and a duplicate `{#each}` key.
+    const items = [
+      { id: null, name: 'Alice' },
+      { id: null, name: 'Bob' }
+    ];
+    const result = normalizeItems(items);
+    expect((result[0] as unknown as { __index: number }).__index).toBe(0);
+    expect((result[1] as unknown as { __index: number }).__index).toBe(1);
+  });
+
   it('adds __index to items without id', () => {
     const items = [{ name: 'Alice' }, { name: 'Bob' }];
     const result = normalizeItems(items);
