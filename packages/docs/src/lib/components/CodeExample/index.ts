@@ -56,7 +56,17 @@ export interface CodeExampleProps
   preview?: boolean;
   /** Opt-in for the Vite plugin: children are auto-extracted as `code` at build time. */
   isolate?: boolean;
-  /** CSS classes for the preview wrapper div when `isolate` is set. */
+  /**
+   * CSS classes for a wrapper div around the preview content. Applies whether or
+   * not `isolate` is set; with `isolate` and no `previewClass`, the wrapper falls
+   * back to a wrapping, centred flex row.
+   *
+   * The preview stage is itself a centring flex row, which makes every child
+   * shrink to fit — so an example with more than one child (a field and the
+   * value it is bound to, say) needs a `flex-col` here or the two land beside
+   * each other, and a wrapper around a `width: 100%` component needs `w-full`
+   * or it collapses to whatever else it holds.
+   */
   previewClass?: string;
   /** Override the default expanded state from the global code-visibility context. */
   defaultExpanded?: boolean;

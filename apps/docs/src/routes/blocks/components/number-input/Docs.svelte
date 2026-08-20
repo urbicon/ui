@@ -16,7 +16,7 @@
       title="Quantity in a line item"
       description="The common case: a bounded integer the user nudges rather than types. `min` keeps it out of negatives, `max` caps it at what is in stock, and the stepper clamps immediately instead of waiting for blur."
       isolate
-      previewClass="flex max-w-xs flex-col gap-4"
+      previewClass="flex w-full max-w-xs flex-col gap-4"
     >
       <NumberInput label="Quantity" bind:value={quantity} min={0} max={99} step={1} />
     </CodeExample>
@@ -25,7 +25,7 @@
       title="Decimal rate with fixed precision"
       description="`step` and `precision` are separate: `step` is how far one press moves, `precision` is how many decimals are displayed and rounded to. Without `precision` the value shows as typed and the step's own decimals drive the rounding."
       isolate
-      previewClass="flex max-w-xs flex-col gap-4"
+      previewClass="flex w-full max-w-xs flex-col gap-4"
     >
       <NumberInput
         label="Commission rate"
@@ -42,7 +42,7 @@
       title="Without the stepper"
       description="`hideStepper` removes the buttons; Arrow keys and the wheel still step. Useful in a dense row where two more hit targets per field would crowd the layout."
       isolate
-      previewClass="flex max-w-xs flex-col gap-4"
+      previewClass="flex w-full max-w-xs flex-col gap-4"
     >
       <NumberInput label="Servings" bind:value={servings} min={1} max={12} hideStepper />
     </CodeExample>

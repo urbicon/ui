@@ -448,15 +448,15 @@
       "exports": ["CopyButton"]
     },
     "CurrencyInput": {
-      "min": 48807,
-      "gz": 16241,
+      "min": 51673,
+      "gz": 17410,
       "net": {
-        "min": 34782,
-        "gz": 11650
+        "min": 37647,
+        "gz": 12839
       },
       "lazy": {
-        "min": 9844,
-        "gz": 4026
+        "min": 9896,
+        "gz": 4029
       },
       "pkg": "blocks",
       "exports": ["CurrencyInput"]
