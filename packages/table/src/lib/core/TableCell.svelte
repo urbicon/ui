@@ -20,6 +20,13 @@
     cellClass?: string;
     testIdPrefix?: string;
     colIndex?: number;
+    /**
+     * The ARIA role this cell declares. The row decides: `gridcell` only when
+     * the table is interactive (a grid), `cell` where a presentational table
+     * needs the role restated explicitly, nothing otherwise — a cell that
+     * claims grid membership without a grid ancestor is what this replaces.
+     */
+    cellRole?: 'gridcell' | 'cell';
     cell?: Snippet<[item: TableItem, value: unknown, column: Column]>;
   };
 
@@ -30,6 +37,7 @@
     cellClass = '',
     testIdPrefix = 'cell',
     colIndex = undefined,
+    cellRole = undefined,
     cell = undefined
   }: TableCellProps = $props();
 
@@ -62,7 +70,7 @@
 <td
   class="{cellClass} {column.flex ? 'flex-col' : ''}"
   style={column.width ? `width: ${column.width}; min-width: ${column.minWidth || '4rem'};` : ''}
-  role={colIndex !== undefined ? 'gridcell' : undefined}
+  role={cellRole}
   aria-colindex={colIndex !== undefined ? colIndex + 1 : undefined}
   title={titleText}
   data-testid={`${testIdPrefix}-${itemId}-${columnId}`}

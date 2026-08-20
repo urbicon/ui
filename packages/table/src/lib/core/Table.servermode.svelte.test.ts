@@ -290,8 +290,10 @@ describe('managed source — the fetch follows the effective page', () => {
       selectionMode: 'multi'
     });
 
-    const table = t.target.querySelector('[data-testid="table-element"]');
-    expect(table?.getAttribute('aria-rowcount')).toBe(String(TOTAL));
+    // The ARIA surface of the virtualized branch is the grid wrapper that
+    // contains all three tables — not the header table.
+    const grid = t.target.querySelector('[data-testid="virtual-grid"]');
+    expect(grid?.getAttribute('aria-rowcount')).toBe(String(TOTAL));
   });
 
   it('the grid reports the server total as its row count', async () => {

@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { untrack } from 'svelte';
+  import { tick, untrack } from 'svelte';
   import { getInternalTableContext } from '$lib/stores/TableStore.svelte';
   import { useTableI18n } from '$lib/i18n';
   import EmptyState from './EmptyState.svelte';
@@ -102,7 +102,11 @@
   const virtualizedActive = $derived(
     virtualized && !tableState.effectiveGroupBy && !tableState.loading && !tableState.error
   );
-  const virtualItems = $derived(tableContext.sortedItems);
+  // The SAME derivation the keyboard counts and targets (`navigableItems` is
+  // virtualization-aware in the store). Reading `sortedItems` here while the
+  // keydown handler counted `navigableItems` let the two index spaces drift —
+  // the render window held every row while the keyboard capped at `pageSize`.
+  const virtualItems = $derived(navigableItems);
 
   // What a row is worth in pixels, measured rather than assumed. The
   // virtualizer strides in this number twice over — it sizes the scroll spacer
@@ -124,9 +128,31 @@
       : null
   );
 
-  function handleVirtualScroll() {
-    if (scrollContainerEl) {
-      scrollTop = scrollContainerEl.scrollTop;
+  async function handleVirtualScroll() {
+    if (!scrollContainerEl) return;
+    scrollTop = scrollContainerEl.scrollTop;
+    // Roving tabindex over a window: exactly one RENDERED row must carry
+    // `tabindex="0"` at all times. When the focused row scrolls out of the
+    // render window it unmounts, and with it the table's only Tab stop — so
+    // the focus index follows the window to the first fully visible row.
+    //
+    // The check runs AFTER the flush, not at event time: when this very
+    // scroll unmounts the focused row, the row still holds the real focus at
+    // event time — a pre-flush guard read "focus is live", skipped, and the
+    // table ended with focus on body and zero rendered tab stops. After the
+    // tick the unmounted row has surrendered the focus, so the guard sees
+    // the truth; and `focusVirtualRow`'s own trailing scroll event finds its
+    // target row rendered and focused by then, which keeps it a no-op.
+    if (!virtualizedActive) return;
+    const first = Math.ceil(scrollTop / rowHeight);
+    const last = Math.floor((scrollTop + viewportHeight) / rowHeight) - 1;
+    await tick();
+    if (!scrollContainerEl) return;
+    const focusedIndex = tableContext.focusedRowIndex;
+    const focusIsLive =
+      document.activeElement && scrollContainerEl.contains(document.activeElement);
+    if ((focusedIndex < first || focusedIndex > last) && !focusIsLive) {
+      tableContext.setFocusedRow(Math.max(0, Math.min(first, navigableItems.length - 1)));
     }
   }
 
@@ -218,6 +244,10 @@
   });
 
   function focusRow(index: number) {
+    if (virtualizedActive) {
+      void focusVirtualRow(index);
+      return;
+    }
     if (!tableElement) return;
     // Address the row by its index attribute rather than by position in the
     // NodeList: grouped rendering interleaves group headers and summary rows, so
@@ -228,6 +258,33 @@
     if (targetRow) {
       targetRow.focus({ preventScroll: false });
     }
+  }
+
+  // Focusing a virtualized row means moving the window first: the target may
+  // not be rendered at all. The sequence is deterministic because the window
+  // position hangs on the `scrollTop` state alone — set the container's scroll
+  // position, mirror it into the state synchronously (the scroll event arrives
+  // a task later, far too late for the focus call), wait one tick for the
+  // window to re-derive, then focus the now-rendered row. The rows live under
+  // the scroll container, not under `tableElement` — that one is the header
+  // table, whose only children are colgroup and thead, so searching it found
+  // null forever and the focus never moved.
+  async function focusVirtualRow(index: number) {
+    if (!scrollContainerEl) return;
+    const top = index * rowHeight;
+    const viewTop = scrollContainerEl.scrollTop;
+    const viewH = scrollContainerEl.clientHeight;
+    if (top < viewTop) scrollContainerEl.scrollTop = top;
+    else if (top + rowHeight > viewTop + viewH) {
+      scrollContainerEl.scrollTop = top + rowHeight - viewH;
+    }
+    scrollTop = scrollContainerEl.scrollTop;
+    await tick();
+    // `preventScroll`: the position was just set; the browser's own
+    // scroll-into-view would fight the transform offsets of the window.
+    scrollContainerEl
+      .querySelector<HTMLElement>(`tbody tr[data-row-index="${index}"]`)
+      ?.focus({ preventScroll: true });
   }
 
   function getItemIdAtIndex(index: number): string | number | undefined {
@@ -321,9 +378,17 @@
       // value can sit past the last page after the page size or the row count
       // changed, and stepping from there lands outside the range `goToPage`
       // accepts — which killed paging in BOTH directions rather than one.
+      // Gated on the pager being rendered at all: client-virtualized renders
+      // the whole list in the scroll container, so stepping a page nobody
+      // renders would silently re-slice nothing — while server-virtualized
+      // keeps its pager and the keys keep working.
       case 'PageDown': {
         // Next page
-        if (tableContext.totalPages > 1 && tableContext.effectivePage < tableContext.totalPages) {
+        if (
+          tableContext.pageInfo.showPager &&
+          tableContext.totalPages > 1 &&
+          tableContext.effectivePage < tableContext.totalPages
+        ) {
           e.preventDefault();
           tableContext.goToPage(tableContext.effectivePage + 1);
         }
@@ -331,7 +396,11 @@
       }
       case 'PageUp': {
         // Previous page
-        if (tableContext.totalPages > 1 && tableContext.effectivePage > 1) {
+        if (
+          tableContext.pageInfo.showPager &&
+          tableContext.totalPages > 1 &&
+          tableContext.effectivePage > 1
+        ) {
           e.preventDefault();
           tableContext.goToPage(tableContext.effectivePage - 1);
         }
@@ -405,82 +474,65 @@
     aria-label={tt('aria.tableData')}
     style="width: {tableDomWidth};"
   >
-    <!-- Sticky header table -->
-    <table
-      bind:this={tableElement}
-      class={resolveSlotClass(
-        tableStyles.table,
-        styleConfig.slotClasses.table,
-        styleConfig.unstyled,
-        'table-fixed'
-      )}
-      role={interactive ? 'grid' : undefined}
+    <!-- One grid over three tables. The header, the scrolling body and the
+         summary render as separate <table> elements (their layout contract —
+         see columnTracks), which left the rows outside the element that
+         claimed role="grid": exactly one grid existed, containing zero data
+         rows, while every cell claimed grid membership with no grid ancestor.
+         This wrapper is the single ARIA surface — role, label, row/col counts,
+         keydown — and the tables under it become presentational with explicit
+         roles on their structural rows and cells. A #14 layout rework would
+         collapse the three tables into one and delete this div with them. -->
+    <!-- tabindex -1: the wrapper is script-focusable, never a Tab stop — the
+         rows carry the roving tabindex, exactly like the standard branch's
+         table element (which as a <table> needs no attribute to say so). -->
+    <div
+      role={interactive ? 'grid' : 'table'}
+      tabindex="-1"
       aria-label={ariaLabel}
       aria-rowcount={tableContext.pageInfo.totalItems}
+      aria-colcount={totalColSpan}
       onkeydown={handleTableKeyDown}
-      data-testid="table-element"
+      data-testid="virtual-grid"
     >
-      {@render columnTrackGroup()}
-      {#if header}
-        {@render header()}
-      {:else}
-        <TableHead {expandable} {enableColumnReorder} {size} />
-      {/if}
-    </table>
+      <!-- Sticky header table -->
+      <table
+        bind:this={tableElement}
+        class={resolveSlotClass(
+          tableStyles.table,
+          styleConfig.slotClasses.table,
+          styleConfig.unstyled,
+          'table-fixed'
+        )}
+        role="presentation"
+        data-testid="table-element"
+      >
+        {@render columnTrackGroup()}
+        {#if header}
+          {@render header()}
+        {:else}
+          <TableHead {expandable} {enableColumnReorder} {size} explicitRoles={true} />
+        {/if}
+      </table>
 
-    <!-- Scrollable body -->
-    <div
-      bind:this={scrollContainerEl}
-      onscroll={handleVirtualScroll}
-      class="overflow-x-hidden overflow-y-auto"
-      style="height: {virtualHeight};"
-      role="presentation"
-      data-testid="virtual-scroll-container"
-    >
-      {#if filteredItems.length === 0}
-        <table
-          class={resolveSlotClass(
-            tableStyles.table,
-            styleConfig.slotClasses.table,
-            styleConfig.unstyled,
-            'table-fixed'
-          )}
-          onkeydown={handleTableKeyDown}
-        >
-          {@render columnTrackGroup()}
-          <tbody
-            class={resolveSlotClass(
-              tableStyles.body,
-              styleConfig.slotClasses.tbody,
-              styleConfig.unstyled
-            )}
-          >
-            {#if emptyState}
-              {@render emptyState()}
-            {:else}
-              <EmptyState message={noDataText} {size} colSpan={totalColSpan} />
-            {/if}
-          </tbody>
-        </table>
-      {:else if virtualResult}
-        <!-- Inner container with total height for scrollbar -->
-        <div style="height: {virtualResult.totalHeight}px; position: relative;">
-          <!-- The rendered window is offset once, here, rather than per row:
-               `startIndex` is the first row the virtualizer kept, so the table
-               starts exactly where that row belongs. Offsetting each `<tr>`
-               instead (which is what this did until 2026-08-13) forced
-               `position: absolute` onto it, and an absolutely positioned
-               element is never a `table-row` — its cells then sized themselves
-               from their content instead of from the shared column tracks. -->
+      <!-- Scrollable body -->
+      <div
+        bind:this={scrollContainerEl}
+        onscroll={handleVirtualScroll}
+        class="overflow-x-hidden overflow-y-auto"
+        style="height: {virtualHeight};"
+        role="presentation"
+        data-testid="virtual-scroll-container"
+      >
+        {#if filteredItems.length === 0}
           <table
-            class="{resolveSlotClass(
+            class={resolveSlotClass(
               tableStyles.table,
               styleConfig.slotClasses.table,
               styleConfig.unstyled,
               'table-fixed'
-            )} absolute top-0 left-0 w-full"
-            style="transform: translateY({virtualResult.startIndex * rowHeight}px);"
-            onkeydown={handleTableKeyDown}
+            )}
+            role="presentation"
           >
             {@render columnTrackGroup()}
             <tbody
@@ -490,43 +542,88 @@
                 styleConfig.unstyled
               )}
             >
-              {#each virtualResult.virtualItems as vItem (vItem.index)}
-                {@const item = virtualItems[vItem.index]}
-                {#if item}
-                  <TableRow
-                    {item}
-                    {expandable}
-                    {expandedRowContent}
-                    {cell}
-                    {size}
-                    {onRowClick}
-                    rowIndex={vItem.index}
-                  />
-                {/if}
-              {/each}
+              {#if emptyState}
+                {@render emptyState()}
+              {:else}
+                <EmptyState message={noDataText} {size} colSpan={totalColSpan} />
+              {/if}
             </tbody>
           </table>
-        </div>
+        {:else if virtualResult}
+          <!-- Inner container with total height for scrollbar -->
+          <div style="height: {virtualResult.totalHeight}px; position: relative;">
+            <!-- The rendered window is offset once, here, rather than per row:
+               `startIndex` is the first row the virtualizer kept, so the table
+               starts exactly where that row belongs. Offsetting each `<tr>`
+               instead (which is what this did until 2026-08-13) forced
+               `position: absolute` onto it, and an absolutely positioned
+               element is never a `table-row` — its cells then sized themselves
+               from their content instead of from the shared column tracks. -->
+            <table
+              class="{resolveSlotClass(
+                tableStyles.table,
+                styleConfig.slotClasses.table,
+                styleConfig.unstyled,
+                'table-fixed'
+              )} absolute top-0 left-0 w-full"
+              style="transform: translateY({virtualResult.startIndex * rowHeight}px);"
+              role="presentation"
+            >
+              {@render columnTrackGroup()}
+              <tbody
+                class={resolveSlotClass(
+                  tableStyles.body,
+                  styleConfig.slotClasses.tbody,
+                  styleConfig.unstyled
+                )}
+              >
+                {#each virtualResult.virtualItems as vItem (vItem.index)}
+                  {@const item = virtualItems[vItem.index]}
+                  {#if item}
+                    <TableRow
+                      {item}
+                      {expandable}
+                      {expandedRowContent}
+                      {cell}
+                      {size}
+                      {onRowClick}
+                      rowIndex={vItem.index}
+                      ariaRowStart={tableContext.pageInfo.rangeStart}
+                      explicitRoles={true}
+                    />
+                  {/if}
+                {/each}
+              </tbody>
+            </table>
+          </div>
 
-        {#if tableState.showSummary && tableState.summaryConfigs.length > 0}
-          <!-- `table-fixed` + the shared tracks, like its two siblings: without
+          {#if tableState.showSummary && tableState.summaryConfigs.length > 0}
+            <!-- `table-fixed` + the shared tracks, like its two siblings: without
                them this third table sized its columns from the summary values,
-               so the totals sat under the wrong headers. -->
-          <table
-            class={resolveSlotClass(
-              tableStyles.table,
-              styleConfig.slotClasses.table,
-              styleConfig.unstyled,
-              'table-fixed'
-            )}
-          >
-            {@render columnTrackGroup()}
-            <tbody>
-              <SummaryRow {expandable} {size} />
-            </tbody>
-          </table>
+               so the totals sat under the wrong headers.
+
+               Presentational WITHOUT explicit row roles, unlike the body: the
+               summary row is not a navigable data row, so it stays out of the
+               grid's row sequence. The standard branch has it implicitly
+               inside the grid — a documented divergence until the #14 layout
+               rework merges the three tables. -->
+            <table
+              class={resolveSlotClass(
+                tableStyles.table,
+                styleConfig.slotClasses.table,
+                styleConfig.unstyled,
+                'table-fixed'
+              )}
+              role="presentation"
+            >
+              {@render columnTrackGroup()}
+              <tbody>
+                <SummaryRow {expandable} {size} />
+              </tbody>
+            </table>
+          {/if}
         {/if}
-      {/if}
+      </div>
     </div>
   </div>
 {:else}

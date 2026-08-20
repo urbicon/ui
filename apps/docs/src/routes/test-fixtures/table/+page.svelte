@@ -54,6 +54,10 @@
   // assert the selected set alongside aria-selected / checkbox state.
   let selectedCount = $state(0);
 
+  // Virtualized interactive fixture: same counter idea, so the keyboard spec can
+  // prove that Space on the focused row really selected it.
+  let virtualSelectedCount = $state(0);
+
   // Master/detail fixture: the clicked row is what `activeRowId` reflects, so the
   // spec can prove the mark follows the click without any selection being made.
   let shownRow = $state<Row | null>(null);
@@ -132,6 +136,29 @@
       virtualHeight="360px"
       enableSmartFilter={false}
       ariaLabel="Virtualized fixture table"
+    />
+  </section>
+
+  <!-- Virtualized interactive table: multi-select over 2000 rows. The keyboard
+       spec proves the focus really moves with the arrow keys, that End reaches
+       row 1999 across the window boundary, and that the ARIA grid contains the
+       rendered rows. -->
+  <section data-testid="table-virtual-interactive" class="mb-16">
+    <h2 class="text-text-primary mb-4 text-lg font-semibold">
+      Virtualized interactive (2000 rows, multi-select)
+    </h2>
+    <p class="text-text-secondary mb-4 text-sm">
+      Selected: <span data-testid="virtual-selected-count">{virtualSelectedCount}</span>
+    </p>
+    <Table
+      items={virtualRows}
+      {columns}
+      virtualized
+      virtualHeight="400px"
+      selectionMode="multi"
+      onSelectionChange={(items) => (virtualSelectedCount = items.length)}
+      enableSmartFilter={false}
+      ariaLabel="Virtual interactive fixture table"
     />
   </section>
 

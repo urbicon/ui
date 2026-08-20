@@ -455,3 +455,76 @@ test.describe('Table core flows', () => {
     await expect(firstCell).toHaveText('Item 0030');
   });
 });
+
+test.describe('Virtualized keyboard flow', () => {
+  // The jsdom half of these pins proves the sequence (set scrollTop → window
+  // re-derives → focus); this half proves the browser reality the probe left
+  // explicitly undecided: that the focus ring actually lands and follows, and
+  // that scrolling physics don't fight the programmatic window moves.
+
+  test('arrow keys move the real focus through the virtual window', async ({ page }) => {
+    await setupPage(page);
+
+    const section = page.getByTestId('table-virtual-interactive');
+    const firstRow = section.locator('tr[data-row-index="0"]');
+    await firstRow.click();
+
+    for (let i = 0; i < 5; i++) {
+      await page.keyboard.press('ArrowDown');
+    }
+
+    const active = page.locator(':focus');
+    await expect(active).toHaveAttribute('data-row-index', '5');
+    // The ring is keyboard-driven, so the focused row must match :focus-visible.
+    const focusVisible = await active.evaluate((el) => el.matches(':focus-visible'));
+    expect(focusVisible).toBe(true);
+  });
+
+  test('End reaches row 1999, scrolled to the far end, and Space selects it', async ({ page }) => {
+    await setupPage(page);
+
+    const section = page.getByTestId('table-virtual-interactive');
+    await section.locator('tr[data-row-index="0"]').click();
+
+    await page.keyboard.press('End');
+
+    const last = section.locator('tr[data-row-index="1999"]');
+    await expect(last).toBeFocused();
+
+    const scroller = section.getByTestId('virtual-scroll-container');
+    const atEnd = await scroller.evaluate(
+      (el) => el.scrollTop + el.clientHeight >= el.scrollHeight - 5
+    );
+    expect(atEnd).toBe(true);
+
+    const count = section.getByTestId('virtual-selected-count');
+    await expect(count).toHaveText('0');
+    await page.keyboard.press('Space');
+    await expect(count).toHaveText('1');
+  });
+
+  test('the grid that reports aria-rowcount is the one containing the rows', async ({ page }) => {
+    await setupPage(page);
+
+    const section = page.getByTestId('table-virtual-interactive');
+    const grid = section.locator('[role="grid"]');
+    await expect(grid).toHaveCount(1);
+    await expect(grid).toHaveAttribute('aria-rowcount', '2000');
+
+    // The structural claim of the fix: the rendered data rows live INSIDE the
+    // element that carries the grid role — not beside it in a second table.
+    const rowsInGrid = await grid.locator('tr[data-row-index]').count();
+    expect(rowsInGrid).toBeGreaterThan(0);
+    const rowsOutside = await section
+      .locator('tr[data-row-index]')
+      .count()
+      .then(async (all) => all - rowsInGrid);
+    expect(rowsOutside).toBe(0);
+
+    // And every cell claiming grid membership has the grid as ancestor.
+    const orphanCells = await section
+      .locator('[role="gridcell"]')
+      .evaluateAll((cells) => cells.filter((c) => !c.closest('[role="grid"]')).length);
+    expect(orphanCells).toBe(0);
+  });
+});

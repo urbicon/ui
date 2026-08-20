@@ -501,12 +501,25 @@ export function createTableState(
    * Group headers are deliberately NOT part of this sequence: they carry their own
    * `tabindex={0}` and answer Enter/Space by collapsing, so they are reachable by
    * Tab without competing with the arrow keys for an index.
+   *
+   * Virtualized, the rendered rows are the whole sorted list in client mode —
+   * pagination is bypassed, exactly as the prop documents — and the loaded
+   * page in server mode, where `sortedItems` passes the page through
+   * unchanged. Falling through to `paginatedItems` here capped the keyboard
+   * index space at `pageSize` while the scroll container rendered everything:
+   * past the first page's worth of rows, no row carried `tabindex="0"` any
+   * more and the list had no keyboard entry point at all. Gated on the
+   * `state.virtualized` slot, not the raw prop — the same slot discipline as
+   * `effectiveGroupBy`, so the gates cannot disagree.
    */
   const navigableItems = $derived.by((): TableItem[] => {
-    if (!state.effectiveGroupBy) return pagination.paginatedItems;
-    return Object.entries(grouping.grouped)
-      .filter(([groupName]) => !state.collapsedGroups.has(groupName))
-      .flatMap(([, groupItems]) => groupItems);
+    if (state.effectiveGroupBy) {
+      return Object.entries(grouping.grouped)
+        .filter(([groupName]) => !state.collapsedGroups.has(groupName))
+        .flatMap(([, groupItems]) => groupItems);
+    }
+    if (state.virtualized) return sorting.sortedItems;
+    return pagination.paginatedItems;
   });
 
   const focus = useFocusManagement(state, () => navigableItems.length);

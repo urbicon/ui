@@ -138,11 +138,12 @@ export function resolvePageDescriptor(input: PageDescriptorInput): PageDescripto
  * decided wrongly.
  */
 function resolveShowPager(input: PageDescriptorInput, serverProcessed: boolean): boolean {
-  // Virtualization replaces paging with a scroll container. Kept as its own
-  // clause: this is the one line the virtualized-server support changes
-  // (hide only where the scroll container really holds the whole list —
-  // client mode), everything around it stays.
-  if (input.virtualized) return false;
+  // Virtualization replaces paging with a scroll container — but only where
+  // the scroll container really holds the whole list, which is client mode.
+  // In server mode the container holds one loaded page, and the pager is the
+  // only access to the rest of the result; hiding it stranded every row past
+  // the first page with no control and no warning.
+  if (input.virtualized && !serverProcessed) return false;
 
   if (serverProcessed) {
     // Grouping does NOT hide it here: the page is a slice of a larger result,

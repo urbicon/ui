@@ -11,6 +11,7 @@
   import { resolveColumnId } from '$lib/utils';
   import { isColumnSortable } from '$lib/utils/column-capabilities';
   import { headerSelection } from './header-selection';
+  import { leadingStructuralColumns } from './column-offset';
 
   const ChevronDownIcon = resolveIcon('chevronDown', ChevronDownIconDefault);
   const ChevronUpIcon = resolveIcon('chevronUp', ChevronUpIconDefault);
@@ -24,7 +25,16 @@
 
   const tt = useTableI18n();
 
-  let { expandable = false, enableColumnReorder = false, size = 'md' as const } = $props();
+  let {
+    expandable = false,
+    enableColumnReorder = false,
+    size = 'md' as const,
+    // The virtualized branch wraps three presentational <table>s in one
+    // role="grid" element; presentation strips the implicit roles of thead,
+    // tr and th, so this head re-declares them explicitly there. The standard
+    // branch passes nothing and renders exactly as before.
+    explicitRoles = false
+  } = $props();
 
   const tableContext = getInternalTableContext();
   const { state: tableState, view: tableView, handleSort, toggleAllGroups } = tableContext;
@@ -32,6 +42,17 @@
   const stickyContext = getStickyContext();
 
   let selectable = $derived(tableState.selectionMode !== 'none');
+
+  // The same offset the row's cells count from — one derivation, so the
+  // header's aria-colindex can never disagree with the body's.
+  const colOffset = $derived(
+    leadingStructuralColumns({
+      grouped: !!tableState.effectiveGroupBy,
+      selectable,
+      expandable
+    })
+  );
+  const selectionColIndex = $derived((tableState.effectiveGroupBy ? 1 : 0) + 1);
   let multiSelect = $derived(tableState.selectionMode === 'multi');
 
   // Column reorder state
@@ -149,6 +170,7 @@
 
 <thead
   class={resolveSlotClass(headerStyles.header, styleConfig.slotClasses.thead, styleConfig.unstyled)}
+  role={explicitRoles ? 'rowgroup' : undefined}
   {@attach stickyContext.mode.header ? measureToCssVar('--blocks-table-thead-h') : () => {}}
 >
   <tr
@@ -157,12 +179,18 @@
       styleConfig.slotClasses.headerRow,
       styleConfig.unstyled
     )}
+    role={explicitRoles ? 'row' : undefined}
   >
     <!-- Structural header cells (group toggle, select-all, expand spacer) are
          chrome, not columns: they carry the header cell chrome but not
          `slotClasses.headerCell` — see TableSlotClasses.headerCell. -->
     {#if tableState.effectiveGroupBy}
-      <th scope="col" class="{headerStyles.cell()} w-10 text-center">
+      <th
+        scope="col"
+        role={explicitRoles ? 'columnheader' : undefined}
+        aria-colindex={1}
+        class="{headerStyles.cell()} w-10 text-center"
+      >
         <button
           onclick={() => toggleAllGroups()}
           class="text-text-secondary hover:text-text-primary hover:bg-surface-hover rounded-modify flex h-6 w-6 items-center justify-center transition-colors"
@@ -181,7 +209,13 @@
     {/if}
 
     {#if selectable}
-      <th scope="col" class="{headerStyles.cell()} w-12" data-testid="selection-header">
+      <th
+        scope="col"
+        role={explicitRoles ? 'columnheader' : undefined}
+        aria-colindex={selectionColIndex}
+        class="{headerStyles.cell()} w-12"
+        data-testid="selection-header"
+      >
         {#if multiSelect}
           <!-- What the checkbox may claim is decided in headerSelection: in
                server mode it acts on one page of a larger result, so a full
@@ -211,6 +245,9 @@
     {/if}
 
     {#if expandable}
+      <!-- aria-hidden, so no aria-colindex: the header leaves the tree, but
+           the COLUMN still counts — colOffset includes it, so the data cells
+           skip its index rather than closing the gap. -->
       <th scope="col" class="{headerStyles.cell()} w-10 text-center" aria-hidden="true"></th>
     {/if}
 
@@ -242,6 +279,8 @@
 
       <th
         scope="col"
+        role={explicitRoles ? 'columnheader' : undefined}
+        aria-colindex={colOffset + colIdx + 1}
         {@attach makeDraggable(colIdx)}
         style={column.width
           ? `width: ${column.width}; min-width: ${column.minWidth || '4rem'};`

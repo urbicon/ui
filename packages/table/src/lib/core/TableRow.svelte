@@ -12,6 +12,7 @@
   import { tableRowVariants } from '$lib/variants';
   import { getTableStyleConfig, resolveSlotClass } from './table-style-context';
   import { resolveRowClickActions } from './row-interaction';
+  import { leadingStructuralColumns } from './column-offset';
   import TableCell from './TableCell.svelte';
   import { resolveColumnId, resolveRowItemId } from '$lib/utils';
   import type { Column, TableItem } from '$lib/types/tableTypes';
@@ -34,6 +35,11 @@
     // list-wide index — page 2 of 20-per-page starts at 21, not 1. Keyboard
     // navigation (data-row-index) stays page-local on purpose.
     ariaRowStart = 1,
+    // The virtualized branch renders this row inside a presentational <table>
+    // under one role="grid" wrapper; presentation strips the implicit row and
+    // cell roles, so the row re-declares them explicitly there. The standard
+    // branch passes nothing and renders exactly as before.
+    explicitRoles = false,
     expandedRowContent = undefined as Snippet<[item: TableItem]> | undefined,
     cell = undefined as Snippet<[item: TableItem, value: unknown, column: Column]> | undefined,
     onRowClick = undefined as ((item: TableItem) => void) | undefined,
@@ -61,6 +67,19 @@
     if (selectable) count += 1;
     return count;
   });
+
+  // The structural columns before the data columns — what aria-colindex
+  // counts from. Grouped counts even though this row renders no group cell:
+  // the column exists in the grid either way.
+  const colOffset = $derived(
+    leadingStructuralColumns({
+      grouped: !!tableState.effectiveGroupBy,
+      selectable,
+      expandable
+    })
+  );
+  const selectionColIndex = $derived((tableState.effectiveGroupBy ? 1 : 0) + 1);
+  const expandColIndex = $derived(selectionColIndex + (selectable ? 1 : 0));
 
   function handleRowClick(event: MouseEvent) {
     const actions = resolveRowClickActions({
@@ -148,6 +167,7 @@
       .filter(Boolean)
       .join(' ')
   )}
+  role={explicitRoles ? 'row' : undefined}
   tabindex={interactive ? (isFocused ? 0 : -1) : undefined}
   aria-rowindex={ariaRowStart + rowIndex}
   aria-expanded={expandable ? isExpanded : undefined}
@@ -161,7 +181,12 @@
        `slotClasses.cell` — that slot is scoped to data columns; see
        TableSlotClasses.cell. -->
   {#if selectable}
-    <td class="{rowStyles.cell()} w-12" onclick={handleCheckboxClick}>
+    <td
+      class="{rowStyles.cell()} w-12"
+      role={explicitRoles ? 'gridcell' : undefined}
+      aria-colindex={selectionColIndex}
+      onclick={handleCheckboxClick}
+    >
       <div class="flex h-full w-full items-center justify-center">
         <Checkbox
           checked={isRowSelected}
@@ -175,7 +200,11 @@
   {/if}
 
   {#if expandable}
-    <td class="{rowStyles.cell()} w-10">
+    <td
+      class="{rowStyles.cell()} w-10"
+      role={explicitRoles ? 'gridcell' : undefined}
+      aria-colindex={expandColIndex}
+    >
       <div class="flex h-full w-full items-center justify-center px-2 py-2">
         <button
           class="table-expand-button rounded-modify flex h-6 w-6 items-center justify-center transition-transform duration-(--blocks-duration-fast) {isExpanded
@@ -197,7 +226,14 @@
       {column}
       {cell}
       {size}
-      colIndex={colIdx}
+      colIndex={colOffset + colIdx}
+      cellRole={explicitRoles
+        ? interactive
+          ? 'gridcell'
+          : 'cell'
+        : interactive
+          ? 'gridcell'
+          : undefined}
       cellClass={resolveSlotClass(
         rowStyles.cell,
         styleConfig.slotClasses.cell,
@@ -209,8 +245,12 @@
 </tr>
 
 {#if isExpanded && expandedRowContent}
-  <tr data-testid={`expanded-row-${itemId}`} class="border-b-0">
-    <td colspan={totalColumnsCount} class="p-0">
+  <tr
+    data-testid={`expanded-row-${itemId}`}
+    class="border-b-0"
+    role={explicitRoles ? 'row' : undefined}
+  >
+    <td colspan={totalColumnsCount} class="p-0" role={explicitRoles ? 'gridcell' : undefined}>
       <div class="bg-surface-elevated/50 px-6 py-4" transition:slide={{ duration: 150 }}>
         {@render expandedRowContent(item)}
       </div>

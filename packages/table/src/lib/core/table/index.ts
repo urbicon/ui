@@ -540,7 +540,9 @@ export interface TableProps<T = TableItem> {
   /**
    * Enable virtualization for large datasets.
    * When enabled, only visible rows are rendered for performance with >1000 items.
-   * Pagination is bypassed — all filtered/sorted items are virtualized in a scrollable container.
+   * In client mode pagination is bypassed — the scrollable container holds all
+   * filtered/sorted rows. In server mode the pager stays: the container scrolls
+   * the loaded page, and paging remains the way to the rest of the result.
    * Not compatible with grouping — and virtualization wins: the grouping
    * affordances are suppressed, and a grouping arriving through the view
    * (its defaults, a URL, storage) renders ungrouped (DEV warns). The value
@@ -625,7 +627,11 @@ export interface TableProps<T = TableItem> {
   cell?: Snippet<[item: T, value: unknown, column: Column<T>]>;
 
   /**
-   * Custom header snippet
+   * Custom header snippet.
+   * In the virtualized layout the header renders inside a presentational
+   * table under one `role="grid"` wrapper, which strips the implicit table
+   * roles — a custom header there must declare its own `rowgroup`/`row`/
+   * `columnheader` roles explicitly (the built-in head does).
    * @default undefined
    */
   header?: Snippet;
