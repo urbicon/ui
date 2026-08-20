@@ -41,13 +41,22 @@ export interface PageDescriptor {
    * The page a server fetch should ask for. Follows {@link effectivePage} —
    * the query asks for what is displayed, so an out-of-range deep link
    * recovers on the next fetch instead of stranding the reader on an empty
-   * body — EXCEPT before any total is known (`totalItems === 0`), where the
-   * clamp would collapse to 1 and flatten every legitimate `?page=3` link.
-   * Until the first response, the raw intent is the honest request.
+   * body — EXCEPT while `totalItems === 0`, where the clamp would collapse to
+   * 1 and flatten every legitimate `?page=3` link. That guard reads "no total
+   * yet" AND "a known total of zero" the same way: with an out-of-range
+   * intent against an empty result it costs exactly one extra fetch, which
+   * converges (measured, accepted) — while telling the two zeros apart would
+   * need a fourth state for no reader-visible difference.
    */
   fetchPage: number;
   /** Rows actually held right now — what live updates have moved the page to. */
   loadedCount: number;
+  /**
+   * The page size every field above was computed with — the input clamped to
+   * at least 1. Slice with THIS, not the raw view value, so the body and the
+   * counts cannot disagree on what a page is.
+   */
+  pageSize: number;
   /** 1-based absolute index of the first rendered row; 1 wherever paging is suspended. */
   rangeStart: number;
   /** Whether the pager renders. The rule: hide it only when there is genuinely nothing to page. */
@@ -68,6 +77,14 @@ export function resolvePageDescriptor(input: PageDescriptorInput): PageDescripto
   const serverProcessed = input.mode !== 'client';
   const managed = input.mode === 'server-managed';
 
+  // A page size of 0 (or less) is representable — `viewDefaults={{ pageSize: 0 }}`
+  // arrives here unguarded, like the page-0 seed the effectivePage clamp
+  // already covers. Unclamped it turns totalPages into Infinity, and with it
+  // the effectivePage clamp into a no-op. NaN and Infinity are representable
+  // the same way and would poison every derived number (NaN) or send a
+  // managed query to page 0 (Infinity), so anything non-finite falls to 1.
+  const pageSize = Number.isFinite(input.pageSize) ? Math.max(1, input.pageSize) : 1;
+
   const totalItems = serverProcessed ? input.serverTotal : input.filteredCount;
 
   // Grouping suspends paging in CLIENT mode only, where every row is already
@@ -80,7 +97,7 @@ export function resolvePageDescriptor(input: PageDescriptorInput): PageDescripto
   const groupingSuspendsPaging = input.grouped && !serverProcessed;
 
   const totalPages =
-    groupingSuspendsPaging || totalItems === 0 ? 1 : Math.ceil(totalItems / input.pageSize);
+    groupingSuspendsPaging || totalItems === 0 ? 1 : Math.ceil(totalItems / pageSize);
 
   // `rawPage` is written by pagination, search, filtering and grouping — none
   // of which can know whether the page still exists after the page size or
@@ -96,7 +113,7 @@ export function resolvePageDescriptor(input: PageDescriptorInput): PageDescripto
   // (remaining) list, so their first row is absolutely row 1. Everywhere else
   // the rendered rows are a page slice and the range starts where the slice does.
   const pagingSuspended = !serverProcessed && (input.grouped || input.virtualized);
-  const rangeStart = pagingSuspended ? 1 : (effectivePage - 1) * input.pageSize + 1;
+  const rangeStart = pagingSuspended ? 1 : (effectivePage - 1) * pageSize + 1;
 
   return {
     mode: input.mode,
@@ -107,6 +124,7 @@ export function resolvePageDescriptor(input: PageDescriptorInput): PageDescripto
     effectivePage,
     fetchPage,
     loadedCount: input.loadedCount,
+    pageSize,
     rangeStart,
     showPager: resolveShowPager(input, serverProcessed)
   };

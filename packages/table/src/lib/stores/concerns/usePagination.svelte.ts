@@ -47,8 +47,8 @@ export function usePagination(
     if (state.effectiveGroupBy) return items;
 
     return items.slice(
-      (descriptor.effectivePage - 1) * view.pageSize,
-      descriptor.effectivePage * view.pageSize
+      (descriptor.effectivePage - 1) * descriptor.pageSize,
+      descriptor.effectivePage * descriptor.pageSize
     );
   });
 

@@ -1,6 +1,7 @@
 import { afterAll, beforeAll, describe, expect, it, vi } from 'vitest';
 import type { TableItem } from '$lib';
 import type { TableSource } from '$lib/view/source';
+import { createTableView } from '$lib/view/view.svelte';
 import type { TableState } from './concerns/types';
 import { createTableState, type TablePropSources } from './TableStore.svelte';
 
@@ -223,6 +224,83 @@ describe('TableStore — the source union feeds the derived slots', () => {
     });
     expect(store.state.mode).toBe('server-manual');
     expect(Object.getOwnPropertyDescriptor(store.state, 'mode')?.set).toBeUndefined();
+  });
+
+  it('a manual server source without `loading` is not loading — only the managed arm seeds true', () => {
+    // Guards the seed ternary staying narrow: widening it to `!== 'client'`
+    // would make every manual server table claim "loading" it never reported.
+    const store = createTableState(undefined, undefined, {
+      source: () => ({ processing: 'server' as const, items: ITEMS, total: 500 })
+    });
+    expect(store.state.loading).toBe(false);
+  });
+
+  it('an arm flip re-seeds loading: managed → client → managed', () => {
+    let value = $state<TableSource>({
+      processing: 'server',
+      query: async () => ({ items: [], total: 0 })
+    });
+    const store = createTableState(undefined, undefined, { source: () => value });
+    expect(store.state.loading).toBe(true);
+
+    value = { processing: 'client', items: ITEMS };
+    expect(store.state.loading).toBe(false);
+
+    value = { processing: 'server', query: async () => ({ items: [], total: 0 }) };
+    expect(store.state.loading).toBe(true);
+  });
+
+  it('a server error does not survive an arm flip to client', () => {
+    // Both arms seed error as null, so value equality alone would never
+    // invalidate the override — the mode is a tracked input of the seed.
+    let value = $state<TableSource>({
+      processing: 'server',
+      query: async () => ({ items: [], total: 0 })
+    });
+    const store = createTableState(undefined, undefined, { source: () => value });
+    store.setServerError('boom');
+    expect(store.state.error).toBe('boom');
+
+    value = { processing: 'client', items: ITEMS };
+    expect(store.state.error).toBeNull();
+  });
+
+  it('a fetched serverTotal does not survive a flip away and back — no stale clamp on return', () => {
+    let value = $state<TableSource>({
+      processing: 'server',
+      query: async () => ({ items: [], total: 0 })
+    });
+    const view = createTableView();
+    view.applyExternal({ page: 99 }, 'external');
+    const store = createTableState(view, undefined, { source: () => value });
+    store.setServerResult({ items: [], total: 2 });
+    expect(store.state.serverTotal).toBe(2);
+
+    value = { processing: 'client', items: ITEMS };
+    expect(store.state.serverTotal).toBe(0);
+
+    value = { processing: 'server', query: async () => ({ items: [], total: 0 }) };
+    expect(store.state.serverTotal).toBe(0);
+    // Until the fresh arm's first response the deep-link intent must reach
+    // the fetch unclamped — the stale total of 2 would collapse page 99 to 1.
+    expect(store.pageInfo.fetchPage).toBe(99);
+  });
+
+  it('a fresh, value-identical source literal leaves a settled override standing', () => {
+    // The #153-R1 hardening, now shared with the mode input: a parent
+    // re-render hands in a new literal every time, and the settled
+    // loading=false / fetched total must not flip back to the seeds.
+    let value = $state<TableSource>({
+      processing: 'server',
+      query: async () => ({ items: [], total: 0 })
+    });
+    const store = createTableState(undefined, undefined, { source: () => value });
+    store.setServerResult({ items: ITEMS, total: 2 });
+    expect(store.state.loading).toBe(false);
+
+    value = { processing: 'server', query: async () => ({ items: [], total: 0 }) };
+    expect(store.state.loading).toBe(false);
+    expect(store.state.serverTotal).toBe(2);
   });
 });
 

@@ -218,6 +218,75 @@ describe('resolvePageDescriptor', () => {
     });
   });
 
+  describe('pageSize guard', () => {
+    it('clamps a zero (or negative) page size instead of dividing by it', () => {
+      // Representable via `viewDefaults={{ pageSize: 0 }}` — unguarded this
+      // made totalPages Infinity and the effectivePage clamp a no-op.
+      const d = resolvePageDescriptor({ ...base, filteredCount: 100, pageSize: 0, rawPage: 7 });
+      expect(d.pageSize).toBe(1);
+      expect(d.totalPages).toBe(100);
+      expect(d.effectivePage).toBe(7);
+      expect(Number.isFinite(d.totalPages)).toBe(true);
+    });
+
+    it('falls to 1 for NaN instead of poisoning every derived number', () => {
+      const d = resolvePageDescriptor({ ...base, filteredCount: 100, pageSize: NaN, rawPage: 7 });
+      expect(d.pageSize).toBe(1);
+      expect(d.totalPages).toBe(100);
+      expect(d.effectivePage).toBe(7);
+      expect(d.fetchPage).toBeGreaterThanOrEqual(1);
+    });
+
+    it('falls to 1 for Infinity instead of asking a managed query for page 0', () => {
+      const d = resolvePageDescriptor({
+        ...base,
+        mode: 'server-managed',
+        serverTotal: 400,
+        pageSize: Number.POSITIVE_INFINITY,
+        rawPage: 7
+      });
+      expect(d.pageSize).toBe(1);
+      expect(d.totalPages).toBe(400);
+      expect(d.fetchPage).toBeGreaterThanOrEqual(1);
+      expect(d.rangeStart).toBeGreaterThanOrEqual(1);
+    });
+  });
+
+  it('fetchPage behaves the same on the manual arm', () => {
+    expect(
+      resolvePageDescriptor({ ...base, mode: 'server-manual', serverTotal: 400, rawPage: 99 })
+        .fetchPage
+    ).toBe(20);
+    expect(
+      resolvePageDescriptor({ ...base, mode: 'server-manual', serverTotal: 0, rawPage: 3 })
+        .fetchPage
+    ).toBe(3);
+  });
+
+  it('rangeStart stays page-absolute where the server pages, virtualized or grouped', () => {
+    // Server mode always pages — virtualization and grouping only suspend
+    // paging where the whole list is in hand (client mode).
+    expect(
+      resolvePageDescriptor({
+        ...base,
+        mode: 'server-manual',
+        serverTotal: 400,
+        virtualized: true,
+        rawPage: 2
+      }).rangeStart
+    ).toBe(21);
+    expect(
+      resolvePageDescriptor({
+        ...base,
+        mode: 'server-managed',
+        serverTotal: 400,
+        grouped: true,
+        virtualized: true,
+        rawPage: 3
+      }).rangeStart
+    ).toBe(41);
+  });
+
   it('passes the loaded count through for range honesty under live updates', () => {
     expect(
       resolvePageDescriptor({ ...base, mode: 'server-manual', serverTotal: 400, loadedCount: 23 })

@@ -233,6 +233,19 @@ describe('Table — server render of a managed server source', () => {
 
     expect(body).toContain('data-testid="loading-state"');
   });
+
+  it('a manual server source without `loading` renders the empty state, never loading', () => {
+    // The loading seed is the MANAGED arm's: it will fetch, unavoidably. The
+    // manual arm's consumer owns the fetch and said nothing about loading —
+    // an empty result is an empty result.
+    const body = bodyOf({
+      items: undefined,
+      source: { processing: 'server', items: [], total: 0 }
+    });
+
+    expect(body).toContain('data-testid="empty-state"');
+    expect(body).not.toContain('data-testid="loading-state"');
+  });
 });
 
 // Deleted here: "renders every column, because storage does not exist here".
