@@ -201,6 +201,8 @@ An `$effect` that only exists to decorate or measure an element — `bind:this`,
 
 Deriveds have been **overridable since 5.25** ([docs](https://svelte.dev/docs/svelte/$derived#Overriding-derived-values)), which is what makes them work even where a second writer exists. Assigning to a derived holds until one of its dependencies changes — then it re-seeds. That is exactly the semantics of "the prop seeds it, local interaction then owns it".
 
+**That lifetime only exists under client codegen.** Measured in a controlled matrix (2026-08-20, Svelte 5.56.10 — [sveltejs/svelte#18681](https://github.com/sveltejs/svelte/issues/18681), repro linked there): under **server codegen** a reassigned derived is never evaluated again — the override survives every dependency change, permanently. Client codegen honours the documented discard in every context (owned and unowned, flat and chained; the per-read re-evaluation of [#15934](https://github.com/sveltejs/svelte/issues/15934)/[#15414](https://github.com/sveltejs/svelte/issues/15414) does not break it). The sharp edges: a universal `.svelte.ts` store silently has *two override semantics* — client vs. SSR — and test setups fall into the server world unnoticed (Vitest `environment: 'node'` = server codegen; jsdom **without** `resolve.conditions: ['browser']` = client codegen but the server `svelte` entry, where `flushSync` and `$effect.root` are silent no-ops). **Rule:** a store that also runs under server codegen (anything that SSRs, or is tested in node) must not rely on the built-in discard for an override lifetime — especially when two states seed the *same value*, where value-based invalidation has nothing to discard on. Make the lifetime explicit instead: memoise a seed box per (epoch, seed-value) episode in a plain closure and bind the override to the box identity with `$state.raw` — see the role model below, whose comments record the two measured traps (deep `$state` proxies the box so identity comparison always fails; an unmemoised box derived dies per unowned read).
+
 **1. Plain mirror — no other writer:**
 
 ```svelte
@@ -330,4 +332,5 @@ rg "\(\s*i\s*\)\s*\}" packages/ -t svelte
 | Generic component                                                         | `packages/blocks/src/lib/primitives/Combobox/Combobox.svelte`             |
 | Attachment factory instead of `bind:this` + `$effect`                     | `packages/blocks/src/lib/mint/svelte.ts` (`mintAttachment`)              |
 | `createSubscriber` for an external event source                           | `packages/docs/src/lib/stores/scroll-spy.svelte.ts`                       |
+| Explicit override lifetime for a server-writable slot (owned/unowned/SSR-consistent) | `packages/table/src/lib/stores/TableStore.svelte.ts` (`createServerSlot`) |
 | `$props.id()` two-step pattern                                           | every primitive with an `id` prop (e.g. `Checkbox`, `RadioItem`, `FormField`) |

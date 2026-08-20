@@ -153,12 +153,12 @@ const NO_SOURCE: TableSource = { processing: 'client', items: NO_ITEMS };
  * (both are primitive intermediate deriveds), so a settled override survives
  * parent re-renders (#153-R1).
  *
- * Deliberately NOT an overridable `$derived`: measured 2026-08-20, the
- * built-in discard of a derived's override on dependency change is not
- * reliable unowned — it varies with runtime environment and graph shape
- * (observed both surviving and discarded for the same sequence). The store
- * must behave the same mounted, unowned and in SSR, so the lifetime rule
- * lives here, in plain state.
+ * Deliberately NOT an overridable `$derived`: measured 2026-08-20 (Svelte
+ * 5.56.x, sveltejs/svelte#18681) — under server codegen a reassigned derived
+ * is never evaluated again, so the built-in discard on dependency change
+ * exists only in the client build. This store runs under both (SSR, node
+ * tests) and must behave the same everywhere, so the lifetime rule lives
+ * here, in plain state.
  */
 function createServerSlot<T>(seed: () => T, epoch: () => unknown) {
   // The box is the override's validity token: one object identity per
