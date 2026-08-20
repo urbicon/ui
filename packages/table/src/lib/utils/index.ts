@@ -171,54 +171,30 @@ export function formatCellValue<T extends TableItem>(
 }
 
 /**
- * Groups items by a column-id, routing the lookup through {@link resolveValueById}
- * so that function-accessor columns aggregate the computed value (not the
- * non-existent property of the same name). Returns `{ ungrouped: items }`
- * when no group id is provided.
- */
-export function groupItems<T extends TableItem>(
-  items: T[],
-  columns: ReadonlyArray<Column<T>>,
-  groupByKey: string | null
-): Record<string, T[]> {
-  if (!groupByKey) return { ungrouped: items };
-
-  const grouped: Record<string, T[]> = {};
-
-  for (const item of items) {
-    const groupValue = resolveValueById(columns, item, groupByKey);
-    const groupKey =
-      groupValue !== undefined && groupValue !== null ? String(groupValue) : 'Unassigned';
-
-    if (!grouped[groupKey]) {
-      grouped[groupKey] = [];
-    }
-
-    grouped[groupKey].push(item);
-  }
-
-  return grouped;
-}
-
-/**
- * Normalizes items for table consumption. Items without an `id` property
- * get an `__index` assigned as stable fallback key.
+ * Normalizes items for table consumption. Items without a usable `id` — any
+ * value that is not a string or number, `null` included — get an `__index`
+ * assigned as stable fallback key. The guard must match what
+ * {@link resolveRowItemId} accepts, or an unusable `id` slips through
+ * unstamped and every such row resolves to the same `-1` — a duplicate
+ * `{#each}` key, which throws.
  */
 export function normalizeItems<T extends TableItem>(items: T[]): T[] {
-  return items.map((item, i) => (item.id !== undefined ? item : ({ ...item, __index: i } as T)));
+  return items.map((item, i) =>
+    typeof item.id === 'string' || typeof item.id === 'number'
+      ? item
+      : ({ ...item, __index: i } as T)
+  );
 }
 
 /**
- * Resolves the ID of an item
+ * Resolves the identity a row is keyed, selected, expanded and activated by:
+ * `id` when the item carries one, else the list-wide `__index` stamped by
+ * {@link normalizeItems}. `-1` only for items that never passed normalization
+ * — every store-owned list does.
  */
-export function getItemId(item: TableItem | null | undefined): number | string {
-  if (!item) return -1;
-
-  if (item.id !== undefined) return item.id as number | string;
-  if (item.ID !== undefined) return item.ID as number | string;
-  if (item._id !== undefined) return item._id as number | string;
-
-  return -1;
+export function resolveRowItemId(item: TableItem): string | number {
+  const candidate = item.id ?? item.__index;
+  return typeof candidate === 'string' || typeof candidate === 'number' ? candidate : -1;
 }
 
 /**
@@ -307,33 +283,6 @@ export function normalizeSummaryConfigs(configs: SummaryConfig[]): SummaryConfig
   const byColumn = new Map<string, SummaryConfig>();
   for (const config of configs) byColumn.set(config.column, config);
   return [...byColumn.values()];
-}
-
-/**
- * Tests whether a single item value matches a filter condition.
- */
-export function matchesFilter(itemValue: string, filterValue: string, operator: string): boolean {
-  const value = itemValue.toLowerCase();
-  const filter = filterValue.toLowerCase();
-
-  switch (operator) {
-    case 'contains':
-      return value.includes(filter);
-    case 'equals':
-      return value === filter;
-    case 'startsWith':
-      return value.startsWith(filter);
-    case 'endsWith':
-      return value.endsWith(filter);
-    case 'greaterThan':
-      return Number(value) > Number(filter);
-    case 'lessThan':
-      return Number(value) < Number(filter);
-    default:
-      if (import.meta.env?.DEV)
-        console.warn(`[Table] Unknown filter operator "${operator}" — row excluded.`);
-      return false;
-  }
 }
 
 /**

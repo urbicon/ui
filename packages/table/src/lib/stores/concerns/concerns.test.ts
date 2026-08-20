@@ -347,7 +347,7 @@ describe('useFiltering', () => {
 // for `dataType: 'date'` columns, with an `<input type="date">` that emits
 // `YYYY-MM-DD`. Before the date path existed, `Number('2021-03-15')` was NaN and
 // every such comparison was silently false. These tests pin both paths.
-describe('useFiltering — greaterThan / lessThan', () => {
+describe('useFiltering — operator semantics', () => {
   type Row = { id: number; amount: number; iso: string; when: Date; label: string };
 
   const items: Row[] = [
@@ -396,6 +396,13 @@ describe('useFiltering — greaterThan / lessThan', () => {
   it('numeric comparison is unchanged', () => {
     expect(filterIds([{ column: 'amount', operator: 'greaterThan', value: '15' }])).toEqual([2, 3]);
     expect(filterIds([{ column: 'amount', operator: 'lessThan', value: '30' }])).toEqual([1, 2]);
+  });
+
+  it('startsWith / endsWith match on the lowercased string value', () => {
+    // The only pins on these two operators — the dead `matchesFilter` twin
+    // carried the previous ones, and the live switch never had its own.
+    expect(filterIds([{ column: 'label', operator: 'startsWith', value: 'GA' }])).toEqual([3]);
+    expect(filterIds([{ column: 'label', operator: 'endsWith', value: 'TA' }])).toEqual([2]);
   });
 
   it('compares ISO date strings with after/before', () => {

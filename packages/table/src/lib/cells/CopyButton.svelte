@@ -10,6 +10,7 @@
   const CopyIcon = resolveIcon('copy', CopyIconDefault);
   import { useTableI18n } from '../i18n';
   import { type CopyButtonVariantProps, copyButtonVariants } from '$lib/variants';
+  import { getNestedValue } from '$lib/utils';
 
   const tt = useTableI18n();
 
@@ -37,7 +38,7 @@
   let failed = $state(false);
 
   // Reactive value extraction
-  const value = $derived(item[valueKey] || '');
+  const value = $derived(getNestedValue(item, String(valueKey)) || '');
 
   // Tailwind-Variants styling
   const styles = $derived(copyButtonVariants({ size, responsive }));

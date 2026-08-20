@@ -3,6 +3,7 @@
   import type { BadgeProps } from '@urbicon-ui/blocks';
   import { useTableI18n } from '$lib/i18n';
   import { customCellVariants, type CustomCellVariantProps } from '$lib/variants';
+  import { getNestedValue } from '$lib/utils';
 
   const tt = useTableI18n();
 
@@ -56,7 +57,7 @@
   }: StatusBadgeProps<Item> = $props();
 
   const mergedStatusMap = $derived({ ...defaultStatusMap, ...statusMap });
-  const statusValue = $derived(String(item[statusKey]) || 'default');
+  const statusValue = $derived(String(getNestedValue(item, String(statusKey))) || 'default');
   const fallbackConfig: StatusConfig = $derived({
     ...staticFallbackConfig,
     text: tt('status.unknown')

@@ -1,4 +1,5 @@
 import type { TableItem } from '$lib/types/tableTypes';
+import { normalizeItems } from '$lib/utils';
 import type { TableState } from './types';
 
 /**
@@ -18,7 +19,11 @@ export function useRemoteData(state: TableState) {
    * Called by the managed fetch when `source.query` resolves.
    */
   function setServerResult(result: { items: TableItem[]; total: number }) {
-    state.items = result.items;
+    // Every other items write path stamps `__index` (TableStore's derived
+    // normalization, useLiveUpdates). Skipping it here left id-less remote
+    // rows without an identity: they collapsed onto one selection/expand
+    // slot, and grouped rendering threw on the duplicate key.
+    state.items = normalizeItems(result.items);
     state.serverTotal = result.total;
     state.loading = false;
     state.error = null;

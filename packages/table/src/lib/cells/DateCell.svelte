@@ -1,6 +1,7 @@
 <script lang="ts" generics="Item">
   import { resolveDateLocale, useI18n } from '@urbicon-ui/i18n';
   import { dateCellVariants, type DateCellVariantProps } from '$lib/variants';
+  import { getNestedValue } from '$lib/utils';
 
   export type DateCellProps<Item> = {
     item: Item;
@@ -52,7 +53,7 @@
   const extractDate = (item: Item, key?: keyof Item): Date | null => {
     if (!key) return null;
 
-    const value = item[key];
+    const value = getNestedValue(item, String(key));
     if (!value) return null;
 
     if (value instanceof Date) return value;

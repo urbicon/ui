@@ -4,7 +4,6 @@ import {
   findColumnById,
   formatCellValue,
   getNestedValue,
-  groupItems,
   normalizeItems,
   normalizeSummaryConfigs,
   resolveColumnLabel,
@@ -161,37 +160,6 @@ describe('formatCellValue', () => {
   });
 });
 
-describe('groupItems', () => {
-  type Row = { id: number; status?: string; name: string };
-  const items: Row[] = [
-    { id: 1, status: 'active', name: 'A' },
-    { id: 2, status: 'inactive', name: 'B' },
-    { id: 3, status: 'active', name: 'C' }
-  ];
-  const columns: Column<Row>[] = [{ accessor: 'status', title: 'Status' }];
-
-  it('returns all items under "ungrouped" when key is null', () => {
-    const result = groupItems(items, columns, null);
-    expect(result).toHaveProperty('ungrouped');
-    expect(result.ungrouped).toHaveLength(3);
-  });
-
-  it('groups items by a given column id', () => {
-    const result = groupItems(items, columns, 'status');
-    expect(Object.keys(result)).toContain('active');
-    expect(Object.keys(result)).toContain('inactive');
-    expect(result.active).toHaveLength(2);
-    expect(result.inactive).toHaveLength(1);
-  });
-
-  it('assigns "Unassigned" for items with undefined group value', () => {
-    const itemsWithMissing: Row[] = [...items, { id: 4, name: 'D' }];
-    const result = groupItems(itemsWithMissing, columns, 'status');
-    expect(result.Unassigned).toHaveLength(1);
-    expect(result.Unassigned[0].name).toBe('D');
-  });
-});
-
 describe('normalizeItems', () => {
   it('preserves items that already have an id', () => {
     const items = [
@@ -202,6 +170,19 @@ describe('normalizeItems', () => {
     expect(result[0]).toBe(items[0]);
     expect(result[1]).toBe(items[1]);
     expect(result[0]).not.toHaveProperty('__index');
+  });
+
+  it('stamps __index for id: null — an unusable id must not slip through', () => {
+    // `id: null` is type-legal (TableItem is Record<string, unknown>) and used
+    // to pass the old `id !== undefined` guard unstamped, so every such row
+    // resolved to `-1`: one shared identity, and a duplicate `{#each}` key.
+    const items = [
+      { id: null, name: 'Alice' },
+      { id: null, name: 'Bob' }
+    ];
+    const result = normalizeItems(items);
+    expect((result[0] as unknown as { __index: number }).__index).toBe(0);
+    expect((result[1] as unknown as { __index: number }).__index).toBe(1);
   });
 
   it('adds __index to items without id', () => {
