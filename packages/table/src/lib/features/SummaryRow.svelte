@@ -49,15 +49,15 @@
     )}
     data-testid={groupName ? `summary-row-${groupName}` : 'summary-row-total'}
   >
-    <!-- Spacer cells mirror the data rows (selection → group indent → expand):
-         every column slot needs a cell, or the whole row shifts and the
-         row background stops short of the missing slot. -->
-    {#if selectable}
-      <td class="{summaryStyles.cell()} w-12" aria-hidden="true"></td>
-    {/if}
-
+    <!-- Spacer cells mirror the data rows (group indent → selection → expand,
+         the head's order): every column slot needs a cell, or the whole row
+         shifts and the row background stops short of the missing slot. -->
     {#if tableState.effectiveGroupBy}
       <td class="{summaryStyles.cell()} w-10" aria-hidden="true"></td>
+    {/if}
+
+    {#if selectable}
+      <td class="{summaryStyles.cell()} w-12" aria-hidden="true"></td>
     {/if}
 
     {#if expandable}

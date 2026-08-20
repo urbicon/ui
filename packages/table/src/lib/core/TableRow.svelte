@@ -43,7 +43,12 @@
     expandedRowContent = undefined as Snippet<[item: TableItem]> | undefined,
     cell = undefined as Snippet<[item: TableItem, value: unknown, column: Column]> | undefined,
     onRowClick = undefined as ((item: TableItem) => void) | undefined,
-    size = 'md' as const
+    size = 'md' as const,
+    // Grouped rows render through this component too (GroupedRow keeps only
+    // the group header). Their historical test ids differ from the flat rows'
+    // — these two props keep every existing selector stable.
+    testId = undefined as string | undefined,
+    cellTestIdPrefix = 'cell'
   } = $props();
 
   let isFocused = $derived(tableContext.isFocusedRow(rowIndex));
@@ -175,11 +180,20 @@
   aria-current={isActiveRow ? 'true' : undefined}
   data-row-index={rowIndex}
   data-active={isActiveRow ? '' : undefined}
-  data-testid={`table-row-${itemId}`}
+  data-testid={testId ?? `table-row-${itemId}`}
 >
-  <!-- Structural cells (selection, expand) carry the row's cell chrome but not
-       `slotClasses.cell` — that slot is scoped to data columns; see
-       TableSlotClasses.cell. -->
+  <!-- Structural cells (group indent, selection, expand) carry the row's cell
+       chrome but not `slotClasses.cell` — that slot is scoped to data columns;
+       see TableSlotClasses.cell. Their order mirrors TableHead exactly: group,
+       selection, expand — GroupedRow used to render its own copy with
+       selection first, which put every checkbox under the header's group
+       column. -->
+  {#if tableState.effectiveGroupBy}
+    <!-- aria-hidden like the head's expand spacer, so no aria-colindex: the
+         column exists (colOffset counts it), the cell just isn't content. -->
+    <td class={rowStyles.cell()} aria-hidden="true"></td>
+  {/if}
+
   {#if selectable}
     <td
       class="{rowStyles.cell()} w-12"
@@ -239,7 +253,7 @@
         styleConfig.slotClasses.cell,
         styleConfig.unstyled
       )}
-      testIdPrefix="cell"
+      testIdPrefix={cellTestIdPrefix}
     />
   {/each}
 </tr>

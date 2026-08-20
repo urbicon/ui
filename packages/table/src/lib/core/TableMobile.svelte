@@ -2,7 +2,7 @@
   import { getInternalTableContext } from '$lib/stores/TableStore.svelte';
   import { useTableI18n } from '$lib/i18n';
   import MobileCard from './MobileCard.svelte';
-  import { resolveColumnId } from '$lib/utils';
+  import { resolveColumnId, resolveRowItemId } from '$lib/utils';
   import { mobileListVariants } from '$lib/variants';
   import { getTableStyleConfig, resolveSlotClass } from './table-style-context';
   import { groupCountText } from './group-count';
@@ -42,6 +42,10 @@
   const tableContext = getInternalTableContext();
   const { state: tableState } = tableContext;
   const filteredItems = $derived(tableContext.filteredItems);
+  // The cards page even where the desktop virtualizes: rendering the full
+  // list here is O(n) DOM on every viewport (this layout is always mounted —
+  // CSS owns the switch), so the page slice stays and the shared pager
+  // renders mobile-only in that case (see the page descriptor's pagerScope).
   const paginatedItems = $derived(tableContext.paginatedItems);
   const grouped = $derived(tableContext.grouped);
   // `$derived`, not destructured off the context: every other field here is
@@ -109,7 +113,11 @@
     here — so this is a structural split, not a missing feature. `emptyState` used
     to be rendered here anyway; that was the odd one out, not the rule.
   -->
-  {#if tableState.loading}
+  <!-- Loading text only while there is nothing to show yet: on a later fetch
+       the cards stay put and the shared pager goes inert — unlike the desktop
+       rows, which still blank during every fetch; the cards are the better
+       half here. Unmounting every card on each page turn made the list jump. -->
+  {#if tableState.loading && filteredItems.length === 0}
     <div class={listStyles.state()} role="status" data-testid="loading-state-mobile">
       {loadingText}
     </div>
@@ -131,7 +139,9 @@
             {groupCountText(groupItems.length, tableState.mode, tt)}
           </span>
         </h3>
-        {#each groupItems as item, i (item.id ?? i)}
+        <!-- Same identity rule as every renderer — a loop-local key collided
+             across groups for id-less rows (see GroupedRow). -->
+        {#each groupItems as item (resolveRowItemId(item))}
           <MobileCard
             {item}
             {expandable}
@@ -154,7 +164,7 @@
       </div>
     {/each}
   {:else}
-    {#each Array.isArray(paginatedItems) ? paginatedItems : [] as item, i (item.id ?? i)}
+    {#each paginatedItems as item (resolveRowItemId(item))}
       <MobileCard
         {item}
         {expandable}

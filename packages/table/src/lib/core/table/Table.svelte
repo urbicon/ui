@@ -316,18 +316,24 @@
       <!-- The rule and its reasoning live in the page descriptor — as a pure
            function because the inline version was unreadable and untestable,
            and #159 was one of its clauses being wrong. -->
-      {#if tableContext.pageInfo.showPager}
+      {#if tableContext.pageInfo.showPager || tableContext.pageInfo.pagerScope === 'mobile-only'}
         <!-- inert while loading, never unmounted: with a managed source every
              view change fetches and every fetch reports loading, so removing
              the nav made the content jump ~300 ms after each "next" click and
              the second click landed on nothing. inert keeps geometry and
-             focus order; the controls just go dead until the page arrives. -->
+             focus order; the controls just go dead until the page arrives.
+
+             'mobile-only' is client-side virtualization: the desktop scroll
+             container holds the whole list, but the cards have no window
+             renderer and keep paging — so the pager renders, scoped to the
+             mobile layout by the same CSS that owns the layout switch. -->
         <div
           inert={tableState.loading || undefined}
           class={[
             'transition-opacity',
             tableState.loading && 'opacity-50',
-            contained && 'md:shrink-0'
+            contained && 'md:shrink-0',
+            tableContext.pageInfo.pagerScope === 'mobile-only' && tableStyles.mobileOnly()
           ]
             .filter(Boolean)
             .join(' ')}
