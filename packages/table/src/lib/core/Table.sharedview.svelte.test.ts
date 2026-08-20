@@ -185,52 +185,47 @@ describe('two tables, one view — unmounting one', () => {
 });
 
 describe('two tables, one view — where the sharing bites', () => {
-  it('KNOWN-LIMIT: a virtualized table discards the grouping of a sibling it mounts next to', () => {
-    // The virtualized × grouping discard is a `system` write onto the VIEW
-    // (TableProvider), because that is what lets a URL binding clean the param
-    // and a storage binding keep the reader's wish. On a shared view the write
-    // is not scoped to the table that made it: the un-virtualized sibling
-    // loses the grouping it can perfectly well render.
-    //
-    // Pinned as a limit, not fixed: the fix is either a per-table discard
-    // (which would re-introduce the view/render divergence #157 removed) or
-    // refusing a shared view on a virtualized table. Give the virtualized
-    // table its own view until that is decided.
+  it('a virtualized table joining a view leaves the sibling grouping standing', () => {
+    // The read gate is per table: the virtualized joiner renders ungrouped
+    // for itself, and nothing writes the value away — the un-virtualized
+    // sibling keeps the grouping it can perfectly well render. (This was a
+    // KNOWN-LIMIT while the provider discarded the value as a `system`
+    // write; dropping the discard dissolved the limit.)
     const view = createTableView();
     const plain = mountTable({ view });
 
     // Control first, in the same test: alone, the grouping stands — so the
-    // discard below cannot be "setGroupBy never worked".
+    // assertions below cannot be "setGroupBy never worked".
     plain.ctx.setGroupBy('name');
     flushSync();
     expect(view.groupBy).toBe('name');
     expect(plain.ctx.state.effectiveGroupBy).toBe('name');
 
-    mountTable({ view, virtualized: true });
+    const virt = mountTable({ view, virtualized: true });
     flushSync();
 
-    expect(view.groupBy).toBeNull();
-    expect(view.originOf('groupBy').origin).toBe('system');
-    expect(plain.ctx.state.effectiveGroupBy).toBeNull();
+    expect(view.groupBy).toBe('name');
+    expect(view.originOf('groupBy').origin).toBe('user');
+    expect(plain.ctx.state.effectiveGroupBy).toBe('name');
+    expect(virt.ctx.state.effectiveGroupBy).toBeNull();
   });
 
-  it('KNOWN-LIMIT: a mounted virtualized table reverts a sibling grouping made later', () => {
-    // The runtime half of the same discard, and the sharper one: the reader
-    // groups in the un-virtualized table, the table accepts it (its own gate
-    // is open), and the virtualized sibling's effect takes it back in the same
-    // flush. The reader sees a grouping control that does nothing.
+  it('a grouping made later applies to the sibling and stays off the virtualized table', () => {
+    // The runtime half: the reader groups in the un-virtualized table while
+    // a virtualized sibling shares the view. The sibling renders ungrouped
+    // for itself; the reader's control keeps working everywhere else.
     const view = createTableView();
     const plain = mountTable({ view });
     const control = plain.ctx.setGroupBy;
-    mountTable({ view, virtualized: true });
+    const virt = mountTable({ view, virtualized: true });
     flushSync();
 
     control('name');
     flushSync();
 
-    expect(view.groupBy).toBeNull();
-    expect(view.originOf('groupBy').origin).toBe('system');
-    expect(plain.ctx.state.effectiveGroupBy).toBeNull();
+    expect(view.groupBy).toBe('name');
+    expect(plain.ctx.state.effectiveGroupBy).toBe('name');
+    expect(virt.ctx.state.effectiveGroupBy).toBeNull();
   });
 
   it('KNOWN-LIMIT: a managed source on both tables fetches twice per interaction', async () => {

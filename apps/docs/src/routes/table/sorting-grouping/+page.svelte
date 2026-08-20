@@ -114,7 +114,7 @@
           >virtualized</a
         >
         table never groups: the menu entry goes, and a grouping arriving from the view defaults, a URL
-        or storage is discarded.
+        or storage renders ungrouped — the value itself stays on the view.
       </p>
 
       <CodeExample

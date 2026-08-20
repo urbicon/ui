@@ -11,11 +11,10 @@ import type { TableContext } from './table/index';
  * pinned against the real component tree (`Table.render.svelte.test.ts` is
  * the model; this file covers the wiring the render suite does not):
  *
- * - virtualization × grouping, both halves: a grouping the view *arrives*
- *   with is discarded at construction, one arriving later through a binding's
- *   `applyExternal` is discarded at runtime — both as `system` writes, so
- *   the URL binding may clean the param while the storage binding keeps the
- *   discard out of storage,
+ * - virtualization × grouping, both arrival paths: a grouping the view
+ *   *arrives* with and one arriving later through a binding's
+ *   `applyExternal` both stay on the view — only the rendering ignores
+ *   them (the read gate), and DEV reports the mismatch,
  * - the store's read gate and setter gate agreeing on the same overridable
  *   `virtualized` slot (the adversarial review's gate-divergence finding),
  * - live updates buffering until the next navigation (`autoApplyOnNavigation`
@@ -60,7 +59,7 @@ let warn: ReturnType<typeof vi.spyOn>;
 
 beforeEach(() => {
   Object.defineProperty(window, 'localStorage', { value: memoryStorage(), configurable: true });
-  // The discard warns in DEV (vitest runs DEV) — spied so the suite's output
+  // The virtualized-grouping report warns in DEV (vitest runs DEV) — spied so the suite's output
   // stays clean and the warning itself is assertable.
   warn = vi.spyOn(console, 'warn').mockImplementation(() => {});
 });
@@ -73,32 +72,48 @@ afterEach(() => {
   warn.mockRestore();
 });
 
-describe('virtualization × grouping — the system discard', () => {
-  it('discards a grouping the view arrives with at construction, as a system decision', () => {
+describe('virtualization × grouping — the read gate alone decides', () => {
+  it('keeps a grouping the view arrives with, renders ungrouped, and says so in DEV', () => {
     // `defaults.groupBy` stands in for every arrival path that precedes the
     // provider (constructor defaults, a URL binding's synchronous init).
     const view = createTableView({ defaults: { groupBy: 'name' } });
-    mountTable({ view, virtualized: true });
+    let ctx: TableContext | undefined;
+    mountTable({ view, virtualized: true, onReady: (c: TableContext) => (ctx = c) });
+    flushSync();
 
-    expect(view.groupBy).toBeNull();
-    // `system`, not `external` or `user`: the URL binding mirrors the
-    // discard (cleans the param), the storage binding un-dirties the axis —
-    // a persisted grouping lives again on the next un-virtualized load.
-    expect(view.originOf('groupBy').origin).toBe('system');
-    expect(warn).toHaveBeenCalledWith(expect.stringContaining('virtualized'));
+    // Nothing writes the value away: the view keeps it (a URL may keep
+    // carrying it), only the rendering ignores it — and DEV reports the
+    // mismatch instead of resolving it.
+    expect(view.groupBy).toBe('name');
+    expect(view.originOf('groupBy').origin).toBe('init');
+    expect(ctx?.state.effectiveGroupBy).toBeNull();
+    expect(warn).toHaveBeenCalledWith(expect.stringContaining('no effect while virtualized'));
+
+    // Report once, not per re-run: the validation effect also tracks the
+    // sort, so without the dedupe every sort click repeated the warning.
+    const groupingWarnCount = () =>
+      warn.mock.calls.filter((c: readonly unknown[]) =>
+        String(c[0]).includes('no effect while virtualized')
+      ).length;
+    const before = groupingWarnCount();
+    view.sort = { column: 'name', direction: 'asc' };
+    flushSync();
+    expect(groupingWarnCount()).toBe(before);
   });
 
-  it('discards a grouping arriving at runtime through applyExternal while virtualized', () => {
+  it('keeps a grouping arriving at runtime through applyExternal while virtualized', () => {
     const view = createTableView();
-    mountTable({ view, virtualized: true });
+    let ctx: TableContext | undefined;
+    mountTable({ view, virtualized: true, onReady: (c: TableContext) => (ctx = c) });
     expect(view.groupBy).toBeNull();
 
     // A later URL navigation applies `?group=name` — no setter involved.
     view.applyExternal({ groupBy: 'name' }, 'external');
     flushSync();
 
-    expect(view.groupBy).toBeNull();
-    expect(view.originOf('groupBy').origin).toBe('system');
+    expect(view.groupBy).toBe('name');
+    expect(view.originOf('groupBy').origin).toBe('external');
+    expect(ctx?.state.effectiveGroupBy).toBeNull();
   });
 
   it('the read gate follows the same overridable virtualized slot as the setter gate', () => {

@@ -355,9 +355,10 @@ export function createTableState(
      * this for what they are looking at.
      *
      * The gate holds during SSR too — a `?group=…` deep link on a virtualized
-     * table renders ungrouped on the server. The runtime *discard* (which
-     * cleans the URL and un-dirties storage) is `TableProvider`'s
-     * `applyExternal({ groupBy: null }, 'system')`.
+     * table renders ungrouped on the server. This gate is the ONLY
+     * enforcement: the view keeps the value, a URL may keep carrying it, and
+     * an un-virtualized reader of the same view renders it grouped. DEV
+     * reports the mismatch; nothing writes it away.
      *
      * Read-only: write `view.groupBy`, or call `setGroupBy` for the
      * page-1 reset and the collapsed-group cleanup that go with it.

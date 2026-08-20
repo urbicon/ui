@@ -228,15 +228,18 @@ describe('bindViewToUrl — view to URL', () => {
     expect(new URLSearchParams(search()).get('q')).toBe('stored');
   });
 
-  it('mirrors a system discard (the table cleaning virtualized grouping cleans the URL)', async () => {
+  it('an external application never submits a URL — only the reader mirrors', async () => {
     resetMockApp('?group=status');
     const view = new TestView();
     inRoot(() => bindViewToUrl(view));
     expect(view.groupBy).toBe('status');
-    view.applyExternal({ groupBy: null }, 'system');
+    view.applyExternal({ groupBy: null }, 'external');
     flushSync();
     await advance(300);
-    expect(new URLSearchParams(search()).get('group')).toBeNull();
+    // The applied value stands on the view, but the URL keeps its param:
+    // a binding's own application must not mint a navigation.
+    expect(view.groupBy).toBeNull();
+    expect(new URLSearchParams(search()).get('group')).toBe('status');
   });
 });
 

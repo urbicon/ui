@@ -94,10 +94,10 @@
     <NoteList variant="flush">
       <Note title="Grouping is switched off, not just hidden">
         Grouped virtualization is not implemented, and a grouping that slipped through would put
-        every row back in the DOM. So the table drops it whichever way it arrives (view defaults,
-        URL, storage), hides the grouping affordances and warns in dev. The URL is cleaned and
-        storage is left alone, so a grouping the reader chose earlier applies again on a page
-        without <code>virtualized</code>. Either
+        every row back in the DOM. So the table renders ungrouped whichever way the grouping arrives
+        (view defaults, URL, storage), hides the grouping affordances and warns in dev. The value
+        itself stays put — the URL keeps its parameter, and a grouping the reader chose earlier
+        applies again on a page without <code>virtualized</code>. Either
         <a href={resolve('/table/server-processing')} class="text-primary hover:underline"
           >group on the server</a
         >, or drop <code>virtualized</code>.

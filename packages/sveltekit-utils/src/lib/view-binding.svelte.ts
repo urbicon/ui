@@ -360,10 +360,10 @@ export function bindViewToUrl(view: TableViewLike, options: UrlViewBindingOption
   const currentBaseline = (): string =>
     lastSubmitted ?? canonical(ownSlice(page.url.search, managedKeys));
 
-  // Whether the pending debounce window saw a reader (or system) change, as
-  // opposed to a pure external mirror (`reflectExternal`): a storage seed
-  // reaching the URL must never mint a history entry the reader did not
-  // cause, so a mirror-only submission always replaces.
+  // Whether the pending debounce window saw a reader change, as opposed to
+  // a pure external mirror (`reflectExternal`): a storage seed reaching the
+  // URL must never mint a history entry the reader did not cause, so a
+  // mirror-only submission always replaces.
   let pendingHasUserChange = false;
 
   $effect(() => {
@@ -375,10 +375,9 @@ export function bindViewToUrl(view: TableViewLike, options: UrlViewBindingOption
         const { revision, origin } = view.originOf(axis);
         if (revision > lastSeenRevision[axis]) {
           lastSeenRevision[axis] = revision;
-          // `system` mirrors too: the table cleaning a value may clean the
-          // URL (virtualized × grouping). Only `external` (a binding
+          // Only the reader's own change mirrors; `external` (a binding
           // applying) stays silent.
-          if (origin === 'user' || origin === 'system') {
+          if (origin === 'user') {
             shouldMirror = true;
             sawUserChange = true;
           }
