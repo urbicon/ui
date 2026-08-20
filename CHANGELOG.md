@@ -4,6 +4,21 @@ All notable changes to this project will be documented in this file.
 This changelog is automatically generated from [Conventional Commits](https://www.conventionalcommits.org).
 
 
+## [8.5.0] - 2026-08-20
+
+### Breaking Changes
+- **table**: Model the processing mode — three-valued state.mode + page descriptor (#245)
+> **BREAKING:** TableContext.state.mode reports 'server-manual' or 'server-managed' where it reported 'server'; compare against 'client' instead. pageInfo, ProcessingMode and PageDescriptor are additive.
+- **table**: Drop the system origin — the read gate alone decides virtualized grouping (#248)
+> **BREAKING:** ViewOrigin loses 'system' (now 'user' | 'external'); applyExternal accepts only 'external'. A ?group= parameter on a virtualized table is no longer cleaned from the URL — the table renders ungrouped and says so in DEV.
+
+### Bug Fixes
+- **table**: One row-identity rule, nested factory-cell accessors, dead utils (#244)
+- **table**: Absolute aria row indices, one search debounce, a pager that stays put (#246)
+- **table**: One write path for the selection — honest select-all and live-update totals (#247)
+- **table**: A virtualized table is one grid the keyboard can actually use (#249)
+- **table**: Grouped rows render through TableRow — one row renderer, shared mobile decisions (#250)
+
 ## [8.4.1] - 2026-08-20
 
 ### Bug Fixes
