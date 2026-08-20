@@ -582,8 +582,12 @@ export interface TableProps<T = TableItem> {
   searchPlaceholder?: string;
 
   /**
-   * Debounce delay for search in milliseconds
-   * @default 300
+   * Debounce delay for search in milliseconds. An explicit value is honoured
+   * in both processing modes. Left unset, the default depends on the mode:
+   * 300 ms when the table filters client-side, 0 in server mode — there the
+   * search writes through immediately and the one debounce that waits is the
+   * source's own `debounceMs`, so the two delays never add up.
+   * @default 300 (client mode) / 0 (server mode)
    */
   searchDebounceMs?: number;
 

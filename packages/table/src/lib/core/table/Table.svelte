@@ -54,7 +54,7 @@
     enableSmartFilter = true,
     enableColumnVisibility = true,
     searchPlaceholder = tt('search.placeholder'),
-    searchDebounceMs = 300,
+    searchDebounceMs = undefined,
 
     loadingText = tt('data.loading'),
     errorText = tt('error.loadingError'),
@@ -312,15 +312,30 @@
       onRowClick={onRowClickErased}
     />
 
-    {#if !tableState.loading && !tableState.error}
+    {#if !tableState.error}
       <!-- The rule and its reasoning live in the page descriptor — as a pure
            function because the inline version was unreadable and untestable,
            and #159 was one of its clauses being wrong. -->
       {#if tableContext.pageInfo.showPager}
-        {#if pagination}
-          {@render pagination()}
-        {:else}
-          <!-- On a single page the arrows are two permanently disabled buttons,
+        <!-- inert while loading, never unmounted: with a managed source every
+             view change fetches and every fetch reports loading, so removing
+             the nav made the content jump ~300 ms after each "next" click and
+             the second click landed on nothing. inert keeps geometry and
+             focus order; the controls just go dead until the page arrives. -->
+        <div
+          inert={tableState.loading || undefined}
+          class={[
+            'transition-opacity',
+            tableState.loading && 'opacity-50',
+            contained && 'md:shrink-0'
+          ]
+            .filter(Boolean)
+            .join(' ')}
+        >
+          {#if pagination}
+            {@render pagination()}
+          {:else}
+            <!-- On a single page the arrows are two permanently disabled buttons,
                and removing them used to mean passing an empty `pagination`
                snippet — a workaround that reads like a mistake. Only the
                NAVIGATION is gated, never the footer: `layout="table"` renders
@@ -329,27 +344,26 @@
                tech, not the eye). Hiding the whole footer would delete that
                count exactly when a filter narrows the table and a reader most
                wants it. -->
-          <Pagination
-            currentPage={tableContext.effectivePage}
-            totalPages={tableContext.totalPages}
-            onPageChange={tableContext.goToPage}
-            layout="table"
-            size="md"
-            variant="ghost"
-            intent="neutral"
-            tier="modify"
-            showInfo={true}
-            showPreviousNext={tableContext.totalPages > 1}
-            itemsPerPage={tableView.pageSize}
-            totalItems={tableContext.total}
-            previousIcon={prevIcon}
-            {nextIcon}
-            pageLabel={tt('pagination.page')}
-            class={['border-border-hairline border-t pt-2', contained && 'md:shrink-0']
-              .filter(Boolean)
-              .join(' ')}
-          />
-        {/if}
+            <Pagination
+              currentPage={tableContext.effectivePage}
+              totalPages={tableContext.totalPages}
+              onPageChange={tableContext.goToPage}
+              layout="table"
+              size="md"
+              variant="ghost"
+              intent="neutral"
+              tier="modify"
+              showInfo={true}
+              showPreviousNext={tableContext.totalPages > 1}
+              itemsPerPage={tableView.pageSize}
+              totalItems={tableContext.total}
+              previousIcon={prevIcon}
+              {nextIcon}
+              pageLabel={tt('pagination.page')}
+              class="border-border-hairline border-t pt-2"
+            />
+          {/if}
+        </div>
       {/if}
     {/if}
   </div>
