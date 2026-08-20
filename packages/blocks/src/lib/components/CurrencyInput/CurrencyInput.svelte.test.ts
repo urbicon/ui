@@ -293,7 +293,19 @@ describe('CurrencyInput (keystrokes)', () => {
 // change what the field *says* without changing what it *holds*, which on a
 // money field means a form that submits the amount the user just cleared.
 
-const microtask = () => new Promise<void>((resolve) => queueMicrotask(() => resolve()));
+// A task, not a microtask: the component defers the read-back by `setTimeout`,
+// because a browser drains microtasks between event listeners and one scheduled
+// there would beat the component's own `input` handler to the edit.
+const task = () => new Promise<void>((resolve) => setTimeout(resolve, 0));
+
+// Two turns, because Svelte's own form-reset handling defers by a microtask
+// before the component's read-back is even scheduled.
+async function settle() {
+  await task();
+  flushSync();
+  await task();
+  flushSync();
+}
 
 describe('CurrencyInput (writes that are not keystrokes)', () => {
   it('clearing through the Input clear button empties the value too', async () => {
@@ -310,8 +322,7 @@ describe('CurrencyInput (writes that are not keystrokes)', () => {
     const clear = screen.getByRole('button');
     fireEvent.click(clear);
     flushSync();
-    await microtask();
-    flushSync();
+    await settle();
 
     expect(input().value).toBe('');
     expect(onValueChange).toHaveBeenLastCalledWith(null);
@@ -333,8 +344,7 @@ describe('CurrencyInput (writes that are not keystrokes)', () => {
 
     form.reset();
     flushSync();
-    await microtask();
-    flushSync();
+    await settle();
 
     expect(input().value).toBe('');
     expect(onValueChange).toHaveBeenLastCalledWith(null);
@@ -381,8 +391,7 @@ describe('CurrencyInput (writes that are not keystrokes)', () => {
     expect(input().selectionStart).toBe('50.00'.length);
 
     await tick();
-    await microtask();
-    flushSync();
+    await settle();
     expect(input().value).toBe('50.00');
   });
 });

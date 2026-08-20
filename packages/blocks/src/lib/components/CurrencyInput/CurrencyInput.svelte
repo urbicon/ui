@@ -162,9 +162,14 @@
     }
   }
 
+  /** Pending read-back of a write that was not (yet) explained by a keystroke. */
+  let reconcile: ReturnType<typeof setTimeout> | undefined;
+
   function handleInput(event: Event) {
     const target = event.target as HTMLInputElement;
     const inputType = (event as InputEvent).inputType ?? '';
+    // This edit is a keystroke after all; the reading below stands down.
+    clearTimeout(reconcile);
 
     commit(
       target,
@@ -186,13 +191,20 @@
   // raising an `input` event this component can read. Left alone, each of them
   // changes what the field says without changing what it holds — a cleared field
   // that still submits the old amount. So the text is read back as the amount it
-  // spells, one microtask later: by then `handleInput` has replaced it with the
-  // masked text if this was a keystroke after all, and that path is the better
-  // reading — it knows the caret and which key produced the edit.
+  // spells, once the keystroke path has had its chance: that one knows the caret
+  // and which key produced the edit, and is the better reading wherever it runs.
+  //
+  // Deferred by a TASK, not a microtask. A browser drains microtasks *between*
+  // event listeners, so a microtask here lands before this component's own
+  // `input` handler and applies the edit without a caret — after which the real
+  // handler diffs against text that has already moved. jsdom dispatches its
+  // listeners in one uninterrupted turn and cannot see the difference; the
+  // browser suite in `e2e/currency-input.spec.ts` is what catches it.
   function acceptText(raw: string) {
     displayText = raw;
+    clearTimeout(reconcile);
     if (raw === canonical(value)) return;
-    queueMicrotask(() => {
+    reconcile = setTimeout(() => {
       if (displayText !== raw) return;
       commit(null, applyEdit(mask, { previous: canonical(value), next: raw, caret: raw.length }));
     });

@@ -11,6 +11,7 @@
 
   let priceCents = $state<number | null>(1234_56);
   let yen = $state<number | null>(15_000);
+  let clearable = $state<number | null>(4200);
 </script>
 
 <svelte:head>
@@ -24,6 +25,19 @@
     <div data-testid="ci-de">
       <CurrencyInput label="Preis" bind:value={priceCents} locale="de-DE" />
       <output class="text-text-secondary text-sm" data-testid="ci-de-value">{priceCents}</output>
+    </div>
+
+    <div data-testid="ci-clearable">
+      <CurrencyInput
+        label="Spende"
+        bind:value={clearable}
+        locale="de-DE"
+        clearable
+        name="donation"
+      />
+      <output class="text-text-secondary text-sm" data-testid="ci-clearable-value"
+        >{clearable ?? 'null'}</output
+      >
     </div>
 
     <div data-testid="ci-jpy">

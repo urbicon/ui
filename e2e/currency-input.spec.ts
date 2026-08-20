@@ -121,3 +121,38 @@ test.describe('CurrencyInput mask', () => {
     await expect(page.getByTestId('ci-jpy-value')).toHaveText('1500');
   });
 });
+
+test.describe('CurrencyInput writes that are not keystrokes', () => {
+  test('the clear button empties the amount, not just the text', async ({ page }) => {
+    // The field's text can also be written by something that raises no `input`
+    // event at all. Reading it back has to wait for the keystroke path to have
+    // its chance — and a browser runs microtasks *between* listeners, which is
+    // why that wait is a task and why only this suite can prove it: jsdom
+    // dispatches its listeners in one uninterrupted turn.
+    await setupPage(page);
+    const scope = page.getByTestId('ci-clearable');
+    const input = scope.getByRole('textbox');
+
+    await expect(input).toHaveValue('42,00');
+
+    await scope.getByRole('button').click();
+
+    await expect(input).toHaveValue('');
+    await expect(page.getByTestId('ci-clearable-value')).toHaveText('null');
+    await expect(page.locator('input[type="hidden"][name="donation"]')).toHaveValue('');
+  });
+
+  test('typing still wins over the read-back it schedules', async ({ page }) => {
+    await setupPage(page);
+    const input = page.getByTestId('ci-clearable').getByRole('textbox');
+
+    await input.click();
+    await page.keyboard.press('End');
+    await page.keyboard.press('Backspace');
+    await page.keyboard.press('Backspace');
+
+    // The keystroke reading — the one with a caret in it — is what stands.
+    await expect.poll(() => field(input)).toBe('42,|00');
+    await expect(page.getByTestId('ci-clearable-value')).toHaveText('4200');
+  });
+});
