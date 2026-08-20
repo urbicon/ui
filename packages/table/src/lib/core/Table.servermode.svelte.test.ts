@@ -314,3 +314,166 @@ describe('managed source — the fetch follows the effective page', () => {
     expect(table?.getAttribute('aria-rowcount')).toBe(String(TOTAL));
   });
 });
+
+describe('absolute aria row indices — the row reports its list-wide position', () => {
+  it('server mode: page 2 announces rows 21..40 beside aria-rowcount 400', async () => {
+    const view = createTableView();
+    view.applyExternal({ page: 2, pageSize: PAGE_SIZE }, 'external');
+    const t = mountTable({
+      view,
+      source: {
+        processing: 'server',
+        items: ALL_ROWS.slice(PAGE_SIZE, PAGE_SIZE * 2),
+        total: TOTAL
+      }
+    });
+
+    const table = t.target.querySelector('[data-testid="table-element"]');
+    expect(table?.getAttribute('aria-rowcount')).toBe(String(TOTAL));
+    const first = t.target.querySelector('tbody tr[data-row-index="0"]');
+    const last = t.target.querySelector(`tbody tr[data-row-index="${PAGE_SIZE - 1}"]`);
+    expect(first?.getAttribute('aria-rowindex')).toBe('21');
+    expect(last?.getAttribute('aria-rowindex')).toBe('40');
+    // The keyboard index space stays page-local on purpose.
+    expect(first?.getAttribute('data-row-index')).toBe('0');
+  });
+
+  it('client mode: page 2 keeps counting where page 1 stopped (positive control)', () => {
+    const view = createTableView();
+    view.applyExternal({ page: 2, pageSize: PAGE_SIZE }, 'external');
+    const t = mountTable({ view, items: ALL_ROWS.slice(0, 100) });
+
+    const table = t.target.querySelector('[data-testid="table-element"]');
+    expect(table?.getAttribute('aria-rowcount')).toBe('100');
+    expect(
+      t.target.querySelector('tbody tr[data-row-index="0"]')?.getAttribute('aria-rowindex')
+    ).toBe('21');
+  });
+
+  it('page 1 still starts at 1', () => {
+    const t = mountTable({ items: ALL_ROWS.slice(0, 5) });
+    expect(
+      t.target.querySelector('tbody tr[data-row-index="0"]')?.getAttribute('aria-rowindex')
+    ).toBe('1');
+  });
+});
+
+describe('server mode search writes through — one debounce, not two', () => {
+  function searchInput(t: Mounted): HTMLInputElement {
+    const input = t.target.querySelector('input[type="search"]');
+    if (!(input instanceof HTMLInputElement)) throw new Error('search input not found');
+    return input;
+  }
+
+  it('a keystroke reaches the view synchronously in server mode', async () => {
+    const { query } = makePagedQuery();
+    const t = mountTable({ source: { processing: 'server', query } });
+    vi.advanceTimersByTime(0);
+    await flushMicrotasks();
+
+    const input = searchInput(t);
+    input.value = 'abc';
+    input.dispatchEvent(new Event('input', { bubbles: true }));
+    flushSync();
+
+    // No timer advance: the bar's debounce is out of the path; the one that
+    // waits now is the source's own fetch debounce.
+    expect(t.ctx.view.search).toBe('abc');
+  });
+
+  it('an explicitly set debounce is honoured in server mode too', async () => {
+    const { query } = makePagedQuery();
+    const t = mountTable({
+      source: { processing: 'server', query },
+      searchDebounceMs: 800
+    });
+    vi.advanceTimersByTime(0);
+    await flushMicrotasks();
+
+    const input = searchInput(t);
+    input.value = 'abc';
+    input.dispatchEvent(new Event('input', { bubbles: true }));
+    flushSync();
+
+    // Only the DEFAULT is mode-dependent; a consumer who asked for 800 ms
+    // gets 800 ms regardless of who processes the rows.
+    expect(t.ctx.view.search).toBe('');
+    await vi.advanceTimersByTimeAsync(799);
+    expect(t.ctx.view.search).toBe('');
+    await vi.advanceTimersByTimeAsync(1);
+    expect(t.ctx.view.search).toBe('abc');
+  });
+
+  it('client mode keeps the bar debounce (positive control)', async () => {
+    const t = mountTable({ items: ALL_ROWS.slice(0, 50) });
+
+    const input = searchInput(t);
+    input.value = 'abc';
+    input.dispatchEvent(new Event('input', { bubbles: true }));
+    flushSync();
+
+    expect(t.ctx.view.search).toBe('');
+    await vi.advanceTimersByTimeAsync(300);
+    expect(t.ctx.view.search).toBe('abc');
+  });
+});
+
+describe('the pager stays in the DOM while loading', () => {
+  // Svelte writes `inert` as a DOM property; jsdom does not mirror it into
+  // an attribute, so `[inert]` selectors see nothing. Walk the property.
+  function underInert(el: Element | null): boolean {
+    for (let n: Element | null = el; n; n = n.parentElement) {
+      if ((n as HTMLElement).inert) return true;
+    }
+    return false;
+  }
+
+  it('goes inert during a page fetch instead of unmounting', async () => {
+    let resolveFetch: ((page: TablePage) => void) | undefined;
+    const query = (q: TableViewSnapshot): Promise<TablePage> =>
+      new Promise<TablePage>((res) => {
+        resolveFetch = (page) => res(page);
+        void q;
+      });
+    const t = mountTable({ source: { processing: 'server', query, debounceMs: 50 } });
+
+    vi.advanceTimersByTime(0);
+    await flushMicrotasks();
+    resolveFetch?.({ items: ALL_ROWS.slice(0, PAGE_SIZE), total: TOTAL });
+    await flushMicrotasks();
+
+    // First page settled: pager present and interactive.
+    expect(t.ctx.state.loading).toBe(false);
+    const nav = () => t.target.querySelector('nav');
+    expect(nav()).not.toBeNull();
+    expect(underInert(nav())).toBe(false);
+
+    // A page change fetches; while the query is pending the nav must stay in
+    // the DOM (removing it made the second "next" click land on nothing) but
+    // be dead to input.
+    t.ctx.goToPage(2);
+    flushSync();
+    vi.advanceTimersByTime(60);
+    await flushMicrotasks();
+    expect(t.ctx.state.loading).toBe(true);
+    expect(nav()).not.toBeNull();
+    expect(underInert(nav())).toBe(true);
+
+    resolveFetch?.({ items: ALL_ROWS.slice(PAGE_SIZE, PAGE_SIZE * 2), total: TOTAL });
+    await flushMicrotasks();
+    expect(t.ctx.state.loading).toBe(false);
+    expect(underInert(nav())).toBe(false);
+  });
+
+  it('an error still removes the pager', async () => {
+    const query = async (): Promise<TablePage> => {
+      throw new Error('boom');
+    };
+    const t = mountTable({ source: { processing: 'server', query } });
+    vi.advanceTimersByTime(0);
+    await flushMicrotasks();
+
+    expect(t.ctx.state.error).not.toBeNull();
+    expect(t.target.querySelector('nav')).toBeNull();
+  });
+});

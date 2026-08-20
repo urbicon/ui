@@ -43,7 +43,9 @@
   // Props
   let {
     placeholder = tt('search.placeholder'),
-    debounceMs = 300,
+    // Undefined means "mode-dependent default" (see effectiveDebounceMs); an
+    // explicit value is honoured in both processing modes.
+    debounceMs = undefined as number | undefined,
     size = 'md' as SmartFilterBarVariantProps['size'],
     layout = 'responsive' as SmartFilterBarVariantProps['layout'],
     responsive = false,
@@ -62,14 +64,26 @@
     }
   });
 
+  // Only the DEFAULT is mode-dependent: in server mode the bar filters
+  // nothing (useFiltering passes rows through unchanged), so its default
+  // debounce would only wait IN FRONT of the source's own fetch debounce —
+  // two defaults of 300 ms made every keystroke wait 600 ms. The one place
+  // that should wait by default is `source.debounceMs`. An explicitly set
+  // value is honoured in both modes.
+  const effectiveDebounceMs = $derived(debounceMs ?? (tableState.mode === 'client' ? 300 : 0));
+
   function handleSearchInput(event: Event) {
     const target = event.target as HTMLInputElement;
     localSearch = target.value;
 
     if (debounceTimer) clearTimeout(debounceTimer);
+    if (effectiveDebounceMs === 0) {
+      setSearch(localSearch);
+      return;
+    }
     debounceTimer = setTimeout(() => {
       setSearch(localSearch);
-    }, debounceMs) as unknown as number;
+    }, effectiveDebounceMs) as unknown as number;
   }
 
   function handleKeydown(event: KeyboardEvent) {

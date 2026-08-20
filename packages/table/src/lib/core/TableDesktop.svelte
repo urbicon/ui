@@ -639,6 +639,7 @@
                 {size}
                 {onRowClick}
                 rowIndex={i}
+                ariaRowStart={tableContext.pageInfo.rangeStart}
               />
             {/each}
           {/if}

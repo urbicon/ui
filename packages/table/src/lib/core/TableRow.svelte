@@ -29,6 +29,11 @@
     item,
     expandable = false,
     rowIndex = 0,
+    // Absolute ARIA position of this page's first row (1-based). The grid
+    // announces aria-rowcount over ALL rows, so a paged row must report its
+    // list-wide index — page 2 of 20-per-page starts at 21, not 1. Keyboard
+    // navigation (data-row-index) stays page-local on purpose.
+    ariaRowStart = 1,
     expandedRowContent = undefined as Snippet<[item: TableItem]> | undefined,
     cell = undefined as Snippet<[item: TableItem, value: unknown, column: Column]> | undefined,
     onRowClick = undefined as ((item: TableItem) => void) | undefined,
@@ -144,7 +149,7 @@
       .join(' ')
   )}
   tabindex={interactive ? (isFocused ? 0 : -1) : undefined}
-  aria-rowindex={rowIndex + 1}
+  aria-rowindex={ariaRowStart + rowIndex}
   aria-expanded={expandable ? isExpanded : undefined}
   aria-selected={selectable ? isRowSelected : undefined}
   aria-current={isActiveRow ? 'true' : undefined}
