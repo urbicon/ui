@@ -4,6 +4,7 @@ import { SvelteSet } from 'svelte/reactivity';
 import type { Column, TableItem } from '$lib';
 import type { TableContext } from '$lib/core/table/index.js';
 import { normalizeItems } from '$lib/utils';
+import type { SummaryType } from '$lib/utils/summary-types.js';
 import { resolveSource, type TableSource } from '$lib/view/source';
 import { createTableView, type TableView } from '$lib/view/view.svelte';
 import type { TableState } from './concerns/types.js';
@@ -31,8 +32,12 @@ import { useSummary } from './concerns/useSummary.svelte.js';
 export interface SummaryConfig {
   /** Column key to aggregate */
   column: string;
-  /** Aggregation type */
-  type: 'sum' | 'avg' | 'count' | 'min' | 'max';
+  /**
+   * Aggregation type — derived from the one vocabulary in
+   * `utils/summary-types.ts`, so the union and the rendered list of
+   * types cannot drift apart (#251).
+   */
+  type: SummaryType;
   /** Optional custom formatter for the aggregated value */
   formatter?: (value: number) => string;
 }

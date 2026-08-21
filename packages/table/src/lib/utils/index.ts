@@ -1,6 +1,7 @@
 import { createPersistentState, type PersistenceKeyConfig } from '@urbicon-ui/blocks';
 import type { SummaryConfig } from '$lib/stores/TableStore.svelte';
 import type { Column, TableItem } from '$lib/types/tableTypes';
+import { isSummaryType } from './summary-types.js';
 
 /**
  * Retrieves a nested value from an object using dot notation
@@ -281,8 +282,43 @@ export function calculateSummary(
  */
 export function normalizeSummaryConfigs(configs: SummaryConfig[]): SummaryConfig[] {
   const byColumn = new Map<string, SummaryConfig>();
-  for (const config of configs) byColumn.set(config.column, config);
+  for (const config of dropInvalidSummaryConfigs(configs)) byColumn.set(config.column, config);
   return [...byColumn.values()];
+}
+
+/**
+ * Element guard for one summary config that arrived from OUTSIDE the type
+ * system — storage JSON, a parsed compound string, an untyped consumer.
+ * Membership in the aggregation vocabulary is checked, not just
+ * `typeof type === 'string'`: a stored `'median'` used to pass the old
+ * string check, hydrate, and crash the whole table at mount when the chip
+ * looked its translation key up (#251).
+ */
+export function isSummaryConfigShape(value: unknown): value is SummaryConfig {
+  if (!value || typeof value !== 'object') return false;
+  const config = value as Partial<SummaryConfig>;
+  return typeof config.column === 'string' && isSummaryType(config.type);
+}
+
+/**
+ * The one read-tolerant entrance for summary configs: elements that fail
+ * {@link isSummaryConfigShape} are dropped — with a DEV warning, never
+ * silently in dev — and the valid rest keeps the table usable. Used directly
+ * by prefs hydration (the unknown[] → SummaryConfig[] bridge) and by
+ * {@link normalizeSummaryConfigs}, which every writer funnels through, so an
+ * invalid aggregation type cannot enter `state.summaryConfigs` from any
+ * path.
+ */
+export function dropInvalidSummaryConfigs(values: readonly unknown[]): SummaryConfig[] {
+  const valid: SummaryConfig[] = [];
+  for (const value of values) {
+    if (isSummaryConfigShape(value)) {
+      valid.push(value);
+    } else if (import.meta.env?.DEV) {
+      console.warn('[Table] Dropped summary config with unknown shape or aggregation type:', value);
+    }
+  }
+  return valid;
 }
 
 /**

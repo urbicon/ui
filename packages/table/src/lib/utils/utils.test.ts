@@ -1,14 +1,18 @@
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
+import type { SummaryConfig } from '$lib/stores/TableStore.svelte';
 import type { Column } from '$lib/types/tableTypes';
 import {
+  dropInvalidSummaryConfigs,
   findColumnById,
   formatCellValue,
   getNestedValue,
+  isSummaryConfigShape,
   normalizeItems,
   normalizeSummaryConfigs,
   resolveColumnLabel,
   splitSearchSegments
 } from './index';
+import { isSummaryType, SUMMARY_TYPES } from './summary-types';
 
 describe('resolveColumnLabel', () => {
   it('prefers menuTitle over title', () => {
@@ -239,6 +243,56 @@ describe('normalizeSummaryConfigs', () => {
 
   it('passes an empty set through', () => {
     expect(normalizeSummaryConfigs([])).toEqual([]);
+  });
+
+  it('drops an element whose type is outside the vocabulary (compile-bypassing input)', () => {
+    // A JS consumer or storage junk can hand the funnel anything; the invalid
+    // element must fall out here so no writer path can seed a poisoned state.
+    const result = normalizeSummaryConfigs([
+      { column: 'age', type: 'median' } as unknown as SummaryConfig,
+      { column: 'salary', type: 'sum' }
+    ]);
+    expect(result).toEqual([{ column: 'salary', type: 'sum' }]);
+  });
+});
+
+describe('summary vocabulary (#251)', () => {
+  it('isSummaryType accepts exactly the five codes', () => {
+    for (const entry of SUMMARY_TYPES) expect(isSummaryType(entry.value)).toBe(true);
+    for (const junk of ['median', 'average', '', 'SUM', null, undefined, 3, {}]) {
+      expect(isSummaryType(junk), String(junk)).toBe(false);
+    }
+  });
+
+  it('isSummaryConfigShape checks vocabulary membership, not just "is a string"', () => {
+    expect(isSummaryConfigShape({ column: 'a', type: 'avg' })).toBe(true);
+    // The old guard accepted this — that acceptance is what crashed the table.
+    expect(isSummaryConfigShape({ column: 'a', type: 'median' })).toBe(false);
+    expect(isSummaryConfigShape({ column: 7, type: 'avg' })).toBe(false);
+    expect(isSummaryConfigShape('junk')).toBe(false);
+    expect(isSummaryConfigShape(null)).toBe(false);
+  });
+
+  it('dropInvalidSummaryConfigs keeps the valid rest in order and warns per drop (DEV)', () => {
+    const warn = vi.spyOn(console, 'warn').mockImplementation(() => {});
+    try {
+      const kept = dropInvalidSummaryConfigs([
+        { column: 'a', type: 'min' },
+        { column: 'b', type: 'median' },
+        null,
+        42,
+        { column: 'c', type: 'max' }
+      ]);
+      expect(kept).toEqual([
+        { column: 'a', type: 'min' },
+        { column: 'c', type: 'max' }
+      ]);
+      // Not silent: three invalid elements, three DEV warnings — the tolerance
+      // is for the reader's table, not for the bug that wrote the value.
+      expect(warn).toHaveBeenCalledTimes(3);
+    } finally {
+      warn.mockRestore();
+    }
   });
 });
 
