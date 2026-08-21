@@ -45,6 +45,11 @@ export const menuVariants = tv({
     // No `mr-*` — the item's `gap-2` owns the icon↔label distance (8px, the
     // same gap every listbox row in the library uses).
     indicator: ['inline-flex items-center self-center'],
+    // Right-aligned secondary readout on an item row — the current value of
+    // the sub-menu a parent row opens ("Average"), or a hint beside a leaf
+    // item. `ml-auto` pins it to the row's end even in unstyled layouts where
+    // the label span may not flex; the label's `truncate` yields first.
+    detail: ['ml-auto shrink-0 text-xs text-text-tertiary'],
     submenu: ['ml-4 mt-2 border-l border-border-hairline pl-2'],
     footer: [
       'sticky bottom-0 z-10 bg-surface-elevated',

@@ -1,13 +1,20 @@
 <script lang="ts">
   import type { Snippet } from 'svelte';
   import { mintAttachment } from '$lib';
+  import { resolveIcon } from '$lib/icons';
+  import CheckIconDefault from '$lib/icons/CheckIcon.svelte';
   import { getMenuContext, getMenuParentId } from './menu.context';
+  import { menuIconVariants } from './menu.variants';
+
+  const CheckIcon = resolveIcon('check', CheckIconDefault);
 
   let {
     id: idProp,
     label,
     disabled = false,
     icon,
+    checked,
+    detail,
     onSelect,
     keepOpen = false,
     children,
@@ -21,6 +28,15 @@
     disabled?: boolean;
     /** Optional leading icon component. */
     icon?: unknown;
+    /**
+     * Marks the item as a selectable setting: `true` / `false` renders
+     * `role="menuitemradio"` with `aria-checked` and a checkmark indicator
+     * (empty gutter when unchecked); `undefined` keeps the plain
+     * `role="menuitem"`. The state is consumer-owned — Menu only displays it.
+     */
+    checked?: boolean;
+    /** Right-aligned secondary text on the row (current value, shortcut hint). */
+    detail?: string;
     /** Invoked when the item is activated (click / Enter / Space). */
     onSelect?: () => void;
     /**
@@ -101,8 +117,10 @@
   {disabled}
   onclick={activate}
   onkeydown={onKeydown}
-  role="menuitem"
+  role={checked === undefined ? 'menuitem' : 'menuitemradio'}
   tabindex={-1}
+  aria-checked={checked === undefined ? undefined : checked}
+  data-state={checked === undefined ? undefined : checked ? 'checked' : 'unchecked'}
   aria-disabled={disabled || undefined}
   class={ctx.unstyled
     ? [ctx.slotClasses?.item, className].filter(Boolean).join(' ')
@@ -113,6 +131,20 @@
       })}
   {@attach mintAttachment(ctx.mint, { enabled: !disabled })}
 >
+  {#if checked !== undefined}
+    <!-- The check gutter renders for every selectable item — `invisible` when
+         unchecked — so checked and unchecked rows in one group stay aligned. -->
+    <span
+      aria-hidden="true"
+      class={ctx.unstyled
+        ? (ctx.slotClasses?.indicator ?? '')
+        : ctx.styles.indicator({ class: ctx.slotClasses?.indicator })}
+    >
+      <CheckIcon
+        class={menuIconVariants({ type: 'checkmark', class: checked ? undefined : 'invisible' })}
+      />
+    </span>
+  {/if}
   {#if icon}
     {@const Icon = icon as import('svelte').Component<{ class?: string }>}
     <span
@@ -130,4 +162,13 @@
       {label}
     {/if}
   </span>
+  {#if detail}
+    <span
+      class={ctx.unstyled
+        ? (ctx.slotClasses?.detail ?? '')
+        : ctx.styles.detail({ class: ctx.slotClasses?.detail })}
+    >
+      {detail}
+    </span>
+  {/if}
 </button>

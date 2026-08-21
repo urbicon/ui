@@ -111,6 +111,15 @@ describe('menuVariants', () => {
     expect(menuVariants({}).indicator()).not.toMatch(/\bmr-/);
   });
 
+  it('detail readout sits at the row end in tertiary text', () => {
+    // Same look as the header-menu value readout it generalises: quiet,
+    // small, pinned right even when the label span does not flex (unstyled).
+    const detail = menuVariants({}).detail();
+    expect(detail).toContain('ml-auto');
+    expect(detail).toContain('text-text-tertiary');
+    expect(detail).toContain('text-xs');
+  });
+
   it('never outputs dark: overrides', () => {
     const styles = menuVariants({});
     expect(styles.base()).not.toMatch(/\bdark:/);

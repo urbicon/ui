@@ -33,6 +33,21 @@ import type { MenuSlots } from './menu.variants';
  * </Menu>
  * ```
  *
+ * @example Selectable settings — `checked` renders `menuitemradio` rows, `detail` shows the current value
+ * ```svelte
+ * <Menu placeholder="View" items={[
+ *   {
+ *     label: 'Sort by',
+ *     detail: sortBy,
+ *     children: [
+ *       { label: 'Name', checked: sortBy === 'Name', onSelect: () => (sortBy = 'Name') },
+ *       { label: 'Date', checked: sortBy === 'Date', onSelect: () => (sortBy = 'Date') }
+ *     ]
+ *   },
+ *   { label: 'Refresh', onSelect: () => refresh() }
+ * ]} />
+ * ```
+ *
  * @example Icon-only trigger via customTrigger
  * ```svelte
  * <Menu items={actionItems}>
@@ -66,7 +81,7 @@ export interface MenuSpecificProps<TItem extends MenuItemType = MenuItemType> {
   /**
    * Per-slot class overrides merged with the variant styles.
    * Slots: base | trigger | triggerText | chevron | content | header | section |
-   * divider | items | item | indicator | submenu | footer
+   * divider | items | item | indicator | detail | submenu | footer
    */
   slotClasses?: Partial<Record<MenuSlots, string>>;
 
@@ -93,6 +108,12 @@ export interface MenuSpecificProps<TItem extends MenuItemType = MenuItemType> {
   getItemChildren?: (item: TItem) => TItem[] | undefined;
   /** Optional icon resolver for items in array mode. */
   getItemIcon?: (item: TItem) => unknown;
+  /** Optional per-item class resolver for items in array mode. */
+  getItemClass?: (item: TItem) => string | undefined;
+  /** Optional checked-state resolver for items in array mode (`undefined` = plain action item). */
+  getItemChecked?: (item: TItem) => boolean | undefined;
+  /** Optional right-aligned detail-text resolver for items in array mode. */
+  getItemDetail?: (item: TItem) => string | undefined;
   /** Section detection override. Applies to full union, not just TItem. */
   isSection?: (item: MenuItemType) => boolean;
   /** Section label override. Accepts concrete section header type. */
@@ -191,11 +212,14 @@ export interface MenuSpecificProps<TItem extends MenuItemType = MenuItemType> {
  * @description Action menu (`role="menu"`) triggered by a button, with nested
  * submenus, sections, icons, and separators. Items are verbs the user can
  * invoke — Edit, Delete, Share, Export — and dispatch an `onSelect` callback
- * when activated; Menu holds no selection state. For picking a value from a
- * list use `Select` (or `Combobox` for searchable). Menu and Select are
- * deliberately disjoint: Menu's `role="menu"`/`menuitem` semantics with
- * arrow-key roving and Action-family chrome versus Select's `role="listbox"`
- * value commitment with Form-family chrome.
+ * when activated. An item given `checked` additionally *shows* a setting:
+ * it renders as `role="menuitemradio"` with the supplied state announced and
+ * marked. Menu still owns no selection state — the consumer computes `checked`
+ * and updates it from `onSelect`. For committing a value to a form use
+ * `Select` (or `Combobox` for searchable). Menu and Select stay deliberately
+ * disjoint: Menu's `role="menu"`/`menuitem` semantics with arrow-key roving
+ * and Action-family chrome versus Select's `role="listbox"` value commitment
+ * with Form-family chrome.
  *
  * @tag action
  * @related Select
@@ -238,7 +262,9 @@ export interface MenuSectionHeader {
  * Menu item with explicit label, action callback, and optional nested
  * children. Menu items are *verbs* — the `id` is only an internal stable
  * identifier for sub-menu bookkeeping and DOM `id` derivation, not a
- * selectable value. (Menu has no selection state — for value-picking use
+ * selectable value. An item given `checked` additionally *shows* a setting
+ * (`role="menuitemradio"`), but the state stays consumer-owned: Menu displays
+ * it and never stores a selection. (For committing a value to a form use
  * `Select`.)
  */
 export interface MenuObjectOption {
@@ -261,6 +287,29 @@ export interface MenuObjectOption {
 
   /** Optional leading icon component. */
   icon?: unknown;
+
+  /**
+   * Extra classes merged onto this item's row, after `slotClasses.item`.
+   * For per-item state looks — an active-filter tint, a destructive red —
+   * that `slotClasses.item`, which styles every row alike, cannot express.
+   */
+  class?: string;
+
+  /**
+   * Marks the item as a selectable setting. `true` / `false` renders the row
+   * as `role="menuitemradio"` with `aria-checked` and a checkmark indicator
+   * (an empty gutter when unchecked, so rows stay aligned); leave `undefined`
+   * for a plain action item (`role="menuitem"`, exactly as before). Menu only
+   * displays this state — compute it from your own source of truth and update
+   * that source in `onSelect`.
+   */
+  checked?: boolean;
+
+  /**
+   * Right-aligned secondary text on the row. Typical use: the current value
+   * of the sub-menu this item opens ("Average"), or a shortcut hint.
+   */
+  detail?: string;
 
   /**
    * Action invoked when the user activates this item (click or Enter / Space).

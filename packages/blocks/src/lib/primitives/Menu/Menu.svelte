@@ -24,6 +24,9 @@
     getItemDisabled,
     getItemChildren,
     getItemIcon,
+    getItemClass,
+    getItemChecked,
+    getItemDetail,
     isSection: isSectionMapper,
     getSectionLabel,
     disabled = false,
@@ -155,6 +158,30 @@
     return undefined;
   }
 
+  function resolveClass(item: TItem): string | undefined {
+    if (getItemClass) return getItemClass(item);
+    if (typeof item === 'object' && item !== null) {
+      return (item as MenuObjectOption).class;
+    }
+    return undefined;
+  }
+
+  function resolveChecked(item: TItem): boolean | undefined {
+    if (getItemChecked) return getItemChecked(item);
+    if (typeof item === 'object' && item !== null) {
+      return (item as MenuObjectOption).checked;
+    }
+    return undefined;
+  }
+
+  function resolveDetail(item: TItem): string | undefined {
+    if (getItemDetail) return getItemDetail(item);
+    if (typeof item === 'object' && item !== null) {
+      return (item as MenuObjectOption).detail;
+    }
+    return undefined;
+  }
+
   // ── Open / close lifecycle ─────────────────────────────────────────────
   // Single mutation point for internally-driven open changes, so
   // `onOpenChange` fires exactly once per transition. Popover-owned dismiss
@@ -217,13 +244,25 @@
   // We walk the rendered DOM (works for both array-mode and declarative
   // children, and for nested sub-menus) instead of the registry, so the
   // navigation always reflects what the user actually sees.
+  //
+  // The role set is ONE constant feeding both the DOM query below and the
+  // role comparison in handlePanelKeydown. A row rendered with a role this
+  // set misses drops out of arrow navigation silently — focus skips it and
+  // nothing errors — which is exactly what happened to `menuitemradio`
+  // before the set existed.
+  const NAV_ITEM_ROLES = ['menuitem', 'menuitemradio'] as const;
+  const NAV_ITEM_SELECTOR = NAV_ITEM_ROLES.map(
+    (role) => `[role="${role}"]:not([disabled]):not([aria-disabled="true"])`
+  ).join(', ');
+
+  function isNavItem(el: HTMLElement | null): el is HTMLElement {
+    const role = el?.getAttribute('role');
+    return role != null && (NAV_ITEM_ROLES as readonly string[]).includes(role);
+  }
+
   function getFocusableItems(): HTMLElement[] {
     if (!panelRef) return [];
-    return Array.from(
-      panelRef.querySelectorAll<HTMLElement>(
-        '[role="menuitem"]:not([disabled]):not([aria-disabled="true"])'
-      )
-    );
+    return Array.from(panelRef.querySelectorAll<HTMLElement>(NAV_ITEM_SELECTOR));
   }
 
   function focusNextItem(current: HTMLElement) {
@@ -269,7 +308,14 @@
   // to the trigger on Escape / selection (the previous `triggerRef` was never
   // assigned, so that restore was a silent no-op).
   $effect(() => {
-    if (!open) return;
+    if (!open) {
+      // Reset the disclosure state on EVERY close path (dismiss, outside
+      // click via Popover's bind:open, consumer-driven `open = false`), so
+      // the next open always starts with all sub-menus collapsed instead of
+      // replaying the previous session's expansion.
+      openSubMenus = new Set();
+      return;
+    }
     const opener = document.activeElement as HTMLElement | null;
     if (opener && opener !== document.body) triggerRef = opener;
     const openedViaKeyboard = opener?.matches?.(':focus-visible') ?? false;
@@ -354,15 +400,11 @@
   function handlePanelKeydown(e: KeyboardEvent) {
     const target = e.target as HTMLElement | null;
     const active = document.activeElement as HTMLElement | null;
-    // Only treat a real menuitem as the navigation anchor. When focus is on
-    // the panel container itself (pointer-open), `focusedItem` is null and
-    // ArrowDown/Up fall back to focusing the first/last item.
-    const focusedItem =
-      target?.getAttribute('role') === 'menuitem'
-        ? target
-        : active?.getAttribute('role') === 'menuitem'
-          ? active
-          : null;
+    // Only treat a real menu item (any role in NAV_ITEM_ROLES) as the
+    // navigation anchor. When focus is on the panel container itself
+    // (pointer-open), `focusedItem` is null and ArrowDown/Up fall back to
+    // focusing the first/last item.
+    const focusedItem = isNavItem(target) ? target : isNavItem(active) ? active : null;
 
     switch (e.key) {
       case 'ArrowDown':
@@ -546,6 +588,8 @@
                   label={itemLabel}
                   disabled={itemDisabled}
                   icon={itemIcon}
+                  detail={resolveDetail(typedItem)}
+                  class={resolveClass(typedItem)}
                   items={itemChildren}
                 />
               {:else if customItem}
@@ -554,6 +598,9 @@
                   label={itemLabel}
                   disabled={itemDisabled}
                   icon={itemIcon}
+                  checked={resolveChecked(typedItem)}
+                  detail={resolveDetail(typedItem)}
+                  class={resolveClass(typedItem)}
                   onSelect={opt?.onSelect}
                   keepOpen={opt?.keepOpen}
                 >
@@ -571,6 +618,9 @@
                   label={itemLabel}
                   disabled={itemDisabled}
                   icon={itemIcon}
+                  checked={resolveChecked(typedItem)}
+                  detail={resolveDetail(typedItem)}
+                  class={resolveClass(typedItem)}
                   onSelect={opt?.onSelect}
                   keepOpen={opt?.keepOpen}
                 />

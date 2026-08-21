@@ -193,7 +193,7 @@ Use `on` + PascalCase for callbacks that emit derived/processed state:
 <Select onOpenChange={(open) => ...} />
 ```
 
-(Menu is the deliberate exception: its items are *verbs*, so activation is the per-item `onSelect` callback — Menu has no selection state and no `onValueChange`.)
+(Menu is the deliberate exception: its items are *verbs*, so activation is the per-item `onSelect` callback and there is no `onValueChange` — an item's `checked` shows a setting as `menuitemradio`, but that state stays consumer-owned; Menu displays it and never stores a selection.)
 
 **Parameter convention:** Always pass the new state value, not the raw event.
 

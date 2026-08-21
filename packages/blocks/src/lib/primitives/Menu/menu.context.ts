@@ -1,7 +1,7 @@
 import { createContext } from 'svelte';
 import { createOptionalContext } from '$lib/utils/optional-context';
 import type { ButtonVariants } from '../Button/button.variants';
-import type { MenuVariants } from './menu.variants';
+import type { MenuSlots, MenuVariants } from './menu.variants';
 
 /**
  * Registration entry for a declarative MenuItem.
@@ -22,24 +22,10 @@ export type MenuContext = {
   mint: import('$lib/mint').MintProp | undefined;
   disabled: boolean;
   unstyled?: boolean;
-  slotClasses?: Partial<
-    Record<
-      | 'base'
-      | 'trigger'
-      | 'triggerText'
-      | 'chevron'
-      | 'content'
-      | 'header'
-      | 'section'
-      | 'divider'
-      | 'items'
-      | 'item'
-      | 'indicator'
-      | 'submenu'
-      | 'footer',
-      string
-    >
-  >;
+  // Keyed by the tv() config's own slot names so a new slot (e.g. `detail`)
+  // cannot silently miss the context — the hand-copied union this replaced
+  // could drift from menu.variants.ts without any error.
+  slotClasses?: Partial<Record<MenuSlots, string>>;
   styles: ReturnType<typeof import('./menu.variants').menuVariants>;
 
   /**

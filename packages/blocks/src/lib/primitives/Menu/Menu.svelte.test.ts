@@ -35,6 +35,7 @@ function renderMenu(props: MenuProps) {
 
 const trigger = () => screen.getByRole('button', { name: /Actions/ });
 const item = (name: string) => screen.getByRole('menuitem', { name, hidden: true });
+const radioItem = (name: string) => screen.getByRole('menuitemradio', { name, hidden: true });
 const expanded = () => trigger().getAttribute('aria-expanded');
 
 describe('Menu (component interaction)', () => {
@@ -192,6 +193,187 @@ describe('Menu (component interaction)', () => {
     expect(document.activeElement).toBe(item('Share'));
 
     expect(onDelete).not.toHaveBeenCalled();
+  });
+});
+
+// Selectable items (#240 wave 1). An item given `checked` renders as
+// `role="menuitemradio"` with `aria-checked` — Menu displays consumer-owned
+// state, it stores none. The keyboard positive control below exists because
+// the roving-nav role set is a DOM query: a role it misses drops out of arrow
+// navigation with everything else green.
+describe('Menu (selectable items)', () => {
+  it('renders checked items as menuitemradio with aria-checked; plain items stay menuitem', async () => {
+    const user = userEvent.setup();
+    renderMenu({
+      placeholder: 'Actions',
+      items: [
+        { label: 'Name', checked: true },
+        { label: 'Date', checked: false },
+        { label: 'Refresh' }
+      ]
+    });
+
+    await user.click(trigger());
+
+    expect(radioItem('Name').getAttribute('aria-checked')).toBe('true');
+    expect(radioItem('Name').getAttribute('data-state')).toBe('checked');
+    expect(radioItem('Date').getAttribute('aria-checked')).toBe('false');
+    expect(radioItem('Date').getAttribute('data-state')).toBe('unchecked');
+    // An item without checked keeps role=menuitem, no aria-checked, no gutter.
+    expect(item('Refresh').hasAttribute('aria-checked')).toBe(false);
+    expect(item('Refresh').querySelector('svg')).toBeNull();
+  });
+
+  it('paints the checkmark on the checked row and reserves an invisible gutter on the unchecked', async () => {
+    const user = userEvent.setup();
+    renderMenu({
+      placeholder: 'Actions',
+      items: [
+        { label: 'Name', checked: true },
+        { label: 'Date', checked: false }
+      ]
+    });
+
+    await user.click(trigger());
+
+    // Both rows carry the check svg (IconWrapper puts the class on <svg>) so
+    // labels align; only the unchecked one hides it via `invisible`.
+    const checkedSvg = radioItem('Name').querySelector('svg');
+    const uncheckedSvg = radioItem('Date').querySelector('svg');
+    expect(checkedSvg).toBeTruthy();
+    expect(checkedSvg?.classList.contains('invisible')).toBe(false);
+    expect(uncheckedSvg?.classList.contains('invisible')).toBe(true);
+  });
+
+  it('keyboard: arrow navigation reaches a menuitemradio item (role-set positive control)', async () => {
+    // THE regression this wave guards against: getFocusableItems and
+    // handlePanelKeydown share one role set — if `menuitemradio` fell out of
+    // it, focus would skip radio items silently while every other test stays
+    // green (the helpers above query per-role).
+    const user = userEvent.setup();
+    renderMenu({
+      placeholder: 'Actions',
+      items: [{ label: 'Refresh' }, { label: 'Name', checked: true }]
+    });
+
+    await user.click(trigger());
+    await user.keyboard('{ArrowDown}');
+    expect(document.activeElement).toBe(item('Refresh'));
+    await user.keyboard('{ArrowDown}');
+    expect(document.activeElement).toBe(radioItem('Name'));
+    // And onward from the radio item too — its own keydown handler routes
+    // through the same list, wrapping back to the first item.
+    await user.keyboard('{ArrowDown}');
+    expect(document.activeElement).toBe(item('Refresh'));
+  });
+
+  it('activating a checked radio item closes the menu like any item (no keepOpen default)', async () => {
+    const user = userEvent.setup();
+    const onPick = vi.fn();
+    renderMenu({
+      placeholder: 'Actions',
+      items: [{ label: 'Name', checked: false, onSelect: onPick }]
+    });
+
+    await user.click(trigger());
+    await user.click(radioItem('Name'));
+
+    expect(onPick).toHaveBeenCalledOnce();
+    expect(expanded()).toBe('false');
+  });
+});
+
+// Per-item styling (#240 wave 1). `class` on a MenuObjectOption must reach the
+// row at every render site: the top-level array pipeline, the submenu child
+// pipeline, and the submenu parent row (which used to bypass the item styling
+// entirely — no slotClasses.item, no unstyled).
+describe('Menu (per-item styling)', () => {
+  const nested = () => screen.getByRole('menuitem', { name: 'Nested', hidden: true });
+
+  it('applies the per-item class in array mode, on the submenu parent row, and inside the submenu', async () => {
+    const user = userEvent.setup();
+    renderMenu({
+      placeholder: 'Actions',
+      items: [
+        { label: 'Edit', class: 'top-mark' },
+        {
+          label: 'More',
+          class: 'parent-mark',
+          children: [{ label: 'Nested', class: 'child-mark' }]
+        }
+      ]
+    });
+
+    await user.click(trigger());
+    expect(item('Edit').classList.contains('top-mark')).toBe(true);
+    expect(item('More').classList.contains('parent-mark')).toBe(true);
+
+    await user.click(item('More'));
+    expect(nested().classList.contains('child-mark')).toBe(true);
+  });
+
+  it('slotClasses.item reaches the submenu parent row', async () => {
+    const user = userEvent.setup();
+    renderMenu({
+      placeholder: 'Actions',
+      slotClasses: { item: 'slot-mark' },
+      items: [{ label: 'More', children: [{ label: 'Nested' }] }]
+    });
+
+    await user.click(trigger());
+    expect(item('More').classList.contains('slot-mark')).toBe(true);
+  });
+
+  it('unstyled strips the variant classes from the submenu parent row, keeping slotClasses.item + per-item class', async () => {
+    const user = userEvent.setup();
+    renderMenu({
+      placeholder: 'Actions',
+      unstyled: true,
+      slotClasses: { item: 'slot-mark' },
+      items: [{ label: 'More', class: 'parent-mark', children: [{ label: 'Nested' }] }]
+    });
+
+    await user.click(trigger());
+    expect(item('More').className).toBe('slot-mark parent-mark');
+  });
+});
+
+describe('Menu (submenu lifecycle & detail readout)', () => {
+  it('reopens with all sub-menus collapsed after a dismiss', async () => {
+    const user = userEvent.setup();
+    renderMenu({
+      placeholder: 'Actions',
+      items: [{ label: 'More', children: [{ label: 'Nested' }] }]
+    });
+
+    await user.click(trigger());
+    await user.click(item('More'));
+    expect(screen.getByRole('menuitem', { name: 'Nested', hidden: true })).toBeTruthy();
+
+    await user.keyboard('{Escape}');
+    await user.click(trigger());
+
+    expect(item('More')).toBeTruthy();
+    expect(screen.queryByRole('menuitem', { name: 'Nested', hidden: true })).toBeNull();
+  });
+
+  it('renders the detail readout on the submenu parent row and on leaf items', async () => {
+    const user = userEvent.setup();
+    renderMenu({
+      placeholder: 'Actions',
+      items: [
+        { label: 'Sort by', detail: 'Name', children: [{ label: 'Name', checked: true }] },
+        { label: 'Zoom', detail: '100%' }
+      ]
+    });
+
+    await user.click(trigger());
+
+    // The detail text joins the row's accessible name, so query by prefix.
+    const parentRow = screen.getByRole('menuitem', { name: /Sort by/, hidden: true });
+    expect(parentRow.textContent).toContain('Name');
+    const leafRow = screen.getByRole('menuitem', { name: /Zoom/, hidden: true });
+    expect(leafRow.textContent).toContain('100%');
   });
 });
 

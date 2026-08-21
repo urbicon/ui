@@ -14,8 +14,10 @@
     label,
     disabled = false,
     icon,
+    detail,
     items,
-    children
+    children,
+    class: className = ''
   }: {
     /** Stable id for sub-menu bookkeeping. */
     id: string;
@@ -26,6 +28,11 @@
     /** Optional leading icon component. */
     icon?: unknown;
     /**
+     * Right-aligned secondary text on the parent row — typically the current
+     * value among the sub-menu's entries ("Average"), visible while collapsed.
+     */
+    detail?: string;
+    /**
      * Array-shape children — used when Menu's parent `items` array contains a
      * `MenuObjectOption` with `children: MenuItemType[]`. Mutually exclusive
      * with the `children` snippet.
@@ -35,6 +42,8 @@
      * Declarative-shape children — used inside `<MenuSubmenu><MenuItem …/></MenuSubmenu>`.
      */
     children?: Snippet;
+    /** Extra classes merged onto the parent row, after `slotClasses.item`. */
+    class?: string;
   } = $props();
 
   const ctx = getMenuContext();
@@ -90,7 +99,13 @@
   aria-haspopup="menu"
   aria-expanded={isOpen}
   aria-disabled={disabled || undefined}
-  class={ctx.styles.item({ itemSize: ctx.itemSizeForDepth(0), disabled })}
+  class={ctx.unstyled
+    ? [ctx.slotClasses?.item, className].filter(Boolean).join(' ')
+    : ctx.styles.item({
+        itemSize: ctx.itemSizeForDepth(0),
+        disabled,
+        class: [ctx.slotClasses?.item, className]
+      })}
   {@attach mintAttachment(ctx.mint, { enabled: !disabled })}
 >
   {#if icon}
@@ -104,11 +119,25 @@
     </span>
   {/if}
   <span class="flex-1 truncate text-left">{label}</span>
+  {#if detail}
+    <span
+      class={ctx.unstyled
+        ? (ctx.slotClasses?.detail ?? '')
+        : ctx.styles.detail({ class: ctx.slotClasses?.detail })}
+    >
+      {detail}
+    </span>
+  {/if}
   <ChevronRightIcon class="h-4 w-4 opacity-70" />
 </button>
 
 {#if isOpen}
-  <div role="menu" class={ctx.styles.submenu()}>
+  <div
+    role="menu"
+    class={ctx.unstyled
+      ? (ctx.slotClasses?.submenu ?? '')
+      : ctx.styles.submenu({ class: ctx.slotClasses?.submenu })}
+  >
     {#if items && items.length > 0}
       {#each items as child, i (resolveId(child, i))}
         {#if isSectionItem(child)}
@@ -127,6 +156,9 @@
             label={resolveLabel(child)}
             disabled={Boolean(childOpt?.disabled)}
             icon={childOpt?.icon}
+            checked={childOpt?.checked}
+            detail={childOpt?.detail}
+            class={childOpt?.class}
             onSelect={childOpt?.onSelect}
             keepOpen={childOpt?.keepOpen}
           />
