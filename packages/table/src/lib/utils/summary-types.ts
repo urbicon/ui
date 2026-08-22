@@ -38,9 +38,11 @@ export type SummaryType = (typeof SUMMARY_TYPES)[number]['value'];
 
 /**
  * Membership in the vocabulary. Every runtime entrance where an aggregation
- * code arrives as a plain string funnels through this: prefs hydration, the
- * `columnId:type` compound the summary menu parses back, the panel's radio
- * value. `typeof x === 'string'` is not a check — `'median'` from an older
+ * code arrives as a plain string funnels through this: prefs hydration and
+ * the panel's radio value. (The summary menu used to be a third entrance —
+ * it parsed a `columnId:type` compound back apart — until #240 moved it onto
+ * the Menu primitive, whose options carry column and type as objects.)
+ * `typeof x === 'string'` is not a check — `'median'` from an older
  * app version passed it and crashed the whole table at mount (#251).
  */
 export function isSummaryType(value: unknown): value is SummaryType {

@@ -91,6 +91,17 @@ describe('SummaryMenu — a menu of radio groups', () => {
     }
   });
 
+  it('ArrowDown on the closed trigger opens the menu (APG menu button)', async () => {
+    const user = userEvent.setup();
+    renderTable();
+
+    trigger().focus();
+    expect(screen.queryByRole('menu', { hidden: true })).toBeNull();
+
+    await user.keyboard('{ArrowDown}');
+    expect(screen.getByRole('menu', { hidden: true })).toBeTruthy();
+  });
+
   it('marks the active combination aria-checked — still clickable, not the old disabled hack', async () => {
     const user = userEvent.setup();
     const { context } = renderTable();

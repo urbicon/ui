@@ -23,6 +23,7 @@
     icon,
     counter,
     onclick = undefined,
+    onkeydown = undefined,
     testId = undefined
   }: {
     /** Human name of the tool — the tooltip and the accessible name. */
@@ -37,6 +38,8 @@
     /** Badge shown after the label — a count of what this tool is doing. */
     counter?: Snippet;
     onclick?: () => void;
+    /** Keyboard affordances the wrapped overlay needs on its trigger (e.g. ArrowDown-opens for a menu). */
+    onkeydown?: (e: KeyboardEvent) => void;
     testId?: string;
   } = $props();
 </script>
@@ -59,6 +62,7 @@
     aria-haspopup={haspopup}
     aria-label={label}
     {onclick}
+    {onkeydown}
     data-testid={testId}
   >
     {@render icon()}

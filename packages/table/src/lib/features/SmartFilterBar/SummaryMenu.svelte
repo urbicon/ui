@@ -43,14 +43,20 @@
     summableColumns.flatMap((column) => {
       const columnId = resolveColumnId(column);
       const current = summaryConfigs.find((config) => config.column === columnId)?.type;
+      // Explicit `id`s: without them Menu's resolveId falls back to the flat
+      // render index — the loop-index-as-key anti-pattern, one column away
+      // from misassigned rows the moment the list reorders. `-` as the
+      // joiner, not `:` — the id is an opaque key, never parsed back apart.
       return [
         { type: 'section' as const, label: resolveColumnLabel(column) },
         {
+          id: `${columnId}-none`,
           label: tt('summary.none'),
           checked: current === undefined,
           onSelect: () => removeSummaryConfig(columnId)
         },
         ...SUMMARY_TYPES.map((type) => ({
+          id: `${columnId}-${type.value}`,
           label: `${type.glyph} ${tt(type.labelKey)}`,
           checked: current === type.value,
           onSelect: () => addSummaryConfig({ column: columnId, type: type.value })
@@ -91,6 +97,15 @@
       icon={triggerIcon}
       counter={triggerCounter}
       onclick={toggle}
+      onkeydown={(e: KeyboardEvent) => {
+        // APG menu button: ArrowDown on the closed trigger opens the menu —
+        // Menu's default trigger does this, a customTrigger has to repeat it.
+        // Plain key only; modified arrows stay whatever the host makes of them.
+        if (e.key === 'ArrowDown' && !e.shiftKey) {
+          e.preventDefault();
+          toggle();
+        }
+      }}
     />
   {/snippet}
 </Menu>

@@ -518,6 +518,16 @@
   // Panel-level keyboard model. Handles arrow-key navigation, Home/End,
   // and Escape — individual MenuItem buttons forward Enter/Space + arrow
   // keys to here via their own onkeydown handler.
+  //
+  // Every handled key is CONSUMED (`stopPropagation` beside the
+  // `preventDefault`): a menu owns its navigation, and because the panel
+  // renders in the trigger's DOM (a portal/top-layer promotion does not
+  // reparent), handled keys otherwise bubble on into whatever the menu is
+  // embedded in — measured on the table grid, where ArrowDown in an open
+  // header menu also moved the row focus and Escape cleared the row
+  // selection (PR #260 review, P1). Unhandled keys keep bubbling. Popover's
+  // manual-mode Escape listener sanctions exactly this ("inner widgets get
+  // the first chance … via `e.preventDefault()` or `e.stopPropagation()`").
   function handlePanelKeydown(e: KeyboardEvent) {
     const target = e.target as HTMLElement | null;
     const active = document.activeElement as HTMLElement | null;
@@ -530,29 +540,35 @@
     switch (e.key) {
       case 'ArrowDown':
         e.preventDefault();
+        e.stopPropagation();
         if (focusedItem) focusNextItem(focusedItem);
         else focusFirstItem();
         break;
       case 'ArrowUp':
         e.preventDefault();
+        e.stopPropagation();
         if (focusedItem) focusPrevItem(focusedItem);
         else focusLastItem();
         break;
       case 'Home':
         e.preventDefault();
+        e.stopPropagation();
         focusFirstItem();
         break;
       case 'End':
         e.preventDefault();
+        e.stopPropagation();
         focusLastItem();
         break;
       case 'Escape':
         e.preventDefault();
+        e.stopPropagation();
         dismiss();
         break;
       case 'Tab':
         // W3C menu pattern: Tab moves focus OUT of the menu — close and let
-        // the browser take the next tab stop.
+        // the browser take the next tab stop. Deliberately NOT consumed:
+        // the browser needs the un-stopped, un-prevented event to move focus.
         dismiss();
         break;
     }

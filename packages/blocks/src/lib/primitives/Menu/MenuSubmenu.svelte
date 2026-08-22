@@ -71,12 +71,19 @@
     ctx.toggleSubMenu(id);
   }
 
+  // Handled keys are consumed (stopPropagation), same contract as MenuItem
+  // and the panel handler in Menu.svelte: a menu owns its navigation, and
+  // the panel lives in the host's DOM, so anything not stopped bubbles into
+  // it. ArrowUp/Down are deliberately NOT handled here — they fall through
+  // to the panel handler, which consumes them.
   function onKeydown(e: KeyboardEvent) {
     if (e.key === 'Enter' || e.key === ' ' || e.key === 'ArrowRight') {
       e.preventDefault();
+      e.stopPropagation();
       toggleOpen();
     } else if (e.key === 'ArrowLeft' && isOpen) {
       e.preventDefault();
+      e.stopPropagation();
       toggleOpen();
     }
   }

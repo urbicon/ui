@@ -187,6 +187,16 @@
         aria-haspopup="menu"
         aria-expanded={open}
         onclick={toggle}
+        onkeydown={(e: KeyboardEvent) => {
+          // APG menu button: ArrowDown on the closed trigger opens the menu —
+          // Menu's default trigger does this, a customTrigger has to repeat
+          // it. Plain key only: the surrounding header owns Shift+Arrow for
+          // column reorder, and this handler must not eat modified arrows.
+          if (e.key === 'ArrowDown' && !e.shiftKey) {
+            e.preventDefault();
+            toggle();
+          }
+        }}
         data-testid={`header-menu-trigger-${columnId}`}
       >
         <MoreVerticalIcon class="h-4 w-4" />

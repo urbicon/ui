@@ -111,6 +111,11 @@
     ctx.onItemActivated(keepOpen);
   }
 
+  // Handled keys are consumed (stopPropagation): the row's arrows would
+  // otherwise ALSO run through the panel handler (a second, idempotent
+  // focus move) and then bubble on into the menu's host — see the panel
+  // handler in Menu.svelte for the measured grid regression. Enter/Space
+  // stop inside `activate()`.
   function onKeydown(e: KeyboardEvent) {
     switch (e.key) {
       case 'Enter':
@@ -120,10 +125,12 @@
         break;
       case 'ArrowDown':
         e.preventDefault();
+        e.stopPropagation();
         if (buttonRef) ctx.focusNextItem(buttonRef);
         break;
       case 'ArrowUp':
         e.preventDefault();
+        e.stopPropagation();
         if (buttonRef) ctx.focusPrevItem(buttonRef);
         break;
     }

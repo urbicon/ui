@@ -91,6 +91,23 @@ describe('HeaderMenu — menu semantics', () => {
     expect(document.activeElement).toBe(typeItem('Sort descending'));
   });
 
+  it('ArrowDown on the closed trigger opens the menu; Shift+Arrow stays with the header', async () => {
+    const user = userEvent.setup();
+    renderTable();
+
+    menuTrigger().focus();
+
+    // Modified arrows are not ours — the surrounding header owns Shift+Arrow
+    // for column reorder, so the trigger must let them pass.
+    await user.keyboard('{Shift>}{ArrowDown}{/Shift}');
+    expect(screen.queryByRole('menu', { hidden: true })).toBeNull();
+
+    // APG menu button: plain ArrowDown opens (Menu's default trigger can do
+    // this; the customTrigger has to repeat it).
+    await user.keyboard('{ArrowDown}');
+    expect(screen.getByRole('menu', { hidden: true })).toBeTruthy();
+  });
+
   it('announces the effective sort direction as aria-checked, not just a tint', async () => {
     const user = userEvent.setup();
     renderTable();
