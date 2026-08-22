@@ -129,7 +129,7 @@ rulers"), not for value picking.
 | Surface        | `Select`                                        | `Combobox`                                     | `Menu`                          |
 | -------------- | ----------------------------------------------- | ---------------------------------------------- | ------------------------------- |
 | Trigger        | `role="combobox"` + `aria-haspopup="listbox"`   | the `<input>` itself, `role="combobox"`        | Button + `aria-haspopup="menu"` |
-| Panel          | `role="listbox"` (+ `role="group"` per group)   | `role="listbox"` (+ `role="status"` for async) | `role="menu"` (+ `role="group"` per section) |
+| Panel          | `role="listbox"` (+ `role="group"` per group)   | `role="listbox"` (+ `role="status"` for async) | `role="menu"` (+ `role="group"` per top-level array section; a submenu panel is its own `role="menu"` scope) |
 | Items          | `role="option"` + `aria-selected`               | `role="option"` + `aria-selected`              | `role="menuitem"`; `checked` items `role="menuitemradio"` + `aria-checked` |
 | Keyboard focus | stays on the trigger, `aria-activedescendant`   | stays on the input, `aria-activedescendant`    | roving focus across items       |
 

@@ -57,7 +57,8 @@ export const menuVariants = tv({
     // `role="group"` that scopes a `menuitemradio` set to its section
     // (aria-labelledby points at the section header). Mirrors the `items`
     // wrapper's row rhythm, since its children no longer sit in that wrapper
-    // directly.
+    // directly — a consumer who re-rhythmed section rows via
+    // `slotClasses.items` must target `slotClasses.group` for them now.
     group: ['space-y-0.5'],
     submenu: ['ml-4 mt-2 border-l border-border-hairline pl-2'],
     footer: [
