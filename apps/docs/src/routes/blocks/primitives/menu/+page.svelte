@@ -29,12 +29,12 @@
 
 <SeoMeta
   title="Menu Component"
-  description="Action menu for invoking actions. Items dispatch onSelect callbacks. For selecting a value from a list, use Select."
+  description="Action menu for invoking actions. Items dispatch onSelect callbacks; an item with checked displays a setting. For committing a value to a form, use Select."
 />
 
 <DocsPageLayout
   title="Menu"
-  description="Action menu for invoking actions. Items dispatch onSelect callbacks. For selecting a value from a list, use Select."
+  description="Action menu for invoking actions. Items dispatch onSelect callbacks; an item with checked displays a setting. For committing a value to a form, use Select."
   maxWidth="2xl"
   showToc={true}
   breadcrumbs={[

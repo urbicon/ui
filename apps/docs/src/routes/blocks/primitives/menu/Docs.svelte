@@ -2,13 +2,13 @@
   import {
     BasicSingle,
     CustomHeaderFooter,
-    CustomItemRenderer,
-    CustomTriggerContent
+    CustomTriggerContent,
+    SelectableItems
   } from './examples';
   import basicSingleCode from './examples/BasicSingle.svelte?raw';
   import customHeaderFooterCode from './examples/CustomHeaderFooter.svelte?raw';
-  import customItemRendererCode from './examples/CustomItemRenderer.svelte?raw';
   import customTriggerContentCode from './examples/CustomTriggerContent.svelte?raw';
+  import selectableItemsCode from './examples/SelectableItems.svelte?raw';
 
   import { CodeExample, Note, NoteList, Section } from '@urbicon-ui/docs';
   import { Kbd, Menu } from '@urbicon-ui/blocks';
@@ -45,7 +45,9 @@
           <td class="py-3 pr-4 align-top"><code class="text-text-primary">menu</code></td>
           <td class="py-3 align-top">
             The items are verbs: Edit, Delete, Share, Export. Each runs its
-            <code class="text-text-primary">onSelect</code>, and Menu keeps no selection state.
+            <code class="text-text-primary">onSelect</code>. An item given
+            <code class="text-text-primary">checked</code> also displays a setting — Menu shows the state
+            you supply but never stores a selection.
           </td>
         </tr>
         <tr>
@@ -71,14 +73,18 @@
     <code class="text-text-primary">onSelect</code> that runs when it is activated (a bare string is
     shorthand for a label-only item). Add
     <code class="text-text-primary">id</code>, <code class="text-text-primary">disabled</code>,
-    <code class="text-text-primary">keepOpen</code> for repeated picks, or
+    <code class="text-text-primary">keepOpen</code> for repeated picks,
+    <code class="text-text-primary">checked</code> for a selectable setting,
+    <code class="text-text-primary">detail</code> for a right-aligned readout, or
     <code class="text-text-primary">children</code> for a submenu, and a
     <code class="text-text-primary">type: 'section'</code> entry heads a group. Build the menu from
     an
     <code class="text-text-primary">items</code> array as shown here, or declaratively with
     <code class="text-text-primary">&lt;MenuItem&gt;</code>,
     <code class="text-text-primary">&lt;MenuSection&gt;</code> and
-    <code class="text-text-primary">&lt;MenuDivider&gt;</code> children.
+    <code class="text-text-primary">&lt;MenuDivider&gt;</code> children. When the built-in
+    icon-label-detail row is not enough, a <code class="text-text-primary">customItem</code> snippet takes
+    over each row's inner content — render visible content only, since Menu supplies the surrounding button.
   </p>
 
   <div class="space-y-8">
@@ -107,11 +113,11 @@
     </CodeExample>
 
     <CodeExample
-      title="Custom item content"
-      description="customItem takes over an item's inner content, here pairing an icon with each label. Render visible content only, not an interactive element, since Menu supplies the surrounding button."
-      code={customItemRendererCode}
+      title="Selectable settings"
+      description="checked turns a row into role=menuitemradio with a checkmark; the parent row's detail shows the current value while the submenu is collapsed. The state lives in the consumer — each onSelect updates it, Menu only displays it."
+      code={selectableItemsCode}
     >
-      <CustomItemRenderer />
+      <SelectableItems />
     </CodeExample>
   </div>
 </Section>
@@ -155,7 +161,11 @@
         Uses <code class="text-text-primary">role="menu"</code> on the panel and
         <code class="text-text-primary">role="menuitem"</code> on each item, with
         <code class="text-text-primary">aria-haspopup="menu"</code> +
-        <code class="text-text-primary">aria-expanded</code> on the trigger. Sub-menus add
+        <code class="text-text-primary">aria-expanded</code> on the trigger. An item given
+        <code class="text-text-primary">checked</code> renders as
+        <code class="text-text-primary">role="menuitemradio"</code> with
+        <code class="text-text-primary">aria-checked</code>, so the active setting is announced, not
+        just marked. Sub-menus add
         <code class="text-text-primary">aria-haspopup="menu"</code> on the submenu trigger.
       </p>
     </Note>

@@ -1,5 +1,5 @@
 <script lang="ts" generics="TItem extends MenuItemType = MenuItemType">
-  import { tick } from 'svelte';
+  import { tick, untrack } from 'svelte';
   import { useBlocksI18n } from '$lib';
   import { getBlocksConfig, resolveSlotClasses } from '$lib/provider';
   import { Button, menuVariants, type MenuVariants } from '$lib/primitives';
@@ -24,6 +24,9 @@
     getItemDisabled,
     getItemChildren,
     getItemIcon,
+    getItemClass,
+    getItemChecked,
+    getItemDetail,
     isSection: isSectionMapper,
     getSectionLabel,
     disabled = false,
@@ -155,6 +158,101 @@
     return undefined;
   }
 
+  function resolveClass(item: TItem): string | undefined {
+    if (getItemClass) return getItemClass(item);
+    if (typeof item === 'object' && item !== null) {
+      return (item as MenuObjectOption).class;
+    }
+    return undefined;
+  }
+
+  function resolveChecked(item: TItem): boolean | undefined {
+    if (getItemChecked) return getItemChecked(item);
+    if (typeof item === 'object' && item !== null) {
+      return (item as MenuObjectOption).checked;
+    }
+    return undefined;
+  }
+
+  function resolveDetail(item: TItem): string | undefined {
+    if (getItemDetail) return getItemDetail(item);
+    if (typeof item === 'object' && item !== null) {
+      return (item as MenuObjectOption).detail;
+    }
+    return undefined;
+  }
+
+  // ── Array-mode section grouping ────────────────────────────────────────
+  // ARIA 1.2 scopes a `menuitemradio` set via `role="group"` (or separators);
+  // a bare section header is `role="presentation"` and gives AT no boundary,
+  // so posinset/setsize would be computed over the whole menu,
+  // browser-dependently. Items following a section header therefore render
+  // inside a `role="group"` labelled by that header; items before the first
+  // header render bare, exactly as before.
+  type ArrayGroup = {
+    /** Section header opening this group; null for the leading bare segment. */
+    section: MenuSectionHeader | null;
+    /** Original index of the section header (stable key + DOM id derivation). */
+    sectionIndex: number;
+    /** Items with their original flat index, so resolveId fallbacks stay stable. */
+    entries: Array<{ item: TItem; index: number }>;
+  };
+  const arrayGroups: ArrayGroup[] = $derived.by(() => {
+    const groups: ArrayGroup[] = [];
+    let current: ArrayGroup | null = null;
+    for (let index = 0; index < items.length; index++) {
+      const raw = items[index];
+      if (isSectionItem(raw)) {
+        current = { section: raw, sectionIndex: index, entries: [] };
+        groups.push(current);
+        continue;
+      }
+      if (!current) {
+        current = { section: null, sectionIndex: -1, entries: [] };
+        groups.push(current);
+      }
+      current.entries.push({ item: raw, index });
+    }
+    return groups;
+  });
+
+  // ── Check-gutter scope ─────────────────────────────────────────────────
+  // The checkmark gutter is reserved for ALL rows of a scope as soon as any
+  // item in it carries `checked` — platform menus reserve the gutter across
+  // rows, otherwise verb labels sit outdented beside radio labels. Scope: a
+  // section group in array mode; the whole top level for items outside any
+  // section. Declarative rows resolve menu-wide via `ctx.showCheckGutter`
+  // (Menu cannot inspect snippet children ahead of render — they report
+  // through item registration instead, see `checkableCount`).
+  function entryIsCheckable(entry: { item: TItem }): boolean {
+    return (
+      resolveChecked(entry.item) !== undefined && (resolveChildren(entry.item)?.length ?? 0) === 0
+    );
+  }
+  const anyTopLevelChecked = $derived(
+    !childrenMode && arrayGroups.some((group) => group.entries.some(entryIsCheckable))
+  );
+
+  // `checked` on a submenu parent is swallowed by design (the parent row is
+  // a disclosure, not a radio) — say so once in dev instead of silently.
+  $effect(() => {
+    if (!import.meta.env?.DEV) return;
+    for (const group of arrayGroups) {
+      for (const entry of group.entries) {
+        if (
+          resolveChecked(entry.item) !== undefined &&
+          (resolveChildren(entry.item)?.length ?? 0) > 0
+        ) {
+          console.warn(
+            `[Menu] item "${resolveLabel(entry.item)}" sets both \`checked\` and \`children\` — ` +
+              'checked is ignored on a submenu parent row (it is a disclosure, not a radio). ' +
+              "Use `detail` to show the submenu's current value."
+          );
+        }
+      }
+    }
+  });
+
   // ── Open / close lifecycle ─────────────────────────────────────────────
   // Single mutation point for internally-driven open changes, so
   // `onOpenChange` fires exactly once per transition. Popover-owned dismiss
@@ -196,17 +294,39 @@
     openSubMenus = next;
   }
 
-  // ── Registry (debug + type-ahead hook) ────────────────────────────────
+  // ── Registry (debug + type-ahead hook + gutter census) ────────────────
+  // Menu-wide gutter signal for declarative rows: counts mounted items whose
+  // registration carries a checked state. register/unregister run inside the
+  // MenuItem registration effects, and a compound assignment READS the state
+  // it writes — untracked, or every registration effect would adopt
+  // `checkableCount` as a dependency and each write would re-run all of them
+  // (measured: effect_update_depth_exceeded, the same read+write-in-effect
+  // trap as the SvelteMap incident).
+  let checkableCount = $state(0);
+  function adjustCheckableCount(delta: number) {
+    untrack(() => {
+      checkableCount += delta;
+    });
+  }
+
   function registerItem(item: MenuRegistryItem) {
-    if (registryBuffer.has(item.id) && import.meta.env?.DEV) {
+    const prev = registryBuffer.get(item.id);
+    if (prev && import.meta.env?.DEV) {
       console.warn(
         `[Menu] duplicate item id "${item.id}" — the second registration overrides the first.`
       );
     }
+    // Keep the census in sync across re-registrations: an id only moves the
+    // count when `checked` crosses the defined/undefined boundary.
+    const wasCheckable = prev?.checked !== undefined;
+    const isCheckable = item.checked !== undefined;
+    if (wasCheckable !== isCheckable) adjustCheckableCount(isCheckable ? 1 : -1);
     registryBuffer.set(item.id, item);
   }
 
   function unregisterItem(id: string) {
+    const prev = registryBuffer.get(id);
+    if (prev?.checked !== undefined) adjustCheckableCount(-1);
     registryBuffer.delete(id);
   }
 
@@ -217,13 +337,25 @@
   // We walk the rendered DOM (works for both array-mode and declarative
   // children, and for nested sub-menus) instead of the registry, so the
   // navigation always reflects what the user actually sees.
+  //
+  // The role set is ONE constant feeding both the DOM query below and the
+  // role comparison in handlePanelKeydown. A row rendered with a role this
+  // set misses drops out of arrow navigation silently — focus skips it and
+  // nothing errors — which is exactly what happened to `menuitemradio`
+  // before the set existed.
+  const NAV_ITEM_ROLES = ['menuitem', 'menuitemradio'] as const;
+  const NAV_ITEM_SELECTOR = NAV_ITEM_ROLES.map(
+    (role) => `[role="${role}"]:not([disabled]):not([aria-disabled="true"])`
+  ).join(', ');
+
+  function isNavItem(el: HTMLElement | null): el is HTMLElement {
+    const role = el?.getAttribute('role');
+    return role != null && (NAV_ITEM_ROLES as readonly string[]).includes(role);
+  }
+
   function getFocusableItems(): HTMLElement[] {
     if (!panelRef) return [];
-    return Array.from(
-      panelRef.querySelectorAll<HTMLElement>(
-        '[role="menuitem"]:not([disabled]):not([aria-disabled="true"])'
-      )
-    );
+    return Array.from(panelRef.querySelectorAll<HTMLElement>(NAV_ITEM_SELECTOR));
   }
 
   function focusNextItem(current: HTMLElement) {
@@ -251,6 +383,21 @@
     const items = getFocusableItems();
     items[items.length - 1]?.focus();
   }
+
+  // Sub-menu disclosure state resets on the OPENING edge, not on close:
+  // Popover keeps the panel mounted through its exit transition, so a reset
+  // on close would visibly collapse open submenus in the exit frame. The
+  // non-reactive prev tracker (Popover's own exit pattern) keys the effect
+  // on real transitions, and `$effect.pre` clears the state in the same
+  // flush that renders the reopened panel — every close path (dismiss,
+  // outside click, consumer-driven `open = false`) is followed by exactly
+  // such an opening edge, so the menu still reopens fully collapsed.
+  let prevOpen = untrack(() => open);
+  $effect.pre(() => {
+    if (open === prevOpen) return;
+    prevOpen = open;
+    if (open) openSubMenus = new Set();
+  });
 
   // When the menu opens, move focus into it (W3C menu pattern) so arrow-key
   // navigation works immediately — otherwise focus would stay on the trigger
@@ -344,7 +491,27 @@
     toggleSubMenu,
     registerItem,
     unregisterItem,
-    itemSizeForDepth
+    itemSizeForDepth,
+    get showCheckGutter() {
+      return checkableCount > 0;
+    },
+    // Mapper-honoring field resolvers, so MenuSubmenu's child pipeline runs
+    // through the same functions as the top level (the `getItem*` mappers
+    // used to end silently at the submenu boundary). The context is typed on
+    // MenuItemType while the mappers take TItem — safe here because submenu
+    // children come from `resolveChildren` (i.e. `getItemChildren`), which
+    // yields the same shape the mappers were written for.
+    resolvers: {
+      label: (item) => resolveLabel(item as TItem),
+      id: (item, fallbackIndex) => resolveId(item as TItem, fallbackIndex),
+      disabled: (item) => resolveDisabled(item as TItem),
+      icon: (item) => resolveIconForItem(item as TItem),
+      class: (item) => resolveClass(item as TItem),
+      checked: (item) => resolveChecked(item as TItem),
+      detail: (item) => resolveDetail(item as TItem),
+      isSection: isSectionItem,
+      sectionLabel: (section) => (getSectionLabel ? getSectionLabel(section) : section.label)
+    }
   };
   setMenuContext(ctx);
 
@@ -354,15 +521,11 @@
   function handlePanelKeydown(e: KeyboardEvent) {
     const target = e.target as HTMLElement | null;
     const active = document.activeElement as HTMLElement | null;
-    // Only treat a real menuitem as the navigation anchor. When focus is on
-    // the panel container itself (pointer-open), `focusedItem` is null and
-    // ArrowDown/Up fall back to focusing the first/last item.
-    const focusedItem =
-      target?.getAttribute('role') === 'menuitem'
-        ? target
-        : active?.getAttribute('role') === 'menuitem'
-          ? active
-          : null;
+    // Only treat a real menu item (any role in NAV_ITEM_ROLES) as the
+    // navigation anchor. When focus is on the panel container itself
+    // (pointer-open), `focusedItem` is null and ArrowDown/Up fall back to
+    // focusing the first/last item.
+    const focusedItem = isNavItem(target) ? target : isNavItem(active) ? active : null;
 
     switch (e.key) {
       case 'ArrowDown':
@@ -517,64 +680,96 @@
       <div
         class={unstyled ? (slotClasses?.items ?? '') : styles.items({ class: slotClasses?.items })}
       >
+        {#snippet arrayEntry(typedItem: TItem, i: number, checkGutter: boolean)}
+          {@const itemId = resolveId(typedItem, i)}
+          {@const itemLabel = resolveLabel(typedItem)}
+          {@const itemDisabled = resolveDisabled(typedItem)}
+          {@const itemChildren = resolveChildren(typedItem)}
+          {@const itemIcon = resolveIconForItem(typedItem)}
+          {@const opt = typeof typedItem === 'object' ? (typedItem as MenuObjectOption) : null}
+
+          {#if itemChildren && itemChildren.length > 0}
+            <MenuSubmenu
+              id={itemId}
+              label={itemLabel}
+              disabled={itemDisabled}
+              icon={itemIcon}
+              detail={resolveDetail(typedItem)}
+              class={resolveClass(typedItem)}
+              items={itemChildren}
+              {checkGutter}
+            />
+          {:else if customItem}
+            <MenuItemComp
+              id={itemId}
+              label={itemLabel}
+              disabled={itemDisabled}
+              icon={itemIcon}
+              checked={resolveChecked(typedItem)}
+              detail={resolveDetail(typedItem)}
+              class={resolveClass(typedItem)}
+              onSelect={opt?.onSelect}
+              keepOpen={opt?.keepOpen}
+              {checkGutter}
+            >
+              {@render customItem(typedItem)}
+            </MenuItemComp>
+          {:else}
+            <!-- Without a customItem snippet, render MenuItem *without*
+                 a children block — passing `{#if customItem}{/if}` would
+                 hand MenuItem a truthy-but-empty snippet, and its
+                 `{#if children}` short-circuit would then skip the
+                 fallback `{label}` render and the item would appear
+                 blank. -->
+            <MenuItemComp
+              id={itemId}
+              label={itemLabel}
+              disabled={itemDisabled}
+              icon={itemIcon}
+              checked={resolveChecked(typedItem)}
+              detail={resolveDetail(typedItem)}
+              class={resolveClass(typedItem)}
+              onSelect={opt?.onSelect}
+              keepOpen={opt?.keepOpen}
+              {checkGutter}
+            />
+          {/if}
+        {/snippet}
+
         {#if childrenMode}
           {@render children?.()}
         {:else}
-          {#each items as item, i (resolveId(item as TItem, i))}
-            {#if isSectionItem(item)}
-              {@const section = item as MenuSectionHeader}
+          {#each arrayGroups as group (group.section ? `section-${group.sectionIndex}` : 'lead')}
+            {#if group.section}
+              {@const sectionLabelId = `${rootId}-section-${group.sectionIndex}`}
+              {@const groupGutter = group.entries.some(entryIsCheckable)}
               <div
                 role="presentation"
+                id={sectionLabelId}
                 class={unstyled
                   ? (slotClasses?.section ?? '')
                   : styles.section({ class: slotClasses?.section })}
               >
-                {getSectionLabel ? getSectionLabel(section) : section.label}
+                {getSectionLabel ? getSectionLabel(group.section) : group.section.label}
+              </div>
+              <!-- The group boundary AT needs for a menuitemradio set: the
+                   section's items live in a role="group" named by the header
+                   (role="presentation" does not stop it labelling). -->
+              <div
+                role="group"
+                aria-labelledby={sectionLabelId}
+                class={unstyled
+                  ? (slotClasses?.group ?? '')
+                  : styles.group({ class: slotClasses?.group })}
+              >
+                {#each group.entries as entry (resolveId(entry.item, entry.index))}
+                  {@render arrayEntry(entry.item, entry.index, groupGutter)}
+                {/each}
               </div>
             {:else}
-              {@const typedItem = item as TItem}
-              {@const itemId = resolveId(typedItem, i)}
-              {@const itemLabel = resolveLabel(typedItem)}
-              {@const itemDisabled = resolveDisabled(typedItem)}
-              {@const itemChildren = resolveChildren(typedItem)}
-              {@const itemIcon = resolveIconForItem(typedItem)}
-              {@const opt = typeof typedItem === 'object' ? (typedItem as MenuObjectOption) : null}
-
-              {#if itemChildren && itemChildren.length > 0}
-                <MenuSubmenu
-                  id={itemId}
-                  label={itemLabel}
-                  disabled={itemDisabled}
-                  icon={itemIcon}
-                  items={itemChildren}
-                />
-              {:else if customItem}
-                <MenuItemComp
-                  id={itemId}
-                  label={itemLabel}
-                  disabled={itemDisabled}
-                  icon={itemIcon}
-                  onSelect={opt?.onSelect}
-                  keepOpen={opt?.keepOpen}
-                >
-                  {@render customItem(typedItem)}
-                </MenuItemComp>
-              {:else}
-                <!-- Without a customItem snippet, render MenuItem *without*
-                     a children block — passing `{#if customItem}{/if}` would
-                     hand MenuItem a truthy-but-empty snippet, and its
-                     `{#if children}` short-circuit would then skip the
-                     fallback `{label}` render and the item would appear
-                     blank. -->
-                <MenuItemComp
-                  id={itemId}
-                  label={itemLabel}
-                  disabled={itemDisabled}
-                  icon={itemIcon}
-                  onSelect={opt?.onSelect}
-                  keepOpen={opt?.keepOpen}
-                />
-              {/if}
+              {#each group.entries as entry (resolveId(entry.item, entry.index))}
+                {@render arrayEntry(entry.item, entry.index, anyTopLevelChecked)}
+              {/each}
             {/if}
           {/each}
         {/if}

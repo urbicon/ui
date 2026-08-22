@@ -111,6 +111,22 @@ describe('menuVariants', () => {
     expect(menuVariants({}).indicator()).not.toMatch(/\bmr-/);
   });
 
+  it('section group wrapper mirrors the items row rhythm', () => {
+    // The role="group" wrapper takes a section's rows out of the `items`
+    // wrapper's direct children — it repeats the same space-y so the rhythm
+    // does not break at the group boundary.
+    expect(menuVariants({}).group()).toContain('space-y-0.5');
+  });
+
+  it('detail readout sits at the row end in tertiary text', () => {
+    // Same look as the header-menu value readout it generalises: quiet,
+    // small, pinned right even when the label span does not flex (unstyled).
+    const detail = menuVariants({}).detail();
+    expect(detail).toContain('ml-auto');
+    expect(detail).toContain('text-text-tertiary');
+    expect(detail).toContain('text-xs');
+  });
+
   it('never outputs dark: overrides', () => {
     const styles = menuVariants({});
     expect(styles.base()).not.toMatch(/\bdark:/);
