@@ -52,13 +52,22 @@
 
   let menuOpen = $state(false);
 
+  // Split on the LAST `:`, because only the direction half is ours: the
+  // column id is the consumer's and may itself contain `:` (GraphQL aliases,
+  // namespaced fields). A `split(':')` here severed such an id, the severed
+  // direction failed the union check below, and every sort pick on that
+  // column was a silent no-op (#251). The direction stays checked against
+  // the closed 'asc' | 'desc' — that half is the part this menu encoded.
   function handleValueChange(value: string) {
     if (!value) {
       setSort(null);
       return;
     }
-    const [columnId, direction] = value.split(':');
-    if (columnId && (direction === 'asc' || direction === 'desc')) {
+    const splitAt = value.lastIndexOf(':');
+    if (splitAt <= 0) return;
+    const columnId = value.slice(0, splitAt);
+    const direction = value.slice(splitAt + 1);
+    if (direction === 'asc' || direction === 'desc') {
       setSort({ column: columnId, direction });
     }
   }

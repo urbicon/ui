@@ -35,7 +35,7 @@
       gate: 'groupable: true, or sortable: true when groupable is unset (never while virtualized)'
     },
     {
-      action: 'Add summary / Remove summary',
+      action: 'Summary → Sum / Average / Count / Minimum / Maximum / None',
       gate: "summable: true, or dataType: 'number' when summable is unset"
     },
     { action: 'Hide column', gate: 'enableColumnVisibility and hideable ≠ false' },

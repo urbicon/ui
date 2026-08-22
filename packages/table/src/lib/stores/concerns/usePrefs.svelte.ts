@@ -3,9 +3,10 @@ import {
   createPersistentHiddenColumns,
   createPersistentSelection,
   createPersistentSummaryConfigs,
+  dropInvalidSummaryConfigs,
   normalizeSummaryConfigs
 } from '$lib/utils';
-import type { SummaryConfig, TablePrefsConfig } from '../TableStore.svelte';
+import type { TablePrefsConfig } from '../TableStore.svelte';
 import type { TableState } from './types';
 
 /**
@@ -15,13 +16,11 @@ import type { TableState } from './types';
  * garbage *elements* through, and those reach `$derived` pipelines that
  * assume their fields exist. Malformed elements are dropped; if that leaves
  * the axis unusable, the whole entry counts as absent so a default applies.
+ *
+ * The summary-config guard lives in `$lib/utils` (`dropInvalidSummaryConfigs`)
+ * because it is not storage-specific: the same closed-vocabulary check has to
+ * hold at every entrance, and the normalize funnel applies it too (#251).
  */
-function isSummaryConfigShape(value: unknown): value is SummaryConfig {
-  if (!value || typeof value !== 'object') return false;
-  const config = value as Partial<SummaryConfig>;
-  return typeof config.column === 'string' && typeof config.type === 'string';
-}
-
 function isRowId(value: unknown): value is string | number {
   return typeof value === 'string' || typeof value === 'number';
 }
@@ -91,17 +90,25 @@ export function usePrefs(state: TableState, prefs?: TablePrefsConfig) {
   if (persistentSummaryConfigs?.hasStoredValue && Array.isArray(persistentSummaryConfigs.value)) {
     // Normalized like every other writer: a value persisted before the
     // one-aggregation-per-column invariant was enforced (#92) may hold
-    // duplicates, and hydration must not re-corrupt the state.
-    const configs = normalizeSummaryConfigs(
-      persistentSummaryConfigs.value.filter(isSummaryConfigShape)
-    );
-    pending.push(() => {
-      state.summaryConfigs = configs;
-      // Only reveal the summary row when there is something to show — a
-      // stored *empty* set means the user removed every summary.
-      state.showSummary = configs.length > 0;
-    });
-    hydratedSummaryConfigs = true;
+    // duplicates, and hydration must not re-corrupt the state. Elements with
+    // an aggregation type outside the vocabulary are dropped first — a stored
+    // `'median'` must never reach the render pipeline (#251).
+    const raw = persistentSummaryConfigs.value;
+    const configs = normalizeSummaryConfigs(dropInvalidSummaryConfigs(raw));
+    if (raw.length > 0 && configs.length === 0) {
+      // Every stored element was dropped as invalid. That empty set was
+      // never chosen by the user, so the entry counts as absent — leaving
+      // `hydratedSummaryConfigs` unset lets `prefs.defaults.summaries`
+      // apply instead of being silently suppressed by poison (#251 review).
+    } else {
+      pending.push(() => {
+        state.summaryConfigs = configs;
+        // Only reveal the summary row when there is something to show — a
+        // stored *empty* set means the user removed every summary.
+        state.showSummary = configs.length > 0;
+      });
+      hydratedSummaryConfigs = true;
+    }
   }
 
   if (persistentSelection?.hasStoredValue && Array.isArray(persistentSelection.value)) {

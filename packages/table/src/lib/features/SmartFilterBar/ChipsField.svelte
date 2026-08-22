@@ -2,6 +2,7 @@
   import { getTableContext, type TableAction, useTableI18n } from '$lib';
   import type { SummaryConfig } from '$lib/stores/TableStore.svelte';
   import { findColumnById, resolveColumnLabel } from '$lib/utils';
+  import { SUMMARY_TYPE_LABEL_KEY } from '$lib/utils/summary-types';
   import { Badge } from '@urbicon-ui/blocks';
 
   const tt = useTableI18n();
@@ -31,21 +32,13 @@
   }
 
   // Aggregation codes (avg/min/max) differ from their translation keys
-  // (average/minimum/maximum). Map explicitly — interpolating the raw code into
-  // `summary.types.${type}` produced missing keys ("summary.types.avg") for
-  // avg/min/max. The map is type-checked against the translation keys and the
-  // SummaryConfig union, so a drift on either side is now a compile error.
-  const SUMMARY_TYPE_KEY = {
-    sum: 'summary.types.sum',
-    avg: 'summary.types.average',
-    count: 'summary.types.count',
-    min: 'summary.types.minimum',
-    max: 'summary.types.maximum'
-  } as const satisfies Record<SummaryConfig['type'], string>;
-
+  // (average/minimum/maximum), so the code is never interpolated into the key.
+  // The code → key map lives in the vocabulary module the store union derives
+  // from (utils/summary-types.ts), so a drift is unrepresentable — this used
+  // to be a hand-written copy anchored only by `satisfies`.
   function getSummaryLabel(config: SummaryConfig): string {
     const columnTitle = getColumnTitle(config.column);
-    const typeLabel = tt(SUMMARY_TYPE_KEY[config.type]);
+    const typeLabel = tt(SUMMARY_TYPE_LABEL_KEY[config.type]);
     return `${typeLabel}: ${columnTitle}`;
   }
 

@@ -10,6 +10,7 @@
   import { getInternalTableContext } from '$lib/stores/TableStore.svelte';
   import { resolveColumnId } from '$lib/utils';
   import { isColumnSortable } from '$lib/utils/column-capabilities';
+  import { SUMMARY_TYPE_GLYPH } from '$lib/utils/summary-types';
   import { headerSelection } from './header-selection';
   import { leadingStructuralColumns } from './column-offset';
 
@@ -133,22 +134,7 @@
   function getSummaryTypes(columnKey: string): string[] {
     return tableState.summaryConfigs
       .filter((config) => config.column === columnKey)
-      .map((config) => {
-        switch (config.type) {
-          case 'sum':
-            return '∑';
-          case 'avg':
-            return '⌀';
-          case 'count':
-            return '#';
-          case 'min':
-            return '↓';
-          case 'max':
-            return '↑';
-          default:
-            return '?';
-        }
-      });
+      .map((config) => SUMMARY_TYPE_GLYPH[config.type]);
   }
 
   function getActionIndicators(columnKey: string) {

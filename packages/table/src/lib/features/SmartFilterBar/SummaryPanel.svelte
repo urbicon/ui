@@ -1,6 +1,7 @@
 <script lang="ts">
   import { getTableContext, useTableI18n } from '$lib';
   import { isColumnSummable } from '$lib/utils/column-capabilities';
+  import { isSummaryType, SUMMARY_TYPES } from '$lib/utils/summary-types';
   import { resolveColumnId, resolveColumnLabel } from '$lib/utils';
   import { RadioGroup, RadioItem } from '@urbicon-ui/blocks';
 
@@ -20,14 +21,6 @@
   const tableContext = getTableContext();
   const { state: tableState, addSummaryConfig, removeSummaryConfig } = tableContext;
 
-  const SUMMARY_TYPES = [
-    { value: 'sum', label: () => tt('summary.types.sum') },
-    { value: 'avg', label: () => tt('summary.types.average') },
-    { value: 'count', label: () => tt('summary.types.count') },
-    { value: 'min', label: () => tt('summary.types.minimum') },
-    { value: 'max', label: () => tt('summary.types.maximum') }
-  ] as const;
-
   // Capability follows configuration, never the column's name — see
   // utils/column-capabilities.ts for what that replaced and why.
   const summableColumns = $derived(tableState.columns.filter(isColumnSummable));
@@ -43,12 +36,15 @@
     })
   );
 
+  // The guard instead of a cast: the radio values come from the vocabulary
+  // module, but the store must not have to trust that — anything outside the
+  // union (including the '' of the "none" row) reads as "no aggregation".
   function handleChange(columnId: string, type: string) {
-    if (!type) {
+    if (!isSummaryType(type)) {
       removeSummaryConfig(columnId);
       return;
     }
-    addSummaryConfig({ column: columnId, type: type as (typeof SUMMARY_TYPES)[number]['value'] });
+    addSummaryConfig({ column: columnId, type });
   }
 </script>
 
@@ -66,7 +62,7 @@
       >
         <RadioItem value="" label={tt('summary.none')} />
         {#each SUMMARY_TYPES as type (type.value)}
-          <RadioItem value={type.value} label={type.label()} />
+          <RadioItem value={type.value} label={tt(type.labelKey)} />
         {/each}
       </RadioGroup>
     {/each}

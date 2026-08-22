@@ -1,6 +1,7 @@
 <script lang="ts">
   import { getTableContext, useTableI18n } from '$lib';
   import { isColumnSummable } from '$lib/utils/column-capabilities';
+  import { isSummaryType, SUMMARY_TYPES } from '$lib/utils/summary-types';
   import { resolveColumnId, resolveColumnLabel } from '$lib/utils';
   import { smartFilterBarTriggerVariants } from '$lib/variants';
   import {
@@ -14,12 +15,6 @@
   const tt = useTableI18n();
 
   const SquareSigmaIcon = resolveIcon('squareSigma', SquareSigmaIconDefault);
-
-  interface SummaryConfig {
-    column: string;
-    type: 'sum' | 'avg' | 'count' | 'min' | 'max';
-    formatter?: (value: unknown) => string;
-  }
 
   const tableContext = getTableContext();
   const { state: tableState, addSummaryConfig } = tableContext;
@@ -41,14 +36,6 @@
   // utils/column-capabilities.ts for what that replaced and why.
   const summableColumns = $derived.by(() => tableState.columns.filter(isColumnSummable));
 
-  const summaryTypes = [
-    { value: 'sum', label: tt('summary.types.sum'), icon: '∑' },
-    { value: 'avg', label: tt('summary.types.average'), icon: '⌀' },
-    { value: 'count', label: tt('summary.types.count'), icon: '#' },
-    { value: 'min', label: tt('summary.types.minimum'), icon: '↓' },
-    { value: 'max', label: tt('summary.types.maximum'), icon: '↑' }
-  ] as const;
-
   const menuGroups = $derived.by(() => {
     if (summableColumns.length === 0) return [];
 
@@ -56,8 +43,8 @@
       const columnId = resolveColumnId(column);
       return {
         label: resolveColumnLabel(column),
-        options: summaryTypes.map((type) => ({
-          label: `${type.icon} ${type.label}`,
+        options: SUMMARY_TYPES.map((type) => ({
+          label: `${type.glyph} ${tt(type.labelKey)}`,
           value: `${columnId}:${type.value}`,
           disabled: summaryConfigs.some(
             (config) => config.column === columnId && config.type === type.value
@@ -67,16 +54,20 @@
     });
   });
 
+  // Split on the LAST `:`, because only the type half is ours: the column id
+  // is the consumer's and may itself contain `:` (GraphQL aliases, namespaced
+  // fields). A `split(':')` here once severed such an id and stored its tail
+  // as the aggregation type — which crashed the table on the next render. The
+  // type half goes through the closed-union guard for the same reason (#251).
   function handleValueChange(value: string | null) {
     if (!value) return;
 
-    const [columnKey, type] = value.split(':');
-    if (columnKey && type) {
-      const summaryConfig = {
-        column: columnKey,
-        type: type as SummaryConfig['type']
-      };
-      addSummaryConfig(summaryConfig);
+    const splitAt = value.lastIndexOf(':');
+    if (splitAt <= 0) return;
+    const columnKey = value.slice(0, splitAt);
+    const type = value.slice(splitAt + 1);
+    if (isSummaryType(type)) {
+      addSummaryConfig({ column: columnKey, type });
       selectedValue = null;
     }
   }
