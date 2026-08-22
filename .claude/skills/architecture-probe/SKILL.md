@@ -129,6 +129,31 @@ do not replace each other.
 
 ## Traps from the first run
 
+## Learnings from the second run (features/ layer, 2026-08-22)
+
+- **A browser pass belongs after sonde 3 wherever findings were tagged
+  pixel-shaped.** Have the matrix agents tag each finding `jsdom_verifiable`
+  or not; pipe only the former into DOM-test verification and measure the
+  rest yourself in Chrome. On features/ the browser pass also produced the
+  probe's only *exonerations* (a summary row that aligns exactly, a sheet
+  write path that works) — jsdom can confirm defects but rarely clears them.
+- **Coordinate clicks are not an instrument.** One synthetic click landed on
+  the wrong element and produced a phantom "store resets my selection"
+  finding that cost four measurement rounds. Deterministic JS clicks with a
+  state read before/after settle the same question in one. Corollaries: a
+  mounted-but-closed drawer still has in-viewport rects (judge overlay
+  visibility by screenshot, never by DOM geometry), and `resize_window` can
+  be overridden by the extension viewport — flip container queries by
+  resizing the container itself.
+- **Feed sonde 1's series into the matrix prompts verbatim** (sites, commit
+  quotes, "the cause still stands at X"). The two-phase matrix then starts
+  from the real inventory instead of rediscovering it, and its findings
+  cite the fix history without a second archaeology pass.
+- **Give verify agents a CORRECTED verdict** besides CONFIRMED/REFUTED/
+  NOT_DECIDABLE. Both runs produced findings that held in substance with a
+  wrong detail (a five-state union called six, a DEV-warn that never fires);
+  without the verdict those become either false confirms or false kills.
+
 - **A quota limit kills every agent of a workflow at once.** All seven returned the same error
   string. `resumeFromRunId` does not help when nothing was cached — check the journal before
   diagnosing, and set an explicit `model` on the agent calls when the session model is the one
