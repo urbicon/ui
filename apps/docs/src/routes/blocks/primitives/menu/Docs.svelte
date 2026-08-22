@@ -82,7 +82,9 @@
     <code class="text-text-primary">items</code> array as shown here, or declaratively with
     <code class="text-text-primary">&lt;MenuItem&gt;</code>,
     <code class="text-text-primary">&lt;MenuSection&gt;</code> and
-    <code class="text-text-primary">&lt;MenuDivider&gt;</code> children.
+    <code class="text-text-primary">&lt;MenuDivider&gt;</code> children. When the built-in
+    icon-label-detail row is not enough, a <code class="text-text-primary">customItem</code> snippet takes
+    over each row's inner content — render visible content only, since Menu supplies the surrounding button.
   </p>
 
   <div class="space-y-8">

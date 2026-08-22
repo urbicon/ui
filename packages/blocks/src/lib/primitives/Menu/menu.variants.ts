@@ -47,9 +47,18 @@ export const menuVariants = tv({
     indicator: ['inline-flex items-center self-center'],
     // Right-aligned secondary readout on an item row — the current value of
     // the sub-menu a parent row opens ("Average"), or a hint beside a leaf
-    // item. `ml-auto` pins it to the row's end even in unstyled layouts where
-    // the label span may not flex; the label's `truncate` yields first.
+    // item. Under the default flex row `ml-auto` is redundant (the label's
+    // flex-1 absorbs the free space before auto margins get any); it acts
+    // when a consumer's `slotClasses.item` swaps the row layout (e.g. to
+    // grid), keeping the readout pinned to the row's end. Under `unstyled`
+    // this slot's classes are not applied at all.
     detail: ['ml-auto shrink-0 text-xs text-text-tertiary'],
+    // Wrapper around one section's items in array mode: carries the
+    // `role="group"` that scopes a `menuitemradio` set to its section
+    // (aria-labelledby points at the section header). Mirrors the `items`
+    // wrapper's row rhythm, since its children no longer sit in that wrapper
+    // directly.
+    group: ['space-y-0.5'],
     submenu: ['ml-4 mt-2 border-l border-border-hairline pl-2'],
     footer: [
       'sticky bottom-0 z-10 bg-surface-elevated',

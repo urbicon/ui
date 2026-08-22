@@ -15,6 +15,7 @@
     icon,
     checked,
     detail,
+    checkGutter,
     onSelect,
     keepOpen = false,
     children,
@@ -37,6 +38,13 @@
     checked?: boolean;
     /** Right-aligned secondary text on the row (current value, shortcut hint). */
     detail?: string;
+    /**
+     * Reserve the checkmark gutter even without own `checked` state, so verb
+     * rows align with radio rows in the same scope. Menu passes this per
+     * section group / top level in array mode; when omitted, the row falls
+     * back to the menu-wide `ctx.showCheckGutter` signal.
+     */
+    checkGutter?: boolean;
     /** Invoked when the item is activated (click / Enter / Space). */
     onSelect?: () => void;
     /**
@@ -69,10 +77,24 @@
       id: itemId,
       label: effectiveLabel,
       disabled,
-      parentId: parentId ?? null
+      parentId: parentId ?? null,
+      checked
     });
     return () => ctx.unregisterItem(itemId);
   });
+
+  // Gutter decision: own checked state always reserves it; otherwise the
+  // scope decides — the explicit prop (array mode: section group / top
+  // level) wins over the menu-wide registration census (declarative mode).
+  const reserveCheckGutter = $derived(
+    checked !== undefined || (checkGutter ?? ctx.showCheckGutter)
+  );
+
+  // `detail` is announced as the row's *description*, not folded into its
+  // accessible name: the span is aria-hidden (kept out of name computation)
+  // and referenced via aria-describedby (references ignore aria-hidden), so
+  // "Sort by" keeps a stable name while "Name" is still read out.
+  const detailId = $derived(`${ctx.rootId}-item-${itemId}-detail`);
 
   /**
    * Activate the item: fire the consumer's `onSelect` exactly once and then
@@ -121,6 +143,7 @@
   tabindex={-1}
   aria-checked={checked === undefined ? undefined : checked}
   data-state={checked === undefined ? undefined : checked ? 'checked' : 'unchecked'}
+  aria-describedby={detail ? detailId : undefined}
   aria-disabled={disabled || undefined}
   class={ctx.unstyled
     ? [ctx.slotClasses?.item, className].filter(Boolean).join(' ')
@@ -131,9 +154,10 @@
       })}
   {@attach mintAttachment(ctx.mint, { enabled: !disabled })}
 >
-  {#if checked !== undefined}
-    <!-- The check gutter renders for every selectable item — `invisible` when
-         unchecked — so checked and unchecked rows in one group stay aligned. -->
+  {#if reserveCheckGutter}
+    <!-- The check gutter renders for every row of a scope that contains a
+         selectable item — `invisible` unless this row itself is checked —
+         so radio and verb labels in one group stay aligned. -->
     <span
       aria-hidden="true"
       class={ctx.unstyled
@@ -164,6 +188,8 @@
   </span>
   {#if detail}
     <span
+      id={detailId}
+      aria-hidden="true"
       class={ctx.unstyled
         ? (ctx.slotClasses?.detail ?? '')
         : ctx.styles.detail({ class: ctx.slotClasses?.detail })}

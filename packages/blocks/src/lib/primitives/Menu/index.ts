@@ -81,7 +81,7 @@ export interface MenuSpecificProps<TItem extends MenuItemType = MenuItemType> {
   /**
    * Per-slot class overrides merged with the variant styles.
    * Slots: base | trigger | triggerText | chevron | content | header | section |
-   * divider | items | item | indicator | detail | submenu | footer
+   * group | divider | items | item | indicator | detail | submenu | footer
    */
   slotClasses?: Partial<Record<MenuSlots, string>>;
 
@@ -301,7 +301,12 @@ export interface MenuObjectOption {
    * (an empty gutter when unchecked, so rows stay aligned); leave `undefined`
    * for a plain action item (`role="menuitem"`, exactly as before). Menu only
    * displays this state — compute it from your own source of truth and update
-   * that source in `onSelect`.
+   * that source in `onSelect`. Put a radio set inside a `type: 'section'`
+   * group or a submenu: the section wraps its items in `role="group"` labelled
+   * by the header, and a submenu panel is its own `role="menu"` — either gives
+   * assistive tech the set boundary ARIA expects for `menuitemradio`. Ignored
+   * on items with `children` (the parent row is a disclosure, not a radio) —
+   * use `detail` to show the submenu's current value there.
    */
   checked?: boolean;
 

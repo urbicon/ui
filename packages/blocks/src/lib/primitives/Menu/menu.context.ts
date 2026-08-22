@@ -1,6 +1,7 @@
 import { createContext } from 'svelte';
 import { createOptionalContext } from '$lib/utils/optional-context';
 import type { ButtonVariants } from '../Button/button.variants';
+import type { MenuItemType, MenuSectionHeader } from './index';
 import type { MenuSlots, MenuVariants } from './menu.variants';
 
 /**
@@ -12,6 +13,30 @@ export type MenuRegistryItem = {
   label?: string;
   disabled?: boolean;
   parentId?: string | null;
+  /**
+   * The item's checked state at registration (`undefined` = plain action
+   * item). Feeds the menu-wide check-gutter decision (`showCheckGutter`)
+   * for declarative items, which Menu cannot inspect ahead of render.
+   */
+  checked?: boolean;
+};
+
+/**
+ * Item-field resolvers, honoring the consumer's `getItem*` mappers. Exposed
+ * on the context so MenuSubmenu's child pipeline resolves through the same
+ * functions as Menu's top level — before this, the mappers silently ended at
+ * the submenu boundary (children were read as plain `MenuObjectOption` casts).
+ */
+export type MenuItemResolvers = {
+  label: (item: MenuItemType) => string;
+  id: (item: MenuItemType, fallbackIndex: number) => string;
+  disabled: (item: MenuItemType) => boolean;
+  icon: (item: MenuItemType) => unknown;
+  class: (item: MenuItemType) => string | undefined;
+  checked: (item: MenuItemType) => boolean | undefined;
+  detail: (item: MenuItemType) => string | undefined;
+  isSection: (item: MenuItemType) => item is MenuSectionHeader;
+  sectionLabel: (item: MenuSectionHeader) => string;
 };
 
 export type MenuContext = {
@@ -50,6 +75,17 @@ export type MenuContext = {
   registerItem: (item: MenuRegistryItem) => void;
   unregisterItem: (id: string) => void;
   itemSizeForDepth: (depth: number) => 'sm' | 'md' | 'lg';
+
+  /**
+   * Menu-wide check-gutter signal: true while any registered item carries a
+   * `checked` state. Declarative rows (and rows without an explicit
+   * `checkGutter` prop) reserve the checkmark gutter from this, so verb rows
+   * align with radio rows (platform menus reserve the gutter across rows).
+   */
+  showCheckGutter: boolean;
+
+  /** Mapper-honoring field resolvers — see {@link MenuItemResolvers}. */
+  resolvers: MenuItemResolvers;
 };
 
 const [getMenuContext, setMenuContext] = createContext<MenuContext>();

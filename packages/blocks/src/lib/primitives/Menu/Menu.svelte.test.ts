@@ -219,9 +219,11 @@ describe('Menu (selectable items)', () => {
     expect(radioItem('Name').getAttribute('data-state')).toBe('checked');
     expect(radioItem('Date').getAttribute('aria-checked')).toBe('false');
     expect(radioItem('Date').getAttribute('data-state')).toBe('unchecked');
-    // An item without checked keeps role=menuitem, no aria-checked, no gutter.
+    // An item without checked keeps role=menuitem and no aria-checked — but
+    // since its scope holds checked items, it still reserves the (invisible)
+    // check gutter so verb and radio labels align (platform-menu behaviour).
     expect(item('Refresh').hasAttribute('aria-checked')).toBe(false);
-    expect(item('Refresh').querySelector('svg')).toBeNull();
+    expect(item('Refresh').querySelector('svg')?.classList.contains('invisible')).toBe(true);
   });
 
   it('paints the checkmark on the checked row and reserves an invisible gutter on the unchecked', async () => {
@@ -280,6 +282,60 @@ describe('Menu (selectable items)', () => {
 
     expect(onPick).toHaveBeenCalledOnce();
     expect(expanded()).toBe('false');
+  });
+
+  it('wraps a section\'s items in role="group" labelled by the header (array mode)', async () => {
+    // ARIA 1.2 wants a menuitemradio set scoped by a group boundary — the
+    // section header itself is role="presentation" and provides none.
+    const user = userEvent.setup();
+    renderMenu({
+      placeholder: 'Actions',
+      items: [
+        { label: 'Refresh' },
+        { type: 'section', label: 'Sort by' },
+        { label: 'Name', checked: true },
+        { label: 'Date', checked: false }
+      ]
+    });
+
+    await user.click(trigger());
+
+    const group = screen.getByRole('group', { hidden: true });
+    const labelId = group.getAttribute('aria-labelledby');
+    expect(labelId).toBeTruthy();
+    expect(document.getElementById(labelId as string)?.textContent?.trim()).toBe('Sort by');
+    // The radio set lives inside the group; the leading verb item stays bare.
+    expect(group.contains(radioItem('Name'))).toBe(true);
+    expect(group.contains(radioItem('Date'))).toBe(true);
+    expect(group.contains(item('Refresh'))).toBe(false);
+  });
+
+  it('reserves the check gutter for a verb row inside a radio section, none in a checked-free menu', async () => {
+    const user = userEvent.setup();
+    renderMenu({
+      placeholder: 'Actions',
+      items: [
+        { type: 'section', label: 'Sort by' },
+        { label: 'Name', checked: true },
+        { label: 'Reset to default' }
+      ]
+    });
+
+    await user.click(trigger());
+    // The verb row shares the section group with a radio — it carries the
+    // invisible gutter so its label aligns with 'Name'.
+    expect(item('Reset to default').querySelector('svg')?.classList.contains('invisible')).toBe(
+      true
+    );
+  });
+
+  it('reserves no gutter in a menu without any checked item', async () => {
+    const user = userEvent.setup();
+    renderMenu({ placeholder: 'Actions', items: [{ label: 'Edit' }, { label: 'Delete' }] });
+
+    await user.click(trigger());
+    expect(item('Edit').querySelector('svg')).toBeNull();
+    expect(item('Delete').querySelector('svg')).toBeNull();
   });
 });
 
@@ -340,6 +396,9 @@ describe('Menu (per-item styling)', () => {
 
 describe('Menu (submenu lifecycle & detail readout)', () => {
   it('reopens with all sub-menus collapsed after a dismiss', async () => {
+    // The reset runs on the OPENING edge (a close-edge reset would visibly
+    // collapse submenus during Popover's exit transition) — observable
+    // contract either way: after any dismiss, the next open starts collapsed.
     const user = userEvent.setup();
     renderMenu({
       placeholder: 'Actions',
@@ -357,7 +416,7 @@ describe('Menu (submenu lifecycle & detail readout)', () => {
     expect(screen.queryByRole('menuitem', { name: 'Nested', hidden: true })).toBeNull();
   });
 
-  it('renders the detail readout on the submenu parent row and on leaf items', async () => {
+  it('announces detail as a description: names stay exact, aria-describedby chains to the readout', async () => {
     const user = userEvent.setup();
     renderMenu({
       placeholder: 'Actions',
@@ -369,11 +428,24 @@ describe('Menu (submenu lifecycle & detail readout)', () => {
 
     await user.click(trigger());
 
-    // The detail text joins the row's accessible name, so query by prefix.
-    const parentRow = screen.getByRole('menuitem', { name: /Sort by/, hidden: true });
-    expect(parentRow.textContent).toContain('Name');
-    const leafRow = screen.getByRole('menuitem', { name: /Zoom/, hidden: true });
-    expect(leafRow.textContent).toContain('100%');
+    // Exact-name queries work: the detail span is aria-hidden, so it never
+    // leaks into the accessible name (parent "Sort by" and child "Name"
+    // keep distinct, stable names).
+    const parentRow = item('Sort by');
+    const leafRow = item('Zoom');
+
+    // The describedby chain still carries the value to assistive tech.
+    const parentDetailId = parentRow.getAttribute('aria-describedby');
+    expect(parentDetailId).toBeTruthy();
+    expect(document.getElementById(parentDetailId as string)?.textContent?.trim()).toBe('Name');
+
+    const leafDetailId = leafRow.getAttribute('aria-describedby');
+    expect(leafDetailId).toBeTruthy();
+    expect(document.getElementById(leafDetailId as string)?.textContent?.trim()).toBe('100%');
+
+    // A row without detail carries no describedby.
+    await user.click(parentRow);
+    expect(radioItem('Name').hasAttribute('aria-describedby')).toBe(false);
   });
 });
 

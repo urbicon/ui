@@ -88,7 +88,8 @@ The reverse direction does cost a map: `Calendar.events` takes the fixed `Calend
 Three components open an anchored floating panel from a trigger and look deceptively
 interchangeable. They are not: **Select** and **Combobox** are Form-family *value holders*
 (`bind:value` + `onValueChange`, label/helper/error/required chrome), while **Menu** is an
-Action-family *verb dispatcher* — items fire `onSelect`, nothing is held afterwards. The family
+Action-family *verb dispatcher* — items fire `onSelect`, and Menu holds no value afterwards (an
+item's `checked` displays a consumer-owned setting as `menuitemradio`, it stores none). The family
 split (border source, tiers, ARIA doctrine) is documented in
 [COMPONENT-FAMILIES.md](COMPONENT-FAMILIES.md); this matrix answers the day-to-day "which one here?".
 
@@ -101,7 +102,8 @@ split (border source, tiers, ARIA doctrine) is documented in
 | Pick a value the server has to find                              | **`Combobox`** with `queryFn`      | Built-in debounced async search with stale-response handling; a Select has no query to send.               |
 | Pick multiple values, compact field                              | **`Select multiple`**              | Listbox stays open across picks; the trigger summarises (or build a count badge via `customTriggerContent`). |
 | Pick multiple values, picks should stay visible                  | **`Combobox multiple`**            | Selections render as removable tag chips inline with the search input.                                     |
-| One-off actions on a record (Edit / Duplicate / Delete)         | **`Menu`**                         | Items are verbs firing `onSelect`; nothing is "selected". Closes on activation.                            |
+| One-off actions on a record (Edit / Duplicate / Delete)         | **`Menu`**                         | Items are verbs firing `onSelect` — Menu stores no selection. Closes on activation.                        |
+| Mark the active setting among a menu's entries (sort order, density) | **`Menu`** with per-item `checked` | Renders `role="menuitemradio"` + `aria-checked`; the state stays consumer-owned display — still not a form value. |
 | Right-click / long-press context actions                        | **`Menu`** with `contextTrigger`   | Same action semantics, panel parked at the pointer position.                                               |
 | Nested action groups (Export → CSV / JSON / PDF)                | **`Menu`** with nested `items`     | Submenus are a Menu capability. Select/Combobox `groups` label sections but deliberately don't nest.       |
 | Global "jump to anything / run any command"                     | **`CommandPalette`**               | Modal, keyboard-first (Cmd+K), searches verbs *and* destinations — a different scale than a field picker.  |
@@ -116,18 +118,19 @@ split (border source, tiers, ARIA doctrine) is documented in
    Long, unfamiliar, or server-backed → **`Combobox`**.
 
 Corollary (the family doc states it, the matrix repeats it): pick **multiple values** with
-`Select multiple` / `Combobox multiple`, never with a Menu faking checkmarks — a Menu closes on
-activation and announces `menuitem`, not `option` + selection state. Menu's per-item `keepOpen`
-exists for genuine *verb* lists that shouldn't dismiss ("toggle grid", "toggle rulers"), not for
-value picking.
+`Select multiple` / `Combobox multiple`, never with a Menu — `checked` renders `menuitemradio`,
+the single-choice role, and Menu deliberately ships no `menuitemcheckbox`: multi-pick is value
+commitment and belongs to the Form family. A Menu also closes on activation. Menu's per-item
+`keepOpen` exists for genuine *verb* lists that shouldn't dismiss ("toggle grid", "toggle
+rulers"), not for value picking.
 
 ### What a screen reader hears (why the split is not cosmetic)
 
 | Surface        | `Select`                                        | `Combobox`                                     | `Menu`                          |
 | -------------- | ----------------------------------------------- | ---------------------------------------------- | ------------------------------- |
 | Trigger        | `role="combobox"` + `aria-haspopup="listbox"`   | the `<input>` itself, `role="combobox"`        | Button + `aria-haspopup="menu"` |
-| Panel          | `role="listbox"` (+ `role="group"` per group)   | `role="listbox"` (+ `role="status"` for async) | `role="menu"`                   |
-| Items          | `role="option"` + `aria-selected`               | `role="option"` + `aria-selected`              | `role="menuitem"`               |
+| Panel          | `role="listbox"` (+ `role="group"` per group)   | `role="listbox"` (+ `role="status"` for async) | `role="menu"` (+ `role="group"` per section) |
+| Items          | `role="option"` + `aria-selected`               | `role="option"` + `aria-selected`              | `role="menuitem"`; `checked` items `role="menuitemradio"` + `aria-checked` |
 | Keyboard focus | stays on the trigger, `aria-activedescendant`   | stays on the input, `aria-activedescendant`    | roving focus across items       |
 
 A screen reader user told "menu" expects verbs; told "listbox" expects a value commit. Using the
