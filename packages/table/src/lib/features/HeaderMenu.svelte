@@ -8,7 +8,10 @@
   import { headerMenuItemVariants, headerMenuVariants } from '$lib/variants';
   import {
     Button,
-    Popover,
+    Menu,
+    MenuDivider,
+    MenuItem,
+    MenuSubmenu,
     resolveIcon,
     ArrowDownIcon as ArrowDownIconDefault,
     ArrowUpIcon as ArrowUpIconDefault,
@@ -17,7 +20,8 @@
     EyeOffIcon as EyeOffIconDefault,
     FilterXIcon as FilterXIconDefault,
     MoreVerticalIcon as MoreVerticalIconDefault,
-    UsersIcon as UsersIconDefault
+    UsersIcon as UsersIconDefault,
+    type MenuObjectOption
   } from '@urbicon-ui/blocks';
   import { useTableI18n } from '$lib/i18n';
   import { resolveColumnId, resolveColumnLabel } from '$lib/utils';
@@ -58,8 +62,6 @@
     showColumn
   } = tableContext;
 
-  let menuOpen = $state(false);
-
   const columnId = $derived(resolveColumnId(column));
   const canSort = $derived(isColumnSortable(column));
   // The column's own capability, plus the one condition that belongs to the
@@ -73,14 +75,15 @@
 
   const styles = $derived(headerMenuVariants({ active: isActive }));
 
+  // No `open` bookkeeping: the Menu primitive closes itself after every item
+  // activation, so the handlers only talk to the store.
+
   function handleSortAsc() {
     tableView.sort = { column: columnId, direction: 'asc' };
-    menuOpen = false;
   }
 
   function handleSortDesc() {
     tableView.sort = { column: columnId, direction: 'desc' };
-    menuOpen = false;
   }
 
   function handleGroupBy() {
@@ -89,23 +92,12 @@
     } else {
       setGroupBy(columnId);
     }
-    menuOpen = false;
   }
 
   // The aggregations a column can carry come from the one vocabulary module
   // (utils/summary-types.ts), in the order the tools sheet lists them. The
   // store keeps at most one per column, so this is a choice among six states
   // rather than a set of switches — and "none" is one of the six.
-
-  /**
-   * The summary row expands instead of acting, because a column's aggregation
-   * is a choice and this menu used to make it silently: the entry was a toggle
-   * that picked `sum` for a number column and `count` for anything else, with
-   * no way to ask for an average. Expanding costs one click and puts the same
-   * six states here that the tools sheet offers, so the two surfaces can no
-   * longer disagree about what a column is set to.
-   */
-  let summaryOpen = $state(false);
 
   const currentSummaryType = $derived(
     tableState.summaryConfigs.find((config) => config.column === columnId)?.type
@@ -117,18 +109,14 @@
     } else {
       removeSummaryConfig(columnId);
     }
-    summaryOpen = false;
-    menuOpen = false;
   }
 
   function handleRemoveFilters() {
     removeFiltersByColumn(columnId);
-    menuOpen = false;
   }
 
   function handleHideColumn() {
     hideColumn(columnId);
-    menuOpen = false;
   }
 
   function itemClass(
@@ -139,9 +127,40 @@
   }
 
   let isSorted = $derived(tableView.sort?.column === columnId);
+  const sortDirection = $derived(isSorted ? tableView.sort?.direction : undefined);
   let isGrouped = $derived(tableState.effectiveGroupBy === columnId);
   const hasSummary = $derived(!!currentSummaryType);
   let hasFilter = $derived(tableView.filters.some((f) => f.column === columnId));
+
+  /**
+   * The summary entry expands into a sub-menu instead of acting, because a
+   * column's aggregation is a choice and this menu used to make it silently:
+   * the entry was a toggle that picked `sum` for a number column and `count`
+   * for anything else, with no way to ask for an average. Expanding costs one
+   * click and puts the same six states here that the tools sheet offers, so
+   * the two surfaces cannot disagree about what a column is set to. The
+   * active state is `checked` on the item — announced as `menuitemradio` —
+   * and the collapsed parent row reads it out via `detail`.
+   */
+  const summaryItems = $derived.by<MenuObjectOption[]>(() => [
+    ...SUMMARY_TYPES.map((type) => ({
+      id: `summary-${type.value}`,
+      label: tt(type.labelKey),
+      checked: currentSummaryType === type.value,
+      class: itemClass(
+        currentSummaryType === type.value ? 'summary' : 'default',
+        currentSummaryType === type.value
+      ),
+      onSelect: () => handleSummaryType(type.value)
+    })),
+    {
+      id: 'summary-none',
+      label: tt('summary.none'),
+      checked: !currentSummaryType,
+      class: itemClass('default', !currentSummaryType),
+      onSelect: () => handleSummaryType(undefined)
+    }
+  ]);
 
   const hiddenColumns = $derived.by(() =>
     tableContext.allColumns.filter((col) => tableContext.hiddenColumnKeys.has(resolveColumnId(col)))
@@ -149,137 +168,120 @@
 
   function handleShowColumn(key: string) {
     showColumn(key);
-    menuOpen = false;
   }
 </script>
 
 <div class={styles.container()} data-testid={`header-menu-${columnId}`}>
-  <Popover bind:open={menuOpen} placement="bottom-start">
-    {#snippet trigger()}
+  <Menu
+    placement="bottom-start"
+    syncWidth={false}
+    itemSize="sm"
+    slotClasses={{ content: styles.menu() }}
+  >
+    {#snippet customTrigger(toggle, open)}
       <Button
         variant="ghost"
         size="sm"
         class={styles.trigger()}
         aria-label="{tt('headerMenu.columnOptions')} {resolveColumnLabel(column)}"
+        aria-haspopup="menu"
+        aria-expanded={open}
+        onclick={toggle}
+        onkeydown={(e: KeyboardEvent) => {
+          // APG menu button: ArrowDown on the closed trigger opens the menu —
+          // Menu's default trigger does this, a customTrigger has to repeat
+          // it. Plain key only: the surrounding header owns Shift+Arrow for
+          // column reorder, and this handler must not eat modified arrows.
+          // stopPropagation, not just preventDefault: the trigger sits
+          // outside the panel, so the grid handler's [role="menu"] guard
+          // cannot cover it — without the stop, the same key also roves the
+          // row focus and Menu captures that row as its return target.
+          if (e.key === 'ArrowDown' && !e.shiftKey) {
+            e.preventDefault();
+            e.stopPropagation();
+            toggle();
+          }
+        }}
         data-testid={`header-menu-trigger-${columnId}`}
       >
         <MoreVerticalIcon class="h-4 w-4" />
       </Button>
     {/snippet}
 
-    <div class={styles.menu()}>
-      {#if canSort}
-        <Button
-          variant="ghost"
-          size="sm"
-          class={itemClass('default', isSorted && tableView.sort?.direction === 'asc')}
-          onclick={handleSortAsc}
-        >
-          <ArrowUpIcon class="h-4 w-4" />
-          {tt('headerMenu.sortAscending')}
-        </Button>
+    {#if canSort}
+      <!-- The two directions are one radio pair: the effective direction is
+           machine-readable state (`aria-checked`), not just a tint. -->
+      <MenuItem
+        icon={ArrowUpIcon}
+        label={tt('headerMenu.sortAscending')}
+        checked={isSorted && sortDirection === 'asc'}
+        class={itemClass('default', isSorted && sortDirection === 'asc')}
+        onSelect={handleSortAsc}
+      />
+      <MenuItem
+        icon={ArrowDownIcon}
+        label={tt('headerMenu.sortDescending')}
+        checked={isSorted && sortDirection === 'desc'}
+        class={itemClass('default', isSorted && sortDirection === 'desc')}
+        onSelect={handleSortDesc}
+      />
+      <MenuDivider />
+    {/if}
 
-        <Button
-          variant="ghost"
-          size="sm"
-          class={itemClass('default', isSorted && tableView.sort?.direction === 'desc')}
-          onclick={handleSortDesc}
-        >
-          <ArrowDownIcon class="h-4 w-4" />
-          {tt('headerMenu.sortDescending')}
-        </Button>
+    {#if hasFilter}
+      <MenuItem
+        icon={FilterXIcon}
+        label={tt('headerMenu.removeFilter')}
+        class={itemClass('filter')}
+        onSelect={handleRemoveFilters}
+      />
+    {/if}
 
-        <div class={styles.separator()}></div>
-      {/if}
+    {#if canGroup}
+      <!-- A verb, not a radio: the entry names the one transition it performs
+           ("Group by column" / "Remove grouping"), so `checked` would say the
+           same thing twice with a contradicting label. -->
+      <MenuItem
+        icon={UsersIcon}
+        label={isGrouped ? tt('headerMenu.removeGrouping') : tt('headerMenu.groupByColumn')}
+        class={itemClass(isGrouped ? 'group' : 'default', isGrouped)}
+        onSelect={handleGroupBy}
+      />
+    {/if}
 
-      {#if hasFilter}
-        <Button variant="ghost" size="sm" class={itemClass('filter')} onclick={handleRemoveFilters}>
-          <FilterXIcon class="h-4 w-4" />
-          {tt('headerMenu.removeFilter')}
-        </Button>
-      {/if}
+    {#if isColumnSummable(column)}
+      <MenuSubmenu
+        id="summary"
+        icon={CalculatorIcon}
+        label={tt('headerMenu.summary')}
+        detail={currentSummaryType
+          ? tt(SUMMARY_TYPE_LABEL_KEY[currentSummaryType])
+          : tt('summary.none')}
+        class={itemClass(hasSummary ? 'summary' : 'default', hasSummary)}
+        items={summaryItems}
+      />
+    {/if}
 
-      {#if canGroup}
-        <Button
-          variant="ghost"
-          size="sm"
-          class={itemClass(isGrouped ? 'group' : 'default', isGrouped)}
-          onclick={handleGroupBy}
-        >
-          <UsersIcon class="h-4 w-4" />
-          {isGrouped ? tt('headerMenu.removeGrouping') : tt('headerMenu.groupByColumn')}
-        </Button>
-      {/if}
+    {#if canHide}
+      <MenuDivider />
+      <MenuItem
+        icon={EyeOffIcon}
+        label={tt('headerMenu.hideColumn')}
+        class={itemClass('danger')}
+        onSelect={handleHideColumn}
+      />
+    {/if}
 
-      {#if isColumnSummable(column)}
-        <Button
-          variant="ghost"
-          size="sm"
-          class={itemClass(hasSummary ? 'summary' : 'default', hasSummary)}
-          aria-expanded={summaryOpen}
-          data-testid={`header-menu-summary-${columnId}`}
-          onclick={() => (summaryOpen = !summaryOpen)}
-        >
-          <CalculatorIcon class="h-4 w-4" />
-          {tt('headerMenu.summary')}
-          <span class={styles.itemValue()}>
-            {currentSummaryType
-              ? tt(SUMMARY_TYPE_LABEL_KEY[currentSummaryType])
-              : tt('summary.none')}
-          </span>
-        </Button>
-
-        {#if summaryOpen}
-          <div class={styles.submenu()} data-testid={`header-menu-summary-types-${columnId}`}>
-            {#each SUMMARY_TYPES as type (type.value)}
-              <Button
-                variant="ghost"
-                size="sm"
-                class={itemClass(
-                  currentSummaryType === type.value ? 'summary' : 'default',
-                  currentSummaryType === type.value
-                )}
-                aria-pressed={currentSummaryType === type.value}
-                onclick={() => handleSummaryType(type.value)}
-              >
-                {tt(type.labelKey)}
-              </Button>
-            {/each}
-            <Button
-              variant="ghost"
-              size="sm"
-              class={itemClass('default', !currentSummaryType)}
-              aria-pressed={!currentSummaryType}
-              onclick={() => handleSummaryType(undefined)}
-            >
-              {tt('summary.none')}
-            </Button>
-          </div>
-        {/if}
-      {/if}
-
-      {#if canHide}
-        <div class={styles.separator()}></div>
-        <Button variant="ghost" size="sm" class={itemClass('danger')} onclick={handleHideColumn}>
-          <EyeOffIcon class="h-4 w-4" />
-          {tt('headerMenu.hideColumn')}
-        </Button>
-      {/if}
-
-      {#if tableState.enableColumnVisibility && hiddenColumns.length > 0}
-        <div class={styles.separator()}></div>
-        {#each hiddenColumns as col (resolveColumnId(col))}
-          <Button
-            variant="ghost"
-            size="sm"
-            class={itemClass('default')}
-            onclick={() => handleShowColumn(resolveColumnId(col))}
-          >
-            <EyeIcon class="h-4 w-4" />
-            {tt('headerMenu.showColumn')} "{resolveColumnLabel(col)}"
-          </Button>
-        {/each}
-      {/if}
-    </div>
-  </Popover>
+    {#if tableState.enableColumnVisibility && hiddenColumns.length > 0}
+      <MenuDivider />
+      {#each hiddenColumns as col (resolveColumnId(col))}
+        <MenuItem
+          icon={EyeIcon}
+          label={`${tt('headerMenu.showColumn')} "${resolveColumnLabel(col)}"`}
+          class={itemClass('default')}
+          onSelect={() => handleShowColumn(resolveColumnId(col))}
+        />
+      {/each}
+    {/if}
+  </Menu>
 </div>

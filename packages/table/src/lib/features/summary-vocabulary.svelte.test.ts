@@ -38,8 +38,10 @@ const COLUMNS = [
 ] as Column<(typeof ROWS)[number]>[];
 
 // A column id with `:` in it — GraphQL aliases and namespaced fields look like
-// this, and the summary/sort menus encode their option values as
-// `${columnId}:${type}`, so the id must survive the round trip.
+// this. The sort menu still encodes its option values as `${columnId}:${type}`
+// (the summary menu passes column and type as objects since the move to the
+// Menu primitive, #240), and the id must survive the round trip into the
+// store and the chip either way.
 const COLON_ROWS = [
   { id: 1, name: 'Ada', 'metrics:revenue': 100 },
   { id: 2, name: 'Grace', 'metrics:revenue': 200 }
@@ -218,8 +220,10 @@ describe('compound option values vs a column id containing ":"', () => {
       enableSmartFilter: true
     });
 
+    // The summary menu is a `role="menu"` since #240 — its rows are
+    // menuitemradio, not listbox options.
     await user.click(barButton('Summary'));
-    await user.click(option('∑ Sum'));
+    await user.click(screen.getByRole('menuitemradio', { name: '∑ Sum', hidden: true }));
 
     // The id survived the round trip un-severed…
     expect(context().state.summaryConfigs).toEqual([{ column: 'metrics:revenue', type: 'sum' }]);

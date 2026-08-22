@@ -10,11 +10,12 @@
    *
    * This is the store's actual shape, not a redesign: `addSummaryConfig`
    * replaces by column (`findIndex(c => c.column === config.column)`), so a
-   * column carries at most one aggregation. The wide bar's SummaryMenu hides
-   * that behind an additive-looking "pick a column·type to add" list, where
-   * choosing a second type for the same column silently replaces the first.
-   * Here every column is a radio row, which can only mean what it does — and
-   * turning one off is a choice ("none") rather than a hunt for the chip.
+   * column carries at most one aggregation. Every column is a radio row,
+   * which can only mean what it does — and turning one off is a choice
+   * ("none") rather than a hunt for the chip. The wide bar's SummaryMenu
+   * phrases the same six states as `menuitemradio` groups per column; this
+   * panel was the first surface to show the store honestly, and the menu
+   * followed.
    */
   const tt = useTableI18n();
 

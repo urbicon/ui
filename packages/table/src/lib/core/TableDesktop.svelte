@@ -301,6 +301,19 @@
 
     // Only handle keys when focus is on or inside a row
     const target = e.target as HTMLElement;
+
+    // An open in-cell overlay owns its keys. The header ⋮ menu (and any
+    // future in-cell menu) renders inside the `<th>`/`<td>` DOM — `usePortal`
+    // only promotes the panel to the top layer, it does not reparent — so its
+    // keydowns bubble through here. Without this guard, ArrowDown in the open
+    // menu also moved the grid's row focus, and Escape on the focused panel
+    // div ran past the form-element exception below (the panel is no button)
+    // into `deselectAll()` (PR #260 review, P1). The Menu primitive stops the
+    // keys it handles itself since the same review; this guard additionally
+    // covers keys a menu leaves unhandled on purpose. Both keydown hosts —
+    // the standard `<table>` and the virtualized grid wrapper — route through
+    // this one handler, so one guard serves both.
+    if (target.closest('[role="menu"]')) return;
     const isInsideInteractive = target.closest(
       'button, input, select, textarea, a[href], [contenteditable]'
     );
