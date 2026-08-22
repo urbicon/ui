@@ -179,6 +179,17 @@ void pub.clearAllPersistentData;
 // @ts-expect-error forceSavePersistentData is internal
 void pub.forceSavePersistentData;
 
+// ── The aggregation vocabulary is closed (#251) ───────────────────────────
+// `SummaryConfig['type']` derives from `utils/summary-types.ts`, so a code
+// outside the vocabulary is rejected at the store's front door. Positive
+// control first: a vocabulary member passes — this guards the over-narrowing
+// direction (a union that lost 'avg' fails here). The any-degradation
+// direction is covered by the file's unused-@ts-expect-error mechanism (see
+// header): with `any`, the directive below reports TS2578.
+use({ column: 'salary', type: 'avg' } satisfies Store.SummaryConfig);
+// @ts-expect-error 'median' is not an aggregation type — addSummaryConfig must not take it
+use(() => pub.addSummaryConfig({ column: 'salary', type: 'median' }));
+
 // ── Removed from the store entirely (v8 cut, C8) — gone from BOTH types ───
 
 // @ts-expect-error query left with the projection — use view.snapshot()

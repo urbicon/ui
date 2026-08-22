@@ -1,6 +1,7 @@
 <script lang="ts">
   import { getInternalTableContext } from '$lib/stores/TableStore.svelte';
   import { resolveColumnId } from '$lib/utils';
+  import { SUMMARY_TYPE_GLYPH } from '$lib/utils/summary-types';
   import { summaryRowVariants } from '$lib/variants';
   import { getTableStyleConfig, resolveSlotClass } from '$lib/core/table-style-context';
 
@@ -18,23 +19,6 @@
 
   let summaryData = $derived(groupSummaryData || tableContext.summaryData);
   let selectable = $derived(tableState.selectionMode !== 'none');
-
-  function getSummaryLabel(column: string, type: string): string {
-    switch (type) {
-      case 'sum':
-        return '∑';
-      case 'avg':
-        return '⌀';
-      case 'count':
-        return '#';
-      case 'min':
-        return '↓';
-      case 'max':
-        return '↑';
-      default:
-        return type;
-    }
-  }
 
   const summaryStyles = $derived(summaryRowVariants({ variant: 'highlighted', size }));
 </script>
@@ -79,7 +63,7 @@
         {#if summaryConfig && typeof summaryValue === 'number'}
           <div class={summaryStyles.content()}>
             <span class={summaryStyles.label()}>
-              {getSummaryLabel(columnId, summaryConfig.type)}
+              {SUMMARY_TYPE_GLYPH[summaryConfig.type]}
             </span>
             <span class={summaryStyles.value()}>
               {tableContext.getFormattedSummaryValue(columnId, summaryValue)}

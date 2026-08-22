@@ -21,6 +21,11 @@
   } from '@urbicon-ui/blocks';
   import { useTableI18n } from '$lib/i18n';
   import { resolveColumnId, resolveColumnLabel } from '$lib/utils';
+  import {
+    SUMMARY_TYPE_LABEL_KEY,
+    SUMMARY_TYPES,
+    type SummaryType
+  } from '$lib/utils/summary-types';
   import type { Column } from '$lib/types/tableTypes';
 
   const tt = useTableI18n();
@@ -87,18 +92,10 @@
     menuOpen = false;
   }
 
-  /**
-   * The aggregations a column can carry, in the order the tools sheet lists
-   * them. The store keeps at most one per column, so this is a choice among
-   * six states rather than a set of switches — and "none" is one of the six.
-   */
-  const SUMMARY_TYPES = [
-    { value: 'sum', label: () => tt('summary.types.sum') },
-    { value: 'avg', label: () => tt('summary.types.average') },
-    { value: 'count', label: () => tt('summary.types.count') },
-    { value: 'min', label: () => tt('summary.types.minimum') },
-    { value: 'max', label: () => tt('summary.types.maximum') }
-  ] as const;
+  // The aggregations a column can carry come from the one vocabulary module
+  // (utils/summary-types.ts), in the order the tools sheet lists them. The
+  // store keeps at most one per column, so this is a choice among six states
+  // rather than a set of switches — and "none" is one of the six.
 
   /**
    * The summary row expands instead of acting, because a column's aggregation
@@ -114,9 +111,9 @@
     tableState.summaryConfigs.find((config) => config.column === columnId)?.type
   );
 
-  function handleSummaryType(type: string | undefined) {
+  function handleSummaryType(type: SummaryType | undefined) {
     if (type) {
-      addSummaryConfig({ column: columnId, type: type as (typeof SUMMARY_TYPES)[number]['value'] });
+      addSummaryConfig({ column: columnId, type });
     } else {
       removeSummaryConfig(columnId);
     }
@@ -227,7 +224,7 @@
           {tt('headerMenu.summary')}
           <span class={styles.itemValue()}>
             {currentSummaryType
-              ? (SUMMARY_TYPES.find((t) => t.value === currentSummaryType)?.label() ?? '')
+              ? tt(SUMMARY_TYPE_LABEL_KEY[currentSummaryType])
               : tt('summary.none')}
           </span>
         </Button>
@@ -245,7 +242,7 @@
                 aria-pressed={currentSummaryType === type.value}
                 onclick={() => handleSummaryType(type.value)}
               >
-                {type.label()}
+                {tt(type.labelKey)}
               </Button>
             {/each}
             <Button
