@@ -4,6 +4,19 @@ All notable changes to this project will be documented in this file.
 This changelog is automatically generated from [Conventional Commits](https://www.conventionalcommits.org).
 
 
+## [8.6.0] - 2026-08-22
+
+### Bug Fixes
+- **table**: One summary vocabulary — a foreign aggregation type can no longer crash the mount
+- **table**: Both table menus become menus — arrow keys, radio state, one vocabulary
+
+### Documentation
+- Pin down the derived-override lifetime — it only exists under client codegen
+- Second architecture-probe run's method learnings
+
+### Features
+- **blocks**: A menu can show what is set — selectable items, per-item styling, submenu lifecycle
+
 ## [8.5.0] - 2026-08-20
 
 ### Breaking Changes
