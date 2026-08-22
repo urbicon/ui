@@ -297,7 +297,14 @@ export function normalizeSummaryConfigs(configs: SummaryConfig[]): SummaryConfig
 export function isSummaryConfigShape(value: unknown): value is SummaryConfig {
   if (!value || typeof value !== 'object') return false;
   const config = value as Partial<SummaryConfig>;
-  return typeof config.column === 'string' && isSummaryType(config.type);
+  return (
+    typeof config.column === 'string' &&
+    isSummaryType(config.type) &&
+    // Storage JSON cannot hold a function, so a present `formatter` from
+    // outside is always a foreign value — calling it would crash the render
+    // the same way a foreign type code crashed the chip (#251 review, B1).
+    (config.formatter === undefined || typeof config.formatter === 'function')
+  );
 }
 
 /**
@@ -305,9 +312,10 @@ export function isSummaryConfigShape(value: unknown): value is SummaryConfig {
  * {@link isSummaryConfigShape} are dropped — with a DEV warning, never
  * silently in dev — and the valid rest keeps the table usable. Used directly
  * by prefs hydration (the unknown[] → SummaryConfig[] bridge) and by
- * {@link normalizeSummaryConfigs}, which every writer funnels through, so an
- * invalid aggregation type cannot enter `state.summaryConfigs` from any
- * path.
+ * {@link normalizeSummaryConfigs}, which every funnel path goes through —
+ * hydration, the setter/adder, the defaults seed. Assigning
+ * `state.summaryConfigs` directly still bypasses it, as it bypasses every
+ * store invariant.
  */
 export function dropInvalidSummaryConfigs(values: readonly unknown[]): SummaryConfig[] {
   const valid: SummaryConfig[] = [];

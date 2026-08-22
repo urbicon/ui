@@ -273,6 +273,15 @@ describe('summary vocabulary (#251)', () => {
     expect(isSummaryConfigShape(null)).toBe(false);
   });
 
+  it('isSummaryConfigShape rejects a non-function formatter — storage JSON cannot carry one', () => {
+    // A `"formatter": "boom"` from a hand-edited or foreign storage entry
+    // would pass a column/type-only guard and crash in the summary render
+    // (`config.formatter(value)` on a string). A real function stays legal
+    // for the setter path.
+    expect(isSummaryConfigShape({ column: 'a', type: 'avg', formatter: 'boom' })).toBe(false);
+    expect(isSummaryConfigShape({ column: 'a', type: 'avg', formatter: () => '' })).toBe(true);
+  });
+
   it('dropInvalidSummaryConfigs keeps the valid rest in order and warns per drop (DEV)', () => {
     const warn = vi.spyOn(console, 'warn').mockImplementation(() => {});
     try {

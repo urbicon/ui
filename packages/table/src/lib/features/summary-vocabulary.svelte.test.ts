@@ -150,6 +150,48 @@ describe('prefs hydration: a stored aggregation type outside the vocabulary', ()
     expect(context().state.summaryConfigs).toEqual([{ column: 'amount', type: 'sum' }]);
   });
 
+  it('a fully poisoned stored entry counts as absent — prefs defaults apply instead', () => {
+    // The empty set left after dropping every element was never chosen by
+    // the user; honouring it would silently suppress the declared default
+    // until the user touches the axis.
+    window.localStorage.setItem(
+      SUMMARY_KEY('poison-defaults'),
+      JSON.stringify([{ column: 'amount', type: 'median' }])
+    );
+
+    const { context } = renderTable({
+      items: ROWS,
+      columns: COLUMNS,
+      enableSmartFilter: true,
+      prefs: {
+        storage: 'poison-defaults',
+        defaults: { summaries: [{ column: 'amount', type: 'sum' }] }
+      }
+    });
+
+    expect(context().state.summaryConfigs).toEqual([{ column: 'amount', type: 'sum' }]);
+  });
+
+  it('positive control: a genuinely stored empty set still suppresses the defaults', () => {
+    // `[]` written by a user who removed every summary is a real state and
+    // must keep winning over `defaults.summaries` — only the all-dropped
+    // case above counts as absent.
+    window.localStorage.setItem(SUMMARY_KEY('empty-real'), JSON.stringify([]));
+
+    const { context } = renderTable({
+      items: ROWS,
+      columns: COLUMNS,
+      enableSmartFilter: true,
+      prefs: {
+        storage: 'empty-real',
+        defaults: { summaries: [{ column: 'amount', type: 'sum' }] }
+      }
+    });
+
+    expect(context().state.summaryConfigs).toEqual([]);
+    expect(context().state.showSummary).toBe(false);
+  });
+
   it('positive control: a valid stored config renders its chip', () => {
     window.localStorage.setItem(
       SUMMARY_KEY('valid'),

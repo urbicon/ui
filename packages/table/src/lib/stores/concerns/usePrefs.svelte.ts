@@ -93,16 +93,22 @@ export function usePrefs(state: TableState, prefs?: TablePrefsConfig) {
     // duplicates, and hydration must not re-corrupt the state. Elements with
     // an aggregation type outside the vocabulary are dropped first — a stored
     // `'median'` must never reach the render pipeline (#251).
-    const configs = normalizeSummaryConfigs(
-      dropInvalidSummaryConfigs(persistentSummaryConfigs.value)
-    );
-    pending.push(() => {
-      state.summaryConfigs = configs;
-      // Only reveal the summary row when there is something to show — a
-      // stored *empty* set means the user removed every summary.
-      state.showSummary = configs.length > 0;
-    });
-    hydratedSummaryConfigs = true;
+    const raw = persistentSummaryConfigs.value;
+    const configs = normalizeSummaryConfigs(dropInvalidSummaryConfigs(raw));
+    if (raw.length > 0 && configs.length === 0) {
+      // Every stored element was dropped as invalid. That empty set was
+      // never chosen by the user, so the entry counts as absent — leaving
+      // `hydratedSummaryConfigs` unset lets `prefs.defaults.summaries`
+      // apply instead of being silently suppressed by poison (#251 review).
+    } else {
+      pending.push(() => {
+        state.summaryConfigs = configs;
+        // Only reveal the summary row when there is something to show — a
+        // stored *empty* set means the user removed every summary.
+        state.showSummary = configs.length > 0;
+      });
+      hydratedSummaryConfigs = true;
+    }
   }
 
   if (persistentSelection?.hasStoredValue && Array.isArray(persistentSelection.value)) {
