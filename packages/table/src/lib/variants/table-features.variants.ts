@@ -600,17 +600,13 @@ export const headerMenuVariants = tv({
     // that has to settle header alignment properly.
     container: ['flex items-center justify-center flex-shrink-0'],
     trigger: ['h-8 w-8 min-w-8', 'opacity-0 transition-opacity group-hover:opacity-100'],
-    menu: ['p-1 min-w-[200px]'],
-    separator: ['h-px bg-border-subtle my-1'],
-    // The aggregation choice, one level in. Indented rather than floated as a
-    // real submenu: this menu is a Popover holding buttons, not a `role=menu`,
-    // so a flyout would mean rebuilding hover-intent, keyboard and placement
-    // that the Menu primitive already owns. Inside the popover the list keeps
-    // the menu's own keyboard order.
-    submenu: ['flex flex-col pl-6 border-l border-border-subtle ml-3'],
-    // The state the row currently carries, right-aligned in its own ink so the
-    // label stays the thing you read first.
-    itemValue: ['ml-auto text-text-tertiary text-xs']
+    // Handed to the Menu primitive as `slotClasses.content`: only the width
+    // floor is ours (Menu's own `syncWidth:false` floor is min-w-48, this menu
+    // keeps the 200px it always had). Everything else the old Popover build
+    // carried here — padding, separators, the indented summary disclosure, the
+    // right-aligned value readout — is Menu's now (`divider`, sub-menu,
+    // `detail` slots).
+    menu: ['min-w-[200px]']
   },
   variants: {
     active: {
@@ -623,17 +619,21 @@ export const headerMenuVariants = tv({
 
 /**
  * HEADER MENU ITEM VARIANTS
- * Per-item intent and active state for header menu entries.
+ * Per-item intent tint for header menu entries, merged onto the Menu
+ * primitive's rows via the per-item `class` field. Layout (row flex, padding,
+ * radius, type size) is Menu's own `item` slot — repeating it here would
+ * stack two layout layers in the tv() fold. Per-item `class` displaces only
+ * the library defaults (measured), which is exactly the strength a tint
+ * needs: `text-filter` replaces the row's `text-text-primary` without
+ * touching a consumer's `slotClasses.item`.
  */
 export const headerMenuItemVariants = tv({
-  base: [
-    'w-full flex items-center justify-start gap-2',
-    'p-2 rounded-modify text-sm text-left',
-    'transition-colors duration-[var(--blocks-duration-fast)]'
-  ],
+  base: ['transition-colors duration-[var(--blocks-duration-fast)]'],
   variants: {
     intent: {
-      default: 'text-text-primary hover:bg-surface-hover',
+      // Menu's row look (text-text-primary, hover:bg-surface-hover) is the
+      // default — nothing to add.
+      default: '',
       filter: 'text-filter hover:bg-filter-subtle hover:text-filter-hover',
       group: 'text-group hover:bg-group-subtle hover:text-group-hover',
       summary: 'text-summary hover:bg-summary-subtle hover:text-summary-hover',

@@ -1200,15 +1200,15 @@
       "exports": ["Tab", "TabItem", "TabPanel"]
     },
     "Table": {
-      "min": 367705,
-      "gz": 91982,
+      "min": 388066,
+      "gz": 97480,
       "net": {
-        "min": 353692,
-        "gz": 87406
+        "min": 374050,
+        "gz": 92887
       },
       "lazy": {
         "min": 7503,
-        "gz": 3243
+        "gz": 3242
       },
       "pkg": "table",
       "exports": ["Table"]

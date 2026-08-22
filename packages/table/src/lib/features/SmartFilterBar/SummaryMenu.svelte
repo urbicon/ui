@@ -1,14 +1,15 @@
 <script lang="ts">
   import { getTableContext, useTableI18n } from '$lib';
   import { isColumnSummable } from '$lib/utils/column-capabilities';
-  import { isSummaryType, SUMMARY_TYPES } from '$lib/utils/summary-types';
+  import { SUMMARY_TYPES } from '$lib/utils/summary-types';
   import { resolveColumnId, resolveColumnLabel } from '$lib/utils';
   import { smartFilterBarTriggerVariants } from '$lib/variants';
   import {
     Badge,
-    Select,
+    Menu,
     resolveIcon,
-    SquareSigmaIcon as SquareSigmaIconDefault
+    SquareSigmaIcon as SquareSigmaIconDefault,
+    type MenuItemType
   } from '@urbicon-ui/blocks';
   import MenuTrigger from './MenuTrigger.svelte';
 
@@ -17,7 +18,7 @@
   const SquareSigmaIcon = resolveIcon('squareSigma', SquareSigmaIconDefault);
 
   const tableContext = getTableContext();
-  const { state: tableState, addSummaryConfig } = tableContext;
+  const { state: tableState, addSummaryConfig, removeSummaryConfig } = tableContext;
 
   const summaryConfigs = $derived(tableState.summaryConfigs);
   const isActive = $derived(summaryConfigs.length > 0);
@@ -25,52 +26,38 @@
     isActive ? smartFilterBarTriggerVariants({ intent: 'summary' }) : undefined
   );
 
-  // Select models "no selection" as `null` — an empty string is an ordinary
-  // value that matches no option and trips Select's DEV orphan warning on every
-  // render. This menu uses the Select as a command surface (pick → add summary
-  // → reset), so its resting state must be null, never ''.
-  let selectedValue = $state<string | null>(null);
-  let menuOpen = $state(false);
-
   // Capability follows configuration, never the column's name — see
   // utils/column-capabilities.ts for what that replaced and why.
   const summableColumns = $derived.by(() => tableState.columns.filter(isColumnSummable));
 
-  const menuGroups = $derived.by(() => {
-    if (summableColumns.length === 0) return [];
-
-    return summableColumns.map((column) => {
+  // One `role="group"` per summable column (the section header names it), six
+  // `menuitemradio` rows inside: None + the five types from the vocabulary
+  // module. The store keeps at most one aggregation per column, and a checked
+  // radio row can only mean what it does — the previous Select dressed the
+  // same replace-by-column store call as an additive "pick to add" list and
+  // marked the active combination `disabled` instead of checked. `onSelect`
+  // carries column and type directly, so the `columnId:type` compound (and
+  // its last-`:` parse, #251) is gone from this menu; a menu also holds no
+  // value, so the pick→reset dance the Select needed is gone with it.
+  const menuItems = $derived.by<MenuItemType[]>(() =>
+    summableColumns.flatMap((column) => {
       const columnId = resolveColumnId(column);
-      return {
-        label: resolveColumnLabel(column),
-        options: SUMMARY_TYPES.map((type) => ({
+      const current = summaryConfigs.find((config) => config.column === columnId)?.type;
+      return [
+        { type: 'section' as const, label: resolveColumnLabel(column) },
+        {
+          label: tt('summary.none'),
+          checked: current === undefined,
+          onSelect: () => removeSummaryConfig(columnId)
+        },
+        ...SUMMARY_TYPES.map((type) => ({
           label: `${type.glyph} ${tt(type.labelKey)}`,
-          value: `${columnId}:${type.value}`,
-          disabled: summaryConfigs.some(
-            (config) => config.column === columnId && config.type === type.value
-          )
+          checked: current === type.value,
+          onSelect: () => addSummaryConfig({ column: columnId, type: type.value })
         }))
-      };
-    });
-  });
-
-  // Split on the LAST `:`, because only the type half is ours: the column id
-  // is the consumer's and may itself contain `:` (GraphQL aliases, namespaced
-  // fields). A `split(':')` here once severed such an id and stored its tail
-  // as the aggregation type — which crashed the table on the next render. The
-  // type half goes through the closed-union guard for the same reason (#251).
-  function handleValueChange(value: string | null) {
-    if (!value) return;
-
-    const splitAt = value.lastIndexOf(':');
-    if (splitAt <= 0) return;
-    const columnKey = value.slice(0, splitAt);
-    const type = value.slice(splitAt + 1);
-    if (isSummaryType(type)) {
-      addSummaryConfig({ column: columnKey, type });
-      selectedValue = null;
-    }
-  }
+      ];
+    })
+  );
 </script>
 
 {#snippet triggerIcon()}
@@ -92,28 +79,18 @@
   {/if}
 {/snippet}
 
-{#snippet customTrigger(_selected: unknown[], _open: boolean, _clear: () => void)}
-  <MenuTrigger
-    label={tt('summary.button.title')}
-    active={isActive}
-    {triggerClass}
-    expanded={menuOpen}
-    disabled={summableColumns.length === 0}
-    icon={triggerIcon}
-    counter={triggerCounter}
-    onclick={() => (menuOpen = !menuOpen)}
-  />
-{/snippet}
-
-<!-- `w-auto`: see SortMenu — the Select wrapper defaults to `w-full`. -->
-<Select
-  groups={menuGroups}
-  bind:value={selectedValue}
-  bind:open={menuOpen}
-  onValueChange={handleValueChange}
-  disabled={summableColumns.length === 0}
-  size="sm"
-  syncWidth={false}
-  class="w-auto"
-  {customTrigger}
-/>
+<Menu items={menuItems} syncWidth={false} itemSize="sm" disabled={summableColumns.length === 0}>
+  {#snippet customTrigger(toggle, open)}
+    <MenuTrigger
+      label={tt('summary.button.title')}
+      active={isActive}
+      {triggerClass}
+      expanded={open}
+      haspopup="menu"
+      disabled={summableColumns.length === 0}
+      icon={triggerIcon}
+      counter={triggerCounter}
+      onclick={toggle}
+    />
+  {/snippet}
+</Menu>

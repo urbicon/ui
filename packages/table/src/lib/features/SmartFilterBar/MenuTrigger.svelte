@@ -32,7 +32,7 @@
     /** The lit-state classes of this particular tool. */
     triggerClass?: string;
     expanded?: boolean;
-    haspopup?: 'listbox' | 'true' | 'dialog';
+    haspopup?: 'listbox' | 'true' | 'dialog' | 'menu';
     icon: Snippet;
     /** Badge shown after the label — a count of what this tool is doing. */
     counter?: Snippet;
