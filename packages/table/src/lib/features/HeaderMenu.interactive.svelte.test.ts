@@ -108,6 +108,22 @@ describe('HeaderMenu on an interactive grid — the menu owns its keys', () => {
     expect(context().selectedItems, 'selection survives').toHaveLength(2);
   });
 
+  it('(d) ArrowDown on the closed trigger opens the menu without roving the grid', async () => {
+    const user = userEvent.setup();
+    renderInteractive();
+
+    menuTrigger().focus();
+    const rowFocusBefore = focusedRowKey();
+    await user.keyboard('{ArrowDown}');
+
+    expect(screen.getByRole('menu', { hidden: true }), 'menu opened').toBeTruthy();
+    expect(focusedRowKey(), 'the roving row focus must not move').toBe(rowFocusBefore);
+    // The return target must be the trigger, not a row Menu captured because
+    // the same key roved the grid first.
+    await user.keyboard('{Escape}');
+    expect(document.activeElement, 'focus returns to the trigger').toBe(menuTrigger());
+  });
+
   it('(c) counter-control: without an open menu the same keys drive the grid', async () => {
     const { context } = renderInteractive();
     const grid = screen.getByTestId('table-element');

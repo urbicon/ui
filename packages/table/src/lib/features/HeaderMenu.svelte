@@ -192,8 +192,13 @@
           // Menu's default trigger does this, a customTrigger has to repeat
           // it. Plain key only: the surrounding header owns Shift+Arrow for
           // column reorder, and this handler must not eat modified arrows.
+          // stopPropagation, not just preventDefault: the trigger sits
+          // outside the panel, so the grid handler's [role="menu"] guard
+          // cannot cover it — without the stop, the same key also roves the
+          // row focus and Menu captures that row as its return target.
           if (e.key === 'ArrowDown' && !e.shiftKey) {
             e.preventDefault();
+            e.stopPropagation();
             toggle();
           }
         }}

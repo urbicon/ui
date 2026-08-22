@@ -100,9 +100,12 @@
       onkeydown={(e: KeyboardEvent) => {
         // APG menu button: ArrowDown on the closed trigger opens the menu —
         // Menu's default trigger does this, a customTrigger has to repeat it.
-        // Plain key only; modified arrows stay whatever the host makes of them.
+        // Plain key only; modified arrows stay whatever the host makes of
+        // them. stopPropagation for contract symmetry with the header's
+        // trigger: an opening key belongs to the menu, not the host.
         if (e.key === 'ArrowDown' && !e.shiftKey) {
           e.preventDefault();
+          e.stopPropagation();
           toggle();
         }
       }}
