@@ -188,9 +188,32 @@ export interface TableContext {
 
   /** Add (or replace, per column) a summary aggregation; shows the summary row. */
   addSummaryConfig(config: SummaryConfig): void;
-  /** Remove the summary for `column`; hides the summary row when none remain. */
+  /**
+   * Remove the summary for `column`; hides the summary row when none remain.
+   * Deliberately does not *show* a summary hidden via {@link toggleSummary}:
+   * this is the "None" choice of the summary editors, and choosing it must not
+   * switch the display back on.
+   */
   removeSummaryConfig(column: string): void;
-  /** Toggle the summary row's visibility. */
+  /**
+   * Show or hide the summary — everything that displays one, not only the row.
+   *
+   * The configurations survive untouched (`state.summaryConfigs`), but while
+   * hidden they act on nothing: the summary row and its mobile counterpart are
+   * gone, the aggregate values are not computed, and every surface that
+   * announces a summary goes quiet with them — the filter chips, the header's
+   * indicator dots, the Σ trigger's lit state and count, and the narrow bar's
+   * tool count. `state.effectiveSummaryConfigs` holds that one answer; a
+   * consumer's own "show totals" switch should read it rather than combine
+   * `showSummary` and `summaryConfigs` a second time.
+   *
+   * The editing controls are the deliberate exception: the summary menus, the
+   * tools sheet's panel and the column menu's submenu keep showing what each
+   * column is configured to aggregate, so a hidden configuration stays visible
+   * where it can be changed or removed. Picking an aggregation there shows the
+   * summary again — with the whole configured set, which is what those
+   * controls were displaying.
+   */
   toggleSummary(): void;
   /**
    * Replace all summary configurations; summary row shows iff any remain.

@@ -19,11 +19,14 @@
 
   let summaryData = $derived(groupSummaryData || tableContext.summaryData);
   let selectable = $derived(tableState.selectionMode !== 'none');
+  // The aggregations in force, not the configured ones — one derivation for
+  // every surface that says a summary is acting (#252, see useSummary).
+  const summaryConfigs = $derived(tableState.effectiveSummaryConfigs);
 
   const summaryStyles = $derived(summaryRowVariants({ variant: 'highlighted', size }));
 </script>
 
-{#if tableState.showSummary && tableState.summaryConfigs.length > 0}
+{#if summaryConfigs.length > 0}
   <tr
     class={resolveSlotClass(
       summaryStyles.row,
@@ -53,7 +56,7 @@
 
     {#each tableContext.orderedColumns as column (resolveColumnId(column))}
       {@const columnId = resolveColumnId(column)}
-      {@const summaryConfig = tableState.summaryConfigs.find((c) => c.column === columnId)}
+      {@const summaryConfig = summaryConfigs.find((c) => c.column === columnId)}
       {@const summaryValue = summaryData[columnId]}
 
       <td

@@ -60,6 +60,10 @@
   const navigableItems = $derived(tableContext.navigableItems);
   const grouped = $derived(tableContext.grouped);
   const groupedSummaryData = $derived(tableContext.groupedSummaryData);
+  /** Whether a summary row is in force at all — the store's one answer, not a
+   *  third hand-written copy of `showSummary && configs.length` (#252; the
+   *  derivation lives on useSummary). */
+  const hasSummary = $derived(tableState.effectiveSummaryConfigs.length > 0);
 
   /**
    * Where each rendered group's item rows start within `navigableItems`. A
@@ -606,7 +610,7 @@
             </table>
           </div>
 
-          {#if tableState.showSummary && tableState.summaryConfigs.length > 0}
+          {#if hasSummary}
             <!-- `table-fixed` + the shared tracks, like its two siblings: without
                them this third table sized its columns from the summary values,
                so the totals sat under the wrong headers.
@@ -716,7 +720,7 @@
                 rowIndexOffset={groupRowOffsets[groupIndex]}
               />
 
-              {#if tableState.showSummary && tableState.summaryConfigs.length > 0}
+              {#if hasSummary}
                 <SummaryRow
                   {expandable}
                   {size}
@@ -750,7 +754,7 @@
             {/each}
           {/if}
 
-          {#if tableState.showSummary && tableState.summaryConfigs.length > 0}
+          {#if hasSummary}
             <SummaryRow {expandable} {size} />
           {/if}
         {/if}

@@ -20,8 +20,26 @@
   const tableContext = getTableContext();
   const { state: tableState, addSummaryConfig, removeSummaryConfig } = tableContext;
 
-  const summaryConfigs = $derived(tableState.summaryConfigs);
-  const isActive = $derived(summaryConfigs.length > 0);
+  // Two questions, two sources — the split is documented on useSummary, and
+  // this is the component where the line is easiest to misread, because both
+  // sides of it live here.
+  //
+  // The trigger is not this menu's value; it is the BAR's activity indicator
+  // for the summary tool — the same role the narrow bar's tool count plays one
+  // breakpoint away, and it counts what is acting on the grid. It used to read
+  // the raw list and stayed lit with a badge reading "2" while
+  // `toggleSummary()` had the summary row hidden and that very tool count said
+  // 0 (#252). Going quiet misstates nothing: the lit ground and the counter are
+  // omissions, and `active` on a Button renders no `aria-pressed` that could be
+  // left behind saying "off".
+  const effectiveSummaries = $derived(tableState.effectiveSummaryConfigs);
+  // The radio rows below are the CONTROL: what each column is configured to
+  // aggregate, which outlives the row being hidden. Same reading as the column
+  // menu's submenu (HeaderMenu carries the full decision) and as the tools
+  // sheet's panel; the sheet's section badge is a count, so it goes with the
+  // trigger instead.
+  const configuredSummaries = $derived(tableState.summaryConfigs);
+  const isActive = $derived(effectiveSummaries.length > 0);
   const triggerClass = $derived(
     isActive ? smartFilterBarTriggerVariants({ intent: 'summary' }) : undefined
   );
@@ -38,7 +56,7 @@
   const menuItems = $derived.by<MenuItemType[]>(() =>
     summableColumns.flatMap((column) => {
       const columnId = resolveColumnId(column);
-      const current = summaryConfigs.find((config) => config.column === columnId)?.type;
+      const current = configuredSummaries.find((config) => config.column === columnId)?.type;
       // Explicit `id`s: Menu's resolveId otherwise falls back to the flat
       // render index (the index-as-key anti-pattern). `-` as the joiner:
       // the id is an opaque key, never parsed back apart.
@@ -75,7 +93,7 @@
          The ground is the neutral surface because the lit trigger behind it
          now carries `summary-subtle` itself. -->
     <Badge variant="soft" size="xs" counter class="bg-surface-base text-summary-emphasis ml-1">
-      {summaryConfigs.length}
+      {effectiveSummaries.length}
     </Badge>
   {/if}
 {/snippet}

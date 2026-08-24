@@ -25,9 +25,41 @@ export function useSummary(
   const getValue = (item: TableItem, columnId: string) =>
     resolveValueById(state.columns, item, columnId);
 
+  /**
+   * The aggregations actually acting on the grid: `state.summaryConfigs` while
+   * the summary row is shown, and nothing while it is hidden.
+   *
+   * The one address for "is a summary in force", and the reason no reader owns
+   * a copy of the condition any more (#252). `showSummary` can be `false` with
+   * configs in place — `toggleSummary()` is public API and the library ships no
+   * UI for it, so a consumer's own "show totals" switch reaches that state —
+   * and every surface used to combine the two fields by hand. Three did, five
+   * did not: a lit Σ trigger with a badge reading "2", summary chips and head
+   * indicator dots all announced aggregations while no summary row existed
+   * anywhere, and the tool count on the very same bar said 0.
+   *
+   * Published as the read-only `state.effectiveSummaryConfigs` (the store binds
+   * this getter in), so a consumer building the switch `toggleSummary()` has no
+   * UI for reads the same answer the table's own surfaces do.
+   *
+   * The line between the two lists runs through what a surface *claims*, not
+   * through which file it sits in:
+   *
+   * - **An ambient activity indicator** says something is acting on the rows
+   *   right now — the summary row and the mobile band, the chips, the head
+   *   dots, the Σ trigger's lit state and counter, both tool counts. All of
+   *   them read this list.
+   * - **A control's own value** says what a column is *configured* to
+   *   aggregate, which outlives the row being hidden — the radio rows of the
+   *   summary menu, the tools sheet's panel and the column menu's submenu,
+   *   plus the collapsed readout of that submenu. They read
+   *   `state.summaryConfigs`; HeaderMenu.svelte carries the full decision.
+   */
+  const effectiveSummaryConfigs = $derived(state.showSummary ? state.summaryConfigs : []);
+
   const summaryData = $derived.by((): Record<string, number> => {
-    if (!state.showSummary || state.summaryConfigs.length === 0) return {};
-    return calculateSummary(getSortedItems(), state.summaryConfigs, getValue);
+    if (effectiveSummaryConfigs.length === 0) return {};
+    return calculateSummary(getSortedItems(), effectiveSummaryConfigs, getValue);
   });
 
   /**
@@ -46,12 +78,11 @@ export function useSummary(
    * the arrangement that page advises.
    */
   const groupedSummaryData = $derived.by((): Record<string, Record<string, number>> => {
-    if (!state.showSummary || state.summaryConfigs.length === 0 || !state.effectiveGroupBy)
-      return {};
+    if (effectiveSummaryConfigs.length === 0 || !state.effectiveGroupBy) return {};
 
     const result: Record<string, Record<string, number>> = {};
     Object.entries(getGrouped()).forEach(([groupKey, groupItems]) => {
-      result[groupKey] = calculateSummary(groupItems, state.summaryConfigs, getValue);
+      result[groupKey] = calculateSummary(groupItems, effectiveSummaryConfigs, getValue);
     });
     return result;
   });
@@ -96,6 +127,18 @@ export function useSummary(
    *
    * {@link removeSummaryConfig} writes `state.summaryConfigs` on its own and
    * says there why; it only ever filters, which cannot break the invariant.
+   *
+   * Deriving `showSummary` from the count also means every write that ADDS or
+   * REPLACES an aggregation unhides — and brings the whole configured set back,
+   * not just the edited column. Removing does not: {@link removeSummaryConfig}
+   * bypasses this funnel precisely so the "None" row of the editors leaves a
+   * hidden table hidden (see its note above).
+   *
+   * That asymmetry is why the editing controls keep showing
+   * `state.summaryConfigs` rather than the in-force list: what a control
+   * displays is exactly what the next pick produces — five rows bring the
+   * configured set back, "None" removes the one aggregation it names and
+   * changes nothing else (#252, the reasoning is in HeaderMenu.svelte).
    */
   function setSummaryConfigs(configs: SummaryConfig[]) {
     state.summaryConfigs = normalizeSummaryConfigs(configs);
@@ -136,6 +179,9 @@ export function useSummary(
   }
 
   return {
+    get effectiveSummaryConfigs() {
+      return effectiveSummaryConfigs;
+    },
     get summaryData() {
       return summaryData;
     },

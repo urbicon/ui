@@ -70,6 +70,14 @@ use(
   pub.setSelectedIds
 );
 use(pub.addSummaryConfig, pub.removeSummaryConfig, pub.toggleSummary, pub.setSummaryConfigs);
+// The summary's three state members, read as a plain public access — which is
+// also the spelling control the `@ts-expect-error` probes below cannot give
+// themselves (a directive over a misspelt member is green either way). The
+// display-side answer sits on `state`, like `effectiveGroupBy` (#252).
+use(pub.state.summaryConfigs, pub.state.showSummary, pub.state.effectiveSummaryConfigs);
+// …and it is derived, so it is not a second place to write the toggle.
+// @ts-expect-error effectiveSummaryConfigs is read-only — write showSummary or the actions
+pub.state.effectiveSummaryConfigs = [];
 use(
   pub.liveUpdateCounts,
   pub.hasPendingUpdates,

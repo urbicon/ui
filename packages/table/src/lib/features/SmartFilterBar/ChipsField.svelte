@@ -73,7 +73,11 @@
       });
     }
 
-    tableState.summaryConfigs.forEach((config, index) => {
+    // A chip says "this is acting on the rows below", the same claim as its
+    // filter and grouping neighbours — so it reads the aggregations in force,
+    // never the configured list. Hidden by `toggleSummary()`, the summary chips
+    // used to stay on a grid with no summary row at all (#252, see useSummary).
+    tableState.effectiveSummaryConfigs.forEach((config, index) => {
       chips.push({
         type: 'summary',
         id: `summary-${index}`,

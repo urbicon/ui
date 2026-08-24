@@ -26,6 +26,11 @@
   // utils/column-capabilities.ts for what that replaced and why.
   const summableColumns = $derived(tableState.columns.filter(isColumnSummable));
 
+  // `state.summaryConfigs`, not the effective list: a radio's value is what the
+  // column is CONFIGURED to aggregate, and that survives `toggleSummary()`
+  // hiding the row — the sheet's own summary badge, which counts what is
+  // acting, is the surface that goes quiet there (#252, see HeaderMenu for the
+  // full decision).
   const rows = $derived(
     summableColumns.map((column) => {
       const id = resolveColumnId(column);
