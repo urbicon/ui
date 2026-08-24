@@ -211,6 +211,28 @@ describe('#253 — a hidden column keeps its tool value on screen', () => {
     expect(mobile.queryByText('amount')).toBeNull();
   });
 
+  it('scenario 4b: hiding the last summarised column takes the desktop row with it', () => {
+    const { ctx } = renderTable();
+    ctx().addSummaryConfig({ column: 'amount', type: 'sum' });
+    flushSync();
+
+    expect(screen.queryByTestId('summary-row-total')).toBeTruthy();
+
+    ctx().hideColumn('amount');
+    flushSync();
+
+    // Still in force, and still shown wherever there is a place for it — the
+    // list of aggregations is deliberately not filtered by visibility (#252),
+    // which is what scenario 4 above pins.
+    expect(ctx().summaryData).toEqual({ amount: 300 });
+
+    // The desktop row is the surface that needs a *cell* per aggregation, and
+    // it iterates the visible columns only. With the one summarised column
+    // hidden it has nothing left to draw, so it must not render: gating on the
+    // unfiltered list left a highlighted, entirely empty strip under the table.
+    expect(screen.queryByTestId('summary-row-total')).toBeNull();
+  });
+
   it('positive control: grouping already keeps its row — and now keeps its name too', () => {
     const { ctx } = renderTable();
 
