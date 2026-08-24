@@ -130,6 +130,37 @@ async function assertInventoryRendersAsGrid(page: Page, shot: string): Promise<v
   }
 }
 
+/**
+ * Blendet die Doku-Navbar aus, bevor ein Ausschnitt der Landing aufgenommen
+ * wird.
+ *
+ * Ein Element-Screenshot fotografiert den Viewport-Ausschnitt der Bounding-Box
+ * — samt allem, was darüber liegt. Die Navbar klebt oben (`position: sticky`,
+ * z-1100, 46px hoch), und der „Getting started"-Abschnitt ist mit 779px so
+ * hoch, dass `scrollIntoViewIfNeeded` ihn bei y=25 absetzt: 20px davon lagen
+ * unter der Navbar und standen als dunkler Streifen im Bild (gemessen
+ * 2026-08-25). Vorher ging es knapp auf — der Abschnitt war 33px flacher —,
+ * weshalb der Fehler erst auftrat, als er wuchs, und nicht, als der Shot
+ * eingeführt wurde. Ein Ausschnitt, der fast den ganzen Viewport füllt, hat
+ * diese Kante immer; das Ausblenden hängt deshalb nicht an den Maßen von heute.
+ *
+ * `visibility: hidden` statt `display: none`: die Navbar liegt im Fluss, und
+ * ihr Platz hält genau die Scroll-Position, aus der die Maße oben stammen.
+ *
+ * Dasselbe Mittel wie bei der Agents-Kachel weiter unten — was die Seite
+ * bedient, gehört nicht ins Porträt eines ihrer Ausschnitte.
+ */
+async function hideStickyNavbar(page: Page, shot: string): Promise<void> {
+  const headers = await page.locator('header').count();
+  if (headers !== 1) {
+    throw new Error(
+      `${shot}: erwartet genau eine <header>-Navbar, gefunden ${headers}. Die ` +
+        'Doku-Chrome wurde umgebaut — diesen Wächter mitziehen.'
+    );
+  }
+  await page.addStyleTag({ content: 'header { visibility: hidden }' });
+}
+
 async function assertServerRunning(): Promise<void> {
   try {
     const response = await fetch(BASE);
@@ -208,6 +239,7 @@ const shots: { name: string; run: () => Promise<void> }[] = [
     name: 'install-ask-ship.png',
     run: async () => {
       const page = await openPage(browser, '/', 2);
+      await hideStickyNavbar(page, 'install-ask-ship.png');
       const row = page.locator('section[aria-label="Getting started"]');
       await row.scrollIntoViewIfNeeded();
       await page.waitForTimeout(400);
