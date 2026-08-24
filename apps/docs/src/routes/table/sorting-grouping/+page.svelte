@@ -227,6 +227,14 @@
           class="text-primary hover:underline">What the table remembers</a
         > has the rest of the channel.
       </p>
+
+      <p class="text-text-secondary text-sm">
+        A summary outlives its column being hidden, and the two layouts answer that differently
+        because their geometry does: the desktop grid seats each summary in a cell under its own
+        column and has none to offer once the column is gone, while the mobile band is a list of
+        label and value rows, so it keeps showing the figure under the column's title. Whichever is
+        on screen, the aggregation stays in force and returns to the grid with its column.
+      </p>
     </div>
   </Section>
 

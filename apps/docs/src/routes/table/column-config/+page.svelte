@@ -244,6 +244,16 @@ const columns: Column<Employee>[] = [
         >.
       </p>
 
+      <p class="text-text-secondary text-sm">
+        Hiding a column narrows what the tools offer, not what they do. The sort, filter, grouping
+        and summary editors list the columns the reader can currently see, so a hidden column drops
+        out of them — but a sort or filter already running stays in force and keeps its own row
+        there, still under the column's title rather than its raw accessor. Restore the column and
+        the entry rejoins the list. When hiding leaves a tool with nothing to offer, it says so in
+        its own words — <em>No column can be sorted</em>, <em>Every column is pinned</em> — instead of
+        opening an empty menu, and its button stays reachable so that sentence can be read.
+      </p>
+
       <CodeExample
         title="Always-Visible Columns and the Table-Level Switch"
         description={'Name carries hideable: false, so it has no hide action and is left out of the visibility menu. Set enableColumnVisibility={false} to turn the whole feature off.'}
