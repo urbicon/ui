@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { tick } from 'svelte';
   import { useTableI18n } from '$lib';
   import { getTableContext } from '$lib/stores/TableStore.svelte';
   import type { FilterOperator } from '$lib/types/tableTypes';
@@ -130,11 +131,20 @@
     })
   );
 
-  // No sections means no form, and the actions below belong to the form: a
-  // table whose every column declared `searchable: false` used to render this
-  // as a heading and an Apply button over nothing (#254). FilterMenu asks the
-  // same function for its trigger, so the two hulls agree.
+  // No sections at all: the axis's one empty-state answer, shared with
+  // FilterMenu's trigger so the two hulls agree (#254).
   const emptyKey = $derived(toolEmptyKey('filter', entries));
+
+  /**
+   * Whether anything here can *take* a new filter.
+   *
+   * A separate question from {@link emptyKey}, and it has to be: a table whose
+   * every column declared `searchable: false` still gets a section for a filter
+   * that is running, so the panel is not empty — but every one of those
+   * sections is read-only, and Apply would commit nothing from a form that does
+   * not exist. `emptyKey` alone left that button standing (#254 review, F6).
+   */
+  const canAdd = $derived(entries.some((entry) => entry.editable));
 
   let filterStates = $state<
     Record<
@@ -227,14 +237,52 @@
     }
   }
 
+  /**
+   * The panel body, as a focus target — the same construction SummaryPanel
+   * needed for its fallback rows (#253), for the same reason and one step
+   * further.
+   *
+   * A section that exists only because a filter is running disappears when that
+   * filter is removed, taking the × that removed it — and the focus on it —
+   * with it. When it was the *last* such section the whole form goes with it
+   * too, replaced by the empty note. In the sheet that is a modal `<dialog>`,
+   * where focus on `<body>` restarts every subsequent Tab at the top; in the
+   * popover it strands the reader outside a panel that is still open.
+   */
+  let panelElement = $state<HTMLDivElement>();
+
   const handleRemoveSpecificFilter = (column: string, operator: FilterOperator, value: string) => {
     removeFiltersByColumn(column, operator, value);
+    // Asked of the freshly recomputed list rather than of a flag: a section
+    // survives its filter being removed exactly when the column is part of the
+    // offer, which is the same question `buildFilterEntries` just answered.
+    // After `tick`, not before it — the button is still in the DOM here.
+    if (!entries.some((entry) => entry.id === column)) {
+      void tick().then(() => panelElement?.focus());
+    }
   };
+
+  /**
+   * Clear all, and catch the focus it drops.
+   *
+   * Unconditional, because this button removes *itself*: the branch it lives in
+   * is gated on `activeFilters.length > 0`, which clearing empties. So focus is
+   * always on an element that is about to be gone — a defect that predates the
+   * empty state and is one line from the same fix.
+   */
+  function handleClearAll() {
+    clearAllFilters();
+    void tick().then(() => panelElement?.focus());
+  }
 
   const styles = filterPanelVariants();
 </script>
 
-<div class={styles.root()}>
+<!-- `tabindex="-1"`: not a tab stop, but a place focus can be PUT when the row
+     that had it is gone — see panelElement. Outside the empty/filled branch,
+     because the worst case is the last section disappearing, where the branch
+     flips too and a wrapper inside it would unmount along with the form. -->
+<div bind:this={panelElement} tabindex="-1" class={styles.root()}>
   {#if emptyKey}
     <ToolEmptyNote reason={emptyKey} />
   {:else}
@@ -370,19 +418,26 @@
       because both hulls need them and neither can reach `filterStates` — the
       popover used to own an Apply button in its footer while the state it applied
       sat in the same component; splitting that would have meant handing an
-      imperative apply() out through a binding. They sit inside the `{:else}`
-      with the sections: with none of them, Apply commits nothing and Clear all
-      has nothing to clear (a running filter would have earned a section).
+      imperative apply() out through a binding.
+
+      Two gates, not one, because the two buttons answer different questions:
+      Apply needs a section that can *take* a value (`canAdd`), Clear all needs
+      something to clear. A panel of read-only sections — every column
+      `searchable: false`, one filter still running — has the second and not the
+      first, and tying both to the section count left Apply standing over
+      nothing while the only way out of that filter was its ×.
     -->
     <div class={styles.footer()}>
       {#if activeFilters.length > 0}
-        <Button variant="ghost" size="sm" intent="danger" onclick={() => clearAllFilters()}>
+        <Button variant="ghost" size="sm" intent="danger" onclick={handleClearAll}>
           {tt('filter.button.clearAll')}
         </Button>
       {/if}
-      <Button variant="filled" size="sm" intent="primary" onclick={handleApplyAllFilters}>
-        {bt('button.apply')}
-      </Button>
+      {#if canAdd}
+        <Button variant="filled" size="sm" intent="primary" onclick={handleApplyAllFilters}>
+          {bt('button.apply')}
+        </Button>
+      {/if}
     </div>
   {/if}
 </div>

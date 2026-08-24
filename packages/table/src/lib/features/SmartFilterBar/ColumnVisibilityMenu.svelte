@@ -29,8 +29,12 @@
   );
 
   // Columns pinned with `hideable: false` never reach this list — see
-  // tool-columns.ts for why that matters to a multi-select in particular.
-  const entries = $derived(buildColumnVisibilityEntries(tableContext.state.allColumns));
+  // tool-columns.ts for why that matters to a multi-select in particular —
+  // unless one is hidden anyway, which only a programmatic `hideColumn()` can
+  // do and which earns it a row back (the checkbox is the way home).
+  const entries = $derived(
+    buildColumnVisibilityEntries(tableContext.state.allColumns, tableContext.hiddenColumnKeys)
+  );
 
   // A table whose every column is pinned is a legal declaration, and this
   // trigger used to answer it by opening a listbox with zero options — the

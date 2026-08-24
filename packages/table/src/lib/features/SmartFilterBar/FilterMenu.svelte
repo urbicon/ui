@@ -100,17 +100,18 @@
   of it: on iOS that is the LARGE viewport height, taller than what is on screen.
 -->
 <!--
-  `autoTrigger` off while the tool is empty: Popover's own click/keydown
-  handlers sit on the wrapper around the trigger snippet, so the disabled
-  Button inside is not on its own enough to keep the panel shut — a pointer
-  landing on the wrapper's own box would still open it. Popover has no
-  `disabled` of its own; withholding the handlers is the same statement.
+  `autoTrigger` keeps its default even while the tool is empty. Popover's
+  click/keydown handlers do sit on the wrapper around the trigger snippet, so
+  turning them off would keep an empty tool shut — but the same flag gates the
+  effect that forwards `aria-expanded` / `aria-haspopup="dialog"` onto the
+  trigger, so an empty filter tool would have announced itself as a menu button
+  (`aria-haspopup="true"`). MenuTrigger refuses the activation itself instead
+  (see `unavailable` there), which stops the wrapper from ever seeing the event.
 -->
 <Popover
   bind:open={isOpen}
   placement="bottom-start"
   offsetDistance={8}
-  autoTrigger={emptyKey === null}
   onClickOutside={() => (isOpen = false)}
   trigger={triggerContent}
   role="dialog"

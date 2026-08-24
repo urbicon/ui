@@ -255,23 +255,50 @@ export function buildSummaryEntries(
 }
 
 /**
- * Columns the visibility tool may toggle.
+ * Whether the visibility tool may toggle a column.
  *
- * `hideable: false` pins a column: it is excluded so it can never be hidden —
- * and so it is not silently hidden the first time the selection changes, which
- * is what happens when a multi-select reads an unlisted column as "deselected".
+ * `hideable: false` pins a column: it is kept out of the offer so it can never
+ * be hidden — and so it is not silently hidden the first time the selection
+ * changes, which is what happens when a multi-select reads an unlisted column
+ * as "deselected".
  *
- * The one builder that takes a bare list rather than a {@link ToolColumnScope}:
- * its offer *is* the declared set, since a hidden column is precisely what this
- * tool exists to bring back.
+ * Not in `column-capabilities.ts` beside the other four: those answer what a
+ * column may be asked to do with its *values* and are shared with the header
+ * menu. This is about the grid's chrome, and the header menu asks it in its own
+ * terms (`enableColumnVisibility && column.hideable !== false`).
  */
-export function selectHideableColumns(allColumns: Column[]): Column[] {
-  return allColumns.filter((col) => col.hideable !== false);
+function isColumnHideable(col: Column): boolean {
+  return col.hideable !== false;
 }
 
-/** {@link selectHideableColumns} as `{ id, label }` rows. */
-export function buildColumnVisibilityEntries(allColumns: Column[]): ToolColumnEntry[] {
-  return selectHideableColumns(allColumns).map(toEntry);
+/** Columns the visibility tool may toggle — see {@link isColumnHideable}. */
+export function selectHideableColumns(allColumns: Column[]): Column[] {
+  return allColumns.filter(isColumnHideable);
+}
+
+/**
+ * The visibility tool's rows — the hideable columns, plus one per column that
+ * is *currently hidden* and not among them.
+ *
+ * The one builder whose offer is the declared set rather than a
+ * {@link ToolColumnScope}: a hidden column is precisely what this tool exists
+ * to bring back.
+ *
+ * The fallback row is the same rule the other four axes follow — a state in
+ * force gets a row. `hideColumn()` is public on the context and does not
+ * consult `hideable`, so a pinned column can be hidden programmatically; with
+ * no row, the checkbox that is the only way back does not exist, and the tool
+ * would report "Every column is pinned" while a column sat off screen for good.
+ */
+export function buildColumnVisibilityEntries(
+  allColumns: Column[],
+  hiddenKeys: Iterable<string>
+): ToolColumnEntry[] {
+  return buildToolEntries(
+    { visible: allColumns, declared: allColumns },
+    isColumnHideable,
+    hiddenKeys
+  );
 }
 
 // ── The empty-state policy (#254) ───────────────────────────────────────────

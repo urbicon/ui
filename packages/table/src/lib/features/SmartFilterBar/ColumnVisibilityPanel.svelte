@@ -19,7 +19,11 @@
   const tableContext = getInternalTableContext();
   const { toggleColumnVisibility } = tableContext;
 
-  const entries = $derived(buildColumnVisibilityEntries(tableContext.state.allColumns));
+  // Hidden keys second: a pinned column hidden by a programmatic
+  // `hideColumn()` keeps a row here, unchecked — the way back on screen.
+  const entries = $derived(
+    buildColumnVisibilityEntries(tableContext.state.allColumns, tableContext.hiddenColumnKeys)
+  );
   // The sentence this panel had first, now picked by the axis's one policy —
   // which is how the wide bar's eye stopped opening an option-less listbox for
   // the very case this branch was written for (#254).

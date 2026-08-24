@@ -45,6 +45,26 @@ if (typeof window !== 'undefined') {
     HTMLElement.prototype.hidePopover = () => {};
   }
 
+  // The narrow bar's tools sheet is a `Drawer`, i.e. a native modal `<dialog>`
+  // that enters the top layer through `showModal()` — which jsdom does not
+  // ship, so opening one rejected asynchronously (an unhandled rejection in the
+  // run) while its content rendered fine. Same stub and caveats as
+  // `packages/blocks/vitest-setup.ts`: reflect the `open` attribute, no real
+  // top layer and no `::backdrop`.
+  if (!HTMLDialogElement.prototype.showModal) {
+    HTMLDialogElement.prototype.showModal = function showModal(this: HTMLDialogElement) {
+      this.setAttribute('open', '');
+    };
+    HTMLDialogElement.prototype.show = function show(this: HTMLDialogElement) {
+      this.setAttribute('open', '');
+    };
+    HTMLDialogElement.prototype.close = function close(this: HTMLDialogElement) {
+      if (!this.hasAttribute('open')) return;
+      this.removeAttribute('open');
+      this.dispatchEvent(new Event('close'));
+    };
+  }
+
   // Keyboard navigation scrolls the active row into view.
   if (!Element.prototype.scrollIntoView) {
     Element.prototype.scrollIntoView = () => {};

@@ -56,7 +56,8 @@ export default {
     // The store keeps at most one aggregation per column, so turning one off is
     // a choice among the types rather than a separate gesture.
     none: 'None',
-    empty: 'No column can be summarised',
+    // `-ize`, like `header.summarizedColumn` — the catalogue's spelling.
+    empty: 'No column can be summarized',
     types: {
       average: 'Average',
       count: 'Count',
