@@ -22,11 +22,22 @@ import { expect, test } from '@playwright/test';
  * the factory's arithmetic used the declared 32px per button and the engine was
  * laying out 34 (2026-08-25).
  *
- * What is asserted is the **content requirement**, not the rendered column
- * width. The requirement is what the factory's number is a claim about, and it
- * is independent of how `table-layout: auto` hands out surplus space — a column
+ * What is asserted is the cell's **min-content**, not the rendered column width.
+ * The requirement is what the factory's number is a claim about, and it is
+ * independent of how `table-layout: auto` hands out surplus space — a column
  * measured wider than its declaration may simply have been given slack by a
  * wide table, which is not a defect and would make this a flaky gate.
+ *
+ * And min-content is probed, not recomputed. Summing buttons + gap + the `<td>`
+ * inset reproduces the factory's own arithmetic, and therefore inherits its
+ * blind spot: any box *between* the `<td>` and the buttons is missing from both.
+ * That is not a hypothetical either — it is exactly what #256 removed from
+ * `ActionButtons.svelte`, hand-written markup that the component's own comment
+ * says "no config-level check could see". Measured on this fixture, putting
+ * that `px-2` back leaves the sum at 150 while the column renders 166. So the
+ * cell's content is cloned into a zero-width box and the engine is asked what
+ * it cannot go below; the sum is kept only to assert the two agree, which is
+ * the assertion that catches an uncounted wrapper.
  */
 
 const FIXTURE_URL = '/test-fixtures/table';
@@ -40,7 +51,10 @@ type Measurement = {
   gapPx: number;
   padLeftPx: number;
   padRightPx: number;
+  /** Buttons + gaps + inset — the factory's arithmetic, reproduced. */
   requiredPx: number;
+  /** What the engine says the cell cannot go below. The contract. */
+  minContentPx: number;
 };
 
 async function measure(
@@ -72,7 +86,10 @@ async function measure(
 
     // The declared step, read off the class the arithmetic is written from.
     // Tailwind's `w-<n>` is n/4 rem; anything else leaves the entry NaN and the
-    // positive control below reports it rather than passing silently.
+    // positive control below reports it rather than passing silently. Unlike
+    // the jsdom test's reader, this one takes the first match instead of
+    // refusing an ambiguous pair — one `w-*` reaches the button from one `tv()`
+    // slot, and a second would fail that test first.
     const declaredButtonWidths = buttons.map((b) => {
       const step = [...b.classList]
         .map((c) => /^w-(\d+(?:\.\d+)?)$/.exec(c)?.[1])
@@ -87,6 +104,20 @@ async function measure(
     const padLeftPx = Number.parseFloat(cellStyle.paddingLeft) || 0;
     const padRightPx = Number.parseFloat(cellStyle.paddingRight) || 0;
 
+    // The probe: the cell's content, cloned into a box that offers it no width,
+    // so the engine reports the floor rather than the layout it happens to have
+    // been given. Parented inside the `<td>` so the clone inherits the same
+    // font and token context its original renders in.
+    const box = document.createElement('div');
+    box.style.cssText = 'position:absolute;left:-9999px;top:0;width:0;visibility:hidden';
+    const floor = document.createElement('div');
+    floor.style.width = 'min-content';
+    floor.appendChild(row.cloneNode(true));
+    box.appendChild(floor);
+    cell.appendChild(box);
+    const contentFloorPx = floor.getBoundingClientRect().width;
+    box.remove();
+
     return {
       declaredWidthPx,
       buttonWidths,
@@ -98,7 +129,8 @@ async function measure(
         buttonWidths.reduce((sum, w) => sum + w, 0) +
         gapPx * (buttons.length - 1) +
         padLeftPx +
-        padRightPx
+        padRightPx,
+      minContentPx: contentFloorPx + padLeftPx + padRightPx
     };
   }, size);
 }
@@ -125,14 +157,28 @@ test.describe('Actions column width budget', () => {
       ).toBe(1);
 
       expect(
-        m.requiredPx,
-        `The actions cell needs ${m.requiredPx.toFixed(1)}px at size=${size} ` +
-          `(3 × ${m.buttonWidths[0].toFixed(1)} + 2 × ${m.gapPx} gap + ` +
-          `${m.padLeftPx} + ${m.padRightPx} inset) but TableColumns.actions declares ` +
-          `${m.declaredWidthPx}px. Under table-layout: auto the column will grow past its ` +
-          'declaration instead of reporting the disagreement — raise the factory width, ' +
-          'and the comment arithmetic beside it.'
+        m.minContentPx,
+        `The actions cell cannot go below ${m.minContentPx.toFixed(1)}px at size=${size}, ` +
+          `but TableColumns.actions declares ${m.declaredWidthPx}px. Under ` +
+          'table-layout: auto the column will grow past its declaration instead of ' +
+          'reporting the disagreement — raise the factory width, and the comment ' +
+          'arithmetic beside it.'
       ).toBeLessThanOrEqual(m.declaredWidthPx);
+
+      // The factory's arithmetic counts buttons, gaps and the `<td>` inset. If
+      // the engine's floor is higher, something horizontal sits between the two
+      // that no one is counting — a padding or margin on a wrapper, the #256
+      // defect class. The number above would still pass while the column
+      // overran, so this is the assertion that sees it.
+      expect(
+        m.minContentPx,
+        `At size=${size} the cell's floor is ${m.minContentPx.toFixed(1)}px but buttons + ` +
+          `gaps + inset add up to ${m.requiredPx.toFixed(1)}px (3 × ` +
+          `${m.buttonWidths[0].toFixed(1)} + 2 × ${m.gapPx} + ${m.padLeftPx} + ` +
+          `${m.padRightPx}). The difference is a horizontal box between the <td> and ` +
+          'the buttons that the factory comment does not know about — either drop it ' +
+          '(the <td> owns the inset, #256) or count it in the budget.'
+      ).toBeCloseTo(m.requiredPx, 1);
     });
   }
 
@@ -156,7 +202,7 @@ test.describe('Actions column width budget', () => {
       expect(
         m.declaredButtonWidths.every(Number.isFinite),
         `size=${size}: a button carries no w-<step> class, so the control below compares ` +
-          'against NaN. Read the step the same way the arithmetic does, or drop the control.'
+          'against NaN. Read the step the way the arithmetic does, or drop the control.'
       ).toBe(true);
       seen.push(
         `${size}: used ${m.buttonWidths[0].toFixed(1)}px vs declared ${m.declaredButtonWidths[0].toFixed(1)}px`

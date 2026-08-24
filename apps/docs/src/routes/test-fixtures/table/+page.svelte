@@ -111,12 +111,14 @@
   }
 
   // Actions-column width budget (e2e/table-actions-budget.spec.ts). The factory
-  // declares 9rem, computed from the built-in trio at its widest size, and
+  // declares a width computed from the built-in trio, and
   // `Table.cellinset.svelte.test.ts` recomputes that from the *declared* `w-*`
-  // classes. What no jsdom assertion can see is the blocks `Button` growing its
-  // own min-content underneath an unchanged `w-8` — a wider icon, more padding —
-  // which at `lg` has no reserve to absorb it (144 of 144). Hence one table per
-  // size, each with all three handlers so the full trio renders.
+  // classes. What no jsdom assertion can see is what the engine lays out
+  // underneath an unchanged `w-8` — the blocks `Button` carries `min-w-min`, so
+  // a wider icon or more padding lifts its floor without touching the class.
+  // Hence one table per size, each with all three handlers so the full trio
+  // renders. No numbers here: the spec reads the declaration off the DOM
+  // attribute below, so raising the factory width moves the bar by itself.
   const budgetRows = makeRows(3);
   const budgetSizes = ['sm', 'md', 'lg'] as const;
   const noop = () => {};
