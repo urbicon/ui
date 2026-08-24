@@ -42,6 +42,25 @@ const BASE = process.env.SHOTS_BASE ?? 'http://localhost:5174';
 /** Die Fensterbreite, in der die README-Bilder gerahmt sind. */
 const VIEWPORT = { width: 1440, height: 830 };
 
+/**
+ * Der Stichtag, gegen den die Landing rechnet.
+ *
+ * Der Hero liest die echte Uhr (`stripToday()` → `freeRoomsOn`, `+page.svelte`),
+ * also trug das Belegungsraster den Aufnahmetag und das Abzeichen daneben die
+ * Zahl dieses Tages. Zwei Läufe an zwei Tagen ergaben zwei Bilder, ohne dass
+ * sich etwas an der Seite geändert hätte — gemessen beim Nachschuss zu #256,
+ * wo „5 rooms free tonight" über einen Datumswechsel hinweg zu „7" wurde.
+ *
+ * Damit stand die Uhr als einzige Achse ungepinnt neben Fenstergröße, Sprache,
+ * Farbschema und Bewegung. Sie ist jetzt gepinnt, mit demselben Zweck: dass ein
+ * Unterschied zwischen zwei Läufen etwas bedeutet.
+ *
+ * Der Tag ist der, an dem diese Bildreihe entstand. Er darf sich ändern — dann
+ * verschiebt sich das Raster sichtbar, was der Grund ist, ihn hier zu wählen
+ * statt in jedem Lauf neu zu würfeln.
+ */
+const CAPTURE_DAY = new Date('2026-08-25T12:00:00Z');
+
 const README_DIR = join(ROOT, '.github/assets');
 const OG_PATH = join(ROOT, 'apps/docs/static/og.png');
 
@@ -72,6 +91,11 @@ async function openPage(target: Browser, path: string, scale: number): Promise<P
     reducedMotion: 'reduce'
   });
   const page = await context.newPage();
+  // Vor dem ersten Navigieren, sonst hat die Seite ihre Startwerte schon aus
+  // der echten Uhr gelesen. `setFixedTime` friert nur, was das Dokument als
+  // „jetzt" liest — Timer und Transitions laufen weiter, was der Kachel-Replay
+  // und `settle()` brauchen.
+  await page.clock.setFixedTime(CAPTURE_DAY);
   const response = await page.goto(`${BASE}${path}`, { waitUntil: 'domcontentloaded' });
   if (!response?.ok()) {
     throw new Error(`${path} antwortete mit ${response?.status() ?? 'keiner Antwort'}`);
