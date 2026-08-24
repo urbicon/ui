@@ -127,6 +127,12 @@ function expectRefused(tool: keyof typeof EMPTY) {
   expect(trigger.getAttribute('aria-disabled')).toBe('true');
   expect(trigger.disabled).toBe(false);
   expect(trigger.getAttribute('aria-label')).toBe(`${tool} · ${EMPTY[tool]}`);
+  // The look of the refusal. Button's `disabled:` compound no longer applies,
+  // and the two press cues it used to suppress stay live otherwise — a trigger
+  // that dips and deepens under a pointer it just refused.
+  expect(trigger.className).toContain('aria-disabled:opacity-50');
+  expect(trigger.className).toContain('aria-disabled:active:scale-100');
+  expect(trigger.className).toContain('aria-disabled:active:shadow-none');
   expect(trigger.getAttribute('aria-expanded')).toBe('false');
   return trigger;
 }
@@ -204,7 +210,10 @@ describe('#254 — a tool with nothing to offer says the same thing in both geom
 
     for (const tool of Object.keys(EMPTY)) {
       const trigger = barTrigger(tool);
-      expect(trigger.getAttribute('aria-disabled')).toBe('false');
+      // `not.toBe('true')` rather than `toBe('false')`: Button renders the
+      // attribute for every button today, which is its quirk and not this
+      // contract — what matters here is that nothing is refused.
+      expect(trigger.getAttribute('aria-disabled')).not.toBe('true');
       expect(trigger.getAttribute('aria-label')).toBe(tool);
     }
 
@@ -234,10 +243,14 @@ describe('#254 — an unavailable trigger refuses without leaving the keyboard b
     sort.focus();
     expect(document.activeElement).toBe(sort);
 
-    // Tooltip opens on `focusin` after its show delay and marks the trigger
-    // wrapper `aria-describedby`. Read through to the text rather than at the
-    // attribute: the tooltip element is mounted either way, so only the pairing
-    // proves the sentence is actually offered.
+    // What this proves: the Tooltip opened on `focusin` and is rendering the
+    // sentence. Not that the button is *described* by it — `aria-describedby`
+    // sits on the Tooltip's wrapper span, and a roleless span passes no
+    // description to its child. The screen reader gets the sentence from the
+    // trigger's `aria-label`, which the suite above pins; this is the sighted
+    // keyboard user's route, and it exists only because the trigger still takes
+    // focus. Read through the pairing to the text, because the tooltip element
+    // is mounted whether or not it is open.
     vi.advanceTimersByTime(300);
     flushSync();
     const describedBy = sort.parentElement?.getAttribute('aria-describedby');
@@ -245,7 +258,7 @@ describe('#254 — an unavailable trigger refuses without leaving the keyboard b
     expect(document.getElementById(describedBy as string)?.textContent).toContain(EMPTY.Sort);
   });
 
-  it('swallows the pointer and the Enter/Space activation on every axis', async () => {
+  it('swallows the pointer, Enter/Space and the arrow keys on every axis', async () => {
     const user = userEvent.setup();
     renderTable();
 
@@ -260,6 +273,14 @@ describe('#254 — an unavailable trigger refuses without leaving the keyboard b
       expect(trigger.getAttribute('aria-expanded')).toBe('false');
 
       await user.keyboard(' ');
+      expect(trigger.getAttribute('aria-expanded')).toBe('false');
+
+      // The arrow keys are the half MenuTrigger deliberately does NOT swallow:
+      // `Select.handleTriggerKeydown` opens the listbox from the wrapper around
+      // the custom trigger and refuses only on the Select's own `disabled`. So
+      // this is that flag's positive control — without it, three of the five
+      // tools open here from the keyboard while the pointer is refused.
+      await user.keyboard('{ArrowDown}');
       expect(trigger.getAttribute('aria-expanded')).toBe('false');
     }
 
@@ -289,9 +310,11 @@ describe('#254 — an unavailable trigger refuses without leaving the keyboard b
  * reachable.
  */
 describe('#254 — an ineligible axis with a value in force stays operable', () => {
+  // `not.toBe('true')`, for the reason the eligible-table control gives: the
+  // attribute's presence on an unrefused button is Button's own shape.
   const live = (tool: keyof typeof EMPTY) => {
     const trigger = barTrigger(tool);
-    expect(trigger.getAttribute('aria-disabled')).toBe('false');
+    expect(trigger.getAttribute('aria-disabled')).not.toBe('true');
     return trigger;
   };
 

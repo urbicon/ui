@@ -109,6 +109,10 @@
   {/if}
 {/snippet}
 
+<!-- `disabled` also refuses the ArrowDown below — this trigger's `onkeydown`
+     opens the menu, and MenuTrigger stops calling it while the tool is empty,
+     so `Menu.toggle`'s own guard is what covers a stray call. The Selects next
+     door lean on the same flag for arrow keys they never see (see SortMenu). -->
 <Menu items={menuItems} syncWidth={false} itemSize="sm" disabled={emptyKey !== null}>
   {#snippet customTrigger(toggle, open)}
     <MenuTrigger

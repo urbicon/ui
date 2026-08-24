@@ -100,6 +100,12 @@
   `w-auto` on the Select wrapper: its default `w-full` makes the wrapper a
   stretching flex item in the toolbar row, which padded every menu trigger with
   dead space and left the icons unevenly spaced.
+
+  `disabled` is the ARROW-KEY half of the empty-tool refusal, not a spare belt:
+  `Select.handleTriggerKeydown` sits on the wrapper around the custom trigger and
+  opens the listbox on ArrowDown/ArrowUp, where this flag is the only thing it
+  early-returns on. MenuTrigger swallows the click and Enter/Space and stops
+  there on purpose; without this, an empty tool still opened from the keyboard.
 -->
 <Select
   options={sortOptions}

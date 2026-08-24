@@ -70,7 +70,8 @@
   />
 {/snippet}
 
-<!-- `w-auto`: see SortMenu — the Select wrapper defaults to `w-full`. -->
+<!-- `w-auto`: see SortMenu — the Select wrapper defaults to `w-full`. `disabled`
+     is the arrow-key half of the empty-tool refusal, documented there too. -->
 <Select
   options={groupingOptions}
   value={currentValue}

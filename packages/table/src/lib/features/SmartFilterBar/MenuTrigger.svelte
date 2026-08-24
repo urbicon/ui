@@ -79,6 +79,11 @@
    * span/div carrying their own `onclick`/`onkeydown` (Popover and Select both
    * do), so an unstopped event opens the panel from the wrapper even though the
    * button itself did nothing.
+   *
+   * It stops there deliberately. `Select` opens on ArrowDown/ArrowUp from that
+   * same wrapper, and those are refused by the `disabled` each tool hands to its
+   * own overlay — the other half of one guard, documented at those call sites.
+   * Swallowing arrows here too would make one axis refuse in two places.
    */
   const inert = $derived(unavailable !== undefined);
 
@@ -102,11 +107,31 @@
     onkeydown?.(event);
   }
 
-  // The look of the refusal. `aria-disabled:` rather than Button's own
-  // `disabled:` compound, which keys off the attribute this trigger no longer
-  // sets — the same two classes Guide and TimeInput use for the same reason.
+  /**
+   * The look of the refusal, in `aria-disabled:` utilities rather than Button's
+   * own `disabled:` compound — that one keys off the attribute this trigger no
+   * longer sets. The first pair is what Guide and TimeInput already use; the
+   * two `active:` resets exist because this is the repo's first aria-disabled
+   * *button*, and none of the three role models carries a press cue.
+   *
+   * Measured on the rendered trigger rather than reasoned from the variants:
+   * ghost/neutral keeps exactly `active:shadow-[var(--blocks-shadow-sm)]` and
+   * `active:scale-[var(--blocks-press-scale)]` live once `disabled` is gone (no
+   * `active:bg-*` reaches this pairing), so a refusing trigger dipped and
+   * deepened under the pointer as though it had taken the press.
+   *
+   * `scale-100` even though `mint="none"` below already rewrites
+   * `--blocks-press-scale` to 1: that token is a documented consumer override
+   * point, so the reset states the refusal in its own terms instead of relying
+   * on what a preset happens to leave the token at.
+   */
   const buttonClass = $derived(
-    [triggerClass, inert ? 'aria-disabled:cursor-not-allowed aria-disabled:opacity-50' : '']
+    [
+      triggerClass,
+      inert
+        ? 'aria-disabled:cursor-not-allowed aria-disabled:opacity-50 aria-disabled:active:scale-100 aria-disabled:active:shadow-none'
+        : ''
+    ]
       .filter(Boolean)
       .join(' ')
   );
@@ -126,6 +151,10 @@
 
   Kein `title` daneben: die Erklärung steht schon im zugänglichen Namen, und ein
   `title` wird per HTML-AAM zur *description* — derselbe Satz zweimal angesagt.
+
+  `mint="none"` beim leeren Werkzeug: die Mint-Animation ist ein JS-Attachment,
+  das keine CSS-Klasse abschalten kann — und `disabled` ist hier false, also
+  liefe sie sonst auf einem Trigger, der die Aktivierung gerade verweigert hat.
 -->
 <Tooltip label={spokenLabel}>
   <Button
@@ -133,6 +162,7 @@
     intent="neutral"
     size="sm"
     {active}
+    mint={inert ? 'none' : undefined}
     class={buttonClass}
     aria-expanded={expanded}
     aria-haspopup={haspopup}
