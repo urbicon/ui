@@ -4,6 +4,20 @@ All notable changes to this project will be documented in this file.
 This changelog is automatically generated from [Conventional Commits](https://www.conventionalcommits.org).
 
 
+## [8.6.1] - 2026-08-24
+
+### Bug Fixes
+- **blocks**: Placement-neutral German label for the drawer close button
+- **table**: Explicit searchDebounceMs is the whole search delay on server tables
+- **table**: One horizontal cell inset — the td carries it, wrappers lose theirs
+- **table**: One effective summary list — every surface reads it
+- **table**: Tool surfaces and engines resolve over the declared column set
+- **table**: One empty-state policy per tool axis
+
+### Documentation
+- Codify the PR-wave procedure as a repo skill
+- Comments carry constraints, not history — policy plus a trim of the wave's comments
+
 ## [8.6.0] - 2026-08-22
 
 ### Bug Fixes
