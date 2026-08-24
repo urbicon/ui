@@ -1,6 +1,7 @@
 // @vitest-environment jsdom
 import { flushSync, mount, unmount } from 'svelte';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
+import { TableColumns } from '$lib/factories/TableColumns';
 import {
   actionCellVariants,
   copyButtonVariants,
@@ -61,6 +62,57 @@ const SPACING_STEP_PX = 4;
  */
 function ownOffsetLeftPx(el: Element): number {
   return offsetOfClasses([...el.classList]);
+}
+
+/** A fixed `w-<step>` in px. Keywords (`w-full`, `w-auto`, …) are not sizes. */
+function widthClassPx(classes: string[]): number {
+  const found = classes.filter((cls) => /^w-\d/.test(cls));
+  if (found.length !== 1) {
+    throw new Error(
+      `Expected exactly one fixed width class, found ${JSON.stringify(found)} — the budget below ` +
+        'is arithmetic over that class and cannot guess which one applies.'
+    );
+  }
+  return Number(found[0].slice(2)) * SPACING_STEP_PX;
+}
+
+/** A `gap-<step>` in px. */
+function gapClassPx(classes: string[]): number {
+  const found = classes.filter((cls) => /^gap-\d/.test(cls));
+  if (found.length !== 1) {
+    throw new Error(`Expected exactly one gap class, found ${JSON.stringify(found)}.`);
+  }
+  return Number(found[0].slice(4)) * SPACING_STEP_PX;
+}
+
+/** A CSS length as written in a column's `width`, in px. */
+function cssLengthPx(value: string): number {
+  const match = /^(\d+(?:\.\d+)?)(rem|px)$/.exec(value.trim());
+  if (!match) {
+    throw new Error(
+      `Cannot read "${value}" as a px or rem length — the actions column's width budget is ` +
+        'checked against it and must not treat it as zero.'
+    );
+  }
+  return Number(match[1]) * (match[2] === 'rem' ? 16 : 1);
+}
+
+/**
+ * The bleed only bleeds on a box whose width can absorb it.
+ *
+ * With `box-sizing: border-box`, `-mx-3` on a `w-full` box over-constrains the
+ * width equation, and CSS 2.1 §10.3.3 resolves that by discarding the specified
+ * `margin-right` (ltr): the box reaches the cell's left edge and stops two
+ * insets short of the right one, painting a ground clipped down one side. A
+ * mirror-image class sum cannot see this — `-mx-3 px-3` is symmetric either way
+ * — so the invariant is on the cause: a negative horizontal margin requires
+ * `w-auto`.
+ */
+function assertBleedCanResolve(classes: string[], label: string): void {
+  const bleeds = classes.some((cls) => /^-m[xl]-/.test(cls));
+  if (!bleeds) return;
+  expect(classes, `${label}: bleeds, so it must not be w-full`).not.toContain('w-full');
+  expect(classes, `${label}: bleeds, so it needs an auto width`).toContain('w-auto');
 }
 
 /**
@@ -208,6 +260,43 @@ describe('the offset reader', () => {
   });
 });
 
+describe('the size readers', () => {
+  // Same reason as the offset reader's controls: the width budget is a
+  // comparison, and a reader that answered 0 would let anything through.
+  it('reads a fixed width class', () => {
+    expect(widthClassPx(['inline-flex', 'w-8', 'h-8'])).toBe(32);
+    expect(widthClassPx(['w-3.5'])).toBe(14);
+  });
+
+  it('does not mistake a width keyword for a size', () => {
+    expect(() => widthClassPx(['w-full', 'w-auto'])).toThrow(/exactly one fixed width/);
+  });
+
+  it('refuses an ambiguous pair of widths', () => {
+    expect(() => widthClassPx(['w-7', 'w-8'])).toThrow(/exactly one fixed width/);
+  });
+
+  it('reads a gap class', () => {
+    expect(gapClassPx(['flex', 'gap-1'])).toBe(4);
+    expect(() => gapClassPx(['flex'])).toThrow(/exactly one gap/);
+  });
+
+  it('reads a CSS length', () => {
+    expect(cssLengthPx('9rem')).toBe(144);
+    expect(cssLengthPx('120px')).toBe(120);
+    expect(() => cssLengthPx('auto')).toThrow(/px or rem/);
+  });
+
+  // The invariant itself, in both directions — a check that never fires would
+  // pass every fold below.
+  it('flags a bleed that cannot resolve, and passes one that can', () => {
+    expect(() => assertBleedCanResolve(['-mx-3', 'px-3', 'w-full'], 'broken')).toThrow();
+    expect(() => assertBleedCanResolve(['-mx-3', 'px-3', 'w-auto'], 'fixed')).not.toThrow();
+    // No bleed, no requirement: a plain wrapper stays `w-full`.
+    expect(() => assertBleedCanResolve(['w-full'], 'plain')).not.toThrow();
+  });
+});
+
 describe.each(SIZES)('one cell inset at size=%s', (size) => {
   // Without this, most of the assertions below could pass on an empty cell: a
   // `<td>` that rendered nothing has exactly the `<td>`'s own padding, which is
@@ -222,8 +311,8 @@ describe.each(SIZES)('one cell inset at size=%s', (size) => {
       cellAt(root, 'cell-1-note').querySelector('[data-testid="snippet-content"]')
     ).not.toBeNull();
     expect(cellAt(root, 'cell-1-custom').textContent).toContain('custom');
-    // Three buttons from the factory's own trio — the width budget below
-    // assumes exactly this count.
+    // Three buttons from the factory's own trio — the width budget in the last
+    // describe of this file counts them and fails if a fourth appears.
     expect(cellAt(root, 'cell-1-actions').querySelectorAll('button')).toHaveLength(3);
     expect(cellAt(root, 'summary-cell-amount').textContent?.trim()).not.toBe('');
   });
@@ -342,18 +431,19 @@ describe('no wrapper inside a data cell displaces its content', () => {
     customCellVariants
   };
 
-  const offsetOf = (classes: string) => offsetOfClasses(classes.split(/\s+/).filter(Boolean));
-
-  it.each(Object.keys(WRAPPERS))('%s.container()', (name) => {
+  /**
+   * Every fold of one wrapper's container: each size, and every boolean axis in
+   * both positions, so the painting compounds (`interactive`, `clickable`) are
+   * actually reached — they are exactly the ones carrying the bleed pair, and a
+   * size-only sweep would never see them. The axes are read from the config: a
+   * hand-kept list is the copy most likely to fall behind, and it would go
+   * green by checking fewer cases than exist.
+   */
+  function eachContainerFold(name: string, check: (classes: string[], label: string) => void) {
     const variants = WRAPPERS[name] as SlotVariants;
-    // Read the axes from the config: a hand-kept list is the copy most likely
-    // to fall behind, and it would go green by checking fewer cases than exist.
     const sizes = Object.keys(variants.config.variants?.size ?? {});
     expect(sizes.length).toBeGreaterThan(0);
 
-    // Every boolean axis in both positions, so the painting compounds
-    // (`interactive`, `clickable`) are actually reached — they are exactly the
-    // ones carrying padding, and a size-only sweep would never see them.
     const booleanAxes = Object.entries(variants.config.variants ?? {})
       .filter(([, values]) => 'true' in values && 'false' in values)
       .map(([axis]) => axis);
@@ -362,18 +452,80 @@ describe('no wrapper inside a data cell displaces its content', () => {
       for (const axis of ['', ...booleanAxes]) {
         for (const value of axis ? [true, false] : [undefined]) {
           const props = axis ? { size, [axis]: value } : { size };
-          expect(
-            offsetOf(variants(props).container()),
-            `${name} @ size=${size}${axis ? `, ${axis}=${value}` : ''}`
-          ).toBe(0);
+          const label = `${name} @ size=${size}${axis ? `, ${axis}=${value}` : ''}`;
+          check(variants(props).container().split(/\s+/).filter(Boolean), label);
         }
       }
     }
+  }
+
+  it.each(Object.keys(WRAPPERS))('%s.container() displaces nothing', (name) => {
+    eachContainerFold(name, (classes, label) => {
+      expect(offsetOfClasses(classes), label).toBe(0);
+    });
+  });
+
+  // The root cause of the one-sided ground, as a class invariant. Symmetric
+  // class sums cannot see it: the defect is in how CSS resolves an
+  // over-constrained width equation, not in which classes are present.
+  it.each(Object.keys(WRAPPERS))('%s.container() bleeds on an auto width', (name) => {
+    eachContainerFold(name, assertBleedCanResolve);
   });
 
   it('summaryRowVariants.content()', () => {
     for (const size of SIZES) {
-      expect(offsetOf(summaryRowVariants({ size }).content()), `summary @ size=${size}`).toBe(0);
+      const classes = summaryRowVariants({ size }).content().split(/\s+/).filter(Boolean);
+      expect(offsetOfClasses(classes), `summary @ size=${size}`).toBe(0);
+      assertBleedCanResolve(classes, `summary @ size=${size}`);
     }
+  });
+});
+
+/**
+ * The actions column's width budget, as arithmetic over what the components
+ * actually render.
+ *
+ * Under `table-layout: auto` a declared width is a floor, not a promise: when
+ * the cell's min-content exceeds it the column silently grows and everything
+ * after it shifts. `TableColumns.actions` therefore declares a width computed
+ * from the button trio, and this is the check that the computation still holds
+ * — a bigger button, a wider gap, a fourth built-in action or a larger cell
+ * inset must fail here rather than in someone's layout.
+ *
+ * Read from the mounted tree rather than recomputed: the button size a cell
+ * component gets is `TableCell`'s to decide (it hands a `lg` table the `md`
+ * size), and repeating that rule here would be the second copy this whole PR
+ * is about.
+ *
+ * One known simplification: the blocks `Button` also carries `min-w-min`, so a
+ * button whose own min-content is wider than its `w-<step>` uses that instead —
+ * at `sm` that is 32px against `w-7`'s 28, i.e. 116px rather than 104px, still
+ * inside the budget. The formula below reads the declared width class, which is
+ * the number the factory's comment is derived from.
+ */
+describe.each(SIZES)('the actions column at size=%s', (size) => {
+  const declaredWidthPx = cssLengthPx(String(TableColumns.actions('Actions').width));
+
+  it('fits inside the width its factory declares', () => {
+    const root = mountTable({ size });
+    const cell = cellAt(root, 'cell-1-actions');
+    const buttons = [...cell.querySelectorAll('button')];
+    expect(buttons.length).toBe(3);
+
+    const buttonWidths = buttons.map((button) => widthClassPx([...button.classList]));
+    expect(new Set(buttonWidths).size, 'the trio should share one width').toBe(1);
+
+    const row = buttons[0].parentElement;
+    if (!row) throw new Error('The buttons have no row to sit in.');
+    const gap = gapClassPx([...row.classList]);
+
+    const minContent =
+      buttons.length * buttonWidths[0] + (buttons.length - 1) * gap + 2 * DATA_CELL_INSET_PX[size];
+
+    expect(
+      minContent,
+      `${buttons.length} × ${buttonWidths[0]}px + ${buttons.length - 1} × ${gap}px + 2 × ` +
+        `${DATA_CELL_INSET_PX[size]}px = ${minContent}px, declared ${declaredWidthPx}px`
+    ).toBeLessThanOrEqual(declaredWidthPx);
   });
 });

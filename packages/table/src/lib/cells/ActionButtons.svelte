@@ -68,12 +68,19 @@
     variant?: ActionCellVariantProps['variant'];
     className?: string;
     testId?: string;
+    /**
+     * **Currently without effect.** The buttons are right-aligned in every
+     * case: this prop drives a `justify-*` on a box whose only child fills it,
+     * and `actionCellVariants` pins `justify-end` underneath that. Left here
+     * rather than removed because the fix is a layout change to the cell, not
+     * a value.
+     */
     align?: 'left' | 'center' | 'right';
     /**
      * Optional cap on the button row's width, as a CSS length.
      *
-     * Unset (the default) the row fills its cell, so `align` puts the buttons
-     * on the same reading edge as every other column. It used to default to
+     * Unset (the default) the row fills its cell, so the buttons sit on the
+     * same reading edge as every other column. It used to default to
      * `7rem` **and** set `width` as well as `max-width` — a second width
      * declaration beside the column's own, which the two only ever agreed on
      * by hand and which overflowed any column narrower than it (#256). Pass a
@@ -173,8 +180,15 @@
        declaration here could only agree with it by hand — `width: 7rem` plus
        the old 4px cell padding was exactly the factory's `120px`, so neither
        number could move alone, and any narrower column overflowed. Without it
-       the row fills the cell and `justify-end` lands the buttons on the same
-       reading edge as every other column, at any width and any size. -->
+       the row fills the cell, so the buttons land on the same reading edge as
+       every other column, at any width and any size.
+
+     And one thing this markup does not do, despite reading as if it did:
+     honour `align`. The `justify-*` below sits on a box whose only child is
+     `w-full`, so there is never a spare pixel to distribute, and
+     `actionCellVariants.container` pins `justify-end` underneath it anyway.
+     An actions column is right-aligned whatever the prop says. Pre-existing,
+     unchanged here, and not the inset defect this comment is about. -->
 <div
   class="flex min-h-10 items-center py-1 {align === 'center'
     ? 'justify-center'

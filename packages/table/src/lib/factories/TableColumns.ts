@@ -143,11 +143,17 @@ export const TableColumns = {
    *
    * `w-8` and not `w-9` at `lg`, because `TableCell` hands a `lg` table's cell
    * components the `md` size. `md` then needs 128px and `sm` 104px (`w-7`
-   * buttons, a 6px inset), so 9rem is the one value that holds at every size. `120px` held only at `md`, and only
-   * because it was hand-matched against `ActionButtons`' own `width: 7rem`
-   * (112 + 2 × 4px of cell padding); at `lg` it was already 8px short before
-   * #256 widened the inset. A column with `extraActions` needs its own
-   * `width` — 36px per extra button.
+   * buttons, a 6px inset — 116px in practice, since the blocks `Button` also
+   * carries `min-w-min` and no button gets narrower than its own icon plus
+   * padding). 9rem is the one value that holds at every size.
+   *
+   * `120px` held only at `md`, and only because it was hand-matched against
+   * `ActionButtons`' own `width: 7rem` (112 + 2 × 4px of cell padding); at
+   * `lg` it was already 8px short before #256 widened the inset. A column with
+   * `extraActions` needs its own `width` — 36px per extra button.
+   *
+   * Checked, not just written down: `Table.cellinset.svelte.test.ts` recomputes
+   * this from the rendered buttons of a mounted table, per size.
    */
   actions: <Item>(
     title = 'Actions',

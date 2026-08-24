@@ -111,12 +111,23 @@ export const TABLE_DIMENSIONS = {
    * `cellX` by construction and not by hand: the pair only cancels while both
    * halves read the same step, so the padding half IS `cellX` at the call site
    * and only the negative half lives here.
+   *
+   * `w-auto` is part of the token, not something a call site has to remember,
+   * because a bleed on a `w-full` box does not bleed on both sides — it bleeds
+   * on ONE. Every cell wrapper here is `w-full`, and with `box-sizing:
+   * border-box` that makes the width equation over-constrained: `-12px + 100% +
+   * -12px` cannot equal the containing block, so CSS 2.1 §10.3.3 drops the
+   * specified `margin-right` (in ltr) and solves for it instead. The box then
+   * starts at the cell's left edge and ends *two* insets short of the right one
+   * — a hover ground clipped down one side, which is worse than the short-but-
+   * symmetric ground the bleed was introduced to fix. With `width: auto` the
+   * same equation solves for the width, and the box spans both cell edges.
    */
   bleed: {
     cellX: {
-      sm: '-mx-1.5',
-      md: '-mx-3',
-      lg: '-mx-5'
+      sm: '-mx-1.5 w-auto',
+      md: '-mx-3 w-auto',
+      lg: '-mx-5 w-auto'
     }
   }
 } as const;
