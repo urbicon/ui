@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { tick } from 'svelte';
   import { getTableContext, useTableI18n } from '$lib';
   import { isSummaryType, SUMMARY_TYPES } from '$lib/utils/summary-types';
   import { RadioGroup, RadioItem } from '@urbicon-ui/blocks';
@@ -43,22 +44,54 @@
     }))
   );
 
+  /**
+   * The panel body, as a focus target.
+   *
+   * A fallback row (a hidden column that still carries an aggregation) is the
+   * one row here that can disappear *under the control that removed it*:
+   * picking its "None" drops the whole `RadioGroup`, the focused radio with
+   * it, and focus falls to `<body>` — inside the sheet's modal `<dialog>`,
+   * where the next Tab restarts at the top. The other panels never hit this,
+   * because their "off" choice is a row of the same group ("No sorting", "No
+   * grouping") and survives the change; only summary gives each column a group
+   * of its own.
+   *
+   * Which is why the wrapper below sits OUTSIDE the empty/filled branch:
+   * measured, the worst case is the fallback row being the *only* row — every
+   * summable column hidden — and there the branch flips as well, so a wrapper
+   * inside it unmounted itself along with the group and left nothing to catch
+   * focus.
+   */
+  let panelElement = $state<HTMLDivElement>();
+
   // The guard instead of a cast: the radio values come from the vocabulary
   // module, but the store must not have to trust that — anything outside the
   // union (including the '' of the "none" row) reads as "no aggregation".
   function handleChange(columnId: string, type: string) {
     if (!isSummaryType(type)) {
       removeSummaryConfig(columnId);
+      // Asked of the freshly recomputed list rather than of a flag: a row
+      // survives its aggregation being removed exactly when it is part of the
+      // offer, which is the same question `buildSummaryEntries` just answered.
+      //
+      // After `tick`, not before it: the group is still in the DOM at this
+      // point, and focusing ahead of the removal only gets reset by it.
+      if (!rows.some((row) => row.id === columnId)) {
+        void tick().then(() => panelElement?.focus());
+      }
       return;
     }
     addSummaryConfig({ column: columnId, type });
   }
 </script>
 
-{#if rows.length === 0}
-  <p class="text-text-secondary text-sm">{tt('summary.empty')}</p>
-{:else}
-  <div class="space-y-4">
+<!-- `tabindex="-1"`: not a tab stop, but a place focus can be PUT when the row
+     that had it is gone — see panelElement, including why this element wraps
+     the empty state too instead of sitting inside the `{:else}`. -->
+<div bind:this={panelElement} tabindex="-1" class="space-y-4">
+  {#if rows.length === 0}
+    <p class="text-text-secondary text-sm">{tt('summary.empty')}</p>
+  {:else}
     {#each rows as row (row.id)}
       <RadioGroup
         value={row.current}
@@ -73,5 +106,5 @@
         {/each}
       </RadioGroup>
     {/each}
-  </div>
-{/if}
+  {/if}
+</div>

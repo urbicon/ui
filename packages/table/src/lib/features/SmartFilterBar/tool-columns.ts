@@ -1,6 +1,11 @@
 import type { TableState } from '$lib/stores/concerns/types';
 import type { Column } from '$lib/types/tableTypes';
-import { resolveColumnId, resolveColumnLabel, resolveColumnLabelById } from '$lib/utils';
+import {
+  findColumnById,
+  resolveColumnId,
+  resolveColumnLabel,
+  resolveColumnLabelById
+} from '$lib/utils';
 import {
   isColumnGroupable,
   isColumnSearchable,
@@ -28,14 +33,21 @@ import {
  * the two questions a tool asks have different answers:
  *
  * - **What may I offer?** The *visible* columns. A tool offers what the reader
- *   can see; an aggregation on a hidden column would have no cell to render in,
- *   and a filter form for a column that is not on screen is an invitation to
- *   nothing.
+ *   can see; an aggregation on a hidden column has no cell to render in, and a
+ *   filter form for a column that is not on screen is an invitation to nothing.
  * - **What is running?** Anything, visible or not. A tool value survives its
  *   column being hidden — that is the preference philosophy the whole table
  *   follows — so a key that is *active* and unlisted gets a fallback row, and
  *   its label resolves over the *declared* set so it keeps reading "Location"
  *   rather than degrading to the raw `city`.
+ *
+ * "No cell to render in" is a statement about the desktop **grid**, where a
+ * summary cell sits under its column and a hidden column takes that place with
+ * it. The mobile layout's summary band is a *list* of label/value rows, so it
+ * has a place for an aggregation whose column is not on screen and keeps
+ * showing it — with the label resolved over the declared set, like every other
+ * ambient surface. The offer narrows with visibility; what is *in force* is
+ * shown wherever the geometry allows.
  *
  * Grouping had this shape first, for a different reason (a group key need not
  * be a column at all), and the other three axes were left holding a value they
@@ -106,19 +118,13 @@ function buildToolEntries(
 }
 
 /**
- * Columns the sort tool offers. Sorting is otherwise only reachable by clicking
- * a column header, which the mobile card layout has no equivalent of.
- *
- * The rule itself is {@link isColumnSortable}, shared with the header click and
- * the header menu, so the three cannot answer differently.
- */
-export function selectSortableColumns(columns: Column[]): Column[] {
-  return columns.filter(isColumnSortable);
-}
-
-/**
- * The sort tool's rows — {@link selectSortableColumns} plus the active sort
+ * The sort tool's rows — the sortable visible columns, plus the active sort
  * column when that is no longer among them.
+ *
+ * The eligibility rule is {@link isColumnSortable}, shared with the header
+ * click and the header menu, so the three cannot answer differently. Sorting is
+ * otherwise only reachable by clicking a column header, which the mobile card
+ * layout has no equivalent of.
  *
  * Without the fallback, hiding the sorted column left the wide bar's `Select`
  * holding a value with no option (DEV-logged `value "…" has no matching
@@ -133,13 +139,43 @@ export function buildSortEntries(
   return buildToolEntries(scope, isColumnSortable, [activeSortKey]);
 }
 
+/** A filter section, and how much of one it may be. */
+export interface FilterToolEntry extends ToolColumnEntry {
+  /**
+   * Whether this section may carry the **add** form — the operator select, the
+   * value field and the quick-value list — as opposed to only the rows that are
+   * already running plus their remove buttons.
+   *
+   * `true` requires the key to name a column the consumer **declared** and that
+   * {@link isColumnSearchable} accepts. That is one condition short of the
+   * offer above: a declared, filterable column keeps its full form while merely
+   * *hidden*, which is the whole point of the fallback row.
+   *
+   * The two `false` cases are the ones a full editor would misrepresent:
+   *
+   * - the key names **no declared column** — a filter restored from prefs or a
+   *   URL for a column that v2 removed. The form would offer operators derived
+   *   from a `dataType` nobody declared, and the quick-value list would
+   *   enumerate up to twenty distinct values of a field the table knows
+   *   nothing about.
+   * - the column declared `searchable: false` — an explicit opt-out. Honouring
+   *   it everywhere except in the one section that appears *because* a filter
+   *   slipped past it would make the flag mean nothing.
+   *
+   * Both still show their running filters and the × that removes them: a filter
+   * you cannot get rid of is the defect this whole builder exists for.
+   */
+  editable: boolean;
+}
+
 /**
  * The filter tool's sections — one per filterable column, plus one per column
  * that carries a running filter and is not among them.
  *
- * The fallback section is what makes an active filter editable again: the chip
- * can only remove it, and the panel used to render no section at all for a
+ * The fallback section is what makes an active filter reachable again: the chip
+ * could only remove it, and the panel used to render no section at all for a
  * hidden column, so the trigger's badge counted a filter with nowhere to go.
+ * How much of a section each one gets is {@link FilterToolEntry.editable}.
  *
  * Duplicates are collapsed by {@link buildToolEntries}, which matters here more
  * than elsewhere: a column can carry several filters at once.
@@ -147,26 +183,22 @@ export function buildSortEntries(
 export function buildFilterEntries(
   scope: ToolColumnScope,
   activeFilterKeys: Iterable<string>
-): ToolColumnEntry[] {
-  return buildToolEntries(scope, isColumnSearchable, activeFilterKeys);
-}
-
-/**
- * Columns the grouping tool offers.
- *
- * The rule is {@link isColumnGroupable}, shared with the column's header menu.
- * It was a second copy here until it turned out the two had drifted apart: this
- * list required `groupable: true` or `sortable: true` while the header menu
- * accepted anything that was not `groupable: false`, so an unflagged column was
- * groupable from one surface and not from the other.
- */
-export function selectGroupableColumns(columns: Column[]): Column[] {
-  return columns.filter(isColumnGroupable);
+): FilterToolEntry[] {
+  return buildToolEntries(scope, isColumnSearchable, activeFilterKeys).map((entry) => {
+    const column = findColumnById(scope.declared, entry.id);
+    return { ...entry, editable: !!column && isColumnSearchable(column) };
+  });
 }
 
 /**
  * The grouping tool's rows, including the two keys that are legitimately absent
- * from {@link selectGroupableColumns}.
+ * from the groupable columns.
+ *
+ * The eligibility rule is {@link isColumnGroupable}, shared with the column's
+ * header menu. It was a second copy here until it turned out the two had
+ * drifted apart: this list required `groupable: true` or `sortable: true` while
+ * the header menu accepted anything that was not `groupable: false`, so an
+ * unflagged column was groupable from one surface and not from the other.
  *
  * Grouping is a superset of the column list: `view.groupBy` / `setGroupBy`
  * accept any item field, so a table can group by something it shows no column

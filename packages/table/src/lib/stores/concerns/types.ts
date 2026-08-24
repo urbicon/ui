@@ -26,6 +26,12 @@ export interface TableState {
    * The columns the grid renders — the *visible* subset, i.e. everything the
    * visibility feature has not hidden. Read it to draw something; resolve a
    * column *definition* over {@link allColumns} instead (see there).
+   *
+   * Read and write are not symmetric, deliberately: reading gives the visible
+   * subset, while assigning replaces the **declared** list — it is the
+   * imperative counterpart of the `columns` prop, which is the supported
+   * route. So `state.columns = next` moves {@link allColumns} too, and the
+   * hidden ids are re-matched against the new list.
    */
   columns: Column[];
   /**
@@ -41,9 +47,11 @@ export interface TableState {
    * filter fell through to a raw `getNestedValue` path, yielded `undefined`
    * for every row, and emptied the table (#253).
    *
-   * Read-only: the list comes from the `columns` prop. Visibility is
-   * prop-driven (`enableColumnVisibility`, `prefs`) and its mutators stay
-   * internal.
+   * No setter of its own: the list comes from the `columns` prop, or from an
+   * assignment to {@link columns} — the one remaining imperative override,
+   * which writes the declared list even though reading it gives the visible
+   * subset. Visibility itself is prop-driven (`enableColumnVisibility`,
+   * `prefs`) and its mutators stay internal.
    */
   readonly allColumns: Column[];
   loading: boolean;

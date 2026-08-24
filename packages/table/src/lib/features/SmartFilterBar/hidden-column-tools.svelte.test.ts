@@ -58,7 +58,10 @@ const COLUMNS = [
     title: 'Amount',
     dataType: 'number',
     sortable: true
-  }
+  },
+  // Declared, visible, and explicitly out of the filter tool — the second of
+  // the two keys that may carry a running filter without earning an add form.
+  { accessor: 'note', title: 'Note', searchable: false }
 ] as unknown as Column[];
 
 let dispose: (() => void) | undefined;
@@ -193,11 +196,16 @@ describe('#253 — a hidden column keeps its tool value on screen', () => {
         .getAttribute('aria-checked')
     ).toBe('true');
 
-    // …and the aggregate itself stays right. The summary row draws no cell for
-    // a hidden column, so this is the only place the value is observable —
-    // which is exactly why it would have rotted to 0 unnoticed until the
-    // column came back.
+    // …and the aggregate itself stays right. The desktop summary row draws no
+    // cell for a hidden column, so it would have rotted unnoticed there.
     expect(ctx().summaryData).toEqual({ amount: 300 });
+
+    // The mobile band is a list of label/value rows, so it DOES have a place
+    // for a hidden column's total — which makes it the one surface that shows
+    // the label. It read the raw column id until this fix.
+    const mobile = within(screen.getByTestId('mobile-table'));
+    expect(mobile.getByText('Amount')).toBeTruthy();
+    expect(mobile.queryByText('amount')).toBeNull();
   });
 
   it('positive control: grouping already keeps its row — and now keeps its name too', () => {
@@ -237,5 +245,111 @@ describe('#253 — a hidden column keeps its tool value on screen', () => {
     expect(
       within(box('sheet-summary')).queryAllByRole('radiogroup', { name: 'Amount' })
     ).toHaveLength(1);
+  });
+});
+
+/**
+ * How much of a filter section a running filter earns.
+ *
+ * The fallback section exists so a filter is never stuck; it must not become a
+ * full editor over a field the table never declared. The rule: removable
+ * always, editable only for a column the consumer declared and `searchable`
+ * accepts — hidden or not.
+ *
+ * Read through the two `aria-label`s the form's controls carry, because those
+ * name the column and therefore say which section they belong to.
+ */
+describe('#253 — a filter section is an editor only where that is truthful', () => {
+  const filterPanel = () => within(box('sheet-filter'));
+
+  it('an undeclared key gets its rows and its remove button, and no form', async () => {
+    const user = userEvent.setup();
+    const { ctx } = renderTable();
+
+    // The shape a filter restored from prefs or a URL has after the column it
+    // names was dropped from the definition.
+    ctx().addFilter({ column: 'created_at', operator: 'contains', value: '2021' });
+    flushSync();
+
+    // The section is there, named — that is the way back out.
+    expect(filterPanel().getByRole('heading', { name: 'Created At' })).toBeTruthy();
+    expect(filterPanel().getByText('contains: 2021')).toBeTruthy();
+
+    // …but no add form. Asserted as the whole set of sections that have one,
+    // so a form appearing anywhere it should not fails here too.
+    expect(
+      filterPanel()
+        .getAllByLabelText(/^Filter operator for /)
+        .map((el) => el.getAttribute('aria-label'))
+    ).toEqual([
+      'Filter operator for Name',
+      'Filter operator for Location',
+      'Filter operator for Amount'
+    ]);
+    // And the quick-value scan — which walks every row — still runs for the
+    // two text sections that offer one, not for the unknown field.
+    expect(filterPanel().queryAllByText(/^Quick values/)).toHaveLength(2);
+
+    // The removal path works, which is the whole reason the section renders.
+    await user.click(filterPanel().getByRole('button', { name: 'Remove filter' }));
+    expect(ctx().view.filters).toEqual([]);
+    expect(filterPanel().queryByRole('heading', { name: 'Created At' })).toBeNull();
+  });
+
+  it('a searchable:false column gets the same read-only section', () => {
+    const { ctx } = renderTable();
+
+    // Out of the offer by declaration, but the view axis can still carry a
+    // filter onto it. Honouring the opt-out everywhere except here would make
+    // the flag mean nothing.
+    ctx().addFilter({ column: 'note', operator: 'contains', value: 'x' });
+    flushSync();
+
+    expect(filterPanel().getByRole('heading', { name: 'Note' })).toBeTruthy();
+    expect(filterPanel().getByRole('button', { name: 'Remove filter' })).toBeTruthy();
+    expect(filterPanel().queryByLabelText('Filter operator for Note')).toBeNull();
+    expect(filterPanel().queryByLabelText('Filter value for Note')).toBeNull();
+  });
+
+  it('positive control: a merely hidden column keeps the whole form', () => {
+    const { ctx } = renderTable();
+
+    ctx().addFilter({ column: 'city', operator: 'contains', value: 'Berlin' });
+    ctx().hideColumn('city');
+    flushSync();
+
+    // Declared and filterable — only off screen. Nothing about the form is
+    // wrong here, and taking it away would put the #253 defect back.
+    expect(filterPanel().getByLabelText('Filter operator for Location')).toBeTruthy();
+    expect(filterPanel().getByLabelText('Filter value for Location')).toBeTruthy();
+  });
+});
+
+describe('#253 — removing a fallback aggregation does not strand focus', () => {
+  it('moves focus into the panel when the row under it disappears', async () => {
+    const user = userEvent.setup();
+    const { ctx } = renderTable();
+
+    ctx().addSummaryConfig({ column: 'amount', type: 'sum' });
+    ctx().hideColumn('amount');
+    flushSync();
+
+    // The fallback row's "None" is the one control in the sheet that deletes
+    // the group it lives in — every other panel's "off" choice is a sibling
+    // row that survives the change.
+    const group = within(box('sheet-summary')).getByRole('radiogroup', { name: 'Amount' });
+    const none = within(group).getByRole('radio', { name: 'None' }) as HTMLInputElement;
+    none.focus();
+    expect(document.activeElement).toBe(none);
+
+    await user.click(none);
+    flushSync();
+
+    expect(ctx().state.summaryConfigs).toEqual([]);
+    expect(within(box('sheet-summary')).queryByRole('radiogroup', { name: 'Amount' })).toBeNull();
+    // Not `<body>` — the sheet is a modal dialog, where that restarts every
+    // subsequent Tab at the top.
+    expect(document.activeElement).not.toBe(document.body);
+    expect(box('sheet-summary').contains(document.activeElement)).toBe(true);
   });
 });

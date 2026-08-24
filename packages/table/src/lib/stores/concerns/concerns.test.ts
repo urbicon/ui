@@ -754,6 +754,63 @@ describe('useSummary', () => {
   });
 });
 
+/**
+ * The two column lists pulled apart (#253): `columns` empty, `allColumns`
+ * holding the definition. Every other fixture in this file sets them equal, so
+ * these are the cases where reading the wrong one is *observable* — the engines
+ * resolve a column definition over the declared list, and only rendering reads
+ * the visible subset.
+ *
+ * The lookups covered here have no surface of their own: they decide how a
+ * value is formatted and how an operator is interpreted, so getting them wrong
+ * shows up as a plausible-looking wrong answer rather than as a missing row.
+ */
+describe('a hidden column keeps its definition', () => {
+  it('formats a summary through the hidden column own formatter', () => {
+    const state = fakeState({
+      summaryConfigs: [{ column: 'salary', type: 'sum' as const }],
+      showSummary: true,
+      columns: [],
+      allColumns: [
+        { accessor: 'salary', title: 'Salary', formatter: (v: unknown) => `€${v}` }
+      ] as Column<TableItem>[]
+    });
+
+    const s = useSummary(
+      state,
+      () => [],
+      () => ({})
+    );
+
+    // Over the visible subset the formatter is unreachable and the sum falls
+    // back to the plain integer rendering.
+    expect(s.getFormattedSummaryValue('salary', 1000)).toBe('€1000');
+  });
+
+  it('reads a hidden date column as a date, not as a string of bytes', () => {
+    const items = [
+      { id: 1, when: new Date('2021-03-15T09:00:00Z') },
+      { id: 2, when: new Date('2021-03-16T09:00:00Z') }
+    ] as TableItem[];
+    const state = fakeState({
+      mode: 'client',
+      items,
+      columns: [],
+      allColumns: [{ accessor: 'when', title: 'When', dataType: 'date' }] as Column<TableItem>[]
+    });
+    const view = fakeView({
+      filters: [{ column: 'when', operator: 'equals', value: '2021-03-15' }]
+    });
+
+    // `equals` on a date column compares calendar days. Without the narrowing
+    // it compares `String(date)` — "Mon Mar 15 2021 …" — against the filter
+    // text, which matches nothing at all.
+    expect(useFiltering(state, view).filteredItems.map((r) => (r as { id: number }).id)).toEqual([
+      1
+    ]);
+  });
+});
+
 describe('useFocusManagement', () => {
   it('contract: initial focusedRowIndex is 0', () => {
     const state = fakeState({});

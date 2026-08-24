@@ -6,11 +6,16 @@ import {
   buildGroupingEntries,
   buildSortEntries,
   buildSummaryEntries,
-  selectGroupableColumns,
   selectHideableColumns,
-  selectSortableColumns,
   type ToolColumnScope
 } from './tool-columns';
+
+/**
+ * What the builders do with the two column lists — not what makes a column
+ * eligible. That rule lives in `utils/column-capabilities.ts` and is pinned by
+ * its own suite; this file used to hold a second copy of a few of those cases
+ * through two `select…Columns` wrappers that no surface ever called.
+ */
 
 const col = (accessor: string, extra: Partial<Column> = {}): Column =>
   ({ accessor, title: accessor, ...extra }) as Column;
@@ -32,50 +37,6 @@ const scope = (visible: Column[], declared: Column[] = visible): ToolColumnScope
 const withHidden = (declared: Column[], hiddenId: string): ToolColumnScope => ({
   visible: declared.filter((c) => (c.id ?? c.accessor) !== hiddenId),
   declared
-});
-
-describe('selectSortableColumns', () => {
-  it('takes columns that neither lack an accessor nor opt out', () => {
-    const columns = [
-      col('name'),
-      col('role', { sortable: true }),
-      col('team', { sortable: false })
-    ];
-    expect(selectSortableColumns(columns).map((c) => c.accessor)).toEqual(['name', 'role']);
-  });
-
-  it('drops synthetic columns — sorting by a column with no accessor is undefined', () => {
-    expect(selectSortableColumns([synthetic('actions'), col('name')])).toHaveLength(1);
-  });
-
-  it('keeps a synthetic column out even when it declares itself sortable', () => {
-    expect(selectSortableColumns([synthetic('actions', { sortable: true })])).toEqual([]);
-  });
-});
-
-describe('selectGroupableColumns', () => {
-  it('honours an explicit groupable flag over the sortable-derived default', () => {
-    const columns = [
-      col('name', { sortable: true, groupable: false }),
-      col('team', { sortable: false, groupable: true })
-    ];
-    expect(selectGroupableColumns(columns).map((c) => c.accessor)).toEqual(['team']);
-  });
-
-  it('derives from sortable when groupable is unset', () => {
-    const columns = [col('name', { sortable: true }), col('note')];
-    expect(selectGroupableColumns(columns).map((c) => c.accessor)).toEqual(['name']);
-  });
-
-  it('never groups by a column name — `transaction` is groupable like any other', () => {
-    // Regression guard for the name-guessing rule this replaced
-    // (`!id.includes('action')`), which was wrong in both directions.
-    const columns = [col('transaction', { sortable: true }), col('actionType', { sortable: true })];
-    expect(selectGroupableColumns(columns).map((c) => c.accessor)).toEqual([
-      'transaction',
-      'actionType'
-    ]);
-  });
 });
 
 describe('buildSortEntries', () => {
@@ -126,15 +87,40 @@ describe('buildFilterEntries', () => {
     expect(entries.filter((e) => e.id === 'city')).toHaveLength(1);
   });
 
-  it('lists a filter on a column that opted out of searching, once it is running', () => {
-    // `searchable: false` keeps a column out of the offer, but a filter can
-    // still reach it through the view axis (URL, storage, defaults) — and an
-    // unremovable filter is worse than an unexpected section.
-    expect(buildFilterEntries(scope(columns), ['note']).map((e) => e.id)).toEqual([
-      'name',
-      'city',
-      'note'
-    ]);
+  // Removable always, editable only when the key names a column this table
+  // declared and `searchable` accepts. A filter you cannot get rid of is the
+  // defect the fallback row exists for; a full add form over a field the table
+  // never declared is a different one.
+  describe('editable', () => {
+    it('gives the full form to a column that is merely hidden', () => {
+      // The #253 case: declared, filterable, off screen. Nothing about the
+      // form is wrong here — the operators come from a `dataType` the consumer
+      // declared and the quick values scan a field the table knows.
+      const entries = buildFilterEntries(withHidden(columns, 'city'), ['city']);
+      expect(entries.find((e) => e.id === 'city')?.editable).toBe(true);
+    });
+
+    it('lists a filter on an undeclared key, but read-only', () => {
+      // A filter restored from prefs or a URL for a column v2 removed. The row
+      // is here so it can be removed; the form is not, because there is no
+      // column to derive operators from and nothing declared to enumerate.
+      const entries = buildFilterEntries(scope(columns), ['created_at']);
+      expect(entries.map((e) => e.id)).toEqual(['name', 'city', 'created_at']);
+      expect(entries.find((e) => e.id === 'created_at')?.editable).toBe(false);
+    });
+
+    it('lists a filter on a searchable:false column, but read-only', () => {
+      // The flag is an explicit opt-out. Honouring it everywhere except in the
+      // section that appears *because* a filter slipped past it would make it
+      // mean nothing.
+      const entries = buildFilterEntries(scope(columns), ['note']);
+      expect(entries.map((e) => e.id)).toEqual(['name', 'city', 'note']);
+      expect(entries.find((e) => e.id === 'note')?.editable).toBe(false);
+    });
+
+    it('marks every offered column editable', () => {
+      expect(buildFilterEntries(scope(columns), []).every((e) => e.editable)).toBe(true);
+    });
   });
 });
 

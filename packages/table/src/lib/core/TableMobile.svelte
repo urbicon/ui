@@ -2,7 +2,7 @@
   import { getInternalTableContext } from '$lib/stores/TableStore.svelte';
   import { useTableI18n } from '$lib/i18n';
   import MobileCard from './MobileCard.svelte';
-  import { resolveColumnId, resolveRowItemId } from '$lib/utils';
+  import { resolveColumnLabelById, resolveRowItemId } from '$lib/utils';
   import { mobileListVariants } from '$lib/variants';
   import { getTableStyleConfig, resolveSlotClass } from './table-style-context';
   import { groupCountText } from './group-count';
@@ -64,9 +64,14 @@
   const summaryConfigs = $derived(tableState.effectiveSummaryConfigs);
   const hasSummary = $derived(summaryConfigs.length > 0);
 
-  function columnTitle(columnId: string): string {
-    return tableState.columns.find((c) => resolveColumnId(c) === columnId)?.title || columnId;
-  }
+  // The band is a LIST of label/value rows, not a grid, so it has a place for
+  // an aggregation whose column is not on screen — and it keeps showing one
+  // (tool-columns.ts carries where that line runs). Which makes the label the
+  // whole question: resolved over `state.columns` this degraded to the raw
+  // `amount` the moment the column was hidden, beside a correctly formatted
+  // total (#253). The shared helper also brings `menuTitle` and the humanised
+  // fallback, neither of which the hand-rolled `?.title || columnId` had.
+  const columnTitle = (columnId: string) => resolveColumnLabelById(tableState.allColumns, columnId);
 </script>
 
 {#snippet summaryBand(title: string, values: Record<string, number>)}
