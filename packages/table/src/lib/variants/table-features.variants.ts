@@ -319,18 +319,23 @@ export const groupHeaderVariants = tv({
 
   variants: {
     size: {
+      // The band keeps the narrow control step, not a data cell's reading inset
+      // (`padding.cellX`): this `<td>` spans the whole row and opens with a
+      // chevron, and the group indent column below it is a control column too —
+      // so there is no column content for it to line up with. Moving it is a
+      // design question about the band, not the alignment defect of #256.
       sm: {
-        cell: TABLE_DIMENSIONS.padding.cell.sm,
+        cell: [TABLE_DIMENSIONS.padding.controlCellX.sm, TABLE_DIMENSIONS.padding.cellY.sm],
         content: 'gap-2',
         title: 'text-sm'
       },
       md: {
-        cell: TABLE_DIMENSIONS.padding.cell.md,
+        cell: [TABLE_DIMENSIONS.padding.controlCellX.md, TABLE_DIMENSIONS.padding.cellY.md],
         content: 'gap-3',
         title: 'text-base'
       },
       lg: {
-        cell: TABLE_DIMENSIONS.padding.cell.lg,
+        cell: [TABLE_DIMENSIONS.padding.controlCellX.lg, TABLE_DIMENSIONS.padding.cellY.lg],
         content: 'gap-4',
         title: 'text-lg'
       }
@@ -376,8 +381,17 @@ export const summaryRowVariants = tv({
     // boxing the row. tr borders render because the table is border-collapse.
     row: ['font-semibold'],
     cell: ['text-text-primary'],
-    // Horizontal padding matches customCellVariants' container so summary
-    // values sit flush with the column's cell content.
+    // The spacer cells that mirror the row's structural columns (group indent,
+    // selection, expand). Same split as `tableRowVariants`: those columns hold
+    // a control, not content, so they keep the narrow step rather than a data
+    // cell's reading inset — one rule for both rows, or the summary would
+    // silently define the structural columns differently from the body.
+    controlCell: ['text-text-primary'],
+    // No horizontal padding: the summary `<td>` carries the same
+    // `TABLE_DIMENSIONS.padding.cellX` as a data cell, so the value sits flush
+    // with the column's content by construction. It used to hold a hand-matched
+    // copy of `customCellVariants`' container step — which happened to agree at
+    // every size, and had no way of noticing when it stopped (#256).
     content: ['flex items-center justify-end gap-2'],
     label: ['text-text-secondary text-xs uppercase tracking-wide'],
     value: ['font-mono tabular-nums']
@@ -386,18 +400,18 @@ export const summaryRowVariants = tv({
   variants: {
     size: {
       sm: {
-        cell: TABLE_DIMENSIONS.padding.cell.sm,
-        content: 'px-1',
+        cell: [TABLE_DIMENSIONS.padding.cellX.sm, TABLE_DIMENSIONS.padding.cellY.sm],
+        controlCell: [TABLE_DIMENSIONS.padding.controlCellX.sm, TABLE_DIMENSIONS.padding.cellY.sm],
         value: 'text-sm'
       },
       md: {
-        cell: TABLE_DIMENSIONS.padding.cell.md,
-        content: 'px-2',
+        cell: [TABLE_DIMENSIONS.padding.cellX.md, TABLE_DIMENSIONS.padding.cellY.md],
+        controlCell: [TABLE_DIMENSIONS.padding.controlCellX.md, TABLE_DIMENSIONS.padding.cellY.md],
         value: 'text-base'
       },
       lg: {
-        cell: TABLE_DIMENSIONS.padding.cell.lg,
-        content: 'px-3',
+        cell: [TABLE_DIMENSIONS.padding.cellX.lg, TABLE_DIMENSIONS.padding.cellY.lg],
+        controlCell: [TABLE_DIMENSIONS.padding.controlCellX.lg, TABLE_DIMENSIONS.padding.cellY.lg],
         value: 'text-lg'
       }
     },

@@ -184,19 +184,22 @@
 >
   <!-- Structural cells (group indent, selection, expand) carry the row's cell
        chrome but not `slotClasses.cell` — that slot is scoped to data columns;
-       see TableSlotClasses.cell. Their order mirrors TableHead exactly: group,
-       selection, expand — GroupedRow used to render its own copy with
+       see TableSlotClasses.cell. They also take the `controlCell` slot rather
+       than `cell`: a data cell's inset is a reading edge (see
+       TABLE_DIMENSIONS.padding.cellX), while these centre a fixed-size control
+       inside a fixed-width column. Their order mirrors TableHead exactly:
+       group, selection, expand — GroupedRow used to render its own copy with
        selection first, which put every checkbox under the header's group
        column. -->
   {#if tableState.effectiveGroupBy}
     <!-- aria-hidden like the head's expand spacer, so no aria-colindex: the
          column exists (colOffset counts it), the cell just isn't content. -->
-    <td class={rowStyles.cell()} aria-hidden="true"></td>
+    <td class={rowStyles.controlCell()} aria-hidden="true"></td>
   {/if}
 
   {#if selectable}
     <td
-      class="{rowStyles.cell()} w-12"
+      class="{rowStyles.controlCell()} w-12"
       role={explicitRoles ? 'gridcell' : undefined}
       aria-colindex={selectionColIndex}
       onclick={handleCheckboxClick}
@@ -215,10 +218,19 @@
 
   {#if expandable}
     <td
-      class="{rowStyles.cell()} w-10"
+      class="{rowStyles.controlCell()} w-10"
       role={explicitRoles ? 'gridcell' : undefined}
       aria-colindex={expandColIndex}
     >
+      <!-- The `px-2` stays, and is not the drift #256 removed: this box centres
+           its button rather than setting content against an edge, so padding
+           here squeezes the button's box instead of moving anything. Dropping
+           it would be visible — the column is `w-10` (40px) and the control
+           step takes 8px, so the 24px button currently has 16px to sit in and
+           renders narrower than it declares; without the `px-2` it would get
+           its full width and a wider hover ground. That is a change to the
+           control, not to an inset, and belongs with the structural-column
+           widths (`w-12`/`w-10` vs the colgroup's `3rem`/`2.5rem`). -->
       <div class="flex h-full w-full items-center justify-center px-2 py-2">
         <button
           class="table-expand-button rounded-modify flex h-6 w-6 items-center justify-center transition-transform duration-(--blocks-duration-fast) {isExpanded

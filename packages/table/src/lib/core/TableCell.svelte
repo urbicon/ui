@@ -75,6 +75,11 @@
   title={titleText}
   data-testid={`${testIdPrefix}-${itemId}-${columnId}`}
 >
+  <!-- Four ways to fill a cell, one inset. It is on the `<td>` above
+       (`cellClass` → `tableRowVariants.cell` → `TABLE_DIMENSIONS.padding.cellX`)
+       because a snippet renders straight into the cell with no wrapper to put
+       one on — which is why the wrapper-side copies drifted to 12px / 8px / 4px
+       at `md` before #256. Nothing below adds horizontal padding. -->
   {#if cell}
     {@render cell(item, value, column)}
   {:else if column.cell}

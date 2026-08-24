@@ -72,6 +72,15 @@ export const emptyStateVariants = tv({
       }
     },
 
+    // Deliberately NOT paired with `TABLE_DIMENSIONS.bleed.cellX` the way the
+    // interactive cell wrappers are (#256). Moving the inset onto the `<td>`
+    // did narrow this frame by twice the inset, but it is a design surface for
+    // the empty state itself rather than a cell's paint ground: the state cell
+    // is a full-width colspan band with centred content, and a frame that sits
+    // one cell inset in from the band reads as intended. It also has no
+    // consumer — nothing in this package passes `bordered`, so the only way to
+    // render it is to call the variant directly, and then the caller owns the
+    // surface anyway.
     bordered: {
       true: {
         container: ['border-2 border-dashed border-border-subtle', 'rounded-contain']
@@ -247,16 +256,18 @@ export const skeletonRowVariants = tv({
 
   variants: {
     size: {
+      // A skeleton row stands in for a data row, so its bars start at the data
+      // cell's inset — the same `<td>` padding `tableRowVariants.cell` uses.
       sm: {
-        cell: TABLE_DIMENSIONS.padding.cell.sm,
+        cell: [TABLE_DIMENSIONS.padding.cellX.sm, TABLE_DIMENSIONS.padding.cellY.sm],
         skeleton: 'h-3'
       },
       md: {
-        cell: TABLE_DIMENSIONS.padding.cell.md,
+        cell: [TABLE_DIMENSIONS.padding.cellX.md, TABLE_DIMENSIONS.padding.cellY.md],
         skeleton: 'h-4'
       },
       lg: {
-        cell: TABLE_DIMENSIONS.padding.cell.lg,
+        cell: [TABLE_DIMENSIONS.padding.cellX.lg, TABLE_DIMENSIONS.padding.cellY.lg],
         skeleton: 'h-5'
       }
     },

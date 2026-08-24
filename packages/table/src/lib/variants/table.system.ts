@@ -33,15 +33,129 @@ export const TABLE_DIMENSIONS = {
 
   // Cell Padding
   padding: {
-    cell: {
-      sm: 'px-0.5 py-0.5',
-      md: 'px-1 py-1',
-      lg: 'px-2 py-1.5'
+    /**
+     * THE cell inset — the whole distance from the `<td>` edge to a body
+     * cell's content, at each size, and the only place it is written down.
+     *
+     * It sits on the `<td>` because that is the one box all three render paths
+     * share. A default cell wraps its value in `customCellVariants`, a typed
+     * cell (`column.component`) brings its own container, and a `column.cell`
+     * snippet renders straight into the cell with no wrapper at all — so while
+     * the inset lived on the wrappers there were three of them (12px, 8px and
+     * 4px at `md`, measured in the shipped docs demos, #256) and the snippet
+     * path had nowhere to put one. The wrappers now carry no horizontal
+     * padding whatsoever: whatever renders inside a data cell starts here, and
+     * there is no second literal left to disagree with this one.
+     *
+     * The numbers are the former default path's sum, kept to the pixel so that
+     * neither the default cell nor the summary row moves: the old `<td>` step
+     * (`px-0.5|1|2`) plus `customCellVariants`' container (`px-1|2|3`) is
+     * 6px / 12px / 20px, i.e. `px-1.5|3|5`.
+     */
+    cellX: {
+      sm: 'px-1.5',
+      md: 'px-3',
+      lg: 'px-5'
+    },
+    /**
+     * Cells that hold a control instead of content: the group indent, the
+     * selection checkbox, the expand chevron, and the group header's own
+     * full-width band.
+     *
+     * They centre a fixed-size control or span the whole row, so the reading
+     * edge above is not theirs to keep — and widening them would push against
+     * the structural column widths (`w-12` / `w-10` and the colgroup's
+     * `3rem` / `2.5rem`), which are a separate defect and a separate wave.
+     * This is the step the data cell used to carry, unchanged.
+     */
+    controlCellX: {
+      sm: 'px-0.5',
+      md: 'px-1',
+      lg: 'px-2'
+    },
+    /**
+     * The vertical step of a body cell — on the `<td>` and, unchanged, on the
+     * wrappers inside it.
+     *
+     * Not folded into `cellX` the way the horizontal one was: under a row of
+     * fixed height (`TABLE_DIMENSIONS.height.row`) a wrapper's vertical
+     * padding only shrinks a box whose content is centred anyway, so it is
+     * invisible rather than a drift — and #256 is about the reading edge.
+     */
+    cellY: {
+      sm: 'py-0.5',
+      md: 'py-1',
+      lg: 'py-1.5'
     },
     headerCell: {
       sm: 'px-0.5 py-0.5',
       md: 'px-1 py-1',
       lg: 'px-2 py-2'
+    }
+  },
+
+  /**
+   * The negative mirror of `padding.cellX`, for the wrapper that has to PAINT
+   * the whole cell rather than merely sit in it — a hover ground, a focus ring,
+   * a pressed state.
+   *
+   * Moving the inset onto the `<td>` shrank every wrapper's box by twice the
+   * inset (16px at `md`), because a wrapper is `h-full w-full` of the cell's
+   * *content* box. For a transparent wrapper that is invisible; for one that
+   * paints, the ground stopped short of the cell it belongs to.
+   *
+   * One token of three classes, because none of them is correct alone:
+   *
+   *   - the negative margin reaches back out to the cell's edge;
+   *   - `px-*` of the SAME step puts the content back where it was, so the net
+   *     horizontal offset is zero — that, and not "no wrapper has padding", is
+   *     the invariant the cell inset test asserts;
+   *   - `w-auto` is what lets the margin apply on BOTH sides. Every cell
+   *     wrapper is `w-full`, and with `box-sizing: border-box` that
+   *     over-constrains the width equation: `-12px + 100% + -12px` cannot equal
+   *     the containing block, so CSS 2.1 §10.3.3 discards the specified
+   *     `margin-right` (ltr) and solves for it instead. The box then starts at
+   *     the cell's left edge and ends *two* insets short of the right one — a
+   *     ground clipped down one side, worse than the short-but-symmetric one
+   *     the bleed exists to fix. With `width: auto` the equation solves for the
+   *     width and the box spans both cell edges (measured in Chrome: flush on
+   *     both edges with `w-auto`, 24px short with `w-full`).
+   *
+   * All three are gated on `td &`, because a bleed is only correct where the
+   * inset it reaches back over exists. The same components render in
+   * `MobileCard`, straight into a grid cell that carries no inset of its own —
+   * there the margins were pure overflow, 12px each side into the card's
+   * `gap-x-4` and `px-4` (MobileCard passes no `size`, so always the `md`
+   * step). CSS decides the context, so there is no second switch in JS and no
+   * prop for a consumer to get wrong: outside a `<td>` the whole triple is
+   * inert and the wrapper renders exactly as it did before the bleed existed.
+   *
+   * The step is written twice inside each string rather than composed from
+   * `padding.cellX`: Tailwind's scanner reads literals, so a built-up string
+   * would emit no CSS at all. Adjacent halves in one literal are the closest
+   * thing to a derivation available here, and the per-context net-zero
+   * assertion is what actually holds them equal.
+   *
+   * What `w-auto` would cost, and why nothing pays it today: `width: auto`
+   * fills the available space in block flow but shrinks to content in a FLEX
+   * one. Every place these wrappers render is block flow — a `<td>`, or a
+   * `MobileCard` grid cell — and the one thing that looks like it could change
+   * that does not: `column.flex` writes `flex-col` onto a `<td>` that never
+   * gets `display: flex` (`TableCell.svelte`; the prop's own doc says it only
+   * sets a direction), so it is inert. That inertness is the actual reason no
+   * consumer can depend on it. Whoever repairs `column.flex` turns these
+   * containers into flex items and has to revisit this line with it.
+   *
+   * One cost of the context gate: inside a cell these utilities carry the
+   * selector `td .[td_&]:px-3` (0,1,1), so a consumer `class="px-4"` on the
+   * painting wrappers no longer outranks them the way it outranks a plain
+   * library default — the usual escape (`!px-4`) still does.
+   */
+  bleed: {
+    cellX: {
+      sm: '[td_&]:-mx-1.5 [td_&]:px-1.5 [td_&]:w-auto',
+      md: '[td_&]:-mx-3 [td_&]:px-3 [td_&]:w-auto',
+      lg: '[td_&]:-mx-5 [td_&]:px-5 [td_&]:w-auto'
     }
   }
 } as const;

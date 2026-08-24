@@ -35,17 +35,20 @@
   >
     <!-- Spacer cells mirror the data rows (group indent → selection → expand,
          the head's order): every column slot needs a cell, or the whole row
-         shifts and the row background stops short of the missing slot. -->
+         shifts and the row background stops short of the missing slot. They
+         mirror the body's slot choice too — `controlCell`, the narrow step
+         those columns carry, and not a data cell's reading inset, so the two
+         rows cannot define the structural columns differently. -->
     {#if tableState.effectiveGroupBy}
-      <td class="{summaryStyles.cell()} w-10" aria-hidden="true"></td>
+      <td class="{summaryStyles.controlCell()} w-10" aria-hidden="true"></td>
     {/if}
 
     {#if selectable}
-      <td class="{summaryStyles.cell()} w-12" aria-hidden="true"></td>
+      <td class="{summaryStyles.controlCell()} w-12" aria-hidden="true"></td>
     {/if}
 
     {#if expandable}
-      <td class="{summaryStyles.cell()} w-10" aria-hidden="true"></td>
+      <td class="{summaryStyles.controlCell()} w-10" aria-hidden="true"></td>
     {/if}
 
     {#each tableContext.orderedColumns as column (resolveColumnId(column))}

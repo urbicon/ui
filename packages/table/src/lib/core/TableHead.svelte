@@ -249,12 +249,14 @@
       {@const isSortable = isColumnSortable(column)}
       <!-- No `align` here, deliberately: a header does NOT yet follow its
            column's alignment, and the axis that used to be passed has been
-           removed rather than left in place doing nothing. Making it work is a
-           layout change, not a variant value — the header and the body cell are
-           two separately grown chains with their own inner padding and their own
-           chrome (menu, sort chevron, indicator dots), and every attempt to
-           align them by moving one class uncovered another layer. See the issue
-           linked from `tableHeaderVariants`. -->
+           removed rather than left in place doing nothing. Two things stand in
+           the way, and only one of them is still a hunt: the header's inset is
+           `TABLE_DIMENSIONS.padding.headerCell` while the body's is
+           `padding.cellX` (one number apart per size since #256, neighbours in
+           the same file), and the header carries chrome the cell does not —
+           menu button, sort chevron, indicator dots — each of which shifts the
+           title. The second is why this is a layout change and not a variant
+           value. See the note on `tableHeaderVariants`. -->
       {@const columnStyles = tableHeaderVariants({
         size,
         sortable: isSortable,

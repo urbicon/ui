@@ -129,6 +129,35 @@ export const TableColumns = {
   /**
    * Creates an ActionButtons column (view/edit/delete). Synthetic — no data
    * accessor, structurally excluded from search/sort/group.
+   *
+   * On the default width, and why it is not 120px any more: under
+   * `table-layout: auto` a declared width is a floor, not a promise — the
+   * column silently grows to its min-content whenever the declaration is
+   * short, so a default that is too small is a disagreement nothing reports.
+   * The budget for the built-in trio, at the widest size:
+   *
+   *   3 × `w-8` button (32px)  +  2 × `gap-1` (4px)  = 104px
+   *   + 2 × `TABLE_DIMENSIONS.padding.cellX.lg` (20px) =  40px
+   *   ────────────────────────────────────────────────────────
+   *                                                    144px = 9rem
+   *
+   * `w-8` and not `w-9` at `lg`, because `TableCell` hands a `lg` table's cell
+   * components the `md` size. `md` then needs 128px and `sm` 104px (`w-7`
+   * buttons, a 6px inset — 116px in practice, since the blocks `Button` also
+   * carries `min-w-min` and no button gets narrower than its own icon plus
+   * padding). 9rem is the one value that holds at every size.
+   *
+   * `120px` held only at `md`, and only because it was hand-matched against
+   * `ActionButtons`' own `width: 7rem` (112 + 2 × 4px of cell padding); at
+   * `lg` it was already 8px short before #256 widened the inset. A column with
+   * `extraActions` needs its own `width` — 36px per extra button.
+   *
+   * Checked, not just written down: `Table.cellinset.svelte.test.ts` recomputes
+   * this from the rendered buttons of a mounted table, per size. What that check
+   * cannot see is the button's min-content growing underneath an unchanged
+   * `w-8` — a wider icon or more padding inside the blocks `Button` — and at
+   * `lg` the budget is exactly full (144 of 144), so there is no reserve to
+   * absorb it: the column would quietly grow past its declaration again.
    */
   actions: <Item>(
     title = 'Actions',
@@ -146,7 +175,7 @@ export const TableColumns = {
       }),
       priority,
       align: align ?? 'right',
-      width: width ?? '120px',
+      width: width ?? '9rem',
       minWidth,
       flex,
       hideable
