@@ -33,6 +33,7 @@ export default {
     quickValues: {
       title: 'Schnellwerte'
     },
+    empty: 'Keine Spalte lässt sich filtern',
     aria: {
       operatorFor: 'Filteroperator für {{column}}',
       valueFor: 'Filterwert für {{column}}'
@@ -89,11 +90,13 @@ export default {
   },
   grouping: {
     button: 'Gruppierung',
-    none: 'Keine Gruppierung'
+    none: 'Keine Gruppierung',
+    empty: 'Keine Spalte lässt sich gruppieren'
   },
   sort: {
     button: 'Sortierung',
     none: 'Keine Sortierung',
+    empty: 'Keine Spalte lässt sich sortieren',
     ascending: 'Aufsteigend',
     descending: 'Absteigend',
     direction: 'Sortierrichtung'

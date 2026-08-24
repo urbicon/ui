@@ -209,7 +209,26 @@ describe('selectHideableColumns', () => {
 describe('buildColumnVisibilityEntries', () => {
   it('carries the pinning rule through to the entry rows', () => {
     const columns = [col('name', { hideable: false }), col('role', { title: 'Role' })];
-    expect(buildColumnVisibilityEntries(columns)).toEqual([{ id: 'role', label: 'Role' }]);
+    expect(buildColumnVisibilityEntries(columns, [])).toEqual([{ id: 'role', label: 'Role' }]);
+  });
+
+  it('keeps a pinned column that was hidden anyway, so it has a way back', () => {
+    // `hideColumn()` is public on the context and does not consult `hideable`,
+    // so this state is reachable — and without the row the checkbox that
+    // restores the column does not exist.
+    const columns = [col('name', { hideable: false, title: 'Name' }), col('role')];
+    expect(buildColumnVisibilityEntries(columns, ['name']).map((e) => e.id)).toEqual([
+      'role',
+      'name'
+    ]);
+  });
+
+  it('adds no second row for a hidden column that is already listed', () => {
+    const columns = [col('name'), col('role')];
+    expect(buildColumnVisibilityEntries(columns, ['role']).map((e) => e.id)).toEqual([
+      'name',
+      'role'
+    ]);
   });
 });
 

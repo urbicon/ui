@@ -3,7 +3,7 @@
   import { smartFilterBarTriggerVariants } from '$lib/variants';
   import { Select, resolveIcon, LayersIcon as LayersIconDefault } from '@urbicon-ui/blocks';
   import MenuTrigger from './MenuTrigger.svelte';
-  import { buildGroupingEntries, toolColumnScope } from './tool-columns';
+  import { buildGroupingEntries, toolColumnScope, toolEmptyKey } from './tool-columns';
 
   /**
    * The wide bar's grouping tool. Which columns it may offer — including the
@@ -28,13 +28,23 @@
     isActive ? smartFilterBarTriggerVariants({ intent: 'group' }) : undefined
   );
 
-  const groupingOptions = $derived.by(() => [
-    { label: tt('grouping.none'), value: '' },
-    ...buildGroupingEntries(
+  const entries = $derived(
+    buildGroupingEntries(
       toolColumnScope(tableState),
       tableState.declaredGroupByKey,
       tableState.effectiveGroupBy
-    ).map((entry) => ({ label: entry.label, value: entry.id }))
+    )
+  );
+
+  // With no entry, the whole dropdown was the "No grouping" row below — an
+  // enabled control whose only content says the tool is off (#254). The list is
+  // built from `entries` rather than inline so this and the options cannot
+  // disagree about what is on offer.
+  const emptyKey = $derived(toolEmptyKey('grouping', entries));
+
+  const groupingOptions = $derived.by(() => [
+    { label: tt('grouping.none'), value: '' },
+    ...entries.map((entry) => ({ label: entry.label, value: entry.id }))
   ]);
 
   let menuOpen = $state(false);
@@ -54,17 +64,20 @@
     active={isActive}
     {triggerClass}
     expanded={menuOpen}
+    unavailable={emptyKey ? tt(emptyKey) : undefined}
     icon={triggerIcon}
     onclick={() => (menuOpen = !menuOpen)}
   />
 {/snippet}
 
-<!-- `w-auto`: see SortMenu — the Select wrapper defaults to `w-full`. -->
+<!-- `w-auto`: see SortMenu — the Select wrapper defaults to `w-full`. `disabled`
+     is the arrow-key half of the empty-tool refusal, documented there too. -->
 <Select
   options={groupingOptions}
   value={currentValue}
   bind:open={menuOpen}
   onValueChange={(v: string | null) => handleValueChange(v ?? '')}
+  disabled={emptyKey !== null}
   size="sm"
   syncWidth={false}
   class="w-auto"

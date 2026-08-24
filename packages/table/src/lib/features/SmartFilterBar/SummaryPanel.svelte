@@ -3,7 +3,8 @@
   import { getTableContext, useTableI18n } from '$lib';
   import { isSummaryType, SUMMARY_TYPES } from '$lib/utils/summary-types';
   import { RadioGroup, RadioItem } from '@urbicon-ui/blocks';
-  import { buildSummaryEntries, toolColumnScope } from './tool-columns';
+  import ToolEmptyNote from './ToolEmptyNote.svelte';
+  import { buildSummaryEntries, toolColumnScope, toolEmptyKey } from './tool-columns';
 
   /**
    * One aggregation choice per summable column.
@@ -33,11 +34,20 @@
   // hiding the row — the sheet's own summary badge, which counts what is
   // acting, is the surface that goes quiet there (#252, see HeaderMenu for the
   // full decision).
-  const rows = $derived(
+  const entries = $derived(
     buildSummaryEntries(
       toolColumnScope(tableState),
       tableState.summaryConfigs.map((config) => config.column)
-    ).map((entry) => ({
+    )
+  );
+
+  // This panel had the empty sentence first, on its own `rows.length === 0`.
+  // The condition and the key now come from the axis's one policy, which is
+  // what puts the same sentence on the wide bar's disabled trigger (#254).
+  const emptyKey = $derived(toolEmptyKey('summary', entries));
+
+  const rows = $derived(
+    entries.map((entry) => ({
       id: entry.id,
       label: entry.label,
       current: tableState.summaryConfigs.find((config) => config.column === entry.id)?.type ?? ''
@@ -89,8 +99,8 @@
      that had it is gone — see panelElement, including why this element wraps
      the empty state too instead of sitting inside the `{:else}`. -->
 <div bind:this={panelElement} tabindex="-1" class="space-y-4">
-  {#if rows.length === 0}
-    <p class="text-text-secondary text-sm">{tt('summary.empty')}</p>
+  {#if emptyKey}
+    <ToolEmptyNote reason={emptyKey} />
   {:else}
     {#each rows as row (row.id)}
       <RadioGroup

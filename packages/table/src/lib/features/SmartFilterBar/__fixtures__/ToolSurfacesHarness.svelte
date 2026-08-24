@@ -1,6 +1,7 @@
 <script lang="ts">
   import type { Column } from '$lib/types/tableTypes';
   import Table from '$lib/core/table/Table.svelte';
+  import ColumnVisibilityPanel from '../ColumnVisibilityPanel.svelte';
   import FilterPanel from '../FilterPanel.svelte';
   import GroupingPanel from '../GroupingPanel.svelte';
   import SmartFilterBar from '../SmartFilterBar.svelte';
@@ -21,7 +22,8 @@
    *
    * Every panel goes in its own testid box: SortPanel and GroupingPanel both
    * label their radio group "Column" (the section heading names the tool), so
-   * an unscoped role query cannot tell them apart.
+   * an unscoped role query cannot tell them apart. The same holds for the
+   * empty-state note (#254), which is one sentence per axis in five sections.
    */
   let { items = [] as Record<string, unknown>[], columns = [] as Column[], ...rest } = $props();
 </script>
@@ -33,5 +35,6 @@
     <div data-testid="sheet-sort"><SortPanel /></div>
     <div data-testid="sheet-grouping"><GroupingPanel /></div>
     <div data-testid="sheet-summary"><SummaryPanel /></div>
+    <div data-testid="sheet-columns"><ColumnVisibilityPanel /></div>
   {/snippet}
 </Table>

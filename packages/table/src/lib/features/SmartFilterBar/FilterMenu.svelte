@@ -12,6 +12,7 @@
   } from '@urbicon-ui/blocks';
   import FilterPanel from './FilterPanel.svelte';
   import MenuTrigger from './MenuTrigger.svelte';
+  import { buildFilterEntries, toolColumnScope, toolEmptyKey } from './tool-columns';
 
   /**
    * The wide bar's filter tool: a popover holding {@link FilterPanel}.
@@ -34,6 +35,25 @@
   const isActive = $derived(activeFilters.length > 0);
   const triggerClass = $derived(
     isActive ? smartFilterBarTriggerVariants({ intent: 'filter' }) : undefined
+  );
+
+  /**
+   * Whether there is a form to open at all (#254).
+   *
+   * The shell has to ask the same question the panel does — a popover over a
+   * section list with no sections was a heading and an Apply button over
+   * nothing — so it builds the same entries from the same function rather than
+   * guessing from `searchable` on its own. The list is cheap; the expensive
+   * part of the panel (the per-column quick-value scan) is not in it.
+   */
+  const emptyKey = $derived(
+    toolEmptyKey(
+      'filter',
+      buildFilterEntries(
+        toolColumnScope(tableState),
+        activeFilters.map((filter) => filter.column)
+      )
+    )
   );
 
   const menuStyles = $derived(filterMenuVariants({ size: 'md' }));
@@ -63,6 +83,7 @@
     {triggerClass}
     expanded={isOpen}
     haspopup="true"
+    unavailable={emptyKey ? tt(emptyKey) : undefined}
     icon={triggerIcon}
     counter={triggerCounter}
   />
@@ -77,6 +98,15 @@
   shrinks when the iOS keyboard opens. This form is the only tool with a text
   field, i.e. the only one that opens that keyboard. `100vh` was the second half
   of it: on iOS that is the LARGE viewport height, taller than what is on screen.
+-->
+<!--
+  `autoTrigger` keeps its default even while the tool is empty. Popover's
+  click/keydown handlers do sit on the wrapper around the trigger snippet, so
+  turning them off would keep an empty tool shut — but the same flag gates the
+  effect that forwards `aria-expanded` / `aria-haspopup="dialog"` onto the
+  trigger, so an empty filter tool would have announced itself as a menu button
+  (`aria-haspopup="true"`). MenuTrigger refuses the activation itself instead
+  (see `unavailable` there), which stops the wrapper from ever seeing the event.
 -->
 <Popover
   bind:open={isOpen}

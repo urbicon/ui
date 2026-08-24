@@ -1,10 +1,12 @@
 <script lang="ts">
+  import { tick } from 'svelte';
   import { useTableI18n } from '$lib';
   import { getTableContext } from '$lib/stores/TableStore.svelte';
   import type { FilterOperator } from '$lib/types/tableTypes';
   import { findColumnById, resolveValueById } from '$lib/utils';
   import { filterPanelVariants } from '$lib/variants';
-  import { buildFilterEntries, toolColumnScope } from './tool-columns';
+  import ToolEmptyNote from './ToolEmptyNote.svelte';
+  import { buildFilterEntries, toolColumnScope, toolEmptyKey } from './tool-columns';
   import {
     Button,
     Select,
@@ -105,12 +107,15 @@
   // for declared, filterable columns only (hidden or not), while a key that
   // names no column — or one that opted out of filtering — shows what is
   // running and the × beside it, and nothing else.
-  const filterOptions = $derived.by(() => {
-    const entries = buildFilterEntries(
+  const entries = $derived(
+    buildFilterEntries(
       toolColumnScope(tableState),
       activeFilters.map((filter) => filter.column)
-    );
-    return entries.map((entry) => {
+    )
+  );
+
+  const filterOptions = $derived.by(() =>
+    entries.map((entry) => {
       // Over the declared set, like the entry's own label: a fallback section
       // for a hidden `dataType: 'date'` column must still offer on/after/before
       // rather than the text operators.
@@ -123,8 +128,23 @@
         dataType,
         operators: getOperatorsForType(dataType)
       };
-    });
-  });
+    })
+  );
+
+  // No sections at all: the axis's one empty-state answer, shared with
+  // FilterMenu's trigger so the two hulls agree (#254).
+  const emptyKey = $derived(toolEmptyKey('filter', entries));
+
+  /**
+   * Whether anything here can *take* a new filter.
+   *
+   * A separate question from {@link emptyKey}, and it has to be: a table whose
+   * every column declared `searchable: false` still gets a section for a filter
+   * that is running, so the panel is not empty — but every one of those
+   * sections is read-only, and Apply would commit nothing from a form that does
+   * not exist. `emptyKey` alone left that button standing (#254 review, F6).
+   */
+  const canAdd = $derived(entries.some((entry) => entry.editable));
 
   let filterStates = $state<
     Record<
@@ -217,156 +237,207 @@
     }
   }
 
+  /**
+   * The panel body, as a focus target — the same construction SummaryPanel
+   * needed for its fallback rows (#253), for the same reason and one step
+   * further.
+   *
+   * A section that exists only because a filter is running disappears when that
+   * filter is removed, taking the × that removed it — and the focus on it —
+   * with it. When it was the *last* such section the whole form goes with it
+   * too, replaced by the empty note. In the sheet that is a modal `<dialog>`,
+   * where focus on `<body>` restarts every subsequent Tab at the top; in the
+   * popover it strands the reader outside a panel that is still open.
+   */
+  let panelElement = $state<HTMLDivElement>();
+
   const handleRemoveSpecificFilter = (column: string, operator: FilterOperator, value: string) => {
     removeFiltersByColumn(column, operator, value);
+    // Asked of the freshly recomputed list rather than of a flag: a section
+    // survives its filter being removed exactly when the column is part of the
+    // offer, which is the same question `buildFilterEntries` just answered.
+    // After `tick`, not before it — the button is still in the DOM here.
+    if (!entries.some((entry) => entry.id === column)) {
+      void tick().then(() => panelElement?.focus());
+    }
   };
+
+  /**
+   * Clear all, and catch the focus it drops.
+   *
+   * Unconditional, because this button removes *itself*: the branch it lives in
+   * is gated on `activeFilters.length > 0`, which clearing empties. So focus is
+   * always on an element that is about to be gone — a defect that predates the
+   * empty state and is one line from the same fix.
+   */
+  function handleClearAll() {
+    clearAllFilters();
+    void tick().then(() => panelElement?.focus());
+  }
 
   const styles = filterPanelVariants();
 </script>
 
-<div class={styles.root()}>
-  {#each filterOptions as option (option.key)}
-    {@const columnFilters = getActiveFiltersForColumn(option.key)}
+<!-- `tabindex="-1"`: not a tab stop, but a place focus can be PUT when the row
+     that had it is gone — see panelElement. Outside the empty/filled branch,
+     because the worst case is the last section disappearing, where the branch
+     flips too and a wrapper inside it would unmount along with the form. -->
+<div bind:this={panelElement} tabindex="-1" class={styles.root()}>
+  {#if emptyKey}
+    <ToolEmptyNote reason={emptyKey} />
+  {:else}
+    {#each filterOptions as option (option.key)}
+      {@const columnFilters = getActiveFiltersForColumn(option.key)}
 
-    <div class={styles.section()}>
-      <div class="flex items-center justify-between">
-        <h4 class={styles.sectionTitle()}>
-          {option.label}
-        </h4>
-      </div>
+      <div class={styles.section()}>
+        <div class="flex items-center justify-between">
+          <h4 class={styles.sectionTitle()}>
+            {option.label}
+          </h4>
+        </div>
 
-      <div class="space-y-2">
-        <!--
-          Filters already running on this column, each with the × that ends it.
-          Outside the `editable` gate below on purpose: a section that exists
-          only because a filter is running must always offer the way out of it,
-          and this is the only surface besides the chip that does.
-        -->
-        {#if columnFilters.length > 0}
-          <div class="space-y-1">
-            {#each columnFilters as filter, i (`${filter.operator}:${filter.value}:${i}`)}
-              <div class={styles.activeFilter()}>
-                <span class="text-text-primary flex-1 truncate text-sm">
-                  {tt(`filter.operators.${filter.operator}`)}: {filter.value}
-                </span>
-                <Button
-                  variant="ghost"
-                  size="xs"
-                  intent="danger"
-                  onclick={() =>
-                    handleRemoveSpecificFilter(filter.column, filter.operator, filter.value)}
-                  class="ml-2 shrink-0"
-                  aria-label={tt('filter.button.remove')}
-                >
-                  <CloseIcon class="h-3 w-3" />
-                </Button>
-              </div>
-            {/each}
-          </div>
-        {/if}
-
-        <!--
-          The add form. Only for a key that names a column this table declared
-          and that `searchable` accepts — see FilterToolEntry.editable for the
-          two cases this keeps it away from, and why an operator list and a
-          quick-value scan are the wrong things to offer there.
-        -->
-        {#if option.editable}
-          {@const state = filterStates[option.key]}
-          {#if state}
-            <div class={styles.filterRow()}>
-              <div class={styles.operatorSelect()}>
-                <Select
-                  options={option.operators}
-                  bind:value={state.selectedOperator}
-                  usePortal={surface === 'sheet'}
-                  size="sm"
-                  variant="outlined"
-                  class="w-full"
-                  aria-label={tt('filter.aria.operatorFor', { column: option.label })}
-                />
-              </div>
-
-              <div class={styles.valueInput()}>
-                <Input
-                  type={option.dataType === 'date' ? 'date' : 'text'}
-                  placeholder={tt('filter.input.enterValue')}
-                  bind:value={state.inputValue}
-                  size="sm"
-                  variant="outlined"
-                  class="w-full"
-                  onkeydown={(e) => {
-                    if (e.key === 'Enter') {
-                      handleApplyFilter(option.key);
-                    }
-                  }}
-                  clearable={true}
-                  onClear={() => (state.inputValue = '')}
-                  aria-label={tt('filter.aria.valueFor', { column: option.label })}
-                />
-              </div>
-            </div>
-
-            <!-- The scan walks every row, so it stays inside both gates: it
-                 used to run once per section on every render, undeclared keys
-                 included. -->
-            {#if option.dataType === 'text'}
-              {@const uniqueValues = getUniqueValues(option.key)}
-              {#if uniqueValues.length > 0}
-                <div class="space-y-2">
+        <div class="space-y-2">
+          <!--
+            Filters already running on this column, each with the × that ends it.
+            Outside the `editable` gate below on purpose: a section that exists
+            only because a filter is running must always offer the way out of it,
+            and this is the only surface besides the chip that does.
+          -->
+          {#if columnFilters.length > 0}
+            <div class="space-y-1">
+              {#each columnFilters as filter, i (`${filter.operator}:${filter.value}:${i}`)}
+                <div class={styles.activeFilter()}>
+                  <span class="text-text-primary flex-1 truncate text-sm">
+                    {tt(`filter.operators.${filter.operator}`)}: {filter.value}
+                  </span>
                   <Button
                     variant="ghost"
                     size="xs"
-                    onclick={() => (state.showQuickValues = !state.showQuickValues)}
-                    aria-expanded={state.showQuickValues}
+                    intent="danger"
+                    onclick={() =>
+                      handleRemoveSpecificFilter(filter.column, filter.operator, filter.value)}
+                    class="ml-2 shrink-0"
+                    aria-label={tt('filter.button.remove')}
                   >
-                    {tt('filter.quickValues.title')} ({uniqueValues.length})
+                    <CloseIcon class="h-3 w-3" />
                   </Button>
-
-                  {#if state.showQuickValues}
-                    <div class={styles.quickValues()}>
-                      {#each uniqueValues.slice(0, 20) as value (value)}
-                        {@const isActive = hasFilterForColumn(option.key, 'contains', value)}
-                        <Button
-                          variant={isActive ? 'filled' : 'outlined'}
-                          size="xs"
-                          intent={isActive ? 'primary' : 'neutral'}
-                          onclick={() => toggleQuickFilter(option.key, value)}
-                          class="min-w-0 justify-start truncate text-left"
-                          title={value}
-                        >
-                          {#if isActive}
-                            <CheckIcon class="mr-1 h-3 w-3 flex-shrink-0" />
-                          {/if}
-                          <span class="truncate">{value}</span>
-                        </Button>
-                      {/each}
-                    </div>
-                  {/if}
                 </div>
+              {/each}
+            </div>
+          {/if}
+
+          <!--
+            The add form. Only for a key that names a column this table declared
+            and that `searchable` accepts — see FilterToolEntry.editable for the
+            two cases this keeps it away from, and why an operator list and a
+            quick-value scan are the wrong things to offer there.
+          -->
+          {#if option.editable}
+            {@const state = filterStates[option.key]}
+            {#if state}
+              <div class={styles.filterRow()}>
+                <div class={styles.operatorSelect()}>
+                  <Select
+                    options={option.operators}
+                    bind:value={state.selectedOperator}
+                    usePortal={surface === 'sheet'}
+                    size="sm"
+                    variant="outlined"
+                    class="w-full"
+                    aria-label={tt('filter.aria.operatorFor', { column: option.label })}
+                  />
+                </div>
+
+                <div class={styles.valueInput()}>
+                  <Input
+                    type={option.dataType === 'date' ? 'date' : 'text'}
+                    placeholder={tt('filter.input.enterValue')}
+                    bind:value={state.inputValue}
+                    size="sm"
+                    variant="outlined"
+                    class="w-full"
+                    onkeydown={(e) => {
+                      if (e.key === 'Enter') {
+                        handleApplyFilter(option.key);
+                      }
+                    }}
+                    clearable={true}
+                    onClear={() => (state.inputValue = '')}
+                    aria-label={tt('filter.aria.valueFor', { column: option.label })}
+                  />
+                </div>
+              </div>
+
+              <!-- The scan walks every row, so it stays inside both gates: it
+                   used to run once per section on every render, undeclared keys
+                   included. -->
+              {#if option.dataType === 'text'}
+                {@const uniqueValues = getUniqueValues(option.key)}
+                {#if uniqueValues.length > 0}
+                  <div class="space-y-2">
+                    <Button
+                      variant="ghost"
+                      size="xs"
+                      onclick={() => (state.showQuickValues = !state.showQuickValues)}
+                      aria-expanded={state.showQuickValues}
+                    >
+                      {tt('filter.quickValues.title')} ({uniqueValues.length})
+                    </Button>
+
+                    {#if state.showQuickValues}
+                      <div class={styles.quickValues()}>
+                        {#each uniqueValues.slice(0, 20) as value (value)}
+                          {@const isActive = hasFilterForColumn(option.key, 'contains', value)}
+                          <Button
+                            variant={isActive ? 'filled' : 'outlined'}
+                            size="xs"
+                            intent={isActive ? 'primary' : 'neutral'}
+                            onclick={() => toggleQuickFilter(option.key, value)}
+                            class="min-w-0 justify-start truncate text-left"
+                            title={value}
+                          >
+                            {#if isActive}
+                              <CheckIcon class="mr-1 h-3 w-3 flex-shrink-0" />
+                            {/if}
+                            <span class="truncate">{value}</span>
+                          </Button>
+                        {/each}
+                      </div>
+                    {/if}
+                  </div>
+                {/if}
               {/if}
             {/if}
           {/if}
-        {/if}
+        </div>
       </div>
-    </div>
-  {/each}
+    {/each}
 
-  <!--
-    The form's own actions. They live with the form and not with the hull
-    because both hulls need them and neither can reach `filterStates` — the
-    popover used to own an Apply button in its footer while the state it applied
-    sat in the same component; splitting that would have meant handing an
-    imperative apply() out through a binding.
-  -->
-  <div class={styles.footer()}>
-    {#if activeFilters.length > 0}
-      <Button variant="ghost" size="sm" intent="danger" onclick={() => clearAllFilters()}>
-        {tt('filter.button.clearAll')}
-      </Button>
-    {/if}
-    <Button variant="filled" size="sm" intent="primary" onclick={handleApplyAllFilters}>
-      {bt('button.apply')}
-    </Button>
-  </div>
+    <!--
+      The form's own actions. They live with the form and not with the hull
+      because both hulls need them and neither can reach `filterStates` — the
+      popover used to own an Apply button in its footer while the state it applied
+      sat in the same component; splitting that would have meant handing an
+      imperative apply() out through a binding.
+
+      Two gates, not one, because the two buttons answer different questions:
+      Apply needs a section that can *take* a value (`canAdd`), Clear all needs
+      something to clear. A panel of read-only sections — every column
+      `searchable: false`, one filter still running — has the second and not the
+      first, and tying both to the section count left Apply standing over
+      nothing while the only way out of that filter was its ×.
+    -->
+    <div class={styles.footer()}>
+      {#if activeFilters.length > 0}
+        <Button variant="ghost" size="sm" intent="danger" onclick={handleClearAll}>
+          {tt('filter.button.clearAll')}
+        </Button>
+      {/if}
+      {#if canAdd}
+        <Button variant="filled" size="sm" intent="primary" onclick={handleApplyAllFilters}>
+          {bt('button.apply')}
+        </Button>
+      {/if}
+    </div>
+  {/if}
 </div>
