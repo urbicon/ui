@@ -17,7 +17,7 @@
   const tableContext = getInternalTableContext();
   const { toggleColumnVisibility } = tableContext;
 
-  const entries = $derived(buildColumnVisibilityEntries(tableContext.allColumns));
+  const entries = $derived(buildColumnVisibilityEntries(tableContext.state.allColumns));
 </script>
 
 {#if entries.length === 0}

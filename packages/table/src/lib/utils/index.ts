@@ -105,6 +105,24 @@ export function findColumnById<T>(
 }
 
 /**
+ * The human name of a column *id* — what every tool surface needs, since
+ * filters, sort, grouping and summaries keep only the id.
+ *
+ * Falls back to {@link humanizeColumnId} when no column matches, and that is a
+ * real state rather than an error: grouping accepts any item field, and
+ * persisted state can name a column the definition has since dropped. Passing
+ * the raw id through was the older answer, and it made one key read "day" on a
+ * chip and "Day" in the menu row one line above it.
+ *
+ * Hand it the *declared* column list (`state.allColumns`), never the visible
+ * subset — otherwise hiding a column degrades every label that names it (#253).
+ */
+export function resolveColumnLabelById<T>(columns: ReadonlyArray<Column<T>>, id: string): string {
+  const column = findColumnById(columns, id);
+  return column ? resolveColumnLabel(column) : humanizeColumnId(id);
+}
+
+/**
  * Resolves a column's value by its id, falling back to a raw nested-key
  * lookup when no matching column is registered. The fallback preserves the
  * pre-2.0 behaviour for transient state (e.g. persisted filters that

@@ -18,13 +18,18 @@ export function useGrouping(state: TableState, view: TableView, getSortedItems: 
 
     // Synthetic columns have no accessor — grouping by them would bucket
     // every row under 'Unassigned'. Fall back to ungrouped instead.
-    const groupColumn = findColumnById(state.columns, state.effectiveGroupBy);
+    //
+    // Resolved over `allColumns` like every other axis (#253): grouping by a
+    // column the reader cannot see is the *normal* case here — the key belongs
+    // in the group header, not in every row — so the definition must not
+    // depend on the column being displayed.
+    const groupColumn = findColumnById(state.allColumns, state.effectiveGroupBy);
     if (groupColumn && groupColumn.accessor === undefined) return { ungrouped: items };
 
     const result: Record<string, TableItem[]> = {};
 
     for (const item of items) {
-      const groupValue: unknown = resolveValueById(state.columns, item, state.effectiveGroupBy);
+      const groupValue: unknown = resolveValueById(state.allColumns, item, state.effectiveGroupBy);
       const groupKey =
         groupValue !== undefined && groupValue !== null ? String(groupValue) : 'Unassigned';
 

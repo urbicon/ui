@@ -1,7 +1,7 @@
 <script lang="ts">
   import { getTableContext, type TableAction, useTableI18n } from '$lib';
   import type { SummaryConfig } from '$lib/stores/TableStore.svelte';
-  import { findColumnById, resolveColumnLabel } from '$lib/utils';
+  import { resolveColumnLabelById } from '$lib/utils';
   import { SUMMARY_TYPE_LABEL_KEY } from '$lib/utils/summary-types';
   import { Badge } from '@urbicon-ui/blocks';
 
@@ -25,11 +25,12 @@
     removeSummaryConfig
   } = tableContext;
 
-  function getColumnTitle(id: string): string {
-    // Raw-id fallback for persisted state that references a removed column.
-    const column = findColumnById(tableState.columns, id);
-    return column ? resolveColumnLabel(column) : id;
-  }
+  // `allColumns`: a chip names something that is *acting*, which outlives its
+  // column being hidden — resolved over the visible subset, "Location: Berlin"
+  // degraded to the raw "city: Berlin" the moment the column left the grid
+  // (#253). The shared helper also humanises a key that matches no column at
+  // all, so a chip and the menu row for the same key finally read alike.
+  const getColumnTitle = (id: string) => resolveColumnLabelById(tableState.allColumns, id);
 
   // Aggregation codes (avg/min/max) differ from their translation keys
   // (average/minimum/maximum), so the code is never interpolated into the key.

@@ -301,11 +301,13 @@ export function createTableState(
   let virtualized = $derived(props?.virtualized?.() ?? false);
   let enableColumnVisibility = $derived(props?.enableColumnVisibility?.() ?? true);
 
-  // `state.columns` is the *visible* subset. The full list comes from the prop,
-  // the filtering lives in `useColumnVisibility` — which needs `state` to exist
-  // first, so both accessors are bound in after the concerns are built. Until
-  // then the unfiltered prop list is the honest answer (nothing is hidden yet).
+  // `state.columns` is the *visible* subset and `state.allColumns` the declared
+  // one. Both come out of `useColumnVisibility` — which needs `state` to exist
+  // first, so the accessors are bound in after the concerns are built. Until
+  // then the unfiltered prop list is the honest answer for both (nothing is
+  // hidden yet, and `setColumns` cannot have overridden anything).
   let columnsView: (() => Column[]) | null = null;
+  let allColumnsView: (() => Column[]) | null = null;
   let columnsWrite: ((next: Column[]) => void) | null = null;
 
   // `state.effectiveSummaryConfigs` is bound in the same way and for the same
@@ -334,6 +336,15 @@ export function createTableState(
     },
     set columns(next: Column[]) {
       columnsWrite?.(next);
+    },
+    /**
+     * The declared set — see {@link TableState.allColumns} for the division of
+     * labour with `columns` above. It answers here and nowhere else: the
+     * context used to carry a second `allColumns` of its own, which is the
+     * duplication the #166 cut removed everywhere else (#253).
+     */
+    get allColumns() {
+      return allColumnsView?.() ?? props?.columns?.() ?? [];
     },
     get loading() {
       return loadingSlot.value;
@@ -498,10 +509,11 @@ export function createTableState(
   );
   const expansion = useExpansion(state);
   const columnVisibility = useColumnVisibility(() => props?.columns?.() ?? []);
-  // Bind the visible-column view now that the concern exists. Before this line
-  // `state.columns` answers with the unfiltered prop list, which is correct:
-  // nothing can be hidden yet.
+  // Bind both column views now that the concern exists. Before this line
+  // `state.columns` and `state.allColumns` answer with the unfiltered prop
+  // list, which is correct: nothing can be hidden yet.
   columnsView = () => columnVisibility.visibleColumns;
+  allColumnsView = () => columnVisibility.allColumns;
   columnsWrite = (next) => columnVisibility.setColumns(next);
   const summary = useSummary(
     state,
@@ -818,10 +830,9 @@ export function createTableState(
     setSummaryConfigs,
     getFormattedSummaryValue: summary.getFormattedSummaryValue,
 
-    // Column visibility
-    get allColumns() {
-      return columnVisibility.allColumns;
-    },
+    // Column visibility — the declared list is NOT here: it is
+    // `state.allColumns` (#253), for the same reason `effectiveSummaryConfigs`
+    // is only on `state` (#252). One value, one address.
     get hiddenColumnKeys() {
       return columnVisibility.hiddenColumnKeys;
     },

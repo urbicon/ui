@@ -2,9 +2,9 @@
   import { useTableI18n } from '$lib';
   import { getTableContext } from '$lib/stores/TableStore.svelte';
   import type { FilterOperator } from '$lib/types/tableTypes';
-  import { resolveColumnId, resolveColumnLabel, resolveValueById } from '$lib/utils';
-  import { isColumnSearchable } from '$lib/utils/column-capabilities';
+  import { findColumnById, resolveValueById } from '$lib/utils';
   import { filterPanelVariants } from '$lib/variants';
+  import { buildFilterEntries, toolColumnScope } from './tool-columns';
   import {
     Button,
     Select,
@@ -95,12 +95,25 @@
   };
 
   const activeFilters = $derived(tableView.filters);
+  // The section list carries every column that is filterable AND on screen,
+  // plus every column a filter is *running* on — see buildFilterEntries. A
+  // hidden column used to lose its section while its filter kept acting, so
+  // the trigger's badge counted a filter that could only be removed via its
+  // chip.
   const filterOptions = $derived.by(() => {
-    return tableState.columns.filter(isColumnSearchable).map((col) => {
-      const dataType = 'dataType' in col ? col.dataType || 'text' : 'text';
+    const entries = buildFilterEntries(
+      toolColumnScope(tableState),
+      activeFilters.map((filter) => filter.column)
+    );
+    return entries.map((entry) => {
+      // Over the declared set, like the entry's own label: a fallback section
+      // for a hidden `dataType: 'date'` column must still offer on/after/before
+      // rather than the text operators.
+      const col = findColumnById(tableState.allColumns, entry.id);
+      const dataType = col && 'dataType' in col ? col.dataType || 'text' : 'text';
       return {
-        key: resolveColumnId(col),
-        label: resolveColumnLabel(col),
+        key: entry.id,
+        label: entry.label,
         dataType,
         operators: getOperatorsForType(dataType)
       };
@@ -141,7 +154,10 @@
     // Local dedup accumulator — not reactive state.
     const values = new Set<string>();
     for (const item of tableState.items) {
-      const value = resolveValueById(tableState.columns, item, columnKey);
+      // `allColumns`, like every other by-id lookup (#253): the quick-value
+      // list of a hidden function-accessor column would otherwise come back
+      // empty and silently drop the affordance from its fallback section.
+      const value = resolveValueById(tableState.allColumns, item, columnKey);
       if (value !== undefined && value !== null && value !== '') {
         values.add(String(value));
       }

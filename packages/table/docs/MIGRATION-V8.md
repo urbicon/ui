@@ -334,7 +334,8 @@ What no longer appears on the type, and where its job went:
 | `setServerResult` / `setServerError` / `setServerLoading` | a `processing: 'server'` source, with rows or with a `query` |
 | `query` / `queryKey` | `view.snapshot()`, or `observeView(view, cb)` |
 | `setColumns` | the `columns` prop |
-| `hideColumn` / `showColumn` / `toggleColumnVisibility` / `showAllColumns` / `allColumns` / `hiddenColumnKeys` | the built-in visibility UI (`enableColumnVisibility`), initial state via `prefs.defaults.hiddenColumns` |
+| `hideColumn` / `showColumn` / `toggleColumnVisibility` / `showAllColumns` / `hiddenColumnKeys` | the built-in visibility UI (`enableColumnVisibility`), initial state via `prefs.defaults.hiddenColumns` |
+| `allColumns` | `state.allColumns` — every column you declared, hidden ones included. `state.columns` stays the visible subset, which is what the grid draws |
 | `reorderColumn` / `resetColumnOrder` / `orderedColumns` / `columnOrder` / `getColumnIndex` / `initColumnOrder` | `enableColumnReorder` (drag + keyboard), initial order via `prefs.defaults.columnOrder` |
 | `focusedRowIndex` / `resetFocus` / `setFocusedRow` / `moveFocus` / `isFocusedRow` | keyboard navigation is built in |
 | `toggleExpand` / `isItemExpanded` | the built-in expansion chevron (`expandedRowContent`) |

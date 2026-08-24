@@ -2,7 +2,7 @@
   import { getTableContext, useTableI18n } from '$lib';
   import { RadioGroup, RadioItem, SegmentGroup, SegmentItem } from '@urbicon-ui/blocks';
   import { toolsSheetVariants } from '$lib/variants';
-  import { buildSortEntries } from './tool-columns';
+  import { buildSortEntries, toolColumnScope } from './tool-columns';
 
   /**
    * Sorting as two plain controls instead of one option list.
@@ -22,7 +22,10 @@
 
   const sheetStyles = toolsSheetVariants();
 
-  const entries = $derived(buildSortEntries(tableState.columns));
+  // Same list as the wide bar's Select, active column included: a radio group
+  // whose value has no item shows NOTHING checked — not even "No sorting" —
+  // which is what hiding the sorted column used to do here.
+  const entries = $derived(buildSortEntries(toolColumnScope(tableState), tableView.sort?.column));
   const currentColumn = $derived(tableView.sort?.column ?? '');
   const currentDirection = $derived(tableView.sort?.direction ?? 'asc');
 

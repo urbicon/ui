@@ -22,7 +22,30 @@ import type { SummaryConfig } from '../TableStore.svelte';
  */
 export interface TableState {
   items: TableItem[];
+  /**
+   * The columns the grid renders — the *visible* subset, i.e. everything the
+   * visibility feature has not hidden. Read it to draw something; resolve a
+   * column *definition* over {@link allColumns} instead (see there).
+   */
   columns: Column[];
+  /**
+   * Every column the consumer declared, hidden ones included.
+   *
+   * The two lists divide one job: `columns` answers "what is on screen",
+   * `allColumns` answers "what did this table declare". Hiding a column is a
+   * presentation act — it must not change what a filter, sort, grouping or
+   * aggregation *means* — so every lookup that turns an id back into a column
+   * (accessor, `dataType`, label) reads this list, and only rendering reads
+   * the visible one. While there was a single name for both, half the readers
+   * were silently on the wrong side of it: a hidden function-accessor column's
+   * filter fell through to a raw `getNestedValue` path, yielded `undefined`
+   * for every row, and emptied the table (#253).
+   *
+   * Read-only: the list comes from the `columns` prop. Visibility is
+   * prop-driven (`enableColumnVisibility`, `prefs`) and its mutators stay
+   * internal.
+   */
+  readonly allColumns: Column[];
   loading: boolean;
   error: string | null;
 

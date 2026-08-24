@@ -7,7 +7,7 @@
     ArrowUpDownIcon as ArrowUpDownIconDefault
   } from '@urbicon-ui/blocks';
   import MenuTrigger from './MenuTrigger.svelte';
-  import { buildSortEntries } from './tool-columns';
+  import { buildSortEntries, toolColumnScope } from './tool-columns';
 
   /**
    * The wide bar's sort tool. Sorting is otherwise only reachable by clicking a
@@ -21,7 +21,9 @@
   const tableContext = getTableContext();
   const { state: tableState, view: tableView, setSort } = tableContext;
 
-  const entries = $derived(buildSortEntries(tableState.columns));
+  // The active column is passed in so it keeps a row after being hidden — see
+  // buildSortEntries; without it this Select held a value it could not display.
+  const entries = $derived(buildSortEntries(toolColumnScope(tableState), tableView.sort?.column));
 
   const isActive = $derived(tableView.sort !== null);
 

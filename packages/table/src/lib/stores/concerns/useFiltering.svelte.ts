@@ -108,6 +108,14 @@ function matchesDateEquality(rawItemValue: unknown, filterValue: string): boolea
  * Values for both search and filter matching come from the column's
  * accessor (string property or function), not a raw `getNestedValue` —
  * which keeps object-typed properties and computed columns honest.
+ *
+ * The two matchers read *different* column lists, and the split is the point
+ * (#253). Search sweeps `state.columns`: it is a question about what is on
+ * screen, so hiding a column takes it out of the sweep. A filter names one
+ * column by id and keeps running whether or not that column is shown, so it
+ * resolves over `state.allColumns` — over the visible subset, a hidden
+ * function-accessor column fell through to the raw string-path lookup,
+ * yielded `undefined` for every row and emptied the table.
  */
 export function useFiltering(state: TableState, view: TableView) {
   const filteredItems = $derived.by((): TableItem[] => {
@@ -138,7 +146,7 @@ export function useFiltering(state: TableState, view: TableView) {
       const matchesFilters =
         view.filters.length === 0 ||
         view.filters.every((filter) => {
-          const raw = resolveValueById(state.columns, item, filter.column);
+          const raw = resolveValueById(state.allColumns, item, filter.column);
           const value = String(raw ?? '').toLowerCase();
           const filterValue = filter.value.toLowerCase();
 
@@ -154,7 +162,7 @@ export function useFiltering(state: TableState, view: TableView) {
           // Synthetic columns carry no `dataType`, so narrow before reading it —
           // the same discrimination the filter menu does when it builds the
           // operator list.
-          const filterColumn = findColumnById(state.columns, filter.column);
+          const filterColumn = findColumnById(state.allColumns, filter.column);
           const isDateColumn =
             !!filterColumn && 'dataType' in filterColumn && filterColumn.dataType === 'date';
 

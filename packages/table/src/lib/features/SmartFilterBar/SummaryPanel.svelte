@@ -1,9 +1,8 @@
 <script lang="ts">
   import { getTableContext, useTableI18n } from '$lib';
-  import { isColumnSummable } from '$lib/utils/column-capabilities';
   import { isSummaryType, SUMMARY_TYPES } from '$lib/utils/summary-types';
-  import { resolveColumnId, resolveColumnLabel } from '$lib/utils';
   import { RadioGroup, RadioItem } from '@urbicon-ui/blocks';
+  import { buildSummaryEntries, toolColumnScope } from './tool-columns';
 
   /**
    * One aggregation choice per summable column.
@@ -23,23 +22,25 @@
   const { state: tableState, addSummaryConfig, removeSummaryConfig } = tableContext;
 
   // Capability follows configuration, never the column's name — see
-  // utils/column-capabilities.ts for what that replaced and why.
-  const summableColumns = $derived(tableState.columns.filter(isColumnSummable));
-
+  // utils/column-capabilities.ts for what that replaced and why. Columns
+  // already carrying a configuration stay listed even once hidden (#253),
+  // which is what keeps an aggregation editable after its column leaves the
+  // grid.
+  //
   // `state.summaryConfigs`, not the effective list: a radio's value is what the
   // column is CONFIGURED to aggregate, and that survives `toggleSummary()`
   // hiding the row — the sheet's own summary badge, which counts what is
   // acting, is the surface that goes quiet there (#252, see HeaderMenu for the
   // full decision).
   const rows = $derived(
-    summableColumns.map((column) => {
-      const id = resolveColumnId(column);
-      return {
-        id,
-        label: resolveColumnLabel(column),
-        current: tableState.summaryConfigs.find((config) => config.column === id)?.type ?? ''
-      };
-    })
+    buildSummaryEntries(
+      toolColumnScope(tableState),
+      tableState.summaryConfigs.map((config) => config.column)
+    ).map((entry) => ({
+      id: entry.id,
+      label: entry.label,
+      current: tableState.summaryConfigs.find((config) => config.column === entry.id)?.type ?? ''
+    }))
   );
 
   // The guard instead of a cast: the radio values come from the vocabulary

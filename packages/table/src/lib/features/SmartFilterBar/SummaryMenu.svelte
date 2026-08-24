@@ -1,8 +1,6 @@
 <script lang="ts">
   import { getTableContext, useTableI18n } from '$lib';
-  import { isColumnSummable } from '$lib/utils/column-capabilities';
   import { SUMMARY_TYPES } from '$lib/utils/summary-types';
-  import { resolveColumnId, resolveColumnLabel } from '$lib/utils';
   import { smartFilterBarTriggerVariants } from '$lib/variants';
   import {
     Badge,
@@ -12,6 +10,7 @@
     type MenuItemType
   } from '@urbicon-ui/blocks';
   import MenuTrigger from './MenuTrigger.svelte';
+  import { buildSummaryEntries, toolColumnScope } from './tool-columns';
 
   const tt = useTableI18n();
 
@@ -45,8 +44,15 @@
   );
 
   // Capability follows configuration, never the column's name — see
-  // utils/column-capabilities.ts for what that replaced and why.
-  const summableColumns = $derived.by(() => tableState.columns.filter(isColumnSummable));
+  // utils/column-capabilities.ts for what that replaced and why. A column
+  // already carrying a configuration keeps its group after being hidden
+  // (#253), which is the same list the sheet's SummaryPanel builds.
+  const summableEntries = $derived(
+    buildSummaryEntries(
+      toolColumnScope(tableState),
+      configuredSummaries.map((config) => config.column)
+    )
+  );
 
   // One `role="group"` per summable column (the section header names it),
   // six `menuitemradio` rows inside: None + the five vocabulary types. The
@@ -54,14 +60,14 @@
   // the shape of the state itself, and `onSelect` carries column and type
   // as values — no string compound to parse back apart (#251).
   const menuItems = $derived.by<MenuItemType[]>(() =>
-    summableColumns.flatMap((column) => {
-      const columnId = resolveColumnId(column);
+    summableEntries.flatMap((entry) => {
+      const columnId = entry.id;
       const current = configuredSummaries.find((config) => config.column === columnId)?.type;
       // Explicit `id`s: Menu's resolveId otherwise falls back to the flat
       // render index (the index-as-key anti-pattern). `-` as the joiner:
       // the id is an opaque key, never parsed back apart.
       return [
-        { type: 'section' as const, label: resolveColumnLabel(column) },
+        { type: 'section' as const, label: entry.label },
         {
           id: `${columnId}-none`,
           label: tt('summary.none'),
@@ -98,7 +104,7 @@
   {/if}
 {/snippet}
 
-<Menu items={menuItems} syncWidth={false} itemSize="sm" disabled={summableColumns.length === 0}>
+<Menu items={menuItems} syncWidth={false} itemSize="sm" disabled={summableEntries.length === 0}>
   {#snippet customTrigger(toggle, open)}
     <MenuTrigger
       label={tt('summary.button.title')}
@@ -106,7 +112,7 @@
       {triggerClass}
       expanded={open}
       haspopup="menu"
-      disabled={summableColumns.length === 0}
+      disabled={summableEntries.length === 0}
       icon={triggerIcon}
       counter={triggerCounter}
       onclick={toggle}
