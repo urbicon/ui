@@ -108,7 +108,8 @@ export function findColumnById<T>(
  * The human name of a column *id* — what every tool surface needs, since
  * filters, sort, grouping and summaries keep only the id.
  *
- * Falls back to {@link humanizeColumnId} when no column matches, and that is a
+ * Falls back to humanising the id (`humanizeColumnId`, which stays internal)
+ * when no column matches, and that is a
  * real state rather than an error: grouping accepts any item field, and
  * persisted state can name a column the definition has since dropped. Passing
  * the raw id through was the older answer, and it made one key read "day" on a

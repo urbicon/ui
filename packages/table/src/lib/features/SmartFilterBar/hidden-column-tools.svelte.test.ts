@@ -55,7 +55,7 @@ const COLUMNS = [
   {
     id: 'amount',
     accessor: (row: Row) => row.stats.amount,
-    title: 'Amount',
+    title: 'Amount total',
     dataType: 'number',
     sortable: true
   },
@@ -182,14 +182,14 @@ describe('#253 — a hidden column keeps its tool value on screen', () => {
 
     // The sheet's panel: one radio row per column, the configured type checked.
     const summaryPanel = within(box('sheet-summary'));
-    const group = summaryPanel.getByRole('radiogroup', { name: 'Amount' });
+    const group = summaryPanel.getByRole('radiogroup', { name: 'Amount total' });
     expect((within(group).getByRole('radio', { name: 'Sum' }) as HTMLInputElement).checked).toBe(
       true
     );
 
     // The wide bar's menu: the same state as a `menuitemradio` group.
     await user.click(trigger('Summary'));
-    const menuGroup = screen.getByRole('group', { name: 'Amount', hidden: true });
+    const menuGroup = screen.getByRole('group', { name: 'Amount total', hidden: true });
     expect(
       within(menuGroup)
         .getByRole('menuitemradio', { name: '∑ Sum', hidden: true })
@@ -202,9 +202,12 @@ describe('#253 — a hidden column keeps its tool value on screen', () => {
 
     // The mobile band is a list of label/value rows, so it DOES have a place
     // for a hidden column's total — which makes it the one surface that shows
-    // the label. It read the raw column id until this fix.
+    // the label. It read the raw column id until this fix. The declared title
+    // deliberately differs from humanizeColumnId('amount') === 'Amount', so a
+    // half-revert to resolving over the visible list cannot stay green here.
     const mobile = within(screen.getByTestId('mobile-table'));
-    expect(mobile.getByText('Amount')).toBeTruthy();
+    expect(mobile.getByText('Amount total')).toBeTruthy();
+    expect(mobile.queryByText('Amount')).toBeNull();
     expect(mobile.queryByText('amount')).toBeNull();
   });
 
@@ -243,7 +246,7 @@ describe('#253 — a hidden column keeps its tool value on screen', () => {
       within(box('sheet-filter')).queryAllByRole('heading', { name: 'Location' })
     ).toHaveLength(1);
     expect(
-      within(box('sheet-summary')).queryAllByRole('radiogroup', { name: 'Amount' })
+      within(box('sheet-summary')).queryAllByRole('radiogroup', { name: 'Amount total' })
     ).toHaveLength(1);
   });
 });
@@ -284,7 +287,7 @@ describe('#253 — a filter section is an editor only where that is truthful', (
     ).toEqual([
       'Filter operator for Name',
       'Filter operator for Location',
-      'Filter operator for Amount'
+      'Filter operator for Amount total'
     ]);
     // And the quick-value scan — which walks every row — still runs for the
     // two text sections that offer one, not for the unknown field.
@@ -337,7 +340,7 @@ describe('#253 — removing a fallback aggregation does not strand focus', () =>
     // The fallback row's "None" is the one control in the sheet that deletes
     // the group it lives in — every other panel's "off" choice is a sibling
     // row that survives the change.
-    const group = within(box('sheet-summary')).getByRole('radiogroup', { name: 'Amount' });
+    const group = within(box('sheet-summary')).getByRole('radiogroup', { name: 'Amount total' });
     const none = within(group).getByRole('radio', { name: 'None' }) as HTMLInputElement;
     none.focus();
     expect(document.activeElement).toBe(none);
@@ -346,7 +349,9 @@ describe('#253 — removing a fallback aggregation does not strand focus', () =>
     flushSync();
 
     expect(ctx().state.summaryConfigs).toEqual([]);
-    expect(within(box('sheet-summary')).queryByRole('radiogroup', { name: 'Amount' })).toBeNull();
+    expect(
+      within(box('sheet-summary')).queryByRole('radiogroup', { name: 'Amount total' })
+    ).toBeNull();
     // Not `<body>` — the sheet is a modal dialog, where that restarts every
     // subsequent Tab at the top.
     expect(document.activeElement).not.toBe(document.body);

@@ -196,6 +196,10 @@
 
   function handleApplyAllFilters() {
     filterOptions.forEach((option) => {
+      // Mirror the seeding gate above: a section that lost its form mid-edit
+      // (columns prop swapped) must not commit the value its vanished input
+      // still holds.
+      if (!option.editable) return;
       const state = filterStates[option.key];
       if (state?.inputValue.trim()) {
         handleApplyFilter(option.key);
