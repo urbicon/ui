@@ -106,7 +106,7 @@
   // contradicts the button that opened this sheet. The condition itself is the
   // store's (#252); this used to be one of three hand-written copies, while
   // five other surfaces carried none.
-  const summaryCount = $derived(tableContext.effectiveSummaryConfigs.length);
+  const summaryCount = $derived(tableState.effectiveSummaryConfigs.length);
   const hiddenCount = $derived(tableContext.hiddenColumnKeys.size);
 
   // Sort and grouping are single-valued, so a count would forever read "1". The

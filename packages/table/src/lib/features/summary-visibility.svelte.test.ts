@@ -119,6 +119,10 @@ function announcements() {
     desktopRow: query('summary-row-total') !== null,
     mobileBand: screen.queryByText('Total summary') !== null,
     triggerLit: /\bbg-summary-subtle\b/.test(trigger.className),
+    // Measured, because SummaryMenu's note leans on it: the quiet trigger drops
+    // the attribute instead of announcing `aria-pressed="false"`, so going
+    // quiet is an omission and not a claim about what is configured.
+    triggerPressed: trigger.getAttribute('aria-pressed'),
     triggerBadge: within(trigger).queryByText('2') !== null,
     chips: [
       screen.queryByText('Sum: Amount') !== null,
@@ -135,6 +139,7 @@ const ALL_ANNOUNCING = {
   desktopRow: true,
   mobileBand: true,
   triggerLit: true,
+  triggerPressed: 'true',
   triggerBadge: true,
   chips: [true, true],
   headDots: [true, true]
@@ -144,6 +149,7 @@ const ALL_QUIET = {
   desktopRow: false,
   mobileBand: false,
   triggerLit: false,
+  triggerPressed: null,
   triggerBadge: false,
   chips: [false, false],
   headDots: [false, false]
@@ -172,7 +178,12 @@ describe('toggleSummary(): the surfaces that announce a summary', () => {
     expect(announcements()).toEqual(ALL_ANNOUNCING);
   });
 
-  it('the derived totals go with them — a hidden row computes nothing', () => {
+  it('take their value cells with them — no summary cell survives the toggle', () => {
+    // This pins the row's UNMOUNT, not the derivation: a table that still
+    // computed its totals into a row nobody renders would pass here. That the
+    // aggregates themselves stop being computed is asserted on the concern
+    // (`stores/concerns/concerns.test.ts` → "the aggregates follow
+    // showSummary"), where reverting the derivation actually fails.
     const { context } = renderTable();
 
     context().setSummaryConfigs(SEED);
@@ -235,10 +246,11 @@ describe('toggleSummary(): the editing controls', () => {
   });
 
   it('a pick from the hidden state brings back exactly the set the control showed', async () => {
-    // Every write funnels through `setSummaryConfigs`, which derives
-    // `showSummary` from the count — so an edit unhides the whole configured
-    // set, not just the edited column. That is the reason the controls keep
-    // showing it: what they display is what the next pick puts on screen.
+    // A write that ADDS or REPLACES funnels through `setSummaryConfigs`, which
+    // derives `showSummary` from the count — so such an edit unhides the whole
+    // configured set, not just the edited column. That is the reason the
+    // controls keep showing it: what they display is what the next pick puts on
+    // screen. ("None" is the other half of that contract — next test.)
     const user = userEvent.setup();
     const { context } = renderTable();
 
@@ -257,5 +269,33 @@ describe('toggleSummary(): the editing controls', () => {
     expect(screen.getByText('Average: Amount')).toBeTruthy();
     expect(screen.getByText('Minimum: Price')).toBeTruthy();
     expect(screen.getByTestId('summary-row-total')).toBeTruthy();
+  });
+
+  it('"None" from the hidden state removes that aggregation and leaves the table quiet', async () => {
+    // The exception to "an edit unhides": `removeSummaryConfig` bypasses the
+    // funnel on purpose, so the row that means "stop aggregating this column"
+    // cannot switch the display back on. It is also what makes a hidden
+    // configuration removable at all.
+    const user = userEvent.setup();
+    const { context } = renderTable();
+
+    context().setSummaryConfigs(SEED);
+    context().toggleSummary();
+    flushSync();
+
+    await user.click(screen.getByTestId('header-menu-trigger-amount'));
+    await user.click(screen.getByRole('menuitem', { name: 'Summary', hidden: true }));
+    await user.click(screen.getByRole('menuitemradio', { name: 'None', hidden: true }));
+
+    expect(context().state.summaryConfigs).toEqual([{ column: 'price', type: 'min' }]);
+    expect(context().state.showSummary).toBe(false);
+    // The sibling survives — hidden, and ready for the consumer's switch.
+    expect(context().state.effectiveSummaryConfigs).toEqual([]);
+    expect(announcements()).toEqual(ALL_QUIET);
+
+    context().toggleSummary();
+    flushSync();
+    expect(screen.getByText('Minimum: Price')).toBeTruthy();
+    expect(screen.queryByText('Sum: Amount')).toBeNull();
   });
 });

@@ -63,7 +63,7 @@
   /** Whether a summary row is in force at all — the store's one answer, not a
    *  third hand-written copy of `showSummary && configs.length` (#252; the
    *  derivation lives on useSummary). */
-  const hasSummary = $derived(tableContext.effectiveSummaryConfigs.length > 0);
+  const hasSummary = $derived(tableState.effectiveSummaryConfigs.length > 0);
 
   /**
    * Where each rendered group's item rows start within `navigableItems`. A

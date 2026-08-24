@@ -48,8 +48,37 @@ export interface TableState {
   allGroupsExpanded: boolean;
   groupOrder: string[];
 
+  /**
+   * The aggregations a column is *configured* to carry — the raw intent, at
+   * most one entry per column. The editing controls (the filter bar's summary
+   * menu, the tools sheet's panel, the column menu's submenu) show and change
+   * this; every surface that *displays* a summary reads
+   * {@link effectiveSummaryConfigs} instead, because a configuration survives
+   * the row being hidden.
+   */
   summaryConfigs: SummaryConfig[];
+  /**
+   * Whether the summary is shown. Writable, and `toggleSummary()` is the
+   * action for it — but note what it switches: not only the row, but every
+   * surface that announces a summary (the chips, the head indicators, the Σ
+   * badge, both tool counts, both layouts) and the aggregate values
+   * themselves, because all of them read {@link effectiveSummaryConfigs}.
+   *
+   * Adding or replacing an aggregation sets this to `true`; removing the last
+   * one sets it to `false`.
+   */
   showSummary: boolean;
+  /**
+   * The aggregations actually in force: {@link summaryConfigs} while
+   * {@link showSummary} is true, and nothing while it is not.
+   *
+   * Read-only, and the one answer to "is a summary acting on this grid" — the
+   * same role {@link effectiveGroupBy} plays for grouping. Every display
+   * surface inside the table reads it, so a consumer's own "show totals"
+   * switch does not have to re-derive the combination that the table already
+   * decided (#252). Write {@link showSummary} or the summary actions.
+   */
+  readonly effectiveSummaryConfigs: SummaryConfig[];
 
   selectionMode: 'none' | 'single' | 'multi';
   /**

@@ -101,23 +101,27 @@
 
   /**
    * The column's CONFIGURED aggregation — `state.summaryConfigs`, deliberately
-   * not `effectiveSummaryConfigs` (#252).
+   * not `state.effectiveSummaryConfigs` (#252).
    *
-   * Everything that claims a summary is acting on the grid goes through the
-   * store's one derivation, this menu's own lit trigger included: `isActive`
-   * arrives from TableHead's `columnHasSummary`, which reads the effective
-   * list. What stays on the configured list is this control's own value — the
-   * six `menuitemradio` rows AND the `detail` text that reads the checked one
-   * out on the collapsed parent row. They are one control, so they need one
-   * source:
+   * The boundary the whole feature is split along runs through what a surface
+   * *claims*: an **ambient activity indicator** ("something is acting on these
+   * rows") reads the in-force list, a **control's own value** ("this column is
+   * set to X") reads the configured one. This menu holds one of each. The lit
+   * header trigger is ambient and already silent — `isActive` arrives from
+   * TableHead's `columnHasSummary`, which reads the effective list. What stays
+   * on the configured list is the control: the six `menuitemradio` rows AND
+   * the `detail` text on the collapsed parent row, which is nothing but the
+   * checked row read out. One control, one source:
    *
    * - Splitting them would announce "Summary, None" and then, one keypress
    *   later inside the submenu, "Sum, checked" — a contradiction heard in
-   *   sequence, which is worse than the silent trigger it would buy.
+   *   sequence, which is worse than the silent readout it would buy.
    * - A radio reading "None" over a stored `sum` also mispredicts its own
-   *   click: every write funnels through `setSummaryConfigs`, which unhides,
-   *   so picking one aggregation makes *every* configured column reappear.
-   *   Showing what is configured is showing what the next pick will produce.
+   *   click: the five type rows funnel through `setSummaryConfigs`, which
+   *   unhides, so picking one aggregation makes *every* configured column
+   *   reappear. Showing what is configured is showing what the next pick
+   *   produces — and for "None", which bypasses that funnel, that the table
+   *   stays as quiet as it was.
    * - And a configuration nothing displays could otherwise not be cleared:
    *   with all six rows reading "None", the row that removes the stored
    *   aggregation is indistinguishable from the five that do not.

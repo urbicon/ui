@@ -38,12 +38,22 @@ export function useSummary(
    * indicator dots all announced aggregations while no summary row existed
    * anywhere, and the tool count on the very same bar said 0.
    *
-   * Read this wherever a surface claims a summary IS acting (the row, the
-   * mobile band, the lit trigger and its badge, the chips, the head dots, the
-   * tool counts). Do NOT read it in the editing controls — the summary menus,
-   * the tools sheet's panel and the header menu's submenu show and change what
-   * a column is *configured* to aggregate, which stays `state.summaryConfigs`;
-   * the note in HeaderMenu.svelte carries that decision.
+   * Published as the read-only `state.effectiveSummaryConfigs` (the store binds
+   * this getter in), so a consumer building the switch `toggleSummary()` has no
+   * UI for reads the same answer the table's own surfaces do.
+   *
+   * The line between the two lists runs through what a surface *claims*, not
+   * through which file it sits in:
+   *
+   * - **An ambient activity indicator** says something is acting on the rows
+   *   right now — the summary row and the mobile band, the chips, the head
+   *   dots, the Σ trigger's lit state and counter, both tool counts. All of
+   *   them read this list.
+   * - **A control's own value** says what a column is *configured* to
+   *   aggregate, which outlives the row being hidden — the radio rows of the
+   *   summary menu, the tools sheet's panel and the column menu's submenu,
+   *   plus the collapsed readout of that submenu. They read
+   *   `state.summaryConfigs`; HeaderMenu.svelte carries the full decision.
    */
   const effectiveSummaryConfigs = $derived(state.showSummary ? state.summaryConfigs : []);
 
@@ -118,12 +128,17 @@ export function useSummary(
    * {@link removeSummaryConfig} writes `state.summaryConfigs` on its own and
    * says there why; it only ever filters, which cannot break the invariant.
    *
-   * Deriving `showSummary` from the count also means every edit *unhides*: a
-   * pick made while {@link toggleSummary} had the row hidden brings the whole
-   * configured set back, not just the picked column. That is why the editing
-   * controls keep showing `state.summaryConfigs` rather than
-   * {@link effectiveSummaryConfigs} — what they display is exactly what the
-   * next pick puts on screen (#252, the reasoning is in HeaderMenu.svelte).
+   * Deriving `showSummary` from the count also means every write that ADDS or
+   * REPLACES an aggregation unhides — and brings the whole configured set back,
+   * not just the edited column. Removing does not: {@link removeSummaryConfig}
+   * bypasses this funnel precisely so the "None" row of the editors leaves a
+   * hidden table hidden (see its note above).
+   *
+   * That asymmetry is why the editing controls keep showing
+   * `state.summaryConfigs` rather than the in-force list: what a control
+   * displays is exactly what the next pick produces — five rows bring the
+   * configured set back, "None" removes the one aggregation it names and
+   * changes nothing else (#252, the reasoning is in HeaderMenu.svelte).
    */
   function setSummaryConfigs(configs: SummaryConfig[]) {
     state.summaryConfigs = normalizeSummaryConfigs(configs);

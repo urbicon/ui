@@ -651,6 +651,68 @@ describe('useSummary', () => {
     expect(state.showSummary).toBe(false);
     expect(state.summaryConfigs).toHaveLength(0);
   });
+
+  it('contract: removeSummaryConfig leaves a hidden summary hidden', () => {
+    // The "None" row of all three editors lands here. It must not re-show what
+    // `toggleSummary` hid — and the aggregations it does not name must survive,
+    // hidden, so the consumer's own switch brings back what it put away (#252).
+    const state = {
+      summaryConfigs: [
+        { column: 'salary', type: 'sum' as const },
+        { column: 'age', type: 'avg' as const }
+      ],
+      showSummary: false,
+      groupByKey: null
+    } as unknown as TableState;
+
+    const s = useSummary(
+      state,
+      () => [],
+      () => ({})
+    );
+
+    s.removeSummaryConfig('salary');
+    expect(state.showSummary).toBe(false);
+    expect(state.summaryConfigs).toEqual([{ column: 'age', type: 'avg' }]);
+    expect(s.effectiveSummaryConfigs).toEqual([]);
+  });
+
+  it('contract: the aggregates follow showSummary, not the configs (#252)', () => {
+    // The gate used to sit in every reader; it sits in `effectiveSummaryConfigs`
+    // now, and both data derivations go through it. Asserted here rather than
+    // through a mounted table on purpose: with the summary row unmounted, a
+    // rendering test stays green even if the values are still being computed.
+    const items = [
+      { id: 1, dept: 'A', salary: 100 },
+      { id: 2, dept: 'A', salary: 200 },
+      { id: 3, dept: 'B', salary: 400 }
+    ] as TableItem[];
+    const state = {
+      summaryConfigs: [{ column: 'salary', type: 'sum' as const }],
+      showSummary: true,
+      columns: [],
+      effectiveGroupBy: 'dept'
+    } as unknown as TableState;
+
+    const s = useSummary(
+      state,
+      () => items,
+      () => ({ A: [items[0], items[1]], B: [items[2]] })
+    );
+
+    // Positive control: while shown, both derivations produce their totals.
+    expect(s.effectiveSummaryConfigs).toEqual([{ column: 'salary', type: 'sum' }]);
+    expect(s.summaryData).toEqual({ salary: 700 });
+    expect(s.groupedSummaryData).toEqual({ A: { salary: 300 }, B: { salary: 400 } });
+
+    state.showSummary = false;
+
+    expect(s.effectiveSummaryConfigs).toEqual([]);
+    expect(s.summaryData).toEqual({});
+    expect(s.groupedSummaryData).toEqual({});
+    // Hidden is not deleted — the configuration is what comes back.
+    expect(state.summaryConfigs).toEqual([{ column: 'salary', type: 'sum' }]);
+  });
 });
 
 describe('useFocusManagement', () => {

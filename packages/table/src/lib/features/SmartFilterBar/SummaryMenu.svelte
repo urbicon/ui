@@ -1,6 +1,5 @@
 <script lang="ts">
-  import { useTableI18n } from '$lib';
-  import { getInternalTableContext } from '$lib/stores/TableStore.svelte';
+  import { getTableContext, useTableI18n } from '$lib';
   import { isColumnSummable } from '$lib/utils/column-capabilities';
   import { SUMMARY_TYPES } from '$lib/utils/summary-types';
   import { resolveColumnId, resolveColumnLabel } from '$lib/utils';
@@ -18,17 +17,27 @@
 
   const SquareSigmaIcon = resolveIcon('squareSigma', SquareSigmaIconDefault);
 
-  const tableContext = getInternalTableContext();
+  const tableContext = getTableContext();
   const { state: tableState, addSummaryConfig, removeSummaryConfig } = tableContext;
 
-  // Two questions, two sources — see useSummary. The trigger and its counter
-  // claim summaries are ACTING on the grid, so they read the aggregations in
-  // force; they used to read the raw list and stayed lit with a badge reading
-  // "2" while `toggleSummary()` had the summary row hidden and this same bar's
-  // tool count said 0 (#252).
-  const effectiveSummaries = $derived(tableContext.effectiveSummaryConfigs);
-  // The radio rows are this control's own value: what each column is
-  // CONFIGURED to aggregate, which survives the row being hidden.
+  // Two questions, two sources — the split is documented on useSummary, and
+  // this is the component where the line is easiest to misread, because both
+  // sides of it live here.
+  //
+  // The trigger is not this menu's value; it is the BAR's activity indicator
+  // for the summary tool — the same role the narrow bar's tool count plays one
+  // breakpoint away, and it counts what is acting on the grid. It used to read
+  // the raw list and stayed lit with a badge reading "2" while
+  // `toggleSummary()` had the summary row hidden and that very tool count said
+  // 0 (#252). Going quiet misstates nothing: the lit ground and the counter are
+  // omissions, and `active` on a Button renders no `aria-pressed` that could be
+  // left behind saying "off".
+  const effectiveSummaries = $derived(tableState.effectiveSummaryConfigs);
+  // The radio rows below are the CONTROL: what each column is configured to
+  // aggregate, which outlives the row being hidden. Same reading as the column
+  // menu's submenu (HeaderMenu carries the full decision) and as the tools
+  // sheet's panel; the sheet's section badge is a count, so it goes with the
+  // trigger instead.
   const configuredSummaries = $derived(tableState.summaryConfigs);
   const isActive = $derived(effectiveSummaries.length > 0);
   const triggerClass = $derived(

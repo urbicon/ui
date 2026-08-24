@@ -308,6 +308,13 @@ export function createTableState(
   let columnsView: (() => Column[]) | null = null;
   let columnsWrite: ((next: Column[]) => void) | null = null;
 
+  // `state.effectiveSummaryConfigs` is bound in the same way and for the same
+  // reason: the "which aggregations are in force" answer is derived once in
+  // `useSummary` (#252), and that concern takes `state`, so it cannot exist
+  // yet. Until the bind, the empty list is the honest answer — nothing is
+  // configured and `showSummary` is false.
+  let effectiveSummaryView: (() => SummaryConfig[]) | null = null;
+
   // ── Shared reactive state ──
   //
   // What the table owns, and nothing the view does (#166): rows, columns, load
@@ -404,6 +411,17 @@ export function createTableState(
 
     summaryConfigs: [] as SummaryConfig[],
     showSummary: false,
+    /**
+     * The aggregations actually in force — `summaryConfigs` while
+     * `showSummary` is true, nothing while it is not. The display-side
+     * counterpart of `effectiveGroupBy` above, and public for the same reason:
+     * `toggleSummary()` ships no UI, so the consumer who builds that switch
+     * would otherwise have to re-derive the combination the table already
+     * decided (#252). The derivation itself is in `useSummary`.
+     */
+    get effectiveSummaryConfigs() {
+      return effectiveSummaryView?.() ?? [];
+    },
 
     get selectionMode() {
       return selectionMode;
@@ -486,6 +504,10 @@ export function createTableState(
     () => sorting.sortedItems,
     () => grouping.grouped
   );
+  // Bind the in-force summary view now that the concern exists — same contract
+  // as the column view above: before this line `state.effectiveSummaryConfigs`
+  // answers with the empty list, which is correct (nothing is configured yet).
+  effectiveSummaryView = () => summary.effectiveSummaryConfigs;
   const selection = useSelection(state, () => filtering.filteredItems, {
     onPersist: () => prefsStore.syncSelection()
   });
@@ -739,16 +761,6 @@ export function createTableState(
      *  space `focusedRowIndex` addresses. See the derivation above. */
     get navigableItems() {
       return navigableItems;
-    },
-    /**
-     * The aggregations actually acting on the grid — `state.summaryConfigs`
-     * while the summary row is shown, `[]` while `toggleSummary()` has it
-     * hidden. Every surface that announces a summary reads this instead of
-     * combining the two fields itself (#252); the derivation and the split
-     * against the editing controls are documented on `useSummary`.
-     */
-    get effectiveSummaryConfigs() {
-      return summary.effectiveSummaryConfigs;
     },
     get summaryData() {
       return summary.summaryData;

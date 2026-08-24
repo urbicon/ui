@@ -132,11 +132,11 @@
   // `toggleSummary()` hiding the row, the dots used to keep marking columns
   // whose totals existed nowhere (#252; the derivation lives on useSummary).
   function hasSummary(columnKey: string): boolean {
-    return tableContext.effectiveSummaryConfigs.some((config) => config.column === columnKey);
+    return tableState.effectiveSummaryConfigs.some((config) => config.column === columnKey);
   }
 
   function getSummaryTypes(columnKey: string): string[] {
-    return tableContext.effectiveSummaryConfigs
+    return tableState.effectiveSummaryConfigs
       .filter((config) => config.column === columnKey)
       .map((config) => SUMMARY_TYPE_GLYPH[config.type]);
   }

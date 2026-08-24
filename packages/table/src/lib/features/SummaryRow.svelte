@@ -21,7 +21,7 @@
   let selectable = $derived(tableState.selectionMode !== 'none');
   // The aggregations in force, not the configured ones — one derivation for
   // every surface that says a summary is acting (#252, see useSummary).
-  const summaryConfigs = $derived(tableContext.effectiveSummaryConfigs);
+  const summaryConfigs = $derived(tableState.effectiveSummaryConfigs);
 
   const summaryStyles = $derived(summaryRowVariants({ variant: 'highlighted', size }));
 </script>

@@ -61,7 +61,7 @@
   // The aggregations in force, from the store's one derivation (#252) — this
   // used to be a hand-written copy of the gate, and the surfaces that carried
   // no copy at all contradicted it.
-  const summaryConfigs = $derived(tableContext.effectiveSummaryConfigs);
+  const summaryConfigs = $derived(tableState.effectiveSummaryConfigs);
   const hasSummary = $derived(summaryConfigs.length > 0);
 
   function columnTitle(columnId: string): string {
