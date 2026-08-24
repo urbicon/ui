@@ -10,7 +10,7 @@
     type MenuItemType
   } from '@urbicon-ui/blocks';
   import MenuTrigger from './MenuTrigger.svelte';
-  import { buildSummaryEntries, toolColumnScope } from './tool-columns';
+  import { buildSummaryEntries, toolColumnScope, toolEmptyKey } from './tool-columns';
 
   const tt = useTableI18n();
 
@@ -53,6 +53,11 @@
       configuredSummaries.map((config) => config.column)
     )
   );
+
+  // The axis's own empty-state answer (#254) — the same one SummaryPanel shows
+  // as a sentence. This trigger disabled itself on an inline length check and
+  // left the reader with a dead glyph and no reason for it.
+  const emptyKey = $derived(toolEmptyKey('summary', summableEntries));
 
   // One `role="group"` per summable column (the section header names it),
   // six `menuitemradio` rows inside: None + the five vocabulary types. The
@@ -104,7 +109,7 @@
   {/if}
 {/snippet}
 
-<Menu items={menuItems} syncWidth={false} itemSize="sm" disabled={summableEntries.length === 0}>
+<Menu items={menuItems} syncWidth={false} itemSize="sm" disabled={emptyKey !== null}>
   {#snippet customTrigger(toggle, open)}
     <MenuTrigger
       label={tt('summary.button.title')}
@@ -112,7 +117,7 @@
       {triggerClass}
       expanded={open}
       haspopup="menu"
-      disabled={summableEntries.length === 0}
+      unavailable={emptyKey ? tt(emptyKey) : undefined}
       icon={triggerIcon}
       counter={triggerCounter}
       onclick={toggle}

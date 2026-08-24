@@ -12,11 +12,17 @@
    * — but skips the Tooltip, which is there to tell five glyphs apart. This
    * carried a `stacked` mode for the popover stack that preceded the sheet; the
    * mode is gone with the stack.
+   *
+   * The bar half of the empty-state policy lives here too — see `unavailable`.
+   * Composing "which tool" with "why it is dead" once, in the shell all five
+   * share, is what keeps the five triggers from phrasing it five ways again
+   * (#254); the sheet half is ToolEmptyNote.
    */
   let {
     label,
     active = false,
     disabled = false,
+    unavailable = undefined,
     triggerClass = undefined,
     expanded = false,
     haspopup = 'listbox',
@@ -30,6 +36,13 @@
     label: string;
     active?: boolean;
     disabled?: boolean;
+    /**
+     * Why this tool has nothing to offer, already translated — the sentence
+     * `toolEmptyKey` picked for the axis. Setting it disables the trigger and
+     * is the only way this shell explains itself; a trigger that wants to be
+     * inert without a reason passes `disabled` instead.
+     */
+    unavailable?: string;
     /** The lit-state classes of this particular tool. */
     triggerClass?: string;
     expanded?: boolean;
@@ -49,18 +62,26 @@
   auch nur solange er offen ist. Eine Beschreibung ist kein Name — der Button trägt
   nur ein `aria-hidden`-SVG, und axe meldete hier bis 6.48.0 fünf `button-name`-Verstöße
   pro Tabelle (WCAG 2.1 A / 4.1.2). Deshalb zusätzlich `aria-label`.
+
+  Ist das Werkzeug leer, sagt der Satz das auf zwei Wegen, weil keiner davon für
+  ein `disabled` Control überall gleich funktioniert: `title` braucht überhaupt
+  kein Event, und der zugängliche Name trägt ihn hinter den Werkzeugnamen — der
+  Name bleibt „welches Werkzeug", die Erklärung kommt dahinter. Der Tooltip
+  bekommt denselben Satz für die Fälle, in denen der Browser den Hover doch
+  ausliefert.
 -->
-<Tooltip {label}>
+<Tooltip label={unavailable ?? label}>
   <Button
     variant="ghost"
     intent="neutral"
     size="sm"
     {active}
-    {disabled}
+    disabled={disabled || unavailable !== undefined}
     class={triggerClass}
     aria-expanded={expanded}
     aria-haspopup={haspopup}
-    aria-label={label}
+    aria-label={unavailable ? `${label} · ${unavailable}` : label}
+    title={unavailable}
     {onclick}
     {onkeydown}
     data-testid={testId}

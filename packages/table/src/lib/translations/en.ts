@@ -33,6 +33,11 @@ export default {
     quickValues: {
       title: 'Quick values'
     },
+    // One of the five empty-state sentences (#254). Each is spoken by both
+    // geometries of its tool — the disabled trigger's title in the wide bar,
+    // the note inside the sheet section — and picked in exactly one place,
+    // `toolEmptyKey` in tool-columns.ts.
+    empty: 'No column can be filtered',
     // The operator select and value field repeat once per column, so the
     // column name is the only thing that tells two of them apart. Without it
     // every row reads as an unnamed combobox.
@@ -97,11 +102,13 @@ export default {
   },
   grouping: {
     button: 'Grouping',
-    none: 'No grouping'
+    none: 'No grouping',
+    empty: 'No column can be grouped'
   },
   sort: {
     button: 'Sort',
     none: 'No sorting',
+    empty: 'No column can be sorted',
     ascending: 'Ascending',
     descending: 'Descending',
     // The sheet splits column and direction into two controls; the direction

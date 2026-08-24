@@ -7,7 +7,7 @@
     ArrowUpDownIcon as ArrowUpDownIconDefault
   } from '@urbicon-ui/blocks';
   import MenuTrigger from './MenuTrigger.svelte';
-  import { buildSortEntries, toolColumnScope } from './tool-columns';
+  import { buildSortEntries, toolColumnScope, toolEmptyKey } from './tool-columns';
 
   /**
    * The wide bar's sort tool. Sorting is otherwise only reachable by clicking a
@@ -24,6 +24,11 @@
   // The active column is passed in so it keeps a row after being hidden — see
   // buildSortEntries; without it this Select held a value it could not display.
   const entries = $derived(buildSortEntries(toolColumnScope(tableState), tableView.sort?.column));
+
+  // Asked, not re-derived: the trigger used to go `disabled` on an inline
+  // `entries.length === 0` and say nothing about it, while SortPanel one
+  // breakpoint away rendered its controls regardless (#254).
+  const emptyKey = $derived(toolEmptyKey('sort', entries));
 
   const isActive = $derived(tableView.sort !== null);
 
@@ -85,7 +90,7 @@
     active={isActive}
     {triggerClass}
     expanded={menuOpen}
-    disabled={entries.length === 0}
+    unavailable={emptyKey ? tt(emptyKey) : undefined}
     icon={triggerIcon}
     onclick={() => (menuOpen = !menuOpen)}
   />
@@ -101,7 +106,7 @@
   value={currentValue}
   bind:open={menuOpen}
   onValueChange={(v: string | null) => handleValueChange(v ?? '')}
-  disabled={entries.length === 0}
+  disabled={emptyKey !== null}
   size="sm"
   syncWidth={false}
   class="w-auto"

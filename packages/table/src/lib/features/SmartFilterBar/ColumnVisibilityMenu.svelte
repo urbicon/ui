@@ -4,7 +4,7 @@
   import { smartFilterBarTriggerVariants } from '$lib/variants';
   import { Badge, Select, resolveIcon, EyeIcon as EyeIconDefault } from '@urbicon-ui/blocks';
   import MenuTrigger from './MenuTrigger.svelte';
-  import { buildColumnVisibilityEntries } from './tool-columns';
+  import { buildColumnVisibilityEntries, toolEmptyKey } from './tool-columns';
 
   /**
    * The wide bar's column-visibility tool. The narrow bar uses
@@ -31,6 +31,12 @@
   // Columns pinned with `hideable: false` never reach this list — see
   // tool-columns.ts for why that matters to a multi-select in particular.
   const entries = $derived(buildColumnVisibilityEntries(tableContext.state.allColumns));
+
+  // A table whose every column is pinned is a legal declaration, and this
+  // trigger used to answer it by opening a listbox with zero options — the
+  // panel next door had carried the sentence for exactly that case since it was
+  // written. Now both ask the same function (#254).
+  const emptyKey = $derived(toolEmptyKey('columns', entries));
 
   const columnItems = $derived(entries.map((entry) => ({ label: entry.label, value: entry.id })));
 
@@ -75,6 +81,7 @@
     active={hiddenCount > 0}
     {triggerClass}
     expanded={menuOpen}
+    unavailable={emptyKey ? tt(emptyKey) : undefined}
     icon={triggerIcon}
     counter={triggerCounter}
     onclick={() => (menuOpen = !menuOpen)}
@@ -88,6 +95,7 @@
   value={visibleValues}
   bind:open={menuOpen}
   onValueChange={handleValueChange}
+  disabled={emptyKey !== null}
   size="sm"
   syncWidth={false}
   selectionIndicator="checkmark"

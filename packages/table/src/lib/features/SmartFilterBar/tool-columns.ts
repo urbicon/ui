@@ -1,4 +1,6 @@
+import type { DeepKeys } from '@urbicon-ui/i18n';
 import type { TableState } from '$lib/stores/concerns/types';
+import type enTranslations from '$lib/translations/en';
 import type { Column } from '$lib/types/tableTypes';
 import {
   findColumnById,
@@ -26,6 +28,10 @@ import {
  * So the eligibility rules live here and the option/label shaping stays with
  * whoever renders it: an entry is `{ id, label }`, not `{ value, label }`, and
  * neither list carries the "none" row, which is presentation.
+ *
+ * The same argument covers what a tool says when the answer is *no columns at
+ * all* — see {@link toolEmptyKey} at the foot of this module, which is that
+ * decision made once instead of five times (#254).
  *
  * ## The two column lists (#253)
  *
@@ -266,4 +272,68 @@ export function selectHideableColumns(allColumns: Column[]): Column[] {
 /** {@link selectHideableColumns} as `{ id, label }` rows. */
 export function buildColumnVisibilityEntries(allColumns: Column[]): ToolColumnEntry[] {
   return selectHideableColumns(allColumns).map(toEntry);
+}
+
+// ── The empty-state policy (#254) ───────────────────────────────────────────
+//
+// The builders above answer "what may this tool act on". What a tool does when
+// that answer is *nothing* was decided five separate times, and came out five
+// different ways: sort and summary disabled their trigger with nothing to say,
+// the visibility and summary sheet panels carried an explanation their bar
+// counterparts did not, and three axes said nothing at all — the eye opened a
+// listbox with zero options, the filter popover was a heading over an Apply
+// button, and grouping offered an enabled dropdown whose entire content was
+// "No grouping".
+//
+// So the decision moves next to the rules it depends on: `toolEmptyKey` is
+// asked, never re-derived. No surface writes `entries.length === 0` again, and
+// none picks its own sentence.
+
+/** The five tool axes of the filter bar — one list builder above per axis. */
+export type ToolAxis = 'filter' | 'sort' | 'grouping' | 'summary' | 'columns';
+
+/**
+ * What each axis says when it has nothing to offer — one key per axis, spoken
+ * by both geometries.
+ *
+ * That single key across surfaces is the same construction `SUMMARY_TYPES`
+ * uses for the aggregation vocabulary, down to typing the keys against the
+ * real bundle (`DeepKeys<typeof enTranslations>` is exactly what `useTableI18n`
+ * accepts), so a key that stops existing is a compile error here rather than a
+ * blank paragraph at render.
+ */
+const TOOL_EMPTY_KEY = {
+  filter: 'filter.empty',
+  sort: 'sort.empty',
+  grouping: 'grouping.empty',
+  summary: 'summary.empty',
+  columns: 'columns.empty'
+} as const satisfies Record<ToolAxis, DeepKeys<typeof enTranslations>>;
+
+/** The sentence keys {@link toolEmptyKey} may return — a `tt()` argument. */
+export type ToolEmptyKey = (typeof TOOL_EMPTY_KEY)[ToolAxis];
+
+/**
+ * Whether a tool has nothing to offer, and what it says about it: the axis's
+ * translation key, or `null` while the tool has rows.
+ *
+ * **Empty means empty of rows, not empty of eligible columns.** The builders
+ * append a fallback row for whatever is *in force* (#253/#265), so a table
+ * where every column declared `searchable: false` still hands the filter tool a
+ * section for a filter that is running — and a tool that can still act on
+ * something must stay operable. Deriving this from the capability predicates
+ * instead would disable the one surface that can remove that filter.
+ *
+ * How the answer is rendered is the surfaces' half, and it is two shapes for
+ * one decision: the wide bar disables the trigger and carries the sentence as
+ * its `title` plus its accessible name (see MenuTrigger's `unavailable`), the
+ * sheet keeps the section and puts the sentence inside it (see ToolEmptyNote).
+ * The sheet section stays because a sheet whose sections come and go with the
+ * column definition moves the other four under the reader's thumb.
+ */
+export function toolEmptyKey(
+  axis: ToolAxis,
+  entries: readonly ToolColumnEntry[]
+): ToolEmptyKey | null {
+  return entries.length === 0 ? TOOL_EMPTY_KEY[axis] : null;
 }
