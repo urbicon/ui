@@ -418,6 +418,10 @@ export function createTableState(
      * `toggleSummary()` ships no UI, so the consumer who builds that switch
      * would otherwise have to re-derive the combination the table already
      * decided (#252). The derivation itself is in `useSummary`.
+     *
+     * Only half of the grouping shape is copied, deliberately: this answers
+     * here and nowhere else, while `effectiveGroupBy` is additionally mirrored
+     * onto the context object below. One value, one address.
      */
     get effectiveSummaryConfigs() {
       return effectiveSummaryView?.() ?? [];

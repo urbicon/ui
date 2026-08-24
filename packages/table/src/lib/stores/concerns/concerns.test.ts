@@ -656,6 +656,14 @@ describe('useSummary', () => {
     // The "None" row of all three editors lands here. It must not re-show what
     // `toggleSummary` hid — and the aggregations it does not name must survive,
     // hidden, so the consumer's own switch brings back what it put away (#252).
+    //
+    // Do NOT add a positive-control read of `effectiveSummaryConfigs` before
+    // the call: the derived is unowned here (no component, no effect root), and
+    // whether it re-computes after the mutation is a property of the rig, not
+    // of the code — a first read taken before the write can make this assertion
+    // measure the cache. The single read below is the first one. Where a
+    // before/after pair is genuinely needed, build two states instead (see the
+    // aggregates test at the bottom of this block).
     const state = {
       summaryConfigs: [
         { column: 'salary', type: 'sum' as const },
@@ -679,39 +687,52 @@ describe('useSummary', () => {
 
   it('contract: the aggregates follow showSummary, not the configs (#252)', () => {
     // The gate used to sit in every reader; it sits in `effectiveSummaryConfigs`
-    // now, and both data derivations go through it. Asserted here rather than
-    // through a mounted table on purpose: with the summary row unmounted, a
-    // rendering test stays green even if the values are still being computed.
+    // now, and both data derivations go through it. Asserted on the concern
+    // rather than through a mounted table on purpose: with the summary row
+    // unmounted, a rendering test stays green even if the values are still
+    // being computed.
+    //
+    // TWO instances instead of one that is read, flipped and re-read. These
+    // deriveds are unowned — no component, no effect root — and whether such a
+    // derived re-computes after a mutation depends on the rig (client vs server
+    // codegen, `resolve.conditions`), which this repo has already paid for
+    // once. Each state here is built in its target shape and read once, so
+    // there is no cache window to be right or wrong about in any rig.
     const items = [
       { id: 1, dept: 'A', salary: 100 },
       { id: 2, dept: 'A', salary: 200 },
       { id: 3, dept: 'B', salary: 400 }
     ] as TableItem[];
-    const state = {
-      summaryConfigs: [{ column: 'salary', type: 'sum' as const }],
-      showSummary: true,
-      columns: [],
-      effectiveGroupBy: 'dept'
-    } as unknown as TableState;
+    const CONFIGS: SummaryConfig[] = [{ column: 'salary', type: 'sum' }];
+    const makeState = (showSummary: boolean) =>
+      ({
+        summaryConfigs: CONFIGS.map((config) => ({ ...config })),
+        showSummary,
+        columns: [],
+        effectiveGroupBy: 'dept'
+      }) as unknown as TableState;
+    const summaryFor = (state: TableState) =>
+      useSummary(
+        state,
+        () => items,
+        () => ({ A: [items[0], items[1]], B: [items[2]] })
+      );
 
-    const s = useSummary(
-      state,
-      () => items,
-      () => ({ A: [items[0], items[1]], B: [items[2]] })
-    );
+    // Positive control: shown, both derivations produce their totals.
+    const shown = summaryFor(makeState(true));
+    expect(shown.effectiveSummaryConfigs).toEqual(CONFIGS);
+    expect(shown.summaryData).toEqual({ salary: 700 });
+    expect(shown.groupedSummaryData).toEqual({ A: { salary: 300 }, B: { salary: 400 } });
 
-    // Positive control: while shown, both derivations produce their totals.
-    expect(s.effectiveSummaryConfigs).toEqual([{ column: 'salary', type: 'sum' }]);
-    expect(s.summaryData).toEqual({ salary: 700 });
-    expect(s.groupedSummaryData).toEqual({ A: { salary: 300 }, B: { salary: 400 } });
-
-    state.showSummary = false;
-
-    expect(s.effectiveSummaryConfigs).toEqual([]);
-    expect(s.summaryData).toEqual({});
-    expect(s.groupedSummaryData).toEqual({});
+    // Same configurations, hidden from the start: nothing is in force and
+    // nothing is aggregated.
+    const hiddenState = makeState(false);
+    const hidden = summaryFor(hiddenState);
+    expect(hidden.effectiveSummaryConfigs).toEqual([]);
+    expect(hidden.summaryData).toEqual({});
+    expect(hidden.groupedSummaryData).toEqual({});
     // Hidden is not deleted — the configuration is what comes back.
-    expect(state.summaryConfigs).toEqual([{ column: 'salary', type: 'sum' }]);
+    expect(hiddenState.summaryConfigs).toEqual(CONFIGS);
   });
 });
 

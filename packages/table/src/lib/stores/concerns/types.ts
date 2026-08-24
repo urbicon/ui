@@ -77,6 +77,11 @@ export interface TableState {
    * surface inside the table reads it, so a consumer's own "show totals"
    * switch does not have to re-derive the combination that the table already
    * decided (#252). Write {@link showSummary} or the summary actions.
+   *
+   * It answers at *one* address, and that is the half of the grouping pattern
+   * a new axis should copy: `effectiveGroupBy` is additionally mirrored as
+   * `context.effectiveGroupBy`, and two names for one value is what the #166
+   * cut removed everywhere else.
    */
   readonly effectiveSummaryConfigs: SummaryConfig[];
 
