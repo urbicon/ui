@@ -20,7 +20,10 @@ canon for the PR-based form.
 2. **Adversarial review in a fresh context** — never the implementing
    agent, never yourself. Findings need file:line, severity, a concrete
    failure scenario, and a premise check against the actual code before
-   they count.
+   they count. Comments in the diff are claims: verify effect claims
+   against a measurement, flag narrative/provenance that belongs in the
+   commit message, flag "mirrors X" duplication comments (four comment
+   findings in one wave came from exactly these checks).
 3. **Fix round** — route findings back to the implementing agent via
    SendMessage (it has the context); take only small, sharply-scoped fixes
    yourself. Decide contested options in the routing message instead of
@@ -52,6 +55,11 @@ canon for the PR-based form.
   review one (probe it). In this wave the grid/menu keyboard collision sat
   only in the review briefing; the review caught the P1, but that was
   redundancy as rescue and cost a full fix round.
+- **Comment policy** (CLAUDE.md → Coding Conventions): comments carry
+  constraints, not history — bug stories and review provenance go into the
+  commit message, effect claims must be measured, behaviour belongs in a
+  test before it belongs in prose. An eleven-line comment on a one-line
+  guard is commit-message material wearing a comment's clothes.
 - Report contract: changed files with one sentence each, verbatim gate
   output, decisions with the rejected alternative, deliberate omissions.
 

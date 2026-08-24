@@ -174,7 +174,7 @@ export type ResolvedSource<T = TableItem> =
  * The order matters and is the point. `processing` is read first and decides
  * the branch; the structural fields are only checked *within* the branch it
  * chose. Dispatching on `typeof source.query === 'function'` first, as this
- * did until the #165 review, let a structural field overrule the explicit
+ * did until #165, let a structural field overrule the explicit
  * tag: `{ processing: 'client', query }` resolved as server-managed, so the
  * table fetched and handed sorting to a backend the consumer had just said
  * was not doing the work — the exact defect class the required tag exists to

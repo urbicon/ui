@@ -30,23 +30,18 @@
   // utils/column-capabilities.ts for what that replaced and why.
   const summableColumns = $derived.by(() => tableState.columns.filter(isColumnSummable));
 
-  // One `role="group"` per summable column (the section header names it), six
-  // `menuitemradio` rows inside: None + the five types from the vocabulary
-  // module. The store keeps at most one aggregation per column, and a checked
-  // radio row can only mean what it does — the previous Select dressed the
-  // same replace-by-column store call as an additive "pick to add" list and
-  // marked the active combination `disabled` instead of checked. `onSelect`
-  // carries column and type directly, so the `columnId:type` compound (and
-  // its last-`:` parse, #251) is gone from this menu; a menu also holds no
-  // value, so the pick→reset dance the Select needed is gone with it.
+  // One `role="group"` per summable column (the section header names it),
+  // six `menuitemradio` rows inside: None + the five vocabulary types. The
+  // store keeps at most one aggregation per column, so a checked radio is
+  // the shape of the state itself, and `onSelect` carries column and type
+  // as values — no string compound to parse back apart (#251).
   const menuItems = $derived.by<MenuItemType[]>(() =>
     summableColumns.flatMap((column) => {
       const columnId = resolveColumnId(column);
       const current = summaryConfigs.find((config) => config.column === columnId)?.type;
-      // Explicit `id`s: without them Menu's resolveId falls back to the flat
-      // render index — the loop-index-as-key anti-pattern, one column away
-      // from misassigned rows the moment the list reorders. `-` as the
-      // joiner, not `:` — the id is an opaque key, never parsed back apart.
+      // Explicit `id`s: Menu's resolveId otherwise falls back to the flat
+      // render index (the index-as-key anti-pattern). `-` as the joiner:
+      // the id is an opaque key, never parsed back apart.
       return [
         { type: 'section' as const, label: resolveColumnLabel(column) },
         {
@@ -99,10 +94,8 @@
       onclick={toggle}
       onkeydown={(e: KeyboardEvent) => {
         // APG menu button: ArrowDown on the closed trigger opens the menu —
-        // Menu's default trigger does this, a customTrigger has to repeat it.
-        // Plain key only; modified arrows stay whatever the host makes of
-        // them. stopPropagation for contract symmetry with the header's
-        // trigger: an opening key belongs to the menu, not the host.
+        // a customTrigger has to repeat what Menu's default trigger does.
+        // The stop keeps an opening key out of whatever hosts the bar.
         if (e.key === 'ArrowDown' && !e.shiftKey) {
           e.preventDefault();
           e.stopPropagation();

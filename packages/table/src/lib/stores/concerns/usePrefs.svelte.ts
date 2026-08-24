@@ -99,7 +99,7 @@ export function usePrefs(state: TableState, prefs?: TablePrefsConfig) {
       // Every stored element was dropped as invalid. That empty set was
       // never chosen by the user, so the entry counts as absent — leaving
       // `hydratedSummaryConfigs` unset lets `prefs.defaults.summaries`
-      // apply instead of being silently suppressed by poison (#251 review).
+      // apply instead of being silently suppressed by poison (#251).
     } else {
       pending.push(() => {
         state.summaryConfigs = configs;

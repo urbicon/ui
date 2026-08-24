@@ -65,6 +65,7 @@ For full details see [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md).
 - **Component metadata via JSDoc**: every `*Props` interface in `index.ts` MUST carry JSDoc tags — the single source of truth for the MCP server, `llm.txt` and the docs site. Tag contract + the `docs:gen:all` regeneration trap: **`component-metadata` skill**.
 - Package scope: `@urbicon-ui/*`
 - Use semantic design tokens over primitive Tailwind classes
+- **Comments carry constraints, not history.** A comment earns its lines by stating what the code cannot show *and* what would change the next edit — the platform fact, the measured behaviour, the deliberate exception. Provenance and bug stories live in the commit message (a bare issue number as a pointer is fine, "the #N review" is not); behaviour lives in a test before it lives in prose; effect claims must be measured before they are written. A "mirrors X" / "must match X" comment is documented duplication — first ask whether X can be derived (unrepresentable), only then comment. In reviews, comment claims are findings-eligible exactly like code.
 
 For full component API conventions see [docs/COMPONENT-API-CONVENTIONS.md](docs/COMPONENT-API-CONVENTIONS.md).
 For component file structure see [docs/ComponentStructureStandard.md](docs/ComponentStructureStandard.md).

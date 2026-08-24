@@ -63,7 +63,7 @@ export function useGrouping(state: TableState, view: TableView, getSortedItems: 
     // to prevent. Clearing stays allowed, so a key restored before the mode
     // was known can still be undone.
     //
-    // It is NOT every path, and the JSDoc used to claim it was (#166 review).
+    // It is NOT every path, and the JSDoc used to claim it was (#166).
     // A consumer writing `view.groupBy` directly, and every binding (view
     // defaults, URL, storage), bypass this setter entirely. The read gate
     // behind `state.effectiveGroupBy` covers them all — it is what actually

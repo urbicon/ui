@@ -281,9 +281,9 @@ export class TableView {
     // second way to say `null` that nothing downstream recognises —
     // `SortMenu` reports "sorted" over a table rendering unsorted, and
     // `assertValidViewSnapshot` throws when the same view reaches the URL
-    // codec. Normalising here is what the `sort` half was missing (#166
-    // review): until v9 it happened inside the store's `sortColumn` setter,
-    // which this cut removed.
+    // codec. Normalising here is what the `sort` half was missing (#166):
+    // until v9 it happened inside the store's `sortColumn` setter, which
+    // this cut removed.
     const value = normaliseAxis(axis, raw);
     // `untrack` around the read is what makes writing an axis from inside an
     // `$effect` safe. Without it the echo guard's own read subscribes the

@@ -521,13 +521,10 @@
   //
   // Every handled key is CONSUMED (`stopPropagation` beside the
   // `preventDefault`): a menu owns its navigation, and because the panel
-  // renders in the trigger's DOM (a portal/top-layer promotion does not
-  // reparent), handled keys otherwise bubble on into whatever the menu is
-  // embedded in — measured on the table grid, where ArrowDown in an open
-  // header menu also moved the row focus and Escape cleared the row
-  // selection (PR #260 review, P1). Unhandled keys keep bubbling. Popover's
-  // manual-mode Escape listener sanctions exactly this ("inner widgets get
-  // the first chance … via `e.preventDefault()` or `e.stopPropagation()`").
+  // renders in the trigger's DOM (top-layer promotion does not reparent),
+  // handled keys would otherwise bubble into whatever hosts the menu.
+  // Unhandled keys keep bubbling on purpose. Popover's manual-mode Escape
+  // listener explicitly yields to inner widgets that stop or prevent.
   function handlePanelKeydown(e: KeyboardEvent) {
     const target = e.target as HTMLElement | null;
     const active = document.activeElement as HTMLElement | null;

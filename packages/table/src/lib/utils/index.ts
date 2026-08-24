@@ -301,8 +301,7 @@ export function isSummaryConfigShape(value: unknown): value is SummaryConfig {
     typeof config.column === 'string' &&
     isSummaryType(config.type) &&
     // Storage JSON cannot hold a function, so a present `formatter` from
-    // outside is always a foreign value — calling it would crash the render
-    // the same way a foreign type code crashed the chip (#251 review, B1).
+    // outside is always foreign — calling it would crash the render (#251).
     (config.formatter === undefined || typeof config.formatter === 'function')
   );
 }
