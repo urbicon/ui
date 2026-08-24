@@ -18,6 +18,23 @@ import type { TablePage } from '$lib/types/tableTypes';
 import { resolveSource, type TableSource } from './source';
 import type { TableView, TableViewSnapshot } from './view.svelte';
 
+/** Options for {@link createManagedFetch}. */
+export interface ManagedFetchOptions {
+  /**
+   * One-shot handshake with a debounce further up: called once per effect
+   * run, `true` means the view change that triggered this run had already
+   * been waited out upstream, so the fetch skips its own `source.debounceMs`
+   * and goes out at the end of the wait that already happened.
+   *
+   * Exactly one caller passes it — `TableProvider`, wired to the search bar's
+   * `searchDebounceMs` timer (#255). Deliberately a *take*: the mark is
+   * consumed by the read, so it cannot survive into an unrelated view change
+   * that is still owed its debounce. Keep the implementation non-reactive —
+   * this is read from inside an effect.
+   */
+  takePreDebounced?: () => boolean;
+}
+
 /** Where a managed fetch reports its lifecycle — the store's server setters. */
 export interface FetchSink {
   onLoading?: () => void;
@@ -45,12 +62,16 @@ export interface FetchSink {
  * without anything writing the view (the raw intent stays, for a later
  * page-size change to resurrect). No loop: the recovering response leaves the
  * projection where it is.
+ *
+ * `options.takePreDebounced` lets a change that was *already* debounced
+ * upstream skip this debounce — see {@link ManagedFetchOptions}.
  */
 export function createManagedFetch<T>(
   view: TableView,
   getSource: () => TableSource<T>,
   sink: FetchSink,
-  getFetchSnapshot: () => TableViewSnapshot = () => view.snapshot()
+  getFetchSnapshot: () => TableViewSnapshot = () => view.snapshot(),
+  options: ManagedFetchOptions = {}
 ): void {
   // Boolean, structural: a fresh source literal with the same shape does not
   // change this derived, so the effect below never sees it.
@@ -67,6 +88,22 @@ export function createManagedFetch<T>(
   let abortController: AbortController | null = null;
 
   $effect(() => {
+    // Consumed at the top of every run, so the mark never reaches a second
+    // one: whatever this run decides, the next change starts from an empty
+    // mark. `untrack` because consuming it must never make this effect a
+    // dependent of its own consumption.
+    //
+    // What it does NOT do is keep a mark from outliving an unmanaged spell.
+    // The branch below returns before `void viewKey`, so while no managed
+    // source is wired the effect has exactly one dependency left (`isManaged`)
+    // and client-mode view changes never re-run it — a mark armed there stays
+    // armed until the flip back. Harmless for one reason only, and it is the
+    // line below, not this one: `initialDone = false` makes the first fetch
+    // after a flip immediate anyway, so a stale mark cannot shorten a wait
+    // anybody was owed. Remove that reset and the stale mark becomes the only
+    // thing hiding a debounced first fetch (pinned in the live-flip describe
+    // of observe.svelte.test.ts).
+    const preDebounced = untrack(() => options.takePreDebounced?.() === true);
     if (!isManaged) {
       // A live flip away from the managed variant (source prop changed to
       // client/manual): the in-flight fetch must not land on top of the
@@ -83,12 +120,16 @@ export function createManagedFetch<T>(
       return;
     }
     void viewKey; // the only other tracked dependency
-    const delay = initialDone
-      ? untrack(() => {
-          const resolved = resolveSource(getSource());
-          return resolved.mode === 'server-managed' ? resolved.debounceMs : 300;
-        })
-      : 0;
+    // The first fetch never waits — and neither does one whose change already
+    // waited upstream: the search bar's debounce and this one are two halves
+    // of ONE budget per keystroke, not two budgets in series (#255).
+    const delay =
+      initialDone && !preDebounced
+        ? untrack(() => {
+            const resolved = resolveSource(getSource());
+            return resolved.mode === 'server-managed' ? resolved.debounceMs : 300;
+          })
+        : 0;
     if (timer) clearTimeout(timer);
     timer = setTimeout(() => {
       timer = null;

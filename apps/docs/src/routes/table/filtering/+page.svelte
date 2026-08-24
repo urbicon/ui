@@ -218,7 +218,7 @@ ${scriptClose}
 
       <CodeExample
         title="Smart Filter Bar"
-        description="Search across all searchable columns. Add per-column filters via the filter button. searchDebounceMs waits out the typing: the term reaches the table 300ms after the last keystroke."
+        description="Search across all searchable columns. Add per-column filters via the filter button. searchDebounceMs waits out every edit, clearing included: the term reaches the table 300ms after the last keystroke."
         code={`<Table
   {items}
   {columns}

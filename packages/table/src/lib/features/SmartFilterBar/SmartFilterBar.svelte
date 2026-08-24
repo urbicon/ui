@@ -37,7 +37,7 @@
 
   // Store-Kontext abrufen
   const tableContext = getInternalTableContext();
-  const { state: tableState, view: tableView, setSearch } = tableContext;
+  const { state: tableState, view: tableView, setSearch, setSearchDebounced } = tableContext;
   const styleConfig = getTableStyleConfig();
 
   // Props
@@ -72,26 +72,55 @@
   // value is honoured in both modes.
   const effectiveDebounceMs = $derived(debounceMs ?? (tableState.mode === 'client' ? 300 : 0));
 
-  function handleSearchInput(event: Event) {
-    const target = event.target as HTMLInputElement;
-    localSearch = target.value;
+  /**
+   * Marked iff the consumer SET the prop — not iff a timer ran.
+   *
+   * The mark says "the delay this table promises for search has already been
+   * served here", so the managed fetch does not add `source.debounceMs` on
+   * top (#255). Keyed on the timer instead, `searchDebounceMs={0}` — an
+   * explicit "no wait" — counted as no promise at all and the fetch went back
+   * to waiting the source's 300 ms out; keyed on the prop, 0 means what it
+   * says.
+   *
+   * Unset leaves the mode-aware default above in charge, and there the one
+   * debounce that waits is the source's own — so those writes stay unmarked
+   * and nothing about them changes.
+   */
+  function writeSearch(term: string) {
+    if (debounceMs === undefined) setSearch(term);
+    else setSearchDebounced(term);
+  }
+
+  /**
+   * The one route from the field to the store — every way of changing the
+   * term goes through here, Escape included.
+   *
+   * Escape used to write straight through instead, and "clear the field" then
+   * had two latencies: backspacing to empty took the bar's delay, Escape took
+   * none and paid the source's debounce afterwards (with
+   * `searchDebounceMs={0}` against `debounceMs: 800`, instantly versus 800 ms
+   * for the same intent). One route makes "the bar owns the search delay"
+   * true of the whole field rather than of typing only.
+   */
+  function queueSearch(term: string) {
+    localSearch = term;
 
     if (debounceTimer) clearTimeout(debounceTimer);
     if (effectiveDebounceMs === 0) {
-      setSearch(localSearch);
+      writeSearch(localSearch);
       return;
     }
     debounceTimer = setTimeout(() => {
-      setSearch(localSearch);
+      writeSearch(localSearch);
     }, effectiveDebounceMs) as unknown as number;
   }
 
+  function handleSearchInput(event: Event) {
+    queueSearch((event.target as HTMLInputElement).value);
+  }
+
   function handleKeydown(event: KeyboardEvent) {
-    if (event.key === 'Escape' && localSearch) {
-      localSearch = '';
-      if (debounceTimer) clearTimeout(debounceTimer);
-      setSearch('');
-    }
+    if (event.key === 'Escape' && localSearch) queueSearch('');
   }
 
   // ── Narrow bar → the tools move into a sheet ─────────────────────────────

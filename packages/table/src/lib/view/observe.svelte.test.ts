@@ -309,6 +309,76 @@ describe('a live source flip away from managed (the isManaged gate)', () => {
     expect(results[0].items[0].id).toBe('fresh');
     cleanup();
   });
+
+  it('a pre-debounce mark survives the unmanaged spell, is spent once on the flip back — and is not what makes that fetch immediate', async () => {
+    // `takePreDebounced` (the search bar's hand-off, #255) has one property
+    // the dependency graph does NOT give it: while no managed source is
+    // wired, the effect returns before `void viewKey`, so view changes stop
+    // re-running it and a mark armed in that spell sits there until the flip
+    // back. What keeps that harmless is `initialDone = false` in the same
+    // branch — the last assertion here is the one that fails without it.
+    const { calls, query } = makeCountingQuery();
+    let armed = false;
+    let view!: TableView;
+    let source = $state<TableSource>({ processing: 'server' as const, query, debounceMs: 100 });
+    const cleanup = $effect.root(() => {
+      view = createTableView();
+      createManagedFetch(view, () => source, { onResult: () => {} }, undefined, {
+        takePreDebounced: () => {
+          const was = armed;
+          armed = false;
+          return was;
+        }
+      });
+    });
+    flushSync();
+    vi.advanceTimersByTime(0);
+    await flushMicrotasks();
+    expect(calls).toHaveLength(1);
+
+    // Unmanaged, then armed: the client-mode search write the bar would have
+    // marked. Nothing consumes it — a view change here does not even re-run
+    // the effect, let alone fetch.
+    source = { processing: 'client' as const, items: [{ id: 1 }] };
+    flushSync();
+    armed = true;
+    view.search = 'ada';
+    flushSync();
+    vi.advanceTimersByTime(100);
+    await flushMicrotasks();
+    expect(calls).toHaveLength(1);
+
+    // The flip back spends the stale mark…
+    source = { processing: 'server' as const, query, debounceMs: 100 };
+    flushSync();
+    vi.advanceTimersByTime(0);
+    await flushMicrotasks();
+    expect(calls).toHaveLength(2);
+    expect(armed).toBe(false);
+
+    // …and it is gone: the next change waits the source out in full.
+    view.page = 2;
+    flushSync();
+    vi.advanceTimersByTime(99);
+    await flushMicrotasks();
+    expect(calls).toHaveLength(2);
+    vi.advanceTimersByTime(1);
+    await flushMicrotasks();
+    expect(calls).toHaveLength(3);
+
+    // A second flip, with no mark to hide behind: the first fetch after it is
+    // immediate on `initialDone`'s account alone. Drop that reset and this is
+    // a 100 ms debounce instead — which the run above, with the mark armed,
+    // could not have told you.
+    source = { processing: 'client' as const, items: [{ id: 2 }] };
+    flushSync();
+    source = { processing: 'server' as const, query, debounceMs: 100 };
+    flushSync();
+    vi.advanceTimersByTime(0);
+    await flushMicrotasks();
+    expect(calls).toHaveLength(4);
+    cleanup();
+  });
 });
 
 describe('the sink contract', () => {
