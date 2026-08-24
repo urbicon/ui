@@ -6,6 +6,18 @@
 import { tv, type VariantProps } from '@urbicon-ui/blocks';
 import { TABLE_DIMENSIONS, TABLE_INDICATORS } from './table.system';
 
+/**
+ * Every container in this file is a wrapper INSIDE a `<td>`, and none of them
+ * carries horizontal padding — the cell's inset belongs to the cell, once, at
+ * `TABLE_DIMENSIONS.padding.cellX` (#256). A container is `h-full w-full`, so
+ * its box is the cell's content box either way; dropping the padding moves the
+ * content out to the cell's own edge and changes nothing else, which is what
+ * lets a typed cell line up with a default one and with a `column.cell`
+ * snippet — three paths that used to sit 8px, 12px and 4px in.
+ *
+ * The vertical step (`padding.cellY`) stays: it shrinks a box whose content is
+ * centred inside a row of fixed height, so it moves nothing.
+ */
 const CELL_BASE = [
   'h-full w-full flex items-center',
   'transition-colors duration-[var(--blocks-duration-fast)]',
@@ -24,15 +36,15 @@ export const textCellVariants = tv({
   variants: {
     size: {
       sm: {
-        container: [TABLE_DIMENSIONS.padding.cell.sm, 'text-xs'],
+        container: [TABLE_DIMENSIONS.padding.cellY.sm, 'text-xs'],
         text: 'text-xs'
       },
       md: {
-        container: [TABLE_DIMENSIONS.padding.cell.md, 'text-sm'],
+        container: [TABLE_DIMENSIONS.padding.cellY.md, 'text-sm'],
         text: 'text-sm'
       },
       lg: {
-        container: [TABLE_DIMENSIONS.padding.cell.lg, 'text-base'],
+        container: [TABLE_DIMENSIONS.padding.cellY.lg, 'text-base'],
         text: 'text-base'
       }
     },
@@ -106,15 +118,15 @@ export const numberCellVariants = tv({
   variants: {
     size: {
       sm: {
-        container: [TABLE_DIMENSIONS.padding.cell.sm, 'text-xs'],
+        container: [TABLE_DIMENSIONS.padding.cellY.sm, 'text-xs'],
         number: 'text-xs'
       },
       md: {
-        container: [TABLE_DIMENSIONS.padding.cell.md, 'text-sm'],
+        container: [TABLE_DIMENSIONS.padding.cellY.md, 'text-sm'],
         number: 'text-sm'
       },
       lg: {
-        container: [TABLE_DIMENSIONS.padding.cell.lg, 'text-base'],
+        container: [TABLE_DIMENSIONS.padding.cellY.lg, 'text-base'],
         number: 'text-base'
       }
     },
@@ -171,15 +183,15 @@ export const dateCellVariants = tv({
   variants: {
     size: {
       sm: {
-        container: TABLE_DIMENSIONS.padding.cell.sm,
+        container: TABLE_DIMENSIONS.padding.cellY.sm,
         date: 'text-xs'
       },
       md: {
-        container: TABLE_DIMENSIONS.padding.cell.md,
+        container: TABLE_DIMENSIONS.padding.cellY.md,
         date: 'text-sm'
       },
       lg: {
-        container: TABLE_DIMENSIONS.padding.cell.lg,
+        container: TABLE_DIMENSIONS.padding.cellY.lg,
         date: 'text-base'
       }
     },
@@ -226,17 +238,17 @@ export const statusCellVariants = tv({
   variants: {
     size: {
       sm: {
-        container: TABLE_DIMENSIONS.padding.cell.sm,
+        container: TABLE_DIMENSIONS.padding.cellY.sm,
         badge: 'px-2 py-0.5 text-xs',
         dot: TABLE_INDICATORS.dot.size.sm
       },
       md: {
-        container: TABLE_DIMENSIONS.padding.cell.md,
+        container: TABLE_DIMENSIONS.padding.cellY.md,
         badge: 'px-2.5 py-1 text-sm',
         dot: TABLE_INDICATORS.dot.size.md
       },
       lg: {
-        container: TABLE_DIMENSIONS.padding.cell.lg,
+        container: TABLE_DIMENSIONS.padding.cellY.lg,
         badge: 'px-3 py-1.5 text-base',
         dot: TABLE_INDICATORS.dot.size.lg
       }
@@ -285,19 +297,19 @@ export const userCellVariants = tv({
   variants: {
     size: {
       sm: {
-        container: TABLE_DIMENSIONS.padding.cell.sm,
+        container: TABLE_DIMENSIONS.padding.cellY.sm,
         avatar: 'w-8 h-8',
         name: 'text-xs',
         email: 'text-xs'
       },
       md: {
-        container: TABLE_DIMENSIONS.padding.cell.md,
+        container: TABLE_DIMENSIONS.padding.cellY.md,
         avatar: 'w-10 h-10',
         name: 'text-sm',
         email: 'text-xs'
       },
       lg: {
-        container: TABLE_DIMENSIONS.padding.cell.lg,
+        container: TABLE_DIMENSIONS.padding.cellY.lg,
         avatar: 'w-12 h-12',
         name: 'text-base',
         email: 'text-sm'
@@ -353,17 +365,17 @@ export const actionCellVariants = tv({
   variants: {
     size: {
       sm: {
-        container: TABLE_DIMENSIONS.padding.cell.sm,
+        container: TABLE_DIMENSIONS.padding.cellY.sm,
         button: 'w-7 h-7',
         icon: 'w-3.5 h-3.5'
       },
       md: {
-        container: TABLE_DIMENSIONS.padding.cell.md,
+        container: TABLE_DIMENSIONS.padding.cellY.md,
         button: 'w-8 h-8',
         icon: 'w-4 h-4'
       },
       lg: {
-        container: TABLE_DIMENSIONS.padding.cell.lg,
+        container: TABLE_DIMENSIONS.padding.cellY.lg,
         button: 'w-9 h-9',
         icon: 'w-5 h-5'
       }
@@ -427,17 +439,17 @@ export const linkCellVariants = tv({
   variants: {
     size: {
       sm: {
-        container: TABLE_DIMENSIONS.padding.cell.sm,
+        container: TABLE_DIMENSIONS.padding.cellY.sm,
         link: 'text-xs gap-1',
         icon: 'w-3 h-3'
       },
       md: {
-        container: TABLE_DIMENSIONS.padding.cell.md,
+        container: TABLE_DIMENSIONS.padding.cellY.md,
         link: 'text-sm gap-1.5',
         icon: 'w-4 h-4'
       },
       lg: {
-        container: TABLE_DIMENSIONS.padding.cell.lg,
+        container: TABLE_DIMENSIONS.padding.cellY.lg,
         link: 'text-base gap-2',
         icon: 'w-5 h-5'
       }
@@ -490,17 +502,17 @@ export const progressCellVariants = tv({
   variants: {
     size: {
       sm: {
-        container: TABLE_DIMENSIONS.padding.cell.sm,
+        container: TABLE_DIMENSIONS.padding.cellY.sm,
         track: 'h-1.5',
         text: 'text-xs'
       },
       md: {
-        container: TABLE_DIMENSIONS.padding.cell.md,
+        container: TABLE_DIMENSIONS.padding.cellY.md,
         track: 'h-2',
         text: 'text-sm'
       },
       lg: {
-        container: TABLE_DIMENSIONS.padding.cell.lg,
+        container: TABLE_DIMENSIONS.padding.cellY.lg,
         track: 'h-2.5',
         text: 'text-base'
       }
@@ -550,19 +562,19 @@ export const copyButtonVariants = tv({
   variants: {
     size: {
       xs: {
-        container: TABLE_DIMENSIONS.padding.cell.sm,
+        container: TABLE_DIMENSIONS.padding.cellY.sm,
         text: 'text-xs',
         textSuccess: 'text-xs',
         icon: 'w-3 h-3'
       },
       sm: {
-        container: TABLE_DIMENSIONS.padding.cell.sm,
+        container: TABLE_DIMENSIONS.padding.cellY.sm,
         text: 'text-sm',
         textSuccess: 'text-sm',
         icon: 'w-4 h-4'
       },
       md: {
-        container: TABLE_DIMENSIONS.padding.cell.md,
+        container: TABLE_DIMENSIONS.padding.cellY.md,
         text: 'text-sm',
         textSuccess: 'text-sm',
         icon: 'w-5 h-5'
@@ -608,7 +620,11 @@ export const customCellVariants = tv({
       // `translate`: the interactive container lifts on hover
       // (`hover:-translate-y-0.5`), a discrete property colours-only cannot animate.
       'h-full w-full flex items-center transition-[color,background-color,translate]',
-      'px-3 py-2 text-sm leading-normal text-text-primary'
+      // No horizontal padding — see the note at the top of this file. This
+      // container is the DEFAULT cell path, and its former `px-2` (at `md`) is
+      // what `TABLE_DIMENSIONS.padding.cellX` absorbed, to the pixel, so the
+      // default cell renders exactly where it did before.
+      'py-2 text-sm leading-normal text-text-primary'
     ],
     content: ['flex items-center min-w-0 gap-2 h-full w-full'],
     text: ['block overflow-hidden text-ellipsis max-w-full line-clamp-1'],
@@ -663,19 +679,19 @@ export const customCellVariants = tv({
     },
     size: {
       xs: {
-        container: 'px-1 py-0.5 text-xs',
+        container: 'py-0.5 text-xs',
         text: 'text-xs'
       },
       sm: {
-        container: 'px-1 py-1.5 text-xs',
+        container: 'py-1.5 text-xs',
         text: 'text-xs'
       },
       md: {
-        container: 'px-2 py-1 text-sm',
+        container: 'py-1 text-sm',
         text: 'text-sm'
       },
       lg: {
-        container: 'px-3 py-2 text-base',
+        container: 'py-2 text-base',
         text: 'text-base'
       }
     }

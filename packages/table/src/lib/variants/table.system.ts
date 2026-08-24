@@ -33,10 +33,59 @@ export const TABLE_DIMENSIONS = {
 
   // Cell Padding
   padding: {
-    cell: {
-      sm: 'px-0.5 py-0.5',
-      md: 'px-1 py-1',
-      lg: 'px-2 py-1.5'
+    /**
+     * THE cell inset — the whole distance from the `<td>` edge to a body
+     * cell's content, at each size, and the only place it is written down.
+     *
+     * It sits on the `<td>` because that is the one box all three render paths
+     * share. A default cell wraps its value in `customCellVariants`, a typed
+     * cell (`column.component`) brings its own container, and a `column.cell`
+     * snippet renders straight into the cell with no wrapper at all — so while
+     * the inset lived on the wrappers there were three of them (12px, 8px and
+     * 4px at `md`, measured in the shipped docs demos, #256) and the snippet
+     * path had nowhere to put one. The wrappers now carry no horizontal
+     * padding whatsoever: whatever renders inside a data cell starts here, and
+     * there is no second literal left to disagree with this one.
+     *
+     * The numbers are the former default path's sum, kept to the pixel so that
+     * neither the default cell nor the summary row moves: the old `<td>` step
+     * (`px-0.5|1|2`) plus `customCellVariants`' container (`px-1|2|3`) is
+     * 6px / 12px / 20px, i.e. `px-1.5|3|5`.
+     */
+    cellX: {
+      sm: 'px-1.5',
+      md: 'px-3',
+      lg: 'px-5'
+    },
+    /**
+     * Cells that hold a control instead of content: the group indent, the
+     * selection checkbox, the expand chevron, and the group header's own
+     * full-width band.
+     *
+     * They centre a fixed-size control or span the whole row, so the reading
+     * edge above is not theirs to keep — and widening them would push against
+     * the structural column widths (`w-12` / `w-10` and the colgroup's
+     * `3rem` / `2.5rem`), which are a separate defect and a separate wave.
+     * This is the step the data cell used to carry, unchanged.
+     */
+    controlCellX: {
+      sm: 'px-0.5',
+      md: 'px-1',
+      lg: 'px-2'
+    },
+    /**
+     * The vertical step of a body cell — on the `<td>` and, unchanged, on the
+     * wrappers inside it.
+     *
+     * Not folded into `cellX` the way the horizontal one was: under a row of
+     * fixed height (`TABLE_DIMENSIONS.height.row`) a wrapper's vertical
+     * padding only shrinks a box whose content is centred anyway, so it is
+     * invisible rather than a drift — and #256 is about the reading edge.
+     */
+    cellY: {
+      sm: 'py-0.5',
+      md: 'py-1',
+      lg: 'py-1.5'
     },
     headerCell: {
       sm: 'px-0.5 py-0.5',

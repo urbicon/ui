@@ -247,16 +247,18 @@ export const skeletonRowVariants = tv({
 
   variants: {
     size: {
+      // A skeleton row stands in for a data row, so its bars start at the data
+      // cell's inset — the same `<td>` padding `tableRowVariants.cell` uses.
       sm: {
-        cell: TABLE_DIMENSIONS.padding.cell.sm,
+        cell: [TABLE_DIMENSIONS.padding.cellX.sm, TABLE_DIMENSIONS.padding.cellY.sm],
         skeleton: 'h-3'
       },
       md: {
-        cell: TABLE_DIMENSIONS.padding.cell.md,
+        cell: [TABLE_DIMENSIONS.padding.cellX.md, TABLE_DIMENSIONS.padding.cellY.md],
         skeleton: 'h-4'
       },
       lg: {
-        cell: TABLE_DIMENSIONS.padding.cell.lg,
+        cell: [TABLE_DIMENSIONS.padding.cellX.lg, TABLE_DIMENSIONS.padding.cellY.lg],
         skeleton: 'h-5'
       }
     },

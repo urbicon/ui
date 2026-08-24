@@ -196,6 +196,15 @@ export const headerIndicatorVariants = tv({
 });
 
 /**
+ * The chrome every `<td>` of a body row carries, whatever it holds. Shared by
+ * the two cell slots below so that only their padding can differ.
+ */
+const ROW_CELL_CHROME = [
+  'text-text-primary',
+  'transition-colors duration-[var(--blocks-duration-fast)]'
+];
+
+/**
  * TABLE ROW VARIANTS
  */
 export const tableRowVariants = tv({
@@ -216,22 +225,33 @@ export const tableRowVariants = tv({
       // (also an inset shadow) and this ring coexist.
       'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-primary/50'
     ],
-    cell: ['text-text-primary', 'transition-colors duration-[var(--blocks-duration-fast)]']
+    // The `<td>` of a data column. It carries the cell's whole inset — see
+    // `TABLE_DIMENSIONS.padding.cellX`: the wrappers inside it (default,
+    // typed, none at all for a snippet) add no horizontal padding of their own.
+    cell: ROW_CELL_CHROME,
+    // The `<td>` of a structural column — group indent, selection checkbox,
+    // expand chevron. Same chrome, the narrower control step instead of the
+    // reading inset, because each of them centres a fixed-size control inside
+    // a fixed-width column rather than setting text against an edge.
+    controlCell: ROW_CELL_CHROME
   },
 
   variants: {
     size: {
       sm: {
         row: TABLE_DIMENSIONS.height.row.sm,
-        cell: TABLE_DIMENSIONS.padding.cell.sm
+        cell: [TABLE_DIMENSIONS.padding.cellX.sm, TABLE_DIMENSIONS.padding.cellY.sm],
+        controlCell: [TABLE_DIMENSIONS.padding.controlCellX.sm, TABLE_DIMENSIONS.padding.cellY.sm]
       },
       md: {
         row: TABLE_DIMENSIONS.height.row.md,
-        cell: TABLE_DIMENSIONS.padding.cell.md
+        cell: [TABLE_DIMENSIONS.padding.cellX.md, TABLE_DIMENSIONS.padding.cellY.md],
+        controlCell: [TABLE_DIMENSIONS.padding.controlCellX.md, TABLE_DIMENSIONS.padding.cellY.md]
       },
       lg: {
         row: TABLE_DIMENSIONS.height.row.lg,
-        cell: TABLE_DIMENSIONS.padding.cell.lg
+        cell: [TABLE_DIMENSIONS.padding.cellX.lg, TABLE_DIMENSIONS.padding.cellY.lg],
+        controlCell: [TABLE_DIMENSIONS.padding.controlCellX.lg, TABLE_DIMENSIONS.padding.cellY.lg]
       }
     },
 
