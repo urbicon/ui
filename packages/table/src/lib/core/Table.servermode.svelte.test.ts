@@ -596,6 +596,71 @@ describe('server mode search writes through — one debounce, not two', () => {
       expect(calls[2]).toMatchObject({ page: 2 });
     });
 
+    /**
+     * Emptying the field has two doors — backspace to nothing, or Escape —
+     * and they used to open onto different write paths: the typing one, and a
+     * straight-through write that skipped the field's own timer. Same intent,
+     * two latencies (with `searchDebounceMs={0}` against `debounceMs: 800`:
+     * at once versus 800 ms). Both take the one route now, so the measurement
+     * IS the assertion: whatever the clock says for one door, it says for the
+     * other.
+     */
+    async function clearEdge(
+      props: Record<string, unknown>,
+      how: 'backspace' | 'escape'
+    ): Promise<{ edge: number; fetches: number }> {
+      const { calls, query } = makePagedQuery();
+      const t = mountTable({ source: { processing: 'server', query, debounceMs: 300 }, ...props });
+      vi.advanceTimersByTime(0);
+      await flushMicrotasks();
+
+      // Seed the same term the same way in both runs, then let it all settle.
+      const input = searchInput(t);
+      input.value = 'abc';
+      input.dispatchEvent(new Event('input', { bubbles: true }));
+      vi.advanceTimersByTime(1000);
+      await flushMicrotasks();
+      vi.advanceTimersByTime(0);
+      await flushMicrotasks();
+      expect(t.ctx.view.search).toBe('abc');
+      const before = calls.length;
+
+      const cleared = Date.now();
+      if (how === 'backspace') {
+        input.value = '';
+        input.dispatchEvent(new Event('input', { bubbles: true }));
+      } else {
+        input.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true }));
+      }
+      flushSync();
+
+      // Walk the clock a millisecond at a time to the edge the fetch lands on
+      // — 0 included, since the sync advance keeps a zero-delay timer on this
+      // very instant (see the note above the first test).
+      for (let ms = 0; ms <= 1000 && calls.length === before; ms++) {
+        vi.advanceTimersByTime(ms === 0 ? 0 : 1);
+        await flushMicrotasks();
+      }
+      expect(t.ctx.view.search).toBe('');
+      return { edge: Date.now() - cleared, fetches: calls.length - before };
+    }
+
+    it('unset: Escape clears on the same clock as a backspace — the source edge, one fetch', async () => {
+      const backspace = await clearEdge({}, 'backspace');
+      const escKey = await clearEdge({}, 'escape');
+
+      expect(escKey).toEqual(backspace);
+      expect(backspace).toEqual({ edge: 300, fetches: 1 });
+    });
+
+    it('searchDebounceMs={0}: both doors clear at once', async () => {
+      const backspace = await clearEdge({ searchDebounceMs: 0 }, 'backspace');
+      const escKey = await clearEdge({ searchDebounceMs: 0 }, 'escape');
+
+      expect(escKey).toEqual(backspace);
+      expect(backspace).toEqual({ edge: 0, fetches: 1 });
+    });
+
     it('a debounced write that changes nothing leaves no exemption behind', async () => {
       const { calls, query } = makePagedQuery();
       const t = mountTable({

@@ -91,9 +91,19 @@
     else setSearchDebounced(term);
   }
 
-  function handleSearchInput(event: Event) {
-    const target = event.target as HTMLInputElement;
-    localSearch = target.value;
+  /**
+   * The one route from the field to the store — every way of changing the
+   * term goes through here, Escape included.
+   *
+   * Escape used to write straight through instead, and "clear the field" then
+   * had two latencies: backspacing to empty took the bar's delay, Escape took
+   * none and paid the source's debounce afterwards (with
+   * `searchDebounceMs={0}` against `debounceMs: 800`, instantly versus 800 ms
+   * for the same intent). One route makes "the bar owns the search delay"
+   * true of the whole field rather than of typing only.
+   */
+  function queueSearch(term: string) {
+    localSearch = term;
 
     if (debounceTimer) clearTimeout(debounceTimer);
     if (effectiveDebounceMs === 0) {
@@ -105,16 +115,12 @@
     }, effectiveDebounceMs) as unknown as number;
   }
 
+  function handleSearchInput(event: Event) {
+    queueSearch((event.target as HTMLInputElement).value);
+  }
+
   function handleKeydown(event: KeyboardEvent) {
-    if (event.key === 'Escape' && localSearch) {
-      localSearch = '';
-      if (debounceTimer) clearTimeout(debounceTimer);
-      // Unmarked on purpose, `searchDebounceMs` or not: clearing waits for
-      // nothing, so nothing has been served in place of the source's own
-      // debounce. Emptying a server-backed search therefore still costs
-      // `source.debounceMs` — a fast path for it is a separate decision.
-      setSearch('');
-    }
+    if (event.key === 'Escape' && localSearch) queueSearch('');
   }
 
   // ── Narrow bar → the tools move into a sheet ─────────────────────────────

@@ -213,13 +213,13 @@ function toParams(view: TableViewSnapshot) {
           <code>{'<Table searchDebounceMs={100} />'}</code> versus
           <code>{"source={{ processing: 'server', query: loadUsers, debounceMs: 100 }}"}</code> —
           but against a <code>query</code> source they never add up: with
-          <code>searchDebounceMs</code> set, the field serves the whole delay for typing and the
-          fetch skips <code>debounceMs</code> — <code>{'searchDebounceMs={0}'}</code> sends the
-          request at once. What moves with it is the grouping:
+          <code>searchDebounceMs</code> set, the field serves the whole delay and the fetch skips
+          <code>debounceMs</code> — <code>{'searchDebounceMs={0}'}</code> sends the request at once.
+          It is the whole field, not just typing: Escape clears on the same clock as a backspace.
+          What moves with the delay is the grouping:
           <code>{'searchDebounceMs={150}'}</code> against <code>debounceMs: 800</code> sends one
           request per typing pause over 150 ms, each superseded one aborted. Every other view change
-          — sort, filter, paging, and clearing the field with Escape — waits
-          <code>debounceMs</code>.
+          — sort, filter, paging — waits <code>debounceMs</code>.
         </Note>
         <Note title="Pass the signal on">
           When a newer request supersedes one in flight, the table aborts it. Handing

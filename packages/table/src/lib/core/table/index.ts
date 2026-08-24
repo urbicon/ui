@@ -593,20 +593,22 @@ export interface TableProps<T = TableItem> {
    * Debounce delay for search in milliseconds — the whole wait between a
    * keystroke and the search taking effect, in either processing mode.
    *
-   * Left unset, the default depends on the mode: 300 ms when the table filters
-   * client-side, 0 in server mode — there the search writes through
-   * immediately and the one debounce that waits is the source's own
-   * `debounceMs`.
+   * Left unset, the wait depends on the mode: 300 ms while the table filters
+   * client-side; in server mode the field writes through immediately and
+   * whoever fetches does the waiting — the managed source's own `debounceMs`
+   * (300 ms by default), or, where you fetch yourself, whatever delay you put
+   * in front of your fetch.
    *
    * An explicit value is honoured in both modes and stays the *total* against
    * a managed source (`source={{ processing: 'server', query }}`): the search
-   * bar holds the write back for it, and the fetch that write triggers goes
+   * field holds the write back for it, and the fetch that write triggers goes
    * out at the end of that wait instead of adding `source.debounceMs` on top.
    * `searchDebounceMs={300}` against a source debouncing 300 ms fetches at
-   * 300 ms, not at 600; `searchDebounceMs={0}` fetches at once. Search is the
-   * only change exempted — sort, filter, page and page size keep the source's
-   * debounce in full, and so does *clearing* the field with Escape (nothing
-   * waited, so nothing was served in the source's place).
+   * 300 ms, not at 600; `searchDebounceMs={0}` fetches at once. It covers the
+   * whole field, typing and clearing alike — Escape takes the same route as a
+   * backspace, so the two clear at the same moment. Search is the only change
+   * exempted: sort, filter, page and page size keep the source's debounce in
+   * full.
    *
    * Two things this does not reach. **Coalescing moves with the delay:** at an
    * explicit value the bar's timer is what collapses a burst of keystrokes,
@@ -619,7 +621,7 @@ export interface TableProps<T = TableItem> {
    * hand-rolled effect), the table does not know about your delay and cannot
    * subtract itself from it — an explicit value and your own debounce add up
    * there, exactly as they always did.
-   * @default 300 (client mode) / 0 (server mode)
+   * @default undefined — the table's own mode-aware wait, which is not 0
    */
   searchDebounceMs?: number;
 
