@@ -4,7 +4,13 @@
   // data over the managed server source. Data is fully deterministic — index-derived
   // names, cycling categories, and a (i * 37) % 101 score whose order deliberately
   // differs from insertion order so a sort visibly reorders rows. No Math.random.
-  import { Table, type Column, type TablePage, type TableViewSnapshot } from '@urbicon-ui/table';
+  import {
+    Table,
+    TableColumns,
+    type Column,
+    type TablePage,
+    type TableViewSnapshot
+  } from '@urbicon-ui/table';
 
   type Row = { id: number; name: string; category: string; score: number };
 
@@ -103,6 +109,27 @@
     const start = (Math.max(1, query.page) - 1) * perPage;
     return { items: rows.slice(start, start + perPage), total: rows.length };
   }
+
+  // Actions-column width budget (e2e/table-actions-budget.spec.ts). The factory
+  // declares 9rem, computed from the built-in trio at its widest size, and
+  // `Table.cellinset.svelte.test.ts` recomputes that from the *declared* `w-*`
+  // classes. What no jsdom assertion can see is the blocks `Button` growing its
+  // own min-content underneath an unchanged `w-8` — a wider icon, more padding —
+  // which at `lg` has no reserve to absorb it (144 of 144). Hence one table per
+  // size, each with all three handlers so the full trio renders.
+  const budgetRows = makeRows(3);
+  const budgetSizes = ['sm', 'md', 'lg'] as const;
+  const noop = () => {};
+  const budgetActions = TableColumns.actions<Row>('Actions', {
+    onView: noop,
+    onEdit: noop,
+    onDelete: noop
+  });
+  const budgetColumns: Column<Row>[] = [{ accessor: 'name', title: 'Name' }, budgetActions];
+  // The declared width travels to the spec through the DOM rather than being
+  // typed there a second time: the assertion has to be about *this* factory's
+  // number, so raising it must move the bar the browser is held to.
+  const budgetDeclaredWidth = String(budgetActions.width);
 </script>
 
 <svelte:head>
@@ -264,4 +291,24 @@
       ariaLabel="Remote fixture table"
     />
   </section>
+
+  <!-- Actions-column width budget, one table per size. The spec measures the
+       rendered buttons, their gap and the cell inset in a real engine and holds
+       the sum against the width the factory declares. -->
+  {#each budgetSizes as size (size)}
+    <section
+      data-testid="table-actions-{size}"
+      data-declared-width={budgetDeclaredWidth}
+      class="mb-16"
+    >
+      <h2 class="text-text-primary mb-4 text-lg font-semibold">Actions budget ({size})</h2>
+      <Table
+        items={budgetRows}
+        columns={budgetColumns}
+        {size}
+        enableSmartFilter={false}
+        ariaLabel="Actions budget fixture table ({size})"
+      />
+    </section>
+  {/each}
 </div>
