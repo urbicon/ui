@@ -145,6 +145,11 @@ export const TABLE_DIMENSIONS = {
    * sets a direction), so it is inert. That inertness is the actual reason no
    * consumer can depend on it. Whoever repairs `column.flex` turns these
    * containers into flex items and has to revisit this line with it.
+   *
+   * One cost of the context gate: inside a cell these utilities carry the
+   * selector `td .[td_&]:px-3` (0,1,1), so a consumer `class="px-4"` on the
+   * painting wrappers no longer outranks them the way it outranks a plain
+   * library default — the usual escape (`!px-4`) still does.
    */
   bleed: {
     cellX: {
