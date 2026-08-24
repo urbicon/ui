@@ -244,16 +244,6 @@ const columns: Column<Employee>[] = [
         >.
       </p>
 
-      <p class="text-text-secondary text-sm">
-        Hiding a column narrows what the tools offer, not what they do. The sort, filter, grouping
-        and summary editors list the columns the reader can currently see, so a hidden column drops
-        out of them — but a sort or filter already running stays in force and keeps its own row
-        there, still under the column's title rather than its raw accessor. Restore the column and
-        the entry rejoins the list. When hiding leaves a tool with nothing to offer, it says so in
-        its own words — <em>No column can be sorted</em>, <em>Every column is pinned</em> — instead of
-        opening an empty menu, and its button stays reachable so that sentence can be read.
-      </p>
-
       <CodeExample
         title="Always-Visible Columns and the Table-Level Switch"
         description={'Name carries hideable: false, so it has no hide action and is left out of the visibility menu. Set enableColumnVisibility={false} to turn the whole feature off.'}
@@ -277,6 +267,23 @@ const columns: Column<Employee>[] = [
           enableSmartFilter={true}
         />
       </CodeExample>
+
+      <p class="text-text-secondary text-sm">
+        Hiding a column narrows what the tools offer, not what they do. The sort, filter, grouping
+        and summary tools list the columns the reader can currently see, so a hidden column drops
+        out of them. What is already running does not: a sort, filter, grouping or summary on a
+        hidden column keeps acting on the rows and keeps its row in its tool, still under the
+        column's title and moved to the end of the list. Restore the column and that row returns to
+        its place in the column order.
+      </p>
+
+      <p class="text-text-secondary text-sm">
+        Hide every column a tool can act on, with nothing of its own running, and the tool has
+        nothing left to offer. Its button in the toolbar then stops opening. It keeps its place in
+        the tab order and says why in its tooltip and to a screen reader:
+        <em>No column can be sorted</em>. In the narrow bar the same sentence sits in that tool's
+        section of the sheet.
+      </p>
     </div>
   </Section>
 </DocsPageLayout>
