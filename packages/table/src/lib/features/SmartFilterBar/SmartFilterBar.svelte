@@ -72,25 +72,36 @@
   // value is honoured in both modes.
   const effectiveDebounceMs = $derived(debounceMs ?? (tableState.mode === 'client' ? 300 : 0));
 
+  /**
+   * Marked iff the consumer SET the prop — not iff a timer ran.
+   *
+   * The mark says "the delay this table promises for search has already been
+   * served here", so the managed fetch does not add `source.debounceMs` on
+   * top (#255). Keyed on the timer instead, `searchDebounceMs={0}` — an
+   * explicit "no wait" — counted as no promise at all and the fetch went back
+   * to waiting the source's 300 ms out; keyed on the prop, 0 means what it
+   * says.
+   *
+   * Unset leaves the mode-aware default above in charge, and there the one
+   * debounce that waits is the source's own — so those writes stay unmarked
+   * and nothing about them changes.
+   */
+  function writeSearch(term: string) {
+    if (debounceMs === undefined) setSearch(term);
+    else setSearchDebounced(term);
+  }
+
   function handleSearchInput(event: Event) {
     const target = event.target as HTMLInputElement;
     localSearch = target.value;
 
     if (debounceTimer) clearTimeout(debounceTimer);
     if (effectiveDebounceMs === 0) {
-      setSearch(localSearch);
+      writeSearch(localSearch);
       return;
     }
     debounceTimer = setTimeout(() => {
-      // `setSearchDebounced`, not `setSearch`: the mode-aware default above
-      // keeps the two debounces apart only while nobody sets one. An explicit
-      // value put the bar's timer back IN FRONT of the managed fetch's own —
-      // `searchDebounceMs={300}` against a source that debounces 300 ms made
-      // a keystroke wait 600 ms (#255). The wait has happened here, so this
-      // write says so and the fetch it triggers goes out at the end of it.
-      // Only this write is marked; every other view change keeps the source's
-      // debounce.
-      setSearchDebounced(localSearch);
+      writeSearch(localSearch);
     }, effectiveDebounceMs) as unknown as number;
   }
 
@@ -98,6 +109,10 @@
     if (event.key === 'Escape' && localSearch) {
       localSearch = '';
       if (debounceTimer) clearTimeout(debounceTimer);
+      // Unmarked on purpose, `searchDebounceMs` or not: clearing waits for
+      // nothing, so nothing has been served in place of the source's own
+      // debounce. Emptying a server-backed search therefore still costs
+      // `source.debounceMs` — a fast path for it is a separate decision.
       setSearch('');
     }
   }

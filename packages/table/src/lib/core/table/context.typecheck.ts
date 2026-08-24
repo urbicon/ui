@@ -96,6 +96,14 @@ void pub.setColumns;
 // @ts-expect-error setPage is internal (unclamped raw write) — goToPage is the public one
 void pub.setPage;
 
+// Search wiring — the debounce hand-off between the bar and the managed fetch
+// (#255). The consumer path is `setSearch` plus the `searchDebounceMs` prop;
+// who served the delay is nobody's business outside the table.
+// @ts-expect-error setSearchDebounced is internal wiring
+void pub.setSearchDebounced;
+// @ts-expect-error takeDebouncedSearchWrite is internal wiring
+void pub.takeDebouncedSearchWrite;
+
 // Expansion + group collapse are the table's own row/header chrome.
 // @ts-expect-error toggleExpand is internal
 void pub.toggleExpand;

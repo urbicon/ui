@@ -88,10 +88,21 @@ export function createManagedFetch<T>(
   let abortController: AbortController | null = null;
 
   $effect(() => {
-    // Read on EVERY run and before the managed check: the mark is a one-shot,
-    // and one armed while no managed source is wired must not survive into a
-    // later fetch that is owed its full debounce. `untrack` because consuming
-    // it must never make this effect a dependent of its own consumption.
+    // Consumed at the top of every run, so the mark never reaches a second
+    // one: whatever this run decides, the next change starts from an empty
+    // mark. `untrack` because consuming it must never make this effect a
+    // dependent of its own consumption.
+    //
+    // What it does NOT do is keep a mark from outliving an unmanaged spell.
+    // The branch below returns before `void viewKey`, so while no managed
+    // source is wired the effect has exactly one dependency left (`isManaged`)
+    // and client-mode view changes never re-run it — a mark armed there stays
+    // armed until the flip back. Harmless for one reason only, and it is the
+    // line below, not this one: `initialDone = false` makes the first fetch
+    // after a flip immediate anyway, so a stale mark cannot shorten a wait
+    // anybody was owed. Remove that reset and the stale mark becomes the only
+    // thing hiding a debounced first fetch (pinned in the live-flip describe
+    // of observe.svelte.test.ts).
     const preDebounced = untrack(() => options.takePreDebounced?.() === true);
     if (!isManaged) {
       // A live flip away from the managed variant (source prop changed to

@@ -203,15 +203,23 @@ function toParams(view: TableViewSnapshot) {
       <NoteList variant="flush">
         <Note title="One request per burst">
           The first call goes out immediately, every later one after
-          <code>debounceMs</code> (300 by default). A fast typist produces one request, not one per keystroke.
+          <code>debounceMs</code> (300 by default). A fast typist produces one request, not one per
+          keystroke — as long as <code>searchDebounceMs</code> is unset, which is what leaves the typing
+          to this debounce. Set it and the search field collapses the burst instead, at your value; sort,
+          filter and paging keep collapsing here.
         </Note>
         <Note title="Search waits once">
           <code>searchDebounceMs</code> and <code>debounceMs</code> sit on different objects —
           <code>{'<Table searchDebounceMs={100} />'}</code> versus
           <code>{"source={{ processing: 'server', query: loadUsers, debounceMs: 100 }}"}</code> —
-          but they never add up: a search write that already waited skips the source debounce, so an
-          explicit <code>searchDebounceMs</code> is the whole delay for search. Every other view
-          change (sort, filter, paging) waits <code>debounceMs</code>.
+          but against a <code>query</code> source they never add up: with
+          <code>searchDebounceMs</code> set, the field serves the whole delay for typing and the
+          fetch skips <code>debounceMs</code> — <code>{'searchDebounceMs={0}'}</code> sends the
+          request at once. What moves with it is the grouping:
+          <code>{'searchDebounceMs={150}'}</code> against <code>debounceMs: 800</code> sends one
+          request per typing pause over 150 ms, each superseded one aborted. Every other view change
+          — sort, filter, paging, and clearing the field with Escape — waits
+          <code>debounceMs</code>.
         </Note>
         <Note title="Pass the signal on">
           When a newer request supersedes one in flight, the table aborts it. Handing

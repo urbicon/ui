@@ -497,6 +497,42 @@ describe('server mode search writes through — one debounce, not two', () => {
       expect(calls).toHaveLength(2);
     });
 
+    it('searchDebounceMs={0} is a delay of zero, not an absent one: the fetch goes out at t=0', async () => {
+      const { calls, query } = makePagedQuery();
+      const t = mountTable({
+        source: { processing: 'server', query, debounceMs: 300 },
+        searchDebounceMs: 0
+      });
+      vi.advanceTimersByTime(0);
+      await flushMicrotasks();
+      expect(calls).toHaveLength(1);
+
+      const keystroke = Date.now();
+      const input = searchInput(t);
+      input.value = 'abc';
+      input.dispatchEvent(new Event('input', { bubbles: true }));
+      flushSync();
+      // The write is synchronous, exactly as when the prop is unset…
+      expect(t.ctx.view.search).toBe('abc');
+
+      // …but this one is marked, because the consumer asked for 0 rather than
+      // leaving the default in charge: 0 is the whole budget, so the fetch is
+      // queued for this very instant. Keyed on "did a timer run", an explicit
+      // 0 fell through to the unmarked branch and the reader waited the
+      // source's 300 ms out — the request they had just asked to be immediate.
+      vi.advanceTimersByTime(0);
+      await flushMicrotasks();
+      expect(Date.now() - keystroke).toBe(0);
+      expect(calls).toHaveLength(2);
+      expect(calls[1]).toMatchObject({ search: 'abc', page: 1 });
+
+      // Nothing follows at the source's edge — that edge belongs to the unset
+      // case, which the next test holds.
+      await vi.advanceTimersByTimeAsync(300);
+      await flushMicrotasks();
+      expect(calls).toHaveLength(2);
+    });
+
     it('positive control: unset, the write is synchronous and the source debounce is the only wait', async () => {
       const { calls, query } = makePagedQuery();
       const t = mountTable({ source: { processing: 'server', query, debounceMs: 300 } });
