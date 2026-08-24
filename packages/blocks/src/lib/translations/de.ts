@@ -8,7 +8,10 @@ export default {
     clearSearch: 'Suche löschen',
     clearSelection: 'Auswahl löschen',
     closeDialog: 'Dialog schließen',
-    closeDrawer: 'Seitenleiste schließen',
+    // Ein Drawer fährt je nach `placement` von jeder Kante ein — auch von unten
+    // (das Werkzeug-Sheet der Tabelle). Das Wort darf deshalb keine Seite
+    // benennen: „Seitenleiste“ sagte Screenreader-Nutzern die falsche Richtung.
+    closeDrawer: 'Einblendung schließen',
     copied: 'Kopiert',
     copy: 'Kopieren',
     copyFailed: 'Kopieren fehlgeschlagen',
