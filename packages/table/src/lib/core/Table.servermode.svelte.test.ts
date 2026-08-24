@@ -636,9 +636,14 @@ describe('server mode search writes through — one debounce, not two', () => {
 
       // Walk the clock a millisecond at a time to the edge the fetch lands on
       // — 0 included, since the sync advance keeps a zero-delay timer on this
-      // very instant (see the note above the first test).
+      // very instant (see the note above the first test). When the bar timer
+      // fires inside a step, the effect flush schedules the zero-delay fetch
+      // at that same instant — the trailing zero-advance runs it before the
+      // clock moves on, so the edge reads the fetch's time, not one ms later.
       for (let ms = 0; ms <= 1000 && calls.length === before; ms++) {
         vi.advanceTimersByTime(ms === 0 ? 0 : 1);
+        await flushMicrotasks();
+        vi.advanceTimersByTime(0);
         await flushMicrotasks();
       }
       expect(t.ctx.view.search).toBe('');
@@ -659,6 +664,17 @@ describe('server mode search writes through — one debounce, not two', () => {
 
       expect(escKey).toEqual(backspace);
       expect(backspace).toEqual({ edge: 0, fetches: 1 });
+    });
+
+    // 150 on purpose, away from the source's 300: a straight-through Escape
+    // would land on the source edge and read 300 here — the two values must
+    // differ for this test to tell the doors apart.
+    it('searchDebounceMs={150}: both doors wait the bar timer — the setTimeout branch is one route too', async () => {
+      const backspace = await clearEdge({ searchDebounceMs: 150 }, 'backspace');
+      const escKey = await clearEdge({ searchDebounceMs: 150 }, 'escape');
+
+      expect(escKey).toEqual(backspace);
+      expect(backspace).toEqual({ edge: 150, fetches: 1 });
     });
 
     it('a debounced write that changes nothing leaves no exemption behind', async () => {
