@@ -127,12 +127,16 @@
     return tableState.effectiveGroupBy === columnKey;
   }
 
+  // The dot and its tooltip say the column IS being aggregated, so both read
+  // the aggregations in force rather than the configured list: with
+  // `toggleSummary()` hiding the row, the dots used to keep marking columns
+  // whose totals existed nowhere (#252; the derivation lives on useSummary).
   function hasSummary(columnKey: string): boolean {
-    return tableState.summaryConfigs.some((config) => config.column === columnKey);
+    return tableContext.effectiveSummaryConfigs.some((config) => config.column === columnKey);
   }
 
   function getSummaryTypes(columnKey: string): string[] {
-    return tableState.summaryConfigs
+    return tableContext.effectiveSummaryConfigs
       .filter((config) => config.column === columnKey)
       .map((config) => SUMMARY_TYPE_GLYPH[config.type]);
   }

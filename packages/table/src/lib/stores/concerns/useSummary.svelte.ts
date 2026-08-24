@@ -25,9 +25,31 @@ export function useSummary(
   const getValue = (item: TableItem, columnId: string) =>
     resolveValueById(state.columns, item, columnId);
 
+  /**
+   * The aggregations actually acting on the grid: `state.summaryConfigs` while
+   * the summary row is shown, and nothing while it is hidden.
+   *
+   * The one address for "is a summary in force", and the reason no reader owns
+   * a copy of the condition any more (#252). `showSummary` can be `false` with
+   * configs in place — `toggleSummary()` is public API and the library ships no
+   * UI for it, so a consumer's own "show totals" switch reaches that state —
+   * and every surface used to combine the two fields by hand. Three did, five
+   * did not: a lit Σ trigger with a badge reading "2", summary chips and head
+   * indicator dots all announced aggregations while no summary row existed
+   * anywhere, and the tool count on the very same bar said 0.
+   *
+   * Read this wherever a surface claims a summary IS acting (the row, the
+   * mobile band, the lit trigger and its badge, the chips, the head dots, the
+   * tool counts). Do NOT read it in the editing controls — the summary menus,
+   * the tools sheet's panel and the header menu's submenu show and change what
+   * a column is *configured* to aggregate, which stays `state.summaryConfigs`;
+   * the note in HeaderMenu.svelte carries that decision.
+   */
+  const effectiveSummaryConfigs = $derived(state.showSummary ? state.summaryConfigs : []);
+
   const summaryData = $derived.by((): Record<string, number> => {
-    if (!state.showSummary || state.summaryConfigs.length === 0) return {};
-    return calculateSummary(getSortedItems(), state.summaryConfigs, getValue);
+    if (effectiveSummaryConfigs.length === 0) return {};
+    return calculateSummary(getSortedItems(), effectiveSummaryConfigs, getValue);
   });
 
   /**
@@ -46,12 +68,11 @@ export function useSummary(
    * the arrangement that page advises.
    */
   const groupedSummaryData = $derived.by((): Record<string, Record<string, number>> => {
-    if (!state.showSummary || state.summaryConfigs.length === 0 || !state.effectiveGroupBy)
-      return {};
+    if (effectiveSummaryConfigs.length === 0 || !state.effectiveGroupBy) return {};
 
     const result: Record<string, Record<string, number>> = {};
     Object.entries(getGrouped()).forEach(([groupKey, groupItems]) => {
-      result[groupKey] = calculateSummary(groupItems, state.summaryConfigs, getValue);
+      result[groupKey] = calculateSummary(groupItems, effectiveSummaryConfigs, getValue);
     });
     return result;
   });
@@ -96,6 +117,13 @@ export function useSummary(
    *
    * {@link removeSummaryConfig} writes `state.summaryConfigs` on its own and
    * says there why; it only ever filters, which cannot break the invariant.
+   *
+   * Deriving `showSummary` from the count also means every edit *unhides*: a
+   * pick made while {@link toggleSummary} had the row hidden brings the whole
+   * configured set back, not just the picked column. That is why the editing
+   * controls keep showing `state.summaryConfigs` rather than
+   * {@link effectiveSummaryConfigs} — what they display is exactly what the
+   * next pick puts on screen (#252, the reasoning is in HeaderMenu.svelte).
    */
   function setSummaryConfigs(configs: SummaryConfig[]) {
     state.summaryConfigs = normalizeSummaryConfigs(configs);
@@ -136,6 +164,9 @@ export function useSummary(
   }
 
   return {
+    get effectiveSummaryConfigs() {
+      return effectiveSummaryConfigs;
+    },
     get summaryData() {
       return summaryData;
     },

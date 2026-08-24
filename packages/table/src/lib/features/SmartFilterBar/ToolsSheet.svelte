@@ -100,12 +100,13 @@
   }
 
   const filterCount = $derived(tableView.filters.length);
-  // Gated on `showSummary` like the bar's own tool count (SmartFilterBar), not
-  // on the config list alone: `toggleSummary` is public on the context, so a
-  // consumer can leave configs in place while the summary row is off — and a
-  // badge counting aggregations that render nowhere contradicts the button that
-  // opened this sheet.
-  const summaryCount = $derived(tableState.showSummary ? tableState.summaryConfigs.length : 0);
+  // The aggregations in force, not the configured ones: `toggleSummary` is
+  // public on the context, so a consumer can leave configs in place while the
+  // summary row is off — and a badge counting aggregations that render nowhere
+  // contradicts the button that opened this sheet. The condition itself is the
+  // store's (#252); this used to be one of three hand-written copies, while
+  // five other surfaces carried none.
+  const summaryCount = $derived(tableContext.effectiveSummaryConfigs.length);
   const hiddenCount = $derived(tableContext.hiddenColumnKeys.size);
 
   // Sort and grouping are single-valued, so a count would forever read "1". The

@@ -1,5 +1,6 @@
 <script lang="ts">
-  import { getTableContext, useTableI18n } from '$lib';
+  import { useTableI18n } from '$lib';
+  import { getInternalTableContext } from '$lib/stores/TableStore.svelte';
   import { isColumnSummable } from '$lib/utils/column-capabilities';
   import { SUMMARY_TYPES } from '$lib/utils/summary-types';
   import { resolveColumnId, resolveColumnLabel } from '$lib/utils';
@@ -17,11 +18,19 @@
 
   const SquareSigmaIcon = resolveIcon('squareSigma', SquareSigmaIconDefault);
 
-  const tableContext = getTableContext();
+  const tableContext = getInternalTableContext();
   const { state: tableState, addSummaryConfig, removeSummaryConfig } = tableContext;
 
-  const summaryConfigs = $derived(tableState.summaryConfigs);
-  const isActive = $derived(summaryConfigs.length > 0);
+  // Two questions, two sources — see useSummary. The trigger and its counter
+  // claim summaries are ACTING on the grid, so they read the aggregations in
+  // force; they used to read the raw list and stayed lit with a badge reading
+  // "2" while `toggleSummary()` had the summary row hidden and this same bar's
+  // tool count said 0 (#252).
+  const effectiveSummaries = $derived(tableContext.effectiveSummaryConfigs);
+  // The radio rows are this control's own value: what each column is
+  // CONFIGURED to aggregate, which survives the row being hidden.
+  const configuredSummaries = $derived(tableState.summaryConfigs);
+  const isActive = $derived(effectiveSummaries.length > 0);
   const triggerClass = $derived(
     isActive ? smartFilterBarTriggerVariants({ intent: 'summary' }) : undefined
   );
@@ -38,7 +47,7 @@
   const menuItems = $derived.by<MenuItemType[]>(() =>
     summableColumns.flatMap((column) => {
       const columnId = resolveColumnId(column);
-      const current = summaryConfigs.find((config) => config.column === columnId)?.type;
+      const current = configuredSummaries.find((config) => config.column === columnId)?.type;
       // Explicit `id`s: Menu's resolveId otherwise falls back to the flat
       // render index (the index-as-key anti-pattern). `-` as the joiner:
       // the id is an opaque key, never parsed back apart.
@@ -75,7 +84,7 @@
          The ground is the neutral surface because the lit trigger behind it
          now carries `summary-subtle` itself. -->
     <Badge variant="soft" size="xs" counter class="bg-surface-base text-summary-emphasis ml-1">
-      {summaryConfigs.length}
+      {effectiveSummaries.length}
     </Badge>
   {/if}
 {/snippet}

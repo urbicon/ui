@@ -185,7 +185,10 @@
     (tableView.filters.length > 0 ? 1 : 0) +
       (tableView.sort ? 1 : 0) +
       (tableState.effectiveGroupBy ? 1 : 0) +
-      (tableState.showSummary && tableState.summaryConfigs.length > 0 ? 1 : 0) +
+      // The store's one answer to "is a summary acting" (#252) — the copy that
+      // used to stand here was right, and the tools inside the sheet that
+      // carried no copy disagreed with it.
+      (tableContext.effectiveSummaryConfigs.length > 0 ? 1 : 0) +
       (tableContext.hiddenColumnKeys.size > 0 ? 1 : 0)
   );
 

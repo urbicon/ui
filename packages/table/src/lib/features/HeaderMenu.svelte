@@ -99,6 +99,33 @@
   // store keeps at most one per column, so this is a choice among six states
   // rather than a set of switches — and "none" is one of the six.
 
+  /**
+   * The column's CONFIGURED aggregation — `state.summaryConfigs`, deliberately
+   * not `effectiveSummaryConfigs` (#252).
+   *
+   * Everything that claims a summary is acting on the grid goes through the
+   * store's one derivation, this menu's own lit trigger included: `isActive`
+   * arrives from TableHead's `columnHasSummary`, which reads the effective
+   * list. What stays on the configured list is this control's own value — the
+   * six `menuitemradio` rows AND the `detail` text that reads the checked one
+   * out on the collapsed parent row. They are one control, so they need one
+   * source:
+   *
+   * - Splitting them would announce "Summary, None" and then, one keypress
+   *   later inside the submenu, "Sum, checked" — a contradiction heard in
+   *   sequence, which is worse than the silent trigger it would buy.
+   * - A radio reading "None" over a stored `sum` also mispredicts its own
+   *   click: every write funnels through `setSummaryConfigs`, which unhides,
+   *   so picking one aggregation makes *every* configured column reappear.
+   *   Showing what is configured is showing what the next pick will produce.
+   * - And a configuration nothing displays could otherwise not be cleared:
+   *   with all six rows reading "None", the row that removes the stored
+   *   aggregation is indistinguishable from the five that do not.
+   *
+   * `showSummary === false` is a display switch the consumer owns
+   * (`toggleSummary()` ships no UI), so the app that turned the row off is the
+   * surface that says so. This menu says what the column is set to.
+   */
   const currentSummaryType = $derived(
     tableState.summaryConfigs.find((config) => config.column === columnId)?.type
   );

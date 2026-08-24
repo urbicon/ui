@@ -740,6 +740,16 @@ export function createTableState(
     get navigableItems() {
       return navigableItems;
     },
+    /**
+     * The aggregations actually acting on the grid — `state.summaryConfigs`
+     * while the summary row is shown, `[]` while `toggleSummary()` has it
+     * hidden. Every surface that announces a summary reads this instead of
+     * combining the two fields itself (#252); the derivation and the split
+     * against the editing controls are documented on `useSummary`.
+     */
+    get effectiveSummaryConfigs() {
+      return summary.effectiveSummaryConfigs;
+    },
     get summaryData() {
       return summary.summaryData;
     },

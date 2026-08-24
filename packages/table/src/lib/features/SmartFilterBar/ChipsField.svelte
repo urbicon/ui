@@ -1,6 +1,6 @@
 <script lang="ts">
-  import { getTableContext, type TableAction, useTableI18n } from '$lib';
-  import type { SummaryConfig } from '$lib/stores/TableStore.svelte';
+  import { type TableAction, useTableI18n } from '$lib';
+  import { getInternalTableContext, type SummaryConfig } from '$lib/stores/TableStore.svelte';
   import { findColumnById, resolveColumnLabel } from '$lib/utils';
   import { SUMMARY_TYPE_LABEL_KEY } from '$lib/utils/summary-types';
   import { Badge } from '@urbicon-ui/blocks';
@@ -16,7 +16,7 @@
 
   let { class: className = '' } = $props();
 
-  const tableContext = getTableContext();
+  const tableContext = getInternalTableContext();
   const {
     state: tableState,
     view: tableView,
@@ -73,7 +73,11 @@
       });
     }
 
-    tableState.summaryConfigs.forEach((config, index) => {
+    // A chip says "this is acting on the rows below", the same claim as its
+    // filter and grouping neighbours — so it reads the aggregations in force,
+    // never the configured list. Hidden by `toggleSummary()`, the summary chips
+    // used to stay on a grid with no summary row at all (#252, see useSummary).
+    tableContext.effectiveSummaryConfigs.forEach((config, index) => {
       chips.push({
         type: 'summary',
         id: `summary-${index}`,

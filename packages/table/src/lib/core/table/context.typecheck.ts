@@ -119,6 +119,8 @@ void pub.toggleAllGroups;
 void pub.grouped;
 // @ts-expect-error navigableItems is the internal focus index space
 void pub.navigableItems;
+// @ts-expect-error effectiveSummaryConfigs is the internal "a summary is in force" feed (#252)
+void pub.effectiveSummaryConfigs;
 // @ts-expect-error summaryData is an internal render feed
 void pub.summaryData;
 // @ts-expect-error groupedSummaryData is an internal render feed
