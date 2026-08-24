@@ -92,6 +92,32 @@ export const TABLE_DIMENSIONS = {
       md: 'px-1 py-1',
       lg: 'px-2 py-2'
     }
+  },
+
+  /**
+   * The negative mirror of `padding.cellX`, for the wrapper that has to PAINT
+   * the whole cell rather than merely sit in it — a hover ground, a focus ring,
+   * a pressed state.
+   *
+   * Moving the inset onto the `<td>` shrank every wrapper's box by twice the
+   * inset (16px at `md`), because a wrapper is `h-full w-full` of the cell's
+   * *content* box. For a transparent wrapper that is invisible; for one that
+   * paints, the ground stopped short of the cell it belongs to.
+   *
+   * Always used as a pair with `padding.cellX` of the same size: the margin
+   * reaches back out to the cell's edge, the padding puts the content back
+   * where it was. Net horizontal offset zero — which is the property the cell
+   * inset test asserts, rather than "no wrapper has padding". Same scale as
+   * `cellX` by construction and not by hand: the pair only cancels while both
+   * halves read the same step, so the padding half IS `cellX` at the call site
+   * and only the negative half lives here.
+   */
+  bleed: {
+    cellX: {
+      sm: '-mx-1.5',
+      md: '-mx-3',
+      lg: '-mx-5'
+    }
   }
 } as const;
 

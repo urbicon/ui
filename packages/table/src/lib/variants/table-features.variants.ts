@@ -381,6 +381,12 @@ export const summaryRowVariants = tv({
     // boxing the row. tr borders render because the table is border-collapse.
     row: ['font-semibold'],
     cell: ['text-text-primary'],
+    // The spacer cells that mirror the row's structural columns (group indent,
+    // selection, expand). Same split as `tableRowVariants`: those columns hold
+    // a control, not content, so they keep the narrow step rather than a data
+    // cell's reading inset — one rule for both rows, or the summary would
+    // silently define the structural columns differently from the body.
+    controlCell: ['text-text-primary'],
     // No horizontal padding: the summary `<td>` carries the same
     // `TABLE_DIMENSIONS.padding.cellX` as a data cell, so the value sits flush
     // with the column's content by construction. It used to hold a hand-matched
@@ -395,14 +401,17 @@ export const summaryRowVariants = tv({
     size: {
       sm: {
         cell: [TABLE_DIMENSIONS.padding.cellX.sm, TABLE_DIMENSIONS.padding.cellY.sm],
+        controlCell: [TABLE_DIMENSIONS.padding.controlCellX.sm, TABLE_DIMENSIONS.padding.cellY.sm],
         value: 'text-sm'
       },
       md: {
         cell: [TABLE_DIMENSIONS.padding.cellX.md, TABLE_DIMENSIONS.padding.cellY.md],
+        controlCell: [TABLE_DIMENSIONS.padding.controlCellX.md, TABLE_DIMENSIONS.padding.cellY.md],
         value: 'text-base'
       },
       lg: {
         cell: [TABLE_DIMENSIONS.padding.cellX.lg, TABLE_DIMENSIONS.padding.cellY.lg],
+        controlCell: [TABLE_DIMENSIONS.padding.controlCellX.lg, TABLE_DIMENSIONS.padding.cellY.lg],
         value: 'text-lg'
       }
     },

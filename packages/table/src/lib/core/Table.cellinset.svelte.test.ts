@@ -53,41 +53,78 @@ const CONTROL_CELL_INSET_PX: Record<(typeof SIZES)[number], number> = { sm: 2, m
 const SPACING_STEP_PX = 4;
 
 /**
- * The horizontal padding one element declares, in px.
+ * How far one element moves its content's left edge, in px.
  *
- * Throws on a padding class it cannot convert. A silent 0 is the failure mode
+ * Throws on a spacing class it cannot convert. A silent 0 is the failure mode
  * that matters: every assertion below is a sum, so an unreadable class would
  * quietly lower both sides and keep the suite green while measuring nothing.
  */
-function ownPaddingLeftPx(el: Element): number {
+function ownOffsetLeftPx(el: Element): number {
+  return offsetOfClasses([...el.classList]);
+}
+
+/**
+ * How far a class list moves its content's left edge, in px: padding pushes it
+ * in, margin moves the whole box — and a negative margin is how a wrapper that
+ * has to paint the cell reaches back out to its edge
+ * (`TABLE_DIMENSIONS.bleed.cellX`). Both count, because the invariant is not
+ * "no wrapper has padding" but "no wrapper displaces its content": a
+ * bleed/padding pair sums to zero and a lone `px-2` does not.
+ */
+function offsetOfClasses(classes: string[]): number {
   let total = 0;
-  for (const cls of el.classList) {
-    const match = /^(?:p|px|pl)-(.+)$/.exec(cls);
+  for (const cls of classes) {
+    const match = /^(-?)(p|px|pl|m|mx|ml)-(.+)$/.exec(cls);
     if (!match) continue;
-    const step = Number(match[1]);
+    const [, sign, , raw] = match;
+    const step = Number(raw);
     if (!Number.isFinite(step)) {
       throw new Error(
         `Cannot read "${cls}" as a Tailwind spacing step — this test measures the inset by ` +
-          'class arithmetic and must not treat an arbitrary value as zero.'
+          'class arithmetic and must not treat an unreadable class as zero.'
       );
     }
-    total += step * SPACING_STEP_PX;
+    total += (sign === '-' ? -1 : 1) * step * SPACING_STEP_PX;
   }
   return total;
 }
 
 /**
- * Everything between the cell's outer edge and its text: the `<td>` plus every
- * wrapper on the way down to the content. Walks the first-element-child chain,
- * which is the content chain for all four paths — `<td>` → container → content
- * → text for a default cell, `<td>` → container → number for a typed one,
- * `<td>` → the snippet's own element, `<td>` → content → label for the summary.
+ * Where the content's own box begins — the point the walk below stops at.
+ *
+ * A wrapper is transparent: it positions its child and paints nothing, so the
+ * reader sees through it to the text and its padding is part of the inset. A
+ * control (`<button>`, link, field, image) or an element that paints its own
+ * background (a Badge chip) is a box in its own right: its padding is internal
+ * chrome, and the edge a reader lines up on is the box, not the glyphs in it.
+ *
+ * The background test only counts a bare utility. `hover:bg-…` on an
+ * interactive wrapper is a rest state of nothing, so those keep being walked.
+ */
+const CONTENT_BOX_TAGS = new Set(['BUTTON', 'A', 'INPUT', 'SELECT', 'TEXTAREA', 'IMG', 'SVG']);
+
+function isContentBox(el: Element): boolean {
+  if (CONTENT_BOX_TAGS.has(el.tagName.toUpperCase())) return true;
+  for (const cls of el.classList) if (cls.startsWith('bg-')) return true;
+  return false;
+}
+
+/**
+ * Everything between the cell's outer edge and its content: the `<td>` plus
+ * every wrapper on the way down. Walks the first-element-child chain, which is
+ * the content chain for all of them — `<td>` → container → content → text for a
+ * default cell, `<td>` → container → number for a typed one, `<td>` → the
+ * snippet's own element, `<td>` → content → label for the summary, and
+ * `<td>` → wrapper → row → `<button>` for the action buttons.
+ *
+ * Wrappers are what this sums, so `probe` (a snippet that wraps its content in
+ * `px-2`) must read one step higher than everything else — see the fixture.
  */
 function contentInsetPx(td: Element): number {
-  let total = 0;
-  let node: Element | null = td;
-  while (node) {
-    total += ownPaddingLeftPx(node);
+  let total = ownOffsetLeftPx(td);
+  let node = td.firstElementChild;
+  while (node && !isContentBox(node)) {
+    total += ownOffsetLeftPx(node);
     node = node.firstElementChild;
   }
   return total;
@@ -136,33 +173,46 @@ afterEach(() => {
   target = undefined;
 });
 
-describe('the padding reader', () => {
+describe('the offset reader', () => {
   // The positive control for every sum below: a reader that returned 0 for
-  // everything would make all four paths "agree" at 0.
+  // everything would make every path "agree" at 0.
   it('converts a Tailwind step to pixels', () => {
     const el = document.createElement('div');
     el.className = 'flex px-3 text-sm';
-    expect(ownPaddingLeftPx(el)).toBe(12);
+    expect(ownOffsetLeftPx(el)).toBe(12);
+  });
+
+  // The bleed/padding pair the painting wrappers use: out and back in.
+  it('cancels a negative margin against an equal padding', () => {
+    const el = document.createElement('div');
+    el.className = 'rounded-modify -mx-3 px-3';
+    expect(ownOffsetLeftPx(el)).toBe(0);
+  });
+
+  it('counts a bleed that is not paid back', () => {
+    const el = document.createElement('div');
+    el.className = '-mx-3';
+    expect(ownOffsetLeftPx(el)).toBe(-12);
   });
 
   it('refuses an arbitrary value instead of reading it as zero', () => {
     const el = document.createElement('div');
     el.className = 'px-[13px]';
-    expect(() => ownPaddingLeftPx(el)).toThrow(/Tailwind spacing step/);
+    expect(() => ownOffsetLeftPx(el)).toThrow(/Tailwind spacing step/);
   });
 
-  it('ignores classes that only look like padding', () => {
+  it('ignores classes that only look like spacing', () => {
     const el = document.createElement('div');
-    el.className = 'pointer-events-none py-2 pt-4 hover:px-6';
-    expect(ownPaddingLeftPx(el)).toBe(0);
+    el.className = 'pointer-events-none min-h-10 max-w-32 -mt-2 py-2 pt-4 hover:px-6';
+    expect(ownOffsetLeftPx(el)).toBe(0);
   });
 });
 
 describe.each(SIZES)('one cell inset at size=%s', (size) => {
-  // Without this, three of the four assertions below could pass on an empty
-  // cell: a `<td>` that rendered nothing has exactly the `<td>`'s own padding,
-  // which is the number the test is looking for.
-  it('really renders all four paths', () => {
+  // Without this, most of the assertions below could pass on an empty cell: a
+  // `<td>` that rendered nothing has exactly the `<td>`'s own padding, which is
+  // the number the test is looking for.
+  it('really renders every path', () => {
     const root = mountTable({ size });
 
     expect(cellAt(root, 'cell-1-name').textContent).toContain('Ada');
@@ -171,6 +221,10 @@ describe.each(SIZES)('one cell inset at size=%s', (size) => {
     expect(
       cellAt(root, 'cell-1-note').querySelector('[data-testid="snippet-content"]')
     ).not.toBeNull();
+    expect(cellAt(root, 'cell-1-custom').textContent).toContain('custom');
+    // Three buttons from the factory's own trio — the width budget below
+    // assumes exactly this count.
+    expect(cellAt(root, 'cell-1-actions').querySelectorAll('button')).toHaveLength(3);
     expect(cellAt(root, 'summary-cell-amount').textContent?.trim()).not.toBe('');
   });
 
@@ -184,9 +238,44 @@ describe.each(SIZES)('one cell inset at size=%s', (size) => {
     expect(contentInsetPx(cellAt(root, 'cell-1-amount'))).toBe(expected);
     // `column.cell` snippet: rendered straight into the `<td>`, was 4px at md.
     expect(contentInsetPx(cellAt(root, 'cell-1-note'))).toBe(expected);
+    // `CustomCell` as a column component — the default renderer's own wrapper,
+    // reached through the public component rather than through `TableCell`.
+    expect(contentInsetPx(cellAt(root, 'cell-1-custom'))).toBe(expected);
     // The summary row, which already agreed with the default path and has to
     // keep agreeing — its `content` slot no longer holds a hand-matched copy.
     expect(contentInsetPx(cellAt(root, 'summary-cell-amount'))).toBe(expected);
+  });
+
+  // Split out because it is the one path whose wrapper lives in **markup**
+  // rather than in a variant config: `ActionButtons` writes its own container
+  // `<div>`, so the config-level assertion further down cannot see it and the
+  // first pass at #256 left the actions column a step out.
+  it('holds the factory actions column on the same edge', () => {
+    const root = mountTable({ size });
+    expect(contentInsetPx(cellAt(root, 'cell-1-actions'))).toBe(DATA_CELL_INSET_PX[size]);
+  });
+
+  // The rest of the typed roster. Same property, one cell per component —
+  // mounted rather than read off the variant config, because that is the only
+  // way markup between the `<td>` and the content shows up at all.
+  it.each(['user', 'status', 'code', 'created', 'url'])(
+    'holds the %s column on the same edge',
+    (columnId) => {
+      const root = mountTable({ size });
+      const cell = cellAt(root, `cell-1-${columnId}`);
+      // An empty cell would report the `<td>`'s padding — i.e. exactly the
+      // number being asserted — so the cell has to have rendered something.
+      expect(cell.firstElementChild, `${columnId} rendered nothing`).not.toBeNull();
+      expect(contentInsetPx(cell)).toBe(DATA_CELL_INSET_PX[size]);
+    }
+  );
+
+  // The positive control for the walk itself. Everything above is a sum over
+  // the `<td>` and its wrappers; if the walk stopped at the `<td>`, every one
+  // of those sums would still come out right and only this one would not.
+  it('does descend into wrappers (a deliberate px-2 reads one step higher)', () => {
+    const root = mountTable({ size });
+    expect(contentInsetPx(cellAt(root, 'cell-1-probe'))).toBe(DATA_CELL_INSET_PX[size] + 8);
   });
 
   it('reads a non-zero inset (the sums above are not all zero)', () => {
@@ -194,23 +283,48 @@ describe.each(SIZES)('one cell inset at size=%s', (size) => {
     expect(contentInsetPx(cellAt(root, 'cell-1-name'))).toBeGreaterThan(0);
   });
 
+  // Not a fix — the header is out of scope for #256 — but the number the
+  // align-revert note now quotes, so it is checked rather than asserted in
+  // prose. Before the unification the gap depended on how the column was
+  // filled (8px for a default cell, 4px for a typed one, 0 for a snippet);
+  // now it is one number per size, which is what makes the header half a
+  // value change instead of a hunt.
+  it('leaves the header title exactly one step inside its column', () => {
+    const root = mountTable({ size });
+    const th = root.querySelector('thead th');
+    if (!th) throw new Error('No header cell rendered.');
+
+    expect(DATA_CELL_INSET_PX[size] - ownOffsetLeftPx(th)).toBe(
+      { sm: 4, md: 8, lg: 12 }[size as 'sm' | 'md' | 'lg']
+    );
+  });
+
   it('leaves the structural columns on the control step', () => {
     const root = mountTable({ size, selectionMode: 'multi' });
     const checkboxCell = root.querySelector('tbody tr td:first-child');
     if (!checkboxCell) throw new Error('No selection cell rendered.');
 
-    expect(ownPaddingLeftPx(checkboxCell)).toBe(CONTROL_CELL_INSET_PX[size]);
+    expect(ownOffsetLeftPx(checkboxCell)).toBe(CONTROL_CELL_INSET_PX[size]);
     // …and the data cells beside it are unaffected by the extra column.
     expect(contentInsetPx(cellAt(root, 'cell-1-note'))).toBe(DATA_CELL_INSET_PX[size]);
   });
 });
 
 /**
- * The other half of the fix: with the inset on the `<td>`, no wrapper inside a
- * cell may carry horizontal padding — that is what makes a second, drifting
- * copy unrepresentable rather than merely absent today.
+ * The other half of the fix, at the config level: a wrapper inside a cell may
+ * not displace its content horizontally. Net zero, not "no padding" — the
+ * wrappers that paint (interactive / clickable) take the inset back as a
+ * `bleed.cellX` + `padding.cellX` pair so the hover ground covers the cell
+ * again, and that pair cancels. A lone `px-2` does not, which is the drift #256
+ * removed.
+ *
+ * This reads the configs, so it can only see what a variant declares. Markup
+ * between the `<td>` and the content is invisible here — `ActionButtons` wrote
+ * its own `px-2` container and passed this check while sitting a step out. The
+ * mounted assertions above are the ones that catch that; these hold the line
+ * for every axis combination, which no fixture could mount.
  */
-describe('no wrapper inside a data cell carries horizontal padding', () => {
+describe('no wrapper inside a data cell displaces its content', () => {
   type SlotVariants = ((props: Record<string, unknown>) => Record<string, () => string>) & {
     config: { variants?: Record<string, Record<string, unknown>> };
   };
@@ -228,25 +342,38 @@ describe('no wrapper inside a data cell carries horizontal padding', () => {
     customCellVariants
   };
 
+  const offsetOf = (classes: string) => offsetOfClasses(classes.split(/\s+/).filter(Boolean));
+
   it.each(Object.keys(WRAPPERS))('%s.container()', (name) => {
     const variants = WRAPPERS[name] as SlotVariants;
-    // Read the sizes from the config: a hand-kept list is the copy most likely
-    // to fall behind, and it would go green by checking fewer sizes than exist.
+    // Read the axes from the config: a hand-kept list is the copy most likely
+    // to fall behind, and it would go green by checking fewer cases than exist.
     const sizes = Object.keys(variants.config.variants?.size ?? {});
     expect(sizes.length).toBeGreaterThan(0);
 
+    // Every boolean axis in both positions, so the painting compounds
+    // (`interactive`, `clickable`) are actually reached — they are exactly the
+    // ones carrying padding, and a size-only sweep would never see them.
+    const booleanAxes = Object.entries(variants.config.variants ?? {})
+      .filter(([, values]) => 'true' in values && 'false' in values)
+      .map(([axis]) => axis);
+
     for (const size of sizes) {
-      expect(variants({ size }).container(), `${name} @ size=${size}`).not.toMatch(
-        /(?:^|\s)(?:p|px|pl|pr)-/
-      );
+      for (const axis of ['', ...booleanAxes]) {
+        for (const value of axis ? [true, false] : [undefined]) {
+          const props = axis ? { size, [axis]: value } : { size };
+          expect(
+            offsetOf(variants(props).container()),
+            `${name} @ size=${size}${axis ? `, ${axis}=${value}` : ''}`
+          ).toBe(0);
+        }
+      }
     }
   });
 
   it('summaryRowVariants.content()', () => {
     for (const size of SIZES) {
-      expect(summaryRowVariants({ size }).content(), `summary @ size=${size}`).not.toMatch(
-        /(?:^|\s)(?:p|px|pl|pr)-/
-      );
+      expect(offsetOf(summaryRowVariants({ size }).content()), `summary @ size=${size}`).toBe(0);
     }
   });
 });

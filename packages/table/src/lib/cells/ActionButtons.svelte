@@ -69,6 +69,16 @@
     className?: string;
     testId?: string;
     align?: 'left' | 'center' | 'right';
+    /**
+     * Optional cap on the button row's width, as a CSS length.
+     *
+     * Unset (the default) the row fills its cell, so `align` puts the buttons
+     * on the same reading edge as every other column. It used to default to
+     * `7rem` **and** set `width` as well as `max-width` — a second width
+     * declaration beside the column's own, which the two only ever agreed on
+     * by hand and which overflowed any column narrower than it (#256). Pass a
+     * value to cap the row anyway; the column's `width` remains what sizes it.
+     */
     maxWidth?: string;
   };
 
@@ -89,7 +99,7 @@
     className = '',
     testId = undefined,
     align = 'right',
-    maxWidth = '7rem'
+    maxWidth = undefined
   }: ActionButtonsProps<Item> = $props();
 
   function slugify(label: string): string {
@@ -152,14 +162,26 @@
   }
 </script>
 
-<!-- Container with fixed width and alignment -->
+<!-- The row of buttons. Two things it deliberately does not declare:
+
+     - Horizontal padding. The `<td>` carries the cell's whole inset
+       (`TABLE_DIMENSIONS.padding.cellX`), so a `px-2` here put the actions
+       column one step outside every other cell type — and being hand-written
+       markup rather than a variant, no config-level check could see it (#256).
+       `py-1` stays: that is the `cellY` step every cell wrapper keeps.
+     - A width. The column declares it (`TableColumns.actions`), and a second
+       declaration here could only agree with it by hand — `width: 7rem` plus
+       the old 4px cell padding was exactly the factory's `120px`, so neither
+       number could move alone, and any narrower column overflowed. Without it
+       the row fills the cell and `justify-end` lands the buttons on the same
+       reading edge as every other column, at any width and any size. -->
 <div
-  class="flex min-h-10 items-center px-2 py-1 {align === 'center'
+  class="flex min-h-10 items-center py-1 {align === 'center'
     ? 'justify-center'
     : align === 'right'
       ? 'justify-end'
       : 'justify-start'} {className}"
-  style="max-width: {maxWidth}; width: {maxWidth};"
+  style={maxWidth ? `max-width: ${maxWidth};` : undefined}
   data-testid={computedTestId()}
 >
   <!-- Button container -->

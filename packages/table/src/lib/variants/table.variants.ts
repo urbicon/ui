@@ -21,29 +21,29 @@ import { TABLE_DIMENSIONS, TABLE_INDICATORS, TABLE_STATES } from './table.system
  * the shape to reach for, not a silent coupling to `align`.
  *
  * There was an axis, and it never moved a pixel — it wrote `justify-*` onto the
- * box holding the title text, which is exactly as wide as that text. Four
- * attempts at repairing it (2026-08-14) each uncovered another layer, because
- * the header and the body cell are two separately grown chains:
+ * box holding the title text, which is exactly as wide as that text. It was
+ * removed rather than left in place doing nothing (2026-08-14).
  *
- *   - the cell puts its content in a container with its own horizontal padding;
- *     the header has no counterpart, so titles sit 8px (at `md`) inside their
- *     own column's text at every alignment;
+ * What still stands between a header and its column, now that #256 has put the
+ * body's inset on one measure:
+ *
+ *   - a title starts further in than its column's content, by exactly
+ *     `TABLE_DIMENSIONS.padding.cellX` minus `padding.headerCell` — 4px at
+ *     `sm`, 8px at `md`, 12px at `lg`. One number per size for every column
+ *     kind, where it used to be three (a default cell, a typed cell and a
+ *     snippet cell each had their own). Closing it means either giving the
+ *     header the cell's inset or naming a deliberate difference; both scales
+ *     now sit as neighbours in `table.system.ts`, so the fix is a value, not a
+ *     hunt;
  *   - the header carries chrome the cell does not — a menu button that held
  *     40px of every cell in the flow and painted over the title out of it, a
- *     sort chevron, indicator dots — and each of them shifts the title;
- *   - the two padding scales live in different files as independent literals,
- *     so any fix that matches them by hand is a second copy that can drift
- *     (and did, immediately, for snippet cells and at `size="lg"`).
+ *     sort chevron, indicator dots — and each of them shifts the title. This is
+ *     the part that makes alignment a layout change rather than a variant
+ *     value, and it is untouched.
  *
- * The first of those is worth separating out: it is not about alignment at all.
- * A left-aligned header title already starts 8px inside its own column's text,
- * in every table, because only the cell has that inner step. That one is a
+ * The first is not about alignment at all: a left-aligned header title starts
+ * inside its own column's text in every table, at every alignment. It is a
  * plain defect whoever decides the alignment question.
- *
- * Making alignment work would mean deriving one inner measure for both chains
- * and giving the header chrome a place that does not move the text. That is a
- * layout change with its own wave, not a variant value — so the axis is gone
- * rather than sitting here looking available.
  */
 export const tableHeaderVariants = tv({
   slots: {

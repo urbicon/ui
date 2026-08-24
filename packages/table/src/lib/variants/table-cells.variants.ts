@@ -8,12 +8,21 @@ import { TABLE_DIMENSIONS, TABLE_INDICATORS } from './table.system';
 
 /**
  * Every container in this file is a wrapper INSIDE a `<td>`, and none of them
- * carries horizontal padding — the cell's inset belongs to the cell, once, at
- * `TABLE_DIMENSIONS.padding.cellX` (#256). A container is `h-full w-full`, so
- * its box is the cell's content box either way; dropping the padding moves the
- * content out to the cell's own edge and changes nothing else, which is what
- * lets a typed cell line up with a default one and with a `column.cell`
- * snippet — three paths that used to sit 8px, 12px and 4px in.
+ * displaces its content horizontally — the cell's inset belongs to the cell,
+ * once, at `TABLE_DIMENSIONS.padding.cellX` (#256). That is what lets a typed
+ * cell line up with a default one and with a `column.cell` snippet, three paths
+ * that used to sit 8px, 12px and 4px in.
+ *
+ * What the move did change, and what it did not: a container is `h-full w-full`
+ * of the cell's *content* box, and that box is now narrower by twice the inset
+ * (16px at `md`). For a transparent wrapper this is invisible — the content
+ * simply starts at the cell's edge instead of inside it. For one that PAINTS —
+ * the interactive/clickable compounds below, with a hover ground, a focus ring
+ * and a lift — the ground would stop short of the cell it belongs to, so those
+ * pair `TABLE_DIMENSIONS.bleed.cellX` with `padding.cellX` of the same size:
+ * out to the cell's edge, content back in by the same step, net zero. "No
+ * horizontal padding" is therefore not the invariant; **net zero horizontal
+ * offset** is, and that is what the cell inset test measures.
  *
  * The vertical step (`padding.cellY`) stays: it shrinks a box whose content is
  * centred inside a row of fixed height, so it moves nothing.
@@ -338,6 +347,28 @@ export const userCellVariants = tv({
       false: {}
     }
   },
+
+  // A clickable user cell paints a hover ground, so it takes back the cell's
+  // inset as a bleed/padding pair — see the note at the top of this file. Per
+  // size because the inset is; net zero either way, so a size that does not
+  // match its `<td>` only paints a smaller ground, it never moves the name.
+  compoundVariants: [
+    {
+      clickable: true,
+      size: 'sm',
+      class: { container: [TABLE_DIMENSIONS.bleed.cellX.sm, TABLE_DIMENSIONS.padding.cellX.sm] }
+    },
+    {
+      clickable: true,
+      size: 'md',
+      class: { container: [TABLE_DIMENSIONS.bleed.cellX.md, TABLE_DIMENSIONS.padding.cellX.md] }
+    },
+    {
+      clickable: true,
+      size: 'lg',
+      class: { container: [TABLE_DIMENSIONS.bleed.cellX.lg, TABLE_DIMENSIONS.padding.cellX.lg] }
+    }
+  ],
 
   defaultVariants: {
     size: 'md',
@@ -696,6 +727,34 @@ export const customCellVariants = tv({
       }
     }
   },
+  // The interactive cell paints: hover ground, pressed ground, focus ring, and
+  // a lift that shows all three. It therefore takes the cell's inset back as a
+  // bleed/padding pair — see the note at the top of this file. `xs` has no
+  // counterpart among the table sizes (no table renders at `xs`), so it takes
+  // the smallest step; the pair cancels regardless, so a mismatch can only
+  // paint a narrower ground, never move the text.
+  compoundVariants: [
+    {
+      interactive: true,
+      size: 'xs',
+      class: { container: [TABLE_DIMENSIONS.bleed.cellX.sm, TABLE_DIMENSIONS.padding.cellX.sm] }
+    },
+    {
+      interactive: true,
+      size: 'sm',
+      class: { container: [TABLE_DIMENSIONS.bleed.cellX.sm, TABLE_DIMENSIONS.padding.cellX.sm] }
+    },
+    {
+      interactive: true,
+      size: 'md',
+      class: { container: [TABLE_DIMENSIONS.bleed.cellX.md, TABLE_DIMENSIONS.padding.cellX.md] }
+    },
+    {
+      interactive: true,
+      size: 'lg',
+      class: { container: [TABLE_DIMENSIONS.bleed.cellX.lg, TABLE_DIMENSIONS.padding.cellX.lg] }
+    }
+  ],
   defaultVariants: {
     align: 'left',
     wrap: false,
