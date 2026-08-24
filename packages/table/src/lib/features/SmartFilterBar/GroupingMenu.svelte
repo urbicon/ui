@@ -3,7 +3,7 @@
   import { smartFilterBarTriggerVariants } from '$lib/variants';
   import { Select, resolveIcon, LayersIcon as LayersIconDefault } from '@urbicon-ui/blocks';
   import MenuTrigger from './MenuTrigger.svelte';
-  import { buildGroupingEntries } from './tool-columns';
+  import { buildGroupingEntries, toolColumnScope } from './tool-columns';
 
   /**
    * The wide bar's grouping tool. Which columns it may offer — including the
@@ -31,7 +31,7 @@
   const groupingOptions = $derived.by(() => [
     { label: tt('grouping.none'), value: '' },
     ...buildGroupingEntries(
-      tableState.columns,
+      toolColumnScope(tableState),
       tableState.declaredGroupByKey,
       tableState.effectiveGroupBy
     ).map((entry) => ({ label: entry.label, value: entry.id }))

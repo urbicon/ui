@@ -78,6 +78,13 @@ use(pub.state.summaryConfigs, pub.state.showSummary, pub.state.effectiveSummaryC
 // …and it is derived, so it is not a second place to write the toggle.
 // @ts-expect-error effectiveSummaryConfigs is read-only — write showSummary or the actions
 pub.state.effectiveSummaryConfigs = [];
+// The two column lists, both on `state` and both public reads: `columns` is
+// what the grid draws, `allColumns` is what the table declared, and a lookup
+// that turns a tool's column id back into a column definition has to take the
+// second one (#253).
+use(pub.state.columns, pub.state.allColumns);
+// @ts-expect-error allColumns is read-only — the list comes from the `columns` prop
+pub.state.allColumns = [];
 use(
   pub.liveUpdateCounts,
   pub.hasPendingUpdates,
@@ -135,9 +142,10 @@ void pub.groupedSummaryData;
 void pub.getFormattedSummaryValue;
 
 // Column visibility/order plumbing — the feature is prop-driven
-// (`enableColumnVisibility`, `enableColumnReorder`, `prefs`).
-// @ts-expect-error allColumns is internal
-void pub.allColumns;
+// (`enableColumnVisibility`, `enableColumnReorder`, `prefs`). The declared
+// column list used to sit here as a second `allColumns` beside the store's
+// own; it now answers once, on `state` (see the roll call above), and only
+// the mutators are internal.
 // @ts-expect-error hiddenColumnKeys is internal
 void pub.hiddenColumnKeys;
 // @ts-expect-error hideColumn is internal

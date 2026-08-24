@@ -37,13 +37,22 @@ export * from './style/index.js';
 export * from './types/index.js';
 // === COLUMN RESOLVERS ===
 // Helpers for table-level cell snippets and other consumers that need to
-// derive the stable identifier or value from a Column with a string,
+// derive the stable identifier, label or value from a Column with a string,
 // function, or no accessor.
+//
+// `resolveColumnLabelById` is here because its two halves already were:
+// `findColumnById(...) ? resolveColumnLabel(...) : id` is the exact shape that
+// turned "Location" into a raw "city" on four surfaces inside this package
+// (#253), and a consumer building a chip or a legend writes the same two lines
+// against the same trap. Reach for it whenever you hold a column *id* — a
+// filter, a sort, a group key, a summary config — and want a name; use
+// `resolveColumnLabel` when you already hold the column.
 export {
   findColumnById,
   getNestedValue,
   resolveColumnId,
   resolveColumnLabel,
+  resolveColumnLabelById,
   resolveColumnValue,
   resolveValueById
 } from './utils/index.js';

@@ -1,7 +1,7 @@
 <script lang="ts">
   import { getTableContext, useTableI18n } from '$lib';
   import { RadioGroup, RadioItem } from '@urbicon-ui/blocks';
-  import { buildGroupingEntries } from './tool-columns';
+  import { buildGroupingEntries, toolColumnScope } from './tool-columns';
 
   /**
    * Grouping as a radio list. The store holds a single group key, so this is a
@@ -15,7 +15,7 @@
 
   const entries = $derived(
     buildGroupingEntries(
-      tableState.columns,
+      toolColumnScope(tableState),
       tableState.declaredGroupByKey,
       tableState.effectiveGroupBy
     )

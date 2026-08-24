@@ -81,6 +81,16 @@ describe('isColumnGroupable', () => {
     expect(isColumnGroupable(synthetic())).toBe(false);
     expect(isColumnGroupable(synthetic({ groupable: true }))).toBe(false);
   });
+
+  it('never consults the name — `transaction` groups like any other column', () => {
+    // The filter bar's grouping list used to exclude any id containing
+    // "action" (`!id.includes('action')`), wrong in both directions: it
+    // dropped `transaction`, and it would have kept a genuine `actionType`
+    // dimension out on a guess. The rule moved into this module; the guard
+    // followed it here when the bar's own copy was deleted.
+    expect(isColumnGroupable(col({ accessor: 'transaction', sortable: true }))).toBe(true);
+    expect(isColumnGroupable(col({ accessor: 'actionType', sortable: true }))).toBe(true);
+  });
 });
 
 describe('isColumnSummable', () => {

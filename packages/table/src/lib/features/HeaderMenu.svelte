@@ -194,7 +194,9 @@
   ]);
 
   const hiddenColumns = $derived.by(() =>
-    tableContext.allColumns.filter((col) => tableContext.hiddenColumnKeys.has(resolveColumnId(col)))
+    tableContext.state.allColumns.filter((col) =>
+      tableContext.hiddenColumnKeys.has(resolveColumnId(col))
+    )
   );
 
   function handleShowColumn(key: string) {

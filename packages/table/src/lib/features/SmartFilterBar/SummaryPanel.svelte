@@ -1,9 +1,9 @@
 <script lang="ts">
+  import { tick } from 'svelte';
   import { getTableContext, useTableI18n } from '$lib';
-  import { isColumnSummable } from '$lib/utils/column-capabilities';
   import { isSummaryType, SUMMARY_TYPES } from '$lib/utils/summary-types';
-  import { resolveColumnId, resolveColumnLabel } from '$lib/utils';
   import { RadioGroup, RadioItem } from '@urbicon-ui/blocks';
+  import { buildSummaryEntries, toolColumnScope } from './tool-columns';
 
   /**
    * One aggregation choice per summable column.
@@ -23,24 +23,46 @@
   const { state: tableState, addSummaryConfig, removeSummaryConfig } = tableContext;
 
   // Capability follows configuration, never the column's name — see
-  // utils/column-capabilities.ts for what that replaced and why.
-  const summableColumns = $derived(tableState.columns.filter(isColumnSummable));
-
+  // utils/column-capabilities.ts for what that replaced and why. Columns
+  // already carrying a configuration stay listed even once hidden (#253),
+  // which is what keeps an aggregation editable after its column leaves the
+  // grid.
+  //
   // `state.summaryConfigs`, not the effective list: a radio's value is what the
   // column is CONFIGURED to aggregate, and that survives `toggleSummary()`
   // hiding the row — the sheet's own summary badge, which counts what is
   // acting, is the surface that goes quiet there (#252, see HeaderMenu for the
   // full decision).
   const rows = $derived(
-    summableColumns.map((column) => {
-      const id = resolveColumnId(column);
-      return {
-        id,
-        label: resolveColumnLabel(column),
-        current: tableState.summaryConfigs.find((config) => config.column === id)?.type ?? ''
-      };
-    })
+    buildSummaryEntries(
+      toolColumnScope(tableState),
+      tableState.summaryConfigs.map((config) => config.column)
+    ).map((entry) => ({
+      id: entry.id,
+      label: entry.label,
+      current: tableState.summaryConfigs.find((config) => config.column === entry.id)?.type ?? ''
+    }))
   );
+
+  /**
+   * The panel body, as a focus target.
+   *
+   * A fallback row (a hidden column that still carries an aggregation) is the
+   * one row here that can disappear *under the control that removed it*:
+   * picking its "None" drops the whole `RadioGroup`, the focused radio with
+   * it, and focus falls to `<body>` — inside the sheet's modal `<dialog>`,
+   * where the next Tab restarts at the top. The other panels never hit this,
+   * because their "off" choice is a row of the same group ("No sorting", "No
+   * grouping") and survives the change; only summary gives each column a group
+   * of its own.
+   *
+   * Which is why the wrapper below sits OUTSIDE the empty/filled branch:
+   * measured, the worst case is the fallback row being the *only* row — every
+   * summable column hidden — and there the branch flips as well, so a wrapper
+   * inside it unmounted itself along with the group and left nothing to catch
+   * focus.
+   */
+  let panelElement = $state<HTMLDivElement>();
 
   // The guard instead of a cast: the radio values come from the vocabulary
   // module, but the store must not have to trust that — anything outside the
@@ -48,16 +70,28 @@
   function handleChange(columnId: string, type: string) {
     if (!isSummaryType(type)) {
       removeSummaryConfig(columnId);
+      // Asked of the freshly recomputed list rather than of a flag: a row
+      // survives its aggregation being removed exactly when it is part of the
+      // offer, which is the same question `buildSummaryEntries` just answered.
+      //
+      // After `tick`, not before it: the group is still in the DOM at this
+      // point, and focusing ahead of the removal only gets reset by it.
+      if (!rows.some((row) => row.id === columnId)) {
+        void tick().then(() => panelElement?.focus());
+      }
       return;
     }
     addSummaryConfig({ column: columnId, type });
   }
 </script>
 
-{#if rows.length === 0}
-  <p class="text-text-secondary text-sm">{tt('summary.empty')}</p>
-{:else}
-  <div class="space-y-4">
+<!-- `tabindex="-1"`: not a tab stop, but a place focus can be PUT when the row
+     that had it is gone — see panelElement, including why this element wraps
+     the empty state too instead of sitting inside the `{:else}`. -->
+<div bind:this={panelElement} tabindex="-1" class="space-y-4">
+  {#if rows.length === 0}
+    <p class="text-text-secondary text-sm">{tt('summary.empty')}</p>
+  {:else}
     {#each rows as row (row.id)}
       <RadioGroup
         value={row.current}
@@ -72,5 +106,5 @@
         {/each}
       </RadioGroup>
     {/each}
-  </div>
-{/if}
+  {/if}
+</div>

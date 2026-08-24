@@ -40,12 +40,17 @@ export function useSorting(
     // Synthetic columns have no accessor — sorting by them is structurally
     // undefined and the resolver would return undefined for every row. Skip
     // the sort entirely in that case rather than scramble row order.
-    const sortColumn = findColumnById(state.columns, sort.column);
+    //
+    // `allColumns`, not the visible subset: a sort survives its column being
+    // hidden (the grid stays ordered by it), so the definition it needs has to
+    // survive too — otherwise a hidden function-accessor column resolved to
+    // `undefined` for every row and the order silently collapsed (#253).
+    const sortColumn = findColumnById(state.allColumns, sort.column);
     if (sortColumn && sortColumn.accessor === undefined) return [...items];
 
     return [...items].sort((a, b) => {
-      const aValue = resolveValueById(state.columns, a, sort.column);
-      const bValue = resolveValueById(state.columns, b, sort.column);
+      const aValue = resolveValueById(state.allColumns, a, sort.column);
+      const bValue = resolveValueById(state.allColumns, b, sort.column);
 
       if (aValue === undefined && bValue === undefined) return 0;
       if (aValue === undefined) return 1;

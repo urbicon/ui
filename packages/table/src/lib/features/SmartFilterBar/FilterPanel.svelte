@@ -2,9 +2,9 @@
   import { useTableI18n } from '$lib';
   import { getTableContext } from '$lib/stores/TableStore.svelte';
   import type { FilterOperator } from '$lib/types/tableTypes';
-  import { resolveColumnId, resolveColumnLabel, resolveValueById } from '$lib/utils';
-  import { isColumnSearchable } from '$lib/utils/column-capabilities';
+  import { findColumnById, resolveValueById } from '$lib/utils';
   import { filterPanelVariants } from '$lib/variants';
+  import { buildFilterEntries, toolColumnScope } from './tool-columns';
   import {
     Button,
     Select,
@@ -95,12 +95,31 @@
   };
 
   const activeFilters = $derived(tableView.filters);
+  // The section list carries every column that is filterable AND on screen,
+  // plus every column a filter is *running* on — see buildFilterEntries. A
+  // hidden column used to lose its section while its filter kept acting, so
+  // the trigger's badge counted a filter that could only be removed via its
+  // chip.
+  //
+  // `editable` decides how much of a section each one gets: the add form is
+  // for declared, filterable columns only (hidden or not), while a key that
+  // names no column — or one that opted out of filtering — shows what is
+  // running and the × beside it, and nothing else.
   const filterOptions = $derived.by(() => {
-    return tableState.columns.filter(isColumnSearchable).map((col) => {
-      const dataType = 'dataType' in col ? col.dataType || 'text' : 'text';
+    const entries = buildFilterEntries(
+      toolColumnScope(tableState),
+      activeFilters.map((filter) => filter.column)
+    );
+    return entries.map((entry) => {
+      // Over the declared set, like the entry's own label: a fallback section
+      // for a hidden `dataType: 'date'` column must still offer on/after/before
+      // rather than the text operators.
+      const col = findColumnById(tableState.allColumns, entry.id);
+      const dataType = col && 'dataType' in col ? col.dataType || 'text' : 'text';
       return {
-        key: resolveColumnId(col),
-        label: resolveColumnLabel(col),
+        key: entry.id,
+        label: entry.label,
+        editable: entry.editable,
         dataType,
         operators: getOperatorsForType(dataType)
       };
@@ -121,6 +140,8 @@
 
   $effect.pre(() => {
     filterOptions.forEach((option) => {
+      // No form, no form state — a read-only section has nothing to seed.
+      if (!option.editable) return;
       if (!filterStates[option.key]) {
         filterStates[option.key] = {
           // Seed with the column's own first operator, not a hardcoded
@@ -141,7 +162,10 @@
     // Local dedup accumulator — not reactive state.
     const values = new Set<string>();
     for (const item of tableState.items) {
-      const value = resolveValueById(tableState.columns, item, columnKey);
+      // `allColumns`, like every other by-id lookup (#253): the quick-value
+      // list of a hidden function-accessor column would otherwise come back
+      // empty and silently drop the affordance from its fallback section.
+      const value = resolveValueById(tableState.allColumns, item, columnKey);
       if (value !== undefined && value !== null && value !== '') {
         values.add(String(value));
       }
@@ -172,6 +196,10 @@
 
   function handleApplyAllFilters() {
     filterOptions.forEach((option) => {
+      // Mirror the seeding gate above: a section that lost its form mid-edit
+      // (columns prop swapped) must not commit the value its vanished input
+      // still holds.
+      if (!option.editable) return;
       const state = filterStates[option.key];
       if (state?.inputValue.trim()) {
         handleApplyFilter(option.key);
@@ -198,8 +226,7 @@
 
 <div class={styles.root()}>
   {#each filterOptions as option (option.key)}
-    {@const state = filterStates[option.key]}
-    {@const uniqueValues = getUniqueValues(option.key)}
+    {@const columnFilters = getActiveFiltersForColumn(option.key)}
 
     <div class={styles.section()}>
       <div class="flex items-center justify-between">
@@ -208,102 +235,120 @@
         </h4>
       </div>
 
-      {#if state}
-        {@const columnFilters = getActiveFiltersForColumn(option.key)}
+      <div class="space-y-2">
+        <!--
+          Filters already running on this column, each with the × that ends it.
+          Outside the `editable` gate below on purpose: a section that exists
+          only because a filter is running must always offer the way out of it,
+          and this is the only surface besides the chip that does.
+        -->
+        {#if columnFilters.length > 0}
+          <div class="space-y-1">
+            {#each columnFilters as filter, i (`${filter.operator}:${filter.value}:${i}`)}
+              <div class={styles.activeFilter()}>
+                <span class="text-text-primary flex-1 truncate text-sm">
+                  {tt(`filter.operators.${filter.operator}`)}: {filter.value}
+                </span>
+                <Button
+                  variant="ghost"
+                  size="xs"
+                  intent="danger"
+                  onclick={() =>
+                    handleRemoveSpecificFilter(filter.column, filter.operator, filter.value)}
+                  class="ml-2 shrink-0"
+                  aria-label={tt('filter.button.remove')}
+                >
+                  <CloseIcon class="h-3 w-3" />
+                </Button>
+              </div>
+            {/each}
+          </div>
+        {/if}
 
-        <div class="space-y-2">
-          <!-- Filters already running on this column -->
-          {#if columnFilters.length > 0}
-            <div class="space-y-1">
-              {#each columnFilters as filter, i (`${filter.operator}:${filter.value}:${i}`)}
-                <div class={styles.activeFilter()}>
-                  <span class="text-text-primary flex-1 truncate text-sm">
-                    {tt(`filter.operators.${filter.operator}`)}: {filter.value}
-                  </span>
+        <!--
+          The add form. Only for a key that names a column this table declared
+          and that `searchable` accepts — see FilterToolEntry.editable for the
+          two cases this keeps it away from, and why an operator list and a
+          quick-value scan are the wrong things to offer there.
+        -->
+        {#if option.editable}
+          {@const state = filterStates[option.key]}
+          {#if state}
+            <div class={styles.filterRow()}>
+              <div class={styles.operatorSelect()}>
+                <Select
+                  options={option.operators}
+                  bind:value={state.selectedOperator}
+                  usePortal={surface === 'sheet'}
+                  size="sm"
+                  variant="outlined"
+                  class="w-full"
+                  aria-label={tt('filter.aria.operatorFor', { column: option.label })}
+                />
+              </div>
+
+              <div class={styles.valueInput()}>
+                <Input
+                  type={option.dataType === 'date' ? 'date' : 'text'}
+                  placeholder={tt('filter.input.enterValue')}
+                  bind:value={state.inputValue}
+                  size="sm"
+                  variant="outlined"
+                  class="w-full"
+                  onkeydown={(e) => {
+                    if (e.key === 'Enter') {
+                      handleApplyFilter(option.key);
+                    }
+                  }}
+                  clearable={true}
+                  onClear={() => (state.inputValue = '')}
+                  aria-label={tt('filter.aria.valueFor', { column: option.label })}
+                />
+              </div>
+            </div>
+
+            <!-- The scan walks every row, so it stays inside both gates: it
+                 used to run once per section on every render, undeclared keys
+                 included. -->
+            {#if option.dataType === 'text'}
+              {@const uniqueValues = getUniqueValues(option.key)}
+              {#if uniqueValues.length > 0}
+                <div class="space-y-2">
                   <Button
                     variant="ghost"
                     size="xs"
-                    intent="danger"
-                    onclick={() =>
-                      handleRemoveSpecificFilter(filter.column, filter.operator, filter.value)}
-                    class="ml-2 shrink-0"
-                    aria-label={tt('filter.button.remove')}
+                    onclick={() => (state.showQuickValues = !state.showQuickValues)}
+                    aria-expanded={state.showQuickValues}
                   >
-                    <CloseIcon class="h-3 w-3" />
+                    {tt('filter.quickValues.title')} ({uniqueValues.length})
                   </Button>
-                </div>
-              {/each}
-            </div>
-          {/if}
 
-          <div class={styles.filterRow()}>
-            <div class={styles.operatorSelect()}>
-              <Select
-                options={option.operators}
-                bind:value={state.selectedOperator}
-                usePortal={surface === 'sheet'}
-                size="sm"
-                variant="outlined"
-                class="w-full"
-                aria-label={tt('filter.aria.operatorFor', { column: option.label })}
-              />
-            </div>
-
-            <div class={styles.valueInput()}>
-              <Input
-                type={option.dataType === 'date' ? 'date' : 'text'}
-                placeholder={tt('filter.input.enterValue')}
-                bind:value={state.inputValue}
-                size="sm"
-                variant="outlined"
-                class="w-full"
-                onkeydown={(e) => {
-                  if (e.key === 'Enter') {
-                    handleApplyFilter(option.key);
-                  }
-                }}
-                clearable={true}
-                onClear={() => (state.inputValue = '')}
-                aria-label={tt('filter.aria.valueFor', { column: option.label })}
-              />
-            </div>
-          </div>
-
-          {#if option.dataType === 'text' && uniqueValues.length > 0}
-            <div class="space-y-2">
-              <Button
-                variant="ghost"
-                size="xs"
-                onclick={() => (state.showQuickValues = !state.showQuickValues)}
-                aria-expanded={state.showQuickValues}
-              >
-                {tt('filter.quickValues.title')} ({uniqueValues.length})
-              </Button>
-
-              {#if state.showQuickValues}
-                <div class={styles.quickValues()}>
-                  {#each uniqueValues.slice(0, 20) as value (value)}
-                    {@const isActive = hasFilterForColumn(option.key, 'contains', value)}
-                    <Button
-                      variant={isActive ? 'filled' : 'outlined'}
-                      size="xs"
-                      intent={isActive ? 'primary' : 'neutral'}
-                      onclick={() => toggleQuickFilter(option.key, value)}
-                      class="min-w-0 justify-start truncate text-left"
-                      title={value}
-                    >
-                      {#if isActive}
-                        <CheckIcon class="mr-1 h-3 w-3 flex-shrink-0" />
-                      {/if}
-                      <span class="truncate">{value}</span>
-                    </Button>
-                  {/each}
+                  {#if state.showQuickValues}
+                    <div class={styles.quickValues()}>
+                      {#each uniqueValues.slice(0, 20) as value (value)}
+                        {@const isActive = hasFilterForColumn(option.key, 'contains', value)}
+                        <Button
+                          variant={isActive ? 'filled' : 'outlined'}
+                          size="xs"
+                          intent={isActive ? 'primary' : 'neutral'}
+                          onclick={() => toggleQuickFilter(option.key, value)}
+                          class="min-w-0 justify-start truncate text-left"
+                          title={value}
+                        >
+                          {#if isActive}
+                            <CheckIcon class="mr-1 h-3 w-3 flex-shrink-0" />
+                          {/if}
+                          <span class="truncate">{value}</span>
+                        </Button>
+                      {/each}
+                    </div>
+                  {/if}
                 </div>
               {/if}
-            </div>
+            {/if}
           {/if}
-        </div>
-      {/if}
+        {/if}
+      </div>
     </div>
   {/each}
 

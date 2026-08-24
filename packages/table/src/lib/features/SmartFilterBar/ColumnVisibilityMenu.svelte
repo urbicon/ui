@@ -30,7 +30,7 @@
 
   // Columns pinned with `hideable: false` never reach this list — see
   // tool-columns.ts for why that matters to a multi-select in particular.
-  const entries = $derived(buildColumnVisibilityEntries(tableContext.allColumns));
+  const entries = $derived(buildColumnVisibilityEntries(tableContext.state.allColumns));
 
   const columnItems = $derived(entries.map((entry) => ({ label: entry.label, value: entry.id })));
 

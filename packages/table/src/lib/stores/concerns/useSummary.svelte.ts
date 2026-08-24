@@ -22,8 +22,10 @@ export function useSummary(
   // Column-aware value resolver: looks up the accessor by column id so that
   // summaries on function-accessor columns aggregate the computed value
   // rather than the raw property name (which usually does not exist on the row).
+  // Over `allColumns`, because a configuration outlives its column being
+  // hidden — the same rule the filter, sort and grouping engines follow (#253).
   const getValue = (item: TableItem, columnId: string) =>
-    resolveValueById(state.columns, item, columnId);
+    resolveValueById(state.allColumns, item, columnId);
 
   /**
    * The aggregations actually acting on the grid: `state.summaryConfigs` while
@@ -154,7 +156,7 @@ export function useSummary(
       return config.formatter(value);
     }
 
-    const col = findColumnById(state.columns, column);
+    const col = findColumnById(state.allColumns, column);
     if (col?.formatter) {
       try {
         const formatted = col.formatter(value, {} as TableItem);

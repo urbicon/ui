@@ -46,6 +46,24 @@ function fakeView(overrides: Partial<TableViewSnapshot> = {}): TableView {
   } as unknown as TableView;
 }
 
+/**
+ * A state stand-in whose two column lists agree — the shape of a table with
+ * nothing hidden.
+ *
+ * `columns` (what the grid draws) and `allColumns` (what the table declared)
+ * are separate members since #253, and every by-id lookup in the concerns
+ * reads the second one. A fixture that set only `columns` would hand those
+ * lookups `undefined`, so the pairing lives here rather than in twenty
+ * literals. A test about the *difference* between the two passes `allColumns`
+ * explicitly.
+ */
+function fakeState(state: Record<string, unknown>): TableState {
+  // Loose in, asserted out — the same escape hatch the inline literals used,
+  // kept because the fixtures pass row-typed `Column<Row>[]` where the state
+  // declares the erased `Column[]`.
+  return { allColumns: state.columns ?? [], ...state } as unknown as TableState;
+}
+
 // Concern tests for pure logic (non-reactive parts).
 // Reactive $derived chains are tested indirectly via the existing TableStore tests.
 // These tests validate the concern API contracts.
@@ -68,11 +86,11 @@ describe('useSearch', () => {
 
 describe('useExpansion', () => {
   it('contract: toggleExpand in single mode', () => {
-    const state = {
+    const state = fakeState({
       multiExpand: false,
       expandedItemId: null,
       expandedItemIds: new Set()
-    } as unknown as TableState;
+    });
 
     const expansion = useExpansion(state);
 
@@ -84,11 +102,11 @@ describe('useExpansion', () => {
   });
 
   it('contract: toggleExpand in multi mode', () => {
-    const state = {
+    const state = fakeState({
       multiExpand: true,
       expandedItemId: null,
       expandedItemIds: new Set<string | number>()
-    } as unknown as TableState;
+    });
 
     const expansion = useExpansion(state);
 
@@ -105,20 +123,20 @@ describe('useExpansion', () => {
   });
 
   it('contract: isItemExpanded reflects state', () => {
-    const singleState = {
+    const singleState = fakeState({
       multiExpand: false,
       expandedItemId: 'row-1',
       expandedItemIds: new Set()
-    } as unknown as TableState;
+    });
     const singleExpansion = useExpansion(singleState);
     expect(singleExpansion.isItemExpanded('row-1')).toBe(true);
     expect(singleExpansion.isItemExpanded('row-2')).toBe(false);
 
-    const multiState = {
+    const multiState = fakeState({
       multiExpand: true,
       expandedItemId: null,
       expandedItemIds: new Set(['row-1', 'row-3'])
-    } as unknown as TableState;
+    });
     const multiExpansion = useExpansion(multiState);
     expect(multiExpansion.isItemExpanded('row-1')).toBe(true);
     expect(multiExpansion.isItemExpanded('row-2')).toBe(false);
@@ -155,11 +173,11 @@ describe('useSorting', () => {
 
 describe('useGrouping', () => {
   it('contract: setGroupBy resets collapse state and page', () => {
-    const state = {
+    const state = fakeState({
       collapsedGroups: new Set(['Engineering']),
       allGroupsExpanded: false,
       groupOrder: []
-    } as unknown as TableState;
+    });
     const view = fakeView({ page: 3 });
 
     const grouping = useGrouping(state, view, () => []);
@@ -172,11 +190,11 @@ describe('useGrouping', () => {
   });
 
   it('contract: setGroupBy(null) clears grouping', () => {
-    const state = {
+    const state = fakeState({
       collapsedGroups: new Set<string>(),
       allGroupsExpanded: true,
       groupOrder: []
-    } as unknown as TableState;
+    });
     const view = fakeView({ groupBy: 'department' });
 
     const grouping = useGrouping(state, view, () => []);
@@ -186,12 +204,12 @@ describe('useGrouping', () => {
   });
 
   it('contract: setGroupBy is inert while virtualized', () => {
-    const state = {
+    const state = fakeState({
       collapsedGroups: new Set<string>(),
       allGroupsExpanded: true,
       groupOrder: [],
       virtualized: true
-    } as unknown as TableState;
+    });
     const view = fakeView({ page: 2 });
 
     const grouping = useGrouping(state, view, () => []);
@@ -206,12 +224,12 @@ describe('useGrouping', () => {
   it('contract: clearing grouping stays allowed while virtualized', () => {
     // A key can already be in place (persistence/seed) when the mode is
     // switched on — the provider clears it through this same path.
-    const state = {
+    const state = fakeState({
       collapsedGroups: new Set<string>(),
       allGroupsExpanded: true,
       groupOrder: [],
       virtualized: true
-    } as unknown as TableState;
+    });
     const view = fakeView({ groupBy: 'department' });
 
     const grouping = useGrouping(state, view, () => []);
@@ -239,11 +257,11 @@ describe('derived ops use the accessor (function or string)', () => {
   ];
 
   it('search matches a function accessor', () => {
-    const state = {
+    const state = fakeState({
       mode: 'client',
       items,
       columns
-    } as unknown as TableState;
+    });
 
     const filtering = useFiltering(state, fakeView({ search: 'bob' }));
     expect(filtering.filteredItems).toHaveLength(1);
@@ -251,10 +269,10 @@ describe('derived ops use the accessor (function or string)', () => {
   });
 
   it('sort uses a function accessor', () => {
-    const state = {
+    const state = fakeState({
       mode: 'client',
       columns
-    } as unknown as TableState;
+    });
 
     const view = fakeView({ sort: { column: 'userName', direction: 'asc' } });
     const sorting = useSorting(state, view, () => items);
@@ -262,14 +280,14 @@ describe('derived ops use the accessor (function or string)', () => {
   });
 
   it('group buckets rows by a function-accessor value', () => {
-    const state = {
+    const state = fakeState({
       mode: 'client',
       columns,
       effectiveGroupBy: 'userName',
       collapsedGroups: new Set<string>(),
       allGroupsExpanded: true,
       groupOrder: []
-    } as unknown as TableState;
+    });
 
     const grouping = useGrouping(state, fakeView({ groupBy: 'userName' }), () => items);
     expect(Object.keys(grouping.grouped).sort()).toEqual(['Alice', 'Bob', 'Charlie']);
@@ -277,10 +295,10 @@ describe('derived ops use the accessor (function or string)', () => {
 
   it('synthetic-only sort id leaves order untouched (no scrambling)', () => {
     const syntheticCols: Column<Row>[] = [{ id: 'actions', title: '' }];
-    const state = {
+    const state = fakeState({
       mode: 'client',
       columns: syntheticCols
-    } as unknown as TableState;
+    });
 
     const view = fakeView({ sort: { column: 'actions', direction: 'asc' } });
     const sorting = useSorting(state, view, () => items);
@@ -290,7 +308,7 @@ describe('derived ops use the accessor (function or string)', () => {
 
 describe('useFiltering', () => {
   it('contract: addFilter adds to activeFilters and resets page', () => {
-    const state = { items: [], columns: [] } as unknown as TableState;
+    const state = fakeState({ items: [], columns: [] });
     const view = fakeView({ page: 3 });
 
     const filtering = useFiltering(state, view);
@@ -301,7 +319,7 @@ describe('useFiltering', () => {
   });
 
   it('contract: removeFilter removes by index', () => {
-    const state = { items: [], columns: [] } as unknown as TableState;
+    const state = fakeState({ items: [], columns: [] });
     const view = fakeView({
       filters: [
         { column: 'name', operator: 'contains', value: 'Alice' },
@@ -317,7 +335,7 @@ describe('useFiltering', () => {
   });
 
   it('contract: clearAllFilters empties filters', () => {
-    const state = { items: [], columns: [] } as unknown as TableState;
+    const state = fakeState({ items: [], columns: [] });
     const view = fakeView({
       filters: [{ column: 'name', operator: 'contains', value: 'Alice' }],
       page: 2
@@ -331,7 +349,7 @@ describe('useFiltering', () => {
   });
 
   it('contract: hasFilterForColumn returns correct results', () => {
-    const state = { items: [], columns: [] } as unknown as TableState;
+    const state = fakeState({ items: [], columns: [] });
     const view = fakeView({ filters: [{ column: 'name', operator: 'contains', value: 'Alice' }] });
 
     const filtering = useFiltering(state, view);
@@ -382,11 +400,11 @@ describe('useFiltering — operator semantics', () => {
   ];
 
   const filterIds = (activeFilters: Filter[]): number[] => {
-    const state = {
+    const state = fakeState({
       mode: 'client',
       items,
       columns
-    } as unknown as TableState;
+    });
 
     return useFiltering(state, fakeView({ filters: activeFilters })).filteredItems.map(
       (r) => (r as Row).id
@@ -471,12 +489,12 @@ describe('useFiltering — operator semantics', () => {
 
   it('missing values match nothing', () => {
     const sparse = [{ id: 1 }, { id: 2, iso: '2021-03-16' }];
-    const state = {
+    const state = fakeState({
       mode: 'client',
       items: sparse,
       columns: [{ accessor: 'iso', title: 'ISO', dataType: 'date' }] as Column<TableItem>[],
       searchTerm: ''
-    } as unknown as TableState;
+    });
     const view = fakeView({
       filters: [{ column: 'iso', operator: 'greaterThan', value: '2021-03-15' }]
     });
@@ -525,7 +543,7 @@ describe('useFiltering — operator semantics', () => {
 
 describe('useSummary', () => {
   it('contract: getFormattedSummaryValue formats by type', () => {
-    const state = {
+    const state = fakeState({
       summaryConfigs: [
         { column: 'salary', type: 'sum' as const },
         { column: 'age', type: 'avg' as const },
@@ -534,7 +552,7 @@ describe('useSummary', () => {
       columns: [],
       showSummary: true,
       groupByKey: null
-    } as unknown as TableState;
+    });
 
     const s = useSummary(
       state,
@@ -548,13 +566,13 @@ describe('useSummary', () => {
   });
 
   it('contract: getFormattedSummaryValue uses custom formatter', () => {
-    const state = {
+    const state = fakeState({
       summaryConfigs: [
         { column: 'salary', type: 'sum' as const, formatter: (v: number) => `$${v.toFixed(2)}` }
       ],
       showSummary: true,
       groupByKey: null
-    } as unknown as TableState;
+    });
 
     const s = useSummary(
       state,
@@ -566,11 +584,11 @@ describe('useSummary', () => {
   });
 
   it('contract: addSummaryConfig auto-enables summary', () => {
-    const state = {
+    const state = fakeState({
       summaryConfigs: [] as SummaryConfig[],
       showSummary: false,
       groupByKey: null
-    } as unknown as TableState;
+    });
 
     const s = useSummary(
       state,
@@ -584,14 +602,14 @@ describe('useSummary', () => {
   });
 
   it('contract: addSummaryConfig replaces per column, keeping the position', () => {
-    const state = {
+    const state = fakeState({
       summaryConfigs: [
         { column: 'salary', type: 'sum' as const },
         { column: 'age', type: 'avg' as const }
       ],
       showSummary: true,
       groupByKey: null
-    } as unknown as TableState;
+    });
 
     const s = useSummary(
       state,
@@ -610,11 +628,11 @@ describe('useSummary', () => {
     // Before the shared normalize funnel, this path assigned verbatim: a
     // duplicate-carrying set was accepted, `find` readers saw only the first
     // entry, and removing the column dropped both at once.
-    const state = {
+    const state = fakeState({
       summaryConfigs: [] as SummaryConfig[],
       showSummary: false,
       groupByKey: null
-    } as unknown as TableState;
+    });
 
     const s = useSummary(
       state,
@@ -635,11 +653,11 @@ describe('useSummary', () => {
   });
 
   it('contract: removeSummaryConfig auto-disables when empty', () => {
-    const state = {
+    const state = fakeState({
       summaryConfigs: [{ column: 'salary', type: 'sum' as const }],
       showSummary: true,
       groupByKey: null
-    } as unknown as TableState;
+    });
 
     const s = useSummary(
       state,
@@ -664,14 +682,14 @@ describe('useSummary', () => {
     // measure the cache. The single read below is the first one. Where a
     // before/after pair is genuinely needed, build two states instead (see the
     // aggregates test at the bottom of this block).
-    const state = {
+    const state = fakeState({
       summaryConfigs: [
         { column: 'salary', type: 'sum' as const },
         { column: 'age', type: 'avg' as const }
       ],
       showSummary: false,
       groupByKey: null
-    } as unknown as TableState;
+    });
 
     const s = useSummary(
       state,
@@ -705,12 +723,12 @@ describe('useSummary', () => {
     ] as TableItem[];
     const CONFIGS: SummaryConfig[] = [{ column: 'salary', type: 'sum' }];
     const makeState = (showSummary: boolean) =>
-      ({
+      fakeState({
         summaryConfigs: CONFIGS.map((config) => ({ ...config })),
         showSummary,
         columns: [],
         effectiveGroupBy: 'dept'
-      }) as unknown as TableState;
+      });
     const summaryFor = (state: TableState) =>
       useSummary(
         state,
@@ -736,16 +754,73 @@ describe('useSummary', () => {
   });
 });
 
+/**
+ * The two column lists pulled apart (#253): `columns` empty, `allColumns`
+ * holding the definition. Every other fixture in this file sets them equal, so
+ * these are the cases where reading the wrong one is *observable* — the engines
+ * resolve a column definition over the declared list, and only rendering reads
+ * the visible subset.
+ *
+ * The lookups covered here have no surface of their own: they decide how a
+ * value is formatted and how an operator is interpreted, so getting them wrong
+ * shows up as a plausible-looking wrong answer rather than as a missing row.
+ */
+describe('a hidden column keeps its definition', () => {
+  it('formats a summary through the hidden column own formatter', () => {
+    const state = fakeState({
+      summaryConfigs: [{ column: 'salary', type: 'sum' as const }],
+      showSummary: true,
+      columns: [],
+      allColumns: [
+        { accessor: 'salary', title: 'Salary', formatter: (v: unknown) => `€${v}` }
+      ] as Column<TableItem>[]
+    });
+
+    const s = useSummary(
+      state,
+      () => [],
+      () => ({})
+    );
+
+    // Over the visible subset the formatter is unreachable and the sum falls
+    // back to the plain integer rendering.
+    expect(s.getFormattedSummaryValue('salary', 1000)).toBe('€1000');
+  });
+
+  it('reads a hidden date column as a date, not as a string of bytes', () => {
+    const items = [
+      { id: 1, when: new Date('2021-03-15T09:00:00Z') },
+      { id: 2, when: new Date('2021-03-16T09:00:00Z') }
+    ] as TableItem[];
+    const state = fakeState({
+      mode: 'client',
+      items,
+      columns: [],
+      allColumns: [{ accessor: 'when', title: 'When', dataType: 'date' }] as Column<TableItem>[]
+    });
+    const view = fakeView({
+      filters: [{ column: 'when', operator: 'equals', value: '2021-03-15' }]
+    });
+
+    // `equals` on a date column compares calendar days. Without the narrowing
+    // it compares `String(date)` — "Mon Mar 15 2021 …" — against the filter
+    // text, which matches nothing at all.
+    expect(useFiltering(state, view).filteredItems.map((r) => (r as { id: number }).id)).toEqual([
+      1
+    ]);
+  });
+});
+
 describe('useFocusManagement', () => {
   it('contract: initial focusedRowIndex is 0', () => {
-    const state = {} as unknown as TableState;
+    const state = fakeState({});
     const focus = useFocusManagement(state, () => 5);
 
     expect(focus.focusedRowIndex).toBe(0);
   });
 
   it('contract: moveFocus down increments index', () => {
-    const state = {} as unknown as TableState;
+    const state = fakeState({});
     const focus = useFocusManagement(state, () => 5);
 
     focus.moveFocus('down');
@@ -756,7 +831,7 @@ describe('useFocusManagement', () => {
   });
 
   it('contract: moveFocus up decrements index', () => {
-    const state = {} as unknown as TableState;
+    const state = fakeState({});
     const focus = useFocusManagement(state, () => 5);
 
     focus.setFocusedRow(3);
@@ -765,7 +840,7 @@ describe('useFocusManagement', () => {
   });
 
   it('contract: moveFocus respects boundaries', () => {
-    const state = {} as unknown as TableState;
+    const state = fakeState({});
     const focus = useFocusManagement(state, () => 3);
 
     // Can't go below 0
@@ -779,7 +854,7 @@ describe('useFocusManagement', () => {
   });
 
   it('contract: moveFocus first/last jumps to boundaries', () => {
-    const state = {} as unknown as TableState;
+    const state = fakeState({});
     const focus = useFocusManagement(state, () => 10);
 
     focus.moveFocus('last');
@@ -790,7 +865,7 @@ describe('useFocusManagement', () => {
   });
 
   it('contract: resetFocus returns to 0', () => {
-    const state = {} as unknown as TableState;
+    const state = fakeState({});
     const focus = useFocusManagement(state, () => 5);
 
     focus.setFocusedRow(4);
@@ -801,7 +876,7 @@ describe('useFocusManagement', () => {
   });
 
   it('contract: isFocusedRow checks correctly', () => {
-    const state = {} as unknown as TableState;
+    const state = fakeState({});
     const focus = useFocusManagement(state, () => 5);
 
     focus.setFocusedRow(2);
@@ -811,7 +886,7 @@ describe('useFocusManagement', () => {
   });
 
   it('contract: setFocusedRow clamps to valid range', () => {
-    const state = {} as unknown as TableState;
+    const state = fakeState({});
     const focus = useFocusManagement(state, () => 3);
 
     focus.setFocusedRow(100);
@@ -822,7 +897,7 @@ describe('useFocusManagement', () => {
   });
 
   it('contract: handles empty list gracefully', () => {
-    const state = {} as unknown as TableState;
+    const state = fakeState({});
     const focus = useFocusManagement(state, () => 0);
 
     focus.moveFocus('down');
@@ -838,13 +913,13 @@ describe('useRemoteData', () => {
   // What the fetch sends is the view snapshot itself (#162), covered where
   // `createManagedFetch` is tested.
   function makeServerState() {
-    return {
+    return fakeState({
       items: [],
       serverTotal: 0,
       loading: false,
       error: null as string | null,
       mode: 'server-manual' as const
-    } as unknown as TableState;
+    });
   }
 
   it('contract: setServerResult updates items and totalItems', () => {
@@ -888,14 +963,14 @@ describe('useRemoteData', () => {
 
 describe('server mode: concern passthrough', () => {
   it('useFiltering passes through items in server mode', () => {
-    const state = {
+    const state = fakeState({
       mode: 'server-manual',
       items: [
         { id: 1, name: 'Alice' },
         { id: 2, name: 'Bob' }
       ],
       columns: [{ accessor: 'name', title: 'Name' }]
-    } as unknown as TableState;
+    });
     // Both would normally filter everything out.
     const view = fakeView({
       search: 'xyz',
@@ -908,7 +983,7 @@ describe('server mode: concern passthrough', () => {
   });
 
   it('useSorting passes through items in server mode', () => {
-    const state = { mode: 'server-managed' } as unknown as TableState;
+    const state = fakeState({ mode: 'server-managed' });
     const view = fakeView({ sort: { column: 'name', direction: 'desc' } });
 
     const items = [
@@ -922,13 +997,13 @@ describe('server mode: concern passthrough', () => {
   });
 
   it('usePagination uses serverTotal in server mode', () => {
-    const state = {
+    const state = fakeState({
       mode: 'server-manual',
       serverTotal: 500,
       effectiveGroupBy: null,
       items: [],
       virtualized: false
-    } as unknown as TableState;
+    });
     const view = fakeView({ page: 3, pageSize: 25 });
 
     const items = [{ id: 1 }, { id: 2 }]; // Only current page's items
@@ -949,13 +1024,13 @@ describe('server mode: concern passthrough', () => {
   // the pager — gated on the same condition — disappeared with it, so the rest
   // of the data had no affordance left.
   it('keeps paging a grouped table in server mode', () => {
-    const state = {
+    const state = fakeState({
       mode: 'server-managed',
       serverTotal: 12000,
       effectiveGroupBy: 'team',
       items: [],
       virtualized: false
-    } as unknown as TableState;
+    });
     const view = fakeView({ page: 3, pageSize: 25 });
     const items = [{ id: 1 }, { id: 2 }];
 
@@ -975,12 +1050,12 @@ describe('server mode: concern passthrough', () => {
     // group can be shown whole — which is what a group means. The two modes
     // differ because only one of them can keep that promise.
     const items = Array.from({ length: 100 }, (_, i) => ({ id: i }));
-    const state = {
+    const state = fakeState({
       mode: 'client',
       effectiveGroupBy: 'team',
       items: [],
       virtualized: false
-    } as unknown as TableState;
+    });
     const view = fakeView({ page: 1, pageSize: 25 });
 
     const pagination = usePagination(
@@ -999,12 +1074,12 @@ describe('server mode: concern passthrough', () => {
     // page. Before the clamp `paginatedItems` sliced (80, 100) out of 100 rows
     // and rendered an empty body with the data right there.
     const items = Array.from({ length: 100 }, (_, i) => ({ id: i }));
-    const state = {
+    const state = fakeState({
       mode: 'client',
       effectiveGroupBy: null,
       items: [],
       virtualized: false
-    } as unknown as TableState;
+    });
     const view = fakeView({ page: 5, pageSize: 100 });
 
     const pagination = usePagination(
@@ -1026,12 +1101,12 @@ describe('server mode: concern passthrough', () => {
     // A page seed of 0 (or a negative) never had a guard of any kind —
     // `viewDefaults={{ page: 0 }}` today, `initialPage={0}` before v8.
     const items = Array.from({ length: 10 }, (_, i) => ({ id: i }));
-    const state = {
+    const state = fakeState({
       mode: 'client',
       effectiveGroupBy: null,
       items: [],
       virtualized: false
-    } as unknown as TableState;
+    });
     const view = fakeView({ page: 0, pageSize: 5 });
 
     const pagination = usePagination(
@@ -1052,7 +1127,7 @@ describe('useLiveUpdates', () => {
   const noopLiveHooks = { pruneSelection: () => {} };
 
   function makeLiveState() {
-    return {
+    return fakeState({
       items: [
         { id: 1, name: 'Alice', age: 30 },
         { id: 2, name: 'Bob', age: 25 },
@@ -1060,7 +1135,7 @@ describe('useLiveUpdates', () => {
       ],
       selectionMode: 'none' as const,
       selectedIds: new Set<string | number>()
-    } as unknown as TableState;
+    });
   }
 
   it('contract: pushInsert adds item to pending', () => {
@@ -1279,7 +1354,7 @@ describe('useColumnOrder', () => {
   ] as Column[];
 
   it('contract: reorderColumn moves column forward', () => {
-    const state = { columns } as unknown as TableState;
+    const state = fakeState({ columns });
     const co = useColumnOrder(state);
 
     co.initOrder(columns as Column[]);
@@ -1289,7 +1364,7 @@ describe('useColumnOrder', () => {
   });
 
   it('contract: reorderColumn moves column backward', () => {
-    const state = { columns } as unknown as TableState;
+    const state = fakeState({ columns });
     const co = useColumnOrder(state);
 
     co.initOrder(columns as Column[]);
@@ -1299,7 +1374,7 @@ describe('useColumnOrder', () => {
   });
 
   it('contract: reorderColumn same index is no-op', () => {
-    const state = { columns } as unknown as TableState;
+    const state = fakeState({ columns });
     const co = useColumnOrder(state);
 
     co.initOrder(columns as Column[]);
@@ -1309,7 +1384,7 @@ describe('useColumnOrder', () => {
   });
 
   it('contract: resetColumnOrder clears custom order', () => {
-    const state = { columns } as unknown as TableState;
+    const state = fakeState({ columns });
     const co = useColumnOrder(state);
 
     co.initOrder(columns as Column[]);
@@ -1321,7 +1396,7 @@ describe('useColumnOrder', () => {
   });
 
   it('contract: getColumnIndex returns correct index', () => {
-    const state = { columns } as unknown as TableState;
+    const state = fakeState({ columns });
     const co = useColumnOrder(state);
 
     co.initOrder(columns as Column[]);
@@ -1331,7 +1406,7 @@ describe('useColumnOrder', () => {
   });
 
   it('contract: reorderColumn auto-initializes order if empty', () => {
-    const state = { columns } as unknown as TableState;
+    const state = fakeState({ columns });
     const co = useColumnOrder(state);
 
     // Don't call initOrder, reorderColumn should auto-init
@@ -1343,7 +1418,7 @@ describe('useColumnOrder', () => {
 
 describe('useSelection', () => {
   function makeState(mode: 'none' | 'single' | 'multi' = 'multi') {
-    return {
+    return fakeState({
       items: [
         { id: 1, name: 'Alice' },
         { id: 2, name: 'Bob' },
@@ -1351,7 +1426,7 @@ describe('useSelection', () => {
       ],
       selectionMode: mode,
       selectedIds: new Set<string | number>()
-    } as unknown as TableState;
+    });
   }
 
   it('contract: selectItem adds id in multi mode', () => {
@@ -1478,11 +1553,11 @@ describe('useSelection', () => {
         return super.delete(value);
       }
     }
-    const countingState = {
+    const countingState = fakeState({
       items: state.items,
       selectionMode: 'multi',
       selectedIds: new CountingSet([2, 3])
-    } as unknown as TableState;
+    });
     const sel = useSelection(countingState, () => countingState.items);
 
     mutations = 0;
@@ -1629,7 +1704,7 @@ describe('useColumnOrder — applyOrder', () => {
   ] as Column[];
 
   it('contract: applyOrder seeds the persisted order', () => {
-    const state = { columns } as unknown as TableState;
+    const state = fakeState({ columns });
     const co = useColumnOrder(state);
 
     co.applyOrder(['role', 'name', 'email', 'age']);
@@ -1639,7 +1714,7 @@ describe('useColumnOrder — applyOrder', () => {
   });
 
   it('contract: applyOrder gracefully handles ids that no longer exist', () => {
-    const state = { columns } as unknown as TableState;
+    const state = fakeState({ columns });
     const co = useColumnOrder(state);
 
     // 'phone' is in the snapshot but not in current columns — should be skipped.
@@ -1654,7 +1729,7 @@ describe('useColumnOrder — applyOrder', () => {
   });
 
   it('contract: applyOrder with empty array resets to natural order', () => {
-    const state = { columns } as unknown as TableState;
+    const state = fakeState({ columns });
     const co = useColumnOrder(state);
 
     co.applyOrder(['role', 'email']);
@@ -1677,12 +1752,12 @@ describe('usePrefs — surface contract', () => {
   //      for `applyPersistedState()` (the hydration boundary).
 
   function makeState(): TableState {
-    return {
+    return fakeState({
       summaryConfigs: [],
       showSummary: false,
       selectedIds: new Set<string | number>(),
       selectionControlled: false
-    } as unknown as TableState;
+    });
   }
 
   it('contract: without config everything is a no-op and nothing is hydrated', () => {
@@ -1770,7 +1845,7 @@ describe('usePrefs — surface contract', () => {
 describe('useSelection — persist by origin (the one write path)', () => {
   function makeRig(mode: 'none' | 'single' | 'multi' = 'multi') {
     const persisted: number[] = [];
-    const state = {
+    const state = fakeState({
       items: [
         { id: 1, name: 'Alice' },
         { id: 2, name: 'Bob' },
@@ -1778,7 +1853,7 @@ describe('useSelection — persist by origin (the one write path)', () => {
       ],
       selectionMode: mode,
       selectedIds: new Set<string | number>()
-    } as unknown as TableState;
+    });
     const sel = useSelection(state, () => state.items, {
       onPersist: () => persisted.push(state.selectedIds.size)
     });

@@ -1,7 +1,7 @@
 <script lang="ts">
   import { useTableI18n } from '$lib';
   import { getInternalTableContext } from '$lib/stores/TableStore.svelte';
-  import { findColumnById, resolveColumnLabel } from '$lib/utils';
+  import { resolveColumnLabelById } from '$lib/utils';
   import { Accordion, AccordionItem, Badge, Button, Drawer } from '@urbicon-ui/blocks';
   import { SvelteSet } from 'svelte/reactivity';
   import { toolsSheetVariants } from '$lib/variants';
@@ -112,20 +112,23 @@
   // Sort and grouping are single-valued, so a count would forever read "1". The
   // section head carries the column NAME instead — which is the thing actually
   // lost when the section folds away.
+  //
+  // Resolved over `allColumns` like the chips one breakpoint away: what the
+  // marker names is *acting*, and hiding the column must not turn "Location"
+  // into the raw `city` (#253).
   const sortLabel = $derived.by(() => {
     const sort = tableView.sort;
     if (!sort) return '';
-    const column = findColumnById(tableState.columns, sort.column);
-    const name = column ? resolveColumnLabel(column) : sort.column;
+    const name = resolveColumnLabelById(tableState.allColumns, sort.column);
     const direction = sort.direction === 'desc' ? tt('sort.descending') : tt('sort.ascending');
     return `${name} · ${direction}`;
   });
 
-  const groupLabel = $derived.by(() => {
-    if (!tableState.effectiveGroupBy) return '';
-    const column = findColumnById(tableState.columns, tableState.effectiveGroupBy);
-    return column ? resolveColumnLabel(column) : tableState.effectiveGroupBy;
-  });
+  const groupLabel = $derived(
+    tableState.effectiveGroupBy
+      ? resolveColumnLabelById(tableState.allColumns, tableState.effectiveGroupBy)
+      : ''
+  );
 </script>
 
 {#snippet sectionHead(label: string, marker: string)}
