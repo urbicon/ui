@@ -698,19 +698,20 @@ describe('no wrapper inside a data cell displaces its content', () => {
  *
  * One known simplification, and the failure mode it leaves open. The blocks
  * `Button` also carries `min-w-min`, so a button whose own min-content is wider
- * than its `w-<step>` uses that instead — at `sm` that is 32px against `w-7`'s
- * 28, i.e. 116px rather than 104px. The formula below reads the declared width
- * class, which is the number the factory's comment is derived from, so what it
- * cannot see is the min-content growing *underneath* an unchanged `w-8`: a
- * wider icon or more button padding in blocks would lift the real minimum past
- * `9rem` while every assertion here stayed green.
+ * than its `w-<step>` uses that instead — measured in Chrome, that is *every*
+ * size the actions cell uses: 32px against `w-7`'s 28 at `sm`, 34px against
+ * `w-8`'s 32 at `md` and `lg`. The formula below reads the declared width
+ * class, so what it cannot see is that min-content: a wider icon or more button
+ * padding in blocks lifts the real minimum while every assertion here stays
+ * green.
  *
- * That matters most at `lg`, where the budget is exactly full — 144px of 144px,
- * zero reserve. A `w-*` change fails here; a blocks-side change to the button's
- * internals does not, and shows up as a column that quietly grows past its
- * declaration. Measuring the used width instead would mean emulating min-content
- * in jsdom, which is the kind of second oracle this repo has learned not to
- * write; the honest place to catch it is a browser measurement.
+ * That is not hypothetical — it is how `9rem` shipped 6px short at `lg`, where
+ * the column had been rendering 150px against its 144px declaration until the
+ * browser measurement found it (2026-08-25). Emulating min-content in jsdom
+ * would be the kind of second oracle this repo has learned not to write, so the
+ * used width is measured where it is decided instead:
+ * `e2e/table-actions-budget.spec.ts`. This file keeps the half it can prove —
+ * a changed `w-*`, gap or inset fails here, immediately and without a browser.
  */
 describe.each(SIZES)('the actions column at size=%s', (size) => {
   const declaredWidthPx = cssLengthPx(String(TableColumns.actions('Actions').width));

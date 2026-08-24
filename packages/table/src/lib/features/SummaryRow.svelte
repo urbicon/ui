@@ -23,10 +23,28 @@
   // every surface that says a summary is acting (#252, see useSummary).
   const summaryConfigs = $derived(tableState.effectiveSummaryConfigs);
 
+  /**
+   * Whether any aggregation in force has a cell here to be drawn in.
+   *
+   * The list above is deliberately every aggregation acting on the data, so
+   * that each surface saying "a summary is running" says it about the same set
+   * (#252). This row is the surface that also needs a *place* per aggregation,
+   * and it has one only for the columns it renders — hiding a summarised column
+   * takes its cell with it. Gating on the list alone therefore left a
+   * highlighted, entirely empty strip under the table whenever the last
+   * summarised column was hidden: the row rendered because a config existed,
+   * and drew nothing because none of the columns it iterates carried one.
+   */
+  const hasSummaryCell = $derived(
+    tableContext.orderedColumns.some((column) =>
+      summaryConfigs.some((config) => config.column === resolveColumnId(column))
+    )
+  );
+
   const summaryStyles = $derived(summaryRowVariants({ variant: 'highlighted', size }));
 </script>
 
-{#if summaryConfigs.length > 0}
+{#if hasSummaryCell}
   <tr
     class={resolveSlotClass(
       summaryStyles.row,

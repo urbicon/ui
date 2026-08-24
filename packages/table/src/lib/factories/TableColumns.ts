@@ -130,34 +130,51 @@ export const TableColumns = {
    * Creates an ActionButtons column (view/edit/delete). Synthetic — no data
    * accessor, structurally excluded from search/sort/group.
    *
-   * On the default width, and why it is not 120px any more: under
+   * On the default width, and why it is neither 120px nor 144px any more: under
    * `table-layout: auto` a declared width is a floor, not a promise — the
    * column silently grows to its min-content whenever the declaration is
    * short, so a default that is too small is a disagreement nothing reports.
-   * The budget for the built-in trio, at the widest size:
    *
-   *   3 × `w-8` button (32px)  +  2 × `gap-1` (4px)  = 104px
+   * A button is not as wide as its `w-*` class. The blocks `Button` carries
+   * `min-w-min`, so its floor is its own content: icon + `px-2` + the 1px
+   * border on each side, i.e. **18px + icon**. Measured in Chrome (2026-08-25,
+   * `e2e/table-actions-budget.spec.ts`), that beats the class at every size the
+   * actions cell uses — `w-8` (32px) renders 34px against a 16px icon, `w-7`
+   * (28px) renders 32px against a 14px one. The budget for the built-in trio,
+   * at the widest size:
+   *
+   *   3 × button (34px)  +  2 × `gap-1` (4px)         = 110px
    *   + 2 × `TABLE_DIMENSIONS.padding.cellX.lg` (20px) =  40px
    *   ────────────────────────────────────────────────────────
-   *                                                    144px = 9rem
+   *                                                    150px
    *
    * `w-8` and not `w-9` at `lg`, because `TableCell` hands a `lg` table's cell
-   * components the `md` size. `md` then needs 128px and `sm` 104px (`w-7`
-   * buttons, a 6px inset — 116px in practice, since the blocks `Button` also
-   * carries `min-w-min` and no button gets narrower than its own icon plus
-   * padding). 9rem is the one value that holds at every size.
+   * components the `md` size. `md` then needs 134px and `sm` 116px. 9.5rem
+   * (152px) is the one value that holds at every size, with 2px to spare — at a
+   * 16px root. The reserve is `0.5rem − 6px`, because the 2px of border each
+   * button carries is the one term that does not scale with the root: 2px at
+   * 16, zero at 12, negative below (measured at a 10px root, the `62.5%`
+   * idiom — the cell needs 96px against a 95px declaration and the column grows
+   * again). Raising the factory value is what fixes that, not this comment.
    *
-   * `120px` held only at `md`, and only because it was hand-matched against
-   * `ActionButtons`' own `width: 7rem` (112 + 2 × 4px of cell padding); at
-   * `lg` it was already 8px short before #256 widened the inset. A column with
-   * `extraActions` needs its own `width` — 36px per extra button.
+   * Both earlier numbers were short, and neither failure was visible: `120px`
+   * held only at `md`, hand-matched against `ActionButtons`' own `width: 7rem`,
+   * and was already 8px short at `lg` before #256 widened the inset. `9rem`
+   * (144px) then replaced it using the *declared* 32px per button — 6px short
+   * at `lg`, where the column had been quietly rendering 150px ever since. A
+   * column with `extraActions` needs its own `width`: 38px per extra button at
+   * `md` and `lg`, 36px at `sm`, each the button plus the 4px gap before it.
    *
-   * Checked, not just written down: `Table.cellinset.svelte.test.ts` recomputes
-   * this from the rendered buttons of a mounted table, per size. What that check
-   * cannot see is the button's min-content growing underneath an unchanged
-   * `w-8` — a wider icon or more padding inside the blocks `Button` — and at
-   * `lg` the budget is exactly full (144 of 144), so there is no reserve to
-   * absorb it: the column would quietly grow past its declaration again.
+   * Checked twice, because one oracle cannot see the whole thing.
+   * `Table.cellinset.svelte.test.ts` recomputes the arithmetic from the
+   * rendered buttons of a mounted table, per size — it catches a changed `w-*`,
+   * gap or inset, but reads declared classes, so a wider icon or more padding
+   * inside the blocks `Button` stays invisible to it. That half is
+   * `e2e/table-actions-budget.spec.ts`, which probes the cell's min-content in a
+   * real engine and holds it against this declaration. That probe also asserts
+   * the two agree: a horizontal box between the `<td>` and the buttons would be
+   * missing from the arithmetic above, and missing from it silently — which is
+   * the shape #256 removed from `ActionButtons.svelte`.
    */
   actions: <Item>(
     title = 'Actions',
@@ -175,7 +192,7 @@ export const TableColumns = {
       }),
       priority,
       align: align ?? 'right',
-      width: width ?? '9rem',
+      width: width ?? '9.5rem',
       minWidth,
       flex,
       hideable
