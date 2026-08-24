@@ -153,7 +153,11 @@ export const TableColumns = {
    * `extraActions` needs its own `width` — 36px per extra button.
    *
    * Checked, not just written down: `Table.cellinset.svelte.test.ts` recomputes
-   * this from the rendered buttons of a mounted table, per size.
+   * this from the rendered buttons of a mounted table, per size. What that check
+   * cannot see is the button's min-content growing underneath an unchanged
+   * `w-8` — a wider icon or more padding inside the blocks `Button` — and at
+   * `lg` the budget is exactly full (144 of 144), so there is no reserve to
+   * absorb it: the column would quietly grow past its declaration again.
    */
   actions: <Item>(
     title = 'Actions',

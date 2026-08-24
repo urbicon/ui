@@ -104,30 +104,53 @@ export const TABLE_DIMENSIONS = {
    * *content* box. For a transparent wrapper that is invisible; for one that
    * paints, the ground stopped short of the cell it belongs to.
    *
-   * Always used as a pair with `padding.cellX` of the same size: the margin
-   * reaches back out to the cell's edge, the padding puts the content back
-   * where it was. Net horizontal offset zero — which is the property the cell
-   * inset test asserts, rather than "no wrapper has padding". Same scale as
-   * `cellX` by construction and not by hand: the pair only cancels while both
-   * halves read the same step, so the padding half IS `cellX` at the call site
-   * and only the negative half lives here.
+   * One token of three classes, because none of them is correct alone:
    *
-   * `w-auto` is part of the token, not something a call site has to remember,
-   * because a bleed on a `w-full` box does not bleed on both sides — it bleeds
-   * on ONE. Every cell wrapper here is `w-full`, and with `box-sizing:
-   * border-box` that makes the width equation over-constrained: `-12px + 100% +
-   * -12px` cannot equal the containing block, so CSS 2.1 §10.3.3 drops the
-   * specified `margin-right` (in ltr) and solves for it instead. The box then
-   * starts at the cell's left edge and ends *two* insets short of the right one
-   * — a hover ground clipped down one side, which is worse than the short-but-
-   * symmetric ground the bleed was introduced to fix. With `width: auto` the
-   * same equation solves for the width, and the box spans both cell edges.
+   *   - the negative margin reaches back out to the cell's edge;
+   *   - `px-*` of the SAME step puts the content back where it was, so the net
+   *     horizontal offset is zero — that, and not "no wrapper has padding", is
+   *     the invariant the cell inset test asserts;
+   *   - `w-auto` is what lets the margin apply on BOTH sides. Every cell
+   *     wrapper is `w-full`, and with `box-sizing: border-box` that
+   *     over-constrains the width equation: `-12px + 100% + -12px` cannot equal
+   *     the containing block, so CSS 2.1 §10.3.3 discards the specified
+   *     `margin-right` (ltr) and solves for it instead. The box then starts at
+   *     the cell's left edge and ends *two* insets short of the right one — a
+   *     ground clipped down one side, worse than the short-but-symmetric one
+   *     the bleed exists to fix. With `width: auto` the equation solves for the
+   *     width and the box spans both cell edges (measured in Chrome: flush on
+   *     both edges with `w-auto`, 24px short with `w-full`).
+   *
+   * All three are gated on `td &`, because a bleed is only correct where the
+   * inset it reaches back over exists. The same components render in
+   * `MobileCard`, straight into a grid cell that carries no inset of its own —
+   * there the margins were pure overflow, 12px each side into the card's
+   * `gap-x-4` and `px-4` (MobileCard passes no `size`, so always the `md`
+   * step). CSS decides the context, so there is no second switch in JS and no
+   * prop for a consumer to get wrong: outside a `<td>` the whole triple is
+   * inert and the wrapper renders exactly as it did before the bleed existed.
+   *
+   * The step is written twice inside each string rather than composed from
+   * `padding.cellX`: Tailwind's scanner reads literals, so a built-up string
+   * would emit no CSS at all. Adjacent halves in one literal are the closest
+   * thing to a derivation available here, and the per-context net-zero
+   * assertion is what actually holds them equal.
+   *
+   * What `w-auto` would cost, and why nothing pays it today: `width: auto`
+   * fills the available space in block flow but shrinks to content in a FLEX
+   * one. Every place these wrappers render is block flow — a `<td>`, or a
+   * `MobileCard` grid cell — and the one thing that looks like it could change
+   * that does not: `column.flex` writes `flex-col` onto a `<td>` that never
+   * gets `display: flex` (`TableCell.svelte`; the prop's own doc says it only
+   * sets a direction), so it is inert. That inertness is the actual reason no
+   * consumer can depend on it. Whoever repairs `column.flex` turns these
+   * containers into flex items and has to revisit this line with it.
    */
   bleed: {
     cellX: {
-      sm: '-mx-1.5 w-auto',
-      md: '-mx-3 w-auto',
-      lg: '-mx-5 w-auto'
+      sm: '[td_&]:-mx-1.5 [td_&]:px-1.5 [td_&]:w-auto',
+      md: '[td_&]:-mx-3 [td_&]:px-3 [td_&]:w-auto',
+      lg: '[td_&]:-mx-5 [td_&]:px-5 [td_&]:w-auto'
     }
   }
 } as const;

@@ -356,17 +356,17 @@ export const userCellVariants = tv({
     {
       clickable: true,
       size: 'sm',
-      class: { container: [TABLE_DIMENSIONS.bleed.cellX.sm, TABLE_DIMENSIONS.padding.cellX.sm] }
+      class: { container: TABLE_DIMENSIONS.bleed.cellX.sm }
     },
     {
       clickable: true,
       size: 'md',
-      class: { container: [TABLE_DIMENSIONS.bleed.cellX.md, TABLE_DIMENSIONS.padding.cellX.md] }
+      class: { container: TABLE_DIMENSIONS.bleed.cellX.md }
     },
     {
       clickable: true,
       size: 'lg',
-      class: { container: [TABLE_DIMENSIONS.bleed.cellX.lg, TABLE_DIMENSIONS.padding.cellX.lg] }
+      class: { container: TABLE_DIMENSIONS.bleed.cellX.lg }
     }
   ],
 
@@ -737,22 +737,22 @@ export const customCellVariants = tv({
     {
       interactive: true,
       size: 'xs',
-      class: { container: [TABLE_DIMENSIONS.bleed.cellX.sm, TABLE_DIMENSIONS.padding.cellX.sm] }
+      class: { container: TABLE_DIMENSIONS.bleed.cellX.sm }
     },
     {
       interactive: true,
       size: 'sm',
-      class: { container: [TABLE_DIMENSIONS.bleed.cellX.sm, TABLE_DIMENSIONS.padding.cellX.sm] }
+      class: { container: TABLE_DIMENSIONS.bleed.cellX.sm }
     },
     {
       interactive: true,
       size: 'md',
-      class: { container: [TABLE_DIMENSIONS.bleed.cellX.md, TABLE_DIMENSIONS.padding.cellX.md] }
+      class: { container: TABLE_DIMENSIONS.bleed.cellX.md }
     },
     {
       interactive: true,
       size: 'lg',
-      class: { container: [TABLE_DIMENSIONS.bleed.cellX.lg, TABLE_DIMENSIONS.padding.cellX.lg] }
+      class: { container: TABLE_DIMENSIONS.bleed.cellX.lg }
     }
   ],
   defaultVariants: {

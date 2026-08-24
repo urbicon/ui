@@ -54,14 +54,74 @@ const CONTROL_CELL_INSET_PX: Record<(typeof SIZES)[number], number> = { sm: 2, m
 const SPACING_STEP_PX = 4;
 
 /**
- * How far one element moves its content's left edge, in px.
+ * Where a class applies. The bleed is gated on `td &`
+ * (`TABLE_DIMENSIONS.bleed.cellX`), because the same components also render
+ * into a `MobileCard` grid cell that has no inset to reach back over — so
+ * "which classes count" is a question about context, and every reader below
+ * takes one.
+ */
+type CellContext = { inTd: boolean };
+
+const TD_CONTEXT = '[td_&]';
+
+/**
+ * The variant prefix of a class, or `''` — `[td_&]:-mx-3` → `[td_&]`. Split at
+ * the last top-level `:`, so a colon inside an arbitrary value or selector
+ * stays where it belongs.
+ */
+function variantPrefixOf(cls: string): string {
+  let depth = 0;
+  let cut = -1;
+  for (let i = 0; i < cls.length; i += 1) {
+    const ch = cls[i];
+    if (ch === '[' || ch === '(') depth += 1;
+    else if (ch === ']' || ch === ')') depth -= 1;
+    else if (ch === ':' && depth === 0) cut = i;
+  }
+  return cut === -1 ? '' : cls.slice(0, cut);
+}
+
+/**
+ * Whether a class contributes to the RESTING layout in this context.
+ *
+ * Unprefixed always does. `[td_&]:` does inside a cell and nowhere else — that
+ * is the whole point of the gate. Any OTHER arbitrary-selector prefix throws:
+ * a second structural context would silently change what these sums mean, and
+ * a reader that quietly ignored it would report the wrong number rather than
+ * fail. Word-shaped prefixes (`hover:`, `focus-visible:`, `active:`) are
+ * states, not resting layout, and are skipped — which is exact for the ones in
+ * use here and would need revisiting if a cell wrapper ever grew a *responsive*
+ * spacing class.
+ */
+function appliesIn(cls: string, ctx: CellContext): boolean {
+  const prefix = variantPrefixOf(cls);
+  if (prefix === '') return true;
+  if (prefix === TD_CONTEXT) return ctx.inTd;
+  if (prefix.startsWith('[')) {
+    throw new Error(
+      `Unknown structural context "${prefix}" on "${cls}" — this test resolves contexts by hand ` +
+        'and must not guess whether a new one applies.'
+    );
+  }
+  return false;
+}
+
+/** The utility half of a class: `[td_&]:-mx-3` → `-mx-3`. */
+function utilityOf(cls: string): string {
+  const prefix = variantPrefixOf(cls);
+  return prefix === '' ? cls : cls.slice(prefix.length + 1);
+}
+
+/**
+ * How far one element moves its content's left edge, in px, in the context it
+ * actually renders in.
  *
  * Throws on a spacing class it cannot convert. A silent 0 is the failure mode
  * that matters: every assertion below is a sum, so an unreadable class would
  * quietly lower both sides and keep the suite green while measuring nothing.
  */
 function ownOffsetLeftPx(el: Element): number {
-  return offsetOfClasses([...el.classList]);
+  return offsetOfClasses([...el.classList], { inTd: !!el.closest('td') });
 }
 
 /** A fixed `w-<step>` in px. Keywords (`w-full`, `w-auto`, …) are not sizes. */
@@ -98,21 +158,49 @@ function cssLengthPx(value: string): number {
 }
 
 /**
- * The bleed only bleeds on a box whose width can absorb it.
- *
- * With `box-sizing: border-box`, `-mx-3` on a `w-full` box over-constrains the
- * width equation, and CSS 2.1 §10.3.3 resolves that by discarding the specified
- * `margin-right` (ltr): the box reaches the cell's left edge and stops two
- * insets short of the right one, painting a ground clipped down one side. A
- * mirror-image class sum cannot see this — `-mx-3 px-3` is symmetric either way
- * — so the invariant is on the cause: a negative horizontal margin requires
- * `w-auto`.
+ * The width keyword that wins in a context: a context-prefixed class outranks a
+ * bare one, because `td .cls` is a class plus an element and a bare `.cls` is
+ * only a class. Same rule the browser applies, for the one prefix in use.
  */
-function assertBleedCanResolve(classes: string[], label: string): void {
-  const bleeds = classes.some((cls) => /^-m[xl]-/.test(cls));
-  if (!bleeds) return;
-  expect(classes, `${label}: bleeds, so it must not be w-full`).not.toContain('w-full');
-  expect(classes, `${label}: bleeds, so it needs an auto width`).toContain('w-auto');
+function winningWidthIn(classes: string[], ctx: CellContext): string | undefined {
+  const applying = classes.filter((cls) => appliesIn(cls, ctx) && /^w-/.test(utilityOf(cls)));
+  const prefixed = applying.filter((cls) => variantPrefixOf(cls) !== '');
+  const winner = (prefixed.length > 0 ? prefixed : applying).at(-1);
+  return winner === undefined ? undefined : utilityOf(winner);
+}
+
+/**
+ * Two things a bleed has to get right, neither of which a net-offset sum can
+ * see — a `-mx-3 px-3` pair is symmetric wherever it lands.
+ *
+ * **Where.** A bleed is only correct over an inset that exists. In a `<td>` it
+ * reaches back over `padding.cellX`; in a `MobileCard` grid cell there is
+ * nothing to reach over and the margins are pure overflow — 12px each side into
+ * the card's `gap-x-4`, or past its edge. So no negative horizontal margin may
+ * apply outside a cell.
+ *
+ * **How wide.** With `box-sizing: border-box`, `-mx-3` on a `w-full` box
+ * over-constrains the width equation, and CSS 2.1 §10.3.3 resolves that by
+ * discarding the specified `margin-right` (ltr): the box reaches the cell's
+ * left edge and stops two insets short of the right one, painting a ground
+ * clipped down one side. So wherever a bleed does apply, the width that applies
+ * with it must be `auto`.
+ */
+function assertBleedIsWellFormed(classes: string[], label: string): void {
+  const bleedsIn = (ctx: CellContext) =>
+    classes.filter((cls) => appliesIn(cls, ctx) && /^-m[xl]-/.test(utilityOf(cls)));
+
+  expect(
+    bleedsIn({ inTd: false }),
+    `${label}: bleeds outside a cell, where there is no inset to reach back over`
+  ).toEqual([]);
+
+  if (bleedsIn({ inTd: true }).length > 0) {
+    expect(
+      winningWidthIn(classes, { inTd: true }),
+      `${label}: bleeds in a cell, so its width there must be auto`
+    ).toBe('w-auto');
+  }
 }
 
 /**
@@ -123,10 +211,11 @@ function assertBleedCanResolve(classes: string[], label: string): void {
  * "no wrapper has padding" but "no wrapper displaces its content": a
  * bleed/padding pair sums to zero and a lone `px-2` does not.
  */
-function offsetOfClasses(classes: string[]): number {
+function offsetOfClasses(classes: string[], ctx: CellContext): number {
   let total = 0;
   for (const cls of classes) {
-    const match = /^(-?)(p|px|pl|m|mx|ml)-(.+)$/.exec(cls);
+    if (!appliesIn(cls, ctx)) continue;
+    const match = /^(-?)(p|px|pl|m|mx|ml)-(.+)$/.exec(utilityOf(cls));
     if (!match) continue;
     const [, sign, , raw] = match;
     const step = Number(raw);
@@ -260,6 +349,58 @@ describe('the offset reader', () => {
   });
 });
 
+describe('the context reader', () => {
+  const BLEED = ['[td_&]:-mx-3', '[td_&]:px-3', '[td_&]:w-auto', 'w-full'];
+
+  it('splits a prefix at the top-level colon only', () => {
+    expect(variantPrefixOf('-mx-3')).toBe('');
+    expect(variantPrefixOf('[td_&]:-mx-3')).toBe('[td_&]');
+    expect(utilityOf('[td_&]:-mx-3')).toBe('-mx-3');
+    // A colon inside the value belongs to the value.
+    expect(variantPrefixOf('bg-[url(a:b)]')).toBe('');
+  });
+
+  it('counts the gated pair inside a cell and nothing outside one', () => {
+    expect(offsetOfClasses(BLEED, { inTd: true })).toBe(0);
+    expect(offsetOfClasses(BLEED, { inTd: false })).toBe(0);
+    // …and each half on its own is visible in the context it applies to, so a
+    // gate that dropped only one of them cannot pass as "net zero".
+    expect(offsetOfClasses(['[td_&]:-mx-3'], { inTd: true })).toBe(-12);
+    expect(offsetOfClasses(['[td_&]:-mx-3'], { inTd: false })).toBe(0);
+    expect(offsetOfClasses(['[td_&]:px-3'], { inTd: true })).toBe(12);
+  });
+
+  it('resolves the width the same way the cascade does', () => {
+    // `td .cls` outranks `.cls`, so inside a cell the gated width wins.
+    expect(winningWidthIn(BLEED, { inTd: true })).toBe('w-auto');
+    expect(winningWidthIn(BLEED, { inTd: false })).toBe('w-full');
+  });
+
+  it('refuses a structural context it has not been taught', () => {
+    expect(() => offsetOfClasses(['[tr_&]:px-3'], { inTd: true })).toThrow(/Unknown structural/);
+  });
+
+  // The invariant itself, in every direction — a check that never fires would
+  // pass every fold below.
+  it('accepts only a bleed that is gated and wide enough', () => {
+    // Gated, auto width: the shape in use.
+    expect(() => assertBleedIsWellFormed(BLEED, 'gated')).not.toThrow();
+    // No bleed at all: nothing to require, and the wrapper keeps `w-full`.
+    expect(() => assertBleedIsWellFormed(['w-full'], 'plain')).not.toThrow();
+
+    // Ungated — this is N4: correct in a cell, pure overflow in a card.
+    expect(() => assertBleedIsWellFormed(['-mx-3', 'px-3', 'w-auto'], 'ungated')).toThrow(
+      /outside a cell/
+    );
+    // Ungated AND on a full width: both defects at once.
+    expect(() => assertBleedIsWellFormed(['-mx-3', 'px-3', 'w-full'], 'ungated+full')).toThrow();
+    // Gated but on a full width: the margin-right CSS discards.
+    expect(() =>
+      assertBleedIsWellFormed(['[td_&]:-mx-3', '[td_&]:px-3', 'w-full'], 'gated, w-full')
+    ).toThrow(/width there must be auto/);
+  });
+});
+
 describe('the size readers', () => {
   // Same reason as the offset reader's controls: the width budget is a
   // comparison, and a reader that answered 0 would let anything through.
@@ -285,15 +426,6 @@ describe('the size readers', () => {
     expect(cssLengthPx('9rem')).toBe(144);
     expect(cssLengthPx('120px')).toBe(120);
     expect(() => cssLengthPx('auto')).toThrow(/px or rem/);
-  });
-
-  // The invariant itself, in both directions — a check that never fires would
-  // pass every fold below.
-  it('flags a bleed that cannot resolve, and passes one that can', () => {
-    expect(() => assertBleedCanResolve(['-mx-3', 'px-3', 'w-full'], 'broken')).toThrow();
-    expect(() => assertBleedCanResolve(['-mx-3', 'px-3', 'w-auto'], 'fixed')).not.toThrow();
-    // No bleed, no requirement: a plain wrapper stays `w-full`.
-    expect(() => assertBleedCanResolve(['w-full'], 'plain')).not.toThrow();
   });
 });
 
@@ -347,7 +479,7 @@ describe.each(SIZES)('one cell inset at size=%s', (size) => {
   // The rest of the typed roster. Same property, one cell per component —
   // mounted rather than read off the variant config, because that is the only
   // way markup between the `<td>` and the content shows up at all.
-  it.each(['user', 'status', 'code', 'created', 'url'])(
+  it.each(['user', 'userPainted', 'customPainted', 'status', 'code', 'created', 'url'])(
     'holds the %s column on the same edge',
     (columnId) => {
       const root = mountTable({ size });
@@ -365,6 +497,23 @@ describe.each(SIZES)('one cell inset at size=%s', (size) => {
   it('does descend into wrappers (a deliberate px-2 reads one step higher)', () => {
     const root = mountTable({ size });
     expect(contentInsetPx(cellAt(root, 'cell-1-probe'))).toBe(DATA_CELL_INSET_PX[size] + 8);
+  });
+
+  // The painting wrappers, in the cell: the bleed applies here, and the pair
+  // cancels — so the ground reaches the cell's edges while the text does not
+  // move. Both halves are one gated token, so this is also what proves the
+  // gate lets them BOTH through where it should.
+  it('lets a painting wrapper bleed inside the cell without moving its content', () => {
+    const root = mountTable({ size });
+    const painted = cellAt(root, 'cell-1-customPainted').firstElementChild;
+    if (!painted) throw new Error('The painted cell rendered nothing.');
+
+    const classes = [...painted.classList];
+    expect(
+      classes.some((cls) => cls.startsWith(`[td_&]:-mx-`)),
+      'no bleed on the wrapper'
+    ).toBe(true);
+    expect(ownOffsetLeftPx(painted)).toBe(0);
   });
 
   it('reads a non-zero inset (the sums above are not all zero)', () => {
@@ -396,6 +545,46 @@ describe.each(SIZES)('one cell inset at size=%s', (size) => {
     expect(ownOffsetLeftPx(checkboxCell)).toBe(CONTROL_CELL_INSET_PX[size]);
     // …and the data cells beside it are unaffected by the extra column.
     expect(contentInsetPx(cellAt(root, 'cell-1-note'))).toBe(DATA_CELL_INSET_PX[size]);
+  });
+});
+
+/**
+ * The other side of the gate: the same components, in a `MobileCard`.
+ *
+ * Both layouts are in the tree at once — CSS decides which is shown — so the
+ * card's copy of a cell is reachable from the same mount, and the bleed's
+ * context gate can be measured rather than argued. A card's grid cell carries
+ * no inset (the padding is on the card's `content`, and the columns are
+ * separated by `gap-x-4`), so an ungated bleed was pure overflow: 12px each
+ * side into the gap, or past the card's edge.
+ *
+ * jsdom computes no layout, so what is checked is the same class arithmetic as
+ * everywhere else — evaluated in the card's context instead of the cell's.
+ */
+describe('the painting wrappers in a mobile card', () => {
+  function cardCopyOf(root: HTMLElement, testId: string): Element {
+    const list = root.querySelector('[data-testid="mobile-table"]');
+    if (!list) throw new Error('No mobile list rendered — the layout switch changed.');
+    const el = list.querySelector(`[data-testid="${testId}"]`);
+    if (!el) throw new Error(`The card renders no "${testId}".`);
+    return el;
+  }
+
+  it('renders the painted cell in the card too', () => {
+    const root = mountTable({});
+    expect(cardCopyOf(root, 'painted-cell').closest('td')).toBeNull();
+  });
+
+  it('does not bleed there', () => {
+    const root = mountTable({});
+    const painted = cardCopyOf(root, 'painted-cell');
+
+    // The classes are the same ones the cell copy carries…
+    expect([...painted.classList].some((cls) => cls.startsWith('[td_&]:-mx-'))).toBe(true);
+    // …and none of them applies here, so the wrapper sits exactly where it did
+    // before the bleed existed: no overflow into the grid gap, no inset either.
+    expect(ownOffsetLeftPx(painted)).toBe(0);
+    expect(winningWidthIn([...painted.classList], { inTd: false })).toBe('w-full');
   });
 });
 
@@ -459,24 +648,34 @@ describe('no wrapper inside a data cell displaces its content', () => {
     }
   }
 
+  // In BOTH contexts. Gating the bleed on `td &` split this into two questions:
+  // inside a cell the pair has to cancel, and outside one — the MobileCard grid
+  // cell, where there is no inset to reach back over — nothing may apply at
+  // all. Half the pair surviving the gate would displace the card's content by
+  // an inset, which is the #256 defect one level down.
   it.each(Object.keys(WRAPPERS))('%s.container() displaces nothing', (name) => {
     eachContainerFold(name, (classes, label) => {
-      expect(offsetOfClasses(classes), label).toBe(0);
+      expect(offsetOfClasses(classes, { inTd: true }), `${label} (in a cell)`).toBe(0);
+      expect(offsetOfClasses(classes, { inTd: false }), `${label} (outside a cell)`).toBe(0);
     });
   });
 
   // The root cause of the one-sided ground, as a class invariant. Symmetric
   // class sums cannot see it: the defect is in how CSS resolves an
   // over-constrained width equation, not in which classes are present.
-  it.each(Object.keys(WRAPPERS))('%s.container() bleeds on an auto width', (name) => {
-    eachContainerFold(name, assertBleedCanResolve);
-  });
+  it.each(Object.keys(WRAPPERS))(
+    '%s.container() bleeds only in a cell, on an auto width',
+    (name) => {
+      eachContainerFold(name, assertBleedIsWellFormed);
+    }
+  );
 
   it('summaryRowVariants.content()', () => {
     for (const size of SIZES) {
       const classes = summaryRowVariants({ size }).content().split(/\s+/).filter(Boolean);
-      expect(offsetOfClasses(classes), `summary @ size=${size}`).toBe(0);
-      assertBleedCanResolve(classes, `summary @ size=${size}`);
+      expect(offsetOfClasses(classes, { inTd: true }), `summary @ size=${size}`).toBe(0);
+      expect(offsetOfClasses(classes, { inTd: false }), `summary @ size=${size}`).toBe(0);
+      assertBleedIsWellFormed(classes, `summary @ size=${size}`);
     }
   });
 });
@@ -497,11 +696,21 @@ describe('no wrapper inside a data cell displaces its content', () => {
  * size), and repeating that rule here would be the second copy this whole PR
  * is about.
  *
- * One known simplification: the blocks `Button` also carries `min-w-min`, so a
- * button whose own min-content is wider than its `w-<step>` uses that instead —
- * at `sm` that is 32px against `w-7`'s 28, i.e. 116px rather than 104px, still
- * inside the budget. The formula below reads the declared width class, which is
- * the number the factory's comment is derived from.
+ * One known simplification, and the failure mode it leaves open. The blocks
+ * `Button` also carries `min-w-min`, so a button whose own min-content is wider
+ * than its `w-<step>` uses that instead — at `sm` that is 32px against `w-7`'s
+ * 28, i.e. 116px rather than 104px. The formula below reads the declared width
+ * class, which is the number the factory's comment is derived from, so what it
+ * cannot see is the min-content growing *underneath* an unchanged `w-8`: a
+ * wider icon or more button padding in blocks would lift the real minimum past
+ * `9rem` while every assertion here stayed green.
+ *
+ * That matters most at `lg`, where the budget is exactly full — 144px of 144px,
+ * zero reserve. A `w-*` change fails here; a blocks-side change to the button's
+ * internals does not, and shows up as a column that quietly grows past its
+ * declaration. Measuring the used width instead would mean emulating min-content
+ * in jsdom, which is the kind of second oracle this repo has learned not to
+ * write; the honest place to catch it is a browser measurement.
  */
 describe.each(SIZES)('the actions column at size=%s', (size) => {
   const declaredWidthPx = cssLengthPx(String(TableColumns.actions('Actions').width));

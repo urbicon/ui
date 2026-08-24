@@ -34,6 +34,7 @@
     amount: number;
     note: string;
     user: string;
+    userPainted: string;
     status: string;
     code: string;
     created: Date;
@@ -52,6 +53,7 @@
       amount: 100,
       note: 'first',
       user: 'Ada Lovelace',
+      userPainted: 'Ada Lovelace',
       status: 'active',
       code: 'AB-1',
       created: new Date('2026-03-12T10:30:00Z'),
@@ -89,6 +91,17 @@
       component: CustomCell,
       componentProps: () => ({ content: () => 'custom' })
     },
+    // The two wrappers that PAINT — they carry the bleed pair
+    // (`TABLE_DIMENSIONS.bleed.cellX`), so their hover ground covers the whole
+    // cell. Both render twice: once into a `<td>`, where the bleed applies, and
+    // once into a `MobileCard` grid cell, where it must not.
+    {
+      id: 'customPainted',
+      title: 'Painted',
+      component: CustomCell,
+      componentProps: () => ({ content: () => 'painted', onClick: noop, testId: 'painted-cell' })
+    },
+    TableColumns.userAvatar<Row>('userPainted', 'Painted user', { clickable: true }),
     TableColumns.actions<Row>('Actions', { onView: noop, onEdit: noop, onDelete: noop }),
     // The rest of the typed roster, each through its own factory. None of them
     // wraps its variant container in extra markup today — this is what keeps
@@ -103,5 +116,14 @@
   prefs={{ defaults: { summaries: [{ column: 'amount', type: 'sum' }] } }}
   {size}
   {selectionMode}
+  mobileCardDetails="expanded"
   ariaLabel="Cell inset table"
 />
+
+<!--
+  Both layouts render at once — CSS decides which is shown — so the card's copy
+  of every cell hangs in the same tree as the row's, and the bleed's `td &` gate
+  can be measured on both sides of one mount. `mobileCardDetails="expanded"` is
+  what puts the detail columns in the DOM at all: collapsed, a card renders only
+  its title and subtitle, and the painting wrappers would never appear.
+-->
