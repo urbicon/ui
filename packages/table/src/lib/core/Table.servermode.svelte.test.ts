@@ -418,6 +418,190 @@ describe('server mode search writes through — one debounce, not two', () => {
     await vi.advanceTimersByTimeAsync(300);
     expect(t.ctx.view.search).toBe('abc');
   });
+
+  it('client mode honours an explicit value, once (positive control)', async () => {
+    const t = mountTable({ items: ALL_ROWS.slice(0, 50), searchDebounceMs: 150 });
+
+    const input = searchInput(t);
+    input.value = 'abc';
+    input.dispatchEvent(new Event('input', { bubbles: true }));
+    flushSync();
+
+    expect(t.ctx.view.search).toBe('');
+    await vi.advanceTimersByTimeAsync(149);
+    expect(t.ctx.view.search).toBe('');
+    await vi.advanceTimersByTimeAsync(1);
+    expect(t.ctx.view.search).toBe('abc');
+  });
+
+  /**
+   * The mode-aware default (#225) kept the bar's debounce and the source's out
+   * of each other's way only while nobody set one. An explicit
+   * `searchDebounceMs={300}` — the old default, copied from a client example —
+   * put them back in series on a server table: the bar wrote at 300, the fetch
+   * went out at 600. These pin the fix (#255): an explicit value is the whole
+   * budget per keystroke, and only the search write is exempted from the
+   * source's own debounce.
+   */
+  describe('an explicit value is one budget, not two delays in series', () => {
+    /**
+     * The bar's timer is advanced SYNCHRONOUSLY on purpose, here and below.
+     * An exempted fetch is a zero-delay timer, and fake timers give one of
+     * those a `callAt` of *now + 1* when it is scheduled while a tick is in
+     * progress (the loop guard against a 0-delay timer rescheduling itself
+     * forever) — which is what the awaited advances do, since they drain the
+     * microtask that runs Svelte's effects. The sync advance returns first and
+     * the effect flushes outside the tick, so the fetch is queued for the
+     * instant the write happened and the clock below reads the real edge.
+     */
+    it('a keystroke fetches at 300 with searchDebounceMs={300}, not at 600', async () => {
+      const { calls, query } = makePagedQuery();
+      // Both halves spelled out at the value each defaults to.
+      const t = mountTable({
+        source: { processing: 'server', query, debounceMs: 300 },
+        searchDebounceMs: 300
+      });
+      vi.advanceTimersByTime(0);
+      await flushMicrotasks();
+      expect(calls).toHaveLength(1); // the immediate first fetch
+
+      const keystroke = Date.now();
+      const input = searchInput(t);
+      input.value = 'abc';
+      input.dispatchEvent(new Event('input', { bubbles: true }));
+      flushSync();
+
+      // 299 ms: the bar is still holding the write, so nothing has been asked for.
+      await vi.advanceTimersByTimeAsync(299);
+      await flushMicrotasks();
+      expect(t.ctx.view.search).toBe('');
+      expect(calls).toHaveLength(1);
+
+      // 300 ms: the write lands, and the fetch is queued for that same instant
+      // — not for 300 ms later. This is the whole issue: with the delays in
+      // series the fetch below goes out at 600.
+      vi.advanceTimersByTime(1);
+      await flushMicrotasks();
+      expect(t.ctx.view.search).toBe('abc');
+      expect(calls).toHaveLength(1);
+
+      vi.advanceTimersByTime(0);
+      await flushMicrotasks();
+      expect(Date.now() - keystroke).toBe(300);
+      expect(calls).toHaveLength(2);
+      expect(calls[1]).toMatchObject({ search: 'abc', page: 1 });
+
+      // And 600 ms brings nothing after it.
+      await vi.advanceTimersByTimeAsync(300);
+      await flushMicrotasks();
+      expect(calls).toHaveLength(2);
+    });
+
+    it('positive control: unset, the write is synchronous and the source debounce is the only wait', async () => {
+      const { calls, query } = makePagedQuery();
+      const t = mountTable({ source: { processing: 'server', query, debounceMs: 300 } });
+      vi.advanceTimersByTime(0);
+      await flushMicrotasks();
+      expect(calls).toHaveLength(1);
+
+      const keystroke = Date.now();
+      const input = searchInput(t);
+      input.value = 'abc';
+      input.dispatchEvent(new Event('input', { bubbles: true }));
+      flushSync();
+      // No bar timer in the path at all — today's server-mode default.
+      expect(t.ctx.view.search).toBe('abc');
+
+      await vi.advanceTimersByTimeAsync(299);
+      await flushMicrotasks();
+      expect(calls).toHaveLength(1);
+
+      // Same 300 ms budget, reached the other way round: nothing was exempted,
+      // the source's own debounce did all of the waiting.
+      await vi.advanceTimersByTimeAsync(1);
+      await flushMicrotasks();
+      expect(Date.now() - keystroke).toBe(300);
+      expect(calls).toHaveLength(2);
+      expect(calls[1]).toMatchObject({ search: 'abc' });
+    });
+
+    it('the exemption is the search write alone — a page change still waits the source out', async () => {
+      const { calls, query } = makePagedQuery();
+      const t = mountTable({
+        source: { processing: 'server', query, debounceMs: 300 },
+        searchDebounceMs: 300
+      });
+      vi.advanceTimersByTime(0);
+      await flushMicrotasks();
+
+      const input = searchInput(t);
+      input.value = 'abc';
+      input.dispatchEvent(new Event('input', { bubbles: true }));
+      vi.advanceTimersByTime(300);
+      await flushMicrotasks();
+      vi.advanceTimersByTime(0);
+      await flushMicrotasks();
+      expect(calls).toHaveLength(2);
+
+      // Nothing debounced this one, so the source's 300 ms apply in full — a
+      // blanket "skip the source debounce whenever the bar debounces" would
+      // have fired it on the spot.
+      const click = Date.now();
+      t.ctx.goToPage(2);
+      flushSync();
+      await vi.advanceTimersByTimeAsync(299);
+      await flushMicrotasks();
+      expect(calls).toHaveLength(2);
+
+      await vi.advanceTimersByTimeAsync(1);
+      await flushMicrotasks();
+      expect(Date.now() - click).toBe(300);
+      expect(calls).toHaveLength(3);
+      expect(calls[2]).toMatchObject({ page: 2 });
+    });
+
+    it('a debounced write that changes nothing leaves no exemption behind', async () => {
+      const { calls, query } = makePagedQuery();
+      const t = mountTable({
+        source: { processing: 'server', query, debounceMs: 300 },
+        searchDebounceMs: 300
+      });
+      vi.advanceTimersByTime(0);
+      await flushMicrotasks();
+
+      const input = searchInput(t);
+      const type = async (value: string) => {
+        input.value = value;
+        input.dispatchEvent(new Event('input', { bubbles: true }));
+        vi.advanceTimersByTime(300);
+        await flushMicrotasks();
+        vi.advanceTimersByTime(0);
+        await flushMicrotasks();
+      };
+
+      await type('abc');
+      expect(calls).toHaveLength(2);
+
+      // The same term again: the bar's timer runs, the write is a no-op, no
+      // view axis changes and no fetch follows — so nothing may stay marked.
+      await type('abc');
+      expect(calls).toHaveLength(2);
+
+      // If something had, this unrelated change would inherit the exemption
+      // and go out immediately instead of waiting the source out.
+      const click = Date.now();
+      t.ctx.goToPage(2);
+      flushSync();
+      await vi.advanceTimersByTimeAsync(299);
+      await flushMicrotasks();
+      expect(calls).toHaveLength(2);
+
+      await vi.advanceTimersByTimeAsync(1);
+      await flushMicrotasks();
+      expect(Date.now() - click).toBe(300);
+      expect(calls).toHaveLength(3);
+    });
+  });
 });
 
 describe('the pager stays in the DOM while loading', () => {

@@ -205,12 +205,13 @@ function toParams(view: TableViewSnapshot) {
           The first call goes out immediately, every later one after
           <code>debounceMs</code> (300 by default). A fast typist produces one request, not one per keystroke.
         </Note>
-        <Note title="Search waits twice">
-          A keystroke reaches the view after <code>searchDebounceMs</code> (300) and the network
-          after
-          <code>debounceMs</code> on top, so search sits about 600 ms behind. The two sit on
-          different objects: <code>{'<Table searchDebounceMs={100} />'}</code> and
-          <code>{"source={{ processing: 'server', query: loadUsers, debounceMs: 100 }}"}</code>.
+        <Note title="Search waits once">
+          <code>searchDebounceMs</code> and <code>debounceMs</code> sit on different objects —
+          <code>{'<Table searchDebounceMs={100} />'}</code> versus
+          <code>{"source={{ processing: 'server', query: loadUsers, debounceMs: 100 }}"}</code> —
+          but they never add up: a search write that already waited skips the source debounce, so an
+          explicit <code>searchDebounceMs</code> is the whole delay for search. Every other view
+          change (sort, filter, paging) waits <code>debounceMs</code>.
         </Note>
         <Note title="Pass the signal on">
           When a newer request supersedes one in flight, the table aborts it. Handing

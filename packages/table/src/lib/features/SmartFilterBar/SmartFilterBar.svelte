@@ -37,7 +37,7 @@
 
   // Store-Kontext abrufen
   const tableContext = getInternalTableContext();
-  const { state: tableState, view: tableView, setSearch } = tableContext;
+  const { state: tableState, view: tableView, setSearch, setSearchDebounced } = tableContext;
   const styleConfig = getTableStyleConfig();
 
   // Props
@@ -82,7 +82,15 @@
       return;
     }
     debounceTimer = setTimeout(() => {
-      setSearch(localSearch);
+      // `setSearchDebounced`, not `setSearch`: the mode-aware default above
+      // keeps the two debounces apart only while nobody sets one. An explicit
+      // value put the bar's timer back IN FRONT of the managed fetch's own —
+      // `searchDebounceMs={300}` against a source that debounces 300 ms made
+      // a keystroke wait 600 ms (#255). The wait has happened here, so this
+      // write says so and the fetch it triggers goes out at the end of it.
+      // Only this write is marked; every other view change keeps the source's
+      // debounce.
+      setSearchDebounced(localSearch);
     }, effectiveDebounceMs) as unknown as number;
   }
 

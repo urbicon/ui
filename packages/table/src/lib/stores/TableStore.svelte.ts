@@ -753,6 +753,12 @@ export function createTableState(
 
     // Search
     setSearch: search.setSearch,
+    // Internal wiring, not part of the public {@link TableContext}: the search
+    // bar writes through this one when its own `searchDebounceMs` timer has
+    // already waited, and `TableProvider` hands the reader to the managed
+    // fetch so that write does not wait a second time (#255).
+    setSearchDebounced: search.setSearchDebounced,
+    takeDebouncedSearchWrite: search.takeDebouncedSearchWrite,
 
     // Filtering
     addFilter: filtering.addFilter,

@@ -260,7 +260,14 @@
     // total, and the next key change refetches the clamped page — instead of
     // settling on an empty body the pager claims is full. `view.page` itself
     // stays untouched (a later page-size change may make it valid again).
-    () => ({ ...tableView.snapshot(), page: tableState.pageInfo.fetchPage })
+    () => ({ ...tableView.snapshot(), page: tableState.pageInfo.fetchPage }),
+    // The other half of the search budget: when `searchDebounceMs` made the
+    // bar hold the write back, the wait has already happened and this fetch
+    // goes out at the end of it instead of adding `source.debounceMs` on top
+    // (#255 — 300 + 300 put every keystroke 600 ms behind the reader). One
+    // write only: the mark is consumed per effect run, so a sort, a filter or
+    // a page change still gets the source's debounce in full.
+    { takePreDebounced: tableState.takeDebouncedSearchWrite }
   );
 
   // ── Live updates: auto-apply on navigation ──
