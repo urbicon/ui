@@ -38,44 +38,52 @@ export async function parseBody<T>(
 }
 
 type AuthHooks<R extends string> = NonNullable<AuthConfig<R>['hooks']>;
+type HookName = keyof AuthHooks<string> & string;
 
 /**
- * The hooks whose throw must reach the caller. `onBeforeAccountDelete`
- * fail-closes the deletion and `transformUser` builds `locals.user`, so both
- * gate an outcome that has not happened yet; `onLoginFailed` reports a request
- * that is already a rejection, where failing loudly costs the user nothing.
- * Each one says so in its own doc comment on `AuthConfig.hooks`.
+ * `Exclude`, constrained so its second argument must really be a subset of the
+ * first. Plain `Exclude<Keys, 'gone'>` with a name that is no longer a key is a
+ * silent no-op, which would move a hook from the aborting list into the caught
+ * one without a word — the failure mode the split exists to prevent. The
+ * `Excluded extends Keys` bound turns a renamed or misspelt hook into an error
+ * at {@link CaughtHookName} below.
  */
-type AbortingHookName = 'onBeforeAccountDelete' | 'transformUser' | 'onLoginFailed';
+type ExcludeKeys<Keys extends string, Excluded extends Keys> = Exclude<Keys, Excluded>;
 
 /**
- * The hooks whose throw is caught and logged — the complement, so the two
- * halves of the classification cannot drift apart, and routing an aborting
- * hook through {@link notifyHook} is a compile error rather than a silently
- * dropped abort.
+ * The hooks whose throw must reach the caller. Both gate an outcome that has
+ * not happened yet: `onBeforeAccountDelete` fail-closes the deletion, and
+ * `transformUser` builds `locals.user` on the read path, where nothing is
+ * committed. Each says so in its own doc comment on `AuthConfig.hooks`.
  */
-export type CaughtHookName = Exclude<keyof AuthHooks<string>, AbortingHookName>;
+type AbortingHookName = 'onBeforeAccountDelete' | 'transformUser';
+
+/** Every other hook: a throw is caught and logged. */
+export type CaughtHookName = ExcludeKeys<HookName, AbortingHookName>;
 
 /**
  * Invoke a consumer hook so a throw inside it cannot change what the handler
  * already achieved.
  *
- * Every call site of these hooks sits **after** the action it reports: the
- * password is written, the account exists, the session cookie is set, or the
+ * These hooks all report rather than gate, and every call site runs after the
+ * outcome it reports — the write is committed, the cookie is set, or the
  * response has already been sent (the detached forgot-password / change-email
- * paths). An uncaught consumer hook there reports a completed action as a
- * failure — at register that is unrecoverable, because the retry it invites
- * hits the already-consumed invitation.
+ * paths). A throw there could only replace a truthful status with a `500`.
  *
- * The error is always logged, never swallowed — through `deps.logger`, which
- * `createAuthDeps` shields against a throwing consumer sink.
+ * The error is always logged, never swallowed. `deps.logger` is shielded
+ * against a throwing consumer sink when the bundle came from `createAuthDeps`;
+ * a hand-assembled `AuthDeps` carries whatever logger it was given.
  *
  * `hook` is a key of the hooks object rather than a label, so the name in the
- * log line and the function invoked cannot disagree.
+ * log line and the function invoked cannot disagree. `subject` identifies the
+ * affected record — an **id, never an email address or other PII**, since this
+ * line goes to a sink the package does not control. Pass `null` on the paths
+ * that resolve no record (an unknown login email, a passkey ceremony that
+ * fails before its owner is known).
  */
 export async function notifyHook<R extends string, K extends CaughtHookName>(
   deps: { config: AuthConfig<R>; logger: AuthLogger },
-  site: string,
+  where: { site: string; subject: string | null },
   hook: K,
   ...args: Parameters<NonNullable<AuthHooks<R>[K]>>
 ): Promise<void> {
@@ -86,8 +94,9 @@ export async function notifyHook<R extends string, K extends CaughtHookName>(
   try {
     await fn(...args);
   } catch (err) {
+    const subject = where.subject ? ` for ${where.subject}` : '';
     deps.logger.error(
-      `[auth] ${site}: ${hook} hook threw (caught — the handler's outcome is unchanged)`,
+      `[auth] ${where.site}: ${hook} hook threw${subject} (caught — the handler's outcome is unchanged)`,
       err
     );
   }

@@ -190,6 +190,33 @@ describe('createChangeEmailHandler', () => {
     expect(deps.logger.error).toHaveBeenCalled();
   });
 
+  it('logs a throwing onEmailChangeFailed instead of leaving an unhandled rejection', async () => {
+    const deps = createMockAuthDeps({
+      config: {
+        hooks: {
+          onEmailChangeFailed: vi.fn().mockRejectedValue(new Error('consumer hook exploded'))
+        }
+      },
+      user: {
+        findById: vi.fn().mockResolvedValue(await currentUser()),
+        findByEmail: vi.fn().mockResolvedValue(null)
+      },
+      email: { send: vi.fn().mockRejectedValue(new Error('smtp down')) }
+    });
+    const ev = await authed(deps, { newEmail: 'new@test.com', currentPassword: 'current' });
+
+    expect((await run(deps, ev)).status).toBe(200);
+
+    // The hook reports a failure that already happened, detached from the
+    // response — an uncaught throw here is an unhandled rejection.
+    await vi.waitFor(() =>
+      expect(deps.logger.error).toHaveBeenCalledWith(
+        expect.stringContaining('onEmailChangeFailed'),
+        expect.any(Error)
+      )
+    );
+  });
+
   it('does not file a throwing onEmailChangeRequested as a failed issue', async () => {
     const onEmailChangeFailed = vi.fn().mockResolvedValue(undefined);
     const deps = createMockAuthDeps({

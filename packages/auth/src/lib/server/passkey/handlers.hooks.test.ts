@@ -194,6 +194,25 @@ describe('passkey login hooks (R10)', () => {
     expect(deps.hooks.onLoginSuccess).not.toHaveBeenCalled();
   });
 
+  it('still answers 400 when the onLoginFailed hook throws on a rejected assertion', async () => {
+    const deps = makeDeps();
+    // The hook fires from inside the handler's WebAuthnError catch, so an
+    // unguarded throw escapes as a 500 instead of the ceremony's own 400.
+    deps.hooks.onLoginFailed.mockRejectedValue(new Error('audit sink down'));
+    vi.mocked(deps.repos.passkey.findByCredentialId).mockResolvedValue(storedCredential);
+    vi.mocked(verifyAssertion).mockRejectedValue(new WebAuthnError('Signature mismatch'));
+
+    const res = await passkeyHandlers(deps).authenticationVerify.POST(
+      event(credentialBody, makeCookieJar())
+    );
+
+    expect(res.status).toBe(400);
+    expect(deps.logger.error).toHaveBeenCalledWith(
+      expect.stringContaining('onLoginFailed'),
+      expect.any(Error)
+    );
+  });
+
   it("fires onLoginFailed('', 'unknown_credential') for an unknown credential", async () => {
     const deps = makeDeps();
     const res = await passkeyHandlers(deps).authenticationVerify.POST(

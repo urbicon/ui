@@ -152,16 +152,62 @@ describe('createLoginHandler', () => {
     );
   });
 
-  it('still fails loud when the onLoginFailed hook throws (nothing succeeded to misreport)', async () => {
+  it('still answers 401 for an unknown email when the onLoginFailed hook throws', async () => {
     const deps = createMockDeps({ findByEmail: vi.fn().mockResolvedValue(null) });
     deps.config.hooks = {
       onLoginFailed: vi.fn().mockRejectedValue(new Error('audit sink down'))
     };
     const event = mockRequestEvent({ email: 'nobody@test.com', password: 'whatever' });
 
-    await expect(createLoginHandler(deps).POST(event as unknown as RequestEvent)).rejects.toThrow(
-      'audit sink down'
+    const res = await createLoginHandler(deps).POST(event as unknown as RequestEvent);
+    expect(res.status).toBe(401);
+    expect((await res.json()).code).toBe('invalid_credentials');
+    expect(deps.logger.error).toHaveBeenCalledWith(
+      expect.stringContaining('onLoginFailed'),
+      expect.any(Error)
     );
+  });
+
+  it('a throwing onLoginFailed hook neither hides the rejection nor stalls the lockout', async () => {
+    const pw = await hashPassword('correct');
+    let failed = 0;
+    const deps = createMockDeps({
+      findByEmail: vi.fn().mockResolvedValue(createMockUser({ passwordHash: pw })),
+      recordFailedLogin: vi.fn(async () => {
+        failed += 1;
+      }),
+      getFailedLoginAttempts: vi.fn(async () => ({
+        count: failed,
+        lockedUntil: failed >= 3 ? new Date(Date.now() + 60_000) : null,
+        lastFailedAt: null
+      }))
+    });
+    deps.config.lockout = { maxAttempts: 3, durationMinutes: 15 };
+    deps.config.hooks = {
+      onLoginFailed: vi.fn().mockRejectedValue(new Error('audit sink down'))
+    };
+    const handler = createLoginHandler(deps);
+
+    // recordFailedLogin runs before the hook, so every attempt counts whether
+    // or not the audit sink is up. The user must still be told *why* each one
+    // was rejected — a 500 reads as a server glitch worth retrying, and the
+    // retries walk straight into the lock.
+    for (let attempt = 1; attempt <= 3; attempt += 1) {
+      const res = await handler.POST(
+        mockRequestEvent({ email: 'test@test.com', password: 'wrong' }) as unknown as RequestEvent
+      );
+      expect(res.status).toBe(401);
+      expect((await res.json()).code).toBe('invalid_credentials');
+    }
+    expect(deps.logger.error).toHaveBeenCalledWith(
+      expect.stringContaining('onLoginFailed'),
+      expect.any(Error)
+    );
+
+    const locked = await handler.POST(
+      mockRequestEvent({ email: 'test@test.com', password: 'correct' }) as unknown as RequestEvent
+    );
+    expect(locked.status).toBe(423);
   });
 
   it('gates on 2FA: sets a pending cookie, no session, returns twoFactorRequired', async () => {

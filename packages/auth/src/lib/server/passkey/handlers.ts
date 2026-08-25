@@ -286,8 +286,10 @@ function authenticationVerifyHandler<R extends string>(
   // audit log sees passkey logins too. The email argument is '' on paths where
   // the ceremony fails before a user is resolved — discoverable login knows no
   // email up front; the reason string disambiguates.
+  // No subject: these ceremonies reject before an owner is resolved, and the
+  // only identifier they hold is the email — which must stay out of the log.
   const loginFailed = (email: string, reason: string) =>
-    deps.config.hooks?.onLoginFailed?.(email, reason);
+    notifyHook(deps, { site: 'passkey', subject: null }, 'onLoginFailed', email, reason);
 
   return {
     POST: async (event) => {
@@ -410,7 +412,7 @@ function authenticationVerifyHandler<R extends string>(
         // Post-commit: the counter is advanced and the session established.
         // The wrapper also keeps a hook that throws a WebAuthnError out of the
         // catch below, which would file a completed login as a failed assertion.
-        await notifyHook(deps, 'passkey', 'onLoginSuccess', safeUser);
+        await notifyHook(deps, { site: 'passkey', subject: user.id }, 'onLoginSuccess', safeUser);
         return json({ user: safeUser });
       } catch (err) {
         if (err instanceof WebAuthnError) {

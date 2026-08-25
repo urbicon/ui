@@ -42,7 +42,13 @@ export function createVerifyEmailChangeHandler<R extends string>(
 
       // user.email is the freshly-applied new address — the swap has already
       // committed.
-      await notifyHook(deps, 'verify-email-change', 'onEmailChanged', user.id, user.email);
+      await notifyHook(
+        deps,
+        { site: 'verify-email-change', subject: user.id },
+        'onEmailChanged',
+        user.id,
+        user.email
+      );
 
       return json({ success: true });
     }

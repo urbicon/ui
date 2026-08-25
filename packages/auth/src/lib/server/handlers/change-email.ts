@@ -70,7 +70,14 @@ export function createChangeEmailHandler<R extends string>(
           // Surface the decoupled failure through the observability hook (it
           // can't reach the user as an HTTP error). Detached, so an unguarded
           // throw here would be an unhandled rejection rather than a 500.
-          await notifyHook(deps, 'change-email', 'onEmailChangeFailed', user.id, newEmail, err);
+          await notifyHook(
+            deps,
+            { site: 'change-email', subject: user.id },
+            'onEmailChangeFailed',
+            user.id,
+            newEmail,
+            err
+          );
         }
       })();
 
@@ -120,5 +127,11 @@ async function issueEmailChange<R extends string>(
   // Token and both mails are out. Unguarded, a throw here would land in the
   // caller's catch and be filed as `onEmailChangeFailed` — the opposite of what
   // happened.
-  await notifyHook(deps, 'change-email', 'onEmailChangeRequested', user.id, newEmail);
+  await notifyHook(
+    deps,
+    { site: 'change-email', subject: user.id },
+    'onEmailChangeRequested',
+    user.id,
+    newEmail
+  );
 }

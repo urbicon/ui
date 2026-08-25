@@ -269,7 +269,7 @@ function verifyHandler<R extends string>(deps: AuthDeps<R>): { POST: RequestHand
       const safeUser = sanitizeUser(user);
       // Post-commit: the session is established and the single-use pending
       // cookie is spent — there is no second attempt to fall back to.
-      await notifyHook(deps, 'two-factor', 'onLoginSuccess', safeUser);
+      await notifyHook(deps, { site: 'two-factor', subject: user.id }, 'onLoginSuccess', safeUser);
 
       return json({ user: safeUser });
     }

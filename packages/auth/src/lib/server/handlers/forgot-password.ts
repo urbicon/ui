@@ -59,7 +59,13 @@ export function createForgotPasswordHandler<R extends string>(
               `[auth] forgot-password: failed to issue reset email (user ${user.id})`,
               err
             );
-            await notifyHook(deps, 'forgot-password', 'onPasswordResetFailed', user.email, err);
+            await notifyHook(
+              deps,
+              { site: 'forgot-password', subject: user.id },
+              'onPasswordResetFailed',
+              user.email,
+              err
+            );
           }
         })();
       }

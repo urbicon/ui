@@ -57,7 +57,15 @@ export function createLoginHandler<R extends string>(deps: AuthDeps<R>): { POST:
         // for a non-existent row would add fragility for no real gain, so we
         // accept this deliberately.
         await verifyPasswordWithMigration(password, await dummyHash(), deps.config.password);
-        await deps.config.hooks?.onLoginFailed?.(email, 'user_not_found');
+        // Audit-only, and the response is a rejection either way: a broken
+        // sink must not turn the 401 into a 500 the user reads as retryable.
+        await notifyHook(
+          deps,
+          { site: 'login', subject: null },
+          'onLoginFailed',
+          email,
+          'user_not_found'
+        );
         return authError('invalid_credentials', 401);
       }
 
@@ -78,7 +86,15 @@ export function createLoginHandler<R extends string>(deps: AuthDeps<R>): { POST:
       );
       if (!result.valid) {
         await deps.repos.user.recordFailedLogin(user.id, lockout);
-        await deps.config.hooks?.onLoginFailed?.(email, 'invalid_password');
+        // recordFailedLogin above has already counted this attempt, so a 500
+        // here would spend lockout budget while hiding the reason for it.
+        await notifyHook(
+          deps,
+          { site: 'login', subject: user.id },
+          'onLoginFailed',
+          email,
+          'invalid_password'
+        );
         return authError('invalid_credentials', 401);
       }
 
@@ -117,7 +133,7 @@ export function createLoginHandler<R extends string>(deps: AuthDeps<R>): { POST:
 
       const safeUser = sanitizeUser(user);
       // Post-commit: the session cookie is set and the failure counter reset.
-      await notifyHook(deps, 'login', 'onLoginSuccess', safeUser);
+      await notifyHook(deps, { site: 'login', subject: user.id }, 'onLoginSuccess', safeUser);
 
       return json({ user: safeUser });
     }

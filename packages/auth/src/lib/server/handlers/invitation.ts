@@ -207,7 +207,13 @@ export function createInvitationHandlers<R extends string>(
             `[auth] invitation for ${email} was created but the invite email failed to send:`,
             err
           );
-          await notifyHook(deps, 'invitation', 'onInvitationEmailFailed', email, err);
+          await notifyHook(
+            deps,
+            { site: 'invitation', subject: invitation.id },
+            'onInvitationEmailFailed',
+            email,
+            err
+          );
         }
       }
 

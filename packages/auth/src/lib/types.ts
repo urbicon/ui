@@ -450,17 +450,16 @@ export interface AuthConfig<R extends string = string> {
    * Consumer callbacks fired at named points in the auth flows. Every one
    * states what a throw inside it does, and there are only two answers:
    *
-   * - **Caught and logged** — the hook reports an action that has already
-   *   committed, so a failure inside it must not present a completed
-   *   registration, reset or login as a `500`. The error goes to
-   *   `config.logger.error`; it is never swallowed.
-   * - **Aborts the request** — either the hook gates an outcome that has not
-   *   happened yet (`onBeforeAccountDelete`, `transformUser`), or the request
-   *   is already a rejection (`onLoginFailed`) and there is nothing successful
-   *   to misreport.
+   * - **Caught and logged** — the hook only reports, so a failure inside it
+   *   must not change the status the handler had earned. The error goes to
+   *   `config.logger.error`; it is never swallowed. This is every hook except
+   *   the two below.
+   * - **Aborts the request** — `onBeforeAccountDelete` and `transformUser`
+   *   gate an outcome that has not happened yet, so the caller must see the
+   *   throw.
    *
-   * The split follows from *when* a hook runs, not from what it does: a hook
-   * placed after the write it reports on belongs in the first group.
+   * The split follows from what a hook *is*, not from where it is called: an
+   * observer never gets to fail a request, a gate always does.
    */
   hooks?: {
     /**
@@ -500,9 +499,11 @@ export interface AuthConfig<R extends string = string> {
      * passkey path — where `email` is `''`, because those ceremonies resolve no
      * address (the reason disambiguates).
      *
-     * A throw is **not** caught and fails the request. The response was a
-     * rejection either way, so nothing successful is misreported and a broken
-     * audit sink stays loud.
+     * A throw is caught and logged. On the `invalid_password` path the failed
+     * attempt has already been counted towards the lockout, so a `500` would
+     * spend that budget while hiding from the user that their password was
+     * wrong; on the others it would replace a precise `401` with a status that
+     * invites a retry.
      */
     onLoginFailed?: (email: string, reason: string) => Promise<void>;
     /**
@@ -582,8 +583,16 @@ export interface AuthConfig<R extends string = string> {
      * re-resolves the session and keeps `locals.user` consistently typed.
      *
      * A throw fails the request (wrap your own logic in try/catch for
-     * resilience). Whatever you return lands on `locals.user`, so don't add
-     * secrets if `locals.user` is serialized to the client.
+     * resilience) — with one exception it cannot be allowed to break: when the
+     * request arrived on an expired access cookie and the handle hook rotated
+     * the refresh token to keep it going, the rotation is already committed and
+     * its replacement cookies are staged on the response. There a throw is
+     * caught and logged and the request continues unauthenticated, because
+     * losing those cookies would strand the browser on a spent token and get
+     * the whole refresh family revoked as a suspected theft.
+     *
+     * Whatever you return lands on `locals.user`, so don't add secrets if
+     * `locals.user` is serialized to the client.
      *
      * **Shape contract:** the notification handlers (stream, preferences,
      * push-subscription, CRUD) identify the caller via `locals.user.id`, so

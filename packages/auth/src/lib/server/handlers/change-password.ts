@@ -70,7 +70,12 @@ export function createChangePasswordHandler<R extends string>(
 
       // Post-commit: the password is already changed and every other session
       // already dropped.
-      await notifyHook(deps, 'change-password', 'onPasswordChanged', user.id);
+      await notifyHook(
+        deps,
+        { site: 'change-password', subject: user.id },
+        'onPasswordChanged',
+        user.id
+      );
 
       return json({ success: true });
     }

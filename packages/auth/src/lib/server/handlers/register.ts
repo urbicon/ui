@@ -201,7 +201,12 @@ export function createRegisterHandler<R extends string>(
       // Post-commit: the row exists and the single-use invitation is spent. A
       // throwing hook that surfaced as a 500 would send the registrant into a
       // retry that answers `invitation_used` 403 — locked out for good.
-      await notifyHook(deps, 'register', 'onUserCreated', sanitizeUser(fullUser));
+      await notifyHook(
+        deps,
+        { site: 'register', subject: fullUser.id },
+        'onUserCreated',
+        sanitizeUser(fullUser)
+      );
 
       // Auto-login — access + optional refresh cookie, tagged with device meta.
       await establishSession(

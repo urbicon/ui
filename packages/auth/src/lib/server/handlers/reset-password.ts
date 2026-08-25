@@ -54,7 +54,12 @@ export function createResetPasswordHandler<R extends string>(
 
       // Post-commit: the token is spent and the new password is live, so a
       // throwing hook must not report the reset as failed.
-      await notifyHook(deps, 'reset-password', 'onPasswordChanged', user.id);
+      await notifyHook(
+        deps,
+        { site: 'reset-password', subject: user.id },
+        'onPasswordChanged',
+        user.id
+      );
 
       return json({ success: true });
     }
