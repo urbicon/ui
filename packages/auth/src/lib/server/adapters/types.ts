@@ -462,7 +462,15 @@ export interface NotificationRepository {
     userId: string,
     options?: { limit?: number; unreadOnly?: boolean }
   ): Promise<NotificationRecord[]>;
-  /** Scoped to the owner: a non-owner's call MUST NOT flip the read state. */
+  /**
+   * Scoped to the owner: a non-owner's call MUST NOT flip the read state.
+   *
+   * The first stamp stands. The route is deliberately idempotent, so a repeat
+   * — a second open tab, a retry — is the normal case, and `readAt` reaches
+   * the client as *when the user read this*. Guard the write on `readAt: null`
+   * the way {@link NotificationRepository.markAllAsRead} does, so a repeat
+   * cannot move a three-day-old timestamp to now.
+   */
   markAsRead(userId: string, id: string): Promise<void>;
   markAllAsRead(userId: string): Promise<void>;
   /** Scoped to the owner: a non-owner's call MUST NOT delete the row. */
