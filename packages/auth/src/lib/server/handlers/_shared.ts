@@ -41,25 +41,40 @@ type AuthHooks<R extends string> = NonNullable<AuthConfig<R>['hooks']>;
 type HookName = keyof AuthHooks<string> & string;
 
 /**
- * `Exclude`, constrained so its second argument must really be a subset of the
- * first. Plain `Exclude<Keys, 'gone'>` with a name that is no longer a key is a
- * silent no-op, which would move a hook from the aborting list into the caught
- * one without a word — the failure mode the split exists to prevent. The
- * `Excluded extends Keys` bound turns a renamed or misspelt hook into an error
- * at {@link CaughtHookName} below.
+ * What a throw out of each consumer hook does — `abort` for the two that gate
+ * an outcome which has not happened yet, `catch` for everything that only
+ * reports. Each hook's own doc comment on `AuthConfig.hooks` carries the
+ * reasoning; this is where a reader looks up the split.
+ *
+ * `satisfies Record<HookName, …>` makes the classification **total**, which is
+ * the point of the table: a hook added to `AuthConfig.hooks` without an entry
+ * here does not compile, and neither does an entry whose hook was renamed or
+ * removed. Both unions below are projections of it, so no third place can
+ * disagree with it. Compile-time only — nothing reads it at runtime.
  */
-type ExcludeKeys<Keys extends string, Excluded extends Keys> = Exclude<Keys, Excluded>;
+const HOOK_CLASS = {
+  onUserCreated: 'catch',
+  onPasswordChanged: 'catch',
+  onLoginSuccess: 'catch',
+  onLoginFailed: 'catch',
+  onPasswordResetFailed: 'catch',
+  onInvitationEmailFailed: 'catch',
+  onEmailChangeRequested: 'catch',
+  onEmailChangeFailed: 'catch',
+  onEmailChanged: 'catch',
+  onBeforeAccountDelete: 'abort',
+  transformUser: 'abort'
+} satisfies Record<HookName, 'abort' | 'catch'>;
 
-/**
- * The hooks whose throw must reach the caller. Both gate an outcome that has
- * not happened yet: `onBeforeAccountDelete` fail-closes the deletion, and
- * `transformUser` builds `locals.user` on the read path, where nothing is
- * committed. Each says so in its own doc comment on `AuthConfig.hooks`.
- */
-type AbortingHookName = 'onBeforeAccountDelete' | 'transformUser';
+export type HookNamesOfClass<C extends 'abort' | 'catch'> = {
+  [K in HookName]: (typeof HOOK_CLASS)[K] extends C ? K : never;
+}[HookName];
 
-/** Every other hook: a throw is caught and logged. */
-export type CaughtHookName = ExcludeKeys<HookName, AbortingHookName>;
+/** A throw reaches the caller: `onBeforeAccountDelete`, `transformUser`. */
+export type AbortingHookName = HookNamesOfClass<'abort'>;
+
+/** A throw is caught and logged — every other hook. */
+export type CaughtHookName = HookNamesOfClass<'catch'>;
 
 /**
  * Invoke a consumer hook so a throw inside it cannot change what the handler

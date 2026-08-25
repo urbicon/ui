@@ -283,13 +283,14 @@ function authenticationVerifyHandler<R extends string>(
 
   // Audit-seam parity with the password login: every
   // terminal outcome of a passkey login fires the same consumer hooks, so an
-  // audit log sees passkey logins too. The email argument is '' on paths where
-  // the ceremony fails before a user is resolved — discoverable login knows no
-  // email up front; the reason string disambiguates.
-  // No subject: these ceremonies reject before an owner is resolved, and the
-  // only identifier they hold is the email — which must stay out of the log.
-  const loginFailed = (email: string, reason: string) =>
-    notifyHook(deps, { site: 'passkey', subject: null }, 'onLoginFailed', email, reason);
+  // audit log sees passkey logins too. The email argument is '' on every path —
+  // discoverable login knows no address up front; the reason string
+  // disambiguates. `subject` is the stored credential's owner where the path
+  // got that far, and `null` on the three that reject before any lookup
+  // resolves one (challenge_missing, unknown_credential, invalid_assertion) —
+  // never the email, which must stay out of the log.
+  const loginFailed = (email: string, reason: string, subject: string | null) =>
+    notifyHook(deps, { site: 'passkey', subject }, 'onLoginFailed', email, reason);
 
   return {
     POST: async (event) => {
@@ -306,7 +307,7 @@ function authenticationVerifyHandler<R extends string>(
       const cookieName = webauthnAuthCookieName(secure);
       const ceremonyId = cookies.get(cookieName);
       if (!ceremonyId) {
-        await loginFailed('', 'challenge_missing');
+        await loginFailed('', 'challenge_missing', null);
         return authError('passkey_verification_failed', 400, {
           message: 'Challenge expired or not found'
         });
@@ -327,7 +328,7 @@ function authenticationVerifyHandler<R extends string>(
         // Look up the stored credential
         const stored = await passkeyRepo.findByCredentialId(credential.id);
         if (!stored) {
-          await loginFailed('', 'unknown_credential');
+          await loginFailed('', 'unknown_credential', null);
           return authError('passkey_verification_failed', 400, { message: 'Unknown credential' });
         }
 
@@ -357,7 +358,7 @@ function authenticationVerifyHandler<R extends string>(
             handleUserId = null;
           }
           if (handleUserId !== stored.userId) {
-            await loginFailed('', 'user_handle_mismatch');
+            await loginFailed('', 'user_handle_mismatch', stored.userId);
             return authError('passkey_verification_failed', 400, {
               message: 'User handle mismatch'
             });
@@ -378,12 +379,12 @@ function authenticationVerifyHandler<R extends string>(
           // on this rare fail-closed path; the rejection is identical either way.
           const stillStored = await passkeyRepo.findByCredentialId(stored.credentialId);
           if (!stillStored) {
-            await loginFailed('', 'credential_deleted');
+            await loginFailed('', 'credential_deleted', stored.userId);
             return authError('passkey_verification_failed', 400, {
               message: 'Credential no longer exists'
             });
           }
-          await loginFailed('', 'counter_regression');
+          await loginFailed('', 'counter_regression', stored.userId);
           return authError('passkey_verification_failed', 400, {
             message: 'Counter did not increase — possible cloned authenticator'
           });
@@ -392,7 +393,7 @@ function authenticationVerifyHandler<R extends string>(
         // Load user and create session
         const user = await deps.repos.user.findById(stored.userId);
         if (!user) {
-          await loginFailed('', 'user_not_found');
+          await loginFailed('', 'user_not_found', stored.userId);
           return authError('passkey_verification_failed', 400, { message: 'User not found' });
         }
 
@@ -418,7 +419,7 @@ function authenticationVerifyHandler<R extends string>(
         if (err instanceof WebAuthnError) {
           // The assertion itself was rejected (bad signature, challenge
           // mismatch, origin, …) — the audit-relevant failure class.
-          await loginFailed('', 'invalid_assertion');
+          await loginFailed('', 'invalid_assertion', null);
           return authError('passkey_verification_failed', 400, { message: err.message });
         }
         throw err;

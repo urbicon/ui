@@ -194,6 +194,26 @@ describe('passkey login hooks (R10)', () => {
     expect(deps.hooks.onLoginSuccess).not.toHaveBeenCalled();
   });
 
+  it('names the credential owner when the onLoginFailed hook throws on a path that resolved one', async () => {
+    const deps = makeDeps();
+    deps.hooks.onLoginFailed.mockRejectedValue(new Error('audit sink down'));
+    vi.mocked(deps.repos.passkey.findByCredentialId).mockResolvedValue(storedCredential);
+    // user_not_found: findById just missed stored.userId, so that id is exactly
+    // what an operator needs from the log line.
+    vi.mocked(deps.repos.user.findById).mockResolvedValue(null);
+    vi.mocked(verifyAssertion).mockResolvedValue({ credentialId: 'cred-abc', newCounter: 1 });
+
+    const res = await passkeyHandlers(deps).authenticationVerify.POST(
+      event(credentialBody, makeCookieJar())
+    );
+
+    expect(res.status).toBe(400);
+    expect(deps.logger.error).toHaveBeenCalledWith(
+      expect.stringContaining('u-1'),
+      expect.any(Error)
+    );
+  });
+
   it('still answers 400 when the onLoginFailed hook throws on a rejected assertion', async () => {
     const deps = makeDeps();
     // The hook fires from inside the handler's WebAuthnError catch, so an
