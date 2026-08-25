@@ -52,15 +52,15 @@
       "exports": ["Accordion", "AccordionItem"]
     },
     "AccountSettings": {
-      "min": 118666,
-      "gz": 34002,
+      "min": 118633,
+      "gz": 33991,
       "net": {
-        "min": 104650,
-        "gz": 29380
+        "min": 104617,
+        "gz": 29375
       },
       "lazy": {
         "min": 7502,
-        "gz": 3244
+        "gz": 3245
       },
       "pkg": "auth",
       "exports": ["AccountSettings"]
@@ -934,11 +934,11 @@
       "exports": ["ReasoningDisclosure"]
     },
     "RegisterPage": {
-      "min": 102030,
-      "gz": 30170,
+      "min": 101997,
+      "gz": 30159,
       "net": {
-        "min": 88016,
-        "gz": 25551
+        "min": 87983,
+        "gz": 25543
       },
       "lazy": {
         "min": 7502,
@@ -948,11 +948,11 @@
       "exports": ["RegisterPage"]
     },
     "ResetPasswordPage": {
-      "min": 101510,
-      "gz": 30025,
+      "min": 101477,
+      "gz": 30015,
       "net": {
-        "min": 87490,
-        "gz": 25395
+        "min": 87457,
+        "gz": 25384
       },
       "lazy": {
         "min": 7502,
@@ -1200,15 +1200,15 @@
       "exports": ["Tab", "TabItem", "TabPanel"]
     },
     "Table": {
-      "min": 393744,
-      "gz": 98752,
+      "min": 393767,
+      "gz": 98873,
       "net": {
-        "min": 379732,
-        "gz": 94150
+        "min": 379755,
+        "gz": 94267
       },
       "lazy": {
         "min": 7502,
-        "gz": 3244
+        "gz": 3243
       },
       "pkg": "table",
       "exports": ["Table"]

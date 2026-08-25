@@ -5,7 +5,7 @@ import type { PasskeyRepository } from '../adapters/types.js';
 import { sanitizeUser } from '../auth.js';
 import type { AuthDeps } from '../deps.js';
 import { base64UrlDecode } from '../encoding.js';
-import { requireSessionUser } from '../handlers/_shared.js';
+import { notifyHook, requireSessionUser } from '../handlers/_shared.js';
 import { authError } from '../handlers/errors.js';
 import { enforceRateLimit, makeRateLimiter, type RateLimiter } from '../rate-limit.js';
 import { establishSession, resolveSessionMeta } from '../session.js';
@@ -296,11 +296,14 @@ function authenticationVerifyHandler<R extends string>(
 
   // Audit-seam parity with the password login: every
   // terminal outcome of a passkey login fires the same consumer hooks, so an
-  // audit log sees passkey logins too. The email argument is '' on paths where
-  // the ceremony fails before a user is resolved — discoverable login knows no
-  // email up front; the reason string disambiguates.
-  const loginFailed = (email: string, reason: string) =>
-    deps.config.hooks?.onLoginFailed?.(email, reason);
+  // audit log sees passkey logins too. The email argument is '' on every path —
+  // discoverable login knows no address up front; the reason string
+  // disambiguates. `subject` is the stored credential's owner where the path
+  // got that far, and `null` on the three that reject before any lookup
+  // resolves one (challenge_missing, unknown_credential, invalid_assertion) —
+  // never the email, which must stay out of the log.
+  const loginFailed = (email: string, reason: string, subject: string | null) =>
+    notifyHook(deps, { site: 'passkey', subject }, 'onLoginFailed', email, reason);
 
   return {
     POST: async (event) => {
@@ -317,7 +320,7 @@ function authenticationVerifyHandler<R extends string>(
       const cookieName = webauthnAuthCookieName(secure);
       const ceremonyId = cookies.get(cookieName);
       if (!ceremonyId) {
-        await loginFailed('', 'challenge_missing');
+        await loginFailed('', 'challenge_missing', null);
         return authError('passkey_verification_failed', 400);
       }
       // Invalidate the single-use handle immediately, so no error path (or
@@ -336,7 +339,7 @@ function authenticationVerifyHandler<R extends string>(
         // Look up the stored credential
         const stored = await passkeyRepo.findByCredentialId(credential.id);
         if (!stored) {
-          await loginFailed('', 'unknown_credential');
+          await loginFailed('', 'unknown_credential', null);
           return authError('passkey_verification_failed', 400);
         }
 
@@ -366,7 +369,7 @@ function authenticationVerifyHandler<R extends string>(
             handleUserId = null;
           }
           if (handleUserId !== stored.userId) {
-            await loginFailed('', 'user_handle_mismatch');
+            await loginFailed('', 'user_handle_mismatch', stored.userId);
             return authError('passkey_verification_failed', 400);
           }
         }
@@ -385,10 +388,10 @@ function authenticationVerifyHandler<R extends string>(
           // on this rare fail-closed path; the rejection is identical either way.
           const stillStored = await passkeyRepo.findByCredentialId(stored.credentialId);
           if (!stillStored) {
-            await loginFailed('', 'credential_deleted');
+            await loginFailed('', 'credential_deleted', stored.userId);
             return authError('passkey_verification_failed', 400);
           }
-          await loginFailed('', 'counter_regression');
+          await loginFailed('', 'counter_regression', stored.userId);
           // Logged as well as hooked: this is the one outcome an operator must
           // see even without an `onLoginFailed` hook wired, and the words
           // "possible cloned authenticator" belong nowhere near an end user.
@@ -401,7 +404,7 @@ function authenticationVerifyHandler<R extends string>(
         // Load user and create session
         const user = await deps.repos.user.findById(stored.userId);
         if (!user) {
-          await loginFailed('', 'user_not_found');
+          await loginFailed('', 'user_not_found', stored.userId);
           return authError('passkey_verification_failed', 400);
         }
 
@@ -418,13 +421,16 @@ function authenticationVerifyHandler<R extends string>(
         );
 
         const safeUser = sanitizeUser(user);
-        await deps.config.hooks?.onLoginSuccess?.(safeUser);
+        // Post-commit: the counter is advanced and the session established.
+        // The wrapper also keeps a hook that throws a WebAuthnError out of the
+        // catch below, which would file a completed login as a failed assertion.
+        await notifyHook(deps, { site: 'passkey', subject: user.id }, 'onLoginSuccess', safeUser);
         return json({ user: safeUser });
       } catch (err) {
         if (err instanceof WebAuthnError) {
           // The assertion itself was rejected (bad signature, challenge
           // mismatch, origin, …) — the audit-relevant failure class.
-          await loginFailed('', 'invalid_assertion');
+          await loginFailed('', 'invalid_assertion', null);
           // `invalid_assertion` collapses every WebAuthn cause into one reason;
           // the specific one is only in the error, so it goes to the log.
           deps.logger.warn('[auth] passkey assertion rejected:', err.message);

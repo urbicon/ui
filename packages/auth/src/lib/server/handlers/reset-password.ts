@@ -5,7 +5,7 @@ import type { AuthDeps } from '../deps.js';
 import { hashPassword } from '../password.js';
 import { enforceRateLimit, makeRateLimiter } from '../rate-limit.js';
 import { validateResetPasswordInput } from '../validation.js';
-import { parseBody, passwordRefusal } from './_shared.js';
+import { notifyHook, parseBody, passwordRefusal } from './_shared.js';
 import { authError } from './errors.js';
 
 export function createResetPasswordHandler<R extends string>(
@@ -47,7 +47,14 @@ export function createResetPasswordHandler<R extends string>(
       await deps.repos.user.incrementTokenVersion(user.id);
       await deps.repos.refreshToken?.revokeAllForUser(user.id);
 
-      await deps.config.hooks?.onPasswordChanged?.(user.id);
+      // Post-commit: the token is spent and the new password is live, so a
+      // throwing hook must not report the reset as failed.
+      await notifyHook(
+        deps,
+        { site: 'reset-password', subject: user.id },
+        'onPasswordChanged',
+        user.id
+      );
 
       return json({ success: true });
     }

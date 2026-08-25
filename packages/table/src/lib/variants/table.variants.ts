@@ -4,7 +4,7 @@
  * packages/blocks/docs/VARIANT-CONTRACT.md § Table chrome, for what each value means).
  */
 
-import { tv, type VariantProps } from '@urbicon-ui/blocks';
+import { type TVConfig, tv, type VariantProps } from '@urbicon-ui/blocks';
 import { TABLE_DIMENSIONS, TABLE_INDICATORS, TABLE_STATES } from './table.system';
 
 /**
@@ -135,13 +135,17 @@ export const tableHeaderVariants = tv({
 
     // Sticky thead — pins the entire `<thead>` against the page scroll
     // ancestor, offset by the toolbar height (if present).
+    //
+    // No `data-*` selector belongs in this slot: `TableHead.svelte` renders the
+    // `<thead>` with a fixed attribute set (class, role, one attachment) and no
+    // rest spread, so nothing can put an attribute on it from outside. The
+    // stuck-shadow feedback is the toolbar's alone (`tableContainerVariants`),
+    // where the element is a `<div>` the component writes `data-stuck` on.
     sticky: {
       true: {
         header: [
           'sticky z-20 bg-surface-elevated',
-          'top-[calc(var(--blocks-table-sticky-top,0px)+var(--blocks-table-toolbar-h,0px))]',
-          'data-[stuck=true]:shadow-[var(--blocks-shadow-md)]',
-          'transition-shadow duration-[var(--blocks-duration-fast)]'
+          'top-[calc(var(--blocks-table-sticky-top,0px)+var(--blocks-table-toolbar-h,0px))]'
         ],
         row: 'bg-surface-elevated'
       },
@@ -435,7 +439,37 @@ const CARDS_BELOW_STEPS: Record<CardsBelowStep, { desktopOnly: string; mobileOnl
  */
 export const CARDS_BELOW_VALUES = Object.keys(CARDS_BELOW_STEPS) as CardsBelowStep[];
 
-export const tableContainerVariants = tv({
+/**
+ * The box both halves of a step are measured against. Named because it is read
+ * twice — the `container` slot emits it, `LAYOUT_SWITCH_CLASSES` protects it —
+ * and a second copy could drift from the first exactly the way two copies of a
+ * step's halves could.
+ */
+const QUERY_CONTAINER = '@container';
+
+/**
+ * The desktop/card switch in full: the query container plus every step's two
+ * halves. It is one mechanism and only works as a set — without the container
+ * neither `@max-…:hidden` nor `@min-…:hidden` matches anything, so neither
+ * layout hides and the grid and the card list render at once.
+ *
+ * `unstyled` replaces the table's LOOK; these classes decide which markup is
+ * VISIBLE, so `resolveSlotClass` carries them through it. Before that the two
+ * halves survived `unstyled` (they reach the DOM as call-site classes) and the
+ * container did not (it is a slot base) — this list is what puts all three on
+ * one side of that line.
+ *
+ * Derived, not listed: a step added to `CARDS_BELOW_STEPS` joins on its own.
+ */
+export const LAYOUT_SWITCH_CLASSES: readonly string[] = [
+  QUERY_CONTAINER,
+  ...Object.values(CARDS_BELOW_STEPS).flatMap(({ desktopOnly, mobileOnly }) => [
+    desktopOnly,
+    mobileOnly
+  ])
+];
+
+const rawTableContainerVariants = tv({
   slots: {
     // `@container` is what makes the desktop-table/mobile-record switch measure
     // the box the table actually got instead of the browser window. The two are
@@ -456,7 +490,13 @@ export const tableContainerVariants = tv({
     // `container-type: inline-size` on a `.table-container` class that no
     // element ever carried, so the `@container` helper rules beside it queried
     // nothing. That dead block is gone with this.
-    container: ['@container flex flex-col gap-2 w-full'],
+    //
+    // Only the container survives `unstyled` (`LAYOUT_SWITCH_CLASSES`): it is
+    // the switch's measuring box, not a look. `flex flex-col gap-2 w-full` is a
+    // look and goes — together with every class in this config that leans on
+    // that flex context (`contained`'s `shrink-0` / `flex-auto` / `min-h-0`
+    // below), so `unstyled` cannot leave a flex child without its flex parent.
+    container: [QUERY_CONTAINER, 'flex flex-col gap-2 w-full'],
 
     // ── The layout switch ────────────────────────────────────────────────────
     //
@@ -483,6 +523,11 @@ export const tableContainerVariants = tv({
     // separated toolbar strip.
     toolbar: ['transition-shadow duration-[var(--blocks-duration-fast)]'],
     scrollArea: [],
+
+    // The live-update banner and the pager wrapper — the flex siblings that
+    // flank `scrollArea`. Empty outside `contained`, where they are the two
+    // children that must keep their height while the scroll area takes the rest.
+    containedChrome: [],
     table: ['w-full border-collapse'],
     body: []
   },
@@ -549,23 +594,22 @@ export const tableContainerVariants = tv({
     // would collapse the box for short tables) + `min-h-0` so only the rows
     // scroll.
     //
-    // ── The one switch here that is deliberately NOT container-keyed ─────────
-    //
-    // `md:` is the VIEWPORT, and on purpose: everything else the table switches
-    // on asks "how much room did this box get", but this asks "would a nested
-    // scroll box be the wrong thing here" — and on a phone it is, whatever the
-    // box measures, because the reader would be dragging one scroller inside
-    // another. A wide-window sidebar 400px across is a perfectly good scroll
-    // box; a 400px phone is not, and only the viewport can tell those apart.
-    //
-    // Also note the cap has to live on the container slot, which IS the
-    // `@container` — a container query cannot style its own container, so this
-    // could not be `@3xl:` even if the question were the right one.
+    // No width term of any kind, viewport or container: `fit="viewport"` is an
+    // assertion by the consumer — "this table owns the page height" — not
+    // something the library can measure, so it is honoured at every width. A
+    // width gate here withholds the treatment exactly where the prop's stated
+    // purpose (catching horizontal overflow so the page does not scroll
+    // sideways) matters most. (#269)
     contained: {
       true: {
-        container: ['md:max-h-[calc(100dvh-var(--blocks-table-avail-top,0px))]'],
-        scrollArea: ['md:min-h-0 md:flex-auto md:overflow-auto'],
-        toolbar: ['md:shrink-0']
+        container: ['max-h-[calc(100dvh-var(--blocks-table-avail-top,0px))]'],
+        scrollArea: ['min-h-0 flex-auto overflow-auto'],
+        toolbar: ['shrink-0'],
+        // Also the banner + pager wrappers in `Table.svelte`. They read the
+        // class from here rather than writing it as a markup literal because
+        // `style/index.css` scans `../variants` and nothing else — a class that
+        // exists only in a `.svelte` file emits no CSS in a consumer's build.
+        containedChrome: ['shrink-0']
       },
       false: {}
     }
@@ -579,4 +623,54 @@ export const tableContainerVariants = tv({
   }
 });
 
-export type TableContainerVariantProps = VariantProps<typeof tableContainerVariants>;
+/**
+ * `stickyToolbar` and `contained` are mutually exclusive, and the exported
+ * function is where that has to be said.
+ *
+ * `contained` makes the scrollArea the scroll box while the container keeps no
+ * `overflow` of its own, so a `position: sticky` toolbar inside it pins against
+ * the PAGE rather than against the frame it belongs to — and a direct variant
+ * caller writes no `--blocks-table-sticky-top`, so it pins at the document top.
+ * `<Table>` cannot emit the pair (`resolveStickyMode(_, true)` forces
+ * `toolbar: false`); only a hand-written call can, which is what this function
+ * is exported for.
+ *
+ * Two things decide the shape below.
+ *
+ * The refusal cannot live on {@link TableContainerVariantProps}: `VariantProps`
+ * is derived FROM the call signature, so rewriting the alias leaves the
+ * forbidden call compiling unchanged. It has to be an annotation on the
+ * constant.
+ *
+ * And it cannot be a union of two object types (`contained?: false` vs
+ * `contained: true`), because the one caller in the repo passes two
+ * `boolean`-typed values — `<Table>` holds the invariant at runtime, not in its
+ * types — and a union rejects `boolean × boolean` in both members. A conditional
+ * over the inferred argument rejects exactly the pair of literal `true`s and
+ * nothing else; the sentence is a property name so the compiler prints the
+ * reason instead of "not assignable".
+ */
+type RejectPinnedToolbarInBox<P> = P extends { stickyToolbar: true; contained: true }
+  ? { 'a page-pinned toolbar cannot live in a contained scroll box': never }
+  : unknown;
+
+export type TableContainerVariantProps = VariantProps<typeof rawTableContainerVariants>;
+
+type RawTableContainerSlots = ReturnType<typeof rawTableContainerVariants>;
+
+/**
+ * Slot functions take the variant props again, so the same pair is reachable
+ * one level down (`styles.toolbar({ stickyToolbar: true, contained: true })`)
+ * and is refused there on the same terms.
+ */
+type TableContainerSlots = {
+  [K in keyof RawTableContainerSlots]: <
+    P extends NonNullable<Parameters<RawTableContainerSlots[K]>[0]>
+  >(
+    props?: P & RejectPinnedToolbarInBox<P>
+  ) => string;
+};
+
+export const tableContainerVariants: (<P extends TableContainerVariantProps>(
+  props?: P & RejectPinnedToolbarInBox<P>
+) => TableContainerSlots) & { readonly config: TVConfig } = rawTableContainerVariants;

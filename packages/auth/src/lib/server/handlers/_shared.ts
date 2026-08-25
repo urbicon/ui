@@ -1,6 +1,6 @@
 import type { Cookies } from '@sveltejs/kit';
 import { resolvePasswordPolicy, unmetPasswordRules } from '../../password-policy.js';
-import type { AuthLogger, JwtConfig, PasswordConfig } from '../../types.js';
+import type { AuthConfig, AuthLogger, JwtConfig, PasswordConfig } from '../../types.js';
 import type { FullAuthUser, UserRepository } from '../adapters/types.js';
 import type { AuthDeps } from '../deps.js';
 import { passwordRuleMessage, verifyPasswordWithMigration } from '../password.js';
@@ -36,6 +36,86 @@ export async function parseBody<T>(
     });
   }
   return { data: input.data };
+}
+
+type AuthHooks<R extends string> = NonNullable<AuthConfig<R>['hooks']>;
+type HookName = keyof AuthHooks<string> & string;
+
+/**
+ * What a throw out of each consumer hook does — `abort` for the two that gate
+ * an outcome which has not happened yet, `catch` for everything that only
+ * reports. Each hook's own doc comment on `AuthConfig.hooks` carries the
+ * reasoning; this is where a reader looks up the split.
+ *
+ * `satisfies Record<HookName, …>` makes the classification **total**, which is
+ * the point of the table: a hook added to `AuthConfig.hooks` without an entry
+ * here does not compile, and neither does an entry whose hook was renamed or
+ * removed. Both unions below are projections of it, so no third place can
+ * disagree with it. Compile-time only — nothing reads it at runtime.
+ */
+const HOOK_CLASS = {
+  onUserCreated: 'catch',
+  onPasswordChanged: 'catch',
+  onLoginSuccess: 'catch',
+  onLoginFailed: 'catch',
+  onPasswordResetFailed: 'catch',
+  onInvitationEmailFailed: 'catch',
+  onEmailChangeRequested: 'catch',
+  onEmailChangeFailed: 'catch',
+  onEmailChanged: 'catch',
+  onBeforeAccountDelete: 'abort',
+  transformUser: 'abort'
+} satisfies Record<HookName, 'abort' | 'catch'>;
+
+export type HookNamesOfClass<C extends 'abort' | 'catch'> = {
+  [K in HookName]: (typeof HOOK_CLASS)[K] extends C ? K : never;
+}[HookName];
+
+/** A throw reaches the caller: `onBeforeAccountDelete`, `transformUser`. */
+export type AbortingHookName = HookNamesOfClass<'abort'>;
+
+/** A throw is caught and logged — every other hook. */
+export type CaughtHookName = HookNamesOfClass<'catch'>;
+
+/**
+ * Invoke a consumer hook so a throw inside it cannot change what the handler
+ * already achieved.
+ *
+ * These hooks all report rather than gate, and every call site runs after the
+ * outcome it reports — the write is committed, the cookie is set, or the
+ * response has already been sent (the detached forgot-password / change-email
+ * paths). A throw there could only replace a truthful status with a `500`.
+ *
+ * The error is always logged, never swallowed. `deps.logger` is shielded
+ * against a throwing consumer sink when the bundle came from `createAuthDeps`;
+ * a hand-assembled `AuthDeps` carries whatever logger it was given.
+ *
+ * `hook` is a key of the hooks object rather than a label, so the name in the
+ * log line and the function invoked cannot disagree. `subject` identifies the
+ * affected record — an **id, never an email address or other PII**, since this
+ * line goes to a sink the package does not control. Pass `null` on the paths
+ * that resolve no record (an unknown login email, a passkey ceremony that
+ * fails before its owner is known).
+ */
+export async function notifyHook<R extends string, K extends CaughtHookName>(
+  deps: { config: AuthConfig<R>; logger: AuthLogger },
+  where: { site: string; subject: string | null },
+  hook: K,
+  ...args: Parameters<NonNullable<AuthHooks<R>[K]>>
+): Promise<void> {
+  const fn = deps.config.hooks?.[hook] as
+    | ((...hookArgs: Parameters<NonNullable<AuthHooks<R>[K]>>) => Promise<void> | void)
+    | undefined;
+  if (!fn) return;
+  try {
+    await fn(...args);
+  } catch (err) {
+    const subject = where.subject ? ` for ${where.subject}` : '';
+    deps.logger.error(
+      `[auth] ${where.site}: ${hook} hook threw${subject} (caught — the handler's outcome is unchanged)`,
+      err
+    );
+  }
 }
 
 /**
