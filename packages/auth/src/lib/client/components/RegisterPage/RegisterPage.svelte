@@ -1,10 +1,10 @@
 <script lang="ts">
-  import { Button, Input } from '@urbicon-ui/blocks';
+  import { Button, Input, getBlocksConfig } from '@urbicon-ui/blocks';
   import { untrack } from 'svelte';
   import { mergeAuthLocale, useAuthLocale } from '../../../i18n/index.js';
   import { errorMessageFromCode } from '../../utils/error-message.js';
   import { postJson, wireError } from '../../utils/http.js';
-  import { slotClass } from '../../utils/slot-class.js';
+  import { resolveAuthSlotClasses, slotClass } from '../../utils/slot-class.js';
   import type { RegisterPageProps } from './index.js';
   import AuthPageShell from '../_shared/AuthPageShell.svelte';
 
@@ -26,10 +26,17 @@
     header: headerSnippet,
     footer: footerSnippet,
     links: linksSnippet,
-    unstyled = false,
-    slotClasses = {},
+    unstyled: unstyledProp = false,
+    slotClasses: slotClassesProp = {},
+    preset,
     class: className
   }: RegisterPageProps = $props();
+
+  const blocksConfig = getBlocksConfig();
+  const unstyled = $derived(unstyledProp || blocksConfig?.unstyled || false);
+  const slotClasses = $derived(
+    resolveAuthSlotClasses(blocksConfig, 'RegisterPage', preset, slotClassesProp)
+  );
 
   const authLocale = useAuthLocale();
   const t = $derived(mergeAuthLocale(authLocale(), tProp));

@@ -50,8 +50,10 @@ function publishJwk(source: JsonWebKey, kid: string): PublishedEs256Jwk {
  * key through its rotation window) without sharing any secret. The JWT only
  * proves identity; what a consumer lets that identity do remains the
  * consumer's own decision. Mount the returned `GET` on a route of your
- * choosing, e.g. `/.well-known/jwks.json` (add it to `publicRoutes` when it
- * lives outside the default public prefixes).
+ * choosing, e.g. `/.well-known/jwks.json`. When it lives outside the default
+ * public prefixes, exempt it by spreading them —
+ * `publicRoutes: [...DEFAULT_PUBLIC_ROUTES, '/.well-known/']` — since the
+ * option replaces the defaults rather than extending them.
  *
  * The active key's `kid` is resolved exactly like the one stamped into new
  * tokens (`keyId` → the JWK's own `kid` → RFC 7638 thumbprint), so the JWKS

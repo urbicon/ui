@@ -1,9 +1,9 @@
 <script lang="ts">
-  import { Alert, Button, Input } from '@urbicon-ui/blocks';
+  import { Alert, Button, Input, getBlocksConfig } from '@urbicon-ui/blocks';
   import { mergeAuthLocale, useAuthLocale } from '../../../i18n/index.js';
   import { errorMessageFromCode } from '../../utils/error-message.js';
   import { postJson, wireError } from '../../utils/http.js';
-  import { slotClass } from '../../utils/slot-class.js';
+  import { resolveAuthSlotClasses, slotClass } from '../../utils/slot-class.js';
   import type { ForgotPasswordPageProps } from './index.js';
   import AuthPageShell from '../_shared/AuthPageShell.svelte';
 
@@ -16,10 +16,17 @@
     header: headerSnippet,
     footer: footerSnippet,
     links: linksSnippet,
-    unstyled = false,
-    slotClasses = {},
+    unstyled: unstyledProp = false,
+    slotClasses: slotClassesProp = {},
+    preset,
     class: className
   }: ForgotPasswordPageProps = $props();
+
+  const blocksConfig = getBlocksConfig();
+  const unstyled = $derived(unstyledProp || blocksConfig?.unstyled || false);
+  const slotClasses = $derived(
+    resolveAuthSlotClasses(blocksConfig, 'ForgotPasswordPage', preset, slotClassesProp)
+  );
 
   const authLocale = useAuthLocale();
   const t = $derived(mergeAuthLocale(authLocale(), tProp));

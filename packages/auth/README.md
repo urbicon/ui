@@ -28,8 +28,8 @@ Runtime dependencies: **none**.
 | Sessions         | JWT (HMAC-SHA256), httpOnly/secure/sameSite=lax cookie, 7-day TTL (shortens to 15 min when refresh-rotation is on), `tokenVersion` invalidation, opt-in key rotation via `kid` + `previousSecrets` (since v0.10.0)                                                                                                                             | —                       |
 | Refresh tokens   | Opt-in rotation via `config.refreshToken` + `repos.refreshToken`; 15-min access / 30-day rotating refresh, token families, SHA-256-hashed storage, reuse-detection (replaying a rotated token revokes the whole family), transparent rotation in `createAuthHandle` and explicit `createRefreshHandler` (since v0.11.0)                        | —                       |
 | Passwords        | PBKDF2 (600k iter, SHA-256), legacy bcrypt auto-upgraded via dual-verify                                                                                                                                                                                                                                                                       | —                       |
-| Passkeys         | Registration + authentication, counter check for cloning, ES256 + RS256, pluggable challenge store (in-memory default, optional Redis/Prisma/etc. via `ChallengeStore`), optional User-Verification (UV) enforcement via `requireUserVerification` (since v0.10.0)                                                                             | WebAuthn Level 2, FIDO2 |
-| Two-factor (2FA) | Opt-in TOTP second factor via `config.twoFactor` + `repos.backupCode`: zero-dep RFC-6238/4226 codes, AES-256-GCM-encrypted secret at rest, signed short-lived pending-2FA cookie between password and code, single-use SHA-256 backup codes, strict per-step rate-limit. Login two-step + `TwoFactorManager` UI. Passkey logins are not gated. | RFC 6238, 4226, 4648    |
+| Passkeys         | Registration + authentication, counter check for cloning, ES256 + RS256, pluggable challenge store (in-memory default, optional Redis/Prisma/etc. via `ChallengeStore`), User-Verification (UV) **enforced by default** — `requireUserVerification: false` opts out (the option itself since v0.10.0)                                                                             | WebAuthn Level 2, FIDO2 |
+| Two-factor (2FA) | Opt-in TOTP second factor via `config.twoFactor` + `repos.backupCode`: zero-dep RFC-6238/4226 codes, AES-256-GCM-encrypted secret at rest, signed short-lived pending-2FA cookie between password and code, single-use SHA-256 backup codes, strict per-step rate-limit. Login two-step + `TwoFactorManager` UI. Passkey logins are not gated — a claim that rests on passkey UV enforcement being on by default. | RFC 6238, 4226, 4648    |
 | Web Push         | ECDH P-256 + HKDF + AES-128-GCM, VAPID JWT signing, opt-in per-endpoint rate-limit (since v0.10.0)                                                                                                                                                                                                                                             | RFC 8291, 8292, 8188    |
 | Email            | Transport interface, Lettermint adapter + console logger (dev)                                                                                                                                                                                                                                                                                 | —                       |
 | CSRF             | Origin-header validation (always on for requests routed through `createAuthHandle`) + opt-in Double-Submit-Cookie (since v0.8.4), optional `__Host-` cookie prefix (`csrf.useHostPrefix`) against subdomain injection                                                                                                                          | —                       |
@@ -169,7 +169,7 @@ stubs are unchanged; you're only growing the config.
 import { createAuthDeps } from '@urbicon-ui/auth/server';
 import { createPrismaRepos } from '@urbicon-ui/auth/server/adapters/prisma';
 import { createLettermintTransport } from '@urbicon-ui/auth/server/email/lettermint';
-import { env } from '$env/dynamic/private';
+import { APP_URL, JWT_SECRET, LETTERMINT_TOKEN } from '$env/static/private';
 import { prisma } from './prisma';
 import { appLogger } from './logging'; // your own AuthLogger { warn, error }
 
@@ -177,8 +177,8 @@ type AppRole = 'ADMIN' | 'USER';
 
 export const authDeps = createAuthDeps<AppRole>({
   config: {
-    jwt: { secret: env.JWT_SECRET }, // cookieSecure defaults true → HTTPS + auto HSTS
-    appUrl: env.PUBLIC_APP_URL, // trusted base for email links — never request.url
+    jwt: { secret: JWT_SECRET }, // cookieSecure defaults true → HTTPS + auto HSTS
+    appUrl: APP_URL, // trusted base for email links — never request.url; a private var, so no PUBLIC_ prefix
     email: { from: 'Acme <auth@acme.example>' }, // default sender for all auth emails
     csrf: { doubleSubmit: true }, // token layer on top of the always-on Origin check — only with header-capable clients (see checklist)
     refreshToken: { accessTokenTtl: '15m', refreshTokenTtl: '30d' }, // rotating refresh
@@ -194,7 +194,7 @@ export const authDeps = createAuthDeps<AppRole>({
   // Same sink for both: wiring diagnostics from the adapter (a missing Prisma
   // model drops its feature) land with the rest of the auth logs.
   repos: createPrismaRepos<AppRole>(prisma, { logger: appLogger }),
-  email: createLettermintTransport({ token: env.LETTERMINT_TOKEN }) // sends via the Lettermint v2 API
+  email: createLettermintTransport({ token: LETTERMINT_TOKEN }) // sends via the Lettermint v2 API
 });
 ```
 
@@ -249,7 +249,7 @@ Cookie/header names are configurable via `config.csrf.cookieName` / `config.csrf
 
 - **Custom persistence adapter** — anything beyond Prisma/in-memory (Drizzle, Kysely, raw SQL): follow the [Adapter Authoring Guide](https://ui.urbicon.de/auth/guide#adapter-authoring-guide) and validate it against the exported conformance suite so its atomic claims are _provably_ race-safe.
 - **JWT key rotation** — set `jwt.keyId` + `jwt.previousSecrets` to roll the signing secret without logging everyone out; old sessions verify against the previous secret until they expire.
-- **Passkeys (WebAuthn)** — wire `createPasskey*Handler`s with a `webauthn: WebAuthnConfig` (pass a persistent `challengeStore` at >1 instance; set `requireUserVerification: true` to enforce UV), and drop in `<PasskeyManager>` + the passkey entry point on `<LoginPage mode="both">`.
+- **Passkeys (WebAuthn)** — wire `createPasskey*Handler`s with a `webauthn: WebAuthnConfig` (pass a persistent `challengeStore` at >1 instance; UV enforcement is **on by default** — `requireUserVerification: false` opts out, and combined with `config.twoFactor` that makes a passkey login single-factor, which the factory warns about at wiring time; upgrading an app whose users hold UV-less credentials needs the [upgrade note](https://ui.urbicon.de/auth/guide#upgrade-note--user-verification-is-enforced-by-default) first), and drop in `<PasskeyManager>` + the passkey entry point on `<LoginPage mode="both">`.
 - **Notifications & Web Push** — register domain events server-side and listen client-side:
 
 ```typescript
@@ -368,7 +368,7 @@ export const POST = twoFactor.setup.POST;
 </TwoFactorManager>
 ```
 
-Setup returns the `otpauth://` URI + Base32 secret (the core ships **no** QR encoder to stay zero-dep — render it via the `qr` snippet, or let the user enter the key manually). Enrolment is two-step (setup → confirm a code), and enabling returns one-time backup codes. The secret is stored **AES-256-GCM-encrypted**; disable is password re-auth gated. The login handler gates automatically on `user.totpEnabled` — no extra wiring. Passkey logins are **not** gated (a passkey is already a strong factor). `createAuthDeps` injects a strict `rateLimit.twoFactor` default for the brute-force-critical verify step. **The verify route must be public** (default public routes already cover `/api/auth/`); make sure your route guard doesn't require a session for it.
+Setup returns the `otpauth://` URI + Base32 secret (the core ships **no** QR encoder to stay zero-dep — render it via the `qr` snippet, or let the user enter the key manually). Enrolment is two-step (setup → confirm a code), and enabling returns one-time backup codes. The secret is stored **AES-256-GCM-encrypted**; disable is password re-auth gated. The login handler gates automatically on `user.totpEnabled` — no extra wiring. Passkey logins are **not** gated, which rests on `webauthn.requireUserVerification` being enforced (its default): without UV a passkey is possession alone, and a passkey login would be single-factor for a TOTP user. **`encryptionKey` has no rotation overlap** — changing it locks every TOTP user out and blocks re-enrolment, leaving a backup code — or a passkey, which is not TOTP-gated — as the way in ([key-rotation runbook](https://ui.urbicon.de/auth/guide#key-rotation-runbook-twofactorencryptionkey)). `createAuthDeps` injects a strict `rateLimit.twoFactor` default for the brute-force-critical verify step. **The verify route must be public** (default public routes already cover `/api/auth/`); make sure your route guard doesn't require a session for it.
 
 - **Federated identity / SSO** — one deployment becomes the identity provider (ES256 tokens + `createJWKSHandler` serving the JWKS), sibling apps under the same parent domain verify with `createFederatedAuthHandle` and decide access themselves in `resolveUser` (identity ≠ authorization — the IdP's `role` never crosses the boundary). Setup for both sides, the key-rotation runbook, and the deliberate v1 limits: [AUTH.md → Federated Identity (SSO)](https://ui.urbicon.de/auth/guide#federated-identity-sso).
 
@@ -382,7 +382,7 @@ Setup returns the `otpauth://` URI + Base32 secret (the core ships **no** QR enc
 
 ## Prisma Schema
 
-See [`prisma/auth-schema.prisma`](./prisma/auth-schema.prisma) for the reference schema. Models: `User`, `Invitation`, `PushSubscription`, `Notification`, `NotificationType`, `NotificationPreference`, `Passkey`, `TwoFactorBackupCode`, plus the optional consumer-side `FederatedAccount` link table for SSO. Copy/merge into your app's schema.
+See [`prisma/auth-schema.prisma`](./prisma/auth-schema.prisma) for the reference schema — it ships in the package, at `node_modules/@urbicon-ui/auth/prisma/auth-schema.prisma`. Ten models: `User`, `Invitation`, `PushSubscription`, `Notification`, `NotificationType`, `NotificationPreference`, `Passkey`, `RefreshToken`, `TwoFactorBackupCode`, plus the optional consumer-side `FederatedAccount` link table for SSO. Copy/merge into your app's schema.
 
 ## Tests
 
@@ -400,7 +400,7 @@ The three most load-bearing for a production deploy are below; the **full catalo
 
 - **Persistent stores are opt-in.** Challenge, rate-limit, and refresh-token stores all default to in-memory (single-process). Pass a `ChallengeStore` / `RateLimitStore` / `RefreshTokenRepository` (Redis/Prisma/Upstash) when running >1 instance — the Prisma adapter is bundled.
 - **CSRF Double-Submit and refresh-token rotation are opt-in.** The handle's Origin check is always on; the token layer (`config.csrf = { doubleSubmit: true }`, requires header-capable clients — incompatible with remote-function / no-JS-form mutations) and rotation (`config.refreshToken = {}` + `repos.refreshToken`) are additive production hardening.
-- **`publicRoutes` are prefixes.** `createAuthHandle` matches them with `startsWith`, so the default `'/api/auth/'` exempts every sub-route from the auth guard — don't nest protected app routes under it.
+- **`publicRoutes` replaces the defaults, and its entries are prefixes.** Passing the option drops the built-in list instead of adding to it. `'/api/auth/'` is in that list, so an override that omits it guards the app's own sign-in — `POST /api/auth/login` then answers `401` to a visitor who has no session. Spread the exported `DEFAULT_PUBLIC_ROUTES` to extend (`[...DEFAULT_PUBLIC_ROUTES, '/pricing']`); replace wholesale only for a handle scoped to routes that mount no auth endpoints. Matching is `startsWith` and there is no exact-match form: `'/api/auth/'` exempts every sub-route below it, and `'/'` exempts the **whole app** — the obvious spelling of "my landing page is public" turns the guard off entirely. Don't nest protected app routes under a public prefix.
 
 ## Roadmap
 

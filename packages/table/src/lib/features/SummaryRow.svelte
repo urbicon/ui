@@ -4,6 +4,7 @@
   import { SUMMARY_TYPE_GLYPH } from '$lib/utils/summary-types';
   import { summaryRowVariants } from '$lib/variants';
   import { getTableStyleConfig, resolveSlotClass } from '$lib/core/table-style-context';
+  import { structuralColumns } from '$lib/core/structural-columns';
 
   let {
     expandable = false,
@@ -41,6 +42,16 @@
     )
   );
 
+  // The one list the header, the body and the column tracks also read — see
+  // core/structural-columns.ts.
+  const structuralCols = $derived(
+    structuralColumns({
+      grouped: !!tableState.effectiveGroupBy,
+      selectable,
+      expandable
+    })
+  );
+
   const summaryStyles = $derived(summaryRowVariants({ size }));
 </script>
 
@@ -54,23 +65,13 @@
     )}
     data-testid={groupName ? `summary-row-${groupName}` : 'summary-row-total'}
   >
-    <!-- Spacer cells mirror the data rows (group indent → selection → expand,
-         the head's order): every column slot needs a cell, or the whole row
-         shifts and the row background stops short of the missing slot. They
-         mirror the body's slot choice too — `controlCell`, the narrow step
-         those columns carry, and not a data cell's reading inset, so the two
-         rows cannot define the structural columns differently. -->
-    {#if tableState.effectiveGroupBy}
-      <td class="{summaryStyles.controlCell()} w-10" aria-hidden="true"></td>
-    {/if}
-
-    {#if selectable}
-      <td class="{summaryStyles.controlCell()} w-12" aria-hidden="true"></td>
-    {/if}
-
-    {#if expandable}
-      <td class="{summaryStyles.controlCell()} w-10" aria-hidden="true"></td>
-    {/if}
+    <!-- One spacer per structural column: every column slot needs a cell, or the
+         whole row shifts and the row background stops short of the missing slot.
+         `controlCell` rather than `cell` for the same reason the body uses it —
+         a narrow step for a control column, not a data cell's reading inset. -->
+    {#each structuralCols as structural (structural.key)}
+      <td class="{summaryStyles.controlCell()} {structural.widthClass}" aria-hidden="true"></td>
+    {/each}
 
     {#each tableContext.orderedColumns as column (resolveColumnId(column))}
       {@const columnId = resolveColumnId(column)}

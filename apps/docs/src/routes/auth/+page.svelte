@@ -13,32 +13,40 @@
   ];
 
   const depsCode = `// src/lib/server/auth.ts
-import { createAuthDeps, createAuthHandle } from '@urbicon-ui/auth/server';
+import { createAuthDeps } from '@urbicon-ui/auth/server';
 import { createPrismaRepos } from '@urbicon-ui/auth/server/adapters/prisma';
 import { createLettermintTransport } from '@urbicon-ui/auth/server/email/lettermint';
 import { prisma } from '$lib/server/db';
 import { appLogger } from '$lib/server/logging';
-import { env } from '$env/static/private';
+import { APP_URL, JWT_SECRET, LETTERMINT_TOKEN } from '$env/static/private';
 
 export const authDeps = createAuthDeps({
   config: {
-    jwt: { secret: env.JWT_SECRET },
+    // Required, and never derived from request.url — the Host header is
+    // attacker-controlled and would point reset links at their domain.
+    appUrl: APP_URL,
+    jwt: { secret: JWT_SECRET },
     password: { minLength: 8 },
-    lockout: { maxAttempts: 5, durationMs: 15 * 60_000 },
+    lockout: { maxAttempts: 5, durationMinutes: 15 },
+    routes: { loginPage: '/auth/login' },
     logger: appLogger
   },
   // Same sink: a missing Prisma model drops its feature, reported here.
   repos: createPrismaRepos(prisma, { logger: appLogger }),
-  email: createLettermintTransport({ apiKey: env.EMAIL_API_KEY })
+  email: createLettermintTransport({ token: LETTERMINT_TOKEN, from: 'noreply@example.com' })
 });`;
 
   const hookCode = `// src/hooks.server.ts
-import { createAuthHandle } from '@urbicon-ui/auth/server';
+import { createAuthHandle, DEFAULT_PUBLIC_ROUTES } from '@urbicon-ui/auth/server';
 import { authDeps } from '$lib/server/auth';
 
-export const handle = createAuthHandle(authDeps, {
-  publicRoutes: ['/', '/auth/login', '/auth/register'],
-  loginRedirect: '/auth/login'
+export const handle = createAuthHandle({
+  config: authDeps.config,
+  repos: authDeps.repos,
+  // publicRoutes REPLACES the defaults, so spread them in — without that the
+  // /api/auth/* endpoints below lose their exemption and login answers 401.
+  // Entries are startsWith prefixes: '/' here would exempt the whole app.
+  publicRoutes: [...DEFAULT_PUBLIC_ROUTES, '/pricing']
 });`;
 
   const handlersCode = `// Each auth flow needs a SvelteKit API route:
@@ -49,10 +57,12 @@ export const POST = createLoginHandler(authDeps);
 
 // src/routes/api/auth/register/+server.ts
 import { createRegisterHandler } from '@urbicon-ui/auth/server';
+import { authDeps } from '$lib/server/auth';
 export const POST = createRegisterHandler(authDeps);
 
 // src/routes/api/auth/forgot-password/+server.ts
 import { createForgotPasswordHandler } from '@urbicon-ui/auth/server';
+import { authDeps } from '$lib/server/auth';
 export const POST = createForgotPasswordHandler(authDeps);
 
 // Same pattern for: reset-password, verify-email, logout, me`;
@@ -240,7 +250,8 @@ export const POST = createForgotPasswordHandler(authDeps);
 
   <Section id="setup" title="Setup Guide">
     <p class="text-text-secondary mb-4">
-      Integration requires three steps: configure dependencies, create API routes, and add UI pages.
+      Integration requires four steps: configure dependencies, add the hook, create API routes, and
+      add UI pages.
     </p>
 
     <h3 class="text-text-primary mb-2 text-lg font-semibold">1. Configure auth dependencies</h3>
@@ -249,7 +260,8 @@ export const POST = createForgotPasswordHandler(authDeps);
     <h3 class="text-text-primary mt-6 mb-2 text-lg font-semibold">2. Add the SvelteKit hook</h3>
     <p class="text-text-secondary mb-2 text-sm">
       The handle hook validates the session, redirects unauthenticated requests off protected
-      routes, and adds CSRF and security headers.
+      routes, and adds CSRF and security headers. It takes one options object; the redirect target
+      is <code>config.routes.loginPage</code> from step 1, not a hook option.
     </p>
     <CodeExample code={hookCode} language="typescript" preview={false} />
 

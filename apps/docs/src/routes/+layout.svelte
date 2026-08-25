@@ -101,6 +101,20 @@
       page.url.pathname.startsWith('/test-fixtures/landing-')
   );
 
+  // Chrome-less is the wider question, and the two contained-scroll pages —
+  // the live demo framed on /table/sticky-pinning and its e2e fixture — answer
+  // it differently from the landings: they keep the docs palette but cannot
+  // keep the docs chrome. `fit="viewport"` sizes the table to `100dvh` minus
+  // how much viewport sits above it, and never re-measures that on page scroll,
+  // so the model only holds where the table IS the page. In an article column
+  // it reads a number that is either discarded (below the fold) or stale one
+  // scroll later; both pages bring the app-shell bar the cap subtracts instead.
+  const CONTAINED_SCROLL_PAGES = [
+    '/table/sticky-pinning/contained',
+    '/test-fixtures/table-contained'
+  ];
+  const isFullBleed = $derived(isLanding || CONTAINED_SCROLL_PAGES.includes(page.url.pathname));
+
   // Color Rooms accent per page ("Farbe = Familie"). A component page wears the
   // channel of its component FAMILY — the same colour the landing's index row
   // shows for it; everything else (overviews, /recipes, /icons, …) falls back to
@@ -140,14 +154,15 @@
 <!--
   The prev/next reading nav, defined once here and handed to DocsLayout's
   page-nav slot via DocsPageNavProvider (context). Every DocsLayout page renders
-  it at the foot of its article column — no per-page repetition. Landing pages
-  (the `isLanding` branch below) don't use DocsLayout, so they receive no nav.
+  it at the foot of its article column — no per-page repetition. Chrome-less
+  pages (the `isFullBleed` branch below) don't use DocsLayout, so they receive
+  no nav.
 -->
 {#snippet pageNav()}
   <PrevNextNav currentPath={page.url.pathname} />
 {/snippet}
 
-{#if isLanding}
+{#if isFullBleed}
   {@render children()}
 {:else}
   <!--

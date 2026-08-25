@@ -596,19 +596,36 @@ const rawTableContainerVariants = tv({
     //
     // No width term of any kind, viewport or container: `fit="viewport"` is an
     // assertion by the consumer — "this table owns the page height" — not
-    // something the library can measure, so it is honoured at every width. A
-    // width gate here withholds the treatment exactly where the prop's stated
-    // purpose (catching horizontal overflow so the page does not scroll
-    // sideways) matters most. (#269)
+    // something the library can measure, so it is honoured at every width. What
+    // a width gate withheld below its breakpoint was the height cap and the
+    // flex scroll layout, and a long card list needs those as much as a grid
+    // does. The horizontal half of the prop reaches a narrow container only
+    // where the consumer has lowered `cardsBelow` far enough for the grid to
+    // still render there — at the default 48rem a container that narrow shows
+    // cards, which do not scroll sideways. (#269)
+    //
+    // The cap is one measurement behind on a server-rendered page, and no code
+    // here can close that: `--blocks-table-avail-top` is written by the
+    // `measureViewportOffsetTop` attachment on the container, attachments do
+    // not run during SSR (measured: the server tag carries the `max-h` class
+    // and no such property, so the `calc` takes its `0px` fallback), and the
+    // offset is a layout reading the server has no way to take. Until
+    // hydration the box is therefore its own document-top offset too tall —
+    // one page scrollbar that disappears when the measurement lands. Withholding
+    // the cap until measured does not create the missing number; it only paints
+    // a worse first frame, the table's full content height instead of at most
+    // one viewport. A consumer who does know the offset (fixed header, fixed
+    // shell) can declare `--blocks-table-avail-top` in their own CSS: nothing
+    // declares it in the server output, so their rule holds the first paint,
+    // and the attachment's inline write outranks it from hydration on.
     contained: {
       true: {
         container: ['max-h-[calc(100dvh-var(--blocks-table-avail-top,0px))]'],
         scrollArea: ['min-h-0 flex-auto overflow-auto'],
         toolbar: ['shrink-0'],
         // Also the banner + pager wrappers in `Table.svelte`. They read the
-        // class from here rather than writing it as a markup literal because
-        // `style/index.css` scans `../variants` and nothing else — a class that
-        // exists only in a `.svelte` file emits no CSS in a consumer's build.
+        // class from here rather than writing it as a markup literal so the
+        // three wrappers cannot drift apart.
         containedChrome: ['shrink-0']
       },
       false: {}

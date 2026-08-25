@@ -1195,6 +1195,21 @@ describe('table intents — WCAG contrast', () => {
   });
 
   /**
+   * The ladder each table intent actually declares, read out of the stylesheet
+   * these cases resolve against — not listed beside it. Today `table-theme.css`
+   * stops at `-hover`: the table's two press grounds ride `bg-surface-active`,
+   * so an `-active` step would be a declaration nothing reads.
+   *
+   * Listing the states is what made a reintroduced `--color-filter-active`
+   * invisible: pointed at the `-hover` value — the exact collapse the cases
+   * below exist to catch — a `['base', 'hover']` literal kept all sixteen green,
+   * because nothing walked the token the CSS had grown. Declaring one now adds
+   * its own cases instead.
+   */
+  const ladderOf = (intent: string): State[] =>
+    STATE_NAMES.filter((state) => readDecl(css, STATES[state](intent as never)) !== null);
+
+  /**
    * The same rule `semantic.test.ts` enforces for the surface ladder, applied to
    * these three: *"a hover token that resolves to its own resting value is not a
    * subtle bug — it is no hover."* That suite's PAIRS list covers only
@@ -1203,35 +1218,38 @@ describe('table intents — WCAG contrast', () => {
    *
    * They needed one immediately. Moving the base from -600 to -700 for AA landed
    * it on the stop `-hover` already used, making the light-mode hover a no-op on
-   * all three — invisible to the AA cases above, which measure each state
+   * all three — invisible to the AA cases below, which measure each state
    * against text and are perfectly happy for two states to be the same colour.
    * The whole ladder moved instead; this is what says so.
    */
   for (const intent of TABLE_INTENTS) {
-    it(`${intent}-hover steps away from ${intent} (resting)`, () => {
-      for (const mode of MODES) {
-        const a = resolveToken(css, `--color-${intent}`, mode);
-        const b = resolveToken(css, `--color-${intent}-hover`, mode);
-        expect(
-          [b.l, b.c, b.h],
-          `--color-${intent}-hover resolves to the same value as --color-${intent} ` +
-            `in ${mode} mode — any hover built on this pair is a silent no-op there`
-        ).not.toEqual([a.l, a.c, a.h]);
-      }
+    const ladder = ladderOf(intent);
+
+    it(`${intent} declares a ladder at all`, () => {
+      expect(ladder[0]).toBe('base');
+      expect(ladder.length).toBeGreaterThan(1);
     });
+
+    for (const [i, state] of ladder.entries()) {
+      if (i === 0) continue;
+      const prev = ladder[i - 1];
+      it(`${intent}/${state} steps away from ${intent}/${prev}`, () => {
+        for (const mode of MODES) {
+          const a = resolveToken(css, STATES[prev](intent as never), mode);
+          const b = resolveToken(css, STATES[state](intent as never), mode);
+          expect(
+            [b.l, b.c, b.h],
+            `${STATES[state](intent as never)} resolves to the same value as ` +
+              `${STATES[prev](intent as never)} in ${mode} mode — any hover/press ` +
+              `built on this pair is a silent no-op there`
+          ).not.toEqual([a.l, a.c, a.h]);
+        }
+      });
+    }
   }
 
-  /**
-   * These three carry four roles, not the blocks five: `table-theme.css`
-   * declares no `--color-<intent>-active`. The table's two press grounds ride
-   * `bg-surface-active`, so an `-active` step on the intent ladder would be a
-   * declaration nothing reads and these cases would be its only reader. Extend
-   * this list when a table surface paints a *pressed intent*, not before.
-   */
-  const TABLE_STATE_NAMES = ['base', 'hover'] as const satisfies readonly State[];
-
   for (const intent of TABLE_INTENTS) {
-    for (const state of TABLE_STATE_NAMES) {
+    for (const state of ladderOf(intent)) {
       it(`${intent}/${state} — light mode clears AA against text-on-fill`, () => {
         const bg = resolveToken(css, STATES[state](intent as never), 'light');
         const fg = resolveToken(css, '--color-text-on-fill', 'light');
