@@ -57,14 +57,13 @@ const BOXES: Record<string, { border: number; content: number }> = {
 };
 
 /**
- * Where the container starts inside its shell — fractional for the same reason.
- * `--blocks-table-avail-top` is the space RESERVED above the box, the smallest
- * distance to the viewport top it can be brought to. In the plain page flow that
- * is 0 whatever this number says, because the reader scrolls the table up. So
- * the tests that need a non-zero reservation mount inside a clipping pane
- * (`shell: 'clipped'`), where nothing scrolls and this offset is held above the
- * box for good — and a flow mount reading `0px` is told apart from a walk that
- * measured nothing by the same rig reading `120.5px` in the pane.
+ * Where the container starts in the viewport — fractional for the same reason.
+ * `--blocks-table-avail-top` is the space RESERVED above the box: the content
+ * above it that cannot scroll away. In the page flow at `scrollY` 0 (jsdom never
+ * scrolls) that is this number as written, which a walk that measured nothing
+ * could not tell from a walk that did — so the control is the same mount under
+ * a pinned ancestor (`shell: 'pinned'`), where the walk has to stop at the pin
+ * line and add this offset to it.
  */
 const CONTAINER_TOP = 120.5;
 const CONTAINER_WIDTH = 1000;
@@ -112,8 +111,9 @@ function entryFor(el: Element, size = boxOf(el)): ResizeObserverEntry {
  */
 let deliverInitialObservation = true;
 
-/** The ancestor the table mounts under: the page flow, or a pane that clips. */
-type Shell = 'flow' | 'clipped';
+/** The ancestor the table mounts under: the page flow, or a sticky bar pinned at 48px. */
+type Shell = 'flow' | 'pinned';
+const PIN_LINE = 48;
 
 /** Observers the component created, so a test can drive them. */
 class TestResizeObserver {
@@ -189,9 +189,12 @@ const mounted: Array<{ comp: Record<string, unknown>; target: HTMLElement }> = [
 
 function mountTable(props: Record<string, unknown> = {}, shell: Shell = 'flow'): HTMLElement {
   const target = document.createElement('div');
-  // A clipping pane holds whatever sits above the box in place — the walk in
-  // `minReachableTop` adds the container's offset inside it to the reservation.
-  if (shell === 'clipped') target.style.setProperty('overflow-y', 'hidden');
+  // A pinned ancestor ends the walk in `minReachableTop` at its pin line, and
+  // the container's offset inside it is added on top.
+  if (shell === 'pinned') {
+    target.style.setProperty('position', 'sticky');
+    target.style.setProperty('top', `${PIN_LINE}px`);
+  }
   document.body.appendChild(target);
   // Typed wide, like the mobile-decisions helper next door: the harness pins
   // its own Row shape and these deliberately minimal fixtures are not it.
@@ -249,11 +252,11 @@ describe('the four --blocks-table-* properties reach the container', () => {
     const plain = properties(mountTable());
     // The pinned configuration is the control: the same three readings find
     // their values there, so the empty strings above are absence and not a
-    // broken read path. In the page flow the reservation is 0 — the reader can
-    // scroll the table to the top — so the same mount inside a clipping pane is
-    // the control that the walk measured, rather than defaulting to zero.
+    // broken read path. And the same mount under a pinned ancestor is the
+    // control that the offset was WALKED to, not read off the container: there
+    // the walk stops at the pin line and adds the container's offset to it.
     const pinned = properties(mountTable({ sticky: 'both', fit: 'viewport' }));
-    const paned = properties(mountTable({ sticky: 'both', fit: 'viewport' }, 'clipped'));
+    const underBar = properties(mountTable({ sticky: 'both', fit: 'viewport' }, 'pinned'));
 
     expect(plain.stickyTop).toBe('0px');
     expect(plain.toolbarH).toBe('');
@@ -261,8 +264,8 @@ describe('the four --blocks-table-* properties reach the container', () => {
     expect(plain.availTop).toBe('');
 
     expect(pinned.theadH).toBe('40.6px');
-    expect(pinned.availTop).toBe('0px');
-    expect(paned.availTop).toBe('120.5px');
+    expect(pinned.availTop).toBe('120.5px');
+    expect(underBar.availTop).toBe(`${PIN_LINE + CONTAINER_TOP}px`);
   });
 
   it('measures the toolbar only where the toolbar pins — which contained mode is not', () => {
@@ -350,12 +353,12 @@ describe('the four --blocks-table-* properties reach the container', () => {
   });
 
   it('clamps a negative reservation to zero', () => {
-    // A container pulled above its clipping pane's top edge (a negative margin,
-    // a translate) has a negative offset in it — and `100dvh - (-12px)` is a box
-    // taller than the window it is supposed to fit inside.
-    const positive = properties(mountTable({ fit: 'viewport' }, 'clipped'));
+    // A container pulled above the document's top edge (a negative margin, a
+    // translate) reads negative — and `100dvh - (-12px)` is a box taller than
+    // the window it is supposed to fit inside.
+    const positive = properties(mountTable({ fit: 'viewport' }));
     containerTop = -12;
-    const pulledUp = properties(mountTable({ fit: 'viewport' }, 'clipped'));
+    const pulledUp = properties(mountTable({ fit: 'viewport' }));
 
     expect(positive.availTop).toBe('120.5px');
     expect(pulledUp.availTop).toBe('0px');
@@ -377,20 +380,20 @@ describe('the four --blocks-table-* properties reach the container', () => {
     expect(properties(container).theadH).toBe('64.2px');
   });
 
-  it('re-measures the reservation when the chrome above the table reflows', () => {
-    const container = mountTable({ fit: 'viewport' }, 'clipped');
+  it('re-measures the reservation when the content above the table reflows', () => {
+    const container = mountTable({ fit: 'viewport' });
     expect(properties(container).availTop).toBe('120.5px');
 
     // `measureViewportOffsetTop` watches the body — a banner growing above the
-    // table inside a pane that clips is held there for good, so the reservation
-    // grows by the same amount and the cap has to shrink by it.
+    // table shifts the box down, the reservation grows by the same amount and
+    // the cap has to shrink by it.
     containerTop = 180.5;
     resizeTo(document.body);
     expect(properties(container).availTop).toBe('180.5px');
   });
 
   it('reserves nothing for space that would leave the box no height', () => {
-    const container = mountTable({ fit: 'viewport' }, 'clipped');
+    const container = mountTable({ fit: 'viewport' });
     expect(properties(container).availTop).toBe('120.5px');
 
     // Space a whole viewport tall is not chrome the reader keeps in view, it is
@@ -421,8 +424,8 @@ describe('the data-* producers', () => {
   });
 
   it('the contained box refuses to measure its offset when virtualization wins', () => {
-    const contained = properties(mountTable({ fit: 'viewport' }, 'clipped'));
-    const virtualized = properties(mountTable({ fit: 'viewport', virtualized: true }, 'clipped'));
+    const contained = properties(mountTable({ fit: 'viewport' }));
+    const virtualized = properties(mountTable({ fit: 'viewport', virtualized: true }));
 
     expect(contained.availTop).toBe('120.5px');
     expect(virtualized.availTop).toBe('');
@@ -479,7 +482,7 @@ describe('the data-* producers', () => {
     // The measuring attachments resolve their target with
     // `closest('[data-table-container]')`, so the marker and the element that
     // carries the custom properties have to be one and the same node.
-    const container = mountTable({ fit: 'viewport' }, 'clipped');
+    const container = mountTable({ fit: 'viewport' });
 
     expect(container.hasAttribute('data-table-container')).toBe(true);
     expect(container.dataset.fit).toBe('viewport');

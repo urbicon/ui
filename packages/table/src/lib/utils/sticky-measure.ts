@@ -85,42 +85,44 @@ const SCROLLABLE_OVERFLOW = /^(auto|scroll|overlay)$/;
 const CLIPPING_OVERFLOW = /^(hidden|clip)$/;
 
 /**
- * The smallest distance to the top of the viewport the element can be brought
- * to — the space above it once the reader has scrolled it into use, not the
- * space above it right now.
+ * The space above the element that the reader cannot scroll away — the distance
+ * to the top of the viewport it settles at once every scroller between it and
+ * the viewport is scrolled as far up as the element needs.
  *
- * Every term is a declared offset or the box of an ancestor, and none of them
- * changes when something scrolls. That is the property the cap needs: it is
- * consumed by a static `calc()`, so a number that tracks the current scroll
+ * Every term is a declared offset, a scroll position paired with the box it
+ * scrolls, or the box of an ancestor that scrolling does not move — and none of
+ * them changes when something scrolls. That is the property the cap needs: it
+ * is consumed by a static `calc()`, so a number that tracks the current scroll
  * makes the box a different height at every scroll offset and lets any reflow
  * that happens to fire re-write it.
  *
  * The walk carries two numbers outwards: `top`, the viewport top of the box the
- * element currently travels with, and `inset`, the distance from that box's top
- * down to the element's top, which travel cannot close. Each ancestor says what
- * the element can do inside it:
+ * element currently travels with, and `inset`, the distance from that box's
+ * content top down to the element, which no scrolling closes. Each ancestor
+ * says what the element can do inside it:
  *
- * - a scrollport (`overflow: auto | scroll | overlay`) — the element rises to
- *   its content top, so the inset collapses to the scrollport's border and the
- *   walk continues with the scrollport in the element's place, because the
- *   scrollport may be able to rise too.
- * - `overflow: hidden | clip` — clipped with no scrollbar: the element cannot
- *   move inside it at all, so its offset there is added to the inset and the
- *   walk continues with the ancestor. `html`/`body` are ordinary ancestors under
- *   this rule, which is what makes an `overflow: hidden` app shell come out
- *   right without a case of its own.
+ * - a scrollport (`overflow: auto | scroll | overlay`) — the element's place in
+ *   the scrolled content is `top - nodeTop + scrollTop`, the same number at every
+ *   scroll position. That is what the box reserves: the content above the
+ *   element inside the pane scrolls WITH it, not away from it, so a pane with
+ *   a heading above the table is exactly a heading tall plus the table — and
+ *   the promise is that the pane then does not scroll at all. The walk goes on
+ *   with the pane in the element's place.
+ * - `overflow: hidden | clip` — clipped with no scrollbar: the offset inside it
+ *   is held for good, so it is added and the walk continues. `html`/`body` are
+ *   ordinary ancestors under this rule, which is what makes an `overflow:
+ *   hidden` app shell come out right without a case of its own.
  * - `position: fixed` — nothing above it moves it. Done.
  * - `position: sticky` with a `top` — it comes to rest at that `top`. This is
- *   #272: measured against the document, the value grew with the page scroll
- *   under an ancestor whose `rect.top` stays put, until `calc(100dvh - value)`
- *   went negative and the box collapsed to zero height. A pinned ancestor ends
- *   the walk, so when it sits inside a nested scrollport that could rise further
- *   the answer is its pin line in that scrollport's coordinates — too large by
- *   however far the scrollport can still rise, which is a box a little short,
- *   never a box that collapses.
+ *   #272: measured against the document alone, the value grew with the page
+ *   scroll under an ancestor whose `rect.top` stays put, until `calc(100dvh -
+ *   value)` went negative and the box collapsed to zero height. A pinned
+ *   ancestor ends the walk at its pin line plus the element's offset inside it.
  *
- * Nothing stopped the walk means nothing clips: the page scroller brings the
- * element to the top of the viewport and only the inset is left.
+ * Nothing stopped the walk means the page itself is the outermost scroller, and
+ * the element's place in the document is `top + scrollY` — invariant under page
+ * scroll, which the viewport-relative reading this replaced was not: any reflow
+ * while the page was scrolled rewrote it and left the box that much too tall.
  */
 function minReachableTop(element: HTMLElement): number {
   let top = element.getBoundingClientRect().top;
@@ -138,7 +140,7 @@ function minReachableTop(element: HTMLElement): number {
     }
 
     if (SCROLLABLE_OVERFLOW.test(style.overflowY)) {
-      inset = node.clientTop;
+      inset += top - nodeTop + node.scrollTop;
       top = nodeTop;
     } else if (CLIPPING_OVERFLOW.test(style.overflowY)) {
       inset += top - nodeTop;
@@ -146,7 +148,7 @@ function minReachableTop(element: HTMLElement): number {
     }
   }
 
-  return inset;
+  return top + window.scrollY + inset;
 }
 
 /**

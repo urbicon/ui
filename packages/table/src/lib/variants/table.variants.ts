@@ -588,10 +588,10 @@ const rawTableContainerVariants = tv({
     // `fit="viewport"` — the table becomes its own scroll container so wide/long
     // lists scroll *within* the box (both axes) instead of pushing horizontal
     // overflow onto the page. The container is height-capped to the viewport,
-    // minus whatever is reserved above it once the reader has scrolled it into
-    // use (--blocks-table-avail-top: a pinned app bar, a clipping pane — 0 in
-    // the plain page flow, where the box can reach the top of the viewport), and
-    // flexbox keeps the toolbar + pagination (shrink-0) outside the scrolling
+    // minus what sits above it and cannot scroll away (--blocks-table-avail-top:
+    // its place in the document or in its scroll pane, a pinned app bar's pin
+    // line — so a heading plus the box is one viewport and the page stays
+    // still), and flexbox keeps the toolbar + pagination (shrink-0) outside the scrolling
     // `scrollArea`. The scrollArea is `flex-auto` (NOT `flex-1`/basis-0, which
     // would collapse the box for short tables) + `min-h-0` so only the rows
     // scroll.

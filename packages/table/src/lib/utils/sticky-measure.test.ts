@@ -434,8 +434,9 @@ describe('measureViewportOffsetTop — the reserved space', () => {
   it('reserves what an app shell holds above its scroll pane, with no case of its own', () => {
     // `html, body { overflow: hidden }` + an inner `overflow: auto` pane is the
     // standard app shell. `body` is an ordinary ancestor to the walk, which is
-    // what makes this come out right: the pane can bring the box to its own top
-    // edge and no further, and nothing above the pane moves.
+    // what makes this come out right: the 64px above the pane never move, and
+    // the 200px of content above the box INSIDE the pane scroll with it, not
+    // away from it — so both are reserved, and the pane then does not scroll.
     document.documentElement.style.overflowY = 'hidden';
     document.body.style.overflowY = 'hidden';
     const pane = document.createElement('div');
@@ -449,14 +450,15 @@ describe('measureViewportOffsetTop — the reserved space', () => {
     const written = container.style.getPropertyValue(TOP_PROP);
     cleanup();
 
-    expect(written).toBe('64px');
+    expect(written).toBe('264px');
   });
 
-  it('lets the box rise to a scrollport past a clipping wrapper inside it', () => {
-    // A clipping wrapper fixes the box only *inside itself*; the wrapper scrolls
-    // freely in the scrollport around it, so the box still reaches the
-    // scrollport's content top and the inset the wrapper contributed is spent
-    // rather than carried.
+  it('reads the same place in a scrollport at every scroll position', () => {
+    // The box's place in a scrollport's content is `top - paneTop + scrollTop`,
+    // the same number wherever the pane is scrolled to — and a clipping wrapper
+    // inside the pane adds its inset like any other content above the box.
+    // Here: 200px inside the wrapper, the wrapper 200px into the pane, the pane
+    // 100px down the page → 500px, scrolled or not.
     const { container } = buildRig();
     stubBox(container, { top: 500, height: 200 });
     const clip = wrapIn(container, { 'overflow-y': 'hidden' }, { top: 300, height: 400 });
@@ -466,27 +468,34 @@ describe('measureViewportOffsetTop — the reserved space', () => {
     const written = container.style.getPropertyValue(TOP_PROP);
     cleanup();
 
-    expect(written).toBe('0px');
+    expect(written).toBe('500px');
 
-    // Positive control: `0px` is a number the rig has to produce, not the
-    // absence of a write — the viewport-relative implementation, same rig, same
-    // boxes, writes the box's current top instead.
-    const prior = buildRig();
-    stubBox(prior.container, { top: 500, height: 200 });
-    const priorClip = wrapIn(
-      prior.container,
+    // Positive control through the same rig: scroll the pane by 150 — the two
+    // boxes inside it move up by 150 and `scrollTop` says 150 — and the number
+    // holds. The viewport-relative reading this replaced wrote the current top
+    // instead, so the same rig makes it write 350 here.
+    const scrolled = buildRig();
+    stubBox(scrolled.container, { top: 350, height: 200 });
+    const scrolledClip = wrapIn(
+      scrolled.container,
       { 'overflow-y': 'hidden' },
-      { top: 300, height: 400 }
+      { top: 150, height: 400 }
     );
-    wrapIn(priorClip, { 'overflow-y': 'auto' }, { top: 100, height: 600 });
+    const pane = wrapIn(scrolledClip, { 'overflow-y': 'auto' }, { top: 100, height: 600 });
+    Object.defineProperty(pane, 'scrollTop', { value: 150, configurable: true });
+
+    const scrolledCleanup = measureViewportOffsetTop(TOP_PROP)(scrolled.container);
+    const scrolledWritten = scrolled.container.style.getPropertyValue(TOP_PROP);
+    scrolledCleanup();
     const priorCleanup = priorMeasureViewportOffsetTop(
       TOP_PROP,
       VIEWPORT_RELATIVE
-    )(prior.container);
-    const priorWritten = prior.container.style.getPropertyValue(TOP_PROP);
+    )(scrolled.container);
+    const priorWritten = scrolled.container.style.getPropertyValue(TOP_PROP);
     priorCleanup();
 
-    expect(priorWritten).toBe('500px');
+    expect(scrolledWritten).toBe('500px');
+    expect(priorWritten).toBe('350px');
   });
 
   it('writes the reserved space unrounded', () => {
