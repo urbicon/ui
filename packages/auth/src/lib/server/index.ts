@@ -52,6 +52,7 @@ export type {
   PreferenceData,
   PushSubscriptionData,
   PushSubscriptionRepository,
+  PushSubscriptionWriteOutcome,
   RefreshTokenRecord,
   RefreshTokenRepository,
   Repositories,
@@ -85,8 +86,9 @@ export type { EmailTransport, SendEmailParams } from './email/types.js';
 export type { FederatedAuthHandleOptions, FederatedIdentity } from './federated-handle.js';
 export { createFederatedAuthHandle } from './federated-handle.js';
 export type { AuthHandleOptions } from './handle.js';
-// Handle hook
-export { createAuthHandle } from './handle.js';
+// Handle hook. DEFAULT_PUBLIC_ROUTES is the guard's default exemption list —
+// `publicRoutes` replaces it, so extending means spreading this.
+export { createAuthHandle, DEFAULT_PUBLIC_ROUTES } from './handle.js';
 export type { ChangeEmailHandlerOptions } from './handlers/change-email.js';
 export { createChangeEmailHandler } from './handlers/change-email.js';
 // Account management (authenticated; see docs/AUTH.md → Account Management)

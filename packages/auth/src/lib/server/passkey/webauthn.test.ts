@@ -10,13 +10,19 @@ import {
 } from './challenge-store.js';
 import { WebAuthnError } from './errors.js';
 import {
-  type AuthenticationCredentialJSON,
   generateAuthenticationOptions,
   generateRegistrationOptions,
   verifyAssertion,
   verifyRegistration,
   type WebAuthnConfig
 } from './webauthn.js';
+import {
+  buildEs256Assertion,
+  cborBytes,
+  cborInt,
+  concatBytes,
+  coseEc2Key
+} from './webauthn-test-utils.js';
 
 /**
  * `storeChallenge` with the lifetime a ceremony would give it. Everything below
@@ -163,7 +169,7 @@ describe('generateAuthenticationOptions', () => {
     expect(options.challenge).toBeTruthy();
     expect(options.allowCredentials).toHaveLength(1);
     expect(options.allowCredentials?.[0].id).toBe('cred-1');
-    expect(options.userVerification).toBe('preferred');
+    expect(options.userVerification).toBe('required');
   });
 
   it('should work with empty credential list', async () => {
@@ -447,29 +453,61 @@ describe('WebAuthnError', () => {
 });
 
 describe('requireUserVerification', () => {
-  it('defaults to `preferred` user verification in generated options', async () => {
+  it('requires user verification in generated options by default', async () => {
     const regOptions = await generateRegistrationOptions(isolatedConfig(), {
-      id: 'u',
-      name: 'u@u',
-      displayName: 'U'
-    });
-    expect(regOptions.authenticatorSelection?.userVerification).toBe('preferred');
-
-    const authOptions = await generateAuthenticationOptions(isolatedConfig(), 'u');
-    expect(authOptions.userVerification).toBe('preferred');
-  });
-
-  it('upgrades to `required` when requireUserVerification is on', async () => {
-    const cfg = { ...isolatedConfig(), requireUserVerification: true };
-    const regOptions = await generateRegistrationOptions(cfg, {
       id: 'u',
       name: 'u@u',
       displayName: 'U'
     });
     expect(regOptions.authenticatorSelection?.userVerification).toBe('required');
 
-    const authOptions = await generateAuthenticationOptions(cfg, 'u');
+    const authOptions = await generateAuthenticationOptions(isolatedConfig(), 'u');
     expect(authOptions.userVerification).toBe('required');
+  });
+
+  it('downgrades to `preferred` only on an explicit opt-out', async () => {
+    const cfg = { ...isolatedConfig(), requireUserVerification: false };
+    const regOptions = await generateRegistrationOptions(cfg, {
+      id: 'u',
+      name: 'u@u',
+      displayName: 'U'
+    });
+    expect(regOptions.authenticatorSelection?.userVerification).toBe('preferred');
+
+    const authOptions = await generateAuthenticationOptions(cfg, 'u');
+    expect(authOptions.userVerification).toBe('preferred');
+  });
+
+  it('rejects a UP-only assertion by default', async () => {
+    const store = createInMemoryChallengeStore();
+    await store5m(store, 'ceremony', 'chal-uv');
+    const { credential, publicKey } = await buildEs256Assertion(config, {
+      challenge: 'chal-uv',
+      flags: 0x01 // UP only — a tap, no PIN/biometric
+    });
+
+    await expect(
+      verifyAssertion(isolatedConfig(store), 'ceremony', credential, publicKey, -7, 0)
+    ).rejects.toThrow('User verification required but not performed');
+  });
+
+  it('accepts a UP-only assertion when the opt-out is explicit', async () => {
+    const store = createInMemoryChallengeStore();
+    await store5m(store, 'ceremony', 'chal-uv-off');
+    const { credential, publicKey } = await buildEs256Assertion(config, {
+      challenge: 'chal-uv-off',
+      flags: 0x01
+    });
+
+    const result = await verifyAssertion(
+      { ...isolatedConfig(store), requireUserVerification: false },
+      'ceremony',
+      credential,
+      publicKey,
+      -7,
+      0
+    );
+    expect(result.credentialId).toBe('test-cred-id');
   });
 });
 
@@ -480,119 +518,11 @@ describe('requireUserVerification', () => {
 // ES256 assertion (sign with a fresh P-256 key, DER-encode the signature the
 // way a FIDO2 authenticator does) and assert verifyAssertion accepts it.
 
-/** Minimal CBOR encoder — just enough for a COSE EC2 public key. */
-function cborInt(n: number): number[] {
-  if (n >= 0) {
-    if (n < 24) return [n];
-    if (n < 0x100) return [0x18, n];
-    return [0x19, (n >> 8) & 0xff, n & 0xff];
-  }
-  const v = -1 - n;
-  if (v < 24) return [0x20 | v];
-  if (v < 0x100) return [0x38, v];
-  return [0x39, (v >> 8) & 0xff, v & 0xff];
-}
-function cborBytes(b: Uint8Array): number[] {
-  const len = b.length;
-  const head = len < 24 ? [0x40 | len] : len < 0x100 ? [0x58, len] : [0x59, len >> 8, len & 0xff];
-  return [...head, ...Array.from(b)];
-}
-/** COSE_Key for an EC2 / P-256 / ES256 public key: {1:2, 3:-7, -1:1, -2:x, -3:y}. */
-function coseEc2Key(x: Uint8Array, y: Uint8Array): Uint8Array {
-  const entries = [
-    [...cborInt(1), ...cborInt(2)],
-    [...cborInt(3), ...cborInt(-7)],
-    [...cborInt(-1), ...cborInt(1)],
-    [...cborInt(-2), ...cborBytes(x)],
-    [...cborInt(-3), ...cborBytes(y)]
-  ];
-  return new Uint8Array([0xa0 | entries.length, ...entries.flat()]);
-}
-
-/** raw r‖s (64 bytes) → minimal ASN.1 DER, the form a FIDO2 authenticator emits. */
-function rawToDer(raw: Uint8Array): Uint8Array {
-  const enc = (bytes: Uint8Array): number[] => {
-    let i = 0;
-    while (i < bytes.length - 1 && bytes[i] === 0) i++;
-    let v = Array.from(bytes.subarray(i));
-    if (v[0] & 0x80) v = [0, ...v];
-    return [0x02, v.length, ...v];
-  };
-  const body = [...enc(raw.subarray(0, 32)), ...enc(raw.subarray(32))];
-  return new Uint8Array([0x30, body.length, ...body]);
-}
-
-function concatBytes(...arrs: Uint8Array[]): Uint8Array {
-  const out = new Uint8Array(arrs.reduce((n, a) => n + a.length, 0));
-  let o = 0;
-  for (const a of arrs) {
-    out.set(a, o);
-    o += a.length;
-  }
-  return out;
-}
-
-/** Assemble a complete, signed ES256 assertion + the matching stored COSE key. */
-async function buildEs256Assertion(opts: {
-  challenge: string;
-  signCount?: number;
-  /** Sign over corrupted data → valid DER but a cryptographically wrong signature. */
-  tamper?: boolean;
-  /** Emit structurally broken DER bytes. */
-  breakDer?: boolean;
-  /** Mint the authenticator data for a different RP (rpIdHash mismatch case). */
-  rpId?: string;
-}): Promise<{ credential: AuthenticationCredentialJSON; publicKey: Uint8Array }> {
-  const kp = await crypto.subtle.generateKey({ name: 'ECDSA', namedCurve: 'P-256' }, true, [
-    'sign',
-    'verify'
-  ]);
-  const jwk = await crypto.subtle.exportKey('jwk', kp.publicKey);
-  const publicKey = coseEc2Key(base64UrlDecode(jwk.x ?? ''), base64UrlDecode(jwk.y ?? ''));
-
-  const clientDataBytes = new TextEncoder().encode(
-    JSON.stringify({ type: 'webauthn.get', challenge: opts.challenge, origin: config.origin })
-  );
-  const clientDataHash = new Uint8Array(await crypto.subtle.digest('SHA-256', clientDataBytes));
-
-  // Assertion authenticatorData: rpIdHash(32) ‖ flags(1) ‖ signCount(4). UP+UV set.
-  const rpIdHash = new Uint8Array(
-    await crypto.subtle.digest('SHA-256', new TextEncoder().encode(opts.rpId ?? config.rpId))
-  );
-  const tail = new Uint8Array(5);
-  tail[0] = 0x05;
-  new DataView(tail.buffer).setUint32(1, opts.signCount ?? 1, false);
-  const authData = concatBytes(rpIdHash, tail);
-
-  const signedData = concatBytes(authData, clientDataHash);
-  const toSign = signedData.slice();
-  if (opts.tamper) toSign[0] ^= 0xff; // verifier reconstructs the untampered data
-  const rawSig = new Uint8Array(
-    await crypto.subtle.sign({ name: 'ECDSA', hash: 'SHA-256' }, kp.privateKey, toSign)
-  );
-  let der = rawToDer(rawSig);
-  if (opts.breakDer) der = der.subarray(0, 4); // truncated → unparseable
-
-  return {
-    credential: {
-      id: 'test-cred-id',
-      rawId: b64url('test-cred-id'),
-      type: 'public-key',
-      response: {
-        clientDataJSON: base64UrlEncode(clientDataBytes),
-        authenticatorData: base64UrlEncode(authData),
-        signature: base64UrlEncode(der)
-      }
-    },
-    publicKey
-  };
-}
-
 describe('verifyAssertion — ES256 signature (Codeberg #38 regression)', () => {
   it('accepts a valid DER-encoded ES256 assertion', async () => {
     const store = createInMemoryChallengeStore();
     await store5m(store, 'ceremony', 'chal-ok');
-    const { credential, publicKey } = await buildEs256Assertion({ challenge: 'chal-ok' });
+    const { credential, publicKey } = await buildEs256Assertion(config, { challenge: 'chal-ok' });
 
     const result = await verifyAssertion(
       isolatedConfig(store),
@@ -609,7 +539,7 @@ describe('verifyAssertion — ES256 signature (Codeberg #38 regression)', () => 
   it('rejects a cryptographically wrong (but well-formed) signature', async () => {
     const store = createInMemoryChallengeStore();
     await store5m(store, 'ceremony', 'chal-tamper');
-    const { credential, publicKey } = await buildEs256Assertion({
+    const { credential, publicKey } = await buildEs256Assertion(config, {
       challenge: 'chal-tamper',
       tamper: true
     });
@@ -621,7 +551,7 @@ describe('verifyAssertion — ES256 signature (Codeberg #38 regression)', () => 
   it('rejects a structurally invalid signature without reaching the crypto step', async () => {
     const store = createInMemoryChallengeStore();
     await store5m(store, 'ceremony', 'chal-broken');
-    const { credential, publicKey } = await buildEs256Assertion({
+    const { credential, publicKey } = await buildEs256Assertion(config, {
       challenge: 'chal-broken',
       breakDer: true
     });
@@ -637,7 +567,7 @@ describe('verifyAssertion — RP binding (rpIdHash, WebAuthn §7.2 step 15)', ()
     // deleting the check kept 840 green.
     const store = createInMemoryChallengeStore();
     await store5m(store, 'ceremony', 'chal-rp');
-    const { credential, publicKey } = await buildEs256Assertion({
+    const { credential, publicKey } = await buildEs256Assertion(config, {
       challenge: 'chal-rp',
       rpId: 'evil.example'
     });
@@ -668,7 +598,7 @@ describe('verifyAssertion — rejects an unimportable stored key with a clean 40
     await store5m(store, 'ceremony', 'chal-offcurve');
     // Valid ceremony fields (so the flow reaches the key import); the signature
     // is never examined because importKey rejects the off-curve point first.
-    const { credential } = await buildEs256Assertion({ challenge: 'chal-offcurve' });
+    const { credential } = await buildEs256Assertion(config, { challenge: 'chal-offcurve' });
     const offCurveKey = coseEc2Key(new Uint8Array(32).fill(0x02), new Uint8Array(32).fill(0x02));
     await expect(
       verifyAssertion(isolatedConfig(store), 'ceremony', credential, offCurveKey, -7, 0)
@@ -678,7 +608,7 @@ describe('verifyAssertion — rejects an unimportable stored key with a clean 40
   it('RS256 key that importKey rejects', async () => {
     const store = createInMemoryChallengeStore();
     await store5m(store, 'ceremony', 'chal-badrsa');
-    const { credential } = await buildEs256Assertion({ challenge: 'chal-badrsa' });
+    const { credential } = await buildEs256Assertion(config, { challenge: 'chal-badrsa' });
     // n and e are present so the COSE guard passes and the flow reaches
     // importKey. No mainstream runtime (Node and Bun both confirmed) eagerly
     // rejects a structurally-valid-but-bogus RSA JWK — they defer validation to
@@ -813,7 +743,7 @@ describe('hostile-input hardening (R9)', () => {
 
     const store3 = createInMemoryChallengeStore();
     await store5m(store3, 'ceremony', 'chal-mal');
-    const es = await buildEs256Assertion({ challenge: 'chal-mal' });
+    const es = await buildEs256Assertion(config, { challenge: 'chal-mal' });
     await expect(
       verifyAssertion(
         isolatedConfig(store3),
@@ -830,7 +760,7 @@ describe('hostile-input hardening (R9)', () => {
 
     const store4 = createInMemoryChallengeStore();
     await store5m(store4, 'ceremony', 'chal-mal2');
-    const es2 = await buildEs256Assertion({ challenge: 'chal-mal2' });
+    const es2 = await buildEs256Assertion(config, { challenge: 'chal-mal2' });
     await expect(
       verifyAssertion(
         isolatedConfig(store4),
@@ -886,7 +816,7 @@ describe('verifyRegistration — attested credential data (exact COSE slicing)',
 
   const b64uStr = (s: string) => btoa(s).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
 
-  async function buildRegistrationAuthData(extensions?: Uint8Array, rpId?: string) {
+  async function buildRegistrationAuthData(extensions?: Uint8Array, rpId?: string, uv = true) {
     const kp = await crypto.subtle.generateKey({ name: 'ECDSA', namedCurve: 'P-256' }, true, [
       'sign'
     ]);
@@ -897,7 +827,7 @@ describe('verifyRegistration — attested credential data (exact COSE slicing)',
       await crypto.subtle.digest('SHA-256', new TextEncoder().encode(rpId ?? config.rpId))
     );
     const head = new Uint8Array(5);
-    head[0] = 0x41 | (extensions ? 0x80 : 0); // UP | AT (| ED)
+    head[0] = 0x41 | (uv ? 0x04 : 0) | (extensions ? 0x80 : 0); // UP | AT (| UV) (| ED)
     new DataView(head.buffer).setUint32(1, 7, false);
     const aaguid = new Uint8Array(16).fill(0xab);
     const credId = new TextEncoder().encode('reg-cred-1');
@@ -915,8 +845,12 @@ describe('verifyRegistration — attested credential data (exact COSE slicing)',
     return { coseKey, credId, authData };
   }
 
-  async function verify(store: ChallengeStore, attestationObject: Uint8Array) {
-    return verifyRegistration(isolatedConfig(store), 'user-reg', {
+  async function verify(
+    store: ChallengeStore,
+    attestationObject: Uint8Array,
+    cfg?: Partial<WebAuthnConfig>
+  ) {
+    return verifyRegistration({ ...isolatedConfig(store), ...cfg }, 'user-reg', {
       id: 'reg-cred-1',
       rawId: 'reg-cred-1',
       type: 'public-key',
@@ -970,6 +904,27 @@ describe('verifyRegistration — attested credential data (exact COSE slicing)',
     const { authData } = await buildRegistrationAuthData(undefined, 'evil.example');
 
     await expect(verify(store, noneAttestation(authData))).rejects.toThrow('RP ID hash mismatch');
+  });
+
+  it('rejects a registration whose authenticator only proved user presence', async () => {
+    const store = createInMemoryChallengeStore();
+    await storeChallenge(store, 'user-reg', 'reg-challenge');
+    const { authData } = await buildRegistrationAuthData(undefined, undefined, false);
+
+    await expect(verify(store, noneAttestation(authData))).rejects.toThrow(
+      'User verification required but not performed'
+    );
+  });
+
+  it('registers a UP-only authenticator when the opt-out is explicit', async () => {
+    const store = createInMemoryChallengeStore();
+    await storeChallenge(store, 'user-reg', 'reg-challenge');
+    const { coseKey, authData } = await buildRegistrationAuthData(undefined, undefined, false);
+
+    const result = await verify(store, noneAttestation(authData), {
+      requireUserVerification: false
+    });
+    expect(result.publicKey).toEqual(coseKey);
   });
 });
 

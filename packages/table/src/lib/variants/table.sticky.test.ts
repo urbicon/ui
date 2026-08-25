@@ -56,6 +56,19 @@ describe('tableContainerVariants — sticky toolbar', () => {
   });
 });
 
+/**
+ * The slots `contained: true` writes to, read off the live config. A rename or
+ * a restructure of the variant throws here rather than silently yielding an
+ * empty list that would make the prefix guard below vacuously green.
+ */
+function containedSlots(): (keyof ReturnType<typeof tableContainerVariants>)[] {
+  const map = tableContainerVariants.config.variants?.contained?.true;
+  if (!map || typeof map !== 'object' || Array.isArray(map)) {
+    throw new Error('tableContainerVariants.config.variants.contained.true is not a slot map');
+  }
+  return Object.keys(map) as (keyof ReturnType<typeof tableContainerVariants>)[];
+}
+
 describe('tableContainerVariants — contained (fit="viewport")', () => {
   // `fit="viewport"` is the consumer asserting that this table owns the page
   // height, not a measurement the library makes — so every class below applies
@@ -87,10 +100,9 @@ describe('tableContainerVariants — contained (fit="viewport")', () => {
 
   // The live-update banner and the pager wrapper are the other two flex
   // siblings that must not shrink. They read this slot instead of writing
-  // `shrink-0` into `Table.svelte`, because `style/index.css` scans
-  // `../variants` and nothing else — a class living only in the markup emits no
-  // CSS in a consumer's build while `apps/docs` (which scans all of `src/lib`)
-  // keeps working.
+  // `shrink-0` into `Table.svelte` so the three wrappers cannot drift apart —
+  // the scan argument that used to stand here is gone with the `@source '..'`
+  // in `style/index.css`, which reaches markup and variants alike.
   it('hands the banner + pager wrappers the same shrink-0 through a slot', () => {
     const chrome = tableContainerVariants({ contained: true }).containedChrome();
     expect(chrome).toMatch(/(?:^|\s)shrink-0\b/);
@@ -100,11 +112,18 @@ describe('tableContainerVariants — contained (fit="viewport")', () => {
   // The guard on the decision above: whatever `contained` adds must be
   // unconditional. A variant prefix (`md:`, `@3xl:`, `dark:`) reintroduces a
   // width/mode term into a path whose whole point is that it has none.
+  //
+  // The slot list is read out of the config, not written down beside it: a
+  // hand-kept copy waves through a width term on any slot it does not name.
+  // Measured with `contained.true.table = ['md:table-fixed']`, which the
+  // four-name literal this replaced passed with every assertion green.
   it('adds only unconditional classes — no variant prefix on any contained slot', () => {
     const on = tableContainerVariants({ contained: true });
     const off = tableContainerVariants({ contained: false });
+    const slots = containedSlots();
 
-    for (const slot of ['container', 'scrollArea', 'toolbar', 'containedChrome'] as const) {
+    expect(slots.length).toBeGreaterThan(0);
+    for (const slot of slots) {
       const before = new Set(off[slot]().split(' '));
       const added = on[slot]()
         .split(' ')

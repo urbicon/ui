@@ -10,6 +10,7 @@
   import { getStickyContext } from './sticky-context.svelte';
   import { resolveRowItemId } from '$lib/utils';
   import { groupCountText } from './group-count';
+  import { leadingStructuralColumns } from './structural-columns';
   import type { Column, TableItem } from '$lib/types/tableTypes';
   import type { Snippet } from 'svelte';
 
@@ -67,13 +68,17 @@
   const styleConfig = getTableStyleConfig();
   const stickyContext = getStickyContext();
 
-  const colSpan = $derived.by(() => {
-    let count = tableState.columns.length;
-    if (expandable) count++; // For expand column
-    if (tableState.effectiveGroupBy) count++; // For group indentation column
-    if (selectable) count++; // For selection checkbox column
-    return count;
-  });
+  // The group band spans every column the grid declares, structural ones
+  // included — the same list the cells under it are built from, see
+  // core/structural-columns.ts.
+  const colSpan = $derived(
+    tableState.columns.length +
+      leadingStructuralColumns({
+        grouped: !!tableState.effectiveGroupBy,
+        selectable,
+        expandable
+      })
+  );
 
   const displayGroupName = $derived.by(() => {
     if (groupName === '' || groupName === null || groupName === undefined) {

@@ -231,13 +231,45 @@
       </p>
       <CodeExample
         title="Full-height list page"
-        description="The table fills the available viewport height. Header pinned, toolbar and pagination fixed, rows scroll in both directions. Desktop only: below the `md` viewport width (48rem) the page scrolls as usual."
+        description="The table fills the available viewport height. Column and group headers pinned to the top of the box, toolbar fixed above it, rows scrolling in both directions — at every width."
         code={`<Table
   {items}
   {columns}
   fit="viewport"
 />`}
-      />
+      >
+        <div class="space-y-2">
+          <!-- The demo runs in a frame because the model assumes the table IS
+               the page: the box is `100dvh` minus how much viewport sits above
+               it, and that offset is deliberately never re-measured on page
+               scroll (it drives the container's own height, so re-measuring on
+               scroll would close the loop).
+
+               Measured inline in this very section: the first reading is
+               discarded as being below the viewport bottom, so the box renders
+               at the full window height (800px) inside a 624px reading column,
+               and after a resize it caps to whatever room was left at that
+               scroll position (480px at scrollY 6100) and keeps that number.
+               The frame gives the demo a document of its own, where the
+               assumption holds — and the frame's size is that document's
+               viewport, which is what makes the cap inside it a real one. -->
+          <iframe
+            src={resolve('/table/sticky-pinning/contained')}
+            title="Contained scroll demo: a full-height list page"
+            loading="lazy"
+            class="border-border-default rounded-contain bg-surface-base block h-[26rem] w-full border"
+          ></iframe>
+          <p class="text-text-tertiary text-xs">
+            Scroll the rows inside the frame — the toolbar, the column header and the group header
+            stay put, and the page around the frame never moves. Switch the frame to
+            <code class="text-text-primary">fit="content"</code> to feel the difference, or
+            <a
+              href={resolve('/table/sticky-pinning/contained')}
+              class="text-primary-text underline underline-offset-2">open the demo full-screen</a
+            >.
+          </p>
+        </div>
+      </CodeExample>
       <p class="text-text-secondary text-xs">
         <code class="text-text-primary">fit="viewport"</code> supersedes
         <code class="text-text-primary">sticky</code>
@@ -286,9 +318,9 @@
         table's own. The container reports its resolved mode as
         <code class="text-text-primary">data-fit="viewport"</code> or
         <code class="text-text-primary">data-fit="content"</code>, so a layout can drop that inset
-        for the desktop widths where the cap applies:
+        wherever the cap applies — which is every width:
         <code class="text-text-primary"
-          >{"@media (min-width: 48rem) { main:has([data-fit='viewport']) { padding-block-end: 0 } }"}</code
+          >{"main:has([data-fit='viewport']) { padding-block-end: 0 }"}</code
         >.
       </li>
     </ul>

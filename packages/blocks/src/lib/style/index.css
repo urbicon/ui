@@ -26,8 +26,26 @@
 /* Mint Layer - Micro-interaction styles */
 @import '../mint/styles.css';
 
-@source '../primitives';
-@source '../components';
+/* Everything the package ships, not a list of directories. `@source` resolves
+ * against this file, which sits at `src/lib/style/` in the tree and at
+ * `dist/style/` in the tarball, so `..` is the whole library in both — a class
+ * cannot be added anywhere in the package and land outside the scan.
+ *
+ * `'../primitives'` + `'../components'` left `internal/` unscanned, so the
+ * week-number column template of `DateGridScaffold`
+ * (`grid-cols-[minmax(2rem,auto)_repeat(7,minmax(0,1fr))]`, the one the comment
+ * there calls a verbatim literal "so Tailwind emits them") produced no rule in
+ * a consumer build and a `showWeekNumber` Calendar collapsed to one column.
+ * `apps/docs` never showed it: its own app.css scans `packages/blocks/dist`.
+ *
+ * Cost of the wider scan, measured against a tarball-filtered install with
+ * Tailwind 4.3.3: 628 → 1866 files scanned, compile+scan+build 44.5 → 75.2 ms
+ * median of 7, emitted CSS 22.9 → 23.7 KB gzipped. Most of that growth is
+ * ~50 rules Tailwind mints from class-shaped strings in JSDoc prose
+ * (`.rounded-tl-[N]`, `.max-h-[min(<cap>,var(--…))]`); they are inert, and no
+ * extension or directory filter separates them from the real classes, which
+ * live in the same files. */
+@source '..';
 
 /* === UA POPOVER RESET (#196) ===
    The UA stylesheet paints every `[popover]` with `background-color: Canvas` —

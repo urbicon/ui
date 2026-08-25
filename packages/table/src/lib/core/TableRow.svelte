@@ -12,7 +12,7 @@
   import { tableRowVariants } from '$lib/variants';
   import { getTableStyleConfig, resolveSlotClass } from './table-style-context';
   import { resolveRowClickActions } from './row-interaction';
-  import { leadingStructuralColumns } from './column-offset';
+  import { structuralColumns } from './structural-columns';
   import TableCell from './TableCell.svelte';
   import { resolveColumnId, resolveRowItemId } from '$lib/utils';
   import type { Column, TableItem } from '$lib/types/tableTypes';
@@ -65,26 +65,19 @@
   let isActiveRow = $derived(tableState.activeRowId != null && tableState.activeRowId === itemId);
   let isRecentlyUpdated = $derived(tableContext.isRecentlyUpdated(itemId));
 
-  const totalColumnsCount = $derived.by(() => {
-    let count = tableState.columns.length;
-    if (tableState.effectiveGroupBy) count += 1;
-    if (expandable) count += 1;
-    if (selectable) count += 1;
-    return count;
-  });
-
-  // The structural columns before the data columns — what aria-colindex
-  // counts from. Grouped counts even though this row renders no group cell:
-  // the column exists in the grid either way.
-  const colOffset = $derived(
-    leadingStructuralColumns({
+  // The one list the header, the summary row and the column tracks also read —
+  // see core/structural-columns.ts. The group column is in it even though this
+  // row announces no group cell: the column exists in the grid either way, and
+  // the data cells count from its index rather than closing the gap.
+  const structuralCols = $derived(
+    structuralColumns({
       grouped: !!tableState.effectiveGroupBy,
       selectable,
       expandable
     })
   );
-  const selectionColIndex = $derived((tableState.effectiveGroupBy ? 1 : 0) + 1);
-  const expandColIndex = $derived(selectionColIndex + (selectable ? 1 : 0));
+  const colOffset = $derived(structuralCols.length);
+  const totalColumnsCount = $derived(tableState.columns.length + colOffset);
 
   function handleRowClick(event: MouseEvent) {
     const actions = resolveRowClickActions({
@@ -187,64 +180,58 @@
        see TableSlotClasses.cell. They also take the `controlCell` slot rather
        than `cell`: a data cell's inset is a reading edge (see
        TABLE_DIMENSIONS.padding.cellX), while these centre a fixed-size control
-       inside a fixed-width column. Their order mirrors TableHead exactly:
-       group, selection, expand — GroupedRow used to render its own copy with
-       selection first, which put every checkbox under the header's group
-       column. -->
-  {#if tableState.effectiveGroupBy}
-    <!-- aria-hidden like the head's expand spacer, so no aria-colindex: the
-         column exists (colOffset counts it), the cell just isn't content. -->
-    <td class={rowStyles.controlCell()} aria-hidden="true"></td>
-  {/if}
-
-  {#if selectable}
-    <td
-      class="{rowStyles.controlCell()} w-12"
-      role={explicitRoles ? 'gridcell' : undefined}
-      aria-colindex={selectionColIndex}
-      onclick={handleCheckboxClick}
-    >
-      <div class="flex h-full w-full items-center justify-center">
-        <Checkbox
-          checked={isRowSelected}
-          onCheckedChange={() => tableContext.toggleItem(itemId)}
-          aria-label={isRowSelected ? tt('selection.deselectRow') : tt('selection.selectRow')}
-          size="sm"
-          data-testid={`selection-checkbox-${itemId}`}
-        />
-      </div>
-    </td>
-  {/if}
-
-  {#if expandable}
-    <td
-      class="{rowStyles.controlCell()} w-10"
-      role={explicitRoles ? 'gridcell' : undefined}
-      aria-colindex={expandColIndex}
-    >
-      <!-- The `px-2` stays, and is not the drift #256 removed: this box centres
-           its button rather than setting content against an edge, so padding
-           here squeezes the button's box instead of moving anything. Dropping
-           it would be visible — the column is `w-10` (40px) and the control
-           step takes 8px, so the 24px button currently has 16px to sit in and
-           renders narrower than it declares; without the `px-2` it would get
-           its full width and a wider hover ground. That is a change to the
-           control, not to an inset, and belongs with the structural-column
-           widths (`w-12`/`w-10` vs the colgroup's `3rem`/`2.5rem`). -->
-      <div class="flex h-full w-full items-center justify-center px-2 py-2">
-        <button
-          class="table-expand-button rounded-modify flex h-6 w-6 items-center justify-center transition-transform duration-(--blocks-duration-fast) {isExpanded
-            ? 'rotate-180'
-            : ''}"
-          onclick={handleChevronClick}
-          aria-label={isExpanded ? tt('actions.hideDetails') : tt('actions.showDetails')}
-          data-testid={`expand-button-${itemId}`}
-        >
-          <ChevronDownIcon class="h-4 w-4" />
-        </button>
-      </div>
-    </td>
-  {/if}
+       inside a fixed-width column. -->
+  {#each structuralCols as structural (structural.key)}
+    {#if structural.key === 'group'}
+      <!-- aria-hidden like the head's expand spacer, so no aria-colindex: the
+           column exists, the cell just isn't content. -->
+      <td class="{rowStyles.controlCell()} {structural.widthClass}" aria-hidden="true"></td>
+    {:else if structural.key === 'selection'}
+      <td
+        class="{rowStyles.controlCell()} {structural.widthClass}"
+        role={explicitRoles ? 'gridcell' : undefined}
+        aria-colindex={structural.colIndex}
+        onclick={handleCheckboxClick}
+      >
+        <div class="flex h-full w-full items-center justify-center">
+          <Checkbox
+            checked={isRowSelected}
+            onCheckedChange={() => tableContext.toggleItem(itemId)}
+            aria-label={isRowSelected ? tt('selection.deselectRow') : tt('selection.selectRow')}
+            size="sm"
+            data-testid={`selection-checkbox-${itemId}`}
+          />
+        </div>
+      </td>
+    {:else if structural.key === 'expand'}
+      <td
+        class="{rowStyles.controlCell()} {structural.widthClass}"
+        role={explicitRoles ? 'gridcell' : undefined}
+        aria-colindex={structural.colIndex}
+      >
+        <!-- The `px-2` stays, and is not the drift #256 removed: this box centres
+             its button rather than setting content against an edge, so padding
+             here squeezes the button's box instead of moving anything. Dropping
+             it would be visible — the column is 2.5rem (40px at the default root
+             size) and the control step takes 8px, so the 24px button currently
+             has 16px to sit in and renders narrower than it declares; without the
+             `px-2` it would get its full width and a wider hover ground. That is
+             a change to the control, not to an inset. -->
+        <div class="flex h-full w-full items-center justify-center px-2 py-2">
+          <button
+            class="table-expand-button rounded-modify flex h-6 w-6 items-center justify-center transition-transform duration-(--blocks-duration-fast) {isExpanded
+              ? 'rotate-180'
+              : ''}"
+            onclick={handleChevronClick}
+            aria-label={isExpanded ? tt('actions.hideDetails') : tt('actions.showDetails')}
+            data-testid={`expand-button-${itemId}`}
+          >
+            <ChevronDownIcon class="h-4 w-4" />
+          </button>
+        </div>
+      </td>
+    {/if}
+  {/each}
 
   {#each tableContext.orderedColumns as column, colIdx (resolveColumnId(column))}
     <TableCell

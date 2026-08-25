@@ -41,6 +41,13 @@ export interface ForgotPasswordPageProps {
   unstyled?: boolean;
   /** Per-slot class overrides. Keys: `root`, `card`, `title`, `form`, `field`, `submit`, `error`, `success`, `links`. */
   slotClasses?: AuthPageSlotClasses;
+  /**
+   * Apply a named preset registered via `<BlocksProvider presets={{ ForgotPasswordPage: { … } }}>`.
+   * Resolves after the provider defaults and before this instance's own
+   * `slotClasses`, so a project-wide look lives in one place instead of being
+   * repeated at every usage site.
+   */
+  preset?: string;
   /** Extra classes on the root element. */
   class?: string;
 }
