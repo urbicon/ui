@@ -16,7 +16,12 @@
      Until 2026-07-31 all three sat at -600 and no gate looked at them — the
      WCAG sweep in blocks/style/contrast.test.ts globbed the table variant files
      but its INTENTS list held only the seven blocks intents. All three are in
-     that list now. */
+     that list now.
+
+     Four roles each, not the blocks five: there is no `-active` step. The two
+     press grounds the table has — an interactive cell container and the mobile
+     card's headline button — ride `bg-surface-active`, so nothing would read
+     one. A pressed *intent* surface is what would make it earn its line. */
   /* Filter Intent (Cyan-based) */
   --color-filter-50: var(--color-cyan-50);
   --color-filter-100: var(--color-cyan-100);
@@ -31,7 +36,6 @@
 
   --color-filter: light-dark(var(--color-filter-700), var(--color-filter-400));
   --color-filter-hover: light-dark(var(--color-filter-800), var(--color-filter-300));
-  --color-filter-active: light-dark(var(--color-filter-900), var(--color-filter-200));
   --color-filter-subtle: light-dark(var(--color-filter-50), var(--color-filter-900));
   --color-filter-emphasis: light-dark(var(--color-filter-900), var(--color-filter-100));
 
@@ -49,7 +53,6 @@
 
   --color-group: light-dark(var(--color-group-700), var(--color-group-400));
   --color-group-hover: light-dark(var(--color-group-800), var(--color-group-300));
-  --color-group-active: light-dark(var(--color-group-900), var(--color-group-200));
   --color-group-subtle: light-dark(var(--color-group-50), var(--color-group-900));
   --color-group-emphasis: light-dark(var(--color-group-900), var(--color-group-100));
 
@@ -67,19 +70,8 @@
 
   --color-summary: light-dark(var(--color-summary-700), var(--color-summary-400));
   --color-summary-hover: light-dark(var(--color-summary-800), var(--color-summary-300));
-  --color-summary-active: light-dark(var(--color-summary-900), var(--color-summary-200));
   --color-summary-subtle: light-dark(var(--color-summary-50), var(--color-summary-900));
   --color-summary-emphasis: light-dark(var(--color-summary-900), var(--color-summary-100));
-
-  /* === TABLE-SPECIFIC DESIGN TOKENS === */
-  --table-header-height: 3rem;
-  --table-row-height: 3.5rem;
-  --table-cell-padding-x: 1rem;
-  --table-cell-padding-y: 0.75rem;
-
-  --filter-bar-height: 3.5rem;
-  --filter-bar-padding: 0.75rem;
-  --filter-bar-gap: 0.75rem;
 }
 
 /* Mode resolution lives in the `light-dark()` values in the @theme block above.
