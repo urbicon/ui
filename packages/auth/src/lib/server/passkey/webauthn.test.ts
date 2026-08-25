@@ -155,7 +155,7 @@ describe('generateAuthenticationOptions', () => {
     expect(options.challenge).toBeTruthy();
     expect(options.allowCredentials).toHaveLength(1);
     expect(options.allowCredentials?.[0].id).toBe('cred-1');
-    expect(options.userVerification).toBe('preferred');
+    expect(options.userVerification).toBe('required');
   });
 
   it('should work with empty credential list', async () => {
@@ -393,19 +393,19 @@ describe('WebAuthnError', () => {
 });
 
 describe('requireUserVerification', () => {
-  it('defaults to `preferred` user verification in generated options', async () => {
+  it('requires user verification in generated options by default', async () => {
     const regOptions = await generateRegistrationOptions(isolatedConfig(), {
       id: 'u',
       name: 'u@u',
       displayName: 'U'
     });
-    expect(regOptions.authenticatorSelection?.userVerification).toBe('preferred');
+    expect(regOptions.authenticatorSelection?.userVerification).toBe('required');
 
     const authOptions = await generateAuthenticationOptions(isolatedConfig(), 'u');
-    expect(authOptions.userVerification).toBe('preferred');
+    expect(authOptions.userVerification).toBe('required');
   });
 
-  it('upgrades to `required` when requireUserVerification is on', async () => {
+  it('keeps `required` when requireUserVerification is set explicitly', async () => {
     const cfg = { ...isolatedConfig(), requireUserVerification: true };
     const regOptions = await generateRegistrationOptions(cfg, {
       id: 'u',
@@ -416,6 +416,51 @@ describe('requireUserVerification', () => {
 
     const authOptions = await generateAuthenticationOptions(cfg, 'u');
     expect(authOptions.userVerification).toBe('required');
+  });
+
+  it('downgrades to `preferred` only on an explicit opt-out', async () => {
+    const cfg = { ...isolatedConfig(), requireUserVerification: false };
+    const regOptions = await generateRegistrationOptions(cfg, {
+      id: 'u',
+      name: 'u@u',
+      displayName: 'U'
+    });
+    expect(regOptions.authenticatorSelection?.userVerification).toBe('preferred');
+
+    const authOptions = await generateAuthenticationOptions(cfg, 'u');
+    expect(authOptions.userVerification).toBe('preferred');
+  });
+
+  it('rejects a UP-only assertion by default', async () => {
+    const store = createInMemoryChallengeStore();
+    await storeChallenge(store, 'ceremony', 'chal-uv');
+    const { credential, publicKey } = await buildEs256Assertion({
+      challenge: 'chal-uv',
+      flags: 0x01 // UP only — a tap, no PIN/biometric
+    });
+
+    await expect(
+      verifyAssertion(isolatedConfig(store), 'ceremony', credential, publicKey, -7, 0)
+    ).rejects.toThrow('User verification required but not performed');
+  });
+
+  it('accepts a UP-only assertion when the opt-out is explicit', async () => {
+    const store = createInMemoryChallengeStore();
+    await storeChallenge(store, 'ceremony', 'chal-uv-off');
+    const { credential, publicKey } = await buildEs256Assertion({
+      challenge: 'chal-uv-off',
+      flags: 0x01
+    });
+
+    const result = await verifyAssertion(
+      { ...isolatedConfig(store), requireUserVerification: false },
+      'ceremony',
+      credential,
+      publicKey,
+      -7,
+      0
+    );
+    expect(result.credentialId).toBe('test-cred-id');
   });
 });
 
@@ -488,6 +533,8 @@ async function buildEs256Assertion(opts: {
   breakDer?: boolean;
   /** Mint the authenticator data for a different RP (rpIdHash mismatch case). */
   rpId?: string;
+  /** authData flag byte; defaults to UP|UV (0x05), what a UV-capable authenticator emits. */
+  flags?: number;
 }): Promise<{ credential: AuthenticationCredentialJSON; publicKey: Uint8Array }> {
   const kp = await crypto.subtle.generateKey({ name: 'ECDSA', namedCurve: 'P-256' }, true, [
     'sign',
@@ -501,12 +548,12 @@ async function buildEs256Assertion(opts: {
   );
   const clientDataHash = new Uint8Array(await crypto.subtle.digest('SHA-256', clientDataBytes));
 
-  // Assertion authenticatorData: rpIdHash(32) ‖ flags(1) ‖ signCount(4). UP+UV set.
+  // Assertion authenticatorData: rpIdHash(32) ‖ flags(1) ‖ signCount(4).
   const rpIdHash = new Uint8Array(
     await crypto.subtle.digest('SHA-256', new TextEncoder().encode(opts.rpId ?? config.rpId))
   );
   const tail = new Uint8Array(5);
-  tail[0] = 0x05;
+  tail[0] = opts.flags ?? 0x05;
   new DataView(tail.buffer).setUint32(1, opts.signCount ?? 1, false);
   const authData = concatBytes(rpIdHash, tail);
 
@@ -832,7 +879,7 @@ describe('verifyRegistration — attested credential data (exact COSE slicing)',
 
   const b64uStr = (s: string) => btoa(s).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
 
-  async function buildRegistrationAuthData(extensions?: Uint8Array, rpId?: string) {
+  async function buildRegistrationAuthData(extensions?: Uint8Array, rpId?: string, uv = true) {
     const kp = await crypto.subtle.generateKey({ name: 'ECDSA', namedCurve: 'P-256' }, true, [
       'sign'
     ]);
@@ -843,7 +890,7 @@ describe('verifyRegistration — attested credential data (exact COSE slicing)',
       await crypto.subtle.digest('SHA-256', new TextEncoder().encode(rpId ?? config.rpId))
     );
     const head = new Uint8Array(5);
-    head[0] = 0x41 | (extensions ? 0x80 : 0); // UP | AT (| ED)
+    head[0] = 0x41 | (uv ? 0x04 : 0) | (extensions ? 0x80 : 0); // UP | AT (| UV) (| ED)
     new DataView(head.buffer).setUint32(1, 7, false);
     const aaguid = new Uint8Array(16).fill(0xab);
     const credId = new TextEncoder().encode('reg-cred-1');
@@ -861,8 +908,12 @@ describe('verifyRegistration — attested credential data (exact COSE slicing)',
     return { coseKey, credId, authData };
   }
 
-  async function verify(store: ChallengeStore, attestationObject: Uint8Array) {
-    return verifyRegistration(isolatedConfig(store), 'user-reg', {
+  async function verify(
+    store: ChallengeStore,
+    attestationObject: Uint8Array,
+    cfg?: Partial<WebAuthnConfig>
+  ) {
+    return verifyRegistration({ ...isolatedConfig(store), ...cfg }, 'user-reg', {
       id: 'reg-cred-1',
       rawId: 'reg-cred-1',
       type: 'public-key',
@@ -917,6 +968,27 @@ describe('verifyRegistration — attested credential data (exact COSE slicing)',
 
     await expect(verify(store, noneAttestation(authData))).rejects.toThrow('RP ID hash mismatch');
   });
+
+  it('rejects a registration whose authenticator only proved user presence', async () => {
+    const store = createInMemoryChallengeStore();
+    await storeChallenge(store, 'user-reg', 'reg-challenge');
+    const { authData } = await buildRegistrationAuthData(undefined, undefined, false);
+
+    await expect(verify(store, noneAttestation(authData))).rejects.toThrow(
+      'User verification required but not performed'
+    );
+  });
+
+  it('registers a UP-only authenticator when the opt-out is explicit', async () => {
+    const store = createInMemoryChallengeStore();
+    await storeChallenge(store, 'user-reg', 'reg-challenge');
+    const { coseKey, authData } = await buildRegistrationAuthData(undefined, undefined, false);
+
+    const result = await verify(store, noneAttestation(authData), {
+      requireUserVerification: false
+    });
+    expect(result.publicKey).toEqual(coseKey);
+  });
 });
 
 describe('malformed COSE key inside authenticatorData (silent-failure review)', () => {
@@ -931,7 +1003,7 @@ describe('malformed COSE key inside authenticatorData (silent-failure review)', 
       await crypto.subtle.digest('SHA-256', new TextEncoder().encode(config.rpId))
     );
     const head = new Uint8Array(5);
-    head[0] = 0x41; // UP | AT
+    head[0] = 0x45; // UP | UV | AT
     const credId = new TextEncoder().encode('reg-cred-1');
     // Map(2) with the key 1 twice — rejected by the hardened decoder.
     const dupKeyCose = new Uint8Array([0xa2, 0x01, 0x02, 0x01, 0x03]);

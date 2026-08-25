@@ -130,8 +130,14 @@ function enableHandler<R extends string>(deps: AuthDeps<R>): { POST: RequestHand
 
       const secret = await decryptSecret(user.totpSecret, config.twoFactor.encryptionKey);
       if (secret === null) {
-        // The stored secret can't be decrypted (encryptionKey changed since
-        // setup, or corruption) — a server-side fault, not a bad code.
+        // A server-side fault (twoFactor.encryptionKey changed since setup, or
+        // corruption), not a bad code — and one nothing else records: authError
+        // *returns* a Response instead of throwing `error()`, so SvelteKit's
+        // `handleError` never fires and no Sentry event, log line or stack
+        // trace exists apart from this one.
+        deps.logger.error(
+          `[auth] 2fa-enable: the staged TOTP secret could not be decrypted (user ${user.id}) — twoFactor.encryptionKey does not match the key it was staged with.`
+        );
         return authError('totp_secret_unreadable', 500, { headers: NO_STORE });
       }
 
@@ -237,19 +243,31 @@ function verifyHandler<R extends string>(deps: AuthDeps<R>): { POST: RequestHand
       if (body instanceof Response) return body;
       const code = body.data.code;
 
+      // Same server-side fault as in `enable`, invisible for the same reason
+      // (authError returns rather than throws). It must not end the request,
+      // though: a backup code is hashed on its own row and needs no TOTP
+      // secret, so an unreadable secret is exactly when the recovery path has
+      // to stay open.
       const secret = await decryptSecret(user.totpSecret, config.twoFactor.encryptionKey);
       if (secret === null) {
-        return authError('totp_secret_unreadable', 500);
+        deps.logger.error(
+          `[auth] 2fa-verify: the stored TOTP secret could not be decrypted (user ${user.id}) — twoFactor.encryptionKey does not match the key it was enrolled with. TOTP codes cannot be checked until that key is restored; backup codes still redeem.`
+        );
       }
 
       // Try the TOTP code first; a non-numeric/wrong code falls through to a
       // single-use backup-code redemption (atomic, owner-scoped). A wrong TOTP
       // can never accidentally burn a backup code — its hash won't match one.
-      let verified = await verifyTotp(secret, code, resolveTotpOptions(config.twoFactor));
+      let verified =
+        secret !== null && (await verifyTotp(secret, code, resolveTotpOptions(config.twoFactor)));
       if (!verified) {
         verified = await repos.backupCode.consumeIfUnused(user.id, hashBackupCode(code));
       }
       if (!verified) {
+        // An unreadable secret keeps its 500 once the backup code missed too:
+        // answering `invalid_code` would tell a user holding a correct TOTP
+        // code that the code is wrong, and would hide the fault entirely.
+        if (secret === null) return authError('totp_secret_unreadable', 500);
         // Leave the pending cookie in place: the user may retry within the TTL,
         // and the rate limiter (not cookie invalidation) bounds brute force.
         return authError('invalid_code', 401);

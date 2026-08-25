@@ -14,6 +14,8 @@ import { createPending2faToken, hashBackupCode, setPending2faCookie } from '../t
 import { createTwoFactorHandlers } from './two-factor.js';
 
 const ENC_KEY = 'test-2fa-encryption-key-0123456789';
+/** Stands in for an operator having rotated `twoFactor.encryptionKey`. */
+const ROTATED_KEY = 'rotated-2fa-encryption-key-987654';
 const SECRET = generateTotpSecret();
 
 /** A currently-valid TOTP code for SECRET. */
@@ -142,6 +144,26 @@ describe('createTwoFactorHandlers — enable', () => {
       as(await authed(deps, { code: await currentCode() }))
     );
     expect(res.status).toBe(400);
+  });
+
+  it('logs the decryption failure behind the 500', async () => {
+    const user = createMockUser({
+      totpEnabled: false,
+      totpSecret: await encryptSecret(SECRET, ROTATED_KEY)
+    });
+    const deps = createMockAuthDeps({
+      config: { twoFactor: { encryptionKey: ENC_KEY } },
+      user: { findById: vi.fn().mockResolvedValue(user) },
+      backupCode: createMockBackupCodeRepository()
+    });
+    const res = await createTwoFactorHandlers(deps).enable.POST(
+      as(await authed(deps, { code: await currentCode() }))
+    );
+    expect(res.status).toBe(500);
+    expect((await res.json()).code).toBe('totp_secret_unreadable');
+    expect(deps.repos.user.enableTotp).not.toHaveBeenCalled();
+    expect(deps.logger.error).toHaveBeenCalledTimes(1);
+    expect(vi.mocked(deps.logger.error).mock.calls[0][0]).toContain('user-1');
   });
 });
 
@@ -284,6 +306,46 @@ describe('createTwoFactorHandlers — verify', () => {
     expect((await run()).status).toBe(401);
     expect((await run()).status).toBe(401);
     expect((await run()).status).toBe(429);
+  });
+
+  it('redeems a backup code while the stored secret is unreadable', async () => {
+    const user = createMockUser({
+      totpEnabled: true,
+      totpSecret: await encryptSecret(SECRET, ROTATED_KEY)
+    });
+    const deps = createMockAuthDeps({
+      config: { twoFactor: { encryptionKey: ENC_KEY } },
+      user: { findById: vi.fn().mockResolvedValue(user) },
+      backupCode: createMockBackupCodeRepository({
+        consumeIfUnused: vi.fn().mockResolvedValue(true)
+      })
+    });
+    const ev = await withPending(deps, { code: 'ABCD-EFGH-IJKL-MNOP' });
+    const res = await createTwoFactorHandlers(deps).verify.POST(as(ev));
+
+    expect(res.status).toBe(200);
+    expect(ev._cookieStore.get('session')).toBeTruthy();
+    expect(deps.repos.backupCode!.consumeIfUnused).toHaveBeenCalledWith(
+      'user-1',
+      hashBackupCode('ABCD-EFGH-IJKL-MNOP')
+    );
+    expect(deps.logger.error).toHaveBeenCalledTimes(1);
+  });
+
+  it('does not let an unreadable secret pass a wrong backup code', async () => {
+    const user = createMockUser({
+      totpEnabled: true,
+      totpSecret: await encryptSecret(SECRET, ROTATED_KEY)
+    });
+    const deps = verifyDeps(user); // consumeIfUnused resolves false by default
+    const ev = await withPending(deps, { code: 'WRNG-CODE-WRNG-CODE' });
+    const res = await createTwoFactorHandlers(deps).verify.POST(as(ev));
+
+    expect(res.status).toBe(500);
+    expect((await res.json()).code).toBe('totp_secret_unreadable');
+    expect(ev._cookieStore.get('session')).toBeUndefined();
+    expect(deps.logger.error).toHaveBeenCalledTimes(1);
+    expect(vi.mocked(deps.logger.error).mock.calls[0][0]).toContain('user-1');
   });
 
   it('clears a stale pending cookie when 2FA was disabled since the password step', async () => {

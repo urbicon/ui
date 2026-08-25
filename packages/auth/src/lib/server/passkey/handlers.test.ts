@@ -109,6 +109,63 @@ describe('createPasskeyHandlers — wiring', () => {
   });
 });
 
+describe('createPasskeyHandlers — UV/2FA wiring warning', () => {
+  function depsWith(twoFactor: boolean, requireUserVerification?: boolean): TestDeps {
+    const base = makeDeps();
+    return {
+      ...base,
+      config: {
+        ...base.config,
+        twoFactor: twoFactor ? { encryptionKey: 'x'.repeat(32) } : undefined
+      },
+      webauthn: { ...base.webauthn, requireUserVerification }
+    };
+  }
+
+  it('warns when the UV opt-out meets a configured TOTP second factor', () => {
+    const deps = depsWith(true, false);
+    passkeyHandlers(deps);
+
+    expect(deps.logger.warn).toHaveBeenCalledTimes(1);
+    expect(vi.mocked(deps.logger.warn).mock.calls[0][0]).toMatch(
+      /requireUserVerification.*single factor|single factor.*requireUserVerification/s
+    );
+  });
+
+  it('warns once per webauthn config, not once per factory call', () => {
+    const deps = depsWith(true, false);
+    passkeyHandlers(deps);
+    passkeyHandlers(deps);
+    passkeyHandlers(deps);
+
+    expect(deps.logger.warn).toHaveBeenCalledTimes(1);
+  });
+
+  it('does not repeat the warning per request', async () => {
+    const deps = depsWith(true, false);
+    const handlers = passkeyHandlers(deps);
+
+    await handlers.authenticationOptions.POST(event({}));
+    await handlers.authenticationOptions.POST(event({}));
+
+    expect(deps.logger.warn).toHaveBeenCalledTimes(1);
+  });
+
+  it('stays silent under the UV default', () => {
+    const deps = depsWith(true);
+    passkeyHandlers(deps);
+
+    expect(deps.logger.warn).not.toHaveBeenCalled();
+  });
+
+  it('stays silent on the UV opt-out without a configured second factor', () => {
+    const deps = depsWith(false, false);
+    passkeyHandlers(deps);
+
+    expect(deps.logger.warn).not.toHaveBeenCalled();
+  });
+});
+
 describe('passkey auth rate limiting', () => {
   // Review finding (Cluster A): the options + verify handlers must share ONE
   // per-IP budget, not get an independent one each (which would double the
