@@ -96,10 +96,14 @@ Two consequences, because both look like gaps from the outside:
   investment has no consumer. Blur is the exception that already has its token —
   `--blocks-overlay-backdrop-blur`, read by every backdrop — while a resting glow has none,
   so a neon look stays a consumer's `class`/`slotClasses` job.
-- **Brand themes are unbounded; full aesthetic identities are not.** Palette, accent hue, radius
-  and density cost one file each under `style/themes/`, so there can be any number. A complete
-  visual identity is a larger one-time token investment, and those stay a small curated set —
-  never an open "any aesthetic" engine.
+- **Brand themes are unbounded; full aesthetic identities are not.** Palette, accent hue and
+  radius cost one file each under `style/themes/`, so there can be any number. Density is not
+  one of them: it is a component prop (`size`, or `density` where a component has one), because
+  the geometry lives in the Tailwind utilities the variants write, not in tokens a file could
+  rebind. Two table density theme files were shipped as if it could be, and deleted in 2026-08:
+  every one of their seven overrides was a variable nothing read. A complete visual identity is
+  a larger one-time token investment, and those stay a small curated set — never an open
+  "any aesthetic" engine.
 
 The proof that the boundary holds is in the repo: the Color Rooms skin
 (`apps/docs/src/lib/style/rooms*.css`) carries a complete identity — own paper, ink, intent

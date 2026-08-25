@@ -174,6 +174,44 @@ describe('createRegisterHandler', () => {
     expect(data.user).not.toHaveProperty('passwordHash');
   });
 
+  it('keeps a completed registration a 201 when the onUserCreated hook throws', async () => {
+    const findByEmail = vi
+      .fn()
+      .mockResolvedValueOnce(null)
+      .mockResolvedValueOnce(createMockUser({ id: 'u-new', email: 'new@test.com' }));
+    const deps = createMockAuthDeps({
+      config: {
+        hooks: { onUserCreated: vi.fn().mockRejectedValue(new Error('consumer hook exploded')) }
+      },
+      user: {
+        findByEmail,
+        create: vi.fn().mockResolvedValue({
+          id: 'u-new',
+          email: 'new@test.com',
+          name: 'New User',
+          role: 'admin',
+          emailVerified: false
+        })
+      },
+      invitation: { findByTokenHash: vi.fn().mockResolvedValue(invited()) }
+    });
+
+    const ev = mockPostEvent(validBody);
+    const res = await createRegisterHandler(deps).POST(ev as unknown as RequestEvent);
+
+    // The row exists and the single-use invitation is spent, so a 500 would send
+    // the user into a retry that answers `invitation_used` 403 — locked out of a
+    // registration they completed.
+    expect(res.status).toBe(201);
+    expect(deps.repos.invitation.markUsedIfUnused).toHaveBeenCalledWith('inv-1');
+    // The hook runs before auto-login, so the session must still be established.
+    expect(ev._cookieStore.get('session')).toBeTruthy();
+    expect(deps.logger.error).toHaveBeenCalledWith(
+      expect.stringContaining('onUserCreated'),
+      expect.any(Error)
+    );
+  });
+
   it('returns 500 if the user vanishes between create and re-read', async () => {
     const deps = createMockAuthDeps({
       user: {
