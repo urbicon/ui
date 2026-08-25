@@ -88,8 +88,16 @@ All components use `@urbicon-ui/blocks` primitives and support:
 - **`unstyled`** — strips *every* default class, including inner wrappers and list-item
   internals; structural state that only styling used to carry is exposed as data
   attributes instead (`data-met` on RegisterPage requirement rows, `data-unread` on
-  NotificationCenter items). Functionality never disappears with the flag.
+  NotificationCenter items). Functionality never disappears with the flag. Set it on the
+  prop or on `<BlocksProvider unstyled>` — a provider-wide flag reaches these components
+  too. **Changed:** it used to strip only the blocks primitives inside them, leaving the
+  auth components' own classes in place; a project relying on that half-stripped state
+  now gets the whole thing.
 - **`slotClasses`** — per-slot class overrides (e.g. `root`, `card`, `form`, `field`)
+- **`preset`** — a named look registered on `<BlocksProvider presets={{ LoginPage: { … } }}>`,
+  resolved after the provider's `defaults` and before this instance's `slotClasses`. Reach for it
+  when the same override would otherwise be repeated at every usage site. `NotificationListener`
+  is the one component without any of the three — it renders no markup.
 - **Snippet overrides** — `header`/`footer`/`links` on all five pages, `item`
   (NotificationCenter), `qr` (TwoFactorManager)
 - **Semantic design tokens** — `text-text-primary`, `bg-surface-quiet`, etc.

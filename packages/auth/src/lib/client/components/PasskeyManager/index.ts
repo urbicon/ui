@@ -31,6 +31,13 @@ export interface PasskeyManagerProps {
   unstyled?: boolean;
   /** Per-slot class overrides. */
   slotClasses?: Partial<Record<'root' | 'title' | 'error' | 'list' | 'item' | 'empty', string>>;
+  /**
+   * Apply a named preset registered via `<BlocksProvider presets={{ PasskeyManager: { … } }}>`.
+   * Resolves after the provider defaults and before this instance's own
+   * `slotClasses`, so a project-wide look lives in one place instead of being
+   * repeated at every usage site.
+   */
+  preset?: string;
   /** Extra classes on the root element. */
   class?: string;
 }

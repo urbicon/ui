@@ -50,6 +50,26 @@
  *
  * Both rules are executable — see the conformance suite in `conformance.ts`.
  *
+ * ## The contract describes a complete auth store, not only what this package drives
+ *
+ * A handful of methods have no caller anywhere in `src` and every adapter still
+ * implements them. That is deliberate, and it is the answer to the question the
+ * two readings of this file pose: the interface describes the store an
+ * authentication system needs, not the subset today's handlers happen to reach.
+ * A method the package does not drive is therefore **marked consumer-facing at
+ * its declaration**, saying what makes the way instead, so an adapter author can
+ * tell "nobody calls this yet" from "you are wiring it wrong":
+ * {@link UserRepository.setEmailVerified},
+ * {@link UserRepository.setVerificationToken},
+ * {@link PasskeyRepository.rename},
+ * {@link RefreshTokenRepository.deleteExpired} and all of
+ * {@link FederatedAccountRepository}.
+ *
+ * The rule for the next one: a new method needs either an in-package caller or
+ * that marking. Dropping such a method from the required surface is the option
+ * this contract does not take — it would break every adapter already written
+ * against it, to save work only the adapter author pays.
+ *
  * ## Other cross-cutting conventions
  *
  * - **Owner-first parameters**: the owning user id is the first argument of
@@ -179,9 +199,29 @@ export interface UserRepository<R extends string = string> {
   findByEmail(email: string): Promise<FullAuthUser<R> | null>;
   create(data: CreateUserData<R>): Promise<AuthUser<R>>;
   updatePassword(id: string, passwordHash: string): Promise<void>;
+  /**
+   * Mark a user's email as verified outright. **Consumer-facing**: nothing in
+   * this package calls it. The built-in flow never needs it — registration
+   * that requires no verification passes `emailVerified: true` to
+   * {@link UserRepository.create}, and the verification round-trip flips the
+   * flag inside
+   * {@link UserRepository.consumeVerificationToken}'s conditional write, which
+   * is what makes a double claim impossible. It stays in the contract for the
+   * consumer's own out-of-band paths (an admin action, a migration, an
+   * identity provider that already proved the mailbox).
+   */
   setEmailVerified(id: string): Promise<void>;
 
   // ---- Email verification ----
+  /**
+   * Store a fresh verification-token hash with its expiry. **Consumer-facing**:
+   * nothing in this package calls it. Registration writes the first token
+   * through {@link UserRepository.create} (`verificationToken` +
+   * `verificationTokenExpires`) so the row and its token are one write, and
+   * verification consumes it through
+   * {@link UserRepository.consumeVerificationToken}. The package ships no
+   * resend endpoint, so this exists for a consumer that adds one.
+   */
   setVerificationToken(id: string, tokenHash: string, expires: Date): Promise<void>;
   /**
    * Atomically claim an email-verification token: mark the matching user as
@@ -601,7 +641,12 @@ export interface PasskeyRepository {
   updateCounter(credentialId: string, counter: number): Promise<boolean>;
   /** Scoped to the owner (owner-first, see {@link NotificationRepository}). */
   delete(userId: string, credentialId: string): Promise<void>;
-  /** Scoped to the owner (owner-first, see {@link NotificationRepository}). */
+  /**
+   * Scoped to the owner (owner-first, see {@link NotificationRepository}).
+   * **Consumer-facing**: nothing in this package calls it — there is no rename
+   * endpoint and `<PasskeyManager>` offers no rename control, so today only a
+   * consumer's own route drives it (#241 plans both).
+   */
   rename(userId: string, credentialId: string, name: string): Promise<void>;
 }
 
@@ -647,14 +692,21 @@ export interface RefreshTokenRepository {
   revokeFamily(family: string): Promise<void>;
   /** Revoke every non-revoked token for a user (used on logout-everywhere). */
   revokeAllForUser(userId: string): Promise<void>;
-  /** Remove expired tokens. Returns the number deleted. */
+  /**
+   * Remove expired tokens. Returns the number deleted. **Consumer-facing**:
+   * nothing in this package calls it, and nothing has to — expiry is enforced
+   * on read (rotation rejects a token past `expiresAt`, and
+   * {@link RefreshTokenRepository.listActiveByUser} filters them out), so this
+   * is retention rather than correctness and its schedule belongs to the
+   * consumer's own job.
+   */
   deleteExpired(): Promise<number>;
 
   /**
-   * List a user's currently-active refresh tokens — non-revoked and unexpired.
-   * Rotation keeps exactly one live token per family, so each row corresponds to
-   * one active session. Ordered newest-first. Powers the session-listing feature
-   * (`createSessionsHandlers().list`).
+   * List a user's currently-active refresh tokens — non-revoked and unexpired,
+   * in any order. Rotation keeps exactly one live token per family, so each row
+   * corresponds to one active session. Powers the session-listing feature
+   * (`createSessionsHandlers().list`), which sorts by `createdAt` itself.
    */
   listActiveByUser(userId: string): Promise<RefreshTokenRecord[]>;
   /**

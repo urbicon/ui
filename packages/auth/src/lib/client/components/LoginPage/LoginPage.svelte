@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { Button, Checkbox, Input, Separator } from '@urbicon-ui/blocks';
+  import { Button, Checkbox, Input, Separator, getBlocksConfig } from '@urbicon-ui/blocks';
   import { onMount } from 'svelte';
   import { mergeAuthLocale, useAuthLocale } from '../../../i18n/index.js';
   import { csrfFetch } from '../../csrf.js';
@@ -7,7 +7,7 @@
   import type { LoginPageProps } from './index.js';
   import { base64UrlToBuffer, bufferToBase64Url } from '../../utils/webauthn.js';
   import { errorTextFromBody, postJson, wireError } from '../../utils/http.js';
-  import { slotClass } from '../../utils/slot-class.js';
+  import { resolveAuthSlotClasses, slotClass } from '../../utils/slot-class.js';
   import AuthPageShell from '../_shared/AuthPageShell.svelte';
 
   let {
@@ -25,10 +25,17 @@
     header: headerSnippet,
     footer: footerSnippet,
     links: linksSnippet,
-    unstyled = false,
-    slotClasses = {},
+    unstyled: unstyledProp = false,
+    slotClasses: slotClassesProp = {},
+    preset,
     class: className
   }: LoginPageProps = $props();
+
+  const blocksConfig = getBlocksConfig();
+  const unstyled = $derived(unstyledProp || blocksConfig?.unstyled || false);
+  const slotClasses = $derived(
+    resolveAuthSlotClasses(blocksConfig, 'LoginPage', preset, slotClassesProp)
+  );
 
   const authLocale = useAuthLocale();
   const t = $derived(mergeAuthLocale(authLocale(), tProp));
