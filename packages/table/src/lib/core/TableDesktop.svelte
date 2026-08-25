@@ -187,6 +187,22 @@
   // `active:scale-[0.995]`, and a rect measures the painted box, so measuring
   // mid-press would shrink every row in the list by half a percent. The layout
   // box ignores the transform.
+  //
+  // That it is an **integer** is the second reason, and the load-bearing one.
+  // Rows are often fractional — 52.5px with a selection checkbox, 34.5px at
+  // `size="sm"` — and the exact height looks like the better stride right up to
+  // the end of the list. Rows are painted on whole device pixels, so they
+  // accumulate past a spacer sized from the exact value: measured on the
+  // 2000-row interactive fixture (2026-08-25), an exact 52.5 stride gives a
+  // 105 000px spacer that the painted rows overrun to 105 006, so `End` lands
+  // 6px short of a bottom that has moved beneath it. Rounding **up** keeps the
+  // spacer at least as tall as what it holds. The price is slack in the
+  // harmless direction — at `size="sm"` a 35px stride over a 34.5px row leaves
+  // about a pixel at the very bottom — and `getComputedStyle().height` would
+  // trade that pixel for an unreachable last row.
+  //
+  // Both directions are covered by the geometry spec in `e2e/table-core.spec.ts`,
+  // which runs over a fractional fixture as well as the integer one.
   $effect(() => {
     // The inputs the observer below cannot see. `size` and a consumer's own row
     // class change the height without changing the container's.
