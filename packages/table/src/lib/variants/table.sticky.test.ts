@@ -5,28 +5,27 @@ import { groupHeaderVariants } from './table-features.variants';
 
 describe('resolveStickyMode', () => {
   it('disables all layers by default', () => {
-    expect(resolveStickyMode(false)).toEqual({ toolbar: false, header: false, group: false });
-    expect(resolveStickyMode(undefined)).toEqual({ toolbar: false, header: false, group: false });
+    expect(resolveStickyMode(false)).toEqual({ toolbar: false, header: false });
+    expect(resolveStickyMode(undefined)).toEqual({ toolbar: false, header: false });
   });
 
   it('enables all layers for true / "both"', () => {
-    expect(resolveStickyMode(true)).toEqual({ toolbar: true, header: true, group: true });
-    expect(resolveStickyMode('both')).toEqual({ toolbar: true, header: true, group: true });
+    expect(resolveStickyMode(true)).toEqual({ toolbar: true, header: true });
+    expect(resolveStickyMode('both')).toEqual({ toolbar: true, header: true });
   });
 
   it('enables only the toolbar for "toolbar"', () => {
-    expect(resolveStickyMode('toolbar')).toEqual({ toolbar: true, header: false, group: false });
+    expect(resolveStickyMode('toolbar')).toEqual({ toolbar: true, header: false });
   });
 
-  it('enables header AND group for "header"', () => {
-    expect(resolveStickyMode('header')).toEqual({ toolbar: false, header: true, group: true });
+  it('enables the header layer — thead and group header — for "header"', () => {
+    expect(resolveStickyMode('header')).toEqual({ toolbar: false, header: true });
   });
 
-  it('contained (fit="viewport") forces header + group and drops toolbar pinning', () => {
+  it('contained (fit="viewport") forces header pinning and drops the toolbar', () => {
     expect(resolveStickyMode(false, true)).toEqual({
       toolbar: false,
-      header: true,
-      group: true
+      header: true
     });
   });
 
@@ -34,13 +33,11 @@ describe('resolveStickyMode', () => {
     // even "toolbar"/"both" collapse to the box-relative header pin
     expect(resolveStickyMode('toolbar', true)).toEqual({
       toolbar: false,
-      header: true,
-      group: true
+      header: true
     });
     expect(resolveStickyMode('both', true)).toEqual({
       toolbar: false,
-      header: true,
-      group: true
+      header: true
     });
   });
 });

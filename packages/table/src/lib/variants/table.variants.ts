@@ -4,7 +4,7 @@
  * packages/blocks/docs/VARIANT-CONTRACT.md § Table chrome, for what each value means).
  */
 
-import { tv, type VariantProps } from '@urbicon-ui/blocks';
+import { type TVConfig, tv, type VariantProps } from '@urbicon-ui/blocks';
 import { TABLE_DIMENSIONS, TABLE_INDICATORS, TABLE_STATES } from './table.system';
 
 /**
@@ -135,13 +135,17 @@ export const tableHeaderVariants = tv({
 
     // Sticky thead — pins the entire `<thead>` against the page scroll
     // ancestor, offset by the toolbar height (if present).
+    //
+    // No `data-*` selector belongs in this slot: `TableHead.svelte` renders the
+    // `<thead>` with a fixed attribute set (class, role, one attachment) and no
+    // rest spread, so nothing can put an attribute on it from outside. The
+    // stuck-shadow feedback is the toolbar's alone (`tableContainerVariants`),
+    // where the element is a `<div>` the component writes `data-stuck` on.
     sticky: {
       true: {
         header: [
           'sticky z-20 bg-surface-elevated',
-          'top-[calc(var(--blocks-table-sticky-top,0px)+var(--blocks-table-toolbar-h,0px))]',
-          'data-[stuck=true]:shadow-[var(--blocks-shadow-md)]',
-          'transition-shadow duration-[var(--blocks-duration-fast)]'
+          'top-[calc(var(--blocks-table-sticky-top,0px)+var(--blocks-table-toolbar-h,0px))]'
         ],
         row: 'bg-surface-elevated'
       },
@@ -435,7 +439,7 @@ const CARDS_BELOW_STEPS: Record<CardsBelowStep, { desktopOnly: string; mobileOnl
  */
 export const CARDS_BELOW_VALUES = Object.keys(CARDS_BELOW_STEPS) as CardsBelowStep[];
 
-export const tableContainerVariants = tv({
+const rawTableContainerVariants = tv({
   slots: {
     // `@container` is what makes the desktop-table/mobile-record switch measure
     // the box the table actually got instead of the browser window. The two are
@@ -583,4 +587,54 @@ export const tableContainerVariants = tv({
   }
 });
 
-export type TableContainerVariantProps = VariantProps<typeof tableContainerVariants>;
+/**
+ * `stickyToolbar` and `contained` are mutually exclusive, and the exported
+ * function is where that has to be said.
+ *
+ * `contained` makes the scrollArea the scroll box while the container keeps no
+ * `overflow` of its own, so a `position: sticky` toolbar inside it pins against
+ * the PAGE rather than against the frame it belongs to — and a direct variant
+ * caller writes no `--blocks-table-sticky-top`, so it pins at the document top.
+ * `<Table>` cannot emit the pair (`resolveStickyMode(_, true)` forces
+ * `toolbar: false`); only a hand-written call can, which is what this function
+ * is exported for.
+ *
+ * Two things decide the shape below.
+ *
+ * The refusal cannot live on {@link TableContainerVariantProps}: `VariantProps`
+ * is derived FROM the call signature, so rewriting the alias leaves the
+ * forbidden call compiling unchanged. It has to be an annotation on the
+ * constant.
+ *
+ * And it cannot be a union of two object types (`contained?: false` vs
+ * `contained: true`), because the one caller in the repo passes two
+ * `boolean`-typed values — `<Table>` holds the invariant at runtime, not in its
+ * types — and a union rejects `boolean × boolean` in both members. A conditional
+ * over the inferred argument rejects exactly the pair of literal `true`s and
+ * nothing else; the sentence is a property name so the compiler prints the
+ * reason instead of "not assignable".
+ */
+type RejectPinnedToolbarInBox<P> = P extends { stickyToolbar: true; contained: true }
+  ? { 'a page-pinned toolbar cannot live in a contained scroll box': never }
+  : unknown;
+
+export type TableContainerVariantProps = VariantProps<typeof rawTableContainerVariants>;
+
+type RawTableContainerSlots = ReturnType<typeof rawTableContainerVariants>;
+
+/**
+ * Slot functions take the variant props again, so the same pair is reachable
+ * one level down (`styles.toolbar({ stickyToolbar: true, contained: true })`)
+ * and is refused there on the same terms.
+ */
+type TableContainerSlots = {
+  [K in keyof RawTableContainerSlots]: <
+    P extends NonNullable<Parameters<RawTableContainerSlots[K]>[0]>
+  >(
+    props?: P & RejectPinnedToolbarInBox<P>
+  ) => string;
+};
+
+export const tableContainerVariants: (<P extends TableContainerVariantProps>(
+  props?: P & RejectPinnedToolbarInBox<P>
+) => TableContainerSlots) & { readonly config: TVConfig } = rawTableContainerVariants;

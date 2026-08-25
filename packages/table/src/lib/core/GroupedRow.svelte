@@ -85,7 +85,7 @@
   const itemCountText = $derived(groupCountText(items.length, tableState.mode, tt));
 
   // Tailwind-Variants styling
-  const styles = $derived(groupHeaderVariants({ size, sticky: stickyContext.mode.group }));
+  const styles = $derived(groupHeaderVariants({ size, sticky: stickyContext.mode.header }));
 
   // Event handlers
   function handleToggleGroup() {

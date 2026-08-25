@@ -20,12 +20,11 @@
 
   const styleConfig = getTableStyleConfig();
   const stickyContext = getStickyContext();
-  // When header or group-header pinning is enabled, the visible frame must NOT
-  // create its own scroll-ancestor (overflow:auto/hidden hijacks `position: sticky`).
-  // We trade the in-table horizontal scroll for page-level overflow in that case.
-  const scrollAreaOverflow = $derived(
-    stickyContext.mode.header || stickyContext.mode.group ? '' : 'overflow-x-auto'
-  );
+  // When header pinning is enabled (thead + group header), the visible frame
+  // must NOT create its own scroll-ancestor (overflow:auto/hidden hijacks
+  // `position: sticky`). We trade the in-table horizontal scroll for page-level
+  // overflow in that case.
+  const scrollAreaOverflow = $derived(stickyContext.mode.header ? '' : 'overflow-x-auto');
 
   let {
     tableStyles,
