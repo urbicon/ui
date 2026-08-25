@@ -908,7 +908,7 @@ describe('verifyRegistration — attested credential data (exact COSE slicing)',
 
   it('rejects a registration whose authenticator only proved user presence', async () => {
     const store = createInMemoryChallengeStore();
-    await storeChallenge(store, 'user-reg', 'reg-challenge');
+    await store5m(store, 'user-reg', 'reg-challenge');
     const { authData } = await buildRegistrationAuthData(undefined, undefined, false);
 
     await expect(verify(store, noneAttestation(authData))).rejects.toThrow(
@@ -918,7 +918,7 @@ describe('verifyRegistration — attested credential data (exact COSE slicing)',
 
   it('registers a UP-only authenticator when the opt-out is explicit', async () => {
     const store = createInMemoryChallengeStore();
-    await storeChallenge(store, 'user-reg', 'reg-challenge');
+    await store5m(store, 'user-reg', 'reg-challenge');
     const { coseKey, authData } = await buildRegistrationAuthData(undefined, undefined, false);
 
     const result = await verify(store, noneAttestation(authData), {
