@@ -231,17 +231,28 @@ export interface RefreshTokenConfig {
  * Opt-in TOTP two-factor authentication (RFC 6238). When set (and the
  * `backupCode` repo is provided), a user can enable an authenticator-app second
  * factor on top of their password; the login then runs a two-step flow
- * (password → code). Passkey logins are NOT gated (a passkey is already a strong
- * factor). Wiring 2FA requires `encryptionKey`; everything else has secure
- * defaults.
+ * (password → code). Passkey logins are NOT gated — which holds because
+ * `webauthn.requireUserVerification` defaults to `true`, so a passkey assertion
+ * proves possession *and* a PIN/biometric; opting out of UV alongside this
+ * config makes a passkey login single-factor for a TOTP user, and
+ * `createPasskeyHandlers` warns about that pairing. Wiring 2FA requires
+ * `encryptionKey`; everything else has secure defaults.
  */
 export interface TwoFactorConfig {
   /**
    * Key material used to encrypt the TOTP secret at rest (AES-256-GCM). MUST be
    * **high-entropy** (e.g. 32 random bytes, base64) and stable across restarts —
    * it is hashed to a 32-byte AES key, not stretched like a password, so a weak
-   * value weakens the at-rest protection. Rotating it invalidates every stored
-   * secret (users must re-enrol). Required whenever 2FA is wired.
+   * value weakens the at-rest protection. Required whenever 2FA is wired.
+   *
+   * **Rotating it invalidates every stored secret, and re-enrolment does not
+   * route around that**: `setup` refuses while `totpEnabled` is set. An
+   * affected user gets back in with a backup code (the verify handler keeps
+   * that path open when the secret is unreadable, and logs the failure) or, if
+   * they enrolled one, with a passkey — passkey logins are not TOTP-gated, so
+   * this key never touches them. Treat a rotation as an incident with a
+   * runbook — see the AUTH.md key-rotation runbook for
+   * `twoFactor.encryptionKey`.
    */
   encryptionKey: string;
   /**
