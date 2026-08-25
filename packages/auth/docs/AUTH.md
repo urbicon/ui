@@ -90,6 +90,10 @@ All components use `@urbicon-ui/blocks` primitives and support:
   attributes instead (`data-met` on RegisterPage requirement rows, `data-unread` on
   NotificationCenter items). Functionality never disappears with the flag.
 - **`slotClasses`** — per-slot class overrides (e.g. `root`, `card`, `form`, `field`)
+- **`preset`** — a named look registered on `<BlocksProvider presets={{ LoginPage: { … } }}>`,
+  resolved after the provider's `defaults` and before this instance's `slotClasses`. Reach for it
+  when the same override would otherwise be repeated at every usage site. `NotificationListener`
+  is the one component without any of the three — it renders no markup.
 - **Snippet overrides** — `header`/`footer`/`links` on all five pages, `item`
   (NotificationCenter), `qr` (TwoFactorManager)
 - **Semantic design tokens** — `text-text-primary`, `bg-surface-quiet`, etc.

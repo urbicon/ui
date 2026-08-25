@@ -48,6 +48,13 @@ export interface AccountSettingsProps {
   slotClasses?: Partial<
     Record<'root' | 'title' | 'section' | 'sectionTitle' | 'field' | 'submit' | 'danger', string>
   >;
+  /**
+   * Apply a named preset registered via `<BlocksProvider presets={{ AccountSettings: { … } }}>`.
+   * Resolves after the provider defaults and before this instance's own
+   * `slotClasses`, so a project-wide look lives in one place instead of being
+   * repeated at every usage site.
+   */
+  preset?: string;
   /** Extra classes on the root element. */
   class?: string;
 }

@@ -1,10 +1,10 @@
 <script lang="ts">
-  import { Alert, Spinner } from '@urbicon-ui/blocks';
+  import { Alert, Spinner, getBlocksConfig } from '@urbicon-ui/blocks';
   import { onMount } from 'svelte';
   import { mergeAuthLocale, useAuthLocale } from '../../../i18n/index.js';
   import { errorMessageFromCode } from '../../utils/error-message.js';
   import { postJson, wireError } from '../../utils/http.js';
-  import { slotClass } from '../../utils/slot-class.js';
+  import { resolveAuthSlotClasses, slotClass } from '../../utils/slot-class.js';
   import type { VerifyEmailPageProps } from './index.js';
   import AuthPageShell from '../_shared/AuthPageShell.svelte';
 
@@ -18,9 +18,15 @@
     footer: footerSnippet,
     links: linksSnippet,
     unstyled = false,
-    slotClasses = {},
+    slotClasses: slotClassesProp = {},
+    preset,
     class: className
   }: VerifyEmailPageProps = $props();
+
+  const blocksConfig = getBlocksConfig();
+  const slotClasses = $derived(
+    resolveAuthSlotClasses(blocksConfig, 'VerifyEmailPage', preset, slotClassesProp)
+  );
 
   const authLocale = useAuthLocale();
   const t = $derived(mergeAuthLocale(authLocale(), tProp));

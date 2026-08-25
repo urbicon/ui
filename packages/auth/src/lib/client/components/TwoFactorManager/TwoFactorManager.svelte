@@ -1,10 +1,10 @@
 <script lang="ts">
-  import { Alert, Button, Input, Separator } from '@urbicon-ui/blocks';
+  import { Alert, Button, Input, Separator, getBlocksConfig } from '@urbicon-ui/blocks';
   import { untrack } from 'svelte';
   import { mergeAuthLocale, useAuthLocale } from '../../../i18n/index.js';
   import type { TwoFactorManagerProps } from './index.js';
   import { errorTextFromBody, postJson as postJsonRequest } from '../../utils/http.js';
-  import { slotClass } from '../../utils/slot-class.js';
+  import { resolveAuthSlotClasses, slotClass } from '../../utils/slot-class.js';
 
   let {
     user,
@@ -16,9 +16,15 @@
     onEnabled,
     onDisabled,
     unstyled = false,
-    slotClasses = {},
+    slotClasses: slotClassesProp = {},
+    preset,
     class: className
   }: TwoFactorManagerProps = $props();
+
+  const blocksConfig = getBlocksConfig();
+  const slotClasses = $derived(
+    resolveAuthSlotClasses(blocksConfig, 'TwoFactorManager', preset, slotClassesProp)
+  );
 
   const authLocale = useAuthLocale();
   const t = $derived(mergeAuthLocale(authLocale(), tProp));
@@ -161,7 +167,9 @@
     </h2>
 
     <div aria-live="polite">
-      {#if error}<Alert intent="danger" size="sm" {unstyled}>{error}</Alert>{/if}
+      {#if error}
+        <Alert intent="danger" size="sm" {unstyled} class={slotClasses.error}>{error}</Alert>
+      {/if}
     </div>
 
     {#if view === 'idle'}

@@ -47,6 +47,13 @@ export interface PushPermissionPromptProps {
   unstyled?: boolean;
   /** Per-slot class overrides. */
   slotClasses?: Partial<Record<'root' | 'text' | 'error' | 'actions', string>>;
+  /**
+   * Apply a named preset registered via `<BlocksProvider presets={{ PushPermissionPrompt: { … } }}>`.
+   * Resolves after the provider defaults and before this instance's own
+   * `slotClasses`, so a project-wide look lives in one place instead of being
+   * repeated at every usage site.
+   */
+  preset?: string;
   /** Extra classes on the root element. */
   class?: string;
 }

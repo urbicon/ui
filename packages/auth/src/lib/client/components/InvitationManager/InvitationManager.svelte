@@ -1,12 +1,21 @@
 <script lang="ts">
-  import { Badge, Button, Checkbox, Input, Select, Separator, Spinner } from '@urbicon-ui/blocks';
+  import {
+    Badge,
+    Button,
+    Checkbox,
+    Input,
+    Select,
+    Separator,
+    Spinner,
+    getBlocksConfig
+  } from '@urbicon-ui/blocks';
   import FormErrorAlert from '../_shared/FormErrorAlert.svelte';
   import { onMount, untrack } from 'svelte';
   import { mergeAuthLocale, useAuthLocale } from '../../../i18n/index.js';
   import { csrfFetch } from '../../csrf.js';
   import type { InvitationManagerProps } from './index.js';
   import { errorTextFromBody, getJson } from '../../utils/http.js';
-  import { slotClass } from '../../utils/slot-class.js';
+  import { resolveAuthSlotClasses, slotClass } from '../../utils/slot-class.js';
 
   interface InvitationItem {
     id: string;
@@ -23,9 +32,15 @@
     csrf,
     fetcher,
     unstyled = false,
-    slotClasses = {},
+    slotClasses: slotClassesProp = {},
+    preset,
     class: className
   }: InvitationManagerProps = $props();
+
+  const blocksConfig = getBlocksConfig();
+  const slotClasses = $derived(
+    resolveAuthSlotClasses(blocksConfig, 'InvitationManager', preset, slotClassesProp)
+  );
 
   const authLocale = useAuthLocale();
   const t = $derived(mergeAuthLocale(authLocale(), tProp));
@@ -38,6 +53,10 @@
   let sendEmail = $state(true);
   let error = $state('');
   let loading = $state(true);
+  // The list region has three readings — spinner, "none yet", the rows — and a
+  // failed load owns none of them. Tracked apart from `error`, which a failed
+  // send or delete also sets while the list on screen is still valid.
+  let loadFailed = $state(false);
   let submitting = $state(false);
   // The invite URL comes back from the 201 and is shown until the next submit.
   // It carries the one-time token, so this is the only moment it exists outside
@@ -64,11 +83,13 @@
 
   async function loadInvitations() {
     loading = true;
+    loadFailed = false;
     try {
       const { ok, data } = await getJson(apiPath, { fetcher });
       if (!ok) {
         // A 401/500 must not render as "no invitations yet".
         error = errorTextFromBody(data, t);
+        loadFailed = true;
         return;
       }
       invitations = (data.invitations as InvitationItem[] | undefined) ?? [];
@@ -76,6 +97,7 @@
       // Surface the failure instead of rendering the empty state, which is
       // indistinguishable from "no invitations yet".
       error = t.auth.errors.networkError;
+      loadFailed = true;
     } finally {
       loading = false;
     }
@@ -232,8 +254,8 @@
     <div class={cls('flex justify-center py-4')}>
       <Spinner size="sm" {unstyled} />
     </div>
-  {:else if invitations.length === 0}
-    <p class={cls('text-text-tertiary py-4 text-center text-sm')}>
+  {:else if invitations.length === 0 && !loadFailed}
+    <p class={cls('text-text-tertiary py-4 text-center text-sm', slotClasses.empty)}>
       {t.invitations.empty}
     </p>
   {:else}

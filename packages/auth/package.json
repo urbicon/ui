@@ -82,6 +82,7 @@
     "dist",
     "!dist/**/*.test.*",
     "!dist/**/*test-utils.*",
+    "!dist/**/__fixtures__/**",
     "!dist/**/.svelte-kit"
   ],
   "scripts": {
@@ -107,8 +108,11 @@
     "@sveltejs/kit": "catalog:",
     "@sveltejs/package": "catalog:",
     "@sveltejs/vite-plugin-svelte": "catalog:",
+    "@testing-library/dom": "catalog:",
+    "@testing-library/user-event": "catalog:",
     "@urbicon-ui/blocks": "workspace:*",
     "@urbicon-ui/i18n": "workspace:*",
+    "jsdom": "catalog:",
     "prettier": "catalog:",
     "prettier-plugin-svelte": "catalog:",
     "prettier-plugin-tailwindcss": "catalog:",

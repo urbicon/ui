@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { Button, Separator, Spinner } from '@urbicon-ui/blocks';
+  import { Button, Separator, Spinner, getBlocksConfig } from '@urbicon-ui/blocks';
   import FormErrorAlert from '../_shared/FormErrorAlert.svelte';
   import { onMount } from 'svelte';
   import { mergeAuthLocale, useAuthLocale } from '../../../i18n/index.js';
@@ -7,7 +7,7 @@
   import type { PasskeyManagerProps } from './index.js';
   import { base64UrlToBuffer, bufferToBase64Url } from '../../utils/webauthn.js';
   import { errorTextFromBody, getJson } from '../../utils/http.js';
-  import { slotClass } from '../../utils/slot-class.js';
+  import { resolveAuthSlotClasses, slotClass } from '../../utils/slot-class.js';
 
   let {
     t: tProp,
@@ -15,9 +15,15 @@
     csrf,
     fetcher,
     unstyled = false,
-    slotClasses = {},
+    slotClasses: slotClassesProp = {},
+    preset,
     class: className
   }: PasskeyManagerProps = $props();
+
+  const blocksConfig = getBlocksConfig();
+  const slotClasses = $derived(
+    resolveAuthSlotClasses(blocksConfig, 'PasskeyManager', preset, slotClassesProp)
+  );
 
   const authLocale = useAuthLocale();
   const t = $derived(mergeAuthLocale(authLocale(), tProp));
@@ -32,16 +38,21 @@
 
   let passkeys = $state<PasskeyItem[]>([]);
   let loading = $state(true);
+  // Kept apart from `error`, which a failed add or delete also sets while the
+  // list on screen is still valid. Only a failed *load* disowns the list region.
+  let loadFailed = $state(false);
   let registering = $state(false);
   let error = $state('');
 
   async function loadPasskeys() {
     loading = true;
+    loadFailed = false;
     try {
       const { ok, data } = await getJson(`${apiPath}/list`, { fetcher });
       if (!ok) {
         // A 401/500 must not render as "no passkeys registered".
         error = errorTextFromBody(data, t);
+        loadFailed = true;
         return;
       }
       passkeys = (data.passkeys as PasskeyItem[] | undefined) ?? [];
@@ -49,6 +60,7 @@
       // Surface the failure instead of rendering the empty state, which is
       // indistinguishable from "no passkeys registered".
       error = t.auth.errors.networkError;
+      loadFailed = true;
     } finally {
       loading = false;
     }
@@ -202,7 +214,7 @@
     <div class={cls('flex justify-center py-4')}>
       <Spinner size="sm" {unstyled} />
     </div>
-  {:else if passkeys.length === 0}
+  {:else if passkeys.length === 0 && !loadFailed}
     <p class={cls('text-text-tertiary py-4 text-center text-sm', slotClasses.empty)}>
       {t.passkeys.empty}
     </p>

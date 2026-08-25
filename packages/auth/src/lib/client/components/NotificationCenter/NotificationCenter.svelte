@@ -1,7 +1,7 @@
 <script lang="ts">
-  import { Button, Separator } from '@urbicon-ui/blocks';
+  import { Button, Separator, getBlocksConfig } from '@urbicon-ui/blocks';
   import { mergeAuthLocale, useAuthLocale } from '../../../i18n/index.js';
-  import { slotClass } from '../../utils/slot-class.js';
+  import { resolveAuthSlotClasses, slotClass } from '../../utils/slot-class.js';
   import type { NotificationCenterProps } from './index.js';
 
   let {
@@ -13,9 +13,15 @@
     onNotificationClick,
     item: itemSnippet,
     unstyled = false,
-    slotClasses = {},
+    slotClasses: slotClassesProp = {},
+    preset,
     class: className
   }: NotificationCenterProps = $props();
+
+  const blocksConfig = getBlocksConfig();
+  const slotClasses = $derived(
+    resolveAuthSlotClasses(blocksConfig, 'NotificationCenter', preset, slotClassesProp)
+  );
 
   const authLocale = useAuthLocale();
   const t = $derived(mergeAuthLocale(authLocale(), tProp));

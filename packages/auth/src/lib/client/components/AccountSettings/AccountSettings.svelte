@@ -1,11 +1,18 @@
 <script lang="ts">
-  import { Alert, Button, ConfirmDialog, Input, Separator } from '@urbicon-ui/blocks';
+  import {
+    Alert,
+    Button,
+    ConfirmDialog,
+    Input,
+    Separator,
+    getBlocksConfig
+  } from '@urbicon-ui/blocks';
   import { untrack } from 'svelte';
   import { mergeAuthLocale, useAuthLocale } from '../../../i18n/index.js';
   import type { AuthUser } from '../../../types.js';
   import type { AccountSettingsProps } from './index.js';
   import { errorTextFromBody, postJson as postJsonRequest } from '../../utils/http.js';
-  import { slotClass } from '../../utils/slot-class.js';
+  import { resolveAuthSlotClasses, slotClass } from '../../utils/slot-class.js';
 
   let {
     user,
@@ -16,9 +23,15 @@
     onProfileUpdated,
     onDeleted,
     unstyled = false,
-    slotClasses = {},
+    slotClasses: slotClassesProp = {},
+    preset,
     class: className
   }: AccountSettingsProps = $props();
+
+  const blocksConfig = getBlocksConfig();
+  const slotClasses = $derived(
+    resolveAuthSlotClasses(blocksConfig, 'AccountSettings', preset, slotClassesProp)
+  );
 
   const authLocale = useAuthLocale();
   const t = $derived(mergeAuthLocale(authLocale(), tProp));
@@ -132,6 +145,9 @@
     }
   }
 
+  // No busy flag of its own: `onConfirm` returns a promise, and ConfirmDialog
+  // single-flights it — both of its buttons are disabled and `handleConfirm`
+  // returns early while the promise is pending.
   async function confirmDelete() {
     deleteError = '';
     try {
