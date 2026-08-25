@@ -776,8 +776,12 @@ export function createPrismaNotificationRepository(
       // updateMany: a row that is not the caller's — or no longer there — must
       // no-op, not throw P2025. The handler answers 200 either way (the delete
       // routes are deliberately idempotent), so a throw here is a 500.
+      //
+      // `readAt: null` for the same reason it is on markAllAsRead below: the
+      // idempotent route makes the repeat call the normal one, and without the
+      // guard it rewrites when the user read the notification.
       await notif.updateMany({
-        where: { id, userId },
+        where: { id, userId, readAt: null },
         data: { readAt: new Date() }
       });
     },
