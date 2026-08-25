@@ -105,12 +105,16 @@ export const authDeps = createAuthDeps({
 ```
 
 `createAuthDeps` fills in **secure brute-force defaults automatically** (login rate-limit
-5 / 15 min + lockout 5 / 15 min) — even the quickstart isn't an open door. The login
-rate-limit default is injected even if you configure only _other_ endpoints (so
-`rateLimit: { register }` never silently leaves login unprotected); the lockout default
-applies only when you set neither `rateLimit` nor `lockout`. Opt out of either explicitly
-with `null`. `cookieSecure: false` marks this as a dev config, which suppresses the
-production hardening warnings (and HSTS) you'd otherwise see.
+5 / 15 min + lockout 5 / 15 min) — even the quickstart isn't an open door. **Every**
+`rateLimit` key gets a default, and configuring some keys is a merge rather than a
+replacement (so `rateLimit: { register }` never silently leaves login unprotected); the
+per-key numbers and their reasoning are in
+[docs/AUTH.md](docs/AUTH.md#stage-1--quickstart-dev). The lockout default applies only
+when you set neither `rateLimit` nor `lockout`. Opt out of either explicitly with `null`.
+A `cookieSecure: false` on the session, CSRF **or** refresh cookie marks this as a
+non-HTTPS dev deployment, which suppresses the production hardening warnings (and HSTS)
+you'd otherwise see, and drops the `__Host-` prefix from the 2FA and passkey cookies so
+the browser keeps them.
 
 **2. Hook** — `src/hooks.server.ts`:
 

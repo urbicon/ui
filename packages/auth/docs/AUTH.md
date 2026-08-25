@@ -161,15 +161,34 @@ In-memory adapter (`createInMemoryRepos`) + console email transport
 (`createConsoleEmailTransport`) + `jwt.cookieSecure: false`. No database, no mail
 server, wiped on restart — **dev only**. `createAuthDeps` still applies the secure
 brute-force defaults (login rate-limit + lockout), so the dev flow isn't unprotected.
-The login rate-limit default is injected whenever you don't explicitly opt out with
-`rateLimit: null` — even if you configure only _other_ endpoints (e.g. `rateLimit: {
-register }` still leaves login protected). The lockout default applies only when you
-configured neither `rateLimit` nor `lockout`; opt out of either with `null`.
-Beyond login, `createAuthDeps` also injects a generous per-IP default for the
-mail-sending forgot-password endpoint (10 / 15 min — a mail-bombing / delivery-cost
-brake), a strict one for the 2FA verify step, and login-strength limits for the
-credential-accepting re-auth endpoints (change-password/-email, delete-account, 2FA
-disable). All are overridable per key and share the `rateLimit: null` opt-out.
+**Every key of `rateLimit` carries a default.** Configuring some keys is a merge,
+never a replacement (`rateLimit: { register }` still leaves login protected), and
+the default table is derived from the key set — a new endpoint key cannot ship
+without one. `rateLimit: null` is the single opt-out for all of them. The lockout
+default applies only when you configured neither `rateLimit` nor `lockout`; opt
+out of either with `null`.
+
+| key | window | max | why this number |
+| --- | --- | --- | --- |
+| `login` | 15 min | 5 | the one endpoint offering a human-chosen secret |
+| `changePassword` · `changeEmail` · `deleteAccount` · `twoFactorDisable` | 15 min | 5 | re-auth endpoints accept the account password; a hijacked session must not get a better budget than the login form, and failed re-auths feed no lockout |
+| `twoFactor` | 15 min | 10 | 10⁶ codes — a few typos, online brute force hopeless |
+| `register` · `forgotPassword` · `resetPassword` · `verifyEmail` | 15 min | 10 | 256-bit single-use tokens, so the budget brakes cost (mail sending, PBKDF2), not guessing; more generous than login because the key is the client IP and these are once-in-a-while actions behind shared/NAT addresses |
+| `passkeyAuth` | 15 min | 30 | two calls per ceremony (options + verify share one bucket) = 15 ceremonies; also what bounds the challenge store, which prunes only at the 5-minute TTL |
+| `refresh` | **1 min** | 30 | the short window is the point: only the explicit refresh endpoint reads it (the handle hook rotates without it), a client needs it once per access-token lifetime, and every session behind one NAT address shares the counter — 30/min absorbs a many-tab burst and forgets it a minute later instead of locking the office out for fifteen |
+
+`resetPassword` is the one worth understanding before you loosen it: the handler
+runs PBKDF2 **before** claiming the token, deliberately, so the claim→write window
+stays closed — which means one unauthenticated request with any garbage token costs
+a full password hash (~55 ms at the default work factor). Without a limiter, a few
+dozen requests per second saturate the thread pool that login's own hashing shares.
+
+Two endpoints that read one key share **one** counter (`verifyEmail` covers both
+verify-email and verify-email-change; `passkeyAuth` covers options and verify). The
+counter's lifetime is the lifetime of the `AuthConfig` **object**, so build the
+config once and pass it around — a config literal rebuilt per request gets a fresh
+counter each time, i.e. no limiting at all.
+
 The wiring is four files: deps → `hooks.server.ts` (`createAuthHandle`) → one
 `+server.ts` per handler (`createLoginHandler`, …) → a `<LoginPage>` route.
 
@@ -283,7 +302,11 @@ The `FederatedAccount` link table (`findByFederatedId` / `linkFederatedAccount` 
 
 ## Prisma Schema
 
-See `packages/auth/prisma/auth-schema.prisma` for the reference schema. Models: User, Invitation, PushSubscription, Notification, NotificationType, NotificationPreference, Passkey, TwoFactorBackupCode, FederatedAccount (consumer-side federation link, optional). The User model carries the 2FA columns `totpSecret` (AES-256-GCM-encrypted), `totpEnabled`, `totpConfirmedAt`. **Recommended:** add `onDelete: Cascade` to the `invitationsSent` relation — DB cascade already covers passkeys/tokens/notifications/push/prefs on user delete; only sent `Invitation` rows lack it (the delete-account handler otherwise removes them by hand in its `$transaction`).
+See `packages/auth/prisma/auth-schema.prisma` for the reference schema. Models: User, Invitation, PushSubscription, Notification, NotificationType, NotificationPreference, Passkey, TwoFactorBackupCode, FederatedAccount (consumer-side federation link, optional).
+
+The User model carries the 2FA columns `totpSecret` (AES-256-GCM-encrypted), `totpEnabled`, `totpConfirmedAt`. **Recommended:** add `onDelete: Cascade` to the `invitationsSent` relation — DB cascade already covers passkeys/tokens/notifications/push/prefs on user delete; only sent `Invitation` rows lack it (the delete-account handler otherwise removes them by hand in its `$transaction`).
+
+**A model your client does not have drops its feature to `undefined`.** That is the design — `createPrismaRepos` wires what exists — but the absences differ in how visible they are. `passkey` makes `createPasskeyHandlers` throw at wiring; `refreshToken` makes both wiring entry points throw whenever `config.refreshToken` is set; `twoFactorBackupCode` makes the 2FA handlers answer `feature_unavailable` 400; `notification` is a type error, because the notification service requires that repo. The two that nothing else surfaces are **`pushSubscription`** (web-push delivery is skipped for every notification — the DB row and the SSE event still happen) and **`notificationPreference`** (per-user channel preferences are ignored and notifications go out on every channel the type declares). Every absent model is reported once per client at factory time; pass your `AuthLogger` to route those lines with the rest — `createPrismaRepos(prisma, { logger })`.
 
 ### Upgrading an existing database
 

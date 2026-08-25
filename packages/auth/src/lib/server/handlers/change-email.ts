@@ -6,7 +6,7 @@ import type { AuthDeps } from '../deps.js';
 import type { ChangeEmailNoticeContext, MailBuilder } from '../email/builders.js';
 import { resolveEmailSettings } from '../email/resolve.js';
 import { buildChangeEmail, buildChangeEmailNotice } from '../email/templates.js';
-import { enforceRateLimit, makeRateLimiter } from '../rate-limit.js';
+import { enforceRateLimit, sharedLimiter } from '../rate-limit.js';
 import { validateChangeEmailInput } from '../validation.js';
 import { parseBody, requireSessionUser, verifyCurrentPassword } from './_shared.js';
 import { authError } from './errors.js';
@@ -39,7 +39,7 @@ export function createChangeEmailHandler<R extends string>(
   deps: AuthDeps<R>,
   options: ChangeEmailHandlerOptions = {}
 ): { POST: RequestHandler } {
-  const rateLimiter = makeRateLimiter(deps.config.rateLimit?.changeEmail);
+  const rateLimiter = sharedLimiter(deps.config, 'changeEmail');
 
   return {
     POST: async ({ request, cookies, getClientAddress }) => {

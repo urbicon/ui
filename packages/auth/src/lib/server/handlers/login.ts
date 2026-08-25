@@ -3,7 +3,8 @@ import { json } from '@sveltejs/kit';
 import { sanitizeUser } from '../auth.js';
 import type { AuthDeps } from '../deps.js';
 import { hashPassword, verifyPasswordWithMigration } from '../password.js';
-import { enforceRateLimit, makeRateLimiter } from '../rate-limit.js';
+import { enforceRateLimit, sharedLimiter } from '../rate-limit.js';
+import { lockoutFor } from '../security-defaults.js';
 import { establishSession, resolveSessionMeta } from '../session.js';
 import { createPending2faToken, setPending2faCookie } from '../two-factor.js';
 import { validateLoginInput } from '../validation.js';
@@ -16,7 +17,7 @@ import { authError } from './errors.js';
 const DUMMY_VERIFY_PASSWORD = 'urbicon-auth-timing-equalization-dummy';
 
 export function createLoginHandler<R extends string>(deps: AuthDeps<R>): { POST: RequestHandler } {
-  const rateLimiter = makeRateLimiter(deps.config.rateLimit?.login);
+  const rateLimiter = sharedLimiter(deps.config, 'login');
 
   // Lazily built once per handler: a PBKDF2 hash at the configured work factor
   // that a "user not found" request verifies against, so a missing account
@@ -62,8 +63,10 @@ export function createLoginHandler<R extends string>(deps: AuthDeps<R>): { POST:
       }
 
       // Lockout check (refuse before doing the expensive PBKDF2 verify).
-      // Normalize the explicit-opt-out null to undefined for the repo call.
-      const lockout = deps.config.lockout ?? undefined;
+      // Read through the accessor, not off the config: a hand-built AuthDeps
+      // never passed resolveSecurityDefaults, and this is the only brake it
+      // would otherwise be missing.
+      const lockout = lockoutFor(deps.config);
       if (lockout) {
         const attempts = await deps.repos.user.getFailedLoginAttempts(user.id);
         if (attempts.lockedUntil && attempts.lockedUntil > new Date()) {

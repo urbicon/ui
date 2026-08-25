@@ -186,7 +186,9 @@ export interface CsrfConfig {
    * Prefix the CSRF cookie name with `__Host-`, which hardens against
    * subdomain cookie injection (the browser only accepts such a cookie over
    * HTTPS with `Path=/` and no `Domain`). Opt-in and HTTPS-only — incompatible
-   * with `cookieSecure: false` (warned about in `createAuthHandle`). The
+   * with a `cookieSecure: false` on ANY of the three cookie configs, since that
+   * declares the whole deployment non-HTTPS (warned about in
+   * `createAuthHandle`). The
    * client must be told too: pass `useHostPrefix: true` in the `csrf` config of
    * the bundled stores/components (same place as `cookieName`), or to
    * `csrfFetch`/`readCsrfToken` in custom client code.
@@ -420,9 +422,9 @@ export interface AuthConfig<R extends string = string> {
   /**
    * Optional overrides for the response security headers `createAuthHandle`
    * applies. The always-on headers (nosniff, X-Frame-Options, Referrer-Policy,
-   * Permissions-Policy) need no config; HSTS (emitted only when
-   * `jwt.cookieSecure !== false`) and CSP carry secure defaults you can tune
-   * or disable here.
+   * Permissions-Policy) need no config; HSTS (emitted only on an HTTPS
+   * deployment — no `cookieSecure: false` on the session, CSRF or refresh
+   * cookie) and CSP carry secure defaults you can tune or disable here.
    */
   securityHeaders?: import('./server/security-headers.js').SecurityHeadersConfig;
   refreshToken?: RefreshTokenConfig;

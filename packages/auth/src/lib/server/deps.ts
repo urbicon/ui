@@ -1,4 +1,4 @@
-import type { AuthConfig, AuthLogger, LockoutConfig, RateLimitConfig } from '../types.js';
+import type { AuthConfig, AuthLogger } from '../types.js';
 import type {
   BackupCodeRepository,
   InvitationRepository,
@@ -6,8 +6,10 @@ import type {
   RefreshTokenRepository,
   UserRepository
 } from './adapters/types.js';
+import { assertCookieSameSiteSecure, isSecureDeployment } from './cookie-policy.js';
 import type { EmailTransport } from './email/types.js';
 import { assertJwtConfigValid } from './jwt.js';
+import { resolveLockout, resolveRateLimits } from './security-defaults.js';
 
 export interface AuthDeps<R extends string = string> {
   config: AuthConfig<R>;
@@ -38,35 +40,14 @@ export interface AuthDeps<R extends string = string> {
   /**
    * Resolved log sink (`config.logger ?? console`) — `createAuthDeps` always
    * fills it, so handlers log operational failures through one seam instead
-   * of hard-coding `console`.
+   * of hard-coding `console`. The two package internals that sit outside a deps
+   * bundle by design — `validateCsrf` (a standalone export a federated consumer
+   * calls from its own hook) and `consumeChallenge` (in the deps-free WebAuthn
+   * core) — take the sink as an optional argument and are handed it by the
+   * handle hook and the passkey factory respectively.
    */
   logger: AuthLogger;
 }
-
-// Brute-force defaults applied when a consumer configures neither rate-limiting
-// nor lockout — secure-by-default rather than silently unprotected.
-const DEFAULT_LOGIN_RATE_LIMIT: RateLimitConfig = { windowMs: 15 * 60_000, max: 5 };
-const DEFAULT_LOCKOUT: LockoutConfig = { maxAttempts: 5, durationMinutes: 15 };
-// Strict default for the 2FA verify step: a 6-digit code is only 10^6
-// combinations, so the second factor is worthless without a tight limiter.
-// 10 / 15 min tolerates a few typos while making online brute force hopeless.
-const DEFAULT_TWO_FACTOR_RATE_LIMIT: RateLimitConfig = { windowMs: 15 * 60_000, max: 10 };
-// Re-auth endpoints (change-password/-email, delete-account, 2FA-disable) all
-// accept the account password, so they get login-strength protection: a
-// hijacked session must not get a better brute-force budget than the login
-// form — especially not at 2FA-disable, where success removes the second
-// factor. Failed re-auths do not feed the lockout (verifyCurrentPassword is
-// side-effect-free by design), making this limiter the only brake.
-const DEFAULT_REAUTH_RATE_LIMIT: RateLimitConfig = { windowMs: 15 * 60_000, max: 5 };
-// Password-reset *request* endpoint (forgot-password): unauthenticated and
-// sends an email on every hit for an existing account, so an unlimited endpoint
-// is a mail-bombing + delivery-cost vector (flood a victim's inbox / burn the
-// consumer's mail quota). Deliberately more generous than login (10 vs 5): the
-// limit is keyed per-IP, so a tight cap risks NAT/shared-IP false positives for
-// a request a legitimate user makes rarely — while 10 / 15 min still deckelt an
-// abuser hard. Not a credential oracle (the handler equalizes timing and always
-// returns success), so it needs no login-strength brake.
-const DEFAULT_FORGOT_PASSWORD_RATE_LIMIT: RateLimitConfig = { windowMs: 15 * 60_000, max: 10 };
 
 // Floor below which an explicitly configured PBKDF2 work factor is treated as
 // dangerously weak. The secure default (600k, see auth.ts) is well above this;
@@ -75,25 +56,28 @@ const MIN_SAFE_PBKDF2_ITERATIONS = 100_000;
 
 /**
  * Fill in secure brute-force defaults and warn on unsafe production configs.
- * The two mechanisms are resolved **independently** so configuring one can
- * never silently drop the other:
  *
- * - **Login rate-limit** (per-IP, the security-critical limiter): ensured to be
- *   present unless explicitly opted out with `rateLimit: null`. A `rateLimit`
- *   object that configures *other* endpoints (register/refresh/…) but omits
- *   `login` is treated as an oversight, not an opt-out — the `login` default is
- *   injected and the other keys are passed through untouched. This closes the
- *   trap where `rateLimit: { register }` left login completely unprotected.
+ * The defaults themselves live in `security-defaults.ts` and are applied by the
+ * same accessors the handlers read through, so this function decides nothing a
+ * handler could disagree with — it materializes the resolved values onto the
+ * config (so a consumer can inspect what they got) and emits the warnings that
+ * need a logger and a single wiring moment.
+ *
+ * - **Rate limits**: every key in `AuthConfig.rateLimit` gets a default unless
+ *   explicitly configured. `rateLimit: null` is the deliberate opt-out and is
+ *   warned about in a production config. A `rateLimit` object that configures
+ *   *some* endpoints is a merge, never a replacement — the trap where
+ *   `rateLimit: { register }` left login completely unprotected.
  * - **Lockout** (account-level, carries a lock-out-DoS trade-off): defaulted
  *   only when the consumer engaged with brute-force config *not at all* (no
  *   `rateLimit` **and** no `lockout`). A consumer who configured rate-limiting
  *   has clearly engaged with the defense, so we respect an omitted lockout
  *   rather than imposing the DoS-prone mechanism on them.
- * - Either field set explicitly to `null` → honoured as opt-out, normalized to
- *   `undefined` so handlers skip it, and warned about in a production config.
- * - A production config (`cookieSecure !== false`) that still ends up with no
- *   login protection at all (only reachable via `rateLimit: null`) is warned
- *   about loudly.
+ * - Either field set explicitly to `null` → honoured as opt-out, kept as `null`
+ *   on the resolved config (see `resolveRateLimits` on why not `undefined`),
+ *   and warned about in a production config.
+ * - A production config that still ends up with no login protection at all
+ *   (only reachable via `rateLimit: null`) is warned about loudly.
  *
  * Returns a new config object — the caller's input is not mutated.
  */
@@ -101,78 +85,28 @@ function resolveSecurityDefaults<R extends string>(
   config: AuthConfig<R>,
   logger: AuthLogger
 ): AuthConfig<R> {
-  const isProduction = config.jwt.cookieSecure !== false;
-  const resolved: AuthConfig<R> = { ...config };
+  const isProduction = isSecureDeployment(config);
+  const resolved: AuthConfig<R> = {
+    ...config,
+    rateLimit: resolveRateLimits(config),
+    lockout: resolveLockout(config)
+  };
 
-  // Login rate-limit: opt out only via explicit null; otherwise guarantee the
-  // login limiter exists even when the consumer configured other endpoints.
-  if (config.rateLimit === null) {
-    if (isProduction) {
-      logger.warn(
-        '[auth] config.rateLimit is explicitly null in a production config (jwt.cookieSecure !== false) — auth handlers are not rate-limited. Set config.rateLimit.login or accept this opt-out deliberately.'
-      );
-    }
-    resolved.rateLimit = undefined;
-  } else if (!config.rateLimit?.login) {
-    resolved.rateLimit = { ...config.rateLimit, login: DEFAULT_LOGIN_RATE_LIMIT };
+  if (isProduction && config.rateLimit === null) {
+    logger.warn(
+      '[auth] config.rateLimit is explicitly null in a production config (no cookieSecure: false anywhere) — auth handlers are not rate-limited. Set config.rateLimit.login or accept this opt-out deliberately.'
+    );
   }
-
-  // Lockout: explicit null opts out; otherwise default it only when the
-  // consumer touched no brute-force config at all.
-  if (config.lockout === null) {
-    if (isProduction) {
-      logger.warn(
-        '[auth] config.lockout is explicitly null in a production config — repeated failed logins will not lock the account.'
-      );
-    }
-    resolved.lockout = undefined;
-  } else if (config.lockout === undefined && config.rateLimit === undefined) {
-    resolved.lockout = DEFAULT_LOCKOUT;
+  if (isProduction && config.lockout === null) {
+    logger.warn(
+      '[auth] config.lockout is explicitly null in a production config — repeated failed logins will not lock the account.'
+    );
   }
 
   if (isProduction && !resolved.rateLimit?.login && !resolved.lockout) {
     logger.warn(
       '[auth] No login rate-limit or lockout is active in a production config — login is exposed to brute force. Configure config.rateLimit.login and/or config.lockout.'
     );
-  }
-
-  // Two-factor verify: brute-force critical (6-digit code). When 2FA is wired,
-  // guarantee a strict limiter unless rate-limiting was explicitly opted out
-  // (`rateLimit: null`, already warned about above). Operates on the
-  // already-resolved rateLimit so the login default isn't clobbered.
-  if (config.twoFactor && resolved.rateLimit && !resolved.rateLimit.twoFactor) {
-    resolved.rateLimit = { ...resolved.rateLimit, twoFactor: DEFAULT_TWO_FACTOR_RATE_LIMIT };
-  }
-
-  // Re-auth endpoints accept the account password from an existing session, so
-  // an unlimited endpoint lets a hijacked session brute-force the password —
-  // the config documents exactly this threat model on `changePassword`, and
-  // `verifyCurrentPassword` deliberately records no failed attempt (no lockout
-  // backstop). Guarantee a login-strength default on each unless explicitly
-  // configured; the 2FA-disable one only when the endpoint can exist at all.
-  if (resolved.rateLimit) {
-    const reauthDefaults: Partial<NonNullable<AuthConfig<R>['rateLimit']>> = {};
-    for (const key of ['changePassword', 'changeEmail', 'deleteAccount'] as const) {
-      if (!resolved.rateLimit[key]) reauthDefaults[key] = DEFAULT_REAUTH_RATE_LIMIT;
-    }
-    if (config.twoFactor && !resolved.rateLimit.twoFactorDisable) {
-      reauthDefaults.twoFactorDisable = DEFAULT_REAUTH_RATE_LIMIT;
-    }
-    if (Object.keys(reauthDefaults).length > 0) {
-      resolved.rateLimit = { ...resolved.rateLimit, ...reauthDefaults };
-    }
-  }
-
-  // Password-reset request endpoint: guarantee a (generous) per-IP limiter
-  // unless rate-limiting was opted out (`rateLimit: null` → resolved.rateLimit
-  // undefined). See DEFAULT_FORGOT_PASSWORD_RATE_LIMIT for the mail-bombing / NAT
-  // trade-off. Runs on the already-resolved rateLimit so nothing above is
-  // clobbered.
-  if (resolved.rateLimit && !resolved.rateLimit.forgotPassword) {
-    resolved.rateLimit = {
-      ...resolved.rateLimit,
-      forgotPassword: DEFAULT_FORGOT_PASSWORD_RATE_LIMIT
-    };
   }
 
   if (isProduction && config.twoFactor && !resolved.rateLimit?.twoFactor) {
@@ -193,17 +127,17 @@ function resolveSecurityDefaults<R extends string>(
 
 /**
  * Fail loud at wiring time when a feature is configured but its backing
- * repository is absent, instead of degrading silently at request time. The one
- * silent case today is refresh-token rotation: with `config.refreshToken` set
- * but `repos.refreshToken` missing, `establishSession` would skip the refresh
- * cookie and the handle hook would decline to rotate — both without a trace,
- * quietly downgrading every session to access-token-only. Throwing here mirrors
+ * repository is absent, instead of degrading silently at request time. The case
+ * it covers is refresh-token rotation: with `config.refreshToken` set but
+ * `repos.refreshToken` missing, `establishSession` would skip the refresh cookie
+ * and the handle hook would decline to rotate — both without a trace, quietly
+ * downgrading every session to access-token-only. Throwing here mirrors
  * `createPasskeyHandlers` (throws on a missing `repos.passkey`) and follows the
  * fail-loud-over-silent-fallback line.
  *
- * Both entry points must call this — `createAuthDeps` (handler deps) and
- * `createAuthHandle` (the hook) build their bundles independently, so a check in
- * only one would leave the other's path silent.
+ * Reached from three call paths: both wiring entry points via
+ * {@link assertAuthConfigValid}, and `establishSession` itself, which a consumer
+ * can call directly with a hand-built `AuthDeps`.
  *
  * 2FA and passkeys are intentionally out of scope: 2FA already surfaces a
  * visible `feature_unavailable` 400 at request time when `repos.backupCode` is
@@ -225,11 +159,30 @@ export function assertReposMatchConfig<R extends string>(
 }
 
 /**
- * Assemble the auth dependency bundle, applying secure brute-force defaults to
- * the config (see {@link resolveSecurityDefaults}). The returned `config`
- * carries the resolved values — pass it on to `createAuthHandle` and the
- * handler factories so the whole app shares one resolved config.
+ * Every wiring-time config check, in one call. `createAuthDeps` (the handler
+ * bundle) and `createAuthHandle` (the hook) are wired independently and either
+ * can be reached first, so both must validate — and each additional check used
+ * to have to be remembered in both places. One door instead of three per entry
+ * point: a new check is added here and both paths get it.
  */
+export function assertAuthConfigValid<R extends string>(
+  config: AuthConfig<R>,
+  repos: { refreshToken?: RefreshTokenRepository },
+  logger: AuthLogger
+): void {
+  assertReposMatchConfig(config, repos);
+  assertJwtConfigValid(config.jwt, logger);
+  // The refresh cookie's SameSite/Secure pair. Its session-cookie twin is
+  // checked inside assertJwtConfigValid; this one has no JwtConfig to ride on.
+  if (config.refreshToken) {
+    assertCookieSameSiteSecure(
+      'refreshToken',
+      config.refreshToken.cookieSameSite,
+      config.refreshToken.cookieSecure
+    );
+  }
+}
+
 /**
  * Shield every log call from a throwing consumer sink. Several call sites log
  * inside detached fire-and-forget blocks (forgot-password, change-email) where
@@ -256,14 +209,16 @@ export function shieldLogger(logger: AuthLogger): AuthLogger {
   };
 }
 
+/**
+ * Assemble the auth dependency bundle, applying secure brute-force defaults to
+ * the config (see {@link resolveSecurityDefaults}). The returned `config`
+ * carries the resolved values — pass it on to `createAuthHandle` and the
+ * handler factories so the whole app shares one resolved config.
+ */
 export function createAuthDeps<R extends string>(deps: Omit<AuthDeps<R>, 'logger'>): AuthDeps<R> {
-  assertReposMatchConfig(deps.config, deps.repos);
   // One source for the sink: `config.logger`. The resolved field on the deps
   // bundle is what handlers use, so none of them re-defaults to console.
   const logger = shieldLogger(deps.config.logger ?? console);
-  // Fail loud on an unusable JWT config (ES256 without a signing key, …) at
-  // wiring time — mirrored in createAuthHandle, since either entry point can
-  // be reached first.
-  assertJwtConfigValid(deps.config.jwt, logger);
+  assertAuthConfigValid(deps.config, deps.repos, logger);
   return { ...deps, logger, config: resolveSecurityDefaults(deps.config, logger) };
 }

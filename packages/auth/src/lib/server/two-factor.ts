@@ -2,6 +2,7 @@ import { randomBytes } from 'node:crypto';
 import type { Cookies } from '@sveltejs/kit';
 import type { AuthConfig, TwoFactorConfig } from '../types.js';
 import { hashToken } from './auth.js';
+import { isSecureDeployment } from './cookie-policy.js';
 import { parseDurationSeconds } from './duration.js';
 import { createSignedToken, verifySignedToken } from './jwt.js';
 import { base32Encode, type TotpAlgorithm } from './totp.js';
@@ -27,15 +28,11 @@ const PENDING_2FA_COOKIE = 'urbicon_2fa';
 
 // `__Host-` blocks a sibling/parent subdomain from shadowing the cookie. It
 // mandates Secure + Path=/ + no Domain, so a browser drops it over plain HTTP —
-// use it only on HTTPS (`jwt.cookieSecure !== false`) and fall back to the bare
-// name for non-HTTPS dev. Set and read derive `secure` from the same config, so
-// the name always agrees.
+// use it only on HTTPS (`isSecureDeployment`) and fall back to the bare name for
+// non-HTTPS dev. Set and read derive `secure` from the same predicate, so the
+// name always agrees — across all three cookie configs, not just `jwt`.
 function pending2faCookieName(secure: boolean): string {
   return secure ? `__Host-${PENDING_2FA_COOKIE}` : PENDING_2FA_COOKIE;
-}
-
-function isSecure<R extends string>(config: AuthConfig<R>): boolean {
-  return config.jwt.cookieSecure !== false;
 }
 
 function pendingTtlSeconds(config: TwoFactorConfig | undefined): number {
@@ -48,7 +45,7 @@ export function setPending2faCookie<R extends string>(
   token: string,
   config: AuthConfig<R>
 ): void {
-  const secure = isSecure(config);
+  const secure = isSecureDeployment(config);
   cookies.set(pending2faCookieName(secure), token, {
     path: '/',
     httpOnly: true,
@@ -64,14 +61,14 @@ export function readPending2faCookie<R extends string>(
   cookies: Cookies,
   config: AuthConfig<R>
 ): string | null {
-  return cookies.get(pending2faCookieName(isSecure(config))) ?? null;
+  return cookies.get(pending2faCookieName(isSecureDeployment(config))) ?? null;
 }
 
 export function clearPending2faCookie<R extends string>(
   cookies: Cookies,
   config: AuthConfig<R>
 ): void {
-  cookies.delete(pending2faCookieName(isSecure(config)), { path: '/' });
+  cookies.delete(pending2faCookieName(isSecureDeployment(config)), { path: '/' });
 }
 
 // ---- Pending-2FA token ----------------------------------------------------

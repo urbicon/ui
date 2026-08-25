@@ -2,10 +2,10 @@ import { type Handle, type RequestEvent, redirect } from '@sveltejs/kit';
 import type { AuthConfig, AuthUser } from '../types.js';
 import type { FullAuthUser, Repositories } from './adapters/types.js';
 import { sanitizeUser } from './auth.js';
+import { isSecureDeployment } from './cookie-policy.js';
 import { ensureCsrfCookie, validateCsrf } from './csrf.js';
-import { assertReposMatchConfig, shieldLogger } from './deps.js';
+import { assertAuthConfigValid, shieldLogger } from './deps.js';
 import { authError } from './handlers/errors.js';
-import { assertJwtConfigValid } from './jwt.js';
 import { readRefreshCookie, rotateRefreshToken } from './refresh-token.js';
 import { applySecurityHeaders } from './security-headers.js';
 import { applyRotationOutcome, clearSessionCookie, getSessionFromCookie } from './session.js';
@@ -56,15 +56,10 @@ const jsonUnauthorized = () => authError('not_authenticated', 401);
 
 export function createAuthHandle<R extends string>(options: AuthHandleOptions<R>): Handle {
   const { config, repos } = options;
-  // Fail loud if refresh rotation is configured without its repo — otherwise the
-  // 2a rotation branch below would be silently skipped. Independent of
-  // createAuthDeps, which wires the handler bundle (this wires the hook).
-  assertReposMatchConfig(config, repos);
   const logger = shieldLogger(config.logger ?? console);
-  // Fail loud on an unusable JWT config (ES256 without a signing key, …) at
-  // wiring time — mirrored in createAuthDeps; hook and handler bundle are
-  // wired independently, so both entry points must check.
-  assertJwtConfigValid(config.jwt, logger);
+  // Every wiring-time config check, mirrored in createAuthDeps: hook and handler
+  // bundle are wired independently and either can be reached first.
+  assertAuthConfigValid(config, repos, logger);
   const publicRoutes = options.publicRoutes ?? DEFAULT_PUBLIC_ROUTES;
   const allowUnauthenticatedRemote = options.allowUnauthenticatedRemote ?? false;
   const loginPage = config.routes?.loginPage ?? '/auth/login';
@@ -75,14 +70,13 @@ export function createAuthHandle<R extends string>(options: AuthHandleOptions<R>
 
   // The `__Host-` prefix only works over HTTPS: the cookie is force-set Secure
   // (see ensureCsrfCookie), and a browser drops a Secure cookie over plain
-  // HTTP → double-submit then 403s every mutating request. Treat an explicit
-  // cookieSecure:false on EITHER the csrf cookie or the session cookie (the
-  // package-wide "non-HTTPS dev deployment" signal, mirroring createAuthDeps)
-  // as the trigger, so the common `jwt.cookieSecure:false` dev flag is caught.
+  // HTTP → double-submit then 403s every mutating request. `isSecureDeployment`
+  // is the package-wide signal — the same one the 2FA and passkey cookies derive
+  // their name from, so the warning and those names can no longer disagree.
   // Warn once at construction rather than failing silently per request.
-  if (csrfHostPrefix && (csrfConfig?.cookieSecure === false || config.jwt.cookieSecure === false)) {
+  if (csrfHostPrefix && !isSecureDeployment(config)) {
     logger.warn(
-      '[auth] csrf.useHostPrefix forces a Secure __Host- cookie, but this deployment looks non-HTTPS (jwt.cookieSecure or csrf.cookieSecure is false). Browsers drop a Secure cookie over HTTP, so double-submit will 403 every mutating request — enable useHostPrefix only over HTTPS.'
+      '[auth] csrf.useHostPrefix forces a Secure __Host- cookie, but this deployment looks non-HTTPS (jwt.cookieSecure, csrf.cookieSecure or refreshToken.cookieSecure is false). Browsers drop a Secure cookie over HTTP, so double-submit will 403 every mutating request — enable useHostPrefix only over HTTPS.'
     );
   }
 
@@ -108,7 +102,8 @@ export function createAuthHandle<R extends string>(options: AuthHandleOptions<R>
         cookies: event.cookies,
         cookieName: csrfConfig?.cookieName,
         headerName: csrfConfig?.headerName,
-        hostPrefix: csrfHostPrefix
+        hostPrefix: csrfHostPrefix,
+        logger
       })
     ) {
       return authError('csrf_failed', 403);
@@ -216,12 +211,12 @@ export function createAuthHandle<R extends string>(options: AuthHandleOptions<R>
     }
 
     // 4. Resolve and apply security headers. HSTS is gated on a secure
-    // deployment (jwt.cookieSecure !== false) — same heuristic as the
-    // brute-force-default warnings in createAuthDeps.
+    // deployment — the same predicate the cookie names and the
+    // brute-force-default warnings use.
     const response = await resolve(event);
     return applySecurityHeaders(response, {
       ...config.securityHeaders,
-      secure: config.jwt.cookieSecure !== false
+      secure: isSecureDeployment(config)
     });
   };
 }

@@ -4,6 +4,7 @@ import {
   DEFAULT_CSRF_COOKIE_NAME,
   DEFAULT_CSRF_HEADER_NAME
 } from '../csrf-constants.js';
+import type { AuthLogger } from '../types.js';
 import { base64UrlEncode } from './encoding.js';
 import { timingSafeEqualStrings } from './timing-safe.js';
 
@@ -26,6 +27,14 @@ export interface CsrfValidateOptions {
    * value used when the cookie was set (`ensureCsrfCookie`) and on the client.
    */
   hostPrefix?: boolean;
+  /**
+   * Sink for the one operational failure this function can report: a
+   * `doubleSubmit` gate wired without `cookies`, which 403s every mutating
+   * request. `createAuthHandle` passes the config's shielded logger; a consumer
+   * calling `validateCsrf` standalone (a federated app gating its own
+   * cookie-authenticated mutations) can pass their own. Defaults to `console`.
+   */
+  logger?: AuthLogger;
 }
 
 export interface EnsureCsrfCookieOptions {
@@ -100,7 +109,7 @@ export function validateCsrf(request: Request, url: URL, options?: CsrfValidateO
       if (!csrfMisconfigurationWarned) {
         csrfMisconfigurationWarned = true;
 
-        console.error(
+        (options.logger ?? console).error(
           '[auth] validateCsrf: doubleSubmit enabled but no `cookies` passed — every mutating request will fail CSRF. Wire `options.cookies` into the handle hook.'
         );
       }

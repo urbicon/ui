@@ -2,7 +2,7 @@ import type { RequestHandler } from '@sveltejs/kit';
 import { json } from '@sveltejs/kit';
 import { hashToken } from '../auth.js';
 import type { AuthDeps } from '../deps.js';
-import { enforceRateLimit, makeRateLimiter } from '../rate-limit.js';
+import { enforceRateLimit, sharedLimiter } from '../rate-limit.js';
 import { validateTokenInput } from '../validation.js';
 import { parseBody } from './_shared.js';
 import { authError } from './errors.js';
@@ -18,8 +18,10 @@ import { authError } from './errors.js';
 export function createVerifyEmailChangeHandler<R extends string>(
   deps: AuthDeps<R>
 ): { POST: RequestHandler } {
-  // Share the verify-email limiter bucket — both are token-consume endpoints.
-  const rateLimiter = makeRateLimiter(deps.config.rateLimit?.verifyEmail);
+  // Shares the verify-email bucket — both are token-consume endpoints, and
+  // `sharedLimiter` puts every factory reading one key on one counter, so the
+  // configured `verifyEmail` budget is the budget across both.
+  const rateLimiter = sharedLimiter(deps.config, 'verifyEmail');
 
   return {
     POST: async ({ request, getClientAddress }) => {
