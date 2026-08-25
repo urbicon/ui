@@ -162,6 +162,54 @@ export interface JwtConfig {
 export interface LockoutConfig {
   maxAttempts?: number;
   durationMinutes?: number;
+  /**
+   * How long a failed attempt keeps counting, in minutes. @default 60
+   *
+   * The counter is otherwise cleared only by a successful sign-in, so without a
+   * decay window `maxAttempts` typos spread over any timespan at all add up to
+   * a lockout.
+   *
+   * **Keep it well above `durationMinutes`.** The window doubles as the budget
+   * an attacker gets for waiting: 60 minutes allows 5 guesses/h at the defaults,
+   * 15 allows 20 (simulated in `login.test.ts`; the derivation is in AUTH.md →
+   * Known Limitations). **`0` does not mean "no decay"** — it would reset the
+   * counter on every attempt and switch the lockout off, so any value that is
+   * not a positive finite number throws when the login handler is created. Run
+   * without a lockout via `lockout: null`, not through this field.
+   *
+   * Read by `createLoginHandler`, not by the repository: `recordFailedLogin`
+   * receives this config but has no decay duty.
+   */
+  decayMinutes?: number;
+}
+
+/**
+ * Lifetimes of the three single-use tokens the package mails out. Each accepts
+ * the `Ns | Nm | Nh | Nd` grammar of every other duration field (`jwt.expiresIn`,
+ * `refreshToken.*`, `twoFactor.pendingTokenTtl`) and is resolved when the
+ * handler is created, so a malformed value throws at wiring time rather than in
+ * a request.
+ *
+ * The window is enforced by the repository's `consume*` claim, which refuses a
+ * token whose stored expiry has passed — shortening a value here does not
+ * shorten the life of a token already mailed out.
+ */
+export interface TokenTtlConfig {
+  /**
+   * Email-verification link from `createRegisterHandler`. @default '24h'
+   *
+   * The longest of the three on purpose: register signs the user in right away,
+   * so nobody is waiting on this link and it has to survive a mail read the next
+   * morning. The other two answer something the user just asked for.
+   */
+  emailVerification?: string;
+  /** Password-reset link from `createForgotPasswordHandler`. @default '1h' */
+  passwordReset?: string;
+  /**
+   * Confirmation link sent to the new address by `createChangeEmailHandler`.
+   * @default '1h'
+   */
+  emailChange?: string;
 }
 
 export interface RateLimitConfig {
@@ -397,6 +445,12 @@ export interface AuthConfig<R extends string = string> {
    * explicitly — `createAuthDeps` then warns in a production config.
    */
   lockout?: LockoutConfig | null;
+  /**
+   * Lifetimes of the three mailed single-use tokens (email verification,
+   * password reset, email change). Every key is optional and defaults to the
+   * window the shipped handlers use; see {@link TokenTtlConfig}.
+   */
+  tokenTtl?: TokenTtlConfig;
   /**
    * Per-handler rate limits keyed by client IP. **Every key carries a secure
    * default** — the default table is derived from this interface, so a key

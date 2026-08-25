@@ -100,7 +100,18 @@ const RATE_LIMIT_KEYS = Object.keys(RATE_LIMIT_DEFAULTS) as RateLimitKey[];
  * Limitations), which is why it is not imposed on a consumer who configured
  * rate-limiting themselves.
  */
-export const DEFAULT_LOCKOUT: LockoutConfig = { maxAttempts: 5, durationMinutes: 15 };
+/**
+ * One hour. Exported because `createLoginHandler` needs the same number for a
+ * lockout the consumer configured *partially* (`{ maxAttempts: 3 }`), which
+ * never passes through `DEFAULT_LOCKOUT` — two copies would let the injected
+ * default and the effective one disagree.
+ */
+export const DEFAULT_DECAY_MINUTES = 60;
+export const DEFAULT_LOCKOUT: LockoutConfig = {
+  maxAttempts: 5,
+  durationMinutes: 15,
+  decayMinutes: DEFAULT_DECAY_MINUTES
+};
 
 /**
  * The effective limit for one endpoint. Handlers read their limit through this

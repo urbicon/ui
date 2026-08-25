@@ -333,6 +333,37 @@ describe('createRegisterHandler', () => {
     expect(send).toHaveBeenCalledTimes(1);
   });
 
+  // #294: the verification window was an inline literal, so an operator with a
+  // policy on it had nothing to set.
+  it('expires the verification token 24h out by default', async () => {
+    const deps = successDeps(vi.fn().mockResolvedValue(undefined));
+    const before = Date.now();
+    await createRegisterHandler(deps).POST(event(validBody));
+
+    const expires: Date = (deps.repos.user.create as Mock).mock.calls[0][0]
+      .verificationTokenExpires;
+    expect(expires.getTime() - before).toBeGreaterThanOrEqual(24 * 60 * 60 * 1000);
+    expect(expires.getTime() - Date.now()).toBeLessThanOrEqual(24 * 60 * 60 * 1000);
+  });
+
+  it('honours config.tokenTtl.emailVerification', async () => {
+    const deps = successDeps(vi.fn().mockResolvedValue(undefined), {
+      tokenTtl: { emailVerification: '30m' }
+    });
+    const before = Date.now();
+    await createRegisterHandler(deps).POST(event(validBody));
+
+    const expires: Date = (deps.repos.user.create as Mock).mock.calls[0][0]
+      .verificationTokenExpires;
+    expect(expires.getTime() - before).toBeGreaterThanOrEqual(30 * 60_000);
+    expect(expires.getTime() - Date.now()).toBeLessThanOrEqual(30 * 60_000);
+  });
+
+  it('rejects a malformed tokenTtl at wiring time, not on the first signup', () => {
+    const deps = successDeps(vi.fn(), { tokenTtl: { emailVerification: '24 hours' } });
+    expect(() => createRegisterHandler(deps)).toThrow(/Invalid duration format/);
+  });
+
   it('still claims the invitation when autoVerifyInvited is on', async () => {
     const send = vi.fn().mockResolvedValue(undefined);
     const deps = successDeps(send, undefined, emailed);

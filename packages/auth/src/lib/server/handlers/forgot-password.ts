@@ -3,6 +3,7 @@ import { json } from '@sveltejs/kit';
 import type { FullAuthUser } from '../adapters/types.js';
 import { generateSecureToken, hashToken } from '../auth.js';
 import type { AuthDeps } from '../deps.js';
+import { resolveTokenTtlMs } from '../duration.js';
 import type { MailBuilder } from '../email/builders.js';
 import { resolveEmailSettings } from '../email/resolve.js';
 import { buildPasswordResetEmail } from '../email/templates.js';
@@ -24,6 +25,10 @@ export function createForgotPasswordHandler<R extends string>(
   options: ForgotPasswordHandlerOptions = {}
 ): { POST: RequestHandler } {
   const rateLimiter = sharedLimiter(deps.config, 'forgotPassword');
+  // Resolved here, not per request: a malformed `tokenTtl` throws where the
+  // route was wired instead of inside the detached issue-and-mail task, whose
+  // failures never reach the client.
+  const resetTtlMs = resolveTokenTtlMs(deps.config.tokenTtl, 'passwordReset');
 
   return {
     POST: async ({ request, getClientAddress }) => {
@@ -51,7 +56,7 @@ export function createForgotPasswordHandler<R extends string>(
         // delivery stays durable.
         void (async () => {
           try {
-            await issuePasswordReset(deps, user, options.resetEmail);
+            await issuePasswordReset(deps, user, resetTtlMs, options.resetEmail);
           } catch (err) {
             // Log by user id, not email — keep PII out of stderr where the
             // consumer's logger may not redact it; the hook gets the address.
@@ -85,11 +90,12 @@ export function createForgotPasswordHandler<R extends string>(
 async function issuePasswordReset<R extends string>(
   deps: AuthDeps<R>,
   user: FullAuthUser<R>,
+  ttlMs: number,
   resetEmail?: MailBuilder
 ): Promise<void> {
   const token = generateSecureToken();
   const tokenHash = hashToken(token);
-  const expires = new Date(Date.now() + 60 * 60 * 1000); // 1 hour
+  const expires = new Date(Date.now() + ttlMs);
 
   await deps.repos.user.setPasswordResetToken(user.id, tokenHash, expires);
 

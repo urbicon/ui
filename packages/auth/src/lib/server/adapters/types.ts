@@ -183,6 +183,14 @@ export interface CreateInvitationData {
  * again and MUST match/store the value verbatim; whether the underlying store
  * compares case-sensitively is therefore irrelevant to the contract.
  *
+ * **A null expiry never expires:** the three `consume*` claims compare the
+ * token's stored expiry against now, and a `null` there means *no deadline* in
+ * both shipped adapters — a verification, reset or email-change token whose
+ * expiry column was never written stays claimable forever. Every setter takes
+ * the expiry as a required argument and the shipped handlers always pass one,
+ * so only an adapter that drops the column on write can produce it: store what
+ * you were given, and let the claim decide.
+ *
  * **Feature tiers:** the interface is one repository (the columns live on one
  * user row), but its sections below map to features. `findById`…`delete` up to
  * the lockout group serve the core password flow; the email-change trio only
@@ -253,6 +261,18 @@ export interface UserRepository<R extends string = string> {
    */
   incrementTokenVersion(id: string): Promise<void>;
 
+  /**
+   * Read the lockout state: the running count, the active lock (`null` when
+   * none), and `lastFailedAt` — the timestamp `recordFailedLogin` wrote for the
+   * newest counted failure, back to `null` once `resetFailedLogins` cleared it.
+   *
+   * `lastFailedAt` is what dates the count, and `createLoginHandler` reads it:
+   * a count whose last failure is older than `lockout.decayMinutes` is reset
+   * before the next failure is recorded, so attempts spread over weeks cannot
+   * add up to a lockout. An adapter that does not keep the column returns
+   * `null` and gets no decay — never a substitute timestamp, which would date
+   * an old count as current.
+   */
   getFailedLoginAttempts(
     id: string
   ): Promise<{ count: number; lockedUntil: Date | null; lastFailedAt: Date | null }>;

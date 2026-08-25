@@ -13,6 +13,7 @@ import {
   consumeChallenge,
   generateChallenge,
   resolveChallengeStore,
+  resolveChallengeTimeoutMs,
   storeChallenge
 } from './challenge-store.js';
 import { formatAaguid, parseAuthenticatorData, verifySignature } from './cose.js';
@@ -24,7 +25,12 @@ export interface WebAuthnConfig {
   rpId: string;
   rpName: string;
   origin: string;
-  challengeTimeout?: number; // ms, default 5 minutes
+  /**
+   * Lifetime of one ceremony, in ms. The challenge in the store, the `timeout`
+   * the browser is given and the ceremony cookie all expire on this one value.
+   * @default 300_000 (5 minutes)
+   */
+  challengeTimeout?: number;
   /**
    * Optional persistent challenge store (Redis, Prisma, Upstash, etc.)
    * implementing `ChallengeStore`. When omitted, defaults to a process-local
@@ -134,7 +140,8 @@ export async function generateRegistrationOptions(
   existingCredentialIds: string[] = []
 ): Promise<PublicKeyCredentialCreationOptionsJSON> {
   const challenge = generateChallenge();
-  await storeChallenge(resolveChallengeStore(config), user.id, challenge, config.challengeTimeout);
+  const timeoutMs = resolveChallengeTimeoutMs(config);
+  await storeChallenge(resolveChallengeStore(config), user.id, challenge, timeoutMs);
 
   return {
     challenge,
@@ -148,7 +155,7 @@ export async function generateRegistrationOptions(
       { type: 'public-key', alg: -7 }, // ES256 (ECDSA P-256)
       { type: 'public-key', alg: -257 } // RS256 (RSA PKCS#1 v1.5)
     ],
-    timeout: config.challengeTimeout ?? 300_000,
+    timeout: timeoutMs,
     attestation: 'none',
     authenticatorSelection: {
       residentKey: 'preferred',
@@ -184,17 +191,13 @@ export async function generateAuthenticationOptions(
   credentialIds: string[] = []
 ): Promise<PublicKeyCredentialRequestOptionsJSON> {
   const challenge = generateChallenge();
-  await storeChallenge(
-    resolveChallengeStore(config),
-    challengeKey,
-    challenge,
-    config.challengeTimeout
-  );
+  const timeoutMs = resolveChallengeTimeoutMs(config);
+  await storeChallenge(resolveChallengeStore(config), challengeKey, challenge, timeoutMs);
 
   return {
     challenge,
     rpId: config.rpId,
-    timeout: config.challengeTimeout ?? 300_000,
+    timeout: timeoutMs,
     userVerification: userVerificationRequired(config) ? 'required' : 'preferred',
     allowCredentials: credentialIds.map((id) => ({
       type: 'public-key',
