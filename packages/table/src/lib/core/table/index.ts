@@ -839,32 +839,33 @@ export interface TableProps<T = TableItem> {
    *   self-contained scroll box. The column header (and group header when
    *   grouping) pin to the top of the box, while the toolbar and pagination stay
    *   fixed outside the scrolling area — only the rows scroll, in both axes. The
-   *   available height is measured automatically (the container's distance from
-   *   the top of the viewport), so no magic `max-height` is needed in the
-   *   consumer, and it adapts to whatever sits above the table (tabs, banners).
+   *   available height is measured automatically: the viewport, minus the space
+   *   reserved above the container by a pinned or clipping ancestor (zero in the
+   *   plain page flow, where the box can reach the top of the viewport). No magic
+   *   `max-height` is needed in the consumer.
    *
    * Notes for `'viewport'`:
-   * - Desktop only (`md`+ **viewport**); mobile keeps normal document-level
-   *   scroll. This is the one thing the table decides from the window rather
-   *   than from its own container — a nested scroll box is wrong on a phone
-   *   whatever the container measures, and only the viewport knows which one
-   *   it is.
+   * - An assertion, not a measurement: it tells the table it owns the page
+   *   height, and it is honoured at every width. Set it only on a table that is
+   *   the page's primary content — inside a scrolling article the table caps
+   *   itself against the viewport all the same and gives you a second scroller.
    * - Supersedes `sticky`: header/group pinning is intrinsic to the box, so the
-   *   `sticky` prop is ignored. `stickyOffset` is ignored too — the measured top
-   *   absorbs app-shell offsets automatically.
+   *   `sticky` prop is ignored. `stickyOffset` is ignored too: an app-shell bar
+   *   that is an *ancestor* of the table is already reserved by the cap, while a
+   *   bar that is only a sibling is reserved by nothing — put the table in the
+   *   scroll container below such a bar, or keep the bar as an ancestor.
    * - Mutually exclusive with `virtualized`, which manages its own bounded
-   *   scroll via `virtualHeight`; `fit` has no effect when `virtualized`.
+   *   scroll via `virtualHeight`; `fit` has no effect when `virtualized`, and a
+   *   DEV-build console warning names the combination — the refusal is otherwise
+   *   invisible, since `data-fit` publishes the resolved `"content"`.
    * - The box reaches the bottom of the viewport, so it assumes nothing sits
    *   *below* it. An ancestor with bottom padding (or a following sibling) is
    *   pushed past `100dvh` and produces a second, page-level scrollbar next to
    *   the table's own. The container reflects the resolved mode as
-   *   `data-fit="viewport"` (vs `"content"`, also when `virtualized`) so a
-   *   layout can drop that inset. The height cap is desktop-only (`md`+) while
-   *   `data-fit` is not breakpoint-scoped — it reports the requested mode at
-   *   every width — so gate the override on the same breakpoint, or it also
-   *   strips the inset on mobile, where the table scrolls with the document and
-   *   the padding is wanted:
-   *   `@media (min-width: 48rem) { main:has([data-fit='viewport']) { padding-block-end: 0 } }`.
+   *   `data-fit="viewport"` (vs `"content"`, also when `virtualized`), so a
+   *   layout can drop that inset — at every width, exactly as the cap applies at
+   *   every width:
+   *   `main:has([data-fit='viewport']) { padding-block-end: 0 }`.
    *
    * @default "content"
    * @example

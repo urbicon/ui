@@ -245,14 +245,14 @@
                scroll (it drives the container's own height, so re-measuring on
                scroll would close the loop).
 
-               Measured inline in this very section: the first reading is
-               discarded as being below the viewport bottom, so the box renders
-               at the full window height (800px) inside a 624px reading column,
-               and after a resize it caps to whatever room was left at that
-               scroll position (480px at scrollY 6100) and keeps that number.
-               The frame gives the demo a document of its own, where the
-               assumption holds — and the frame's size is that document's
-               viewport, which is what makes the cap inside it a real one. -->
+               Inline in this very section the table sits thousands of pixels
+               down the document — more than a viewport, so the measurement
+               reserves nothing rather than capping the box to nothing, and the
+               box renders at the full window height (800px) inside a 624px
+               reading column, at every scroll position. The frame gives the demo a
+               document of its own, where the assumption holds — and the frame's
+               size is that document's viewport, which is what makes the cap
+               inside it a real one. -->
           <iframe
             src={resolve('/table/sticky-pinning/contained')}
             title="Contained scroll demo: a full-height list page"
@@ -307,8 +307,13 @@
         <code class="text-text-primary">--blocks-table-sticky-top</code> (your
         <code class="text-text-primary">stickyOffset</code>),
         <code class="text-text-primary">--blocks-table-toolbar-h</code> and
-        <code class="text-text-primary">--blocks-table-thead-h</code> (both measured for you). Each
-        layer's <code class="text-text-primary">top</code> is the sum of the ones above it.
+        <code class="text-text-primary">--blocks-table-thead-h</code>. Each layer's
+        <code class="text-text-primary">top</code> is the sum of the ones above it. Keep the
+        <code class="text-text-primary">sticky</code> prop set while you do it:
+        <code class="text-text-primary">unstyled</code> takes away the classes, not the behaviour, and
+        the prop is what attaches the two height measurements. Drop it and both custom properties stay
+        unwritten, so every layer pins at the same offset and the group header lands on top of the column
+        header.
       </li>
       <li>
         A <code class="text-text-primary">fit="viewport"</code> box reaches the bottom of the
