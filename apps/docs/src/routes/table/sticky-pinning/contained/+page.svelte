@@ -16,14 +16,13 @@
    * close the loop), which is the same as saying the model assumes the table IS
    * the page.
    *
-   * Inline in the article column of /table/sticky-pinning nothing above the
-   * section is reserved space — the article scrolls, so the reader can bring
-   * the table to the top of the viewport and `--blocks-table-avail-top` is 0
-   * by construction. The box then takes the full window height (800px) inside
-   * a 624px reading column, and stays there through every scroll and resize.
-   * An inline demo there shows a box with no relation to the space it has;
-   * only a page whose main content is the table can show the model.
-   * /table/sticky-pinning frames this one.
+   * Inline in the article column of /table/sticky-pinning the section sits
+   * thousands of pixels down the document — more than a viewport, so the
+   * measurement reserves nothing rather than capping the box to nothing, and
+   * the box takes the full window height (800px) inside a 624px reading
+   * column, at every scroll position. An inline demo there shows a box with no
+   * relation to the space it has; only a page whose main content is the table
+   * can show the model. /table/sticky-pinning frames this one.
    *
    * The chrome (no docs sidebar, an app-shell bar of its own) is not decoration:
    * the bar is what `--blocks-table-avail-top` measures, so the reader sees the

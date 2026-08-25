@@ -103,14 +103,19 @@ the same and give you a second scroller.
 > box, no needless scrollbar) while a tall table caps and scrolls.
 
 **Height measurement (`measureViewportOffsetTop`, `utils/sticky-measure.ts`):**
-`--blocks-table-avail-top` holds the viewport space reserved **above** the box — not where the
-box is now, but the smallest distance to the top of the viewport it can be brought to. In the
-plain page flow that is `0`: nothing is pinned above the table, so the reader can scroll it to
-the top of the viewport and the whole viewport is its to use. Under a `position: sticky` /
-`fixed` ancestor it is that ancestor's pin line; inside an `overflow: hidden` pane, or an app
-shell whose scroll pane starts below a bar, it is what that ancestor holds above the box. A
-figure at or past the viewport height would cap the box to nothing, so it reserves nothing
-instead — space that large is content the reader scrolls away, not chrome kept in view.
+`--blocks-table-avail-top` holds the space **above** the box that cannot scroll away — the
+distance to the top of the viewport the box settles at once every scroller between it and the
+viewport is scrolled as far as it needs. In the page flow that is the box's place in the
+document, `top + scrollY`, the same number at every scroll position: a page heading above the
+table counts, so a heading plus a capped table is exactly one viewport tall and the page does
+not scroll. Inside a scroll pane it is the box's place in the pane's content plus what the pane
+itself reserves; under a `position: sticky` / `fixed` ancestor the walk stops at that ancestor's
+pin line, which is why a pinned bar cannot make the value grow with the page scroll and collapse
+the box. A figure at or past the viewport height would cap the box to nothing, so it reserves
+nothing instead: a table that far down the page is content the reader scrolls to, not chrome
+they keep in view. It re-measures on viewport resize and on a resize of the body or of the
+container's parent; nothing listens to a scroll, because no term of it moves when something
+scrolls. No magic `max-height` is needed in the consumer.
 
 The value cannot change when anything scrolls, which is why nothing listens to a scroll: it
 re-measures on viewport resize and on a resize of the body or of the container's parent. Offsets
@@ -132,10 +137,10 @@ sibling, not pinned). So no per-layer variant change is needed — only the CSS-
 - **Mutually exclusive with `virtualized`**, which keeps its own bounded scroll via
   `virtualHeight`; `fit` has no effect when `virtualized`, and a DEV-build console warning says
   so (the refusal is otherwise invisible — `data-fit` reports the resolved `"content"`).
-- **No app-shell rebuild required.** The box is sized to the viewport minus what is reserved
-  above it, so it fills the viewport once the reader has scrolled it into view. Content above the
-  table on a scrolling page (a page heading, breadcrumbs) is not reserved space — it scrolls
-  away, and the page scrolls by exactly its height.
+- **No app-shell rebuild required.** Sizing the container to the viewport minus what sits above
+  it makes the page exactly viewport-height when the table is the main content, so it does not
+  scroll; the measurement takes a page heading, a pinned app bar or a scroll pane's own chrome
+  into account without being told.
 - **`data-fit` layout hook.** The container reflects its resolved mode as `data-fit="viewport"`
   / `"content"` (the latter also when `virtualized`). Because the box reaches the bottom of the
   viewport, an ancestor with bottom padding (or a following sibling) is pushed past `100dvh` and
@@ -186,7 +191,7 @@ toolbar?: Snippet;
 | `--blocks-table-sticky-top` | **always** | `Table.svelte`, as an inline style on every container: `stickyOffset` px, forced `0` when contained | L1 toolbar `top`; folds into L2 and L3 |
 | `--blocks-table-toolbar-h` | toolbar pinned **and** a toolbar renders | `ResizeObserver` on the toolbar wrapper (border box, unrounded) | L2 thead `top` **and** L3 group-header `top` |
 | `--blocks-table-thead-h` | thead pinned **and** the built-in `TableHead` renders | `ResizeObserver` on `<thead>` (border box, unrounded) | L3 group-header `top` |
-| `--blocks-table-avail-top` | `fit="viewport"` and not `virtualized` | `measureViewportOffsetTop` on the container — the viewport space reserved above it: its smallest reachable distance to the top of the viewport, not its current one | container `max-height` cap |
+| `--blocks-table-avail-top` | `fit="viewport"` and not `virtualized` | `measureViewportOffsetTop` on the container — the space above it that cannot scroll away: its place in the document (or in its scroll pane), stopping at a pinned ancestor's pin line | container `max-height` cap |
 
 The three measured properties fall back to `0px` in the `calc()` chains when their condition does
 not hold, which is the neutral value — a layer that is not pinned adds nothing to the layer below
@@ -258,7 +263,7 @@ things to know when rebuilding the pins:
 | Summary row + `fit="viewport"` | The summary row pins in **no** layer, so the totals are the one line the contained box does not keep in view: they scroll away with the rows. If they have to stay visible, aggregate them yourself and render them beside the table rather than in it. |
 | `virtualized` | Manages its own bounded scroll (`virtualHeight`); `fit` is ignored (a DEV warning says so), `sticky` still works (thead already sits outside the virtual scroller). The summary row is a separate `<table>` *after* the full-height spacer inside that scroller, so the totals sit at the far end of the virtual scroll — 200 000px down for 5 000 rows at the `md` step of 40px. |
 | `unstyled` | Strips the sticky/contained classes on every slot, `container` included — but not the props that drive the measurements. Rebuilding it: §5. |
-| Nested scroll ancestor | Page-relative sticky binds to it — intended inside a `Drawer` body, surprising inside an accidental `overflow` wrapper. With `fit="viewport"` it is supported without a listener: the reserved space is what the ancestor holds above the box, which scrolling that ancestor does not change. |
+| Nested scroll ancestor | Page-relative sticky binds to it — intended inside a `Drawer` body, surprising inside an accidental `overflow` wrapper. With `fit="viewport"` it is supported without a listener: the reserved space is the box's place in that ancestor's content plus what the ancestor itself reserves, and scrolling the ancestor changes neither. |
 | Fixed top bar that is a **sibling** of the table | Not reserved. `fit="viewport"` ignores `stickyOffset`, and only *ancestors* are measured — put the content in the scroll container below the bar, or keep the bar as an ancestor. |
 | Chrome added/removed above the table inside a **fixed-height** pane | Resizes no observed box, so the reading holds until the next resize: the box is then too tall by that much (reaching past the viewport bottom) or too short by it (empty space below). |
 | SSR / first paint + `fit="viewport"` | `--blocks-table-avail-top` is written by an attachment, and attachments do not run on the server, so the cap resolves to `calc(100dvh - 0px)` until hydration: a table N px down the document is N px too tall for one frame. Where the offset is known ahead of time (a fixed app-shell header), declare `--blocks-table-avail-top` on the container in your own CSS — nothing declares it in the server output, so your value holds the first paint and the measured one takes over at hydration. |

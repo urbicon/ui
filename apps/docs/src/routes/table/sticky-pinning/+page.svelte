@@ -245,10 +245,11 @@
                scroll (it drives the container's own height, so re-measuring on
                scroll would close the loop).
 
-               Inline in this very section nothing above the table is reserved
-               space — the article scrolls — so the reservation is 0 and the box
-               renders at the full window height (800px) inside a 624px reading
-               column, at every scroll position. The frame gives the demo a
+               Inline in this very section the table sits thousands of pixels
+               down the document — more than a viewport, so the measurement
+               reserves nothing rather than capping the box to nothing, and the
+               box renders at the full window height (800px) inside a 624px
+               reading column, at every scroll position. The frame gives the demo a
                document of its own, where the assumption holds — and the frame's
                size is that document's viewport, which is what makes the cap
                inside it a real one. -->
