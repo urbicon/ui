@@ -1,5 +1,5 @@
 import type { Cookies } from '@sveltejs/kit';
-import type { AuthLogger, JwtConfig } from '../../types.js';
+import type { AuthConfig, AuthLogger, JwtConfig } from '../../types.js';
 import type { FullAuthUser, UserRepository } from '../adapters/types.js';
 import type { AuthDeps } from '../deps.js';
 import { verifyPasswordWithMigration } from '../password.js';
@@ -35,6 +35,62 @@ export async function parseBody<T>(
     });
   }
   return { data: input.data };
+}
+
+type AuthHooks<R extends string> = NonNullable<AuthConfig<R>['hooks']>;
+
+/**
+ * The hooks whose throw must reach the caller. `onBeforeAccountDelete`
+ * fail-closes the deletion and `transformUser` builds `locals.user`, so both
+ * gate an outcome that has not happened yet; `onLoginFailed` reports a request
+ * that is already a rejection, where failing loudly costs the user nothing.
+ * Each one says so in its own doc comment on `AuthConfig.hooks`.
+ */
+type AbortingHookName = 'onBeforeAccountDelete' | 'transformUser' | 'onLoginFailed';
+
+/**
+ * The hooks whose throw is caught and logged — the complement, so the two
+ * halves of the classification cannot drift apart, and routing an aborting
+ * hook through {@link notifyHook} is a compile error rather than a silently
+ * dropped abort.
+ */
+export type CaughtHookName = Exclude<keyof AuthHooks<string>, AbortingHookName>;
+
+/**
+ * Invoke a consumer hook so a throw inside it cannot change what the handler
+ * already achieved.
+ *
+ * Every call site of these hooks sits **after** the action it reports: the
+ * password is written, the account exists, the session cookie is set, or the
+ * response has already been sent (the detached forgot-password / change-email
+ * paths). An uncaught consumer hook there reports a completed action as a
+ * failure — at register that is unrecoverable, because the retry it invites
+ * hits the already-consumed invitation.
+ *
+ * The error is always logged, never swallowed — through `deps.logger`, which
+ * `createAuthDeps` shields against a throwing consumer sink.
+ *
+ * `hook` is a key of the hooks object rather than a label, so the name in the
+ * log line and the function invoked cannot disagree.
+ */
+export async function notifyHook<R extends string, K extends CaughtHookName>(
+  deps: { config: AuthConfig<R>; logger: AuthLogger },
+  site: string,
+  hook: K,
+  ...args: Parameters<NonNullable<AuthHooks<R>[K]>>
+): Promise<void> {
+  const fn = deps.config.hooks?.[hook] as
+    | ((...hookArgs: Parameters<NonNullable<AuthHooks<R>[K]>>) => Promise<void> | void)
+    | undefined;
+  if (!fn) return;
+  try {
+    await fn(...args);
+  } catch (err) {
+    deps.logger.error(
+      `[auth] ${site}: ${hook} hook threw (caught — the handler's outcome is unchanged)`,
+      err
+    );
+  }
 }
 
 /**

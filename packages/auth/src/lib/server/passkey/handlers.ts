@@ -5,7 +5,7 @@ import type { PasskeyRepository } from '../adapters/types.js';
 import { sanitizeUser } from '../auth.js';
 import type { AuthDeps } from '../deps.js';
 import { base64UrlDecode } from '../encoding.js';
-import { requireSessionUser } from '../handlers/_shared.js';
+import { notifyHook, requireSessionUser } from '../handlers/_shared.js';
 import { authError } from '../handlers/errors.js';
 import { enforceRateLimit, makeRateLimiter, type RateLimiter } from '../rate-limit.js';
 import { establishSession, resolveSessionMeta } from '../session.js';
@@ -407,7 +407,10 @@ function authenticationVerifyHandler<R extends string>(
         );
 
         const safeUser = sanitizeUser(user);
-        await deps.config.hooks?.onLoginSuccess?.(safeUser);
+        // Post-commit: the counter is advanced and the session established.
+        // The wrapper also keeps a hook that throws a WebAuthnError out of the
+        // catch below, which would file a completed login as a failed assertion.
+        await notifyHook(deps, 'passkey', 'onLoginSuccess', safeUser);
         return json({ user: safeUser });
       } catch (err) {
         if (err instanceof WebAuthnError) {

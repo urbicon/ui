@@ -131,6 +131,39 @@ describe('createLoginHandler', () => {
     expect(deps.repos.user.resetFailedLogins).toHaveBeenCalledWith('user-1');
   });
 
+  it('keeps a completed login a 200 when the onLoginSuccess hook throws', async () => {
+    const pw = await hashPassword('correct');
+    const deps = createMockDeps({
+      findByEmail: vi.fn().mockResolvedValue(createMockUser({ passwordHash: pw }))
+    });
+    deps.config.hooks = {
+      onLoginSuccess: vi.fn().mockRejectedValue(new Error('consumer hook exploded'))
+    };
+    const event = mockRequestEvent({ email: 'test@test.com', password: 'correct' });
+
+    const res = await createLoginHandler(deps).POST(event as unknown as RequestEvent);
+
+    // The session cookie is already set and the failure counter already reset.
+    expect(res.status).toBe(200);
+    expect(event._cookieStore.get('session')).toBeTruthy();
+    expect(deps.logger.error).toHaveBeenCalledWith(
+      expect.stringContaining('onLoginSuccess'),
+      expect.any(Error)
+    );
+  });
+
+  it('still fails loud when the onLoginFailed hook throws (nothing succeeded to misreport)', async () => {
+    const deps = createMockDeps({ findByEmail: vi.fn().mockResolvedValue(null) });
+    deps.config.hooks = {
+      onLoginFailed: vi.fn().mockRejectedValue(new Error('audit sink down'))
+    };
+    const event = mockRequestEvent({ email: 'nobody@test.com', password: 'whatever' });
+
+    await expect(createLoginHandler(deps).POST(event as unknown as RequestEvent)).rejects.toThrow(
+      'audit sink down'
+    );
+  });
+
   it('gates on 2FA: sets a pending cookie, no session, returns twoFactorRequired', async () => {
     const pw = await hashPassword('correct');
     const deps = createMockDeps({

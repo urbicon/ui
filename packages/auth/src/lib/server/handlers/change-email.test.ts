@@ -190,6 +190,35 @@ describe('createChangeEmailHandler', () => {
     expect(deps.logger.error).toHaveBeenCalled();
   });
 
+  it('does not file a throwing onEmailChangeRequested as a failed issue', async () => {
+    const onEmailChangeFailed = vi.fn().mockResolvedValue(undefined);
+    const deps = createMockAuthDeps({
+      config: {
+        hooks: {
+          onEmailChangeRequested: vi.fn().mockRejectedValue(new Error('consumer hook exploded')),
+          onEmailChangeFailed
+        }
+      },
+      user: {
+        findById: vi.fn().mockResolvedValue(await currentUser()),
+        findByEmail: vi.fn().mockResolvedValue(null)
+      },
+      email: { send: vi.fn() }
+    });
+    const ev = await authed(deps, { newEmail: 'new@test.com', currentPassword: 'current' });
+
+    expect((await run(deps, ev)).status).toBe(200);
+
+    // The token is written and both mails are out, so the change *was* issued.
+    await vi.waitFor(() =>
+      expect(deps.logger.error).toHaveBeenCalledWith(
+        expect.stringContaining('onEmailChangeRequested'),
+        expect.any(Error)
+      )
+    );
+    expect(onEmailChangeFailed).not.toHaveBeenCalled();
+  });
+
   it('no-ops when the new email equals the current one', async () => {
     const send = vi.fn();
     const deps = createMockAuthDeps({

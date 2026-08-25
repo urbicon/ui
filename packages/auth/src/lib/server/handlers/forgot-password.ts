@@ -8,7 +8,7 @@ import { resolveEmailSettings } from '../email/resolve.js';
 import { buildPasswordResetEmail } from '../email/templates.js';
 import { enforceRateLimit, makeRateLimiter } from '../rate-limit.js';
 import { validateEmailInput } from '../validation.js';
-import { parseBody } from './_shared.js';
+import { notifyHook, parseBody } from './_shared.js';
 
 export interface ForgotPasswordHandlerOptions {
   /**
@@ -59,14 +59,7 @@ export function createForgotPasswordHandler<R extends string>(
               `[auth] forgot-password: failed to issue reset email (user ${user.id})`,
               err
             );
-            try {
-              await deps.config.hooks?.onPasswordResetFailed?.(user.email, err);
-            } catch (hookErr) {
-              deps.logger.error(
-                '[auth] forgot-password: onPasswordResetFailed hook threw',
-                hookErr
-              );
-            }
+            await notifyHook(deps, 'forgot-password', 'onPasswordResetFailed', user.email, err);
           }
         })();
       }

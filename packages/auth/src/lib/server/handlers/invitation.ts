@@ -7,7 +7,7 @@ import type { AuthDeps } from '../deps.js';
 import { resolveEmailSettings } from '../email/resolve.js';
 import { buildInvitationEmail } from '../email/templates.js';
 import { validateInvitationInput } from '../validation.js';
-import { NO_STORE, parseBody, requireSessionUser } from './_shared.js';
+import { NO_STORE, notifyHook, parseBody, requireSessionUser } from './_shared.js';
 import { authError } from './errors.js';
 
 export interface InvitationHandlerOptions<R extends string = string> {
@@ -207,11 +207,7 @@ export function createInvitationHandlers<R extends string>(
             `[auth] invitation for ${email} was created but the invite email failed to send:`,
             err
           );
-          try {
-            await deps.config.hooks?.onInvitationEmailFailed?.(email, err);
-          } catch (hookErr) {
-            deps.logger.error('[auth] onInvitationEmailFailed hook threw:', hookErr);
-          }
+          await notifyHook(deps, 'invitation', 'onInvitationEmailFailed', email, err);
         }
       }
 

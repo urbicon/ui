@@ -87,4 +87,29 @@ describe('createChangePasswordHandler', () => {
     expect(ev._cookieStore.get('session')).toBeTruthy();
     expect(onPasswordChanged).toHaveBeenCalledWith('user-1');
   });
+
+  it('keeps a completed change a 200 when the onPasswordChanged hook throws', async () => {
+    const user = createMockUser({ passwordHash: await hashPassword('correct-current') });
+    const deps = createMockAuthDeps({
+      config: {
+        hooks: { onPasswordChanged: vi.fn().mockRejectedValue(new Error('consumer hook exploded')) }
+      },
+      user: { findById: vi.fn().mockResolvedValue(user) }
+    });
+    const ev = await authed(deps, {
+      currentPassword: 'correct-current',
+      newPassword: 'NewStrongPass1'
+    });
+
+    const res = await run(deps, ev);
+
+    // The old password is already dead — reporting a failure here would leave
+    // the user with neither password working.
+    expect(res.status).toBe(200);
+    expect(deps.repos.user.updatePassword).toHaveBeenCalledWith('user-1', expect.any(String));
+    expect(deps.logger.error).toHaveBeenCalledWith(
+      expect.stringContaining('onPasswordChanged'),
+      expect.any(Error)
+    );
+  });
 });

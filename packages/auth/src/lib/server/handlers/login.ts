@@ -7,7 +7,7 @@ import { enforceRateLimit, makeRateLimiter } from '../rate-limit.js';
 import { establishSession, resolveSessionMeta } from '../session.js';
 import { createPending2faToken, setPending2faCookie } from '../two-factor.js';
 import { validateLoginInput } from '../validation.js';
-import { parseBody } from './_shared.js';
+import { notifyHook, parseBody } from './_shared.js';
 import { authError } from './errors.js';
 
 // A throwaway password used only to build the dummy hash for timing
@@ -116,7 +116,8 @@ export function createLoginHandler<R extends string>(deps: AuthDeps<R>): { POST:
       );
 
       const safeUser = sanitizeUser(user);
-      await deps.config.hooks?.onLoginSuccess?.(safeUser);
+      // Post-commit: the session cookie is set and the failure counter reset.
+      await notifyHook(deps, 'login', 'onLoginSuccess', safeUser);
 
       return json({ user: safeUser });
     }

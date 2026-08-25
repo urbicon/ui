@@ -8,7 +8,7 @@ import { resolveEmailSettings } from '../email/resolve.js';
 import { buildChangeEmail, buildChangeEmailNotice } from '../email/templates.js';
 import { enforceRateLimit, makeRateLimiter } from '../rate-limit.js';
 import { validateChangeEmailInput } from '../validation.js';
-import { parseBody, requireSessionUser, verifyCurrentPassword } from './_shared.js';
+import { notifyHook, parseBody, requireSessionUser, verifyCurrentPassword } from './_shared.js';
 import { authError } from './errors.js';
 
 export interface ChangeEmailHandlerOptions {
@@ -68,13 +68,9 @@ export function createChangeEmailHandler<R extends string>(
         } catch (err) {
           deps.logger.error(`[auth] change-email: failed to issue change (user ${user.id})`, err);
           // Surface the decoupled failure through the observability hook (it
-          // can't reach the user as an HTTP error). Guard the hook itself so a
-          // throw can't become an unhandled rejection.
-          try {
-            await deps.config.hooks?.onEmailChangeFailed?.(user.id, newEmail, err);
-          } catch (hookErr) {
-            deps.logger.error('[auth] change-email: onEmailChangeFailed hook threw', hookErr);
-          }
+          // can't reach the user as an HTTP error). Detached, so an unguarded
+          // throw here would be an unhandled rejection rather than a 500.
+          await notifyHook(deps, 'change-email', 'onEmailChangeFailed', user.id, newEmail, err);
         }
       })();
 
@@ -121,5 +117,8 @@ async function issueEmailChange<R extends string>(
   const notice = options.changeEmailEmail?.(noticeCtx) ?? buildChangeEmailNotice(noticeCtx, t);
   await deps.email.send({ from, ...notice, to: user.email });
 
-  await deps.config.hooks?.onEmailChangeRequested?.(user.id, newEmail);
+  // Token and both mails are out. Unguarded, a throw here would land in the
+  // caller's catch and be filed as `onEmailChangeFailed` — the opposite of what
+  // happened.
+  await notifyHook(deps, 'change-email', 'onEmailChangeRequested', user.id, newEmail);
 }

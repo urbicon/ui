@@ -4,7 +4,7 @@ import { hashToken } from '../auth.js';
 import type { AuthDeps } from '../deps.js';
 import { enforceRateLimit, makeRateLimiter } from '../rate-limit.js';
 import { validateTokenInput } from '../validation.js';
-import { parseBody } from './_shared.js';
+import { notifyHook, parseBody } from './_shared.js';
 import { authError } from './errors.js';
 
 /**
@@ -40,17 +40,9 @@ export function createVerifyEmailChangeHandler<R extends string>(
         });
       }
 
-      // user.email is the freshly-applied new address. The swap has already
-      // committed, so a throwing hook must not roll it back into a 500 — catch
-      // and log (as the hook's contract promises).
-      try {
-        await deps.config.hooks?.onEmailChanged?.(user.id, user.email);
-      } catch (err) {
-        deps.logger.error(
-          `[auth] verify-email-change: onEmailChanged hook threw (user ${user.id})`,
-          err
-        );
-      }
+      // user.email is the freshly-applied new address — the swap has already
+      // committed.
+      await notifyHook(deps, 'verify-email-change', 'onEmailChanged', user.id, user.email);
 
       return json({ success: true });
     }

@@ -446,10 +446,64 @@ export interface AuthConfig<R extends string = string> {
     afterLogout?: string;
     loginPage?: string;
   };
+  /**
+   * Consumer callbacks fired at named points in the auth flows. Every one
+   * states what a throw inside it does, and there are only two answers:
+   *
+   * - **Caught and logged** — the hook reports an action that has already
+   *   committed, so a failure inside it must not present a completed
+   *   registration, reset or login as a `500`. The error goes to
+   *   `config.logger.error`; it is never swallowed.
+   * - **Aborts the request** — either the hook gates an outcome that has not
+   *   happened yet (`onBeforeAccountDelete`, `transformUser`), or the request
+   *   is already a rejection (`onLoginFailed`) and there is nothing successful
+   *   to misreport.
+   *
+   * The split follows from *when* a hook runs, not from what it does: a hook
+   * placed after the write it reports on belongs in the first group.
+   */
   hooks?: {
+    /**
+     * Fires after `createRegisterHandler` has created the account, spent the
+     * single-use invitation and sent the verification mail — and before the
+     * auto-login session is established. Receives the sanitized user.
+     *
+     * A throw is caught and logged. The invitation is already consumed by this
+     * point, so a failed response would invite a retry that answers
+     * `invitation_used` 403.
+     */
     onUserCreated?: (user: AuthUser<R>) => Promise<void>;
+    /**
+     * Fires after a new password hash was written and every other session
+     * invalidated — from `createChangePasswordHandler` (re-auth) and from
+     * `createResetPasswordHandler` (reset token, already spent).
+     *
+     * A throw is caught and logged: the old password no longer works by the
+     * time this runs, so the change cannot be reported as failed.
+     */
     onPasswordChanged?: (userId: string) => Promise<void>;
+    /**
+     * Fires once a session is established, from all three login paths: the
+     * password login (`createLoginHandler`), the TOTP second step
+     * (`createTwoFactorHandlers` → `verify`) and a passkey assertion
+     * (`createPasskeyHandlers`). Receives the sanitized user — the audit seam
+     * for "who signed in".
+     *
+     * A throw is caught and logged; the session cookie is already set.
+     */
     onLoginSuccess?: (user: AuthUser<R>) => Promise<void>;
+    /**
+     * Fires on every rejected login. `reason` is `user_not_found` or
+     * `invalid_password` on the password path, and one of `challenge_missing`,
+     * `unknown_credential`, `user_handle_mismatch`, `credential_deleted`,
+     * `counter_regression`, `user_not_found`, `invalid_assertion` on the
+     * passkey path — where `email` is `''`, because those ceremonies resolve no
+     * address (the reason disambiguates).
+     *
+     * A throw is **not** caught and fails the request. The response was a
+     * rejection either way, so nothing successful is misreported and a broken
+     * audit sink stays loud.
+     */
     onLoginFailed?: (email: string, reason: string) => Promise<void>;
     /**
      * Fires when issuing a password-reset email fails. The forgot-password
@@ -458,8 +512,10 @@ export interface AuthConfig<R extends string = string> {
      * a failure can't surface as an HTTP error — the user was already told
      * "if the account exists, an email was sent". Wire this to your error
      * tracker so a broken mail transport doesn't silently lock users out of
-     * recovery. Note: on serverless/edge runtimes that freeze the worker after
-     * the response, neither this hook nor the internal log may run — use a
+     * recovery. A throw is caught and logged — it runs detached from the
+     * response, where an unguarded one would surface as an unhandled rejection.
+     * Note: on serverless/edge runtimes that freeze the worker after the
+     * response, neither this hook nor the internal log may run — use a
      * queue-backed email transport there for guaranteed delivery.
      */
     onPasswordResetFailed?: (email: string, err: unknown) => Promise<void>;
@@ -489,7 +545,8 @@ export interface AuthConfig<R extends string = string> {
      * failure can't surface as an HTTP error — the user was already told to
      * check their new inbox. Wire this to your error tracker so a broken mail
      * transport doesn't silently leave a user waiting for a mail that never
-     * arrives. Same serverless/edge caveat as `onPasswordResetFailed`.
+     * arrives. A throw is caught and logged, like `onPasswordResetFailed`, and
+     * carries the same serverless/edge caveat.
      */
     onEmailChangeFailed?: (userId: string, newEmail: string, err: unknown) => Promise<void>;
     /**
