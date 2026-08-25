@@ -52,7 +52,6 @@
     },
     "./style/index.css": "./dist/style/index.css",
     "./style/table-theme.css": "./dist/style/table-theme.css",
-    "./style/themes/*": "./dist/style/themes/*",
     "./i18n/en": {
       "types": "./dist/translations/en.d.ts",
       "import": "./dist/translations/en.js",
