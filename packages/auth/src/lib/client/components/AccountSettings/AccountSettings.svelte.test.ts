@@ -9,7 +9,10 @@ import type { AccountSettingsProps } from './index.js';
 
 // Covers the danger zone: deleting an account is the one action in this package
 // that cannot be undone, so what guards it has to be described by a test rather
-// than read off the markup.
+// than read off the markup. What is asserted here is what this component owns —
+// the disabled trigger, the two-step confirmation, the failure path. The
+// single-flight of the confirm click belongs to ConfirmDialog and is not
+// falsifiable from here (see the comment at `confirmDelete`).
 
 const user: AuthUser = {
   id: 'u1',
@@ -43,9 +46,14 @@ function render(props: Partial<AccountSettingsProps> = {}) {
   flushSync();
 }
 
+/**
+ * Let a request round-trip finish. A macrotask, not two microtasks: parsing a
+ * real `Response` body takes an unspecified number of microtask turns, so
+ * counting them is how a component test starts asserting against a DOM that has
+ * not caught up yet.
+ */
 async function settle() {
-  await Promise.resolve();
-  await Promise.resolve();
+  await new Promise((resolve) => setTimeout(resolve, 0));
   await tick();
 }
 
@@ -70,30 +78,32 @@ const confirmButton = () =>
   });
 
 describe('AccountSettings — danger zone', () => {
-  it('sends one delete request when the confirm button is clicked twice', async () => {
-    let release: ((res: Response) => void) | undefined;
-    const fetcher = vi.fn(
-      () =>
-        new Promise<Response>((resolve) => {
-          release = resolve;
-        })
-    ) as unknown as typeof globalThis.fetch;
+  it('keeps the trigger inert until a password is entered', async () => {
+    const fetcher = vi.fn() as unknown as typeof globalThis.fetch;
+    render({ fetcher });
+
+    const trigger = () => dangerZone().getByRole('button', { name: 'Delete account' });
+    expect(trigger().hasAttribute('disabled')).toBe(true);
+
+    await userEvent.type(dangerZone().getByLabelText('Current password'), 'hunter2');
+    await tick();
+    expect(trigger().hasAttribute('disabled')).toBe(false);
+  });
+
+  it('sends nothing until the confirmation is answered', async () => {
+    const fetcher = vi.fn(async () => jsonResponse(200, {})) as unknown as typeof globalThis.fetch;
     render({ fetcher });
 
     await openDeleteConfirm();
+    // The one irreversible action in this package is two steps on purpose: the
+    // trigger opens the dialog and nothing else. Wiring it straight to
+    // `confirmDelete` would delete the account on the first click.
+    expect(fetcher).not.toHaveBeenCalled();
+    expect(screen.getByRole('dialog', { hidden: true })).toBeTruthy();
 
     await userEvent.click(confirmButton());
-    await tick();
-    await userEvent.click(confirmButton());
-    await tick();
-
-    // ConfirmDialog owns the single-flight guard (its `busy` flag disables both
-    // buttons and `handleConfirm` returns early while loading), which is why the
-    // handler here carries none of its own.
-    expect(fetcher).toHaveBeenCalledTimes(1);
-
-    release?.(jsonResponse(200, {}));
     await settle();
+    expect(fetcher).toHaveBeenCalledTimes(1);
   });
 
   it('reports a rejected delete instead of calling onDeleted', async () => {

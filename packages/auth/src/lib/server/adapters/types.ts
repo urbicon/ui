@@ -50,6 +50,26 @@
  *
  * Both rules are executable — see the conformance suite in `conformance.ts`.
  *
+ * ## The contract describes a complete auth store, not only what this package drives
+ *
+ * A handful of methods have no caller anywhere in `src` and every adapter still
+ * implements them. That is deliberate, and it is the answer to the question the
+ * two readings of this file pose: the interface describes the store an
+ * authentication system needs, not the subset today's handlers happen to reach.
+ * A method the package does not drive is therefore **marked consumer-facing at
+ * its declaration**, saying what makes the way instead, so an adapter author can
+ * tell "nobody calls this yet" from "you are wiring it wrong":
+ * {@link UserRepository.setEmailVerified},
+ * {@link UserRepository.setVerificationToken},
+ * {@link PasskeyRepository.rename},
+ * {@link RefreshTokenRepository.deleteExpired} and all of
+ * {@link FederatedAccountRepository}.
+ *
+ * The rule for the next one: a new method needs either an in-package caller or
+ * that marking. Dropping such a method from the required surface is the option
+ * this contract does not take — it would break every adapter already written
+ * against it, to save work only the adapter author pays.
+ *
  * ## Other cross-cutting conventions
  *
  * - **Owner-first parameters**: the owning user id is the first argument of

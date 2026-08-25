@@ -15,22 +15,24 @@ export default mergeConfig(
       // (`--no-isolate`) would let the mock bleed across files with failures
       // misattributed to innocent siblings. Keep this on.
       isolate: true,
-      // jsdom gaps the mounted auth components fall into. Guarded on `window`,
-      // so the node-environment files (the bulk of this suite) load it and skip
-      // everything in it.
-      setupFiles: ['./vitest-setup.ts']
+      // Not a copy: every component in this package is built out of blocks
+      // primitives, so the jsdom gaps it falls into are exactly the ones blocks
+      // already patches — one set, maintained where the components that need it
+      // live. The file is guarded on `window`, so the node files (the bulk of
+      // this suite) load it and skip all of it. It reaches across the package
+      // boundary to a path outside blocks' exports map, which is safe only
+      // because it is import-free and never published; should it ever gain an
+      // import, this run fails loudly on the unresolved specifier rather than
+      // quietly losing a polyfill.
+      setupFiles: ['../blocks/vitest-setup.ts']
     },
     // Component tests mount real components, which needs the browser build of
     // svelte. Without this every `mount()` here dies on
-    // `lifecycle_function_unavailable` and `onMount` — how every manager in this
-    // package loads its data — never runs. The quiet half of the same switch:
-    // `$effect` and `$effect.root` become no-ops that discard the callback
-    // unread, so a future effect-driven test would report green while measuring
-    // nothing. Two knobs, one loud and one silent: the per-file
-    // `// @vitest-environment jsdom` docblock selects vitest's web transform
-    // mode, which is the only mode that consults `resolve.conditions` at all.
-    // Same reasoning as packages/blocks, table, docs and i18n; scoped to test
-    // runs, since this config loads only under vitest.
+    // `lifecycle_function_unavailable`, and `onMount` — how every manager in
+    // this package loads its data — never runs. It pairs with the per-file
+    // `// @vitest-environment jsdom` docblock, which selects the only transform
+    // mode that consults `resolve.conditions` at all; see the `blocks-testing`
+    // skill for the failure mode when one of the two is missing.
     resolve: {
       conditions: ['browser']
     }

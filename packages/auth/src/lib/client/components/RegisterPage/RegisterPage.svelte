@@ -26,13 +26,14 @@
     header: headerSnippet,
     footer: footerSnippet,
     links: linksSnippet,
-    unstyled = false,
+    unstyled: unstyledProp = false,
     slotClasses: slotClassesProp = {},
     preset,
     class: className
   }: RegisterPageProps = $props();
 
   const blocksConfig = getBlocksConfig();
+  const unstyled = $derived(unstyledProp || blocksConfig?.unstyled || false);
   const slotClasses = $derived(
     resolveAuthSlotClasses(blocksConfig, 'RegisterPage', preset, slotClassesProp)
   );

@@ -12,13 +12,14 @@
     onDelete,
     onNotificationClick,
     item: itemSnippet,
-    unstyled = false,
+    unstyled: unstyledProp = false,
     slotClasses: slotClassesProp = {},
     preset,
     class: className
   }: NotificationCenterProps = $props();
 
   const blocksConfig = getBlocksConfig();
+  const unstyled = $derived(unstyledProp || blocksConfig?.unstyled || false);
   const slotClasses = $derived(
     resolveAuthSlotClasses(blocksConfig, 'NotificationCenter', preset, slotClassesProp)
   );

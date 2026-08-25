@@ -31,13 +31,14 @@
     apiPath = '/api/invitations',
     csrf,
     fetcher,
-    unstyled = false,
+    unstyled: unstyledProp = false,
     slotClasses: slotClassesProp = {},
     preset,
     class: className
   }: InvitationManagerProps = $props();
 
   const blocksConfig = getBlocksConfig();
+  const unstyled = $derived(unstyledProp || blocksConfig?.unstyled || false);
   const slotClasses = $derived(
     resolveAuthSlotClasses(blocksConfig, 'InvitationManager', preset, slotClassesProp)
   );
@@ -51,12 +52,16 @@
   // untrack the read to make "initial value only" explicit (state_referenced_locally).
   let role = $state(untrack(() => roles[0]?.value ?? ''));
   let sendEmail = $state(true);
-  let error = $state('');
+  // Two failures with different reach, kept apart so neither can silently
+  // stand in for the other: `loadError` disowns the list region — spinner,
+  // rows and "none yet" all describe a list that was actually fetched —
+  // while `actionError` is a failed send or delete while the rows on screen stay
+  // valid. Both speak through the one alert below, so the region can never go
+  // blank without a message.
+  let actionError = $state('');
+  let loadError = $state('');
+  const error = $derived(actionError || loadError);
   let loading = $state(true);
-  // The list region has three readings — spinner, "none yet", the rows — and a
-  // failed load owns none of them. Tracked apart from `error`, which a failed
-  // send or delete also sets while the list on screen is still valid.
-  let loadFailed = $state(false);
   let submitting = $state(false);
   // The invite URL comes back from the 201 and is shown until the next submit.
   // It carries the one-time token, so this is the only moment it exists outside
@@ -83,21 +88,19 @@
 
   async function loadInvitations() {
     loading = true;
-    loadFailed = false;
+    loadError = '';
     try {
       const { ok, data } = await getJson(apiPath, { fetcher });
       if (!ok) {
         // A 401/500 must not render as "no invitations yet".
-        error = errorTextFromBody(data, t);
-        loadFailed = true;
+        loadError = errorTextFromBody(data, t);
         return;
       }
       invitations = (data.invitations as InvitationItem[] | undefined) ?? [];
     } catch {
       // Surface the failure instead of rendering the empty state, which is
       // indistinguishable from "no invitations yet".
-      error = t.auth.errors.networkError;
-      loadFailed = true;
+      loadError = t.auth.errors.networkError;
     } finally {
       loading = false;
     }
@@ -105,7 +108,7 @@
 
   async function handleSendInvitation(e: SubmitEvent) {
     e.preventDefault();
-    error = '';
+    actionError = '';
     submitting = true;
 
     try {
@@ -121,7 +124,7 @@
       );
       if (!res.ok) {
         const data = (await res.json().catch(() => ({}))) as Record<string, unknown>;
-        error = errorTextFromBody(data, t);
+        actionError = errorTextFromBody(data, t);
         return;
       }
       const created = (await res.json().catch(() => ({}))) as {
@@ -134,14 +137,14 @@
       email = '';
       await loadInvitations();
     } catch {
-      error = t.auth.errors.networkError;
+      actionError = t.auth.errors.networkError;
     } finally {
       submitting = false;
     }
   }
 
   async function deleteInvitation(id: string) {
-    error = '';
+    actionError = '';
     try {
       const res = await csrfFetch(
         `${apiPath}/${encodeURIComponent(id)}`,
@@ -151,14 +154,14 @@
       );
       if (!res.ok) {
         const data = await res.json().catch(() => ({}));
-        error = errorTextFromBody(data, t);
+        actionError = errorTextFromBody(data, t);
         return;
       }
       // Drop it locally only once the server confirms — an unchecked optimistic
       // remove would hide a failed delete that still exists on the server.
       invitations = invitations.filter((inv) => inv.id !== id);
     } catch {
-      error = t.auth.errors.networkError;
+      actionError = t.auth.errors.networkError;
     }
   }
 
@@ -254,7 +257,10 @@
     <div class={cls('flex justify-center py-4')}>
       <Spinner size="sm" {unstyled} />
     </div>
-  {:else if invitations.length === 0 && !loadFailed}
+  {:else if loadError}
+    <!-- The alert above carries the reason; a list that was never fetched has no
+         reading of its own down here. -->
+  {:else if invitations.length === 0}
     <p class={cls('text-text-tertiary py-4 text-center text-sm', slotClasses.empty)}>
       {t.invitations.empty}
     </p>

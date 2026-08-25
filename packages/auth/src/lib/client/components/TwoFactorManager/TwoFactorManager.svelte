@@ -15,13 +15,14 @@
     qr,
     onEnabled,
     onDisabled,
-    unstyled = false,
+    unstyled: unstyledProp = false,
     slotClasses: slotClassesProp = {},
     preset,
     class: className
   }: TwoFactorManagerProps = $props();
 
   const blocksConfig = getBlocksConfig();
+  const unstyled = $derived(unstyledProp || blocksConfig?.unstyled || false);
   const slotClasses = $derived(
     resolveAuthSlotClasses(blocksConfig, 'TwoFactorManager', preset, slotClassesProp)
   );

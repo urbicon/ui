@@ -65,10 +65,14 @@ function render(props: Partial<InvitationManagerProps> = {}) {
   flushSync();
 }
 
-/** Let the mount-time load settle: microtasks first, then a render pass. */
+/**
+ * Let a request round-trip finish. A macrotask, not two microtasks: parsing a
+ * real `Response` body takes an unspecified number of microtask turns, so
+ * counting them is how a component test starts asserting against a DOM that has
+ * not caught up yet.
+ */
 async function settle() {
-  await Promise.resolve();
-  await Promise.resolve();
+  await new Promise((resolve) => setTimeout(resolve, 0));
   await tick();
 }
 
@@ -104,6 +108,32 @@ describe('InvitationManager (component)', () => {
 
     const empty = screen.getByText('No invitations yet.');
     expect(empty.className).toContain('my-empty');
+  });
+
+  it('never leaves the list region blank and silent after a failed load', async () => {
+    let releaseSend: ((res: Response) => void) | undefined;
+    const fetcher = vi
+      .fn()
+      .mockImplementationOnce(async () => jsonResponse(401, { code: 'unauthorized' }))
+      .mockImplementationOnce(() => new Promise<Response>((r) => (releaseSend = r)));
+    render({ fetcher: fetcher as unknown as typeof globalThis.fetch });
+    await settle();
+
+    expect(screen.queryByRole('alert')).toBeTruthy();
+    expect(screen.queryByText('No invitations yet.')).toBeNull();
+
+    await userEvent.type(screen.getByLabelText(/Email address/), 'invitee@example.com');
+    await userEvent.click(screen.getByRole('button', { name: 'Send' }));
+    await tick();
+
+    // Submitting clears the *action* error. The load failure still owns the list
+    // region, so the region shows nothing — and the alert must therefore still
+    // speak, or the user faces an unexplained blank where a list should be.
+    expect(screen.queryByRole('alert')).toBeTruthy();
+    expect(screen.queryByText('No invitations yet.')).toBeNull();
+
+    releaseSend?.(jsonResponse(500, {}));
+    await settle();
   });
 
   it('keeps the row and shows the error when a delete fails', async () => {

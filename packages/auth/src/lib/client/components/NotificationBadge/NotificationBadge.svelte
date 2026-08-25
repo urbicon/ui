@@ -6,13 +6,14 @@
   let {
     count,
     onclick,
-    unstyled = false,
+    unstyled: unstyledProp = false,
     slotClasses: slotClassesProp = {},
     preset,
     class: className
   }: NotificationBadgeProps = $props();
 
   const blocksConfig = getBlocksConfig();
+  const unstyled = $derived(unstyledProp || blocksConfig?.unstyled || false);
   const slotClasses = $derived(
     resolveAuthSlotClasses(blocksConfig, 'NotificationBadge', preset, slotClassesProp)
   );

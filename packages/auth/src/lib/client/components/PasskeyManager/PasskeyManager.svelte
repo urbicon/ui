@@ -14,13 +14,14 @@
     apiPath = '/api/auth/passkey',
     csrf,
     fetcher,
-    unstyled = false,
+    unstyled: unstyledProp = false,
     slotClasses: slotClassesProp = {},
     preset,
     class: className
   }: PasskeyManagerProps = $props();
 
   const blocksConfig = getBlocksConfig();
+  const unstyled = $derived(unstyledProp || blocksConfig?.unstyled || false);
   const slotClasses = $derived(
     resolveAuthSlotClasses(blocksConfig, 'PasskeyManager', preset, slotClassesProp)
   );
@@ -38,36 +39,39 @@
 
   let passkeys = $state<PasskeyItem[]>([]);
   let loading = $state(true);
-  // Kept apart from `error`, which a failed add or delete also sets while the
-  // list on screen is still valid. Only a failed *load* disowns the list region.
-  let loadFailed = $state(false);
   let registering = $state(false);
-  let error = $state('');
+  // Two failures with different reach, kept apart so neither can silently
+  // stand in for the other: `loadError` disowns the list region — spinner,
+  // rows and "none yet" all describe a list that was actually fetched —
+  // while `actionError` is a failed add or delete while the rows on screen stay
+  // valid. Both speak through the one alert below, so the region can never go
+  // blank without a message.
+  let actionError = $state('');
+  let loadError = $state('');
+  const error = $derived(actionError || loadError);
 
   async function loadPasskeys() {
     loading = true;
-    loadFailed = false;
+    loadError = '';
     try {
       const { ok, data } = await getJson(`${apiPath}/list`, { fetcher });
       if (!ok) {
         // A 401/500 must not render as "no passkeys registered".
-        error = errorTextFromBody(data, t);
-        loadFailed = true;
+        loadError = errorTextFromBody(data, t);
         return;
       }
       passkeys = (data.passkeys as PasskeyItem[] | undefined) ?? [];
     } catch {
       // Surface the failure instead of rendering the empty state, which is
       // indistinguishable from "no passkeys registered".
-      error = t.auth.errors.networkError;
-      loadFailed = true;
+      loadError = t.auth.errors.networkError;
     } finally {
       loading = false;
     }
   }
 
   async function registerPasskey() {
-    error = '';
+    actionError = '';
     registering = true;
 
     try {
@@ -80,7 +84,7 @@
       );
       if (!optRes.ok) {
         const data = await optRes.json().catch(() => ({}));
-        error = errorTextFromBody(data, t);
+        actionError = errorTextFromBody(data, t);
         return;
       }
       const { options } = await optRes.json();
@@ -107,7 +111,7 @@
       })) as PublicKeyCredential;
 
       if (!credential) {
-        error = t.passkeys.cancelled;
+        actionError = t.passkeys.cancelled;
         return;
       }
 
@@ -138,16 +142,16 @@
 
       if (!verifyRes.ok) {
         const data = (await verifyRes.json().catch(() => ({}))) as Record<string, unknown>;
-        error = errorTextFromBody(data, t);
+        actionError = errorTextFromBody(data, t);
         return;
       }
 
       await loadPasskeys();
     } catch (err) {
       if (err instanceof DOMException && err.name === 'NotAllowedError') {
-        error = t.passkeys.cancelled;
+        actionError = t.passkeys.cancelled;
       } else {
-        error = t.passkeys.addFailed;
+        actionError = t.passkeys.addFailed;
       }
     } finally {
       registering = false;
@@ -155,7 +159,7 @@
   }
 
   async function deletePasskey(credentialId: string) {
-    error = '';
+    actionError = '';
     try {
       const res = await csrfFetch(
         `${apiPath}/${encodeURIComponent(credentialId)}`,
@@ -165,7 +169,7 @@
       );
       if (!res.ok) {
         const data = await res.json().catch(() => ({}));
-        error = errorTextFromBody(data, t);
+        actionError = errorTextFromBody(data, t);
         return;
       }
       // Drop it locally only once the server confirms — an unchecked optimistic
@@ -173,7 +177,7 @@
       // they think is gone.
       passkeys = passkeys.filter((p) => p.credentialId !== credentialId);
     } catch {
-      error = t.auth.errors.networkError;
+      actionError = t.auth.errors.networkError;
     }
   }
 
@@ -214,7 +218,10 @@
     <div class={cls('flex justify-center py-4')}>
       <Spinner size="sm" {unstyled} />
     </div>
-  {:else if passkeys.length === 0 && !loadFailed}
+  {:else if loadError}
+    <!-- The alert above carries the reason; a list that was never fetched has no
+         reading of its own down here. -->
+  {:else if passkeys.length === 0}
     <p class={cls('text-text-tertiary py-4 text-center text-sm', slotClasses.empty)}>
       {t.passkeys.empty}
     </p>

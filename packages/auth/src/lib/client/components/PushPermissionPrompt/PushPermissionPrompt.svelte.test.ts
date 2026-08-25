@@ -49,9 +49,14 @@ function render(props: Partial<PushPermissionPromptProps> = {}) {
 
 const enableButton = () => screen.getByRole('button', { name: 'Enable' });
 
+/**
+ * Let a request round-trip finish. A macrotask, not two microtasks: parsing a
+ * real `Response` body takes an unspecified number of microtask turns, so
+ * counting them is how a component test starts asserting against a DOM that has
+ * not caught up yet.
+ */
 async function settle() {
-  await Promise.resolve();
-  await Promise.resolve();
+  await new Promise((resolve) => setTimeout(resolve, 0));
   await tick();
 }
 
@@ -82,40 +87,40 @@ describe('PushPermissionPrompt (component)', () => {
     expect(fetcher).toHaveBeenCalledTimes(1);
   });
 
-  it('re-enables Enable after a failed subscribe', async () => {
+  it('lets the user retry after a failed subscribe', async () => {
     subscribeToPush.mockResolvedValue({ status: 'error', error: new Error('no worker') });
-    render();
+    const onSubscribed = vi.fn();
+    render({ onSubscribed, fetcher: (async () => jsonResponse(200, {})) as never });
 
     await userEvent.click(enableButton());
     await settle();
+    expect(screen.getByRole('alert')).toBeTruthy();
 
     // The prompt deliberately stays open on an operational failure, so the busy
-    // flag must clear or the only retry path is a page reload.
-    expect(screen.getByRole('alert')).toBeTruthy();
-    expect(enableButton().hasAttribute('disabled')).toBe(false);
-
+    // flag must clear — a second click has to reach `subscribeToPush` again, or
+    // the only retry path is a page reload. Asserted through the call, not
+    // through an attribute: the guard is the button's `loading`, and a stuck
+    // flag shows up as a swallowed click.
     subscribeToPush.mockResolvedValue({ status: 'subscribed', subscription });
-    const onSubscribed = vi.fn();
-    dispose?.();
-    dispose = undefined;
-    document.body.replaceChildren();
-    render({ onSubscribed, fetcher: (async () => jsonResponse(200, {})) as never });
     await userEvent.click(enableButton());
     await settle();
+
+    expect(subscribeToPush).toHaveBeenCalledTimes(2);
     expect(onSubscribed).toHaveBeenCalledTimes(1);
   });
 
-  it('re-enables Enable after the server rejects the subscription', async () => {
+  it('lets the user retry after the server rejects the subscription', async () => {
     subscribeToPush.mockResolvedValue({ status: 'subscribed', subscription });
-    render({
-      fetcher: (async () => jsonResponse(409, { code: 'push_endpoint_conflict' })) as never
-    });
+    const fetcher = vi.fn(async () => jsonResponse(409, { code: 'push_endpoint_conflict' }));
+    render({ fetcher: fetcher as unknown as typeof globalThis.fetch });
 
     await userEvent.click(enableButton());
     await settle();
-
     expect(screen.getByRole('alert').textContent).toContain('already registered');
-    expect(enableButton().hasAttribute('disabled')).toBe(false);
+
+    await userEvent.click(enableButton());
+    await settle();
+    expect(fetcher).toHaveBeenCalledTimes(2);
   });
 
   it('closes without an error when the browser cannot do push', async () => {

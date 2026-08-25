@@ -3,7 +3,7 @@ import { screen } from '@testing-library/dom';
 import userEvent from '@testing-library/user-event';
 import { type ComponentProps, flushSync, mount, tick, unmount } from 'svelte';
 import { afterEach, describe, expect, it, vi } from 'vitest';
-import PresetHarness from './__fixtures__/PresetHarness.svelte';
+import ProviderHarness from '../__fixtures__/ProviderHarness.svelte';
 import type { PasskeyManagerProps } from './index.js';
 import PasskeyManager from './PasskeyManager.svelte';
 
@@ -58,9 +58,14 @@ function render(props: Partial<PasskeyManagerProps> = {}) {
   flushSync();
 }
 
+/**
+ * Let a request round-trip finish. A macrotask, not two microtasks: parsing a
+ * real `Response` body takes an unspecified number of microtask turns, so
+ * counting them is how a component test starts asserting against a DOM that has
+ * not caught up yet.
+ */
 async function settle() {
-  await Promise.resolve();
-  await Promise.resolve();
+  await new Promise((resolve) => setTimeout(resolve, 0));
   await tick();
 }
 
@@ -81,6 +86,35 @@ describe('PasskeyManager (component)', () => {
     // key they may already have.
     expect(screen.queryByText('No passkeys registered.')).toBeNull();
     expect(screen.getByRole('alert')).toBeTruthy();
+  });
+
+  it('never leaves the list region blank and silent after a failed load', async () => {
+    Object.defineProperty(navigator, 'credentials', {
+      configurable: true,
+      value: { create: vi.fn(async () => null) }
+    });
+    let releaseOptions: ((res: Response) => void) | undefined;
+    const fetcher = vi
+      .fn()
+      .mockImplementationOnce(async () => jsonResponse(401, { code: 'unauthorized' }))
+      .mockImplementationOnce(() => new Promise<Response>((r) => (releaseOptions = r)));
+    render({ fetcher: fetcher as unknown as typeof globalThis.fetch });
+    await settle();
+
+    expect(screen.queryByRole('alert')).toBeTruthy();
+    expect(screen.queryByText('No passkeys registered.')).toBeNull();
+
+    await userEvent.click(screen.getByRole('button', { name: 'Add passkey' }));
+    await tick();
+
+    // The window this covers is the long one: the platform prompt can stand open
+    // for seconds. Clearing the *action* error must not silence the load failure
+    // that still owns the region.
+    expect(screen.queryByRole('alert')).toBeTruthy();
+    expect(screen.queryByText('No passkeys registered.')).toBeNull();
+
+    releaseOptions?.(jsonResponse(500, {}));
+    await settle();
   });
 
   it('keeps a later error from blanking the list region', async () => {
@@ -143,15 +177,18 @@ describe('PasskeyManager (component)', () => {
   });
 
   it('resolves provider defaults, then the preset, then the instance slotClasses', async () => {
-    const instance = mount(PresetHarness, {
+    const instance = mount(ProviderHarness, {
       target: document.body,
       props: {
+        component: PasskeyManager,
+        componentProps: {
+          preset: 'branded',
+          slotClasses: { empty: 'qa-instance' },
+          fetcher: fetcherReturning(jsonResponse(200, { passkeys: [] }))
+        },
         defaults: { PasskeyManager: { slotClasses: { empty: 'qa-defaults' } } },
-        presets: { PasskeyManager: { branded: { slotClasses: { empty: 'qa-preset' } } } },
-        preset: 'branded',
-        slotClasses: { empty: 'qa-instance' },
-        fetcher: fetcherReturning(jsonResponse(200, { passkeys: [] }))
-      } as ComponentProps<typeof PresetHarness>
+        presets: { PasskeyManager: { branded: { slotClasses: { empty: 'qa-preset' } } } }
+      } as ComponentProps<typeof ProviderHarness>
     });
     dispose = () => unmount(instance);
     flushSync();

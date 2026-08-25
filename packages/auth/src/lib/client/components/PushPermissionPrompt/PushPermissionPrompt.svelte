@@ -15,13 +15,14 @@
     onSubscribed,
     onDismissed,
     onUnavailable,
-    unstyled = false,
+    unstyled: unstyledProp = false,
     slotClasses: slotClassesProp = {},
     preset,
     class: className
   }: PushPermissionPromptProps = $props();
 
   const blocksConfig = getBlocksConfig();
+  const unstyled = $derived(unstyledProp || blocksConfig?.unstyled || false);
   const slotClasses = $derived(
     resolveAuthSlotClasses(blocksConfig, 'PushPermissionPrompt', preset, slotClassesProp)
   );
@@ -33,10 +34,13 @@
   let error = $state<string | null>(null);
   // Enabling push is not idempotent: a second in-flight subscribe races the
   // first POST and can answer with the endpoint conflict the user never caused.
+  // Expressed once, as the Enable button's `loading` — that renders the busy
+  // state AND swallows the second click. The `if (busy) return` guard the sibling
+  // pages carry would be dead weight here: theirs also catches Enter-to-submit on
+  // a <form>, and this prompt has no form, so `onclick` is the only way in.
   let busy = $state(false);
 
   async function handleEnable() {
-    if (busy) return;
     error = null;
     busy = true;
     try {
@@ -148,7 +152,6 @@
         intent="primary"
         size="sm"
         loading={busy}
-        disabled={busy}
         onclick={handleEnable}
         {unstyled}
       >
