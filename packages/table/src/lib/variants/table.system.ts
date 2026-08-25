@@ -64,8 +64,7 @@ export const TABLE_DIMENSIONS = {
      *
      * They centre a fixed-size control or span the whole row, so the reading
      * edge above is not theirs to keep — and widening them would push against
-     * the structural column widths (`w-12` / `w-10` and the colgroup's
-     * `3rem` / `2.5rem`), which are a separate defect and a separate wave.
+     * `structuralColumnWidth` below, which is how wide those columns are.
      * This is the step the data cell used to carry, unchanged.
      */
     controlCellX: {
@@ -157,8 +156,59 @@ export const TABLE_DIMENSIONS = {
       md: '[td_&]:-mx-3 [td_&]:px-3 [td_&]:w-auto',
       lg: '[td_&]:-mx-5 [td_&]:px-5 [td_&]:w-auto'
     }
+  },
+
+  /**
+   * How wide each structural column is — keyed by the same
+   * `StructuralColumnKey` that orders them in `core/structural-columns.ts`,
+   * which is where *which* columns exist and in *what order* is decided.
+   *
+   * A Tailwind class, because a cell is what wears it; the `<col>` track that
+   * has to state the same width in CSS gets it from `widthClassToRem` rather
+   * than from a second literal in a second unit.
+   *
+   * It sits in this directory and not beside the list for a second reason: the
+   * package stylesheet scans `@source '../variants'` and nothing else, so a
+   * class written only into `core/` or into a `.svelte` template emits no CSS in
+   * a consumer app — measured on the built stylesheet, where `overflow-x-hidden`
+   * (declared only in `TableDesktop.svelte`) is absent from the output while the
+   * classes from this directory are in it. `w-10` and `w-12` are emitted by
+   * other variant files anyway today; here they are emitted because this is
+   * where they are declared.
+   *
+   * Not size-varying, deliberately: these columns hold a control of fixed size,
+   * not text that grows with the size step.
+   */
+  structuralColumnWidth: {
+    group: 'w-10',
+    selection: 'w-12',
+    expand: 'w-10'
   }
 } as const;
+
+/**
+ * `w-12` → `3rem`, for the one place a structural column's width has to be a
+ * CSS length instead of a class: the `<col>` tracks that size the virtualized
+ * layout's three separate tables.
+ *
+ * Same arithmetic and same contract as `heightClassToPx` below — Tailwind's
+ * spacing scale is 0.25rem per step — including the refusal to guess: a class
+ * this cannot read throws, because a silently dropped track re-opens the
+ * disagreement between the cells and the tracks that the `<colgroup>` exists to
+ * close.
+ *
+ * `rem`, not `px`: the class it converts is a `rem` value too, so the cell and
+ * the track follow the root font size together.
+ */
+export function widthClassToRem(widthClass: string): string {
+  const step = /^w-(\d+(?:\.\d+)?)$/.exec(widthClass);
+  if (!step) {
+    throw new Error(
+      `A structural column width must be a Tailwind \`w-<step>\` class to convert to a CSS length, got "${widthClass}".`
+    );
+  }
+  return `${Number(step[1]) * 0.25}rem`;
+}
 
 /**
  * The row heights above, as the pixel numbers the virtualizer strides in.

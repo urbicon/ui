@@ -12,7 +12,7 @@
   import { isColumnSortable } from '$lib/utils/column-capabilities';
   import { SUMMARY_TYPE_GLYPH } from '$lib/utils/summary-types';
   import { headerSelection } from './header-selection';
-  import { leadingStructuralColumns } from './column-offset';
+  import { structuralColumns } from './structural-columns';
 
   const ChevronDownIcon = resolveIcon('chevronDown', ChevronDownIconDefault);
   const ChevronUpIcon = resolveIcon('chevronUp', ChevronUpIconDefault);
@@ -44,16 +44,17 @@
 
   let selectable = $derived(tableState.selectionMode !== 'none');
 
-  // The same offset the row's cells count from — one derivation, so the
-  // header's aria-colindex can never disagree with the body's.
-  const colOffset = $derived(
-    leadingStructuralColumns({
+  // The one list the body, the summary row and the column tracks also read —
+  // see core/structural-columns.ts. Which cells this header renders, in which
+  // order, how wide and at which aria-colindex all come off it.
+  const structuralCols = $derived(
+    structuralColumns({
       grouped: !!tableState.effectiveGroupBy,
       selectable,
       expandable
     })
   );
-  const selectionColIndex = $derived((tableState.effectiveGroupBy ? 1 : 0) + 1);
+  const colOffset = $derived(structuralCols.length);
   let multiSelect = $derived(tableState.selectionMode === 'multi');
 
   // Column reorder state
@@ -174,72 +175,74 @@
     <!-- Structural header cells (group toggle, select-all, expand spacer) are
          chrome, not columns: they carry the header cell chrome but not
          `slotClasses.headerCell` — see TableSlotClasses.headerCell. -->
-    {#if tableState.effectiveGroupBy}
-      <th
-        scope="col"
-        role={explicitRoles ? 'columnheader' : undefined}
-        aria-colindex={1}
-        class="{headerStyles.cell()} w-10 text-center"
-      >
-        <button
-          onclick={() => toggleAllGroups()}
-          class="text-text-secondary hover:text-text-primary hover:bg-surface-hover rounded-modify flex h-6 w-6 items-center justify-center transition-colors"
-          aria-label={tableState.allGroupsExpanded
-            ? tt('header.collapseAllGroups')
-            : tt('header.expandAllGroups')}
-          data-testid="toggle-all-groups"
+    {#each structuralCols as structural (structural.key)}
+      {#if structural.key === 'group'}
+        <th
+          scope="col"
+          role={explicitRoles ? 'columnheader' : undefined}
+          aria-colindex={structural.colIndex}
+          class="{headerStyles.cell()} {structural.widthClass} text-center"
         >
-          {#if tableState.allGroupsExpanded}
-            <ChevronUpIcon class="h-4 w-4" />
-          {:else}
-            <ChevronDownIcon class="h-4 w-4" />
+          <button
+            onclick={() => toggleAllGroups()}
+            class="text-text-secondary hover:text-text-primary hover:bg-surface-hover rounded-modify flex h-6 w-6 items-center justify-center transition-colors"
+            aria-label={tableState.allGroupsExpanded
+              ? tt('header.collapseAllGroups')
+              : tt('header.expandAllGroups')}
+            data-testid="toggle-all-groups"
+          >
+            {#if tableState.allGroupsExpanded}
+              <ChevronUpIcon class="h-4 w-4" />
+            {:else}
+              <ChevronDownIcon class="h-4 w-4" />
+            {/if}
+          </button>
+        </th>
+      {:else if structural.key === 'selection'}
+        <th
+          scope="col"
+          role={explicitRoles ? 'columnheader' : undefined}
+          aria-colindex={structural.colIndex}
+          class="{headerStyles.cell()} {structural.widthClass}"
+          data-testid="selection-header"
+        >
+          {#if multiSelect}
+            <!-- What the checkbox may claim is decided in headerSelection: in
+                 server mode it acts on one page of a larger result, so a full
+                 check stays unreachable and the label names the page. -->
+            {@const headerSel = headerSelection({
+              pageScoped:
+                tableContext.pageInfo.serverProcessed &&
+                tableContext.pageInfo.totalItems > tableContext.filteredItems.length,
+              pageComplete: tableContext.allSelected,
+              someSelected: tableContext.someSelected,
+              visibleCount: tableContext.filteredItems.length
+            })}
+            <div class="flex h-full w-full items-center justify-center">
+              <Checkbox
+                checked={headerSel.checked}
+                indeterminate={headerSel.indeterminate}
+                disabled={headerSel.disabled}
+                onCheckedChange={() => tableContext.toggleAll()}
+                aria-label={tt(headerSel.labelKey, {
+                  count: String(headerSel.labelParams?.count ?? 0)
+                })}
+                size="sm"
+              />
+            </div>
           {/if}
-        </button>
-      </th>
-    {/if}
-
-    {#if selectable}
-      <th
-        scope="col"
-        role={explicitRoles ? 'columnheader' : undefined}
-        aria-colindex={selectionColIndex}
-        class="{headerStyles.cell()} w-12"
-        data-testid="selection-header"
-      >
-        {#if multiSelect}
-          <!-- What the checkbox may claim is decided in headerSelection: in
-               server mode it acts on one page of a larger result, so a full
-               check stays unreachable and the label names the page. -->
-          {@const headerSel = headerSelection({
-            pageScoped:
-              tableContext.pageInfo.serverProcessed &&
-              tableContext.pageInfo.totalItems > tableContext.filteredItems.length,
-            pageComplete: tableContext.allSelected,
-            someSelected: tableContext.someSelected,
-            visibleCount: tableContext.filteredItems.length
-          })}
-          <div class="flex h-full w-full items-center justify-center">
-            <Checkbox
-              checked={headerSel.checked}
-              indeterminate={headerSel.indeterminate}
-              disabled={headerSel.disabled}
-              onCheckedChange={() => tableContext.toggleAll()}
-              aria-label={tt(headerSel.labelKey, {
-                count: String(headerSel.labelParams?.count ?? 0)
-              })}
-              size="sm"
-            />
-          </div>
-        {/if}
-      </th>
-    {/if}
-
-    {#if expandable}
-      <!-- aria-hidden, so no aria-colindex: the header leaves the tree, but
-           the COLUMN still counts — colOffset includes it, so the data cells
-           skip its index rather than closing the gap. -->
-      <th scope="col" class="{headerStyles.cell()} w-10 text-center" aria-hidden="true"></th>
-    {/if}
+        </th>
+      {:else if structural.key === 'expand'}
+        <!-- aria-hidden, so no aria-colindex: the header cell leaves the tree,
+             but the COLUMN still counts — it holds its slot in the list, so the
+             data cells skip its index rather than closing the gap. -->
+        <th
+          scope="col"
+          class="{headerStyles.cell()} {structural.widthClass} text-center"
+          aria-hidden="true"
+        ></th>
+      {/if}
+    {/each}
 
     {#each displayColumns as column, colIdx (resolveColumnId(column))}
       {@const columnId = resolveColumnId(column)}

@@ -31,15 +31,21 @@ export interface WebAuthnConfig {
    */
   challengeStore?: ChallengeStore;
   /**
-   * When true, require the authenticator's User Verification (UV) flag —
-   * typically a biometric check or PIN. Default `false`: only User Presence
-   * (UP, a tap/touch) is enforced. Turn this on for high-assurance passkey
-   * flows; note that it requires an authenticator that supports UV.
+   * Require the authenticator's User Verification (UV) flag — typically a
+   * biometric check or PIN. **Default `true`**: the generated options advertise
+   * `userVerification: 'required'`, and both `verifyRegistration` and
+   * `verifyAssertion` throw `WebAuthnError` when the UV bit (0x04) is unset on
+   * the authenticator data flags. It therefore needs an authenticator that can
+   * do UV.
    *
-   * When enabled, the generated options advertise
-   * `authenticatorSelection.userVerification = 'required'` and both
-   * `verifyRegistration` and `verifyAssertion` throw `WebAuthnError` if the
-   * UV bit (0x04) is not set on the authenticator data flags.
+   * An explicit `false` drops the **enforcement**, not the ceremony: the
+   * options still ask for `userVerification: 'preferred'`, so an authenticator
+   * that can do UV normally still does it — but one that only proves User
+   * Presence (UP, a tap/touch) is now accepted, which leaves that login a pure
+   * possession factor. A passkey assertion establishes a session without the
+   * TOTP gate, so combined with `config.twoFactor` the opt-out makes a passkey
+   * login a single-factor login for a TOTP-enrolled user;
+   * `createPasskeyHandlers` warns about that pairing at wiring time.
    */
   requireUserVerification?: boolean;
 }
@@ -106,6 +112,11 @@ export interface VerifiedAssertion {
   userHandle?: string;
 }
 
+/** Effective UV requirement — only an explicit `false` opts out. */
+function userVerificationRequired(config: WebAuthnConfig): boolean {
+  return config.requireUserVerification !== false;
+}
+
 // ---- Registration Options ----
 
 export async function generateRegistrationOptions(
@@ -133,7 +144,7 @@ export async function generateRegistrationOptions(
     authenticatorSelection: {
       residentKey: 'preferred',
       requireResidentKey: false,
-      userVerification: config.requireUserVerification ? 'required' : 'preferred'
+      userVerification: userVerificationRequired(config) ? 'required' : 'preferred'
     },
     excludeCredentials: existingCredentialIds.map((id) => ({
       type: 'public-key',
@@ -175,7 +186,7 @@ export async function generateAuthenticationOptions(
     challenge,
     rpId: config.rpId,
     timeout: config.challengeTimeout ?? 300_000,
-    userVerification: config.requireUserVerification ? 'required' : 'preferred',
+    userVerification: userVerificationRequired(config) ? 'required' : 'preferred',
     allowCredentials: credentialIds.map((id) => ({
       type: 'public-key',
       id,
@@ -268,8 +279,10 @@ export async function verifyRegistration(
     throw new WebAuthnError('User presence flag not set');
   }
 
-  // 6a. Enforce user verification when the config demands it
-  if (config.requireUserVerification && !(authData.flags & 0x04)) {
+  // 6a. Enforce user verification unless the config opted out. Rejecting here
+  // means a UV-incapable authenticator is refused at enrolment rather than at
+  // every later login.
+  if (userVerificationRequired(config) && !(authData.flags & 0x04)) {
     throw new WebAuthnError('User verification required but not performed');
   }
 
@@ -350,8 +363,11 @@ export async function verifyAssertion(
     throw new WebAuthnError('User presence flag not set');
   }
 
-  // 5a. Enforce user verification when the config demands it
-  if (config.requireUserVerification && !(authData.flags & 0x04)) {
+  // 5a. Enforce user verification unless the config opted out. This check is
+  // what keeps a passkey login multi-factor: the handler that calls it
+  // establishes the session without the TOTP gate, so a UP-only assertion
+  // accepted here signs a TOTP-enrolled user in on possession alone.
+  if (userVerificationRequired(config) && !(authData.flags & 0x04)) {
     throw new WebAuthnError('User verification required but not performed');
   }
 

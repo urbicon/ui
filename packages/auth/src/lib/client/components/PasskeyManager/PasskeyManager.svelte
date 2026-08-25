@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { Button, Separator, Spinner } from '@urbicon-ui/blocks';
+  import { Button, Separator, Spinner, getBlocksConfig } from '@urbicon-ui/blocks';
   import FormErrorAlert from '../_shared/FormErrorAlert.svelte';
   import { onMount } from 'svelte';
   import { mergeAuthLocale, useAuthLocale } from '../../../i18n/index.js';
@@ -7,17 +7,24 @@
   import type { PasskeyManagerProps } from './index.js';
   import { base64UrlToBuffer, bufferToBase64Url } from '../../utils/webauthn.js';
   import { errorTextFromBody, getJson } from '../../utils/http.js';
-  import { slotClass } from '../../utils/slot-class.js';
+  import { resolveAuthSlotClasses, slotClass } from '../../utils/slot-class.js';
 
   let {
     t: tProp,
     apiPath = '/api/auth/passkey',
     csrf,
     fetcher,
-    unstyled = false,
-    slotClasses = {},
+    unstyled: unstyledProp = false,
+    slotClasses: slotClassesProp = {},
+    preset,
     class: className
   }: PasskeyManagerProps = $props();
+
+  const blocksConfig = getBlocksConfig();
+  const unstyled = $derived(unstyledProp || blocksConfig?.unstyled || false);
+  const slotClasses = $derived(
+    resolveAuthSlotClasses(blocksConfig, 'PasskeyManager', preset, slotClassesProp)
+  );
 
   const authLocale = useAuthLocale();
   const t = $derived(mergeAuthLocale(authLocale(), tProp));
@@ -33,29 +40,38 @@
   let passkeys = $state<PasskeyItem[]>([]);
   let loading = $state(true);
   let registering = $state(false);
-  let error = $state('');
+  // Two failures with different reach, kept apart so neither can silently
+  // stand in for the other: `loadError` disowns the list region — spinner,
+  // rows and "none yet" all describe a list that was actually fetched —
+  // while `actionError` is a failed add or delete while the rows on screen stay
+  // valid. Both speak through the one alert below, so the region can never go
+  // blank without a message.
+  let actionError = $state('');
+  let loadError = $state('');
+  const error = $derived(actionError || loadError);
 
   async function loadPasskeys() {
     loading = true;
+    loadError = '';
     try {
       const { ok, data } = await getJson(`${apiPath}/list`, { fetcher });
       if (!ok) {
         // A 401/500 must not render as "no passkeys registered".
-        error = errorTextFromBody(data, t);
+        loadError = errorTextFromBody(data, t);
         return;
       }
       passkeys = (data.passkeys as PasskeyItem[] | undefined) ?? [];
     } catch {
       // Surface the failure instead of rendering the empty state, which is
       // indistinguishable from "no passkeys registered".
-      error = t.auth.errors.networkError;
+      loadError = t.auth.errors.networkError;
     } finally {
       loading = false;
     }
   }
 
   async function registerPasskey() {
-    error = '';
+    actionError = '';
     registering = true;
 
     try {
@@ -68,7 +84,7 @@
       );
       if (!optRes.ok) {
         const data = await optRes.json().catch(() => ({}));
-        error = errorTextFromBody(data, t);
+        actionError = errorTextFromBody(data, t);
         return;
       }
       const { options } = await optRes.json();
@@ -95,7 +111,7 @@
       })) as PublicKeyCredential;
 
       if (!credential) {
-        error = t.passkeys.cancelled;
+        actionError = t.passkeys.cancelled;
         return;
       }
 
@@ -126,16 +142,16 @@
 
       if (!verifyRes.ok) {
         const data = (await verifyRes.json().catch(() => ({}))) as Record<string, unknown>;
-        error = errorTextFromBody(data, t);
+        actionError = errorTextFromBody(data, t);
         return;
       }
 
       await loadPasskeys();
     } catch (err) {
       if (err instanceof DOMException && err.name === 'NotAllowedError') {
-        error = t.passkeys.cancelled;
+        actionError = t.passkeys.cancelled;
       } else {
-        error = t.passkeys.addFailed;
+        actionError = t.passkeys.addFailed;
       }
     } finally {
       registering = false;
@@ -143,7 +159,7 @@
   }
 
   async function deletePasskey(credentialId: string) {
-    error = '';
+    actionError = '';
     try {
       const res = await csrfFetch(
         `${apiPath}/${encodeURIComponent(credentialId)}`,
@@ -153,7 +169,7 @@
       );
       if (!res.ok) {
         const data = await res.json().catch(() => ({}));
-        error = errorTextFromBody(data, t);
+        actionError = errorTextFromBody(data, t);
         return;
       }
       // Drop it locally only once the server confirms — an unchecked optimistic
@@ -161,7 +177,7 @@
       // they think is gone.
       passkeys = passkeys.filter((p) => p.credentialId !== credentialId);
     } catch {
-      error = t.auth.errors.networkError;
+      actionError = t.auth.errors.networkError;
     }
   }
 
@@ -202,6 +218,9 @@
     <div class={cls('flex justify-center py-4')}>
       <Spinner size="sm" {unstyled} />
     </div>
+  {:else if loadError}
+    <!-- The alert above carries the reason; a list that was never fetched has no
+         reading of its own down here. -->
   {:else if passkeys.length === 0}
     <p class={cls('text-text-tertiary py-4 text-center text-sm', slotClasses.empty)}>
       {t.passkeys.empty}

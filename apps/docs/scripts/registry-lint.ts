@@ -60,6 +60,12 @@ const UNLISTED: ReadonlyArray<readonly [route: string, why: string]> = [
     '/test-fixtures/**',
     'internal Playwright/VR fixtures — prerender: false, out of sitemap+search'
   ],
+  [
+    '/table/sticky-pinning/contained',
+    'the live fit="viewport" demo — framed on /table/sticky-pinning and opened from it. A page ' +
+      'of its own because the contained model caps against the top of the DOCUMENT, so it cannot ' +
+      'be shown inside an article column'
+  ],
   ['/imprint', 'legal page, reached from the footer'],
   ['/privacy', 'legal page, reached from the footer'],
   ['/hotel', 'landing-page exhibit — entered through the landing "visit the hotel" door'],

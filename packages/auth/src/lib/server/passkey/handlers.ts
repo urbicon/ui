@@ -41,6 +41,12 @@ function sharedPasskeyAuthLimiter(config: RateLimitConfig | undefined): RateLimi
   return limiter;
 }
 
+// One warning per `WebAuthnConfig`: it describes the config, not the call. A
+// consumer who calls this factory from several route modules with one shared
+// config object gets one line; distinct config literals are distinct configs
+// and warn once each.
+const uvTwoFactorWarned = new WeakSet<WebAuthnConfig>();
+
 // Cookie carrying the per-ceremony challenge handle for passkey authentication.
 // Discoverable ("usernameless") login can't bind the challenge to a user at
 // options time — the user is unknown until the authenticator returns a
@@ -105,6 +111,23 @@ export function createPasskeyHandlers<R extends string>(
   if (!passkeyRepo) {
     throw new Error(
       'createPasskeyHandlers: deps.repos.passkey is required — pass the adapter’s passkey repository.'
+    );
+  }
+
+  // `authenticationVerify` establishes the session without the TOTP gate, which
+  // holds only while a passkey is more than possession. Opting out of user
+  // verification makes it exactly that, so with `config.twoFactor` wired the
+  // pair downgrades a TOTP-enrolled user's passkey login to one factor. Warn
+  // rather than throw: the opt-out is legitimate for authenticators that cannot
+  // do UV, and this is the consumer's call to make.
+  if (
+    webauthn.requireUserVerification === false &&
+    deps.config.twoFactor &&
+    !uvTwoFactorWarned.has(webauthn)
+  ) {
+    uvTwoFactorWarned.add(webauthn);
+    deps.logger.warn(
+      '[auth] webauthn.requireUserVerification is explicitly false while config.twoFactor is set — passkey logins are not TOTP-gated, so a tap-only authenticator signs a TOTP-enrolled user in with a single factor. Drop the opt-out (UV is required by default) or accept it deliberately.'
     );
   }
 
@@ -408,10 +431,10 @@ function authenticationVerifyHandler<R extends string>(
           return authError('passkey_verification_failed', 400);
         }
 
-        // No TOTP 2FA gate here, by design: a passkey is already a strong,
-        // phishing-resistant factor, so a successful assertion establishes the
-        // session directly even when `user.totpEnabled` is set. The 2FA gate
-        // applies only to the password login path (see login.ts).
+        // No TOTP 2FA gate here, by design: a user-verified passkey is already
+        // a strong, phishing-resistant factor, so a successful assertion
+        // establishes the session directly even when `user.totpEnabled` is set.
+        // The 2FA gate applies only to the password login path (see login.ts).
         await establishSession(
           cookies,
           user,
