@@ -75,6 +75,40 @@ export interface AuthLocale {
       /** Client-side only: the request never reached the server (offline, DNS, CORS). */
       networkError: string;
     };
+    /**
+     * Copy for the password rules, shared by every surface that shows them:
+     * the sign-up page, the reset page, the account panel, and the message a
+     * server-side refusal renders. It does NOT live under `register` — two of
+     * those three surfaces are not registration.
+     */
+    passwordRequirements: {
+      /** aria-label of the live checklist. */
+      label: string;
+      /** Accessible name of a satisfied rule's ✓ marker. */
+      met: string;
+      /** Accessible name of an unsatisfied rule's ✗ marker. */
+      notMet: string;
+      /**
+       * Shown when a password is refused — client-side before the request, or
+       * by the server afterwards. `{rules}` is replaced with the failing
+       * `rules` labels joined by ` · `, so the message names them even when
+       * the checklist is switched off.
+       */
+      failed: string;
+      /**
+       * One label per `PasswordRuleId` (`password-policy.ts`). The checklist
+       * annotates this object as `Record<PasswordRuleId, string>`, so a new
+       * rule cannot ship without a label in both bundles.
+       */
+      rules: {
+        /** `{n}` is replaced with the resolved policy's `minLength`. */
+        minLength: string;
+        uppercase: string;
+        lowercase: string;
+        digit: string;
+        special: string;
+      };
+    };
     login: {
       title: string;
       email: string;
@@ -98,25 +132,6 @@ export interface AuthLocale {
       submit: string;
       hasAccount: string;
       login: string;
-      /** aria-label of the live requirements checklist. */
-      requirementsLabel: string;
-      /** Accessible name of a satisfied requirement's ✓ marker. */
-      requirementMet: string;
-      /** Accessible name of an unsatisfied requirement's ✗ marker. */
-      requirementUnmet: string;
-      /**
-       * One label per `PasswordRuleId` (`password-policy.ts`). The checklist
-       * annotates this object as `Record<PasswordRuleId, string>`, so a new
-       * rule cannot ship without a label in both bundles.
-       */
-      requirements: {
-        /** `{n}` is replaced with the resolved policy's `minLength`. */
-        minLength: string;
-        uppercase: string;
-        lowercase: string;
-        digit: string;
-        special: string;
-      };
       errors: {
         passwordMismatch: string;
       };

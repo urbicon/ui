@@ -47,10 +47,28 @@ export const DEFAULT_PASSWORD_POLICY: PasswordPolicy = {
   requireSpecial: false
 };
 
+/**
+ * `minLength` is the one policy field with a value range, and it arrives from
+ * two places nobody validates: a consumer's `config.password` and the
+ * endpoint's JSON. Both go through here so the two sides land on the same
+ * number. Anything that is not a finite, non-negative number falls back to the
+ * default — measured: a `NaN` made `password.length >= NaN` false, so the
+ * server refused *every* password while the client rendered "At least 8".
+ * `isValidMinLength` is what lets `createAuthDeps` say so at wiring time
+ * instead of leaving the correction silent.
+ */
+export function isValidMinLength(value: unknown): value is number {
+  return typeof value === 'number' && Number.isFinite(value) && value >= 0;
+}
+
+function normalizeMinLength(value: unknown): number {
+  return isValidMinLength(value) ? Math.floor(value) : DEFAULT_PASSWORD_POLICY.minLength;
+}
+
 /** Apply the defaults to a (possibly absent) `config.password`. */
 export function resolvePasswordPolicy(config?: PasswordConfig): PasswordPolicy {
   return {
-    minLength: config?.minLength ?? DEFAULT_PASSWORD_POLICY.minLength,
+    minLength: normalizeMinLength(config?.minLength),
     requireUppercase: config?.requireUppercase ?? DEFAULT_PASSWORD_POLICY.requireUppercase,
     requireLowercase: config?.requireLowercase ?? DEFAULT_PASSWORD_POLICY.requireLowercase,
     requireDigit: config?.requireDigit ?? DEFAULT_PASSWORD_POLICY.requireDigit,
@@ -70,7 +88,9 @@ const RULE_PREDICATES: Record<
 };
 
 const RULE_ENABLED: Record<PasswordRuleId, (policy: PasswordPolicy) => boolean> = {
-  minLength: () => true,
+  // `minLength: 0` is "no minimum": the predicate would pass for every string,
+  // so listing it would put a permanently-ticked line in the checklist.
+  minLength: (policy) => policy.minLength > 0,
   uppercase: (policy) => policy.requireUppercase,
   lowercase: (policy) => policy.requireLowercase,
   digit: (policy) => policy.requireDigit,
@@ -105,10 +125,9 @@ export function parsePasswordPolicy(value: unknown): PasswordPolicy {
   const raw = (typeof value === 'object' && value !== null ? value : {}) as Record<string, unknown>;
   const bool = (v: unknown, fallback: boolean) => (typeof v === 'boolean' ? v : fallback);
   return {
-    minLength:
-      typeof raw.minLength === 'number' && Number.isFinite(raw.minLength) && raw.minLength > 0
-        ? Math.floor(raw.minLength)
-        : DEFAULT_PASSWORD_POLICY.minLength,
+    // Same normalization the server applied, so a published `0` ("no minimum")
+    // survives the trip instead of being reset to 8 on this side only.
+    minLength: normalizeMinLength(raw.minLength),
     requireUppercase: bool(raw.requireUppercase, DEFAULT_PASSWORD_POLICY.requireUppercase),
     requireLowercase: bool(raw.requireLowercase, DEFAULT_PASSWORD_POLICY.requireLowercase),
     requireDigit: bool(raw.requireDigit, DEFAULT_PASSWORD_POLICY.requireDigit),

@@ -6,7 +6,11 @@
   import type { AuthUser } from '../../../types.js';
   import type { AccountSettingsProps } from './index.js';
   import { errorTextFromBody, postJson as postJsonRequest } from '../../utils/http.js';
-  import { usePasswordPolicy } from '../../utils/password-policy.svelte.js';
+  import {
+    passwordRefusalFromBody,
+    passwordRefusalMessage,
+    usePasswordPolicy
+  } from '../../utils/password-policy.svelte.js';
   import { slotClass } from '../../utils/slot-class.js';
   import PasswordRequirements from '../_shared/PasswordRequirements.svelte';
 
@@ -69,7 +73,7 @@
   let pwBusy = $state(false);
   let pwError = $state('');
   let pwSuccess = $state('');
-  const pwRequirementsMet = $derived(unmetPasswordRules(pwNew, policy).length === 0);
+  const pwUnmetRules = $derived(unmetPasswordRules(pwNew, policy));
 
   let deletePassword = $state('');
   let deleteError = $state('');
@@ -131,10 +135,10 @@
     pwError = '';
     pwSuccess = '';
     // Checked on submit rather than by disabling the button: the checklist can
-    // be turned off (`showRequirements={false}`), and a dead button with no
-    // explanation is worse than the English server prose this replaces.
-    if (!pwRequirementsMet) {
-      pwError = t.auth.errors.validationError;
+    // be turned off (`showRequirements={false}`), and a dead button explains
+    // nothing. The message names the failing rules either way.
+    if (pwUnmetRules.length > 0) {
+      pwError = passwordRefusalMessage({ rules: pwUnmetRules, policy }, t);
       return;
     }
     pwBusy = true;
@@ -144,6 +148,15 @@
         newPassword: pwNew
       });
       if (!ok) {
+        // A password refusal carries the failing rules and the policy the
+        // server measured against — render our own labels, and adopt the
+        // policy so the retry is gated on the real rules.
+        const refusal = passwordRefusalFromBody(data);
+        if (refusal) {
+          policySource.adopt(refusal.policy);
+          pwError = passwordRefusalMessage(refusal, t);
+          return;
+        }
         pwError = errText(data);
         return;
       }
@@ -284,11 +297,11 @@
         required
         minlength={policy.minLength}
         autoComplete="new-password"
-        aria-describedby={showRequirements && pwNew ? pwRequirementsId : undefined}
+        aria-describedby={showRequirements ? pwRequirementsId : undefined}
         {unstyled}
         class={slotClasses.field}
       />
-      {#if showRequirements && pwNew}
+      {#if showRequirements}
         <PasswordRequirements
           id={pwRequirementsId}
           {policy}

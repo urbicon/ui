@@ -61,8 +61,16 @@ export const AUTH_ERROR_CODES = {
   validation_error: 'validation_error',
   // Rate limiting (429) — too many requests, the reaction is to wait
   rate_limited: 'rate_limited',
-  // Per-user cap on concurrent SSE connections (429). Distinct from
-  // `rate_limited` because the reaction differs: close a tab, don't wait.
+  // Per-user cap on concurrent SSE connections (429). Its own code because
+  // before the split a connection cap and a request cap were the SAME code, so
+  // telling "wait" from "close a tab" meant string-matching English prose —
+  // and backoff never clears a connection cap. Who can act on it: a consumer
+  // whose SSE client is fetch-based, and whatever reads the server log or
+  // metrics by `code`. NOT this package's `<NotificationListener>`: it uses
+  // native `EventSource`, which exposes no response body at all, so its
+  // `onerror` sees an opaque Event and keeps reconnecting. (This is the
+  // opposite call from `feature_unavailable` above for the opposite reason —
+  // there each site already carries distinct prose, so a split adds nothing.)
   connection_limit: 'connection_limit',
   // CSRF gate in createAuthHandle (403)
   csrf_failed: 'csrf_failed',

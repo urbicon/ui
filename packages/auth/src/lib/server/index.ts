@@ -1,7 +1,8 @@
 // Auth core
 
 // The password policy: one definition of the rules, shared by the server check
-// (`validatePasswordStrength`), the endpoint above and the client checklist.
+// (`validatePasswordStrength`), `createPasswordPolicyHandler` and the client
+// checklist.
 export type { PasswordPolicy, PasswordRuleId } from '../password-policy.js';
 export {
   activePasswordRules,

@@ -1,11 +1,16 @@
 import type { RequestHandler } from '@sveltejs/kit';
 import { json } from '@sveltejs/kit';
 import type { AuthDeps } from '../deps.js';
-import { hashPassword, validatePasswordStrength } from '../password.js';
+import { hashPassword } from '../password.js';
 import { enforceRateLimit, makeRateLimiter } from '../rate-limit.js';
 import { establishSession, resolveSessionMeta } from '../session.js';
 import { validateChangePasswordInput } from '../validation.js';
-import { parseBody, requireSessionUser, verifyCurrentPassword } from './_shared.js';
+import {
+  parseBody,
+  passwordRefusal,
+  requireSessionUser,
+  verifyCurrentPassword
+} from './_shared.js';
 import { authError } from './errors.js';
 
 /**
@@ -36,13 +41,8 @@ export function createChangePasswordHandler<R extends string>(
         return authError('current_password_incorrect', 403);
       }
 
-      const passwordErrors = validatePasswordStrength(newPassword, deps.config.password);
-      if (passwordErrors.length > 0) {
-        return authError('validation_error', 400, {
-          message: passwordErrors[0],
-          extra: { errors: passwordErrors }
-        });
-      }
+      const weakPassword = passwordRefusal(newPassword, deps.config.password);
+      if (weakPassword) return weakPassword;
 
       const newHash = await hashPassword(newPassword, deps.config.password);
       await deps.repos.user.updatePassword(user.id, newHash);

@@ -31,7 +31,7 @@
 
   // The locale keys ARE the rule ids: this annotation is what makes a new rule
   // in `PASSWORD_RULES` a compile error until both bundles carry its label.
-  const labels: Record<PasswordRuleId, string> = $derived(t.auth.register.requirements);
+  const labels: Record<PasswordRuleId, string> = $derived(t.auth.passwordRequirements.rules);
 
   const rules = $derived(
     activePasswordRules(policy).map((rule) => ({
@@ -57,7 +57,7 @@
 <ul
   {id}
   class={cls('flex flex-col gap-0.5 pl-1 text-xs', className)}
-  aria-label={t.auth.register.requirementsLabel}
+  aria-label={t.auth.passwordRequirements.label}
 >
   {#each rules as rule (rule.id)}
     <li
@@ -67,7 +67,7 @@
       <span
         class={cls('mr-1 inline-block w-3')}
         role="img"
-        aria-label={rule.met ? t.auth.register.requirementMet : t.auth.register.requirementUnmet}
+        aria-label={rule.met ? t.auth.passwordRequirements.met : t.auth.passwordRequirements.notMet}
         >{rule.met ? '✓' : '✗'}</span
       >
       {rule.label}

@@ -118,6 +118,23 @@ describe('createAuthDeps security defaults', () => {
     expect(warn).not.toHaveBeenCalledWith(expect.stringContaining('pbkdf2Iterations'));
   });
 
+  it('names an unusable password.minLength instead of correcting it silently', () => {
+    // `resolvePasswordPolicy` falls back to 8 so the server check and the client
+    // checklist agree; without the warning the deployment believes it set 12.
+    // A NaN was the worst case: `length >= NaN` is false, so the server refused
+    // EVERY password while the form rendered "At least 8".
+    createAuthDeps(baseDeps({ password: { minLength: Number.NaN } }));
+    expect(warn).toHaveBeenCalledWith(expect.stringContaining('config.password.minLength is NaN'));
+  });
+
+  it('does NOT warn for a usable minLength, including an explicit 0', () => {
+    for (const minLength of [12, 0]) {
+      createAuthDeps(baseDeps({ password: { minLength } }));
+    }
+    createAuthDeps(baseDeps());
+    expect(warn).not.toHaveBeenCalledWith(expect.stringContaining('config.password.minLength'));
+  });
+
   it('injects a strict twoFactor rate-limit default when 2FA is wired', () => {
     const deps = createAuthDeps(baseDeps({ twoFactor: { encryptionKey: 'k' } }));
     expect(deps.config.rateLimit?.twoFactor).toEqual({ windowMs: 15 * 60_000, max: 10 });

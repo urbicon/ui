@@ -59,18 +59,21 @@ export const de = {
       submit: 'Konto erstellen',
       hasAccount: 'Bereits ein Konto?',
       login: 'Anmelden',
-      requirementsLabel: 'Passwort-Anforderungen',
-      requirementMet: 'Erfüllt',
-      requirementUnmet: 'Nicht erfüllt',
-      requirements: {
+      errors: {
+        passwordMismatch: 'Die Passwörter stimmen nicht überein'
+      }
+    },
+    passwordRequirements: {
+      label: 'Passwort-Anforderungen',
+      met: 'Erfüllt',
+      notMet: 'Nicht erfüllt',
+      failed: 'Dein Passwort erfüllt die Anforderungen nicht: {rules}',
+      rules: {
         minLength: 'Mindestens {n} Zeichen',
         uppercase: 'Ein Großbuchstabe',
         lowercase: 'Ein Kleinbuchstabe',
         digit: 'Eine Ziffer',
         special: 'Ein Sonderzeichen'
-      },
-      errors: {
-        passwordMismatch: 'Die Passwörter stimmen nicht überein'
       }
     },
     forgotPassword: {

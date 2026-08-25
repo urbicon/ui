@@ -5,7 +5,12 @@ import type { AuthDeps } from '../deps.js';
 import { hashPassword } from '../password.js';
 import { setSessionCookie } from '../session.js';
 import { createMockAuthDeps, createMockUser, mockPostEvent } from '../test-utils.js';
-import { parseBody, requireSessionUser, verifyCurrentPassword } from './_shared.js';
+import {
+  parseBody,
+  passwordRefusal,
+  requireSessionUser,
+  verifyCurrentPassword
+} from './_shared.js';
 
 /**
  * `requireSessionUser` and `verifyCurrentPassword` are the two shared building
@@ -181,5 +186,41 @@ describe('parseBody', () => {
     const result = await parseBody(jsonRequest('not json'), validator);
     expect(result).toBeInstanceOf(Response);
     expect((result as Response).status).toBe(400);
+  });
+});
+
+describe('passwordRefusal', () => {
+  it('passes a password that clears the policy', () => {
+    expect(passwordRefusal('abcdefghij', { minLength: 8 })).toBeNull();
+  });
+
+  it('carries the failing rules and the policy, not just English prose', async () => {
+    // The prose is the reason a German user used to read
+    // "Password must be at least 12 characters": `errorMessageFromCode`
+    // deliberately prefers the server text for `validation_error`. The machine
+    // fields are what let a localized client render its own labels instead.
+    const res = passwordRefusal('short', { minLength: 12, requireDigit: true });
+    expect(res).not.toBeNull();
+    expect((res as Response).status).toBe(400);
+    const body = await (res as Response).json();
+    expect(body.code).toBe('validation_error');
+    expect(body.rules).toEqual(['minLength', 'digit']);
+    expect(body.passwordPolicy).toEqual({
+      minLength: 12,
+      requireUppercase: false,
+      requireLowercase: false,
+      requireDigit: true,
+      requireSpecial: false
+    });
+    // Unchanged for consumers without i18n.
+    expect(body.error).toBe('Password must be at least 12 characters');
+    expect(body.errors).toHaveLength(2);
+  });
+
+  it('never ships the hashing work factor along with the policy', async () => {
+    const res = passwordRefusal('x', { minLength: 12, pbkdf2Iterations: 654_321 });
+    const raw = await (res as Response).text();
+    expect(raw).not.toContain('pbkdf2');
+    expect(raw).not.toContain('654321');
   });
 });

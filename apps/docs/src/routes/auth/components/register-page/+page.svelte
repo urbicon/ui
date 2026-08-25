@@ -58,14 +58,20 @@
           The password checklist is a real <code class="text-text-primary">&lt;ul&gt;</code>
           carrying
           <code class="text-text-primary">aria-label</code>, and the password field points at it
-          with <code class="text-text-primary">aria-describedby</code>, so a reader announces the
-          rules with the field instead of leaving four orphaned lines under it. It is also the only
-          explanation for why the submit button is disabled, but it renders only once the password
-          field has content, and not at all when
-          <code class="text-text-primary">showRequirements</code> is
-          <code class="text-text-primary">false</code>. In both of those states the button is
-          disabled with no reachable reason at all, so supply your own explanation if you turn the
-          checklist off.
+          with <code class="text-text-primary">aria-describedby</code>. The list is in the DOM from
+          the first paint, not from the first keystroke — a description attached to an
+          already-focused field is not reliably re-announced, so rules that appeared only after
+          typing would never be read at all.
+        </p>
+      </Note>
+      <Note title="A refused password says which rule">
+        <p>
+          The submit button is never disabled for an unmet rule. Submitting a password that misses
+          one produces an error naming the rules it misses, so the reason is reachable even with
+          <code class="text-text-primary">showRequirements</code> set to
+          <code class="text-text-primary">false</code>. The server's refusal carries the same rules
+          as machine values plus the policy it measured against, so the message is localized and the
+          form re-gates on the real policy rather than repeating the refusal.
         </p>
       </Note>
       <Note title="Pass/fail is text, not colour">

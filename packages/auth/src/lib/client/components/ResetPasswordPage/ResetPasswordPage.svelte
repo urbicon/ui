@@ -4,7 +4,11 @@
   import { unmetPasswordRules } from '../../../password-policy.js';
   import { errorMessageFromCode } from '../../utils/error-message.js';
   import { postJson, wireError } from '../../utils/http.js';
-  import { usePasswordPolicy } from '../../utils/password-policy.svelte.js';
+  import {
+    passwordRefusalFromBody,
+    passwordRefusalMessage,
+    usePasswordPolicy
+  } from '../../utils/password-policy.svelte.js';
   import { slotClass } from '../../utils/slot-class.js';
   import type { ResetPasswordPageProps } from './index.js';
   import AuthPageShell from '../_shared/AuthPageShell.svelte';
@@ -51,7 +55,7 @@
   let success = $state(false);
   let submitting = $state(false);
 
-  const allRequirementsMet = $derived(unmetPasswordRules(password, policy).length === 0);
+  const unmetRules = $derived(unmetPasswordRules(password, policy));
 
   async function handleSubmit(e: SubmitEvent) {
     e.preventDefault();
@@ -63,10 +67,10 @@
       return;
     }
     // Checked on submit rather than by disabling the button: the checklist can
-    // be turned off (`showRequirements={false}`), and a dead button with no
-    // explanation is worse than the English server prose this replaces.
-    if (!allRequirementsMet) {
-      error = t.auth.errors.validationError;
+    // be turned off (`showRequirements={false}`), and a dead button explains
+    // nothing. The message names the failing rules either way.
+    if (unmetRules.length > 0) {
+      error = passwordRefusalMessage({ rules: unmetRules, policy }, t);
       return;
     }
 
@@ -75,6 +79,15 @@
     try {
       const { ok, data } = await postJson(apiPath, { token, password }, { csrf, fetcher });
       if (!ok) {
+        // A password refusal carries the failing rules and the policy the
+        // server measured against — render our own labels, and adopt the
+        // policy so the retry is gated on the real rules.
+        const refusal = passwordRefusalFromBody(data);
+        if (refusal) {
+          policySource.adopt(refusal.policy);
+          error = passwordRefusalMessage(refusal, t);
+          return;
+        }
         const w = wireError(data);
         error =
           errorMessageFromCode(w.code, t, w.error) ?? t.auth.resetPassword.errors.invalidToken;
@@ -113,11 +126,11 @@
           required
           minlength={policy.minLength}
           autoComplete="new-password"
-          aria-describedby={showRequirements && password ? requirementsId : undefined}
+          aria-describedby={showRequirements ? requirementsId : undefined}
           {unstyled}
           class={slotClasses.field}
         />
-        {#if showRequirements && password}
+        {#if showRequirements}
           <PasswordRequirements
             id={requirementsId}
             {policy}

@@ -28,9 +28,12 @@ export function createPasswordPolicyHandler<R extends string>(
     GET: async () =>
       json(
         { policy: resolvePasswordPolicy(deps.config.password) },
-        // Static per deployment: a config change ships with a restart, so a
-        // few minutes of caching costs nothing and keeps the extra request off
-        // every repeat visit.
+        // Static per deployment, so caching keeps the extra request off every
+        // repeat visit. The cost is bounded and named: for up to 5 minutes
+        // after a policy is TIGHTENED, a warm client gates on the old one. It
+        // corrects itself on the first refusal — the `validation_error` body
+        // carries the new policy and the forms adopt it — so the window costs
+        // one rejected submit, not an English error.
         { headers: { 'Cache-Control': 'public, max-age=300' } }
       )
   };

@@ -152,9 +152,11 @@ async function derivePbkdf2Key(
  * English prose per failed rule. The *rules* live in `password-policy.ts` and
  * are shared with the client checklist, so the two can no longer disagree
  * about what counts as a valid password; only the wording is server-side.
- * These strings ride out as the `validation_error` prose — the one code whose
- * server text the localized client deliberately prefers, because it names the
- * field.
+ *
+ * These strings are the last resort, not the message a localized user reads:
+ * a password refusal also carries the machine `rules` and the `passwordPolicy`
+ * they were measured against (`passwordRefusal` in `handlers/_shared.ts`), and
+ * a client with a locale bundle renders its own labels from those.
  */
 const RULE_MESSAGES: Record<PasswordRuleId, (policy: PasswordPolicy) => string> = {
   minLength: (policy) => `Password must be at least ${policy.minLength} characters`,
@@ -164,7 +166,12 @@ const RULE_MESSAGES: Record<PasswordRuleId, (policy: PasswordPolicy) => string> 
   special: () => 'Password must contain at least one special character'
 };
 
+/** English prose for one failed rule, measured against `policy`. */
+export function passwordRuleMessage(rule: PasswordRuleId, policy: PasswordPolicy): string {
+  return RULE_MESSAGES[rule](policy);
+}
+
 export function validatePasswordStrength(password: string, config?: PasswordConfig): string[] {
   const policy = resolvePasswordPolicy(config);
-  return unmetPasswordRules(password, policy).map((rule) => RULE_MESSAGES[rule](policy));
+  return unmetPasswordRules(password, policy).map((rule) => passwordRuleMessage(rule, policy));
 }

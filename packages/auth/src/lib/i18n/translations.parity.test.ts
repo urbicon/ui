@@ -25,7 +25,8 @@ describe('placeholder contracts', () => {
   it.each([['en', en] as const, ['de', de] as const])(
     '%s carries the {n} tokens the components substitute',
     (_name, bundle) => {
-      expect(bundle.auth.register.requirements.minLength).toContain('{n}');
+      expect(bundle.auth.passwordRequirements.rules.minLength).toContain('{n}');
+      expect(bundle.auth.passwordRequirements.failed).toContain('{rules}');
       expect(bundle.common.timeAgo.minutes).toContain('{n}');
       expect(bundle.common.timeAgo.hours).toContain('{n}');
       expect(bundle.common.timeAgo.days).toContain('{n}');

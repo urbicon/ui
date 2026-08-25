@@ -55,18 +55,21 @@ export const en = {
       submit: 'Create account',
       hasAccount: 'Already have an account?',
       login: 'Sign in',
-      requirementsLabel: 'Password requirements',
-      requirementMet: 'Met',
-      requirementUnmet: 'Not met',
-      requirements: {
+      errors: {
+        passwordMismatch: 'Passwords do not match'
+      }
+    },
+    passwordRequirements: {
+      label: 'Password requirements',
+      met: 'Met',
+      notMet: 'Not met',
+      failed: 'Your password does not meet the requirements: {rules}',
+      rules: {
         minLength: 'At least {n} characters',
         uppercase: 'One uppercase letter',
         lowercase: 'One lowercase letter',
         digit: 'One digit',
         special: 'One special character'
-      },
-      errors: {
-        passwordMismatch: 'Passwords do not match'
       }
     },
     forgotPassword: {

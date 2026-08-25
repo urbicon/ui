@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest';
 import {
   activePasswordRules,
   DEFAULT_PASSWORD_POLICY,
+  isValidMinLength,
   PASSWORD_RULES,
   parsePasswordPolicy,
   resolvePasswordPolicy,
@@ -27,6 +28,43 @@ describe('resolvePasswordPolicy', () => {
       'requireUppercase'
     ]);
     expect(JSON.stringify(resolved)).not.toContain('123456');
+  });
+});
+
+describe('minLength normalization — the two sides must land on one number', () => {
+  it('keeps an explicit 0 ("no minimum") instead of resetting it to 8', () => {
+    // Measured before: the server accepted "abc" while the client checklist
+    // demanded 8, because only the client re-applied the default.
+    expect(resolvePasswordPolicy({ minLength: 0 }).minLength).toBe(0);
+    expect(parsePasswordPolicy({ minLength: 0 }).minLength).toBe(0);
+    expect(unmetPasswordRules('abc', resolvePasswordPolicy({ minLength: 0 }))).toEqual([]);
+    // …and drops the permanently-ticked line from the checklist.
+    expect(activePasswordRules(resolvePasswordPolicy({ minLength: 0 }))).toEqual([]);
+  });
+
+  it('falls back on a value that is not a finite non-negative number — on BOTH sides', () => {
+    // `password.length >= NaN` is false, so a NaN config refused every password
+    // server-side while the client rendered "At least 8".
+    for (const junk of [Number.NaN, -1, Number.POSITIVE_INFINITY]) {
+      expect(resolvePasswordPolicy({ minLength: junk }).minLength).toBe(8);
+      expect(parsePasswordPolicy({ minLength: junk }).minLength).toBe(8);
+    }
+    expect(
+      unmetPasswordRules('abcdefgh', resolvePasswordPolicy({ minLength: Number.NaN }))
+    ).toEqual([]);
+  });
+
+  it('floors a fractional minimum rather than comparing against it', () => {
+    expect(resolvePasswordPolicy({ minLength: 8.7 }).minLength).toBe(8);
+    expect(parsePasswordPolicy({ minLength: 8.7 }).minLength).toBe(8);
+  });
+
+  it('names an invalid value at wiring time instead of correcting it silently', () => {
+    expect(isValidMinLength(12)).toBe(true);
+    expect(isValidMinLength(0)).toBe(true);
+    expect(isValidMinLength(Number.NaN)).toBe(false);
+    expect(isValidMinLength(-1)).toBe(false);
+    expect(isValidMinLength('12')).toBe(false);
   });
 });
 
