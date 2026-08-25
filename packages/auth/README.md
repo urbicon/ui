@@ -165,15 +165,15 @@ stubs are unchanged; you're only growing the config.
 import { createAuthDeps } from '@urbicon-ui/auth/server';
 import { createPrismaRepos } from '@urbicon-ui/auth/server/adapters/prisma';
 import { createLettermintTransport } from '@urbicon-ui/auth/server/email/lettermint';
-import { env } from '$env/dynamic/private';
+import { APP_URL, JWT_SECRET, LETTERMINT_TOKEN } from '$env/static/private';
 import { prisma } from './prisma';
 
 type AppRole = 'ADMIN' | 'USER';
 
 export const authDeps = createAuthDeps<AppRole>({
   config: {
-    jwt: { secret: env.JWT_SECRET }, // cookieSecure defaults true → HTTPS + auto HSTS
-    appUrl: env.PUBLIC_APP_URL, // trusted base for email links — never request.url
+    jwt: { secret: JWT_SECRET }, // cookieSecure defaults true → HTTPS + auto HSTS
+    appUrl: APP_URL, // trusted base for email links — never request.url; a private var, so no PUBLIC_ prefix
     email: { from: 'Acme <auth@acme.example>' }, // default sender for all auth emails
     csrf: { doubleSubmit: true }, // token layer on top of the always-on Origin check — only with header-capable clients (see checklist)
     refreshToken: { accessTokenTtl: '15m', refreshTokenTtl: '30d' }, // rotating refresh
@@ -186,7 +186,7 @@ export const authDeps = createAuthDeps<AppRole>({
     routes: { afterLogin: '/', loginPage: '/auth/login' }
   },
   repos: createPrismaRepos<AppRole>(prisma), // pulls in the refreshToken adapter
-  email: createLettermintTransport({ token: env.LETTERMINT_TOKEN }) // sends via the Lettermint v2 API
+  email: createLettermintTransport({ token: LETTERMINT_TOKEN }) // sends via the Lettermint v2 API
 });
 ```
 
@@ -374,7 +374,7 @@ Setup returns the `otpauth://` URI + Base32 secret (the core ships **no** QR enc
 
 ## Prisma Schema
 
-See [`prisma/auth-schema.prisma`](./prisma/auth-schema.prisma) for the reference schema. Models: `User`, `Invitation`, `PushSubscription`, `Notification`, `NotificationType`, `NotificationPreference`, `Passkey`, `TwoFactorBackupCode`, plus the optional consumer-side `FederatedAccount` link table for SSO. Copy/merge into your app's schema.
+See [`prisma/auth-schema.prisma`](./prisma/auth-schema.prisma) for the reference schema — it ships in the package, at `node_modules/@urbicon-ui/auth/prisma/auth-schema.prisma`. Ten models: `User`, `Invitation`, `PushSubscription`, `Notification`, `NotificationType`, `NotificationPreference`, `Passkey`, `RefreshToken`, `TwoFactorBackupCode`, plus the optional consumer-side `FederatedAccount` link table for SSO. Copy/merge into your app's schema.
 
 ## Tests
 
@@ -392,7 +392,7 @@ The three most load-bearing for a production deploy are below; the **full catalo
 
 - **Persistent stores are opt-in.** Challenge, rate-limit, and refresh-token stores all default to in-memory (single-process). Pass a `ChallengeStore` / `RateLimitStore` / `RefreshTokenRepository` (Redis/Prisma/Upstash) when running >1 instance — the Prisma adapter is bundled.
 - **CSRF Double-Submit and refresh-token rotation are opt-in.** The handle's Origin check is always on; the token layer (`config.csrf = { doubleSubmit: true }`, requires header-capable clients — incompatible with remote-function / no-JS-form mutations) and rotation (`config.refreshToken = {}` + `repos.refreshToken`) are additive production hardening.
-- **`publicRoutes` are prefixes.** `createAuthHandle` matches them with `startsWith`, so the default `'/api/auth/'` exempts every sub-route from the auth guard — don't nest protected app routes under it.
+- **`publicRoutes` replaces the defaults, and its entries are prefixes.** Passing the option drops the built-in list instead of adding to it. `'/api/auth/'` is in that list, so an override that omits it guards the app's own sign-in — `POST /api/auth/login` then answers `401` to a visitor who has no session. Spread the exported `DEFAULT_PUBLIC_ROUTES` to extend (`[...DEFAULT_PUBLIC_ROUTES, '/pricing']`); replace wholesale only for a handle scoped to routes that mount no auth endpoints. Matching is `startsWith` and there is no exact-match form: `'/api/auth/'` exempts every sub-route below it, and `'/'` exempts the **whole app** — the obvious spelling of "my landing page is public" turns the guard off entirely. Don't nest protected app routes under a public prefix.
 
 ## Roadmap
 

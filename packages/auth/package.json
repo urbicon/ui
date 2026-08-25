@@ -79,6 +79,7 @@
   "files": [
     "LICENSE",
     "docs/AUTH.md",
+    "prisma/auth-schema.prisma",
     "dist",
     "!dist/**/*.test.*",
     "!dist/**/*test-utils.*",

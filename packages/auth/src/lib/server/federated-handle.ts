@@ -98,7 +98,7 @@ export interface FederatedAuthHandleOptions<TUser> {
    * resolved user — because unlike the IdP this app serves no login/register
    * pages of its own; list your genuinely public pages explicitly.
    */
-  publicRoutes?: string[];
+  publicRoutes?: readonly string[];
   /**
    * Where to send an unauthenticated browser request (302) — typically the
    * IdP's login page, absolute URL. Deliberately used verbatim: no
@@ -345,7 +345,9 @@ export function createFederatedAuthHandle<TUser>(
   // where the typo is fixable, not per request.
   const maxTokenAgeSeconds =
     options.maxTokenAge !== undefined ? parseDurationSeconds(options.maxTokenAge) : undefined;
-  const publicRoutes = options.publicRoutes ?? [];
+  // Snapshot, as on the IdP handle: a later push into the caller's array must
+  // not silently widen this guard.
+  const publicRoutes = [...(options.publicRoutes ?? [])];
   const allowUnauthenticatedRemote = options.allowUnauthenticatedRemote ?? false;
   const loginUrl = options.loginUrl;
 

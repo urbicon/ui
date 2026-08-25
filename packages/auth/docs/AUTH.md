@@ -301,7 +301,7 @@ One deployment running this package becomes the **identity provider (IdP)**; any
    import { createJWKSHandler } from '@urbicon-ui/auth/server';
    export const { GET } = createJWKSHandler({ jwt: config.jwt });
    ```
-   Add the route to `publicRoutes` if it falls outside your public prefixes. Only public JWK members can reach the response (allow-list projection; a `d` in the config is warned about and never served).
+   Exempt the route from the IdP's own guard if it falls outside your public prefixes — `publicRoutes` replaces the defaults rather than adding to them, so that reads `publicRoutes: [...DEFAULT_PUBLIC_ROUTES, '/.well-known/']`. Only public JWK members can reach the response (allow-list projection; a `d` in the config is warned about and never served).
 
 ### Setup — consumer side
 
@@ -345,7 +345,7 @@ The `FederatedAccount` link table (`findByFederatedId` / `linkFederatedAccount` 
 
 ## Prisma Schema
 
-See `packages/auth/prisma/auth-schema.prisma` for the reference schema. Models: User, Invitation, PushSubscription, Notification, NotificationType, NotificationPreference, Passkey, TwoFactorBackupCode, FederatedAccount (consumer-side federation link, optional). The User model carries the 2FA columns `totpSecret` (AES-256-GCM-encrypted), `totpEnabled`, `totpConfirmedAt`. **Recommended:** add `onDelete: Cascade` to the `invitationsSent` relation — DB cascade already covers passkeys/tokens/notifications/push/prefs on user delete; only sent `Invitation` rows lack it (the delete-account handler otherwise removes them by hand in its `$transaction`).
+The reference schema ships in the package, at `node_modules/@urbicon-ui/auth/prisma/auth-schema.prisma` (`packages/auth/prisma/auth-schema.prisma` in this repo). Ten models: User, Invitation, PushSubscription, Notification, NotificationType, NotificationPreference, Passkey, RefreshToken (rotation; required once `config.refreshToken` is set), TwoFactorBackupCode, FederatedAccount (consumer-side federation link, optional). The User model carries the 2FA columns `totpSecret` (AES-256-GCM-encrypted), `totpEnabled`, `totpConfirmedAt`. **Recommended:** add `onDelete: Cascade` to the `invitationsSent` relation — DB cascade already covers passkeys/tokens/notifications/push/prefs on user delete; only sent `Invitation` rows lack it (the delete-account handler otherwise removes them by hand in its `$transaction`).
 
 ### Upgrading an existing database
 
@@ -400,7 +400,7 @@ Persistence is behind a repository interface (`Repositories` in `packages/auth/s
 
 | Adapter               | Import                                                                           | Use                                                                                                           |
 | --------------------- | -------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------- |
-| **Prisma**            | `@urbicon-ui/auth/server/adapters/prisma` (`createPrismaRepos`)                  | Production reference. Copy the models from `prisma/auth-schema.prisma`.                                       |
+| **Prisma**            | `@urbicon-ui/auth/server/adapters/prisma` (`createPrismaRepos`)                  | Production reference. Copy the models from the shipped `prisma/auth-schema.prisma`.                           |
 | **In-memory**         | `@urbicon-ui/auth/server/adapters/in-memory` (`createInMemoryRepos`)             | Dev/test only — heap Maps, single-process, wiped on restart. The five-minute quickstart and the test fixture. |
 | **Conformance suite** | `@urbicon-ui/auth/server/adapters/conformance` (`describeRepositoryConformance`) | Not an adapter — the executable contract every adapter validates itself against. Wired to vitest; under another runner import `…/conformance-core` and pass `{ runner: { describe, it, expect } }`. |
 
@@ -512,10 +512,52 @@ Read the suite title: it states how many checks ran out of how many, and names e
 The same `XLike` + `mapX` + single-statement-CAS pattern in Drizzle. The trick on every claim is `UPDATE … WHERE <still-claimable> RETURNING …` and treating "0 rows returned" as "lost the race" — Drizzle's `.returning()` gives the row count for free.
 
 ```ts
-import { and, eq, gt, isNull, lt, lte, or, sql } from 'drizzle-orm';
-import type { RefreshTokenRepository, UserRepository /* … */ } from '@urbicon-ui/auth/server';
+import { and, desc, eq, gt, isNull, lt, lte, ne, or, sql } from 'drizzle-orm';
+import type {
+  FullAuthUser,
+  RefreshTokenRecord,
+  RefreshTokenRepository,
+  UserRepository /* … */
+} from '@urbicon-ui/auth/server';
+
+// The `mapX` seam. The row shape gets its own type and the seam takes it as a
+// parameter — that is the half that does the work. Against `row: any` a
+// renamed column (`row.token_hash`) type-checks silently; against
+// `RefreshTokenRow` it is a `TS2551` right at the seam. The shipped Prisma
+// adapter types every seam this way; `any` belongs at the db boundary, not here.
+interface RefreshTokenRow {
+  id: string;
+  userId: string;
+  tokenHash: string;
+  family: string;
+  expiresAt: Date;
+  revokedAt?: Date | null;
+  replacedById?: string | null;
+  createdAt: Date;
+  userAgent?: string | null;
+  ip?: string | null;
+}
+
+const mapRefreshToken = (row: RefreshTokenRow): RefreshTokenRecord => ({
+  id: row.id,
+  userId: row.userId,
+  tokenHash: row.tokenHash,
+  family: row.family,
+  expiresAt: row.expiresAt,
+  revokedAt: row.revokedAt ?? null,
+  replacedById: row.replacedById ?? null,
+  createdAt: row.createdAt,
+  userAgent: row.userAgent ?? null,
+  ip: row.ip ?? null
+});
+// Same seam against `FullAuthUser`, in your own file — declared here so this
+// excerpt type-checks standalone.
+declare function mapUser(row: any): FullAuthUser;
 
 // `DrizzleLike` is the structural boundary — pass any drizzle db + your tables.
+// All nine `RefreshTokenRepository` methods are here, and the annotated return
+// type is what keeps them here: leave one out and the factory is a `TS2741`
+// naming it. Annotate, never assert — see the note on the user factory below.
 export function createDrizzleRefreshTokenRepository(db: any, t: any): RefreshTokenRepository {
   return {
     async create(data) {
@@ -557,6 +599,55 @@ export function createDrizzleRefreshTokenRepository(db: any, t: any): RefreshTok
         .where(lt(t.refreshToken.expiresAt, new Date()))
         .returning({ id: t.refreshToken.id });
       return gone.length;
+    },
+    async listActiveByUser(userId) {
+      // Live sessions for the session list: non-revoked AND unexpired, newest
+      // first. Rotation keeps one live token per family, so one row = one
+      // session.
+      const rows = await db
+        .select()
+        .from(t.refreshToken)
+        .where(
+          and(
+            eq(t.refreshToken.userId, userId),
+            isNull(t.refreshToken.revokedAt),
+            gt(t.refreshToken.expiresAt, new Date())
+          )
+        )
+        .orderBy(desc(t.refreshToken.createdAt));
+      return rows.map(mapRefreshToken);
+    },
+    async revokeFamilyForUser(userId, family) {
+      // revokeFamily plus the mandatory owner guard. Without the userId
+      // predicate a guessed family id signs another user out (IDOR) — this is
+      // the method the session-revoke route calls, and its boolean is what
+      // becomes the 404.
+      const revoked = await db
+        .update(t.refreshToken)
+        .set({ revokedAt: new Date() })
+        .where(
+          and(
+            eq(t.refreshToken.userId, userId),
+            eq(t.refreshToken.family, family),
+            isNull(t.refreshToken.revokedAt)
+          )
+        )
+        .returning({ id: t.refreshToken.id });
+      return revoked.length > 0;
+    },
+    async revokeOtherFamiliesForUser(userId, keepFamily) {
+      // "Sign out all other sessions": everything of this user except the
+      // caller's own family, in one write.
+      await db
+        .update(t.refreshToken)
+        .set({ revokedAt: new Date() })
+        .where(
+          and(
+            eq(t.refreshToken.userId, userId),
+            ne(t.refreshToken.family, keepFamily),
+            isNull(t.refreshToken.revokedAt)
+          )
+        );
     }
   };
 }
@@ -596,6 +687,14 @@ export function createDrizzleUserRepository(db: any, t: any): UserRepository {
         .where(eq(t.user.id, id));
     }
     // … recordFailedLogin (sql increment), consumeVerificationToken (same CAS shape) …
+
+    // The assertion is what lets this excerpt stop at 2 of the 20 methods, and
+    // it switches off exactly the check the refresh-token factory above gets
+    // from its return type — without the `as`: `TS2740`, 18 missing. Do not
+    // carry it into your own file: `createAuthHandle` calls `user.findById` on
+    // every authenticated request, so a method you never wrote fails per
+    // request rather than at startup. Annotate the return type instead and let
+    // the compiler enumerate what is left to write.
   } as UserRepository;
 }
 
@@ -616,7 +715,7 @@ bun run test:e2e                            # Playwright (from the repo root)
 
 **Covered:** crypto primitives (JWT, HMAC, PBKDF2, CBOR, WebAuthn parsing, TOTP/HOTP against RFC 6238/4226 vectors, AES-256-GCM secret encrypt/decrypt), CSRF, rate-limiter, session cookies, validation, notification registry/SSE/push, login handler (incl. 2FA gate), account-management and session-listing handlers, 2FA flow (setup/enable/disable/verify, backup-code single-use, pending-2FA token), E2E core flow (register → protected → logout → refresh rotation → reuse detection). **Adapter conformance** (`adapters/conformance.ts`): the atomic claim/scope guarantees run against the in-memory adapter **and** the Prisma adapter (via a faithful in-memory `PrismaLike` fake) — this is the first real test coverage for `adapters/prisma.ts` — plus a negative control that demonstrably fails a non-atomic adapter. The release history (v0.8.1 – v0.11.0) covers every hardening-1.0 milestone — details in the changelog.
 
-**Still open (P2/P3):** end-to-end attestation/assertion with a real authenticator; conformance against a _real_ database engine (the Prisma path is currently covered via the `PrismaLike` fake, not against a running Postgres).
+**Still open:** end-to-end attestation/assertion with a real authenticator; conformance against a _real_ database engine (the Prisma path is currently covered via the `PrismaLike` fake, not against a running Postgres).
 
 ## Error Contract
 
@@ -647,7 +746,7 @@ The package deliberately avoids revealing whether an account exists, via either 
 - **2FA verify rate-limit is per-IP, not per-account** — the public `/2fa/verify` endpoint is limited per-IP like login (`rateLimit.twoFactor`, strict default), not per-account — consistent with the package philosophy (account-level limits are themselves DoS-prone and opt-in). A distributed-IP attack would additionally need the victim's password (to set the pending-2FA cookie); with a ±1 window (10⁶ codes) + ~5-min TTL this remains practically hopeless. A per-account limiter is a deliberate later option.
 - **The UV bit is self-asserted, not attested** — `attestation: 'none'` is hard-wired in the generated registration options, so the relying party never receives an authenticator certificate. `requireUserVerification` therefore verifies that the *credential itself signed* a UV flag, not that a genuine authenticator model performed a genuine PIN or biometric check; software or a modified authenticator can set the bit. It still moves the practical threat model — a stolen hardware key that demands its PIN is no longer a one-tap login — which is why passkey logins skip the TOTP gate only under enforced UV. Read the guarantee as "the credential claims user verification", not as a proof of it. Attestation-based authenticator allow-listing is out of v1 scope.
 - **TOTP replay within the same time window** — v1 relies solely on the strict verify rate-limit. A stored `lastUsedStep` that prevents re-redeeming the same code within its validity (±1 period) is noted as a later hardening.
-- **`publicRoutes` are prefixes** — `createAuthHandle` matches public routes via `startsWith`. The default `'/api/auth/'` thereby makes **all** subroutes below it public (no auth guard). Don't place protectable app routes below it, or keep the list narrow when you add your own `/api/auth/*` endpoints.
+- **`publicRoutes` replaces the defaults, and its entries are prefixes** — passing the option drops the built-in list rather than adding to it. That list is exported as `DEFAULT_PUBLIC_ROUTES` (read it there; it is not transcribed here), and `'/api/auth/'` is in it — so an override that omits it guards the app's own sign-in: an unauthenticated `POST /api/auth/login` gets `401 not_authenticated` instead of a session. Spread the constant to extend — `publicRoutes: [...DEFAULT_PUBLIC_ROUTES, '/pricing']` — and replace wholesale only for a handle scoped to routes that mount no auth endpoints of their own. Matching is `startsWith` and there is no exact-match form: `'/api/auth/'` makes **all** subroutes below it public, and `'/'` makes the **entire app** public — the obvious spelling of "my landing page is public" turns the guard off completely. Keep the list narrow, and don't place protectable app routes below a public prefix.
 - **Remote functions are guarded by `event.isRemoteRequest` (+ a `/remote` POST check), not `publicRoutes`.** For SvelteKit Remote Functions (`kit.experimental.remoteFunctions`) the pathname the guard sees is **client-controlled**, via either of two transports: **(1)** the `/_app/remote/…` calls (`query` / `command` / JS-enhanced `form`) — SvelteKit overwrites `event.url.pathname` from the `x-sveltekit-pathname` header *before* the `handle` hook runs; a plain `query` is even a **GET** (payload in `?payload=`), so the kernel's non-`GET` cross-site block doesn't catch it either; and **(2)** the no-JS `<form action="?/remote=…">` fallback — dispatched through the page pipeline from the `/remote` search param, decoupled from the pathname, with `event.isRemoteRequest` left **`false`**. Either way a spoofed (or genuinely) public route such as `/auth/login` would let an unauthenticated remote call run without a session and leak every reachable row. `createAuthHandle` **default-denies** (`401`) both: keyed on the unspoofable `event.isRemoteRequest`, and — for the fallback — a `POST` carrying a truthy `/remote` action param (mirroring SvelteKit's own dispatch gate; a normal action named `remote` serializes to an empty `?/remote` and is correctly left to the path guard). Set `allowUnauthenticatedRemote: true` **only** if you deliberately expose public remote functions — you then own their authorization (check `event.locals.user` inside each). **Defense-in-depth:** even with the guard active, prefer an explicit `event.locals.user` (+ per-user ownership) check inside each remote function rather than relying on the handle alone — the guard is a backstop, not a substitute for per-function authorization.
 - **SvelteKit's built-in `csrf.checkOrigin` is a separate gate that runs _before_ this package's check.** SvelteKit's request kernel performs its own Origin-CSRF check *before* the `handle` hook runs (`@sveltejs/kit` → `src/runtime/server/respond.js`). If you route a cross-origin, form-encoded `POST` *around* `createAuthHandle` — an OAuth 2.1 token endpoint, a third-party webhook — that kernel gate rejects it with `403 "Cross-site POST form submissions are forbidden"` before your hook (and therefore this package's `validateCsrf`) ever runs. Three properties make this bite: it **can't be disabled per-route from a hook** (by the time `handle` runs the 403 is already returned — the only levers are the global `kit.csrf.*` config); it fires on **form content types only** (`application/x-www-form-urlencoded`, `multipart/form-data`, `text/plain`, plus Kit's internal `application/x-sveltekit-formdata` — preflighted, not CORS-simple), so a JSON endpoint (MCP JSON-RPC, dynamic client registration) passes through but the OAuth **token** endpoint can't — RFC 6749 §4.1.3 mandates `application/x-www-form-urlencoded` and real callers (Claude, etc.) send **no `Origin` header**, which keeps the gate shut (a *specific* `trustedOrigins` list is consulted only when an `Origin` header is present, so no list of origins can ever admit a header-less caller); and it is **skipped under `vite dev`, never in a build** (guaranteed by the package's `@sveltejs/kit ^2.70.1` peer range — older Kits compiled the gate out of non-production-`NODE_ENV` builds, [sveltejs/kit#16313](https://github.com/sveltejs/kit/pull/16313)), so the 403 typically first surfaces *after deploy*, never in local development. **Resolution:** set `kit.csrf: { trustedOrigins: ['*'] }` in `svelte.config.js` — the official off-switch, and since Kit 2.61 the only non-deprecated one (`checkOrigin` is `@deprecated Use trustedOrigins: ['*'] instead`). The wildcard is resolved at **build time**, not matched against request origins: Kit's `write_server.js` derives `csrf_check_origin = checkOrigin && !trustedOrigins.includes('*')`, so `['*']` removes the kernel gate entirely — including for the header-less callers no literal origin list could admit. (Verify at both levels when auditing this: the runtime check in `respond.js` never matches `'*'` against an `Origin` header — the disable happens in the build-time derivation.) This affects the form gate only; Kit's separate strict same-origin check for remote-function requests (`/_app/remote/…`, non-GET) is independent of `kit.csrf.*` and stays active. Then let this package's `validateCsrf` be the single Origin gate — it is *stricter* than the kernel check (every mutating method, **all** content types incl. JSON, no allow-list, as step 1 of `createAuthHandle`), so for any request that flows through the handle the kernel check was redundant anyway. **Safe only when:** (1) every cookie-authenticated mutating route flows through `createAuthHandle` — including SvelteKit form actions such as an OAuth consent `?/approve`, and "cookie-authenticated" means *any* ambient-session-cookie route, not just this package's. *Reaching* the handle is what counts, not mounting it: in a `sequence()`, any earlier handle that returns a response without calling `resolve` (maintenance mode, a webhook endpoint implemented as a handle, a redirect handle) bypasses this gate for its routes — and with the kernel gate disabled, nothing else covers them. And (2) the handle-bypassed routes are cookieless (bearer / PKCE / API-key) — they carry no ambient credential the browser auto-sends, so they're structurally not CSRF-able and the Origin gate protected nothing there. Edge case to flag rather than assume: if you depend on SvelteKit's `trustedOrigins` allow-list for legitimate cross-origin *browser* form posts, note `validateCsrf` is strict-same-origin with no allow-list equivalent.
 - **SSE presence is process-local** — `createSSEManager` registers connections in this process only; there is no cross-instance seam. On multi-instance/serverless deployments, `isOnline` false-negatives make `send()` skip the live SSE event for users connected to another instance and fall back to push (delivery still happens, via the heavier channel, provided a push subscription exists), and `recipients: 'online'` broadcasts only reach the users connected to the instance running `send()`. Treat the notification system as single-instance until a shared presence backend exists — the same class of assumption as the in-memory rate-limit store.
