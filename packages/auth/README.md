@@ -165,15 +165,15 @@ stubs are unchanged; you're only growing the config.
 import { createAuthDeps } from '@urbicon-ui/auth/server';
 import { createPrismaRepos } from '@urbicon-ui/auth/server/adapters/prisma';
 import { createLettermintTransport } from '@urbicon-ui/auth/server/email/lettermint';
-import { env } from '$env/dynamic/private';
+import { APP_URL, JWT_SECRET, LETTERMINT_TOKEN } from '$env/static/private';
 import { prisma } from './prisma';
 
 type AppRole = 'ADMIN' | 'USER';
 
 export const authDeps = createAuthDeps<AppRole>({
   config: {
-    jwt: { secret: env.JWT_SECRET }, // cookieSecure defaults true → HTTPS + auto HSTS
-    appUrl: env.PUBLIC_APP_URL, // trusted base for email links — never request.url
+    jwt: { secret: JWT_SECRET }, // cookieSecure defaults true → HTTPS + auto HSTS
+    appUrl: APP_URL, // trusted base for email links — never request.url; a private var, so no PUBLIC_ prefix
     email: { from: 'Acme <auth@acme.example>' }, // default sender for all auth emails
     csrf: { doubleSubmit: true }, // token layer on top of the always-on Origin check — only with header-capable clients (see checklist)
     refreshToken: { accessTokenTtl: '15m', refreshTokenTtl: '30d' }, // rotating refresh
@@ -186,7 +186,7 @@ export const authDeps = createAuthDeps<AppRole>({
     routes: { afterLogin: '/', loginPage: '/auth/login' }
   },
   repos: createPrismaRepos<AppRole>(prisma), // pulls in the refreshToken adapter
-  email: createLettermintTransport({ token: env.LETTERMINT_TOKEN }) // sends via the Lettermint v2 API
+  email: createLettermintTransport({ token: LETTERMINT_TOKEN }) // sends via the Lettermint v2 API
 });
 ```
 

@@ -17,20 +17,20 @@ import { createAuthDeps } from '@urbicon-ui/auth/server';
 import { createPrismaRepos } from '@urbicon-ui/auth/server/adapters/prisma';
 import { createLettermintTransport } from '@urbicon-ui/auth/server/email/lettermint';
 import { prisma } from '$lib/server/db';
-import { env } from '$env/static/private';
+import { APP_URL, JWT_SECRET, LETTERMINT_TOKEN } from '$env/static/private';
 
 export const authDeps = createAuthDeps({
   config: {
     // Required, and never derived from request.url — the Host header is
     // attacker-controlled and would point reset links at their domain.
-    appUrl: env.APP_URL,
-    jwt: { secret: env.JWT_SECRET },
+    appUrl: APP_URL,
+    jwt: { secret: JWT_SECRET },
     password: { minLength: 8 },
     lockout: { maxAttempts: 5, durationMinutes: 15 },
     routes: { loginPage: '/auth/login' }
   },
   repos: createPrismaRepos(prisma),
-  email: createLettermintTransport({ token: env.LETTERMINT_TOKEN, from: 'noreply@example.com' })
+  email: createLettermintTransport({ token: LETTERMINT_TOKEN, from: 'noreply@example.com' })
 });`;
 
   const hookCode = `// src/hooks.server.ts
@@ -54,10 +54,12 @@ export const POST = createLoginHandler(authDeps);
 
 // src/routes/api/auth/register/+server.ts
 import { createRegisterHandler } from '@urbicon-ui/auth/server';
+import { authDeps } from '$lib/server/auth';
 export const POST = createRegisterHandler(authDeps);
 
 // src/routes/api/auth/forgot-password/+server.ts
 import { createForgotPasswordHandler } from '@urbicon-ui/auth/server';
+import { authDeps } from '$lib/server/auth';
 export const POST = createForgotPasswordHandler(authDeps);
 
 // Same pattern for: reset-password, verify-email, logout, me`;
