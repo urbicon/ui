@@ -5,9 +5,9 @@ import type {
   PushSubscriptionRepository,
   PushSubscriptionWriteOutcome
 } from '../../adapters/types.js';
-import { shieldLogger } from '../../deps.js';
 import { base64UrlDecode } from '../../encoding.js';
 import { authError } from '../../handlers/errors.js';
+import { shieldLogger } from '../../logger.js';
 import { enforceRateLimit, makeRateLimiter } from '../../rate-limit.js';
 import { readJsonBody } from '../../validation.js';
 import { isAllowedPushEndpoint } from '../push-endpoint.js';

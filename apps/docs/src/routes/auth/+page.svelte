@@ -17,6 +17,7 @@ import { createAuthDeps } from '@urbicon-ui/auth/server';
 import { createPrismaRepos } from '@urbicon-ui/auth/server/adapters/prisma';
 import { createLettermintTransport } from '@urbicon-ui/auth/server/email/lettermint';
 import { prisma } from '$lib/server/db';
+import { appLogger } from '$lib/server/logging';
 import { APP_URL, JWT_SECRET, LETTERMINT_TOKEN } from '$env/static/private';
 
 export const authDeps = createAuthDeps({
@@ -27,9 +28,11 @@ export const authDeps = createAuthDeps({
     jwt: { secret: JWT_SECRET },
     password: { minLength: 8 },
     lockout: { maxAttempts: 5, durationMinutes: 15 },
-    routes: { loginPage: '/auth/login' }
+    routes: { loginPage: '/auth/login' },
+    logger: appLogger
   },
-  repos: createPrismaRepos(prisma),
+  // Same sink: a missing Prisma model drops its feature, reported here.
+  repos: createPrismaRepos(prisma, { logger: appLogger }),
   email: createLettermintTransport({ token: LETTERMINT_TOKEN, from: 'noreply@example.com' })
 });`;
 

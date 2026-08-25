@@ -7,7 +7,7 @@ import { resolveTokenTtlMs } from '../duration.js';
 import type { MailBuilder } from '../email/builders.js';
 import { resolveEmailSettings } from '../email/resolve.js';
 import { buildPasswordResetEmail } from '../email/templates.js';
-import { enforceRateLimit, makeRateLimiter } from '../rate-limit.js';
+import { enforceRateLimit, sharedLimiter } from '../rate-limit.js';
 import { validateEmailInput } from '../validation.js';
 import { notifyHook, parseBody } from './_shared.js';
 
@@ -24,7 +24,7 @@ export function createForgotPasswordHandler<R extends string>(
   deps: AuthDeps<R>,
   options: ForgotPasswordHandlerOptions = {}
 ): { POST: RequestHandler } {
-  const rateLimiter = makeRateLimiter(deps.config.rateLimit?.forgotPassword);
+  const rateLimiter = sharedLimiter(deps.config, 'forgotPassword');
   // Resolved here, not per request: a malformed `tokenTtl` throws where the
   // route was wired instead of inside the detached issue-and-mail task, whose
   // failures never reach the client.

@@ -7,7 +7,7 @@ import type { MailBuilder } from '../email/builders.js';
 import { resolveEmailSettings } from '../email/resolve.js';
 import { buildVerificationEmail } from '../email/templates.js';
 import { hashPassword, validatePasswordStrength } from '../password.js';
-import { enforceRateLimit, makeRateLimiter } from '../rate-limit.js';
+import { enforceRateLimit, sharedLimiter } from '../rate-limit.js';
 import { establishSession, resolveSessionMeta } from '../session.js';
 import { validateRegisterInput } from '../validation.js';
 import { notifyHook, parseBody } from './_shared.js';
@@ -62,7 +62,7 @@ export function createRegisterHandler<R extends string>(
   deps: AuthDeps<R>,
   options: RegisterHandlerOptions = {}
 ): { POST: RequestHandler } {
-  const rateLimiter = makeRateLimiter(deps.config.rateLimit?.register);
+  const rateLimiter = sharedLimiter(deps.config, 'register');
   // Resolved here, not per request: a malformed `tokenTtl` throws where the
   // route was wired instead of on someone's first signup.
   const verificationTtlMs = resolveTokenTtlMs(deps.config.tokenTtl, 'emailVerification');

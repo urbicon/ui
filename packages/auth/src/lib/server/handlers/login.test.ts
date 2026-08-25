@@ -114,7 +114,13 @@ describe('createLoginHandler', () => {
 
     const response = await handler.POST(event as unknown as RequestEvent);
     expect(response.status).toBe(401);
-    expect(deps.repos.user.recordFailedLogin).toHaveBeenCalledWith('user-1', undefined);
+    // The hand-built deps here configured no brute-force policy at all, and the
+    // lockout accessor defaults it — the same value createAuthDeps would inject.
+    expect(deps.repos.user.recordFailedLogin).toHaveBeenCalledWith('user-1', {
+      maxAttempts: 5,
+      durationMinutes: 15,
+      decayMinutes: 60
+    });
   });
 
   it('should login successfully with correct credentials', async () => {
@@ -560,6 +566,9 @@ describe('createLoginHandler — decay against the in-memory adapter', () => {
     deps.repos.user = user;
     deps.config.password = FAST_PASSWORD;
     deps.config.lockout = lockout;
+    // The lockout is under test, not the login limiter — which every deps now
+    // carries by default and would answer 429 on the attempt the lock is due.
+    deps.config.rateLimit = { login: null };
     const id = (await user.findByEmail('test@test.com'))!.id;
     return { user, deps, id };
   }
@@ -694,6 +703,9 @@ describe('createLoginHandler — sustained guess rate per decay window', () => {
     deps.repos.user = user;
     deps.config.password = FAST_PASSWORD;
     deps.config.lockout = { maxAttempts: 5, durationMinutes: 15, decayMinutes };
+    // The lockout is under test, not the login limiter — which every deps now
+    // carries by default and would answer 429 on the attempt the lock is due.
+    deps.config.rateLimit = { login: null };
     const handler = createLoginHandler(deps);
 
     vi.useFakeTimers();

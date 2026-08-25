@@ -2,9 +2,10 @@ import type { RequestHandler } from '@sveltejs/kit';
 import { json } from '@sveltejs/kit';
 import type { LockoutConfig } from '../../types.js';
 import { sanitizeUser } from '../auth.js';
-import { type AuthDeps, DEFAULT_DECAY_MINUTES } from '../deps.js';
+import type { AuthDeps } from '../deps.js';
 import { hashPassword, verifyPasswordWithMigration } from '../password.js';
-import { enforceRateLimit, makeRateLimiter } from '../rate-limit.js';
+import { enforceRateLimit, sharedLimiter } from '../rate-limit.js';
+import { DEFAULT_DECAY_MINUTES, lockoutFor } from '../security-defaults.js';
 import { establishSession, resolveSessionMeta } from '../session.js';
 import { createPending2faToken, setPending2faCookie } from '../two-factor.js';
 import { validateLoginInput } from '../validation.js';
@@ -35,7 +36,7 @@ function attemptsDecayed(lastFailedAt: Date | null, lockout: LockoutConfig, now:
 }
 
 export function createLoginHandler<R extends string>(deps: AuthDeps<R>): { POST: RequestHandler } {
-  const rateLimiter = makeRateLimiter(deps.config.rateLimit?.login);
+  const rateLimiter = sharedLimiter(deps.config, 'login');
 
   // A decay window of zero fails OPEN, and completely: `now - lastFailedAt >= 0`
   // holds for every stored timestamp, so every attempt resets the counter before
@@ -106,8 +107,10 @@ export function createLoginHandler<R extends string>(deps: AuthDeps<R>): { POST:
       }
 
       // Lockout check (refuse before doing the expensive PBKDF2 verify).
-      // Normalize the explicit-opt-out null to undefined for the repo call.
-      const lockout = deps.config.lockout ?? undefined;
+      // Read through the accessor, not off the config: a hand-built AuthDeps
+      // never passed resolveSecurityDefaults, and this is the only brake it
+      // would otherwise be missing.
+      const lockout = lockoutFor(deps.config);
       if (lockout) {
         const attempts = await deps.repos.user.getFailedLoginAttempts(user.id);
         const now = Date.now();

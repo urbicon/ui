@@ -3,6 +3,7 @@ import type { Cookies } from '@sveltejs/kit';
 import type { AuthConfig, JwtConfig, RefreshTokenConfig } from '../types.js';
 import type { FullAuthUser, RefreshTokenRecord, RefreshTokenRepository } from './adapters/types.js';
 import { generateSecureToken, hashToken } from './auth.js';
+import { assertCookieSameSiteSecure } from './cookie-policy.js';
 import { parseDurationSeconds } from './duration.js';
 
 const DEFAULT_ACCESS_TTL = '15m';
@@ -37,12 +38,10 @@ export function resolveJwtConfig<R extends string>(config: AuthConfig<R>): JwtCo
 
 function cookieOpts(config: RefreshTokenConfig, maxAge: number) {
   const sameSite = config.cookieSameSite ?? 'lax';
-  const secure = config.cookieSecure ?? true;
-  if (sameSite === 'none' && !secure) {
-    throw new Error(
-      '[auth] refresh cookieSameSite: "none" requires cookieSecure: true — browsers reject SameSite=None without Secure.'
-    );
-  }
+  // Defense in depth: assertAuthConfigValid catches this pair at wiring time,
+  // but setRefreshCookie is reachable through establishSession with a
+  // hand-built config that never passed a wiring entry point.
+  const secure = assertCookieSameSiteSecure('refreshToken', sameSite, config.cookieSecure);
   return {
     path: config.cookiePath ?? DEFAULT_COOKIE_PATH,
     httpOnly: true,

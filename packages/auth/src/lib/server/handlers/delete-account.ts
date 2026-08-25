@@ -2,7 +2,7 @@ import type { RequestHandler } from '@sveltejs/kit';
 import { json } from '@sveltejs/kit';
 import { sanitizeUser } from '../auth.js';
 import type { AuthDeps } from '../deps.js';
-import { enforceRateLimit, makeRateLimiter } from '../rate-limit.js';
+import { enforceRateLimit, sharedLimiter } from '../rate-limit.js';
 import { endSession } from '../session.js';
 import { validateDeleteAccountInput } from '../validation.js';
 import { parseBody, requireSessionUser, verifyCurrentPassword } from './_shared.js';
@@ -16,7 +16,7 @@ import { authError } from './errors.js';
 export function createDeleteAccountHandler<R extends string>(
   deps: AuthDeps<R>
 ): { POST: RequestHandler } {
-  const rateLimiter = makeRateLimiter(deps.config.rateLimit?.deleteAccount);
+  const rateLimiter = sharedLimiter(deps.config, 'deleteAccount');
 
   return {
     POST: async ({ request, cookies, getClientAddress }) => {

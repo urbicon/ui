@@ -1,6 +1,7 @@
 import type { Cookies } from '@sveltejs/kit';
 import type { AuthConfig, AuthLogger, AuthSession, JwtConfig } from '../types.js';
 import type { FullAuthUser, RefreshTokenRepository } from './adapters/types.js';
+import { assertCookieSameSiteSecure } from './cookie-policy.js';
 import { assertReposMatchConfig } from './deps.js';
 import { parseDurationSeconds } from './duration.js';
 import { createSessionToken, verifySessionToken } from './jwt.js';
@@ -35,29 +36,11 @@ function cookieName(config: JwtConfig): string {
 }
 
 /**
- * Modern browsers reject `SameSite=None` cookies that aren't also `Secure`,
- * so the combination is a misconfiguration: the cookie just silently
- * disappears in some browsers and is accepted in others. Fail loudly.
- */
-function resolveCookieSecure(
-  cookieSecure: boolean | undefined,
-  sameSite: 'lax' | 'strict' | 'none'
-): boolean {
-  const secure = cookieSecure ?? true;
-  if (sameSite === 'none' && !secure) {
-    throw new Error(
-      '[auth] cookieSameSite: "none" requires cookieSecure: true — browsers reject SameSite=None without Secure.'
-    );
-  }
-  return secure;
-}
-
-/**
  * Resolve the session cookie's Domain attribute (`jwt.cookieDomain`). A
  * `__Host-`-prefixed cookie name REQUIRES a host-scoped cookie, so a browser
  * rejects the combination with a Domain attribute wholesale — the session
  * would silently never be set (nor cleared). Fail loudly instead, in the same
- * spirit as {@link resolveCookieSecure}. One helper shared by
+ * spirit as {@link assertCookieSameSiteSecure}. One helper shared by
  * {@link setSessionCookie} and {@link clearSessionCookie} so set and clear can
  * never drift apart.
  */
@@ -83,7 +66,10 @@ export async function setSessionCookie<R extends string>(
   cookies.set(cookieName(config), token, {
     path: '/',
     httpOnly: true,
-    secure: resolveCookieSecure(config.cookieSecure, sameSite),
+    // Defense in depth: assertJwtConfigValid catches this pair at wiring time,
+    // but setSessionCookie is reachable through establishSession with a
+    // hand-built config that never passed a wiring entry point.
+    secure: assertCookieSameSiteSecure('jwt', sameSite, config.cookieSecure),
     sameSite,
     maxAge,
     ...(domain !== undefined ? { domain } : {})

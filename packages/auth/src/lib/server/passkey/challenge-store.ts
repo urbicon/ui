@@ -2,6 +2,7 @@
 // the in-memory default and the store/consume primitives. Split out of the
 // former webauthn.ts god-file.
 
+import type { AuthLogger } from '../../types.js';
 import { base64UrlEncode } from '../encoding.js';
 
 export interface ChallengeEntry {
@@ -131,7 +132,17 @@ export async function storeChallenge(
   await Promise.resolve(store.set(key, { challenge, expires: Date.now() + timeoutMs }));
 }
 
-export async function consumeChallenge(store: ChallengeStore, key: string): Promise<string | null> {
+/**
+ * @param logger sink for the one operational failure below. The WebAuthn core is
+ *   deps-free by design, so the sink rides on `WebAuthnConfig.logger`, which
+ *   `createPasskeyHandlers` fills from the deps bundle. Defaults to `console`
+ *   for a consumer driving the core directly.
+ */
+export async function consumeChallenge(
+  store: ChallengeStore,
+  key: string,
+  logger: AuthLogger = console
+): Promise<string | null> {
   // Prefer atomic take() when the store provides it — otherwise a concurrent
   // request race can consume the same challenge twice (TOCTOU on get+delete).
   if (store.take) {
@@ -149,7 +160,7 @@ export async function consumeChallenge(store: ChallengeStore, key: string): Prom
   try {
     await Promise.resolve(store.delete(key));
   } catch (err) {
-    console.error(
+    logger.error(
       '[auth] consumeChallenge: store.delete failed — challenge may be replayable until TTL.',
       err
     );

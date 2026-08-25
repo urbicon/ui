@@ -105,13 +105,18 @@ export const authDeps = createAuthDeps({
 ```
 
 `createAuthDeps` fills in **secure brute-force defaults automatically** (login rate-limit
-5 / 15 min + lockout 5 / 15 min) — even the quickstart isn't an open door. The login
-rate-limit default is injected even if you configure only _other_ endpoints (so
-`rateLimit: { register }` never silently leaves login unprotected); the lockout default
-applies only when you set neither `rateLimit` nor `lockout`. Opt out of either explicitly
-with `null`. A failed attempt stops counting once it is `lockout.decayMinutes` old (default
-60), so typos on separate days never add up to a lockout. `cookieSecure: false` marks this as a dev config, which suppresses the
-production hardening warnings (and HSTS) you'd otherwise see.
+5 / 15 min + lockout 5 / 15 min) — even the quickstart isn't an open door. **Every**
+`rateLimit` key gets a default, and configuring some keys is a merge rather than a
+replacement (so `rateLimit: { register }` never silently leaves login unprotected); the
+per-key numbers and their reasoning are in
+[docs/AUTH.md](docs/AUTH.md#stage-1--quickstart-dev). The lockout default applies only
+when you set neither `rateLimit` nor `lockout`. Opt out of either explicitly with `null`.
+A failed attempt stops counting once it is `lockout.decayMinutes` old (default 60), so
+typos on separate days never add up to a lockout.
+A `cookieSecure: false` on the session, CSRF **or** refresh cookie marks this as a
+non-HTTPS dev deployment, which suppresses the production hardening warnings (and HSTS)
+you'd otherwise see, and drops the `__Host-` prefix from the 2FA and passkey cookies so
+the browser keeps them.
 
 **2. Hook** — `src/hooks.server.ts`:
 
@@ -168,6 +173,7 @@ import { createPrismaRepos } from '@urbicon-ui/auth/server/adapters/prisma';
 import { createLettermintTransport } from '@urbicon-ui/auth/server/email/lettermint';
 import { APP_URL, JWT_SECRET, LETTERMINT_TOKEN } from '$env/static/private';
 import { prisma } from './prisma';
+import { appLogger } from './logging'; // your own AuthLogger { warn, error }
 
 type AppRole = 'ADMIN' | 'USER';
 
@@ -185,9 +191,12 @@ export const authDeps = createAuthDeps<AppRole>({
     },
     lockout: { maxAttempts: 5, durationMinutes: 15, decayMinutes: 60 }, // decay: how long a failure counts
     tokenTtl: { emailVerification: '24h', passwordReset: '1h', emailChange: '1h' }, // mailed link windows
-    routes: { afterLogin: '/', loginPage: '/auth/login' }
+    routes: { afterLogin: '/', loginPage: '/auth/login' },
+    logger: appLogger
   },
-  repos: createPrismaRepos<AppRole>(prisma), // pulls in the refreshToken adapter
+  // Same sink for both: wiring diagnostics from the adapter (a missing Prisma
+  // model drops its feature) land with the rest of the auth logs.
+  repos: createPrismaRepos<AppRole>(prisma, { logger: appLogger }),
   email: createLettermintTransport({ token: LETTERMINT_TOKEN }) // sends via the Lettermint v2 API
 });
 ```

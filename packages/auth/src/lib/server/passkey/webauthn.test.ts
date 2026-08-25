@@ -102,6 +102,32 @@ describe('storeChallenge / consumeChallenge', () => {
     expect(await consumeChallenge(asyncStore, 'async-user')).toBe('c1');
     expect(await consumeChallenge(asyncStore, 'async-user')).toBeNull();
   });
+
+  // A failed delete on a valid entry leaves the challenge replayable until its
+  // TTL — the one operational failure this function can report. It wrote to bare
+  // `console`; the sink now rides on WebAuthnConfig.logger, which
+  // createPasskeyHandlers fills from the deps bundle.
+  it('reports a failed store.delete through the supplied logger', async () => {
+    const map = new Map<string, ChallengeEntry>();
+    const brokenDelete: ChallengeStore = {
+      get: (key) => map.get(key),
+      set: (key, entry) => void map.set(key, entry),
+      delete: () => {
+        throw new Error('store offline');
+      }
+    };
+    const logger = { warn: vi.fn(), error: vi.fn() };
+    const consoleError = vi.spyOn(console, 'error').mockImplementation(() => {});
+
+    await store5m(brokenDelete, 'k', 'c1');
+    expect(await consumeChallenge(brokenDelete, 'k', logger)).toBe('c1');
+    expect(logger.error).toHaveBeenCalledWith(
+      expect.stringContaining('challenge may be replayable until TTL'),
+      expect.any(Error)
+    );
+    expect(consoleError).not.toHaveBeenCalled();
+    consoleError.mockRestore();
+  });
 });
 
 describe('createInMemoryChallengeStore', () => {

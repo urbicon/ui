@@ -5,7 +5,7 @@ import type {
   NotificationRepository,
   PushSubscriptionRepository
 } from '../adapters/types.js';
-import { shieldLogger } from '../deps.js';
+import { shieldLogger } from '../logger.js';
 import type { PushPayload, PushResult, PushService } from './push.js';
 import type { NotificationRegistry } from './registry.js';
 import type { SSEManager } from './sse.js';

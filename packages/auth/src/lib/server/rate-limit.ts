@@ -1,5 +1,6 @@
-import type { RateLimitConfig } from '../types.js';
+import type { AuthConfig, RateLimitConfig } from '../types.js';
 import { authError } from './handlers/errors.js';
+import { type RateLimitKey, rateLimitFor } from './security-defaults.js';
 
 export interface RateLimitResult {
   allowed: boolean;
@@ -118,6 +119,49 @@ export function createRateLimiter(config: RateLimitConfig): RateLimiter {
  */
 export function makeRateLimiter(config: RateLimitConfig | undefined): RateLimiter | null {
   return config ? createRateLimiter(config) : null;
+}
+
+// One limiter per (config object, rate-limit key), for the whole process.
+//
+// Without this, every handler factory building a limiter from the same key gets
+// its own `Map` and the consumer's configured budget is multiplied by the number
+// of factories reading that key: measured 6 accepted requests across
+// verify-email + verify-email-change for a configured `verifyEmail.max` of 3.
+// A persistent `config.store` shares server-side regardless; this is what fixes
+// the in-memory default.
+//
+// **The constraint this buys is object identity.** The bucket lives exactly as
+// long as the `AuthConfig` object handed in — which is the object `createAuthDeps`
+// *returns*, and it returns a new one per call even from the same input literal.
+// So the rule is "call createAuthDeps once, at module scope", not "build the
+// config literal once": measured, one `createAuthDeps` lets 5 of 20 requests
+// through at max 5, while calling it per request lets 20 of 20 through. That
+// path also leaks the in-memory store's cleanup `setInterval` per (config, key) —
+// unref'd, so it does not hold the process open, but it is a live GC root for as
+// long as the config is reachable.
+//
+// Keyed on the whole `AuthConfig` rather than the `RateLimitConfig` slice because
+// the slice can be a shared module-level default object (`RATE_LIMIT_DEFAULTS`),
+// which would put unrelated apps — and unrelated tests — on one counter.
+const limiterCache = new WeakMap<object, Map<RateLimitKey, RateLimiter | null>>();
+
+/**
+ * The rate-limiter for one endpoint key, shared by every handler factory built
+ * from the same config object. Handlers use this instead of
+ * `makeRateLimiter(config.rateLimit?.key)`: it applies the secure default (see
+ * `rateLimitFor`) and it puts two factories reading one key on one counter.
+ */
+export function sharedLimiter<R extends string>(
+  config: AuthConfig<R>,
+  key: RateLimitKey
+): RateLimiter | null {
+  let byKey = limiterCache.get(config);
+  if (!byKey) {
+    byKey = new Map();
+    limiterCache.set(config, byKey);
+  }
+  if (!byKey.has(key)) byKey.set(key, makeRateLimiter(rateLimitFor(config, key)));
+  return byKey.get(key) ?? null;
 }
 
 /**
