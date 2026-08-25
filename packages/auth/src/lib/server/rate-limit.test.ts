@@ -1,11 +1,13 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import type { AuthConfig } from '../types.js';
 import {
   createInMemoryRateLimitStore,
   createRateLimiter,
   enforceRateLimit,
   makeRateLimiter,
   type RateLimitEntry,
-  type RateLimitStore
+  type RateLimitStore,
+  sharedLimiter
 } from './rate-limit.js';
 
 describe('makeRateLimiter', () => {
@@ -201,5 +203,49 @@ describe('createRateLimiter (injected custom store)', () => {
 
     const blocked = await limiter.check('z');
     expect(blocked.allowed).toBe(false);
+  });
+});
+
+describe('sharedLimiter', () => {
+  const config = (rateLimit?: AuthConfig['rateLimit']) =>
+    ({ appUrl: 'https://app.test', jwt: { secret: 's' }, rateLimit }) as AuthConfig;
+
+  // Two factories reading one key used to allocate one in-memory Map each, so a
+  // configured `max: 3` bought 3 requests at EACH endpoint.
+  it('hands the same limiter to every caller of one key on one config', () => {
+    const cfg = config({ verifyEmail: { windowMs: 60_000, max: 3 } });
+    expect(sharedLimiter(cfg, 'verifyEmail')).toBe(sharedLimiter(cfg, 'verifyEmail'));
+  });
+
+  it('spends one budget across two callers of the same key', async () => {
+    const cfg = config({ verifyEmail: { windowMs: 60_000, max: 3 } });
+    const a = sharedLimiter(cfg, 'verifyEmail');
+    const b = sharedLimiter(cfg, 'verifyEmail');
+    const allowed: boolean[] = [];
+    for (let i = 0; i < 2; i++) allowed.push((await a?.check('ip'))?.allowed ?? true);
+    for (let i = 0; i < 2; i++) allowed.push((await b?.check('ip'))?.allowed ?? true);
+    expect(allowed).toEqual([true, true, true, false]);
+  });
+
+  it('keeps different keys on different counters', () => {
+    const cfg = config();
+    expect(sharedLimiter(cfg, 'login')).not.toBe(sharedLimiter(cfg, 'register'));
+  });
+
+  // The constraint the WeakMap buys: the bucket lives as long as the config
+  // OBJECT. A consumer rebuilding the config per request gets a fresh bucket
+  // each time — i.e. no limiting at all.
+  it('gives a fresh counter to a fresh config object', () => {
+    expect(sharedLimiter(config(), 'login')).not.toBe(sharedLimiter(config(), 'login'));
+  });
+
+  it('applies the secure default for an unconfigured key', async () => {
+    const limiter = sharedLimiter(config(), 'resetPassword');
+    expect(limiter).not.toBeNull();
+    expect((await limiter?.check('ip'))?.remaining).toBe(9); // default max 10
+  });
+
+  it('returns null for the explicit rateLimit: null opt-out', () => {
+    expect(sharedLimiter(config(null), 'login')).toBeNull();
   });
 });

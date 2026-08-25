@@ -1,3 +1,5 @@
+import type { AuthLogger } from '../../types.js';
+import { shieldLogger } from '../logger.js';
 import { pushKeysEqual } from '../notifications/push-keys.js';
 import type {
   BackupCodeRepository,
@@ -304,6 +306,54 @@ function idSafeClient(client: PrismaLike): PrismaLike {
       return wrapped;
     }
   }) as PrismaLike;
+}
+
+/**
+ * Where a repository factory reports a Prisma client that lacks its model.
+ *
+ * Six of the optional factories answer a missing model with `undefined`, which
+ * is the right value — the feature is simply not wired — but it used to be the
+ * *whole* answer: no log line, no throw. What that costs varies per model and
+ * is spelled out at each call site; the two that nothing else reports are
+ * `pushSubscription` (every push send is skipped) and `notificationPreference`
+ * (every user's per-type channel choices are ignored, and notifications go out
+ * on all declared channels).
+ *
+ * Default sink is `console`, matching `config.logger ?? console` elsewhere;
+ * pass `{ logger }` to route it with the rest of the auth logs. Shielded,
+ * because a broken sink must not break wiring.
+ */
+export interface PrismaRepoOptions {
+  logger?: AuthLogger;
+}
+
+// Once per (client, model): a factory called per request must not turn one
+// misconfiguration into a log flood. The key is the client, NOT the sink — so
+// the first caller decides where the seven lines go, and a second consumer of
+// the same client (or a later call that finally passes `{ logger }`) sees
+// nothing. Wire the logger on the first call; the alternative, keying on the
+// sink too, would re-open the flood for anything that builds a logger per
+// request.
+const reportedMissingModels = new WeakMap<object, Set<string>>();
+
+function reportMissingModel(
+  client: PrismaLike,
+  factory: string,
+  model: string,
+  consequence: string,
+  options?: PrismaRepoOptions
+): undefined {
+  let seen = reportedMissingModels.get(client);
+  if (!seen) {
+    seen = new Set();
+    reportedMissingModels.set(client, seen);
+  }
+  if (seen.has(model)) return undefined;
+  seen.add(model);
+  shieldLogger(options?.logger ?? console).warn(
+    `[auth] ${factory}: the Prisma client has no \`${model}\` model, so ${consequence} Add the model from prisma/auth-schema.prisma and regenerate the client — or ignore this if the feature is deliberately not part of this deployment.`
+  );
+  return undefined;
 }
 
 export function createPrismaUserRepository<R extends string>(
@@ -682,11 +732,26 @@ export function createPrismaInvitationRepository(client: PrismaLike): Invitation
   };
 }
 
+/**
+ * Notification rows behind `<NotificationCenter>`. `undefined` when the client
+ * has no `notification` model — `createNotificationService` requires this repo
+ * (non-optional in `NotificationServiceDeps`), so wiring the bundle without the
+ * model is a type error rather than a silent drop.
+ */
 export function createPrismaNotificationRepository(
-  client: PrismaLike
+  client: PrismaLike,
+  repoOptions?: PrismaRepoOptions
 ): NotificationRepository | undefined {
   const prisma = idSafeClient(client);
-  if (!prisma.notification) return undefined;
+  if (!prisma.notification) {
+    return reportMissingModel(
+      client,
+      'createPrismaNotificationRepository',
+      'notification',
+      'the notification feature is not wired.',
+      repoOptions
+    );
+  }
   const notif = prisma.notification;
 
   return {
@@ -738,11 +803,27 @@ export function createPrismaNotificationRepository(
   };
 }
 
+/**
+ * Stored Web Push subscriptions. `undefined` when the client has no
+ * `pushSubscription` model — and this is one of the two absences nothing else
+ * reports: `createNotificationService` takes the repo optionally and simply
+ * skips the push branch, so every notification is delivered by SSE only, with
+ * no error anywhere.
+ */
 export function createPrismaPushSubscriptionRepository(
-  client: PrismaLike
+  client: PrismaLike,
+  repoOptions?: PrismaRepoOptions
 ): PushSubscriptionRepository | undefined {
   const prisma = idSafeClient(client);
-  if (!prisma.pushSubscription) return undefined;
+  if (!prisma.pushSubscription) {
+    return reportMissingModel(
+      client,
+      'createPrismaPushSubscriptionRepository',
+      'pushSubscription',
+      'web-push delivery is skipped for every notification (the DB row and the SSE event still happen).',
+      repoOptions
+    );
+  }
   const ps = prisma.pushSubscription;
 
   return {
@@ -805,11 +886,26 @@ export function createPrismaPushSubscriptionRepository(
   };
 }
 
+/**
+ * Per-user, per-type notification channel preferences. `undefined` when the
+ * client has no `notificationPreference` model — the second absence nothing
+ * else reports: the service falls back to `{ sse: true, push: true, email: true
+ * }` for every user, so a user who turned a channel off keeps receiving on it.
+ */
 export function createPrismaNotificationPreferenceRepository(
-  client: PrismaLike
+  client: PrismaLike,
+  repoOptions?: PrismaRepoOptions
 ): NotificationPreferenceRepository | undefined {
   const prisma = idSafeClient(client);
-  if (!prisma.notificationPreference) return undefined;
+  if (!prisma.notificationPreference) {
+    return reportMissingModel(
+      client,
+      'createPrismaNotificationPreferenceRepository',
+      'notificationPreference',
+      'per-user channel preferences are ignored and notifications go out on every channel the type declares.',
+      repoOptions
+    );
+  }
   const np = prisma.notificationPreference;
 
   return {
@@ -834,9 +930,25 @@ export function createPrismaNotificationPreferenceRepository(
   };
 }
 
-export function createPrismaPasskeyRepository(client: PrismaLike): PasskeyRepository | undefined {
+/**
+ * WebAuthn credential rows. `undefined` when the client has no `passkey` model;
+ * `createPasskeyHandlers` throws on a missing `repos.passkey`, so mounting the
+ * passkey routes without the model fails loudly at wiring time.
+ */
+export function createPrismaPasskeyRepository(
+  client: PrismaLike,
+  repoOptions?: PrismaRepoOptions
+): PasskeyRepository | undefined {
   const prisma = idSafeClient(client);
-  if (!prisma.passkey) return undefined;
+  if (!prisma.passkey) {
+    return reportMissingModel(
+      client,
+      'createPrismaPasskeyRepository',
+      'passkey',
+      'the passkey feature is not wired.',
+      repoOptions
+    );
+  }
   const pk = prisma.passkey;
 
   return {
@@ -901,11 +1013,28 @@ export function createPrismaPasskeyRepository(client: PrismaLike): PasskeyReposi
   };
 }
 
+/**
+ * Refresh-token families for rotation and the session listing. `undefined` when
+ * the client has no `refreshToken` model. With `config.refreshToken` set, both
+ * wiring entry points throw on the missing repo (`assertReposMatchConfig`), and
+ * the session-listing routes answer `feature_unavailable` 400 — so the absence
+ * is silent only when rotation was never configured, where there is nothing to
+ * rotate or revoke in the first place.
+ */
 export function createPrismaRefreshTokenRepository(
-  client: PrismaLike
+  client: PrismaLike,
+  repoOptions?: PrismaRepoOptions
 ): RefreshTokenRepository | undefined {
   const prisma = idSafeClient(client);
-  if (!prisma.refreshToken) return undefined;
+  if (!prisma.refreshToken) {
+    return reportMissingModel(
+      client,
+      'createPrismaRefreshTokenRepository',
+      'refreshToken',
+      'refresh-token rotation and the session listing are not wired.',
+      repoOptions
+    );
+  }
   const rt = prisma.refreshToken;
 
   return {
@@ -1048,11 +1177,25 @@ export function createPrismaFederatedAccountRepository(
   };
 }
 
+/**
+ * Hashed TOTP recovery codes. `undefined` when the client has no
+ * `twoFactorBackupCode` model; the 2FA handlers check the repo and answer a
+ * visible `feature_unavailable` 400, so the absence surfaces at request time.
+ */
 export function createPrismaBackupCodeRepository(
-  client: PrismaLike
+  client: PrismaLike,
+  repoOptions?: PrismaRepoOptions
 ): BackupCodeRepository | undefined {
   const prisma = idSafeClient(client);
-  if (!prisma.twoFactorBackupCode) return undefined;
+  if (!prisma.twoFactorBackupCode) {
+    return reportMissingModel(
+      client,
+      'createPrismaBackupCodeRepository',
+      'twoFactorBackupCode',
+      '2FA enable/verify answer `feature_unavailable` 400.',
+      repoOptions
+    );
+  }
   const bc = prisma.twoFactorBackupCode;
 
   return {
@@ -1307,21 +1450,38 @@ function mapNotificationPreference(row: NotificationPreferenceRow): Notification
   };
 }
 
-export function createPrismaRepos<R extends string>(prisma: PrismaLike): Repositories<R> {
+/**
+ * Every repository the package knows, from one client. Optional repos come back
+ * `undefined` when their model is absent, and each such absence is reported
+ * once through `options.logger` (default `console`) — see
+ * {@link PrismaRepoOptions}. Pass the same logger the auth config uses so
+ * wiring diagnostics land with the rest of the auth logs.
+ */
+export function createPrismaRepos<R extends string>(
+  prisma: PrismaLike,
+  repoOptions?: PrismaRepoOptions
+): Repositories<R> {
   return {
     user: createPrismaUserRepository<R>(prisma),
     invitation: createPrismaInvitationRepository(prisma),
-    notification: createPrismaNotificationRepository(prisma),
-    pushSubscription: createPrismaPushSubscriptionRepository(prisma),
-    notificationPreference: createPrismaNotificationPreferenceRepository(prisma),
-    passkey: createPrismaPasskeyRepository(prisma),
-    refreshToken: createPrismaRefreshTokenRepository(prisma),
-    backupCode: createPrismaBackupCodeRepository(prisma),
+    notification: createPrismaNotificationRepository(prisma, repoOptions),
+    pushSubscription: createPrismaPushSubscriptionRepository(prisma, repoOptions),
+    notificationPreference: createPrismaNotificationPreferenceRepository(prisma, repoOptions),
+    passkey: createPrismaPasskeyRepository(prisma, repoOptions),
+    refreshToken: createPrismaRefreshTokenRepository(prisma, repoOptions),
+    backupCode: createPrismaBackupCodeRepository(prisma, repoOptions),
     // Presence-gated here (unlike the throwing standalone factory): the bundle
     // is wired by every consumer, federated or not, so a missing model simply
-    // means "no federation" — same optionality as the other feature repos.
+    // means "no federation" — same optionality as the other feature repos, and
+    // reported the same way rather than being the one silent absence left.
     federatedAccount: prisma.federatedAccount
       ? createPrismaFederatedAccountRepository(prisma)
-      : undefined
+      : reportMissingModel(
+          prisma,
+          'createPrismaRepos',
+          'federatedAccount',
+          'consumer-side federation (createFederatedAuthHandle → resolveUser) has no link table.',
+          repoOptions
+        )
   };
 }

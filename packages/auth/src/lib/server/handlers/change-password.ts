@@ -2,7 +2,7 @@ import type { RequestHandler } from '@sveltejs/kit';
 import { json } from '@sveltejs/kit';
 import type { AuthDeps } from '../deps.js';
 import { hashPassword } from '../password.js';
-import { enforceRateLimit, makeRateLimiter } from '../rate-limit.js';
+import { enforceRateLimit, sharedLimiter } from '../rate-limit.js';
 import { establishSession, resolveSessionMeta } from '../session.js';
 import { validateChangePasswordInput } from '../validation.js';
 import {
@@ -22,7 +22,7 @@ import { authError } from './errors.js';
 export function createChangePasswordHandler<R extends string>(
   deps: AuthDeps<R>
 ): { POST: RequestHandler } {
-  const rateLimiter = makeRateLimiter(deps.config.rateLimit?.changePassword);
+  const rateLimiter = sharedLimiter(deps.config, 'changePassword');
 
   return {
     POST: async (event) => {

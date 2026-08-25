@@ -1,13 +1,13 @@
 import type { Cookies, RequestHandler } from '@sveltejs/kit';
 import { json } from '@sveltejs/kit';
-import type { RateLimitConfig } from '../../types.js';
 import type { PasskeyRepository } from '../adapters/types.js';
 import { sanitizeUser } from '../auth.js';
+import { isSecureDeployment } from '../cookie-policy.js';
 import type { AuthDeps } from '../deps.js';
 import { base64UrlDecode } from '../encoding.js';
 import { notifyHook, requireSessionUser } from '../handlers/_shared.js';
 import { authError } from '../handlers/errors.js';
-import { enforceRateLimit, makeRateLimiter, type RateLimiter } from '../rate-limit.js';
+import { enforceRateLimit, sharedLimiter } from '../rate-limit.js';
 import { establishSession, resolveSessionMeta } from '../session.js';
 import { readJsonBody } from '../validation.js';
 import { generateChallenge } from './challenge-store.js';
@@ -21,25 +21,6 @@ import {
   verifyRegistration,
   type WebAuthnConfig
 } from './webauthn.js';
-
-// Passkey authentication is two endpoints (options + verify) that form one
-// login flow. Building a separate in-memory limiter per handler would split
-// the per-IP budget in two — a consumer asking for "5 attempts" would get 5
-// against each endpoint, doubling the real allowance. Cache the limiter by the
-// identity of the `passkeyAuth` config object so both handlers built from the
-// same config share one counter. (A consumer who supplies a persistent
-// `store` shares server-side regardless; this fixes the in-memory default.)
-const passkeyAuthLimiters = new WeakMap<RateLimitConfig, RateLimiter | null>();
-
-function sharedPasskeyAuthLimiter(config: RateLimitConfig | undefined): RateLimiter | null {
-  if (!config) return null;
-  let limiter = passkeyAuthLimiters.get(config);
-  if (limiter === undefined) {
-    limiter = makeRateLimiter(config);
-    passkeyAuthLimiters.set(config, limiter);
-  }
-  return limiter;
-}
 
 // One warning per `WebAuthnConfig`: it describes the config, not the call. A
 // consumer who calls this factory from several route modules with one shared
@@ -58,9 +39,10 @@ const WEBAUTHN_AUTH_COOKIE = 'urbicon_webauthn_auth';
 // The `__Host-` prefix blocks a sibling/parent subdomain from shadowing the
 // handle via cookie-tossing. It mandates Secure + Path=/ + no Domain, so a
 // browser drops such a cookie over plain HTTP — use it only when the
-// deployment is HTTPS (`jwt.cookieSecure !== false`) and fall back to the bare
-// name for non-HTTPS dev. Both handlers derive `secure` from the same config,
-// so the set and the read always agree on the name.
+// deployment is HTTPS (`isSecureDeployment`) and fall back to the bare name for
+// non-HTTPS dev. Both handlers derive `secure` from the same predicate, so the
+// set and the read always agree on the name — across all three cookie configs,
+// not just `jwt`.
 function webauthnAuthCookieName(secure: boolean): string {
   return secure ? `__Host-${WEBAUTHN_AUTH_COOKIE}` : WEBAUTHN_AUTH_COOKIE;
 }
@@ -139,11 +121,17 @@ export function createPasskeyHandlers<R extends string>(
   // `tokenVersion`.
   const sessionUser = (cookies: Cookies) => requireSessionUser(deps, cookies);
 
+  // The ceremony core is deps-free, so hand it the resolved sink here rather
+  // than letting it fall back to bare `console`. Copied once at factory time:
+  // every handler below shares this object, so `challengeStore` identity and
+  // the ceremony config stay single.
+  const ceremony: WebAuthnConfig = { ...webauthn, logger: webauthn.logger ?? deps.logger };
+
   return {
-    registrationOptions: registrationOptionsHandler(deps, webauthn, passkeyRepo, sessionUser),
-    registrationVerify: registrationVerifyHandler(deps, webauthn, passkeyRepo, sessionUser),
-    authenticationOptions: authenticationOptionsHandler(deps, webauthn, passkeyRepo),
-    authenticationVerify: authenticationVerifyHandler(deps, webauthn, passkeyRepo),
+    registrationOptions: registrationOptionsHandler(deps, ceremony, passkeyRepo, sessionUser),
+    registrationVerify: registrationVerifyHandler(deps, ceremony, passkeyRepo, sessionUser),
+    authenticationOptions: authenticationOptionsHandler(deps, ceremony, passkeyRepo),
+    authenticationVerify: authenticationVerifyHandler(deps, ceremony, passkeyRepo),
     list: listHandler(passkeyRepo, sessionUser),
     item: deleteHandler(passkeyRepo, sessionUser)
   };
@@ -251,7 +239,7 @@ function authenticationOptionsHandler<R extends string>(
   webauthn: WebAuthnConfig,
   passkeyRepo: PasskeyRepository
 ): { POST: RequestHandler } {
-  const rateLimiter = sharedPasskeyAuthLimiter(deps.config.rateLimit?.passkeyAuth);
+  const rateLimiter = sharedLimiter(deps.config, 'passkeyAuth');
 
   return {
     POST: async ({ request, cookies, getClientAddress }) => {
@@ -289,7 +277,7 @@ function authenticationOptionsHandler<R extends string>(
       const ceremonyId = generateChallenge();
       const options = await generateAuthenticationOptions(webauthn, ceremonyId, credentialIds);
 
-      const secure = deps.config.jwt.cookieSecure !== false;
+      const secure = isSecureDeployment(deps.config);
       cookies.set(webauthnAuthCookieName(secure), ceremonyId, {
         path: '/',
         httpOnly: true,
@@ -315,7 +303,7 @@ function authenticationVerifyHandler<R extends string>(
   webauthn: WebAuthnConfig,
   passkeyRepo: PasskeyRepository
 ): { POST: RequestHandler } {
-  const rateLimiter = sharedPasskeyAuthLimiter(deps.config.rateLimit?.passkeyAuth);
+  const rateLimiter = sharedLimiter(deps.config, 'passkeyAuth');
 
   // Audit-seam parity with the password login: every
   // terminal outcome of a passkey login fires the same consumer hooks, so an
@@ -339,7 +327,7 @@ function authenticationVerifyHandler<R extends string>(
       // browser, or the cookie was stripped/expired. Fail closed (like a
       // missing challenge) before parsing the body or touching the credential
       // store, and never fall back to a user-keyed lookup.
-      const secure = deps.config.jwt.cookieSecure !== false;
+      const secure = isSecureDeployment(deps.config);
       const cookieName = webauthnAuthCookieName(secure);
       const ceremonyId = cookies.get(cookieName);
       if (!ceremonyId) {

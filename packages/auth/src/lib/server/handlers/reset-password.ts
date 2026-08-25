@@ -3,7 +3,7 @@ import { json } from '@sveltejs/kit';
 import { hashToken } from '../auth.js';
 import type { AuthDeps } from '../deps.js';
 import { hashPassword } from '../password.js';
-import { enforceRateLimit, makeRateLimiter } from '../rate-limit.js';
+import { enforceRateLimit, sharedLimiter } from '../rate-limit.js';
 import { validateResetPasswordInput } from '../validation.js';
 import { notifyHook, parseBody, passwordRefusal } from './_shared.js';
 import { authError } from './errors.js';
@@ -11,7 +11,7 @@ import { authError } from './errors.js';
 export function createResetPasswordHandler<R extends string>(
   deps: AuthDeps<R>
 ): { POST: RequestHandler } {
-  const rateLimiter = makeRateLimiter(deps.config.rateLimit?.resetPassword);
+  const rateLimiter = sharedLimiter(deps.config, 'resetPassword');
 
   return {
     POST: async ({ request, getClientAddress }) => {

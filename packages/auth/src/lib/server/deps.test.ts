@@ -3,6 +3,7 @@ import type { AuthConfig } from '../types.js';
 import { createInMemoryRefreshTokenRepository } from './adapters/in-memory.js';
 import { createAuthDeps } from './deps.js';
 import { generateES256KeyPair } from './jwt.js';
+import { lockoutFor, rateLimitFor } from './security-defaults.js';
 import { createMockInvitationRepository, createMockUserRepository } from './test-utils.js';
 
 function baseDeps(config: Partial<AuthConfig> & { jwt?: AuthConfig['jwt'] } = {}) {
@@ -51,7 +52,10 @@ describe('createAuthDeps security defaults', () => {
 
   it('warns and disables when rateLimit is explicitly null in production', () => {
     const deps = createAuthDeps(baseDeps({ rateLimit: null }));
-    expect(deps.config.rateLimit).toBeUndefined();
+    // `null`, not `undefined`: every handler reads the resolved config back
+    // through rateLimitFor, so a rate-limit opt-out has to survive re-resolution.
+    // `lockout` needs no such marker — see resolveRateLimits.
+    expect(deps.config.rateLimit).toBeNull();
     expect(warn).toHaveBeenCalledWith(
       expect.stringContaining('config.rateLimit is explicitly null')
     );
@@ -69,7 +73,7 @@ describe('createAuthDeps security defaults', () => {
     const deps = createAuthDeps(
       baseDeps({ jwt: { secret: 's', cookieSecure: false }, rateLimit: null, lockout: null })
     );
-    expect(deps.config.rateLimit).toBeUndefined();
+    expect(deps.config.rateLimit).toBeNull();
     expect(deps.config.lockout).toBeUndefined();
     expect(warn).not.toHaveBeenCalled();
   });
@@ -152,14 +156,18 @@ describe('createAuthDeps security defaults', () => {
     expect(deps.config.rateLimit?.twoFactor).toEqual({ windowMs: 1000, max: 3 });
   });
 
-  it('does NOT inject a twoFactor limiter when 2FA is not configured', () => {
+  it('injects the twoFactor limiter even when 2FA is not configured', () => {
+    // The default table has no conditional entries: a condition here would be a
+    // second hand-maintained list of exactly the kind the table removes, and the
+    // limiter is only ever built by the 2FA handlers anyway.
     const deps = createAuthDeps(baseDeps());
-    expect(deps.config.rateLimit?.twoFactor).toBeUndefined();
+    expect(deps.config.rateLimit?.twoFactor).toEqual({ windowMs: 15 * 60_000, max: 10 });
+    expect(deps.config.rateLimit?.twoFactorDisable).toEqual({ windowMs: 15 * 60_000, max: 5 });
   });
 
   it('warns when 2FA is wired but rate-limiting is opted out in production', () => {
     const deps = createAuthDeps(baseDeps({ twoFactor: { encryptionKey: 'k' }, rateLimit: null }));
-    expect(deps.config.rateLimit).toBeUndefined();
+    expect(deps.config.rateLimit).toBeNull();
     expect(warn).toHaveBeenCalledWith(
       expect.stringContaining('2FA verify endpoint is not rate-limited')
     );
@@ -177,8 +185,7 @@ describe('re-auth rate-limit defaults (R4)', () => {
     expect(deps.config.rateLimit?.changePassword).toEqual(expected);
     expect(deps.config.rateLimit?.changeEmail).toEqual(expected);
     expect(deps.config.rateLimit?.deleteAccount).toEqual(expected);
-    // Without 2FA there is no disable endpoint to protect.
-    expect(deps.config.rateLimit?.twoFactorDisable).toBeUndefined();
+    expect(deps.config.rateLimit?.twoFactorDisable).toEqual(expected);
   });
 
   it('injects the twoFactorDisable default when 2FA is wired', () => {
@@ -195,7 +202,7 @@ describe('re-auth rate-limit defaults (R4)', () => {
     expect(tuned.config.rateLimit?.changeEmail).toEqual({ windowMs: 15 * 60_000, max: 5 });
 
     const optedOut = createAuthDeps(baseDeps({ rateLimit: null }));
-    expect(optedOut.config.rateLimit).toBeUndefined();
+    expect(optedOut.config.rateLimit).toBeNull();
   });
 });
 
@@ -224,7 +231,7 @@ describe('forgot-password rate-limit default', () => {
 
   it('honours the global null opt-out (no forgotPassword limiter)', () => {
     const deps = createAuthDeps(baseDeps({ rateLimit: null }));
-    expect(deps.config.rateLimit).toBeUndefined();
+    expect(deps.config.rateLimit).toBeNull();
   });
 });
 
@@ -316,5 +323,120 @@ describe('JWT config validation (ES256 wiring)', () => {
       baseDeps({ jwt: { secret: 's', algorithm: 'ES256', signingKey: privateKey } })
     );
     expect(deps.config.jwt.algorithm).toBe('ES256');
+  });
+});
+
+describe('rate-limit defaults cover every declared key', () => {
+  // The default list is derived from the key set (`RATE_LIMIT_DEFAULTS` is typed
+  // `Record<RateLimitKey, …>`), so a key added to `AuthConfig.rateLimit` without
+  // a default is a compile error. This is the runtime half: the shipping config
+  // used to default 5 of the 12 keys, and register / resetPassword / verifyEmail
+  // / refresh / passkeyAuth got none under any config, with no warning.
+  it('injects a default for all twelve keys', () => {
+    const deps = createAuthDeps(baseDeps());
+    const limits = deps.config.rateLimit ?? {};
+    expect(Object.keys(limits).sort()).toEqual(
+      [
+        'changeEmail',
+        'changePassword',
+        'deleteAccount',
+        'forgotPassword',
+        'login',
+        'passkeyAuth',
+        'refresh',
+        'register',
+        'resetPassword',
+        'twoFactor',
+        'twoFactorDisable',
+        'verifyEmail'
+      ].sort()
+    );
+    for (const [key, value] of Object.entries(limits)) {
+      expect(value, key).toMatchObject({ windowMs: expect.any(Number), max: expect.any(Number) });
+    }
+  });
+
+  // Per-key opt-out: six keys gained a default that a consumer may not want (a
+  // shared office IP onboarding a batch now meets `register` at 10/15 min). The
+  // global `rateLimit: null` would take the login brake with it, so the opt-out
+  // has to be expressible per key.
+  it('honours a single key set to null without touching the others', () => {
+    const deps = createAuthDeps(baseDeps({ rateLimit: { register: null } }));
+    expect(deps.config.rateLimit?.register).toBeNull();
+    expect(rateLimitFor(deps.config, 'register')).toBeUndefined();
+    // Everything else keeps its default — including the login brake.
+    expect(deps.config.rateLimit?.login).toEqual({ windowMs: 15 * 60_000, max: 5 });
+    expect(Object.keys(deps.config.rateLimit ?? {})).toHaveLength(12);
+  });
+
+  it('treats an omitted key as absent, not as an opt-out', () => {
+    // `{ register: undefined }` is what a spread of an optional field produces;
+    // it must NOT read as a decision.
+    const deps = createAuthDeps(baseDeps({ rateLimit: { register: undefined } }));
+    expect(deps.config.rateLimit?.register).toEqual({ windowMs: 15 * 60_000, max: 10 });
+  });
+
+  it('still warns when the per-key opt-out is the login brake itself', () => {
+    const logger = { warn: vi.fn(), error: vi.fn() };
+    const deps = createAuthDeps(baseDeps({ logger, rateLimit: { login: null } }));
+    expect(deps.config.rateLimit?.login).toBeNull();
+    // Consumer engaged with rateLimit, so no lockout default backs it up.
+    expect(deps.config.lockout).toBeUndefined();
+    expect(logger.warn).toHaveBeenCalledWith(expect.stringContaining('exposed to brute force'));
+  });
+
+  // Merge, never replacement: a consumer who tunes exactly one key must not
+  // lose the other eleven.
+  it('keeps every other default when exactly one key is configured', () => {
+    const deps = createAuthDeps(
+      baseDeps({ rateLimit: { resetPassword: { windowMs: 1, max: 1 } } })
+    );
+    const limits = deps.config.rateLimit ?? {};
+    expect(limits.resetPassword).toEqual({ windowMs: 1, max: 1 });
+    expect(Object.keys(limits)).toHaveLength(12);
+    expect(limits.login).toEqual({ windowMs: 15 * 60_000, max: 5 });
+    expect(limits.refresh).toEqual({ windowMs: 60_000, max: 30 });
+  });
+
+  // Resolution has to be a fixed point: the resolved config is handed to
+  // createAuthHandle and the handler factories, which read it through the same
+  // accessors. A second pass must not re-decide anything.
+  it('is idempotent — re-resolving a resolved config changes nothing', () => {
+    for (const input of [{}, { rateLimit: null }, { lockout: null }, { rateLimit: {} }] as const) {
+      const once = createAuthDeps(baseDeps(input as never)).config;
+      const twice = createAuthDeps({ ...baseDeps(), config: once }).config;
+      expect(twice.rateLimit, JSON.stringify(input)).toEqual(once.rateLimit);
+      expect(twice.lockout, JSON.stringify(input)).toEqual(once.lockout);
+    }
+  });
+});
+
+describe('a hand-built AuthDeps is protected too', () => {
+  // `AuthDeps` is an exported type and the package expects consumers to build
+  // one (session.ts' defense-in-depth note). It never passed
+  // resolveSecurityDefaults, so the login endpoint used to run with
+  // `rateLimit=undefined lockout=undefined` — unthrottled and without lockout.
+  const handBuilt = {
+    logger: { warn: vi.fn(), error: vi.fn() },
+    config: { appUrl: 'https://app.test', jwt: { secret: 's' } } as AuthConfig,
+    repos: { user: createMockUserRepository(), invitation: createMockInvitationRepository() },
+    email: { send: vi.fn() }
+  };
+
+  it('gets the login rate-limit through the accessor', () => {
+    expect(rateLimitFor(handBuilt.config, 'login')).toEqual({ windowMs: 15 * 60_000, max: 5 });
+    expect(rateLimitFor(handBuilt.config, 'resetPassword')).toEqual({
+      windowMs: 15 * 60_000,
+      max: 10
+    });
+  });
+
+  it('gets the lockout through the accessor', () => {
+    expect(lockoutFor(handBuilt.config)).toEqual({ maxAttempts: 5, durationMinutes: 15 });
+  });
+
+  it('still honours the explicit opt-outs', () => {
+    expect(rateLimitFor({ ...handBuilt.config, rateLimit: null }, 'login')).toBeUndefined();
+    expect(lockoutFor({ ...handBuilt.config, lockout: null })).toBeUndefined();
   });
 });

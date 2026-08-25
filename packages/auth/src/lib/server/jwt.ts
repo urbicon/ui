@@ -10,6 +10,7 @@ import type {
   Es256PublicJwk,
   JwtConfig
 } from '../types.js';
+import { assertCookieSameSiteSecure } from './cookie-policy.js';
 import { parseDurationSeconds } from './duration.js';
 import {
   base64UrlDecode,
@@ -276,6 +277,8 @@ function warnOncePerConfig(
  *   → loud error-level warning, once: the keys are ignored and sessions stay
  *   HMAC-signed, which almost certainly means `algorithm: 'ES256'` was
  *   forgotten.
+ * - `cookieSameSite: 'none'` without `cookieSecure` → throw (browsers reject
+ *   the pair; see the note at the check itself).
  */
 export function assertJwtConfigValid(config: JwtConfig, logger: AuthLogger = console): void {
   // Algorithm-independent: a `__Host-`-prefixed cookie name and a cookieDomain
@@ -288,6 +291,12 @@ export function assertJwtConfigValid(config: JwtConfig, logger: AuthLogger = con
       '[auth] jwt.cookieDomain cannot be combined with a "__Host-"-prefixed jwt.cookieName — a browser rejects a __Host- cookie that carries a Domain attribute, so the session cookie would silently never be set.'
     );
   }
+  // Its sibling, on the same reasoning: setSessionCookie throws on this too,
+  // but only when the first login writes the cookie. Left there alone it is the
+  // worst shape a misconfiguration can take — `clearSessionCookie` never
+  // resolves `secure`, so logout keeps answering 200 and a deploy smoke test
+  // reports "auth routes respond" while the first real login 500s.
+  assertCookieSameSiteSecure('jwt', config.cookieSameSite, config.cookieSecure);
   if ((config.algorithm ?? 'HS256') === 'ES256') {
     const key = config.signingKey;
     if (!key) {

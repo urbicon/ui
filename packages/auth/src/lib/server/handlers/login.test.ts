@@ -110,7 +110,12 @@ describe('createLoginHandler', () => {
 
     const response = await handler.POST(event as unknown as RequestEvent);
     expect(response.status).toBe(401);
-    expect(deps.repos.user.recordFailedLogin).toHaveBeenCalledWith('user-1', undefined);
+    // The hand-built deps here configured no brute-force policy at all, and the
+    // lockout accessor defaults it — the same value createAuthDeps would inject.
+    expect(deps.repos.user.recordFailedLogin).toHaveBeenCalledWith('user-1', {
+      maxAttempts: 5,
+      durationMinutes: 15
+    });
   });
 
   it('should login successfully with correct credentials', async () => {
