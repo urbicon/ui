@@ -146,7 +146,24 @@
   // `fit="viewport"` turns the table into its own scroll container (see the
   // `contained` variant). Mutually exclusive with `virtualized`, which manages
   // its own bounded scroll via `virtualHeight`.
-  const contained = $derived(fit === 'viewport' && !virtualized);
+  //
+  // This is the only gate on the combination, and it does not write the input
+  // away — but `data-fit` below publishes the RESOLVED mode, so a consumer who
+  // asked for `viewport` and reaches for the documented `[data-fit='viewport']`
+  // rule finds it never matches. That is what the warning is for; without it
+  // the refusal is invisible in both the DOM and the console.
+  const contained = $derived.by(() => {
+    if (fit !== 'viewport') return false;
+    if (virtualized) {
+      if (import.meta.env?.DEV) {
+        console.warn(
+          '<Table fit="viewport" virtualized>: not supported — the virtualizer keeps its own bounded scroll (virtualHeight). Rendering the content profile; data-fit reports "content".'
+        );
+      }
+      return false;
+    }
+    return true;
+  });
 
   // Sticky pinning — resolve per-layer mode + provide reactive context.
   // `getMode` keeps the context live when `sticky`/`fit` change at runtime.
@@ -271,7 +288,9 @@
     {/if}
 
     {#if enableLiveUpdates}
-      <LiveUpdateBanner class={['mb-3', contained && 'md:shrink-0'].filter(Boolean).join(' ')} />
+      <LiveUpdateBanner
+        class={resolveSlotClass(tableStyles.containedChrome, undefined, unstyled, 'mb-3')}
+      />
     {/if}
 
     <TableDesktop
@@ -329,14 +348,18 @@
              mobile layout by the same CSS that owns the layout switch. -->
         <div
           inert={tableState.loading || undefined}
-          class={[
-            'transition-opacity',
-            tableState.loading && 'opacity-50',
-            contained && 'md:shrink-0',
-            tableContext.pageInfo.pagerScope === 'mobile-only' && tableStyles.mobileOnly()
-          ]
-            .filter(Boolean)
-            .join(' ')}
+          class={resolveSlotClass(
+            tableStyles.containedChrome,
+            undefined,
+            unstyled,
+            [
+              'transition-opacity',
+              tableState.loading && 'opacity-50',
+              tableContext.pageInfo.pagerScope === 'mobile-only' && tableStyles.mobileOnly()
+            ]
+              .filter(Boolean)
+              .join(' ')
+          )}
         >
           {#if pagination}
             {@render pagination()}

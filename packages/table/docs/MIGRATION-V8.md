@@ -10,12 +10,13 @@ Nothing about columns, cells, selection, virtualization, styling or snippets cha
 
 ## Already on 8.0?
 
-v9 tightens four things v8 shipped with. All are quick, and TypeScript names every call
-site that has to move. In plain JavaScript there is no compiler to do that, so the two
-changes that alter a *shape* — the dropped array arm and the required `processing` — throw
-on the first render with a message that names them. The two renames cannot: a
-`{ items, totalItems }` your query still returns simply leaves `total` undefined, and the
-pager reads "1 / NaN". Grep for `totalItems` before you run it.
+v9 tightens four things v8 shipped with, and deletes two CSS files that never did anything.
+All the API changes are quick, and TypeScript names every call site that has to move. In
+plain JavaScript there is no compiler to do that, so the two changes that alter a *shape* —
+the dropped array arm and the required `processing` — throw on the first render with a
+message that names them. The two renames cannot: a `{ items, totalItems }` your query still
+returns simply leaves `total` undefined, and the pager reads "1 / NaN". Grep for
+`totalItems` before you run it.
 
 **`source` is always an object.** The bare-array arm is gone: it resolved into exactly the
 same thing as `{ items }`, so "how do I pass rows?" had three correct answers and no rule
@@ -152,6 +153,21 @@ for what the reader asked for, `effectiveGroupBy` for what they are looking at.
 
 **`TableQueryResult` became `TablePage`.** With `TableQuery` gone (above) the old name was
 half of a pair whose other half no longer existed. Same shape, `{ items, total }`.
+
+**The two density theme files are gone.** `@urbicon-ui/table/style/themes/comfortable.css`
+and `…/compact.css` no longer exist, and the `./style/themes/*` export with them. Delete the
+`@import`; nothing replaces it, because nothing was there. Each file's whole body was seven
+`@theme` custom properties — `--table-row-height`, `--table-header-height`,
+`--table-cell-padding-x` / `-y`, `--filter-bar-height` / `-padding` / `-gap` — that no rule in
+the shipped CSS reads, so Tailwind tree-shook them and importing either file moved no pixel.
+`compact` hid it best: the 40px row it claimed is the *default* `md` row, so the import
+looked like it had taken. The seven base declarations are gone from `style/table-theme.css`
+too. If your own CSS referenced one, replace the reference with the literal you actually
+want: their values never described the table — the base `--table-row-height` said 3.5rem
+where an `md` row renders `h-10`, 40px.
+
+Density is the `size` prop — `sm` / `md` / `lg` on `<Table>` — which moves row height, header
+height and cell padding together.
 
 ## The shape of the change
 

@@ -376,11 +376,16 @@ export const groupHeaderVariants = tv({
  */
 export const summaryRowVariants = tv({
   slots: {
-    // No frame: a single 2px rule on the group-separating side (see `position`),
-    // colored per `variant` — mirrors the header's accent underline instead of
-    // boxing the row. tr borders render because the table is border-collapse.
-    row: ['font-semibold'],
-    cell: ['text-text-primary'],
+    // No frame: a single 2px rule on the top edge in the summary accent —
+    // mirrors the header's accent underline instead of boxing the row. tr
+    // borders render because the table is border-collapse.
+    //
+    // The accent and the edge are base classes, not axes. `SummaryRow.svelte`
+    // is the only renderer and it offers neither a color choice nor a side: the
+    // row is always the last child of the tbody, so the rule that separates it
+    // from the data always sits on top.
+    row: ['font-semibold', 'bg-summary-subtle', TABLE_BORDERS.color.summary, 'border-t-2'],
+    cell: ['text-summary'],
     // The spacer cells that mirror the row's structural columns (group indent,
     // selection, expand). Same split as `tableRowVariants`: those columns hold
     // a control, not content, so they keep the narrow step rather than a data
@@ -414,36 +419,11 @@ export const summaryRowVariants = tv({
         controlCell: [TABLE_DIMENSIONS.padding.controlCellX.lg, TABLE_DIMENSIONS.padding.cellY.lg],
         value: 'text-lg'
       }
-    },
-
-    variant: {
-      default: {
-        row: ['bg-surface-elevated', TABLE_BORDERS.color.default]
-      },
-      highlighted: {
-        row: ['bg-summary-subtle', TABLE_BORDERS.color.summary],
-        cell: 'text-summary'
-      },
-      group: {
-        row: ['bg-group-subtle', TABLE_BORDERS.color.group],
-        cell: 'text-group'
-      }
-    },
-
-    position: {
-      top: {
-        row: 'border-b-2'
-      },
-      bottom: {
-        row: 'border-t-2'
-      }
     }
   },
 
   defaultVariants: {
-    size: 'md',
-    variant: 'highlighted',
-    position: 'bottom'
+    size: 'md'
   }
 });
 

@@ -63,6 +63,29 @@ describe('createResetPasswordHandler', () => {
     expect(onPasswordChanged).toHaveBeenCalledWith('u-9');
   });
 
+  it('keeps a completed reset a 200 when the onPasswordChanged hook throws', async () => {
+    const deps = createMockAuthDeps({
+      config: {
+        hooks: { onPasswordChanged: vi.fn().mockRejectedValue(new Error('consumer hook exploded')) }
+      },
+      user: { consumeResetToken: vi.fn().mockResolvedValue(createMockUser({ id: 'u-9' })) }
+    });
+
+    const res = await createResetPasswordHandler(deps).POST(
+      event({ token: 'tok', password: 'a-good-password' })
+    );
+
+    // The token is spent and the new password is live; a 500 would tell the
+    // user their reset failed while their old password no longer works.
+    expect(res.status).toBe(200);
+    expect(deps.repos.user.updatePassword).toHaveBeenCalledWith('u-9', expect.any(String));
+    // Caught, never swallowed.
+    expect(deps.logger.error).toHaveBeenCalledWith(
+      expect.stringContaining('onPasswordChanged'),
+      expect.any(Error)
+    );
+  });
+
   it('single-use: a concurrent second claim of the same token is rejected', async () => {
     // Model the atomic claim: first call wins (returns the user), second loses.
     const consumeResetToken = vi

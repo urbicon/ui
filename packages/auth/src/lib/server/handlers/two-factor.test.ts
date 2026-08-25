@@ -230,6 +230,32 @@ describe('createTwoFactorHandlers — verify', () => {
     expect(ev._cookieStore.get('session')).toBeTruthy();
   });
 
+  it('keeps a completed 2FA login a 200 when the onLoginSuccess hook throws', async () => {
+    const user = createMockUser({
+      totpEnabled: true,
+      totpSecret: await encryptSecret(SECRET, ENC_KEY)
+    });
+    const deps = createMockAuthDeps({
+      config: {
+        twoFactor: { encryptionKey: ENC_KEY },
+        hooks: { onLoginSuccess: vi.fn().mockRejectedValue(new Error('consumer hook exploded')) }
+      },
+      user: { findById: vi.fn().mockResolvedValue(user) },
+      backupCode: createMockBackupCodeRepository()
+    });
+    const ev = await withPending(deps, { code: await currentCode() });
+
+    const res = await createTwoFactorHandlers(deps).verify.POST(as(ev));
+
+    // The session is established and the single-use pending cookie is spent.
+    expect(res.status).toBe(200);
+    expect(ev._cookieStore.get('session')).toBeTruthy();
+    expect(deps.logger.error).toHaveBeenCalledWith(
+      expect.stringContaining('onLoginSuccess'),
+      expect.any(Error)
+    );
+  });
+
   it('redeems a backup code when the TOTP code does not match', async () => {
     const user = createMockUser({
       totpEnabled: true,
