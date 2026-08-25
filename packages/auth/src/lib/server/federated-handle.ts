@@ -345,7 +345,9 @@ export function createFederatedAuthHandle<TUser>(
   // where the typo is fixable, not per request.
   const maxTokenAgeSeconds =
     options.maxTokenAge !== undefined ? parseDurationSeconds(options.maxTokenAge) : undefined;
-  const publicRoutes = options.publicRoutes ?? [];
+  // Snapshot, as on the IdP handle: a later push into the caller's array must
+  // not silently widen this guard.
+  const publicRoutes = [...(options.publicRoutes ?? [])];
   const allowUnauthenticatedRemote = options.allowUnauthenticatedRemote ?? false;
   const loginUrl = options.loginUrl;
 

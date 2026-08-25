@@ -17,19 +17,22 @@ export interface AuthHandleOptions<R extends string = string> {
    * Route prefixes exempt from the auth guard, matched with `startsWith`.
    *
    * **The list REPLACES the defaults; it does not extend them.** The defaults
-   * are `['/auth/login', '/auth/register', '/auth/forgot-password',
-   * '/auth/reset-password', '/auth/verify-email', '/api/auth/']` — exported as
-   * {@link DEFAULT_PUBLIC_ROUTES}, so an app that only wants to add its own
-   * public pages spreads them: `[...DEFAULT_PUBLIC_ROUTES, '/pricing']`.
+   * are {@link DEFAULT_PUBLIC_ROUTES}, exported so an app that only wants to
+   * add its own public pages can spread them:
+   * `[...DEFAULT_PUBLIC_ROUTES, '/pricing']`.
    *
-   * Dropping `'/api/auth/'` from the list locks out the app's own sign-in:
-   * every auth endpoint is then guarded, so an unauthenticated `POST
-   * /api/auth/login` gets `401 not_authenticated` instead of a session.
-   * Replacing wholesale is the right mode only for a handle scoped to routes
-   * that mount no auth endpoints at all.
+   * Dropping `'/api/auth/'` locks out the app's own sign-in: every auth
+   * endpoint is then guarded, so an unauthenticated `POST /api/auth/login`
+   * gets `401 not_authenticated` instead of a session. Replacing wholesale is
+   * the right mode only for a handle scoped to routes that mount no auth
+   * endpoints at all.
    *
-   * A prefix exempts everything below it, so `'/api/auth/'` makes every
-   * `/api/auth/*` sub-route public — keep app routes out from under it.
+   * Entries are prefixes, never exact matches: `'/api/auth/'` exempts every
+   * `/api/auth/*` sub-route, and `'/'` exempts the entire app — there is no
+   * way to publish a bare landing page without publishing everything under it.
+   *
+   * Read once, at construction: mutating the array afterwards does not move
+   * the guard.
    *
    * @default DEFAULT_PUBLIC_ROUTES
    */
@@ -66,8 +69,9 @@ export interface AuthHandleOptions<R extends string = string> {
 /**
  * The route prefixes `createAuthHandle` exempts from the guard when
  * `publicRoutes` is omitted. Spread it to extend rather than replace (see
- * {@link AuthHandleOptions.publicRoutes}). Frozen: it is one shared array
- * across every handle in the process, so a mutation would leak between them.
+ * {@link AuthHandleOptions.publicRoutes}). Frozen because it is exported: one
+ * array backs every handle that omits the option, so a `push` into it would
+ * widen the guard for all of them at once.
  */
 export const DEFAULT_PUBLIC_ROUTES: readonly string[] = Object.freeze([
   '/auth/login',
@@ -91,7 +95,9 @@ export function createAuthHandle<R extends string>(options: AuthHandleOptions<R>
   // wiring time — mirrored in createAuthDeps; hook and handler bundle are
   // wired independently, so both entry points must check.
   assertJwtConfigValid(config.jwt, logger);
-  const publicRoutes = options.publicRoutes ?? DEFAULT_PUBLIC_ROUTES;
+  // Snapshot: the array stays the caller's, and a later push into it must not
+  // silently widen this handle's guard.
+  const publicRoutes = [...(options.publicRoutes ?? DEFAULT_PUBLIC_ROUTES)];
   const allowUnauthenticatedRemote = options.allowUnauthenticatedRemote ?? false;
   const loginPage = config.routes?.loginPage ?? '/auth/login';
 

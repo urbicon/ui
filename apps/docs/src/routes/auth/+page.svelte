@@ -13,7 +13,7 @@
   ];
 
   const depsCode = `// src/lib/server/auth.ts
-import { createAuthDeps, createAuthHandle } from '@urbicon-ui/auth/server';
+import { createAuthDeps } from '@urbicon-ui/auth/server';
 import { createPrismaRepos } from '@urbicon-ui/auth/server/adapters/prisma';
 import { createLettermintTransport } from '@urbicon-ui/auth/server/email/lettermint';
 import { prisma } from '$lib/server/db';
@@ -21,12 +21,16 @@ import { env } from '$env/static/private';
 
 export const authDeps = createAuthDeps({
   config: {
+    // Required, and never derived from request.url — the Host header is
+    // attacker-controlled and would point reset links at their domain.
+    appUrl: env.APP_URL,
     jwt: { secret: env.JWT_SECRET },
     password: { minLength: 8 },
-    lockout: { maxAttempts: 5, durationMs: 15 * 60_000 }
+    lockout: { maxAttempts: 5, durationMinutes: 15 },
+    routes: { loginPage: '/auth/login' }
   },
   repos: createPrismaRepos(prisma),
-  email: createLettermintTransport({ apiKey: env.EMAIL_API_KEY })
+  email: createLettermintTransport({ token: env.LETTERMINT_TOKEN, from: 'noreply@example.com' })
 });`;
 
   const hookCode = `// src/hooks.server.ts
@@ -36,9 +40,10 @@ import { authDeps } from '$lib/server/auth';
 export const handle = createAuthHandle({
   config: authDeps.config,
   repos: authDeps.repos,
-  // publicRoutes REPLACES the defaults. Spreading them keeps the
-  // /api/auth/* endpoints exempt; without it, login answers 401.
-  publicRoutes: [...DEFAULT_PUBLIC_ROUTES, '/']
+  // publicRoutes REPLACES the defaults, so spread them in — without that the
+  // /api/auth/* endpoints below lose their exemption and login answers 401.
+  // Entries are startsWith prefixes: '/' here would exempt the whole app.
+  publicRoutes: [...DEFAULT_PUBLIC_ROUTES, '/pricing']
 });`;
 
   const handlersCode = `// Each auth flow needs a SvelteKit API route:
@@ -240,7 +245,8 @@ export const POST = createForgotPasswordHandler(authDeps);
 
   <Section id="setup" title="Setup Guide">
     <p class="text-text-secondary mb-4">
-      Integration requires three steps: configure dependencies, create API routes, and add UI pages.
+      Integration requires four steps: configure dependencies, add the hook, create API routes, and
+      add UI pages.
     </p>
 
     <h3 class="text-text-primary mb-2 text-lg font-semibold">1. Configure auth dependencies</h3>
