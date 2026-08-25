@@ -294,6 +294,23 @@
     />
   </section>
 
+  <!-- The same geometry at a size whose row height is fractional. `sm` rows are
+       34.5px, and an integer stride rounds that to 35 — half a pixel per row,
+       which over 2000 rows is a scroll space 1000px longer than its contents
+       (#14). The `md` fixture above cannot see it: its rows are exactly 40. -->
+  <section data-testid="table-virtual-sm" class="mb-16">
+    <h2 class="text-text-primary mb-4 text-lg font-semibold">Virtualized, size=sm</h2>
+    <Table
+      items={virtualRows}
+      {columns}
+      virtualized
+      size="sm"
+      virtualHeight="400px"
+      enableSmartFilter={false}
+      ariaLabel="Virtualized sm fixture table"
+    />
+  </section>
+
   <!-- Actions-column width budget, one table per size. The spec measures the
        rendered buttons, their gap and the cell inset in a real engine and holds
        the sum against the width the factory declares. -->

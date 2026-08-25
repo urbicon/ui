@@ -134,60 +134,162 @@ test.describe('Table core flows', () => {
   //
   // Only a browser can answer this, which is why it is here and not in the jsdom
   // suite: it compares a laid-out row against the scroll geometry.
-  test('virtualized rows are as tall as the scroll geometry assumes', async ({ page }) => {
-    await setupPage(page);
+  // Both virtualized fixtures, because the row height is only an integer by
+  // accident at `md`. At `sm` it is 34.5px, and everything below — the stride,
+  // the spacer, the pitch between neighbours — is where a rounded measurement
+  // shows up (#14).
+  for (const [testId, label] of [
+    ['table-virtual', 'md'],
+    ['table-virtual-sm', 'sm, fractional row height']
+  ] as const) {
+    test(`virtualized rows are as tall as the scroll geometry assumes (${label})`, async ({
+      page
+    }) => {
+      await setupPage(page);
 
-    const virtual = page.getByTestId('table-virtual');
-    const scroller = virtual.getByTestId('virtual-scroll-container');
+      const virtual = page.getByTestId(testId);
+      const scroller = virtual.getByTestId('virtual-scroll-container');
 
-    const geometry = await scroller.evaluate((el) => {
-      const spacer = el.firstElementChild as HTMLElement;
-      const rows = [...el.querySelectorAll<HTMLElement>('tbody tr')];
-      const tops = rows.map((r) => r.getBoundingClientRect().top);
-      const pitches = tops.slice(1).map((t, i) => t - tops[i]);
-      return {
-        rowCount: rows.length,
-        pitchCount: pitches.length,
-        // Compared with a tolerance below rather than rounded into a Set:
-        // rounding reports two pitches for one uniform table whenever the true
-        // pitch is fractional — a collapsed 0.5px border, a non-default root
-        // font size, a fractional device pixel ratio — and fails on a table
-        // that is in fact perfect. `?? 0` because `Math.min()` of nothing is
-        // `Infinity`, which would satisfy the spread assertion vacuously.
-        minPitch: pitches.length ? Math.min(...pitches) : 0,
-        maxPitch: pitches.length ? Math.max(...pitches) : 0,
-        rowHeight: rows[0]?.getBoundingClientRect().height ?? 0,
-        // The stride the virtualizer itself used, which is `offsetHeight` — an
-        // integer. The spacer is a multiple of THAT, so it has to be compared
-        // against that number and not against the fractional rect height:
-        // 2000 × a 0.4px difference is 800px of false alarm.
-        strideUsed: rows[0]?.offsetHeight ?? 0,
-        spacerHeight: spacer.getBoundingClientRect().height
-      };
+      const geometry = await scroller.evaluate((el) => {
+        const spacer = el.firstElementChild as HTMLElement;
+        // `tr[data-row-index]`, like the production code: a summary row shares
+        // this scroller in its own tbody, and a bare `tbody tr` would fold it
+        // into the pitch series as a row of a different height.
+        const rows = [...el.querySelectorAll<HTMLElement>('tbody tr[data-row-index]')];
+        const tops = rows.map((r) => r.getBoundingClientRect().top);
+        const pitches = tops.slice(1).map((t, i) => t - tops[i]);
+        return {
+          rowCount: rows.length,
+          pitchCount: pitches.length,
+          // Compared with a tolerance below rather than rounded into a Set:
+          // rounding reports two pitches for one uniform table whenever the true
+          // pitch is fractional — a collapsed 0.5px border, a non-default root
+          // font size, a fractional device pixel ratio — and fails on a table
+          // that is in fact perfect. `?? 0` because `Math.min()` of nothing is
+          // `Infinity`, which would satisfy the spread assertion vacuously.
+          minPitch: pitches.length ? Math.min(...pitches) : 0,
+          maxPitch: pitches.length ? Math.max(...pitches) : 0,
+          rowHeight: rows[0]?.getBoundingClientRect().height ?? 0,
+          // Deliberately NOT the production formula rewritten here. Recomputing
+          // `ceil(rows[1] rect)` would assert that the spacer is 2000 × what
+          // this file just worked out, which passes for any stride the two
+          // copies happen to share — verified: with the stride frozen after its
+          // first reading, that form still passed at a 16px root. The spacer is
+          // held against the *measured* pitch below instead, which is an
+          // independent reading of the same thing.
+          spacerHeight: spacer.getBoundingClientRect().height
+        };
+      });
+
+      // Enough rows to have something to compare — the fixture renders a window
+      // of ~18. Without this the pitch assertions pass over a list they never saw.
+      expect(geometry.rowCount).toBeGreaterThan(1);
+      expect(geometry.pitchCount).toBeGreaterThan(0);
+      // One pitch for every pair of rows, and it is the row's own height: no row
+      // overlaps its neighbour and none leaves a gap. The spread is allowed to
+      // be half a pixel and no more, because `border-collapse` gives the first
+      // and last rows one unshared border edge each — measured `[52.5, 53 × 11,
+      // 52.5]`, and identical at device pixel ratio 1, 2 and 3, so tying this
+      // to the ratio would only make it fail at 3 while passing junk at 1.
+      expect(geometry.maxPitch - geometry.minPitch).toBeLessThanOrEqual(0.5);
+      expect(Math.abs(geometry.minPitch - geometry.rowHeight)).toBeLessThanOrEqual(0.5);
+      // The scroll space has to hold 2000 rows at the pitch they actually have,
+      // and must not run away from it. The lower bound is the one that matters:
+      // below it the end of the list sits under the scroller, where no scroll
+      // position reaches it. The upper bound catches the opposite drift — a
+      // stride rounded up per row can only add a pixel a row.
+      expect(geometry.spacerHeight).toBeGreaterThanOrEqual(2000 * geometry.maxPitch);
+      expect(geometry.spacerHeight).toBeLessThan(2000 * (geometry.maxPitch + 1));
+
+      // Scrolled to the very end, the last row ends at the bottom of the
+      // viewport. This is the assertion the 208px strip failed.
+      //
+      // One pixel rather than exactly zero: rounding the stride up is what keeps
+      // the spacer taller than its rows, so a fractional row leaves that
+      // rounding as slack at the bottom. Measured 0 at `md` and 1 at `sm`,
+      // identical across viewports 1280–1920 and device pixel ratios 1–3, so
+      // one is the bound the readings support and not a round number picked for
+      // comfort. It matters that it is small: "less than one row" would tolerate
+      // a 3px-per-row stride error before saying anything, which is a 40px strip
+      // a reader would take for empty space. The defect this was written for was
+      // 208px, or 5.2 rendered rows.
+      //
+      // Negative is its own failure and a worse one: the last row then paints
+      // below the scroller and no scroll position reaches it.
+      const trailingGap = await scroller.evaluate(async (el) => {
+        el.scrollTop = el.scrollHeight;
+        await new Promise((resolve) => requestAnimationFrame(() => requestAnimationFrame(resolve)));
+        // `tr[data-row-index]`: a summary row shares this scroller in its own
+        // tbody, and a bare `tbody tr` would silently make it the "last row".
+        const rows = [...el.querySelectorAll<HTMLElement>('tbody tr[data-row-index]')];
+        const last = rows[rows.length - 1].getBoundingClientRect();
+        return Math.round(el.getBoundingClientRect().bottom - last.bottom);
+      });
+
+      expect(trailingGap).toBeGreaterThanOrEqual(0);
+      expect(trailingGap).toBeLessThanOrEqual(1);
     });
+  }
 
-    // Enough rows to have something to compare — the fixture renders a window
-    // of ~18. Without this the pitch assertions pass over a list they never saw.
-    expect(geometry.rowCount).toBeGreaterThan(1);
-    expect(geometry.pitchCount).toBeGreaterThan(0);
-    // One pitch for every pair of rows, and it is the row's own height: no row
-    // overlaps its neighbour and none leaves a gap.
-    expect(geometry.maxPitch - geometry.minPitch).toBeLessThan(0.5);
-    expect(Math.abs(geometry.minPitch - geometry.rowHeight)).toBeLessThan(0.5);
-    // The scroll space is exactly that stride per row — the fixture holds 2000.
-    expect(geometry.spacerHeight).toBe(2000 * geometry.strideUsed);
+  /**
+   * The stride has to cover the interior pitch, and at the default root font
+   * size it does so by accident.
+   *
+   * A row's height is `rem`-derived, so its fractional part moves with the root
+   * font size. At 16px the parts land on .5 and rounding to nearest happens to
+   * go up; at other sizes it goes down, the spacer comes up short, and the last
+   * row paints below a scroller no scroll position can reach. Measured before
+   * the fix: unreachable at five of the six sizes below, worst case 14.75px.
+   *
+   * Every assertion above runs at 16px only, which is why this is its own test
+   * rather than another line in the geometry spec.
+   */
+  test('the stride covers the interior pitch at any root font size', async ({ page }) => {
+    const readings: string[] = [];
+    for (const rootPx of [13, 14, 15, 16, 17, 18]) {
+      // A fresh page per size, which is the expensive part of this test and the
+      // reason it exists. Reusing one page lets an earlier iteration's spacer
+      // stay in the scroller's overflow, so `scrollTop = scrollHeight` reaches
+      // a bottom the current stride never described: measured, a stride frozen
+      // after its first reading — a total failure of the mechanism this test is
+      // named for — stays green on a shared page and is 35 to 83px negative on
+      // a fresh one.
+      await setupPage(page);
+      const gaps = await page.evaluate(async (px) => {
+        document.documentElement.style.fontSize = `${px}px`;
+        // The measuring effect re-reads on a resize; give it a frame plus the
+        // observer's turn before scrolling to the end it now describes. It
+        // settles in 18–26ms measured, so this is ~14× margin.
+        await new Promise((resolve) => setTimeout(resolve, 350));
+        const out: Record<string, number> = {};
+        for (const id of ['table-virtual', 'table-virtual-interactive', 'table-virtual-sm']) {
+          const root = document.querySelector(`[data-testid="${id}"]`);
+          if (!root) continue;
+          const scroller = root.querySelector<HTMLElement>(
+            '[data-testid="virtual-scroll-container"]'
+          );
+          if (!scroller) continue;
+          scroller.scrollTop = scroller.scrollHeight;
+          await new Promise((resolve) =>
+            requestAnimationFrame(() => requestAnimationFrame(resolve))
+          );
+          const rows = [...scroller.querySelectorAll<HTMLElement>('tbody tr')];
+          const last = rows[rows.length - 1].getBoundingClientRect();
+          out[id] = Number((scroller.getBoundingClientRect().bottom - last.bottom).toFixed(2));
+        }
+        return out;
+      }, rootPx);
 
-    // Scrolled to the very end, the last row ends at the bottom of the viewport.
-    // This is the assertion the 208px strip failed.
-    const trailingGap = await scroller.evaluate(async (el) => {
-      el.scrollTop = el.scrollHeight;
-      await new Promise((resolve) => requestAnimationFrame(() => requestAnimationFrame(resolve)));
-      const rows = [...el.querySelectorAll<HTMLElement>('tbody tr')];
-      const last = rows[rows.length - 1].getBoundingClientRect();
-      return Math.round(el.getBoundingClientRect().bottom - last.bottom);
-    });
-
-    expect(trailingGap).toBe(0);
+      for (const [id, gap] of Object.entries(gaps)) {
+        readings.push(`${rootPx}px ${id}: ${gap}`);
+        expect(
+          gap,
+          `At a ${rootPx}px root the last row of ${id} sits ${Math.abs(gap)}px below the ` +
+            'scroller, where no scroll position reaches it — the stride is shorter than the ' +
+            `distance between two rows. Readings so far: ${readings.join(' · ')}`
+        ).toBeGreaterThanOrEqual(0);
+      }
+    }
   });
 
   test('grouping renders headers in groupOrder with rows under their own group', async ({

@@ -183,10 +183,55 @@
   // because the container's height is pinned by `virtualHeight` so the observer
   // never fires. The list then strode five rows for every row it drew.
   //
-  // `offsetHeight`, not `getBoundingClientRect()`: an interactive row carries
-  // `active:scale-[0.995]`, and a rect measures the painted box, so measuring
-  // mid-press would shrink every row in the list by half a percent. The layout
-  // box ignores the transform.
+  // What the stride has to cover, and why none of the three obvious readings
+  // does it alone.
+  //
+  // The spacer is `count × stride`, so a stride below the distance from one row
+  // to the next puts the end of the list below the bottom of the scroller,
+  // where no scroll position can reach it. That distance is not the first row's
+  // height. Under `border-collapse: collapse` neighbours share their 1px
+  // `border-b`, so an interior row's border box is 0.5px taller than the first
+  // one: the interactive fixture measures `[52.5, 53 × 11, 52.5]` — identical
+  // at device pixel ratio 1, 2 and 3, so this is the collapsed border and not
+  // any kind of pixel snapping. `rows[0]` is structurally the one row that
+  // never shows the interior pitch, which is why the probe takes `rows[1]`.
+  //
+  // On top of that the value is rounded **up**, because `offsetHeight` rounds to
+  // nearest and half of a fractional pitch therefore rounds down into exactly
+  // the shortfall above. Measured over root font sizes 13–18px (2026-08-25),
+  // the previous `rows[0].offsetHeight` left the last row unreachable at five
+  // of six — worst case 14.75px below the scroller — while it happened to be
+  // correct at the default 16px. With the interior row and the ceiling every
+  // one of them is non-negative.
+  //
+  // Both readings, and the larger one. The rect supplies the fraction that
+  // `offsetHeight` rounds away; `offsetHeight` supplies the layout box for the
+  // two cases where the rect measures something else — a transform on the row,
+  // which a consumer can put there through `slotClasses.row`, and an
+  // environment that lays nothing out, where the rect is 0 and the assumed
+  // height has to survive.
+  //
+  // Not, as this comment claimed before it was measured, to survive a row
+  // pressed under `active:scale-[0.995]`. That class cannot reach a row:
+  // `tableRowVariants` is called with `state` and `size` only
+  // (`TableRow.svelte:126`), so the `interactive` variant carrying it never
+  // resolves and a pressed row measures `scale: none`. Under a transform the
+  // floor is not sufficient anyway — at a 17px root the sm pitch is 37.125
+  // against an `offsetHeight` of 37 — and a transformed row is outside what
+  // this virtualizer claims to handle.
+  //
+  // `rows[1]` is the *interior* row, not the correct row in general. Index 1 is
+  // as arbitrary as index 0 the moment rows differ in height: a second row that
+  // wraps to two lines inflates the stride for all of them (measured: one 69px
+  // row among 40px ones over 500 rows leaves a 290px band at the end). That
+  // direction is the survivable one — slack, not an unreachable end — and
+  // `computeVirtualItems` documents fixed-height rows as its premise. What
+  // index 1 buys is the collapsed-border half-pixel, which is structural and
+  // affects every table; a row that is genuinely taller than its neighbours is
+  // outside what this virtualizer claims to handle.
+  //
+  // The geometry spec in `e2e/table-core.spec.ts` runs over a fractional fixture
+  // as well as the integer one; before it did, none of this was visible.
   $effect(() => {
     // The inputs the observer below cannot see. `size` and a consumer's own row
     // class change the height without changing the container's.
@@ -205,16 +250,20 @@
     }
 
     const measure = () => {
-      const row = scrollContainerEl?.querySelector<HTMLElement>('tbody tr[data-row-index]');
+      const rows = scrollContainerEl?.querySelectorAll<HTMLElement>('tbody tr[data-row-index]');
+      // The second rendered row, per the note above; the first is the fallback
+      // for a window that holds only one.
+      const row = rows?.[1] ?? rows?.[0];
       // A row with no height is a row that has not been laid out yet (or a test
       // environment that lays nothing out) — keeping the previous value leaves
       // the derived starting height in place rather than dividing by zero.
       if (!row || row.offsetHeight === 0) return;
+      const stride = Math.max(row.offsetHeight, Math.ceil(row.getBoundingClientRect().height));
       // `untrack`: this reads the state it writes, purely to avoid a redundant
       // assignment. Tracked, it would make the effect its own dependency, so
       // every height change would tear the observer down and build a new one.
-      if (row.offsetHeight !== untrack(() => measuredRowHeight)) {
-        measuredRowHeight = row.offsetHeight;
+      if (stride !== untrack(() => measuredRowHeight)) {
+        measuredRowHeight = stride;
       }
     };
 
