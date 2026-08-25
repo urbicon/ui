@@ -245,14 +245,13 @@
                scroll (it drives the container's own height, so re-measuring on
                scroll would close the loop).
 
-               Measured inline in this very section: the first reading is
-               discarded as being below the viewport bottom, so the box renders
-               at the full window height (800px) inside a 624px reading column,
-               and after a resize it caps to whatever room was left at that
-               scroll position (480px at scrollY 6100) and keeps that number.
-               The frame gives the demo a document of its own, where the
-               assumption holds — and the frame's size is that document's
-               viewport, which is what makes the cap inside it a real one. -->
+               Inline in this very section nothing above the table is reserved
+               space — the article scrolls — so the reservation is 0 and the box
+               renders at the full window height (800px) inside a 624px reading
+               column, at every scroll position. The frame gives the demo a
+               document of its own, where the assumption holds — and the frame's
+               size is that document's viewport, which is what makes the cap
+               inside it a real one. -->
           <iframe
             src={resolve('/table/sticky-pinning/contained')}
             title="Contained scroll demo: a full-height list page"
