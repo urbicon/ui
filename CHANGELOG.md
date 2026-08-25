@@ -4,6 +4,37 @@ All notable changes to this project will be documented in this file.
 This changelog is automatically generated from [Conventional Commits](https://www.conventionalcommits.org).
 
 
+## [8.7.0] - 2026-08-25
+
+### Breaking Changes
+- **table**: Delete the density themes and ten tokens nothing reads (#306)
+> **BREAKING:** `@urbicon-ui/table/style/themes/comfortable.css` and `compact.css` no longer exist and the `./style/themes/*` export is gone. Importing either was a no-op; use the `size` prop for density. If your own CSS referenced one of the seven geometry variables, it is now undeclared — see MIGRATION-V8.md.
+- **auth**: Check the adapter promises the conformance suite let through (#305)
+- **auth**: Require user verification by default and keep backup codes reachable (#299)
+- **auth**: Report every misconfiguration at wiring time and default every rate-limit key (#307)
+> **BREAKING:** six rate-limit keys gained a default that did not exist (`register`, `resetPassword`, `verifyEmail`, `refresh`, `passkeyAuth`, and `twoFactor`/`twoFactorDisable` without `config.twoFactor`); a previously unlimited endpoint now answers 429. Opt out per key with `rateLimit: { <key>: null }`. The resolved config always carries every key: `deps.config.rateLimit` is `null` after `rateLimit: null` and an opted-out key is `null` inside the object.
+- **auth**: Bind the error contract to the union and give the password policy one home (#310)
+> **BREAKING:** `RegisterPage`'s five password-policy props are replaced by `passwordPolicy` and `policyPath`; `AuthLocale` gains `connectionLimit`, `csrfFailed`, `passkeyVerificationFailed`, and the password-requirement labels move from `auth.register.*` to `auth.passwordRequirements.*`.
+
+### Bug Fixes
+- **table**: Fit="viewport" applies at every width, and its refusal is loud (#302)
+- **table**: Sticky-measure writes one box, unrounded, and cannot collapse the table (#304)
+- **table**: Unstyled no longer strips the query container the layout switch needs (#311)
+- **auth**: Stop a throwing consumer hook from reporting a completed action as a 500 (#300)
+- **blocks,table**: The shipped stylesheets scan the whole library, not a list of folders (#314)
+- **auth**: Document publicRoutes as replacing, and clear the three self-serve adapter walls (#301)
+
+### Features
+- **auth**: Let failed-login counters decay and make three token lifetimes configurable (#303)
+
+### Refactoring
+- **table**: Remove six sticky declarations that cannot take effect (#309)
+- **table**: One declaration of the structural columns, not eight literals (#312)
+
+### Testing
+- **table**: Fit="viewport" gets a live demo, a mounting suite and an e2e spec (#313)
+- **auth**: First client-component tests, and mark the contract surface nobody drives (#308)
+
 ## [8.6.2] - 2026-08-25
 
 ### Bug Fixes

@@ -1,6 +1,6 @@
 {
   "name": "@urbicon-ui/sv",
-  "version": "8.6.2",
+  "version": "8.7.0",
   "description": "Svelte CLI (sv) community add-on for Urbicon UI — installs the blocks library and the urbicon CLI, wires the Tailwind 4 stylesheet, and hands over to the design-loop onboarding.",
   "license": "MIT",
   "repository": {
