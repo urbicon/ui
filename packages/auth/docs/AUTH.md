@@ -363,7 +363,7 @@ The interface JSDoc (`types.ts`) is authoritative; these are the invariants that
 | `passkey.updateCounter(id, n)`                                                           | CAS: bump only if stored `< n`; `false` if nothing advanced. `n === 0` → counterless, touch `lastUsedAt` only.                                                                                                                                                                                                                      | Cloned-authenticator detection.                                                              |
 | `notification.markAsRead`/`delete`, `pushSubscription.delete`, `passkey.delete`/`rename` | Scope every mutation to the owner `userId`. A non-owner call must not mutate (no-op **or** throw both fine).                                                                                                                                                                                                                        | IDOR — knowing an id/endpoint must not let an attacker touch another user's row.             |
 | `pushSubscription.create`                                                                | Upsert-by-`endpoint`: a row with the same endpoint is updated in place. Reassigning it to a *different* user is **key-gated**: only when the submitted keys equal the stored ones (constant-time on the decoded bytes) — otherwise return `'rejected'` without writing. Never fail on the unique endpoint.                          | Re-enabling push re-sends the browser's *existing* subscription (the duplicate POST is the normal case); key possession is what separates the legitimate user switch from an endpoint-URL takeover. |
-| `user.delete`                                                                            | Hard-delete plus dependents: rely on `onDelete: Cascade` for passkeys/tokens/notifications/subscriptions/preferences, but delete the invitations the user **sent** by hand (the `invitedBy` FK has no cascade), ideally in one transaction. Conformance pins the hand-written half.                                                 | GDPR erasure must not leave orphans; the sent-invitations half is the part every adapter writes itself. |
+| `user.delete`                                                                            | Hard-delete plus dependents: rely on `onDelete: Cascade` for passkeys/tokens/notifications/subscriptions/preferences/backup-codes/federated-links, and delete the invitations the user **sent** by hand as well (portable for a schema whose `invitedBy` FK has no cascade), ideally in one transaction. Conformance pins every dependent whose repository you declare — removed, not merely revoked.                                                 | GDPR erasure must not leave orphans; the sent-invitations half is the part every adapter writes itself. |
 
 The CAS/claim operations are why the interface returns `Promise<boolean>` (or the claimed entity) rather than `void`: the business logic in the core (`rotateRefreshToken`, the register/reset/verify handlers) reads that return value to detect a lost race. Implement each as a **single conditional statement** (`UPDATE … WHERE <still-claimable> RETURNING …`), never `SELECT` then `UPDATE` across an `await` — that gap is the race.
 
@@ -425,13 +425,16 @@ import { createMyAdapter } from './my-adapter';
 
 describeRepositoryConformance('my-adapter', {
   role: 'USER',
-  // Declare the optional repos you implement; the rest are reported skipped.
+  // All seven optional repos, `false` for the ones you do not implement — an
+  // omitted key reads as "not implemented" and drops its checks silently.
   capabilities: {
     refreshToken: true,
     passkey: true,
     notification: true,
     pushSubscription: true,
-    notificationPreference: true
+    notificationPreference: true,
+    backupCode: true, // set to false if you do not implement this
+    federatedAccount: true // set to false if you do not implement this
   },
   // MUST hand back a fresh, isolated repo set per check (wipe schema / new tx).
   setup: () => createMyAdapter(freshTestDatabase())
@@ -439,6 +442,8 @@ describeRepositoryConformance('my-adapter', {
 ```
 
 The suite drives each atomic claim under `Promise.all` concurrency, asserts exactly one winner, and checks every ownership scope. It is exactly what the shipped Prisma and in-memory adapters run against in CI — including a negative control proving a non-atomic adapter is _rejected_, so the checks have teeth.
+
+Read the suite title: it states how many checks ran out of how many, and names every repository you left undeclared. A check whose repository is undeclared is reported as skipped, so a short capability list is a green run that asserted less than you think — including `backupCode.consumeIfUnused`, whose single-use-under-concurrency guarantee is in the table above. `summarizeConformanceRun(harness)` returns the same numbers if you want to gate on them yourself.
 
 ### Worked example — a Drizzle adapter
 

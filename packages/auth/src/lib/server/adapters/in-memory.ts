@@ -49,30 +49,31 @@ import type {
  * fail the same suite — see `conformance.ts`.
  */
 export function createInMemoryRepos<R extends string = string>(): Repositories<R> {
-  const user = createInMemoryUserRepository<R>();
+  const user = createInMemoryUserStoreInternal<R>();
   const invitation = createInMemoryInvitationRepositoryInternal();
   const notification = createInMemoryNotificationRepository();
   const pushSubscription = createInMemoryPushSubscriptionRepository();
   const notificationPreference = createInMemoryNotificationPreferenceRepositoryInternal();
   const passkey = createInMemoryPasskeyRepository();
-  const refreshToken = createInMemoryRefreshTokenRepository();
+  const refreshToken = createInMemoryRefreshTokenRepositoryInternal();
   const backupCode = createInMemoryBackupCodeRepository();
   const federatedAccount = createInMemoryFederatedAccountRepositoryInternal();
 
   return {
     user: {
-      ...user,
+      ...user.repo,
       // The contract's delete-cascade MUST (types.ts): a relational adapter
       // gets the dependent rows via `onDelete: Cascade` plus an explicit
       // transaction for the invitations the user *sent*; this bundle models
       // the same end state across its sibling stores — without the
-      // transactional atomicity a relational adapter gets for free. (The
-      // standalone `createInMemoryUserRepository` cannot — it does not know
-      // them.)
+      // transactional atomicity a relational adapter gets for free. Erasure,
+      // so every dependent row is removed rather than made inert: a revoked
+      // refresh token still holds the `ip` and `userAgent` it was issued with.
       async delete(id) {
         invitation.deleteByInviter(id);
         notificationPreference.deleteByUser(id);
         federatedAccount.deleteByUser(id);
+        refreshToken.deleteByUser(id);
         for (const p of await passkey.findByUserId(id)) {
           await passkey.delete(id, p.credentialId);
         }
@@ -83,10 +84,7 @@ export function createInMemoryRepos<R extends string = string>(): Repositories<R
           await pushSubscription.delete(id, s.endpoint);
         }
         await backupCode.deleteAll(id);
-        // The contract has no hard-delete for refresh tokens; revoking every
-        // live token is the observable equivalent (nothing lists or rotates).
-        await refreshToken.revokeAllForUser(id);
-        await user.delete(id);
+        user.deleteRow(id);
       }
     },
     invitation: invitation.repo,
@@ -94,7 +92,7 @@ export function createInMemoryRepos<R extends string = string>(): Repositories<R
     pushSubscription,
     notificationPreference: notificationPreference.repo,
     passkey,
-    refreshToken,
+    refreshToken: refreshToken.repo,
     backupCode,
     federatedAccount: federatedAccount.repo
   };
@@ -102,7 +100,31 @@ export function createInMemoryRepos<R extends string = string>(): Repositories<R
 
 // --- User ------------------------------------------------------------------
 
-export function createInMemoryUserRepository<R extends string = string>(): UserRepository<R> {
+/**
+ * The user half of the in-memory adapter, minus `delete`.
+ *
+ * `UserRepository.delete` is GDPR erasure: it must take the rows that hang off
+ * the user with it (`types.ts`). Those rows live in the sibling stores, and no
+ * assembly of public repositories can reach them — `Invitation` projects
+ * `invitedById` away, so not even the invitations a deleted admin sent can be
+ * found through the contract. A store on its own therefore cannot carry the
+ * promise, and this type says so: it does not fit `Repositories['user']`, so a
+ * repo set hand-assembled from the single factories fails to compile instead
+ * of shipping an erasure that leaves those invitations redeemable.
+ * `createInMemoryRepos()` wires the stores together and is the complete
+ * `Repositories`.
+ */
+export type InMemoryUserStore<R extends string = string> = Omit<UserRepository<R>, 'delete'>;
+
+export function createInMemoryUserRepository<R extends string = string>(): InMemoryUserStore<R> {
+  return createInMemoryUserStoreInternal<R>().repo;
+}
+
+function createInMemoryUserStoreInternal<R extends string = string>(): {
+  repo: InMemoryUserStore<R>;
+  /** The user row alone; the bundle's `delete` pairs it with the dependents. */
+  deleteRow(id: string): void;
+} {
   const byId = new Map<string, FullAuthUser<R>>();
   const byEmail = new Map<string, string>(); // email → id (enforces @unique)
 
@@ -129,7 +151,14 @@ export function createInMemoryUserRepository<R extends string = string>(): UserR
     totpConfirmedAt: u.totpConfirmedAt ? new Date(u.totpConfirmedAt) : null
   });
 
-  return {
+  const deleteRow = (id: string): void => {
+    const u = byId.get(id);
+    if (!u) return;
+    byId.delete(id);
+    byEmail.delete(u.email);
+  };
+
+  const repo: InMemoryUserStore<R> = {
     async findById(id) {
       const u = byId.get(id);
       return u ? cloneUser(u) : null;
@@ -323,18 +352,6 @@ export function createInMemoryUserRepository<R extends string = string>(): UserR
       return cloneUser(u);
     },
 
-    async delete(id) {
-      // Removes the user row only: this standalone factory does not know its
-      // sibling stores. The contract's cross-repository cascade (invitations
-      // sent, passkeys, …) is modeled by `createInMemoryRepos`, which wires
-      // the stores together — mirroring how the Prisma adapter gets it from
-      // `onDelete: Cascade` plus the delete transaction.
-      const u = byId.get(id);
-      if (!u) return;
-      byId.delete(id);
-      byEmail.delete(u.email);
-    },
-
     async setTotpSecret(id, encryptedSecret) {
       const u = byId.get(id);
       if (u) {
@@ -361,6 +378,8 @@ export function createInMemoryUserRepository<R extends string = string>(): UserR
       }
     }
   };
+
+  return { repo, deleteRow };
 }
 
 // --- Invitation ------------------------------------------------------------
@@ -719,12 +738,11 @@ export function createInMemoryPasskeyRepository(): PasskeyRepository {
 
 // --- Refresh token -----------------------------------------------------------
 
-/**
- * In-memory default for `RefreshTokenRepository`. Suitable only for single-process
- * deployments and tests — production consumers should pass a persistent
- * implementation (Prisma, Redis, etc.) via `repos.refreshToken`.
- */
-export function createInMemoryRefreshTokenRepository(): RefreshTokenRepository {
+function createInMemoryRefreshTokenRepositoryInternal(): {
+  repo: RefreshTokenRepository;
+  /** Cascade seam for the bundle's `user.delete` — not part of the contract. */
+  deleteByUser(userId: string): void;
+} {
   const byId = new Map<string, RefreshTokenRecord>();
   const byHash = new Map<string, string>();
 
@@ -738,7 +756,7 @@ export function createInMemoryRefreshTokenRepository(): RefreshTokenRepository {
     createdAt: new Date(r.createdAt)
   });
 
-  return {
+  const repo: RefreshTokenRepository = {
     async create(data: CreateRefreshTokenData): Promise<RefreshTokenRecord> {
       const record: RefreshTokenRecord = {
         id: randomUUID(),
@@ -836,6 +854,27 @@ export function createInMemoryRefreshTokenRepository(): RefreshTokenRepository {
       }
     }
   };
+
+  return {
+    repo,
+    deleteByUser(userId) {
+      for (const [id, record] of byId) {
+        if (record.userId === userId) {
+          byId.delete(id);
+          byHash.delete(record.tokenHash);
+        }
+      }
+    }
+  };
+}
+
+/**
+ * In-memory default for `RefreshTokenRepository`. Suitable only for single-process
+ * deployments and tests — production consumers should pass a persistent
+ * implementation (Prisma, Redis, etc.) via `repos.refreshToken`.
+ */
+export function createInMemoryRefreshTokenRepository(): RefreshTokenRepository {
+  return createInMemoryRefreshTokenRepositoryInternal().repo;
 }
 
 // --- Two-factor backup codes -----------------------------------------------

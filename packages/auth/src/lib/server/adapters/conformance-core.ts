@@ -1,6 +1,6 @@
 import type { RefreshTokenConfig } from '../../types.js';
 import { issueRefreshToken, rotateRefreshToken } from '../refresh-token.js';
-import type { Repositories } from './types.js';
+import type { Passkey, Repositories } from './types.js';
 
 /**
  * # Adapter conformance suite
@@ -24,7 +24,15 @@ import type { Repositories } from './types.js';
  *
  * describeRepositoryConformance('my-adapter', {
  *   role: 'USER',
- *   capabilities: { refreshToken: true, passkey: true, notification: true },
+ *   capabilities: {
+ *     refreshToken: true,
+ *     passkey: true,
+ *     notification: true,
+ *     pushSubscription: true,
+ *     notificationPreference: true,
+ *     backupCode: true,
+ *     federatedAccount: true
+ *   },
  *   setup: () => createMyAdapter(freshTestDatabase())
  * });
  * ```
@@ -33,7 +41,12 @@ import type { Repositories } from './types.js';
  * suite calls it once per check and assumes no shared state between checks
  * (wipe the schema, use a fresh transaction, or hand back new in-memory maps).
  * `capabilities` gates the optional-repository checks: a check whose required
- * repos you do not declare is reported as skipped rather than failing.
+ * repos you do not declare is reported as skipped rather than failing. List
+ * every optional repository and set the ones you do not implement to `false` —
+ * an omitted key reads as "not implemented" and silently drops its checks. The
+ * suite title states how many checks ran and which repositories were left
+ * undeclared, so a truncated list is visible in the output rather than only in
+ * its absence.
  *
  * ## Before the first run: your id columns
  *
@@ -129,7 +142,14 @@ const it = Object.assign(
 );
 const expect = (actual: any, message?: string): any => currentRunner().expect(actual, message);
 
-/** Optional repositories an adapter may implement; gates the matching checks. */
+/**
+ * Optional repositories an adapter may implement; gates the matching checks.
+ *
+ * Every key is optional so a harness can grow into the list, which makes an
+ * omission indistinguishable from a `false`. Declare all seven — the ones you
+ * do not implement as `false` — and read the suite title, which names whatever
+ * stayed undeclared.
+ */
 export interface ConformanceCapabilities {
   refreshToken?: boolean;
   passkey?: boolean;
@@ -150,7 +170,11 @@ export interface ConformanceHarness<R extends string = string> {
   teardown?(repos: Repositories<R>): void | Promise<void>;
   /** The role value used when the suite seeds users. */
   role: R;
-  /** Optional repositories this adapter implements (others' checks skip). */
+  /**
+   * Optional repositories this adapter implements (others' checks skip).
+   * List all seven, `false` for the ones you do not implement — see
+   * {@link ConformanceCapabilities}.
+   */
   capabilities?: ConformanceCapabilities;
 }
 
@@ -240,11 +264,11 @@ async function seedUser(repos: Repositories, role: string, label = 'u') {
  * Every dependent row a check inserts — a refresh token, a passkey, a
  * notification — must point at a user that actually exists. A synthetic literal
  * (`'owner'`) works only against a store with no referential integrity, which
- * is what the shipped in-memory adapter and the Prisma fake are; against a real
- * relational schema (`prisma/auth-schema.prisma` puts `onDelete: Cascade` on
- * all eight dependent models — the seven `userId` ones plus `Invitation`, whose
- * FK is `invitedById`) the insert fails with a foreign-key violation, and the
- * check reports an adapter bug that is not there.
+ * the shipped in-memory adapter is; against a real relational schema
+ * (`prisma/auth-schema.prisma` puts `onDelete: Cascade` on all eight dependent
+ * models — the seven `userId` ones plus `Invitation`, whose FK is
+ * `invitedById`) the insert fails with a foreign-key violation, and the check
+ * reports an adapter bug that is not there.
  *
  * This applies to the non-owner of an ownership-scope assertion too. A literal
  * (`'attacker'`) is not merely unnecessary there, it weakens the check twice
@@ -469,6 +493,26 @@ export const conformanceChecks: readonly ConformanceCheck[] = [
     }
   ),
 
+  check('user.setEmailChangeToken overwrites an in-flight change', [], async (repos, h) => {
+    // One pending change per user (types.ts). An adapter that inserts beside an
+    // existing request instead of replacing it leaves the first link alive and
+    // the second unusable — the shape a mistyped address takes: correcting it
+    // sends a link that answers "invalid" until the first one expires.
+    const user = await seedUser(repos, h.role, 'ec-overwrite');
+    const typo = `typo-${nextSeed()}@conformance.test`;
+    const corrected = `corrected-${nextSeed()}@conformance.test`;
+
+    await repos.user.setEmailChangeToken(user.id, typo, 'ec-hash-typo', futureDate());
+    await repos.user.setEmailChangeToken(user.id, corrected, 'ec-hash-corrected', futureDate());
+
+    expect(
+      await repos.user.consumeEmailChangeToken('ec-hash-typo'),
+      'the superseded token is dead'
+    ).toBeNull();
+    const claimed = await repos.user.consumeEmailChangeToken('ec-hash-corrected');
+    expect(claimed?.email, 'the latest request is the one in flight').toBe(corrected);
+  }),
+
   // -- User: profile update + delete --------------------------------------
   check('user.updateProfile patches only the provided fields', [], async (repos, h) => {
     const user = await seedUser(repos, h.role);
@@ -489,13 +533,12 @@ export const conformanceChecks: readonly ConformanceCheck[] = [
   }),
 
   check('user.delete cascades the invitations the user sent', [], async (repos, h) => {
-    // The one dependent the contract makes every adapter delete BY HAND: the
-    // `invitedBy` relation has no schema-level cascade, so the Prisma adapter
-    // pairs `invitation.deleteMany({ invitedById })` with the user delete in a
-    // transaction (and the in-memory bundle mirrors it). The other dependents
-    // (passkeys, tokens, …) ride on `onDelete: Cascade` — a schema guarantee
-    // this store-agnostic suite cannot observe, so it pins exactly the
-    // hand-written half.
+    // The dependent the contract makes every adapter delete BY HAND: the
+    // `invitedBy` relation is the one a schema may leave uncascaded, so the
+    // Prisma adapter pairs `invitation.deleteMany({ invitedById })` with the
+    // user delete in a transaction (and the in-memory bundle mirrors it). The
+    // remaining dependents are pinned by `user.delete erases the dependents of
+    // every declared repository` below.
     const inviter = await seedUser(repos, h.role, 'inviter');
     const other = await seedUser(repos, h.role, 'other');
     const doomedEmail = `invitee-${nextSeed()}@conformance.test`;
@@ -517,6 +560,141 @@ export const conformanceChecks: readonly ConformanceCheck[] = [
     expect(await repos.user.findById(other.id), 'unrelated user untouched').not.toBeNull();
   }),
 
+  check(
+    'user.delete erases the dependents of every declared repository',
+    // Deliberately ungated: the check asserts exactly the repositories the
+    // harness declared, so it says as much as the adapter offers instead of
+    // splitting into seven checks that a partial adapter would only ever skip.
+    [],
+    async (repos, h) => {
+      // `delete` is GDPR erasure (types.ts): every dependent row goes, whether
+      // the adapter gets that from `onDelete: Cascade` or writes it by hand.
+      // Each row below carries personal data — a device name, a user agent, an
+      // ip, a push endpoint — so a surviving one is the erasure failing while
+      // the user row is gone and nothing is left to point at it.
+      const caps = h.capabilities;
+      const [owner, keeper] = await seedUserIds(repos, h.role, 'erase', 'erase-keep');
+      const ISSUER = 'https://idp.conformance.test';
+
+      if (caps?.refreshToken) {
+        const repo = need(repos.refreshToken, 'refreshToken');
+        const tok = (userId: string, tokenHash: string) =>
+          repo.create({
+            userId,
+            tokenHash,
+            family: `fam-${tokenHash}`,
+            expiresAt: futureDate(),
+            userAgent: 'Mozilla/5.0 (conformance)',
+            ip: '203.0.113.7'
+          });
+        await tok(owner, 'erase-rt');
+        await tok(keeper, 'keep-rt');
+      }
+      if (caps?.passkey) {
+        const repo = need(repos.passkey, 'passkey');
+        const cred = (userId: string, credentialId: string) =>
+          repo.create(userId, {
+            credentialId,
+            publicKey: new Uint8Array([1, 2, 3]),
+            publicKeyAlg: -7,
+            counter: 0,
+            aaguid: 'aaguid',
+            name: 'Home laptop'
+          });
+        await cred(owner, 'erase-pk');
+        await cred(keeper, 'keep-pk');
+      }
+      if (caps?.notification) {
+        const repo = need(repos.notification, 'notification');
+        await repo.create({ userId: owner, typeKey: 'security', title: 'New login' });
+        await repo.create({ userId: keeper, typeKey: 'security', title: 'New login' });
+      }
+      if (caps?.pushSubscription) {
+        const repo = need(repos.pushSubscription, 'pushSubscription');
+        await repo.create(owner, {
+          endpoint: 'https://push.test/erase',
+          keys: { p256dh: 'cDE', auth: 'YTE' }
+        });
+        await repo.create(keeper, {
+          endpoint: 'https://push.test/keep',
+          keys: { p256dh: 'cDI', auth: 'YTI' }
+        });
+      }
+      if (caps?.notificationPreference) {
+        const repo = need(repos.notificationPreference, 'notificationPreference');
+        await repo.upsert(owner, 'security', { push: false });
+        await repo.upsert(keeper, 'security', { push: false });
+      }
+      if (caps?.backupCode) {
+        const repo = need(repos.backupCode, 'backupCode');
+        await repo.createMany(owner, ['erase-code']);
+        await repo.createMany(keeper, ['keep-code']);
+      }
+      if (caps?.federatedAccount) {
+        const repo = need(repos.federatedAccount, 'federatedAccount');
+        await repo.linkFederatedAccount(owner, { issuer: ISSUER, subject: 'erase-sub' });
+        await repo.linkFederatedAccount(keeper, { issuer: ISSUER, subject: 'keep-sub' });
+      }
+
+      await repos.user.delete(owner);
+
+      if (caps?.refreshToken) {
+        const repo = need(repos.refreshToken, 'refreshToken');
+        // Removed, not revoked: a revoked row still holds the ip and the user
+        // agent it was issued with, which is the part erasure is about.
+        expect(await repo.findByHash('erase-rt'), 'refresh token removed').toBeNull();
+        expect(await repo.findByHash('keep-rt'), 'another user’s token survives').not.toBeNull();
+      }
+      if (caps?.passkey) {
+        const repo = need(repos.passkey, 'passkey');
+        expect(await repo.findByCredentialId('erase-pk'), 'passkey removed').toBeNull();
+        expect(
+          await repo.findByCredentialId('keep-pk'),
+          'another user’s passkey survives'
+        ).not.toBeNull();
+      }
+      if (caps?.notification) {
+        const repo = need(repos.notification, 'notification');
+        expect(await repo.findByUser(owner), 'notifications removed').toEqual([]);
+        expect(await repo.findByUser(keeper), 'another user’s notification survives').toHaveLength(
+          1
+        );
+      }
+      if (caps?.pushSubscription) {
+        const repo = need(repos.pushSubscription, 'pushSubscription');
+        expect(await repo.findByUser(owner), 'push subscriptions removed').toEqual([]);
+        expect(await repo.findByUser(keeper), 'another user’s subscription survives').toHaveLength(
+          1
+        );
+      }
+      if (caps?.notificationPreference) {
+        const repo = need(repos.notificationPreference, 'notificationPreference');
+        expect(await repo.findByUser(owner), 'notification preferences removed').toEqual([]);
+        expect(await repo.findByUser(keeper), 'another user’s preference survives').toHaveLength(1);
+      }
+      if (caps?.backupCode) {
+        const repo = need(repos.backupCode, 'backupCode');
+        expect(await repo.consumeIfUnused(owner, 'erase-code'), 'backup codes removed').toBe(false);
+        expect(
+          await repo.consumeIfUnused(keeper, 'keep-code'),
+          'another user’s code survives'
+        ).toBe(true);
+      }
+      if (caps?.federatedAccount) {
+        const repo = need(repos.federatedAccount, 'federatedAccount');
+        expect(
+          await repo.findByFederatedId(ISSUER, 'erase-sub'),
+          'federated link removed'
+        ).toBeNull();
+        expect(
+          await repo.findByFederatedId(ISSUER, 'keep-sub'),
+          'another user’s link survives'
+        ).not.toBeNull();
+      }
+      expect(await repos.user.findById(keeper), 'the bystander is untouched').not.toBeNull();
+    }
+  ),
+
   // -- User: plain writes persist (happy paths) ----------------------------
   check('user.updatePassword persists the new hash', [], async (repos, h) => {
     const user = await seedUser(repos, h.role);
@@ -529,6 +707,42 @@ export const conformanceChecks: readonly ConformanceCheck[] = [
     expect((await repos.user.findById(user.id))?.emailVerified).toBe(false);
     await repos.user.setEmailVerified(user.id);
     expect((await repos.user.findById(user.id))?.emailVerified, 'flag set').toBe(true);
+  }),
+
+  check('user.create stores the verification token it was handed', [], async (repos, h) => {
+    // Registration mints the token inside the insert, so `create` is the second
+    // writer of these two columns next to `setVerificationToken`. Nothing reads
+    // them back off the created row (`create` returns the public `AuthUser`),
+    // so an adapter that writes only the columns the rest of the suite
+    // exercises leaves every account unverifiable and every check green.
+    const live = nextSeed();
+    const created = await repos.user.create({
+      email: `create-vt-${live}@conformance.test`,
+      name: 'Conformance User',
+      passwordHash: 'x',
+      role: h.role,
+      verificationToken: `create-vt-${live}`,
+      verificationTokenExpires: futureDate()
+    });
+    const claimed = await repos.user.consumeVerificationToken(`create-vt-${live}`);
+    expect(claimed?.id, 'the token minted at create is claimable').toBe(created.id);
+    expect(claimed?.emailVerified, 'and the claim verifies the account').toBe(true);
+
+    // The expiry is the other half: stored as null it never expires, so a
+    // registration link stays valid forever.
+    const stale = nextSeed();
+    await repos.user.create({
+      email: `create-vt-${stale}@conformance.test`,
+      name: 'Conformance User',
+      passwordHash: 'x',
+      role: h.role,
+      verificationToken: `create-vt-${stale}`,
+      verificationTokenExpires: pastDate()
+    });
+    expect(
+      await repos.user.consumeVerificationToken(`create-vt-${stale}`),
+      'an already-expired token from create is refused'
+    ).toBeNull();
   }),
 
   // -- User: TOTP secret lifecycle ----------------------------------------
@@ -805,6 +1019,77 @@ export const conformanceChecks: readonly ConformanceCheck[] = [
     }
   ),
 
+  check(
+    'refreshToken.revoke records the successor it was given',
+    ['refreshToken'],
+    async (repos, h) => {
+      const repo = need(repos.refreshToken, 'refreshToken');
+      const [owner] = await seedUserIds(repos, h.role, 'rt-succ');
+      const tok = (tokenHash: string) =>
+        repo.create({ userId: owner, tokenHash, family: 'fam-succ', expiresAt: futureDate() });
+      const predecessor = await tok('rt-succ-old');
+      const successor = await tok('rt-succ-new');
+
+      // `replacedById` is what separates a rotation race from token theft: the
+      // grace window in `rotateRefreshToken` only holds for a revoked token
+      // that names its successor. Dropped, the everyday case — two requests
+      // firing the moment the access cookie expires — reads as reuse and takes
+      // the whole family down with it.
+      expect(await repo.revoke(predecessor.id, successor.id), 'the live token is revoked').toBe(
+        true
+      );
+      const rotated = await repo.findByHash('rt-succ-old');
+      expect(rotated?.revokedAt, 'and stamped').toBeInstanceOf(Date);
+      expect(rotated?.replacedById, 'the successor is persisted').toBe(successor.id);
+
+      const solo = await tok('rt-succ-solo');
+      expect(await repo.revoke(solo.id), 'a revoke without a successor still wins').toBe(true);
+      expect((await repo.findByHash('rt-succ-solo'))?.replacedById, 'and records none').toBeNull();
+    }
+  ),
+
+  check(
+    'refreshToken.create round-trips the session metadata',
+    ['refreshToken'],
+    async (repos, h) => {
+      const repo = need(repos.refreshToken, 'refreshToken');
+      const [owner] = await seedUserIds(repos, h.role, 'rt-meta');
+      const agent = 'Mozilla/5.0 (conformance)';
+
+      // The session list is the only place a user can tell their own devices
+      // apart and revoke the one they do not recognise. Dropped here, every
+      // row reads the same, and rotation replaces the row that still had them.
+      const created = await repo.create({
+        userId: owner,
+        tokenHash: 'rt-meta',
+        family: 'fam-meta',
+        expiresAt: futureDate(),
+        userAgent: agent,
+        ip: '203.0.113.7'
+      });
+      expect(created.userAgent, 'create echoes the user agent').toBe(agent);
+      expect(created.ip, 'create echoes the ip').toBe('203.0.113.7');
+
+      const stored = await repo.findByHash('rt-meta');
+      expect(stored?.userAgent, 'the user agent was written').toBe(agent);
+      expect(stored?.ip, 'the ip was written').toBe('203.0.113.7');
+      const [listed] = await repo.listActiveByUser(owner);
+      expect(listed?.userAgent, 'the session list reads it back').toBe(agent);
+      expect(listed?.ip, 'the session list reads it back').toBe('203.0.113.7');
+
+      // Both columns are optional; omitted, they read back as null (the
+      // `sessions.storeIp` opt-out is exactly this case).
+      const bare = await repo.create({
+        userId: owner,
+        tokenHash: 'rt-meta-bare',
+        family: 'fam-meta-bare',
+        expiresAt: futureDate()
+      });
+      expect(bare.userAgent, 'omitted user agent → null').toBeNull();
+      expect(bare.ip, 'omitted ip → null').toBeNull();
+    }
+  ),
+
   // -- RefreshToken: session listing + scoped revokes ---------------------
   check(
     'refreshToken.listActiveByUser returns only the caller’s live tokens',
@@ -986,6 +1271,119 @@ export const conformanceChecks: readonly ConformanceCheck[] = [
     expect((await repo.findByCredentialId('cred-1'))?.name, 'owner can rename').toBe('My laptop');
   }),
 
+  // -- Passkey: stored credential + owner-scoped listing -------------------
+  check(
+    'passkey.create round-trips the credential’s key material',
+    ['passkey'],
+    async (repos, h) => {
+      const repo = need(repos.passkey, 'passkey');
+      const [owner] = await seedUserIds(repos, h.role, 'pk-material');
+      // A pattern no lossy conversion survives: a NUL, the 0x7f/0x80 boundary,
+      // and a byte above it. Assertion verification reads these bytes back
+      // verbatim, so registration succeeding says nothing about login working.
+      const publicKey = new Uint8Array([0x00, 0x7f, 0x80, 0xff, 0x10]);
+      const data = {
+        credentialId: 'cred-material',
+        publicKey,
+        publicKeyAlg: -257,
+        counter: 3,
+        transports: ['internal', 'hybrid'],
+        aaguid: '00000000-0000-0000-0000-000000000001',
+        name: 'Home laptop'
+      };
+      const created = await repo.create(owner, data);
+
+      const assertMaterial = (stored: Passkey | null | undefined, where: string) => {
+        expect(Array.from(stored?.publicKey ?? []), `${where}: public key bytes`).toEqual(
+          Array.from(publicKey)
+        );
+        expect(stored?.publicKeyAlg, `${where}: COSE algorithm`).toBe(-257);
+        expect(stored?.counter, `${where}: counter`).toBe(3);
+        expect(stored?.aaguid, `${where}: aaguid`).toBe(data.aaguid);
+        expect(stored?.name, `${where}: name`).toBe('Home laptop');
+        expect(stored?.userId, `${where}: owner`).toBe(owner);
+        // Sorted: the contract fixes the members, not their order.
+        expect([...(stored?.transports ?? [])].sort(), `${where}: transports`).toEqual([
+          'hybrid',
+          'internal'
+        ]);
+      };
+
+      assertMaterial(created, 'create');
+      assertMaterial(await repo.findByCredentialId('cred-material'), 'findByCredentialId');
+      assertMaterial((await repo.findByUserId(owner))[0], 'findByUserId');
+    }
+  ),
+
+  check(
+    'passkey.findByUserId lists only the owner’s credentials',
+    ['passkey'],
+    async (repos, h) => {
+      const repo = need(repos.passkey, 'passkey');
+      const [owner, other] = await seedUserIds(repos, h.role, 'pk-list', 'pk-list-other');
+      const cred = (userId: string, credentialId: string) =>
+        repo.create(userId, {
+          credentialId,
+          publicKey: new Uint8Array([1, 2]),
+          publicKeyAlg: -7,
+          counter: 0,
+          aaguid: 'aaguid',
+          name: 'Home laptop'
+        });
+      await cred(owner, 'cred-own-a');
+      await cred(owner, 'cred-own-b');
+      await cred(other, 'cred-foreign');
+
+      // This listing is both the passkey manager's rows (credential id, device
+      // name, aaguid) and the `allowCredentials` of a login challenge, so an
+      // unfiltered query hands every signed-in user everyone else's devices.
+      // Order is not part of the contract and is therefore not asserted.
+      expect(
+        (await repo.findByUserId(owner)).map((p) => p.credentialId).sort(),
+        'exactly the owner’s credentials'
+      ).toEqual(['cred-own-a', 'cred-own-b']);
+      expect(
+        (await repo.findByUserId(other)).map((p) => p.credentialId),
+        'and no one else’s'
+      ).toEqual(['cred-foreign']);
+
+      const ghost = await retiredUserId(repos, h.role, 'pk-list-ghost');
+      expect(await repo.findByUserId(ghost), 'a user with no credentials → []').toEqual([]);
+    }
+  ),
+
+  check('passkey.updateCounter records the last use', ['passkey'], async (repos, h) => {
+    const repo = need(repos.passkey, 'passkey');
+    const [owner] = await seedUserIds(repos, h.role, 'pk-lastused');
+    const cred = (credentialId: string, counter: number) =>
+      repo.create(owner, {
+        credentialId,
+        publicKey: new Uint8Array([1]),
+        publicKeyAlg: -7,
+        counter,
+        aaguid: 'aaguid'
+      });
+    await cred('cred-counting', 4);
+    await cred('cred-counterless', 0);
+
+    // Both branches of updateCounter touch `lastUsedAt` (types.ts). It is what
+    // the passkey manager shows next to each device, and the only thing that
+    // tells three enrolled keys apart when one has to go.
+    expect(await repo.updateCounter('cred-counting', 5), 'the CAS advances').toBe(true);
+    expect(
+      (await repo.findByCredentialId('cred-counting'))?.lastUsedAt,
+      'a counter bump stamps lastUsedAt'
+    ).toBeInstanceOf(Date);
+
+    expect(await repo.updateCounter('cred-counterless', 0), 'the counterless touch wins').toBe(
+      true
+    );
+    expect(
+      (await repo.findByCredentialId('cred-counterless'))?.lastUsedAt,
+      'a counterless authenticator is stamped too'
+    ).toBeInstanceOf(Date);
+  }),
+
   // -- Notification: ownership scope --------------------------------------
   check(
     'notification.markAsRead / delete are scoped to the owner',
@@ -1007,6 +1405,32 @@ export const conformanceChecks: readonly ConformanceCheck[] = [
 
       await repo.markAsRead(owner, n.id);
       expect((await repo.findByUser(owner))[0]?.readAt, 'owner can read').toBeInstanceOf(Date);
+    }
+  ),
+
+  check(
+    'notification.markAsRead keeps the first read timestamp',
+    ['notification'],
+    async (repos, h) => {
+      const repo = need(repos.notification, 'notification');
+      const [owner] = await seedUserIds(repos, h.role, 'nt-first-stamp');
+      const n = await repo.create({ userId: owner, typeKey: 'security', title: 'New login' });
+
+      await repo.markAsRead(owner, n.id);
+      const first = (await repo.findByUser(owner))[0]?.readAt;
+      expect(first, 'the first call stamps').toBeInstanceOf(Date);
+
+      // The route is idempotent, so the repeat is the normal case — a second
+      // open tab, a retry. `readAt` is serialized to the client as the moment
+      // the user read the notification; re-stamping rewrites that to "just
+      // now". A guard-less UPDATE only shows it where two writes land in
+      // different milliseconds, hence the wait.
+      await new Promise((resolve) => setTimeout(resolve, 10));
+      await repo.markAsRead(owner, n.id);
+      expect(
+        (await repo.findByUser(owner))[0]?.readAt?.getTime(),
+        'a repeat call leaves the stamp alone'
+      ).toBe(first?.getTime());
     }
   ),
 
@@ -1501,9 +1925,80 @@ export interface ConformanceOptions {
   skip?: string[];
 }
 
+/** What a run against a given harness will and will not execute. */
+export interface ConformanceRunSummary {
+  /** Every check the suite defines. */
+  readonly total: number;
+  /** Checks that will execute against this harness. */
+  readonly running: number;
+  /** Checks skipped because their repository was not declared. */
+  readonly skippedUndeclared: number;
+  /** Checks skipped by `options.only` / `options.skip`. */
+  readonly skippedByOption: number;
+  /**
+   * The optional repositories some check needs and this harness did not
+   * declare, alphabetically. Set by the capability list alone, so it survives
+   * a release that adds checks — unlike the counts beside it.
+   */
+  readonly undeclared: readonly (keyof ConformanceCapabilities)[];
+}
+
+type PlannedCheck = {
+  readonly check: ConformanceCheck;
+  readonly skipped: 'undeclared' | 'option' | null;
+};
+
+/**
+ * Decide, once, what happens to every check — so the reported summary and the
+ * registered tests cannot disagree.
+ */
+function planConformanceRun(
+  harness: ConformanceHarness,
+  options?: ConformanceOptions
+): { plan: PlannedCheck[]; summary: ConformanceRunSummary } {
+  const undeclared = new Set<keyof ConformanceCapabilities>();
+  const plan = conformanceChecks.map((entry): PlannedCheck => {
+    const missing = entry.requires.filter((r) => !harness.capabilities?.[r]);
+    for (const repo of missing) undeclared.add(repo);
+    if (missing.length > 0) return { check: entry, skipped: 'undeclared' };
+    const excluded =
+      options?.skip?.includes(entry.name) === true ||
+      (options?.only != null && !options.only.includes(entry.name));
+    return { check: entry, skipped: excluded ? 'option' : null };
+  });
+
+  return {
+    plan,
+    summary: {
+      total: plan.length,
+      running: plan.filter((p) => p.skipped === null).length,
+      skippedUndeclared: plan.filter((p) => p.skipped === 'undeclared').length,
+      skippedByOption: plan.filter((p) => p.skipped === 'option').length,
+      undeclared: [...undeclared].sort()
+    }
+  };
+}
+
+/**
+ * What {@link describeRepositoryConformance} would run for this harness,
+ * without registering anything — the same numbers it puts in the suite title.
+ * Useful in a gate of your own ("no repository may go undeclared").
+ */
+export function summarizeConformanceRun(
+  harness: ConformanceHarness,
+  options?: ConformanceOptions
+): ConformanceRunSummary {
+  return planConformanceRun(harness, options).summary;
+}
+
 /**
  * Register the full conformance suite for `harness` under a `describe` block.
  * Capability-gated checks the harness does not declare are reported as skipped.
+ *
+ * The suite title carries the summary — how many of the checks run, and which
+ * repositories were left undeclared. An incomplete capability list is the one
+ * way to pass this suite without it having said anything, and it produces no
+ * failure to notice; the title is what makes it legible in the run output.
  */
 export function describeRepositoryConformance(
   name: string,
@@ -1511,13 +2006,9 @@ export function describeRepositoryConformance(
   options?: ConformanceOptions
 ): void {
   if (options?.runner) setConformanceRunner(options.runner);
-  describe(`adapter conformance: ${name}`, () => {
-    for (const c of conformanceChecks) {
-      const capable = c.requires.every((r) => harness.capabilities?.[r]);
-      const skipped =
-        !capable ||
-        options?.skip?.includes(c.name) ||
-        (options?.only && !options.only.includes(c.name));
+  const { plan, summary } = planConformanceRun(harness, options);
+  describe(conformanceSuiteTitle(name, summary), () => {
+    for (const { check: c, skipped } of plan) {
       if (skipped) {
         it.skip(c.name, () => {});
       } else {
@@ -1525,4 +2016,16 @@ export function describeRepositoryConformance(
       }
     }
   });
+}
+
+/** The suite title: the adapter's name plus what this run actually covers. */
+function conformanceSuiteTitle(name: string, summary: ConformanceRunSummary): string {
+  const parts = [`${summary.running}/${summary.total} checks`];
+  if (summary.skippedUndeclared > 0) {
+    parts.push(
+      `${summary.skippedUndeclared} skipped — undeclared: ${summary.undeclared.join(', ')}`
+    );
+  }
+  if (summary.skippedByOption > 0) parts.push(`${summary.skippedByOption} skipped by only/skip`);
+  return `adapter conformance: ${name} · ${parts.join(' · ')}`;
 }

@@ -9,6 +9,7 @@ import {
   createInMemoryRepos,
   createInMemoryUserRepository
 } from './in-memory.js';
+import type { Repositories } from './types.js';
 
 /**
  * Happy-path / wiring smoke tests for the in-memory adapter. The systematic
@@ -30,65 +31,17 @@ describe('createInMemoryRepos', () => {
     expect(repos.federatedAccount).toBeDefined();
   });
 
-  // The invitation half of the cascade is pinned adapter-agnostically by the
-  // conformance suite; the sibling stores ride on `onDelete: Cascade` for the
-  // Prisma adapter and can only be observed here, against the bundle that
-  // hand-models them (test-coverage review, package 6).
-  it('bundle user.delete cascades across every sibling store', async () => {
-    const repos = createInMemoryRepos();
-    const u = await repos.user.create({
-      email: 'ghost@cascade.test',
-      name: 'Ghost',
-      passwordHash: 'x',
-      role: 'USER'
-    });
-    await repos.passkey!.create(u.id, {
-      credentialId: 'cred-cascade',
-      publicKey: new Uint8Array([1]),
-      publicKeyAlg: -7,
-      counter: 0,
-      aaguid: 'a'
-    });
-    await repos.notification!.create({ userId: u.id, typeKey: 'security', title: 't' });
-    await repos.pushSubscription!.create(u.id, {
-      endpoint: 'https://push.test/cascade',
-      keys: { p256dh: 'p', auth: 'a' }
-    });
-    await repos.notificationPreference!.upsert(u.id, 'security', { push: false });
-    await repos.backupCode!.createMany(u.id, ['bc-hash']);
-    await repos.refreshToken!.create({
-      userId: u.id,
-      tokenHash: 'rt-cascade',
-      family: 'fam',
-      expiresAt: new Date(Date.now() + 60_000)
-    });
-    await repos.federatedAccount!.linkFederatedAccount(u.id, {
-      issuer: 'https://idp.test',
-      subject: 'idp-cascade'
-    });
-
-    await repos.user.delete(u.id);
-
-    expect(await repos.user.findById(u.id), 'user row gone').toBeNull();
-    expect(await repos.passkey!.findByCredentialId('cred-cascade'), 'passkeys gone').toBeNull();
-    expect(await repos.notification!.findByUser(u.id), 'notifications gone').toHaveLength(0);
-    expect(await repos.pushSubscription!.findByUser(u.id), 'subscriptions gone').toHaveLength(0);
-    expect(await repos.notificationPreference!.findByUser(u.id), 'preferences gone').toHaveLength(
-      0
-    );
-    expect(await repos.backupCode!.consumeIfUnused(u.id, 'bc-hash'), 'backup codes gone').toBe(
-      false
-    );
-    // The contract has no refresh-token hard delete; revoked is the
-    // observable equivalent (nothing lists or rotates a revoked token).
-    expect(
-      (await repos.refreshToken!.findByHash('rt-cascade'))?.revokedAt,
-      'refresh tokens revoked'
-    ).toBeInstanceOf(Date);
-    expect(
-      await repos.federatedAccount!.findByFederatedId('https://idp.test', 'idp-cascade'),
-      'federated links gone'
-    ).toBeNull();
+  it('a repo set assembled from the single factories cannot take the user store', () => {
+    // The cascade needs the sibling stores, so a store on its own cannot carry
+    // `delete` (see InMemoryUserStore). Losing this compile error is losing the
+    // guard: the assembled set would ship a delete that leaves the invitations
+    // of a deleted admin redeemable.
+    const assembled = {
+      // @ts-expect-error — InMemoryUserStore has no `delete`; Repositories does.
+      user: createInMemoryUserRepository(),
+      invitation: createInMemoryInvitationRepository()
+    } satisfies Repositories;
+    expect(assembled.user).toBeDefined();
   });
 });
 

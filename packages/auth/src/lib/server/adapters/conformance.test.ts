@@ -4,8 +4,10 @@
 // to hide, so `any` is the pragmatic, intentional choice here.
 
 import { randomUUID } from 'node:crypto';
+import { readFileSync } from 'node:fs';
 import { describe, expect, it, vi } from 'vitest';
 import {
+  type ConformanceCapabilities,
   type ConformanceHarness,
   conformanceChecks,
   describeRepositoryConformance
@@ -18,7 +20,10 @@ import {
 } from './prisma.js';
 import type { FullAuthUser, UserRepository } from './types.js';
 
-const ALL_CAPS = {
+// `Required`, not `as const`: a capability added to the interface has to be
+// declared here or this file stops compiling — the one thing an omitted key
+// otherwise does silently is drop its checks.
+const ALL_CAPS: Required<ConformanceCapabilities> = {
   refreshToken: true,
   passkey: true,
   notification: true,
@@ -26,7 +31,7 @@ const ALL_CAPS = {
   notificationPreference: true,
   backupCode: true,
   federatedAccount: true
-} as const;
+};
 
 // === 1. The shipped in-memory adapter must pass every check ================
 
@@ -249,8 +254,34 @@ function makeTable(opts: {
   };
 }
 
+/**
+ * The `onDelete: Cascade` relations the reference schema puts on `User`, read
+ * out of the schema itself: `[delegate name, foreign-key column]`.
+ *
+ * The adapter leaves these deletes to the database, so this is the half of
+ * `user.delete` the fake has to supply: without it every dependent row is still
+ * there afterwards, and the erasure check reports an adapter defect that is not
+ * in the adapter. Deriving the list from `auth-schema.prisma` rather than
+ * restating it is what keeps a model added there from being absent here.
+ */
+function cascadingUserRelations(): [string, string][] {
+  const schema = readFileSync(
+    new URL('../../../../prisma/auth-schema.prisma', import.meta.url),
+    'utf8'
+  );
+  const relations: [string, string][] = [];
+  for (const [, model, body] of schema.matchAll(/^model\s+(\w+)\s*\{([\s\S]*?)^\}/gm)) {
+    for (const [, args] of body.matchAll(/\s+User\s+@relation\(([^)]*)\)/g)) {
+      if (!/onDelete:\s*Cascade/.test(args)) continue;
+      const column = /fields:\s*\[(\w+)\]/.exec(args)?.[1];
+      if (column) relations.push([model[0].toLowerCase() + model.slice(1), column]);
+    }
+  }
+  return relations;
+}
+
 function createFakePrisma(): PrismaLike {
-  return {
+  const tables = {
     user: makeTable({
       uniques: ['id', 'email', 'verificationToken', 'passwordResetToken', 'emailChangeToken'],
       defaults: () => ({
@@ -311,6 +342,32 @@ function createFakePrisma(): PrismaLike {
     // synchrony note above); the delete check only asserts the success path.
     $transaction: (operations: unknown[]) => Promise.all(operations)
   };
+
+  // `onDelete: Cascade`, the half of `user.delete` the adapter never writes.
+  // The dependent rows go with the user row, in the same call, the way the
+  // database does it.
+  const relations = cascadingUserRelations();
+  const erased = async (doomed: Record<string, any>[]) => {
+    for (const row of doomed) {
+      for (const [model, column] of relations) {
+        await (tables as Record<string, any>)[model]?.deleteMany({ where: { [column]: row.id } });
+      }
+    }
+  };
+  const { delete: deleteOne, deleteMany } = tables.user;
+  tables.user.delete = async (args: any) => {
+    const row = await deleteOne(args);
+    await erased([row]);
+    return row;
+  };
+  tables.user.deleteMany = async (args: any) => {
+    const doomed = await tables.user.findMany(args);
+    const result = await deleteMany(args);
+    await erased(doomed);
+    return result;
+  };
+
+  return tables;
 }
 
 describeRepositoryConformance('prisma (in-memory fake)', {
