@@ -307,8 +307,13 @@
         <code class="text-text-primary">--blocks-table-sticky-top</code> (your
         <code class="text-text-primary">stickyOffset</code>),
         <code class="text-text-primary">--blocks-table-toolbar-h</code> and
-        <code class="text-text-primary">--blocks-table-thead-h</code> (both measured for you). Each
-        layer's <code class="text-text-primary">top</code> is the sum of the ones above it.
+        <code class="text-text-primary">--blocks-table-thead-h</code>. Each layer's
+        <code class="text-text-primary">top</code> is the sum of the ones above it. Keep the
+        <code class="text-text-primary">sticky</code> prop set while you do it:
+        <code class="text-text-primary">unstyled</code> takes away the classes, not the behaviour, and
+        the prop is what attaches the two height measurements. Drop it and both custom properties stay
+        unwritten, so every layer pins at the same offset and the group header lands on top of the column
+        header.
       </li>
       <li>
         A <code class="text-text-primary">fit="viewport"</code> box reaches the bottom of the
