@@ -132,6 +132,15 @@ describe('validatePasswordStrength', () => {
     expect(errors[0]).toContain('digit');
   });
 
+  it('should require a special character when configured', () => {
+    // The client checklist has offered this rule since v8 while the server
+    // ignored it: a UI demanding a symbol accepted nothing the server refused.
+    const errors = validatePasswordStrength('abcdefgh', { requireSpecial: true });
+    expect(errors).toHaveLength(1);
+    expect(errors[0]).toContain('special');
+    expect(validatePasswordStrength('abcdefg!', { requireSpecial: true })).toEqual([]);
+  });
+
   it('should accumulate multiple errors', () => {
     const errors = validatePasswordStrength('ab', {
       minLength: 8,

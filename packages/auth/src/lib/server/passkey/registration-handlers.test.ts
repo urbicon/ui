@@ -180,7 +180,10 @@ describe('createPasskeyHandlers — registrationVerify', () => {
     expect(res.status).toBe(400);
     const body = await res.json();
     expect(body.code, 'append-only machine code contract').toBe('passkey_verification_failed');
-    expect(body.error).toBe('Invalid attestation');
+    // The attestation detail names WebAuthn internals; registration has no
+    // `onLoginFailed` seam, so the log is the only place it goes.
+    expect(body.error).not.toMatch(/attestation/i);
+    expect(vi.mocked(deps.logger.warn).mock.calls.flat().join(' ')).toMatch(/Invalid attestation/);
   });
 
   it('re-throws a non-WebAuthn error so the framework surfaces it as a 500', async () => {

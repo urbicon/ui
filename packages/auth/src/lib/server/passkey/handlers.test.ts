@@ -451,11 +451,13 @@ describe('passkey auth — ceremony-handle binding (G.1)', () => {
     );
 
     expect(res.status).toBe(400);
-    const data = await res.json();
     // Got past the challenge gate (found AND matched under the handle); fails
     // later on the junk authenticatorData. The defining regression assertion:
-    // it is NOT a challenge-resolution failure.
-    expect(data.error).not.toMatch(/Challenge/i);
+    // it is NOT a challenge-resolution failure. Every ceremony failure answers
+    // with the same generic prose now, so the cause is read off the log.
+    const logged = vi.mocked(deps.logger.warn).mock.calls.flat().join(' ');
+    expect(logged, 'the WebAuthn cause reaches the log').not.toBe('');
+    expect(logged).not.toMatch(/Challenge/i);
   });
 
   it('a wrong challenge under a valid ceremony handle reports a mismatch (handle was resolved)', async () => {
@@ -487,10 +489,11 @@ describe('passkey auth — ceremony-handle binding (G.1)', () => {
         { jar }
       )
     );
-    const data = await res.json();
+    expect((await res.json()).code).toBe('passkey_verification_failed');
     // "mismatch" (not "expired or not found") proves the challenge WAS located
-    // under the ceremony handle.
-    expect(data.error).toMatch(/mismatch/i);
+    // under the ceremony handle — asserted on the log, which is where the
+    // WebAuthn cause lives now that the wire prose is uniform.
+    expect(vi.mocked(deps.logger.warn).mock.calls.flat().join(' ')).toMatch(/mismatch/i);
   });
 
   it('verify without a ceremony cookie fails closed', async () => {
@@ -511,10 +514,13 @@ describe('passkey auth — ceremony-handle binding (G.1)', () => {
     );
     expect(res.status).toBe(400);
     const challengeBody = await res.json();
-    expect(challengeBody.error).toMatch(/Challenge expired or not found/i);
     expect(challengeBody.code, 'append-only machine code contract').toBe(
       'passkey_verification_failed'
     );
+    // The wire says nothing about the ceremony: a missing cookie, an unknown
+    // credential and a counter regression are indistinguishable to the browser.
+    // The audit reason (`challenge_missing`) is pinned in handlers.hooks.test.ts.
+    expect(challengeBody.error).not.toMatch(/challenge/i);
     // It must fail before touching the credential store.
     expect(deps.repos.passkey.findByCredentialId).not.toHaveBeenCalled();
   });

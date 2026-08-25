@@ -2,6 +2,12 @@
 // password strength policy. Split out of the former auth.ts god-file.
 
 import { randomBytes } from 'node:crypto';
+import {
+  type PasswordPolicy,
+  type PasswordRuleId,
+  resolvePasswordPolicy,
+  unmetPasswordRules
+} from '../password-policy.js';
 import type { PasswordConfig } from '../types.js';
 import { timingSafeEqualStrings } from './timing-safe.js';
 
@@ -142,21 +148,30 @@ async function derivePbkdf2Key(
 
 // ---- Password strength validation ----
 
-export function validatePasswordStrength(password: string, config?: PasswordConfig): string[] {
-  const errors: string[] = [];
-  const minLength = config?.minLength ?? 8;
+/**
+ * English prose per failed rule. The *rules* live in `password-policy.ts` and
+ * are shared with the client checklist, so the two can no longer disagree
+ * about what counts as a valid password; only the wording is server-side.
+ *
+ * These strings are the last resort, not the message a localized user reads:
+ * a password refusal also carries the machine `rules` and the `passwordPolicy`
+ * they were measured against (`passwordRefusal` in `handlers/_shared.ts`), and
+ * a client with a locale bundle renders its own labels from those.
+ */
+const RULE_MESSAGES: Record<PasswordRuleId, (policy: PasswordPolicy) => string> = {
+  minLength: (policy) => `Password must be at least ${policy.minLength} characters`,
+  uppercase: () => 'Password must contain at least one uppercase letter',
+  lowercase: () => 'Password must contain at least one lowercase letter',
+  digit: () => 'Password must contain at least one digit',
+  special: () => 'Password must contain at least one special character'
+};
 
-  if (password.length < minLength) {
-    errors.push(`Password must be at least ${minLength} characters`);
-  }
-  if (config?.requireUppercase && !/[A-Z]/.test(password)) {
-    errors.push('Password must contain at least one uppercase letter');
-  }
-  if (config?.requireLowercase && !/[a-z]/.test(password)) {
-    errors.push('Password must contain at least one lowercase letter');
-  }
-  if (config?.requireDigit && !/\d/.test(password)) {
-    errors.push('Password must contain at least one digit');
-  }
-  return errors;
+/** English prose for one failed rule, measured against `policy`. */
+export function passwordRuleMessage(rule: PasswordRuleId, policy: PasswordPolicy): string {
+  return RULE_MESSAGES[rule](policy);
+}
+
+export function validatePasswordStrength(password: string, config?: PasswordConfig): string[] {
+  const policy = resolvePasswordPolicy(config);
+  return unmetPasswordRules(password, policy).map((rule) => passwordRuleMessage(rule, policy));
 }

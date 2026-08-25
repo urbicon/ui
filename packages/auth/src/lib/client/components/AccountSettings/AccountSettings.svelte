@@ -9,10 +9,17 @@
   } from '@urbicon-ui/blocks';
   import { untrack } from 'svelte';
   import { mergeAuthLocale, useAuthLocale } from '../../../i18n/index.js';
+  import { unmetPasswordRules } from '../../../password-policy.js';
   import type { AuthUser } from '../../../types.js';
   import type { AccountSettingsProps } from './index.js';
   import { errorTextFromBody, postJson as postJsonRequest } from '../../utils/http.js';
+  import {
+    passwordRefusalFromBody,
+    passwordRefusalMessage,
+    usePasswordPolicy
+  } from '../../utils/password-policy.svelte.js';
   import { resolveAuthSlotClasses, slotClass } from '../../utils/slot-class.js';
+  import PasswordRequirements from '../_shared/PasswordRequirements.svelte';
 
   let {
     user,
@@ -22,6 +29,9 @@
     fetcher,
     onProfileUpdated,
     onDeleted,
+    passwordPolicy,
+    policyPath = '/api/auth/password-policy',
+    showRequirements = true,
     unstyled: unstyledProp = false,
     slotClasses: slotClassesProp = {},
     preset,
@@ -44,6 +54,17 @@
   // valid as a top-level initializer.
   const propsId = $props.id();
   const dangerTitleId = `account-danger-title-${propsId}`;
+  const pwRequirementsId = `account-password-requirements-${propsId}`;
+
+  // The new-password field had no client-side gate: a password below the
+  // server's minimum came back as English server prose on a localized page
+  // (#290). The policy comes from the server, never from a prop copy of it.
+  const policySource = usePasswordPolicy(() => ({
+    policy: passwordPolicy,
+    path: policyPath,
+    fetcher
+  }));
+  const policy = $derived(policySource.current);
 
   // Editable draft of the name, seeded once from the initial user. If you
   // resolve `user` after mount (async load / switching users), remount with
@@ -66,6 +87,7 @@
   let pwBusy = $state(false);
   let pwError = $state('');
   let pwSuccess = $state('');
+  const pwUnmetRules = $derived(unmetPasswordRules(pwNew, policy));
 
   let deletePassword = $state('');
   let deleteError = $state('');
@@ -126,6 +148,13 @@
     e.preventDefault();
     pwError = '';
     pwSuccess = '';
+    // Checked on submit rather than by disabling the button: the checklist can
+    // be turned off (`showRequirements={false}`), and a dead button explains
+    // nothing. The message names the failing rules either way.
+    if (pwUnmetRules.length > 0) {
+      pwError = passwordRefusalMessage({ rules: pwUnmetRules, policy }, t);
+      return;
+    }
     pwBusy = true;
     try {
       const { ok, data } = await postJson('/change-password', {
@@ -133,6 +162,15 @@
         newPassword: pwNew
       });
       if (!ok) {
+        // A password refusal carries the failing rules and the policy the
+        // server measured against — render our own labels, and adopt the
+        // policy so the retry is gated on the real rules.
+        const refusal = passwordRefusalFromBody(data);
+        if (refusal) {
+          policySource.adopt(refusal.policy);
+          pwError = passwordRefusalMessage(refusal, t);
+          return;
+        }
         pwError = errText(data);
         return;
       }
@@ -276,10 +314,22 @@
         type="password"
         bind:value={pwNew}
         required
+        minlength={policy.minLength}
         autoComplete="new-password"
+        aria-describedby={showRequirements ? pwRequirementsId : undefined}
         {unstyled}
         class={slotClasses.field}
       />
+      {#if showRequirements}
+        <PasswordRequirements
+          id={pwRequirementsId}
+          {policy}
+          password={pwNew}
+          {t}
+          {unstyled}
+          class={slotClasses.requirements}
+        />
+      {/if}
       <div aria-live="polite">
         {#if pwError}<Alert intent="danger" size="sm" {unstyled}>{pwError}</Alert>{/if}
         {#if pwSuccess}<Alert intent="success" size="sm" {unstyled}>{pwSuccess}</Alert>{/if}

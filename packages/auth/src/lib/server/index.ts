@@ -1,5 +1,17 @@
 // Auth core
 
+// The password policy: one definition of the rules, shared by the server check
+// (`validatePasswordStrength`), `createPasswordPolicyHandler` and the client
+// checklist.
+export type { PasswordPolicy, PasswordRuleId } from '../password-policy.js';
+export {
+  activePasswordRules,
+  DEFAULT_PASSWORD_POLICY,
+  isPasswordRuleMet,
+  PASSWORD_RULES,
+  resolvePasswordPolicy,
+  unmetPasswordRules
+} from '../password-policy.js';
 // Open-redirect guard for the handle hook's ?redirectTo=… deep-link param
 // (also exported from the package root for client-side use)
 export { sanitizeRedirect } from '../redirect.js';
@@ -109,6 +121,10 @@ export { createJWKSHandler } from './handlers/jwks.js';
 export { createLoginHandler } from './handlers/login.js';
 export { createLogoutHandler } from './handlers/logout.js';
 export { createMeHandler } from './handlers/me.js';
+// Publishes `config.password` as the five-field policy the client forms gate
+// against, so the rule is not restated in component props (see docs/AUTH.md →
+// Password policy).
+export { createPasswordPolicyHandler } from './handlers/password-policy.js';
 export { createRefreshHandler } from './handlers/refresh.js';
 export type { RegisterHandlerOptions } from './handlers/register.js';
 export { createRegisterHandler } from './handlers/register.js';

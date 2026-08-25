@@ -2,10 +2,10 @@ import type { RequestHandler } from '@sveltejs/kit';
 import { json } from '@sveltejs/kit';
 import { hashToken } from '../auth.js';
 import type { AuthDeps } from '../deps.js';
-import { hashPassword, validatePasswordStrength } from '../password.js';
+import { hashPassword } from '../password.js';
 import { enforceRateLimit, sharedLimiter } from '../rate-limit.js';
 import { validateResetPasswordInput } from '../validation.js';
-import { notifyHook, parseBody } from './_shared.js';
+import { notifyHook, parseBody, passwordRefusal } from './_shared.js';
 import { authError } from './errors.js';
 
 export function createResetPasswordHandler<R extends string>(
@@ -22,13 +22,8 @@ export function createResetPasswordHandler<R extends string>(
       if (body instanceof Response) return body;
       const { token, password } = body.data;
 
-      const passwordErrors = validatePasswordStrength(password, deps.config.password);
-      if (passwordErrors.length > 0) {
-        return authError('validation_error', 400, {
-          message: passwordErrors[0],
-          extra: { errors: passwordErrors }
-        });
-      }
+      const weakPassword = passwordRefusal(password, deps.config.password);
+      if (weakPassword) return weakPassword;
 
       // Hash before claiming so the expensive PBKDF2 work sits outside the
       // claim→write window: a successful claim is followed immediately by the

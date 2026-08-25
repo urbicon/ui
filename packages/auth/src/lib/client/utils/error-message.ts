@@ -1,41 +1,11 @@
+import { AUTH_ERROR_MESSAGE_KEYS, type AuthErrorMessageKey } from '../../i18n/error-keys.js';
 import type { AuthLocale } from '../../i18n/keys.js';
 
-/**
- * Maps each server `AuthErrorCode` (the `code` field on an error response) to its
- * key in `AuthLocale['auth']['errors']`. Kept as a plain string→string record so
- * the client never imports server code: the code arrives over the wire as a
- * string, and an unrecognised one simply isn't in the map. One entry is
- * client-synthesized rather than a server code: `network_error`, produced by the
- * stores when a request never reached the server.
- */
-const CODE_TO_KEY: Record<string, keyof AuthLocale['auth']['errors']> = {
-  invitation_required: 'invitationRequired',
-  invitation_used: 'invitationUsed',
-  invitation_expired: 'invitationExpired',
-  email_taken: 'emailTaken',
-  email_invited: 'emailInvited',
-  invalid_credentials: 'invalidCredentials',
-  account_locked: 'accountLocked',
-  email_unverified: 'emailUnverified',
-  invalid_token: 'invalidToken',
-  current_password_incorrect: 'currentPasswordIncorrect',
-  not_authenticated: 'notAuthenticated',
-  forbidden: 'forbidden',
-  invalid_code: 'invalidCode',
-  no_2fa_challenge: 'no2faChallenge',
-  two_factor_challenge_expired: 'twoFactorChallengeExpired',
-  two_factor_already_enabled: 'twoFactorAlreadyEnabled',
-  two_factor_setup_required: 'twoFactorSetupRequired',
-  totp_secret_unreadable: 'totpSecretUnreadable',
-  session_not_found: 'sessionNotFound',
-  missing_refresh_token: 'missingRefreshToken',
-  invalid_refresh_token: 'invalidRefreshToken',
-  feature_unavailable: 'featureUnavailable',
-  validation_error: 'validationError',
-  rate_limited: 'rateLimited',
-  server_error: 'serverError',
-  network_error: 'networkError'
-};
+// The code arrives over the wire as an arbitrary string — an old server, a
+// proxy, a typo — so the lookup is widened to `string` here. The table itself
+// stays bound to the `AuthErrorCode` union (see `i18n/error-keys.ts`); this
+// assignment only relaxes the *index*, never the value type.
+const CODE_TO_KEY: Record<string, AuthErrorMessageKey | null | undefined> = AUTH_ERROR_MESSAGE_KEYS;
 
 /**
  * Resolve a server error to a localized message. Pass the `code` and `error`

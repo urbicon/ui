@@ -1,4 +1,9 @@
 // Component prop types
+
+// The password policy the pre-built forms gate against — hand it in as the
+// `passwordPolicy` prop when your route already loads it server-side.
+export type { PasswordPolicy } from '../password-policy.js';
+export { DEFAULT_PASSWORD_POLICY } from '../password-policy.js';
 export type {
   AccountSettingsProps,
   AuthPageSlotClasses,

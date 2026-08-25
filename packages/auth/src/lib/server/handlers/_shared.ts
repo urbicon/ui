@@ -1,8 +1,9 @@
 import type { Cookies } from '@sveltejs/kit';
-import type { AuthConfig, AuthLogger, JwtConfig } from '../../types.js';
+import { resolvePasswordPolicy, unmetPasswordRules } from '../../password-policy.js';
+import type { AuthConfig, AuthLogger, JwtConfig, PasswordConfig } from '../../types.js';
 import type { FullAuthUser, UserRepository } from '../adapters/types.js';
 import type { AuthDeps } from '../deps.js';
-import { verifyPasswordWithMigration } from '../password.js';
+import { passwordRuleMessage, verifyPasswordWithMigration } from '../password.js';
 import { getSessionFromCookie } from '../session.js';
 import { readJsonBody, type ValidationResult } from '../validation.js';
 import { authError } from './errors.js';
@@ -115,6 +116,35 @@ export async function notifyHook<R extends string, K extends CaughtHookName>(
       err
     );
   }
+}
+
+/**
+ * Refuse a password that misses the configured policy, or `null` when it
+ * passes. The three handlers that accept a new password (register, reset,
+ * change) all answered `validation_error` with English prose, and
+ * `errorMessageFromCode` deliberately prefers the server prose for that code —
+ * so a German user read "Password must be at least 12 characters" whenever the
+ * client gate was measuring against a different policy than the server.
+ *
+ * The body therefore carries the refusal in machine form as well: `rules` (the
+ * failing `PasswordRuleId`s) and `passwordPolicy` (what they were measured
+ * against). A client with a locale bundle renders its own labels from those
+ * and adopts the policy, so the same request cannot be refused for a rule the
+ * form never showed. `error`/`errors` stay exactly as before for consumers
+ * without i18n.
+ */
+export function passwordRefusal(password: string, config?: PasswordConfig): Response | null {
+  const policy = resolvePasswordPolicy(config);
+  const rules = unmetPasswordRules(password, policy);
+  if (rules.length === 0) return null;
+  return authError('validation_error', 400, {
+    message: passwordRuleMessage(rules[0], policy),
+    extra: {
+      errors: rules.map((rule) => passwordRuleMessage(rule, policy)),
+      rules,
+      passwordPolicy: policy
+    }
+  });
 }
 
 /**

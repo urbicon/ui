@@ -266,6 +266,13 @@ describe('passkey login hooks (R10)', () => {
 
     expect(res.status).toBe(400);
     expect(deps.hooks.onLoginFailed).toHaveBeenCalledWith('', 'counter_regression');
+    // The clone warning is an operator signal: it goes to the log and the audit
+    // hook, never onto the wire, where an end user would read it as an
+    // accusation they can do nothing about.
+    expect((await res.json()).error).not.toMatch(/clon/i);
+    expect(vi.mocked(deps.logger.warn).mock.calls.flat().join(' ')).toMatch(
+      /possible cloned authenticator/i
+    );
   });
 
   it("fires onLoginFailed('', 'credential_deleted') when the passkey is deleted mid-login (CAS lost + gone on re-query)", async () => {

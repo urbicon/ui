@@ -27,6 +27,9 @@ export const en = {
       featureUnavailable: 'This feature is not available.',
       validationError: 'Please check your input and try again.',
       rateLimited: 'Too many requests. Please try again later.',
+      connectionLimit: 'Too many open connections. Close another tab and try again.',
+      csrfFailed: 'This page has been open too long. Please reload it and try again.',
+      passkeyVerificationFailed: 'Your passkey could not be verified. Please try again.',
       serverError: 'Something went wrong. Please try again.',
       networkError: 'Network error. Please check your connection and try again.'
     },
@@ -52,16 +55,21 @@ export const en = {
       submit: 'Create account',
       hasAccount: 'Already have an account?',
       login: 'Sign in',
-      requirementsLabel: 'Password requirements',
-      requirements: {
+      errors: {
+        passwordMismatch: 'Passwords do not match'
+      }
+    },
+    passwordRequirements: {
+      label: 'Password requirements',
+      met: 'Met',
+      notMet: 'Not met',
+      failed: 'Your password does not meet the requirements: {rules}',
+      rules: {
         minLength: 'At least {n} characters',
         uppercase: 'One uppercase letter',
         lowercase: 'One lowercase letter',
         digit: 'One digit',
         special: 'One special character'
-      },
-      errors: {
-        passwordMismatch: 'Passwords do not match'
       }
     },
     forgotPassword: {

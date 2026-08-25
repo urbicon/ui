@@ -95,15 +95,19 @@ describe('AccountSettings — danger zone', () => {
     render({ fetcher });
 
     await openDeleteConfirm();
+    // The policy lookup on mount is the password form's own traffic, not the
+    // danger zone's — count only what leaves for the account endpoint.
+    const accountRequests = () =>
+      vi.mocked(fetcher).mock.calls.filter(([url]) => url !== '/api/auth/password-policy');
     // The one irreversible action in this package is two steps on purpose: the
     // trigger opens the dialog and nothing else. Wiring it straight to
     // `confirmDelete` would delete the account on the first click.
-    expect(fetcher).not.toHaveBeenCalled();
+    expect(accountRequests()).toHaveLength(0);
     expect(screen.getByRole('dialog', { hidden: true })).toBeTruthy();
 
     await userEvent.click(confirmButton());
     await settle();
-    expect(fetcher).toHaveBeenCalledTimes(1);
+    expect(accountRequests()).toHaveLength(1);
   });
 
   it('reports a rejected delete instead of calling onDeleted', async () => {

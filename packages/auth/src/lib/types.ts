@@ -28,6 +28,13 @@ export interface PasswordConfig {
   requireLowercase?: boolean;
   requireDigit?: boolean;
   /**
+   * Require at least one character outside `A-Za-z0-9`. The client checklist
+   * has offered this rule since v8; the server could not enforce it, so a UI
+   * demanding it accepted nothing the server refused. Off by default, like the
+   * other character classes.
+   */
+  requireSpecial?: boolean;
+  /**
    * PBKDF2-HMAC-SHA256 work factor for new password hashes. Default `600000`
    * (current OWASP recommendation). Verification always reads the iteration
    * count from the stored hash, so changing this only affects newly created

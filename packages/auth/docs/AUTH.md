@@ -143,6 +143,82 @@ failure or non-contract error leaves the current user untouched and reports
 the failure — a route guard can retry instead of bouncing a signed-in user
 over a transient blip.
 
+### Password policy
+
+`config.password` is the only definition of what a password must satisfy. The
+server measures against it (`validatePasswordStrength`), and
+`createPasswordPolicyHandler(deps)` publishes it so `<RegisterPage>`,
+`<ResetPasswordPage>` and `<AccountSettings>` gate against the same rules
+instead of a hand-kept copy in component props:
+
+```ts
+// src/routes/api/auth/password-policy/+server.ts
+export const GET = createPasswordPolicyHandler(authDeps).GET;
+```
+
+The three components read it from `policyPath` (default
+`/api/auth/password-policy`) on mount. Without the route they fall back to
+`DEFAULT_PASSWORD_POLICY` — min 8, no character classes, i.e. what an
+unconfigured server enforces — and warn in dev. When your route already loads
+the policy, pass it in as `passwordPolicy` (`resolvePasswordPolicy(config.password)`
+in a `+page.server.ts`) and no request is made.
+
+**A refusal is localized even when the client gated on the wrong policy.** The
+three handlers that take a new password answer a rule failure with the English
+prose *and* the refusal in machine form:
+
+```json
+{ "error": "Password must be at least 12 characters", "code": "validation_error",
+  "errors": ["Password must be at least 12 characters"],
+  "rules": ["minLength"],
+  "passwordPolicy": { "minLength": 12, "requireUppercase": false, … } }
+```
+
+`errorMessageFromCode` prefers the server prose for `validation_error` (it
+names the field), so without `rules` a German user reads the English sentence
+whenever the form measured against a different policy — the exact string this
+work exists to remove. The shipped forms read `rules` first, render their own
+labels for them, and **adopt** `passwordPolicy`, so the next attempt is gated on
+the rules the checklist now shows instead of failing the same way again. A
+consumer without i18n sees `error`/`errors` unchanged.
+
+The **endpoint's** response is a five-field projection (`minLength`,
+`requireUppercase`, `requireLowercase`, `requireDigit`, `requireSpecial`) and
+nothing else — in particular never `pbkdf2Iterations`. It is unauthenticated on
+purpose: registration and password reset are signed-out flows, and one failed
+submit already spells the policy out ("Password must be at least 12
+characters").
+
+The checklist renders from the first paint rather than from the first
+keystroke, and the password field points at it with `aria-describedby`: a
+description added to an already-focused field is not reliably re-announced, and
+there is deliberately no live region (it would fire on every keystroke). Set
+`showRequirements={false}` to drop both — a refused password still names the
+rules it missed, so the reason stays reachable.
+
+### Breaking in this release
+
+`<RegisterPage>`'s `passwordMinLength` / `requireUppercase` / `requireLowercase`
+/ `requireDigit` / `requireSpecial` props are gone — they were the second copy.
+Their old defaults (min 8 **plus** upper, lower and digit) were also stricter
+than an unconfigured server, so the checklist blocked passwords the server would
+have taken. Configure `config.password` and mount the endpoint; the UI follows.
+
+`requireSpecial` is new on the server side. The registration checklist has
+offered that rule since v8 while `validatePasswordStrength` ignored it, so a UI
+demanding a symbol refused nothing the server would have accepted; it is now
+enforced, and off by default like the other character classes.
+
+`AuthLocale` is fully required, so a **hand-written locale bundle stops
+compiling** until it carries the new keys — that is the intended signal, not a
+regression. Added: `auth.errors.csrfFailed`, `auth.errors.passkeyVerificationFailed`,
+`auth.errors.connectionLimit`, and the `auth.passwordRequirements` subtree
+(`label`, `met`, `notMet`, `failed`, `rules.*`). Moved: `auth.register.requirementsLabel`
+and `auth.register.requirements.*` became `auth.passwordRequirements.label` and
+`auth.passwordRequirements.rules.*` — they are read by the account panel and the
+reset page too, so `register` was the wrong home for them. Consumers passing a
+`PartialAuthLocale` override are unaffected unless they overrode those two.
+
 ## Consumer Integration — staged setup
 
 The full copy-paste walkthrough lives in [packages/auth/README.md →
@@ -385,7 +461,7 @@ The `FederatedAccount` link table (`findByFederatedId` / `linkFederatedAccount` 
 
 ## Prisma Schema
 
-The reference schema ships in the package, at `node_modules/@urbicon-ui/auth/prisma/auth-schema.prisma` (`packages/auth/prisma/auth-schema.prisma` in this repo). Ten models: User, Invitation, PushSubscription, Notification, NotificationType, NotificationPreference, Passkey, RefreshToken (rotation; required once `config.refreshToken` is set), TwoFactorBackupCode, FederatedAccount (consumer-side federation link, optional). The User model carries the 2FA columns `totpSecret` (AES-256-GCM-encrypted), `totpEnabled`, `totpConfirmedAt`. **Recommended:** add `onDelete: Cascade` to the `invitationsSent` relation — DB cascade already covers passkeys/tokens/notifications/push/prefs on user delete; only sent `Invitation` rows lack it (the delete-account handler otherwise removes them by hand in its `$transaction`).
+The reference schema ships in the package, at `node_modules/@urbicon-ui/auth/prisma/auth-schema.prisma` (`packages/auth/prisma/auth-schema.prisma` in this repo). Ten models: User, Invitation, PushSubscription, Notification, NotificationType, NotificationPreference, Passkey, RefreshToken (rotation; required once `config.refreshToken` is set), TwoFactorBackupCode, FederatedAccount (consumer-side federation link, optional). The User model carries the 2FA columns `totpSecret` (AES-256-GCM-encrypted), `totpEnabled`, `totpConfirmedAt`. The reference schema puts `onDelete: Cascade` on all eight dependent models, `Invitation.invitedBy` included. The delete-account handler **still** removes sent invitations by hand inside its `$transaction`, so an adapter over a schema without that cascade behaves identically; the conformance suite pins both — the hand-written half directly, the rest through `user.delete erases the dependents of every declared repository`.
 
 **A model your client does not have drops its feature to `undefined`.** That is the design — `createPrismaRepos` wires what exists — but the absences differ in how visible they are. `passkey` makes `createPasskeyHandlers` throw at wiring; `refreshToken` makes both wiring entry points throw whenever `config.refreshToken` is set; `twoFactorBackupCode` makes the 2FA handlers answer `feature_unavailable` 400; `notification` is a type error, because the notification service requires that repo. The two that nothing else surfaces are **`pushSubscription`** (web-push delivery is skipped for every notification — the DB row and the SSE event still happen) and **`notificationPreference`** (per-user channel preferences are ignored and notifications go out on every channel the type declares). Every absent model is reported once per Prisma client at factory time. The report defaults to `console` — the same sink `config.logger ?? console` resolves to — so pass `createPrismaRepos(prisma, { logger })` when the app configures its own `config.logger`, to keep the wiring diagnostics with the rest of the auth logs. Note the dedup key is the client, not the logger: whichever call comes first wins, so wire the logger on the first one.
 
@@ -521,7 +597,7 @@ The `mapX` seams (`mapUser`, `mapPasskey`, `mapRefreshToken`, `mapInvitation`, `
 
 ### Validate it: the conformance suite
 
-Whatever you build, prove it upholds the contract by running the shared suite from a `*.test.ts` (needs `vitest`):
+Whatever you build, prove it upholds the contract by running the shared suite from a `*.test.ts`. The entry below registers vitest for you; under any other runner import `…/adapters/conformance-core` instead and pass `{ runner: { describe, it, expect } }` — that module imports no runner of its own:
 
 ```ts
 import { describeRepositoryConformance } from '@urbicon-ui/auth/server/adapters/conformance';
@@ -761,9 +837,13 @@ bun run test:e2e                            # Playwright (from the repo root)
 
 ## Error Contract
 
-Every handler (and the `createAuthHandle` gates) answers errors with one JSON shape: `{ error: string, code: AuthErrorCode, … }` — `error` is human-readable English prose, `code` the stable machine value from the append-only `AUTH_ERROR_CODES` set (never repurposed, only extended; the same code can appear under different HTTP statuses when the context differs, e.g. `invalid_code` is 400 on 2FA-enable and 401 on 2FA-verify). Validation failures additionally carry the full field list as `errors`, and the first field message replaces the generic prose. Rate limits answer `429 rate_limited` with a `Retry-After` header; the CSRF gate `403 csrf_failed`; the previously-plaintext SSE-stream refusals are JSON as of v6.17.0 (native `EventSource` clients never see bodies, so that change is inert there). The push-subscription writes distinguish `push_endpoint_conflict` (endpoint owned by another account — permanent) from `push_subscription_limit` (per-user device cap). The one deliberate exception: `createMeHandler` answers `401 { user: null }` — that is the session-status contract of the client store, not an error report.
+Every handler (and the `createAuthHandle` gates) answers errors with one JSON shape: `{ error: string, code: AuthErrorCode, … }` — `error` is human-readable English prose, `code` the stable machine value from the append-only `AUTH_ERROR_CODES` set (never repurposed, only extended; the same code can appear under different HTTP statuses when the context differs, e.g. `invalid_code` is 400 on 2FA-enable and 401 on 2FA-verify). Validation failures additionally carry the full field list as `errors`, and the first field message replaces the generic prose. Rate limits answer `429 rate_limited` with a `Retry-After` header, while the per-user cap on concurrent SSE streams answers `429 connection_limit` — a separate code because backoff never clears a connection cap, so a client that treats the two alike retries forever. Reachable for an SSE client built on `fetch`, and for anything reading the log or metrics by `code`; **not** for the shipped `<NotificationListener>`, whose native `EventSource` exposes no response body (`onerror` receives an opaque `Event`) and which keeps its exponential reconnect loop running against the cap. The CSRF gate answers `403 csrf_failed`; the previously-plaintext SSE-stream refusals are JSON as of v6.17.0 (same `EventSource` blindness, so that change is inert there too). The push-subscription writes distinguish `push_endpoint_conflict` (endpoint owned by another account — permanent) from `push_subscription_limit` (per-user device cap). The one deliberate exception: `createMeHandler` answers `401 { user: null }` — that is the session-status contract of the client store, not an error report.
 
 Localized clients map `code` via `errorMessageFromCode(code, t, error)` (exported from the package root): known code → locale bundle, unknown code or missing translation → the server prose, neither → `undefined` for the caller's own fallback. `validation_error` deliberately prefers the field-level server prose. The pre-built components do this everywhere via their shared `errorTextFromBody` helper. One code is client-synthesized rather than served: `network_error` (the request never reached the server — offline, DNS, CORS), produced by the stores and mapped to `auth.errors.networkError` like any other code.
+
+**The code→locale-key table is bound to the union.** `AUTH_ERROR_MESSAGE_KEYS` (`i18n/error-keys.ts`) is `satisfies Record<AuthErrorCode | 'network_error', …>`, so a new server code that nobody keys is a compile error rather than an English sentence on a localized page; `null` marks the two push codes, whose copy `<PushPermissionPrompt>` owns (`notifications.push.errorConflict` / `errorLimit`). The English `error` prose is **read out of the `en` bundle through that same table** — there is one English text per code, not one for i18n consumers and another for the rest.
+
+**Passkey ceremonies answer uniformly.** All eight failure paths return the bare `passkey_verification_failed` with no prose override: none of the causes is actionable by the end user, and one of them — the sign-counter regression — is a possible-cloned-authenticator signal that must not be readable in a page. What distinguishes them stays server-side: `config.hooks.onLoginFailed(email, reason)` receives a distinct reason per outcome (`challenge_missing`, `unknown_credential`, `user_handle_mismatch`, `credential_deleted`, `counter_regression`, `user_not_found`, `invalid_assertion`), and `config.logger` receives the WebAuthn detail on the paths a reason cannot carry.
 
 ## Known Limitations & Security Gaps
 
@@ -794,6 +874,8 @@ The package deliberately avoids revealing whether an account exists, via either 
 - **Remote functions are guarded by `event.isRemoteRequest` (+ a `/remote` POST check), not `publicRoutes`.** For SvelteKit Remote Functions (`kit.experimental.remoteFunctions`) the pathname the guard sees is **client-controlled**, via either of two transports: **(1)** the `/_app/remote/…` calls (`query` / `command` / JS-enhanced `form`) — SvelteKit overwrites `event.url.pathname` from the `x-sveltekit-pathname` header *before* the `handle` hook runs; a plain `query` is even a **GET** (payload in `?payload=`), so the kernel's non-`GET` cross-site block doesn't catch it either; and **(2)** the no-JS `<form action="?/remote=…">` fallback — dispatched through the page pipeline from the `/remote` search param, decoupled from the pathname, with `event.isRemoteRequest` left **`false`**. Either way a spoofed (or genuinely) public route such as `/auth/login` would let an unauthenticated remote call run without a session and leak every reachable row. `createAuthHandle` **default-denies** (`401`) both: keyed on the unspoofable `event.isRemoteRequest`, and — for the fallback — a `POST` carrying a truthy `/remote` action param (mirroring SvelteKit's own dispatch gate; a normal action named `remote` serializes to an empty `?/remote` and is correctly left to the path guard). Set `allowUnauthenticatedRemote: true` **only** if you deliberately expose public remote functions — you then own their authorization (check `event.locals.user` inside each). **Defense-in-depth:** even with the guard active, prefer an explicit `event.locals.user` (+ per-user ownership) check inside each remote function rather than relying on the handle alone — the guard is a backstop, not a substitute for per-function authorization.
 - **SvelteKit's built-in `csrf.checkOrigin` is a separate gate that runs _before_ this package's check.** SvelteKit's request kernel performs its own Origin-CSRF check *before* the `handle` hook runs (`@sveltejs/kit` → `src/runtime/server/respond.js`). If you route a cross-origin, form-encoded `POST` *around* `createAuthHandle` — an OAuth 2.1 token endpoint, a third-party webhook — that kernel gate rejects it with `403 "Cross-site POST form submissions are forbidden"` before your hook (and therefore this package's `validateCsrf`) ever runs. Three properties make this bite: it **can't be disabled per-route from a hook** (by the time `handle` runs the 403 is already returned — the only levers are the global `kit.csrf.*` config); it fires on **form content types only** (`application/x-www-form-urlencoded`, `multipart/form-data`, `text/plain`, plus Kit's internal `application/x-sveltekit-formdata` — preflighted, not CORS-simple), so a JSON endpoint (MCP JSON-RPC, dynamic client registration) passes through but the OAuth **token** endpoint can't — RFC 6749 §4.1.3 mandates `application/x-www-form-urlencoded` and real callers (Claude, etc.) send **no `Origin` header**, which keeps the gate shut (a *specific* `trustedOrigins` list is consulted only when an `Origin` header is present, so no list of origins can ever admit a header-less caller); and it is **skipped under `vite dev`, never in a build** (guaranteed by the package's `@sveltejs/kit ^2.70.1` peer range — older Kits compiled the gate out of non-production-`NODE_ENV` builds, [sveltejs/kit#16313](https://github.com/sveltejs/kit/pull/16313)), so the 403 typically first surfaces *after deploy*, never in local development. **Resolution:** set `kit.csrf: { trustedOrigins: ['*'] }` in `svelte.config.js` — the official off-switch, and since Kit 2.61 the only non-deprecated one (`checkOrigin` is `@deprecated Use trustedOrigins: ['*'] instead`). The wildcard is resolved at **build time**, not matched against request origins: Kit's `write_server.js` derives `csrf_check_origin = checkOrigin && !trustedOrigins.includes('*')`, so `['*']` removes the kernel gate entirely — including for the header-less callers no literal origin list could admit. (Verify at both levels when auditing this: the runtime check in `respond.js` never matches `'*'` against an `Origin` header — the disable happens in the build-time derivation.) This affects the form gate only; Kit's separate strict same-origin check for remote-function requests (`/_app/remote/…`, non-GET) is independent of `kit.csrf.*` and stays active. Then let this package's `validateCsrf` be the single Origin gate — it is *stricter* than the kernel check (every mutating method, **all** content types incl. JSON, no allow-list, as step 1 of `createAuthHandle`), so for any request that flows through the handle the kernel check was redundant anyway. **Safe only when:** (1) every cookie-authenticated mutating route flows through `createAuthHandle` — including SvelteKit form actions such as an OAuth consent `?/approve`, and "cookie-authenticated" means *any* ambient-session-cookie route, not just this package's. *Reaching* the handle is what counts, not mounting it: in a `sequence()`, any earlier handle that returns a response without calling `resolve` (maintenance mode, a webhook endpoint implemented as a handle, a redirect handle) bypasses this gate for its routes — and with the kernel gate disabled, nothing else covers them. And (2) the handle-bypassed routes are cookieless (bearer / PKCE / API-key) — they carry no ambient credential the browser auto-sends, so they're structurally not CSRF-able and the Origin gate protected nothing there. Edge case to flag rather than assume: if you depend on SvelteKit's `trustedOrigins` allow-list for legitimate cross-origin *browser* form posts, note `validateCsrf` is strict-same-origin with no allow-list equivalent.
 - **SSE presence is process-local** — `createSSEManager` registers connections in this process only; there is no cross-instance seam. On multi-instance/serverless deployments, `isOnline` false-negatives make `send()` skip the live SSE event for users connected to another instance and fall back to push (delivery still happens, via the heavier channel, provided a push subscription exists), and `recipients: 'online'` broadcasts only reach the users connected to the instance running `send()`. Treat the notification system as single-instance until a shared presence backend exists — the same class of assumption as the in-memory rate-limit store.
+- **A dead passkey and an expired challenge read the same** — every ceremony failure returns one code and one localized sentence ending in "please try again" (see [Error Contract](#error-contract)). For a challenge that timed out that is the right advice; for `credential_deleted` — the browser still offers a passkey the server no longer stores — retrying can never succeed, and the user loops. The audit reason and the log tell the two apart, the UI does not. Splitting `credential_deleted` into its own code (append-only, so additive) is the fix when this shows up in support traffic; it was left as one code because the prose it replaced was equally unactionable.
+- **`<NotificationListener>` cannot see why a stream was refused** — it uses native `EventSource`, which exposes no response body, so a `429 connection_limit` (per-user concurrent-stream cap) reaches it as an opaque `onerror` and its exponential reconnect loop keeps retrying against a cap that only closing a tab clears. An SSE client built on `fetch` reads the code and can stop; replacing the listener's transport is the fix, and is not done here.
 - **In-memory adapter grows unbounded** — `createInMemoryRepos` doesn't clean up notifications/push subscriptions and doesn't call `deleteExpired` for refresh tokens automatically. `user.delete` is not one of these: the bundle wires its sibling stores together and removes every dependent row, the same end state the Prisma adapter gets from `onDelete: Cascade` — both are pinned by the conformance suite. This is fine for the declared dev/test scope; for long-lived processes use a persistent adapter.
 
 ### Production-Readiness Checklist

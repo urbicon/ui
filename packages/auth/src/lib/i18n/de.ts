@@ -29,6 +29,11 @@ export const de = {
       featureUnavailable: 'Diese Funktion ist nicht verfügbar.',
       validationError: 'Bitte überprüfe deine Eingabe und versuche es erneut.',
       rateLimited: 'Zu viele Anfragen. Bitte versuche es später erneut.',
+      connectionLimit:
+        'Zu viele offene Verbindungen. Schließe einen anderen Tab und versuche es erneut.',
+      csrfFailed: 'Diese Seite war zu lange geöffnet. Bitte lade sie neu und versuche es erneut.',
+      passkeyVerificationFailed:
+        'Dein Passkey konnte nicht geprüft werden. Bitte versuche es erneut.',
       serverError: 'Etwas ist schiefgelaufen. Bitte versuche es erneut.',
       networkError: 'Netzwerkfehler. Bitte prüfe deine Verbindung und versuche es erneut.'
     },
@@ -54,16 +59,21 @@ export const de = {
       submit: 'Konto erstellen',
       hasAccount: 'Bereits ein Konto?',
       login: 'Anmelden',
-      requirementsLabel: 'Passwort-Anforderungen',
-      requirements: {
+      errors: {
+        passwordMismatch: 'Die Passwörter stimmen nicht überein'
+      }
+    },
+    passwordRequirements: {
+      label: 'Passwort-Anforderungen',
+      met: 'Erfüllt',
+      notMet: 'Nicht erfüllt',
+      failed: 'Dein Passwort erfüllt die Anforderungen nicht: {rules}',
+      rules: {
         minLength: 'Mindestens {n} Zeichen',
         uppercase: 'Ein Großbuchstabe',
         lowercase: 'Ein Kleinbuchstabe',
         digit: 'Eine Ziffer',
         special: 'Ein Sonderzeichen'
-      },
-      errors: {
-        passwordMismatch: 'Die Passwörter stimmen nicht überein'
       }
     },
     forgotPassword: {

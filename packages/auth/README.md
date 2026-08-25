@@ -141,7 +141,10 @@ import { authDeps } from '$lib/server/auth-setup';
 export const { POST } = createLoginHandler(authDeps);
 ```
 
-Repeat for `logout`, `register`, `forgot-password`, `reset-password`, `verify-email`, `me`.
+Repeat for `logout`, `register`, `forgot-password`, `reset-password`, `verify-email`, `me`, and
+`password-policy` (`createPasswordPolicyHandler` — it publishes `config.password`, so the sign-up
+and reset forms gate on the same rules the server checks; without it they fall back to the package
+defaults, min 8 and no character classes).
 
 **4. UI page** — `src/routes/auth/login/+page.svelte`:
 

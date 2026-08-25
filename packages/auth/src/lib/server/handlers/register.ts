@@ -6,11 +6,11 @@ import { resolveTokenTtlMs } from '../duration.js';
 import type { MailBuilder } from '../email/builders.js';
 import { resolveEmailSettings } from '../email/resolve.js';
 import { buildVerificationEmail } from '../email/templates.js';
-import { hashPassword, validatePasswordStrength } from '../password.js';
+import { hashPassword } from '../password.js';
 import { enforceRateLimit, sharedLimiter } from '../rate-limit.js';
 import { establishSession, resolveSessionMeta } from '../session.js';
 import { validateRegisterInput } from '../validation.js';
-import { notifyHook, parseBody } from './_shared.js';
+import { notifyHook, parseBody, passwordRefusal } from './_shared.js';
 import { authError } from './errors.js';
 
 export interface RegisterHandlerOptions {
@@ -81,14 +81,11 @@ export function createRegisterHandler<R extends string>(
       if (body instanceof Response) return body;
       const { email, name, password, token } = body.data;
 
-      // Password strength validation
-      const passwordErrors = validatePasswordStrength(password, deps.config.password);
-      if (passwordErrors.length > 0) {
-        return authError('validation_error', 400, {
-          message: passwordErrors[0],
-          extra: { errors: passwordErrors }
-        });
-      }
+      // Password strength validation. The refusal carries the failing rules and
+      // the policy in machine form, so a localized client never renders the
+      // English prose (see `passwordRefusal`).
+      const weakPassword = passwordRefusal(password, deps.config.password);
+      if (weakPassword) return weakPassword;
 
       // Registration is gated on POSSESSION OF THE TOKEN, and on nothing else.
       //

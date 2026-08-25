@@ -1,3 +1,4 @@
+import { DEFAULT_PASSWORD_POLICY, isValidMinLength } from '../password-policy.js';
 import type { AuthConfig, AuthLogger } from '../types.js';
 import type {
   BackupCodeRepository,
@@ -128,6 +129,16 @@ function resolveSecurityDefaults<R extends string>(
   if (isProduction && typeof iterations === 'number' && iterations < MIN_SAFE_PBKDF2_ITERATIONS) {
     logger.warn(
       `[auth] config.password.pbkdf2Iterations is ${iterations} in a production config — far below the OWASP recommendation (≥ 600,000 for PBKDF2-HMAC-SHA256). Raise it or omit it to use the secure default.`
+    );
+  }
+
+  const minLength = config.password?.minLength;
+  if (minLength !== undefined && !isValidMinLength(minLength)) {
+    // `resolvePasswordPolicy` corrects it to the default so the server check
+    // and the client checklist stay in step; say so, or the correction is
+    // silent and the deployment believes it configured something.
+    logger.warn(
+      `[auth] config.password.minLength is ${String(minLength)} — not a finite, non-negative number. Falling back to ${DEFAULT_PASSWORD_POLICY.minLength}.`
     );
   }
 

@@ -34,12 +34,16 @@ export function createStreamHandler(
       }
 
       // Per-user connection cap (DoS guard): refuse beyond the limit so one
-      // account can't exhaust FDs/memory by opening unbounded streams. The
+      // account can't exhaust FDs/memory by opening unbounded streams. Its own
+      // code, not `rate_limited`, so a reader can tell "wait" from "close a
+      // tab" without matching English prose — reachable for a fetch-based SSE
+      // client and for the log, but NOT for `<NotificationListener>`, whose
+      // native `EventSource` never exposes a body. The
       // check-then-register gap below crosses no `await`, and `start()` runs
       // synchronously, so on single-threaded JS runtimes no concurrent request
       // can interleave past this check — the count is exact, no lock needed.
       if (sse.connectionCount(userId) >= maxConnectionsPerUser) {
-        return authError('rate_limited', 429, { message: 'Too many concurrent connections' });
+        return authError('connection_limit', 429);
       }
 
       const encoder = new TextEncoder();
