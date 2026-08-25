@@ -4,6 +4,12 @@ All notable changes to this project will be documented in this file.
 This changelog is automatically generated from [Conventional Commits](https://www.conventionalcommits.org).
 
 
+## [8.6.2] - 2026-08-25
+
+### Bug Fixes
+- Close the three loose ends of the v8.6.1 features wave
+- **table**: The virtualized list reaches its end at any root font size
+
 ## [8.6.1] - 2026-08-24
 
 ### Bug Fixes
