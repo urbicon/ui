@@ -35,4 +35,22 @@ describe('createVerifyEmailChangeHandler', () => {
     expect(deps.repos.user.consumeEmailChangeToken).toHaveBeenCalledWith(expect.any(String));
     expect(onEmailChanged).toHaveBeenCalledWith('user-1', 'new@test.com');
   });
+
+  it('keeps a completed swap a 200 when the onEmailChanged hook throws', async () => {
+    const swapped = createMockUser({ id: 'user-1', email: 'new@test.com', emailVerified: true });
+    const deps = createMockAuthDeps({
+      config: {
+        hooks: { onEmailChanged: vi.fn().mockRejectedValue(new Error('consumer hook exploded')) }
+      },
+      user: { consumeEmailChangeToken: vi.fn().mockResolvedValue(swapped) }
+    });
+
+    // The address is already swapped and the single-use token spent.
+    const res = await createVerifyEmailChangeHandler(deps).POST(event({ token: 'good-token' }));
+    expect(res.status).toBe(200);
+    expect(deps.logger.error).toHaveBeenCalledWith(
+      expect.stringContaining('onEmailChanged'),
+      expect.any(Error)
+    );
+  });
 });

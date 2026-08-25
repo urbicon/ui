@@ -173,6 +173,8 @@ Every structural subcomponent (`EmptyState`, `ErrorState`, `LoadingState`, `Grou
 
 **`cell` and `headerCell` are the data-column slots.** They reach the `<td>`/`<th>` that render column content — in flat rows, grouped rows and the header alike. The table's own structural cells (selection checkbox, expand chevron, group-indentation spacer, group toggle) are chrome with fixed widths and deliberately stay outside both slots, so a padding or alignment override cannot deform the controls it was never aimed at. Reach those through `row`/`headerRow`, or take over completely with `unstyled`.
 
+**Density is the `size` prop.** `sm` / `md` / `lg` on `<Table>` move row height, header height and cell padding together (`h-8` / `h-10` / `h-12` for a row). There is no density token to rebind and no density theme file to import; a wholly different rhythm is `slotClasses` or `unstyled`.
+
 ## i18n
 
 Namespace: `table.*`. Resolve typed keys via the context hook `useTableI18n` — call it during component init and alias the result `tt`:

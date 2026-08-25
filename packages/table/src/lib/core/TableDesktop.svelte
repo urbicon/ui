@@ -20,12 +20,11 @@
 
   const styleConfig = getTableStyleConfig();
   const stickyContext = getStickyContext();
-  // When header or group-header pinning is enabled, the visible frame must NOT
-  // create its own scroll-ancestor (overflow:auto/hidden hijacks `position: sticky`).
-  // We trade the in-table horizontal scroll for page-level overflow in that case.
-  const scrollAreaOverflow = $derived(
-    stickyContext.mode.header || stickyContext.mode.group ? '' : 'overflow-x-auto'
-  );
+  // When header pinning is enabled (thead + group header), the visible frame
+  // must NOT create its own scroll-ancestor (overflow:auto/hidden hijacks
+  // `position: sticky`). We trade the in-table horizontal scroll for page-level
+  // overflow in that case.
+  const scrollAreaOverflow = $derived(stickyContext.mode.header ? '' : 'overflow-x-auto');
 
   let {
     tableStyles,
@@ -620,14 +619,23 @@
                instead (which is what this did until 2026-08-13) forced
                `position: absolute` onto it, and an absolutely positioned
                element is never a `table-row` — its cells then sized themselves
-               from their content instead of from the shared column tracks. -->
+               from their content instead of from the shared column tracks.
+
+               `absolute top-0 left-0 w-full` takes the window out of flow and
+               stretches it — that is what makes the translate land on the right
+               row — so it is structure and rides the `structural` argument with
+               `table-fixed`. Concatenated onto the resolved string (where it sat
+               until #271) it was outside the tv() fold: its `w-full` and the
+               slot base's `w-full` both rendered, and a `slotClasses.table`
+               override of that bucket only ever tied with it on stylesheet
+               order. -->
             <table
-              class="{resolveSlotClass(
+              class={resolveSlotClass(
                 tableStyles.table,
                 styleConfig.slotClasses.table,
                 styleConfig.unstyled,
-                'table-fixed'
-              )} absolute top-0 left-0 w-full"
+                'absolute top-0 left-0 w-full table-fixed'
+              )}
               style="transform: translateY({virtualResult.startIndex * rowHeight}px);"
               role="presentation"
             >
