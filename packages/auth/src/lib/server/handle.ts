@@ -128,6 +128,31 @@ export function createAuthHandle<R extends string>(options: AuthHandleOptions<R>
     return transformUser ? transformUser(base, e) : base;
   };
 
+  // Same seam on the rotation branch, minus the abort. By the time it runs the
+  // rotation has committed — successor row written, predecessor CAS-revoked —
+  // and both cookies are staged on `event.cookies`, which SvelteKit flushes
+  // only on the success and redirect paths. A throw out of here therefore
+  // drops the successor cookie while the row says the predecessor was
+  // replaced, so the browser keeps replaying the spent token; outside
+  // ROTATION_GRACE_MS that is indistinguishable from reuse and revokes the
+  // whole family. Do not restore the abort here: one unauthenticated request
+  // is recoverable, a burnt family plus a false theft alarm is not. The read
+  // path above keeps the documented abort — nothing is committed there.
+  const resolveRotatedLocalsUser = async (
+    e: RequestEvent,
+    user: FullAuthUser<R>
+  ): Promise<unknown> => {
+    try {
+      return await resolveLocalsUser(e, user);
+    } catch (err) {
+      logger.error(
+        '[auth] handle: transformUser threw after a committed refresh rotation — continuing unauthenticated so the rotated cookies still reach the browser',
+        err
+      );
+      return null;
+    }
+  };
+
   return async ({ event, resolve }) => {
     // 1. CSRF check for mutating requests. The package's own Origin gate,
     // covering only requests that reach this hook; SvelteKit's kernel CSRF
@@ -185,7 +210,7 @@ export function createAuthHandle<R extends string>(options: AuthHandleOptions<R>
         );
         const rotatedUser = await applyRotationOutcome(event.cookies, outcome, config);
         (event.locals as Record<string, unknown>).user = rotatedUser
-          ? await resolveLocalsUser(event, rotatedUser)
+          ? await resolveRotatedLocalsUser(event, rotatedUser)
           : null;
       } else {
         (event.locals as Record<string, unknown>).user = null;

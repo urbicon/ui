@@ -778,6 +778,63 @@ describe('createAuthHandle — transformUser', () => {
     );
   });
 
+  it('survives a throwing transform on the refresh-rotation path without burning the family', async () => {
+    // Fake timers: the second rotation below must land outside the 10s grace.
+    vi.useFakeTimers();
+    try {
+      const refreshRepo = createInMemoryRefreshTokenRepository();
+      const revokeFamily = vi.spyOn(refreshRepo, 'revokeFamily');
+      const repos = { ...createMockRepos(), refreshToken: refreshRepo };
+      const { token } = await issueRefreshToken(refreshRepo, 'user-1', { refreshTokenTtl: '30d' });
+      const logger = { warn: vi.fn(), error: vi.fn() };
+      const handle = createAuthHandle({
+        config: {
+          ...config,
+          logger,
+          refreshToken: { accessTokenTtl: '15m', refreshTokenTtl: '30d' },
+          hooks: {
+            transformUser: () => {
+              throw new Error('enrichment boom');
+            }
+          }
+        },
+        repos
+      });
+
+      // By the time the transform runs, the successor row is written and the
+      // predecessor CAS-revoked, with both cookies staged on the event.
+      // SvelteKit flushes staged cookies on the success and redirect paths
+      // only — so the guard's 302 still delivers them, while a throw out of
+      // the hook would not, leaving the browser to replay the spent token.
+      const event = createMockEvent({ path: '/dashboard', refreshCookie: token });
+      await expect(handle({ event: asEvent(event), resolve: ok() })).rejects.toMatchObject({
+        status: 302
+      });
+
+      expect(event.locals.user).toBeNull();
+      expect(logger.error).toHaveBeenCalledWith(
+        expect.stringContaining('transformUser'),
+        expect.any(Error)
+      );
+
+      const successor = event._cookieStore.get('refresh');
+      expect(successor).toBeDefined();
+      expect(successor).not.toBe(token);
+
+      // The line is alive: the successor still rotates outside the grace
+      // window, and nothing was ever reported as stolen.
+      vi.advanceTimersByTime(11_000);
+      const next = createMockEvent({ path: '/dashboard', refreshCookie: successor });
+      await expect(handle({ event: asEvent(next), resolve: ok() })).rejects.toMatchObject({
+        status: 302
+      });
+      expect(next._cookieStore.get('refresh')).not.toBe(successor);
+      expect(revokeFamily).not.toHaveBeenCalled();
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
   it('applies the transform on the refresh-rotation path', async () => {
     const refreshRepo = createInMemoryRefreshTokenRepository();
     const repos = { ...createMockRepos(), refreshToken: refreshRepo };
