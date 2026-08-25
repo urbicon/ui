@@ -3,6 +3,7 @@ import { json } from '@sveltejs/kit';
 import type { FullAuthUser } from '../adapters/types.js';
 import { generateSecureToken, hashToken } from '../auth.js';
 import type { AuthDeps } from '../deps.js';
+import { resolveTokenTtlMs } from '../duration.js';
 import type { ChangeEmailNoticeContext, MailBuilder } from '../email/builders.js';
 import { resolveEmailSettings } from '../email/resolve.js';
 import { buildChangeEmail, buildChangeEmailNotice } from '../email/templates.js';
@@ -40,6 +41,10 @@ export function createChangeEmailHandler<R extends string>(
   options: ChangeEmailHandlerOptions = {}
 ): { POST: RequestHandler } {
   const rateLimiter = makeRateLimiter(deps.config.rateLimit?.changeEmail);
+  // Resolved here, not per request: a malformed `tokenTtl` throws where the
+  // route was wired instead of inside the detached issue-and-mail task, whose
+  // failures never reach the client.
+  const changeTtlMs = resolveTokenTtlMs(deps.config.tokenTtl, 'emailChange');
 
   return {
     POST: async ({ request, cookies, getClientAddress }) => {
@@ -64,7 +69,7 @@ export function createChangeEmailHandler<R extends string>(
       // longer surface as an HTTP error, so route them to deps.logger.error.
       void (async () => {
         try {
-          await issueEmailChange(deps, user, newEmail, options);
+          await issueEmailChange(deps, user, newEmail, changeTtlMs, options);
         } catch (err) {
           deps.logger.error(`[auth] change-email: failed to issue change (user ${user.id})`, err);
           // Surface the decoupled failure through the observability hook (it
@@ -91,6 +96,7 @@ async function issueEmailChange<R extends string>(
   deps: AuthDeps<R>,
   user: FullAuthUser<R>,
   newEmail: string,
+  ttlMs: number,
   options: ChangeEmailHandlerOptions
 ): Promise<void> {
   // No-op when it's already the current address (nothing to change) or already
@@ -101,7 +107,7 @@ async function issueEmailChange<R extends string>(
 
   const token = generateSecureToken();
   const tokenHash = hashToken(token);
-  const expires = new Date(Date.now() + 60 * 60 * 1000); // 1 hour
+  const expires = new Date(Date.now() + ttlMs);
 
   await deps.repos.user.setEmailChangeToken(user.id, newEmail, tokenHash, expires);
 

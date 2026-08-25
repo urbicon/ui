@@ -10,7 +10,7 @@ import { authError } from '../handlers/errors.js';
 import { enforceRateLimit, makeRateLimiter, type RateLimiter } from '../rate-limit.js';
 import { establishSession, resolveSessionMeta } from '../session.js';
 import { readJsonBody } from '../validation.js';
-import { generateChallenge } from './challenge-store.js';
+import { generateChallenge, resolveChallengeTimeoutSeconds } from './challenge-store.js';
 import { WebAuthnError } from './errors.js';
 import {
   type AuthenticationCredentialJSON,
@@ -263,8 +263,9 @@ function authenticationOptionsHandler<R extends string>(
         // applies without any UX cost — unlike the session cookie, this handle
         // never needs to survive a cross-site top-level navigation.
         sameSite: 'strict',
-        // Expire the pointer with the challenge it points at (default 5 min).
-        maxAge: Math.ceil((webauthn.challengeTimeout ?? 300_000) / 1000)
+        // Expire the pointer with the challenge it points at — same resolver,
+        // so the cookie cannot outlive what it points to.
+        maxAge: resolveChallengeTimeoutSeconds(webauthn)
       });
 
       return json({ options });

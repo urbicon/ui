@@ -1,5 +1,6 @@
 import type { RequestHandler } from '@sveltejs/kit';
 import { json } from '@sveltejs/kit';
+import type { LockoutConfig } from '../../types.js';
 import { sanitizeUser } from '../auth.js';
 import type { AuthDeps } from '../deps.js';
 import { hashPassword, verifyPasswordWithMigration } from '../password.js';
@@ -14,6 +15,27 @@ import { authError } from './errors.js';
 // equalization. Its value is irrelevant — the verify result is always
 // discarded — it just needs to be valid input to `hashPassword`.
 const DUMMY_VERIFY_PASSWORD = 'urbicon-auth-timing-equalization-dummy';
+
+/** One hour. See {@link LockoutConfig.decayMinutes} for why not `durationMinutes`. */
+const DEFAULT_DECAY_MINUTES = 60;
+
+/**
+ * Whether the failed-login count has gone stale — its last failure is at least
+ * `decayMinutes` old, so it describes a past episode rather than an attack in
+ * progress.
+ *
+ * `lastFailedAt` is the only evidence for the count's age, so anything that is
+ * not a usable date (an adapter that does not track the column, a cleared
+ * counter) means "cannot tell" and answers `false`: no decay, the counter keeps
+ * its pre-decay meaning. Reading it as decayed instead would discard the count
+ * of every adapter that leaves the field null.
+ */
+function attemptsDecayed(lastFailedAt: Date | null, lockout: LockoutConfig, now: number): boolean {
+  if (!(lastFailedAt instanceof Date)) return false;
+  // An `Invalid Date` needs no branch of its own: its age is NaN, and every
+  // comparison against NaN is false, so it lands on "cannot tell" as well.
+  return now - lastFailedAt.getTime() >= (lockout.decayMinutes ?? DEFAULT_DECAY_MINUTES) * 60_000;
+}
 
 export function createLoginHandler<R extends string>(deps: AuthDeps<R>): { POST: RequestHandler } {
   const rateLimiter = makeRateLimiter(deps.config.rateLimit?.login);
@@ -66,8 +88,24 @@ export function createLoginHandler<R extends string>(deps: AuthDeps<R>): { POST:
       const lockout = deps.config.lockout ?? undefined;
       if (lockout) {
         const attempts = await deps.repos.user.getFailedLoginAttempts(user.id);
-        if (attempts.lockedUntil && attempts.lockedUntil > new Date()) {
+        const now = Date.now();
+        if (attempts.lockedUntil && attempts.lockedUntil > new Date(now)) {
           return authError('account_locked', 423);
+        }
+        // Decay: a count whose last failure predates the window starts over,
+        // so `maxAttempts` typos spread over months no longer lock the account
+        // (the counter otherwise falls only on a successful sign-in).
+        //
+        // Two orderings are load-bearing. AFTER the lock check, because
+        // `resetFailedLogins` clears `lockedUntil` too and would end a live lock
+        // early (reachable whenever `decayMinutes < durationMinutes`). BEFORE
+        // the verify, so a burst of concurrent requests that all read the same
+        // stale count does its resetting one store round-trip apart while its
+        // increments land a PBKDF2 later; what can still be lost is an increment
+        // already in flight when the first reset lands, and the burst cannot
+        // renew itself — a zeroed count no longer qualifies below.
+        if (attempts.count > 0 && attemptsDecayed(attempts.lastFailedAt, lockout, now)) {
+          await deps.repos.user.resetFailedLogins(user.id);
         }
       }
 

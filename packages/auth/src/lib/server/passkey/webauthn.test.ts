@@ -165,6 +165,52 @@ describe('generateAuthenticationOptions', () => {
   });
 });
 
+// One ceremony, one lifetime (#294): the `timeout` the browser is given and the
+// store entry behind it must come from the same value, set or unset. A stored
+// challenge that outlives its browser timeout — or dies before it — leaves the
+// verify step with a challenge the client already abandoned.
+describe('ceremony lifetime', () => {
+  it.each([
+    { label: 'default', challengeTimeout: undefined, ms: 300_000 },
+    { label: 'configured', challengeTimeout: 61_000, ms: 61_000 }
+  ])(
+    'registration options and their stored challenge expire together ($label)',
+    async ({ challengeTimeout, ms }) => {
+      const store = createInMemoryChallengeStore();
+      const before = Date.now();
+      const options = await generateRegistrationOptions(
+        { ...isolatedConfig(store), challengeTimeout },
+        { id: 'user-timeout', name: 't', displayName: 'T' }
+      );
+
+      expect(options.timeout).toBe(ms);
+      const entry = await store.get('user-timeout');
+      expect(entry?.expires).toBeGreaterThanOrEqual(before + ms);
+      expect(entry?.expires).toBeLessThanOrEqual(Date.now() + ms);
+    }
+  );
+
+  it.each([
+    { label: 'default', challengeTimeout: undefined, ms: 300_000 },
+    { label: 'configured', challengeTimeout: 61_000, ms: 61_000 }
+  ])(
+    'authentication options and their stored challenge expire together ($label)',
+    async ({ challengeTimeout, ms }) => {
+      const store = createInMemoryChallengeStore();
+      const before = Date.now();
+      const options = await generateAuthenticationOptions(
+        { ...isolatedConfig(store), challengeTimeout },
+        'ceremony-1'
+      );
+
+      expect(options.timeout).toBe(ms);
+      const entry = await store.get('ceremony-1');
+      expect(entry?.expires).toBeGreaterThanOrEqual(before + ms);
+      expect(entry?.expires).toBeLessThanOrEqual(Date.now() + ms);
+    }
+  );
+});
+
 describe('verifyRegistration', () => {
   it('should reject with expired/missing challenge', async () => {
     try {

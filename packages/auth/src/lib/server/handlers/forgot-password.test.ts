@@ -57,6 +57,34 @@ describe('createForgotPasswordHandler', () => {
     expect(mail.html).toContain('/auth/reset-password?token=');
   });
 
+  // #294: the reset window was an inline literal — the one an operator is most
+  // likely to have a compliance requirement about.
+  it.each([
+    { label: 'defaults to one hour', tokenTtl: undefined, ms: 60 * 60 * 1000 },
+    {
+      label: 'honours config.tokenTtl.passwordReset',
+      tokenTtl: { passwordReset: '10m' },
+      ms: 10 * 60_000
+    }
+  ])('$label', async ({ tokenTtl, ms }) => {
+    const deps = createMockAuthDeps({
+      config: tokenTtl ? { tokenTtl } : {},
+      user: { findByEmail: vi.fn().mockResolvedValue(createMockUser({ id: 'u1' })) }
+    });
+    const before = Date.now();
+    await createForgotPasswordHandler(deps).POST(event({ email: 'aya@test.com' }));
+
+    await vi.waitFor(() => expect(deps.repos.user.setPasswordResetToken).toHaveBeenCalled());
+    const expires: Date = vi.mocked(deps.repos.user.setPasswordResetToken).mock.calls[0][2];
+    expect(expires.getTime() - before).toBeGreaterThanOrEqual(ms);
+    expect(expires.getTime() - Date.now()).toBeLessThanOrEqual(ms);
+  });
+
+  it('rejects a malformed tokenTtl at wiring time, not inside the detached task', () => {
+    const deps = createMockAuthDeps({ config: { tokenTtl: { passwordReset: '1 hour' } } });
+    expect(() => createForgotPasswordHandler(deps)).toThrow(/Invalid duration format/);
+  });
+
   it('threads config.email.from into the reset email (Issue #17)', async () => {
     const send = vi.fn().mockResolvedValue(undefined);
     const deps = createMockAuthDeps({

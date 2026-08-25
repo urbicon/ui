@@ -1,6 +1,9 @@
 import type { RequestEvent } from '@sveltejs/kit';
-import { describe, expect, it, vi } from 'vitest';
-import { createInMemoryRefreshTokenRepository } from '../adapters/in-memory.js';
+import { afterEach, describe, expect, it, vi } from 'vitest';
+import {
+  createInMemoryRefreshTokenRepository,
+  createInMemoryUserRepository
+} from '../adapters/in-memory.js';
 import type { UserRepository } from '../adapters/types.js';
 import type { AuthDeps } from '../deps.js';
 import { hashPassword } from '../password.js';
@@ -334,5 +337,174 @@ describe('createLoginHandler', () => {
     } finally {
       deriveSpy.mockRestore();
     }
+  });
+});
+
+// #288: `failedLoginAttempts` falls on a successful sign-in and on nothing else,
+// so a count that never decayed turned `maxAttempts` typos spread over any
+// timespan at all into a lockout. The handler resets a count whose
+// `lastFailedAt` is older than `lockout.decayMinutes` before recording into it.
+describe('createLoginHandler — failed-attempt decay', () => {
+  const lockout = { maxAttempts: 5, durationMinutes: 15 };
+  const minutesAgo = (m: number) => new Date(Date.now() - m * 60_000);
+
+  /** A wrong-password login against a repo reporting `attempts`. */
+  async function loginWith(
+    attempts: { count: number; lockedUntil: Date | null; lastFailedAt: Date | null },
+    lockoutConfig: typeof lockout & { decayMinutes?: number } = lockout
+  ) {
+    const pw = await hashPassword('correct');
+    const resetFailedLogins = vi.fn();
+    const recordFailedLogin = vi.fn();
+    const deps = createMockDeps({
+      findByEmail: vi.fn().mockResolvedValue(createMockUser({ passwordHash: pw })),
+      getFailedLoginAttempts: vi.fn().mockResolvedValue(attempts),
+      recordFailedLogin,
+      resetFailedLogins
+    });
+    deps.config.lockout = lockoutConfig;
+    const res = await createLoginHandler(deps).POST(
+      mockRequestEvent({ email: 'test@test.com', password: 'wrong' }) as unknown as RequestEvent
+    );
+    return { res, resetFailedLogins, recordFailedLogin };
+  }
+
+  it('clears a count whose last failure predates the window, before recording the next one', async () => {
+    const { res, resetFailedLogins, recordFailedLogin } = await loginWith({
+      count: 4,
+      lockedUntil: null,
+      lastFailedAt: minutesAgo(61)
+    });
+
+    expect(res.status).toBe(401);
+    expect(resetFailedLogins).toHaveBeenCalledWith('user-1');
+    // Order matters: reset first, then count this attempt as the new first one.
+    expect(resetFailedLogins.mock.invocationCallOrder[0]).toBeLessThan(
+      recordFailedLogin.mock.invocationCallOrder[0]
+    );
+  });
+
+  it('leaves a count whose last failure is inside the window alone', async () => {
+    const { resetFailedLogins, recordFailedLogin } = await loginWith({
+      count: 4,
+      lockedUntil: null,
+      lastFailedAt: minutesAgo(59)
+    });
+
+    expect(resetFailedLogins).not.toHaveBeenCalled();
+    expect(recordFailedLogin).toHaveBeenCalledOnce();
+  });
+
+  it('honours a configured decayMinutes in both directions', async () => {
+    const short = { ...lockout, decayMinutes: 5 };
+    expect(
+      (await loginWith({ count: 4, lockedUntil: null, lastFailedAt: minutesAgo(6) }, short))
+        .resetFailedLogins
+    ).toHaveBeenCalledWith('user-1');
+    expect(
+      (await loginWith({ count: 4, lockedUntil: null, lastFailedAt: minutesAgo(4) }, short))
+        .resetFailedLogins
+    ).not.toHaveBeenCalled();
+    // Control on the default: six minutes is far inside the one-hour default,
+    // so the same fixture decays only because decayMinutes was set.
+    expect(
+      (await loginWith({ count: 4, lockedUntil: null, lastFailedAt: minutesAgo(6) }))
+        .resetFailedLogins
+    ).not.toHaveBeenCalled();
+  });
+
+  it('does not decay when the adapter reports no lastFailedAt (fail-safe, not fail-open)', async () => {
+    // `null` — an adapter that does not keep the column.
+    expect(
+      (await loginWith({ count: 4, lockedUntil: null, lastFailedAt: null })).resetFailedLogins
+    ).not.toHaveBeenCalled();
+    // `undefined` — one that omits the key entirely. Same answer: the count
+    // keeps its pre-decay meaning rather than being discarded.
+    expect(
+      (
+        await loginWith({ count: 4, lockedUntil: null } as unknown as {
+          count: number;
+          lockedUntil: Date | null;
+          lastFailedAt: Date | null;
+        })
+      ).resetFailedLogins
+    ).not.toHaveBeenCalled();
+  });
+
+  it('never resets while a lock is live — resetFailedLogins would end it early', async () => {
+    // decayMinutes below durationMinutes is the reachable case: the count is
+    // stale by the decay window while the lock it produced still stands.
+    const { res, resetFailedLogins, recordFailedLogin } = await loginWith(
+      { count: 5, lockedUntil: new Date(Date.now() + 10 * 60_000), lastFailedAt: minutesAgo(6) },
+      { ...lockout, decayMinutes: 5 }
+    );
+
+    expect(res.status).toBe(423);
+    expect(resetFailedLogins).not.toHaveBeenCalled();
+    expect(recordFailedLogin).not.toHaveBeenCalled();
+  });
+
+  it('does not write when there is nothing to decay (count 0)', async () => {
+    const { resetFailedLogins } = await loginWith({
+      count: 0,
+      lockedUntil: null,
+      lastFailedAt: minutesAgo(61)
+    });
+    expect(resetFailedLogins).not.toHaveBeenCalled();
+  });
+});
+
+// The property a user feels, driven through the real in-memory adapter rather
+// than a mocked counter: four old typos plus one today must not lock, five
+// typos in one sitting must.
+describe('createLoginHandler — decay against the in-memory adapter', () => {
+  afterEach(() => {
+    vi.useRealTimers();
+  });
+
+  async function seed() {
+    const user = createInMemoryUserRepository();
+    await user.create({
+      email: 'test@test.com',
+      name: 'Aya',
+      passwordHash: await hashPassword('correct'),
+      role: 'admin'
+    });
+    const deps = createMockDeps();
+    deps.repos.user = user;
+    deps.config.lockout = { maxAttempts: 5, durationMinutes: 15 };
+    const id = (await user.findByEmail('test@test.com'))!.id;
+    return { user, deps, id };
+  }
+
+  const wrongLogin = (deps: AuthDeps<string>) =>
+    createLoginHandler(deps).POST(
+      mockRequestEvent({ email: 'test@test.com', password: 'wrong' }) as unknown as RequestEvent
+    );
+
+  it('four failures an hour ago plus one now leave the account open', async () => {
+    const { user, deps, id } = await seed();
+    for (let i = 0; i < 4; i++) await user.recordFailedLogin(id, deps.config.lockout ?? undefined);
+
+    vi.useFakeTimers();
+    vi.setSystemTime(Date.now() + 61 * 60_000);
+    expect((await wrongLogin(deps)).status).toBe(401);
+
+    const after = await user.getFailedLoginAttempts(id);
+    expect(after.count).toBe(1);
+    expect(after.lockedUntil).toBeNull();
+  });
+
+  it('the same five failures in one sitting still lock the account', async () => {
+    const { user, deps, id } = await seed();
+    for (let i = 0; i < 4; i++) await user.recordFailedLogin(id, deps.config.lockout ?? undefined);
+
+    expect((await wrongLogin(deps)).status).toBe(401);
+
+    const after = await user.getFailedLoginAttempts(id);
+    expect(after.count).toBe(5);
+    expect(after.lockedUntil).not.toBeNull();
+    // …and the next request is refused before any verify runs.
+    expect((await wrongLogin(deps)).status).toBe(423);
   });
 });

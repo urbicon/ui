@@ -86,6 +86,30 @@ export function resolveChallengeStore(config: { challengeStore?: ChallengeStore 
   return config.challengeStore ?? getDefaultChallengeStore();
 }
 
+/** 5 minutes. See {@link resolveChallengeTimeoutMs}. */
+const DEFAULT_CHALLENGE_TIMEOUT_MS = 300_000;
+
+/**
+ * The lifetime of one WebAuthn ceremony, in ms.
+ *
+ * Four things expire on it — the store entry, the `timeout` the browser is
+ * given for registration and for assertion, and the `maxAge` of the cookie that
+ * carries the ceremony handle — and they only agree while they read one value:
+ * a cookie that outlives its challenge sends the verify step to a challenge
+ * that is gone, a challenge that outlives its cookie is unreachable.
+ */
+export function resolveChallengeTimeoutMs(config: { challengeTimeout?: number }): number {
+  return config.challengeTimeout ?? DEFAULT_CHALLENGE_TIMEOUT_MS;
+}
+
+/**
+ * The same lifetime in whole seconds, rounded up — the unit `cookies.set` takes
+ * for `maxAge`. Here rather than at the cookie so the conversion has one site.
+ */
+export function resolveChallengeTimeoutSeconds(config: { challengeTimeout?: number }): number {
+  return Math.ceil(resolveChallengeTimeoutMs(config) / 1000);
+}
+
 // `key` is the challenge-store key — a user id for registration, a per-ceremony
 // handle for discoverable authentication (see `generateAuthenticationOptions`).
 // Kept generic because both callers route through here.
@@ -93,7 +117,7 @@ export async function storeChallenge(
   store: ChallengeStore,
   key: string,
   challenge: string,
-  timeoutMs: number = 300_000
+  timeoutMs: number = DEFAULT_CHALLENGE_TIMEOUT_MS
 ): Promise<void> {
   await Promise.resolve(store.set(key, { challenge, expires: Date.now() + timeoutMs }));
 }

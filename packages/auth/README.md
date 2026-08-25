@@ -109,7 +109,8 @@ export const authDeps = createAuthDeps({
 rate-limit default is injected even if you configure only _other_ endpoints (so
 `rateLimit: { register }` never silently leaves login unprotected); the lockout default
 applies only when you set neither `rateLimit` nor `lockout`. Opt out of either explicitly
-with `null`. `cookieSecure: false` marks this as a dev config, which suppresses the
+with `null`. A failed attempt stops counting once it is `lockout.decayMinutes` old (default
+60), so typos on separate days never add up to a lockout. `cookieSecure: false` marks this as a dev config, which suppresses the
 production hardening warnings (and HSTS) you'd otherwise see.
 
 **2. Hook** — `src/hooks.server.ts`:
@@ -182,7 +183,8 @@ export const authDeps = createAuthDeps<AppRole>({
       forgotPassword: { windowMs: 3_600_000, max: 3 }, // reset *request* (email send)
       resetPassword: { windowMs: 3_600_000, max: 5 } // reset *consume* (token redemption)
     },
-    lockout: { maxAttempts: 5, durationMinutes: 15 },
+    lockout: { maxAttempts: 5, durationMinutes: 15, decayMinutes: 60 }, // decay: how long a failure counts
+    tokenTtl: { emailVerification: '24h', passwordReset: '1h', emailChange: '1h' }, // mailed link windows
     routes: { afterLogin: '/', loginPage: '/auth/login' }
   },
   repos: createPrismaRepos<AppRole>(prisma), // pulls in the refreshToken adapter
