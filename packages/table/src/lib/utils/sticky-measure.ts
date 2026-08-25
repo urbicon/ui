@@ -11,12 +11,14 @@
  *
  * `borderBoxSize[0].blockSize` is the same quantity without a layout read, in
  * horizontal writing modes — which the pinning model assumes throughout, since
- * it stacks block-direction sizes into `top`. Engines without it fall back to
- * the rect, so the initial reading and every observed one come from one
- * definition and cannot disagree.
+ * it stacks block-direction sizes into `top`. It is also the *layout* box, where
+ * `getBoundingClientRect()` reports the box after transforms: under a
+ * `transform: scale(2)` the two disagree by a factor of two, and the `top`
+ * offsets the layers stack are layout offsets. Engines without `borderBoxSize`
+ * fall back to the rect.
  */
-function borderBoxHeight(element: HTMLElement, entry?: ResizeObserverEntry): number {
-  return entry?.borderBoxSize?.[0]?.blockSize ?? element.getBoundingClientRect().height;
+function borderBoxHeight(element: HTMLElement, entry: ResizeObserverEntry): number {
+  return entry.borderBoxSize?.[0]?.blockSize ?? element.getBoundingClientRect().height;
 }
 
 /**
@@ -40,24 +42,33 @@ export function measureToCssVar(property: string, targetSelector = '[data-table-
     const target =
       (element.closest(targetSelector) as HTMLElement | null) ?? (element as HTMLElement);
 
-    const apply = (height: number) => {
-      // Written unrounded, and a fractional px is valid CSS. Under
-      // `border-collapse: collapse` the `<thead>` carries half of the collapsed
-      // 1px border, so its border box lands on a half pixel at most root font
-      // sizes (40.5px at the default 16px root, `size="md"`). Rounding that up
-      // put the layer below it 0.5px too low, and a gap between two opaque
-      // layers shows the scrolling content through it (a full device pixel at
-      // DPR 2) while an overlap of the same size is invisible.
-      target.style.setProperty(property, `${height}px`);
-    };
-
-    apply(borderBoxHeight(element));
-
     const observer = new ResizeObserver((entries) => {
       for (const entry of entries) {
-        apply(borderBoxHeight(entry.target as HTMLElement, entry));
+        // Written unrounded, and a fractional px is valid CSS. Under
+        // `border-collapse: collapse` the `<thead>` carries half of the collapsed
+        // 1px border, so its border box lands on a half pixel at most root font
+        // sizes (40.5px at the default 16px root, `size="md"`). Rounding that up
+        // put the layer below it 0.5px too low, and a gap between two opaque
+        // layers shows the scrolling content through it (a full device pixel at
+        // DPR 2) while an overlap of the same size is invisible.
+        //
+        // Unconditionally, never write-if-changed: the property lives in the same
+        // inline `style` the component owns, and anything that rewrites that
+        // attribute wipes it. An unconditional write means the next observation
+        // puts it back; a guard comparing against the last written number sees no
+        // change and leaves the property gone for good.
+        target.style.setProperty(
+          property,
+          `${borderBoxHeight(entry.target as HTMLElement, entry)}px`
+        );
       }
     });
+
+    // The only reading. `observe()` delivers an initial observation of the current
+    // size before the next paint (ResizeObserver spec, "has active or skipped
+    // observations" runs in the update-the-rendering steps after layout), so this
+    // is also the first write — there is no separate attach-time reading that
+    // could be taken from a different box than the observed ones.
     observer.observe(element);
 
     return () => {
@@ -70,39 +81,107 @@ export function measureToCssVar(property: string, targetSelector = '[data-table-
 /** `overflow` computed values that make an element a scrollport. */
 const SCROLLABLE_OVERFLOW = /^(auto|scroll|overlay)$/;
 
+/** `overflow` computed values that clip without giving the reader a scrollbar. */
+const CLIPPING_OVERFLOW = /^(hidden|clip)$/;
+
 /**
- * `{@attach}` factory that measures how much of the viewport sits **above** an
- * element (`getBoundingClientRect().top`) and writes it to a CSS custom property
- * on the closest `[data-table-container]` (the element itself when attached to
- * the container).
+ * The space above the element that the reader cannot scroll away — the distance
+ * to the top of the viewport it settles at once every scroller between it and
+ * the viewport is scrolled as far up as the element needs.
+ *
+ * Every term is a declared offset, a scroll position paired with the box it
+ * scrolls, or the box of an ancestor that scrolling does not move — and none of
+ * them changes when something scrolls. That is the property the cap needs: it
+ * is consumed by a static `calc()`, so a number that tracks the current scroll
+ * makes the box a different height at every scroll offset and lets any reflow
+ * that happens to fire re-write it.
+ *
+ * The walk carries two numbers outwards: `top`, the viewport top of the box the
+ * element currently travels with, and `inset`, the distance from that box's
+ * content top down to the element, which no scrolling closes. Each ancestor
+ * says what the element can do inside it:
+ *
+ * - a scrollport (`overflow: auto | scroll | overlay`) — the element's place in
+ *   the scrolled content is `top - nodeTop + scrollTop`, the same number at every
+ *   scroll position. That is what the box reserves: the content above the
+ *   element inside the pane scrolls WITH it, not away from it, so a pane with
+ *   a heading above the table is exactly a heading tall plus the table — and
+ *   the promise is that the pane then does not scroll at all. The walk goes on
+ *   with the pane in the element's place.
+ * - `overflow: hidden | clip` — clipped with no scrollbar: the offset inside it
+ *   is held for good, so it is added and the walk continues. `html`/`body` are
+ *   ordinary ancestors under this rule, which is what makes an `overflow:
+ *   hidden` app shell come out right without a case of its own.
+ * - `position: fixed` — nothing above it moves it. Done.
+ * - `position: sticky` with a `top` — it comes to rest at that `top`. This is
+ *   #272: measured against the document alone, the value grew with the page
+ *   scroll under an ancestor whose `rect.top` stays put, until `calc(100dvh -
+ *   value)` went negative and the box collapsed to zero height. A pinned
+ *   ancestor ends the walk at its pin line plus the element's offset inside it.
+ *
+ * Nothing stopped the walk means the page itself is the outermost scroller, and
+ * the element's place in the document is `top + scrollY` — invariant under page
+ * scroll, which the viewport-relative reading this replaced was not: any reflow
+ * while the page was scrolled rewrote it and left the box that much too tall.
+ */
+function minReachableTop(element: HTMLElement): number {
+  let top = element.getBoundingClientRect().top;
+  let inset = 0;
+
+  for (let node = element.parentElement; node; node = node.parentElement) {
+    const style = getComputedStyle(node);
+    const nodeTop = node.getBoundingClientRect().top;
+
+    if (style.position === 'fixed') return top + inset;
+
+    if (style.position === 'sticky') {
+      const pinned = Number.parseFloat(style.top);
+      if (Number.isFinite(pinned)) return Math.max(0, pinned) + (top - nodeTop) + inset;
+    }
+
+    if (SCROLLABLE_OVERFLOW.test(style.overflowY)) {
+      inset += top - nodeTop + node.scrollTop;
+      top = nodeTop;
+    } else if (CLIPPING_OVERFLOW.test(style.overflowY)) {
+      inset += top - nodeTop;
+      top = nodeTop;
+    }
+  }
+
+  return top + window.scrollY + inset;
+}
+
+/**
+ * `{@attach}` factory that measures the viewport space reserved **above** an
+ * element and writes it to a CSS custom property on the closest
+ * `[data-table-container]` (the element itself when attached to the container).
  *
  * Used by `fit="viewport"` to size the contained scroll box via
- * `max-height: calc(100dvh - <offset>)`, which is why the value is
- * viewport-relative: measured document-relative (`+ scrollY`) it grew with the
- * page scroll under a `position: sticky` ancestor — whose `rect.top` stays put —
- * until the cap went negative and the box collapsed to zero height (#272).
+ * `max-height: calc(100dvh - <reserved>)`. The reserved space is
+ * `minReachableTop`, not the element's current `rect.top`: the cap has to hold
+ * while the reader scrolls, and a table two screens down a page has to be capped
+ * before anyone has scrolled to it at all.
  *
- * What re-measures, and the case each one carries:
+ * What re-measures:
  *
- * - `resize` on the window — the viewport itself changed.
- * - `ResizeObserver` on `document.body` — shells that scroll the document,
- *   whose body box tracks the flow, so content appearing above the table
- *   resizes it.
- * - `ResizeObserver` on the container's parent — a content-height app-shell
- *   pane, where the body box never changes.
- * - `scroll` on every scrollable ancestor **below** the page scroller — a nested
- *   scrollport moves the box through the viewport (a supported configuration,
- *   see STICKY-PINNING §6).
+ * - `resize` on the window — the viewport height the cap subtracts from.
+ * - `ResizeObserver` on `document.body` and on the container's parent — the two
+ *   boxes that change size when what sits above the table does, in the two
+ *   shells that exist: one whose body box tracks the flow, and one whose body
+ *   never moves and whose pane is content-height. Neither observes the measured
+ *   quantity itself; they are where to look again, which is why the staleness
+ *   below is not closed by adding a third.
  *
- * The page scroller is deliberately not among them: the property drives the
- * container's own `max-height`, which changes the document height, so
- * re-measuring on page scroll would close that loop. The value therefore goes
- * stale while the page scrolls — bounded, because it can never turn the cap
- * negative (see `apply`), only let the box reach past the viewport bottom.
+ * No scroll listener anywhere, on the page scroller or below it: the value the
+ * cap consumes cannot change when something scrolls, so there is nothing for one
+ * to report. Nor a write-if-changed guard — see the note in `measureToCssVar`.
  *
- * Not covered for the same reason: a banner inserted into a *fixed-height* pane
- * above the table resizes no observed box and scrolls nothing, so the value
- * holds its last reading until the next resize.
+ * The reading can still go stale in **both** directions, and neither is bounded:
+ * chrome inserted above the table inside a fixed-height pane resizes no observed
+ * box, and so does chrome removed from one — the box is then too tall by that
+ * much (it reaches past the viewport bottom) or too short by it (empty space
+ * below). An ancestor that becomes a scrollport after the attach (a
+ * media-gated `overflow-y: auto`, a class swap) is stale the same way.
  *
  * Offsets *inside* the container (e.g. a growing toolbar / filter chips) do NOT
  * change this value and are absorbed by the flex layout instead.
@@ -122,53 +201,30 @@ export function measureViewportOffsetTop(
     const target =
       (element.closest(targetSelector) as HTMLElement | null) ?? (element as HTMLElement);
 
-    let written: number | null = null;
-
     const apply = () => {
-      const top = element.getBoundingClientRect().top;
-
-      // A reading taken while the box already starts below the viewport bottom
-      // describes no room at all: written, it would make the cap `100dvh - top`
-      // zero or negative, which is the collapse to zero height. Hold the last
-      // good value instead — too tall a box is a second scrollbar, not a
-      // vanished table — and let the next event correct it.
-      if (top >= window.innerHeight) return;
-
-      const next = Math.max(0, top);
-      if (next === written) return;
-      written = next;
+      const reserved = minReachableTop(element);
+      // The cap is `max-height: calc(100dvh - <written>)`, so a value at or past
+      // the viewport height is a table of zero height. Space that large is not
+      // chrome the reader keeps in view, it is content they scroll away — reserve
+      // nothing for it rather than collapsing the box.
+      const next = reserved < window.innerHeight ? Math.max(0, reserved) : 0;
+      // Unconditionally — see the note in `measureToCssVar`. Writing the same
+      // number again changes no layout, so it resizes nothing and cannot feed
+      // back into the observers below.
       target.style.setProperty(property, `${next}px`);
     };
 
     apply();
-
-    const scrollAncestors: HTMLElement[] = [];
-    for (
-      let node = element.parentElement;
-      node && node !== document.body;
-      node = node.parentElement
-    ) {
-      const style = getComputedStyle(node);
-      if (SCROLLABLE_OVERFLOW.test(style.overflowY) || SCROLLABLE_OVERFLOW.test(style.overflowX)) {
-        scrollAncestors.push(node);
-      }
-    }
 
     const observer = new ResizeObserver(apply);
     observer.observe(document.body);
     if (element.parentElement) observer.observe(element.parentElement);
 
     window.addEventListener('resize', apply);
-    for (const ancestor of scrollAncestors) {
-      ancestor.addEventListener('scroll', apply, { passive: true });
-    }
 
     return () => {
       observer.disconnect();
       window.removeEventListener('resize', apply);
-      for (const ancestor of scrollAncestors) {
-        ancestor.removeEventListener('scroll', apply);
-      }
       target.style.removeProperty(property);
     };
   };

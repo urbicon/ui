@@ -56,7 +56,15 @@ const BOXES: Record<string, { border: number; content: number }> = {
   thead: { border: 40.6, content: 39.6 }
 };
 
-/** Where the container starts in the viewport — fractional for the same reason. */
+/**
+ * Where the container starts in the viewport — fractional for the same reason.
+ * `--blocks-table-avail-top` is the space RESERVED above the box: the content
+ * above it that cannot scroll away. In the page flow at `scrollY` 0 (jsdom never
+ * scrolls) that is this number as written, which a walk that measured nothing
+ * could not tell from a walk that did — so the control is the same mount under
+ * a pinned ancestor (`shell: 'pinned'`), where the walk has to stop at the pin
+ * line and add this offset to it.
+ */
 const CONTAINER_TOP = 120.5;
 const CONTAINER_WIDTH = 1000;
 
@@ -96,13 +104,16 @@ function entryFor(el: Element, size = boxOf(el)): ResizeObserverEntry {
 
 /**
  * Whether `observe()` delivers its initial observation. Real observers do, and
- * the default models that. A test that wants the value the FIRST FRAME carried —
- * the attach reading, before any callback can overwrite it — turns it off:
- * with the initial delivery on, a wrong attach reading is invisible, because the
- * observation corrects it in the same frame. In the browser too, which is why
- * the default is on.
+ * the default models that: it is the ONLY source of the measured heights — there
+ * is no attach-time reading any more, so with delivery off nothing is written,
+ * and a test can show the values come from the observation and from nowhere
+ * else.
  */
 let deliverInitialObservation = true;
+
+/** The ancestor the table mounts under: the page flow, or a sticky bar pinned at 48px. */
+type Shell = 'flow' | 'pinned';
+const PIN_LINE = 48;
 
 /** Observers the component created, so a test can drive them. */
 class TestResizeObserver {
@@ -113,13 +124,9 @@ class TestResizeObserver {
   }
   observe(el: Element) {
     this.targets.add(el);
-    // A real `observe()` delivers an initial observation, which overwrites what
-    // the attach wrote — in the browser, within the same frame. A fake that
-    // skips it lets this suite pin a state that survives one frame at most, and
-    // that state is exactly what #272 was: the attach reading one box and the
-    // observer another. Delivered here, a reading of the wrong box in the
-    // OBSERVER path shows up in the mount-time assertions below; the attach path
-    // is reached by suppressing this (see `deliverInitialObservation`).
+    // A real `observe()` delivers an initial observation, inside the frame the
+    // element mounts in. A fake that skips it lets a suite pin a state the
+    // browser holds for under a frame — which is how #272 was mis-measured.
     if (deliverInitialObservation) this.deliver(el);
   }
   deliver(el: Element, size?: { border: number; content: number }) {
@@ -180,8 +187,14 @@ function setIntersecting(el: Element, isIntersecting: boolean) {
 
 const mounted: Array<{ comp: Record<string, unknown>; target: HTMLElement }> = [];
 
-function mountTable(props: Record<string, unknown> = {}): HTMLElement {
+function mountTable(props: Record<string, unknown> = {}, shell: Shell = 'flow'): HTMLElement {
   const target = document.createElement('div');
+  // A pinned ancestor ends the walk in `minReachableTop` at its pin line, and
+  // the container's offset inside it is added on top.
+  if (shell === 'pinned') {
+    target.style.setProperty('position', 'sticky');
+    target.style.setProperty('top', `${PIN_LINE}px`);
+  }
   document.body.appendChild(target);
   // Typed wide, like the mobile-decisions helper next door: the harness pins
   // its own Row shape and these deliberately minimal fixtures are not it.
@@ -239,8 +252,11 @@ describe('the four --blocks-table-* properties reach the container', () => {
     const plain = properties(mountTable());
     // The pinned configuration is the control: the same three readings find
     // their values there, so the empty strings above are absence and not a
-    // broken read path.
+    // broken read path. And the same mount under a pinned ancestor is the
+    // control that the offset was WALKED to, not read off the container: there
+    // the walk stops at the pin line and adds the container's offset to it.
     const pinned = properties(mountTable({ sticky: 'both', fit: 'viewport' }));
+    const underBar = properties(mountTable({ sticky: 'both', fit: 'viewport' }, 'pinned'));
 
     expect(plain.stickyTop).toBe('0px');
     expect(plain.toolbarH).toBe('');
@@ -249,6 +265,7 @@ describe('the four --blocks-table-* properties reach the container', () => {
 
     expect(pinned.theadH).toBe('40.6px');
     expect(pinned.availTop).toBe('120.5px');
+    expect(underBar.availTop).toBe(`${PIN_LINE + CONTAINER_TOP}px`);
   });
 
   it('measures the toolbar only where the toolbar pins — which contained mode is not', () => {
@@ -302,26 +319,27 @@ describe('the four --blocks-table-* properties reach the container', () => {
     expect(properties(container).toolbarH).toBe('92.4px');
   });
 
-  it('the first frame carries the measured heights, before any observation lands', () => {
-    // With the initial observation suppressed, what remains on the container is
-    // the attach reading — what a reader sees painted in the frame the table
-    // mounts in. It has to be the same box as every later reading: when the two
-    // disagreed, a padded toolbar pinned the thead 32px too low for one frame
-    // and permanently too high afterwards (#272).
+  it('the measured heights come from the initial observation, and from nowhere else', () => {
+    // There is no attach-time reading: `borderBoxHeight` takes the observer
+    // entry, so the first value the container carries is the one the initial
+    // observation delivers — in the browser inside the mounting frame, before
+    // paint. When a second read path existed it read a different box, and a
+    // padded toolbar pinned the thead 32px too low for one frame and permanently
+    // too high afterwards (#272). With the observation suppressed nothing is
+    // written, which is the proof there is no other path.
     deliverInitialObservation = false;
-    const firstFrame = properties(mountTable({ sticky: 'both' }));
+    const unobserved = properties(mountTable({ sticky: 'both' }));
 
-    expect(firstFrame.toolbarH).toBe('56.4px');
-    expect(firstFrame.theadH).toBe('40.6px');
+    expect(unobserved.toolbarH).toBe('');
+    expect(unobserved.theadH).toBe('');
 
-    // POSITIVE CONTROL: with the observation delivered — the browser's own
-    // sequence — the same rig produces the same two numbers. That equality IS
-    // the claim; a rig that only ever ran one of the two paths could not make it.
+    // POSITIVE CONTROL: delivered, the same rig carries both heights — so the
+    // empty strings above are the absence of a path, not a broken write.
     deliverInitialObservation = true;
-    const settled = properties(mountTable({ sticky: 'both' }));
+    const observed = properties(mountTable({ sticky: 'both' }));
 
-    expect(settled.toolbarH).toBe(firstFrame.toolbarH);
-    expect(settled.theadH).toBe(firstFrame.theadH);
+    expect(observed.toolbarH).toBe('56.4px');
+    expect(observed.theadH).toBe('40.6px');
   });
 
   it('carries stickyOffset into sticky-top, and drops it in the contained box', () => {
@@ -334,16 +352,16 @@ describe('the four --blocks-table-* properties reach the container', () => {
     expect(contained.stickyTop).toBe('0px');
   });
 
-  it('clamps a negative viewport offset to zero', () => {
-    // The offset is viewport-relative, so a container whose top edge has already
-    // passed the top of the window reads negative — and `100dvh - (-12px)` is a
-    // box taller than the window it is supposed to fit inside.
+  it('clamps a negative reservation to zero', () => {
+    // A container pulled above the document's top edge (a negative margin, a
+    // translate) reads negative — and `100dvh - (-12px)` is a box taller than
+    // the window it is supposed to fit inside.
     const positive = properties(mountTable({ fit: 'viewport' }));
     containerTop = -12;
-    const scrolledPast = properties(mountTable({ fit: 'viewport' }));
+    const pulledUp = properties(mountTable({ fit: 'viewport' }));
 
     expect(positive.availTop).toBe('120.5px');
-    expect(scrolledPast.availTop).toBe('0px');
+    expect(pulledUp.availTop).toBe('0px');
   });
 
   it('re-measures on resize instead of freezing the mount-time reading', () => {
@@ -362,32 +380,34 @@ describe('the four --blocks-table-* properties reach the container', () => {
     expect(properties(container).theadH).toBe('64.2px');
   });
 
-  it('re-measures the contained offset when the content above the table reflows', () => {
+  it('re-measures the reservation when the content above the table reflows', () => {
     const container = mountTable({ fit: 'viewport' });
     expect(properties(container).availTop).toBe('120.5px');
 
-    // `measureViewportOffsetTop` watches the body — a banner above the table
-    // shifts the box down, and the cap has to shrink by the same amount.
+    // `measureViewportOffsetTop` watches the body — a banner growing above the
+    // table shifts the box down, the reservation grows by the same amount and
+    // the cap has to shrink by it.
     containerTop = 180.5;
     resizeTo(document.body);
     expect(properties(container).availTop).toBe('180.5px');
   });
 
-  it('discards a reading taken below the viewport bottom and holds the last good one', () => {
+  it('reserves nothing for space that would leave the box no height', () => {
     const container = mountTable({ fit: 'viewport' });
     expect(properties(container).availTop).toBe('120.5px');
 
-    // At or below the bottom edge, `100dvh - top` is zero or negative: writing
-    // it collapses the box to nothing, which is the worse of the two failures —
-    // a box that reaches past the viewport is a second scrollbar, a box of zero
-    // height is no table. The last good value stays until an event corrects it.
+    // Space a whole viewport tall is not chrome the reader keeps in view, it is
+    // content they scroll away — and `100dvh - <that>` is a table of zero
+    // height, the worse of the two failures (a box reaching past the viewport is
+    // a second scrollbar; a box of zero height is no table). So it is clamped to
+    // a value, not discarded: the property is always written.
     containerTop = window.innerHeight;
     resizeTo(document.body);
-    expect(properties(container).availTop).toBe('120.5px');
+    expect(properties(container).availTop).toBe('0px');
 
-    // POSITIVE CONTROL through the same path: a reading that IS above the bottom
-    // edge does move the value, so the line above is the guard refusing and not
-    // a notification path that never fired.
+    // POSITIVE CONTROL through the same path: a reservation that leaves the box
+    // room is written as measured, so the `0px` above is the clamp and not a
+    // notification path that never fired.
     containerTop = 180.5;
     resizeTo(document.body);
     expect(properties(container).availTop).toBe('180.5px');
