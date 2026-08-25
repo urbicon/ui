@@ -72,14 +72,21 @@ function makeDeps(): TestDeps {
  *  ceremony cookie exactly as a browser would. */
 function makeCookieJar() {
   const store = new Map<string, string>();
+  // The set options are kept too: the ceremony cookie's `maxAge` is part of the
+  // ceremony's lifetime, and a jar that drops it cannot see the cookie outlive
+  // the challenge it points at.
+  const setCalls: { name: string; value: string; options: { maxAge?: number } }[] = [];
   const cookies = {
     get: (name: string) => store.get(name),
-    set: (name: string, value: string) => void store.set(name, value),
+    set: (name: string, value: string, options: { maxAge?: number } = {}) => {
+      store.set(name, value);
+      setCalls.push({ name, value, options });
+    },
     delete: (name: string) => void store.delete(name),
     getAll: () => [],
     serialize: () => ''
   } as unknown as Cookies;
-  return { store, cookies };
+  return { store, cookies, setCalls };
 }
 
 function event(
@@ -107,6 +114,34 @@ describe('createPasskeyHandlers — wiring', () => {
         deps.webauthn
       )
     ).toThrow(/repos\.passkey is required/);
+  });
+});
+
+// The ceremony cookie is the fourth reader of that one lifetime (#294): it
+// carries the handle the verify step looks the challenge up by, so a cookie
+// that expires later points at nothing, and one that expires earlier throws the
+// challenge away while it is still valid.
+describe('ceremony cookie lifetime', () => {
+  it.each([
+    { label: 'default', challengeTimeout: undefined, ms: 300_000 },
+    { label: 'configured', challengeTimeout: 61_500, ms: 61_500 }
+  ])('expires with the challenge it points at ($label)', async ({ challengeTimeout, ms }) => {
+    const deps = makeDeps();
+    deps.webauthn.challengeTimeout = challengeTimeout;
+    const jar = makeCookieJar();
+    const before = Date.now();
+
+    const res = await passkeyHandlers(deps).authenticationOptions.POST(event({}, { jar }));
+    const { options } = await res.json();
+
+    // One cookie, and its maxAge is the ceremony lifetime in whole seconds.
+    expect(jar.setCalls).toHaveLength(1);
+    expect(jar.setCalls[0].options.maxAge).toBe(Math.ceil(ms / 1000));
+    expect(options.timeout).toBe(ms);
+    // …and the challenge the cookie's handle points at expires no later.
+    const entry = await deps.webauthn.challengeStore!.get(jar.setCalls[0].value);
+    expect(entry?.expires).toBeGreaterThanOrEqual(before + ms);
+    expect(entry?.expires).toBeLessThanOrEqual(Date.now() + ms);
   });
 });
 

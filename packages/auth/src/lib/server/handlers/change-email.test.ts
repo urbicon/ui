@@ -91,6 +91,37 @@ describe('createChangeEmailHandler', () => {
     expect(onEmailChangeRequested).toHaveBeenCalledWith('user-1', 'new@test.com');
   });
 
+  // #294: the confirmation window was an inline literal.
+  it.each([
+    { label: 'defaults to one hour', tokenTtl: undefined, ms: 60 * 60 * 1000 },
+    {
+      label: 'honours config.tokenTtl.emailChange',
+      tokenTtl: { emailChange: '5m' },
+      ms: 5 * 60_000
+    }
+  ])('$label', async ({ tokenTtl, ms }) => {
+    const deps = createMockAuthDeps({
+      config: tokenTtl ? { tokenTtl } : {},
+      user: {
+        findById: vi.fn().mockResolvedValue(await currentUser()),
+        findByEmail: vi.fn().mockResolvedValue(null)
+      }
+    });
+    const ev = await authed(deps, { newEmail: 'new@test.com', currentPassword: 'current' });
+    const before = Date.now();
+    await run(deps, ev);
+
+    await vi.waitFor(() => expect(deps.repos.user.setEmailChangeToken).toHaveBeenCalled());
+    const expires: Date = vi.mocked(deps.repos.user.setEmailChangeToken).mock.calls[0][3];
+    expect(expires.getTime() - before).toBeGreaterThanOrEqual(ms);
+    expect(expires.getTime() - Date.now()).toBeLessThanOrEqual(ms);
+  });
+
+  it('rejects a malformed tokenTtl at wiring time, not inside the detached task', () => {
+    const deps = createMockAuthDeps({ config: { tokenTtl: { emailChange: '60min' } } });
+    expect(() => createChangeEmailHandler(deps)).toThrow(/Invalid duration format/);
+  });
+
   it('both default mails ship a text part and localize via config.email.locale (Issue #15)', async () => {
     const send = vi.fn().mockResolvedValue(undefined);
     const deps = createMockAuthDeps({

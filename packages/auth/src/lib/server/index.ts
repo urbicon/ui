@@ -30,6 +30,7 @@ export type {
   PasswordConfig,
   RateLimitConfig,
   RefreshTokenConfig,
+  TokenTtlConfig,
   TwoFactorConfig
 } from '../types.js';
 // Full in-memory adapter — dev/test fixture and five-minute quickstart. Never

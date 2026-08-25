@@ -67,5 +67,6 @@ export type {
   JwtConfig,
   LockoutConfig,
   PasswordConfig,
-  RateLimitConfig
+  RateLimitConfig,
+  TokenTtlConfig
 } from './types.js';

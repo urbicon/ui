@@ -2,6 +2,7 @@ import type { RequestHandler } from '@sveltejs/kit';
 import { json } from '@sveltejs/kit';
 import { generateSecureToken, hashToken, sanitizeUser } from '../auth.js';
 import type { AuthDeps } from '../deps.js';
+import { resolveTokenTtlMs } from '../duration.js';
 import type { MailBuilder } from '../email/builders.js';
 import { resolveEmailSettings } from '../email/resolve.js';
 import { buildVerificationEmail } from '../email/templates.js';
@@ -62,6 +63,9 @@ export function createRegisterHandler<R extends string>(
   options: RegisterHandlerOptions = {}
 ): { POST: RequestHandler } {
   const rateLimiter = sharedLimiter(deps.config, 'register');
+  // Resolved here, not per request: a malformed `tokenTtl` throws where the
+  // route was wired instead of on someone's first signup.
+  const verificationTtlMs = resolveTokenTtlMs(deps.config.tokenTtl, 'emailVerification');
 
   return {
     POST: async (event) => {
@@ -155,7 +159,7 @@ export function createRegisterHandler<R extends string>(
         ...(verificationToken
           ? {
               verificationToken: hashToken(verificationToken),
-              verificationTokenExpires: new Date(Date.now() + 24 * 60 * 60 * 1000) // 24h
+              verificationTokenExpires: new Date(Date.now() + verificationTtlMs)
             }
           : { emailVerified: true })
       });

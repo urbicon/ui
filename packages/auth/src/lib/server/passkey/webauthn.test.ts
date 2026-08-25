@@ -24,6 +24,14 @@ import {
   coseEc2Key
 } from './webauthn-test-utils.js';
 
+/**
+ * `storeChallenge` with the lifetime a ceremony would give it. Everything below
+ * except the expiry tests is about something other than the clock, and
+ * `storeChallenge` takes the lifetime as a required argument.
+ */
+const store5m = (store: ChallengeStore, key: string, challenge: string) =>
+  storeChallenge(store, key, challenge, 300_000);
+
 /** base64url-encode (no padding) — clientDataJSON is transported this way. */
 const b64url = (s: string) => btoa(s).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
 
@@ -52,13 +60,13 @@ describe('generateChallenge', () => {
 describe('storeChallenge / consumeChallenge', () => {
   it('stores and consumes a challenge', async () => {
     const store = createInMemoryChallengeStore();
-    await storeChallenge(store, 'user-1', 'challenge-abc');
+    await store5m(store, 'user-1', 'challenge-abc');
     expect(await consumeChallenge(store, 'user-1')).toBe('challenge-abc');
   });
 
   it('returns null after the challenge has been consumed', async () => {
     const store = createInMemoryChallengeStore();
-    await storeChallenge(store, 'user-2', 'challenge-xyz');
+    await store5m(store, 'user-2', 'challenge-xyz');
     await consumeChallenge(store, 'user-2');
     expect(await consumeChallenge(store, 'user-2')).toBeNull();
   });
@@ -90,7 +98,7 @@ describe('storeChallenge / consumeChallenge', () => {
       }
     };
 
-    await storeChallenge(asyncStore, 'async-user', 'c1');
+    await store5m(asyncStore, 'async-user', 'c1');
     expect(await consumeChallenge(asyncStore, 'async-user')).toBe('c1');
     expect(await consumeChallenge(asyncStore, 'async-user')).toBeNull();
   });
@@ -111,7 +119,7 @@ describe('storeChallenge / consumeChallenge', () => {
     const logger = { warn: vi.fn(), error: vi.fn() };
     const consoleError = vi.spyOn(console, 'error').mockImplementation(() => {});
 
-    await storeChallenge(brokenDelete, 'k', 'c1');
+    await store5m(brokenDelete, 'k', 'c1');
     expect(await consumeChallenge(brokenDelete, 'k', logger)).toBe('c1');
     expect(logger.error).toHaveBeenCalledWith(
       expect.stringContaining('challenge may be replayable until TTL'),
@@ -197,6 +205,52 @@ describe('generateAuthenticationOptions', () => {
   });
 });
 
+// One ceremony, one lifetime (#294): the `timeout` the browser is given and the
+// store entry behind it must come from the same value, set or unset. A stored
+// challenge that outlives its browser timeout — or dies before it — leaves the
+// verify step with a challenge the client already abandoned.
+describe('ceremony lifetime', () => {
+  it.each([
+    { label: 'default', challengeTimeout: undefined, ms: 300_000 },
+    { label: 'configured', challengeTimeout: 61_000, ms: 61_000 }
+  ])(
+    'registration options and their stored challenge expire together ($label)',
+    async ({ challengeTimeout, ms }) => {
+      const store = createInMemoryChallengeStore();
+      const before = Date.now();
+      const options = await generateRegistrationOptions(
+        { ...isolatedConfig(store), challengeTimeout },
+        { id: 'user-timeout', name: 't', displayName: 'T' }
+      );
+
+      expect(options.timeout).toBe(ms);
+      const entry = await store.get('user-timeout');
+      expect(entry?.expires).toBeGreaterThanOrEqual(before + ms);
+      expect(entry?.expires).toBeLessThanOrEqual(Date.now() + ms);
+    }
+  );
+
+  it.each([
+    { label: 'default', challengeTimeout: undefined, ms: 300_000 },
+    { label: 'configured', challengeTimeout: 61_000, ms: 61_000 }
+  ])(
+    'authentication options and their stored challenge expire together ($label)',
+    async ({ challengeTimeout, ms }) => {
+      const store = createInMemoryChallengeStore();
+      const before = Date.now();
+      const options = await generateAuthenticationOptions(
+        { ...isolatedConfig(store), challengeTimeout },
+        'ceremony-1'
+      );
+
+      expect(options.timeout).toBe(ms);
+      const entry = await store.get('ceremony-1');
+      expect(entry?.expires).toBeGreaterThanOrEqual(before + ms);
+      expect(entry?.expires).toBeLessThanOrEqual(Date.now() + ms);
+    }
+  );
+});
+
 describe('verifyRegistration', () => {
   it('should reject with expired/missing challenge', async () => {
     try {
@@ -218,7 +272,7 @@ describe('verifyRegistration', () => {
 
   it('should reject with wrong clientData type', async () => {
     const store = createInMemoryChallengeStore();
-    await storeChallenge(store, 'user-cd', 'test-challenge');
+    await store5m(store, 'user-cd', 'test-challenge');
 
     const clientData = JSON.stringify({
       type: 'webauthn.get', // wrong — should be webauthn.create
@@ -248,7 +302,7 @@ describe('verifyRegistration', () => {
 
   it('should reject with origin mismatch', async () => {
     const store = createInMemoryChallengeStore();
-    await storeChallenge(store, 'user-origin', 'test-challenge');
+    await store5m(store, 'user-origin', 'test-challenge');
 
     const clientData = JSON.stringify({
       type: 'webauthn.create',
@@ -278,7 +332,7 @@ describe('verifyRegistration', () => {
 
   it('rejects a cross-origin registration even when the origin matches', async () => {
     const store = createInMemoryChallengeStore();
-    await storeChallenge(store, 'user-xo', 'test-challenge');
+    await store5m(store, 'user-xo', 'test-challenge');
 
     const clientData = JSON.stringify({
       type: 'webauthn.create',
@@ -303,7 +357,7 @@ describe('verifyRegistration', () => {
 
   it('does NOT reject when crossOrigin is false (passes the gate, fails downstream)', async () => {
     const store = createInMemoryChallengeStore();
-    await storeChallenge(store, 'user-so', 'test-challenge');
+    await store5m(store, 'user-so', 'test-challenge');
     const clientData = JSON.stringify({
       type: 'webauthn.create',
       challenge: 'test-challenge',
@@ -328,7 +382,7 @@ describe('verifyRegistration', () => {
 
   it('does NOT reject when crossOrigin is absent (standard same-origin client)', async () => {
     const store = createInMemoryChallengeStore();
-    await storeChallenge(store, 'user-abs', 'test-challenge');
+    await store5m(store, 'user-abs', 'test-challenge');
     const clientData = JSON.stringify({
       type: 'webauthn.create',
       challenge: 'test-challenge',
@@ -352,7 +406,7 @@ describe('verifyRegistration', () => {
 describe('verifyAssertion — cross-origin', () => {
   it('rejects a cross-origin assertion even when the origin matches', async () => {
     const store = createInMemoryChallengeStore();
-    await storeChallenge(store, 'user-axo', 'auth-challenge');
+    await store5m(store, 'user-axo', 'auth-challenge');
 
     const clientData = JSON.stringify({
       type: 'webauthn.get',
@@ -386,7 +440,7 @@ describe('verifyAssertion — cross-origin', () => {
 
   it('does NOT reject when crossOrigin is false (passes the gate, fails downstream)', async () => {
     const store = createInMemoryChallengeStore();
-    await storeChallenge(store, 'user-aso', 'auth-challenge');
+    await store5m(store, 'user-aso', 'auth-challenge');
     const clientData = JSON.stringify({
       type: 'webauthn.get',
       challenge: 'auth-challenge',
@@ -452,7 +506,7 @@ describe('requireUserVerification', () => {
 
   it('rejects a UP-only assertion by default', async () => {
     const store = createInMemoryChallengeStore();
-    await storeChallenge(store, 'ceremony', 'chal-uv');
+    await store5m(store, 'ceremony', 'chal-uv');
     const { credential, publicKey } = await buildEs256Assertion(config, {
       challenge: 'chal-uv',
       flags: 0x01 // UP only — a tap, no PIN/biometric
@@ -465,7 +519,7 @@ describe('requireUserVerification', () => {
 
   it('accepts a UP-only assertion when the opt-out is explicit', async () => {
     const store = createInMemoryChallengeStore();
-    await storeChallenge(store, 'ceremony', 'chal-uv-off');
+    await store5m(store, 'ceremony', 'chal-uv-off');
     const { credential, publicKey } = await buildEs256Assertion(config, {
       challenge: 'chal-uv-off',
       flags: 0x01
@@ -493,7 +547,7 @@ describe('requireUserVerification', () => {
 describe('verifyAssertion — ES256 signature (Codeberg #38 regression)', () => {
   it('accepts a valid DER-encoded ES256 assertion', async () => {
     const store = createInMemoryChallengeStore();
-    await storeChallenge(store, 'ceremony', 'chal-ok');
+    await store5m(store, 'ceremony', 'chal-ok');
     const { credential, publicKey } = await buildEs256Assertion(config, { challenge: 'chal-ok' });
 
     const result = await verifyAssertion(
@@ -510,7 +564,7 @@ describe('verifyAssertion — ES256 signature (Codeberg #38 regression)', () => 
 
   it('rejects a cryptographically wrong (but well-formed) signature', async () => {
     const store = createInMemoryChallengeStore();
-    await storeChallenge(store, 'ceremony', 'chal-tamper');
+    await store5m(store, 'ceremony', 'chal-tamper');
     const { credential, publicKey } = await buildEs256Assertion(config, {
       challenge: 'chal-tamper',
       tamper: true
@@ -522,7 +576,7 @@ describe('verifyAssertion — ES256 signature (Codeberg #38 regression)', () => 
 
   it('rejects a structurally invalid signature without reaching the crypto step', async () => {
     const store = createInMemoryChallengeStore();
-    await storeChallenge(store, 'ceremony', 'chal-broken');
+    await store5m(store, 'ceremony', 'chal-broken');
     const { credential, publicKey } = await buildEs256Assertion(config, {
       challenge: 'chal-broken',
       breakDer: true
@@ -538,7 +592,7 @@ describe('verifyAssertion — RP binding (rpIdHash, WebAuthn §7.2 step 15)', ()
     // Test-review mutation finding: the mismatch branch had no negative test —
     // deleting the check kept 840 green.
     const store = createInMemoryChallengeStore();
-    await storeChallenge(store, 'ceremony', 'chal-rp');
+    await store5m(store, 'ceremony', 'chal-rp');
     const { credential, publicKey } = await buildEs256Assertion(config, {
       challenge: 'chal-rp',
       rpId: 'evil.example'
@@ -567,7 +621,7 @@ function coseRsaKey(n: Uint8Array, e: Uint8Array): Uint8Array {
 describe('verifyAssertion — rejects an unimportable stored key with a clean 400', () => {
   it('ES256 key whose point is not on P-256 (real importKey rejection)', async () => {
     const store = createInMemoryChallengeStore();
-    await storeChallenge(store, 'ceremony', 'chal-offcurve');
+    await store5m(store, 'ceremony', 'chal-offcurve');
     // Valid ceremony fields (so the flow reaches the key import); the signature
     // is never examined because importKey rejects the off-curve point first.
     const { credential } = await buildEs256Assertion(config, { challenge: 'chal-offcurve' });
@@ -579,7 +633,7 @@ describe('verifyAssertion — rejects an unimportable stored key with a clean 40
 
   it('RS256 key that importKey rejects', async () => {
     const store = createInMemoryChallengeStore();
-    await storeChallenge(store, 'ceremony', 'chal-badrsa');
+    await store5m(store, 'ceremony', 'chal-badrsa');
     const { credential } = await buildEs256Assertion(config, { challenge: 'chal-badrsa' });
     // n and e are present so the COSE guard passes and the flow reaches
     // importKey. No mainstream runtime (Node and Bun both confirmed) eagerly
@@ -621,7 +675,7 @@ describe('hostile-input hardening (R9)', () => {
 
   it('rejects a non-JSON clientDataJSON as a WebAuthnError, not a SyntaxError', async () => {
     const store = createInMemoryChallengeStore();
-    await storeChallenge(store, 'user-mal', 'test-challenge');
+    await store5m(store, 'user-mal', 'test-challenge');
 
     try {
       await verifyRegistration(isolatedConfig(store), 'user-mal', {
@@ -644,7 +698,7 @@ describe('hostile-input hardening (R9)', () => {
 
   it('rejects malformed attestation CBOR as a WebAuthnError', async () => {
     const store = createInMemoryChallengeStore();
-    await storeChallenge(store, 'user-cbor', 'test-challenge');
+    await store5m(store, 'user-cbor', 'test-challenge');
 
     try {
       await verifyRegistration(isolatedConfig(store), 'user-cbor', {
@@ -666,7 +720,7 @@ describe('hostile-input hardening (R9)', () => {
 
   it('rejects an attestation object with trailing bytes', async () => {
     const store = createInMemoryChallengeStore();
-    await storeChallenge(store, 'user-trail', 'test-challenge');
+    await store5m(store, 'user-trail', 'test-challenge');
 
     try {
       await verifyRegistration(isolatedConfig(store), 'user-trail', {
@@ -692,7 +746,7 @@ describe('hostile-input hardening (R9)', () => {
     // InvalidCharacterError that the handlers rethrow as a 500, skipping the
     // onLoginFailed audit hook for exactly the hostile-probe case.
     const store = createInMemoryChallengeStore();
-    await storeChallenge(store, 'user-reg', 'test-challenge');
+    await store5m(store, 'user-reg', 'test-challenge');
     await expect(
       verifyRegistration(isolatedConfig(store), 'user-reg', {
         id: 'x',
@@ -703,7 +757,7 @@ describe('hostile-input hardening (R9)', () => {
     ).rejects.toThrow('Malformed clientDataJSON');
 
     const store2 = createInMemoryChallengeStore();
-    await storeChallenge(store2, 'user-reg', 'test-challenge');
+    await store5m(store2, 'user-reg', 'test-challenge');
     await expect(
       verifyRegistration(isolatedConfig(store2), 'user-reg', {
         id: 'x',
@@ -714,7 +768,7 @@ describe('hostile-input hardening (R9)', () => {
     ).rejects.toThrow('Malformed attestationObject');
 
     const store3 = createInMemoryChallengeStore();
-    await storeChallenge(store3, 'ceremony', 'chal-mal');
+    await store5m(store3, 'ceremony', 'chal-mal');
     const es = await buildEs256Assertion(config, { challenge: 'chal-mal' });
     await expect(
       verifyAssertion(
@@ -731,7 +785,7 @@ describe('hostile-input hardening (R9)', () => {
     ).rejects.toThrow('Malformed authenticatorData');
 
     const store4 = createInMemoryChallengeStore();
-    await storeChallenge(store4, 'ceremony', 'chal-mal2');
+    await store5m(store4, 'ceremony', 'chal-mal2');
     const es2 = await buildEs256Assertion(config, { challenge: 'chal-mal2' });
     await expect(
       verifyAssertion(
@@ -750,7 +804,7 @@ describe('hostile-input hardening (R9)', () => {
 
   it('rejects a body missing the response object entirely as WebAuthnError, not a TypeError', async () => {
     const store = createInMemoryChallengeStore();
-    await storeChallenge(store, 'user-reg', 'test-challenge');
+    await store5m(store, 'user-reg', 'test-challenge');
     await expect(
       verifyRegistration(isolatedConfig(store), 'user-reg', {
         id: 'x',
@@ -842,7 +896,7 @@ describe('verifyRegistration — attested credential data (exact COSE slicing)',
 
   it('extracts the credential and slices the COSE key byte-exactly past extension data (ED)', async () => {
     const store = createInMemoryChallengeStore();
-    await storeChallenge(store, 'user-reg', 'reg-challenge');
+    await store5m(store, 'user-reg', 'reg-challenge');
     // {credProtect: 2} — the classic authenticator extension following the key.
     const ext = new Uint8Array([0xa1, ...cborText('credProtect'), 0x02]);
     const { coseKey, credId, authData } = await buildRegistrationAuthData(ext);
@@ -860,7 +914,7 @@ describe('verifyRegistration — attested credential data (exact COSE slicing)',
 
   it('verifies a plain registration without extensions identically', async () => {
     const store = createInMemoryChallengeStore();
-    await storeChallenge(store, 'user-reg', 'reg-challenge');
+    await store5m(store, 'user-reg', 'reg-challenge');
     const { coseKey, authData } = await buildRegistrationAuthData();
 
     const result = await verify(store, noneAttestation(authData));
@@ -872,7 +926,7 @@ describe('verifyRegistration — attested credential data (exact COSE slicing)',
     // finding: making this check vacuous kept the whole suite green — a
     // credential minted for evil.example must not register here.
     const store = createInMemoryChallengeStore();
-    await storeChallenge(store, 'user-reg', 'reg-challenge');
+    await store5m(store, 'user-reg', 'reg-challenge');
     const { authData } = await buildRegistrationAuthData(undefined, 'evil.example');
 
     await expect(verify(store, noneAttestation(authData))).rejects.toThrow('RP ID hash mismatch');
@@ -880,7 +934,7 @@ describe('verifyRegistration — attested credential data (exact COSE slicing)',
 
   it('rejects a registration whose authenticator only proved user presence', async () => {
     const store = createInMemoryChallengeStore();
-    await storeChallenge(store, 'user-reg', 'reg-challenge');
+    await store5m(store, 'user-reg', 'reg-challenge');
     const { authData } = await buildRegistrationAuthData(undefined, undefined, false);
 
     await expect(verify(store, noneAttestation(authData))).rejects.toThrow(
@@ -890,7 +944,7 @@ describe('verifyRegistration — attested credential data (exact COSE slicing)',
 
   it('registers a UP-only authenticator when the opt-out is explicit', async () => {
     const store = createInMemoryChallengeStore();
-    await storeChallenge(store, 'user-reg', 'reg-challenge');
+    await store5m(store, 'user-reg', 'reg-challenge');
     const { coseKey, authData } = await buildRegistrationAuthData(undefined, undefined, false);
 
     const result = await verify(store, noneAttestation(authData), {
@@ -906,7 +960,7 @@ describe('malformed COSE key inside authenticatorData (silent-failure review)', 
     // new duplicate-key throw would otherwise escape the handlers' WebAuthnError
     // catch as a 500 and skip the onLoginFailed audit hook.
     const store = createInMemoryChallengeStore();
-    await storeChallenge(store, 'user-reg', 'reg-challenge');
+    await store5m(store, 'user-reg', 'reg-challenge');
 
     const rpIdHash = new Uint8Array(
       await crypto.subtle.digest('SHA-256', new TextEncoder().encode(config.rpId))

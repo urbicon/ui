@@ -111,6 +111,8 @@ replacement (so `rateLimit: { register }` never silently leaves login unprotecte
 per-key numbers and their reasoning are in
 [docs/AUTH.md](docs/AUTH.md#stage-1--quickstart-dev). The lockout default applies only
 when you set neither `rateLimit` nor `lockout`. Opt out of either explicitly with `null`.
+A failed attempt stops counting once it is `lockout.decayMinutes` old (default 60), so
+typos on separate days never add up to a lockout.
 A `cookieSecure: false` on the session, CSRF **or** refresh cookie marks this as a
 non-HTTPS dev deployment, which suppresses the production hardening warnings (and HSTS)
 you'd otherwise see, and drops the `__Host-` prefix from the 2FA and passkey cookies so
@@ -190,7 +192,8 @@ export const authDeps = createAuthDeps<AppRole>({
       forgotPassword: { windowMs: 3_600_000, max: 3 }, // reset *request* (email send)
       resetPassword: { windowMs: 3_600_000, max: 5 } // reset *consume* (token redemption)
     },
-    lockout: { maxAttempts: 5, durationMinutes: 15 },
+    lockout: { maxAttempts: 5, durationMinutes: 15, decayMinutes: 60 }, // decay: how long a failure counts
+    tokenTtl: { emailVerification: '24h', passwordReset: '1h', emailChange: '1h' }, // mailed link windows
     routes: { afterLogin: '/', loginPage: '/auth/login' },
     logger: appLogger
   },
