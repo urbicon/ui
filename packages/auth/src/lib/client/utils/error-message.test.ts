@@ -81,44 +81,39 @@ describe('errorMessageFromCode', () => {
     expect(errorMessageFromCode('validation_error', en, '')).toBe(en.auth.errors.validationError);
   });
 
+  it('localizes csrf_failed instead of showing the security term from the server', () => {
+    // `handle.ts` answers 403 with "CSRF validation failed" — a security term
+    // under a login form. The reaction (reload) is only in the locale string.
+    const msg = errorMessageFromCode('csrf_failed', de, 'CSRF validation failed');
+    expect(msg).toBe(de.auth.errors.csrfFailed);
+    expect(msg).not.toBe('CSRF validation failed');
+  });
+
+  it('localizes passkey_verification_failed over every server prose it may carry', () => {
+    // The eight ceremony failures share one code; none of their English
+    // sentences may reach the user, least of all the clone warning.
+    for (const prose of [
+      'Challenge expired or not found',
+      'Counter did not increase — possible cloned authenticator',
+      undefined
+    ]) {
+      expect(errorMessageFromCode('passkey_verification_failed', de, prose)).toBe(
+        de.auth.errors.passkeyVerificationFailed
+      );
+    }
+  });
+
+  it('separates the connection cap from the request cap (both 429)', () => {
+    expect(errorMessageFromCode('connection_limit', de)).toBe(de.auth.errors.connectionLimit);
+    expect(errorMessageFromCode('connection_limit', de)).not.toBe(de.auth.errors.rateLimited);
+  });
+
   it('covers every code key with a non-empty string in both bundles', () => {
     // Guards against an AuthLocale errors key being added without translations.
     for (const bundle of [en, de] as AuthLocale[]) {
       for (const value of Object.values(bundle.auth.errors)) {
         expect(typeof value).toBe('string');
         expect(value.length).toBeGreaterThan(0);
-      }
-    }
-  });
-});
-
-describe('CODE_TO_KEY drift against the server contract', () => {
-  it('every server AuthErrorCode resolves to a localized string — or is on the documented unmapped list', async () => {
-    // Test-review finding: the next server code can ship without a client
-    // mapping with zero signal — English prose on localized pages, the exact
-    // bug class R15 fixed. Codes deliberately unmapped (their server prose
-    // carries the detail / a component maps them directly): keep this list
-    // in sync with the rationale in client/utils/error-message.ts.
-    const EXPECTED_UNMAPPED = new Set([
-      'csrf_failed',
-      'passkey_verification_failed',
-      'push_endpoint_conflict',
-      'push_subscription_limit'
-    ]);
-    // Codes minted on the client (never in AUTH_ERROR_CODES) — listed here so
-    // the drift gate covers them too: the server-side iteration alone is
-    // structurally blind to them (surviving-mutant finding, package 5).
-    const CLIENT_SYNTHESIZED_CODES = ['network_error'];
-    const { AUTH_ERROR_CODES } = await import('../../server/handlers/errors.js');
-    for (const code of [...Object.values(AUTH_ERROR_CODES), ...CLIENT_SYNTHESIZED_CODES]) {
-      const resolved = errorMessageFromCode(code, en);
-      if (EXPECTED_UNMAPPED.has(code)) {
-        expect(
-          resolved,
-          `${code} should stay unmapped or be removed from the list`
-        ).toBeUndefined();
-      } else {
-        expect(resolved, `${code} needs a CODE_TO_KEY entry + locale string`).toBeTruthy();
       }
     }
   });

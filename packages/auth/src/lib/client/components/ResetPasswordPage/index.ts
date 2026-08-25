@@ -1,5 +1,6 @@
 import type { Snippet } from 'svelte';
 import type { PartialAuthLocale } from '../../../i18n/keys.js';
+import type { PasswordPolicy } from '../../../password-policy.js';
 import type { CsrfClientOptions } from '../../csrf.js';
 import type { AuthPageSlotClasses } from '../types.js';
 
@@ -36,6 +37,22 @@ export interface ResetPasswordPageProps {
   csrf?: CsrfClientOptions;
   /** Custom fetch implementation for all API calls. Defaults to the global `fetch`. Useful for mock backends in demos/tests or custom retry/auth layers. */
   fetcher?: typeof globalThis.fetch;
+  /**
+   * The password policy to gate against, when you already have it server-side
+   * (`resolvePasswordPolicy(config.password)` in a `+page.server.ts` load).
+   * Supplying it skips the `policyPath` request.
+   */
+  passwordPolicy?: PasswordPolicy;
+  /**
+   * Endpoint serving `createPasswordPolicyHandler`, read once on mount so the
+   * checklist and the submit gate match what the server enforces. `null`
+   * disables the request and falls back to the package defaults (min 8, no
+   * character classes).
+   * @default '/api/auth/password-policy'
+   */
+  policyPath?: string | null;
+  /** Show the real-time password requirements checklist. @default true */
+  showRequirements?: boolean;
   /** Content rendered between the heading and the form. */
   header?: Snippet;
   /** Content rendered below the form, above links. */
@@ -44,11 +61,12 @@ export interface ResetPasswordPageProps {
   links?: Snippet;
   /** Strip all default styling. */
   unstyled?: boolean;
-  /** Per-slot class overrides. Keys: `root`, `card`, `title`, `form`, `field`, `submit`, `error`, `success`, `links`. */
+  /** Per-slot class overrides. Keys: `root`, `card`, `title`, `form`, `field`, `requirements`, `submit`, `error`, `success`, `links`. */
   slotClasses?: AuthPageSlotClasses;
   /** Extra classes on the root element. */
   class?: string;
 }
 
+export type { PasswordPolicy } from '../../../password-policy.js';
 export type { AuthPageSlotClasses } from '../types.js';
 export { default as ResetPasswordPage } from './ResetPasswordPage.svelte';

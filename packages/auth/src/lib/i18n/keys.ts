@@ -17,8 +17,12 @@ export interface AuthLocale {
      * Localized copy for the machine `AuthErrorCode` values the server handlers
      * return alongside the English `error` prose. The client `errorMessageFromCode`
      * maps a code here; an unknown/missing code falls back to the server prose.
-     * Keys mirror the `AuthErrorCode` union exactly — plus `networkError` for the
-     * client-synthesized `network_error` (a request that never reached the server).
+     *
+     * `AUTH_ERROR_MESSAGE_KEYS` (`i18n/error-keys.ts`) binds every code to one of
+     * these keys — or to `null` where another surface owns the copy — and is
+     * `satisfies`-checked against the union, so the compiler names a code that
+     * has no key here. It is also the table the server's English prose is derived
+     * from, so these strings are the only English text for a code that exists.
      */
     errors: {
       invitationRequired: string;
@@ -44,8 +48,29 @@ export interface AuthLocale {
       invalidRefreshToken: string;
       featureUnavailable: string;
       validationError: string;
-      /** 429 — request/connection limits. */
+      /** 429 — too many *requests*; the reaction is to wait. */
       rateLimited: string;
+      /**
+       * 429 — too many *concurrent connections* (SSE streams) for one account;
+       * the reaction is to close another tab, not to wait. Split from
+       * `rateLimited` because the two render under the same status code and the
+       * correct reaction differs.
+       */
+      connectionLimit: string;
+      /**
+       * 403 — the double-submit CSRF token was missing or stale (the tab left
+       * open past the cookie's lifetime). Gates every mutating request, so it
+       * can surface under any form; the only reaction is to reload the page.
+       */
+      csrfFailed: string;
+      /**
+       * 400 — a passkey ceremony (sign-in or registration) did not verify.
+       * One string for all of them: the server's eight distinct causes are
+       * either not actionable by the user (expired challenge, unknown
+       * credential) or must not be shown to them at all (the cloned-authenticator
+       * signal); they are separated in the audit hook and the log instead.
+       */
+      passkeyVerificationFailed: string;
       serverError: string;
       /** Client-side only: the request never reached the server (offline, DNS, CORS). */
       networkError: string;
@@ -75,8 +100,17 @@ export interface AuthLocale {
       login: string;
       /** aria-label of the live requirements checklist. */
       requirementsLabel: string;
+      /** Accessible name of a satisfied requirement's ✓ marker. */
+      requirementMet: string;
+      /** Accessible name of an unsatisfied requirement's ✗ marker. */
+      requirementUnmet: string;
+      /**
+       * One label per `PasswordRuleId` (`password-policy.ts`). The checklist
+       * annotates this object as `Record<PasswordRuleId, string>`, so a new
+       * rule cannot ship without a label in both bundles.
+       */
       requirements: {
-        /** `{n}` is replaced with the page's `passwordMinLength` prop. */
+        /** `{n}` is replaced with the resolved policy's `minLength`. */
         minLength: string;
         uppercase: string;
         lowercase: string;

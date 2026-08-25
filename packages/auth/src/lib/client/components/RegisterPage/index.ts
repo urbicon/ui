@@ -1,5 +1,6 @@
 import type { Snippet } from 'svelte';
 import type { PartialAuthLocale } from '../../../i18n/keys.js';
+import type { PasswordPolicy } from '../../../password-policy.js';
 import type { CsrfClientOptions } from '../../csrf.js';
 import type { AuthPageSlotClasses } from '../types.js';
 
@@ -68,16 +69,21 @@ export interface RegisterPageProps {
   csrf?: CsrfClientOptions;
   /** Custom fetch implementation for all API calls. Defaults to the global `fetch`. Useful for mock backends in demos/tests or custom retry/auth layers. */
   fetcher?: typeof globalThis.fetch;
-  /** Minimum password length. @default 8 */
-  passwordMinLength?: number;
-  /** Require uppercase letter. @default true */
-  requireUppercase?: boolean;
-  /** Require lowercase letter. @default true */
-  requireLowercase?: boolean;
-  /** Require at least one digit. @default true */
-  requireDigit?: boolean;
-  /** Require special character. @default false */
-  requireSpecial?: boolean;
+  /**
+   * The password policy to gate against, when you already have it server-side
+   * (`resolvePasswordPolicy(config.password)` in a `+page.server.ts` load).
+   * Supplying it skips the `policyPath` request — useful for SSR, and the only
+   * way to gate correctly when the endpoint is not mounted.
+   */
+  passwordPolicy?: PasswordPolicy;
+  /**
+   * Endpoint serving `createPasswordPolicyHandler`, read once on mount so the
+   * checklist and the submit gate match what the server enforces. `null`
+   * disables the request and falls back to the package defaults (min 8, no
+   * character classes).
+   * @default '/api/auth/password-policy'
+   */
+  policyPath?: string | null;
   /** Show real-time password requirements checklist. @default true */
   showRequirements?: boolean;
   /** Content rendered above the form (e.g. social login buttons). */
@@ -94,5 +100,6 @@ export interface RegisterPageProps {
   class?: string;
 }
 
+export type { PasswordPolicy } from '../../../password-policy.js';
 export type { AuthPageSlotClasses } from '../types.js';
 export { default as RegisterPage } from './RegisterPage.svelte';

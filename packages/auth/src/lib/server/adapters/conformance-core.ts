@@ -490,12 +490,12 @@ export const conformanceChecks: readonly ConformanceCheck[] = [
 
   check('user.delete cascades the invitations the user sent', [], async (repos, h) => {
     // The one dependent the contract makes every adapter delete BY HAND: the
-    // `invitedBy` relation has no schema-level cascade, so the Prisma adapter
-    // pairs `invitation.deleteMany({ invitedById })` with the user delete in a
-    // transaction (and the in-memory bundle mirrors it). The other dependents
-    // (passkeys, tokens, …) ride on `onDelete: Cascade` — a schema guarantee
-    // this store-agnostic suite cannot observe, so it pins exactly the
-    // hand-written half.
+    // Prisma adapter pairs `invitation.deleteMany({ invitedById })` with the
+    // user delete in a transaction (and the in-memory bundle mirrors it), so
+    // an adapter over a schema without a cascade on `invitedBy` still erases
+    // them. The other dependents ride on `onDelete: Cascade` — a schema
+    // guarantee this store-agnostic suite cannot observe, so it pins exactly
+    // the hand-written half.
     const inviter = await seedUser(repos, h.role, 'inviter');
     const other = await seedUser(repos, h.role, 'other');
     const doomedEmail = `invitee-${nextSeed()}@conformance.test`;

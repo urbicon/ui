@@ -80,6 +80,15 @@ function webauthnAuthCookieName(secure: boolean): string {
  * (The static sibling routes take precedence over the `[credentialId]` param
  * route, so all six share the base path.) Requires `deps.repos.passkey` —
  * throws at wiring time when it is missing (fail-loud, not a latent 500).
+ *
+ * Every ceremony failure answers with the bare `passkey_verification_failed`
+ * code and no `message` override, so the browser gets one localized sentence
+ * (`auth.errors.passkeyVerificationFailed`) whatever went wrong: none of the
+ * causes is actionable by the user, and one of them — the sign-counter
+ * regression — is a clone warning that must not be readable in a page. What
+ * separates them stays server-side: `config.hooks.onLoginFailed(email, reason)`
+ * receives a distinct reason per outcome, and `deps.logger` receives the three
+ * details a reason string cannot carry.
  */
 export function createPasskeyHandlers<R extends string>(
   deps: AuthDeps<R>,
@@ -153,7 +162,7 @@ function registrationOptionsHandler<R extends string>(
 // ---- Registration Verify ----
 
 function registrationVerifyHandler<R extends string>(
-  _deps: AuthDeps<R>,
+  deps: AuthDeps<R>,
   webauthn: WebAuthnConfig,
   passkeyRepo: PasskeyRepository,
   sessionUser: SessionUserResolver<R>
@@ -200,7 +209,11 @@ function registrationVerifyHandler<R extends string>(
         );
       } catch (err) {
         if (err instanceof WebAuthnError) {
-          return authError('passkey_verification_failed', 400, { message: err.message });
+          // The WebAuthn cause goes to the log, not onto the wire: it names
+          // internals ("challenge mismatch", "origin"), and this handler has no
+          // `onLoginFailed` seam to carry it — registration is not a login.
+          deps.logger.warn('[auth] passkey registration verification failed:', err.message);
+          return authError('passkey_verification_failed', 400);
         }
         throw err;
       }
@@ -305,9 +318,7 @@ function authenticationVerifyHandler<R extends string>(
       const ceremonyId = cookies.get(cookieName);
       if (!ceremonyId) {
         await loginFailed('', 'challenge_missing');
-        return authError('passkey_verification_failed', 400, {
-          message: 'Challenge expired or not found'
-        });
+        return authError('passkey_verification_failed', 400);
       }
       // Invalidate the single-use handle immediately, so no error path (or
       // replay) downstream can reuse it.
@@ -326,7 +337,7 @@ function authenticationVerifyHandler<R extends string>(
         const stored = await passkeyRepo.findByCredentialId(credential.id);
         if (!stored) {
           await loginFailed('', 'unknown_credential');
-          return authError('passkey_verification_failed', 400, { message: 'Unknown credential' });
+          return authError('passkey_verification_failed', 400);
         }
 
         // Verify the assertion. The challenge is consumed under the ceremony
@@ -356,9 +367,7 @@ function authenticationVerifyHandler<R extends string>(
           }
           if (handleUserId !== stored.userId) {
             await loginFailed('', 'user_handle_mismatch');
-            return authError('passkey_verification_failed', 400, {
-              message: 'User handle mismatch'
-            });
+            return authError('passkey_verification_failed', 400);
           }
         }
 
@@ -377,21 +386,23 @@ function authenticationVerifyHandler<R extends string>(
           const stillStored = await passkeyRepo.findByCredentialId(stored.credentialId);
           if (!stillStored) {
             await loginFailed('', 'credential_deleted');
-            return authError('passkey_verification_failed', 400, {
-              message: 'Credential no longer exists'
-            });
+            return authError('passkey_verification_failed', 400);
           }
           await loginFailed('', 'counter_regression');
-          return authError('passkey_verification_failed', 400, {
-            message: 'Counter did not increase — possible cloned authenticator'
-          });
+          // Logged as well as hooked: this is the one outcome an operator must
+          // see even without an `onLoginFailed` hook wired, and the words
+          // "possible cloned authenticator" belong nowhere near an end user.
+          deps.logger.warn(
+            `[auth] passkey counter did not increase for credential ${stored.credentialId} (user ${stored.userId}) — possible cloned authenticator`
+          );
+          return authError('passkey_verification_failed', 400);
         }
 
         // Load user and create session
         const user = await deps.repos.user.findById(stored.userId);
         if (!user) {
           await loginFailed('', 'user_not_found');
-          return authError('passkey_verification_failed', 400, { message: 'User not found' });
+          return authError('passkey_verification_failed', 400);
         }
 
         // No TOTP 2FA gate here, by design: a passkey is already a strong,
@@ -414,7 +425,10 @@ function authenticationVerifyHandler<R extends string>(
           // The assertion itself was rejected (bad signature, challenge
           // mismatch, origin, …) — the audit-relevant failure class.
           await loginFailed('', 'invalid_assertion');
-          return authError('passkey_verification_failed', 400, { message: err.message });
+          // `invalid_assertion` collapses every WebAuthn cause into one reason;
+          // the specific one is only in the error, so it goes to the log.
+          deps.logger.warn('[auth] passkey assertion rejected:', err.message);
+          return authError('passkey_verification_failed', 400);
         }
         throw err;
       }

@@ -272,9 +272,10 @@ export interface UserRepository<R extends string = string> {
    * MUST also remove rows that would otherwise be orphaned: a relational
    * adapter relies on `onDelete: Cascade` for passkeys/refresh-tokens/
    * notifications/push-subscriptions/preferences/federated-accounts, but MUST
-   * additionally delete
-   * the invitations this user *sent* (the `invitedBy` FK has no cascade) —
-   * ideally in one transaction with the user delete so the two cannot diverge.
+   * additionally delete the invitations this user *sent* by hand — ideally in
+   * one transaction with the user delete so the two cannot diverge. The
+   * reference schema cascades `invitedBy` as well; an adapter must not depend
+   * on that, because a schema without it would silently orphan those rows.
    * A missing user is a safe no-op. Fire `onBeforeAccountDelete` *before* calling
    * this (the row, and the data to archive, must still exist).
    */

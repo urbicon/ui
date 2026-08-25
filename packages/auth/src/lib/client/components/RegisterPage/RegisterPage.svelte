@@ -2,11 +2,14 @@
   import { Button, Input } from '@urbicon-ui/blocks';
   import { untrack } from 'svelte';
   import { mergeAuthLocale, useAuthLocale } from '../../../i18n/index.js';
+  import { unmetPasswordRules } from '../../../password-policy.js';
   import { errorMessageFromCode } from '../../utils/error-message.js';
   import { postJson, wireError } from '../../utils/http.js';
+  import { usePasswordPolicy } from '../../utils/password-policy.svelte.js';
   import { slotClass } from '../../utils/slot-class.js';
   import type { RegisterPageProps } from './index.js';
   import AuthPageShell from '../_shared/AuthPageShell.svelte';
+  import PasswordRequirements from '../_shared/PasswordRequirements.svelte';
 
   let {
     t: tProp,
@@ -17,11 +20,8 @@
     apiPath = '/api/auth/register',
     csrf,
     fetcher,
-    passwordMinLength = 8,
-    requireUppercase = true,
-    requireLowercase = true,
-    requireDigit = true,
-    requireSpecial = false,
+    passwordPolicy,
+    policyPath = '/api/auth/password-policy',
     showRequirements = true,
     header: headerSnippet,
     footer: footerSnippet,
@@ -34,6 +34,20 @@
   const authLocale = useAuthLocale();
   const t = $derived(mergeAuthLocale(authLocale(), tProp));
 
+  // The server owns the policy; this reads it from there rather than from a
+  // second copy in props (#290). Until it arrives the package defaults apply —
+  // which is what an unconfigured server enforces.
+  const policySource = usePasswordPolicy(() => ({
+    policy: passwordPolicy,
+    path: policyPath,
+    fetcher
+  }));
+  const policy = $derived(policySource.current);
+
+  // Two steps: `$props.id()` is only valid as a top-level initializer.
+  const propsId = $props.id();
+  const requirementsId = `register-password-requirements-${propsId}`;
+
   let name = $state('');
   // Seeded once from the invite link's `?email=` (passed as `defaultEmail`), then
   // editable — `untrack` reads the initial prop without subscribing (mirrors
@@ -44,45 +58,7 @@
   let error = $state('');
   let submitting = $state(false);
 
-  const requirements = $derived.by(() => {
-    const reqs: Array<{ key: string; label: string; met: boolean }> = [];
-    reqs.push({
-      key: 'minLength',
-      label: t.auth.register.requirements.minLength.replace('{n}', String(passwordMinLength)),
-      met: password.length >= passwordMinLength
-    });
-    if (requireUppercase) {
-      reqs.push({
-        key: 'uppercase',
-        label: t.auth.register.requirements.uppercase,
-        met: /[A-Z]/.test(password)
-      });
-    }
-    if (requireLowercase) {
-      reqs.push({
-        key: 'lowercase',
-        label: t.auth.register.requirements.lowercase,
-        met: /[a-z]/.test(password)
-      });
-    }
-    if (requireDigit) {
-      reqs.push({
-        key: 'digit',
-        label: t.auth.register.requirements.digit,
-        met: /[0-9]/.test(password)
-      });
-    }
-    if (requireSpecial) {
-      reqs.push({
-        key: 'special',
-        label: t.auth.register.requirements.special,
-        met: /[^A-Za-z0-9]/.test(password)
-      });
-    }
-    return reqs;
-  });
-
-  const allRequirementsMet = $derived(requirements.every((r) => r.met));
+  const allRequirementsMet = $derived(unmetPasswordRules(password, policy).length === 0);
   const passwordsMatch = $derived(!confirmPassword || password === confirmPassword);
   const canSubmit = $derived(
     !submitting && allRequirementsMet && passwordsMatch && confirmPassword.length > 0
@@ -153,30 +129,21 @@
         type="password"
         bind:value={password}
         required
-        minlength={passwordMinLength}
+        minlength={policy.minLength}
         autoComplete="new-password"
+        aria-describedby={showRequirements && password ? requirementsId : undefined}
         {unstyled}
         class={slotClasses.field}
       />
       {#if showRequirements && password}
-        <!-- The checklist is functionality, not decoration: it must survive
-             `unstyled` (review R18) \u2014 only the default classes drop. `data-met`
-             carries the pass/fail state structurally so unstyled consumers can
-             target it from CSS. -->
-        <ul
-          class={cls('flex flex-col gap-0.5 pl-1 text-xs', slotClasses.requirements)}
-          aria-label={t.auth.register.requirementsLabel}
-        >
-          {#each requirements as req (req.key)}
-            <li
-              class={unstyled ? undefined : req.met ? 'text-success-text' : 'text-text-tertiary'}
-              data-met={req.met || undefined}
-            >
-              <span class={cls('mr-1 inline-block w-3')}>{req.met ? '\u2713' : '\u2717'}</span>
-              {req.label}
-            </li>
-          {/each}
-        </ul>
+        <PasswordRequirements
+          id={requirementsId}
+          {policy}
+          {password}
+          {t}
+          {unstyled}
+          class={slotClasses.requirements}
+        />
       {/if}
     </div>
 

@@ -1,11 +1,14 @@
 <script lang="ts">
   import { Alert, Button, Input } from '@urbicon-ui/blocks';
   import { mergeAuthLocale, useAuthLocale } from '../../../i18n/index.js';
+  import { unmetPasswordRules } from '../../../password-policy.js';
   import { errorMessageFromCode } from '../../utils/error-message.js';
   import { postJson, wireError } from '../../utils/http.js';
+  import { usePasswordPolicy } from '../../utils/password-policy.svelte.js';
   import { slotClass } from '../../utils/slot-class.js';
   import type { ResetPasswordPageProps } from './index.js';
   import AuthPageShell from '../_shared/AuthPageShell.svelte';
+  import PasswordRequirements from '../_shared/PasswordRequirements.svelte';
 
   let {
     t: tProp,
@@ -14,6 +17,9 @@
     apiPath = '/api/auth/reset-password',
     csrf,
     fetcher,
+    passwordPolicy,
+    policyPath = '/api/auth/password-policy',
+    showRequirements = true,
     header: headerSnippet,
     footer: footerSnippet,
     links: linksSnippet,
@@ -25,11 +31,27 @@
   const authLocale = useAuthLocale();
   const t = $derived(mergeAuthLocale(authLocale(), tProp));
 
+  // Same policy source as RegisterPage: without it this form had no client-side
+  // gate at all, so the most ordinary slip — a password below the server's
+  // minimum — came back as English server prose on a localized page (#290).
+  const policySource = usePasswordPolicy(() => ({
+    policy: passwordPolicy,
+    path: policyPath,
+    fetcher
+  }));
+  const policy = $derived(policySource.current);
+
+  // Two steps: `$props.id()` is only valid as a top-level initializer.
+  const propsId = $props.id();
+  const requirementsId = `reset-password-requirements-${propsId}`;
+
   let password = $state('');
   let confirmPassword = $state('');
   let error = $state('');
   let success = $state(false);
   let submitting = $state(false);
+
+  const allRequirementsMet = $derived(unmetPasswordRules(password, policy).length === 0);
 
   async function handleSubmit(e: SubmitEvent) {
     e.preventDefault();
@@ -38,6 +60,13 @@
 
     if (password !== confirmPassword) {
       error = t.auth.resetPassword.errors.mismatch;
+      return;
+    }
+    // Checked on submit rather than by disabling the button: the checklist can
+    // be turned off (`showRequirements={false}`), and a dead button with no
+    // explanation is worse than the English server prose this replaces.
+    if (!allRequirementsMet) {
+      error = t.auth.errors.validationError;
       return;
     }
 
@@ -76,15 +105,29 @@
     </Alert>
   {:else}
     <form onsubmit={handleSubmit} class={cls('flex flex-col gap-4', slotClasses.form)}>
-      <Input
-        label={t.auth.resetPassword.password}
-        type="password"
-        bind:value={password}
-        required
-        autoComplete="new-password"
-        {unstyled}
-        class={slotClasses.field}
-      />
+      <div class={cls('flex flex-col gap-1.5')}>
+        <Input
+          label={t.auth.resetPassword.password}
+          type="password"
+          bind:value={password}
+          required
+          minlength={policy.minLength}
+          autoComplete="new-password"
+          aria-describedby={showRequirements && password ? requirementsId : undefined}
+          {unstyled}
+          class={slotClasses.field}
+        />
+        {#if showRequirements && password}
+          <PasswordRequirements
+            id={requirementsId}
+            {policy}
+            {password}
+            {t}
+            {unstyled}
+            class={slotClasses.requirements}
+          />
+        {/if}
+      </div>
       <Input
         label={t.auth.resetPassword.confirmPassword}
         type="password"

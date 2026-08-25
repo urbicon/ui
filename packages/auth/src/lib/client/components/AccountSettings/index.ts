@@ -1,4 +1,5 @@
 import type { PartialAuthLocale } from '../../../i18n/keys.js';
+import type { PasswordPolicy } from '../../../password-policy.js';
 import type { AuthUser } from '../../../types.js';
 import type { CsrfClientOptions } from '../../csrf.js';
 
@@ -8,7 +9,9 @@ import type { CsrfClientOptions } from '../../csrf.js';
  * password, and delete the account. Each section talks to `apiPath` (default
  * `/api/auth/account`); pair them with the server handlers
  * `createUpdateProfileHandler`, `createChangeEmailHandler`,
- * `createChangePasswordHandler` and `createDeleteAccountHandler`.
+ * `createChangePasswordHandler` and `createDeleteAccountHandler`. The new-password
+ * field gates against the server's policy, read from `policyPath`
+ * (`createPasswordPolicyHandler`).
  *
  * @tag form
  * @related PasskeyManager
@@ -42,14 +45,41 @@ export interface AccountSettingsProps {
   onProfileUpdated?: (user: AuthUser) => void;
   /** Called after the account has been deleted (e.g. redirect to a goodbye page). */
   onDeleted?: () => void;
+  /**
+   * The password policy the new-password field gates against, when you already
+   * have it server-side (`resolvePasswordPolicy(config.password)`). Supplying
+   * it skips the `policyPath` request.
+   */
+  passwordPolicy?: PasswordPolicy;
+  /**
+   * Endpoint serving `createPasswordPolicyHandler`, read once on mount so the
+   * checklist and the submit gate match what the server enforces. `null`
+   * disables the request and falls back to the package defaults (min 8, no
+   * character classes).
+   * @default '/api/auth/password-policy'
+   */
+  policyPath?: string | null;
+  /** Show the real-time password requirements checklist under the new password. @default true */
+  showRequirements?: boolean;
   /** Strip all default styling. */
   unstyled?: boolean;
   /** Per-slot class overrides. */
   slotClasses?: Partial<
-    Record<'root' | 'title' | 'section' | 'sectionTitle' | 'field' | 'submit' | 'danger', string>
+    Record<
+      | 'root'
+      | 'title'
+      | 'section'
+      | 'sectionTitle'
+      | 'field'
+      | 'requirements'
+      | 'submit'
+      | 'danger',
+      string
+    >
   >;
   /** Extra classes on the root element. */
   class?: string;
 }
 
+export type { PasswordPolicy } from '../../../password-policy.js';
 export { default as AccountSettings } from './AccountSettings.svelte';

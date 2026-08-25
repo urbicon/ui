@@ -1,4 +1,6 @@
 import { json } from '@sveltejs/kit';
+import { en } from '../../i18n/en.js';
+import { AUTH_ERROR_MESSAGE_KEYS, type UnkeyedErrorCode } from '../../i18n/error-keys.js';
 
 /**
  * Stable, machine-readable error codes returned by the auth handlers alongside
@@ -27,6 +29,10 @@ export const AUTH_ERROR_CODES = {
   // Login
   invalid_credentials: 'invalid_credentials',
   account_locked: 'account_locked',
+  // Declared but sent by no handler in this package: login does not gate on
+  // `emailVerified`. Kept because the set is append-only — a consumer whose own
+  // handler wants that gate sends it and gets the localized copy for free. Do
+  // not write a client branch for it against the shipped handlers.
   email_unverified: 'email_unverified',
   // Tokens (verify-email, reset-password, email-change link)
   invalid_token: 'invalid_token',
@@ -46,15 +52,24 @@ export const AUTH_ERROR_CODES = {
   session_not_found: 'session_not_found',
   missing_refresh_token: 'missing_refresh_token',
   invalid_refresh_token: 'invalid_refresh_token',
-  // A configured-but-unavailable feature (2FA / session listing / refresh off)
+  // A configured-but-unavailable feature (2FA / session listing / refresh off).
+  // One code for all three: the surrounding UI names which feature it is, so a
+  // split would add codes no surface renders differently. The `message` override
+  // at each site keeps the distinction for logs and for non-i18n consumers.
   feature_unavailable: 'feature_unavailable',
   // Input validation (field-level message stays in `error`)
   validation_error: 'validation_error',
-  // Rate limiting (429) — also used for connection caps
+  // Rate limiting (429) — too many requests, the reaction is to wait
   rate_limited: 'rate_limited',
+  // Per-user cap on concurrent SSE connections (429). Distinct from
+  // `rate_limited` because the reaction differs: close a tab, don't wait.
+  connection_limit: 'connection_limit',
   // CSRF gate in createAuthHandle (403)
   csrf_failed: 'csrf_failed',
-  // Passkey ceremony failures (options/verify; the prose carries the detail)
+  // Every passkey ceremony failure, registration and sign-in alike. The prose
+  // carries no detail on purpose: none of the causes is actionable by the user
+  // and one is a possible-clone signal. `onLoginFailed(email, reason)` and the
+  // logger separate them server-side (see passkey/handlers.ts).
   passkey_verification_failed: 'passkey_verification_failed',
   // Push subscription writes (409): endpoint owned by another account vs.
   // per-user device cap — distinct codes so the client can tell a permanent
@@ -69,41 +84,30 @@ export const AUTH_ERROR_CODES = {
 export type AuthErrorCode = (typeof AUTH_ERROR_CODES)[keyof typeof AUTH_ERROR_CODES];
 
 /**
- * Canonical English prose for each code. This is the SAME copy the handlers
- * returned before codes existed, centralised here so the `error` string stays
- * byte-for-byte back-compatible while every response now also carries a `code`.
+ * English prose for the codes {@link AUTH_ERROR_MESSAGE_KEYS} leaves unmapped.
+ * The mapped type is what keeps this exhaustive: a new code mapped to `null`
+ * without an entry here fails to compile.
  */
-const DEFAULT_MESSAGES: Record<AuthErrorCode, string> = {
-  invitation_required: 'An invitation is required to register.',
-  invitation_used: 'This invitation has already been used.',
-  invitation_expired: 'This invitation has expired. Ask for a new one.',
-  email_taken: 'This email is already registered.',
-  email_invited: 'This email has already been invited.',
-  invalid_credentials: 'Invalid email or password.',
-  account_locked: 'Account locked. Please try again later.',
-  email_unverified: 'Please verify your email first.',
-  invalid_token: 'Invalid or expired token.',
-  current_password_incorrect: 'Current password is incorrect.',
-  not_authenticated: 'Not authenticated.',
-  forbidden: 'Forbidden',
-  invalid_code: 'Invalid code.',
-  no_2fa_challenge: 'No pending two-factor challenge.',
-  two_factor_challenge_expired: 'Two-factor challenge expired. Please sign in again.',
-  two_factor_already_enabled: 'Two-factor is already enabled.',
-  two_factor_setup_required: 'Start two-factor setup first.',
-  totp_secret_unreadable: 'Could not read the stored secret.',
-  session_not_found: 'Session not found.',
-  missing_refresh_token: 'Missing refresh token.',
-  invalid_refresh_token: 'Invalid refresh token.',
-  feature_unavailable: 'This feature is not available.',
-  validation_error: 'Invalid input.',
-  rate_limited: 'Too many requests. Please try again later.',
-  csrf_failed: 'CSRF validation failed',
-  passkey_verification_failed: 'Passkey verification failed.',
-  push_endpoint_conflict: 'Subscription endpoint is registered to another account',
-  push_subscription_limit: 'Subscription limit reached',
-  server_error: 'Something went wrong. Please try again.'
+const UNKEYED_MESSAGES: Record<UnkeyedErrorCode, string> = {
+  push_endpoint_conflict: en.notifications.push.errorConflict,
+  push_subscription_limit: en.notifications.push.errorLimit
 };
+
+/**
+ * The English `error` prose for a code, read out of the `en` locale bundle
+ * rather than restated here. The bundle is the end-user text; a consumer
+ * without i18n gets the same sentence a localized surface renders, instead of
+ * the developer-register copy this file used to hold ("Forbidden", "Not
+ * authenticated.").
+ */
+function defaultMessage(code: AuthErrorCode): string {
+  const key = AUTH_ERROR_MESSAGE_KEYS[code];
+  // TS narrows `key`, not `code`: both tables are total over `AuthErrorCode`
+  // by construction (`satisfies` there, the mapped type here), so the branch
+  // this cast serves is the one the type system already proved reachable only
+  // for the null-keyed codes.
+  return key ? en.auth.errors[key] : UNKEYED_MESSAGES[code as UnkeyedErrorCode];
+}
 
 interface AuthErrorOptions {
   /** Override the default English prose (e.g. a field-level validation message). */
@@ -132,7 +136,7 @@ export function authError(
   opts: AuthErrorOptions = {}
 ): Response {
   return json(
-    { error: opts.message ?? DEFAULT_MESSAGES[code], code, ...opts.extra },
+    { error: opts.message ?? defaultMessage(code), code, ...opts.extra },
     opts.headers ? { status, headers: opts.headers } : { status }
   );
 }

@@ -119,7 +119,7 @@ export function createInvitationHandlers<R extends string>(
     cookies: Parameters<RequestHandler>[0]['cookies']
   ): Promise<{ user: AuthUser<R> } | Response> {
     const full = await requireSessionUser(deps, cookies);
-    if (!full) return authError('not_authenticated', 401, { message: 'Unauthorized' });
+    if (!full) return authError('not_authenticated', 401);
 
     const user = sanitizeUser(full);
     if (!(await authorize(user))) return authError('forbidden', 403);

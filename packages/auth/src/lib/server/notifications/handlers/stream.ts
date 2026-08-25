@@ -34,12 +34,15 @@ export function createStreamHandler(
       }
 
       // Per-user connection cap (DoS guard): refuse beyond the limit so one
-      // account can't exhaust FDs/memory by opening unbounded streams. The
+      // account can't exhaust FDs/memory by opening unbounded streams. Its own
+      // code, not `rate_limited`: both answer 429, but a request cap is waited
+      // out while a connection cap is cleared by closing a tab, and the stream
+      // is invisible plumbing — no surrounding UI tells the two apart. The
       // check-then-register gap below crosses no `await`, and `start()` runs
       // synchronously, so on single-threaded JS runtimes no concurrent request
       // can interleave past this check — the count is exact, no lock needed.
       if (sse.connectionCount(userId) >= maxConnectionsPerUser) {
-        return authError('rate_limited', 429, { message: 'Too many concurrent connections' });
+        return authError('connection_limit', 429);
       }
 
       const encoder = new TextEncoder();

@@ -135,6 +135,43 @@ failure or non-contract error leaves the current user untouched and reports
 the failure — a route guard can retry instead of bouncing a signed-in user
 over a transient blip.
 
+### Password policy
+
+`config.password` is the only definition of what a password must satisfy. The
+server measures against it (`validatePasswordStrength`), and
+`createPasswordPolicyHandler(deps)` publishes it so `<RegisterPage>`,
+`<ResetPasswordPage>` and `<AccountSettings>` gate against the same rules
+instead of a hand-kept copy in component props:
+
+```ts
+// src/routes/api/auth/password-policy/+server.ts
+export const GET = createPasswordPolicyHandler(authDeps).GET;
+```
+
+The three components read it from `policyPath` (default
+`/api/auth/password-policy`) on mount. Without the route they fall back to
+`DEFAULT_PASSWORD_POLICY` — min 8, no character classes, i.e. what an
+unconfigured server enforces — and warn in dev. When your route already loads
+the policy, pass it in as `passwordPolicy` (`resolvePasswordPolicy(config.password)`
+in a `+page.server.ts`) and no request is made.
+
+The response is a five-field projection (`minLength`, `requireUppercase`,
+`requireLowercase`, `requireDigit`, `requireSpecial`) and nothing else — in
+particular never `pbkdf2Iterations`. It is unauthenticated on purpose:
+registration and password reset are signed-out flows, and one failed submit
+already spells the policy out ("Password must be at least 12 characters").
+
+`<RegisterPage>`'s `passwordMinLength` / `requireUppercase` / `requireLowercase`
+/ `requireDigit` / `requireSpecial` props are gone — they were the second copy.
+Their old defaults (min 8 **plus** upper, lower and digit) were also stricter
+than an unconfigured server, so the checklist blocked passwords the server would
+have taken. Configure `config.password` and mount the endpoint; the UI follows.
+
+`requireSpecial` is new on the server side. The registration checklist has
+offered that rule since v8 while `validatePasswordStrength` ignored it, so a UI
+demanding a symbol refused nothing the server would have accepted; it is now
+enforced, and off by default like the other character classes.
+
 ## Consumer Integration — staged setup
 
 The full copy-paste walkthrough lives in [packages/auth/README.md →
@@ -283,7 +320,7 @@ The `FederatedAccount` link table (`findByFederatedId` / `linkFederatedAccount` 
 
 ## Prisma Schema
 
-See `packages/auth/prisma/auth-schema.prisma` for the reference schema. Models: User, Invitation, PushSubscription, Notification, NotificationType, NotificationPreference, Passkey, TwoFactorBackupCode, FederatedAccount (consumer-side federation link, optional). The User model carries the 2FA columns `totpSecret` (AES-256-GCM-encrypted), `totpEnabled`, `totpConfirmedAt`. **Recommended:** add `onDelete: Cascade` to the `invitationsSent` relation — DB cascade already covers passkeys/tokens/notifications/push/prefs on user delete; only sent `Invitation` rows lack it (the delete-account handler otherwise removes them by hand in its `$transaction`).
+See `packages/auth/prisma/auth-schema.prisma` for the reference schema. Models: User, Invitation, PushSubscription, Notification, NotificationType, NotificationPreference, Passkey, TwoFactorBackupCode, FederatedAccount (consumer-side federation link, optional). The User model carries the 2FA columns `totpSecret` (AES-256-GCM-encrypted), `totpEnabled`, `totpConfirmedAt`. The reference schema puts `onDelete: Cascade` on all eight dependent models, `Invitation.invitedBy` included. The delete-account handler **still** removes sent invitations by hand inside its `$transaction`, so an adapter over a schema without that cascade behaves identically; the two are belt-and-braces, and the conformance suite pins the hand-written half (a store-agnostic suite cannot observe a DB cascade).
 
 ### Upgrading an existing database
 
@@ -363,7 +400,7 @@ The interface JSDoc (`types.ts`) is authoritative; these are the invariants that
 | `passkey.updateCounter(id, n)`                                                           | CAS: bump only if stored `< n`; `false` if nothing advanced. `n === 0` → counterless, touch `lastUsedAt` only.                                                                                                                                                                                                                      | Cloned-authenticator detection.                                                              |
 | `notification.markAsRead`/`delete`, `pushSubscription.delete`, `passkey.delete`/`rename` | Scope every mutation to the owner `userId`. A non-owner call must not mutate (no-op **or** throw both fine).                                                                                                                                                                                                                        | IDOR — knowing an id/endpoint must not let an attacker touch another user's row.             |
 | `pushSubscription.create`                                                                | Upsert-by-`endpoint`: a row with the same endpoint is updated in place. Reassigning it to a *different* user is **key-gated**: only when the submitted keys equal the stored ones (constant-time on the decoded bytes) — otherwise return `'rejected'` without writing. Never fail on the unique endpoint.                          | Re-enabling push re-sends the browser's *existing* subscription (the duplicate POST is the normal case); key possession is what separates the legitimate user switch from an endpoint-URL takeover. |
-| `user.delete`                                                                            | Hard-delete plus dependents: rely on `onDelete: Cascade` for passkeys/tokens/notifications/subscriptions/preferences, but delete the invitations the user **sent** by hand (the `invitedBy` FK has no cascade), ideally in one transaction. Conformance pins the hand-written half.                                                 | GDPR erasure must not leave orphans; the sent-invitations half is the part every adapter writes itself. |
+| `user.delete`                                                                            | Hard-delete plus dependents: rely on `onDelete: Cascade` for passkeys/tokens/notifications/subscriptions/preferences, and delete the invitations the user **sent** by hand as well, ideally in one transaction — the reference schema cascades them too, but a portable adapter must not depend on that, and it is the one dependent a store-agnostic suite can observe. Conformance pins the hand-written half.                                                 | GDPR erasure must not leave orphans; the sent-invitations half is the part every adapter writes itself. |
 
 The CAS/claim operations are why the interface returns `Promise<boolean>` (or the claimed entity) rather than `void`: the business logic in the core (`rotateRefreshToken`, the register/reset/verify handlers) reads that return value to detect a lost race. Implement each as a **single conditional statement** (`UPDATE … WHERE <still-claimable> RETURNING …`), never `SELECT` then `UPDATE` across an `await` — that gap is the race.
 
@@ -417,7 +454,7 @@ The `mapX` seams (`mapUser`, `mapPasskey`, `mapRefreshToken`, `mapInvitation`, `
 
 ### Validate it: the conformance suite
 
-Whatever you build, prove it upholds the contract by running the shared suite from a `*.test.ts` (needs `vitest`):
+Whatever you build, prove it upholds the contract by running the shared suite from a `*.test.ts`. The entry below registers vitest for you; under any other runner import `…/adapters/conformance-core` instead and pass `{ runner: { describe, it, expect } }` — that module imports no runner of its own:
 
 ```ts
 import { describeRepositoryConformance } from '@urbicon-ui/auth/server/adapters/conformance';
@@ -553,9 +590,13 @@ bun run test:e2e                            # Playwright (from the repo root)
 
 ## Error Contract
 
-Every handler (and the `createAuthHandle` gates) answers errors with one JSON shape: `{ error: string, code: AuthErrorCode, … }` — `error` is human-readable English prose, `code` the stable machine value from the append-only `AUTH_ERROR_CODES` set (never repurposed, only extended; the same code can appear under different HTTP statuses when the context differs, e.g. `invalid_code` is 400 on 2FA-enable and 401 on 2FA-verify). Validation failures additionally carry the full field list as `errors`, and the first field message replaces the generic prose. Rate limits answer `429 rate_limited` with a `Retry-After` header; the CSRF gate `403 csrf_failed`; the previously-plaintext SSE-stream refusals are JSON as of v6.17.0 (native `EventSource` clients never see bodies, so that change is inert there). The push-subscription writes distinguish `push_endpoint_conflict` (endpoint owned by another account — permanent) from `push_subscription_limit` (per-user device cap). The one deliberate exception: `createMeHandler` answers `401 { user: null }` — that is the session-status contract of the client store, not an error report.
+Every handler (and the `createAuthHandle` gates) answers errors with one JSON shape: `{ error: string, code: AuthErrorCode, … }` — `error` is human-readable English prose, `code` the stable machine value from the append-only `AUTH_ERROR_CODES` set (never repurposed, only extended; the same code can appear under different HTTP statuses when the context differs, e.g. `invalid_code` is 400 on 2FA-enable and 401 on 2FA-verify). Validation failures additionally carry the full field list as `errors`, and the first field message replaces the generic prose. Rate limits answer `429 rate_limited` with a `Retry-After` header, while the per-user cap on concurrent SSE streams answers `429 connection_limit` — a separate code because a request cap is waited out and a connection cap is cleared by closing a tab; the CSRF gate `403 csrf_failed`; the previously-plaintext SSE-stream refusals are JSON as of v6.17.0 (native `EventSource` clients never see bodies, so that change is inert there). The push-subscription writes distinguish `push_endpoint_conflict` (endpoint owned by another account — permanent) from `push_subscription_limit` (per-user device cap). The one deliberate exception: `createMeHandler` answers `401 { user: null }` — that is the session-status contract of the client store, not an error report.
 
 Localized clients map `code` via `errorMessageFromCode(code, t, error)` (exported from the package root): known code → locale bundle, unknown code or missing translation → the server prose, neither → `undefined` for the caller's own fallback. `validation_error` deliberately prefers the field-level server prose. The pre-built components do this everywhere via their shared `errorTextFromBody` helper. One code is client-synthesized rather than served: `network_error` (the request never reached the server — offline, DNS, CORS), produced by the stores and mapped to `auth.errors.networkError` like any other code.
+
+**The code→locale-key table is bound to the union.** `AUTH_ERROR_MESSAGE_KEYS` (`i18n/error-keys.ts`) is `satisfies Record<AuthErrorCode | 'network_error', …>`, so a new server code that nobody keys is a compile error rather than an English sentence on a localized page; `null` marks the two push codes, whose copy `<PushPermissionPrompt>` owns (`notifications.push.errorConflict` / `errorLimit`). The English `error` prose is **read out of the `en` bundle through that same table** — there is one English text per code, not one for i18n consumers and another for the rest.
+
+**Passkey ceremonies answer uniformly.** All eight failure paths return the bare `passkey_verification_failed` with no prose override: none of the causes is actionable by the end user, and one of them — the sign-counter regression — is a possible-cloned-authenticator signal that must not be readable in a page. What distinguishes them stays server-side: `config.hooks.onLoginFailed(email, reason)` receives a distinct reason per outcome (`challenge_missing`, `unknown_credential`, `user_handle_mismatch`, `credential_deleted`, `counter_regression`, `user_not_found`, `invalid_assertion`), and `config.logger` receives the WebAuthn detail on the paths a reason cannot carry.
 
 ## Known Limitations & Security Gaps
 
