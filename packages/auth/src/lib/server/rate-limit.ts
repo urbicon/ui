@@ -131,13 +131,18 @@ export function makeRateLimiter(config: RateLimitConfig | undefined): RateLimite
 // the in-memory default.
 //
 // **The constraint this buys is object identity.** The bucket lives exactly as
-// long as the `AuthConfig` object handed in, so the config must be built once
-// (module scope) and passed around. A consumer that constructs a fresh config
-// literal per request gets a fresh bucket per request — i.e. no limiting at all.
-// Keyed on the whole `AuthConfig` rather than the `RateLimitConfig` slice
-// because the slice can be a shared module-level default object
-// (`RATE_LIMIT_DEFAULTS`), which would put unrelated apps — and unrelated tests —
-// on one counter.
+// long as the `AuthConfig` object handed in — which is the object `createAuthDeps`
+// *returns*, and it returns a new one per call even from the same input literal.
+// So the rule is "call createAuthDeps once, at module scope", not "build the
+// config literal once": measured, one `createAuthDeps` lets 5 of 20 requests
+// through at max 5, while calling it per request lets 20 of 20 through. That
+// path also leaks the in-memory store's cleanup `setInterval` per (config, key) —
+// unref'd, so it does not hold the process open, but it is a live GC root for as
+// long as the config is reachable.
+//
+// Keyed on the whole `AuthConfig` rather than the `RateLimitConfig` slice because
+// the slice can be a shared module-level default object (`RATE_LIMIT_DEFAULTS`),
+// which would put unrelated apps — and unrelated tests — on one counter.
 const limiterCache = new WeakMap<object, Map<RateLimitKey, RateLimiter | null>>();
 
 /**

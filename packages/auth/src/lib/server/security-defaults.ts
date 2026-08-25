@@ -73,9 +73,10 @@ export const RATE_LIMIT_DEFAULTS: Record<RateLimitKey, RateLimitConfig> = {
   refresh: { windowMs: 60_000, max: 30 },
 
   // Two calls per ceremony (options + verify share one bucket), so 30 is 15
-  // ceremonies per IP per window. The options half stores one challenge entry
-  // per call, pruned only at the 5-minute TTL — this cap is what bounds that
-  // store to ~15 live entries per IP instead of one per request.
+  // *completed* ceremonies per IP per window. The options half stores one
+  // challenge entry per call, pruned only at the 5-minute TTL, and an abandoned
+  // ceremony spends one call and leaves its entry — so the bound this cap puts
+  // on the store is the full 30 live entries per IP, not 15.
   passkeyAuth: { windowMs: 15 * 60_000, max: 30 },
 
   changePassword: REAUTH,
@@ -116,8 +117,13 @@ export function rateLimitFor<R extends string>(
   config: AuthConfig<R>,
   key: RateLimitKey
 ): RateLimitConfig | undefined {
+  // Two scopes of opt-out, both explicit `null`: the whole object, or one key.
+  // An *omitted* key is not an opt-out — that is the trap `rateLimit: { register }`
+  // used to spring on `login`, so `??` must not treat absence as a decision.
   if (config.rateLimit === null) return undefined;
-  return config.rateLimit?.[key] ?? RATE_LIMIT_DEFAULTS[key];
+  const configured = config.rateLimit?.[key];
+  if (configured === null) return undefined;
+  return configured ?? RATE_LIMIT_DEFAULTS[key];
 }
 
 /**
@@ -133,32 +139,26 @@ export function lockoutFor<R extends string>(config: AuthConfig<R>): LockoutConf
 }
 
 /**
- * The resolved `rateLimit` slice carried on `AuthDeps.config`: every key
- * present, or `null` for the opt-out.
+ * The resolved `rateLimit` slice carried on `AuthDeps.config`: every key either
+ * a limit or `null` (opted out), or `null` for the whole object.
  *
- * `null` rather than `undefined` for the opt-out is load-bearing. The resolved
- * config is fed back through the same accessors by every handler, so it has to
- * be a **fixed point** of them: normalizing the opt-out to `undefined` would
- * make a second pass read "consumer configured nothing" and re-inject all
- * twelve defaults — the opt-out would survive exactly one resolution.
+ * `null` rather than `undefined` for an opt-out is load-bearing **here**. Every
+ * handler reads the resolved config back through {@link rateLimitFor}, so it has
+ * to be a **fixed point**: normalizing an opt-out to `undefined` would make the
+ * next read say "consumer configured nothing" and re-inject the default — the
+ * opt-out would survive exactly one resolution.
+ *
+ * `lockout` needs no such treatment and keeps `undefined`, because
+ * `resolveRateLimits` never yields `undefined`: {@link lockoutFor}'s defaulting
+ * branch is gated on `config.rateLimit === undefined`, which is unreachable on
+ * an already-resolved config. Measured stable across five successive
+ * resolutions of every input shape.
  */
 export function resolveRateLimits<R extends string>(
   config: AuthConfig<R>
 ): AuthConfig<R>['rateLimit'] {
   if (config.rateLimit === null) return null;
-  const resolved = {} as Record<RateLimitKey, RateLimitConfig>;
-  for (const key of RATE_LIMIT_KEYS) {
-    // Non-null by construction: rateLimitFor falls back to RATE_LIMIT_DEFAULTS,
-    // and the null branch is already returned above.
-    resolved[key] = rateLimitFor(config, key) as RateLimitConfig;
-  }
+  const resolved = {} as Record<RateLimitKey, RateLimitConfig | null>;
+  for (const key of RATE_LIMIT_KEYS) resolved[key] = rateLimitFor(config, key) ?? null;
   return resolved;
-}
-
-/**
- * The resolved `lockout` field, `null` for "decided against" — same fixed-point
- * requirement as {@link resolveRateLimits}.
- */
-export function resolveLockout<R extends string>(config: AuthConfig<R>): LockoutConfig | null {
-  return lockoutFor(config) ?? null;
 }

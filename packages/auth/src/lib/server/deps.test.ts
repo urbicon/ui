@@ -47,13 +47,14 @@ describe('createAuthDeps security defaults', () => {
     const deps = createAuthDeps(baseDeps({ rateLimit: { login: { windowMs: 1000, max: 3 } } }));
     expect(deps.config.rateLimit?.login).toEqual({ windowMs: 1000, max: 3 });
     // Consumer engaged with brute-force config, so we don't silently add lockout.
-    expect(deps.config.lockout).toBeNull();
+    expect(deps.config.lockout).toBeUndefined();
   });
 
   it('warns and disables when rateLimit is explicitly null in production', () => {
     const deps = createAuthDeps(baseDeps({ rateLimit: null }));
-    // `null`, not `undefined`: the resolved config is fed back through the same
-    // accessors the handlers read, so the opt-out has to survive re-resolution.
+    // `null`, not `undefined`: every handler reads the resolved config back
+    // through rateLimitFor, so a rate-limit opt-out has to survive re-resolution.
+    // `lockout` needs no such marker — see resolveRateLimits.
     expect(deps.config.rateLimit).toBeNull();
     expect(warn).toHaveBeenCalledWith(
       expect.stringContaining('config.rateLimit is explicitly null')
@@ -64,7 +65,7 @@ describe('createAuthDeps security defaults', () => {
     const deps = createAuthDeps(
       baseDeps({ lockout: null, rateLimit: { login: { windowMs: 1, max: 1 } } })
     );
-    expect(deps.config.lockout).toBeNull();
+    expect(deps.config.lockout).toBeUndefined();
     expect(warn).toHaveBeenCalledWith(expect.stringContaining('config.lockout is explicitly null'));
   });
 
@@ -73,7 +74,7 @@ describe('createAuthDeps security defaults', () => {
       baseDeps({ jwt: { secret: 's', cookieSecure: false }, rateLimit: null, lockout: null })
     );
     expect(deps.config.rateLimit).toBeNull();
-    expect(deps.config.lockout).toBeNull();
+    expect(deps.config.lockout).toBeUndefined();
     expect(warn).not.toHaveBeenCalled();
   });
 
@@ -87,7 +88,7 @@ describe('createAuthDeps security defaults', () => {
     // Login is now protected, so the brute-force warning must NOT fire.
     expect(warn).not.toHaveBeenCalledWith(expect.stringContaining('exposed to brute force'));
     // Consumer engaged with rate-limit config, so lockout stays opt-in.
-    expect(deps.config.lockout).toBeNull();
+    expect(deps.config.lockout).toBeUndefined();
   });
 
   it('warns loudly when login protection is explicitly opted out in production', () => {
@@ -95,7 +96,7 @@ describe('createAuthDeps security defaults', () => {
     // exposed — the only path that still reaches the loud brute-force warning.
     const deps = createAuthDeps(baseDeps({ rateLimit: null }));
     expect(deps.config.rateLimit?.login).toBeUndefined();
-    expect(deps.config.lockout).toBeNull();
+    expect(deps.config.lockout).toBeUndefined();
     expect(warn).toHaveBeenCalledWith(expect.stringContaining('exposed to brute force'));
   });
 
@@ -336,6 +337,35 @@ describe('rate-limit defaults cover every declared key', () => {
     for (const [key, value] of Object.entries(limits)) {
       expect(value, key).toMatchObject({ windowMs: expect.any(Number), max: expect.any(Number) });
     }
+  });
+
+  // Per-key opt-out: six keys gained a default that a consumer may not want (a
+  // shared office IP onboarding a batch now meets `register` at 10/15 min). The
+  // global `rateLimit: null` would take the login brake with it, so the opt-out
+  // has to be expressible per key.
+  it('honours a single key set to null without touching the others', () => {
+    const deps = createAuthDeps(baseDeps({ rateLimit: { register: null } }));
+    expect(deps.config.rateLimit?.register).toBeNull();
+    expect(rateLimitFor(deps.config, 'register')).toBeUndefined();
+    // Everything else keeps its default — including the login brake.
+    expect(deps.config.rateLimit?.login).toEqual({ windowMs: 15 * 60_000, max: 5 });
+    expect(Object.keys(deps.config.rateLimit ?? {})).toHaveLength(12);
+  });
+
+  it('treats an omitted key as absent, not as an opt-out', () => {
+    // `{ register: undefined }` is what a spread of an optional field produces;
+    // it must NOT read as a decision.
+    const deps = createAuthDeps(baseDeps({ rateLimit: { register: undefined } }));
+    expect(deps.config.rateLimit?.register).toEqual({ windowMs: 15 * 60_000, max: 10 });
+  });
+
+  it('still warns when the per-key opt-out is the login brake itself', () => {
+    const logger = { warn: vi.fn(), error: vi.fn() };
+    const deps = createAuthDeps(baseDeps({ logger, rateLimit: { login: null } }));
+    expect(deps.config.rateLimit?.login).toBeNull();
+    // Consumer engaged with rateLimit, so no lockout default backs it up.
+    expect(deps.config.lockout).toBeUndefined();
+    expect(logger.warn).toHaveBeenCalledWith(expect.stringContaining('exposed to brute force'));
   });
 
   // Merge, never replacement: a consumer who tunes exactly one key must not

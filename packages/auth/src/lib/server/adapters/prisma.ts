@@ -1,5 +1,5 @@
 import type { AuthLogger } from '../../types.js';
-import { shieldLogger } from '../deps.js';
+import { shieldLogger } from '../logger.js';
 import { pushKeysEqual } from '../notifications/push-keys.js';
 import type {
   BackupCodeRepository,
@@ -328,7 +328,12 @@ export interface PrismaRepoOptions {
 }
 
 // Once per (client, model): a factory called per request must not turn one
-// misconfiguration into a log flood.
+// misconfiguration into a log flood. The key is the client, NOT the sink — so
+// the first caller decides where the seven lines go, and a second consumer of
+// the same client (or a later call that finally passes `{ logger }`) sees
+// nothing. Wire the logger on the first call; the alternative, keying on the
+// sink too, would re-open the flood for anything that builds a logger per
+// request.
 const reportedMissingModels = new WeakMap<object, Set<string>>();
 
 function reportMissingModel(

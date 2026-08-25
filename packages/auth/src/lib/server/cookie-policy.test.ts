@@ -2,7 +2,12 @@ import type { Cookies, RequestEvent } from '@sveltejs/kit';
 import { describe, expect, it, vi } from 'vitest';
 import type { AuthConfig } from '../types.js';
 import type { Repositories } from './adapters/types.js';
-import { assertCookieSameSiteSecure, isSecureDeployment } from './cookie-policy.js';
+import {
+  assertCookieSameSiteSecure,
+  describeCookieSecureDisagreement,
+  isSecureDeployment
+} from './cookie-policy.js';
+import { ensureCsrfCookie } from './csrf.js';
 import { createAuthDeps } from './deps.js';
 import { createAuthHandle } from './handle.js';
 import { createMockInvitationRepository, createMockUserRepository } from './test-utils.js';
@@ -112,6 +117,103 @@ describe('assertCookieSameSiteSecure', () => {
     expect(() => assertCookieSameSiteSecure('refreshToken', 'none', false)).toThrow(
       /refreshToken.cookieSameSite/
     );
+    expect(() => assertCookieSameSiteSecure('csrf', 'none', false)).toThrow(/csrf.cookieSameSite/);
+  });
+});
+
+describe('the CSRF cookie is not exempt from the SameSite/Secure rule', () => {
+  // It is the third cookie the package writes, and it took the same shape as the
+  // other two: nothing threw at wiring, `ensureCsrfCookie` wrote
+  // {sameSite:'none', secure:false}, the browser discarded it, and every mutating
+  // request 403'd while every GET stayed green.
+  const misconfig = {
+    csrf: { doubleSubmit: true, cookieSameSite: 'none', cookieSecure: false }
+  } as Partial<AuthConfig>;
+
+  it('createAuthDeps throws', () => {
+    expect(() => createAuthDeps(wiring(misconfig))).toThrow(/csrf.cookieSameSite: "none"/);
+  });
+
+  it('createAuthHandle throws', () => {
+    expect(() => createAuthHandle(wiring(misconfig) as never)).toThrow(
+      /csrf.cookieSameSite: "none"/
+    );
+  });
+
+  it('ensureCsrfCookie throws rather than writing a cookie the browser drops', () => {
+    const { store, cookies } = cookieJar();
+    expect(() => ensureCsrfCookie(cookies, { sameSite: 'none', secure: false })).toThrow(
+      /csrf.cookieSameSite: "none"/
+    );
+    expect(store.size).toBe(0);
+  });
+
+  it('accepts SameSite=None when useHostPrefix force-sets Secure', () => {
+    // useHostPrefix overrides cookieSecure, so the pair is legal — the wiring
+    // check has to read the effective value, not the raw field.
+    expect(() =>
+      createAuthDeps(
+        wiring({
+          csrf: { useHostPrefix: true, cookieSameSite: 'none', cookieSecure: false }
+        } as Partial<AuthConfig>)
+      )
+    ).not.toThrow();
+    const { cookies } = cookieJar();
+    expect(() =>
+      ensureCsrfCookie(cookies, { hostPrefix: true, sameSite: 'none', secure: false })
+    ).not.toThrow();
+  });
+});
+
+describe('cookieSecure disagreeing between the cookie configs', () => {
+  // One explicit `false` switches off HSTS, all four production brute-force
+  // warnings, and the __Host- prefix + Secure flag on the 2FA and passkey
+  // cookies — while the cookies whose config kept the default are still written
+  // Secure and dropped by a browser over plain HTTP. Nothing used to say so.
+  it('reports csrf declaring non-HTTPS while the session cookie stays Secure', () => {
+    const warn = vi.fn();
+    createAuthDeps(
+      wiring({ csrf: { cookieSecure: false }, logger: { warn, error: vi.fn() } } as never)
+    );
+    expect(warn).toHaveBeenCalledWith(expect.stringContaining('cookieSecure disagrees'));
+  });
+
+  it('reports the reverse: a dev session cookie with a Secure CSRF cookie', () => {
+    // jwt:false + csrf present without cookieSecure → the CSRF cookie is written
+    // Secure over plain HTTP, dropped, and double-submit 403s every mutation.
+    expect(describeCookieSecureDisagreement({ jwt: { cookieSecure: false }, csrf: {} })).toMatch(
+      /csrf.*= true/s
+    );
+  });
+
+  it('says nothing when the present configs agree', () => {
+    expect(describeCookieSecureDisagreement({ jwt: {} })).toBeNull();
+    expect(describeCookieSecureDisagreement({ jwt: { cookieSecure: false } })).toBeNull();
+    expect(
+      describeCookieSecureDisagreement({
+        jwt: { cookieSecure: false },
+        csrf: { cookieSecure: false },
+        refreshToken: { cookieSecure: false }
+      })
+    ).toBeNull();
+    expect(describeCookieSecureDisagreement({ jwt: {}, csrf: {}, refreshToken: {} })).toBeNull();
+  });
+
+  it('counts useHostPrefix as Secure', () => {
+    // The prefix force-sets Secure, so this CSRF cookie agrees with a default jwt
+    // even though cookieSecure says false — but it DISAGREES with a dev session.
+    expect(
+      describeCookieSecureDisagreement({
+        jwt: {},
+        csrf: { useHostPrefix: true, cookieSecure: false }
+      })
+    ).toBeNull();
+    expect(
+      describeCookieSecureDisagreement({
+        jwt: { cookieSecure: false },
+        csrf: { useHostPrefix: true, cookieSecure: false }
+      })
+    ).toMatch(/cookieSecure disagrees/);
   });
 });
 

@@ -171,6 +171,7 @@ import { createPrismaRepos } from '@urbicon-ui/auth/server/adapters/prisma';
 import { createLettermintTransport } from '@urbicon-ui/auth/server/email/lettermint';
 import { env } from '$env/dynamic/private';
 import { prisma } from './prisma';
+import { appLogger } from './logging'; // your own AuthLogger { warn, error }
 
 type AppRole = 'ADMIN' | 'USER';
 
@@ -187,9 +188,12 @@ export const authDeps = createAuthDeps<AppRole>({
       resetPassword: { windowMs: 3_600_000, max: 5 } // reset *consume* (token redemption)
     },
     lockout: { maxAttempts: 5, durationMinutes: 15 },
-    routes: { afterLogin: '/', loginPage: '/auth/login' }
+    routes: { afterLogin: '/', loginPage: '/auth/login' },
+    logger: appLogger
   },
-  repos: createPrismaRepos<AppRole>(prisma), // pulls in the refreshToken adapter
+  // Same sink for both: wiring diagnostics from the adapter (a missing Prisma
+  // model drops its feature) land with the rest of the auth logs.
+  repos: createPrismaRepos<AppRole>(prisma, { logger: appLogger }),
   email: createLettermintTransport({ token: env.LETTERMINT_TOKEN }) // sends via the Lettermint v2 API
 });
 ```

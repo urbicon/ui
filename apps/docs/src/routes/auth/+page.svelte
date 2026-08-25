@@ -17,15 +17,18 @@ import { createAuthDeps, createAuthHandle } from '@urbicon-ui/auth/server';
 import { createPrismaRepos } from '@urbicon-ui/auth/server/adapters/prisma';
 import { createLettermintTransport } from '@urbicon-ui/auth/server/email/lettermint';
 import { prisma } from '$lib/server/db';
+import { appLogger } from '$lib/server/logging';
 import { env } from '$env/static/private';
 
 export const authDeps = createAuthDeps({
   config: {
     jwt: { secret: env.JWT_SECRET },
     password: { minLength: 8 },
-    lockout: { maxAttempts: 5, durationMs: 15 * 60_000 }
+    lockout: { maxAttempts: 5, durationMs: 15 * 60_000 },
+    logger: appLogger
   },
-  repos: createPrismaRepos(prisma),
+  // Same sink: a missing Prisma model drops its feature, reported here.
+  repos: createPrismaRepos(prisma, { logger: appLogger }),
   email: createLettermintTransport({ apiKey: env.EMAIL_API_KEY })
 });`;
 

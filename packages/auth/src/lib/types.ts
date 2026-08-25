@@ -98,6 +98,15 @@ export interface JwtConfig {
    * Secure attribute for the session cookie. Default `true`; set to `false`
    * for non-HTTPS development servers or E2E harnesses. Production deployments
    * should always keep this `true` (or omit it).
+   *
+   * **Package-wide.** An explicit `false` here — or on `csrf.cookieSecure` or
+   * `refreshToken.cookieSecure` — declares the whole deployment non-HTTPS, and
+   * that answer drives five things: HSTS is not emitted, the production
+   * brute-force warnings fall silent, and the 2FA and passkey-ceremony cookies
+   * drop both their `__Host-` prefix and their `Secure` flag (a browser
+   * discards a `Secure` cookie over plain HTTP, and the flows that lose one
+   * report a challenge-store failure, never a cookie problem). Set it on all
+   * three or on none — `createAuthDeps` warns when they disagree.
    */
   cookieSecure?: boolean;
   /** Override the SameSite attribute for the session cookie. Default `'lax'`. */
@@ -178,7 +187,11 @@ export interface CsrfConfig {
   doubleSubmit?: boolean;
   cookieName?: string;
   headerName?: string;
-  /** Secure attribute for the CSRF cookie. Default `true`; set `false` for non-HTTPS dev. */
+  /**
+   * Secure attribute for the CSRF cookie. Default `true`; set `false` for
+   * non-HTTPS dev. **Package-wide** — see `JwtConfig.cookieSecure` for the five
+   * decisions an explicit `false` on any of the three cookie configs drives.
+   */
   cookieSecure?: boolean;
   /** Override the SameSite attribute. Default `'lax'`. */
   cookieSameSite?: 'lax' | 'strict' | 'none';
@@ -223,7 +236,11 @@ export interface RefreshTokenConfig {
    * explicitly from the client.
    */
   cookiePath?: string;
-  /** Secure attribute for the refresh cookie. Default `true`; set `false` for non-HTTPS dev. */
+  /**
+   * Secure attribute for the refresh cookie. Default `true`; set `false` for
+   * non-HTTPS dev. **Package-wide** — see `JwtConfig.cookieSecure` for the five
+   * decisions an explicit `false` on any of the three cookie configs drives.
+   */
   cookieSecure?: boolean;
   /** Override the SameSite attribute for the refresh cookie. Default `'lax'`. */
   cookieSameSite?: 'lax' | 'strict' | 'none';
@@ -361,62 +378,72 @@ export interface AuthConfig<R extends string = string> {
   password?: PasswordConfig;
   /**
    * Account-lockout policy after repeated failed logins. Leave unset to get a
-   * safe default (5 attempts / 15 min) via `createAuthDeps`. Pass `null` to
-   * explicitly opt out — `createAuthDeps` then warns in a production config.
+   * safe default (5 attempts / 15 min) — applied at read time, so a hand-built
+   * `AuthDeps` that never went through `createAuthDeps` gets it too. Defaulted
+   * only when you configured neither `rateLimit` nor `lockout`: configuring
+   * rate-limiting is engagement with the defense, and the lockout carries its
+   * own DoS trade-off (AUTH.md → Known Limitations). Pass `null` to opt out
+   * explicitly — `createAuthDeps` then warns in a production config.
    */
   lockout?: LockoutConfig | null;
   /**
-   * Per-handler rate limits keyed by client IP. `createAuthDeps` guarantees a
-   * safe `login` default is present unless you explicitly opt out with `null`
-   * — even if you only configure other endpoints here, `login` is still
-   * injected (configuring, say, `register` never silently leaves login
-   * unprotected). All token-/credential-accepting handlers can be limited.
-   * The re-auth endpoints (`changePassword`, `changeEmail`, `deleteAccount`,
-   * `twoFactorDisable`) and — when 2FA is wired — `twoFactor` also receive
-   * strict defaults, since each accepts the account password or a 6-digit
-   * code; the remaining keys are opt-in.
+   * Per-handler rate limits keyed by client IP. **Every key carries a secure
+   * default** — the default table is derived from this interface, so a key
+   * cannot ship without one — and configuring some keys is a *merge*, never a
+   * replacement (setting `register` never leaves `login` unprotected).
+   *
+   * Two opt-outs, at two scopes: `rateLimit: null` disables limiting for every
+   * handler, and a single key set to `null` disables just that one
+   * (`rateLimit: { register: null }` = "deliberately unlimited registration",
+   * without giving up the login brake). An *omitted* key is not an opt-out —
+   * it gets the default. Both are warned about in a production config when they
+   * leave login unprotected.
+   *
+   * The per-key numbers and the reasoning behind each are in docs/AUTH.md.
    */
   rateLimit?: {
-    login?: RateLimitConfig;
-    register?: RateLimitConfig;
+    login?: RateLimitConfig | null;
+    register?: RateLimitConfig | null;
     /**
      * Limit for the password-reset *request* handler (`forgot-password`).
      * Named after its endpoint so it cannot be confused with `resetPassword`,
      * the consume half of the same flow.
      */
-    forgotPassword?: RateLimitConfig;
+    forgotPassword?: RateLimitConfig | null;
     /** Limit for the password-reset *consume* handler (`reset-password`). */
-    resetPassword?: RateLimitConfig;
+    resetPassword?: RateLimitConfig | null;
     /** Limit for the email-verification handler (`verify-email`). */
-    verifyEmail?: RateLimitConfig;
+    verifyEmail?: RateLimitConfig | null;
     /** Limit for the explicit refresh endpoint (`refresh`). */
-    refresh?: RateLimitConfig;
+    refresh?: RateLimitConfig | null;
     /** Limit for passkey authentication (options + verify). */
-    passkeyAuth?: RateLimitConfig;
+    passkeyAuth?: RateLimitConfig | null;
     /**
      * Limit for the authenticated change-password handler. It is re-auth gated,
      * but still credential-accepting, so limiting it stops a hijacked session
      * from brute-forcing the current password through this endpoint.
      */
-    changePassword?: RateLimitConfig;
+    changePassword?: RateLimitConfig | null;
     /** Limit for the authenticated change-email request handler. */
-    changeEmail?: RateLimitConfig;
+    changeEmail?: RateLimitConfig | null;
     /** Limit for the authenticated delete-account handler. */
-    deleteAccount?: RateLimitConfig;
+    deleteAccount?: RateLimitConfig | null;
     /**
      * Limit for the authenticated 2FA-disable handler. Re-auth gated but
      * credential-accepting — and the most valuable brute-force target of the
-     * re-auth family, since success removes the second factor. `createAuthDeps`
-     * injects a strict default when `twoFactor` is configured.
+     * re-auth family, since success removes the second factor. Defaulted
+     * unconditionally, like every other key: the handler that reads it only
+     * exists when 2FA is wired, and a condition here would be a second
+     * hand-maintained list of the kind the derived table removes.
      */
-    twoFactorDisable?: RateLimitConfig;
+    twoFactorDisable?: RateLimitConfig | null;
     /**
      * Limit for the 2FA verify handler (the second login step). Brute-force
-     * critical — a 6-digit code has only 10^6 combinations — so when `twoFactor`
-     * is configured, `createAuthDeps` injects a strict default here unless you
-     * opt out with `rateLimit: null`. Configure it explicitly to tune the limit.
+     * critical — a 6-digit code has only 10^6 combinations — so it carries a
+     * strict default, injected whether or not `config.twoFactor` is set (see
+     * `twoFactorDisable`). Configure it explicitly to tune the limit.
      */
-    twoFactor?: RateLimitConfig;
+    twoFactor?: RateLimitConfig | null;
   } | null;
   csrf?: CsrfConfig;
   /**

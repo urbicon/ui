@@ -6,10 +6,15 @@ import type {
   RefreshTokenRepository,
   UserRepository
 } from './adapters/types.js';
-import { assertCookieSameSiteSecure, isSecureDeployment } from './cookie-policy.js';
+import {
+  assertCookieSameSiteSecure,
+  describeCookieSecureDisagreement,
+  isSecureDeployment
+} from './cookie-policy.js';
 import type { EmailTransport } from './email/types.js';
 import { assertJwtConfigValid } from './jwt.js';
-import { resolveLockout, resolveRateLimits } from './security-defaults.js';
+import { shieldLogger } from './logger.js';
+import { lockoutFor, resolveRateLimits } from './security-defaults.js';
 
 export interface AuthDeps<R extends string = string> {
   config: AuthConfig<R>;
@@ -40,11 +45,14 @@ export interface AuthDeps<R extends string = string> {
   /**
    * Resolved log sink (`config.logger ?? console`) — `createAuthDeps` always
    * fills it, so handlers log operational failures through one seam instead
-   * of hard-coding `console`. The two package internals that sit outside a deps
-   * bundle by design — `validateCsrf` (a standalone export a federated consumer
-   * calls from its own hook) and `consumeChallenge` (in the deps-free WebAuthn
-   * core) — take the sink as an optional argument and are handed it by the
-   * handle hook and the passkey factory respectively.
+   * of hard-coding `console`. Three package internals sit outside a deps bundle
+   * by design and take the sink as an optional argument instead: `validateCsrf`
+   * (a standalone export a federated consumer calls from its own hook) and
+   * `consumeChallenge` (in the deps-free WebAuthn core), both handed it by the
+   * handle hook and the passkey factory; and the Prisma repository factories,
+   * which run *before* any bundle exists — those default to `console`, the same
+   * sink `config.logger ?? console` resolves to, so they only need
+   * `createPrismaRepos(prisma, { logger })` when the app configures its own.
    */
   logger: AuthLogger;
 }
@@ -73,9 +81,10 @@ const MIN_SAFE_PBKDF2_ITERATIONS = 100_000;
  *   `rateLimit` **and** no `lockout`). A consumer who configured rate-limiting
  *   has clearly engaged with the defense, so we respect an omitted lockout
  *   rather than imposing the DoS-prone mechanism on them.
- * - Either field set explicitly to `null` → honoured as opt-out, kept as `null`
- *   on the resolved config (see `resolveRateLimits` on why not `undefined`),
- *   and warned about in a production config.
+ * - Either field set explicitly to `null` → honoured as opt-out and warned
+ *   about in a production config. A rate-limit opt-out is kept as `null` on the
+ *   resolved config (see `resolveRateLimits` on why that one has to be); the
+ *   lockout keeps `undefined`.
  * - A production config that still ends up with no login protection at all
  *   (only reachable via `rateLimit: null`) is warned about loudly.
  *
@@ -89,7 +98,7 @@ function resolveSecurityDefaults<R extends string>(
   const resolved: AuthConfig<R> = {
     ...config,
     rateLimit: resolveRateLimits(config),
-    lockout: resolveLockout(config)
+    lockout: lockoutFor(config)
   };
 
   if (isProduction && config.rateLimit === null) {
@@ -164,6 +173,9 @@ export function assertReposMatchConfig<R extends string>(
  * can be reached first, so both must validate — and each additional check used
  * to have to be remembered in both places. One door instead of three per entry
  * point: a new check is added here and both paths get it.
+ *
+ * Fails fast — the first throwing check wins, so a config with several problems
+ * surfaces them one deploy at a time.
  */
 export function assertAuthConfigValid<R extends string>(
   config: AuthConfig<R>,
@@ -172,8 +184,17 @@ export function assertAuthConfigValid<R extends string>(
 ): void {
   assertReposMatchConfig(config, repos);
   assertJwtConfigValid(config.jwt, logger);
-  // The refresh cookie's SameSite/Secure pair. Its session-cookie twin is
-  // checked inside assertJwtConfigValid; this one has no JwtConfig to ride on.
+  // The other two writable cookies' SameSite/Secure pair. The session cookie's
+  // is checked inside assertJwtConfigValid; these have no JwtConfig to ride on.
+  // `useHostPrefix` force-sets Secure on the CSRF cookie, so it is passed as the
+  // effective value (see ensureCsrfCookie).
+  if (config.csrf) {
+    assertCookieSameSiteSecure(
+      'csrf',
+      config.csrf.cookieSameSite,
+      config.csrf.useHostPrefix === true ? true : config.csrf.cookieSecure
+    );
+  }
   if (config.refreshToken) {
     assertCookieSameSiteSecure(
       'refreshToken',
@@ -181,32 +202,8 @@ export function assertAuthConfigValid<R extends string>(
       config.refreshToken.cookieSecure
     );
   }
-}
-
-/**
- * Shield every log call from a throwing consumer sink. Several call sites log
- * inside detached fire-and-forget blocks (forgot-password, change-email) where
- * a throwing `logger.error` would become an unhandled promise rejection, and
- * others log after a security-relevant write already succeeded — a broken
- * logging transport must never break the auth flow it observes.
- */
-export function shieldLogger(logger: AuthLogger): AuthLogger {
-  return {
-    warn(message, ...context) {
-      try {
-        logger.warn(message, ...context);
-      } catch {
-        /* a broken sink must not break auth */
-      }
-    },
-    error(message, ...context) {
-      try {
-        logger.error(message, ...context);
-      } catch {
-        /* a broken sink must not break auth */
-      }
-    }
-  };
+  const disagreement = describeCookieSecureDisagreement(config);
+  if (disagreement) logger.warn(disagreement);
 }
 
 /**

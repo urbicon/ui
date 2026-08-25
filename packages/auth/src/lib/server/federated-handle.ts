@@ -12,11 +12,11 @@
 
 import { type Handle, type RequestEvent, redirect } from '@sveltejs/kit';
 import type { AuthLogger } from '../types.js';
-import { shieldLogger } from './deps.js';
 import { parseDurationSeconds } from './duration.js';
 import { base64UrlDecodeString } from './encoding.js';
 import { authError } from './handlers/errors.js';
 import { BASE64URL_REGEX, es256Verify, MAX_TOKEN_LENGTH, SESSION_TOKEN_PURPOSE } from './jwt.js';
+import { shieldLogger } from './logger.js';
 
 /**
  * The identity a verified IdP token proves — and NOTHING more. Deliberately
