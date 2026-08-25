@@ -60,16 +60,24 @@ describe('tableContainerVariants — sticky toolbar', () => {
 });
 
 describe('tableContainerVariants — contained (fit="viewport")', () => {
+  // `fit="viewport"` is the consumer asserting that this table owns the page
+  // height, not a measurement the library makes — so every class below applies
+  // at every width. Until #269 they were `md:`-prefixed, which withheld the
+  // horizontal containment the prop exists for from the narrow viewports that
+  // need it most. The assertions match on a class boundary rather than a bare
+  // substring, because /shrink-0/ matches `md:shrink-0` too and would have
+  // stayed green through the defect; the prefix guard further down is the
+  // second half of that.
   it('caps the container to the viewport minus the measured top offset', () => {
     const container = tableContainerVariants({ contained: true }).container();
-    expect(container).toMatch(/md:max-h-\[calc\(100dvh-var\(--blocks-table-avail-top/);
+    expect(container).toMatch(/(?:^|\s)max-h-\[calc\(100dvh-var\(--blocks-table-avail-top/);
   });
 
   it('makes the scrollArea the flex scroll child (flex-auto + min-h-0 + overflow)', () => {
     const scrollArea = tableContainerVariants({ contained: true }).scrollArea();
-    expect(scrollArea).toMatch(/md:flex-auto/);
-    expect(scrollArea).toMatch(/md:min-h-0/);
-    expect(scrollArea).toMatch(/md:overflow-auto/);
+    expect(scrollArea).toMatch(/(?:^|\s)flex-auto\b/);
+    expect(scrollArea).toMatch(/(?:^|\s)min-h-0\b/);
+    expect(scrollArea).toMatch(/(?:^|\s)overflow-auto\b/);
     // must NOT use basis-0 `flex-1`, which collapses the box for short tables
     // in an auto-height (max-height-capped) flex container
     expect(scrollArea).not.toMatch(/\bflex-1\b/);
@@ -77,7 +85,37 @@ describe('tableContainerVariants — contained (fit="viewport")', () => {
 
   it('keeps the toolbar fixed outside the scroll area (shrink-0)', () => {
     const toolbar = tableContainerVariants({ contained: true }).toolbar();
-    expect(toolbar).toMatch(/md:shrink-0/);
+    expect(toolbar).toMatch(/(?:^|\s)shrink-0\b/);
+  });
+
+  // The live-update banner and the pager wrapper are the other two flex
+  // siblings that must not shrink. They read this slot instead of writing
+  // `shrink-0` into `Table.svelte`, because `style/index.css` scans
+  // `../variants` and nothing else — a class living only in the markup emits no
+  // CSS in a consumer's build while `apps/docs` (which scans all of `src/lib`)
+  // keeps working.
+  it('hands the banner + pager wrappers the same shrink-0 through a slot', () => {
+    const chrome = tableContainerVariants({ contained: true }).containedChrome();
+    expect(chrome).toMatch(/(?:^|\s)shrink-0\b/);
+    expect(tableContainerVariants({ contained: false }).containedChrome()).toBe('');
+  });
+
+  // The guard on the decision above: whatever `contained` adds must be
+  // unconditional. A variant prefix (`md:`, `@3xl:`, `dark:`) reintroduces a
+  // width/mode term into a path whose whole point is that it has none.
+  it('adds only unconditional classes — no variant prefix on any contained slot', () => {
+    const on = tableContainerVariants({ contained: true });
+    const off = tableContainerVariants({ contained: false });
+
+    for (const slot of ['container', 'scrollArea', 'toolbar', 'containedChrome'] as const) {
+      const before = new Set(off[slot]().split(' '));
+      const added = on[slot]()
+        .split(' ')
+        .filter((cls) => cls && !before.has(cls));
+
+      expect(added.length).toBeGreaterThan(0);
+      expect(added.filter((cls) => cls.includes(':'))).toEqual([]);
+    }
   });
 
   it('uses dvh (not vh) so the mobile URL bar does not clip the box', () => {
