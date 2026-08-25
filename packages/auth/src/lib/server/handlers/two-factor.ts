@@ -22,7 +22,13 @@ import {
   verifyPending2faToken
 } from '../two-factor.js';
 import { validateDisable2faInput, validateTotpInput } from '../validation.js';
-import { NO_STORE, parseBody, requireSessionUser, verifyCurrentPassword } from './_shared.js';
+import {
+  NO_STORE,
+  notifyHook,
+  parseBody,
+  requireSessionUser,
+  verifyCurrentPassword
+} from './_shared.js';
 import { authError } from './errors.js';
 
 /**
@@ -261,7 +267,9 @@ function verifyHandler<R extends string>(deps: AuthDeps<R>): { POST: RequestHand
       await establishSession(cookies, user, config, repos, resolveSessionMeta(event, config));
 
       const safeUser = sanitizeUser(user);
-      await config.hooks?.onLoginSuccess?.(safeUser);
+      // Post-commit: the session is established and the single-use pending
+      // cookie is spent — there is no second attempt to fall back to.
+      await notifyHook(deps, { site: 'two-factor', subject: user.id }, 'onLoginSuccess', safeUser);
 
       return json({ user: safeUser });
     }
