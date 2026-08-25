@@ -13,6 +13,7 @@
   import { computeVirtualItems, ROW_HEIGHTS } from '$lib/utils/virtualizer';
   import { resolveColumnId, resolveRowItemId } from '$lib/utils';
   import { getStickyContext } from './sticky-context.svelte';
+  import { structuralColumns } from './structural-columns';
   import type { Column, TableItem } from '$lib/types/tableTypes';
   import type { Snippet } from 'svelte';
 
@@ -83,14 +84,18 @@
   let selectable = $derived(tableState.selectionMode !== 'none');
   let interactive = $derived(selectable || expandable || !!onRowClick);
 
+  // The one list the header, the body and the summary row also read — see
+  // core/structural-columns.ts.
+  const structuralCols = $derived(
+    structuralColumns({
+      grouped: !!tableState.effectiveGroupBy,
+      selectable,
+      expandable
+    })
+  );
+
   /** Total columns including expand + group + selection columns */
-  const totalColSpan = $derived.by(() => {
-    let count = tableState.columns.length;
-    if (expandable) count += 1;
-    if (tableState.effectiveGroupBy) count += 1;
-    if (selectable) count += 1;
-    return count;
-  });
+  const totalColSpan = $derived(tableState.columns.length + structuralCols.length);
 
   let tableElement = $state<HTMLTableElement | null>(null);
   let scrollContainerEl = $state<HTMLDivElement | null>(null);
@@ -485,16 +490,15 @@
    *
    * `<colgroup>` is the mechanism tables have for exactly this — it sizes tracks
    * independently of any row — so the same list goes into all three and they can
-   * no longer disagree. It mirrors `TableHead`'s leading control columns; the
-   * group-toggle column is absent on purpose, because `virtualizedActive`
-   * already excludes grouping.
+   * no longer disagree. The structural half is that same list again: the tracks
+   * take `widthCss` where the cells take `widthClass`, so the two units are one
+   * value.
    */
   const columnTracks = $derived.by(() => {
-    const tracks: Array<{ key: string; width?: string }> = [];
-    // The header's control cells carry `w-12` / `w-10`; these are the same two
-    // widths, as something a `<col>` can express.
-    if (selectable) tracks.push({ key: '__selection', width: '3rem' });
-    if (expandable) tracks.push({ key: '__expand', width: '2.5rem' });
+    const tracks: Array<{ key: string; width?: string }> = structuralCols.map((structural) => ({
+      key: `__${structural.key}`,
+      width: structural.widthCss
+    }));
     // `orderedColumns` unconditionally, NOT `enableColumnReorder ? … :
     // state.columns`. `TableRow` and `SummaryRow` iterate `orderedColumns`
     // whatever that flag says, and `applyPersistedState` restores a stored
