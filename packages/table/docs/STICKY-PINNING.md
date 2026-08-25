@@ -61,9 +61,9 @@ Three layers can pin, each offset below the previous one via CSS custom properti
 | `'header'` | ❌ | ✅ |
 
 Two flags, not three: the group header is the contextual section marker of the "header"
-semantic, so L2 and L3 are one decision and no configuration pins one without the other. The L3 group header uses the iOS-`UITableView` pattern:
-the next group header pushes the previous one out of view automatically (shared sticky anchor,
-DOM order wins).
+semantic, so L2 and L3 are one decision and no configuration pins one without the other. The L3
+group header uses the iOS-`UITableView` pattern: the next group header pushes the previous one
+out of view automatically (shared sticky anchor, DOM order wins).
 
 The visible frame (`scrollArea`) never sets `overflow` in this mode — that is what lets the
 sticky children pin against the page instead of being trapped by an `overflow` clip.
@@ -103,43 +103,39 @@ the same and give you a second scroller.
 > box, no needless scrollbar) while a tall table caps and scrolls.
 
 **Height measurement (`measureViewportOffsetTop`, `utils/sticky-measure.ts`):**
-how much of the viewport sits *above* the container (`getBoundingClientRect().top`) is written to
-`--blocks-table-avail-top`. Viewport-relative, because that is the quantity the cap subtracts,
-and bounded to `[0, innerHeight)`: a reading taken while the box already starts below the
-viewport bottom is discarded rather than written, so `calc(100dvh - avail-top)` cannot reach zero
-and take the table with it. Offsets *inside* the container (a growing toolbar / filter chips)
-need no measurement; the flex layout absorbs them. No magic `max-height` is needed in the
-consumer.
+`--blocks-table-avail-top` holds the viewport space reserved **above** the box — not where the
+box is now, but the smallest distance to the top of the viewport it can be brought to. In the
+plain page flow that is `0`: nothing is pinned above the table, so the reader can scroll it to
+the top of the viewport and the whole viewport is its to use. Under a `position: sticky` /
+`fixed` ancestor it is that ancestor's pin line; inside an `overflow: hidden` pane, or an app
+shell whose scroll pane starts below a bar, it is what that ancestor holds above the box. A
+figure at or past the viewport height would cap the box to nothing, so it reserves nothing
+instead — space that large is content the reader scrolls away, not chrome kept in view.
 
-Four events re-measure, one configuration each: window `resize` (the viewport itself changed), a
-`ResizeObserver` on `document.body` (shells that scroll the document, whose body box tracks the
-flow), a `ResizeObserver` on the container's parent (a content-height app-shell pane, where the
-body box never changes), and `scroll` on every scrollable ancestor **below** the page scroller (a
-nested scrollport moves the box through the viewport). The page scroller itself is deliberately
-not among them: the property drives the container's own `max-height`, which changes the document
-height, which would move the box again. So the value goes stale while the page scrolls — and
-likewise when a banner appears inside a *fixed-height* pane above the table, which resizes no
-observed box and scrolls nothing. Staleness always errs the same harmless way: a box that reaches
-past the viewport bottom, never one capped to nothing.
+The value cannot change when anything scrolls, which is why nothing listens to a scroll: it
+re-measures on viewport resize and on a resize of the body or of the container's parent. Offsets
+*inside* the container (a growing toolbar / filter chips) need no measurement either; the flex
+layout absorbs them. No magic `max-height` is needed in the consumer.
 
 **Header pinning is intrinsic to the box.** `resolveStickyMode(sticky, contained=true)` forces
-`{ toolbar: false, header: true }` regardless of the `sticky` prop — a contained
-box whose header scrolls away is never useful. The thead/group `top: calc(sticky-top +
-toolbar-h + …)` formulas resolve to **box-relative** offsets (`0` for the thead, `thead-h` for
-the group header) because `--blocks-table-sticky-top` is forced to `0` and the toolbar is not
-measured (it is a static sibling, not pinned). So no per-layer variant change is needed — only
-the CSS-var inputs differ.
+`{ toolbar: false, header: true }` regardless of the `sticky` prop — a contained box whose header
+scrolls away is never useful. The thead/group `top: calc(sticky-top + toolbar-h + …)` formulas
+resolve to **box-relative** offsets (`0` for the thead, `thead-h` for the group header) because
+`--blocks-table-sticky-top` is forced to `0` and the toolbar is not measured (it is a static
+sibling, not pinned). So no per-layer variant change is needed — only the CSS-var inputs differ.
 
 **Interactions:**
 
-- **Supersedes `sticky`** (ignored) and **`stickyOffset`** (ignored — the measured top absorbs
-  app-shell offsets).
+- **Supersedes `sticky`** (ignored) and **`stickyOffset`** (ignored — an app-shell bar that is an
+  *ancestor* of the table is already reserved by the cap; a bar that is only a sibling is
+  reserved by nothing, see §6).
 - **Mutually exclusive with `virtualized`**, which keeps its own bounded scroll via
   `virtualHeight`; `fit` has no effect when `virtualized`, and a DEV-build console warning says
   so (the refusal is otherwise invisible — `data-fit` reports the resolved `"content"`).
-- **No app-shell rebuild required.** Sizing the container to `100dvh - top` makes the page
-  exactly viewport-height when the table is the main content, so it does not scroll and the
-  measured offset stays valid.
+- **No app-shell rebuild required.** The box is sized to the viewport minus what is reserved
+  above it, so it fills the viewport once the reader has scrolled it into view. Content above the
+  table on a scrolling page (a page heading, breadcrumbs) is not reserved space — it scrolls
+  away, and the page scrolls by exactly its height.
 - **`data-fit` layout hook.** The container reflects its resolved mode as `data-fit="viewport"`
   / `"content"` (the latter also when `virtualized`). Because the box reaches the bottom of the
   viewport, an ancestor with bottom padding (or a following sibling) is pushed past `100dvh` and
@@ -156,7 +152,9 @@ the CSS-var inputs differ.
 sticky?: boolean | 'toolbar' | 'header' | 'both';
 
 /** Pixel offset for the topmost sticky layer (fixed app-shell top bar).
- *  Writes --blocks-table-sticky-top. Ignored when fit="viewport". @default 0 */
+ *  Writes --blocks-table-sticky-top. Ignored when fit="viewport", where an
+ *  ancestor bar is reserved by the cap and a sibling bar by nothing (§6).
+ *  @default 0 */
 stickyOffset?: number;
 
 /** Scroll model. 'content' grows with the page; 'viewport' is a contained,
@@ -188,7 +186,7 @@ toolbar?: Snippet;
 | `--blocks-table-sticky-top` | **always** | `Table.svelte`, as an inline style on every container: `stickyOffset` px, forced `0` when contained | L1 toolbar `top`; folds into L2 and L3 |
 | `--blocks-table-toolbar-h` | toolbar pinned **and** a toolbar renders | `ResizeObserver` on the toolbar wrapper (border box, unrounded) | L2 thead `top` **and** L3 group-header `top` |
 | `--blocks-table-thead-h` | thead pinned **and** the built-in `TableHead` renders | `ResizeObserver` on `<thead>` (border box, unrounded) | L3 group-header `top` |
-| `--blocks-table-avail-top` | `fit="viewport"` and not `virtualized` | `measureViewportOffsetTop` on the container | container `max-height` cap |
+| `--blocks-table-avail-top` | `fit="viewport"` and not `virtualized` | `measureViewportOffsetTop` on the container — the viewport space reserved above it: its smallest reachable distance to the top of the viewport, not its current one | container `max-height` cap |
 
 The three measured properties fall back to `0px` in the `calc()` chains when their condition does
 not hold, which is the neutral value — a layer that is not pinned adds nothing to the layer below
@@ -202,8 +200,10 @@ writes `--blocks-table-thead-h` and a pinned group header lands on top of the co
 `resolveSlotClass` (`core/table-style-context.ts`) has two branches, and they treat these classes
 in opposite ways.
 
-- **`unstyled`** concatenates: the variant classes are dropped, and `slotClasses` plus the call
-  site's own utilities are all that is left. Nothing is merged, so what you write is what renders.
+- **`unstyled`** concatenates: the slot's look is dropped, and what is left is `slotClasses`, the
+  call site's own utilities, and the config's structural classes — today exactly the desktop/card
+  layout switch, which decides which markup is *visible* rather than how it looks. Nothing is
+  merged, so what you write is what renders.
 - **Styled** (the default) routes `slotClasses` through the `class` option of the `tv()` slot
   function, where the conflict fold lets an override *replace* the base class that shares its
   Tailwind bucket. That is what makes `slotClasses={{ table: 'w-auto' }}` beat the slot's own
@@ -220,16 +220,18 @@ whole property (`top-[calc(var(--blocks-table-sticky-top,0px)+2rem)]`), not by p
 utility beside it.
 
 The variants themselves hold to **one utility per property per slot**: over every combination of
-`variant`/`size`/`stickyToolbar`/`contained`, no slot emits two `overflow`, `top`, `max-h` or `z`
-classes. That is a property of the configs, and only of them — the fold above resolves a base
-class against an override, but two overrides reaching one slot from different sources (a
-`slotClasses` entry and the call site's own utilities) share one source inside the fold, and both
-survive. Contained mode therefore changes the **var inputs**, not the emitted classes.
+`variant`/`size`/`stickyToolbar`/`contained` the exported function accepts, no slot emits two
+`overflow`, `top`, `max-h` or `z` classes. That is a property of the configs, and only of them —
+the fold above resolves a base class against an override, but two overrides reaching one slot
+from different sources (a `slotClasses` entry and the call site's own utilities) share one source
+inside the fold, and both survive. Contained mode therefore changes the **var inputs**, not the emitted classes.
 
 ### Re-applying the pins under `unstyled`
 
-`unstyled` drops the variant classes on every slot, pinning included — it is a layout function,
-but it is expressed in classes. Three things to know when rebuilding it:
+`unstyled` drops the slot's look, and pinning goes with it — pinning is a layout function, but it
+is expressed in the same classes. (The desktop/card layout switch is the exception: it survives,
+because a table that renders its grid and its card list at once is not a restyled table.) Three
+things to know when rebuilding the pins:
 
 - The classes go back on `slotClasses.container` (the contained height cap, and the
   `flex flex-col` it sits on), `toolbar`, `thead`, `groupHeader` and `scrollArea` — or style the
@@ -256,7 +258,10 @@ but it is expressed in classes. Three things to know when rebuilding it:
 | Summary row + `fit="viewport"` | The summary row pins in **no** layer, so the totals are the one line the contained box does not keep in view: they scroll away with the rows. If they have to stay visible, aggregate them yourself and render them beside the table rather than in it. |
 | `virtualized` | Manages its own bounded scroll (`virtualHeight`); `fit` is ignored (a DEV warning says so), `sticky` still works (thead already sits outside the virtual scroller). The summary row is a separate `<table>` *after* the full-height spacer inside that scroller, so the totals sit at the far end of the virtual scroll — 200 000px down for 5 000 rows at the `md` step of 40px. |
 | `unstyled` | Strips the sticky/contained classes on every slot, `container` included — but not the props that drive the measurements. Rebuilding it: §5. |
-| Nested scroll ancestor | Page-relative sticky binds to it — intended inside a `Drawer` body, surprising inside an accidental `overflow` wrapper. With `fit="viewport"` it is supported: the cap re-measures on that ancestor's `scroll`, so the box tracks its position through the viewport. |
+| Nested scroll ancestor | Page-relative sticky binds to it — intended inside a `Drawer` body, surprising inside an accidental `overflow` wrapper. With `fit="viewport"` it is supported without a listener: the reserved space is what the ancestor holds above the box, which scrolling that ancestor does not change. |
+| Fixed top bar that is a **sibling** of the table | Not reserved. `fit="viewport"` ignores `stickyOffset`, and only *ancestors* are measured — put the content in the scroll container below the bar, or keep the bar as an ancestor. |
+| Chrome added/removed above the table inside a **fixed-height** pane | Resizes no observed box, so the reading holds until the next resize: the box is then too tall by that much (reaching past the viewport bottom) or too short by it (empty space below). |
+| SSR / first paint + `fit="viewport"` | `--blocks-table-avail-top` is written by an attachment, and attachments do not run on the server, so the cap resolves to `calc(100dvh - 0px)` until hydration: a table N px down the document is N px too tall for one frame. Where the offset is known ahead of time (a fixed app-shell header), declare `--blocks-table-avail-top` on the container in your own CSS — nothing declares it in the server output, so your value holds the first paint and the measured one takes over at hydration. |
 
 ---
 
@@ -279,5 +284,8 @@ but it is expressed in classes. Three things to know when rebuilding it:
 | Prop wiring, var setup, measurement attach | `packages/table/src/lib/core/table/Table.svelte` |
 | `measureToCssVar`, `measureViewportOffsetTop`, `observeStuck` | `packages/table/src/lib/utils/sticky-measure.ts` |
 | `unstyled` / `slotClasses` merge (`resolveSlotClass`) | `packages/table/src/lib/core/table-style-context.ts` |
-| Tests | `packages/table/src/lib/variants/table.sticky.test.ts`, `packages/table/src/lib/utils/sticky-measure.test.ts` |
-| Live docs | `apps/docs/src/routes/table/sticky-pinning/+page.svelte` |
+| Tests: emitted classes | `packages/table/src/lib/variants/table.sticky.test.ts` |
+| Tests: what the attachments write | `packages/table/src/lib/utils/sticky-measure.test.ts` |
+| Tests: what a mounted `<Table>` attaches where | `packages/table/src/lib/core/Table.sticky.svelte.test.ts` |
+| Tests: the contained box in a real browser | `e2e/table-contained.spec.ts` |
+| Live docs | `apps/docs/src/routes/table/sticky-pinning/+page.svelte`, and the full-page `fit="viewport"` demo at `apps/docs/src/routes/table/sticky-pinning/contained/+page.svelte` |
