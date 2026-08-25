@@ -483,6 +483,11 @@ export const tableContainerVariants = tv({
     // separated toolbar strip.
     toolbar: ['transition-shadow duration-[var(--blocks-duration-fast)]'],
     scrollArea: [],
+
+    // The live-update banner and the pager wrapper — the flex siblings that
+    // flank `scrollArea`. Empty outside `contained`, where they are the two
+    // children that must keep their height while the scroll area takes the rest.
+    containedChrome: [],
     table: ['w-full border-collapse'],
     body: []
   },
@@ -549,23 +554,22 @@ export const tableContainerVariants = tv({
     // would collapse the box for short tables) + `min-h-0` so only the rows
     // scroll.
     //
-    // ── The one switch here that is deliberately NOT container-keyed ─────────
-    //
-    // `md:` is the VIEWPORT, and on purpose: everything else the table switches
-    // on asks "how much room did this box get", but this asks "would a nested
-    // scroll box be the wrong thing here" — and on a phone it is, whatever the
-    // box measures, because the reader would be dragging one scroller inside
-    // another. A wide-window sidebar 400px across is a perfectly good scroll
-    // box; a 400px phone is not, and only the viewport can tell those apart.
-    //
-    // Also note the cap has to live on the container slot, which IS the
-    // `@container` — a container query cannot style its own container, so this
-    // could not be `@3xl:` even if the question were the right one.
+    // No width term of any kind, viewport or container: `fit="viewport"` is an
+    // assertion by the consumer — "this table owns the page height" — not
+    // something the library can measure, so it is honoured at every width. A
+    // width gate here withholds the treatment exactly where the prop's stated
+    // purpose (catching horizontal overflow so the page does not scroll
+    // sideways) matters most. (#269)
     contained: {
       true: {
-        container: ['md:max-h-[calc(100dvh-var(--blocks-table-avail-top,0px))]'],
-        scrollArea: ['md:min-h-0 md:flex-auto md:overflow-auto'],
-        toolbar: ['md:shrink-0']
+        container: ['max-h-[calc(100dvh-var(--blocks-table-avail-top,0px))]'],
+        scrollArea: ['min-h-0 flex-auto overflow-auto'],
+        toolbar: ['shrink-0'],
+        // Also the banner + pager wrappers in `Table.svelte`. They read the
+        // class from here rather than writing it as a markup literal because
+        // `style/index.css` scans `../variants` and nothing else — a class that
+        // exists only in a `.svelte` file emits no CSS in a consumer's build.
+        containedChrome: ['shrink-0']
       },
       false: {}
     }

@@ -582,6 +582,49 @@ describe('Table — the view object, mounted', () => {
     }
   });
 
+  // `fit="viewport"` + `virtualized` is refused — the virtualizer keeps its own
+  // bounded scroll. The refusal is the only gate and it does not write the prop
+  // away, but `data-fit` publishes the RESOLVED mode, so the documented
+  // `[data-fit='viewport']` page rule silently never matches. The warning is
+  // what makes that findable (#298); without it both the DOM and the console
+  // look exactly like a table that was never asked for `viewport`.
+  it('warns loudly when fit="viewport" is refused because the table is virtualized', () => {
+    const warnings: string[] = [];
+    const realWarn = console.warn;
+    console.warn = (...args: unknown[]) => void warnings.push(String(args[0]));
+
+    try {
+      const el = mountTable({ fit: 'viewport', virtualized: true, virtualHeight: '400px' });
+
+      expect(el.querySelector('[data-table-container]')?.getAttribute('data-fit')).toBe('content');
+      expect(
+        warnings.some((line) => line.includes('fit="viewport"') && line.includes('virtualized'))
+      ).toBe(true);
+      // The warning has to name what the DOM will say, because that attribute
+      // is the hook the consumer was told to style against.
+      expect(warnings.some((line) => line.includes('data-fit'))).toBe(true);
+    } finally {
+      console.warn = realWarn;
+    }
+  });
+
+  // Negative control for the above: the same mount without the refused
+  // combination must stay quiet, or the assertion there proves nothing.
+  it('stays quiet and reports data-fit="viewport" when the combination is allowed', () => {
+    const warnings: string[] = [];
+    const realWarn = console.warn;
+    console.warn = (...args: unknown[]) => void warnings.push(String(args[0]));
+
+    try {
+      const el = mountTable({ fit: 'viewport' });
+
+      expect(el.querySelector('[data-table-container]')?.getAttribute('data-fit')).toBe('viewport');
+      expect(warnings).toEqual([]);
+    } finally {
+      console.warn = realWarn;
+    }
+  });
+
   // The stride the window is offset by has to be the height a row actually
   // renders at. It cannot be asserted in pixels here — jsdom lays nothing out,
   // which is precisely why the assumed height and the rendered one could
