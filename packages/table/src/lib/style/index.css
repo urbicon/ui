@@ -18,9 +18,25 @@
 /* Import table-specific theme tokens */
 @import './table-theme.css';
 
-/* === COMPONENT VARIANTS === */
-/* Import tailwind-variants source files for JIT compilation */
-@source '../variants';
+/* === TAILWIND SOURCE SCAN === */
+/* Everything the package ships, not a list of directories. `@source` resolves
+ * against this file, which sits at `src/lib/style/` in the tree and at
+ * `dist/style/` in the tarball, so `..` is the whole library in both — a class
+ * cannot be added anywhere in the package and land outside the scan.
+ *
+ * Naming subdirectories is what a consumer paid for: `@source '../variants'`
+ * left 17 classes that live only in `.svelte` markup uncompiled, among them the
+ * `table-fixed` the virtualized column geometry depends on (without it the
+ * table falls back to `table-layout: auto` — the column drift the `<colgroup>`
+ * of #14/#154 exists to prevent) and the whole drag-over outline of column
+ * reordering. `apps/docs` never showed it: its own app.css scans
+ * `packages/table/src/lib`.
+ *
+ * Cost of the wider scan, measured against a tarball-filtered install with
+ * Tailwind 4.3.3: 640 → 824 files scanned, compile+scan+build 50.8 → 52.0 ms
+ * median of 7, emitted CSS 25.0 → 25.4 KB gzipped, and no rule a narrower
+ * scan would have skipped. */
+@source '..';
 
 /* === MINIMAL COMPONENT STYLES === */
 /* Only complex, non-utility styles that can't be expressed in Tailwind classes */
