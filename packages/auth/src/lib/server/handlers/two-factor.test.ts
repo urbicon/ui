@@ -146,19 +146,25 @@ describe('createTwoFactorHandlers — enable', () => {
     expect(res.status).toBe(400);
   });
 
-  it('reports the unreadable staged secret once per config, not once per attempt', async () => {
-    // `enable` has no rate limiter, so per-occurrence logging would be an
-    // unbounded write into the operator's sink from an authenticated caller.
-    const twoFactor = { encryptionKey: ENC_KEY };
+  // The report is deduped by user id, so each of these tests owns one — a
+  // shared id would have the first test swallow the others' line.
+  async function staleSecretDeps(userId: string) {
     const user = createMockUser({
+      id: userId,
       totpEnabled: false,
       totpSecret: await encryptSecret(SECRET, ROTATED_KEY)
     });
-    const deps = createMockAuthDeps({
-      config: { twoFactor },
+    return createMockAuthDeps({
+      config: { twoFactor: { encryptionKey: ENC_KEY } },
       user: { findById: vi.fn().mockResolvedValue(user) },
       backupCode: createMockBackupCodeRepository()
     });
+  }
+
+  it('reports the unreadable staged secret once per user, not once per attempt', async () => {
+    // `enable` has no rate limiter, so per-occurrence logging would be an
+    // unbounded write into the operator's sink from one authenticated caller.
+    const deps = await staleSecretDeps('stale-repeat');
     const enable = createTwoFactorHandlers(deps).enable;
 
     for (let i = 0; i < 5; i++) {
@@ -169,35 +175,32 @@ describe('createTwoFactorHandlers — enable', () => {
     expect(deps.logger.error).toHaveBeenCalledTimes(1);
   });
 
-  it('reports again for a different twoFactor config', async () => {
-    const user = createMockUser({
-      totpEnabled: false,
-      totpSecret: await encryptSecret(SECRET, ROTATED_KEY)
-    });
+  it('holds the cap when the consumer rebuilds its config per request', async () => {
+    // A serverless handler assembling `createAuthDeps` per invocation hands out
+    // a fresh `twoFactor` object every time; the cap must not depend on that.
     const logger = { warn: vi.fn(), error: vi.fn() };
-    for (const encryptionKey of [ENC_KEY, `${ENC_KEY}-second-deployment`]) {
-      const deps = createMockAuthDeps({
-        config: { twoFactor: { encryptionKey } },
-        user: { findById: vi.fn().mockResolvedValue(user) },
-        backupCode: createMockBackupCodeRepository()
-      });
+    for (let i = 0; i < 5; i++) {
+      const deps = await staleSecretDeps('stale-rebuilt');
       deps.logger = logger;
       await createTwoFactorHandlers(deps).enable.POST(as(await authed(deps, { code: '000000' })));
     }
 
-    expect(logger.error).toHaveBeenCalledTimes(2);
+    expect(logger.error).toHaveBeenCalledTimes(1);
+  });
+
+  it('reports each affected user, so the line count is the population', async () => {
+    const logger = { warn: vi.fn(), error: vi.fn() };
+    for (const userId of ['stale-alice', 'stale-bob', 'stale-carol']) {
+      const deps = await staleSecretDeps(userId);
+      deps.logger = logger;
+      await createTwoFactorHandlers(deps).enable.POST(as(await authed(deps, { code: '000000' })));
+    }
+
+    expect(logger.error).toHaveBeenCalledTimes(3);
   });
 
   it('logs the decryption failure behind the 500', async () => {
-    const user = createMockUser({
-      totpEnabled: false,
-      totpSecret: await encryptSecret(SECRET, ROTATED_KEY)
-    });
-    const deps = createMockAuthDeps({
-      config: { twoFactor: { encryptionKey: ENC_KEY } },
-      user: { findById: vi.fn().mockResolvedValue(user) },
-      backupCode: createMockBackupCodeRepository()
-    });
+    const deps = await staleSecretDeps('stale-named');
     const res = await createTwoFactorHandlers(deps).enable.POST(
       as(await authed(deps, { code: await currentCode() }))
     );
@@ -205,7 +208,7 @@ describe('createTwoFactorHandlers — enable', () => {
     expect((await res.json()).code).toBe('totp_secret_unreadable');
     expect(deps.repos.user.enableTotp).not.toHaveBeenCalled();
     expect(deps.logger.error).toHaveBeenCalledTimes(1);
-    expect(vi.mocked(deps.logger.error).mock.calls[0][0]).toContain('user-1');
+    expect(vi.mocked(deps.logger.error).mock.calls[0][0]).toContain('stale-named');
   });
 });
 

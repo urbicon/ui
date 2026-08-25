@@ -246,11 +246,13 @@ export interface TwoFactorConfig {
    * value weakens the at-rest protection. Required whenever 2FA is wired.
    *
    * **Rotating it invalidates every stored secret, and re-enrolment does not
-   * route around that**: `setup` refuses while `totpEnabled` is set, so an
-   * affected user's only way back in is a backup code (the verify handler keeps
-   * that path open when the secret is unreadable, and logs the failure). Treat
-   * a rotation as an incident with a runbook — see the AUTH.md key-rotation
-   * runbook for `twoFactor.encryptionKey`.
+   * route around that**: `setup` refuses while `totpEnabled` is set. An
+   * affected user gets back in with a backup code (the verify handler keeps
+   * that path open when the secret is unreadable, and logs the failure) or, if
+   * they enrolled one, with a passkey — passkey logins are not TOTP-gated, so
+   * this key never touches them. Treat a rotation as an incident with a
+   * runbook — see the AUTH.md key-rotation runbook for
+   * `twoFactor.encryptionKey`.
    */
   encryptionKey: string;
   /**

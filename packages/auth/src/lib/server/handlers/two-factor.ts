@@ -1,6 +1,5 @@
 import type { RequestHandler } from '@sveltejs/kit';
 import { json } from '@sveltejs/kit';
-import type { TwoFactorConfig } from '../../types.js';
 import { sanitizeUser } from '../auth.js';
 import type { AuthDeps } from '../deps.js';
 import { enforceRateLimit, makeRateLimiter } from '../rate-limit.js';
@@ -26,12 +25,16 @@ import { validateDisable2faInput, validateTotpInput } from '../validation.js';
 import { NO_STORE, parseBody, requireSessionUser, verifyCurrentPassword } from './_shared.js';
 import { authError } from './errors.js';
 
-// `twoFactor` configs whose unreadable staged secret has been reported once.
-// `enable` carries no rate limiter (unlike `verify` and `disable`), so an
-// authenticated caller writes into the operator's sink unbounded — measured:
-// 50 POSTs, 50 lines, no 429. The unreadable secret is a property of the key in
-// the config, not of the caller, so one line carries the whole finding.
-const staleKeyReported = new WeakSet<TwoFactorConfig>();
+// Users whose unreadable staged secret has been reported. `enable` carries no
+// rate limiter (unlike `verify` and `disable`), so one authenticated caller
+// would otherwise write into the operator's sink without bound — measured:
+// 50 POSTs, 50 lines, no 429. The key is the **user id**, so the cap holds
+// however the consumer assembles its config: a set keyed on the config object
+// caps nothing for a deployment that rebuilds it per request, and one keyed on
+// `encryptionKey` would park key material in a module global for the life of
+// the process. One line per affected user caps each caller at one and leaves
+// the line count equal to the number of users the rotation reached.
+const staleKeyReported = new Set<string>();
 
 /**
  * The TOTP two-factor route group — one bundled factory (the package's
@@ -143,10 +146,10 @@ function enableHandler<R extends string>(deps: AuthDeps<R>): { POST: RequestHand
         // *returns* a Response instead of throwing `error()`, so SvelteKit's
         // `handleError` never fires and no Sentry event, log line or stack
         // trace exists apart from this call.
-        if (!staleKeyReported.has(config.twoFactor)) {
-          staleKeyReported.add(config.twoFactor);
+        if (!staleKeyReported.has(user.id)) {
+          staleKeyReported.add(user.id);
           deps.logger.error(
-            `[auth] 2fa-enable: the staged TOTP secret could not be decrypted (user ${user.id}) — twoFactor.encryptionKey does not match the key it was staged with. Further occurrences on this config are not logged.`
+            `[auth] 2fa-enable: the staged TOTP secret could not be decrypted (user ${user.id}) — twoFactor.encryptionKey does not match the key it was staged with. Further attempts by this user are not logged.`
           );
         }
         return authError('totp_secret_unreadable', 500, { headers: NO_STORE });
@@ -257,8 +260,8 @@ function verifyHandler<R extends string>(deps: AuthDeps<R>): { POST: RequestHand
       // Report every occurrence here, and do not end the request. Per-occurrence
       // is bounded on this endpoint — it is rate-limited by default and sits
       // behind a valid signed pending-2FA cookie, so a caller reaches at most
-      // 10 lines of 235 B per IP per 15 min before the 429 (measured against
-      // the limiter `createAuthDeps` injects). And it must not end the request:
+      // 10 lines per IP per 15 min before the 429 (measured against the limiter
+      // `createAuthDeps` injects). And it must not end the request:
       // a backup code is hashed on its own row and needs no TOTP secret, so an
       // unreadable secret is exactly when the recovery path has to stay open.
       const secret = await decryptSecret(user.totpSecret, config.twoFactor.encryptionKey);
