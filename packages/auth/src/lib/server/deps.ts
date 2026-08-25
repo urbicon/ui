@@ -46,7 +46,18 @@ export interface AuthDeps<R extends string = string> {
 // Brute-force defaults applied when a consumer configures neither rate-limiting
 // nor lockout — secure-by-default rather than silently unprotected.
 const DEFAULT_LOGIN_RATE_LIMIT: RateLimitConfig = { windowMs: 15 * 60_000, max: 5 };
-const DEFAULT_LOCKOUT: LockoutConfig = { maxAttempts: 5, durationMinutes: 15 };
+/**
+ * One hour. Exported because `createLoginHandler` needs the same number for a
+ * lockout the consumer configured *partially* (`{ maxAttempts: 3 }`), which
+ * never passes through `DEFAULT_LOCKOUT` — two copies would let the injected
+ * default and the effective one disagree.
+ */
+export const DEFAULT_DECAY_MINUTES = 60;
+const DEFAULT_LOCKOUT: LockoutConfig = {
+  maxAttempts: 5,
+  durationMinutes: 15,
+  decayMinutes: DEFAULT_DECAY_MINUTES
+};
 // Strict default for the 2FA verify step: a 6-digit code is only 10^6
 // combinations, so the second factor is worthless without a tight limiter.
 // 10 / 15 min tolerates a few typos while making online brute force hopeless.

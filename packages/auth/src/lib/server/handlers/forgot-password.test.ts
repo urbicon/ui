@@ -80,9 +80,21 @@ describe('createForgotPasswordHandler', () => {
     expect(expires.getTime() - Date.now()).toBeLessThanOrEqual(ms);
   });
 
-  it('rejects a malformed tokenTtl at wiring time, not inside the detached task', () => {
-    const deps = createMockAuthDeps({ config: { tokenTtl: { passwordReset: '1 hour' } } });
-    expect(() => createForgotPasswordHandler(deps)).toThrow(/Invalid duration format/);
+  it.each([
+    { label: 'a malformed duration', value: '1 hour', message: /Invalid duration format/ },
+    // Both of these parse. `'0h'` mails a link that is expired in the same
+    // millisecond, and a window past the Date range stores an `Invalid Date`,
+    // whose expiry no claim can compare against — the null-shaped hole that
+    // makes a token immortal (see the adapter contract).
+    { label: 'a zero window', value: '0h', message: /must name a window a token can live in/ },
+    {
+      label: 'a window beyond the Date range',
+      value: '999999999d',
+      message: /must name a window a token can live in/
+    }
+  ])('rejects $label at wiring time, not inside the detached task', ({ value, message }) => {
+    const deps = createMockAuthDeps({ config: { tokenTtl: { passwordReset: value } } });
+    expect(() => createForgotPasswordHandler(deps)).toThrow(message);
   });
 
   it('threads config.email.from into the reset email (Issue #17)', async () => {

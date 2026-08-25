@@ -1,5 +1,6 @@
 import type { RequestEvent } from '@sveltejs/kit';
 import { afterEach, describe, expect, it, vi } from 'vitest';
+import type { LockoutConfig } from '../../types.js';
 import {
   createInMemoryRefreshTokenRepository,
   createInMemoryUserRepository
@@ -462,17 +463,24 @@ describe('createLoginHandler — decay against the in-memory adapter', () => {
     vi.useRealTimers();
   });
 
-  async function seed() {
+  // A low work factor keeps the multi-attempt simulations below in the
+  // millisecond range. Nothing here asserts anything about hashing cost, and
+  // verification reads the iteration count from the stored hash.
+  const FAST_PASSWORD = { pbkdf2Iterations: 1000 };
+  const DEFAULT_POLICY: LockoutConfig = { maxAttempts: 5, durationMinutes: 15 };
+
+  async function seed(lockout: LockoutConfig | null = DEFAULT_POLICY) {
     const user = createInMemoryUserRepository();
     await user.create({
       email: 'test@test.com',
       name: 'Aya',
-      passwordHash: await hashPassword('correct'),
+      passwordHash: await hashPassword('correct', FAST_PASSWORD),
       role: 'admin'
     });
     const deps = createMockDeps();
     deps.repos.user = user;
-    deps.config.lockout = { maxAttempts: 5, durationMinutes: 15 };
+    deps.config.password = FAST_PASSWORD;
+    deps.config.lockout = lockout;
     const id = (await user.findByEmail('test@test.com'))!.id;
     return { user, deps, id };
   }
@@ -506,5 +514,160 @@ describe('createLoginHandler — decay against the in-memory adapter', () => {
     expect(after.lockedUntil).not.toBeNull();
     // …and the next request is refused before any verify runs.
     expect((await wrongLogin(deps)).status).toBe(423);
+  });
+
+  // A decay window of zero reads as "every attempt is old enough", which resets
+  // the counter before every increment and switches the lockout off — the exact
+  // opposite of what an operator writing `decayMinutes: 0` means. The window is
+  // the lockout knob with the largest swing, so it is refused where it is set.
+  describe('decayMinutes validation', () => {
+    it.each([
+      { label: '0', decayMinutes: 0 },
+      { label: '-5', decayMinutes: -5 },
+      { label: 'NaN', decayMinutes: Number.NaN },
+      { label: 'Infinity', decayMinutes: Number.POSITIVE_INFINITY }
+    ])('refuses $label at wiring time rather than at 3am', async ({ decayMinutes }) => {
+      const { deps } = await seed({ ...DEFAULT_POLICY, decayMinutes });
+      expect(() => createLoginHandler(deps)).toThrow(
+        /decayMinutes must be a positive finite number/
+      );
+    });
+
+    // The control on the other side of that guard: every window it does admit
+    // still locks the account on the fifth consecutive failure, and the counter
+    // stops there rather than running on.
+    it.each([
+      { label: 'an unset window (the 60-minute default)', decayMinutes: undefined },
+      { label: 'a 60-minute window', decayMinutes: 60 },
+      { label: 'a 15-minute window', decayMinutes: 15 },
+      { label: 'a 1-minute window', decayMinutes: 1 }
+    ])('$label still locks on the fifth consecutive failure', async ({ decayMinutes }) => {
+      const { user, deps, id } = await seed({ ...DEFAULT_POLICY, decayMinutes });
+      const handler = createLoginHandler(deps);
+      let lockedAtAttempt: number | null = null;
+      for (let i = 1; i <= 30; i++) {
+        const res = await handler.POST(
+          mockRequestEvent({
+            email: 'test@test.com',
+            password: 'wrong'
+          }) as unknown as RequestEvent
+        );
+        if (res.status === 423 && lockedAtAttempt === null) lockedAtAttempt = i;
+      }
+      expect(lockedAtAttempt).toBe(6);
+      expect((await user.getFailedLoginAttempts(id)).count).toBe(5);
+    });
+  });
+
+  // Where the decay sits relative to the PBKDF2 verify decides whether a burst
+  // against a stale counter is counted or swallowed: each request's reset must
+  // land before its own increment. With the reset in the failure branch instead,
+  // every request wipes what the previous ones recorded — measured as 1 counted
+  // failure out of 12, and an account left unlocked.
+  it('counts every failure of a 12-fold burst against a stale counter', async () => {
+    const { user, deps, id } = await seed();
+    for (let i = 0; i < 4; i++) await user.recordFailedLogin(id, deps.config.lockout ?? undefined);
+
+    vi.useFakeTimers();
+    vi.setSystemTime(Date.now() + 61 * 60_000);
+    const handler = createLoginHandler(deps);
+    const responses = await Promise.all(
+      Array.from({ length: 12 }, () =>
+        handler.POST(
+          mockRequestEvent({ email: 'test@test.com', password: 'wrong' }) as unknown as RequestEvent
+        )
+      )
+    );
+
+    // The burst itself is not what the lockout bounds — it bounds what comes
+    // after — so every one of the twelve gets its password checked.
+    expect(responses.every((r) => r.status === 401)).toBe(true);
+    const after = await user.getFailedLoginAttempts(id);
+    expect(after.count).toBe(12);
+    expect(after.lockedUntil).not.toBeNull();
+  });
+});
+
+// The window is also the budget an attacker gets for waiting, and that number is
+// the reason the default is not `durationMinutes`. Simulated against the real
+// handler + adapter on a 12-hour clock: a strategy is a loop, not a formula, and
+// only attempts that reached the password check (401) count as guesses.
+describe('createLoginHandler — sustained guess rate per decay window', () => {
+  afterEach(() => {
+    vi.useRealTimers();
+  });
+
+  const FAST_PASSWORD = { pbkdf2Iterations: 1000 };
+  const HOURS = 12;
+
+  async function guessesPerHour(
+    decayMinutes: number,
+    strategy: 'relentless' | { waitMinutes: number }
+  ) {
+    const user = createInMemoryUserRepository();
+    await user.create({
+      email: 'test@test.com',
+      name: 'Aya',
+      passwordHash: await hashPassword('correct', FAST_PASSWORD),
+      role: 'admin'
+    });
+    const deps = createMockDeps();
+    deps.repos.user = user;
+    deps.config.password = FAST_PASSWORD;
+    deps.config.lockout = { maxAttempts: 5, durationMinutes: 15, decayMinutes };
+    const handler = createLoginHandler(deps);
+
+    vi.useFakeTimers();
+    const end = Date.now() + HOURS * 3_600_000;
+    let guesses = 0;
+    const attempt = async () => {
+      const res = await handler.POST(
+        mockRequestEvent({ email: 'test@test.com', password: 'wrong' }) as unknown as RequestEvent
+      );
+      if (res.status !== 401) return false; // 423: refused before the verify
+      guesses++;
+      return true;
+    };
+
+    if (strategy === 'relentless') {
+      while (Date.now() < end) {
+        await attempt();
+        vi.setSystemTime(Date.now() + 60_000);
+      }
+    } else {
+      while (Date.now() < end) {
+        vi.setSystemTime(Date.now() + strategy.waitMinutes * 60_000);
+        let burst = 0;
+        while (await attempt()) {
+          // A burst that is never refused would mean the lockout stopped
+          // working; fail loudly instead of looping forever.
+          if (++burst > 5 * HOURS) throw new Error('the lockout never refused a burst');
+        }
+      }
+    }
+    vi.useRealTimers();
+    return guesses / HOURS;
+  }
+
+  // A year-long window is "no decay" in everything but name: it is the pre-decay
+  // behaviour, and the baseline the other two are measured against.
+  const NO_DECAY = 60 * 24 * 365;
+
+  it('without decay, the counter stuck at the threshold allows 4.33 guesses/h', async () => {
+    expect(await guessesPerHour(NO_DECAY, 'relentless')).toBeCloseTo(4.333, 2);
+    // Waiting buys nothing when nothing expires — it only wastes the attacker's
+    // clock, which is why the pre-decay ceiling is the relentless number.
+    expect(await guessesPerHour(NO_DECAY, { waitMinutes: 60 })).toBeCloseTo(1.333, 2);
+  });
+
+  it('a 60-minute window raises the ceiling to 5 guesses/h', async () => {
+    expect(await guessesPerHour(60, { waitMinutes: 60 })).toBeCloseTo(5, 5);
+    // Not by making the relentless strategy better — that one never waits long
+    // enough to decay anything.
+    expect(await guessesPerHour(60, 'relentless')).toBeCloseTo(4.333, 2);
+  });
+
+  it('a window equal to durationMinutes quadruples it to 20 guesses/h', async () => {
+    expect(await guessesPerHour(15, { waitMinutes: 15 })).toBeCloseTo(20, 5);
   });
 });

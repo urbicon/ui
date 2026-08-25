@@ -2,7 +2,7 @@ import type { RequestHandler } from '@sveltejs/kit';
 import { json } from '@sveltejs/kit';
 import type { LockoutConfig } from '../../types.js';
 import { sanitizeUser } from '../auth.js';
-import type { AuthDeps } from '../deps.js';
+import { type AuthDeps, DEFAULT_DECAY_MINUTES } from '../deps.js';
 import { hashPassword, verifyPasswordWithMigration } from '../password.js';
 import { enforceRateLimit, makeRateLimiter } from '../rate-limit.js';
 import { establishSession, resolveSessionMeta } from '../session.js';
@@ -15,9 +15,6 @@ import { authError } from './errors.js';
 // equalization. Its value is irrelevant — the verify result is always
 // discarded — it just needs to be valid input to `hashPassword`.
 const DUMMY_VERIFY_PASSWORD = 'urbicon-auth-timing-equalization-dummy';
-
-/** One hour. See {@link LockoutConfig.decayMinutes} for why not `durationMinutes`. */
-const DEFAULT_DECAY_MINUTES = 60;
 
 /**
  * Whether the failed-login count has gone stale — its last failure is at least
@@ -39,6 +36,23 @@ function attemptsDecayed(lastFailedAt: Date | null, lockout: LockoutConfig, now:
 
 export function createLoginHandler<R extends string>(deps: AuthDeps<R>): { POST: RequestHandler } {
   const rateLimiter = makeRateLimiter(deps.config.rateLimit?.login);
+
+  // A decay window of zero fails OPEN, and completely: `now - lastFailedAt >= 0`
+  // holds for every stored timestamp, so every attempt resets the counter before
+  // it is incremented and the account never locks (measured: 30 wrong passwords
+  // in a row, no lock, counter back at 1). `0` is also exactly what an operator
+  // writes to mean "no decay", so accepting it silently would turn an attempt to
+  // tighten the policy into switching the lockout off. Refuse it at wiring time,
+  // the way `invitationTtlMs` refuses a non-positive TTL: "no decay" is not a
+  // supported configuration, and running without a lockout is `lockout: null`.
+  const decayMinutes = deps.config.lockout?.decayMinutes;
+  if (decayMinutes !== undefined && (!Number.isFinite(decayMinutes) || decayMinutes <= 0)) {
+    throw new Error(
+      `[auth] lockout.decayMinutes must be a positive finite number of minutes, got ${decayMinutes}. ` +
+        'A zero, negative or non-finite window resets the failed-login counter on every attempt, ' +
+        'which disables the lockout entirely. To run without a lockout, set config.lockout to null.'
+    );
+  }
 
   // Lazily built once per handler: a PBKDF2 hash at the configured work factor
   // that a "user not found" request verifies against, so a missing account
@@ -96,14 +110,26 @@ export function createLoginHandler<R extends string>(deps: AuthDeps<R>): { POST:
         // so `maxAttempts` typos spread over months no longer lock the account
         // (the counter otherwise falls only on a successful sign-in).
         //
-        // Two orderings are load-bearing. AFTER the lock check, because
+        // Both orderings are load-bearing. AFTER the lock check, because
         // `resetFailedLogins` clears `lockedUntil` too and would end a live lock
         // early (reachable whenever `decayMinutes < durationMinutes`). BEFORE
-        // the verify, so a burst of concurrent requests that all read the same
-        // stale count does its resetting one store round-trip apart while its
-        // increments land a PBKDF2 later; what can still be lost is an increment
-        // already in flight when the first reset lands, and the burst cannot
-        // renew itself — a zeroed count no longer qualifies below.
+        // the verify, because a request's own reset must precede its own
+        // increment: measured over a 12-fold burst on a stale counter, 12
+        // failures land as 12 here and as 1 — with the account left unlocked —
+        // once the reset sits in the failure branch below.
+        //
+        // What this does not do is make the reset safe under concurrency. It is
+        // an unconditional write derived from a read that can be arbitrarily old
+        // by the time it lands: a reset delayed past other requests' writes
+        // erases their increments AND their `lockedUntil` (measured: one held
+        // reset wiped five counted failures and a live lock), which is the only
+        // path where failing the password check clears a lock. Closing it needs
+        // a conditional write — `… WHERE lastFailedLogin < cutoff` — i.e. a new
+        // method every adapter author has to implement. Not paid here: the
+        // lockout does not bound a simultaneous burst in the first place (every
+        // request of one passes the lock check before any of them is counted,
+        // pinned below at twelve), so what the race buys is one more burst
+        // window, not unbounded guessing.
         if (attempts.count > 0 && attemptsDecayed(attempts.lastFailedAt, lockout, now)) {
           await deps.repos.user.resetFailedLogins(user.id);
         }

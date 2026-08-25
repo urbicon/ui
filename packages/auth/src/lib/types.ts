@@ -157,19 +157,19 @@ export interface LockoutConfig {
    * How long a failed attempt keeps counting, in minutes. @default 60
    *
    * The counter is otherwise cleared only by a successful sign-in, so without a
-   * decay window `maxAttempts` typos spread over any timespan at all add up to a
-   * lockout. An attempt whose failure is older than this window no longer counts
-   * — the login handler restarts the count before recording the next failure.
+   * decay window `maxAttempts` typos spread over any timespan at all add up to
+   * a lockout.
    *
-   * It also bounds an attacker who waits: `maxAttempts` per window, since every
-   * further failure re-dates the count (5/h at the defaults, against the 4/h a
-   * lock cycle alone allows once the counter is stuck at the threshold).
-   * Shortening it towards `durationMinutes` multiplies that rate — 15 minutes
-   * would allow 20/h — and buys a user nothing that an hour of quiet does not.
+   * **Keep it well above `durationMinutes`.** The window doubles as the budget
+   * an attacker gets for waiting: 60 minutes allows 5 guesses/h at the defaults,
+   * 15 allows 20 (simulated in `login.test.ts`; the derivation is in AUTH.md →
+   * Known Limitations). **`0` does not mean "no decay"** — it would reset the
+   * counter on every attempt and switch the lockout off, so any value that is
+   * not a positive finite number throws when the login handler is created. Run
+   * without a lockout via `lockout: null`, not through this field.
    *
    * Read by `createLoginHandler`, not by the repository: `recordFailedLogin`
-   * receives this config but has no decay duty — the handler resets the counter
-   * through `resetFailedLogins` before the increment.
+   * receives this config but has no decay duty.
    */
   decayMinutes?: number;
 }

@@ -30,7 +30,13 @@ describe('createAuthDeps security defaults', () => {
   it('applies a safe login rate-limit and lockout when neither is configured', () => {
     const deps = createAuthDeps(baseDeps());
     expect(deps.config.rateLimit?.login).toEqual({ windowMs: 15 * 60_000, max: 5 });
-    expect(deps.config.lockout).toEqual({ maxAttempts: 5, durationMinutes: 15 });
+    // All three fields, including the decay window: what `createAuthDeps` puts
+    // on the config has to be the policy that runs, or inspecting it misleads.
+    expect(deps.config.lockout).toEqual({
+      maxAttempts: 5,
+      durationMinutes: 15,
+      decayMinutes: 60
+    });
     // Defaults are safe, so no warning.
     expect(warn).not.toHaveBeenCalled();
   });
