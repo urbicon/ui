@@ -78,6 +78,19 @@ function event(body: unknown, jar: ReturnType<typeof makeCookieJar>): RequestEve
   } as unknown as RequestEvent;
 }
 
+const storedCredential = {
+  credentialId: 'cred-abc',
+  userId: 'u-1',
+  publicKey: new Uint8Array(0),
+  publicKeyAlg: -7,
+  counter: 0,
+  transports: [],
+  aaguid: 'a',
+  name: 'k',
+  createdAt: new Date(),
+  lastUsedAt: null
+};
+
 const credentialBody = {
   credential: {
     id: 'cred-abc',
@@ -119,6 +132,43 @@ describe('passkey login hooks (R10)', () => {
     expect(deps.hooks.onLoginFailed).not.toHaveBeenCalled();
   });
 
+  it('keeps an established passkey session a 200 when the onLoginSuccess hook throws', async () => {
+    const deps = makeDeps();
+    deps.hooks.onLoginSuccess.mockRejectedValue(new Error('consumer hook exploded'));
+    vi.mocked(deps.repos.passkey.findByCredentialId).mockResolvedValue(storedCredential);
+    vi.mocked(deps.repos.user.findById).mockResolvedValue(createMockUser({ id: 'u-1' }));
+    vi.mocked(verifyAssertion).mockResolvedValue({ credentialId: 'cred-abc', newCounter: 1 });
+
+    const res = await passkeyHandlers(deps).authenticationVerify.POST(
+      event(credentialBody, makeCookieJar())
+    );
+
+    // The session cookie is already set and the counter already advanced.
+    expect(res.status).toBe(200);
+    expect(deps.logger.error).toHaveBeenCalledWith(
+      expect.stringContaining('onLoginSuccess'),
+      expect.any(Error)
+    );
+  });
+
+  it('does not report a throwing onLoginSuccess as a rejected assertion', async () => {
+    const deps = makeDeps();
+    // The hook call sits inside the handler's WebAuthnError catch, so an
+    // unguarded hook of this error class turns a completed login into a
+    // `passkey_verification_failed` 400 plus a bogus onLoginFailed audit entry.
+    deps.hooks.onLoginSuccess.mockRejectedValue(new WebAuthnError('consumer hook exploded'));
+    vi.mocked(deps.repos.passkey.findByCredentialId).mockResolvedValue(storedCredential);
+    vi.mocked(deps.repos.user.findById).mockResolvedValue(createMockUser({ id: 'u-1' }));
+    vi.mocked(verifyAssertion).mockResolvedValue({ credentialId: 'cred-abc', newCounter: 1 });
+
+    const res = await passkeyHandlers(deps).authenticationVerify.POST(
+      event(credentialBody, makeCookieJar())
+    );
+
+    expect(res.status).toBe(200);
+    expect(deps.hooks.onLoginFailed).not.toHaveBeenCalled();
+  });
+
   it("fires onLoginFailed('', 'invalid_assertion') when the assertion is rejected", async () => {
     const deps = makeDeps();
     vi.mocked(deps.repos.passkey.findByCredentialId).mockResolvedValue({
@@ -142,6 +192,45 @@ describe('passkey login hooks (R10)', () => {
     expect(res.status).toBe(400);
     expect(deps.hooks.onLoginFailed).toHaveBeenCalledWith('', 'invalid_assertion');
     expect(deps.hooks.onLoginSuccess).not.toHaveBeenCalled();
+  });
+
+  it('names the credential owner when the onLoginFailed hook throws on a path that resolved one', async () => {
+    const deps = makeDeps();
+    deps.hooks.onLoginFailed.mockRejectedValue(new Error('audit sink down'));
+    vi.mocked(deps.repos.passkey.findByCredentialId).mockResolvedValue(storedCredential);
+    // user_not_found: findById just missed stored.userId, so that id is exactly
+    // what an operator needs from the log line.
+    vi.mocked(deps.repos.user.findById).mockResolvedValue(null);
+    vi.mocked(verifyAssertion).mockResolvedValue({ credentialId: 'cred-abc', newCounter: 1 });
+
+    const res = await passkeyHandlers(deps).authenticationVerify.POST(
+      event(credentialBody, makeCookieJar())
+    );
+
+    expect(res.status).toBe(400);
+    expect(deps.logger.error).toHaveBeenCalledWith(
+      expect.stringContaining('u-1'),
+      expect.any(Error)
+    );
+  });
+
+  it('still answers 400 when the onLoginFailed hook throws on a rejected assertion', async () => {
+    const deps = makeDeps();
+    // The hook fires from inside the handler's WebAuthnError catch, so an
+    // unguarded throw escapes as a 500 instead of the ceremony's own 400.
+    deps.hooks.onLoginFailed.mockRejectedValue(new Error('audit sink down'));
+    vi.mocked(deps.repos.passkey.findByCredentialId).mockResolvedValue(storedCredential);
+    vi.mocked(verifyAssertion).mockRejectedValue(new WebAuthnError('Signature mismatch'));
+
+    const res = await passkeyHandlers(deps).authenticationVerify.POST(
+      event(credentialBody, makeCookieJar())
+    );
+
+    expect(res.status).toBe(400);
+    expect(deps.logger.error).toHaveBeenCalledWith(
+      expect.stringContaining('onLoginFailed'),
+      expect.any(Error)
+    );
   });
 
   it("fires onLoginFailed('', 'unknown_credential') for an unknown credential", async () => {

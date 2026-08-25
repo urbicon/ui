@@ -41,7 +41,7 @@
     )
   );
 
-  const summaryStyles = $derived(summaryRowVariants({ variant: 'highlighted', size }));
+  const summaryStyles = $derived(summaryRowVariants({ size }));
 </script>
 
 {#if hasSummaryCell}

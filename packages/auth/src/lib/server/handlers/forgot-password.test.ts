@@ -169,6 +169,33 @@ describe('createForgotPasswordHandler', () => {
     expect(deps.logger.error).toHaveBeenCalled();
   });
 
+  it('logs a throwing onPasswordResetFailed instead of leaving an unhandled rejection', async () => {
+    const deps = createMockAuthDeps({
+      config: {
+        hooks: {
+          onPasswordResetFailed: vi.fn().mockRejectedValue(new Error('consumer hook exploded'))
+        }
+      },
+      user: {
+        findByEmail: vi.fn().mockResolvedValue(createMockUser({ id: 'u1', email: 'aya@test.com' }))
+      },
+      email: { send: vi.fn().mockRejectedValue(new Error('smtp down')) }
+    });
+
+    expect(
+      (await createForgotPasswordHandler(deps).POST(event({ email: 'aya@test.com' }))).status
+    ).toBe(200);
+
+    // The hook runs detached from the response, so an uncaught throw would be
+    // an unhandled rejection rather than a status the caller could see.
+    await vi.waitFor(() =>
+      expect(deps.logger.error).toHaveBeenCalledWith(
+        expect.stringContaining('onPasswordResetFailed'),
+        expect.any(Error)
+      )
+    );
+  });
+
   it('returns 429 once the password-reset rate limit is exceeded', async () => {
     const deps = createMockAuthDeps({
       config: { rateLimit: { forgotPassword: { windowMs: 60_000, max: 1 } } },
