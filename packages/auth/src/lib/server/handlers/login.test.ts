@@ -3,7 +3,7 @@ import { afterEach, describe, expect, it, vi } from 'vitest';
 import type { LockoutConfig } from '../../types.js';
 import {
   createInMemoryRefreshTokenRepository,
-  createInMemoryUserRepository
+  createInMemoryRepos
 } from '../adapters/in-memory.js';
 import type { UserRepository } from '../adapters/types.js';
 import type { AuthDeps } from '../deps.js';
@@ -549,7 +549,7 @@ describe('createLoginHandler — decay against the in-memory adapter', () => {
   const DEFAULT_POLICY: LockoutConfig = { maxAttempts: 5, durationMinutes: 15 };
 
   async function seed(lockout: LockoutConfig | null = DEFAULT_POLICY) {
-    const user = createInMemoryUserRepository();
+    const user = createInMemoryRepos().user;
     await user.create({
       email: 'test@test.com',
       name: 'Aya',
@@ -683,7 +683,7 @@ describe('createLoginHandler — sustained guess rate per decay window', () => {
     decayMinutes: number,
     strategy: 'relentless' | { waitMinutes: number }
   ) {
-    const user = createInMemoryUserRepository();
+    const user = createInMemoryRepos().user;
     await user.create({
       email: 'test@test.com',
       name: 'Aya',
