@@ -439,6 +439,36 @@ const CARDS_BELOW_STEPS: Record<CardsBelowStep, { desktopOnly: string; mobileOnl
  */
 export const CARDS_BELOW_VALUES = Object.keys(CARDS_BELOW_STEPS) as CardsBelowStep[];
 
+/**
+ * The box both halves of a step are measured against. Named because it is read
+ * twice — the `container` slot emits it, `LAYOUT_SWITCH_CLASSES` protects it —
+ * and a second copy could drift from the first exactly the way two copies of a
+ * step's halves could.
+ */
+const QUERY_CONTAINER = '@container';
+
+/**
+ * The desktop/card switch in full: the query container plus every step's two
+ * halves. It is one mechanism and only works as a set — without the container
+ * neither `@max-…:hidden` nor `@min-…:hidden` matches anything, so neither
+ * layout hides and the grid and the card list render at once.
+ *
+ * `unstyled` replaces the table's LOOK; these classes decide which markup is
+ * VISIBLE, so `resolveSlotClass` carries them through it. Before that the two
+ * halves survived `unstyled` (they reach the DOM as call-site classes) and the
+ * container did not (it is a slot base) — this list is what puts all three on
+ * one side of that line.
+ *
+ * Derived, not listed: a step added to `CARDS_BELOW_STEPS` joins on its own.
+ */
+export const LAYOUT_SWITCH_CLASSES: readonly string[] = [
+  QUERY_CONTAINER,
+  ...Object.values(CARDS_BELOW_STEPS).flatMap(({ desktopOnly, mobileOnly }) => [
+    desktopOnly,
+    mobileOnly
+  ])
+];
+
 const rawTableContainerVariants = tv({
   slots: {
     // `@container` is what makes the desktop-table/mobile-record switch measure
@@ -460,7 +490,13 @@ const rawTableContainerVariants = tv({
     // `container-type: inline-size` on a `.table-container` class that no
     // element ever carried, so the `@container` helper rules beside it queried
     // nothing. That dead block is gone with this.
-    container: ['@container flex flex-col gap-2 w-full'],
+    //
+    // Only the container survives `unstyled` (`LAYOUT_SWITCH_CLASSES`): it is
+    // the switch's measuring box, not a look. `flex flex-col gap-2 w-full` is a
+    // look and goes — together with every class in this config that leans on
+    // that flex context (`contained`'s `shrink-0` / `flex-auto` / `min-h-0`
+    // below), so `unstyled` cannot leave a flex child without its flex parent.
+    container: [QUERY_CONTAINER, 'flex flex-col gap-2 w-full'],
 
     // ── The layout switch ────────────────────────────────────────────────────
     //

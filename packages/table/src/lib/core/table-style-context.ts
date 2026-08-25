@@ -1,4 +1,5 @@
 import { createOptionalContext } from '@urbicon-ui/blocks';
+import { LAYOUT_SWITCH_CLASSES } from '../variants/table.variants';
 
 /**
  * Per-slot class overrides for the Table component.
@@ -83,34 +84,59 @@ export function getTableStyleConfig(): TableStyleConfig {
 }
 
 /**
+ * The classes a slot may emit that `unstyled` must not take away — see
+ * {@link LAYOUT_SWITCH_CLASSES} for what qualifies and why.
+ */
+const STRUCTURAL = new Set<string>(LAYOUT_SWITCH_CLASSES);
+
+/**
  * Resolves classes for a slot, respecting `unstyled` mode.
  *
- * Routes the caller's `slotClass` + `extra` **through** the `tv()` slot
+ * Routes the caller's `slotClass` + `structural` **through** the `tv()` slot
  * function (via its `class` option) instead of string-concatenating them onto
  * the already-resolved variant string. This puts the overrides inside the tv()
  * conflict fold, so a `slotClasses` (or `className`) utility that shares a
  * Tailwind bucket with a base/variant class **wins** instead of merely
  * co-existing and losing to stylesheet order — e.g. `slotClasses={{ table:
  * 'w-auto' }}` now beats the slot's own `w-full` (previously both rendered and
- * an `!` prefix was needed). Both overrides (`slotClass` and `extra`) win
+ * an `!` prefix was needed). Both overrides (`slotClass` and `structural`) win
  * over base/variant classes in the fold; between the two overrides themselves
  * nothing is stripped — they share one call-site source, so a direct conflict
  * there still resolves by stylesheet order, exactly as before.
  *
+ * ## What `unstyled` takes away
+ *
+ * The table's **look**, and only that. Two kinds of class stay:
+ *
+ *  - what the caller passed (`slotClass`, `structural`) — never ours to strip;
+ *  - the structural classes the config itself emits, which today are exactly
+ *    the desktop/card switch ({@link LAYOUT_SWITCH_CLASSES}).
+ *
+ * The second is why this branch is not the plain drop it used to be. The
+ * switch's two `hidden` halves arrive as `structural` and always survived,
+ * while the query container they are measured against is a base class of the
+ * `container` slot — dropping that one alone left both halves unable to match
+ * anything, so the grid and the card list rendered at the same time.
+ *
  * @param slotFn - The `tv()` slot **function** (pass `styles.row`, NOT `styles.row()`)
  * @param slotClass - User-provided class for this slot from `slotClasses`
- * @param unstyled - Whether to strip variant classes (return only the overrides)
- * @param extra - Additional classes (e.g. from `className` prop or structural utilities)
+ * @param unstyled - Whether to strip the slot's look (see above)
+ * @param structural - Call-site classes that are not this component's look:
+ *   positioning and layout utilities, the layout switch's halves, and the
+ *   consumer's own `class` prop. Kept verbatim under `unstyled`.
  */
 export function resolveSlotClass(
   slotFn: (opts?: { class?: (string | undefined)[] }) => string,
   slotClass: string | undefined,
   unstyled: boolean,
-  extra?: string
+  structural?: string
 ): string {
-  const classes = [slotClass, extra];
+  const overrides = [slotClass, structural];
   if (unstyled) {
-    return classes.filter(Boolean).join(' ');
+    const kept = slotFn()
+      .split(/\s+/)
+      .filter((cls) => STRUCTURAL.has(cls));
+    return [...kept, ...overrides].filter(Boolean).join(' ');
   }
-  return slotFn({ class: classes });
+  return slotFn({ class: overrides });
 }
