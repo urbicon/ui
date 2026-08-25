@@ -183,26 +183,34 @@
   // because the container's height is pinned by `virtualHeight` so the observer
   // never fires. The list then strode five rows for every row it drew.
   //
-  // `offsetHeight`, not `getBoundingClientRect()`: an interactive row carries
-  // `active:scale-[0.995]`, and a rect measures the painted box, so measuring
-  // mid-press would shrink every row in the list by half a percent. The layout
-  // box ignores the transform.
+  // What the stride has to cover, and why none of the three obvious readings
+  // does it alone.
   //
-  // That it is an **integer** is the second reason, and the load-bearing one.
-  // Rows are often fractional — 52.5px with a selection checkbox, 34.5px at
-  // `size="sm"` — and the exact height looks like the better stride right up to
-  // the end of the list. Rows are painted on whole device pixels, so they
-  // accumulate past a spacer sized from the exact value: measured on the
-  // 2000-row interactive fixture (2026-08-25), an exact 52.5 stride gives a
-  // 105 000px spacer that the painted rows overrun to 105 006, so `End` lands
-  // 6px short of a bottom that has moved beneath it. Rounding **up** keeps the
-  // spacer at least as tall as what it holds. The price is slack in the
-  // harmless direction — at `size="sm"` a 35px stride over a 34.5px row leaves
-  // about a pixel at the very bottom — and `getComputedStyle().height` would
-  // trade that pixel for an unreachable last row.
+  // The spacer is `count × stride`, so a stride below the distance from one row
+  // to the next puts the end of the list below the bottom of the scroller,
+  // where no scroll position can reach it. That distance is not the first row's
+  // height. Under `border-collapse: collapse` neighbours share their 1px
+  // `border-b`, so an interior row's border box is 0.5px taller than the first
+  // one: the interactive fixture measures `[52.5, 53 × 11, 52.5]` — identical
+  // at device pixel ratio 1, 2 and 3, so this is the collapsed border and not
+  // any kind of pixel snapping. `rows[0]` is structurally the one row that
+  // never shows the interior pitch, which is why the probe takes `rows[1]`.
   //
-  // Both directions are covered by the geometry spec in `e2e/table-core.spec.ts`,
-  // which runs over a fractional fixture as well as the integer one.
+  // On top of that the value is rounded **up**, because `offsetHeight` rounds to
+  // nearest and half of a fractional pitch therefore rounds down into exactly
+  // the shortfall above. Measured over root font sizes 13–18px (2026-08-25),
+  // the previous `rows[0].offsetHeight` left the last row unreachable at five
+  // of six — worst case 14.75px below the scroller — while it happened to be
+  // correct at the default 16px. With the interior row and the ceiling every
+  // one of them is non-negative.
+  //
+  // And still `offsetHeight` as the floor of the two: an interactive row carries
+  // `active:scale-[0.995]`, and a rect measures the painted box, so a
+  // measurement taken mid-press would shrink every row in the list by half a
+  // percent. `Math.max` keeps the layout box when that happens.
+  //
+  // The geometry spec in `e2e/table-core.spec.ts` runs over a fractional fixture
+  // as well as the integer one; before it did, none of this was visible.
   $effect(() => {
     // The inputs the observer below cannot see. `size` and a consumer's own row
     // class change the height without changing the container's.
@@ -221,16 +229,20 @@
     }
 
     const measure = () => {
-      const row = scrollContainerEl?.querySelector<HTMLElement>('tbody tr[data-row-index]');
+      const rows = scrollContainerEl?.querySelectorAll<HTMLElement>('tbody tr[data-row-index]');
+      // The second rendered row, per the note above; the first is the fallback
+      // for a window that holds only one.
+      const row = rows?.[1] ?? rows?.[0];
       // A row with no height is a row that has not been laid out yet (or a test
       // environment that lays nothing out) — keeping the previous value leaves
       // the derived starting height in place rather than dividing by zero.
       if (!row || row.offsetHeight === 0) return;
+      const stride = Math.max(row.offsetHeight, Math.ceil(row.getBoundingClientRect().height));
       // `untrack`: this reads the state it writes, purely to avoid a redundant
       // assignment. Tracked, it would make the effect its own dependency, so
       // every height change would tear the observer down and build a new one.
-      if (row.offsetHeight !== untrack(() => measuredRowHeight)) {
-        measuredRowHeight = row.offsetHeight;
+      if (stride !== untrack(() => measuredRowHeight)) {
+        measuredRowHeight = stride;
       }
     };
 

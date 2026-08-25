@@ -167,15 +167,16 @@ test.describe('Table core flows', () => {
           minPitch: pitches.length ? Math.min(...pitches) : 0,
           maxPitch: pitches.length ? Math.max(...pitches) : 0,
           rowHeight: rows[0]?.getBoundingClientRect().height ?? 0,
-          // The stride the virtualizer itself used, which is `offsetHeight` — an
-          // integer, and deliberately so: a spacer sized from the exact
-          // fractional height gets overrun by the rows it holds, because they
-          // paint on whole device pixels (the measurement is in `TableDesktop`).
-          // The spacer is a multiple of THAT, so it has to be compared against
-          // that number and not against the fractional rect height: 2000 × a
-          // 0.4px difference is 800px of false alarm.
-          strideUsed: rows[0]?.offsetHeight ?? 0,
-          devicePixel: 1 / window.devicePixelRatio,
+          // The stride the virtualizer used — read the way it computes it, off
+          // the interior row and rounded up (see `TableDesktop`). Not the first
+          // row: `border-collapse` makes it 0.5px shorter than its neighbours,
+          // which is the whole reason this reads index 1. The spacer is a
+          // multiple of the stride, so it has to be compared against that
+          // number and not against a fractional rect height: 2000 × a 0.4px
+          // difference is 800px of false alarm.
+          strideUsed: rows[1]
+            ? Math.max(rows[1].offsetHeight, Math.ceil(rows[1].getBoundingClientRect().height))
+            : 0,
           spacerHeight: spacer.getBoundingClientRect().height
         };
       });
@@ -185,27 +186,31 @@ test.describe('Table core flows', () => {
       expect(geometry.rowCount).toBeGreaterThan(1);
       expect(geometry.pitchCount).toBeGreaterThan(0);
       // One pitch for every pair of rows, and it is the row's own height: no row
-      // overlaps its neighbour and none leaves a gap. The tolerance is one
-      // device pixel rather than a constant, because a fractional row height
-      // cannot land on a pixel boundary every time — at `size="sm"` (34.5px)
-      // neighbouring pitches measure 34.5 and 35, which is the painter rounding
-      // and not a gap.
-      expect(geometry.maxPitch - geometry.minPitch).toBeLessThanOrEqual(geometry.devicePixel);
-      expect(Math.abs(geometry.minPitch - geometry.rowHeight)).toBeLessThanOrEqual(
-        geometry.devicePixel
-      );
+      // overlaps its neighbour and none leaves a gap. The spread is allowed to
+      // be half a pixel and no more, because `border-collapse` gives the first
+      // and last rows one unshared border edge each — measured `[52.5, 53 × 11,
+      // 52.5]`, and identical at device pixel ratio 1, 2 and 3, so tying this
+      // to the ratio would only make it fail at 3 while passing junk at 1.
+      expect(geometry.maxPitch - geometry.minPitch).toBeLessThanOrEqual(0.5);
+      expect(Math.abs(geometry.minPitch - geometry.rowHeight)).toBeLessThanOrEqual(0.5);
       // The scroll space is exactly that stride per row — the fixture holds 2000.
       expect(geometry.spacerHeight).toBe(2000 * geometry.strideUsed);
 
       // Scrolled to the very end, the last row ends at the bottom of the
       // viewport. This is the assertion the 208px strip failed.
       //
-      // "Less than one row" rather than exactly zero, and one rule for both
-      // fixtures rather than a stricter one for the integer case: rounding the
-      // stride up is what keeps the spacer taller than its rows, so a fractional
-      // row leaves that rounding as slack at the bottom (about a pixel at `sm`).
-      // What must never come back is a strip a reader would take for empty
-      // space, and the defect this was written for was five rows of it.
+      // Two pixels rather than exactly zero, and one rule for both fixtures
+      // rather than a stricter one for the integer case: rounding the stride up
+      // is what keeps the spacer taller than its rows, so a fractional row
+      // leaves that rounding as slack at the bottom (measured: 0 at `md`, 1 at
+      // `sm` and at the interactive fixture). Two is the smallest bound that
+      // holds all three, and it matters that it is small — "less than one row"
+      // would tolerate a 3px-per-row stride error before saying anything, which
+      // is a 40px strip a reader would take for empty space. The defect this was
+      // written for was 208px, or 5.2 rendered rows.
+      //
+      // Negative is its own failure and a worse one: the last row then paints
+      // below the scroller and no scroll position reaches it.
       const trailingGap = await scroller.evaluate(async (el) => {
         el.scrollTop = el.scrollHeight;
         await new Promise((resolve) => requestAnimationFrame(() => requestAnimationFrame(resolve)));
@@ -215,9 +220,67 @@ test.describe('Table core flows', () => {
       });
 
       expect(trailingGap).toBeGreaterThanOrEqual(0);
-      expect(trailingGap).toBeLessThan(geometry.strideUsed);
+      expect(trailingGap).toBeLessThanOrEqual(2);
     });
   }
+
+  /**
+   * The stride has to cover the interior pitch, and at the default root font
+   * size it does so by accident.
+   *
+   * A row's height is `rem`-derived, so its fractional part moves with the root
+   * font size. At 16px the parts land on .5 and rounding to nearest happens to
+   * go up; at other sizes it goes down, the spacer comes up short, and the last
+   * row paints below a scroller no scroll position can reach. Measured before
+   * the fix: unreachable at five of the six sizes below, worst case 14.75px.
+   *
+   * Every assertion above runs at 16px only, which is why this is its own test
+   * rather than another line in the geometry spec.
+   */
+  test('the stride covers the interior pitch at any root font size', async ({ page }) => {
+    await setupPage(page);
+
+    const readings: string[] = [];
+    for (const rootPx of [13, 14, 15, 16, 17, 18]) {
+      const gaps = await page.evaluate(async (px) => {
+        document.documentElement.style.fontSize = `${px}px`;
+        // The measuring effect re-reads on a resize; give it a frame plus the
+        // observer's turn before scrolling to the end it now describes.
+        await new Promise((resolve) => setTimeout(resolve, 350));
+        const out: Record<string, number> = {};
+        for (const id of ['table-virtual', 'table-virtual-interactive', 'table-virtual-sm']) {
+          const root = document.querySelector(`[data-testid="${id}"]`);
+          if (!root) continue;
+          const scroller = root.querySelector<HTMLElement>(
+            '[data-testid="virtual-scroll-container"]'
+          );
+          if (!scroller) continue;
+          scroller.scrollTop = scroller.scrollHeight;
+          await new Promise((resolve) =>
+            requestAnimationFrame(() => requestAnimationFrame(resolve))
+          );
+          const rows = [...scroller.querySelectorAll<HTMLElement>('tbody tr')];
+          const last = rows[rows.length - 1].getBoundingClientRect();
+          out[id] = Number((scroller.getBoundingClientRect().bottom - last.bottom).toFixed(2));
+        }
+        return out;
+      }, rootPx);
+
+      for (const [id, gap] of Object.entries(gaps)) {
+        readings.push(`${rootPx}px ${id}: ${gap}`);
+        expect(
+          gap,
+          `At a ${rootPx}px root the last row of ${id} sits ${Math.abs(gap)}px below the ` +
+            'scroller, where no scroll position reaches it — the stride is shorter than the ' +
+            `distance between two rows. Readings so far: ${readings.join(' · ')}`
+        ).toBeGreaterThanOrEqual(0);
+      }
+    }
+
+    await page.evaluate(() => {
+      document.documentElement.style.fontSize = '';
+    });
+  });
 
   test('grouping renders headers in groupOrder with rows under their own group', async ({
     page
