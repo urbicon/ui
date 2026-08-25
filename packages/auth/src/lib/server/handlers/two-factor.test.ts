@@ -146,6 +146,48 @@ describe('createTwoFactorHandlers — enable', () => {
     expect(res.status).toBe(400);
   });
 
+  it('reports the unreadable staged secret once per config, not once per attempt', async () => {
+    // `enable` has no rate limiter, so per-occurrence logging would be an
+    // unbounded write into the operator's sink from an authenticated caller.
+    const twoFactor = { encryptionKey: ENC_KEY };
+    const user = createMockUser({
+      totpEnabled: false,
+      totpSecret: await encryptSecret(SECRET, ROTATED_KEY)
+    });
+    const deps = createMockAuthDeps({
+      config: { twoFactor },
+      user: { findById: vi.fn().mockResolvedValue(user) },
+      backupCode: createMockBackupCodeRepository()
+    });
+    const enable = createTwoFactorHandlers(deps).enable;
+
+    for (let i = 0; i < 5; i++) {
+      const res = await enable.POST(as(await authed(deps, { code: '000000' })));
+      expect(res.status).toBe(500);
+    }
+
+    expect(deps.logger.error).toHaveBeenCalledTimes(1);
+  });
+
+  it('reports again for a different twoFactor config', async () => {
+    const user = createMockUser({
+      totpEnabled: false,
+      totpSecret: await encryptSecret(SECRET, ROTATED_KEY)
+    });
+    const logger = { warn: vi.fn(), error: vi.fn() };
+    for (const encryptionKey of [ENC_KEY, `${ENC_KEY}-second-deployment`]) {
+      const deps = createMockAuthDeps({
+        config: { twoFactor: { encryptionKey } },
+        user: { findById: vi.fn().mockResolvedValue(user) },
+        backupCode: createMockBackupCodeRepository()
+      });
+      deps.logger = logger;
+      await createTwoFactorHandlers(deps).enable.POST(as(await authed(deps, { code: '000000' })));
+    }
+
+    expect(logger.error).toHaveBeenCalledTimes(2);
+  });
+
   it('logs the decryption failure behind the 500', async () => {
     const user = createMockUser({
       totpEnabled: false,

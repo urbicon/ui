@@ -38,11 +38,13 @@ export interface WebAuthnConfig {
    * the authenticator data flags. It therefore needs an authenticator that can
    * do UV.
    *
-   * An explicit `false` drops both ceremonies to User Presence alone (UP, a
-   * tap/touch), which leaves a passkey a pure possession factor. A passkey
-   * assertion establishes a session without the TOTP gate (see
-   * `createPasskeyHandlers`), so combined with `config.twoFactor` that opt-out
-   * makes a passkey login a single-factor login for a TOTP-enrolled user —
+   * An explicit `false` drops the **enforcement**, not the ceremony: the
+   * options still ask for `userVerification: 'preferred'`, so an authenticator
+   * that can do UV normally still does it — but one that only proves User
+   * Presence (UP, a tap/touch) is now accepted, which leaves that login a pure
+   * possession factor. A passkey assertion establishes a session without the
+   * TOTP gate, so combined with `config.twoFactor` the opt-out makes a passkey
+   * login a single-factor login for a TOTP-enrolled user;
    * `createPasskeyHandlers` warns about that pairing at wiring time.
    */
   requireUserVerification?: boolean;
@@ -110,11 +112,7 @@ export interface VerifiedAssertion {
   userHandle?: string;
 }
 
-/**
- * Effective UV requirement — only an explicit `false` opts out. The four
- * ceremony sites (two options builders, two flag checks) read this instead of
- * repeating the polarity, so options and verification cannot disagree.
- */
+/** Effective UV requirement — only an explicit `false` opts out. */
 function userVerificationRequired(config: WebAuthnConfig): boolean {
   return config.requireUserVerification !== false;
 }
@@ -281,7 +279,9 @@ export async function verifyRegistration(
     throw new WebAuthnError('User presence flag not set');
   }
 
-  // 6a. Enforce user verification unless the config opted out
+  // 6a. Enforce user verification unless the config opted out. Rejecting here
+  // means a UV-incapable authenticator is refused at enrolment rather than at
+  // every later login.
   if (userVerificationRequired(config) && !(authData.flags & 0x04)) {
     throw new WebAuthnError('User verification required but not performed');
   }
@@ -363,7 +363,10 @@ export async function verifyAssertion(
     throw new WebAuthnError('User presence flag not set');
   }
 
-  // 5a. Enforce user verification unless the config opted out
+  // 5a. Enforce user verification unless the config opted out. This check is
+  // what keeps a passkey login multi-factor: the handler that calls it
+  // establishes the session without the TOTP gate, so a UP-only assertion
+  // accepted here signs a TOTP-enrolled user in on possession alone.
   if (userVerificationRequired(config) && !(authData.flags & 0x04)) {
     throw new WebAuthnError('User verification required but not performed');
   }

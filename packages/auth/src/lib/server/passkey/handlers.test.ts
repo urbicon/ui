@@ -6,6 +6,7 @@ import { setSessionCookie } from '../session.js';
 import { createMockAuthDeps, createMockUser } from '../test-utils.js';
 import { createInMemoryChallengeStore } from './challenge-store.js';
 import { createPasskeyHandlers } from './handlers.js';
+import { buildEs256Assertion } from './test-fixtures.js';
 import type { WebAuthnConfig } from './webauthn.js';
 
 type TestDeps = AuthDeps & {
@@ -109,6 +110,55 @@ describe('createPasskeyHandlers — wiring', () => {
   });
 });
 
+describe('passkey login of a TOTP-enrolled user', () => {
+  // Nothing on this path reads `totpEnabled`: a passkey assertion establishes
+  // the session directly. That absence is what these two tests hold in place —
+  // a gate inserted here, or a lost `establishSession`, is otherwise invisible.
+  async function login(user: ReturnType<typeof createMockUser>) {
+    const deps = makeDeps();
+    const jar = makeCookieJar();
+    const handlers = passkeyHandlers(deps);
+
+    const { options } = await (
+      await handlers.authenticationOptions.POST(event({}, { jar }))
+    ).json();
+    const { credential, publicKey } = await buildEs256Assertion(deps.webauthn, {
+      challenge: options.challenge,
+      credentialId: 'cred-abc',
+      signCount: 5
+    });
+    vi.mocked(deps.repos.passkey.findByCredentialId).mockResolvedValue(
+      mkPasskey({ userId: user.id, publicKey, counter: 0 })
+    );
+    vi.mocked(deps.repos.user.findById).mockResolvedValue(user);
+    vi.mocked(deps.repos.passkey.updateCounter).mockResolvedValue(true);
+
+    const res = await handlers.authenticationVerify.POST(event({ credential }, { jar }));
+    return { res, jar, deps };
+  }
+
+  it('establishes the session directly, with no second factor demanded', async () => {
+    const { res, jar } = await login(
+      createMockUser({ id: 'user-1', totpEnabled: true, totpSecret: 'iv:ct' })
+    );
+
+    expect(res.status).toBe(200);
+    const body = await res.json();
+    // Pins that the fixture really was a TOTP user — a green test on a user
+    // with 2FA off would prove nothing.
+    expect(body.user.totpEnabled).toBe(true);
+    expect(jar.store.get('session')).toBeTruthy();
+    expect([...jar.store.keys()].some((k) => k.includes('urbicon_2fa'))).toBe(false);
+  });
+
+  it('takes the same path for a user without 2FA', async () => {
+    const { res, jar } = await login(createMockUser({ id: 'user-1', totpEnabled: false }));
+
+    expect(res.status).toBe(200);
+    expect(jar.store.get('session')).toBeTruthy();
+  });
+});
+
 describe('createPasskeyHandlers — UV/2FA wiring warning', () => {
   function depsWith(twoFactor: boolean, requireUserVerification?: boolean): TestDeps {
     const base = makeDeps();
@@ -149,6 +199,17 @@ describe('createPasskeyHandlers — UV/2FA wiring warning', () => {
     await handlers.authenticationOptions.POST(event({}));
 
     expect(deps.logger.warn).toHaveBeenCalledTimes(1);
+  });
+
+  it('warns once for each distinct config', () => {
+    const a = depsWith(true, false);
+    const b = depsWith(true, false);
+    b.logger = a.logger;
+
+    passkeyHandlers(a);
+    passkeyHandlers(b);
+
+    expect(a.logger.warn).toHaveBeenCalledTimes(2);
   });
 
   it('stays silent under the UV default', () => {

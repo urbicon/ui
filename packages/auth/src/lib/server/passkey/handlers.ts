@@ -41,10 +41,10 @@ function sharedPasskeyAuthLimiter(config: RateLimitConfig | undefined): RateLimi
   return limiter;
 }
 
-// Configs already warned about the UV-opt-out/2FA pairing. Keyed by the
-// `WebAuthnConfig` identity because the six route modules a consumer mounts may
-// each call `createPasskeyHandlers` with the same config object — the warning
-// describes the config, so it is worth saying once, not six times.
+// One warning per `WebAuthnConfig`: it describes the config, not the call. A
+// consumer who calls this factory from several route modules with one shared
+// config object gets one line; distinct config literals are distinct configs
+// and warn once each.
 const uvTwoFactorWarned = new WeakSet<WebAuthnConfig>();
 
 // Cookie carrying the per-ceremony challenge handle for passkey authentication.
@@ -421,11 +421,6 @@ function authenticationVerifyHandler<R extends string>(
         // a strong, phishing-resistant factor, so a successful assertion
         // establishes the session directly even when `user.totpEnabled` is set.
         // The 2FA gate applies only to the password login path (see login.ts).
-        // User verification is the premise, not a detail —
-        // `webauthn.requireUserVerification` defaults to `true` for that reason,
-        // and the factory warns when the opt-out is combined with
-        // `config.twoFactor`, because a UP-only assertion is possession alone
-        // and this session would then rest on a single factor.
         await establishSession(
           cookies,
           user,

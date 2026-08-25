@@ -195,7 +195,7 @@ live.
 - **Session enrichment** — attach app-specific data (tenant/household id, plan, entitlements) to `locals.user` via `config.hooks.transformUser(user, event)`. It runs in the handle hook on every authenticated request with the sanitized `AuthUser` (never the password hash) and the request event; its return value becomes `locals.user` (type it through your `App.Locals`). `AuthUser` is intentionally fixed and the loaded row carries no custom columns, so load extras here keyed by `user.id` rather than adding a second `handle` that re-resolves the session. A throw fails the request, and whatever you return lands on `locals.user` — keep secrets out of it if `locals.user` is serialized to the client.
 - **Account management (self-service)** — let a signed-in user manage their own account. Five server handlers (`createChangePasswordHandler`, `createChangeEmailHandler`, `createVerifyEmailChangeHandler`, `createUpdateProfileHandler`, `createDeleteAccountHandler`) plus the `<AccountSettings>` component (mount the first four under `/api/auth/account/*`; the verify-email-change route sits behind the link mailed to the new address). Invariants: every mutation except profile is **re-auth gated** (`verifyCurrentPassword`); `change-password` bumps `tokenVersion` + revokes all refresh families, then re-establishes the _current_ device (others log out — a voluntary change isn't a compromise, so the initiating device stays in, unlike `reset-password` which signs out everywhere); `change-email` verifies the **new** address (notice to the old one) and is account-enumeration safe (token+mail decoupled, always `success: true`, collision = no-op); `delete-account` is a hard delete (GDPR erasure) that fires `hooks.onBeforeAccountDelete` with the sanitized user **before** the row is removed (a throw aborts), with the Prisma adapter dropping sent invitations in the same `$transaction`. Config: `rateLimit.{changePassword,changeEmail,deleteAccount}`, hooks `onEmailChangeRequested` / `onEmailChangeFailed` / `onEmailChanged` / `onBeforeAccountDelete` (`onEmailChangeFailed` surfaces the decoupled token/mail failure, like `onPasswordResetFailed`).
 - **Active-session listing** — let a user see and revoke their sessions. **Requires `config.refreshToken` rotation** — a "session" is a refresh-token family, so without rotation there is nothing server-side to list (the endpoint returns `available: false`). One route group — `createSessionsHandlers(deps)` with `list` (GET), `revoke` (POST) and `revokeOthers` (POST) — plus the `<SessionManager>` component. Each session row carries the user-agent (the component parses it to "Browser · OS" with a zero-dep heuristic) and a `createdAt`-based "last active"; the IP is listed only when the consumer opts in via `config.sessions.storeIp` (GDPR, default off). Revokes are **ownership-scoped** — `revokeFamilyForUser` returns 404 for a family that isn't the caller's, so a guessed family id can't sign out another user (IDOR). The session of the current request is flagged `current` (resolved from the request's refresh cookie). Login/register/passkey-verify tag their sessions with the device metadata via `resolveSessionMeta`, carried across rotation.
-- **Two-factor authentication (TOTP)** — an opt-in authenticator-app second factor on top of the password. Set `config.twoFactor` (`encryptionKey` **required** — high-entropy, stable; it encrypts the secret at rest, and rotating it locks every enrolled user out until they redeem a backup code — see the [key-rotation runbook](#key-rotation-runbook-twofactorencryptionkey)) and provide `repos.backupCode` (both shipped adapters include it). One route group — `createTwoFactorHandlers(deps)`: `setup`/`enable`/`disable` (authenticated, mount under `/api/auth/account/2fa/*`) plus `verify` (the **public** second login step, mount under `/api/auth/2fa/verify`); the `login` handler gates automatically on `user.totpEnabled`. UI: `<TwoFactorManager>` for enrol/disable + the two-step `<LoginPage>`. Invariants: the secret is **AES-256-GCM-encrypted at rest** and only ever returned (plaintext Base32 + otpauth URI) by `setup`; the login gate keys on `totpEnabled` **alone** so a missing `config.twoFactor` can never become a bypass (fail-closed) — it issues a signed, short-lived pending-2FA token (cookie `urbicon_2fa`, `__Host-`-prefixed when `cookieSecure`) instead of a session, leaving no session/refresh cookie and deferring `onLoginSuccess` to verify; verify accepts a TOTP **or** a single-use SHA-256 backup code, is **strictly rate-limited** (`createAuthDeps` injects a default), and consumes the pending cookie only on success (a wrong code keeps it for retry within the TTL); `disable` is **password re-auth gated** and clears the secret + every backup code; backup codes are cleared before re-issue at enable so a re-enrol leaves none doubly-redeemable. Passkey logins are **not** gated — a claim that rests entirely on user verification: `webauthn.requireUserVerification` defaults to `true`, so an assertion proves possession *and* a PIN/biometric. Set it to `false` and a passkey is possession alone, which makes a passkey login a single-factor login for exactly the users who enrolled a second one (`createPasskeyHandlers` warns on that pairing). The TOTP core (`server/totp.ts`, RFC 6238/4226/4648) is exported for custom flows; the pending-token/cookie/backup-code plumbing (`server/two-factor.ts`) stays internal (consumed only by the login + 2FA handlers). Config knobs: `twoFactor.{issuer,algorithm,digits,period,window,pendingTokenTtl,backupCodeCount}`, `rateLimit.twoFactor`. `algorithm` defaults to **SHA-1** — the only one Google/Microsoft Authenticator reliably support; the secret's high entropy carries the security, not the hash, so SHA-256 stays opt-in. **Note:** the verify rate-limit is per-IP (like login) and TOTP codes are replayable within their window in v1 — both deliberate trade-offs (see [Known Limitations](#known-limitations--security-gaps)).
+- **Two-factor authentication (TOTP)** — an opt-in authenticator-app second factor on top of the password. Set `config.twoFactor` (`encryptionKey` **required** — high-entropy, stable; it encrypts the secret at rest, and rotating it locks every enrolled user out until they redeem a backup code — see the [key-rotation runbook](#key-rotation-runbook-twofactorencryptionkey)) and provide `repos.backupCode` (both shipped adapters include it). One route group — `createTwoFactorHandlers(deps)`: `setup`/`enable`/`disable` (authenticated, mount under `/api/auth/account/2fa/*`) plus `verify` (the **public** second login step, mount under `/api/auth/2fa/verify`); the `login` handler gates automatically on `user.totpEnabled`. UI: `<TwoFactorManager>` for enrol/disable + the two-step `<LoginPage>`. Invariants: the secret is **AES-256-GCM-encrypted at rest** and only ever returned (plaintext Base32 + otpauth URI) by `setup`; the login gate keys on `totpEnabled` **alone** so a missing `config.twoFactor` can never become a bypass (fail-closed) — it issues a signed, short-lived pending-2FA token (cookie `urbicon_2fa`, `__Host-`-prefixed when `cookieSecure`) instead of a session, leaving no session/refresh cookie and deferring `onLoginSuccess` to verify; verify accepts a TOTP **or** a single-use SHA-256 backup code, is **strictly rate-limited** (`createAuthDeps` injects a default), and consumes the pending cookie only on success (a wrong code keeps it for retry within the TTL); `disable` is **password re-auth gated** and clears the secret + every backup code; backup codes are cleared before re-issue at enable so a re-enrol leaves none doubly-redeemable. Passkey logins are **not** gated — a claim that rests entirely on user verification: `webauthn.requireUserVerification` defaults to `true`, so an accepted assertion carries possession *and* an asserted PIN/biometric (asserted, not attested — see [Known Limitations](#known-limitations--security-gaps)). Set it to `false` and a passkey is possession alone, which makes a passkey login a single-factor login for exactly the users who enrolled a second one (`createPasskeyHandlers` warns on that pairing). The TOTP core (`server/totp.ts`, RFC 6238/4226/4648) is exported for custom flows; the pending-token/cookie/backup-code plumbing (`server/two-factor.ts`) stays internal (consumed only by the login + 2FA handlers). Config knobs: `twoFactor.{issuer,algorithm,digits,period,window,pendingTokenTtl,backupCodeCount}`, `rateLimit.twoFactor`. `algorithm` defaults to **SHA-1** — the only one Google/Microsoft Authenticator reliably support; the secret's high entropy carries the security, not the hash, so SHA-256 stays opt-in. **Note:** the verify rate-limit is per-IP (like login) and TOTP codes are replayable within their window in v1 — both deliberate trade-offs (see [Known Limitations](#known-limitations--security-gaps)).
 - **Federated identity / SSO** — one deployment becomes the identity provider (ES256 tokens + `createJWKSHandler`), sibling apps verify with `createFederatedAuthHandle` and decide access themselves. See [Federated Identity (SSO)](#federated-identity-sso).
 
 ```typescript
@@ -210,31 +210,65 @@ registry.register({
 });
 ```
 
+### Upgrade note — user verification is enforced by default
+
+`webauthn.requireUserVerification` defaults to `true`. Registration and
+assertion both reject an authenticator that does not set the UV bit, so
+**credentials already enrolled on a UV-less authenticator stop working** on
+upgrade: a security key with no PIN configured, or one driven in a mode that
+only proves User Presence. Platform authenticators (Touch ID, Windows Hello,
+Android) set the bit and are unaffected.
+
+What it looks like when it bites: the assertion is refused with `400
+passkey_verification_failed` carrying `User verification required but not
+performed`, and `hooks.onLoginFailed` fires with the reason `invalid_assertion`
+and an empty email. In an audit sink that reads like an attack, not like a
+config change — so if you upgrade and your passkey-failure rate jumps, look here
+before you look for an attacker. Enrolling a *new* credential on the same
+authenticator fails the same way.
+
+Two ways out: have the affected users set a PIN on the key (the outcome the
+default is asking for), or set `requireUserVerification: false` — in which case
+read the 2FA note on the passkey bullet above before you do, because with
+`config.twoFactor` wired the opt-out makes a passkey login single-factor.
+
 ### Key-rotation runbook (`twoFactor.encryptionKey`)
 
 The 2FA secret is encrypted at rest with this key, and `decryptSecret` is
 fail-closed. Changing the key therefore does not degrade — it **locks out every
 user with `totpEnabled`**, and re-enrolment is not the way back: `setup` refuses
 while 2FA is still on, so those users cannot mint a secret under the new key
-either. The only route in is a **backup code**, which the verify handler keeps
-open (backup codes are hashed on their own rows and need no TOTP secret) and
-which then lets `disable` → `setup` → `enable` re-enrol under the new key.
+either.
+
+Two routes remain open. A **backup code** — the verify handler keeps that path
+live because backup codes are hashed on their own rows and need no TOTP secret.
+And a **passkey**, for users who enrolled one: passkey logins are not TOTP-gated
+(see the passkey bullet above), so the rotated key never touches them. Either
+route yields a session, and a session is all that `disable` → `setup` → `enable`
+needs to re-enrol under the new key.
 
 Both decryption failures are reported through `config.logger` at `error` level,
-naming the user id. Watch that sink: the response is a
+naming a user id — but not at the same rate. `verify` reports every attempt
+(that endpoint is rate-limited by default); `enable` reports only the first per
+config, because it has no limiter and an authenticated caller could otherwise
+fill the sink. The log therefore tells you the fault exists, not how many users
+it reached. Watch that sink: the response is a
 `500 totp_secret_unreadable` built with `authError`, which **returns** a
 Response rather than throwing `error()`, so SvelteKit's `handleError` never
 fires and a Sentry integration hooked there sees nothing.
 
 1. **Do not rotate on a schedule.** Unlike `jwt.previousSecrets`, this key has no
    overlap mechanism — one key is in force at a time.
-2. **If you must** (key compromise): announce it, then rotate. Every TOTP user's
-   next login needs a backup code.
+2. **If you must** (key compromise): announce it, then rotate. Every TOTP user
+   whose only other credential is the authenticator app needs a backup code at
+   the next login; passkey holders sign in unaffected.
 3. **After the rotation**, drive the affected users through
    `disable` → `setup` → `enable` (the `<TwoFactorManager>` flow) so their secret
    is re-encrypted under the new key and a fresh backup-code set is issued.
-4. **A user out of backup codes** is locked out of their account; recovery is
-   your own out-of-band identity proof plus an administrative `disableTotp`.
+4. **A user out of backup codes and without a passkey** is locked out of their
+   account; recovery is your own out-of-band identity proof plus an
+   administrative `disableTotp`. Check for an enrolled passkey before running
+   that ceremony — it is the cheaper route and the user can walk it alone.
 5. **If the key was merely lost** (not compromised), restoring it from backup is
    the whole fix — nothing on the user rows changed.
 
@@ -606,6 +640,7 @@ The package deliberately avoids revealing whether an account exists, via either 
 
 - **Lockout DoS** — the login rate-limit is **per-IP**, the lockout is **account-based**. An attacker with many IPs (IPv6 rotation, proxy pool) can thereby deliberately lock out someone else's account without tripping their own IP rate-limit. This is the classic lockout trade-off (brute-force protection vs. DoS). If you don't want that, set `lockout: null` (then the per-IP rate-limit alone protects) — but the default deliberately leaves the lockout on, because brute-force protection is the more important risk for most apps. For visibility, consider adding your own monitoring on `lockedUntil` writes.
 - **2FA verify rate-limit is per-IP, not per-account** — the public `/2fa/verify` endpoint is limited per-IP like login (`rateLimit.twoFactor`, strict default), not per-account — consistent with the package philosophy (account-level limits are themselves DoS-prone and opt-in). A distributed-IP attack would additionally need the victim's password (to set the pending-2FA cookie); with a ±1 window (10⁶ codes) + ~5-min TTL this remains practically hopeless. A per-account limiter is a deliberate later option.
+- **The UV bit is self-asserted, not attested** — `attestation: 'none'` is hard-wired in the generated registration options, so the relying party never receives an authenticator certificate. `requireUserVerification` therefore verifies that the *credential itself signed* a UV flag, not that a genuine authenticator model performed a genuine PIN or biometric check; software or a modified authenticator can set the bit. It still moves the practical threat model — a stolen hardware key that demands its PIN is no longer a one-tap login — which is why passkey logins skip the TOTP gate only under enforced UV. Read the guarantee as "the credential claims user verification", not as a proof of it. Attestation-based authenticator allow-listing is out of v1 scope.
 - **TOTP replay within the same time window** — v1 relies solely on the strict verify rate-limit. A stored `lastUsedStep` that prevents re-redeeming the same code within its validity (±1 period) is noted as a later hardening.
 - **`publicRoutes` are prefixes** — `createAuthHandle` matches public routes via `startsWith`. The default `'/api/auth/'` thereby makes **all** subroutes below it public (no auth guard). Don't place protectable app routes below it, or keep the list narrow when you add your own `/api/auth/*` endpoints.
 - **Remote functions are guarded by `event.isRemoteRequest` (+ a `/remote` POST check), not `publicRoutes`.** For SvelteKit Remote Functions (`kit.experimental.remoteFunctions`) the pathname the guard sees is **client-controlled**, via either of two transports: **(1)** the `/_app/remote/…` calls (`query` / `command` / JS-enhanced `form`) — SvelteKit overwrites `event.url.pathname` from the `x-sveltekit-pathname` header *before* the `handle` hook runs; a plain `query` is even a **GET** (payload in `?payload=`), so the kernel's non-`GET` cross-site block doesn't catch it either; and **(2)** the no-JS `<form action="?/remote=…">` fallback — dispatched through the page pipeline from the `/remote` search param, decoupled from the pathname, with `event.isRemoteRequest` left **`false`**. Either way a spoofed (or genuinely) public route such as `/auth/login` would let an unauthenticated remote call run without a session and leak every reachable row. `createAuthHandle` **default-denies** (`401`) both: keyed on the unspoofable `event.isRemoteRequest`, and — for the fallback — a `POST` carrying a truthy `/remote` action param (mirroring SvelteKit's own dispatch gate; a normal action named `remote` serializes to an empty `?/remote` and is correctly left to the path guard). Set `allowUnauthenticatedRemote: true` **only** if you deliberately expose public remote functions — you then own their authorization (check `event.locals.user` inside each). **Defense-in-depth:** even with the guard active, prefer an explicit `event.locals.user` (+ per-user ownership) check inside each remote function rather than relying on the handle alone — the guard is a backstop, not a substitute for per-function authorization.
