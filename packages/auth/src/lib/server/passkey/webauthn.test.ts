@@ -10,19 +10,19 @@ import {
 } from './challenge-store.js';
 import { WebAuthnError } from './errors.js';
 import {
-  buildEs256Assertion,
-  cborBytes,
-  cborInt,
-  concatBytes,
-  coseEc2Key
-} from './test-fixtures.js';
-import {
   generateAuthenticationOptions,
   generateRegistrationOptions,
   verifyAssertion,
   verifyRegistration,
   type WebAuthnConfig
 } from './webauthn.js';
+import {
+  buildEs256Assertion,
+  cborBytes,
+  cborInt,
+  concatBytes,
+  coseEc2Key
+} from './webauthn-test-utils.js';
 
 /** base64url-encode (no padding) — clientDataJSON is transported this way. */
 const b64url = (s: string) => btoa(s).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');

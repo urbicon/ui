@@ -6,8 +6,8 @@ import { setSessionCookie } from '../session.js';
 import { createMockAuthDeps, createMockUser } from '../test-utils.js';
 import { createInMemoryChallengeStore } from './challenge-store.js';
 import { createPasskeyHandlers } from './handlers.js';
-import { buildEs256Assertion } from './test-fixtures.js';
 import type { WebAuthnConfig } from './webauthn.js';
+import { buildEs256Assertion } from './webauthn-test-utils.js';
 
 type TestDeps = AuthDeps & {
   webauthn: WebAuthnConfig;
