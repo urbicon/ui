@@ -13,7 +13,27 @@ import { applyRotationOutcome, clearSessionCookie, getSessionFromCookie } from '
 export interface AuthHandleOptions<R extends string = string> {
   config: AuthConfig<R>;
   repos: Repositories<R>;
-  publicRoutes?: string[];
+  /**
+   * Route prefixes exempt from the auth guard, matched with `startsWith`.
+   *
+   * **The list REPLACES the defaults; it does not extend them.** The defaults
+   * are `['/auth/login', '/auth/register', '/auth/forgot-password',
+   * '/auth/reset-password', '/auth/verify-email', '/api/auth/']` — exported as
+   * {@link DEFAULT_PUBLIC_ROUTES}, so an app that only wants to add its own
+   * public pages spreads them: `[...DEFAULT_PUBLIC_ROUTES, '/pricing']`.
+   *
+   * Dropping `'/api/auth/'` from the list locks out the app's own sign-in:
+   * every auth endpoint is then guarded, so an unauthenticated `POST
+   * /api/auth/login` gets `401 not_authenticated` instead of a session.
+   * Replacing wholesale is the right mode only for a handle scoped to routes
+   * that mount no auth endpoints at all.
+   *
+   * A prefix exempts everything below it, so `'/api/auth/'` makes every
+   * `/api/auth/*` sub-route public — keep app routes out from under it.
+   *
+   * @default DEFAULT_PUBLIC_ROUTES
+   */
+  publicRoutes?: readonly string[];
   /**
    * Allow unauthenticated SvelteKit Remote Functions
    * (`kit.experimental.remoteFunctions`) to pass the route guard.
@@ -43,14 +63,20 @@ export interface AuthHandleOptions<R extends string = string> {
   allowUnauthenticatedRemote?: boolean;
 }
 
-const DEFAULT_PUBLIC_ROUTES = [
+/**
+ * The route prefixes `createAuthHandle` exempts from the guard when
+ * `publicRoutes` is omitted. Spread it to extend rather than replace (see
+ * {@link AuthHandleOptions.publicRoutes}). Frozen: it is one shared array
+ * across every handle in the process, so a mutation would leak between them.
+ */
+export const DEFAULT_PUBLIC_ROUTES: readonly string[] = Object.freeze([
   '/auth/login',
   '/auth/register',
   '/auth/forgot-password',
   '/auth/reset-password',
   '/auth/verify-email',
   '/api/auth/'
-];
+]);
 
 const jsonUnauthorized = () => authError('not_authenticated', 401);
 

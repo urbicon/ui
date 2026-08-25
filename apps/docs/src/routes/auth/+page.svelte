@@ -30,12 +30,15 @@ export const authDeps = createAuthDeps({
 });`;
 
   const hookCode = `// src/hooks.server.ts
-import { createAuthHandle } from '@urbicon-ui/auth/server';
+import { createAuthHandle, DEFAULT_PUBLIC_ROUTES } from '@urbicon-ui/auth/server';
 import { authDeps } from '$lib/server/auth';
 
-export const handle = createAuthHandle(authDeps, {
-  publicRoutes: ['/', '/auth/login', '/auth/register'],
-  loginRedirect: '/auth/login'
+export const handle = createAuthHandle({
+  config: authDeps.config,
+  repos: authDeps.repos,
+  // publicRoutes REPLACES the defaults. Spreading them keeps the
+  // /api/auth/* endpoints exempt; without it, login answers 401.
+  publicRoutes: [...DEFAULT_PUBLIC_ROUTES, '/']
 });`;
 
   const handlersCode = `// Each auth flow needs a SvelteKit API route:
@@ -246,7 +249,8 @@ export const POST = createForgotPasswordHandler(authDeps);
     <h3 class="text-text-primary mt-6 mb-2 text-lg font-semibold">2. Add the SvelteKit hook</h3>
     <p class="text-text-secondary mb-2 text-sm">
       The handle hook validates the session, redirects unauthenticated requests off protected
-      routes, and adds CSRF and security headers.
+      routes, and adds CSRF and security headers. It takes one options object; the redirect target
+      is <code>config.routes.loginPage</code> from step 1, not a hook option.
     </p>
     <CodeExample code={hookCode} language="typescript" preview={false} />
 

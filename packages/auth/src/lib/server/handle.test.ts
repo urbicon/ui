@@ -5,7 +5,7 @@ import type { AuthConfig, AuthUser } from '../types.js';
 import { createInMemoryRefreshTokenRepository } from './adapters/in-memory.js';
 import type { Repositories, UserRepository } from './adapters/types.js';
 import { hashToken } from './auth.js';
-import { createAuthHandle } from './handle.js';
+import { createAuthHandle, DEFAULT_PUBLIC_ROUTES } from './handle.js';
 import { createSessionToken } from './jwt.js';
 import { issueRefreshToken } from './refresh-token.js';
 import {
@@ -101,6 +101,76 @@ describe('createAuthHandle', () => {
 
     await handle({ event: asEvent(event), resolve });
     expect(resolve).toHaveBeenCalled();
+  });
+
+  describe('publicRoutes', () => {
+    const unauthenticated = async (options: {
+      publicRoutes?: readonly string[];
+      path: string;
+      method?: string;
+    }) => {
+      const handle = createAuthHandle({
+        config,
+        repos: createMockRepos(),
+        ...(options.publicRoutes ? { publicRoutes: options.publicRoutes } : {})
+      });
+      const resolve = vi.fn().mockResolvedValue(new Response('OK'));
+      const event = createMockEvent({
+        path: options.path,
+        method: options.method,
+        origin: options.method && options.method !== 'GET' ? 'http://localhost:3000' : undefined
+      });
+      try {
+        const response = await handle({ event: asEvent(event), resolve });
+        return resolve.mock.calls.length > 0 ? 'passed-through' : `status-${response.status}`;
+      } catch (e) {
+        return `redirect-${(e as { status?: number }).status}`;
+      }
+    };
+
+    it('exempts every DEFAULT_PUBLIC_ROUTES entry when the option is omitted', async () => {
+      for (const route of DEFAULT_PUBLIC_ROUTES) {
+        expect(await unauthenticated({ path: route }), route).toBe('passed-through');
+      }
+      // Positive control: a route outside the list is still guarded, so the
+      // loop above is not passing because the guard is off.
+      expect(await unauthenticated({ path: '/dashboard' })).toBe('redirect-302');
+    });
+
+    it('replaces the defaults rather than extending them — an override locks out login', async () => {
+      expect(await unauthenticated({ publicRoutes: ['/pricing'], path: '/pricing' })).toBe(
+        'passed-through'
+      );
+      // The half that hurts: '/api/auth/' was in the list the override
+      // dropped, so the app's own sign-in endpoint is now guarded.
+      expect(
+        await unauthenticated({
+          publicRoutes: ['/pricing'],
+          path: '/api/auth/login',
+          method: 'POST'
+        })
+      ).toBe('status-401');
+      // Positive control: the same request passes with the defaults in place.
+      expect(await unauthenticated({ path: '/api/auth/login', method: 'POST' })).toBe(
+        'passed-through'
+      );
+    });
+
+    it('restores the auth endpoints when DEFAULT_PUBLIC_ROUTES is spread in', async () => {
+      const publicRoutes = [...DEFAULT_PUBLIC_ROUTES, '/pricing'];
+      expect(await unauthenticated({ publicRoutes, path: '/pricing' })).toBe('passed-through');
+      expect(await unauthenticated({ publicRoutes, path: '/api/auth/login', method: 'POST' })).toBe(
+        'passed-through'
+      );
+      expect(await unauthenticated({ publicRoutes, path: '/dashboard' })).toBe('redirect-302');
+    });
+
+    it('rejects mutation of DEFAULT_PUBLIC_ROUTES', () => {
+      // One shared array backs every handle that omits the option, so a push
+      // would change the guard for all of them.
+      expect(() => (DEFAULT_PUBLIC_ROUTES as string[]).push('/pricing')).toThrow(TypeError);
+      expect(DEFAULT_PUBLIC_ROUTES).toContain('/api/auth/');
+    });
   });
 
   it('should redirect unauthenticated users to login, preserving the deep link', async () => {

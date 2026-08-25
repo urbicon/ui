@@ -374,7 +374,7 @@ Setup returns the `otpauth://` URI + Base32 secret (the core ships **no** QR enc
 
 ## Prisma Schema
 
-See [`prisma/auth-schema.prisma`](./prisma/auth-schema.prisma) for the reference schema. Models: `User`, `Invitation`, `PushSubscription`, `Notification`, `NotificationType`, `NotificationPreference`, `Passkey`, `TwoFactorBackupCode`, plus the optional consumer-side `FederatedAccount` link table for SSO. Copy/merge into your app's schema.
+See [`prisma/auth-schema.prisma`](./prisma/auth-schema.prisma) for the reference schema — it ships in the package, at `node_modules/@urbicon-ui/auth/prisma/auth-schema.prisma`. Ten models: `User`, `Invitation`, `PushSubscription`, `Notification`, `NotificationType`, `NotificationPreference`, `Passkey`, `RefreshToken`, `TwoFactorBackupCode`, plus the optional consumer-side `FederatedAccount` link table for SSO. Copy/merge into your app's schema.
 
 ## Tests
 
@@ -392,7 +392,7 @@ The three most load-bearing for a production deploy are below; the **full catalo
 
 - **Persistent stores are opt-in.** Challenge, rate-limit, and refresh-token stores all default to in-memory (single-process). Pass a `ChallengeStore` / `RateLimitStore` / `RefreshTokenRepository` (Redis/Prisma/Upstash) when running >1 instance — the Prisma adapter is bundled.
 - **CSRF Double-Submit and refresh-token rotation are opt-in.** The handle's Origin check is always on; the token layer (`config.csrf = { doubleSubmit: true }`, requires header-capable clients — incompatible with remote-function / no-JS-form mutations) and rotation (`config.refreshToken = {}` + `repos.refreshToken`) are additive production hardening.
-- **`publicRoutes` are prefixes.** `createAuthHandle` matches them with `startsWith`, so the default `'/api/auth/'` exempts every sub-route from the auth guard — don't nest protected app routes under it.
+- **`publicRoutes` replaces the defaults, and its entries are prefixes.** Passing the option drops the built-in list instead of adding to it. `'/api/auth/'` is in that list, so an override that omits it guards the app's own sign-in — `POST /api/auth/login` then answers `401` to a visitor who has no session. Spread the exported `DEFAULT_PUBLIC_ROUTES` to extend (`[...DEFAULT_PUBLIC_ROUTES, '/pricing']`); replace wholesale only for a handle scoped to routes that mount no auth endpoints. Matching is `startsWith`, so `'/api/auth/'` exempts every sub-route below it — don't nest protected app routes under it.
 
 ## Roadmap
 
