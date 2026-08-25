@@ -73,6 +73,27 @@ import type { Passkey, Repositories } from './types.js';
  * deliberately does *not* cover (inserts), is the `Ids are opaque strings`
  * section at the top of `types.ts`.
  *
+ * ## Contract sentences this suite deliberately leaves unchecked
+ *
+ * Four of them, each because the value a violation would corrupt is never read
+ * back inside this package — so it cannot reach a user through it, and a check
+ * would pin one adapter's behaviour on every other for no gain. Listed so an
+ * audit does not rediscover them as gaps:
+ *
+ * - `listActiveByUser`'s newest-first ordering. Its one caller
+ *   (`handlers/sessions.ts`) collapses the rows per family and sorts the result
+ *   itself, so the repository's order never reaches the response.
+ * - `recordFailedLogin` **without** `lockoutConfig` (bump the counter only).
+ *   That path is reachable — `config.lockout: null` normalizes to `undefined`
+ *   at the call — but the same flag gates the only reader
+ *   (`getFailedLoginAttempts`), so with lockout off the counter is written and
+ *   nothing ever looks at it.
+ * - `BackupCodeRepository.createMany`'s "MUST NOT deduplicate". The one caller
+ *   runs `deleteAll` on the line above, so the batch is always clean.
+ * - `setTotpSecret` forcing `totpEnabled: false` when 2FA is **already** on.
+ *   Both 2FA setup handlers answer `two_factor_already_enabled` before the
+ *   write is reached. The off → stage → enable → disable path *is* checked.
+ *
  * ## Test runners
  *
  * This module is runner-agnostic: it takes `describe`/`it`/`expect` from the
@@ -1369,19 +1390,37 @@ export const conformanceChecks: readonly ConformanceCheck[] = [
     // Both branches of updateCounter touch `lastUsedAt` (types.ts). It is what
     // the passkey manager shows next to each device, and the only thing that
     // tells three enrolled keys apart when one has to go.
+    //
+    // What is asserted is that the *use* moves the stamp, not that it ends up
+    // non-null: `Passkey.lastUsedAt` may legitimately be stamped at enrolment,
+    // and an adapter that stamps there and never again shows every credential
+    // as last used when it was enrolled — the same wrong deletion. Moving a
+    // timestamp needs a clock tick between the two writes, hence the wait
+    // (same reason as the markAsRead sibling below).
+    const enrolled = async (credentialId: string) =>
+      (await repo.findByCredentialId(credentialId))?.lastUsedAt?.getTime() ?? 0;
+    const atEnrolment = {
+      counting: await enrolled('cred-counting'),
+      counterless: await enrolled('cred-counterless')
+    };
+    await new Promise((resolve) => setTimeout(resolve, 10));
+
     expect(await repo.updateCounter('cred-counting', 5), 'the CAS advances').toBe(true);
+    const bumped = (await repo.findByCredentialId('cred-counting'))?.lastUsedAt;
+    expect(bumped, 'a counter bump stamps lastUsedAt').toBeInstanceOf(Date);
     expect(
-      (await repo.findByCredentialId('cred-counting'))?.lastUsedAt,
-      'a counter bump stamps lastUsedAt'
-    ).toBeInstanceOf(Date);
+      (bumped?.getTime() ?? 0) > atEnrolment.counting,
+      'and the stamp is the use, not the enrolment'
+    ).toBe(true);
 
     expect(await repo.updateCounter('cred-counterless', 0), 'the counterless touch wins').toBe(
       true
     );
-    expect(
-      (await repo.findByCredentialId('cred-counterless'))?.lastUsedAt,
-      'a counterless authenticator is stamped too'
-    ).toBeInstanceOf(Date);
+    const touched = (await repo.findByCredentialId('cred-counterless'))?.lastUsedAt;
+    expect(touched, 'a counterless authenticator is stamped too').toBeInstanceOf(Date);
+    expect((touched?.getTime() ?? 0) > atEnrolment.counterless, 'and its stamp moves as well').toBe(
+      true
+    );
   }),
 
   // -- Notification: ownership scope --------------------------------------
