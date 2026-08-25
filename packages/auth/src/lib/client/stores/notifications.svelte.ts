@@ -92,7 +92,12 @@ export function createNotificationStore(config?: NotificationStoreConfig) {
         return false;
       }
       lastError = null;
-      notifications = notifications.map((n) => (n.id === id ? { ...n, readAt: new Date() } : n));
+      // The first stamp stands, as the repository contract requires of
+      // `markAsRead` and the sibling below already does: `readAt` is when the
+      // user read this, and the route is idempotent.
+      notifications = notifications.map((n) =>
+        n.id === id ? { ...n, readAt: n.readAt ?? new Date() } : n
+      );
       return true;
     } catch {
       lastError = { code: 'network_error' };

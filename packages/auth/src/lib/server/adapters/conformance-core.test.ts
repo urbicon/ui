@@ -6,13 +6,15 @@
 import { readFile } from 'node:fs/promises';
 import { describe, expect, it } from 'vitest';
 import {
+  type ConformanceCapabilities,
   type ConformanceRunner,
   describeRepositoryConformance,
-  setConformanceRunner
+  setConformanceRunner,
+  summarizeConformanceRun
 } from './conformance-core.js';
 import { createInMemoryRepos } from './in-memory.js';
 
-const ALL_CAPS = {
+const ALL_CAPS: Required<ConformanceCapabilities> = {
   refreshToken: true,
   passkey: true,
   notification: true,
@@ -20,7 +22,7 @@ const ALL_CAPS = {
   notificationPreference: true,
   backupCode: true,
   federatedAccount: true
-} as const;
+};
 
 describe('conformance-core', () => {
   it('imports no test runner, so a consumer on bun:test or jest can load it', async () => {
@@ -65,5 +67,67 @@ describe('conformance-core', () => {
       // reroute any later check in this process.
       setConformanceRunner({ describe, it, expect });
     }
+  });
+
+  it('states in the suite title how much of the suite a capability list leaves out', () => {
+    // The five capabilities the AUTH.md copy-paste block used to declare. An
+    // undeclared repository turns its checks into it.skip, so the run reports
+    // success either way — the title is where the omission becomes readable.
+    const harness = {
+      role: 'USER',
+      capabilities: {
+        refreshToken: true,
+        passkey: true,
+        notification: true,
+        pushSubscription: true,
+        notificationPreference: true
+      },
+      setup: () => createInMemoryRepos()
+    };
+    const titles: string[] = [];
+    const ran: string[] = [];
+    const skipped: string[] = [];
+    const fake: ConformanceRunner = {
+      describe: (name, fn) => {
+        titles.push(name);
+        fn();
+      },
+      it: Object.assign((name: string) => ran.push(name), {
+        skip: (name: string) => skipped.push(name)
+      }) as unknown as ConformanceRunner['it'],
+      expect: (actual: unknown, message?: string) => expect(actual, message)
+    };
+
+    try {
+      describeRepositoryConformance('partial', harness, { runner: fake });
+      const summary = summarizeConformanceRun(harness);
+
+      // Derived from the same plan the registration used, so the printed
+      // numbers cannot drift from what actually ran.
+      expect(ran, 'the title counts the checks that registered').toHaveLength(summary.running);
+      expect(skipped, 'and the ones that did not').toHaveLength(summary.total - summary.running);
+      expect(summary.undeclared, 'the two repositories the block omitted').toEqual([
+        'backupCode',
+        'federatedAccount'
+      ]);
+      expect(titles[0]).toBe(
+        `adapter conformance: partial · ${summary.running}/${summary.total} checks · ` +
+          `${summary.skippedUndeclared} skipped — undeclared: backupCode, federatedAccount`
+      );
+      expect(summary.skippedUndeclared, 'the skipped checks are not zero').toBeGreaterThan(0);
+    } finally {
+      setConformanceRunner({ describe, it, expect });
+    }
+  });
+
+  it('separates a deliberate only/skip from an undeclared repository', () => {
+    const harness = { role: 'USER', capabilities: ALL_CAPS, setup: () => createInMemoryRepos() };
+    const summary = summarizeConformanceRun(harness, {
+      skip: ['user.delete removes the user row']
+    });
+    expect(summary.undeclared, 'nothing is undeclared here').toEqual([]);
+    expect(summary.skippedUndeclared).toBe(0);
+    expect(summary.skippedByOption, 'the consumer’s own choice is counted apart').toBe(1);
+    expect(summary.running).toBe(summary.total - 1);
   });
 });

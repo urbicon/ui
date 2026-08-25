@@ -4,8 +4,10 @@
 // to hide, so `any` is the pragmatic, intentional choice here.
 
 import { randomUUID } from 'node:crypto';
+import { readFileSync } from 'node:fs';
 import { describe, expect, it, vi } from 'vitest';
 import {
+  type ConformanceCapabilities,
   type ConformanceHarness,
   conformanceChecks,
   describeRepositoryConformance
@@ -18,7 +20,10 @@ import {
 } from './prisma.js';
 import type { FullAuthUser, UserRepository } from './types.js';
 
-const ALL_CAPS = {
+// `Required`, not `as const`: a capability added to the interface has to be
+// declared here or this file stops compiling — the one thing an omitted key
+// otherwise does silently is drop its checks.
+const ALL_CAPS: Required<ConformanceCapabilities> = {
   refreshToken: true,
   passkey: true,
   notification: true,
@@ -26,7 +31,7 @@ const ALL_CAPS = {
   notificationPreference: true,
   backupCode: true,
   federatedAccount: true
-} as const;
+};
 
 // === 1. The shipped in-memory adapter must pass every check ================
 
@@ -249,8 +254,44 @@ function makeTable(opts: {
   };
 }
 
-function createFakePrisma(): PrismaLike {
-  return {
+/** `[delegate name, foreign-key column]` for one cascading relation. */
+type CascadeRelation = [string, string];
+
+/**
+ * The `onDelete: Cascade` relations a Prisma schema puts on `User`.
+ *
+ * The adapter leaves these deletes to the database, so this is the half of
+ * `user.delete` the fake has to supply: without it every dependent row is still
+ * there afterwards, and the erasure check reports an adapter defect that is not
+ * in the adapter. Deriving the list from `auth-schema.prisma` rather than
+ * restating it is what keeps a model added there from being absent here.
+ *
+ * `//` comments are stripped first — a commented-out relation is one the schema
+ * no longer declares, and it is the only malformation that would otherwise pass
+ * silently (a removed `onDelete`, a `User?` field or a composite FK all drop
+ * out of the match and turn the erasure check red).
+ */
+function parseCascadingUserRelations(schema: string): CascadeRelation[] {
+  const source = schema.replace(/\/\/[^\n]*/g, '');
+  const relations: CascadeRelation[] = [];
+  for (const [, model, body] of source.matchAll(/^model\s+(\w+)\s*\{([\s\S]*?)^\}/gm)) {
+    for (const [, args] of body.matchAll(/\s+User\s+@relation\(([^)]*)\)/g)) {
+      if (!/onDelete:\s*Cascade/.test(args)) continue;
+      const column = /fields:\s*\[(\w+)\]/.exec(args)?.[1];
+      if (column) relations.push([model[0].toLowerCase() + model.slice(1), column]);
+    }
+  }
+  return relations;
+}
+
+function cascadingUserRelations(): CascadeRelation[] {
+  return parseCascadingUserRelations(
+    readFileSync(new URL('../../../../prisma/auth-schema.prisma', import.meta.url), 'utf8')
+  );
+}
+
+function createFakePrisma(relations: CascadeRelation[] = cascadingUserRelations()): PrismaLike {
+  const tables = {
     user: makeTable({
       uniques: ['id', 'email', 'verificationToken', 'passwordResetToken', 'emailChangeToken'],
       defaults: () => ({
@@ -311,7 +352,105 @@ function createFakePrisma(): PrismaLike {
     // synchrony note above); the delete check only asserts the success path.
     $transaction: (operations: unknown[]) => Promise.all(operations)
   };
+
+  // `onDelete: Cascade`, the half of `user.delete` the adapter never writes.
+  // The dependent rows go with the user row, in the same call, the way the
+  // database does it.
+  //
+  // A relation the schema declares and this fake has no table for is a fault in
+  // the fake, refused here rather than skipped at erasure time — otherwise the
+  // derived list would grow while the modelled behaviour did not.
+  const byModel = tables as unknown as Record<string, FakeTable | undefined>;
+  for (const [model] of relations) {
+    if (!byModel[model]) {
+      throw new Error(
+        `[fake-prisma] auth-schema.prisma cascades '${model}' from User, but this fake has no such table`
+      );
+    }
+  }
+  const erased = async (doomed: Record<string, any>[]) => {
+    for (const row of doomed) {
+      for (const [model, column] of relations) {
+        await byModel[model]!.deleteMany({ where: { [column]: row.id } });
+      }
+    }
+  };
+  // Only `deleteMany`: the adapter's `user.delete` runs
+  // `$transaction([invitation.deleteMany, user.deleteMany])`, and `PrismaLike`
+  // declares no singular `delete` on `user` at all, so wrapping one would be a
+  // branch no call can reach.
+  const { deleteMany } = tables.user;
+  tables.user.deleteMany = async (args: any) => {
+    const doomed = await tables.user.findMany(args);
+    const result = await deleteMany(args);
+    await erased(doomed);
+    return result;
+  };
+
+  return tables;
 }
+
+// === 1a. The fake's cascade is derived, so the derivation needs its own guard ==
+//
+// Every other malformation of the schema is fail-loud through the erasure check
+// (a dropped `onDelete`, a `User?` field, a composite FK, a parser that returns
+// nothing — all of them leave dependent rows behind and turn it red). These two
+// are the exceptions: a relation the schema only mentions in a comment still
+// cascading, and a relation the schema declares that the fake cannot model.
+
+describe('fake prisma — the cascade derivation', () => {
+  const SYNTHETIC = `
+model Live {
+  id     String @id
+  userId String
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model CommentedOut {
+  id     String @id
+  userId String
+  // user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model NoCascade {
+  id     String @id
+  userId String
+  user   User   @relation(fields: [userId], references: [id])
+}
+`;
+
+  it('takes a declared relation, and neither a commented-out nor an uncascaded one', () => {
+    expect(parseCascadingUserRelations(SYNTHETIC)).toEqual([['live', 'userId']]);
+  });
+
+  it('reads the reference schema, invitation’s `invitedById` FK included', () => {
+    const relations = parseCascadingUserRelations(
+      readFileSync(new URL('../../../../prisma/auth-schema.prisma', import.meta.url), 'utf8')
+    );
+    // Every dependent model in the schema, so a model added there without a
+    // table in the fake is caught by createFakePrisma's guard, not skipped.
+    expect(relations.map(([model]) => model).sort()).toEqual([
+      'federatedAccount',
+      'invitation',
+      'notification',
+      'notificationPreference',
+      'passkey',
+      'pushSubscription',
+      'refreshToken',
+      'twoFactorBackupCode'
+    ]);
+    expect(relations, 'the one FK that is not named userId').toContainEqual([
+      'invitation',
+      'invitedById'
+    ]);
+  });
+
+  it('refuses a schema relation it has no table for, rather than cascading nothing', () => {
+    expect(() => createFakePrisma([...cascadingUserRelations(), ['auditLog', 'userId']])).toThrow(
+      /auditLog/
+    );
+  });
+});
 
 describeRepositoryConformance('prisma (in-memory fake)', {
   role: 'USER',
