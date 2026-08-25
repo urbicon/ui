@@ -2,7 +2,7 @@ import type { RequestHandler } from '@sveltejs/kit';
 import { json } from '@sveltejs/kit';
 import { sanitizeUser } from '../auth.js';
 import type { AuthDeps } from '../deps.js';
-import { enforceRateLimit, makeRateLimiter } from '../rate-limit.js';
+import { enforceRateLimit, sharedLimiter } from '../rate-limit.js';
 import { readRefreshCookie, rotateRefreshToken } from '../refresh-token.js';
 import { applyRotationOutcome } from '../session.js';
 import { NO_STORE } from './_shared.js';
@@ -21,7 +21,7 @@ import { authError } from './errors.js';
 export function createRefreshHandler<R extends string>(
   deps: AuthDeps<R>
 ): { POST: RequestHandler } {
-  const rateLimiter = makeRateLimiter(deps.config.rateLimit?.refresh);
+  const rateLimiter = sharedLimiter(deps.config, 'refresh');
 
   return {
     POST: async ({ cookies, getClientAddress }) => {

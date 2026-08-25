@@ -4,6 +4,8 @@ import {
   DEFAULT_CSRF_COOKIE_NAME,
   DEFAULT_CSRF_HEADER_NAME
 } from '../csrf-constants.js';
+import type { AuthLogger } from '../types.js';
+import { assertCookieSameSiteSecure } from './cookie-policy.js';
 import { base64UrlEncode } from './encoding.js';
 import { timingSafeEqualStrings } from './timing-safe.js';
 
@@ -26,6 +28,14 @@ export interface CsrfValidateOptions {
    * value used when the cookie was set (`ensureCsrfCookie`) and on the client.
    */
   hostPrefix?: boolean;
+  /**
+   * Sink for the one operational failure this function can report: a
+   * `doubleSubmit` gate wired without `cookies`, which 403s every mutating
+   * request. `createAuthHandle` passes the config's shielded logger; a consumer
+   * calling `validateCsrf` standalone (a federated app gating its own
+   * cookie-authenticated mutations) can pass their own. Defaults to `console`.
+   */
+  logger?: AuthLogger;
 }
 
 export interface EnsureCsrfCookieOptions {
@@ -100,7 +110,7 @@ export function validateCsrf(request: Request, url: URL, options?: CsrfValidateO
       if (!csrfMisconfigurationWarned) {
         csrfMisconfigurationWarned = true;
 
-        console.error(
+        (options.logger ?? console).error(
           '[auth] validateCsrf: doubleSubmit enabled but no `cookies` passed — every mutating request will fail CSRF. Wire `options.cookies` into the handle hook.'
         );
       }
@@ -138,6 +148,7 @@ export function ensureCsrfCookie(cookies: Cookies, options?: EnsureCsrfCookieOpt
   if (existing) return existing;
 
   const token = generateCsrfToken();
+  const sameSite = options?.sameSite ?? 'lax';
   cookies.set(cookieName, token, {
     // `__Host-` requires Path=/, Secure, and NO Domain attribute; force the
     // first two and pin Domain unset so the browser keeps the cookie instead
@@ -145,8 +156,13 @@ export function ensureCsrfCookie(cookies: Cookies, options?: EnsureCsrfCookieOpt
     // mutating request). `domain: undefined` makes the no-Domain invariant
     // explicit and immune to a host ever defaulting one in.
     path: '/',
-    sameSite: options?.sameSite ?? 'lax',
-    secure: hostPrefix ? true : (options?.secure ?? true),
+    sameSite,
+    // Defense in depth: assertAuthConfigValid catches this pair at wiring time,
+    // but ensureCsrfCookie is a public export for SSR form inlining and can be
+    // reached with a config that never passed a wiring entry point. hostPrefix
+    // force-sets Secure, so it is passed as the effective value rather than
+    // making the pair illegal.
+    secure: assertCookieSameSiteSecure('csrf', sameSite, hostPrefix ? true : options?.secure),
     ...(hostPrefix ? { domain: undefined } : {}),
     httpOnly: false,
     maxAge: options?.maxAge ?? CSRF_COOKIE_MAX_AGE

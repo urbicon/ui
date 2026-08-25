@@ -2,7 +2,7 @@ import type { RequestHandler } from '@sveltejs/kit';
 import { json } from '@sveltejs/kit';
 import { sanitizeUser } from '../auth.js';
 import type { AuthDeps } from '../deps.js';
-import { enforceRateLimit, makeRateLimiter } from '../rate-limit.js';
+import { enforceRateLimit, sharedLimiter } from '../rate-limit.js';
 import { establishSession, resolveSessionMeta } from '../session.js';
 import {
   buildOtpauthUri,
@@ -184,7 +184,7 @@ function disableHandler<R extends string>(deps: AuthDeps<R>): { POST: RequestHan
   // session could brute-force the current password here — at the most valuable
   // target of all, since success removes the second factor.
   // `createAuthDeps` injects a strict default; explicit config tunes it.
-  const rateLimiter = makeRateLimiter(deps.config.rateLimit?.twoFactorDisable);
+  const rateLimiter = sharedLimiter(deps.config, 'twoFactorDisable');
 
   return {
     POST: async (event) => {
@@ -224,7 +224,7 @@ function disableHandler<R extends string>(deps: AuthDeps<R>): { POST: RequestHan
 // A wrong code does NOT consume the pending cookie (the user retries within
 // the TTL); a correct one does (single-use).
 function verifyHandler<R extends string>(deps: AuthDeps<R>): { POST: RequestHandler } {
-  const rateLimiter = makeRateLimiter(deps.config.rateLimit?.twoFactor);
+  const rateLimiter = sharedLimiter(deps.config, 'twoFactor');
 
   return {
     POST: async (event) => {

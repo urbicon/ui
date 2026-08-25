@@ -2,7 +2,7 @@ import type { RequestHandler } from '@sveltejs/kit';
 import { json } from '@sveltejs/kit';
 import { hashToken } from '../auth.js';
 import type { AuthDeps } from '../deps.js';
-import { enforceRateLimit, makeRateLimiter } from '../rate-limit.js';
+import { enforceRateLimit, sharedLimiter } from '../rate-limit.js';
 import { validateTokenInput } from '../validation.js';
 import { parseBody } from './_shared.js';
 import { authError } from './errors.js';
@@ -10,7 +10,7 @@ import { authError } from './errors.js';
 export function createVerifyEmailHandler<R extends string>(
   deps: AuthDeps<R>
 ): { POST: RequestHandler } {
-  const rateLimiter = makeRateLimiter(deps.config.rateLimit?.verifyEmail);
+  const rateLimiter = sharedLimiter(deps.config, 'verifyEmail');
 
   return {
     POST: async ({ request, getClientAddress }) => {

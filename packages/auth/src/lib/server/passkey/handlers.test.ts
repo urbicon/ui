@@ -300,6 +300,67 @@ describe('passkey auth — ceremony-handle binding (G.1)', () => {
     expect([...jar.store.keys()][0]).not.toMatch(/^__Host-/);
   });
 
+  // The non-HTTPS signal is the deployment's, not the session cookie's: an
+  // operator who declared it through csrf or refreshToken used to get a
+  // __Host-+Secure ceremony cookie the browser discards, and every passkey login
+  // then failed with "Challenge expired or not found".
+  it.each(['csrf', 'refreshToken'] as const)(
+    'options falls back to the bare cookie name when %s.cookieSecure is false',
+    async (slice) => {
+      const deps = makeDeps();
+      deps.config[slice] = { cookieSecure: false };
+      const jar = makeCookieJar();
+      await passkeyHandlers(deps).authenticationOptions.POST(event({}, { jar }));
+      expect([...jar.store.keys()][0]).not.toMatch(/^__Host-/);
+    }
+  );
+
+  // The ceremony core is deps-free, so the factory hands it the resolved sink;
+  // otherwise its one operational report ("challenge may be replayable until
+  // TTL") lands on bare console, outside the consumer's log seam.
+  it('routes ceremony-core failures to the deps logger', async () => {
+    const deps = makeDeps();
+    const map = new Map<string, { challenge: string; expires: number }>();
+    deps.webauthn.challengeStore = {
+      get: (key) => map.get(key),
+      set: (key, entry) => void map.set(key, entry),
+      delete: () => {
+        throw new Error('store offline');
+      }
+    };
+    vi.mocked(deps.repos.passkey.findByCredentialId).mockResolvedValue(
+      mkPasskey({ credentialId: 'x' })
+    );
+    const consoleError = vi.spyOn(console, 'error').mockImplementation(() => {});
+    const jar = makeCookieJar();
+    await passkeyHandlers(deps).authenticationOptions.POST(event({}, { jar }));
+    await passkeyHandlers(deps).authenticationVerify.POST(
+      event({ credential: { id: 'x', response: {} } }, { jar })
+    );
+    expect(deps.logger.error).toHaveBeenCalledWith(
+      expect.stringContaining('challenge may be replayable until TTL'),
+      expect.any(Error)
+    );
+    expect(consoleError).not.toHaveBeenCalled();
+    consoleError.mockRestore();
+  });
+
+  it('verify reads back the bare cookie name under the same signal', async () => {
+    const deps = makeDeps();
+    deps.config.csrf = { cookieSecure: false };
+    const jar = makeCookieJar();
+    await passkeyHandlers(deps).authenticationOptions.POST(event({}, { jar }));
+    // The verify handler must look under the SAME name — a mismatch reads as a
+    // missing ceremony handle and answers 400 before touching the store.
+    const res = await passkeyHandlers(deps).authenticationVerify.POST(
+      event({ credential: { id: 'x' } }, { jar })
+    );
+    expect(await res.clone().json()).not.toMatchObject({
+      message: 'Challenge expired or not found'
+    });
+    expect(jar.store.size).toBe(0); // single-use handle consumed
+  });
+
   it('email-first: scopes allowCredentials to the user without leaking existence', async () => {
     const deps = makeDeps();
     vi.mocked(deps.repos.user.findByEmail).mockResolvedValue(createMockUser({ id: 'u1' }));

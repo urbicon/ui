@@ -1,5 +1,5 @@
 import type { Cookies } from '@sveltejs/kit';
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
 import { DEFAULT_CSRF_COOKIE_NAME, DEFAULT_CSRF_HEADER_NAME } from '../csrf-constants.js';
 import { ensureCsrfCookie, generateCsrfToken, validateCsrf } from './csrf.js';
 import { timingSafeEqualStrings } from './timing-safe.js';
@@ -120,7 +120,16 @@ describe('validateCsrf (double-submit-cookie)', () => {
     const req = makeRequest('POST', 'http://localhost:3000', {
       [DEFAULT_CSRF_HEADER_NAME]: token
     });
-    expect(validateCsrf(req, url, { doubleSubmit: true })).toBe(false);
+    // The report goes to the supplied sink rather than bare `console`:
+    // validateCsrf is a standalone export (a federated consumer calls it from
+    // its own hook), so the deps bundle's log seam reaches it as an option.
+    // Emitted once per process, so this is the file's only chance to see it.
+    const logger = { warn: vi.fn(), error: vi.fn() };
+    const consoleError = vi.spyOn(console, 'error').mockImplementation(() => {});
+    expect(validateCsrf(req, url, { doubleSubmit: true, logger })).toBe(false);
+    expect(logger.error).toHaveBeenCalledWith(expect.stringContaining('doubleSubmit enabled'));
+    expect(consoleError).not.toHaveBeenCalled();
+    consoleError.mockRestore();
   });
 
   it('honours custom cookie and header names', () => {

@@ -6,7 +6,7 @@ import type { AuthDeps } from '../deps.js';
 import type { MailBuilder } from '../email/builders.js';
 import { resolveEmailSettings } from '../email/resolve.js';
 import { buildPasswordResetEmail } from '../email/templates.js';
-import { enforceRateLimit, makeRateLimiter } from '../rate-limit.js';
+import { enforceRateLimit, sharedLimiter } from '../rate-limit.js';
 import { validateEmailInput } from '../validation.js';
 import { notifyHook, parseBody } from './_shared.js';
 
@@ -23,7 +23,7 @@ export function createForgotPasswordHandler<R extends string>(
   deps: AuthDeps<R>,
   options: ForgotPasswordHandlerOptions = {}
 ): { POST: RequestHandler } {
-  const rateLimiter = makeRateLimiter(deps.config.rateLimit?.forgotPassword);
+  const rateLimiter = sharedLimiter(deps.config, 'forgotPassword');
 
   return {
     POST: async ({ request, getClientAddress }) => {

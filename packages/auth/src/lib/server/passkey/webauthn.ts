@@ -4,6 +4,7 @@
 // assertion verification); challenge storage lives in challenge-store.ts and
 // the byte-level authData/COSE work in cose.ts.
 
+import type { AuthLogger } from '../../types.js';
 import { base64UrlDecode, base64UrlEncode, concatBytes, toArrayBuffer } from '../encoding.js';
 import { timingSafeEqual } from '../timing-safe.js';
 import { type CborValue, decodeCbor } from './cbor.js';
@@ -30,6 +31,14 @@ export interface WebAuthnConfig {
    * in-memory Map — suitable only for single-process deployments.
    */
   challengeStore?: ChallengeStore;
+  /**
+   * Sink for the ceremony core's operational failures (a challenge store whose
+   * `delete` throws — the challenge stays replayable until its TTL). Left unset,
+   * `createPasskeyHandlers` fills it from the deps bundle so passkey logs land
+   * in the same place as every other auth log; a consumer driving `webauthn.ts`
+   * directly can set it themselves. Defaults to `console`.
+   */
+  logger?: AuthLogger;
   /**
    * Require the authenticator's User Verification (UV) flag — typically a
    * biometric check or PIN. **Default `true`**: the generated options advertise
@@ -219,7 +228,11 @@ export async function verifyRegistration(
   credential: RegistrationCredentialJSON
 ): Promise<VerifiedRegistration> {
   // 1. Verify challenge
-  const expectedChallenge = await consumeChallenge(resolveChallengeStore(config), userId);
+  const expectedChallenge = await consumeChallenge(
+    resolveChallengeStore(config),
+    userId,
+    config.logger
+  );
   if (!expectedChallenge) {
     throw new WebAuthnError('Challenge expired or not found');
   }
@@ -321,7 +334,11 @@ export async function verifyAssertion(
   storedCounter: number
 ): Promise<VerifiedAssertion> {
   // 1. Verify challenge
-  const expectedChallenge = await consumeChallenge(resolveChallengeStore(config), challengeKey);
+  const expectedChallenge = await consumeChallenge(
+    resolveChallengeStore(config),
+    challengeKey,
+    config.logger
+  );
   if (!expectedChallenge) {
     throw new WebAuthnError('Challenge expired or not found');
   }
