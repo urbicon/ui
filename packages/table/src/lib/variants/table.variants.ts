@@ -366,8 +366,8 @@ export type HeaderIndicatorVariantProps = VariantProps<typeof headerIndicatorVar
  *   --blocks-table-sticky-top (consumer, default 0)
  *   --blocks-table-toolbar-h  (set internally via ResizeObserver)
  *   --blocks-table-thead-h    (set internally via ResizeObserver)
- *   --blocks-table-avail-top  (set internally; container's document-top offset,
- *                              consumed by the `contained` height cap)
+ *   --blocks-table-avail-top  (set internally; the viewport space reserved above
+ *                              the container, consumed by the `contained` cap)
  */
 
 /**
@@ -587,8 +587,10 @@ const rawTableContainerVariants = tv({
     },
     // `fit="viewport"` — the table becomes its own scroll container so wide/long
     // lists scroll *within* the box (both axes) instead of pushing horizontal
-    // overflow onto the page. The container is height-capped to the viewport
-    // (minus its measured document-top offset in --blocks-table-avail-top), and
+    // overflow onto the page. The container is height-capped to the viewport,
+    // minus whatever is reserved above it once the reader has scrolled it into
+    // use (--blocks-table-avail-top: a pinned app bar, a clipping pane — 0 in
+    // the plain page flow, where the box can reach the top of the viewport), and
     // flexbox keeps the toolbar + pagination (shrink-0) outside the scrolling
     // `scrollArea`. The scrollArea is `flex-auto` (NOT `flex-1`/basis-0, which
     // would collapse the box for short tables) + `min-h-0` so only the rows

@@ -191,10 +191,19 @@
   let tableDomWidth = $state<string>('100%');
 
   // `--blocks-table-sticky-top` is the consumer-facing offset (e.g. fixed top bar).
-  // In contained mode the box's measured top handles the offset, so the
-  // page-relative sticky-top must be 0 (the thead pins to the box, not the page);
-  // `stickyOffset` is ignored there.
-  const containerStyle = $derived(`--blocks-table-sticky-top: ${contained ? 0 : stickyOffset}px;`);
+  // In contained mode the thead pins to the box and not to the page, so the
+  // page-relative sticky-top must be 0; `stickyOffset` is ignored there, and what
+  // an *ancestor* holds above the box is reserved by the cap
+  // (`--blocks-table-avail-top`) instead. A fixed top bar that is only a sibling
+  // of the table is in neither of those and is not accounted for anywhere.
+  //
+  // Set through `style:` and not as a `style=` string: the same inline style
+  // carries the properties `measureToCssVar` / `measureViewportOffsetTop` write
+  // onto this element, and a `style=` attribute is re-set as a whole string on
+  // every change — which deleted both measured properties, with nothing to put
+  // them back until the next resize (dragging `stickyOffset` pinned the thead on
+  // top of the toolbar). `style:` sets the one property.
+  const stickyTopValue = $derived(`${contained ? 0 : stickyOffset}px`);
   const stuckRootMargin = $derived(`-${stickyOffset + 1}px`);
 
   // Default toolbar = SmartFilterBar; consumers can override via the `toolbar` snippet
@@ -259,7 +268,7 @@
 
   <div
     class={resolveSlotClass(tableStyles.container, slotClasses.container, unstyled, className)}
-    style={containerStyle}
+    style:--blocks-table-sticky-top={stickyTopValue}
     data-table-container
     data-fit={contained ? 'viewport' : 'content'}
     data-testid="table"
