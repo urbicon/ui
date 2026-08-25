@@ -5,7 +5,7 @@ import { hashPassword, validatePasswordStrength } from '../password.js';
 import { enforceRateLimit, sharedLimiter } from '../rate-limit.js';
 import { establishSession, resolveSessionMeta } from '../session.js';
 import { validateChangePasswordInput } from '../validation.js';
-import { parseBody, requireSessionUser, verifyCurrentPassword } from './_shared.js';
+import { notifyHook, parseBody, requireSessionUser, verifyCurrentPassword } from './_shared.js';
 import { authError } from './errors.js';
 
 /**
@@ -68,16 +68,14 @@ export function createChangePasswordHandler<R extends string>(
           resolveSessionMeta(event, deps.config)
         );
 
-      // Post-commit notification: the password is already changed, so a throwing
-      // hook must not turn a successful change into a 500. Catch and log.
-      try {
-        await deps.config.hooks?.onPasswordChanged?.(user.id);
-      } catch (err) {
-        deps.logger.error(
-          `[auth] change-password: onPasswordChanged hook threw (user ${user.id})`,
-          err
-        );
-      }
+      // Post-commit: the password is already changed and every other session
+      // already dropped.
+      await notifyHook(
+        deps,
+        { site: 'change-password', subject: user.id },
+        'onPasswordChanged',
+        user.id
+      );
 
       return json({ success: true });
     }

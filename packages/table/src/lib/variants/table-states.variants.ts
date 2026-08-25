@@ -513,9 +513,9 @@ export const mobileCardVariants = tv({
  * rounded-contain p-4`, floated on `mt-3`. Inside a seamless list a boxed total
  * is the one thing left that still reads as a panel.
  *
- * The totals band is the mobile phrasing of `summaryRowVariants` in its
- * `highlighted` default: a 2px summary rule on the side that separates it, an
- * uppercase label, a tabular value — same table, one vocabulary.
+ * The totals band is the mobile phrasing of `summaryRowVariants`: a 2px summary
+ * rule on the side that separates it, an uppercase label, a tabular value —
+ * same table, one vocabulary.
  *
  * The group header cannot be phrased that way. What tells the desktop group row
  * apart from a data row is its chevron and its indent, and the mobile list has

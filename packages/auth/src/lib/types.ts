@@ -475,10 +475,65 @@ export interface AuthConfig<R extends string = string> {
     afterLogout?: string;
     loginPage?: string;
   };
+  /**
+   * Consumer callbacks fired at named points in the auth flows. Every one
+   * states what a throw inside it does, and there are only two answers:
+   *
+   * - **Caught and logged** — the hook only reports, so a failure inside it
+   *   must not change the status the handler had earned. The error goes to
+   *   `config.logger.error`; it is never swallowed. This is every hook except
+   *   the two below.
+   * - **Aborts the request** — `onBeforeAccountDelete` and `transformUser`
+   *   gate an outcome that has not happened yet, so the caller must see the
+   *   throw.
+   *
+   * The split follows from what a hook *is*, not from where it is called: an
+   * observer never gets to fail a request, a gate always does.
+   */
   hooks?: {
+    /**
+     * Fires after `createRegisterHandler` has created the account, spent the
+     * single-use invitation and sent the verification mail — and before the
+     * auto-login session is established. Receives the sanitized user.
+     *
+     * A throw is caught and logged. The invitation is already consumed by this
+     * point, so a failed response would invite a retry that answers
+     * `invitation_used` 403.
+     */
     onUserCreated?: (user: AuthUser<R>) => Promise<void>;
+    /**
+     * Fires after a new password hash was written and every other session
+     * invalidated — from `createChangePasswordHandler` (re-auth) and from
+     * `createResetPasswordHandler` (reset token, already spent).
+     *
+     * A throw is caught and logged: the old password no longer works by the
+     * time this runs, so the change cannot be reported as failed.
+     */
     onPasswordChanged?: (userId: string) => Promise<void>;
+    /**
+     * Fires once a session is established, from all three login paths: the
+     * password login (`createLoginHandler`), the TOTP second step
+     * (`createTwoFactorHandlers` → `verify`) and a passkey assertion
+     * (`createPasskeyHandlers`). Receives the sanitized user — the audit seam
+     * for "who signed in".
+     *
+     * A throw is caught and logged; the session cookie is already set.
+     */
     onLoginSuccess?: (user: AuthUser<R>) => Promise<void>;
+    /**
+     * Fires on every rejected login. `reason` is `user_not_found` or
+     * `invalid_password` on the password path, and one of `challenge_missing`,
+     * `unknown_credential`, `user_handle_mismatch`, `credential_deleted`,
+     * `counter_regression`, `user_not_found`, `invalid_assertion` on the
+     * passkey path — where `email` is `''`, because those ceremonies resolve no
+     * address (the reason disambiguates).
+     *
+     * A throw is caught and logged. On the `invalid_password` path the failed
+     * attempt has already been counted towards the lockout, so a `500` would
+     * spend that budget while hiding from the user that their password was
+     * wrong; on the others it would replace a precise `401` with a status that
+     * invites a retry.
+     */
     onLoginFailed?: (email: string, reason: string) => Promise<void>;
     /**
      * Fires when issuing a password-reset email fails. The forgot-password
@@ -487,8 +542,10 @@ export interface AuthConfig<R extends string = string> {
      * a failure can't surface as an HTTP error — the user was already told
      * "if the account exists, an email was sent". Wire this to your error
      * tracker so a broken mail transport doesn't silently lock users out of
-     * recovery. Note: on serverless/edge runtimes that freeze the worker after
-     * the response, neither this hook nor the internal log may run — use a
+     * recovery. A throw is caught and logged — it runs detached from the
+     * response, where an unguarded one would surface as an unhandled rejection.
+     * Note: on serverless/edge runtimes that freeze the worker after the
+     * response, neither this hook nor the internal log may run — use a
      * queue-backed email transport there for guaranteed delivery.
      */
     onPasswordResetFailed?: (email: string, err: unknown) => Promise<void>;
@@ -518,7 +575,8 @@ export interface AuthConfig<R extends string = string> {
      * failure can't surface as an HTTP error — the user was already told to
      * check their new inbox. Wire this to your error tracker so a broken mail
      * transport doesn't silently leave a user waiting for a mail that never
-     * arrives. Same serverless/edge caveat as `onPasswordResetFailed`.
+     * arrives. A throw is caught and logged, like `onPasswordResetFailed`, and
+     * carries the same serverless/edge caveat.
      */
     onEmailChangeFailed?: (userId: string, newEmail: string, err: unknown) => Promise<void>;
     /**
@@ -554,8 +612,16 @@ export interface AuthConfig<R extends string = string> {
      * re-resolves the session and keeps `locals.user` consistently typed.
      *
      * A throw fails the request (wrap your own logic in try/catch for
-     * resilience). Whatever you return lands on `locals.user`, so don't add
-     * secrets if `locals.user` is serialized to the client.
+     * resilience) — with one exception it cannot be allowed to break: when the
+     * request arrived on an expired access cookie and the handle hook rotated
+     * the refresh token to keep it going, the rotation is already committed and
+     * its replacement cookies are staged on the response. There a throw is
+     * caught and logged and the request continues unauthenticated, because
+     * losing those cookies would strand the browser on a spent token and get
+     * the whole refresh family revoked as a suspected theft.
+     *
+     * Whatever you return lands on `locals.user`, so don't add secrets if
+     * `locals.user` is serialized to the client.
      *
      * **Shape contract:** the notification handlers (stream, preferences,
      * push-subscription, CRUD) identify the caller via `locals.user.id`, so

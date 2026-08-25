@@ -1205,30 +1205,33 @@ describe('table intents — WCAG contrast', () => {
    * it on the stop `-hover` already used, making the light-mode hover a no-op on
    * all three — invisible to the AA cases above, which measure each state
    * against text and are perfectly happy for two states to be the same colour.
-   * The whole ladder moved instead (-700/-800/-900); this is what says so.
+   * The whole ladder moved instead; this is what says so.
    */
   for (const intent of TABLE_INTENTS) {
-    for (const [rest, step] of [
-      ['', '-hover'],
-      ['-hover', '-active']
-    ] as const) {
-      it(`${intent}${step} steps away from ${intent}${rest || ' (resting)'}`, () => {
-        for (const mode of MODES) {
-          const a = resolveToken(css, `--color-${intent}${rest}`, mode);
-          const b = resolveToken(css, `--color-${intent}${step}`, mode);
-          expect(
-            [b.l, b.c, b.h],
-            `--color-${intent}${step} resolves to the same value as ` +
-              `--color-${intent}${rest || ''} in ${mode} mode — any hover/press built ` +
-              `on this pair is a silent no-op there`
-          ).not.toEqual([a.l, a.c, a.h]);
-        }
-      });
-    }
+    it(`${intent}-hover steps away from ${intent} (resting)`, () => {
+      for (const mode of MODES) {
+        const a = resolveToken(css, `--color-${intent}`, mode);
+        const b = resolveToken(css, `--color-${intent}-hover`, mode);
+        expect(
+          [b.l, b.c, b.h],
+          `--color-${intent}-hover resolves to the same value as --color-${intent} ` +
+            `in ${mode} mode — any hover built on this pair is a silent no-op there`
+        ).not.toEqual([a.l, a.c, a.h]);
+      }
+    });
   }
 
+  /**
+   * These three carry four roles, not the blocks five: `table-theme.css`
+   * declares no `--color-<intent>-active`. The table's two press grounds ride
+   * `bg-surface-active`, so an `-active` step on the intent ladder would be a
+   * declaration nothing reads and these cases would be its only reader. Extend
+   * this list when a table surface paints a *pressed intent*, not before.
+   */
+  const TABLE_STATE_NAMES = ['base', 'hover'] as const satisfies readonly State[];
+
   for (const intent of TABLE_INTENTS) {
-    for (const state of STATE_NAMES) {
+    for (const state of TABLE_STATE_NAMES) {
       it(`${intent}/${state} — light mode clears AA against text-on-fill`, () => {
         const bg = resolveToken(css, STATES[state](intent as never), 'light');
         const fg = resolveToken(css, '--color-text-on-fill', 'light');
