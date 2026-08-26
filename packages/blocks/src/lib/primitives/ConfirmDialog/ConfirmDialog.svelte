@@ -31,7 +31,6 @@
   );
 
   async function handleConfirm() {
-    if (isLoading) return;
     if (!onConfirm) {
       open = false;
       return;
@@ -84,6 +83,22 @@
   {/if}
 
   {#snippet footer()}
+    <!--
+      In flight — `busy` from a pending onConfirm, or the consumer's `loading`
+      prop — each button carries exactly one guard, and the two differ on
+      purpose. Cancel is `disabled`: on the busy path nothing can abort the
+      running onConfirm, so a cancel would report onCancel for an action that
+      still completes; on the loading path the consumer asked for the lock.
+      Confirm carries `loading` and must not be `disabled`: on the busy path it
+      is the element holding focus, and both engines drop focus to <body> when
+      a focused button becomes disabled (measured, WebKit asynchronously;
+      `aria-busy` keeps it in place). On the loading path that drop can still
+      happen — focus on Cancel or × when the prop flips — and Dialog claims
+      Escape at the window level for exactly that case. Button drops the click
+      itself while `loading`, so handleConfirm needs no re-entrancy check of
+      its own: it is reachable only through this button, and Enter/Space
+      arrive as native clicks.
+    -->
     <Button variant="ghost" intent="neutral" onclick={handleCancel} disabled={isLoading}>
       {cancelLabel ?? bt('button.cancel')}
     </Button>

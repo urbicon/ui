@@ -92,8 +92,12 @@ export interface ConfirmDialogProps
 
   /**
    * Externally controlled loading flag. Combined with the internal `busy`
-   * flag from an async `onConfirm`. While truthy, both buttons are
-   * disabled and dismissal is blocked.
+   * flag from an async `onConfirm`. While truthy, the confirm button is busy
+   * (spinner, still focusable, clicks dropped), the cancel button is
+   * disabled, and dismissal is blocked — Escape, backdrop and the close
+   * button. A close request that is not a key press (back gesture,
+   * assistive tech) is vetoed twice; the browser honours the third without
+   * user activation, and that arrives as an ordinary close.
    * @default false
    */
   loading?: boolean;
