@@ -43,6 +43,7 @@
     // are merged, rather than one silently replacing the other. Mirrors Dialog.
     onkeydown: onkeydownProp,
     onclose: oncloseProp,
+    oncancel: oncancelProp,
     'aria-labelledby': ariaLabelledby,
     'aria-describedby': ariaDescribedby,
     ...restProps
@@ -124,16 +125,29 @@
   }
 
   // Native <dialog> only routes ESC to its `onkeydown` when focus is inside
-  // the dialog. If the user opens the drawer and never clicks into it, focus
-  // can stay on the trigger or body, and ESC silently misses our handler.
-  // The window-level listener catches that case; the `isTop` guard makes
-  // sure stacked overlays close one-at-a-time.
+  // the dialog. With focus outside (never clicked in, or dropped to <body>
+  // when the focused button became disabled) an unclaimed ESC reaches the
+  // UA's close watcher, which closes a modal regardless of `closeOnEscape`.
+  // So the window listener claims ESC whenever this drawer is the top overlay
+  // and only then decides whether to close — the same rule as `handleKeydown`
+  // below. The `preventDefault()` is what holds the drawer: it stops the close
+  // watcher before it runs (the measurement is at Dialog's handler of the same
+  // name). The `isTop` guard makes sure stacked overlays close one-at-a-time.
   function handleWindowKeydown(event: KeyboardEvent) {
     if (event.key !== 'Escape') return;
-    if (!open || !closeOnEscape || event.defaultPrevented) return;
+    if (!open || event.defaultPrevented) return;
     if (!overlayStack.isTop(overlayId)) return;
     event.preventDefault();
-    requestClose();
+    if (closeOnEscape) requestClose();
+  }
+
+  // Second line, for close requests that are not a keydown (back gesture,
+  // assistive tech): vetoing the UA's `cancel` keeps the drawer open while the
+  // window holds user activation; the close watcher's anti-abuse rule closes
+  // regardless on repeated requests without one (measured at Dialog). That
+  // close arrives as `close` and is routed through `onClose` like any other.
+  function handleNativeCancel(event: Event) {
+    if (!closeOnEscape) event.preventDefault();
   }
 
   $effect(() => {
@@ -210,6 +224,7 @@
     class={unstyled ? (slotClasses?.dialog ?? '') : styles.dialog({ class: slotClasses?.dialog })}
     onkeydown={composeHandlers(handleKeydown, onkeydownProp)}
     onclose={composeHandlers(handleNativeClose, oncloseProp)}
+    oncancel={composeHandlers(handleNativeCancel, oncancelProp)}
     aria-labelledby={labelledBy}
     aria-describedby={describedBy}
     aria-modal="true"

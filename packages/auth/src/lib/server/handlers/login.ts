@@ -18,9 +18,16 @@ import { authError } from './errors.js';
 const DUMMY_VERIFY_PASSWORD = 'urbicon-auth-timing-equalization-dummy';
 
 /**
- * Whether the failed-login count has gone stale — its last failure is at least
- * `decayMinutes` old, so it describes a past episode rather than an attack in
- * progress.
+ * The instant a counted failure must be at or before to no longer count: a
+ * count whose newest failure is older than `decayMinutes` describes a past
+ * episode rather than an attack in progress.
+ */
+function decayCutoff(lockout: LockoutConfig, now: number): Date {
+  return new Date(now - (lockout.decayMinutes ?? DEFAULT_DECAY_MINUTES) * 60_000);
+}
+
+/**
+ * Whether the failed-login count has gone stale against `cutoff`.
  *
  * `lastFailedAt` is the only evidence for the count's age, so anything that is
  * not a usable date (an adapter that does not track the column, a cleared
@@ -28,11 +35,11 @@ const DUMMY_VERIFY_PASSWORD = 'urbicon-auth-timing-equalization-dummy';
  * its pre-decay meaning. Reading it as decayed instead would discard the count
  * of every adapter that leaves the field null.
  */
-function attemptsDecayed(lastFailedAt: Date | null, lockout: LockoutConfig, now: number): boolean {
+function attemptsDecayed(lastFailedAt: Date | null, cutoff: Date): boolean {
   if (!(lastFailedAt instanceof Date)) return false;
-  // An `Invalid Date` needs no branch of its own: its age is NaN, and every
+  // An `Invalid Date` needs no branch of its own: its time is NaN, and every
   // comparison against NaN is false, so it lands on "cannot tell" as well.
-  return now - lastFailedAt.getTime() >= (lockout.decayMinutes ?? DEFAULT_DECAY_MINUTES) * 60_000;
+  return lastFailedAt.getTime() <= cutoff.getTime();
 }
 
 export function createLoginHandler<R extends string>(deps: AuthDeps<R>): { POST: RequestHandler } {
@@ -122,28 +129,21 @@ export function createLoginHandler<R extends string>(deps: AuthDeps<R>): { POST:
         // so `maxAttempts` typos spread over months no longer lock the account
         // (the counter otherwise falls only on a successful sign-in).
         //
-        // Both orderings are load-bearing. AFTER the lock check, because
-        // `resetFailedLogins` clears `lockedUntil` too and would end a live lock
-        // early (reachable whenever `decayMinutes < durationMinutes`). BEFORE
-        // the verify, because a request's own reset must precede its own
-        // increment: measured over a 12-fold burst on a stale counter, 12
-        // failures land as 12 here and as 1 — with the account left unlocked —
-        // once the reset sits in the failure branch below.
+        // Both orderings are load-bearing. AFTER the lock check, because the
+        // reset clears `lockedUntil` too and would end a live lock early
+        // (reachable whenever `decayMinutes < durationMinutes`). BEFORE the
+        // verify, because a request's own reset must precede its own
+        // increment: over a 12-fold burst on a stale counter, 12 failures land
+        // as 12 here and as 1 — with the account left unlocked — once the reset
+        // sits in the failure branch below.
         //
-        // What this does not do is make the reset safe under concurrency. It is
-        // an unconditional write derived from a read that can be arbitrarily old
-        // by the time it lands: a reset delayed past other requests' writes
-        // erases their increments AND their `lockedUntil` (measured: one held
-        // reset wiped five counted failures and a live lock), which is the only
-        // path where failing the password check clears a lock. Closing it needs
-        // a conditional write — `… WHERE lastFailedLogin < cutoff` — i.e. a new
-        // method every adapter author has to implement. Not paid here: the
-        // lockout does not bound a simultaneous burst in the first place (every
-        // request of one passes the lock check before any of them is counted,
-        // pinned below at twelve), so what the race buys is one more burst
-        // window, not unbounded guessing.
-        if (attempts.count > 0 && attemptsDecayed(attempts.lastFailedAt, lockout, now)) {
-          await deps.repos.user.resetFailedLogins(user.id);
+        // The write is derived from a read that can be arbitrarily old by the
+        // time it lands, which is why the reset is the guarded form: the store
+        // applies it only where `lastFailedAt` is still at or before the cutoff,
+        // so failures counted in between — and the lock they set — survive.
+        const cutoff = decayCutoff(lockout, now);
+        if (attempts.count > 0 && attemptsDecayed(attempts.lastFailedAt, cutoff)) {
+          await deps.repos.user.resetFailedLoginsIfStale(user.id, cutoff);
         }
       }
 
