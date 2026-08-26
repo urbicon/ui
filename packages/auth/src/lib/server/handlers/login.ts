@@ -22,7 +22,7 @@ const DUMMY_VERIFY_PASSWORD = 'urbicon-auth-timing-equalization-dummy';
  * count whose newest failure is older than `decayMinutes` describes a past
  * episode rather than an attack in progress.
  */
-function decayCutoff(lockout: LockoutConfig, now: number): Date {
+function decayCutoff(lockout: Required<LockoutConfig>, now: number): Date {
   return new Date(now - lockout.decayMinutes * 60_000);
 }
 
