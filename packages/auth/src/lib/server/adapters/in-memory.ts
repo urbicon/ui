@@ -29,8 +29,97 @@ import type {
   UserRepository
 } from './types.js';
 
+// --- Store -----------------------------------------------------------------
+
+// Rows keep `invitedById` (like a real table) so `user.delete` can erase the
+// invitations a user sent; the contract-facing reads project it away (the
+// `Invitation` type deliberately excludes it).
+interface StoredInvitation extends Invitation {
+  invitedById: string;
+  /** Projected away by the contract-facing reads — the hash never leaves here. */
+  tokenHash: string;
+}
+
+interface StoredPushSubscription extends PushSubscriptionData {
+  userId: string;
+}
+
+interface StoredPreference extends NotificationPreference {
+  userId: string;
+}
+
+interface StoredBackupCode {
+  userId: string;
+  codeHash: string;
+  usedAt: Date | null;
+}
+
+/** Every table of the adapter, one row map (plus its unique indexes) each. */
+interface Tables<R extends string> {
+  users: Map<string, FullAuthUser<R>>;
+  usersByEmail: Map<string, string>; // email → id (enforces @unique)
+  invitations: Map<string, StoredInvitation>;
+  invitationsByEmail: Map<string, string>; // email → id (enforces @unique)
+  invitationsByTokenHash: Map<string, string>; // tokenHash → id (also @unique)
+  notifications: Map<string, NotificationRecord>;
+  pushSubscriptions: Map<string, StoredPushSubscription>; // endpoint is globally @unique
+  notificationPreferences: Map<string, StoredPreference>; // `${userId}:${typeKey}` → pref
+  passkeys: Map<string, Passkey>; // by credentialId
+  refreshTokens: Map<string, RefreshTokenRecord>;
+  refreshTokensByHash: Map<string, string>;
+  backupCodes: StoredBackupCode[];
+  federatedAccounts: Map<string, FederatedAccount>; // JSON.stringify([issuer, subject]) → row
+}
+
+const TABLES: unique symbol = Symbol('auth:in-memory-store');
+
 /**
- * In-memory implementation of the full {@link Repositories} contract.
+ * The database behind the in-memory adapter — one handle, every table.
+ *
+ * Every `createInMemory*Repository(store)` factory is a view on the store it
+ * is given: repositories built on the same store share rows, and
+ * `user.delete` erases a user's dependents from every table of that store.
+ * Rows on a different store are as far away as another database. The handle
+ * exposes no state of its own; `createInMemoryStore()` is the only way to get
+ * one.
+ */
+export interface InMemoryStore<R extends string = string> {
+  readonly [TABLES]: Tables<R>;
+}
+
+export function createInMemoryStore<R extends string = string>(): InMemoryStore<R> {
+  return {
+    [TABLES]: {
+      users: new Map(),
+      usersByEmail: new Map(),
+      invitations: new Map(),
+      invitationsByEmail: new Map(),
+      invitationsByTokenHash: new Map(),
+      notifications: new Map(),
+      pushSubscriptions: new Map(),
+      notificationPreferences: new Map(),
+      passkeys: new Map(),
+      refreshTokens: new Map(),
+      refreshTokensByHash: new Map(),
+      backupCodes: [],
+      federatedAccounts: new Map()
+    }
+  };
+}
+
+function tablesOf<R extends string>(store: InMemoryStore<R>): Tables<R> {
+  const tables = store?.[TABLES];
+  if (!tables) {
+    throw new Error(
+      '[auth:in-memory] not a store handle — pass the value returned by createInMemoryStore()'
+    );
+  }
+  return tables;
+}
+
+/**
+ * In-memory implementation of the full {@link Repositories} contract: a fresh
+ * {@link createInMemoryStore} with every repository built on it.
  *
  * **Dev / test only.** State lives in plain `Map`s on the heap — it is wiped on
  * restart and not shared across processes or instances. Use it for the
@@ -50,84 +139,67 @@ import type {
  * fail the same suite — see `conformance.ts`.
  */
 export function createInMemoryRepos<R extends string = string>(): Repositories<R> {
-  const user = createInMemoryUserStoreInternal<R>();
-  const invitation = createInMemoryInvitationRepositoryInternal();
-  const notification = createInMemoryNotificationRepository();
-  const pushSubscription = createInMemoryPushSubscriptionRepository();
-  const notificationPreference = createInMemoryNotificationPreferenceRepositoryInternal();
-  const passkey = createInMemoryPasskeyRepository();
-  const refreshToken = createInMemoryRefreshTokenRepositoryInternal();
-  const backupCode = createInMemoryBackupCodeRepository();
-  const federatedAccount = createInMemoryFederatedAccountRepositoryInternal();
-
+  const store = createInMemoryStore<R>();
   return {
-    user: {
-      ...user.repo,
-      // The contract's delete-cascade MUST (types.ts): a relational adapter
-      // gets the dependent rows via `onDelete: Cascade` plus an explicit
-      // transaction for the invitations the user *sent*; this bundle models
-      // the same end state across its sibling stores — without the
-      // transactional atomicity a relational adapter gets for free. Erasure,
-      // so every dependent row is removed rather than made inert: a revoked
-      // refresh token still holds the `ip` and `userAgent` it was issued with.
-      async delete(id) {
-        invitation.deleteByInviter(id);
-        notificationPreference.deleteByUser(id);
-        federatedAccount.deleteByUser(id);
-        refreshToken.deleteByUser(id);
-        for (const p of await passkey.findByUserId(id)) {
-          await passkey.delete(id, p.credentialId);
-        }
-        for (const n of await notification.findByUser(id)) {
-          await notification.delete(id, n.id);
-        }
-        for (const s of await pushSubscription.findByUser(id)) {
-          await pushSubscription.delete(id, s.endpoint);
-        }
-        await backupCode.deleteAll(id);
-        user.deleteRow(id);
-      }
-    },
-    invitation: invitation.repo,
-    notification,
-    pushSubscription,
-    notificationPreference: notificationPreference.repo,
-    passkey,
-    refreshToken: refreshToken.repo,
-    backupCode,
-    federatedAccount: federatedAccount.repo
+    user: createInMemoryUserRepository(store),
+    invitation: createInMemoryInvitationRepository(store),
+    notification: createInMemoryNotificationRepository(store),
+    pushSubscription: createInMemoryPushSubscriptionRepository(store),
+    notificationPreference: createInMemoryNotificationPreferenceRepository(store),
+    passkey: createInMemoryPasskeyRepository(store),
+    refreshToken: createInMemoryRefreshTokenRepository(store),
+    backupCode: createInMemoryBackupCodeRepository(store),
+    federatedAccount: createInMemoryFederatedAccountRepository(store)
   };
 }
 
 // --- User ------------------------------------------------------------------
 
 /**
- * The user half of the in-memory adapter, minus `delete`.
- *
- * `UserRepository.delete` is GDPR erasure: it must take the rows that hang off
- * the user with it (`types.ts`). Those rows live in the sibling stores, and no
- * assembly of public repositories can reach them — `Invitation` projects
- * `invitedById` away, so not even the invitations a deleted admin sent can be
- * found through the contract. A store on its own therefore cannot carry the
- * promise, and this type says so: it does not fit `Repositories['user']`, so a
- * repo set hand-assembled from the single factories fails to compile instead
- * of shipping an erasure that leaves those invitations redeemable.
- * `createInMemoryRepos()` wires the stores together and is the complete
- * `Repositories`.
+ * The `onDelete: Cascade` of this store: every row that hangs off `userId`,
+ * from every table, in one synchronous sweep — so nothing can interleave
+ * between the user row going and its dependents going. Erasure, not
+ * revocation: a revoked refresh token still holds the `ip` and `userAgent` it
+ * was issued with.
  */
-export type InMemoryUserStore<R extends string = string> = Omit<UserRepository<R>, 'delete'>;
-
-export function createInMemoryUserRepository<R extends string = string>(): InMemoryUserStore<R> {
-  return createInMemoryUserStoreInternal<R>().repo;
+function eraseDependents<R extends string>(t: Tables<R>, userId: string): void {
+  for (const [id, inv] of t.invitations) {
+    if (inv.invitedById === userId) {
+      t.invitations.delete(id);
+      t.invitationsByEmail.delete(inv.email);
+      t.invitationsByTokenHash.delete(inv.tokenHash);
+    }
+  }
+  for (const [id, n] of t.notifications) if (n.userId === userId) t.notifications.delete(id);
+  for (const [endpoint, s] of t.pushSubscriptions) {
+    if (s.userId === userId) t.pushSubscriptions.delete(endpoint);
+  }
+  for (const [key, p] of t.notificationPreferences) {
+    if (p.userId === userId) t.notificationPreferences.delete(key);
+  }
+  for (const [credentialId, p] of t.passkeys) {
+    if (p.userId === userId) t.passkeys.delete(credentialId);
+  }
+  for (const [id, r] of t.refreshTokens) {
+    if (r.userId === userId) {
+      t.refreshTokens.delete(id);
+      t.refreshTokensByHash.delete(r.tokenHash);
+    }
+  }
+  for (let i = t.backupCodes.length - 1; i >= 0; i--) {
+    if (t.backupCodes[i].userId === userId) t.backupCodes.splice(i, 1);
+  }
+  for (const [k, row] of t.federatedAccounts) {
+    if (row.userId === userId) t.federatedAccounts.delete(k);
+  }
 }
 
-function createInMemoryUserStoreInternal<R extends string = string>(): {
-  repo: InMemoryUserStore<R>;
-  /** The user row alone; the bundle's `delete` pairs it with the dependents. */
-  deleteRow(id: string): void;
-} {
-  const byId = new Map<string, FullAuthUser<R>>();
-  const byEmail = new Map<string, string>(); // email → id (enforces @unique)
+export function createInMemoryUserRepository<R extends string = string>(
+  store: InMemoryStore<R>
+): UserRepository<R> {
+  const t = tablesOf(store);
+  const byId = t.users;
+  const byEmail = t.usersByEmail;
 
   const find = (predicate: (u: FullAuthUser<R>) => boolean): FullAuthUser<R> | undefined => {
     for (const u of byId.values()) if (predicate(u)) return u;
@@ -152,14 +224,13 @@ function createInMemoryUserStoreInternal<R extends string = string>(): {
     totpConfirmedAt: u.totpConfirmedAt ? new Date(u.totpConfirmedAt) : null
   });
 
-  const deleteRow = (id: string): void => {
-    const u = byId.get(id);
-    if (!u) return;
-    byId.delete(id);
-    byEmail.delete(u.email);
+  const clearFailedLogins = (u: FullAuthUser<R>): void => {
+    u.failedLoginAttempts = 0;
+    u.lockedUntil = null;
+    u.lastFailedLogin = null;
   };
 
-  const repo: InMemoryUserStore<R> = {
+  return {
     async findById(id) {
       const u = byId.get(id);
       return u ? cloneUser(u) : null;
@@ -296,11 +367,16 @@ function createInMemoryUserStoreInternal<R extends string = string>(): {
 
     async resetFailedLogins(id) {
       const u = byId.get(id);
-      if (u) {
-        u.failedLoginAttempts = 0;
-        u.lockedUntil = null;
-        u.lastFailedLogin = null;
-      }
+      if (u) clearFailedLogins(u);
+    },
+
+    async resetFailedLoginsIfStale(id, cutoff) {
+      const u = byId.get(id);
+      // Guard and write with no await between them: a failure recorded after
+      // the caller's read has re-dated the row past `cutoff`, and the reset
+      // must then leave it — and the lock it may carry — untouched.
+      if (!u?.lastFailedLogin || u.lastFailedLogin > cutoff) return;
+      clearFailedLogins(u);
     },
 
     async updateProfile(id, data) {
@@ -353,6 +429,19 @@ function createInMemoryUserStoreInternal<R extends string = string>(): {
       return cloneUser(u);
     },
 
+    async delete(id) {
+      // The contract's delete-cascade MUST (types.ts): every dependent row on
+      // this store goes with the user, the end state a relational adapter gets
+      // from `onDelete: Cascade` plus its explicit transaction for the
+      // invitations the user *sent*. A missing user still sweeps the
+      // dependents — the same idempotent no-op as `deleteMany`.
+      eraseDependents(t, id);
+      const u = byId.get(id);
+      if (!u) return;
+      byId.delete(id);
+      byEmail.delete(u.email);
+    },
+
     async setTotpSecret(id, encryptedSecret) {
       const u = byId.get(id);
       if (u) {
@@ -379,30 +468,17 @@ function createInMemoryUserStoreInternal<R extends string = string>(): {
       }
     }
   };
-
-  return { repo, deleteRow };
 }
 
 // --- Invitation ------------------------------------------------------------
 
-// Rows keep `invitedById` internally (like a real table) so the bundle
-// factory can model the sent-invitations cascade of `user.delete`; the
-// contract-facing reads below project it away (the `Invitation` type
-// deliberately excludes it).
-interface StoredInvitation extends Invitation {
-  invitedById: string;
-  /** Projected away by the contract-facing reads — the hash never leaves here. */
-  tokenHash: string;
-}
-
-function createInMemoryInvitationRepositoryInternal(): {
-  repo: InvitationRepository;
-  /** Cascade seam for the bundle's `user.delete` — not part of the contract. */
-  deleteByInviter(inviterId: string): void;
-} {
-  const byId = new Map<string, StoredInvitation>();
-  const byEmail = new Map<string, string>(); // email → id (enforces @unique)
-  const byTokenHash = new Map<string, string>(); // tokenHash → id (also @unique)
+export function createInMemoryInvitationRepository<R extends string = string>(
+  store: InMemoryStore<R>
+): InvitationRepository {
+  const t = tablesOf(store);
+  const byId = t.invitations;
+  const byEmail = t.invitationsByEmail;
+  const byTokenHash = t.invitationsByTokenHash;
 
   const project = (inv: StoredInvitation): Invitation => ({
     id: inv.id,
@@ -414,7 +490,7 @@ function createInMemoryInvitationRepositoryInternal(): {
     emailedAt: inv.emailedAt
   });
 
-  const repo: InvitationRepository = {
+  return {
     async findByTokenHash(tokenHash) {
       const id = byTokenHash.get(tokenHash);
       const inv = id ? byId.get(id) : undefined;
@@ -480,29 +556,14 @@ function createInMemoryInvitationRepositoryInternal(): {
       }
     }
   };
-
-  return {
-    repo,
-    deleteByInviter(inviterId) {
-      for (const [id, inv] of byId) {
-        if (inv.invitedById === inviterId) {
-          byId.delete(id);
-          byEmail.delete(inv.email);
-          byTokenHash.delete(inv.tokenHash);
-        }
-      }
-    }
-  };
-}
-
-export function createInMemoryInvitationRepository(): InvitationRepository {
-  return createInMemoryInvitationRepositoryInternal().repo;
 }
 
 // --- Notification ----------------------------------------------------------
 
-export function createInMemoryNotificationRepository(): NotificationRepository {
-  const byId = new Map<string, NotificationRecord>();
+export function createInMemoryNotificationRepository<R extends string = string>(
+  store: InMemoryStore<R>
+): NotificationRepository {
+  const byId = tablesOf(store).notifications;
 
   return {
     async create(data: CreateNotificationData) {
@@ -559,13 +620,10 @@ export function createInMemoryNotificationRepository(): NotificationRepository {
 
 // --- Push subscription -----------------------------------------------------
 
-interface StoredPushSubscription extends PushSubscriptionData {
-  userId: string;
-}
-
-export function createInMemoryPushSubscriptionRepository(): PushSubscriptionRepository {
-  // endpoint is globally @unique in the schema; key the store by it.
-  const byEndpoint = new Map<string, StoredPushSubscription>();
+export function createInMemoryPushSubscriptionRepository<R extends string = string>(
+  store: InMemoryStore<R>
+): PushSubscriptionRepository {
+  const byEndpoint = tablesOf(store).pushSubscriptions;
 
   return {
     async findByUser(userId) {
@@ -607,18 +665,12 @@ export function createInMemoryPushSubscriptionRepository(): PushSubscriptionRepo
 
 // --- Notification preference ----------------------------------------------
 
-interface StoredPreference extends NotificationPreference {
-  userId: string;
-}
+export function createInMemoryNotificationPreferenceRepository<R extends string = string>(
+  store: InMemoryStore<R>
+): NotificationPreferenceRepository {
+  const byKey = tablesOf(store).notificationPreferences;
 
-function createInMemoryNotificationPreferenceRepositoryInternal(): {
-  repo: NotificationPreferenceRepository;
-  /** Cascade seam for the bundle's `user.delete` — not part of the contract. */
-  deleteByUser(userId: string): void;
-} {
-  const byKey = new Map<string, StoredPreference>(); // `${userId}:${typeKey}` → pref
-
-  const repo: NotificationPreferenceRepository = {
+  return {
     async findByUser(userId) {
       return [...byKey.values()]
         .filter((p) => p.userId === userId)
@@ -643,25 +695,14 @@ function createInMemoryNotificationPreferenceRepositoryInternal(): {
       }
     }
   };
-
-  return {
-    repo,
-    deleteByUser(userId) {
-      for (const [key, pref] of byKey) {
-        if (pref.userId === userId) byKey.delete(key);
-      }
-    }
-  };
-}
-
-export function createInMemoryNotificationPreferenceRepository(): NotificationPreferenceRepository {
-  return createInMemoryNotificationPreferenceRepositoryInternal().repo;
 }
 
 // --- Passkey ---------------------------------------------------------------
 
-export function createInMemoryPasskeyRepository(): PasskeyRepository {
-  const byCredentialId = new Map<string, Passkey>();
+export function createInMemoryPasskeyRepository<R extends string = string>(
+  store: InMemoryStore<R>
+): PasskeyRepository {
+  const byCredentialId = tablesOf(store).passkeys;
 
   // Copy both nested mutables — the `Uint8Array` public key and the transports
   // array — so neither the caller's input nor a returned handle aliases the
@@ -739,13 +780,17 @@ export function createInMemoryPasskeyRepository(): PasskeyRepository {
 
 // --- Refresh token -----------------------------------------------------------
 
-function createInMemoryRefreshTokenRepositoryInternal(): {
-  repo: RefreshTokenRepository;
-  /** Cascade seam for the bundle's `user.delete` — not part of the contract. */
-  deleteByUser(userId: string): void;
-} {
-  const byId = new Map<string, RefreshTokenRecord>();
-  const byHash = new Map<string, string>();
+/**
+ * In-memory `RefreshTokenRepository`. Suitable only for single-process
+ * deployments and tests — production consumers should pass a persistent
+ * implementation (Prisma, Redis, etc.) via `repos.refreshToken`.
+ */
+export function createInMemoryRefreshTokenRepository<R extends string = string>(
+  store: InMemoryStore<R>
+): RefreshTokenRepository {
+  const t = tablesOf(store);
+  const byId = t.refreshTokens;
+  const byHash = t.refreshTokensByHash;
 
   // Reads (and create's echo) return a fully detached copy — same doctrine as
   // `cloneUser` above: a caller mutating a returned record or one of its Dates
@@ -757,7 +802,7 @@ function createInMemoryRefreshTokenRepositoryInternal(): {
     createdAt: new Date(r.createdAt)
   });
 
-  const repo: RefreshTokenRepository = {
+  return {
     async create(data: CreateRefreshTokenData): Promise<RefreshTokenRecord> {
       const record: RefreshTokenRecord = {
         id: randomUUID(),
@@ -855,39 +900,14 @@ function createInMemoryRefreshTokenRepositoryInternal(): {
       }
     }
   };
-
-  return {
-    repo,
-    deleteByUser(userId) {
-      for (const [id, record] of byId) {
-        if (record.userId === userId) {
-          byId.delete(id);
-          byHash.delete(record.tokenHash);
-        }
-      }
-    }
-  };
-}
-
-/**
- * In-memory default for `RefreshTokenRepository`. Suitable only for single-process
- * deployments and tests — production consumers should pass a persistent
- * implementation (Prisma, Redis, etc.) via `repos.refreshToken`.
- */
-export function createInMemoryRefreshTokenRepository(): RefreshTokenRepository {
-  return createInMemoryRefreshTokenRepositoryInternal().repo;
 }
 
 // --- Two-factor backup codes -----------------------------------------------
 
-interface StoredBackupCode {
-  userId: string;
-  codeHash: string;
-  usedAt: Date | null;
-}
-
-export function createInMemoryBackupCodeRepository(): BackupCodeRepository {
-  const codes: StoredBackupCode[] = [];
+export function createInMemoryBackupCodeRepository<R extends string = string>(
+  store: InMemoryStore<R>
+): BackupCodeRepository {
+  const codes = tablesOf(store).backupCodes;
 
   return {
     async createMany(userId, codeHashes) {
@@ -915,18 +935,16 @@ export function createInMemoryBackupCodeRepository(): BackupCodeRepository {
 
 // --- Federated accounts ----------------------------------------------------
 
-function createInMemoryFederatedAccountRepositoryInternal(): {
-  repo: FederatedAccountRepository;
-  /** Cascade seam for the bundle's `user.delete` — not part of the contract. */
-  deleteByUser(userId: string): void;
-} {
+export function createInMemoryFederatedAccountRepository<R extends string = string>(
+  store: InMemoryStore<R>
+): FederatedAccountRepository {
+  const links = tablesOf(store).federatedAccounts;
   // Collision-proof composite key — issuer/subject are consumer-provided
   // strings, so a naive `${issuer}:${subject}` join could be forged across
   // the boundary; JSON.stringify keeps the pair unambiguous.
-  const links = new Map<string, FederatedAccount>();
   const key = (issuer: string, subject: string) => JSON.stringify([issuer, subject]);
 
-  const repo: FederatedAccountRepository = {
+  return {
     async findByFederatedId(issuer, subject) {
       const row = links.get(key(issuer, subject));
       return row ? { ...row } : null;
@@ -967,17 +985,4 @@ function createInMemoryFederatedAccountRepositoryInternal(): {
       return true;
     }
   };
-
-  return {
-    repo,
-    deleteByUser(userId) {
-      for (const [k, row] of links) {
-        if (row.userId === userId) links.delete(k);
-      }
-    }
-  };
-}
-
-export function createInMemoryFederatedAccountRepository(): FederatedAccountRepository {
-  return createInMemoryFederatedAccountRepositoryInternal().repo;
 }

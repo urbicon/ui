@@ -43,7 +43,7 @@ Runtime dependencies: **none**.
 | `@urbicon-ui/auth`                             | Universal      | Client stores, components, types                            |
 | `@urbicon-ui/auth/server`                      | Server         | Handlers, auth core, adapters, i18n                         |
 | `@urbicon-ui/auth/server/adapters/prisma`      | Server         | Prisma adapter factory (`createPrismaRepos`)                |
-| `@urbicon-ui/auth/server/adapters/in-memory`   | Server         | In-memory adapter (`createInMemoryRepos`) — dev/test        |
+| `@urbicon-ui/auth/server/adapters/in-memory`   | Server         | In-memory adapter (`createInMemoryRepos`, per-repository factories on a `createInMemoryStore()`) — dev/test |
 | `@urbicon-ui/auth/server/adapters/conformance` | Server (tests) | Adapter conformance suite (`describeRepositoryConformance`), wired to vitest |
 | `@urbicon-ui/auth/server/adapters/conformance-core` | Server (tests) | The same suite without a runner import — pass `{ runner: { describe, it, expect } }` (bun:test as-is; jest needs `expect: (a) => expect(a)`) |
 | `@urbicon-ui/auth/server/email/lettermint`     | Server         | Lettermint email transport                                  |
@@ -103,6 +103,13 @@ export const authDeps = createAuthDeps({
   email: createConsoleEmailTransport() // dev only — prints emails to the terminal
 });
 ```
+
+`createInMemoryRepos()` is a fresh `createInMemoryStore()` with every repository built on it.
+Need only a piece — the refresh-token repository beside a user store of your own? Build that
+factory on a store handle: `createInMemoryRefreshTokenRepository(createInMemoryStore())`.
+Repositories on one store share its rows, and `user.delete` erases across all of them. The
+store carries the role type — `createInMemoryStore<'ADMIN' | 'USER'>()` — and every factory
+infers it from the handle; a role-typed factory on an untyped store is a type error.
 
 `createAuthDeps` fills in **secure brute-force defaults automatically** (login rate-limit
 5 / 15 min + lockout 5 / 15 min) — even the quickstart isn't an open door. **Every**

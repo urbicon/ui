@@ -355,7 +355,9 @@ function check(
   requires: ReadonlyArray<keyof ConformanceCapabilities>,
   body: (repos: Repositories, harness: ConformanceHarness) => Promise<void>
 ): ConformanceCheck {
-  return {
+  // Frozen like the array that holds it: one instance backs every run in the
+  // process, and `Object.freeze` on the array alone leaves `run` reassignable.
+  const entry: ConformanceCheck = {
     name,
     requires,
     async run(harness) {
@@ -367,11 +369,15 @@ function check(
       }
     }
   };
+  return Object.freeze(entry);
 }
 
 // --- the checks ------------------------------------------------------------
 
-export const conformanceChecks: readonly ConformanceCheck[] = [
+// Frozen down to the checks (see `check`): the array is exported and one
+// instance backs every run in the process, so a push into it — or a swapped
+// `run` on an entry — would reach every suite registered afterwards.
+export const conformanceChecks: readonly ConformanceCheck[] = Object.freeze([
   // -- User: single-use token claims --------------------------------------
   check('user.consumeResetToken is single-use under concurrent claims', [], async (repos, h) => {
     const user = await seedUser(repos, h.role);
@@ -843,6 +849,49 @@ export const conformanceChecks: readonly ConformanceCheck[] = [
       const reset = await repos.user.getFailedLoginAttempts(user.id);
       expect(reset.count).toBe(0);
       expect(reset.lockedUntil).toBeNull();
+    }
+  ),
+
+  check(
+    'user.resetFailedLoginsIfStale clears only a count older than the cutoff',
+    [],
+    async (repos, h) => {
+      // The login handler derives this write from a read that may be stale by
+      // the time it lands; the store-side guard is what keeps it from erasing
+      // failures counted in between, lock included (types.ts).
+      const user = await seedUser(repos, h.role);
+      const lock = { maxAttempts: 5, lockedUntil: new Date(Date.now() + 15 * 60_000) };
+      await parallel(5, () => repos.user.recordFailedLogin(user.id, lock));
+      const counted = await repos.user.getFailedLoginAttempts(user.id);
+      expect(counted.count).toBe(5);
+
+      if (counted.lastFailedAt === null) {
+        // A store that does not keep the column has nothing to hold against the
+        // cutoff, so no guarded reset may ever match it — the unconditional
+        // `resetFailedLogins` is that store's only way down.
+        await repos.user.resetFailedLoginsIfStale(user.id, futureDate());
+        expect(
+          (await repos.user.getFailedLoginAttempts(user.id)).count,
+          'an undated count is never stale'
+        ).toBe(5);
+        return;
+      }
+
+      // A cutoff before the newest failure: the count is not stale, nothing moves.
+      await repos.user.resetFailedLoginsIfStale(
+        user.id,
+        new Date(counted.lastFailedAt.getTime() - 1)
+      );
+      const kept = await repos.user.getFailedLoginAttempts(user.id);
+      expect(kept.count, 'a reset behind the newest failure must not clear the count').toBe(5);
+      expect(kept.lockedUntil, 'nor end the lock').toBeInstanceOf(Date);
+
+      // At the newest failure: stale by the contract's `<=`, so the clear lands.
+      await repos.user.resetFailedLoginsIfStale(user.id, counted.lastFailedAt);
+      const cleared = await repos.user.getFailedLoginAttempts(user.id);
+      expect(cleared.count).toBe(0);
+      expect(cleared.lockedUntil).toBeNull();
+      expect(cleared.lastFailedAt, 'the date goes with the count').toBeNull();
     }
   ),
 
@@ -1562,6 +1611,7 @@ export const conformanceChecks: readonly ConformanceCheck[] = [
     await repos.user.setPasswordResetToken(ghost, 'rt-ghost', futureDate());
     await repos.user.recordFailedLogin(ghost, { maxAttempts: 5, lockedUntil: futureDate() });
     await repos.user.resetFailedLogins(ghost);
+    await repos.user.resetFailedLoginsIfStale(ghost, futureDate());
     await repos.user.updateProfile(ghost, { name: 'Ghost' });
     await repos.user.setEmailChangeToken(ghost, 'ghost@conformance.test', 'ct-ghost', futureDate());
     await repos.user.setTotpSecret(ghost, 'enc-secret');
@@ -1993,7 +2043,7 @@ export const conformanceChecks: readonly ConformanceCheck[] = [
       expect(relinked.userId).toBe(local2);
     }
   )
-];
+]);
 
 // --- the describe wrapper --------------------------------------------------
 

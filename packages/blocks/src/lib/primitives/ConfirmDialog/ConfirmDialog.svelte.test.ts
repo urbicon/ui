@@ -145,9 +145,12 @@ describe('ConfirmDialog (component interaction)', () => {
 
   it('awaits an async onConfirm, locking against double-submit, then auto-closes on resolve', async () => {
     // The headline contract: while the confirm promise is pending the dialog
-    // stays open + busy — a second confirm click must not fire onConfirm again
-    // (Button's loading guard), and cancel is disabled. Only on resolve does it
-    // close. This is the exact behaviour the whole DOM layer exists to assert.
+    // stays open + busy — a second confirm must not fire onConfirm again, and
+    // cancel is disabled. Only on resolve does it close. The single guard is
+    // Button's `loading` check (handleConfirm has none of its own): removing
+    // `|| loading` from Button.handleClick fails this test — keep it that way.
+    // Enter is driven as well as click: a keyboard re-submit on the button
+    // that still has focus is the realistic double.
     const user = userEvent.setup();
     let resolveConfirm!: () => void;
     const onConfirm = vi.fn(
@@ -169,8 +172,15 @@ describe('ConfirmDialog (component interaction)', () => {
     expect(cancel.disabled).toBe(true);
     expect(dialogState()).toBe('open');
 
-    // Double-submit guard: a second click while busy is a no-op.
+    // Double-submit guard: a second click and an Enter while busy are no-ops.
+    // The structural half of "the button keeps focus" is what is pinned here:
+    // confirm is busy, not `disabled`. jsdom does not model the focus drop a
+    // disabled button causes in browsers, so activeElement only confirms that
+    // the Enter below lands on the button — it cannot fail for the drop.
     await user.click(confirm);
+    expect(confirm.disabled).toBe(false);
+    expect(document.activeElement).toBe(confirm);
+    await user.keyboard('{Enter}');
     expect(onConfirm).toHaveBeenCalledOnce();
 
     // Resolve → the try/finally sets open=false and clears busy.
@@ -214,6 +224,32 @@ describe('ConfirmDialog (component interaction)', () => {
     expect(cancelBtn().disabled).toBe(false);
 
     // Retry is functional: a second confirm click fires onConfirm again.
+    await user.click(confirm);
+    expect(onConfirm).toHaveBeenCalledTimes(2);
+  });
+
+  it('stays open and re-enables when onConfirm throws synchronously', async () => {
+    // Same failure contract for a sync throw: `await onConfirm()` evaluates the
+    // call inside the try block, so the throw lands in the same catch as a
+    // rejection — no auto-close, busy cleared, error handed to onError.
+    const user = userEvent.setup();
+    const failure = new Error('sync boom');
+    const onConfirm = vi.fn(() => {
+      throw failure;
+    });
+    const onError = vi.fn();
+    renderConfirm({ ...base, open: true, onConfirm, onError });
+    await tick();
+
+    const confirm = confirmBtn();
+    await user.click(confirm);
+    await tick();
+
+    expect(onError).toHaveBeenCalledWith(failure);
+    expect(dialogState()).toBe('open');
+    expect(confirm.getAttribute('aria-busy')).not.toBe('true');
+    expect(cancelBtn().disabled).toBe(false);
+
     await user.click(confirm);
     expect(onConfirm).toHaveBeenCalledTimes(2);
   });
@@ -264,6 +300,43 @@ describe('ConfirmDialog (component interaction)', () => {
     await user.keyboard('{Escape}');
 
     expect(onConfirm).not.toHaveBeenCalled();
+    expect(onCancel).not.toHaveBeenCalled();
+    expect(dialogState()).toBe('open');
+  });
+
+  it('keeps the external loading lock when focus drops to <body> and Escape follows', async () => {
+    // The chain the busy path never hits: focus sits on Cancel, the consumer's
+    // `loading` flips, Cancel becomes disabled and the browser drops focus to
+    // <body>. jsdom does not model that drop (focus stays on the disabled
+    // button, blur() is a no-op there), so the Escape is dispatched on <body>
+    // directly — which is all the drop changes: the <dialog>'s own handler
+    // never sees the key. Dialog has to claim it at the window and veto the
+    // UA's `cancel` request, or the modal closes with onCancel never fired.
+    // Oracles: the two defaultPrevented flags — jsdom has no close watcher
+    // that could close anything.
+    const onCancel = vi.fn();
+    const props = $state<ConfirmDialogProps>({ ...base, open: true, onCancel });
+    renderConfirm(props);
+    await tick();
+    await tick();
+    cancelBtn().focus();
+    expect(document.activeElement).toBe(cancelBtn());
+
+    props.loading = true;
+    flushSync();
+    expect(cancelBtn().disabled).toBe(true);
+
+    const escapeKey = new KeyboardEvent('keydown', {
+      key: 'Escape',
+      bubbles: true,
+      cancelable: true
+    });
+    document.body.dispatchEvent(escapeKey);
+    const cancel = new Event('cancel', { cancelable: true });
+    screen.getByRole('dialog', { hidden: true }).dispatchEvent(cancel);
+
+    expect(escapeKey.defaultPrevented).toBe(true);
+    expect(cancel.defaultPrevented).toBe(true);
     expect(onCancel).not.toHaveBeenCalled();
     expect(dialogState()).toBe('open');
   });

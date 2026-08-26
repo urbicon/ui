@@ -539,6 +539,16 @@ export function createPrismaUserRepository<R extends string>(
       });
     },
 
+    async resetFailedLoginsIfStale(id, cutoff) {
+      // The guard is the WHERE clause, so a failure counted after the caller's
+      // read (it stamps `lastFailedLogin = now`, past the cutoff) leaves this
+      // write matching zero rows. A `null` column never satisfies `lte`.
+      await prisma.user.updateMany({
+        where: { id, lastFailedLogin: { lte: cutoff } },
+        data: { failedLoginAttempts: 0, lockedUntil: null, lastFailedLogin: null }
+      });
+    },
+
     async updateProfile(id, data) {
       // Forward only the provided keys so a partial update never nulls a column
       // the caller didn't mean to touch. Skip the round-trip on an empty patch.

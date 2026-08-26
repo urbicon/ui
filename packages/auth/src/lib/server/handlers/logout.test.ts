@@ -1,6 +1,9 @@
 import type { RequestEvent } from '@sveltejs/kit';
 import { describe, expect, it, vi } from 'vitest';
-import { createInMemoryRefreshTokenRepository } from '../adapters/in-memory.js';
+import {
+  createInMemoryRefreshTokenRepository,
+  createInMemoryStore
+} from '../adapters/in-memory.js';
 import { hashToken } from '../auth.js';
 import type { AuthDeps } from '../deps.js';
 import { issueRefreshToken } from '../refresh-token.js';
@@ -8,7 +11,9 @@ import { createMockInvitationRepository, createMockUserRepository } from '../tes
 import { createLogoutHandler } from './logout.js';
 
 function createMockDeps(refreshEnabled = false): AuthDeps {
-  const refreshRepo = refreshEnabled ? createInMemoryRefreshTokenRepository() : undefined;
+  const refreshRepo = refreshEnabled
+    ? createInMemoryRefreshTokenRepository(createInMemoryStore())
+    : undefined;
   return {
     config: {
       appUrl: 'https://app.test',

@@ -3,7 +3,8 @@ import { afterEach, describe, expect, it, vi } from 'vitest';
 import type { LockoutConfig } from '../../types.js';
 import {
   createInMemoryRefreshTokenRepository,
-  createInMemoryRepos
+  createInMemoryRepos,
+  createInMemoryStore
 } from '../adapters/in-memory.js';
 import type { UserRepository } from '../adapters/types.js';
 import type { AuthDeps } from '../deps.js';
@@ -265,7 +266,7 @@ describe('createLoginHandler', () => {
 
   it('issues a refresh cookie when refresh-token rotation is configured', async () => {
     const pw = await hashPassword('correct');
-    const refreshRepo = createInMemoryRefreshTokenRepository();
+    const refreshRepo = createInMemoryRefreshTokenRepository(createInMemoryStore());
     const deps = createMockDeps({
       findByEmail: vi.fn().mockResolvedValue(createMockUser({ passwordHash: pw }))
     });
@@ -287,7 +288,7 @@ describe('createLoginHandler', () => {
 
   it('tags the issued refresh token with the request user-agent (ip off by default)', async () => {
     const pw = await hashPassword('correct');
-    const refreshRepo = createInMemoryRefreshTokenRepository();
+    const refreshRepo = createInMemoryRefreshTokenRepository(createInMemoryStore());
     const deps = createMockDeps({
       findByEmail: vi.fn().mockResolvedValue(createMockUser({ id: 'u-ua', passwordHash: pw }))
     });
@@ -449,50 +450,59 @@ describe('createLoginHandler — failed-attempt decay', () => {
   const lockout = { maxAttempts: 5, durationMinutes: 15 };
   const minutesAgo = (m: number) => new Date(Date.now() - m * 60_000);
 
-  /** A wrong-password login against a repo reporting `attempts`. */
+  /**
+   * A wrong-password login against a repo reporting `attempts`. The handler
+   * decays through the guarded reset only; the unconditional one belongs to
+   * the success path.
+   */
   async function loginWith(
     attempts: { count: number; lockedUntil: Date | null; lastFailedAt: Date | null },
     lockoutConfig: typeof lockout & { decayMinutes?: number } = lockout
   ) {
     const pw = await hashPassword('correct');
-    const resetFailedLogins = vi.fn();
+    const resetFailedLoginsIfStale = vi.fn();
     const recordFailedLogin = vi.fn();
     const deps = createMockDeps({
       findByEmail: vi.fn().mockResolvedValue(createMockUser({ passwordHash: pw })),
       getFailedLoginAttempts: vi.fn().mockResolvedValue(attempts),
       recordFailedLogin,
-      resetFailedLogins
+      resetFailedLoginsIfStale
     });
     deps.config.lockout = lockoutConfig;
     const res = await createLoginHandler(deps).POST(
       mockRequestEvent({ email: 'test@test.com', password: 'wrong' }) as unknown as RequestEvent
     );
-    return { res, resetFailedLogins, recordFailedLogin };
+    return { res, resetFailedLoginsIfStale, recordFailedLogin };
   }
 
   it('clears a count whose last failure predates the window, before recording the next one', async () => {
-    const { res, resetFailedLogins, recordFailedLogin } = await loginWith({
+    const { res, resetFailedLoginsIfStale, recordFailedLogin } = await loginWith({
       count: 4,
       lockedUntil: null,
       lastFailedAt: minutesAgo(61)
     });
 
     expect(res.status).toBe(401);
-    expect(resetFailedLogins).toHaveBeenCalledWith('user-1');
+    expect(resetFailedLoginsIfStale).toHaveBeenCalledWith('user-1', expect.any(Date));
+    // The cutoff handed to the store is the window's edge, so the guard there
+    // decides on the same instant the handler decided on.
+    const cutoff = resetFailedLoginsIfStale.mock.calls[0][1] as Date;
+    expect(Date.now() - cutoff.getTime()).toBeGreaterThanOrEqual(60 * 60_000);
+    expect(Date.now() - cutoff.getTime()).toBeLessThan(60 * 60_000 + 5_000);
     // Order matters: reset first, then count this attempt as the new first one.
-    expect(resetFailedLogins.mock.invocationCallOrder[0]).toBeLessThan(
+    expect(resetFailedLoginsIfStale.mock.invocationCallOrder[0]).toBeLessThan(
       recordFailedLogin.mock.invocationCallOrder[0]
     );
   });
 
   it('leaves a count whose last failure is inside the window alone', async () => {
-    const { resetFailedLogins, recordFailedLogin } = await loginWith({
+    const { resetFailedLoginsIfStale, recordFailedLogin } = await loginWith({
       count: 4,
       lockedUntil: null,
       lastFailedAt: minutesAgo(59)
     });
 
-    expect(resetFailedLogins).not.toHaveBeenCalled();
+    expect(resetFailedLoginsIfStale).not.toHaveBeenCalled();
     expect(recordFailedLogin).toHaveBeenCalledOnce();
   });
 
@@ -500,24 +510,25 @@ describe('createLoginHandler — failed-attempt decay', () => {
     const short = { ...lockout, decayMinutes: 5 };
     expect(
       (await loginWith({ count: 4, lockedUntil: null, lastFailedAt: minutesAgo(6) }, short))
-        .resetFailedLogins
-    ).toHaveBeenCalledWith('user-1');
+        .resetFailedLoginsIfStale
+    ).toHaveBeenCalledWith('user-1', expect.any(Date));
     expect(
       (await loginWith({ count: 4, lockedUntil: null, lastFailedAt: minutesAgo(4) }, short))
-        .resetFailedLogins
+        .resetFailedLoginsIfStale
     ).not.toHaveBeenCalled();
     // Control on the default: six minutes is far inside the one-hour default,
     // so the same fixture decays only because decayMinutes was set.
     expect(
       (await loginWith({ count: 4, lockedUntil: null, lastFailedAt: minutesAgo(6) }))
-        .resetFailedLogins
+        .resetFailedLoginsIfStale
     ).not.toHaveBeenCalled();
   });
 
   it('does not decay when the adapter reports no lastFailedAt (fail-safe, not fail-open)', async () => {
     // `null` — an adapter that does not keep the column.
     expect(
-      (await loginWith({ count: 4, lockedUntil: null, lastFailedAt: null })).resetFailedLogins
+      (await loginWith({ count: 4, lockedUntil: null, lastFailedAt: null }))
+        .resetFailedLoginsIfStale
     ).not.toHaveBeenCalled();
     // `undefined` — one that omits the key entirely. Same answer: the count
     // keeps its pre-decay meaning rather than being discarded.
@@ -528,30 +539,30 @@ describe('createLoginHandler — failed-attempt decay', () => {
           lockedUntil: Date | null;
           lastFailedAt: Date | null;
         })
-      ).resetFailedLogins
+      ).resetFailedLoginsIfStale
     ).not.toHaveBeenCalled();
   });
 
-  it('never resets while a lock is live — resetFailedLogins would end it early', async () => {
+  it('never resets while a lock is live — resetFailedLoginsIfStale would end it early', async () => {
     // decayMinutes below durationMinutes is the reachable case: the count is
     // stale by the decay window while the lock it produced still stands.
-    const { res, resetFailedLogins, recordFailedLogin } = await loginWith(
+    const { res, resetFailedLoginsIfStale, recordFailedLogin } = await loginWith(
       { count: 5, lockedUntil: new Date(Date.now() + 10 * 60_000), lastFailedAt: minutesAgo(6) },
       { ...lockout, decayMinutes: 5 }
     );
 
     expect(res.status).toBe(423);
-    expect(resetFailedLogins).not.toHaveBeenCalled();
+    expect(resetFailedLoginsIfStale).not.toHaveBeenCalled();
     expect(recordFailedLogin).not.toHaveBeenCalled();
   });
 
   it('does not write when there is nothing to decay (count 0)', async () => {
-    const { resetFailedLogins } = await loginWith({
+    const { resetFailedLoginsIfStale } = await loginWith({
       count: 0,
       lockedUntil: null,
       lastFailedAt: minutesAgo(61)
     });
-    expect(resetFailedLogins).not.toHaveBeenCalled();
+    expect(resetFailedLoginsIfStale).not.toHaveBeenCalled();
   });
 });
 
@@ -735,6 +746,66 @@ describe('createLoginHandler — decay against the in-memory adapter', () => {
     const after = await user.getFailedLoginAttempts(id);
     expect(after.count).toBe(12);
     expect(after.lockedUntil).not.toBeNull();
+  });
+
+  // The reset is derived from a read that can be arbitrarily old when it lands.
+  // Held past six other requests, it must erase neither what they counted nor
+  // the lock they set — the store-side guard decides that, not the handler.
+  it('a reset held past six counted failures leaves their lock standing', async () => {
+    const { user, deps, id } = await seed();
+    for (let i = 0; i < 4; i++)
+      await user.recordFailedLogin(id, failedLoginLock(lockoutFor(deps.config)!));
+    // Only the clock is faked: the timeout below must stay a real one.
+    vi.useFakeTimers({ toFake: ['Date'] });
+    vi.setSystemTime(Date.now() + 61 * 60_000);
+
+    let release!: () => void;
+    const held = new Promise<void>((resolve) => {
+      release = resolve;
+    });
+    let reached!: () => void;
+    const parked = new Promise<void>((resolve) => {
+      reached = resolve;
+    });
+    let intercepted = false;
+    deps.repos.user = {
+      ...user,
+      async resetFailedLoginsIfStale(userId, cutoff) {
+        // Only the first reset is held; the six that follow run straight through.
+        if (!intercepted) {
+          intercepted = true;
+          reached();
+          await held;
+        }
+        return user.resetFailedLoginsIfStale(userId, cutoff);
+      }
+    };
+    const handler = createLoginHandler(deps);
+    const wrong = () =>
+      handler.POST(
+        mockRequestEvent({ email: 'test@test.com', password: 'wrong' }) as unknown as RequestEvent
+      );
+
+    const slow = wrong();
+    // A handler that decays through another method never parks; fail on that
+    // rather than on the test timeout.
+    await Promise.race([
+      parked,
+      new Promise<never>((_, reject) =>
+        setTimeout(() => reject(new Error('the handler never reached the guarded reset')), 2_000)
+      )
+    ]);
+    for (let i = 0; i < 6; i++) await wrong();
+    const counted = await user.getFailedLoginAttempts(id);
+    expect(counted.count, 'the six landed: one reset the stale four, five counted').toBe(5);
+    expect(counted.lockedUntil).not.toBeNull();
+
+    release();
+    expect((await slow).status).toBe(401);
+
+    const after = await user.getFailedLoginAttempts(id);
+    expect(after.lockedUntil, 'the late reset must not end the lock').not.toBeNull();
+    expect(after.count, 'nor erase the count — its own failure adds to it').toBe(6);
   });
 });
 

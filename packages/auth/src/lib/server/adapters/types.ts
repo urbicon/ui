@@ -298,7 +298,26 @@ export interface UserRepository<R extends string = string> {
    * count just read. Without `lock`, only the counter is bumped (lockout off).
    */
   recordFailedLogin(id: string, lock?: FailedLoginLock): Promise<void>;
+  /**
+   * Clear the counter, the lock and `lastFailedAt` unconditionally — the
+   * password was right, so whatever was counted is settled.
+   */
   resetFailedLogins(id: string): Promise<void>;
+  /**
+   * The same clear, but **guarded on the store side**: write it only where the
+   * newest counted failure is at or before `cutoff` — `UPDATE … WHERE id = ?
+   * AND lastFailedLogin <= ?`, one conditional statement. A row without a
+   * `lastFailedAt` matches nothing.
+   *
+   * `createLoginHandler` calls this to decay a count it has read as stale,
+   * and its write can land arbitrarily late — after other requests have
+   * counted failures and set a lock. Every one of those re-dates the row past
+   * the cutoff, so the guard is what keeps a late reset from erasing their
+   * count and ending their lock; an adapter that applies the clear regardless
+   * of the condition turns the decay into a way to wipe a live lockout, and
+   * fails the conformance check for this method.
+   */
+  resetFailedLoginsIfStale(id: string, cutoff: Date): Promise<void>;
 
   // ---- Profile & account lifecycle (core) ----
   /**
