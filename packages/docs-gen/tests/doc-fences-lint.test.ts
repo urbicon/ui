@@ -133,6 +133,16 @@ describe('doc-fences-lint', () => {
     expect(stderr).toContain('✖ 1 finding(s)');
   }, 60_000);
 
+  it('checks a fence whose info string carries more than the language', () => {
+    const { status, stdout, stderr } = run('info-string.md');
+    expect(status).toBe(1);
+    expect(stdout).toContain('info-string.md — 1 fence(s) in the tsc program');
+    expect(stderr).toContain(
+      `info-string.md:${lineOf('info-string.md', 'secret: 42')} (fence #1, TS2322)`
+    );
+    expect(stderr).toContain('✖ 1 finding(s)');
+  }, 60_000);
+
   it('rejects a fence that never closes', () => {
     const { status, stderr } = run('unclosed.md');
     expect(status).toBe(1);

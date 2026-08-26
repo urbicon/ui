@@ -90,18 +90,19 @@ Because the binding re-reads the URL rather than capturing it, the browser's bac
 
 The pure serializers work without SvelteKit — e.g. to parse the incoming query in a server `load` and fetch the first page during SSR. Use `searchParamsToViewSnapshot` from `./table-view`: it takes the *same* defaults object the component hands `createTableView`, so the server cannot resolve an absent param differently from the client, and it hands back the very shape a managed `source.query` receives.
 
+```typescript
+// src/lib/view-defaults.ts — imported by the component and by the load function.
+// `as const` keeps `direction` a `'desc'`, not a `string` the snapshot rejects.
+export const userView = { pageSize: 25, sort: { column: 'joined', direction: 'desc' } } as const;
+```
+
 <!-- typecheck -->
 ```typescript
-// +page.server.ts
+// src/routes/users/+page.server.ts
 import { searchParamsToViewSnapshot } from '@urbicon-ui/sveltekit-utils/table-view';
 import { fetchUsers } from '$lib/server/users';
+import { userView } from '$lib/view-defaults';
 import type { PageServerLoad } from './$types';
-
-// In practice its own module (view-defaults.ts), imported by the component and
-// by this load function — one object, so the two cannot resolve an absent
-// param differently. `as const` keeps `direction` a `'desc'`, not a `string`
-// the snapshot rejects.
-export const userView = { pageSize: 25, sort: { column: 'joined', direction: 'desc' } } as const;
 
 export const load: PageServerLoad = async ({ url }) => ({
   initialResult: await fetchUsers(searchParamsToViewSnapshot(url.searchParams, userView))

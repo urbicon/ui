@@ -68,6 +68,13 @@
  * every marked fence was in the program — a harness whose `include` no longer
  * matches its files is green for nothing.
  *
+ * Limits — what `tsc` structurally does not see: SvelteKit's own rules for a
+ * route file's *export set* (`@sveltejs/kit/src/utils/exports.js` — a
+ * `+page.server.ts` may export `load`, `actions`, `prerender`, … or `_`-prefixed
+ * names; anything else is a build error). A fence headed `+page.server.ts` that
+ * also exports its defaults object compiles here and fails in the app, so such
+ * data belongs in a `$lib` module the fence imports.
+ *
  * Run: `bun run docs:fences:lint` (needs `build:packages`). Options:
  *   --docs <file>…             check these Markdown files instead of the corpus
  *   --scratch <dir>            scratch directory (default: packages/docs-gen/.doc-fences-lint)
@@ -152,6 +159,8 @@ interface Doc {
 }
 
 const TS_LANGS = new Set(['ts', 'typescript']);
+/** The language is the first word of the info string; `ts title="x.ts"` is still ts. */
+const isTsFence = (delim: FenceDelimiter) => TS_LANGS.has(delim.info.split(/\s+/)[0] ?? '');
 /** Anything that mentions `typecheck` inside an HTML comment and is not the marker. */
 const MARKER_LOOKALIKE = /<!--[^>]*typecheck/i;
 
@@ -184,7 +193,7 @@ function extract(path: string): Doc {
     const marker = line.match(TYPECHECK_MARKER);
     if (marker) {
       const next = parseFenceDelimiter(lines[i + 1] ?? '');
-      if (!next || !TS_LANGS.has(next.info))
+      if (!next || !isTsFence(next))
         doc.errors.push(
           `${rel}:${i + 1}: <!-- typecheck --> must sit on the line directly above a \`\`\`ts fence`
         );
@@ -199,7 +208,7 @@ function extract(path: string): Doc {
 
     const delim = parseFenceDelimiter(line);
     if (delim) {
-      const isTs = TS_LANGS.has(delim.info);
+      const isTs = isTsFence(delim);
       if (isTs) tsIndex++;
       const prev = (lines[i - 1] ?? '').match(TYPECHECK_MARKER);
       open = { delim, line: i + 1, marker: isTs && prev ? (prev[1] ?? null) : undefined };
@@ -455,8 +464,9 @@ function project(doc: Doc, stubsUsed: Set<string>): Project | null {
           // Kit's app tsconfig restricts nothing here, so an app sees every
           // @types/* in its node_modules — node among them. The packages that
           // publish `src/` (design-engine, design-content) use node builtins,
-          // and `skipLibCheck` does not cover `.ts` sources. An entry that
-          // does not resolve is a global TS2688 — caught below, never a pass.
+          // and `skipLibCheck` does not cover `.ts` sources. `types` resolves
+          // relative to the tsconfig, so a `--scratch` outside the repo finds
+          // no @types/node: a global TS2688, caught below, never a pass.
           types: ['node'],
           ...compilerOptions
         },
