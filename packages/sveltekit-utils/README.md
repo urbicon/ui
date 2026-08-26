@@ -46,6 +46,7 @@ Bind a typed, reactive value to a URL search param. When the value changes, the 
 
 Low-level escape hatch if you prefer to update multiple params at once:
 
+<!-- typecheck -->
 ```typescript
 import { updateUrlSearchParams } from '@urbicon-ui/sveltekit-utils/url.svelte';
 
@@ -116,14 +117,15 @@ The `./table-query` subpath that used to hold a second copy of this codec — sa
 
 Fire HTTP requests against SvelteKit server endpoints on an interval. Pair with a shared-secret header so endpoints can authenticate scheduled calls.
 
+<!-- typecheck -->
 ```typescript
 // src/lib/server/cron.ts
 import { createCronRunner } from '@urbicon-ui/sveltekit-utils/cron';
-import { env } from '$env/dynamic/private';
+import { BASE_URL, CRON_SECRET } from '$env/static/private';
 
 export const cron = createCronRunner({
-  secret: env.CRON_SECRET,
-  baseUrl: env.BASE_URL,
+  secret: CRON_SECRET, // a `string`; `$env/dynamic/private` would hand over `string | undefined`
+  baseUrl: BASE_URL,
   jobs: [
     { path: '/api/cron/send-digest', intervalSeconds: 3600 },
     { path: '/api/cron/cleanup', intervalSeconds: 900, method: 'POST' }
@@ -138,10 +140,10 @@ Receive the call and verify the secret inside your endpoint:
 
 ```typescript
 // src/routes/api/cron/send-digest/+server.ts
-import { env } from '$env/dynamic/private';
+import { CRON_SECRET } from '$env/static/private';
 
 export const POST = async ({ request }) => {
-  if (request.headers.get('x-cron-secret') !== env.CRON_SECRET) {
+  if (request.headers.get('x-cron-secret') !== CRON_SECRET) {
     return new Response('Forbidden', { status: 403 });
   }
   await sendDigest();

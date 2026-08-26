@@ -28,6 +28,7 @@ The `content/` directory is a **build artifact** (git-ignored in dev, regenerate
 
 ## API
 
+<!-- typecheck -->
 ```ts
 import {
   getCatalogPath,

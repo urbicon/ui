@@ -31,15 +31,21 @@ Each subpath is consumable on its own so consumers pull in only what they need:
 
 ## Usage
 
+<!-- typecheck -->
 ```typescript
-import type { PropInfo, ComponentInfo } from '@urbicon-ui/shared-types';
+import type { ComponentInfo, PropInfo } from '@urbicon-ui/shared-types';
 import type { PlaygroundConfig } from '@urbicon-ui/shared-types/playground';
 
-const button: ComponentInfo = {
-  name: 'Button',
-  props: [{ name: 'intent', type: 'ComponentIntent', required: false }],
-  // ...
+const intent: PropInfo = {
+  name: 'intent',
+  type: 'ComponentIntent',
+  required: false,
+  description: 'Semantic colour of the button',
+  source: { type: 'direct' }
 };
+
+// `ComponentInfo` carries more required fields than shown here — see `component.ts`.
+const button: Pick<ComponentInfo, 'name' | 'props'> = { name: 'Button', props: [intent] };
 ```
 
 The root barrel export is convenient but pulls all namespaces in; prefer the subpath exports for smaller type-check surface.

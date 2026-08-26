@@ -233,6 +233,7 @@ The provider's on-mount load runs in a **client-only** `$effect`. So under SSR a
 
 The fix is to register the bundle **eagerly, once at server/app start**. The registry is module-global and holds only static, request-identical translation data, so a single startup registration is SSR-safe (it carries no per-request state). Every package factory returns `registerLocale(locale, bundle)` for this; `@urbicon-ui/blocks` re-exports it as `registerBlocksLocale`:
 
+<!-- typecheck -->
 ```ts
 // src/hooks.server.ts (or any module evaluated once at server start)
 import { registerBlocksLocale } from '@urbicon-ui/blocks';
@@ -290,6 +291,7 @@ it('en/de key parity', () => {
 
 ## API Surface
 
+<!-- typecheck -->
 ```ts
 // Provider + hooks + server helper
 import {

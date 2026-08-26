@@ -1,11 +1,18 @@
+import { readFileSync } from 'node:fs';
+import { dirname, join } from 'node:path';
+import { fileURLToPath } from 'node:url';
 import { describe, expect, it } from 'vitest';
 import {
   assertGuideSlug,
   demoteHeadings,
   guidePlaceholder,
   renderGuideForEmbedding,
-  stripLeadingH1
+  stripLeadingH1,
+  stripTypecheckMarkers,
+  TYPECHECK_MARKER
 } from '../src/generators/llm/guide-injection';
+
+const FIXTURES = join(dirname(fileURLToPath(import.meta.url)), 'fixtures/doc-fences');
 
 describe('guide-injection', () => {
   describe('guidePlaceholder', () => {
@@ -64,10 +71,65 @@ describe('guide-injection', () => {
     });
   });
 
+  describe('stripTypecheckMarkers', () => {
+    it('removes exactly the marker lines of a marked document, byte for byte otherwise', () => {
+      // the lint's own red fixture: three markers, prose, fences, an unmarked fence
+      const source = readFileSync(join(FIXTURES, 'red.md'), 'utf8');
+      const markerLines = source.split('\n').filter((l) => TYPECHECK_MARKER.test(l));
+      expect(markerLines).toHaveLength(3);
+
+      const stripped = stripTypecheckMarkers(source);
+      expect(stripped).not.toContain('typecheck');
+      expect(stripped).toBe(
+        source
+          .split('\n')
+          .filter((l) => !TYPECHECK_MARKER.test(l))
+          .join('\n')
+      );
+    });
+
+    it('strips the directive form too', () => {
+      expect(stripTypecheckMarkers('a\n<!-- typecheck: stub drizzle-orm -->\n```ts\nb\n```')).toBe(
+        'a\n```ts\nb\n```'
+      );
+    });
+
+    it('keeps every other HTML comment, and a marker-shaped line inside a fence', () => {
+      const md = [
+        '<!-- Client: listen + display -->',
+        '```svelte',
+        '<!-- typecheck -->',
+        '<!-- … app … -->',
+        '```',
+        '<!-- typecheck -->',
+        '```ts',
+        'const a = 1;',
+        '```'
+      ].join('\n');
+      expect(stripTypecheckMarkers(md)).toBe(
+        [
+          '<!-- Client: listen + display -->',
+          '```svelte',
+          '<!-- typecheck -->',
+          '<!-- … app … -->',
+          '```',
+          '```ts',
+          'const a = 1;',
+          '```'
+        ].join('\n')
+      );
+    });
+  });
+
   describe('renderGuideForEmbedding', () => {
     it('strips the title and demotes the remaining hierarchy one level', () => {
       const md = '# @urbicon-ui/auth\n\n## Architecture\n\nprose\n\n### Runtime\n\nmore';
       expect(renderGuideForEmbedding(md)).toBe('### Architecture\n\nprose\n\n#### Runtime\n\nmore');
+    });
+
+    it('drops typecheck markers on the way into the embedding document', () => {
+      const md = '# T\n\n## S\n\n<!-- typecheck -->\n```ts\nexport const a = 1;\n```';
+      expect(renderGuideForEmbedding(md)).toBe('### S\n\n```ts\nexport const a = 1;\n```');
     });
   });
 });

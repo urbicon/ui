@@ -20,6 +20,8 @@ build/
 
 # examples-lint scratch dir (removed by the script; only survives an abort)
 __examples-lint__/
+# doc-fences-lint scratch consumer project (same contract)
+.doc-fences-lint/
 
 # Code Coverage
 coverage/

@@ -81,11 +81,11 @@ export interface CronRunner {
  * ```typescript
  * // src/lib/server/cron.ts
  * import { createCronRunner } from '@urbicon-ui/sveltekit-utils/cron';
- * import { env } from '$env/dynamic/private';
+ * import { BASE_URL, CRON_SECRET } from '$env/static/private';
  *
  * export const cron = createCronRunner({
- *   secret: env.CRON_SECRET,
- *   baseUrl: env.BASE_URL,
+ *   secret: CRON_SECRET,
+ *   baseUrl: BASE_URL,
  *   jobs: [
  *     { path: '/api/cron/send-digest', intervalSeconds: 3600 },
  *     { path: '/api/cron/cleanup', intervalSeconds: 900 }

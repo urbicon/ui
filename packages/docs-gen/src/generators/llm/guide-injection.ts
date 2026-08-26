@@ -86,10 +86,35 @@ export function stripLeadingH1(markdown: string): string {
 }
 
 /**
- * The embeddable form of a guide: document title dropped, remaining headings
- * demoted one level (`##` → `###`), so the guide slots under a `##` section
- * of the embedding document.
+ * The line that opts a `ts` fence into `docs:fences:lint` (`<!-- typecheck -->`,
+ * optionally `<!-- typecheck: stub <pkg> -->`), sitting directly above the
+ * fence. Group 1 is the directive list. The lint reads this same pattern, so
+ * what it selects and what the channels strip cannot disagree.
+ */
+export const TYPECHECK_MARKER = /^<!--\s*typecheck(?::\s*(.*?))?\s*-->$/;
+
+/**
+ * Remove the `<!-- typecheck -->` marker lines — a build instruction, not
+ * content — and nothing else: every other line, including HTML comments (a
+ * `<!-- Client: … -->` inside a svelte fence is prose) and a marker-shaped
+ * line inside a fence, passes through byte for byte.
+ */
+export function stripTypecheckMarkers(markdown: string): string {
+  let inFence = false;
+  return markdown
+    .split('\n')
+    .filter((line) => {
+      if (/^\s*(```|~~~)/.test(line)) inFence = !inFence;
+      return inFence || !TYPECHECK_MARKER.test(line);
+    })
+    .join('\n');
+}
+
+/**
+ * The embeddable form of a guide: typecheck markers dropped, document title
+ * dropped, remaining headings demoted one level (`##` → `###`), so the guide
+ * slots under a `##` section of the embedding document.
  */
 export function renderGuideForEmbedding(markdown: string): string {
-  return demoteHeadings(stripLeadingH1(markdown), 1).trim();
+  return demoteHeadings(stripLeadingH1(stripTypecheckMarkers(markdown)), 1).trim();
 }

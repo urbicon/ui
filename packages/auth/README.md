@@ -88,6 +88,7 @@ restart — **dev only, never production**.
 
 **1. Dependencies** — `src/lib/server/auth-setup.ts`:
 
+<!-- typecheck -->
 ```typescript
 import { createAuthDeps } from '@urbicon-ui/auth/server';
 import { createInMemoryRepos } from '@urbicon-ui/auth/server/adapters/in-memory';
@@ -120,6 +121,7 @@ the browser keeps them.
 
 **2. Hook** — `src/hooks.server.ts`:
 
+<!-- typecheck -->
 ```typescript
 import { createAuthHandle } from '@urbicon-ui/auth/server';
 import { authDeps } from '$lib/server/auth-setup';
@@ -135,6 +137,7 @@ export const handle = createAuthHandle({ config: authDeps.config, repos: authDep
 
 **3. API route stubs** — one file per handler, e.g. `src/routes/api/auth/login/+server.ts`:
 
+<!-- typecheck -->
 ```typescript
 import { createLoginHandler } from '@urbicon-ui/auth/server';
 import { authDeps } from '$lib/server/auth-setup';
@@ -169,6 +172,7 @@ Swap the two dev pieces — in-memory → Prisma, console → a real transport �
 hardening layers. Everything here is **opt-in and additive**: the Stage 1 hook and route
 stubs are unchanged; you're only growing the config.
 
+<!-- typecheck -->
 ```typescript
 // src/lib/server/auth-setup.ts
 import { createAuthDeps } from '@urbicon-ui/auth/server';
@@ -258,6 +262,7 @@ Cookie/header names are configurable via `config.csrf.cookieName` / `config.csrf
 - **Passkeys (WebAuthn)** — wire `createPasskey*Handler`s with a `webauthn: WebAuthnConfig` (pass a persistent `challengeStore` at >1 instance; UV enforcement is **on by default** — `requireUserVerification: false` opts out, and combined with `config.twoFactor` that makes a passkey login single-factor, which the factory warns about at wiring time; upgrading an app whose users hold UV-less credentials needs the [upgrade note](https://ui.urbicon.de/auth/guide#upgrade-note--user-verification-is-enforced-by-default) first), and drop in `<PasskeyManager>` + the passkey entry point on `<LoginPage mode="both">`.
 - **Notifications & Web Push** — register domain events server-side and listen client-side:
 
+<!-- typecheck -->
 ```typescript
 // Server: register domain events
 import { createNotificationRegistry } from '@urbicon-ui/auth/server';
@@ -267,7 +272,7 @@ registry.register({
   key: 'order_shipped',
   title: (data) => `Order ${data.orderId} shipped`,
   url: (data) => `/orders/${data.orderId}`, // ⚠️ untrusted at click time — see note
-  recipients: (data) => [data.userId]
+  recipients: async (data) => [data.userId as string] // data is Record<string, unknown>
 });
 ```
 
@@ -292,6 +297,7 @@ registry.register({
 
 - **Account management (self-service)** — let a signed-in user manage their own account. Mount the four handlers under `/api/auth/account/*` and drop in `<AccountSettings>`:
 
+<!-- typecheck -->
 ```typescript
 // src/routes/api/auth/account/change-password/+server.ts
 import { createChangePasswordHandler } from '@urbicon-ui/auth/server';
