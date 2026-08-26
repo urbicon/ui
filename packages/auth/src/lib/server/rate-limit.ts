@@ -34,6 +34,13 @@ export interface RateLimitStore {
  */
 export interface RateLimiter {
   check(identifier: string): RateLimitResult | Promise<RateLimitResult>;
+  /**
+   * Hand back `amount` slots (default 1) that `check` took in the current
+   * window — a success returning exactly what its own request cost. Clamps at
+   * zero and does nothing once the window has rolled, so it can never buy
+   * budget that was not taken.
+   */
+  refund(identifier: string, amount?: number): void | Promise<void>;
   reset(identifier: string): void | Promise<void>;
 }
 
@@ -104,6 +111,16 @@ export function createRateLimiter(config: RateLimitConfig): RateLimiter {
         remaining: config.max - entry.count,
         retryAfterMs: 0
       };
+    },
+
+    async refund(identifier: string, amount = 1): Promise<void> {
+      const now = Date.now();
+      const current = await Promise.resolve(store.get(identifier));
+      // A rolled window has nothing to give back, and writing the stale entry
+      // would revive it.
+      if (!current || current.resetAt <= now) return;
+      current.count = Math.max(0, current.count - amount);
+      await Promise.resolve(store.set(identifier, current));
     },
 
     async reset(identifier: string): Promise<void> {

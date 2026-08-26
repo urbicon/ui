@@ -17,6 +17,7 @@ import { base64UrlDecodeString } from './encoding.js';
 import { authError } from './handlers/errors.js';
 import { BASE64URL_REGEX, es256Verify, MAX_TOKEN_LENGTH, SESSION_TOKEN_PURPOSE } from './jwt.js';
 import { shieldLogger } from './logger.js';
+import { compilePublicRoutes, type PublicRoute } from './public-routes.js';
 
 /**
  * The identity a verified IdP token proves — and NOTHING more. Deliberately
@@ -93,12 +94,15 @@ export interface FederatedAuthHandleOptions<TUser> {
    */
   maxTokenAge?: string;
   /**
-   * Route prefixes exempt from the guard (same `startsWith` matching as the
-   * IdP handle's `publicRoutes`). Defaults to `[]` — the whole app requires a
-   * resolved user — because unlike the IdP this app serves no login/register
-   * pages of its own; list your genuinely public pages explicitly.
+   * Routes exempt from the guard, read exactly as the IdP handle's
+   * `publicRoutes`: a string is a pathname prefix, `{ path, exact: true }` the
+   * pathname alone (see {@link PublicRoute}); a bare `'/'` prefix exempts the
+   * whole app and is warned about at construction. Defaults to `[]` — the
+   * whole app requires a resolved user — because unlike the IdP this app
+   * serves no login/register pages of its own; list your genuinely public
+   * pages explicitly.
    */
-  publicRoutes?: readonly string[];
+  publicRoutes?: readonly PublicRoute[];
   /**
    * Where to send an unauthenticated browser request (302) — typically the
    * IdP's login page, absolute URL. Deliberately used verbatim: no
@@ -345,9 +349,7 @@ export function createFederatedAuthHandle<TUser>(
   // where the typo is fixable, not per request.
   const maxTokenAgeSeconds =
     options.maxTokenAge !== undefined ? parseDurationSeconds(options.maxTokenAge) : undefined;
-  // Snapshot, as on the IdP handle: a later push into the caller's array must
-  // not silently widen this guard.
-  const publicRoutes = [...(options.publicRoutes ?? [])];
+  const isPublicPath = compilePublicRoutes(options.publicRoutes ?? [], logger);
   const allowUnauthenticatedRemote = options.allowUnauthenticatedRemote ?? false;
   const loginUrl = options.loginUrl;
 
@@ -517,8 +519,7 @@ export function createFederatedAuthHandle<TUser>(
         return authError('not_authenticated', 401);
       }
     } else {
-      const isPublic = publicRoutes.some((route) => event.url.pathname.startsWith(route));
-      if (!user && !isPublic) {
+      if (!user && !isPublicPath(event.url.pathname)) {
         if (!loginUrl || event.url.pathname.startsWith('/api/')) {
           return authError('not_authenticated', 401);
         }

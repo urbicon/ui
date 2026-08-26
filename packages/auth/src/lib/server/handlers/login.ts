@@ -68,9 +68,10 @@ export function createLoginHandler<R extends string>(deps: AuthDeps<R>): { POST:
   return {
     POST: async (event) => {
       const { request, cookies, getClientAddress } = event;
+      const clientAddress = getClientAddress();
       const limited = await enforceRateLimit(
         rateLimiter,
-        getClientAddress(),
+        clientAddress,
         'Too many login attempts. Please try again later.'
       );
       if (limited) return limited;
@@ -173,6 +174,17 @@ export function createLoginHandler<R extends string>(deps: AuthDeps<R>): { POST:
 
       // Reset failed login attempts on success
       await deps.repos.user.resetFailedLogins(user.id);
+      // The same rule on the IP axis: the limiter brakes attempts against a
+      // password, not people, so a correct one hands back the slot its request
+      // took. Counted at the top and refunded here, rather than counted only on
+      // failure, because a count after the verify would let every request run
+      // PBKDF2 before the brake. Refund, not reset: a reset would let anyone
+      // holding one valid account — his own — clear the address's budget
+      // between guesses at other accounts, and the per-account lockout does
+      // not see a spray of one guess per account. Measured: twenty correct
+      // logins behind one address are twenty 200s, and four failures plus a
+      // success still leave one failure in the window (login.test.ts).
+      await rateLimiter?.refund(clientAddress);
 
       // 2FA gate: the password is correct, but if the account has TOTP enabled
       // we must NOT establish a session yet. Gate on `totpEnabled` ALONE (not on

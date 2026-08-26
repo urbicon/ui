@@ -673,6 +673,45 @@ describe('createFederatedAuthHandle — route guard', () => {
     expect(fetchMock, 'no cookie → no verification → no fetch').not.toHaveBeenCalled();
   });
 
+  it('an exact entry exempts that pathname only; a string stays a prefix', async () => {
+    stubJwksFetch(() => jwksDocumentFor(idpJwt()));
+    const status = async (
+      publicRoutes: FederatedAuthHandleOptions<unknown>['publicRoutes'],
+      path: string
+    ) => {
+      const handle = createFederatedAuthHandle(handleOptions({ publicRoutes }));
+      return (await handle({ event: asEvent(createMockEvent({ path })), resolve: ok() })).status;
+    };
+    const exact = [{ path: '/pricing', exact: true }];
+    expect(await status(exact, '/pricing')).toBe(200);
+    expect(await status(exact, '/pricing?plan=team')).toBe(200);
+    expect(await status(exact, '/pricing-admin')).toBe(401);
+    expect(await status(exact, '/pricing/internal')).toBe(401);
+    expect(await status(exact, '/pricing/')).toBe(401);
+    // Positive control: the string form over-grants exactly those.
+    expect(await status(['/pricing'], '/pricing-admin')).toBe(200);
+    expect(await status(['/pricing'], '/pricing/internal')).toBe(200);
+    // The landing page alone, with the rest of the app still guarded.
+    expect(await status([{ path: '/', exact: true }], '/')).toBe(200);
+    expect(await status([{ path: '/', exact: true }], '/dashboard')).toBe(401);
+  });
+
+  it("warns once at construction for a bare '/', never for its exact form", async () => {
+    stubJwksFetch(() => jwksDocumentFor(idpJwt()));
+    const logger = mockLogger();
+    const handle = createFederatedAuthHandle(handleOptions({ logger, publicRoutes: ['/'] }));
+    expect(logger.warn).toHaveBeenCalledTimes(1);
+    expect(logger.warn).toHaveBeenCalledWith(expect.stringContaining('exempts every route'));
+    await handle({ event: asEvent(createMockEvent({ path: '/dashboard' })), resolve: ok() });
+    expect(logger.warn, 'once, not per request').toHaveBeenCalledTimes(1);
+
+    const quiet = mockLogger();
+    createFederatedAuthHandle(
+      handleOptions({ logger: quiet, publicRoutes: [{ path: '/', exact: true }, '/pricing'] })
+    );
+    expect(quiet.warn).not.toHaveBeenCalled();
+  });
+
   it('defaults to a fully guarded app (empty publicRoutes) with a JSON 401 when no loginUrl is set', async () => {
     stubJwksFetch(() => jwksDocumentFor(idpJwt()));
     const handle = createFederatedAuthHandle(handleOptions());

@@ -338,13 +338,14 @@ describe('createLoginHandler', () => {
     });
     deps.config.rateLimit = { login: { windowMs: 60_000, max: 2 } };
     const handler = createLoginHandler(deps);
-    const body = { email: 'test@test.com', password: 'correct' };
+    // Failures spend the budget; a correct password would refund its slot.
+    const body = { email: 'test@test.com', password: 'wrong' };
 
     expect((await handler.POST(mockRequestEvent(body) as unknown as RequestEvent)).status).toBe(
-      200
+      401
     );
     expect((await handler.POST(mockRequestEvent(body) as unknown as RequestEvent)).status).toBe(
-      200
+      401
     );
     const limited = await handler.POST(mockRequestEvent(body) as unknown as RequestEvent);
     expect(limited.status).toBe(429);
@@ -680,6 +681,108 @@ describe('createLoginHandler — decay against the in-memory adapter', () => {
 // the reason the default is not `durationMinutes`. Simulated against the real
 // handler + adapter on a 12-hour clock: a strategy is a loop, not a formula, and
 // only attempts that reached the password check (401) count as guesses.
+describe('createLoginHandler — limiter and lockout at the defaults', () => {
+  // Characterization, not policy: with neither `rateLimit` nor `lockout`
+  // configured, the login limiter (5 / 15 min per IP) and the account lockout
+  // (5 failures) share one threshold. Which of the two answers the sixth
+  // attempt depends only on whether the attempts share an IP.
+  const FAST_PASSWORD = { pbkdf2Iterations: 1000 };
+
+  async function seed() {
+    const user = createInMemoryRepos().user;
+    await user.create({
+      email: 'test@test.com',
+      name: 'Aya',
+      passwordHash: await hashPassword('correct', FAST_PASSWORD),
+      role: 'admin'
+    });
+    const deps = createMockDeps();
+    deps.repos.user = user;
+    deps.config.password = FAST_PASSWORD;
+    // Deliberately untouched: the defaults are what is being characterized.
+    expect(deps.config.rateLimit).toBeUndefined();
+    expect(deps.config.lockout).toBeUndefined();
+    const id = (await user.findByEmail('test@test.com'))!.id;
+    return { user, deps, id, handler: createLoginHandler(deps) };
+  }
+
+  const wrongLoginFrom = (handler: ReturnType<typeof createLoginHandler>, ip: string) =>
+    handler.POST({
+      ...mockRequestEvent({ email: 'test@test.com', password: 'wrong' }),
+      getClientAddress: () => ip
+    } as unknown as RequestEvent);
+
+  it('one IP: the limiter answers the sixth attempt (429) before the lock (423) is ever seen', async () => {
+    const { user, id, handler } = await seed();
+    const statuses: number[] = [];
+    for (let i = 0; i < 6; i++) statuses.push((await wrongLoginFrom(handler, '10.0.0.1')).status);
+    expect(statuses).toEqual([401, 401, 401, 401, 401, 429]);
+    // The lock is real — the fifth failure set it — it is just never the
+    // answer from this IP: the limiter sits above the lockout check.
+    const attempts = await user.getFailedLoginAttempts(id);
+    expect(attempts.count).toBe(5);
+    expect(attempts.lockedUntil).not.toBeNull();
+  });
+
+  it('six IPs: the same six attempts reach the lock, 423 on the sixth', async () => {
+    const { handler } = await seed();
+    const statuses: number[] = [];
+    for (let i = 0; i < 6; i++) {
+      statuses.push((await wrongLoginFrom(handler, `10.0.0.${i + 1}`)).status);
+    }
+    expect(statuses).toEqual([401, 401, 401, 401, 401, 423]);
+  });
+
+  // The limiter brakes attempts against a password, not people: a correct
+  // password refunds the slot its request took, so an office behind one NAT
+  // address is never limited by its own successful sign-ins.
+  const loginFrom = (
+    handler: ReturnType<typeof createLoginHandler>,
+    ip: string,
+    password: string
+  ) =>
+    handler.POST({
+      ...mockRequestEvent({ email: 'test@test.com', password }),
+      getClientAddress: () => ip
+    } as unknown as RequestEvent);
+
+  it('one IP: twenty correct logins are twenty 200s', async () => {
+    const { handler } = await seed();
+    const statuses: number[] = [];
+    for (let i = 0; i < 20; i++)
+      statuses.push((await loginFrom(handler, '10.0.0.1', 'correct')).status);
+    expect(statuses).toEqual(Array(20).fill(200));
+  });
+
+  it('a spent budget is spent — the sixth request is refused before its (correct) password is read', async () => {
+    // The counter sits above the verify, so the refund a correct password
+    // would earn never happens: the request is answered 429 without running
+    // PBKDF2, which is the whole point of counting at the top.
+    const { handler } = await seed();
+    const statuses: number[] = [];
+    for (let i = 0; i < 5; i++)
+      statuses.push((await loginFrom(handler, '10.0.0.1', 'wrong')).status);
+    statuses.push((await loginFrom(handler, '10.0.0.1', 'correct')).status);
+    expect(statuses).toEqual([401, 401, 401, 401, 401, 429]);
+  });
+
+  it('a success refunds its own slot, not the failures around it', async () => {
+    // Four failures, one success, then failures again: the success hands back
+    // exactly the one slot it took, so one more failure fits in the window and
+    // the next is refused. Anything more generous would let an attacker who
+    // holds any valid account (his own) clear the IP budget between guesses
+    // at other accounts.
+    const { handler } = await seed();
+    const statuses: number[] = [];
+    for (let i = 0; i < 4; i++)
+      statuses.push((await loginFrom(handler, '10.0.0.1', 'wrong')).status);
+    statuses.push((await loginFrom(handler, '10.0.0.1', 'correct')).status);
+    for (let i = 0; i < 5; i++)
+      statuses.push((await loginFrom(handler, '10.0.0.1', 'wrong')).status);
+    expect(statuses).toEqual([401, 401, 401, 401, 200, 401, 429, 429, 429, 429]);
+  });
+});
+
 describe('createLoginHandler — sustained guess rate per decay window', () => {
   afterEach(() => {
     vi.useRealTimers();
