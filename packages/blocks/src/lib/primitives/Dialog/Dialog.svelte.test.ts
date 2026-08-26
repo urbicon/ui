@@ -121,6 +121,59 @@ describe('Dialog (component interaction)', () => {
     expect(dialog().getAttribute('data-state')).toBe('open');
   });
 
+  it('claims Escape at the window level when closeOnEscape is false and focus is outside', async () => {
+    // Focus outside the <dialog> (never clicked in, or dropped to <body> when a
+    // focused button became disabled) means the element-level handler never
+    // sees the key. An unclaimed Escape reaches the UA's close watcher, which
+    // closes a modal dialog regardless of closeOnEscape — the window listener
+    // has to preventDefault, not just decline to close. jsdom has no close
+    // watcher, so the oracle is the keydown's defaultPrevented flag; that the
+    // flag holds in browsers (five Escapes, dialog stays open) was measured.
+    const onClose = vi.fn();
+    renderDialog({ open: true, closeOnEscape: false, onClose });
+    await tick();
+    await tick();
+    (document.activeElement as HTMLElement | null)?.blur();
+    expect(document.activeElement).toBe(document.body);
+
+    const escapeKey = new KeyboardEvent('keydown', {
+      key: 'Escape',
+      bubbles: true,
+      cancelable: true
+    });
+    document.body.dispatchEvent(escapeKey);
+
+    expect(escapeKey.defaultPrevented).toBe(true);
+    expect(onClose).not.toHaveBeenCalled();
+    expect(dialog().getAttribute('data-state')).toBe('open');
+  });
+
+  it('vetoes the native cancel request when closeOnEscape is false', async () => {
+    // Close requests that are not a keydown (back gesture, assistive tech)
+    // arrive as a cancelable `cancel` event on the <dialog>. jsdom never fires
+    // it, so it is dispatched directly and the veto read off defaultPrevented.
+    const onClose = vi.fn();
+    renderDialog({ open: true, closeOnEscape: false, onClose });
+    await tick();
+
+    const cancel = new Event('cancel', { cancelable: true });
+    dialog().dispatchEvent(cancel);
+
+    expect(cancel.defaultPrevented).toBe(true);
+    expect(onClose).not.toHaveBeenCalled();
+    expect(dialog().getAttribute('data-state')).toBe('open');
+  });
+
+  it('lets the native cancel request through when closeOnEscape is true', async () => {
+    renderDialog({ open: true });
+    await tick();
+
+    const cancel = new Event('cancel', { cancelable: true });
+    dialog().dispatchEvent(cancel);
+
+    expect(cancel.defaultPrevented).toBe(false);
+  });
+
   it('stays open when an inner widget already consumed the Escape', async () => {
     const user = userEvent.setup();
     const onClose = vi.fn();
@@ -329,6 +382,18 @@ describe('Dialog (restProps composition)', () => {
 
     expect(onclose).toHaveBeenCalledOnce();
     expect(onClose).toHaveBeenCalledOnce();
+  });
+
+  it('runs a consumer oncancel and still vetoes the request when closeOnEscape is false', async () => {
+    const oncancel = vi.fn();
+    renderDialog({ open: true, closeOnEscape: false, oncancel });
+    await tick();
+
+    const cancel = new Event('cancel', { cancelable: true });
+    dialog().dispatchEvent(cancel);
+
+    expect(oncancel).toHaveBeenCalledOnce();
+    expect(cancel.defaultPrevented).toBe(true);
   });
 
   it('keeps the focus trap intact with a consumer onkeydown present', async () => {

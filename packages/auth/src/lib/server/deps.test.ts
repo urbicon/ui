@@ -1,6 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import type { AuthConfig } from '../types.js';
-import { createInMemoryRefreshTokenRepository } from './adapters/in-memory.js';
+import { createInMemoryRefreshTokenRepository, createInMemoryStore } from './adapters/in-memory.js';
 import { createAuthDeps } from './deps.js';
 import { generateES256KeyPair } from './jwt.js';
 import { lockoutFor, rateLimitFor } from './security-defaults.js';
@@ -256,7 +256,10 @@ describe('refresh-token wiring validation', () => {
     expect(() =>
       createAuthDeps({
         ...deps,
-        repos: { ...deps.repos, refreshToken: createInMemoryRefreshTokenRepository() }
+        repos: {
+          ...deps.repos,
+          refreshToken: createInMemoryRefreshTokenRepository(createInMemoryStore())
+        }
       })
     ).not.toThrow();
   });

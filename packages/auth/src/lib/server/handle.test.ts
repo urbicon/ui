@@ -2,7 +2,7 @@ import type { Handle, RequestEvent } from '@sveltejs/kit';
 import { describe, expect, it, vi } from 'vitest';
 import { sanitizeRedirect } from '../redirect.js';
 import type { AuthConfig, AuthUser } from '../types.js';
-import { createInMemoryRefreshTokenRepository } from './adapters/in-memory.js';
+import { createInMemoryRefreshTokenRepository, createInMemoryStore } from './adapters/in-memory.js';
 import type { Repositories, UserRepository } from './adapters/types.js';
 import { hashToken } from './auth.js';
 import { createAuthHandle, DEFAULT_PUBLIC_ROUTES } from './handle.js';
@@ -587,7 +587,7 @@ describe('createAuthHandle — refresh-token rotation', () => {
   };
 
   function reposWithRefresh(): Repositories {
-    const refreshRepo = createInMemoryRefreshTokenRepository();
+    const refreshRepo = createInMemoryRefreshTokenRepository(createInMemoryStore());
     return { ...createMockRepos(), refreshToken: refreshRepo };
   }
 
@@ -782,7 +782,7 @@ describe('createAuthHandle — transformUser', () => {
     // Fake timers: the second rotation below must land outside the 10s grace.
     vi.useFakeTimers();
     try {
-      const refreshRepo = createInMemoryRefreshTokenRepository();
+      const refreshRepo = createInMemoryRefreshTokenRepository(createInMemoryStore());
       const revokeFamily = vi.spyOn(refreshRepo, 'revokeFamily');
       const repos = { ...createMockRepos(), refreshToken: refreshRepo };
       const { token } = await issueRefreshToken(refreshRepo, 'user-1', { refreshTokenTtl: '30d' });
@@ -836,7 +836,7 @@ describe('createAuthHandle — transformUser', () => {
   });
 
   it('applies the transform on the refresh-rotation path', async () => {
-    const refreshRepo = createInMemoryRefreshTokenRepository();
+    const refreshRepo = createInMemoryRefreshTokenRepository(createInMemoryStore());
     const repos = { ...createMockRepos(), refreshToken: refreshRepo };
     const { token } = await issueRefreshToken(refreshRepo, 'user-1', { refreshTokenTtl: '30d' });
     const handle = createAuthHandle({
@@ -868,7 +868,10 @@ describe('createAuthHandle refresh-token wiring', () => {
     expect(() =>
       createAuthHandle({
         config: { ...config, refreshToken: {} },
-        repos: { ...createMockRepos(), refreshToken: createInMemoryRefreshTokenRepository() }
+        repos: {
+          ...createMockRepos(),
+          refreshToken: createInMemoryRefreshTokenRepository(createInMemoryStore())
+        }
       })
     ).not.toThrow();
   });
