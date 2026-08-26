@@ -77,6 +77,10 @@ function makeTable(opts: {
 
   const matchCond = (cell: any, cond: any): boolean => {
     if (cond !== null && typeof cond === 'object' && !(cond instanceof Date)) {
+      // SQL three-valued logic: NULL compared to anything is never true, so a
+      // null cell fails every range operator. JS would say `null <= date`.
+      const ranged = ['lt', 'lte', 'gt', 'gte'].some((op) => op in cond);
+      if (ranged && cell == null) return false;
       if ('lt' in cond && !(cell < cond.lt)) return false;
       if ('lte' in cond && !(cell <= cond.lte)) return false;
       if ('gt' in cond && !(cell > cond.gt)) return false;
@@ -960,6 +964,59 @@ describe('conformance suite — negative control', () => {
     );
     expect(decayCheck, 'guarded-reset check must exist').toBeDefined();
     await expect(decayCheck!.run(brokenHarness)).rejects.toThrow(/must not clear the count/);
+  });
+
+  it('rejects a store that keeps no lastFailedAt yet still clears on the guarded reset', async () => {
+    // The other branch of the same check: an adapter that reports `null` for
+    // the date has nothing to hold against the cutoff, so its guarded reset
+    // must match nothing. Wired to the unconditional clear, it fails there.
+    const brokenHarness: ConformanceHarness = {
+      role: 'USER',
+      setup: () => {
+        const repos = createInMemoryRepos();
+        return {
+          ...repos,
+          user: {
+            ...repos.user,
+            getFailedLoginAttempts: async (id) => ({
+              ...(await repos.user.getFailedLoginAttempts(id)),
+              lastFailedAt: null
+            }),
+            resetFailedLoginsIfStale: (id) => repos.user.resetFailedLogins(id)
+          }
+        };
+      }
+    };
+    const decayCheck = conformanceChecks.find(
+      (c) => c.name === 'user.resetFailedLoginsIfStale clears only a count older than the cutoff'
+    );
+    await expect(decayCheck!.run(brokenHarness)).rejects.toThrow(/never stale/);
+  });
+});
+
+describe('resetFailedLoginsIfStale on an undated row (prisma adapter)', () => {
+  it('matches nothing when lastFailedLogin is NULL — count and lock stay', async () => {
+    // Unreachable through the contract (`recordFailedLogin` dates every count),
+    // so the row is seeded through the client — a hand-migrated column, an
+    // older row. `lastFailedLogin <= ?` on NULL is never true in SQL, and the
+    // fake answers the same way.
+    const fake = createFakePrisma();
+    const repos = createPrismaRepos(fake);
+    const row = await fake.user.create({
+      data: {
+        email: 'undated@conformance.test',
+        name: 'Undated',
+        passwordHash: 'x',
+        role: 'USER',
+        failedLoginAttempts: 3,
+        lockedUntil: new Date(Date.now() + 60_000),
+        lastFailedLogin: null
+      }
+    });
+    await repos.user.resetFailedLoginsIfStale(row.id, new Date(Date.now() + 60_000));
+    const state = await repos.user.getFailedLoginAttempts(row.id);
+    expect(state.count, 'an undated count is never stale').toBe(3);
+    expect(state.lockedUntil, 'and its lock stands').toBeInstanceOf(Date);
   });
 });
 

@@ -164,7 +164,8 @@ function makeUserRepo(): UserRepository<AppRole> {
       }
     },
     async resetFailedLoginsIfStale(id, cutoff) {
-      // Guard and write with no await between them (mirrors the in-memory adapter).
+      // Clear only a count whose newest failure is at or before the cutoff — guard
+      // and write with no await between them, so nothing lands in between.
       const user = store.users.get(id);
       if (!user?.lastFailedLogin || user.lastFailedLogin > cutoff) return;
       user.failedLoginAttempts = 0;

@@ -107,7 +107,9 @@ export const authDeps = createAuthDeps({
 `createInMemoryRepos()` is a fresh `createInMemoryStore()` with every repository built on it.
 Need only a piece — the refresh-token repository beside a user store of your own? Build that
 factory on a store handle: `createInMemoryRefreshTokenRepository(createInMemoryStore())`.
-Repositories on one store share its rows, and `user.delete` erases across all of them.
+Repositories on one store share its rows, and `user.delete` erases across all of them. The
+store carries the role type — `createInMemoryStore<'ADMIN' | 'USER'>()` — and every factory
+infers it from the handle; a role-typed factory on an untyped store is a type error.
 
 `createAuthDeps` fills in **secure brute-force defaults automatically** (login rate-limit
 5 / 15 min + lockout 5 / 15 min) — even the quickstart isn't an open door. **Every**

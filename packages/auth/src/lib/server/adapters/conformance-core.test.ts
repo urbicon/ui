@@ -27,9 +27,10 @@ const ALL_CAPS: Required<ConformanceCapabilities> = {
 };
 
 describe('conformance-core', () => {
-  it('rejects mutation of conformanceChecks', () => {
+  it('rejects mutation of conformanceChecks, down to a check’s run', () => {
     // Exported, and one array backs every run in the process, so a push into
-    // it would register the extra check for all of them.
+    // it — or a swapped `run` on an entry — would reach every suite registered
+    // afterwards. A shallow freeze stops only the first.
     expect(() =>
       (conformanceChecks as ConformanceCheck[]).push({
         name: 'smuggled',
@@ -38,6 +39,9 @@ describe('conformance-core', () => {
       })
     ).toThrow(TypeError);
     expect(conformanceChecks.length).toBeGreaterThan(0);
+    expect(() => {
+      (conformanceChecks[0] as { run: ConformanceCheck['run'] }).run = async () => {};
+    }).toThrow(TypeError);
   });
 
   it('imports no test runner, so a consumer on bun:test or jest can load it', async () => {

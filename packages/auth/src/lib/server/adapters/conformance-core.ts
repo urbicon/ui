@@ -354,7 +354,9 @@ function check(
   requires: ReadonlyArray<keyof ConformanceCapabilities>,
   body: (repos: Repositories, harness: ConformanceHarness) => Promise<void>
 ): ConformanceCheck {
-  return {
+  // Frozen like the array that holds it: one instance backs every run in the
+  // process, and `Object.freeze` on the array alone leaves `run` reassignable.
+  const entry: ConformanceCheck = {
     name,
     requires,
     async run(harness) {
@@ -366,12 +368,14 @@ function check(
       }
     }
   };
+  return Object.freeze(entry);
 }
 
 // --- the checks ------------------------------------------------------------
 
-// Frozen: the array is exported and one instance backs every run in the
-// process, so a push into it would register the extra check for all of them.
+// Frozen down to the checks (see `check`): the array is exported and one
+// instance backs every run in the process, so a push into it — or a swapped
+// `run` on an entry — would reach every suite registered afterwards.
 export const conformanceChecks: readonly ConformanceCheck[] = Object.freeze([
   // -- User: single-use token claims --------------------------------------
   check('user.consumeResetToken is single-use under concurrent claims', [], async (repos, h) => {
@@ -835,27 +839,35 @@ export const conformanceChecks: readonly ConformanceCheck[] = Object.freeze([
       const lockout = { maxAttempts: 5, durationMinutes: 15 };
       await parallel(5, () => repos.user.recordFailedLogin(user.id, lockout));
       const counted = await repos.user.getFailedLoginAttempts(user.id);
-      expect(counted.lastFailedAt, 'the failures are dated').toBeInstanceOf(Date);
+      expect(counted.count).toBe(5);
+
+      if (counted.lastFailedAt === null) {
+        // A store that does not keep the column has nothing to hold against the
+        // cutoff, so no guarded reset may ever match it — the unconditional
+        // `resetFailedLogins` is that store's only way down.
+        await repos.user.resetFailedLoginsIfStale(user.id, futureDate());
+        expect(
+          (await repos.user.getFailedLoginAttempts(user.id)).count,
+          'an undated count is never stale'
+        ).toBe(5);
+        return;
+      }
 
       // A cutoff before the newest failure: the count is not stale, nothing moves.
       await repos.user.resetFailedLoginsIfStale(
         user.id,
-        new Date(counted.lastFailedAt!.getTime() - 1)
+        new Date(counted.lastFailedAt.getTime() - 1)
       );
       const kept = await repos.user.getFailedLoginAttempts(user.id);
       expect(kept.count, 'a reset behind the newest failure must not clear the count').toBe(5);
       expect(kept.lockedUntil, 'nor end the lock').toBeInstanceOf(Date);
 
       // At the newest failure: stale by the contract's `<=`, so the clear lands.
-      await repos.user.resetFailedLoginsIfStale(user.id, counted.lastFailedAt!);
+      await repos.user.resetFailedLoginsIfStale(user.id, counted.lastFailedAt);
       const cleared = await repos.user.getFailedLoginAttempts(user.id);
       expect(cleared.count).toBe(0);
       expect(cleared.lockedUntil).toBeNull();
       expect(cleared.lastFailedAt, 'the date goes with the count').toBeNull();
-
-      // Nothing dated left: a second guarded reset matches no row and stays quiet.
-      await repos.user.resetFailedLoginsIfStale(user.id, futureDate());
-      expect((await repos.user.getFailedLoginAttempts(user.id)).count).toBe(0);
     }
   ),
 
