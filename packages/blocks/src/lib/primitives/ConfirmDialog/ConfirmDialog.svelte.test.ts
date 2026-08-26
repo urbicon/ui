@@ -145,9 +145,12 @@ describe('ConfirmDialog (component interaction)', () => {
 
   it('awaits an async onConfirm, locking against double-submit, then auto-closes on resolve', async () => {
     // The headline contract: while the confirm promise is pending the dialog
-    // stays open + busy — a second confirm click must not fire onConfirm again
-    // (Button's loading guard), and cancel is disabled. Only on resolve does it
-    // close. This is the exact behaviour the whole DOM layer exists to assert.
+    // stays open + busy — a second confirm must not fire onConfirm again, and
+    // cancel is disabled. Only on resolve does it close. The single guard is
+    // Button's `loading` check (handleConfirm has none of its own): removing
+    // `|| loading` from Button.handleClick fails this test — keep it that way.
+    // Enter is driven as well as click because the button keeps focus while
+    // busy; a keyboard re-submit is the realistic double.
     const user = userEvent.setup();
     let resolveConfirm!: () => void;
     const onConfirm = vi.fn(
@@ -169,8 +172,10 @@ describe('ConfirmDialog (component interaction)', () => {
     expect(cancel.disabled).toBe(true);
     expect(dialogState()).toBe('open');
 
-    // Double-submit guard: a second click while busy is a no-op.
+    // Double-submit guard: a second click and an Enter while busy are no-ops.
     await user.click(confirm);
+    expect(document.activeElement).toBe(confirm);
+    await user.keyboard('{Enter}');
     expect(onConfirm).toHaveBeenCalledOnce();
 
     // Resolve → the try/finally sets open=false and clears busy.
@@ -214,6 +219,32 @@ describe('ConfirmDialog (component interaction)', () => {
     expect(cancelBtn().disabled).toBe(false);
 
     // Retry is functional: a second confirm click fires onConfirm again.
+    await user.click(confirm);
+    expect(onConfirm).toHaveBeenCalledTimes(2);
+  });
+
+  it('stays open and re-enables when onConfirm throws synchronously', async () => {
+    // Same failure contract for a sync throw: `await onConfirm()` evaluates the
+    // call inside the try block, so the throw lands in the same catch as a
+    // rejection — no auto-close, busy cleared, error handed to onError.
+    const user = userEvent.setup();
+    const failure = new Error('sync boom');
+    const onConfirm = vi.fn(() => {
+      throw failure;
+    });
+    const onError = vi.fn();
+    renderConfirm({ ...base, open: true, onConfirm, onError });
+    await tick();
+
+    const confirm = confirmBtn();
+    await user.click(confirm);
+    await tick();
+
+    expect(onError).toHaveBeenCalledWith(failure);
+    expect(dialogState()).toBe('open');
+    expect(confirm.getAttribute('aria-busy')).not.toBe('true');
+    expect(cancelBtn().disabled).toBe(false);
+
     await user.click(confirm);
     expect(onConfirm).toHaveBeenCalledTimes(2);
   });

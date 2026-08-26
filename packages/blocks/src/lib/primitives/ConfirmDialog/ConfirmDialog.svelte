@@ -31,7 +31,6 @@
   );
 
   async function handleConfirm() {
-    if (isLoading) return;
     if (!onConfirm) {
       open = false;
       return;
@@ -84,6 +83,18 @@
   {/if}
 
   {#snippet footer()}
+    <!--
+      In flight, each button carries exactly one guard, and the two differ on
+      purpose. Cancel is `disabled`: nothing can abort a running `onConfirm`,
+      so a cancel mid-flight would report onCancel for an action that still
+      completes. Confirm carries `loading` and must not be `disabled`: it is
+      the element holding focus while the promise is pending, and Chromium
+      drops focus to <body> the moment a focused button becomes disabled
+      (measured; `aria-busy` keeps it in place). Button drops the click itself
+      while `loading`, so `handleConfirm` needs no re-entrancy check of its
+      own — it is reachable only through this button, and Enter/Space arrive
+      as native clicks.
+    -->
     <Button variant="ghost" intent="neutral" onclick={handleCancel} disabled={isLoading}>
       {cancelLabel ?? bt('button.cancel')}
     </Button>
