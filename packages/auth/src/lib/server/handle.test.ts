@@ -218,15 +218,6 @@ describe('createAuthHandle', () => {
       );
     });
 
-    it('an object entry without `exact` is a prefix, like the string it replaces', async () => {
-      const publicRoutes: PublicRoute[] = [{ path: '/pricing' }];
-      expect(await unauthenticated({ publicRoutes, path: '/pricing' })).toBe('passed-through');
-      expect(await unauthenticated({ publicRoutes, path: '/pricing/internal' })).toBe(
-        'passed-through'
-      );
-      expect(await unauthenticated({ publicRoutes, path: '/dashboard' })).toBe('redirect-302');
-    });
-
     it("{ path: '/', exact: true } publishes the landing page alone", async () => {
       const publicRoutes: PublicRoute[] = [{ path: '/', exact: true }];
       expect(await unauthenticated({ publicRoutes, path: '/' })).toBe('passed-through');
@@ -238,7 +229,7 @@ describe('createAuthHandle', () => {
         'status-401'
       );
       // Mixed with the defaults, as the docs snippet spells it.
-      const withDefaults = [...DEFAULT_PUBLIC_ROUTES, { path: '/', exact: true }];
+      const withDefaults: PublicRoute[] = [...DEFAULT_PUBLIC_ROUTES, { path: '/', exact: true }];
       expect(await unauthenticated({ publicRoutes: withDefaults, path: '/' })).toBe(
         'passed-through'
       );
@@ -280,17 +271,30 @@ describe('createAuthHandle', () => {
         expect(await drive(handle, '/dashboard')).toBe('passed-through');
       });
 
-      it("also fires for the object spelling of the same prefix, { path: '/' }", () => {
-        const { logger } = build([{ path: '/' }]);
-        expect(logger.warn).toHaveBeenCalledTimes(1);
-      });
-
       it('stays silent for the exact form, for other prefixes and for the defaults', () => {
         expect(build([{ path: '/', exact: true }]).logger.warn).not.toHaveBeenCalled();
         expect(build(['/pricing']).logger.warn).not.toHaveBeenCalled();
         expect(build().logger.warn).not.toHaveBeenCalled();
         expect(build([]).logger.warn).not.toHaveBeenCalled();
       });
+    });
+
+    it('refuses an entry that does not start with a slash, at construction', () => {
+      const build = (publicRoutes: readonly PublicRoute[]) => () =>
+        createAuthHandle({ config, repos: createMockRepos(), publicRoutes });
+      // '' is the silent fail-open twin of '/': startsWith('') is true for
+      // every pathname, and no warning names it.
+      expect(build([''])).toThrow(/must start with '\/'/);
+      expect(build([{ path: '', exact: true }])).toThrow(/must start with '\/'/);
+      // A bare name is the silent fail-closed twin: it matches nothing.
+      expect(build(['pricing'])).toThrow(/must start with '\/'/);
+      // The object form is the exact form; a JS caller leaving `exact` off
+      // gets told rather than a silently guessed mode.
+      expect(build([{ path: '/pricing' } as unknown as PublicRoute])).toThrow(/exact: true/);
+      // Positive control: the legitimate spellings construct.
+      expect(build(['/'])).not.toThrow();
+      expect(build([{ path: '/', exact: true }, '/pricing'])).not.toThrow();
+      expect(build([])).not.toThrow();
     });
 
     it('guards everything on an empty list, the login page included', async () => {

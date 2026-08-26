@@ -35,7 +35,14 @@ export const RATE_LIMIT_DEFAULTS: Record<RateLimitKey, RateLimitConfig> = {
   // The security-critical limiter: the one endpoint where the secret being
   // offered is a human-chosen password. Five *failures* per address: a correct
   // password refunds its slot, so an office behind one NAT address is braked
-  // by its typos, never by its sign-ins.
+  // by its typos, never by its sign-ins. The refund is what this key gives up:
+  // successful logins from one address are unbounded here, and each one costs
+  // a PBKDF2 run (38.4 ms at the default work factor). A cost cap would need a
+  // second per-IP counter that successes do not refund — a per-IP counter has
+  // never stopped a distributed cost attack, and one account hammering from one
+  // address is what an edge rate-limit is for, so that counter would be
+  // surface without protection. Documented as a trade-off in AUTH.md → Known
+  // Limitations.
   login: { windowMs: 15 * 60_000, max: 5 },
 
   // PBKDF2 runs only AFTER the invitation token, its used/expiry state and the
@@ -79,8 +86,8 @@ export const RATE_LIMIT_DEFAULTS: Record<RateLimitKey, RateLimitConfig> = {
   // refunds both calls. The options half stores one challenge entry per call,
   // pruned only at the 5-minute TTL, and an abandoned ceremony spends one call
   // and leaves its entry — so the bound this cap puts on the store is the full
-  // 30 live entries per IP, not 15; a completed ceremony consumes its entry
-  // and lifts that bound by the two calls it gives back.
+  // 30 live entries per IP, not 15 (a completed ceremony consumes its entry,
+  // so its refund gives back no live entry).
   passkeyAuth: { windowMs: 15 * 60_000, max: 30 },
 
   changePassword: REAUTH,

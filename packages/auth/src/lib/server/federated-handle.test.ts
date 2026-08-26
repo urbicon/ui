@@ -682,7 +682,10 @@ describe('createFederatedAuthHandle — route guard', () => {
       const handle = createFederatedAuthHandle(handleOptions({ publicRoutes }));
       return (await handle({ event: asEvent(createMockEvent({ path })), resolve: ok() })).status;
     };
-    const exact = [{ path: '/pricing', exact: true }];
+    // `as const`: a literal stored first widens `exact` to boolean, and the
+    // option's type wants the literal `true` — the same thing a consumer's
+    // hoisted array needs.
+    const exact = [{ path: '/pricing', exact: true }] as const;
     expect(await status(exact, '/pricing')).toBe(200);
     expect(await status(exact, '/pricing?plan=team')).toBe(200);
     expect(await status(exact, '/pricing-admin')).toBe(401);
@@ -692,8 +695,18 @@ describe('createFederatedAuthHandle — route guard', () => {
     expect(await status(['/pricing'], '/pricing-admin')).toBe(200);
     expect(await status(['/pricing'], '/pricing/internal')).toBe(200);
     // The landing page alone, with the rest of the app still guarded.
-    expect(await status([{ path: '/', exact: true }], '/')).toBe(200);
-    expect(await status([{ path: '/', exact: true }], '/dashboard')).toBe(401);
+    expect(await status([{ path: '/', exact: true }] as const, '/')).toBe(200);
+    expect(await status([{ path: '/', exact: true }] as const, '/dashboard')).toBe(401);
+  });
+
+  it('refuses an entry without a leading slash at construction, like the IdP handle', () => {
+    stubJwksFetch(() => jwksDocumentFor(idpJwt()));
+    expect(() => createFederatedAuthHandle(handleOptions({ publicRoutes: [''] }))).toThrow(
+      /must start with '\/'/
+    );
+    expect(() =>
+      createFederatedAuthHandle(handleOptions({ publicRoutes: [{ path: '/', exact: true }] }))
+    ).not.toThrow();
   });
 
   it("warns once at construction for a bare '/', never for its exact form", async () => {

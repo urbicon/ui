@@ -97,10 +97,12 @@ export interface FederatedAuthHandleOptions<TUser> {
    * Routes exempt from the guard, read exactly as the IdP handle's
    * `publicRoutes`: a string is a pathname prefix, `{ path, exact: true }` the
    * pathname alone (see {@link PublicRoute}); a bare `'/'` prefix exempts the
-   * whole app and is warned about at construction. Defaults to `[]` — the
-   * whole app requires a resolved user — because unlike the IdP this app
-   * serves no login/register pages of its own; list your genuinely public
-   * pages explicitly.
+   * whole app and is warned about at construction. A list held in a variable
+   * first needs `as const` or the annotation `PublicRoute[]`, or TypeScript
+   * widens `exact: true` to `boolean`; an inline list needs nothing. Defaults
+   * to `[]` — the whole app requires a resolved user — because unlike the IdP
+   * this app serves no login/register pages of its own; list your genuinely
+   * public pages explicitly.
    */
   publicRoutes?: readonly PublicRoute[];
   /**

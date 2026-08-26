@@ -36,7 +36,10 @@ export interface AuthHandleOptions<R extends string = string> {
    * A prefix grants more than its spelling suggests: `'/pricing'` also exempts
    * `/pricing-admin` and `/pricing/internal`, and a bare `'/'` exempts the
    * entire app — the handle warns about that one at construction. The landing
-   * page alone is `{ path: '/', exact: true }`.
+   * page alone is `{ path: '/', exact: true }`. A list held in a variable
+   * first needs `as const` or the annotation `PublicRoute[]`: TypeScript
+   * otherwise widens `exact: true` to `boolean` and the assignment is a type
+   * error. An inline list needs nothing.
    *
    * Read once, at construction: mutating the array afterwards does not move
    * the guard.
