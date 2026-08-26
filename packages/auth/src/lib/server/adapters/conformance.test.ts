@@ -915,6 +915,7 @@ function brokenAtomicityUserRepo(): UserRepository {
     getFailedLoginAttempts: notExercised,
     recordFailedLogin: notExercised,
     resetFailedLogins: notExercised,
+    resetFailedLoginsIfStale: notExercised,
     updateProfile: notExercised,
     setEmailChangeToken: notExercised,
     consumeEmailChangeToken: notExercised,
@@ -936,6 +937,29 @@ describe('conformance suite — negative control', () => {
     );
     expect(resetCheck, 'reset-token check must exist').toBeDefined();
     await expect(resetCheck!.run(brokenHarness)).rejects.toThrow();
+  });
+
+  it('rejects a guarded reset that ignores its cutoff (proves the decay check has teeth)', async () => {
+    // The mutation an adapter author is most likely to ship: the new method
+    // wired to the unconditional clear.
+    const brokenHarness: ConformanceHarness = {
+      role: 'USER',
+      setup: () => {
+        const repos = createInMemoryRepos();
+        return {
+          ...repos,
+          user: {
+            ...repos.user,
+            resetFailedLoginsIfStale: (id) => repos.user.resetFailedLogins(id)
+          }
+        };
+      }
+    };
+    const decayCheck = conformanceChecks.find(
+      (c) => c.name === 'user.resetFailedLoginsIfStale clears only a count older than the cutoff'
+    );
+    expect(decayCheck, 'guarded-reset check must exist').toBeDefined();
+    await expect(decayCheck!.run(brokenHarness)).rejects.toThrow(/must not clear the count/);
   });
 });
 

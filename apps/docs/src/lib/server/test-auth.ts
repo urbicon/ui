@@ -23,6 +23,7 @@ import {
   type AuthDeps,
   createAuthDeps,
   createInMemoryRefreshTokenRepository,
+  createInMemoryStore,
   hashPassword,
   hashToken
 } from '@urbicon-ui/auth/server';
@@ -37,7 +38,7 @@ const store = {
   invitationsByTokenHash: new Map<string, string>()
 };
 
-const refreshRepo = createInMemoryRefreshTokenRepository();
+const refreshRepo = createInMemoryRefreshTokenRepository(createInMemoryStore());
 
 function makeUserRepo(): UserRepository<AppRole> {
   return {
@@ -161,6 +162,14 @@ function makeUserRepo(): UserRepository<AppRole> {
         user.lockedUntil = null;
         user.lastFailedLogin = null;
       }
+    },
+    async resetFailedLoginsIfStale(id, cutoff) {
+      // Guard and write with no await between them (mirrors the in-memory adapter).
+      const user = store.users.get(id);
+      if (!user?.lastFailedLogin || user.lastFailedLogin > cutoff) return;
+      user.failedLoginAttempts = 0;
+      user.lockedUntil = null;
+      user.lastFailedLogin = null;
     },
     async updateProfile(id, data) {
       const user = store.users.get(id);

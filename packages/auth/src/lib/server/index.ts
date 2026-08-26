@@ -34,13 +34,16 @@ export type {
   TwoFactorConfig
 } from '../types.js';
 // Full in-memory adapter — dev/test fixture and five-minute quickstart. Never
-// production (heap-only, single-process). See `./adapters/in-memory` for the
-// per-repository factories.
+// production (heap-only, single-process). Every single-repository factory takes
+// the store handle from `createInMemoryStore()`; see `./adapters/in-memory` for
+// the rest of them.
 export {
   createInMemoryBackupCodeRepository,
   createInMemoryFederatedAccountRepository,
   createInMemoryRefreshTokenRepository,
-  createInMemoryRepos
+  createInMemoryRepos,
+  createInMemoryStore,
+  type InMemoryStore
 } from './adapters/in-memory.js';
 // Adapter types
 export type {

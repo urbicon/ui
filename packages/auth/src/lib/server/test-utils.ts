@@ -88,6 +88,7 @@ export function createMockUserRepository<R extends string>(
       .mockResolvedValue({ count: 0, lockedUntil: null, lastFailedAt: null }),
     recordFailedLogin: vi.fn(),
     resetFailedLogins: vi.fn(),
+    resetFailedLoginsIfStale: vi.fn(),
     updateProfile: vi.fn(),
     setEmailChangeToken: vi.fn(),
     consumeEmailChangeToken: vi.fn(),

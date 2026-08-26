@@ -370,7 +370,9 @@ function check(
 
 // --- the checks ------------------------------------------------------------
 
-export const conformanceChecks: readonly ConformanceCheck[] = [
+// Frozen: the array is exported and one instance backs every run in the
+// process, so a push into it would register the extra check for all of them.
+export const conformanceChecks: readonly ConformanceCheck[] = Object.freeze([
   // -- User: single-use token claims --------------------------------------
   check('user.consumeResetToken is single-use under concurrent claims', [], async (repos, h) => {
     const user = await seedUser(repos, h.role);
@@ -821,6 +823,41 @@ export const conformanceChecks: readonly ConformanceCheck[] = [
     expect(reset.count).toBe(0);
     expect(reset.lockedUntil).toBeNull();
   }),
+
+  check(
+    'user.resetFailedLoginsIfStale clears only a count older than the cutoff',
+    [],
+    async (repos, h) => {
+      // The login handler derives this write from a read that may be stale by
+      // the time it lands; the store-side guard is what keeps it from erasing
+      // failures counted in between, lock included (types.ts).
+      const user = await seedUser(repos, h.role);
+      const lockout = { maxAttempts: 5, durationMinutes: 15 };
+      await parallel(5, () => repos.user.recordFailedLogin(user.id, lockout));
+      const counted = await repos.user.getFailedLoginAttempts(user.id);
+      expect(counted.lastFailedAt, 'the failures are dated').toBeInstanceOf(Date);
+
+      // A cutoff before the newest failure: the count is not stale, nothing moves.
+      await repos.user.resetFailedLoginsIfStale(
+        user.id,
+        new Date(counted.lastFailedAt!.getTime() - 1)
+      );
+      const kept = await repos.user.getFailedLoginAttempts(user.id);
+      expect(kept.count, 'a reset behind the newest failure must not clear the count').toBe(5);
+      expect(kept.lockedUntil, 'nor end the lock').toBeInstanceOf(Date);
+
+      // At the newest failure: stale by the contract's `<=`, so the clear lands.
+      await repos.user.resetFailedLoginsIfStale(user.id, counted.lastFailedAt!);
+      const cleared = await repos.user.getFailedLoginAttempts(user.id);
+      expect(cleared.count).toBe(0);
+      expect(cleared.lockedUntil).toBeNull();
+      expect(cleared.lastFailedAt, 'the date goes with the count').toBeNull();
+
+      // Nothing dated left: a second guarded reset matches no row and stays quiet.
+      await repos.user.resetFailedLoginsIfStale(user.id, futureDate());
+      expect((await repos.user.getFailedLoginAttempts(user.id)).count).toBe(0);
+    }
+  ),
 
   // -- User: unique constraint --------------------------------------------
   check('user.create rejects a duplicate email', [], async (repos, h) => {
@@ -1516,6 +1553,7 @@ export const conformanceChecks: readonly ConformanceCheck[] = [
     await repos.user.setPasswordResetToken(ghost, 'rt-ghost', futureDate());
     await repos.user.recordFailedLogin(ghost, { maxAttempts: 5, durationMinutes: 15 });
     await repos.user.resetFailedLogins(ghost);
+    await repos.user.resetFailedLoginsIfStale(ghost, futureDate());
     await repos.user.updateProfile(ghost, { name: 'Ghost' });
     await repos.user.setEmailChangeToken(ghost, 'ghost@conformance.test', 'ct-ghost', futureDate());
     await repos.user.setTotpSecret(ghost, 'enc-secret');
@@ -1947,7 +1985,7 @@ export const conformanceChecks: readonly ConformanceCheck[] = [
       expect(relinked.userId).toBe(local2);
     }
   )
-];
+]);
 
 // --- the describe wrapper --------------------------------------------------
 

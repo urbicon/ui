@@ -7,7 +7,9 @@ import { readFile } from 'node:fs/promises';
 import { describe, expect, it } from 'vitest';
 import {
   type ConformanceCapabilities,
+  type ConformanceCheck,
   type ConformanceRunner,
+  conformanceChecks,
   describeRepositoryConformance,
   setConformanceRunner,
   summarizeConformanceRun
@@ -25,6 +27,19 @@ const ALL_CAPS: Required<ConformanceCapabilities> = {
 };
 
 describe('conformance-core', () => {
+  it('rejects mutation of conformanceChecks', () => {
+    // Exported, and one array backs every run in the process, so a push into
+    // it would register the extra check for all of them.
+    expect(() =>
+      (conformanceChecks as ConformanceCheck[]).push({
+        name: 'smuggled',
+        requires: [],
+        run: async () => {}
+      })
+    ).toThrow(TypeError);
+    expect(conformanceChecks.length).toBeGreaterThan(0);
+  });
+
   it('imports no test runner, so a consumer on bun:test or jest can load it', async () => {
     const source = await readFile(new URL('./conformance-core.ts', import.meta.url), 'utf8');
     // Statements only — the doc comment names `bun:test` in its usage example.
