@@ -1,9 +1,17 @@
 // @vitest-environment jsdom
 import { screen, within } from '@testing-library/dom';
 import userEvent from '@testing-library/user-event';
-import { flushSync, mount, tick, unmount } from 'svelte';
-import { afterEach, describe, expect, it, vi } from 'vitest';
+import { tick } from 'svelte';
+import { describe, expect, it, vi } from 'vitest';
+import { DEFAULT_PASSWORD_POLICY } from '../../../password-policy.js';
 import type { AuthUser } from '../../../types.js';
+import {
+  fetcherAnswering,
+  fetcherReturning,
+  jsonResponse,
+  mounter,
+  settle
+} from '../__fixtures__/fetcher.js';
 import AccountSettings from './AccountSettings.svelte';
 import type { AccountSettingsProps } from './index.js';
 
@@ -22,44 +30,18 @@ const user: AuthUser = {
   emailVerified: true
 } as AuthUser;
 
-function jsonResponse(status: number, body: unknown): Response {
-  return new Response(JSON.stringify(body), {
-    status,
-    headers: { 'Content-Type': 'application/json' }
-  });
-}
-
-let dispose: (() => void) | undefined;
-
-afterEach(() => {
-  dispose?.();
-  dispose = undefined;
-  document.body.replaceChildren();
-});
-
-function render(props: Partial<AccountSettingsProps> = {}) {
-  const instance = mount(AccountSettings, {
-    target: document.body,
-    props: { user, ...props } as AccountSettingsProps
-  });
-  dispose = () => unmount(instance);
-  flushSync();
-}
-
-/**
- * Let a request round-trip finish. A macrotask, not two microtasks: parsing a
- * real `Response` body takes an unspecified number of microtask turns, so
- * counting them is how a component test starts asserting against a DOM that has
- * not caught up yet.
- */
-async function settle() {
-  await new Promise((resolve) => setTimeout(resolve, 0));
-  await tick();
-}
+const mountInBody = mounter();
+const render = (props: Partial<AccountSettingsProps> = {}) =>
+  mountInBody(AccountSettings, { user, ...props } as AccountSettingsProps);
 
 // Three sections ask for the current password; the danger zone is the one that
 // is a named landmark, which is how its field and trigger are told apart here.
 const dangerZone = () => within(screen.getByRole('region', { name: 'Delete account' }));
+
+/** The form a labelled field belongs to, and the live region inside it. */
+const formOf = (label: string) => screen.getByLabelText(label).closest('form') as HTMLFormElement;
+const liveRegionOf = (form: HTMLElement) =>
+  form.querySelector('[aria-live="polite"]') as HTMLElement;
 
 /** Fill the password and walk the danger zone up to the open confirm dialog. */
 async function openDeleteConfirm() {
@@ -77,10 +59,59 @@ const confirmButton = () =>
     hidden: true
   });
 
+describe('AccountSettings — forms', () => {
+  it('ties the new-password field to the requirements checklist', () => {
+    render({ fetcher: fetcherReturning(), passwordPolicy: DEFAULT_PASSWORD_POLICY });
+
+    const describedBy =
+      screen.getByLabelText('New password').getAttribute('aria-describedby') ?? '';
+    expect(document.getElementById(describedBy)?.getAttribute('aria-label')).toBe(
+      'Password requirements'
+    );
+  });
+
+  it("announces a saved profile in that form's own live region and reports the user", async () => {
+    const onProfileUpdated = vi.fn();
+    const updated = { ...user, name: 'Ada L.' };
+    render({
+      onProfileUpdated,
+      passwordPolicy: DEFAULT_PASSWORD_POLICY,
+      fetcher: fetcherReturning(jsonResponse(200, { user: updated }))
+    });
+
+    await userEvent.click(screen.getByRole('button', { name: 'Save' }));
+    await settle();
+
+    const alert = screen.getByRole('alert');
+    expect(alert.textContent).toContain('Profile updated.');
+    // Four forms, four regions: the message belongs next to the form it
+    // answers, not in a shared banner that could be scrolled out of view.
+    expect(liveRegionOf(formOf('Name')).contains(alert)).toBe(true);
+    expect(onProfileUpdated).toHaveBeenCalledWith(updated);
+  });
+
+  it("announces a rejected email change in that form's own live region", async () => {
+    render({
+      passwordPolicy: DEFAULT_PASSWORD_POLICY,
+      fetcher: fetcherReturning(jsonResponse(401, { code: 'current_password_incorrect' }))
+    });
+
+    const form = formOf('New email');
+    await userEvent.type(within(form).getByLabelText('New email'), 'new@example.com');
+    await userEvent.type(within(form).getByLabelText('Current password'), 'wrong');
+    await userEvent.click(within(form).getByRole('button', { name: 'Change email' }));
+    await settle();
+
+    const alert = screen.getByRole('alert');
+    expect(alert.textContent).toContain('Current password is incorrect.');
+    expect(liveRegionOf(form).contains(alert)).toBe(true);
+    expect(liveRegionOf(formOf('Name')).querySelector('[role="alert"]')).toBeNull();
+  });
+});
+
 describe('AccountSettings — danger zone', () => {
   it('keeps the trigger inert until a password is entered', async () => {
-    const fetcher = vi.fn() as unknown as typeof globalThis.fetch;
-    render({ fetcher });
+    render({ fetcher: fetcherReturning() });
 
     const trigger = () => dangerZone().getByRole('button', { name: 'Delete account' });
     expect(trigger().hasAttribute('disabled')).toBe(true);
@@ -91,7 +122,7 @@ describe('AccountSettings — danger zone', () => {
   });
 
   it('sends nothing until the confirmation is answered', async () => {
-    const fetcher = vi.fn(async () => jsonResponse(200, {})) as unknown as typeof globalThis.fetch;
+    const fetcher = fetcherAnswering(200, {});
     render({ fetcher });
 
     await openDeleteConfirm();
@@ -112,11 +143,7 @@ describe('AccountSettings — danger zone', () => {
 
   it('reports a rejected delete instead of calling onDeleted', async () => {
     const onDeleted = vi.fn();
-    render({
-      onDeleted,
-      fetcher: (async () =>
-        jsonResponse(401, { code: 'invalid_credentials' })) as unknown as typeof globalThis.fetch
-    });
+    render({ onDeleted, fetcher: fetcherAnswering(401, { code: 'invalid_credentials' }) });
 
     await openDeleteConfirm();
     await userEvent.click(confirmButton());

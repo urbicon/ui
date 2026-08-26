@@ -1,8 +1,9 @@
 // @vitest-environment jsdom
 import { screen } from '@testing-library/dom';
 import userEvent from '@testing-library/user-event';
-import { flushSync, mount, tick, unmount } from 'svelte';
-import { afterEach, describe, expect, it, vi } from 'vitest';
+import { tick } from 'svelte';
+import { describe, expect, it, vi } from 'vitest';
+import { fetcherReturning, jsonResponse, mounter, settle } from '../__fixtures__/fetcher.js';
 import InvitationManager from './InvitationManager.svelte';
 import type { InvitationManagerProps } from './index.js';
 
@@ -12,9 +13,6 @@ import type { InvitationManagerProps } from './index.js';
 // Svelte resolves to its server build and `mount()` dies on
 // `lifecycle_function_unavailable` — and `onMount`, which is how every manager
 // in this package loads its data, never runs.
-//
-// The suite drives the component through its injected `fetcher`, so no global
-// fetch is touched and each test states its own server.
 
 const roles = [
   { value: 'ADMIN', label: 'Admin' },
@@ -30,51 +28,9 @@ const invitation = (over: Record<string, unknown> = {}) => ({
   ...over
 });
 
-function jsonResponse(status: number, body: unknown): Response {
-  return new Response(JSON.stringify(body), {
-    status,
-    headers: { 'Content-Type': 'application/json' }
-  });
-}
-
-/** A fetch that answers each call from the queue, in order. */
-function fetcherReturning(...responses: Array<Response | Error>): typeof globalThis.fetch {
-  const queue = [...responses];
-  return vi.fn(async () => {
-    const next = queue.shift();
-    if (!next) throw new Error('fetcher queue exhausted');
-    if (next instanceof Error) throw next;
-    return next;
-  }) as unknown as typeof globalThis.fetch;
-}
-
-let dispose: (() => void) | undefined;
-
-afterEach(() => {
-  dispose?.();
-  dispose = undefined;
-  document.body.replaceChildren();
-});
-
-function render(props: Partial<InvitationManagerProps> = {}) {
-  const instance = mount(InvitationManager, {
-    target: document.body,
-    props: { roles, ...props } as InvitationManagerProps
-  });
-  dispose = () => unmount(instance);
-  flushSync();
-}
-
-/**
- * Let a request round-trip finish. A macrotask, not two microtasks: parsing a
- * real `Response` body takes an unspecified number of microtask turns, so
- * counting them is how a component test starts asserting against a DOM that has
- * not caught up yet.
- */
-async function settle() {
-  await new Promise((resolve) => setTimeout(resolve, 0));
-  await tick();
-}
+const mountInBody = mounter();
+const render = (props: Partial<InvitationManagerProps> = {}) =>
+  mountInBody(InvitationManager, { roles, ...props } as InvitationManagerProps);
 
 describe('InvitationManager (component)', () => {
   it('loads the list on mount and renders one row per invitation', async () => {
@@ -168,4 +124,28 @@ describe('InvitationManager (component)', () => {
     expect(screen.queryByText('invitee@example.com')).toBeNull();
     expect(screen.getByText('No invitations yet.')).toBeTruthy();
   });
+
+  it.each([
+    ['null', null],
+    ['an array', []]
+  ])(
+    'reports a refusal whose JSON body is %s as the generic error, not as a network failure',
+    async (_, body) => {
+      render({
+        fetcher: fetcherReturning(
+          jsonResponse(200, { invitations: [invitation()] }),
+          jsonResponse(500, body)
+        )
+      });
+      await settle();
+
+      await userEvent.click(screen.getByRole('button', { name: /Delete — invitee@example.com/ }));
+      await settle();
+
+      // The server answered; a body that is valid JSON but not an object must
+      // not be reported as "check your connection" — that sends the user
+      // looking for a problem on their side.
+      expect(screen.getByRole('alert').textContent).toContain('An error occurred');
+    }
+  );
 });

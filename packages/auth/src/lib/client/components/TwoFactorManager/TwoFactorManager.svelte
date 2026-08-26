@@ -1,10 +1,11 @@
 <script lang="ts">
-  import { Alert, Button, Input, Separator, getBlocksConfig } from '@urbicon-ui/blocks';
+  import { Button, Input, Separator, getBlocksConfig } from '@urbicon-ui/blocks';
   import { untrack } from 'svelte';
   import { mergeAuthLocale, useAuthLocale } from '../../../i18n/index.js';
   import type { TwoFactorManagerProps } from './index.js';
   import { errorTextFromBody, postJson as postJsonRequest } from '../../utils/http.js';
   import { resolveAuthSlotClasses, slotClass } from '../../utils/slot-class.js';
+  import FormErrorAlert from '../_shared/FormErrorAlert.svelte';
 
   let {
     user,
@@ -167,11 +168,7 @@
       {t.twoFactor.title}
     </h2>
 
-    <div aria-live="polite">
-      {#if error}
-        <Alert intent="danger" size="sm" {unstyled} class={slotClasses.error}>{error}</Alert>
-      {/if}
-    </div>
+    <FormErrorAlert {error} {unstyled} class={slotClasses.error} />
 
     {#if view === 'idle'}
       <p class={cls('text-text-secondary text-sm', undefined)}>

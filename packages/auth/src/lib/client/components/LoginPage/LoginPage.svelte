@@ -6,7 +6,7 @@
   import { errorMessageFromCode } from '../../utils/error-message.js';
   import type { LoginPageProps } from './index.js';
   import { base64UrlToBuffer, bufferToBase64Url } from '../../utils/webauthn.js';
-  import { errorTextFromBody, postJson, wireError } from '../../utils/http.js';
+  import { errorTextFromBody, parseJsonBody, postJson, wireError } from '../../utils/http.js';
   import { resolveAuthSlotClasses, slotClass } from '../../utils/slot-class.js';
   import AuthPageShell from '../_shared/AuthPageShell.svelte';
 
@@ -142,8 +142,7 @@
         fetcher
       );
       if (!optRes.ok) {
-        const data = await optRes.json().catch(() => ({}));
-        error = errorTextFromBody(data as Record<string, unknown>, t);
+        error = errorTextFromBody(await parseJsonBody(optRes), t);
         return;
       }
       const { options } = await optRes.json();
@@ -196,8 +195,7 @@
       );
 
       if (!verifyRes.ok) {
-        const data = (await verifyRes.json().catch(() => ({}))) as Record<string, unknown>;
-        error = errorTextFromBody(data, t);
+        error = errorTextFromBody(await parseJsonBody(verifyRes), t);
         return;
       }
 

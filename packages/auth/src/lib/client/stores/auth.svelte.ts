@@ -53,6 +53,21 @@ const NETWORK_FAILURE: AuthActionResult = Object.freeze({
   code: 'network_error'
 });
 
+/**
+ * Runes store for session state (`user`, `isAuthenticated`, `loading`) plus the
+ * five auth actions, for consumers that build their own forms or need the
+ * session across routes (a layout guard, a header menu). Its routes are the
+ * same handlers the pre-built pages call — `POST {apiPath}/login`,
+ * `/register`, `/logout`, `/2fa/verify`, `GET {apiPath}/me`.
+ *
+ * The pages (`LoginPage`, `RegisterPage`) do **not** instantiate this store.
+ * They own no session: they render a form, call the endpoint through the same
+ * request core (`postJson` in `utils/http.ts` — one implementation of fetch,
+ * CSRF, body parsing and the wire contract) and report `onSuccess`, leaving
+ * `user` to whichever store the consumer holds. A second store inside a page
+ * would be state nobody reads, disagreeing with the consumer's until its next
+ * `checkStatus()`.
+ */
 export function createAuthStore<R extends string>(config?: AuthStoreConfig) {
   const apiPath = config?.apiPath ?? '/api/auth';
   const csrf = config?.csrf;

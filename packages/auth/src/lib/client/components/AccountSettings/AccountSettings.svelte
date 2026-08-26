@@ -1,12 +1,5 @@
 <script lang="ts">
-  import {
-    Alert,
-    Button,
-    ConfirmDialog,
-    Input,
-    Separator,
-    getBlocksConfig
-  } from '@urbicon-ui/blocks';
+  import { Button, ConfirmDialog, Input, Separator, getBlocksConfig } from '@urbicon-ui/blocks';
   import { untrack } from 'svelte';
   import { mergeAuthLocale, useAuthLocale } from '../../../i18n/index.js';
   import { unmetPasswordRules } from '../../../password-policy.js';
@@ -19,6 +12,7 @@
     usePasswordPolicy
   } from '../../utils/password-policy.svelte.js';
   import { resolveAuthSlotClasses, slotClass } from '../../utils/slot-class.js';
+  import FormErrorAlert from '../_shared/FormErrorAlert.svelte';
   import PasswordRequirements from '../_shared/PasswordRequirements.svelte';
 
   let {
@@ -227,11 +221,7 @@
         {unstyled}
         class={slotClasses.field}
       />
-      <div aria-live="polite">
-        {#if profileError}<Alert intent="danger" size="sm" {unstyled}>{profileError}</Alert>{/if}
-        {#if profileSuccess}<Alert intent="success" size="sm" {unstyled}>{profileSuccess}</Alert
-          >{/if}
-      </div>
+      <FormErrorAlert error={profileError} success={profileSuccess} {unstyled} />
       <Button
         type="submit"
         variant="filled"
@@ -275,10 +265,7 @@
         {unstyled}
         class={slotClasses.field}
       />
-      <div aria-live="polite">
-        {#if emailError}<Alert intent="danger" size="sm" {unstyled}>{emailError}</Alert>{/if}
-        {#if emailSuccess}<Alert intent="success" size="sm" {unstyled}>{emailSuccess}</Alert>{/if}
-      </div>
+      <FormErrorAlert error={emailError} success={emailSuccess} {unstyled} />
       <Button
         type="submit"
         variant="filled"
@@ -330,10 +317,7 @@
           class={slotClasses.requirements}
         />
       {/if}
-      <div aria-live="polite">
-        {#if pwError}<Alert intent="danger" size="sm" {unstyled}>{pwError}</Alert>{/if}
-        {#if pwSuccess}<Alert intent="success" size="sm" {unstyled}>{pwSuccess}</Alert>{/if}
-      </div>
+      <FormErrorAlert error={pwError} success={pwSuccess} {unstyled} />
       <Button
         type="submit"
         variant="filled"
@@ -375,9 +359,7 @@
         {unstyled}
         class={slotClasses.field}
       />
-      <div aria-live="polite">
-        {#if deleteError}<Alert intent="danger" size="sm" {unstyled}>{deleteError}</Alert>{/if}
-      </div>
+      <FormErrorAlert error={deleteError} {unstyled} />
       <Button
         variant="outlined"
         intent="danger"

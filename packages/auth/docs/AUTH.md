@@ -103,7 +103,9 @@ All components use `@urbicon-ui/blocks` primitives and support:
 - **Semantic design tokens** — `text-text-primary`, `bg-surface-quiet`, etc.
 - The five pages share one internal skeleton (`_shared/AuthPageShell.svelte`: wrapper →
   Card → h1 → aria-live error region); the region itself is
-  `_shared/FormErrorAlert.svelte`, reused by the managers. Neither is a public export.
+  `_shared/FormErrorAlert.svelte`, the one place a request outcome (error or success)
+  becomes markup — every component reports into it, AccountSettings once per form.
+  Neither is a public export.
 
 | Component            | Purpose                                     |
 | -------------------- | ------------------------------------------- |

@@ -1,9 +1,11 @@
 <script lang="ts">
-  import { Alert, Button, Card, getBlocksConfig } from '@urbicon-ui/blocks';
+  import { Button, Card, getBlocksConfig } from '@urbicon-ui/blocks';
   import { subscribeToPush } from '../../utils/service-worker.js';
   import { mergeAuthLocale, useAuthLocale } from '../../../i18n/index.js';
   import { csrfFetch } from '../../csrf.js';
+  import { parseJsonBody, wireError } from '../../utils/http.js';
   import { resolveAuthSlotClasses } from '../../utils/slot-class.js';
+  import FormErrorAlert from '../_shared/FormErrorAlert.svelte';
   import type { PushPermissionPromptProps } from './index.js';
 
   let {
@@ -85,13 +87,10 @@
           // Deterministic refusals get precise messages via the machine code
           // ("please try again" would loop forever on a 409); everything else
           // keeps the generic retryable text.
-          const parsed: unknown = await res.json().catch(() => ({}));
-          const body = (
-            typeof parsed === 'object' && parsed !== null && !Array.isArray(parsed) ? parsed : {}
-          ) as { code?: string };
-          if (body.code === 'push_endpoint_conflict') {
+          const { code } = wireError(await parseJsonBody(res));
+          if (code === 'push_endpoint_conflict') {
             error = t.notifications.push.errorConflict;
-          } else if (body.code === 'push_subscription_limit') {
+          } else if (code === 'push_subscription_limit') {
             error = t.notifications.push.errorLimit;
           } else if (res.status === 429) {
             error = t.notifications.push.errorRateLimited;
@@ -135,13 +134,11 @@
     >
       {t.notifications.push.prompt}
     </p>
-    <div aria-live="polite" class={slotClasses.error}>
-      {#if error}
-        <div class={unstyled ? undefined : 'mt-2'}>
-          <Alert intent="danger" size="sm" {unstyled}>{error}</Alert>
-        </div>
-      {/if}
-    </div>
+    <FormErrorAlert
+      error={error ?? ''}
+      {unstyled}
+      class={unstyled ? slotClasses.error : ['mt-2', slotClasses.error].filter(Boolean).join(' ')}
+    />
     <div
       class={unstyled
         ? slotClasses.actions
