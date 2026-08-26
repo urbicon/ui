@@ -18,12 +18,13 @@ All of these (plus `svelte` ^5) are **peer dependencies** — the package bundle
 
 ### Styles
 
-Import the stylesheet after Tailwind — it pulls in the blocks token layer itself and deliberately does **not** import Tailwind (that stays the app's responsibility):
+Import the stylesheets after Tailwind, blocks first — none of them imports Tailwind or each other (that stays the app's responsibility, and a stylesheet imported twice is emitted twice):
 
 ```css
 /* app.css */
 @import 'tailwindcss';
-@import '@urbicon-ui/docs/style/index.css'; /* includes @urbicon-ui/blocks tokens */
+@import '@urbicon-ui/blocks/style/index.css';
+@import '@urbicon-ui/docs/style/index.css';
 @import '@urbicon-ui/table/style/index.css'; /* table styles used by ApiReference/TypesReference */
 ```
 
