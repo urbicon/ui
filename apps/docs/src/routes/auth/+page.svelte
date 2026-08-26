@@ -72,6 +72,11 @@ export const POST = createForgotPasswordHandler(authDeps);
     "script>\n  import { LoginPage } from '@urbicon-ui/auth';\n  import { goto } from '$app/navigation';\n</" +
     'script>\n\n<!-- Locale auto-detected from i18n context -->\n<LoginPage\n  onSuccess={() => goto(\'/\')}\n  passkeyApiPath="/api/auth/passkey"\n  rememberMe\n/>';
 
+  const cssCode = `/* app.css */
+@import 'tailwindcss';
+@import '@urbicon-ui/blocks/style/index.css'; /* tokens + the blocks @source */
+@import '@urbicon-ui/auth/style/index.css'; /* the auth @source */`;
+
   const handlerTable = [
     ['LoginPage', 'createLoginHandler', '/api/auth/login', 'PBKDF2 verify, lockout, JWT session'],
     [
@@ -250,8 +255,8 @@ export const POST = createForgotPasswordHandler(authDeps);
 
   <Section id="setup" title="Setup Guide">
     <p class="text-text-secondary mb-4">
-      Integration requires four steps: configure dependencies, add the hook, create API routes, and
-      add UI pages.
+      Integration requires five steps: configure dependencies, add the hook, create API routes, add
+      UI pages, and import the stylesheet.
     </p>
 
     <h3 class="text-text-primary mb-2 text-lg font-semibold">1. Configure auth dependencies</h3>
@@ -278,5 +283,14 @@ export const POST = createForgotPasswordHandler(authDeps);
       when the i18n context is set up.
     </p>
     <CodeExample code={uiCode} language="svelte" preview={false} />
+
+    <h3 class="text-text-primary mt-6 mb-2 text-lg font-semibold">5. Import the stylesheet</h3>
+    <p class="text-text-secondary mb-2 text-sm">
+      A Tailwind build never scans <code>node_modules</code> on its own. The package ships a
+      stylesheet whose <code>@source</code> directive points Tailwind at its components — import it
+      after the blocks one, or the <code>sm:</code> layouts and the link colour of the auth pages are
+      missing from the compiled CSS.
+    </p>
+    <CodeExample code={cssCode} language="css" preview={false} />
   </Section>
 </DocsPageLayout>
