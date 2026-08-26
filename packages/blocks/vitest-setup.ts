@@ -1,3 +1,5 @@
+import '../../scripts/vitest-match-media';
+
 // Global vitest setup for @urbicon-ui/blocks.
 //
 // jsdom omits several layout/overlay APIs that the primitives call while mounted (there is no real
@@ -109,23 +111,10 @@ if (typeof window !== 'undefined') {
     };
   }
 
-  // `prefers-reduced-motion` probes (mint micro-interactions, MediaQuery). jsdom
-  // ships no matchMedia — default to "no match" so animations report as enabled
-  // (the reduced-motion path is exercised in unit tests that mock it explicitly).
-  if (!window.matchMedia) {
-    window.matchMedia = ((query: string) => ({
-      matches: false,
-      media: query,
-      onchange: null,
-      addListener() {},
-      removeListener() {},
-      addEventListener() {},
-      removeEventListener() {},
-      dispatchEvent() {
-        return false;
-      }
-    })) as unknown as typeof window.matchMedia;
-  }
+  // `matchMedia` is installed by `scripts/vitest-match-media.ts` (imported at the top): one
+  // query-aware implementation shared with table. The flat `matches: false` stub it replaced
+  // was a WRONG answer to `(min-width: 1px)` and let any media-query-shaped test pass without
+  // running its branch; a query the shared stub has no rule for now throws.
 
   // Floating UI's autoUpdate observes the reference element for size/visibility changes.
   if (!('ResizeObserver' in window)) {
