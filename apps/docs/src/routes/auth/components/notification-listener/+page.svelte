@@ -59,9 +59,9 @@
     <NoteList>
       <Note title="It renders no DOM at all">
         <p>
-          The component wraps an <code class="text-text-primary">EventSource</code> and renders no markup,
-          so it adds nothing to the accessibility tree and cannot be focused or reached by a screen reader.
-          It can sit anywhere in the page.
+          The component reads the stream off <code class="text-text-primary">fetch</code> and renders
+          no markup, so it adds nothing to the accessibility tree and cannot be focused or reached by
+          a screen reader. It can sit anywhere in the page.
         </p>
       </Note>
       <Note title="Announcing an arrival is the consumer’s job">
@@ -78,9 +78,12 @@
           Dropped connections retry with exponential backoff and give up after
           <code class="text-text-primary">maxReconnectAttempts</code>, calling the
           <code class="text-text-primary">onError</code> and
-          <code class="text-text-primary">onReconnect</code> callbacks rather than showing any UI. If
-          a stalled stream should be visible to the user, building that indicator is your job; silently
-          missing notifications is the failure mode worth designing against.
+          <code class="text-text-primary">onReconnect</code> callbacks rather than showing any UI. A
+          stream the server refuses (a <code class="text-text-primary">429 connection_limit</code>
+          once too many tabs hold one open) is not retried at all: it arrives as
+          <code class="text-text-primary">onRefused</code> with the machine code. If a stalled or refused
+          stream should be visible to the user, building that indicator is your job; silently missing
+          notifications is the failure mode worth designing against.
         </p>
       </Note>
     </NoteList>

@@ -64,13 +64,19 @@ export interface AuthLocale {
        */
       csrfFailed: string;
       /**
-       * 400 — a passkey ceremony (sign-in or registration) did not verify.
-       * One string for all of them: the server's eight distinct causes are
-       * either not actionable by the user (expired challenge, unknown
-       * credential) or must not be shown to them at all (the cloned-authenticator
-       * signal); they are separated in the audit hook and the log instead.
+       * 400 — a passkey ceremony (sign-in or registration) did not verify and
+       * a retry can succeed. One string for all of those: the server's causes
+       * are either not actionable by the user (expired challenge) or must not
+       * be shown to them at all (the cloned-authenticator signal); they are
+       * separated in the audit hook and the log instead.
        */
       passkeyVerificationFailed: string;
+      /**
+       * 400 — the passkey the browser offered is not stored on the server
+       * (deleted from another device). A retry offers the same passkey again,
+       * so this copy names the way out: another sign-in, then re-enrol.
+       */
+      passkeyCredentialDeleted: string;
       serverError: string;
       /** Client-side only: the request never reached the server (offline, DNS, CORS). */
       networkError: string;

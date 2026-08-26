@@ -103,6 +103,17 @@ describe('errorMessageFromCode', () => {
     }
   });
 
+  it('names the way out for a passkey the server no longer stores', () => {
+    // The one ceremony failure a retry cannot fix gets its own sentence, not
+    // the "try again" of the uniform code.
+    expect(errorMessageFromCode('passkey_credential_deleted', de)).toBe(
+      de.auth.errors.passkeyCredentialDeleted
+    );
+    expect(errorMessageFromCode('passkey_credential_deleted', de)).not.toBe(
+      de.auth.errors.passkeyVerificationFailed
+    );
+  });
+
   it('separates the connection cap from the request cap (both 429)', () => {
     expect(errorMessageFromCode('connection_limit', de)).toBe(de.auth.errors.connectionLimit);
     expect(errorMessageFromCode('connection_limit', de)).not.toBe(de.auth.errors.rateLimited);

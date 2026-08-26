@@ -61,24 +61,29 @@ export const AUTH_ERROR_CODES = {
   validation_error: 'validation_error',
   // Rate limiting (429) — too many requests, the reaction is to wait
   rate_limited: 'rate_limited',
-  // Per-user cap on concurrent SSE connections (429). Its own code because
-  // before the split a connection cap and a request cap were the SAME code, so
-  // telling "wait" from "close a tab" meant string-matching English prose —
-  // and backoff never clears a connection cap. Who can act on it: a consumer
-  // whose SSE client is fetch-based, and whatever reads the server log or
-  // metrics by `code`. NOT this package's `<NotificationListener>`: it uses
-  // native `EventSource`, which exposes no response body at all, so its
-  // `onerror` sees an opaque Event and keeps reconnecting. (This is the
+  // Per-user cap on concurrent SSE connections (429). Its own code because a
+  // connection cap and a request cap answer under the same status while the
+  // reactions differ — wait for `rate_limited`, close a tab here — and backoff
+  // never clears a connection cap. `<NotificationListener>` reads the code off
+  // the refused `fetch` response and stops instead of reconnecting; whatever
+  // reads the log or metrics by `code` tells the two apart the same way. (The
   // opposite call from `feature_unavailable` above for the opposite reason —
   // there each site already carries distinct prose, so a split adds nothing.)
   connection_limit: 'connection_limit',
   // CSRF gate in createAuthHandle (403)
   csrf_failed: 'csrf_failed',
-  // Every passkey ceremony failure, registration and sign-in alike. The prose
-  // carries no detail on purpose: none of the causes is actionable by the user
-  // and one is a possible-clone signal. `onLoginFailed(email, reason)` and the
-  // logger separate them server-side (see passkey/handlers.ts).
+  // Every passkey ceremony failure a retry can fix, registration and sign-in
+  // alike. The prose carries no detail on purpose: none of those causes is
+  // actionable by the user and one is a possible-clone signal.
+  // `onLoginFailed(email, reason)` and the logger separate them server-side
+  // (see passkey/handlers.ts).
   passkey_verification_failed: 'passkey_verification_failed',
+  // The passkey the browser offered is not stored on the server (deleted from
+  // another device; the browser keeps offering it). A retry presents the same
+  // passkey to the same server, so the uniform "try again" would loop the
+  // user — this code's prose names the way out instead. The audit reasons
+  // stay `unknown_credential` / `credential_deleted`.
+  passkey_credential_deleted: 'passkey_credential_deleted',
   // Push subscription writes (409): endpoint owned by another account vs.
   // per-user device cap — distinct codes so the client can tell a permanent
   // ownership conflict from "remove a device first".
