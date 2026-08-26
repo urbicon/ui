@@ -7,7 +7,9 @@ import { readFile } from 'node:fs/promises';
 import { describe, expect, it } from 'vitest';
 import {
   type ConformanceCapabilities,
+  type ConformanceCheck,
   type ConformanceRunner,
+  conformanceChecks,
   describeRepositoryConformance,
   setConformanceRunner,
   summarizeConformanceRun
@@ -25,6 +27,23 @@ const ALL_CAPS: Required<ConformanceCapabilities> = {
 };
 
 describe('conformance-core', () => {
+  it('rejects mutation of conformanceChecks, down to a check’s run', () => {
+    // Exported, and one array backs every run in the process, so a push into
+    // it — or a swapped `run` on an entry — would reach every suite registered
+    // afterwards. A shallow freeze stops only the first.
+    expect(() =>
+      (conformanceChecks as ConformanceCheck[]).push({
+        name: 'smuggled',
+        requires: [],
+        run: async () => {}
+      })
+    ).toThrow(TypeError);
+    expect(conformanceChecks.length).toBeGreaterThan(0);
+    expect(() => {
+      (conformanceChecks[0] as { run: ConformanceCheck['run'] }).run = async () => {};
+    }).toThrow(TypeError);
+  });
+
   it('imports no test runner, so a consumer on bun:test or jest can load it', async () => {
     const source = await readFile(new URL('./conformance-core.ts', import.meta.url), 'utf8');
     // Statements only — the doc comment names `bun:test` in its usage example.

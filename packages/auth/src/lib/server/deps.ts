@@ -25,8 +25,8 @@ export interface AuthDeps<R extends string = string> {
     /**
      * Optional — required only when `config.refreshToken` is set. Pass the
      * Prisma adapter's `refreshToken` field, or an in-memory/Redis/Upstash
-     * implementation via `createInMemoryRefreshTokenRepository` or a custom
-     * `RefreshTokenRepository`.
+     * implementation via `createInMemoryRefreshTokenRepository(store)` or a
+     * custom `RefreshTokenRepository`.
      */
     refreshToken?: RefreshTokenRepository;
     /**
@@ -172,7 +172,7 @@ export function assertReposMatchConfig<R extends string>(
     throw new Error(
       '[auth] config.refreshToken is set but repos.refreshToken is missing. ' +
         'Refresh-token rotation cannot work without its repository — pass the ' +
-        "adapter's `refreshToken` field (or createInMemoryRefreshTokenRepository), " +
+        "adapter's `refreshToken` field (or createInMemoryRefreshTokenRepository(store)), " +
         'or remove config.refreshToken.'
     );
   }

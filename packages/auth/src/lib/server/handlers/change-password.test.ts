@@ -1,6 +1,9 @@
 import type { Cookies, RequestEvent } from '@sveltejs/kit';
 import { describe, expect, it, vi } from 'vitest';
-import { createInMemoryRefreshTokenRepository } from '../adapters/in-memory.js';
+import {
+  createInMemoryRefreshTokenRepository,
+  createInMemoryStore
+} from '../adapters/in-memory.js';
 import type { AuthDeps } from '../deps.js';
 import { hashPassword } from '../password.js';
 import { setSessionCookie } from '../session.js';
@@ -62,7 +65,7 @@ describe('createChangePasswordHandler', () => {
 
   it('changes the password, bumps tokenVersion, revokes all refresh families and keeps this session', async () => {
     const user = createMockUser({ passwordHash: await hashPassword('correct-current') });
-    const refreshToken = createInMemoryRefreshTokenRepository();
+    const refreshToken = createInMemoryRefreshTokenRepository(createInMemoryStore());
     const revokeSpy = vi.spyOn(refreshToken, 'revokeAllForUser');
     const onPasswordChanged = vi.fn();
     const deps = createMockAuthDeps({
