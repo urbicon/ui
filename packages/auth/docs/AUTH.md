@@ -100,7 +100,9 @@ All components use `@urbicon-ui/blocks` primitives and support:
   is the one component without any of the three — it renders no markup.
 - **Snippet overrides** — `header`/`footer`/`links` on all five pages, `item`
   (NotificationCenter), `qr` (TwoFactorManager)
-- **Semantic design tokens** — `text-text-primary`, `bg-surface-quiet`, etc.
+- **Semantic design tokens** — `text-text-primary`, `bg-surface-quiet`, etc. The tokens
+  come from the consumer's blocks stylesheet; this package's own
+  `@urbicon-ui/auth/style/index.css` adds only the Tailwind `@source` for its components.
 - The five pages share one internal skeleton (`_shared/AuthPageShell.svelte`: wrapper →
   Card → h1 → aria-live error region); the region itself is
   `_shared/FormErrorAlert.svelte`, reused by the managers. Neither is a public export.
@@ -229,6 +231,13 @@ blocks each stage swaps in, and the invariants that hold across all of them.
 **Cross-cutting:** `createAuthHandle` is mandatory in every stage — it hydrates the
 session (`locals.user`), guards routes, applies the response security headers, and
 enforces CSRF. The handler factories alone do none of that.
+
+**Stylesheet:** every stage that mounts a component needs
+`@import '@urbicon-ui/auth/style/index.css';` after the blocks import in the app's
+Tailwind stylesheet (see [README → Installation](../README.md#installation)). The file
+carries no tokens — only the `@source` directive that lets the consumer's Tailwind build
+reach the classes inside this package. Without it the `sm:` layouts and the link colour
+of the auth pages are missing from the compiled CSS.
 
 `createAuthHandle` applies response security headers automatically:
 `X-Content-Type-Options`, `X-Frame-Options: DENY`, `Referrer-Policy`,

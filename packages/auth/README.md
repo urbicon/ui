@@ -19,6 +19,23 @@ bun install
 Peer dependencies: `svelte` (^5), `@sveltejs/kit`, `@urbicon-ui/blocks`, `@urbicon-ui/i18n`.
 Runtime dependencies: **none**.
 
+**Stylesheet.** The components emit Tailwind classes, and a Tailwind build never scans
+`node_modules` on its own — each package ships a stylesheet whose `@source` directive points
+Tailwind at its components. Import this package's stylesheet next to the blocks one, in the
+file that holds your Tailwind import:
+
+```css
+/* app.css */
+@import 'tailwindcss';
+@import '@urbicon-ui/blocks/style/index.css'; /* tokens + the blocks @source */
+@import '@urbicon-ui/auth/style/index.css'; /* the auth @source — no tokens of its own */
+```
+
+Without the auth line the components still render, but every class that lives only in
+this package (the `sm:` layouts of the pages and managers, the link colour of the auth
+pages) is missing from the compiled CSS. A project that mounted the components before this
+stylesheet existed adds the one line and is done.
+
 **Runtime target: Node.js ≥ 20 or Bun.** All crypto is Web Crypto (`globalThis.crypto`, global since Node 20), but password hashing and the TOTP secret cipher use Node's `Buffer` — which puts the login/register path on a Node/Bun runtime. Edge/Workers/Deno-deploy work only behind a `Buffer` polyfill (e.g. Cloudflare `nodejs_compat`); the Web Crypto paths themselves are edge-clean.
 
 ## Feature Matrix

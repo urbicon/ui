@@ -27,7 +27,7 @@ export function registerGetChecklistTool(server: McpServer): void {
       md += '## Project Setup\n\n';
       md += '- [ ] Install: `bun add @urbicon-ui/blocks @urbicon-ui/i18n`\n';
       md +=
-        "- [ ] Add CSS imports to your root layout or entry CSS — your app owns the Tailwind import and it MUST come first:\n  ```css\n  @import 'tailwindcss';\n  @import '@urbicon-ui/blocks/style/index.css'; /* tokens + @source directives */\n  @import '@urbicon-ui/table/style/index.css';  /* only if using Table */\n  ```\n";
+        "- [ ] Add CSS imports to your root layout or entry CSS — your app owns the Tailwind import and it MUST come first:\n  ```css\n  @import 'tailwindcss';\n  @import '@urbicon-ui/blocks/style/index.css'; /* tokens + @source directives */\n  @import '@urbicon-ui/table/style/index.css';  /* only if using Table */\n  @import '@urbicon-ui/auth/style/index.css';   /* only if using Auth */\n  ```\n";
       md +=
         "- [ ] Import components from package root: `import { Button } from '@urbicon-ui/blocks'` (never from internal paths)\n";
       md +=
