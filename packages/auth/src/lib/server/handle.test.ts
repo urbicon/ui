@@ -665,6 +665,72 @@ describe('createAuthHandle — refresh-token rotation', () => {
     expect((second.locals.user as { id?: string }).id).toBe('user-1');
   });
 
+  // A killed family keeps the rotated predecessor's stamp; only its live head
+  // is gone. Without the family check, the spent cookie stayed a valid key for
+  // ten seconds after the kill — measured: `revokeFamily` → the replay minted
+  // a session; bump + `revokeAllForUser` → a session carrying the NEW
+  // tokenVersion, and the follow-up request with it was authenticated.
+  it('refuses a spent refresh cookie inside the grace window once its family was revoked', async () => {
+    const repos = reposWithRefresh();
+    const { token, record } = await issueRefreshToken(repos.refreshToken!, 'user-1', {
+      refreshTokenTtl: '30d'
+    });
+    const handle = createAuthHandle({ config: rotationConfig, repos });
+    const resolve = vi.fn(async () => new Response('OK'));
+
+    const first = createMockEvent({ path: '/dashboard', refreshCookie: token });
+    await handle({ event: asEvent(first), resolve });
+    expect(first.locals.user, 'T1 rotated to T2').toBeDefined();
+
+    await repos.refreshToken!.revokeFamily(record.family);
+
+    const replay = createMockEvent({ path: '/api/data', refreshCookie: token });
+    const response = await handle({ event: asEvent(replay), resolve });
+    expect(response.status).toBe(401);
+    expect(replay.locals.user).toBeNull();
+    expect(replay._cookieStore.get('session'), 'no session minted').toBeUndefined();
+    expect(replay._cookieStore.get('refresh'), 'refresh cookie cleared').toBeUndefined();
+  });
+
+  it('mints no session for the spent cookie after a tokenVersion bump + revokeAllForUser', async () => {
+    // change-password's pair: the bump kills access tokens, revokeAllForUser the
+    // refresh families. The user repo has to carry the bump for real here — a
+    // minted session would otherwise fail on the generation check by accident.
+    let tokenVersion = 0;
+    const repos: Repositories = {
+      user: createMockUserRepository({
+        findById: vi.fn(async () => createMockUser({ tokenVersion })),
+        incrementTokenVersion: vi.fn(async () => {
+          tokenVersion += 1;
+        })
+      }),
+      invitation: createMockInvitationRepository(),
+      refreshToken: createInMemoryRefreshTokenRepository()
+    };
+    const { token } = await issueRefreshToken(repos.refreshToken!, 'user-1', {
+      refreshTokenTtl: '30d'
+    });
+    const handle = createAuthHandle({ config: rotationConfig, repos });
+    const resolve = vi.fn(async () => new Response('OK'));
+
+    const first = createMockEvent({ path: '/dashboard', refreshCookie: token });
+    await handle({ event: asEvent(first), resolve });
+    expect(first.locals.user, 'T1 rotated to T2').toBeDefined();
+
+    await repos.user.incrementTokenVersion('user-1');
+    await repos.refreshToken!.revokeAllForUser('user-1');
+
+    const replay = createMockEvent({ path: '/api/data', refreshCookie: token });
+    expect((await handle({ event: asEvent(replay), resolve })).status).toBe(401);
+    const minted = replay._cookieStore.get('session');
+    expect(minted, 'no session minted for a killed family').toBeUndefined();
+
+    // Whatever the replay left in the jar must not authenticate the next request.
+    const followUp = createMockEvent({ path: '/api/data', sessionCookie: minted });
+    expect((await handle({ event: asEvent(followUp), resolve })).status).toBe(401);
+    expect(followUp.locals.user).toBeNull();
+  });
+
   it('clears both cookies when the refresh cookie is invalid', async () => {
     const repos = reposWithRefresh();
     const handle = createAuthHandle({ config: rotationConfig, repos });

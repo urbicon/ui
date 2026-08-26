@@ -2,7 +2,7 @@ import type { Cookies } from '@sveltejs/kit';
 import { describe, expect, it, vi } from 'vitest';
 import type { AuthConfig, RefreshTokenConfig } from '../types.js';
 import { createInMemoryRefreshTokenRepository } from './adapters/in-memory.js';
-import type { FullAuthUser } from './adapters/types.js';
+import type { FullAuthUser, RefreshTokenRepository } from './adapters/types.js';
 import { hashToken } from './auth.js';
 import { parseDurationSeconds } from './duration.js';
 import {
@@ -198,6 +198,54 @@ describe('rotateRefreshToken', () => {
       const successor = await repo.findByHash(hashToken(first.token));
       expect(successor?.revokedAt).toBeNull();
     }
+  });
+
+  // The grace exists for two tabs rotating the same *living* family. A family
+  // killed after the rotation (theft response, "sign out everywhere") keeps the
+  // predecessor's rotation stamp and successor pointer — `revokeFamily` and
+  // `revokeAllForUser` only touch live rows — so the stamp alone reads exactly
+  // like a lost race.
+  it.each([
+    {
+      label: 'revokeFamily',
+      kill: (repo: RefreshTokenRepository, family: string) => repo.revokeFamily(family)
+    },
+    {
+      label: 'revokeAllForUser',
+      kill: (repo: RefreshTokenRepository) => repo.revokeAllForUser('user-1')
+    }
+  ])('refuses a replay inside the grace window once $label killed the family', async ({ kill }) => {
+    vi.useFakeTimers();
+    try {
+      const repo = createInMemoryRefreshTokenRepository();
+      const { token: t1, record } = await issueRefreshToken(repo, 'user-1', config);
+      expect((await rotateRefreshToken(repo, t1, findUser, config)).kind).toBe('rotated');
+      await kill(repo, record.family);
+
+      vi.advanceTimersByTime(1_000); // well inside the 10 s grace
+      expect((await rotateRefreshToken(repo, t1, findUser, config)).kind).toBe('reused');
+
+      // Control: past the window the answer was never in doubt.
+      vi.advanceTimersByTime(10_000);
+      expect((await rotateRefreshToken(repo, t1, findUser, config)).kind).toBe('reused');
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
+  it('reports a live token whose family is killed mid-rotation as revoked, not as a race', async () => {
+    const repo = createInMemoryRefreshTokenRepository();
+    const { token: t1, record } = await issueRefreshToken(repo, 'user-1', config);
+    // The kill lands between the read and the CAS revoke — `findUser` is the
+    // await in between — so the CAS fails exactly as it would to a real loser.
+    const killingFindUser = async (id: string) => {
+      await repo.revokeFamily(record.family);
+      return findUser(id);
+    };
+
+    const outcome = await rotateRefreshToken(repo, t1, killingFindUser, config);
+    expect(outcome.kind).toBe('revoked');
+    expect(await repo.listActiveByUser('user-1'), 'no orphan successor survives').toEqual([]);
   });
 
   it('returns expired for tokens past their expiresAt', async () => {

@@ -50,6 +50,7 @@ export type {
   CreatePasskeyData,
   CreateRefreshTokenData,
   CreateUserData,
+  FailedLoginLock,
   FederatedAccount,
   FederatedAccountRepository,
   FullAuthUser,

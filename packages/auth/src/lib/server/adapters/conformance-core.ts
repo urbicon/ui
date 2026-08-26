@@ -83,9 +83,9 @@ import type { Passkey, Repositories } from './types.js';
  * - `listActiveByUser`'s newest-first ordering. Its one caller
  *   (`handlers/sessions.ts`) collapses the rows per family and sorts the result
  *   itself, so the repository's order never reaches the response.
- * - `recordFailedLogin` **without** `lockoutConfig` (bump the counter only).
- *   That path is reachable — `config.lockout: null` normalizes to `undefined`
- *   at the call — but the same flag gates the only reader
+ * - `recordFailedLogin` **without** a lock (bump the counter only). That path
+ *   is reachable — `config.lockout: null` normalizes to `undefined` at the
+ *   call — but the same flag gates the only reader
  *   (`getFailedLoginAttempts`), so with lockout off the counter is written and
  *   nothing ever looks at it.
  * - `BackupCodeRepository.createMany`'s "MUST NOT deduplicate". The one caller
@@ -806,21 +806,40 @@ export const conformanceChecks: readonly ConformanceCheck[] = [
     expect(after - before, '10 parallel increments must all land').toBe(10);
   }),
 
-  check('user.recordFailedLogin counts atomically and locks at threshold', [], async (repos, h) => {
-    const user = await seedUser(repos, h.role);
-    const lockout = { maxAttempts: 5, durationMinutes: 15 };
+  check(
+    'user.recordFailedLogin counts atomically and applies the lock it is handed',
+    [],
+    async (repos, h) => {
+      const user = await seedUser(repos, h.role);
+      // Values an adapter keeping a policy of its own cannot reproduce: neither
+      // the shipped defaults (5 attempts, 15 minutes) nor an instant any clock
+      // arithmetic lands on. The lock is a value to store, not a rule to apply.
+      const lockedUntil = new Date(Date.now() + 37 * 60_000 + 123);
+      const lock = { maxAttempts: 3, lockedUntil };
 
-    await parallel(5, () => repos.user.recordFailedLogin(user.id, lockout));
+      await parallel(2, () => repos.user.recordFailedLogin(user.id, lock));
+      const below = await repos.user.getFailedLoginAttempts(user.id);
+      expect(below.count, '2 parallel failures must both be counted').toBe(2);
+      expect(below.lockedUntil, 'below maxAttempts nothing locks').toBeNull();
 
-    const state = await repos.user.getFailedLoginAttempts(user.id);
-    expect(state.count, '5 parallel failures must all be counted').toBe(5);
-    expect(state.lockedUntil, 'reaching the threshold must lock').toBeInstanceOf(Date);
+      await parallel(2, () => repos.user.recordFailedLogin(user.id, lock));
+      const locked = await repos.user.getFailedLoginAttempts(user.id);
+      expect(locked.count).toBe(4);
+      expect(
+        locked.lockedUntil?.getTime(),
+        'reaching maxAttempts stores the lockedUntil that was handed in'
+      ).toBe(lockedUntil.getTime());
 
-    await repos.user.resetFailedLogins(user.id);
-    const reset = await repos.user.getFailedLoginAttempts(user.id);
-    expect(reset.count).toBe(0);
-    expect(reset.lockedUntil).toBeNull();
-  }),
+      await parallel(5, () => repos.user.recordFailedLogin(user.id, lock));
+      const stressed = await repos.user.getFailedLoginAttempts(user.id);
+      expect(stressed.count, '5 parallel failures on a locked account still all land').toBe(9);
+
+      await repos.user.resetFailedLogins(user.id);
+      const reset = await repos.user.getFailedLoginAttempts(user.id);
+      expect(reset.count).toBe(0);
+      expect(reset.lockedUntil).toBeNull();
+    }
+  ),
 
   // -- User: unique constraint --------------------------------------------
   check('user.create rejects a duplicate email', [], async (repos, h) => {
@@ -986,6 +1005,28 @@ export const conformanceChecks: readonly ConformanceCheck[] = [
         outcomes.every((o) => o.kind === 'rotated' || o.kind === 'race_ok'),
         'losers degrade to a benign race, never a second live token'
       ).toBe(true);
+    }
+  ),
+
+  check(
+    'rotateRefreshToken refuses a spent token of a killed family inside the grace window',
+    ['refreshToken'],
+    async (repos, h) => {
+      // The grace for a lost rotation race rests on two adapter reads agreeing:
+      // `revokeFamily` leaves no live row, and `listActiveByUser` reports none.
+      // An adapter that keeps a rotated-but-killed successor visible as live
+      // would hand a "sign out everywhere" replay a fresh session.
+      const repo = need(repos.refreshToken, 'refreshToken');
+      const user = await seedUser(repos, h.role);
+      const findUser = (id: string) => repos.user.findById(id);
+      const { token, record } = await issueRefreshToken(repo, user.id, ROTATION_CONFIG);
+      expect((await rotateRefreshToken(repo, token, findUser, ROTATION_CONFIG)).kind).toBe(
+        'rotated'
+      );
+
+      await repo.revokeFamily(record.family);
+      const replay = await rotateRefreshToken(repo, token, findUser, ROTATION_CONFIG);
+      expect(replay.kind, 'a killed family has no race left to lose').toBe('reused');
     }
   ),
 
@@ -1514,7 +1555,7 @@ export const conformanceChecks: readonly ConformanceCheck[] = [
     await repos.user.setEmailVerified(ghost);
     await repos.user.setVerificationToken(ghost, 'vt-ghost', futureDate());
     await repos.user.setPasswordResetToken(ghost, 'rt-ghost', futureDate());
-    await repos.user.recordFailedLogin(ghost, { maxAttempts: 5, durationMinutes: 15 });
+    await repos.user.recordFailedLogin(ghost, { maxAttempts: 5, lockedUntil: futureDate() });
     await repos.user.resetFailedLogins(ghost);
     await repos.user.updateProfile(ghost, { name: 'Ghost' });
     await repos.user.setEmailChangeToken(ghost, 'ghost@conformance.test', 'ct-ghost', futureDate());

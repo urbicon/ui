@@ -5,7 +5,7 @@ import { sanitizeUser } from '../auth.js';
 import type { AuthDeps } from '../deps.js';
 import { hashPassword, verifyPasswordWithMigration } from '../password.js';
 import { enforceRateLimit, sharedLimiter } from '../rate-limit.js';
-import { DEFAULT_DECAY_MINUTES, lockoutFor } from '../security-defaults.js';
+import { failedLoginLock, lockoutFor } from '../security-defaults.js';
 import { establishSession, resolveSessionMeta } from '../session.js';
 import { createPending2faToken, setPending2faCookie } from '../two-factor.js';
 import { validateLoginInput } from '../validation.js';
@@ -28,11 +28,15 @@ const DUMMY_VERIFY_PASSWORD = 'urbicon-auth-timing-equalization-dummy';
  * its pre-decay meaning. Reading it as decayed instead would discard the count
  * of every adapter that leaves the field null.
  */
-function attemptsDecayed(lastFailedAt: Date | null, lockout: LockoutConfig, now: number): boolean {
+function attemptsDecayed(
+  lastFailedAt: Date | null,
+  lockout: Required<LockoutConfig>,
+  now: number
+): boolean {
   if (!(lastFailedAt instanceof Date)) return false;
   // An `Invalid Date` needs no branch of its own: its age is NaN, and every
   // comparison against NaN is false, so it lands on "cannot tell" as well.
-  return now - lastFailedAt.getTime() >= (lockout.decayMinutes ?? DEFAULT_DECAY_MINUTES) * 60_000;
+  return now - lastFailedAt.getTime() >= lockout.decayMinutes * 60_000;
 }
 
 export function createLoginHandler<R extends string>(deps: AuthDeps<R>): { POST: RequestHandler } {
@@ -152,7 +156,9 @@ export function createLoginHandler<R extends string>(deps: AuthDeps<R>): { POST:
         deps.config.password
       );
       if (!result.valid) {
-        await deps.repos.user.recordFailedLogin(user.id, lockout);
+        // The threshold and the lock instant are resolved here, once; the
+        // adapter compares and stores them (FailedLoginLock).
+        await deps.repos.user.recordFailedLogin(user.id, lockout && failedLoginLock(lockout));
         // recordFailedLogin above has already counted this attempt, so a 500
         // here would spend lockout budget while hiding the reason for it.
         await notifyHook(
