@@ -752,11 +752,11 @@
       "exports": ["NotificationCenter"]
     },
     "NotificationListener": {
-      "min": 2601,
-      "gz": 1330,
+      "min": 3400,
+      "gz": 1669,
       "net": {
-        "min": 2486,
-        "gz": 1091
+        "min": 3285,
+        "gz": 1407
       },
       "lazy": {
         "min": 0,
@@ -1200,15 +1200,15 @@
       "exports": ["Tab", "TabItem", "TabPanel"]
     },
     "Table": {
-      "min": 394394,
-      "gz": 99037,
+      "min": 393767,
+      "gz": 98873,
       "net": {
-        "min": 380376,
-        "gz": 94448
+        "min": 379755,
+        "gz": 94267
       },
       "lazy": {
         "min": 7502,
-        "gz": 3244
+        "gz": 3243
       },
       "pkg": "table",
       "exports": ["Table"]

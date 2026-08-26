@@ -1,5 +1,10 @@
 import { describe, expect, it } from 'vitest';
-import { createEventStreamParser, readEventStream, type ServerSentEvent } from './sse.js';
+import {
+  createEventStreamParser,
+  lastEventIdHeader,
+  readEventStream,
+  type ServerSentEvent
+} from './sse.js';
 
 const enc = new TextEncoder();
 const bytes = (text: string) => enc.encode(text);
@@ -121,6 +126,50 @@ describe('createEventStreamParser', () => {
     expect(parse('data: partial\n')).toEqual([]);
     expect(parse('data: partial')).toEqual([]);
   });
+
+  it('ends a line at a CR as the last byte — nothing is held back for the next chunk', () => {
+    // `data: x\n\r`: the CR closes an empty line, which dispatches x right
+    // there, not when (or if) another byte arrives.
+    expect(parse('data: x\n\r').map((e) => e.data)).toEqual(['x']);
+    expect(parse('data: x\rdata: y\r\r').map((e) => e.data)).toEqual(['x\ny']);
+  });
+
+  it('shares only lastEventId and retry between connections; a half-received block dies with its parser', () => {
+    const cursor = { lastEventId: '', retry: undefined };
+    const first = createEventStreamParser(cursor);
+    // Connection 1 dies between the data line and the blank line.
+    expect(first.push(bytes('id: 9\nretry: 500\ndata: {"half":\n'))).toEqual([]);
+    expect(cursor).toEqual({ lastEventId: '', retry: 500 });
+    // Connection 2 starts clean: no "{"half":" prefix leaks into its first event.
+    const second = createEventStreamParser(cursor);
+    expect(second.push(bytes('event: done\ndata: ok\n\n'))).toEqual([
+      { type: 'done', data: 'ok', lastEventId: '' }
+    ]);
+    expect(second.retry).toBe(500);
+  });
+
+  it("carries a committed id onto the next connection's events until the server sends a new one", () => {
+    const cursor = { lastEventId: '', retry: undefined };
+    createEventStreamParser(cursor).push(bytes('id: cursor\ndata: x\n\n'));
+    const next = createEventStreamParser(cursor);
+    expect(next.push(bytes('event: done\ndata: ok\n\n'))).toEqual([
+      { type: 'done', data: 'ok', lastEventId: 'cursor' }
+    ]);
+    expect(next.push(bytes('id: fresh\ndata: y\n\n'))[0]?.lastEventId).toBe('fresh');
+  });
+});
+
+describe('lastEventIdHeader', () => {
+  it('passes an ASCII id through unchanged', () => {
+    expect(lastEventIdHeader('cursor-41')).toBe('cursor-41');
+    expect(lastEventIdHeader('')).toBe('');
+  });
+
+  it('refuses a non-ASCII id rather than guess how the engine turns it into bytes', () => {
+    expect(lastEventIdHeader('ü')).toBeUndefined();
+    expect(lastEventIdHeader('\u{1F600}')).toBeUndefined();
+    expect(lastEventIdHeader('a\u00ffb')).toBeUndefined();
+  });
 });
 
 function streamOf(): {
@@ -128,18 +177,24 @@ function streamOf(): {
   send: (text: string) => void;
   close: () => void;
   fail: (error: unknown) => void;
+  cancelled: () => number;
 } {
   let controller!: ReadableStreamDefaultController<Uint8Array>;
+  let cancelled = 0;
   const body = new ReadableStream<Uint8Array>({
     start(c) {
       controller = c;
+    },
+    cancel() {
+      cancelled++;
     }
   });
   return {
     body,
     send: (text) => controller.enqueue(bytes(text)),
     close: () => controller.close(),
-    fail: (error) => controller.error(error)
+    fail: (error) => controller.error(error),
+    cancelled: () => cancelled
   };
 }
 
@@ -177,6 +232,21 @@ describe('readEventStream', () => {
     await expect(
       readEventStream(body, createEventStreamParser(), () => {}, controller.signal)
     ).resolves.toBeUndefined();
+  });
+
+  it('cancels the body when onEvent throws, so the connection does not stay open', async () => {
+    const { body, send, cancelled } = streamOf();
+    const done = readEventStream(
+      body,
+      createEventStreamParser(),
+      () => {
+        throw new Error('consumer bug');
+      },
+      new AbortController().signal
+    );
+    send('data: x\n\n');
+    await expect(done).rejects.toThrow('consumer bug');
+    expect(cancelled()).toBe(1);
   });
 
   it('rejects when the transport fails, with the transport error', async () => {

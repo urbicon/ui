@@ -17,6 +17,20 @@ export interface ServerSentEvent {
   lastEventId: string;
 }
 
+/**
+ * What survives a reconnect: the last event ID string (sent as
+ * `Last-Event-ID`, and the ID the next connection's events carry until the
+ * server sends a new `id:`) and the reconnection time. Owned by the
+ * connection loop and written by every parser it creates. The parser's own
+ * line and event buffers die with the connection — which is what "any pending
+ * data must be discarded" at end of stream requires, with no reset step to
+ * forget; an `id:` the dead connection never committed goes with them.
+ */
+export interface EventStreamCursor {
+  lastEventId: string;
+  retry: number | undefined;
+}
+
 export interface EventStreamParser {
   /** Feed one chunk of bytes; returns every event the chunk completed, in order. */
   push(chunk: Uint8Array): ServerSentEvent[];
@@ -29,21 +43,31 @@ export interface EventStreamParser {
 const LF = 10;
 const CR = 13;
 
-export function createEventStreamParser(): EventStreamParser {
+/**
+ * One parser per connection. `cursor` is shared with the next connection's
+ * parser; everything else here is scoped to this stream.
+ */
+export function createEventStreamParser(
+  cursor: EventStreamCursor = { lastEventId: '', retry: undefined }
+): EventStreamParser {
   // `stream: true` below keeps a multi-byte sequence that straddles two chunks
   // intact; the default `ignoreBOM: false` drops a leading BOM, as the spec asks.
   const decoder = new TextDecoder();
   let buffer = '';
+  // A CR ends the line where it stands; an LF right after it belongs to the
+  // same line break — also when that LF is the first byte of the next chunk.
+  let skipLF = false;
   let eventType = '';
   let data = '';
-  let idBuffer = '';
-  let lastEventId = '';
-  let retry: number | undefined;
+  // Seeded from the committed ID, as `EventSource` seeds a reconnect's parser:
+  // the first blank line of the new stream re-commits it, so its events carry
+  // the ID the previous connection ended on.
+  let idBuffer = cursor.lastEventId;
 
   function dispatch(out: ServerSentEvent[]): void {
     // Spec order: the ID commits on every blank line, *before* the empty-data
     // check — an `id:` block without data still moves the reconnect cursor.
-    lastEventId = idBuffer;
+    cursor.lastEventId = idBuffer;
     if (data === '') {
       eventType = '';
       return;
@@ -51,7 +75,7 @@ export function createEventStreamParser(): EventStreamParser {
     out.push({
       type: eventType || 'message',
       data: data.endsWith('\n') ? data.slice(0, -1) : data,
-      lastEventId
+      lastEventId: cursor.lastEventId
     });
     eventType = '';
     data = '';
@@ -80,7 +104,7 @@ export function createEventStreamParser(): EventStreamParser {
         if (!value.includes('\0')) idBuffer = value;
         break;
       case 'retry':
-        if (/^\d+$/.test(value)) retry = Number(value);
+        if (/^\d+$/.test(value)) cursor.retry = Number(value);
         break;
       // Any other field is ignored, per spec.
     }
@@ -91,40 +115,55 @@ export function createEventStreamParser(): EventStreamParser {
       buffer += decoder.decode(chunk, { stream: true });
       const out: ServerSentEvent[] = [];
       let start = 0;
-      let i = 0;
-      while (i < buffer.length) {
+      for (let i = 0; i < buffer.length; i++) {
         const c = buffer.charCodeAt(i);
-        if (c === LF) {
+        if (skipLF) {
+          skipLF = false;
+          if (c === LF) {
+            start = i + 1;
+            continue;
+          }
+        }
+        if (c === LF || c === CR) {
           processLine(buffer.slice(start, i), out);
-          start = ++i;
-        } else if (c === CR) {
-          // A CR at the very end may be the first half of a CRLF whose LF is
-          // still in flight — leave it for the next chunk.
-          if (i + 1 === buffer.length) break;
-          processLine(buffer.slice(start, i), out);
-          i += buffer.charCodeAt(i + 1) === LF ? 2 : 1;
-          start = i;
-        } else {
-          i++;
+          start = i + 1;
+          skipLF = c === CR;
         }
       }
       buffer = buffer.slice(start);
       return out;
     },
     get lastEventId() {
-      return lastEventId;
+      return cursor.lastEventId;
     },
     get retry() {
-      return retry;
+      return cursor.retry;
     }
   };
+}
+
+/**
+ * The `Last-Event-ID` value for a `fetch` header, or `undefined` when the ID
+ * cannot be sent as `EventSource` would send it. `EventSource` puts the ID's
+ * UTF-8 bytes on the wire; `fetch` header values are byte strings, and the
+ * engines disagree on how a string becomes bytes — Chromium writes one byte
+ * per code unit (`ü` → `fc`, an emoji throws), WebKit re-encodes as UTF-8
+ * (measured; pre-mapping the UTF-8 bytes onto code units then double-encodes
+ * there). ASCII is the same bytes everywhere; anything else is not sent.
+ */
+export function lastEventIdHeader(id: string): string | undefined {
+  // biome-ignore lint/suspicious/noControlCharactersInRegex: ASCII is the whole point
+  return /^[\x00-\x7f]*$/.test(id) ? id : undefined;
 }
 
 /**
  * Pump `body` through `parser`, handing every completed event to `onEvent`.
  * Resolves when the server closes the stream or `signal` aborts; rejects when
  * the transport fails (a real `fetch` errors the body on abort, which is why
- * the caller checks `signal.aborted` before treating a rejection as a drop).
+ * the caller checks `signal.aborted` before treating a rejection as a drop),
+ * or when `onEvent` throws. However the loop ends, the body is cancelled —
+ * a connection left open by a throw would still count against the server's
+ * per-user cap.
  */
 export async function readEventStream(
   body: ReadableStream<Uint8Array>,
@@ -149,6 +188,6 @@ export async function readEventStream(
     }
   } finally {
     signal.removeEventListener('abort', cancel);
-    reader.releaseLock();
+    cancel();
   }
 }
