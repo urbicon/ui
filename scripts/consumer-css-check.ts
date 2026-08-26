@@ -36,9 +36,10 @@
  *     reported. Fresh, because a compiler accumulates: `build([])` after
  *     `build(probe)` returns the probe again.
  *
- * A package without a `./style/index.css` export is case 1 above and reported
- * as such — its entry is its `@urbicon-ui/*` peers' stylesheets, the ones a
- * consumer of it has installed — not as "0 covered".
+ * The entry is the documented consumer's: the package's `@urbicon-ui/*` peers'
+ * stylesheets first, then its own. A package without a `./style/index.css`
+ * export is case 1 above and reported as such — its entry is the peers alone —
+ * not as "0 covered".
  *
  * Measured 2026-08-26 on the five packages that ship `.svelte`: 1.2–1.6 s
  * total, of which packing and unpacking all 13 tarballs is 0.7–0.9 s and no
@@ -184,17 +185,18 @@ function exportsStylesheet(manifest: Record<string, unknown>): boolean {
 }
 
 /**
- * The CSS a consumer of `name` writes. A package with its own stylesheet is
- * imported directly; one without is represented by its `@urbicon-ui/*`
- * dependencies and peers that export one — those are installed beside it in
- * every consumer, and they are all the coverage such a package can get.
+ * The CSS a consumer of `name` writes, in the order every package README
+ * shows it: the stylesheets of the package's `@urbicon-ui/*` dependencies and
+ * peers first, its own last. The peers are not optional here — a package's own
+ * stylesheet imports nothing (Tailwind emits an imported file once per
+ * import, so `blocks` is left to the consumer), and without blocks' `@theme`
+ * a colour utility such as `outline-primary` is not a rule at all, so it would
+ * drop out of the report as "not emitting" rather than show up as uncovered.
+ * A package without a stylesheet of its own gets the peers alone — all the
+ * coverage such a package can have.
  */
 function consumerEntry(tree: Tree, name: string, manifest: Record<string, unknown>): string {
   const lines = ["@import 'tailwindcss';"];
-  if (exportsStylesheet(manifest)) {
-    lines.push(`@import '${SCOPE}${name}${STYLE_EXPORT.slice(1)}';`);
-    return lines.join('\n');
-  }
   const declared = {
     ...(manifest.dependencies as Record<string, string> | undefined),
     ...(manifest.peerDependencies as Record<string, string> | undefined)
@@ -207,6 +209,7 @@ function consumerEntry(tree: Tree, name: string, manifest: Record<string, unknow
     const depManifest = readJson(join(tree.dir, 'node_modules', dep, 'package.json'));
     if (exportsStylesheet(depManifest)) lines.push(`@import '${dep}${STYLE_EXPORT.slice(1)}';`);
   }
+  if (exportsStylesheet(manifest)) lines.push(`@import '${SCOPE}${name}${STYLE_EXPORT.slice(1)}';`);
   return lines.join('\n');
 }
 
