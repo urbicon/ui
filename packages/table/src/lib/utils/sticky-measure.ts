@@ -186,15 +186,19 @@ function minReachableTop(element: HTMLElement): number {
  * Offsets *inside* the container (e.g. a growing toolbar / filter chips) do NOT
  * change this value and are absorbed by the flex layout instead.
  *
+ * @param declared px the consumer knows to be reserved above the box and the
+ *   walk cannot see (`stickyOffset`) — a floor under the measured figure.
+ *
  * @example
  * ```svelte
- * <div data-table-container {@attach measureViewportOffsetTop('--blocks-table-avail-top')}>
+ * <div data-table-container {@attach measureViewportOffsetTop('--blocks-table-avail-top', 64)}>
  *   ...
  * </div>
  * ```
  */
 export function measureViewportOffsetTop(
   property: string,
+  declared = 0,
   targetSelector = '[data-table-container]'
 ) {
   return (element: HTMLElement) => {
@@ -202,7 +206,12 @@ export function measureViewportOffsetTop(
       (element.closest(targetSelector) as HTMLElement | null) ?? (element as HTMLElement);
 
     const apply = () => {
-      const reserved = minReachableTop(element);
+      // The walk sees ancestors only. Chrome that reserves space without being
+      // one — a `position: fixed` bar that is a sibling of the table, a header
+      // in a fixed-height pane that no observed box reports — is what the
+      // consumer declares, and a declared figure is a floor under the measured
+      // one: the measured one already includes it wherever it is an ancestor.
+      const reserved = Math.max(minReachableTop(element), declared);
       // The cap is `max-height: calc(100dvh - <written>)`, so a value at or past
       // the viewport height is a table of zero height. Space that large is not
       // chrome the reader keeps in view, it is content they scroll away — reserve
