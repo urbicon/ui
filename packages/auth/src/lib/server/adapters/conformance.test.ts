@@ -978,6 +978,31 @@ describe('conformance suite — negative control (lockout policy)', () => {
     expect(lockoutCheck, 'lockout check must exist').toBeDefined();
     await expect(lockoutCheck!.run(harness)).rejects.toThrow();
   });
+
+  // The tolerance's other side: a store that keeps `lockedUntil` only to the
+  // second (a `DATETIME` without fractional seconds) stores the handed value
+  // as faithfully as it can, and passes.
+  it('accepts an adapter that stores lockedUntil rounded to the second', async () => {
+    const harness: ConformanceHarness = {
+      role: 'USER',
+      setup: () => {
+        const repos = createInMemoryRepos();
+        const user: UserRepository = {
+          ...repos.user,
+          recordFailedLogin: (id, lock) =>
+            repos.user.recordFailedLogin(
+              id,
+              lock && {
+                ...lock,
+                lockedUntil: new Date(Math.round(lock.lockedUntil.getTime() / 1000) * 1000)
+              }
+            )
+        };
+        return { ...repos, user };
+      }
+    };
+    await expect(lockoutCheck!.run(harness)).resolves.toBeUndefined();
+  });
 });
 
 describe('recordFailedLogin error handling (prisma adapter)', () => {

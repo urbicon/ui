@@ -740,8 +740,12 @@ export interface RefreshTokenRepository {
   /**
    * List a user's currently-active refresh tokens — non-revoked and unexpired,
    * in any order. Rotation keeps exactly one live token per family, so each row
-   * corresponds to one active session. Powers the session-listing feature
-   * (`createSessionsHandlers().list`), which sorts by `createdAt` itself.
+   * corresponds to one active session. Two readers: the session-listing feature
+   * (`createSessionsHandlers().list`, which sorts by `createdAt` itself), and
+   * the rotation's race tolerance — a spent token presented inside the grace
+   * window passes as the loser of a concurrent rotation only while this reports
+   * a live token of its family. A revoked or expired row reported live would
+   * keep a "sign out everywhere" open for ten seconds.
    */
   listActiveByUser(userId: string): Promise<RefreshTokenRecord[]>;
   /**

@@ -32,9 +32,19 @@ const ROTATION_GRACE_MS = 10_000;
  * rows with `revokedAt: null` — so the stamp alone reads exactly like a race,
  * and a replay of the spent token would be waved through as one.
  *
- * Read through `listActiveByUser`, the contract's one family-scoped live read;
- * this path is only reached inside the grace window, which does not justify a
- * dedicated lookup every adapter author would have to implement.
+ * Read through `listActiveByUser`, the contract's one family-scoped live read.
+ * Only a contested rotation asks — a replay inside the grace window, or a lost
+ * CAS — which does not justify a dedicated lookup every adapter author would
+ * have to implement.
+ *
+ * Wherever it is called it is the **last read before the mint**: a kill can
+ * land between any two awaits, and the read that decides has to be the one
+ * that sees it. With `findUser` after it, a bump + `revokeAllForUser` landing
+ * in between hands `findUser` the new `tokenVersion`, and the session minted
+ * from that survives the generation check for the whole access-token TTL
+ * (measured over the handle: follow-up request authenticated). With `findUser`
+ * before it, the worst a late kill leaves is a session on the old generation,
+ * which the next request's generation check refuses.
  */
 async function familyAlive(
   repo: RefreshTokenRepository,
@@ -177,14 +187,13 @@ export async function rotateRefreshToken<R extends string = string>(
     // the predecessor as revoked-with-replacedById. If the revoke is within
     // the grace window we treat it as a race, not a replay.
     const age = Date.now() - existing.revokedAt.getTime();
-    if (
-      existing.replacedById &&
-      age <= ROTATION_GRACE_MS &&
-      (await familyAlive(repo, existing.userId, existing.family))
-    ) {
+    if (existing.replacedById && age <= ROTATION_GRACE_MS) {
       const user = await findUser(existing.userId);
       if (!user) return { kind: 'revoked' };
-      return { kind: 'race_ok', user };
+      // Last read before the mint — after `findUser`, see `familyAlive`.
+      if (await familyAlive(repo, existing.userId, existing.family)) {
+        return { kind: 'race_ok', user };
+      }
     }
     // Outside grace, or no live head left: genuine reuse → compromise the
     // entire family. After a kill this revokes nothing further, but it keeps
@@ -251,7 +260,8 @@ export async function rotateRefreshToken<R extends string = string>(
     await repo.revoke(successor.id).catch(() => {});
     // Unless nothing revoked it *for* a successor: a family kill that landed
     // between our read and the CAS leaves no live head, and the token that was
-    // live a moment ago is now simply revoked — not raced.
+    // live a moment ago is now simply revoked — not raced. Last read before
+    // the mint (`user` was read above).
     if (!(await familyAlive(repo, existing.userId, existing.family))) return { kind: 'revoked' };
     return { kind: 'race_ok', user };
   }

@@ -516,8 +516,8 @@ export function createPrismaUserRepository<R extends string>(
       // lock write is GUARDED on the DB-side count (`failedLoginAttempts >=
       // maxAttempts`) via updateMany rather than blindly trusting the value we
       // just read — so concurrent failures can't set the lock based on a stale
-      // count. Idempotent: every later failure hands in a later instant, so
-      // repeated writes only push `lockedUntil` forward.
+      // count. Past the threshold every further failure rewrites `lockedUntil`
+      // with its own instant (last write wins).
       //
       // Residual: a crash *between* the increment and this write leaves the
       // count over threshold with no lock. It is self-healing — the next failed

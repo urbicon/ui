@@ -42,20 +42,46 @@ function attemptsDecayed(
 export function createLoginHandler<R extends string>(deps: AuthDeps<R>): { POST: RequestHandler } {
   const rateLimiter = sharedLimiter(deps.config, 'login');
 
-  // A decay window of zero fails OPEN, and completely: `now - lastFailedAt >= 0`
-  // holds for every stored timestamp, so every attempt resets the counter before
-  // it is incremented and the account never locks (measured: 30 wrong passwords
-  // in a row, no lock, counter back at 1). `0` is also exactly what an operator
-  // writes to mean "no decay", so accepting it silently would turn an attempt to
-  // tighten the policy into switching the lockout off. Refuse it at wiring time,
-  // the way `invitationTtlMs` refuses a non-positive TTL: "no decay" is not a
-  // supported configuration, and running without a lockout is `lockout: null`.
-  const decayMinutes = deps.config.lockout?.decayMinutes;
-  if (decayMinutes !== undefined && (!Number.isFinite(decayMinutes) || decayMinutes <= 0)) {
+  // Every lockout value that reads like a policy but switches the lockout off
+  // is refused at wiring time, the way `invitationTtlMs` refuses a non-positive
+  // TTL: running without a lockout is `lockout: null`, not a number.
+  //
+  // - A decay window of zero fails OPEN, and completely: `now - lastFailedAt
+  //   >= 0` holds for every stored timestamp, so every attempt resets the
+  //   counter before it is incremented (measured: 30 wrong passwords, no lock,
+  //   counter back at 1). `0` is also what an operator writes to mean "no
+  //   decay", so accepting it would turn a tightening into an opt-out.
+  // - A duration of zero or less writes a lock that has already expired; NaN
+  //   writes an `Invalid Date`. Both measured through the handler: 30 wrong
+  //   passwords, 30 × 401, never a 423. The adapter cannot catch it — its
+  //   contract is to store `lockedUntil` verbatim.
+  // - A threshold of NaN is never reached (30 × 401); zero locks on the first
+  //   failure; a fraction is met one attempt early or late.
+  const configured = deps.config.lockout ?? {};
+  const positiveFinite = (n: number | undefined) =>
+    n === undefined || (Number.isFinite(n) && n > 0);
+  const optOut = 'To run without a lockout, set config.lockout to null.';
+  if (!positiveFinite(configured.decayMinutes)) {
     throw new Error(
-      `[auth] lockout.decayMinutes must be a positive finite number of minutes, got ${decayMinutes}. ` +
+      `[auth] lockout.decayMinutes must be a positive finite number of minutes, got ${configured.decayMinutes}. ` +
         'A zero, negative or non-finite window resets the failed-login counter on every attempt, ' +
-        'which disables the lockout entirely. To run without a lockout, set config.lockout to null.'
+        `which disables the lockout entirely. ${optOut}`
+    );
+  }
+  if (!positiveFinite(configured.durationMinutes)) {
+    throw new Error(
+      `[auth] lockout.durationMinutes must be a positive finite number of minutes, got ${configured.durationMinutes}. ` +
+        'A zero, negative or non-finite duration writes a lock that has already expired, ' +
+        `which disables the lockout entirely. ${optOut}`
+    );
+  }
+  if (
+    configured.maxAttempts !== undefined &&
+    !(Number.isInteger(configured.maxAttempts) && configured.maxAttempts > 0)
+  ) {
+    throw new Error(
+      `[auth] lockout.maxAttempts must be a positive integer, got ${configured.maxAttempts}. ` +
+        `A NaN threshold is never reached and a zero one locks on the first failure. ${optOut}`
     );
   }
 

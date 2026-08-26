@@ -731,6 +731,68 @@ describe('createAuthHandle — refresh-token rotation', () => {
     expect(followUp.locals.user).toBeNull();
   });
 
+  // The kill can land between any two awaits of the rotation. The invariant is
+  // not "the kill is seen" but "no interleaving leaves an authenticated
+  // follow-up": either the family read sees the kill (no session), or the kill
+  // is later than every read and the session carries the OLD generation, which
+  // the next request's generation check refuses. Measured with the family read
+  // *before* `findUser`: a kill in between minted a session on the NEW
+  // generation, and the follow-up request passed.
+  it.each([
+    { label: 'before findUser', at: 'findById' as const },
+    { label: 'after the family read', at: 'listActiveByUser' as const }
+  ])(
+    'never lets a bump + revokeAllForUser landing $label yield an authenticated follow-up',
+    async ({ at }) => {
+      let tokenVersion = 0;
+      const inner = createInMemoryRefreshTokenRepository();
+      let armed = false;
+      const kill = async () => {
+        if (!armed) return;
+        armed = false;
+        tokenVersion += 1;
+        await inner.revokeAllForUser('user-1');
+      };
+      const repos: Repositories = {
+        user: createMockUserRepository({
+          findById: vi.fn(async () => {
+            if (at === 'findById') await kill();
+            return createMockUser({ tokenVersion });
+          })
+        }),
+        invitation: createMockInvitationRepository(),
+        refreshToken: {
+          ...inner,
+          listActiveByUser: async (userId) => {
+            const rows = await inner.listActiveByUser(userId);
+            if (at === 'listActiveByUser') await kill();
+            return rows;
+          }
+        }
+      };
+      const { token } = await issueRefreshToken(inner, 'user-1', { refreshTokenTtl: '30d' });
+      const handle = createAuthHandle({ config: rotationConfig, repos });
+      const resolve = vi.fn(async () => new Response('OK'));
+
+      const first = createMockEvent({ path: '/dashboard', refreshCookie: token });
+      await handle({ event: asEvent(first), resolve });
+      expect(first.locals.user, 'T1 rotated to T2').toBeDefined();
+
+      // The replay inside the grace window, with the kill armed to land at `at`.
+      armed = true;
+      const replay = createMockEvent({ path: '/api/data', refreshCookie: token });
+      await handle({ event: asEvent(replay), resolve });
+      expect(armed, 'the kill did land').toBe(false);
+
+      const followUp = createMockEvent({
+        path: '/api/data',
+        sessionCookie: replay._cookieStore.get('session')
+      });
+      expect((await handle({ event: asEvent(followUp), resolve })).status).toBe(401);
+      expect(followUp.locals.user).toBeNull();
+    }
+  );
+
   it('clears both cookies when the refresh cookie is invalid', async () => {
     const repos = reposWithRefresh();
     const handle = createAuthHandle({ config: rotationConfig, repos });

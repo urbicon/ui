@@ -625,17 +625,61 @@ describe('createLoginHandler — decay against the in-memory adapter', () => {
   // the counter before every increment and switches the lockout off — the exact
   // opposite of what an operator writing `decayMinutes: 0` means. The window is
   // the lockout knob with the largest swing, so it is refused where it is set.
-  describe('decayMinutes validation', () => {
+  describe('lockout value validation', () => {
     it.each([
       { label: '0', decayMinutes: 0 },
       { label: '-5', decayMinutes: -5 },
       { label: 'NaN', decayMinutes: Number.NaN },
       { label: 'Infinity', decayMinutes: Number.POSITIVE_INFINITY }
-    ])('refuses $label at wiring time rather than at 3am', async ({ decayMinutes }) => {
-      const { deps } = await seed({ ...DEFAULT_POLICY, decayMinutes });
+    ])(
+      'refuses decayMinutes $label at wiring time rather than at 3am',
+      async ({ decayMinutes }) => {
+        const { deps } = await seed({ ...DEFAULT_POLICY, decayMinutes });
+        expect(() => createLoginHandler(deps)).toThrow(
+          /decayMinutes must be a positive finite number/
+        );
+      }
+    );
+
+    // Same class, other two fields — measured through the handler before the
+    // guard: `durationMinutes` 0 / -5 / NaN and `maxAttempts` NaN each gave 30
+    // wrong passwords 30 × 401 and never a 423 (a lock already expired, an
+    // `Invalid Date`, a threshold never reached).
+    it.each([
+      { label: 'durationMinutes 0', lockout: { durationMinutes: 0 } },
+      { label: 'durationMinutes -5', lockout: { durationMinutes: -5 } },
+      { label: 'durationMinutes NaN', lockout: { durationMinutes: Number.NaN } },
+      { label: 'durationMinutes Infinity', lockout: { durationMinutes: Number.POSITIVE_INFINITY } },
+      { label: 'maxAttempts NaN', lockout: { maxAttempts: Number.NaN } },
+      { label: 'maxAttempts 0', lockout: { maxAttempts: 0 } },
+      { label: 'maxAttempts 2.5', lockout: { maxAttempts: 2.5 } }
+    ])('refuses $label at wiring time', async ({ lockout }) => {
+      const { deps } = await seed(lockout);
       expect(() => createLoginHandler(deps)).toThrow(
-        /decayMinutes must be a positive finite number/
+        /lockout\.(durationMinutes must be a positive finite number|maxAttempts must be a positive integer)/
       );
+    });
+
+    // The guard must not be stricter than the policy: an off-default pair still
+    // wires, and locks exactly at its own threshold.
+    it('still constructs { maxAttempts: 3, durationMinutes: 20 } and locks on the fourth attempt', async () => {
+      const { user, deps, id } = await seed({ maxAttempts: 3, durationMinutes: 20 });
+      const handler = createLoginHandler(deps);
+      const statuses: number[] = [];
+      for (let i = 0; i < 4; i++) {
+        statuses.push(
+          (
+            await handler.POST(
+              mockRequestEvent({
+                email: 'test@test.com',
+                password: 'wrong'
+              }) as unknown as RequestEvent
+            )
+          ).status
+        );
+      }
+      expect(statuses).toEqual([401, 401, 401, 423]);
+      expect((await user.getFailedLoginAttempts(id)).count).toBe(3);
     });
 
     // The control on the other side of that guard: every window it does admit

@@ -80,9 +80,10 @@ import type { Passkey, Repositories } from './types.js';
  * would pin one adapter's behaviour on every other for no gain. Listed so an
  * audit does not rediscover them as gaps:
  *
- * - `listActiveByUser`'s newest-first ordering. Its one caller
- *   (`handlers/sessions.ts`) collapses the rows per family and sorts the result
- *   itself, so the repository's order never reaches the response.
+ * - `listActiveByUser`'s newest-first ordering. Both callers are order-blind:
+ *   `handlers/sessions.ts` collapses the rows per family and sorts the result
+ *   itself, `rotateRefreshToken` only asks whether a family is among them — so
+ *   the repository's order never reaches a response.
  * - `recordFailedLogin` **without** a lock (bump the counter only). That path
  *   is reachable — `config.lockout: null` normalizes to `undefined` at the
  *   call — but the same flag gates the only reader
@@ -825,10 +826,14 @@ export const conformanceChecks: readonly ConformanceCheck[] = [
       await parallel(2, () => repos.user.recordFailedLogin(user.id, lock));
       const locked = await repos.user.getFailedLoginAttempts(user.id);
       expect(locked.count).toBe(4);
+      // Stored at least to the second — a `DATETIME` without fractional seconds
+      // rounds — and the property under guard (a duration of the adapter's
+      // own: 15 minutes against the 37 handed in) is just as visible below a
+      // second. A `null` reads as NaN here and fails the same way.
       expect(
-        locked.lockedUntil?.getTime(),
-        'reaching maxAttempts stores the lockedUntil that was handed in'
-      ).toBe(lockedUntil.getTime());
+        Math.abs((locked.lockedUntil?.getTime() ?? Number.NaN) - lockedUntil.getTime()),
+        'reaching maxAttempts stores the lockedUntil that was handed in (sub-second rounding tolerated)'
+      ).toBeLessThan(1000);
 
       await parallel(5, () => repos.user.recordFailedLogin(user.id, lock));
       const stressed = await repos.user.getFailedLoginAttempts(user.id);
