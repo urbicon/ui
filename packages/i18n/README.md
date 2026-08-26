@@ -32,10 +32,12 @@ Peer dependencies: `svelte` (^5.40 — uses runes + `createContext`-era context)
 </I18nProvider>
 ```
 
+<!-- typecheck -->
 ```ts
 // +layout.server.ts — resolve the locale per request (SSR), cookie + Accept-Language
 import { resolveLocale } from '@urbicon-ui/i18n';
-export const load = ({ request }) => ({ locale: resolveLocale(request) });
+import type { LayoutServerLoad } from './$types';
+export const load: LayoutServerLoad = ({ request }) => ({ locale: resolveLocale(request) });
 ```
 
 **2. Read translations in components through a hook** — `useI18n()` for the global surface, or a package's `use<Package>I18n()` for its typed keys.

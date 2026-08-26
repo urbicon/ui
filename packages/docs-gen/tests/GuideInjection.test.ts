@@ -4,8 +4,10 @@ import { fileURLToPath } from 'node:url';
 import { describe, expect, it } from 'vitest';
 import {
   assertGuideSlug,
+  closesFence,
   demoteHeadings,
   guidePlaceholder,
+  parseFenceDelimiter,
   renderGuideForEmbedding,
   stripLeadingH1,
   stripTypecheckMarkers,
@@ -71,6 +73,40 @@ describe('guide-injection', () => {
     });
   });
 
+  describe('fence grammar', () => {
+    it('parses indentation, run length and info string', () => {
+      expect(parseFenceDelimiter('   ```typescript')).toEqual({
+        indent: 3,
+        char: '`',
+        length: 3,
+        info: 'typescript'
+      });
+      expect(parseFenceDelimiter('~~~~')).toEqual({ indent: 0, char: '~', length: 4, info: '' });
+      expect(parseFenceDelimiter('`` not a fence')).toBeNull();
+      // a backtick info string cannot contain a backtick — that is inline code
+      expect(parseFenceDelimiter('```a `b`')).toBeNull();
+    });
+
+    it('closes only on the same character, at least as long, without info', () => {
+      const tilde = parseFenceDelimiter('~~~');
+      if (!tilde) throw new Error('unreachable');
+      expect(closesFence('```', tilde)).toBe(false);
+      expect(closesFence('~~~ts', tilde)).toBe(false);
+      expect(closesFence('~~~~', tilde)).toBe(true);
+      expect(closesFence('  ~~~', tilde)).toBe(true);
+    });
+
+    it('treats a ``` line inside a ~~~ fence as content, in every reader', () => {
+      const md = ['~~~md', '```', '# not a heading', '<!-- typecheck -->', '~~~', '# heading'].join(
+        '\n'
+      );
+      expect(demoteHeadings(md, 1)).toBe(
+        ['~~~md', '```', '# not a heading', '<!-- typecheck -->', '~~~', '## heading'].join('\n')
+      );
+      expect(stripTypecheckMarkers(md)).toBe(md);
+    });
+  });
+
   describe('stripTypecheckMarkers', () => {
     it('removes exactly the marker lines of a marked document, byte for byte otherwise', () => {
       // the lint's own red fixture: three markers, prose, fences, an unmarked fence
@@ -85,6 +121,12 @@ describe('guide-injection', () => {
           .split('\n')
           .filter((l) => !TYPECHECK_MARKER.test(l))
           .join('\n')
+      );
+    });
+
+    it('strips an indented marker (a fence inside a list item)', () => {
+      expect(stripTypecheckMarkers('1. item\n   <!-- typecheck -->\n   ```ts\n   a\n   ```')).toBe(
+        '1. item\n   ```ts\n   a\n   ```'
       );
     });
 

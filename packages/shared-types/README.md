@@ -44,8 +44,16 @@ const intent: PropInfo = {
   source: { type: 'direct' }
 };
 
-// `ComponentInfo` carries more required fields than shown here — see `component.ts`.
-const button: Pick<ComponentInfo, 'name' | 'props'> = { name: 'Button', props: [intent] };
+const button: ComponentInfo = {
+  name: 'Button',
+  packageName: '@urbicon-ui/blocks',
+  filePath: 'src/lib/components/primitives/Button/Button.svelte',
+  description: 'Triggers an action or navigation',
+  props: [intent],
+  variants: [],
+  inheritance: [],
+  stats: { totalProps: 1, directProps: 1, variantProps: 0, inheritedProps: 0 }
+};
 ```
 
 The root barrel export is convenient but pulls all namespaces in; prefer the subpath exports for smaller type-check surface.

@@ -9,7 +9,8 @@
  * through is exactly what `tsc` names: a factory missing required methods
  * (TS2739), an import the exports map does not provide (TS2305), a config key
  * that does not exist (TS2353), an env value typed `string | undefined` handed
- * to a `string` parameter (TS2322).
+ * to a `string` parameter (TS2322), a `load`/handler parameter left implicitly
+ * `any` (TS7031), a `'desc'` widened to `string` on its way to a union (TS2345).
  *
  * Opt-in, not check-all: most `ts` fences are deliberate excerpts with
  * elided parts and free identifiers, and a skip list over them would be the
@@ -21,18 +22,28 @@
  *
  * `stub <pkg>` adds `scripts/fence-stubs/<pkg>.d.ts` — an ambient declaration
  * of a third-party module the repo does not depend on — to that document's
- * program. A marker that is not followed by a `ts`/`typescript` fence, an
- * unknown directive, a missing stub file and a stub file no fence uses are all
- * errors, so the marker set and the stub directory cannot drift apart silently.
+ * program. Everything that would make a marker silently invisible is an error
+ * instead: a marker not followed by a `ts`/`typescript` fence, an unknown
+ * directive, a missing stub file, a stub file no fence uses, a line that looks
+ * like a marker but is not one (`<!-- Typecheck -->`, `<!-- typecheck stub x -->`),
+ * a fence never closed, and a run that found no marked fence at all. CRLF
+ * files are normalised before the scan (same line count, so the line mapping
+ * holds); fences indented inside a list item are de-indented by the opening
+ * line's indentation, as CommonMark reads them.
  *
  * How it compiles: a throwaway consumer project under `.doc-fences-lint/`
  * whose `node_modules/@urbicon-ui/<pkg>` are symlinks to the workspace
  * packages, so every import resolves through the **published exports map**
- * into `dist/` (`moduleResolution: "bundler"`, `strict`, `verbatimModuleSyntax`
- * — the profile SvelteKit generates for an app). One `tsc` per document, all
- * of its marked fences in one program; every diagnostic code is reported,
- * because a marked fence is a whole module, not a fragment to filter noise
- * from. Needs `build:packages` first — an unbuilt package is a `TS2307`.
+ * into whatever the package publishes — `dist/` for the built ones, `src/`
+ * where the map points there (`moduleResolution: "bundler"`, `strict`,
+ * `verbatimModuleSyntax` — the profile SvelteKit generates for an app). One
+ * `tsc` per document, all of its marked fences in one program; every
+ * diagnostic code is reported, because a marked fence is a whole module, not a
+ * fragment to filter noise from. A `tsc` that exits non-zero without a
+ * diagnostic this script attributed, or that prints a diagnostic without a
+ * position (an options error such as TS2688 — after which tsc computes no
+ * semantic diagnostics at all), is a harness error, never a pass. Needs
+ * `build:packages` first — an unbuilt package is a `TS2307`.
  *
  * What the consumer has and the fence cannot bring along is declared per
  * document, derived from the fences' own imports so that nothing is stubbed
@@ -45,9 +56,12 @@
  *     `svelte-kit sync` writes (`PUBLIC_*` → `undefined`, the rest
  *     `string | undefined`) — that shape is what makes `secret: env.X` fail
  *     against a `string` parameter, as it does in the app.
- *   - `$lib`, `$lib/*` and relative consumer modules (`./prisma`) are `any`:
- *     the app's own files, out of scope. Relative ones get a `.d.ts` next to
- *     the fence exporting the imported names.
+ *   - `./$types` re-exports the aliases Kit generates per route (`PageServerLoad`
+ *     → `ServerLoad`, `RequestHandler`, …) from `@sveltejs/kit`, minus the
+ *     route-specific params; a name Kit does not generate stays a `TS2305`.
+ *   - `$lib`, `$lib/*` and other relative consumer modules (`./prisma`) are
+ *     `any`: the app's own files, out of scope. Relative ones get a `.d.ts`
+ *     next to the fence exporting the imported names.
  *
  * Output names the document, the fence number and the **document line**
  * (scratch offsets are mapped back), and proves via `tsc --listFiles` that
@@ -55,9 +69,11 @@
  * matches its files is green for nothing.
  *
  * Run: `bun run docs:fences:lint` (needs `build:packages`). Options:
- *   --docs <file>…    check these Markdown files instead of the corpus
- *   --scratch <dir>   scratch directory (default: packages/docs-gen/.doc-fences-lint)
- *   --keep            leave the scratch project in place for inspection
+ *   --docs <file>…             check these Markdown files instead of the corpus
+ *   --scratch <dir>            scratch directory (default: packages/docs-gen/.doc-fences-lint)
+ *   --compiler-options <json>  merged over the consumer profile — the harness's own
+ *                              positive control uses it to provoke an options error
+ *   --keep                     leave the scratch project in place for inspection
  */
 import {
   existsSync,
@@ -70,7 +86,12 @@ import {
 } from 'node:fs';
 import { basename, dirname, isAbsolute, join, normalize, relative, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { TYPECHECK_MARKER } from '../src/generators/llm/guide-injection';
+import {
+  closesFence,
+  type FenceDelimiter,
+  parseFenceDelimiter,
+  TYPECHECK_MARKER
+} from '../src/generators/llm/guide-injection';
 
 const DOCS_GEN = join(dirname(fileURLToPath(import.meta.url)), '..');
 const REPO = join(DOCS_GEN, '../..');
@@ -80,14 +101,19 @@ const STUBS_DIR = join(DOCS_GEN, 'scripts/fence-stubs');
 const argv = process.argv.slice(2);
 let keep = false;
 let scratchDir = 'packages/docs-gen/.doc-fences-lint';
+let compilerOptions: Record<string, unknown> = {};
 const docArgs: string[] = [];
 for (let i = 0; i < argv.length; i++) {
   const a = argv[i];
   if (a === '--keep') keep = true;
   else if (a === '--scratch') scratchDir = argv[++i] ?? scratchDir;
+  else if (a === '--compiler-options') compilerOptions = JSON.parse(argv[++i] ?? '{}');
   else if (a === '--docs')
     while (argv[i + 1] && !argv[i + 1]?.startsWith('--')) docArgs.push(argv[++i] ?? '');
-  else throw new Error(`unknown argument ${a} (known: --docs <file>…, --scratch <dir>, --keep)`);
+  else
+    throw new Error(
+      `unknown argument ${a} (known: --docs <file>…, --scratch <dir>, --compiler-options <json>, --keep)`
+    );
 }
 const SCRATCH = resolve(REPO, scratchDir);
 const docs = docArgs.length ? docArgs.map((a) => resolve(REPO, a)) : corpus();
@@ -125,22 +151,25 @@ interface Doc {
   errors: string[];
 }
 
-const FENCE_OPEN = /^```(\w*)/;
 const TS_LANGS = new Set(['ts', 'typescript']);
+/** Anything that mentions `typecheck` inside an HTML comment and is not the marker. */
+const MARKER_LOOKALIKE = /<!--[^>]*typecheck/i;
 
 function extract(path: string): Doc {
   const rel = relative(REPO, path);
-  const lines = readFileSync(path, 'utf8').split('\n');
+  // CRLF → LF keeps the line count, so document lines stay what the editor shows
+  const lines = readFileSync(path, 'utf8').replaceAll('\r\n', '\n').split('\n');
   const doc: Doc = { path, rel, fences: [], errors: [] };
 
-  let open: { lang: string; line: number; marker: string | null | undefined } | null = null;
+  let open: { delim: FenceDelimiter; line: number; marker: string | null | undefined } | null =
+    null;
   let tsIndex = 0;
   const body: string[] = [];
 
   for (let i = 0; i < lines.length; i++) {
     const line = lines[i] ?? '';
     if (open) {
-      if (/^```\s*$/.test(line)) {
+      if (closesFence(line, open.delim)) {
         if (open.marker !== undefined) {
           const stubs = parseDirectives(open.marker, doc, open.line - 1);
           if (stubs)
@@ -148,30 +177,43 @@ function extract(path: string): Doc {
         }
         open = null;
         body.length = 0;
-      } else body.push(line);
+      } else body.push(dedent(line, open.delim.indent));
       continue;
     }
 
     const marker = line.match(TYPECHECK_MARKER);
     if (marker) {
-      const next = (lines[i + 1] ?? '').match(FENCE_OPEN);
-      if (!next || !TS_LANGS.has(next[1] ?? ''))
+      const next = parseFenceDelimiter(lines[i + 1] ?? '');
+      if (!next || !TS_LANGS.has(next.info))
         doc.errors.push(
           `${rel}:${i + 1}: <!-- typecheck --> must sit on the line directly above a \`\`\`ts fence`
         );
       continue;
     }
+    if (MARKER_LOOKALIKE.test(line)) {
+      doc.errors.push(
+        `${rel}:${i + 1}: looks like a typecheck marker but is not one — the marker is exactly <!-- typecheck --> or <!-- typecheck: stub <pkg> -->`
+      );
+      continue;
+    }
 
-    const fence = line.match(FENCE_OPEN);
-    if (fence) {
-      const lang = fence[1] ?? '';
-      const isTs = TS_LANGS.has(lang);
+    const delim = parseFenceDelimiter(line);
+    if (delim) {
+      const isTs = TS_LANGS.has(delim.info);
       if (isTs) tsIndex++;
       const prev = (lines[i - 1] ?? '').match(TYPECHECK_MARKER);
-      open = { lang, line: i + 1, marker: isTs && prev ? (prev[1] ?? null) : undefined };
+      open = { delim, line: i + 1, marker: isTs && prev ? (prev[1] ?? null) : undefined };
     }
   }
+  if (open) doc.errors.push(`${rel}:${open.line}: fence opened here is never closed`);
   return doc;
+}
+
+/** CommonMark: a fence's content is de-indented by up to the opener's indentation. */
+function dedent(line: string, indent: number): string {
+  let n = 0;
+  while (n < indent && (line[n] === ' ' || line[n] === '\t')) n++;
+  return line.slice(n);
 }
 
 /** `stub a, stub b` → ['a', 'b']; null when a directive is unusable. */
@@ -279,6 +321,32 @@ declare module '$lib';
 declare module '$lib/*';
 `;
 
+/**
+ * The aliases Kit's generated `$types.d.ts` defines for a route, each a
+ * specialisation of the `@sveltejs/kit` generic named here (route params and
+ * ids left at their defaults).
+ */
+const KIT_ROUTE_TYPES: Record<string, string> = {
+  PageServerLoad: 'ServerLoad',
+  LayoutServerLoad: 'ServerLoad',
+  PageLoad: 'Load',
+  LayoutLoad: 'Load',
+  RequestHandler: 'RequestHandler',
+  RequestEvent: 'RequestEvent',
+  Action: 'Action',
+  Actions: 'Actions'
+};
+
+/** `import type { RequestHandler } from './$types'` → the Kit generic behind it. */
+function kitTypesStub(spec: ImportSpec): string {
+  const out = ["import type * as Kit from '@sveltejs/kit';"];
+  for (const n of [...spec.named, ...spec.types].sort()) {
+    const generic = KIT_ROUTE_TYPES[n];
+    if (generic) out.push(`export type ${n} = Kit.${generic};`);
+  }
+  return `${out.join('\n')}\n`;
+}
+
 /** `import { prisma } from './prisma'` → `prisma.d.ts` exporting `prisma: any`. */
 function relativeStub(spec: ImportSpec): string {
   const out: string[] = [];
@@ -312,23 +380,12 @@ interface Project {
   files: Map<string, Fence>;
 }
 
-function project(doc: Doc, stubsUsed: Set<string>): Project {
+/** The document's consumer project; null (reason in `doc.errors`) when a fence cannot be placed. */
+function project(doc: Doc, stubsUsed: Set<string>): Project | null {
   const dir = join(SCRATCH, doc.rel.replace(/\.md$/, '').replaceAll('/', '__'));
-  mkdirSync(dir, { recursive: true });
 
-  const files = new Map<string, Fence>();
   const all = new Map<string, ImportSpec>();
-  const stubs = new Set<string>();
-
-  for (const fence of doc.fences) {
-    const file = join(dir, `fence-${fence.index}.ts`);
-    // a block without import/export is a script, and its top-level names would
-    // leak into every other fence of the document
-    const code = HAS_MODULE_SYNTAX.test(fence.code) ? fence.code : `${fence.code}\nexport {};\n`;
-    writeFileSync(file, code);
-    files.set(file, fence);
-    for (const s of fence.stubs) stubs.add(s);
-
+  for (const fence of doc.fences)
     for (const [mod, spec] of imports(fence.code)) {
       const merged = all.get(mod);
       if (!merged) all.set(mod, spec);
@@ -339,19 +396,39 @@ function project(doc: Doc, stubsUsed: Set<string>): Project {
         merged.namespace ||= spec.namespace;
       }
     }
-  }
 
-  writeFileSync(join(dir, 'ambient.d.ts'), ambient(all));
-
+  const relatives = new Map<string, ImportSpec>();
   for (const [mod, spec] of all) {
     if (!mod.startsWith('.')) continue;
     const target = normalize(join(dir, `${mod}.d.ts`));
-    if (!target.startsWith(dir))
-      throw new Error(`${doc.rel}: relative import "${mod}" escapes the document's scratch dir`);
-    mkdirSync(dirname(target), { recursive: true });
-    writeFileSync(target, relativeStub(spec));
+    if (!target.startsWith(`${dir}/`)) {
+      doc.errors.push(
+        `${doc.rel}: relative import "${mod}" leaves the document's own directory — a fence can only import siblings`
+      );
+      return null;
+    }
+    relatives.set(target, spec);
   }
 
+  mkdirSync(dir, { recursive: true });
+  const files = new Map<string, Fence>();
+  const stubs = new Set<string>();
+  for (const fence of doc.fences) {
+    const file = join(dir, `fence-${fence.index}.ts`);
+    // a block without import/export is a script, and its top-level names would
+    // leak into every other fence of the document
+    const code = HAS_MODULE_SYNTAX.test(fence.code) ? fence.code : `${fence.code}\nexport {};\n`;
+    writeFileSync(file, code);
+    files.set(file, fence);
+    for (const s of fence.stubs) stubs.add(s);
+  }
+
+  writeFileSync(join(dir, 'ambient.d.ts'), ambient(all));
+  for (const [target, spec] of relatives) {
+    mkdirSync(dirname(target), { recursive: true });
+    const isKitTypes = basename(target) === '$types.d.ts';
+    writeFileSync(target, isKitTypes ? kitTypesStub(spec) : relativeStub(spec));
+  }
   for (const stub of stubs) {
     stubsUsed.add(stub);
     writeFileSync(
@@ -375,7 +452,13 @@ function project(doc: Doc, stubsUsed: Set<string>): Project {
           verbatimModuleSyntax: true,
           isolatedModules: true,
           skipLibCheck: true,
-          types: ['node']
+          // Kit's app tsconfig restricts nothing here, so an app sees every
+          // @types/* in its node_modules — node among them. The packages that
+          // publish `src/` (design-engine, design-content) use node builtins,
+          // and `skipLibCheck` does not cover `.ts` sources. An entry that
+          // does not resolve is a global TS2688 — caught below, never a pass.
+          types: ['node'],
+          ...compilerOptions
         },
         include: ['./**/*.ts']
       },
@@ -405,12 +488,15 @@ interface Diagnostic {
 }
 
 interface TscResult {
+  exitCode: number;
   listed: Set<string>;
   diagnostics: Diagnostic[];
-  raw: string;
+  /** diagnostics without a position — options/global errors; tsc stops at those */
+  global: string[];
 }
 
 const DIAG = /^(.+?)\((\d+),(\d+)\): error (TS\d+): (.*)$/;
+const GLOBAL_DIAG = /^error (TS\d+): (.*)$/;
 
 async function tsc(p: Project): Promise<TscResult> {
   const proc = Bun.spawn(['bunx', 'tsc', '-p', p.tsconfig, '--listFiles', '--pretty', 'false'], {
@@ -422,11 +508,12 @@ async function tsc(p: Project): Promise<TscResult> {
     new Response(proc.stdout).text(),
     new Response(proc.stderr).text()
   ]);
-  await proc.exited;
+  const exitCode = await proc.exited;
   if (stderr.trim()) throw new Error(`tsc failed to start:\n${stderr}`);
 
   const listed = new Set<string>();
   const diagnostics: Diagnostic[] = [];
+  const global: string[] = [];
   for (const line of stdout.split('\n')) {
     const d = line.match(DIAG);
     if (d) {
@@ -439,6 +526,11 @@ async function tsc(p: Project): Promise<TscResult> {
       });
       continue;
     }
+    const g = line.match(GLOBAL_DIAG);
+    if (g) {
+      global.push(`${g[1]}: ${g[2]}`);
+      continue;
+    }
     if (/^\s+\S/.test(line) && diagnostics.length) {
       // continuation of the previous message (the "missing properties" list)
       const last = diagnostics[diagnostics.length - 1];
@@ -447,7 +539,7 @@ async function tsc(p: Project): Promise<TscResult> {
     }
     if (isAbsolute(line.trim())) listed.add(resolve(line.trim()));
   }
-  return { listed, diagnostics, raw: stdout };
+  return { exitCode, listed, diagnostics, global };
 }
 
 // ── run ─────────────────────────────────────────────────────────────────────
@@ -467,15 +559,19 @@ for (const path of docs) {
     continue;
   }
   const doc = extract(path);
-  findings.push(...doc.errors);
-  if (!doc.fences.length) continue;
+  if (!doc.fences.length) {
+    findings.push(...doc.errors);
+    continue;
+  }
 
   docCount++;
   fenceCount += doc.fences.length;
   const p = project(doc, usedStubs);
+  findings.push(...doc.errors);
+  if (!p) continue;
   const result = await tsc(p);
 
-  // proof: every fence file is in the program, and the imports went to dist/
+  // proof: every fence file is in the program, and the imports reached the packages
   const missing = [...p.files.keys()].filter((f) => !result.listed.has(f));
   if (missing.length) {
     findings.push(
@@ -485,10 +581,11 @@ for (const path of docs) {
     );
     continue;
   }
-  const viaDist = new Map<string, number>();
+  const viaPackage = new Map<string, number>();
   for (const f of result.listed) {
-    const m = relative(REPO, f).match(/^packages\/([^/]+)\/dist\//);
-    if (m) viaDist.set(m[1] ?? '', (viaDist.get(m[1] ?? '') ?? 0) + 1);
+    if (f.startsWith(`${SCRATCH}/`)) continue;
+    const m = relative(REPO, f).match(/^packages\/([^/]+)\//);
+    if (m) viaPackage.set(m[1] ?? '', (viaPackage.get(m[1] ?? '') ?? 0) + 1);
   }
   console.log(`${doc.rel} — ${doc.fences.length} fence(s) in the tsc program (--listFiles):`);
   for (const [, fence] of p.files)
@@ -496,13 +593,14 @@ for (const path of docs) {
       `  fence #${fence.index} (line ${fence.openLine + 1}–${fence.openLine + fence.code.split('\n').length})`
     );
   console.log(
-    viaDist.size
-      ? `  resolved via ${[...viaDist]
-          .map(([pkg, n]) => `packages/${pkg}/dist (${n} files)`)
+    viaPackage.size
+      ? `  resolved via ${[...viaPackage]
+          .map(([pkg, n]) => `packages/${pkg} (${n} files)`)
           .join(', ')}`
       : '  resolved no @urbicon-ui package'
   );
 
+  for (const g of result.global) findings.push(`${doc.rel}: harness error — tsc: ${g}`);
   for (const d of result.diagnostics) {
     const fence = p.files.get(d.file);
     if (fence) {
@@ -514,7 +612,16 @@ for (const path of docs) {
       );
     }
   }
+  if (result.exitCode !== 0 && !result.diagnostics.length && !result.global.length)
+    findings.push(
+      `${doc.rel}: harness error — tsc exited ${result.exitCode} without a diagnostic this script understood`
+    );
 }
+
+if (!fenceCount)
+  findings.push(
+    `no marked fence in ${docs.length} document(s) — a run that checks nothing is not green (is the marker grammar or the corpus broken?)`
+  );
 
 // only the full corpus can judge the stub directory; a --docs subset cannot
 const staleStubs =

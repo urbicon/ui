@@ -406,6 +406,7 @@ One deployment running this package becomes the **identity provider (IdP)**; any
 ### Setup — IdP side
 
 1. **One-time key setup** (a script, **never** on boot — a fresh key per process would invalidate every live session and desynchronize consumers):
+   <!-- typecheck -->
    ```typescript
    import { generateES256KeyPair } from '@urbicon-ui/auth/server';
    const { privateKey, publicKey, kid } = await generateES256KeyPair();

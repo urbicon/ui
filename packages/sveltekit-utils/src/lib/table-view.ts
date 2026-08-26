@@ -226,7 +226,7 @@ export function searchParamsToViewPartial(
  * @example
  * ```ts
  * // shared with the component that calls createTableView({ defaults })
- * export const invoiceView = { pageSize: 25, sort: { column: 'date', direction: 'desc' } };
+ * export const invoiceView = { pageSize: 25, sort: { column: 'date', direction: 'desc' } } as const;
  *
  * export const load = async ({ url }) => ({
  *   initialResult: await fetchInvoices(searchParamsToViewSnapshot(url.searchParams, invoiceView))

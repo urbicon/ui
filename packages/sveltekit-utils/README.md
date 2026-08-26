@@ -90,15 +90,20 @@ Because the binding re-reads the URL rather than capturing it, the browser's bac
 
 The pure serializers work without SvelteKit — e.g. to parse the incoming query in a server `load` and fetch the first page during SSR. Use `searchParamsToViewSnapshot` from `./table-view`: it takes the *same* defaults object the component hands `createTableView`, so the server cannot resolve an absent param differently from the client, and it hands back the very shape a managed `source.query` receives.
 
+<!-- typecheck -->
 ```typescript
-// view-defaults.ts — imported by both the component and the load function
-export const userView = { pageSize: 25, sort: { column: 'joined', direction: 'desc' } };
-
 // +page.server.ts
 import { searchParamsToViewSnapshot } from '@urbicon-ui/sveltekit-utils/table-view';
-import { userView } from './view-defaults';
+import { fetchUsers } from '$lib/server/users';
+import type { PageServerLoad } from './$types';
 
-export const load = async ({ url }) => ({
+// In practice its own module (view-defaults.ts), imported by the component and
+// by this load function — one object, so the two cannot resolve an absent
+// param differently. `as const` keeps `direction` a `'desc'`, not a `string`
+// the snapshot rejects.
+export const userView = { pageSize: 25, sort: { column: 'joined', direction: 'desc' } } as const;
+
+export const load: PageServerLoad = async ({ url }) => ({
   initialResult: await fetchUsers(searchParamsToViewSnapshot(url.searchParams, userView))
 });
 ```
@@ -121,11 +126,17 @@ Fire HTTP requests against SvelteKit server endpoints on an interval. Pair with 
 ```typescript
 // src/lib/server/cron.ts
 import { createCronRunner } from '@urbicon-ui/sveltekit-utils/cron';
-import { BASE_URL, CRON_SECRET } from '$env/static/private';
+import { env } from '$env/dynamic/private';
+
+// Runtime env, not `$env/static/private`: a node server reads its secret at
+// start, not at build. The runner needs a `string`, so a missing one is a
+// startup failure here — not an unauthenticated cron loop.
+const secret = env.CRON_SECRET;
+if (!secret) throw new Error('CRON_SECRET is not set');
 
 export const cron = createCronRunner({
-  secret: CRON_SECRET, // a `string`; `$env/dynamic/private` would hand over `string | undefined`
-  baseUrl: BASE_URL,
+  secret,
+  baseUrl: env.BASE_URL,
   jobs: [
     { path: '/api/cron/send-digest', intervalSeconds: 3600 },
     { path: '/api/cron/cleanup', intervalSeconds: 900, method: 'POST' }
@@ -138,12 +149,15 @@ cron.start();
 
 Receive the call and verify the secret inside your endpoint:
 
+<!-- typecheck -->
 ```typescript
 // src/routes/api/cron/send-digest/+server.ts
-import { CRON_SECRET } from '$env/static/private';
+import { env } from '$env/dynamic/private';
+import { sendDigest } from '$lib/server/digest';
+import type { RequestHandler } from './$types';
 
-export const POST = async ({ request }) => {
-  if (request.headers.get('x-cron-secret') !== CRON_SECRET) {
+export const POST: RequestHandler = async ({ request }) => {
+  if (!env.CRON_SECRET || request.headers.get('x-cron-secret') !== env.CRON_SECRET) {
     return new Response('Forbidden', { status: 403 });
   }
   await sendDigest();
@@ -184,9 +198,13 @@ controller.abort();
 
 Emit the matching frames from the endpoint:
 
+<!-- typecheck -->
 ```typescript
 // src/routes/api/chat/+server.ts
-export const POST = async ({ request }) => {
+import { runModel } from '$lib/server/model';
+import type { RequestHandler } from './$types';
+
+export const POST: RequestHandler = async ({ request }) => {
   const stream = new ReadableStream({
     async start(controller) {
       const enc = new TextEncoder();

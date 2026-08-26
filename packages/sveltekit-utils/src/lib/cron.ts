@@ -81,11 +81,15 @@ export interface CronRunner {
  * ```typescript
  * // src/lib/server/cron.ts
  * import { createCronRunner } from '@urbicon-ui/sveltekit-utils/cron';
- * import { BASE_URL, CRON_SECRET } from '$env/static/private';
+ * import { env } from '$env/dynamic/private';
+ *
+ * // runtime env: `secret` is a `string`, so a missing one fails at startup
+ * const secret = env.CRON_SECRET;
+ * if (!secret) throw new Error('CRON_SECRET is not set');
  *
  * export const cron = createCronRunner({
- *   secret: CRON_SECRET,
- *   baseUrl: BASE_URL,
+ *   secret,
+ *   baseUrl: env.BASE_URL,
  *   jobs: [
  *     { path: '/api/cron/send-digest', intervalSeconds: 3600 },
  *     { path: '/api/cron/cleanup', intervalSeconds: 900 }
