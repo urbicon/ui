@@ -105,6 +105,7 @@
     "shots": "bun --bun run scripts/capture-shots.ts",
     "size": "bun --bun run scripts/bundle-size.ts",
     "variants:lint": "bun --bun run packages/blocks/scripts/variants-lint.ts",
+    "consumer-css:check": "bun --bun run scripts/consumer-css-check.ts",
     "livery:check": "bun apps/docs/scripts/gen-livery-shim.ts --check",
     "a2ui:axes": "bun --bun run scripts/a2ui-axes-gen.ts",
     "a2ui:axes:check": "bun --bun run scripts/a2ui-axes-gen.ts --check",
