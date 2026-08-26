@@ -230,7 +230,7 @@
   // this dialog is the top overlay and only then decides whether to close —
   // the same rule as `handleKeydown`, or the two paths disagree about who
   // owns the key. The `preventDefault()` is what holds the dialog: it stops
-  // the close watcher before it runs (measured, Chromium 1234 / WebKit 2336:
+  // the close watcher before it runs (measured, Chromium 151 / WebKit 26.5:
   // five consecutive ESC, dialog stays open). The `isTop` guard makes sure
   // stacked overlays close one-at-a-time.
   function handleWindowKeydown(event: KeyboardEvent) {
