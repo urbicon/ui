@@ -1,6 +1,9 @@
 import type { RequestEvent } from '@sveltejs/kit';
 import { describe, expect, it, vi } from 'vitest';
-import { createInMemoryRefreshTokenRepository } from '../adapters/in-memory.js';
+import {
+  createInMemoryRefreshTokenRepository,
+  createInMemoryStore
+} from '../adapters/in-memory.js';
 import type { FullAuthUser, RefreshTokenRepository } from '../adapters/types.js';
 import { hashToken } from '../auth.js';
 import type { AuthDeps } from '../deps.js';
@@ -64,7 +67,7 @@ describe('createRefreshHandler', () => {
   });
 
   it('returns 401 when the refresh cookie is missing', async () => {
-    const repo = createInMemoryRefreshTokenRepository();
+    const repo = createInMemoryRefreshTokenRepository(createInMemoryStore());
     const handler = createRefreshHandler(makeDeps(true, repo));
 
     const response = await handler.POST(mockEvent() as unknown as RequestEvent);
@@ -72,7 +75,7 @@ describe('createRefreshHandler', () => {
   });
 
   it('returns 401 and clears both cookies when the token is unknown', async () => {
-    const repo = createInMemoryRefreshTokenRepository();
+    const repo = createInMemoryRefreshTokenRepository(createInMemoryStore());
     const handler = createRefreshHandler(makeDeps(true, repo));
     const event = mockEvent({ session: 'stale', refresh: 'fake' });
 
@@ -83,7 +86,7 @@ describe('createRefreshHandler', () => {
   });
 
   it('rotates the token and returns the user on success', async () => {
-    const repo = createInMemoryRefreshTokenRepository();
+    const repo = createInMemoryRefreshTokenRepository(createInMemoryStore());
     const { token } = await issueRefreshToken(repo, 'user-1', { refreshTokenTtl: '30d' });
     const handler = createRefreshHandler(makeDeps(true, repo));
     const event = mockEvent({ refresh: token });
@@ -107,7 +110,7 @@ describe('createRefreshHandler', () => {
     // would not reach the store — the clock itself has to move.
     vi.useFakeTimers();
     try {
-      const repo = createInMemoryRefreshTokenRepository();
+      const repo = createInMemoryRefreshTokenRepository(createInMemoryStore());
       const { token } = await issueRefreshToken(repo, 'user-1', { refreshTokenTtl: '30d' });
 
       // First rotation
@@ -128,7 +131,7 @@ describe('createRefreshHandler', () => {
   });
 
   it('treats an immediate replay as a concurrent-rotation race and re-issues only the access token', async () => {
-    const repo = createInMemoryRefreshTokenRepository();
+    const repo = createInMemoryRefreshTokenRepository(createInMemoryStore());
     const { token } = await issueRefreshToken(repo, 'user-1', { refreshTokenTtl: '30d' });
 
     const handler = createRefreshHandler(makeDeps(true, repo));

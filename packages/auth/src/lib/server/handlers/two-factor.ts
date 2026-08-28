@@ -295,8 +295,14 @@ function verifyHandler<R extends string>(deps: AuthDeps<R>): { POST: RequestHand
         return authError('invalid_code', 401);
       }
 
-      // Success: consume the single-use pending cookie and start the real
-      // session (tagged with device metadata for the session list).
+      // Success: the request hands back the one slot it took — a shared address
+      // is braked by wrong codes only. One slot and not a reset, because this
+      // limiter is the whole defence of a 10⁶-code space: an attacker who can
+      // complete a verify on an account of his own must not be able to clear
+      // the budget he spent guessing at someone else's (two-factor.test.ts).
+      await rateLimiter?.refund(getClientAddress());
+      // Consume the single-use pending cookie and start the real session
+      // (tagged with device metadata for the session list).
       clearPending2faCookie(cookies, config);
       await establishSession(cookies, user, config, repos, resolveSessionMeta(event, config));
 

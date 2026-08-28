@@ -79,6 +79,50 @@ describe('Drawer (component interaction)', () => {
     }
   });
 
+  it('claims Escape at the window level when closeOnEscape is false and focus is outside', async () => {
+    // Same hole as Dialog: with focus outside the <dialog> an unclaimed Escape
+    // reaches the UA's close watcher, which closes a modal regardless of
+    // closeOnEscape. jsdom has no close watcher — the keydown's defaultPrevented
+    // flag is the oracle (the browser side is measured in Dialog.svelte).
+    const onClose = vi.fn();
+    renderDrawer({ open: true, closeOnEscape: false, onClose });
+    await tick();
+    await tick();
+    (document.activeElement as HTMLElement | null)?.blur();
+    expect(document.activeElement).toBe(document.body);
+
+    const escapeKey = new KeyboardEvent('keydown', {
+      key: 'Escape',
+      bubbles: true,
+      cancelable: true
+    });
+    document.body.dispatchEvent(escapeKey);
+
+    expect(escapeKey.defaultPrevented).toBe(true);
+    expect(onClose).not.toHaveBeenCalled();
+    expect(drawer().getAttribute('data-state')).toBe('open');
+  });
+
+  it('vetoes the native cancel request when closeOnEscape is false, not otherwise', async () => {
+    const onClose = vi.fn();
+    renderDrawer({ open: true, closeOnEscape: false, onClose });
+    await tick();
+
+    const vetoed = new Event('cancel', { cancelable: true });
+    drawer().dispatchEvent(vetoed);
+    expect(vetoed.defaultPrevented).toBe(true);
+    expect(onClose).not.toHaveBeenCalled();
+  });
+
+  it('lets the native cancel request through when closeOnEscape is true', async () => {
+    renderDrawer({ open: true });
+    await tick();
+
+    const cancel = new Event('cancel', { cancelable: true });
+    drawer().dispatchEvent(cancel);
+    expect(cancel.defaultPrevented).toBe(false);
+  });
+
   it('stays open when an inner widget already consumed the Escape', async () => {
     // Asserted here as well as in Dialog for the reason this file exists: the
     // keydown handler is a duplicate, not a shared helper, and it carried the

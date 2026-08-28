@@ -187,8 +187,7 @@
   // No busy flag of its own: `onConfirm` returns a promise, and ConfirmDialog
   // contracts to hold the dialog open and loading until it settles, which is
   // where a second confirm click dies. Deliberately not asserted from here —
-  // two independent internals of ConfirmDialog block that click, so no sabotage
-  // in this package can falsify the claim; it belongs to ConfirmDialog's suite.
+  // the single-flight is ConfirmDialog's contract and is pinned in its suite.
   async function confirmDelete() {
     deleteError = '';
     try {
