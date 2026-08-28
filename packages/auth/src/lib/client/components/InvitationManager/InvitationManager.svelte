@@ -14,7 +14,7 @@
   import { mergeAuthLocale, useAuthLocale } from '../../../i18n/index.js';
   import { csrfFetch } from '../../csrf.js';
   import type { InvitationManagerProps } from './index.js';
-  import { errorTextFromBody, getJson } from '../../utils/http.js';
+  import { errorTextFromBody, getJson, parseJsonBody } from '../../utils/http.js';
   import { resolveAuthSlotClasses, slotClass } from '../../utils/slot-class.js';
 
   interface InvitationItem {
@@ -123,15 +123,11 @@
         fetcher
       );
       if (!res.ok) {
-        const data = (await res.json().catch(() => ({}))) as Record<string, unknown>;
-        actionError = errorTextFromBody(data, t);
+        actionError = errorTextFromBody(await parseJsonBody(res), t);
         return;
       }
-      const created = (await res.json().catch(() => ({}))) as {
-        inviteUrl?: string;
-        emailSent?: boolean;
-      };
-      if (created.inviteUrl) {
+      const created = await parseJsonBody(res);
+      if (typeof created.inviteUrl === 'string') {
         lastInvite = { email, url: created.inviteUrl, emailed: created.emailSent === true };
       }
       email = '';
@@ -153,8 +149,7 @@
         fetcher
       );
       if (!res.ok) {
-        const data = await res.json().catch(() => ({}));
-        actionError = errorTextFromBody(data, t);
+        actionError = errorTextFromBody(await parseJsonBody(res), t);
         return;
       }
       // Drop it locally only once the server confirms — an unchecked optimistic

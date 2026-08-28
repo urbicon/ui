@@ -6,7 +6,7 @@
   import { errorMessageFromCode } from '../../utils/error-message.js';
   import type { LoginPageProps } from './index.js';
   import { base64UrlToBuffer, bufferToBase64Url } from '../../utils/webauthn.js';
-  import { errorTextFromBody, postJson, wireError } from '../../utils/http.js';
+  import { errorTextFromBody, parseJsonBody, postJson, wireError } from '../../utils/http.js';
   import { resolveAuthSlotClasses, slotClass } from '../../utils/slot-class.js';
   import AuthPageShell from '../_shared/AuthPageShell.svelte';
 
@@ -92,6 +92,13 @@
         awaitingTwoFactor = true;
         return;
       }
+      // Same guard as createAuthStore.login: a 200 without the user is a
+      // captive portal or broken proxy, and reporting success would send the
+      // consumer into a navigate → guard-bounce loop with no session.
+      if (!data.user) {
+        error = t.auth.errors.serverError;
+        return;
+      }
       onSuccess?.();
     } catch {
       error = t.auth.errors.networkError;
@@ -115,6 +122,10 @@
       if (!ok) {
         const w = wireError(data);
         error = errorMessageFromCode(w.code, t, w.error) ?? t.twoFactor.invalidCode;
+        return;
+      }
+      if (!data.user) {
+        error = t.auth.errors.serverError;
         return;
       }
       onSuccess?.();
@@ -142,8 +153,7 @@
         fetcher
       );
       if (!optRes.ok) {
-        const data = await optRes.json().catch(() => ({}));
-        error = errorTextFromBody(data as Record<string, unknown>, t);
+        error = errorTextFromBody(await parseJsonBody(optRes), t);
         return;
       }
       const { options } = await optRes.json();
@@ -196,8 +206,7 @@
       );
 
       if (!verifyRes.ok) {
-        const data = (await verifyRes.json().catch(() => ({}))) as Record<string, unknown>;
-        error = errorTextFromBody(data, t);
+        error = errorTextFromBody(await parseJsonBody(verifyRes), t);
         return;
       }
 
