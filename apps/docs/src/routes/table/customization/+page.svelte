@@ -15,6 +15,7 @@
   const navigation = [
     { id: 'states', title: 'Empty, loading and error states' },
     { id: 'slots', title: 'Style slot overrides' },
+    { id: 'provider', title: 'Presets and provider defaults' },
     { id: 'persistence', title: 'What the table remembers' }
   ];
 
@@ -39,6 +40,28 @@ ${scriptClose}
     </tr>
   {/snippet}
 </Table>`;
+
+  const codeProvider = `${scriptOpen}
+  import { BlocksProvider } from '@urbicon-ui/blocks';
+  import { Table } from '@urbicon-ui/table';
+${scriptClose}
+
+<BlocksProvider
+  defaults={{
+    Table: {
+      slotClasses: { headerCell: 'text-text-tertiary text-xs uppercase tracking-wider' },
+      overrides: [{ variant: 'framed', class: { scrollArea: 'shadow-none' } }]
+    }
+  }}
+  presets={{
+    Table: {
+      brand: { slotClasses: { headerRow: 'bg-primary-subtle', row: 'hover:bg-primary-subtle' } }
+    }
+  }}
+>
+  <!-- every table below the provider gets the header; this one is branded too -->
+  <Table {items} {columns} variant="framed" preset="brand" />
+</BlocksProvider>`;
 
   const codePersistence = `${scriptOpen}
   import { Table, createTableView, bindViewToStorage } from '@urbicon-ui/table';
@@ -78,17 +101,17 @@ ${scriptClose}
 
 <SeoMeta
   title="Customization - Table"
-  description="Empty states, style slot overrides, and state persistence."
+  description="Empty states, style slot overrides, presets, and state persistence."
 />
 
 <DocsPageLayout
   title="Customization"
-  description="Empty states, style slot overrides, and state persistence."
+  description="Empty states, style slot overrides, presets, and state persistence."
   breadcrumbs={[{ label: 'Table', href: resolve('/table/table') }]}
   {navigation}
   showToc={true}
 >
-  <!-- Three topics, so three titled sections and a nav — the rule the sibling
+  <!-- Four topics, so four titled sections and a nav — the rule the sibling
        pages follow. The single-topic pages in this group (column-reorder,
        expandable-rows, custom-cells, virtual-scrolling, accessibility) carry
        neither, and their examples keep `headingLevel={2}` because with no
@@ -191,6 +214,46 @@ ${scriptClose}
         <a class="text-primary hover:underline" href={resolve('/table/sticky-pinning')}
           >Sticky Pinning</a
         > says which slots to put them back on.
+      </p>
+    </div>
+  </Section>
+
+  <Section id="provider" title="Presets and provider defaults">
+    <div class="space-y-8">
+      <CodeExample
+        title="A Look Every Table Shares"
+        description="A `BlocksProvider` styles every table below it; `preset` names one of its looks for this table."
+        code={codeProvider}
+        preview={false}
+      />
+
+      <p class="text-text-secondary text-sm">
+        <code class="text-text-primary">defaults.Table</code> and a preset take the same slot names
+        as <code class="text-text-primary">slotClasses</code>, and the four layers resolve in one
+        order: the provider's <code class="text-text-primary">slotClasses</code>, its matching
+        <code class="text-text-primary">overrides</code>, the preset, then the table's own
+        <code class="text-text-primary">slotClasses</code>. A later layer wins per Tailwind bucket,
+        so a preset's <code class="text-text-primary">cell: 'py-1'</code> gives way to
+        <code class="text-text-primary">py-3</code> on the instance (<a
+          class="text-primary hover:underline"
+          href={resolve('/customization/blocks-provider') + '#merge-behavior'}>Merge behavior</a
+        >). The table resolves the layers once, so a preset reaches the header, the rows and the
+        card list alike.
+      </p>
+
+      <p class="text-text-secondary text-sm">
+        An <code class="text-text-primary">overrides</code> rule matches the table's variant axes:
+        <code class="text-text-primary">variant</code>, <code class="text-text-primary">size</code>,
+        <code class="text-text-primary">cardsBelow</code>,
+        <code class="text-text-primary">stickyToolbar</code> and
+        <code class="text-text-primary">contained</code>. The last two are the resolved modes rather
+        than the props: a table with <code class="text-text-primary">fit="viewport"</code>
+        matches <code class="text-text-primary">{'{ contained: true }'}</code>, and one whose
+        toolbar pins to the page matches
+        <code class="text-text-primary">{'{ stickyToolbar: true }'}</code>.
+        <code class="text-text-primary">unstyled</code> on the provider reaches the table the same way
+        as the prop: the look goes, the card switch stays, and the search field in the toolbar loses its
+        look in the same step.
       </p>
     </div>
   </Section>

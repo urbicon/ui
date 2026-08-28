@@ -295,7 +295,7 @@ slotClasses?: {
 
     <CodeExample
       title="Style only the outlined variant"
-      description="Entries match active prop values, so it is irrelevant whether the library defines border-2 in a variant or a compoundVariant. string = equals, string[] = one-of; multiple matches merge additively."
+      description="Entries match active prop values, so it is irrelevant whether the library defines border-2 in a variant or a compoundVariant. string = equals, string[] = one-of, boolean for a boolean axis such as disabled; multiple matches merge additively."
       isolate
     >
       <BlocksProvider
