@@ -1,5 +1,6 @@
 // Password hashing (Web Crypto PBKDF2 + legacy bcrypt verification) and the
-// password strength policy. Split out of the former auth.ts god-file.
+// server-side strength check. The rules it measures against live in
+// `../password-policy.ts`, shared with the client checklist.
 
 import { randomBytes } from 'node:crypto';
 import {

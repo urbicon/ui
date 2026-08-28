@@ -1,7 +1,7 @@
 import type { AuthUser } from '../../types.js';
 import type { CsrfClientOptions } from '../csrf.js';
 import { csrfFetch } from '../csrf.js';
-import { getJson, parseJsonBody, postJson, wireError } from '../utils/http.js';
+import { getJson, parseJsonBody, postJson, userFromSuccess, wireError } from '../utils/http.js';
 
 export interface AuthStoreConfig {
   apiPath?: string;
@@ -47,10 +47,18 @@ function failure(data: Record<string, unknown>): AuthActionResult {
   return { success: false, ...wireError(data) };
 }
 
-// Frozen: returned by reference from every network-failure path.
-const NETWORK_FAILURE: AuthActionResult = Object.freeze({
+// Frozen: returned by reference from every network-failure path, which is why
+// every action's result is typed `Readonly` — a consumer that mutated one
+// would be mutating the next caller's answer.
+const NETWORK_FAILURE: Readonly<AuthActionResult> = Object.freeze({
   success: false,
   code: 'network_error'
+});
+
+// An `ok` body without the user it should carry (see `userFromSuccess`).
+const MALFORMED_SUCCESS: Readonly<AuthActionResult> = Object.freeze({
+  success: false,
+  code: 'server_error'
 });
 
 /**
@@ -81,7 +89,7 @@ export function createAuthStore<R extends string>(config?: AuthStoreConfig) {
   let twoFactorRequired = $state(false);
   const isAuthenticated = $derived(user !== null);
 
-  async function login(email: string, password: string): Promise<AuthActionResult> {
+  async function login(email: string, password: string): Promise<Readonly<AuthActionResult>> {
     try {
       const { ok, data } = await postJson(
         `${apiPath}/login`,
@@ -96,12 +104,9 @@ export function createAuthStore<R extends string>(config?: AuthStoreConfig) {
         twoFactorRequired = true;
         return { success: true, twoFactorRequired: true };
       }
-      // A 200 whose (shield-normalized) body carries no user is a malformed
-      // success — a captive portal, broken proxy or mock. Reporting success
-      // while isAuthenticated stays false would send the consumer into a
-      // navigate→guard-bounce loop with zero feedback.
-      if (!data.user) return { success: false, code: 'server_error' };
-      user = data.user as AuthUser<R>;
+      const signedIn = userFromSuccess<AuthUser<R>>(data);
+      if (!signedIn) return MALFORMED_SUCCESS;
+      user = signedIn;
       twoFactorRequired = false;
       return { success: true };
     } catch {
@@ -114,12 +119,13 @@ export function createAuthStore<R extends string>(config?: AuthStoreConfig) {
    * code). Only meaningful after `login` returned `twoFactorRequired`. On
    * success the session is established and `user` is populated.
    */
-  async function verifyTwoFactor(code: string): Promise<AuthActionResult> {
+  async function verifyTwoFactor(code: string): Promise<Readonly<AuthActionResult>> {
     try {
       const { ok, data } = await postJson(`${apiPath}/2fa/verify`, { code }, { csrf, fetcher });
       if (!ok) return failure(data);
-      if (!data.user) return { success: false, code: 'server_error' };
-      user = data.user as AuthUser<R>;
+      const signedIn = userFromSuccess<AuthUser<R>>(data);
+      if (!signedIn) return MALFORMED_SUCCESS;
+      user = signedIn;
       twoFactorRequired = false;
       return { success: true };
     } catch {
@@ -133,7 +139,7 @@ export function createAuthStore<R extends string>(config?: AuthStoreConfig) {
     password: string,
     /** The invitation token from the invite link's `?token=` — required (#149). */
     token: string
-  ): Promise<AuthActionResult> {
+  ): Promise<Readonly<AuthActionResult>> {
     try {
       const { ok, data } = await postJson(
         `${apiPath}/register`,
@@ -141,8 +147,9 @@ export function createAuthStore<R extends string>(config?: AuthStoreConfig) {
         { csrf, fetcher }
       );
       if (!ok) return failure(data);
-      if (!data.user) return { success: false, code: 'server_error' };
-      user = data.user as AuthUser<R>;
+      const signedIn = userFromSuccess<AuthUser<R>>(data);
+      if (!signedIn) return MALFORMED_SUCCESS;
+      user = signedIn;
       return { success: true };
     } catch {
       return NETWORK_FAILURE;
@@ -156,8 +163,8 @@ export function createAuthStore<R extends string>(config?: AuthStoreConfig) {
    * leaves the cookies valid; a caller may want to retry or warn, so the
    * failure carries the wire contract like every other action).
    */
-  async function logout(): Promise<AuthActionResult> {
-    let result: AuthActionResult;
+  async function logout(): Promise<Readonly<AuthActionResult>> {
+    let result: Readonly<AuthActionResult>;
     try {
       const res = await csrfFetch(`${apiPath}/logout`, { method: 'POST' }, csrf, fetcher);
       result = res.ok ? { success: true } : failure(await parseJsonBody(res));
@@ -177,7 +184,7 @@ export function createAuthStore<R extends string>(config?: AuthStoreConfig) {
    * the failure — so a route guard can retry or wait instead of bouncing a
    * signed-in user to the login page over a transient blip.
    */
-  async function checkStatus(): Promise<AuthActionResult> {
+  async function checkStatus(): Promise<Readonly<AuthActionResult>> {
     try {
       loading = true;
       const { ok, data } = await getJson(`${apiPath}/me`, { fetcher });

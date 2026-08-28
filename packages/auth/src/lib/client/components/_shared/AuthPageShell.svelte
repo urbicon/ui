@@ -1,8 +1,8 @@
 <!--
-  Internal: the character-identical page skeleton (wrapper → Card → h1 →
-  aria-live error region) that all five auth pages copied, drifting apart only
-  in an mb-4/mb-6 — review R18. Owns the `root`/`card`/`title`/`error` slots;
-  page-specific content renders as children. Not exported from the package.
+  Internal: the one page skeleton (wrapper → Card → h1 → aria-live error
+  region) every auth page renders through, so their spacing cannot drift
+  apart. Owns the `root`/`card`/`title`/`error` slots; page-specific content
+  renders as children. Not exported from the package.
 -->
 <script lang="ts">
   import { Card } from '@urbicon-ui/blocks';

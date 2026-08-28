@@ -1,6 +1,6 @@
 import type { Cookies, RequestHandler } from '@sveltejs/kit';
 import { json } from '@sveltejs/kit';
-import type { PasskeyRepository } from '../adapters/types.js';
+import type { Passkey, PasskeyRepository } from '../adapters/types.js';
 import { sanitizeUser } from '../auth.js';
 import { isSecureDeployment } from '../cookie-policy.js';
 import type { AuthDeps } from '../deps.js';
@@ -311,9 +311,10 @@ function authenticationVerifyHandler<R extends string>(
   // audit log sees passkey logins too. The email argument is '' on every path —
   // discoverable login knows no address up front; the reason string
   // disambiguates. `subject` is the stored credential's owner where the path
-  // got that far, and `null` on the three that reject before any lookup
-  // resolves one (challenge_missing, unknown_credential, invalid_assertion) —
-  // never the email, which must stay out of the log.
+  // got that far — the rejected assertion included, whose credential was
+  // looked up before its signature failed — and `null` on the two that reject
+  // before any lookup resolves one (challenge_missing, unknown_credential).
+  // Never the email, which must stay out of the log.
   const loginFailed = (email: string, reason: string, subject: string | null) =>
     notifyHook(deps, { site: 'passkey', subject }, 'onLoginFailed', email, reason);
 
@@ -322,6 +323,8 @@ function authenticationVerifyHandler<R extends string>(
       const { request, cookies, getClientAddress } = event;
       const limited = await enforceRateLimit(rateLimiter, getClientAddress());
       if (limited) return limited;
+      // Hoisted out of the `try` so the WebAuthnError catch can name the owner.
+      let stored: Passkey | null = null;
 
       // Gate on the ceremony handle first — it's the cheapest check and the
       // flow's precondition. No cookie → the options step never ran for this
@@ -349,7 +352,7 @@ function authenticationVerifyHandler<R extends string>(
         }
 
         // Look up the stored credential
-        const stored = await passkeyRepo.findByCredentialId(credential.id);
+        stored = await passkeyRepo.findByCredentialId(credential.id);
         if (!stored) {
           await loginFailed('', 'unknown_credential', null);
           // The browser offered a passkey this server does not hold — the
@@ -457,7 +460,7 @@ function authenticationVerifyHandler<R extends string>(
         if (err instanceof WebAuthnError) {
           // The assertion itself was rejected (bad signature, challenge
           // mismatch, origin, …) — the audit-relevant failure class.
-          await loginFailed('', 'invalid_assertion', null);
+          await loginFailed('', 'invalid_assertion', stored?.userId ?? null);
           // `invalid_assertion` collapses every WebAuthn cause into one reason;
           // the specific one is only in the error, so it goes to the log.
           deps.logger.warn('[auth] passkey assertion rejected:', err.message);

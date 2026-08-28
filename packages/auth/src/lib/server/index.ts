@@ -215,7 +215,8 @@ export {
   verifyAssertion,
   verifyRegistration
 } from './passkey/webauthn.js';
-// Password hashing (PBKDF2 + legacy bcrypt migration) + strength policy
+// Password hashing (PBKDF2 + legacy bcrypt migration) + the server-side
+// strength check (the rules themselves: `password-policy.ts`, exported above)
 export type { PasswordVerifyResult } from './password.js';
 export {
   hashPassword,

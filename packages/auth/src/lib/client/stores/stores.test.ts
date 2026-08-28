@@ -164,6 +164,28 @@ describe('createAuthStore', () => {
     expect(result).toEqual({ success: false, code: 'server_error' });
     expect(store.user).toBeNull();
   });
+
+  it('a 200 without a user on the 2FA step is a malformed success, not a verified code', async () => {
+    const store = createAuthStore({
+      fetcher: fetcherReturning(
+        jsonResponse(200, { twoFactorRequired: true }),
+        jsonResponse(200, {})
+      )
+    });
+    await store.login('a@b.c', 'pw');
+    const result = await store.verifyTwoFactor('123456');
+    expect(result).toEqual({ success: false, code: 'server_error' });
+    expect(store.user).toBeNull();
+    // Still pending: the code step is what failed, not the password step.
+    expect(store.twoFactorRequired).toBe(true);
+  });
+
+  it('a 201 without a user is a malformed success, not a registration', async () => {
+    const store = createAuthStore({ fetcher: fetcherReturning(jsonResponse(201, {})) });
+    const result = await store.register('A', 'a@b.c', 'pw', 'invite-token');
+    expect(result).toEqual({ success: false, code: 'server_error' });
+    expect(store.user).toBeNull();
+  });
 });
 
 function record(id: string, readAt: Date | null = null): NotificationRecord {

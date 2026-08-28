@@ -53,7 +53,7 @@ export const demoAuthUser: AuthUser = {
 };
 
 /**
- * Simulates the `createPasskey*Handler` endpoints: a pre-filled passkey list and working
+ * Simulates the `createPasskeyHandlers` endpoints: a pre-filled passkey list and working
  * deletes. Registration is deliberately answered with a clear demo notice —
  * triggering real WebAuthn prompts from a docs page would register a useless
  * credential in the visitor's authenticator.

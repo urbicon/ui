@@ -72,6 +72,22 @@ export function wireError(data: Record<string, unknown>): { error?: string; code
 }
 
 /**
+ * The user out of a success body, or `null` when the `ok` response carries
+ * none. A 2xx with no user is a malformed success — a captive portal, broken
+ * proxy or mock answering with a body of its own — and treating it as a login
+ * would report success while nothing is signed in: the consumer navigates, the
+ * route guard bounces it back, and no message says why. Every place that turns
+ * an `ok` login / 2FA / register body into a session checks through this one
+ * function, so "was that really a success?" cannot be answered differently by
+ * the store and the pages.
+ */
+export function userFromSuccess<U extends object = Record<string, unknown>>(
+  data: Record<string, unknown>
+): U | null {
+  return data.user ? (data.user as U) : null;
+}
+
+/**
  * Localized error text for an auth error body: the machine `code` maps
  * through the locale bundle, an unknown code falls back to the server's
  * English prose, and a body with neither yields the generic message. An empty
