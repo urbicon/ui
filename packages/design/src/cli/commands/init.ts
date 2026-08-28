@@ -93,67 +93,70 @@ const BLOCKS = `${SCOPE}blocks`;
 /** The subpath a package exports when it ships a Tailwind stylesheet. */
 const STYLE_EXPORT = './style/index.css';
 
-/** What the consumer's install says about `@urbicon-ui/*` stylesheets. */
+/** What `node_modules` says about the installed `@urbicon-ui/*` packages. */
 interface StylesheetScan {
-  /** Dependencies whose installed package exports `./style/index.css` — blocks first, then alphabetical. */
+  /** Installed packages that export `./style/index.css` — blocks first, then alphabetical. */
   shipping: string[];
-  /** Dependencies with no readable `package.json` under any `node_modules` up from cwd. */
-  unreadable: string[];
+  /** Installed packages whose `package.json` does not parse — a broken install, named. */
+  broken: string[];
+  /** Whether any `@urbicon-ui/*` package was found under any `node_modules` up from cwd. */
+  installed: boolean;
+}
+
+/** Directory entries, or none when the directory is absent or unreadable. */
+async function namesIn(dir: string): Promise<string[]> {
+  try {
+    return await readdir(dir);
+  } catch {
+    return [];
+  }
 }
 
 /**
- * Read an installed package's `package.json`, resolving like Node does — `node_modules`
- * walking up from `cwd` — because a workspace install hoists to the root. Null when it
- * is not installed or not parseable (read tolerant; the caller says so, not us).
+ * Which installed `@urbicon-ui/*` packages ship a stylesheet. The oracle is
+ * `node_modules/@urbicon-ui/` itself, not the consumer's `package.json`: `bun add
+ * @urbicon-ui/table` declares only table, and the peers it pulls in (blocks, i18n, …)
+ * land in `node_modules` without a line in `package.json` — so a list read from the
+ * declarations misses the one import every consumer needs. Each package found is
+ * asked for `exports['./style/index.css']`; a package cannot disagree with its own
+ * `package.json`, and no list here needs editing when a package gains a stylesheet.
+ * Resolves like Node does — every `node_modules` walking up from `cwd`, the nearest
+ * copy of a name wins — because a workspace install hoists to the root.
  */
-async function readInstalledPackage(
-  name: string,
-  cwd: string
-): Promise<Record<string, unknown> | null> {
+async function scanStylesheets(cwd: string): Promise<StylesheetScan> {
+  const seen = new Set<string>();
+  const shipping: string[] = [];
+  const broken: string[] = [];
   let dir = resolve(cwd);
   const { root } = parse(dir);
   for (;;) {
-    const raw = await readOrNull(join(dir, 'node_modules', name, 'package.json'));
-    if (raw !== null) {
+    const scopeDir = join(dir, 'node_modules', SCOPE.slice(0, -1));
+    for (const entry of await namesIn(scopeDir)) {
+      const name = `${SCOPE}${entry}`;
+      if (seen.has(name)) continue;
+      // Symlinked workspace packages read through the link; an entry without a
+      // package.json is not a package (a stray file, an empty dir) and says nothing.
+      const raw = await readOrNull(join(scopeDir, entry, 'package.json'));
+      if (raw === null) continue;
+      seen.add(name);
+      let exports: unknown;
       try {
-        return JSON.parse(raw) as Record<string, unknown>;
+        exports = (JSON.parse(raw) as Record<string, unknown>).exports;
       } catch {
-        return null;
+        broken.push(name);
+        continue;
       }
+      if (exports && typeof exports === 'object' && STYLE_EXPORT in exports) shipping.push(name);
     }
-    if (dir === root) return null;
+    if (dir === root) break;
     dir = dirname(dir);
   }
-}
-
-/**
- * Which of the consumer's `@urbicon-ui/*` dependencies ship a stylesheet. The installed
- * package's own `exports` map is the oracle: table, auth and docs each export a
- * `./style/index.css` that holds only their `@source` — no tokens, and none of them
- * imports blocks, because Tailwind does not deduplicate `@import` — so a consumer must
- * import every one it uses, or that package's markup compiles to no CSS with no error
- * anywhere. A list here would need editing for every package that gains or loses a
- * stylesheet; a package cannot disagree with its own `package.json`.
- */
-async function scanStylesheets(deps: Set<string> | null, cwd: string): Promise<StylesheetScan> {
-  const shipping: string[] = [];
-  const unreadable: string[] = [];
-  for (const name of deps ?? []) {
-    if (!name.startsWith(SCOPE)) continue;
-    const pkg = await readInstalledPackage(name, cwd);
-    if (pkg === null) {
-      unreadable.push(name);
-      continue;
-    }
-    const exports = pkg.exports;
-    if (exports && typeof exports === 'object' && STYLE_EXPORT in exports) shipping.push(name);
-  }
-  // blocks carries the tokens and the `@theme` the other sheets' utilities resolve
-  // against, so it goes first; after that the order is a convention, not a constraint.
+  // blocks first is a reading convention — the token sheet is the one every consumer
+  // has — not a compile constraint: Tailwind emits the same rule set in either order.
   const rank = (n: string): string => (n === BLOCKS ? '' : n);
   shipping.sort((a, b) => (rank(a) < rank(b) ? -1 : rank(a) > rank(b) ? 1 : 0));
-  unreadable.sort();
-  return { shipping, unreadable };
+  broken.sort();
+  return { shipping, broken, installed: seen.size > 0 };
 }
 
 /** The `@import` lines the consumer's stylesheet needs, Tailwind first. */
@@ -163,29 +166,30 @@ function importLines(shipping: string[]): string[] {
     ...shipping.map((name) =>
       name === BLOCKS
         ? `@import '${name}/style/index.css';   /* tokens + @source */`
-        : `@import '${name}/style/index.css';   /* @source for ${name.slice(SCOPE.length)}'s markup */`
+        : `@import '${name}/style/index.css';   /* ${name.slice(SCOPE.length)}'s own stylesheet */`
     )
   ];
 }
 
 /**
- * What the import list could not settle. A declared-but-unreadable package is the
- * `bunx urbicon init` before `bun install` case — its line is missing above, and only
- * this says so. No stylesheet at all means no `@urbicon-ui/*` package is installed
- * yet: rather than print a guess, say where the list comes from.
+ * What the import list could not settle. Nothing installed is the `bunx urbicon init`
+ * before `bun install` case — the list above is empty and only this says why. A
+ * package whose `package.json` does not parse is a broken install: its line may be
+ * missing above, so it is named rather than skipped.
  */
 function stylesheetHints(sheets: StylesheetScan): string[] {
   const hints: string[] = [];
-  if (sheets.unreadable.length > 0) {
-    const names = sheets.unreadable.map((n) => `\`${n}\``).join(', ');
+  if (!sheets.installed) {
     hints.push(
-      `  • ${names} — declared in package.json but not readable under node_modules, so the` +
-        ' import list above may be incomplete; after `bun install`, re-run `bunx urbicon init`.'
+      `  • No ${SCOPE}* package is installed yet — the import list above is read from` +
+        ' node_modules; after `bun install`, re-run `bunx urbicon init`.'
     );
-  } else if (sheets.shipping.length === 0) {
+  }
+  if (sheets.broken.length > 0) {
+    const names = sheets.broken.map((n) => `\`${n}\``).join(', ');
     hints.push(
-      `  • No installed ${SCOPE}* package ships a stylesheet yet — the import list above is read` +
-        ' from what is installed. `bun add @urbicon-ui/blocks`, then re-run `bunx urbicon init`.'
+      `  • ${names} — installed, but its package.json could not be read, so its stylesheet` +
+        ' (if any) is missing above; reinstall it.'
     );
   }
   return hints;
@@ -197,10 +201,11 @@ function stylesheetHints(sheets: StylesheetScan): string[] {
  * fresh project renders unstyled. Every `@urbicon-ui/*` stylesheet ships the `@source`
  * directives for its own packaged dist, so importing each one (rather than the
  * foundation/semantic/interaction subfiles of blocks) is what makes Tailwind scan that
- * package's classes — no consumer-side `@source` needed. `init` only scaffolds the
- * design loop (it never edits `vite.config.ts`), so this is documented rather than
- * auto-wired; the import list is `scanStylesheets`' reading of what is installed, and
- * both branches print the same one.
+ * package's classes — no consumer-side `@source` needed; without one, the classes only
+ * that package uses compile to nothing, and nothing reports it. `init` only scaffolds
+ * the design loop (it never edits `vite.config.ts`), so this is documented rather than
+ * auto-wired; the import list is `scanStylesheets`' reading of `node_modules`, and
+ * both branches print the same one — `deps` decides only whether Tailwind is wired.
  */
 function tailwindSteps(
   deps: Set<string> | null,
@@ -629,11 +634,10 @@ export async function runInit(_positionals: string[], flags: Flags): Promise<num
   for (const d of done) console.log(`  ✓ ${d}`);
   for (const s of skipped) console.log(`  · ${s}`);
   console.log('\nNext steps:');
-  const deps = readConsumerDependencies();
   for (const line of tailwindSteps(
-    deps,
+    readConsumerDependencies(),
     await findTailwindStylesheet(cwd),
-    await scanStylesheets(deps, cwd)
+    await scanStylesheets(cwd)
   ))
     console.log(line);
   // Claude Code is wired above; what remains is every other tool, which we cannot

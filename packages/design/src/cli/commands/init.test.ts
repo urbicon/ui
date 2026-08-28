@@ -212,7 +212,7 @@ describe('runInit', () => {
       await mkdir(join(dir, 'src/node_modules/pkg'), { recursive: true });
       await writeFile(join(dir, 'src/node_modules/pkg/x.css'), "@import 'tailwindcss';\n");
       await runInit([], {});
-      expect(logged()).not.toContain('node_modules');
+      expect(logged()).not.toContain('src/node_modules');
     });
   });
 
@@ -513,13 +513,14 @@ describe('runInit — hook & ci divergence', () => {
 });
 
 /**
- * The import list is read from the installed packages' `exports`, never from a list
- * in the CLI: table, auth and docs each ship a stylesheet holding only their
- * `@source`, and a consumer who imports blocks alone gets that package's markup
- * without CSS and without an error. Both branches (Tailwind wired or not) print
- * the same list.
+ * The import list is read from `node_modules/@urbicon-ui/*` and the packages' own
+ * `exports`, never from the consumer's declarations or a list in the CLI: `bun add
+ * @urbicon-ui/table` declares only table while its peers (blocks, i18n, …) land in
+ * `node_modules` undeclared, and a consumer who imports blocks alone gets the classes
+ * only table uses compiled to nothing, with nothing reporting it. Both branches
+ * (Tailwind wired or not) print the same list.
  */
-describe('runInit — stylesheet imports derived from the install', () => {
+describe('runInit — stylesheet imports read from node_modules', () => {
   const declare = async (
     deps: Record<string, string>,
     extra: Record<string, string> = { tailwindcss: '^4' }
@@ -572,8 +573,9 @@ describe('runInit — stylesheet imports derived from the install', () => {
     expect(at(line('blocks'))).toBeLessThan(at(line('auth')));
     expect(at(line('auth'))).toBeLessThan(at(line('table')));
     expect(out.match(/@import '@urbicon-ui\//g)).toHaveLength(3);
-    expect(out).toContain("/* @source for table's markup */");
-    expect(out).not.toContain('not readable');
+    expect(out).toContain("/* table's own stylesheet */");
+    expect(out).not.toContain('could not be read');
+    expect(out).not.toContain('is installed yet');
   });
 
   it('skips an installed package that exports no stylesheet', async () => {
@@ -583,17 +585,21 @@ describe('runInit — stylesheet imports derived from the install', () => {
     await runInit([], {});
     expect(logged()).toContain(line('blocks'));
     expect(logged()).not.toContain('@urbicon-ui/i18n/style');
-    expect(logged()).not.toContain('not readable');
+    expect(logged()).not.toContain('could not be read');
   });
 
-  it('reports a declared package that is not installed instead of guessing its line', async () => {
-    await declare({ '@urbicon-ui/blocks': '^8', '@urbicon-ui/table': '^8' });
+  // `bun add @urbicon-ui/table` writes only table into package.json; blocks arrives as
+  // a peer, installed but undeclared. The declarations are not the oracle.
+  it('lists an installed peer that package.json never declares', async () => {
+    await declare({ '@urbicon-ui/table': '^8' });
     await install('blocks', STYLE);
+    await install('table', STYLE);
     await runInit([], {});
-    expect(logged()).toContain(line('blocks'));
-    expect(logged()).not.toContain('@urbicon-ui/table/style');
-    expect(logged()).toContain('`@urbicon-ui/table` — declared in package.json but not readable');
-    expect(logged()).toContain('`bun install`');
+    const out = logged();
+    expect(out).toContain(line('blocks'));
+    expect(out).toContain(line('table'));
+    expect(out.indexOf(line('blocks'))).toBeLessThan(out.indexOf(line('table')));
+    expect(out).not.toContain('is installed yet');
   });
 
   it('prints the same list on the not-yet-wired branch', async () => {
@@ -604,6 +610,17 @@ describe('runInit — stylesheet imports derived from the install', () => {
     expect(logged()).toContain('Wire up Tailwind 4');
     expect(logged()).toContain(line('blocks'));
     expect(logged()).toContain(line('table'));
+  });
+
+  it('reads a hoisted install from a monorepo root that declares no urbicon package', async () => {
+    await declare({}); // the root package.json — workspaces only, no @urbicon-ui/* of its own
+    await install('blocks', STYLE);
+    await install('table', STYLE);
+    await runInit([], {});
+    expect(logged()).toContain(line('blocks'));
+    expect(logged()).toContain(line('table'));
+    expect(logged()).not.toContain('is installed yet');
+    expect(logged()).not.toContain('could not be read');
   });
 
   it('resolves a hoisted install from a nested workspace package', async () => {
@@ -617,13 +634,38 @@ describe('runInit — stylesheet imports derived from the install', () => {
     process.chdir(app);
     await runInit([], {});
     expect(logged()).toContain(line('table'));
-    expect(logged()).not.toContain('not readable');
+    expect(logged()).not.toContain('is installed yet');
   });
 
-  it('says where the list comes from when no urbicon package is installed at all', async () => {
-    await declare({});
+  it('names an installed package whose package.json does not parse, and does not skip it', async () => {
+    await declare({ '@urbicon-ui/blocks': '^8', '@urbicon-ui/table': '^8' });
+    await install('blocks', STYLE);
+    const tableDir = join(dir, 'node_modules', '@urbicon-ui', 'table');
+    await mkdir(tableDir, { recursive: true });
+    await writeFile(join(tableDir, 'package.json'), '{ not json');
+    await runInit([], {});
+    expect(logged()).toContain(line('blocks'));
+    expect(logged()).not.toContain('@urbicon-ui/table/style');
+    expect(logged()).toContain(
+      '`@urbicon-ui/table` — installed, but its package.json could not be read'
+    );
+  });
+
+  it('tells an absent package from a broken one — absent gets no line and no name', async () => {
+    await declare({ '@urbicon-ui/blocks': '^8', '@urbicon-ui/table': '^8' }); // table not installed
+    await install('blocks', STYLE);
+    await runInit([], {});
+    expect(logged()).toContain(line('blocks'));
+    expect(logged()).not.toContain('@urbicon-ui/table');
+    expect(logged()).not.toContain('could not be read');
+  });
+
+  it('says where the list comes from when nothing is installed — without naming a package', async () => {
+    await declare({ '@urbicon-ui/blocks': '^8' }); // declared, `bun install` not run yet
     await runInit([], {});
     expect(logged()).not.toContain("@import '@urbicon-ui/");
-    expect(logged()).toContain('No installed @urbicon-ui/* package ships a stylesheet yet');
+    expect(logged()).toContain('No @urbicon-ui/* package is installed yet');
+    expect(logged()).toContain('`bun install`');
+    expect(logged()).not.toContain('bun add');
   });
 });
