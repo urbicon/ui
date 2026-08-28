@@ -290,10 +290,35 @@ describe('virtualized keyboard navigation moves the DOM focus', () => {
     const standard = mountTable({ view: pagedView(10), selectionMode: 'multi' });
     const table = standard.target.querySelector('[data-testid="table-element"]');
     if (!table) throw new Error('table not rendered');
+    // A page turn remounts the rows; the focus that sat on one has to land on
+    // the new page's first row, or the next page key has nothing to act on.
+    const row0 = standard.target.querySelector<HTMLElement>('tr[data-row-index="0"]');
+    if (!row0) throw new Error('row 0 not rendered');
+    row0.focus();
     await press(table, 'PageDown');
     expect(standard.ctx.effectivePage).toBe(2);
+    expect((document.activeElement as HTMLElement)?.getAttribute('data-row-index')).toBe('0');
+    expect((document.activeElement as HTMLElement)?.getAttribute('aria-rowindex')).toBe('11');
     await press(table, 'PageUp');
     expect(standard.ctx.effectivePage).toBe(1);
+    expect((document.activeElement as HTMLElement)?.getAttribute('data-row-index')).toBe('0');
+    expect((document.activeElement as HTMLElement)?.getAttribute('aria-rowindex')).toBe('1');
+
+    // CONTROL: a turn from the pagination is the mouse's — the button keeps
+    // the focus, no row takes it.
+    const nav = standard.target.querySelector('nav');
+    if (!nav) throw new Error('pager not rendered');
+    const next = [...nav.querySelectorAll<HTMLButtonElement>('button:not(:disabled)')].find((b) =>
+      /next|weiter/i.test(b.getAttribute('aria-label') ?? '')
+    );
+    if (!next) throw new Error('next control not found in the pager');
+    next.focus();
+    next.click();
+    flushSync();
+    await tick();
+    flushSync();
+    expect(standard.ctx.effectivePage).toBe(2);
+    expect(document.activeElement).toBe(next);
   });
 
   it('a tab stop that sits under the pinned foot band counts as out of view', async () => {

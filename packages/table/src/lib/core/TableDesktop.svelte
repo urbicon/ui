@@ -432,6 +432,21 @@
     row.focus({ preventScroll: true });
   }
 
+  // A page turn remounts the rows, and a focus that sat on one of them falls
+  // to `<body>` — the reset effect above moves the index, never the DOM focus,
+  // so the next page key went nowhere. A KEYBOARD turn therefore lands the
+  // focus on the new page's first row, and only when a row held it before: a
+  // turn from the pagination buttons is the mouse's and steals no focus.
+  async function turnPage(page: number) {
+    const rowHadFocus =
+      !!document.activeElement?.closest('tr[data-row-index]') &&
+      !!tableElement?.contains(document.activeElement);
+    tableContext.goToPage(page);
+    if (!rowHadFocus) return;
+    await tick();
+    focusRow(0);
+  }
+
   function getItemIdAtIndex(index: number): string | number | undefined {
     const item = navigableItems[index];
     if (!item) return undefined;
@@ -550,7 +565,7 @@
             targetPage <= tableContext.totalPages
           ) {
             e.preventDefault();
-            tableContext.goToPage(targetPage);
+            void turnPage(targetPage);
           }
         } else if (virtualizedActive) {
           e.preventDefault();

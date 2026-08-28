@@ -171,11 +171,12 @@ afterEach(() => {
 
 describe('measureToCssVar — the written height', () => {
   it('writes a fractional border-box height unrounded', () => {
-    // 40.5px is the measured `<thead>` height at the default 16px root,
-    // `size="md"`: `border-collapse: collapse` gives the thead half of the
-    // collapsed 1px border. Rounding it up moved the group header 0.5px below
-    // the thead's bottom edge — a gap between two opaque layers, one device
-    // pixel wide at DPR 2, with the scrolling rows visible through it.
+    // A half pixel, as a `<thead>` measures whenever a collapsed 1px border
+    // sits on it (a consumer's `slotClasses.thead`, a `header` snippet) or a
+    // `rem` height lands off the pixel grid. Rounding it up moved the group
+    // header 0.5px below the thead's bottom edge — a gap between two opaque
+    // layers, one device pixel wide at DPR 2, with the scrolling rows visible
+    // through it.
     const { container, measured } = buildRig();
     stubBox(measured, { height: 40.5 });
 
