@@ -9,6 +9,7 @@ import {
 import type { UserRepository } from '../adapters/types.js';
 import type { AuthDeps } from '../deps.js';
 import { hashPassword } from '../password.js';
+import { failedLoginLock, lockoutFor } from '../security-defaults.js';
 import {
   createMockInvitationRepository,
   createMockUser,
@@ -113,15 +114,21 @@ describe('createLoginHandler', () => {
     const handler = createLoginHandler(deps);
     const event = mockRequestEvent({ email: 'test@test.com', password: 'wrong' });
 
-    const response = await handler.POST(event as unknown as RequestEvent);
-    expect(response.status).toBe(401);
-    // The hand-built deps here configured no brute-force policy at all, and the
-    // lockout accessor defaults it — the same value createAuthDeps would inject.
-    expect(deps.repos.user.recordFailedLogin).toHaveBeenCalledWith('user-1', {
-      maxAttempts: 5,
-      durationMinutes: 15,
-      decayMinutes: 60
-    });
+    vi.useFakeTimers({ now: new Date('2026-08-26T10:00:00Z') });
+    try {
+      const response = await handler.POST(event as unknown as RequestEvent);
+      expect(response.status).toBe(401);
+      // The hand-built deps here configured no brute-force policy at all, and
+      // the lockout accessor defaults it — the same value createAuthDeps would
+      // inject — already resolved into the lock the adapter stores: 5 attempts,
+      // and an instant 15 minutes out.
+      expect(deps.repos.user.recordFailedLogin).toHaveBeenCalledWith('user-1', {
+        maxAttempts: 5,
+        lockedUntil: new Date('2026-08-26T10:15:00Z')
+      });
+    } finally {
+      vi.useRealTimers();
+    }
   });
 
   it('should login successfully with correct credentials', async () => {
@@ -377,24 +384,32 @@ describe('createLoginHandler', () => {
     expect(recordFailedLogin).not.toHaveBeenCalled();
   });
 
-  it('records a failed attempt with the lockout config when the password is wrong', async () => {
+  it('records a failed attempt with the configured lock when the password is wrong', async () => {
     const pw = await hashPassword('correct');
     const recordFailedLogin = vi.fn();
     const deps = createMockDeps({
       findByEmail: vi.fn().mockResolvedValue(createMockUser({ passwordHash: pw })),
       recordFailedLogin
     });
-    deps.config.lockout = { maxAttempts: 5, durationMinutes: 15 };
+    // Off the defaults on both fields, so the values the adapter receives are
+    // provably the configured ones: threshold as-is, duration turned into the
+    // instant the account stays locked until.
+    deps.config.lockout = { maxAttempts: 3, durationMinutes: 20 };
     const handler = createLoginHandler(deps);
 
-    const res = await handler.POST(
-      mockRequestEvent({ email: 'test@test.com', password: 'wrong' }) as unknown as RequestEvent
-    );
-    expect(res.status).toBe(401);
-    expect(recordFailedLogin).toHaveBeenCalledWith('user-1', {
-      maxAttempts: 5,
-      durationMinutes: 15
-    });
+    vi.useFakeTimers({ now: new Date('2026-08-26T10:00:00Z') });
+    try {
+      const res = await handler.POST(
+        mockRequestEvent({ email: 'test@test.com', password: 'wrong' }) as unknown as RequestEvent
+      );
+      expect(res.status).toBe(401);
+      expect(recordFailedLogin).toHaveBeenCalledWith('user-1', {
+        maxAttempts: 3,
+        lockedUntil: new Date('2026-08-26T10:20:00Z')
+      });
+    } finally {
+      vi.useRealTimers();
+    }
   });
 
   // Cluster G.2 (Finding M6): a "user not found" reject must still pay the
@@ -592,7 +607,8 @@ describe('createLoginHandler — decay against the in-memory adapter', () => {
 
   it('four failures an hour ago plus one now leave the account open', async () => {
     const { user, deps, id } = await seed();
-    for (let i = 0; i < 4; i++) await user.recordFailedLogin(id, deps.config.lockout ?? undefined);
+    for (let i = 0; i < 4; i++)
+      await user.recordFailedLogin(id, failedLoginLock(lockoutFor(deps.config)!));
 
     vi.useFakeTimers();
     vi.setSystemTime(Date.now() + 61 * 60_000);
@@ -605,7 +621,8 @@ describe('createLoginHandler — decay against the in-memory adapter', () => {
 
   it('the same five failures in one sitting still lock the account', async () => {
     const { user, deps, id } = await seed();
-    for (let i = 0; i < 4; i++) await user.recordFailedLogin(id, deps.config.lockout ?? undefined);
+    for (let i = 0; i < 4; i++)
+      await user.recordFailedLogin(id, failedLoginLock(lockoutFor(deps.config)!));
 
     expect((await wrongLogin(deps)).status).toBe(401);
 
@@ -620,17 +637,61 @@ describe('createLoginHandler — decay against the in-memory adapter', () => {
   // the counter before every increment and switches the lockout off — the exact
   // opposite of what an operator writing `decayMinutes: 0` means. The window is
   // the lockout knob with the largest swing, so it is refused where it is set.
-  describe('decayMinutes validation', () => {
+  describe('lockout value validation', () => {
     it.each([
       { label: '0', decayMinutes: 0 },
       { label: '-5', decayMinutes: -5 },
       { label: 'NaN', decayMinutes: Number.NaN },
       { label: 'Infinity', decayMinutes: Number.POSITIVE_INFINITY }
-    ])('refuses $label at wiring time rather than at 3am', async ({ decayMinutes }) => {
-      const { deps } = await seed({ ...DEFAULT_POLICY, decayMinutes });
+    ])(
+      'refuses decayMinutes $label at wiring time rather than at 3am',
+      async ({ decayMinutes }) => {
+        const { deps } = await seed({ ...DEFAULT_POLICY, decayMinutes });
+        expect(() => createLoginHandler(deps)).toThrow(
+          /decayMinutes must be a positive finite number/
+        );
+      }
+    );
+
+    // Same class, other two fields — measured through the handler before the
+    // guard: `durationMinutes` 0 / -5 / NaN and `maxAttempts` NaN each gave 30
+    // wrong passwords 30 × 401 and never a 423 (a lock already expired, an
+    // `Invalid Date`, a threshold never reached).
+    it.each([
+      { label: 'durationMinutes 0', lockout: { durationMinutes: 0 } },
+      { label: 'durationMinutes -5', lockout: { durationMinutes: -5 } },
+      { label: 'durationMinutes NaN', lockout: { durationMinutes: Number.NaN } },
+      { label: 'durationMinutes Infinity', lockout: { durationMinutes: Number.POSITIVE_INFINITY } },
+      { label: 'maxAttempts NaN', lockout: { maxAttempts: Number.NaN } },
+      { label: 'maxAttempts 0', lockout: { maxAttempts: 0 } },
+      { label: 'maxAttempts 2.5', lockout: { maxAttempts: 2.5 } }
+    ])('refuses $label at wiring time', async ({ lockout }) => {
+      const { deps } = await seed(lockout);
       expect(() => createLoginHandler(deps)).toThrow(
-        /decayMinutes must be a positive finite number/
+        /lockout\.(durationMinutes must be a positive finite number|maxAttempts must be a positive integer)/
       );
+    });
+
+    // The guard must not be stricter than the policy: an off-default pair still
+    // wires, and locks exactly at its own threshold.
+    it('still constructs { maxAttempts: 3, durationMinutes: 20 } and locks on the fourth attempt', async () => {
+      const { user, deps, id } = await seed({ maxAttempts: 3, durationMinutes: 20 });
+      const handler = createLoginHandler(deps);
+      const statuses: number[] = [];
+      for (let i = 0; i < 4; i++) {
+        statuses.push(
+          (
+            await handler.POST(
+              mockRequestEvent({
+                email: 'test@test.com',
+                password: 'wrong'
+              }) as unknown as RequestEvent
+            )
+          ).status
+        );
+      }
+      expect(statuses).toEqual([401, 401, 401, 423]);
+      expect((await user.getFailedLoginAttempts(id)).count).toBe(3);
     });
 
     // The control on the other side of that guard: every window it does admit
@@ -666,7 +727,8 @@ describe('createLoginHandler — decay against the in-memory adapter', () => {
   // failure out of 12, and an account left unlocked.
   it('counts every failure of a 12-fold burst against a stale counter', async () => {
     const { user, deps, id } = await seed();
-    for (let i = 0; i < 4; i++) await user.recordFailedLogin(id, deps.config.lockout ?? undefined);
+    for (let i = 0; i < 4; i++)
+      await user.recordFailedLogin(id, failedLoginLock(lockoutFor(deps.config)!));
 
     vi.useFakeTimers();
     vi.setSystemTime(Date.now() + 61 * 60_000);
@@ -692,7 +754,8 @@ describe('createLoginHandler — decay against the in-memory adapter', () => {
   // the lock they set — the store-side guard decides that, not the handler.
   it('a reset held past six counted failures leaves their lock standing', async () => {
     const { user, deps, id } = await seed();
-    for (let i = 0; i < 4; i++) await user.recordFailedLogin(id, deps.config.lockout ?? undefined);
+    for (let i = 0; i < 4; i++)
+      await user.recordFailedLogin(id, failedLoginLock(lockoutFor(deps.config)!));
     // Only the clock is faked: the timeout below must stay a real one.
     vi.useFakeTimers({ toFake: ['Date'] });
     vi.setSystemTime(Date.now() + 61 * 60_000);

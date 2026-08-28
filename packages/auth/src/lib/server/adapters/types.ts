@@ -77,7 +77,7 @@
  * - **Pre-normalized emails**: emails arrive trimmed and lowercased; match and
  *   store them verbatim.
  */
-import type { AuthUser, LockoutConfig } from '../../types.js';
+import type { AuthUser } from '../../types.js';
 
 export interface FullAuthUser<R extends string = string> extends AuthUser<R> {
   passwordHash: string;
@@ -167,6 +167,19 @@ export interface CreateInvitationData {
   /** SHA-256 of the raw token; the raw value is never stored. */
   tokenHash: string;
   expiresAt: Date;
+}
+
+/**
+ * The lock `recordFailedLogin` sets once the new count reaches `maxAttempts`.
+ * Both values arrive resolved from the login handler — the threshold with its
+ * default applied, `lockedUntil` already computed as `now + durationMinutes` —
+ * so an adapter compares against one and stores the other. It holds no
+ * threshold and no duration of its own: the conformance suite hands in values
+ * the shipped defaults cannot reproduce and expects them back verbatim.
+ */
+export interface FailedLoginLock {
+  maxAttempts: number;
+  lockedUntil: Date;
 }
 
 /**
@@ -279,11 +292,12 @@ export interface UserRepository<R extends string = string> {
   /**
    * Atomically increment the failed-login counter (single `increment`, never a
    * read-modify-write — under credential stuffing a lost update would let the
-   * lockout under-count). When `lockoutConfig` is supplied and the new count
-   * reaches `maxAttempts`, also set `lockedUntil` to `now + durationMinutes`.
-   * Without `lockoutConfig`, only the counter is bumped (back-compat / stubs).
+   * lockout under-count) and stamp the attempt's time. When `lock` is supplied
+   * and the new count reaches `lock.maxAttempts`, also store `lock.lockedUntil`
+   * — the value as handed in, guarded on the stored count rather than on the
+   * count just read. Without `lock`, only the counter is bumped (lockout off).
    */
-  recordFailedLogin(id: string, lockoutConfig?: LockoutConfig): Promise<void>;
+  recordFailedLogin(id: string, lock?: FailedLoginLock): Promise<void>;
   /**
    * Clear the counter, the lock and `lastFailedAt` unconditionally — the
    * password was right, so whatever was counted is settled.
@@ -745,8 +759,12 @@ export interface RefreshTokenRepository {
   /**
    * List a user's currently-active refresh tokens — non-revoked and unexpired,
    * in any order. Rotation keeps exactly one live token per family, so each row
-   * corresponds to one active session. Powers the session-listing feature
-   * (`createSessionsHandlers().list`), which sorts by `createdAt` itself.
+   * corresponds to one active session. Two readers: the session-listing feature
+   * (`createSessionsHandlers().list`, which sorts by `createdAt` itself), and
+   * the rotation's race tolerance — a spent token presented inside the grace
+   * window passes as the loser of a concurrent rotation only while this reports
+   * a live token of its family. A revoked or expired row reported live would
+   * keep a "sign out everywhere" open for ten seconds.
    */
   listActiveByUser(userId: string): Promise<RefreshTokenRecord[]>;
   /**

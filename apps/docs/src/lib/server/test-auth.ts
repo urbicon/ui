@@ -148,11 +148,13 @@ function makeUserRepo(): UserRepository<AppRole> {
         lastFailedAt: user?.lastFailedLogin ?? null
       };
     },
-    async recordFailedLogin(id) {
+    async recordFailedLogin(id, lock) {
       const user = store.users.get(id);
       if (user) {
         user.failedLoginAttempts += 1;
         user.lastFailedLogin = new Date();
+        if (lock && user.failedLoginAttempts >= lock.maxAttempts)
+          user.lockedUntil = lock.lockedUntil;
       }
     },
     async resetFailedLogins(id) {

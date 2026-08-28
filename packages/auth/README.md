@@ -232,7 +232,10 @@ Add a `refresh` route stub (`createRefreshHandler`) once rotation is on. With th
 `RefreshToken` model in your Prisma schema (see `prisma/auth-schema.prisma`), the handle
 hook rotates the refresh cookie whenever the access token expires and revokes the old one;
 replaying a revoked token triggers **family-wide** revocation — a stolen-token scenario
-logs every session in that family out.
+logs every session in that family out. Two requests rotating the same token at once (a
+browser's parallel tabs) are tolerated for ten seconds — but only while the family is still
+live: after a family-wide revocation or a "sign out everywhere", the spent token is refused
+inside that window as well.
 
 #### Production-readiness checklist
 

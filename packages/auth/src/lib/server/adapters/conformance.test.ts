@@ -18,7 +18,7 @@ import {
   createPrismaRepos,
   type PrismaLike
 } from './prisma.js';
-import type { FullAuthUser, UserRepository } from './types.js';
+import type { FailedLoginLock, FullAuthUser, UserRepository } from './types.js';
 
 // `Required`, not `as const`: a capability added to the interface has to be
 // declared here or this file stops compiling — the one thing an omitted key
@@ -1020,6 +1020,72 @@ describe('resetFailedLoginsIfStale on an undated row (prisma adapter)', () => {
   });
 });
 
+// === 4. Negative control — the suite must REJECT an adapter with a policy of its own
+//
+// `recordFailedLogin` is handed the threshold and the lock instant as values.
+// An adapter that keeps its own numbers passes any check that only asks "does
+// it lock eventually", so the lockout check hands in values the shipped
+// defaults cannot reproduce — and this pins that it notices both kinds of drift.
+
+describe('conformance suite — negative control (lockout policy)', () => {
+  const lockoutCheck = conformanceChecks.find(
+    (c) => c.name === 'user.recordFailedLogin counts atomically and applies the lock it is handed'
+  );
+
+  it.each([
+    {
+      label: 'its own threshold (5 instead of the handed value)',
+      own: (lock: FailedLoginLock): FailedLoginLock => ({ ...lock, maxAttempts: 5 })
+    },
+    {
+      label: 'its own duration (now + 15 min instead of the handed instant)',
+      own: (lock: FailedLoginLock): FailedLoginLock => ({
+        ...lock,
+        lockedUntil: new Date(Date.now() + 15 * 60_000)
+      })
+    }
+  ])('rejects an adapter applying $label', async ({ own }) => {
+    const harness: ConformanceHarness = {
+      role: 'USER',
+      setup: () => {
+        const repos = createInMemoryRepos();
+        const user: UserRepository = {
+          ...repos.user,
+          recordFailedLogin: (id, lock) => repos.user.recordFailedLogin(id, lock && own(lock))
+        };
+        return { ...repos, user };
+      }
+    };
+    expect(lockoutCheck, 'lockout check must exist').toBeDefined();
+    await expect(lockoutCheck!.run(harness)).rejects.toThrow();
+  });
+
+  // The tolerance's other side: a store that keeps `lockedUntil` only to the
+  // second (a `DATETIME` without fractional seconds) stores the handed value
+  // as faithfully as it can, and passes.
+  it('accepts an adapter that stores lockedUntil rounded to the second', async () => {
+    const harness: ConformanceHarness = {
+      role: 'USER',
+      setup: () => {
+        const repos = createInMemoryRepos();
+        const user: UserRepository = {
+          ...repos.user,
+          recordFailedLogin: (id, lock) =>
+            repos.user.recordFailedLogin(
+              id,
+              lock && {
+                ...lock,
+                lockedUntil: new Date(Math.round(lock.lockedUntil.getTime() / 1000) * 1000)
+              }
+            )
+        };
+        return { ...repos, user };
+      }
+    };
+    await expect(lockoutCheck!.run(harness)).resolves.toBeUndefined();
+  });
+});
+
 describe('recordFailedLogin error handling (prisma adapter)', () => {
   it('rethrows non-P2025 errors instead of swallowing them as the no-op', async () => {
     // Mutation-test finding: a catch-all in the P2025 mapping survived the
@@ -1032,7 +1098,7 @@ describe('recordFailedLogin error handling (prisma adapter)', () => {
     };
     const repos = createPrismaRepos(fake);
     await expect(
-      repos.user.recordFailedLogin('any-user', { maxAttempts: 5, durationMinutes: 15 })
+      repos.user.recordFailedLogin('any-user', { maxAttempts: 5, lockedUntil: new Date() })
     ).rejects.toThrow('cannot reach database');
   });
 });

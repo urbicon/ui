@@ -235,15 +235,16 @@ describe('in-memory user repository', () => {
       passwordHash: 'h',
       role: 'admin'
     });
-    await repo.recordFailedLogin(id, { maxAttempts: 2, durationMinutes: 5 });
+    const lockedUntil = new Date(Date.now() + 5 * 60_000);
+    await repo.recordFailedLogin(id, { maxAttempts: 2, lockedUntil });
     let state = await repo.getFailedLoginAttempts(id);
     expect(state.count).toBe(1);
     expect(state.lockedUntil).toBeNull();
 
-    await repo.recordFailedLogin(id, { maxAttempts: 2, durationMinutes: 5 });
+    await repo.recordFailedLogin(id, { maxAttempts: 2, lockedUntil });
     state = await repo.getFailedLoginAttempts(id);
     expect(state.count).toBe(2);
-    expect(state.lockedUntil).toBeInstanceOf(Date);
+    expect(state.lockedUntil?.getTime()).toBe(lockedUntil.getTime());
 
     await repo.resetFailedLogins(id);
     state = await repo.getFailedLoginAttempts(id);

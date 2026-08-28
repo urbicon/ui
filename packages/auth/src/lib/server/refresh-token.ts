@@ -20,8 +20,40 @@ const DEFAULT_COOKIE_PATH = '/';
 // loser of a concurrent rotation" instead of being flagged as a reuse. Real
 // browsers fire parallel requests the moment the access cookie expires; two
 // of them racing through the handle hook would otherwise revoke the whole
-// family and log the user out.
+// family and log the user out. The window only ever applies to a family that
+// still has a live head — see `familyAlive`.
 const ROTATION_GRACE_MS = 10_000;
+
+/**
+ * Whether `family` still has a live token. A rotation race can only be lost
+ * against a living family: the winner's successor is live. A family that was
+ * killed after the rotation (`revokeFamily`, `revokeAllForUser`) keeps the
+ * predecessor's rotation stamp and `replacedById` untouched — both only touch
+ * rows with `revokedAt: null` — so the stamp alone reads exactly like a race,
+ * and a replay of the spent token would be waved through as one.
+ *
+ * Read through `listActiveByUser`, the contract's one family-scoped live read.
+ * Only a contested rotation asks — a replay inside the grace window, or a lost
+ * CAS — which does not justify a dedicated lookup every adapter author would
+ * have to implement.
+ *
+ * Wherever it is called it is the **last read before the mint**: a kill can
+ * land between any two awaits, and the read that decides has to be the one
+ * that sees it. With `findUser` after it, a bump + `revokeAllForUser` landing
+ * in between hands `findUser` the new `tokenVersion`, and the session minted
+ * from that survives the generation check for the whole access-token TTL
+ * (measured over the handle: follow-up request authenticated). With `findUser`
+ * before it, the worst a late kill leaves is a session on the old generation,
+ * which the next request's generation check refuses.
+ */
+async function familyAlive(
+  repo: RefreshTokenRepository,
+  userId: string,
+  family: string
+): Promise<boolean> {
+  const live = await repo.listActiveByUser(userId);
+  return live.some((record) => record.family === family);
+}
 
 /**
  * Resolve the effective JWT config when refresh-token rotation is opted in:
@@ -124,7 +156,9 @@ export type RotateOutcome<R extends string = string> =
  *
  *   - token not found                           → `not_found`
  *   - token already revoked, outside grace      → `reused` (full family is revoked)
- *   - token already revoked, inside grace + has successor → `race_ok` (concurrent rotation)
+ *   - token already revoked, inside grace + has successor + family still live
+ *                                               → `race_ok` (concurrent rotation)
+ *   - token already revoked, family dead        → `reused` (a killed family has no race to lose)
  *   - token past `expiresAt`                    → `expired`
  *
  * On success the old token is marked revoked with `replacedById` pointing at
@@ -156,9 +190,14 @@ export async function rotateRefreshToken<R extends string = string>(
     if (existing.replacedById && age <= ROTATION_GRACE_MS) {
       const user = await findUser(existing.userId);
       if (!user) return { kind: 'revoked' };
-      return { kind: 'race_ok', user };
+      // Last read before the mint — after `findUser`, see `familyAlive`.
+      if (await familyAlive(repo, existing.userId, existing.family)) {
+        return { kind: 'race_ok', user };
+      }
     }
-    // Outside grace: genuine reuse → compromise the entire family.
+    // Outside grace, or no live head left: genuine reuse → compromise the
+    // entire family. After a kill this revokes nothing further, but it keeps
+    // the two rejections on one path.
     await repo.revokeFamily(existing.family);
     return { kind: 'reused', userId: existing.userId };
   }
@@ -219,6 +258,11 @@ export async function rotateRefreshToken<R extends string = string>(
     // report a race — the caller reissues just the access token and leaves
     // the refresh cookie alone (the winner's value stands).
     await repo.revoke(successor.id).catch(() => {});
+    // Unless nothing revoked it *for* a successor: a family kill that landed
+    // between our read and the CAS leaves no live head, and the token that was
+    // live a moment ago is now simply revoked — not raced. Last read before
+    // the mint (`user` was read above).
+    if (!(await familyAlive(repo, existing.userId, existing.family))) return { kind: 'revoked' };
     return { kind: 'race_ok', user };
   }
 

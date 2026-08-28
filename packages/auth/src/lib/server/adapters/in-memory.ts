@@ -1,5 +1,5 @@
 import { randomUUID } from 'node:crypto';
-import type { AuthUser, LockoutConfig } from '../../types.js';
+import type { AuthUser } from '../../types.js';
 import { pushKeysEqual } from '../notifications/push-keys.js';
 import type {
   BackupCodeRepository,
@@ -8,6 +8,7 @@ import type {
   CreatePasskeyData,
   CreateRefreshTokenData,
   CreateUserData,
+  FailedLoginLock,
   FederatedAccount,
   FederatedAccountRepository,
   FullAuthUser,
@@ -353,14 +354,14 @@ export function createInMemoryUserRepository<R extends string = string>(
       };
     },
 
-    async recordFailedLogin(id, lockoutConfig?: LockoutConfig) {
+    async recordFailedLogin(id, lock?: FailedLoginLock) {
       const u = byId.get(id);
       if (!u) return;
       u.failedLoginAttempts += 1;
       u.lastFailedLogin = new Date();
-      if (lockoutConfig && u.failedLoginAttempts >= (lockoutConfig.maxAttempts ?? 5)) {
-        const durationMs = (lockoutConfig.durationMinutes ?? 15) * 60_000;
-        u.lockedUntil = new Date(Date.now() + durationMs);
+      // Detached copy of the handed-in instant — same doctrine as the reads.
+      if (lock && u.failedLoginAttempts >= lock.maxAttempts) {
+        u.lockedUntil = new Date(lock.lockedUntil);
       }
     },
 
