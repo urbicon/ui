@@ -290,9 +290,9 @@ describe('managed source — the fetch follows the effective page', () => {
       selectionMode: 'multi'
     });
 
-    // The ARIA surface of the virtualized branch is the grid wrapper that
-    // contains all three tables — not the header table.
-    const grid = t.target.querySelector('[data-testid="virtual-grid"]');
+    const grid = t.target.querySelector(
+      '[data-testid="virtual-scroll-container"] [data-testid="table-element"]'
+    );
     expect(grid?.getAttribute('aria-rowcount')).toBe(String(TOTAL));
   });
 

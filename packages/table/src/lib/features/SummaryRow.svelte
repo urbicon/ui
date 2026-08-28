@@ -11,6 +11,9 @@
     groupName = null as string | null,
     groupSummaryData = null as Record<string, unknown> | null,
     size = 'md' as 'sm' | 'md' | 'lg',
+    // Rendered inside a pinned `<tfoot>` (the virtualized layout): the top rule
+    // becomes a shadow that travels with the pin — see `summaryRowVariants`.
+    pinned = false,
     class: className = ''
   } = $props();
 
@@ -52,7 +55,7 @@
     })
   );
 
-  const summaryStyles = $derived(summaryRowVariants({ size }));
+  const summaryStyles = $derived(summaryRowVariants({ size, pinned }));
 </script>
 
 {#if hasSummaryCell}

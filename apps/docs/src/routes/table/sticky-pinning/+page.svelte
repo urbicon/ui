@@ -276,7 +276,8 @@
         and <code class="text-text-primary">stickyOffset</code> (the measured top absorbs app-shell
         offsets), and it has no effect on a
         <code class="text-text-primary">virtualized</code> table, which keeps its own
-        <code class="text-text-primary">virtualHeight</code> scroll box.
+        <code class="text-text-primary">virtualHeight</code> scroll box with the column header pinned
+        to its top and the summary row to its bottom.
       </p>
     </div>
   </Section>

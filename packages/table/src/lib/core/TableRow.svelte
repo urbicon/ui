@@ -35,11 +35,6 @@
     // list-wide index — page 2 of 20-per-page starts at 21, not 1. Keyboard
     // navigation (data-row-index) stays page-local on purpose.
     ariaRowStart = 1,
-    // The virtualized branch renders this row inside a presentational <table>
-    // under one role="grid" wrapper; presentation strips the implicit row and
-    // cell roles, so the row re-declares them explicitly there. The standard
-    // branch passes nothing and renders exactly as before.
-    explicitRoles = false,
     expandedRowContent = undefined as Snippet<[item: TableItem]> | undefined,
     cell = undefined as Snippet<[item: TableItem, value: unknown, column: Column]> | undefined,
     onRowClick = undefined as ((item: TableItem) => void) | undefined,
@@ -133,17 +128,11 @@
 <!-- Main row.
 
      A row carries no positioning of its own, virtualized or not: the window of
-     rendered rows is offset once, on the table in `TableDesktop`. Positioning
-     each `<tr>` absolutely blockified it — an absolutely positioned element is
-     never a `table-row` — so its cells left the table's own column tracks and
-     sized themselves from their content instead (measured on a four-column
-     body: 61/101/84/33 where the tracks called for equal quarters).
-
-     This is about the cells within ONE table. It does not make the virtualized
-     header line up with the virtualized body: those are two separate `<table>`
-     elements that share no tracks at all, so an explicit `column.width` remains
-     the only thing that reaches both — see the note in
-     `apps/docs/src/routes/table/virtual-scrolling/+page.svelte`. -->
+     rendered rows is offset by spacer rows in `TableDesktop`. Positioning a
+     `<tr>` blockifies it — an absolutely positioned element is never a
+     `table-row` — so its cells would leave the table's column tracks and size
+     themselves from their content instead (measured on a four-column body:
+     61/101/84/33 where the tracks called for equal quarters). -->
 <tr
   id={String(itemId)}
   onclick={handleRowClick}
@@ -165,7 +154,6 @@
       .filter(Boolean)
       .join(' ')
   )}
-  role={explicitRoles ? 'row' : undefined}
   tabindex={interactive ? (isFocused ? 0 : -1) : undefined}
   aria-rowindex={ariaRowStart + rowIndex}
   aria-expanded={expandable ? isExpanded : undefined}
@@ -189,7 +177,7 @@
     {:else if structural.key === 'selection'}
       <td
         class="{rowStyles.controlCell()} {structural.widthClass}"
-        role={explicitRoles ? 'gridcell' : undefined}
+        role={interactive ? 'gridcell' : undefined}
         aria-colindex={structural.colIndex}
         onclick={handleCheckboxClick}
       >
@@ -206,7 +194,7 @@
     {:else if structural.key === 'expand'}
       <td
         class="{rowStyles.controlCell()} {structural.widthClass}"
-        role={explicitRoles ? 'gridcell' : undefined}
+        role={interactive ? 'gridcell' : undefined}
         aria-colindex={structural.colIndex}
       >
         <!-- The `px-2` stays, and is not the drift #256 removed: this box centres
@@ -240,13 +228,7 @@
       {cell}
       {size}
       colIndex={colOffset + colIdx}
-      cellRole={explicitRoles
-        ? interactive
-          ? 'gridcell'
-          : 'cell'
-        : interactive
-          ? 'gridcell'
-          : undefined}
+      cellRole={interactive ? 'gridcell' : undefined}
       cellClass={resolveSlotClass(
         rowStyles.cell,
         styleConfig.slotClasses.cell,
@@ -258,12 +240,8 @@
 </tr>
 
 {#if isExpanded && expandedRowContent}
-  <tr
-    data-testid={`expanded-row-${itemId}`}
-    class="border-b-0"
-    role={explicitRoles ? 'row' : undefined}
-  >
-    <td colspan={totalColumnsCount} class="p-0" role={explicitRoles ? 'gridcell' : undefined}>
+  <tr data-testid={`expanded-row-${itemId}`} class="border-b-0">
+    <td colspan={totalColumnsCount} class="p-0">
       <div class="bg-surface-elevated/50 px-6 py-4" transition:slide={{ duration: 150 }}>
         {@render expandedRowContent(item)}
       </div>

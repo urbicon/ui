@@ -13,6 +13,14 @@ const BASE_URL = `http://localhost:${PORT}`;
 // asked at all.
 const RUNNING_AS_ROOT = typeof process.getuid === 'function' && process.getuid() === 0;
 
+/**
+ * The launch arguments every browser in this suite needs. Exported for the one
+ * spec that has to launch with its own options (`table-virtualized.spec.ts`
+ * drops `--hide-scrollbars`) and must not lose the sandbox flag doing so —
+ * `test.use({ launchOptions })` replaces the block below, it does not merge.
+ */
+export const LAUNCH_ARGS: string[] = RUNNING_AS_ROOT ? ['--no-sandbox'] : [];
+
 export default defineConfig({
   testDir: './e2e',
   outputDir: './e2e/test-results',
@@ -82,7 +90,7 @@ export default defineConfig({
     // It does not move a pixel either way — sandboxing is a process-isolation
     // boundary, not a rendering path — so a shot taken with it compares against
     // one taken without.
-    launchOptions: RUNNING_AS_ROOT ? { args: ['--no-sandbox'] } : undefined
+    launchOptions: LAUNCH_ARGS.length ? { args: LAUNCH_ARGS } : undefined
   },
   projects: [
     {

@@ -46,10 +46,10 @@ const COLUMNS = [
  * one number per element, a reading of the wrong box is indistinguishable from a
  * reading of the right one.
  *
- * Fractional on purpose: a `<thead>` under `border-collapse: collapse` carries
- * half of the collapsed 1px border, so its border box lands on a half pixel
- * (measured 40.5px in chromium at the default 16px root, `size="md"`). The
- * published value has to keep that fraction.
+ * Fractional on purpose: a `<thead>` lands off the pixel grid whenever a
+ * collapsed 1px border sits on it (a consumer's `slotClasses.thead`, a `header`
+ * snippet) and at most root font sizes anyway, since its height is a `rem`
+ * value. The published value has to keep that fraction.
  */
 const BOXES: Record<string, { border: number; content: number }> = {
   '[data-table-toolbar]': { border: 56.4, content: 54.4 },

@@ -419,11 +419,26 @@ export const summaryRowVariants = tv({
         controlCell: [TABLE_DIMENSIONS.padding.controlCellX.lg, TABLE_DIMENSIONS.padding.cellY.lg],
         value: 'text-lg'
       }
+    },
+
+    // The row pinned as the virtualized layout's `<tfoot>`. Its top rule moves
+    // from the collapsed `border-t-2` to a shadow on the row, because a
+    // collapsed border is painted by the table at its static position and
+    // stays behind when the foot pins (`tableHeaderVariants` → `sticky` holds
+    // the measurement); the border is folded away so the two do not stack at
+    // the far end. On the row rather than the `<tfoot>`: WebKit paints no
+    // shadow on a row-group.
+    pinned: {
+      true: {
+        row: ['border-t-0', 'shadow-[0_-2px_0_0_var(--color-summary)]']
+      },
+      false: {}
     }
   },
 
   defaultVariants: {
-    size: 'md'
+    size: 'md',
+    pinned: false
   }
 });
 

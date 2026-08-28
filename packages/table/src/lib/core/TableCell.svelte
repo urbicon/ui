@@ -22,11 +22,10 @@
     colIndex?: number;
     /**
      * The ARIA role this cell declares. The row decides: `gridcell` only when
-     * the table is interactive (a grid), `cell` where a presentational table
-     * needs the role restated explicitly, nothing otherwise — a cell that
-     * claims grid membership without a grid ancestor is what this replaces.
+     * the table is interactive (a grid), nothing otherwise — a cell that claims
+     * grid membership without a grid ancestor is what this replaces.
      */
-    cellRole?: 'gridcell' | 'cell';
+    cellRole?: 'gridcell';
     cell?: Snippet<[item: TableItem, value: unknown, column: Column]>;
   };
 

@@ -14,14 +14,10 @@
     id: index + 1
   }));
 
-  // Every column carries a `width`. The virtualized layout renders header and
-  // body as separate `<table>` elements, and two tables share no column tracks,
-  // so only an explicit width reaches both: without one the header distributes
-  // its columns evenly while the body sizes them to content, and the two grids
-  // stop lining up (measured 2026-08-13, header 160px per column against body
-  // 29/112/115/79). The row-positioning fix of the same day is about the cells
-  // *within* the body table and does not replace this — see the comment on the
-  // row in `packages/table/src/lib/core/TableRow.svelte`.
+  // Widths are a choice here, not a requirement: header and rows are one
+  // `<table>` with one set of column tracks, so a column without a width lines
+  // up either way. The row number keeps a narrow track so the names get the
+  // room.
   const virtualColumns: Column<Employee>[] = [
     { accessor: 'id', title: '#', dataType: 'number', width: '4rem' },
     { accessor: 'name', title: 'Name', sortable: true, searchable: true, width: '13rem' },
@@ -55,9 +51,10 @@
   <div class="space-y-8">
     <p class="text-text-secondary text-sm">
       <code class="text-text-primary">virtualized</code> renders only the rows in view, plus five above
-      and five below. A 400&nbsp;px viewport holds about seven rows at the default row height of 56&nbsp;px,
-      so the table keeps under twenty in the DOM whether the set has a thousand rows or a hundred thousand.
-      Reach for it once the browser is doing more drawing than the reader can see.
+      and five below. A 400&nbsp;px box holds about nine rows under its column header at the default row
+      height of 40&nbsp;px, so the table keeps around twenty in the DOM whether the set has a thousand
+      rows or a hundred thousand. Reach for it once the browser is doing more drawing than the reader
+      can see.
     </p>
 
     <CodeExample
@@ -81,14 +78,15 @@
     </CodeExample>
 
     <p class="text-text-secondary text-sm">
-      Every row is in one scrollable container, so there are no pages to turn: with client-side data
-      the pager is gone while <code class="text-text-primary">virtualized</code> is set. A server
-      source keeps its pager — the container scrolls the loaded page, and paging stays the way to
-      the rest of the result. Sorting, filtering, search, selection and keyboard navigation work as
-      they do anywhere else, because what gets virtualized is your filtered and sorted data.
-      <code class="text-text-primary">virtualHeight</code> bounds that container (default
-      <code class="text-text-primary">'600px'</code>) and takes any CSS length, so
-      <code class="text-text-primary">'60vh'</code> and
+      Every row is in one scrollable box, so there are no pages to turn: with client-side data the
+      pager is gone while <code class="text-text-primary">virtualized</code> is set. A server source
+      keeps its pager — the box scrolls the loaded page, and paging stays the way to the rest of the
+      result. Sorting, filtering, search, selection and keyboard navigation work as they do anywhere
+      else, because what gets virtualized is your filtered and sorted data. The column header stays
+      pinned to the top of the box and a summary row to its bottom while the rows scroll between
+      them. <code class="text-text-primary">virtualHeight</code> is the height of that whole box,
+      header and summary included (default <code class="text-text-primary">'600px'</code>), and
+      takes any CSS length, so <code class="text-text-primary">'60vh'</code> and
       <code class="text-text-primary">'calc(100vh - 200px)'</code> work as well as a pixel value.
     </p>
 
@@ -103,10 +101,10 @@
           >group on the server</a
         >, or drop <code>virtualized</code>.
       </Note>
-      <Note title="Row heights are fixed">
-        The virtualizer computes positions from one height per
-        <code>size</code> (48, 56 and 64&nbsp;px for sm, md and lg), so a row that grows (wrapping text,
-        expanded content) lands in the wrong place. Those rows need the unvirtualized table.
+      <Note title="Row heights are uniform">
+        The virtualizer measures one rendered row and strides in that height for all of them, so a
+        row that grows (wrapping text, expanded content) lands in the wrong place. Those rows need
+        the unvirtualized table.
       </Note>
     </NoteList>
   </div>

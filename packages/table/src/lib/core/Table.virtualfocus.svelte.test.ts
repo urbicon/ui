@@ -96,9 +96,12 @@ async function press(surface: Element, key: string) {
   flushSync();
 }
 
+/** The virtualized branch's one `<table>` — the grid, and the keydown host. */
 function gridOf(target: HTMLElement): HTMLElement {
-  const grid = target.querySelector<HTMLElement>('[data-testid="virtual-grid"]');
-  if (!grid) throw new Error('virtual grid wrapper not rendered');
+  const grid = target.querySelector<HTMLElement>(
+    '[data-testid="virtual-scroll-container"] [data-testid="table-element"]'
+  );
+  if (!grid) throw new Error('virtualized table not rendered');
   return grid;
 }
 
@@ -214,6 +217,10 @@ describe('virtualized keyboard navigation moves the DOM focus', () => {
     expect(tabStops.length).toBe(1);
     const index = Number(tabStops[0]?.getAttribute('data-row-index'));
     expect(index).toBeGreaterThanOrEqual(150);
+    // And the focus follows the tab stop: a focus the unmount dropped on
+    // <body> is picked up by the row that now carries the stop, so the next
+    // arrow key drives the grid and not the page.
+    expect(document.activeElement).toBe(tabStops[0]);
   });
 
   it('scrolling the focused row out of the window hands the tab stop to a rendered row', async () => {
@@ -242,35 +249,144 @@ describe('virtualized keyboard navigation moves the DOM focus', () => {
     expect(index).toBeGreaterThanOrEqual(VIEWPORT / ROW_H);
   });
 
-  it('PageDown no longer steps a page nobody renders — and still pages unvirtualized', async () => {
+  it('PageDown/PageUp jump one band of visible rows and focus the row — and still page unvirtualized', async () => {
     const virtual = mountTable({
       view: pagedView(10),
       virtualized: true,
       virtualHeight: `${VIEWPORT}px`,
       selectionMode: 'multi'
     });
-    await press(gridOf(virtual.target), 'PageDown');
+    const grid = gridOf(virtual.target);
+    // No pinned heights in jsdom (rects are 0), so the band is the whole box.
+    const band = VIEWPORT / ROW_H;
+
+    await press(grid, 'PageDown');
     expect(virtual.ctx.effectivePage).toBe(1);
+    expect(virtual.ctx.focusedRowIndex).toBe(band);
+    expect((document.activeElement as HTMLElement)?.getAttribute('data-row-index')).toBe(
+      String(band)
+    );
+
+    await press(grid, 'PageDown');
+    expect(virtual.ctx.focusedRowIndex).toBe(2 * band);
+    expect((document.activeElement as HTMLElement)?.getAttribute('data-row-index')).toBe(
+      String(2 * band)
+    );
+
+    await press(grid, 'PageUp');
+    expect(virtual.ctx.focusedRowIndex).toBe(band);
+    expect((document.activeElement as HTMLElement)?.getAttribute('data-row-index')).toBe(
+      String(band)
+    );
+
+    // Clamped at both ends.
+    await press(grid, 'End');
+    await press(grid, 'PageDown');
+    expect(virtual.ctx.focusedRowIndex).toBe(COUNT - 1);
+    await press(grid, 'Home');
+    await press(grid, 'PageUp');
+    expect(virtual.ctx.focusedRowIndex).toBe(0);
 
     const standard = mountTable({ view: pagedView(10), selectionMode: 'multi' });
     const table = standard.target.querySelector('[data-testid="table-element"]');
     if (!table) throw new Error('table not rendered');
+    // A page turn remounts the rows; the focus that sat on one has to land on
+    // the new page's first row, or the next page key has nothing to act on.
+    const row0 = standard.target.querySelector<HTMLElement>('tr[data-row-index="0"]');
+    if (!row0) throw new Error('row 0 not rendered');
+    row0.focus();
     await press(table, 'PageDown');
     expect(standard.ctx.effectivePage).toBe(2);
+    expect((document.activeElement as HTMLElement)?.getAttribute('data-row-index')).toBe('0');
+    expect((document.activeElement as HTMLElement)?.getAttribute('aria-rowindex')).toBe('11');
+    await press(table, 'PageUp');
+    expect(standard.ctx.effectivePage).toBe(1);
+    expect((document.activeElement as HTMLElement)?.getAttribute('data-row-index')).toBe('0');
+    expect((document.activeElement as HTMLElement)?.getAttribute('aria-rowindex')).toBe('1');
+
+    // CONTROL: a turn from the pagination is the mouse's — the button keeps
+    // the focus, no row takes it.
+    const nav = standard.target.querySelector('nav');
+    if (!nav) throw new Error('pager not rendered');
+    const next = [...nav.querySelectorAll<HTMLButtonElement>('button:not(:disabled)')].find((b) =>
+      /next|weiter/i.test(b.getAttribute('aria-label') ?? '')
+    );
+    if (!next) throw new Error('next control not found in the pager');
+    next.focus();
+    next.click();
+    flushSync();
+    await tick();
+    flushSync();
+    expect(standard.ctx.effectivePage).toBe(2);
+    expect(document.activeElement).toBe(next);
+  });
+
+  it('a tab stop that sits under the pinned foot band counts as out of view', async () => {
+    // The visible band is the box minus what the pinned head and foot cover.
+    // jsdom reports every rect as 0, so the head is given a height here: with
+    // a 40px head over a 400px box, rows 0..8 are fully visible at rest and
+    // row 9 is the first one that is not. A guard that reads the box height
+    // alone counts row 9 as visible and leaves the tab stop on a row nobody
+    // can see.
+    const realRect = Element.prototype.getBoundingClientRect;
+    Element.prototype.getBoundingClientRect = function (this: Element) {
+      const rect = realRect.call(this);
+      if (this.tagName !== 'THEAD') return rect;
+      return {
+        x: rect.x,
+        y: rect.y,
+        left: rect.left,
+        right: rect.right,
+        width: rect.width,
+        top: 0,
+        bottom: ROW_H,
+        height: ROW_H
+      } as DOMRect;
+    };
+    try {
+      const t = mountTable({
+        virtualized: true,
+        virtualHeight: `${VIEWPORT}px`,
+        selectionMode: 'multi'
+      });
+      const scroller = scrollerOf(t.target);
+      const lastVisible = VIEWPORT / ROW_H - ROW_H / ROW_H - 1;
+
+      // POSITIVE CONTROL: the last fully visible row keeps the stop.
+      t.ctx.setFocusedRow(lastVisible);
+      scroller.dispatchEvent(new Event('scroll'));
+      flushSync();
+      await tick();
+      flushSync();
+      expect(t.ctx.focusedRowIndex).toBe(lastVisible);
+
+      // The row under the foot band hands it over to the first visible row.
+      t.ctx.setFocusedRow(lastVisible + 1);
+      scroller.dispatchEvent(new Event('scroll'));
+      flushSync();
+      await tick();
+      flushSync();
+      expect(t.ctx.focusedRowIndex).toBe(0);
+    } finally {
+      Element.prototype.getBoundingClientRect = realRect;
+    }
   });
 });
 
 describe('the virtualized table is one grid', () => {
-  it('interactive: one grid contains every rendered row, and every gridcell has a grid ancestor', () => {
+  it('interactive: the one table is the grid, contains every rendered row, and every gridcell has it as ancestor', () => {
     const t = mountTable({
       virtualized: true,
       virtualHeight: `${VIEWPORT}px`,
       selectionMode: 'multi'
     });
 
+    const tables = t.target.querySelectorAll('table');
+    expect(tables.length).toBe(1);
     const grids = t.target.querySelectorAll('[role="grid"]');
     expect(grids.length).toBe(1);
     const grid = grids[0];
+    expect(grid).toBe(tables[0]);
     expect(grid.getAttribute('aria-rowcount')).toBe(String(COUNT));
     expect(grid.getAttribute('aria-label')).toBe('Test table');
 
@@ -285,20 +401,85 @@ describe('the virtualized table is one grid', () => {
     for (const cell of cells) {
       expect(cell.closest('[role="grid"]')).toBe(grid);
     }
-
-    for (const table of t.target.querySelectorAll('table')) {
-      expect(table.getAttribute('role')).toBe('presentation');
-    }
   });
 
-  it('non-interactive: a table role with the true row count, and no gridcells', () => {
+  it('non-interactive: a plain table with the true row count, and no gridcells', () => {
     const t = mountTable({ virtualized: true, virtualHeight: `${VIEWPORT}px` });
 
-    const wrapper = gridOf(t.target);
-    expect(wrapper.getAttribute('role')).toBe('table');
-    expect(wrapper.getAttribute('aria-rowcount')).toBe(String(COUNT));
+    const table = gridOf(t.target);
+    // Implicit `table` role, like the standard branch — no explicit role.
+    expect(table.getAttribute('role')).toBeNull();
+    expect(table.getAttribute('aria-rowcount')).toBe(String(COUNT));
     expect(t.target.querySelector('[role="grid"]')).toBeNull();
     expect(t.target.querySelectorAll('[role="gridcell"]').length).toBe(0);
+  });
+
+  it('one table: colgroup, thead, tbody with spacer rows, tfoot with the summary', () => {
+    const t = mountTable({
+      virtualized: true,
+      virtualHeight: `${VIEWPORT}px`,
+      selectionMode: 'multi',
+      prefs: { defaults: { summaries: [{ column: 'amount', type: 'sum' }] } }
+    });
+    const scroller = scrollerOf(t.target);
+    const table = gridOf(t.target);
+
+    // The scroll box holds the table and nothing beside it — no header table
+    // above it, no summary table after the rows.
+    expect(scroller.children.length).toBe(1);
+    expect(scroller.firstElementChild).toBe(table);
+    expect([...table.children].map((el) => el.tagName)).toEqual([
+      'COLGROUP',
+      'THEAD',
+      'TBODY',
+      'TFOOT'
+    ]);
+    expect(table.querySelectorAll('colgroup').length).toBe(1);
+
+    // The offset is carried by two rows that nothing reading rows can see.
+    const spacers = [...table.querySelectorAll<HTMLElement>('tbody tr[data-virtual-spacer]')];
+    expect(spacers.map((tr) => tr.dataset.virtualSpacer)).toEqual(['top', 'bottom']);
+    for (const spacer of spacers) {
+      expect(spacer.getAttribute('aria-hidden')).toBe('true');
+      expect(spacer.hasAttribute('data-row-index')).toBe(false);
+      expect(spacer.children.length).toBe(0);
+    }
+    expect(table.querySelector('tbody')?.firstElementChild).toBe(spacers[0]);
+    expect(table.querySelector('tbody')?.lastElementChild).toBe(spacers[1]);
+    expect(spacers[0].style.height).toBe('0px');
+    const rendered = table.querySelectorAll('tbody tr[data-row-index]').length;
+    expect(rendered).toBeGreaterThan(0);
+    expect(spacers[1].style.height).toBe(`${(COUNT - rendered) * ROW_H}px`);
+
+    // The summary row lives in the foot, not at the end of the spacer.
+    expect(table.querySelector('tfoot [data-testid="summary-row-total"]')).not.toBeNull();
+    expect(table.querySelector('tbody [data-testid="summary-row-total"]')).toBeNull();
+
+    // Without a summary there is no foot at all.
+    const bare = mountTable({ virtualized: true, virtualHeight: `${VIEWPORT}px` });
+    expect(gridOf(bare.target).querySelector('tfoot')).toBeNull();
+  });
+
+  it('the pinned summary row draws its rule as a shadow — a look, so `unstyled` takes it', () => {
+    const summaries = { defaults: { summaries: [{ column: 'amount', type: 'sum' as const }] } };
+    const styled = mountTable({
+      virtualized: true,
+      virtualHeight: `${VIEWPORT}px`,
+      prefs: summaries
+    });
+    const styledRow = styled.target.querySelector('tfoot [data-testid="summary-row-total"]');
+    expect(styledRow?.className).toMatch(/shadow-\[0_-2px_0_0_var\(--color-summary\)\]/);
+    expect(styledRow?.className.split(' ')).not.toContain('border-t-2');
+
+    const bare = mountTable({
+      virtualized: true,
+      virtualHeight: `${VIEWPORT}px`,
+      prefs: summaries,
+      unstyled: true
+    });
+    const bareRow = bare.target.querySelector('tfoot [data-testid="summary-row-total"]');
+    expect(bareRow).not.toBeNull();
+    expect(bareRow?.className ?? '').not.toMatch(/shadow-/);
   });
 
   it('regression pin: a non-interactive standard table claims no gridcells either', () => {

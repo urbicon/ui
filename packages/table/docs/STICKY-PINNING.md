@@ -36,6 +36,12 @@ horizontal scroller. This forces the two-model split:
 
 Three layers can pin, each offset below the previous one via CSS custom properties:
 
+A pinned `<thead>` draws its underline as a shadow on its header row and carries no collapsed
+border: under `border-collapse` the table paints the borders at their static positions, so a
+collapsed border stays behind when the thead pins (measured in Chromium, Firefox and WebKit —
+the seam shows the passing row's border or nothing). The pinned thead is therefore exactly its
+cells' height (40px at `md`), and that is the value `--blocks-table-thead-h` reports.
+
 ```
 ┌─────────────────────────────────────────┐ ─┐ scroll-ancestor top (window or
 │  L1: Toolbar  (z-30)                     │  │  app-shell scroll container)
@@ -135,8 +141,9 @@ sibling, not pinned). So no per-layer variant change is needed — only the CSS-
   measured reservation: an app-shell bar that is an *ancestor* of the table is measured, a fixed
   bar that is only a sibling is not — declare its height and the cap leaves room for it (§6).
 - **Mutually exclusive with `virtualized`**, which keeps its own bounded scroll via
-  `virtualHeight`; `fit` has no effect when `virtualized`, and a DEV-build console warning says
-  so (the refusal is otherwise invisible — `data-fit` reports the resolved `"content"`).
+  `virtualHeight` — a box of that height with the column header pinned to its top and the summary
+  row to its bottom (§6); `fit` has no effect when `virtualized`, and a DEV-build console warning
+  says so (the refusal is otherwise invisible — `data-fit` reports the resolved `"content"`).
 - **No app-shell rebuild required.** Sizing the container to the viewport minus what sits above
   it makes the page exactly viewport-height when the table is the main content, so it does not
   scroll; the measurement takes a page heading, a pinned app bar or a scroll pane's own chrome
@@ -190,7 +197,7 @@ toolbar?: Snippet;
 |---|---|---|---|
 | `--blocks-table-sticky-top` | **always** | `Table.svelte`, as an inline style on every container: `stickyOffset` px, forced `0` when contained | L1 toolbar `top`; folds into L2 and L3 |
 | `--blocks-table-toolbar-h` | toolbar pinned **and** a toolbar renders | `ResizeObserver` on the toolbar wrapper (border box, unrounded) | L2 thead `top` **and** L3 group-header `top` |
-| `--blocks-table-thead-h` | thead pinned **and** the built-in `TableHead` renders | `ResizeObserver` on `<thead>` (border box, unrounded) | L3 group-header `top` |
+| `--blocks-table-thead-h` | thead pinned (page-relative, contained, or in the virtualized box) **and** the built-in `TableHead` renders | `ResizeObserver` on `<thead>` (border box, unrounded) | L3 group-header `top` |
 | `--blocks-table-avail-top` | `fit="viewport"` and not `virtualized` | `measureViewportOffsetTop` on the container — the space above it that cannot scroll away: its place in the document (or in its scroll pane), stopping at a pinned ancestor's pin line | container `max-height` cap |
 
 The three measured properties fall back to `0px` in the `calc()` chains when their condition does
@@ -261,7 +268,7 @@ things to know when rebuilding the pins:
 | Ancestor bottom-padding + `fit="viewport"` | Box reaches `100dvh`, so a padded wrapper/sibling adds a second page scrollbar. Drop the inset via the `data-fit="viewport"` hook (see §3). |
 | `view.groupBy` + sticky/contained | Group headers pin (they are the "header" layer). In contained mode at `top: thead-h`. |
 | Summary row + `fit="viewport"` | The summary row pins in **no** layer, so the totals are the one line the contained box does not keep in view: they scroll away with the rows. If they have to stay visible, aggregate them yourself and render them beside the table rather than in it. |
-| `virtualized` | Manages its own bounded scroll (`virtualHeight`); `fit` is ignored (a DEV warning says so), `sticky` still works (thead already sits outside the virtual scroller). The summary row is a separate `<table>` *after* the full-height spacer inside that scroller, so the totals sit at the far end of the virtual scroll — 200 000px down for 5 000 rows at the `md` step of 40px. |
+| `virtualized` | Manages its own bounded scroll: one `<table>` in a box of `virtualHeight`, the `<thead>` pinned to the top edge of that box and the summary row, as a `<tfoot>`, to its bottom edge — always, whatever `sticky` says, because a bounded box whose header scrolls away is never wanted. The pin is box-relative (`top: 0`, `tableHeaderVariants` → `sticky: 'box'`): `stickyOffset` and a page-pinned toolbar's height lie outside the box and do not move it. `fit` is ignored (a DEV warning says so). |
 | `unstyled` | Strips the sticky/contained classes on every slot, `container` included — but not the props that drive the measurements. Rebuilding it: §5. |
 | Nested scroll ancestor | Page-relative sticky binds to it — intended inside a `Drawer` body, surprising inside an accidental `overflow` wrapper. With `fit="viewport"` it is supported without a listener: the reserved space is the box's place in that ancestor's content plus what the ancestor itself reserves, and scrolling the ancestor changes neither. |
 | Fixed top bar that is a **sibling** of the table | Not measured — only *ancestors* are. Declare its height as `stickyOffset`: with `fit="viewport"` that figure is a floor under the reservation, so the cap leaves room for the bar. |
@@ -293,4 +300,5 @@ things to know when rebuilding the pins:
 | Tests: what the attachments write | `packages/table/src/lib/utils/sticky-measure.test.ts` |
 | Tests: what a mounted `<Table>` attaches where | `packages/table/src/lib/core/Table.sticky.svelte.test.ts` |
 | Tests: the contained box in a real browser | `e2e/table-contained.spec.ts` |
+| Tests: the virtualized box in a real browser (gutter, pinned head and foot, keyboard) | `e2e/table-virtualized.spec.ts` |
 | Live docs | `apps/docs/src/routes/table/sticky-pinning/+page.svelte`, and the full-page `fit="viewport"` demo at `apps/docs/src/routes/table/sticky-pinning/contained/+page.svelte` |
