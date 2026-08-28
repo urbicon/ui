@@ -241,6 +241,9 @@ describe('passkey login hooks (R10)', () => {
 
     expect(res.status).toBe(400);
     expect(deps.hooks.onLoginFailed).toHaveBeenCalledWith('', 'unknown_credential');
+    // The wire names the way out: a passkey the server does not hold fails the
+    // same way on every retry, so "try again" would loop the user.
+    expect((await res.json()).code).toBe('passkey_credential_deleted');
   });
 
   it("fires onLoginFailed('', 'counter_regression') when the CAS update loses", async () => {
@@ -301,10 +304,12 @@ describe('passkey login hooks (R10)', () => {
       event(credentialBody, makeCookieJar())
     );
 
-    // Still fail-closed (identical rejection), only the audit reason differs.
+    // Still fail-closed; the audit reason and the wire code both say "gone",
+    // never "clone".
     expect(res.status).toBe(400);
     expect(deps.hooks.onLoginFailed).toHaveBeenCalledWith('', 'credential_deleted');
     expect(deps.hooks.onLoginFailed).not.toHaveBeenCalledWith('', 'counter_regression');
+    expect((await res.json()).code).toBe('passkey_credential_deleted');
   });
 
   it("fires onLoginFailed('', 'challenge_missing') without a ceremony cookie", async () => {

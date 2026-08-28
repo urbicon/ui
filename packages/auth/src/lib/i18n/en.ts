@@ -30,6 +30,8 @@ export const en = {
       connectionLimit: 'Too many open connections. Close another tab and try again.',
       csrfFailed: 'This page has been open too long. Please reload it and try again.',
       passkeyVerificationFailed: 'Your passkey could not be verified. Please try again.',
+      passkeyCredentialDeleted:
+        'This passkey is no longer registered. Sign in another way, then set it up again.',
       serverError: 'Something went wrong. Please try again.',
       networkError: 'Network error. Please check your connection and try again.'
     },

@@ -352,7 +352,16 @@ function authenticationVerifyHandler<R extends string>(
         const stored = await passkeyRepo.findByCredentialId(credential.id);
         if (!stored) {
           await loginFailed('', 'unknown_credential', null);
-          return authError('passkey_verification_failed', 400);
+          // The browser offered a passkey this server does not hold — the
+          // steady state after a deletion from another device, and what every
+          // retry after `credential_deleted` below lands on. A distinct code so
+          // the page can say "sign in another way" instead of "try again".
+          // Not an oracle worth hiding: in the email flow the options response
+          // already lists the account's credential IDs, and in the discoverable
+          // flow the ID is authenticator-minted (≥ 16 random bytes) — a probe
+          // with a made-up ID learns that a random value is unregistered, which
+          // the lookup's timing told it before this line ran.
+          return authError('passkey_credential_deleted', 400);
         }
 
         // Verify the assertion. The challenge is consumed under the ceremony
@@ -401,7 +410,7 @@ function authenticationVerifyHandler<R extends string>(
           const stillStored = await passkeyRepo.findByCredentialId(stored.credentialId);
           if (!stillStored) {
             await loginFailed('', 'credential_deleted', stored.userId);
-            return authError('passkey_verification_failed', 400);
+            return authError('passkey_credential_deleted', 400);
           }
           await loginFailed('', 'counter_regression', stored.userId);
           // Logged as well as hooked: this is the one outcome an operator must
