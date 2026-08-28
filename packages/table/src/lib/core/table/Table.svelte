@@ -3,10 +3,16 @@
   import type { TableItem, Column } from '$lib/types/tableTypes';
   import type { TableSource } from '$lib/view/source';
   import { getTableContext } from '$lib/stores/TableStore.svelte.js';
-  import { CARDS_BELOW_VALUES, tableContainerVariants } from '$lib/variants';
   import {
+    CARDS_BELOW_VALUES,
+    tableContainerVariants,
+    type TableContainerVariantProps
+  } from '$lib/variants';
+  import {
+    getBlocksConfig,
     Pagination,
     resolveIcon,
+    resolveSlotClasses,
     ChevronLeftIcon as ChevronLeftIconDefault,
     ChevronRightIcon as ChevronRightIconDefault
   } from '@urbicon-ui/blocks';
@@ -19,7 +25,11 @@
   import TableDesktop from '../TableDesktop.svelte';
   import TableMobile from '../TableMobile.svelte';
   import TableProvider from '../TableProvider.svelte';
-  import { setTableStyleContext, resolveSlotClass } from '../table-style-context';
+  import {
+    setTableStyleContext,
+    resolveSlotClass,
+    type TableSlotClasses
+  } from '../table-style-context';
   import { createStickyState, resolveStickyMode, setStickyContext } from '../sticky-context.svelte';
   import {
     measureToCssVar,
@@ -69,8 +79,9 @@
     errorState = undefined,
     groupHeaderContent,
     toolbar = undefined,
-    unstyled = false,
-    slotClasses = {},
+    unstyled: unstyledProp = false,
+    slotClasses: slotClassesProp = {},
+    preset = undefined,
     enableColumnReorder = false,
     enableLiveUpdates = false,
     autoApplyOnNavigation = true,
@@ -87,7 +98,7 @@
 
   // One-shot DEV migration warning for the v1.5 slot rename.
   // svelte-ignore state_referenced_locally
-  if (import.meta.env?.DEV && 'wrapper' in slotClasses) {
+  if (import.meta.env?.DEV && 'wrapper' in slotClassesProp) {
     console.warn('[Table] slotClasses.wrapper was renamed to slotClasses.scrollArea in v1.5.');
   }
 
@@ -131,18 +142,6 @@
     return '48rem' as const;
   });
 
-  setTableStyleContext({
-    get unstyled() {
-      return unstyled;
-    },
-    get slotClasses() {
-      return slotClasses;
-    },
-    get variant() {
-      return variant;
-    }
-  });
-
   // `fit="viewport"` turns the table into its own scroll container (see the
   // `contained` variant). Mutually exclusive with `virtualized`, which manages
   // its own bounded scroll via `virtualHeight`.
@@ -176,6 +175,40 @@
   const stickyState = createStickyState(() => resolveStickyMode(sticky, contained));
   const stickyMode = $derived(stickyState.mode);
   setStickyContext(stickyState);
+
+  // One object feeds both `tableContainerVariants()` and the provider's
+  // slot-class cascade, so a `<BlocksProvider>` override can only match an
+  // axis the tv() config has. `stickyToolbar` and `contained` are the RESOLVED
+  // modes, not the `sticky` / `fit` props they derive from: `fit="viewport"`
+  // matches `{ contained: true }` and never `{ fit: 'viewport' }`.
+  const variantProps: TableContainerVariantProps = $derived({
+    variant,
+    size,
+    cardsBelow: resolvedCardsBelow,
+    stickyToolbar: stickyMode.toolbar,
+    contained
+  });
+
+  // The provider's `unstyled` and its `defaults.Table` / `presets.Table`
+  // resolve here and nowhere else: every subcomponent reads the result through
+  // the table style context, so none of them consults the provider itself.
+  const blocksConfig = getBlocksConfig();
+  const unstyled = $derived(unstyledProp || blocksConfig?.unstyled || false);
+  const slotClasses: Partial<TableSlotClasses> = $derived(
+    resolveSlotClasses(blocksConfig, 'Table', preset, variantProps, slotClassesProp)
+  );
+
+  setTableStyleContext({
+    get unstyled() {
+      return unstyled;
+    },
+    get slotClasses() {
+      return slotClasses;
+    },
+    get variant() {
+      return variant;
+    }
+  });
 
   let expandable = $derived(!!expandedRowContent);
 
@@ -258,13 +291,7 @@
   {@const tableContext = getTableContext()}
   {@const { state: tableState, view: tableView } = tableContext}
 
-  {@const tableStyles = tableContainerVariants({
-    variant,
-    size,
-    cardsBelow: resolvedCardsBelow,
-    stickyToolbar: stickyMode.toolbar,
-    contained
-  })}
+  {@const tableStyles = tableContainerVariants(variantProps)}
 
   <div
     class={resolveSlotClass(tableStyles.container, slotClasses.container, unstyled, className)}

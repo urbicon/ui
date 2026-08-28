@@ -4,9 +4,14 @@ import { matchesCompound, resolveClassChain } from '$lib/utils/variants';
 /**
  * A prop-conditional style rule. Its non-`class` keys are matched against a
  * component's active variant props — exactly like a `tv()` compoundVariant
- * (`string` = equality, `string[]` = "one of"). On a match, the `class`
- * record (slot → classes) is merged into the slot-class cascade. Additive:
- * every matching rule contributes; later sources win per Tailwind bucket.
+ * (`string` = equality, `string[]` = "one of", `boolean` for a boolean axis
+ * such as the table's `contained`; the comparison runs on the stringified
+ * value, so `true` and `'true'` are the same condition). An axis a component
+ * carries as `undefined` rather than `false` — the blocks primitives do that
+ * for `disabled`, `readonly` and `error` — matches only its `true` side:
+ * `{ disabled: false }` never fires. On a match, the `class` record (slot →
+ * classes) is merged into the slot-class cascade. Additive: every matching
+ * rule contributes; later sources win per Tailwind bucket.
  *
  * @example
  * { variant: 'outlined', class: { base: 'border' } } // 1px border only on outlined
@@ -15,7 +20,7 @@ export interface ConditionalOverride {
   /** Per-slot classes applied when the prop conditions match. */
   class: Record<string, string>;
   /** Prop conditions: prop name → required value (or one of several). */
-  [propCondition: string]: string | string[] | Record<string, string> | undefined;
+  [propCondition: string]: string | string[] | boolean | Record<string, string> | undefined;
 }
 
 export interface ComponentDefaults {
@@ -134,18 +139,22 @@ export function resolveOverrideSlotClasses(
  *
  * The result is handed to the component's `tv()` slot fn as the `class`
  * override, where it additionally strips conflicting library classes.
+ *
+ * `instanceSlotClasses` admits `undefined` values because that is what a
+ * `Partial<XSlotClasses>` prop is: a slot the caller left out. Such a slot is
+ * skipped, exactly like an empty string, and never reaches the result.
  */
 export function resolveSlotClasses(
   config: BlocksConfig | undefined,
   component: string,
   preset: string | undefined,
   activeProps: Record<string, unknown>,
-  instanceSlotClasses: Record<string, string> | undefined
+  instanceSlotClasses: Record<string, string | undefined> | undefined
 ): Record<string, string> {
   const defaults = config?.defaults?.[component];
   const presetDef = preset ? config?.presets?.[component]?.[preset] : undefined;
 
-  const sources: (Record<string, string> | undefined)[] = [
+  const sources: (Record<string, string | undefined> | undefined)[] = [
     defaults?.slotClasses,
     resolveOverrideSlotClasses(defaults?.overrides, activeProps),
     resolvePresetSlotClasses(config?.presets, component, preset),

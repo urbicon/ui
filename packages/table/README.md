@@ -34,7 +34,7 @@ Peer dependencies: `svelte` (^5), `@urbicon-ui/blocks`, `@urbicon-ui/i18n`. No S
 | Remote mode         | `source={{ processing: 'server', query }}` — managed fetch with `AbortSignal`, debounced, cancellation-safe — or `source={{ processing: 'server', items, total }}` when you drive the fetch                   |
 | URL / view state    | One `view` object carries search, sort, page, page size, filters and grouping; `bindViewToUrl` applies a deep link at init — during SSR too, so a shared link renders server-side |
 | Live updates        | `pushInsert/Update/Delete` pending-buffer, `LiveUpdateBanner`, auto-apply on navigation                                                                                           |
-| Styling             | `unstyled`, `slotClasses`, `TableStyleContext` — every subcomponent respects the 17-slot map                                                                                      |
+| Styling             | `unstyled`, `slotClasses`, `preset` + `BlocksProvider` defaults/overrides, `TableStyleContext` — every subcomponent respects the 17-slot map                                       |
 | Cells               | `LinkCell`, `NumberCell`, `DateCell`, `UserAvatar`, `StatusBadge`, `CustomCell`, Fill-Cell                                                                                        |
 | i18n                | Package-scoped namespace `table.*`, EN + DE                                                                                                                                       |
 
@@ -169,6 +169,14 @@ Every structural subcomponent (`EmptyState`, `ErrorState`, `LoadingState`, `Grou
     row: 'hover:bg-surface-hover'
   }}
 />
+```
+
+**`preset` and a `<BlocksProvider>` reach the same slots.** `defaults.Table` (with prop-conditional `overrides` on `variant`, `size`, `cardsBelow`, `stickyToolbar`, `contained`) and `presets.Table` resolve once in `<Table>` and travel through the same context, a later layer winning per Tailwind bucket; `<BlocksProvider unstyled>` strips the table exactly like the prop.
+
+```svelte
+<BlocksProvider presets={{ Table: { brand: { slotClasses: { headerRow: 'bg-primary-subtle' } } } }}>
+  <Table {items} {columns} preset="brand" />
+</BlocksProvider>
 ```
 
 **`cell` and `headerCell` are the data-column slots.** They reach the `<td>`/`<th>` that render column content — in flat rows, grouped rows and the header alike. The table's own structural cells (selection checkbox, expand chevron, group-indentation spacer, group toggle) are chrome with fixed widths and deliberately stay outside both slots, so a padding or alignment override cannot deform the controls it was never aimed at. Reach those through `row`/`headerRow`, or take over completely with `unstyled`.

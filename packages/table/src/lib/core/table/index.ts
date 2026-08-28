@@ -789,6 +789,9 @@ export interface TableProps<T = TableItem> {
 
   /**
    * Remove the default variant classes. Only user-provided `slotClasses` apply.
+   * `<BlocksProvider unstyled>` sets the same switch, so the table and the
+   * search field inside its toolbar lose their look in the same step. What
+   * stays either way is the desktop/card layout switch: structure, not look.
    * @default false
    */
   unstyled?: boolean;
@@ -799,6 +802,11 @@ export interface TableProps<T = TableItem> {
    * `headerRow`, `headerCell`, `row`, `cell`, `groupHeader`, `summaryRow`,
    * `emptyState`, `loadingState`, `errorState`, `filterBar`, `mobileCard`.
    *
+   * The strongest layer of the `<BlocksProvider>` cascade: the provider's
+   * `defaults.Table.slotClasses`, then its matching `overrides`, then the active
+   * `preset`, then this prop. A later layer wins per Tailwind bucket, so a
+   * preset's `cell: 'p-2'` gives way to an instance `cell: 'p-4'`.
+   *
    * **Breaking change in v1.5:** the former `wrapper` slot has been replaced by
    * `scrollArea`. The former hardcoded `overflow-hidden` on `wrapper` blocked
    * `position: sticky`, see [docs/STICKY-PINNING.md](../../../../../docs/STICKY-PINNING.md).
@@ -806,6 +814,26 @@ export interface TableProps<T = TableItem> {
    * @default {}
    */
   slotClasses?: Partial<TableSlotClasses>;
+
+  /**
+   * Apply a named preset registered via `<BlocksProvider presets={{ Table: { … } }}>`.
+   * A preset's `slotClasses` use the same slot names as {@link TableProps.slotClasses}
+   * and sit between the provider's `defaults.Table` and this instance's own
+   * `slotClasses`. The resolved classes reach every subcomponent through the
+   * table style context, so a preset styles the frame, the header, the rows,
+   * the cells and the card list alike.
+   *
+   * Prop-conditional `overrides` (in `defaults.Table` or in a preset) match
+   * `variant`, `size`, `cardsBelow`, `stickyToolbar` and `contained`: the axes
+   * of `tableContainerVariants`. The last two are the resolved modes, not the
+   * props they derive from: `fit="viewport"` matches `{ contained: true }`, and
+   * a toolbar pinned to the page (`sticky`, `sticky="toolbar"` or `"both"`,
+   * unless the table resolves to `contained`) matches `{ stickyToolbar: true }`.
+   * A name no provider registers applies nothing and warns in development.
+   * @default undefined
+   * @summary A named look from the BlocksProvider, applied between its defaults and this table's own slotClasses.
+   */
+  preset?: string;
 
   /**
    * Pin toolbar/header/group-header to the top of the scroll ancestor on scroll.

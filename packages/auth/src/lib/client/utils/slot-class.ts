@@ -40,11 +40,7 @@ export function resolveAuthSlotClasses<S extends string>(
   preset: string | undefined,
   instance: Partial<Record<S, string>> | undefined
 ): Partial<Record<S, string>> {
-  return resolveSlotClasses(
-    config,
-    component,
-    preset,
-    NO_VARIANT_PROPS,
-    instance as Record<string, string> | undefined
-  ) as Partial<Record<S, string>>;
+  return resolveSlotClasses(config, component, preset, NO_VARIANT_PROPS, instance) as Partial<
+    Record<S, string>
+  >;
 }
