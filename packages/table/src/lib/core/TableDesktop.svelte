@@ -152,8 +152,9 @@
     // the truth; and `focusVirtualRow`'s own trailing scroll event finds its
     // target row rendered and focused by then, which keeps it a no-op.
     if (!virtualizedActive) return;
+    const { theadH, tfootH } = pinnedHeights();
     const first = Math.ceil(scrollTop / rowHeight);
-    const last = Math.floor((scrollTop + viewportHeight) / rowHeight) - 1;
+    const last = Math.floor((scrollTop + viewportHeight - theadH - tfootH) / rowHeight) - 1;
     await tick();
     if (!scrollContainerEl) return;
     const focusedIndex = tableContext.focusedRowIndex;
@@ -281,6 +282,44 @@
     return () => observer.disconnect();
   });
 
+  // What the bottom spacer adds beyond `(count − endIndex) × rowHeight`, so
+  // that the table's height stays one integer whatever window is rendered.
+  //
+  // The rows in the window carry their natural height, and that is not the
+  // stride: the stride is the pitch rounded up, and under `border-collapse`
+  // the two rows at the window's edges are half a pixel short of the pitch
+  // besides. Left alone, the table's height moved with the window — measured
+  // at a 17px root, the far end shifted 4.75px between two windows, so a scroll
+  // clamped to the previous end stopped that far above the last row. The
+  // second term below absorbs the window; the first rounds the total up to an
+  // integer, because the scroller snaps its scrollable extent to whole pixels
+  // and a fraction below .5 rounded DOWN leaves the last quarter pixel of the
+  // list unreachable (measured: −0.25px at a 13px root).
+  //
+  // Read after every window, from the two spacer rows: the bottom one's top
+  // edge does not depend on its own height, so the write cannot feed back.
+  let bottomSlack = $state(0);
+  $effect(() => {
+    void virtualResult;
+    if (!virtualResult || !tableElement) return;
+    const count = virtualItems.length;
+    const top = tableElement.querySelector<HTMLElement>('tr[data-virtual-spacer="top"]');
+    const bottom = tableElement.querySelector<HTMLElement>('tr[data-virtual-spacer="bottom"]');
+    if (!top || !bottom) return;
+    const renderedHeight = bottom.getBoundingClientRect().top - top.getBoundingClientRect().bottom;
+    // Nothing laid out (a test environment) — the arithmetic spacer stands.
+    if (renderedHeight <= 0) return;
+    const { theadH, tfootH } = pinnedHeights();
+    const chrome = theadH + tfootH;
+    const roundUp = Math.ceil(chrome + count * rowHeight) - (chrome + count * rowHeight);
+    const windowShortfall =
+      (virtualResult.endIndex - virtualResult.startIndex) * rowHeight - renderedHeight;
+    const slack = roundUp + windowShortfall;
+    if (Math.abs(slack - untrack(() => bottomSlack)) > 0.001) {
+      bottomSlack = slack;
+    }
+  });
+
   // Reset focus when page/sort/filter changes
   $effect(() => {
     // Track dependencies so we reset on any data change.
@@ -299,6 +338,27 @@
     void tableState.collapsedGroups.size;
     tableContext.resetFocus();
   });
+
+  /**
+   * What the pinned `<thead>` and `<tfoot>` cover of the scroll box, read from
+   * the DOM rather than from a row-height constant: the header is a `rem`
+   * height plus whatever a consumer's `slotClasses.thead` adds, and the foot
+   * exists only while a summary is in force.
+   *
+   * Row `i` occupies `[theadH + i·rh, theadH + (i+1)·rh]` in scroll
+   * coordinates; the head covers `[scrollTop, scrollTop + theadH]` and the foot
+   * `[scrollTop + clientH − tfootH, scrollTop + clientH]`. So the row is fully
+   * visible iff `i·rh ≥ scrollTop` — the head's offset cancels on the top
+   * edge, which is also why `computeVirtualItems` keeps `floor(scrollTop /
+   * rowHeight)` unchanged — and `(i+1)·rh ≤ scrollTop + clientH − theadH −
+   * tfootH`.
+   */
+  function pinnedHeights() {
+    return {
+      theadH: tableElement?.tHead?.getBoundingClientRect().height ?? 0,
+      tfootH: tableElement?.tFoot?.getBoundingClientRect().height ?? 0
+    };
+  }
 
   function focusRow(index: number) {
     if (virtualizedActive) {
@@ -322,26 +382,38 @@
   // position hangs on the `scrollTop` state alone — set the container's scroll
   // position, mirror it into the state synchronously (the scroll event arrives
   // a task later, far too late for the focus call), wait one tick for the
-  // window to re-derive, then focus the now-rendered row. The rows live under
-  // the scroll container, not under `tableElement` — that one is the header
-  // table, whose only children are colgroup and thead, so searching it found
-  // null forever and the focus never moved.
+  // window to re-derive, then focus the now-rendered row.
+  //
+  // Two passes. The first is arithmetic in the stride, and the stride is
+  // `ceil(pitch)`, so within a window a row can sit up to `overscan × (stride −
+  // pitch)` px above where the arithmetic puts it — on an upward jump that is
+  // under the pinned header. The second pass reads the rendered row against
+  // the band the head and the foot leave free and shifts by the residual.
   async function focusVirtualRow(index: number) {
     if (!scrollContainerEl) return;
+    const { theadH, tfootH } = pinnedHeights();
     const top = index * rowHeight;
     const viewTop = scrollContainerEl.scrollTop;
-    const viewH = scrollContainerEl.clientHeight;
+    const viewH = scrollContainerEl.clientHeight - theadH - tfootH;
     if (top < viewTop) scrollContainerEl.scrollTop = top;
     else if (top + rowHeight > viewTop + viewH) {
       scrollContainerEl.scrollTop = top + rowHeight - viewH;
     }
     scrollTop = scrollContainerEl.scrollTop;
     await tick();
-    // `preventScroll`: the position was just set; the browser's own
-    // scroll-into-view would fight the transform offsets of the window.
-    scrollContainerEl
-      .querySelector<HTMLElement>(`tbody tr[data-row-index="${index}"]`)
-      ?.focus({ preventScroll: true });
+    const row = tableElement?.querySelector<HTMLElement>(`tbody tr[data-row-index="${index}"]`);
+    if (!row) return;
+    const rowRect = row.getBoundingClientRect();
+    const boxRect = scrollContainerEl.getBoundingClientRect();
+    const underHead = boxRect.top + theadH - rowRect.top;
+    const underFoot = rowRect.bottom - (boxRect.bottom - tfootH);
+    if (underHead > 0) scrollContainerEl.scrollTop -= underHead;
+    else if (underFoot > 0) scrollContainerEl.scrollTop += underFoot;
+    scrollTop = scrollContainerEl.scrollTop;
+    // `preventScroll`: the position was just set, and the browser's own
+    // scroll-into-view knows nothing of the pinned layers — it would leave the
+    // row under the header.
+    row.focus({ preventScroll: true });
   }
 
   function getItemIdAtIndex(index: number): string | number | undefined {
@@ -478,21 +550,13 @@
   /**
    * The column tracks, as data — one entry per rendered `<col>`, in render order.
    *
-   * The virtualized layout renders the header, the body and the summary row as
-   * three independent `<table>` elements, so each computes its own tracks. That
-   * only stayed invisible while every track was implicit: `table-fixed` takes
-   * its widths from the **first row**, which for the header table is the `<th>`
-   * row and for the body table is a `<td>` row — and `TableHead` writes
-   * `width`/`min-width` inline on `<th>` while `TableRow` writes nothing on
-   * `<td>`. So a column with an explicit `width` sized the header and not the
-   * body, and everything after it slid (measured on the landing specimen: the
-   * STATUS header ~130px right of its badges).
-   *
-   * `<colgroup>` is the mechanism tables have for exactly this — it sizes tracks
-   * independently of any row — so the same list goes into all three and they can
-   * no longer disagree. The structural half is that same list again: the tracks
-   * take `widthCss` where the cells take `widthClass`, so the two units are one
-   * value.
+   * `<colgroup>` sizes the tracks independently of any row. Under
+   * `table-fixed` a table otherwise takes them from its **first row**, and the
+   * virtualized table's first row is the `<th>` row while every window of
+   * `<td>` rows below it comes and goes — so a column with an explicit `width`
+   * has to reach the track, not a cell. The structural half is the same list
+   * the header, the body and the summary read: the tracks take `widthCss` where
+   * the cells take `widthClass`, so the two units are one value.
    */
   const columnTracks = $derived.by(() => {
     const tracks: Array<{ key: string; width?: string }> = structuralCols.map((structural) => ({
@@ -526,7 +590,9 @@
 {/snippet}
 
 {#if virtualizedActive}
-  <!-- Virtualized mode: scroll container with fixed height -->
+  <!-- Virtualized mode: one table in one scroll box of `virtualHeight`, the
+       header pinned to the top of the box and the summary to its bottom, the
+       offset of the rendered window carried by two spacer rows. -->
   <div
     class={resolveSlotClass(
       tableStyles.scrollArea,
@@ -539,28 +605,13 @@
     aria-label={tt('aria.tableData')}
     style="width: {tableDomWidth};"
   >
-    <!-- One grid over three tables. The header, the scrolling body and the
-         summary render as separate <table> elements (their layout contract —
-         see columnTracks), which left the rows outside the element that
-         claimed role="grid": exactly one grid existed, containing zero data
-         rows, while every cell claimed grid membership with no grid ancestor.
-         This wrapper is the single ARIA surface — role, label, row/col counts,
-         keydown — and the tables under it become presentational with explicit
-         roles on their structural rows and cells. A #14 layout rework would
-         collapse the three tables into one and delete this div with them. -->
-    <!-- tabindex -1: the wrapper is script-focusable, never a Tab stop — the
-         rows carry the roving tabindex, exactly like the standard branch's
-         table element (which as a <table> needs no attribute to say so). -->
     <div
-      role={interactive ? 'grid' : 'table'}
-      tabindex="-1"
-      aria-label={ariaLabel}
-      aria-rowcount={tableContext.pageInfo.totalItems}
-      aria-colcount={totalColSpan}
-      onkeydown={handleTableKeyDown}
-      data-testid="virtual-grid"
+      bind:this={scrollContainerEl}
+      onscroll={handleVirtualScroll}
+      class="overflow-x-hidden overflow-y-auto"
+      style="height: {virtualHeight};"
+      data-testid="virtual-scroll-container"
     >
-      <!-- Sticky header table -->
       <table
         bind:this={tableElement}
         class={resolveSlotClass(
@@ -569,135 +620,76 @@
           styleConfig.unstyled,
           'table-fixed'
         )}
-        role="presentation"
+        role={interactive ? 'grid' : undefined}
+        aria-label={ariaLabel}
+        aria-rowcount={tableContext.pageInfo.totalItems}
+        aria-colcount={totalColSpan}
+        onkeydown={handleTableKeyDown}
         data-testid="table-element"
       >
         {@render columnTrackGroup()}
         {#if header}
           {@render header()}
         {:else}
-          <TableHead {expandable} {enableColumnReorder} {size} explicitRoles={true} />
+          <TableHead {expandable} {enableColumnReorder} {size} pinTo="box" />
+        {/if}
+
+        <tbody
+          class={resolveSlotClass(
+            tableStyles.body,
+            styleConfig.slotClasses.tbody,
+            styleConfig.unstyled
+          )}
+        >
+          {#if filteredItems.length === 0}
+            {#if emptyState}
+              {@render emptyState()}
+            {:else}
+              <EmptyState message={noDataText} {size} colSpan={totalColSpan} />
+            {/if}
+          {:else if virtualResult}
+            <!-- The spacer rows are what puts the window where its first row
+                 belongs and gives the scroll box the height of the whole list.
+                 An empty `<tr>` holds a `height` in Chromium, Firefox and WebKit
+                 alike (measured), and it is invisible to everything that reads
+                 rows: no `data-row-index`, so the row-height probe, the
+                 keyboard and `aria-rowindex` never meet it, and `aria-hidden`
+                 keeps it out of the grid's row sequence. -->
+            <tr
+              aria-hidden="true"
+              data-virtual-spacer="top"
+              style="height: {virtualResult.startIndex * rowHeight}px;"
+            ></tr>
+            {#each virtualResult.virtualItems as vItem (vItem.index)}
+              {@const item = virtualItems[vItem.index]}
+              {#if item}
+                <TableRow
+                  {item}
+                  {expandable}
+                  {expandedRowContent}
+                  {cell}
+                  {size}
+                  {onRowClick}
+                  rowIndex={vItem.index}
+                  ariaRowStart={tableContext.pageInfo.rangeStart}
+                />
+              {/if}
+            {/each}
+            <tr
+              aria-hidden="true"
+              data-virtual-spacer="bottom"
+              style="height: {(virtualItems.length - virtualResult.endIndex) * rowHeight +
+                bottomSlack}px;"
+            ></tr>
+          {/if}
+        </tbody>
+
+        {#if hasSummary}
+          <tfoot class={resolveSlotClass(tableStyles.foot, undefined, styleConfig.unstyled)}>
+            <SummaryRow {expandable} {size} class={tableStyles.footRow()} />
+          </tfoot>
         {/if}
       </table>
-
-      <!-- Scrollable body -->
-      <div
-        bind:this={scrollContainerEl}
-        onscroll={handleVirtualScroll}
-        class="overflow-x-hidden overflow-y-auto"
-        style="height: {virtualHeight};"
-        role="presentation"
-        data-testid="virtual-scroll-container"
-      >
-        {#if filteredItems.length === 0}
-          <table
-            class={resolveSlotClass(
-              tableStyles.table,
-              styleConfig.slotClasses.table,
-              styleConfig.unstyled,
-              'table-fixed'
-            )}
-            role="presentation"
-          >
-            {@render columnTrackGroup()}
-            <tbody
-              class={resolveSlotClass(
-                tableStyles.body,
-                styleConfig.slotClasses.tbody,
-                styleConfig.unstyled
-              )}
-            >
-              {#if emptyState}
-                {@render emptyState()}
-              {:else}
-                <EmptyState message={noDataText} {size} colSpan={totalColSpan} />
-              {/if}
-            </tbody>
-          </table>
-        {:else if virtualResult}
-          <!-- Inner container with total height for scrollbar -->
-          <div style="height: {virtualResult.totalHeight}px; position: relative;">
-            <!-- The rendered window is offset once, here, rather than per row:
-               `startIndex` is the first row the virtualizer kept, so the table
-               starts exactly where that row belongs. Offsetting each `<tr>`
-               instead (which is what this did until 2026-08-13) forced
-               `position: absolute` onto it, and an absolutely positioned
-               element is never a `table-row` — its cells then sized themselves
-               from their content instead of from the shared column tracks.
-
-               `absolute top-0 left-0 w-full` takes the window out of flow and
-               stretches it — that is what makes the translate land on the right
-               row — so it is structure and rides the `structural` argument with
-               `table-fixed`. Concatenated onto the resolved string (where it sat
-               until #271) it was outside the tv() fold: its `w-full` and the
-               slot base's `w-full` both rendered, and a `slotClasses.table`
-               override of that bucket only ever tied with it on stylesheet
-               order. -->
-            <table
-              class={resolveSlotClass(
-                tableStyles.table,
-                styleConfig.slotClasses.table,
-                styleConfig.unstyled,
-                'absolute top-0 left-0 w-full table-fixed'
-              )}
-              style="transform: translateY({virtualResult.startIndex * rowHeight}px);"
-              role="presentation"
-            >
-              {@render columnTrackGroup()}
-              <tbody
-                class={resolveSlotClass(
-                  tableStyles.body,
-                  styleConfig.slotClasses.tbody,
-                  styleConfig.unstyled
-                )}
-              >
-                {#each virtualResult.virtualItems as vItem (vItem.index)}
-                  {@const item = virtualItems[vItem.index]}
-                  {#if item}
-                    <TableRow
-                      {item}
-                      {expandable}
-                      {expandedRowContent}
-                      {cell}
-                      {size}
-                      {onRowClick}
-                      rowIndex={vItem.index}
-                      ariaRowStart={tableContext.pageInfo.rangeStart}
-                      explicitRoles={true}
-                    />
-                  {/if}
-                {/each}
-              </tbody>
-            </table>
-          </div>
-
-          {#if hasSummary}
-            <!-- `table-fixed` + the shared tracks, like its two siblings: without
-               them this third table sized its columns from the summary values,
-               so the totals sat under the wrong headers.
-
-               Presentational WITHOUT explicit row roles, unlike the body: the
-               summary row is not a navigable data row, so it stays out of the
-               grid's row sequence. The standard branch has it implicitly
-               inside the grid — a documented divergence until the #14 layout
-               rework merges the three tables. -->
-            <table
-              class={resolveSlotClass(
-                tableStyles.table,
-                styleConfig.slotClasses.table,
-                styleConfig.unstyled,
-                'table-fixed'
-              )}
-              role="presentation"
-            >
-              {@render columnTrackGroup()}
-              <tbody>
-                <SummaryRow {expandable} {size} />
-              </tbody>
-            </table>
-          {/if}
-        {/if}
-      </div>
     </div>
   </div>
 {:else}

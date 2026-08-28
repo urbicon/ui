@@ -151,10 +151,13 @@ test.describe('Table core flows', () => {
       const scroller = virtual.getByTestId('virtual-scroll-container');
 
       const geometry = await scroller.evaluate((el) => {
-        const spacer = el.firstElementChild as HTMLElement;
-        // `tr[data-row-index]`, like the production code: a summary row shares
-        // this scroller in its own tbody, and a bare `tbody tr` would fold it
-        // into the pitch series as a row of a different height.
+        // The `<tbody>` is the rows' scroll space: the spacer above the window,
+        // the rendered rows, the spacer below. The pinned `<thead>` sits
+        // outside it, so it does not count against the row pitch.
+        const spacer = el.querySelector('tbody') as HTMLElement;
+        // `tr[data-row-index]`, like the production code: the two spacer rows
+        // share this tbody, and a bare `tbody tr` would fold them into the
+        // pitch series as rows of a different height.
         const rows = [...el.querySelectorAll<HTMLElement>('tbody tr[data-row-index]')];
         const tops = rows.map((r) => r.getBoundingClientRect().top);
         const pitches = tops.slice(1).map((t, i) => t - tops[i]);
@@ -219,8 +222,8 @@ test.describe('Table core flows', () => {
       const trailingGap = await scroller.evaluate(async (el) => {
         el.scrollTop = el.scrollHeight;
         await new Promise((resolve) => requestAnimationFrame(() => requestAnimationFrame(resolve)));
-        // `tr[data-row-index]`: a summary row shares this scroller in its own
-        // tbody, and a bare `tbody tr` would silently make it the "last row".
+        // `tr[data-row-index]`: the bottom spacer row is the tbody's last
+        // child, and a bare `tbody tr` would silently make it the "last row".
         const rows = [...el.querySelectorAll<HTMLElement>('tbody tr[data-row-index]')];
         const last = rows[rows.length - 1].getBoundingClientRect();
         return Math.round(el.getBoundingClientRect().bottom - last.bottom);
@@ -273,7 +276,7 @@ test.describe('Table core flows', () => {
           await new Promise((resolve) =>
             requestAnimationFrame(() => requestAnimationFrame(resolve))
           );
-          const rows = [...scroller.querySelectorAll<HTMLElement>('tbody tr')];
+          const rows = [...scroller.querySelectorAll<HTMLElement>('tbody tr[data-row-index]')];
           const last = rows[rows.length - 1].getBoundingClientRect();
           out[id] = Number((scroller.getBoundingClientRect().bottom - last.bottom).toFixed(2));
         }

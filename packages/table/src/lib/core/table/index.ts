@@ -577,8 +577,10 @@ export interface TableProps<T = TableItem> {
   virtualized?: boolean;
 
   /**
-   * Height of the virtual scroll container. Only used when `virtualized` is true.
-   * Accepts any CSS height value.
+   * Height of the virtualized table's scroll box — the whole box, the column
+   * header and the summary row included: both are pinned inside it, so the
+   * rows get `virtualHeight` minus the two. Only used when `virtualized` is
+   * true. Accepts any CSS height value.
    * @default "600px"
    */
   virtualHeight?: string;

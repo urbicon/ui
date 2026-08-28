@@ -83,6 +83,13 @@ function stubLayoutProp(
   return () => Object.defineProperty(owner, prop, original);
 }
 
+/** The two spacer rows' declared heights — the virtualized window's offset. */
+function spacerHeights(el: HTMLElement): { top: string; bottom: string } {
+  const [top, bottom] = [...el.querySelectorAll<HTMLElement>('tbody tr[data-virtual-spacer]')];
+  if (!top || !bottom) throw new Error('spacer rows not rendered');
+  return { top: top.style.height, bottom: bottom.style.height };
+}
+
 let target: HTMLElement | undefined;
 let comp: Record<string, unknown> | undefined;
 
@@ -293,17 +300,16 @@ describe('Table — the view object, mounted', () => {
     host.remove();
   });
 
-  it('gives the virtualized header, body and summary the same column tracks', () => {
-    // #14 / the open half of #150. The virtualized layout renders three
-    // independent `<table>` elements, so each computes its own column tracks.
-    // With `table-fixed` those come from the FIRST ROW — the `<th>` row in the
-    // header table, a `<td>` row in the body table — and `TableHead` writes
-    // `width`/`min-width` inline on `<th>` while `TableRow` writes nothing on
-    // `<td>`. So an explicit column width sized the header and not the body.
+  it('declares the virtualized column tracks once, in the one table, against its header cells', () => {
+    // #14 / the open half of #150. The virtualized layout used to render the
+    // header, the body and the summary as three independent `<table>`
+    // elements, each computing its own tracks from its own first row; there is
+    // one table now, and its `<colgroup>` is the one place a width is declared.
     //
     // jsdom has no layout engine, so this asserts the tracks are *declared*
-    // identically, not that they measure identically. The geometric half needs
-    // a browser and belongs in the VR suite.
+    // against the header cells, not that they measure identically. The
+    // geometric half — the header and a row ending on the same pixel under a
+    // classic scrollbar gutter — is `e2e/table-virtualized.spec.ts`.
     const el = mountTable({
       items: Array.from({ length: 40 }, (_, i) => ({ id: i, name: `P${i}`, amount: i })),
       virtualized: true,
@@ -315,29 +321,21 @@ describe('Table — the view object, mounted', () => {
     });
 
     const tables = [...el.querySelectorAll('table')];
-    const groups = tables.map((table) =>
-      [...table.querySelectorAll('colgroup > col')].map((col) => col.getAttribute('style') ?? '')
+    expect(tables).toHaveLength(1);
+    const groups = [...tables[0].querySelectorAll('colgroup')];
+    expect(groups).toHaveLength(1);
+    const tracks = [...groups[0].querySelectorAll('col')].map(
+      (col) => col.getAttribute('style') ?? ''
     );
+    expect(tracks.length).toBeGreaterThan(0);
+    // The explicit width reaches the track.
+    expect(tracks.join(' ')).toContain('18rem');
 
-    // Every table in the virtualized layout carries tracks…
-    expect(tables.length).toBeGreaterThanOrEqual(2);
-    expect(groups.every((g) => g.length > 0)).toBe(true);
-    // …and the explicit width reaches them.
-    expect(groups[0].join(' ')).toContain('18rem');
-
-    // Deliberately NOT asserted: that the four groups equal each other. They
-    // are four renders of one snippet reading one derived, so they cannot
-    // differ — an assertion guaranteed by construction measures nothing.
-    //
-    // What can differ, and is the actual failure mode of #14, is the tracks
-    // against the cells they size. Compared against the header, which is the
-    // one row jsdom renders here (the virtualizer needs a measured viewport and
-    // produces none, so the body has no rows to compare).
+    // The tracks against the cells they size: one `<col>` per header cell, in
+    // the same order. `TableHead` and `columnTracks` used to disagree whenever
+    // a stored column order met `enableColumnReorder={false}`.
     const headerCells = [...el.querySelectorAll('thead th')];
-    expect(headerCells).toHaveLength(groups[0].length);
-    // Column order too, not just the count: the header and the tracks must walk
-    // the same list. `TableHead` and `columnTracks` used to disagree whenever a
-    // stored column order met `enableColumnReorder={false}`.
+    expect(headerCells).toHaveLength(tracks.length);
     const headerIds = headerCells
       .map((th) => th.getAttribute('data-testid'))
       .filter((id): id is string => !!id?.startsWith('column-header-'))
@@ -391,8 +389,6 @@ describe('Table — the view object, mounted', () => {
       ]
     });
     flushSync();
-    // One colgroup per table in this layout — the header's is enough, and the
-    // sibling test already pins that every table carries the same one.
     const cols = [...(virt.querySelector('colgroup')?.children ?? [])].map(
       (col) => col.getAttribute('style') ?? ''
     );
@@ -520,14 +516,15 @@ describe('Table — the view object, mounted', () => {
     expect(plainStops[0]?.getAttribute('aria-keyshortcuts')).toBeNull();
   });
 
-  // The virtualized window is offset on the table, never on the rows. This is
-  // a structural assertion because the symptom is a layout one and jsdom has no
-  // layout: `position: absolute` on a `<tr>` blockifies it, and a blockified
-  // row leaves the table's column tracks — measured in a browser on a
-  // four-column table with no explicit widths, header 213/213/213/213 against
-  // body 61/101/84/33. Keeping the rows unpositioned is what keeps them
-  // `table-row`, so this pins the mechanism rather than the pixels.
-  it('offsets the virtualized window on the table, not on its rows', () => {
+  // The virtualized window's offset is carried by spacer rows, never by a
+  // transform or a position on the rows. This is a structural assertion because
+  // the symptom is a layout one and jsdom has no layout: `position: absolute`
+  // on a `<tr>` blockifies it, and a blockified row leaves the table's column
+  // tracks — measured in a browser on a four-column table with no explicit
+  // widths, header 213/213/213/213 against body 61/101/84/33. Keeping the rows
+  // unpositioned is what keeps them `table-row`, so this pins the mechanism
+  // rather than the pixels.
+  it('carries the virtualized window offset in spacer rows, not on the rows', () => {
     // jsdom reports every element as zero-height, and the virtualizer renders
     // the rows that fit in the viewport — without a height it renders none and
     // the assertions below would pass over an empty list.
@@ -535,14 +532,22 @@ describe('Table — the view object, mounted', () => {
     try {
       const el = mountTable({ virtualized: true, virtualHeight: '400px' });
 
-      const rows = [...el.querySelectorAll('tbody tr')];
+      const rows = [...el.querySelectorAll('tbody tr[data-row-index]')];
       expect(rows.length).toBeGreaterThan(0);
       for (const row of rows) {
-        expect(row.getAttribute('style') ?? '').not.toContain('position: absolute');
+        const style = row.getAttribute('style') ?? '';
+        expect(style).not.toContain('position');
+        expect(style).not.toContain('transform');
+      }
+      for (const table of el.querySelectorAll('table')) {
+        expect(table.getAttribute('style') ?? '').not.toContain('translateY');
       }
 
-      const bodyTable = [...el.querySelectorAll('table')].find((t) => !t.querySelector('thead'));
-      expect(bodyTable?.getAttribute('style') ?? '').toContain('translateY');
+      const spacers = [...el.querySelectorAll<HTMLElement>('tbody tr[data-virtual-spacer]')];
+      expect(spacers.map((tr) => tr.dataset.virtualSpacer)).toEqual(['top', 'bottom']);
+      expect(spacers.every((tr) => /^height: \d+px;$/.test(tr.getAttribute('style') ?? ''))).toBe(
+        true
+      );
     } finally {
       restoreViewport();
     }
@@ -641,12 +646,12 @@ describe('Table — the view object, mounted', () => {
       }));
       const el = mountTable({ items, virtualized: true, virtualHeight: '400px' });
 
-      const scroller = el.querySelector<HTMLElement>('[data-testid="virtual-scroll-container"]');
-      const spacer = scroller?.firstElementChild as HTMLElement | null;
-
-      // 1000 rows measuring 20px each. The derived starting height (`h-10`, so
-      // 40px) would have produced 40 000px — the measurement has to win.
-      expect(spacer?.style.height).toBe('20000px');
+      // 1000 rows measuring 20px each: the rows the window does not render are
+      // 20px each in the spacer below it. The derived starting height (`h-10`,
+      // so 40px) would have put twice that there — the measurement has to win.
+      const rendered = el.querySelectorAll('tbody tr[data-row-index]').length;
+      expect(rendered).toBeGreaterThan(0);
+      expect(spacerHeights(el)).toEqual({ top: '0px', bottom: `${(1000 - rendered) * 20}px` });
     } finally {
       restoreRow();
       restoreViewport();
@@ -683,14 +688,13 @@ describe('Table — the view object, mounted', () => {
       props.items = Array.from({ length: 100 }, (_, i) => ({ id: i, name: `R${i}`, amount: i }));
       flushSync();
 
-      const scroller = el.querySelector<HTMLElement>('[data-testid="virtual-scroll-container"]');
-      const spacer = scroller?.firstElementChild as HTMLElement | null;
-
-      // 100 data rows at 30px. Latched onto the 200px empty-state row it reads
-      // 20000px; never re-measured at all it reads 4000px, the `ROW_HEIGHTS.md`
-      // fallback. Only a fresh measurement of a data row gives 3000px.
-      expect(spacer?.style.height).toBe('3000px');
-      expect(el.querySelectorAll('tbody tr[data-row-index]').length).toBeGreaterThan(0);
+      // 100 data rows at 30px. Latched onto the 200px empty-state row the
+      // spacer below the window strides 200px a row; never re-measured at all
+      // it strides 40px, the `ROW_HEIGHTS.md` fallback. Only a fresh
+      // measurement of a data row gives 30px a row.
+      const rendered = el.querySelectorAll('tbody tr[data-row-index]').length;
+      expect(rendered).toBeGreaterThan(0);
+      expect(spacerHeights(el).bottom).toBe(`${(100 - rendered) * 30}px`);
     } finally {
       restoreRow();
       restoreViewport();

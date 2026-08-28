@@ -96,9 +96,12 @@ async function press(surface: Element, key: string) {
   flushSync();
 }
 
+/** The virtualized branch's one `<table>` — the grid, and the keydown host. */
 function gridOf(target: HTMLElement): HTMLElement {
-  const grid = target.querySelector<HTMLElement>('[data-testid="virtual-grid"]');
-  if (!grid) throw new Error('virtual grid wrapper not rendered');
+  const grid = target.querySelector<HTMLElement>(
+    '[data-testid="virtual-scroll-container"] [data-testid="table-element"]'
+  );
+  if (!grid) throw new Error('virtualized table not rendered');
   return grid;
 }
 
@@ -261,16 +264,19 @@ describe('virtualized keyboard navigation moves the DOM focus', () => {
 });
 
 describe('the virtualized table is one grid', () => {
-  it('interactive: one grid contains every rendered row, and every gridcell has a grid ancestor', () => {
+  it('interactive: the one table is the grid, contains every rendered row, and every gridcell has it as ancestor', () => {
     const t = mountTable({
       virtualized: true,
       virtualHeight: `${VIEWPORT}px`,
       selectionMode: 'multi'
     });
 
+    const tables = t.target.querySelectorAll('table');
+    expect(tables.length).toBe(1);
     const grids = t.target.querySelectorAll('[role="grid"]');
     expect(grids.length).toBe(1);
     const grid = grids[0];
+    expect(grid).toBe(tables[0]);
     expect(grid.getAttribute('aria-rowcount')).toBe(String(COUNT));
     expect(grid.getAttribute('aria-label')).toBe('Test table');
 
@@ -285,20 +291,63 @@ describe('the virtualized table is one grid', () => {
     for (const cell of cells) {
       expect(cell.closest('[role="grid"]')).toBe(grid);
     }
-
-    for (const table of t.target.querySelectorAll('table')) {
-      expect(table.getAttribute('role')).toBe('presentation');
-    }
   });
 
-  it('non-interactive: a table role with the true row count, and no gridcells', () => {
+  it('non-interactive: a plain table with the true row count, and no gridcells', () => {
     const t = mountTable({ virtualized: true, virtualHeight: `${VIEWPORT}px` });
 
-    const wrapper = gridOf(t.target);
-    expect(wrapper.getAttribute('role')).toBe('table');
-    expect(wrapper.getAttribute('aria-rowcount')).toBe(String(COUNT));
+    const table = gridOf(t.target);
+    // Implicit `table` role, like the standard branch — no explicit role.
+    expect(table.getAttribute('role')).toBeNull();
+    expect(table.getAttribute('aria-rowcount')).toBe(String(COUNT));
     expect(t.target.querySelector('[role="grid"]')).toBeNull();
     expect(t.target.querySelectorAll('[role="gridcell"]').length).toBe(0);
+  });
+
+  it('one table: colgroup, thead, tbody with spacer rows, tfoot with the summary', () => {
+    const t = mountTable({
+      virtualized: true,
+      virtualHeight: `${VIEWPORT}px`,
+      selectionMode: 'multi',
+      prefs: { defaults: { summaries: [{ column: 'amount', type: 'sum' }] } }
+    });
+    const scroller = scrollerOf(t.target);
+    const table = gridOf(t.target);
+
+    // The scroll box holds the table and nothing beside it — no header table
+    // above it, no summary table after the rows.
+    expect(scroller.children.length).toBe(1);
+    expect(scroller.firstElementChild).toBe(table);
+    expect([...table.children].map((el) => el.tagName)).toEqual([
+      'COLGROUP',
+      'THEAD',
+      'TBODY',
+      'TFOOT'
+    ]);
+    expect(table.querySelectorAll('colgroup').length).toBe(1);
+
+    // The offset is carried by two rows that nothing reading rows can see.
+    const spacers = [...table.querySelectorAll<HTMLElement>('tbody tr[data-virtual-spacer]')];
+    expect(spacers.map((tr) => tr.dataset.virtualSpacer)).toEqual(['top', 'bottom']);
+    for (const spacer of spacers) {
+      expect(spacer.getAttribute('aria-hidden')).toBe('true');
+      expect(spacer.hasAttribute('data-row-index')).toBe(false);
+      expect(spacer.children.length).toBe(0);
+    }
+    expect(table.querySelector('tbody')?.firstElementChild).toBe(spacers[0]);
+    expect(table.querySelector('tbody')?.lastElementChild).toBe(spacers[1]);
+    expect(spacers[0].style.height).toBe('0px');
+    const rendered = table.querySelectorAll('tbody tr[data-row-index]').length;
+    expect(rendered).toBeGreaterThan(0);
+    expect(spacers[1].style.height).toBe(`${(COUNT - rendered) * ROW_H}px`);
+
+    // The summary row lives in the foot, not at the end of the spacer.
+    expect(table.querySelector('tfoot [data-testid="summary-row-total"]')).not.toBeNull();
+    expect(table.querySelector('tbody [data-testid="summary-row-total"]')).toBeNull();
+
+    // Without a summary there is no foot at all.
+    const bare = mountTable({ virtualized: true, virtualHeight: `${VIEWPORT}px` });
+    expect(gridOf(bare.target).querySelector('tfoot')).toBeNull();
   });
 
   it('regression pin: a non-interactive standard table claims no gridcells either', () => {

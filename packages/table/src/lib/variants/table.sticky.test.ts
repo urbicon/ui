@@ -157,6 +157,20 @@ describe('tableHeaderVariants — sticky thead', () => {
     expect(stuck).toMatch(/z-20\b/);
   });
 
+  it('pins the thead to the top of its own scroll box for sticky="box", with no page offsets', () => {
+    const box = tableHeaderVariants({ sticky: 'box' });
+    const header = box.header();
+    expect(header).toMatch(/\bsticky\b/);
+    expect(header).toMatch(/\btop-0\b/);
+    expect(header).not.toMatch(/--blocks-table-sticky-top|--blocks-table-toolbar-h/);
+    // The underline moves to a shadow on the row, and the collapsed border it
+    // replaces is folded away — one `border-b` utility, and it is the zero.
+    const utilities = header.split(' ');
+    expect(utilities).toContain('border-b-0');
+    expect(utilities).not.toContain('border-b');
+    expect(box.row()).toMatch(/shadow-\[0_1px_0_0_var\(--color-border-hairline\)\]/);
+  });
+
   it('does NOT add sticky classes when sticky=false', () => {
     const free = tableHeaderVariants({ sticky: false }).header();
     expect(free).not.toMatch(/\bsticky\b/);

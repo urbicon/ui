@@ -188,8 +188,8 @@ export const TABLE_DIMENSIONS = {
 
 /**
  * `w-12` → `3rem`, for the one place a structural column's width has to be a
- * CSS length instead of a class: the `<col>` tracks that size the virtualized
- * layout's three separate tables.
+ * CSS length instead of a class: the `<col>` tracks of the virtualized
+ * layout's table.
  *
  * Same arithmetic and same contract as `heightClassToPx` below — Tailwind's
  * spacing scale is 0.25rem per step — including the refusal to guess: a class

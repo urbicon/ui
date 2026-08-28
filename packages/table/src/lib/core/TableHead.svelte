@@ -30,11 +30,12 @@
     expandable = false,
     enableColumnReorder = false,
     size = 'md' as const,
-    // The virtualized branch wraps three presentational <table>s in one
-    // role="grid" element; presentation strips the implicit roles of thead,
-    // tr and th, so this head re-declares them explicitly there. The standard
-    // branch passes nothing and renders exactly as before.
-    explicitRoles = false
+    // Where the thead pins. Unset, it follows the sticky context (page-relative
+    // or not at all); `'box'` pins it to the top edge of the scroll box it
+    // renders in, which is what the virtualized layout passes — its
+    // `virtualHeight` box is the pinning ancestor there, and the page-level
+    // offsets the context's formula adds up do not apply inside it.
+    pinTo = undefined as 'box' | undefined
   } = $props();
 
   const tableContext = getInternalTableContext();
@@ -156,13 +157,15 @@
     summary: TABLE_INDICATORS.dot.intent.summary
   };
 
-  const headerStyles = $derived(tableHeaderVariants({ size, sticky: stickyContext.mode.header }));
+  const pinned = $derived(pinTo === 'box' || stickyContext.mode.header);
+  const headerStyles = $derived(
+    tableHeaderVariants({ size, sticky: pinTo === 'box' ? 'box' : stickyContext.mode.header })
+  );
 </script>
 
 <thead
   class={resolveSlotClass(headerStyles.header, styleConfig.slotClasses.thead, styleConfig.unstyled)}
-  role={explicitRoles ? 'rowgroup' : undefined}
-  {@attach stickyContext.mode.header ? measureToCssVar('--blocks-table-thead-h') : () => {}}
+  {@attach pinned ? measureToCssVar('--blocks-table-thead-h') : () => {}}
 >
   <tr
     class={resolveSlotClass(
@@ -170,7 +173,6 @@
       styleConfig.slotClasses.headerRow,
       styleConfig.unstyled
     )}
-    role={explicitRoles ? 'row' : undefined}
   >
     <!-- Structural header cells (group toggle, select-all, expand spacer) are
          chrome, not columns: they carry the header cell chrome but not
@@ -179,7 +181,6 @@
       {#if structural.key === 'group'}
         <th
           scope="col"
-          role={explicitRoles ? 'columnheader' : undefined}
           aria-colindex={structural.colIndex}
           class="{headerStyles.cell()} {structural.widthClass} text-center"
         >
@@ -201,7 +202,6 @@
       {:else if structural.key === 'selection'}
         <th
           scope="col"
-          role={explicitRoles ? 'columnheader' : undefined}
           aria-colindex={structural.colIndex}
           class="{headerStyles.cell()} {structural.widthClass}"
           data-testid="selection-header"
@@ -274,7 +274,6 @@
 
       <th
         scope="col"
-        role={explicitRoles ? 'columnheader' : undefined}
         aria-colindex={colOffset + colIdx + 1}
         {@attach makeDraggable(colIdx)}
         style={column.width

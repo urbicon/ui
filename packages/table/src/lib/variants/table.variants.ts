@@ -133,11 +133,23 @@ export const tableHeaderVariants = tv({
       }
     },
 
-    // Sticky thead — pins the entire `<thead>` against the page scroll
-    // ancestor, offset by the toolbar height (if present).
+    // Sticky thead. `true` pins the entire `<thead>` against the page scroll
+    // ancestor, offset by the toolbar height (if present); `'box'` pins it at
+    // the top edge of the scroll box it renders in — the virtualized layout's
+    // `virtualHeight` box — where the page-level offsets (`stickyOffset`, a
+    // pinned toolbar's height) lie outside the box and must not move it.
+    //
+    // `'box'` also draws the header's underline as a shadow on the row instead
+    // of the thead's collapsed border, and drops that border. Under
+    // `border-collapse` the table paints the borders at their static positions,
+    // so a collapsed border does not travel with a sticky thead: measured in
+    // Chromium, Firefox and WebKit, the pinned header's seam shows the passing
+    // row's border or nothing at all. A box-shadow is painted by the element
+    // that carries it and travels — on the `<tr>`; WebKit paints none on a
+    // row-group. The page-pinned value keeps the collapsed border it always had.
     //
     // No `data-*` selector belongs in this slot: `TableHead.svelte` renders the
-    // `<thead>` with a fixed attribute set (class, role, one attachment) and no
+    // `<thead>` with a fixed attribute set (class, one attachment) and no
     // rest spread, so nothing can put an attribute on it from outside. The
     // stuck-shadow feedback is the toolbar's alone (`tableContainerVariants`),
     // where the element is a `<div>` the component writes `data-stuck` on.
@@ -148,6 +160,10 @@ export const tableHeaderVariants = tv({
           'top-[calc(var(--blocks-table-sticky-top,0px)+var(--blocks-table-toolbar-h,0px))]'
         ],
         row: 'bg-surface-elevated'
+      },
+      box: {
+        header: ['sticky z-20 bg-surface-elevated top-0 border-b-0'],
+        row: ['bg-surface-elevated', 'shadow-[0_1px_0_0_var(--color-border-hairline)]']
       },
       false: {}
     }
@@ -529,7 +545,17 @@ const rawTableContainerVariants = tv({
     // children that must keep their height while the scroll area takes the rest.
     containedChrome: [],
     table: ['w-full border-collapse'],
-    body: []
+    body: [],
+    // The virtualized layout's `<tfoot>` — the summary row pinned to the
+    // bottom edge of the scroll box, with an opaque ground so the rows
+    // scrolling under it do not show through the row's tint. Only that layout
+    // renders a `<tfoot>`; the standard branch keeps its summary in the flow.
+    foot: ['sticky bottom-0 z-20 bg-surface-elevated'],
+    // The summary's top rule, on the row: its `border-t-2` is a collapsed
+    // border and stays behind when the foot pins (see `tableHeaderVariants`
+    // → `sticky: 'box'` for the measurement). A shadow on the `<tr>` travels
+    // with it in every engine; one on the `<tfoot>` is not painted by WebKit.
+    footRow: ['shadow-[0_-2px_0_0_var(--color-summary)]']
   },
   // Variant contract (see packages/blocks/docs/VARIANT-CONTRACT.md § Table chrome):
   //   flush   → no frame, sits inline in the reading flow (Docs, Inline)
