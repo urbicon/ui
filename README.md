@@ -75,6 +75,8 @@ bun add @urbicon-ui/blocks   # or npm/pnpm, whichever you use
 @import '@urbicon-ui/blocks/style/index.css';
 ```
 
+Every further `@urbicon-ui/*` package that ships components has a `style/index.css` of its own — its `@source` only, no tokens — so import it after blocks, or that package's markup renders unstyled with no error. `bunx urbicon init` prints the import list for what you have installed.
+
 ```svelte
 <script>
   import { Badge, Button, Input } from '@urbicon-ui/blocks';

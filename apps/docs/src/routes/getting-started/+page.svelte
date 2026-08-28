@@ -327,8 +327,21 @@ export default {
           <code class="bg-surface-elevated rounded-modify px-1.5 py-0.5 font-mono text-xs"
             >@source</code
           >
-          directives, so Tailwind finds the components&rsquo; classes without extra config. Load the file
-          once, wherever your app loads CSS:
+          directives, so Tailwind finds the components&rsquo; classes without extra config. Every further
+          <code class="bg-surface-elevated rounded-modify px-1.5 py-0.5 font-mono text-xs"
+            >@urbicon-ui/*</code
+          >
+          package that ships components has a stylesheet of its own (its
+          <code class="bg-surface-elevated rounded-modify px-1.5 py-0.5 font-mono text-xs"
+            >@source</code
+          >
+          only, no tokens) — import it after blocks, or that package&rsquo;s markup renders unstyled with
+          no error;
+          <code class="bg-surface-elevated rounded-modify px-1.5 py-0.5 font-mono text-xs"
+            >bunx urbicon init</code
+          >
+          prints the import list for what you have installed. Load the file once, wherever your app loads
+          CSS:
           <code class="bg-surface-elevated rounded-modify px-1.5 py-0.5 font-mono text-xs"
             >import './app.css'</code
           >

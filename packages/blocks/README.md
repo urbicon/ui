@@ -23,7 +23,7 @@ bun add @urbicon-ui/blocks
 @import '@urbicon-ui/blocks/style/index.css';
 ```
 
-That one import carries the design tokens **and** the Tailwind `@source` directives that make the components' classes reachable — no consumer-side `@source` needed. Import `style/index.css`, never the `foundation`/`semantic`/`interaction` subfiles: they omit those directives, which is the usual cause of responsive utilities going missing in production.
+That one import carries the design tokens **and** the Tailwind `@source` directives that make the components' classes reachable — no consumer-side `@source` needed. Import `style/index.css`, never the `foundation`/`semantic`/`interaction` subfiles: they omit those directives, which is the usual cause of responsive utilities going missing in production. Every further `@urbicon-ui/*` package that ships components has a `style/index.css` of its own — its `@source` only, no tokens — so import it after blocks, or that package's markup renders unstyled with no error. `bunx urbicon init` prints the import list for what you have installed.
 
 Peer dependencies: `svelte` (^5), `@urbicon-ui/i18n`. Load the stylesheet wherever your app loads CSS — `+layout.svelte` in SvelteKit, `main.js` in a plain Vite + Svelte app.
 
