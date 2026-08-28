@@ -331,6 +331,7 @@ live.
 - **Two-factor authentication (TOTP)** — an opt-in authenticator-app second factor on top of the password. Set `config.twoFactor` (`encryptionKey` **required** — high-entropy, stable; it encrypts the secret at rest, and rotating it locks every enrolled user out until they get back in with a backup code — or, for users who enrolled one, a passkey, since passkey logins are not TOTP-gated — see the [key-rotation runbook](#key-rotation-runbook-twofactorencryptionkey)) and provide `repos.backupCode` (both shipped adapters include it). One route group — `createTwoFactorHandlers(deps)`: `setup`/`enable`/`disable` (authenticated, mount under `/api/auth/account/2fa/*`) plus `verify` (the **public** second login step, mount under `/api/auth/2fa/verify`); the `login` handler gates automatically on `user.totpEnabled`. UI: `<TwoFactorManager>` for enrol/disable + the two-step `<LoginPage>`. Invariants: the secret is **AES-256-GCM-encrypted at rest** and only ever returned (plaintext Base32 + otpauth URI) by `setup`; the login gate keys on `totpEnabled` **alone** so a missing `config.twoFactor` can never become a bypass (fail-closed) — it issues a signed, short-lived pending-2FA token (cookie `urbicon_2fa`, `__Host-`-prefixed unless a `cookieSecure: false` on the session, CSRF **or** refresh cookie declares the deployment non-HTTPS) instead of a session, leaving no session/refresh cookie and deferring `onLoginSuccess` to verify; verify accepts a TOTP **or** a single-use SHA-256 backup code, is **strictly rate-limited** (`createAuthDeps` injects a default), and consumes the pending cookie only on success (a wrong code keeps it for retry within the TTL); `disable` is **password re-auth gated** and clears the secret + every backup code; backup codes are cleared before re-issue at enable so a re-enrol leaves none doubly-redeemable. Passkey logins are **not** gated — a claim that rests entirely on user verification: `webauthn.requireUserVerification` defaults to `true`, so an accepted assertion carries possession *and* an asserted PIN/biometric (asserted, not attested — see [Known Limitations](#known-limitations--security-gaps)). Set it to `false` and a passkey is possession alone, which makes a passkey login a single-factor login for exactly the users who enrolled a second one (`createPasskeyHandlers` warns on that pairing). The TOTP core (`server/totp.ts`, RFC 6238/4226/4648) is exported for custom flows; the pending-token/cookie/backup-code plumbing (`server/two-factor.ts`) stays internal (consumed only by the login + 2FA handlers). Config knobs: `twoFactor.{issuer,algorithm,digits,period,window,pendingTokenTtl,backupCodeCount}`, `rateLimit.twoFactor`. `algorithm` defaults to **SHA-1** — the only one Google/Microsoft Authenticator reliably support; the secret's high entropy carries the security, not the hash, so SHA-256 stays opt-in. **Note:** the verify rate-limit is per-IP (like login) and TOTP codes are replayable within their window in v1 — both deliberate trade-offs (see [Known Limitations](#known-limitations--security-gaps)).
 - **Federated identity / SSO** — one deployment becomes the identity provider (ES256 tokens + `createJWKSHandler`), sibling apps verify with `createFederatedAuthHandle` and decide access themselves. See [Federated Identity (SSO)](#federated-identity-sso).
 
+<!-- typecheck -->
 ```typescript
 // Server: register a domain event (Stage 3 notifications)
 import { createNotificationRegistry } from '@urbicon-ui/auth/server';
@@ -339,7 +340,7 @@ registry.register({
   key: 'order_shipped',
   title: (data) => `Order ${data.orderId} shipped`,
   url: (data) => `/orders/${data.orderId}`, // untrusted at click time — validate before goto()
-  recipients: (data) => [data.userId]
+  recipients: async (data) => [data.userId as string] // data is Record<string, unknown>
 });
 ```
 
@@ -422,6 +423,7 @@ One deployment running this package becomes the **identity provider (IdP)**; any
 ### Setup — IdP side
 
 1. **One-time key setup** (a script, **never** on boot — a fresh key per process would invalidate every live session and desynchronize consumers):
+   <!-- typecheck -->
    ```typescript
    import { generateES256KeyPair } from '@urbicon-ui/auth/server';
    const { privateKey, publicKey, kid } = await generateES256KeyPair();
@@ -438,10 +440,12 @@ One deployment running this package becomes the **identity provider (IdP)**; any
 
 ### Setup — consumer side
 
+<!-- typecheck -->
 ```typescript
 // hooks.server.ts of app.example.com
 import { createFederatedAuthHandle } from '@urbicon-ui/auth/server';
 import { createPrismaFederatedAccountRepository } from '@urbicon-ui/auth/server/adapters/prisma';
+import { prisma } from './prisma';
 
 const federated = createPrismaFederatedAccountRepository(prisma); // throws if the model is missing
 
@@ -454,7 +458,7 @@ export const handle = createFederatedAuthHandle({
     // THE authorization decision of this app — identity.subject is the stable key.
     const link = await federated.findByFederatedId('https://auth.example.com', identity.subject);
     if (!link) return null; // unknown identity → no access (fail-closed)
-    return db.user.findUnique({ where: { id: link.userId } }); // roles are THIS app's columns
+    return prisma.user.findUnique({ where: { id: link.userId } }); // roles are THIS app's columns
   }
 });
 ```
@@ -618,9 +622,11 @@ The `mapX` seams (`mapUser`, `mapPasskey`, `mapRefreshToken`, `mapInvitation`, `
 
 Whatever you build, prove it upholds the contract by running the shared suite from a `*.test.ts`. The entry below registers vitest for you; under any other runner import `…/adapters/conformance-core` instead and pass `{ runner: { describe, it, expect } }` — that module imports no runner of its own:
 
+<!-- typecheck -->
 ```ts
 import { describeRepositoryConformance } from '@urbicon-ui/auth/server/adapters/conformance';
 import { createMyAdapter } from './my-adapter';
+import { freshTestDatabase } from './test-db';
 
 describeRepositoryConformance('my-adapter', {
   role: 'USER',
@@ -648,6 +654,7 @@ Read the suite title: it states how many checks ran out of how many, and names e
 
 The same `XLike` + `mapX` + single-statement-CAS pattern in Drizzle. The trick on every claim is `UPDATE … WHERE <still-claimable> RETURNING …` and treating "0 rows returned" as "lost the race" — Drizzle's `.returning()` gives the row count for free.
 
+<!-- typecheck: stub drizzle-orm -->
 ```ts
 import { and, desc, eq, gt, isNull, lt, lte, ne, or, sql } from 'drizzle-orm';
 import type {

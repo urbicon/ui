@@ -19,6 +19,7 @@ Each module is independent and also available as a subpath export.
 
 The package root (`@urbicon-ui/design-engine`) re-exports all three.
 
+<!-- typecheck -->
 ```ts
 import { lintDesign } from '@urbicon-ui/design-engine/linter';
 import { parseManifest, scanMarkers } from '@urbicon-ui/design-engine/manifest';

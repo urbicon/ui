@@ -308,11 +308,20 @@ The pure serializers are still SvelteKit-free. For the load path, use
 an absent param differently from the client.
 
 ```ts
-// view-defaults.ts — imported by both the component and the load function
-export const invoiceView = { pageSize: 25, sort: { column: 'date', direction: 'desc' } };
+// src/lib/view-defaults.ts — imported by the component and by the load function.
+// `as const` keeps `direction` a `'desc'`, not a `string` the snapshot rejects.
+export const invoiceView = { pageSize: 25, sort: { column: 'date', direction: 'desc' } } as const;
+```
 
-// +page.server.ts
-export const load = async ({ url }) => ({
+<!-- typecheck -->
+```ts
+// src/routes/invoices/+page.server.ts
+import { searchParamsToViewSnapshot } from '@urbicon-ui/sveltekit-utils/table-view';
+import { fetchInvoices } from '$lib/server/invoices';
+import { invoiceView } from '$lib/view-defaults';
+import type { PageServerLoad } from './$types';
+
+export const load: PageServerLoad = async ({ url }) => ({
   initialResult: await fetchInvoices(searchParamsToViewSnapshot(url.searchParams, invoiceView))
 });
 ```

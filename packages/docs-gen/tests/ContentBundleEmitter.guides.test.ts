@@ -48,7 +48,8 @@ describe('ContentBundleEmitter package guides', () => {
       [config.templatePath]: TEMPLATE,
       '/repo/design-system/principles.md': '# Principles',
       [config.iconRegistryPath]: ICON_REGISTRY,
-      '/repo/packages/auth/docs/AUTH.md': '# @urbicon-ui/auth\n\n## Architecture\n\nprose',
+      '/repo/packages/auth/docs/AUTH.md':
+        '# @urbicon-ui/auth\n\n## Architecture\n\nprose\n\n<!-- typecheck -->\n```ts\nexport const a = 1;\n```\n',
       '/repo/packages/design-content/package.json': '{"version":"6.28.0"}'
     };
     vi.mocked(fs.readFile).mockImplementation(async (filePath) => {
@@ -93,7 +94,10 @@ describe('ContentBundleEmitter package guides', () => {
     const result = await emitter.emit();
 
     expect(result.guideCount).toBe(1);
-    expect(writtenFile('guides/auth.md')).toContain('## Architecture');
+    // verbatim source (title, hierarchy) minus the lint's typecheck marker lines
+    expect(writtenFile('guides/auth.md')).toBe(
+      '# @urbicon-ui/auth\n\n## Architecture\n\nprose\n\n```ts\nexport const a = 1;\n```\n'
+    );
     const index = JSON.parse(writtenFile('guides/index.json') ?? '[]');
     expect(index).toEqual([
       { slug: 'auth', title: 'Auth Reference', description: 'The auth reference' }

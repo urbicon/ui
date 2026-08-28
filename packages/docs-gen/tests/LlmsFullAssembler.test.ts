@@ -195,7 +195,7 @@ describe('LlmsFullAssembler', () => {
     // The $-before-backtick would corrupt output if replace() used a string
     // replacement ($\` substitutes the preceding text) — pin the replacer fn.
     const GUIDE_SOURCE =
-      '# @urbicon-ui/auth\n\n## Architecture\n\ndetects the `$2b$` prefix\n\n### Runtime\n\nNode 20+';
+      '# @urbicon-ui/auth\n\n## Architecture\n\ndetects the `$2b$` prefix\n\n### Runtime\n\nNode 20+\n\n<!-- typecheck -->\n```ts\nexport const a = 1;\n```';
 
     function mockFs(template: string, withGuideSource = true): void {
       vi.mocked(fs.readFile).mockImplementation(async (filePath) => {
@@ -241,6 +241,9 @@ describe('LlmsFullAssembler', () => {
       expect(written).not.toContain('## @urbicon-ui/auth');
       // `$`-pattern content survives verbatim (no replace() substitution).
       expect(written).toContain('detects the `$2b$` prefix');
+      // the lint's marker is a source-side instruction, not guide content
+      expect(written).not.toContain('typecheck');
+      expect(written).toContain('```ts\nexport const a = 1;\n```');
       expect(written.indexOf('## Components')).toBeLessThan(written.indexOf('### Architecture'));
     });
 

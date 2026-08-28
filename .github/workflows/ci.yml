@@ -136,6 +136,12 @@ jobs:
       # are served to the MCP catalogue, llm.txt and the docs site at once, so a
       # wrong one is wrong in three places.
       - run: bun run examples:lint
+      # Compiles the opted-in `ts` fences of the shipped Markdown docs (package
+      # READMEs, the six tarball docs) with tsc, resolved through the published
+      # exports maps into what each package publishes — the dist/ the build:ts
+      # above produced, or src/ where the map points there — the way a consumer
+      # sees them. Nothing else compiles those blocks.
+      - run: bun run docs:fences:lint
 
   test:
     name: Test

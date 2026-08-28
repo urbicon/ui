@@ -6,7 +6,8 @@ import {
   assertGuideSlug,
   GUIDE_PLACEHOLDER_PATTERN,
   guidePlaceholder,
-  type PackageGuide
+  type PackageGuide,
+  stripTypecheckMarkers
 } from '../llm/guide-injection';
 import { parseIconRegistry } from './icons';
 
@@ -180,7 +181,12 @@ export class ContentBundleEmitter {
         guide.sourcePath,
         `package guide "${guide.title}" (${guide.slug})`
       );
-      await fs.writeFile(path.join(destDir, `${guide.slug}.md`), content, 'utf-8');
+      // the lint markers are a build instruction for the source, not guide content
+      await fs.writeFile(
+        path.join(destDir, `${guide.slug}.md`),
+        stripTypecheckMarkers(content),
+        'utf-8'
+      );
     }
     const index = guides.map(({ slug, title, description }) => ({ slug, title, description }));
     await fs.writeFile(path.join(destDir, 'index.json'), JSON.stringify(index, null, 2), 'utf-8');
