@@ -4,6 +4,12 @@ All notable changes to this project will be documented in this file.
 This changelog is automatically generated from [Conventional Commits](https://www.conventionalcommits.org).
 
 
+## [8.10.0] - 2026-08-28
+
+### Breaking Changes
+- **table**: One table in the virtualized scroll box, with a pinned thead and tfoot (#332)
+> **BREAKING:** `virtualHeight` is now the height of the whole box — column header and summary row included — rather than of the rows alone; a table sized to show N rows shows about one row fewer. A custom `header` snippet on a virtualized table renders inside the scroll box and scrolls away unless it pins itself (`tableHeaderVariants({ sticky: 'box' })` has the classes). A pinned thead carries no collapsed border any more and measures 40px at `md`, not 40.5; `--blocks-table-thead-h` reports that value.
+
 ## [8.9.0] - 2026-08-28
 
 ### Breaking Changes
