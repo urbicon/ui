@@ -123,7 +123,7 @@ describe('PushPermissionPrompt (component)', () => {
     subscribeToPush.mockResolvedValue({ status: 'subscribed', subscription });
     render({ fetcher: fetcherAnswering(500, {}), slotClasses: { error: 'qa-error' } });
 
-    // Same contract as the other twelve components: the slot styles the
+    // Same contract as every other component's `error` slot: it styles the
     // message, so it must not exist while there is no message.
     const region = document.body.querySelector('[aria-live="polite"]') as HTMLElement;
     expect(region.className).not.toContain('qa-error');
