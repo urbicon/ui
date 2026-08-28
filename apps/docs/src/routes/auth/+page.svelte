@@ -45,8 +45,9 @@ export const handle = createAuthHandle({
   repos: authDeps.repos,
   // publicRoutes REPLACES the defaults, so spread them in — without that the
   // /api/auth/* endpoints below lose their exemption and login answers 401.
-  // Entries are startsWith prefixes: '/' here would exempt the whole app.
-  publicRoutes: [...DEFAULT_PUBLIC_ROUTES, '/pricing']
+  // A string is a startsWith prefix ('/' alone would exempt the whole app);
+  // the exact form publishes one pathname — here the landing page.
+  publicRoutes: [...DEFAULT_PUBLIC_ROUTES, { path: '/', exact: true }, '/pricing']
 });`;
 
   const handlersCode = `// Each auth flow needs a SvelteKit API route:

@@ -34,6 +34,15 @@ export interface RateLimitStore {
  */
 export interface RateLimiter {
   check(identifier: string): RateLimitResult | Promise<RateLimitResult>;
+  /**
+   * Hand back `amount` slots (default 1) that `check` took in the current
+   * window — a success returning exactly what its own request cost. Clamps at
+   * zero and does nothing once the window has rolled. On an atomic store that
+   * means it can never buy budget that was not taken; on an async store it is
+   * a read-modify-write like `check` and shares its interleaving caveat (see
+   * `createRateLimiter`).
+   */
+  refund(identifier: string, amount?: number): void | Promise<void>;
   reset(identifier: string): void | Promise<void>;
 }
 
@@ -68,15 +77,16 @@ export function createInMemoryRateLimitStore(options?: {
  * provided (e.g. a Prisma- or Redis-backed implementation) and falls back
  * to the in-memory store for the single-process default.
  *
- * **Atomicity caveat:** `check()` is a read-modify-write (`get` → increment →
- * `set`). With the default single-process in-memory store this is atomic —
- * there is no await between read and write that another request can interleave
- * through. With an **async/remote** store (Redis, Prisma, Upstash) the get and
- * set are two round-trips, so concurrent requests can each read the same count
- * and under-count the limit by the in-flight concurrency. For a strict limit
- * under multi-instance load, back the store with a server-side atomic
- * increment (e.g. Redis `INCR` + `EXPIRE`) and have `get`/`set` reflect it,
- * rather than relying on this read-modify-write.
+ * **Atomicity caveat:** `check()` and `refund()` are read-modify-writes (`get`
+ * → increment / decrement → `set`). With the default single-process in-memory
+ * store this is atomic — there is no await between read and write that another
+ * request can interleave through. With an **async/remote** store (Redis, Prisma,
+ * Upstash) the get and set are two round-trips, so concurrent requests can each
+ * read the same count and under-count the limit by the in-flight concurrency —
+ * and a `refund` racing a `check` can land a count of 1 where 2 were taken. For
+ * a strict limit under multi-instance load, back the store with a server-side
+ * atomic increment (e.g. Redis `INCR` + `EXPIRE`) and have `get`/`set` reflect
+ * it, rather than relying on this read-modify-write.
  */
 export function createRateLimiter(config: RateLimitConfig): RateLimiter {
   const store = config.store ?? createInMemoryRateLimitStore();
@@ -104,6 +114,17 @@ export function createRateLimiter(config: RateLimitConfig): RateLimiter {
         remaining: config.max - entry.count,
         retryAfterMs: 0
       };
+    },
+
+    async refund(identifier: string, amount = 1): Promise<void> {
+      const now = Date.now();
+      const current = await Promise.resolve(store.get(identifier));
+      // A rolled window has nothing to give back: `check` discards an entry
+      // whose `resetAt` has passed, so the only effect of writing it would be
+      // one wasted round-trip to the store.
+      if (!current || current.resetAt <= now) return;
+      current.count = Math.max(0, current.count - amount);
+      await Promise.resolve(store.set(identifier, current));
     },
 
     async reset(identifier: string): Promise<void> {

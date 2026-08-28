@@ -7,15 +7,20 @@ import { ensureCsrfCookie, validateCsrf } from './csrf.js';
 import { assertAuthConfigValid } from './deps.js';
 import { authError } from './handlers/errors.js';
 import { shieldLogger } from './logger.js';
+import { compilePublicRoutes, type PublicRoute } from './public-routes.js';
 import { readRefreshCookie, rotateRefreshToken } from './refresh-token.js';
 import { applySecurityHeaders } from './security-headers.js';
 import { applyRotationOutcome, clearSessionCookie, getSessionFromCookie } from './session.js';
+
+export type { PublicRoute } from './public-routes.js';
 
 export interface AuthHandleOptions<R extends string = string> {
   config: AuthConfig<R>;
   repos: Repositories<R>;
   /**
-   * Route prefixes exempt from the auth guard, matched with `startsWith`.
+   * Routes exempt from the auth guard. A string entry is a pathname
+   * **prefix** (`startsWith`); `{ path, exact: true }` exempts that pathname
+   * alone (see {@link PublicRoute}).
    *
    * **The list REPLACES the defaults; it does not extend them.** The defaults
    * are {@link DEFAULT_PUBLIC_ROUTES}, exported so an app that only wants to
@@ -28,16 +33,20 @@ export interface AuthHandleOptions<R extends string = string> {
    * the right mode only for a handle scoped to routes that mount no auth
    * endpoints at all.
    *
-   * Entries are prefixes, never exact matches: `'/api/auth/'` exempts every
-   * `/api/auth/*` sub-route, and `'/'` exempts the entire app — there is no
-   * way to publish a bare landing page without publishing everything under it.
+   * A prefix grants more than its spelling suggests: `'/pricing'` also exempts
+   * `/pricing-admin` and `/pricing/internal`, and a bare `'/'` exempts the
+   * entire app — the handle warns about that one at construction. The landing
+   * page alone is `{ path: '/', exact: true }`. A list held in a variable
+   * first needs `as const` or the annotation `PublicRoute[]`: TypeScript
+   * otherwise widens `exact: true` to `boolean` and the assignment is a type
+   * error. An inline list needs nothing.
    *
    * Read once, at construction: mutating the array afterwards does not move
    * the guard.
    *
    * @default DEFAULT_PUBLIC_ROUTES
    */
-  publicRoutes?: readonly string[];
+  publicRoutes?: readonly PublicRoute[];
   /**
    * Allow unauthenticated SvelteKit Remote Functions
    * (`kit.experimental.remoteFunctions`) to pass the route guard.
@@ -91,9 +100,7 @@ export function createAuthHandle<R extends string>(options: AuthHandleOptions<R>
   // Every wiring-time config check, mirrored in createAuthDeps: hook and handler
   // bundle are wired independently and either can be reached first.
   assertAuthConfigValid(config, repos, logger);
-  // Snapshot: the array stays the caller's, and a later push into it must not
-  // silently widen this handle's guard.
-  const publicRoutes = [...(options.publicRoutes ?? DEFAULT_PUBLIC_ROUTES)];
+  const isPublicPath = compilePublicRoutes(options.publicRoutes ?? DEFAULT_PUBLIC_ROUTES, logger);
   const allowUnauthenticatedRemote = options.allowUnauthenticatedRemote ?? false;
   const loginPage = config.routes?.loginPage ?? '/auth/login';
 
@@ -247,7 +254,7 @@ export function createAuthHandle<R extends string>(options: AuthHandleOptions<R>
     } else {
       // 3b. Path-based guard for normal requests: redirect unauthenticated
       // users to login (401 for API routes).
-      const isPublic = publicRoutes.some((route) => event.url.pathname.startsWith(route));
+      const isPublic = isPublicPath(event.url.pathname);
       const isApiRoute = event.url.pathname.startsWith('/api/');
 
       if (!user && !isPublic) {
