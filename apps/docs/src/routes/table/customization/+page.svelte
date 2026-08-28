@@ -229,11 +229,14 @@ ${scriptClose}
 
       <p class="text-text-secondary text-sm">
         <code class="text-text-primary">defaults.Table</code> and a preset take the same slot names
-        as <code class="text-text-primary">slotClasses</code>, and the four layers resolve in one
+        as <code class="text-text-primary">slotClasses</code>, and the five layers resolve in one
         order: the provider's <code class="text-text-primary">slotClasses</code>, its matching
-        <code class="text-text-primary">overrides</code>, the preset, then the table's own
-        <code class="text-text-primary">slotClasses</code>. A later layer wins per Tailwind bucket,
-        so a preset's <code class="text-text-primary">cell: 'py-1'</code> gives way to
+        <code class="text-text-primary">overrides</code>, the preset's
+        <code class="text-text-primary">slotClasses</code>, the preset's own
+        <code class="text-text-primary">overrides</code> (a preset may carry them too), then the
+        table's own <code class="text-text-primary">slotClasses</code>. A later layer wins per
+        Tailwind bucket, so a preset's <code class="text-text-primary">cell: 'py-1'</code> gives way
+        to
         <code class="text-text-primary">py-3</code> on the instance (<a
           class="text-primary hover:underline"
           href={resolve('/customization/blocks-provider') + '#merge-behavior'}>Merge behavior</a
@@ -251,9 +254,9 @@ ${scriptClose}
         matches <code class="text-text-primary">{'{ contained: true }'}</code>, and one whose
         toolbar pins to the page matches
         <code class="text-text-primary">{'{ stickyToolbar: true }'}</code>.
-        <code class="text-text-primary">unstyled</code> on the provider reaches the table the same way
-        as the prop: the look goes, the card switch stays, and the search field in the toolbar loses its
-        look in the same step.
+        <code class="text-text-primary">unstyled</code> on the provider strips the table like the prop
+        does (the look goes, the card switch stays) and, unlike the prop, also strips the search field
+        in the toolbar in the same step.
       </p>
     </div>
   </Section>

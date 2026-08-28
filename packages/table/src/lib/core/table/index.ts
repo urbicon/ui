@@ -828,8 +828,8 @@ export interface TableProps<T = TableItem> {
    * of `tableContainerVariants`. The last two are the resolved modes, not the
    * props they derive from: `fit="viewport"` matches `{ contained: true }`, and
    * a toolbar pinned to the page (`sticky`, `sticky="toolbar"` or `"both"`,
-   * without `fit="viewport"`) matches `{ stickyToolbar: true }`. A name no
-   * provider registers applies nothing and logs a development warning.
+   * unless the table resolves to `contained`) matches `{ stickyToolbar: true }`.
+   * A name no provider registers applies nothing and warns in development.
    * @default undefined
    * @summary A named look from the BlocksProvider, applied between its defaults and this table's own slotClasses.
    */

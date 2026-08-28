@@ -17,10 +17,6 @@ import ProviderTableHarness from './__fixtures__/ProviderTableHarness.svelte';
  * (`provider/override-precedence.test.ts`); here the probe classes match no
  * Tailwind utility, so the bucket resolver cannot strip them and every layer's
  * mark either reaches its element or does not.
- *
- * Before the table read the provider at all, all seven marks of the first test
- * were absent while the search field inside the same tree followed the
- * provider — a half-themed table (#274).
  */
 
 const ROWS = [

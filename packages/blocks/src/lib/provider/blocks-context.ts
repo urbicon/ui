@@ -5,11 +5,13 @@ import { matchesCompound, resolveClassChain } from '$lib/utils/variants';
  * A prop-conditional style rule. Its non-`class` keys are matched against a
  * component's active variant props — exactly like a `tv()` compoundVariant
  * (`string` = equality, `string[]` = "one of", `boolean` for a boolean axis
- * such as `disabled` or `contained`; the comparison runs on the stringified
- * value, so `true` and `'true'` are the same condition). On a match, the
- * `class` record (slot → classes) is merged into the slot-class cascade.
- * Additive: every matching rule contributes; later sources win per Tailwind
- * bucket.
+ * such as the table's `contained`; the comparison runs on the stringified
+ * value, so `true` and `'true'` are the same condition). An axis a component
+ * carries as `undefined` rather than `false` — the blocks primitives do that
+ * for `disabled`, `readonly` and `error` — matches only its `true` side:
+ * `{ disabled: false }` never fires. On a match, the `class` record (slot →
+ * classes) is merged into the slot-class cascade. Additive: every matching
+ * rule contributes; later sources win per Tailwind bucket.
  *
  * @example
  * { variant: 'outlined', class: { base: 'border' } } // 1px border only on outlined
