@@ -43,6 +43,8 @@ describe('ForgotPasswordPage', () => {
     const alert = screen.getByRole('alert');
     expect(alert.textContent).toContain('If an account with that email exists');
     expect(alert.className).toContain('qa-success');
+    // Announced through the same region an error would use.
+    expect(liveRegion().contains(alert)).toBe(true);
     expect(screen.queryByRole('button', { name: 'Send reset link' })).toBeNull();
     const [, init] = vi.mocked(fetcher).mock.calls[0] as [string, RequestInit];
     expect(JSON.parse(init.body as string)).toEqual({ email: 'ada@example.com' });

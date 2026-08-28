@@ -132,6 +132,39 @@ describe('LoginPage — form paths', () => {
     expect(screen.getByLabelText('Authentication code')).toBeTruthy();
   });
 
+  it('does not treat a 200 without a user as signed in', async () => {
+    const onSuccess = vi.fn();
+    render({ onSuccess, fetcher: fetcherReturning(jsonResponse(200, {})) });
+
+    await signIn();
+
+    // A captive portal or broken proxy answers 200 with a body of its own;
+    // reporting success would send the consumer into a navigate → guard-bounce
+    // loop with no session and no feedback.
+    expect(onSuccess).not.toHaveBeenCalled();
+    expect(screen.getByRole('alert').textContent).toContain('Something went wrong');
+  });
+
+  it('does not treat a 200 without a user as a verified code either', async () => {
+    const onSuccess = vi.fn();
+    render({
+      onSuccess,
+      fetcher: fetcherReturning(
+        jsonResponse(200, { twoFactorRequired: true }),
+        jsonResponse(200, {})
+      )
+    });
+
+    await signIn();
+    await userEvent.type(screen.getByLabelText('Authentication code'), '123456');
+    await userEvent.click(screen.getByRole('button', { name: 'Verify' }));
+    await settle();
+
+    expect(onSuccess).not.toHaveBeenCalled();
+    expect(screen.getByRole('alert').textContent).toContain('Something went wrong');
+    expect(screen.getByLabelText('Authentication code')).toBeTruthy();
+  });
+
   it('reports a thrown fetch as a network error', async () => {
     render({ fetcher: fetcherReturning(new TypeError('Failed to fetch')) });
 

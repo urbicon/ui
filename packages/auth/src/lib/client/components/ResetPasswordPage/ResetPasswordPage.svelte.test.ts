@@ -56,6 +56,7 @@ describe('ResetPasswordPage', () => {
     const alert = screen.getByRole('alert');
     expect(alert.textContent).toContain('Your password has been reset.');
     expect(alert.className).toContain('qa-success');
+    expect(liveRegion().contains(alert)).toBe(true);
     expect(screen.queryByRole('button', { name: 'Reset password' })).toBeNull();
     // The one link that appears only now: the user has a password to use.
     expect(screen.getByRole('link', { name: 'Sign in' }).getAttribute('href')).toBe('/auth/login');

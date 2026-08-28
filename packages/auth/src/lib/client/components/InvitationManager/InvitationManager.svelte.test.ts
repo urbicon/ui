@@ -92,6 +92,32 @@ describe('InvitationManager (component)', () => {
     await settle();
   });
 
+  it('shows the one-time invite link from the 201 and says whether it was mailed', async () => {
+    render({
+      fetcher: fetcherReturning(
+        jsonResponse(200, { invitations: [] }),
+        jsonResponse(201, {
+          inviteUrl: 'https://app.example/register?token=abc',
+          emailSent: false
+        }),
+        jsonResponse(200, { invitations: [invitation()] })
+      )
+    });
+    await settle();
+
+    await userEvent.type(screen.getByLabelText(/Email address/), 'invitee@example.com');
+    await userEvent.click(screen.getByRole('button', { name: 'Send' }));
+    await settle();
+
+    // The server stores only the token's hash: this response is the only
+    // moment the link exists outside the recipient's mailbox.
+    expect(screen.getByText('https://app.example/register?token=abc')).toBeTruthy();
+    expect(screen.getByText(/No email was sent/).textContent).toContain('invitee@example.com');
+    expect(screen.getByRole('button', { name: 'Copy link' })).toBeTruthy();
+    expect((screen.getByLabelText(/Email address/) as HTMLInputElement).value).toBe('');
+    expect(screen.getAllByRole('listitem')).toHaveLength(1);
+  });
+
   it('keeps the row and shows the error when a delete fails', async () => {
     render({
       fetcher: fetcherReturning(

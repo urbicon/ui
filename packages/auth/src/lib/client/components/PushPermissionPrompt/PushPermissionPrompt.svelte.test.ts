@@ -119,6 +119,21 @@ describe('PushPermissionPrompt (component)', () => {
     }
   );
 
+  it('carries the `error` slot on the Alert, not on the always-present region', async () => {
+    subscribeToPush.mockResolvedValue({ status: 'subscribed', subscription });
+    render({ fetcher: fetcherAnswering(500, {}), slotClasses: { error: 'qa-error' } });
+
+    // Same contract as the other twelve components: the slot styles the
+    // message, so it must not exist while there is no message.
+    const region = document.body.querySelector('[aria-live="polite"]') as HTMLElement;
+    expect(region.className).not.toContain('qa-error');
+    await userEvent.click(enableButton());
+    await settle();
+
+    expect(screen.getByRole('alert').className).toContain('qa-error');
+    expect(region.className).not.toContain('qa-error');
+  });
+
   it('closes without an error when the browser cannot do push', async () => {
     subscribeToPush.mockResolvedValue({ status: 'unsupported' });
     const onUnavailable = vi.fn();

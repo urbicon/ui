@@ -63,10 +63,11 @@ const NETWORK_FAILURE: AuthActionResult = Object.freeze({
  * The pages (`LoginPage`, `RegisterPage`) do **not** instantiate this store.
  * They own no session: they render a form, call the endpoint through the same
  * request core (`postJson` in `utils/http.ts` — one implementation of fetch,
- * CSRF, body parsing and the wire contract) and report `onSuccess`, leaving
- * `user` to whichever store the consumer holds. A second store inside a page
- * would be state nobody reads, disagreeing with the consumer's until its next
- * `checkStatus()`.
+ * CSRF and body parsing) and report `onSuccess`, leaving `user` to whichever
+ * store the consumer holds. A second store inside a page would be state nobody
+ * reads, disagreeing with the consumer's until its next `checkStatus()`. What
+ * each side does with the parsed body is its own — the one rule both apply is
+ * that a success status without `user` is not a success.
  */
 export function createAuthStore<R extends string>(config?: AuthStoreConfig) {
   const apiPath = config?.apiPath ?? '/api/auth';

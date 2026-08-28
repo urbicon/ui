@@ -92,6 +92,13 @@
         awaitingTwoFactor = true;
         return;
       }
+      // Same guard as createAuthStore.login: a 200 without the user is a
+      // captive portal or broken proxy, and reporting success would send the
+      // consumer into a navigate → guard-bounce loop with no session.
+      if (!data.user) {
+        error = t.auth.errors.serverError;
+        return;
+      }
       onSuccess?.();
     } catch {
       error = t.auth.errors.networkError;
@@ -115,6 +122,10 @@
       if (!ok) {
         const w = wireError(data);
         error = errorMessageFromCode(w.code, t, w.error) ?? t.twoFactor.invalidCode;
+        return;
+      }
+      if (!data.user) {
+        error = t.auth.errors.serverError;
         return;
       }
       onSuccess?.();

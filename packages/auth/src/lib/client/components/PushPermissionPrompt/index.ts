@@ -45,7 +45,11 @@ export interface PushPermissionPromptProps {
   onUnavailable?: (reason: 'denied' | 'unsupported') => void;
   /** Strip all default styling. */
   unstyled?: boolean;
-  /** Per-slot class overrides. */
+  /**
+   * Per-slot class overrides. `error` styles the error Alert itself — present
+   * only while an error is shown — not the live region that always surrounds
+   * it (the same contract as every other component's `error` slot).
+   */
   slotClasses?: Partial<Record<'root' | 'text' | 'error' | 'actions', string>>;
   /**
    * Apply a named preset registered via `<BlocksProvider presets={{ PushPermissionPrompt: { … } }}>`.

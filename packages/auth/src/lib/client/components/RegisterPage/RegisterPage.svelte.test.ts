@@ -80,6 +80,19 @@ describe('RegisterPage', () => {
     expect(onSuccess).toHaveBeenCalledTimes(1);
   });
 
+  it('does not treat a 201 without a user as registered', async () => {
+    const onSuccess = vi.fn();
+    render({ onSuccess, fetcher: fetcherReturning(jsonResponse(201, {})) });
+
+    await fill();
+    await submit();
+
+    // Same guard as createAuthStore.register: a success body without the
+    // account it created is a captive portal or a broken proxy, not a login.
+    expect(onSuccess).not.toHaveBeenCalled();
+    expect(screen.getByRole('alert').textContent).toContain('Something went wrong');
+  });
+
   it('refuses mismatching passwords before any request', async () => {
     const fetcher = fetcherReturning();
     render({ fetcher });
