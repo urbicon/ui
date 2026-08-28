@@ -4,6 +4,22 @@ All notable changes to this project will be documented in this file.
 This changelog is automatically generated from [Conventional Commits](https://www.conventionalcommits.org).
 
 
+## [8.9.0] - 2026-08-28
+
+### Breaking Changes
+- **auth**: No grace pass for a killed family, and one home for the lockout values (#327)
+- **auth**: Read the notification stream off fetch, and name a deleted passkey (#326)
+- **auth**: One place where an error becomes markup, and tests for every component (#328)
+
+### Bug Fixes
+- **auth**: The docs describe the secure-deployment signal, and a rejected assertion names its owner (#331)
+
+### Features
+- **auth**: Exact public routes, and a limiter that does not count successes (#325)
+- **docs-gen**: Typecheck the opted-in doc fences against the published packages (#324)
+- **design**: Init names every installed stylesheet, read from node_modules (#329)
+- **table**: Read BlocksProvider defaults, overrides, presets and unstyled (#330)
+
 ## [8.8.0] - 2026-08-26
 
 ### Breaking Changes
