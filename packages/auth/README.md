@@ -51,7 +51,7 @@ stylesheet existed adds the one line and is done.
 | Email            | Transport interface, Lettermint adapter + console logger (dev)                                                                                                                                                                                                                                                                                 | —                       |
 | CSRF             | Origin-header validation (always on for requests routed through `createAuthHandle`) + opt-in Double-Submit-Cookie (since v0.8.4), optional `__Host-` cookie prefix (`csrf.useHostPrefix`) against subdomain injection                                                                                                                          | —                       |
 | Rate-limit       | Pluggable store (in-memory default, optional Redis/Prisma/etc. adapter via `RateLimitStore`), configurable window/max                                                                                                                                                                                                                          | —                       |
-| Security headers | Always on: `nosniff`, `X-Frame-Options: DENY`, `Referrer-Policy`, `Permissions-Policy`. Configurable via `config.securityHeaders`: HSTS (default `max-age=63072000; includeSubDomains`, only when `jwt.cookieSecure !== false`) + CSP hook (default `frame-ancestors 'none'`)                                                                  | —                       |
+| Security headers | Always on: `nosniff`, `X-Frame-Options: DENY`, `Referrer-Policy`, `Permissions-Policy`. Configurable via `config.securityHeaders`: HSTS (default `max-age=63072000; includeSubDomains`, only in a [secure deployment](docs/AUTH.md#secure-deployment) — no `cookieSecure: false` on any cookie config) + CSP hook (default `frame-ancestors 'none'`) | —                       |
 
 ## Package Exports
 
@@ -141,7 +141,8 @@ typos on separate days never add up to a lockout.
 A `cookieSecure: false` on the session, CSRF **or** refresh cookie marks this as a
 non-HTTPS dev deployment, which suppresses the production hardening warnings (and HSTS)
 you'd otherwise see, and drops the `__Host-` prefix from the 2FA and passkey cookies so
-the browser keeps them.
+the browser keeps them. Set it on all three or on none — a mix is warned about at wiring
+time ([docs/AUTH.md → Secure deployment](docs/AUTH.md#secure-deployment)).
 
 **2. Hook** — `src/hooks.server.ts`:
 
@@ -245,7 +246,7 @@ inside that window as well.
 
 Mirrors [AUTH.md → Production-Readiness Checklist](https://ui.urbicon.de/auth/guide#production-readiness-checklist):
 
-- [ ] **HTTPS enforced** — cookies are already `secure: true`; HSTS is emitted automatically once `jwt.cookieSecure !== false`.
+- [ ] **HTTPS enforced** — cookies default to `secure: true`; HSTS is emitted automatically as long as no cookie config says `cookieSecure: false` (the [secure-deployment signal](https://ui.urbicon.de/auth/guide#secure-deployment)).
 - [ ] **CSRF Double-Submit decided** (`csrf.doubleSubmit: true`) — only when every cookie-auth mutation sends the `x-csrf-token` header (package stores/components or `csrfFetch`). SvelteKit **Remote Functions** and no-JS form posts can't send it — with those in play keep it `false`; the always-on Origin check is the complete layer there. Optionally `useHostPrefix: true` (HTTPS-only) — then set `useHostPrefix: true` on the client stores/components too.
 - [ ] **Refresh-token rotation on** (`refreshToken: {}` + `repos.refreshToken`) — non-breaking, recommended.
 - [ ] **Rate-limit + lockout** active (defaulted by `createAuthDeps`; tune per handler). Use a persistent `RateLimitStore` when running >1 instance.
@@ -286,7 +287,7 @@ Cookie/header names are configurable via `config.csrf.cookieName` / `config.csrf
 
 - **Custom persistence adapter** — anything beyond Prisma/in-memory (Drizzle, Kysely, raw SQL): follow the [Adapter Authoring Guide](https://ui.urbicon.de/auth/guide#adapter-authoring-guide) and validate it against the exported conformance suite so its atomic claims are _provably_ race-safe.
 - **JWT key rotation** — set `jwt.keyId` + `jwt.previousSecrets` to roll the signing secret without logging everyone out; old sessions verify against the previous secret until they expire.
-- **Passkeys (WebAuthn)** — wire `createPasskey*Handler`s with a `webauthn: WebAuthnConfig` (pass a persistent `challengeStore` at >1 instance; UV enforcement is **on by default** — `requireUserVerification: false` opts out, and combined with `config.twoFactor` that makes a passkey login single-factor, which the factory warns about at wiring time; upgrading an app whose users hold UV-less credentials needs the [upgrade note](https://ui.urbicon.de/auth/guide#upgrade-note--user-verification-is-enforced-by-default) first), and drop in `<PasskeyManager>` + the passkey entry point on `<LoginPage mode="both">`.
+- **Passkeys (WebAuthn)** — wire the `createPasskeyHandlers(deps, webauthn)` route group with a `webauthn: WebAuthnConfig` (pass a persistent `challengeStore` at >1 instance; UV enforcement is **on by default** — `requireUserVerification: false` opts out, and combined with `config.twoFactor` that makes a passkey login single-factor, which the factory warns about at wiring time; upgrading an app whose users hold UV-less credentials needs the [upgrade note](https://ui.urbicon.de/auth/guide#upgrade-note--user-verification-is-enforced-by-default) first), and drop in `<PasskeyManager>` + the passkey entry point on `<LoginPage mode="both">`.
 - **Notifications & Web Push** — register domain events server-side and listen client-side:
 
 <!-- typecheck -->
@@ -425,7 +426,7 @@ See [`prisma/auth-schema.prisma`](./prisma/auth-schema.prisma) for the reference
 
 ## Tests
 
-900+ unit tests across 67 files — crypto primitives (JWT, HMAC, PBKDF2, CBOR, WebAuthn parsing, TOTP/HOTP/Base32 against the RFC-6238/4226 vectors, AES-256-GCM secret encryption), CSRF, rate-limiter, session cookies, validation, notification registry/SSE/Push, auth handlers (incl. the 2FA setup/enable/disable/verify flow + login gate), security headers, the service-worker notification-click handler, and the adapter conformance suite (atomic claim/scope guarantees — including backup-code single-use — run against both the in-memory and Prisma adapters).
+Unit tests (Vitest) cover the crypto primitives (JWT, HMAC, PBKDF2, CBOR, WebAuthn parsing, TOTP/HOTP/Base32 against the RFC-6238/4226 vectors, AES-256-GCM secret encryption), CSRF, rate-limiter, session cookies, validation, notification registry/SSE/Push, auth handlers (incl. the 2FA setup/enable/disable/verify flow + login gate), security headers, the service-worker notification-click handler, and the adapter conformance suite (atomic claim/scope guarantees — including backup-code single-use — run against both the in-memory and Prisma adapters).
 
 ```bash
 cd packages/auth && bunx --bun vitest run

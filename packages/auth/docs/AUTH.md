@@ -241,12 +241,43 @@ of the auth pages are missing from the compiled CSS.
 
 `createAuthHandle` applies response security headers automatically:
 `X-Content-Type-Options`, `X-Frame-Options: DENY`, `Referrer-Policy`,
-`Permissions-Policy` (always on) plus `Strict-Transport-Security` (only when
-`jwt.cookieSecure !== false`) and a `Content-Security-Policy` baseline
+`Permissions-Policy` (always on) plus `Strict-Transport-Security` (only in a
+[secure deployment](#secure-deployment)) and a `Content-Security-Policy` baseline
 (`frame-ancestors 'none'`). Tune or disable the latter two via
 `config.securityHeaders` — e.g. `{ csp: "default-src 'self'", hsts: false }`.
 CSP is a hook: a full policy is app-specific, so supply your own once you know
 which origins the app loads.
+
+### Secure deployment
+
+Whether the deployment runs over HTTPS is answered once, for every cookie the
+package writes: it is secure **unless any of the three cookie configs a consumer
+can declare it on — `jwt`, `csrf`, `refreshToken` — says `cookieSecure: false`**.
+A deployment is one transport, so a single `false` settles the question for all
+of them. Five decisions hang off that one answer: the `__Host-` prefix and the
+`Secure` attribute of the 2FA and passkey-ceremony cookies, the
+`csrf.useHostPrefix` warning, HSTS, and whether the wiring-time hardening
+warnings (`rateLimit: null`, `lockout: null`, a weak `pbkdf2Iterations`) treat
+the config as production. The signal is deliberately this wide: a `__Host-` +
+`Secure` cookie is dropped by the browser over plain HTTP, and the flows that
+lose it report a *challenge-store* failure (`no_2fa_challenge`, a missing
+passkey ceremony handle) — the cookie's name is nowhere in that message, so a
+narrower signal would cost the operator the whole debugging trail.
+
+Each cookie is still *written* with its own `cookieSecure ?? true`, so the three
+flags can disagree, and both directions bite: `csrf.cookieSecure: false` alone
+switches HSTS and the production warnings off while the session cookie stays
+`Secure`, so nobody can log in over HTTP; `jwt.cookieSecure: false` with
+`csrf.doubleSubmit` and no `csrf.cookieSecure` writes a `Secure` CSRF cookie
+over plain HTTP, the browser drops it, and every mutating request answers 403.
+`createAuthDeps` therefore warns at wiring time whenever the configured slices
+disagree (`[auth] cookieSecure disagrees between cookie configs: …`). Only
+configured slices count — an absent `csrf` / `refreshToken` writes no cookie —
+and `csrf.useHostPrefix: true` counts as `Secure`, because the prefix forces
+it. Set `cookieSecure: false` on all of them for an HTTP dev deployment, or on
+none of them for HTTPS. One pair is not a warning but a wiring-time error:
+`cookieSameSite: 'none'` on a cookie that is not `Secure` — browsers reject it
+outright, so the config is refused.
 
 ### Stage 1 — Quickstart (dev)
 
@@ -353,13 +384,17 @@ upgrade: a security key with no PIN configured, or one driven in a mode that
 only proves User Presence. Platform authenticators (Touch ID, Windows Hello,
 Android) set the bit and are unaffected.
 
-What it looks like when it bites: the assertion is refused with `400
-passkey_verification_failed` carrying `User verification required but not
-performed`, and `hooks.onLoginFailed` fires with the reason `invalid_assertion`
-and an empty email. In an audit sink that reads like an attack, not like a
-config change — so if you upgrade and your passkey-failure rate jumps, look here
-before you look for an attacker. Enrolling a *new* credential on the same
-authenticator fails the same way.
+What it looks like when it bites: the assertion answers `400` with the bare
+`passkey_verification_failed` code — the body names no cause (see
+[Error Contract](#error-contract)) — and `hooks.onLoginFailed` fires with the
+reason `invalid_assertion` and an empty email. The cause is only in
+`config.logger`: `[auth] passkey assertion rejected: User verification required
+but not performed`. In an audit sink the hook entry reads like an attack, not
+like a config change — so if you upgrade and your passkey-failure rate jumps,
+look for that log line before you look for an attacker. Enrolling a *new*
+credential on the same authenticator fails the same way, logged as `[auth]
+passkey registration verification failed: User verification required but not
+performed`.
 
 Two ways out: have the affected users set a PIN on the key (the outcome the
 default is asking for), or set `requireUserVerification: false` — in which case
@@ -850,7 +885,7 @@ Wire the per-repo factories into one `Repositories` object (mirroring `createPri
 
 ## Tests
 
-900+ unit tests (67 files) + 5 E2E tests (`e2e/auth.spec.ts`). Run with:
+Unit tests (Vitest, next to the modules they cover) + the E2E flow (`e2e/auth.spec.ts`). Run with:
 
 ```bash
 cd packages/auth && bunx --bun vitest run   # unit
@@ -873,7 +908,7 @@ Localized clients map `code` via `errorMessageFromCode(code, t, error)` (exporte
 
 ## Known Limitations & Security Gaps
 
-As of: 2026-07-21. The auth core is **stable** — all initial hardening items are closed; the self-service surfaces added in v5.x (account management, session listing, TOTP 2FA) are initially marked **`beta`**. The complete fix history lives in the monorepo changelog; relevant versions per area are referenced in the feature-matrix tables of the [package README](../README.md).
+The auth core is **stable** — all initial hardening items are closed; the self-service surfaces added in v5.x (account management, session listing, TOTP 2FA) are initially marked **`beta`**. The complete fix history lives in the monorepo changelog; relevant versions per area are referenced in the feature-matrix tables of the [package README](../README.md).
 
 ### 🛡️ Defense-in-Depth (planned)
 

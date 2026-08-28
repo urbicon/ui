@@ -420,13 +420,14 @@ describe('passkey auth — ceremony-handle binding (G.1)', () => {
     const jar = makeCookieJar();
     await passkeyHandlers(deps).authenticationOptions.POST(event({}, { jar }));
     // The verify handler must look under the SAME name — a mismatch reads as a
-    // missing ceremony handle and answers 400 before touching the store.
+    // missing ceremony handle and answers 400 before touching the store. So
+    // the store lookup running, and its own answer coming back, is the proof
+    // that the handle was found.
     const res = await passkeyHandlers(deps).authenticationVerify.POST(
       event({ credential: { id: 'x' } }, { jar })
     );
-    expect(await res.clone().json()).not.toMatchObject({
-      message: 'Challenge expired or not found'
-    });
+    expect(deps.repos.passkey.findByCredentialId).toHaveBeenCalledWith('x');
+    expect((await res.clone().json()).code).toBe('passkey_credential_deleted');
     expect(jar.store.size).toBe(0); // single-use handle consumed
   });
 

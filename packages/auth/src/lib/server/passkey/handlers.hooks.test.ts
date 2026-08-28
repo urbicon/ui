@@ -233,6 +233,23 @@ describe('passkey login hooks (R10)', () => {
     );
   });
 
+  it('names the credential owner when the onLoginFailed hook throws on a rejected assertion', async () => {
+    const deps = makeDeps();
+    deps.hooks.onLoginFailed.mockRejectedValue(new Error('audit sink down'));
+    // The credential was found before the signature failed, so the user is
+    // identified — the log line carries that id like every other path that
+    // resolved one.
+    vi.mocked(deps.repos.passkey.findByCredentialId).mockResolvedValue(storedCredential);
+    vi.mocked(verifyAssertion).mockRejectedValue(new WebAuthnError('Signature mismatch'));
+
+    await passkeyHandlers(deps).authenticationVerify.POST(event(credentialBody, makeCookieJar()));
+
+    expect(deps.logger.error).toHaveBeenCalledWith(
+      expect.stringContaining('for u-1'),
+      expect.any(Error)
+    );
+  });
+
   it("fires onLoginFailed('', 'unknown_credential') for an unknown credential", async () => {
     const deps = makeDeps();
     const res = await passkeyHandlers(deps).authenticationVerify.POST(

@@ -104,7 +104,7 @@ export const POST = createForgotPasswordHandler(authDeps);
       '/api/auth/verify-email',
       'SHA-256 token check'
     ],
-    ['PasskeyManager', 'createPasskey*Handler', '/api/auth/passkey/*', 'WebAuthn CBOR/COSE verify'],
+    ['PasskeyManager', 'createPasskeyHandlers', '/api/auth/passkey/*', 'WebAuthn CBOR/COSE verify'],
     ['InvitationManager', 'createInvitationHandlers', '/api/invitations', 'authorize-gated CRUD'],
     [
       'NotificationListener',

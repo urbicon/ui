@@ -59,8 +59,9 @@ export interface AuthDeps<R extends string = string> {
 }
 
 // Floor below which an explicitly configured PBKDF2 work factor is treated as
-// dangerously weak. The secure default (600k, see auth.ts) is well above this;
-// this only catches a consumer deliberately lowering it in production.
+// dangerously weak. The secure default (`PBKDF2_ITERATIONS` in password.ts) is
+// well above this; this only catches a consumer deliberately lowering it in
+// production.
 const MIN_SAFE_PBKDF2_ITERATIONS = 100_000;
 
 /**
@@ -87,7 +88,8 @@ const MIN_SAFE_PBKDF2_ITERATIONS = 100_000;
  *   resolved config (see `resolveRateLimits` on why that one has to be); the
  *   lockout keeps `undefined`.
  * - A production config that still ends up with no login protection at all
- *   (only reachable via `rateLimit: null`) is warned about loudly.
+ *   (`rateLimit: null`, or `rateLimit: { login: null }` with no lockout) is
+ *   warned about loudly.
  *
  * Returns a new config object — the caller's input is not mutated.
  */
