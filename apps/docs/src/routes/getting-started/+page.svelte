@@ -350,6 +350,21 @@ export default {
             preview={false}
           />
         </div>
+        <p class="text-text-secondary mt-6 max-w-2xl leading-relaxed">
+          Every further
+          <code class="bg-surface-elevated rounded-modify px-1.5 py-0.5 font-mono text-xs"
+            >@urbicon-ui/*</code
+          >
+          package that ships components ships a stylesheet of its own — import it after blocks. Without
+          it, the classes only that package uses compile to nothing, and nothing reports it.
+          <code class="bg-surface-elevated rounded-modify px-1.5 py-0.5 font-mono text-xs"
+            >bunx urbicon init</code
+          >
+          prints the import list for what is in
+          <code class="bg-surface-elevated rounded-modify px-1.5 py-0.5 font-mono text-xs"
+            >node_modules</code
+          >.
+        </p>
       </section>
 
       <!-- 03 · Your first component -->

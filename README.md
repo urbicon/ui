@@ -62,8 +62,8 @@ bunx sv create my-app --add @urbicon-ui   # new project
 bunx sv add @urbicon-ui                   # existing project
 ```
 
-By hand it is one install and two imports. That path needs no SvelteKit, just Svelte 5 with Vite
-and Tailwind 4:
+By hand it is one install and two imports for blocks — one more per further package. That path
+needs no SvelteKit, just Svelte 5 with Vite and Tailwind 4:
 
 ```bash
 bun add @urbicon-ui/blocks   # or npm/pnpm, whichever you use
@@ -74,6 +74,8 @@ bun add @urbicon-ui/blocks   # or npm/pnpm, whichever you use
 @import 'tailwindcss';
 @import '@urbicon-ui/blocks/style/index.css';
 ```
+
+Every further `@urbicon-ui/*` package that ships components ships a stylesheet of its own — import it after blocks. Without it, the classes only that package uses compile to nothing, and nothing reports it. `bunx urbicon init` prints the import list for what is in `node_modules`.
 
 ```svelte
 <script>

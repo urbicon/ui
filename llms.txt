@@ -22,6 +22,10 @@ directives that make the components' classes reachable):
 @import '@urbicon-ui/blocks/style/index.css';
 ```
 
+Every further `@urbicon-ui/*` package that ships components ships a stylesheet of its own — import
+it after blocks. Without it, the classes only that package uses compile to nothing, and nothing
+reports it. `bunx urbicon init` prints the import list for what is in `node_modules`.
+
 Requirements: Svelte 5, Vite and Tailwind 4. SvelteKit is **not** required — `blocks`, `table` and
 `i18n` import neither `$app/*` nor `@sveltejs/kit`. Import the stylesheet where your app loads CSS
 (`+layout.svelte` under SvelteKit, `main.js` in a plain Vite + Svelte app).
