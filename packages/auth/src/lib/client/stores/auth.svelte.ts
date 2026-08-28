@@ -1,7 +1,7 @@
 import type { AuthUser } from '../../types.js';
 import type { CsrfClientOptions } from '../csrf.js';
 import { csrfFetch } from '../csrf.js';
-import { getJson, parseJsonBody, postJson, wireError } from '../utils/http.js';
+import { getJson, parseJsonBody, postJson, userFromSuccess, wireError } from '../utils/http.js';
 
 export interface AuthStoreConfig {
   apiPath?: string;
@@ -53,6 +53,12 @@ const NETWORK_FAILURE: AuthActionResult = Object.freeze({
   code: 'network_error'
 });
 
+// An `ok` body without the user it should carry (see `userFromSuccess`).
+const MALFORMED_SUCCESS: AuthActionResult = Object.freeze({
+  success: false,
+  code: 'server_error'
+});
+
 /**
  * Runes store for session state (`user`, `isAuthenticated`, `loading`) plus the
  * five auth actions, for consumers that build their own forms or need the
@@ -96,12 +102,9 @@ export function createAuthStore<R extends string>(config?: AuthStoreConfig) {
         twoFactorRequired = true;
         return { success: true, twoFactorRequired: true };
       }
-      // A 200 whose (shield-normalized) body carries no user is a malformed
-      // success — a captive portal, broken proxy or mock. Reporting success
-      // while isAuthenticated stays false would send the consumer into a
-      // navigate→guard-bounce loop with zero feedback.
-      if (!data.user) return { success: false, code: 'server_error' };
-      user = data.user as AuthUser<R>;
+      const signedIn = userFromSuccess<AuthUser<R>>(data);
+      if (!signedIn) return MALFORMED_SUCCESS;
+      user = signedIn;
       twoFactorRequired = false;
       return { success: true };
     } catch {
@@ -118,8 +121,9 @@ export function createAuthStore<R extends string>(config?: AuthStoreConfig) {
     try {
       const { ok, data } = await postJson(`${apiPath}/2fa/verify`, { code }, { csrf, fetcher });
       if (!ok) return failure(data);
-      if (!data.user) return { success: false, code: 'server_error' };
-      user = data.user as AuthUser<R>;
+      const signedIn = userFromSuccess<AuthUser<R>>(data);
+      if (!signedIn) return MALFORMED_SUCCESS;
+      user = signedIn;
       twoFactorRequired = false;
       return { success: true };
     } catch {
@@ -141,8 +145,9 @@ export function createAuthStore<R extends string>(config?: AuthStoreConfig) {
         { csrf, fetcher }
       );
       if (!ok) return failure(data);
-      if (!data.user) return { success: false, code: 'server_error' };
-      user = data.user as AuthUser<R>;
+      const signedIn = userFromSuccess<AuthUser<R>>(data);
+      if (!signedIn) return MALFORMED_SUCCESS;
+      user = signedIn;
       return { success: true };
     } catch {
       return NETWORK_FAILURE;

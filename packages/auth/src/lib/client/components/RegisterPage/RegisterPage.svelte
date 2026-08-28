@@ -4,7 +4,7 @@
   import { mergeAuthLocale, useAuthLocale } from '../../../i18n/index.js';
   import { unmetPasswordRules } from '../../../password-policy.js';
   import { errorMessageFromCode } from '../../utils/error-message.js';
-  import { postJson, wireError } from '../../utils/http.js';
+  import { postJson, userFromSuccess, wireError } from '../../utils/http.js';
   import {
     passwordRefusalFromBody,
     passwordRefusalMessage,
@@ -115,9 +115,7 @@
         error = errorMessageFromCode(w.code, t, w.error) ?? t.auth.errors.serverError;
         return;
       }
-      // Same guard as createAuthStore.register: a 201 without the account it
-      // created is a captive portal or broken proxy, not a login.
-      if (!data.user) {
+      if (!userFromSuccess(data)) {
         error = t.auth.errors.serverError;
         return;
       }
