@@ -604,13 +604,14 @@ Or override per-instance:
 
 ## Tailwind 4 — Scanning Component Classes
 
-Tailwind 4 does not scan \`node_modules\` by default, so the responsive utilities (\`lg:hidden\`, \`md:grid-cols-2\`, etc.) used inside Urbicon UI components must be registered as content sources. **The library does this for you:** \`@urbicon-ui/blocks/style/index.css\` ships the \`@source\` directives that point Tailwind at the component classes, and \`@urbicon-ui/table/style/index.css\` does the same for the Table.
+Tailwind 4 does not scan \`node_modules\` by default, so the responsive utilities (\`lg:hidden\`, \`md:grid-cols-2\`, etc.) used inside Urbicon UI components must be registered as content sources. **The library does this for you:** \`@urbicon-ui/blocks/style/index.css\` ships the \`@source\` directives that point Tailwind at the component classes, and \`@urbicon-ui/table/style/index.css\` / \`@urbicon-ui/auth/style/index.css\` do the same for the Table and the auth components.
 
 So the only requirement is to import \`index.css\` (your app owns the Tailwind import; it comes first):
 \`\`\`css
 @import 'tailwindcss';
 @import '@urbicon-ui/blocks/style/index.css'; /* tokens + @source directives */
 @import '@urbicon-ui/table/style/index.css';  /* if using Table */
+@import '@urbicon-ui/auth/style/index.css';   /* if using Auth */
 \`\`\`
 
 **Do NOT add manual \`@source\` directives, and do NOT import the \`foundation\`/\`semantic\`/\`interaction\` subfiles instead of \`index.css\`** — the subfiles omit the \`@source\` directives (and global classes), which is the usual cause of "responsive layouts break in production".

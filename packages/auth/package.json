@@ -1,6 +1,6 @@
 {
   "name": "@urbicon-ui/auth",
-  "version": "8.7.0",
+  "version": "8.8.0",
   "description": "Authentication for SvelteKit — JWT sessions, passkeys/WebAuthn, notifications and email with zero runtime dependencies",
   "license": "MIT",
   "repository": {
@@ -21,6 +21,8 @@
   "type": "module",
   "private": false,
   "sideEffects": [
+    "./src/lib/style/**",
+    "./dist/style/**",
     "./dist/i18n/index.js",
     "./dist/i18n/index.d.ts"
   ],
@@ -35,6 +37,7 @@
       "import": "./dist/index.js",
       "default": "./dist/index.js"
     },
+    "./style/index.css": "./dist/style/index.css",
     "./server": {
       "types": "./dist/server/index.d.ts",
       "import": "./dist/server/index.js"

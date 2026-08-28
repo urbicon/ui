@@ -19,6 +19,23 @@ bun install
 Peer dependencies: `svelte` (^5), `@sveltejs/kit`, `@urbicon-ui/blocks`, `@urbicon-ui/i18n`.
 Runtime dependencies: **none**.
 
+**Stylesheet.** The components emit Tailwind classes, and a Tailwind build never scans
+`node_modules` on its own — each package ships a stylesheet whose `@source` directive points
+Tailwind at its components. Import this package's stylesheet next to the blocks one, in the
+file that holds your Tailwind import:
+
+```css
+/* app.css */
+@import 'tailwindcss';
+@import '@urbicon-ui/blocks/style/index.css'; /* tokens + the blocks @source */
+@import '@urbicon-ui/auth/style/index.css'; /* the auth @source — no tokens of its own */
+```
+
+Without the auth line the components still render, but every class that lives only in
+this package (the `sm:` layouts of the pages and managers, the link colour of the auth
+pages) is missing from the compiled CSS. A project that mounted the components before this
+stylesheet existed adds the one line and is done.
+
 **Runtime target: Node.js ≥ 20 or Bun.** All crypto is Web Crypto (`globalThis.crypto`, global since Node 20), but password hashing and the TOTP secret cipher use Node's `Buffer` — which puts the login/register path on a Node/Bun runtime. Edge/Workers/Deno-deploy work only behind a `Buffer` polyfill (e.g. Cloudflare `nodejs_compat`); the Web Crypto paths themselves are edge-clean.
 
 ## Feature Matrix
@@ -416,7 +433,7 @@ The three most load-bearing for a production deploy are below; the **full catalo
 
 - **Persistent stores are opt-in.** Challenge, rate-limit, and refresh-token stores all default to in-memory (single-process). Pass a `ChallengeStore` / `RateLimitStore` / `RefreshTokenRepository` (Redis/Prisma/Upstash) when running >1 instance — the Prisma adapter is bundled.
 - **CSRF Double-Submit and refresh-token rotation are opt-in.** The handle's Origin check is always on; the token layer (`config.csrf = { doubleSubmit: true }`, requires header-capable clients — incompatible with remote-function / no-JS-form mutations) and rotation (`config.refreshToken = {}` + `repos.refreshToken`) are additive production hardening.
-- **`publicRoutes` replaces the defaults, and its entries are prefixes.** Passing the option drops the built-in list instead of adding to it. `'/api/auth/'` is in that list, so an override that omits it guards the app's own sign-in — `POST /api/auth/login` then answers `401` to a visitor who has no session. Spread the exported `DEFAULT_PUBLIC_ROUTES` to extend (`[...DEFAULT_PUBLIC_ROUTES, '/pricing']`); replace wholesale only for a handle scoped to routes that mount no auth endpoints. Matching is `startsWith` and there is no exact-match form: `'/api/auth/'` exempts every sub-route below it, and `'/'` exempts the **whole app** — the obvious spelling of "my landing page is public" turns the guard off entirely. Don't nest protected app routes under a public prefix.
+- **`publicRoutes` replaces the defaults, and a string entry is a prefix.** Passing the option drops the built-in list instead of adding to it. `'/api/auth/'` is in that list, so an override that omits it guards the app's own sign-in — `POST /api/auth/login` then answers `401` to a visitor who has no session. Spread the exported `DEFAULT_PUBLIC_ROUTES` to extend (`[...DEFAULT_PUBLIC_ROUTES, '/pricing']`); replace wholesale only for a handle scoped to routes that mount no auth endpoints. A string matches with `startsWith`: `'/api/auth/'` exempts every sub-route below it, `'/pricing'` also exempts `/pricing-admin` and `/pricing/internal`, and `'/'` exempts the **whole app** — the obvious spelling of "my landing page is public" turns the guard off entirely, which the handle warns about at construction. One pathname alone is the object form: `{ path: '/', exact: true }` publishes the landing page and nothing under it. A list held in a variable first needs `as const` or the annotation `PublicRoute[]` — TypeScript otherwise widens `exact: true` to `boolean` and the assignment is a type error; an inline list needs nothing. Don't nest protected app routes under a public prefix.
 
 ## Roadmap
 

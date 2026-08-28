@@ -379,6 +379,35 @@ describe('createTwoFactorHandlers — verify', () => {
     expect((await run()).status).toBe(429);
   });
 
+  it('a correct code refunds its slot: successes behind one IP never spend the budget', async () => {
+    const user = createMockUser({
+      totpEnabled: true,
+      totpSecret: await encryptSecret(SECRET, ENC_KEY)
+    });
+    const deps = createMockAuthDeps({
+      config: {
+        twoFactor: { encryptionKey: ENC_KEY },
+        rateLimit: { twoFactor: { windowMs: 60_000, max: 2 } }
+      },
+      user: { findById: vi.fn().mockResolvedValue(user) },
+      backupCode: createMockBackupCodeRepository()
+    });
+    const handler = createTwoFactorHandlers(deps).verify;
+    const run = async (code: string) =>
+      (await handler.POST(as(await withPending(deps, { code })))).status;
+    const statuses: number[] = [];
+    for (let i = 0; i < 3; i++) statuses.push(await run(await currentCode()));
+    expect(statuses, 'three correct codes at max 2').toEqual([200, 200, 200]);
+    // A success gives back its own slot and nothing else: wrong, right, wrong
+    // sits at the max, the next wrong one is over it. This is what keeps the
+    // 10⁶-code brute force hopeless for an attacker who can produce successes
+    // on an account of his own behind the same address.
+    expect(await run('000000')).toBe(401);
+    expect(await run(await currentCode())).toBe(200);
+    expect(await run('000000')).toBe(401);
+    expect(await run('000000')).toBe(429);
+  });
+
   it('redeems a backup code while the stored secret is unreadable', async () => {
     const user = createMockUser({
       totpEnabled: true,

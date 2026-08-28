@@ -420,6 +420,12 @@ function authenticationVerifyHandler<R extends string>(
           return authError('passkey_verification_failed', 400);
         }
 
+        // A completed ceremony hands back the two calls it cost (options +
+        // verify share this bucket), so only abandoned or failed ceremonies
+        // spend a shared address's budget. Two and not a reset, for the same
+        // reason as the password login: a success may only return what it took.
+        await rateLimiter?.refund(getClientAddress(), 2);
+
         // No TOTP 2FA gate here, by design: a user-verified passkey is already
         // a strong, phishing-resistant factor, so a successful assertion
         // establishes the session directly even when `user.totpEnabled` is set.

@@ -29,6 +29,7 @@ and overrides its defaults:
 @import 'tailwindcss';
 @import '@urbicon-ui/blocks/style/index.css'; /* tokens + @source directives */
 @import '@urbicon-ui/table/style/index.css';  /* only if you use @urbicon-ui/table */
+@import '@urbicon-ui/auth/style/index.css';   /* only if you use @urbicon-ui/auth */
 ```
 
 Import the single `style/index.css` — **not** the `foundation`/`semantic`/`interaction`

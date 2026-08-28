@@ -77,7 +77,7 @@ Without this directive, responsive classes like `lg:block` or transform classes 
 
 ## Library CSS must not import Tailwind
 
-The CSS files exported from this monorepo (`packages/blocks/src/lib/style/index.css`, `packages/table/src/lib/style/index.css`, `packages/docs/src/lib/style/index.css`) **must not** start with `@import 'tailwindcss';`. That directive belongs in the consumer app's CSS only.
+The CSS files exported from this monorepo (`packages/blocks/src/lib/style/index.css`, `packages/table/src/lib/style/index.css`, `packages/auth/src/lib/style/index.css`, `packages/docs/src/lib/style/index.css`) **must not** start with `@import 'tailwindcss';`. That directive belongs in the consumer app's CSS only.
 
 Why this matters: Tailwind 4 collects every `@theme {}` block from all imported CSS files into one consolidated `:root {}` block per Tailwind compilation. With one compilation (the consumer app's), the consumer's `@theme` is processed last and wins the cascade. The moment a *second* `@import 'tailwindcss';` shows up — e.g. inside a library CSS file that gets pulled into the consumer bundle as a side-effect of importing a component — Tailwind runs a *second* compilation. That second compilation does **not** see the consumer's overrides, so it emits the library defaults. Both compilations land in `@layer theme`, and the later one wins; the consumer's `@theme` overrides silently flip back to the library defaults.
 

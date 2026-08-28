@@ -498,6 +498,40 @@ describe('measureViewportOffsetTop — the reserved space', () => {
     expect(priorWritten).toBe('350px');
   });
 
+  it('takes a declared offset as a floor under the measured reservation', () => {
+    // The walk sees ancestors only. A `position: fixed` bar that is a sibling
+    // of the table reserves space the walk cannot measure, so the consumer
+    // declares it (`stickyOffset`) and the larger of the two figures wins: the
+    // measured one already includes a bar that IS an ancestor.
+    const { container } = buildRig();
+    stubBox(container, { top: 20, height: 200 });
+
+    const cleanup = measureViewportOffsetTop(TOP_PROP, 64)(container);
+    const written = container.style.getPropertyValue(TOP_PROP);
+    cleanup();
+
+    expect(written).toBe('64px');
+
+    // POSITIVE CONTROL, both directions in the same rig: without a declaration
+    // the measured 20 is written (so the 64 above came from the floor), and a
+    // declaration below the measured figure changes nothing (so it is a floor,
+    // not a replacement).
+    const undeclared = buildRig();
+    stubBox(undeclared.container, { top: 20, height: 200 });
+    const undeclaredCleanup = measureViewportOffsetTop(TOP_PROP)(undeclared.container);
+    const undeclaredWritten = undeclared.container.style.getPropertyValue(TOP_PROP);
+    undeclaredCleanup();
+
+    const below = buildRig();
+    stubBox(below.container, { top: 120, height: 200 });
+    const belowCleanup = measureViewportOffsetTop(TOP_PROP, 64)(below.container);
+    const belowWritten = below.container.style.getPropertyValue(TOP_PROP);
+    belowCleanup();
+
+    expect(undeclaredWritten).toBe('20px');
+    expect(belowWritten).toBe('120px');
+  });
+
   it('writes the reserved space unrounded', () => {
     // Real container tops are fractional — 765.71px on the library's own sticky
     // pinning page. The written value goes straight into `calc(100dvh - …)`, and

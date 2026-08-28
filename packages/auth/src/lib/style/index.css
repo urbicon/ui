@@ -1,0 +1,30 @@
+/* === AUTH PACKAGE STYLESHEET === */
+/*
+ * This file carries no tokens and no rules of its own. Its one job is the
+ * `@source` directive below: the components emit Tailwind classes, and a
+ * consumer's Tailwind build never scans `node_modules` on its own.
+ *
+ * Two imports are deliberately absent:
+ *
+ * - No `@import 'tailwindcss'` — that is the consumer app's responsibility.
+ *   See `@urbicon-ui/blocks/src/lib/style/index.css` and
+ *   `docs/TailwindCaveats.md` → "Library CSS must not import Tailwind": a
+ *   second Tailwind compilation silently drops the consumer's `@theme`
+ *   overrides.
+ *
+ * - No `@import '@urbicon-ui/blocks/style/index.css'` — the tokens come from
+ *   the consumer's own blocks import, which every consumer of this package has
+ *   (blocks is a peer). Tailwind 4 does not deduplicate a CSS file imported
+ *   twice: `@theme` variables collapse into one `:root`, but every plain rule
+ *   (`.sr-only`, `[popover]` reset, mint styles, keyframes) is emitted again per
+ *   import. Measured with Tailwind 4.3.3 against the packed tarballs: each
+ *   repeated blocks import adds 75 rules / 11.8 KB unminified, 3.8 KB after
+ *   LightningCSS minify (67 B gzipped).
+ */
+
+/* === TAILWIND SOURCE SCAN === */
+/* Everything the package ships, not a list of directories. `@source` resolves
+ * against this file, which sits at `src/lib/style/` in the tree and at
+ * `dist/style/` in the tarball, so `..` is the whole library in both — a class
+ * cannot be added anywhere in the package and land outside the scan. */
+@source '..';
