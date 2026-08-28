@@ -190,21 +190,20 @@ test.describe('fit="viewport" — the contained scroll model', () => {
     });
 
     // Flush: the pinned group header's top edge IS the pinned column header's
-    // bottom edge. Measured on chromium at a 16px root, `size="md"`, both at
-    // 211.5px.
+    // bottom edge.
     //
-    // The number the seam is made of is the third assertion. A `<thead>` under
-    // `border-collapse: collapse` carries half of the collapsed 1px border, so
-    // it measures 40.5px, and while that was published rounded to 40px the
-    // group header pinned half a pixel high and overlapped the header it sits
-    // under (#272). Written as an equality on
-    // purpose: a tolerance wide enough to cover the old and the new value would
-    // report nothing when the seam moves again — and half a pixel is what this
-    // is about, since a gap of that size between two opaque layers shows the
-    // scrolling content through it at DPR 2 while an overlap of it does not.
+    // The number the seam is made of is the third assertion: a pinned thead
+    // carries no collapsed border (its underline is a shadow, which takes no
+    // layout space), so it is exactly its cells' height — 40px at a 16px root,
+    // `size="md"` — and that is what `--blocks-table-thead-h` has to publish,
+    // unrounded. Written as an equality on purpose: a tolerance wide enough to
+    // cover a half-pixel drift would report nothing when the seam moves again,
+    // and half a pixel is what this is about (#272) — a gap of that size
+    // between two opaque layers shows the scrolling content through it at DPR
+    // 2 while an overlap of it does not.
     expect(seam.pinnedGroupTop - seam.theadBottom).toBeCloseTo(0, 1);
-    expect(seam.theadHeight).toBeCloseTo(40.5, 1);
-    expect(seam.declaredTheadHeight.trim()).toBe('40.5px');
+    expect(seam.theadHeight).toBeCloseTo(40, 1);
+    expect(seam.declaredTheadHeight.trim()).toBe('40px');
   });
 
   test('at a phone width the table is contained rather than handed to the page', async ({

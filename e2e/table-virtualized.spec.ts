@@ -38,14 +38,14 @@ type Rect = { top: number; bottom: number; left: number; right: number; height: 
  * One reading of the whole layout at a given scroll position, taken in one
  * pass so every number describes the same frame.
  */
-async function readAt(page: Page, scrollTop: number | 'max') {
+async function readAt(page: Page, at: number | 'max') {
   return page.evaluate(
-    async ([scrollTop, gutter]) => {
+    async ([position, gutter]) => {
       const desktop = document.querySelector('[data-table-layout="desktop"]') as HTMLElement;
       const scroller = desktop.querySelector(
         '[data-testid="virtual-scroll-container"]'
       ) as HTMLElement;
-      scroller.scrollTop = scrollTop === 'max' ? scroller.scrollHeight : (scrollTop as number);
+      scroller.scrollTop = position === 'max' ? scroller.scrollHeight : (position as number);
       // Two frames: one for the scroll to land, one for the window to re-derive
       // from the scroll event and paint.
       await new Promise((resolve) => requestAnimationFrame(() => requestAnimationFrame(resolve)));
@@ -111,7 +111,7 @@ async function readAt(page: Page, scrollTop: number | 'max') {
         cellRight
       };
     },
-    [scrollTop, GUTTER] as const
+    [at, GUTTER] as const
   );
 }
 
@@ -183,10 +183,9 @@ test.describe('Virtualized table — one table in one scroll box', () => {
     ).toBe(true);
 
     // Every data column — the two explicit tracks and the two proportional
-    // ones — ends on the same pixel in the header and in a row. With the header
-    // in a table of its own outside the scroll box, the proportional tracks
-    // absorbed the gutter in the body alone (measured before the rework: 15px
-    // at the last column).
+    // ones — ends on the same pixel in the header and in a row. Only the
+    // proportional tracks can show a gutter: an explicit width is the same
+    // pixel count on either side of it.
     const ids = Object.keys(r.headerRight);
     expect(ids).toEqual(['name', 'role', 'city', 'score']);
     for (const id of ids) {
@@ -208,7 +207,7 @@ test.describe('Virtualized table — one table in one scroll box', () => {
 
       // Sticky travel: the header's top edge IS the box's top edge and the
       // summary's bottom edge IS the box's bottom edge, wherever the list is
-      // scrolled to. The old header table sat outside the box with zero travel.
+      // scrolled to.
       expect(Math.abs(r.thead!.top - r.scroller.top), `thead top ${label}`).toBeLessThanOrEqual(
         0.5
       );
@@ -334,9 +333,7 @@ test.describe('Virtualized table — one table in one scroll box', () => {
     }
 
     // End: the window moves to the far end, the last row renders and takes the
-    // focus — and it sits above the pinned summary, not under it. This is the
-    // assertion the summary-as-third-table could not make: the totals were
-    // 80 000px down, past the row.
+    // focus — and it sits above the pinned summary, not under it.
     await page.keyboard.press('End');
     await focusedRowIsInBand(ROW_COUNT - 1);
     const end = await page.evaluate(() => {
@@ -353,10 +350,56 @@ test.describe('Virtualized table — one table in one scroll box', () => {
     await page.keyboard.press('Home');
     await focusedRowIsInBand(0);
 
-    // PageDown is a no-op here by design (client-virtualized tables render no
-    // pager to step), pinned in the jsdom suite; the focus stays where it is.
+    // PageDown and PageUp are window jumps: one band of fully visible rows per
+    // press, the target row focused and fully between the pinned layers. Left
+    // to the browser they scrolled the box natively, the focused row unmounted
+    // past the overscan and the focus fell to <body>. `settled` waits for the
+    // scroll position to stop moving before reading, so a native smooth scroll
+    // could not hide behind an early reading.
+    const bandRows = await page.evaluate(() => {
+      const scroller = document.querySelector(
+        '[data-testid="virtual-scroll-container"]'
+      ) as HTMLElement;
+      const thead = scroller.querySelector('thead')!.getBoundingClientRect();
+      const tfoot = scroller.querySelector('tfoot')!.getBoundingClientRect();
+      return [...scroller.querySelectorAll('tr[data-row-index]')].filter((row) => {
+        const r = row.getBoundingClientRect();
+        return r.top >= thead.bottom - 0.5 && r.bottom <= tfoot.top + 0.5;
+      }).length;
+    });
+    expect(bandRows).toBeGreaterThan(2);
+
+    const settled = async () => {
+      const read = () =>
+        page.evaluate(
+          () =>
+            (document.querySelector('[data-testid="virtual-scroll-container"]') as HTMLElement)
+              .scrollTop
+        );
+      let previous = await read();
+      for (let i = 0; i < 20; i++) {
+        await page.waitForTimeout(120);
+        const current = await read();
+        if (current === previous) return current;
+        previous = current;
+      }
+      throw new Error('the scroll position never settled');
+    };
+
     await page.keyboard.press('PageDown');
-    await focusedRowIsInBand(0);
+    await settled();
+    await focusedRowIsInBand(bandRows);
+    await page.keyboard.press('PageDown');
+    await settled();
+    await focusedRowIsInBand(2 * bandRows);
+    await page.keyboard.press('PageUp');
+    await settled();
+    await focusedRowIsInBand(bandRows);
+    // The row still holds the focus after the position has stopped moving —
+    // the failure this guards against was a focus on <body> a smooth scroll
+    // later.
+    await page.waitForTimeout(500);
+    await focusedRowIsInBand(bandRows);
   });
 
   test('the grid passes an axe scan', async ({ page }) => {

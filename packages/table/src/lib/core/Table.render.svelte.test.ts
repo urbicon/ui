@@ -301,10 +301,8 @@ describe('Table — the view object, mounted', () => {
   });
 
   it('declares the virtualized column tracks once, in the one table, against its header cells', () => {
-    // #14 / the open half of #150. The virtualized layout used to render the
-    // header, the body and the summary as three independent `<table>`
-    // elements, each computing its own tracks from its own first row; there is
-    // one table now, and its `<colgroup>` is the one place a width is declared.
+    // #14 / #150. One table, one `<colgroup>`: the tracks are declared in one
+    // place, and the header cells are the row they have to agree with.
     //
     // jsdom has no layout engine, so this asserts the tracks are *declared*
     // against the header cells, not that they measure identically. The

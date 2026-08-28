@@ -678,11 +678,14 @@ export interface TableProps<T = TableItem> {
   cell?: Snippet<[item: T, value: unknown, column: Column<T>]>;
 
   /**
-   * Custom header snippet.
-   * In the virtualized layout the header renders inside a presentational
-   * table under one `role="grid"` wrapper, which strips the implicit table
-   * roles — a custom header there must declare its own `rowgroup`/`row`/
-   * `columnheader` roles explicitly (the built-in head does).
+   * Custom header snippet — the `<thead>` of the table, in place of the
+   * built-in one. In the virtualized layout the table sits in a scroll box of
+   * `virtualHeight` and the built-in head pins itself to the top edge of that
+   * box; a custom `<thead>` scrolls away with the rows unless it pins itself.
+   * The classes the built-in head uses there are
+   * `tableHeaderVariants({ sticky: 'box' }).header()` and `.row()` (exported
+   * from the package) — `sticky top-0 z-20 bg-surface-elevated` on the
+   * `<thead>`, plus an opaque ground and the underline on its `<tr>`.
    * @default undefined
    */
   header?: Snippet;

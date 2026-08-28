@@ -155,6 +155,11 @@
     const { theadH, tfootH } = pinnedHeights();
     const first = Math.ceil(scrollTop / rowHeight);
     const last = Math.floor((scrollTop + viewportHeight - theadH - tfootH) / rowHeight) - 1;
+    // Whether a row held the real focus when this scroll began — read before
+    // the flush, because the flush is what unmounts it.
+    const rowHadFocus =
+      !!document.activeElement?.closest('tr[data-row-index]') &&
+      scrollContainerEl.contains(document.activeElement);
     await tick();
     if (!scrollContainerEl) return;
     const focusedIndex = tableContext.focusedRowIndex;
@@ -162,6 +167,12 @@
       document.activeElement && scrollContainerEl.contains(document.activeElement);
     if ((focusedIndex < first || focusedIndex > last) && !focusIsLive) {
       tableContext.setFocusedRow(Math.max(0, Math.min(first, navigableItems.length - 1)));
+      // A native scroll — wheel, scrollbar — that unmounts the focused row
+      // drops the focus on `<body>`: the tab stop above has moved, but nothing
+      // holds the focus, so the next arrow key scrolls the page instead of the
+      // grid and Tab leaves it. Only for a focus that was lost this way; a live
+      // focus is never moved.
+      if (rowHadFocus) focusRow(tableContext.focusedRowIndex);
     }
   }
 
@@ -296,8 +307,13 @@
   // and a fraction below .5 rounded DOWN leaves the last quarter pixel of the
   // list unreachable (measured: −0.25px at a 13px root).
   //
-  // Read after every window, from the two spacer rows: the bottom one's top
-  // edge does not depend on its own height, so the write cannot feed back.
+  // Read after every window, from the two spacer rows. The rects are DOM
+  // readings, not tracked state, so the write below does not re-run this
+  // effect by itself. It can reach it through the scroller: at the far end a
+  // window change shrinks the bottom spacer, the scroller clamps `scrollTop`
+  // to the new extent, the scroll event derives a new window and this runs
+  // once more — measured as exactly one further write, after which the
+  // readings repeat and nothing is written.
   let bottomSlack = $state(0);
   $effect(() => {
     void virtualResult;
@@ -512,35 +528,40 @@
         }
         break;
       }
-      // Both keys step from `effectivePage`, not `view.page`: the raw
+      // With a pager rendered (the standard branch, server-virtualized) the
+      // keys page. They step from `effectivePage`, not `view.page`: the raw
       // value can sit past the last page after the page size or the row count
       // changed, and stepping from there lands outside the range `goToPage`
       // accepts — which killed paging in BOTH directions rather than one.
-      // Gated on the pager being rendered at all: client-virtualized renders
-      // the whole list in the scroll container, so stepping a page nobody
-      // renders would silently re-slice nothing — while server-virtualized
-      // keeps its pager and the keys keep working.
-      case 'PageDown': {
-        // Next page
-        if (
-          tableContext.pageInfo.showPager &&
-          tableContext.totalPages > 1 &&
-          tableContext.effectivePage < tableContext.totalPages
-        ) {
-          e.preventDefault();
-          tableContext.goToPage(tableContext.effectivePage + 1);
-        }
-        break;
-      }
+      //
+      // Client-virtualized renders no pager, and the keys are a window jump
+      // instead: one band of fully visible rows, focused like any other move.
+      // Left to the browser, the box scrolled natively, the focused row
+      // unmounted past the overscan and the focus fell to `<body>` — after
+      // which the arrow keys scrolled the page and Tab left the grid.
+      case 'PageDown':
       case 'PageUp': {
-        // Previous page
-        if (
-          tableContext.pageInfo.showPager &&
-          tableContext.totalPages > 1 &&
-          tableContext.effectivePage > 1
-        ) {
+        const direction = e.key === 'PageDown' ? 1 : -1;
+        if (tableContext.pageInfo.showPager) {
+          const targetPage = tableContext.effectivePage + direction;
+          if (
+            tableContext.totalPages > 1 &&
+            targetPage >= 1 &&
+            targetPage <= tableContext.totalPages
+          ) {
+            e.preventDefault();
+            tableContext.goToPage(targetPage);
+          }
+        } else if (virtualizedActive) {
           e.preventDefault();
-          tableContext.goToPage(tableContext.effectivePage - 1);
+          const { theadH, tfootH } = pinnedHeights();
+          const band = Math.max(1, Math.floor((viewportHeight - theadH - tfootH) / rowHeight));
+          const target = Math.max(
+            0,
+            Math.min(itemCount - 1, tableContext.focusedRowIndex + direction * band)
+          );
+          tableContext.setFocusedRow(target);
+          focusRow(target);
         }
         break;
       }
@@ -686,7 +707,7 @@
 
         {#if hasSummary}
           <tfoot class={resolveSlotClass(tableStyles.foot, undefined, styleConfig.unstyled)}>
-            <SummaryRow {expandable} {size} class={tableStyles.footRow()} />
+            <SummaryRow {expandable} {size} pinned />
           </tfoot>
         {/if}
       </table>

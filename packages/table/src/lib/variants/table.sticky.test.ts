@@ -151,9 +151,15 @@ describe('tableContainerVariants — contained (fit="viewport")', () => {
 
 describe('tableHeaderVariants — sticky thead', () => {
   it('pins the thead below toolbar (sticky-top + toolbar-h)', () => {
-    const stuck = tableHeaderVariants({ sticky: true }).header();
+    const page = tableHeaderVariants({ sticky: true });
+    const stuck = page.header();
     expect(stuck).toMatch(/\bsticky\b/);
     expect(stuck).toMatch(/calc\(var\(--blocks-table-sticky-top.+var\(--blocks-table-toolbar-h/);
+    // Same underline mechanism as the box pin: a shadow on the row, no
+    // collapsed border left to stay behind.
+    expect(stuck.split(' ')).toContain('border-b-0');
+    expect(stuck.split(' ')).not.toContain('border-b');
+    expect(page.row()).toMatch(/shadow-\[0_1px_0_0_var\(--color-border-hairline\)\]/);
     expect(stuck).toMatch(/z-20\b/);
   });
 

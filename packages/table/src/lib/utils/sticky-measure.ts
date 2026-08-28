@@ -44,13 +44,13 @@ export function measureToCssVar(property: string, targetSelector = '[data-table-
 
     const observer = new ResizeObserver((entries) => {
       for (const entry of entries) {
-        // Written unrounded, and a fractional px is valid CSS. Under
-        // `border-collapse: collapse` the `<thead>` carries half of the collapsed
-        // 1px border, so its border box lands on a half pixel at most root font
-        // sizes (40.5px at the default 16px root, `size="md"`). Rounding that up
-        // put the layer below it 0.5px too low, and a gap between two opaque
-        // layers shows the scrolling content through it (a full device pixel at
-        // DPR 2) while an overlap of the same size is invisible.
+        // Written unrounded, and a fractional px is valid CSS. A `<thead>`
+        // lands on a half pixel whenever a collapsed 1px border sits on it (a
+        // consumer's `slotClasses.thead`, or a `header` snippet) and at most
+        // root font sizes anyway, since its height is a `rem` value. Rounding
+        // that up put the layer below it 0.5px too low, and a gap between two
+        // opaque layers shows the scrolling content through it (a full device
+        // pixel at DPR 2) while an overlap of the same size is invisible.
         //
         // Unconditionally, never write-if-changed: the property lives in the same
         // inline `style` the component owns, and anything that rewrites that
