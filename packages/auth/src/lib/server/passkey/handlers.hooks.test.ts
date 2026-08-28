@@ -2,10 +2,11 @@ import type { Cookies, RequestEvent } from '@sveltejs/kit';
 import { describe, expect, it, vi } from 'vitest';
 import type { PasskeyRepository } from '../adapters/types.js';
 import type { AuthDeps } from '../deps.js';
+import { setSessionCookie } from '../session.js';
 import { createMockAuthDeps, createMockUser } from '../test-utils.js';
 import { WebAuthnError } from './errors.js';
 import { createPasskeyHandlers } from './handlers.js';
-import { verifyAssertion, type WebAuthnConfig } from './webauthn.js';
+import { verifyAssertion, verifyRegistration, type WebAuthnConfig } from './webauthn.js';
 
 type TestDeps = AuthDeps & {
   webauthn: WebAuthnConfig;
@@ -24,7 +25,7 @@ const passkeyHandlers = (d: TestDeps) => createPasskeyHandlers(d, d.webauthn);
 
 vi.mock('./webauthn.js', async (importOriginal) => {
   const actual = await importOriginal<typeof import('./webauthn.js')>();
-  return { ...actual, verifyAssertion: vi.fn() };
+  return { ...actual, verifyAssertion: vi.fn(), verifyRegistration: vi.fn() };
 });
 
 function mockPasskeyRepo(): PasskeyRepository {
@@ -382,5 +383,36 @@ describe('passkey login hooks — remaining terminal outcomes', () => {
     );
     expect(res.status).toBe(400);
     expect(deps.hooks.onLoginFailed).toHaveBeenCalledWith('', 'user_not_found');
+  });
+});
+
+// The one place the WebAuthn cause of a refused registration is observable:
+// the wire carries the bare code, so the log line is what an operator greps
+// for (AUTH.md → upgrade note quotes it verbatim).
+describe('passkey registration — cause on the log', () => {
+  it("logs '[auth] passkey registration verification failed:' with the WebAuthn cause", async () => {
+    const deps = makeDeps();
+    const user = createMockUser({ id: 'u-1' });
+    vi.mocked(deps.repos.user.findById).mockResolvedValue(user);
+    const jar = makeCookieJar(false);
+    await setSessionCookie(
+      jar.cookies,
+      { userId: user.id, email: user.email, role: user.role, tokenVersion: user.tokenVersion },
+      deps.config.jwt
+    );
+    vi.mocked(verifyRegistration).mockRejectedValue(
+      new WebAuthnError('User verification required but not performed')
+    );
+
+    const res = await passkeyHandlers(deps).registrationVerify.POST(
+      event({ credential: { id: 'new', rawId: 'new', type: 'public-key', response: {} } }, jar)
+    );
+
+    expect(res.status).toBe(400);
+    expect((await res.json()).code).toBe('passkey_verification_failed');
+    expect(deps.logger.warn).toHaveBeenCalledWith(
+      '[auth] passkey registration verification failed:',
+      'User verification required but not performed'
+    );
   });
 });

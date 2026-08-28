@@ -531,6 +531,34 @@ describe('passkey auth — ceremony-handle binding (G.1)', () => {
     expect(vi.mocked(deps.logger.warn).mock.calls.flat().join(' ')).toMatch(/mismatch/i);
   });
 
+  // The one place the WebAuthn cause of a refused login is observable: the
+  // wire carries the bare code and the hook a collapsed reason, so this log
+  // line is what an operator greps for (AUTH.md → upgrade note quotes it).
+  it("logs '[auth] passkey assertion rejected:' with the WebAuthn cause for a UP-only assertion", async () => {
+    const deps = makeDeps();
+    const options = passkeyHandlers(deps).authenticationOptions;
+    const verify = passkeyHandlers(deps).authenticationVerify;
+    const jar = makeCookieJar();
+    const { options: opts } = await (await options.POST(event({}, { jar }))).json();
+    // A tap without PIN/biometric, against the UV-by-default config.
+    const { credential, publicKey } = await buildEs256Assertion(deps.webauthn, {
+      challenge: opts.challenge,
+      flags: 0x01
+    });
+    vi.mocked(deps.repos.passkey.findByCredentialId).mockResolvedValue(
+      mkPasskey({ credentialId: credential.id, publicKey, publicKeyAlg: -7, counter: 0 })
+    );
+
+    const res = await verify.POST(event({ credential }, { jar }));
+
+    expect(res.status).toBe(400);
+    expect((await res.json()).code).toBe('passkey_verification_failed');
+    expect(deps.logger.warn).toHaveBeenCalledWith(
+      '[auth] passkey assertion rejected:',
+      'User verification required but not performed'
+    );
+  });
+
   it('verify without a ceremony cookie fails closed', async () => {
     const deps = makeDeps();
     vi.mocked(deps.repos.passkey.findByCredentialId).mockResolvedValue(mkPasskey());

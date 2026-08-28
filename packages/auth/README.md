@@ -141,8 +141,8 @@ typos on separate days never add up to a lockout.
 A `cookieSecure: false` on the session, CSRF **or** refresh cookie marks this as a
 non-HTTPS dev deployment, which suppresses the production hardening warnings (and HSTS)
 you'd otherwise see, and drops the `__Host-` prefix from the 2FA and passkey cookies so
-the browser keeps them. Set it on all three or on none — a mix is warned about at wiring
-time ([docs/AUTH.md → Secure deployment](docs/AUTH.md#secure-deployment)).
+the browser keeps them. Set it on every cookie config you declare, or on none — a mix is
+warned about at wiring time ([docs/AUTH.md → Secure deployment](docs/AUTH.md#secure-deployment)).
 
 **2. Hook** — `src/hooks.server.ts`:
 

@@ -1,9 +1,9 @@
 // @vitest-environment jsdom
 import { screen } from '@testing-library/dom';
 import userEvent from '@testing-library/user-event';
-import { flushSync, mount, tick, unmount } from 'svelte';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { de } from '../../../i18n/de.js';
+import { fetcherReturning, jsonResponse, mounter, settle } from '../__fixtures__/fetcher.js';
 import type { LoginPageProps } from './index.js';
 import LoginPage from './LoginPage.svelte';
 
@@ -12,22 +12,6 @@ import LoginPage from './LoginPage.svelte';
 // object — enough to reach the verify request, whose refusal is what these
 // tests are about. The button only renders once `onMount` has seen
 // `PublicKeyCredential`, hence the global stub.
-
-function jsonResponse(status: number, body: unknown): Response {
-  return new Response(JSON.stringify(body), {
-    status,
-    headers: { 'Content-Type': 'application/json' }
-  });
-}
-
-function fetcherReturning(...responses: Response[]): typeof globalThis.fetch {
-  const queue = [...responses];
-  return vi.fn(async () => {
-    const next = queue.shift();
-    if (!next) throw new Error('fetcher queue exhausted');
-    return next;
-  }) as unknown as typeof globalThis.fetch;
-}
 
 const optionsResponse = () =>
   jsonResponse(200, { options: { challenge: 'AAAA', allowCredentials: [] } });
@@ -44,7 +28,7 @@ const fakeAssertion = () => ({
   }
 });
 
-let dispose: (() => void) | undefined;
+const mountInBody = mounter();
 
 beforeEach(() => {
   vi.stubGlobal('PublicKeyCredential', class {});
@@ -55,24 +39,16 @@ beforeEach(() => {
 });
 
 afterEach(() => {
-  dispose?.();
-  dispose = undefined;
   vi.unstubAllGlobals();
-  document.body.replaceChildren();
 });
 
 function render(props: Partial<LoginPageProps>) {
-  const instance = mount(LoginPage, {
-    target: document.body,
-    props: { mode: 'passkey', passkeyApiPath: '/api/auth/passkey', t: de, ...props }
-  });
-  dispose = () => unmount(instance);
-  flushSync();
-}
-
-async function settle() {
-  await new Promise((resolve) => setTimeout(resolve, 0));
-  await tick();
+  mountInBody(LoginPage, {
+    mode: 'passkey',
+    passkeyApiPath: '/api/auth/passkey',
+    t: de,
+    ...props
+  } as LoginPageProps);
 }
 
 async function signInWithPasskey() {
@@ -113,5 +89,18 @@ describe('LoginPage passkey refusal copy (de)', () => {
 
     expect(screen.getByText(de.auth.errors.passkeyVerificationFailed)).toBeTruthy();
     expect(screen.queryByText(de.auth.errors.passkeyCredentialDeleted)).toBeNull();
+  });
+});
+
+describe('LoginPage passkey success body', () => {
+  it('does not treat a 200 without a user on authentication-verify as signed in', async () => {
+    const onSuccess = vi.fn();
+    render({ onSuccess, fetcher: fetcherReturning(optionsResponse(), jsonResponse(200, {})) });
+    await signInWithPasskey();
+
+    // The same malformed success the password and 2FA steps refuse: a captive
+    // portal or proxy answering the verify request with a body of its own.
+    expect(onSuccess).not.toHaveBeenCalled();
+    expect(screen.getByRole('alert').textContent).toContain(de.auth.errors.serverError);
   });
 });

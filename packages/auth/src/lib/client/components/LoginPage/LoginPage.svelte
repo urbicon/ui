@@ -208,11 +208,15 @@
         fetcher
       );
 
+      const data = await parseJsonBody(verifyRes);
       if (!verifyRes.ok) {
-        error = errorTextFromBody(await parseJsonBody(verifyRes), t);
+        error = errorTextFromBody(data, t);
         return;
       }
-
+      if (!userFromSuccess(data)) {
+        error = t.auth.errors.serverError;
+        return;
+      }
       onSuccess?.();
     } catch (err) {
       if (err instanceof DOMException && err.name === 'NotAllowedError') {
