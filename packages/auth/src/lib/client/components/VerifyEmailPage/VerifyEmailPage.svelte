@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { Alert, Spinner, getBlocksConfig } from '@urbicon-ui/blocks';
+  import { Spinner, getBlocksConfig } from '@urbicon-ui/blocks';
   import { onMount } from 'svelte';
   import { mergeAuthLocale, useAuthLocale } from '../../../i18n/index.js';
   import { errorMessageFromCode } from '../../utils/error-message.js';
@@ -7,6 +7,7 @@
   import { resolveAuthSlotClasses, slotClass } from '../../utils/slot-class.js';
   import type { VerifyEmailPageProps } from './index.js';
   import AuthPageShell from '../_shared/AuthPageShell.svelte';
+  import FormErrorAlert from '../_shared/FormErrorAlert.svelte';
 
   let {
     t: tProp,
@@ -32,7 +33,7 @@
   const authLocale = useAuthLocale();
   const t = $derived(mergeAuthLocale(authLocale(), tProp));
 
-  let verifying = $state(true);
+  // Until one of the two is set, the region shows the spinner.
   let success = $state(false);
   let error = $state('');
 
@@ -41,7 +42,6 @@
     // pointless round-trip that the server would reject anyway.
     if (!token) {
       error = t.auth.verifyEmail.error;
-      verifying = false;
       return;
     }
     try {
@@ -57,16 +57,14 @@
       }
     } catch {
       error = t.auth.errors.networkError;
-    } finally {
-      verifying = false;
     }
   });
 
   const cls = (base: string, slot?: string) => slotClass(unstyled, base, slot);
 </script>
 
-<!-- No `error` prop on the shell: this page announces spinner/success/error
-     through its own single live region below. -->
+<!-- No `error` prop on the shell: the outcome is this page's whole content, so
+     it renders its own region at page size, with the spinner inside it. -->
 <AuthPageShell
   title={t.auth.verifyEmail.title}
   centered
@@ -75,24 +73,21 @@
   {slotClasses}
   class={className}
 >
-  <div aria-live="polite">
-    {#if verifying}
-      <div class={cls('flex flex-col items-center gap-3 py-8')}>
-        <Spinner size="lg" {unstyled} />
-        <p class={cls('text-text-secondary text-sm')}>
-          {t.auth.verifyEmail.verifying}
-        </p>
-      </div>
-    {:else if success}
-      <Alert intent="success" {unstyled} class={slotClasses.success}>
-        {t.auth.verifyEmail.success}
-      </Alert>
-    {:else}
-      <Alert intent="danger" {unstyled} class={slotClasses.error}>
-        {error}
-      </Alert>
-    {/if}
-  </div>
+  <FormErrorAlert
+    {error}
+    success={success ? t.auth.verifyEmail.success : ''}
+    size="md"
+    {unstyled}
+    class={slotClasses.error}
+    successClass={slotClasses.success}
+  >
+    <div class={cls('flex flex-col items-center gap-3 py-8')}>
+      <Spinner size="lg" {unstyled} />
+      <p class={cls('text-text-secondary text-sm')}>
+        {t.auth.verifyEmail.verifying}
+      </p>
+    </div>
+  </FormErrorAlert>
 
   {#if footerSnippet}
     <div class={cls('mt-4')}>

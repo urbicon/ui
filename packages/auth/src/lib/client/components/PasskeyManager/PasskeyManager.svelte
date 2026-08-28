@@ -6,7 +6,7 @@
   import { csrfFetch } from '../../csrf.js';
   import type { PasskeyManagerProps } from './index.js';
   import { base64UrlToBuffer, bufferToBase64Url } from '../../utils/webauthn.js';
-  import { errorTextFromBody, getJson } from '../../utils/http.js';
+  import { errorTextFromBody, getJson, parseJsonBody } from '../../utils/http.js';
   import { resolveAuthSlotClasses, slotClass } from '../../utils/slot-class.js';
 
   let {
@@ -83,8 +83,7 @@
         fetcher
       );
       if (!optRes.ok) {
-        const data = await optRes.json().catch(() => ({}));
-        actionError = errorTextFromBody(data, t);
+        actionError = errorTextFromBody(await parseJsonBody(optRes), t);
         return;
       }
       const { options } = await optRes.json();
@@ -141,8 +140,7 @@
       );
 
       if (!verifyRes.ok) {
-        const data = (await verifyRes.json().catch(() => ({}))) as Record<string, unknown>;
-        actionError = errorTextFromBody(data, t);
+        actionError = errorTextFromBody(await parseJsonBody(verifyRes), t);
         return;
       }
 
@@ -168,8 +166,7 @@
         fetcher
       );
       if (!res.ok) {
-        const data = await res.json().catch(() => ({}));
-        actionError = errorTextFromBody(data, t);
+        actionError = errorTextFromBody(await parseJsonBody(res), t);
         return;
       }
       // Drop it locally only once the server confirms — an unchecked optimistic

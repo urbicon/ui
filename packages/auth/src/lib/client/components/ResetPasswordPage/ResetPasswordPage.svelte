@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { Alert, Button, Input, getBlocksConfig } from '@urbicon-ui/blocks';
+  import { Button, Input, getBlocksConfig } from '@urbicon-ui/blocks';
   import { mergeAuthLocale, useAuthLocale } from '../../../i18n/index.js';
   import { unmetPasswordRules } from '../../../password-policy.js';
   import { errorMessageFromCode } from '../../utils/error-message.js';
@@ -114,16 +114,13 @@
 <AuthPageShell
   title={t.auth.resetPassword.title}
   {error}
+  success={success ? t.auth.resetPassword.success : ''}
   header={headerSnippet}
   {unstyled}
   {slotClasses}
   class={className}
 >
-  {#if success}
-    <Alert intent="success" size="sm" {unstyled} class={slotClasses.success}>
-      {t.auth.resetPassword.success}
-    </Alert>
-  {:else}
+  {#if !success}
     <form onsubmit={handleSubmit} class={cls('flex flex-col gap-4', slotClasses.form)}>
       <div class={cls('flex flex-col gap-1.5')}>
         <Input

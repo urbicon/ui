@@ -4,7 +4,7 @@
   import { onMount } from 'svelte';
   import { mergeAuthLocale, useAuthLocale } from '../../../i18n/index.js';
   import { csrfFetch } from '../../csrf.js';
-  import { errorTextFromBody, getJson } from '../../utils/http.js';
+  import { errorTextFromBody, getJson, parseJsonBody } from '../../utils/http.js';
   import type { SessionManagerProps } from './index.js';
   import { resolveAuthSlotClasses, slotClass } from '../../utils/slot-class.js';
 
@@ -39,17 +39,25 @@
   let sessions = $state<SessionRow[]>([]);
   let available = $state(true);
   let loading = $state(true);
-  let error = $state('');
+  // Two failures with different reach, kept apart so neither can silently
+  // stand in for the other (the split InvitationManager and PasskeyManager
+  // make): `loadError` disowns the list region — "no active sessions" and
+  // "unavailable" both describe a list that was actually fetched — while
+  // `actionError` is a failed sign-out with the rows on screen still valid.
+  // Both speak through the one alert below.
+  let actionError = $state('');
+  let loadError = $state('');
+  const error = $derived(actionError || loadError);
   let revokingId = $state<string | null>(null);
   let revokingOthers = $state(false);
 
   async function loadSessions() {
     loading = true;
-    error = '';
+    loadError = '';
     try {
       const { ok, data } = await getJson(apiPath, { fetcher });
       if (!ok) {
-        error = errorTextFromBody(data, t);
+        loadError = errorTextFromBody(data, t);
         return;
       }
       sessions = (data.sessions as SessionRow[] | undefined) ?? [];
@@ -57,14 +65,14 @@
     } catch {
       // Surface the failure rather than rendering an empty list that looks like
       // "no other sessions".
-      error = t.auth.errors.networkError;
+      loadError = t.auth.errors.networkError;
     } finally {
       loading = false;
     }
   }
 
   async function revokeSession(id: string) {
-    error = '';
+    actionError = '';
     revokingId = id;
     try {
       const res = await csrfFetch(
@@ -78,32 +86,30 @@
         fetcher
       );
       if (!res.ok) {
-        const data = (await res.json().catch(() => ({}))) as Record<string, unknown>;
-        error = errorTextFromBody(data, t);
+        actionError = errorTextFromBody(await parseJsonBody(res), t);
         return;
       }
       // Drop locally only once the server confirms.
       sessions = sessions.filter((s) => s.id !== id);
     } catch {
-      error = t.auth.errors.networkError;
+      actionError = t.auth.errors.networkError;
     } finally {
       revokingId = null;
     }
   }
 
   async function signOutOthers() {
-    error = '';
+    actionError = '';
     revokingOthers = true;
     try {
       const res = await csrfFetch(`${apiPath}/revoke-others`, { method: 'POST' }, csrf, fetcher);
       if (!res.ok) {
-        const data = (await res.json().catch(() => ({}))) as Record<string, unknown>;
-        error = errorTextFromBody(data, t);
+        actionError = errorTextFromBody(await parseJsonBody(res), t);
         return;
       }
       await loadSessions();
     } catch {
-      error = t.auth.errors.networkError;
+      actionError = t.auth.errors.networkError;
     } finally {
       revokingOthers = false;
     }
@@ -173,6 +179,9 @@
 
   {#if loading}
     <div class={cls('flex justify-center py-4')}><Spinner size="sm" {unstyled} /></div>
+  {:else if loadError}
+    <!-- The alert above carries the reason; a list that was never fetched has no
+         reading of its own down here. -->
   {:else if !available}
     <p class={cls('text-text-tertiary py-4 text-center text-sm', slotClasses.empty)}>
       {t.sessions.unavailable}

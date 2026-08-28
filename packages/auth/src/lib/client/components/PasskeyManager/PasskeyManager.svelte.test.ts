@@ -1,8 +1,9 @@
 // @vitest-environment jsdom
 import { screen } from '@testing-library/dom';
 import userEvent from '@testing-library/user-event';
-import { type ComponentProps, flushSync, mount, tick, unmount } from 'svelte';
-import { afterEach, describe, expect, it, vi } from 'vitest';
+import { type ComponentProps, tick } from 'svelte';
+import { describe, expect, it, vi } from 'vitest';
+import { fetcherReturning, jsonResponse, mounter, settle } from '../__fixtures__/fetcher.js';
 import ProviderHarness from '../__fixtures__/ProviderHarness.svelte';
 import type { PasskeyManagerProps } from './index.js';
 import PasskeyManager from './PasskeyManager.svelte';
@@ -24,50 +25,9 @@ const passkey = (over: Record<string, unknown> = {}) => ({
   ...over
 });
 
-function jsonResponse(status: number, body: unknown): Response {
-  return new Response(JSON.stringify(body), {
-    status,
-    headers: { 'Content-Type': 'application/json' }
-  });
-}
-
-function fetcherReturning(...responses: Array<Response | Error>): typeof globalThis.fetch {
-  const queue = [...responses];
-  return vi.fn(async () => {
-    const next = queue.shift();
-    if (!next) throw new Error('fetcher queue exhausted');
-    if (next instanceof Error) throw next;
-    return next;
-  }) as unknown as typeof globalThis.fetch;
-}
-
-let dispose: (() => void) | undefined;
-
-afterEach(() => {
-  dispose?.();
-  dispose = undefined;
-  document.body.replaceChildren();
-});
-
-function render(props: Partial<PasskeyManagerProps> = {}) {
-  const instance = mount(PasskeyManager, {
-    target: document.body,
-    props: props as PasskeyManagerProps
-  });
-  dispose = () => unmount(instance);
-  flushSync();
-}
-
-/**
- * Let a request round-trip finish. A macrotask, not two microtasks: parsing a
- * real `Response` body takes an unspecified number of microtask turns, so
- * counting them is how a component test starts asserting against a DOM that has
- * not caught up yet.
- */
-async function settle() {
-  await new Promise((resolve) => setTimeout(resolve, 0));
-  await tick();
-}
+const mountInBody = mounter();
+const render = (props: Partial<PasskeyManagerProps> = {}) =>
+  mountInBody(PasskeyManager, props as PasskeyManagerProps);
 
 describe('PasskeyManager (component)', () => {
   it('loads the list on mount and renders one row per passkey', async () => {
@@ -147,6 +107,29 @@ describe('PasskeyManager (component)', () => {
     expect(screen.getByText('No passkeys registered.')).toBeTruthy();
   });
 
+  it.each([
+    ['null', null],
+    ['an array', []]
+  ])(
+    'reports a refusal whose JSON body is %s as the generic error, not as a network failure',
+    async (_, body) => {
+      render({
+        fetcher: fetcherReturning(
+          jsonResponse(200, { passkeys: [passkey()] }),
+          jsonResponse(500, body)
+        )
+      });
+      await settle();
+
+      await userEvent.click(screen.getByRole('button', { name: /Delete — MacBook/ }));
+      await settle();
+
+      // The server answered; a body that is valid JSON but not an object must
+      // not be reported as "check your connection".
+      expect(screen.getByRole('alert').textContent).toContain('An error occurred');
+    }
+  );
+
   it('reports a cancelled platform prompt and re-enables the add button', async () => {
     Object.defineProperty(navigator, 'credentials', {
       configurable: true,
@@ -177,21 +160,16 @@ describe('PasskeyManager (component)', () => {
   });
 
   it('resolves provider defaults, then the preset, then the instance slotClasses', async () => {
-    const instance = mount(ProviderHarness, {
-      target: document.body,
-      props: {
-        component: PasskeyManager,
-        componentProps: {
-          preset: 'branded',
-          slotClasses: { empty: 'qa-instance' },
-          fetcher: fetcherReturning(jsonResponse(200, { passkeys: [] }))
-        },
-        defaults: { PasskeyManager: { slotClasses: { empty: 'qa-defaults' } } },
-        presets: { PasskeyManager: { branded: { slotClasses: { empty: 'qa-preset' } } } }
-      } as ComponentProps<typeof ProviderHarness>
-    });
-    dispose = () => unmount(instance);
-    flushSync();
+    mountInBody(ProviderHarness, {
+      component: PasskeyManager,
+      componentProps: {
+        preset: 'branded',
+        slotClasses: { empty: 'qa-instance' },
+        fetcher: fetcherReturning(jsonResponse(200, { passkeys: [] }))
+      },
+      defaults: { PasskeyManager: { slotClasses: { empty: 'qa-defaults' } } },
+      presets: { PasskeyManager: { branded: { slotClasses: { empty: 'qa-preset' } } } }
+    } as ComponentProps<typeof ProviderHarness>);
     await settle();
 
     // All three sources contribute. The markers deliberately match no Tailwind

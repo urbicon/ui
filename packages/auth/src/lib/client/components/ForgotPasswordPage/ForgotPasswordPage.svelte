@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { Alert, Button, Input, getBlocksConfig } from '@urbicon-ui/blocks';
+  import { Button, Input, getBlocksConfig } from '@urbicon-ui/blocks';
   import { mergeAuthLocale, useAuthLocale } from '../../../i18n/index.js';
   import { errorMessageFromCode } from '../../utils/error-message.js';
   import { postJson, wireError } from '../../utils/http.js';
@@ -63,16 +63,13 @@
 <AuthPageShell
   title={t.auth.forgotPassword.title}
   {error}
+  success={submitted ? t.auth.forgotPassword.success : ''}
   header={headerSnippet}
   {unstyled}
   {slotClasses}
   class={className}
 >
-  {#if submitted}
-    <Alert intent="success" size="sm" {unstyled} class={slotClasses.success}>
-      {t.auth.forgotPassword.success}
-    </Alert>
-  {:else}
+  {#if !submitted}
     <p class={cls('text-text-secondary mb-6 text-sm')}>{t.auth.forgotPassword.description}</p>
 
     <form onsubmit={handleSubmit} class={cls('flex flex-col gap-4', slotClasses.form)}>

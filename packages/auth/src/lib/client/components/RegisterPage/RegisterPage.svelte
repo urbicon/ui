@@ -115,6 +115,12 @@
         error = errorMessageFromCode(w.code, t, w.error) ?? t.auth.errors.serverError;
         return;
       }
+      // Same guard as createAuthStore.register: a 201 without the account it
+      // created is a captive portal or broken proxy, not a login.
+      if (!data.user) {
+        error = t.auth.errors.serverError;
+        return;
+      }
       onSuccess?.();
     } catch {
       error = t.auth.errors.networkError;

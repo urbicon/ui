@@ -20,6 +20,12 @@
      * page manages its own feedback region (VerifyEmailPage).
      */
     error?: string;
+    /**
+     * Success text for the same region (ForgotPasswordPage, ResetPasswordPage):
+     * announced where the error would have been, so a screen reader hears the
+     * outcome either way.
+     */
+    success?: string;
     /** Center the card's text (VerifyEmailPage). */
     centered?: boolean;
     /** Rendered between the heading and the error region. */
@@ -33,6 +39,7 @@
   let {
     title,
     error,
+    success = '',
     centered = false,
     header,
     children,
@@ -68,7 +75,13 @@
     {/if}
 
     {#if error !== undefined}
-      <FormErrorAlert {error} {unstyled} class={cls('mb-4', slotClasses.error)} />
+      <FormErrorAlert
+        {error}
+        {success}
+        {unstyled}
+        class={cls('mb-4', slotClasses.error)}
+        successClass={slotClasses.success}
+      />
     {/if}
 
     {@render children()}
