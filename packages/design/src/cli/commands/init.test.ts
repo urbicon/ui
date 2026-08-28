@@ -637,6 +637,27 @@ describe('runInit — stylesheet imports read from node_modules', () => {
     expect(logged()).not.toContain('is installed yet');
   });
 
+  // Two copies of one name on two node_modules levels: Node resolves the nearer one, so
+  // the nearer package.json is the oracle for that name — a hoisted copy that ships a
+  // stylesheet must not be listed for a consumer whose own copy does not.
+  it('lets the nearest copy of a name win over a hoisted one', async () => {
+    const app = join(dir, 'apps', 'web');
+    await mkdir(app, { recursive: true });
+    await writeFile(join(app, 'package.json'), JSON.stringify({ name: 'web' }));
+    await install('blocks', STYLE); // root only
+    await install('table', STYLE); // root copy ships a stylesheet
+    await install('table', NO_STYLE, app); // the nested copy does not
+    process.chdir(app);
+    await runInit([], {});
+    expect(logged()).toContain(line('blocks'));
+    expect(logged()).not.toContain(line('table'));
+    log.mockClear();
+    process.chdir(dir);
+    await runInit([], {});
+    expect(logged()).toContain(line('blocks'));
+    expect(logged()).toContain(line('table'));
+  });
+
   it('names an installed package whose package.json does not parse, and does not skip it', async () => {
     await declare({ '@urbicon-ui/blocks': '^8', '@urbicon-ui/table': '^8' });
     await install('blocks', STYLE);
