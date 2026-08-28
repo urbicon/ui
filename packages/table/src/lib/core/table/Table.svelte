@@ -192,10 +192,10 @@
 
   // `--blocks-table-sticky-top` is the consumer-facing offset (e.g. fixed top bar).
   // In contained mode the thead pins to the box and not to the page, so the
-  // page-relative sticky-top must be 0; `stickyOffset` is ignored there, and what
-  // an *ancestor* holds above the box is reserved by the cap
-  // (`--blocks-table-avail-top`) instead. A fixed top bar that is only a sibling
-  // of the table is in neither of those and is not accounted for anywhere.
+  // page-relative sticky-top must be 0 — `stickyOffset` goes into the cap
+  // instead (`--blocks-table-avail-top`, as a floor under the measured
+  // reservation), which is where a fixed bar that is only a sibling of the
+  // table is accounted for: the measurement sees ancestors only.
   //
   // Set through `style:` and not as a `style=` string: the same inline style
   // carries the properties `measureToCssVar` / `measureViewportOffsetTop` write
@@ -273,7 +273,9 @@
     data-fit={contained ? 'viewport' : 'content'}
     data-testid="table"
     bind:this={tableContainer}
-    {@attach contained ? measureViewportOffsetTop('--blocks-table-avail-top') : () => {}}
+    {@attach contained
+      ? measureViewportOffsetTop('--blocks-table-avail-top', stickyOffset)
+      : () => {}}
   >
     {#if hasToolbar}
       {#if stickyMode.toolbar}

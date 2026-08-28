@@ -167,7 +167,9 @@ export interface JwtConfig {
 }
 
 export interface LockoutConfig {
+  /** Failed attempts that lock the account. @default 5 */
   maxAttempts?: number;
+  /** How long the lock holds, in minutes. @default 15 */
   durationMinutes?: number;
   /**
    * How long a failed attempt keeps counting, in minutes. @default 60
@@ -185,7 +187,8 @@ export interface LockoutConfig {
    * without a lockout via `lockout: null`, not through this field.
    *
    * Read by `createLoginHandler`, not by the repository: `recordFailedLogin`
-   * receives this config but has no decay duty.
+   * receives the resolved lock (`FailedLoginLock`), never this config, and has
+   * no decay duty.
    */
   decayMinutes?: number;
 }

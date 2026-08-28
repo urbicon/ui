@@ -136,6 +136,12 @@ jobs:
       # are served to the MCP catalogue, llm.txt and the docs site at once, so a
       # wrong one is wrong in three places.
       - run: bun run examples:lint
+      # Compiles the opted-in `ts` fences of the shipped Markdown docs (package
+      # READMEs, the six tarball docs) with tsc, resolved through the published
+      # exports maps into what each package publishes — the dist/ the build:ts
+      # above produced, or src/ where the map points there — the way a consumer
+      # sees them. Nothing else compiles those blocks.
+      - run: bun run docs:fences:lint
 
   test:
     name: Test
@@ -152,6 +158,11 @@ jobs:
       # with the code under test. This job ran without it for as long as the
       # workflow existed; it simply never executed, because origin was Codeberg.
       - run: bun run build:ts
+      # The consumer-CSS gate's positive controls (the gate itself runs in
+      # `build`): packs dist/ like the gate, then reproduces the pre-#314
+      # `@source` lines on the unpacked copies and expects that finding back
+      # by class and file. Without this the gate is green for any reason.
+      - run: bun test scripts/consumer-css-check.test.ts
       - run: bun --filter='@urbicon-ui/blocks' run test:run
       - run: bun --filter='@urbicon-ui/i18n' run test:run
       - run: bun --filter='@urbicon-ui/docs-gen' run test
@@ -351,6 +362,13 @@ jobs:
       # Needs the blocks/table/auth dist that `build` just produced. Tolerance
       # is max(256 B, 3 %), so it measures intent, not machine noise.
       - run: bun run size --check
+      # Consumer-CSS gate: packs every published package that ships `.svelte`,
+      # installs the tarballs into a throwaway node_modules and asks Tailwind's
+      # own compiler + scanner whether the shipped stylesheet reaches every
+      # class in the shipped markup. apps/docs cannot catch this — it scans
+      # every src/lib whole and is not a consumer (#314). Needs the dist that
+      # `build` just produced; its positive controls run in the `test` job.
+      - run: bun run consumer-css:check
 
       # Bundles the MCP server into a self-contained mcp-dist/ (server.js plus
       # the content it reads at runtime). Needs the docs:gen output that

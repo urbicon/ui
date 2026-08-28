@@ -34,13 +34,16 @@ export type {
   TwoFactorConfig
 } from '../types.js';
 // Full in-memory adapter — dev/test fixture and five-minute quickstart. Never
-// production (heap-only, single-process). See `./adapters/in-memory` for the
-// per-repository factories.
+// production (heap-only, single-process). Every single-repository factory takes
+// the store handle from `createInMemoryStore()`; see `./adapters/in-memory` for
+// the rest of them.
 export {
   createInMemoryBackupCodeRepository,
   createInMemoryFederatedAccountRepository,
   createInMemoryRefreshTokenRepository,
-  createInMemoryRepos
+  createInMemoryRepos,
+  createInMemoryStore,
+  type InMemoryStore
 } from './adapters/in-memory.js';
 // Adapter types
 export type {
@@ -50,6 +53,7 @@ export type {
   CreatePasskeyData,
   CreateRefreshTokenData,
   CreateUserData,
+  FailedLoginLock,
   FederatedAccount,
   FederatedAccountRepository,
   FullAuthUser,
@@ -97,7 +101,7 @@ export type { EmailTransport, SendEmailParams } from './email/types.js';
 // resolveUser is where THIS app decides access; the IdP's role never arrives.
 export type { FederatedAuthHandleOptions, FederatedIdentity } from './federated-handle.js';
 export { createFederatedAuthHandle } from './federated-handle.js';
-export type { AuthHandleOptions } from './handle.js';
+export type { AuthHandleOptions, PublicRoute } from './handle.js';
 // Handle hook. DEFAULT_PUBLIC_ROUTES is the guard's default exemption list —
 // `publicRoutes` replaces it, so extending means spreading this.
 export { createAuthHandle, DEFAULT_PUBLIC_ROUTES } from './handle.js';

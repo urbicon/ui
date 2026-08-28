@@ -18,7 +18,7 @@ import {
   createPrismaRepos,
   type PrismaLike
 } from './prisma.js';
-import type { FullAuthUser, UserRepository } from './types.js';
+import type { FailedLoginLock, FullAuthUser, UserRepository } from './types.js';
 
 // `Required`, not `as const`: a capability added to the interface has to be
 // declared here or this file stops compiling — the one thing an omitted key
@@ -77,6 +77,10 @@ function makeTable(opts: {
 
   const matchCond = (cell: any, cond: any): boolean => {
     if (cond !== null && typeof cond === 'object' && !(cond instanceof Date)) {
+      // SQL three-valued logic: NULL compared to anything is never true, so a
+      // null cell fails every range operator. JS would say `null <= date`.
+      const ranged = ['lt', 'lte', 'gt', 'gte'].some((op) => op in cond);
+      if (ranged && cell == null) return false;
       if ('lt' in cond && !(cell < cond.lt)) return false;
       if ('lte' in cond && !(cell <= cond.lte)) return false;
       if ('gt' in cond && !(cell > cond.gt)) return false;
@@ -915,6 +919,7 @@ function brokenAtomicityUserRepo(): UserRepository {
     getFailedLoginAttempts: notExercised,
     recordFailedLogin: notExercised,
     resetFailedLogins: notExercised,
+    resetFailedLoginsIfStale: notExercised,
     updateProfile: notExercised,
     setEmailChangeToken: notExercised,
     consumeEmailChangeToken: notExercised,
@@ -937,6 +942,148 @@ describe('conformance suite — negative control', () => {
     expect(resetCheck, 'reset-token check must exist').toBeDefined();
     await expect(resetCheck!.run(brokenHarness)).rejects.toThrow();
   });
+
+  it('rejects a guarded reset that ignores its cutoff (proves the decay check has teeth)', async () => {
+    // The mutation an adapter author is most likely to ship: the new method
+    // wired to the unconditional clear.
+    const brokenHarness: ConformanceHarness = {
+      role: 'USER',
+      setup: () => {
+        const repos = createInMemoryRepos();
+        return {
+          ...repos,
+          user: {
+            ...repos.user,
+            resetFailedLoginsIfStale: (id) => repos.user.resetFailedLogins(id)
+          }
+        };
+      }
+    };
+    const decayCheck = conformanceChecks.find(
+      (c) => c.name === 'user.resetFailedLoginsIfStale clears only a count older than the cutoff'
+    );
+    expect(decayCheck, 'guarded-reset check must exist').toBeDefined();
+    await expect(decayCheck!.run(brokenHarness)).rejects.toThrow(/must not clear the count/);
+  });
+
+  it('rejects a store that keeps no lastFailedAt yet still clears on the guarded reset', async () => {
+    // The other branch of the same check: an adapter that reports `null` for
+    // the date has nothing to hold against the cutoff, so its guarded reset
+    // must match nothing. Wired to the unconditional clear, it fails there.
+    const brokenHarness: ConformanceHarness = {
+      role: 'USER',
+      setup: () => {
+        const repos = createInMemoryRepos();
+        return {
+          ...repos,
+          user: {
+            ...repos.user,
+            getFailedLoginAttempts: async (id) => ({
+              ...(await repos.user.getFailedLoginAttempts(id)),
+              lastFailedAt: null
+            }),
+            resetFailedLoginsIfStale: (id) => repos.user.resetFailedLogins(id)
+          }
+        };
+      }
+    };
+    const decayCheck = conformanceChecks.find(
+      (c) => c.name === 'user.resetFailedLoginsIfStale clears only a count older than the cutoff'
+    );
+    await expect(decayCheck!.run(brokenHarness)).rejects.toThrow(/never stale/);
+  });
+});
+
+describe('resetFailedLoginsIfStale on an undated row (prisma adapter)', () => {
+  it('matches nothing when lastFailedLogin is NULL — count and lock stay', async () => {
+    // Unreachable through the contract (`recordFailedLogin` dates every count),
+    // so the row is seeded through the client — a hand-migrated column, an
+    // older row. `lastFailedLogin <= ?` on NULL is never true in SQL, and the
+    // fake answers the same way.
+    const fake = createFakePrisma();
+    const repos = createPrismaRepos(fake);
+    const row = await fake.user.create({
+      data: {
+        email: 'undated@conformance.test',
+        name: 'Undated',
+        passwordHash: 'x',
+        role: 'USER',
+        failedLoginAttempts: 3,
+        lockedUntil: new Date(Date.now() + 60_000),
+        lastFailedLogin: null
+      }
+    });
+    await repos.user.resetFailedLoginsIfStale(row.id, new Date(Date.now() + 60_000));
+    const state = await repos.user.getFailedLoginAttempts(row.id);
+    expect(state.count, 'an undated count is never stale').toBe(3);
+    expect(state.lockedUntil, 'and its lock stands').toBeInstanceOf(Date);
+  });
+});
+
+// === 4. Negative control — the suite must REJECT an adapter with a policy of its own
+//
+// `recordFailedLogin` is handed the threshold and the lock instant as values.
+// An adapter that keeps its own numbers passes any check that only asks "does
+// it lock eventually", so the lockout check hands in values the shipped
+// defaults cannot reproduce — and this pins that it notices both kinds of drift.
+
+describe('conformance suite — negative control (lockout policy)', () => {
+  const lockoutCheck = conformanceChecks.find(
+    (c) => c.name === 'user.recordFailedLogin counts atomically and applies the lock it is handed'
+  );
+
+  it.each([
+    {
+      label: 'its own threshold (5 instead of the handed value)',
+      own: (lock: FailedLoginLock): FailedLoginLock => ({ ...lock, maxAttempts: 5 })
+    },
+    {
+      label: 'its own duration (now + 15 min instead of the handed instant)',
+      own: (lock: FailedLoginLock): FailedLoginLock => ({
+        ...lock,
+        lockedUntil: new Date(Date.now() + 15 * 60_000)
+      })
+    }
+  ])('rejects an adapter applying $label', async ({ own }) => {
+    const harness: ConformanceHarness = {
+      role: 'USER',
+      setup: () => {
+        const repos = createInMemoryRepos();
+        const user: UserRepository = {
+          ...repos.user,
+          recordFailedLogin: (id, lock) => repos.user.recordFailedLogin(id, lock && own(lock))
+        };
+        return { ...repos, user };
+      }
+    };
+    expect(lockoutCheck, 'lockout check must exist').toBeDefined();
+    await expect(lockoutCheck!.run(harness)).rejects.toThrow();
+  });
+
+  // The tolerance's other side: a store that keeps `lockedUntil` only to the
+  // second (a `DATETIME` without fractional seconds) stores the handed value
+  // as faithfully as it can, and passes.
+  it('accepts an adapter that stores lockedUntil rounded to the second', async () => {
+    const harness: ConformanceHarness = {
+      role: 'USER',
+      setup: () => {
+        const repos = createInMemoryRepos();
+        const user: UserRepository = {
+          ...repos.user,
+          recordFailedLogin: (id, lock) =>
+            repos.user.recordFailedLogin(
+              id,
+              lock && {
+                ...lock,
+                lockedUntil: new Date(Math.round(lock.lockedUntil.getTime() / 1000) * 1000)
+              }
+            )
+        };
+        return { ...repos, user };
+      }
+    };
+    await expect(lockoutCheck!.run(harness)).resolves.toBeUndefined();
+  });
 });
 
 describe('recordFailedLogin error handling (prisma adapter)', () => {
@@ -951,7 +1098,7 @@ describe('recordFailedLogin error handling (prisma adapter)', () => {
     };
     const repos = createPrismaRepos(fake);
     await expect(
-      repos.user.recordFailedLogin('any-user', { maxAttempts: 5, durationMinutes: 15 })
+      repos.user.recordFailedLogin('any-user', { maxAttempts: 5, lockedUntil: new Date() })
     ).rejects.toThrow('cannot reach database');
   });
 });

@@ -19,6 +19,23 @@ bun install
 Peer dependencies: `svelte` (^5), `@sveltejs/kit`, `@urbicon-ui/blocks`, `@urbicon-ui/i18n`.
 Runtime dependencies: **none**.
 
+**Stylesheet.** The components emit Tailwind classes, and a Tailwind build never scans
+`node_modules` on its own — each package ships a stylesheet whose `@source` directive points
+Tailwind at its components. Import this package's stylesheet next to the blocks one, in the
+file that holds your Tailwind import:
+
+```css
+/* app.css */
+@import 'tailwindcss';
+@import '@urbicon-ui/blocks/style/index.css'; /* tokens + the blocks @source */
+@import '@urbicon-ui/auth/style/index.css'; /* the auth @source — no tokens of its own */
+```
+
+Without the auth line the components still render, but every class that lives only in
+this package (the `sm:` layouts of the pages and managers, the link colour of the auth
+pages) is missing from the compiled CSS. A project that mounted the components before this
+stylesheet existed adds the one line and is done.
+
 **Runtime target: Node.js ≥ 20 or Bun.** All crypto is Web Crypto (`globalThis.crypto`, global since Node 20), but password hashing and the TOTP secret cipher use Node's `Buffer` — which puts the login/register path on a Node/Bun runtime. Edge/Workers/Deno-deploy work only behind a `Buffer` polyfill (e.g. Cloudflare `nodejs_compat`); the Web Crypto paths themselves are edge-clean.
 
 ## Feature Matrix
@@ -43,7 +60,7 @@ Runtime dependencies: **none**.
 | `@urbicon-ui/auth`                             | Universal      | Client stores, components, types                            |
 | `@urbicon-ui/auth/server`                      | Server         | Handlers, auth core, adapters, i18n                         |
 | `@urbicon-ui/auth/server/adapters/prisma`      | Server         | Prisma adapter factory (`createPrismaRepos`)                |
-| `@urbicon-ui/auth/server/adapters/in-memory`   | Server         | In-memory adapter (`createInMemoryRepos`) — dev/test        |
+| `@urbicon-ui/auth/server/adapters/in-memory`   | Server         | In-memory adapter (`createInMemoryRepos`, per-repository factories on a `createInMemoryStore()`) — dev/test |
 | `@urbicon-ui/auth/server/adapters/conformance` | Server (tests) | Adapter conformance suite (`describeRepositoryConformance`), wired to vitest |
 | `@urbicon-ui/auth/server/adapters/conformance-core` | Server (tests) | The same suite without a runner import — pass `{ runner: { describe, it, expect } }` (bun:test as-is; jest needs `expect: (a) => expect(a)`) |
 | `@urbicon-ui/auth/server/email/lettermint`     | Server         | Lettermint email transport                                  |
@@ -88,6 +105,7 @@ restart — **dev only, never production**.
 
 **1. Dependencies** — `src/lib/server/auth-setup.ts`:
 
+<!-- typecheck -->
 ```typescript
 import { createAuthDeps } from '@urbicon-ui/auth/server';
 import { createInMemoryRepos } from '@urbicon-ui/auth/server/adapters/in-memory';
@@ -103,6 +121,13 @@ export const authDeps = createAuthDeps({
   email: createConsoleEmailTransport() // dev only — prints emails to the terminal
 });
 ```
+
+`createInMemoryRepos()` is a fresh `createInMemoryStore()` with every repository built on it.
+Need only a piece — the refresh-token repository beside a user store of your own? Build that
+factory on a store handle: `createInMemoryRefreshTokenRepository(createInMemoryStore())`.
+Repositories on one store share its rows, and `user.delete` erases across all of them. The
+store carries the role type — `createInMemoryStore<'ADMIN' | 'USER'>()` — and every factory
+infers it from the handle; a role-typed factory on an untyped store is a type error.
 
 `createAuthDeps` fills in **secure brute-force defaults automatically** (login rate-limit
 5 / 15 min + lockout 5 / 15 min) — even the quickstart isn't an open door. **Every**
@@ -120,6 +145,7 @@ the browser keeps them.
 
 **2. Hook** — `src/hooks.server.ts`:
 
+<!-- typecheck -->
 ```typescript
 import { createAuthHandle } from '@urbicon-ui/auth/server';
 import { authDeps } from '$lib/server/auth-setup';
@@ -135,6 +161,7 @@ export const handle = createAuthHandle({ config: authDeps.config, repos: authDep
 
 **3. API route stubs** — one file per handler, e.g. `src/routes/api/auth/login/+server.ts`:
 
+<!-- typecheck -->
 ```typescript
 import { createLoginHandler } from '@urbicon-ui/auth/server';
 import { authDeps } from '$lib/server/auth-setup';
@@ -169,6 +196,7 @@ Swap the two dev pieces — in-memory → Prisma, console → a real transport �
 hardening layers. Everything here is **opt-in and additive**: the Stage 1 hook and route
 stubs are unchanged; you're only growing the config.
 
+<!-- typecheck -->
 ```typescript
 // src/lib/server/auth-setup.ts
 import { createAuthDeps } from '@urbicon-ui/auth/server';
@@ -208,7 +236,10 @@ Add a `refresh` route stub (`createRefreshHandler`) once rotation is on. With th
 `RefreshToken` model in your Prisma schema (see `prisma/auth-schema.prisma`), the handle
 hook rotates the refresh cookie whenever the access token expires and revokes the old one;
 replaying a revoked token triggers **family-wide** revocation — a stolen-token scenario
-logs every session in that family out.
+logs every session in that family out. Two requests rotating the same token at once (a
+browser's parallel tabs) are tolerated for ten seconds — but only while the family is still
+live: after a family-wide revocation or a "sign out everywhere", the spent token is refused
+inside that window as well.
 
 #### Production-readiness checklist
 
@@ -258,6 +289,7 @@ Cookie/header names are configurable via `config.csrf.cookieName` / `config.csrf
 - **Passkeys (WebAuthn)** — wire `createPasskey*Handler`s with a `webauthn: WebAuthnConfig` (pass a persistent `challengeStore` at >1 instance; UV enforcement is **on by default** — `requireUserVerification: false` opts out, and combined with `config.twoFactor` that makes a passkey login single-factor, which the factory warns about at wiring time; upgrading an app whose users hold UV-less credentials needs the [upgrade note](https://ui.urbicon.de/auth/guide#upgrade-note--user-verification-is-enforced-by-default) first), and drop in `<PasskeyManager>` + the passkey entry point on `<LoginPage mode="both">`.
 - **Notifications & Web Push** — register domain events server-side and listen client-side:
 
+<!-- typecheck -->
 ```typescript
 // Server: register domain events
 import { createNotificationRegistry } from '@urbicon-ui/auth/server';
@@ -267,7 +299,7 @@ registry.register({
   key: 'order_shipped',
   title: (data) => `Order ${data.orderId} shipped`,
   url: (data) => `/orders/${data.orderId}`, // ⚠️ untrusted at click time — see note
-  recipients: (data) => [data.userId]
+  recipients: async (data) => [data.userId as string] // data is Record<string, unknown>
 });
 ```
 
@@ -292,6 +324,7 @@ registry.register({
 
 - **Account management (self-service)** — let a signed-in user manage their own account. Mount the four handlers under `/api/auth/account/*` and drop in `<AccountSettings>`:
 
+<!-- typecheck -->
 ```typescript
 // src/routes/api/auth/account/change-password/+server.ts
 import { createChangePasswordHandler } from '@urbicon-ui/auth/server';
@@ -406,7 +439,7 @@ The three most load-bearing for a production deploy are below; the **full catalo
 
 - **Persistent stores are opt-in.** Challenge, rate-limit, and refresh-token stores all default to in-memory (single-process). Pass a `ChallengeStore` / `RateLimitStore` / `RefreshTokenRepository` (Redis/Prisma/Upstash) when running >1 instance — the Prisma adapter is bundled.
 - **CSRF Double-Submit and refresh-token rotation are opt-in.** The handle's Origin check is always on; the token layer (`config.csrf = { doubleSubmit: true }`, requires header-capable clients — incompatible with remote-function / no-JS-form mutations) and rotation (`config.refreshToken = {}` + `repos.refreshToken`) are additive production hardening.
-- **`publicRoutes` replaces the defaults, and its entries are prefixes.** Passing the option drops the built-in list instead of adding to it. `'/api/auth/'` is in that list, so an override that omits it guards the app's own sign-in — `POST /api/auth/login` then answers `401` to a visitor who has no session. Spread the exported `DEFAULT_PUBLIC_ROUTES` to extend (`[...DEFAULT_PUBLIC_ROUTES, '/pricing']`); replace wholesale only for a handle scoped to routes that mount no auth endpoints. Matching is `startsWith` and there is no exact-match form: `'/api/auth/'` exempts every sub-route below it, and `'/'` exempts the **whole app** — the obvious spelling of "my landing page is public" turns the guard off entirely. Don't nest protected app routes under a public prefix.
+- **`publicRoutes` replaces the defaults, and a string entry is a prefix.** Passing the option drops the built-in list instead of adding to it. `'/api/auth/'` is in that list, so an override that omits it guards the app's own sign-in — `POST /api/auth/login` then answers `401` to a visitor who has no session. Spread the exported `DEFAULT_PUBLIC_ROUTES` to extend (`[...DEFAULT_PUBLIC_ROUTES, '/pricing']`); replace wholesale only for a handle scoped to routes that mount no auth endpoints. A string matches with `startsWith`: `'/api/auth/'` exempts every sub-route below it, `'/pricing'` also exempts `/pricing-admin` and `/pricing/internal`, and `'/'` exempts the **whole app** — the obvious spelling of "my landing page is public" turns the guard off entirely, which the handle warns about at construction. One pathname alone is the object form: `{ path: '/', exact: true }` publishes the landing page and nothing under it. A list held in a variable first needs `as const` or the annotation `PublicRoute[]` — TypeScript otherwise widens `exact: true` to `boolean` and the assignment is a type error; an inline list needs nothing. Don't nest protected app routes under a public prefix.
 
 ## Roadmap
 

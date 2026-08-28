@@ -352,6 +352,21 @@ describe('the four --blocks-table-* properties reach the container', () => {
     expect(contained.stickyTop).toBe('0px');
   });
 
+  it('stickyOffset is a floor under the contained reservation', () => {
+    // Under `contained` the thead pins to the box, so `--blocks-table-sticky-top`
+    // is 0 — but the offset is not discarded: it goes into the cap, for chrome
+    // the measurement cannot see (a fixed bar that is a sibling of the table).
+    containerTop = 20;
+    const declared = properties(mountTable({ fit: 'viewport', stickyOffset: 48 }));
+    const undeclared = properties(mountTable({ fit: 'viewport' }));
+
+    expect(declared.stickyTop).toBe('0px');
+    expect(declared.availTop).toBe('48px');
+    // POSITIVE CONTROL: the same mount without the declaration writes the
+    // measured 20, so the 48 above is the floor and not a different reading.
+    expect(undeclared.availTop).toBe('20px');
+  });
+
   it('clamps a negative reservation to zero', () => {
     // A container pulled above the document's top edge (a negative margin, a
     // translate) reads negative — and `100dvh - (-12px)` is a box taller than

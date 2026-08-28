@@ -9,8 +9,12 @@
  * to the library defaults.
  */
 
-/* Foundation Layer - Base design tokens */
-@import '@urbicon-ui/blocks/style/index.css';
+/* No `@import` of the blocks stylesheet either. Tailwind 4 does not deduplicate
+ * a CSS file imported twice: only `@theme` variables collapse into one `:root`,
+ * every ordinary rule (`.sr-only`, the `[popover]` reset, mint styles,
+ * keyframes) is emitted once per import — measured at +75 rules / +3.8 KB
+ * minified per repetition. `@urbicon-ui/blocks` is a peer, and the consumer
+ * imports its stylesheet once, before this one (README). */
 
 /* === TABLE PACKAGE DESIGN SYSTEM === */
 

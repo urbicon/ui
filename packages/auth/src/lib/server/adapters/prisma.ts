@@ -493,7 +493,7 @@ export function createPrismaUserRepository<R extends string>(
       };
     },
 
-    async recordFailedLogin(id, lockoutConfig) {
+    async recordFailedLogin(id, lock) {
       // Atomic increment; Prisma returns the updated row so we can read the new
       // count without a separate read (which would race under credential
       // stuffing). `update` (not updateMany) is deliberate for that returned
@@ -512,23 +512,22 @@ export function createPrismaUserRepository<R extends string>(
         if (isMissingRowError(err) || isUnrepresentableIdError(err)) return;
         throw err;
       }
-      // Lock only when explicitly opted in and the threshold is crossed. The
+      // Lock only when a lock was handed in and its threshold is crossed. The
       // lock write is GUARDED on the DB-side count (`failedLoginAttempts >=
       // maxAttempts`) via updateMany rather than blindly trusting the value we
       // just read — so concurrent failures can't set the lock based on a stale
-      // count. Idempotent: repeated writes only push `lockedUntil` forward.
+      // count. Past the threshold every further failure rewrites `lockedUntil`
+      // with its own instant (last write wins).
       //
       // Residual: a crash *between* the increment and this write leaves the
       // count over threshold with no lock. It is self-healing — the next failed
       // attempt re-crosses the threshold and sets the lock — and an attacker who
       // stops at exactly that point has gained nothing (no session), so we
       // accept it rather than pull in a transaction dependency.
-      const maxAttempts = lockoutConfig?.maxAttempts ?? 5;
-      if (lockoutConfig && updated.failedLoginAttempts >= maxAttempts) {
-        const durationMs = (lockoutConfig.durationMinutes ?? 15) * 60_000;
+      if (lock && updated.failedLoginAttempts >= lock.maxAttempts) {
         await prisma.user.updateMany({
-          where: { id, failedLoginAttempts: { gte: maxAttempts } },
-          data: { lockedUntil: new Date(Date.now() + durationMs) }
+          where: { id, failedLoginAttempts: { gte: lock.maxAttempts } },
+          data: { lockedUntil: lock.lockedUntil }
         });
       }
     },
@@ -536,6 +535,16 @@ export function createPrismaUserRepository<R extends string>(
     async resetFailedLogins(id) {
       await prisma.user.updateMany({
         where: { id },
+        data: { failedLoginAttempts: 0, lockedUntil: null, lastFailedLogin: null }
+      });
+    },
+
+    async resetFailedLoginsIfStale(id, cutoff) {
+      // The guard is the WHERE clause, so a failure counted after the caller's
+      // read (it stamps `lastFailedLogin = now`, past the cutoff) leaves this
+      // write matching zero rows. A `null` column never satisfies `lte`.
+      await prisma.user.updateMany({
+        where: { id, lastFailedLogin: { lte: cutoff } },
         data: { failedLoginAttempts: 0, lockedUntil: null, lastFailedLogin: null }
       });
     },

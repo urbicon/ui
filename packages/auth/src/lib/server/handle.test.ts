@@ -2,10 +2,10 @@ import type { Handle, RequestEvent } from '@sveltejs/kit';
 import { describe, expect, it, vi } from 'vitest';
 import { sanitizeRedirect } from '../redirect.js';
 import type { AuthConfig, AuthUser } from '../types.js';
-import { createInMemoryRefreshTokenRepository } from './adapters/in-memory.js';
+import { createInMemoryRefreshTokenRepository, createInMemoryStore } from './adapters/in-memory.js';
 import type { Repositories, UserRepository } from './adapters/types.js';
 import { hashToken } from './auth.js';
-import { createAuthHandle, DEFAULT_PUBLIC_ROUTES } from './handle.js';
+import { createAuthHandle, DEFAULT_PUBLIC_ROUTES, type PublicRoute } from './handle.js';
 import { createSessionToken } from './jwt.js';
 import { issueRefreshToken } from './refresh-token.js';
 import {
@@ -121,7 +121,7 @@ describe('createAuthHandle', () => {
     };
 
     const unauthenticated = async (options: {
-      publicRoutes?: readonly string[];
+      publicRoutes?: readonly PublicRoute[];
       path: string;
       method?: string;
     }) =>
@@ -188,6 +188,113 @@ describe('createAuthHandle', () => {
       expect(
         await unauthenticated({ publicRoutes: ['/pricing'], path: '/api/admin/secrets' })
       ).toBe('status-401');
+    });
+
+    it('an exact entry exempts that pathname and nothing below or beside it', async () => {
+      const publicRoutes: PublicRoute[] = [{ path: '/pricing', exact: true }];
+      expect(await unauthenticated({ publicRoutes, path: '/pricing' })).toBe('passed-through');
+      // The query string is not part of the pathname the guard compares.
+      expect(await unauthenticated({ publicRoutes, path: '/pricing?plan=team' })).toBe(
+        'passed-through'
+      );
+      // Everything a prefix would have over-granted stays guarded: a sibling
+      // that merely shares the spelling, a sub-route, the trailing-slash twin.
+      expect(await unauthenticated({ publicRoutes, path: '/pricing-admin' })).toBe('redirect-302');
+      expect(await unauthenticated({ publicRoutes, path: '/pricingsecrets' })).toBe('redirect-302');
+      expect(await unauthenticated({ publicRoutes, path: '/pricing/internal' })).toBe(
+        'redirect-302'
+      );
+      expect(await unauthenticated({ publicRoutes, path: '/pricing/' })).toBe('redirect-302');
+      // Positive control: the same three routes under the string form, which
+      // is the over-grant the object form exists to avoid.
+      expect(await unauthenticated({ publicRoutes: ['/pricing'], path: '/pricing-admin' })).toBe(
+        'passed-through'
+      );
+      expect(await unauthenticated({ publicRoutes: ['/pricing'], path: '/pricingsecrets' })).toBe(
+        'passed-through'
+      );
+      expect(await unauthenticated({ publicRoutes: ['/pricing'], path: '/pricing/internal' })).toBe(
+        'passed-through'
+      );
+    });
+
+    it("{ path: '/', exact: true } publishes the landing page alone", async () => {
+      const publicRoutes: PublicRoute[] = [{ path: '/', exact: true }];
+      expect(await unauthenticated({ publicRoutes, path: '/' })).toBe('passed-through');
+      expect(await unauthenticated({ publicRoutes, path: '/?ref=newsletter' })).toBe(
+        'passed-through'
+      );
+      expect(await unauthenticated({ publicRoutes, path: '/dashboard' })).toBe('redirect-302');
+      expect(await unauthenticated({ publicRoutes, path: '/api/admin/secrets' })).toBe(
+        'status-401'
+      );
+      // Mixed with the defaults, as the docs snippet spells it.
+      const withDefaults: PublicRoute[] = [...DEFAULT_PUBLIC_ROUTES, { path: '/', exact: true }];
+      expect(await unauthenticated({ publicRoutes: withDefaults, path: '/' })).toBe(
+        'passed-through'
+      );
+      expect(
+        await unauthenticated({
+          publicRoutes: withDefaults,
+          path: '/api/auth/login',
+          method: 'POST'
+        })
+      ).toBe('passed-through');
+      expect(await unauthenticated({ publicRoutes: withDefaults, path: '/dashboard' })).toBe(
+        'redirect-302'
+      );
+    });
+
+    describe("the bare '/' warning", () => {
+      const build = (publicRoutes?: readonly PublicRoute[]) => {
+        const logger = { warn: vi.fn(), error: vi.fn() };
+        const handle = createAuthHandle({
+          config: { ...config, logger },
+          repos: createMockRepos(),
+          ...(publicRoutes ? { publicRoutes } : {})
+        });
+        return { handle, logger };
+      };
+
+      it("warns once, at construction, when a bare '/' turns the guard off", async () => {
+        const { handle, logger } = build(['/']);
+        expect(logger.warn).toHaveBeenCalledTimes(1);
+        expect(logger.warn).toHaveBeenCalledWith(expect.stringContaining('exempts every route'));
+        expect(logger.warn).toHaveBeenCalledWith(
+          expect.stringContaining("{ path: '/', exact: true }")
+        );
+        // Once: driving requests through the handle does not repeat it.
+        await drive(handle, '/dashboard');
+        await drive(handle, '/api/admin/secrets');
+        expect(logger.warn).toHaveBeenCalledTimes(1);
+        // The behaviour itself is unchanged — the warning is the only reaction.
+        expect(await drive(handle, '/dashboard')).toBe('passed-through');
+      });
+
+      it('stays silent for the exact form, for other prefixes and for the defaults', () => {
+        expect(build([{ path: '/', exact: true }]).logger.warn).not.toHaveBeenCalled();
+        expect(build(['/pricing']).logger.warn).not.toHaveBeenCalled();
+        expect(build().logger.warn).not.toHaveBeenCalled();
+        expect(build([]).logger.warn).not.toHaveBeenCalled();
+      });
+    });
+
+    it('refuses an entry that does not start with a slash, at construction', () => {
+      const build = (publicRoutes: readonly PublicRoute[]) => () =>
+        createAuthHandle({ config, repos: createMockRepos(), publicRoutes });
+      // '' is the silent fail-open twin of '/': startsWith('') is true for
+      // every pathname, and no warning names it.
+      expect(build([''])).toThrow(/must start with '\/'/);
+      expect(build([{ path: '', exact: true }])).toThrow(/must start with '\/'/);
+      // A bare name is the silent fail-closed twin: it matches nothing.
+      expect(build(['pricing'])).toThrow(/must start with '\/'/);
+      // The object form is the exact form; a JS caller leaving `exact` off
+      // gets told rather than a silently guessed mode.
+      expect(build([{ path: '/pricing' } as unknown as PublicRoute])).toThrow(/exact: true/);
+      // Positive control: the legitimate spellings construct.
+      expect(build(['/'])).not.toThrow();
+      expect(build([{ path: '/', exact: true }, '/pricing'])).not.toThrow();
+      expect(build([])).not.toThrow();
     });
 
     it('guards everything on an empty list, the login page included', async () => {
@@ -587,7 +694,7 @@ describe('createAuthHandle — refresh-token rotation', () => {
   };
 
   function reposWithRefresh(): Repositories {
-    const refreshRepo = createInMemoryRefreshTokenRepository();
+    const refreshRepo = createInMemoryRefreshTokenRepository(createInMemoryStore());
     return { ...createMockRepos(), refreshToken: refreshRepo };
   }
 
@@ -664,6 +771,134 @@ describe('createAuthHandle — refresh-token rotation', () => {
     expect(second.locals.user).toBeDefined();
     expect((second.locals.user as { id?: string }).id).toBe('user-1');
   });
+
+  // A killed family keeps the rotated predecessor's stamp; only its live head
+  // is gone. Without the family check, the spent cookie stayed a valid key for
+  // ten seconds after the kill — measured: `revokeFamily` → the replay minted
+  // a session; bump + `revokeAllForUser` → a session carrying the NEW
+  // tokenVersion, and the follow-up request with it was authenticated.
+  it('refuses a spent refresh cookie inside the grace window once its family was revoked', async () => {
+    const repos = reposWithRefresh();
+    const { token, record } = await issueRefreshToken(repos.refreshToken!, 'user-1', {
+      refreshTokenTtl: '30d'
+    });
+    const handle = createAuthHandle({ config: rotationConfig, repos });
+    const resolve = vi.fn(async () => new Response('OK'));
+
+    const first = createMockEvent({ path: '/dashboard', refreshCookie: token });
+    await handle({ event: asEvent(first), resolve });
+    expect(first.locals.user, 'T1 rotated to T2').toBeDefined();
+
+    await repos.refreshToken!.revokeFamily(record.family);
+
+    const replay = createMockEvent({ path: '/api/data', refreshCookie: token });
+    const response = await handle({ event: asEvent(replay), resolve });
+    expect(response.status).toBe(401);
+    expect(replay.locals.user).toBeNull();
+    expect(replay._cookieStore.get('session'), 'no session minted').toBeUndefined();
+    expect(replay._cookieStore.get('refresh'), 'refresh cookie cleared').toBeUndefined();
+  });
+
+  it('mints no session for the spent cookie after a tokenVersion bump + revokeAllForUser', async () => {
+    // change-password's pair: the bump kills access tokens, revokeAllForUser the
+    // refresh families. The user repo has to carry the bump for real here — a
+    // minted session would otherwise fail on the generation check by accident.
+    let tokenVersion = 0;
+    const repos: Repositories = {
+      user: createMockUserRepository({
+        findById: vi.fn(async () => createMockUser({ tokenVersion })),
+        incrementTokenVersion: vi.fn(async () => {
+          tokenVersion += 1;
+        })
+      }),
+      invitation: createMockInvitationRepository(),
+      refreshToken: createInMemoryRefreshTokenRepository(createInMemoryStore())
+    };
+    const { token } = await issueRefreshToken(repos.refreshToken!, 'user-1', {
+      refreshTokenTtl: '30d'
+    });
+    const handle = createAuthHandle({ config: rotationConfig, repos });
+    const resolve = vi.fn(async () => new Response('OK'));
+
+    const first = createMockEvent({ path: '/dashboard', refreshCookie: token });
+    await handle({ event: asEvent(first), resolve });
+    expect(first.locals.user, 'T1 rotated to T2').toBeDefined();
+
+    await repos.user.incrementTokenVersion('user-1');
+    await repos.refreshToken!.revokeAllForUser('user-1');
+
+    const replay = createMockEvent({ path: '/api/data', refreshCookie: token });
+    expect((await handle({ event: asEvent(replay), resolve })).status).toBe(401);
+    const minted = replay._cookieStore.get('session');
+    expect(minted, 'no session minted for a killed family').toBeUndefined();
+
+    // Whatever the replay left in the jar must not authenticate the next request.
+    const followUp = createMockEvent({ path: '/api/data', sessionCookie: minted });
+    expect((await handle({ event: asEvent(followUp), resolve })).status).toBe(401);
+    expect(followUp.locals.user).toBeNull();
+  });
+
+  // The kill can land between any two awaits of the rotation. The invariant is
+  // not "the kill is seen" but "no interleaving leaves an authenticated
+  // follow-up": either the family read sees the kill (no session), or the kill
+  // is later than every read and the session carries the OLD generation, which
+  // the next request's generation check refuses. Measured with the family read
+  // *before* `findUser`: a kill in between minted a session on the NEW
+  // generation, and the follow-up request passed.
+  it.each([
+    { label: 'before findUser', at: 'findById' as const },
+    { label: 'after the family read', at: 'listActiveByUser' as const }
+  ])(
+    'never lets a bump + revokeAllForUser landing $label yield an authenticated follow-up',
+    async ({ at }) => {
+      let tokenVersion = 0;
+      const inner = createInMemoryRefreshTokenRepository(createInMemoryStore());
+      let armed = false;
+      const kill = async () => {
+        if (!armed) return;
+        armed = false;
+        tokenVersion += 1;
+        await inner.revokeAllForUser('user-1');
+      };
+      const repos: Repositories = {
+        user: createMockUserRepository({
+          findById: vi.fn(async () => {
+            if (at === 'findById') await kill();
+            return createMockUser({ tokenVersion });
+          })
+        }),
+        invitation: createMockInvitationRepository(),
+        refreshToken: {
+          ...inner,
+          listActiveByUser: async (userId) => {
+            const rows = await inner.listActiveByUser(userId);
+            if (at === 'listActiveByUser') await kill();
+            return rows;
+          }
+        }
+      };
+      const { token } = await issueRefreshToken(inner, 'user-1', { refreshTokenTtl: '30d' });
+      const handle = createAuthHandle({ config: rotationConfig, repos });
+      const resolve = vi.fn(async () => new Response('OK'));
+
+      const first = createMockEvent({ path: '/dashboard', refreshCookie: token });
+      await handle({ event: asEvent(first), resolve });
+      expect(first.locals.user, 'T1 rotated to T2').toBeDefined();
+
+      // The replay inside the grace window, with the kill armed to land at `at`.
+      armed = true;
+      const replay = createMockEvent({ path: '/api/data', refreshCookie: token });
+      await handle({ event: asEvent(replay), resolve });
+      expect(armed, 'the kill did land').toBe(false);
+
+      const followUp = createMockEvent({
+        path: '/api/data',
+        sessionCookie: replay._cookieStore.get('session')
+      });
+      expect((await handle({ event: asEvent(followUp), resolve })).status).toBe(401);
+      expect(followUp.locals.user).toBeNull();
+    }
+  );
 
   it('clears both cookies when the refresh cookie is invalid', async () => {
     const repos = reposWithRefresh();
@@ -782,7 +1017,7 @@ describe('createAuthHandle — transformUser', () => {
     // Fake timers: the second rotation below must land outside the 10s grace.
     vi.useFakeTimers();
     try {
-      const refreshRepo = createInMemoryRefreshTokenRepository();
+      const refreshRepo = createInMemoryRefreshTokenRepository(createInMemoryStore());
       const revokeFamily = vi.spyOn(refreshRepo, 'revokeFamily');
       const repos = { ...createMockRepos(), refreshToken: refreshRepo };
       const { token } = await issueRefreshToken(refreshRepo, 'user-1', { refreshTokenTtl: '30d' });
@@ -836,7 +1071,7 @@ describe('createAuthHandle — transformUser', () => {
   });
 
   it('applies the transform on the refresh-rotation path', async () => {
-    const refreshRepo = createInMemoryRefreshTokenRepository();
+    const refreshRepo = createInMemoryRefreshTokenRepository(createInMemoryStore());
     const repos = { ...createMockRepos(), refreshToken: refreshRepo };
     const { token } = await issueRefreshToken(refreshRepo, 'user-1', { refreshTokenTtl: '30d' });
     const handle = createAuthHandle({
@@ -868,7 +1103,10 @@ describe('createAuthHandle refresh-token wiring', () => {
     expect(() =>
       createAuthHandle({
         config: { ...config, refreshToken: {} },
-        repos: { ...createMockRepos(), refreshToken: createInMemoryRefreshTokenRepository() }
+        repos: {
+          ...createMockRepos(),
+          refreshToken: createInMemoryRefreshTokenRepository(createInMemoryStore())
+        }
       })
     ).not.toThrow();
   });

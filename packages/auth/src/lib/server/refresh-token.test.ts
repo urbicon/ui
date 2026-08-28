@@ -1,8 +1,8 @@
 import type { Cookies } from '@sveltejs/kit';
 import { describe, expect, it, vi } from 'vitest';
 import type { AuthConfig, RefreshTokenConfig } from '../types.js';
-import { createInMemoryRefreshTokenRepository } from './adapters/in-memory.js';
-import type { FullAuthUser } from './adapters/types.js';
+import { createInMemoryRefreshTokenRepository, createInMemoryStore } from './adapters/in-memory.js';
+import type { FullAuthUser, RefreshTokenRepository } from './adapters/types.js';
 import { hashToken } from './auth.js';
 import { parseDurationSeconds } from './duration.js';
 import {
@@ -108,7 +108,7 @@ describe('resolveJwtConfig', () => {
 
 describe('issueRefreshToken', () => {
   it('returns a raw token whose hash matches the stored record', async () => {
-    const repo = createInMemoryRefreshTokenRepository();
+    const repo = createInMemoryRefreshTokenRepository(createInMemoryStore());
     const { token, record } = await issueRefreshToken(repo, 'user-1', config);
     expect(token).toMatch(/^[0-9a-f]{64}$/);
     expect(record.tokenHash).toBe(hashToken(token));
@@ -116,7 +116,7 @@ describe('issueRefreshToken', () => {
   });
 
   it('sets expiresAt based on refreshTokenTtl', async () => {
-    const repo = createInMemoryRefreshTokenRepository();
+    const repo = createInMemoryRefreshTokenRepository(createInMemoryStore());
     const before = Date.now();
     const { record } = await issueRefreshToken(repo, 'user-1', { refreshTokenTtl: '1h' });
     const delta = record.expiresAt.getTime() - before;
@@ -125,7 +125,7 @@ describe('issueRefreshToken', () => {
   });
 
   it('creates a fresh family on every call', async () => {
-    const repo = createInMemoryRefreshTokenRepository();
+    const repo = createInMemoryRefreshTokenRepository(createInMemoryStore());
     const a = await issueRefreshToken(repo, 'user-1', config);
     const b = await issueRefreshToken(repo, 'user-1', config);
     expect(a.record.family).not.toBe(b.record.family);
@@ -136,13 +136,13 @@ describe('rotateRefreshToken', () => {
   const findUser = async (id: string) => (id === 'user-1' ? makeUser() : null);
 
   it('returns not_found when the token is unknown', async () => {
-    const repo = createInMemoryRefreshTokenRepository();
+    const repo = createInMemoryRefreshTokenRepository(createInMemoryStore());
     const outcome = await rotateRefreshToken(repo, 'not-a-token', findUser, config);
     expect(outcome.kind).toBe('not_found');
   });
 
   it('rotates a valid token and revokes the predecessor with replacedById', async () => {
-    const repo = createInMemoryRefreshTokenRepository();
+    const repo = createInMemoryRefreshTokenRepository(createInMemoryStore());
     const { token, record: original } = await issueRefreshToken(repo, 'user-1', config);
 
     const outcome = await rotateRefreshToken(repo, token, findUser, config);
@@ -163,7 +163,7 @@ describe('rotateRefreshToken', () => {
     // store — the clock itself has to move.
     vi.useFakeTimers();
     try {
-      const repo = createInMemoryRefreshTokenRepository();
+      const repo = createInMemoryRefreshTokenRepository(createInMemoryStore());
       const { token: t1 } = await issueRefreshToken(repo, 'user-1', config);
       const first = await rotateRefreshToken(repo, t1, findUser, config);
       expect(first.kind).toBe('rotated');
@@ -184,7 +184,7 @@ describe('rotateRefreshToken', () => {
   });
 
   it('treats a replay inside the grace window as a concurrent-rotation race, not reuse', async () => {
-    const repo = createInMemoryRefreshTokenRepository();
+    const repo = createInMemoryRefreshTokenRepository(createInMemoryStore());
     const { token: t1 } = await issueRefreshToken(repo, 'user-1', config);
     const first = await rotateRefreshToken(repo, t1, findUser, config);
     expect(first.kind).toBe('rotated');
@@ -200,12 +200,60 @@ describe('rotateRefreshToken', () => {
     }
   });
 
+  // The grace exists for two tabs rotating the same *living* family. A family
+  // killed after the rotation (theft response, "sign out everywhere") keeps the
+  // predecessor's rotation stamp and successor pointer — `revokeFamily` and
+  // `revokeAllForUser` only touch live rows — so the stamp alone reads exactly
+  // like a lost race.
+  it.each([
+    {
+      label: 'revokeFamily',
+      kill: (repo: RefreshTokenRepository, family: string) => repo.revokeFamily(family)
+    },
+    {
+      label: 'revokeAllForUser',
+      kill: (repo: RefreshTokenRepository) => repo.revokeAllForUser('user-1')
+    }
+  ])('refuses a replay inside the grace window once $label killed the family', async ({ kill }) => {
+    vi.useFakeTimers();
+    try {
+      const repo = createInMemoryRefreshTokenRepository(createInMemoryStore());
+      const { token: t1, record } = await issueRefreshToken(repo, 'user-1', config);
+      expect((await rotateRefreshToken(repo, t1, findUser, config)).kind).toBe('rotated');
+      await kill(repo, record.family);
+
+      vi.advanceTimersByTime(1_000); // well inside the 10 s grace
+      expect((await rotateRefreshToken(repo, t1, findUser, config)).kind).toBe('reused');
+
+      // Control: past the window the answer was never in doubt.
+      vi.advanceTimersByTime(10_000);
+      expect((await rotateRefreshToken(repo, t1, findUser, config)).kind).toBe('reused');
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
+  it('reports a live token whose family is killed mid-rotation as revoked, not as a race', async () => {
+    const repo = createInMemoryRefreshTokenRepository(createInMemoryStore());
+    const { token: t1, record } = await issueRefreshToken(repo, 'user-1', config);
+    // The kill lands between the read and the CAS revoke — `findUser` is the
+    // await in between — so the CAS fails exactly as it would to a real loser.
+    const killingFindUser = async (id: string) => {
+      await repo.revokeFamily(record.family);
+      return findUser(id);
+    };
+
+    const outcome = await rotateRefreshToken(repo, t1, killingFindUser, config);
+    expect(outcome.kind).toBe('revoked');
+    expect(await repo.listActiveByUser('user-1'), 'no orphan successor survives').toEqual([]);
+  });
+
   it('returns expired for tokens past their expiresAt', async () => {
     // Fake timers instead of sleeping (reads are detached copies — revising
     // the returned record's expiresAt would not reach the store).
     vi.useFakeTimers();
     try {
-      const repo = createInMemoryRefreshTokenRepository();
+      const repo = createInMemoryRefreshTokenRepository(createInMemoryStore());
       const { token } = await issueRefreshToken(repo, 'user-1', { refreshTokenTtl: '1s' });
       vi.advanceTimersByTime(2000);
 
@@ -217,7 +265,7 @@ describe('rotateRefreshToken', () => {
   });
 
   it('returns revoked when the user has been deleted', async () => {
-    const repo = createInMemoryRefreshTokenRepository();
+    const repo = createInMemoryRefreshTokenRepository(createInMemoryStore());
     const { token } = await issueRefreshToken(repo, 'user-1', config);
     const outcome = await rotateRefreshToken(repo, token, async () => null, config);
     expect(outcome.kind).toBe('revoked');
@@ -230,7 +278,7 @@ describe('rotateRefreshToken', () => {
   // awaits inside rotateRefreshToken interleave the two calls, so Promise.all
   // reproduces the race deterministically.
   it('serializes two concurrent rotations of the same token to exactly one winner', async () => {
-    const repo = createInMemoryRefreshTokenRepository();
+    const repo = createInMemoryRefreshTokenRepository(createInMemoryStore());
     const { token: t1 } = await issueRefreshToken(repo, 'user-1', config);
 
     const [a, b] = await Promise.all([
@@ -258,7 +306,7 @@ describe('rotateRefreshToken', () => {
   });
 
   it('keeps exactly one winner under a 5-way concurrent rotation burst', async () => {
-    const repo = createInMemoryRefreshTokenRepository();
+    const repo = createInMemoryRefreshTokenRepository(createInMemoryStore());
     const { token: t1 } = await issueRefreshToken(repo, 'user-1', config);
 
     const outcomes = await Promise.all(
@@ -292,7 +340,7 @@ describe('cookie helpers', () => {
 
 describe('revokeRefreshFromCookie', () => {
   it('revokes the token sitting in the cookie', async () => {
-    const repo = createInMemoryRefreshTokenRepository();
+    const repo = createInMemoryRefreshTokenRepository(createInMemoryStore());
     const { token } = await issueRefreshToken(repo, 'user-1', config);
     const cookies = makeCookies();
     setRefreshCookie(cookies, token, config);
@@ -304,7 +352,7 @@ describe('revokeRefreshFromCookie', () => {
   });
 
   it('is a no-op when the cookie is missing', async () => {
-    const repo = createInMemoryRefreshTokenRepository();
+    const repo = createInMemoryRefreshTokenRepository(createInMemoryStore());
     const cookies = makeCookies();
     await expect(revokeRefreshFromCookie(cookies, repo, config)).resolves.toBeUndefined();
   });
@@ -312,7 +360,7 @@ describe('revokeRefreshFromCookie', () => {
   it('revokes the whole family when the cookie carries an already-revoked token (replay)', async () => {
     // Logout presenting a stolen+replayed token is the same threat model as
     // rotation replay — burn the whole family so the attacker is locked out.
-    const repo = createInMemoryRefreshTokenRepository();
+    const repo = createInMemoryRefreshTokenRepository(createInMemoryStore());
     const { token, record } = await issueRefreshToken(repo, 'user-1', config);
     // A same-family sibling (a rotation successor), created through the
     // contract API — reads/creates return detached copies, so reassigning a
@@ -337,7 +385,7 @@ describe('revokeRefreshFromCookie', () => {
 
 describe('InMemoryRefreshTokenRepository', () => {
   it('revokeAllForUser revokes every non-revoked token for the user', async () => {
-    const repo = createInMemoryRefreshTokenRepository();
+    const repo = createInMemoryRefreshTokenRepository(createInMemoryStore());
     const { token: aliceA } = await issueRefreshToken(repo, 'user-1', config);
     const { token: aliceB } = await issueRefreshToken(repo, 'user-1', config);
     const { token: bob } = await issueRefreshToken(repo, 'user-2', config);
@@ -354,7 +402,7 @@ describe('InMemoryRefreshTokenRepository', () => {
   });
 
   it('deleteExpired removes only expired rows and returns the count', async () => {
-    const repo = createInMemoryRefreshTokenRepository();
+    const repo = createInMemoryRefreshTokenRepository(createInMemoryStore());
     const { record: fresh } = await issueRefreshToken(repo, 'user-1', config);
     // Create the stale row through the contract API with a past expiry —
     // reads are detached copies, so backdating a returned record would not

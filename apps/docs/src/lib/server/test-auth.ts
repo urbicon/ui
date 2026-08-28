@@ -23,6 +23,7 @@ import {
   type AuthDeps,
   createAuthDeps,
   createInMemoryRefreshTokenRepository,
+  createInMemoryStore,
   hashPassword,
   hashToken
 } from '@urbicon-ui/auth/server';
@@ -37,7 +38,7 @@ const store = {
   invitationsByTokenHash: new Map<string, string>()
 };
 
-const refreshRepo = createInMemoryRefreshTokenRepository();
+const refreshRepo = createInMemoryRefreshTokenRepository(createInMemoryStore());
 
 function makeUserRepo(): UserRepository<AppRole> {
   return {
@@ -147,11 +148,13 @@ function makeUserRepo(): UserRepository<AppRole> {
         lastFailedAt: user?.lastFailedLogin ?? null
       };
     },
-    async recordFailedLogin(id) {
+    async recordFailedLogin(id, lock) {
       const user = store.users.get(id);
       if (user) {
         user.failedLoginAttempts += 1;
         user.lastFailedLogin = new Date();
+        if (lock && user.failedLoginAttempts >= lock.maxAttempts)
+          user.lockedUntil = lock.lockedUntil;
       }
     },
     async resetFailedLogins(id) {
@@ -161,6 +164,15 @@ function makeUserRepo(): UserRepository<AppRole> {
         user.lockedUntil = null;
         user.lastFailedLogin = null;
       }
+    },
+    async resetFailedLoginsIfStale(id, cutoff) {
+      // Clear only a count whose newest failure is at or before the cutoff — guard
+      // and write with no await between them, so nothing lands in between.
+      const user = store.users.get(id);
+      if (!user?.lastFailedLogin || user.lastFailedLogin > cutoff) return;
+      user.failedLoginAttempts = 0;
+      user.lockedUntil = null;
+      user.lastFailedLogin = null;
     },
     async updateProfile(id, data) {
       const user = store.users.get(id);

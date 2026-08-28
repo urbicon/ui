@@ -5,7 +5,7 @@ import { sanitizeUser } from '../auth.js';
 import type { AuthDeps } from '../deps.js';
 import { hashPassword, verifyPasswordWithMigration } from '../password.js';
 import { enforceRateLimit, sharedLimiter } from '../rate-limit.js';
-import { DEFAULT_DECAY_MINUTES, lockoutFor } from '../security-defaults.js';
+import { failedLoginLock, lockoutFor } from '../security-defaults.js';
 import { establishSession, resolveSessionMeta } from '../session.js';
 import { createPending2faToken, setPending2faCookie } from '../two-factor.js';
 import { validateLoginInput } from '../validation.js';
@@ -18,9 +18,16 @@ import { authError } from './errors.js';
 const DUMMY_VERIFY_PASSWORD = 'urbicon-auth-timing-equalization-dummy';
 
 /**
- * Whether the failed-login count has gone stale — its last failure is at least
- * `decayMinutes` old, so it describes a past episode rather than an attack in
- * progress.
+ * The instant a counted failure must be at or before to no longer count: a
+ * count whose newest failure is older than `decayMinutes` describes a past
+ * episode rather than an attack in progress.
+ */
+function decayCutoff(lockout: Required<LockoutConfig>, now: number): Date {
+  return new Date(now - lockout.decayMinutes * 60_000);
+}
+
+/**
+ * Whether the failed-login count has gone stale against `cutoff`.
  *
  * `lastFailedAt` is the only evidence for the count's age, so anything that is
  * not a usable date (an adapter that does not track the column, a cleared
@@ -28,30 +35,56 @@ const DUMMY_VERIFY_PASSWORD = 'urbicon-auth-timing-equalization-dummy';
  * its pre-decay meaning. Reading it as decayed instead would discard the count
  * of every adapter that leaves the field null.
  */
-function attemptsDecayed(lastFailedAt: Date | null, lockout: LockoutConfig, now: number): boolean {
+function attemptsDecayed(lastFailedAt: Date | null, cutoff: Date): boolean {
   if (!(lastFailedAt instanceof Date)) return false;
-  // An `Invalid Date` needs no branch of its own: its age is NaN, and every
+  // An `Invalid Date` needs no branch of its own: its time is NaN, and every
   // comparison against NaN is false, so it lands on "cannot tell" as well.
-  return now - lastFailedAt.getTime() >= (lockout.decayMinutes ?? DEFAULT_DECAY_MINUTES) * 60_000;
+  return lastFailedAt.getTime() <= cutoff.getTime();
 }
 
 export function createLoginHandler<R extends string>(deps: AuthDeps<R>): { POST: RequestHandler } {
   const rateLimiter = sharedLimiter(deps.config, 'login');
 
-  // A decay window of zero fails OPEN, and completely: `now - lastFailedAt >= 0`
-  // holds for every stored timestamp, so every attempt resets the counter before
-  // it is incremented and the account never locks (measured: 30 wrong passwords
-  // in a row, no lock, counter back at 1). `0` is also exactly what an operator
-  // writes to mean "no decay", so accepting it silently would turn an attempt to
-  // tighten the policy into switching the lockout off. Refuse it at wiring time,
-  // the way `invitationTtlMs` refuses a non-positive TTL: "no decay" is not a
-  // supported configuration, and running without a lockout is `lockout: null`.
-  const decayMinutes = deps.config.lockout?.decayMinutes;
-  if (decayMinutes !== undefined && (!Number.isFinite(decayMinutes) || decayMinutes <= 0)) {
+  // Every lockout value that reads like a policy but switches the lockout off
+  // is refused at wiring time, the way `invitationTtlMs` refuses a non-positive
+  // TTL: running without a lockout is `lockout: null`, not a number.
+  //
+  // - A decay window of zero fails OPEN, and completely: `now - lastFailedAt
+  //   >= 0` holds for every stored timestamp, so every attempt resets the
+  //   counter before it is incremented (measured: 30 wrong passwords, no lock,
+  //   counter back at 1). `0` is also what an operator writes to mean "no
+  //   decay", so accepting it would turn a tightening into an opt-out.
+  // - A duration of zero or less writes a lock that has already expired; NaN
+  //   writes an `Invalid Date`. Both measured through the handler: 30 wrong
+  //   passwords, 30 × 401, never a 423. The adapter cannot catch it — its
+  //   contract is to store `lockedUntil` verbatim.
+  // - A threshold of NaN is never reached (30 × 401); zero locks on the first
+  //   failure; a fraction is met one attempt early or late.
+  const configured = deps.config.lockout ?? {};
+  const positiveFinite = (n: number | undefined) =>
+    n === undefined || (Number.isFinite(n) && n > 0);
+  const optOut = 'To run without a lockout, set config.lockout to null.';
+  if (!positiveFinite(configured.decayMinutes)) {
     throw new Error(
-      `[auth] lockout.decayMinutes must be a positive finite number of minutes, got ${decayMinutes}. ` +
+      `[auth] lockout.decayMinutes must be a positive finite number of minutes, got ${configured.decayMinutes}. ` +
         'A zero, negative or non-finite window resets the failed-login counter on every attempt, ' +
-        'which disables the lockout entirely. To run without a lockout, set config.lockout to null.'
+        `which disables the lockout entirely. ${optOut}`
+    );
+  }
+  if (!positiveFinite(configured.durationMinutes)) {
+    throw new Error(
+      `[auth] lockout.durationMinutes must be a positive finite number of minutes, got ${configured.durationMinutes}. ` +
+        'A zero, negative or non-finite duration writes a lock that has already expired, ' +
+        `which disables the lockout entirely. ${optOut}`
+    );
+  }
+  if (
+    configured.maxAttempts !== undefined &&
+    !(Number.isInteger(configured.maxAttempts) && configured.maxAttempts > 0)
+  ) {
+    throw new Error(
+      `[auth] lockout.maxAttempts must be a positive integer, got ${configured.maxAttempts}. ` +
+        `A NaN threshold is never reached and a zero one locks on the first failure. ${optOut}`
     );
   }
 
@@ -68,9 +101,10 @@ export function createLoginHandler<R extends string>(deps: AuthDeps<R>): { POST:
   return {
     POST: async (event) => {
       const { request, cookies, getClientAddress } = event;
+      const clientAddress = getClientAddress();
       const limited = await enforceRateLimit(
         rateLimiter,
-        getClientAddress(),
+        clientAddress,
         'Too many login attempts. Please try again later.'
       );
       if (limited) return limited;
@@ -121,28 +155,21 @@ export function createLoginHandler<R extends string>(deps: AuthDeps<R>): { POST:
         // so `maxAttempts` typos spread over months no longer lock the account
         // (the counter otherwise falls only on a successful sign-in).
         //
-        // Both orderings are load-bearing. AFTER the lock check, because
-        // `resetFailedLogins` clears `lockedUntil` too and would end a live lock
-        // early (reachable whenever `decayMinutes < durationMinutes`). BEFORE
-        // the verify, because a request's own reset must precede its own
-        // increment: measured over a 12-fold burst on a stale counter, 12
-        // failures land as 12 here and as 1 — with the account left unlocked —
-        // once the reset sits in the failure branch below.
+        // Both orderings are load-bearing. AFTER the lock check, because the
+        // reset clears `lockedUntil` too and would end a live lock early
+        // (reachable whenever `decayMinutes < durationMinutes`). BEFORE the
+        // verify, because a request's own reset must precede its own
+        // increment: over a 12-fold burst on a stale counter, 12 failures land
+        // as 12 here and as 1 — with the account left unlocked — once the reset
+        // sits in the failure branch below.
         //
-        // What this does not do is make the reset safe under concurrency. It is
-        // an unconditional write derived from a read that can be arbitrarily old
-        // by the time it lands: a reset delayed past other requests' writes
-        // erases their increments AND their `lockedUntil` (measured: one held
-        // reset wiped five counted failures and a live lock), which is the only
-        // path where failing the password check clears a lock. Closing it needs
-        // a conditional write — `… WHERE lastFailedLogin < cutoff` — i.e. a new
-        // method every adapter author has to implement. Not paid here: the
-        // lockout does not bound a simultaneous burst in the first place (every
-        // request of one passes the lock check before any of them is counted,
-        // pinned below at twelve), so what the race buys is one more burst
-        // window, not unbounded guessing.
-        if (attempts.count > 0 && attemptsDecayed(attempts.lastFailedAt, lockout, now)) {
-          await deps.repos.user.resetFailedLogins(user.id);
+        // The write is derived from a read that can be arbitrarily old by the
+        // time it lands, which is why the reset is the guarded form: the store
+        // applies it only where `lastFailedAt` is still at or before the cutoff,
+        // so failures counted in between — and the lock they set — survive.
+        const cutoff = decayCutoff(lockout, now);
+        if (attempts.count > 0 && attemptsDecayed(attempts.lastFailedAt, cutoff)) {
+          await deps.repos.user.resetFailedLoginsIfStale(user.id, cutoff);
         }
       }
 
@@ -152,7 +179,9 @@ export function createLoginHandler<R extends string>(deps: AuthDeps<R>): { POST:
         deps.config.password
       );
       if (!result.valid) {
-        await deps.repos.user.recordFailedLogin(user.id, lockout);
+        // The threshold and the lock instant are resolved here, once; the
+        // adapter compares and stores them (FailedLoginLock).
+        await deps.repos.user.recordFailedLogin(user.id, lockout && failedLoginLock(lockout));
         // recordFailedLogin above has already counted this attempt, so a 500
         // here would spend lockout budget while hiding the reason for it.
         await notifyHook(
@@ -173,6 +202,17 @@ export function createLoginHandler<R extends string>(deps: AuthDeps<R>): { POST:
 
       // Reset failed login attempts on success
       await deps.repos.user.resetFailedLogins(user.id);
+      // The same rule on the IP axis: the limiter brakes attempts against a
+      // password, not people, so a correct one hands back the slot its request
+      // took. Counted at the top and refunded here, rather than counted only on
+      // failure, because a count after the verify would let every request run
+      // PBKDF2 before the brake. Refund, not reset: a reset would let anyone
+      // holding one valid account — his own — clear the address's budget
+      // between guesses at other accounts, and the per-account lockout does
+      // not see a spray of one guess per account. Measured: twenty correct
+      // logins behind one address are twenty 200s, and four failures plus a
+      // success still leave one failure in the window (login.test.ts).
+      await rateLimiter?.refund(clientAddress);
 
       // 2FA gate: the password is correct, but if the account has TOTP enabled
       // we must NOT establish a session yet. Gate on `totpEnabled` ALONE (not on

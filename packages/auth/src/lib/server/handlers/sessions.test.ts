@@ -1,6 +1,9 @@
 import type { Cookies, RequestEvent } from '@sveltejs/kit';
 import { describe, expect, it, vi } from 'vitest';
-import { createInMemoryRefreshTokenRepository } from '../adapters/in-memory.js';
+import {
+  createInMemoryRefreshTokenRepository,
+  createInMemoryStore
+} from '../adapters/in-memory.js';
 import type { RefreshTokenRepository } from '../adapters/types.js';
 import { hashToken } from '../auth.js';
 import type { AuthDeps } from '../deps.js';
@@ -13,7 +16,7 @@ const SESSION = { userId: 'user-1', email: 'test@test.com', role: 'admin', token
 
 /** Deps wired with refresh-token rotation + the in-memory refresh repo. */
 function setup() {
-  const refreshToken = createInMemoryRefreshTokenRepository();
+  const refreshToken = createInMemoryRefreshTokenRepository(createInMemoryStore());
   const deps = createMockAuthDeps({
     config: { refreshToken: {} },
     user: { findById: vi.fn().mockResolvedValue(createMockUser({ id: 'user-1' })) },

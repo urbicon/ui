@@ -278,6 +278,40 @@ describe('passkey auth rate limiting', () => {
     expect((await verify.POST(event({ credential: { id: 'x' } }))).status).toBe(429);
   });
 
+  it('a completed ceremony refunds both of its calls: successes never spend the budget', async () => {
+    // makeDeps caps passkeyAuth at 2 per window — exactly one ceremony. Three
+    // successful logins in a row from one address prove the refund; the
+    // fourth ceremony's options call then still fits because nothing was spent.
+    const deps = makeDeps();
+    const handlers = passkeyHandlers(deps);
+    const user = createMockUser({ id: 'user-1' });
+    vi.mocked(deps.repos.user.findById).mockResolvedValue(user);
+    vi.mocked(deps.repos.passkey.updateCounter).mockResolvedValue(true);
+
+    const ceremony = async (signCount: number) => {
+      const jar = makeCookieJar();
+      const optionsRes = await handlers.authenticationOptions.POST(event({}, { jar }));
+      if (optionsRes.status !== 200) return optionsRes.status;
+      const { options } = await optionsRes.json();
+      const { credential, publicKey } = await buildEs256Assertion(deps.webauthn, {
+        challenge: options.challenge,
+        credentialId: 'cred-abc',
+        signCount
+      });
+      vi.mocked(deps.repos.passkey.findByCredentialId).mockResolvedValue(
+        mkPasskey({ userId: user.id, publicKey, counter: 0 })
+      );
+      return (await handlers.authenticationVerify.POST(event({ credential }, { jar }))).status;
+    };
+
+    expect([await ceremony(1), await ceremony(2), await ceremony(3)]).toEqual([200, 200, 200]);
+    expect((await handlers.authenticationOptions.POST(event({}))).status).toBe(200);
+    // Positive control on the same limiter: that options call plus one more
+    // abandoned ceremony is the budget, so the next call is refused.
+    expect((await handlers.authenticationOptions.POST(event({}))).status).toBe(200);
+    expect((await handlers.authenticationOptions.POST(event({}))).status).toBe(429);
+  });
+
   it('keeps budgets separate per client IP', async () => {
     const options = passkeyHandlers(makeDeps()).authenticationOptions;
     expect((await options.POST(event({}, { ip: 'ip-a' }))).status).toBe(200);

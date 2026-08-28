@@ -7,16 +7,17 @@
  * for the rationale.
  */
 
-/* Foundation Layer - Base design tokens from blocks package */
-@import '@urbicon-ui/blocks/style/index.css';
+/* No `@import` of the blocks stylesheet either. Tailwind 4 does not deduplicate
+ * a CSS file imported twice — every ordinary rule is emitted once per import,
+ * measured at +75 rules / +3.8 KB minified per repetition. `@urbicon-ui/blocks`
+ * is a peer; the consumer imports its stylesheet once, before this one. */
 
-/*
- * The class strings live in the component folders (`components/x/x.variants.ts`),
- * not in `../variants` — that folder only re-exports. Pointing `@source` at it
- * scanned nothing, and the docs app only rendered correctly because its own
- * app.css adds `@source '../../../packages/docs/src/lib'` on top.
- */
-@source '../components';
+/* Everything the package ships, not a list of directories. `@source` resolves
+ * against this file (`src/lib/style/` in the tree, `dist/style/` in the
+ * tarball), so `..` is the whole library in both. A directory list is the shape
+ * that failed before: `../variants` only re-exports and scanned nothing, and
+ * the docs app hid it because its own app.css scans this package's `src/lib`. */
+@source '..';
 
 pre.shiki {
   white-space: pre-wrap;

@@ -52,15 +52,15 @@
       "exports": ["Accordion", "AccordionItem"]
     },
     "AccountSettings": {
-      "min": 118633,
-      "gz": 33991,
+      "min": 119314,
+      "gz": 34170,
       "net": {
-        "min": 104617,
-        "gz": 29375
+        "min": 105298,
+        "gz": 29549
       },
       "lazy": {
         "min": 7502,
-        "gz": 3245
+        "gz": 3244
       },
       "pkg": "auth",
       "exports": ["AccountSettings"]
@@ -546,15 +546,15 @@
       "exports": ["FileUpload"]
     },
     "ForgotPasswordPage": {
-      "min": 97232,
-      "gz": 28728,
+      "min": 97756,
+      "gz": 28920,
       "net": {
-        "min": 83207,
-        "gz": 24123
+        "min": 83729,
+        "gz": 24319
       },
       "lazy": {
         "min": 7502,
-        "gz": 3244
+        "gz": 3246
       },
       "pkg": "auth",
       "exports": ["ForgotPasswordPage"]
@@ -626,15 +626,15 @@
       "exports": ["Input"]
     },
     "InvitationManager": {
-      "min": 149706,
-      "gz": 40171,
+      "min": 150367,
+      "gz": 40387,
       "net": {
-        "min": 135685,
-        "gz": 35588
+        "min": 136341,
+        "gz": 35799
       },
       "lazy": {
         "min": 7502,
-        "gz": 3243
+        "gz": 3244
       },
       "pkg": "auth",
       "exports": ["InvitationManager"]
@@ -696,15 +696,15 @@
       "exports": ["LocaleSwitcher"]
     },
     "LoginPage": {
-      "min": 112640,
-      "gz": 31816,
+      "min": 113197,
+      "gz": 31999,
       "net": {
-        "min": 98615,
-        "gz": 27229
+        "min": 99173,
+        "gz": 27410
       },
       "lazy": {
         "min": 7502,
-        "gz": 3246
+        "gz": 3243
       },
       "pkg": "auth",
       "exports": ["LoginPage"]
@@ -724,39 +724,39 @@
       "exports": ["Menu", "MenuDivider", "MenuItem", "MenuSection", "MenuSubmenu"]
     },
     "NotificationBadge": {
-      "min": 42102,
-      "gz": 13740,
+      "min": 42407,
+      "gz": 13829,
       "net": {
-        "min": 28077,
-        "gz": 9143
+        "min": 28382,
+        "gz": 9229
       },
       "lazy": {
         "min": 9895,
-        "gz": 4057
+        "gz": 4052
       },
       "pkg": "auth",
       "exports": ["NotificationBadge"]
     },
     "NotificationCenter": {
-      "min": 64087,
-      "gz": 19563,
+      "min": 64555,
+      "gz": 19734,
       "net": {
-        "min": 50064,
-        "gz": 14985
+        "min": 50532,
+        "gz": 15155
       },
       "lazy": {
         "min": 2436,
-        "gz": 1013
+        "gz": 1014
       },
       "pkg": "auth",
       "exports": ["NotificationCenter"]
     },
     "NotificationListener": {
-      "min": 677,
-      "gz": 423,
+      "min": 3400,
+      "gz": 1669,
       "net": {
-        "min": 562,
-        "gz": 284
+        "min": 3285,
+        "gz": 1407
       },
       "lazy": {
         "min": 0,
@@ -794,15 +794,15 @@
       "exports": ["Pagination", "PaginationItem"]
     },
     "PasskeyManager": {
-      "min": 90293,
-      "gz": 26618,
+      "min": 90902,
+      "gz": 26836,
       "net": {
-        "min": 76269,
-        "gz": 22038
+        "min": 76878,
+        "gz": 22257
       },
       "lazy": {
         "min": 7502,
-        "gz": 3247
+        "gz": 3245
       },
       "pkg": "auth",
       "exports": ["PasskeyManager"]
@@ -878,15 +878,15 @@
       "exports": ["PromptInput"]
     },
     "PushPermissionPrompt": {
-      "min": 81601,
-      "gz": 24761,
+      "min": 82173,
+      "gz": 24951,
       "net": {
-        "min": 67577,
-        "gz": 20163
+        "min": 68149,
+        "gz": 20360
       },
       "lazy": {
         "min": 7502,
-        "gz": 3245
+        "gz": 3244
       },
       "pkg": "auth",
       "exports": ["PushPermissionPrompt"]
@@ -934,25 +934,25 @@
       "exports": ["ReasoningDisclosure"]
     },
     "RegisterPage": {
-      "min": 101997,
-      "gz": 30159,
+      "min": 102543,
+      "gz": 30326,
       "net": {
-        "min": 87983,
-        "gz": 25543
+        "min": 88533,
+        "gz": 25722
       },
       "lazy": {
         "min": 7502,
-        "gz": 3244
+        "gz": 3245
       },
       "pkg": "auth",
       "exports": ["RegisterPage"]
     },
     "ResetPasswordPage": {
-      "min": 101477,
-      "gz": 30015,
+      "min": 102018,
+      "gz": 30190,
       "net": {
-        "min": 87457,
-        "gz": 25384
+        "min": 88000,
+        "gz": 25552
       },
       "lazy": {
         "min": 7502,
@@ -1046,15 +1046,15 @@
       "exports": ["Separator"]
     },
     "SessionManager": {
-      "min": 100382,
-      "gz": 28341,
+      "min": 100920,
+      "gz": 28518,
       "net": {
-        "min": 86358,
-        "gz": 23754
+        "min": 86896,
+        "gz": 23928
       },
       "lazy": {
         "min": 7502,
-        "gz": 3244
+        "gz": 3247
       },
       "pkg": "auth",
       "exports": ["SessionManager"]
@@ -1326,11 +1326,11 @@
       "exports": ["Tooltip"]
     },
     "TwoFactorManager": {
-      "min": 97953,
-      "gz": 28736,
+      "min": 98580,
+      "gz": 28906,
       "net": {
-        "min": 83931,
-        "gz": 24143
+        "min": 84558,
+        "gz": 24313
       },
       "lazy": {
         "min": 7502,
@@ -1340,15 +1340,15 @@
       "exports": ["TwoFactorManager"]
     },
     "VerifyEmailPage": {
-      "min": 76318,
-      "gz": 23293,
+      "min": 76822,
+      "gz": 23467,
       "net": {
-        "min": 62293,
-        "gz": 18694
+        "min": 62797,
+        "gz": 18869
       },
       "lazy": {
         "min": 9895,
-        "gz": 4053
+        "gz": 4057
       },
       "pkg": "auth",
       "exports": ["VerifyEmailPage"]

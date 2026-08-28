@@ -19,8 +19,8 @@ import type { AccountSettingsProps } from './index.js';
 // that cannot be undone, so what guards it has to be described by a test rather
 // than read off the markup. What is asserted here is what this component owns —
 // the disabled trigger, the two-step confirmation, the failure path. The
-// single-flight of the confirm click belongs to ConfirmDialog and is not
-// falsifiable from here (see the comment at `confirmDelete`).
+// single-flight of the confirm click belongs to ConfirmDialog and is pinned in
+// its own suite, not duplicated here (see the comment at `confirmDelete`).
 
 const user: AuthUser = {
   id: 'u1',

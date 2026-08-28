@@ -32,10 +32,12 @@ Peer dependencies: `svelte` (^5.40 — uses runes + `createContext`-era context)
 </I18nProvider>
 ```
 
+<!-- typecheck -->
 ```ts
 // +layout.server.ts — resolve the locale per request (SSR), cookie + Accept-Language
 import { resolveLocale } from '@urbicon-ui/i18n';
-export const load = ({ request }) => ({ locale: resolveLocale(request) });
+import type { LayoutServerLoad } from './$types';
+export const load: LayoutServerLoad = ({ request }) => ({ locale: resolveLocale(request) });
 ```
 
 **2. Read translations in components through a hook** — `useI18n()` for the global surface, or a package's `use<Package>I18n()` for its typed keys.
@@ -233,6 +235,7 @@ The provider's on-mount load runs in a **client-only** `$effect`. So under SSR a
 
 The fix is to register the bundle **eagerly, once at server/app start**. The registry is module-global and holds only static, request-identical translation data, so a single startup registration is SSR-safe (it carries no per-request state). Every package factory returns `registerLocale(locale, bundle)` for this; `@urbicon-ui/blocks` re-exports it as `registerBlocksLocale`:
 
+<!-- typecheck -->
 ```ts
 // src/hooks.server.ts (or any module evaluated once at server start)
 import { registerBlocksLocale } from '@urbicon-ui/blocks';
@@ -290,6 +293,7 @@ it('en/de key parity', () => {
 
 ## API Surface
 
+<!-- typecheck -->
 ```ts
 // Provider + hooks + server helper
 import {

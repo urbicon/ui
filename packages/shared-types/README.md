@@ -31,14 +31,28 @@ Each subpath is consumable on its own so consumers pull in only what they need:
 
 ## Usage
 
+<!-- typecheck -->
 ```typescript
-import type { PropInfo, ComponentInfo } from '@urbicon-ui/shared-types';
+import type { ComponentInfo, PropInfo } from '@urbicon-ui/shared-types';
 import type { PlaygroundConfig } from '@urbicon-ui/shared-types/playground';
+
+const intent: PropInfo = {
+  name: 'intent',
+  type: 'ComponentIntent',
+  required: false,
+  description: 'Semantic colour of the button',
+  source: { type: 'direct' }
+};
 
 const button: ComponentInfo = {
   name: 'Button',
-  props: [{ name: 'intent', type: 'ComponentIntent', required: false }],
-  // ...
+  packageName: '@urbicon-ui/blocks',
+  filePath: 'src/lib/components/primitives/Button/Button.svelte',
+  description: 'Triggers an action or navigation',
+  props: [intent],
+  variants: [],
+  inheritance: [],
+  stats: { totalProps: 1, directProps: 1, variantProps: 0, inheritedProps: 0 }
 };
 ```
 
