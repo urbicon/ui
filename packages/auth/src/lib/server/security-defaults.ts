@@ -33,7 +33,16 @@ const TOKEN_FLOW: RateLimitConfig = { windowMs: 15 * 60_000, max: 10 };
  */
 export const RATE_LIMIT_DEFAULTS: Record<RateLimitKey, RateLimitConfig> = {
   // The security-critical limiter: the one endpoint where the secret being
-  // offered is a human-chosen password.
+  // offered is a human-chosen password. Five *failures* per address: a correct
+  // password refunds its slot, so an office behind one NAT address is braked
+  // by its typos, never by its sign-ins. The refund is what this key gives up:
+  // successful logins from one address are unbounded here, and each one costs
+  // a PBKDF2 run (38.4 ms at the default work factor). A cost cap would need a
+  // second per-IP counter that successes do not refund — a per-IP counter has
+  // never stopped a distributed cost attack, and one account hammering from one
+  // address is what an edge rate-limit is for, so that counter would be
+  // surface without protection. Documented as a trade-off in AUTH.md → Known
+  // Limitations.
   login: { windowMs: 15 * 60_000, max: 5 },
 
   // PBKDF2 runs only AFTER the invitation token, its used/expiry state and the
@@ -73,10 +82,12 @@ export const RATE_LIMIT_DEFAULTS: Record<RateLimitKey, RateLimitConfig> = {
   refresh: { windowMs: 60_000, max: 30 },
 
   // Two calls per ceremony (options + verify share one bucket), so 30 is 15
-  // *completed* ceremonies per IP per window. The options half stores one
-  // challenge entry per call, pruned only at the 5-minute TTL, and an abandoned
-  // ceremony spends one call and leaves its entry — so the bound this cap puts
-  // on the store is the full 30 live entries per IP, not 15.
+  // *failed or abandoned* ceremonies per IP per window — a completed one
+  // refunds both calls. The options half stores one challenge entry per call,
+  // pruned only at the 5-minute TTL, and an abandoned ceremony spends one call
+  // and leaves its entry — so the bound this cap puts on the store is the full
+  // 30 live entries per IP, not 15 (a completed ceremony consumes its entry,
+  // so its refund gives back no live entry).
   passkeyAuth: { windowMs: 15 * 60_000, max: 30 },
 
   changePassword: REAUTH,
@@ -86,7 +97,8 @@ export const RATE_LIMIT_DEFAULTS: Record<RateLimitKey, RateLimitConfig> = {
 
   // A 6-digit code is 10^6 combinations, so the second factor is worthless
   // without a tight limiter. 10 / 15 min tolerates a few typos while making
-  // online brute force hopeless. Defaulted even without `config.twoFactor`: the
+  // online brute force hopeless; a correct code refunds its own slot (one, not
+  // a reset — see verifyHandler), so the ten are wrong codes. Defaulted even without `config.twoFactor`: the
   // limiter is only ever built by the 2FA handlers, and a condition here would
   // be a second hand-maintained list of exactly the kind this table removes.
   twoFactor: { windowMs: 15 * 60_000, max: 10 }

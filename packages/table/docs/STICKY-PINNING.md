@@ -131,9 +131,9 @@ sibling, not pinned). So no per-layer variant change is needed — only the CSS-
 
 **Interactions:**
 
-- **Supersedes `sticky`** (ignored) and **`stickyOffset`** (ignored — an app-shell bar that is an
-  *ancestor* of the table is already reserved by the cap; a bar that is only a sibling is
-  reserved by nothing, see §6).
+- **Supersedes `sticky`** (ignored). **`stickyOffset` still counts**, as a floor under the
+  measured reservation: an app-shell bar that is an *ancestor* of the table is measured, a fixed
+  bar that is only a sibling is not — declare its height and the cap leaves room for it (§6).
 - **Mutually exclusive with `virtualized`**, which keeps its own bounded scroll via
   `virtualHeight`; `fit` has no effect when `virtualized`, and a DEV-build console warning says
   so (the refusal is otherwise invisible — `data-fit` reports the resolved `"content"`).
@@ -264,8 +264,8 @@ things to know when rebuilding the pins:
 | `virtualized` | Manages its own bounded scroll (`virtualHeight`); `fit` is ignored (a DEV warning says so), `sticky` still works (thead already sits outside the virtual scroller). The summary row is a separate `<table>` *after* the full-height spacer inside that scroller, so the totals sit at the far end of the virtual scroll — 200 000px down for 5 000 rows at the `md` step of 40px. |
 | `unstyled` | Strips the sticky/contained classes on every slot, `container` included — but not the props that drive the measurements. Rebuilding it: §5. |
 | Nested scroll ancestor | Page-relative sticky binds to it — intended inside a `Drawer` body, surprising inside an accidental `overflow` wrapper. With `fit="viewport"` it is supported without a listener: the reserved space is the box's place in that ancestor's content plus what the ancestor itself reserves, and scrolling the ancestor changes neither. |
-| Fixed top bar that is a **sibling** of the table | Not reserved. `fit="viewport"` ignores `stickyOffset`, and only *ancestors* are measured — put the content in the scroll container below the bar, or keep the bar as an ancestor. |
-| Chrome added/removed above the table inside a **fixed-height** pane | Resizes no observed box, so the reading holds until the next resize: the box is then too tall by that much (reaching past the viewport bottom) or too short by it (empty space below). |
+| Fixed top bar that is a **sibling** of the table | Not measured — only *ancestors* are. Declare its height as `stickyOffset`: with `fit="viewport"` that figure is a floor under the reservation, so the cap leaves room for the bar. |
+| Chrome added/removed above the table inside a **fixed-height** pane | Resizes no observed box, so the reading holds until the next resize: the box is then too tall by that much (reaching past the viewport bottom) or too short by it (empty space below). Chrome whose height you know goes into `stickyOffset` instead, which needs no observer. |
 | SSR / first paint + `fit="viewport"` | `--blocks-table-avail-top` is written by an attachment, and attachments do not run on the server, so the cap resolves to `calc(100dvh - 0px)` until hydration: a table N px down the document is N px too tall for one frame. Where the offset is known ahead of time (a fixed app-shell header), declare `--blocks-table-avail-top` on the container in your own CSS — nothing declares it in the server output, so your value holds the first paint and the measured one takes over at hydration. |
 
 ---

@@ -100,7 +100,7 @@ export type { EmailTransport, SendEmailParams } from './email/types.js';
 // resolveUser is where THIS app decides access; the IdP's role never arrives.
 export type { FederatedAuthHandleOptions, FederatedIdentity } from './federated-handle.js';
 export { createFederatedAuthHandle } from './federated-handle.js';
-export type { AuthHandleOptions } from './handle.js';
+export type { AuthHandleOptions, PublicRoute } from './handle.js';
 // Handle hook. DEFAULT_PUBLIC_ROUTES is the guard's default exemption list —
 // `publicRoutes` replaces it, so extending means spreading this.
 export { createAuthHandle, DEFAULT_PUBLIC_ROUTES } from './handle.js';

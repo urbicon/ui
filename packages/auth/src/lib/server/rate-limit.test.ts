@@ -100,6 +100,43 @@ describe('createRateLimiter (default in-memory store)', () => {
     expect((await limiter.check('user-2')).allowed).toBe(false);
   });
 
+  it('refund hands back one slot, and never more than were taken', async () => {
+    const limiter = createRateLimiter({ windowMs: 60_000, max: 2 });
+    await limiter.check('k');
+    await limiter.check('k');
+    expect((await limiter.check('k')).allowed).toBe(false);
+    // Count is 3 (a refused check counts too). One back → 2, and the check
+    // that follows makes it 3 again: still over.
+    await limiter.refund('k');
+    expect((await limiter.check('k')).allowed).toBe(false);
+    // Two back → 1; the next check is the second of the window and fits, the
+    // one after it does not.
+    await limiter.refund('k', 2);
+    expect((await limiter.check('k')).allowed).toBe(true);
+    expect((await limiter.check('k')).allowed).toBe(false);
+  });
+
+  it('refund clamps at zero and is a no-op for an unknown or expired key', async () => {
+    vi.useFakeTimers();
+    try {
+      const limiter = createRateLimiter({ windowMs: 60_000, max: 1 });
+      await limiter.refund('never-seen');
+      await limiter.check('k');
+      await limiter.refund('k', 5);
+      // Clamped at 0, not -4: the next check is the first of the window.
+      expect((await limiter.check('k')).allowed).toBe(true);
+      expect((await limiter.check('k')).allowed).toBe(false);
+      // Past the window a refund has nothing to give back and must not
+      // resurrect the old entry.
+      vi.advanceTimersByTime(60_001);
+      await limiter.refund('k');
+      expect((await limiter.check('k')).allowed).toBe(true);
+      expect((await limiter.check('k')).allowed).toBe(false);
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
   it('allows requests again after manual reset', async () => {
     const limiter = createRateLimiter({ windowMs: 60_000, max: 1 });
     await limiter.check('user-1');
@@ -159,9 +196,12 @@ describe('createRateLimiter (injected custom store)', () => {
     const limiter = createRateLimiter({ windowMs: 60_000, max: 2, store });
     await limiter.check('x');
     await limiter.check('x');
+    await limiter.refund('x');
     await limiter.reset('x');
 
-    expect(log).toEqual(['get:x', 'set:x:1', 'get:x', 'set:x:2', 'delete:x']);
+    // refund is a read-modify-write on the store's own get/set — no new store
+    // method, so a consumer's store implementation needs nothing for it.
+    expect(log).toEqual(['get:x', 'set:x:1', 'get:x', 'set:x:2', 'get:x', 'set:x:1', 'delete:x']);
   });
 
   it('awaits a store that returns Promises', async () => {

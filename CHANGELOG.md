@@ -4,6 +4,29 @@ All notable changes to this project will be documented in this file.
 This changelog is automatically generated from [Conventional Commits](https://www.conventionalcommits.org).
 
 
+## [8.8.0] - 2026-08-26
+
+### Breaking Changes
+- **auth**: One in-memory store for all factories, and a guarded decay reset (#323)
+
+### Bug Fixes
+- **table**: Avail-top is the smallest reachable offset, and Svelte no longer wipes it (#315)
+- **blocks**: One guard per ConfirmDialog button, and say why they differ (#320)
+- **table**: StickyOffset is a floor under the contained reservation (#317)
+- **table,docs**: The shipped stylesheets stop re-importing the blocks stylesheet (#322)
+
+### CI/CD
+- A consumer-fidelity check that asks Tailwind which shipped classes it would compile (#321)
+
+### Documentation
+- **table**: The sticky guide describes the code it ships with (#316)
+
+### Features
+- **auth**: Ship a stylesheet so the auth components compile in a consumer build (#319)
+
+### Testing
+- **blocks**: The blocks suite runs against the query-aware matchMedia stub (#318)
+
 ## [8.7.0] - 2026-08-25
 
 ### Breaking Changes

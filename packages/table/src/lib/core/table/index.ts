@@ -850,10 +850,10 @@ export interface TableProps<T = TableItem> {
    *   the page's primary content — inside a scrolling article the table caps
    *   itself against the viewport all the same and gives you a second scroller.
    * - Supersedes `sticky`: header/group pinning is intrinsic to the box, so the
-   *   `sticky` prop is ignored. `stickyOffset` is ignored too: an app-shell bar
-   *   that is an *ancestor* of the table is already reserved by the cap, while a
-   *   bar that is only a sibling is reserved by nothing — put the table in the
-   *   scroll container below such a bar, or keep the bar as an ancestor.
+   *   `sticky` prop is ignored. `stickyOffset` still counts, as a floor under
+   *   the measured reservation: an app-shell bar that is an *ancestor* of the
+   *   table is measured, a `position: fixed` bar that is only a sibling is
+   *   not — declare its height and the cap leaves room for it.
    * - Mutually exclusive with `virtualized`, which manages its own bounded
    *   scroll via `virtualHeight`; `fit` has no effect when `virtualized`, and a
    *   DEV-build console warning names the combination — the refusal is otherwise
@@ -879,7 +879,9 @@ export interface TableProps<T = TableItem> {
   /**
    * Pixel offset for the topmost sticky layer (toolbar, or thead when no toolbar).
    * Writes the CSS custom property `--blocks-table-sticky-top` on the container.
-   * Use this to push the pin below a fixed app shell top bar.
+   * Use this to push the pin below a fixed app shell top bar. With
+   * `fit="viewport"` the same figure is a floor under the space the box reserves
+   * above itself, for chrome the measurement cannot see (a fixed sibling bar).
    *
    * @default 0
    */
