@@ -66,7 +66,7 @@
   const groupedSummaryData = $derived(tableContext.groupedSummaryData);
   /** Whether a summary row draws anything — the store's one answer, shared with
    *  `SummaryRow`'s own gate, so a row that declines to render cannot leave an
-   *  empty `<tfoot>` or an empty group slot behind it. */
+   *  empty `<tfoot>` behind it. */
   const summaryRenders = $derived(tableContext.summaryRowRenders);
 
   /**

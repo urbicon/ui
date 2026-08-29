@@ -292,7 +292,7 @@ things to know when rebuilding the pins:
 | Change | From | To | Migration |
 |---|---|---|---|
 | Frame slot | `slotClasses.wrapper` (had hardcoded `overflow-hidden`, which blocked sticky) | `slotClasses.scrollArea` (no `overflow` in the base) | Rename `slotClasses.wrapper` → `slotClasses.scrollArea`. A DEV warning fires on the old key. |
-| Total summary row | last `<tr>` of the `<tbody>`, in every scroll model | a `<tr>` in the table's `<tfoot>`, in every scroll model | Style the row through `slotClasses.summaryRow`, which reaches it in either position. Two things stop reaching it on their own: a descendant or child rule under `slotClasses.tbody` (`divide-y` compiles to `tbody > * + *`, so it no longer draws the summary's top edge — the row's own `border-t-2` still does), and `tbody tr:last-child`, which now selects the last **data** row. Group summary rows are unchanged and stay in the `<tbody>`. |
+| Total summary row | last `<tr>` of the `<tbody>` — in a page-relative table and in a `fit="viewport"` one. The `virtualized` branch moved to a `<tfoot>` in 8.10.0 already and is unchanged by this. | a `<tr>` in the table's `<tfoot>`, in every scroll model | Style the row through `slotClasses.summaryRow`, which reaches it in either position. Two things stop reaching it on their own: a descendant or child rule under `slotClasses.tbody` (`divide-y` compiles to `tbody > * + *`, so it no longer draws the summary's top edge — where the foot does not pin, the row's own `border-t-2` still does; where it pins, the rule is a shadow on the row and the border is folded away), and `tbody tr:last-child`, which now selects the last **data** row. Group summary rows are unchanged and stay in the `<tbody>`. |
 
 ---
 

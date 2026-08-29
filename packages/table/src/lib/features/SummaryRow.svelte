@@ -31,10 +31,10 @@
   /**
    * Whether any aggregation in force has a cell here to be drawn in.
    *
-   * The store's answer, not this row's own: the caller that decides to render a
-   * `<SummaryRow>` at all — a pinned `<tfoot>`, a slot between two groups —
-   * must reach the same verdict, or a row that declines to exist leaves an
-   * empty element wrapped around it.
+   * The store's answer, not this row's own: the total's `<tfoot>` is an element
+   * wrapped around this component, so it has to reach the same verdict or a row
+   * that declines to exist leaves an empty foot behind. The grouped arm renders
+   * this component with no element around it, and is unaffected either way.
    *
    * What it rules out here: the aggregations in force are every aggregation
    * acting on the data (#252), while this row has a *place* only for the
