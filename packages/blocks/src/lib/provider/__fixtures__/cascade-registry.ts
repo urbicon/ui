@@ -33,8 +33,10 @@ type AnyComponent = Component<Record<string, unknown>>;
 // Discovery is bounded by these two directories: a component added under a new
 // `src/lib/<dir>` would be exported, styled, and silently outside the sweep.
 // Measured on this tree — the 368 barrel exports outside them are icons and
-// infrastructure, and the only `.svelte` elsewhere that declares `unstyled` are
-// the three `internal/core/*`, which the barrel deliberately never exports.
+// infrastructure, and the only `.svelte` elsewhere declaring an `unstyled` prop
+// is `provider/BlocksProvider.svelte`, which owns the flag rather than obeying
+// it. (`internal/core/*` name `unstyled` in prose only, which is why the scan
+// that established this had to strip comments first.)
 const componentLoaders = import.meta.glob<{ default: AnyComponent }>(
   '../../{components,primitives}/**/*.svelte'
 );

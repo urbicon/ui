@@ -114,7 +114,12 @@ const KNOWN_GAPS: Record<string, Partial<Record<Route, string>>> = {
  * Each entry names the wrapper. Stale entries are errors.
  */
 const ROOT_IS_A_WRAPPER: Record<string, string> = {
-  // Hand-written wrappers, in the component's own markup.
+  // Hand-written wrappers in the component's own markup that no slot addresses:
+  // measured on CopyButton, neither `defaults.CopyButton.*` nor
+  // `defaults.Button.base` lands on the `<span>` — the class goes to the inner
+  // Button. That is a #339-shaped gap, not composition; these three keep their
+  // pass only until a slot reaches the wrapper, which the stale test below
+  // turns into an error the moment it does.
   CopyButton: 'wraps button + live region in a `<span class="contents">`',
   Guide: 'announces the tour step through an `<span class="sr-only" aria-live>` first',
   Tooltip: 'wraps the trigger in a `<span class="inline-flex">`',
