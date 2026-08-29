@@ -149,6 +149,199 @@ describe('tableContainerVariants — contained (fit="viewport")', () => {
   });
 });
 
+describe('tableContainerVariants — the pinned summary foot', () => {
+  it('pins the foot to the bottom edge of the box, on an opaque ground', () => {
+    const pinned = tableContainerVariants({ pinnedSummary: true }).foot();
+    expect(pinned).toMatch(/(?:^|\s)sticky\b/);
+    expect(pinned).toMatch(/(?:^|\s)bottom-0\b/);
+    // Above the rows that scroll under it, which is what the number is for. It
+    // is the pinned thead's number too, and the two DO meet: in a scrollport
+    // shorter than head plus foot they overlap, and with one z-index DOM order
+    // decides — the foot, being second, paints over the head. A box that small
+    // shows neither layer's content anyway, so one order is as good as another.
+    expect(pinned).toMatch(/(?:^|\s)z-20\b/);
+    expect(pinned).toMatch(/(?:^|\s)bg-surface-elevated\b/);
+  });
+
+  it('emits nothing where the table has no bottom edge of its own', () => {
+    // The page-relative model, which is also the default: the foot rides in the
+    // flow behind the last row and looks exactly as it did inside the `<tbody>`.
+    expect(tableContainerVariants({ pinnedSummary: false }).foot()).toBe('');
+    expect(tableContainerVariants({}).foot()).toBe('');
+  });
+
+  it('is its own axis — `contained` neither implies it nor is implied by it', () => {
+    // Two boxes pin the foot and only one of them is `contained`; and
+    // `contained` also carries the container cap and the flex scroll layout,
+    // which the virtualized box must not have. So the two cannot be one axis.
+    expect(tableContainerVariants({ contained: true }).foot()).toBe('');
+    expect(tableContainerVariants({ pinnedSummary: true }).container()).not.toMatch(
+      /max-h-\[calc\(100dvh/
+    );
+  });
+});
+
+/**
+ * The Tailwind properties a doubled utility would make ambiguous.
+ *
+ * Two classes of one bucket reach the output together only from ONE config
+ * value. Across axes the fold resolves them and the later axis wins outright —
+ * measured on a probe config: `max-h-[calc(100dvh-var(--x,0px))]` on one axis
+ * against `max-h-96` on another emits `max-h-96` alone, while a single value
+ * holding `'max-h-12 max-h-24'` emits both. So what this scan reaches is a
+ * hand-written config value that names one property twice, where nothing
+ * decides the winner but stylesheet order.
+ *
+ * What it therefore does NOT reach: a new axis quietly REPLACING an existing
+ * class. The contained cap losing to a later axis' `max-h` emits no doubling,
+ * so nothing here fires — and the `contained` assertions above pass a lone
+ * `{ contained: true }`, where a new axis sits at its `false` default and the
+ * cap survives (measured on the same probe). Catching that wants an assertion
+ * that a class SURVIVES a combination, which this file does not have.
+ */
+const PROPERTY_OF: [property: string, matches: RegExp][] = [
+  ['position', /^(?:static|fixed|absolute|relative|sticky)$/],
+  ['overflow', /^overflow(?:-[xy])?-/],
+  ['top', /^-?top-/],
+  ['bottom', /^-?bottom-/],
+  ['max-height', /^max-h-/],
+  ['z-index', /^-?z-/]
+];
+
+/** The properties a class string names more than once. */
+function doubledProperties(classes: string): string[] {
+  const seen = new Map<string, string[]>();
+  for (const cls of classes.split(/\s+/).filter(Boolean)) {
+    const property = PROPERTY_OF.find(([, matches]) => matches.test(cls))?.[0];
+    if (!property) continue;
+    seen.set(property, [...(seen.get(property) ?? []), cls]);
+  }
+  return [...seen].filter(([, hits]) => hits.length > 1).map(([property]) => property);
+}
+
+/**
+ * Every combination of every axis the exported function accepts, read OUT of
+ * the config rather than written down beside it — a hand-kept list of axis
+ * names goes stale the moment an axis is added, and nothing reports it.
+ */
+function everyVariantCombination(): Record<string, string>[] {
+  const variants = tableContainerVariants.config.variants ?? {};
+  let combinations: Record<string, string>[] = [{}];
+  for (const [axis, values] of Object.entries(variants)) {
+    const steps = Object.keys(values as Record<string, unknown>);
+    expect(steps.length, `axis ${axis} declares no values`).toBeGreaterThan(0);
+    combinations = combinations.flatMap((combination) =>
+      steps.map((step) => ({ ...combination, [axis]: step }))
+    );
+  }
+  return combinations;
+}
+
+/**
+ * The slot functions for one combination, from the engine the table itself
+ * calls — the oracle both enumerations below ask, rather than a re-implementation
+ * of the fold.
+ *
+ * Cast: the exported signature refuses `{ stickyToolbar: true, contained: true }`
+ * at the type level, and an enumeration has to reach that pair too — what is
+ * under test is what the CONFIG can emit, not which calls a consumer can write.
+ */
+function slotsFor(combination: Record<string, string>): Record<string, () => string> {
+  return (
+    tableContainerVariants as unknown as (
+      props: Record<string, string>
+    ) => Record<string, () => string>
+  )(combination);
+}
+
+describe('tableContainerVariants — one utility per property per slot', () => {
+  it('holds over every combination of every axis', () => {
+    const slots = Object.keys(tableContainerVariants.config.slots ?? {});
+    const combinations = everyVariantCombination();
+    expect(slots.length).toBeGreaterThan(0);
+    expect(combinations.length).toBeGreaterThan(0);
+
+    const clashes: string[] = [];
+    for (const combination of combinations) {
+      const styles = slotsFor(combination);
+      for (const slot of slots) {
+        for (const property of doubledProperties(styles[slot]())) {
+          clashes.push(`${slot}: two ${property} at ${JSON.stringify(combination)}`);
+        }
+      }
+    }
+
+    expect(clashes).toEqual([]);
+  });
+
+  // POSITIVE CONTROL on the oracle above: a guard whose classifier matches
+  // nothing reports no clash for any config, and reads exactly like a green one.
+  it('the classifier finds a doubled property when there is one', () => {
+    expect(doubledProperties('sticky static')).toEqual(['position']);
+    expect(doubledProperties('sticky top-0 top-4')).toEqual(['top']);
+    expect(doubledProperties('overflow-auto overflow-x-hidden')).toEqual(['overflow']);
+    expect(doubledProperties('z-20 z-30')).toEqual(['z-index']);
+    expect(doubledProperties('sticky bottom-0 z-20 bg-surface-elevated')).toEqual([]);
+  });
+});
+
+/**
+ * The classes that carry a behaviour rather than a look, and the axis that has
+ * to be on for each. Two entries, because two things in this config stop
+ * working rather than looking different when they go missing: the contained
+ * height cap and the summary foot's pin. A class earns a place here when it
+ * becomes load-bearing, not in advance.
+ */
+const LOAD_BEARING: { axis: string; slot: string; classes: string[] }[] = [
+  {
+    axis: 'contained',
+    slot: 'container',
+    classes: ['max-h-[calc(100dvh-var(--blocks-table-avail-top,0px))]']
+  },
+  { axis: 'pinnedSummary', slot: 'foot', classes: ['sticky', 'bottom-0'] }
+];
+
+describe('tableContainerVariants — the load-bearing classes survive every combination', () => {
+  /**
+   * The other direction over the same enumeration, and the one a doubling scan
+   * is blind to.
+   *
+   * A class of a property bucket is lost in two ways. It can be JOINED by a
+   * second one from the same config value, where nothing but stylesheet order
+   * decides — that is what the enumeration above walks. Or it can be REPLACED:
+   * across axes `tv()` folds the bucket and the later axis wins outright, so a
+   * new axis emitting `max-h-96` on `container` deletes the contained cap and
+   * emits no doubling at all. Measured on a probe config; the note above
+   * `PROPERTY_OF` carries the readings.
+   *
+   * The state cannot be made unrepresentable: a new axis may legitimately carry
+   * a `max-h-*`, and the fold may legitimately resolve it. What can be
+   * prevented is its going unnoticed — which is why this is a gate, and why the
+   * gate asks the tv() engine itself (`slotsFor`, the same function the table
+   * calls) instead of re-deriving what the fold would do.
+   */
+  it('every combination in which the axis is on still emits the class', () => {
+    const combinations = everyVariantCombination();
+    const lost: string[] = [];
+
+    for (const { axis, slot, classes } of LOAD_BEARING) {
+      const on = combinations.filter((combination) => combination[axis] === 'true');
+      // A renamed or deleted axis leaves this filter empty, and a loop over
+      // nothing passes — so the count is asserted before it is walked.
+      expect(on.length, `axis '${axis}' is never on: renamed, or gone`).toBeGreaterThan(0);
+
+      for (const combination of on) {
+        const emitted = new Set(slotsFor(combination)[slot]().split(/\s+/).filter(Boolean));
+        for (const cls of classes) {
+          if (!emitted.has(cls)) lost.push(`${slot}: no ${cls} at ${JSON.stringify(combination)}`);
+        }
+      }
+    }
+
+    expect(lost).toEqual([]);
+  });
+});
+
 describe('tableHeaderVariants — sticky thead', () => {
   it('pins the thead below toolbar (sticky-top + toolbar-h)', () => {
     const page = tableHeaderVariants({ sticky: true });

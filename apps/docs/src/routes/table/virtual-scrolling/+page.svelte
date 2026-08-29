@@ -84,9 +84,12 @@
       result. Sorting, filtering, search, selection and keyboard navigation work as they do anywhere
       else, because what gets virtualized is your filtered and sorted data. The column header stays
       pinned to the top of the box and a summary row to its bottom while the rows scroll between
-      them. <code class="text-text-primary">virtualHeight</code> is the height of that whole box,
-      header and summary included (default <code class="text-text-primary">'600px'</code>), and
-      takes any CSS length, so <code class="text-text-primary">'60vh'</code> and
+      them — and when a filter leaves too few rows to fill the box, the summary sits under the last
+      one rather than at the bottom edge. <code class="text-text-primary">virtualHeight</code> is
+      the height of that whole box, header and summary included (default
+      <code class="text-text-primary">'600px'</code>), and takes any CSS length, so
+      <code class="text-text-primary">'60vh'</code>
+      and
       <code class="text-text-primary">'calc(100vh - 200px)'</code> work as well as a pixel value.
     </p>
 

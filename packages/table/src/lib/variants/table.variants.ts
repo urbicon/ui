@@ -547,11 +547,10 @@ const rawTableContainerVariants = tv({
     containedChrome: [],
     table: ['w-full border-collapse'],
     body: [],
-    // The virtualized layout's `<tfoot>` — the summary row pinned to the
-    // bottom edge of the scroll box, with an opaque ground so the rows
-    // scrolling under it do not show through the row's tint. Only that layout
-    // renders a `<tfoot>`; the standard branch keeps its summary in the flow.
-    foot: ['sticky bottom-0 z-20 bg-surface-elevated']
+    // The `<tfoot>` that carries the total summary row. Bare here: a
+    // page-relative table has no bottom edge of its own to pin against, so its
+    // foot rides in the flow with the last row. The pin is `pinnedSummary`.
+    foot: []
   },
   // Variant contract (see packages/blocks/docs/VARIANT-CONTRACT.md § Table chrome):
   //   flush   → no frame, sits inline in the reading flow (Docs, Inline)
@@ -653,6 +652,22 @@ const rawTableContainerVariants = tv({
         containedChrome: ['shrink-0']
       },
       false: {}
+    },
+    // The summary `<tfoot>` pinned to the bottom edge of the scroll box the
+    // table owns — the virtualized box of `virtualHeight`, or the contained box
+    // of `fit="viewport"`. An opaque ground, because the rows scroll under it
+    // and would otherwise show through the row's tint.
+    //
+    // Its own axis rather than `contained`: which of the two boxes the table
+    // has is not a difference the pin can see, and `contained` also carries the
+    // container cap and the flex layout, neither of which the virtualized box
+    // may have. Not folded into the base slot either — that would pin the foot
+    // of a page-relative table against the page, below the rows it belongs to.
+    pinnedSummary: {
+      true: {
+        foot: ['sticky bottom-0 z-20 bg-surface-elevated']
+      },
+      false: {}
     }
   },
   defaultVariants: {
@@ -660,7 +675,8 @@ const rawTableContainerVariants = tv({
     size: 'md',
     cardsBelow: '48rem',
     stickyToolbar: false,
-    contained: false
+    contained: false,
+    pinnedSummary: false
   }
 });
 

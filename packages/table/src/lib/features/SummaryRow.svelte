@@ -11,8 +11,9 @@
     groupName = null as string | null,
     groupSummaryData = null as Record<string, unknown> | null,
     size = 'md' as 'sm' | 'md' | 'lg',
-    // Rendered inside a pinned `<tfoot>` (the virtualized layout): the top rule
-    // becomes a shadow that travels with the pin — see `summaryRowVariants`.
+    // Rendered inside a `<tfoot>` pinned to the bottom edge of the table's own
+    // scroll box: the top rule becomes a shadow that travels with the pin —
+    // see `summaryRowVariants`.
     pinned = false,
     class: className = ''
   } = $props();
@@ -30,20 +31,18 @@
   /**
    * Whether any aggregation in force has a cell here to be drawn in.
    *
-   * The list above is deliberately every aggregation acting on the data, so
-   * that each surface saying "a summary is running" says it about the same set
-   * (#252). This row is the surface that also needs a *place* per aggregation,
-   * and it has one only for the columns it renders — hiding a summarised column
-   * takes its cell with it. Gating on the list alone therefore left a
-   * highlighted, entirely empty strip under the table whenever the last
-   * summarised column was hidden: the row rendered because a config existed,
-   * and drew nothing because none of the columns it iterates carried one.
+   * The store's answer, not this row's own: the total's `<tfoot>` is an element
+   * wrapped around this component, so it has to reach the same verdict or a row
+   * that declines to exist leaves an empty foot behind. The grouped arm renders
+   * this component with no element around it, and is unaffected either way.
+   *
+   * What it rules out here: the aggregations in force are every aggregation
+   * acting on the data (#252), while this row has a *place* only for the
+   * columns it renders — hiding a summarised column takes its cell with it.
+   * Gating on the list alone left a highlighted, entirely empty strip under the
+   * table whenever the last summarised column was hidden.
    */
-  const hasSummaryCell = $derived(
-    tableContext.orderedColumns.some((column) =>
-      summaryConfigs.some((config) => config.column === resolveColumnId(column))
-    )
-  );
+  const hasSummaryCell = $derived(tableContext.summaryRowRenders);
 
   // The one list the header, the body and the column tracks also read — see
   // core/structural-columns.ts.

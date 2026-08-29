@@ -13,6 +13,14 @@
   //                  caps" reading
   //   ?box=narrow  — a 22rem column, below the table's own 32rem card step,
   //                  inside whatever viewport the test set
+  //   ?summary=on  — a total summary instead of the grouping. The two are
+  //                  exclusive here because a grouped table has group summaries
+  //                  and no total, and the total is what pins to the bottom
+  //                  edge of the box; a second table beside this one would
+  //                  break the one-table rule below. It also lifts the page
+  //                  size to the whole list, because the grouped rig gets its
+  //                  scroll length from grouping bypassing pagination and one
+  //                  default page of rows is shorter than the capped box.
   //
   // A contained table has to be the main content of its page: the cap is
   // `100dvh` minus how much viewport sits above the box, and that offset is not
@@ -92,7 +100,19 @@
 
   const fit = $derived(page.url.searchParams.get('fit') === 'content' ? 'content' : 'viewport');
   const narrow = $derived(page.url.searchParams.get('box') === 'narrow');
+  const summary = $derived(page.url.searchParams.get('summary') === 'on');
 </script>
+
+<svelte:head>
+  <style>
+    /* No motion: the seam reading compares a pixel column of the pinned foot at
+       two scroll positions, and a mid-transition frame is not a layout state. */
+    * {
+      transition: none !important;
+      animation: none !important;
+    }
+  </style>
+</svelte:head>
 
 <header class="border-border-default bg-surface-elevated flex h-12 items-center border-b px-4">
   <span class="text-text-primary text-sm font-semibold">Contained scroll fixture</span>
@@ -107,7 +127,8 @@
       cardsBelow="32rem"
       variant="framed"
       ariaLabel="Contained fixture"
-      viewDefaults={{ groupBy: 'dept' }}
+      viewDefaults={summary ? { pageSize: rows.length } : { groupBy: 'dept' }}
+      prefs={summary ? { defaults: { summaries: [{ column: 'score', type: 'sum' }] } } : undefined}
     />
   </div>
 </main>

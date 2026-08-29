@@ -581,6 +581,13 @@ export interface TableProps<T = TableItem> {
    * header and the summary row included: both are pinned inside it, so the
    * rows get `virtualHeight` minus the two. Only used when `virtualized` is
    * true. Accepts any CSS height value.
+   *
+   * The summary pin is not this box's own trick: a total summary pins to the
+   * bottom edge of whichever scroll box the table owns, `virtualized` or
+   * `fit="viewport"`. While the list is too short to fill this box — a filter
+   * that matches a handful of rows — the summary sits under the last row
+   * instead: `position: sticky` cannot leave the `<table>`, and a short table
+   * does not reach the bottom of the box.
    * @default "600px"
    */
   virtualHeight?: string;
@@ -829,8 +836,10 @@ export interface TableProps<T = TableItem> {
    * the cells and the card list alike.
    *
    * Prop-conditional `overrides` (in `defaults.Table` or in a preset) match
-   * `variant`, `size`, `cardsBelow`, `stickyToolbar` and `contained`: the axes
-   * of `tableContainerVariants`. The last two are the resolved modes, not the
+   * `variant`, `size`, `cardsBelow`, `stickyToolbar` and `contained`. Those
+   * five, and no others: `tableContainerVariants` also carries `pinnedSummary`,
+   * which the table decides per render rather than per instance and does not
+   * publish here. The last two of the five are the resolved modes, not the
    * props they derive from: `fit="viewport"` matches `{ contained: true }`, and
    * a toolbar pinned to the page (`sticky`, `sticky="toolbar"` or `"both"`,
    * unless the table resolves to `contained`) matches `{ stickyToolbar: true }`.
@@ -870,8 +879,9 @@ export interface TableProps<T = TableItem> {
    *   scrolls the page. Pair with `sticky` for page-relative pinning.
    * - `'viewport'`: the table is height-capped to the viewport and becomes a
    *   self-contained scroll box. The column header (and group header when
-   *   grouping) pin to the top of the box, while the toolbar and pagination stay
-   *   fixed outside the scrolling area — only the rows scroll, in both axes. The
+   *   grouping) pin to the top of the box and a total summary row to its bottom,
+   *   while the toolbar and pagination stay fixed outside the scrolling area —
+   *   only the rows scroll, in both axes. The
    *   available height is measured automatically: the viewport, minus the space
    *   reserved above the container by a pinned or clipping ancestor (zero in the
    *   plain page flow, where the box can reach the top of the viewport). No magic
@@ -887,8 +897,9 @@ export interface TableProps<T = TableItem> {
    *   the measured reservation: an app-shell bar that is an *ancestor* of the
    *   table is measured, a `position: fixed` bar that is only a sibling is
    *   not — declare its height and the cap leaves room for it.
-   * - Mutually exclusive with `virtualized`, which manages its own bounded
-   *   scroll via `virtualHeight`; `fit` has no effect when `virtualized`, and a
+   * - Mutually exclusive with `virtualized`, which already has a bounded scroll
+   *   box of its own (`virtualHeight`) and pins the same two layers against it;
+   *   `fit` has no effect when `virtualized`, and a
    *   DEV-build console warning names the combination — the refusal is otherwise
    *   invisible, since `data-fit` publishes the resolved `"content"`.
    * - The box reaches the bottom of the viewport, so it assumes nothing sits

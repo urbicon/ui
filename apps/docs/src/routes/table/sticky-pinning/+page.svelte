@@ -226,8 +226,16 @@
         above. <code class="text-text-primary">"viewport"</code> makes the table its own scroll
         container: it is height-capped to the viewport (measured for you, with no
         <code class="text-text-primary">max-height</code> of your own), the column and group headers
-        pin to the top of the <em>box</em>, and the toolbar and pagination stay fixed outside the
-        scrolling area. Only the rows scroll, horizontally and vertically.
+        pin to the top of the <em>box</em>, a total summary row pins to its bottom, and the toolbar
+        and pagination stay fixed outside the scrolling area. Only the rows scroll, horizontally and
+        vertically.
+      </p>
+      <p class="text-text-secondary text-sm">
+        A total summary row pins to the bottom edge of whichever scroll box the table owns — this
+        one, or a <code class="text-text-primary">virtualized</code> table's
+        <code class="text-text-primary">virtualHeight</code> box. A page-relative table has no bottom
+        edge of its own, so its summary stays in the flow behind the last row. Group summary rows belong
+        to their group and never pin.
       </p>
       <CodeExample
         title="Full-height list page"
@@ -275,9 +283,9 @@
         <code class="text-text-primary">sticky</code>
         and <code class="text-text-primary">stickyOffset</code> (the measured top absorbs app-shell
         offsets), and it has no effect on a
-        <code class="text-text-primary">virtualized</code> table, which keeps its own
-        <code class="text-text-primary">virtualHeight</code> scroll box with the column header pinned
-        to its top and the summary row to its bottom.
+        <code class="text-text-primary">virtualized</code> table, which already has a scroll box of
+        its own — <code class="text-text-primary">virtualHeight</code> — and pins its header and its summary
+        against that one.
       </p>
     </div>
   </Section>

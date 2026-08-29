@@ -44,6 +44,10 @@
     noDataText = '',
     onRowClick = undefined as ((item: TableItem) => void) | undefined,
     virtualized = false,
+    // The resolved `fit="viewport"` mode, as `Table.svelte` derived it for
+    // `tableContainerVariants` — not the `fit` prop, which says nothing about
+    // whether the box was granted (`virtualized` refuses it).
+    contained = false,
     groupHeaderContent = undefined as
       Snippet<[groupName: string, items: TableItem[], isExpanded: boolean]> | undefined,
     ariaLabel = undefined as string | undefined,
@@ -60,10 +64,10 @@
   const navigableItems = $derived(tableContext.navigableItems);
   const grouped = $derived(tableContext.grouped);
   const groupedSummaryData = $derived(tableContext.groupedSummaryData);
-  /** Whether a summary row is in force at all — the store's one answer, not a
-   *  third hand-written copy of `showSummary && configs.length` (#252; the
-   *  derivation lives on useSummary). */
-  const hasSummary = $derived(tableState.effectiveSummaryConfigs.length > 0);
+  /** Whether a summary row draws anything — the store's one answer, shared with
+   *  `SummaryRow`'s own gate, so a row that declines to render cannot leave an
+   *  empty `<tfoot>` behind it. */
+  const summaryRenders = $derived(tableContext.summaryRowRenders);
 
   /**
    * Where each rendered group's item rows start within `navigableItems`. A
@@ -110,6 +114,41 @@
   const virtualizedActive = $derived(
     virtualized && !tableState.effectiveGroupBy && !tableState.loading && !tableState.error
   );
+
+  /**
+   * Whether this table scrolls in a bounded box of its own — the virtualized
+   * box of `virtualHeight`, or the contained box of `fit="viewport"`. The one
+   * term that decides whether the summary `<tfoot>` pins to a bottom edge,
+   * because a page-relative table has no bottom edge to pin against: its frame
+   * ends where the last row ends.
+   *
+   * `virtualizedActive`, not `virtualized`: the box exists only where the
+   * virtual branch renders. A grouped or loading virtualized table falls back
+   * to the standard branch, which scrolls with the page like any other.
+   */
+  const ownsScrollBox = $derived(virtualizedActive || contained);
+
+  /**
+   * What the `<tbody>` holds. Named because the total summary has to agree with
+   * it: it is the totals OF the data rows, so it renders exactly where they do
+   * and over none of the other four bodies. Read off one value, the two cannot
+   * disagree.
+   */
+  const bodyMode = $derived.by(() => {
+    if (tableState.loading) return { kind: 'loading' } as const;
+    // The message travels with the mode instead of being re-read in the arm:
+    // `state.error` is `string | null`, and only the test that picked this mode
+    // knows it is not null.
+    if (tableState.error) return { kind: 'error', message: tableState.error } as const;
+    if (filteredItems.length === 0) return { kind: 'empty' } as const;
+    if (tableState.effectiveGroupBy) return { kind: 'grouped' } as const;
+    return { kind: 'rows' } as const;
+  });
+
+  /** Whether the total summary renders — the group summaries are the grouped
+   *  body's own and are not this. */
+  const showsTotals = $derived(summaryRenders && bodyMode.kind === 'rows');
+
   // The SAME derivation the keyboard counts and targets (`navigableItems` is
   // virtualization-aware in the store). Reading `sortedItems` here while the
   // keydown handler counted `navigableItems` let the two index spaces drift —
@@ -625,6 +664,33 @@
   </colgroup>
 {/snippet}
 
+{#snippet emptyBody()}
+  {#if emptyState}
+    {@render emptyState()}
+  {:else}
+    <EmptyState message={noDataText} {size} colSpan={totalColSpan} />
+  {/if}
+{/snippet}
+
+<!-- The total summary, in both branches. A `<tfoot>` because that is what a
+     totals row of a table is, whether or not it pins; and one definition
+     because the pin is one rule — the class that pins the foot and the axis
+     that moves the row's top rule onto a shadow read the same term, so no
+     branch can pin one without the other. -->
+{#snippet summaryFoot()}
+  {#if showsTotals}
+    <tfoot
+      class={resolveSlotClass(
+        (opts) => tableStyles.foot({ ...opts, pinnedSummary: ownsScrollBox }),
+        undefined,
+        styleConfig.unstyled
+      )}
+    >
+      <SummaryRow {expandable} {size} pinned={ownsScrollBox} />
+    </tfoot>
+  {/if}
+{/snippet}
+
 {#if virtualizedActive}
   <!-- Virtualized mode: one table in one scroll box of `virtualHeight`, the
        header pinned to the top of the box and the summary to its bottom, the
@@ -677,12 +743,8 @@
             styleConfig.unstyled
           )}
         >
-          {#if filteredItems.length === 0}
-            {#if emptyState}
-              {@render emptyState()}
-            {:else}
-              <EmptyState message={noDataText} {size} colSpan={totalColSpan} />
-            {/if}
+          {#if bodyMode.kind === 'empty'}
+            {@render emptyBody()}
           {:else if virtualResult}
             <!-- The spacer rows are what puts the window where its first row
                  belongs and gives the scroll box the height of the whole list.
@@ -720,11 +782,7 @@
           {/if}
         </tbody>
 
-        {#if hasSummary}
-          <tfoot class={resolveSlotClass(tableStyles.foot, undefined, styleConfig.unstyled)}>
-            <SummaryRow {expandable} {size} pinned />
-          </tfoot>
-        {/if}
+        {@render summaryFoot()}
       </table>
     </div>
   </div>
@@ -771,83 +829,70 @@
           styleConfig.unstyled
         )}
       >
-        {#if tableState.loading}
+        {#if bodyMode.kind === 'loading'}
           {#if loadingState}
             {@render loadingState()}
           {:else}
             <LoadingState text={loadingText} {size} colSpan={totalColSpan} />
           {/if}
-        {:else if tableState.error}
+        {:else if bodyMode.kind === 'error'}
           {#if errorState}
             {@render errorState()}
           {:else}
             <ErrorState
               title={errorText}
-              message={tableState.error}
+              message={bodyMode.message}
               {size}
               colSpan={totalColSpan}
             />
           {/if}
-        {:else if tableState.effectiveGroupBy}
-          {#if filteredItems.length === 0}
-            {#if emptyState}
-              {@render emptyState()}
-            {:else}
-              <EmptyState message={noDataText} {size} colSpan={totalColSpan} />
-            {/if}
-          {:else}
-            {#each Object.entries(grouped) as [groupName, groupItems], groupIndex (groupName)}
-              <GroupedRow
+        {:else if bodyMode.kind === 'empty'}
+          {@render emptyBody()}
+        {:else if bodyMode.kind === 'grouped'}
+          {#each Object.entries(grouped) as [groupName, groupItems], groupIndex (groupName)}
+            <GroupedRow
+              {groupName}
+              items={groupItems}
+              {expandable}
+              {expandedRowContent}
+              {cell}
+              {size}
+              {groupHeaderContent}
+              {onRowClick}
+              rowIndexOffset={groupRowOffsets[groupIndex]}
+            />
+
+            <!-- A group's summary belongs to its group, not to the table: it
+                 stays in the flow between the groups, wherever the table
+                 scrolls. Only the total is a `<tfoot>`. -->
+            {#if summaryRenders}
+              <SummaryRow
+                {expandable}
+                {size}
                 {groupName}
-                items={groupItems}
-                {expandable}
-                {expandedRowContent}
-                {cell}
-                {size}
-                {groupHeaderContent}
-                {onRowClick}
-                rowIndexOffset={groupRowOffsets[groupIndex]}
+                groupSummaryData={groupedSummaryData[groupName]}
               />
-
-              {#if hasSummary}
-                <SummaryRow
-                  {expandable}
-                  {size}
-                  {groupName}
-                  groupSummaryData={groupedSummaryData[groupName]}
-                />
-              {/if}
-            {/each}
-          {/if}
-        {:else if filteredItems.length === 0}
-          {#if emptyState}
-            {@render emptyState()}
-          {:else}
-            <EmptyState message={noDataText} {size} colSpan={totalColSpan} />
-          {/if}
+            {/if}
+          {/each}
+        {:else if body}
+          {@render body()}
         {:else}
-          {#if body}
-            {@render body()}
-          {:else}
-            {#each paginatedItems as item, i (resolveRowItemId(item))}
-              <TableRow
-                {item}
-                {expandable}
-                {expandedRowContent}
-                {cell}
-                {size}
-                {onRowClick}
-                rowIndex={i}
-                ariaRowStart={tableContext.pageInfo.rangeStart}
-              />
-            {/each}
-          {/if}
-
-          {#if hasSummary}
-            <SummaryRow {expandable} {size} />
-          {/if}
+          {#each paginatedItems as item, i (resolveRowItemId(item))}
+            <TableRow
+              {item}
+              {expandable}
+              {expandedRowContent}
+              {cell}
+              {size}
+              {onRowClick}
+              rowIndex={i}
+              ariaRowStart={tableContext.pageInfo.rangeStart}
+            />
+          {/each}
         {/if}
       </tbody>
+
+      {@render summaryFoot()}
     </table>
   </div>
 {/if}
