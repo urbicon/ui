@@ -133,7 +133,9 @@ contained=true)` forces `{ toolbar: false, header: true }` regardless of the `st
 contained box whose header scrolls away is never useful — and the total summary `<tfoot>` pins to
 the box's bottom edge on the same terms. That is one rule with `virtualized`, not a second one:
 the axis is whether the table owns a bounded scroller, which is the only thing with a bottom edge
-to pin against (§6). The thead/group `top: calc(sticky-top + toolbar-h + …)` formulas
+to pin against (§6). A short list is no exception *here*: this box hugs its content below the
+cap, so its bottom edge is the last row's anyway. In the `virtualized` box, whose height is
+declared rather than measured, the two can come apart — §6. The thead/group `top: calc(sticky-top + toolbar-h + …)` formulas
 resolve to **box-relative** offsets (`0` for the thead, `thead-h` for the group header) because
 `--blocks-table-sticky-top` is forced to `0` and the toolbar is not measured (it is a static
 sibling, not pinned). So no per-layer variant change is needed — only the CSS-var inputs differ.
@@ -235,8 +237,10 @@ whole property (`top-[calc(var(--blocks-table-sticky-top,0px)+2rem)]`), not by p
 utility beside it.
 
 The variants themselves hold to **one utility per property per slot**: over every combination of
-`variant`/`size`/`stickyToolbar`/`contained` the exported function accepts, no slot emits two
-`overflow`, `top`, `max-h` or `z` classes. That is a property of the configs, and only of them —
+every axis the exported function accepts, no slot emits two `position`, `overflow`, `top`,
+`bottom`, `max-h` or `z` classes. Written as a property of the whole config rather than of a list
+of axis names, and tested that way — the enumeration reads the axes out of the config, so a new
+one is covered the day it is added instead of the day someone remembers this sentence. That is a property of the configs, and only of them —
 the fold above resolves a base class against an override, but two overrides reaching one slot
 from different sources (a `slotClasses` entry and the call site's own utilities) share one source
 inside the fold, and both survive. Contained mode therefore changes the **var inputs**, not the emitted classes.
@@ -273,7 +277,8 @@ things to know when rebuilding the pins:
 | Ancestor bottom-padding + `fit="viewport"` | Box reaches `100dvh`, so a padded wrapper/sibling adds a second page scrollbar. Drop the inset via the `data-fit="viewport"` hook (see §3). |
 | `view.groupBy` + sticky/contained | Group headers pin (they are the "header" layer). In contained mode at `top: thead-h`. |
 | Summary row | The total summary is a `<tfoot>`, and it pins to the bottom edge of the table's own scroll box whenever the table has one (`virtualized` or `fit="viewport"`). Page-relative tables do not pin it: it rides in the flow behind the last row, where it always was. Group summaries belong to their group and never pin. |
-| `virtualized` | Manages its own bounded scroll: one `<table>` in a box of `virtualHeight`, the `<thead>` pinned to the top edge of that box and the summary `<tfoot>` to its bottom edge — whatever `sticky` says, because a bounded box whose header scrolls away is never wanted. The pin is box-relative (`top: 0`, `tableHeaderVariants` → `sticky: 'box'`): `stickyOffset` and a page-pinned toolbar's height lie outside the box and do not move it. `fit` is ignored (a DEV warning says so). |
+| Summary row + a list that does not fill the box | It sits under the last row instead of at the bottom edge. `position: sticky` cannot leave its containing block, and that is the `<table>` — a table shorter than the scrollport has no bottom edge down there to hold. Reachable only with `virtualized`, whose box is a declared `virtualHeight` (a filter that matches few rows, a short result): the `fit="viewport"` box hugs its content when it is short, so the two edges coincide. |
+| `virtualized` | Manages its own bounded scroll: one `<table>` in a box of `virtualHeight`, the `<thead>` pinned to the top edge of that box and the summary `<tfoot>` to its bottom edge (to the last row's, while the list is too short to fill the box — the row above) — whatever `sticky` says, because a bounded box whose header scrolls away is never wanted. The pin is box-relative (`top: 0`, `tableHeaderVariants` → `sticky: 'box'`): `stickyOffset` and a page-pinned toolbar's height lie outside the box and do not move it. `fit` is ignored (a DEV warning says so). |
 | `unstyled` | Strips the sticky/contained classes on every slot, `container` included — but not the props that drive the measurements. Rebuilding it: §5. |
 | Nested scroll ancestor | Page-relative sticky binds to it — intended inside a `Drawer` body, surprising inside an accidental `overflow` wrapper. With `fit="viewport"` it is supported without a listener: the reserved space is the box's place in that ancestor's content plus what the ancestor itself reserves, and scrolling the ancestor changes neither. |
 | Fixed top bar that is a **sibling** of the table | Not measured — only *ancestors* are. Declare its height as `stickyOffset`: with `fit="viewport"` that figure is a floor under the reservation, so the cap leaves room for the bar. |
@@ -287,6 +292,7 @@ things to know when rebuilding the pins:
 | Change | From | To | Migration |
 |---|---|---|---|
 | Frame slot | `slotClasses.wrapper` (had hardcoded `overflow-hidden`, which blocked sticky) | `slotClasses.scrollArea` (no `overflow` in the base) | Rename `slotClasses.wrapper` → `slotClasses.scrollArea`. A DEV warning fires on the old key. |
+| Total summary row | last `<tr>` of the `<tbody>`, in every scroll model | a `<tr>` in the table's `<tfoot>`, in every scroll model | Style the row through `slotClasses.summaryRow`, which reaches it in either position. Two things stop reaching it on their own: a descendant or child rule under `slotClasses.tbody` (`divide-y` compiles to `tbody > * + *`, so it no longer draws the summary's top edge — the row's own `border-t-2` still does), and `tbody tr:last-child`, which now selects the last **data** row. Group summary rows are unchanged and stay in the `<tbody>`. |
 
 ---
 

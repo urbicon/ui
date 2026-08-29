@@ -2,7 +2,9 @@
 import { flushSync, mount, unmount } from 'svelte';
 import { afterEach, describe, expect, it } from 'vitest';
 import type { Column } from '$lib/types/tableTypes';
+import type { InternalTableContext } from '../stores/TableStore.svelte';
 import TableHarness from './__fixtures__/TableHarness.svelte';
+import type { TableContext } from './table/index';
 
 /**
  * Where the total summary row renders, and when it pins.
@@ -48,15 +50,21 @@ afterEach(() => {
   mounted = [];
 });
 
+let context: InternalTableContext | undefined;
+
 function mountTable(props: Record<string, unknown> = {}): HTMLElement {
   const target = document.createElement('div');
   document.body.appendChild(target);
+  context = undefined;
   // Typed wide, like the sister suites: the harness pins its own Row shape and
   // this fixture's summable + groupable columns are not it.
   const merged: Record<string, unknown> = {
     items: ROWS,
     columns: COLUMNS,
     prefs: SUMMARY,
+    // `hideColumn` and `state` live on the internal surface, like the sister
+    // suites that drive a mounted table.
+    onReady: (c: TableContext) => (context = c as InternalTableContext),
     ...props
   };
   const comp = mount(TableHarness, { target, props: merged }) as Record<string, unknown>;
@@ -64,6 +72,11 @@ function mountTable(props: Record<string, unknown> = {}): HTMLElement {
   mounted.push({ comp, target });
   return target;
 }
+
+const ctx = () => {
+  if (!context) throw new Error('onReady never fired');
+  return context;
+};
 
 /** The desktop grid — the mobile card list carries its own totals band. */
 const gridOf = (root: HTMLElement) =>
@@ -190,6 +203,24 @@ describe('what the rule does NOT pin', () => {
     } finally {
       console.warn = realWarn;
     }
+  });
+
+  it('hiding the last summarised column takes the whole foot, not just its row', () => {
+    // `SummaryRow` draws only where a RENDERED column carries an aggregation —
+    // hiding the last one leaves it nothing to draw. The foot around it has to
+    // read the same answer, or a pinned, highlighted, zero-height strip stays
+    // behind: the defect that gate exists for, one element up.
+    const root = mountTable({ fit: 'viewport' });
+    const table = gridOf(root);
+    expect(table.tFoot?.querySelector('[data-testid="summary-row-total"]')).not.toBeNull();
+
+    ctx().hideColumn('amount');
+    flushSync();
+
+    // Still in force — the list of aggregations is not filtered by visibility.
+    expect(ctx().state.effectiveSummaryConfigs.length).toBe(1);
+    expect(table.tFoot).toBeNull();
+    expect(root.querySelector('tfoot')).toBeNull();
   });
 
   it('no summary configured, no foot', () => {

@@ -462,8 +462,15 @@ test.describe('fit="viewport" — the summary row pins to the bottom edge of the
       }, shot.toString('base64'));
     };
 
+    // 620, deliberately NOT a multiple of the 40px row pitch: at 600 the rows
+    // under the foot land on exactly the offsets they had at 0, so a foot that
+    // let them through would still read identical at the two positions and the
+    // equality below could not fail. Measured with both of the foot's grounds
+    // deleted (`bg-surface-elevated` on the `<tfoot>`, `bg-summary-subtle` on
+    // the row): 620 red, 600 green. Deleting either one alone stays green —
+    // each is opaque by itself, and that is the point of stacking them.
     const rest = await seam(0);
-    const scrolled = await seam(600);
+    const scrolled = await seam(620);
     const luminance = (p: number[]) => (p[0] + p[1] + p[2]) / 3;
 
     for (const [label, column] of [
@@ -489,10 +496,13 @@ test.describe('fit="viewport" — the summary row pins to the bottom edge of the
   });
 
   test('the grid passes an axe scan with the summary out of the body', async ({ page }) => {
-    // The totals row left the `<tbody>` for a `<tfoot>`, which is a row group
-    // of the same grid. Asked of axe rather than argued: a row that is a grid
-    // row without an index, in a table that publishes `aria-rowcount`, is
-    // exactly the kind of thing a reading review waves through.
+    // The totals row left the `<tbody>` for a `<tfoot>`, a row group of the same
+    // table. Asked of axe rather than argued — a row group added between a
+    // `<tbody>` and the table's accessible name is exactly what a reading
+    // review waves through. This rig is not interactive, so the scan covers
+    // the implicit `table` role; the same markup under `role="grid"` with
+    // `aria-rowcount` is scanned by `table-virtualized.spec.ts`, whose fixture
+    // is `selectionMode="multi"` and has a `<tfoot>` of its own.
     await open(page, SUMMARY, { width: 1280, height: 800 });
     await page.waitForSelector('tfoot [data-testid="summary-row-total"]');
 

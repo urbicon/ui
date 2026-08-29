@@ -64,10 +64,10 @@
   const navigableItems = $derived(tableContext.navigableItems);
   const grouped = $derived(tableContext.grouped);
   const groupedSummaryData = $derived(tableContext.groupedSummaryData);
-  /** Whether a summary row is in force at all — the store's one answer, not a
-   *  third hand-written copy of `showSummary && configs.length` (#252; the
-   *  derivation lives on useSummary). */
-  const hasSummary = $derived(tableState.effectiveSummaryConfigs.length > 0);
+  /** Whether a summary row draws anything — the store's one answer, shared with
+   *  `SummaryRow`'s own gate, so a row that declines to render cannot leave an
+   *  empty `<tfoot>` or an empty group slot behind it. */
+  const summaryRenders = $derived(tableContext.summaryRowRenders);
 
   /**
    * Where each rendered group's item rows start within `navigableItems`. A
@@ -132,8 +132,7 @@
    * What the `<tbody>` holds. Named because the total summary has to agree with
    * it: it is the totals OF the data rows, so it renders exactly where they do
    * and over none of the other four bodies. Read off one value, the two cannot
-   * disagree — and the empty state has one home instead of the two identical
-   * copies the grouped and ungrouped arms used to keep.
+   * disagree.
    */
   const bodyMode = $derived.by(() => {
     if (tableState.loading) return { kind: 'loading' } as const;
@@ -148,7 +147,7 @@
 
   /** Whether the total summary renders — the group summaries are the grouped
    *  body's own and are not this. */
-  const showsTotals = $derived(hasSummary && bodyMode.kind === 'rows');
+  const showsTotals = $derived(summaryRenders && bodyMode.kind === 'rows');
 
   // The SAME derivation the keyboard counts and targets (`navigableItems` is
   // virtualization-aware in the store). Reading `sortedItems` here while the
@@ -866,7 +865,7 @@
             <!-- A group's summary belongs to its group, not to the table: it
                  stays in the flow between the groups, wherever the table
                  scrolls. Only the total is a `<tfoot>`. -->
-            {#if hasSummary}
+            {#if summaryRenders}
               <SummaryRow
                 {expandable}
                 {size}

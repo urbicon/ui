@@ -154,9 +154,11 @@ describe('tableContainerVariants — the pinned summary foot', () => {
     const pinned = tableContainerVariants({ pinnedSummary: true }).foot();
     expect(pinned).toMatch(/(?:^|\s)sticky\b/);
     expect(pinned).toMatch(/(?:^|\s)bottom-0\b/);
-    // Below the thead's z-20 seam is not a thing — the two never meet — but
-    // above the rows it must be, and the rows scrolling under it must not show
-    // through the summary row's tint.
+    // Above the rows that scroll under it, which is what the number is for. It
+    // is the pinned thead's number too, and the two DO meet: in a scrollport
+    // shorter than head plus foot they overlap, and with one z-index DOM order
+    // decides — the foot, being second, paints over the head. A box that small
+    // shows neither layer's content anyway, so one order is as good as another.
     expect(pinned).toMatch(/(?:^|\s)z-20\b/);
     expect(pinned).toMatch(/(?:^|\s)bg-surface-elevated\b/);
   });
@@ -176,6 +178,91 @@ describe('tableContainerVariants — the pinned summary foot', () => {
     expect(tableContainerVariants({ pinnedSummary: true }).container()).not.toMatch(
       /max-h-\[calc\(100dvh/
     );
+  });
+});
+
+/**
+ * The Tailwind properties a doubled utility would make ambiguous. A slot that
+ * emits two of one bucket has no defined winner: `tv()`'s conflict fold
+ * resolves a base class against an OVERRIDE, not two base classes against each
+ * other, so what renders is stylesheet order.
+ */
+const PROPERTY_OF: [property: string, matches: RegExp][] = [
+  ['position', /^(?:static|fixed|absolute|relative|sticky)$/],
+  ['overflow', /^overflow(?:-[xy])?-/],
+  ['top', /^-?top-/],
+  ['bottom', /^-?bottom-/],
+  ['max-height', /^max-h-/],
+  ['z-index', /^-?z-/]
+];
+
+/** The properties a class string names more than once. */
+function doubledProperties(classes: string): string[] {
+  const seen = new Map<string, string[]>();
+  for (const cls of classes.split(/\s+/).filter(Boolean)) {
+    const property = PROPERTY_OF.find(([, matches]) => matches.test(cls))?.[0];
+    if (!property) continue;
+    seen.set(property, [...(seen.get(property) ?? []), cls]);
+  }
+  return [...seen].filter(([, hits]) => hits.length > 1).map(([property]) => property);
+}
+
+/**
+ * Every combination of every axis the exported function accepts, read OUT of
+ * the config rather than written down beside it. A hand-kept list is how the
+ * guarantee in STICKY-PINNING §5 came to name four of the six axes — it was
+ * written when there were four, and neither `cardsBelow` nor `pinnedSummary`
+ * made it in.
+ */
+function everyVariantCombination(): Record<string, string>[] {
+  const variants = tableContainerVariants.config.variants ?? {};
+  let combinations: Record<string, string>[] = [{}];
+  for (const [axis, values] of Object.entries(variants)) {
+    const steps = Object.keys(values as Record<string, unknown>);
+    expect(steps.length, `axis ${axis} declares no values`).toBeGreaterThan(0);
+    combinations = combinations.flatMap((combination) =>
+      steps.map((step) => ({ ...combination, [axis]: step }))
+    );
+  }
+  return combinations;
+}
+
+describe('tableContainerVariants — one utility per property per slot', () => {
+  it('holds over every combination of every axis', () => {
+    const slots = Object.keys(tableContainerVariants.config.slots ?? {});
+    const combinations = everyVariantCombination();
+    expect(slots.length).toBeGreaterThan(0);
+    expect(combinations.length).toBeGreaterThan(0);
+
+    const clashes: string[] = [];
+    for (const combination of combinations) {
+      // Cast: the exported signature refuses `{ stickyToolbar: true, contained:
+      // true }` at the type level, and this enumeration has to reach that pair
+      // too — the property under test is what the CONFIG can emit, not which
+      // calls a consumer can write.
+      const styles = (
+        tableContainerVariants as unknown as (
+          props: Record<string, string>
+        ) => Record<string, () => string>
+      )(combination);
+      for (const slot of slots) {
+        for (const property of doubledProperties(styles[slot]())) {
+          clashes.push(`${slot}: two ${property} at ${JSON.stringify(combination)}`);
+        }
+      }
+    }
+
+    expect(clashes).toEqual([]);
+  });
+
+  // POSITIVE CONTROL on the oracle above: a guard whose classifier matches
+  // nothing reports no clash for any config, and reads exactly like a green one.
+  it('the classifier finds a doubled property when there is one', () => {
+    expect(doubledProperties('sticky static')).toEqual(['position']);
+    expect(doubledProperties('sticky top-0 top-4')).toEqual(['top']);
+    expect(doubledProperties('overflow-auto overflow-x-hidden')).toEqual(['overflow']);
+    expect(doubledProperties('z-20 z-30')).toEqual(['z-index']);
+    expect(doubledProperties('sticky bottom-0 z-20 bg-surface-elevated')).toEqual([]);
   });
 });
 

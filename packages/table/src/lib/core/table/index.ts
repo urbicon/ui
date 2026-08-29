@@ -584,7 +584,10 @@ export interface TableProps<T = TableItem> {
    *
    * The summary pin is not this box's own trick: a total summary pins to the
    * bottom edge of whichever scroll box the table owns, `virtualized` or
-   * `fit="viewport"`.
+   * `fit="viewport"`. While the list is too short to fill this box — a filter
+   * that matches a handful of rows — the summary sits under the last row
+   * instead: `position: sticky` cannot leave the `<table>`, and a short table
+   * does not reach the bottom of the box.
    * @default "600px"
    */
   virtualHeight?: string;
@@ -833,8 +836,10 @@ export interface TableProps<T = TableItem> {
    * the cells and the card list alike.
    *
    * Prop-conditional `overrides` (in `defaults.Table` or in a preset) match
-   * `variant`, `size`, `cardsBelow`, `stickyToolbar` and `contained`: the axes
-   * of `tableContainerVariants`. The last two are the resolved modes, not the
+   * `variant`, `size`, `cardsBelow`, `stickyToolbar` and `contained`. Those
+   * five, and no others: `tableContainerVariants` also carries `pinnedSummary`,
+   * which the table decides per render rather than per instance and does not
+   * publish here. The last two of the five are the resolved modes, not the
    * props they derive from: `fit="viewport"` matches `{ contained: true }`, and
    * a toolbar pinned to the page (`sticky`, `sticky="toolbar"` or `"both"`,
    * unless the table resolves to `contained`) matches `{ stickyToolbar: true }`.

@@ -31,20 +31,18 @@
   /**
    * Whether any aggregation in force has a cell here to be drawn in.
    *
-   * The list above is deliberately every aggregation acting on the data, so
-   * that each surface saying "a summary is running" says it about the same set
-   * (#252). This row is the surface that also needs a *place* per aggregation,
-   * and it has one only for the columns it renders — hiding a summarised column
-   * takes its cell with it. Gating on the list alone therefore left a
-   * highlighted, entirely empty strip under the table whenever the last
-   * summarised column was hidden: the row rendered because a config existed,
-   * and drew nothing because none of the columns it iterates carried one.
+   * The store's answer, not this row's own: the caller that decides to render a
+   * `<SummaryRow>` at all — a pinned `<tfoot>`, a slot between two groups —
+   * must reach the same verdict, or a row that declines to exist leaves an
+   * empty element wrapped around it.
+   *
+   * What it rules out here: the aggregations in force are every aggregation
+   * acting on the data (#252), while this row has a *place* only for the
+   * columns it renders — hiding a summarised column takes its cell with it.
+   * Gating on the list alone left a highlighted, entirely empty strip under the
+   * table whenever the last summarised column was hidden.
    */
-  const hasSummaryCell = $derived(
-    tableContext.orderedColumns.some((column) =>
-      summaryConfigs.some((config) => config.column === resolveColumnId(column))
-    )
-  );
+  const hasSummaryCell = $derived(tableContext.summaryRowRenders);
 
   // The one list the header, the body and the column tracks also read — see
   // core/structural-columns.ts.

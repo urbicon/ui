@@ -3,7 +3,7 @@ import { BASE_LOCALE } from '@urbicon-ui/i18n';
 import { SvelteSet } from 'svelte/reactivity';
 import type { Column, TableItem } from '$lib';
 import type { TableContext } from '$lib/core/table/index.js';
-import { normalizeItems } from '$lib/utils';
+import { normalizeItems, resolveColumnId } from '$lib/utils';
 import type { SummaryType } from '$lib/utils/summary-types.js';
 import { resolveSource, type TableSource } from '$lib/view/source';
 import { createTableView, type TableView } from '$lib/view/view.svelte';
@@ -530,6 +530,30 @@ export function createTableState(
   const columnOrder = useColumnOrder(state);
 
   /**
+   * Whether a summary row draws anything: an aggregation is in force AND one of
+   * the columns the table renders carries it.
+   *
+   * Both halves, in one place, because they are one question asked at two
+   * levels. `SummaryRow` needs the second — hiding the last summarised column
+   * takes its cell with it, and a row that renders because a config exists and
+   * then draws nothing is a highlighted empty strip. Whoever decides to render
+   * a row at all needs the same answer, or it builds an element around a row
+   * that declines to exist: a pinned `<tfoot>` with no `<tr>` in it, which is
+   * the same defect one level up.
+   *
+   * `orderedColumns`, not `allColumns`: a configuration outlives its column
+   * being hidden (#253), and this asks what is on screen.
+   */
+  const summaryRowRenders = $derived.by(() => {
+    const configs = summary.effectiveSummaryConfigs;
+    if (configs.length === 0) return false;
+    return columnOrder.orderedColumns.some((column) => {
+      const columnId = resolveColumnId(column);
+      return configs.some((config) => config.column === columnId);
+    });
+  });
+
+  /**
    * The item rows in the order they are actually rendered — the one index space
    * keyboard navigation moves through.
    *
@@ -783,6 +807,10 @@ export function createTableState(
     },
     get groupedSummaryData() {
       return summary.groupedSummaryData;
+    },
+    /** Whether a summary row draws anything — see the derivation above. */
+    get summaryRowRenders() {
+      return summaryRowRenders;
     },
 
     // Data management (internal wiring — consumers use the `source` union)
