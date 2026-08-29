@@ -348,6 +348,7 @@
       {noDataText}
       onRowClick={onRowClickErased}
       {virtualized}
+      {contained}
       {virtualHeight}
       groupHeaderContent={groupHeaderContentErased}
       {ariaLabel}

@@ -149,6 +149,36 @@ describe('tableContainerVariants — contained (fit="viewport")', () => {
   });
 });
 
+describe('tableContainerVariants — the pinned summary foot', () => {
+  it('pins the foot to the bottom edge of the box, on an opaque ground', () => {
+    const pinned = tableContainerVariants({ pinnedSummary: true }).foot();
+    expect(pinned).toMatch(/(?:^|\s)sticky\b/);
+    expect(pinned).toMatch(/(?:^|\s)bottom-0\b/);
+    // Below the thead's z-20 seam is not a thing — the two never meet — but
+    // above the rows it must be, and the rows scrolling under it must not show
+    // through the summary row's tint.
+    expect(pinned).toMatch(/(?:^|\s)z-20\b/);
+    expect(pinned).toMatch(/(?:^|\s)bg-surface-elevated\b/);
+  });
+
+  it('emits nothing where the table has no bottom edge of its own', () => {
+    // The page-relative model, which is also the default: the foot rides in the
+    // flow behind the last row and looks exactly as it did inside the `<tbody>`.
+    expect(tableContainerVariants({ pinnedSummary: false }).foot()).toBe('');
+    expect(tableContainerVariants({}).foot()).toBe('');
+  });
+
+  it('is its own axis — `contained` neither implies it nor is implied by it', () => {
+    // Two boxes pin the foot and only one of them is `contained`; and
+    // `contained` also carries the container cap and the flex scroll layout,
+    // which the virtualized box must not have. So the two cannot be one axis.
+    expect(tableContainerVariants({ contained: true }).foot()).toBe('');
+    expect(tableContainerVariants({ pinnedSummary: true }).container()).not.toMatch(
+      /max-h-\[calc\(100dvh/
+    );
+  });
+});
+
 describe('tableHeaderVariants — sticky thead', () => {
   it('pins the thead below toolbar (sticky-top + toolbar-h)', () => {
     const page = tableHeaderVariants({ sticky: true });

@@ -1,3 +1,4 @@
+import AxeBuilder from '@axe-core/playwright';
 import { expect, type Page, test } from '@playwright/test';
 
 /**
@@ -316,5 +317,215 @@ test.describe('the live demo on the sticky-pinning page', () => {
     await expect(inner.locator('[data-table-container]')).toHaveAttribute('data-fit', 'content');
     await inner.getByTestId('fit-viewport').click();
     await expect(inner.locator('[data-table-container]')).toHaveAttribute('data-fit', 'viewport');
+  });
+});
+
+/**
+ * One reading of the summary rig at a given scroll position, taken in one pass
+ * so every number describes the same frame.
+ *
+ * The bottom edge is the SCROLLPORT's, not the element's box: a contained table
+ * scrolls sideways, and a classic horizontal scrollbar sits between the two. A
+ * `bottom: 0` sticky foot pins above the scrollbar, so comparing it with the
+ * element's border box would measure the scrollbar's height and call it drift.
+ */
+async function readSummary(page: Page, at: number | 'max') {
+  return page.evaluate(async (position) => {
+    const scroller = document.querySelector('[data-table-layout="desktop"]') as HTMLElement;
+    scroller.scrollTop = position === 'max' ? scroller.scrollHeight : (position as number);
+    // Two frames: one for the scroll to land, one for the sticky layers to be
+    // painted at their new offsets.
+    await new Promise((resolve) => requestAnimationFrame(() => requestAnimationFrame(resolve)));
+
+    const box = scroller.getBoundingClientRect();
+    const foot = scroller.querySelector('tfoot') as HTMLElement | null;
+    const rect = (el: Element | null) => {
+      if (!el) return null;
+      const r = el.getBoundingClientRect();
+      return { top: r.top, bottom: r.bottom, left: r.left, right: r.right, height: r.height };
+    };
+    const rows = [...scroller.querySelectorAll<HTMLElement>('tbody tr[data-row-index]')].map(
+      (row) => ({ index: Number(row.dataset.rowIndex), ...rect(row)! })
+    );
+
+    return {
+      scrollTop: scroller.scrollTop,
+      windowHeight: window.innerHeight,
+      scrollportLeft: box.left + scroller.clientLeft,
+      scrollportBottom: box.top + scroller.clientTop + scroller.clientHeight,
+      containerBottom: (
+        document.querySelector('[data-table-container]') as HTMLElement
+      ).getBoundingClientRect().bottom,
+      footPosition: foot ? getComputedStyle(foot).position : null,
+      foot: rect(foot),
+      inBody: !!scroller.querySelector('tbody [data-testid="summary-row-total"]'),
+      rows
+    };
+  }, at);
+}
+
+test.describe('fit="viewport" — the summary row pins to the bottom edge of the box', () => {
+  const SUMMARY = `${FIXTURE}?summary=on`;
+
+  test('the foot holds the bottom edge at rest, mid-list and at the far end', async ({ page }) => {
+    await open(page, SUMMARY, { width: 1280, height: 800 });
+    await page.waitForSelector('tfoot [data-testid="summary-row-total"]');
+
+    for (const position of [0, 600, 'max'] as const) {
+      const r = await readSummary(page, position);
+      const label = `at scrollTop ${r.scrollTop}`;
+
+      expect(r.foot, `foot ${label}`).not.toBeNull();
+      // The totals are a `<tfoot>`, not the last row of the `<tbody>` — which
+      // is what lets them pin at all.
+      expect(r.inBody, `summary in the body ${label}`).toBe(false);
+      expect(r.footPosition, `foot position ${label}`).toBe('sticky');
+      expect(
+        Math.abs(r.foot!.bottom - r.scrollportBottom),
+        `foot bottom ${label}`
+      ).toBeLessThanOrEqual(0.5);
+      // And it stays inside the capped box rather than hanging out of it.
+      expect(r.foot!.bottom).toBeLessThanOrEqual(r.containerBottom + 0.5);
+    }
+
+    // Mid-list the rows pass UNDER the foot: at least one rendered row's box
+    // reaches into the band the foot covers. Without this the assertions above
+    // also pass against a foot that is merely the last thing in a list short
+    // enough never to reach it.
+    const middle = await readSummary(page, 600);
+    const covered = middle.rows.filter(
+      (row) => row.bottom > middle.foot!.top + 1 && row.top < middle.foot!.bottom
+    );
+    expect(covered.length, 'rows passing under the pinned foot').toBeGreaterThan(0);
+
+    // At the far end the last row stops at the foot's top edge instead of
+    // disappearing behind it — the scroll extent has to account for the foot.
+    const end = await readSummary(page, 'max');
+    const last = end.rows.reduce((a, b) => (a.index > b.index ? a : b));
+    expect(last.index, 'the last row is rendered at the far end').toBe(59);
+    expect(last.bottom).toBeLessThanOrEqual(end.foot!.top + 1);
+    expect(last.bottom).toBeGreaterThanOrEqual(end.foot!.top - 1);
+  });
+
+  test('the cap still holds with a pinned foot in the box', async ({ page }) => {
+    await open(page, SUMMARY, { width: 1280, height: 800 });
+    await expect.poll(async () => (await readSummary(page, 0)).foot).not.toBeNull();
+    await expect.poll(async () => (await readModel(page)).availTop.trim()).not.toBe('');
+
+    const model = await readModel(page);
+
+    // The foot is a flow child of the scrolling table, so it costs scroll
+    // length and not box height: the same cap as the grouped rig next door.
+    expect(model.fit).toBe('viewport');
+    expect(model.boxHeight).toBeCloseTo(model.viewport.height - pxOf(model.availTop), 0);
+    expect(model.desktopScrolls).toEqual({ x: true, y: true });
+    expect(model.pageScrolls).toEqual({ x: false, y: false });
+  });
+
+  test('the summary keeps its rule while pinned', async ({ page }) => {
+    await open(page, SUMMARY, { width: 1280, height: 800 });
+    await page.waitForSelector('tfoot [data-testid="summary-row-total"]');
+
+    // Under `border-collapse` the table paints the borders at their static
+    // positions, so a collapsed top border does not travel with a pinned
+    // `<tfoot>`. The rule is therefore a shadow on the summary row, and this
+    // reads the pixels of that seam at two scroll positions — through the first
+    // column's left inset, where nothing but background sits under the line.
+    // The clip starts SIX pixels above the foot's box. A `0 -2px 0 0` shadow
+    // paints outside the element it is on, so the rule occupies [top−2, top):
+    // indices 0-3 are the row above it, 4 and 5 are the rule, 6 onwards the
+    // summary's own ground.
+    const LEAD = 6;
+    const seam = async (at: number | 'max') => {
+      const r = await readSummary(page, at);
+      const x = Math.round(r.scrollportLeft + 6);
+      const y0 = Math.round(r.foot!.top) - LEAD;
+      const shot = await page.screenshot({
+        clip: { x, y: y0, width: 1, height: LEAD + 4 },
+        scale: 'css'
+      });
+      return page.evaluate(async (b64) => {
+        const img = new Image();
+        img.src = `data:image/png;base64,${b64}`;
+        await img.decode();
+        const canvas = document.createElement('canvas');
+        canvas.width = img.width;
+        canvas.height = img.height;
+        const ctx = canvas.getContext('2d')!;
+        ctx.drawImage(img, 0, 0);
+        const px: number[][] = [];
+        for (let y = 0; y < img.height; y++) {
+          const d = ctx.getImageData(0, y, 1, 1).data;
+          px.push([d[0], d[1], d[2]]);
+        }
+        return px;
+      }, shot.toString('base64'));
+    };
+
+    const rest = await seam(0);
+    const scrolled = await seam(600);
+    const luminance = (p: number[]) => (p[0] + p[1] + p[2]) / 3;
+
+    for (const [label, column] of [
+      ['at rest', rest],
+      ['scrolled', scrolled]
+    ] as const) {
+      const darkest = column.reduce(
+        (best, px, i) => (luminance(px) < luminance(column[best]) ? i : best),
+        0
+      );
+      // The rule is where the shadow puts it — directly above the foot's top
+      // edge, one index either way for a fractional edge — and it is darker
+      // than the row it separates the totals from.
+      expect(darkest, `${label}: where the rule sits`).toBeGreaterThanOrEqual(LEAD - 3);
+      expect(darkest, `${label}: where the rule sits`).toBeLessThanOrEqual(LEAD - 1);
+      expect(luminance(column[darkest]), `${label}: the rule is darker than the row`).toBeLessThan(
+        luminance(column[0]) - 4
+      );
+    }
+    // And it is the same line, with the same opaque ground under it: rows
+    // passing beneath the foot change no pixel of this column.
+    expect(scrolled).toEqual(rest);
+  });
+
+  test('the grid passes an axe scan with the summary out of the body', async ({ page }) => {
+    // The totals row left the `<tbody>` for a `<tfoot>`, which is a row group
+    // of the same grid. Asked of axe rather than argued: a row that is a grid
+    // row without an index, in a table that publishes `aria-rowcount`, is
+    // exactly the kind of thing a reading review waves through.
+    await open(page, SUMMARY, { width: 1280, height: 800 });
+    await page.waitForSelector('tfoot [data-testid="summary-row-total"]');
+
+    const results = await new AxeBuilder({ page })
+      .include('[data-table-layout="desktop"]')
+      .withTags(['wcag2a', 'wcag2aa'])
+      .analyze();
+    expect(
+      results.violations.map((v) => `${v.id}: ${v.nodes.map((n) => n.html).join(' | ')}`)
+    ).toEqual([]);
+  });
+
+  test('a page-relative table with the same summary does not pin it', async ({ page }) => {
+    // The control for every assertion above. `fit="content"` is the default
+    // model: the table has no bottom edge of its own, the foot rides in the
+    // flow behind the last row, and the page is what scrolls.
+    await open(page, `${FIXTURE}?summary=on&fit=content`, { width: 1280, height: 800 });
+    await page.waitForSelector('tfoot [data-testid="summary-row-total"]');
+
+    const free = await readSummary(page, 0);
+
+    expect(free.footPosition).toBe('static');
+    expect(free.inBody).toBe(false);
+    // Right behind the last row, and — with the page as the scroll context and
+    // 60 rows above it — well below the fold: the totals are exactly as far out
+    // of view as they were before any of this, which is the model's own answer
+    // and not a regression of it.
+    const last = free.rows.reduce((a, b) => (a.index > b.index ? a : b));
+    expect(Math.abs(free.foot!.top - last.bottom)).toBeLessThanOrEqual(1);
+    expect(free.foot!.top).toBeGreaterThan(free.windowHeight);
+
+    const model = await readModel(page);
+    expect(model.fit).toBe('content');
+    expect(model.pageScrolls.y).toBe(true);
   });
 });
