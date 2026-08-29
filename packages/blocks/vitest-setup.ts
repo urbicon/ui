@@ -137,4 +137,51 @@ if (typeof window !== 'undefined') {
       }
     } as unknown as typeof IntersectionObserver;
   }
+
+  // Chat's message list pins itself to the bottom via scrollTo — jsdom has no scrolling.
+  if (!Element.prototype.scrollTo) {
+    Element.prototype.scrollTo = () => {};
+  }
+
+  // FileUpload mirrors its accepted files back onto the <input> through a
+  // DataTransfer, which jsdom does not implement at all. @testing-library's
+  // paste reaches for the same global, so the stub has to carry the string
+  // half of the interface as well or every paste test loses its clipboard.
+  if (!('DataTransfer' in window)) {
+    window.DataTransfer = class {
+      #files: File[] = [];
+      #data = new Map<string, string>();
+      readonly items = {
+        add: (file: File) => {
+          this.#files.push(file);
+        }
+      };
+      get types() {
+        return [...this.#data.keys()];
+      }
+      setData(format: string, data: string) {
+        this.#data.set(format, data);
+      }
+      getData(format: string) {
+        return this.#data.get(format) ?? '';
+      }
+      clearData(format?: string) {
+        if (format === undefined) this.#data.clear();
+        else this.#data.delete(format);
+      }
+      get files() {
+        // jsdom validates the `HTMLInputElement.files` setter against a real
+        // FileList, and a FileList cannot be constructed — an empty <input>
+        // is the only source of one. A stub that returned an array here would
+        // be silently assigning nothing, so a non-empty transfer throws.
+        if (this.#files.length > 0) {
+          throw new Error(
+            'DataTransfer stub: jsdom cannot build a FileList, so a transfer carrying files ' +
+              'cannot be mirrored onto an <input>. Drive the component through its own API instead.'
+          );
+        }
+        return document.createElement('input').files as FileList;
+      }
+    } as unknown as typeof DataTransfer;
+  }
 }

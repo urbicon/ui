@@ -6,8 +6,9 @@
 // ── matchMedia ──────────────────────────────────────────────────────────────
 //
 // Queries the mounted tree asks about: `prefers-reduced-motion` and
-// `(hover: hover)` in the blocks mint engine, `(max-width: 639px)` in the
-// Pagination the table renders in its footer.
+// `(hover: hover)` in the blocks mint engine, `(prefers-color-scheme: dark)` in
+// ThemeSwitcher's system option, `(max-width: 639px)` in the Pagination the
+// table renders in its footer.
 //
 // Answered from `mediaState` below rather than with a flat `false`, because
 // `false` is not a neutral default — it is a WRONG answer to `(min-width: 1px)`,
@@ -26,7 +27,12 @@
 // A query with no rule here throws instead of answering `false`. That is the
 // point: the next media-query-shaped feature has to teach this stub about
 // itself rather than inherit a silent `false`.
-const MEDIA_DEFAULTS = { width: 1024, prefersReducedMotion: false, hover: false };
+const MEDIA_DEFAULTS = {
+  width: 1024,
+  prefersReducedMotion: false,
+  hover: false,
+  darkScheme: false
+};
 const mediaState = { ...MEDIA_DEFAULTS };
 const liveLists = new Set<StubMediaQueryList>();
 
@@ -42,6 +48,8 @@ function evaluateMedia(query: string): boolean {
     return !mediaState.prefersReducedMotion;
   if (normalized === '(hover: hover)') return mediaState.hover;
   if (normalized === '(hover: none)') return !mediaState.hover;
+  if (normalized === '(prefers-color-scheme: dark)') return mediaState.darkScheme;
+  if (normalized === '(prefers-color-scheme: light)') return !mediaState.darkScheme;
 
   const length = LENGTH_QUERY.exec(normalized);
   if (length) {
