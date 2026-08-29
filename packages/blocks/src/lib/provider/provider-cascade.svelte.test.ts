@@ -10,8 +10,9 @@ import { type CascadeComponent, exportedComponents } from './__fixtures__/cascad
  * The oracle for the override cascade: every public component that declares an
  * `unstyled` prop — the component's own claim to the styling contract — is
  * mounted under a `<BlocksProvider>` and asked whether the provider's three
- * routes reach its markup: unconditional `slotClasses` (A), a conditional
- * `overrides` rule (B), and `unstyled` (C).
+ * routes reach its markup: unconditional `slotClasses` on the root element (A),
+ * a conditional `overrides` rule anywhere in the markup (B), and `unstyled` on
+ * the root element (C).
  *
  * Why this has to be a mount, and what no grep over the sources can answer:
  *
@@ -28,10 +29,27 @@ import { type CascadeComponent, exportedComponents } from './__fixtures__/cascad
  * None of the three failures announces itself at runtime: a rule that matches
  * nothing is silent, and the index signature of `ConditionalOverride` accepts
  * any string, so the compiler is silent too.
+ *
+ * What this sweep does **not** see, so the next reader does not mistake a green
+ * run for more than it is:
+ *
+ * - **B only proves that *one* rule arrives.** Its condition is the whole
+ *   object the component carries, and `matchesCompound` is satisfied by any
+ *   non-empty subset of it. Measured: Toggle's rule narrowed from the eight
+ *   axes it carries to `{ size }` alone still arrives, and the 67 passing B
+ *   rows have 1 572 non-empty proper subsets between them that no assertion
+ *   here separates. An axis that is individually unmatchable stays invisible.
+ * - **A and C speak for one element only** — the root, or for the seven
+ *   `ROOT_IS_A_WRAPPER` components the outermost element the probes reach. A
+ *   slot deeper in the tree that stops reading its `slotClasses`, or keeps its
+ *   library classes under `unstyled`, passes both routes.
+ * - **Only jsdom's answer.** Which of two surviving classes actually paints is
+ *   a browser question; this file asserts on class attributes.
  */
 
 /** Probe token for route A, one per slot so the landing slot stays identifiable. */
-const probeA = (slot: string) => `pa-${slot}`;
+const PROBE_A_PREFIX = 'pa-';
+const probeA = (slot: string) => `${PROBE_A_PREFIX}${slot}`;
 /** Probe token for route B. */
 const PROBE_B = 'pb-override';
 
@@ -59,26 +77,53 @@ const KNOWN_GAPS: Record<string, Partial<Record<Route, string>>> = {
   LineChart: { B: '#341 passes `{}` as its condition object' },
   ReasoningDisclosure: { B: '#341 passes `{}` as its condition object' },
 
-  // #339 — public components outside the resolver: no provider name to address,
-  // and for two of them `unstyled` does not reach the markup either.
+  // #339 — no provider name of their own. Two kinds, and the difference is
+  // what the fix has to be, so the entries state which one applies.
+  //
+  // Addressable under another component's name (measured): a rule written
+  // under the parent or the composed inner component does arrive. Giving these
+  // a provider name of their own would be the wrong repair.
   CalendarHeader: {
-    A: '#339 never calls resolveSlotClasses, so it has no provider name',
-    B: '#339 never calls resolveSlotClasses, so it has no provider name'
+    A: '#339 addressable only under `Calendar` — measured: `defaults.Calendar.slotClasses` reaches its header, nav and title elements',
+    B: '#339 addressable only under `Calendar`, whose condition object it does not contribute to'
   },
+  LocaleSwitcher: {
+    A: '#339 addressable only under `Select` — measured: `defaults.Select.slotClasses.base` reaches its root; it renders nothing of its own',
+    B: '#339 addressable only under `Select`, whose condition object it does not contribute to'
+  },
+  // Genuinely outside the cascade: no provider name anywhere in the render,
+  // and `getBlocksConfig()` is never read, so `unstyled` does not arrive either.
   ChartFrame: {
     A: '#339 never calls resolveSlotClasses, so it has no provider name',
     B: '#339 never calls resolveSlotClasses, so it has no provider name',
     C: '#339 never reads getBlocksConfig(), so provider `unstyled` does nothing'
-  },
-  LocaleSwitcher: {
-    A: '#339 never calls resolveSlotClasses, so it has no provider name',
-    B: '#339 never calls resolveSlotClasses, so it has no provider name'
   },
   Sparkline: {
     A: '#339 never calls resolveSlotClasses, so it has no provider name',
     B: '#339 never calls resolveSlotClasses, so it has no provider name',
     C: '#339 never reads getBlocksConfig(), so provider `unstyled` does nothing'
   }
+};
+
+/**
+ * Components whose outermost element is a hand-written wrapper that carries no
+ * slot, so the root slot sits one level in. For these — and only these — the
+ * element under measurement is the outermost one the slot probes reach, which
+ * costs the position-based identity and buys it back through the probe token
+ * that has to be on the same element again in the `unstyled` mount.
+ * Each entry names the wrapper. Stale entries are errors.
+ */
+const ROOT_IS_A_WRAPPER: Record<string, string> = {
+  // Hand-written wrappers, in the component's own markup.
+  CopyButton: 'wraps button + live region in a `<span class="contents">`',
+  Guide: 'announces the tour step through an `<span class="sr-only" aria-live>` first',
+  Tooltip: 'wraps the trigger in a `<span class="inline-flex">`',
+  // Outermost element belongs to a component this one composes, so the slot
+  // that owns it is that component's, addressable under *its* provider name.
+  CitationChip: 'renders through `<Popover>`, whose wrapper is the outer element',
+  CommandPalette: 'renders through `<Dialog>`, whose `<dialog>` is the outer element',
+  ReasoningDisclosure: 'renders through `<Collapsible>`, whose root is the outer element',
+  ToolCallCard: 'renders through `<Collapsible>`, whose root is the outer element'
 };
 
 /**
@@ -93,8 +138,10 @@ const NOT_MEASURABLE: Record<string, string> = {};
  * Lower bound on the components actually measured. A broken glob or a renamed
  * barrel export would otherwise report a green sweep over an empty set — the
  * failure mode `variants-lint.ts` guards with its own `loaded.length` check.
+ * Set just under the current 84 so a handful of legitimate removals pass and a
+ * discovery failure does not.
  */
-const MIN_MEASURED = 75;
+const MIN_MEASURED = 80;
 
 const recorder = vi.hoisted(() => ({
   calls: [] as { component: string; activeProps: Record<string, unknown> }[]
@@ -137,15 +184,26 @@ interface Measurement {
   routes: Record<Route, Outcome>;
 }
 
+/**
+ * How the element under measurement is found. `outermost` is the honest
+ * default — the component's own root element, at a position the test knows
+ * without asking the component anything. `probe` is the ROOT_IS_A_WRAPPER
+ * escape hatch, and it buys its freedom by being pinned down again in every
+ * later mount through the probe token it landed on.
+ */
+type RootRule = 'outermost' | 'probe';
+
 interface MountResult {
   /** Every class token in the rendered markup, element by element. */
   tokens: Set<string>;
-  /** Class tokens of the component's own outermost element. */
-  rootTokens: Set<string>;
-  /** Class tokens of the element the slot probes reached first. */
-  probeRootTokens: Set<string>;
   /** Whether anything rendered at all. */
   rendered: boolean;
+  /** Whether the root element itself was found. */
+  rootFound: boolean;
+  /** Class tokens of the root element, probe tokens excluded. */
+  rootTokens: Set<string>;
+  /** Slot names whose probe class sits on the root element. */
+  rootProbes: Set<string>;
   /** The condition object the component handed to `resolveSlotClasses`. */
   condition: Record<string, unknown> | undefined;
 }
@@ -153,19 +211,14 @@ interface MountResult {
 function mountOnce(
   entry: CascadeComponent,
   providerProps: Record<string, unknown>,
-  withFixture = true
+  withFixture = true,
+  rootRule: RootRule = 'outermost'
 ): MountResult {
   const fixture = (withFixture && MOUNT_FIXTURES[entry.exportName]) || {};
   const props: Record<string, unknown> = { ...fixture.props };
   if (entry.declaredProps.includes('children') && !('children' in props)) {
     props.children = createRawSnippet(() => ({ render: () => '<span>content</span>' }));
   }
-  if (fixture.family) {
-    // Inside a parent the outermost element belongs to the parent, so the
-    // child marks its own root through its rest-props spread.
-    props['data-cascade-root'] = '';
-  }
-
   document.body.innerHTML = '';
   const target = document.createElement('div');
   document.body.appendChild(target);
@@ -194,28 +247,37 @@ function mountOnce(
     for (const token of element.classList) tokens.add(token);
   }
   const rendered = painted.length > 0;
-  const root = fixture.family
-    ? target.querySelector('[data-cascade-root]')
+
+  // Inside a parent the first element belongs to the parent, so the compound
+  // host marks the child's own subtree with `data-cascade-scope`.
+  const outermost = fixture.family
+    ? (target.querySelector('[data-cascade-scope]')?.firstElementChild ?? null)
     : target.firstElementChild;
-  const rootTokens = new Set(root ? [...root.classList] : []);
-  // The outermost element the slot probes reached — the component's root slot,
-  // named by its own markup rather than by DOM position. A hand-written wrapper
-  // outside the slot system is regularly the first element (Tooltip,
-  // CitationChip), which is why position alone would measure the wrong element.
-  const probedRoot = painted.find((element) =>
-    [...element.classList].some((token) => token.startsWith('pa-'))
+  const root =
+    rootRule === 'probe'
+      ? (painted.find((element) =>
+          [...element.classList].some((token) => token.startsWith(PROBE_A_PREFIX))
+        ) ?? null)
+      : outermost;
+  const rootClasses = root ? [...root.classList] : [];
+  const rootTokens = new Set(rootClasses.filter((token) => !token.startsWith(PROBE_A_PREFIX)));
+  const rootProbes = new Set(
+    rootClasses
+      .filter((token) => token.startsWith(PROBE_A_PREFIX))
+      .map((token) => token.slice(PROBE_A_PREFIX.length))
   );
-  const probeRootTokens = new Set(
-    probedRoot ? [...probedRoot.classList].filter((token) => !token.startsWith('pa-')) : []
-  );
-  // The settled call: a component may resolve more than once while mounting.
+
+  // Measured over the 336 mounts of one sweep: a component resolves its
+  // provider name at most once per mount (320 mounts once, 16 not at all).
+  // `.at(-1)` is the settled value should that ever change — it is not
+  // covering for a repeat this corpus has.
   const condition = recorder.calls
     .filter((call) => call.component === entry.providerName)
     .at(-1)?.activeProps;
 
   unmount(app);
   document.body.innerHTML = '';
-  return { tokens, rootTokens, probeRootTokens, rendered, condition };
+  return { tokens, rendered, rootFound: root !== null, rootTokens, rootProbes, condition };
 }
 
 function measure(entry: CascadeComponent, withFixture = true): Measurement {
@@ -241,17 +303,28 @@ function measure(entry: CascadeComponent, withFixture = true): Measurement {
         }
       }
     : undefined;
+  const rootRule: RootRule = ROOT_IS_A_WRAPPER[entry.exportName] ? 'probe' : 'outermost';
 
-  // ── A: an unconditional `slotClasses` entry reaches the markup ──
+  // ── A: an unconditional `slotClasses` entry reaches the root element ──
   let probed: MountResult | undefined;
+  let rootSlots: string[] = [];
   if (!slotProbes) {
     routes.A = { ok: false, detail: 'no provider name — `defaults` cannot address this component' };
   } else {
-    probed = mountOnce(entry, slotProbes, withFixture);
-    const landed = [...probed.tokens].filter((t) => t.startsWith('pa-'));
-    routes.A = landed.length
-      ? { ok: true, detail: `${landed.length}/${entry.slots.length} slots landed` }
-      : { ok: false, detail: `no slot of {${entry.slots.join(', ')}} reached any element` };
+    probed = mountOnce(entry, slotProbes, withFixture, rootRule);
+    rootSlots = [...probed.rootProbes];
+    const elsewhere = [...probed.tokens].filter((t) => t.startsWith(PROBE_A_PREFIX)).length;
+    routes.A = rootSlots.length
+      ? {
+          ok: true,
+          detail: `root slot ${rootSlots.join('+')}, ${elsewhere}/${entry.slots.length} slots landed`
+        }
+      : {
+          ok: false,
+          detail: probed.rootFound
+            ? `${elsewhere}/${entry.slots.length} slots landed, none of them on the root element (${[...probed.rootTokens].join(' ') || '<no classes>'})`
+            : `no root element found for slots {${entry.slots.join(', ')}}`
+        };
   }
 
   // ── B: a conditional rule on the carried condition reaches the markup ──
@@ -285,20 +358,37 @@ function measure(entry: CascadeComponent, withFixture = true): Measurement {
       : { ok: false, detail: `rule on {${shown}} reached no element` };
   }
 
-  // ── C: provider `unstyled` drops the root slot's library classes ──
-  // Scoped to one element on purpose: token strings repeat across the library
+  // ── C: provider `unstyled` drops the root element's library classes ──
+  // One element, not the subtree: token strings repeat across the library
   // (`inline-flex`, `items-center`), so a subtree-wide comparison reports a
   // *neighbour's* surviving class as this component's failure.
   if (routes.A.ok && slotProbes && probed) {
-    // The slot probes ride along so the same element is identifiable in both
-    // mounts, and only the tv() configs' own tokens count — a hand-written
-    // class on that element is not `unstyled`'s to remove.
-    const styled = [...probed.probeRootTokens].filter((t) => entry.libraryTokens.has(t));
-    if (styled.length === 0) {
-      routes.C = { ok: false, detail: 'root slot carries no library class — nothing to strip' };
+    const styled = [...probed.rootTokens].filter((t) => entry.libraryTokens.has(t));
+    const stripped = mountOnce(entry, { ...slotProbes, unstyled: true }, withFixture, rootRule);
+    const lostProbes = rootSlots.filter((slot) => !stripped.rootProbes.has(slot));
+    if (!stripped.rootFound) {
+      // Not "nothing survived": an element the sweep cannot find carries no
+      // answer at all, and reading it as success is how three real defects
+      // measured green before this branch existed.
+      routes.C = {
+        ok: false,
+        detail:
+          rootRule === 'probe'
+            ? `under \`unstyled\` no element carries the provider's slotClasses — the root slot cannot be identified`
+            : 'renders no root element under provider `unstyled`'
+      };
+    } else if (lostProbes.length) {
+      // The probe is the identity of the element across the two mounts *and*
+      // a contract in its own right: `unstyled` drops the library's classes,
+      // never the consumer's.
+      routes.C = {
+        ok: false,
+        detail: `the root element under \`unstyled\` lost the provider's own slotClasses (${lostProbes.join(', ')}) — either \`unstyled\` drops them with the library's, or this is a different element`
+      };
+    } else if (styled.length === 0) {
+      routes.C = { ok: false, detail: 'root element carries no library class — nothing to strip' };
     } else {
-      const stripped = mountOnce(entry, { ...slotProbes, unstyled: true }, withFixture);
-      const survivors = styled.filter((t) => stripped.probeRootTokens.has(t));
+      const survivors = styled.filter((t) => stripped.rootTokens.has(t));
       routes.C = survivors.length
         ? {
             ok: false,
@@ -307,9 +397,10 @@ function measure(entry: CascadeComponent, withFixture = true): Measurement {
         : { ok: true, detail: `${styled.length} library classes dropped` };
     }
   } else {
-    // No provider name means no probe to find the root slot with, so the
-    // outermost element stands in and every surviving class counts: a
-    // component the provider cannot address has no styling it may keep.
+    // Route A produced no probe to pin the root slot down with — no provider
+    // name, or the probes never reached the root. The outermost element stands
+    // in, and every class that survives counts: this is the branch for a
+    // component the provider demonstrably cannot address.
     const stripped = mountOnce(entry, { unstyled: true }, withFixture);
     const survivors = [...plain.rootTokens].filter((t) => stripped.rootTokens.has(t));
     routes.C = survivors.length
@@ -355,11 +446,36 @@ describe('BlocksProvider cascade reaches the markup', () => {
     const stale = [
       ...Object.keys(KNOWN_GAPS),
       ...Object.keys(NOT_MEASURABLE),
-      ...Object.keys(MOUNT_FIXTURES)
+      ...Object.keys(MOUNT_FIXTURES),
+      ...Object.keys(ROOT_IS_A_WRAPPER)
     ].filter((name) => !known.has(name));
     expect(
       stale,
       `entries for components the sweep no longer sees — delete them:\n  ${stale.join('\n  ')}`
+    ).toEqual([]);
+  });
+
+  it('lists no component whose root element carries a slot after all', () => {
+    // The exception costs the position-based identity of the measured element,
+    // so it has to keep being necessary: with the plain rule the root must
+    // still carry none of the component's slot classes.
+    const stale: string[] = [];
+    for (const [name, reason] of Object.entries(ROOT_IS_A_WRAPPER)) {
+      const entry = components.find((component) => component.exportName === name);
+      if (!entry?.providerName) continue;
+      const probes = {
+        defaults: {
+          [entry.providerName]: {
+            slotClasses: Object.fromEntries(entry.slots.map((slot) => [slot, probeA(slot)]))
+          }
+        }
+      };
+      const run = mountOnce(entry, probes, true, 'outermost');
+      if (run.rootProbes.size > 0) stale.push(`${name} (${reason})`);
+    }
+    expect(
+      stale,
+      `ROOT_IS_A_WRAPPER entries whose root element does carry a slot — delete them:\n  ${stale.join('\n  ')}`
     ).toEqual([]);
   });
 
@@ -393,9 +509,9 @@ describe('BlocksProvider cascade reaches the markup', () => {
 });
 
 const ROUTE_TITLE: Record<Route, string> = {
-  A: 'A — `defaults.slotClasses` reaches the markup',
+  A: 'A — `defaults.slotClasses` reaches the root element',
   B: 'B — a conditional `overrides` rule reaches the markup',
-  C: 'C — provider `unstyled` drops the root slot’s library classes'
+  C: 'C — provider `unstyled` drops the root element’s library classes'
 };
 
 describe.each(measurements.map((m) => [m.entry.exportName, m] as const))(

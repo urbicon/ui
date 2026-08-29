@@ -17,6 +17,13 @@
   // A compound child reads its parent through context and throws without one,
   // so the sweep cannot mount it on its own. One parent per family; the child
   // itself stays the component under measurement and keeps its own props.
+  //
+  // `data-cascade-scope` is how the sweep finds the child's own outermost
+  // element inside the parent's markup. It has to be a wrapper element rather
+  // than an attribute on the child, because a rest-props attribute lands
+  // wherever the component spreads its rest props — on RadioItem's <input>,
+  // for one, which is not its root. Context is component-tree scoped, so the
+  // extra element changes nothing the children can observe.
   let {
     family,
     component,
@@ -41,37 +48,39 @@
   guideController.openPanel(ARTICLE_ID);
 </script>
 
-{#snippet panelsSnippet()}<Child {...props} />{/snippet}
+{#snippet scoped()}
+  <span data-cascade-scope style="display: contents"><Child {...props} /></span>
+{/snippet}
 
 <BlocksProvider {unstyled} {defaults}>
   {#if family === 'accordion'}
-    <Accordion><Child {...props} /></Accordion>
+    <Accordion>{@render scoped()}</Accordion>
   {:else if family === 'radioGroup'}
-    <RadioGroup><Child {...props} /></RadioGroup>
+    <RadioGroup>{@render scoped()}</RadioGroup>
   {:else if family === 'segmentGroup'}
-    <SegmentGroup><Child {...props} /></SegmentGroup>
+    <SegmentGroup>{@render scoped()}</SegmentGroup>
   {:else if family === 'stepper'}
-    <Stepper><Child {...props} /></Stepper>
+    <Stepper>{@render scoped()}</Stepper>
   {:else if family === 'tabStrip'}
     <Tab>
-      {#snippet tabs()}<Child {...props} />{/snippet}
+      {#snippet tabs()}{@render scoped()}{/snippet}
     </Tab>
   {:else if family === 'tabPanels'}
-    <Tab value="a" panels={panelsSnippet}>
+    <Tab value="a" panels={scoped}>
       {#snippet tabs()}<span>strip</span>{/snippet}
     </Tab>
   {:else if family === 'guide'}
-    <GuideProvider><Child {...props} /></GuideProvider>
+    <GuideProvider>{@render scoped()}</GuideProvider>
   {:else if family === 'guidePanel'}
     <GuideProvider controller={guideController}>
       <GuidePanel>
         <GuideArticle id={ARTICLE_ID} title="Cascade">body</GuideArticle>
-        <Child {...props} />
+        {@render scoped()}
       </GuidePanel>
     </GuideProvider>
   {:else if family === 'calendar'}
     <Calendar>
-      {#snippet header()}<Child {...props} />{/snippet}
+      {#snippet header()}{@render scoped()}{/snippet}
     </Calendar>
   {/if}
 </BlocksProvider>

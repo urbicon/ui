@@ -30,6 +30,11 @@ const HERE = dirname(fileURLToPath(import.meta.url));
  * host, so the props it hands over are only known at runtime. */
 type AnyComponent = Component<Record<string, unknown>>;
 
+// Discovery is bounded by these two directories: a component added under a new
+// `src/lib/<dir>` would be exported, styled, and silently outside the sweep.
+// Measured on this tree — the 368 barrel exports outside them are icons and
+// infrastructure, and the only `.svelte` elsewhere that declares `unstyled` are
+// the three `internal/core/*`, which the barrel deliberately never exports.
 const componentLoaders = import.meta.glob<{ default: AnyComponent }>(
   '../../{components,primitives}/**/*.svelte'
 );
