@@ -4,6 +4,12 @@ All notable changes to this project will be documented in this file.
 This changelog is automatically generated from [Conventional Commits](https://www.conventionalcommits.org).
 
 
+## [8.11.0] - 2026-08-29
+
+### Breaking Changes
+- **table**: The summary row pins in any scroll box the table owns (#333)
+> **BREAKING:** the total summary row moved out of the `<tbody>`. It renders as a `<tr>` in the table's `<tfoot>` now, in the page-relative and `fit="viewport"` models — the virtualized branch already moved in 8.10.0. Nothing about its appearance changed. Group summary rows are unaffected and stay in the `<tbody>` with their group. Two things stop reaching the row on their own:  - a descendant or child rule under `slotClasses.tbody`. `divide-y`   compiles to `tbody > * + *`, so it no longer draws the summary's top   edge; where the foot does not pin, the row's own `border-t-2` still   does, and where it pins, …
+
 ## [8.10.0] - 2026-08-28
 
 ### Breaking Changes

@@ -1,6 +1,6 @@
 {
   "name": "@urbicon-ui/table",
-  "version": "8.10.0",
+  "version": "8.11.0",
   "description": "Data table for Svelte 5 — sorting, filtering, grouping, selection, keyboard navigation, virtualization and live updates",
   "license": "MIT",
   "repository": {
