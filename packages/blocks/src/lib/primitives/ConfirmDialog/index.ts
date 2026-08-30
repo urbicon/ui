@@ -125,10 +125,11 @@ export interface ConfirmDialogProps
   /** Optional richer markup rendered below `description`. */
   children?: Snippet;
 
-  // ── Styling & attribute contract (forwarded verbatim to the underlying Dialog) ──
+  // ── Styling & attribute contract (forwarded to the underlying Dialog) ──
   // ConfirmDialog is a pre-configured Dialog, so it does not own a tv()
-  // config — the standard unstyled/slotClasses/preset trio resolves
-  // against the inner Dialog (presets registered under the `Dialog` key).
+  // config — `unstyled` and `slotClasses` resolve against the inner Dialog's
+  // slots. `preset` is the exception: it is resolved here, under the
+  // `ConfirmDialog` key, and handed down as instance `slotClasses`.
   // Extending `HTMLDialogAttributes` (mirroring Dialog/Drawer) additionally
   // lets consumers attach arbitrary `data-*` / `aria-*` / native `<dialog>`
   // attributes: they are gathered as rest props and spread onto the inner
@@ -152,9 +153,16 @@ export interface ConfirmDialogProps
   slotClasses?: Partial<Record<DialogSlots, string>>;
 
   /**
-   * Apply a named preset registered via `<BlocksProvider presets={{ Dialog: {...} }}>`.
-   * Resolved against the `Dialog` component key — ConfirmDialog shares the
-   * Dialog preset space instead of introducing a parallel one.
+   * Apply a named preset registered via `<BlocksProvider presets={{ ConfirmDialog: {...} }}>`.
+   * Resolved against the **`ConfirmDialog`** key, not `Dialog`: a preset written
+   * for the confirmation would otherwise style every dialog under the provider.
+   * `defaults.Dialog` still applies — the resolved preset reaches Dialog as
+   * instance `slotClasses`, so it wins over the provider's dialog-wide defaults
+   * and loses to `slotClasses` / `class` written on this component.
+   * A preset's `overrides` rules are matched against what you wrote here plus
+   * Dialog's own variant defaults. Dialog's three axes (`size`, `placement`,
+   * `intent`) are all received rather than derived, so no such mismatch exists
+   * today — see #360 for the shape it takes where an axis is derived.
    */
   preset?: string;
 }

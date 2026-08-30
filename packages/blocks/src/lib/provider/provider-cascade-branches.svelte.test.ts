@@ -172,9 +172,16 @@ describe('CalendarHeader folds `unstyled` the way the other 60 components do', (
 });
 
 describe('compound parts are addressed under the parent’s provider name', () => {
-  // #339's correction, pinned: CalendarHeader and LocaleSwitcher have no
-  // provider name of their own and are not meant to grow one. What reaches
-  // them is the name of the component they render inside of / through.
+  // #339's correction, pinned: CalendarHeader has no provider name of its own
+  // and is not meant to grow one — it renders only inside `<Calendar>`, and the
+  // name that reaches it is that parent's.
+  //
+  // LocaleSwitcher used to sit here beside it and no longer does: #355 gave it
+  // a name of its own, because a *wrapper* has a second problem a compound part
+  // does not — a forwarded `preset` resolves inside the component it wraps and
+  // styles every instance of it. `preset-scope.svelte.test.ts` owns that
+  // question for all four wrappers; measured here, `presets.LocaleSwitcher` now
+  // reaches its field and `presets.Select` does not.
   it('reaches CalendarHeader’s three elements through `defaults.Calendar`', () => {
     const reached = withRender(
       {
@@ -190,33 +197,6 @@ describe('compound parts are addressed under the parent’s provider name', () =
     expect(reached.some((c) => c.includes('probe-header'))).toBe(true);
     expect(reached.some((c) => c.includes('probe-nav'))).toBe(true);
     expect(reached.some((c) => c.includes('probe-title'))).toBe(true);
-  });
-
-  it('reaches LocaleSwitcher through `defaults.Select` and `presets.Select`', () => {
-    // Select's root slot is `wrapper` (the label column) and `base` is the
-    // field inside it — both arrive, which is what "it renders nothing of its
-    // own" means here.
-    const viaDefaults = withRender(
-      {
-        composition: 'localeSwitcher',
-        defaults: { Select: { slotClasses: { wrapper: 'probe-wrapper', base: 'probe-base' } } }
-      },
-      (t) => ({ wrapper: classesOf(t, 'div', 0), base: classesOf(t, 'div', 1) })
-    );
-    expect(viaDefaults.wrapper?.has('probe-wrapper')).toBe(true);
-    expect(viaDefaults.base?.has('probe-base')).toBe(true);
-
-    // The `preset` prop takes the same route: LocaleSwitcher declares none, so
-    // it rides the rest spread into <Select> and resolves under `Select`.
-    const viaPreset = withRender(
-      {
-        composition: 'localeSwitcher',
-        partPreset: 'compact',
-        presets: { Select: { compact: { slotClasses: { base: 'probe-preset' } } } }
-      },
-      (t) => classesOf(t, 'div', 1)
-    );
-    expect(viaPreset?.has('probe-preset')).toBe(true);
   });
 });
 

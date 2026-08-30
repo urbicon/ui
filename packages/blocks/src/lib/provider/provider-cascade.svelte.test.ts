@@ -194,6 +194,9 @@ const KNOWN_GAPS: Record<string, Partial<Record<Route, string>>> = {
   // The slot class that *is* the override surface merges correctly; these
   // entries record the plumbing buckets that stay out of it.
   ChatMessage: { D: 'CoreIconButton plumbing on `actionButton`, out of the ladder by design' },
+  // Reached the sweep with #355, which gave it a provider name of its own; the
+  // close button it inherits from Dialog is the same core as Drawer's below.
+  ConfirmDialog: { D: 'CoreIconButton plumbing on `closeButton`, out of the ladder by design' },
   Drawer: { D: 'CoreIconButton plumbing on `closeButton`, out of the ladder by design' },
   PromptInput: { D: 'CoreIconButton plumbing on `sendButton`, out of the ladder by design' },
   ResourceTimeline: { D: 'CoreIconButton plumbing on `navButton`, out of the ladder by design' },
@@ -213,19 +216,15 @@ const KNOWN_GAPS: Record<string, Partial<Record<Route, string>>> = {
     D: '#349 — DateGridScaffold prepends the grid classes; view-conditional classes ride the `extra` argument. Plus CoreIconButton plumbing on `navButton`'
   },
 
-  // #339 — addressable, but under another component's name (measured): a rule
-  // written under the parent or the composed inner component does arrive, and
-  // both render their own markup only inside that parent. Giving either a
-  // provider name of its own is therefore NOT the repair — whether a compound
-  // part should be addressable alone is the open question #343 asks about
-  // condition keys, and it wants one answer for both.
+  // #339 — addressable, but under its parent's name (measured): a rule written
+  // under `Calendar` does arrive at the header, and it renders its own markup
+  // only inside that parent. Giving it a provider name of its own is therefore
+  // NOT the repair — whether a compound part should be addressable alone is the
+  // open question #343 asks about condition keys, and it wants one answer for
+  // both.
   CalendarHeader: {
     A: '#339 addressable only under `Calendar` — measured: `defaults.Calendar.slotClasses` reaches its header, nav and title elements',
     B: '#339 addressable only under `Calendar`, whose condition object it does not contribute to'
-  },
-  LocaleSwitcher: {
-    A: '#339 addressable only under `Select` — measured: `defaults.Select.slotClasses` reaches both of its elements (`wrapper` the root, `base` the field), and a `preset` rides the rest spread into Select; it renders nothing of its own',
-    B: '#339 addressable only under `Select`, whose condition object it does not contribute to'
   }
 };
 
@@ -251,8 +250,6 @@ const ROOT_IS_A_WRAPPER: Record<string, string> = {
   // that owns it is that component's, addressable under *its* provider name.
   CitationChip: 'renders through `<Popover>`, whose wrapper is the outer element',
   CommandPalette: 'renders through `<Dialog>`, whose `<dialog>` is the outer element',
-  NumberInput:
-    'renders through `<Input>`, whose wrapper is the outer element; its own two slots are the stepper',
   ReasoningDisclosure: 'renders through `<Collapsible>`, whose root is the outer element',
   ToolCallCard: 'renders through `<Collapsible>`, whose root is the outer element'
 };
@@ -750,41 +747,27 @@ function measure(entry: CascadeComponent, withFixture = true): Measurement {
   return { entry, routes };
 }
 
-// A component that declares `unstyled` has claimed the styling contract, and
-// that claim — not a hand-written roster — is what puts it in the sweep.
+// Two claims to the styling contract, either of which admits a component —
+// neither is a hand-written roster, both are read off the source:
+//
+// - it declares `unstyled`, so it owns markup that has to obey the flag;
+// - it calls `resolveSlotClasses(config, 'Name', …)`, so a `defaults` entry
+//   under that name reaches something, even where the markup it reaches
+//   belongs to a component it wraps (`CurrencyInput`, `ConfirmDialog`).
+//
+// The union, rather than the first alone, is what makes losing membership
+// unrepresentable instead of merely reportable. Measured on the first: dropping
+// `unstyled` from the two pickers' `$props()` took this file from 6416 to 6404
+// tests — six route assertions each, gone, with nothing red. A component cannot
+// leave that way now; it has to give up its provider name too, which is the
+// feature being deleted rather than a slip.
 const exported = await exportedComponents();
-const components = exported.filter((entry) => entry.declaredProps.includes('unstyled'));
+const components = exported.filter(
+  (entry) => entry.declaredProps.includes('unstyled') || entry.providerName !== null
+);
 const measurements = components.map((entry) => measure(entry));
 
 describe('BlocksProvider cascade reaches the markup', () => {
-  it('measures every component that resolves through the provider', () => {
-    // Membership hangs on one `$props()` entry, and losing it is silent: the
-    // component leaves `components` and takes its six route assertions with it
-    // — measured, dropping `unstyled` from the two pickers took this file from
-    // 6416 to 6404 tests and failed nothing.
-    //
-    // The second, independent claim to the contract is the
-    // `resolveSlotClasses(config, 'Name', …)` call, which the registry already
-    // reads off the source for the provider name. A component that makes that
-    // call has to answer for it here. This replaces the floor under a count
-    // that used to stand in for the check: a number cannot tell a component
-    // that left the roster from one that was never in it, and it goes stale on
-    // every admission — the same reason #350 replaced `MIN_COLLISIONS` with a
-    // condition. "The sweep found nothing at all" is covered instead by the
-    // stale-entry test below: every hand-written roster here is keyed by
-    // component name, so a discovery failure turns all of them unknown at once
-    // — measured, pointing the component glob at a directory that does not
-    // exist fails that test with 62 names.
-    const unmeasured = exported
-      .filter((entry) => entry.providerName && !entry.declaredProps.includes('unstyled'))
-      .map((entry) => `${entry.exportName} (resolves as \`${entry.providerName}\`)`);
-    expect(
-      unmeasured,
-      'these components resolve their slot classes through the provider but declare no ' +
-        `\`unstyled\` prop, so the sweep never measures them:\n  ${unmeasured.join('\n  ')}`
-    ).toEqual([]);
-  });
-
   it('leaves nothing route A reaches unprobed by route D', () => {
     // A component leaves route D by one of two doors: route A did not reach
     // its root (which fails loudly on its own, or is a recorded #339 gap), or

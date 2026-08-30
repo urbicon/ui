@@ -1,6 +1,6 @@
 <script lang="ts">
-  import { Input } from '$lib/primitives/Input';
-  import { getBlocksConfig, resolveSlotClasses } from '$lib/provider';
+  import { Input, inputVariants } from '$lib/primitives/Input';
+  import { getBlocksConfig, resolveSlotClasses, wrapperActiveProps } from '$lib/provider';
   import { resolveIcon } from '$lib/icons';
   import ChevronDownIconDefault from '$lib/icons/ChevronDownIcon.svelte';
   import { numberInputVariants, type NumberInputSlots } from './numberinput.variants';
@@ -20,9 +20,11 @@
     name,
     onValueChange,
     rightIcon: userRightIcon,
-    // Pulled out of the forwarded bag because the stepper is NumberInput's own
-    // markup: the three are used here AND handed on to Input, which resolves
-    // them again under its own provider name.
+    // Out of the forwarded bag, each for its own reason: `preset` because it
+    // must resolve here rather than inside Input (see below), `slotClasses`
+    // because it is the weakest rung of that same resolution, and `unstyled`
+    // because the stepper below is this component's own markup and has to obey
+    // it too.
     unstyled: unstyledProp = false,
     slotClasses: slotClassesProp = {},
     preset,
@@ -31,17 +33,30 @@
 
   const blocksConfig = getBlocksConfig();
   const unstyled = $derived(unstyledProp || blocksConfig?.unstyled || false);
-  // `numberInputVariants` has no axes — the stepper looks the same in every
-  // state the config knows — so this object feeds `resolveSlotClasses` alone.
-  // Its keys are what an `overrides` rule on the stepper can meaningfully name.
-  const variantProps = $derived({ disabled, readonly });
-  const slotClasses = $derived(
-    resolveSlotClasses(blocksConfig, 'NumberInput', preset, variantProps, slotClassesProp)
+  // Resolved here, under this component's own name, and handed to Input as
+  // instance `slotClasses` rather than forwarded as `preset`: inside Input the
+  // name would be `Input`, so a preset written for the number field would style
+  // every text field under the provider too. `wrapperActiveProps` supplies the
+  // axes the caller left to Input's own defaults, without which a preset's
+  // `overrides` rule on any of them would match nothing here.
+  //
+  // One record for two element sets: Input reads the keys of its own slots off
+  // it, `slot()` below reads `numberInputVariants`'s two. `numberInputVariants`
+  // declares no axes of its own, so the condition object is Input's set — which
+  // is also the only set a caller of a number field has words for.
+  const presetSlotClasses = $derived(
+    resolveSlotClasses(
+      blocksConfig,
+      'NumberInput',
+      preset,
+      wrapperActiveProps(inputVariants.config, { ...inputProps, disabled, readonly }),
+      slotClassesProp
+    )
   );
   const styles = $derived(unstyled ? undefined : numberInputVariants());
 
   function slot(name: NumberInputSlots): string {
-    const overrides = slotClasses?.[name] ?? '';
+    const overrides = presetSlotClasses?.[name] ?? '';
     return styles?.[name]({ class: overrides }) ?? overrides;
   }
 
@@ -200,8 +215,7 @@
 <Input
   {...inputProps}
   unstyled={unstyledProp}
-  slotClasses={slotClassesProp}
-  {preset}
+  slotClasses={presetSlotClasses}
   {disabled}
   {readonly}
   type="text"

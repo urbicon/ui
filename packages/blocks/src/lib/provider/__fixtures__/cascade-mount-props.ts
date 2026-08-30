@@ -102,6 +102,7 @@ export const MOUNT_FIXTURES: Record<string, MountFixture> = {
   },
 
   // ── renders nothing until it is open ──────────────────────────────────
+  ConfirmDialog: { props: { open: true, title: 'Delete?' } },
   Dialog: { props: { open: true } },
   Drawer: { props: { open: true } },
 

@@ -27,9 +27,7 @@ export const a2uiUrbiconVariants = tv({
     /** A form field's error message line (shown under a field when `error` is non-empty). */
     fieldError: 'mt-1 text-xs text-danger-text',
     /** Wrapper around a form field + its error line. */
-    field: 'flex min-w-0 flex-col',
-    /** Wrapper for the EmptyState call-to-action. */
-    emptyStateCta: 'mt-2 flex justify-center'
+    field: 'flex min-w-0 flex-col'
   }
 });
 

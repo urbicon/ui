@@ -6,7 +6,6 @@
   // each one is asked.
   import Calendar from '$lib/components/Calendar/Calendar.svelte';
   import CalendarHeader from '$lib/components/Calendar/CalendarHeader.svelte';
-  import LocaleSwitcher from '$lib/components/LocaleSwitcher/LocaleSwitcher.svelte';
   import DatePicker from '$lib/components/DatePicker/DatePicker.svelte';
   import DateRangePicker from '$lib/components/DatePicker/DateRangePicker.svelte';
   import NumberInput from '$lib/components/NumberInput/NumberInput.svelte';
@@ -20,41 +19,29 @@
   import TabItem from '$lib/primitives/Tab/TabItem.svelte';
   import TabPanel from '$lib/primitives/Tab/TabPanel.svelte';
   import BlocksProvider from '../BlocksProvider.svelte';
-  import type { ComponentDefaults, PresetMap } from '../blocks-context';
+  import type { ComponentDefaults } from '../blocks-context';
 
   let {
     composition,
     orientation = 'horizontal',
     unstyled = false,
     defaults = {},
-    presets = {},
-    partUnstyled = undefined,
-    partPreset = undefined
+    partUnstyled = undefined
   }: {
     composition:
-      | 'tab'
-      | 'stepper'
-      | 'menu'
-      | 'calendar'
-      | 'localeSwitcher'
-      | 'datePicker'
-      | 'dateRangePicker'
-      | 'numberInput';
+      'tab' | 'stepper' | 'menu' | 'calendar' | 'datePicker' | 'dateRangePicker' | 'numberInput';
     orientation?: 'horizontal' | 'vertical';
     unstyled?: boolean;
     defaults?: Record<string, ComponentDefaults>;
-    presets?: PresetMap;
     /** Instance-level `unstyled` on the compound part under measurement. */
     partUnstyled?: boolean | undefined;
-    /** Instance-level `preset` on the compound part under measurement. */
-    partPreset?: string | undefined;
   } = $props();
 
   // Fixed so nothing here depends on today's date.
   const FIXED_DAY = new Date(2026, 0, 15);
 </script>
 
-<BlocksProvider {unstyled} {defaults} {presets}>
+<BlocksProvider {unstyled} {defaults}>
   {#if composition === 'tab'}
     <Tab value="a" {orientation}>
       {#snippet tabs()}
@@ -87,8 +74,6 @@
       {/snippet}
     </Calendar>
     <Card data-control unstyled={false}>control</Card>
-  {:else if composition === 'localeSwitcher'}
-    <LocaleSwitcher preset={partPreset} />
   {:else}
     <!-- The embedded controls: both pickers need a value before their clear
          button renders at all, and `<Button>` is the control that says whether

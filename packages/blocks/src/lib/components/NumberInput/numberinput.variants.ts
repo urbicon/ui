@@ -15,8 +15,8 @@ export const numberInputVariants = tv({
     /** One stepper button (increment / decrement). */
     stepperButton: [
       'text-text-tertiary hover:text-text-primary flex items-center justify-center',
-      'px-0.5 transition-colors disabled:pointer-events-none disabled:opacity-30',
-      'focus-visible:outline-none'
+      'px-0.5 transition-colors focus-visible:outline-none',
+      'disabled:pointer-events-none disabled:opacity-30'
     ]
   }
 });

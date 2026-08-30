@@ -61,6 +61,19 @@ export interface NumberInputProps
    * @default 'none'
    */
   mint?: InputProps['mint'];
+  /**
+   * Apply a named preset registered via `<BlocksProvider presets={{ NumberInput: {...} }}>`.
+   * Resolved against the **`NumberInput`** key, not `Input`: a preset written for
+   * the number field would otherwise style every text field under the provider.
+   * `defaults.Input` still applies — the resolved preset reaches Input as
+   * instance `slotClasses`, so it wins over the provider's input-wide defaults
+   * and loses to `slotClasses` / `class` written on this component.
+   * A preset's `overrides` rules are matched against what you wrote here plus
+   * Input's own variant defaults; an axis Input derives or coerces for itself
+   * (`tier`, `messageType`, `error`, `hasRightIcon`, `iconPosition`) can match
+   * the wrong state — #360.
+   */
+  preset?: string;
   /** Minimum allowed value. Clamped on step / Arrow / blur. */
   min?: number;
   /** Maximum allowed value. Clamped on step / Arrow / blur. */
@@ -84,8 +97,9 @@ export interface NumberInputProps
   /**
    * Per-slot class overrides. Carries NumberInput's own two slots — `stepper`
    * (the button column) and `stepperButton` — on top of every {@link InputProps}
-   * slot, which is forwarded to the inner field unchanged. Both halves also
-   * resolve from `<BlocksProvider>`, each under its own component name.
+   * slot. One record reaches both: the stepper is painted here and the rest
+   * travels on to the inner field. From `<BlocksProvider>`, everything under
+   * `NumberInput` reaches both halves; `defaults.Input` reaches the field only.
    */
   slotClasses?: Partial<
     Record<NumberInputSlots | keyof NonNullable<InputProps['slotClasses']>, string>
