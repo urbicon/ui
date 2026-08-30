@@ -160,8 +160,9 @@ export interface ConfirmDialogProps
    * instance `slotClasses`, so it wins over the provider's dialog-wide defaults
    * and loses to `slotClasses` / `class` written on this component.
    * A preset's `overrides` rules are matched against what you wrote here plus
-   * Dialog's own variant defaults. Dialog derives no axis of its own, so the
-   * mismatch #360 describes for the input wrappers does not arise here.
+   * Dialog's own variant defaults. Dialog's three axes (`size`, `placement`,
+   * `intent`) are all received rather than derived, so no such mismatch exists
+   * today — see #360 for the shape it takes where an axis is derived.
    */
   preset?: string;
 }

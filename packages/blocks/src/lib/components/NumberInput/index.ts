@@ -68,8 +68,9 @@ export interface NumberInputProps
    * instance `slotClasses`, so it wins over the provider's input-wide defaults
    * and loses to `slotClasses` / `class` written on this component.
    * A preset's `overrides` rules are matched against what you wrote here plus
-   * Input's own variant defaults; an axis Input derives for itself (`tier`,
-   * `messageType`, `error`) can match the wrong state — #360.
+   * Input's own variant defaults; an axis Input derives or coerces for itself
+   * (`tier`, `messageType`, `error`, `hasRightIcon`, `iconPosition`) can match
+   * the wrong state — #360.
    */
   preset?: string;
   /** Minimum allowed value. Clamped on step / Arrow / blur. */
