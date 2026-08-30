@@ -196,7 +196,12 @@ export interface PaginationProps
  * ```
  */
 export interface PaginationItemProps
-  extends Omit<HTMLAttributes<HTMLButtonElement>, 'class' | 'type' | 'onclick'> {
+  // `HTMLElement`, not `HTMLButtonElement`: with `href` this renders an `<a>`
+  // and without it a `<button>`, and the rest bag reaches whichever one the
+  // branch made the interactive element. Typing it for the button made the
+  // handlers unassignable to the anchor, which is how the link branch came to
+  // spread the bag onto nothing at all.
+  extends Omit<HTMLAttributes<HTMLElement>, 'class' | 'type' | 'onclick'> {
   /** The page number this item represents. Rendered as default content when no children are provided. */
   page?: number;
   /**

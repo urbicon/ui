@@ -43,6 +43,7 @@
     tabindex={disabled ? -1 : 0}
     aria-disabled={disabled || undefined}
     aria-current={active ? 'page' : undefined}
+    {...restProps}
   >
     <Button {size} {variant} {intent} {tier} {disabled} {loading} {mint} {active} tabindex={-1}>
       {#if children}

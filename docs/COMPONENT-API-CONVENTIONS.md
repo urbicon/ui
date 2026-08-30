@@ -320,7 +320,7 @@ slotClasses?: Partial<Record<XSlots, string>>;
 
 `SlotNames<T>` (in `$lib/utils/variants`) is the companion to `VariantProps<T>` — it reads `keyof ReturnType<T>` off the slotted `tv()` function, so the one source of truth (the `tv({ slots })` config) drives both the runtime classes and the prop type. Consumers get autocomplete on the real slot names and a type error on typos.
 
-No component lacks a `tv()` config to derive from. Three still carry a **hand-maintained literal union**, each for a reason `SlotNames` cannot cover: `Separator` and `Popover` resolve through the **no-slot** `tv()` overload, which returns a string rather than a slot map, so there is nothing to read the names off; and `CalendarHeader` deliberately narrows Calendar's union to the four keys its own element tree carries. `ConfirmDialog` (a pre-configured Dialog) is not one of them — it reuses `DialogSlots` and forwards `unstyled`/`slotClasses`/`preset` verbatim to the inner Dialog, with its presets registered under the `Dialog` key rather than a separate `ConfirmDialog` one.
+No component lacks a `tv()` config to derive from. Three still carry a **hand-maintained literal union**, each for a reason `SlotNames` cannot cover: `Separator` and `Popover` resolve through the **no-slot** `tv()` overload, which returns a string rather than a slot map, so there is nothing to read the names off; and `CalendarHeader` deliberately narrows Calendar's union to the seven keys its own element tree carries. `ConfirmDialog` (a pre-configured Dialog) is not one of them — it reuses `DialogSlots` and forwards `unstyled`/`slotClasses`/`preset` verbatim to the inner Dialog, with its presets registered under the `Dialog` key rather than a separate `ConfirmDialog` one.
 
 When `unstyled` is `false`, `slotClasses` values are merged with the default tv() classes; when `unstyled` is `true`, they replace them entirely. Components resolve the value through `resolveSlotClasses(blocksConfig, 'Name', preset, variantProps, slotClassesProp)`, which composes the full cascade (weakest → strongest):
 
@@ -361,11 +361,12 @@ sit outside the ladder entirely: they are behaviour, not an override surface.
 A second scoping note, for rung 3: a **compound part** is addressed under the
 provider name of the component it renders inside of, never one of its own.
 `defaults.Calendar.slotClasses` reaches `CalendarHeader`'s header, nav and
-title; `defaults.Select` and `presets.Select` reach `LocaleSwitcher`, a
-pass-through wrapper that forwards `unstyled`, `slotClasses` and `preset` to
-the `<Select>` it renders — as `MenuItem` and `CalendarDay` are reached under
-`Menu` and `Calendar`. An entry under the part's own name matches no lookup and
-is silently never read.
+title, the way `MenuItem` and `CalendarDay` are reached under `Menu` and
+`Calendar`. A component that renders *through* another one splits: `NumberInput`
+paints only the stepper, so `defaults.NumberInput.slotClasses.stepperButton`
+reaches those two buttons while the field around them stays `defaults.Input`'s.
+An entry under a name nothing resolves as matches no lookup and is silently
+never read.
 
 The implementation hinge is one type-annotated `variantProps` derived in `ComponentName.svelte` (`const variantProps: XVariants = $derived({ … })`). It feeds both `styles = xVariants(variantProps)` and the `activeProps` argument of `resolveSlotClasses`, so the `tv()` output and the prop-conditional `overrides` always match against the same set of active variants. The annotation is mandatory — without it the string-literal ternaries widen to `string` and silently stop matching the variant keys. A component whose `tv()` carries no axis at all (`DatePicker`, `DateRangePicker` — the root is a positioning context) has nothing to feed the first half; its object is built for `resolveSlotClasses` alone, out of the values it forwards to the components it wraps, so `overrides` still has something to match.
 

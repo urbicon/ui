@@ -7,7 +7,7 @@
   import { Calendar } from '$lib/components/Calendar';
   import type { CalendarSelection, DateRange } from '$lib/components/Calendar';
   import { getBlocksConfig, resolveSlotClasses } from '$lib/provider';
-  import { datePickerVariants } from './datepicker.variants';
+  import { datePickerVariants, type DatePickerSlots } from './datepicker.variants';
   import { resolveIcon } from '$lib/icons';
   import CalendarIconDefault from '$lib/icons/CalendarIcon.svelte';
   import CloseIconDefault from '$lib/icons/CloseIcon.svelte';
@@ -72,6 +72,12 @@
   const slotClasses = $derived(
     resolveSlotClasses(blocksConfig, 'DateRangePicker', preset, variantProps, slotClassesProp)
   );
+  const styles = $derived(unstyled ? undefined : datePickerVariants());
+
+  function slot(name: DatePickerSlots, extra?: string): string {
+    const overrides = [slotClasses?.[name], extra].filter(Boolean).join(' ');
+    return styles?.[name]({ class: overrides }) ?? overrides;
+  }
 
   // --- Locale resolution ---
   // `'auto'` follows the active `<I18nProvider>`, matching CurrencyInput. Reading
@@ -292,14 +298,7 @@
   }
 </script>
 
-<div
-  class={unstyled
-    ? [slotClasses?.base, className].filter(Boolean).join(' ')
-    : datePickerVariants({ class: [slotClasses?.base, className] })}
-  {...restProps}
-  bind:this={triggerEl}
-  onkeydown={handleKeydown}
->
+<div class={slot('base', className)} {...restProps} bind:this={triggerEl} onkeydown={handleKeydown}>
   <Input
     value={inputValue}
     {label}
@@ -334,7 +333,7 @@
         <span class="pointer-events-auto inline-flex items-center gap-0.5">
           <button
             type="button"
-            class="text-text-tertiary hover:text-text-primary hover:bg-surface-hover focus-visible:ring-primary/50 rounded-modify inline-flex cursor-pointer items-center justify-center p-0.5 transition-colors duration-[var(--blocks-duration-fast)] focus-visible:ring-2 focus-visible:outline-none"
+            class={slot('iconButton')}
             onclick={handleClear}
             {disabled}
             aria-label={bt('accessibility.clearInput')}
@@ -343,7 +342,7 @@
           </button>
           <button
             type="button"
-            class="text-text-tertiary hover:text-text-primary hover:bg-surface-hover focus-visible:ring-primary/50 rounded-modify inline-flex cursor-pointer items-center justify-center p-0.5 transition-colors duration-[var(--blocks-duration-fast)] focus-visible:ring-2 focus-visible:outline-none"
+            class={slot('iconButton')}
             onclick={handleIconClick}
             {disabled}
             aria-label={bt('datepicker.openCalendar')}

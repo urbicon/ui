@@ -7,6 +7,10 @@
   import Calendar from '$lib/components/Calendar/Calendar.svelte';
   import CalendarHeader from '$lib/components/Calendar/CalendarHeader.svelte';
   import LocaleSwitcher from '$lib/components/LocaleSwitcher/LocaleSwitcher.svelte';
+  import DatePicker from '$lib/components/DatePicker/DatePicker.svelte';
+  import DateRangePicker from '$lib/components/DatePicker/DateRangePicker.svelte';
+  import NumberInput from '$lib/components/NumberInput/NumberInput.svelte';
+  import Button from '$lib/primitives/Button/Button.svelte';
   import Card from '$lib/primitives/Card/Card.svelte';
   import Menu from '$lib/primitives/Menu/Menu.svelte';
   import MenuSection from '$lib/primitives/Menu/MenuSection.svelte';
@@ -27,7 +31,15 @@
     partUnstyled = undefined,
     partPreset = undefined
   }: {
-    composition: 'tab' | 'stepper' | 'menu' | 'calendar' | 'localeSwitcher';
+    composition:
+      | 'tab'
+      | 'stepper'
+      | 'menu'
+      | 'calendar'
+      | 'localeSwitcher'
+      | 'datePicker'
+      | 'dateRangePicker'
+      | 'numberInput';
     orientation?: 'horizontal' | 'vertical';
     unstyled?: boolean;
     defaults?: Record<string, ComponentDefaults>;
@@ -37,6 +49,9 @@
     /** Instance-level `preset` on the compound part under measurement. */
     partPreset?: string | undefined;
   } = $props();
+
+  // Fixed so nothing here depends on today's date.
+  const FIXED_DAY = new Date(2026, 0, 15);
 </script>
 
 <BlocksProvider {unstyled} {defaults} {presets}>
@@ -64,11 +79,27 @@
   {:else if composition === 'calendar'}
     <Calendar>
       {#snippet header()}
-        <CalendarHeader unstyled={partUnstyled} />
+        <!-- `display: contents` so the header's own outermost element stays
+             findable by selector rather than by position in Calendar's tree. -->
+        <span data-header-scope style="display: contents">
+          <CalendarHeader unstyled={partUnstyled} />
+        </span>
       {/snippet}
     </Calendar>
     <Card data-control unstyled={false}>control</Card>
   {:else if composition === 'localeSwitcher'}
     <LocaleSwitcher preset={partPreset} />
+  {:else}
+    <!-- The embedded controls: both pickers need a value before their clear
+         button renders at all, and `<Button>` is the control that says whether
+         the provider reached this render. -->
+    {#if composition === 'datePicker'}
+      <DatePicker value={FIXED_DAY} unstyled={partUnstyled} />
+    {:else if composition === 'dateRangePicker'}
+      <DateRangePicker value={{ start: FIXED_DAY, end: FIXED_DAY }} unstyled={partUnstyled} />
+    {:else if composition === 'numberInput'}
+      <NumberInput value={3} unstyled={partUnstyled} />
+    {/if}
+    <Button data-control unstyled={partUnstyled}>control</Button>
   {/if}
 </BlocksProvider>

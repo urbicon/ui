@@ -1,7 +1,9 @@
 <script lang="ts">
   import { Input } from '$lib/primitives/Input';
+  import { getBlocksConfig, resolveSlotClasses } from '$lib/provider';
   import { resolveIcon } from '$lib/icons';
   import ChevronDownIconDefault from '$lib/icons/ChevronDownIcon.svelte';
+  import { numberInputVariants, type NumberInputSlots } from './numberinput.variants';
   import type { NumberInputProps } from './index';
 
   const ChevronIcon = resolveIcon('chevronDown', ChevronDownIconDefault);
@@ -18,8 +20,30 @@
     name,
     onValueChange,
     rightIcon: userRightIcon,
+    // Pulled out of the forwarded bag because the stepper is NumberInput's own
+    // markup: the three are used here AND handed on to Input, which resolves
+    // them again under its own provider name.
+    unstyled: unstyledProp = false,
+    slotClasses: slotClassesProp = {},
+    preset,
     ...inputProps
   }: NumberInputProps = $props();
+
+  const blocksConfig = getBlocksConfig();
+  const unstyled = $derived(unstyledProp || blocksConfig?.unstyled || false);
+  // `numberInputVariants` has no axes — the stepper looks the same in every
+  // state the config knows — so this object feeds `resolveSlotClasses` alone.
+  // Its keys are what an `overrides` rule on the stepper can meaningfully name.
+  const variantProps = $derived({ disabled, readonly });
+  const slotClasses = $derived(
+    resolveSlotClasses(blocksConfig, 'NumberInput', preset, variantProps, slotClassesProp)
+  );
+  const styles = $derived(unstyled ? undefined : numberInputVariants());
+
+  function slot(name: NumberInputSlots): string {
+    const overrides = slotClasses?.[name] ?? '';
+    return styles?.[name]({ class: overrides }) ?? overrides;
+  }
 
   // Tracks focus so the wheel handler only steers a focused field (scrolling the
   // page over an unfocused one must not change it). Set by the input's focus/blur.
@@ -147,10 +171,10 @@
   <!-- Re-enable pointer events: Input renders a right-side snippet inside a
        `pointer-events-none` decoration container (input.variants.ts), so without
        this the stepper buttons would be dead to mouse clicks in a real browser. -->
-  <span class="pointer-events-auto -my-1 flex flex-col justify-center">
+  <span class={slot('stepper')}>
     <button
       type="button"
-      class="text-text-tertiary hover:text-text-primary flex items-center justify-center px-0.5 transition-colors disabled:pointer-events-none disabled:opacity-30 focus-visible:outline-none"
+      class={slot('stepperButton')}
       tabindex={-1}
       aria-hidden="true"
       disabled={disabled || readonly || atMax}
@@ -161,7 +185,7 @@
     </button>
     <button
       type="button"
-      class="text-text-tertiary hover:text-text-primary flex items-center justify-center px-0.5 transition-colors disabled:pointer-events-none disabled:opacity-30 focus-visible:outline-none"
+      class={slot('stepperButton')}
       tabindex={-1}
       aria-hidden="true"
       disabled={disabled || readonly || atMin}
@@ -175,6 +199,9 @@
 
 <Input
   {...inputProps}
+  unstyled={unstyledProp}
+  slotClasses={slotClassesProp}
+  {preset}
   {disabled}
   {readonly}
   type="text"

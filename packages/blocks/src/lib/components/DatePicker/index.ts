@@ -3,6 +3,7 @@ import type { MintProp } from '$lib/mint';
 import type { MonthIndex, WeekdayIndex } from '$lib/utils/date';
 import type { DateRange } from '../Calendar/calendar.types';
 import type { DateFormatOptions } from './datepicker.engine';
+import type { DatePickerSlots } from './datepicker.variants';
 
 // ─── DatePickerProps ─────────────────────────────────────────
 
@@ -173,11 +174,12 @@ export interface DatePickerProps extends Omit<HTMLAttributes<HTMLDivElement>, 'c
   /** Strip the wrapper's default tv() classes; `slotClasses.base` and `class` then stand alone. */
   unstyled?: boolean;
   /**
-   * Per-slot class overrides. One slot, `base` — the positioning wrapper the
-   * field and the popover anchor sit in. The field itself is an `Input` and the
+   * Per-slot class overrides. `base` is the positioning wrapper the field and
+   * the popover anchor sit in, `iconButton` the clear / open-calendar buttons
+   * in the field's right-icon area. The field itself is an `Input` and the
    * overlay a `Calendar`; restyle those under their own names.
    */
-  slotClasses?: Partial<Record<'base', string>>;
+  slotClasses?: Partial<Record<DatePickerSlots, string>>;
   /** Apply a named preset registered on `<BlocksProvider>`. */
   preset?: string;
   /** Default month shown when the picker opens without a value. `0`–`11`. */
@@ -310,11 +312,12 @@ export interface DateRangePickerProps extends Omit<HTMLAttributes<HTMLDivElement
   /** Strip the wrapper's default tv() classes; `slotClasses.base` and `class` then stand alone. */
   unstyled?: boolean;
   /**
-   * Per-slot class overrides. One slot, `base` — the positioning wrapper the
-   * field and the popover anchor sit in. The field itself is an `Input` and the
+   * Per-slot class overrides. `base` is the positioning wrapper the field and
+   * the popover anchor sit in, `iconButton` the clear / open-calendar buttons
+   * in the field's right-icon area. The field itself is an `Input` and the
    * overlay a `Calendar`; restyle those under their own names.
    */
-  slotClasses?: Partial<Record<'base', string>>;
+  slotClasses?: Partial<Record<DatePickerSlots, string>>;
   /** Apply a named preset registered on `<BlocksProvider>`. */
   preset?: string;
   /** Default month shown when the picker opens without a value. `0`–`11`. */

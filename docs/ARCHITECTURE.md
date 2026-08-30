@@ -312,12 +312,13 @@ Every component family resolves through the shared
 its active `variantProps` as the match input — so `overrides` applies library-wide.
 
 The name is not always the component's own. A **compound part** — `CalendarHeader`,
-`LocaleSwitcher`, `MenuItem`, `CalendarDay` — renders only inside (or through) another
-component and is addressed under *that* component's name: `defaults.Calendar.slotClasses`
-reaches CalendarHeader's header, nav and title, and `defaults.Select` reaches
-LocaleSwitcher, which forwards `unstyled` / `slotClasses` / `preset` verbatim to the
-`<Select>` it wraps. An entry written under the part's own name matches no lookup and is
-never read, with nothing reported — the same silence a misspelt component name buys.
+`MenuItem`, `CalendarDay` — renders only inside another component and is addressed under
+*that* component's name: `defaults.Calendar.slotClasses` reaches CalendarHeader's header,
+nav and title. A component that renders *through* another one splits between the two
+names: `NumberInput` paints the stepper and nothing else, so its two slots answer to
+`defaults.NumberInput` while the field they sit in answers to `defaults.Input`. An entry
+written under a name nothing resolves as matches no lookup and is never read, with nothing
+reported — the same silence a misspelt component name buys.
 
 Key files: `provider/BlocksProvider.svelte`, `provider/blocks-context.ts`,
 `utils/variants.ts`. The consumer-facing override ladder ("reach for the lowest rung"):

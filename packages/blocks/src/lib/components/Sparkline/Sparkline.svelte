@@ -1,7 +1,11 @@
 <script lang="ts">
   import { getBlocksConfig, resolveSlotClasses } from '$lib/provider';
   import type { SparklineProps } from './index';
-  import { sparklineVariants, type SparklineSlots } from './sparkline.variants';
+  import {
+    sparklineVariants,
+    type SparklineSlots,
+    type SparklineVariants
+  } from './sparkline.variants';
   import { linearScale, linePath, areaPath, extent } from '$lib/internal/charts/utils';
   import type { ChartPoint } from '$lib/internal/charts/utils';
 
@@ -24,7 +28,7 @@
 
   const blocksConfig = getBlocksConfig();
   const unstyled = $derived(unstyledProp || blocksConfig?.unstyled || false);
-  const variantProps = $derived({ fluid });
+  const variantProps: SparklineVariants = $derived({ fluid });
   const slotClasses = $derived(
     resolveSlotClasses(blocksConfig, 'Sparkline', preset, variantProps, slotClassesProp)
   );

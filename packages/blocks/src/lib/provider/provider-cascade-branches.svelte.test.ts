@@ -147,8 +147,8 @@ describe('MenuSection renders the same `section` slot as its sibling call form',
 });
 
 describe('CalendarHeader folds `unstyled` the way the other 60 components do', () => {
-  /** The header bar; `[0]` is Calendar's own root, `[1]` its sr-only live region. */
-  const header = (target: HTMLElement) => classesOf(target, 'div', 2);
+  /** CalendarHeader's own outermost element, inside the fixture's scope marker. */
+  const header = (target: HTMLElement) => classesOf(target, '[data-header-scope] > div');
 
   it('stays stripped under a provider `unstyled` when the instance passes false', () => {
     const stripped = withRender(
@@ -218,4 +218,83 @@ describe('compound parts are addressed under the parent’s provider name', () =
     );
     expect(viaPreset?.has('probe-preset')).toBe(true);
   });
+});
+
+describe('embedded controls sit on the ladder, not in a literal class string', () => {
+  // #339's fourth point. A class string written straight onto a `<button>` is
+  // unreachable by construction: `unstyled` cannot drop it and a colliding
+  // consumer class cannot beat it, because nothing ever passes it through the
+  // fold. Measured before the repair: 14 tokens on each picker button and 10 on
+  // each stepper, byte-identical across baseline, provider `unstyled` and
+  // instance `unstyled`.
+  //
+  // The sweep cannot see this either — it judges one element per component, and
+  // these six sit deep inside an `<Input>`'s right-icon area.
+  //
+  // None of the six is a `CoreIconButton` (none of the three files imports it),
+  // so the plumbing exception of COMPONENT-API-CONVENTIONS.md does not apply:
+  // every token here, look and layout alike, belongs on the ladder.
+  const CASES = [
+    ['datePicker', 'DatePicker', 'iconButton', 'rounded-modify'],
+    ['dateRangePicker', 'DateRangePicker', 'iconButton', 'rounded-modify'],
+    ['numberInput', 'NumberInput', 'stepperButton', 'transition-colors']
+  ] as const;
+
+  /** The component's own buttons — the trailing one is the control `<Button>`. */
+  function embedded(target: HTMLElement): HTMLElement[] {
+    const all = [...target.querySelectorAll('button')];
+    return all.filter((button) => !button.hasAttribute('data-control'));
+  }
+
+  const control = (target: HTMLElement) => classesOf(target, '[data-control]');
+
+  it.each(CASES)(
+    '%s: provider `unstyled` empties them',
+    (composition, _name, _slot, libraryClass) => {
+      const read = (props: Record<string, unknown>) =>
+        withRender({ composition, ...props }, (t) => ({
+          buttons: embedded(t).map((b) => new Set(b.classList)),
+          control: control(t)?.size ?? 0
+        }));
+
+      const base = read({});
+      const stripped = read({ unstyled: true });
+
+      expect(base.buttons.length).toBe(2);
+      for (const classes of base.buttons) expect(classes.has(libraryClass)).toBe(true);
+      expect(stripped.buttons.map((c) => c.size)).toEqual([0, 0]);
+      // The control says the provider reached this render at all — without it,
+      // "no classes" and "nothing rendered" read the same. It keeps a couple of
+      // structural tokens under `unstyled`, so the assertion is that it shrank.
+      expect(stripped.control).toBeLessThan(base.control);
+    }
+  );
+
+  it.each(CASES)('%s: the instance prop empties them too', (composition) => {
+    const own = withRender({ composition, partUnstyled: true }, (t) =>
+      embedded(t).map((b) => b.classList.length)
+    );
+    expect(own).toEqual([0, 0]);
+  });
+
+  it.each(CASES)(
+    '%s: a provider `slotClasses` entry reaches them',
+    (composition, name, slot, libraryClass) => {
+      const { probed, controlClasses } = withRender(
+        { composition, defaults: { [name]: { slotClasses: { [slot]: 'probe-control' } } } },
+        (t) => ({
+          probed: embedded(t).map((b) => new Set(b.classList)),
+          controlClasses: control(t)?.size
+        })
+      );
+      expect(probed.length).toBe(2);
+      for (const classes of probed) {
+        expect(classes.has('probe-control')).toBe(true);
+        // Beside the library look, not instead of it.
+        expect(classes.has(libraryClass)).toBe(true);
+      }
+      // The control is untouched by an entry written under another name.
+      expect(controlClasses).toBeGreaterThan(0);
+    }
+  );
 });

@@ -251,6 +251,8 @@ const ROOT_IS_A_WRAPPER: Record<string, string> = {
   // that owns it is that component's, addressable under *its* provider name.
   CitationChip: 'renders through `<Popover>`, whose wrapper is the outer element',
   CommandPalette: 'renders through `<Dialog>`, whose `<dialog>` is the outer element',
+  NumberInput:
+    'renders through `<Input>`, whose wrapper is the outer element; its own two slots are the stepper',
   ReasoningDisclosure: 'renders through `<Collapsible>`, whose root is the outer element',
   ToolCallCard: 'renders through `<Collapsible>`, whose root is the outer element'
 };
@@ -262,15 +264,6 @@ const ROOT_IS_A_WRAPPER: Record<string, string> = {
  * Stale entries are errors.
  */
 const NOT_MEASURABLE: Record<string, string> = {};
-
-/**
- * Lower bound on the components actually measured. A broken glob or a renamed
- * barrel export would otherwise report a green sweep over an empty set — the
- * failure mode `variants-lint.ts` guards with its own `loaded.length` check.
- * Set just under the current 84 so a handful of legitimate removals pass and a
- * discovery failure does not.
- */
-const MIN_MEASURED = 80;
 
 const recorder = vi.hoisted(() => ({
   calls: [] as { component: string; activeProps: Record<string, unknown> }[]
@@ -759,19 +752,37 @@ function measure(entry: CascadeComponent, withFixture = true): Measurement {
 
 // A component that declares `unstyled` has claimed the styling contract, and
 // that claim — not a hand-written roster — is what puts it in the sweep.
-const components = (await exportedComponents()).filter((entry) =>
-  entry.declaredProps.includes('unstyled')
-);
+const exported = await exportedComponents();
+const components = exported.filter((entry) => entry.declaredProps.includes('unstyled'));
 const measurements = components.map((entry) => measure(entry));
 
 describe('BlocksProvider cascade reaches the markup', () => {
-  it('measures enough components to be worth reading', () => {
-    const measured = measurements.filter((m) => !m.mountError);
+  it('measures every component that resolves through the provider', () => {
+    // Membership hangs on one `$props()` entry, and losing it is silent: the
+    // component leaves `components` and takes its six route assertions with it
+    // — measured, dropping `unstyled` from the two pickers took this file from
+    // 6416 to 6404 tests and failed nothing.
+    //
+    // The second, independent claim to the contract is the
+    // `resolveSlotClasses(config, 'Name', …)` call, which the registry already
+    // reads off the source for the provider name. A component that makes that
+    // call has to answer for it here. This replaces the floor under a count
+    // that used to stand in for the check: a number cannot tell a component
+    // that left the roster from one that was never in it, and it goes stale on
+    // every admission — the same reason #350 replaced `MIN_COLLISIONS` with a
+    // condition. "The sweep found nothing at all" is covered instead by the
+    // stale-entry test below: every hand-written roster here is keyed by
+    // component name, so a discovery failure turns all of them unknown at once
+    // — measured, pointing the component glob at a directory that does not
+    // exist fails that test with 62 names.
+    const unmeasured = exported
+      .filter((entry) => entry.providerName && !entry.declaredProps.includes('unstyled'))
+      .map((entry) => `${entry.exportName} (resolves as \`${entry.providerName}\`)`);
     expect(
-      measured.length,
-      `only ${measured.length} of ${measurements.length} components were measured — a sweep ` +
-        'this small means a broken registry, not a healthy library'
-    ).toBeGreaterThanOrEqual(MIN_MEASURED);
+      unmeasured,
+      'these components resolve their slot classes through the provider but declare no ' +
+        `\`unstyled\` prop, so the sweep never measures them:\n  ${unmeasured.join('\n  ')}`
+    ).toEqual([]);
   });
 
   it('leaves nothing route A reaches unprobed by route D', () => {
@@ -782,8 +793,8 @@ describe('BlocksProvider cascade reaches the markup', () => {
     //
     // Deliberately a condition, not a floor under a count: a count cannot tell
     // the two doors apart, so recording one more #339 gap — a normal, wanted
-    // act in this repo — would read as the candidate list rotting. `MIN_MEASURED`
-    // already covers "the sweep found nothing at all".
+    // act in this repo — would read as the candidate list rotting. "The sweep found
+    // nothing at all" is the stale-entry test's job, not this one's.
     const blind = measurements
       .filter((m) => m.routes.A.ok && m.routes.D.measured === false)
       .map((m) => `${m.entry.exportName}: ${m.routes.D.detail}`);
