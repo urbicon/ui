@@ -213,16 +213,12 @@ const KNOWN_GAPS: Record<string, Partial<Record<Route, string>>> = {
   // #339 — no provider name of their own. Two kinds, and the difference is
   // what the fix has to be, so the entries state which one applies.
   //
-  // Addressable under another component's name (measured): a rule written
-  // under the parent or the composed inner component does arrive. Giving these
-  // a provider name of their own would be the wrong repair.
+  // Addressable under its parent's name (measured): a rule written under
+  // `Calendar` does arrive at the header, so a provider name of its own would
+  // be the wrong repair here.
   CalendarHeader: {
     A: '#339 addressable only under `Calendar` — measured: `defaults.Calendar.slotClasses` reaches its header, nav and title elements',
     B: '#339 addressable only under `Calendar`, whose condition object it does not contribute to'
-  },
-  LocaleSwitcher: {
-    A: '#339 addressable only under `Select` — measured: `defaults.Select.slotClasses.base` reaches its root; it renders nothing of its own',
-    B: '#339 addressable only under `Select`, whose condition object it does not contribute to'
   },
   // Genuinely outside the cascade: no provider name anywhere in the render,
   // and `getBlocksConfig()` is never read, so `unstyled` does not arrive either.

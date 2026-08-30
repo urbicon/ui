@@ -1,5 +1,5 @@
 import { createOptionalContext } from '$lib/utils/optional-context';
-import { matchesCompound, resolveClassChain } from '$lib/utils/variants';
+import { matchesCompound, resolveClassChain, type TVConfig } from '$lib/utils/variants';
 
 /**
  * A prop-conditional style rule. Its non-`class` keys are matched against a
@@ -102,6 +102,48 @@ export function resolvePresetSlotClasses(
   }
 
   return preset.slotClasses;
+}
+
+/**
+ * The `activeProps` a **wrapper** component hands {@link resolveSlotClasses}.
+ *
+ * A wrapper (NumberInput over Input, ConfirmDialog over Dialog) resolves its
+ * own preset before the component it wraps ever runs, so it sees only the props
+ * its caller wrote. Every axis the caller left out is defaulted *inside* the
+ * inner component — which is where an `overrides` rule would otherwise have
+ * been matched. Handing the written props through unchanged makes the rule
+ * shape `packages/blocks/README.md` documents (`{ variant: 'outlined' }`) match
+ * nothing at all under a wrapper's name, because the wrapper carries
+ * `variant: undefined`.
+ *
+ * Both halves are read off the inner component's own `tv()` config rather than
+ * restated here: `variants` says which keys are axes at all — a rule may not
+ * key on `label`, which the inner component's condition object never carries
+ * either — and `defaultVariants` supplies the value for an axis the caller left
+ * out. A default that moves there moves here.
+ *
+ * `false` is carried as `undefined`, the way the primitives carry a boolean
+ * axis (`disabled: disabled || undefined`, see {@link ConditionalOverride}), so
+ * `{ disabled: false }` fires under neither name rather than under one of them.
+ *
+ * **What it cannot supply**, both measured against the inner components'
+ * condition objects: an axis the inner component *derives* rather than receives
+ * carries its default here, not the derived value (`Input.tier` from the tier
+ * context, `hasLeftIcon`, `messageType`); and an axis the config declares but
+ * the inner component passes per slot-call rather than per component fires here
+ * and not there — `iconPosition` on Input, `selected` on Select, two of 12 and
+ * of 9 axes, none of them on Dialog.
+ */
+export function wrapperActiveProps(
+  innerConfig: TVConfig,
+  written: Record<string, unknown>
+): Record<string, unknown> {
+  const result: Record<string, unknown> = {};
+  for (const axis of Object.keys(innerConfig.variants ?? {})) {
+    const value = written[axis] ?? innerConfig.defaultVariants?.[axis];
+    result[axis] = value === false ? undefined : value;
+  }
+  return result;
 }
 
 /**

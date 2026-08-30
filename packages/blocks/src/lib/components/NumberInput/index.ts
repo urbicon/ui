@@ -60,6 +60,15 @@ export interface NumberInputProps
    * @default 'none'
    */
   mint?: InputProps['mint'];
+  /**
+   * Apply a named preset registered via `<BlocksProvider presets={{ NumberInput: {...} }}>`.
+   * Resolved against the **`NumberInput`** key, not `Input`: a preset written for
+   * the number field would otherwise style every text field under the provider.
+   * `defaults.Input` still applies — the resolved preset reaches Input as
+   * instance `slotClasses`, so it wins over the provider's input-wide defaults
+   * and loses to `slotClasses` / `class` written on this component.
+   */
+  preset?: string;
   /** Minimum allowed value. Clamped on step / Arrow / blur. */
   min?: number;
   /** Maximum allowed value. Clamped on step / Arrow / blur. */

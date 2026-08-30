@@ -51,6 +51,16 @@ export interface LocaleSwitcherProps
    */
   mint?: SelectSingleProps<string>['mint'];
 
+  /**
+   * Apply a named preset registered via `<BlocksProvider presets={{ LocaleSwitcher: {...} }}>`.
+   * Resolved against the **`LocaleSwitcher`** key, not `Select`: a preset written
+   * for the locale picker would otherwise style every select under the provider.
+   * `defaults.Select` still applies — the resolved preset reaches Select as
+   * instance `slotClasses`, so it wins over the provider's select-wide defaults
+   * and loses to `slotClasses` / `class` written on this component.
+   */
+  preset?: string;
+
   /** Restrict the displayed locales. Defaults to all locales registered in i18n. */
   locales?: Locale[];
 
