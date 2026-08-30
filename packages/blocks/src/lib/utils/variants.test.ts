@@ -1216,6 +1216,142 @@ describe('tv – tailwind conflict resolver', () => {
       expect(tokens).toContain('text-sm');
     });
   });
+
+  // Families that had no bucket until the compiler was asked. Each pair is one
+  // the resolver used to leave both alive, so the compiled stylesheet's emit
+  // order decided which of the two rendered.
+  describe('families the compiler named and the table was missing', () => {
+    const overrides: [string, string, string][] = [
+      ['fill-primary', 'fill-danger', 'SVG paint — Sankey nodes, the Spinner arc'],
+      ['stroke-current', 'stroke-danger', 'SVG stroke colour'],
+      ['stroke-2', 'stroke-[2px]', 'a stroke width in the unit spelling'],
+      ['stroke-[1.5]', 'stroke-(length:--w)', 'a stroke width through a custom property'],
+      ['box-border', 'box-content', 'box-sizing'],
+      ['box-decoration-clone', 'box-decoration-slice', 'box-decoration-break'],
+      ['list-disc', 'list-none', 'list-style-type'],
+      ['overscroll-contain', 'overscroll-auto', 'overscroll-behavior'],
+      ['scheme-light', 'scheme-dark', 'color-scheme'],
+      ['scroll-pl-10', 'scroll-pl-0', "Calendar's time-grid scroll gutter"],
+      ['snap-x', 'snap-none', 'scroll-snap-type'],
+      ['sr-only', 'not-sr-only', 'the visually-hidden pair'],
+      ['tabular-nums', 'proportional-nums', 'the numeric-spacing sub-axis'],
+      ['touch-none', 'touch-auto', 'touch-action'],
+      ['@container', '@container-normal', 'container-type'],
+      ['blur-sm', 'blur-[2px]', 'an arbitrary filter value'],
+      ['backdrop-blur-sm', 'backdrop-blur-[2px]', 'the same, on the backdrop'],
+      ['grayscale', 'grayscale-[30%]', 'an arbitrary filter value'],
+      ['[-ms-overflow-style:none]', '[-ms-overflow-style:auto]', 'a vendor-prefixed property'],
+      ["before:content-['']", "before:content-['x']", 'the pseudo-element content']
+    ];
+    for (const [libraryClass, consumerClass, why] of overrides) {
+      it(`a consumer ${consumerClass} replaces ${libraryClass} (${why})`, () => {
+        const tokens = tv({ slots: { base: libraryClass } })()
+          .base({ class: consumerClass })
+          .split(/\s+/);
+        expect(tokens).not.toContain(libraryClass);
+        expect(tokens).toContain(consumerClass);
+      });
+    }
+
+    it('keeps classes that compose rather than replace', () => {
+      // Each pair writes a DIFFERENT property (measured): the shorthand and its
+      // axis, the snap type and its strictness, two numeric sub-axes, the
+      // touch-action keyword and a pan variable, the SVG paint and its width,
+      // an alignment and a pseudo-element's content. Bucketing them together
+      // would make a composition strip itself.
+      const compositions: [string, string][] = [
+        ['overscroll-contain', 'overscroll-x-auto'],
+        ['snap-x', 'snap-mandatory'],
+        ['tabular-nums', 'ordinal'],
+        ['touch-none', 'touch-pan-x'],
+        // `stroke-current` is live on Progress's circular track and indicator
+        // and on the table's loading spinner. An SVG's initial `stroke` is
+        // `none`, so reading a width as a paint does not shift the mark — it
+        // deletes it.
+        ['stroke-current', 'stroke-[3px]'],
+        ['stroke-primary', 'stroke-[length:2px]'],
+        // Tailwind 4.1 safe alignment. `content-center-safe` is align-content;
+        // a value-exact list did not know the suffix and dropped it into the
+        // pseudo-element `content` bucket, where each stripped the other.
+        ['content-center-safe', "content-['×']"],
+        ["content-['×']", 'content-end-safe']
+      ];
+      for (const [a, b] of compositions) {
+        const tokens = tv({ slots: { base: a } })()
+          .base({ class: b })
+          .split(/\s+/);
+        expect(tokens).toContain(a);
+        expect(tokens).toContain(b);
+      }
+    });
+
+    it('flex-shrink-0 and shrink-0 are one bucket, not two spellings of nothing', () => {
+      // Tailwind 4 compiles both to the same declaration, so a slot writing one
+      // and an override writing the other must resolve.
+      const tokens = tv({ slots: { base: 'flex-shrink-0' } })()
+        .base({ class: 'shrink' })
+        .split(/\s+/);
+      expect(tokens).not.toContain('flex-shrink-0');
+      expect(tokens).toContain('shrink');
+    });
+
+    it('scale-z-* refines scale-* instead of replacing it', () => {
+      // `scale-110` sets all three factor variables, `scale-z-150` only the z
+      // one — reading them as one bucket dropped the x/y scaling back to 1.
+      const refine = tv({ slots: { base: 'scale-110' } })()
+        .base({ class: 'scale-z-150' })
+        .split(/\s+/);
+      expect(refine).toContain('scale-110');
+      expect(refine).toContain('scale-z-150');
+
+      // The other direction still replaces: `scale: x y` sets z implicitly.
+      const replace = tv({ slots: { base: 'scale-z-150' } })()
+        .base({ class: 'scale-110' })
+        .split(/\s+/);
+      expect(replace).not.toContain('scale-z-150');
+      expect(replace).toContain('scale-110');
+    });
+
+    it('skew-* without an axis strips the axis forms, as translate-* does', () => {
+      const tokens = tv({ slots: { base: 'skew-x-3 skew-y-3' } })()
+        .base({ class: 'skew-6' })
+        .split(/\s+/);
+      expect(tokens).not.toContain('skew-x-3');
+      expect(tokens).not.toContain('skew-y-3');
+      expect(tokens).toContain('skew-6');
+    });
+  });
+
+  describe('the inline shorthands reach both spellings of their axis', () => {
+    // `px-*` writes `padding-inline`, the shorthand of the two properties
+    // `ps-*`/`pe-*` write — so a consumer's px override must strip them, and
+    // did not while the table listed only the physical `pr`/`pl`.
+    const pairs: [string, string[], string][] = [
+      ['px-8', ['ps-4', 'pe-4', 'pl-4', 'pr-4'], 'padding-inline'],
+      ['mx-8', ['ms-4', 'me-4', 'ml-4', 'mr-4'], 'margin-inline'],
+      ['inset-x-0', ['start-4', 'end-4', 'left-4', 'right-4'], 'inset-inline'],
+      [
+        'border-x-4',
+        ['border-s-2', 'border-e-2', 'border-l-2', 'border-r-2'],
+        'border-inline-width'
+      ],
+      [
+        'border-x-danger',
+        ['border-s-primary', 'border-e-primary', 'border-l-primary', 'border-r-primary'],
+        'border-inline-color'
+      ],
+      ['scroll-p-0', ['scroll-ps-4', 'scroll-pe-4', 'scroll-pl-4', 'scroll-pr-4'], 'scroll-padding']
+    ];
+    for (const [shorthand, longhands, property] of pairs) {
+      it(`${shorthand} strips every ${property} longhand`, () => {
+        const tokens = tv({ slots: { base: longhands.join(' ') } })()
+          .base({ class: shorthand })
+          .split(/\s+/);
+        for (const longhand of longhands) expect(tokens).not.toContain(longhand);
+        expect(tokens).toContain(shorthand);
+      });
+    }
+  });
 });
 
 // ─── tv: documented edge-cases ──────────────────────────────────────────────

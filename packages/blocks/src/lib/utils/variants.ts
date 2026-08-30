@@ -182,6 +182,26 @@ const BUCKET_PATTERNS: Array<[RegExp, BucketResolver]> = [
   [/^overflow-x-(auto|hidden|clip|visible|scroll)$/, 'overflow-x'],
   [/^overflow-y-(auto|hidden|clip|visible|scroll)$/, 'overflow-y'],
   [/^pointer-events-(auto|none)$/, 'pointer-events'],
+  // Two properties under one prefix, so `box-` is never a catch-all here:
+  // `box-border`/`box-content` are box-sizing, `box-decoration-*` is
+  // box-decoration-break. Both members of that second pair write the identical
+  // property set (measured), so they replace each other and it gets a bucket
+  // like any other family.
+  [/^box-(border|content)$/, 'box-sizing'],
+  [/^box-decoration-/, 'box-decoration-break'],
+  [/^overscroll-x-/, 'overscroll-x'],
+  [/^overscroll-y-/, 'overscroll-y'],
+  [/^overscroll-/, 'overscroll'],
+  // `touch-pan-*` / `touch-pinch-zoom` are deliberately absent: each writes its
+  // own `--tw-pan-*` variable and they COMPOSE into one touch-action. Bucketing
+  // them with the keywords would make `touch-pan-x touch-pan-y` strip itself.
+  [/^touch-(auto|none|manipulation)$/, 'touch-action'],
+  [/^scheme-/, 'color-scheme'],
+  [/^(sr-only|not-sr-only)$/, 'sr-only'],
+  // The class form of a container context (`@container`, `@container/side`,
+  // `@container-normal`), not the `@sm:` variant prefix — that is split off as
+  // a modifier before any pattern is tried.
+  [/^@container(-|\/|$)/, 'container-type'],
   [/^select-(none|text|all|auto)$/, 'user-select'],
   [/^resize(-(none|y|x))?$/, 'resize'],
 
@@ -190,16 +210,29 @@ const BUCKET_PATTERNS: Array<[RegExp, BucketResolver]> = [
   [/^flex-(wrap|nowrap|wrap-reverse)$/, 'flex-wrap'],
   // v4 accepts any integer (`flex-2`) and arbitrary values (`flex-[2_2_0%]`).
   [/^flex-(\d+|auto|initial|none|\[[^\]]+\])$/, 'flex'],
-  [/^grow(-\d+|-\[.+\])?$/, 'flex-grow'],
-  [/^shrink(-\d+|-\[.+\])?$/, 'flex-shrink'],
+  // Tailwind 4 still compiles the v3 spellings `flex-grow-*` / `flex-shrink-*`
+  // to the same declaration as `grow-*` / `shrink-*`. A library slot writing one
+  // spelling and a consumer overriding in the other must resolve, so the alias
+  // shares the bucket rather than opening a second one.
+  [/^(?:flex-)?grow(-\d+|-\[.+\])?$/, 'flex-grow'],
+  [/^(?:flex-)?shrink(-\d+|-\[.+\])?$/, 'flex-shrink'],
   [/^basis-/, 'flex-basis'],
   [/^order-/, 'order'],
-  [/^items-(start|end|center|baseline|baseline-last|stretch)$/, 'align-items'],
-  [/^justify-(start|end|center|between|around|evenly|normal|stretch)$/, 'justify-content'],
-  [/^justify-items-(start|end|center|stretch|normal)$/, 'justify-items'],
-  [/^justify-self-(auto|start|end|center|stretch)$/, 'justify-self'],
-  [/^content-(start|end|center|between|around|evenly|baseline|stretch|normal)$/, 'align-content'],
-  [/^self-(auto|start|end|center|stretch|baseline|baseline-last)$/, 'align-self'],
+  // `(-safe)?` — Tailwind 4.1's safe alignment. It ships `center-safe` and
+  // `end-safe` on all nine alignment families today (measured); the pattern is
+  // deliberately wider than that because CSS allows `safe` on every positional
+  // value, and a value-exact list is what let `content-center-safe` fall out of
+  // align-content in the first place. A form Tailwind does not emit reaches no
+  // stylesheet, so matching it costs nothing.
+  [/^items-(start|end|center|baseline|baseline-last|stretch)(-safe)?$/, 'align-items'],
+  [/^justify-(start|end|center|between|around|evenly|normal|stretch)(-safe)?$/, 'justify-content'],
+  [/^justify-items-(start|end|center|stretch|normal)(-safe)?$/, 'justify-items'],
+  [/^justify-self-(auto|start|end|center|stretch)(-safe)?$/, 'justify-self'],
+  [
+    /^content-(start|end|center|between|around|evenly|baseline|stretch|normal)(-safe)?$/,
+    'align-content'
+  ],
+  [/^self-(auto|start|end|center|stretch|baseline|baseline-last)(-safe)?$/, 'align-self'],
   [/^place-content-/, 'place-content'],
   [/^place-items-/, 'place-items'],
   [/^place-self-/, 'place-self'],
@@ -262,6 +295,21 @@ const BUCKET_PATTERNS: Array<[RegExp, BucketResolver]> = [
   [/^divide-(x|y)(-(\d+|\[[^\]]+\]))?$/, (m) => `divide-${m[1]}-width`],
   [/^divide-(solid|dashed|dotted|double|none)$/, 'divide-style'],
   [/^divide-/, 'divide-color'],
+
+  // Scrolling. `scroll-p*` / `scroll-m*` mirror padding/margin exactly —
+  // `scroll-px-*` writes the logical `scroll-padding-inline`, `scroll-pl-*` the
+  // physical `scroll-padding-left` — so one pattern yields all eighteen buckets
+  // instead of eighteen lines that can drift apart.
+  [/^scroll-(auto|smooth)$/, 'scroll-behavior'],
+  [/^scroll-(m|p)([xytrbles])?-/, (m) => `scroll-${m[1]}${m[2] ?? ''}`],
+  // The four scroll-snap properties are independent: `snap-x` (type),
+  // `snap-mandatory` (strictness, via --tw-scroll-snap-strictness),
+  // `snap-center` (align) and `snap-always` (stop) are meant to be combined on
+  // one element. `snap-align-none` must be matched before the type catch-all.
+  [/^snap-(mandatory|proximity)$/, 'scroll-snap-strictness'],
+  [/^snap-(normal|always)$/, 'scroll-snap-stop'],
+  [/^snap-(start|end|center|align-none)$/, 'scroll-snap-align'],
+  [/^snap-/, 'scroll-snap-type'],
 
   // Position offsets. v4.1 inset-shadow-* / inset-ring-* must not fall into
   // the `inset-` position bucket.
@@ -351,6 +399,19 @@ const BUCKET_PATTERNS: Array<[RegExp, BucketResolver]> = [
   [/^bg-gradient-to-/, 'bg-image'],
   [/^bg-none$/, 'bg-image'],
   [/^bg-/, 'bg-color'],
+  // SVG paint. `stroke-<number>` is a width, every other value is a colour —
+  // same three-layer shape as `border-`, and the same data-type hints `text-`
+  // needs, because `stroke-` is overloaded exactly as `text-` is. Every width
+  // spelling verified against the compiler: `stroke-2`, `stroke-[1.5]`,
+  // `stroke-[2px]`, `stroke-[length:2px]` and `stroke-(length:--w)` emit
+  // `stroke-width`; `stroke-[#fff]`, `stroke-[var(--x)]` and `stroke-(--x)`
+  // emit `stroke`. Reading a width as a colour is the expensive direction: an
+  // SVG's initial `stroke` is `none`, so a consumer changing only the width
+  // would strip the paint and the mark disappears.
+  [/^stroke-[[(]length:/, 'stroke-width'],
+  [/^stroke-(?:\d|\[[0-9.])/, 'stroke-width'],
+  [/^stroke-/, 'stroke'],
+  [/^fill-/, 'fill'],
   [/^from-/, 'gradient-from'],
   [/^via-/, 'gradient-via'],
   [/^to-/, 'gradient-to'],
@@ -402,6 +463,20 @@ const BUCKET_PATTERNS: Array<[RegExp, BucketResolver]> = [
   [/^whitespace-/, 'whitespace'],
   [/^break-(normal|words|all|keep)$/, 'word-break'],
   [/^truncate$/, 'text-overflow'],
+  [/^list-(inside|outside)$/, 'list-style-position'],
+  [/^list-image-/, 'list-style-image'],
+  [/^list-/, 'list-style-type'],
+  // The numeric figures form six independent sub-axes, each with its own
+  // `--tw-numeric-*` variable, composed into one font-variant-numeric. Only the
+  // spacing pair is bucketed: it is the axis the library writes, and its two
+  // members are the only classes that genuinely replace each other.
+  [/^(?:tabular|proportional)-nums$/, 'font-variant-numeric-spacing'],
+  // The pseudo-element content property, matched by VALUE SHAPE rather than by
+  // "whatever the align-content list above did not catch". Relying on that list
+  // put `content-center-safe` in this bucket, where it stripped a real
+  // `content-['×']` and was stripped by it. The three shapes are the only ones
+  // Tailwind accepts here: arbitrary value, custom-property shorthand, `none`.
+  [/^content-(\[|\(|none$)/, 'content'],
   [/^placeholder-/, 'placeholder-color'],
   [/^align-(baseline|top|middle|bottom|text-top|text-bottom|sub|super)$/, 'vertical-align'],
 
@@ -413,14 +488,18 @@ const BUCKET_PATTERNS: Array<[RegExp, BucketResolver]> = [
   [/^shadow$/, 'shadow'],
   [/^shadow-\[/, 'shadow'],
   [/^shadow-/, 'shadow-color'],
-  [/^blur(-\w+)?$/, 'blur'],
-  [/^backdrop-blur(-\w+)?$/, 'backdrop-blur'],
+  // `(-.+)?` rather than `(-\w+)?`: each of these names one filter function and
+  // has no sibling family to disambiguate from, while `\w` excludes exactly the
+  // arbitrary and custom-property forms (`blur-[2px]`, `blur-(--x)`,
+  // `grayscale-[30%]`) that a consumer reaches for when the scale has no step.
+  [/^blur(-.+)?$/, 'blur'],
+  [/^backdrop-blur(-.+)?$/, 'backdrop-blur'],
   [/^brightness-/, 'brightness'],
   [/^contrast-/, 'contrast'],
-  [/^grayscale(-\w+)?$/, 'grayscale'],
-  [/^invert(-\w+)?$/, 'invert'],
+  [/^grayscale(-.+)?$/, 'grayscale'],
+  [/^invert(-.+)?$/, 'invert'],
   [/^saturate-/, 'saturate'],
-  [/^sepia(-\w+)?$/, 'sepia'],
+  [/^sepia(-.+)?$/, 'sepia'],
   [/^mix-blend-/, 'mix-blend-mode'],
   [/^bg-blend-/, 'background-blend-mode'],
 
@@ -428,6 +507,10 @@ const BUCKET_PATTERNS: Array<[RegExp, BucketResolver]> = [
   [/^transform$|^transform-none$/, 'transform'],
   [/^scale-x-/, 'scale-x'],
   [/^scale-y-/, 'scale-y'],
+  // `scale-z-*` writes only --tw-scale-z; `scale-*` writes x, y AND z. Without
+  // its own bucket the narrower class strips the wider one and the x/y factors
+  // fall back to 1 — the mirror of `translate-z-*`, which has always had one.
+  [/^scale-z-/, 'scale-z'],
   [/^scale-/, 'scale'],
   // v4 3D rotate axes are orthogonal to plain rotate.
   [/^rotate-(x|y|z)-/, (m) => `rotate-${m[1]}`],
@@ -439,6 +522,8 @@ const BUCKET_PATTERNS: Array<[RegExp, BucketResolver]> = [
   [/^translate-/, 'translate'],
   [/^skew-x-/, 'skew-x'],
   [/^skew-y-/, 'skew-y'],
+  // `skew-*` without an axis sets both, exactly as `translate-*` does.
+  [/^skew-/, 'skew'],
   [/^origin-/, 'transform-origin'],
 
   // Transitions / animations. v4 transition-behavior must not conflict with
@@ -469,7 +554,10 @@ const ARBITRARY_PROP_ALIAS: Record<string, string> = {
   transform: 'transform'
 };
 
-const ARBITRARY_PROP_PATTERN = /^\[((?:--)?[a-zA-Z][a-zA-Z0-9-]*):.+\]$/;
+// `-{0,2}` covers both leading-dash forms: a custom property (`[--speed:1s]`)
+// and a vendor-prefixed one (`[-ms-overflow-style:none]`, live on Tab.list),
+// which the letter-first pattern rejected and which then bucketed as nothing.
+const ARBITRARY_PROP_PATTERN = /^\[(-{0,2}[a-zA-Z][a-zA-Z0-9-]*):.+\]$/;
 
 /**
  * Index of the last `:` outside any `[]`/`()` nesting, or -1. This is the
@@ -507,7 +595,12 @@ function lastTopLevelColon(cls: string): number {
 const BUCKET_CACHE = new Map<string, string | null>();
 const BUCKET_CACHE_MAX = 4096;
 
-function tailwindBucket(cls: string): string | null {
+/**
+ * @internal Exported for `scripts/variants-lint.ts`, which compares this table
+ * against the real Tailwind compiler. Not part of the package's public API —
+ * `utils/index.ts` does not re-export it.
+ */
+export function tailwindBucket(cls: string): string | null {
   // Stored values are `string | null`, never `undefined` — a single lookup
   // distinguishes hit from miss.
   const cached = BUCKET_CACHE.get(cls);
@@ -559,15 +652,31 @@ function tailwindBucket(cls: string): string | null {
 // slot-base `leading-*` with axis-supplied `text-*` across sources by
 // design (labels, timeline meta, table cells) — stripping the leading would
 // silently change typography; leading-* also wins Tailwind's own cascade.
-const DOMINANCE: Record<string, string[]> = {
+// The inline-axis shorthands, split out so the scroll-* family is derived from
+// them instead of restated. `px-*` writes `padding-inline`, which is the
+// shorthand of `padding-inline-start/end` — the properties `ps-*`/`pe-*` write —
+// exactly as it is of `padding-left/right`; `scroll-px-*` writes
+// `scroll-padding-inline` over the same two axes (both measured against the
+// compiler). A hand-written second copy is the gap this table is made of.
+const INLINE_AXIS_DOMINANCE: Record<string, string[]> = {
   p: ['px', 'py', 'ps', 'pe', 'pt', 'pr', 'pb', 'pl'],
-  px: ['pr', 'pl'],
+  px: ['pr', 'pl', 'ps', 'pe'],
   py: ['pt', 'pb'],
   m: ['mx', 'my', 'ms', 'me', 'mt', 'mr', 'mb', 'ml'],
-  mx: ['mr', 'ml'],
-  my: ['mt', 'mb'],
+  mx: ['mr', 'ml', 'ms', 'me'],
+  my: ['mt', 'mb']
+};
+
+const DOMINANCE: Record<string, string[]> = {
+  ...INLINE_AXIS_DOMINANCE,
+  ...Object.fromEntries(
+    Object.entries(INLINE_AXIS_DOMINANCE).map(([shorthand, dominated]) => [
+      `scroll-${shorthand}`,
+      dominated.map((longhand) => `scroll-${longhand}`)
+    ])
+  ),
   inset: ['inset-x', 'inset-y', 'start', 'end', 'top', 'right', 'bottom', 'left'],
-  'inset-x': ['right', 'left'],
+  'inset-x': ['right', 'left', 'start', 'end'],
   'inset-y': ['top', 'bottom'],
   size: ['w', 'h'],
   gap: ['gap-x', 'gap-y'],
@@ -603,7 +712,7 @@ const DOMINANCE: Record<string, string[]> = {
     'border-b-width',
     'border-l-width'
   ],
-  'border-x-width': ['border-r-width', 'border-l-width'],
+  'border-x-width': ['border-r-width', 'border-l-width', 'border-s-width', 'border-e-width'],
   'border-y-width': ['border-t-width', 'border-b-width'],
   'border-color': [
     'border-x-color',
@@ -615,10 +724,15 @@ const DOMINANCE: Record<string, string[]> = {
     'border-b-color',
     'border-l-color'
   ],
-  'border-x-color': ['border-r-color', 'border-l-color'],
+  'border-x-color': ['border-r-color', 'border-l-color', 'border-s-color', 'border-e-color'],
   'border-y-color': ['border-t-color', 'border-b-color'],
   overflow: ['overflow-x', 'overflow-y'],
-  scale: ['scale-x', 'scale-y'],
+  overscroll: ['overscroll-x', 'overscroll-y'],
+  // `scale-*` writes all three factors, so it replaces a narrower `scale-z-*`
+  // whole — the direction that is safe. The reverse is not, which is why
+  // `scale-z` is its own bucket above.
+  scale: ['scale-x', 'scale-y', 'scale-z'],
+  skew: ['skew-x', 'skew-y'],
   translate: ['translate-x', 'translate-y', 'translate-z']
 };
 

@@ -79,7 +79,7 @@ function emitsRuleFor(css: string, cls: string): boolean {
  * one in an allowlist would mean editing this file every time a component
  * gains a named group.
  */
-function isNonEmittingByDesign(cls: string): boolean {
+export function isNonEmittingByDesign(cls: string): boolean {
   return /^(group|peer)(\/|$)/.test(cls);
 }
 
