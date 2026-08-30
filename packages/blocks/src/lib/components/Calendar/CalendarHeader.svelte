@@ -131,11 +131,12 @@
   // min-content — which is exactly what the popover's shrink-to-fit width
   // measures itself against.
   //
-  // Grid and placement both live in the `stacksOnNarrow` axis in
-  // calendar.variants.ts, so `unstyled` drops every part of the layout
-  // together — the flag only selects the axis value here. Placements that
-  // never change sit in the slot bases instead, inert in the flex path where
-  // `grid-column` / `grid-row` on a flex item does nothing.
+  // The axis in calendar.variants.ts carries only what the flex path cannot
+  // survive: the grid itself, and the actions wrapper's `contents`, which would
+  // dissolve the cluster wherever the grid is off. Every placement is constant
+  // and sits in its slot base, inert in the flex path where `grid-column` /
+  // `grid-row` on a flex item does nothing. Both are config, so `unstyled`
+  // drops the whole layout together — the flag only selects the axis value.
   const stacksOnNarrow = $derived(showViewSwitcher);
 
   // Map calendar size to SegmentGroup size

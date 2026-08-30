@@ -40,9 +40,10 @@ export const calendarVariants = tv({
      * by their hypothetical size, so a `flex-1` title (basis 0) reads as ~0
      * wide, keeps the switcher on line 1 and squeezes it until it collapses.
      */
-    titleGroup: 'flex flex-auto items-center justify-center gap-2',
+    titleGroup:
+      'flex flex-auto items-center justify-center gap-2 max-sm:col-start-2 max-sm:row-start-1',
     /** The view switcher's own root, styled through SegmentGroup's `class`. */
-    switcher: '',
+    switcher: 'max-sm:col-start-1 max-sm:row-start-2 max-sm:justify-self-start',
     /**
      * Today + forward button. `ml-auto` bites only once the pair has wrapped
      * onto a line of its own: on a full line the `flex-auto` title has already
@@ -308,8 +309,6 @@ export const calendarVariants = tv({
     stacksOnNarrow: {
       true: {
         header: 'max-sm:grid max-sm:grid-cols-[auto_1fr_auto]',
-        titleGroup: 'max-sm:col-start-2 max-sm:row-start-1',
-        switcher: 'max-sm:col-start-1 max-sm:row-start-2 max-sm:justify-self-start',
         // The two action buttons belong to different lines in the grid — next
         // flanks the title, today sits beside the switcher — so the wrapper
         // stops being a box and lets them place themselves. It stays a real
