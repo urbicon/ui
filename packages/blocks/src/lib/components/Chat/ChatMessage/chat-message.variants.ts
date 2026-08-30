@@ -69,8 +69,7 @@ export const chatMessageVariants = tv({
       // Document-like: full-width content under an avatar + role header row.
       plain: {
         column: 'w-full items-stretch',
-        bubble: 'w-full',
-        partsFlow: 'gap-3'
+        bubble: 'w-full'
       }
     },
     role: {

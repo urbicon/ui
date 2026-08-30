@@ -46,6 +46,18 @@
  *            probe over those sources on 2026-08-02 found live instances of
  *            exactly this bug class (issues filed). Widening the input is its
  *            own pass.
+ *   ✖ ERROR  no conflict bucket — a class the compiler writes CSS properties
+ *            for that `BUCKET_PATTERNS` matches nothing. The resolver returns
+ *            null for it, so a consumer's override and the library's class both
+ *            survive the fold and the stylesheet's emit order decides again —
+ *            the state the fold was built to remove. Measured on the first run:
+ *            50 such utilities in the library.
+ *   ✖ ERROR  bucket disagrees with the compiler — one bucket holding classes
+ *            whose declared-property sets differ, i.e. the table claims a
+ *            conflict the compiler does not back. This is the shape of the
+ *            `text-2xs`-as-a-colour bug (dba97fe8); the four cases where
+ *            Tailwind's own output legitimately differs are pinned in
+ *            BUCKET_EFFECT_EXEMPTIONS. See scripts/bucket-agreement.ts.
  *   ✖ ERROR  transform property missing from an arbitrary transition list —
  *            Tailwind 4 emits `scale-*` / `translate-*` / `rotate-*` as the
  *            DISCRETE CSS properties `scale:` / `translate:` / `rotate:`, not
@@ -79,7 +91,8 @@
  */
 import { unlink } from 'node:fs/promises';
 import { resolve } from 'node:path';
-import { findNonEmittingClasses } from './tailwind-emit';
+import { collectClassEffects, compareBuckets } from './bucket-agreement';
+import { findNonEmittingClasses, isNonEmittingByDesign } from './tailwind-emit';
 import { checkClassToken, collectThemeVars } from './theme-tokens';
 
 const ENGINE = resolve(import.meta.dir, '../src/lib/utils/variants.ts');
@@ -87,11 +100,15 @@ const BLOCKS_LIB = resolve(import.meta.dir, '../src/lib');
 const REPO = resolve(import.meta.dir, '../../..');
 const SHOW_WARNINGS = process.argv.includes('--warnings');
 
+// `**` rather than `*`: a Bun.Glob `*` does not cross a `/`, and component
+// families nest (`components/Chat/<Component>/`, and one level deeper in
+// `Chat/A2UIView/urbicon/`). With the single star those eleven configs matched
+// no glob and ran through none of the guards below.
 const GLOBS = [
-  'packages/blocks/src/lib/primitives/*/*.variants.ts',
-  'packages/blocks/src/lib/components/*/*.variants.ts',
+  'packages/blocks/src/lib/primitives/**/*.variants.ts',
+  'packages/blocks/src/lib/components/**/*.variants.ts',
   'packages/table/src/lib/variants/*.variants.ts',
-  'packages/docs/src/lib/components/*/*.variants.ts'
+  'packages/docs/src/lib/components/**/*.variants.ts'
 ];
 
 type Cfg = {
@@ -102,7 +119,7 @@ type Cfg = {
   defaultVariants?: Record<string, unknown>;
 };
 
-const { matchesCompound, tv } = await import(ENGINE);
+const { matchesCompound, tailwindBucket, tv } = await import(ENGINE);
 
 // ─── config collection ───────────────────────────────────────────────────────
 
@@ -156,7 +173,7 @@ for (const file of files) {
   }
 }
 
-// The repo carries ~91 configs; a collapse of this number means the export
+// The repo carries ~117 configs; a collapse of this number means the export
 // pattern or `.config` introspection drifted and the guard is checking air.
 if (loaded.length < 50) {
   console.error(
@@ -1029,10 +1046,134 @@ for (const token of probe.dead) {
 }
 const staleHandWritten = Object.keys(HAND_WRITTEN_CSS).filter((t) => !handWrittenHit.has(t));
 
+// ─── bucket-agreement guard ──────────────────────────────────────────────────
+//
+// The fold picks a winner per conflict bucket, and the buckets come from 218
+// hand-written regexes in `utils/variants.ts` — a copy of Tailwind's namespace
+// kept by hand. A gap in the copy is invisible from the table: the class
+// buckets as `null`, both classes survive the fold, and the compiled
+// stylesheet's emit order decides again, which is the state the fold removed.
+// An over-reach is invisible the same way, until something renders wrong
+// (`text-2xs` read as a colour and stripped by `text-primary`, dba97fe8).
+//
+// So the table is compared against the compiler that just ran: which CSS
+// properties each class actually declares (scripts/bucket-agreement.ts), read
+// out of the stylesheet the emitted-CSS guard above already built. No second
+// startup, and no second model of Tailwind — a gate restating the table would
+// only ever agree with itself.
+//
+// Deriving the table from the compiler instead was built and measured
+// (2026-08-28, 1 546 classes / 2 388 570 ordered pairs): 0,04 % disagreement,
+// but a breaking change — it reintroduces the dba97fe8 bug through a missing
+// theme sub-key — and +7,8 KB gzip in every consumer bundle. The gate ships
+// nothing and changes no behaviour.
+//
+// Grouped by the resolver's OWN key, modifier prefix included, because that is
+// the only comparison it ever makes: `hover:text-2xs` can never be stripped by
+// a plain `text-primary`, so a disagreement across prefixes is not a defect.
+// Merging the prefixes also compares rules on different elements — Tailwind
+// injects `content: var(--tw-content)` into every `before:`/`after:` rule, so
+// `before:z-0` reads as a second effect next to `z-0` while nothing is wrong.
+// The EXEMPTIONS are looked up per family (prefix stripped): a prefix moves a
+// rule to another selector, never to another property, so one entry covers
+// `scale` and `active:scale` alike.
+const bucketFamily = (key: string): string => key.slice(key.lastIndexOf(':') + 1);
+
+const classEffects = collectClassEffects(probe.css, [...emitCandidates.keys()]);
+
+// Canary on the attribution, not just on the compiler. Every class that got a
+// rule must have been found in it; a class that emits CSS but reaches no
+// finding is a parser that has lost its place, and it fails silently — the
+// first version of this pass read the escaped quotes of
+// `.after\:content-\[\'\*\'\]::after` as a string and dropped the 399 classes
+// emitted after that rule, every one of them variant-prefixed, with both
+// compiler canaries green.
+const unattributed = [...emitCandidates.keys()].filter(
+  (cls) => !deadSet.has(cls) && !isNonEmittingByDesign(cls) && !classEffects.has(cls)
+);
+if (unattributed.length > 0) {
+  console.error(
+    `✖ variants-lint: ${unattributed.length} class(es) emit CSS but were found in no rule (${unattributed
+      .slice(0, 5)
+      .join(', ')}) — the bucket pass is not reading the stylesheet it compiled.`
+  );
+  process.exit(1);
+}
+
+/**
+ * Buckets where the compiler reports more than one declared-property set and
+ * the bucket is nonetheless right. Each entry pins the exact sets it excuses,
+ * so members may come and go but a NEW effect in the bucket still reports —
+ * a bucket-name-only exemption would swallow the next mis-bucket.
+ *
+ * Same contract as HAND_WRITTEN_CSS and imports-lint: an entry that stops
+ * being needed is an error.
+ */
+const BUCKET_EFFECT_EXEMPTIONS: { bucket: string; effects: string[]; why: string }[] = [
+  {
+    bucket: 'bg-image',
+    effects: ['--tw-gradient-position background-image', 'background-image'],
+    why: "Tailwind's gradient utilities set a position variable beside background-image; an arbitrary `bg-[linear-gradient(…)]` writes the property alone. Both write background-image and the browser replaces an image whole, so the later class does supersede the earlier one."
+  },
+  {
+    bucket: 'scale',
+    effects: ['--tw-scale-x --tw-scale-y --tw-scale-z scale', 'scale'],
+    why: 'the named steps set the three factor variables that the composed `scale` reads; an arbitrary `scale-[…]` writes `scale` directly. Both write the `scale` property, which is replaced whole — the variables are how Tailwind composes it, not a second effect.'
+  },
+  {
+    bucket: 'text-overflow',
+    effects: ['overflow text-overflow white-space', 'text-overflow'],
+    why: '`truncate` is the composite of the three properties, `text-ellipsis` the property alone. Splitting them would let `truncate text-clip` keep the ellipsis, so the shared bucket is the right call — at the price that a later `text-ellipsis` leaves `overflow`/`white-space` behind.'
+  },
+  {
+    bucket: 'text-size',
+    effects: ['font-size', 'font-size line-height'],
+    why: 'a named step ships its line-height only where `--text-<key>--line-height` exists. The library’s own sub-xs steps (`--text-2xs`, `--text-3xs`) define no such sub-key, and no arbitrary size can. All of them are sizes and must replace each other; the differing set is a missing theme sub-key, not a mis-bucket.'
+  }
+];
+const bucketExemptions = new Map(BUCKET_EFFECT_EXEMPTIONS.map((e) => [e.bucket, e]));
+const bucketExemptionsHit = new Set<string>();
+
+const agreement = compareBuckets(classEffects, tailwindBucket);
+const unbucketed: Finding[] = [];
+for (const { cls, properties } of agreement.unbucketed) {
+  for (const where of emitCandidates.get(cls) ?? []) {
+    unbucketed.push({
+      where,
+      token: cls,
+      detail: `Tailwind writes ${properties.join(', ')} for this class, but BUCKET_PATTERNS in utils/variants.ts matches nothing — the resolver returns null, so a consumer's override and this class both survive the fold and the stylesheet's emit order decides which one renders. Add the pattern for its family`
+    });
+  }
+}
+const bucketCollisions: { bucket: string; detail: string }[] = [];
+for (const collision of agreement.collisions) {
+  const signatures = collision.effects.map((e) => e.properties.join(' ')).sort();
+  const family = bucketFamily(collision.bucket);
+  const exemption = bucketExemptions.get(family);
+  if (exemption && exemption.effects.join('\0') === signatures.join('\0')) {
+    bucketExemptionsHit.add(family);
+    continue;
+  }
+  const odd = collision.effects.slice(1).flatMap((e) => e.classes);
+  bucketCollisions.push({
+    bucket: collision.bucket,
+    detail: `${collision.bucket}: ${collision.effects.length} distinct effects among ${
+      collision.total
+    } classes — ${odd.join(' ')}\n    ${collision.effects
+      .map((e) => `[${e.classes.length}] ${e.properties.join(', ')}`)
+      .join(
+        '\n    '
+      )}\n    The bucket claims these classes replace each other; the compiler says they write different properties. Either the pattern that catches them is too wide, or the disagreement is Tailwind's own — then pin it in BUCKET_EFFECT_EXEMPTIONS with its effect sets and the reason`
+  });
+}
+const staleBucketExemptions = BUCKET_EFFECT_EXEMPTIONS.filter(
+  (e) => !bucketExemptionsHit.has(e.bucket)
+);
+
 // ─── report ──────────────────────────────────────────────────────────────────
 
 console.log(
-  `variants-lint: ${loaded.length} configs in ${files.length} files, ${themeVars.size} @theme keys, ${probe.checked} classes compiled — ${dead.length} lost, ${unknownTheme.length} unknown-theme, ${noCss.length} no-CSS, ${missingTransition.length} incomplete transition list(s), ${readingSurfaceHover.length} reading-surface hover(s), ${intentAsText.length} intent-as-text, ${shadowed.length} shadowed, ${partial.length} partially-stripped token(s)`
+  `variants-lint: ${loaded.length} configs in ${files.length} files, ${themeVars.size} @theme keys, ${probe.checked} classes compiled — ${dead.length} lost, ${unknownTheme.length} unknown-theme, ${noCss.length} no-CSS, ${missingTransition.length} incomplete transition list(s), ${readingSurfaceHover.length} reading-surface hover(s), ${intentAsText.length} intent-as-text, ${unbucketed.length} unbucketed, ${bucketCollisions.length} bucket collision(s), ${shadowed.length} shadowed, ${partial.length} partially-stripped token(s)`
 );
 
 for (const err of fileErrors) console.error(`✖ ${err}`);
@@ -1042,6 +1183,16 @@ for (const f of unknownTheme) {
 }
 for (const f of noCss) {
   console.error(`✖ no CSS emitted for '${f.token}' in ${f.where}\n    ${f.detail}`);
+}
+for (const f of unbucketed) {
+  console.error(`✖ no conflict bucket for '${f.token}' in ${f.where}\n    ${f.detail}`);
+}
+for (const c of bucketCollisions)
+  console.error(`✖ bucket disagrees with the compiler — ${c.detail}`);
+for (const e of staleBucketExemptions) {
+  console.error(
+    `✖ stale BUCKET_EFFECT_EXEMPTIONS entry '${e.bucket}' — the bucket no longer holds those effect sets; drop the entry from variants-lint.ts.`
+  );
 }
 for (const token of staleHandWritten) {
   console.error(
@@ -1089,6 +1240,9 @@ if (
   unknownTheme.length > 0 ||
   noCss.length > 0 ||
   staleHandWritten.length > 0 ||
+  unbucketed.length > 0 ||
+  bucketCollisions.length > 0 ||
+  staleBucketExemptions.length > 0 ||
   missingTransition.length > 0 ||
   readingSurfaceHover.length > 0 ||
   intentAsText.length > 0 ||

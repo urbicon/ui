@@ -73,6 +73,12 @@ Classes outside `BUCKET_PATTERNS` never participate in stripping; `decoration-*`
 across three orthogonal buckets; `text-size` → `line-height` dominance is deliberately
 absent (the library pairs slot-base `leading-*` with axis-supplied text sizes by design).
 
+The subset is a decision, but a silent one was not: `variants:lint` compares the table
+against the compiler for every class the library ships, so a missing family is reported
+rather than discovered by a consumer whose override does not land. Deriving the table from
+the compiler instead was measured and rejected — it is a breaking change and costs +7.8 KB
+gzip in every consumer bundle, while the gate ships nothing.
+
 If a future change genuinely needs full `twMerge` semantics, extend `variants.ts` — do not
 re-introduce `tailwind-variants`. See
 [ARCHITECTURE.md § The tv() variant engine](ARCHITECTURE.md#the-tv-variant-engine).

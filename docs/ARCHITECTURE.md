@@ -258,7 +258,10 @@ never strips: a later `pl-2` *refines* an earlier `p-4`.
 unknown slot keys, unknown compound axes, undeclared `defaultVariants`, `base` + `slots`
 together all **throw** with precise messages rather than degrading silently. Every resolver
 exposes its config as `.config`, which is what `bun run variants:lint` replays over the
-pairwise variant matrix to find dead tokens.
+pairwise variant matrix to find dead tokens. The same run asks the Tailwind compiler which
+properties each class actually declares and compares that against `BUCKET_PATTERNS`, so a
+family the table has no pattern for — where both classes would survive and the stylesheet's
+emit order would decide again — fails the build instead of going quiet.
 
 Coverage limits and why they are deliberate: [DECISIONS.md](DECISIONS.md#the-tv-engine-is-narrower-than-tailwind-variants).
 
