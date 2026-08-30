@@ -1,6 +1,7 @@
 // @vitest-environment jsdom
 import { createRawSnippet, flushSync, mount, unmount } from 'svelte';
 import { describe, expect, it, vi } from 'vitest';
+import { resolveClassChain } from '$lib/utils/variants';
 import CascadeCompoundHost from './__fixtures__/CascadeCompoundHost.svelte';
 import CascadeHost from './__fixtures__/CascadeHost.svelte';
 import { MOUNT_FIXTURES } from './__fixtures__/cascade-mount-props';
@@ -52,8 +53,100 @@ const PROBE_A_PREFIX = 'pa-';
 const probeA = (slot: string) => `${PROBE_A_PREFIX}${slot}`;
 /** Probe token for route B. */
 const PROBE_B = 'pb-override';
+/** Probe token for route E — marks the element the `class` prop lands on. */
+const PROBE_E = 'pe-class';
 
-type Route = 'A' | 'B' | 'C';
+/**
+ * Route D's candidate classes. One per Tailwind conflict bucket a component
+ * root plausibly occupies — the sweep does not pick which of them applies;
+ * `resolveClassChain`, the same function the fold runs on, is asked whether a
+ * candidate removes a given library class, and a library class no candidate
+ * collides with is skipped rather than forced.
+ *
+ * Modifiers are not filtered out either: a `hover:`-prefixed library class is
+ * probed with the same prefix on the candidate, because `stripConflicts` keeps
+ * the prefix in the bucket key.
+ */
+const COLLISION_CANDIDATES = [
+  'p-0',
+  'px-0',
+  'py-0',
+  'pt-0',
+  'm-0',
+  'mx-0',
+  'w-px',
+  'h-px',
+  'min-w-0',
+  'max-w-none',
+  'gap-0',
+  'block',
+  'rounded-none',
+  'border-0',
+  'border-transparent',
+  'text-xs',
+  'text-left',
+  'font-normal',
+  'not-italic',
+  'no-underline',
+  'text-transparent',
+  'bg-transparent',
+  'fill-none',
+  'stroke-none',
+  'grid-cols-1',
+  'flex-col',
+  'items-start',
+  'justify-start',
+  'opacity-0',
+  'shadow-none',
+  'ring-0',
+  'overflow-visible',
+  'relative',
+  'z-0',
+  'cursor-auto',
+  'transition-none',
+  // Second entry for the buckets a library class itself commonly occupies —
+  // a candidate identical to the class under test proves nothing and is
+  // skipped, so those buckets need a fallback to stay probeable.
+  'inline',
+  'static',
+  'text-sm',
+  'p-px',
+  'm-px',
+  'w-auto',
+  'h-auto',
+  'gap-px',
+  'rounded-sm',
+  'border',
+  'italic',
+  'underline',
+  'grid-cols-2',
+  'flex-row',
+  'items-end',
+  'justify-end',
+  'opacity-100',
+  'z-10'
+];
+
+/**
+ * The candidate that makes the fold drop `libraryClass`, or `undefined` when
+ * none does — which is the honest answer for a class whose bucket the engine
+ * does not know (`fill-*`, `stroke-*`) and for a marker class that has no
+ * bucket at all (`blocks-button`). Such a class is unreachable for *any*
+ * consumer class, which is a defect of the bucket table rather than of the
+ * call site this route measures.
+ */
+function collisionProbe(libraryClass: string): string | undefined {
+  const boundary = libraryClass.lastIndexOf(':') + 1;
+  const modifiers = libraryClass.slice(0, boundary);
+  for (const candidate of COLLISION_CANDIDATES) {
+    const probe = modifiers + candidate;
+    if (probe === libraryClass) continue;
+    if (!resolveClassChain(libraryClass, probe).split(' ').includes(libraryClass)) return probe;
+  }
+  return undefined;
+}
+
+type Route = 'A' | 'B' | 'C' | 'D' | 'E';
 
 /**
  * Routes that are known-broken today, each with the issue that repairs it.
@@ -69,13 +162,40 @@ const KNOWN_GAPS: Record<string, Partial<Record<Route, string>>> = {
   Chat: { B: '#341 passes `{}` as its condition object' },
   ChatMessageList: { B: '#341 passes `{}` though it declares `layout` and `density`' },
   DonutChart: { B: '#341 passes `{}` as its condition object' },
-  Guide: { B: '#341 passes `{}` as its condition object' },
+  Guide: {
+    B: '#341 passes `{}` as its condition object',
+    // The `class` prop lands on the tour bubble (correctly folded there), and
+    // the bubble renders only while a tour is running — which the mount
+    // fixture does not start. Not a fold defect; an element route E never sees.
+    E: 'the `class` prop lands on the tour bubble, which renders only during a tour'
+  },
   GuideArticle: { B: '#341 passes `{}` as its condition object' },
   GuideHint: { B: '#341 passes `{}` as its condition object' },
   GuideMention: { B: '#341 passes `{}` as its condition object' },
   GuideRef: { B: '#341 passes `{}` as its condition object' },
   LineChart: { B: '#341 passes `{}` as its condition object' },
   ReasoningDisclosure: { B: '#341 passes `{}` as its condition object' },
+
+  // The internal core layer's structural plumbing (`inline-flex items-center
+  // justify-center` on `CoreIconButton`) is joined raw with the call-site's
+  // slot class and deliberately not merged against it —
+  // COMPONENT-API-CONVENTIONS.md ("the plumbing is not an override surface").
+  // The slot class that *is* the override surface merges correctly; these
+  // entries record the plumbing buckets that stay out of it.
+  ChatMessage: { D: 'CoreIconButton plumbing on `actionButton`, out of the ladder by design' },
+  Drawer: { D: 'CoreIconButton plumbing on `closeButton`, out of the ladder by design' },
+  PromptInput: { D: 'CoreIconButton plumbing on `sendButton`, out of the ladder by design' },
+  ResourceTimeline: { D: 'CoreIconButton plumbing on `navButton`, out of the ladder by design' },
+  // Planner keeps two defects of the #337/#338 class that PR-scope leaves
+  // alone: `DateGridScaffold` prepends `grid {gridColsClass}` to the row class
+  // its caller already folded, and Planner passes view-conditional library
+  // classes (`gap-2 max-md:hidden`, `md:hidden`) through the `extra` argument
+  // of its `slot()` helper, which lands them in the same source as the
+  // consumer's entry — where nothing strips anything. Both want the `view`
+  // axis the config already has. #349
+  Planner: {
+    D: '#349 — DateGridScaffold prepends the grid classes; view-conditional classes ride the `extra` argument. Plus CoreIconButton plumbing on `navButton`'
+  },
 
   // #339 — no provider name of their own. Two kinds, and the difference is
   // what the fix has to be, so the entries state which one applies.
@@ -148,6 +268,12 @@ const NOT_MEASURABLE: Record<string, string> = {};
  */
 const MIN_MEASURED = 80;
 
+/**
+ * Lower bound on the components route D finds a colliding candidate for. Set
+ * just under the current count, for the same reason as `MIN_MEASURED`.
+ */
+const MIN_COLLISIONS = 70;
+
 const recorder = vi.hoisted(() => ({
   calls: [] as { component: string; activeProps: Record<string, unknown> }[]
 }));
@@ -181,6 +307,13 @@ vi.mock('$lib/provider', async (importOriginal) => {
 interface Outcome {
   ok: boolean;
   detail: string;
+  /**
+   * Whether the route found anything to judge at all. Route D needs a library
+   * class *and* a candidate that collides with it; without both there is no
+   * question to answer, and reporting that as a pass would be the same silent
+   * green as reading "class not found" as "class stripped".
+   */
+  measured?: boolean;
 }
 
 interface Measurement {
@@ -209,6 +342,18 @@ interface MountResult {
   rootTokens: Set<string>;
   /** Slot names whose probe class sits on the root element. */
   rootProbes: Set<string>;
+  /**
+   * Per slot probe that landed anywhere: the class tokens of the first element
+   * carrying it, probe tokens excluded. First rather than all, because a slot
+   * that repeats (a chart segment, a legend row) repeats the same class string
+   * — a set union over the repeats would say the same thing at more cost.
+   */
+  slotElements: Map<string, Set<string>>;
+  /**
+   * Class tokens of the element route E's `class`-prop marker landed on,
+   * marker excluded — `undefined` when the prop reached no element.
+   */
+  classCarrier: Set<string> | undefined;
   /** The condition object the component handed to `resolveSlotClasses`. */
   condition: Record<string, unknown> | undefined;
 }
@@ -217,10 +362,11 @@ function mountOnce(
   entry: CascadeComponent,
   providerProps: Record<string, unknown>,
   withFixture = true,
-  rootRule: RootRule = 'outermost'
+  rootRule: RootRule = 'outermost',
+  extraProps: Record<string, unknown> = {}
 ): MountResult {
   const fixture = (withFixture && MOUNT_FIXTURES[entry.exportName]) || {};
-  const props: Record<string, unknown> = { ...fixture.props };
+  const props: Record<string, unknown> = { ...fixture.props, ...extraProps };
   if (entry.declaredProps.includes('children') && !('children' in props)) {
     props.children = createRawSnippet(() => ({ render: () => '<span>content</span>' }));
   }
@@ -272,6 +418,23 @@ function mountOnce(
       .map((token) => token.slice(PROBE_A_PREFIX.length))
   );
 
+  const classCarrierElement = painted.find((element) => element.classList.contains(PROBE_E));
+  const classCarrier = classCarrierElement
+    ? new Set([...classCarrierElement.classList].filter((token) => token !== PROBE_E))
+    : undefined;
+
+  const slotElements = new Map<string, Set<string>>();
+  for (const element of painted) {
+    const classes = [...element.classList];
+    const landed = classes.filter((token) => token.startsWith(PROBE_A_PREFIX));
+    if (landed.length === 0) continue;
+    const own = new Set(classes.filter((token) => !token.startsWith(PROBE_A_PREFIX)));
+    for (const token of landed) {
+      const slot = token.slice(PROBE_A_PREFIX.length);
+      if (!slotElements.has(slot)) slotElements.set(slot, own);
+    }
+  }
+
   // Measured over the 336 mounts of one sweep: a component resolves its
   // provider name at most once per mount (320 mounts once, 16 not at all).
   // `.at(-1)` is the settled value should that ever change — it is not
@@ -282,14 +445,25 @@ function mountOnce(
 
   unmount(app);
   document.body.innerHTML = '';
-  return { tokens, rendered, rootFound: root !== null, rootTokens, rootProbes, condition };
+  return {
+    tokens,
+    rendered,
+    rootFound: root !== null,
+    rootTokens,
+    rootProbes,
+    slotElements,
+    classCarrier,
+    condition
+  };
 }
 
 function measure(entry: CascadeComponent, withFixture = true): Measurement {
   const routes: Record<Route, Outcome> = {
     A: { ok: false, detail: 'not run' },
     B: { ok: false, detail: 'not run' },
-    C: { ok: false, detail: 'not run' }
+    C: { ok: false, detail: 'not run' },
+    D: { ok: false, detail: 'not run' },
+    E: { ok: false, detail: 'not run' }
   };
 
   let plain: MountResult;
@@ -416,6 +590,172 @@ function measure(entry: CascadeComponent, withFixture = true): Measurement {
       : { ok: true, detail: `${plain.rootTokens.size} root classes dropped` };
   }
 
+  // ── D: a colliding `slotClasses` entry strips the library class ──
+  //
+  // Route A proves an entry *arrives*; that it *wins* is a different question,
+  // and the two have separate answers wherever a component builds its class
+  // string with a raw join: the consumer's token never passes the slot
+  // function, which is the only place `stripConflicts` runs. This route asks
+  // it of every slot that landed, not only of the root, because the raw joins
+  // sit as often on an inner element as on the outer one.
+  //
+  // The probe is not chosen by opinion. For each class on a slot's element the
+  // sweep asks `resolveClassChain` — the very function the fold calls — for a
+  // candidate that removes it, and measures only the classes that produced
+  // one. Measured in the component's default variant state; a class only a
+  // non-default variant emits is outside this route.
+  if (routes.A.ok && slotProbes && probed && name) {
+    // Everything on the element the sweep did not put there is the library's,
+    // hand-written markup classes included: the question is which token wins
+    // the attribute, not which config it came from. (Route C reads the
+    // narrower tv()-only set, because `unstyled` promises only those.)
+    const perSlot = new Map<string, Map<string, string>>();
+    for (const [slot, tokens] of probed.slotElements) {
+      const collisions = new Map<string, string>();
+      for (const token of tokens) {
+        const probe = collisionProbe(token);
+        if (probe) collisions.set(token, probe);
+      }
+      if (collisions.size > 0) perSlot.set(slot, collisions);
+    }
+
+    if (perSlot.size === 0) {
+      routes.D = {
+        ok: false,
+        measured: false,
+        detail: `no candidate collides with any class on the ${probed.slotElements.size} slot elements that landed`
+      };
+    } else {
+      const run = mountOnce(
+        entry,
+        {
+          defaults: {
+            [name]: {
+              slotClasses: Object.fromEntries(
+                entry.slots.map((slot) => {
+                  const collisions = perSlot.get(slot);
+                  const candidates = collisions ? [...new Set(collisions.values())] : [];
+                  return [slot, [probeA(slot), ...candidates].join(' ')];
+                })
+              )
+            }
+          }
+        },
+        withFixture,
+        rootRule
+      );
+
+      const failures: string[] = [];
+      let stripped = 0;
+      for (const [slot, collisions] of perSlot) {
+        const element = run.slotElements.get(slot);
+        if (!element) {
+          failures.push(`${slot}: the colliding entry reached no element`);
+          continue;
+        }
+        // A probe that never arrived carries no answer about the library class
+        // it was meant to beat — reading its absence as a win is the "not
+        // found equals stripped" confusion route C already paid for.
+        const missing = [...new Set(collisions.values())].filter(
+          (candidate) => !element.has(candidate)
+        );
+        if (missing.length) {
+          failures.push(`${slot}: the colliding entry did not arrive (${missing.join(' ')})`);
+          continue;
+        }
+        const survivors = [...collisions.keys()].filter((token) => element.has(token));
+        stripped += collisions.size - survivors.length;
+        if (survivors.length) {
+          failures.push(
+            `${slot}: ` +
+              survivors
+                .slice(0, 3)
+                .map((token) => `${token} vs ${collisions.get(token)}`)
+                .join(', ')
+          );
+        }
+      }
+
+      routes.D = failures.length
+        ? {
+            ok: false,
+            detail:
+              `${failures.length}/${perSlot.size} slots keep a library class the consumer ` +
+              `collides with — ${failures.slice(0, 4).join(' · ')}`
+          }
+        : {
+            ok: true,
+            detail: `${stripped} colliding library classes stripped across ${perSlot.size} slots`
+          };
+    }
+  } else {
+    routes.D = {
+      ok: false,
+      measured: false,
+      detail: 'route A does not reach the root element — there is no rung to measure'
+    };
+  }
+
+  // ── E: a colliding `class` prop strips the library class ──
+  //
+  // The same question as D for the *strongest* rung of the ladder. It is a
+  // separate route because `class` reaches one element only and takes a path
+  // of its own through the component: a call site can fold `slotClasses`
+  // correctly and still append `class` beside the result.
+  if (entry.declaredProps.includes('class')) {
+    // The element is found by the marker rather than by position: `class` does
+    // not always land on the outermost element (Tooltip, CopyButton).
+    const landed = mountOnce(entry, {}, withFixture, 'outermost', { class: PROBE_E }).classCarrier;
+    if (!landed) {
+      routes.E = { ok: false, detail: 'the `class` prop reached no element' };
+    } else {
+      const collisions = new Map<string, string>();
+      for (const token of landed) {
+        const probe = collisionProbe(token);
+        if (probe) collisions.set(token, probe);
+      }
+      if (collisions.size === 0) {
+        routes.E = {
+          ok: false,
+          measured: false,
+          detail: `no candidate collides with any of the ${landed.size} classes the \`class\` prop joins`
+        };
+      } else {
+        const candidates = [...new Set(collisions.values())];
+        const element = mountOnce(entry, {}, withFixture, 'outermost', {
+          class: [PROBE_E, ...candidates].join(' ')
+        }).classCarrier;
+        if (!element) {
+          routes.E = { ok: false, detail: 'the colliding `class` prop reached no element' };
+        } else {
+          const missing = candidates.filter((candidate) => !element.has(candidate));
+          if (missing.length) {
+            routes.E = {
+              ok: false,
+              detail: `the colliding \`class\` prop did not arrive (${missing.join(' ')})`
+            };
+          } else {
+            const survivors = [...collisions.keys()].filter((token) => element.has(token));
+            routes.E = survivors.length
+              ? {
+                  ok: false,
+                  detail:
+                    `${survivors.length}/${collisions.size} library classes survive a colliding ` +
+                    `\`class\` prop: ` +
+                    survivors
+                      .slice(0, 4)
+                      .map((token) => `${token} vs ${collisions.get(token)}`)
+                      .join(', ')
+                }
+              : { ok: true, detail: `${collisions.size} colliding library classes stripped` };
+          }
+        }
+      }
+    }
+  } else {
+    routes.E = { ok: false, measured: false, detail: 'declares no `class` prop' };
+  }
+
   return { entry, routes };
 }
 
@@ -434,6 +774,19 @@ describe('BlocksProvider cascade reaches the markup', () => {
       `only ${measured.length} of ${measurements.length} components were measured — a sweep ` +
         'this small means a broken registry, not a healthy library'
     ).toBeGreaterThanOrEqual(MIN_MEASURED);
+  });
+
+  it('finds a collision to measure on enough components', () => {
+    // Route D skips a component whose root element carries no class any
+    // candidate collides with, and a sweep that skipped nearly everything
+    // would report green while asking nothing. Floor set just under the
+    // measured count so a handful of legitimate changes pass and a broken
+    // candidate list does not.
+    const measured = measurements.filter((m) => !m.mountError && m.routes.D.measured !== false);
+    expect(
+      measured.length,
+      `route D found a collision to measure on only ${measured.length} components`
+    ).toBeGreaterThanOrEqual(MIN_COLLISIONS);
   });
 
   it('lists no component that the sweep can measure after all', () => {
@@ -499,7 +852,7 @@ describe('BlocksProvider cascade reaches the markup', () => {
         continue; // throwing without the fixture is what makes it necessary
       }
       if (bare.mountError) continue;
-      const changed = (['A', 'B', 'C'] as Route[]).some(
+      const changed = (['A', 'B', 'C', 'D', 'E'] as Route[]).some(
         (route) =>
           fixtured.routes[route].ok !== bare.routes[route].ok ||
           fixtured.routes[route].detail !== bare.routes[route].detail
@@ -516,7 +869,9 @@ describe('BlocksProvider cascade reaches the markup', () => {
 const ROUTE_TITLE: Record<Route, string> = {
   A: 'A — `defaults.slotClasses` reaches the root element',
   B: 'B — a conditional `overrides` rule reaches the markup',
-  C: 'C — provider `unstyled` drops the root element’s library classes'
+  C: 'C — provider `unstyled` drops the root element’s library classes',
+  D: 'D — a colliding `slotClasses` entry strips the library class it collides with',
+  E: 'E — a colliding `class` prop strips the library class it collides with'
 };
 
 describe.each(measurements.map((m) => [m.entry.exportName, m] as const))(
@@ -539,9 +894,11 @@ describe.each(measurements.map((m) => [m.entry.exportName, m] as const))(
       ).toBeUndefined();
     });
 
-    for (const route of ['A', 'B', 'C'] as Route[]) {
+    for (const route of ['A', 'B', 'C', 'D', 'E'] as Route[]) {
       const gap = KNOWN_GAPS[name]?.[route];
-      it.skipIf(notMeasurable || measurement.mountError)(ROUTE_TITLE[route], () => {
+      it.skipIf(
+        notMeasurable || measurement.mountError || measurement.routes[route].measured === false
+      )(ROUTE_TITLE[route], () => {
         const outcome = measurement.routes[route];
         if (gap) {
           expect(

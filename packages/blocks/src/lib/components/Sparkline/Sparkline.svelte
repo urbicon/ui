@@ -1,5 +1,6 @@
 <script lang="ts">
   import type { SparklineProps } from './index';
+  import { sparklineVariants, type SparklineSlots } from './sparkline.variants';
   import { linearScale, linePath, areaPath, extent } from '$lib/internal/charts/utils';
   import type { ChartPoint } from '$lib/internal/charts/utils';
 
@@ -34,24 +35,23 @@
     };
   });
 
-  function slot(name: 'root' | 'svg' | 'line' | 'area' | 'point'): string {
-    return slotClasses[name] ?? '';
+  const styles = $derived(unstyled ? undefined : sparklineVariants({ fluid }));
+
+  function slot(name: SparklineSlots, extra?: string): string {
+    const overrides = [slotClasses[name], extra].filter(Boolean).join(' ');
+    return styles?.[name]({ class: overrides }) ?? overrides;
   }
 </script>
 
 <span
   {...rest}
-  class={[
-    !unstyled && (fluid ? 'block w-full' : 'inline-block align-middle'),
-    slot('root'),
-    className
-  ]}
+  class={slot('root', className)}
   role={ariaLabel ? 'img' : undefined}
   aria-label={ariaLabel}
   aria-hidden={ariaLabel ? undefined : 'true'}
 >
   <svg
-    class={[fluid && 'w-full h-auto', slot('svg')]}
+    class={slot('svg')}
     width={fluid ? undefined : width}
     height={fluid ? undefined : height}
     viewBox="0 0 {width} {height}"

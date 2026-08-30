@@ -34,10 +34,13 @@
   const overflow = $derived(capped ? items.length - ((max as number) - 1) : 0);
 
   const baseClass = $derived(
-    [styles?.base(), slotClasses?.base, className].filter(Boolean).join(' ') || undefined
+    (styles
+      ? styles.base({ class: [slotClasses?.base, className] })
+      : [slotClasses?.base, className].filter(Boolean).join(' ')) || undefined
   );
   const overflowClass = $derived(
-    [styles?.overflow(), slotClasses?.overflow].filter(Boolean).join(' ') || undefined
+    (styles ? styles.overflow({ class: slotClasses?.overflow }) : slotClasses?.overflow) ||
+      undefined
   );
 </script>
 

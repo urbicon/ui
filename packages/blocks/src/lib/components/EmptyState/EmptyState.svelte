@@ -30,14 +30,16 @@
 
   const iconSize = $derived(density === 'compact' ? 32 : 40);
 
-  function slot(name: 'base' | 'iconWrapper' | 'title' | 'description' | 'children' | 'cta') {
-    const base = styles?.[name]?.() ?? '';
-    const override = slotClasses?.[name] ?? '';
-    return [base, override].filter(Boolean).join(' ');
+  function slot(
+    name: 'base' | 'iconWrapper' | 'title' | 'description' | 'children' | 'cta',
+    extra?: string
+  ) {
+    const overrides = [slotClasses?.[name], extra].filter(Boolean).join(' ');
+    return styles?.[name]?.({ class: overrides }) ?? overrides;
   }
 </script>
 
-<div {...rest} class={[slot('base'), className].filter(Boolean).join(' ')}>
+<div {...rest} class={slot('base', className)}>
   {#if IconComponent}
     <div class={slot('iconWrapper')}>
       <IconComponent size={iconSize} />

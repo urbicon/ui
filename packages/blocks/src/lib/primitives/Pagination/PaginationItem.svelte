@@ -1,5 +1,6 @@
 <script lang="ts">
   import Button from '../Button/Button.svelte';
+  import { paginationLinkVariants } from './pagination.variants';
   import type { PaginationItemProps } from '.';
 
   // `active`, NOT `pressed`: press is a *moment* (scale-[0.98], brightness-90,
@@ -38,7 +39,7 @@
        routes. -->
   <a
     {href}
-    class="focus-visible:outline-primary/50 inline-block no-underline focus-visible:rounded-md focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 {className}"
+    class={paginationLinkVariants({ class: className })}
     tabindex={disabled ? -1 : 0}
     aria-disabled={disabled || undefined}
     aria-current={active ? 'page' : undefined}

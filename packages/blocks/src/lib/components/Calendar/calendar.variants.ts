@@ -279,6 +279,11 @@ export const calendarVariants = tv({
   },
 
   variants: {
+    /** A leading week-number column adds one track to both grid rows. */
+    showWeekNumbers: {
+      true: { weekdayHeader: 'grid-cols-8', weekRow: 'grid-cols-8' },
+      false: {}
+    },
     variant: {
       default: {},
       bordered: {

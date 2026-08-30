@@ -28,15 +28,18 @@ export const compositionBarVariants = tv({
       'min-w-max rounded-contain px-2.5 py-1.5',
       'bg-surface-elevated text-text-primary text-xs',
       'shadow-[var(--blocks-shadow-md)] border border-border-hairline',
-      'opacity-0 transition-[opacity] duration-[var(--blocks-duration-fast)]',
+      // `translate` is in the list because the centring offset moved into the
+      // orientation axis below; a flip between orientations is the only time
+      // it changes, and the tooltip is `opacity-0` while it does.
+      'opacity-0 transition-[opacity,translate] duration-[var(--blocks-duration-fast)]',
       'group-hover:opacity-100 group-focus-visible:opacity-100'
     ],
     tooltipLabel: ['font-medium'],
-    tooltipDetail: ['text-text-tertiary tabular-nums'],
+    tooltipDetail: ['block text-text-tertiary tabular-nums'],
     legend: ['flex flex-wrap min-w-0'],
     // tier: modify — legend rows are small focusable affordances.
     legendItem: [
-      'group/item flex min-w-0 items-center gap-2 cursor-default',
+      'group/item flex w-full min-w-0 items-center gap-2 cursor-default text-left',
       'rounded-modify px-1 py-0.5 outline-none',
       'transition-[opacity,background-color] duration-[var(--blocks-duration-fast)]',
       'focus-visible:outline-none',
@@ -55,6 +58,7 @@ export const compositionBarVariants = tv({
         wrapper: 'flex-col gap-3',
         bar: 'w-full flex-row',
         segment: 'h-full',
+        tooltip: 'bottom-full left-1/2 mb-2 -translate-x-1/2',
         legend: 'flex-row gap-x-4 gap-y-2',
         legendItem: 'min-w-0 flex-shrink basis-auto'
       },
@@ -62,6 +66,7 @@ export const compositionBarVariants = tv({
         wrapper: 'flex-row items-stretch gap-4',
         bar: 'h-full min-h-[120px] w-12 flex-col-reverse',
         segment: 'w-full',
+        tooltip: 'top-1/2 right-full mr-2 -translate-y-1/2',
         legend: 'flex-col gap-1.5 flex-1 min-w-0'
       }
     },
@@ -92,8 +97,57 @@ export const compositionBarVariants = tv({
       bottom: { wrapper: 'flex-col' },
       left: { wrapper: 'flex-row-reverse items-start gap-4' }
     },
+    /**
+     * Colour of a segment's focus ring and of its legend row. Per item rather
+     * than per component — an item's own `intent` wins over the component's —
+     * so it is passed to the slot function, not to the top-level resolver.
+     */
+    intent: {
+      primary: {
+        segment: 'focus-visible:ring-primary/50',
+        legendItem: 'focus-visible:ring-primary/50'
+      },
+      secondary: {
+        segment: 'focus-visible:ring-secondary/50',
+        legendItem: 'focus-visible:ring-secondary/50'
+      },
+      success: {
+        segment: 'focus-visible:ring-success/50',
+        legendItem: 'focus-visible:ring-success/50'
+      },
+      warning: {
+        segment: 'focus-visible:ring-warning/50',
+        legendItem: 'focus-visible:ring-warning/50'
+      },
+      danger: {
+        segment: 'focus-visible:ring-danger/50',
+        legendItem: 'focus-visible:ring-danger/50'
+      },
+      neutral: {
+        segment: 'focus-visible:ring-neutral/50',
+        legendItem: 'focus-visible:ring-neutral/50'
+      }
+    },
+    /**
+     * Segment and legend-swatch background. A separate axis from `intent`
+     * because an item carrying an explicit `color` paints through an inline
+     * style and takes no background class, while it keeps the intent ring.
+     */
+    fill: {
+      primary: { segment: 'bg-primary', legendDot: 'bg-primary' },
+      secondary: { segment: 'bg-secondary', legendDot: 'bg-secondary' },
+      success: { segment: 'bg-success', legendDot: 'bg-success' },
+      warning: { segment: 'bg-warning', legendDot: 'bg-warning' },
+      danger: { segment: 'bg-danger', legendDot: 'bg-danger' },
+      neutral: { segment: 'bg-neutral', legendDot: 'bg-neutral' }
+    },
+    /** Another item is hovered, so this one recedes. */
+    dimmed: {
+      true: { segment: 'opacity-50', legendItem: 'opacity-60' },
+      false: {}
+    },
     isHovered: {
-      true: {},
+      true: { legendItem: 'bg-surface-subtle' },
       false: {}
     }
   },
