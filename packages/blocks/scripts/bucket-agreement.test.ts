@@ -1,17 +1,17 @@
 import { readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
-import { describe, expect, it } from 'vitest';
+import { __unstable__loadDesignSystem } from '@tailwindcss/node';
+import { beforeAll, describe, expect, it } from 'vitest';
 import { tailwindBucket } from '../src/lib/utils/variants';
-import { collectClassEffects, compareBuckets, firstClassSelector } from './bucket-agreement';
-import { findNonEmittingClasses } from './tailwind-emit';
+import { type CandidateAstSource, collectClassEffects, compareBuckets } from './bucket-agreement';
 
 /**
- * The bucket-agreement pass reads which CSS properties each class declares out
- * of the compiled stylesheet. Its failure mode is silence in both halves: a
- * scanner that loses its place attributes nothing and reports no disagreement,
- * and a comparison that is too loose reports none either.
+ * The bucket-agreement pass reads which CSS properties each class declares from
+ * the design system's per-candidate AST. Its failure mode is silence in both
+ * halves: a reader that returns nothing reports no disagreement, and a
+ * comparison that is too loose reports none either.
  *
- * So the reader is ground-truthed against the real compiler rather than a
+ * So the reader is ground-truthed against the real design system rather than a
  * fixture, and every block asserts both directions on the same run.
  */
 
@@ -23,105 +23,99 @@ const css = [
   readFileSync(resolve(repo, 'packages/table/src/lib/style/table-theme.css'), 'utf-8')
 ].join('\n');
 
-const effectsOf = async (classes: string[]) => {
-  const probe = await findNonEmittingClasses(classes, { css, base: repo });
-  return collectClassEffects(probe.css, classes);
-};
-
-describe('firstClassSelector', () => {
-  it('takes the utility class, not the label a variant selector ends with', () => {
-    expect(firstClassSelector('.bg-primary')).toBe('.bg-primary');
-    expect(firstClassSelector('.hover\\:bg-primary:hover')).toBe('.hover\\:bg-primary');
-    expect(firstClassSelector('.group-hover\\:opacity-100:is(:where(.group):hover *)')).toBe(
-      '.group-hover\\:opacity-100'
-    );
-    // `space-x-*` and `divide-*` wrap the class in a functional pseudo, so the
-    // selector does not START with it.
-    expect(firstClassSelector(':where(.-space-x-4 > :not(:last-child))')).toBe('.-space-x-4');
-    expect(firstClassSelector('.\\[\\&_path\\]\\:stroke-2 path')).toBe(
-      '.\\[\\&_path\\]\\:stroke-2'
-    );
-  });
-
-  it('keeps a hex escape whole, including its terminating space', () => {
-    // A class starting with a digit cannot be backslash-escaped, so Tailwind
-    // writes `2xl:px-4` as `.\32 xl\:px-4`. Reading that space as the end of
-    // the class name yields `.\32`, which matches no candidate.
-    expect(firstClassSelector('.\\32 xl\\:px-4')).toBe('.\\32 xl\\:px-4');
-  });
-
-  it('returns null for a selector that names no class', () => {
-    expect(firstClassSelector(':root')).toBeNull();
-    expect(firstClassSelector('*, ::before')).toBeNull();
-  });
+let design: CandidateAstSource;
+beforeAll(async () => {
+  design = (await __unstable__loadDesignSystem(css, { base: repo })) as CandidateAstSource;
 });
+const effectsOf = (classes: string[]) => collectClassEffects(design, classes);
 
 describe('collectClassEffects', () => {
-  it('reads the properties of plain, nested and at-rule-wrapped utilities', async () => {
-    const effects = await effectsOf([
+  it('reads the properties of plain, nested and at-rule-wrapped utilities', () => {
+    const effects = effectsOf([
       'bg-primary',
       'text-sm',
       'hover:bg-primary',
       'md:flex',
+      '2xl:px-4',
       'focus-visible:ring-2'
     ]);
     expect(effects.get('bg-primary')).toEqual(['background-color']);
     expect(effects.get('text-sm')).toEqual(['font-size', 'line-height']);
-    // `hover:` and `md:` sit inside @media, `focus-visible:` does not.
+    // `hover:`, `md:` and `2xl:` arrive wrapped in @media; `focus-visible:` does not.
     expect(effects.get('hover:bg-primary')).toEqual(['background-color']);
     expect(effects.get('md:flex')).toEqual(['display']);
+    expect(effects.get('2xl:px-4')).toEqual(['padding-inline']);
     expect(effects.get('focus-visible:ring-2')).toEqual(['--tw-ring-shadow', 'box-shadow']);
   });
 
-  it('keeps reading after a selector whose escaped quotes are not a string', async () => {
-    // Regression: `content-['*']` compiles to the selector
-    // `.after\:content-\[\'\*\'\]::after`. Reading `\'` as a string escape
-    // walks past the closing quote, and every rule after that one is lost —
-    // measured at 399 classes, all variant-prefixed, with no error raised.
-    const effects = await effectsOf([
-      "after:content-['*']",
-      "before:content-['']",
-      'hover:bg-primary',
-      'z-10'
-    ]);
-    expect(effects.get("after:content-['*']")).toEqual(['--tw-content', 'content']);
-    expect(effects.get('hover:bg-primary')).toEqual(['background-color']);
-    expect(effects.get('z-10')).toEqual(['z-index']);
-  });
-
-  it('omits a class Tailwind emits no rule for', async () => {
-    const effects = await effectsOf(['bg-primary', 'bg-not-a-token']);
-    expect(effects.has('bg-primary')).toBe(true);
-    expect(effects.has('bg-not-a-token')).toBe(false);
-  });
-
-  it('records the composition variables, not just the CSS property', async () => {
-    // The distinction the `scale-z` bucket rests on: both write `scale`, and
-    // only the variables say that one covers a third of what the other does.
-    const effects = await effectsOf(['scale-110', 'scale-z-150']);
-    expect(effects.get('scale-110')).toEqual([
+  it('skips the @property registrations Tailwind emits beside a utility', () => {
+    // `scale-*` ships `@property --tw-scale-x { syntax; inherits; initial-value }`
+    // next to the rule. Walking into it would credit the class with three
+    // properties it does not write, and every scale utility would then disagree
+    // with every other one.
+    expect(effectsOf(['scale-150']).get('scale-150')).toEqual([
       '--tw-scale-x',
       '--tw-scale-y',
       '--tw-scale-z',
       'scale'
     ]);
-    expect(effects.get('scale-z-150')).toEqual(['--tw-scale-z', 'scale']);
+    // The distinction the `scale-z` bucket rests on: both write `scale`, and
+    // only the variables say one covers a third of what the other does.
+    expect(effectsOf(['scale-z-150']).get('scale-z-150')).toEqual(['--tw-scale-z', 'scale']);
+  });
+
+  it('is unmoved by class shapes that have no readable CSS text', () => {
+    // Both of these broke an earlier reader that attributed compiled CSS back to
+    // classes by selector. `content-['*']` compiles to a selector holding
+    // escaped quotes, which read as a string desynced that scanner for the rest
+    // of the stylesheet; the `url()` carries a raw `;` and a `:` that invented a
+    // second property. Per-candidate ASTs have no selector text to parse.
+    const effects = effectsOf([
+      "after:content-['*']",
+      "before:content-['']",
+      'bg-[url(x.svg?a=1;phantom:none)]',
+      '[-ms-overflow-style:none]',
+      'hover:bg-primary'
+    ]);
+    expect(effects.get("after:content-['*']")).toEqual(['--tw-content', 'content']);
+    expect(effects.get('bg-[url(x.svg?a=1;phantom:none)]')).toEqual(['background-image']);
+    expect(effects.get('[-ms-overflow-style:none]')).toEqual(['-ms-overflow-style']);
+    expect(effects.get('hover:bg-primary')).toEqual(['background-color']);
+  });
+
+  it('reads a class whose rule is wrapped in a functional pseudo', () => {
+    // `space-x-*` compiles to `:where(.-space-x-4 > :not(:last-child))`, so the
+    // selector does not start with the class at all.
+    expect(effectsOf(['-space-x-4']).get('-space-x-4')).toEqual([
+      '--tw-space-x-reverse',
+      'margin-inline-end',
+      'margin-inline-start'
+    ]);
+  });
+
+  it('omits a class Tailwind emits no rule for', () => {
+    const effects = effectsOf(['bg-primary', 'bg-not-a-token', 'group']);
+    expect(effects.has('bg-primary')).toBe(true);
+    expect(effects.has('bg-not-a-token')).toBe(false);
+    // A marker emits nothing, which is why the deliberate pass-through classes
+    // need no allowlist: they never reach the comparison at all.
+    expect(effects.has('group')).toBe(false);
   });
 });
 
 describe('compareBuckets against the shipped table', () => {
-  it('reports a class the table buckets as null, and clears one it buckets', async () => {
-    const effects = await effectsOf(['fill-primary', 'blocks-not-a-utility-marker']);
-    const { unbucketed } = compareBuckets(effects, tailwindBucket);
-    expect(unbucketed.map((u) => u.cls)).toEqual([]);
-    // The marker emits no CSS, so it never reaches the comparison at all —
-    // which is why the deliberate pass-through classes need no allowlist.
-    expect(effects.has('blocks-not-a-utility-marker')).toBe(false);
+  it('reports a class the table buckets as null, and clears one it buckets', () => {
+    // `ordinal` is a real utility left without a bucket by design (it composes
+    // into font-variant-numeric). Without it this test would pass against a
+    // `compareBuckets` that returned an empty list unconditionally.
+    const { unbucketed } = compareBuckets(effectsOf(['fill-primary', 'ordinal']), tailwindBucket);
+    expect(unbucketed.map((u) => u.cls)).toEqual(['ordinal']);
+    expect(unbucketed[0].properties).toEqual(['--tw-ordinal', 'font-variant-numeric']);
   });
 
-  it('reports a bucket whose classes write different properties', async () => {
+  it('reports a bucket whose classes write different properties', () => {
     // The shape of the dba97fe8 bug: a size and a colour in one bucket.
-    const effects = await effectsOf(['text-primary', 'text-2xs']);
+    const effects = effectsOf(['text-primary', 'text-2xs']);
     const { collisions } = compareBuckets(effects, (cls) =>
       // A table that reads every `text-*` as a colour — the pre-dba97fe8 state.
       cls.startsWith('text-') ? 'text-color' : tailwindBucket(cls)
@@ -133,8 +127,8 @@ describe('compareBuckets against the shipped table', () => {
     );
   });
 
-  it('stays quiet when every class in a bucket writes the same properties', async () => {
-    const effects = await effectsOf(['bg-primary', 'bg-surface-base', 'hover:bg-primary']);
+  it('stays quiet when every class in a bucket writes the same properties', () => {
+    const effects = effectsOf(['bg-primary', 'bg-surface-base', 'hover:bg-primary']);
     expect(compareBuckets(effects, tailwindBucket).collisions).toEqual([]);
   });
 });

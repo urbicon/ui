@@ -1224,6 +1224,8 @@ describe('tv – tailwind conflict resolver', () => {
     const overrides: [string, string, string][] = [
       ['fill-primary', 'fill-danger', 'SVG paint — Sankey nodes, the Spinner arc'],
       ['stroke-current', 'stroke-danger', 'SVG stroke colour'],
+      ['stroke-2', 'stroke-[2px]', 'a stroke width in the unit spelling'],
+      ['stroke-[1.5]', 'stroke-(length:--w)', 'a stroke width through a custom property'],
       ['box-border', 'box-content', 'box-sizing'],
       ['list-disc', 'list-none', 'list-style-type'],
       ['overscroll-contain', 'overscroll-auto', 'overscroll-behavior'],
@@ -1253,13 +1255,25 @@ describe('tv – tailwind conflict resolver', () => {
     it('keeps classes that compose rather than replace', () => {
       // Each pair writes a DIFFERENT property (measured): the shorthand and its
       // axis, the snap type and its strictness, two numeric sub-axes, the
-      // touch-action keyword and a pan variable. Bucketing them together would
-      // make a composition strip itself.
+      // touch-action keyword and a pan variable, the SVG paint and its width,
+      // an alignment and a pseudo-element's content. Bucketing them together
+      // would make a composition strip itself.
       const compositions: [string, string][] = [
         ['overscroll-contain', 'overscroll-x-auto'],
         ['snap-x', 'snap-mandatory'],
         ['tabular-nums', 'ordinal'],
-        ['touch-none', 'touch-pan-x']
+        ['touch-none', 'touch-pan-x'],
+        // `stroke-current` is live on Progress's circular track and indicator
+        // and on the table's loading spinner. An SVG's initial `stroke` is
+        // `none`, so reading a width as a paint does not shift the mark — it
+        // deletes it.
+        ['stroke-current', 'stroke-[3px]'],
+        ['stroke-primary', 'stroke-[length:2px]'],
+        // Tailwind 4.1 safe alignment. `content-center-safe` is align-content;
+        // a value-exact list did not know the suffix and dropped it into the
+        // pseudo-element `content` bucket, where each stripped the other.
+        ['content-center-safe', "content-['×']"],
+        ["content-['×']", 'content-end-safe']
       ];
       for (const [a, b] of compositions) {
         const tokens = tv({ slots: { base: a } })()

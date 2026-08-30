@@ -91,8 +91,9 @@
  */
 import { unlink } from 'node:fs/promises';
 import { resolve } from 'node:path';
+import { __unstable__loadDesignSystem } from '@tailwindcss/node';
 import { collectClassEffects, compareBuckets } from './bucket-agreement';
-import { findNonEmittingClasses, isNonEmittingByDesign } from './tailwind-emit';
+import { findNonEmittingClasses } from './tailwind-emit';
 import { checkClassToken, collectThemeVars } from './theme-tokens';
 
 const ENGINE = resolve(import.meta.dir, '../src/lib/utils/variants.ts');
@@ -1056,11 +1057,11 @@ const staleHandWritten = Object.keys(HAND_WRITTEN_CSS).filter((t) => !handWritte
 // An over-reach is invisible the same way, until something renders wrong
 // (`text-2xs` read as a colour and stripped by `text-primary`, dba97fe8).
 //
-// So the table is compared against the compiler that just ran: which CSS
-// properties each class actually declares (scripts/bucket-agreement.ts), read
-// out of the stylesheet the emitted-CSS guard above already built. No second
-// startup, and no second model of Tailwind — a gate restating the table would
-// only ever agree with itself.
+// So the table is compared against the compiler: which CSS properties each
+// class actually declares, taken from the design system's own per-candidate AST
+// (scripts/bucket-agreement.ts). No second model of Tailwind — a gate restating
+// the table would only ever agree with itself — and no CSS text to parse, which
+// is what an earlier version got silently wrong in two ways at once.
 //
 // Deriving the table from the compiler instead was built and measured
 // (2026-08-28, 1 546 classes / 2 388 570 ordered pairs): 0,04 % disagreement,
@@ -1079,25 +1080,47 @@ const staleHandWritten = Object.keys(HAND_WRITTEN_CSS).filter((t) => !handWritte
 // `scale` and `active:scale` alike.
 const bucketFamily = (key: string): string => key.slice(key.lastIndexOf(':') + 1);
 
-const classEffects = collectClassEffects(probe.css, [...emitCandidates.keys()]);
-
-// Canary on the attribution, not just on the compiler. Every class that got a
-// rule must have been found in it; a class that emits CSS but reaches no
-// finding is a parser that has lost its place, and it fails silently — the
-// first version of this pass read the escaped quotes of
-// `.after\:content-\[\'\*\'\]::after` as a string and dropped the 399 classes
-// emitted after that rule, every one of them variant-prefixed, with both
-// compiler canaries green.
-const unattributed = [...emitCandidates.keys()].filter(
-  (cls) => !deadSet.has(cls) && !isNonEmittingByDesign(cls) && !classEffects.has(cls)
+const classEffects = collectClassEffects(
+  await __unstable__loadDesignSystem(tailwindCss, { base: REPO }),
+  [...emitCandidates.keys()]
 );
-if (unattributed.length > 0) {
-  console.error(
-    `✖ variants-lint: ${unattributed.length} class(es) emit CSS but were found in no rule (${unattributed
-      .slice(0, 5)
-      .join(', ')}) — the bucket pass is not reading the stylesheet it compiled.`
-  );
-  process.exit(1);
+
+/**
+ * Families whose members are meant to be worn TOGETHER, so the fold must stay
+ * silent about them: each writes its own `--tw-*` sub-axis variable and they
+ * compose into one property (`touch-pan-x touch-pan-y` is one touch-action,
+ * `ordinal tabular-nums` one font-variant-numeric). Giving such a family a
+ * bucket would make it strip itself — the one repair the unbucketed diagnosis
+ * must NOT be read as recommending.
+ *
+ * `samples` is what keeps the entry honest, on the same contract as the two
+ * lists above: every sample must still match its own pattern and must still
+ * bucket as null, so an entry cannot outlive the day its family gains a
+ * pattern. Members are open-ended, hence a pattern rather than a name list.
+ */
+const COMPOSING_UTILITIES: { pattern: RegExp; samples: string[]; why: string }[] = [
+  {
+    pattern: /^touch-(pan-|pinch-zoom$)/,
+    samples: ['touch-pan-x', 'touch-pan-y', 'touch-pinch-zoom'],
+    why: 'each writes its own --tw-pan-x/--tw-pan-y/--tw-pinch-zoom, composed into one touch-action — `touch-pan-x touch-pan-y` is a single allowed gesture set. The keyword forms (auto/none/manipulation) ARE bucketed, because those do replace each other.'
+  },
+  {
+    pattern: /^(ordinal|slashed-zero|(?:lining|oldstyle)-nums|(?:diagonal|stacked)-fractions)$/,
+    samples: ['ordinal', 'slashed-zero', 'lining-nums', 'diagonal-fractions'],
+    why: 'four independent font-variant-numeric sub-axes (--tw-ordinal, --tw-slashed-zero, --tw-numeric-figure, --tw-numeric-fraction) that compose into one property. Only the spacing axis is bucketed, because the library writes it. A component that starts writing one of these wants a bucket for THAT sub-axis (`lining-nums` and `oldstyle-nums` do replace each other), never one for the family.'
+  }
+];
+const composingBroken: string[] = [];
+for (const [i, entry] of COMPOSING_UTILITIES.entries()) {
+  for (const sample of entry.samples) {
+    if (!entry.pattern.test(sample)) {
+      composingBroken.push(`sample '${sample}' does not match its own pattern ${entry.pattern}`);
+    } else if (tailwindBucket(sample) != null) {
+      composingBroken.push(
+        `sample '${sample}' now buckets as '${tailwindBucket(sample)}' — the family gained a pattern, so entry ${i} of COMPOSING_UTILITIES is stale; drop it`
+      );
+    }
+  }
 }
 
 /**
@@ -1137,11 +1160,16 @@ const bucketExemptionsHit = new Set<string>();
 const agreement = compareBuckets(classEffects, tailwindBucket);
 const unbucketed: Finding[] = [];
 for (const { cls, properties } of agreement.unbucketed) {
+  // Suppressed, and deliberately not counted as "this entry earned its keep":
+  // these families are unused on purpose, and the day one is used is exactly
+  // the day the entry must already be there. What must not go stale is the
+  // entry's CLAIM, which the sample check above tests against the live table.
+  if (COMPOSING_UTILITIES.some((e) => e.pattern.test(cls))) continue;
   for (const where of emitCandidates.get(cls) ?? []) {
     unbucketed.push({
       where,
       token: cls,
-      detail: `Tailwind writes ${properties.join(', ')} for this class, but BUCKET_PATTERNS in utils/variants.ts matches nothing — the resolver returns null, so a consumer's override and this class both survive the fold and the stylesheet's emit order decides which one renders. Add the pattern for its family`
+      detail: `Tailwind writes ${properties.join(', ')} for this class, but BUCKET_PATTERNS in utils/variants.ts matches nothing — the resolver returns null, so a consumer's override and this class both survive the fold and the stylesheet's emit order decides which one renders. Two ways out, and picking the wrong one is worse than the gap: add the pattern for its family if these classes REPLACE each other, or — if they are meant to be worn together and each writes its own --tw-* sub-axis (a bucket would make the family strip itself) — add a COMPOSING_UTILITIES entry in this script`
     });
   }
 }
@@ -1189,6 +1217,9 @@ for (const f of unbucketed) {
 }
 for (const c of bucketCollisions)
   console.error(`✖ bucket disagrees with the compiler — ${c.detail}`);
+for (const problem of composingBroken) {
+  console.error(`✖ COMPOSING_UTILITIES: ${problem}.`);
+}
 for (const e of staleBucketExemptions) {
   console.error(
     `✖ stale BUCKET_EFFECT_EXEMPTIONS entry '${e.bucket}' — the bucket no longer holds those effect sets; drop the entry from variants-lint.ts.`
@@ -1243,6 +1274,7 @@ if (
   unbucketed.length > 0 ||
   bucketCollisions.length > 0 ||
   staleBucketExemptions.length > 0 ||
+  composingBroken.length > 0 ||
   missingTransition.length > 0 ||
   readingSurfaceHover.length > 0 ||
   intentAsText.length > 0 ||

@@ -12,8 +12,8 @@
  * to `text-primary`, fixed in dba97fe8).
  *
  * Neither direction is visible from the table itself, so this module does not
- * model Tailwind either. It reads the stylesheet Tailwind just compiled,
- * records which CSS properties each class declares, and reports:
+ * model Tailwind either. It asks the design system for each candidate's AST and
+ * reads the properties out of it, then reports:
  *
  *   - a class the compiler writes properties for that the table buckets as
  *     `null` — the resolver is silent about it;
@@ -25,188 +25,65 @@
  * `scale-z-150` writes only `--tw-scale-z` + `scale`, and without the
  * variables those two read as one effect.
  *
- * Pure string-in/string-out apart from `escapeClass` — no Bun APIs, no
- * compiler, importable from vitest.
+ * **Why the AST and not the stylesheet.** An earlier version compiled the
+ * classes to CSS and attributed each rule back to a class by its selector.
+ * That needs a CSS scanner and a selector-to-candidate matching step, and both
+ * were wrong in ways that fail silently: escaped quotes in a selector
+ * (`.after\:content-\[\'\*\'\]::after`) read as a string desynced the
+ * scanner and dropped the 399 classes emitted after that rule, and a raw `;`
+ * inside `url(x.svg?a=1;phantom:none)` invented a `phantom` property, which
+ * would surface as a bucket disagreement whose documented remedy is a fabricated
+ * exemption. `candidatesToAst` returns one AST **per candidate**, so there is no
+ * selector text to parse and no attribution step to lose the thread: the answer
+ * is keyed by the index it was asked with.
  */
 
-import { escapeClass } from './tailwind-emit';
+/** The `DesignSystem` surface this module needs — see `__unstable__loadDesignSystem`. */
+export type CandidateAstSource = {
+  candidatesToAst(candidates: readonly string[]): (AstNode[] | null)[];
+};
 
-/** Characters that end a class name inside a selector (see `emitsRuleFor`). */
-const SELECTOR_BOUNDARY = /[\s,{:>~+.[)]/;
+type AstNode =
+  | { kind: 'declaration'; property: string }
+  | { kind: 'at-rule'; name: string; nodes?: AstNode[] }
+  | { kind: string; nodes?: AstNode[] };
 
 /**
- * The first `.class` token of a selector, escapes intact, or null when the
- * selector names no class at all.
+ * Every property name declared below `node`, custom properties included.
  *
- * Not "the selector's leading token": `space-x-*` and `divide-*` compile to
- * `:where(.-space-x-4 > :not(:last-child))`, so the class sits inside a
- * functional pseudo. The first class token is the utility's own in every
- * shape Tailwind emits — the `.group` of a `group-hover:` rule comes later,
- * inside the trailing `:is(:where(.group):hover *)`.
- *
- * Escapes are consumed whole, and the CSS hex form matters: a class starting
- * with a digit is written `.\32 xl\:px-4` — one escape spanning `\`, the hex
- * digits and the terminating space. Reading that space as a boundary would cut
- * the token to `.\32` and attribute the rule to nothing.
+ * `@property` blocks are skipped: Tailwind emits them beside a utility to
+ * register the variables it composes with, and their `syntax` / `inherits` /
+ * `initial-value` declarations belong to the registration, not to what the
+ * class writes on the element. Every other at-rule (`@media`, `@supports`)
+ * wraps real declarations and is walked into.
  */
-export function firstClassSelector(selector: string): string | null {
-  for (let dot = selector.indexOf('.'); dot !== -1; dot = selector.indexOf('.', dot + 1)) {
-    let i = dot + 1;
-    while (i < selector.length) {
-      const ch = selector[i];
-      if (ch === '\\') {
-        i++;
-        let hex = 0;
-        while (i < selector.length && hex < 6 && /[0-9a-fA-F]/.test(selector[i])) {
-          i++;
-          hex++;
-        }
-        if (hex === 0) i++;
-        else if (/\s/.test(selector[i] ?? '')) i++;
-        continue;
-      }
-      if (SELECTOR_BOUNDARY.test(ch)) break;
-      i++;
-    }
-    if (i > dot + 1) return selector.slice(dot, i);
+function collectProperties(node: AstNode, into: Set<string>): void {
+  if (node.kind === 'declaration') {
+    into.add((node as { property: string }).property);
+    return;
   }
-  return null;
-}
-
-type Block = { prelude: string; body: string };
-
-/**
- * Index of the next character to read, given that `src[i]` opens a CSS
- * construct that must be consumed whole.
- *
- * The backslash case is the one that decides whether this module works at all.
- * In a DECLARATION `'…'` is a string; in a SELECTOR the same quote is an
- * escaped identifier character — `content-['*']` compiles to the selector
- * `.after\:content-\[\'\*\'\]::after`. Treating `\'` as a string escape makes
- * the scanner walk past the closing quote and desync for the rest of the
- * stylesheet: measured, it silently lost the 399 classes emitted after that
- * one rule, every one of them variant-prefixed. A backslash outside a string
- * escapes exactly one character, so it is consumed first and no quote it
- * carries can open one.
- */
-function skipOpaque(src: string, i: number): number {
-  const ch = src[i];
-  if (ch === '\\') return i + 2;
-  if (ch === '/' && src[i + 1] === '*') {
-    const end = src.indexOf('*/', i + 2);
-    return end === -1 ? src.length : end + 2;
-  }
-  if (ch === '"' || ch === "'") {
-    let j = i + 1;
-    while (j < src.length && src[j] !== ch) j += src[j] === '\\' ? 2 : 1;
-    return j + 1;
-  }
-  return i;
+  if (node.kind === 'at-rule' && (node as { name: string }).name === '@property') return;
+  for (const child of node.nodes ?? []) collectProperties(child, into);
 }
 
 /**
- * Split one CSS block body into its nested blocks and its own declarations.
- */
-function splitBlock(src: string): { blocks: Block[]; declarations: string[] } {
-  const blocks: Block[] = [];
-  const declarations: string[] = [];
-  let start = 0;
-  let i = 0;
-  while (i < src.length) {
-    const skipped = skipOpaque(src, i);
-    if (skipped !== i) {
-      i = skipped;
-      continue;
-    }
-    const ch = src[i];
-    if (ch === '{') {
-      let depth = 1;
-      let j = i + 1;
-      while (j < src.length && depth > 0) {
-        const jumped = skipOpaque(src, j);
-        if (jumped !== j) {
-          j = jumped;
-          continue;
-        }
-        if (src[j] === '{') depth++;
-        else if (src[j] === '}') depth--;
-        j++;
-      }
-      blocks.push({ prelude: src.slice(start, i).trim(), body: src.slice(i + 1, j - 1) });
-      i = j;
-      start = j;
-      continue;
-    }
-    if (ch === ';') {
-      declarations.push(src.slice(start, i));
-      i++;
-      start = i;
-      continue;
-    }
-    i++;
-  }
-  const tail = src.slice(start).trim();
-  if (tail) declarations.push(tail);
-  return { blocks, declarations };
-}
-
-/** The property names a declaration list writes (custom properties included). */
-function propertyNames(declarations: string[]): string[] {
-  const names: string[] = [];
-  for (const decl of declarations) {
-    const colon = decl.indexOf(':');
-    if (colon === -1) continue;
-    const name = decl.slice(0, colon).trim();
-    if (/^(?:--)?[a-zA-Z-][\w-]*$/.test(name)) names.push(name);
-  }
-  return names;
-}
-
-/** Every property name declared anywhere below `body`, at any nesting depth. */
-function propertiesBelow(body: string): string[] {
-  const { blocks, declarations } = splitBlock(body);
-  const names = propertyNames(declarations);
-  for (const block of blocks) names.push(...propertiesBelow(block.body));
-  return names;
-}
-
-/**
- * Map each of `classes` to the CSS properties its rules declare in `css`.
+ * Map each of `classes` to the CSS properties its rules declare.
  *
- * A class with no entry got no rule at all — that is the emitted-CSS guard's
- * finding, not this one's, so it is simply absent here.
+ * A class Tailwind produces no rule for is simply absent — that is the
+ * emitted-CSS guard's finding, not this one's.
  */
 export function collectClassEffects(
-  css: string,
+  design: CandidateAstSource,
   classes: readonly string[]
 ): Map<string, string[]> {
-  const bySelector = new Map<string, string>();
-  for (const cls of classes) bySelector.set(`.${escapeClass(cls)}`, cls);
-
-  const effects = new Map<string, Set<string>>();
-  const walk = (body: string) => {
-    for (const block of splitBlock(body).blocks) {
-      if (block.prelude.startsWith('@')) {
-        // At-rule: `@media`/`@supports` wrap the utilities they gate.
-        // `@property`/`@keyframes` declare no class rules, so recursing into
-        // them finds nothing to attribute.
-        walk(block.body);
-        continue;
-      }
-      const selector = firstClassSelector(block.prelude);
-      const cls = selector == null ? undefined : bySelector.get(selector);
-      if (cls == null) continue;
-      let set = effects.get(cls);
-      if (!set) {
-        set = new Set();
-        effects.set(cls, set);
-      }
-      for (const name of propertiesBelow(block.body)) set.add(name);
-    }
-  };
-  walk(css);
-
-  return new Map([...effects].map(([cls, set]) => [cls, [...set].sort()]));
+  const asts = design.candidatesToAst(classes);
+  const effects = new Map<string, string[]>();
+  for (const [i, cls] of classes.entries()) {
+    const properties = new Set<string>();
+    for (const node of asts[i] ?? []) collectProperties(node, properties);
+    if (properties.size > 0) effects.set(cls, [...properties].sort());
+  }
+  return effects;
 }
 
 export type UnbucketedFinding = { cls: string; properties: string[] };

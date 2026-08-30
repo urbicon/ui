@@ -79,7 +79,7 @@ function emitsRuleFor(css: string, cls: string): boolean {
  * one in an allowlist would mean editing this file every time a component
  * gains a named group.
  */
-export function isNonEmittingByDesign(cls: string): boolean {
+function isNonEmittingByDesign(cls: string): boolean {
   return /^(group|peer)(\/|$)/.test(cls);
 }
 
@@ -88,9 +88,6 @@ export type EmitProbe = {
   dead: string[];
   /** How many classes were compiled, for the caller's canary check. */
   checked: number;
-  /** The compiled stylesheet, so a second pass can read what each class writes
-   *  without starting the compiler again. */
-  css: string;
 };
 
 /**
@@ -108,7 +105,6 @@ export async function findNonEmittingClasses(
   const out = compiler.build(unique);
   return {
     dead: unique.filter((cls) => !isNonEmittingByDesign(cls) && !emitsRuleFor(out, cls)),
-    checked: unique.length,
-    css: out
+    checked: unique.length
   };
 }

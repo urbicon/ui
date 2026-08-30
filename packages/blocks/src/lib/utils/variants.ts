@@ -214,12 +214,21 @@ const BUCKET_PATTERNS: Array<[RegExp, BucketResolver]> = [
   [/^(?:flex-)?shrink(-\d+|-\[.+\])?$/, 'flex-shrink'],
   [/^basis-/, 'flex-basis'],
   [/^order-/, 'order'],
-  [/^items-(start|end|center|baseline|baseline-last|stretch)$/, 'align-items'],
-  [/^justify-(start|end|center|between|around|evenly|normal|stretch)$/, 'justify-content'],
-  [/^justify-items-(start|end|center|stretch|normal)$/, 'justify-items'],
-  [/^justify-self-(auto|start|end|center|stretch)$/, 'justify-self'],
-  [/^content-(start|end|center|between|around|evenly|baseline|stretch|normal)$/, 'align-content'],
-  [/^self-(auto|start|end|center|stretch|baseline|baseline-last)$/, 'align-self'],
+  // `(-safe)?` — Tailwind 4.1's safe alignment. It ships `center-safe` and
+  // `end-safe` on all nine alignment families today (measured); the pattern is
+  // deliberately wider than that because CSS allows `safe` on every positional
+  // value, and a value-exact list is what let `content-center-safe` fall out of
+  // align-content in the first place. A form Tailwind does not emit reaches no
+  // stylesheet, so matching it costs nothing.
+  [/^items-(start|end|center|baseline|baseline-last|stretch)(-safe)?$/, 'align-items'],
+  [/^justify-(start|end|center|between|around|evenly|normal|stretch)(-safe)?$/, 'justify-content'],
+  [/^justify-items-(start|end|center|stretch|normal)(-safe)?$/, 'justify-items'],
+  [/^justify-self-(auto|start|end|center|stretch)(-safe)?$/, 'justify-self'],
+  [
+    /^content-(start|end|center|between|around|evenly|baseline|stretch|normal)(-safe)?$/,
+    'align-content'
+  ],
+  [/^self-(auto|start|end|center|stretch|baseline|baseline-last)(-safe)?$/, 'align-self'],
   [/^place-content-/, 'place-content'],
   [/^place-items-/, 'place-items'],
   [/^place-self-/, 'place-self'],
@@ -387,9 +396,16 @@ const BUCKET_PATTERNS: Array<[RegExp, BucketResolver]> = [
   [/^bg-none$/, 'bg-image'],
   [/^bg-/, 'bg-color'],
   // SVG paint. `stroke-<number>` is a width, every other value is a colour —
-  // same three-layer shape as `border-`. The arbitrary form is numeric-only
-  // (`stroke-[1.5]`), mirroring how `text-[13px]` is read as a size.
-  [/^stroke-(\d+(?:\.\d+)?|\[[0-9.]+\])$/, 'stroke-width'],
+  // same three-layer shape as `border-`, and the same data-type hints `text-`
+  // needs, because `stroke-` is overloaded exactly as `text-` is. All four
+  // width spellings verified against the compiler: `stroke-2`, `stroke-[1.5]`,
+  // `stroke-[2px]`, `stroke-[length:2px]` and `stroke-(length:--w)` emit
+  // `stroke-width`; `stroke-[#fff]`, `stroke-[var(--x)]` and `stroke-(--x)`
+  // emit `stroke`. Reading a width as a colour is the expensive direction: an
+  // SVG's initial `stroke` is `none`, so a consumer changing only the width
+  // would strip the paint and the mark disappears.
+  [/^stroke-[[(]length:/, 'stroke-width'],
+  [/^stroke-(?:\d|\[[0-9.])/, 'stroke-width'],
   [/^stroke-/, 'stroke'],
   [/^fill-/, 'fill'],
   [/^from-/, 'gradient-from'],
@@ -451,9 +467,12 @@ const BUCKET_PATTERNS: Array<[RegExp, BucketResolver]> = [
   // spacing pair is bucketed: it is the axis the library writes, and its two
   // members are the only classes that genuinely replace each other.
   [/^(?:tabular|proportional)-nums$/, 'font-variant-numeric-spacing'],
-  // The pseudo-element content property. `content-center` and its siblings are
-  // align-content and are matched further up, so this catch-all is safe here.
-  [/^content-/, 'content'],
+  // The pseudo-element content property, matched by VALUE SHAPE rather than by
+  // "whatever the align-content list above did not catch". Relying on that list
+  // put `content-center-safe` in this bucket, where it stripped a real
+  // `content-['×']` and was stripped by it. The three shapes are the only ones
+  // Tailwind accepts here: arbitrary value, custom-property shorthand, `none`.
+  [/^content-(\[|\(|none$)/, 'content'],
   [/^placeholder-/, 'placeholder-color'],
   [/^align-(baseline|top|middle|bottom|text-top|text-bottom|sub|super)$/, 'vertical-align'],
 
