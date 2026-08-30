@@ -126,13 +126,28 @@ export function resolvePresetSlotClasses(
  * axis (`disabled: disabled || undefined`, see {@link ConditionalOverride}), so
  * `{ disabled: false }` fires under neither name rather than under one of them.
  *
- * **What it cannot supply**, both measured against the inner components'
- * condition objects: an axis the inner component *derives* rather than receives
- * carries its default here, not the derived value (`Input.tier` from the tier
- * context, `hasLeftIcon`, `messageType`); and an axis the config declares but
- * the inner component passes per slot-call rather than per component fires here
- * and not there — `iconPosition` on Input, `selected` on Select, two of 12 and
- * of 9 axes, none of them on Dialog.
+ * **What it cannot supply — and the direction matters.** A rule that fails to
+ * fire is noticed; a rule that fires on a state the component is not in looks
+ * like a success. Measured, three classes, all of them in #360:
+ *
+ * - *False hit, derived axis.* An axis the inner component computes rather than
+ *   receives carries its config default here. Under a `commit` tier context
+ *   `{ tier: 'modify' }` fires on NumberInput and `{ tier: 'commit' }` does not,
+ *   though the rendered Input is `commit`; on `<NumberInput error="x">`,
+ *   `{ messageType: 'helper' }` fires and `{ messageType: 'error' }` does not.
+ * - *Coerced axis.* `error` is a `string` prop on Input and Select and a boolean
+ *   axis in their configs. `{ error: true }` fires on the plain component and
+ *   never on a wrapper; `{ error: 'x' }` fires on a wrapper and can never match
+ *   inside. It is on Input and Select, so on all four wrappers.
+ * - *Missed hit, unknowable axis.* An axis the inner component owns (`open` on
+ *   Select) or derives from what it renders (`hasRightIcon`, which both input
+ *   wrappers always set) carries its default here, so a rule on its other side
+ *   never fires.
+ *
+ * One further axis is declared but passed per slot-call rather than per
+ * component, so a rule on it fires here and not there: `iconPosition` on Input,
+ * 1 of its 12 axes. (`selected` on Select is not a second case — its default is
+ * `false`, which the normalisation above removes, so it fires on neither side.)
  */
 export function wrapperActiveProps(
   innerConfig: TVConfig,

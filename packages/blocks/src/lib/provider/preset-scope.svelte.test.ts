@@ -195,10 +195,7 @@ describe.each(CASES.map((entry) => [entry.own, entry] as const))('%s', (_name, e
     // The other side of the same claim: `presets.${entry.inner}` is not broken,
     // it has simply stopped being the wrapper's namespace. Without this the row
     // above would also pass if the inner component's preset lookup were deleted.
-    expect(
-      neighbourCarriers,
-      `the plain ${entry.inner} next to it lost its own preset`
-    ).toBeGreaterThanOrEqual(1);
+    expect(neighbourCarriers, `the plain ${entry.inner} next to it lost its own preset`).toBe(1);
   });
 
   it('matches an `overrides` rule on an axis the caller left to the inner default', () => {
@@ -214,6 +211,24 @@ describe.each(CASES.map((entry) => [entry.own, entry] as const))('%s', (_name, e
       `an \`overrides\` rule on { ${axis}: ${JSON.stringify(value)} } — ${entry.inner}'s own ` +
         `default, which the caller did not write — reached no element of the ${entry.own}`
     ).toBe(1);
+  });
+
+  it('keeps an `overrides` rule from keying on a prop that is not a variant axis', () => {
+    // `wrapperActiveProps` narrows the condition object to the inner
+    // component's declared axes. Without that narrowing the wrapper would carry
+    // every prop the caller wrote, so `{ label: 'L' }` would fire under the
+    // wrapper's name while it can never fire under the inner component's —
+    // the same one-rule-two-behaviours asymmetry the whole change removes.
+    const { carriers, neighbourCarriers } = run(
+      { ...entry, props: { ...entry.props, label: 'L' } },
+      withOverride(entry.own, entry.slot, { label: 'L' })
+    );
+    expect(
+      carriers,
+      `{ label: 'L' } fired on the ${entry.own} — \`label\` is a prop, not a variant axis of ` +
+        `${entry.inner}, and no rule keyed on it fires there`
+    ).toBe(0);
+    expect(neighbourCarriers, 'the neighbour carries no rule of its own here').toBe(0);
   });
 
   it.skipIf(!('disabled' in (entry.innerConfig.variants ?? {})))(

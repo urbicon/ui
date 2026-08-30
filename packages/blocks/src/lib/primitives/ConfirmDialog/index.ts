@@ -159,6 +159,9 @@ export interface ConfirmDialogProps
    * `defaults.Dialog` still applies — the resolved preset reaches Dialog as
    * instance `slotClasses`, so it wins over the provider's dialog-wide defaults
    * and loses to `slotClasses` / `class` written on this component.
+   * A preset's `overrides` rules are matched against what you wrote here plus
+   * Dialog's own variant defaults. Dialog derives no axis of its own, so the
+   * mismatch #360 describes for the input wrappers does not arise here.
    */
   preset?: string;
 }

@@ -50,7 +50,7 @@ interface Mount {
  * One sweep is one component. Never a union over the components that share a
  * config: `chartVariants` is one config behind five charts, and a union only
  * catches a slot dead in all five — `<LineChart slotClasses={{ arc: … }} />`
- * type-checks, reaches nothing, and would hide inside a union that BarChart's
+ * type-checks, reaches nothing, and would hide inside a union that DonutChart's
  * `arc` satisfies.
  */
 interface Sweep {
@@ -63,9 +63,17 @@ interface Sweep {
   /** States of this one component. */
   mounts: Mount[];
   /**
-   * Slots this component reaches in no state, each with the reason. An entry
-   * whose slot IS reached — or is no longer declared — is an error, the
-   * contract `imports-lint` and the cascade sweep already carry.
+   * Slots this component paints in no state because another component sharing
+   * the config paints them: slot → the `name` of that sweep. Checked, not
+   * prose — the named component must reach the slot in this same run, so a
+   * wrong owner is an error rather than a comment nobody re-reads.
+   */
+  paintedElsewhere?: Record<string, string>;
+  /**
+   * Slots this component reaches in no state for any other reason, each with
+   * the reason in words. An entry in either map whose slot IS reached — or is
+   * no longer declared — is an error, the contract `imports-lint` and the
+   * cascade sweep already carry.
    */
   unreached: Record<string, string>;
 }
@@ -131,14 +139,10 @@ const CARTESIAN = {
 
 const CHART_SLOTS = Object.keys(chartVariants.config.slots as Record<string, unknown>);
 
-/**
- * Why a chart's `unreached` list is long: `ChartSlotClasses` is one type over
- * all five charts, so each of them declares the marks of the other four. Every
- * entry below names the chart that does paint the slot — the repair is to
- * narrow the type per chart, which is not this file's to make.
- */
-const OTHER_CHART = (owner: string) =>
-  `${owner} paints it; ChartSlotClasses is one shared type over all five charts`;
+// Why a chart's list is long: `ChartSlotClasses` is one type over all five
+// charts, so each of them declares the marks of the other four. Every entry
+// names the chart that does paint the slot, and that name is verified below —
+// the repair is to narrow the type per chart, which is not this file's to make.
 
 const SWEEPS: Sweep[] = [
   {
@@ -179,12 +183,13 @@ const SWEEPS: Sweep[] = [
     config: 'chartVariants',
     slots: CHART_SLOTS,
     mounts: [{ name: 'grouped bars with a legend and gridlines', props: CARTESIAN }],
-    unreached: {
-      mark: OTHER_CHART('LineChart / AreaChart'),
-      arc: OTHER_CHART('DonutChart'),
-      centerLabel: OTHER_CHART('DonutChart'),
-      centerSubLabel: OTHER_CHART('DonutChart')
-    }
+    paintedElsewhere: {
+      mark: 'LineChart',
+      arc: 'DonutChart',
+      centerLabel: 'DonutChart',
+      centerSubLabel: 'DonutChart'
+    },
+    unreached: {}
   },
   {
     name: 'LineChart',
@@ -192,13 +197,14 @@ const SWEEPS: Sweep[] = [
     config: 'chartVariants',
     slots: CHART_SLOTS,
     mounts: [{ name: 'two series with a legend and gridlines', props: CARTESIAN }],
-    unreached: {
-      axisLine: OTHER_CHART('BarChart'),
-      bar: OTHER_CHART('BarChart'),
-      arc: OTHER_CHART('DonutChart'),
-      centerLabel: OTHER_CHART('DonutChart'),
-      centerSubLabel: OTHER_CHART('DonutChart')
-    }
+    paintedElsewhere: {
+      axisLine: 'BarChart',
+      bar: 'BarChart',
+      arc: 'DonutChart',
+      centerLabel: 'DonutChart',
+      centerSubLabel: 'DonutChart'
+    },
+    unreached: {}
   },
   {
     name: 'AreaChart',
@@ -206,13 +212,14 @@ const SWEEPS: Sweep[] = [
     config: 'chartVariants',
     slots: CHART_SLOTS,
     mounts: [{ name: 'two stacked areas with a legend and gridlines', props: CARTESIAN }],
-    unreached: {
-      axisLine: OTHER_CHART('BarChart'),
-      bar: OTHER_CHART('BarChart'),
-      arc: OTHER_CHART('DonutChart'),
-      centerLabel: OTHER_CHART('DonutChart'),
-      centerSubLabel: OTHER_CHART('DonutChart')
-    }
+    paintedElsewhere: {
+      axisLine: 'BarChart',
+      bar: 'BarChart',
+      arc: 'DonutChart',
+      centerLabel: 'DonutChart',
+      centerSubLabel: 'DonutChart'
+    },
+    unreached: {}
   },
   {
     name: 'DonutChart',
@@ -233,14 +240,15 @@ const SWEEPS: Sweep[] = [
         }
       }
     ],
-    unreached: {
-      axis: OTHER_CHART('the cartesian charts'),
-      axisLine: OTHER_CHART('BarChart'),
-      axisLabel: OTHER_CHART('the cartesian charts'),
-      grid: OTHER_CHART('the cartesian charts'),
-      mark: OTHER_CHART('LineChart / AreaChart'),
-      bar: OTHER_CHART('BarChart')
-    }
+    paintedElsewhere: {
+      axis: 'BarChart',
+      axisLine: 'BarChart',
+      axisLabel: 'BarChart',
+      grid: 'BarChart',
+      mark: 'LineChart',
+      bar: 'BarChart'
+    },
+    unreached: {}
   },
   {
     name: 'ChartFrame',
@@ -250,20 +258,21 @@ const SWEEPS: Sweep[] = [
     // into, so every slot but those two belongs to a chart that draws itself.
     slots: CHART_SLOTS,
     mounts: [{ name: 'an empty frame', props: {} }],
-    unreached: {
-      axis: OTHER_CHART('the cartesian charts'),
-      axisLine: OTHER_CHART('BarChart'),
-      axisLabel: OTHER_CHART('the cartesian charts'),
-      grid: OTHER_CHART('the cartesian charts'),
-      mark: OTHER_CHART('LineChart / AreaChart'),
-      bar: OTHER_CHART('BarChart'),
-      arc: OTHER_CHART('DonutChart'),
-      centerLabel: OTHER_CHART('DonutChart'),
-      centerSubLabel: OTHER_CHART('DonutChart'),
-      legend: OTHER_CHART('every chart that takes `showLegend`'),
-      legendItem: OTHER_CHART('every chart that takes `showLegend`'),
-      legendSwatch: OTHER_CHART('every chart that takes `showLegend`')
-    }
+    paintedElsewhere: {
+      axis: 'BarChart',
+      axisLine: 'BarChart',
+      axisLabel: 'BarChart',
+      grid: 'BarChart',
+      mark: 'LineChart',
+      bar: 'BarChart',
+      arc: 'DonutChart',
+      centerLabel: 'DonutChart',
+      centerSubLabel: 'DonutChart',
+      legend: 'BarChart',
+      legendItem: 'BarChart',
+      legendSwatch: 'BarChart'
+    },
+    unreached: {}
   }
 ];
 
@@ -299,10 +308,19 @@ const measured = SWEEPS.map((sweep) => ({
   perMount: sweep.mounts.map((entry) => ({ entry, landed: landed(sweep, entry) }))
 }));
 
+/** Every slot a sweep reaches across its states. */
+const reachedBy = new Map<string, Set<string>>(
+  measured.map((m) => {
+    const union = new Set<string>();
+    for (const state of m.perMount) for (const slot of state.landed) union.add(slot);
+    return [m.sweep.name, union];
+  })
+);
+
 describe.each(measured.map((m) => [m.sweep.name, m] as const))('%s', (_name, measurement) => {
   const { sweep, perMount } = measurement;
-  const union = new Set<string>();
-  for (const { landed: reached } of perMount) for (const slot of reached) union.add(slot);
+  const union = reachedBy.get(sweep.name) as Set<string>;
+  const excused = { ...sweep.paintedElsewhere, ...sweep.unreached };
 
   it('mounts every state it declares', () => {
     const empty = perMount.filter((m) => m.landed.size === 0).map((m) => m.entry.name);
@@ -313,26 +331,42 @@ describe.each(measured.map((m) => [m.sweep.name, m] as const))('%s', (_name, mea
   });
 
   it('declares no slot that reaches no element', () => {
-    const dead = sweep.slots.filter((slot) => !union.has(slot) && !(slot in sweep.unreached));
+    const dead = sweep.slots.filter((slot) => !union.has(slot) && !(slot in excused));
     expect(
       dead,
       `${sweep.name} takes these slot names from ${sweep.config}, and across the ` +
         `${perMount.length} state(s) above no element of it carries them. A consumer writing ` +
         'one into `slotClasses` gets a silent no-op. Either wire the slot to the element it ' +
-        'names, delete it, or — if the state it lives in cannot be mounted here, or the slot ' +
-        `belongs to another component sharing the config — give it an \`unreached\` entry ` +
-        `saying so:\n  ${dead.join('\n  ')}`
+        'names, delete it, or — if the state it lives in cannot be mounted here — give it an ' +
+        '`unreached` entry saying so. A slot another component sharing the config paints ' +
+        `belongs in \`paintedElsewhere\`, under that component's name:\n  ${dead.join('\n  ')}`
     ).toEqual([]);
   });
 
-  it('lists no unreached slot that is reached after all', () => {
-    const stale = Object.keys(sweep.unreached).filter(
+  it('lists no excused slot that is reached after all', () => {
+    const stale = Object.keys(excused).filter(
       (slot) => union.has(slot) || !sweep.slots.includes(slot)
     );
     expect(
       stale,
-      `\`unreached\` entries that no longer hold — the slot is reached now, or is no longer ` +
-        `declared. Delete them:\n  ${stale.join('\n  ')}`
+      '`paintedElsewhere` / `unreached` entries that no longer hold — the slot is reached ' +
+        `now, or is no longer declared. Delete them:\n  ${stale.join('\n  ')}`
+    ).toEqual([]);
+  });
+
+  it('names, for every slot it hands to another component, one that paints it', () => {
+    // The owner name is the whole content of a `paintedElsewhere` entry, and a
+    // wrong one would otherwise be prose nothing re-reads. This file already
+    // mounts every component sharing the config, so it can just ask.
+    const wrong: string[] = [];
+    for (const [slot, owner] of Object.entries(sweep.paintedElsewhere ?? {})) {
+      const ownerReached = reachedBy.get(owner);
+      if (!ownerReached) wrong.push(`${slot}: no sweep named "${owner}"`);
+      else if (!ownerReached.has(slot)) wrong.push(`${slot}: "${owner}" does not paint it either`);
+    }
+    expect(
+      wrong,
+      `\`paintedElsewhere\` entries naming a component that does not paint the slot:\n  ${wrong.join('\n  ')}`
     ).toEqual([]);
   });
 

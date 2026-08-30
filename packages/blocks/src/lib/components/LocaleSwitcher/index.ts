@@ -58,6 +58,9 @@ export interface LocaleSwitcherProps
    * `defaults.Select` still applies — the resolved preset reaches Select as
    * instance `slotClasses`, so it wins over the provider's select-wide defaults
    * and loses to `slotClasses` / `class` written on this component.
+   * A preset's `overrides` rules are matched against what you wrote here plus
+   * Select's own variant defaults; an axis Select derives for itself (`tier`,
+   * `messageType`, `error`, `open`) can match the wrong state — #360.
    */
   preset?: string;
 

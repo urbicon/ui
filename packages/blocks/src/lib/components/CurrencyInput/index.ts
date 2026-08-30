@@ -90,6 +90,9 @@ export interface CurrencyInputProps
    * `defaults.Input` still applies — the resolved preset reaches Input as
    * instance `slotClasses`, so it wins over the provider's input-wide defaults
    * and loses to `slotClasses` / `class` written on this component.
+   * A preset's `overrides` rules are matched against what you wrote here plus
+   * Input's own variant defaults; an axis Input derives for itself (`tier`,
+   * `messageType`, `error`) can match the wrong state — #360.
    */
   preset?: string;
 
