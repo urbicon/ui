@@ -107,13 +107,13 @@
     resolveSlotClasses(blocksConfig, 'StepperStep', preset, variantProps, slotClassesProp)
   );
 
-  function slot(key: keyof typeof styles, extra?: string) {
+  function slot(key: keyof typeof styles, extra?: string, variants?: StepperVariants) {
     const overrides = [slotClasses?.[key as keyof typeof slotClasses], extra]
       .filter(Boolean)
       .join(' ');
     if (unstyled) return overrides;
     const fn = styles[key];
-    return typeof fn === 'function' ? fn({ class: overrides }) : overrides;
+    return typeof fn === 'function' ? fn({ ...variants, class: overrides }) : overrides;
   }
 
   function handleClick() {
@@ -153,7 +153,9 @@
       <span class={slot('description')}>{description}</span>
     {/if}
     {#if optional}
-      <span class="{slot('description')} italic">{bt('stepper.optional')}</span>
+      <span class={slot('description', undefined, { optionalNote: true })}
+        >{bt('stepper.optional')}</span
+      >
     {/if}
   </div>
 {/snippet}

@@ -1,5 +1,6 @@
 import type { Snippet } from 'svelte';
 import type { HTMLAttributes } from 'svelte/elements';
+import type { FormFieldSlots } from './form-field.variants';
 
 /**
  * @summary Label, helper text and error around any control that has none of its own.
@@ -68,15 +69,8 @@ export interface FormFieldProps extends Omit<HTMLAttributes<HTMLDivElement>, 'ch
    */
   class?: string;
 
-  /**
-   * Per-slot class overrides.
-   *
-   * FormField has no `tv()` config (it is a bare layout wrapper), so this
-   * key union is a hand-maintained literal instead of the usual
-   * `SlotNames<typeof xVariants>` derivation — keep it in sync with the
-   * elements rendered in `FormField.svelte`.
-   */
-  slotClasses?: Partial<Record<'wrapper' | 'label' | 'message' | 'helper', string>>;
+  /** Per-slot class overrides. */
+  slotClasses?: Partial<Record<FormFieldSlots, string>>;
 
   /**
    * Snippet receiving wiring metadata (`id`, `describedBy`, `invalid`,

@@ -181,9 +181,9 @@
   });
 
   const popoverClasses = $derived(
-    [unstyled ? '' : popoverVariants({ size }), slotClasses?.base, className]
-      .filter(Boolean)
-      .join(' ')
+    unstyled
+      ? [slotClasses?.base, className].filter(Boolean).join(' ')
+      : popoverVariants({ size, class: [slotClasses?.base, className] })
   );
 
   // ── Dismiss mode ──────────────────────────────────────────

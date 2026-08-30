@@ -10,6 +10,7 @@
   import ChevronDownIcon from '$lib/icons/ChevronDownIcon.svelte';
   import CalendarIcon from '$lib/icons/CalendarIcon.svelte';
   import { getCalendarContext } from './calendar.context';
+  import type { CalendarVariants } from './calendar.variants';
   import { formatMonthShort, formatMonthYear } from '$lib/date';
   import type { CalendarHeaderProps, CalendarSlotName, CalendarViewMode } from './index';
 
@@ -27,7 +28,10 @@
 
   const ctx = getCalendarContext();
 
-  function slot(key: CalendarSlotName, extra?: string) {
+  // `extra` carries consumer classes only. A library class put here shares a
+  // source with the consumer's `slotClasses` entry, and `stripConflicts` never
+  // runs inside one source — it belongs in `variants` instead.
+  function slot(key: CalendarSlotName, extra?: string, variants?: CalendarVariants) {
     const overrides = [
       ctx.slotClasses?.[key],
       slotClassesProp?.[key as keyof typeof slotClassesProp],
@@ -37,8 +41,11 @@
       .join(' ');
     const isUnstyled = unstyledProp ?? ctx.unstyled;
     if (isUnstyled) return overrides;
-    const styles = ctx.styles as Record<CalendarSlotName, (args: { class: string }) => string>;
-    return styles[key]?.({ class: overrides }) ?? overrides;
+    const styles = ctx.styles as Record<
+      CalendarSlotName,
+      (args: CalendarVariants & { class: string }) => string
+    >;
+    return styles[key]?.({ ...variants, class: overrides }) ?? overrides;
   }
 
   // View-aware aria-labels for navigation buttons
@@ -123,11 +130,14 @@
   // remaining controls wrap on their own, and the grid would raise the header's
   // min-content — which is exactly what the popover's shrink-to-fit width
   // measures itself against.
+  //
+  // The axis in calendar.variants.ts carries only what the flex path cannot
+  // survive: the grid itself, and the actions wrapper's `contents`, which would
+  // dissolve the cluster wherever the grid is off. Every placement is constant
+  // and sits in its slot base, inert in the flex path where `grid-column` /
+  // `grid-row` on a flex item does nothing. Both are config, so `unstyled`
+  // drops the whole layout together — the flag only selects the axis value.
   const stacksOnNarrow = $derived(showViewSwitcher);
-  // Grid placement below `sm`; inert in the flex path, where `grid-column` /
-  // `grid-row` on a flex item does nothing — so only `contents` on the actions
-  // wrapper has to be switched on and off.
-  const narrowGrid = $derived(stacksOnNarrow ? 'max-sm:grid max-sm:grid-cols-[auto_1fr_auto]' : '');
 
   // Map calendar size to SegmentGroup size
   const viewSwitcherSize = $derived(
@@ -213,8 +223,8 @@
     the core, stripped from the slot); the deliberate deltas it introduces are
     documented on the slot in calendar.variants.ts.
   -->
-  <div class={slot('header', [className, narrowGrid].filter(Boolean).join(' '))} {...restProps}>
-    <div class={slot('nav', 'max-sm:col-start-1 max-sm:row-start-1')}>
+  <div class={slot('header', className, { stacksOnNarrow })} {...restProps}>
+    <div class={slot('nav')}>
       <CoreIconButton
         class={slot('navButton')}
         onclick={() => ctx.navigate(-1)}
@@ -225,18 +235,7 @@
       </CoreIconButton>
     </div>
 
-    <!--
-      `flex-auto` (grow, but hypothetical size = max-content), NOT `flex-1`:
-      the flex line-breaking algorithm places items by their hypothetical size,
-      so a `flex-1` title (basis 0) would read as ~0 wide, keep the switcher on
-      line 1 and squeeze it until it collapsed. With `flex-auto` the title is
-      measured at its real width, the switcher wraps instead — and on one line
-      the grown title still centres its content in the slack, which is exactly
-      where `justify-between` used to put it.
-    -->
-    <div
-      class="flex flex-auto items-center justify-center gap-2 max-sm:col-start-2 max-sm:row-start-1"
-    >
+    <div class={slot('titleGroup', undefined, { stacksOnNarrow })}>
       <Popover bind:open={monthPickerOpen} placement="bottom">
         {#snippet trigger()}
           <button
@@ -377,9 +376,7 @@
         disabled={ctx.disabled}
         onValueChange={(v) => ctx.setView(v as CalendarViewMode)}
         ariaLabel={bt('calendar.viewSwitcher')}
-        class="max-sm:col-start-1 max-sm:row-start-2 max-sm:justify-self-start {showToday
-          ? 'max-sm:col-span-2'
-          : 'max-sm:col-span-3'}"
+        class={slot('switcher', undefined, { stacksOnNarrow, showToday })}
       >
         {#each viewButtons as vb (vb.view)}
           <!--
@@ -412,21 +409,7 @@
       </SegmentGroup>
     {/if}
 
-    <!--
-      `ml-auto` only bites once the actions have wrapped onto a line of their
-      own: on a full line the `flex-auto` title has already eaten the slack, so
-      there is nothing left for the margin to take and the desktop row is
-      untouched. Alone on a wrapped line it keeps them at the header's trailing
-      edge, where they sit on a wide screen, instead of dropping to the left.
-
-      `contents` in the grid path: the two buttons belong to different lines
-      there — next flanks the title, today sits beside the switcher — so the
-      wrapper has to stop being a box and let them place themselves. Its
-      `ml-auto`/`gap-1` go with it; the grid's third column and `gap-x-2` take
-      over. It stays a real box wherever the grid is off, so DatePicker's
-      header keeps the cluster it wraps as one unit.
-    -->
-    <div class={['ml-auto flex shrink-0 items-center gap-1', stacksOnNarrow && 'max-sm:contents']}>
+    <div class={slot('actions', undefined, { stacksOnNarrow })}>
       {#if showToday}
         <!--
           No explicit cell for this one: the grid item is Tooltip's own trigger
@@ -449,7 +432,7 @@
       {/if}
 
       <CoreIconButton
-        class={slot('navButton', 'max-sm:col-start-3 max-sm:row-start-1')}
+        class={slot('navButton', undefined, { navPlacement: 'next' })}
         onclick={() => ctx.navigate(1)}
         disabled={!ctx.canGoForward || ctx.disabled}
         aria-label={nextLabel}

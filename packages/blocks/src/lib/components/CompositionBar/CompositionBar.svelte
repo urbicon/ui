@@ -132,16 +132,9 @@
   const itemKey = (item: CompositionItem, index: number) =>
     item.id !== undefined ? item.id : index;
 
-  // Default color mapping: intent → bg class
-  const intentClass: Record<CompositionBarIntent, string> = {
-    primary: 'bg-primary',
-    secondary: 'bg-secondary',
-    success: 'bg-success',
-    warning: 'bg-warning',
-    danger: 'bg-danger',
-    neutral: 'bg-neutral'
-  };
-  // Readable text color on the segment background (for showValues)
+  // Readable text color on the segment background (for showValues). Not a
+  // variant axis like `fill` and `intent`: the element it lands on carries no
+  // slot, so there is no consumer entry for it to be folded against.
   const onColorClass: Record<CompositionBarIntent, string> = {
     primary: 'text-text-on-primary',
     secondary: 'text-text-on-fill',
@@ -150,27 +143,18 @@
     danger: 'text-text-on-fill',
     neutral: 'text-text-on-fill'
   };
-  const intentRingClass: Record<CompositionBarIntent, string> = {
-    primary: 'focus-visible:ring-primary/50',
-    secondary: 'focus-visible:ring-secondary/50',
-    success: 'focus-visible:ring-success/50',
-    warning: 'focus-visible:ring-warning/50',
-    danger: 'focus-visible:ring-danger/50',
-    neutral: 'focus-visible:ring-neutral/50'
-  };
-
-  function getColorClass(item: CompositionItem) {
-    if (item.color) return ''; // raw color via inline style
-    return intentClass[item.intent ?? intent];
+  /** The item's own intent, falling back to the component's. */
+  function itemIntent(item: CompositionItem): CompositionBarIntent {
+    return item.intent ?? intent;
+  }
+  /** An explicit `color` paints through an inline style, so no fill class. */
+  function itemFill(item: CompositionItem): CompositionBarIntent | undefined {
+    return item.color ? undefined : itemIntent(item);
   }
   function getOnColorClass(item: CompositionItem) {
     if (item.color) return 'text-white drop-shadow-[0_1px_1px_rgba(0,0,0,0.4)]';
     return onColorClass[item.intent ?? intent];
   }
-  function getRingClass(item: CompositionItem) {
-    return intentRingClass[item.intent ?? intent];
-  }
-
   function handleSelect(item: CompositionItem, index: number) {
     onItemSelect?.(item, index);
   }
@@ -277,16 +261,14 @@
             type="button"
             data-composition-segment
             data-segment-id={k}
-            class={[
-              unstyled
-                ? (slotClasses?.segment ?? '')
-                : styles.segment({ class: slotClasses?.segment }),
-              !unstyled && getColorClass(item),
-              !unstyled && getRingClass(item),
-              hoveredId !== null && !isHovered ? 'opacity-50' : ''
-            ]
-              .filter(Boolean)
-              .join(' ')}
+            class={unstyled
+              ? (slotClasses?.segment ?? '')
+              : styles.segment({
+                  intent: itemIntent(item),
+                  fill: itemFill(item),
+                  dimmed: hoveredId !== null && !isHovered,
+                  class: slotClasses?.segment
+                })}
             style={[
               // Vertical uses proportional flex instead of a percentage
               // height: the bar's height comes from min-h (h-full resolves
@@ -322,16 +304,9 @@
             {/if}
             <span
               aria-hidden="true"
-              class={[
-                unstyled
-                  ? (slotClasses?.tooltip ?? '')
-                  : styles.tooltip({ class: slotClasses?.tooltip }),
-                orientation === 'horizontal'
-                  ? 'bottom-full left-1/2 mb-2 -translate-x-1/2'
-                  : 'top-1/2 right-full mr-2 -translate-y-1/2'
-              ]
-                .filter(Boolean)
-                .join(' ')}
+              class={unstyled
+                ? (slotClasses?.tooltip ?? '')
+                : styles.tooltip({ class: slotClasses?.tooltip })}
             >
               {#if tooltipSnippet}
                 {@render tooltipSnippet(item, rawPct)}
@@ -344,14 +319,9 @@
                   {item.label}
                 </span>
                 <span
-                  class={[
-                    unstyled
-                      ? (slotClasses?.tooltipDetail ?? '')
-                      : styles.tooltipDetail({ class: slotClasses?.tooltipDetail }),
-                    'block'
-                  ]
-                    .filter(Boolean)
-                    .join(' ')}
+                  class={unstyled
+                    ? (slotClasses?.tooltipDetail ?? '')
+                    : styles.tooltipDetail({ class: slotClasses?.tooltipDetail })}
                 >
                   {fmtValue(item.value)}
                   {#if showPercentages}
@@ -426,17 +396,14 @@
         <li>
           <button
             type="button"
-            class={[
-              unstyled
-                ? (slotClasses?.legendItem ?? '')
-                : styles.legendItem({ class: slotClasses?.legendItem }),
-              'w-full text-left',
-              !unstyled && getRingClass(item),
-              isHovered ? 'bg-surface-subtle' : '',
-              hoveredId !== null && !isHovered ? 'opacity-60' : ''
-            ]
-              .filter(Boolean)
-              .join(' ')}
+            class={unstyled
+              ? (slotClasses?.legendItem ?? '')
+              : styles.legendItem({
+                  intent: itemIntent(item),
+                  isHovered,
+                  dimmed: hoveredId !== null && !isHovered,
+                  class: slotClasses?.legendItem
+                })}
             aria-label={`${item.label}: ${fmtValue(item.value)} (${fmtPercent(rawPct)})`}
             onmouseenter={() => (hoveredId = k)}
             onmouseleave={() => (hoveredId = null)}
@@ -448,14 +415,9 @@
               {@render legendItemSnippet(item, rawPct)}
             {:else}
               <span
-                class={[
-                  unstyled
-                    ? (slotClasses?.legendDot ?? '')
-                    : styles.legendDot({ class: slotClasses?.legendDot }),
-                  !unstyled && getColorClass(item)
-                ]
-                  .filter(Boolean)
-                  .join(' ')}
+                class={unstyled
+                  ? (slotClasses?.legendDot ?? '')
+                  : styles.legendDot({ fill: itemFill(item), class: slotClasses?.legendDot })}
                 style={item.color ? `background-color: ${item.color}` : ''}
                 aria-hidden="true"
               ></span>

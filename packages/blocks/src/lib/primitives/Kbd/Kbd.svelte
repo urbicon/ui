@@ -26,10 +26,12 @@
   const keyList = $derived(keys === undefined ? [] : Array.isArray(keys) ? keys : [keys]);
 
   const baseClass = $derived(
-    [styles?.base(), slotClasses?.base, className].filter(Boolean).join(' ')
+    styles
+      ? styles.base({ class: [slotClasses?.base, className] })
+      : [slotClasses?.base, className].filter(Boolean).join(' ')
   );
   const separatorClass = $derived(
-    [styles?.separator(), slotClasses?.separator].filter(Boolean).join(' ')
+    styles ? styles.separator({ class: slotClasses?.separator }) : (slotClasses?.separator ?? '')
   );
 </script>
 

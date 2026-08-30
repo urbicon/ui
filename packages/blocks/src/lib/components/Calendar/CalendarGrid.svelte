@@ -128,7 +128,7 @@
             </div>
           {/if}
 
-          <div class="{slot('weekRow')} {ctx.showWeekNumbers ? 'grid-cols-8' : ''}" role="row">
+          <div class={slot('weekRow')} role="row">
             {#if ctx.showWeekNumbers}
               <span class={slot('weekNumber')} role="rowheader">
                 {getWeekNumber(week[3])}

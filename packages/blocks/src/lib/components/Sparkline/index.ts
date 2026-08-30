@@ -1,9 +1,8 @@
 import type { HTMLAttributes } from 'svelte/elements';
+import type { SparklineSlots } from './sparkline.variants';
 
 /** Per-slot class overrides for {@link SparklineProps}. */
-export type SparklineSlotClasses = Partial<
-  Record<'root' | 'svg' | 'line' | 'area' | 'point', string>
->;
+export type SparklineSlotClasses = Partial<Record<SparklineSlots, string>>;
 
 /**
  * @summary A trend small enough to sit inside a table cell.

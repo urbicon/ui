@@ -139,9 +139,9 @@
   // `variantProps` feeds both the tv() style computation and the slot-class
   // cascade (so provider `overrides` can match the active variant/size).
   // Annotation is mandatory: without it the string literals widen to `string`
-  // and tsc rejects the call. The root only drives `variant`/`size`; the
+  // and tsc rejects the call. The root drives the whole-calendar axes; the
   // per-cell `dayState`/`hasEvents` axes are applied by sub-components.
-  const variantProps: CalendarVariants = $derived({ variant, size });
+  const variantProps: CalendarVariants = $derived({ variant, size, showWeekNumbers });
   const styles = $derived(calendarVariants(variantProps));
   const slotClasses = $derived(
     resolveSlotClasses(blocksConfig, 'Calendar', preset, variantProps, slotClassesProp)

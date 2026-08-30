@@ -575,9 +575,9 @@
 <div
   data-menu-root
   data-menu-open={open || undefined}
-  class={[unstyled ? slotClasses?.base : styles.base({ class: slotClasses?.base }), className]
-    .filter(Boolean)
-    .join(' ')}
+  class={unstyled
+    ? [slotClasses?.base, className].filter(Boolean).join(' ')
+    : styles.base({ class: [slotClasses?.base, className] })}
   {...restProps}
 >
   {#if contextTrigger}
@@ -627,9 +627,9 @@
           : styles.trigger({ class: slotClasses?.trigger })}
       >
         <span
-          class={[unstyled ? '' : styles.triggerText(), slotClasses?.triggerText]
-            .filter(Boolean)
-            .join(' ')}
+          class={unstyled
+            ? (slotClasses?.triggerText ?? '')
+            : styles.triggerText({ class: slotClasses?.triggerText })}
         >
           {placeholder}
         </span>

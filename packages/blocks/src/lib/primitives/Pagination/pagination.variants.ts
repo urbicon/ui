@@ -63,6 +63,20 @@ export const paginationVariants = tv({
   }
 });
 
+/**
+ * The `<a>` of a link-based pagination item. It carries no look of its own —
+ * the `Button` inside paints it — only the inline box and the focus ring the
+ * anchor needs because the inner button is `tabindex="-1"`.
+ */
+export const paginationLinkVariants = tv({
+  base: [
+    'inline-block no-underline',
+    'focus-visible:rounded-md focus-visible:outline focus-visible:outline-2',
+    'focus-visible:outline-offset-2 focus-visible:outline-primary/50'
+  ]
+});
+
+export type PaginationLinkVariants = VariantProps<typeof paginationLinkVariants>;
 export type PaginationVariants = VariantProps<typeof paginationVariants>;
 /** Slot names derived from the tv() config — single source of truth for slotClasses. */
 export type PaginationSlots = SlotNames<typeof paginationVariants>;

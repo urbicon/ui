@@ -36,6 +36,16 @@ export const stepperVariants = tv({
     content: 'text-text-secondary'
   },
   variants: {
+    /**
+     * The "(optional)" note under the label. Its own axis rather than a class
+     * beside `slot('description')`, because it shares that slot's element
+     * type: an axis passes through the fold, so a consumer's
+     * `slotClasses.description` can still beat it.
+     */
+    optionalNote: {
+      true: { description: 'italic' },
+      false: {}
+    },
     // 3-tier semantic radius. Default `commit` — step indicators are
     // circular by convention (Material, HIG, Carbon). `modify` produces
     // a soft-rectangle indicator + separator for compact wizard bars

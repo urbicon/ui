@@ -5,6 +5,7 @@
   import { Input } from '$lib/primitives/Input';
   import { Popover } from '$lib/primitives/Popover';
   import { Calendar } from '$lib/components/Calendar';
+  import { datePickerVariants } from './datepicker.variants';
   import { resolveIcon } from '$lib/icons';
   import CalendarIconDefault from '$lib/icons/CalendarIcon.svelte';
   import CloseIconDefault from '$lib/icons/CloseIcon.svelte';
@@ -255,7 +256,7 @@
 </script>
 
 <div
-  class="relative w-full {className}"
+  class={datePickerVariants({ class: className })}
   {...restProps}
   bind:this={triggerEl}
   onkeydown={handleKeydown}

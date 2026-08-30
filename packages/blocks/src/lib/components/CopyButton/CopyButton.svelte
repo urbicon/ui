@@ -76,13 +76,15 @@
   );
 
   const buttonClass = $derived(
-    [styles?.base(), slotClasses?.base, className].filter(Boolean).join(' ') || undefined
+    (styles
+      ? styles.base({ class: [slotClasses?.base, className] })
+      : [slotClasses?.base, className].filter(Boolean).join(' ')) || undefined
   );
   const iconClass = $derived(
-    [styles?.icon(), slotClasses?.icon].filter(Boolean).join(' ') || undefined
+    (styles ? styles.icon({ class: slotClasses?.icon }) : slotClasses?.icon) || undefined
   );
   const labelClass = $derived(
-    [styles?.label(), slotClasses?.label].filter(Boolean).join(' ') || undefined
+    (styles ? styles.label({ class: slotClasses?.label }) : slotClasses?.label) || undefined
   );
 
   // The visible label reflects state for sighted users (screen readers get the
