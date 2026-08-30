@@ -1118,14 +1118,22 @@ if (unread.length > 0) {
  * bucket would make it strip itself — the one repair the unbucketed diagnosis
  * must NOT be read as recommending.
  *
- * `samples` is what keeps the entry honest, on the same contract as the two
- * lists above, and it has to fail in BOTH directions. Every sample must still
- * match its own pattern and still bucket as null — so an entry cannot outlive
- * the day its family gains a pattern — AND must still emit CSS, so an entry
- * cannot outlive the day Tailwind drops the family. Without that second half a
- * typo (`touch-pan-xx`) vouches for nothing while looking right: it buckets as
- * null precisely BECAUSE it is not a utility. Members are open-ended, hence a
- * pattern rather than a name list.
+ * Three checks keep an entry honest, on the same contract as the two lists
+ * above. Every sample must still match its own pattern and still bucket as
+ * null, so an entry cannot outlive the day its family gains a pattern; and must
+ * still emit CSS, so it cannot outlive the day Tailwind drops the family —
+ * without which a typo (`touch-pan-xx`) vouches for nothing while looking
+ * right, bucketing as null precisely BECAUSE it is not a utility.
+ *
+ * The third is the one the samples cannot give. Members are open-ended, so what
+ * an entry suppresses is whatever its PATTERN matches, and nothing tied that
+ * back to the family: widening entry 0 to `/^(touch-(pan-|pinch-zoom$)|fill-)/`
+ * swallows all eleven `fill-*` findings with every sample still green. So the
+ * entry's actual claim — each member writes its own `--tw-*` sub-axis and
+ * therefore composes — is asserted on every class it suppresses, not just on
+ * the ones it names. That also covers the claim going stale on its own: were
+ * Tailwind to reduce `touch-pan-x` to a plain `touch-action`, the family would
+ * need a bucket, and the three checks above would all stay green.
  */
 const COMPOSING_UTILITIES: { pattern: RegExp; samples: string[]; why: string }[] = [
   {
@@ -1140,6 +1148,16 @@ const COMPOSING_UTILITIES: { pattern: RegExp; samples: string[]; why: string }[]
   }
 ];
 const composingBroken: string[] = [];
+const composingOverreach = new Map<number, string[]>();
+/**
+ * The property shape that makes a utility composable: its own `--tw-*` axis
+ * variable beside the shared property. `touch-pan-x` writes `--tw-pan-x` and
+ * `touch-action`, so two pan utilities combine; `touch-none` writes
+ * `touch-action` alone and therefore replaces rather than composes.
+ */
+const composesOwnAxis = (properties: readonly string[]): boolean =>
+  properties.some((property) => property.startsWith('--tw-'));
+
 // Read through the same reader the gate uses, so a sample that emits nothing
 // and a reader that returns nothing both surface here.
 const composingSampleEffects = collectClassEffects(
@@ -1157,6 +1175,10 @@ for (const [i, entry] of COMPOSING_UTILITIES.entries()) {
     } else if (!composingSampleEffects.has(sample)) {
       composingBroken.push(
         `sample '${sample}' emits no CSS — it is a typo or a utility Tailwind no longer ships, so entry ${i} of COMPOSING_UTILITIES excuses nothing; fix the sample or drop the entry`
+      );
+    } else if (!composesOwnAxis(composingSampleEffects.get(sample) as string[])) {
+      composingBroken.push(
+        `sample '${sample}' writes ${(composingSampleEffects.get(sample) as string[]).join(', ')} — no --tw-* sub-axis of its own, so it REPLACES its siblings instead of composing with them and entry ${i} of COMPOSING_UTILITIES no longer describes the family; it wants a bucket instead`
       );
     }
   }
@@ -1202,8 +1224,14 @@ for (const { cls, properties } of agreement.unbucketed) {
   // Suppressed, and deliberately not counted as "this entry earned its keep":
   // these families are unused on purpose, and the day one is used is exactly
   // the day the entry must already be there. What must not go stale is the
-  // entry's CLAIM, which the sample check above tests against the live table.
-  if (COMPOSING_UTILITIES.some((e) => e.pattern.test(cls))) continue;
+  // entry's CLAIM — which is why suppression is conditional on the class
+  // actually composing, and a match that does not is reported as an
+  // over-reaching pattern rather than quietly swallowed.
+  const matched = COMPOSING_UTILITIES.findIndex((e) => e.pattern.test(cls));
+  if (matched !== -1) {
+    if (composesOwnAxis(properties)) continue;
+    composingOverreach.set(matched, [...(composingOverreach.get(matched) ?? []), cls]);
+  }
   for (const where of emitCandidates.get(cls) ?? []) {
     unbucketed.push({
       where,
@@ -1258,6 +1286,15 @@ for (const c of bucketCollisions)
   console.error(`✖ bucket disagrees with the compiler — ${c.detail}`);
 for (const problem of composingBroken) {
   console.error(`✖ COMPOSING_UTILITIES: ${problem}.`);
+}
+for (const [i, classes] of composingOverreach) {
+  console.error(
+    `✖ COMPOSING_UTILITIES: entry ${i}'s pattern ${COMPOSING_UTILITIES[i].pattern} also matches ${classes.length} class(es) that write no --tw-* sub-axis (${classes
+      .slice(0, 5)
+      .join(
+        ', '
+      )}) — those REPLACE each other and want a bucket, so the pattern is too wide and would have hidden them.`
+  );
 }
 for (const e of staleBucketExemptions) {
   console.error(
@@ -1314,6 +1351,7 @@ if (
   bucketCollisions.length > 0 ||
   staleBucketExemptions.length > 0 ||
   composingBroken.length > 0 ||
+  composingOverreach.size > 0 ||
   missingTransition.length > 0 ||
   readingSurfaceHover.length > 0 ||
   intentAsText.length > 0 ||
