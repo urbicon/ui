@@ -28,9 +28,12 @@ export const compositionBarVariants = tv({
       'min-w-max rounded-contain px-2.5 py-1.5',
       'bg-surface-elevated text-text-primary text-xs',
       'shadow-[var(--blocks-shadow-md)] border border-border-hairline',
-      // `translate` is in the list because the centring offset moved into the
-      // orientation axis below; a flip between orientations is the only time
-      // it changes, and the tooltip is `opacity-0` while it does.
+      // `translate` is in the list because `variants:lint` demands it once the
+      // centring offset sits in the orientation axis below: `-translate-x-1/2`
+      // writes the discrete `translate` property, and the lint reads only what
+      // the config declares. Measured — without it: "incomplete transition
+      // list 'transition-[opacity]' … the state change jumps instead of
+      // animating".
       'opacity-0 transition-[opacity,translate] duration-[var(--blocks-duration-fast)]',
       'group-hover:opacity-100 group-focus-visible:opacity-100'
     ],

@@ -36,14 +36,22 @@
     resolveSlotClasses(blocksConfig, 'AccordionItem', preset, variantProps, slotClassesProp)
   );
 
-  function slot(key: Exclude<keyof typeof styles, 'base'>, extra?: string) {
+  function slot(
+    key: Exclude<keyof typeof styles, 'base'>,
+    extra?: string,
+    variants?: AccordionVariants
+  ) {
     // Accordion-wide slotClasses first, the item's own after: both fold
     // through tv(), so on a conflict the item-level class wins its bucket.
     // Without the ctx half, the item slots the Accordion prop type declares
     // (trigger, contentInner, …) never reached the DOM.
+    //
+    // `extra` is for consumer classes only. A library class belongs in an axis
+    // passed through `variants` — here it would share a source with the
+    // consumer's entry, which resolves nothing against nothing.
     const overrides = [ctx.slotClasses?.[key], slotClasses?.[key], extra].filter(Boolean).join(' ');
     if (unstyled) return overrides;
-    return styles[key]({ class: overrides });
+    return styles[key]({ ...variants, class: overrides });
   }
 </script>
 
@@ -82,7 +90,7 @@
         <span>{title}</span>
       {/if}
 
-      <ChevronDownIcon class={slot('chevron', isOpen ? 'rotate-180' : '')} />
+      <ChevronDownIcon class={slot('chevron', undefined, { expanded: isOpen })} />
     </button>
   {/snippet}
   {@render children()}

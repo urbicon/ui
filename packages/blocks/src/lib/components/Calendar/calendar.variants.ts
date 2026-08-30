@@ -29,7 +29,11 @@ export const calendarVariants = tv({
     // view switcher and a narrow-viewport grid, and resolves its slots with a
     // second `extra` argument the core's resolver does not take (#191).
     title: 'font-semibold text-text-primary select-none tabular-nums',
-    nav: 'flex items-center gap-1 shrink-0',
+    // `max-sm:col-*`/`row-*` are the narrow-viewport grid placement. They are
+    // unconditional because `grid-column` / `grid-row` do nothing to a flex
+    // item, so only the grid itself (the `stacksOnNarrow` axis below) is
+    // switched — see CalendarHeader.svelte for where the line breaks fall.
+    nav: 'flex items-center gap-1 shrink-0 max-sm:col-start-1 max-sm:row-start-1',
     // Rendered on the internal CoreIconButton (behaviour-only base: inline-flex
     // centring, cursor/select affordance, focus-visible reset, disabled
     // opacity/cursor/inertness), so this slot carries only the visual identity
@@ -279,6 +283,26 @@ export const calendarVariants = tv({
   },
 
   variants: {
+    /**
+     * Below `sm` the header becomes a three-column grid so nav / title / nav
+     * stay on one row. Only with a view switcher — without one the remaining
+     * controls wrap on their own, and the grid would raise the header's
+     * min-content, which is what a popover's shrink-to-fit width measures
+     * itself against.
+     */
+    stacksOnNarrow: {
+      true: { header: 'max-sm:grid max-sm:grid-cols-[auto_1fr_auto]' },
+      false: {}
+    },
+    /**
+     * The forward nav button is the one nav control outside the `nav` group,
+     * so it carries its own grid column. An axis rather than a class beside
+     * `slot('navButton', …)`: the `extra` argument shares a source with the
+     * consumer's `slotClasses.navButton`, where nothing strips anything.
+     */
+    navPlacement: {
+      next: { navButton: 'max-sm:col-start-3 max-sm:row-start-1' }
+    },
     /** A leading week-number column adds one track to both grid rows. */
     showWeekNumbers: {
       true: { weekdayHeader: 'grid-cols-8', weekRow: 'grid-cols-8' },

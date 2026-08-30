@@ -93,6 +93,7 @@ const COLLISION_CANDIDATES = [
   'fill-none',
   'stroke-none',
   'grid-cols-1',
+  'rotate-0',
   'flex-col',
   'items-start',
   'justify-start',
@@ -104,9 +105,10 @@ const COLLISION_CANDIDATES = [
   'z-0',
   'cursor-auto',
   'transition-none',
-  // Second entry for the buckets a library class itself commonly occupies —
+  // Second entry for the buckets a library class most often occupies itself:
   // a candidate identical to the class under test proves nothing and is
-  // skipped, so those buckets need a fallback to stay probeable.
+  // skipped. Not every bucket above carries one — these are the buckets this
+  // corpus actually collided with.
   'inline',
   'static',
   'text-sm',
@@ -120,6 +122,7 @@ const COLLISION_CANDIDATES = [
   'italic',
   'underline',
   'grid-cols-2',
+  'rotate-45',
   'flex-row',
   'items-end',
   'justify-end',
@@ -134,6 +137,11 @@ const COLLISION_CANDIDATES = [
  * bucket at all (`blocks-button`). Such a class is unreachable for *any*
  * consumer class, which is a defect of the bucket table rather than of the
  * call site this route measures.
+ *
+ * How much that costs, measured over one sweep: **749 of 2 412 class tokens
+ * (31 %) get no candidate and are never asked**, and 10 of 292 slot elements
+ * are skipped whole. A green route D means "every class it could challenge
+ * lost", not "every class was challenged".
  */
 function collisionProbe(libraryClass: string): string | undefined {
   const boundary = libraryClass.lastIndexOf(':') + 1;
@@ -186,13 +194,18 @@ const KNOWN_GAPS: Record<string, Partial<Record<Route, string>>> = {
   Drawer: { D: 'CoreIconButton plumbing on `closeButton`, out of the ladder by design' },
   PromptInput: { D: 'CoreIconButton plumbing on `sendButton`, out of the ladder by design' },
   ResourceTimeline: { D: 'CoreIconButton plumbing on `navButton`, out of the ladder by design' },
-  // Planner keeps two defects of the #337/#338 class that PR-scope leaves
-  // alone: `DateGridScaffold` prepends `grid {gridColsClass}` to the row class
-  // its caller already folded, and Planner passes view-conditional library
-  // classes (`gap-2 max-md:hidden`, `md:hidden`) through the `extra` argument
-  // of its `slot()` helper, which lands them in the same source as the
-  // consumer's entry — where nothing strips anything. Both want the `view`
-  // axis the config already has. #349
+  // Two defects of the #337/#338 class that this PR leaves alone; both want
+  // the `view` axis the config already has. `DateGridScaffold` prepends
+  // `grid {gridColsClass}` to the row class its caller already folded, and
+  // Planner passes view-conditional library classes (`gap-2 max-md:hidden`,
+  // `md:hidden`) through the `extra` argument of its `slot()` helper, which
+  // lands them in the same source as the consumer's entry — where nothing
+  // strips anything.
+  //
+  // The `extra` misuse is a shape, not a Planner property: the same one was
+  // measured on `AccordionItem` and `CalendarHeader` (both repaired here), and
+  // route D sees it only where the component has a provider name. Read this
+  // entry as one instance, never as the roster. #349
   Planner: {
     D: '#349 — DateGridScaffold prepends the grid classes; view-conditional classes ride the `extra` argument. Plus CoreIconButton plumbing on `navButton`'
   },
@@ -269,10 +282,14 @@ const NOT_MEASURABLE: Record<string, string> = {};
 const MIN_MEASURED = 80;
 
 /**
- * Lower bound on the components route D finds a colliding candidate for. Set
- * just under the current count, for the same reason as `MIN_MEASURED`.
+ * Lower bound on the components route D finds a colliding candidate for.
+ *
+ * Tighter than `MIN_MEASURED` on purpose: a component route D cannot probe is
+ * **skipped**, not failed, so this floor is the only thing that reports the
+ * route quietly going blind. Set one below the measured count so a single
+ * legitimate removal passes and a shrinking candidate list does not.
  */
-const MIN_COLLISIONS = 70;
+const MIN_COLLISIONS = 78;
 
 const recorder = vi.hoisted(() => ({
   calls: [] as { component: string; activeProps: Record<string, unknown> }[]
@@ -435,10 +452,10 @@ function mountOnce(
     }
   }
 
-  // Measured over the 336 mounts of one sweep: a component resolves its
-  // provider name at most once per mount (320 mounts once, 16 not at all).
-  // `.at(-1)` is the settled value should that ever change — it is not
-  // covering for a repeat this corpus has.
+  // Measured across a full sweep: a component resolves its provider name at
+  // most once per mount — most mounts once, the rest not at all, none twice.
+  // `.at(-1)` is the settled value should that ever change; it is not covering
+  // for a repeat this corpus has.
   const condition = recorder.calls
     .filter((call) => call.component === entry.providerName)
     .at(-1)?.activeProps;
@@ -796,6 +813,31 @@ describe('BlocksProvider cascade reaches the markup', () => {
     expect(
       stale,
       `NOT_MEASURABLE entries that now mount — delete them:\n  ${stale.join('\n  ')}`
+    ).toEqual([]);
+  });
+
+  it('lists no KNOWN_GAPS route that has stopped being measured', () => {
+    // The per-route `it.skipIf(measured === false)` below skips the "listed in
+    // KNOWN_GAPS but passes now — delete the entry" assertion along with the
+    // route, so an entry whose route became unmeasurable would quietly stop
+    // claiming anything: neither the gap nor its repair gets reported. The
+    // sibling stale test checks component names only, never routes.
+    const stale: string[] = [];
+    for (const [name, routes] of Object.entries(KNOWN_GAPS)) {
+      const measurement = measurements.find((m) => m.entry.exportName === name);
+      if (!measurement) continue; // an unknown name is the sibling test's case
+      for (const route of Object.keys(routes) as Route[]) {
+        if (measurement.mountError) {
+          stale.push(`${name} ${route} — the component no longer mounts`);
+        } else if (measurement.routes[route].measured === false) {
+          stale.push(`${name} ${route} — ${measurement.routes[route].detail}`);
+        }
+      }
+    }
+    expect(
+      stale,
+      'KNOWN_GAPS entries whose route is no longer measured, so the entry asserts ' +
+        `nothing:\n  ${stale.join('\n  ')}`
     ).toEqual([]);
   });
 

@@ -34,7 +34,10 @@
   {#if label}
     <label for={ff.fieldId} class={styles.label({ class: slotClasses.label })}>
       {label}
-      {#if ff.required}<span class={styles.requiredMark()} aria-hidden="true">*</span>{/if}
+      {#if ff.required}<span
+          class={styles.requiredMark({ class: slotClasses.requiredMark })}
+          aria-hidden="true">*</span
+        >{/if}
     </label>
   {/if}
 

@@ -10,6 +10,7 @@
   import ChevronDownIcon from '$lib/icons/ChevronDownIcon.svelte';
   import CalendarIcon from '$lib/icons/CalendarIcon.svelte';
   import { getCalendarContext } from './calendar.context';
+  import type { CalendarVariants } from './calendar.variants';
   import { formatMonthShort, formatMonthYear } from '$lib/date';
   import type { CalendarHeaderProps, CalendarSlotName, CalendarViewMode } from './index';
 
@@ -27,7 +28,10 @@
 
   const ctx = getCalendarContext();
 
-  function slot(key: CalendarSlotName, extra?: string) {
+  // `extra` carries consumer classes only. A library class put here shares a
+  // source with the consumer's `slotClasses` entry, and `stripConflicts` never
+  // runs inside one source — it belongs in `variants` instead.
+  function slot(key: CalendarSlotName, extra?: string, variants?: CalendarVariants) {
     const overrides = [
       ctx.slotClasses?.[key],
       slotClassesProp?.[key as keyof typeof slotClassesProp],
@@ -37,8 +41,11 @@
       .join(' ');
     const isUnstyled = unstyledProp ?? ctx.unstyled;
     if (isUnstyled) return overrides;
-    const styles = ctx.styles as Record<CalendarSlotName, (args: { class: string }) => string>;
-    return styles[key]?.({ class: overrides }) ?? overrides;
+    const styles = ctx.styles as Record<
+      CalendarSlotName,
+      (args: CalendarVariants & { class: string }) => string
+    >;
+    return styles[key]?.({ ...variants, class: overrides }) ?? overrides;
   }
 
   // View-aware aria-labels for navigation buttons
@@ -123,11 +130,12 @@
   // remaining controls wrap on their own, and the grid would raise the header's
   // min-content — which is exactly what the popover's shrink-to-fit width
   // measures itself against.
+  //
+  // The grid itself is the `stacksOnNarrow` axis in calendar.variants.ts and
+  // the per-element placement sits in the slot bases there, inert in the flex
+  // path where `grid-column` / `grid-row` on a flex item does nothing. Only
+  // `contents` on the actions wrapper is still switched from here.
   const stacksOnNarrow = $derived(showViewSwitcher);
-  // Grid placement below `sm`; inert in the flex path, where `grid-column` /
-  // `grid-row` on a flex item does nothing — so only `contents` on the actions
-  // wrapper has to be switched on and off.
-  const narrowGrid = $derived(stacksOnNarrow ? 'max-sm:grid max-sm:grid-cols-[auto_1fr_auto]' : '');
 
   // Map calendar size to SegmentGroup size
   const viewSwitcherSize = $derived(
@@ -213,8 +221,8 @@
     the core, stripped from the slot); the deliberate deltas it introduces are
     documented on the slot in calendar.variants.ts.
   -->
-  <div class={slot('header', [className, narrowGrid].filter(Boolean).join(' '))} {...restProps}>
-    <div class={slot('nav', 'max-sm:col-start-1 max-sm:row-start-1')}>
+  <div class={slot('header', className, { stacksOnNarrow })} {...restProps}>
+    <div class={slot('nav')}>
       <CoreIconButton
         class={slot('navButton')}
         onclick={() => ctx.navigate(-1)}
@@ -449,7 +457,7 @@
       {/if}
 
       <CoreIconButton
-        class={slot('navButton', 'max-sm:col-start-3 max-sm:row-start-1')}
+        class={slot('navButton', undefined, { navPlacement: 'next' })}
         onclick={() => ctx.navigate(1)}
         disabled={!ctx.canGoForward || ctx.disabled}
         aria-label={nextLabel}

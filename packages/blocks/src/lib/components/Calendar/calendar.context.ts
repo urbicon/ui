@@ -165,6 +165,9 @@ export function getCalendarContext(): CalendarContext {
  * Replaces the 15x-duplicated `slot()` pattern in sub-components.
  */
 export function createSlotHelper(ctx: CalendarContext) {
+  // `extra` carries consumer classes only. A library class put here shares a
+  // source with the consumer's `slotClasses` entry, and `stripConflicts` never
+  // runs inside one source — it belongs in a variants axis instead.
   return (key: CalendarSlotName, extra?: string) => {
     const overrides = [ctx.slotClasses?.[key], extra].filter(Boolean).join(' ');
     if (ctx.unstyled) return overrides;

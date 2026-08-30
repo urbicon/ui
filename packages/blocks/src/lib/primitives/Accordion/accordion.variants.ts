@@ -32,6 +32,16 @@ export const accordionVariants = tv({
   //   card    → items as standalone card blocks with spacing, no borders
   //   ghost   → no separators, hover-tint per item
   variants: {
+    /**
+     * The item's panel is open, so its chevron points up. An axis rather than a
+     * class beside `slot('chevron')`: the `extra` argument lands in the same
+     * source as the consumer's `slotClasses.chevron`, and nothing strips within
+     * one source — `rotate-0` and `rotate-180` would both reach the attribute.
+     */
+    expanded: {
+      true: { chevron: 'rotate-180' },
+      false: {}
+    },
     variant: {
       default: {},
       card: {

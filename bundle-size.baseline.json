@@ -10,39 +10,39 @@
   },
   "sizes": {
     "A2UIView": {
-      "min": 395685,
-      "gz": 103273,
+      "min": 395751,
+      "gz": 103330,
       "net": {
-        "min": 381659,
-        "gz": 98674
+        "min": 381725,
+        "gz": 98730
       },
       "lazy": {
         "min": 7502,
-        "gz": 3245
+        "gz": 3246
       },
       "pkg": "blocks",
       "exports": ["A2UIView"]
     },
     "A2UIViewUrbicon": {
-      "min": 505385,
-      "gz": 128657,
+      "min": 505508,
+      "gz": 128738,
       "net": {
-        "min": 491360,
-        "gz": 124070
+        "min": 491483,
+        "gz": 124151
       },
       "lazy": {
         "min": 7502,
-        "gz": 3245
+        "gz": 3247
       },
       "pkg": "blocks",
       "exports": ["A2UIView", "urbiconA2uiCatalog"]
     },
     "Accordion": {
-      "min": 26183,
-      "gz": 8057,
+      "min": 26240,
+      "gz": 8085,
       "net": {
-        "min": 12159,
-        "gz": 3463
+        "min": 12216,
+        "gz": 3491
       },
       "lazy": {
         "min": 0,
@@ -206,15 +206,15 @@
       "exports": ["ButtonGroup"]
     },
     "Calendar": {
-      "min": 181966,
-      "gz": 49099,
+      "min": 182032,
+      "gz": 49149,
       "net": {
-        "min": 167937,
-        "gz": 44510
+        "min": 168004,
+        "gz": 44562
       },
       "lazy": {
         "min": 7502,
-        "gz": 3243
+        "gz": 3245
       },
       "pkg": "blocks",
       "exports": [
@@ -462,15 +462,15 @@
       "exports": ["CurrencyInput"]
     },
     "DatePicker": {
-      "min": 216173,
-      "gz": 57168,
+      "min": 216239,
+      "gz": 57215,
       "net": {
-        "min": 202153,
-        "gz": 52592
+        "min": 202219,
+        "gz": 52643
       },
       "lazy": {
         "min": 7502,
-        "gz": 3248
+        "gz": 3244
       },
       "pkg": "blocks",
       "exports": ["DatePicker", "DateRangePicker"]
@@ -560,11 +560,11 @@
       "exports": ["ForgotPasswordPage"]
     },
     "FormField": {
-      "min": 16486,
-      "gz": 5437,
+      "min": 16510,
+      "gz": 5440,
       "net": {
-        "min": 2602,
-        "gz": 913
+        "min": 2626,
+        "gz": 915
       },
       "lazy": {
         "min": 0,
@@ -1200,11 +1200,11 @@
       "exports": ["Tab", "TabItem", "TabPanel"]
     },
     "Table": {
-      "min": 395442,
-      "gz": 99571,
+      "min": 395499,
+      "gz": 99599,
       "net": {
-        "min": 381433,
-        "gz": 94969
+        "min": 381490,
+        "gz": 94998
       },
       "lazy": {
         "min": 7502,
