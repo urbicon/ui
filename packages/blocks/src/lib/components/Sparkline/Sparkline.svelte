@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { getBlocksConfig, resolveSlotClasses } from '$lib/provider';
   import type { SparklineProps } from './index';
   import { sparklineVariants, type SparklineSlots } from './sparkline.variants';
   import { linearScale, linePath, areaPath, extent } from '$lib/internal/charts/utils';
@@ -15,10 +16,18 @@
     strokeWidth = 1.5,
     ariaLabel,
     class: className,
-    unstyled = false,
-    slotClasses = {},
+    unstyled: unstyledProp = false,
+    slotClasses: slotClassesProp = {},
+    preset,
     ...rest
   }: SparklineProps = $props();
+
+  const blocksConfig = getBlocksConfig();
+  const unstyled = $derived(unstyledProp || blocksConfig?.unstyled || false);
+  const variantProps = $derived({ fluid });
+  const slotClasses = $derived(
+    resolveSlotClasses(blocksConfig, 'Sparkline', preset, variantProps, slotClassesProp)
+  );
 
   // Inset so the stroke + end-point aren't clipped at the edges.
   const pad = $derived(Math.max(strokeWidth, 1));
@@ -35,7 +44,7 @@
     };
   });
 
-  const styles = $derived(unstyled ? undefined : sparklineVariants({ fluid }));
+  const styles = $derived(unstyled ? undefined : sparklineVariants(variantProps));
 
   function slot(name: SparklineSlots, extra?: string): string {
     const overrides = [slotClasses[name], extra].filter(Boolean).join(' ');

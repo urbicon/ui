@@ -185,7 +185,7 @@
 {:else}
   <li
     aria-current={isActive ? 'step' : undefined}
-    class={className || undefined}
+    class={slot('stepItem', className)}
     {...restProps}
     {@attach attachStepNode}
   >

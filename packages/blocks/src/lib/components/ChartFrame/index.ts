@@ -49,6 +49,8 @@ export interface ChartFrameProps extends Omit<HTMLAttributes<HTMLElement>, 'chil
   unstyled?: boolean;
   /** Per-slot class overrides. */
   slotClasses?: ChartSlotClasses;
+  /** Apply a named preset registered on `<BlocksProvider>`. */
+  preset?: string;
 }
 
 export { default as ChartFrame } from './ChartFrame.svelte';

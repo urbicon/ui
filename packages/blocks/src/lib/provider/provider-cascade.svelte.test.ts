@@ -167,6 +167,9 @@ const KNOWN_GAPS: Record<string, Partial<Record<Route, string>>> = {
   A2UIView: { B: '#341 passes `{}` as its condition object' },
   AreaChart: { B: '#341 passes `{}` as its condition object' },
   BarChart: { B: '#341 passes `{}` as its condition object' },
+  // `chartVariants` carries one axis, `layout`, and ChartFrame renders only at
+  // `cartesian` — so it hands the resolver `{}` like the four charts around it.
+  ChartFrame: { B: '#341 passes `{}` as its condition object' },
   Chat: { B: '#341 passes `{}` as its condition object' },
   ChatMessageList: { B: '#341 passes `{}` though it declares `layout` and `density`' },
   DonutChart: { B: '#341 passes `{}` as its condition object' },
@@ -210,31 +213,19 @@ const KNOWN_GAPS: Record<string, Partial<Record<Route, string>>> = {
     D: '#349 — DateGridScaffold prepends the grid classes; view-conditional classes ride the `extra` argument. Plus CoreIconButton plumbing on `navButton`'
   },
 
-  // #339 — no provider name of their own. Two kinds, and the difference is
-  // what the fix has to be, so the entries state which one applies.
-  //
-  // Addressable under another component's name (measured): a rule written
-  // under the parent or the composed inner component does arrive. Giving these
-  // a provider name of their own would be the wrong repair.
+  // #339 — addressable, but under another component's name (measured): a rule
+  // written under the parent or the composed inner component does arrive, and
+  // both render their own markup only inside that parent. Giving either a
+  // provider name of its own is therefore NOT the repair — whether a compound
+  // part should be addressable alone is the open question #343 asks about
+  // condition keys, and it wants one answer for both.
   CalendarHeader: {
     A: '#339 addressable only under `Calendar` — measured: `defaults.Calendar.slotClasses` reaches its header, nav and title elements',
     B: '#339 addressable only under `Calendar`, whose condition object it does not contribute to'
   },
   LocaleSwitcher: {
-    A: '#339 addressable only under `Select` — measured: `defaults.Select.slotClasses.base` reaches its root; it renders nothing of its own',
+    A: '#339 addressable only under `Select` — measured: `defaults.Select.slotClasses` reaches both of its elements (`wrapper` the root, `base` the field), and a `preset` rides the rest spread into Select; it renders nothing of its own',
     B: '#339 addressable only under `Select`, whose condition object it does not contribute to'
-  },
-  // Genuinely outside the cascade: no provider name anywhere in the render,
-  // and `getBlocksConfig()` is never read, so `unstyled` does not arrive either.
-  ChartFrame: {
-    A: '#339 never calls resolveSlotClasses, so it has no provider name',
-    B: '#339 never calls resolveSlotClasses, so it has no provider name',
-    C: '#339 never reads getBlocksConfig(), so provider `unstyled` does nothing'
-  },
-  Sparkline: {
-    A: '#339 never calls resolveSlotClasses, so it has no provider name',
-    B: '#339 never calls resolveSlotClasses, so it has no provider name',
-    C: '#339 never reads getBlocksConfig(), so provider `unstyled` does nothing'
   }
 };
 

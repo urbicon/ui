@@ -170,6 +170,16 @@ export interface DatePickerProps extends Omit<HTMLAttributes<HTMLDivElement>, 'c
    */
   mint?: MintProp;
   class?: string;
+  /** Strip the wrapper's default tv() classes; `slotClasses.base` and `class` then stand alone. */
+  unstyled?: boolean;
+  /**
+   * Per-slot class overrides. One slot, `base` — the positioning wrapper the
+   * field and the popover anchor sit in. The field itself is an `Input` and the
+   * overlay a `Calendar`; restyle those under their own names.
+   */
+  slotClasses?: Partial<Record<'base', string>>;
+  /** Apply a named preset registered on `<BlocksProvider>`. */
+  preset?: string;
   /** Default month shown when the picker opens without a value. `0`–`11`. */
   defaultMonth?: MonthIndex;
   /** Default year shown when the picker opens without a value. */
@@ -297,6 +307,16 @@ export interface DateRangePickerProps extends Omit<HTMLAttributes<HTMLDivElement
    */
   mint?: MintProp;
   class?: string;
+  /** Strip the wrapper's default tv() classes; `slotClasses.base` and `class` then stand alone. */
+  unstyled?: boolean;
+  /**
+   * Per-slot class overrides. One slot, `base` — the positioning wrapper the
+   * field and the popover anchor sit in. The field itself is an `Input` and the
+   * overlay a `Calendar`; restyle those under their own names.
+   */
+  slotClasses?: Partial<Record<'base', string>>;
+  /** Apply a named preset registered on `<BlocksProvider>`. */
+  preset?: string;
   /** Default month shown when the picker opens without a value. `0`–`11`. */
   defaultMonth?: MonthIndex;
   /** Default year shown when the picker opens without a value. */

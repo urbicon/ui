@@ -358,7 +358,16 @@ defaults do not reach inside (they never were the documented path). The cores'
 few structural plumbing classes (flex centring, cursor, disabled inertness)
 sit outside the ladder entirely: they are behaviour, not an override surface.
 
-The implementation hinge is one type-annotated `variantProps` derived in `ComponentName.svelte` (`const variantProps: XVariants = $derived({ … })`). It feeds both `styles = xVariants(variantProps)` and the `activeProps` argument of `resolveSlotClasses`, so the `tv()` output and the prop-conditional `overrides` always match against the same set of active variants. The annotation is mandatory — without it the string-literal ternaries widen to `string` and silently stop matching the variant keys.
+A second scoping note, for rung 3: a **compound part** is addressed under the
+provider name of the component it renders inside of, never one of its own.
+`defaults.Calendar.slotClasses` reaches `CalendarHeader`'s header, nav and
+title; `defaults.Select` and `presets.Select` reach `LocaleSwitcher`, a
+pass-through wrapper that forwards `unstyled`, `slotClasses` and `preset` to
+the `<Select>` it renders — as `MenuItem` and `CalendarDay` are reached under
+`Menu` and `Calendar`. An entry under the part's own name matches no lookup and
+is silently never read.
+
+The implementation hinge is one type-annotated `variantProps` derived in `ComponentName.svelte` (`const variantProps: XVariants = $derived({ … })`). It feeds both `styles = xVariants(variantProps)` and the `activeProps` argument of `resolveSlotClasses`, so the `tv()` output and the prop-conditional `overrides` always match against the same set of active variants. The annotation is mandatory — without it the string-literal ternaries widen to `string` and silently stop matching the variant keys. A component whose `tv()` carries no axis at all (`DatePicker`, `DateRangePicker` — the root is a positioning context) has nothing to feed the first half; its object is built for `resolveSlotClasses` alone, out of the values it forwards to the components it wraps, so `overrides` still has something to match.
 
 ## Polymorphic Elements (Link-Buttons, Anchor-as-Card, etc.)
 

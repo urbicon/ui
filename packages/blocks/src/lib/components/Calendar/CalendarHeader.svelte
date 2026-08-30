@@ -21,7 +21,7 @@
     showToday = true,
     showViewSwitcher = true,
     class: className = '',
-    unstyled: unstyledProp,
+    unstyled: unstyledProp = false,
     slotClasses: slotClassesProp = {},
     ...restProps
   }: CalendarHeaderProps = $props();
@@ -39,7 +39,7 @@
     ]
       .filter(Boolean)
       .join(' ');
-    const isUnstyled = unstyledProp ?? ctx.unstyled;
+    const isUnstyled = unstyledProp || ctx.unstyled;
     if (isUnstyled) return overrides;
     const styles = ctx.styles as Record<
       CalendarSlotName,
