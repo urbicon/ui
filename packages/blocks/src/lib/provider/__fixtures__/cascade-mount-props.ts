@@ -107,6 +107,8 @@ export const MOUNT_FIXTURES: Record<string, MountFixture> = {
 
   // ── compound children: no parent, no context, no render ───────────────
   CalendarHeader: { family: 'calendar' },
+  // `value` pairs with the open item the accordion host declares — see the
+  // comment there for why this one is mounted open rather than at its default.
   AccordionItem: { family: 'accordion', props: { value: 'a', title: 'A' } },
   RadioItem: { family: 'radioGroup', props: { value: 'a', label: 'A' } },
   SegmentItem: { family: 'segmentGroup', props: { value: 'a' } },

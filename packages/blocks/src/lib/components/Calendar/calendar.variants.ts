@@ -34,6 +34,21 @@ export const calendarVariants = tv({
     // item, so only the grid itself (the `stacksOnNarrow` axis below) is
     // switched — see CalendarHeader.svelte for where the line breaks fall.
     nav: 'flex items-center gap-1 shrink-0 max-sm:col-start-1 max-sm:row-start-1',
+    /**
+     * Column around the title button. `flex-auto` (grow, hypothetical size =
+     * max-content), NOT `flex-1`: the flex line-breaking algorithm places items
+     * by their hypothetical size, so a `flex-1` title (basis 0) reads as ~0
+     * wide, keeps the switcher on line 1 and squeezes it until it collapses.
+     */
+    titleGroup: 'flex flex-auto items-center justify-center gap-2',
+    /** The view switcher's own root, styled through SegmentGroup's `class`. */
+    switcher: '',
+    /**
+     * Today + forward button. `ml-auto` bites only once the pair has wrapped
+     * onto a line of its own: on a full line the `flex-auto` title has already
+     * eaten the slack.
+     */
+    actions: 'ml-auto flex shrink-0 items-center gap-1',
     // Rendered on the internal CoreIconButton (behaviour-only base: inline-flex
     // centring, cursor/select affordance, focus-visible reset, disabled
     // opacity/cursor/inertness), so this slot carries only the visual identity
@@ -291,8 +306,26 @@ export const calendarVariants = tv({
      * itself against.
      */
     stacksOnNarrow: {
-      true: { header: 'max-sm:grid max-sm:grid-cols-[auto_1fr_auto]' },
+      true: {
+        header: 'max-sm:grid max-sm:grid-cols-[auto_1fr_auto]',
+        titleGroup: 'max-sm:col-start-2 max-sm:row-start-1',
+        switcher: 'max-sm:col-start-1 max-sm:row-start-2 max-sm:justify-self-start',
+        // The two action buttons belong to different lines in the grid — next
+        // flanks the title, today sits beside the switcher — so the wrapper
+        // stops being a box and lets them place themselves. It stays a real
+        // box wherever the grid is off, so DatePicker's header keeps the
+        // cluster it wraps as one unit.
+        actions: 'max-sm:contents'
+      },
       false: {}
+    },
+    /**
+     * Whether a today button occupies the grid's third column on the second
+     * row. Only reaches the switcher, which spans what is left.
+     */
+    showToday: {
+      true: { switcher: 'max-sm:col-span-2' },
+      false: { switcher: 'max-sm:col-span-3' }
     },
     /**
      * The forward nav button is the one nav control outside the `nav` group,

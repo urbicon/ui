@@ -281,16 +281,6 @@ const NOT_MEASURABLE: Record<string, string> = {};
  */
 const MIN_MEASURED = 80;
 
-/**
- * Lower bound on the components route D finds a colliding candidate for.
- *
- * Tighter than `MIN_MEASURED` on purpose: a component route D cannot probe is
- * **skipped**, not failed, so this floor is the only thing that reports the
- * route quietly going blind. Set one below the measured count so a single
- * legitimate removal passes and a shrinking candidate list does not.
- */
-const MIN_COLLISIONS = 78;
-
 const recorder = vi.hoisted(() => ({
   calls: [] as { component: string; activeProps: Record<string, unknown> }[]
 }));
@@ -793,17 +783,24 @@ describe('BlocksProvider cascade reaches the markup', () => {
     ).toBeGreaterThanOrEqual(MIN_MEASURED);
   });
 
-  it('finds a collision to measure on enough components', () => {
-    // Route D skips a component whose root element carries no class any
-    // candidate collides with, and a sweep that skipped nearly everything
-    // would report green while asking nothing. Floor set just under the
-    // measured count so a handful of legitimate changes pass and a broken
-    // candidate list does not.
-    const measured = measurements.filter((m) => !m.mountError && m.routes.D.measured !== false);
+  it('leaves nothing route A reaches unprobed by route D', () => {
+    // A component leaves route D by one of two doors: route A did not reach
+    // its root (which fails loudly on its own, or is a recorded #339 gap), or
+    // no candidate collided with anything its slots paint. Only the second is
+    // this route going blind, and `routes.A.ok` is what separates them.
+    //
+    // Deliberately a condition, not a floor under a count: a count cannot tell
+    // the two doors apart, so recording one more #339 gap — a normal, wanted
+    // act in this repo — would read as the candidate list rotting. `MIN_MEASURED`
+    // already covers "the sweep found nothing at all".
+    const blind = measurements
+      .filter((m) => m.routes.A.ok && m.routes.D.measured === false)
+      .map((m) => `${m.entry.exportName}: ${m.routes.D.detail}`);
     expect(
-      measured.length,
-      `route D found a collision to measure on only ${measured.length} components`
-    ).toBeGreaterThanOrEqual(MIN_COLLISIONS);
+      blind,
+      'route A reaches these components but route D can no longer probe them — nothing ' +
+        `in COLLISION_CANDIDATES collides with anything they paint:\n  ${blind.join('\n  ')}`
+    ).toEqual([]);
   });
 
   it('lists no component that the sweep can measure after all', () => {

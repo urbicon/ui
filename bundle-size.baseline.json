@@ -10,25 +10,25 @@
   },
   "sizes": {
     "A2UIView": {
-      "min": 395751,
-      "gz": 103330,
+      "min": 396028,
+      "gz": 103402,
       "net": {
-        "min": 381725,
-        "gz": 98730
+        "min": 382002,
+        "gz": 98800
       },
       "lazy": {
         "min": 7502,
-        "gz": 3246
+        "gz": 3244
       },
       "pkg": "blocks",
       "exports": ["A2UIView"]
     },
     "A2UIViewUrbicon": {
-      "min": 505508,
-      "gz": 128738,
+      "min": 505785,
+      "gz": 128809,
       "net": {
-        "min": 491483,
-        "gz": 124151
+        "min": 491760,
+        "gz": 124221
       },
       "lazy": {
         "min": 7502,
@@ -206,11 +206,11 @@
       "exports": ["ButtonGroup"]
     },
     "Calendar": {
-      "min": 182032,
-      "gz": 49149,
+      "min": 182309,
+      "gz": 49216,
       "net": {
-        "min": 168004,
-        "gz": 44562
+        "min": 168281,
+        "gz": 44630
       },
       "lazy": {
         "min": 7502,
@@ -462,15 +462,15 @@
       "exports": ["CurrencyInput"]
     },
     "DatePicker": {
-      "min": 216239,
-      "gz": 57215,
+      "min": 216516,
+      "gz": 57277,
       "net": {
-        "min": 202219,
-        "gz": 52643
+        "min": 202496,
+        "gz": 52705
       },
       "lazy": {
         "min": 7502,
-        "gz": 3244
+        "gz": 3245
       },
       "pkg": "blocks",
       "exports": ["DatePicker", "DateRangePicker"]
