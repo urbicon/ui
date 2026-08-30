@@ -71,7 +71,7 @@ export const paginationVariants = tv({
 export const paginationLinkVariants = tv({
   base: [
     'inline-block no-underline',
-    'focus-visible:rounded-md focus-visible:outline focus-visible:outline-2',
+    'focus-visible:rounded-md focus-visible:outline-2',
     'focus-visible:outline-offset-2 focus-visible:outline-primary/50'
   ]
 });
