@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { getBlocksConfig, resolveSlotClasses } from '$lib/provider';
   import type { ChartFrameProps } from './index';
   import type { ChartMargin } from '$lib/internal/charts/types';
   import { chartSlotResolver } from '$lib/internal/charts/variants';
@@ -12,10 +13,17 @@
     legend,
     fallback,
     class: className,
-    unstyled = false,
-    slotClasses = {},
+    unstyled: unstyledProp = false,
+    slotClasses: slotClassesProp = {},
+    preset,
     ...rest
   }: ChartFrameProps = $props();
+
+  const blocksConfig = getBlocksConfig();
+  const unstyled = $derived(unstyledProp || blocksConfig?.unstyled || false);
+  const slotClasses = $derived(
+    resolveSlotClasses(blocksConfig, 'ChartFrame', preset, {}, slotClassesProp)
+  );
 
   const DEFAULT_MARGIN: Required<ChartMargin> = { top: 8, right: 12, bottom: 28, left: 40 };
   const margin: Required<ChartMargin> = $derived({

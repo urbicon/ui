@@ -167,6 +167,9 @@ const KNOWN_GAPS: Record<string, Partial<Record<Route, string>>> = {
   A2UIView: { B: '#341 passes `{}` as its condition object' },
   AreaChart: { B: '#341 passes `{}` as its condition object' },
   BarChart: { B: '#341 passes `{}` as its condition object' },
+  // `chartVariants` carries one axis, `layout`, and ChartFrame renders only at
+  // `cartesian` — so it hands the resolver `{}` like the four charts around it.
+  ChartFrame: { B: '#341 passes `{}` as its condition object' },
   Chat: { B: '#341 passes `{}` as its condition object' },
   ChatMessageList: { B: '#341 passes `{}` though it declares `layout` and `density`' },
   DonutChart: { B: '#341 passes `{}` as its condition object' },
@@ -191,6 +194,9 @@ const KNOWN_GAPS: Record<string, Partial<Record<Route, string>>> = {
   // The slot class that *is* the override surface merges correctly; these
   // entries record the plumbing buckets that stay out of it.
   ChatMessage: { D: 'CoreIconButton plumbing on `actionButton`, out of the ladder by design' },
+  // Reached the sweep with #355, which gave it a provider name of its own; the
+  // close button it inherits from Dialog is the same core as Drawer's below.
+  ConfirmDialog: { D: 'CoreIconButton plumbing on `closeButton`, out of the ladder by design' },
   Drawer: { D: 'CoreIconButton plumbing on `closeButton`, out of the ladder by design' },
   PromptInput: { D: 'CoreIconButton plumbing on `sendButton`, out of the ladder by design' },
   ResourceTimeline: { D: 'CoreIconButton plumbing on `navButton`, out of the ladder by design' },
@@ -210,27 +216,15 @@ const KNOWN_GAPS: Record<string, Partial<Record<Route, string>>> = {
     D: '#349 — DateGridScaffold prepends the grid classes; view-conditional classes ride the `extra` argument. Plus CoreIconButton plumbing on `navButton`'
   },
 
-  // #339 — no provider name of their own. Two kinds, and the difference is
-  // what the fix has to be, so the entries state which one applies.
-  //
-  // Addressable under its parent's name (measured): a rule written under
-  // `Calendar` does arrive at the header, so a provider name of its own would
-  // be the wrong repair here.
+  // #339 — addressable, but under its parent's name (measured): a rule written
+  // under `Calendar` does arrive at the header, and it renders its own markup
+  // only inside that parent. Giving it a provider name of its own is therefore
+  // NOT the repair — whether a compound part should be addressable alone is the
+  // open question #343 asks about condition keys, and it wants one answer for
+  // both.
   CalendarHeader: {
     A: '#339 addressable only under `Calendar` — measured: `defaults.Calendar.slotClasses` reaches its header, nav and title elements',
     B: '#339 addressable only under `Calendar`, whose condition object it does not contribute to'
-  },
-  // Genuinely outside the cascade: no provider name anywhere in the render,
-  // and `getBlocksConfig()` is never read, so `unstyled` does not arrive either.
-  ChartFrame: {
-    A: '#339 never calls resolveSlotClasses, so it has no provider name',
-    B: '#339 never calls resolveSlotClasses, so it has no provider name',
-    C: '#339 never reads getBlocksConfig(), so provider `unstyled` does nothing'
-  },
-  Sparkline: {
-    A: '#339 never calls resolveSlotClasses, so it has no provider name',
-    B: '#339 never calls resolveSlotClasses, so it has no provider name',
-    C: '#339 never reads getBlocksConfig(), so provider `unstyled` does nothing'
   }
 };
 
@@ -267,15 +261,6 @@ const ROOT_IS_A_WRAPPER: Record<string, string> = {
  * Stale entries are errors.
  */
 const NOT_MEASURABLE: Record<string, string> = {};
-
-/**
- * Lower bound on the components actually measured. A broken glob or a renamed
- * barrel export would otherwise report a green sweep over an empty set — the
- * failure mode `variants-lint.ts` guards with its own `loaded.length` check.
- * Set just under the current 84 so a handful of legitimate removals pass and a
- * discovery failure does not.
- */
-const MIN_MEASURED = 80;
 
 const recorder = vi.hoisted(() => ({
   calls: [] as { component: string; activeProps: Record<string, unknown> }[]
@@ -762,23 +747,27 @@ function measure(entry: CascadeComponent, withFixture = true): Measurement {
   return { entry, routes };
 }
 
-// A component that declares `unstyled` has claimed the styling contract, and
-// that claim — not a hand-written roster — is what puts it in the sweep.
-const components = (await exportedComponents()).filter((entry) =>
-  entry.declaredProps.includes('unstyled')
+// Two claims to the styling contract, either of which admits a component —
+// neither is a hand-written roster, both are read off the source:
+//
+// - it declares `unstyled`, so it owns markup that has to obey the flag;
+// - it calls `resolveSlotClasses(config, 'Name', …)`, so a `defaults` entry
+//   under that name reaches something, even where the markup it reaches
+//   belongs to a component it wraps (`CurrencyInput`, `ConfirmDialog`).
+//
+// The union, rather than the first alone, is what makes losing membership
+// unrepresentable instead of merely reportable. Measured on the first: dropping
+// `unstyled` from the two pickers' `$props()` took this file from 6416 to 6404
+// tests — six route assertions each, gone, with nothing red. A component cannot
+// leave that way now; it has to give up its provider name too, which is the
+// feature being deleted rather than a slip.
+const exported = await exportedComponents();
+const components = exported.filter(
+  (entry) => entry.declaredProps.includes('unstyled') || entry.providerName !== null
 );
 const measurements = components.map((entry) => measure(entry));
 
 describe('BlocksProvider cascade reaches the markup', () => {
-  it('measures enough components to be worth reading', () => {
-    const measured = measurements.filter((m) => !m.mountError);
-    expect(
-      measured.length,
-      `only ${measured.length} of ${measurements.length} components were measured — a sweep ` +
-        'this small means a broken registry, not a healthy library'
-    ).toBeGreaterThanOrEqual(MIN_MEASURED);
-  });
-
   it('leaves nothing route A reaches unprobed by route D', () => {
     // A component leaves route D by one of two doors: route A did not reach
     // its root (which fails loudly on its own, or is a recorded #339 gap), or
@@ -787,8 +776,8 @@ describe('BlocksProvider cascade reaches the markup', () => {
     //
     // Deliberately a condition, not a floor under a count: a count cannot tell
     // the two doors apart, so recording one more #339 gap — a normal, wanted
-    // act in this repo — would read as the candidate list rotting. `MIN_MEASURED`
-    // already covers "the sweep found nothing at all".
+    // act in this repo — would read as the candidate list rotting. "The sweep found
+    // nothing at all" is the stale-entry test's job, not this one's.
     const blind = measurements
       .filter((m) => m.routes.A.ok && m.routes.D.measured === false)
       .map((m) => `${m.entry.exportName}: ${m.routes.D.detail}`);

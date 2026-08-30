@@ -5,6 +5,7 @@ import { createRawSnippet, flushSync, mount, unmount } from 'svelte';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import type { PaginationItemContext, PaginationProps } from './index';
 import Pagination from './Pagination.svelte';
+import PaginationItem from './PaginationItem.svelte';
 
 // Interaction layer for the `renderItem` snippet (PAG-3). Pagination is
 // declarative — no context children — so the snippet is supplied with
@@ -257,5 +258,35 @@ describe('Pagination — showFirstLast without showNumbers (DEV warn)', () => {
     expect(screen.getByRole('button', { name: 'First' })).toBeTruthy();
     expect(screen.getByRole('button', { name: 'Last' })).toBeTruthy();
     warn.mockRestore();
+  });
+});
+
+describe('PaginationItem forwards its rest props in both branches', () => {
+  // The two branches take different elements — the link branch styles the `<a>`
+  // and leaves the inner Button decorative (`tabindex={-1}`), the button branch
+  // has only the Button — and until this test the link branch spread the rest
+  // bag onto neither. Everything a caller adds (`data-*`, `aria-describedby`,
+  // and the `preset` PaginationItem does not declare itself) fell out with no
+  // error: measured, `<PaginationItem href data-probe>` put the attribute on no
+  // element at all, while the same call without `href` put it on the button.
+  const mountItem = (props: Record<string, unknown>) => {
+    const target = document.createElement('div');
+    document.body.appendChild(target);
+    const app = mount(PaginationItem, { target, props });
+    flushSync();
+    dispose = () => unmount(app);
+    return target;
+  };
+
+  it('puts them on the button when there is no href', () => {
+    const target = mountItem({ page: 1, 'data-probe': 'x' });
+    expect(target.querySelector('[data-probe]')?.tagName).toBe('BUTTON');
+  });
+
+  it('puts them on the anchor when there is one', () => {
+    // The anchor, not the inner Button: it is the element this branch already
+    // gives `class`, `tabindex` and `aria-current` to.
+    const target = mountItem({ page: 1, href: '/page/2', 'data-probe': 'x' });
+    expect(target.querySelector('[data-probe]')?.tagName).toBe('A');
   });
 });

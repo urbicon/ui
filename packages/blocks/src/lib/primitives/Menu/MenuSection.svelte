@@ -9,7 +9,12 @@
   }
 </script>
 
-<div class={ctx.styles.section()} role="separator">
+<div
+  class={ctx.unstyled
+    ? (ctx.slotClasses?.section ?? '')
+    : ctx.styles.section({ class: ctx.slotClasses?.section })}
+  role="separator"
+>
   {#if children}
     {@render children()}
   {:else}

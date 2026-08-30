@@ -51,6 +51,8 @@ export interface SparklineProps extends Omit<HTMLAttributes<HTMLElement>, 'child
   unstyled?: boolean;
   /** Per-slot class overrides. */
   slotClasses?: SparklineSlotClasses;
+  /** Apply a named preset registered on `<BlocksProvider>`. */
+  preset?: string;
 }
 
 export { default as Sparkline } from './Sparkline.svelte';

@@ -57,7 +57,8 @@
   });
 
   const variantProps: TabVariants = $derived({
-    size: tabContext.size
+    size: tabContext.size,
+    orientation: tabContext.orientation
   });
 
   const styles = $derived(tabVariants(variantProps));

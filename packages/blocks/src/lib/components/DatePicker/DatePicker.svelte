@@ -5,7 +5,8 @@
   import { Input } from '$lib/primitives/Input';
   import { Popover } from '$lib/primitives/Popover';
   import { Calendar } from '$lib/components/Calendar';
-  import { datePickerVariants } from './datepicker.variants';
+  import { getBlocksConfig, resolveSlotClasses } from '$lib/provider';
+  import { datePickerVariants, type DatePickerSlots } from './datepicker.variants';
   import { resolveIcon } from '$lib/icons';
   import CalendarIconDefault from '$lib/icons/CalendarIcon.svelte';
   import CloseIconDefault from '$lib/icons/CloseIcon.svelte';
@@ -58,8 +59,28 @@
     name,
     valueFormat = 'date',
     class: className = '',
+    unstyled: unstyledProp = false,
+    slotClasses: slotClassesProp = {},
+    preset,
     ...restProps
   }: DatePickerProps = $props();
+
+  const blocksConfig = getBlocksConfig();
+  const unstyled = $derived(unstyledProp || blocksConfig?.unstyled || false);
+  // `datePickerVariants` has no axes — the root is a positioning context — so
+  // this object feeds `resolveSlotClasses` alone, not a tv() call. Its keys are
+  // the values the picker hands to the Input and the Calendar it wraps, which
+  // is what an `overrides` rule on a picker can meaningfully name.
+  const variantProps = $derived({ size, inputVariant, calendarVariant, disabled });
+  const slotClasses = $derived(
+    resolveSlotClasses(blocksConfig, 'DatePicker', preset, variantProps, slotClassesProp)
+  );
+  const styles = $derived(unstyled ? undefined : datePickerVariants());
+
+  function slot(name: DatePickerSlots, extra?: string): string {
+    const overrides = [slotClasses?.[name], extra].filter(Boolean).join(' ');
+    return styles?.[name]({ class: overrides }) ?? overrides;
+  }
 
   // --- Locale resolution ---
   // `'auto'` follows the active `<I18nProvider>`, matching CurrencyInput. Reading
@@ -255,12 +276,7 @@
   }
 </script>
 
-<div
-  class={datePickerVariants({ class: className })}
-  {...restProps}
-  bind:this={triggerEl}
-  onkeydown={handleKeydown}
->
+<div class={slot('base', className)} {...restProps} bind:this={triggerEl} onkeydown={handleKeydown}>
   <Input
     value={inputValue}
     {label}
@@ -295,7 +311,7 @@
         <span class="pointer-events-auto inline-flex items-center gap-0.5">
           <button
             type="button"
-            class="text-text-tertiary hover:text-text-primary hover:bg-surface-hover focus-visible:ring-primary/50 rounded-modify inline-flex cursor-pointer items-center justify-center p-0.5 transition-colors duration-[var(--blocks-duration-fast)] focus-visible:ring-2 focus-visible:outline-none"
+            class={slot('iconButton')}
             onclick={handleClear}
             {disabled}
             aria-label={bt('accessibility.clearInput')}
@@ -304,7 +320,7 @@
           </button>
           <button
             type="button"
-            class="text-text-tertiary hover:text-text-primary hover:bg-surface-hover focus-visible:ring-primary/50 rounded-modify inline-flex cursor-pointer items-center justify-center p-0.5 transition-colors duration-[var(--blocks-duration-fast)] focus-visible:ring-2 focus-visible:outline-none"
+            class={slot('iconButton')}
             onclick={handleIconClick}
             {disabled}
             aria-label={bt('datepicker.openCalendar')}

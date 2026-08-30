@@ -1,5 +1,6 @@
 import type { Snippet } from 'svelte';
 import type { InputProps } from '$lib/primitives/Input';
+import type { NumberInputSlots } from './numberinput.variants';
 
 /**
  * @summary A number field with bounds, steppers and arrow-key stepping.
@@ -93,6 +94,16 @@ export interface NumberInputProps
   onValueChange?: (value: number | null) => void;
   /** A custom right-side adornment. Overrides the stepper — pair with `hideStepper` or provide your own controls. */
   rightIcon?: Snippet;
+  /**
+   * Per-slot class overrides. Carries NumberInput's own two slots — `stepper`
+   * (the button column) and `stepperButton` — on top of every {@link InputProps}
+   * slot. One record reaches both: the stepper is painted here and the rest
+   * travels on to the inner field. From `<BlocksProvider>`, everything under
+   * `NumberInput` reaches both halves; `defaults.Input` reaches the field only.
+   */
+  slotClasses?: Partial<
+    Record<NumberInputSlots | keyof NonNullable<InputProps['slotClasses']>, string>
+  >;
 }
 
 export { default as NumberInput } from './NumberInput.svelte';
