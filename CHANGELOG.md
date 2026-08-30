@@ -4,6 +4,24 @@ All notable changes to this project will be documented in this file.
 This changelog is automatically generated from [Conventional Commits](https://www.conventionalcommits.org).
 
 
+## [8.12.0] - 2026-08-30
+
+### Breaking Changes
+- **blocks**: Delete slots that reach no element, scope presets to their own component (#355)
+> **BREAKING:** `CalendarSlots` and the exported `CalendarSlotName` no longer include `weekGrid`, `weekColumn` or `weekEventList`; `ChartSlot` / `ChartSlotClasses` no longer include `axisTick`. A `slotClasses` entry using one of these names stops compiling — it reached no element before, so nothing rendered differently, but the line has to go. A preset registered under `Input`, `Dialog` or `Select` no longer applies to NumberInput, CurrencyInput, ConfirmDialog or LocaleSwitcher — register it under the wrapper's own name instead, which was not previously possible.
+
+### Bug Fixes
+- **blocks**: Route every override through the fold, so the consumer's strongest rung wins (#350)
+- **blocks**: Ask the compiler whether the conflict resolver still agrees with it (#351)
+- **blocks**: Repair four branch losses and admit four components to the override contract (#356)
+> **BREAKING:** `PaginationItemProps` extends the generic element attributes rather than the button element's, so a handler typed against a button-only property no longer compiles. Such code was already wrong in the `href` branch, where the props land on the anchor.
+
+### Documentation
+- The table's render structure, and the probes it came from are archived (#348)
+
+### Testing
+- **blocks**: Mount every component under a provider and ask whether its three routes arrive (#347)
+
 ## [8.11.0] - 2026-08-29
 
 ### Breaking Changes
