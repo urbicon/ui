@@ -182,9 +182,13 @@ const BUCKET_PATTERNS: Array<[RegExp, BucketResolver]> = [
   [/^overflow-x-(auto|hidden|clip|visible|scroll)$/, 'overflow-x'],
   [/^overflow-y-(auto|hidden|clip|visible|scroll)$/, 'overflow-y'],
   [/^pointer-events-(auto|none)$/, 'pointer-events'],
-  // `box-decoration-*` writes box-decoration-break, a different property, and
-  // is left to the exact match here rather than a `box-` catch-all.
+  // Two properties under one prefix, so `box-` is never a catch-all here:
+  // `box-border`/`box-content` are box-sizing, `box-decoration-*` is
+  // box-decoration-break. Both members of that second pair write the identical
+  // property set (measured), so they replace each other and it gets a bucket
+  // like any other family.
   [/^box-(border|content)$/, 'box-sizing'],
+  [/^box-decoration-/, 'box-decoration-break'],
   [/^overscroll-x-/, 'overscroll-x'],
   [/^overscroll-y-/, 'overscroll-y'],
   [/^overscroll-/, 'overscroll'],
@@ -397,8 +401,8 @@ const BUCKET_PATTERNS: Array<[RegExp, BucketResolver]> = [
   [/^bg-/, 'bg-color'],
   // SVG paint. `stroke-<number>` is a width, every other value is a colour —
   // same three-layer shape as `border-`, and the same data-type hints `text-`
-  // needs, because `stroke-` is overloaded exactly as `text-` is. All four
-  // width spellings verified against the compiler: `stroke-2`, `stroke-[1.5]`,
+  // needs, because `stroke-` is overloaded exactly as `text-` is. Every width
+  // spelling verified against the compiler: `stroke-2`, `stroke-[1.5]`,
   // `stroke-[2px]`, `stroke-[length:2px]` and `stroke-(length:--w)` emit
   // `stroke-width`; `stroke-[#fff]`, `stroke-[var(--x)]` and `stroke-(--x)`
   // emit `stroke`. Reading a width as a colour is the expensive direction: an

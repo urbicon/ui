@@ -1227,6 +1227,7 @@ describe('tv – tailwind conflict resolver', () => {
       ['stroke-2', 'stroke-[2px]', 'a stroke width in the unit spelling'],
       ['stroke-[1.5]', 'stroke-(length:--w)', 'a stroke width through a custom property'],
       ['box-border', 'box-content', 'box-sizing'],
+      ['box-decoration-clone', 'box-decoration-slice', 'box-decoration-break'],
       ['list-disc', 'list-none', 'list-style-type'],
       ['overscroll-contain', 'overscroll-auto', 'overscroll-behavior'],
       ['scheme-light', 'scheme-dark', 'color-scheme'],

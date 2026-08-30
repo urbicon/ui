@@ -49,10 +49,15 @@ describe('collectClassEffects', () => {
   });
 
   it('skips the @property registrations Tailwind emits beside a utility', () => {
-    // `scale-*` ships `@property --tw-scale-x { syntax; inherits; initial-value }`
-    // next to the rule. Walking into it would credit the class with three
-    // properties it does not write, and every scale utility would then disagree
-    // with every other one.
+    // Tailwind ships `@property --tw-scale-x { syntax; inherits; initial-value }`
+    // beside the rule, and hangs each registration on whichever utility it
+    // happened to emit first. So walking into them does not shift a family
+    // evenly — it makes two members of ONE bucket differ by an emission
+    // accident. Measured: every `scale-*` step keeps agreeing (they all carry
+    // the registration), while `snap-x`/`snap-y`/`snap-both` carry it and
+    // `snap-none` does not, inventing a `scroll-snap-type` collision out of
+    // nothing; the `scale` exemption's pinned signatures also stop matching and
+    // report stale.
     expect(effectsOf(['scale-150']).get('scale-150')).toEqual([
       '--tw-scale-x',
       '--tw-scale-y',

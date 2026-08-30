@@ -93,7 +93,7 @@ import { unlink } from 'node:fs/promises';
 import { resolve } from 'node:path';
 import { __unstable__loadDesignSystem } from '@tailwindcss/node';
 import { collectClassEffects, compareBuckets } from './bucket-agreement';
-import { findNonEmittingClasses } from './tailwind-emit';
+import { findNonEmittingClasses, isNonEmittingByDesign } from './tailwind-emit';
 import { checkClassToken, collectThemeVars } from './theme-tokens';
 
 const ENGINE = resolve(import.meta.dir, '../src/lib/utils/variants.ts');
@@ -1080,10 +1080,35 @@ const staleHandWritten = Object.keys(HAND_WRITTEN_CSS).filter((t) => !handWritte
 // `scale` and `active:scale` alike.
 const bucketFamily = (key: string): string => key.slice(key.lastIndexOf(':') + 1);
 
-const classEffects = collectClassEffects(
-  await __unstable__loadDesignSystem(tailwindCss, { base: REPO }),
-  [...emitCandidates.keys()]
+const design = await __unstable__loadDesignSystem(tailwindCss, { base: REPO });
+const classEffects = collectClassEffects(design, [...emitCandidates.keys()]);
+
+// Canary on the READING, not just on the compiler: every class that got a rule
+// must have reached an effect set. Per-candidate ASTs removed the attribution
+// step that made the first version of this pass lose its place, but not the
+// failure MODE — a reader that drops a subset stays silent, and the subset is
+// what the history is made of. Measured on this file: discarding every
+// variant-prefixed class loses 501 of 1454 (34 %) and the run still exits 0,
+// because the four BUCKET_EFFECT_EXEMPTIONS are all still hit. Those excuse
+// specific effect sets and so only notice TOTAL loss; nothing else here reads
+// a per-class result.
+//
+// The reachable cause is not a Tailwind bug. `tailwindCss` now feeds two
+// loaders — `compile()` inside findNonEmittingClasses and the design system
+// here — so a refactor that hands one of them an @theme file or a repo-defined
+// custom variant the other gets would make every class using the missing piece
+// resolve to nothing on one side while the other stays green.
+const unread = [...emitCandidates.keys()].filter(
+  (cls) => !deadSet.has(cls) && !isNonEmittingByDesign(cls) && !classEffects.has(cls)
 );
+if (unread.length > 0) {
+  console.error(
+    `✖ variants-lint: ${unread.length} class(es) emit CSS but reached no effect set (${unread
+      .slice(0, 5)
+      .join(', ')}) — the bucket pass is not reading every class it compiled.`
+  );
+  process.exit(1);
+}
 
 /**
  * Families whose members are meant to be worn TOGETHER, so the fold must stay
@@ -1094,9 +1119,13 @@ const classEffects = collectClassEffects(
  * must NOT be read as recommending.
  *
  * `samples` is what keeps the entry honest, on the same contract as the two
- * lists above: every sample must still match its own pattern and must still
- * bucket as null, so an entry cannot outlive the day its family gains a
- * pattern. Members are open-ended, hence a pattern rather than a name list.
+ * lists above, and it has to fail in BOTH directions. Every sample must still
+ * match its own pattern and still bucket as null — so an entry cannot outlive
+ * the day its family gains a pattern — AND must still emit CSS, so an entry
+ * cannot outlive the day Tailwind drops the family. Without that second half a
+ * typo (`touch-pan-xx`) vouches for nothing while looking right: it buckets as
+ * null precisely BECAUSE it is not a utility. Members are open-ended, hence a
+ * pattern rather than a name list.
  */
 const COMPOSING_UTILITIES: { pattern: RegExp; samples: string[]; why: string }[] = [
   {
@@ -1111,6 +1140,12 @@ const COMPOSING_UTILITIES: { pattern: RegExp; samples: string[]; why: string }[]
   }
 ];
 const composingBroken: string[] = [];
+// Read through the same reader the gate uses, so a sample that emits nothing
+// and a reader that returns nothing both surface here.
+const composingSampleEffects = collectClassEffects(
+  design,
+  COMPOSING_UTILITIES.flatMap((e) => e.samples)
+);
 for (const [i, entry] of COMPOSING_UTILITIES.entries()) {
   for (const sample of entry.samples) {
     if (!entry.pattern.test(sample)) {
@@ -1118,6 +1153,10 @@ for (const [i, entry] of COMPOSING_UTILITIES.entries()) {
     } else if (tailwindBucket(sample) != null) {
       composingBroken.push(
         `sample '${sample}' now buckets as '${tailwindBucket(sample)}' — the family gained a pattern, so entry ${i} of COMPOSING_UTILITIES is stale; drop it`
+      );
+    } else if (!composingSampleEffects.has(sample)) {
+      composingBroken.push(
+        `sample '${sample}' emits no CSS — it is a typo or a utility Tailwind no longer ships, so entry ${i} of COMPOSING_UTILITIES excuses nothing; fix the sample or drop the entry`
       );
     }
   }
