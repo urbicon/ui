@@ -54,7 +54,11 @@
 
 <BlocksProvider {unstyled} {defaults}>
   {#if family === 'accordion'}
-    <Accordion>{@render scoped()}</Accordion>
+    <!-- Open, matching the child's own `value`. A closed item never renders
+         the classes its open state carries (`rotate-180` on the chevron), so
+         the sweep would measure a state with nothing to contest — measured:
+         with the item closed, reverting the chevron fix leaves route D green. -->
+    <Accordion value={['a']}>{@render scoped()}</Accordion>
   {:else if family === 'radioGroup'}
     <RadioGroup>{@render scoped()}</RadioGroup>
   {:else if family === 'segmentGroup'}

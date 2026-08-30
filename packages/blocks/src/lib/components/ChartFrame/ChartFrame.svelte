@@ -45,7 +45,7 @@
   }
 </script>
 
-<figure {...rest} {@attach measure} class={[slot('root'), className]}>
+<figure {...rest} {@attach measure} class={slot('root', className)}>
   <svg
     class={slot('svg')}
     viewBox="0 0 {width} {height}"

@@ -1,5 +1,6 @@
 <script lang="ts">
   import { useFormField } from '$lib/utils';
+  import { formFieldVariants } from './form-field.variants';
   import type { FormFieldProps } from './index';
 
   let {
@@ -15,6 +16,8 @@
     ...rest
   }: FormFieldProps = $props();
 
+  const styles = formFieldVariants();
+
   const propsId = $props.id();
   // ARIA wiring is shared with every individual form primitive — see
   // `useFormField` / XC-2 for the contract.
@@ -27,19 +30,14 @@
   }));
 </script>
 
-<div
-  {...rest}
-  class={['flex w-full flex-col gap-1.5', slotClasses.wrapper, className].filter(Boolean).join(' ')}
->
+<div {...rest} class={styles.wrapper({ class: [slotClasses.wrapper, className] })}>
   {#if label}
-    <label
-      for={ff.fieldId}
-      class={['text-text-secondary block text-sm font-medium', slotClasses.label]
-        .filter(Boolean)
-        .join(' ')}
-    >
+    <label for={ff.fieldId} class={styles.label({ class: slotClasses.label })}>
       {label}
-      {#if ff.required}<span class="text-danger-text ml-0.5" aria-hidden="true">*</span>{/if}
+      {#if ff.required}<span
+          class={styles.requiredMark({ class: slotClasses.requiredMark })}
+          aria-hidden="true">*</span
+        >{/if}
     </label>
   {/if}
 
@@ -52,18 +50,11 @@
   })}
 
   {#if ff.errorId}
-    <div
-      id={ff.errorId}
-      role="alert"
-      class={['text-danger-text text-xs', slotClasses.message].filter(Boolean).join(' ')}
-    >
+    <div id={ff.errorId} role="alert" class={styles.message({ class: slotClasses.message })}>
       {error}
     </div>
   {:else if ff.helperId}
-    <div
-      id={ff.helperId}
-      class={['text-text-tertiary text-xs', slotClasses.helper].filter(Boolean).join(' ')}
-    >
+    <div id={ff.helperId} class={styles.helper({ class: slotClasses.helper })}>
       {helper}
     </div>
   {/if}

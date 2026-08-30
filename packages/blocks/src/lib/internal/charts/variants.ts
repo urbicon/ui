@@ -8,7 +8,7 @@ import { tv, type VariantProps } from '$lib/utils/variants';
 export const chartVariants = tv({
   slots: {
     /** Outer <figure> wrapper. */
-    root: ['relative m-0 w-full'],
+    root: ['m-0'],
     /** The <svg> element. */
     svg: ['block w-full overflow-visible'],
     /** Axis group (<g>) — sets the inherited text color for labels. */
@@ -37,6 +37,20 @@ export const chartVariants = tv({
     legendItem: ['inline-flex items-center gap-1.5'],
     /** Legend color swatch. */
     legendSwatch: ['inline-block size-2.5 rounded-[2px]']
+  },
+  variants: {
+    /**
+     * Shape of the outer box. A cartesian chart fills the column it sits in
+     * and positions overlays against it; a donut is a square figure with the
+     * legend stacked underneath, so it shrink-wraps instead.
+     */
+    layout: {
+      cartesian: { root: 'relative w-full' },
+      donut: { root: 'inline-flex flex-col items-center gap-3' }
+    }
+  },
+  defaultVariants: {
+    layout: 'cartesian'
   }
 });
 
@@ -52,8 +66,11 @@ export type ChartSlot = keyof ReturnType<typeof chartVariants>;
  */
 export function chartSlotResolver(
   unstyled: boolean,
-  overrides: Partial<Record<ChartSlot, string>> = {}
+  overrides: Partial<Record<ChartSlot, string>> = {},
+  variants: ChartVariants = {}
 ): (slot: ChartSlot, extra?: string) => string {
-  const styles = unstyled ? undefined : chartVariants();
-  return (slot, extra) => [styles?.[slot]?.(), overrides[slot], extra].filter(Boolean).join(' ');
+  const styles = unstyled ? undefined : chartVariants(variants);
+  return (slot, extra) =>
+    styles?.[slot]?.({ class: [overrides[slot], extra] }) ??
+    [overrides[slot], extra].filter(Boolean).join(' ');
 }

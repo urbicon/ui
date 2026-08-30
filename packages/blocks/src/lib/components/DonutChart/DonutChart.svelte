@@ -29,7 +29,7 @@
   const slotClasses = $derived(
     resolveSlotClasses(blocksConfig, 'DonutChart', preset, {}, slotClassesProp)
   );
-  const slot = $derived(chartSlotResolver(unstyled, slotClasses));
+  const slot = $derived(chartSlotResolver(unstyled, slotClasses, { layout: 'donut' }));
 
   const fmt = $derived(formatValue ?? numberFormatter(locale));
   const pct = $derived(numberFormatter(locale, { style: 'percent', maximumFractionDigits: 0 }));
@@ -74,14 +74,7 @@
   );
 </script>
 
-<figure
-  {...rest}
-  class={[
-    !unstyled && 'm-0 inline-flex flex-col items-center gap-3',
-    slotClasses['root'],
-    className
-  ]}
->
+<figure {...rest} class={slot('root', className)}>
   <svg
     class={slot('svg')}
     viewBox="0 0 {size} {size}"

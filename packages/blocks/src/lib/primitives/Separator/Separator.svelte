@@ -21,9 +21,9 @@
   );
 
   const classes = $derived(
-    [unstyled ? '' : separatorVariants({ orientation, size }), slotClasses?.base, className]
-      .filter(Boolean)
-      .join(' ')
+    unstyled
+      ? [slotClasses?.base, className].filter(Boolean).join(' ')
+      : separatorVariants({ orientation, size, class: [slotClasses?.base, className] })
   );
 </script>
 

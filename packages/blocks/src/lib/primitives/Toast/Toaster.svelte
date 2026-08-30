@@ -154,9 +154,9 @@
     if (action.dismissOnClick !== false) toaster.dismiss(toast.id);
   }
 
-  function slot(key: keyof typeof styles, intent?: string) {
-    const overrides = slotClasses?.[key];
-    if (unstyled) return overrides ?? '';
+  function slot(key: keyof typeof styles, intent?: string, extra?: string) {
+    const overrides = [slotClasses?.[key], extra].filter(Boolean).join(' ');
+    if (unstyled) return overrides;
     if (intent) {
       const intentStyles = toastVariants({ placement, intent: intent as ToastVariants['intent'] });
       return intentStyles[key]({ class: overrides });
@@ -190,7 +190,7 @@
 
 <div
   bind:this={containerEl}
-  class={[slot('container'), className].filter(Boolean).join(' ')}
+  class={slot('container', undefined, className)}
   aria-live="polite"
   aria-relevant="additions removals"
   onpointerover={(e) => {

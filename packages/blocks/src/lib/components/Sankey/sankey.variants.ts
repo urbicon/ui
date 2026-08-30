@@ -30,7 +30,7 @@ export const sankeyVariants = tv({
       'data-[visible=true]:opacity-100'
     ],
     tooltipLabel: ['font-medium'],
-    tooltipDetail: ['text-text-tertiary tabular-nums']
+    tooltipDetail: ['block text-text-tertiary tabular-nums']
   },
   variants: {
     intent: {

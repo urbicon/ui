@@ -613,6 +613,16 @@ decides where the reader's sort headers act; the invalid combinations of the old
 requests and owns loading/error; `observeView(view, cb)` is the observer channel for
 consumers who want view changes without a URL.
 
+**How the rows render.** Two layouts behind one container query (the `cardsBelow` axis):
+the desktop grid, and below the step a card list — a container query, not a media query, so
+a table in a narrow column gets cards without the page being narrow. The desktop grid is a
+single `<table>`: one `<colgroup>` sizes the tracks once for the header, the rows and the
+totals, which render as a `<tfoot>`. Virtualization keeps that shape — the same one table
+inside a scroll box of `virtualHeight`, the rendered window carried by two `aria-hidden`
+spacer rows, `<thead>` and `<tfoot>` pinned to the box's edges. It was three independent
+tables until v8.10.0, and that cost three column models: a reserved scrollbar gutter
+narrowed only the body, so every proportional column drifted against its header.
+
 Scroll models (page-relative sticky pinning vs. contained scroll):
 [STICKY-PINNING.md](STICKY-PINNING.md). Upgrading from v7:
 [MIGRATION-V8.md](MIGRATION-V8.md).

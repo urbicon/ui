@@ -103,29 +103,11 @@
   );
 
   // Resolve the default intent per node/path
-  const intentClassFill: Record<SankeyIntent, string> = {
-    primary: 'fill-primary',
-    secondary: 'fill-secondary',
-    success: 'fill-success',
-    warning: 'fill-warning',
-    danger: 'fill-danger',
-    neutral: 'fill-neutral'
-  };
-  const intentClassStroke: Record<SankeyIntent, string> = {
-    primary: 'stroke-primary',
-    secondary: 'stroke-secondary',
-    success: 'stroke-success',
-    warning: 'stroke-warning',
-    danger: 'stroke-danger',
-    neutral: 'stroke-neutral'
-  };
-
   // Map over input nodes — avoids O(n²) `nodes.find()` in render loops
   const inputNodeById = $derived(new Map(nodes.map((n) => [n.id, n])));
 
-  function getNodeFillClass(n: SankeyLaidOutNode) {
-    const inputNode = inputNodeById.get(n.id);
-    return intentClassFill[inputNode?.intent ?? intent];
+  function getNodeIntent(n: SankeyLaidOutNode): SankeyIntent {
+    return inputNodeById.get(n.id)?.intent ?? intent;
   }
 
   // Link index → original link for intent lookup
@@ -134,9 +116,11 @@
   }
 
   // Link intent: explicit > source-node intent > component default
-  function getLinkStrokeClass(orig: { intent?: SankeyIntent } | undefined, sourceId: string) {
-    const sourceIntent = inputNodeById.get(sourceId)?.intent;
-    return intentClassStroke[orig?.intent ?? sourceIntent ?? intent];
+  function getLinkIntent(
+    orig: { intent?: SankeyIntent } | undefined,
+    sourceId: string
+  ): SankeyIntent {
+    return orig?.intent ?? inputNodeById.get(sourceId)?.intent ?? intent;
   }
 
   // Highlight logic: is this node/link currently focused or connected?
@@ -305,12 +289,12 @@
             tabindex="0"
             role="button"
             aria-label={`${link.source.id} → ${link.target.id}: ${fmtValue(link.value)}`}
-            class={[
-              unstyled ? (slotClasses?.link ?? '') : styles.link({ class: slotClasses?.link }),
-              !unstyled && getLinkStrokeClass(orig, link.source.id)
-            ]
-              .filter(Boolean)
-              .join(' ')}
+            class={unstyled
+              ? (slotClasses?.link ?? '')
+              : styles.link({
+                  intent: getLinkIntent(orig, link.source.id),
+                  class: slotClasses?.link
+                })}
             d={sankeyLinkPath(link)}
             stroke-width={Math.max(1, link.width)}
             style:stroke-opacity={dimmed
@@ -351,14 +335,9 @@
             {@render nodeContentSnippet(node as SankeyLaidOutNodeWithMeta)}
           {:else}
             <rect
-              class={[
-                unstyled
-                  ? (slotClasses?.nodeRect ?? '')
-                  : styles.nodeRect({ class: slotClasses?.nodeRect }),
-                !unstyled && getNodeFillClass(node)
-              ]
-                .filter(Boolean)
-                .join(' ')}
+              class={unstyled
+                ? (slotClasses?.nodeRect ?? '')
+                : styles.nodeRect({ intent: getNodeIntent(node), class: slotClasses?.nodeRect })}
               x={node.x0}
               y={node.y0}
               width={node.x1 - node.x0}
@@ -421,14 +400,9 @@
         {tooltipDatum.inputLabel}
       </span>
       <span
-        class={[
-          unstyled
-            ? (slotClasses?.tooltipDetail ?? '')
-            : styles.tooltipDetail({ class: slotClasses?.tooltipDetail }),
-          'block'
-        ]
-          .filter(Boolean)
-          .join(' ')}
+        class={unstyled
+          ? (slotClasses?.tooltipDetail ?? '')
+          : styles.tooltipDetail({ class: slotClasses?.tooltipDetail })}
       >
         {fmtValue(tooltipDatum.node.value)}
         {#if totalFlow > 0}
@@ -444,14 +418,9 @@
         {tooltipDatum.sourceLabel} → {tooltipDatum.targetLabel}
       </span>
       <span
-        class={[
-          unstyled
-            ? (slotClasses?.tooltipDetail ?? '')
-            : styles.tooltipDetail({ class: slotClasses?.tooltipDetail }),
-          'block'
-        ]
-          .filter(Boolean)
-          .join(' ')}
+        class={unstyled
+          ? (slotClasses?.tooltipDetail ?? '')
+          : styles.tooltipDetail({ class: slotClasses?.tooltipDetail })}
       >
         {fmtValue(tooltipDatum.link.value)}
         {#if totalFlow > 0}

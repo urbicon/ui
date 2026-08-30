@@ -14,88 +14,18 @@ import type { CalendarSlots, CalendarVariants } from './calendar.variants';
 
 // ─── Slot names ───────────────────────────────────────────────
 
-// `CalendarSlotName` stays the canonical internal key type: the shared
-// `CalendarContext` (`slotClasses` map + `createSlotHelper`) and the
-// per-view sub-components (e.g. `CalendarHeader`'s `slot()` helper) index
-// slots by it. The public `slotClasses` prop below is derived from
-// `CalendarSlots` (`SlotNames<typeof calendarVariants>`, the single source of
-// truth in `calendar.variants.ts`); the two unions are kept in lockstep.
-export type CalendarSlotName =
-  | 'base'
-  | 'header'
-  | 'title'
-  | 'nav'
-  | 'navButton'
-  | 'grid'
-  | 'weekdayHeader'
-  | 'weekday'
-  | 'weekRow'
-  | 'weekNumber'
-  | 'day'
-  | 'dayNumber'
-  | 'dotContainer'
-  | 'dot'
-  | 'list'
-  | 'dateHeader'
-  | 'empty'
-  | 'item'
-  | 'colorBar'
-  | 'eventTime'
-  | 'eventTitle'
-  | 'eventDescription'
-  | 'eventHelper'
-  | 'legend'
-  | 'legendItem'
-  | 'legendDot'
-  | 'legendLabel'
-  // Year view
-  | 'yearGrid'
-  | 'yearMonth'
-  | 'yearMonthTitle'
-  | 'yearMiniDay'
-  | 'yearMiniDot'
-  // Week view
-  | 'weekGrid'
-  | 'weekColumn'
-  | 'weekColumnHeader'
-  | 'weekColumnDayName'
-  | 'weekColumnDayNumber'
-  | 'weekEventList'
-  // Week all-day event
-  | 'weekAllDayEvent'
-  // Multi-day bar
-  | 'multiDayBar'
-  | 'multiDayBarContainer'
-  // Agenda view
-  | 'agendaView'
-  | 'agendaDayGroup'
-  | 'agendaDayHeader'
-  | 'agendaEventList'
-  // Day view
-  | 'dayView'
-  | 'dayViewHeader'
-  // Time grid
-  | 'timeGrid'
-  | 'timeGutter'
-  | 'timeHeadCell'
-  | 'timeCorner'
-  | 'timeLabel'
-  | 'timeSlotRow'
-  | 'timeDayColumn'
-  | 'timeEvent'
-  | 'allDayArea'
-  | 'currentTimeLine'
-  | 'weekTimeLayout'
-  // Event popover
-  | 'eventPopover'
-  | 'eventPopoverItem'
-  // Mini calendar sidebar
-  | 'miniCalendar'
-  | 'miniCalendarHeader'
-  | 'miniCalendarTitle'
-  | 'miniCalendarNavButton'
-  | 'miniCalendarWeekday'
-  | 'miniCalendarDay';
+/**
+ * The canonical slot-key type: the shared `CalendarContext` (`slotClasses` map
+ * + `createSlotHelper`) and the per-view sub-components (e.g. `CalendarHeader`'s
+ * `slot()` helper) index slots by it, and the public `slotClasses` props below
+ * are typed from it.
+ *
+ * An alias, not a second list. It used to be 66 hand-written members that a
+ * comment promised were "kept in lockstep" with `CalendarSlots` — nothing
+ * checked that, and adding a slot to the config left it unreachable from every
+ * sub-component until someone noticed the type error.
+ */
+export type CalendarSlotName = CalendarSlots;
 
 // ─── CalendarProps ────────────────────────────────────────────
 
@@ -471,7 +401,9 @@ export interface CalendarHeaderProps extends Omit<HTMLAttributes<HTMLDivElement>
   showViewSwitcher?: boolean;
   class?: string;
   unstyled?: boolean;
-  slotClasses?: Partial<Record<'header' | 'title' | 'nav' | 'navButton', string>>;
+  slotClasses?: Partial<
+    Record<'header' | 'titleGroup' | 'title' | 'nav' | 'navButton' | 'switcher' | 'actions', string>
+  >;
 }
 
 // ─── Re-exports ───────────────────────────────────────────────
