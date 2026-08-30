@@ -137,9 +137,7 @@ export const calendarVariants = tv({
     yearMiniDay: 'text-text-tertiary text-center tabular-nums leading-tight select-none',
     yearMiniDot: 'rounded-full mx-auto',
 
-    // Week view
-    weekGrid: ['grid grid-cols-7 w-full', 'border-t border-border-hairline'],
-    weekColumn: ['flex flex-col', 'border-r border-border-hairline last:border-r-0'],
+    // Week view — day heads, drawn by CalendarTimeGrid's pinned top row.
     weekColumnHeader: [
       'flex flex-col items-center cursor-pointer select-none',
       // `last:` keeps the one-owner rule (#210) in the week without all-day
@@ -154,7 +152,6 @@ export const calendarVariants = tv({
     ],
     weekColumnDayName: 'font-medium text-text-tertiary',
     weekColumnDayNumber: 'font-semibold tabular-nums text-text-primary',
-    weekEventList: 'flex flex-col overflow-hidden',
 
     // Week all-day event (time grid mode)
     weekAllDayEvent: [
@@ -262,8 +259,8 @@ export const calendarVariants = tv({
     // it over every event (inline 1…n) and under the pinned strip (30…50).
     currentTimeLine: 'absolute left-0 right-0 z-10 pointer-events-none border-t-2 border-live',
 
-    // Week time grid mode (replaces weekGrid when showTimeGrid). No top border
-    // here — the grid inside owns that edge (#210).
+    // The week's outer layout. No top border here — the hour grid inside owns
+    // that edge (#210).
     weekTimeLayout: ['w-full flex flex-col'],
 
     // Event popover
@@ -345,8 +342,7 @@ export const calendarVariants = tv({
       bordered: {
         base: 'border border-border-hairline rounded-lg overflow-clip',
         weekRow: 'border-b border-border-hairline/50 last:border-b-0',
-        item: 'border-border-default',
-        weekColumn: 'border-r border-border-hairline'
+        item: 'border-border-default'
       },
       ghost: {
         base: 'bg-transparent',
@@ -354,8 +350,6 @@ export const calendarVariants = tv({
         navButton: 'hover:bg-transparent hover:text-primary-text',
         weekday: 'text-text-quaternary font-normal',
         day: 'hover:bg-transparent hover:text-primary-text',
-        weekGrid: 'border-t-0',
-        weekColumn: 'border-r-0',
         weekColumnHeader: 'border-b-0',
         // Ghost drops the whole pinned-strip frame: the grid's top edge, and
         // the strip's bottom/vertical lines on head cell and corner — the
@@ -401,12 +395,9 @@ export const calendarVariants = tv({
         yearMonthTitle: 'text-xs mb-0.5',
         yearMiniDay: 'text-3xs size-3',
         yearMiniDot: 'size-0.5',
-        weekGrid: 'gap-px',
-        weekColumn: 'min-h-16',
         weekColumnHeader: 'py-1 px-0.5 gap-0',
         weekColumnDayName: 'text-2xs',
         weekColumnDayNumber: 'text-base',
-        weekEventList: 'gap-0.5 p-0.5',
         weekAllDayEvent: 'text-2xs px-0.5',
         multiDayBar: 'text-2xs',
         dayView: 'gap-2 mt-2',
@@ -459,12 +450,9 @@ export const calendarVariants = tv({
         yearMonthTitle: 'text-sm mb-1',
         yearMiniDay: 'text-3xs size-4',
         yearMiniDot: 'size-1',
-        weekGrid: 'gap-px',
-        weekColumn: 'min-h-24',
         weekColumnHeader: 'py-1.5 px-1 gap-0.5',
         weekColumnDayName: 'text-xs',
         weekColumnDayNumber: 'text-lg',
-        weekEventList: 'gap-1 p-1',
         weekAllDayEvent: 'text-xs px-1',
         multiDayBar: 'text-xs',
         dayView: 'gap-3 mt-3',
@@ -513,12 +501,9 @@ export const calendarVariants = tv({
         yearMonthTitle: 'text-base mb-1.5',
         yearMiniDay: 'text-xs size-5',
         yearMiniDot: 'size-1.5',
-        weekGrid: 'gap-px',
-        weekColumn: 'min-h-32',
         weekColumnHeader: 'py-2 px-1.5 gap-0.5',
         weekColumnDayName: 'text-sm',
         weekColumnDayNumber: 'text-xl',
-        weekEventList: 'gap-1.5 p-1.5',
         weekAllDayEvent: 'text-sm px-1.5',
         multiDayBar: 'text-sm',
         dayView: 'gap-4 mt-4',

@@ -15,8 +15,6 @@ export const chartVariants = tv({
     axis: ['text-text-tertiary'],
     /** Baseline / domain line. */
     axisLine: ['stroke-border-default'],
-    /** Tick marks. */
-    axisTick: ['stroke-border-subtle'],
     /** Tick + category labels. */
     axisLabel: ['fill-text-tertiary text-3xs tabular-nums'],
     /** Background gridlines. */

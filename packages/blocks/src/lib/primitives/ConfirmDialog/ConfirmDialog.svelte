@@ -1,5 +1,7 @@
 <script lang="ts">
   import { useBlocksI18n } from '$lib';
+  import { getBlocksConfig, resolveSlotClasses, wrapperActiveProps } from '$lib/provider';
+  import { dialogVariants } from '../Dialog/dialog.variants';
   import Button from '../Button/Button.svelte';
   import Dialog from '../Dialog/Dialog.svelte';
   import type { ConfirmDialogProps } from './index';
@@ -21,8 +23,29 @@
     closeOnBackdropClick = true,
     closeOnEscape = true,
     children,
+    preset,
+    slotClasses,
     ...rest
   }: ConfirmDialogProps = $props();
+
+  const blocksConfig = getBlocksConfig();
+  // Resolved here, under this component's own name, and handed to Dialog as
+  // instance `slotClasses` rather than forwarded as `preset`: inside Dialog the
+  // name would be `Dialog`, so a preset written for the confirmation would style
+  // every dialog under the provider too. `wrapperActiveProps` supplies the
+  // axes the caller left to Dialog's own defaults, without which a preset's
+  // `overrides` rule on any of them would match nothing here.
+  // `intent` and `size` are this component's answer for Dialog, so they are
+  // written into the object rather than defaulted out of the config.
+  const presetSlotClasses = $derived(
+    resolveSlotClasses(
+      blocksConfig,
+      'ConfirmDialog',
+      preset,
+      wrapperActiveProps(dialogVariants.config, { ...rest, intent, size: 'sm' }),
+      slotClasses
+    )
+  );
 
   let busy = $state(false);
   const isLoading = $derived(loading || busy);
@@ -66,6 +89,7 @@
 
 <Dialog
   {...rest}
+  slotClasses={presetSlotClasses}
   bind:open
   {title}
   {intent}

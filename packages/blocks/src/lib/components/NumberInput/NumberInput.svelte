@@ -1,5 +1,7 @@
 <script lang="ts">
   import { Input } from '$lib/primitives/Input';
+  import { inputVariants } from '$lib/primitives/Input';
+  import { getBlocksConfig, resolveSlotClasses, wrapperActiveProps } from '$lib/provider';
   import { resolveIcon } from '$lib/icons';
   import ChevronDownIconDefault from '$lib/icons/ChevronDownIcon.svelte';
   import type { NumberInputProps } from './index';
@@ -18,8 +20,27 @@
     name,
     onValueChange,
     rightIcon: userRightIcon,
+    preset,
+    slotClasses,
     ...inputProps
   }: NumberInputProps = $props();
+
+  const blocksConfig = getBlocksConfig();
+  // Resolved here, under this component's own name, and handed to Input as
+  // instance `slotClasses` rather than forwarded as `preset`: inside Input the
+  // name would be `Input`, so a preset written for the number field would style
+  // every text field under the provider too. `wrapperActiveProps` supplies the
+  // axes the caller left to Input's own defaults, without which a preset's
+  // `overrides` rule on any of them would match nothing here.
+  const presetSlotClasses = $derived(
+    resolveSlotClasses(
+      blocksConfig,
+      'NumberInput',
+      preset,
+      wrapperActiveProps(inputVariants.config, { ...inputProps, disabled, readonly }),
+      slotClasses
+    )
+  );
 
   // Tracks focus so the wheel handler only steers a focused field (scrolling the
   // page over an unfocused one must not change it). Set by the input's focus/blur.
@@ -150,7 +171,7 @@
   <span class="pointer-events-auto -my-1 flex flex-col justify-center">
     <button
       type="button"
-      class="text-text-tertiary hover:text-text-primary flex items-center justify-center px-0.5 transition-colors disabled:pointer-events-none disabled:opacity-30 focus-visible:outline-none"
+      class="text-text-tertiary hover:text-text-primary flex items-center justify-center px-0.5 transition-colors focus-visible:outline-none disabled:pointer-events-none disabled:opacity-30"
       tabindex={-1}
       aria-hidden="true"
       disabled={disabled || readonly || atMax}
@@ -161,7 +182,7 @@
     </button>
     <button
       type="button"
-      class="text-text-tertiary hover:text-text-primary flex items-center justify-center px-0.5 transition-colors disabled:pointer-events-none disabled:opacity-30 focus-visible:outline-none"
+      class="text-text-tertiary hover:text-text-primary flex items-center justify-center px-0.5 transition-colors focus-visible:outline-none disabled:pointer-events-none disabled:opacity-30"
       tabindex={-1}
       aria-hidden="true"
       disabled={disabled || readonly || atMin}
@@ -175,6 +196,7 @@
 
 <Input
   {...inputProps}
+  slotClasses={presetSlotClasses}
   {disabled}
   {readonly}
   type="text"
