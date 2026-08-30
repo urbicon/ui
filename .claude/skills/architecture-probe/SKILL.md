@@ -12,7 +12,9 @@ carries a justification naming the measurement that forced it. Reading convinces
 by exception. **The number of exceptions is the finding, and it is invisible while reading.**
 
 Change the question instead. Run the sondes below in order and stop when the answer is clear.
-First full run: `packages/table`, 2026-08-18, 18 agents → `docs/internal/TABLE-MIGRATIONEN-2026-08-18.md`.
+First full run: `packages/table`, 2026-08-18, 18 agents; three more followed on the same package
+(`features/` 22.08., sticky/pinning 25.08.). The write-ups are maintainer-local and unpublished —
+`docs/archive/2026-08/TABLE-{MIGRATIONEN,FEATURES-SONDE,STICKY-SONDE}-*.md` in a full checkout.
 
 ## Two rules, without which none of the sondes carries
 
