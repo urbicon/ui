@@ -43,6 +43,7 @@ Then reach for the rest as you need it.
 - [VARIANT-CONTRACT.md](VARIANT-CONTRACT.md) — what each `variant` value means across the library *(shipped in the blocks tarball)*
 - [STICKY-PINNING.md](STICKY-PINNING.md) — table scroll models: page-relative sticky pinning + contained scroll *(shipped in the table tarball)*
 - [MIGRATION-V8.md](MIGRATION-V8.md) — table v7 → v8: the consumer-owned view object, the source union, the two persistence channels *(shipped in the table tarball)*
+- [MIGRATION-BLOCKS.md](MIGRATION-BLOCKS.md) — breaking changes to the component library, newest first *(shipped in the blocks tarball)*
 - [GUIDE.md](GUIDE.md) — Guide system: non-modal help panel, contextual hints, guided tour *(shipped in the blocks tarball)*
 - [A2UI.md](A2UI.md) — agent-generated UI in a chat: long-lived surfaces, the action-only return path *(shipped in the blocks tarball)*
 

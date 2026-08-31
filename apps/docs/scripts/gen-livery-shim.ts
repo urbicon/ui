@@ -39,8 +39,11 @@ const OUT = new URL('../src/lib/livery/livery-shim.gen.css', import.meta.url).pa
 const css = await Bun.file(SOURCE).text();
 
 // Only the `@theme` block: the later `:root` rules carry `color-scheme` and the
-// shadow tint, which a livery sets for itself, and the `prefers-contrast`
-// overrides must keep their own media conditions rather than be flattened here.
+// shadow tint, and the `prefers-contrast` overrides must keep their own media
+// conditions rather than be flattened here. The tint is deliberately out of
+// reach: it is substituted where the `--blocks-shadow-*` steps are declared,
+// which is `:root`, so re-emitting the tint alone under `[data-livery]` would
+// move nothing — a livery cannot re-tint shadows without the five steps too.
 const themeStart = css.indexOf('@theme {');
 if (themeStart === -1) throw new Error('no @theme block in semantic.css');
 

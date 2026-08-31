@@ -151,6 +151,7 @@ bun run test                                  # Run tests (from root)
 
 ## Related
 
+- [docs/MIGRATION.md](./docs/MIGRATION.md) — breaking changes and what to do about them, newest first. Ships in this package.
 - [docs/GUIDE.md](./docs/GUIDE.md) — Guide system (help panel, hints, UI↔guide linking, guided tour): architecture + as-built contract. Ships in this package.
 - [docs/VARIANT-CONTRACT.md](./docs/VARIANT-CONTRACT.md) — what each `variant` value means: the surface ladder, Card / Alert / Accordion / Table variants, border tokens, and the naming history. Ships in this package.
 - [docs/ARCHITECTURE.md](../../docs/ARCHITECTURE.md) — Token system, Mint, Preset-System, i18n (monorepo only)

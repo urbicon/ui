@@ -20,6 +20,7 @@
   } from '@urbicon-ui/blocks';
   import { provideI18n } from '@urbicon-ui/i18n';
   import { useAppI18n } from '$lib/i18n';
+  import { readStored, writeStored } from '$lib/storage';
   import { onMount } from 'svelte';
   // JetBrains Mono self-hosted (instead of Google Fonts) — no third-party requests,
   // see the privacy policy (/privacy).
@@ -45,7 +46,7 @@
   const ta = useAppI18n();
 
   function persistLocale(locale: string) {
-    localStorage.setItem('urbicon-locale', locale);
+    writeStored('urbicon-locale', locale);
   }
 
   onMount(() => {
@@ -54,7 +55,7 @@
     // racing the SSR-inert markup (see e2e/recipes.spec.ts / the
     // popover-motion aria-expanded workaround it generalizes).
     document.documentElement.dataset.hydrated = 'true';
-    const stored = localStorage.getItem('urbicon-locale');
+    const stored = readStored('urbicon-locale');
     const browserLang = navigator.language.split('-')[0];
     const next =
       stored && ['en', 'de'].includes(stored)
