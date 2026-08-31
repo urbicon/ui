@@ -119,6 +119,9 @@ const SHOW_WARNINGS = process.argv.includes('--warnings');
 const GLOBS = [
   'packages/blocks/src/lib/primitives/**/*.variants.ts',
   'packages/blocks/src/lib/components/**/*.variants.ts',
+  // `*variants.ts`, not `*.variants.ts`: internal/ names one config file
+  // `variants.ts` outright, and the dotted form leaves it unlinted.
+  'packages/blocks/src/lib/internal/**/*variants.ts',
   'packages/table/src/lib/variants/*.variants.ts',
   'packages/docs/src/lib/components/**/*.variants.ts'
 ];
