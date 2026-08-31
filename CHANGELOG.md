@@ -4,6 +4,26 @@ All notable changes to this project will be documented in this file.
 This changelog is automatically generated from [Conventional Commits](https://www.conventionalcommits.org).
 
 
+## [8.14.0] - 2026-08-31
+
+### Breaking Changes
+- **blocks**: The shadow scale leaves the colour namespace
+> **BREAKING:** A theme overriding a shadow step must rename `--color-shadow-*` to `--blocks-shadow-scale-*`. Values are unchanged, and so is the name markup uses. Nothing reports the old name; worse, a stale override re-creates the original defect inside the consumer's own build, so grep for `--color-shadow-` before shipping.
+- **blocks**: Fold Planner's view- and cell-conditional classes through tv()
+> **BREAKING:** `<Planner unstyled>` now strips what it promised to strip. It loses `text-text-secondary`, the base colour of every ordinary day's number — the most frequent of the set, and not a state mark — plus the day-state marks (today, selected, weekend, outside, disabled), the column `gap-2` in the week view, and the 1px grid border in month and range. The `md` stacking stays. Measured over every element of all three views at two widths: no class is added anywhere, and a styled Planner is unchanged.
+- **blocks**: Class becomes its own source, and an instance unstyled reaches every level
+> **BREAKING:** a consumer who writes `class` and `slotClasses` with colliding classes on the same element now keeps only the `class` one; both used to land and the stylesheet decided. An `unstyled` on a composing wrapper now strips the components it renders, not just its own root. `<Skeleton unstyled>` no longer carries `gap-2`.
+
+### Bug Fixes
+- **blocks**: Read theme storage through a guard that writes nothing
+
+### Features
+- **blocks**: Give chart points and the area band their own slots
+
+### Miscellaneous
+- Update dependencies
+- **blocks**: Re-measure the size baseline on the merged wave
+
 ## [8.13.0] - 2026-08-31
 
 ### Breaking Changes
