@@ -4,6 +4,22 @@ All notable changes to this project will be documented in this file.
 This changelog is automatically generated from [Conventional Commits](https://www.conventionalcommits.org).
 
 
+## [8.13.0] - 2026-08-31
+
+### Breaking Changes
+- **blocks**: Remove showTimeGrid, a documented prop that nothing reads (#362)
+> **BREAKING:** `showTimeGrid` is gone from `CalendarProps`. It changed nothing that rendered, so no layout moves. A call site that writes it directly on the element stops compiling; one that spreads it in keeps building and emits it as a stray DOM attribute.
+- **blocks**: Give each chart the slot type it paints (#363)
+> **BREAKING:** `ChartSlotClasses` is gone. Each chart has its own type — `ChartFrameSlotClasses`, `BarChartSlotClasses`, `LineChartSlotClasses`, `AreaChartSlotClasses`, `DonutChartSlotClasses`, with matching `*Slot` unions — accepting only the slots that component paints. Nothing renders differently. A `slotClasses` entry that was already a silent no-op stops compiling: replace `ChartSlotClasses` with the type of the chart you are styling and delete the entries it rejects. `ChartSlot`, the resolver's parameter type, is unchanged.
+- **blocks**: A menu section owns its items, so all three call forms announce alike (#365)
+> **BREAKING:** `<MenuSection>` requires `children` and treats `label` as the heading. `<MenuSection label="X" />` and `<MenuSection>X</MenuSection>` no longer compile — nest the section's items inside it. Menu and MenuSubmenu render array sections through the same component, so their markup gains a `role="group"` wrapper around each section's items; a selector written against the panel's direct children needs to become a descendant selector. The heading's DOM id changes shape from `<rootId>-section-<array index>` to a per-instance id — resolve it through the group's `aria-labelledby` rather than computing it …
+
+### Bug Fixes
+- **blocks**: Ask the compiler about every class Tailwind can name, not only the ones we ship (#364)
+
+### Miscellaneous
+- **blocks**: Re-measure the size baseline on the merged tree
+
 ## [8.12.0] - 2026-08-30
 
 ### Breaking Changes
