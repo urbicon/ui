@@ -12,9 +12,21 @@
     <script>
       (() => {
         var d = document.documentElement;
+        // Storage is not guaranteed usable — reading the property throws where
+        // it is switched off (a hardened profile, an embedded webview), and an
+        // unguarded read here aborts the whole script, taking the skin below
+        // with it. The same guard the library applies, in the smallest form
+        // that needs no bundle. The ThemeSwitcher docs page ships this script.
+        var read = (k) => {
+          try {
+            return localStorage.getItem(k);
+          } catch {
+            return null;
+          }
+        };
         // Dark/light: only an explicit choice sets a class; system mode leaves
         // `color-scheme: light dark` to follow the OS via light-dark().
-        var t = localStorage.getItem('urbicon-theme');
+        var t = read('urbicon-theme');
         if (t === 'dark') {
           d.classList.add('dark');
         } else if (t === 'light') {
@@ -25,7 +37,7 @@
         // explicit 'library' choice removes it. It lives on <html> — not <body>,
         // which does not exist yet while this <head> script runs — so the first
         // paint already carries the right skin (no flash of the wrong theme).
-        if (localStorage.getItem('urbicon-docs-theme') === 'library') {
+        if (read('urbicon-docs-theme') === 'library') {
           d.classList.remove('docs-rooms');
         }
       })();

@@ -1,6 +1,7 @@
 // @vitest-environment jsdom
 import { flushSync, mount, unmount } from 'svelte';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { installMemoryStorage, restoreStorage } from '../../../../../scripts/vitest-storage';
 import type { InternalTableContext } from '../stores/TableStore.svelte';
 import TableHarness from './__fixtures__/TableHarness.svelte';
 import type { TableContext } from './table/index';
@@ -22,20 +23,6 @@ import type { TableContext } from './table/index';
  *   hidden set stayed applied and "Amount" was missing from the headers.
  * - DEV report: with the validation effect removed, neither warning fired.
  */
-
-function memoryStorage(): Storage {
-  const map = new Map<string, string>();
-  return {
-    get length() {
-      return map.size;
-    },
-    clear: () => map.clear(),
-    getItem: (key: string) => (map.has(key) ? (map.get(key) ?? null) : null),
-    key: (index: number) => [...map.keys()][index] ?? null,
-    removeItem: (key: string) => void map.delete(key),
-    setItem: (key: string, value: string) => void map.set(key, String(value))
-  };
-}
 
 const ROWS = [
   { id: 1, name: 'Ada', amount: 100 },
@@ -65,7 +52,7 @@ const clickRow = (el: HTMLElement, id: number) => {
 };
 
 beforeEach(() => {
-  Object.defineProperty(window, 'localStorage', { value: memoryStorage(), configurable: true });
+  installMemoryStorage();
 });
 
 afterEach(() => {
@@ -74,6 +61,7 @@ afterEach(() => {
   comp = undefined;
   target = undefined;
   vi.restoreAllMocks();
+  restoreStorage();
 });
 
 describe('TableProvider — controlled selectedIds', () => {
