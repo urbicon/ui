@@ -2,6 +2,7 @@
   import { onMount } from 'svelte';
   import { getBlocksConfig, resolveSlotClasses } from '$lib/provider';
   import { mintAttachment } from '$lib';
+  import { resolveClassChain } from '$lib/utils/variants';
   import type { TabItemProps } from './index';
   import { getTabContext } from './tab.context';
   import { tabVariants, type TabVariants } from './tab.variants';
@@ -71,7 +72,7 @@
   type="button"
   role="tab"
   class={unstyled
-    ? [slotClasses?.trigger, className].filter(Boolean).join(' ')
+    ? resolveClassChain(slotClasses?.trigger, className)
     : styles.trigger({ class: [slotClasses?.trigger, className] })}
   aria-selected={isActive}
   aria-controls={tabContext.hasPanel(value) ? `tabpanel-${value}` : undefined}

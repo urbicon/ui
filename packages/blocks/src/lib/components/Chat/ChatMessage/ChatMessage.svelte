@@ -13,6 +13,7 @@
   import RefreshIconDefault from '$lib/icons/RefreshIcon.svelte';
   import FileIconDefault from '$lib/icons/FileIcon.svelte';
   import { formatFileSize } from '$lib/utils/file-intake';
+  import { resolveClassChain } from '$lib/utils/variants';
   import StreamingMarkdown from '../StreamingMarkdown/StreamingMarkdown.svelte';
   import CitationChip from '../CitationChip/CitationChip.svelte';
   import ReasoningDisclosure from '../ReasoningDisclosure/ReasoningDisclosure.svelte';
@@ -77,7 +78,7 @@
   function cls(name: keyof typeof slotClasses, extra?: string | (string | undefined)[]) {
     if (unstyled) {
       const own = slotClasses?.[name];
-      return [own, ...(Array.isArray(extra) ? extra : [extra])].filter(Boolean).join(' ');
+      return resolveClassChain(own, ...(Array.isArray(extra) ? extra : [extra]));
     }
     const slotFns = styles as Record<string, (args: { class?: unknown }) => string>;
     return slotFns[name]({
@@ -143,7 +144,7 @@
 </script>
 
 {#snippet defaultAvatar(role: ChatRole)}
-  <Avatar size="sm" class={cls('avatar')}>
+  <Avatar size="sm" {unstyled} class={cls('avatar')}>
     {#if role === 'assistant'}
       <SparklesIcon size={16} />
     {:else if role === 'user'}
@@ -193,6 +194,7 @@
           {@render partRenderers.text(part)}
         {:else}
           <StreamingMarkdown
+            {unstyled}
             content={part.text}
             streaming={message.status === 'streaming' && index === lastIndex}
             sources={sources.length ? sources : undefined}
@@ -207,6 +209,7 @@
           <!-- Streaming while it is the trailing part: once the answer text
                starts flowing behind it, the reasoning is settled. -->
           <ReasoningDisclosure
+            {unstyled}
             reasoning={part}
             streaming={status === 'streaming' && index === lastIndex}
             {urlPolicy}
@@ -216,7 +219,7 @@
         {#if partRenderers?.['tool-call']}
           {@render partRenderers['tool-call'](part)}
         {:else}
-          <ToolCallCard toolCall={part} />
+          <ToolCallCard {unstyled} toolCall={part} />
         {/if}
       {:else if part.type === 'attachment'}
         {#if partRenderers?.attachment}
@@ -237,14 +240,14 @@
 
     {#if showPlaceholder}
       <div class={cls('placeholder')}>
-        <Skeleton variant="text" width="40%" />
+        <Skeleton {unstyled} variant="text" width="40%" />
       </div>
     {/if}
   </div>
 {/snippet}
 
 {#snippet retryAction()}
-  <Button size="sm" onclick={onRetry}>
+  <Button {unstyled} size="sm" onclick={onRetry}>
     <RefreshIcon size={14} />
     {retryLabel}
   </Button>
@@ -255,7 +258,7 @@
     <!-- No copy for text-less messages (tool-call/reasoning-only): copying an
          empty string and confirming "Copied" would be a lie (review finding). -->
     {#if messageText}
-      <Tooltip label={copyButtonText}>
+      <Tooltip {unstyled} label={copyButtonText}>
         <CoreIconButton
           class={cls('actionButton')}
           onclick={copyMessage}
@@ -270,7 +273,7 @@
       </Tooltip>
     {/if}
     {#if onRegenerate}
-      <Tooltip label={regenerateLabel}>
+      <Tooltip {unstyled} label={regenerateLabel}>
         <CoreIconButton
           class={cls('actionButton')}
           onclick={onRegenerate}
@@ -294,7 +297,7 @@
   {#if sources.length}
     <div class={cls('sourcesFooter')}>
       {#each sources as source, i (source.id)}
-        <CitationChip {source} index={i + 1} {urlPolicy} />
+        <CitationChip {unstyled} {source} index={i + 1} {urlPolicy} />
       {/each}
     </div>
   {/if}
@@ -302,6 +305,7 @@
   {#if status === 'error' || status === 'aborted'}
     <div class={cls('statusAlert')}>
       <Alert
+        {unstyled}
         intent={status === 'error' ? 'danger' : 'warning'}
         title={status === 'error' ? errorLabel : abortedLabel}
         actions={onRetry ? retryAction : undefined}

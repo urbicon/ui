@@ -56,6 +56,7 @@
         styles.container,
         styleConfig.slotClasses.loadingState,
         styleConfig.unstyled,
+        undefined,
         className
       )}
     >

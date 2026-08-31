@@ -1,6 +1,7 @@
 <script lang="ts">
   import { useBlocksI18n } from '$lib/i18n';
   import { getBlocksConfig, resolveSlotClasses } from '$lib/provider';
+  import { resolveClassChain } from '$lib/utils/variants';
   import { getGuideContext } from './guide.context';
   import { guideBeaconVariants, type GuideBeaconVariants } from './guide.variants';
   import type { GuideBeaconProps } from './index';
@@ -55,7 +56,7 @@
     class={[
       'guide-beacon',
       unstyled
-        ? [slotClasses?.beacon, className].filter(Boolean).join(' ')
+        ? resolveClassChain(slotClasses?.beacon, className)
         : styles.beacon({ class: [slotClasses?.beacon, className] })
     ]}
     aria-label={label ?? bt('guide.startTour', {})}

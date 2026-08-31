@@ -3,6 +3,7 @@
   import { getBlocksConfig, resolveSlotClasses } from '$lib/provider';
   import { resolveIcon } from '$lib/icons';
   import LinkIconDefault from '$lib/icons/LinkIcon.svelte';
+  import { resolveClassChain } from '$lib/utils/variants';
   import { checkLinkUrl } from '../markdown/url-policy.js';
   import { citationChipVariants } from './citation-chip.variants';
   import type { CitationChipProps } from './index';
@@ -59,12 +60,12 @@
      output, so the prerendered DOM no longer matches the component tree
      (`node_invalid_placement_ssr` → `hydration_mismatch`, measured on three
      docs pages 2026-07-28). -->
-<Popover inline placement="bottom-start" aria-label={ariaLabel}>
+<Popover {unstyled} inline placement="bottom-start" aria-label={ariaLabel}>
   {#snippet trigger()}
     <button
       type="button"
       class={unstyled
-        ? [slotClasses?.trigger, className].filter(Boolean).join(' ')
+        ? resolveClassChain(slotClasses?.trigger, className)
         : styles.trigger({ class: [slotClasses?.trigger, className] })}
       aria-label={ariaLabel}
       {...restProps}

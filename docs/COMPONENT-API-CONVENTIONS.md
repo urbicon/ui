@@ -328,7 +328,9 @@ When `unstyled` is `false`, `slotClasses` values are merged with the default tv(
 
 `defaults.slotClasses → defaults.overrides[match] → preset.slotClasses → preset.overrides[match] → instance.slotClasses → class`
 
-Conflicts are resolved per Tailwind bucket (the later source wins for a given property; non-conflicting classes accumulate) — so an instance `rounded-none` deterministically defeats a provider-default `rounded-full` instead of leaving the winner to stylesheet order.
+Conflicts are resolved per Tailwind bucket (the later source wins for a given property; non-conflicting classes accumulate) — so an instance `rounded-none` deterministically defeats a provider-default `rounded-full` instead of leaving the winner to stylesheet order. The last arrow is no exception: the call sites hand `tv()` an **array** (`styles.base({ class: [slotClasses?.base, className] })`) and the engine reads each top-level array element as its own source, so `class="py-4"` strips a `slotClasses={{ base: 'py-8' }}`. Under `unstyled` there is no `tv()` pass, and the same list folds through the exported `resolveClassChain(...)` instead — the flag changes what is left to resolve, never how.
+
+A library-authored class written into that array is a source like any other, so it belongs **before** the consumer's rungs (`Button`'s `pressCueClass`), never after; better still, it belongs in a variant axis. Two classes that are meant to coexist go in the *same* array element — within one element nothing is stripped.
 
 For **project-wide** overrides, register them on `BlocksProvider` rather than repeating `slotClasses` at each call site: `defaults` (unconditional, every instance), `presets` (opt-in, named), or `overrides` (prop-conditional — e.g. only `variant="outlined"`). See [ARCHITECTURE.md → The override cascade](./ARCHITECTURE.md#the-override-cascade).
 
@@ -352,13 +354,32 @@ Reach for the lowest rung that solves the problem — lower rungs preserve more 
 4. **`overrides`** — style only one variant / intent / state (prop-conditional — what unconditional `slotClasses` cannot express).
 5. **`unstyled` + `slotClasses`** — strip every default and rebuild the look.
 
+`unstyled` propagates by prop, and only along markup the component writes itself: a
+composing component hands it to the blocks components it renders (`DatePicker` →
+`Input`/`Popover`/`Calendar`, `ChatMessage` → `Avatar`/`Alert`/`Tooltip`, `Pagination` →
+its page buttons), so a bare frame around a fully dressed field is not a state one instance
+can be in. It deliberately stops at anything the consumer hands in as `children` or a
+snippet — that would be action at a distance from a prop written at the call site. For a
+whole subtree, `<BlocksProvider unstyled>`. Which components this covers is measured rather
+than listed: route H of `provider/provider-cascade.svelte.test.ts` mounts a component twice
+and requires the instance flag to remove exactly what the provider flag removes. It answers
+for the markup that mount renders and no more — measured, it is blind to a child that only
+appears in a state the mount does not reach: `AvatarGroup`'s avatars (no `items`), and
+`CalendarHeader`'s overlays and `FileUpload`'s progress bar (both closed). That is why the
+roster is *also* derived from the source rather than read off the sweep, and why the three
+are listed as `ROUTE_H_BLIND` in the sweep itself — a mount fixture that reaches the child
+takes a component off that list, as `Guide`'s tour fixture did.
+
 One scoping note: controls embedded via the internal core layer (Badge's
 remove ×, Dialog/Drawer's close ×, embedded loading spinners) are styled by
 their host's variants slot (`removeButton`, `closeButton`, `spinner`) — rungs
 1–5 of the *host* apply to them, but Button/Spinner presets and provider
 defaults do not reach inside (they never were the documented path). The cores'
 few structural plumbing classes (flex centring, cursor, disabled inertness)
-sit outside the ladder entirely: they are behaviour, not an override surface.
+sit outside the ladder entirely: they are behaviour, not an override surface,
+and `unstyled` leaves them alone under either flag. A core that renders a
+*public* component is the other case — `CoreDateGridHeader`'s today-button
+`Tooltip` has a `tv()` config of its own, so the core relays `unstyled` to it.
 
 A second scoping note, for rung 3: a **compound part** is addressed under the
 provider name of the component it renders inside of, never one of its own.

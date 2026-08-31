@@ -27,6 +27,7 @@
 </script>
 
 <CoreDateGridHeader
+  unstyled={ctx.unstyled}
   {labels}
   title={ctx.title}
   canGoBack={ctx.canGoBack}

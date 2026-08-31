@@ -23,6 +23,7 @@
     href,
     onPageClick,
     mint = 'none',
+    unstyled = false,
     class: className = '',
     ...restProps
   }: PaginationItemProps = $props();
@@ -39,13 +40,24 @@
        routes. -->
   <a
     {href}
-    class={paginationLinkVariants({ class: className })}
+    class={unstyled ? className : paginationLinkVariants({ class: className })}
     tabindex={disabled ? -1 : 0}
     aria-disabled={disabled || undefined}
     aria-current={active ? 'page' : undefined}
     {...restProps}
   >
-    <Button {size} {variant} {intent} {tier} {disabled} {loading} {mint} {active} tabindex={-1}>
+    <Button
+      {size}
+      {variant}
+      {intent}
+      {tier}
+      {disabled}
+      {loading}
+      {mint}
+      {active}
+      {unstyled}
+      tabindex={-1}
+    >
       {#if children}
         {@render children()}
       {:else if page !== undefined}
@@ -64,6 +76,7 @@
     {loading}
     {mint}
     {active}
+    {unstyled}
     onclick={handleClick}
     aria-current={active ? 'page' : undefined}
     class={className}

@@ -158,10 +158,17 @@
 
 <svelte:window onkeydown={handleGlobalKeydown} />
 
-<Dialog bind:open size="md" placement="top" class="mt-[15vh]" onClose={() => setOpen(false)}>
+<Dialog
+  {unstyled}
+  bind:open
+  size="md"
+  placement="top"
+  class="mt-[15vh]"
+  onClose={() => setOpen(false)}
+>
   <div
     class={unstyled
-      ? [slotClasses?.wrapper, className].filter(Boolean).join(' ')
+      ? resolveClassChain(slotClasses?.wrapper, className)
       : styles.wrapper({ class: [slotClasses?.wrapper, className] })}
   >
     <!-- Search input -->

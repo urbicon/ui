@@ -4,6 +4,7 @@
   import ArrowDownIconDefault from '$lib/icons/ArrowDownIcon.svelte';
   import MessageSquareIconDefault from '$lib/icons/MessageSquareIcon.svelte';
   import { Badge } from '$lib/primitives/Badge';
+  import { resolveClassChain } from '$lib/utils/variants';
   import { EmptyState } from '../../EmptyState';
   import type { ChatMessageData, ChatMessageStatus } from '../chat.types';
   import ChatMessage from '../ChatMessage/ChatMessage.svelte';
@@ -55,7 +56,7 @@
   );
 
   function slot(name: keyof typeof styles, extra?: string | false): string {
-    const overrides = [slotClasses?.[name], extra].filter(Boolean).join(' ');
+    const overrides = resolveClassChain(slotClasses?.[name], extra);
     if (unstyled) return overrides;
     return styles[name]({ class: overrides });
   }
@@ -232,7 +233,7 @@
 <div
   {...restProps}
   class={unstyled
-    ? [slotClasses?.root, className].filter(Boolean).join(' ')
+    ? resolveClassChain(slotClasses?.root, className)
     : styles.root({ class: [slotClasses?.root, className] })}
   data-stuck={stuck || undefined}
 >
@@ -251,7 +252,12 @@
         {#if empty}
           {@render empty()}
         {:else}
-          <EmptyState icon={MessageSquareIcon} title={emptyTitle} description={emptyDescription} />
+          <EmptyState
+            {unstyled}
+            icon={MessageSquareIcon}
+            title={emptyTitle}
+            description={emptyDescription}
+          />
         {/if}
       </div>
     {:else}
@@ -262,6 +268,7 @@
             {@render messageSnippet({ message: msg, index: i, isLast })}
           {:else}
             <ChatMessage
+              {unstyled}
               message={msg}
               {urlPolicy}
               {partRenderers}
@@ -292,7 +299,7 @@
     >
       <ArrowDownIcon size={16} />
       {#if newCount > 0}
-        <Badge intent="primary" size="xs" counter>{newCount}</Badge>
+        <Badge {unstyled} intent="primary" size="xs" counter>{newCount}</Badge>
       {/if}
     </button>
   {/if}

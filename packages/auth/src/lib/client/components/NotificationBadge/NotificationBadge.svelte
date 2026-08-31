@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { Badge, getBlocksConfig } from '@urbicon-ui/blocks';
+  import { Badge, getBlocksConfig, resolveClassChain } from '@urbicon-ui/blocks';
   import { resolveAuthSlotClasses } from '../../utils/slot-class.js';
   import type { NotificationBadgeProps } from './index.js';
 
@@ -27,7 +27,7 @@
     interactive
     {onclick}
     {unstyled}
-    class={[slotClasses.root, className].filter(Boolean).join(' ')}
+    class={resolveClassChain(slotClasses.root, className)}
   >
     {count > 99 ? '99+' : count}
   </Badge>

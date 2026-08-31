@@ -1,5 +1,6 @@
 <script lang="ts">
   import { getBlocksConfig, resolveSlotClasses } from '$lib/provider';
+  import { resolveClassChain } from '$lib/utils/variants';
   import { chatVariants } from './chat.variants';
   import type { ChatProps } from './index';
 
@@ -25,7 +26,7 @@
   function cls(name: keyof typeof slotClasses, extra?: string | (string | undefined)[]) {
     if (unstyled) {
       const own = slotClasses?.[name];
-      return [own, ...(Array.isArray(extra) ? extra : [extra])].filter(Boolean).join(' ');
+      return resolveClassChain(own, ...(Array.isArray(extra) ? extra : [extra]));
     }
     const slotFns = styles as Record<string, (args: { class?: unknown }) => string>;
     return slotFns[name]({

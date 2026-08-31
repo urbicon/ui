@@ -2,6 +2,7 @@
   import { tick } from 'svelte';
   import { useBlocksI18n } from '$lib';
   import { getBlocksConfig, resolveSlotClasses } from '$lib/provider';
+  import { resolveClassChain } from '$lib/utils/variants';
   import { breadcrumbVariants, type BreadcrumbVariants } from './breadcrumb.variants';
   import type { BreadcrumbProps, BreadcrumbItem } from './index';
 
@@ -124,7 +125,7 @@
 <nav
   bind:this={navEl}
   class={unstyled
-    ? [slotClasses?.nav, className].filter(Boolean).join(' ')
+    ? resolveClassChain(slotClasses?.nav, className)
     : styles.nav({ class: [slotClasses?.nav, className] })}
   aria-label={ariaLabel ?? bt('accessibility.breadcrumb')}
   {...restProps}

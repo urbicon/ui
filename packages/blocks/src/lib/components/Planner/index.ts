@@ -189,7 +189,7 @@ export interface PlannerProps<T = unknown>
   // ── Styling / a11y ───────────────────────────────────
   /** Extra classes merged onto the root element. */
   class?: string;
-  /** Remove all default tv() classes — only user-provided classes apply. @default false */
+  /** Remove all default tv() classes — only user-provided classes apply. Reaches the header's today-button tooltip. @default false */
   unstyled?: boolean;
   /** Per-slot class overrides merged with tv() styles. Slots: base | header | headerTitle | nav | navButton | grid | weekdayHeader | weekday | weekNumber | week | cell | cellHeader | cellWeekday | cellDate | cellItems | empty */
   slotClasses?: Partial<Record<PlannerSlots, string>>;

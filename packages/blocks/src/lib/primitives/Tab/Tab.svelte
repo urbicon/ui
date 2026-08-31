@@ -3,6 +3,7 @@
   import { SvelteMap } from 'svelte/reactivity';
   import { getBlocksConfig, resolveSlotClasses } from '$lib/provider';
   import { edgeEnabledIndex, getTierContext, nextEnabledIndex } from '$lib/utils';
+  import { resolveClassChain } from '$lib/utils/variants';
   import { tabVariants, type TabVariants } from './tab.variants';
   import { setTabContext } from './tab.context';
   import type { RegisteredTab, TabContext, TabProps } from './index';
@@ -276,7 +277,7 @@
 
 <div
   class={unstyled
-    ? [slotClasses?.base, className].filter(Boolean).join(' ')
+    ? resolveClassChain(slotClasses?.base, className)
     : styles.base({ class: [slotClasses?.base, className] })}
   data-orientation={orientation}
   {...restProps}

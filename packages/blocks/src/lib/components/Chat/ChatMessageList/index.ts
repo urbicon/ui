@@ -85,7 +85,7 @@ export interface ChatMessageListProps extends Omit<HTMLAttributes<HTMLDivElement
 
   /** Extra classes merged onto the root element. */
   class?: string;
-  /** Remove all default tv classes. */
+  /** Remove all default tv classes, from this component and the ones it renders (the messages, the empty state, the jump badge). */
   unstyled?: boolean;
   /** Per-slot class overrides. Slots: root | viewport | content | empty | newButton */
   slotClasses?: Partial<Record<ChatMessageListSlots, string>>;

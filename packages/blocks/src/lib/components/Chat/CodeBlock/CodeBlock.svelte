@@ -4,6 +4,7 @@
   import CopyIconDefault from '$lib/icons/CopyIcon.svelte';
   import CheckIconDefault from '$lib/icons/CheckIcon.svelte';
   import { createCopyState } from '$lib/internal/copy-state.svelte';
+  import { resolveClassChain } from '$lib/utils/variants';
   import { codeBlockVariants, type CodeBlockVariants } from './code-block.variants';
   import type { CodeBlockProps } from './index';
 
@@ -51,7 +52,7 @@
   function cls(name: keyof typeof slotClasses, extra?: string | (string | undefined)[]) {
     if (unstyled) {
       const own = slotClasses?.[name];
-      return [own, ...(Array.isArray(extra) ? extra : [extra])].filter(Boolean).join(' ');
+      return resolveClassChain(own, ...(Array.isArray(extra) ? extra : [extra]));
     }
     const slotFns = styles as Record<string, (args: { class?: unknown }) => string>;
     return slotFns[name]({

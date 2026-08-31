@@ -25,6 +25,10 @@
     children,
     preset,
     slotClasses,
+    // Destructured rather than left to ride `...rest`: the spread reaches the
+    // inner Dialog and nothing else, so the two footer Buttons stayed dressed
+    // under `<ConfirmDialog unstyled>` while the dialog around them was bare.
+    unstyled = false,
     ...rest
   }: ConfirmDialogProps = $props();
 
@@ -89,6 +93,7 @@
 
 <Dialog
   {...rest}
+  {unstyled}
   slotClasses={presetSlotClasses}
   bind:open
   {title}
@@ -123,10 +128,10 @@
       its own: it is reachable only through this button, and Enter/Space
       arrive as native clicks.
     -->
-    <Button variant="ghost" intent="neutral" onclick={handleCancel} disabled={isLoading}>
+    <Button {unstyled} variant="ghost" intent="neutral" onclick={handleCancel} disabled={isLoading}>
       {cancelLabel ?? bt('button.cancel')}
     </Button>
-    <Button intent={effectiveConfirmIntent} onclick={handleConfirm} loading={isLoading}>
+    <Button {unstyled} intent={effectiveConfirmIntent} onclick={handleConfirm} loading={isLoading}>
       {confirmLabel ?? bt('button.confirm')}
     </Button>
   {/snippet}

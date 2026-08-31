@@ -2,7 +2,7 @@
   import { untrack } from 'svelte';
   import { type SectionSlots, sectionVariants } from './section.variants';
   import type { SectionProps } from './index.js';
-  import { Badge } from '@urbicon-ui/blocks';
+  import { Badge, resolveClassChain } from '@urbicon-ui/blocks';
   import {
     isInsideSection,
     markInsideSection,
@@ -100,7 +100,7 @@
 <section
   {...restProps}
   {id}
-  class={[slot('root'), className]}
+  class={resolveClassChain(slot('root'), className)}
   aria-labelledby={hasHeading ? headingId : undefined}
 >
   <!-- Header Section (only rendered if there's content). Under `titleHidden`

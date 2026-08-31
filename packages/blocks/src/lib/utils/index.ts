@@ -83,4 +83,12 @@ export {
 // consuming package's `tv()` result is not *nameable* during its declaration
 // emit (TS2883) and svelte-package silently drops that file's .d.ts — every
 // `*Props extends …VariantProps` consumer then loses all variant props.
-export { cx, type SlotNames, type TVConfig, type TVProps, tv, type VariantProps } from './variants';
+export {
+  cx,
+  resolveClassChain,
+  type SlotNames,
+  type TVConfig,
+  type TVProps,
+  tv,
+  type VariantProps
+} from './variants';

@@ -5,7 +5,7 @@
   renders as children. Not exported from the package.
 -->
 <script lang="ts">
-  import { Card } from '@urbicon-ui/blocks';
+  import { Card, resolveClassChain } from '@urbicon-ui/blocks';
   import type { Snippet } from 'svelte';
   import { slotClass } from '../../utils/slot-class.js';
   import type { AuthPageSlotClasses } from '../types.js';
@@ -54,7 +54,7 @@
 <div
   class={cls(
     'flex min-h-[60vh] items-center justify-center',
-    [slotClasses.root, className].filter(Boolean).join(' ')
+    resolveClassChain(slotClasses.root, className)
   )}
 >
   <!-- `elevated`, not `outlined`: the auth card lifts off the page on its

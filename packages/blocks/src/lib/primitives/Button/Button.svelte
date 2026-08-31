@@ -10,6 +10,7 @@
   import { getButtonGroupContext } from '../ButtonGroup/buttonGroup.context';
   import { buttonVariants, type ButtonVariants } from '$lib/primitives';
   import { getTierContext } from '$lib/utils/tier-context';
+  import { resolveClassChain } from '$lib/utils/variants';
   import type { ButtonProps } from './index';
 
   let {
@@ -162,7 +163,7 @@
     'blocks-button',
     `blocks-intent-${effectiveIntent}`,
     unstyled
-      ? [pressCueClass, slotClasses?.base, className].filter(Boolean).join(' ')
+      ? resolveClassChain(pressCueClass, slotClasses?.base, className)
       : styles.base({ class: [pressCueClass, slotClasses?.base, className] })
   ]}
   onclick={handleClick}

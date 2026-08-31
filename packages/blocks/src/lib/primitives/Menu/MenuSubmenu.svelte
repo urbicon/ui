@@ -4,6 +4,7 @@
   import CheckIconDefault from '$lib/icons/CheckIcon.svelte';
   import ChevronRightIconDefault from '$lib/icons/ChevronRightIcon.svelte';
   import { mintAttachment } from '$lib';
+  import { resolveClassChain } from '$lib/utils/variants';
   import { getMenuContext, setMenuParentId } from './menu.context';
   import { groupMenuItems, menuEntryKey, type MenuGroupEntry } from './menu.grouping';
   import { menuIconVariants } from './menu.variants';
@@ -137,7 +138,7 @@
   aria-describedby={detail ? detailId : undefined}
   aria-disabled={disabled || undefined}
   class={ctx.unstyled
-    ? [ctx.slotClasses?.item, className].filter(Boolean).join(' ')
+    ? resolveClassChain(ctx.slotClasses?.item, className)
     : ctx.styles.item({
         itemSize: ctx.itemSizeForDepth(0),
         disabled,

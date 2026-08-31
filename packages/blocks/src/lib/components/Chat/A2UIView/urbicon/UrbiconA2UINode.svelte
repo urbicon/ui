@@ -446,7 +446,7 @@
 {#if instance === null}
   {#if context.streaming}
     <span class={context.classes.pending}>
-      <Skeleton variant="text" width="6rem" />
+      <Skeleton unstyled={context.unstyled} variant="text" width="6rem" />
       <span class="sr-only">{context.labels.pending}</span>
     </span>
   {:else}
@@ -507,6 +507,7 @@
     {#if footerNode}{@render renderChild(footerNode, blockCtx)}{/if}
   {/snippet}
   <Card
+    unstyled={context.unstyled}
     variant={u(enumOr('variant', 'quiet'))}
     aria-label={ariaLabel}
     header={headerNode ? cardHeader : undefined}
@@ -516,6 +517,7 @@
   </Card>
 {:else if component === 'Separator'}
   <Separator
+    unstyled={context.unstyled}
     orientation={enumOr('orientation', 'horizontal') === 'vertical' ? 'vertical' : 'horizontal'}
     style={weightStyle}
   />
@@ -537,6 +539,7 @@
     {#if ctaNode}{@render renderChild(ctaNode, blockCtx)}{/if}
   {/snippet}
   <EmptyState
+    unstyled={context.unstyled}
     title={resolvedText('title')}
     description={resolvedText('description') || undefined}
     icon={emptyStateIcon}
@@ -570,6 +573,7 @@
   />
 {:else if component === 'Button'}
   <Button
+    unstyled={context.unstyled}
     intent={u(enumOr('intent', 'neutral'))}
     variant={u(enumOr('variant', 'filled'))}
     size={u(enumOr('size', 'md'))}
@@ -588,6 +592,7 @@
   {/if}
 {:else if component === 'Input'}
   <Input
+    unstyled={context.unstyled}
     label={resolvedText('label')}
     type={u(enumOr('inputType', 'text'))}
     value={textValue}
@@ -599,6 +604,7 @@
   />
 {:else if component === 'Textarea'}
   <Textarea
+    unstyled={context.unstyled}
     label={resolvedText('label')}
     value={textValue}
     placeholder={resolvedText('placeholder') || undefined}
@@ -610,6 +616,7 @@
   />
 {:else if component === 'Checkbox'}
   <Checkbox
+    unstyled={context.unstyled}
     label={resolvedText('label')}
     checked={boolValue}
     onCheckedChange={onBoolChange}
@@ -618,6 +625,7 @@
   />
 {:else if component === 'RadioGroup'}
   <RadioGroup
+    unstyled={context.unstyled}
     label={resolvedText('label') || ariaLabel || undefined}
     value={radioValue}
     onValueChange={onRadioChange}
@@ -625,12 +633,13 @@
     style={weightStyle}
   >
     {#each choiceOptions as option (option.value)}
-      <RadioItem value={option.value} label={option.label} />
+      <RadioItem unstyled={context.unstyled} value={option.value} label={option.label} />
     {/each}
   </RadioGroup>
 {:else if component === 'Select'}
   {#if selectMultiple}
     <Select
+      unstyled={context.unstyled}
       multiple
       label={resolvedText('label') || undefined}
       placeholder={resolvedText('placeholder') || undefined}
@@ -642,6 +651,7 @@
     />
   {:else}
     <Select
+      unstyled={context.unstyled}
       label={resolvedText('label') || undefined}
       placeholder={resolvedText('placeholder') || undefined}
       options={choiceOptions}
@@ -655,6 +665,7 @@
   <!-- showValue is forced on: a generated surface has no other place to state
        the current number, and the agent cannot ask for it (not a catalog prop). -->
   <Slider
+    unstyled={context.unstyled}
     label={resolvedText('label') || undefined}
     value={sliderValue}
     min={sliderMin}
@@ -667,6 +678,7 @@
   />
 {:else if component === 'Toggle'}
   <Toggle
+    unstyled={context.unstyled}
     label={resolvedText('label')}
     checked={boolValue}
     onCheckedChange={onBoolChange}
@@ -677,6 +689,7 @@
   {@const label = resolvedText('label')}
   <div class={styles.field()} style={weightStyle}>
     <DatePicker
+      unstyled={context.unstyled}
       label={label || ariaLabel || undefined}
       value={dtParts.date || null}
       onValueChange={onDateChange}
@@ -696,6 +709,7 @@
     aria-label={ariaLabel}
   >
     <TimeInput
+      unstyled={context.unstyled}
       label={label || undefined}
       value={dtParts.time || null}
       onValueChange={onTimeChange}
@@ -711,12 +725,14 @@
   {@const variant = enumOr('variant', 'filled')}
   {#if variant === 'dot'}
     <Badge
+      unstyled={context.unstyled}
       variant="dot"
       intent={u(enumOr('intent', 'primary'))}
       aria-label={ariaLabel || resolvedText('text') || undefined}
     />
   {:else}
     <Badge
+      unstyled={context.unstyled}
       variant={variant as 'filled' | 'soft' | 'outlined'}
       intent={u(enumOr('intent', 'primary'))}
     >
@@ -726,6 +742,7 @@
 {:else if component === 'Alert'}
   {@const childNode = childByKey('child')}
   <Alert
+    unstyled={context.unstyled}
     title={resolvedText('title')}
     intent={u(enumOr('intent', 'primary'))}
     variant={u(enumOr('variant', 'soft'))}
@@ -742,6 +759,7 @@
   {@const indeterminate = raw('indeterminate') === true}
   {@const progressValue = resolved('value')}
   <Progress
+    unstyled={context.unstyled}
     value={indeterminate || typeof progressValue !== 'number' || !Number.isFinite(progressValue)
       ? undefined
       : progressValue}
@@ -753,6 +771,7 @@
   />
 {:else if component === 'Stepper'}
   <Stepper
+    unstyled={context.unstyled}
     activeStep={stepperCurrent}
     orientation={enumOr('orientation', 'horizontal') === 'vertical' ? 'vertical' : 'horizontal'}
     variant={u(enumOr('variant', 'default'))}
@@ -760,18 +779,19 @@
     aria-label={ariaLabel}
   >
     {#each stepperSteps as step, i (`${step}#${i}`)}
-      <StepperStep label={step} />
+      <StepperStep unstyled={context.unstyled} label={step} />
     {/each}
   </Stepper>
 {:else if component === 'Accordion'}
   <Accordion
+    unstyled={context.unstyled}
     type={accordionMultiple ? 'multiple' : 'single'}
     variant={u(enumOr('variant', 'default'))}
     style={weightStyle}
     aria-label={ariaLabel}
   >
     {#each accordionItems as item (item.value)}
-      <AccordionItem value={item.value} title={item.label}>
+      <AccordionItem unstyled={context.unstyled} value={item.value} title={item.label}>
         {#if item.child}
           {@render renderChild(item.child, blockCtx)}
         {/if}
@@ -780,6 +800,7 @@
   </Accordion>
 {:else if component === 'Avatar'}
   <Avatar
+    unstyled={context.unstyled}
     src={avatarSrc}
     name={resolvedText('name') || undefined}
     alt={resolvedText('name') || ariaLabel || undefined}

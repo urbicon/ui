@@ -2,6 +2,7 @@
   import { useBlocksI18n } from '$lib';
   import { useI18n } from '@urbicon-ui/i18n';
   import { getBlocksConfig, resolveSlotClasses } from '$lib/provider';
+  import { resolveClassChain } from '$lib/utils/variants';
   import type { CompositionBarProps, CompositionBarIntent, CompositionItem } from './index';
   import { compositionBarVariants, type CompositionBarVariants } from './composition-bar.variants';
 
@@ -215,7 +216,7 @@
 
 <div
   class={unstyled
-    ? [slotClasses?.wrapper, className].filter(Boolean).join(' ')
+    ? resolveClassChain(slotClasses?.wrapper, className)
     : styles.wrapper({ class: [slotClasses?.wrapper, className] })}
   {...restProps}
 >

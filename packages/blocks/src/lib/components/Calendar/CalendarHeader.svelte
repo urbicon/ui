@@ -12,6 +12,7 @@
   import { getCalendarContext } from './calendar.context';
   import type { CalendarVariants } from './calendar.variants';
   import { formatMonthShort, formatMonthYear } from '$lib/date';
+  import { resolveClassChain } from '$lib/utils/variants';
   import type { CalendarHeaderProps, CalendarSlotName, CalendarViewMode } from './index';
 
   const bt = useBlocksI18n();
@@ -28,19 +29,18 @@
 
   const ctx = getCalendarContext();
 
-  // `extra` carries consumer classes only. A library class put here shares a
-  // source with the consumer's `slotClasses` entry, and `stripConflicts` never
-  // runs inside one source — it belongs in `variants` instead.
+  // `extra` carries consumer classes only. It is the last rung of the chain,
+  // so a library class put here would beat the consumer's own `slotClasses`
+  // entry in a shared bucket — it belongs in `variants` instead.
+  const unstyled = $derived(unstyledProp || ctx.unstyled);
+
   function slot(key: CalendarSlotName, extra?: string, variants?: CalendarVariants) {
-    const overrides = [
+    const overrides = resolveClassChain(
       ctx.slotClasses?.[key],
       slotClassesProp?.[key as keyof typeof slotClassesProp],
       extra
-    ]
-      .filter(Boolean)
-      .join(' ');
-    const isUnstyled = unstyledProp || ctx.unstyled;
-    if (isUnstyled) return overrides;
+    );
+    if (unstyled) return overrides;
     const styles = ctx.styles as Record<
       CalendarSlotName,
       (args: CalendarVariants & { class: string }) => string
@@ -236,7 +236,7 @@
     </div>
 
     <div class={slot('titleGroup', undefined, { stacksOnNarrow })}>
-      <Popover bind:open={monthPickerOpen} placement="bottom">
+      <Popover {unstyled} bind:open={monthPickerOpen} placement="bottom">
         {#snippet trigger()}
           <button
             type="button"
@@ -371,6 +371,7 @@
     -->
     {#if showViewSwitcher}
       <SegmentGroup
+        {unstyled}
         value={ctx.view}
         size={viewSwitcherSize}
         disabled={ctx.disabled}
@@ -397,7 +398,7 @@
             minimum) when the root became a container. A narrow calendar on a
             wide screen keeps the full labels and re-flows instead.
           -->
-          <SegmentItem value={vb.view} aria-label={vb.label()} class="max-sm:px-2">
+          <SegmentItem {unstyled} value={vb.view} aria-label={vb.label()} class="max-sm:px-2">
             {#if ctx.size === 'sm'}
               {vb.shortLabel()}
             {:else}
@@ -419,7 +420,7 @@
           cell left for it is (2,3), beside the switcher. The switcher spans all
           three columns only when there is no today button to place.
         -->
-        <Tooltip label={bt('calendar.today')}>
+        <Tooltip {unstyled} label={bt('calendar.today')}>
           <CoreIconButton
             class={slot('navButton')}
             onclick={() => ctx.goToToday()}

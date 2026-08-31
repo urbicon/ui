@@ -5,6 +5,7 @@
   import { getContrastTextColor } from '$lib/internal/contrast';
   import { DateGridController, type DateRange, type DateGridView } from '$lib/internal/date-grid';
   import { getBlocksConfig, resolveSlotClasses } from '$lib/provider';
+  import { resolveClassChain } from '$lib/utils/variants';
   import type { ResourceTimelineProps } from './index';
   import { setResourceTimelineContext } from './resource-timeline.context';
   import { getTimelineDays, getTimelineWindow, layoutTimeline } from './resource-timeline.engine';
@@ -93,11 +94,15 @@
   const slotClasses = $derived(
     resolveSlotClasses(blocksConfig, 'ResourceTimeline', preset, variantProps, slotClassesProp)
   );
-  function slot(name: ResourceTimelineSlotName, extra?: string): string {
-    const overrides = [slotClasses?.[name], extra].filter(Boolean).join(' ');
-    if (unstyled) return overrides;
-    const fn = styles[name] as ((args: { class: string }) => string) | undefined;
-    return fn?.({ class: overrides }) ?? overrides;
+  // `structural` is library-authored (the pinned column, the view's own grid
+  // rules) and folds BEFORE the consumer's `slotClasses` entry; `className` is
+  // the consumer's `class` prop and folds after it. Each is one source, so the
+  // ladder holds in both directions instead of the library winning by position.
+  function slot(name: ResourceTimelineSlotName, structural?: string, className?: string): string {
+    const sources = [structural, slotClasses?.[name], className];
+    if (unstyled) return resolveClassChain(...sources);
+    const fn = styles[name] as ((args: { class: (string | undefined)[] }) => string) | undefined;
+    return fn?.({ class: sources }) ?? resolveClassChain(...sources);
   }
 
   // --- Reference date: controlled by `value`, else internal state seeded once ---
@@ -445,6 +450,9 @@
     navigate: (delta) => controller.navigate(delta),
     goToToday: () => controller.goToToday(),
     goTo: (date) => controller.goTo(date),
+    get unstyled() {
+      return unstyled;
+    },
     slot
   };
   setResourceTimelineContext(timelineCtx);
@@ -473,7 +481,7 @@
   }
 </script>
 
-<div {...restProps} class={slot('base', className)}>
+<div {...restProps} class={slot('base', undefined, className)}>
   <div class="sr-only" aria-live="polite" role="status">{title}</div>
 
   {#if header}

@@ -46,7 +46,8 @@
     disabled = false,
     navigate,
     goToToday,
-    slotClass
+    slotClass,
+    unstyled = false
   }: {
     /** Localized title of the current window. */
     title: string;
@@ -61,6 +62,13 @@
     goToToday: () => void;
     /** Resolve one of the four slots against the caller's variants + slotClasses. */
     slotClass: (slot: CoreDateGridHeaderSlot) => string;
+    /**
+     * Relayed to the `Tooltip` this core renders. The core's own classes are
+     * plumbing and stay (see CoreIconButton), but the Tooltip is a public
+     * component with a tv() config of its own — a caller's `unstyled` has to
+     * reach it by prop, because the provider context reaches it either way.
+     */
+    unstyled?: boolean;
   } = $props();
 
   const ChevronLeftIcon = resolveIcon('chevronLeft', ChevronLeftIconDefault);
@@ -83,7 +91,7 @@
   <span class={slotClass('headerTitle')}>{title}</span>
 
   <div class={slotClass('nav')}>
-    <Tooltip label={labels.today}>
+    <Tooltip {unstyled} label={labels.today}>
       <CoreIconButton
         class={slotClass('navButton')}
         onclick={() => goToToday()}

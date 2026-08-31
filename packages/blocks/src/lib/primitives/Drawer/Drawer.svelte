@@ -10,6 +10,7 @@
   import { overlayStack, getOverlayMotion } from '$lib/utils';
   // internal core, not the public component — keeps the public-to-public import graph clean (see internal/core/)
   import CoreIconButton from '$lib/internal/core/CoreIconButton.svelte';
+  import { resolveClassChain } from '$lib/utils/variants';
   import type { DrawerProps } from './index';
   import { drawerVariants, type DrawerVariants } from './drawer.variants';
 
@@ -250,7 +251,7 @@
       <div
         bind:this={panelElement}
         class={unstyled
-          ? [slotClasses?.panel, className].filter(Boolean).join(' ')
+          ? resolveClassChain(slotClasses?.panel, className)
           : styles.panel({ class: [slotClasses?.panel, className] })}
         data-intent={intent}
         role="document"

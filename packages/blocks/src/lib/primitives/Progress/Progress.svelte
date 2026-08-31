@@ -1,6 +1,7 @@
 <script lang="ts">
   import { getBlocksConfig, resolveSlotClasses } from '$lib/provider';
   import { useBlocksI18n } from '$lib';
+  import { resolveClassChain } from '$lib/utils/variants';
   import type { ProgressProps } from './index';
   import { progressVariants, type ProgressVariants } from './progress.variants';
 
@@ -84,7 +85,7 @@
 {#if shape === 'circular'}
   <div
     class={unstyled
-      ? [slotClasses?.circularWrapper, className].filter(Boolean).join(' ')
+      ? resolveClassChain(slotClasses?.circularWrapper, className)
       : styles.circularWrapper({ class: [slotClasses?.circularWrapper, className] })}
     role="progressbar"
     aria-valuenow={isIndeterminate ? undefined : clampedValue}
@@ -138,7 +139,7 @@
 {:else}
   <div
     class={unstyled
-      ? [slotClasses?.wrapper, className].filter(Boolean).join(' ')
+      ? resolveClassChain(slotClasses?.wrapper, className)
       : styles.wrapper({ class: [slotClasses?.wrapper, className] })}
     role="progressbar"
     aria-valuenow={isIndeterminate ? undefined : clampedValue}

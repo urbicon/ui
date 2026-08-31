@@ -131,6 +131,7 @@
 </script>
 
 <Collapsible
+  {unstyled}
   variant={variant === 'card' ? 'card' : 'default'}
   size="sm"
   open={isOpen}
@@ -161,7 +162,9 @@
                It sits where the visible status sits in the plain header, so the
                accessible name reads "<tool> <status>" in both variants. -->
           <span class="sr-only">{statusLabel}</span>
-          <Badge intent={badgeIntent} variant="soft" aria-hidden="true">{statusLabel}</Badge>
+          <Badge {unstyled} intent={badgeIntent} variant="soft" aria-hidden="true"
+            >{statusLabel}</Badge
+          >
         {:else}
           <span class={cls('statusText')}>{statusLabel}</span>
         {/if}

@@ -6,6 +6,7 @@
   import { getTierContext } from '$lib/utils';
   import { resolveIcon } from '$lib/icons';
   import ClockIconDefault from '$lib/icons/ClockIcon.svelte';
+  import { resolveClassChain } from '$lib/utils/variants';
   import type { TimeInputProps } from './index';
   import { timeInputVariants, type TimeInputVariants } from './time-input.variants';
 
@@ -365,7 +366,7 @@
 
 <div
   class={unstyled
-    ? [slotClasses?.wrapper, className].filter(Boolean).join(' ')
+    ? resolveClassChain(slotClasses?.wrapper, className)
     : styles.wrapper({ class: [slotClasses?.wrapper, className] })}
 >
   {#if label}

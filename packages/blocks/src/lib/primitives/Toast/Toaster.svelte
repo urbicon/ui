@@ -14,6 +14,7 @@
   import { getBlocksConfig, resolveSlotClasses } from '$lib/provider';
   // internal core, not the public component — keeps the public-to-public import graph clean (see internal/core/)
   import CoreSpinner from '$lib/internal/core/CoreSpinner.svelte';
+  import { resolveClassChain } from '$lib/utils/variants';
   import type { ToastData, ToastProps } from './index';
 
   const bt = useBlocksI18n();
@@ -155,7 +156,7 @@
   }
 
   function slot(key: keyof typeof styles, intent?: string, extra?: string) {
-    const overrides = [slotClasses?.[key], extra].filter(Boolean).join(' ');
+    const overrides = resolveClassChain(slotClasses?.[key], extra);
     if (unstyled) return overrides;
     if (intent) {
       const intentStyles = toastVariants({ placement, intent: intent as ToastVariants['intent'] });

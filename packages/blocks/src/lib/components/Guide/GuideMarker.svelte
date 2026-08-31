@@ -2,6 +2,7 @@
   import { useBlocksI18n } from '$lib/i18n';
   import { InfoCircleIcon } from '$lib/icons';
   import { getBlocksConfig, resolveSlotClasses } from '$lib/provider';
+  import { resolveClassChain } from '$lib/utils/variants';
   import { getGuideContext } from './guide.context';
   import { guideMarkerVariants, type GuideMarkerVariants } from './guide.variants';
   import type { GuideMarkerProps } from './index';
@@ -68,7 +69,7 @@
   <button
     type="button"
     class={unstyled
-      ? [slotClasses?.marker, className].filter(Boolean).join(' ')
+      ? resolveClassChain(slotClasses?.marker, className)
       : styles.marker({ class: [slotClasses?.marker, className] })}
     aria-controls={guide?.panelId ?? undefined}
     aria-expanded={expanded}

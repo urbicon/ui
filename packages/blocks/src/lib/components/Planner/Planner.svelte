@@ -13,6 +13,7 @@
     type DayCellInfo,
     type DayHeaderInfo
   } from '$lib/internal/date-grid';
+  import { resolveClassChain } from '$lib/utils/variants';
   import { bucketItemsByDate } from './planner.bucket';
   import { setPlannerContext } from './planner.context';
   import {
@@ -136,20 +137,31 @@
    * One slot, resolved. `state` names the per-cell axes for this call; `class`
    * is the consumer's own `class` prop and nothing else. A library class
    * belongs in `planner.variants.ts`, never in either argument — handed in
-   * here it would share a source with the consumer's `slotClasses` entry, and
-   * `stripConflicts` runs between sources, never inside one (#349).
+   * here it would be the LAST source of the chain and would strip the
+   * consumer's own `slotClasses` entry (#349).
+   *
+   * The two consumer rungs are two sources, so `class` wins a shared Tailwind
+   * bucket against `slotClasses`. The structural half is NOT one of them: it is
+   * prepended, because it is the layout `unstyled` may not take away and a
+   * consumer class in the same bucket would otherwise strip it — the mistake
+   * `resolveSlotClass` in the table package paid for.
    */
   function slot(
     name: PlannerSlotName,
     { class: consumerClass, ...state }: PlannerCellState & { class?: string } = {}
   ): string {
-    const overrides = [slotClasses?.[name], consumerClass].filter(Boolean).join(' ');
     if (unstyled) {
       const structural = view === 'week' ? structuralClasses[name] : undefined;
-      return [structural, overrides].filter(Boolean).join(' ');
+      return [structural, resolveClassChain(slotClasses?.[name], consumerClass)]
+        .filter(Boolean)
+        .join(' ');
     }
-    const fn = styles[name] as ((args: PlannerCellState & { class: string }) => string) | undefined;
-    return fn?.({ ...state, class: overrides }) ?? overrides;
+    const fn = styles[name] as
+      ((args: PlannerCellState & { class: (string | undefined)[] }) => string) | undefined;
+    return (
+      fn?.({ ...state, class: [slotClasses?.[name], consumerClass] }) ??
+      resolveClassChain(slotClasses?.[name], consumerClass)
+    );
   }
 
   // --- Reference date: controlled by `value`, else internal state seeded once ---
@@ -347,6 +359,9 @@
     navigate: (delta) => controller.navigate(delta),
     goToToday: () => controller.goToToday(),
     goTo: (date) => controller.goTo(date),
+    get unstyled() {
+      return unstyled;
+    },
     slot
   };
   setPlannerContext(plannerCtx);

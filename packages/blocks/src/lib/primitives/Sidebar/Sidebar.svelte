@@ -7,6 +7,7 @@
   import { getBlocksConfig, resolveSlotClasses } from '$lib/provider';
   import { lockBodyScroll } from '$lib/utils/overlay';
   import { overlayStack } from '$lib/utils';
+  import { resolveClassChain } from '$lib/utils/variants';
 
   let {
     open = $bindable(false),
@@ -184,7 +185,7 @@
 <aside
   bind:this={panel}
   class={unstyled
-    ? [slotClasses?.panel, className].filter(Boolean).join(' ')
+    ? resolveClassChain(slotClasses?.panel, className)
     : styles.panel({ class: [slotClasses?.panel, className] })}
   style:width={panelWidth}
   style:--sidebar-width={width}

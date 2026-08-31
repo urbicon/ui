@@ -34,9 +34,10 @@ export const accordionVariants = tv({
   variants: {
     /**
      * The item's panel is open, so its chevron points up. An axis rather than a
-     * class beside `slot('chevron')`: the `extra` argument lands in the same
-     * source as the consumer's `slotClasses.chevron`, and nothing strips within
-     * one source — `rotate-0` and `rotate-180` would both reach the attribute.
+     * class beside `slot('chevron')`: `extra` is the LAST source of that
+     * chain, so a library class there would strip the consumer's own
+     * `slotClasses.chevron` in the rotate bucket — the override ladder upside
+     * down. As an axis it folds before every consumer rung instead.
      */
     expanded: {
       true: { chevron: 'rotate-180' },

@@ -179,6 +179,7 @@
     cardStyles.card,
     styleConfig.slotClasses.mobileCard,
     styleConfig.unstyled,
+    undefined,
     className
   )}
   data-testid={computedTestId}

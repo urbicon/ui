@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { Button, Input, Separator, getBlocksConfig } from '@urbicon-ui/blocks';
+  import { Button, getBlocksConfig, Input, resolveClassChain, Separator } from '@urbicon-ui/blocks';
   import { untrack } from 'svelte';
   import { mergeAuthLocale, useAuthLocale } from '../../../i18n/index.js';
   import type { TwoFactorManagerProps } from './index.js';
@@ -163,7 +163,7 @@
 </script>
 
 {#if user}
-  <div class={cls('flex flex-col gap-4', [slotClasses.root, className].filter(Boolean).join(' '))}>
+  <div class={cls('flex flex-col gap-4', resolveClassChain(slotClasses.root, className))}>
     <h2 class={cls('text-text-primary text-lg font-semibold', slotClasses.title)}>
       {t.twoFactor.title}
     </h2>

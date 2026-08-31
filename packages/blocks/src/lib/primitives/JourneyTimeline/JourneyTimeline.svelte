@@ -1,6 +1,7 @@
 <script lang="ts">
   import { useBlocksI18n } from '$lib';
   import { getBlocksConfig, resolveSlotClasses } from '$lib/provider';
+  import { resolveClassChain } from '$lib/utils/variants';
   import {
     journeyTimelineVariants,
     type JourneyTimelineSlots,
@@ -274,7 +275,7 @@
   );
 
   function sc(styles: Styles | null, key: JourneyTimelineSlots, extra?: string | false) {
-    const override = [slotClasses?.[key], extra].filter(Boolean).join(' ') || undefined;
+    const override = resolveClassChain(slotClasses?.[key], extra) || undefined;
     if (unstyled || !styles) return override;
     return styles[key]({ class: override });
   }

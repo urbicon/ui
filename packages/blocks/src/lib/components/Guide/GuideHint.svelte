@@ -11,6 +11,7 @@
     arrow as floatingArrow
   } from '$lib/utils/floating';
   import { observeTargetResolution } from '$lib/utils/observe-target';
+  import { resolveClassChain } from '$lib/utils/variants';
   import { getGuideContext } from './guide.context';
   import { guideHintVariants, type GuideHintVariants } from './guide.variants';
   import type { GuideHintProps } from './index';
@@ -193,7 +194,7 @@
     class={[
       'guide-hint',
       unstyled
-        ? [slotClasses?.hint, className].filter(Boolean).join(' ')
+        ? resolveClassChain(slotClasses?.hint, className)
         : styles.hint({ class: [slotClasses?.hint, className] })
     ]}
     role="status"

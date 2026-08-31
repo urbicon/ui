@@ -3,6 +3,7 @@
   import { useDocsI18n } from '$lib/i18n';
   import {
     Input,
+    resolveClassChain,
     SegmentGroup,
     SegmentItem,
     Select,
@@ -412,7 +413,7 @@
      landmark a screen reader announces as nothing. -->
 <section
   {...restProps}
-  class={[slot('root'), className]}
+  class={resolveClassChain(slot('root'), className)}
   aria-labelledby={showHeader ? titleId : undefined}
   aria-label={showHeader ? undefined : title}
 >

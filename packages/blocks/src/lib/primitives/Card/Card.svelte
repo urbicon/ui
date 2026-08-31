@@ -1,6 +1,7 @@
 <script lang="ts">
   import { mintAttachment } from '$lib';
   import { getBlocksConfig, resolveSlotClasses } from '$lib/provider';
+  import { resolveClassChain } from '$lib/utils/variants';
   import { cardVariants, type CardVariants } from './card.variants';
   import type { CardProps } from './index';
 
@@ -73,7 +74,7 @@
   this={elementType}
   {@attach mintAttachment(mint, { enabled: isInteractive && !disabled })}
   class={unstyled
-    ? [slotClasses?.base, className].filter(Boolean).join(' ')
+    ? resolveClassChain(slotClasses?.base, className)
     : styles.base({ class: [slotClasses?.base, className] })}
   onmouseenter={() => onHover?.(true)}
   onmouseleave={() => onHover?.(false)}

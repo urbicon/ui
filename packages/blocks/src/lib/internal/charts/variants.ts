@@ -1,4 +1,4 @@
-import { tv, type VariantProps } from '$lib/utils/variants';
+import { resolveClassChain, tv, type VariantProps } from '$lib/utils/variants';
 
 /**
  * Shared tv() slots for the charts/ family. SVG presentation (fill/stroke) is
@@ -103,5 +103,5 @@ export function chartSlotResolver(
   const styles = unstyled ? undefined : chartVariants(variants);
   return (slot, extra) =>
     styles?.[slot]?.({ class: [overrides[slot], extra] }) ??
-    [overrides[slot], extra].filter(Boolean).join(' ');
+    resolveClassChain(overrides[slot], extra);
 }

@@ -59,7 +59,7 @@ export interface CitationChipProps extends Omit<HTMLButtonAttributes, 'class' | 
 
   /** Extra classes merged onto the trigger chip (the root slot). */
   class?: string;
-  /** Strip all default tv() classes; combine with `class` / `slotClasses` for a custom look. */
+  /** Strip all default tv() classes, the surrounding Popover's included; combine with `class` / `slotClasses` for a custom look. */
   unstyled?: boolean;
   /** Per-slot class overrides. Slots: `trigger` (root chip), `popover` (content wrapper), `title`, `snippet`, `link`, `linkIcon`. */
   slotClasses?: Partial<Record<CitationChipSlots, string>>;

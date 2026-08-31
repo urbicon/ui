@@ -91,6 +91,7 @@
         styles.container,
         styleConfig.slotClasses.emptyState,
         styleConfig.unstyled,
+        undefined,
         className
       )}
     >

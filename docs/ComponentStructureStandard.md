@@ -188,7 +188,7 @@ export type ComponentSlots = SlotNames<typeof componentVariants>;
 
 ### Variant Interactions — axis order is semantic
 
-The `tv()` engine folds an ordered list of sources: `slots.base` → **each variant axis in declaration order** → **each `compoundVariant` in array order** → call-site `class`. Every later source strips the conflicting Tailwind buckets of everything before it, so the winner of a shared bucket is decided by the config, not by stylesheet order.
+The `tv()` engine folds an ordered list of sources: `slots.base` → **each variant axis in declaration order** → **each `compoundVariant` in array order** → the call-site `class`, itself one source per top-level array element. Every later source strips the conflicting Tailwind buckets of everything before it, so the winner of a shared bucket is decided by the config and by the call site's own order, not by stylesheet order. A library class written into that array therefore belongs before the consumer's rungs, never after.
 
 Authoring rules that follow:
 

@@ -6,14 +6,11 @@ import { type BlocksConfig, resolveSlotClasses } from './blocks-context';
  * What an instance `class` prop actually outranks — the whole cascade, run end
  * to end, from provider config to the final class string.
  *
- * This exists because the docs said it wrong twice in the same direction
- * ("class beats everything BlocksProvider set"), and the reason it kept coming
- * back is that the seven-step ladder reads like seven stages and is two:
- * `resolveSlotClasses` folds steps 2–6 into ONE string, and that string plus
- * the instance `class` reach `tv()` together as a single source. Within one
- * source the engine deliberately does not pick a winner — an author writing
- * `rounded-md rounded-t-none` means both — so `class` reliably defeats only the
- * library's own defaults.
+ * The ladder is seven rungs and every one of them resolves against the rung
+ * below: `resolveSlotClasses` folds rungs 2–6 into one string, and `tv()` takes
+ * that string and the instance `class` as two separate sources, because the
+ * call sites hand it an ARRAY and the engine reads a top-level array element as
+ * one source. Whichever rung is written last wins the bucket.
  *
  * The prose those measurements license lives in the docs app
  * (`apps/docs/src/lib/customization-data.ts`, one shared sentence, checked by
@@ -27,7 +24,8 @@ const styles = tv({
 });
 
 /** One Button instance. The call shape is Button.svelte's own:
- * `styles.base({ class: [slotClasses?.base, className] })`. */
+ * `styles.base({ class: [slotClasses?.base, className] })` — two array
+ * elements, so two sources. */
 function render(options: {
   providerDefault?: string;
   providerOverride?: string;
@@ -64,13 +62,24 @@ describe('what an instance class prop outranks', () => {
     expect(result).not.toContain('rounded-md');
   });
 
-  it('does NOT defeat a provider default — both survive, the cascade decides', () => {
-    // `class` and the folded provider string are one source by the time `tv()`
-    // sees them, so neither strips the other and the rendered corner depends on
-    // stylesheet order rather than on this call.
+  it('defeats a provider default too — only the instance radius survives', () => {
     const result = render({ providerDefault: 'rounded-none', className: 'rounded-full' });
-    expect(result).toContain('rounded-none');
     expect(result).toContain('rounded-full');
+    expect(result).not.toContain('rounded-none');
+  });
+
+  it('loses to nothing below it: the whole cascade under a colliding class prop', () => {
+    const result = render({
+      providerDefault: 'rounded-none',
+      providerOverride: 'rounded-sm',
+      preset: 'rounded-lg',
+      instanceSlotClasses: 'rounded-xl',
+      className: 'rounded-full'
+    });
+    expect(result).toContain('rounded-full');
+    for (const beaten of ['rounded-none', 'rounded-sm', 'rounded-lg', 'rounded-xl', 'rounded-md']) {
+      expect(result.split(/\s+/), beaten).not.toContain(beaten);
+    }
   });
 
   it('is instance slotClasses that defeats a provider default, deterministically', () => {
@@ -82,8 +91,7 @@ describe('what an instance class prop outranks', () => {
 
 describe('the folded stages below it', () => {
   it('resolve in order, each stripping the previous one bucket by bucket', () => {
-    // Steps 2–6 ARE a ladder: only the last radius in the chain survives. That
-    // is what makes step 7 — `class` — the odd one out rather than the top.
+    // Rungs 2–6, without a `class` prop on top: only the last radius survives.
     const result = render({
       providerDefault: 'rounded-none',
       providerOverride: 'rounded-sm',

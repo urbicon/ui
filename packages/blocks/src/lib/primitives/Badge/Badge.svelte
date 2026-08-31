@@ -10,6 +10,7 @@
   const CloseIcon = resolveIcon('close', CloseIconDefault);
   import { badgeVariants, type BadgeVariants } from '$lib/primitives';
   import { getTierContext } from '$lib/utils/tier-context';
+  import { resolveClassChain } from '$lib/utils/variants';
   import type { BadgeProps } from './index';
 
   const bt = useBlocksI18n();
@@ -141,7 +142,7 @@
   class={[
     `blocks-intent-${intent}`,
     unstyled
-      ? [slotClasses?.base, className].filter(Boolean).join(' ')
+      ? resolveClassChain(slotClasses?.base, className)
       : styles.base({ class: [slotClasses?.base, className] })
   ]}
   role={effRole}

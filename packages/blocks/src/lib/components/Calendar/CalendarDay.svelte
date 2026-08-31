@@ -5,6 +5,7 @@
   import { getCalendarContext } from './calendar.context';
   import { calendarVariants } from './calendar.variants';
   import { isSameDay, formatDateFull } from '$lib/date';
+  import { resolveClassChain } from '$lib/utils/variants';
   import type { CalendarEvent, DayCellContext } from './calendar.types';
   import CalendarEventPopover from './CalendarEventPopover.svelte';
 
@@ -77,7 +78,7 @@
 
   function daySlot(key: string, extra?: string) {
     const slotKey = key as keyof typeof ctx.slotClasses;
-    const overrides = [ctx.slotClasses?.[slotKey], extra].filter(Boolean).join(' ');
+    const overrides = resolveClassChain(ctx.slotClasses?.[slotKey], extra);
     if (ctx.unstyled) return overrides;
     return (
       (dayStyles as Record<string, (opts: { class: string }) => string>)[key]?.({

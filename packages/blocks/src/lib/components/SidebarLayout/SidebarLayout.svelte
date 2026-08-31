@@ -2,6 +2,7 @@
   import { MediaQuery } from 'svelte/reactivity';
   import { Sidebar } from '$lib/primitives/Sidebar';
   import { getBlocksConfig, resolveSlotClasses } from '$lib/provider';
+  import { resolveClassChain } from '$lib/utils/variants';
   import type { SidebarLayoutProps } from './index';
   import { sidebarLayoutVariants, type SidebarLayoutVariants } from './sidebar-layout.variants';
 
@@ -73,7 +74,7 @@
 <div
   {...restProps}
   class={unstyled
-    ? [slotClasses?.root, className].filter(Boolean).join(' ')
+    ? resolveClassChain(slotClasses?.root, className)
     : styles.root({ class: [slotClasses?.root, className] })}
   style:--sidebar-width={sidebarWidth}
   style:--sidebar-effective-width={effectiveWidth}

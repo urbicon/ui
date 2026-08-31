@@ -2,6 +2,7 @@
   import { Alert } from '$lib/primitives';
   import { untrack } from 'svelte';
   import { getBlocksConfig, resolveSlotClasses } from '$lib/provider';
+  import { resolveClassChain } from '$lib/utils/variants';
   import { A2UI_ISSUE_CODES, type A2uiValidationIssue } from './a2ui.types';
   import { basicA2uiCatalog } from './a2ui-basic-catalog';
   import type { A2uiCatalog } from './a2ui-catalog';
@@ -166,7 +167,7 @@
   });
   const rootClass = $derived(
     unstyled
-      ? [resolvedSlots?.root, className].filter(Boolean).join(' ')
+      ? resolveClassChain(resolvedSlots?.root, className)
       : styles.root({ class: [resolvedSlots?.root, className] })
   );
 
@@ -180,6 +181,7 @@
   const view = $derived.by(() => {
     version; // subscription to processing + edits
     const isStreaming = streamingProp;
+    const isUnstyled = unstyled;
     const currentClasses = classes;
     const surfaces: SurfaceView[] = [];
     const summaryIssues: A2uiValidationIssue[] = [];
@@ -207,6 +209,7 @@
       const surfaceIcons = iconsByCatalog.get(surfaceCatalog.catalogId) ?? defaultIcons;
       const context: A2uiRenderContext = {
         classes: currentClasses,
+        unstyled: isUnstyled,
         urlPolicy,
         streaming: isStreaming,
         inline: false,
@@ -281,7 +284,7 @@
 
 <div class={rootClass} {...restProps}>
   {#if view.summaryIssues.length}
-    <Alert intent="danger" title={errorTitle}>
+    <Alert {unstyled} intent="danger" title={errorTitle}>
       <ul class={classes.errorList}>
         {#each view.summaryIssues as issue, index (`${issue.code}#${index}`)}
           <li>{issue.message}</li>

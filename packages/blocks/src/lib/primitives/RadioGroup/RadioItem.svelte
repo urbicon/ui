@@ -1,6 +1,7 @@
 <script lang="ts">
   import { mintAttachment } from '$lib';
   import { getBlocksConfig, resolveSlotClasses } from '$lib/provider';
+  import { resolveClassChain } from '$lib/utils/variants';
   import type { RadioItemProps } from './index';
   import { getRadioGroupContext } from './radioGroup.context';
   import { radioItemVariants, type RadioItemVariants } from './radioGroup.variants';
@@ -74,7 +75,7 @@
 
 <label
   class={unstyled
-    ? [slotClasses?.item, className].filter(Boolean).join(' ')
+    ? resolveClassChain(slotClasses?.item, className)
     : styles.item({ class: [slotClasses?.item, className] })}
   {@attach mintAttachment(ctx.mint, { enabled: !isDisabled })}
   for={id}

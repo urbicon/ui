@@ -4,6 +4,7 @@
   import { getAccordionContext } from './accordion.context';
   import { resolveIcon } from '$lib/icons';
   import ChevronDownIconDefault from '$lib/icons/ChevronDownIcon.svelte';
+  import { resolveClassChain } from '$lib/utils/variants';
   import { Collapsible } from '../Collapsible';
   import type { AccordionItemProps } from './index';
 
@@ -41,15 +42,15 @@
     extra?: string,
     variants?: AccordionVariants
   ) {
-    // Accordion-wide slotClasses first, the item's own after: both fold
-    // through tv(), so on a conflict the item-level class wins its bucket.
+    // Accordion-wide slotClasses first, the item's own after, `extra` last:
+    // one source each, so on a conflict the later rung strips the earlier one.
     // Without the ctx half, the item slots the Accordion prop type declares
     // (trigger, contentInner, …) never reached the DOM.
     //
     // `extra` is for consumer classes only. A library class belongs in an axis
-    // passed through `variants` — here it would share a source with the
-    // consumer's entry, which resolves nothing against nothing.
-    const overrides = [ctx.slotClasses?.[key], slotClasses?.[key], extra].filter(Boolean).join(' ');
+    // passed through `variants` — put here it would be the LAST rung and beat
+    // the consumer's own entry, which is the ladder upside down.
+    const overrides = resolveClassChain(ctx.slotClasses?.[key], slotClasses?.[key], extra);
     if (unstyled) return overrides;
     return styles[key]({ ...variants, class: overrides });
   }

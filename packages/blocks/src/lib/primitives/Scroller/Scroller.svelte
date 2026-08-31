@@ -5,6 +5,7 @@
   import ChevronRightIconDefault from '$lib/icons/ChevronRightIcon.svelte';
   import CoreIconButton from '$lib/internal/core/CoreIconButton.svelte';
   import { getBlocksConfig, resolveSlotClasses } from '$lib/provider';
+  import { resolveClassChain } from '$lib/utils/variants';
   import type { ScrollerProps } from './index';
   import {
     activeItemIndex,
@@ -281,7 +282,7 @@
 <div
   {...restProps}
   class={unstyled
-    ? [slotClasses?.root, className].filter(Boolean).join(' ')
+    ? resolveClassChain(slotClasses?.root, className)
     : styles.root({ class: [slotClasses?.root, className] })}
   data-align={align}
   data-overflowing={overflowing || undefined}

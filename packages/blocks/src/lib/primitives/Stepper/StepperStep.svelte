@@ -7,6 +7,7 @@
   import CheckIconDefault from '$lib/icons/CheckIcon.svelte';
   import CloseIconDefault from '$lib/icons/CloseIcon.svelte';
   import WarningTriangleIconDefault from '$lib/icons/WarningTriangleIcon.svelte';
+  import { resolveClassChain } from '$lib/utils/variants';
   import type { StepperStepProps } from './index';
 
   const CheckIcon = resolveIcon('check', CheckIconDefault);
@@ -108,9 +109,7 @@
   );
 
   function slot(key: keyof typeof styles, extra?: string, variants?: StepperVariants) {
-    const overrides = [slotClasses?.[key as keyof typeof slotClasses], extra]
-      .filter(Boolean)
-      .join(' ');
+    const overrides = resolveClassChain(slotClasses?.[key as keyof typeof slotClasses], extra);
     if (unstyled) return overrides;
     const fn = styles[key];
     return typeof fn === 'function' ? fn({ ...variants, class: overrides }) : overrides;

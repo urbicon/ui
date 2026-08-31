@@ -2,6 +2,7 @@
   import { InfoCard, InlineCode } from '$lib';
   import { useDocsI18n } from '$lib/i18n';
   import { getCodeVisibilityContext } from '$lib/stores/code-visibility.svelte';
+  import { resolveClassChain } from '@urbicon-ui/blocks';
   import CodePanel from '../CodePanel/CodePanel.svelte';
   import { type CodeExampleSlots, codeExampleVariants } from './codeexample.variants';
   import type { CodeExampleProps } from './index.js';
@@ -91,7 +92,11 @@
   // precedent).
 </script>
 
-<div {...restProps} class={[slot('container'), className]} data-docs-stage="example">
+<div
+  {...restProps}
+  class={resolveClassChain(slot('container'), className)}
+  data-docs-stage="example"
+>
   {#if title}
     <svelte:element this={tag} class={slot('title')}>
       {title}

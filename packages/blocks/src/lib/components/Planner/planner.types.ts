@@ -124,15 +124,18 @@ export interface PlannerContext {
   readonly canGoToToday: boolean;
   readonly locale: string;
   readonly disabled: boolean;
+  /** Whether the instance (or the provider) asked for bare markup. */
+  readonly unstyled: boolean;
   navigate(delta: number): void;
   goToToday(): void;
   goTo(date: Date): void;
   /**
    * Resolve a slot's class string (honours `unstyled` + merged `slotClasses`).
    *
-   * Name only, deliberately: a string added here would share a source with the
-   * consumer's `slotClasses` entry, and `stripConflicts` runs between sources,
-   * never inside one. A sub-component's classes belong in the tv() config.
+   * Name only, deliberately: a string added here would be the LAST source of
+   * that chain, so a sub-component's library class would strip the consumer's
+   * own `slotClasses` entry — the override ladder upside down. Such classes
+   * belong in the tv() config.
    */
   slot(name: PlannerSlotName): string;
 }

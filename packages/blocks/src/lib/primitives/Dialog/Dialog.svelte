@@ -10,6 +10,7 @@
   import { overlayStack, getOverlayMotion } from '$lib/utils';
   // internal core, not the public component — keeps the public-to-public import graph clean (see internal/core/)
   import CoreIconButton from '$lib/internal/core/CoreIconButton.svelte';
+  import { resolveClassChain } from '$lib/utils/variants';
   import type { DialogProps } from './index';
   import { dialogVariants, type DialogVariants } from './dialog.variants';
 
@@ -354,7 +355,7 @@
       <div
         bind:this={panelEl}
         class={unstyled
-          ? [slotClasses?.panel, className].filter(Boolean).join(' ')
+          ? resolveClassChain(slotClasses?.panel, className)
           : styles.panel({ class: [slotClasses?.panel, className] })}
         data-intent={intent}
         role="document"

@@ -2,6 +2,7 @@
   import { untrack } from 'svelte';
   import { mintAttachment } from '$lib';
   import { getBlocksConfig, resolveSlotClasses } from '$lib/provider';
+  import { resolveClassChain } from '$lib/utils/variants';
   import type { SplitPaneProps } from './index';
   import { clampRatio, parseLimit, ratioFromPointer, resolveDragRatio } from './split-pane.utils';
   import { splitPaneVariants, type SplitPaneVariants } from './split-pane.variants';
@@ -233,7 +234,7 @@
   {...restProps}
   bind:this={rootRef}
   class={unstyled
-    ? [slotClasses?.root, className].filter(Boolean).join(' ')
+    ? resolveClassChain(slotClasses?.root, className)
     : styles.root({ class: [slotClasses?.root, className] })}
   data-orientation={orientation}
   data-dragging={dragging || undefined}

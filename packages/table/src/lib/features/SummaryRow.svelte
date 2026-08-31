@@ -63,6 +63,7 @@
       summaryStyles.row,
       styleConfig.slotClasses.summaryRow,
       styleConfig.unstyled,
+      undefined,
       className
     )}
     data-testid={groupName ? `summary-row-${groupName}` : 'summary-row-total'}

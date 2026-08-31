@@ -1,4 +1,4 @@
-import { createOptionalContext } from '@urbicon-ui/blocks';
+import { createOptionalContext, resolveClassChain } from '@urbicon-ui/blocks';
 import { LAYOUT_SWITCH_CLASSES } from '../variants/table.variants';
 
 /**
@@ -92,17 +92,22 @@ const STRUCTURAL = new Set<string>(LAYOUT_SWITCH_CLASSES);
 /**
  * Resolves classes for a slot, respecting `unstyled` mode.
  *
- * Routes the caller's `slotClass` + `structural` **through** the `tv()` slot
- * function (via its `class` option) instead of string-concatenating them onto
- * the already-resolved variant string. This puts the overrides inside the tv()
- * conflict fold, so a `slotClasses` (or `className`) utility that shares a
- * Tailwind bucket with a base/variant class **wins** instead of merely
- * co-existing and losing to stylesheet order — e.g. `slotClasses={{ table:
- * 'w-auto' }}` now beats the slot's own `w-full` (previously both rendered and
- * an `!` prefix was needed). Both overrides (`slotClass` and `structural`) win
- * over base/variant classes in the fold; between the two overrides themselves
- * nothing is stripped — they share one call-site source, so a direct conflict
- * there still resolves by stylesheet order, exactly as before.
+ * Routes the caller's overrides **through** the `tv()` slot function (via its
+ * `class` option) instead of string-concatenating them onto the already-resolved
+ * variant string. This puts them inside the tv() conflict fold, so a
+ * `slotClasses` (or `className`) utility that shares a Tailwind bucket with a
+ * base/variant class **wins** instead of merely co-existing and losing to
+ * stylesheet order — e.g. `slotClasses={{ table: 'w-auto' }}` beats the slot's
+ * own `w-full` (before that an `!` prefix was needed).
+ *
+ * Two sources, in ladder order:
+ *
+ *  1. `slotClass` + `structural`, together. Deliberately ONE source: a direct
+ *     conflict between them is left to the CSS cascade, because `structural`
+ *     carries the layout switch's halves and a consumer's slot class must not
+ *     be able to remove them (see "What `unstyled` takes away" below).
+ *  2. `className` — the consumer's own `class` prop, the top rung of the
+ *     override ladder, so it strips whichever of the two it collides with.
  *
  * ## What `unstyled` takes away
  *
@@ -122,21 +127,31 @@ const STRUCTURAL = new Set<string>(LAYOUT_SWITCH_CLASSES);
  * @param slotClass - User-provided class for this slot from `slotClasses`
  * @param unstyled - Whether to strip the slot's look (see above)
  * @param structural - Call-site classes that are not this component's look:
- *   positioning and layout utilities, the layout switch's halves, and the
- *   consumer's own `class` prop. Kept verbatim under `unstyled`.
+ *   positioning and layout utilities, the layout switch's halves. Kept verbatim
+ *   under `unstyled`. NOT the consumer's `class` prop — that is `className`.
+ * @param className - The consumer's own `class` prop, resolved as the rung
+ *   above `slotClass`/`structural`.
  */
 export function resolveSlotClass(
   slotFn: (opts?: { class?: (string | undefined)[] }) => string,
   slotClass: string | undefined,
   unstyled: boolean,
-  structural?: string
+  structural?: string,
+  className?: string
 ): string {
-  const overrides = [slotClass, structural];
+  const overrides = [slotClass, structural].filter(Boolean).join(' ');
   if (unstyled) {
     const kept = slotFn()
       .split(/\s+/)
       .filter((cls) => STRUCTURAL.has(cls));
-    return [...kept, ...overrides].filter(Boolean).join(' ');
+    // `kept` is prepended, NOT folded: these are the classes `unstyled` may not
+    // take away, and a caller's `className` in the same Tailwind bucket would
+    // strip them. Measured: with `kept` as a fold source,
+    // `resolveSlotClass(container, undefined, true, undefined, '@container/x')`
+    // returned `@container/x` alone — both write `container-type`, so the query
+    // container the switch is measured against went with it and neither half of
+    // the desktop/card switch could match.
+    return [...kept, resolveClassChain(overrides, className)].filter(Boolean).join(' ');
   }
-  return slotFn({ class: overrides });
+  return slotFn({ class: [overrides, className] });
 }

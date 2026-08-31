@@ -3,6 +3,7 @@
   import { collapsibleVariants, type CollapsibleVariants } from './collapsible.variants';
   import { resolveIcon } from '$lib/icons';
   import ChevronDownIconDefault from '$lib/icons/ChevronDownIcon.svelte';
+  import { resolveClassChain } from '$lib/utils/variants';
   import type { CollapsibleProps } from './index';
 
   const ChevronDownIcon = resolveIcon('chevronDown', ChevronDownIconDefault);
@@ -79,7 +80,7 @@
 
 <div
   class={unstyled
-    ? [slotClasses?.base, className].filter(Boolean).join(' ')
+    ? resolveClassChain(slotClasses?.base, className)
     : styles.base({ class: [slotClasses?.base, className] })}
   style:--blocks-collapse-duration={collapseDuration}
   style:--blocks-collapse-easing={transitionEasing}
@@ -103,8 +104,8 @@
       <span>{title ?? ''}</span>
       <ChevronDownIcon
         class={unstyled
-          ? [slotClasses?.chevron, isOpen ? 'rotate-180' : ''].filter(Boolean).join(' ')
-          : styles.chevron({ class: [slotClasses?.chevron, isOpen ? 'rotate-180' : ''] })}
+          ? resolveClassChain(isOpen ? 'rotate-180' : '', slotClasses?.chevron)
+          : styles.chevron({ class: [isOpen ? 'rotate-180' : '', slotClasses?.chevron] })}
       />
     </button>
   {/if}

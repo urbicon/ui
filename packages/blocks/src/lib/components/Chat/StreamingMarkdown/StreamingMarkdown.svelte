@@ -1,5 +1,6 @@
 <script lang="ts">
   import { getBlocksConfig, resolveSlotClasses } from '$lib/provider';
+  import { resolveClassChain } from '$lib/utils/variants';
   import { createIncrementalParser } from '../markdown/blocks';
   import type { MarkdownParseOptions, MarkdownUrlPolicy } from '../markdown/types';
   import type { CitationSource } from '../CitationChip';
@@ -107,7 +108,7 @@
 
 <div
   class={unstyled
-    ? [slotClasses?.base, className].filter(Boolean).join(' ')
+    ? resolveClassChain(slotClasses?.base, className)
     : styles.base({ class: [slotClasses?.base, className] })}
   {...restProps}
 >

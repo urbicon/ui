@@ -6,6 +6,7 @@
   import { createCopyState } from '$lib/internal/copy-state.svelte';
   import { Button } from '$lib/primitives/Button';
   import { getBlocksConfig, resolveSlotClasses } from '$lib/provider';
+  import { resolveClassChain } from '$lib/utils/variants';
   import { copyButtonVariants } from './copy-button.variants';
   import type { CopyButtonProps } from './index';
 
@@ -78,7 +79,7 @@
   const buttonClass = $derived(
     (styles
       ? styles.base({ class: [slotClasses?.base, className] })
-      : [slotClasses?.base, className].filter(Boolean).join(' ')) || undefined
+      : resolveClassChain(slotClasses?.base, className)) || undefined
   );
   const iconClass = $derived(
     (styles ? styles.icon({ class: slotClasses?.icon }) : slotClasses?.icon) || undefined

@@ -14,6 +14,7 @@
   import { useBlocksI18n } from '$lib';
   import { formatDateRangeInput, parseDateRangeInput, isDateAllowed } from './datepicker.engine';
   import { toDateInputValue } from '$lib/utils/date';
+  import { resolveClassChain } from '$lib/utils/variants';
   import type { DateRangePickerProps } from '.';
 
   const bt = useBlocksI18n();
@@ -75,7 +76,7 @@
   const styles = $derived(unstyled ? undefined : datePickerVariants());
 
   function slot(name: DatePickerSlots, extra?: string): string {
-    const overrides = [slotClasses?.[name], extra].filter(Boolean).join(' ');
+    const overrides = resolveClassChain(slotClasses?.[name], extra);
     return styles?.[name]({ class: overrides }) ?? overrides;
   }
 
@@ -300,6 +301,7 @@
 
 <div class={slot('base', className)} {...restProps} bind:this={triggerEl} onkeydown={handleKeydown}>
   <Input
+    {unstyled}
     value={inputValue}
     {label}
     error={effectiveError}
@@ -364,6 +366,7 @@
 
 {#if triggerEl}
   <Popover
+    {unstyled}
     id={popoverId}
     triggerElement={triggerEl}
     bind:open
@@ -377,6 +380,7 @@
   >
     <div class="p-2">
       <Calendar
+        {unstyled}
         value={calendarValue}
         onValueChange={handleSelect}
         selectionMode="range"

@@ -1,5 +1,12 @@
 <script lang="ts">
-  import { Button, ConfirmDialog, Input, Separator, getBlocksConfig } from '@urbicon-ui/blocks';
+  import {
+    Button,
+    ConfirmDialog,
+    getBlocksConfig,
+    Input,
+    resolveClassChain,
+    Separator
+  } from '@urbicon-ui/blocks';
   import { untrack } from 'svelte';
   import { mergeAuthLocale, useAuthLocale } from '../../../i18n/index.js';
   import { unmetPasswordRules } from '../../../password-policy.js';
@@ -203,7 +210,7 @@
 </script>
 
 {#if user}
-  <div class={cls('flex flex-col gap-8', [slotClasses.root, className].filter(Boolean).join(' '))}>
+  <div class={cls('flex flex-col gap-8', resolveClassChain(slotClasses.root, className))}>
     <h2 class={cls('text-text-primary text-lg font-semibold', slotClasses.title)}>
       {t.account.title}
     </h2>
@@ -336,10 +343,7 @@
     <!-- Danger zone -->
     <section
       aria-labelledby={dangerTitleId}
-      class={cls(
-        'flex flex-col gap-3',
-        [slotClasses.section, slotClasses.danger].filter(Boolean).join(' ')
-      )}
+      class={cls('flex flex-col gap-3', resolveClassChain(slotClasses.section, slotClasses.danger))}
     >
       <h3
         id={dangerTitleId}

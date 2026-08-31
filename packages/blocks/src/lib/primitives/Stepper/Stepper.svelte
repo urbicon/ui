@@ -3,6 +3,7 @@
   import { useBlocksI18n } from '$lib';
   import { getBlocksConfig, resolveSlotClasses } from '$lib/provider';
   import { getTierContext } from '$lib/utils';
+  import { resolveClassChain } from '$lib/utils/variants';
   import { stepperVariants, type StepperVariants } from './stepper.variants';
   import { setStepperContext } from './stepper.context';
   import type { StepperProps, StepperContext } from './index';
@@ -144,7 +145,7 @@
 <ol
   bind:this={rootRef}
   class={unstyled
-    ? [slotClasses?.base, className].filter(Boolean).join(' ')
+    ? resolveClassChain(slotClasses?.base, className)
     : styles.base({ class: [slotClasses?.base, className] })}
   aria-label={bt('accessibility.progress')}
   data-orientation={effectiveOrientation}

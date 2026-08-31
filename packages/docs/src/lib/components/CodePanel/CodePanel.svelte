@@ -1,7 +1,7 @@
 <script lang="ts">
   import { highlighterService } from '$lib';
   import { useDocsI18n } from '$lib/i18n';
-  import { ChevronRightIcon } from '@urbicon-ui/blocks';
+  import { ChevronRightIcon, resolveClassChain } from '@urbicon-ui/blocks';
   import { codePanelVariants } from './codepanel.variants';
   import { LINE_NUMBER_AUTO_THRESHOLD, type CodePanelProps } from './index.js';
 
@@ -78,7 +78,7 @@
   );
 </script>
 
-<div class={[slot('root'), className]}>
+<div class={resolveClassChain(slot('root'), className)}>
   <div class={slot('toolbar')}>
     <button
       type="button"

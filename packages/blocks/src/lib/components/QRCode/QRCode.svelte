@@ -1,6 +1,7 @@
 <script lang="ts">
   import { useBlocksI18n } from '$lib';
   import { getBlocksConfig, resolveSlotClasses } from '$lib/provider';
+  import { resolveClassChain } from '$lib/utils/variants';
   import type { QRCodeProps } from './index';
   import { qrCodeVariants, type QRCodeVariants } from './qr-code.variants';
   import { encodeQr } from './qr-encode';
@@ -74,7 +75,7 @@
 <span
   {id}
   class={unstyled
-    ? [slotClasses?.root, className].filter(Boolean).join(' ')
+    ? resolveClassChain(slotClasses?.root, className)
     : styles.root({ class: [slotClasses?.root, className] })}
 >
   {#if 'modules' in result}

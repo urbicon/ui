@@ -17,6 +17,7 @@
     type FileIntakeConstraints,
     type FileIntakeMessages
   } from '$lib/utils/file-intake';
+  import { resolveClassChain } from '$lib/utils/variants';
   import { promptInputVariants, type PromptInputVariants } from './prompt-input.variants';
   import type { PromptInputProps } from './index';
 
@@ -77,7 +78,7 @@
   function cls(name: keyof typeof slotClasses, extra?: string | (string | undefined)[]) {
     const extras = Array.isArray(extra) ? extra : [extra];
     if (unstyled) {
-      return [slotClasses?.[name], ...extras].filter(Boolean).join(' ');
+      return resolveClassChain(slotClasses?.[name], ...extras);
     }
     const slotFns = styles as Record<string, (args: { class?: unknown }) => string>;
     return slotFns[name]({ class: [slotClasses?.[name], ...extras] });

@@ -294,7 +294,13 @@
   {@const tableStyles = tableContainerVariants(variantProps)}
 
   <div
-    class={resolveSlotClass(tableStyles.container, slotClasses.container, unstyled, className)}
+    class={resolveSlotClass(
+      tableStyles.container,
+      slotClasses.container,
+      unstyled,
+      undefined,
+      className
+    )}
     style:--blocks-table-sticky-top={stickyTopValue}
     data-table-container
     data-fit={contained ? 'viewport' : 'content'}

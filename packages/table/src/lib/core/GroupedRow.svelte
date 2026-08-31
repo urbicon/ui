@@ -111,6 +111,7 @@
     styles.row,
     styleConfig.slotClasses.groupHeader,
     styleConfig.unstyled,
+    undefined,
     className
   )}
   data-testid={computedTestId}

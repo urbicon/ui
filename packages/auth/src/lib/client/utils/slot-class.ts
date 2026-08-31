@@ -1,4 +1,4 @@
-import { type BlocksConfig, resolveSlotClasses } from '@urbicon-ui/blocks';
+import { type BlocksConfig, resolveClassChain, resolveSlotClasses } from '@urbicon-ui/blocks';
 
 /**
  * Resolve a slot's classes under the `unstyled` contract: default styling is
@@ -8,7 +8,7 @@ import { type BlocksConfig, resolveSlotClasses } from '@urbicon-ui/blocks';
  * two-argument shape. Was a per-component clone.
  */
 export function slotClass(unstyled: boolean, base: string, slot?: string): string {
-  return (unstyled ? [slot] : [base, slot]).filter(Boolean).join(' ');
+  return unstyled ? (slot ?? '') : resolveClassChain(base, slot);
 }
 
 // `resolveSlotClasses` matches prop-conditional `overrides` against a component's

@@ -227,7 +227,8 @@ export interface ResourceTimelineProps<T = unknown>
   /** Extra classes merged onto the root element. */
   class?: string;
   /**
-   * Remove all default tv() classes; only user-provided classes apply. Note
+   * Remove all default tv() classes; only user-provided classes apply, and the
+   * header's today-button tooltip goes bare with them. Note
    * that this also strips the layout's custom properties (`--rt-lane-w`,
    * `--rt-day-w`, `--rt-bar-h` …), so an unstyled timeline has to re-declare
    * them along with the look.

@@ -12,6 +12,7 @@
     arrow as floatingArrow
   } from '$lib/utils/floating';
   import { isAnchoredInModalDialog } from '$lib/utils/overlay';
+  import { resolveClassChain } from '$lib/utils/variants';
 
   let {
     children,
@@ -305,7 +306,7 @@
 <span
   bind:this={tooltipElement}
   class={unstyled
-    ? [slotClasses?.base, className].filter(Boolean).join(' ')
+    ? resolveClassChain(slotClasses?.base, className)
     : styles.base({ class: [slotClasses?.base, className] })}
   {...restProps}
   popover={topLayer ? 'manual' : null}

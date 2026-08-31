@@ -45,7 +45,7 @@ AreaChart, AvatarGroup, BarChart, Calendar, ChartFrame, Chat, CommandPalette, Co
 
 Portal, ClickOutside, ContextIsolation — low-level primitives used by overlay components.
 
-All primitives and components support `unstyled` + `slotClasses` + `preset` for full style control. See the [Component API Conventions](../../docs/COMPONENT-API-CONVENTIONS.md) for `intent`, `variant`, `size`, callbacks, and styling patterns.
+All primitives and components support `unstyled` + `slotClasses` + `preset` for full style control. `unstyled` on a composing component (`DatePicker`, `ChatMessage`, `CommandPalette`, …) also strips the blocks components it renders itself; components you hand in as `children` keep their look — `<BlocksProvider unstyled>` covers a whole subtree. See the [Component API Conventions](../../docs/COMPONENT-API-CONVENTIONS.md) for `intent`, `variant`, `size`, callbacks, and styling patterns.
 
 ## Styling
 
@@ -83,6 +83,11 @@ Built-in effects: `scale`, `translate`, `rotate`, `glow`, `pulse`, `wiggle` (hov
 ```
 tv() defaults → defaults.slotClasses → defaults.overrides → preset.slotClasses → preset.overrides → instance slotClasses → instance class
 ```
+
+Every arrow resolves, the last one included: an instance `class="py-4"` strips a
+`slotClasses={{ base: 'py-8' }}` in the same bucket instead of both landing on the element.
+`unstyled` changes what is left to resolve, not how — the same two inputs give the same
+answer with the flag on.
 
 ```svelte
 <BlocksProvider
