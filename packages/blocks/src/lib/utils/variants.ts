@@ -372,9 +372,10 @@ const BUCKET_PATTERNS: Array<[RegExp, BucketResolver]> = [
   [/^border(-(\d+|\[[^\]]+\]))?$/, 'border-width'],
   // Border side-width — `border-x`, `border-t-2`, `border-r-[3px]`.
   // `bs`/`be` lead the alternation so `border-be-2` cannot be read as side `b`
-  // plus the rest: they are the block axis Tailwind 4.2 added, and all 1 052
-  // classes it enumerates for them write `border-block-{start,end}-*`
-  // (measured), a property no physical side shares.
+  // plus the rest: they are the block axis Tailwind 4.2 added, and all 1 054
+  // classes it enumerates for them — the bare `border-bs`/`border-be` included
+  // — write `border-block-{start,end}-*` (measured), a property no physical
+  // side shares.
   [/^border-(bs|be|x|y|t|r|b|l|s|e)(-(\d+|\[[^\]]+\]))?$/, (m) => `border-${m[1]}-width`],
   // Border color (catch-all, e.g. `border-red-500`, `border-primary`, `border-border-subtle`)
   [/^border-(bs|be|x|y|t|r|b|l|s|e)-/, (m) => `border-${m[1]}-color`],
@@ -506,18 +507,24 @@ const BUCKET_PATTERNS: Array<[RegExp, BucketResolver]> = [
   [/^underline-offset-/, 'text-underline-offset'],
   [/^uppercase$|^lowercase$|^capitalize$|^normal-case$/, 'text-transform'],
   [/^whitespace-/, 'whitespace'],
-  // Two CSS properties under one prefix. Measured: `break-all`/`break-keep`
-  // write `word-break`, `break-words` writes `overflow-wrap` alone, and the v4
-  // spellings of that same property are the `wrap-*` trio. `break-words` is
-  // live in 13 slots across 6 configs, so with all four in one bucket a consumer's
+  // Two CSS properties under one prefix, plus the reset that writes both.
+  // Measured: `break-all`/`break-keep` write `word-break`, `break-words` writes
+  // `overflow-wrap` alone (the v4 spellings of that same property are the
+  // `wrap-*` trio), and `break-normal` writes both. `break-words` is live in 13
+  // slots across 6 configs, so with all four in one bucket a consumer's
   // `break-keep` deleted the library's `overflow-wrap: break-word` — and
   // neither half of this lint could see it, `break-words` being a deprecated
   // alias Tailwind's class list no longer enumerates.
   //
-  // `break-normal` writes BOTH and stays with `word-break`, the axis it resets
-  // by name. Price: it no longer strips an earlier `break-words`; its own
-  // `overflow-wrap: normal` decides that in the cascade instead.
-  [/^break-(normal|all|keep)$/, 'word-break'],
+  // `break-normal` is therefore the shorthand of the other two, which is what
+  // DOMINANCE expresses: a later reset strips both longhands, a later longhand
+  // refines the reset. Leaving it in `word-break` instead would have handed the
+  // reset to the cascade, and the cascade decides against it — the compiler
+  // emits `.break-normal` before `.break-words` at equal specificity, so
+  // `break-words break-normal` renders `overflow-wrap: break-word` (measured in
+  // Chromium; `break-normal` alone renders `normal`).
+  [/^break-normal$/, 'break-reset'],
+  [/^break-(all|keep)$/, 'word-break'],
   [/^(?:break-words|wrap-(?:break-word|anywhere|normal))$/, 'overflow-wrap'],
   [/^truncate$/, 'text-overflow'],
   [/^list-(inside|outside)$/, 'list-style-position'],
@@ -802,6 +809,9 @@ const DOMINANCE: Record<string, string[]> = {
   ],
   'border-x-color': ['border-r-color', 'border-l-color', 'border-s-color', 'border-e-color'],
   'border-y-color': ['border-t-color', 'border-b-color', 'border-bs-color', 'border-be-color'],
+  // `break-normal` writes `overflow-wrap` AND `word-break` (measured), so it is
+  // the shorthand of both single-property families under the same prefix.
+  'break-reset': ['word-break', 'overflow-wrap'],
   overflow: ['overflow-x', 'overflow-y'],
   overscroll: ['overscroll-x', 'overscroll-y'],
   // `scale-*` writes all three factors, so it replaces a narrower `scale-z-*`

@@ -4,6 +4,7 @@ import { __unstable__loadDesignSystem } from '@tailwindcss/node';
 import { beforeAll, describe, expect, it } from 'vitest';
 import { tailwindBucket } from '../src/lib/utils/variants';
 import {
+  CATALOGUE_CANARIES,
   type CandidateAstSource,
   type ClassCatalogueSource,
   catalogueClasses,
@@ -180,5 +181,21 @@ describe('catalogueClasses', () => {
     for (const shippedOnly of ['stroke-[2px]', 'scale-[1.01]', 'active:scale-95', 'break-words']) {
       expect(catalogue.has(shippedOnly)).toBe(false);
     }
+  });
+
+  it('every catalogue canary is readable, and a truncated catalogue loses them all', () => {
+    // The gate's own guard, asserted here rather than only in the run. Each
+    // canary is a class the library never writes, so it can only arrive from
+    // getClassList — which is what makes it a canary on that half.
+    const catalogue = catalogueClasses(design);
+    const effects = collectClassEffects(design, catalogue);
+    expect(CATALOGUE_CANARIES.filter((cls) => !effects.has(cls))).toEqual([]);
+
+    // Positive control on the guard, not just on the reader: a size floor was
+    // the first shape here and it is green for a reader that keeps a plausible
+    // fraction. Truncated to 500 of 35 140, every canary is gone.
+    const truncated = collectClassEffects(design, catalogue.slice(0, 500));
+    expect(truncated.size).toBeGreaterThan(0);
+    expect(CATALOGUE_CANARIES.filter((cls) => truncated.has(cls))).toEqual([]);
   });
 });

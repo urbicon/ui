@@ -1067,19 +1067,44 @@ describe('tv – tailwind conflict resolver', () => {
       const styleTokens = style.base({ class: 'outline-dashed' }).split(/\s+/);
       expect(styleTokens).toContain('outline');
       expect(styleTokens).toContain('outline-dashed');
+
+      // The price, pinned so the trade-off is a decision and not a drift: the
+      // library writes `outline-none` at 113 slot sites and a consumer `outline`
+      // no longer strips it. A DOMINANCE edge would buy that back and re-break
+      // the pairing above, so it stays unresolved.
+      const none = tv({ slots: { base: 'outline-none' } })();
+      const bothSurvive = none.base({ class: 'outline' }).split(/\s+/);
+      expect(bothSurvive).toContain('outline-none');
+      expect(bothSurvive).toContain('outline');
     });
 
     it('break-words is overflow-wrap, so word-break overrides leave it alone', () => {
       // `break-words` writes `overflow-wrap` alone and `break-all` writes
-      // `word-break` alone (measured); they are two properties under one
-      // prefix. `break-normal` resets the word-break axis and replaces its own
-      // family, and the v4 `wrap-*` spellings share the overflow-wrap bucket.
+      // `word-break` alone (measured); two properties under one prefix. The v4
+      // spellings of the first are the `wrap-*` trio.
       const slot = tv({ slots: { base: 'break-words' } })();
       expect(slot.base({ class: 'break-all' }).split(/\s+/)).toContain('break-words');
       expect(slot.base({ class: 'wrap-anywhere' }).split(/\s+/)).not.toContain('break-words');
+    });
+
+    it('break-normal is the reset and strips both longhands, in both spellings', () => {
+      // `break-normal` writes `overflow-wrap` AND `word-break`, so DOMINANCE
+      // carries it. Leaving it in `word-break` handed the reset to the cascade,
+      // which decides against it: `.break-normal` is emitted before
+      // `.break-words` at equal specificity, so the pair renders
+      // `overflow-wrap: break-word` (measured in Chromium). The library ships
+      // `break-words` at 13 slot sites, so this is the pairing a consumer hits.
+      const wrap = tv({ slots: { base: 'break-words' } })();
+      expect(wrap.base({ class: 'break-normal' }).split(/\s+/)).not.toContain('break-words');
 
       const axis = tv({ slots: { base: 'break-all' } })();
       expect(axis.base({ class: 'break-normal' }).split(/\s+/)).not.toContain('break-all');
+
+      // The reverse never strips — a longhand refines the reset it follows.
+      const reset = tv({ slots: { base: 'break-normal' } })();
+      const refined = reset.base({ class: 'break-all' }).split(/\s+/);
+      expect(refined).toContain('break-normal');
+      expect(refined).toContain('break-all');
     });
 
     it('the logical axes are their own buckets, and start-* is the inline one', () => {

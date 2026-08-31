@@ -97,6 +97,7 @@ import { unlink } from 'node:fs/promises';
 import { resolve } from 'node:path';
 import { __unstable__loadDesignSystem } from '@tailwindcss/node';
 import {
+  CATALOGUE_CANARIES,
   type CollisionFinding,
   catalogueClasses,
   collectClassEffects,
@@ -1104,9 +1105,13 @@ const classEffects = collectClassEffects(design, [...emitCandidates.keys()]);
 // half over the catalogue would report 13 242 classes in families this library
 // never writes.
 const catalogueEffects = collectClassEffects(design, catalogueClasses(design));
-if (catalogueEffects.size < 10_000) {
+// Named canaries rather than a size floor — see CATALOGUE_CANARIES. A floor is
+// exactly the shape this file rejects 100 lines above, where the measurement is
+// written down: losing two whole namespaces left 91 % of the classes in place.
+const missingCatalogueCanaries = CATALOGUE_CANARIES.filter((cls) => !catalogueEffects.has(cls));
+if (missingCatalogueCanaries.length > 0) {
   console.error(
-    `✖ variants-lint: Tailwind's class catalogue yielded only ${catalogueEffects.size} classes with CSS — the full-list collision pass is running near-blind.`
+    `✖ variants-lint: ${missingCatalogueCanaries.join(', ')} reached no effect set out of Tailwind's class catalogue (${catalogueEffects.size} classes read) — the full-list collision pass is not seeing the families it is meant to check.`
   );
   process.exit(1);
 }
@@ -1263,7 +1268,7 @@ const BUCKET_EFFECT_EXEMPTIONS: { bucket: string; effects: string[]; why: string
       '--tw-outline-style outline outline-offset outline-style',
       '--tw-outline-style outline-style'
     ],
-    why: '`outline-hidden` is `outline-style: none` plus a forced-colors escape hatch (`outline: 2px solid transparent` inside `@media (forced-colors: active)`), so it replaces any other style keyword and carries two more properties while doing it. Price: a later `outline-dashed` leaves that escape hatch behind — a media-query-scoped declaration for a style the element no longer has.'
+    why: '`outline-hidden` is `outline-style: none` plus a forced-colors escape hatch (`outline: 2px solid transparent` inside `@media (forced-colors: active)`), so it replaces any other style keyword and carries two more properties while doing it. The bucket lost bare `outline` on the way here, and that has a price: the library writes `outline-none` at 113 slot sites, and a consumer `outline` used to strip it. Measured over the whole outline family at those sites, 113 slot/override combinations stop resolving — all of them that one pairing — while 2 start (`outline-2 + outline`, which never resolved before). So this closes an inconsistency and loses the one spelling that happened to work. Buying it back with a DOMINANCE edge is not available: it would re-break `outline outline-dashed`, the pairing the repair exists for.'
   },
   {
     bucket: 'sr-only',
@@ -1271,12 +1276,12 @@ const BUCKET_EFFECT_EXEMPTIONS: { bucket: string; effects: string[]; why: string
       'border-width clip-path height margin overflow padding position white-space width',
       'clip-path height margin overflow padding position white-space width'
     ],
-    why: '`sr-only` and `not-sr-only` are each other’s undo; `sr-only` additionally zeroes `border-width`, which `not-sr-only` has no value to restore. They must replace each other. Price: `sr-only not-sr-only` leaves `border-width: 0` behind.'
+    why: '`sr-only` and `not-sr-only` are each other’s undo; `sr-only` additionally zeroes `border-width`, which `not-sr-only` has no value to restore. They must replace each other, and across sources they do — the later one wins whole.'
   },
   {
     bucket: 'text-shadow',
     effects: ['color text-shadow', 'text-shadow'],
-    why: 'the `color` is this repo’s theme, not Tailwind: `semantic.css` declares the box-shadow scale as `--color-shadow-xs…lg` INSIDE the colour namespace, so `text-shadow-lg` is also a valid `text-<colour>` spelling and the compiler emits both readings. All six are text-shadow steps and replace each other; the colour half is inert — a multi-layer shadow is invalid at computed-value time as a `color`, verified in Chromium (the element keeps its inherited colour).'
+    why: 'the `color` is this repo’s theme, not Tailwind: `semantic.css` declares the box-shadow scale as `--color-shadow-xs…lg` INSIDE the colour namespace, so `text-shadow-lg` is also a valid `text-<colour>` spelling and the compiler emits both readings. All six are text-shadow steps and replace each other, which is what this bucket has to get right. The colour half is NOT harmless and is not this bucket’s to fix: a multi-layer shadow is invalid at computed-value time as a `color`, which for an inherited property means `inherit` rather than "ignored" — and `.text-shadow-lg` is emitted after `.text-primary` at equal specificity, so `text-primary text-shadow-lg` renders the parent’s colour (measured in Chromium; `text-primary` alone renders the token). The fix is to move the shadow scale out of the colour namespace; filed separately.'
   },
   {
     bucket: 'text-shadow-color',
@@ -1289,7 +1294,7 @@ const BUCKET_EFFECT_EXEMPTIONS: { bucket: string; effects: string[]; why: string
       'transition-duration transition-property transition-timing-function',
       'transition-property'
     ],
-    why: '`transition-none` is the family’s off switch and must replace any property list. Price: it leaves the duration and timing function behind, which transition nothing once no property is listed.'
+    why: '`transition-none` is the family’s off switch and must replace any property list, which across sources it does — the later one wins whole. The duration and timing function live in their own buckets and survive on their own, transitioning nothing once no property is listed.'
   },
   {
     bucket: 'transition-duration',
@@ -1305,11 +1310,6 @@ const BUCKET_EFFECT_EXEMPTIONS: { bucket: string; effects: string[]; why: string
     bucket: 'translate',
     effects: ['--tw-translate-x --tw-translate-y translate', 'translate'],
     why: 'the same shape as the `scale` entry: the named steps set the axis variables the composed `translate` reads, while `translate-3d` and `translate-none` write the property directly. All replace each other, the property being replaced whole.'
-  },
-  {
-    bucket: 'word-break',
-    effects: ['overflow-wrap word-break', 'word-break'],
-    why: '`break-normal` resets both properties the `break-` prefix spans; `break-all` and `break-keep` write `word-break` alone. One authoring axis, so they must replace each other. `break-words` writes `overflow-wrap` alone and is no longer in this bucket.'
   }
 ];
 const bucketExemptions = new Map(BUCKET_EFFECT_EXEMPTIONS.map((e) => [e.bucket, e]));
@@ -1338,11 +1338,11 @@ for (const { cls, properties } of findUnbucketed(classEffects, tailwindBucket)) 
 }
 // `relation` first, because it ranks the list: a bucket whose effect sets share
 // no property cannot hold classes that replace each other, so it always strips
-// something for nothing, while nesting is what a composition looks like. On the
-// first run over both populations all 6 DISJOINT buckets were over-reaches and
-// all 11 NESTED ones legitimate; both OVERLAP buckets needed a human, and both
-// turned out to hide a defect (`gradient-via`'s stop positions, bare `outline`
-// filed as a style).
+// something for nothing, while nesting is what a composition looks like. The
+// first run over both populations returned 20 collisions — 6 DISJOINT, 11
+// NESTED, 3 OVERLAP. Every DISJOINT bucket was stripping for nothing; five were
+// repaired by narrowing a pattern and one could not be. Every NESTED one was
+// legitimate. All 3 OVERLAP buckets needed a human, and all 3 hid a defect.
 const RELATION_HINT: Record<CollisionFinding['relation'], string> = {
   disjoint:
     'the sets share NO property, so neither class can replace the other — the pattern that catches them is too wide',

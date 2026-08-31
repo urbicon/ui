@@ -27,9 +27,16 @@
  * (measured — `stroke-2` is in it, `stroke-[2px]`, `scale-[1.01]` and
  * `active:scale-95` are not, and all three are live library classes). So the
  * collision half is asked about the catalogue *and* the shipped classes, while
- * the unbucketed half is asked only about what the library ships: over the
- * catalogue it reports 13 242 classes in families this library never writes,
- * which is a fact about Tailwind's breadth, not a defect.
+ * the unbucketed half is asked only about what the library ships.
+ *
+ * That asymmetry has a price, and it is not only Tailwind's breadth: over the
+ * catalogue the unbucketed half reports 13 239 classes, most of them families
+ * this library never writes — but among them sit `scroll-mbs/pbe-*` (210),
+ * `max-inline-*`/`min-block-*` (308) and `drop-shadow-*` (529), which have no
+ * bucket at all. The first two are the same Tailwind 4.2 logical axis repaired
+ * here for `border-` and `inset-`. Nothing is silent about a class the library
+ * ships, so no gap is open today; the day a component writes one, this half
+ * reports it. Closing them ahead of that is a separate pass, not a hole.
  *
  * The property set is the whole set the rule declares, custom properties
  * included: `scale-150` writes `--tw-scale-x/y/z` + `scale` while
@@ -67,6 +74,21 @@ export type ClassCatalogueSource = {
 export function catalogueClasses(design: ClassCatalogueSource): string[] {
   return design.getClassList().map(([cls]) => cls);
 }
+
+/**
+ * Canaries on the catalogue read, one per family the table was repaired in, and
+ * every one of them a class the library never writes — so they can only arrive
+ * from `getClassList`, and a run that loses that half loses all four.
+ *
+ * Named rather than counted, for the reason the sibling guard in
+ * `variants-lint.ts` already carries: a size floor is green for a reader that
+ * drops a family. Measured there — a regression dropping `bg-` and `border-`
+ * left 1 201 of 1 322 classes, past any plausible floor.
+ *
+ * Exported so the gate and its test assert the same list rather than two copies
+ * that can disagree.
+ */
+export const CATALOGUE_CANARIES = ['border-be-2', 'bg-blend-multiply', 'wrap-anywhere', 'from-50%'];
 
 type AstNode =
   | { kind: 'declaration'; property: string }
@@ -126,9 +148,15 @@ export type UnbucketedFinding = { cls: string; properties: string[] };
  *     leaving the ellipsis behind.
  *   - `overlap` — sets intersect without containment; a human has to look.
  *
- * The sort is empirical, not a proof: on the table this gate first ran against,
- * all 6 `disjoint` buckets were real over-reaches and all 11 `nested` ones were
- * legitimate, leaving 2 in `overlap` (`gradient-via`, `outline-style`).
+ * The sort is empirical, not a proof. Over both populations the table this gate
+ * first ran against produced 20 collisions — 6 `disjoint`, 11 `nested`,
+ * 3 `overlap`. Every `disjoint` bucket did strip something for nothing; five
+ * were repaired by narrowing the pattern and the sixth (`text-shadow-color`)
+ * could not be, the theme having put a shadow scale in the colour namespace, so
+ * it ships as a pinned exemption. All 11 `nested` buckets were legitimate. All
+ * 3 `overlap` buckets needed a human, and all 3 turned out to hide a defect
+ * (`gradient-via`'s stop positions, bare `outline` filed as a style,
+ * `break-words` sharing a bucket with `break-all`).
  */
 export type EffectRelation = 'disjoint' | 'nested' | 'overlap';
 
