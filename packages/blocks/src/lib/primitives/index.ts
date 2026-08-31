@@ -41,6 +41,7 @@ export * from './Kbd';
 export type {
   MenuContext,
   MenuCustomSlots,
+  MenuDividerItem,
   MenuItemType,
   MenuObjectOption,
   MenuOption,

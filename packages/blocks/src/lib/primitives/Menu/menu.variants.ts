@@ -53,7 +53,7 @@ export const menuVariants = tv({
     // grid), keeping the readout pinned to the row's end. Under `unstyled`
     // this slot's classes are not applied at all.
     detail: ['ml-auto shrink-0 text-xs text-text-tertiary'],
-    // Wrapper around one section's items in array mode: carries the
+    // Wrapper around one section's items, in every call form: carries the
     // `role="group"` that scopes a `menuitemradio` set to its section
     // (aria-labelledby points at the section header). Mirrors the `items`
     // wrapper's row rhythm, since its children no longer sit in that wrapper

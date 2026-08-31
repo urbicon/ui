@@ -16,9 +16,10 @@ import CascadeBranchHost from './__fixtures__/CascadeBranchHost.svelte';
  *   family vertical, StepperStep's root carries no library class at all and
  *   route C reports "nothing to strip" instead.
  * - **the other call form.** `<MenuSection>` and the array-shaped section
- *   header render the same `section` slot through separate code. The sweep
- *   mounts Menu with neither — measured, its mount renders no section element
- *   at all — and judges Menu's own root.
+ *   header render the same `section` slot. The sweep mounts Menu with neither
+ *   — measured, its mount renders no section element at all — and judges
+ *   Menu's own root. Both call forms now render *through* MenuSection, so the
+ *   pair below is the control on that, no longer two separate code paths.
  * - **an instance prop.** Only `class` is passed to the component under
  *   measurement (route E), so `unstyled={false}` against a provider `unstyled`
  *   has no route to travel.
@@ -59,10 +60,14 @@ function withRender<T>(props: Record<string, unknown>, read: (target: HTMLElemen
 
 const PANEL = '[role="tabpanel"]';
 const STEP_ITEM = 'li';
-/** MenuSection's own element. */
-const DECLARATIVE_SECTION = '[role="separator"]';
-/** The array-shaped section header — the same `section` slot, other call form. */
-const ARRAY_SECTION = '[role="presentation"]';
+/**
+ * A section heading. The fixture mounts the declarative menu first and the
+ * array-shaped one second, so index 0 / 1 name the two call forms — and the
+ * shared selector is itself the assertion that the two roles no longer differ.
+ */
+const SECTION_HEADING = '[role="presentation"]';
+const DECLARATIVE_SECTION = 0;
+const ARRAY_SECTION = 1;
 
 describe('TabPanel takes the strip’s orientation', () => {
   it('drops the horizontal top margin when the strip is vertical', () => {
@@ -123,8 +128,8 @@ describe('StepperStep routes its item slot in both orientations', () => {
 describe('MenuSection renders the same `section` slot as its sibling call form', () => {
   it('strips the library classes under provider `unstyled`, like the array form', () => {
     const { declarative, array } = withRender({ composition: 'menu', unstyled: true }, (t) => ({
-      declarative: classesOf(t, DECLARATIVE_SECTION),
-      array: classesOf(t, ARRAY_SECTION)
+      declarative: classesOf(t, SECTION_HEADING, DECLARATIVE_SECTION),
+      array: classesOf(t, SECTION_HEADING, ARRAY_SECTION)
     }));
     expect(declarative?.size).toBe(0);
     expect(array?.size).toBe(0);
@@ -134,8 +139,8 @@ describe('MenuSection renders the same `section` slot as its sibling call form',
     const { declarative, array } = withRender(
       { composition: 'menu', defaults: { Menu: { slotClasses: { section: 'probe-section' } } } },
       (t) => ({
-        declarative: classesOf(t, DECLARATIVE_SECTION),
-        array: classesOf(t, ARRAY_SECTION)
+        declarative: classesOf(t, SECTION_HEADING, DECLARATIVE_SECTION),
+        array: classesOf(t, SECTION_HEADING, ARRAY_SECTION)
       })
     );
     expect(declarative?.has('probe-section')).toBe(true);

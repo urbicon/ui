@@ -12,6 +12,7 @@
   import Button from '$lib/primitives/Button/Button.svelte';
   import Card from '$lib/primitives/Card/Card.svelte';
   import Menu from '$lib/primitives/Menu/Menu.svelte';
+  import MenuItem from '$lib/primitives/Menu/MenuItem.svelte';
   import MenuSection from '$lib/primitives/Menu/MenuSection.svelte';
   import Stepper from '$lib/primitives/Stepper/Stepper.svelte';
   import StepperStep from '$lib/primitives/Stepper/StepperStep.svelte';
@@ -58,9 +59,14 @@
     </Stepper>
   {:else if composition === 'menu'}
     <!-- The two call forms of the same `section` slot, side by side: the
-         declarative <MenuSection> child and the array-shaped section header. -->
+         declarative <MenuSection> child and the array-shaped section header.
+         Since #361 both render through MenuSection, so the provider reaching
+         one is the provider reaching the other — the pair is kept as the
+         control that says so, not as two separate code paths. -->
     <Menu open placeholder="declarative">
-      <MenuSection label="Group" />
+      <MenuSection label="Group">
+        <MenuItem label="one" />
+      </MenuSection>
     </Menu>
     <Menu open placeholder="array" items={[{ type: 'section', label: 'Group' }, 'one']} />
   {:else if composition === 'calendar'}
