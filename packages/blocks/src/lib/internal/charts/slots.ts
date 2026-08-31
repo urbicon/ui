@@ -2,12 +2,13 @@ import type { ChartSlot } from './variants';
 
 /* ── Which chart paints which slot ──────────────────────────────────────────
  *
- * Its own module, not part of `variants.ts`: every chart imports that one at
- * runtime for `chartSlotResolver`, and the lists below are read only by the
- * type projection and by `slot-reach.svelte.test.ts`. Kept beside the resolver
- * they survived tree-shaking — `bun run size` measured +0.3 % gz on the four
- * charts and +0.6 % on ChartFrame; from here nothing a consumer bundles
- * imports them at all.
+ * Its own module, not part of `variants.ts`: every chart pulls that one in at
+ * runtime for `chartSlotResolver`, while the lists below are read only by the
+ * type projection and by `slot-reach.svelte.test.ts`. A spread initializer is
+ * not provably side-effect-free, so beside the resolver these survive
+ * tree-shaking — an A/B build measured +50…57 B gz per chart, from +0.36 % on
+ * LineChart to +0.82 % on ChartFrame. From here nothing on a consumer path
+ * imports them.
  *
  * One config feeds five components, so `ChartSlot` answers "what does this
  * family paint", never "what does *this* component paint" — that is a property

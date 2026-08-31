@@ -14,12 +14,11 @@ export const chartVariants = tv({
     /** Axis group (<g>) — sets the inherited text color for labels. */
     axis: ['text-text-tertiary'],
     /**
-     * The zero baseline the bars stand on — BarChart's alone, and drawn at
-     * `yScale(0)`. Only a chart whose domain is guaranteed to contain 0 can
-     * draw it: LineChart defaults to `includeZero: false`, and on four of the
-     * five charts its docs page shows, y(0) lands below the plot, across the
-     * category labels and the legend. AreaChart does force 0 into its domain,
-     * but there y(0) coincides with the zero gridline its areas end on.
+     * The zero baseline the bars stand on, drawn at `yScale(0)`. BarChart
+     * paints it; LineChart, AreaChart and ChartFrame do not, and it is not in
+     * their `slotClasses` types. A chart that starts drawing it has to put 0
+     * inside its own domain first — `yScale(0)` lands outside the plot box
+     * otherwise, over the category labels and the legend.
      */
     axisLine: ['stroke-border-default'],
     /** Tick + category labels. */

@@ -44,10 +44,11 @@ import { chartVariants } from '$lib/internal/charts/variants';
  */
 
 /**
- * Probe-class prefix. Matched as a whole class name against the slots below,
- * never by slicing the prefix off any class that happens to start with it: the
- * charts and the calendar render `sr-only` wrappers, and prefix-slicing read
- * that as a slot called `only` painted by five of the six components.
+ * Probe-class prefix. A probe is matched as a whole class name against the
+ * slot set, not by slicing the prefix off every class that starts with it: the
+ * charts and the calendar render `sr-only` wrappers, which an `sr-` prefix read
+ * as a slot named `only`. That avoids the collision rather than ruling it out —
+ * a rendered class equal to `slot-reach-<slot>` would still be counted.
  */
 const PROBE = 'slot-reach-';
 
@@ -319,7 +320,10 @@ describe.each(measured.map((m) => [m.sweep.name, m] as const))('%s', (_name, mea
     // The other direction, and it needs the *config's* slots as probes: a slot
     // a component paints but leaves out of its `slotClasses` type is an
     // override surface the consumer cannot reach at all — the projection in
-    // `charts/slots.ts` taking one slot too few looks exactly like this.
+    // `charts/slots.ts` taking one slot too few looks exactly like this. Where
+    // a config feeds one component, `slots` and `configSlots` are the same list
+    // and nothing can land outside it: vacuous there, load-bearing where a
+    // config is projected.
     const withheld = [...union].filter((slot) => !sweep.slots.includes(slot));
     expect(
       withheld,
@@ -360,21 +364,29 @@ describe.each(measured.map((m) => [m.sweep.name, m] as const))('%s', (_name, mea
   });
 });
 
-describe('chartVariants', () => {
-  // Projecting the shared config per chart moves a slot no chart paints out of
-  // every component's reach, and the per-component sweeps above would then
-  // never look at it again — the exact case #345 deleted `axisTick` for. So the
-  // projections are also checked as a set, against the config they come from.
-  it('is covered by the five charts it feeds', () => {
-    const projected = new Set(
-      SWEEPS.filter((s) => s.config === 'chartVariants').flatMap((s) => s.slots)
-    );
-    const orphans = CHART_SLOTS.filter((slot) => !projected.has(slot));
+describe.each([...new Set(SWEEPS.map((s) => s.config))])('%s', (config) => {
+  const family = measured.filter((m) => m.sweep.config === config);
+
+  // Projecting a shared config per component moves a slot *no* component paints
+  // out of every component's reach, and the sweeps above would never look at it
+  // again — the case #345 deleted `axisTick` for. So the config is also checked
+  // whole, against what its components were measured painting.
+  //
+  // Measured, not declared: reading the declared lists here would let an
+  // `unreached` entry carry a family-wide dead slot past this check as well.
+  // Which means `unreached` excuses a slot from its own component's sweep, not
+  // from this one — a slot no state of any component reaches is reported here
+  // regardless, because measurement cannot tell it from a dead one.
+  it('declares no slot the components it feeds leave unpainted', () => {
+    const painted = new Set(family.flatMap((m) => [...(reachedBy.get(m.sweep.name) ?? [])]));
+    const declared = [...new Set(family.flatMap((m) => m.sweep.configSlots))];
+    const orphans = declared.filter((slot) => !painted.has(slot));
     expect(
       orphans,
-      'slots `chartVariants` declares that no chart offers in its `slotClasses` type, so no ' +
-        `consumer can reach them and no sweep above measures them. Delete them from the config, ` +
-        `or add them to the chart that should paint them:\n  ${orphans.join('\n  ')}`
+      `slots \`${config}\` declares that none of its ${family.length} component(s) paints in ` +
+        'any state above, so no `slotClasses` type can offer them and no sweep measures them. ' +
+        'Delete them from the config, or mount the state that paints them:' +
+        `\n  ${orphans.join('\n  ')}`
     ).toEqual([]);
   });
 });
