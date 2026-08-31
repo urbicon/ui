@@ -127,6 +127,12 @@ export interface PlannerContext {
   navigate(delta: number): void;
   goToToday(): void;
   goTo(date: Date): void;
-  /** Resolve a slot's class string (honours `unstyled` + merged `slotClasses`). */
-  slot(name: PlannerSlotName, extra?: string): string;
+  /**
+   * Resolve a slot's class string (honours `unstyled` + merged `slotClasses`).
+   *
+   * Name only, deliberately: a string added here would share a source with the
+   * consumer's `slotClasses` entry, and `stripConflicts` runs between sources,
+   * never inside one. A sub-component's classes belong in the tv() config.
+   */
+  slot(name: PlannerSlotName): string;
 }

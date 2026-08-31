@@ -134,9 +134,13 @@
   --color-border-default: rgb(31 29 23 / 0.22);
   --color-border-emphasis: rgb(31 29 23 / 0.34);
 
-  /* Warm shadow so cards blend with the cream instead of reading as cool
-     smudges (mirrors editorial's tint). */
-  --blocks-shadow-tint: 0.22 0.04 70;
+  /* No `--blocks-shadow-tint` here: the tint is read inside the value of the
+     `--blocks-shadow-*` steps, which are declared at `:root`, so it is
+     substituted there and every descendant inherits an already-finished
+     shadow. Setting it on this card moves nothing (measured in Chromium). The
+     warm tint these cards want comes from `.docs-rooms` on <html>, which IS the
+     root element; a scope below it would have to re-declare the five steps
+     beside the tint. */
 }
 
 /* ── Dark terminal card (AI specimen) ───────────────────────────────────── */

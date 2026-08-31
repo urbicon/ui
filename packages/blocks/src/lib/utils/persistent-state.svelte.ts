@@ -1,4 +1,4 @@
-const BROWSER = typeof window !== 'undefined';
+import { getStorage } from '$lib/internal/storage';
 
 /**
  * Configuration for persistent state
@@ -11,35 +11,6 @@ export interface PersistentStateConfig<T> {
   deserialize?: (value: string) => T;
   debounceMs?: number;
   version?: number; // For schema migrations
-}
-
-/**
- * Storage interface for dependency injection
- */
-interface StorageInterface {
-  getItem(key: string): string | null;
-
-  setItem(key: string, value: string): void;
-
-  removeItem(key: string): void;
-}
-
-/**
- * Get storage implementation based on type
- */
-function getStorage(type: 'localStorage' | 'sessionStorage'): StorageInterface | null {
-  if (!BROWSER) return null;
-
-  try {
-    const storage = type === 'localStorage' ? window.localStorage : window.sessionStorage;
-    // Test if storage is available (can fail in private mode)
-    const testKey = '__storage_test__';
-    storage.setItem(testKey, 'test');
-    storage.removeItem(testKey);
-    return storage;
-  } catch {
-    return null;
-  }
 }
 
 /**
@@ -106,6 +77,12 @@ export function createPersistentState<T>(config: PersistentStateConfig<T>) {
   // Whether the consumer ever wrote through this instance. Only used to keep an
   // *untouched* instance from creating an entry for its own default.
   let touched = false;
+  // A storage that refuses one write refuses them all, and the auto-save runs
+  // on every change — so warning per save is one console line per change for
+  // the lifetime of the page, in an environment the user cannot change and the
+  // developer cannot fix. One line still reaches the author whose value
+  // outgrew the quota, who is the only reader who can act on it.
+  let warnedRefusal = false;
   const defaultSerialized = trySerialize(defaultValue);
 
   function trySerialize(value: T): string | null {
@@ -155,7 +132,19 @@ export function createPersistentState<T>(config: PersistentStateConfig<T>) {
       // entry for every untouched axis, which would retire all their seeds.
       if (!touched && lastWritten === null && next === defaultSerialized) return;
 
-      storage.setItem(storageKey, next);
+      // The helper swallows a refused write (a quota, a hardened profile)
+      // rather than throwing, and reports it instead: `lastWritten` and
+      // `hasStored` are a mirror of what storage actually holds, so neither may
+      // advance on a write that never landed.
+      if (!storage.setItem(storageKey, next)) {
+        if (!warnedRefusal) {
+          warnedRefusal = true;
+          console.warn(
+            `Failed to save persistent state for key "${key}": storage refused the write`
+          );
+        }
+        return;
+      }
       lastWritten = next;
       state.hasStored = true;
     } catch (error) {
@@ -186,22 +175,29 @@ export function createPersistentState<T>(config: PersistentStateConfig<T>) {
      * Whether storage currently holds an entry for this key: `true` when
      * construction (or `reload()`) found a parseable entry, and after a write
      * actually reached storage; `false` when the key was absent or corrupt,
-     * after `reset()`, and always without a working storage (SSR, private
-     * mode). Use it to distinguish a stored empty value from an absent one.
+     * after a `reset()` whose removal landed, and always without a working
+     * storage (SSR, private mode). Use it to distinguish a stored empty value
+     * from an absent one.
      */
     get hasStoredValue() {
       return state.hasStored;
     },
     /**
-     * Reset to default value and clear storage
+     * Reset to the default value and clear storage. Where storage refuses the
+     * removal the value still resets, but the entry stays and
+     * `hasStoredValue` keeps saying so. The auto-save the reset triggers then
+     * overwrites that entry with the default — but only where writes are still
+     * allowed. A storage that refuses those as well (private mode refuses
+     * both) keeps the old entry, and a later `reload()` reads it back: the
+     * clear is lost, visibly to this instance and to nobody else.
      */
     reset() {
       state.value = defaultValue;
-      try {
-        storage?.removeItem(storageKey);
-      } catch (error) {
-        console.warn(`Failed to clear persistent state for key "${key}":`, error);
-      }
+      // Retire the mirror only once the entry is actually gone. A refused
+      // removal leaves the old value in storage, and claiming "nothing stored"
+      // over it would make the very next `reload()` contradict this instance —
+      // the same rule the write path follows, in the other direction.
+      if (storage && !storage.removeItem(storageKey)) return;
       state.hasStored = false;
       // Back to "nothing stored", and untouched again — so the auto-save
       // triggered by the assignment above does not immediately re-create the

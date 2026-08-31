@@ -9,6 +9,7 @@
   import MoonIconDefault from '$lib/icons/MoonIcon.svelte';
   import MonitorIconDefault from '$lib/icons/MonitorIcon.svelte';
   import { useBlocksI18n } from '$lib/i18n';
+  import { getStorage } from '$lib/internal/storage';
 
   const bt = useBlocksI18n();
 
@@ -29,6 +30,11 @@
     preset,
     disabled = false
   }: ThemeSwitcherProps = $props();
+
+  // One handle for the component's lifetime, the way `createPersistentState`
+  // takes one at construction: `getStorage` re-reads and re-checks the ambient
+  // object on every call, and a mount asks it four times otherwise.
+  const storage = getStorage('localStorage');
 
   const blocksConfig = getBlocksConfig();
   const unstyled = $derived(unstyledProp || blocksConfig?.unstyled || false);
@@ -79,23 +85,23 @@
     if (theme === 'light') {
       root.classList.remove('dark');
       root.classList.add('light');
-      if (storageKey) localStorage.setItem(storageKey, 'light');
+      if (storageKey) storage?.setItem(storageKey, 'light');
     } else if (theme === 'dark') {
       root.classList.remove('light');
       root.classList.add('dark');
-      if (storageKey) localStorage.setItem(storageKey, 'dark');
+      if (storageKey) storage?.setItem(storageKey, 'dark');
     } else {
       // System: drop both overrides and let `:root { color-scheme: light dark }`
       // resolve `light-dark()` against the OS preference natively — this keeps
       // following OS changes live, on every page, without a JS listener.
       root.classList.remove('light', 'dark');
-      if (storageKey) localStorage.removeItem(storageKey);
+      if (storageKey) storage?.removeItem(storageKey);
     }
   }
 
   onMount(() => {
     if (storageKey) {
-      const saved = localStorage.getItem(storageKey);
+      const saved = storage?.getItem(storageKey);
       if (saved === 'light' || saved === 'dark') {
         theme = saved;
       }

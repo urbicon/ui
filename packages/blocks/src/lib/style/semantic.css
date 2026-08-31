@@ -410,27 +410,52 @@
   --color-feedback-error-subtle: var(--color-danger-subtle);
 
   /* === SHADOWS ===
+     The theme half of the scale. `interaction.css` republishes each step as
+     `--blocks-shadow-<step>` on `:root`, and that is the name markup reads
+     (`shadow-[var(--blocks-shadow-md)]`). The two halves are NOT a mirror —
+     deleting the second one costs a step; see the alias block there.
+
+     Two namespaces are ruled out for this half:
+
+     NOT `--color-*`. Tailwind mints a utility per colour family from every key
+     in there, so a step would also be a `bg-`, a `text-` and a `ring-` colour.
+     A multi-layer shadow list is invalid at computed-value time as a `color`,
+     which on an INHERITED property means `inherit` rather than "ignored": with
+     the scale in that namespace `text-primary text-shadow-lg` renders the
+     PARENT element's colour.
+
+     NOT `--shadow-*`, Tailwind's own box-shadow namespace: this scale sits one
+     rung off it — `base`/`md`/`lg` carry the geometry Tailwind ships as
+     `md`/`lg`/`xl` — so a step there redefines `shadow-md` and `shadow-lg` for
+     every consumer.
+
+     `--blocks-*` is no Tailwind namespace, so these mint nothing.
+
      Dark mode uses higher alpha to compensate for low contrast against
      dark surfaces. light-dark() may wrap ONLY the per-layer <color> —
      it is a color function, and layers must stay top-level
-     comma-separated. Wrapping the whole multi-layer list made every
-     `box-shadow: var(--blocks-shadow-*)` invalid at computed-value time
-     (shadows silently rendered as none, library-wide) — verified in
-     chromium before the 2026-07-13 fix.
+     comma-separated. Wrapping the whole multi-layer list makes every
+     `box-shadow: var(--blocks-shadow-*)` invalid at computed-value time:
+     shadows render as none, library-wide.
 
      The shadow tint (`--blocks-shadow-tint`) is an oklch L C H triplet
      WITHOUT the alpha channel — declared on `:root` (not inside @theme)
      because it is a raw partial value, not a standalone design token.
-     Default is pure black (0 0 0). Themes can override the tint to warm
-     their shadow palette — e.g. editorial sets it to a dark brown so
-     shadows blend with cream surfaces instead of reading as cool
-     smudges. */
-  --color-shadow-xs: 0 1px 2px 0
+     Default is pure black (0 0 0). Themes override it to warm their shadow
+     palette — e.g. editorial sets it to a dark brown so shadows blend with
+     cream surfaces instead of reading as cool smudges.
+
+     The tint only bites at the root. The steps are substituted where they are
+     declared, which is `:root` for both halves, so descendants inherit an
+     already-finished value: setting `--blocks-shadow-tint` on a scoped element
+     moves nothing. A scope that wants its own tint has to re-declare the five
+     `--blocks-shadow-*` steps beside it. */
+  --blocks-shadow-scale-xs: 0 1px 2px 0
     light-dark(
       oklch(var(--blocks-shadow-tint) / 0.05),
       oklch(var(--blocks-shadow-tint) / 0.2)
     );
-  --color-shadow-sm:
+  --blocks-shadow-scale-sm:
     0 1px 3px 0
       light-dark(
         oklch(var(--blocks-shadow-tint) / 0.1),
@@ -441,7 +466,7 @@
         oklch(var(--blocks-shadow-tint) / 0.1),
         oklch(var(--blocks-shadow-tint) / 0.3)
       );
-  --color-shadow-base:
+  --blocks-shadow-scale-base:
     0 4px 6px -1px
       light-dark(
         oklch(var(--blocks-shadow-tint) / 0.1),
@@ -452,7 +477,7 @@
         oklch(var(--blocks-shadow-tint) / 0.1),
         oklch(var(--blocks-shadow-tint) / 0.4)
       );
-  --color-shadow-md:
+  --blocks-shadow-scale-md:
     0 10px 15px -3px
       light-dark(
         oklch(var(--blocks-shadow-tint) / 0.1),
@@ -463,7 +488,7 @@
         oklch(var(--blocks-shadow-tint) / 0.1),
         oklch(var(--blocks-shadow-tint) / 0.4)
       );
-  --color-shadow-lg:
+  --blocks-shadow-scale-lg:
     0 20px 25px -5px
       light-dark(
         oklch(var(--blocks-shadow-tint) / 0.1),

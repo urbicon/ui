@@ -4,6 +4,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import type { Column, Filter } from '$lib/types/tableTypes';
 import { bindViewToStorage } from '$lib/view/storage-binding.svelte';
 import { createTableView, type TableView, type TableViewDefaults } from '$lib/view/view.svelte';
+import { installMemoryStorage, restoreStorage } from '../../../../../scripts/vitest-storage';
 import { createTableState, type SummaryConfig } from './TableStore.svelte.js';
 
 /**
@@ -31,10 +32,9 @@ import { createTableState, type SummaryConfig } from './TableStore.svelte.js';
  * entry lets the default apply.
  *
  * This file opts into jsdom (unlike the rest of the node suite) because the
- * prefs round trip needs a working `window.localStorage` — the blocks
- * `createPersistentState` helper is a no-op without a DOM. Node ≥22 ships its
- * own global `localStorage` stub that shadows jsdom's, so a functional
- * in-memory Storage is installed on `window` per test. The storage binding
+ * prefs round trip needs a working storage — the blocks
+ * `createPersistentState` helper is a no-op without a DOM — and installs one
+ * per test through the shared `scripts/vitest-storage` helper. The storage binding
  * takes its storage as an *option*, so the view half injects a double
  * directly. Both halves create `$effect`s, so construction is wrapped in
  * `$effect.root`.
@@ -57,25 +57,12 @@ const COLUMNS = [
 
 const ids = (columns: Column[]) => columns.map((c) => c.accessor);
 
-function createMemoryStorage(): Storage {
-  const map = new Map<string, string>();
-  return {
-    get length() {
-      return map.size;
-    },
-    clear: () => map.clear(),
-    getItem: (key: string) => (map.has(key) ? (map.get(key) ?? null) : null),
-    key: (index: number) => [...map.keys()][index] ?? null,
-    removeItem: (key: string) => void map.delete(key),
-    setItem: (key: string, value: string) => void map.set(key, String(value))
-  };
-}
-
 beforeEach(() => {
-  Object.defineProperty(window, 'localStorage', {
-    value: createMemoryStorage(),
-    configurable: true
-  });
+  installMemoryStorage();
+});
+
+afterEach(() => {
+  restoreStorage();
 });
 
 // ─────────────────────────────────────────────────────────────────────────────

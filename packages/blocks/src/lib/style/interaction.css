@@ -19,12 +19,30 @@
   --blocks-ease-smooth: cubic-bezier(0.4, 0, 0.6, 1);
   --blocks-ease-snappy: cubic-bezier(0.4, 0, 0.2, 1);
 
-  /* Shadow Tokens (mapped from semantic layer) */
-  --blocks-shadow-xs: var(--color-shadow-xs);
-  --blocks-shadow-sm: var(--color-shadow-sm);
-  --blocks-shadow-base: var(--color-shadow-base);
-  --blocks-shadow-md: var(--color-shadow-md);
-  --blocks-shadow-lg: var(--color-shadow-lg);
+  /* Shadow scale, republished from the semantic layer. This block is a
+     MECHANISM, not a mirror of `semantic.css` — it does two things nothing
+     else does, and deleting it costs a step:
+
+     1. Tailwind tree-shakes `@theme`: it emits a key only where something
+        READS it, and a declaration is not a read. Scan the shipped `dist` with
+        Tailwind's own Scanner and the library's markup references xs, sm, md
+        and lg — `base` not once. Without these five lines a consumer's `:root`
+        carries no `--blocks-shadow-base` at all.
+     2. Each `var()` below IS that read, so declaring the alias is what keeps
+        the theme key alive in the first place.
+
+     Plain `:root`, so all five are unconditional; the `@media print` reset far
+     below stays unlayered and therefore beats both this block and a consumer's
+     own `@theme` override. That last part cuts both ways: a consumer who reads
+     `--blocks-shadow-md` in their markup and then overrides *that* name in
+     their own `@theme` gets silence, because this unlayered block wins. The
+     name to override is the scale key, which is what MIGRATION.md and the CSS
+     reference both name. */
+  --blocks-shadow-xs: var(--blocks-shadow-scale-xs);
+  --blocks-shadow-sm: var(--blocks-shadow-scale-sm);
+  --blocks-shadow-base: var(--blocks-shadow-scale-base);
+  --blocks-shadow-md: var(--blocks-shadow-scale-md);
+  --blocks-shadow-lg: var(--blocks-shadow-scale-lg);
 
   /* Focus Ring */
   --blocks-focus-ring-width: 2px;
@@ -227,7 +245,10 @@
        to a real grey rule for structural trennlinien (rows, dividers). */
     --color-border-hairline: #999;
 
-    /* Remove shadows and effects */
+    /* Remove shadows and effects. UNLAYERED, which is what makes it win: an
+       unlayered rule outranks every `@layer` whatever the source order, so
+       this beats both the `@theme` block and a consumer's own override of
+       the same step. */
     --blocks-shadow-xs: none;
     --blocks-shadow-sm: none;
     --blocks-shadow-base: none;

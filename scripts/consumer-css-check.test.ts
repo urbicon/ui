@@ -45,30 +45,17 @@ function restorePre314(t: Tree) {
 }
 
 /**
- * The table classes the #314 finding listed as uncovered by `../variants` —
- * 16 of its 17. `overflow-x-hidden` is still in `TableDesktop.svelte`, but a
- * comment in `variants/table.system.js` names it since #312, and the scanner
- * reads prose like markup, so `../variants` covers it now. Tailwind's answer,
- * not the gate's.
+ * Append a class to a shipped file, so the tree carries the case under test.
+ *
+ * One class per package, never a shared one: the consumer entry imports every
+ * peer stylesheet, so a class planted in blocks is emitted for table's audit
+ * too and the table half would pass or fail on a blocks edit.
  */
-const TABLE_314 = [
-  'table-fixed',
-  'outline-primary',
-  'outline-2',
-  'outline-offset-[-2px]',
-  'border-primary/20',
-  'animate-ping',
-  'bg-success-subtle/30',
-  'transition-[box-shadow,background-color]',
-  'duration-1000',
-  'duration-(--blocks-duration-fast)',
-  'bg-surface-elevated/50',
-  'max-w-32',
-  'min-w-24',
-  'h-auto!',
-  'aria-disabled:active:scale-100',
-  'aria-disabled:active:shadow-none'
-];
+function plant(t: Tree, pkg: string, cls: string, ...segments: string[]): string {
+  const file = join(t.dir, 'node_modules', '@urbicon-ui', pkg, 'dist', ...segments);
+  writeFileSync(file, `${readFileSync(file, 'utf-8')}\n<div class="${cls}"></div>\n`);
+  return `dist/${segments.join('/')}`;
+}
 
 describe('consumer-css-check', () => {
   it('reads every variants/ class as covered and a class absent from the repo as not', async () => {
@@ -130,20 +117,44 @@ describe('consumer-css-check', () => {
     const t = await tree();
     restorePre314(t);
 
+    // #314 is a DIRECTORY property in both packages: the old `@source` lines
+    // named some of each package's directories, so markup anywhere else
+    // reached no scan. Both halves plant their own case rather than name
+    // shipped classes — a class list goes red the day a refactor moves or
+    // drops one of the names, which is a repair reported as a regression, and
+    // it stops proving anything about the directory it came from.
+    const inTableCore = plant(t, 'table', 'bg-fuchsia-500', 'core', 'TableRow.svelte');
+    const inBlocksInternal = plant(
+      t,
+      'blocks',
+      'bg-lime-400',
+      'internal',
+      'core',
+      'CoreSpinner.svelte'
+    );
+
     const table = await auditPackage(t, 'table');
     expect(table.sources).toContain('node_modules/@urbicon-ui/table/dist/style/../variants');
-    const reported = new Map(table.uncovered.map((f) => [f.cls, f.files]));
-    for (const cls of TABLE_314) {
-      expect(reported.has(cls), `${cls} must be reported`).toBe(true);
-      expect(reported.get(cls)?.length, `${cls} must name its file`).toBeGreaterThan(0);
-    }
+    expect(table.uncovered).toContainEqual({ cls: 'bg-fuchsia-500', files: [inTableCore] });
 
-    // blocks' half of the finding: the week-number grid in internal/, which
-    // neither `../primitives` nor `../components` reaches.
     const blocks = await auditPackage(t, 'blocks');
-    expect(blocks.uncovered.map((f) => f.cls)).toContain(
-      'grid-cols-[minmax(2rem,auto)_repeat(7,minmax(0,1fr))]'
-    );
+    expect(blocks.uncovered).toContainEqual({ cls: 'bg-lime-400', files: [inBlocksInternal] });
+
+    // And the shipped markup outside those directories is reported the same
+    // way, by class and by file — the half that would go silent if the audit
+    // only ever saw what this test plants. Measured 2026-08: table 16
+    // findings over 7 files, blocks 2 (`[animation-duration:1s]` in
+    // internal/core, `isolate` in system/attachments).
+    const planted = new Set(['bg-fuchsia-500', 'bg-lime-400']);
+    for (const report of [table, blocks]) {
+      const shipped = report.uncovered.filter((f) => !planted.has(f.cls));
+      expect(shipped.length, `${report.name} reports only what the test planted`).toBeGreaterThan(
+        0
+      );
+      for (const finding of shipped) {
+        expect(finding.files.length, `${finding.cls} must name its file`).toBeGreaterThan(0);
+      }
+    }
   });
 
   it('reports a package that ships styled markup but exports no stylesheet', async () => {

@@ -199,23 +199,9 @@ const KNOWN_GAPS: Record<string, Partial<Record<Route, string>>> = {
   // close button it inherits from Dialog is the same core as Drawer's below.
   ConfirmDialog: { D: 'CoreIconButton plumbing on `closeButton`, out of the ladder by design' },
   Drawer: { D: 'CoreIconButton plumbing on `closeButton`, out of the ladder by design' },
+  Planner: { D: 'CoreIconButton plumbing on `navButton`, out of the ladder by design' },
   PromptInput: { D: 'CoreIconButton plumbing on `sendButton`, out of the ladder by design' },
   ResourceTimeline: { D: 'CoreIconButton plumbing on `navButton`, out of the ladder by design' },
-  // Two defects of the #337/#338 class that this PR leaves alone; both want
-  // the `view` axis the config already has. `DateGridScaffold` prepends
-  // `grid {gridColsClass}` to the row class its caller already folded, and
-  // Planner passes view-conditional library classes (`gap-2 max-md:hidden`,
-  // `md:hidden`) through the `extra` argument of its `slot()` helper, which
-  // lands them in the same source as the consumer's entry — where nothing
-  // strips anything.
-  //
-  // The `extra` misuse is a shape, not a Planner property: the same one was
-  // measured on `AccordionItem` and `CalendarHeader` (both repaired here), and
-  // route D sees it only where the component has a provider name. Read this
-  // entry as one instance, never as the roster. #349
-  Planner: {
-    D: '#349 — DateGridScaffold prepends the grid classes; view-conditional classes ride the `extra` argument. Plus CoreIconButton plumbing on `navButton`'
-  },
 
   // #339 — addressable, but under its parent's name (measured): a rule written
   // under `Calendar` does arrive at the header, and it renders its own markup
