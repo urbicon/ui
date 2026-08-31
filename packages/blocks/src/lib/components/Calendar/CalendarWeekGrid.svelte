@@ -10,8 +10,9 @@
 
   const bt = useBlocksI18n();
 
-  // The week view renders only as an hour grid (showTimeGrid is always true for
-  // week), so events flow through CalendarTimeGrid — no custom `eventItem` here.
+  // No custom `eventItem` reaches this view: it renders no event snippet of its
+  // own, and hands the all-day band to CalendarTimeGrid, which pins it in its
+  // own header.
   interface CalendarWeekGridInternalProps {
     onEventClick?: (event: CalendarEvent) => void;
     class?: string;

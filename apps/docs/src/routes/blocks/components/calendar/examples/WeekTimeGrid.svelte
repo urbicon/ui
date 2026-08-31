@@ -172,7 +172,6 @@
   {events}
   {categories}
   showLegend
-  showTimeGrid
   timeGridStartHour={8}
   timeGridEndHour={18}
   timeGridInterval={30}

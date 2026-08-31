@@ -112,7 +112,6 @@ export interface CalendarContext {
   readonly swipeable: boolean;
 
   // Time grid
-  readonly showTimeGrid: boolean;
   readonly timeGridStartHour: number;
   readonly timeGridEndHour: number;
   readonly timeGridInterval: 30 | 60;

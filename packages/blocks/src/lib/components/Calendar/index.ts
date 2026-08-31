@@ -315,8 +315,6 @@ export interface CalendarProps
   agendaDays?: number;
 
   // === Time grid ===
-  /** Show time grid in week/day views. Auto-detected from events with allDay: false. */
-  showTimeGrid?: boolean;
   /** First visible hour in time grid. @default 7 */
   timeGridStartHour?: number;
   /** Last visible hour in time grid (exclusive). @default 20 */
