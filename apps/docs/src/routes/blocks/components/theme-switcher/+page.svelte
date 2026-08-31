@@ -77,11 +77,24 @@
         code={`<!-- Add to app.html <head> for flash-free theme loading -->
 <` +
           `script>
-  // Only explicit choices set a class; system mode leaves
-  // color-scheme: light dark to follow the OS via light-dark().
-  const t = localStorage.getItem('urbicon-theme');
-  if (t === 'dark') document.documentElement.classList.add('dark');
-  else if (t === 'light') document.documentElement.classList.add('light');
+  (() => {
+    var d = document.documentElement;
+    // Storage is not guaranteed usable: reading it throws where it is switched
+    // off (a hardened profile, an embedded webview), and an unguarded read
+    // aborts the rest of this head script.
+    var read = (k) => {
+      try {
+        return localStorage.getItem(k);
+      } catch {
+        return null;
+      }
+    };
+    // Only explicit choices set a class; system mode leaves
+    // color-scheme: light dark to follow the OS via light-dark().
+    var t = read('urbicon-theme');
+    if (t === 'dark') d.classList.add('dark');
+    else if (t === 'light') d.classList.add('light');
+  })();
 <` +
           `/script>`}
         language="html"

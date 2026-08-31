@@ -463,9 +463,14 @@ const BUCKET_PATTERNS: Array<[RegExp, BucketResolver]> = [
   [/^to-/, 'gradient-to'],
 
   // Text — size / align / weight / color (specific first). v4 size+leading shorthand: `text-sm/6`, `text-base/relaxed`.
-  // v4.1 text-shadow-* must not read as text-color — and like `shadow`,
-  // the named size scale is finite; other single-word values are colors
-  // (`text-shadow-white` must not strip `text-shadow-lg`).
+  // v4.1 text-shadow-* must not read as text-color — and like `shadow`, the
+  // named size scale is finite, so everything past it goes to the colour
+  // bucket (`text-shadow-white` must not strip `text-shadow-lg`). That bucket
+  // therefore also collects single-word spellings Tailwind compiles to
+  // NOTHING — `text-shadow-base` is one, and so is any typo. Such a class
+  // strips a live `text-shadow-<colour>` and contributes no rule in its place;
+  // telling it apart from a real colour would mean restating Tailwind's colour
+  // keys here, which is the second Tailwind model this table exists to avoid.
   [/^text-shadow-\[/, 'text-shadow'],
   [/^text-shadow-(2xs|xs|sm|md|lg|none)$/, 'text-shadow'],
   [/^text-shadow$/, 'text-shadow'],

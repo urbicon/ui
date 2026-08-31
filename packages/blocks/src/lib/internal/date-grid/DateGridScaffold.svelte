@@ -4,11 +4,13 @@
   Renders the invisible mechanics (role="grid" + roving-tabindex keyboard, the
   weekday header, an optional week-number column, swipe navigation and the
   navigate transition) and calls a `cell` snippet per day. The visible per-day
-  markup is entirely the consumer's: Calendar layers event bars via `weekOverlay`
-  and Planner buckets items inside `cell`.
+  markup is entirely the caller's — Planner buckets its items inside `cell`.
 
-  Covers the cell-based views only (month 6×7, week, range). Calendar's time-grid
-  / day views render through their own components against the same context.
+  Planner is the only caller. Calendar speaks the same date-grid context but
+  draws its own grid in `CalendarGrid.svelte`, so a change here reaches one
+  component, not two.
+
+  Covers the cell-based views only (month 6×7, week, range).
 -->
 <script lang="ts">
   import { toIso } from '$lib/date';
@@ -19,14 +21,13 @@
   import { getDateGridContext } from './date-grid.context';
   import { handleDateGridKeydown } from './date-grid.keyboard';
   import type { DayCellInfo, DayHeaderInfo } from './date-grid.types';
+  import { dateGridRow } from './date-grid.variants';
 
   interface Props {
     /** Per-day cell content (required). */
     cell: Snippet<[DayCellInfo]>;
     /** Per-column weekday header content; defaults to the localized short name. */
     dayHeader?: Snippet<[DayHeaderInfo]>;
-    /** Per-week overlay drawn above the row (e.g. multi-day event bars). */
-    weekOverlay?: Snippet<[{ week: Date[]; weekIndex: number }]>;
     /** Show the ISO week-number column on the left. */
     showWeekNumber?: boolean;
     /** Enter/exit transition on navigate (respects prefers-reduced-motion). */
@@ -37,11 +38,15 @@
     ariaLabel?: string;
     /** Class for the grid container. */
     class?: string;
-    /** Class for the weekday-header row (e.g. `max-md:hidden` to stack on mobile). */
+    /**
+     * Class for the weekday-header row (e.g. `max-md:hidden` to stack on
+     * mobile). Folded as the override rung over the row's own grid geometry,
+     * so it strips whatever it collides with there.
+     */
     headerRowClass?: string;
     /** Class for each weekday-header cell. */
     headerClass?: string;
-    /** Class for each week row (e.g. `max-md:grid-cols-1` to stack on mobile). */
+    /** Class for each week row (e.g. `max-md:grid-cols-1` to stack on mobile). Folded like `headerRowClass`. */
     rowClass?: string;
     /** Class for each day gridcell. */
     cellClass?: string;
@@ -52,7 +57,6 @@
   let {
     cell,
     dayHeader,
-    weekOverlay,
     showWeekNumber = false,
     animated = true,
     swipeable: swipeEnabled = true,
@@ -72,13 +76,6 @@
 
   // A stable identity for the visible window — drives the navigate transition.
   const navKey = $derived(toIso(ctx.rangeStart) + '|' + ctx.view);
-  // Static Tailwind column classes (not an inline grid-template) so a consumer
-  // can override them per breakpoint — e.g. Planner stacks the week on mobile
-  // via `rowClass="max-md:grid-cols-1"`. Both literals must appear verbatim so
-  // Tailwind emits them.
-  const gridColsClass = $derived(
-    showWeekNumber ? 'grid-cols-[minmax(2rem,auto)_repeat(7,minmax(0,1fr))]' : 'grid-cols-7'
-  );
 
   const headerInfos = $derived.by<DayHeaderInfo[]>(() => {
     const singleWeek = ctx.view === 'week';
@@ -155,7 +152,7 @@
   })}
 >
   <!-- Weekday header -->
-  <div role="row" class="grid {gridColsClass} {headerRowClass}">
+  <div role="row" class={dateGridRow({ showWeekNumber, class: headerRowClass })}>
     {#if showWeekNumber}
       <span role="columnheader" aria-hidden="true" class={weekNumberClass}></span>
     {/if}
@@ -174,11 +171,8 @@
   <div class="grid [&>*]:col-start-1 [&>*]:row-start-1">
     {#key navKey}
       <div in:fly={transitionIn} out:fly={transitionOut}>
-        {#each ctx.cells as week, weekIndex (toIso(week[0]))}
-          {#if weekOverlay}
-            {@render weekOverlay({ week, weekIndex })}
-          {/if}
-          <div role="row" class="grid {gridColsClass} {rowClass}">
+        {#each ctx.cells as week (toIso(week[0]))}
+          <div role="row" class={dateGridRow({ showWeekNumber, class: rowClass })}>
             {#if showWeekNumber}
               <span role="rowheader" class={weekNumberClass}>
                 {ctx.weekNumberFor(week[3] ?? week[0])}

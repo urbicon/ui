@@ -131,8 +131,11 @@ export interface PlannerContext {
   goTo(date: Date): void;
   /**
    * Resolve a slot's class string (honours `unstyled` + merged `slotClasses`).
-   * `structural` is library-authored and folds before the consumer's entry;
-   * `className` is the consumer's `class` prop and folds after it.
+   *
+   * Name only, deliberately: a string added here would be the LAST source of
+   * that chain, so a sub-component's library class would strip the consumer's
+   * own `slotClasses` entry — the override ladder upside down. Such classes
+   * belong in the tv() config.
    */
-  slot(name: PlannerSlotName, structural?: string, className?: string): string;
+  slot(name: PlannerSlotName): string;
 }

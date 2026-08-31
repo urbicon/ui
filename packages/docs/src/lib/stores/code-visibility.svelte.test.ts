@@ -1,31 +1,10 @@
 // @vitest-environment jsdom
 import { flushSync } from 'svelte';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { installMemoryStorage, restoreStorage } from '../../../../../scripts/vitest-storage';
 import { CodeVisibilityStore } from './code-visibility.svelte';
 
 const STORAGE_KEY = 'urbicon-docs-code-visibility';
-
-/**
- * Node ≥ 25 ships a broken global `localStorage` stub that shadows jsdom's
- * Storage under vitest, so a test needing real storage semantics has to install
- * its own. Same workaround as the table package's seed-persistence tests.
- */
-function installStorage(): void {
-  const map = new Map<string, string>();
-  Object.defineProperty(window, 'localStorage', {
-    configurable: true,
-    value: {
-      getItem: (k: string) => map.get(k) ?? null,
-      setItem: (k: string, v: string) => void map.set(k, String(v)),
-      removeItem: (k: string) => void map.delete(k),
-      clear: () => map.clear(),
-      key: (i: number) => [...map.keys()][i] ?? null,
-      get length() {
-        return map.size;
-      }
-    }
-  });
-}
 
 /** Drives `MediaQuery`, which reads window.matchMedia at construction. */
 function stubMatchMedia(matches: boolean): void {
@@ -46,12 +25,13 @@ function stubMatchMedia(matches: boolean): void {
 }
 
 beforeEach(() => {
-  installStorage();
+  installMemoryStorage();
   stubMatchMedia(false);
 });
 
 afterEach(() => {
   vi.restoreAllMocks();
+  restoreStorage();
 });
 
 describe('CodeVisibilityStore', () => {

@@ -286,11 +286,11 @@ const SHADOWS = `# Shadow & Z-Index Tokens
 
 | CSS Variable | Tailwind Utility | Purpose |
 |---|---|---|
-| \`--color-shadow-xs\` | \`shadow-[var(--blocks-shadow-xs)]\` | Minimal shadow |
-| \`--color-shadow-sm\` | \`shadow-[var(--blocks-shadow-sm)]\` | Buttons, small elements |
-| \`--color-shadow-base\` | \`shadow-[var(--blocks-shadow-base)]\` | Default elevation |
-| \`--color-shadow-md\` | \`shadow-[var(--blocks-shadow-md)]\` | Hover states, menus |
-| \`--color-shadow-lg\` | \`shadow-[var(--blocks-shadow-lg)]\` | Modals, popovers |
+| \`--blocks-shadow-scale-xs\` | \`shadow-[var(--blocks-shadow-xs)]\` | Minimal shadow |
+| \`--blocks-shadow-scale-sm\` | \`shadow-[var(--blocks-shadow-sm)]\` | Buttons, small elements |
+| \`--blocks-shadow-scale-base\` | \`shadow-[var(--blocks-shadow-base)]\` | Default elevation |
+| \`--blocks-shadow-scale-md\` | \`shadow-[var(--blocks-shadow-md)]\` | Hover states, menus |
+| \`--blocks-shadow-scale-lg\` | \`shadow-[var(--blocks-shadow-lg)]\` | Modals, popovers |
 
 Shadows automatically increase opacity in dark mode (0.05 → 0.2 for xs, etc.).
 

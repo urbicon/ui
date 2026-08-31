@@ -36,6 +36,14 @@ export interface MountFixture {
   family?: CompoundFamily;
   /** Props without which the component throws, renders nothing, or measures differently. */
   props?: Record<string, unknown>;
+  /**
+   * `guide` family only: hand the provider a controller with a tour already
+   * running. State the parent holds rather than a prop of the child, so it
+   * cannot be expressed in `props` — but it is declared here all the same, so
+   * the necessity assertion can drop it on its own and demand it change an
+   * answer. Left in the host it changed twelve of Guide's slots unasserted.
+   */
+  tour?: boolean;
 }
 
 /** Stand-in for a required content snippet. */
@@ -70,7 +78,30 @@ export const MOUNT_FIXTURES: Record<string, MountFixture> = {
     props: { messages: [{ id: 'm1', role: 'user', parts: [{ type: 'text', text: 'hi' }] }] }
   },
   CitationChip: { props: { source: { id: 's1', title: 'Source' }, index: 1 } },
-  CommandPalette: { props: { open: true, items: [{ id: 'new', label: 'New File' }] } },
+  CommandPalette: {
+    props: {
+      open: true,
+      // The disabled row is a state of its own — `itemDisabled` shares the
+      // `cursor` bucket with `item`, and no other item reaches that pairing.
+      items: [
+        { id: 'new', label: 'New File' },
+        { id: 'archived', label: 'Archived', disabled: true }
+      ]
+    }
+  },
+  // Closed, the listbox renders no option at all: six of twenty-four slots
+  // landed and `option`/`optionSelected` — which share an element — were
+  // outside the sweep entirely.
+  Combobox: {
+    props: {
+      open: true,
+      value: 'a',
+      options: [
+        { label: 'A', value: 'a' },
+        { label: 'B', value: 'b' }
+      ]
+    }
+  },
   CompositionBar: {
     props: {
       items: [
@@ -118,7 +149,7 @@ export const MOUNT_FIXTURES: Record<string, MountFixture> = {
   TabPanel: { family: 'tabPanels', props: { value: 'a' } },
 
   // ── Guide: every part reads the tour controller from GuideProvider ────
-  Guide: { family: 'guide' },
+  Guide: { family: 'guide', tour: true },
   GuideBeacon: { family: 'guide', props: { tour: { id: 'onboarding', steps: [] } } },
   GuideHint: { family: 'guide', props: { for: 'save', open: true, title: 'Hint' } },
   GuideMarker: { family: 'guide', props: { for: 'save' } },

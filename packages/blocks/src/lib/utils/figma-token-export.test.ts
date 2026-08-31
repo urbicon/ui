@@ -255,7 +255,7 @@ function resolveEmbeddedLightDark(value: string): string {
 }
 
 describe('figma-token-export — shadows', () => {
-  // Light branch of `--color-shadow-*`, with the shadow tint resolved.
+  // Light branch of `--blocks-shadow-scale-*`, with the shadow tint resolved.
   // Shadow layers are top-level comma-separated with light-dark() wrapping
   // only the per-layer <color> (wrapping the whole list is invalid as a
   // box-shadow and rendered as none — fixed 2026-07-13), so the light
@@ -273,7 +273,7 @@ describe('figma-token-export — shadows', () => {
 
   const cssShadows = new Map<string, string>();
   for (const [name, value] of semanticDecls) {
-    const match = /^color-shadow-([\w-]+)$/.exec(name);
+    const match = /^blocks-shadow-scale-([\w-]+)$/.exec(name);
     if (!match) continue;
     cssShadows.set(
       match[1],

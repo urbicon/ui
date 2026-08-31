@@ -40,6 +40,43 @@ describe('plannerVariants', () => {
     expect(plannerVariants({ size: 'lg' }).cellDate()).toContain('h-7');
   });
 
+  it('carries the view-conditional layout, so the fold can strip it', () => {
+    // Config-level companion to Planner.fold.svelte.test.ts: that file renders
+    // the component and is the one that fails if the markup starts joining
+    // these classes outside the fold again. This one pins which classes the
+    // axis owes each view.
+    const week = plannerVariants({ view: 'week' });
+    expect(week.weekdayHeader()).toContain('max-md:hidden');
+    expect(week.week()).toContain('max-md:grid-cols-1');
+    expect(week.cellHeader()).toContain('md:hidden');
+    expect(plannerVariants({ view: 'month' }).grid()).toContain('border-r');
+    expect(plannerVariants({ view: 'range' }).grid()).toContain('border-b');
+    // Month and range show the per-cell weekday+date at every width.
+    expect(plannerVariants({ view: 'month' }).cellHeader()).not.toContain('md:hidden');
+
+    expect(week.cellHeader({ class: 'md:block' }).split(' ')).not.toContain('md:hidden');
+    expect(week.week({ class: 'gap-0' }).split(' ')).not.toContain('gap-2');
+  });
+
+  it('paints the day state from the cell axes, blocked outranking today', () => {
+    const today = plannerVariants({ dayState: 'today' });
+    expect(today.cellDate()).toContain('bg-primary');
+    expect(today.cellDate().split(' ')).not.toContain('text-text-secondary');
+
+    const blocked = plannerVariants({ dayState: 'disabled' });
+    expect(blocked.cellDate()).toContain('text-text-disabled');
+    expect(blocked.cell()).toContain('cursor-not-allowed');
+
+    expect(plannerVariants({ selected: true }).cell()).toContain('ring-primary');
+    expect(plannerVariants({ weekend: true }).cell()).toContain('bg-surface-subtle');
+    expect(plannerVariants({ outside: true }).cell()).toContain('opacity-40');
+
+    // The unmarked day's colour is the slot base, so a consumer entry replaces
+    // it rather than landing beside it.
+    expect(plannerVariants().cellDate()).toContain('text-text-secondary');
+    expect(today.cellDate({ class: 'bg-transparent' }).split(' ')).not.toContain('bg-primary');
+  });
+
   it('uses semantic text + border tokens on the chrome', () => {
     const styles = plannerVariants();
     expect(styles.headerTitle()).toContain('text-text-primary');

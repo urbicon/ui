@@ -1,5 +1,5 @@
 <script lang="ts">
-  import type { Component } from 'svelte';
+  import { untrack, type Component } from 'svelte';
   import Accordion from '$lib/primitives/Accordion/Accordion.svelte';
   import RadioGroup from '$lib/primitives/RadioGroup/RadioGroup.svelte';
   import SegmentGroup from '$lib/primitives/SegmentGroup/SegmentGroup.svelte';
@@ -28,12 +28,14 @@
     family,
     component,
     props = {},
+    tour = false,
     unstyled = false,
     defaults = {}
   }: {
     family: CompoundFamily;
     component: Component<Record<string, unknown>>;
     props?: Record<string, unknown>;
+    tour?: boolean;
     unstyled?: boolean;
     defaults?: Record<string, ComponentDefaults>;
   } = $props();
@@ -46,6 +48,26 @@
   const ARTICLE_ID = 'cascade-article';
   const guideController = new GuideController();
   guideController.openPanel(ARTICLE_ID);
+
+  // `Guide` renders the bubble, its step dots and the progress row only
+  // mid-tour, and without one it reached a single slot of thirty-one. Two
+  // steps, because one dot cannot be both the active and an inactive marker —
+  // which is the pairing `dot`/`dotActive` share an element for. The fixture
+  // asks for it rather than this file deciding, so the necessity assertion can
+  // drop it on its own.
+  //
+  // Built once, not in a `$derived`: `startTour` registers on the overlay
+  // stack, and mutating state inside a derived is `state_unsafe_mutation`.
+  // `untrack` states that reading the initial value is the intent — `tour`
+  // never changes for the life of a mount, so there is nothing to react to.
+  const tourController = untrack(() => tour) ? new GuideController() : undefined;
+  tourController?.startTour({
+    id: 'cascade-tour',
+    steps: [
+      { title: 'One', body: 'a' },
+      { title: 'Two', body: 'b' }
+    ]
+  });
 </script>
 
 {#snippet scoped()}
@@ -74,7 +96,8 @@
       {#snippet tabs()}<span>strip</span>{/snippet}
     </Tab>
   {:else if family === 'guide'}
-    <GuideProvider>{@render scoped()}</GuideProvider>
+    <!-- `controller` undefined without the `tour` fixture: GuideProvider builds its own. -->
+    <GuideProvider controller={tourController}>{@render scoped()}</GuideProvider>
   {:else if family === 'guidePanel'}
     <GuideProvider controller={guideController}>
       <GuidePanel>

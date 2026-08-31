@@ -262,18 +262,21 @@
                 is driven through the input's aria-activedescendant pattern
                 (Enter/Space handled in handleKeydown) plus pointer clicks
                 here. tabindex="-1" keeps the items out of the tab sequence.
+
+                The row's class is four sources with both consumer rungs last,
+                folded rather than joined. Joining two finished folds instead
+                puts the library's state class after the consumer's `item`
+                entry: measured on that form, 24 of 24 colliding pairs across
+                `text-color`, `bg-color`, `cursor`, `opacity` and
+                `hover:bg-color` went to the library. The price is that a
+                colliding `item` entry now removes the state class — which is
+                what the `slotClasses` JSDoc has to keep saying.
               -->
-              {@const itemStateClass = isDisabled
-                ? unstyled
-                  ? (slotClasses?.itemDisabled ?? '')
-                  : styles.itemDisabled({ class: slotClasses?.itemDisabled })
+              {@const stateSlot = isDisabled
+                ? 'itemDisabled'
                 : isHighlighted
-                  ? unstyled
-                    ? (slotClasses?.itemHighlighted ?? '')
-                    : styles.itemHighlighted({ class: slotClasses?.itemHighlighted })
-                  : unstyled
-                    ? (slotClasses?.itemDefault ?? '')
-                    : styles.itemDefault({ class: slotClasses?.itemDefault })}
+                  ? 'itemHighlighted'
+                  : 'itemDefault'}
               <!-- svelte-ignore a11y_click_events_have_key_events -->
               <div
                 id="command-palette-item-{flatIdx}"
@@ -282,12 +285,12 @@
                 aria-selected={isHighlighted}
                 aria-disabled={isDisabled}
                 data-command-palette-selected={isHighlighted}
-                class={[
-                  unstyled ? (slotClasses?.item ?? '') : styles.item({ class: slotClasses?.item }),
-                  itemStateClass
-                ]
-                  .filter(Boolean)
-                  .join(' ')}
+                class={resolveClassChain(
+                  unstyled ? '' : styles.item(),
+                  unstyled ? '' : styles[stateSlot](),
+                  slotClasses?.item,
+                  slotClasses?.[stateSlot]
+                )}
                 onclick={() => {
                   if (!isDisabled) selectItem(item);
                 }}

@@ -2,6 +2,7 @@
 import { flushSync } from 'svelte';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import type { Filter } from '$lib/types/tableTypes';
+import { createMemoryStorage } from '../../../../../scripts/vitest-storage';
 import { bindViewToStorage, STORAGE_DEFAULT_AXES } from './storage-binding.svelte';
 import { createTableView, type TableView, VIEW_AXES } from './view.svelte';
 
@@ -22,25 +23,11 @@ import { createTableView, type TableView, VIEW_AXES } from './view.svelte';
 
 const aFilter: Filter = { column: 'name', operator: 'contains', value: 'ad' };
 
-function memoryStorage(): Storage {
-  const map = new Map<string, string>();
-  return {
-    get length() {
-      return map.size;
-    },
-    clear: () => map.clear(),
-    getItem: (key: string) => (map.has(key) ? (map.get(key) ?? null) : null),
-    key: (index: number) => [...map.keys()][index] ?? null,
-    removeItem: (key: string) => void map.delete(key),
-    setItem: (key: string, value: string) => void map.set(key, String(value))
-  };
-}
-
 let storage: Storage;
 
 beforeEach(() => {
   vi.useFakeTimers();
-  storage = memoryStorage();
+  storage = createMemoryStorage();
 });
 
 afterEach(() => {

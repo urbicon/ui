@@ -18,6 +18,10 @@ message that names them. The two renames cannot: a `{ items, totalItems }` your 
 returns simply leaves `total` undefined, and the pager reads "1 / NaN". Grep for
 `totalItems` before you run it.
 
+`@urbicon-ui/blocks` breaks separately, and its notes ship in its own tarball:
+[`docs/MIGRATION.md`](https://github.com/urbicon/ui/blob/main/packages/blocks/docs/MIGRATION.md).
+Read it too if you install blocks — this file covers the table only.
+
 **`source` is always an object.** The bare-array arm is gone: it resolved into exactly the
 same thing as `{ items }`, so "how do I pass rows?" had three correct answers and no rule
 for choosing.

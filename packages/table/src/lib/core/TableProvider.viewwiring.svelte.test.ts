@@ -2,6 +2,7 @@
 import { flushSync, mount, unmount } from 'svelte';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { createTableView } from '$lib/view/view.svelte';
+import { installMemoryStorage, restoreStorage } from '../../../../../scripts/vitest-storage';
 import type { InternalTableContext } from '../stores/TableStore.svelte';
 import TableHarness from './__fixtures__/TableHarness.svelte';
 import type { TableContext } from './table/index';
@@ -20,20 +21,6 @@ import type { TableContext } from './table/index';
  * - live updates buffering until the next navigation (`autoApplyOnNavigation`
  *   over the view's snapshot, not the pending buffer).
  */
-
-function memoryStorage(): Storage {
-  const map = new Map<string, string>();
-  return {
-    get length() {
-      return map.size;
-    },
-    clear: () => map.clear(),
-    getItem: (key: string) => (map.has(key) ? (map.get(key) ?? null) : null),
-    key: (index: number) => [...map.keys()][index] ?? null,
-    removeItem: (key: string) => void map.delete(key),
-    setItem: (key: string, value: string) => void map.set(key, String(value))
-  };
-}
 
 const ROWS = [
   { id: 1, name: 'Ada', amount: 100 },
@@ -58,7 +45,7 @@ function mountTable(props: Record<string, unknown> = {}) {
 let warn: ReturnType<typeof vi.spyOn>;
 
 beforeEach(() => {
-  Object.defineProperty(window, 'localStorage', { value: memoryStorage(), configurable: true });
+  installMemoryStorage();
   // The virtualized-grouping report warns in DEV (vitest runs DEV) — spied so the suite's output
   // stays clean and the warning itself is assertable.
   warn = vi.spyOn(console, 'warn').mockImplementation(() => {});
@@ -70,6 +57,7 @@ afterEach(() => {
   comp = undefined;
   target = undefined;
   warn.mockRestore();
+  restoreStorage();
 });
 
 describe('virtualization × grouping — the read gate alone decides', () => {

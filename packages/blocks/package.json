@@ -37,6 +37,7 @@
     "LICENSE",
     "docs/A2UI.md",
     "docs/GUIDE.md",
+    "docs/MIGRATION.md",
     "docs/VARIANT-CONTRACT.md",
     "dist",
     "!dist/**/*.test.*",

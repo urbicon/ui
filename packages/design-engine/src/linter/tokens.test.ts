@@ -24,17 +24,14 @@ const foundation = resolve(styleDir, 'foundation.css');
 const semantic = resolve(styleDir, 'semantic.css');
 const cssAvailable = existsSync(foundation) && existsSync(semantic);
 
-/** Token cores that intentionally live in CSS but are NOT colour-utility cores. */
-const EXCLUDED_PREFIXES = ['shadow-']; // shadows are used via `shadow-[var(--blocks-shadow-*)]`, not `bg-shadow-*`
-
+/** Every `--color-*` key IS a colour-utility core — the namespace carries
+ *  nothing else, so nothing is filtered out on the way in. */
 function deriveCoresFromCss(): Set<string> {
   const cores = new Set<string>();
   for (const file of [foundation, semantic]) {
     const css = readFileSync(file, 'utf-8');
     for (const m of css.matchAll(/--color-([a-z0-9-]+)\s*:/g)) {
-      const core = m[1]!;
-      if (EXCLUDED_PREFIXES.some((p) => core.startsWith(p))) continue;
-      cores.add(core);
+      cores.add(m[1]!);
     }
   }
   return cores;
@@ -44,7 +41,16 @@ describe.skipIf(!cssAvailable)('token whitelist drift guard', () => {
   it('recognises every colour token defined in the CSS (no forgotten additions)', () => {
     const cssCores = deriveCoresFromCss();
     const missing = [...cssCores].filter((c) => !VALID_TOKEN_CORES.has(c)).sort();
-    expect(missing, `CSS tokens missing from VALID_TOKEN_CORES: ${missing.join(', ')}`).toEqual([]);
+    // Two repairs, and the wrong one is the tempting one: a NON-colour that
+    // landed in `--color-*` (a shadow list, a length) belongs in another
+    // namespace, not in this whitelist — adding it here mints a `bg-`/`text-`
+    // spelling for a value that is invalid as a colour (#368).
+    expect(
+      missing,
+      `--color-* tokens in the CSS that VALID_TOKEN_CORES does not list: ${missing.join(', ')}\n` +
+        'Either add the core here (it is a colour), or move the key out of the ' +
+        '--color-* namespace (it is not).'
+    ).toEqual([]);
   });
 
   it('contains no phantom tokens absent from the CSS (no invented entries)', () => {
@@ -54,16 +60,6 @@ describe.skipIf(!cssAvailable)('token whitelist drift guard', () => {
       phantom,
       `Entries in VALID_TOKEN_CORES with no matching --color-* in CSS: ${phantom.join(', ')}`
     ).toEqual([]);
-  });
-
-  it('each EXCLUDED_PREFIX still matches a real CSS token (exclusion not stale)', () => {
-    const css = readFileSync(foundation, 'utf-8') + readFileSync(semantic, 'utf-8');
-    for (const prefix of EXCLUDED_PREFIXES) {
-      expect(
-        css,
-        `EXCLUDED_PREFIX "${prefix}" no longer matches any --color-* token — may be stale`
-      ).toMatch(new RegExp(`--color-${prefix}`));
-    }
   });
 });
 

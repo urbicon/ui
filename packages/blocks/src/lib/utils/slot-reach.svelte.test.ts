@@ -199,7 +199,14 @@ const SWEEPS: Sweep[] = [
     config: 'chartVariants',
     configSlots: CHART_SLOTS,
     slots: [...chartSlots.LINE_CHART_SLOTS],
-    mounts: [{ name: 'two series with a legend and gridlines', props: CARTESIAN }],
+    // `showPoints` is spelled out rather than left to its default: `point` is
+    // the only slot the markers carry, and it is reachable in no other state.
+    mounts: [
+      {
+        name: 'two series with point markers, a legend and gridlines',
+        props: { ...CARTESIAN, showPoints: true }
+      }
+    ],
     unreached: {}
   },
   {
@@ -208,7 +215,7 @@ const SWEEPS: Sweep[] = [
     config: 'chartVariants',
     configSlots: CHART_SLOTS,
     slots: [...chartSlots.AREA_CHART_SLOTS],
-    mounts: [{ name: 'two stacked areas with a legend and gridlines', props: CARTESIAN }],
+    mounts: [{ name: 'two overlaid areas with a legend and gridlines', props: CARTESIAN }],
     unreached: {}
   },
   {

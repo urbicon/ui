@@ -364,11 +364,11 @@ whole subtree, `<BlocksProvider unstyled>`. Which components this covers is meas
 than listed: route H of `provider/provider-cascade.svelte.test.ts` mounts a component twice
 and requires the instance flag to remove exactly what the provider flag removes. It answers
 for the markup that mount renders and no more — measured, it is blind to a child that only
-appears in a state the mount does not reach: `AvatarGroup`'s avatars (no `items`),
-`CalendarHeader`'s overlays and `FileUpload`'s progress bar (both closed), and `Guide`'s
-footer buttons (no tour running). That is why the roster is *also* derived from the source
-rather than read off the sweep, and why the four are listed as `ROUTE_H_BLIND` in the sweep
-itself.
+appears in a state the mount does not reach: `AvatarGroup`'s avatars (no `items`), and
+`CalendarHeader`'s overlays and `FileUpload`'s progress bar (both closed). That is why the
+roster is *also* derived from the source rather than read off the sweep, and why the three
+are listed as `ROUTE_H_BLIND` in the sweep itself — a mount fixture that reaches the child
+takes a component off that list, as `Guide`'s tour fixture did.
 
 One scoping note: controls embedded via the internal core layer (Badge's
 remove ×, Dialog/Drawer's close ×, embedded loading spinners) are styled by
