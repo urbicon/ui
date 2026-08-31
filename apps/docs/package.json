@@ -32,7 +32,7 @@
     "@urbicon-ui/table": "workspace:*"
   },
   "devDependencies": {
-    "@anthropic-ai/sdk": "^0.115.0",
+    "@anthropic-ai/sdk": "^0.122.0",
     "@fontsource/jetbrains-mono": "^5.3.0",
     "@sveltejs/adapter-static": "catalog:",
     "@sveltejs/kit": "catalog:",
@@ -40,7 +40,7 @@
     "@tailwindcss/vite": "catalog:",
     "@types/node": "catalog:",
     "glob": "catalog:",
-    "marked": "^18.0.9",
+    "marked": "^18.0.11",
     "prettier": "catalog:",
     "prettier-plugin-svelte": "catalog:",
     "prettier-plugin-tailwindcss": "catalog:",
