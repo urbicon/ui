@@ -2,7 +2,7 @@
 import { within } from '@testing-library/dom';
 import userEvent from '@testing-library/user-event';
 import { flushSync, mount, unmount } from 'svelte';
-import { afterEach, describe, expect, it } from 'vitest';
+import { afterEach, describe, expect, it, vi } from 'vitest';
 import Harness from './__fixtures__/MenuCallFormsHarness.svelte';
 import Menu from './Menu.svelte';
 
@@ -122,6 +122,82 @@ describe('Menu (section roles across the three call forms)', () => {
     expect(scope.getAllByRole('menuitem', { hidden: true }).map((el) => el.textContent?.trim())) //
       .toEqual(['a', 'b']);
     expect(scope.getAllByRole('separator', { hidden: true })).toHaveLength(1);
+  });
+
+  it('lets `isDivider` claim back a row whose own `type` reads "divider"', async () => {
+    // A consumer's domain shape may carry `type: 'divider'` as data. The
+    // built-in check is structural, so without the mapper that row becomes a
+    // rule and its `onSelect` is unreachable — the mapper is the way out, and
+    // it is asked before the structural check, exactly like `isSection`.
+    const user = userEvent.setup();
+    const onDivide = vi.fn();
+    const rows = [
+      { type: 'merge', label: 'Merge cells' },
+      { type: 'divider', label: 'Divide cells', onSelect: onDivide },
+      { type: 'split', label: 'Split cells' }
+    ];
+
+    const claimed = mount(Menu, {
+      target: document.body,
+      props: { open: true, placeholder: 'p', items: rows, isDivider: () => false }
+    });
+    flushSync();
+    let scope = within(document.querySelector('[role="menu"]') as HTMLElement);
+    expect(scope.getAllByRole('menuitem', { hidden: true }).map((el) => el.textContent?.trim())) //
+      .toEqual(['Merge cells', 'Divide cells', 'Split cells']);
+    expect(scope.queryAllByRole('separator', { hidden: true })).toHaveLength(0);
+    await user.click(scope.getByRole('menuitem', { name: 'Divide cells', hidden: true }));
+    expect(onDivide).toHaveBeenCalledTimes(1);
+    unmount(claimed);
+    document.body.replaceChildren();
+
+    // The control: the same items without the mapper. This is what the mapper
+    // exists to prevent, and it must stay visible in the suite.
+    const structural = mount(Menu, {
+      target: document.body,
+      props: { open: true, placeholder: 'p', items: rows }
+    });
+    dispose = () => unmount(structural);
+    flushSync();
+    scope = within(document.querySelector('[role="menu"]') as HTMLElement);
+    expect(scope.getAllByRole('menuitem', { hidden: true }).map((el) => el.textContent?.trim())) //
+      .toEqual(['Merge cells', 'Split cells']);
+    expect(scope.getAllByRole('separator', { hidden: true })).toHaveLength(1);
+  });
+
+  it('renders a rule before the next header between the groups, not inside the first', () => {
+    // A rule that sits directly before a header separates the two sections; it
+    // is not the closing section's last row, so it must not sit under that
+    // section's name.
+    const app = mount(Menu, {
+      target: document.body,
+      props: {
+        open: true,
+        placeholder: 'p',
+        items: [
+          'a',
+          { type: 'section' as const, label: 'A' },
+          'b',
+          { type: 'divider' as const },
+          { type: 'section' as const, label: 'B' },
+          'c'
+        ]
+      }
+    });
+    dispose = () => unmount(app);
+    flushSync();
+
+    const heading = document.querySelector('[role="presentation"]') as HTMLElement;
+    expect(outline(heading.parentElement as HTMLElement)).toEqual([
+      'menuitem:a',
+      'presentation:A',
+      'group:b',
+      '  menuitem:b',
+      'separator:',
+      'presentation:B',
+      'group:c',
+      '  menuitem:c'
+    ]);
   });
 
   it('keeps arrow navigation identical across the three forms', async () => {

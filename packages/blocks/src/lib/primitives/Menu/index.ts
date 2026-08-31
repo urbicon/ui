@@ -121,6 +121,14 @@ export interface MenuSpecificProps<TItem extends MenuItemType = MenuItemType> {
   getItemDetail?: (item: TItem) => string | undefined;
   /** Section detection override. Applies to full union, not just TItem. */
   isSection?: (item: MenuItemType) => boolean;
+  /**
+   * Divider detection override, symmetric to `isSection`. Supply it when your
+   * own item shape carries a `type: 'divider'` field of its own meaning — the
+   * built-in check is structural, and without this mapper such a row would
+   * render as a rule and lose its `onSelect`.
+   * @summary Divider detection override, for item shapes with their own `type` field.
+   */
+  isDivider?: (item: MenuItemType) => boolean;
   /** Section label override. Accepts concrete section header type. */
   getSectionLabel?: (item: MenuSectionHeader) => string;
 

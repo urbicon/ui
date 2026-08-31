@@ -5,12 +5,7 @@
   import ChevronRightIconDefault from '$lib/icons/ChevronRightIcon.svelte';
   import { mintAttachment } from '$lib';
   import { getMenuContext, setMenuParentId } from './menu.context';
-  import {
-    groupMenuItems,
-    isMenuDividerItem,
-    menuEntryKey,
-    type MenuGroupEntry
-  } from './menu.grouping';
+  import { groupMenuItems, menuEntryKey, type MenuGroupEntry } from './menu.grouping';
   import { menuIconVariants } from './menu.variants';
   import MenuDivider from './MenuDivider.svelte';
   import MenuItemComp from './MenuItem.svelte';
@@ -111,7 +106,7 @@
     (items ?? []).some(
       (child) =>
         !resolvers.isSection(child) &&
-        !isMenuDividerItem(child) &&
+        !resolvers.isDivider(child) &&
         resolvers.checked(child) !== undefined
     )
   );
@@ -119,7 +114,9 @@
   // The submenu's own children run through the SAME segmentation and the same
   // <MenuSection> as Menu's top level — the section header used to render flat
   // here, so one `{ type: 'section' }` entry produced two different trees.
-  const childGroups = $derived(groupMenuItems(items ?? [], resolvers.isSection));
+  const childGroups = $derived(
+    groupMenuItems(items ?? [], resolvers.isSection, resolvers.isDivider)
+  );
   const entryKey = (entry: MenuGroupEntry<MenuItemType>) => menuEntryKey(entry, resolvers.id);
 
   // `detail` is a description, not part of the accessible name — see
@@ -214,7 +211,7 @@
     {/snippet}
 
     {#if items && items.length > 0}
-      {#each childGroups as group (group.section ? `section-${group.sectionIndex}` : 'lead')}
+      {#each childGroups as group (group.key)}
         {#if group.section}
           <MenuSection label={resolvers.sectionLabel(group.section)}>
             {#each group.entries as entry (entryKey(entry))}

@@ -1,7 +1,7 @@
 import { createContext } from 'svelte';
 import { createOptionalContext } from '$lib/utils/optional-context';
 import type { ButtonVariants } from '../Button/button.variants';
-import type { MenuItemType, MenuSectionHeader } from './index';
+import type { MenuDividerItem, MenuItemType, MenuSectionHeader } from './index';
 import type { MenuSlots, MenuVariants } from './menu.variants';
 
 /**
@@ -36,6 +36,7 @@ export type MenuItemResolvers = {
   checked: (item: MenuItemType) => boolean | undefined;
   detail: (item: MenuItemType) => string | undefined;
   isSection: (item: MenuItemType) => item is MenuSectionHeader;
+  isDivider: (item: MenuItemType) => item is MenuDividerItem;
   sectionLabel: (item: MenuSectionHeader) => string;
 };
 

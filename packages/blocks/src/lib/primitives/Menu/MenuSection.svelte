@@ -11,6 +11,24 @@
   if (!ctx) {
     throw new Error('MenuSection must be used inside Menu');
   }
+  // Not a gate on a state svelte-check already rejects — it REPLACES the crash
+  // a JS consumer gets today. Without it, the old `<MenuSection label="…" />`
+  // dies in `{@render children()}` with `invalid_snippet`, taking the whole
+  // menu subtree with it (a 500 under SSR) and naming neither this component
+  // nor the migration. `label` gets no such guard: omitting it renders an
+  // unnamed group rather than crashing, and TypeScript already requires it.
+  //
+  // Deliberately the initial value only: this is a mount-time contract check,
+  // not a reactive one. A later `undefined` would land in `{@render}` anyway,
+  // and a reactive guard could only throw from an effect, after the frame.
+  // svelte-ignore state_referenced_locally
+  if (!children) {
+    throw new Error(
+      'MenuSection requires the items it names as its children: ' +
+        '<MenuSection label="Group"><MenuItem … /></MenuSection>. ' +
+        'A heading on its own has no group for aria-labelledby to name.'
+    );
+  }
 
   // The heading needs a DOM id for `aria-labelledby`, and `$props.id()` is the
   // only source of one that survives SSR → hydration. Prefixed with the menu's

@@ -10,12 +10,23 @@
   import Popover from '../Popover/Popover.svelte';
   import { popoverMotion } from '../Popover/popover.variants';
   import { setMenuContext, type MenuContext, type MenuRegistryItem } from './menu.context';
-  import { groupMenuItems, menuEntryKey, type MenuGroupEntry } from './menu.grouping';
+  import {
+    groupMenuItems,
+    isMenuDividerItem,
+    menuEntryKey,
+    type MenuGroupEntry
+  } from './menu.grouping';
   import MenuDivider from './MenuDivider.svelte';
   import MenuItemComp from './MenuItem.svelte';
   import MenuSection from './MenuSection.svelte';
   import MenuSubmenu from './MenuSubmenu.svelte';
-  import type { MenuItemType, MenuObjectOption, MenuSectionHeader, MenuProps } from './index';
+  import type {
+    MenuDividerItem,
+    MenuItemType,
+    MenuObjectOption,
+    MenuSectionHeader,
+    MenuProps
+  } from './index';
 
   const bt = useBlocksI18n();
 
@@ -31,6 +42,7 @@
     getItemChecked,
     getItemDetail,
     isSection: isSectionMapper,
+    isDivider: isDividerMapper,
     getSectionLabel,
     disabled = false,
     loading = false,
@@ -119,6 +131,15 @@
     return typeof it === 'object' && it !== null && (it as MenuSectionHeader).type === 'section';
   }
 
+  // Symmetric to `isSectionItem`: a consumer's own item type may legitimately
+  // carry `type: 'divider'` as domain data, and without a mapper such a row
+  // would silently render as a rule — the item and its `onSelect` lost, with
+  // no error. The mapper is asked first, exactly like the section predicate.
+  function isDividerItem(it: MenuItemType): it is MenuDividerItem {
+    if (isDividerMapper) return isDividerMapper(it);
+    return isMenuDividerItem(it);
+  }
+
   function resolveSectionLabel(section: MenuSectionHeader): string {
     return getSectionLabel ? getSectionLabel(section) : section.label;
   }
@@ -194,7 +215,7 @@
   // around a group is shared with the declarative call form, because all
   // three render the same <MenuSection>. Items before the first header render
   // bare, outside any group.
-  const arrayGroups = $derived(groupMenuItems<TItem>(items, isSectionItem));
+  const arrayGroups = $derived(groupMenuItems<TItem>(items, isSectionItem, isDividerItem));
 
   const entryKey = (entry: MenuGroupEntry<TItem>) => menuEntryKey(entry, resolveId);
 
@@ -494,6 +515,7 @@
       checked: (item) => resolveChecked(item as TItem),
       detail: (item) => resolveDetail(item as TItem),
       isSection: isSectionItem,
+      isDivider: isDividerItem,
       sectionLabel: resolveSectionLabel
     }
   };
@@ -744,7 +766,7 @@
         {#if childrenMode}
           {@render children?.()}
         {:else}
-          {#each arrayGroups as group (group.section ? `section-${group.sectionIndex}` : 'lead')}
+          {#each arrayGroups as group (group.key)}
             {#if group.section}
               {@const groupGutter = group.entries.some(entryIsCheckable)}
               <MenuSection label={resolveSectionLabel(group.section)}>
