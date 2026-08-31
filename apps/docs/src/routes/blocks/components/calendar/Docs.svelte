@@ -68,7 +68,6 @@ const categories: CalendarEventCategory[] = [
   view="week"
   {events}
   {categories}
-  showTimeGrid
   timeGridStartHour={8}
   timeGridEndHour={18}
   timeGridInterval={30}

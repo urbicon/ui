@@ -26,9 +26,9 @@
   const dateLabel = $derived(formatDateFull(displayedDate, ctx.locale));
   const dayKey = $derived(toIso(displayedDate));
 
-  // The day view always renders as an hour grid (showTimeGrid is always true
-  // for day). All-day events show in a band above the grid; timed events flow
-  // through CalendarTimeGrid — no custom `eventItem` here, matching WeekGrid.
+  // No custom `eventItem` reaches the hour grid: the renderer is called without
+  // it and falls through to CalendarEventItem. The all-day band is this view's
+  // own element, unlike the week view where the grid renders it.
   const allDayEvents = $derived(eventsWithInfo.filter((info) => info.event.allDay !== false));
   const totalEventCount = $derived(eventsWithInfo.length);
 

@@ -87,7 +87,6 @@
     // Agenda
     agendaDays = 30,
     // Time grid
-    showTimeGrid: showTimeGridProp,
     timeGridStartHour = 7,
     timeGridEndHour = 20,
     timeGridInterval = 60,
@@ -361,12 +360,6 @@
         `collapses the time grid and takes every timed event with it.`
     );
   }
-
-  // --- Time grid: week/day always show it; month/year/agenda respect the prop ---
-  const showTimeGrid = $derived.by(() => {
-    if (view === 'week' || view === 'day') return true;
-    return showTimeGridProp ?? events.some((e) => e.allDay === false);
-  });
 
   // --- Derived: the agenda's window ---
   // `agendaDays` days FROM the reference date, both ends inclusive. Computed
@@ -822,9 +815,6 @@
     },
     get swipeable() {
       return swipeableProp;
-    },
-    get showTimeGrid() {
-      return showTimeGrid;
     },
     get timeGridStartHour() {
       return timeGridStartHour;
