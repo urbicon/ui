@@ -13,7 +13,14 @@ export const chartVariants = tv({
     svg: ['block w-full overflow-visible'],
     /** Axis group (<g>) — sets the inherited text color for labels. */
     axis: ['text-text-tertiary'],
-    /** Baseline / domain line. */
+    /**
+     * The zero baseline the bars stand on, drawn at `yScale(0)`. BarChart
+     * paints it; LineChart, AreaChart, DonutChart and ChartFrame do not, and it
+     * is not in their `slotClasses` types. A chart that starts drawing it has
+     * to put 0 inside its own domain first — `yScale(0)` otherwise lands
+     * outside the plot box: below it for an all-positive domain, above it for
+     * an all-negative one.
+     */
     axisLine: ['stroke-border-default'],
     /** Tick + category labels. */
     axisLabel: ['fill-text-tertiary text-3xs tabular-nums'],

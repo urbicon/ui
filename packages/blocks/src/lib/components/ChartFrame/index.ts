@@ -1,6 +1,6 @@
 import type { Snippet } from 'svelte';
 import type { HTMLAttributes } from 'svelte/elements';
-import type { ChartMargin, ChartPlot, ChartSlotClasses } from '$lib/internal/charts/types';
+import type { ChartFrameSlotClasses, ChartMargin, ChartPlot } from '$lib/internal/charts/types';
 
 /**
  * @summary The measured, responsive canvas the other charts draw on — bring your own shapes.
@@ -48,7 +48,7 @@ export interface ChartFrameProps extends Omit<HTMLAttributes<HTMLElement>, 'chil
   /** Remove all default tv classes. */
   unstyled?: boolean;
   /** Per-slot class overrides. */
-  slotClasses?: ChartSlotClasses;
+  slotClasses?: ChartFrameSlotClasses;
   /** Apply a named preset registered on `<BlocksProvider>`. */
   preset?: string;
 }

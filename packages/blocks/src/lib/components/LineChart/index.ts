@@ -3,7 +3,7 @@ import type {
   CartesianDatum,
   ChartMargin,
   ChartSeries,
-  ChartSlotClasses
+  LineChartSlotClasses
 } from '$lib/internal/charts/types';
 
 /**
@@ -61,7 +61,7 @@ export interface LineChartProps extends Omit<HTMLAttributes<HTMLElement>, 'child
   /** Remove all default tv classes. */
   unstyled?: boolean;
   /** Per-slot class overrides. */
-  slotClasses?: ChartSlotClasses;
+  slotClasses?: LineChartSlotClasses;
   /** Apply a named preset registered on `<BlocksProvider>`. */
   preset?: string;
 }
