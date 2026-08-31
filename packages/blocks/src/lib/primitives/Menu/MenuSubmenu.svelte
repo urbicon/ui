@@ -5,8 +5,11 @@
   import ChevronRightIconDefault from '$lib/icons/ChevronRightIcon.svelte';
   import { mintAttachment } from '$lib';
   import { getMenuContext, setMenuParentId } from './menu.context';
+  import { groupMenuItems, menuEntryKey, type MenuGroupEntry } from './menu.grouping';
   import { menuIconVariants } from './menu.variants';
+  import MenuDivider from './MenuDivider.svelte';
   import MenuItemComp from './MenuItem.svelte';
+  import MenuSection from './MenuSection.svelte';
   import type { MenuItemType, MenuObjectOption } from './index';
 
   const CheckIcon = resolveIcon('check', CheckIconDefault);
@@ -101,9 +104,20 @@
   // to the menu-wide signal inside MenuItem itself.
   const childrenGutter = $derived(
     (items ?? []).some(
-      (child) => !resolvers.isSection(child) && resolvers.checked(child) !== undefined
+      (child) =>
+        !resolvers.isSection(child) &&
+        !resolvers.isDivider(child) &&
+        resolvers.checked(child) !== undefined
     )
   );
+
+  // The submenu's own children run through the SAME segmentation and the same
+  // <MenuSection> as Menu's top level — the section header used to render flat
+  // here, so one `{ type: 'section' }` entry produced two different trees.
+  const childGroups = $derived(
+    groupMenuItems(items ?? [], resolvers.isSection, resolvers.isDivider)
+  );
+  const entryKey = (entry: MenuGroupEntry<MenuItemType>) => menuEntryKey(entry, resolvers.id);
 
   // `detail` is a description, not part of the accessible name — see
   // MenuItem for the aria-hidden + aria-describedby rationale.
@@ -175,31 +189,39 @@
       ? (ctx.slotClasses?.submenu ?? '')
       : ctx.styles.submenu({ class: ctx.slotClasses?.submenu })}
   >
+    {#snippet childEntry(entry: MenuGroupEntry<MenuItemType>)}
+      {#if entry.divider}
+        <MenuDivider />
+      {:else}
+        {@const child = entry.item}
+        {@const childOpt = typeof child === 'object' ? (child as MenuObjectOption) : null}
+        <MenuItemComp
+          id={resolvers.id(child, entry.index)}
+          label={resolvers.label(child)}
+          disabled={resolvers.disabled(child)}
+          icon={resolvers.icon(child)}
+          checked={resolvers.checked(child)}
+          detail={resolvers.detail(child)}
+          class={resolvers.class(child)}
+          onSelect={childOpt?.onSelect}
+          keepOpen={childOpt?.keepOpen}
+          checkGutter={childrenGutter}
+        />
+      {/if}
+    {/snippet}
+
     {#if items && items.length > 0}
-      {#each items as child, i (resolvers.id(child, i))}
-        {#if resolvers.isSection(child)}
-          <div
-            role="presentation"
-            class={ctx.unstyled
-              ? (ctx.slotClasses?.section ?? '')
-              : ctx.styles.section({ class: ctx.slotClasses?.section })}
-          >
-            {resolvers.sectionLabel(child)}
-          </div>
+      {#each childGroups as group (group.key)}
+        {#if group.section}
+          <MenuSection label={resolvers.sectionLabel(group.section)}>
+            {#each group.entries as entry (entryKey(entry))}
+              {@render childEntry(entry)}
+            {/each}
+          </MenuSection>
         {:else}
-          {@const childOpt = typeof child === 'object' ? (child as MenuObjectOption) : null}
-          <MenuItemComp
-            id={resolvers.id(child, i)}
-            label={resolvers.label(child)}
-            disabled={resolvers.disabled(child)}
-            icon={resolvers.icon(child)}
-            checked={resolvers.checked(child)}
-            detail={resolvers.detail(child)}
-            class={resolvers.class(child)}
-            onSelect={childOpt?.onSelect}
-            keepOpen={childOpt?.keepOpen}
-            checkGutter={childrenGutter}
-          />
+          {#each group.entries as entry (entryKey(entry))}
+            {@render childEntry(entry)}
+          {/each}
         {/if}
       {/each}
     {:else if children}

@@ -77,20 +77,23 @@
     <code class="text-text-primary">checked</code> for a selectable setting,
     <code class="text-text-primary">detail</code> for a right-aligned readout, or
     <code class="text-text-primary">children</code> for a submenu, and a
-    <code class="text-text-primary">type: 'section'</code> entry heads a group. Build the menu from
-    an
-    <code class="text-text-primary">items</code> array as shown here, or declaratively with
+    <code class="text-text-primary">type: 'section'</code> entry heads a group and owns every item
+    up to the next header;
+    <code class="text-text-primary">&#123; type: 'divider' &#125;</code> draws a rule between two
+    runs. Build the menu from an
+    <code class="text-text-primary">items</code> array, or declaratively with
     <code class="text-text-primary">&lt;MenuItem&gt;</code>,
     <code class="text-text-primary">&lt;MenuSection&gt;</code> and
-    <code class="text-text-primary">&lt;MenuDivider&gt;</code> children. When the built-in
-    icon-label-detail row is not enough, a <code class="text-text-primary">customItem</code> snippet takes
-    over each row's inner content — render visible content only, since Menu supplies the surrounding button.
+    <code class="text-text-primary">&lt;MenuDivider&gt;</code> children — there a section takes the
+    items it names as its own children. When the built-in icon-label-detail row is not enough, a
+    <code class="text-text-primary">customItem</code> snippet takes over each row's inner content — render
+    visible content only, since Menu supplies the surrounding button.
   </p>
 
   <div class="space-y-8">
     <CodeExample
       title="Basic actions"
-      description="The items array is the quickest way to build a menu: each item runs its onSelect when activated. A section header groups related actions, and the menu closes on activation unless the item sets keepOpen."
+      description="Each item runs its onSelect when activated, and the menu closes again unless the item sets keepOpen. A section wraps the rows it names, so screen readers announce them as its group &#8212; the items array expresses the same shape with &#123; type: 'section' &#125; and &#123; type: 'divider' &#125; entries."
       code={basicSingleCode}
     >
       <BasicSingle />
@@ -166,7 +169,12 @@
         <code class="text-text-primary">role="menuitemradio"</code> with
         <code class="text-text-primary">aria-checked</code>, so the active setting is announced, not
         just marked. Sub-menus add
-        <code class="text-text-primary">aria-haspopup="menu"</code> on the submenu trigger.
+        <code class="text-text-primary">aria-haspopup="menu"</code> on the submenu trigger. A
+        section renders its header as
+        <code class="text-text-primary">role="presentation"</code> and wraps the items it names in a
+        <code class="text-text-primary">role="group"</code> labelled by that header, so a radio set
+        is announced with the group it belongs to;
+        <code class="text-text-primary">role="separator"</code> is reserved for the divider.
       </p>
     </Note>
     <Note title="Keyboard">

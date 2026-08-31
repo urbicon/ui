@@ -22,12 +22,13 @@ import type { MenuSlots } from './menu.variants';
  * ]} />
  * ```
  *
- * @example Declarative children with MenuItem
+ * @example Declarative children with MenuItem — a section wraps the items it names
  * ```svelte
  * <Menu placeholder="More">
- *   <MenuSection label="Edit" />
- *   <MenuItem onSelect={() => rename()}>Rename</MenuItem>
- *   <MenuItem onSelect={() => duplicate()}>Duplicate</MenuItem>
+ *   <MenuSection label="Edit">
+ *     <MenuItem onSelect={() => rename()}>Rename</MenuItem>
+ *     <MenuItem onSelect={() => duplicate()}>Duplicate</MenuItem>
+ *   </MenuSection>
  *   <MenuDivider />
  *   <MenuItem onSelect={() => confirmDelete()}>Delete</MenuItem>
  * </Menu>
@@ -69,7 +70,11 @@ export interface MenuSpecificProps<TItem extends MenuItemType = MenuItemType> {
   /** Array of menu items. Each item's `onSelect` runs when activated. */
   items?: TItem[];
 
-  /** Declarative children mode — use `<MenuItem>` / `<MenuDivider>` / `<MenuSection>`. */
+  /**
+   * Declarative children mode — use `<MenuItem>` / `<MenuDivider>` /
+   * `<MenuSection>`. A `<MenuSection>` wraps the items it names, the same way
+   * a `{ type: 'section' }` entry owns the items that follow it.
+   */
   children?: Snippet;
 
   /**
@@ -116,6 +121,19 @@ export interface MenuSpecificProps<TItem extends MenuItemType = MenuItemType> {
   getItemDetail?: (item: TItem) => string | undefined;
   /** Section detection override. Applies to full union, not just TItem. */
   isSection?: (item: MenuItemType) => boolean;
+  /**
+   * Divider detection override, symmetric to `isSection`. Supply it when your
+   * own item shape carries a `type: 'divider'` field of its own meaning — the
+   * built-in check is structural, and without this mapper such a row would
+   * render as a rule and lose its `onSelect`.
+   *
+   * This mapper and `isSection` *replace* the built-in check rather than
+   * narrowing it, so the escape is all-or-nothing: `isDivider={() => false}`
+   * also switches off genuine `{ type: 'divider' }` entries, which render as
+   * plain rows again — express those in your own shape instead.
+   * @summary Divider detection override, for item shapes with their own `type` field.
+   */
+  isDivider?: (item: MenuItemType) => boolean;
   /** Section label override. Accepts concrete section header type. */
   getSectionLabel?: (item: MenuSectionHeader) => string;
 
@@ -250,12 +268,23 @@ export interface MenuProps<TItem extends MenuItemType = MenuItemType>
 export type MenuOption = string;
 
 /**
- * Section header item for grouping related menu options.
+ * Section header item for grouping related menu options. Renders the header
+ * plus a `role="group"` around the items that follow it, up to the next header.
  */
 export interface MenuSectionHeader {
   type: 'section';
   label: string;
   disabled?: true;
+}
+
+/**
+ * Rule between two runs of items — the `items`-array equivalent of
+ * `<MenuDivider />`, which the array shape previously had no way to express
+ * (a `{ type: 'divider' }` entry rendered as a nameless `role="menuitem"`).
+ * Renders where it is written, inside the section it falls in.
+ */
+export interface MenuDividerItem {
+  type: 'divider';
 }
 
 /**
@@ -339,8 +368,9 @@ export interface MenuObjectOption {
  * - string: simple item label (value equals label)
  * - MenuObjectOption: rich item with label/onSelect and optional children
  * - MenuSectionHeader: non-selectable header grouping the following items
+ * - MenuDividerItem: a rule between two runs of items
  */
-export type MenuItemType = MenuOption | MenuObjectOption | MenuSectionHeader;
+export type MenuItemType = MenuOption | MenuObjectOption | MenuSectionHeader | MenuDividerItem;
 
 export interface MenuCustomSlots<TItem extends MenuItemType = MenuItemType> {
   /**

@@ -10,9 +10,23 @@
   import Popover from '../Popover/Popover.svelte';
   import { popoverMotion } from '../Popover/popover.variants';
   import { setMenuContext, type MenuContext, type MenuRegistryItem } from './menu.context';
+  import {
+    groupMenuItems,
+    isMenuDividerItem,
+    menuEntryKey,
+    type MenuGroupEntry
+  } from './menu.grouping';
+  import MenuDivider from './MenuDivider.svelte';
   import MenuItemComp from './MenuItem.svelte';
+  import MenuSection from './MenuSection.svelte';
   import MenuSubmenu from './MenuSubmenu.svelte';
-  import type { MenuItemType, MenuObjectOption, MenuSectionHeader, MenuProps } from './index';
+  import type {
+    MenuDividerItem,
+    MenuItemType,
+    MenuObjectOption,
+    MenuSectionHeader,
+    MenuProps
+  } from './index';
 
   const bt = useBlocksI18n();
 
@@ -28,6 +42,7 @@
     getItemChecked,
     getItemDetail,
     isSection: isSectionMapper,
+    isDivider: isDividerMapper,
     getSectionLabel,
     disabled = false,
     loading = false,
@@ -116,6 +131,19 @@
     return typeof it === 'object' && it !== null && (it as MenuSectionHeader).type === 'section';
   }
 
+  // Symmetric to `isSectionItem`: a consumer's own item type may legitimately
+  // carry `type: 'divider'` as domain data, and without a mapper such a row
+  // would silently render as a rule — the item and its `onSelect` lost, with
+  // no error. The mapper is asked first, exactly like the section predicate.
+  function isDividerItem(it: MenuItemType): it is MenuDividerItem {
+    if (isDividerMapper) return isDividerMapper(it);
+    return isMenuDividerItem(it);
+  }
+
+  function resolveSectionLabel(section: MenuSectionHeader): string {
+    return getSectionLabel ? getSectionLabel(section) : section.label;
+  }
+
   function resolveLabel(item: TItem): string {
     if (getItemLabel) return getItemLabel(item);
     if (typeof item === 'string') return item;
@@ -183,38 +211,13 @@
   }
 
   // ── Array-mode section grouping ────────────────────────────────────────
-  // ARIA 1.2 scopes a `menuitemradio` set via `role="group"` (or separators);
-  // a bare section header is `role="presentation"` and gives AT no boundary,
-  // so posinset/setsize would be computed over the whole menu,
-  // browser-dependently. Items following a section header therefore render
-  // inside a `role="group"` labelled by that header; items before the first
-  // header render bare, exactly as before.
-  type ArrayGroup = {
-    /** Section header opening this group; null for the leading bare segment. */
-    section: MenuSectionHeader | null;
-    /** Original index of the section header (stable key + DOM id derivation). */
-    sectionIndex: number;
-    /** Items with their original flat index, so resolveId fallbacks stay stable. */
-    entries: Array<{ item: TItem; index: number }>;
-  };
-  const arrayGroups: ArrayGroup[] = $derived.by(() => {
-    const groups: ArrayGroup[] = [];
-    let current: ArrayGroup | null = null;
-    for (let index = 0; index < items.length; index++) {
-      const raw = items[index];
-      if (isSectionItem(raw)) {
-        current = { section: raw, sectionIndex: index, entries: [] };
-        groups.push(current);
-        continue;
-      }
-      if (!current) {
-        current = { section: null, sectionIndex: -1, entries: [] };
-        groups.push(current);
-      }
-      current.entries.push({ item: raw, index });
-    }
-    return groups;
-  });
+  // Segmentation is shared with MenuSubmenu (menu.grouping.ts); the markup
+  // around a group is shared with the declarative call form, because all
+  // three render the same <MenuSection>. Items before the first header render
+  // bare, outside any group.
+  const arrayGroups = $derived(groupMenuItems<TItem>(items, isSectionItem, isDividerItem));
+
+  const entryKey = (entry: MenuGroupEntry<TItem>) => menuEntryKey(entry, resolveId);
 
   // ── Check-gutter scope ─────────────────────────────────────────────────
   // The checkmark gutter is reserved for ALL rows of a scope as soon as any
@@ -224,7 +227,8 @@
   // section. Declarative rows resolve menu-wide via `ctx.showCheckGutter`
   // (Menu cannot inspect snippet children ahead of render — they report
   // through item registration instead, see `checkableCount`).
-  function entryIsCheckable(entry: { item: TItem }): boolean {
+  function entryIsCheckable(entry: MenuGroupEntry<TItem>): boolean {
+    if (entry.divider) return false;
     return (
       resolveChecked(entry.item) !== undefined && (resolveChildren(entry.item)?.length ?? 0) === 0
     );
@@ -239,6 +243,7 @@
     if (!import.meta.env?.DEV) return;
     for (const group of arrayGroups) {
       for (const entry of group.entries) {
+        if (entry.divider) continue;
         if (
           resolveChecked(entry.item) !== undefined &&
           (resolveChildren(entry.item)?.length ?? 0) > 0
@@ -510,7 +515,8 @@
       checked: (item) => resolveChecked(item as TItem),
       detail: (item) => resolveDetail(item as TItem),
       isSection: isSectionItem,
-      sectionLabel: (section) => (getSectionLabel ? getSectionLabel(section) : section.label)
+      isDivider: isDividerItem,
+      sectionLabel: resolveSectionLabel
     }
   };
   setMenuContext(ctx);
@@ -693,7 +699,15 @@
       <div
         class={unstyled ? (slotClasses?.items ?? '') : styles.items({ class: slotClasses?.items })}
       >
-        {#snippet arrayEntry(typedItem: TItem, i: number, checkGutter: boolean)}
+        {#snippet arrayEntry(entry: MenuGroupEntry<TItem>, checkGutter: boolean)}
+          {#if entry.divider}
+            <MenuDivider />
+          {:else}
+            {@render arrayRow(entry.item, entry.index, checkGutter)}
+          {/if}
+        {/snippet}
+
+        {#snippet arrayRow(typedItem: TItem, i: number, checkGutter: boolean)}
           {@const itemId = resolveId(typedItem, i)}
           {@const itemLabel = resolveLabel(typedItem)}
           {@const itemDisabled = resolveDisabled(typedItem)}
@@ -752,36 +766,17 @@
         {#if childrenMode}
           {@render children?.()}
         {:else}
-          {#each arrayGroups as group (group.section ? `section-${group.sectionIndex}` : 'lead')}
+          {#each arrayGroups as group (group.key)}
             {#if group.section}
-              {@const sectionLabelId = `${rootId}-section-${group.sectionIndex}`}
               {@const groupGutter = group.entries.some(entryIsCheckable)}
-              <div
-                role="presentation"
-                id={sectionLabelId}
-                class={unstyled
-                  ? (slotClasses?.section ?? '')
-                  : styles.section({ class: slotClasses?.section })}
-              >
-                {getSectionLabel ? getSectionLabel(group.section) : group.section.label}
-              </div>
-              <!-- The group boundary AT needs for a menuitemradio set: the
-                   section's items live in a role="group" named by the header
-                   (role="presentation" does not stop it labelling). -->
-              <div
-                role="group"
-                aria-labelledby={sectionLabelId}
-                class={unstyled
-                  ? (slotClasses?.group ?? '')
-                  : styles.group({ class: slotClasses?.group })}
-              >
-                {#each group.entries as entry (resolveId(entry.item, entry.index))}
-                  {@render arrayEntry(entry.item, entry.index, groupGutter)}
+              <MenuSection label={resolveSectionLabel(group.section)}>
+                {#each group.entries as entry (entryKey(entry))}
+                  {@render arrayEntry(entry, groupGutter)}
                 {/each}
-              </div>
+              </MenuSection>
             {:else}
-              {#each group.entries as entry (resolveId(entry.item, entry.index))}
-                {@render arrayEntry(entry.item, entry.index, anyTopLevelChecked)}
+              {#each group.entries as entry (entryKey(entry))}
+                {@render arrayEntry(entry, anyTopLevelChecked)}
               {/each}
             {/if}
           {/each}

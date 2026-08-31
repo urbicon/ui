@@ -16,9 +16,10 @@ import CascadeBranchHost from './__fixtures__/CascadeBranchHost.svelte';
  *   family vertical, StepperStep's root carries no library class at all and
  *   route C reports "nothing to strip" instead.
  * - **the other call form.** `<MenuSection>` and the array-shaped section
- *   header render the same `section` slot through separate code. The sweep
- *   mounts Menu with neither — measured, its mount renders no section element
- *   at all — and judges Menu's own root.
+ *   header render the same `section` slot. The sweep mounts Menu with neither
+ *   — measured, its mount renders no section element at all — and judges
+ *   Menu's own root. Both call forms now render *through* MenuSection, so the
+ *   pair below is the control on that, no longer two separate code paths.
  * - **an instance prop.** Only `class` is passed to the component under
  *   measurement (route E), so `unstyled={false}` against a provider `unstyled`
  *   has no route to travel.
@@ -43,8 +44,8 @@ function render(props: Record<string, unknown>): Rendered {
 }
 
 /** Class tokens of the first matching element; `undefined` when none matched. */
-function classesOf(target: HTMLElement, selector: string, index = 0): Set<string> | undefined {
-  const element = target.querySelectorAll(selector)[index];
+function classesOf(target: HTMLElement, selector: string): Set<string> | undefined {
+  const element = target.querySelector(selector);
   return element ? new Set(element.classList) : undefined;
 }
 
@@ -59,10 +60,21 @@ function withRender<T>(props: Record<string, unknown>, read: (target: HTMLElemen
 
 const PANEL = '[role="tabpanel"]';
 const STEP_ITEM = 'li';
-/** MenuSection's own element. */
-const DECLARATIVE_SECTION = '[role="separator"]';
-/** The array-shaped section header — the same `section` slot, other call form. */
-const ARRAY_SECTION = '[role="presentation"]';
+/**
+ * The section heading of the menu whose trigger reads `placeholder` — the
+ * fixture names its two menus "declarative" and "array". Addressed through the
+ * menu's own root rather than by position among all headings, so the control
+ * does not silently follow the fixture's mount order. The shared selector is
+ * itself the assertion that the two call forms no longer differ in role.
+ */
+function sectionHeadingOf(target: HTMLElement, placeholder: string): Set<string> | undefined {
+  const root = Array.from(target.querySelectorAll<HTMLElement>('[data-menu-root]')).find((el) =>
+    el.querySelector('button')?.textContent?.includes(placeholder)
+  );
+  if (!root) throw new Error(`no menu with the trigger "${placeholder}" in the fixture`);
+  const heading = root.querySelector('[role="presentation"]');
+  return heading ? new Set(heading.classList) : undefined;
+}
 
 describe('TabPanel takes the strip’s orientation', () => {
   it('drops the horizontal top margin when the strip is vertical', () => {
@@ -123,8 +135,8 @@ describe('StepperStep routes its item slot in both orientations', () => {
 describe('MenuSection renders the same `section` slot as its sibling call form', () => {
   it('strips the library classes under provider `unstyled`, like the array form', () => {
     const { declarative, array } = withRender({ composition: 'menu', unstyled: true }, (t) => ({
-      declarative: classesOf(t, DECLARATIVE_SECTION),
-      array: classesOf(t, ARRAY_SECTION)
+      declarative: sectionHeadingOf(t, 'declarative'),
+      array: sectionHeadingOf(t, 'array')
     }));
     expect(declarative?.size).toBe(0);
     expect(array?.size).toBe(0);
@@ -134,8 +146,8 @@ describe('MenuSection renders the same `section` slot as its sibling call form',
     const { declarative, array } = withRender(
       { composition: 'menu', defaults: { Menu: { slotClasses: { section: 'probe-section' } } } },
       (t) => ({
-        declarative: classesOf(t, DECLARATIVE_SECTION),
-        array: classesOf(t, ARRAY_SECTION)
+        declarative: sectionHeadingOf(t, 'declarative'),
+        array: sectionHeadingOf(t, 'array')
       })
     );
     expect(declarative?.has('probe-section')).toBe(true);
