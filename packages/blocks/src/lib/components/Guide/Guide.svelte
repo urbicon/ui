@@ -13,6 +13,7 @@
     arrow as floatingArrow
   } from '$lib/utils/floating';
   import { observeTargetResolution } from '$lib/utils/observe-target';
+  import { resolveClassChain } from '$lib/utils/variants';
   import { getGuideContext } from './guide.context';
   import { guideTourVariants, type GuideTourVariants } from './guide.variants';
   import type { GuideProps } from './index';
@@ -482,7 +483,7 @@
         class={[
           'guide-tour-bubble',
           unstyled
-            ? [slotClasses?.bubble, className].filter(Boolean).join(' ')
+            ? resolveClassChain(slotClasses?.bubble, className)
             : styles.bubble({ class: [slotClasses?.bubble, className] })
         ]}
         role="dialog"
@@ -554,6 +555,7 @@
             : styles.footer({ class: slotClasses?.footer })}
         >
           <Button
+            {unstyled}
             variant="ghost"
             intent="neutral"
             size="sm"
@@ -569,6 +571,7 @@
           ></span>
           {#if !view.first}
             <Button
+              {unstyled}
               variant="outlined"
               intent="neutral"
               size="sm"
@@ -585,14 +588,13 @@
             <span class="sr-only" id={actionHintId}>{bt('guide.actionRequired', {})}</span>
           {/if}
           <Button
+            {unstyled}
             intent="primary"
             size="sm"
-            class={[
+            class={resolveClassChain(
               !unstyled && 'aria-disabled:cursor-not-allowed aria-disabled:opacity-50',
               slotClasses?.next
-            ]
-              .filter(Boolean)
-              .join(' ')}
+            )}
             aria-disabled={view.actionGated || undefined}
             aria-describedby={view.actionGated ? actionHintId : undefined}
             onclick={() => {

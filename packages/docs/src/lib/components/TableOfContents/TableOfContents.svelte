@@ -1,7 +1,7 @@
 <script lang="ts">
   import { useDocsI18n, getDocsLocales } from '$lib/i18n';
   import { useI18n, BASE_LOCALE } from '@urbicon-ui/i18n';
-  import { CodeIcon, EyeOffIcon } from '@urbicon-ui/blocks';
+  import { CodeIcon, EyeOffIcon, resolveClassChain } from '@urbicon-ui/blocks';
   import { getCodeVisibilityContext } from '$lib/stores/code-visibility.svelte';
   import { ScrollSpy } from '$lib/stores/scroll-spy.svelte';
   import { tableOfContentsVariants } from './tableofcontents.variants';
@@ -99,7 +99,7 @@
 
 <!-- Named landmark: a docs page carries several <aside>s (every InfoCard is
      one), and ARIA needs same-type landmarks to be tellable apart. -->
-<aside class={[slot('aside'), className]} aria-label={dt('tocLandmarkLabel')}>
+<aside class={resolveClassChain(slot('aside'), className)} aria-label={dt('tocLandmarkLabel')}>
   <p class={slot('title')}>
     <!-- `meta-marker` renders a mono kicker (Color Rooms drops the editorial
          `//` prefix) — only styled when the host page sets `.docs-rooms`. The

@@ -343,6 +343,29 @@ describe('tv – slot mode', () => {
     expect(styles.base({ class: [undefined, 'mt-4', undefined] })).toBe('btn mt-4');
   });
 
+  it('reads each top-level array element as its own source, so the later one wins', () => {
+    // The shape every call site writes for the override ladder's last two
+    // rungs: `[slotClasses?.base, className]`. Without the split both land in
+    // the attribute and the stylesheet decides which corner is painted.
+    const component = tv({ slots: { base: 'rounded-md p-6' } });
+    const styles = component();
+    expect(styles.base({ class: ['py-8', 'py-4'] })).toBe('rounded-md p-6 py-4');
+    expect(styles.base({ class: ['rounded-none', 'rounded-full'] })).toBe('p-6 rounded-full');
+  });
+
+  it('keeps a nested array as one source, so an author-paired set survives', () => {
+    const component = tv({ slots: { base: 'btn' } });
+    const styles = component();
+    expect(styles.base({ class: [['rounded-md', 'rounded-t-none']] })).toBe(
+      'btn rounded-md rounded-t-none'
+    );
+  });
+
+  it('reads a no-slot class array the same way', () => {
+    const component = tv({ base: 'rounded-md p-6' });
+    expect(component({ class: ['py-8', 'py-4'] })).toBe('rounded-md p-6 py-4');
+  });
+
   it('slot function accepts variant overrides', () => {
     const component = tv({
       slots: { base: 'btn', item: 'list-item' },

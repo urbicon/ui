@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { Button, Card, getBlocksConfig } from '@urbicon-ui/blocks';
+  import { Button, Card, getBlocksConfig, resolveClassChain } from '@urbicon-ui/blocks';
   import { subscribeToPush } from '../../utils/service-worker.js';
   import { mergeAuthLocale, useAuthLocale } from '../../../i18n/index.js';
   import { csrfFetch } from '../../csrf.js';
@@ -124,25 +124,25 @@
     padding="md"
     {unstyled}
     class={unstyled
-      ? [slotClasses.root, className].filter(Boolean).join(' ')
-      : ['border-border-subtle border', slotClasses.root, className].filter(Boolean).join(' ')}
+      ? resolveClassChain(slotClasses.root, className)
+      : resolveClassChain('border-border-subtle border', slotClasses.root, className)}
   >
     <p
       class={unstyled
         ? slotClasses.text
-        : ['text-text-secondary text-sm', slotClasses.text].filter(Boolean).join(' ')}
+        : resolveClassChain('text-text-secondary text-sm', slotClasses.text)}
     >
       {t.notifications.push.prompt}
     </p>
     <FormErrorAlert
       error={error ?? ''}
       {unstyled}
-      class={unstyled ? slotClasses.error : ['mt-2', slotClasses.error].filter(Boolean).join(' ')}
+      class={unstyled ? slotClasses.error : resolveClassChain('mt-2', slotClasses.error)}
     />
     <div
       class={unstyled
         ? slotClasses.actions
-        : ['mt-3 flex gap-2', slotClasses.actions].filter(Boolean).join(' ')}
+        : resolveClassChain('mt-3 flex gap-2', slotClasses.actions)}
     >
       <Button
         variant="filled"

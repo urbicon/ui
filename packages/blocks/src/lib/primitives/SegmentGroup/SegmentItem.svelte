@@ -2,6 +2,7 @@
   import { onMount } from 'svelte';
   import { getBlocksConfig, resolveSlotClasses } from '$lib/provider';
   import { mintAttachment } from '$lib';
+  import { resolveClassChain } from '$lib/utils/variants';
   import { segmentGroupVariants, type SegmentGroupVariants } from './segmentgroup.variants';
   import { getSegmentGroupContext } from './segmentGroup.context';
   import type { SegmentItemProps } from './index';
@@ -64,7 +65,7 @@
   type="button"
   role="radio"
   class={unstyled
-    ? [slotClasses?.item, className].filter(Boolean).join(' ')
+    ? resolveClassChain(slotClasses?.item, className)
     : styles.item({ class: [slotClasses?.item, className] })}
   aria-checked={isActive}
   tabindex={isTabStop ? 0 : -1}

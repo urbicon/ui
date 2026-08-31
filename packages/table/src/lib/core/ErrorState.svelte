@@ -81,6 +81,7 @@
         styles.container,
         styleConfig.slotClasses.errorState,
         styleConfig.unstyled,
+        undefined,
         className
       )}
     >

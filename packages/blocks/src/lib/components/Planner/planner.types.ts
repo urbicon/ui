@@ -124,9 +124,15 @@ export interface PlannerContext {
   readonly canGoToToday: boolean;
   readonly locale: string;
   readonly disabled: boolean;
+  /** Whether the instance (or the provider) asked for bare markup. */
+  readonly unstyled: boolean;
   navigate(delta: number): void;
   goToToday(): void;
   goTo(date: Date): void;
-  /** Resolve a slot's class string (honours `unstyled` + merged `slotClasses`). */
-  slot(name: PlannerSlotName, extra?: string): string;
+  /**
+   * Resolve a slot's class string (honours `unstyled` + merged `slotClasses`).
+   * `structural` is library-authored and folds before the consumer's entry;
+   * `className` is the consumer's `class` prop and folds after it.
+   */
+  slot(name: PlannerSlotName, structural?: string, className?: string): string;
 }

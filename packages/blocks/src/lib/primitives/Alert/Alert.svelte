@@ -4,6 +4,7 @@
   import { getBlocksConfig, resolveSlotClasses } from '$lib/provider';
   import { resolveIcon } from '$lib/icons';
   import CloseIconDefault from '$lib/icons/CloseIcon.svelte';
+  import { resolveClassChain } from '$lib/utils/variants';
   import type { AlertProps } from './index';
 
   const bt = useBlocksI18n();
@@ -40,7 +41,7 @@
 
 <div
   class={unstyled
-    ? [slotClasses?.base, className].filter(Boolean).join(' ')
+    ? resolveClassChain(slotClasses?.base, className)
     : styles.base({ class: [slotClasses?.base, className] })}
   role="alert"
   {...restProps}

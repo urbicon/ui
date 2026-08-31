@@ -3,6 +3,7 @@
   import CoreFieldMessage from '$lib/internal/core/CoreFieldMessage.svelte';
   import { getBlocksConfig, resolveSlotClasses } from '$lib/provider';
   import { getTierContext, useFormField } from '$lib/utils';
+  import { resolveClassChain } from '$lib/utils/variants';
   import { toggleVariants, type ToggleVariants } from './toggle.variants';
   import type { ToggleProps } from './index';
 
@@ -95,7 +96,7 @@
 
 <div
   class={unstyled
-    ? [slotClasses?.wrapper, className].filter(Boolean).join(' ')
+    ? resolveClassChain(slotClasses?.wrapper, className)
     : styles.wrapper({ class: [slotClasses?.wrapper, className] })}
 >
   <label

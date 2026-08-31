@@ -9,6 +9,7 @@
   import MoonIconDefault from '$lib/icons/MoonIcon.svelte';
   import MonitorIconDefault from '$lib/icons/MonitorIcon.svelte';
   import { useBlocksI18n } from '$lib/i18n';
+  import { resolveClassChain } from '$lib/utils/variants';
 
   const bt = useBlocksI18n();
 
@@ -116,7 +117,7 @@
   type="button"
   onclick={cycle}
   class={unstyled
-    ? [slotClasses?.button, className].filter(Boolean).join(' ')
+    ? resolveClassChain(slotClasses?.button, className)
     : styles.button({ class: [slotClasses?.button, className] })}
   aria-label={label}
   title={label}

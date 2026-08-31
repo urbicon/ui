@@ -10,6 +10,7 @@
   import ChevronDownIconDefault from '$lib/icons/ChevronDownIcon.svelte';
   import CheckIconDefault from '$lib/icons/CheckIcon.svelte';
   import { useFormField, getTierContext, useFloatingPanel, floatingPanelHidden } from '$lib/utils';
+  import { resolveClassChain } from '$lib/utils/variants';
   import type { ComboboxProps, ComboboxOption } from './index';
 
   const bt = useBlocksI18n();
@@ -630,7 +631,7 @@
 
 <div
   class={unstyled
-    ? [slotClasses?.base, className].filter(Boolean).join(' ')
+    ? resolveClassChain(slotClasses?.base, className)
     : styles.base({ class: [slotClasses?.base, className] })}
   {...restProps}
 >
@@ -882,19 +883,24 @@
     data-active={isActive}
     disabled={optDisabled}
     class={unstyled
-      ? [
+      ? resolveClassChain(
           slotClasses?.option,
           isActive ? slotClasses?.optionActive : undefined,
           selected ? slotClasses?.optionSelected : undefined
-        ]
-          .filter(Boolean)
-          .join(' ')
+        )
       : styles.option({
+          // Four explicit sources rather than two folded pairs: the library's
+          // state slots first, the consumer's entries after them, so a
+          // `slotClasses.option` wins the bucket against `optionActive`'s own
+          // `bg-*` the way it wins against the base slot's. Chaining the two
+          // resolved pairs put the library last and inverted that.
           class: [
+            isActive ? styles.optionActive() : undefined,
+            selected ? styles.optionSelected() : undefined,
             slotClasses?.option,
-            isActive ? styles.optionActive({ class: slotClasses?.optionActive }) : undefined,
-            selected ? styles.optionSelected({ class: slotClasses?.optionSelected }) : undefined
-          ].filter(Boolean)
+            isActive ? slotClasses?.optionActive : undefined,
+            selected ? slotClasses?.optionSelected : undefined
+          ]
         })}
     onclick={() => (multiple ? toggleValue(opt) : select(opt))}
     onmouseenter={() => {
@@ -913,7 +919,7 @@
         class={unstyled
           ? (slotClasses?.optionCheck ?? '')
           : styles.optionCheck({
-              class: [slotClasses?.optionCheck, selected ? 'opacity-100' : undefined]
+              class: [selected ? 'opacity-100' : undefined, slotClasses?.optionCheck]
             })}
       />
     {/if}

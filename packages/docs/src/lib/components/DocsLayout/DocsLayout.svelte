@@ -4,7 +4,7 @@
     setCodeVisibilityContext
   } from '$lib/stores/code-visibility.svelte';
   import { ScrollSpy } from '$lib/stores/scroll-spy.svelte';
-  import { Breadcrumb, ListIcon, Popover } from '@urbicon-ui/blocks';
+  import { Breadcrumb, ListIcon, Popover, resolveClassChain } from '@urbicon-ui/blocks';
   import { useDocsI18n } from '$lib/i18n';
   import TableOfContents from '../TableOfContents/TableOfContents.svelte';
   import { createSectionNumbering } from '../Section/section-numbering.svelte.js';
@@ -247,7 +247,9 @@
   own would be a second source for one fact, which is how the offset drifted
   from the strip in the first place.
 -->
-<div class={[slot('container'), showStickyBar && slot('stickyBarHeight'), className]}>
+<div
+  class={resolveClassChain(slot('container'), showStickyBar && slot('stickyBarHeight'), className)}
+>
   {#if showStickyBar}
     <!-- ═══ PINNED STRIP — full-width band above the hero ═══ -->
     <!--

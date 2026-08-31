@@ -3,6 +3,7 @@
   import { getBlocksConfig, resolveSlotClasses } from '$lib/provider';
   import { resolveIcon } from '$lib/icons';
   import ChevronDownIconDefault from '$lib/icons/ChevronDownIcon.svelte';
+  import { resolveClassChain } from '$lib/utils/variants';
   import StreamingMarkdown from '../StreamingMarkdown/StreamingMarkdown.svelte';
   import { reasoningDisclosureVariants } from './reasoning-disclosure.variants';
   import type { ReasoningDisclosureProps } from './index';
@@ -57,6 +58,7 @@
 </script>
 
 <Collapsible
+  {unstyled}
   variant="default"
   size="sm"
   bind:open
@@ -79,15 +81,15 @@
     >
       <span
         class={unstyled
-          ? [slotClasses?.label, pulse].filter(Boolean).join(' ')
-          : styles.label({ class: [slotClasses?.label, pulse] })}
+          ? resolveClassChain(pulse, slotClasses?.label)
+          : styles.label({ class: [pulse, slotClasses?.label] })}
       >
         {stateLabel}
       </span>
       <ChevronDownIcon
         class={unstyled
-          ? [slotClasses?.chevron, isOpen ? 'rotate-180' : ''].filter(Boolean).join(' ')
-          : styles.chevron({ class: [slotClasses?.chevron, isOpen ? 'rotate-180' : ''] })}
+          ? resolveClassChain(isOpen ? 'rotate-180' : '', slotClasses?.chevron)
+          : styles.chevron({ class: [isOpen ? 'rotate-180' : '', slotClasses?.chevron] })}
       />
     </button>
   {/snippet}
@@ -97,6 +99,7 @@
       : styles.content({ class: slotClasses?.content })}
   >
     <StreamingMarkdown
+      {unstyled}
       content={reasoning.text}
       {streaming}
       {urlPolicy}

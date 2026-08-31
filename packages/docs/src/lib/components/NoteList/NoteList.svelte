@@ -1,5 +1,6 @@
 <script lang="ts">
   import type { NoteListProps } from './index.js';
+  import { resolveClassChain } from '@urbicon-ui/blocks';
   import { type NoteListSlots, noteListVariants } from './notelist.variants';
 
   let {
@@ -34,7 +35,7 @@
      as reading material, so a skin that runs a narrower reading edge than its
      exhibit edge (the docs app does) keeps notes with the prose instead of
      letting them stretch to the width a table gets. -->
-<div {...restProps} class={[slot('root'), className]} data-docs-note>
+<div {...restProps} class={resolveClassChain(slot('root'), className)} data-docs-note>
   <div class={slot('list')}>
     {@render children?.()}
   </div>

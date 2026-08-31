@@ -54,7 +54,11 @@ export interface SkeletonProps extends SkeletonVariants, HTMLAttributes<HTMLDivE
   /** Number of skeleton lines to render. Wraps items in a flex-column container when > 1. */
   count?: number;
 
-  /** Tailwind gap class between repeated lines (e.g. `"gap-2"`, `"gap-4"`). Only applies when `count > 1`. */
+  /**
+   * Tailwind gap class between repeated lines (e.g. `"gap-4"`). Only applies
+   * when `count > 1`. Unset, the `wrapper` slot's own `gap-2` stands; set, it
+   * outranks a provider or preset `slotClasses.wrapper` in the gap bucket.
+   */
   gap?: string;
 
   /** Extra classes merged onto the root element (or wrapper when `count > 1`). */

@@ -171,7 +171,7 @@ export interface DatePickerProps extends Omit<HTMLAttributes<HTMLDivElement>, 'c
    */
   mint?: MintProp;
   class?: string;
-  /** Strip the wrapper's default tv() classes; `slotClasses.base` and `class` then stand alone. */
+  /** Strip the default tv() classes of the wrapper AND of the Input, Popover and Calendar it renders; `slotClasses` and `class` then stand alone. */
   unstyled?: boolean;
   /**
    * Per-slot class overrides. `base` is the positioning wrapper the field and
@@ -309,7 +309,7 @@ export interface DateRangePickerProps extends Omit<HTMLAttributes<HTMLDivElement
    */
   mint?: MintProp;
   class?: string;
-  /** Strip the wrapper's default tv() classes; `slotClasses.base` and `class` then stand alone. */
+  /** Strip the default tv() classes of the wrapper AND of the Input, Popover and Calendar it renders; `slotClasses` and `class` then stand alone. */
   unstyled?: boolean;
   /**
    * Per-slot class overrides. `base` is the positioning wrapper the field and

@@ -5,6 +5,7 @@
   import { paginationVariants } from '$lib/primitives';
   import type { PaginationVariants } from './pagination.variants';
   import { MediaQuery } from 'svelte/reactivity';
+  import { resolveClassChain } from '$lib/utils/variants';
   import { computeEllipsisState, computeVisiblePageNumbers } from './pagination.engine';
   import type { PaginationProps } from '.';
 
@@ -200,7 +201,7 @@
 
 <nav
   class={unstyled
-    ? [slotClasses?.base, className].filter(Boolean).join(' ')
+    ? resolveClassChain(slotClasses?.base, className)
     : styles.base({ class: [slotClasses?.base, className] })}
   aria-label={bt('accessibility.pagination')}
   {...restProps}
@@ -220,6 +221,7 @@
     >
       {#if showPreviousNext}
         <PaginationItem
+          {unstyled}
           {size}
           {variant}
           {intent}
@@ -237,6 +239,7 @@
         </PaginationItem>
 
         <PaginationItem
+          {unstyled}
           {size}
           {variant}
           {intent}
@@ -269,6 +272,7 @@
     >
       {#if showPreviousNext}
         <PaginationItem
+          {unstyled}
           {size}
           {variant}
           {intent}
@@ -286,6 +290,7 @@
         </PaginationItem>
 
         <PaginationItem
+          {unstyled}
           {size}
           {variant}
           {intent}
@@ -326,6 +331,7 @@
            not an edge stepper — no layout-shift/focus trap. -->
       {#if showFirstLast && showStartEllipsis}
         <PaginationItem
+          {unstyled}
           {size}
           {variant}
           {intent}
@@ -345,6 +351,7 @@
 
       {#if showPreviousNext}
         <PaginationItem
+          {unstyled}
           {size}
           {variant}
           {intent}
@@ -388,6 +395,7 @@
             })}
           {:else}
             <PaginationItem
+              {unstyled}
               {size}
               {variant}
               {intent}
@@ -416,6 +424,7 @@
 
       {#if showPreviousNext}
         <PaginationItem
+          {unstyled}
           {size}
           {variant}
           {intent}
@@ -436,6 +445,7 @@
       <!-- See the First-button note above: ellipsis-gated (redundancy), not edge-gated. -->
       {#if showFirstLast && showEndEllipsis}
         <PaginationItem
+          {unstyled}
           {size}
           {variant}
           {intent}

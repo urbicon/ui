@@ -7,6 +7,7 @@
   import ChevronDownIconDefault from '$lib/icons/ChevronDownIcon.svelte';
   import CheckIconDefault from '$lib/icons/CheckIcon.svelte';
   import CloseIconDefault from '$lib/icons/CloseIcon.svelte';
+  import { resolveClassChain } from '$lib/utils/variants';
   import type { SelectProps, SelectOption } from './index';
   import { selectVariants, type SelectVariants } from './select.variants';
 
@@ -448,7 +449,7 @@
 
 <div
   class={unstyled
-    ? [slotClasses?.wrapper, className].filter(Boolean).join(' ')
+    ? resolveClassChain(slotClasses?.wrapper, className)
     : styles.wrapper({ class: [slotClasses?.wrapper, className] })}
 >
   {#if label}
@@ -627,9 +628,9 @@
                         selected: isSel || undefined
                       }).option({
                         class: [
-                          slotClasses?.option,
                           isActive ? 'bg-surface-hover' : '',
-                          option.disabled ? 'cursor-not-allowed opacity-50' : ''
+                          option.disabled ? 'cursor-not-allowed opacity-50' : '',
+                          slotClasses?.option
                         ]
                       })}
                   onclick={() => selectOption(option)}
@@ -692,9 +693,9 @@
                     selected: isSel || undefined
                   }).option({
                     class: [
-                      slotClasses?.option,
                       isActive ? 'bg-surface-hover' : '',
-                      option.disabled ? 'cursor-not-allowed opacity-50' : ''
+                      option.disabled ? 'cursor-not-allowed opacity-50' : '',
+                      slotClasses?.option
                     ]
                   })}
               onclick={() => selectOption(option)}

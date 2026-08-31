@@ -155,7 +155,7 @@ export interface CommandPaletteProps {
   /** Additional CSS classes on the root wrapper. */
   class?: string;
 
-  /** Strip all default styles. @default false */
+  /** Strip all default styles, the modal Dialog's included. @default false */
   unstyled?: boolean;
 
   /** Per-slot class overrides. */

@@ -4,6 +4,7 @@
   import { useBlocksI18n } from '$lib/i18n';
   import { CloseIcon, ChevronLeftIcon, ChevronRightIcon } from '$lib/icons';
   import { getBlocksConfig, resolveSlotClasses } from '$lib/provider';
+  import { resolveClassChain } from '$lib/utils/variants';
   import { getGuideContext } from './guide.context';
   import { setGuidePanelContext } from './guide-panel.context';
   import { filterArticles, groupArticles, hasNamedGroups } from './guide-panel.articles';
@@ -196,7 +197,7 @@
     bind:this={panelEl}
     id={panelId}
     class={unstyled
-      ? [slotClasses?.panel, className].filter(Boolean).join(' ')
+      ? resolveClassChain(slotClasses?.panel, className)
       : styles.panel({ class: [slotClasses?.panel, className] })}
     style:--_guide-panel-transform={panelTransform}
     data-state={open ? 'open' : 'closed'}

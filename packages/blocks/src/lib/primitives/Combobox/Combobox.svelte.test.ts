@@ -1094,4 +1094,38 @@ describe('Combobox (validation frame)', () => {
     expect(message.textContent?.trim()).toBe('Pick a fruit');
     expect(message.getAttribute('class')).toContain('text-danger');
   });
+
+  // The option element is the one place in this component where three class
+  // sources meet on one element: the `option` slot, and the `optionActive` /
+  // `optionSelected` state slots. All three carry a `bg-*`, so the order they
+  // reach `tv()` in decides which one paints, and a `slotClasses.option` has to
+  // win it — the same rung order every other slot honours.
+  it('lets a slotClasses.option beat the active state class it collides with', async () => {
+    const user = userEvent.setup();
+    renderCombobox({ options: OPTIONS, slotClasses: { option: 'bg-white' } });
+
+    await user.click(screen.getByRole('combobox'));
+    await user.keyboard('{ArrowDown}');
+
+    const classes = option('Apple').getAttribute('class')?.split(/\s+/) ?? [];
+    expect(option('Apple').getAttribute('data-active')).toBe('true');
+    expect(classes, 'the consumer entry arrived').toContain('bg-white');
+    expect(classes, 'the state class lost its bucket').not.toContain('bg-surface-hover');
+  });
+
+  it('lets a slotClasses.optionActive beat slotClasses.option, and both beat the library', async () => {
+    const user = userEvent.setup();
+    renderCombobox({
+      options: OPTIONS,
+      slotClasses: { option: 'bg-white', optionActive: 'bg-black' }
+    });
+
+    await user.click(screen.getByRole('combobox'));
+    await user.keyboard('{ArrowDown}');
+
+    const classes = option('Apple').getAttribute('class')?.split(/\s+/) ?? [];
+    expect(classes).toContain('bg-black');
+    expect(classes).not.toContain('bg-white');
+    expect(classes).not.toContain('bg-surface-hover');
+  });
 });

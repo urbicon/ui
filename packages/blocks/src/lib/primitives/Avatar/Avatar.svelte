@@ -3,6 +3,7 @@
   import { getBlocksConfig, resolveSlotClasses } from '$lib/provider';
   import { avatarVariants, type AvatarVariants } from '$lib/primitives';
   import { useBlocksI18n } from '$lib';
+  import { resolveClassChain } from '$lib/utils/variants';
   import type { AvatarProps } from './index';
 
   const bt = useBlocksI18n();
@@ -163,7 +164,7 @@
     'blocks-avatar',
     `blocks-intent-${intent}`,
     unstyled
-      ? [slotClasses?.base, className].filter(Boolean).join(' ')
+      ? resolveClassChain(slotClasses?.base, className)
       : styles.base({ class: [slotClasses?.base, className] })
   ]}
   style={baseStyle}

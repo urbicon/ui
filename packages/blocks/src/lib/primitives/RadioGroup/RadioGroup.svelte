@@ -2,6 +2,7 @@
   import CoreFieldMessage from '$lib/internal/core/CoreFieldMessage.svelte';
   import { getBlocksConfig, resolveSlotClasses } from '$lib/provider';
   import { getTierContext, useFormField } from '$lib/utils';
+  import { resolveClassChain } from '$lib/utils/variants';
   import type { RadioGroupProps } from './index';
   import { setRadioGroupContext } from './radioGroup.context';
   import { radioGroupVariants, type RadioGroupVariants } from './radioGroup.variants';
@@ -154,7 +155,7 @@
 
 <div
   class={unstyled
-    ? [slotClasses?.root, className].filter(Boolean).join(' ')
+    ? resolveClassChain(slotClasses?.root, className)
     : styles.root({ class: [slotClasses?.root, className] })}
 >
   {#if label}

@@ -4,6 +4,7 @@
   import { composeHandlers } from '$lib/utils/compose-handlers';
   import { edgeEnabledIndex, nextEnabledIndex } from '$lib/utils';
   import { getTierContext, setTierContext } from '$lib/utils/tier-context';
+  import { resolveClassChain } from '$lib/utils/variants';
   import type { ButtonGroupContext, ButtonGroupProps } from './index';
   import { setButtonGroupContext } from './buttonGroup.context';
 
@@ -314,7 +315,7 @@
   {...restProps}
   role={ariaRole}
   class={unstyled
-    ? [slotClasses?.base, className].filter(Boolean).join(' ')
+    ? resolveClassChain(slotClasses?.base, className)
     : styles.base({ class: [slotClasses?.base, className] })}
   aria-label={ariaLabel ?? restProps['aria-label']}
   aria-labelledby={ariaLabelledBy ?? restProps['aria-labelledby']}

@@ -1,6 +1,7 @@
 <script lang="ts">
   import { tick } from 'svelte';
   import { getBlocksConfig, resolveSlotClasses } from '$lib/provider';
+  import { resolveClassChain } from '$lib/utils/variants';
   import { getGuideContext } from './guide.context';
   import { getGuidePanelContext } from './guide-panel.context';
   import { guideRefVariants, type GuideRefVariants } from './guide.variants';
@@ -72,7 +73,7 @@
   <button
     type="button"
     class={unstyled
-      ? [slotClasses?.ref, className].filter(Boolean).join(' ')
+      ? resolveClassChain(slotClasses?.ref, className)
       : styles.ref({ class: [slotClasses?.ref, className] })}
     data-guide-ref
     onclick={navigate}
@@ -81,7 +82,7 @@
     {@render children?.()}
   </button>
 {:else}
-  <span class={[slotClasses?.ref, className].filter(Boolean).join(' ') || undefined} {...restProps}>
+  <span class={resolveClassChain(slotClasses?.ref, className) || undefined} {...restProps}>
     {@render children?.()}
   </span>
 {/if}

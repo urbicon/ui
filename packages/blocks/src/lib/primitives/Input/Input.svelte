@@ -7,6 +7,7 @@
   import { inputVariants, type InputVariants } from './input.variants';
   import { resolveIcon } from '$lib/icons';
   import CloseIconDefault from '$lib/icons/CloseIcon.svelte';
+  import { resolveClassChain } from '$lib/utils/variants';
 
   const bt = useBlocksI18n();
 
@@ -175,7 +176,7 @@
 
 <div
   class={unstyled
-    ? [slotClasses?.wrapper, className].filter(Boolean).join(' ')
+    ? resolveClassChain(slotClasses?.wrapper, className)
     : styles.wrapper({ class: [slotClasses?.wrapper, className] })}
 >
   {#if label}

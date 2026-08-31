@@ -7,17 +7,12 @@
  * Steps 2–6 are `resolveSlotClasses` in
  * packages/blocks/src/lib/provider/blocks-context.ts, which folds them with
  * `resolveClassChain` so each source strips the earlier ones' conflicting
- * Tailwind buckets. The result plus the instance `class` prop are then handed
- * to the component's `tv()` slot fn as ONE final source (Button.svelte:
- * `styles.base({ class: [slotClasses?.base, className] })`), which strips the
- * library's own conflicting classes — step 1.
- *
- * Hence the caveat on step 7, and it is narrower than it reads: `class` is
- * inside that final source, not above it, so the only stage it reliably wins
- * against is step 1. Against steps 2–6 it is a peer — `variants.ts` leaves
- * same-bucket pairs within one source to the CSS cascade rather than picking a
- * winner — so a provider `rounded-none` and an instance `class="rounded-full"`
- * both survive and stylesheet order decides. Measured in precedence.test.ts.
+ * Tailwind buckets. That result and the instance `class` prop reach the
+ * component's `tv()` slot fn as an ARRAY (Button.svelte:
+ * `styles.base({ class: [slotClasses?.base, className] })`), and the engine
+ * reads each top-level array element as its own source — so step 7 strips
+ * step 6 the same way step 6 strips step 5, and the whole chain strips the
+ * library's own classes, step 1. Measured in precedence.test.ts.
  */
 /**
  * What an instance `class` prop outranks, in one sentence, rendered wherever a
@@ -29,16 +24,16 @@
  * Measured in precedence.test.ts.
  */
 export const classCaveat =
-  "Beats the library's own defaults — and only those. Against a utility a " +
-  'provider, preset or slotClasses already set, both survive and stylesheet ' +
-  'order decides, so reach for slotClasses there.';
+  'Beats every other rung in a shared Tailwind bucket — the library default, a ' +
+  'provider default, a preset and slotClasses alike. It reaches the root slot ' +
+  'only, so an inner element still needs slotClasses.';
 
 export const precedenceChain = [
-  'tv() variant styles (library default — the only stage a class prop reliably beats)',
+  'tv() variant styles (library default)',
   'BlocksProvider defaults.slotClasses',
   'BlocksProvider defaults.overrides[match]',
   'preset.slotClasses (when preset="…" is set)',
   'preset.overrides[match]',
   'Instance slotClasses prop',
-  'Instance class prop (root slot only; same stage as slotClasses)'
+  'Instance class prop (root slot only — the strongest rung)'
 ];

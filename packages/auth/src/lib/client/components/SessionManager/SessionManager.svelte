@@ -1,5 +1,12 @@
 <script lang="ts">
-  import { Badge, Button, Separator, Spinner, getBlocksConfig } from '@urbicon-ui/blocks';
+  import {
+    Badge,
+    Button,
+    getBlocksConfig,
+    resolveClassChain,
+    Separator,
+    Spinner
+  } from '@urbicon-ui/blocks';
   import FormErrorAlert from '../_shared/FormErrorAlert.svelte';
   import { onMount } from 'svelte';
   import { mergeAuthLocale, useAuthLocale } from '../../../i18n/index.js';
@@ -152,7 +159,7 @@
   onMount(loadSessions);
 </script>
 
-<div class={cls('flex flex-col gap-4', [slotClasses.root, className].filter(Boolean).join(' '))}>
+<div class={cls('flex flex-col gap-4', resolveClassChain(slotClasses.root, className))}>
   <div class={cls('flex items-center justify-between gap-4')}>
     <h2 class={cls('text-text-primary min-w-0 truncate text-lg font-semibold', slotClasses.title)}>
       {t.sessions.title}

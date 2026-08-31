@@ -1,5 +1,6 @@
 <script lang="ts">
   import { getBlocksConfig, resolveSlotClasses } from '$lib/provider';
+  import { resolveClassChain } from '$lib/utils/variants';
   import { getGuideContext } from './guide.context';
   import { getGuidePanelContext } from './guide-panel.context';
   import { guideArticleVariants, type GuideArticleVariants } from './guide.variants';
@@ -41,7 +42,7 @@
 {#if isActive}
   <article
     class={unstyled
-      ? [slotClasses?.article, className].filter(Boolean).join(' ')
+      ? resolveClassChain(slotClasses?.article, className)
       : styles.article({ class: [slotClasses?.article, className] })}
     {...restProps}
   >

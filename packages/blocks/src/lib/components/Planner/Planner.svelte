@@ -13,6 +13,7 @@
     type DayCellInfo,
     type DayHeaderInfo
   } from '$lib/internal/date-grid';
+  import { resolveClassChain } from '$lib/utils/variants';
   import { bucketItemsByDate } from './planner.bucket';
   import { setPlannerContext } from './planner.context';
   import { plannerVariants, type PlannerVariants } from './planner.variants';
@@ -119,11 +120,15 @@
   const slotClasses = $derived(
     resolveSlotClasses(blocksConfig, 'Planner', preset, variantProps, slotClassesProp)
   );
-  function slot(name: PlannerSlotName, extra?: string): string {
-    const overrides = [slotClasses?.[name], extra].filter(Boolean).join(' ');
-    if (unstyled) return overrides;
-    const fn = styles[name] as ((args: { class: string }) => string) | undefined;
-    return fn?.({ class: overrides }) ?? overrides;
+  // `structural` is library-authored (the pinned column, the view's own grid
+  // rules) and folds BEFORE the consumer's `slotClasses` entry; `className` is
+  // the consumer's `class` prop and folds after it. Each is one source, so the
+  // ladder holds in both directions instead of the library winning by position.
+  function slot(name: PlannerSlotName, structural?: string, className?: string): string {
+    const sources = [structural, slotClasses?.[name], className];
+    if (unstyled) return resolveClassChain(...sources);
+    const fn = styles[name] as ((args: { class: (string | undefined)[] }) => string) | undefined;
+    return fn?.({ class: sources }) ?? resolveClassChain(...sources);
   }
 
   // --- Reference date: controlled by `value`, else internal state seeded once ---
@@ -325,12 +330,15 @@
     navigate: (delta) => controller.navigate(delta),
     goToToday: () => controller.goToToday(),
     goTo: (date) => controller.goTo(date),
+    get unstyled() {
+      return unstyled;
+    },
     slot
   };
   setPlannerContext(plannerCtx);
 </script>
 
-<div class={slot('base', className)} {...restProps}>
+<div class={slot('base', undefined, className)} {...restProps}>
   <div class="sr-only" aria-live="polite" role="status">{controller.title}</div>
 
   {#if header}

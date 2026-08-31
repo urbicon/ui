@@ -8,6 +8,7 @@
     type SankeyLaidOutLink,
     type SankeyLaidOutNode
   } from '$lib/internal/sankey/layout';
+  import { resolveClassChain } from '$lib/utils/variants';
   import type {
     SankeyProps,
     SankeyIntent,
@@ -256,7 +257,7 @@
 <div
   bind:this={wrapperRef}
   class={unstyled
-    ? [slotClasses?.wrapper, className].filter(Boolean).join(' ')
+    ? resolveClassChain(slotClasses?.wrapper, className)
     : styles.wrapper({ class: [slotClasses?.wrapper, className] })}
   style="height: {effectiveHeight}px"
   onmousemove={handleWrapperMouseMove}

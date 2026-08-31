@@ -19,6 +19,7 @@
   } from '$lib/date';
   import { DateGridController } from '$lib/internal/date-grid';
   import type { DateGridSelection, DateGridView } from '$lib/internal/date-grid';
+  import { resolveClassChain } from '$lib/utils/variants';
   import { compareDayEvents, getEventDayInfo, expandRecurrence } from './calendar.engine';
   import type { CalendarProps } from './index';
   import type {
@@ -872,7 +873,7 @@
 {#if children}
   <div
     class={unstyled
-      ? [slotClasses?.base, className].filter(Boolean).join(' ')
+      ? resolveClassChain(slotClasses?.base, className)
       : styles.base({ class: [slotClasses?.base, className] })}
     {...restProps}
   >
@@ -882,7 +883,7 @@
 {:else}
   <div
     class={unstyled
-      ? [slotClasses?.base, className].filter(Boolean).join(' ')
+      ? resolveClassChain(slotClasses?.base, className)
       : styles.base({ class: [slotClasses?.base, className] })}
     {...restProps}
   >

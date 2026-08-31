@@ -2,6 +2,7 @@
   import { type InfoCardSlots, infoCardVariants } from './infocard.variants';
   import type { InfoCardProps } from './index.js';
   import { useDocsI18n } from '$lib/i18n';
+  import { resolveClassChain } from '@urbicon-ui/blocks';
 
   const dt = useDocsI18n();
 
@@ -72,7 +73,7 @@
   <a
     {...restProps}
     {href}
-    class={[slot('container'), 'block', className]}
+    class={resolveClassChain('block', slot('container'), className)}
     aria-label={title}
     data-docs-note
   >
@@ -92,7 +93,7 @@
        instead of letting them stretch to the width a table gets. -->
   <aside
     {...restProps}
-    class={[slot('container'), className]}
+    class={resolveClassChain(slot('container'), className)}
     aria-label={title ?? dt('noteLabel')}
     data-docs-note
   >

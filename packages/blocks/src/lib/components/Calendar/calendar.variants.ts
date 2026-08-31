@@ -326,8 +326,9 @@ export const calendarVariants = tv({
     /**
      * The forward nav button is the one nav control outside the `nav` group,
      * so it carries its own grid column. An axis rather than a class beside
-     * `slot('navButton', …)`: the `extra` argument shares a source with the
-     * consumer's `slotClasses.navButton`, where nothing strips anything.
+     * `slot('navButton', …)`: the `extra` argument is the LAST source of that
+     * chain, so a library class there would beat the consumer's own
+     * `slotClasses.navButton` instead of losing to it.
      */
     navPlacement: {
       next: { navButton: 'max-sm:col-start-3 max-sm:row-start-1' }

@@ -5,6 +5,7 @@
   import SearchIconDefault from '$lib/icons/SearchIcon.svelte';
   import { Dialog, Separator } from '$lib/primitives';
   import { getBlocksConfig, resolveSlotClasses } from '$lib/provider';
+  import { resolveClassChain } from '$lib/utils/variants';
   import type { CommandPaletteProps, CommandPaletteItem } from './index';
   import { commandPaletteVariants, type CommandPaletteVariants } from './commandPalette.variants';
 
@@ -157,10 +158,17 @@
 
 <svelte:window onkeydown={handleGlobalKeydown} />
 
-<Dialog bind:open size="md" placement="top" class="mt-[15vh]" onClose={() => setOpen(false)}>
+<Dialog
+  {unstyled}
+  bind:open
+  size="md"
+  placement="top"
+  class="mt-[15vh]"
+  onClose={() => setOpen(false)}
+>
   <div
     class={unstyled
-      ? [slotClasses?.wrapper, className].filter(Boolean).join(' ')
+      ? resolveClassChain(slotClasses?.wrapper, className)
       : styles.wrapper({ class: [slotClasses?.wrapper, className] })}
   >
     <!-- Search input -->

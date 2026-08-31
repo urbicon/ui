@@ -77,7 +77,7 @@ export interface ReasoningDisclosureProps
 
   /** Extra classes merged onto the root (the underlying Collapsible base). */
   class?: string;
-  /** Strip ReasoningDisclosure's own tv() classes (trigger/label/chevron/content); the collapse mechanics stay. */
+  /** Strip the tv() classes of this component (trigger/label/chevron/content), of the Collapsible it renders and of the markdown body; the collapse mechanics stay. */
   unstyled?: boolean;
   /** Per-slot class overrides. Slots: `trigger` (header button), `label` (state label), `chevron`, `content` (markdown wrapper). */
   slotClasses?: Partial<Record<ReasoningDisclosureSlots, string>>;

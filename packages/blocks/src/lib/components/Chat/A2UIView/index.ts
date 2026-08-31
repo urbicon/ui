@@ -108,7 +108,10 @@ export interface A2UIViewProps extends Omit<HTMLAttributes<HTMLDivElement>, 'cla
 
   /** Extra classes merged onto the root element. */
   class?: string;
-  /** Strip the component's default tv() classes. */
+  /**
+   * Strip the component's default tv() classes, and those of every catalog
+   * component the surface renders (Button, Input, Card …).
+   */
   unstyled?: boolean;
   /**
    * Per-slot class overrides. Slots: `root`, `surface`, `errorList`,

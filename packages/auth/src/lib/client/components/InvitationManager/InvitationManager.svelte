@@ -3,11 +3,12 @@
     Badge,
     Button,
     Checkbox,
+    getBlocksConfig,
     Input,
+    resolveClassChain,
     Select,
     Separator,
-    Spinner,
-    getBlocksConfig
+    Spinner
   } from '@urbicon-ui/blocks';
   import FormErrorAlert from '../_shared/FormErrorAlert.svelte';
   import { onMount, untrack } from 'svelte';
@@ -170,7 +171,7 @@
   const cls = (base: string, slot?: string) => slotClass(unstyled, base, slot);
 </script>
 
-<div class={cls('flex flex-col gap-6', [slotClasses.root, className].filter(Boolean).join(' '))}>
+<div class={cls('flex flex-col gap-6', resolveClassChain(slotClasses.root, className))}>
   <h2 class={cls('text-text-primary text-xl font-semibold', slotClasses.title)}>
     {t.invitations.title}
   </h2>

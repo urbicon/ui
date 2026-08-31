@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { Button, Separator, getBlocksConfig } from '@urbicon-ui/blocks';
+  import { Button, getBlocksConfig, resolveClassChain, Separator } from '@urbicon-ui/blocks';
   import { mergeAuthLocale, useAuthLocale } from '../../../i18n/index.js';
   import { resolveAuthSlotClasses, slotClass } from '../../utils/slot-class.js';
   import type { NotificationCenterProps } from './index.js';
@@ -47,7 +47,7 @@
   const cls = (base: string, slot?: string) => slotClass(unstyled, base, slot);
 </script>
 
-<div class={cls('flex flex-col', [slotClasses.root, className].filter(Boolean).join(' '))}>
+<div class={cls('flex flex-col', resolveClassChain(slotClasses.root, className))}>
   <div class={cls('flex items-center justify-between px-4 py-3', slotClasses.header)}>
     <h2 class={cls('text-text-primary text-base font-semibold')}>{t.notifications.center.title}</h2>
     {#if unreadCount > 0}
@@ -72,13 +72,11 @@
         <li
           class={unstyled
             ? slotClasses.item
-            : [
+            : resolveClassChain(
                 'hover:bg-surface-hover border-border-subtle flex items-start gap-3 border-b px-4 py-3 transition-colors',
                 !notification.readAt ? 'bg-surface-quiet' : '',
                 slotClasses.item
-              ]
-                .filter(Boolean)
-                .join(' ')}
+              )}
           data-unread={!notification.readAt || undefined}
         >
           {#if itemSnippet}

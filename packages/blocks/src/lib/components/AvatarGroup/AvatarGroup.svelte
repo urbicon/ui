@@ -2,6 +2,7 @@
   import { useBlocksI18n } from '$lib';
   import { Avatar } from '$lib/primitives/Avatar';
   import { getBlocksConfig, resolveSlotClasses } from '$lib/provider';
+  import { resolveClassChain } from '$lib/utils/variants';
   import { avatarGroupVariants } from './avatar-group.variants';
   import type { AvatarGroupProps } from './index';
 
@@ -36,7 +37,7 @@
   const baseClass = $derived(
     (styles
       ? styles.base({ class: [slotClasses?.base, className] })
-      : [slotClasses?.base, className].filter(Boolean).join(' ')) || undefined
+      : resolveClassChain(slotClasses?.base, className)) || undefined
   );
   const overflowClass = $derived(
     (styles ? styles.overflow({ class: slotClasses?.overflow }) : slotClasses?.overflow) ||
@@ -46,10 +47,11 @@
 
 <div class={baseClass} role="group" aria-label={bt('accessibility.avatarGroup')} {...restProps}>
   {#each shown as avatar, i (`${avatar.name ?? avatar.src ?? ''}-${i}`)}
-    <Avatar {...avatar} {size} ring ringColor={borderColor} />
+    <Avatar {...avatar} {unstyled} {size} ring ringColor={borderColor} />
   {/each}
   {#if overflow > 0}
     <Avatar
+      {unstyled}
       {size}
       ring
       ringColor={borderColor}

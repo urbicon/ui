@@ -55,6 +55,16 @@ const probeA = (slot: string) => `${PROBE_A_PREFIX}${slot}`;
 const PROBE_B = 'pb-override';
 /** Probe token for route E — marks the element the `class` prop lands on. */
 const PROBE_E = 'pe-class';
+/**
+ * Route F/G's pair: two classes in one conflict bucket that no library config
+ * emits, so each one's presence names the rung it came from. `LADDER_LOSER`
+ * rides `slotClasses`, `LADDER_WINNER` rides `class`; the fold has to keep the
+ * winner and drop the loser. That they collide at all is asserted below rather
+ * than assumed — a pair the bucket table stopped joining would make both routes
+ * pass by measuring nothing.
+ */
+const LADDER_LOSER = 'p-[3px]';
+const LADDER_WINNER = 'p-[5px]';
 
 /**
  * Route D's candidate classes. One per Tailwind conflict bucket a component
@@ -154,7 +164,7 @@ function collisionProbe(libraryClass: string): string | undefined {
   return undefined;
 }
 
-type Route = 'A' | 'B' | 'C' | 'D' | 'E';
+type Route = 'A' | 'B' | 'C' | 'D' | 'E' | 'F' | 'G' | 'H';
 
 /**
  * Routes that are known-broken today, each with the issue that repairs it.
@@ -178,7 +188,16 @@ const KNOWN_GAPS: Record<string, Partial<Record<Route, string>>> = {
     // The `class` prop lands on the tour bubble (correctly folded there), and
     // the bubble renders only while a tour is running — which the mount
     // fixture does not start. Not a fold defect; an element route E never sees.
-    E: 'the `class` prop lands on the tour bubble, which renders only during a tour'
+    //
+    // Route H has no entry here although the same bubble hides its three
+    // `<Button>`s from it: H *passes*, on the markup that does render (the
+    // sr-only announcer, the scrim, the beacon container), so an entry
+    // asserting a failure would be false. It is in the ROUTE_H_BLIND list at
+    // route H instead — see there for why an entry that "passes now" proves
+    // nothing about blindness.
+    E: 'the `class` prop lands on the tour bubble, which renders only during a tour',
+    F: 'the `class` prop lands on the tour bubble, which renders only during a tour',
+    G: 'the `class` prop lands on the tour bubble, which renders only during a tour'
   },
   GuideArticle: { B: '#341 passes `{}` as its condition object' },
   GuideHint: { B: '#341 passes `{}` as its condition object' },
@@ -212,8 +231,37 @@ const KNOWN_GAPS: Record<string, Partial<Record<Route, string>>> = {
   // measured on `AccordionItem` and `CalendarHeader` (both repaired here), and
   // route D sees it only where the component has a provider name. Read this
   // entry as one instance, never as the roster. #349
+
+  // Styled entirely through the `Button` it wraps: its own tv() config
+  // (`paginationLinkVariants`) declares no slots, so there is no slot for a
+  // `defaults` entry to land on and no provider name that would help — the
+  // rule a consumer writes goes under `Button`. Measured on the C row: the
+  // three classes that survive are Button's semantic hooks plus its press-cue
+  // token (`blocks-button`, `blocks-intent-primary`,
+  // `[--blocks-press-scale:1]`), which Button keeps under `unstyled` on
+  // purpose; without a provider name route C falls back to comparing every
+  // root class, and those three are in it. Reached the sweep with the
+  // `unstyled` prop that lets `<Pagination unstyled>` reach its page buttons.
+  PaginationItem: {
+    A: 'no provider name, and `paginationLinkVariants` declares no slots to address',
+    B: 'no provider name — a rule for these buttons goes under `Button`',
+    C: "the no-provider-name fallback counts Button's semantic hooks as root classes"
+  },
+
+  // #349 — three shapes that all put a library class where the consumer's
+  // `slotClasses` entry cannot beat it, measured on the failing slots:
+  // `DateGridScaffold` prepends `grid {gridColsClass}` to the row class its
+  // caller already folded (weekdayHeader, week), `Planner.svelte` writes
+  // `isWeek && 'md:hidden'` straight into a `class={[…]}` attribute next to the
+  // resolved slot (cellHeader), and CoreIconButton's plumbing sits outside the
+  // ladder by design (navButton). All three want the `view` axis the config
+  // already has, or an axis of their own.
+  //
+  // The `extra`-argument shape this entry also used to name is gone: the two
+  // date-grid helpers now fold a library `structural` argument BEFORE the
+  // consumer's entry, so the consumer wins that bucket.
   Planner: {
-    D: '#349 — DateGridScaffold prepends the grid classes; view-conditional classes ride the `extra` argument. Plus CoreIconButton plumbing on `navButton`'
+    D: '#349 — DateGridScaffold prepends the grid classes; a view-conditional class rides a raw class attribute. Plus CoreIconButton plumbing on `navButton`'
   },
 
   // #339 — addressable, but under its parent's name (measured): a rule written
@@ -226,6 +274,30 @@ const KNOWN_GAPS: Record<string, Partial<Record<Route, string>>> = {
     A: '#339 addressable only under `Calendar` — measured: `defaults.Calendar.slotClasses` reaches its header, nav and title elements',
     B: '#339 addressable only under `Calendar`, whose condition object it does not contribute to'
   }
+};
+
+/**
+ * Wrappers whose `unstyled` forwarding route H cannot see, with the child it
+ * misses. Their route H *passes*, on the markup a plain mount does render — so
+ * this is a note, not a KNOWN_GAPS entry, and it buys nothing at runtime.
+ *
+ * It is written down because the alternative is worse: the forwarding in these
+ * four rests on the roster derivation (every component that declares `unstyled`
+ * and renders a public component must hand it down), and a reader who trusts
+ * the sweep alone would delete it as untested.
+ *
+ * How the set was measured, and the only way it can be: by REMOVING every
+ * forwarding this PR added — 52 of them across 18 files — and running the
+ * sweep. 15 components went red; these four did not. Asking the gate instead —
+ * a KNOWN_GAPS probe entry, reading "listed but passes now" — cannot tell
+ * "measured and correct" from "measured and blind", because both are green.
+ * That confusion is what put `Guide` on this list a round late.
+ */
+const ROUTE_H_BLIND: Record<string, string> = {
+  AvatarGroup: 'its `<Avatar>`s need `items`, which the plain mount does not supply',
+  CalendarHeader: 'its Popover / SegmentGroup / Tooltip render only while open',
+  FileUpload: 'its `<Progress>` renders only for a file that is uploading',
+  Guide: 'its three `<Button>`s live in the tour bubble, which renders only during a tour'
 };
 
 /**
@@ -322,6 +394,13 @@ type RootRule = 'outermost' | 'probe';
 interface MountResult {
   /** Every class token in the rendered markup, element by element. */
   tokens: Set<string>;
+  /**
+   * The same, narrowed to the component's own subtree. For a compound child
+   * that is what sits inside `data-cascade-scope`; everything else renders
+   * alone and the two sets are equal. Route H compares two mounts in which the
+   * *parent* is styled differently, so the parent's classes have to be out.
+   */
+  ownTokens: Set<string>;
   /** Whether anything rendered at all. */
   rendered: boolean;
   /** Whether the root element itself was found. */
@@ -385,6 +464,11 @@ function mountOnce(
   for (const element of painted) {
     for (const token of element.classList) tokens.add(token);
   }
+  const scope = target.querySelector('[data-cascade-scope]');
+  const ownTokens = new Set<string>();
+  for (const element of scope ? [...scope.querySelectorAll('*')] : painted) {
+    for (const token of element.classList) ownTokens.add(token);
+  }
   const rendered = painted.length > 0;
 
   // Inside a parent the first element belongs to the parent, so the compound
@@ -435,6 +519,7 @@ function mountOnce(
   document.body.innerHTML = '';
   return {
     tokens,
+    ownTokens,
     rendered,
     rootFound: root !== null,
     rootTokens,
@@ -451,7 +536,10 @@ function measure(entry: CascadeComponent, withFixture = true): Measurement {
     B: { ok: false, detail: 'not run' },
     C: { ok: false, detail: 'not run' },
     D: { ok: false, detail: 'not run' },
-    E: { ok: false, detail: 'not run' }
+    E: { ok: false, detail: 'not run' },
+    F: { ok: false, detail: 'not run' },
+    G: { ok: false, detail: 'not run' },
+    H: { ok: false, detail: 'not run' }
   };
 
   let plain: MountResult;
@@ -744,6 +832,120 @@ function measure(entry: CascadeComponent, withFixture = true): Measurement {
     routes.E = { ok: false, measured: false, detail: 'declares no `class` prop' };
   }
 
+  // ── F/G: a colliding `class` prop strips the `slotClasses` entry ──
+  //
+  // The two top rungs of the ladder, measured against each other. Route E asks
+  // whether `class` beats the LIBRARY; this asks whether it beats the rung
+  // directly below it, which is a different code path: both are consumer
+  // sources, and until they reach `tv()` as two array elements they travel as
+  // one string in which nothing strips anything.
+  //
+  // G is the same claim in the `unstyled` branch, where there is no library
+  // class left and the component joins the two rungs by hand. Two routes
+  // rather than one because the branches are two hand-written expressions per
+  // slot and only a failure that names the branch is actionable — and because
+  // they have disjoint controls: measured, breaking the fold inside `tv()`
+  // (`sources.push(...overrideSources)` → `.flat()`) reddens 76 F rows and NOT
+  // ONE G row, since G never enters `foldFor`; breaking `resolveClassChain`'s
+  // own fold reddens 84 G rows. Neither sabotage stands in for the other.
+  const ladder = (unstyled: boolean): Outcome => {
+    if (!name) {
+      return {
+        ok: false,
+        measured: false,
+        detail: 'no provider name — `slotClasses` cannot be addressed'
+      };
+    }
+    if (!entry.declaredProps.includes('class')) {
+      return { ok: false, measured: false, detail: 'declares no `class` prop' };
+    }
+    const extra: Record<string, unknown> = unstyled ? { unstyled: true } : {};
+    const rungs = {
+      defaults: {
+        [name]: { slotClasses: Object.fromEntries(entry.slots.map((slot) => [slot, LADDER_LOSER])) }
+      }
+    };
+    const carried = mountOnce(entry, rungs, withFixture, 'outermost', {
+      ...extra,
+      class: PROBE_E
+    }).classCarrier;
+    if (!carried) return { ok: false, detail: 'the `class` prop reached no element' };
+    if (!carried.has(LADDER_LOSER)) {
+      // Without the lower rung on the same element there is no pair to
+      // resolve — the honest answer is "not measured", not "passed".
+      return {
+        ok: false,
+        measured: false,
+        detail: `the element the \`class\` prop lands on carries no \`slotClasses\` entry (${[...carried].slice(0, 6).join(' ') || '<no classes>'})`
+      };
+    }
+    const element = mountOnce(entry, rungs, withFixture, 'outermost', {
+      ...extra,
+      class: `${PROBE_E} ${LADDER_WINNER}`
+    }).classCarrier;
+    if (!element) return { ok: false, detail: 'the colliding `class` prop reached no element' };
+    if (!element.has(LADDER_WINNER)) {
+      return {
+        ok: false,
+        detail: `the colliding \`class\` prop did not arrive (${LADDER_WINNER})`
+      };
+    }
+    return element.has(LADDER_LOSER)
+      ? {
+          ok: false,
+          detail: `\`slotClasses\` ${LADDER_LOSER} survives a colliding \`class\` ${LADDER_WINNER} — both land in the attribute and the stylesheet decides`
+        }
+      : { ok: true, detail: `${LADDER_WINNER} stripped ${LADDER_LOSER}` };
+  };
+  routes.F = ladder(false);
+  routes.G = ladder(true);
+
+  // ── H: an instance `unstyled` strips what a provider `unstyled` strips ──
+  //
+  // Two ways to ask for the same thing, held to the same answer. The set is
+  // read off the component rather than listed: whatever the provider flag
+  // removes from the subtree is, by definition, this component's look — and a
+  // wrapper that keeps it when the flag arrives as its own prop is stripping
+  // its own root and leaving the components it renders dressed.
+  //
+  // Scoped to the component's own subtree, because a compound child's parent
+  // is inside the provider and outside the instance prop.
+  //
+  // What it does NOT ask: whether `unstyled` reaches a component the CONSUMER
+  // passes in as `children`. It must not — that is action at a distance from a
+  // prop written on the wrapper, and `<BlocksProvider unstyled>` is the tool
+  // for it. The sweep's `children` is a bare `<span>`, so nothing here depends
+  // on the difference.
+  //
+  // And it answers for the markup a plain mount renders, no more: see
+  // ROUTE_H_BLIND above for the four wrappers whose forwarding it cannot see,
+  // and for how that set was measured.
+  if (!entry.declaredProps.includes('unstyled')) {
+    routes.H = { ok: false, measured: false, detail: 'declares no `unstyled` prop' };
+  } else {
+    const byProvider = mountOnce(entry, { unstyled: true }, withFixture);
+    const stripped = [...plain.ownTokens].filter((token) => !byProvider.ownTokens.has(token));
+    if (stripped.length === 0) {
+      routes.H = {
+        ok: false,
+        measured: false,
+        detail:
+          'provider `unstyled` removes no class from this subtree — nothing to compare against'
+      };
+    } else {
+      const byInstance = mountOnce(entry, {}, withFixture, 'outermost', { unstyled: true });
+      const survivors = stripped.filter((token) => byInstance.ownTokens.has(token));
+      routes.H = survivors.length
+        ? {
+            ok: false,
+            detail:
+              `${survivors.length}/${stripped.length} classes that provider \`unstyled\` removes ` +
+              `survive an instance \`unstyled\`: ${survivors.slice(0, 6).join(' ')}`
+          }
+        : { ok: true, detail: `${stripped.length} classes dropped either way` };
+    }
+  }
+
   return { entry, routes };
 }
 
@@ -768,6 +970,14 @@ const components = exported.filter(
 const measurements = components.map((entry) => measure(entry));
 
 describe('BlocksProvider cascade reaches the markup', () => {
+  it('probes routes F and G with a pair that actually collides', () => {
+    // Both routes read "the winner stripped the loser". A pair the bucket
+    // table no longer joins would satisfy that by never emitting the loser at
+    // all, and ~90 components would go green on a measurement that stopped
+    // happening.
+    expect(resolveClassChain(LADDER_LOSER, LADDER_WINNER).split(' ')).toEqual([LADDER_WINNER]);
+  });
+
   it('leaves nothing route A reaches unprobed by route D', () => {
     // A component leaves route D by one of two doors: route A did not reach
     // its root (which fails loudly on its own, or is a recorded #339 gap), or
@@ -829,7 +1039,8 @@ describe('BlocksProvider cascade reaches the markup', () => {
       ...Object.keys(KNOWN_GAPS),
       ...Object.keys(NOT_MEASURABLE),
       ...Object.keys(MOUNT_FIXTURES),
-      ...Object.keys(ROOT_IS_A_WRAPPER)
+      ...Object.keys(ROOT_IS_A_WRAPPER),
+      ...Object.keys(ROUTE_H_BLIND)
     ].filter((name) => !known.has(name));
     expect(
       stale,
@@ -861,6 +1072,27 @@ describe('BlocksProvider cascade reaches the markup', () => {
     ).toEqual([]);
   });
 
+  it('lists no ROUTE_H_BLIND entry whose route H has started failing', () => {
+    // The entry claims "H passes here, and that pass is worth nothing". A red H
+    // means the second half is no longer the reason it is listed — a fixture
+    // now reaches the child, or the forwarding broke. Either way the entry has
+    // to be re-decided rather than left standing.
+    //
+    // This does NOT verify blindness; nothing in a test run can. Blindness is
+    // shown by removing the forwarding and watching the sweep stay green.
+    const stale: string[] = [];
+    for (const name of Object.keys(ROUTE_H_BLIND)) {
+      const measurement = measurements.find((m) => m.entry.exportName === name);
+      if (!measurement || measurement.mountError) continue;
+      if (!measurement.routes.H.ok) stale.push(`${name} — ${measurement.routes.H.detail}`);
+    }
+    expect(
+      stale,
+      'ROUTE_H_BLIND entries whose route H now fails — the entry says it passes ' +
+        `for a reason that no longer holds:\n  ${stale.join('\n  ')}`
+    ).toEqual([]);
+  });
+
   it('needs every mount fixture it carries', () => {
     // A fixture earns its place by changing an answer: without it the
     // component must fail to mount, or measure differently. Anything else is
@@ -876,7 +1108,7 @@ describe('BlocksProvider cascade reaches the markup', () => {
         continue; // throwing without the fixture is what makes it necessary
       }
       if (bare.mountError) continue;
-      const changed = (['A', 'B', 'C', 'D', 'E'] as Route[]).some(
+      const changed = (['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H'] as Route[]).some(
         (route) =>
           fixtured.routes[route].ok !== bare.routes[route].ok ||
           fixtured.routes[route].detail !== bare.routes[route].detail
@@ -895,7 +1127,10 @@ const ROUTE_TITLE: Record<Route, string> = {
   B: 'B — a conditional `overrides` rule reaches the markup',
   C: 'C — provider `unstyled` drops the root element’s library classes',
   D: 'D — a colliding `slotClasses` entry strips the library class it collides with',
-  E: 'E — a colliding `class` prop strips the library class it collides with'
+  E: 'E — a colliding `class` prop strips the library class it collides with',
+  F: 'F — a colliding `class` prop strips the `slotClasses` entry it collides with',
+  G: 'G — …and does so under `unstyled` too',
+  H: 'H — an instance `unstyled` strips what a provider `unstyled` strips'
 };
 
 describe.each(measurements.map((m) => [m.entry.exportName, m] as const))(
@@ -918,7 +1153,7 @@ describe.each(measurements.map((m) => [m.entry.exportName, m] as const))(
       ).toBeUndefined();
     });
 
-    for (const route of ['A', 'B', 'C', 'D', 'E'] as Route[]) {
+    for (const route of ['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H'] as Route[]) {
       const gap = KNOWN_GAPS[name]?.[route];
       it.skipIf(
         notMeasurable || measurement.mountError || measurement.routes[route].measured === false

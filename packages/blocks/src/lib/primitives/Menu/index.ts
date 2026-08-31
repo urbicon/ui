@@ -78,7 +78,8 @@ export interface MenuSpecificProps<TItem extends MenuItemType = MenuItemType> {
   children?: Snippet;
 
   /**
-   * Remove the default variant classes. Only user-supplied classes apply.
+   * Remove the default variant classes, the default trigger Button's included.
+   * Only user-supplied classes apply.
    * @default false
    */
   unstyled?: boolean;

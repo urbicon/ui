@@ -3,7 +3,11 @@ import { type SlotNames, tv, type VariantProps } from '$lib/utils/variants';
 export const skeletonVariants = tv({
   slots: {
     base: ['bg-surface-interactive'],
-    wrapper: ['flex flex-col']
+    // `gap-2` lives here, not as the default of the `gap` prop: a prop default
+    // is library-authored, and as a call-site source it would have outranked the
+    // consumer's `slotClasses.wrapper`. In the slot base it is the first source,
+    // which every rung of the ladder can strip.
+    wrapper: ['flex flex-col gap-2']
   },
   variants: {
     // Skeleton is a placeholder — the variant IS the shape statement

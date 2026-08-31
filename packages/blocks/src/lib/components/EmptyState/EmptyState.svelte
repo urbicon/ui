@@ -1,5 +1,6 @@
 <script lang="ts">
   import { getBlocksConfig, resolveSlotClasses } from '$lib/provider';
+  import { resolveClassChain } from '$lib/utils/variants';
   import type { EmptyStateProps } from './index';
   import { emptyStateVariants, type EmptyStateVariants } from './emptyState.variants';
 
@@ -34,7 +35,7 @@
     name: 'base' | 'iconWrapper' | 'title' | 'description' | 'children' | 'cta',
     extra?: string
   ) {
-    const overrides = [slotClasses?.[name], extra].filter(Boolean).join(' ');
+    const overrides = resolveClassChain(slotClasses?.[name], extra);
     return styles?.[name]?.({ class: overrides }) ?? overrides;
   }
 </script>

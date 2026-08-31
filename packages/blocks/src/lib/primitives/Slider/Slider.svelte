@@ -3,6 +3,7 @@
   import CoreFieldMessage from '$lib/internal/core/CoreFieldMessage.svelte';
   import { getBlocksConfig, resolveSlotClasses } from '$lib/provider';
   import { useFormField } from '$lib/utils';
+  import { resolveClassChain } from '$lib/utils/variants';
   import type { SliderProps } from './index';
   import { sliderVariants, type SliderVariants } from './slider.variants';
 
@@ -395,7 +396,7 @@
 
 <div
   class={unstyled
-    ? [slotClasses?.wrapper, className].filter(Boolean).join(' ')
+    ? resolveClassChain(slotClasses?.wrapper, className)
     : styles.wrapper({ class: [slotClasses?.wrapper, className] })}
   {...restProps}
 >

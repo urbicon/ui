@@ -3,6 +3,7 @@
   import { SvelteMap } from 'svelte/reactivity';
   import { getBlocksConfig, resolveSlotClasses } from '$lib/provider';
   import { edgeEnabledIndex, getTierContext, nextEnabledIndex } from '$lib/utils';
+  import { resolveClassChain } from '$lib/utils/variants';
   import { type CollapseMark, hostHasRoomAgain } from './overflow';
   import { segmentGroupVariants, type SegmentGroupVariants } from './segmentgroup.variants';
   import { setSegmentGroupContext } from './segmentGroup.context';
@@ -297,7 +298,7 @@
   data-collapsed={collapsed || undefined}
   aria-orientation={collapsed ? 'vertical' : 'horizontal'}
   class={unstyled
-    ? [slotClasses?.base, className].filter(Boolean).join(' ')
+    ? resolveClassChain(slotClasses?.base, className)
     : styles.base({ class: [slotClasses?.base, className] })}
   aria-label={ariaLabel}
   aria-disabled={disabled || undefined}

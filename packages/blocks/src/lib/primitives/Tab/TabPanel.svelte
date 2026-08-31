@@ -4,6 +4,7 @@
   import { getTabContext } from './tab.context';
   import { tabVariants, type TabVariants } from './tab.variants';
   import { fade } from 'svelte/transition';
+  import { resolveClassChain } from '$lib/utils/variants';
 
   let {
     value,
@@ -74,7 +75,7 @@
     id={`tabpanel-${value}`}
     aria-labelledby={`tab-${value}`}
     class={unstyled
-      ? [slotClasses?.panel, className].filter(Boolean).join(' ')
+      ? resolveClassChain(slotClasses?.panel, className)
       : styles.panel({ class: [slotClasses?.panel, className] })}
     hidden={!isActive}
     tabindex={isActive ? 0 : -1}

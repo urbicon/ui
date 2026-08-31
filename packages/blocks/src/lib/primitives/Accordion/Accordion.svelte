@@ -1,5 +1,6 @@
 <script lang="ts">
   import { getBlocksConfig, resolveSlotClasses } from '$lib/provider';
+  import { resolveClassChain } from '$lib/utils/variants';
   import { accordionVariants, type AccordionVariants } from './accordion.variants';
   import { setAccordionContext } from './accordion.context';
   import type { AccordionProps, AccordionContext } from './index';
@@ -98,7 +99,7 @@
 
 <div
   class={unstyled
-    ? [slotClasses?.base, className].filter(Boolean).join(' ')
+    ? resolveClassChain(slotClasses?.base, className)
     : styles.base({ class: [slotClasses?.base, className] })}
   style:--blocks-collapse-duration={collapseDuration}
   style:--blocks-collapse-easing={transitionEasing}

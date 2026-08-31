@@ -880,6 +880,30 @@ function tokenize(value: string): string[] {
 }
 
 /**
+ * The `class` argument of a resolve call, read as an ordered source list: a
+ * top-level array element is one source, so `[slotClasses?.base, className]`
+ * folds the way the override ladder reads — the later rung strips the earlier
+ * rung's bucket instead of both landing in the attribute for the stylesheet to
+ * decide between (COMPONENT-API-CONVENTIONS.md, "Override ladder").
+ *
+ * Anything else is a single source: a string, an object, and a *nested* array,
+ * which `cx` flattens — so an author who wants two classes to coexist writes
+ * them in one element.
+ *
+ * A library-authored class therefore belongs BEFORE the consumer's rungs in
+ * the array (`Button`'s `pressCueClass`), never after: the later source wins.
+ */
+function classSources(input: ClassInput): string[][] {
+  const entries = Array.isArray(input) ? input : [input];
+  const sources: string[][] = [];
+  for (const entry of entries) {
+    const tokens = tokenize(cx(entry as ClassInput));
+    if (tokens.length > 0) sources.push(tokens);
+  }
+  return sources;
+}
+
+/**
  * Merge class strings with the same Tailwind conflict resolution `tv()`
  * applies between stages: a later source's classes strip any earlier class
  * that shares their conflict bucket, so the last source wins per bucket.
@@ -891,8 +915,18 @@ function tokenize(value: string): string[] {
  * deterministically defeats an unconditional `slotClasses` entry in the same
  * bucket — instead of emitting both and leaving the winner to stylesheet
  * order.
+ *
+ * It is also the `unstyled` half of every component's override ladder: with
+ * the library classes gone the consumer's rungs (`slotClasses`, then `class`)
+ * are all that is left, and they have to resolve against each other exactly
+ * as they do inside `tv()` — otherwise the same two inputs would render
+ * differently depending on the flag.
+ *
+ * @example
+ * // The two consumer rungs, later winning per bucket.
+ * resolveClassChain('py-8', 'py-4'); // → 'py-4'
  */
-export function resolveClassChain(...sources: (string | null | undefined)[]): string {
+export function resolveClassChain(...sources: (string | false | null | undefined)[]): string {
   let acc: string[] = [];
   for (const source of sources) {
     if (!source) continue;
@@ -1181,7 +1215,8 @@ export function tv(config: {
 
   /**
    * Shared pipeline: first source → each variant axis in declaration order →
-   * each matching compoundVariant in array order → call-site class override.
+   * each matching compoundVariant in array order → the call-site class
+   * override, itself one source per top-level array element (`classSources`).
    * `foldSources` lets every later source strip earlier sources' conflicting
    * buckets, so axis and compound order are semantic: declare the axis that
    * must win a shared bucket later. See "tv() engine — explicit trade-offs"
@@ -1193,7 +1228,7 @@ export function tv(config: {
     firstSource: string[],
     effective: PropBag,
     pickValue: (value: unknown) => unknown,
-    overrideTokens: string[]
+    overrideSources: string[][]
   ): string {
     const sources: string[][] = [firstSource];
     for (const [vName, vMap] of variantEntries) {
@@ -1205,7 +1240,7 @@ export function tv(config: {
       if (!matchesCompound(cv, effective)) continue;
       sources.push(tokenize(resolveClassValue(pickValue(cv.class))));
     }
-    sources.push(overrideTokens);
+    sources.push(...overrideSources);
     return foldSources(sources).join(' ');
   }
 
@@ -1214,8 +1249,8 @@ export function tv(config: {
     const baseTokens = tokenize(resolveClassValue(base));
     const resolve = function resolve(props?: PropBag): string {
       const effective = { ...defaultVariants, ...stripUndefined(props || {}) };
-      const overrideTokens = props?.class ? tokenize(cx(props.class as ClassInput)) : [];
-      return foldFor(baseTokens, effective, identity, overrideTokens);
+      const overrides = props?.class ? classSources(props.class as ClassInput) : [];
+      return foldFor(baseTokens, effective, identity, overrides);
     };
     // Introspection hook for tooling (variants linter, docs-gen) — the
     // config is static module data, exposing it costs nothing.
@@ -1257,8 +1292,8 @@ export function tv(config: {
       const slotBase = slotBases.get(slotName) as string[];
       result[slotName] = function slotFn(slotProps?: PropBag): string {
         const effective = { ...topProps, ...stripUndefined(slotProps || {}) };
-        const overrideTokens = slotProps?.class ? tokenize(cx(slotProps.class as ClassInput)) : [];
-        return foldFor(slotBase, effective, pick, overrideTokens);
+        const overrides = slotProps?.class ? classSources(slotProps.class as ClassInput) : [];
+        return foldFor(slotBase, effective, pick, overrides);
       };
     }
 

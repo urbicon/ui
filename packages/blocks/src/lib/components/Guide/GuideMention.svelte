@@ -1,5 +1,6 @@
 <script lang="ts">
   import { getBlocksConfig, resolveSlotClasses } from '$lib/provider';
+  import { resolveClassChain } from '$lib/utils/variants';
   import { getGuideContext } from './guide.context';
   import { guideMentionVariants, type GuideMentionVariants } from './guide.variants';
   import type { GuideMentionProps } from './index';
@@ -83,7 +84,7 @@
   <button
     type="button"
     class={unstyled
-      ? [slotClasses?.mention, className].filter(Boolean).join(' ')
+      ? resolveClassChain(slotClasses?.mention, className)
       : styles.mention({ class: [slotClasses?.mention, className] })}
     data-guide-mention
     onmouseenter={highlight}
@@ -96,10 +97,7 @@
     {@render children?.()}
   </button>
 {:else}
-  <span
-    class={[slotClasses?.mention, className].filter(Boolean).join(' ') || undefined}
-    {...restProps}
-  >
+  <span class={resolveClassChain(slotClasses?.mention, className) || undefined} {...restProps}>
     {@render children?.()}
   </span>
 {/if}

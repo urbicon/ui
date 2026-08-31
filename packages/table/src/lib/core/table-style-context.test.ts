@@ -120,6 +120,54 @@ describe('resolveSlotClass — what `unstyled` keeps of the container slot', () 
     expect(LAYOUT_SWITCH_CLASSES).not.toContain('w-full');
   });
 
+  // ── the fifth parameter: the consumer's own `class` prop ──────────────────
+  //
+  // `className` is a source of its own AFTER `slotClass`/`structural`, which is
+  // the top rung of the override ladder. `structural` deliberately shares its
+  // source with `slotClass` — see the docstring — so these two questions have
+  // different answers on purpose.
+
+  it('lets the class prop beat a slotClass in the same bucket', () => {
+    const result = resolveSlotClass(tableSlots.table, 'w-auto', false, undefined, 'w-px');
+    expect(result).toContain('w-px');
+    expect(result).not.toContain('w-auto');
+    expect(result).not.toContain('w-full');
+  });
+
+  it('leaves slotClass and structural to the cascade between themselves', () => {
+    // The pair the layout switch depends on: `structural` must not be able to
+    // strip a `slotClass`, nor the other way round.
+    const result = resolveSlotClass(tableSlots.table, 'w-auto', false, 'w-px').split(/\s+/);
+    expect(result).toContain('w-auto');
+    expect(result).toContain('w-px');
+  });
+
+  it('lets the class prop beat the library default under `unstyled` too', () => {
+    const result = resolveSlotClass(tableSlots.table, 'w-auto', true, undefined, 'w-px');
+    expect(result.split(/\s+/)).toEqual(['w-px']);
+  });
+
+  it('keeps the query container when the class prop collides with it', () => {
+    // `@container` and `@container/x` both write `container-type`. Folding the
+    // kept structural classes together with `className` removed the container
+    // the desktop/card switch is measured against, and with it the switch: the
+    // grid and the card list would render at the same time.
+    const result = resolveSlotClass(container, undefined, true, undefined, '@container/x').split(
+      /\s+/
+    );
+    expect(result, 'the query container survives its own bucket').toContain('@container');
+    expect(result, "the caller's container name arrives too").toContain('@container/x');
+  });
+
+  it('keeps every switch half when the class prop collides with one', () => {
+    const half = LAYOUT_SWITCH_CLASSES.find((cls) => cls.includes('48rem'));
+    const result = resolveSlotClass(container, undefined, true, undefined, half).split(/\s+/);
+    expect(result.filter((cls) => cls === half).length, 'the half is not duplicated').toBe(1);
+    for (const kept of LAYOUT_SWITCH_CLASSES.filter((cls) => container().includes(cls))) {
+      expect(result, `${kept} was stripped by the class prop`).toContain(kept);
+    }
+  });
+
   it('protects every step of the switch, not just the default', () => {
     // A step added to CARDS_BELOW_STEPS joins the protected set on its own;
     // this is the assertion that would fail if that derivation were replaced by

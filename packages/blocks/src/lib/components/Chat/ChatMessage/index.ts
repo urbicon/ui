@@ -95,7 +95,7 @@ export interface ChatMessageProps
 
   /** Extra classes merged onto the root element. */
   class?: string;
-  /** Remove all default tv classes. */
+  /** Remove all default tv classes, from this component and the ones it renders (Avatar, Alert, Tooltip, the part renderers). */
   unstyled?: boolean;
   /**
    * Per-slot class overrides. Slots: root | container | header | roleName | avatar |

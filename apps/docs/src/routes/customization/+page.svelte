@@ -20,7 +20,7 @@
       goal: 'Restyle one element on one instance',
       tool: 'class',
       example: '<Button class="rounded-full">',
-      note: `${classCaveat} Merges onto the OUTERMOST (root) slot only, see the trap below.`
+      note: `${classCaveat} See the trap below.`
     },
     {
       goal: 'Restyle an inner element (the <input> itself, a header, a chevron…)',
@@ -45,7 +45,7 @@
       goal: 'Rebuild a component from scratch (strip every default)',
       tool: 'unstyled + slotClasses',
       example: '<Card unstyled slotClasses={{ base: "…" }} />',
-      note: 'Renders the HTML structure only: you own every visual, including dark mode, hover/active and focus rings.'
+      note: 'Renders the HTML structure only: you own every visual, including dark mode, hover/active and focus rings. On a composing component (DatePicker, ChatMessage, CommandPalette…) it also strips the blocks components it renders itself; anything you pass in as children keeps its look.'
     }
   ];
 
@@ -136,16 +136,16 @@
       class="bg-surface-subtle text-text-secondary rounded-contain mt-4 border p-4 text-sm leading-relaxed"
     >
       <strong class="text-text-primary">Full precedence chain (weakest → strongest):</strong>
-      Through step 6, each source strips the earlier ones' conflicting Tailwind utilities on the slot
-      they share, so the later source wins (an instance <code class="text-xs">slotClasses</code>
+      Each source strips the earlier ones' conflicting Tailwind utilities on the slot they share, so the
+      later source wins (an instance <code class="text-xs">slotClasses</code>
       <code class="text-xs">rounded-none</code> defeats a provider default
       <code class="text-xs">rounded-full</code>), and non-conflicting classes accumulate. Step 7 is
-      not a further rung: <code class="text-xs">class</code> joins steps 2–6 as one source, and
-      within a source conflicting utilities are left to the CSS cascade. So
-      <code class="text-xs">class</code> reliably beats the library defaults and nothing else —
-      against a provider or preset value, both utilities survive and stylesheet order decides. Use
-      <code class="text-xs">slotClasses</code> to override a conflicting utility and
-      <code class="text-xs">class</code> to add one.
+      a rung like the rest: an instance <code class="text-xs">class="rounded-full"</code> defeats a
+      <code class="text-xs">slotClasses</code>
+      <code class="text-xs">rounded-none</code> on the same slot. Its one limit is reach —
+      <code class="text-xs">class</code> lands on the root slot only, so an inner element still
+      needs
+      <code class="text-xs">slotClasses</code>.
       <ol class="mt-2 list-outside list-decimal space-y-1 pl-5">
         {#each precedenceChain as step (step)}
           <li><code class="text-xs">{step}</code></li>

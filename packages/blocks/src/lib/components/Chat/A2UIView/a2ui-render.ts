@@ -72,6 +72,13 @@ export interface A2uiRenderContext {
   streaming: boolean;
   /** True inside a Button label (Text renders as an inline plain span). */
   inline: boolean;
+  /**
+   * The view's `unstyled`, relayed to every catalog component the dispatcher
+   * renders. `classes` above already answers it for the view's OWN slots; a
+   * dispatched `<Button>`/`<Input>`/… carries a tv() config of its own, and
+   * only its prop reaches that.
+   */
+  unstyled: boolean;
   surfaceId: string;
   onAction: ((event: A2uiActionEvent) => void) | undefined;
   /**

@@ -7,6 +7,7 @@
   import { resolveIcon } from '$lib/icons';
   import CheckIconDefault from '$lib/icons/CheckIcon.svelte';
   import MinusIconDefault from '$lib/icons/MinusIcon.svelte';
+  import { resolveClassChain } from '$lib/utils/variants';
   import type { CheckboxProps } from './index';
 
   const CheckMarkIcon = resolveIcon('check', CheckIconDefault);
@@ -119,7 +120,7 @@
 
 <div
   class={unstyled
-    ? [slotClasses?.wrapper, className].filter(Boolean).join(' ')
+    ? resolveClassChain(slotClasses?.wrapper, className)
     : styles.wrapper({ class: [slotClasses?.wrapper, className] })}
 >
   <label

@@ -1,4 +1,5 @@
 import { createOptionalContext } from '$lib/utils/optional-context';
+import { resolveClassChain } from '$lib/utils/variants';
 import type {
   CalendarEvent,
   CalendarViewMode,
@@ -164,11 +165,11 @@ export function getCalendarContext(): CalendarContext {
  * Replaces the 15x-duplicated `slot()` pattern in sub-components.
  */
 export function createSlotHelper(ctx: CalendarContext) {
-  // `extra` carries consumer classes only. A library class put here shares a
-  // source with the consumer's `slotClasses` entry, and `stripConflicts` never
-  // runs inside one source — it belongs in a variants axis instead.
+  // `extra` carries consumer classes only. It is the last rung of the chain,
+  // so a library class put here would beat the consumer's own `slotClasses`
+  // entry in a shared bucket — it belongs in a variants axis instead.
   return (key: CalendarSlotName, extra?: string) => {
-    const overrides = [ctx.slotClasses?.[key], extra].filter(Boolean).join(' ');
+    const overrides = resolveClassChain(ctx.slotClasses?.[key], extra);
     if (ctx.unstyled) return overrides;
     const styleFn = (ctx.styles as Record<string, (opts?: { class?: string }) => string>)[key];
     return styleFn?.({ class: overrides }) ?? overrides;

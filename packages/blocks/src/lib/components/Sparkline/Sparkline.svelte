@@ -8,6 +8,7 @@
   } from './sparkline.variants';
   import { linearScale, linePath, areaPath, extent } from '$lib/internal/charts/utils';
   import type { ChartPoint } from '$lib/internal/charts/utils';
+  import { resolveClassChain } from '$lib/utils/variants';
 
   let {
     data,
@@ -51,7 +52,7 @@
   const styles = $derived(unstyled ? undefined : sparklineVariants(variantProps));
 
   function slot(name: SparklineSlots, extra?: string): string {
-    const overrides = [slotClasses[name], extra].filter(Boolean).join(' ');
+    const overrides = resolveClassChain(slotClasses[name], extra);
     return styles?.[name]({ class: overrides }) ?? overrides;
   }
 </script>

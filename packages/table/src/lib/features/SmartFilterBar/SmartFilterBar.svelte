@@ -235,6 +235,7 @@
     filterBarStyles.container,
     styleConfig.slotClasses.filterBar,
     styleConfig.unstyled,
+    undefined,
     className
   )}
 >

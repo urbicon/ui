@@ -1,5 +1,6 @@
 <script lang="ts">
   import { getBlocksConfig, resolveSlotClasses } from '$lib/provider';
+  import { resolveClassChain } from '$lib/utils/variants';
   import { separatorVariants } from './separator.variants';
   import type { SeparatorProps } from './index';
 
@@ -22,7 +23,7 @@
 
   const classes = $derived(
     unstyled
-      ? [slotClasses?.base, className].filter(Boolean).join(' ')
+      ? resolveClassChain(slotClasses?.base, className)
       : separatorVariants({ orientation, size, class: [slotClasses?.base, className] })
   );
 </script>

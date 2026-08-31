@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { Badge } from '@urbicon-ui/blocks';
+  import { Badge, resolveClassChain } from '@urbicon-ui/blocks';
   import { type Column, Table } from '@urbicon-ui/table';
   import { InfoCard, InlineCode } from '$lib';
   import { useDocsI18n } from '$lib/i18n';
@@ -190,7 +190,7 @@
        attribute win over an earlier spread, so `{...restProps}` in front would
        pin every instance to the literal, and a page rendering more than one
        (the Guide page renders 13) would emit the same id that often. -->
-  <div id="api-reference" class={[slot('base'), className]} {...restProps}>
+  <div id="api-reference" class={resolveClassChain(slot('base'), className)} {...restProps}>
     <div class={slot('stats')}>
       <span>{dt('propsCount', { count: sortedProps.length })}</span>
       {#if requiredCount > 0}

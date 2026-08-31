@@ -1,6 +1,7 @@
 <script lang="ts">
   import { useBlocksI18n } from '$lib';
   import { getBlocksConfig, resolveSlotClasses } from '$lib/provider';
+  import { resolveClassChain } from '$lib/utils/variants';
   import { skeletonVariants, type SkeletonVariants } from './skeleton.variants';
   import type { SkeletonProps } from './index';
 
@@ -13,7 +14,7 @@
     width,
     height,
     count = 1,
-    gap = 'gap-2',
+    gap,
     class: className = '',
     unstyled: unstyledProp = false,
     slotClasses: slotClassesProp = {},
@@ -60,7 +61,7 @@
 {#if count > 1}
   <div
     class={unstyled
-      ? [slotClasses?.wrapper, gap, className].filter(Boolean).join(' ')
+      ? resolveClassChain(slotClasses?.wrapper, gap, className)
       : styles.wrapper({ class: [slotClasses?.wrapper, gap, className] })}
     role="status"
     aria-label={bt('accessibility.loading')}
@@ -78,7 +79,7 @@
 {:else}
   <div
     class={unstyled
-      ? [slotClasses?.base, className].filter(Boolean).join(' ')
+      ? resolveClassChain(slotClasses?.base, className)
       : styles.base({ class: [slotClasses?.base, className] })}
     style={inlineStyle}
     role="status"

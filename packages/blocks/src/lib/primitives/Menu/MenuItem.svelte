@@ -3,6 +3,7 @@
   import { mintAttachment } from '$lib';
   import { resolveIcon } from '$lib/icons';
   import CheckIconDefault from '$lib/icons/CheckIcon.svelte';
+  import { resolveClassChain } from '$lib/utils/variants';
   import { getMenuContext, getMenuParentId } from './menu.context';
   import { menuIconVariants } from './menu.variants';
 
@@ -153,7 +154,7 @@
   aria-describedby={detail ? detailId : undefined}
   aria-disabled={disabled || undefined}
   class={ctx.unstyled
-    ? [ctx.slotClasses?.item, className].filter(Boolean).join(' ')
+    ? resolveClassChain(ctx.slotClasses?.item, className)
     : ctx.styles.item({
         itemSize: itemSizeVariant,
         disabled,

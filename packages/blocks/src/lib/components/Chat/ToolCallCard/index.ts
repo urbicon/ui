@@ -88,7 +88,7 @@ export interface ToolCallCardProps
 
   /** Extra classes merged onto the root element. */
   class?: string;
-  /** Strip the component's default tv() classes (the underlying Collapsible chrome is kept). */
+  /** Strip the component's default tv() classes, the underlying Collapsible's and the status Badge's. */
   unstyled?: boolean;
   /**
    * Per-slot class overrides. Slots: `trigger` (header button), `triggerLeft`,

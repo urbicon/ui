@@ -3,6 +3,7 @@
   import CoreFieldMessage from '$lib/internal/core/CoreFieldMessage.svelte';
   import { getBlocksConfig, resolveSlotClasses } from '$lib/provider';
   import { useFormField, getTierContext } from '$lib/utils';
+  import { resolveClassChain } from '$lib/utils/variants';
   import type { TextareaProps } from './index';
   import { textareaVariants, type TextareaVariants } from './textarea.variants';
 
@@ -129,7 +130,7 @@
 
 <div
   class={unstyled
-    ? [slotClasses?.wrapper, className].filter(Boolean).join(' ')
+    ? resolveClassChain(slotClasses?.wrapper, className)
     : styles.wrapper({ class: [slotClasses?.wrapper, className] })}
 >
   {#if label}

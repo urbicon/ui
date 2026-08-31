@@ -3,6 +3,7 @@
   import type { ToolbarProps } from './index';
   import { getBlocksConfig, resolveSlotClasses } from '$lib/provider';
   import { setTierContext } from '$lib/utils/tier-context';
+  import { resolveClassChain } from '$lib/utils/variants';
 
   let {
     children,
@@ -52,7 +53,7 @@
 <div
   {...restProps}
   class={unstyled
-    ? [slotClasses?.base, className].filter(Boolean).join(' ')
+    ? resolveClassChain(slotClasses?.base, className)
     : styles.base({ class: [slotClasses?.base, className] })}
   role="toolbar"
   aria-orientation={orientation}

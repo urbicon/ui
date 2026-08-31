@@ -232,7 +232,10 @@ intents, compound variants and defaults.
 **The conflict resolver.** The pipeline is an ordered list of sources —
 `slot-base → each variant axis in declaration order → each matching compoundVariant in
 array order → call-site class` — folded sequentially: every later source **strips**
-conflicting Tailwind utilities from everything before it.
+conflicting Tailwind utilities from everything before it. The call-site `class` is not one
+source but as many as the array has top-level elements, so the shape the components already
+write — `{ class: [slotClasses?.base, className] }` — is the override ladder's last two
+rungs and resolves as one.
 
 So `slotClasses={{ box: 'rounded-full' }}` deterministically defeats a base `rounded-sm`,
 and an active-state compound's `bg-neutral` defeats an outlined variant's `bg-transparent`.
@@ -274,7 +277,8 @@ Coverage limits and why they are deliberate: [DECISIONS.md](DECISIONS.md#the-tv-
 ### The override cascade
 
 Consumers restyle components through one ordered chain, conflict-resolved per Tailwind
-bucket so a later source always wins:
+bucket so a later source always wins — the instance `class` prop included, which reaches
+`tv()` as a source of its own rather than glued to the resolved `slotClasses` string:
 
 ```mermaid
 graph LR
@@ -325,6 +329,25 @@ under `NumberInput` and hands the result to the `<Input>` it wraps as instance
 forwarded, it would resolve under `Input` and style every text field (#355). An entry
 written under a name nothing resolves as matches no lookup and is never read, with nothing
 reported — the same silence a misspelt component name buys.
+
+The call sites spell the chain's last two rungs as an array —
+`styles.base({ class: [slotClasses?.base, className] })` — and `tv()` reads **each
+top-level array element as one source**, so a library class placed in that array belongs
+*before* the consumer's rungs (`Button`'s `pressCueClass`), never after. The `unstyled`
+branch has no `tv()` to fold through and folds the same list with `resolveClassChain`
+instead. The two are separate expressions per slot, so their agreement is a thing the
+sweep asserts (route G) rather than a thing the shape guarantees: a one-line edit to
+either branch parts them, and only route G notices. Within one element nothing is
+stripped: an author who
+wants two classes to coexist writes them in the same element.
+
+`unstyled` travels the same way — by prop, never by context. A component passes it to the
+blocks components it renders itself (DatePicker → Input/Popover/Calendar, ChatMessage →
+Avatar/Alert/Tooltip, …), so a half-stripped widget is not a state one instance can be in.
+It deliberately does **not** reach components the consumer hands in as `children` or a
+snippet: that would be action at a distance from a prop written on the wrapper.
+`<BlocksProvider unstyled>` is the tool for a whole subtree. Measured per component by
+route H of `provider/provider-cascade.svelte.test.ts`.
 
 Key files: `provider/BlocksProvider.svelte`, `provider/blocks-context.ts`,
 `utils/variants.ts`. The consumer-facing override ladder ("reach for the lowest rung"):

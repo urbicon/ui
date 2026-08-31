@@ -1,5 +1,6 @@
 <script lang="ts">
   import type { NoteProps } from './index.js';
+  import { resolveClassChain } from '@urbicon-ui/blocks';
   import { type NoteSlots, noteVariants } from './notelist.variants';
 
   let {
@@ -33,7 +34,7 @@
   const tag = $derived(`h${Math.min(6, Math.max(1, headingLevel))}` as const);
 </script>
 
-<div {...restProps} class={[slot('root'), className]}>
+<div {...restProps} class={resolveClassChain(slot('root'), className)}>
   {#if titleSnippet}
     <svelte:element this={tag} class={slot('title')}>
       {@render titleSnippet()}

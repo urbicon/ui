@@ -465,7 +465,7 @@
 {#if instance === null}
   {#if context.streaming}
     <span class={context.classes.pending}>
-      <Skeleton variant="text" width="6rem" />
+      <Skeleton unstyled={context.unstyled} variant="text" width="6rem" />
       <span class="sr-only">{context.labels.pending}</span>
     </span>
   {:else}
@@ -522,7 +522,12 @@
     {/each}
   </ul>
 {:else if component === 'Card'}
-  <Card style={weightStyle} role={ariaLabel ? 'group' : undefined} aria-label={ariaLabel}>
+  <Card
+    unstyled={context.unstyled}
+    style={weightStyle}
+    role={ariaLabel ? 'group' : undefined}
+    aria-label={ariaLabel}
+  >
     {#if node.children[0]}
       {@render renderChild(node.children[0], blockCtx)}
     {/if}
@@ -534,6 +539,7 @@
        label names the tablist itself — no role="group" workaround needed. -->
   {#if tabItems.length > 0}
     <Tab
+      unstyled={context.unstyled}
       value={activeTab}
       onValueChange={(next) => (selectedTab = next)}
       style={weightStyle}
@@ -541,12 +547,12 @@
     >
       {#snippet tabs()}
         {#each tabItems as item (item.value)}
-          <TabItem value={item.value}>{item.title}</TabItem>
+          <TabItem unstyled={context.unstyled} value={item.value}>{item.title}</TabItem>
         {/each}
       {/snippet}
       {#snippet panels()}
         {#each tabItems as item (item.value)}
-          <TabPanel value={item.value}>
+          <TabPanel unstyled={context.unstyled} value={item.value}>
             {#if item.child}
               {@render renderChild(item.child, blockCtx)}
             {/if}
@@ -557,6 +563,7 @@
   {/if}
 {:else if component === 'Divider'}
   <Separator
+    unstyled={context.unstyled}
     orientation={enumOr('axis', 'horizontal') === 'vertical' ? 'vertical' : 'horizontal'}
   />
 {:else if component === 'Text'}
@@ -633,6 +640,7 @@
   {/if}
 {:else if component === 'Button'}
   <Button
+    unstyled={context.unstyled}
     variant={buttonStyle.variant}
     intent={buttonStyle.intent}
     style={weightStyle}
@@ -655,6 +663,7 @@
   {@const variant = enumOr('variant', 'shortText')}
   {#if variant === 'longText'}
     <Textarea
+      unstyled={context.unstyled}
       {label}
       value={textValue}
       oninput={onTextInput}
@@ -663,6 +672,7 @@
     />
   {:else}
     <Input
+      unstyled={context.unstyled}
       {label}
       type={INPUT_TYPE[variant] ?? 'text'}
       value={textValue}
@@ -673,6 +683,7 @@
   {/if}
 {:else if component === 'CheckBox'}
   <Checkbox
+    unstyled={context.unstyled}
     label={text(resolved('label'))}
     checked={boolValue}
     onCheckedChange={onBoolChange}
@@ -692,6 +703,7 @@
       {/if}
       {#each choiceOptions as option (option.value)}
         <Checkbox
+          unstyled={context.unstyled}
           label={option.label}
           checked={choiceSelected.includes(option.value)}
           onCheckedChange={(checked) => onOptionToggle(option.value, checked)}
@@ -700,13 +712,14 @@
     </div>
   {:else}
     <RadioGroup
+      unstyled={context.unstyled}
       label={ariaLabel || choiceLabel || undefined}
       value={choiceSelected[0]}
       onValueChange={onRadioChange}
       style={weightStyle}
     >
       {#each choiceOptions as option (option.value)}
-        <RadioItem value={option.value} label={option.label} />
+        <RadioItem unstyled={context.unstyled} value={option.value} label={option.label} />
       {/each}
     </RadioGroup>
   {/if}
@@ -714,6 +727,7 @@
   <!-- showValue is forced on: a generated surface has no other place to state
        the current number, and the agent cannot ask for it (not a catalog prop). -->
   <Slider
+    unstyled={context.unstyled}
     label={text(resolved('label')) || undefined}
     value={sliderValue}
     min={sliderMin}
@@ -735,6 +749,7 @@
       aria-label={ariaLabel || label || undefined}
     >
       <DatePicker
+        unstyled={context.unstyled}
         label={label || undefined}
         value={dtParts.date || null}
         onValueChange={onDtDateChange}
@@ -742,6 +757,7 @@
         maxDate={dtMaxDate}
       />
       <TimeInput
+        unstyled={context.unstyled}
         value={dtParts.time || null}
         onValueChange={onDtTimeChange}
         withSeconds={dtParts.time.length > 5}
@@ -754,6 +770,7 @@
          live on a wrapper (role=group only when it actually carries a name). -->
     <div style={weightStyle} role={ariaLabel ? 'group' : undefined} aria-label={ariaLabel}>
       <TimeInput
+        unstyled={context.unstyled}
         label={label || undefined}
         value={dtParts.time || null}
         onValueChange={onDtTimeChange}
@@ -768,6 +785,7 @@
          (AT-ignored, axe aria-prohibited-attr), so the name must travel
          through `label` to reach the actual input. -->
     <DatePicker
+      unstyled={context.unstyled}
       label={label || ariaLabel || undefined}
       value={dtParts.date || null}
       onValueChange={onDtDateChange}

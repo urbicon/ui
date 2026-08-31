@@ -1,5 +1,6 @@
 <script lang="ts">
   import { getBlocksConfig, resolveSlotClasses } from '$lib/provider';
+  import { resolveClassChain } from '$lib/utils/variants';
   import { kbdVariants } from './kbd.variants';
   import type { KbdProps } from './index';
 
@@ -28,7 +29,7 @@
   const baseClass = $derived(
     styles
       ? styles.base({ class: [slotClasses?.base, className] })
-      : [slotClasses?.base, className].filter(Boolean).join(' ')
+      : resolveClassChain(slotClasses?.base, className)
   );
   const separatorClass = $derived(
     styles ? styles.separator({ class: slotClasses?.separator }) : (slotClasses?.separator ?? '')

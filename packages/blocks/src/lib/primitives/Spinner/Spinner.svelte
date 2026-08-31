@@ -2,6 +2,7 @@
   import { getBlocksConfig, resolveSlotClasses } from '$lib/provider';
   // internal core, not the public component — keeps the public-to-public import graph clean (see internal/core/)
   import { SPINNER_ARC_PATH } from '$lib/internal/core/spinner-geometry';
+  import { resolveClassChain } from '$lib/utils/variants';
   import { spinnerVariants, type SpinnerVariants } from './spinner.variants';
   import type { SpinnerProps } from './index';
 
@@ -34,7 +35,7 @@
 {#if visible}
   <div
     class={unstyled
-      ? [slotClasses?.base, className].filter(Boolean).join(' ')
+      ? resolveClassChain(slotClasses?.base, className)
       : styles.base({ class: [slotClasses?.base, className] })}
     role="status"
     aria-label={label}
@@ -150,7 +151,7 @@
     -->
     <span
       class={unstyled
-        ? ['sr-only', slotClasses?.srOnly].filter(Boolean).join(' ')
+        ? resolveClassChain('sr-only', slotClasses?.srOnly)
         : styles.srOnly({ class: slotClasses?.srOnly })}
     >
       {label}

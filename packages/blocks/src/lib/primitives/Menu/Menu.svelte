@@ -6,6 +6,7 @@
   import { resolveIcon } from '$lib/icons';
   import ChevronDownIconDefault from '$lib/icons/ChevronDownIcon.svelte';
   import { getTierContext } from '$lib/utils/tier-context';
+  import { resolveClassChain } from '$lib/utils/variants';
   const ChevronDownIcon = resolveIcon('chevronDown', ChevronDownIconDefault);
   import Popover from '../Popover/Popover.svelte';
   import { popoverMotion } from '../Popover/popover.variants';
@@ -582,7 +583,7 @@
   data-menu-root
   data-menu-open={open || undefined}
   class={unstyled
-    ? [slotClasses?.base, className].filter(Boolean).join(' ')
+    ? resolveClassChain(slotClasses?.base, className)
     : styles.base({ class: [slotClasses?.base, className] })}
   {...restProps}
 >
@@ -611,6 +612,7 @@
       {@render customTrigger(toggle, open, dismiss)}
     {:else}
       <Button
+        {unstyled}
         {variant}
         {size}
         {intent}

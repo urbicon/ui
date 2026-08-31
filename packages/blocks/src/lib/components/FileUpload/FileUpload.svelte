@@ -25,6 +25,7 @@
     type FileIntakeConstraints,
     type FileIntakeMessages
   } from '$lib/utils/file-intake';
+  import { resolveClassChain } from '$lib/utils/variants';
 
   const bt = useBlocksI18n();
 
@@ -110,7 +111,7 @@
   // ── Slot Helper ────────────────────────────────────────────────────────────
 
   function slot(slotName: FileUploadSlotName, extra?: string): string {
-    const overrides = [slotClasses?.[slotName], extra].filter(Boolean).join(' ');
+    const overrides = resolveClassChain(slotClasses?.[slotName], extra);
     if (unstyled) return overrides;
     const styleFn = (styles as Record<string, (opts?: { class?: string }) => string>)[slotName];
     return styleFn?.({ class: overrides }) ?? overrides;
@@ -312,7 +313,7 @@
 
 <div
   class={unstyled
-    ? [slotClasses?.root, className].filter(Boolean).join(' ')
+    ? resolveClassChain(slotClasses?.root, className)
     : styles.root({ class: [slotClasses?.root, className] })}
   role="region"
   aria-label={bt('accessibility.fileUpload')}
@@ -409,6 +410,7 @@
               {#if entry.status === 'uploading' && entry.progress !== undefined}
                 <div class={slot('fileItemProgress')}>
                   <Progress
+                    {unstyled}
                     value={entry.progress}
                     size={progressSize}
                     intent={intent === 'neutral' ? 'primary' : intent}

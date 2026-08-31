@@ -170,7 +170,7 @@ export interface PaginationProps
 
   /** Additional CSS classes merged onto the root `<nav>` element. */
   class?: string;
-  /** Strip all default variant classes for a fully custom build. */
+  /** Strip all default variant classes, on the page buttons too, for a fully custom build. */
   unstyled?: boolean;
   /** Per-slot class overrides merged with (or replacing, when unstyled) tv styles. Slots: base, info, controls, ellipsis. */
   slotClasses?: Partial<Record<PaginationSlots, string>>;
@@ -241,6 +241,12 @@ export interface PaginationItemProps
 
   /** Additional CSS classes on the button element. */
   class?: string;
+
+  /**
+   * Strip the inner Button's default styles, so only `class` remains.
+   * Forwarded by `Pagination`'s own `unstyled`. @default false
+   */
+  unstyled?: boolean;
 }
 
 export { default as Pagination } from './Pagination.svelte';

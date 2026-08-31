@@ -163,21 +163,20 @@ slotClasses?: {
       the later source wins and non-conflicting classes accumulate. That merged string and the
       instance <code class="bg-surface-subtle rounded-modify px-1.5 py-0.5 text-sm">class</code>
       prop then reach the component's <code class="text-xs">tv()</code> slot as
-      <em>one</em> source, which strips the library's own conflicting defaults. So
-      <code class="bg-surface-subtle rounded-modify px-1.5 py-0.5 text-sm">class</code> beats the
-      library — and only the library. It is not resolved against anything in that merged string,
-      whether the utility came from a default, a preset or an instance
-      <code class="bg-surface-subtle rounded-modify px-1.5 py-0.5 text-sm">slotClasses</code>: write
-      the same utility into both sides and stylesheet order decides. Override a conflicting utility
-      with <code class="text-xs">slotClasses</code>; add one with
-      <code class="text-xs">class</code>. All three buttons below live inside one provider that
-      defaults Button to <code class="text-xs">rounded-none</code>:
+      <em>two</em> sources, in that order, and the pair strips the library's own conflicting
+      defaults. So
+      <code class="bg-surface-subtle rounded-modify px-1.5 py-0.5 text-sm">class</code> beats every
+      rung below it — the library default, a provider default, a preset and an instance
+      <code class="bg-surface-subtle rounded-modify px-1.5 py-0.5 text-sm">slotClasses</code> alike.
+      Its one limit is reach: it lands on the root slot, so an inner element still needs
+      <code class="text-xs">slotClasses</code>. All three buttons below live inside one provider
+      that defaults Button to <code class="text-xs">rounded-none</code>:
     </p>
     <CodeExample title="Override behavior" isolate>
       <BlocksProvider defaults={{ Button: { slotClasses: { base: 'rounded-none' } } }}>
         <Button>Default (square)</Button>
-        <Button slotClasses={{ base: 'rounded-full' }}>slotClasses wins the conflict</Button>
-        <Button class="tracking-widest uppercase">class adds utilities</Button>
+        <Button slotClasses={{ base: 'rounded-full' }}>slotClasses beats the default</Button>
+        <Button class="rounded-full tracking-widest uppercase">class beats it too</Button>
       </BlocksProvider>
     </CodeExample>
     <p class="text-text-secondary mt-4 text-sm leading-relaxed">
