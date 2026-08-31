@@ -7,7 +7,8 @@ import type { ChartSlot } from './variants';
  * type projection and by `slot-reach.svelte.test.ts`. A spread initializer is
  * not provably side-effect-free, so beside the resolver these survive
  * tree-shaking — an A/B build measured +50…57 B gz per chart, from +0.36 % on
- * LineChart to +0.82 % on ChartFrame. From here nothing on a consumer path
+ * LineChart to +0.82 % on ChartFrame; the same lists written out flat, without
+ * spreads, cost 0 B in that position. From here nothing on a consumer path
  * imports them.
  *
  * One config feeds five components, so `ChartSlot` answers "what does this

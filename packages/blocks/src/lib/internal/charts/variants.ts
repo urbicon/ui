@@ -15,10 +15,11 @@ export const chartVariants = tv({
     axis: ['text-text-tertiary'],
     /**
      * The zero baseline the bars stand on, drawn at `yScale(0)`. BarChart
-     * paints it; LineChart, AreaChart and ChartFrame do not, and it is not in
-     * their `slotClasses` types. A chart that starts drawing it has to put 0
-     * inside its own domain first — `yScale(0)` lands outside the plot box
-     * otherwise, over the category labels and the legend.
+     * paints it; LineChart, AreaChart, DonutChart and ChartFrame do not, and it
+     * is not in their `slotClasses` types. A chart that starts drawing it has
+     * to put 0 inside its own domain first — `yScale(0)` otherwise lands
+     * outside the plot box: below it for an all-positive domain, above it for
+     * an all-negative one.
      */
     axisLine: ['stroke-border-default'],
     /** Tick + category labels. */

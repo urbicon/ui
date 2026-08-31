@@ -8,13 +8,7 @@ import { calendarVariants } from '$lib/components/Calendar/calendar.variants';
 import ChartFrame from '$lib/components/ChartFrame/ChartFrame.svelte';
 import DonutChart from '$lib/components/DonutChart/DonutChart.svelte';
 import LineChart from '$lib/components/LineChart/LineChart.svelte';
-import {
-  AREA_CHART_SLOTS,
-  BAR_CHART_SLOTS,
-  CHART_FRAME_SLOTS,
-  DONUT_CHART_SLOTS,
-  LINE_CHART_SLOTS
-} from '$lib/internal/charts/slots';
+import * as chartSlots from '$lib/internal/charts/slots';
 import { chartVariants } from '$lib/internal/charts/variants';
 
 /**
@@ -86,6 +80,10 @@ interface Sweep {
    * Slots this component reaches in no state, each with the reason in words.
    * An entry whose slot IS reached — or is no longer declared — is an error,
    * the contract `imports-lint` and the cascade sweep already carry.
+   *
+   * It excuses the slot from this component's own sweep and from nothing else:
+   * the config-wide check at the bottom reads measured unions, so a slot no
+   * component of the config reaches is reported there whatever stands here.
    */
   unreached: Record<string, string>;
 }
@@ -191,7 +189,7 @@ const SWEEPS: Sweep[] = [
     component: BarChart,
     config: 'chartVariants',
     configSlots: CHART_SLOTS,
-    slots: [...BAR_CHART_SLOTS],
+    slots: [...chartSlots.BAR_CHART_SLOTS],
     mounts: [{ name: 'grouped bars with a legend and gridlines', props: CARTESIAN }],
     unreached: {}
   },
@@ -200,7 +198,7 @@ const SWEEPS: Sweep[] = [
     component: LineChart,
     config: 'chartVariants',
     configSlots: CHART_SLOTS,
-    slots: [...LINE_CHART_SLOTS],
+    slots: [...chartSlots.LINE_CHART_SLOTS],
     mounts: [{ name: 'two series with a legend and gridlines', props: CARTESIAN }],
     unreached: {}
   },
@@ -209,7 +207,7 @@ const SWEEPS: Sweep[] = [
     component: AreaChart,
     config: 'chartVariants',
     configSlots: CHART_SLOTS,
-    slots: [...AREA_CHART_SLOTS],
+    slots: [...chartSlots.AREA_CHART_SLOTS],
     mounts: [{ name: 'two stacked areas with a legend and gridlines', props: CARTESIAN }],
     unreached: {}
   },
@@ -218,7 +216,7 @@ const SWEEPS: Sweep[] = [
     component: DonutChart,
     config: 'chartVariants',
     configSlots: CHART_SLOTS,
-    slots: [...DONUT_CHART_SLOTS],
+    slots: [...chartSlots.DONUT_CHART_SLOTS],
     mounts: [
       {
         name: 'two arcs with the centre total and a legend',
@@ -242,7 +240,7 @@ const SWEEPS: Sweep[] = [
     configSlots: CHART_SLOTS,
     // The frame is the `<figure>` + `<svg>` a consumer draws their own marks
     // into; every other slot belongs to a chart that draws itself.
-    slots: [...CHART_FRAME_SLOTS],
+    slots: [...chartSlots.CHART_FRAME_SLOTS],
     mounts: [{ name: 'an empty frame', props: {} }],
     unreached: {}
   }
@@ -312,7 +310,8 @@ describe.each(measured.map((m) => [m.sweep.name, m] as const))('%s', (_name, mea
         `${perMount.length} state(s) above no element of it carries them. A consumer writing ` +
         'one into `slotClasses` gets a silent no-op. Either wire the slot to the element it ' +
         'names, drop it from the type, or — if the state it lives in cannot be mounted here — ' +
-        `give it an \`unreached\` entry saying so:\n  ${dead.join('\n  ')}`
+        'give it an `unreached` entry saying so, which excuses it here but not from the ' +
+        `config-wide check below:\n  ${dead.join('\n  ')}`
     ).toEqual([]);
   });
 
@@ -388,5 +387,38 @@ describe.each([...new Set(SWEEPS.map((s) => s.config))])('%s', (config) => {
         'Delete them from the config, or mount the state that paints them:' +
         `\n  ${orphans.join('\n  ')}`
     ).toEqual([]);
+  });
+});
+
+/** `BAR_CHART_SLOTS` → `BarChart` — the sweep a slot list belongs to. */
+function componentName(exportName: string): string {
+  return exportName
+    .replace(/_SLOTS$/, '')
+    .split('_')
+    .map((word) => word[0] + word.slice(1).toLowerCase())
+    .join('');
+}
+
+describe('charts/slots.ts', () => {
+  // A missing sweep is not a failing sweep. Everything above runs over what
+  // `SWEEPS` carries, so dropping one takes that chart's projected type out of
+  // measurement entirely and a list claiming a slot the component never paints
+  // goes green. Neither side of this is written twice: the module's export
+  // names give the component, and the sweeps for the config it feeds have to be
+  // exactly those components, carrying exactly those lists.
+  it('has a sweep per chart, each measuring the list its type is projected from', () => {
+    const exported = Object.entries(chartSlots)
+      .filter(([, value]) => Array.isArray(value))
+      .map(([name, slots]) => [componentName(name), [...(slots as readonly string[])].sort()]);
+    const swept = SWEEPS.filter((sweep) => sweep.config === 'chartVariants').map((sweep) => [
+      sweep.name,
+      [...sweep.slots].sort()
+    ]);
+    expect(
+      Object.fromEntries(swept),
+      'the charts `slots.ts` projects a `slotClasses` type for and the chart sweeps above have ' +
+        'to be the same set, with the same slots: a chart with a list but no sweep is a public ' +
+        "type nothing measures, and a sweep reading another chart's list measures the wrong one."
+    ).toEqual(Object.fromEntries(exported));
   });
 });
