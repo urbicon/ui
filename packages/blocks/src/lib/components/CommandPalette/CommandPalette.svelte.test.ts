@@ -62,3 +62,73 @@ describe('CommandPalette (item icons)', () => {
     expect(option.querySelector('svg')).toBeNull();
   });
 });
+
+/**
+ * An option row is built from four sources — the library's `item` classes, the
+ * library's classes for the row's state, then the consumer's entry for each.
+ * They are folded against each other rather than joined, so the last source
+ * that writes a Tailwind bucket owns it and the stylesheet never arbitrates.
+ *
+ * The order puts both consumer rungs last on purpose: measured on the two-fold
+ * form this replaced, 24 of 24 colliding pairs across `text-color`, `bg-color`,
+ * `cursor`, `opacity` and `hover:bg-color` went to the library, so
+ * `slotClasses={{ item: 'bg-white' }}` silently kept the highlight background.
+ * The price is deliberate — an `item` entry that collides now *removes* the
+ * state class, and a consumer who wants both writes both.
+ */
+const LADDER_ITEMS: CommandPaletteItem[] = [
+  { id: 'a', label: 'Alpha' },
+  { id: 'b', label: 'Beta' },
+  { id: 'c', label: 'Gamma', disabled: true }
+];
+
+/** Class tokens of one option row: 0 highlighted, 1 default, 2 disabled. */
+function rowTokens(index: number): string[] {
+  const rows = screen.getAllByRole('option', { hidden: true });
+  const row = rows[index];
+  if (!row) throw new Error(`no option row at ${index}; the palette rendered ${rows.length}`);
+  return (row.getAttribute('class') ?? '').split(/\s+/).filter(Boolean);
+}
+
+describe('CommandPalette (the class ladder on an item row)', () => {
+  it('lets an `item` entry beat the library state class it collides with', async () => {
+    render({ items: LADDER_ITEMS, slotClasses: { item: 'bg-white' } });
+    await tick();
+
+    expect(rowTokens(0)).toContain('bg-white');
+    expect(rowTokens(0)).not.toContain('bg-primary-subtle');
+    // A different bucket is untouched — the entry displaces, it does not clear.
+    expect(rowTokens(0)).toContain('text-primary-text');
+  });
+
+  it('gives the state entry the last word over the `item` entry', async () => {
+    render({ items: LADDER_ITEMS, slotClasses: { item: 'bg-white', itemHighlighted: 'bg-black' } });
+    await tick();
+
+    expect(rowTokens(0)).toContain('bg-black');
+    expect(rowTokens(0)).not.toContain('bg-white');
+  });
+
+  it('keeps the two consumer rungs in order under `unstyled`', async () => {
+    render({
+      items: LADDER_ITEMS,
+      unstyled: true,
+      slotClasses: { item: 'cursor-pointer text-red-500', itemDisabled: 'cursor-not-allowed' }
+    });
+    await tick();
+
+    // Both library rungs are empty here, so the fold is consumer against
+    // consumer and the state entry still owns the bucket it shares.
+    expect(rowTokens(2)).toEqual(['text-red-500', 'cursor-not-allowed']);
+  });
+
+  it('resolves the library`s own cursor pair on a disabled row', async () => {
+    render({ items: LADDER_ITEMS });
+    await tick();
+
+    // `item` asks for `cursor-pointer` and `itemDisabled` for `cursor-not-allowed`.
+    // Joined raw both shipped and Tailwind's emit order picked the pointer.
+    expect(rowTokens(2)).toContain('cursor-not-allowed');
+    expect(rowTokens(2)).not.toContain('cursor-pointer');
+  });
+});

@@ -26,8 +26,34 @@ export const chartVariants = tv({
     axisLabel: ['fill-text-tertiary text-3xs tabular-nums'],
     /** Background gridlines. */
     grid: ['stroke-border-hairline'],
-    /** Generic data mark (line path, area, point). */
+    /**
+     * The stroked series path: LineChart's line, AreaChart's top edge — and in
+     * AreaChart the filled band as well, which is why `area` and `areaOutline`
+     * exist to reach one path each. A *paint* utility written here lands on
+     * both AreaChart paths, where each defeats the other's `fill="none"` /
+     * `stroke="none"` presentation attribute: measured in Chromium, a `fill:`
+     * declaration fills the open outline polyline and a `stroke:` declaration
+     * draws a contour around the band. Stroke *geometry* — width, dash, cap,
+     * join — paints nothing on the band and is safe to write here.
+     */
     mark: ['transition-[opacity] duration-[var(--blocks-duration-fast)]'],
+    /** Point marker on a line series; fades with the other data marks. */
+    point: ['transition-[opacity] duration-[var(--blocks-duration-fast)]'],
+    /**
+     * AreaChart's filled band on its own. Empty, and so is `areaOutline`:
+     * everything that distinguishes the two paths arrives as a presentation
+     * attribute — `fill`, `fill-opacity` and `stroke` computed from the data,
+     * `stroke-width`, `stroke-linejoin` and `stroke-linecap` written literally
+     * — and the one class-level look either wants, the opacity transition, is
+     * `mark`'s and already on both. They exist to *separate*
+     * what `mark` says, not to add to it. Both are folded against `mark` with
+     * `resolveClassChain` at the call site, so a default added here later
+     * resolves against `mark`'s per bucket rather than racing it in the
+     * stylesheet.
+     */
+    area: [],
+    /** AreaChart's top edge on its own; empty for the reason `area` gives. */
+    areaOutline: [],
     /** Bar rectangle. */
     bar: ['transition-[opacity] duration-[var(--blocks-duration-fast)]'],
     /** Donut / pie segment. */

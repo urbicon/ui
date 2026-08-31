@@ -60,7 +60,14 @@ export interface AreaChartProps extends Omit<HTMLAttributes<HTMLElement>, 'child
   class?: string;
   /** Remove all default tv classes. */
   unstyled?: boolean;
-  /** Per-slot class overrides. */
+  /**
+   * Per-slot class overrides. A series is drawn as two paths and `mark` lands
+   * on both of them, so a utility that sets a paint there reaches both: `fill-*`
+   * fills the top edge's open polyline, `stroke-*` outlines the band. Use `area`
+   * for the filled band alone and `areaOutline` for its top edge alone; each is
+   * folded against `mark` rather than appended to it, so an entry there wins its
+   * Tailwind bucket outright instead of by stylesheet order.
+   */
   slotClasses?: AreaChartSlotClasses;
   /** Apply a named preset registered on `<BlocksProvider>`. */
   preset?: string;

@@ -147,7 +147,7 @@
       />
       {#if showPoints}
         {#each line.points as point, pi (pi)}
-          <circle cx={point[0]} cy={point[1]} r="2.5" fill={line.color}>
+          <circle class={slot('point')} cx={point[0]} cy={point[1]} r="2.5" fill={line.color}>
             <title
               >{line.label ? `${line.label} — ` : ''}{data[pi].label}: {fmt(
                 data[pi].values[si] ?? 0
