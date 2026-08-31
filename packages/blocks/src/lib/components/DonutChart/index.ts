@@ -1,5 +1,5 @@
 import type { HTMLAttributes } from 'svelte/elements';
-import type { ChartSlotClasses } from '$lib/internal/charts/types';
+import type { DonutChartSlotClasses } from '$lib/internal/charts/types';
 
 /** A single slice of a donut / pie chart. */
 export interface DonutDatum {
@@ -63,7 +63,7 @@ export interface DonutChartProps extends Omit<HTMLAttributes<HTMLElement>, 'chil
   /** Remove all default tv classes. */
   unstyled?: boolean;
   /** Per-slot class overrides. */
-  slotClasses?: ChartSlotClasses;
+  slotClasses?: DonutChartSlotClasses;
   /** Apply a named preset registered on `<BlocksProvider>`. */
   preset?: string;
 }

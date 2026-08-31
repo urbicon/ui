@@ -1,9 +1,22 @@
+// One slot vocabulary per chart rather than one for the family: the five share
+// `chartVariants`, and each takes only the slots it paints.
 export type {
+  AreaChartSlot,
+  BarChartSlot,
+  ChartFrameSlot,
+  DonutChartSlot,
+  LineChartSlot
+} from '$lib/internal/charts/slots';
+export type {
+  AreaChartSlotClasses,
+  BarChartSlotClasses,
   CartesianDatum,
+  ChartFrameSlotClasses,
   ChartMargin,
   ChartPlot,
   ChartSeries,
-  ChartSlotClasses
+  DonutChartSlotClasses,
+  LineChartSlotClasses
 } from '$lib/internal/charts/types';
 // Shared chart utilities + types (the per-chart Props come via `export *` above).
 export {

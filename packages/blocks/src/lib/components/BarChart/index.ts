@@ -1,9 +1,9 @@
 import type { HTMLAttributes } from 'svelte/elements';
 import type {
+  BarChartSlotClasses,
   CartesianDatum,
   ChartMargin,
-  ChartSeries,
-  ChartSlotClasses
+  ChartSeries
 } from '$lib/internal/charts/types';
 
 /** One category (x-axis tick) with one value per series. @see CartesianDatum */
@@ -64,7 +64,7 @@ export interface BarChartProps extends Omit<HTMLAttributes<HTMLElement>, 'childr
   /** Remove all default tv classes. */
   unstyled?: boolean;
   /** Per-slot class overrides. */
-  slotClasses?: ChartSlotClasses;
+  slotClasses?: BarChartSlotClasses;
   /** Apply a named preset registered on `<BlocksProvider>`. */
   preset?: string;
 }

@@ -8,6 +8,13 @@ import { calendarVariants } from '$lib/components/Calendar/calendar.variants';
 import ChartFrame from '$lib/components/ChartFrame/ChartFrame.svelte';
 import DonutChart from '$lib/components/DonutChart/DonutChart.svelte';
 import LineChart from '$lib/components/LineChart/LineChart.svelte';
+import {
+  AREA_CHART_SLOTS,
+  BAR_CHART_SLOTS,
+  CHART_FRAME_SLOTS,
+  DONUT_CHART_SLOTS,
+  LINE_CHART_SLOTS
+} from '$lib/internal/charts/slots';
 import { chartVariants } from '$lib/internal/charts/variants';
 
 /**
@@ -36,7 +43,13 @@ import { chartVariants } from '$lib/internal/charts/variants';
  * per-component state matrix; the components below carry one.
  */
 
-const PROBE = 'sr-';
+/**
+ * Probe-class prefix. Matched as a whole class name against the slots below,
+ * never by slicing the prefix off any class that happens to start with it: the
+ * charts and the calendar render `sr-only` wrappers, and prefix-slicing read
+ * that as a slot called `only` painted by five of the six components.
+ */
+const PROBE = 'slot-reach-';
 
 interface Mount {
   /** What state this mount puts the component in — one line, it has to earn its place. */
@@ -47,33 +60,31 @@ interface Mount {
 }
 
 /**
- * One sweep is one component. Never a union over the components that share a
+ * One sweep is one component, never a union over the components that share a
  * config: `chartVariants` is one config behind five charts, and a union only
- * catches a slot dead in all five — `<LineChart slotClasses={{ arc: … }} />`
- * type-checks, reaches nothing, and would hide inside a union that DonutChart's
- * `arc` satisfies.
+ * catches a slot dead in all five. A slot `<LineChart>` offers and never paints
+ * would hide behind the `arc` DonutChart does paint.
  */
 interface Sweep {
   /** The public component under measurement. */
   name: string;
   component: unknown;
-  /** The tv() config its `slotClasses` type is derived from. */
+  /** The tv() config its slots come from. */
   config: string;
+  /**
+   * Every slot that config declares. The probe set, which is wider than
+   * `slots` where a config feeds several components — so a slot painted
+   * *outside* the component's own type shows up too.
+   */
+  configSlots: string[];
+  /** The slots this component's `slotClasses` type offers. */
   slots: string[];
   /** States of this one component. */
   mounts: Mount[];
   /**
-   * Slots this component paints in no state because another component sharing
-   * the config paints them: slot → the `name` of that sweep. Checked, not
-   * prose — the named component must reach the slot in this same run, so a
-   * wrong owner is an error rather than a comment nobody re-reads.
-   */
-  paintedElsewhere?: Record<string, string>;
-  /**
-   * Slots this component reaches in no state for any other reason, each with
-   * the reason in words. An entry in either map whose slot IS reached — or is
-   * no longer declared — is an error, the contract `imports-lint` and the
-   * cascade sweep already carry.
+   * Slots this component reaches in no state, each with the reason in words.
+   * An entry whose slot IS reached — or is no longer declared — is an error,
+   * the contract `imports-lint` and the cascade sweep already carry.
    */
   unreached: Record<string, string>;
 }
@@ -138,18 +149,15 @@ const CARTESIAN = {
 };
 
 const CHART_SLOTS = Object.keys(chartVariants.config.slots as Record<string, unknown>);
-
-// Why a chart's list is long: `ChartSlotClasses` is one type over all five
-// charts, so each of them declares the marks of the other four. Every entry
-// names the chart that does paint the slot, and that name is verified below —
-// the repair is to narrow the type per chart, which is not this file's to make.
+const CALENDAR_SLOTS = Object.keys(calendarVariants.config.slots as Record<string, unknown>);
 
 const SWEEPS: Sweep[] = [
   {
     name: 'Calendar',
     component: Calendar,
     config: 'calendarVariants',
-    slots: Object.keys(calendarVariants.config.slots as Record<string, unknown>),
+    configSlots: CALENDAR_SLOTS,
+    slots: CALENDAR_SLOTS,
     mounts: [
       {
         name: 'month, a selected day with events, popover on focus',
@@ -181,51 +189,35 @@ const SWEEPS: Sweep[] = [
     name: 'BarChart',
     component: BarChart,
     config: 'chartVariants',
-    slots: CHART_SLOTS,
+    configSlots: CHART_SLOTS,
+    slots: [...BAR_CHART_SLOTS],
     mounts: [{ name: 'grouped bars with a legend and gridlines', props: CARTESIAN }],
-    paintedElsewhere: {
-      mark: 'LineChart',
-      arc: 'DonutChart',
-      centerLabel: 'DonutChart',
-      centerSubLabel: 'DonutChart'
-    },
     unreached: {}
   },
   {
     name: 'LineChart',
     component: LineChart,
     config: 'chartVariants',
-    slots: CHART_SLOTS,
+    configSlots: CHART_SLOTS,
+    slots: [...LINE_CHART_SLOTS],
     mounts: [{ name: 'two series with a legend and gridlines', props: CARTESIAN }],
-    paintedElsewhere: {
-      axisLine: 'BarChart',
-      bar: 'BarChart',
-      arc: 'DonutChart',
-      centerLabel: 'DonutChart',
-      centerSubLabel: 'DonutChart'
-    },
     unreached: {}
   },
   {
     name: 'AreaChart',
     component: AreaChart,
     config: 'chartVariants',
-    slots: CHART_SLOTS,
+    configSlots: CHART_SLOTS,
+    slots: [...AREA_CHART_SLOTS],
     mounts: [{ name: 'two stacked areas with a legend and gridlines', props: CARTESIAN }],
-    paintedElsewhere: {
-      axisLine: 'BarChart',
-      bar: 'BarChart',
-      arc: 'DonutChart',
-      centerLabel: 'DonutChart',
-      centerSubLabel: 'DonutChart'
-    },
     unreached: {}
   },
   {
     name: 'DonutChart',
     component: DonutChart,
     config: 'chartVariants',
-    slots: CHART_SLOTS,
+    configSlots: CHART_SLOTS,
+    slots: [...DONUT_CHART_SLOTS],
     mounts: [
       {
         name: 'two arcs with the centre total and a legend',
@@ -240,38 +232,17 @@ const SWEEPS: Sweep[] = [
         }
       }
     ],
-    paintedElsewhere: {
-      axis: 'BarChart',
-      axisLine: 'BarChart',
-      axisLabel: 'BarChart',
-      grid: 'BarChart',
-      mark: 'LineChart',
-      bar: 'BarChart'
-    },
     unreached: {}
   },
   {
     name: 'ChartFrame',
     component: ChartFrame,
     config: 'chartVariants',
+    configSlots: CHART_SLOTS,
     // The frame is the `<figure>` + `<svg>` a consumer draws their own marks
-    // into, so every slot but those two belongs to a chart that draws itself.
-    slots: CHART_SLOTS,
+    // into; every other slot belongs to a chart that draws itself.
+    slots: [...CHART_FRAME_SLOTS],
     mounts: [{ name: 'an empty frame', props: {} }],
-    paintedElsewhere: {
-      axis: 'BarChart',
-      axisLine: 'BarChart',
-      axisLabel: 'BarChart',
-      grid: 'BarChart',
-      mark: 'LineChart',
-      bar: 'BarChart',
-      arc: 'DonutChart',
-      centerLabel: 'DonutChart',
-      centerSubLabel: 'DonutChart',
-      legend: 'BarChart',
-      legendItem: 'BarChart',
-      legendSwatch: 'BarChart'
-    },
     unreached: {}
   }
 ];
@@ -285,17 +256,19 @@ function landed(sweep: Sweep, entry: Mount): Set<string> {
     target,
     props: {
       ...entry.props,
-      slotClasses: Object.fromEntries(sweep.slots.map((slot) => [slot, `${PROBE}${slot}`]))
+      slotClasses: Object.fromEntries(sweep.configSlots.map((slot) => [slot, `${PROBE}${slot}`]))
     }
   });
   flushSync();
   entry.after?.(target);
   flushSync();
 
+  const bySlot = new Map(sweep.configSlots.map((slot) => [`${PROBE}${slot}`, slot]));
   const found = new Set<string>();
   for (const element of target.querySelectorAll('*')) {
     for (const token of element.classList) {
-      if (token.startsWith(PROBE)) found.add(token.slice(PROBE.length));
+      const slot = bySlot.get(token);
+      if (slot) found.add(slot);
     }
   }
   unmount(app);
@@ -320,7 +293,7 @@ const reachedBy = new Map<string, Set<string>>(
 describe.each(measured.map((m) => [m.sweep.name, m] as const))('%s', (_name, measurement) => {
   const { sweep, perMount } = measurement;
   const union = reachedBy.get(sweep.name) as Set<string>;
-  const excused = { ...sweep.paintedElsewhere, ...sweep.unreached };
+  const excused = sweep.unreached;
 
   it('mounts every state it declares', () => {
     const empty = perMount.filter((m) => m.landed.size === 0).map((m) => m.entry.name);
@@ -334,12 +307,24 @@ describe.each(measured.map((m) => [m.sweep.name, m] as const))('%s', (_name, mea
     const dead = sweep.slots.filter((slot) => !union.has(slot) && !(slot in excused));
     expect(
       dead,
-      `${sweep.name} takes these slot names from ${sweep.config}, and across the ` +
+      `${sweep.name} offers these slot names in its \`slotClasses\` type, and across the ` +
         `${perMount.length} state(s) above no element of it carries them. A consumer writing ` +
         'one into `slotClasses` gets a silent no-op. Either wire the slot to the element it ' +
-        'names, delete it, or — if the state it lives in cannot be mounted here — give it an ' +
-        '`unreached` entry saying so. A slot another component sharing the config paints ' +
-        `belongs in \`paintedElsewhere\`, under that component's name:\n  ${dead.join('\n  ')}`
+        'names, drop it from the type, or — if the state it lives in cannot be mounted here — ' +
+        `give it an \`unreached\` entry saying so:\n  ${dead.join('\n  ')}`
+    ).toEqual([]);
+  });
+
+  it('paints no slot its own type withholds', () => {
+    // The other direction, and it needs the *config's* slots as probes: a slot
+    // a component paints but leaves out of its `slotClasses` type is an
+    // override surface the consumer cannot reach at all — the projection in
+    // `charts/slots.ts` taking one slot too few looks exactly like this.
+    const withheld = [...union].filter((slot) => !sweep.slots.includes(slot));
+    expect(
+      withheld,
+      `${sweep.name} paints these slots but its \`slotClasses\` type does not offer them, so ` +
+        `no consumer can style them. Add them to the type:\n  ${withheld.join('\n  ')}`
     ).toEqual([]);
   });
 
@@ -349,24 +334,8 @@ describe.each(measured.map((m) => [m.sweep.name, m] as const))('%s', (_name, mea
     );
     expect(
       stale,
-      '`paintedElsewhere` / `unreached` entries that no longer hold — the slot is reached ' +
-        `now, or is no longer declared. Delete them:\n  ${stale.join('\n  ')}`
-    ).toEqual([]);
-  });
-
-  it('names, for every slot it hands to another component, one that paints it', () => {
-    // The owner name is the whole content of a `paintedElsewhere` entry, and a
-    // wrong one would otherwise be prose nothing re-reads. This file already
-    // mounts every component sharing the config, so it can just ask.
-    const wrong: string[] = [];
-    for (const [slot, owner] of Object.entries(sweep.paintedElsewhere ?? {})) {
-      const ownerReached = reachedBy.get(owner);
-      if (!ownerReached) wrong.push(`${slot}: no sweep named "${owner}"`);
-      else if (!ownerReached.has(slot)) wrong.push(`${slot}: "${owner}" does not paint it either`);
-    }
-    expect(
-      wrong,
-      `\`paintedElsewhere\` entries naming a component that does not paint the slot:\n  ${wrong.join('\n  ')}`
+      '`unreached` entries that no longer hold — the slot is reached now, or is no longer ' +
+        `declared. Delete them:\n  ${stale.join('\n  ')}`
     ).toEqual([]);
   });
 
@@ -387,6 +356,25 @@ describe.each(measured.map((m) => [m.sweep.name, m] as const))('%s', (_name, mea
     expect(
       redundant,
       `states that reach no slot the other states do not — delete them:\n  ${redundant.join('\n  ')}`
+    ).toEqual([]);
+  });
+});
+
+describe('chartVariants', () => {
+  // Projecting the shared config per chart moves a slot no chart paints out of
+  // every component's reach, and the per-component sweeps above would then
+  // never look at it again — the exact case #345 deleted `axisTick` for. So the
+  // projections are also checked as a set, against the config they come from.
+  it('is covered by the five charts it feeds', () => {
+    const projected = new Set(
+      SWEEPS.filter((s) => s.config === 'chartVariants').flatMap((s) => s.slots)
+    );
+    const orphans = CHART_SLOTS.filter((slot) => !projected.has(slot));
+    expect(
+      orphans,
+      'slots `chartVariants` declares that no chart offers in its `slotClasses` type, so no ' +
+        `consumer can reach them and no sweep above measures them. Delete them from the config, ` +
+        `or add them to the chart that should paint them:\n  ${orphans.join('\n  ')}`
     ).toEqual([]);
   });
 });

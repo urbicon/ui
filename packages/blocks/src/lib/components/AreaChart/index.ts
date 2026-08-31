@@ -1,9 +1,9 @@
 import type { HTMLAttributes } from 'svelte/elements';
 import type {
+  AreaChartSlotClasses,
   CartesianDatum,
   ChartMargin,
-  ChartSeries,
-  ChartSlotClasses
+  ChartSeries
 } from '$lib/internal/charts/types';
 
 /**
@@ -61,7 +61,7 @@ export interface AreaChartProps extends Omit<HTMLAttributes<HTMLElement>, 'child
   /** Remove all default tv classes. */
   unstyled?: boolean;
   /** Per-slot class overrides. */
-  slotClasses?: ChartSlotClasses;
+  slotClasses?: AreaChartSlotClasses;
   /** Apply a named preset registered on `<BlocksProvider>`. */
   preset?: string;
 }

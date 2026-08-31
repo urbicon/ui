@@ -1,7 +1,25 @@
-import type { ChartSlot } from './variants';
+import type {
+  AreaChartSlot,
+  BarChartSlot,
+  ChartFrameSlot,
+  DonutChartSlot,
+  LineChartSlot
+} from './slots';
 
-/** Per-slot class overrides for the charts family. */
-export type ChartSlotClasses = Partial<Record<ChartSlot, string>>;
+/** Per-slot class overrides for `<ChartFrame>`. */
+export type ChartFrameSlotClasses = Partial<Record<ChartFrameSlot, string>>;
+
+/** Per-slot class overrides for `<BarChart>`. */
+export type BarChartSlotClasses = Partial<Record<BarChartSlot, string>>;
+
+/** Per-slot class overrides for `<LineChart>`. */
+export type LineChartSlotClasses = Partial<Record<LineChartSlot, string>>;
+
+/** Per-slot class overrides for `<AreaChart>`. */
+export type AreaChartSlotClasses = Partial<Record<AreaChartSlot, string>>;
+
+/** Per-slot class overrides for `<DonutChart>`. */
+export type DonutChartSlotClasses = Partial<Record<DonutChartSlot, string>>;
 
 /** Plot margins (px). Any omitted side falls back to the frame default. */
 export interface ChartMargin {
