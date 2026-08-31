@@ -51,8 +51,8 @@
 --blocks-duration-normal: 250ms;
 --blocks-ease-gentle: cubic-bezier(0.25, 0.1, 0.25, 1);
 
---blocks-shadow-sm: var(--color-shadow-sm);
---blocks-shadow-md: var(--color-shadow-md);`;
+--blocks-shadow-sm: var(--blocks-shadow-scale-sm);
+--blocks-shadow-md: var(--blocks-shadow-scale-md);`;
 
   // Custom brand tokens get Tailwind utilities for free.
   const brandTokenExample = `@theme {
@@ -700,8 +700,16 @@
       <code class="text-xs">oklch(var(--blocks-shadow-tint) / 0.05)</code>. Putting either inside
       <code class="text-xs">@theme</code>
       gets you nothing. The shipped themes declare them in a
-      <code class="text-xs">:root</code> block after their <code class="text-xs">@theme</code> for exactly
-      this reason.
+      <code class="text-xs">:root</code> block after their <code class="text-xs">@theme</code> for
+      exactly this reason.
+      <br />
+      <br />
+      The tint also only bites at the root. It is read inside the value of
+      <code class="text-xs">--blocks-shadow-*</code>, which is declared on
+      <code class="text-xs">:root</code>, so it is substituted there and every descendant inherits a
+      finished shadow — setting
+      <code class="text-xs">--blocks-shadow-tint</code> on a scoped element moves nothing. A scope that
+      needs its own tint has to re-declare the five steps beside it.
     </div>
   </Section>
 </DocsPageLayout>

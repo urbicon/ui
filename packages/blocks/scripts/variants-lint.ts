@@ -1279,16 +1279,6 @@ const BUCKET_EFFECT_EXEMPTIONS: { bucket: string; effects: string[]; why: string
     why: '`sr-only` and `not-sr-only` are each other’s undo; `sr-only` additionally zeroes `border-width`, which `not-sr-only` has no value to restore. They must replace each other, and across sources they do — the later one wins whole.'
   },
   {
-    bucket: 'text-shadow',
-    effects: ['color text-shadow', 'text-shadow'],
-    why: 'the `color` is this repo’s theme, not Tailwind: `semantic.css` declares the box-shadow scale as `--color-shadow-xs…lg` INSIDE the colour namespace, so `text-shadow-lg` is also a valid `text-<colour>` spelling and the compiler emits both readings. All six are text-shadow steps and replace each other, which is what this bucket has to get right. The colour half is NOT harmless and is not this bucket’s to fix: a multi-layer shadow is invalid at computed-value time as a `color`, which for an inherited property means `inherit` rather than "ignored" — and `.text-shadow-lg` is emitted after `.text-primary` at equal specificity, so `text-primary text-shadow-lg` renders the parent’s colour (measured in Chromium; `text-primary` alone renders the token). The fix is to move the shadow scale out of the colour namespace — #368.'
-  },
-  {
-    bucket: 'text-shadow-color',
-    effects: ['--tw-text-shadow-color', 'color'],
-    why: 'same root as the `text-shadow` entry, one class further: `text-shadow-base` has no `--text-shadow-base` size key to match, so `text-<colour:shadow-base>` is its ONLY reading and it writes `color` alone. No pattern can tell it from a real `text-shadow-<colour>` without restating the theme’s colour keys — the second Tailwind model this gate exists to prevent. Renaming `--color-shadow-*` out of the colour namespace would remove this entry and the one above; that is a breaking theme change.'
-  },
-  {
     bucket: 'transition',
     effects: [
       'transition-duration transition-property transition-timing-function',

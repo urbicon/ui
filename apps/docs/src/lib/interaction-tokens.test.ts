@@ -43,7 +43,9 @@ describe('parseInteractionTokens against the shipped interaction.css', () => {
       '--blocks-shadow-md',
       '--blocks-shadow-lg'
     ]);
-    expect(tokens.shadows.every((t) => t.value.startsWith('var(--color-shadow-'))).toBe(true);
+    expect(tokens.shadows.every((t) => t.value.startsWith('var(--blocks-shadow-scale-'))).toBe(
+      true
+    );
   });
 
   it('finds the per-component aliases AND the focus-ring knobs', () => {
@@ -108,7 +110,7 @@ describe('parseInteractionTokens against the shipped interaction.css', () => {
   it('takes the first declaration, so media-query overrides never shadow the base', () => {
     // interaction.css sets --blocks-shadow-base: none inside @media print.
     expect(tokens.shadows.find((t) => t.name === '--blocks-shadow-base')?.value).toBe(
-      'var(--color-shadow-base)'
+      'var(--blocks-shadow-scale-base)'
     );
   });
 });
