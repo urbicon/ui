@@ -1,6 +1,7 @@
 <script lang="ts">
   import { SegmentGroup, SegmentItem } from '@urbicon-ui/blocks';
   import { useAppI18n } from '$lib/i18n';
+  import { clearStored, readStored, writeStored } from '$lib/storage';
   import { onMount } from 'svelte';
 
   const ta = useAppI18n();
@@ -19,7 +20,7 @@
   let variant = $state<Variant>('rooms');
 
   onMount(() => {
-    if (localStorage.getItem(STORAGE_KEY) === 'library') variant = 'library';
+    if (readStored(STORAGE_KEY) === 'library') variant = 'library';
   });
 
   // Fires after `bind:value` has already updated `variant`. Toggles the class on
@@ -29,9 +30,9 @@
   function persist(next: string) {
     document.documentElement.classList.toggle('docs-rooms', next === 'rooms');
     if (next === 'library') {
-      localStorage.setItem(STORAGE_KEY, 'library');
+      writeStored(STORAGE_KEY, 'library');
     } else {
-      localStorage.removeItem(STORAGE_KEY);
+      clearStored(STORAGE_KEY);
     }
   }
 </script>

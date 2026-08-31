@@ -5,6 +5,7 @@ import { flushSync, mount, unmount } from 'svelte';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import type { TableContext } from '$lib/core/table/index.js';
 import type { Column } from '$lib/types/tableTypes';
+import { installMemoryStorage, restoreStorage } from '../../../../../scripts/vitest-storage';
 import TableHarness from '../core/__fixtures__/TableHarness.svelte';
 
 /**
@@ -51,30 +52,8 @@ const COLON_COLUMNS = [
   { accessor: 'metrics:revenue', title: 'Revenue', dataType: 'number' }
 ] as Column[];
 
-/**
- * Node >= 25 ships a broken global `localStorage` stub that shadows jsdom's
- * Storage in vitest — install a functional in-memory Storage per test
- * (see the blocks-testing skill / TableStore.seed.persistence.svelte.test.ts).
- */
-function createMemoryStorage(): Storage {
-  const map = new Map<string, string>();
-  return {
-    get length() {
-      return map.size;
-    },
-    clear: () => map.clear(),
-    getItem: (key: string) => (map.has(key) ? (map.get(key) ?? null) : null),
-    key: (index: number) => [...map.keys()][index] ?? null,
-    removeItem: (key: string) => void map.delete(key),
-    setItem: (key: string, value: string) => void map.set(key, String(value))
-  };
-}
-
 beforeEach(() => {
-  Object.defineProperty(window, 'localStorage', {
-    value: createMemoryStorage(),
-    configurable: true
-  });
+  installMemoryStorage();
 });
 
 let dispose: (() => void) | undefined;
@@ -83,6 +62,7 @@ afterEach(() => {
   dispose?.();
   dispose = undefined;
   document.body.replaceChildren();
+  restoreStorage();
 });
 
 function renderTable(props: Record<string, unknown>): { context: () => TableContext } {

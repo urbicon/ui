@@ -15,6 +15,7 @@ import {
   textCellVariants,
   userCellVariants
 } from '$lib/variants';
+import { installMemoryStorage, restoreStorage } from '../../../../../scripts/vitest-storage';
 import CellInsetHarness from './__fixtures__/CellInsetHarness.svelte';
 
 /**
@@ -289,22 +290,8 @@ function cellAt(root: HTMLElement, testId: string): Element {
 }
 
 beforeEach(() => {
-  // Node ≥ 25's broken global localStorage stub shadows jsdom's Storage under
-  // vitest; the store touches storage on mount. Same shape as Table.render.
-  const map = new Map<string, string>();
-  Object.defineProperty(window, 'localStorage', {
-    configurable: true,
-    value: {
-      get length() {
-        return map.size;
-      },
-      clear: () => map.clear(),
-      getItem: (key: string) => (map.has(key) ? (map.get(key) ?? null) : null),
-      key: (index: number) => [...map.keys()][index] ?? null,
-      removeItem: (key: string) => void map.delete(key),
-      setItem: (key: string, value: string) => void map.set(key, String(value))
-    } satisfies Storage
-  });
+  // The store reads and writes storage on mount.
+  installMemoryStorage();
 });
 
 afterEach(() => {
@@ -312,6 +299,7 @@ afterEach(() => {
   target?.remove();
   comp = undefined;
   target = undefined;
+  restoreStorage();
 });
 
 describe('the offset reader', () => {

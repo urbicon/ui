@@ -2,6 +2,7 @@
 import { flushSync, mount, unmount } from 'svelte';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { createTableView } from '$lib/view/view.svelte';
+import { installMemoryStorage, restoreStorage } from '../../../../../scripts/vitest-storage';
 import type { InternalTableContext } from '../stores/TableStore.svelte';
 import TableHarness from './__fixtures__/TableHarness.svelte';
 import type { TableContext } from './table/index';
@@ -17,20 +18,6 @@ import type { TableContext } from './table/index';
  * The answers below are measured, not intended — where the coupling is a limit
  * rather than a feature it is marked KNOWN-LIMIT and says why.
  */
-
-function memoryStorage(): Storage {
-  const map = new Map<string, string>();
-  return {
-    get length() {
-      return map.size;
-    },
-    clear: () => map.clear(),
-    getItem: (key: string) => (map.has(key) ? (map.get(key) ?? null) : null),
-    key: (index: number) => [...map.keys()][index] ?? null,
-    removeItem: (key: string) => void map.delete(key),
-    setItem: (key: string, value: string) => void map.set(key, String(value))
-  };
-}
 
 const ROWS = [
   { id: 1, name: 'Ada', amount: 300 },
@@ -85,7 +72,7 @@ function unmountOne(entry: Mounted): void {
 let warn: ReturnType<typeof vi.spyOn>;
 
 beforeEach(() => {
-  Object.defineProperty(window, 'localStorage', { value: memoryStorage(), configurable: true });
+  installMemoryStorage();
   warn = vi.spyOn(console, 'warn').mockImplementation(() => {});
 });
 
@@ -96,6 +83,7 @@ afterEach(() => {
   }
   mounted = [];
   warn.mockRestore();
+  restoreStorage();
 });
 
 describe('two tables, one view — the axes are shared, by construction', () => {
