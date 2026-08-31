@@ -3,7 +3,14 @@ import { resolve } from 'node:path';
 import { __unstable__loadDesignSystem } from '@tailwindcss/node';
 import { beforeAll, describe, expect, it } from 'vitest';
 import { tailwindBucket } from '../src/lib/utils/variants';
-import { type CandidateAstSource, collectClassEffects, compareBuckets } from './bucket-agreement';
+import {
+  type CandidateAstSource,
+  type ClassCatalogueSource,
+  catalogueClasses,
+  collectClassEffects,
+  findCollisions,
+  findUnbucketed
+} from './bucket-agreement';
 
 /**
  * The bucket-agreement pass reads which CSS properties each class declares from
@@ -23,9 +30,10 @@ const css = [
   readFileSync(resolve(repo, 'packages/table/src/lib/style/table-theme.css'), 'utf-8')
 ].join('\n');
 
-let design: CandidateAstSource;
+let design: CandidateAstSource & ClassCatalogueSource;
 beforeAll(async () => {
-  design = (await __unstable__loadDesignSystem(css, { base: repo })) as CandidateAstSource;
+  design = (await __unstable__loadDesignSystem(css, { base: repo })) as CandidateAstSource &
+    ClassCatalogueSource;
 });
 const effectsOf = (classes: string[]) => collectClassEffects(design, classes);
 
@@ -108,12 +116,12 @@ describe('collectClassEffects', () => {
   });
 });
 
-describe('compareBuckets against the shipped table', () => {
+describe('findUnbucketed / findCollisions against the shipped table', () => {
   it('reports a class the table buckets as null, and clears one it buckets', () => {
     // `ordinal` is a real utility left without a bucket by design (it composes
     // into font-variant-numeric). Without it this test would pass against a
-    // `compareBuckets` that returned an empty list unconditionally.
-    const { unbucketed } = compareBuckets(effectsOf(['fill-primary', 'ordinal']), tailwindBucket);
+    // `findUnbucketed` that returned an empty list unconditionally.
+    const unbucketed = findUnbucketed(effectsOf(['fill-primary', 'ordinal']), tailwindBucket);
     expect(unbucketed.map((u) => u.cls)).toEqual(['ordinal']);
     expect(unbucketed[0].properties).toEqual(['--tw-ordinal', 'font-variant-numeric']);
   });
@@ -121,7 +129,7 @@ describe('compareBuckets against the shipped table', () => {
   it('reports a bucket whose classes write different properties', () => {
     // The shape of the dba97fe8 bug: a size and a colour in one bucket.
     const effects = effectsOf(['text-primary', 'text-2xs']);
-    const { collisions } = compareBuckets(effects, (cls) =>
+    const collisions = findCollisions(effects, (cls) =>
       // A table that reads every `text-*` as a colour — the pre-dba97fe8 state.
       cls.startsWith('text-') ? 'text-color' : tailwindBucket(cls)
     );
@@ -134,6 +142,43 @@ describe('compareBuckets against the shipped table', () => {
 
   it('stays quiet when every class in a bucket writes the same properties', () => {
     const effects = effectsOf(['bg-primary', 'bg-surface-base', 'hover:bg-primary']);
-    expect(compareBuckets(effects, tailwindBucket).collisions).toEqual([]);
+    expect(findCollisions(effects, tailwindBucket)).toEqual([]);
+  });
+
+  it('classifies a collision by how the property sets relate', () => {
+    // The triage order the report prints. Disjoint sets cannot replace each
+    // other, so the bucket always strips something for nothing; nesting is
+    // what a composition looks like; overlap needs a human.
+    const disjoint = findCollisions(effectsOf(['bg-primary', 'bg-blend-multiply']), (cls) =>
+      cls.startsWith('bg-') ? 'bg-color' : null
+    );
+    expect(disjoint.map((c) => c.relation)).toEqual(['disjoint']);
+
+    const nested = findCollisions(effectsOf(['truncate', 'text-ellipsis']), tailwindBucket);
+    expect(nested.map((c) => c.relation)).toEqual(['nested']);
+
+    const overlap = findCollisions(
+      effectsOf(['break-all', 'break-normal', 'break-words']),
+      () =>
+        // The pre-repair `word-break` bucket: `word-break`, `overflow-wrap` and
+        // both together, which is neither disjoint nor nested.
+        'word-break'
+    );
+    expect(overlap.map((c) => c.relation)).toEqual(['overlap']);
+  });
+});
+
+describe('catalogueClasses', () => {
+  it('names the enumerable classes and no arbitrary or variant-prefixed form', () => {
+    // Why both populations exist. The catalogue is the only place a bucket
+    // over-reach outside the library's vocabulary can be seen; the shipped
+    // classes are the only place these four can.
+    const catalogue = new Set(catalogueClasses(design));
+    expect(catalogue.size).toBeGreaterThan(10_000);
+    expect(catalogue.has('stroke-2')).toBe(true);
+    expect(catalogue.has('border-be-2')).toBe(true);
+    for (const shippedOnly of ['stroke-[2px]', 'scale-[1.01]', 'active:scale-95', 'break-words']) {
+      expect(catalogue.has(shippedOnly)).toBe(false);
+    }
   });
 });

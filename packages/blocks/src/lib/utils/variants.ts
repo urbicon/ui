@@ -321,13 +321,27 @@ const BUCKET_PATTERNS: Array<[RegExp, BucketResolver]> = [
   [/^inset-ring-/, 'inset-ring-color'],
   [/^inset-x-/, 'inset-x'],
   [/^inset-y-/, 'inset-y'],
+  // One bucket per logical axis, each a CSS property of its own — measured
+  // across all 500 classes Tailwind enumerates for them: `inset-bs-*` writes
+  // `inset-block-start`, `inset-be-*` `inset-block-end`, `inset-s-*`
+  // `inset-inline-start`, `inset-e-*` `inset-inline-end`. Without them they
+  // reached the `inset-` catch-all below, where a single `-inset-s-4` stripped
+  // a whole `inset-0`.
+  [/^inset-bs-/, 'inset-bs'],
+  [/^inset-be-/, 'inset-be'],
+  [/^inset-s-/, 'inset-s'],
+  [/^inset-e-/, 'inset-e'],
   [/^inset-/, 'inset'],
   [/^top-/, 'top'],
   [/^right-/, 'right'],
   [/^bottom-/, 'bottom'],
   [/^left-/, 'left'],
-  [/^start-/, 'start'],
-  [/^end-/, 'end'],
+  // `start-*` / `end-*` are Tailwind's shorter spelling of `inset-s-*` /
+  // `inset-e-*` and write the same property (measured: both emit
+  // `inset-inline-start`), so they share that bucket instead of opening a
+  // second one for one property.
+  [/^start-/, 'inset-s'],
+  [/^end-/, 'inset-e'],
   [/^z-/, 'z-index'],
 
   // Border-radius — `rounded-tl`, `rounded-tl-md`, `rounded-tl-[N]` all share one bucket per corner/side
@@ -356,18 +370,25 @@ const BUCKET_PATTERNS: Array<[RegExp, BucketResolver]> = [
   [/^border-(solid|dashed|dotted|double|hidden|none)$/, 'border-style'],
   // Border width — `border`, `border-1`, `border-2`, `border-[3px]` (Tailwind v4 accepts any integer)
   [/^border(-(\d+|\[[^\]]+\]))?$/, 'border-width'],
-  // Border side-width — `border-x`, `border-t-2`, `border-r-[3px]`
-  [/^border-(x|y|t|r|b|l|s|e)(-(\d+|\[[^\]]+\]))?$/, (m) => `border-${m[1]}-width`],
+  // Border side-width — `border-x`, `border-t-2`, `border-r-[3px]`.
+  // `bs`/`be` lead the alternation so `border-be-2` cannot be read as side `b`
+  // plus the rest: they are the block axis Tailwind 4.2 added, and all 1 052
+  // classes it enumerates for them write `border-block-{start,end}-*`
+  // (measured), a property no physical side shares.
+  [/^border-(bs|be|x|y|t|r|b|l|s|e)(-(\d+|\[[^\]]+\]))?$/, (m) => `border-${m[1]}-width`],
   // Border color (catch-all, e.g. `border-red-500`, `border-primary`, `border-border-subtle`)
-  [/^border-(x|y|t|r|b|l|s|e)-/, (m) => `border-${m[1]}-color`],
+  [/^border-(bs|be|x|y|t|r|b|l|s|e)-/, (m) => `border-${m[1]}-color`],
   [/^border-/, 'border-color'],
 
-  // Outline / ring. In v4 bare `outline` sets outline-style: solid — it is a
-  // style, not a width.
+  // Outline / ring. Bare `outline` is the 1px step of the width scale, not a
+  // style: it writes `outline-width: 1px` beside `outline-style:
+  // var(--tw-outline-style)`, the identical property set `outline-2` writes
+  // (measured). As a style it shared a bucket with `outline-dashed`, which
+  // writes no width at all — so `outline outline-dashed` lost its 1px and fell
+  // back to the CSS initial `outline-width: medium`.
   [/^outline-(solid|dashed|dotted|double|none|hidden)$/, 'outline-style'],
-  [/^outline$/, 'outline-style'],
   [/^outline-offset-/, 'outline-offset'],
-  [/^outline(-\d+|-\[[^\]]+\])$/, 'outline-width'],
+  [/^outline(-\d+|-\[[^\]]+\])?$/, 'outline-width'],
   [/^outline-/, 'outline-color'],
   [/^ring-offset-(\d+|\[[^\]]+\])$/, 'ring-offset-width'],
   [/^ring-offset-/, 'ring-offset-color'],
@@ -398,6 +419,11 @@ const BUCKET_PATTERNS: Array<[RegExp, BucketResolver]> = [
   [/^bg-(?:linear|radial|conic)(-|$)/, 'bg-image'],
   [/^bg-gradient-to-/, 'bg-image'],
   [/^bg-none$/, 'bg-image'],
+  // background-blend-mode lives under the `bg-` prefix and must therefore be
+  // matched here, ahead of the colour catch-all — beside `mix-blend-` in the
+  // effects section it never got a turn, and all 16 blend modes bucketed as a
+  // colour, so `bg-blend-multiply` deleted `bg-primary` (measured).
+  [/^bg-blend-/, 'background-blend-mode'],
   [/^bg-/, 'bg-color'],
   // SVG paint. `stroke-<number>` is a width, every other value is a colour —
   // same three-layer shape as `border-`, and the same data-type hints `text-`
@@ -412,8 +438,27 @@ const BUCKET_PATTERNS: Array<[RegExp, BucketResolver]> = [
   [/^stroke-(?:\d|\[[0-9.])/, 'stroke-width'],
   [/^stroke-/, 'stroke'],
   [/^fill-/, 'fill'],
+  // Gradient stops carry two properties under one prefix: the colour
+  // (`--tw-gradient-from`) and the stop POSITION (`--tw-gradient-from-position`),
+  // which share nothing, so `from-50%` used to delete `from-primary`. Same
+  // three-layer shape and same data-type hints as `stroke-` — measured, the
+  // position spellings are `from-<n>%`, `from-[50%]`, `from-[.5rem]`,
+  // `from-[length:50%]` and `from-(length:--x)`, while `from-[#fff]`,
+  // `from-[var(--c)]`, `from-(--c)` and `from-(color:--c)` are colours. All 63
+  // digit-leading stop classes Tailwind enumerates are positions.
+  //
+  // `from-[calc(1px)]` stays with the colours and is the known residual: the
+  // compiler infers its type from the value, and restating that inference here
+  // is the kind of second Tailwind model this table exists to avoid. Identical
+  // to `stroke-[calc(2px)]`, and unchanged by this split.
+  [/^from-[[(]length:/, 'gradient-from-position'],
+  [/^from-(?:\d|\[[0-9.])/, 'gradient-from-position'],
   [/^from-/, 'gradient-from'],
+  [/^via-[[(]length:/, 'gradient-via-position'],
+  [/^via-(?:\d|\[[0-9.])/, 'gradient-via-position'],
   [/^via-/, 'gradient-via'],
+  [/^to-[[(]length:/, 'gradient-to-position'],
+  [/^to-(?:\d|\[[0-9.])/, 'gradient-to-position'],
   [/^to-/, 'gradient-to'],
 
   // Text — size / align / weight / color (specific first). v4 size+leading shorthand: `text-sm/6`, `text-base/relaxed`.
@@ -461,7 +506,19 @@ const BUCKET_PATTERNS: Array<[RegExp, BucketResolver]> = [
   [/^underline-offset-/, 'text-underline-offset'],
   [/^uppercase$|^lowercase$|^capitalize$|^normal-case$/, 'text-transform'],
   [/^whitespace-/, 'whitespace'],
-  [/^break-(normal|words|all|keep)$/, 'word-break'],
+  // Two CSS properties under one prefix. Measured: `break-all`/`break-keep`
+  // write `word-break`, `break-words` writes `overflow-wrap` alone, and the v4
+  // spellings of that same property are the `wrap-*` trio. `break-words` is
+  // live in 13 slots across 6 configs, so with all four in one bucket a consumer's
+  // `break-keep` deleted the library's `overflow-wrap: break-word` — and
+  // neither half of this lint could see it, `break-words` being a deprecated
+  // alias Tailwind's class list no longer enumerates.
+  //
+  // `break-normal` writes BOTH and stays with `word-break`, the axis it resets
+  // by name. Price: it no longer strips an earlier `break-words`; its own
+  // `overflow-wrap: normal` decides that in the cascade instead.
+  [/^break-(normal|all|keep)$/, 'word-break'],
+  [/^(?:break-words|wrap-(?:break-word|anywhere|normal))$/, 'overflow-wrap'],
   [/^truncate$/, 'text-overflow'],
   [/^list-(inside|outside)$/, 'list-style-position'],
   [/^list-image-/, 'list-style-image'],
@@ -501,7 +558,6 @@ const BUCKET_PATTERNS: Array<[RegExp, BucketResolver]> = [
   [/^saturate-/, 'saturate'],
   [/^sepia(-.+)?$/, 'sepia'],
   [/^mix-blend-/, 'mix-blend-mode'],
-  [/^bg-blend-/, 'background-blend-mode'],
 
   // Transforms
   [/^transform$|^transform-none$/, 'transform'],
@@ -675,9 +731,23 @@ const DOMINANCE: Record<string, string[]> = {
       dominated.map((longhand) => `scroll-${longhand}`)
     ])
   ),
-  inset: ['inset-x', 'inset-y', 'start', 'end', 'top', 'right', 'bottom', 'left'],
-  'inset-x': ['right', 'left', 'start', 'end'],
-  'inset-y': ['top', 'bottom'],
+  // `inset-*` writes `inset`, `inset-x-*` `inset-inline`, `inset-y-*`
+  // `inset-block` (measured) — the shorthands of the four logical sides that now
+  // have buckets of their own, physical sides included.
+  inset: [
+    'inset-x',
+    'inset-y',
+    'inset-s',
+    'inset-e',
+    'inset-bs',
+    'inset-be',
+    'top',
+    'right',
+    'bottom',
+    'left'
+  ],
+  'inset-x': ['right', 'left', 'inset-s', 'inset-e'],
+  'inset-y': ['top', 'bottom', 'inset-bs', 'inset-be'],
   size: ['w', 'h'],
   gap: ['gap-x', 'gap-y'],
   rounded: [
@@ -707,25 +777,31 @@ const DOMINANCE: Record<string, string[]> = {
     'border-y-width',
     'border-s-width',
     'border-e-width',
+    'border-bs-width',
+    'border-be-width',
     'border-t-width',
     'border-r-width',
     'border-b-width',
     'border-l-width'
   ],
   'border-x-width': ['border-r-width', 'border-l-width', 'border-s-width', 'border-e-width'],
-  'border-y-width': ['border-t-width', 'border-b-width'],
+  // `border-y-*` writes `border-block-{style,width}` (measured), the shorthand
+  // of the block axis `border-bs-*`/`border-be-*` write.
+  'border-y-width': ['border-t-width', 'border-b-width', 'border-bs-width', 'border-be-width'],
   'border-color': [
     'border-x-color',
     'border-y-color',
     'border-s-color',
     'border-e-color',
+    'border-bs-color',
+    'border-be-color',
     'border-t-color',
     'border-r-color',
     'border-b-color',
     'border-l-color'
   ],
   'border-x-color': ['border-r-color', 'border-l-color', 'border-s-color', 'border-e-color'],
-  'border-y-color': ['border-t-color', 'border-b-color'],
+  'border-y-color': ['border-t-color', 'border-b-color', 'border-bs-color', 'border-be-color'],
   overflow: ['overflow-x', 'overflow-y'],
   overscroll: ['overscroll-x', 'overscroll-y'],
   // `scale-*` writes all three factors, so it replaces a narrower `scale-z-*`

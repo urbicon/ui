@@ -259,11 +259,15 @@ unknown slot keys, unknown compound axes, undeclared `defaultVariants`, `base` +
 together all **throw** with precise messages rather than degrading silently. Every resolver
 exposes its config as `.config`, which is what `bun run variants:lint` replays over the
 pairwise variant matrix to find dead tokens. The same run asks the Tailwind compiler which
-properties it declares **for every class the library ships** and compares that against
-`BUCKET_PATTERNS`, so a family the table has no pattern for — where both classes would
-survive and the stylesheet's emit order would decide again — fails the build instead of
-going quiet. The reach is the shipped classes, not Tailwind's whole namespace: a gap in a
-family no component writes stays invisible until one does.
+properties each class declares and compares that against `BUCKET_PATTERNS`, in two passes
+over two populations. A family the table has **no** pattern for — where both classes would
+survive and the stylesheet's emit order would decide again — is asked about the classes the
+library ships, so a gap in a family no component writes stays invisible until one does. A
+bucket holding classes that write **different** properties is asked about Tailwind's whole
+class list as well, because such a bucket strips something for nothing in every consumer
+bundle whether or not this library ever writes it. Neither population subsumes the other:
+`getClassList()` enumerates no arbitrary value and no variant-prefixed form, so
+`stroke-[2px]` and `active:scale-95` are visible only in the shipped half.
 
 Coverage limits and why they are deliberate: [DECISIONS.md](DECISIONS.md#the-tv-engine-is-narrower-than-tailwind-variants).
 

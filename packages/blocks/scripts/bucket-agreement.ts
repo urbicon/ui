@@ -15,10 +15,21 @@
  * model Tailwind either. It asks the design system for each candidate's AST and
  * reads the properties out of it, then reports:
  *
- *   - a class the compiler writes properties for that the table buckets as
- *     `null` — the resolver is silent about it;
- *   - a bucket holding classes with DIFFERENT declared-property sets — the
- *     table claims a conflict the compiler does not back.
+ *   - `findUnbucketed` — a class the compiler writes properties for that the
+ *     table buckets as `null`; the resolver is silent about it;
+ *   - `findCollisions` — a bucket holding classes with DIFFERENT
+ *     declared-property sets; the table claims a conflict the compiler does not
+ *     back.
+ *
+ * **The two take different populations, because their blind spots are
+ * disjoint.** `getClassList` enumerates the static and theme-driven names only:
+ * 35 140 of them, and **no** arbitrary value and **no** variant-prefixed form
+ * (measured — `stroke-2` is in it, `stroke-[2px]`, `scale-[1.01]` and
+ * `active:scale-95` are not, and all three are live library classes). So the
+ * collision half is asked about the catalogue *and* the shipped classes, while
+ * the unbucketed half is asked only about what the library ships: over the
+ * catalogue it reports 13 242 classes in families this library never writes,
+ * which is a fact about Tailwind's breadth, not a defect.
  *
  * The property set is the whole set the rule declares, custom properties
  * included: `scale-150` writes `--tw-scale-x/y/z` + `scale` while
@@ -42,6 +53,20 @@
 export type CandidateAstSource = {
   candidatesToAst(candidates: readonly string[]): (AstNode[] | null)[];
 };
+
+/** The second `DesignSystem` surface — Tailwind's own catalogue of class names. */
+export type ClassCatalogueSource = {
+  getClassList(): readonly (readonly [string, unknown])[];
+};
+
+/**
+ * Every class name Tailwind can name for this theme — the input the collision
+ * half needs and the shipped classes cannot give it, since a table over-reach
+ * outside the library's own vocabulary still ships to every consumer.
+ */
+export function catalogueClasses(design: ClassCatalogueSource): string[] {
+  return design.getClassList().map(([cls]) => cls);
+}
 
 type AstNode =
   | { kind: 'declaration'; property: string }
@@ -87,33 +112,84 @@ export function collectClassEffects(
 }
 
 export type UnbucketedFinding = { cls: string; properties: string[] };
+
+/**
+ * How the declared-property sets in one bucket relate — the triage order for
+ * the report, derived rather than guessed:
+ *
+ *   - `disjoint` — no two sets share a property, so neither class can replace
+ *     the other and the bucket always strips something for nothing. An
+ *     over-reach by construction.
+ *   - `nested` — every pair is comparable (one set contains the other), the
+ *     shape of a composition: `truncate` writes what `text-ellipsis` writes and
+ *     two more, and the shared bucket is what keeps `truncate text-clip` from
+ *     leaving the ellipsis behind.
+ *   - `overlap` — sets intersect without containment; a human has to look.
+ *
+ * The sort is empirical, not a proof: on the table this gate first ran against,
+ * all 6 `disjoint` buckets were real over-reaches and all 11 `nested` ones were
+ * legitimate, leaving 2 in `overlap` (`gradient-via`, `outline-style`).
+ */
+export type EffectRelation = 'disjoint' | 'nested' | 'overlap';
+
 export type CollisionFinding = {
   bucket: string;
   /** one entry per distinct declared-property set, largest group first */
   effects: { properties: string[]; classes: string[] }[];
   /** how many classes the bucket holds in total */
   total: number;
+  relation: EffectRelation;
 };
 
 /**
- * Compare the hand table against the effects the compiler reported.
+ * Classes the compiler writes properties for that the table buckets as `null`.
  *
  * `bucket` is `utils/variants.ts`'s own `tailwindBucket`, not a copy of it —
  * a gate that restated the table would only ever agree with itself.
  */
-export function compareBuckets(
+export function findUnbucketed(
   effects: ReadonlyMap<string, string[]>,
   bucket: (cls: string) => string | null
-): { unbucketed: UnbucketedFinding[]; collisions: CollisionFinding[] } {
+): UnbucketedFinding[] {
   const unbucketed: UnbucketedFinding[] = [];
-  const byBucket = new Map<string, Map<string, string[]>>();
+  for (const [cls, properties] of effects) {
+    if (bucket(cls) == null) unbucketed.push({ cls, properties });
+  }
+  return unbucketed.sort((a, b) => a.cls.localeCompare(b.cls));
+}
 
+function relate(sets: readonly (readonly string[])[]): EffectRelation {
+  let anyShared = false;
+  let allComparable = true;
+  for (let i = 0; i < sets.length; i++) {
+    for (let j = i + 1; j < sets.length; j++) {
+      const a = new Set(sets[i]);
+      const b = new Set(sets[j]);
+      if (![...a].some((p) => b.has(p))) {
+        // A disjoint pair is not a containment, so it rules `nested` out too.
+        allComparable = false;
+        continue;
+      }
+      anyShared = true;
+      if (![...a].every((p) => b.has(p)) && ![...b].every((p) => a.has(p))) allComparable = false;
+    }
+  }
+  if (!anyShared) return 'disjoint';
+  return allComparable ? 'nested' : 'overlap';
+}
+
+/**
+ * Buckets holding classes whose declared-property sets differ — the table
+ * claims a conflict the compiler does not back.
+ */
+export function findCollisions(
+  effects: ReadonlyMap<string, string[]>,
+  bucket: (cls: string) => string | null
+): CollisionFinding[] {
+  const byBucket = new Map<string, Map<string, string[]>>();
   for (const [cls, properties] of effects) {
     const key = bucket(cls);
-    if (key == null) {
-      unbucketed.push({ cls, properties });
-      continue;
-    }
+    if (key == null) continue;
     let groups = byBucket.get(key);
     if (!groups) {
       groups = new Map();
@@ -137,11 +213,9 @@ export function compareBuckets(
     collisions.push({
       bucket: key,
       effects: effectList,
-      total: effectList.reduce((n, e) => n + e.classes.length, 0)
+      total: effectList.reduce((n, e) => n + e.classes.length, 0),
+      relation: relate(effectList.map((e) => e.properties))
     });
   }
-
-  unbucketed.sort((a, b) => a.cls.localeCompare(b.cls));
-  collisions.sort((a, b) => a.bucket.localeCompare(b.bucket));
-  return { unbucketed, collisions };
+  return collisions.sort((a, b) => a.bucket.localeCompare(b.bucket));
 }

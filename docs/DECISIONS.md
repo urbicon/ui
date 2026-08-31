@@ -74,7 +74,8 @@ across three orthogonal buckets; `text-size` → `line-height` dominance is deli
 absent (the library pairs slot-base `leading-*` with axis-supplied text sizes by design).
 
 The subset is a decision, but a silent one was not: `variants:lint` compares the table
-against the compiler for every class the library ships, so a missing family is reported
+against the compiler — a missing family over the classes the library ships, a bucket whose
+classes write different properties over Tailwind's whole class list too — so it is reported
 rather than discovered by a consumer whose override does not land. Deriving the table from
 the compiler instead was measured and rejected — it is a breaking change and costs +7.8 KB
 gzip in every consumer bundle, while the gate ships nothing.

@@ -1053,11 +1053,67 @@ describe('tv – tailwind conflict resolver', () => {
       expect(tokens).toContain('text-wrap');
     });
 
-    it('bare outline is a style (v4), so outline-2 survives it', () => {
-      const styles = tv({ slots: { base: 'outline-2' } })();
-      const tokens = styles.base({ class: 'outline' }).split(/\s+/);
-      expect(tokens).toContain('outline-2');
-      expect(tokens).toContain('outline');
+    it('bare outline is the 1px width step, so it replaces outline-2 and not outline-dashed', () => {
+      // Measured against the compiler: `outline` writes `outline-width: 1px`
+      // beside `outline-style: var(--tw-outline-style)`, the identical property
+      // set `outline-2` writes. `outline-dashed` writes no width at all, so the
+      // pair Tailwind's docs spell for a 1px dashed outline has to survive.
+      const width = tv({ slots: { base: 'outline-2' } })();
+      const widthTokens = width.base({ class: 'outline' }).split(/\s+/);
+      expect(widthTokens).not.toContain('outline-2');
+      expect(widthTokens).toContain('outline');
+
+      const style = tv({ slots: { base: 'outline' } })();
+      const styleTokens = style.base({ class: 'outline-dashed' }).split(/\s+/);
+      expect(styleTokens).toContain('outline');
+      expect(styleTokens).toContain('outline-dashed');
+    });
+
+    it('break-words is overflow-wrap, so word-break overrides leave it alone', () => {
+      // `break-words` writes `overflow-wrap` alone and `break-all` writes
+      // `word-break` alone (measured); they are two properties under one
+      // prefix. `break-normal` resets the word-break axis and replaces its own
+      // family, and the v4 `wrap-*` spellings share the overflow-wrap bucket.
+      const slot = tv({ slots: { base: 'break-words' } })();
+      expect(slot.base({ class: 'break-all' }).split(/\s+/)).toContain('break-words');
+      expect(slot.base({ class: 'wrap-anywhere' }).split(/\s+/)).not.toContain('break-words');
+
+      const axis = tv({ slots: { base: 'break-all' } })();
+      expect(axis.base({ class: 'break-normal' }).split(/\s+/)).not.toContain('break-all');
+    });
+
+    it('the logical axes are their own buckets, and start-* is the inline one', () => {
+      // Tailwind 4.2 added `border-bs/be-*` and `inset-bs/be/s/e-*`; each writes
+      // a block/inline property of its own (measured), so a colour catch-all
+      // must not swallow them. `start-*` is the shorter spelling of `inset-s-*`
+      // and writes the same property, so the two share a bucket.
+      const border = tv({ slots: { base: 'border-primary' } })();
+      expect(border.base({ class: 'border-be-2' }).split(/\s+/)).toContain('border-primary');
+
+      const inset = tv({ slots: { base: 'inset-0' } })();
+      expect(inset.base({ class: '-inset-s-4' }).split(/\s+/)).toContain('inset-0');
+
+      const start = tv({ slots: { base: 'start-4' } })();
+      expect(start.base({ class: 'inset-s-8' }).split(/\s+/)).not.toContain('start-4');
+    });
+
+    it('a gradient stop position does not strip the stop colour', () => {
+      // `from-50%` writes `--tw-gradient-from-position`, `from-primary` writes
+      // `--tw-gradient-from` (measured) — two properties under one prefix, the
+      // shape `stroke-` already carries.
+      const slot = tv({ slots: { base: 'from-primary via-primary to-primary' } })();
+      const tokens = slot.base({ class: 'from-50% via-50% to-50%' }).split(/\s+/);
+      expect(tokens).toContain('from-primary');
+      expect(tokens).toContain('via-primary');
+      expect(tokens).toContain('to-primary');
+      expect(tokens).toContain('from-50%');
+    });
+
+    it('a blend mode does not strip the background colour', () => {
+      const slot = tv({ slots: { base: 'bg-primary' } })();
+      const tokens = slot.base({ class: 'bg-blend-multiply' }).split(/\s+/);
+      expect(tokens).toContain('bg-primary');
+      expect(tokens).toContain('bg-blend-multiply');
     });
   });
 

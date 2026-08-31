@@ -55,9 +55,13 @@
  *   ✖ ERROR  bucket disagrees with the compiler — one bucket holding classes
  *            whose declared-property sets differ, i.e. the table claims a
  *            conflict the compiler does not back. This is the shape of the
- *            `text-2xs`-as-a-colour bug (dba97fe8); the four cases where
- *            Tailwind's own output legitimately differs are pinned in
- *            BUCKET_EFFECT_EXEMPTIONS. See scripts/bucket-agreement.ts.
+ *            `text-2xs`-as-a-colour bug (dba97fe8); the cases where Tailwind's
+ *            own output legitimately differs are pinned in
+ *            BUCKET_EFFECT_EXEMPTIONS. Asked about Tailwind's whole class list
+ *            as well as the shipped classes — such a bucket ships its
+ *            over-reach to every consumer whether or not this library writes
+ *            the family, and seven did. Findings are ranked by how the property
+ *            sets relate; see scripts/bucket-agreement.ts.
  *   ✖ ERROR  transform property missing from an arbitrary transition list —
  *            Tailwind 4 emits `scale-*` / `translate-*` / `rotate-*` as the
  *            DISCRETE CSS properties `scale:` / `translate:` / `rotate:`, not
@@ -92,7 +96,13 @@
 import { unlink } from 'node:fs/promises';
 import { resolve } from 'node:path';
 import { __unstable__loadDesignSystem } from '@tailwindcss/node';
-import { collectClassEffects, compareBuckets } from './bucket-agreement';
+import {
+  type CollisionFinding,
+  catalogueClasses,
+  collectClassEffects,
+  findCollisions,
+  findUnbucketed
+} from './bucket-agreement';
 import { findNonEmittingClasses, isNonEmittingByDesign } from './tailwind-emit';
 import { checkClassToken, collectThemeVars } from './theme-tokens';
 
@@ -1083,6 +1093,31 @@ const bucketFamily = (key: string): string => key.slice(key.lastIndexOf(':') + 1
 const design = await __unstable__loadDesignSystem(tailwindCss, { base: REPO });
 const classEffects = collectClassEffects(design, [...emitCandidates.keys()]);
 
+// The collision half runs over Tailwind's whole catalogue as well, because a
+// bucket that over-reaches outside the library's vocabulary still ships to
+// every consumer: `bg-primary + bg-blend-multiply` lost the colour, and
+// `border-primary + border-be-2` lost it to a WIDTH, on a table where the
+// shipped classes reported nothing. Both halves stay, over different
+// populations — `getClassList` enumerates no arbitrary value and no
+// variant-prefixed form (measured), so the shipped classes are the only place
+// `stroke-[2px]` and `active:scale-95` can be checked, while the unbucketed
+// half over the catalogue would report 13 242 classes in families this library
+// never writes.
+const catalogueEffects = collectClassEffects(design, catalogueClasses(design));
+if (catalogueEffects.size < 10_000) {
+  console.error(
+    `✖ variants-lint: Tailwind's class catalogue yielded only ${catalogueEffects.size} classes with CSS — the full-list collision pass is running near-blind.`
+  );
+  process.exit(1);
+}
+// Union, not two runs: a bucket can legitimately hold one class from each
+// population, and comparing them separately would never put those two side by
+// side. That is not hypothetical — `break-words` (shipped, `overflow-wrap`) and
+// `break-all` (catalogue, `word-break`) shared a bucket, and only the union
+// reported it. The shipped map wins on a duplicate key: same compiler, same
+// answer.
+const bucketedEffects = new Map([...catalogueEffects, ...classEffects]);
+
 // Canary on the READING, not just on the compiler: every class that got a rule
 // must have reached an effect set. Per-candidate ASTs removed the attribution
 // step that made the first version of this pass lose its place, but not the
@@ -1213,14 +1248,75 @@ const BUCKET_EFFECT_EXEMPTIONS: { bucket: string; effects: string[]; why: string
     bucket: 'text-size',
     effects: ['font-size', 'font-size line-height'],
     why: 'a named step ships its line-height only where `--text-<key>--line-height` exists. The library’s own sub-xs steps (`--text-2xs`, `--text-3xs`) define no such sub-key, and no arbitrary size can. All of them are sizes and must replace each other; the differing set is a missing theme sub-key, not a mis-bucket.'
+  },
+  {
+    bucket: 'gradient-via',
+    effects: [
+      '--tw-gradient-stops --tw-gradient-via --tw-gradient-via-stops',
+      '--tw-gradient-via-stops'
+    ],
+    why: '`via-none` removes the middle stop and a `via-<colour>` places one — the same either/or as `bg-none` against a gradient, and the same nesting. Only the stop POSITIONS were a real second effect in this bucket, and those now have one of their own.'
+  },
+  {
+    bucket: 'outline-style',
+    effects: [
+      '--tw-outline-style outline outline-offset outline-style',
+      '--tw-outline-style outline-style'
+    ],
+    why: '`outline-hidden` is `outline-style: none` plus a forced-colors escape hatch (`outline: 2px solid transparent` inside `@media (forced-colors: active)`), so it replaces any other style keyword and carries two more properties while doing it. Price: a later `outline-dashed` leaves that escape hatch behind — a media-query-scoped declaration for a style the element no longer has.'
+  },
+  {
+    bucket: 'sr-only',
+    effects: [
+      'border-width clip-path height margin overflow padding position white-space width',
+      'clip-path height margin overflow padding position white-space width'
+    ],
+    why: '`sr-only` and `not-sr-only` are each other’s undo; `sr-only` additionally zeroes `border-width`, which `not-sr-only` has no value to restore. They must replace each other. Price: `sr-only not-sr-only` leaves `border-width: 0` behind.'
+  },
+  {
+    bucket: 'text-shadow',
+    effects: ['color text-shadow', 'text-shadow'],
+    why: 'the `color` is this repo’s theme, not Tailwind: `semantic.css` declares the box-shadow scale as `--color-shadow-xs…lg` INSIDE the colour namespace, so `text-shadow-lg` is also a valid `text-<colour>` spelling and the compiler emits both readings. All six are text-shadow steps and replace each other; the colour half is inert — a multi-layer shadow is invalid at computed-value time as a `color`, verified in Chromium (the element keeps its inherited colour).'
+  },
+  {
+    bucket: 'text-shadow-color',
+    effects: ['--tw-text-shadow-color', 'color'],
+    why: 'same root as the `text-shadow` entry, one class further: `text-shadow-base` has no `--text-shadow-base` size key to match, so `text-<colour:shadow-base>` is its ONLY reading and it writes `color` alone. No pattern can tell it from a real `text-shadow-<colour>` without restating the theme’s colour keys — the second Tailwind model this gate exists to prevent. Renaming `--color-shadow-*` out of the colour namespace would remove this entry and the one above; that is a breaking theme change.'
+  },
+  {
+    bucket: 'transition',
+    effects: [
+      'transition-duration transition-property transition-timing-function',
+      'transition-property'
+    ],
+    why: '`transition-none` is the family’s off switch and must replace any property list. Price: it leaves the duration and timing function behind, which transition nothing once no property is listed.'
+  },
+  {
+    bucket: 'transition-duration',
+    effects: ['--tw-duration', '--tw-duration transition-duration'],
+    why: '`duration-initial` resets the variable the named steps compose through without writing `transition-duration` itself. It replaces a step and is replaced by one; the property it omits is the one that variable feeds.'
+  },
+  {
+    bucket: 'transition-timing-function',
+    effects: ['--tw-ease', '--tw-ease transition-timing-function'],
+    why: 'the `ease-initial` counterpart of the `duration-initial` entry above — same shape, same reason.'
+  },
+  {
+    bucket: 'translate',
+    effects: ['--tw-translate-x --tw-translate-y translate', 'translate'],
+    why: 'the same shape as the `scale` entry: the named steps set the axis variables the composed `translate` reads, while `translate-3d` and `translate-none` write the property directly. All replace each other, the property being replaced whole.'
+  },
+  {
+    bucket: 'word-break',
+    effects: ['overflow-wrap word-break', 'word-break'],
+    why: '`break-normal` resets both properties the `break-` prefix spans; `break-all` and `break-keep` write `word-break` alone. One authoring axis, so they must replace each other. `break-words` writes `overflow-wrap` alone and is no longer in this bucket.'
   }
 ];
 const bucketExemptions = new Map(BUCKET_EFFECT_EXEMPTIONS.map((e) => [e.bucket, e]));
 const bucketExemptionsHit = new Set<string>();
 
-const agreement = compareBuckets(classEffects, tailwindBucket);
 const unbucketed: Finding[] = [];
-for (const { cls, properties } of agreement.unbucketed) {
+for (const { cls, properties } of findUnbucketed(classEffects, tailwindBucket)) {
   // Suppressed, and deliberately not counted as "this entry earned its keep":
   // these families are unused on purpose, and the day one is used is exactly
   // the day the entry must already be there. What must not go stale is the
@@ -1240,8 +1336,22 @@ for (const { cls, properties } of agreement.unbucketed) {
     });
   }
 }
+// `relation` first, because it ranks the list: a bucket whose effect sets share
+// no property cannot hold classes that replace each other, so it always strips
+// something for nothing, while nesting is what a composition looks like. On the
+// first run over both populations all 6 DISJOINT buckets were over-reaches and
+// all 11 NESTED ones legitimate; both OVERLAP buckets needed a human, and both
+// turned out to hide a defect (`gradient-via`'s stop positions, bare `outline`
+// filed as a style).
+const RELATION_HINT: Record<CollisionFinding['relation'], string> = {
+  disjoint:
+    'the sets share NO property, so neither class can replace the other — the pattern that catches them is too wide',
+  nested:
+    'one set contains the other, the shape of a composition — probably an exemption, at the price that the smaller class leaves the extra properties behind',
+  overlap: 'the sets intersect without containment — neither reading is automatic, decide it'
+};
 const bucketCollisions: { bucket: string; detail: string }[] = [];
-for (const collision of agreement.collisions) {
+for (const collision of findCollisions(bucketedEffects, tailwindBucket)) {
   const signatures = collision.effects.map((e) => e.properties.join(' ')).sort();
   const family = bucketFamily(collision.bucket);
   const exemption = bucketExemptions.get(family);
@@ -1252,13 +1362,15 @@ for (const collision of agreement.collisions) {
   const odd = collision.effects.slice(1).flatMap((e) => e.classes);
   bucketCollisions.push({
     bucket: collision.bucket,
-    detail: `${collision.bucket}: ${collision.effects.length} distinct effects among ${
-      collision.total
-    } classes — ${odd.join(' ')}\n    ${collision.effects
-      .map((e) => `[${e.classes.length}] ${e.properties.join(', ')}`)
-      .join(
-        '\n    '
-      )}\n    The bucket claims these classes replace each other; the compiler says they write different properties. Either the pattern that catches them is too wide, or the disagreement is Tailwind's own — then pin it in BUCKET_EFFECT_EXEMPTIONS with its effect sets and the reason`
+    detail: `[${collision.relation.toUpperCase()}] ${collision.bucket}: ${
+      collision.effects.length
+    } distinct effects among ${collision.total} classes — ${odd.slice(0, 12).join(' ')}${
+      odd.length > 12 ? ` … (${odd.length} total)` : ''
+    }\n    ${collision.effects
+      .map((e) => `[${e.classes.length}] ${e.properties.join(', ')} — e.g. ${e.classes[0]}`)
+      .join('\n    ')}\n    ${
+      RELATION_HINT[collision.relation]
+    }. The bucket claims these classes replace each other; the compiler says they write different properties. Either the pattern that catches them is too wide, or the disagreement is Tailwind's own — then pin it in BUCKET_EFFECT_EXEMPTIONS with its effect sets and the reason`
   });
 }
 const staleBucketExemptions = BUCKET_EFFECT_EXEMPTIONS.filter(
