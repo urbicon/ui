@@ -4,28 +4,10 @@ import { flushSync, mount, unmount } from 'svelte';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import { observeView } from '$lib/view/observe.svelte';
 import { createTableView, type TableViewSnapshot } from '$lib/view/view.svelte';
+import { installMemoryStorage, restoreStorage } from '../../../../../scripts/vitest-storage';
 import type { InternalTableContext } from '../stores/TableStore.svelte';
 import TableHarness from './__fixtures__/TableHarness.svelte';
 import type { TableContext } from './table/index';
-
-/**
- * Node ≥ 25 ships a broken global `localStorage` stub that shadows jsdom's
- * Storage under vitest, so a test needing real storage semantics installs its
- * own — same reason and same shape as `TableStore.seed.persistence.svelte.test.ts`.
- */
-function memoryStorage(): Storage {
-  const map = new Map<string, string>();
-  return {
-    get length() {
-      return map.size;
-    },
-    clear: () => map.clear(),
-    getItem: (key: string) => (map.has(key) ? (map.get(key) ?? null) : null),
-    key: (index: number) => [...map.keys()][index] ?? null,
-    removeItem: (key: string) => void map.delete(key),
-    setItem: (key: string, value: string) => void map.set(key, String(value))
-  };
-}
 
 /**
  * The mounted table — the counterpart to `Table.ssr.test.ts`.
@@ -108,7 +90,7 @@ function mountTable(props: Record<string, unknown> = {}) {
 }
 
 beforeEach(() => {
-  Object.defineProperty(window, 'localStorage', { value: memoryStorage(), configurable: true });
+  installMemoryStorage();
 });
 
 afterEach(() => {
@@ -116,6 +98,7 @@ afterEach(() => {
   target?.remove();
   comp = undefined;
   target = undefined;
+  restoreStorage();
 });
 
 describe('Table — mounted', () => {
