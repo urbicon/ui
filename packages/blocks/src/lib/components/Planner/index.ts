@@ -7,7 +7,40 @@ import type {
   PlannerHeaderContext,
   PlannerView
 } from './planner.types';
-import type { PlannerSlots, PlannerVariants } from './planner.variants';
+import type { PlannerCellState, PlannerSlots, PlannerVariants } from './planner.variants';
+
+/**
+ * Why the `Omit` below spells its keys out instead of saying
+ * `keyof PlannerCellState`: docs-gen resolves a literal key list and stops at a
+ * `keyof` — and at a type alias, measured — so the short form published
+ * `dayState`, `selected`, `weekend` and `outside` into the generated `api.ts`,
+ * `llms-full.txt` and both component catalogues as four props Planner does not
+ * take, one of them with a worked `<Planner dayState="default">` example.
+ * svelte-check rejects that markup; nothing rejected the catalogue. The
+ * duplication is the generator's price, so the two assertions below are what
+ * hold the copies together.
+ *
+ * They watch the two edges that carry the defect, not a private list:
+ *
+ * - `_NoCellAxisReachesProps` reads `keyof PlannerProps`, the same surface
+ *   docs-gen reads. A key dropped from the `Omit` reaches it and turns this
+ *   red.
+ * - `_EveryAxisIsClassified` reads the tv() config's own axis roster. A new
+ *   axis has to be declared a prop axis or a cell-state axis; left
+ *   unclassified it would become a prop nobody wrote.
+ */
+/** True only when `A` and `B` are the same union — identity, not mutual assignability. */
+type SameKeys<A, B> =
+  (<T>() => T extends A ? 1 : 2) extends <T>() => T extends B ? 1 : 2 ? true : false;
+type AssertSameKeys<T extends true> = T;
+/** The three axes that ARE props; the rest of the roster is per-cell state. */
+type PlannerPropAxes = 'view' | 'variant' | 'size';
+type _NoCellAxisReachesProps = AssertSameKeys<
+  SameKeys<Extract<keyof PlannerProps<unknown>, keyof PlannerCellState>, never>
+>;
+type _EveryAxisIsClassified = AssertSameKeys<
+  SameKeys<keyof PlannerVariants, PlannerPropAxes | keyof PlannerCellState>
+>;
 
 /**
  * @summary A date grid whose cells hold your content — meals, shifts, bookings, slots.
@@ -40,7 +73,7 @@ import type { PlannerSlots, PlannerVariants } from './planner.variants';
  * ```
  */
 export interface PlannerProps<T = unknown>
-  extends Omit<PlannerVariants, 'view'>,
+  extends Omit<PlannerVariants, 'view' | 'dayState' | 'selected' | 'weekend' | 'outside'>,
     Omit<HTMLAttributes<HTMLDivElement>, 'children'> {
   // ── Content / Data ───────────────────────────────────
   /** The items to lay out. Each is bucketed onto a day via {@link getDate}. */

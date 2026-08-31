@@ -15,7 +15,12 @@
   } from '$lib/internal/date-grid';
   import { bucketItemsByDate } from './planner.bucket';
   import { setPlannerContext } from './planner.context';
-  import { plannerVariants, type PlannerVariants } from './planner.variants';
+  import {
+    type PlannerCellState,
+    plannerVariants,
+    type PlannerVariants,
+    plannerWeekStacking
+  } from './planner.variants';
   import type {
     PlannerCellContext,
     PlannerContext,
@@ -119,11 +124,32 @@
   const slotClasses = $derived(
     resolveSlotClasses(blocksConfig, 'Planner', preset, variantProps, slotClassesProp)
   );
-  function slot(name: PlannerSlotName, extra?: string): string {
-    const overrides = [slotClasses?.[name], extra].filter(Boolean).join(' ');
-    if (unstyled) return overrides;
-    const fn = styles[name] as ((args: { class: string }) => string) | undefined;
-    return fn?.({ class: overrides }) ?? overrides;
+  // `unstyled` drops the look, not the layout: below `md` the week view moves
+  // the weekday and the date out of the header row and into every cell, and
+  // without the breakpoint classes that do it both copies print at once, at
+  // every width. The widening is only to make the index below legal — it
+  // accepts a stale key, measured; the keys are checked where the `view: 'week'`
+  // axis is assembled from the same map.
+  const structuralClasses: Partial<Record<PlannerSlotName, string>> = plannerWeekStacking;
+
+  /**
+   * One slot, resolved. `state` names the per-cell axes for this call; `class`
+   * is the consumer's own `class` prop and nothing else. A library class
+   * belongs in `planner.variants.ts`, never in either argument — handed in
+   * here it would share a source with the consumer's `slotClasses` entry, and
+   * `stripConflicts` runs between sources, never inside one (#349).
+   */
+  function slot(
+    name: PlannerSlotName,
+    { class: consumerClass, ...state }: PlannerCellState & { class?: string } = {}
+  ): string {
+    const overrides = [slotClasses?.[name], consumerClass].filter(Boolean).join(' ');
+    if (unstyled) {
+      const structural = view === 'week' ? structuralClasses[name] : undefined;
+      return [structural, overrides].filter(Boolean).join(' ');
+    }
+    const fn = styles[name] as ((args: PlannerCellState & { class: string }) => string) | undefined;
+    return fn?.({ ...state, class: overrides }) ?? overrides;
   }
 
   // --- Reference date: controlled by `value`, else internal state seeded once ---
@@ -253,21 +279,17 @@
     return weekdayFormatter.format(date);
   }
 
-  // --- Per-cell state classes (dynamic; not part of the static variant matrix) ---
-  const todayDateMark = 'bg-primary text-text-on-primary rounded-full';
-  function cellStateClasses(p: PlannerCellContext<T>): Array<string | false> {
-    return [
-      p.isSelected && 'ring-2 ring-primary ring-inset relative z-10',
-      highlightWeekend && p.isWeekend && 'bg-surface-subtle',
-      p.isOutsideRange && 'opacity-40',
-      // Shipping minDate/maxDate/disabledDates without this left a blocked day
-      // looking exactly like a bookable one — same surface, same border, same
-      // date colour, same cursor — with `aria-disabled` the only difference, so
-      // the constraint existed for screen readers and nobody else. Mirrors the
-      // `disabled` rung of Calendar's dayState (`opacity-40 cursor-not-allowed`),
-      // which is also what a whole-grid `disabled` renders as there.
-      p.isDisabled && 'opacity-40 cursor-not-allowed'
-    ];
+  // --- Per-cell state, as variant axes rather than appended classes ---
+  // The date number lives in Planner's own cell header, NOT in the consumer's
+  // `cell` snippet, so `PlannerCellContext.isDisabled` cannot reach it — which
+  // is why the ladder is drawn here and not left to the consumer.
+  function cellState(p: PlannerCellContext<T>): PlannerCellState {
+    return {
+      dayState: p.isDisabled ? 'disabled' : highlightToday && p.isToday ? 'today' : 'default',
+      selected: p.isSelected,
+      weekend: highlightWeekend && p.isWeekend,
+      outside: p.isOutsideRange
+    };
   }
 
   const isWeek = $derived(view === 'week');
@@ -330,7 +352,7 @@
   setPlannerContext(plannerCtx);
 </script>
 
-<div class={slot('base', className)} {...restProps}>
+<div class={slot('base', { class: className })} {...restProps}>
   <div class="sr-only" aria-live="polite" role="status">{controller.title}</div>
 
   {#if header}
@@ -340,14 +362,14 @@
   {/if}
 
   <DateGridScaffold
-    class={slot('grid', !isWeek ? 'border-border-subtle border-r border-b' : '')}
+    class={slot('grid')}
     showWeekNumber={effectiveShowWeekNumbers}
     swipeable={swipeableProp && !disabled}
     {animated}
     ariaLabel={bt('planner.grid')}
-    headerRowClass={slot('weekdayHeader', isWeek ? 'gap-2 max-md:hidden' : '')}
+    headerRowClass={slot('weekdayHeader')}
     headerClass={slot('weekday')}
-    rowClass={slot('week', isWeek ? 'gap-2 max-md:grid-cols-1' : '')}
+    rowClass={slot('week')}
     cellClass="h-auto"
     weekNumberClass={slot('weekNumber')}
     cell={gridCell}
@@ -376,26 +398,15 @@
 
 {#snippet gridCell(info: DayCellInfo)}
   {@const p = plannerCellContext(info)}
-  <div class={[slot('cell'), ...cellStateClasses(p)]}>
-    <!-- Date header: week shows weekday+date only when stacked (mobile); month/range always. -->
-    <div class={[slot('cellHeader'), isWeek && 'md:hidden']}>
+  {@const state = cellState(p)}
+  <div class={slot('cell', state)}>
+    <!-- Weekday + date. Month and range show it always; the week view only
+         while its rows are stacked, which `view.week.cellHeader` decides. -->
+    <div class={slot('cellHeader')}>
       {#if isWeek}
         <span class={slot('cellWeekday')}>{p.weekday}</span>
       {/if}
-      <!-- The date number lives here, in Planner's own cell header — NOT in the
-           consumer's `cell` snippet — so `PlannerCellContext.isDisabled` cannot
-           reach it. It needs its own branch, ordered like Calendar's exclusive
-           dayState ladder: disabled outranks today. -->
-      <span
-        class={[
-          slot('cellDate'),
-          p.isDisabled
-            ? 'text-text-disabled'
-            : highlightToday && p.isToday
-              ? todayDateMark
-              : 'text-text-secondary'
-        ]}
-      >
+      <span class={slot('cellDate', state)}>
         {info.date.getDate()}
       </span>
     </div>
