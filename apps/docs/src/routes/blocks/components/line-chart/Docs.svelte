@@ -87,6 +87,20 @@
         />
       </div>
     </CodeExample>
+
+    <CodeExample
+      title="Line and points apart"
+      description="`slotClasses.mark` is the line, `slotClasses.point` the dots on it — here the line fades back while the dots keep full strength and take a surface-coloured ring."
+      isolate
+      previewClass="flex w-full justify-center p-6"
+    >
+      <div class="w-full max-w-2xl">
+        <LineChart
+          data={single}
+          slotClasses={{ mark: 'opacity-30', point: 'stroke-surface-base stroke-[2px]' }}
+        />
+      </div>
+    </CodeExample>
   </div>
 </Section>
 

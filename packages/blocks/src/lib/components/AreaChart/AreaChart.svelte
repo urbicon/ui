@@ -3,6 +3,7 @@
   import type { AreaChartProps } from './index';
   import type { ChartSeries } from '$lib/internal/charts/types';
   import { chartSlotResolver } from '$lib/internal/charts/variants';
+  import { resolveClassChain } from '$lib/utils/variants';
   import {
     linearScale,
     niceScale,
@@ -180,14 +181,14 @@
     <!-- series areas -->
     {#each areas as area, si (area.label + ' ' + si)}
       <path
-        class={slot('mark')}
+        class={resolveClassChain(slot('mark'), slot('area'))}
         d={area.areaD}
         fill={area.color}
         fill-opacity={opacity}
         stroke="none"
       />
       <path
-        class={slot('mark')}
+        class={resolveClassChain(slot('mark'), slot('areaOutline'))}
         d={area.lineD}
         fill="none"
         stroke={area.color}

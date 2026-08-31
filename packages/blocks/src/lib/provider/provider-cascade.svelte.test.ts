@@ -4,7 +4,7 @@ import { describe, expect, it, vi } from 'vitest';
 import { resolveClassChain } from '$lib/utils/variants';
 import CascadeCompoundHost from './__fixtures__/CascadeCompoundHost.svelte';
 import CascadeHost from './__fixtures__/CascadeHost.svelte';
-import { MOUNT_FIXTURES } from './__fixtures__/cascade-mount-props';
+import { MOUNT_FIXTURES, type MountFixture } from './__fixtures__/cascade-mount-props';
 import { type CascadeComponent, exportedComponents } from './__fixtures__/cascade-registry';
 
 /**
@@ -173,13 +173,7 @@ const KNOWN_GAPS: Record<string, Partial<Record<Route, string>>> = {
   Chat: { B: '#341 passes `{}` as its condition object' },
   ChatMessageList: { B: '#341 passes `{}` though it declares `layout` and `density`' },
   DonutChart: { B: '#341 passes `{}` as its condition object' },
-  Guide: {
-    B: '#341 passes `{}` as its condition object',
-    // The `class` prop lands on the tour bubble (correctly folded there), and
-    // the bubble renders only while a tour is running — which the mount
-    // fixture does not start. Not a fold defect; an element route E never sees.
-    E: 'the `class` prop lands on the tour bubble, which renders only during a tour'
-  },
+  Guide: { B: '#341 passes `{}` as its condition object' },
   GuideArticle: { B: '#341 passes `{}` as its condition object' },
   GuideHint: { B: '#341 passes `{}` as its condition object' },
   GuideMention: { B: '#341 passes `{}` as its condition object' },
@@ -193,6 +187,13 @@ const KNOWN_GAPS: Record<string, Partial<Record<Route, string>>> = {
   // COMPONENT-API-CONVENTIONS.md ("the plumbing is not an override surface").
   // The slot class that *is* the override surface merges correctly; these
   // entries record the plumbing buckets that stay out of it.
+  // Reached the sweep with the open-listbox fixture, which is what made the
+  // `selected` state measurable at all. Two defects, both of the ladder family
+  // and neither of the co-location shape: `optionCheck` appends the library's
+  // own `opacity-100` *after* the consumer's entry inside one `class` array,
+  // and `option` nests the `optionActive` / `optionSelected` folds inside its
+  // own, where same-bucket pairs fall through to the stylesheet.
+  Combobox: { D: 'the option row appends library state classes past the consumer rung' },
   ChatMessage: { D: 'CoreIconButton plumbing on `actionButton`, out of the ladder by design' },
   // Reached the sweep with #355, which gave it a provider name of its own; the
   // close button it inherits from Dialog is the same core as Drawer's below.
@@ -338,6 +339,16 @@ interface MountResult {
    */
   slotElements: Map<string, Set<string>>;
   /**
+   * Slot names that share one element, one group per distinct element. Empty
+   * for every component whose call sites paint one slot per element *in the
+   * state this mount reached* — a pairing that only a closed listbox or an
+   * unstarted tour renders is invisible here, so the answer is about the
+   * mounted states and never about the library. Both gaps were real: opening
+   * Combobox and starting Guide's tour in `MOUNT_FIXTURES` each turned an
+   * empty list into a pair.
+   */
+  coLocated: string[][];
+  /**
    * Class tokens of the element route E's `class`-prop marker landed on,
    * marker excluded — `undefined` when the prop reached no element.
    */
@@ -346,14 +357,27 @@ interface MountResult {
   condition: Record<string, unknown> | undefined;
 }
 
+/**
+ * `true` — the entry's own fixture; `false` — none; an object — that fixture
+ * instead, which is how the necessity assertions drop one part and keep the
+ * rest.
+ */
+type FixtureChoice = boolean | MountFixture;
+
+function resolveFixture(entry: CascadeComponent, choice: FixtureChoice): MountFixture {
+  if (choice === true) return MOUNT_FIXTURES[entry.exportName] ?? {};
+  if (choice === false) return {};
+  return choice;
+}
+
 function mountOnce(
   entry: CascadeComponent,
   providerProps: Record<string, unknown>,
-  withFixture = true,
+  withFixture: FixtureChoice = true,
   rootRule: RootRule = 'outermost',
   extraProps: Record<string, unknown> = {}
 ): MountResult {
-  const fixture = (withFixture && MOUNT_FIXTURES[entry.exportName]) || {};
+  const fixture = resolveFixture(entry, withFixture);
   const props: Record<string, unknown> = { ...fixture.props, ...extraProps };
   if (entry.declaredProps.includes('children') && !('children' in props)) {
     props.children = createRawSnippet(() => ({ render: () => '<span>content</span>' }));
@@ -366,7 +390,13 @@ function mountOnce(
   const app = fixture.family
     ? mount(CascadeCompoundHost, {
         target,
-        props: { family: fixture.family, component: entry.component, props, ...providerProps }
+        props: {
+          family: fixture.family,
+          tour: fixture.tour ?? false,
+          component: entry.component,
+          props,
+          ...providerProps
+        }
       })
     : mount(CascadeHost, {
         target,
@@ -412,13 +442,20 @@ function mountOnce(
     : undefined;
 
   const slotElements = new Map<string, Set<string>>();
+  const coLocated: string[][] = [];
   for (const element of painted) {
     const classes = [...element.classList];
     const landed = classes.filter((token) => token.startsWith(PROBE_A_PREFIX));
     if (landed.length === 0) continue;
     const own = new Set(classes.filter((token) => !token.startsWith(PROBE_A_PREFIX)));
-    for (const token of landed) {
-      const slot = token.slice(PROBE_A_PREFIX.length);
+    const slots = landed.map((token) => token.slice(PROBE_A_PREFIX.length));
+    // More than one slot's probe on one element: the call site joined two
+    // finished folds. Measured here rather than read out of the markup —
+    // the probes are already unique per slot and this render already happened.
+    if (slots.length > 1 && !coLocated.some((group) => group.join() === slots.join())) {
+      coLocated.push(slots);
+    }
+    for (const slot of slots) {
       if (!slotElements.has(slot)) slotElements.set(slot, own);
     }
   }
@@ -440,12 +477,13 @@ function mountOnce(
     rootTokens,
     rootProbes,
     slotElements,
+    coLocated,
     classCarrier,
     condition
   };
 }
 
-function measure(entry: CascadeComponent, withFixture = true): Measurement {
+function measure(entry: CascadeComponent, withFixture: FixtureChoice = true): Measurement {
   const routes: Record<Route, Outcome> = {
     A: { ok: false, detail: 'not run' },
     B: { ok: false, detail: 'not run' },
@@ -664,6 +702,41 @@ function measure(entry: CascadeComponent, withFixture = true): Measurement {
         }
       }
 
+      // The run above writes the candidate into *every* slot at once, and where
+      // two slots share an element that hides a raw join: the neighbour's own
+      // fold strips the library class, so the element comes out clean whatever
+      // the call site did with the two finished results. Each slot sharing an
+      // element is therefore asked once on its own — the shape a consumer
+      // actually writes, and the only one under which the neighbour's classes
+      // are still standing to be beaten.
+      for (const slot of new Set(probed.coLocated.flat())) {
+        const collisions = perSlot.get(slot);
+        if (!collisions) continue;
+        const candidates = [...new Set(collisions.values())];
+        const alone = mountOnce(
+          entry,
+          {
+            defaults: {
+              [name]: { slotClasses: { [slot]: [probeA(slot), ...candidates].join(' ') } }
+            }
+          },
+          withFixture,
+          rootRule
+        );
+        const element = alone.slotElements.get(slot);
+        if (!element || candidates.some((candidate) => !element.has(candidate))) continue;
+        const survivors = [...collisions.keys()].filter((token) => element.has(token));
+        if (survivors.length) {
+          failures.push(
+            `${slot} (written alone): ` +
+              survivors
+                .slice(0, 3)
+                .map((token) => `${token} vs ${collisions.get(token)}`)
+                .join(', ')
+          );
+        }
+      }
+
       routes.D = failures.length
         ? {
             ok: false,
@@ -865,27 +938,43 @@ describe('BlocksProvider cascade reaches the markup', () => {
     // A fixture earns its place by changing an answer: without it the
     // component must fail to mount, or measure differently. Anything else is
     // dead weight — the contract `imports-lint` puts on its own allowlist.
+    //
+    // Asked of the entry whole, and of `tour` on its own. Not of the
+    // individual `props`: those are the minimum that makes a component render,
+    // and measured, 15 of them across 11 components move no route — the
+    // `value` a `TabItem` needs to be coherent is not dead weight because no
+    // route happens to read it. `tour` is the other kind, a state the sweep
+    // has to enter before there is anything to measure, and while it lived in
+    // the host rather than here it changed twelve of Guide's slots and flipped
+    // route E with nothing asserting it.
     const unnecessary: string[] = [];
-    for (const name of Object.keys(MOUNT_FIXTURES)) {
+    for (const [name, fixture] of Object.entries(MOUNT_FIXTURES)) {
       const fixtured = measurements.find((m) => m.entry.exportName === name);
       if (!fixtured) continue;
-      let bare: Measurement;
-      try {
-        bare = measure(fixtured.entry, false);
-      } catch {
-        continue; // throwing without the fixture is what makes it necessary
+      const without: [string, FixtureChoice][] = [[name, false]];
+      if (fixture.tour !== undefined) {
+        without.push([`${name}.tour`, { ...fixture, tour: undefined }]);
       }
-      if (bare.mountError) continue;
-      const changed = (['A', 'B', 'C', 'D', 'E'] as Route[]).some(
-        (route) =>
-          fixtured.routes[route].ok !== bare.routes[route].ok ||
-          fixtured.routes[route].detail !== bare.routes[route].detail
-      );
-      if (!changed) unnecessary.push(name);
+      for (const [label, choice] of without) {
+        let bare: Measurement;
+        try {
+          bare = measure(fixtured.entry, choice);
+        } catch {
+          continue; // throwing without the fixture is what makes it necessary
+        }
+        if (bare.mountError) continue;
+        const changed = (['A', 'B', 'C', 'D', 'E'] as Route[]).some(
+          (route) =>
+            fixtured.routes[route].ok !== bare.routes[route].ok ||
+            fixtured.routes[route].detail !== bare.routes[route].detail
+        );
+        if (!changed) unnecessary.push(label);
+      }
     }
     expect(
       unnecessary,
-      `MOUNT_FIXTURES entries that change no answer — delete them:\n  ${unnecessary.join('\n  ')}`
+      'MOUNT_FIXTURES entries — or the one part named after the dot — that change no answer. ' +
+        `Delete them, or make the host honour what the fixture asks for:\n  ${unnecessary.join('\n  ')}`
     ).toEqual([]);
   });
 });

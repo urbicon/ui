@@ -158,7 +158,16 @@ export interface CommandPaletteProps {
   /** Strip all default styles. @default false */
   unstyled?: boolean;
 
-  /** Per-slot class overrides. */
+  /**
+   * Per-slot class overrides. An option row is built from four sources in
+   * order — the library's `item` classes, the library's classes for the row's
+   * state (`itemHighlighted` when selected, `itemDisabled` when the item is
+   * disabled, `itemDefault` otherwise), then your `item` entry, then your entry
+   * for that state slot. Each source displaces the earlier ones per Tailwind
+   * bucket, so an `item` entry that collides with a state class *removes* it:
+   * `slotClasses={{ item: 'bg-white' }}` also drops the selected row's
+   * `bg-primary-subtle`. Write the state slot as well to keep both.
+   */
   slotClasses?: Partial<Record<CommandPaletteSlots, string>>;
 
   /**

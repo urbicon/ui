@@ -46,7 +46,7 @@ export interface LineChartProps extends Omit<HTMLAttributes<HTMLElement>, 'child
   formatValue?: (value: number) => string;
   /** BCP-47 locale for the default number formatter. */
   locale?: string;
-  /** Render a dot at each data point. @default true */
+  /** Render a dot at each data point; style them via `slotClasses.point`. @default true */
   showPoints?: boolean;
   /** Show the series legend (only renders with >1 series). @default true */
   showLegend?: boolean;
@@ -60,7 +60,7 @@ export interface LineChartProps extends Omit<HTMLAttributes<HTMLElement>, 'child
   class?: string;
   /** Remove all default tv classes. */
   unstyled?: boolean;
-  /** Per-slot class overrides. */
+  /** Per-slot class overrides. `mark` is the line path, `point` the dots on it. */
   slotClasses?: LineChartSlotClasses;
   /** Apply a named preset registered on `<BlocksProvider>`. */
   preset?: string;

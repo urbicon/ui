@@ -78,6 +78,20 @@
         />
       </div>
     </CodeExample>
+
+    <CodeExample
+      title="Band and edge apart"
+      description="A series is two paths: `slotClasses.area` reaches the filled band, `slotClasses.areaOutline` its top edge. `mark` reaches both, so a paint written there lands on both."
+      isolate
+      previewClass="flex w-full justify-center p-6"
+    >
+      <div class="w-full max-w-2xl">
+        <AreaChart
+          data={single}
+          slotClasses={{ area: 'opacity-60', areaOutline: 'stroke-text-primary stroke-[2px]' }}
+        />
+      </div>
+    </CodeExample>
   </div>
 </Section>
 

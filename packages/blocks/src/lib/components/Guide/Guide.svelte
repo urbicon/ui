@@ -4,6 +4,7 @@
   import { useBlocksI18n } from '$lib/i18n';
   import { Button } from '$lib/primitives/Button';
   import { getBlocksConfig, resolveSlotClasses } from '$lib/provider';
+  import { resolveClassChain } from '$lib/utils/variants';
   import {
     computePosition,
     autoUpdate,
@@ -527,14 +528,14 @@
             >
               <!-- Positional, stateless markers — never reordered, so the index is a stable key. -->
               {#each Array.from({ length: view.count }) as _, i (i)}
+                {@const active = i === view.index}
                 <span
-                  class={[
-                    unstyled ? (slotClasses?.dot ?? '') : styles.dot({ class: slotClasses?.dot }),
-                    i === view.index &&
-                      (unstyled
-                        ? (slotClasses?.dotActive ?? '')
-                        : styles.dotActive({ class: slotClasses?.dotActive }))
-                  ]}
+                  class={resolveClassChain(
+                    unstyled ? '' : styles.dot(),
+                    active && !unstyled ? styles.dotActive() : '',
+                    slotClasses?.dot,
+                    active ? slotClasses?.dotActive : undefined
+                  )}
                 ></span>
               {/each}
             </div>

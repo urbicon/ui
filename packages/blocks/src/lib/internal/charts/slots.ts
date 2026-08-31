@@ -45,6 +45,7 @@ export const LINE_CHART_SLOTS = [
   ...FRAME_SLOTS,
   ...AXIS_SLOTS,
   'mark',
+  'point',
   ...LEGEND_SLOTS
 ] as const satisfies readonly ChartSlot[];
 
@@ -52,6 +53,8 @@ export const AREA_CHART_SLOTS = [
   ...FRAME_SLOTS,
   ...AXIS_SLOTS,
   'mark',
+  'area',
+  'areaOutline',
   ...LEGEND_SLOTS
 ] as const satisfies readonly ChartSlot[];
 
