@@ -126,6 +126,11 @@ export interface MenuSpecificProps<TItem extends MenuItemType = MenuItemType> {
    * own item shape carries a `type: 'divider'` field of its own meaning — the
    * built-in check is structural, and without this mapper such a row would
    * render as a rule and lose its `onSelect`.
+   *
+   * This mapper and `isSection` *replace* the built-in check rather than
+   * narrowing it, so the escape is all-or-nothing: `isDivider={() => false}`
+   * also switches off genuine `{ type: 'divider' }` entries, which render as
+   * plain rows again — express those in your own shape instead.
    * @summary Divider detection override, for item shapes with their own `type` field.
    */
   isDivider?: (item: MenuItemType) => boolean;

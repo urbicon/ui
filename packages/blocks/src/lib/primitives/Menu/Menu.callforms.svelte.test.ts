@@ -4,6 +4,7 @@ import userEvent from '@testing-library/user-event';
 import { flushSync, mount, unmount } from 'svelte';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import Harness from './__fixtures__/MenuCallFormsHarness.svelte';
+import ContractHost from './__fixtures__/MenuSectionContractHost.svelte';
 import Menu from './Menu.svelte';
 
 // One structure — a bare leading row, then a named section holding two rows
@@ -198,6 +199,27 @@ describe('Menu (section roles across the three call forms)', () => {
       'group:c',
       '  menuitem:c'
     ]);
+  });
+
+  it('names the component and the fix when a section renders no items', () => {
+    // The client half of the contract; the server half is in
+    // Menu.sectionContract.smoke.test.ts. Asserted on the sentence itself,
+    // because the whole point of the guard is what it says.
+    expect(() =>
+      mount(ContractHost, { target: document.body, props: { omitChildren: true } })
+    ).toThrow(/requires the items it names as its children/);
+    document.body.replaceChildren();
+
+    // The counter-direction: the nested form mounts and builds the group.
+    const app = mount(ContractHost, { target: document.body, props: { omitChildren: false } });
+    dispose = () => unmount(app);
+    flushSync();
+    expect(
+      within(document.querySelector('[role="menu"]') as HTMLElement).getByRole('group', {
+        name: 'Group A',
+        hidden: true
+      })
+    ).toBeTruthy();
   });
 
   it('keeps arrow navigation identical across the three forms', async () => {
