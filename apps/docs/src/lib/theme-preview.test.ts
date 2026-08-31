@@ -177,7 +177,7 @@ describe('the closure covers what reads the ramps', () => {
     for (const [name, why] of [
       ['--color-text-on-primary', 'alias of a re-declared role'],
       ['--color-interactive-hover', 'primary-derived in relative-colour syntax'],
-      ['--color-shadow-md', 'shadow tint → semantic shadow'],
+      ['--blocks-shadow-scale-md', 'shadow tint → semantic shadow'],
       ['--blocks-shadow-md', 'semantic shadow → interaction alias'],
       ['--color-neutral-emphasis', 'chrome hue → neutral intent'],
       ['--blocks-focus-ring', 'primary → focus ring colour → composed ring']

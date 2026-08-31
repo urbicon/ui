@@ -25,7 +25,7 @@
  * removing it. So the set is now COMPUTED: seed it with what the preview
  * overrides, then take the transitive closure over the shipped stylesheets —
  * every declaration whose value reads a seeded name joins the set, and its own
- * name seeds the next round. That reaches `--blocks-shadow-tint → --color-shadow-*
+ * name seeds the next round. That reaches `--blocks-shadow-tint → --blocks-shadow-scale-*
  * → --blocks-shadow-*` and `--neutral-chrome-hue → --color-neutral*` without
  * anyone naming a link, and a role the library adds tomorrow arrives on its own.
  *
