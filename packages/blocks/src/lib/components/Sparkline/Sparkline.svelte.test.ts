@@ -76,19 +76,51 @@ describe('Sparkline (sizing contract)', () => {
 });
 
 /**
+ * How many elements does each slot key reach?
+ *
+ * This is the measurement the `endPoint`-instead-of-`point` naming rests on,
+ * and no other test in the repo makes it: `slot-reach.svelte.test.ts` collects
+ * its probes into a Set, so one circle and the charts' thirty-six are the same
+ * result there. Counted through `slotClasses` rather than by tag, because "one
+ * circle is rendered" is not the claim — "an entry under this key lands on one
+ * element" is.
+ */
+describe('Sparkline (slot cardinality)', () => {
+  it('reaches exactly one element per slot, in the state that paints them all', () => {
+    render({
+      data: [1, 4, 2, 8, 5],
+      area: true,
+      showEndPoint: true,
+      slotClasses: { mark: 'probe-mark', area: 'probe-area', endPoint: 'probe-end' }
+    });
+
+    // One series, so one stroked path and one band; one marker, at the last
+    // value. `<LineChart>` under `showPoints` paints one `point` per series AND
+    // datum — the asymmetry the two names exist to keep visible.
+    expect(document.querySelectorAll('.probe-mark')).toHaveLength(1);
+    expect(document.querySelectorAll('.probe-area')).toHaveLength(1);
+    expect(document.querySelectorAll('.probe-end')).toHaveLength(1);
+  });
+});
+
+/**
  * Which consumer surfaces does the DEV rename warning actually reach?
  *
- * Four places can carry a slot key and only one of them is typed: an instance
- * `slotClasses` object literal is a compile error on `line` / `point` — which
- * is why every stale case below needs a cast to be written at all — while
- * `ComponentDefaults['slotClasses']`, `ComponentPreset['slotClasses']` and
- * `ConditionalOverride['class']` are each `Record<string, string>` and take a
- * stale key in silence. The warning is therefore read off the *resolved* map,
- * downstream of all four, and that is the claim measured here: one mount per
- * surface. A surface not asserted below is not covered by the warning either.
+ * `resolveSlotClasses` folds five sources, and only one of them is typed: an
+ * instance `slotClasses` object literal is a compile error on `line` / `point`
+ * — which is why every stale case below needs a cast to be written at all —
+ * while `ComponentDefaults['slotClasses']`, `ComponentPreset['slotClasses']`
+ * and `ConditionalOverride['class']` are each `Record<string, string>` and take
+ * a stale key in silence.
+ *
+ * The warning is therefore read off the *resolved* map, once, downstream of all
+ * five. That makes the coverage **structural rather than per-source**: it holds
+ * for whatever `resolveSlotClasses` folds in, including a source added later
+ * and never listed here. The cases below are the evidence for that, one per
+ * source, not the definition of it.
  *
  * The two quiet cases are the control. Without them a warning that fired on
- * every mount would satisfy all four.
+ * every mount would satisfy all five.
  */
 describe('Sparkline (DEV warning for the v9 slot rename)', () => {
   const STALE = /slotClasses\.(line|point) no longer resolves/;
@@ -136,10 +168,20 @@ describe('Sparkline (DEV warning for the v9 slot rename)', () => {
     expect(warn).toHaveBeenCalledWith(expect.stringMatching(STALE));
   });
 
-  it('reports a stale key in a prop-conditional override', () => {
+  it('reports a stale key in a prop-conditional override on the defaults', () => {
     renderHost({
       defaults: { Sparkline: { overrides: [{ fluid: true, class: { line: 'opacity-70' } }] } },
       props: { data: [1, 4, 2], fluid: true }
+    });
+    expect(warn).toHaveBeenCalledWith(expect.stringMatching(STALE));
+  });
+
+  it('reports a stale key in a prop-conditional override on a preset', () => {
+    renderHost({
+      presets: {
+        Sparkline: { legacy: { overrides: [{ fluid: true, class: { point: 'stroke-2' } }] } }
+      },
+      props: { data: [1, 4, 2], fluid: true, preset: 'legacy' }
     });
     expect(warn).toHaveBeenCalledWith(expect.stringMatching(STALE));
   });
@@ -158,6 +200,27 @@ describe('Sparkline (DEV warning for the v9 slot rename)', () => {
 
   it('stays quiet on the current names under a provider', () => {
     renderHost({ defaults: { Sparkline: { slotClasses: { mark: 'opacity-70' } } } });
+    expect(warn).not.toHaveBeenCalled();
+  });
+
+  // The granularity, pinned because MIGRATION.md tells consumers about it: the
+  // check sits in the component body, so it runs once per mount and not again.
+  // The slot cascade around it *is* reactive — asserted here, or "no second
+  // warning" would also pass on a component that stopped updating at all.
+  it('checks at mount only, while the cascade around it keeps updating', () => {
+    const defaults = $state<Record<string, ComponentDefaults>>({
+      Sparkline: { slotClasses: { mark: 'probe-fresh' } }
+    });
+    renderHost({ defaults });
+    expect(document.querySelector('.probe-fresh')).not.toBeNull();
+    expect(warn).not.toHaveBeenCalled();
+
+    defaults.Sparkline = { slotClasses: { line: 'probe-stale' } };
+    flushSync();
+
+    // The new entry arrived — the old class is gone, so the cascade re-ran…
+    expect(document.querySelector('.probe-fresh')).toBeNull();
+    // …and the stale key it now carries goes unreported.
     expect(warn).not.toHaveBeenCalled();
   });
 });

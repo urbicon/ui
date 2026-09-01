@@ -261,9 +261,10 @@ const SWEEPS: Sweep[] = [
     configSlots: SPARKLINE_SLOTS,
     slots: SPARKLINE_SLOTS,
     // `area` and `showEndPoint` each gate exactly one slot and are off by
-    // default, so the two states are the smallest pair that reaches all five —
-    // and they carry the cardinality the slot names claim: one `mark`, one
-    // `endPoint`, against the charts' one `point` per series and datum.
+    // default, so the two states are the smallest pair that reaches all five.
+    // Reach only: `landed()` collects into a Set, so one element and thirty-six
+    // are the same result here. The cardinality the `endPoint`-not-`point`
+    // naming rests on is counted in `Sparkline.svelte.test.ts` instead.
     mounts: [
       { name: 'with the band under the line', props: { data: [1, 4, 2, 8, 5], area: true } },
       { name: 'with the end-point marker', props: { data: [1, 4, 2, 8, 5], showEndPoint: true } }
