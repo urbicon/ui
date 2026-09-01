@@ -6,6 +6,7 @@ import CascadeCompoundHost from './__fixtures__/CascadeCompoundHost.svelte';
 import CascadeHost from './__fixtures__/CascadeHost.svelte';
 import { MOUNT_FIXTURES, type MountFixture } from './__fixtures__/cascade-mount-props';
 import { type CascadeComponent, exportedComponents } from './__fixtures__/cascade-registry';
+import LadderFoldProbe from './__fixtures__/LadderFoldProbe.svelte';
 
 /**
  * The oracle for the override cascade: every public component that declares an
@@ -501,6 +502,10 @@ function mountOnce(
     if (slots.length > 1 && !coLocated.some((group) => group.join() === slots.join())) {
       coLocated.push(slots);
     }
+    // First element wins, and that bounds route D's per-slot pass: a state
+    // slot holding on a *later* element than its neighbour's first is folded
+    // against a token set nothing here reads. Both sides are pinned by the
+    // `LadderFoldProbe` pair below.
     for (const slot of slots) {
       if (!slotElements.has(slot)) slotElements.set(slot, own);
     }
@@ -785,7 +790,7 @@ function measure(entry: CascadeComponent, withFixture: FixtureChoice = true): Me
         // Measured: with `Combobox`'s option row folding `optionActive` /
         // `optionSelected` into its own slot again, `bg-transparent` and
         // `font-normal` go missing here and route D reports it; skipping
-        // instead left that shape green over the whole corpus.
+        // instead leaves that shape green over the whole corpus.
         const missingAlone = candidates.filter((candidate) => !element.has(candidate));
         if (missingAlone.length) {
           failures.push(
@@ -1029,6 +1034,69 @@ describe('BlocksProvider cascade reaches the markup', () => {
     // all, and ~90 components would go green on a measurement that stopped
     // happening.
     expect(resolveClassChain(LADDER_LOSER, LADDER_WINNER).split(' ')).toEqual([LADDER_WINNER]);
+  });
+
+  // Route D's co-located pass is the only thing in this file that catches a
+  // state slot folded into its neighbour's `class` array, and no component in
+  // the corpus carries that fold any more — so nothing here would fail if the
+  // pass stopped reporting. `LadderFoldProbe` carries it on purpose, through a
+  // hand-built entry rather than the roster derivation, which keeps it out of
+  // the sweep's own rows and its exemption lists.
+  //
+  // The two mounts differ only in which row holds the state, and that is the
+  // whole reach of the pass: `slotElements` keeps the FIRST element a slot's
+  // probe lands on, so the fold is reported only where the state holds on that
+  // element. Both answers are asserted, because a repair that widened the pass
+  // and a fixture that stopped entering the state read the same from one row.
+  const foldProbe: CascadeComponent = {
+    providerName: 'LadderFoldProbe',
+    exportName: 'LadderFoldProbe',
+    slots: ['base', 'row', 'rowState'],
+    libraryTokens: new Set([
+      'flex',
+      'flex-col',
+      'gap-2',
+      'p-2',
+      'w-full',
+      'items-center',
+      'px-3',
+      'py-2',
+      'text-left',
+      'text-sm',
+      'font-normal',
+      'bg-surface-hover',
+      'font-medium'
+    ]),
+    declaredProps: ['stateOn', 'unstyled', 'slotClasses'],
+    component: LadderFoldProbe as CascadeComponent['component']
+  };
+  const onRow = (stateOn: 'first' | 'second') => ({ props: { stateOn } });
+
+  it('reports a state slot folded into the row it shares an element with', () => {
+    const outcome = measure(foldProbe, onRow('first')).routes.D;
+    expect(outcome.measured, 'route D found a library class and a challenger for it').not.toBe(
+      false
+    );
+    expect(outcome.ok).toBe(false);
+    // Named, not merely red: the main pass passes this fixture — both slots
+    // resolve to one element, so they are handed the same candidates and none
+    // of them can strip another. Only the per-slot pass leaves the library's
+    // state class standing to be beaten.
+    expect(outcome.detail).toContain('row (written alone): the colliding entry did not arrive');
+  });
+
+  it('does not report the same fold when the state sits on the second row', () => {
+    const probes = {
+      defaults: {
+        LadderFoldProbe: {
+          slotClasses: Object.fromEntries(foldProbe.slots.map((slot) => [slot, probeA(slot)]))
+        }
+      }
+    };
+    // Without this the green below would also be what a fixture that stopped
+    // rendering the state at all produces.
+    expect(mountOnce(foldProbe, probes, onRow('second')).coLocated).toEqual([['row', 'rowState']]);
+    expect(measure(foldProbe, onRow('second')).routes.D.ok).toBe(true);
   });
 
   it('leaves nothing route A reaches unprobed by route D', () => {

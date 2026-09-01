@@ -1134,7 +1134,8 @@ describe('Combobox (validation frame)', () => {
   // Nothing else measures that: the two tests above enter the active state
   // alone, and the cascade sweep cannot — measured, its open-listbox fixture
   // lands `optionSelected` and never `optionActive`, because no mount it makes
-  // moves the keyboard cursor, so the pair never meets on one element there.
+  // enters the active state at all, by keyboard or by pointer, so the pair
+  // never meets on one element there.
   it('lets a slotClasses.option beat both state classes when both hold', async () => {
     const user = userEvent.setup();
     renderCombobox({ options: OPTIONS, value: 'apple', slotClasses: { option: 'bg-white' } });
@@ -1185,10 +1186,10 @@ describe('Combobox (validation frame)', () => {
     expect(classes).not.toContain('bg-white');
   });
 
-  // The check mark is the option row's fourth class source and sits on its own
-  // element: the selected state reaches it as a bare `opacity-100` written in
-  // the markup, not through a slot, and a consumer entry has to beat it like
-  // any other library class.
+  // The check mark sits on its own element, outside the option row's five
+  // sources: its `class` array is a pair, and the selected state reaches it as
+  // a bare `opacity-100` written in the markup rather than through a slot. A
+  // consumer entry has to beat it like any other library class.
   it('lets a slotClasses.optionCheck beat the selected row’s opacity', async () => {
     const user = userEvent.setup();
     renderCombobox({

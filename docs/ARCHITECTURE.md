@@ -348,10 +348,12 @@ never the two halves of one state folded together, which puts a library class af
 consumer rung again. So a `slotClasses.option` beats `Combobox`'s active highlight the way
 it beats the base slot, and a consumer who wants the highlight back addresses
 `optionActive`; and because both halves are written the same way round, `optionSelected`
-outranks `optionActive` for the consumer exactly as it does for the library. Route D reaches
-the shape only for state slots the sweep's mount actually renders — `option` and
-`optionSelected` share an element there, while `optionActive` needs a keyboard cursor no
-fixture moves — so the states that meet only under interaction are held by mounted tests.
+outranks `optionActive` for the consumer exactly as it does for the library. Route D reports
+the fold only where the state holds on the **first** element the neighbouring slot lands on —
+measured, and pinned by a purpose-built fixture in the sweep, because `slotElements` keeps
+that first element and reads no other. Combobox's `optionSelected` holds there; its
+`optionActive` is never entered by any mount the sweep makes, by keyboard or by pointer. What
+route D cannot reach is held by mounted tests instead.
 
 `unstyled` travels the same way — by prop, never by context. A component passes it to the
 blocks components it renders itself (DatePicker → Input/Popover/Calendar, ChatMessage →
