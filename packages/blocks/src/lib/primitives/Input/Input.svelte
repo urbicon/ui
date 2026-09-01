@@ -105,9 +105,9 @@
     variant,
     size,
     intent,
-    disabled: disabled || undefined,
-    readonly: readonly || undefined,
-    error: !!error || undefined,
+    disabled: disabled,
+    readonly: readonly,
+    error: !!error,
     required: required || undefined,
     hasLeftIcon: hasLeftIcon || undefined,
     hasRightIcon: hasRightIcon || undefined,
@@ -117,7 +117,14 @@
   const styles = $derived(inputVariants(variantProps));
 
   const slotClasses = $derived(
-    resolveSlotClasses(blocksConfig, 'Input', preset, variantProps, slotClassesProp)
+    resolveSlotClasses(
+      blocksConfig,
+      'Input',
+      preset,
+      variantProps,
+      slotClassesProp,
+      inputVariants.config
+    )
   );
 
   // ARIA wiring is shared with every form primitive — see XC-2.

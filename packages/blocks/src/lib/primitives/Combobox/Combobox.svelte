@@ -316,12 +316,19 @@
     // `|| undefined` rather than a plain `false`, matching Input: these props
     // are also matched against `BlocksProvider` `overrides`, where an entry
     // keyed `{ error: false }` must not fire on a valid field.
-    error: ff.invalid || undefined
+    error: ff.invalid
   });
   const styles = $derived(comboboxVariants(variantProps));
 
   const slotClasses = $derived(
-    resolveSlotClasses(blocksConfig, 'Combobox', preset, variantProps, slotClassesProp)
+    resolveSlotClasses(
+      blocksConfig,
+      'Combobox',
+      preset,
+      variantProps,
+      slotClassesProp,
+      comboboxVariants.config
+    )
   );
 
   // Focus-restoration policy follows the ARIA Combobox pattern:

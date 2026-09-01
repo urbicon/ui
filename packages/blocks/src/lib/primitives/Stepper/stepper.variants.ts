@@ -127,7 +127,7 @@ export const stepperVariants = tv({
         indicator: 'border-transparent bg-surface-hover text-text-tertiary'
       }
     },
-    stepState: {
+    state: {
       inactive: {
         label: 'text-text-tertiary'
       },
@@ -154,7 +154,7 @@ export const stepperVariants = tv({
         step: 'cursor-pointer'
       }
     },
-    stepDisabled: {
+    disabled: {
       true: {
         // Intentionally no `opacity-50` here — a blanket opacity compounded
         // with the already-muted tertiary tones on the label/description
@@ -172,7 +172,7 @@ export const stepperVariants = tv({
   compoundVariants: [
     {
       clickable: true,
-      stepDisabled: false,
+      disabled: false,
       class: {
         step: 'focus-visible:outline-none',
         indicator: [
@@ -183,8 +183,8 @@ export const stepperVariants = tv({
     },
     {
       clickable: true,
-      stepDisabled: false,
-      stepState: 'inactive',
+      disabled: false,
+      state: 'inactive',
       class: {
         label: 'group-hover/step:text-text-secondary'
       }
@@ -195,9 +195,9 @@ export const stepperVariants = tv({
     orientation: 'horizontal',
     size: 'md',
     variant: 'default',
-    stepState: 'inactive',
+    state: 'inactive',
     clickable: false,
-    stepDisabled: false,
+    disabled: false,
     separatorComplete: false
   }
 });

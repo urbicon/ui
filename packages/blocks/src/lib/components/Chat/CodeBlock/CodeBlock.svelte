@@ -46,7 +46,14 @@
   const variantProps: CodeBlockVariants = $derived({ variant, wrap });
   const styles = $derived(codeBlockVariants(variantProps));
   const slotClasses = $derived(
-    resolveSlotClasses(blocksConfig, 'CodeBlock', preset, variantProps, slotClassesProp)
+    resolveSlotClasses(
+      blocksConfig,
+      'CodeBlock',
+      preset,
+      variantProps,
+      slotClassesProp,
+      codeBlockVariants.config
+    )
   );
 
   function cls(name: keyof typeof slotClasses, extra?: string | (string | undefined)[]) {

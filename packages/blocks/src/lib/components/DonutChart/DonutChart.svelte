@@ -2,7 +2,11 @@
   import { getBlocksConfig, resolveSlotClasses } from '$lib/provider';
   import { useBlocksI18n } from '$lib';
   import type { DonutChartProps } from './index';
-  import { chartSlotResolver } from '$lib/internal/charts/variants';
+  import {
+    type ChartVariants,
+    chartSlotResolver,
+    chartVariants
+  } from '$lib/internal/charts/variants';
   import { arcPath, seriesColor, numberFormatter } from '$lib/internal/charts/utils';
 
   let {
@@ -26,10 +30,21 @@
   const blocksConfig = getBlocksConfig();
   const bt = useBlocksI18n();
   const unstyled = $derived(unstyledProp || blocksConfig?.unstyled || false);
+  // The one non-default chart layout. Read by both the styling call and the
+  // override cascade, so a rule keyed `{ layout: 'donut' }` cannot see a
+  // different shape than the one being painted.
+  const variantProps: ChartVariants = { layout: 'donut' };
   const slotClasses = $derived(
-    resolveSlotClasses(blocksConfig, 'DonutChart', preset, {}, slotClassesProp)
+    resolveSlotClasses(
+      blocksConfig,
+      'DonutChart',
+      preset,
+      variantProps,
+      slotClassesProp,
+      chartVariants.config
+    )
   );
-  const slot = $derived(chartSlotResolver(unstyled, slotClasses, { layout: 'donut' }));
+  const slot = $derived(chartSlotResolver(unstyled, slotClasses, variantProps));
 
   const fmt = $derived(formatValue ?? numberFormatter(locale));
   const pct = $derived(numberFormatter(locale, { style: 'percent', maximumFractionDigits: 0 }));

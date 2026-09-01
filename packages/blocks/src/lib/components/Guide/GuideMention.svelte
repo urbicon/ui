@@ -30,7 +30,14 @@
   const variantProps: GuideMentionVariants = $derived({});
   const styles = $derived(guideMentionVariants(variantProps));
   const slotClasses = $derived(
-    resolveSlotClasses(blocksConfig, 'GuideMention', preset, variantProps, slotClassesProp)
+    resolveSlotClasses(
+      blocksConfig,
+      'GuideMention',
+      preset,
+      variantProps,
+      slotClassesProp,
+      guideMentionVariants.config
+    )
   );
 
   // A Mention is the Guide→UI affordance; it is interactive unless the resolved

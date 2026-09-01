@@ -237,8 +237,8 @@
     intent,
     size,
     variant,
-    disabled: disabled || undefined,
-    error: !!error || undefined,
+    disabled: disabled,
+    error: !!error,
     messageType: error ? 'error' : 'helper',
     rangeStatus: currentZoneStatus
   });
@@ -246,7 +246,14 @@
   const styles = $derived(sliderVariants(variantProps));
 
   const slotClasses = $derived(
-    resolveSlotClasses(blocksConfig, 'Slider', preset, variantProps, slotClassesProp)
+    resolveSlotClasses(
+      blocksConfig,
+      'Slider',
+      preset,
+      variantProps,
+      slotClassesProp,
+      sliderVariants.config
+    )
   );
 
   // aria-describedby chain: error > helper, plus rangeStatus when active,

@@ -36,7 +36,14 @@
   const variantProps: GuideMarkerVariants = $derived({ size });
   const styles = $derived(guideMarkerVariants(variantProps));
   const slotClasses = $derived(
-    resolveSlotClasses(blocksConfig, 'GuideMarker', preset, variantProps, slotClassesProp)
+    resolveSlotClasses(
+      blocksConfig,
+      'GuideMarker',
+      preset,
+      variantProps,
+      slotClassesProp,
+      guideMarkerVariants.config
+    )
   );
 
   // A Marker is the UI→Guide affordance; it is live unless the resolved direction

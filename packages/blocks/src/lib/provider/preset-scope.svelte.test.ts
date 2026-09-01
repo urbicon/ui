@@ -232,21 +232,27 @@ describe.each(CASES.map((entry) => [entry.own, entry] as const))('%s', (_name, e
   });
 
   it.skipIf(!('disabled' in (entry.innerConfig.variants ?? {})))(
-    'keeps `{ disabled: false }` from firing, the way the primitives do',
+    'fires `{ disabled: false }` on the wrapper, the way it fires on the primitives',
     () => {
-      // `ConditionalOverride` documents that a boolean axis a component carries
-      // as `undefined` matches only its `true` side. A wrapper that filled the
-      // axis with the config's literal `false` default would make one rule fire
-      // under its name and not under the inner component's.
+      // Both sides of a boolean axis are addressable, and a wrapper is not an
+      // exception to that: the rule is matched against the inner config's
+      // `defaultVariants` folded under whatever the caller wrote, which is the
+      // same fold `tv()` styles the inner component with. The wrapper and the
+      // component it wraps therefore answer one rule the same way — the
+      // asymmetry this file exists to catch is a rule that fires under one name
+      // and not the other, in either direction.
       const { carriers, neighbourCarriers } = run(
         entry,
         withOverride(entry.own, entry.slot, { disabled: false })
       );
       expect(
         carriers,
-        `{ disabled: false } fired on the ${entry.own} — it fires on no primitive`
-      ).toBe(0);
-      expect(neighbourCarriers, 'the neighbour is unrelated to this rule').toBe(0);
+        `{ disabled: false } reached no element of the ${entry.own}, though \`disabled\` ` +
+          `defaults to \`false\` on ${entry.inner} and the caller disabled nothing`
+      ).toBe(1);
+      expect(neighbourCarriers, 'a rule under the wrapper name must not reach the neighbour').toBe(
+        0
+      );
     }
   );
 });

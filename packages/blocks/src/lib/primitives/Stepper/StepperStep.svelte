@@ -22,7 +22,7 @@
     // as a store subscription (store_rune_conflict).
     state: stateProp,
     optional = false,
-    disabled: stepDisabled = false,
+    disabled: disabledProp = false,
     children,
     class: className = '',
     unstyled: unstyledProp = false,
@@ -67,7 +67,7 @@
           : 'inactive'
   );
 
-  const isDisabled = $derived(stepDisabled || ctx.disabled);
+  const isDisabled = $derived(disabledProp || ctx.disabled);
   const isClickable = $derived(
     ctx.clickable &&
       !isDisabled &&
@@ -82,10 +82,10 @@
     size: ctx.size,
     variant: ctx.variant,
     tier: ctx.tier,
-    stepState: derivedState,
-    clickable: isClickable || undefined,
-    stepDisabled: isDisabled || undefined,
-    separatorComplete: isSeparatorComplete || undefined
+    state: derivedState,
+    clickable: isClickable,
+    disabled: isDisabled,
+    separatorComplete: isSeparatorComplete
   });
 
   const styles = $derived(
@@ -105,7 +105,14 @@
   );
 
   const slotClasses = $derived(
-    resolveSlotClasses(blocksConfig, 'StepperStep', preset, variantProps, slotClassesProp)
+    resolveSlotClasses(
+      blocksConfig,
+      'StepperStep',
+      preset,
+      variantProps,
+      slotClassesProp,
+      stepperVariants.config
+    )
   );
 
   function slot(key: keyof typeof styles, extra?: string, variants?: StepperVariants) {

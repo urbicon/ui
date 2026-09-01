@@ -34,13 +34,26 @@
   const variantProps: SegmentGroupVariants = $derived({
     size: ctx.size,
     variant: ctx.variant,
-    tier: ctx.tier
+    tier: ctx.tier,
+    // This item's own state, group-disabled included. The axis writes `base`,
+    // which the group renders and this component does not, so it changes no
+    // markup here — it is what lets a rule address the item that is disabled
+    // rather than the whole track. Without it the shared config would leave
+    // the key unnamed and no rule could tell the two items apart.
+    disabled: isDisabled
   });
 
   const styles = $derived(segmentGroupVariants(variantProps));
 
   const slotClasses = $derived(
-    resolveSlotClasses(blocksConfig, 'SegmentItem', preset, variantProps, slotClassesProp)
+    resolveSlotClasses(
+      blocksConfig,
+      'SegmentItem',
+      preset,
+      variantProps,
+      slotClassesProp,
+      segmentGroupVariants.config
+    )
   );
 
   onMount(() => {

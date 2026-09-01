@@ -260,7 +260,14 @@
 
   const styles = $derived(scrollerVariants(variantProps));
   const slotClasses = $derived(
-    resolveSlotClasses(blocksConfig, 'Scroller', preset, variantProps, slotClassesProp)
+    resolveSlotClasses(
+      blocksConfig,
+      'Scroller',
+      preset,
+      variantProps,
+      slotClassesProp,
+      scrollerVariants.config
+    )
   );
 
   // Resolved through the typed catalogue rather than a consumer-supplied

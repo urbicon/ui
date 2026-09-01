@@ -49,7 +49,14 @@
   const variantProps: GuideHintVariants = $derived({});
   const styles = $derived(guideHintVariants(variantProps));
   const slotClasses = $derived(
-    resolveSlotClasses(blocksConfig, 'GuideHint', preset, variantProps, slotClassesProp)
+    resolveSlotClasses(
+      blocksConfig,
+      'GuideHint',
+      preset,
+      variantProps,
+      slotClassesProp,
+      guideHintVariants.config
+    )
   );
 
   const seenId = $derived(seenIdProp ?? topicId);

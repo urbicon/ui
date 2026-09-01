@@ -9,6 +9,77 @@ and ships in the `@urbicon-ui/table` tarball.
 
 ## v9
 
+### Conditional `overrides` match the variants a component names
+
+A `overrides` rule used to be matched against the raw object a component happened to hand the
+resolver. It is now matched against that component's **effective** variants: every axis the
+component names, at its value, or at its `tv()` config's `defaultVariants` value where it
+named the axis but left it `undefined`.
+
+**Rules that used to do nothing now fire**, and that is the point of the change. Counting
+(component, prop) pairs over `disabled`, `readonly` and `error` — the three a project-wide
+rule reaches for — the `false` side matched on **12 pairs before and 47 after**, across 27
+components, with none lost. It was unmatchable on the other 35 because a component carried
+`disabled: disabled || undefined` and the matcher saw no `disabled` at all. The same holds
+for any axis a call site left at its default: `{ size: 'md' }` now matches a component
+nobody passed a `size` to.
+
+**Nothing reports this.** Not the compiler — `ConditionalOverride`'s index signature accepts
+any key — and not the runtime, which skips a non-matching rule without a word. The only
+signal is visual. Before you ship, walk the `overrides:` arrays in your `defaults` and
+`presets` and ask of each rule: *is this condition true of more components than I meant?* The
+two that changed most:
+
+- a rule keyed on a value that is also the config default (`{ variant: 'outlined' }` where
+  `outlined` is the default) now matches every instance, not only the ones that spelled it out;
+- a rule keyed on `false` for a boolean axis now matches, where it previously never did.
+
+Rules keyed on an axis the component does **not** name still match nothing — that is
+deliberate, and it is what keeps a rule on `SegmentItem`'s `disabled` from painting the
+sibling that is not disabled.
+
+### `stepState` → `state`, `stepDisabled` → `disabled`
+
+The two Stepper axes are renamed to the props they describe. **Two failure modes, one of them
+silent:**
+
+- `stepperVariants({ stepState: … })` and the `StepperVariants` type are compile errors — both
+  are exported, so TypeScript names the line.
+- An `overrides` rule written as `{ stepState: 'active' }` is a **silent no-op**: the index
+  signature accepts the old key and the rule simply stops matching.
+
+Grep for `stepState` and `stepDisabled` across your own source, including the string keys
+inside `defaults` / `presets`.
+
+### `resolveSlotClasses()` takes the component's `tv()` config
+
+Only affects you if you wrote your own wrapper around a blocks component; the components
+themselves are updated. The call gains a required sixth argument, so an old five-argument call
+is a compile error rather than a silent behaviour change:
+
+```svelte
+<script lang="ts">
+  import { getBlocksConfig, resolveSlotClasses, wrapperActiveProps } from '@urbicon-ui/blocks';
+  import { inputVariants } from '@urbicon-ui/blocks';
+
+  const config = getBlocksConfig();
+  const slotClasses = $derived(
+    resolveSlotClasses(
+      config,
+      'MoneyField',
+      preset,
+      wrapperActiveProps(inputVariants.config, { variant, size, disabled }),
+      slotClassesProp,
+      inputVariants.config // ← new: the config the axes above belong to
+    )
+  );
+</script>
+```
+
+Pass the config the condition object's axes come from — for a wrapper that is the **inner**
+component's config, the same one `wrapperActiveProps` gets. Nothing checks that pairing, so a
+mismatched config silently matches rules against the wrong axes.
+
 ### Sparkline took the charts' slot names
 
 Two `slotClasses` keys on `<Sparkline>` are spelled differently. `root`, `svg` and `area` are
@@ -77,6 +148,13 @@ under the 'Sparkline' key.
 The check runs at mount. Changing a provider config under an already-mounted sparkline
 restyles it without warning again, so re-mount — or reload — after editing one. Production
 builds drop the check entirely.
+
+Reading the *resolved* map is what buys the four provider rows, and it is also the check's one
+blind spot: a stale key inside an `overrides` rule is only in the resolved map when that rule
+**matches**. A rule whose condition is never true carries its stale key silently — measured,
+by keying one on an axis `Sparkline` does not name. That costs nothing here, because the rule
+does nothing either; but it means the warning answers "a stale key is reaching this
+sparkline", not "your config has no stale keys". The grep above is what answers the second.
 
 ### The shadow scale left the colour namespace
 

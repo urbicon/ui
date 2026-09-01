@@ -65,13 +65,26 @@
     orientation: effectiveOrientation,
     size,
     variant: effectiveVariant,
-    tier: effectiveTier
+    tier: effectiveTier,
+    // Both write the `step` slot only, so they change nothing about the `base`
+    // this component renders — they are here so a rule keyed on the state the
+    // consumer put the stepper in matches the stepper rather than only its
+    // steps. Both are public props of `Stepper`.
+    disabled,
+    clickable
   });
 
   const styles = $derived(unstyled ? { base: () => '' } : stepperVariants(variantProps));
 
   const slotClasses = $derived(
-    resolveSlotClasses(blocksConfig, 'Stepper', preset, variantProps, slotClassesProp)
+    resolveSlotClasses(
+      blocksConfig,
+      'Stepper',
+      preset,
+      variantProps,
+      slotClassesProp,
+      stepperVariants.config
+    )
   );
 
   let nextIdx = 0;

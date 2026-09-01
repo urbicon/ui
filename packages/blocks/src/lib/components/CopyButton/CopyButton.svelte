@@ -72,7 +72,8 @@
       'CopyButton',
       preset,
       { size, state, variant, intent },
-      slotClassesProp
+      slotClassesProp,
+      copyButtonVariants.config
     )
   );
 

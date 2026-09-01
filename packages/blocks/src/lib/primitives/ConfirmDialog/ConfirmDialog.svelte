@@ -47,7 +47,8 @@
       'ConfirmDialog',
       preset,
       wrapperActiveProps(dialogVariants.config, { ...rest, intent, size: 'sm' }),
-      slotClasses
+      slotClasses,
+      dialogVariants.config
     )
   );
 

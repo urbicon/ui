@@ -29,7 +29,14 @@
   const styles = $derived(skeletonVariants(variantProps));
 
   const slotClasses = $derived(
-    resolveSlotClasses(blocksConfig, 'Skeleton', preset, variantProps, slotClassesProp)
+    resolveSlotClasses(
+      blocksConfig,
+      'Skeleton',
+      preset,
+      variantProps,
+      slotClassesProp,
+      skeletonVariants.config
+    )
   );
 
   const inlineStyle = $derived(

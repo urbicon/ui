@@ -31,7 +31,14 @@
   const unstyled = $derived(unstyledProp || blocksConfig?.unstyled || false);
   const variantProps: SparklineVariants = $derived({ fluid });
   const slotClasses = $derived(
-    resolveSlotClasses(blocksConfig, 'Sparkline', preset, variantProps, slotClassesProp)
+    resolveSlotClasses(
+      blocksConfig,
+      'Sparkline',
+      preset,
+      variantProps,
+      slotClassesProp,
+      sparklineVariants.config
+    )
   );
 
   // DEV migration aid for the v9 slot rename, on the same `import.meta.env?.DEV

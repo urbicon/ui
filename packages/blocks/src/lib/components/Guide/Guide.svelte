@@ -48,7 +48,14 @@
   const variantProps: GuideTourVariants = $derived({});
   const styles = $derived(guideTourVariants(variantProps));
   const slotClasses = $derived(
-    resolveSlotClasses(blocksConfig, 'Guide', preset, variantProps, slotClassesProp)
+    resolveSlotClasses(
+      blocksConfig,
+      'Guide',
+      preset,
+      variantProps,
+      slotClassesProp,
+      guideTourVariants.config
+    )
   );
 
   // ── Controller-driven tour state ───────────────────────────────────────────

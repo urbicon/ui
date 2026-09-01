@@ -25,7 +25,14 @@
 
   const styles = $derived(unstyled ? null : avatarGroupVariants({ spacing }));
   const slotClasses = $derived(
-    resolveSlotClasses(blocksConfig, 'AvatarGroup', preset, { spacing, size }, slotClassesProp)
+    resolveSlotClasses(
+      blocksConfig,
+      'AvatarGroup',
+      preset,
+      { spacing, size },
+      slotClassesProp,
+      avatarGroupVariants.config
+    )
   );
 
   // When `max` is set and exceeded, show (max - 1) avatars + one "+N" chip so the

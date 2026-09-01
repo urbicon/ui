@@ -38,7 +38,8 @@
       'CurrencyInput',
       preset,
       wrapperActiveProps(inputVariants.config, inputProps),
-      slotClasses
+      slotClasses,
+      inputVariants.config
     )
   );
 

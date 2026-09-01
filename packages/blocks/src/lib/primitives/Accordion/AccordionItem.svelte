@@ -34,7 +34,14 @@
   const styles = $derived(accordionVariants(variantProps));
 
   const slotClasses = $derived(
-    resolveSlotClasses(blocksConfig, 'AccordionItem', preset, variantProps, slotClassesProp)
+    resolveSlotClasses(
+      blocksConfig,
+      'AccordionItem',
+      preset,
+      variantProps,
+      slotClassesProp,
+      accordionVariants.config
+    )
   );
 
   function slot(

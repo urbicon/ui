@@ -460,7 +460,14 @@
   const styles = $derived(menuVariants(variantProps));
 
   const slotClasses = $derived(
-    resolveSlotClasses(blocksConfig, 'Menu', preset, variantProps, slotClassesProp)
+    resolveSlotClasses(
+      blocksConfig,
+      'Menu',
+      preset,
+      variantProps,
+      slotClassesProp,
+      menuVariants.config
+    )
   );
 
   const ctx: MenuContext = {

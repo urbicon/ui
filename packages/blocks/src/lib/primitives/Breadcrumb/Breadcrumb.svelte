@@ -36,7 +36,14 @@
   const styles = $derived(breadcrumbVariants(variantProps));
 
   const slotClasses = $derived(
-    resolveSlotClasses(blocksConfig, 'Breadcrumb', preset, variantProps, slotClassesProp)
+    resolveSlotClasses(
+      blocksConfig,
+      'Breadcrumb',
+      preset,
+      variantProps,
+      slotClassesProp,
+      breadcrumbVariants.config
+    )
   );
 
   // Long trails collapse their middle into a single "…" affordance. Clicking

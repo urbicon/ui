@@ -1,17 +1,42 @@
 import { createOptionalContext } from '$lib/utils/optional-context';
-import { matchesCompound, resolveClassChain, type TVConfig } from '$lib/utils/variants';
+import {
+  effectiveVariants,
+  matchesCompound,
+  resolveClassChain,
+  type TVConfig
+} from '$lib/utils/variants';
 
 /**
- * A prop-conditional style rule. Its non-`class` keys are matched against a
- * component's active variant props — exactly like a `tv()` compoundVariant
- * (`string` = equality, `string[]` = "one of", `boolean` for a boolean axis
- * such as the table's `contained`; the comparison runs on the stringified
- * value, so `true` and `'true'` are the same condition). An axis a component
- * carries as `undefined` rather than `false` — the blocks primitives do that
- * for `disabled`, `readonly` and `error` — matches only its `true` side:
- * `{ disabled: false }` never fires. On a match, the `class` record (slot →
+ * A prop-conditional style rule. Its non-`class` keys are matched against the
+ * component's **effective** variant props: every axis that component's own
+ * condition object *names*, at its value, or at the config's `defaultVariants`
+ * value where it named the axis but wrote `undefined` (see
+ * {@link effectiveVariants}). Naming is the boundary, not declaring — a rule
+ * can only address an axis the component speaks for.
+ *
+ * So `{ disabled: false }` fires on every component that names a `disabled`
+ * **key**, and on no others — declaring the axis is neither necessary nor
+ * sufficient. `datePickerVariants` declares no axes at all and its rules fire,
+ * because DatePicker names the keys of the Input it wraps. Three kinds fall
+ * outside, all pinned in `provider/boolean-conditions.svelte.test.ts`: a
+ * component with no such axis, which reaches the state some other way — the
+ * `disabled:` CSS variant, forwarding to a component it wraps, another axis
+ * carrying it, a predicate writing classes in the markup, or suppressing the
+ * element rather than styling it; one whose config declares the axis while the
+ * component hands it to a slot function per element rather than carrying it for
+ * itself (`Menu`, whose rows each get their own `disabled`); and one the
+ * provider cannot address at all, having no name registered.
+ *
+ * Matching works like a `tv()` compoundVariant: `string` = equality,
+ * `string[]` = "one of", `boolean` for a boolean axis such as the table's
+ * `contained`; the comparison runs on the stringified value, so `true` and
+ * `'true'` are the same condition. On a match, the `class` record (slot →
  * classes) is merged into the slot-class cascade. Additive: every matching
  * rule contributes; later sources win per Tailwind bucket.
+ *
+ * The keys are **variant axis names**, which are the component's public prop
+ * names wherever it has one for the axis, and internal where the axis is
+ * computed rather than received (`hasRightIcon`, `messageType`, `open`).
  *
  * @example
  * { variant: 'outlined', class: { base: 'border' } } // 1px border only on outlined
@@ -116,15 +141,18 @@ export function resolvePresetSlotClasses(
  * nothing at all under a wrapper's name, because the wrapper carries
  * `variant: undefined`.
  *
- * Both halves are read off the inner component's own `tv()` config rather than
- * restated here: `variants` says which keys are axes at all — a rule may not
- * key on `label`, which the inner component's condition object never carries
- * either — and `defaultVariants` supplies the value for an axis the caller left
- * out. A default that moves there moves here.
+ * Which keys are axes at all is read off the inner component's own `tv()`
+ * config rather than restated here — a rule may not key on `label`, which the
+ * inner component's condition object never carries either. **Every** such axis
+ * becomes a key, at `undefined` where the caller wrote nothing: a wrapper
+ * stands in for the whole inner component, so it can speak for every axis that
+ * component has, and {@link effectiveVariants} then answers the `undefined`
+ * with the inner config's own default. That is what makes a wrapper and the
+ * component it wraps give one rule the same answer.
  *
- * `false` is carried as `undefined`, the way the primitives carry a boolean
- * axis (`disabled: disabled || undefined`, see {@link ConditionalOverride}), so
- * `{ disabled: false }` fires under neither name rather than under one of them.
+ * A component that is *not* a stand-in must not do this — an item beside its
+ * siblings (`SegmentItem`) speaks only for the axes it names, or a rule keyed
+ * on one of them would claim its neighbour's state.
  *
  * **What it cannot supply — and the direction matters.** A rule that fails to
  * fire is noticed; a rule that fires on a state the component is not in looks
@@ -146,8 +174,9 @@ export function resolvePresetSlotClasses(
  *
  * One further axis is declared but passed per slot-call rather than per
  * component, so a rule on it fires here and not there: `iconPosition` on Input,
- * 1 of its 12 axes. (`selected` on Select is not a second case — its default is
- * `false`, which the normalisation above removes, so it fires on neither side.)
+ * 1 of its 12 axes. (`selected` on Select is not a second case: it defaults to
+ * `false` on `selectVariants`, and both sides now reach that default through
+ * the same fold, so `{ selected: false }` fires under either name.)
  */
 export function wrapperActiveProps(
   innerConfig: TVConfig,
@@ -155,8 +184,7 @@ export function wrapperActiveProps(
 ): Record<string, unknown> {
   const result: Record<string, unknown> = {};
   for (const axis of Object.keys(innerConfig.variants ?? {})) {
-    const value = written[axis] ?? innerConfig.defaultVariants?.[axis];
-    result[axis] = value === false ? undefined : value;
+    result[axis] = written[axis];
   }
   return result;
 }
@@ -200,22 +228,63 @@ export function resolveOverrideSlotClasses(
  * `instanceSlotClasses` admits `undefined` values because that is what a
  * `Partial<XSlotClasses>` prop is: a slot the caller left out. Such a slot is
  * skipped, exactly like an empty string, and never reaches the result.
+ *
+ * `variantConfig` is the component's own `tv()` config (`xVariants.config`),
+ * and it is required rather than optional on purpose: it is what supplies the
+ * default for an axis the component named but left `undefined`
+ * (see {@link effectiveVariants}). A call site that could omit it would
+ * silently lose those, which is the defect this parameter exists to remove.
+ *
+ * **Required buys the presence of an argument, not the right one.** `TVConfig`
+ * is optional in every field, so *any* config satisfies the parameter and the
+ * compiler cannot tell `cardVariants.config` from `badgeVariants.config` here
+ * — measured: wiring Badge's config into Card's call leaves every suite green
+ * while four rules on axes Card does not have start matching every Card.
+ *
+ * Typing the pair together (`activeProps` as the props of *this* config) is not
+ * the way out, and not for the reason this comment first gave. Two `tsc
+ * --strict` reproductions of that signature disagree with each other depending
+ * only on how inference is arranged, and in one of them the mismatch passes
+ * while an inline literal of the same object is rejected — the weak-type
+ * asymmetry `blocks/docs/MIGRATION.md` already records for slot keys: a target
+ * whose properties are all optional rejects only an object with *no* key in
+ * common, and a condition object held in a variable (which is how every call
+ * site writes it) skips excess-property checking altogether.
+ *
+ * Measured across three candidate signatures, the only form that catches a
+ * mispairing is a non-`Partial` `Record` — and it demands that every call site
+ * name **every** axis its config declares. `Input` deliberately omitting
+ * `iconPosition`, which it passes per slot call, becomes a compile error. So a
+ * type tie is not merely unmeasured; it forbids the deliberate omission this
+ * fold exists to permit.
+ *
+ * The binding does not have to be on the type level, though. A closure would
+ * make the mispairing unrepresentable — one identifier instead of two, e.g.
+ * `cardVariants.resolveSlots(config, 'Card', preset, variantProps, slotClasses)`
+ * — and it leaves `DatePicker` alone, whose props parameter stays
+ * `Record<string, unknown>` (its config declares no axes and it hands over five
+ * keys belonging to the Input and Calendar it wraps). What blocks it today is
+ * **module layering, not typing**: this file imports `variants.ts` and not the
+ * other way round, so the binder would have to live on the provider side.
+ * Until then the pairing rests on the call site naming one identifier twice.
  */
 export function resolveSlotClasses(
   config: BlocksConfig | undefined,
   component: string,
   preset: string | undefined,
   activeProps: Record<string, unknown>,
-  instanceSlotClasses: Record<string, string | undefined> | undefined
+  instanceSlotClasses: Record<string, string | undefined> | undefined,
+  variantConfig: TVConfig
 ): Record<string, string> {
   const defaults = config?.defaults?.[component];
   const presetDef = preset ? config?.presets?.[component]?.[preset] : undefined;
+  const matchProps = effectiveVariants(variantConfig, activeProps);
 
   const sources: (Record<string, string | undefined> | undefined)[] = [
     defaults?.slotClasses,
-    resolveOverrideSlotClasses(defaults?.overrides, activeProps),
+    resolveOverrideSlotClasses(defaults?.overrides, matchProps),
     resolvePresetSlotClasses(config?.presets, component, preset),
-    resolveOverrideSlotClasses(presetDef?.overrides, activeProps),
+    resolveOverrideSlotClasses(presetDef?.overrides, matchProps),
     instanceSlotClasses
   ];
 

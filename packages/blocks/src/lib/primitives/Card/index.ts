@@ -88,6 +88,14 @@ export interface CardProps
    * Prefer this over `class` overrides when the requested look falls outside the
    * semantic intent palette — presets keep hover/active/dark-mode logic coherent
    * and make the custom look reusable across the project.
+   *
+   * A conditional `overrides` rule on a Card keys on its variant axes, and one
+   * of those is not a prop: `interactive` is the axis `clickable`, `onclick`
+   * and `href` all resolve to, so `overrides: [{ interactive: true, … }]`
+   * styles every card that has a click source, whichever of the three gave it
+   * one. It is deliberately not settable — a card made to look interactive
+   * without one would be a `<div>` with `cursor-pointer` and a hover-lift and
+   * no way to operate it (WCAG 3.2 Predictable).
    */
   preset?: string;
   /**

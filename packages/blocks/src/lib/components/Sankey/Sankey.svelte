@@ -58,7 +58,14 @@
   const styles = $derived(sankeyVariants(variantProps));
 
   const slotClasses = $derived(
-    resolveSlotClasses(blocksConfig, 'Sankey', preset, variantProps, slotClassesProp)
+    resolveSlotClasses(
+      blocksConfig,
+      'Sankey',
+      preset,
+      variantProps,
+      slotClassesProp,
+      sankeyVariants.config
+    )
   );
 
   let wrapperRef = $state<HTMLDivElement>();

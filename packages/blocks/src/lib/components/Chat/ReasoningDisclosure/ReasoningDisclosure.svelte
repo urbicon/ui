@@ -39,7 +39,14 @@
 
   const styles = $derived(reasoningDisclosureVariants());
   const slotClasses = $derived(
-    resolveSlotClasses(blocksConfig, 'ReasoningDisclosure', preset, {}, slotClassesProp)
+    resolveSlotClasses(
+      blocksConfig,
+      'ReasoningDisclosure',
+      preset,
+      {},
+      slotClassesProp,
+      reasoningDisclosureVariants.config
+    )
   );
 
   // Header label: streaming → thinking; settled with a duration → "Thought for

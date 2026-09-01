@@ -2,7 +2,11 @@
   import { getBlocksConfig, resolveSlotClasses } from '$lib/provider';
   import type { BarChartProps } from './index';
   import type { ChartSeries } from '$lib/internal/charts/types';
-  import { chartSlotResolver } from '$lib/internal/charts/variants';
+  import {
+    type ChartVariants,
+    chartSlotResolver,
+    chartVariants
+  } from '$lib/internal/charts/variants';
   import {
     bandScale,
     linearScale,
@@ -36,10 +40,22 @@
   const blocksConfig = getBlocksConfig();
   const bt = useBlocksI18n();
   const unstyled = $derived(unstyledProp || blocksConfig?.unstyled || false);
+  // Cartesian is the shape these charts render, and it is named rather than
+  // left to the config default: the same value reaches the styling call and
+  // the override cascade, so a rule keyed on the layout cannot see a shape
+  // other than the one being painted.
+  const variantProps: ChartVariants = { layout: 'cartesian' };
   const slotClasses = $derived(
-    resolveSlotClasses(blocksConfig, 'BarChart', preset, {}, slotClassesProp)
+    resolveSlotClasses(
+      blocksConfig,
+      'BarChart',
+      preset,
+      variantProps,
+      slotClassesProp,
+      chartVariants.config
+    )
   );
-  const slot = $derived(chartSlotResolver(unstyled, slotClasses));
+  const slot = $derived(chartSlotResolver(unstyled, slotClasses, variantProps));
 
   // Resolve series: explicit prop wins; otherwise derive one entry per value
   // column found in the data (single bars when each datum has one value).

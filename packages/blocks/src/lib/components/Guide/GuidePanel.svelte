@@ -64,7 +64,14 @@
   const variantProps: GuidePanelVariants = $derived({ placement, size });
   const styles = $derived(guidePanelVariants(variantProps));
   const slotClasses = $derived(
-    resolveSlotClasses(blocksConfig, 'GuidePanel', preset, variantProps, slotClassesProp)
+    resolveSlotClasses(
+      blocksConfig,
+      'GuidePanel',
+      preset,
+      variantProps,
+      slotClassesProp,
+      guidePanelVariants.config
+    )
   );
 
   const open = $derived(guide?.panelOpen ?? false);

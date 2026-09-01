@@ -197,7 +197,14 @@
   const variantProps: DialogVariants = $derived({ size, placement, intent });
   const styles = $derived(dialogVariants(variantProps));
   const slotClasses = $derived(
-    resolveSlotClasses(blocksConfig, 'Dialog', preset, variantProps, slotClassesProp)
+    resolveSlotClasses(
+      blocksConfig,
+      'Dialog',
+      preset,
+      variantProps,
+      slotClassesProp,
+      dialogVariants.config
+    )
   );
 
   function requestClose() {

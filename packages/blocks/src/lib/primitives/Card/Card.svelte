@@ -46,15 +46,22 @@
     tier,
     padding,
     dividers: dividers || undefined,
-    interactive: isInteractive || undefined,
+    interactive: isInteractive,
     elementType,
-    disabled: disabled || undefined
+    disabled: disabled
   });
 
   const styles = $derived(cardVariants(variantProps));
 
   const slotClasses = $derived(
-    resolveSlotClasses(blocksConfig, 'Card', preset, variantProps, slotClassesProp)
+    resolveSlotClasses(
+      blocksConfig,
+      'Card',
+      preset,
+      variantProps,
+      slotClassesProp,
+      cardVariants.config
+    )
   );
 
   const elementProps = $derived.by(() => {

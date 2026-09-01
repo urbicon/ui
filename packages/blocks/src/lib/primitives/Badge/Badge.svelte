@@ -92,7 +92,7 @@
     pulse: pulse || undefined,
     removable: isRemovable || undefined,
     interactive: isInteractive || undefined,
-    disabled: disabled || undefined,
+    disabled: disabled,
     placement,
     border: border || undefined
   });
@@ -100,7 +100,14 @@
   const styles = $derived(badgeVariants(variantProps));
 
   const slotClasses = $derived(
-    resolveSlotClasses(blocksConfig, 'Badge', preset, variantProps, slotClassesProp)
+    resolveSlotClasses(
+      blocksConfig,
+      'Badge',
+      preset,
+      variantProps,
+      slotClassesProp,
+      badgeVariants.config
+    )
   );
 
   function handleMouseEnter() {

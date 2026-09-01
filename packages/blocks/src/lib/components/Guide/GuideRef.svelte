@@ -33,7 +33,14 @@
   const variantProps: GuideRefVariants = $derived({});
   const styles = $derived(guideRefVariants(variantProps));
   const slotClasses = $derived(
-    resolveSlotClasses(blocksConfig, 'GuideRef', preset, variantProps, slotClassesProp)
+    resolveSlotClasses(
+      blocksConfig,
+      'GuideRef',
+      preset,
+      variantProps,
+      slotClassesProp,
+      guideRefVariants.config
+    )
   );
 
   // Interactive only when wired to a panel that actually registers the target

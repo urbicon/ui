@@ -48,7 +48,14 @@
   const styles = $derived(commandPaletteVariants(variantProps));
 
   const slotClasses = $derived(
-    resolveSlotClasses(blocksConfig, 'CommandPalette', preset, variantProps, slotClassesProp)
+    resolveSlotClasses(
+      blocksConfig,
+      'CommandPalette',
+      preset,
+      variantProps,
+      slotClassesProp,
+      commandPaletteVariants.config
+    )
   );
 
   const defaultFilter = (item: CommandPaletteItem, q: string) => {

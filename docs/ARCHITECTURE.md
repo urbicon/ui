@@ -310,14 +310,34 @@ its classes join the cascade and the resolver strips the library's conflicting c
 </BlocksProvider>
 ```
 
-Entries match active **prop values** (via `matchesCompound`), not the library's internal
-variant structure — so it is irrelevant whether `border-2` lives in a `variant` or a
-`compoundVariant`. `string` matches by equality, `string[]` as "one of"; multiple matching
-entries merge additively.
+Entries match the component's **effective variant props** (via `matchesCompound`), so it
+is irrelevant whether `border-2` lives in a `variant` or a `compoundVariant`. Effective
+means: every axis the component's own condition object **names**, at its value, or at the
+config's `defaultVariants` value where it named the axis but wrote `undefined`. `string`
+matches by equality, `string[]` as "one of"; multiple matching entries merge additively.
+
+Naming is the boundary, and it is deliberately narrower than `tv()`'s own fold. `tv()` may
+fill in an axis the object never mentioned, because it styles one slot call at a time; an
+`overrides` rule is resolved **once per component** and applied to every slot, so an axis
+the object does not carry is one the component cannot speak for. Two shapes make that
+concrete: a config shared by several components (`segmentGroupVariants` belongs to
+`SegmentGroup` and `SegmentItem` alike — nine configs are shared by 2–5 components), and
+an axis handed to a slot function per element (`iconPosition` on Input, `disabled` on
+Menu's rows). Folding either in would state something about the component that nothing
+measured — a rule painting the disabled sibling, or the left icon on a right-icon field.
+
+The keys are variant **axis** names. Those are the component's public prop names wherever
+it has a prop for the axis, and internal where the axis is computed rather than received
+(`hasRightIcon`, `messageType`, `open`, Card's `interactive`). Both sides of a boolean axis
+are addressable: `{ disabled: false }` fires on every component that names a `disabled`
+axis, while a component that dims through the `disabled:` CSS variant rather than a variant
+branch has no such axis and cannot be addressed on it at all.
 
 Every component family resolves through the shared
-`resolveSlotClasses(config, name, preset, activeProps, instanceSlotClasses)`, each feeding
-its active `variantProps` as the match input — so `overrides` applies library-wide.
+`resolveSlotClasses(config, name, preset, activeProps, instanceSlotClasses, variantConfig)`,
+each feeding its active `variantProps` plus its own `tv()` config — the config is what
+turns the raw bag into the effective one, so `overrides` applies library-wide and means the
+same thing everywhere.
 
 The name is not always the component's own. A **compound part** — `CalendarHeader`,
 `MenuItem`, `CalendarDay` — renders only inside another component and is addressed under

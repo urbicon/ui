@@ -46,7 +46,14 @@
   const styles = $derived(compositionBarVariants(variantProps));
 
   const slotClasses = $derived(
-    resolveSlotClasses(blocksConfig, 'CompositionBar', preset, variantProps, slotClassesProp)
+    resolveSlotClasses(
+      blocksConfig,
+      'CompositionBar',
+      preset,
+      variantProps,
+      slotClassesProp,
+      compositionBarVariants.config
+    )
   );
 
   let barRef = $state<HTMLDivElement>();

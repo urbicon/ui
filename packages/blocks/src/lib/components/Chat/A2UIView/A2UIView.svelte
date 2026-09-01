@@ -155,7 +155,14 @@
   // ── Resolved slot classes ────────────────────────────────────────────────
   const styles = a2uiViewVariants();
   const resolvedSlots = $derived(
-    resolveSlotClasses(blocksConfig, 'A2UIView', preset, {}, slotClassesProp)
+    resolveSlotClasses(
+      blocksConfig,
+      'A2UIView',
+      preset,
+      {},
+      slotClassesProp,
+      a2uiViewVariants.config
+    )
   );
   const classes = $derived.by(() => {
     const out: Record<string, string> = {};

@@ -101,7 +101,14 @@
   const styles = $derived(fileUploadVariants(variantProps));
 
   const slotClasses = $derived(
-    resolveSlotClasses(blocksConfig, 'FileUpload', preset, variantProps, slotClassesProp)
+    resolveSlotClasses(
+      blocksConfig,
+      'FileUpload',
+      preset,
+      variantProps,
+      slotClassesProp,
+      fileUploadVariants.config
+    )
   );
 
   const iconSize = $derived({ sm: 24, md: 32, lg: 40 }[size ?? 'md']);

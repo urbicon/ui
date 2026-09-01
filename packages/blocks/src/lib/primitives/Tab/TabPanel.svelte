@@ -65,7 +65,14 @@
   const styles = $derived(tabVariants(variantProps));
 
   const slotClasses = $derived(
-    resolveSlotClasses(blocksConfig, 'TabPanel', preset, variantProps, slotClassesProp)
+    resolveSlotClasses(
+      blocksConfig,
+      'TabPanel',
+      preset,
+      variantProps,
+      slotClassesProp,
+      tabVariants.config
+    )
   );
 </script>
 

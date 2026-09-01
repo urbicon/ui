@@ -72,7 +72,14 @@
   const variantProps: PromptInputVariants = $derived({ size });
   const styles = $derived(promptInputVariants(variantProps));
   const slotClasses = $derived(
-    resolveSlotClasses(blocksConfig, 'PromptInput', preset, variantProps, slotClassesProp)
+    resolveSlotClasses(
+      blocksConfig,
+      'PromptInput',
+      preset,
+      variantProps,
+      slotClassesProp,
+      promptInputVariants.config
+    )
   );
 
   function cls(name: keyof typeof slotClasses, extra?: string | (string | undefined)[]) {

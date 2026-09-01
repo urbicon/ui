@@ -33,7 +33,14 @@
   const variantProps: QRCodeVariants = $derived({ frame });
   const styles = $derived(qrCodeVariants(variantProps));
   const slotClasses = $derived(
-    resolveSlotClasses(blocksConfig, 'QRCode', preset, variantProps, slotClassesProp)
+    resolveSlotClasses(
+      blocksConfig,
+      'QRCode',
+      preset,
+      variantProps,
+      slotClassesProp,
+      qrCodeVariants.config
+    )
   );
 
   // Encode once per (value, level, bounds) change. A too-long payload surfaces

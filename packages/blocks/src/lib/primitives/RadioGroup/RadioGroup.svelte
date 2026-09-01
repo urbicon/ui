@@ -73,14 +73,21 @@
   const variantProps: RadioGroupVariants = $derived({
     orientation,
     required: required || undefined,
-    error: !!error || undefined,
-    disabled: disabled || undefined
+    error: !!error,
+    disabled: disabled
   });
 
   const styles = $derived(radioGroupVariants(variantProps));
 
   const slotClasses = $derived(
-    resolveSlotClasses(blocksConfig, 'RadioGroup', preset, variantProps, slotClassesProp)
+    resolveSlotClasses(
+      blocksConfig,
+      'RadioGroup',
+      preset,
+      variantProps,
+      slotClassesProp,
+      radioGroupVariants.config
+    )
   );
 
   function select(itemValue: string) {

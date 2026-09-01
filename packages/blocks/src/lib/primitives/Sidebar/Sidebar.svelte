@@ -33,7 +33,14 @@
   const variantProps: SidebarVariants = $derived({ side, mode });
   const styles = $derived(sidebarVariants(variantProps));
   const slotClasses = $derived(
-    resolveSlotClasses(blocksConfig, 'Sidebar', preset, variantProps, slotClassesProp)
+    resolveSlotClasses(
+      blocksConfig,
+      'Sidebar',
+      preset,
+      variantProps,
+      slotClassesProp,
+      sidebarVariants.config
+    )
   );
 
   const panelTransform = $derived(

@@ -35,7 +35,14 @@
   const styles = $derived(alertVariants(variantProps));
 
   const slotClasses = $derived(
-    resolveSlotClasses(blocksConfig, 'Alert', preset, variantProps, slotClassesProp)
+    resolveSlotClasses(
+      blocksConfig,
+      'Alert',
+      preset,
+      variantProps,
+      slotClassesProp,
+      alertVariants.config
+    )
   );
 </script>
 
