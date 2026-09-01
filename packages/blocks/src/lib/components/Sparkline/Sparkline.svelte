@@ -34,6 +34,24 @@
     resolveSlotClasses(blocksConfig, 'Sparkline', preset, variantProps, slotClassesProp)
   );
 
+  // DEV migration aid for the v9 slot rename, on the same `import.meta.env?.DEV
+  // && console.warn` idiom as Table's `wrapper`→`scrollArea` notice. Read off
+  // the RESOLVED map, not `slotClassesProp`: `ComponentDefaults['slotClasses']`,
+  // `ComponentPreset['slotClasses']` and `ConditionalOverride['class']` are all
+  // `Record<string, string>`, so a stale key written under a `<BlocksProvider>`
+  // passes every check the instance prop fails at compile time. The resolved
+  // map is the one place all five sources have already been folded together.
+  if (import.meta.env?.DEV) {
+    const stale = ['line', 'point'].filter((key) => key in slotClasses);
+    if (stale.length > 0) {
+      console.warn(
+        `[Sparkline] slotClasses.${stale.join(' and slotClasses.')} no longer resolves: ` +
+          '`line` is now `mark`, `point` is now `endPoint`. Check the instance prop and any ' +
+          "<BlocksProvider> defaults, presets or overrides under the 'Sparkline' key."
+      );
+    }
+  }
+
   // Inset so the stroke + end-point aren't clipped at the edges.
   const pad = $derived(Math.max(strokeWidth, 1));
 
@@ -82,7 +100,7 @@
     {/if}
     {#if geometry.lineD}
       <path
-        class={slot('line')}
+        class={slot('mark')}
         d={geometry.lineD}
         fill="none"
         stroke={color}
@@ -94,7 +112,7 @@
     {/if}
     {#if showEndPoint && geometry.last}
       <circle
-        class={slot('point')}
+        class={slot('endPoint')}
         cx={geometry.last[0]}
         cy={geometry.last[1]}
         r={strokeWidth + 0.5}

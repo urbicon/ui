@@ -1128,4 +1128,82 @@ describe('Combobox (validation frame)', () => {
     expect(classes).not.toContain('bg-white');
     expect(classes).not.toContain('bg-surface-hover');
   });
+
+  // Both state slots hold at once on a selected option the cursor sits on, and
+  // all three of `option` / `optionActive` / `optionSelected` write a `bg-*`.
+  // Nothing else measures that: the two tests above enter the active state
+  // alone, and the cascade sweep cannot — measured, its open-listbox fixture
+  // lands `optionSelected` and never `optionActive`, because no mount it makes
+  // enters the active state at all, by keyboard or by pointer, so the pair
+  // never meets on one element there.
+  it('lets a slotClasses.option beat both state classes when both hold', async () => {
+    const user = userEvent.setup();
+    renderCombobox({ options: OPTIONS, value: 'apple', slotClasses: { option: 'bg-white' } });
+
+    await user.click(screen.getByRole('combobox'));
+    await user.keyboard('{ArrowDown}');
+
+    const apple = option('Apple');
+    expect(apple.getAttribute('data-active')).toBe('true');
+    expect(apple.getAttribute('aria-selected')).toBe('true');
+    const classes = apple.getAttribute('class')?.split(/\s+/) ?? [];
+    expect(classes, 'the consumer entry arrived').toContain('bg-white');
+    expect(classes).not.toContain('bg-surface-hover');
+    expect(classes).not.toContain('bg-surface-selected');
+  });
+
+  // Which of the two state slots wins is one decision the option row makes
+  // twice — once among the library's defaults, once among the consumer's
+  // entries — and the two halves are hand-written in one array, so nothing but
+  // this pair keeps them agreeing. Neither test separates the four-source shape
+  // from the nested one; both are red only for a reordering of the states.
+  it('gives selected the bucket over active among the library defaults', async () => {
+    const user = userEvent.setup();
+    renderCombobox({ options: OPTIONS, value: 'apple' });
+
+    await user.click(screen.getByRole('combobox'));
+    await user.keyboard('{ArrowDown}');
+
+    const classes = option('Apple').getAttribute('class')?.split(/\s+/) ?? [];
+    expect(classes).toContain('bg-surface-selected');
+    expect(classes).not.toContain('bg-surface-hover');
+  });
+
+  it('gives selected the bucket over active among the consumer entries too', async () => {
+    const user = userEvent.setup();
+    renderCombobox({
+      options: OPTIONS,
+      value: 'apple',
+      slotClasses: { option: 'bg-white', optionActive: 'bg-black', optionSelected: 'bg-red-500' }
+    });
+
+    await user.click(screen.getByRole('combobox'));
+    await user.keyboard('{ArrowDown}');
+
+    const classes = option('Apple').getAttribute('class')?.split(/\s+/) ?? [];
+    expect(classes).toContain('bg-red-500');
+    expect(classes).not.toContain('bg-black');
+    expect(classes).not.toContain('bg-white');
+  });
+
+  // The check mark sits on its own element, outside the option row's five
+  // sources: its `class` array is a pair, and the selected state reaches it as
+  // a bare `opacity-100` written in the markup rather than through a slot. A
+  // consumer entry has to beat it like any other library class.
+  it('lets a slotClasses.optionCheck beat the selected row’s opacity', async () => {
+    const user = userEvent.setup();
+    renderCombobox({
+      options: OPTIONS,
+      value: 'apple',
+      slotClasses: { optionCheck: 'opacity-50' }
+    });
+
+    await user.click(screen.getByRole('combobox'));
+
+    const check = option('Apple').querySelector('svg');
+    const classes = check?.getAttribute('class')?.split(/\s+/) ?? [];
+    expect(classes).toContain('opacity-50');
+    expect(classes).not.toContain('opacity-100');
+    expect(classes).not.toContain('opacity-0');
+  });
 });
