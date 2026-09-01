@@ -269,7 +269,11 @@ const KNOWN_GAPS: Record<string, Partial<Record<Route, Gap>>> = {
       // the tv() index is per module, so a sibling config's slot names come
       // with the import. Without a provider name none of them is addressable.
       leaks: ['base', 'controls', 'ellipsis', 'info'],
-      why: 'no provider name, and `paginationLinkVariants` declares no slots to address'
+      // The coupling is in the reason because the reason is what the failure
+      // message prints: adding a slot to `paginationVariants` — a config this
+      // component never calls — moves this set, and the generic wording would
+      // otherwise report that as a regression inside PaginationItem.
+      why: "no provider name, and `paginationLinkVariants` declares no slots to address — the four pinned slots are `paginationVariants`', so a slot added to `Pagination` changes this set"
     },
     B: { leaks: [], why: 'no provider name — a rule for these buttons goes under `Button`' },
     C: {
@@ -395,8 +399,21 @@ vi.mock('$lib/provider', async (importOriginal) => {
  * holds the rule a lint would otherwise have to: a failure that a KNOWN_GAPS
  * entry can be written against has to name what it is made of. `leaks` is
  * required on that shape and absent from the other two, so a failure branch
- * cannot be added without one — and an entry can never pin an empty set that
- * means "nobody counted" rather than "there is nothing to count".
+ * cannot be added without one.
+ *
+ * `leaks: []` therefore has exactly one meaning — **the failure has no parts**,
+ * because nothing of the component's arrived to be named (a `class` prop that
+ * reaches no element at all). "The route found nothing to judge" is the other
+ * shape, `measured: false`, and choosing between them is not a matter of taste:
+ * an entry can pin an empty set and freeze it, so a route with no subject
+ * encoded here goes unwatched for good — see route C's `styled.length === 0`
+ * branch, which was on the wrong side of this line and what it cost.
+ *
+ * The unit of a leak belongs to the route and is named at each one below, but
+ * one rule spans all of them: **`leaks` names what the COMPONENT contributes to
+ * the failure, never the sweep's own probes.** A missing `p-[5px]` or a
+ * `COLLISION_CANDIDATES` entry says which challenger the sweep sent, not which
+ * of the component's classes stood — those failures have no parts.
  */
 type Outcome =
   | { ok: true; detail: string; measured?: undefined; leaks?: undefined }
@@ -760,10 +777,17 @@ function measure(entry: CascadeComponent, withFixture: FixtureChoice = true): Me
         leaks: lostProbes
       };
     } else if (styled.length === 0) {
+      // The same shape as route D's "no candidate collides" and the ladder's
+      // "no pair to resolve": `unstyled` promises to drop the library's classes
+      // and there is none on this element, so the route has no subject and the
+      // honest answer is "not measured", not "failed". Encoded as a failure it
+      // was worse than useless — an entry could pin its empty leak set and
+      // freeze the emptiness (measured: with `collapsibleVariants.base` emptied
+      // and such an entry written, the sweep ran 807 passed | 13 skipped).
       routes.C = {
         ok: false,
-        detail: 'root element carries no library class — nothing to strip',
-        leaks: []
+        measured: false,
+        detail: 'root element carries no library class — nothing to strip'
       };
     } else {
       const survivors = styled.filter((t) => stripped.rootTokens.has(t));
@@ -975,7 +999,9 @@ function measure(entry: CascadeComponent, withFixture: FixtureChoice = true): Me
   // of its own through the component: a call site can fold `slotClasses`
   // correctly and still append `class` beside the result.
   //
-  // Leaks: the library classes that survive the colliding prop.
+  // Leaks: the library classes that survive the colliding prop. Its other
+  // failures have no parts — a prop that reaches no element leaves none of the
+  // component's classes standing to be named.
   if (entry.declaredProps.includes('class')) {
     // The element is found by the marker rather than by position: `class` does
     // not always land on the outermost element (Tooltip, CopyButton).
@@ -1011,7 +1037,9 @@ function measure(entry: CascadeComponent, withFixture: FixtureChoice = true): Me
             routes.E = {
               ok: false,
               detail: `the colliding \`class\` prop did not arrive (${missing.join(' ')})`,
-              leaks: missing
+              // The candidates are the sweep's, not the component's: nothing of
+              // this component's survived to be named.
+              leaks: []
             };
           } else {
             const survivors = [...collisions.keys()].filter((token) => element.has(token));
@@ -1052,6 +1080,10 @@ function measure(entry: CascadeComponent, withFixture: FixtureChoice = true): Me
   // (`sources.push(...overrideSources)` → `.flat()`) reddens 76 F rows and NOT
   // ONE G row, since G never enters `foldFor`; breaking `resolveClassChain`'s
   // own fold reddens 84 G rows. Neither sabotage stands in for the other.
+  //
+  // Leaks: none, on every branch. One `slotClasses` entry against one `class`
+  // on one element is a question with a yes and a no and no middle, so an entry
+  // here would pin the empty set — the failure itself, not a share of it.
   const ladder = (unstyled: boolean): Outcome => {
     if (!name) {
       return {
@@ -1094,14 +1126,14 @@ function measure(entry: CascadeComponent, withFixture: FixtureChoice = true): Me
       return {
         ok: false,
         detail: `the colliding \`class\` prop did not arrive (${LADDER_WINNER})`,
-        leaks: [LADDER_WINNER]
+        leaks: []
       };
     }
     return element.has(LADDER_LOSER)
       ? {
           ok: false,
           detail: `\`slotClasses\` ${LADDER_LOSER} survives a colliding \`class\` ${LADDER_WINNER} — both land in the attribute and the stylesheet decides`,
-          leaks: [LADDER_LOSER]
+          leaks: []
         }
       : { ok: true, detail: `${LADDER_WINNER} stripped ${LADDER_LOSER}` };
   };
