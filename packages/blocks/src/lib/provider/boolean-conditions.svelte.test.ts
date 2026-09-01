@@ -300,6 +300,27 @@ describe('a boolean house rule reaches every component that takes the prop', () 
     ).toEqual([]);
   });
 
+  it('lists no KNOWN_GAPS pair whose component stops mounting', () => {
+    // A mount that throws is reported as `ok: false` on both sides — the exact
+    // shape a gap entry asserts, so the entry would go on passing for the
+    // widest failure there is rather than for the one it records. Measured:
+    // with `Accordion` throwing at init this file stayed green on all 69 rows,
+    // while the cascade sweep, which asks this, reddens two.
+    const broken: string[] = [];
+    for (const name of Object.keys(KNOWN_GAPS)) {
+      if (NOT_MOUNTABLE[name]) continue;
+      const entry = exported.find((e) => e.exportName === name);
+      if (!entry) continue; // an unknown name is the sibling test's case
+      const { error } = mountWith(entry, {}, {});
+      if (error) broken.push(`${name} — ${error}`);
+    }
+    expect(
+      broken,
+      'KNOWN_GAPS components that no longer mount, so their entries pass on a mount error ' +
+        `rather than on the gap they record:\n  ${broken.join('\n  ')}`
+    ).toEqual([]);
+  });
+
   // ── The fold itself, both directions ────────────────────────────────────
   //
   // The rows above do not reach it. Once every boolean axis carries its raw

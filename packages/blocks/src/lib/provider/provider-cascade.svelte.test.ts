@@ -170,13 +170,30 @@ type Route = 'A' | 'B' | 'C' | 'D' | 'E' | 'F' | 'G' | 'H';
 /** Every route, once — the per-route loops read this rather than restating it. */
 const ROUTES: Route[] = ['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H'];
 
+interface Gap {
+  /**
+   * Exactly what the route reports as failing — a slot, a variant axis or a
+   * class token, whichever unit the route names. Compared whole and sorted, so
+   * the entry is stale when the set GROWS as much as when it shrinks.
+   */
+  leaks: string[];
+  /** Why the gap stands. Never *what* leaks: that is `leaks`, and checked. */
+  why: string;
+}
+
 /**
- * Routes that are known-broken today, each with the issue that repairs it.
- * An entry asserts its route **fails**, so the fix cannot land without deleting
- * the entry — the contract `imports-lint` and `examples-lint` already use:
- * a stale entry is an error, not a leftover.
+ * Routes that are known-broken today. An entry asserts its route **fails**, so
+ * the fix cannot land without deleting the entry — the contract `imports-lint`
+ * and `examples-lint` already use: a stale entry is an error, not a leftover.
+ *
+ * `leaks` is the half of that contract a reason cannot carry. Measured on route
+ * D of `Planner` (#376): reverting its fold in stages widened the gap from 1
+ * leaking slot of 13 to 5, and an entry asserting only `ok === false` stayed
+ * green at every stage — with its reason, which named the one slot, still
+ * literally true. So the prose says why and the set says how much, and only one
+ * of the two can be checked against the running component.
  */
-const KNOWN_GAPS: Record<string, Partial<Record<Route, string>>> = {
+const KNOWN_GAPS: Record<string, Partial<Record<Route, Gap>>> = {
   // An empty condition object, and here it is the honest one: these components'
   // `tv()` configs declare `variants: {}`, so there is no axis for a rule to
   // select and `effectiveVariants` has nothing to fold in either. `tv()` sees
@@ -188,32 +205,54 @@ const KNOWN_GAPS: Record<string, Partial<Record<Route, string>>> = {
   // `layout` and `density`, but forwards both to the `ChatMessage`s it renders
   // rather than styling itself with them — a rule keyed on either belongs under
   // `ChatMessage`, whose condition object does carry them.
-  A2UIView: { B: '`a2uiViewVariants` declares no axes' },
-  Chat: { B: '`chatVariants` declares no axes' },
+  //
+  // Their `leaks: []` is that claim, measured: the condition object carries no
+  // axis at all. An axis that appeared without becoming addressable would be
+  // listed there and redden the row.
+  A2UIView: { B: { leaks: [], why: '`a2uiViewVariants` declares no axes' } },
+  Chat: { B: { leaks: [], why: '`chatVariants` declares no axes' } },
   ChatMessageList: {
-    B: '`chatMessageListVariants` declares no axes — `layout`/`density` go to ChatMessage'
+    B: {
+      leaks: [],
+      why: '`chatMessageListVariants` declares no axes — `layout`/`density` go to ChatMessage'
+    }
   },
-  Guide: { B: '`guideTourVariants` declares no axes' },
-  GuideArticle: { B: '`guideArticleVariants` declares no axes' },
-  GuideHint: { B: '`guideHintVariants` declares no axes' },
-  GuideMention: { B: '`guideMentionVariants` declares no axes' },
-  GuideRef: { B: '`guideRefVariants` declares no axes' },
-  ReasoningDisclosure: { B: '`reasoningDisclosureVariants` declares no axes' },
+  Guide: { B: { leaks: [], why: '`guideTourVariants` declares no axes' } },
+  GuideArticle: { B: { leaks: [], why: '`guideArticleVariants` declares no axes' } },
+  GuideHint: { B: { leaks: [], why: '`guideHintVariants` declares no axes' } },
+  GuideMention: { B: { leaks: [], why: '`guideMentionVariants` declares no axes' } },
+  GuideRef: { B: { leaks: [], why: '`guideRefVariants` declares no axes' } },
+  ReasoningDisclosure: {
+    B: { leaks: [], why: '`reasoningDisclosureVariants` declares no axes' }
+  },
 
   // The internal core layer's structural plumbing (`inline-flex items-center
   // justify-center` on `CoreIconButton`) is joined raw with the call-site's
   // slot class and deliberately not merged against it —
   // COMPONENT-API-CONVENTIONS.md ("the plumbing is not an override surface").
-  // The slot class that *is* the override surface merges correctly; these
-  // entries record the plumbing buckets that stay out of it.
-  ChatMessage: { D: 'CoreIconButton plumbing on `actionButton`, out of the ladder by design' },
+  // The slot class that *is* the override surface merges correctly, so exactly
+  // one slot per component leaks and `leaks` names which: a second one is a
+  // call site that stopped folding, not this exception widening.
+  ChatMessage: {
+    D: { leaks: ['actionButton'], why: 'CoreIconButton plumbing, out of the ladder by design' }
+  },
   // Reached the sweep with #355, which gave it a provider name of its own; the
   // close button it inherits from Dialog is the same core as Drawer's below.
-  ConfirmDialog: { D: 'CoreIconButton plumbing on `closeButton`, out of the ladder by design' },
-  Drawer: { D: 'CoreIconButton plumbing on `closeButton`, out of the ladder by design' },
-  Planner: { D: 'CoreIconButton plumbing on `navButton`, out of the ladder by design' },
-  PromptInput: { D: 'CoreIconButton plumbing on `sendButton`, out of the ladder by design' },
-  ResourceTimeline: { D: 'CoreIconButton plumbing on `navButton`, out of the ladder by design' },
+  ConfirmDialog: {
+    D: { leaks: ['closeButton'], why: 'CoreIconButton plumbing, out of the ladder by design' }
+  },
+  Drawer: {
+    D: { leaks: ['closeButton'], why: 'CoreIconButton plumbing, out of the ladder by design' }
+  },
+  Planner: {
+    D: { leaks: ['navButton'], why: 'CoreIconButton plumbing, out of the ladder by design' }
+  },
+  PromptInput: {
+    D: { leaks: ['sendButton'], why: 'CoreIconButton plumbing, out of the ladder by design' }
+  },
+  ResourceTimeline: {
+    D: { leaks: ['navButton'], why: 'CoreIconButton plumbing, out of the ladder by design' }
+  },
   // Styled entirely through the `Button` it wraps: its own tv() config
   // (`paginationLinkVariants`) declares no slots, so there is no slot for a
   // `defaults` entry to land on and no provider name that would help — the
@@ -225,9 +264,18 @@ const KNOWN_GAPS: Record<string, Partial<Record<Route, string>>> = {
   // root class, and those three are in it. Reached the sweep with the
   // `unstyled` prop that lets `<Pagination unstyled>` reach its page buttons.
   PaginationItem: {
-    A: 'no provider name, and `paginationLinkVariants` declares no slots to address',
-    B: 'no provider name — a rule for these buttons goes under `Button`',
-    C: "the no-provider-name fallback counts Button's semantic hooks as root classes"
+    A: {
+      // The four are `paginationVariants`' slots rather than this component's:
+      // the tv() index is per module, so a sibling config's slot names come
+      // with the import. Without a provider name none of them is addressable.
+      leaks: ['base', 'controls', 'ellipsis', 'info'],
+      why: 'no provider name, and `paginationLinkVariants` declares no slots to address'
+    },
+    B: { leaks: [], why: 'no provider name — a rule for these buttons goes under `Button`' },
+    C: {
+      leaks: ['[--blocks-press-scale:1]', 'blocks-button', 'blocks-intent-primary'],
+      why: "the no-provider-name fallback counts Button's semantic hooks as root classes"
+    }
   },
 
   // #339 — addressable, but under its parent's name (measured): a rule written
@@ -237,8 +285,17 @@ const KNOWN_GAPS: Record<string, Partial<Record<Route, string>>> = {
   // open question #343 asks about condition keys, and it wants one answer for
   // both.
   CalendarHeader: {
-    A: '#339 addressable only under `Calendar` — measured: `defaults.Calendar.slotClasses` reaches its header, nav and title elements',
-    B: '#339 addressable only under `Calendar`, whose condition object it does not contribute to'
+    A: {
+      // `base` is the registry's fallback slot, not one this component reads:
+      // it composes no tv() config of its own and takes its classes from the
+      // `Calendar` context.
+      leaks: ['base'],
+      why: '#339 addressable only under `Calendar` — measured: `defaults.Calendar.slotClasses` reaches its header, nav and title elements'
+    },
+    B: {
+      leaks: [],
+      why: '#339 addressable only under `Calendar`, whose condition object it does not contribute to'
+    }
   }
 };
 
@@ -333,17 +390,31 @@ vi.mock('$lib/provider', async (importOriginal) => {
   };
 });
 
-interface Outcome {
-  ok: boolean;
-  detail: string;
+/**
+ * A route's answer, in three shapes rather than one, so that the compiler
+ * holds the rule a lint would otherwise have to: a failure that a KNOWN_GAPS
+ * entry can be written against has to name what it is made of. `leaks` is
+ * required on that shape and absent from the other two, so a failure branch
+ * cannot be added without one — and an entry can never pin an empty set that
+ * means "nobody counted" rather than "there is nothing to count".
+ */
+type Outcome =
+  | { ok: true; detail: string; measured?: undefined; leaks?: undefined }
   /**
-   * Whether the route found anything to judge at all. Route D needs a library
-   * class *and* a candidate that collides with it; without both there is no
-   * question to answer, and reporting that as a pass would be the same silent
-   * green as reading "class not found" as "class stripped".
+   * The route found nothing to judge at all. Route D needs a library class
+   * *and* a candidate that collides with it; without both there is no question
+   * to answer, and reporting that as a pass would be the same silent green as
+   * reading "class not found" as "class stripped". These rows are skipped, so
+   * no entry can rest on one — the stale test below reports any that tries.
    */
-  measured?: boolean;
-}
+  | { ok: false; measured: false; detail: string; leaks?: undefined }
+  /**
+   * A failure, with the things it is made of. What a thing *is* belongs to the
+   * route — a slot, a variant axis, a class token, listed under each route
+   * below; what is common is that the set is exact, because a KNOWN_GAPS entry
+   * pins it and goes stale when it grows or shrinks.
+   */
+  | { ok: false; measured?: undefined; detail: string; leaks: string[] };
 
 interface Measurement {
   entry: CascadeComponent;
@@ -541,15 +612,19 @@ function mountOnce(
 }
 
 function measure(entry: CascadeComponent, withFixture: FixtureChoice = true): Measurement {
+  // `measured: false` rather than a failure with an empty leak set: a route
+  // that never ran carries no answer, and the placeholder must not be the one
+  // shape an entry could be written against.
+  const notRun = { ok: false, measured: false, detail: 'not run' } as const;
   const routes: Record<Route, Outcome> = {
-    A: { ok: false, detail: 'not run' },
-    B: { ok: false, detail: 'not run' },
-    C: { ok: false, detail: 'not run' },
-    D: { ok: false, detail: 'not run' },
-    E: { ok: false, detail: 'not run' },
-    F: { ok: false, detail: 'not run' },
-    G: { ok: false, detail: 'not run' },
-    H: { ok: false, detail: 'not run' }
+    A: notRun,
+    B: notRun,
+    C: notRun,
+    D: notRun,
+    E: notRun,
+    F: notRun,
+    G: notRun,
+    H: notRun
   };
 
   let plain: MountResult;
@@ -571,28 +646,50 @@ function measure(entry: CascadeComponent, withFixture: FixtureChoice = true): Me
   const rootRule: RootRule = ROOT_IS_A_WRAPPER[entry.exportName] ? 'probe' : 'outermost';
 
   // ── A: an unconditional `slotClasses` entry reaches the root element ──
+  //
+  // Leaks: the slots whose probe reached no element at all. The route's own
+  // claim is about the root and is binary, but the extent of a failure is how
+  // much of the component the provider cannot address — a component where one
+  // slot short of the root lands and one where none does are two different
+  // gaps, and an entry that pins the set says which one it was written for.
   let probed: MountResult | undefined;
   let rootSlots: string[] = [];
   if (!slotProbes) {
-    routes.A = { ok: false, detail: 'no provider name — `defaults` cannot address this component' };
+    routes.A = {
+      ok: false,
+      detail: 'no provider name — `defaults` cannot address this component',
+      leaks: entry.slots
+    };
   } else {
     probed = mountOnce(entry, slotProbes, withFixture, rootRule);
     rootSlots = [...probed.rootProbes];
-    const elsewhere = [...probed.tokens].filter((t) => t.startsWith(PROBE_A_PREFIX)).length;
+    const landed = new Set(
+      [...probed.tokens]
+        .filter((t) => t.startsWith(PROBE_A_PREFIX))
+        .map((t) => t.slice(PROBE_A_PREFIX.length))
+    );
     routes.A = rootSlots.length
       ? {
           ok: true,
-          detail: `root slot ${rootSlots.join('+')}, ${elsewhere}/${entry.slots.length} slots landed`
+          detail: `root slot ${rootSlots.join('+')}, ${landed.size}/${entry.slots.length} slots landed`
         }
       : {
           ok: false,
           detail: probed.rootFound
-            ? `${elsewhere}/${entry.slots.length} slots landed, none of them on the root element (${[...probed.rootTokens].join(' ') || '<no classes>'})`
-            : `no root element found for slots {${entry.slots.join(', ')}}`
+            ? `${landed.size}/${entry.slots.length} slots landed, none of them on the root element (${[...probed.rootTokens].join(' ') || '<no classes>'})`
+            : `no root element found for slots {${entry.slots.join(', ')}}`,
+          leaks: entry.slots.filter((slot) => !landed.has(slot))
         };
   }
 
   // ── B: a conditional rule on the carried condition reaches the markup ──
+  //
+  // Leaks: the axis names the component's condition object carries, none of
+  // which got a rule through. An entry reading "declares no axes" therefore
+  // pins the empty set and goes stale the moment an axis appears — the same
+  // check `boolean-conditions.svelte.test.ts` makes when its `no-axis` kind is
+  // held against the running `tv()` config, rather than against the prose.
+  const axes = Object.keys(plain.condition ?? {});
   const condition = Object.entries(plain.condition ?? {}).filter(
     ([, value]) => value !== undefined && ['string', 'number', 'boolean'].includes(typeof value)
   );
@@ -600,17 +697,23 @@ function measure(entry: CascadeComponent, withFixture: FixtureChoice = true): Me
   if (!name) {
     routes.B = {
       ok: false,
-      detail: 'no provider name — `overrides` cannot address this component'
+      detail: 'no provider name — `overrides` cannot address this component',
+      leaks: axes
     };
   } else if (plain.condition === undefined) {
-    routes.B = { ok: false, detail: 'resolveSlotClasses never ran for this provider name' };
+    routes.B = {
+      ok: false,
+      detail: 'resolveSlotClasses never ran for this provider name',
+      leaks: axes
+    };
   } else if (condition.length === 0) {
     routes.B = {
       ok: false,
       detail:
         Object.keys(plain.condition).length === 0
           ? 'empty condition object — no `overrides` rule can ever match'
-          : `every axis carries undefined (${Object.keys(plain.condition).join(', ')}) — no rule can match`
+          : `every axis carries undefined (${Object.keys(plain.condition).join(', ')}) — no rule can match`,
+      leaks: axes
     };
   } else {
     const rule = {
@@ -620,13 +723,17 @@ function measure(entry: CascadeComponent, withFixture: FixtureChoice = true): Me
     const run = mountOnce(entry, { defaults: { [name]: { overrides: [rule] } } }, withFixture);
     routes.B = run.tokens.has(PROBE_B)
       ? { ok: true, detail: `matched on {${shown}}` }
-      : { ok: false, detail: `rule on {${shown}} reached no element` };
+      : { ok: false, detail: `rule on {${shown}} reached no element`, leaks: axes };
   }
 
   // ── C: provider `unstyled` drops the root element's library classes ──
   // One element, not the subtree: token strings repeat across the library
   // (`inline-flex`, `items-center`), so a subtree-wide comparison reports a
   // *neighbour's* surviving class as this component's failure.
+  //
+  // Leaks: the classes that survive the flag — or, in the branch where the
+  // probes went missing, the slots that lost them, since that failure is about
+  // which element was measured rather than about what stayed on it.
   if (routes.A.ok && slotProbes && probed) {
     const styled = [...probed.rootTokens].filter((t) => entry.libraryTokens.has(t));
     const stripped = mountOnce(entry, { ...slotProbes, unstyled: true }, withFixture, rootRule);
@@ -640,7 +747,8 @@ function measure(entry: CascadeComponent, withFixture: FixtureChoice = true): Me
         detail:
           rootRule === 'probe'
             ? `under \`unstyled\` no element carries the provider's slotClasses — the root slot cannot be identified`
-            : 'renders no root element under provider `unstyled`'
+            : 'renders no root element under provider `unstyled`',
+        leaks: rootSlots
       };
     } else if (lostProbes.length) {
       // The probe is the identity of the element across the two mounts *and*
@@ -648,16 +756,22 @@ function measure(entry: CascadeComponent, withFixture: FixtureChoice = true): Me
       // never the consumer's.
       routes.C = {
         ok: false,
-        detail: `the root element under \`unstyled\` lost the provider's own slotClasses (${lostProbes.join(', ')}) — either \`unstyled\` drops them with the library's, or this is a different element`
+        detail: `the root element under \`unstyled\` lost the provider's own slotClasses (${lostProbes.join(', ')}) — either \`unstyled\` drops them with the library's, or this is a different element`,
+        leaks: lostProbes
       };
     } else if (styled.length === 0) {
-      routes.C = { ok: false, detail: 'root element carries no library class — nothing to strip' };
+      routes.C = {
+        ok: false,
+        detail: 'root element carries no library class — nothing to strip',
+        leaks: []
+      };
     } else {
       const survivors = styled.filter((t) => stripped.rootTokens.has(t));
       routes.C = survivors.length
         ? {
             ok: false,
-            detail: `${survivors.length}/${styled.length} library classes survive \`unstyled\`: ${survivors.slice(0, 6).join(' ')}`
+            detail: `${survivors.length}/${styled.length} library classes survive \`unstyled\`: ${survivors.slice(0, 6).join(' ')}`,
+            leaks: survivors
           }
         : { ok: true, detail: `${styled.length} library classes dropped` };
     }
@@ -671,7 +785,8 @@ function measure(entry: CascadeComponent, withFixture: FixtureChoice = true): Me
     routes.C = survivors.length
       ? {
           ok: false,
-          detail: `${survivors.length}/${plain.rootTokens.size} root classes survive \`unstyled\`: ${survivors.slice(0, 6).join(' ')}`
+          detail: `${survivors.length}/${plain.rootTokens.size} root classes survive \`unstyled\`: ${survivors.slice(0, 6).join(' ')}`,
+          leaks: survivors
         }
       : { ok: true, detail: `${plain.rootTokens.size} root classes dropped` };
   }
@@ -731,12 +846,15 @@ function measure(entry: CascadeComponent, withFixture: FixtureChoice = true): Me
         rootRule
       );
 
-      const failures: string[] = [];
+      // The slot is kept apart from the prose rather than prefixed onto it:
+      // the slot names are route D's leak set, and reading them back out of a
+      // formatted sentence would tie the entries below to its wording.
+      const failures: { slot: string; detail: string }[] = [];
       let stripped = 0;
       for (const [slot, collisions] of perSlot) {
         const element = run.slotElements.get(slot);
         if (!element) {
-          failures.push(`${slot}: the colliding entry reached no element`);
+          failures.push({ slot, detail: 'the colliding entry reached no element' });
           continue;
         }
         // A probe that never arrived carries no answer about the library class
@@ -746,19 +864,22 @@ function measure(entry: CascadeComponent, withFixture: FixtureChoice = true): Me
           (candidate) => !element.has(candidate)
         );
         if (missing.length) {
-          failures.push(`${slot}: the colliding entry did not arrive (${missing.join(' ')})`);
+          failures.push({
+            slot,
+            detail: `the colliding entry did not arrive (${missing.join(' ')})`
+          });
           continue;
         }
         const survivors = [...collisions.keys()].filter((token) => element.has(token));
         stripped += collisions.size - survivors.length;
         if (survivors.length) {
-          failures.push(
-            `${slot}: ` +
-              survivors
-                .slice(0, 3)
-                .map((token) => `${token} vs ${collisions.get(token)}`)
-                .join(', ')
-          );
+          failures.push({
+            slot,
+            detail: survivors
+              .slice(0, 3)
+              .map((token) => `${token} vs ${collisions.get(token)}`)
+              .join(', ')
+          });
         }
       }
 
@@ -785,7 +906,10 @@ function measure(entry: CascadeComponent, withFixture: FixtureChoice = true): Me
         );
         const element = alone.slotElements.get(slot);
         if (!element) {
-          failures.push(`${slot} (written alone): the colliding entry reached no element`);
+          failures.push({
+            slot: `${slot} (written alone)`,
+            detail: 'the colliding entry reached no element'
+          });
           continue;
         }
         // A candidate that arrived in the run above and not here lost its
@@ -798,20 +922,21 @@ function measure(entry: CascadeComponent, withFixture: FixtureChoice = true): Me
         // instead leaves that shape green over the whole corpus.
         const missingAlone = candidates.filter((candidate) => !element.has(candidate));
         if (missingAlone.length) {
-          failures.push(
-            `${slot} (written alone): the colliding entry did not arrive (${missingAlone.join(' ')})`
-          );
+          failures.push({
+            slot: `${slot} (written alone)`,
+            detail: `the colliding entry did not arrive (${missingAlone.join(' ')})`
+          });
           continue;
         }
         const survivors = [...collisions.keys()].filter((token) => element.has(token));
         if (survivors.length) {
-          failures.push(
-            `${slot} (written alone): ` +
-              survivors
-                .slice(0, 3)
-                .map((token) => `${token} vs ${collisions.get(token)}`)
-                .join(', ')
-          );
+          failures.push({
+            slot: `${slot} (written alone)`,
+            detail: survivors
+              .slice(0, 3)
+              .map((token) => `${token} vs ${collisions.get(token)}`)
+              .join(', ')
+          });
         }
       }
 
@@ -820,7 +945,15 @@ function measure(entry: CascadeComponent, withFixture: FixtureChoice = true): Me
             ok: false,
             detail:
               `${failures.length}/${perSlot.size} slots keep a library class the consumer ` +
-              `collides with — ${failures.slice(0, 4).join(' · ')}`
+              `collides with — ${failures
+                .slice(0, 4)
+                .map((failure) => `${failure.slot}: ${failure.detail}`)
+                .join(' · ')}`,
+            // Leaks: the leaking slots, the per-slot pass named apart from the
+            // joint one. Two passes ask two questions of the same slot, and an
+            // entry that pins only the slot name would go on holding while the
+            // second one started failing too.
+            leaks: failures.map((failure) => failure.slot)
           }
         : {
             ok: true,
@@ -841,12 +974,14 @@ function measure(entry: CascadeComponent, withFixture: FixtureChoice = true): Me
   // separate route because `class` reaches one element only and takes a path
   // of its own through the component: a call site can fold `slotClasses`
   // correctly and still append `class` beside the result.
+  //
+  // Leaks: the library classes that survive the colliding prop.
   if (entry.declaredProps.includes('class')) {
     // The element is found by the marker rather than by position: `class` does
     // not always land on the outermost element (Tooltip, CopyButton).
     const landed = mountOnce(entry, {}, withFixture, 'outermost', { class: PROBE_E }).classCarrier;
     if (!landed) {
-      routes.E = { ok: false, detail: 'the `class` prop reached no element' };
+      routes.E = { ok: false, detail: 'the `class` prop reached no element', leaks: [] };
     } else {
       const collisions = new Map<string, string>();
       for (const token of landed) {
@@ -865,13 +1000,18 @@ function measure(entry: CascadeComponent, withFixture: FixtureChoice = true): Me
           class: [PROBE_E, ...candidates].join(' ')
         }).classCarrier;
         if (!element) {
-          routes.E = { ok: false, detail: 'the colliding `class` prop reached no element' };
+          routes.E = {
+            ok: false,
+            detail: 'the colliding `class` prop reached no element',
+            leaks: []
+          };
         } else {
           const missing = candidates.filter((candidate) => !element.has(candidate));
           if (missing.length) {
             routes.E = {
               ok: false,
-              detail: `the colliding \`class\` prop did not arrive (${missing.join(' ')})`
+              detail: `the colliding \`class\` prop did not arrive (${missing.join(' ')})`,
+              leaks: missing
             };
           } else {
             const survivors = [...collisions.keys()].filter((token) => element.has(token));
@@ -884,7 +1024,8 @@ function measure(entry: CascadeComponent, withFixture: FixtureChoice = true): Me
                     survivors
                       .slice(0, 4)
                       .map((token) => `${token} vs ${collisions.get(token)}`)
-                      .join(', ')
+                      .join(', '),
+                  leaks: survivors
                 }
               : { ok: true, detail: `${collisions.size} colliding library classes stripped` };
           }
@@ -932,7 +1073,7 @@ function measure(entry: CascadeComponent, withFixture: FixtureChoice = true): Me
       ...extra,
       class: PROBE_E
     }).classCarrier;
-    if (!carried) return { ok: false, detail: 'the `class` prop reached no element' };
+    if (!carried) return { ok: false, detail: 'the `class` prop reached no element', leaks: [] };
     if (!carried.has(LADDER_LOSER)) {
       // Without the lower rung on the same element there is no pair to
       // resolve — the honest answer is "not measured", not "passed".
@@ -946,17 +1087,21 @@ function measure(entry: CascadeComponent, withFixture: FixtureChoice = true): Me
       ...extra,
       class: `${PROBE_E} ${LADDER_WINNER}`
     }).classCarrier;
-    if (!element) return { ok: false, detail: 'the colliding `class` prop reached no element' };
+    if (!element) {
+      return { ok: false, detail: 'the colliding `class` prop reached no element', leaks: [] };
+    }
     if (!element.has(LADDER_WINNER)) {
       return {
         ok: false,
-        detail: `the colliding \`class\` prop did not arrive (${LADDER_WINNER})`
+        detail: `the colliding \`class\` prop did not arrive (${LADDER_WINNER})`,
+        leaks: [LADDER_WINNER]
       };
     }
     return element.has(LADDER_LOSER)
       ? {
           ok: false,
-          detail: `\`slotClasses\` ${LADDER_LOSER} survives a colliding \`class\` ${LADDER_WINNER} — both land in the attribute and the stylesheet decides`
+          detail: `\`slotClasses\` ${LADDER_LOSER} survives a colliding \`class\` ${LADDER_WINNER} — both land in the attribute and the stylesheet decides`,
+          leaks: [LADDER_LOSER]
         }
       : { ok: true, detail: `${LADDER_WINNER} stripped ${LADDER_LOSER}` };
   };
@@ -1003,7 +1148,8 @@ function measure(entry: CascadeComponent, withFixture: FixtureChoice = true): Me
             ok: false,
             detail:
               `${survivors.length}/${stripped.length} classes that provider \`unstyled\` removes ` +
-              `survive an instance \`unstyled\`: ${survivors.slice(0, 6).join(' ')}`
+              `survive an instance \`unstyled\`: ${survivors.slice(0, 6).join(' ')}`,
+            leaks: survivors
           }
         : { ok: true, detail: `${stripped.length} classes dropped either way` };
     }
@@ -1088,6 +1234,11 @@ describe('BlocksProvider cascade reaches the markup', () => {
     // of them can strip another. Only the per-slot pass leaves the library's
     // state class standing to be beaten.
     expect(outcome.detail).toContain('row (written alone): the colliding entry did not arrive');
+    // And sized, which is what a KNOWN_GAPS entry pins. This is the only place
+    // a leak set is asserted against a component built to produce it: the
+    // entries below are pinned against the corpus, and a `leaks` that silently
+    // came out empty would let every one of them keep passing.
+    expect(outcome.leaks ?? []).toEqual(['row (written alone)']);
   });
 
   it('does not report the same fold when the state sits on the second row', () => {
@@ -1101,7 +1252,11 @@ describe('BlocksProvider cascade reaches the markup', () => {
     // Without this the green below would also be what a fixture that stopped
     // rendering the state at all produces.
     expect(mountOnce(foldProbe, probes, onRow('second')).coLocated).toEqual([['row', 'rowState']]);
-    expect(measure(foldProbe, onRow('second')).routes.D.ok).toBe(true);
+    const outcome = measure(foldProbe, onRow('second')).routes.D;
+    expect(outcome.ok).toBe(true);
+    // The other end of the same pin: a passing route names no leak at all, so
+    // the two rows together are the shrink and the growth of one gap.
+    expect(outcome.leaks).toBeUndefined();
   });
 
   it('leaves nothing route A reaches unprobed by route D', () => {
@@ -1304,9 +1459,19 @@ describe.each(measurements.map((m) => [m.entry.exportName, m] as const))(
         if (gap) {
           expect(
             outcome.ok,
-            `${name} route ${route} is listed in KNOWN_GAPS (${gap}) but passes now — ` +
+            `${name} route ${route} is listed in KNOWN_GAPS (${gap.why}) but passes now — ` +
               'delete the entry, that is how the fix gets recorded'
           ).toBe(false);
+          // Dead once the assertion above has thrown — it is what narrows the
+          // union to the one shape that carries `leaks`.
+          if (outcome.ok) return;
+          expect(
+            [...(outcome.leaks ?? [])].sort(),
+            `${name} route ${route} still fails, but not by what its KNOWN_GAPS entry ` +
+              `records (${gap.why}). A wider set is a regression inside the gap, which the ` +
+              'reason no longer covers; a narrower one is a repair, and the entry has to be ' +
+              `narrowed or deleted with it. The sweep says: ${outcome.detail}`
+          ).toEqual([...gap.leaks].sort());
           return;
         }
         expect(outcome.ok, `${name} route ${route}: ${outcome.detail}`).toBe(true);
