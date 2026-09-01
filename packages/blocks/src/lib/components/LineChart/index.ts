@@ -60,7 +60,10 @@ export interface LineChartProps extends Omit<HTMLAttributes<HTMLElement>, 'child
   class?: string;
   /** Remove all default tv classes. */
   unstyled?: boolean;
-  /** Per-slot class overrides. `mark` is the line path, `point` the dots on it. */
+  /**
+   * Per-slot class overrides. `mark` is the line path — one per series — and
+   * `point` the dots on it, one per series *and* datum.
+   */
   slotClasses?: LineChartSlotClasses;
   /** Apply a named preset registered on `<BlocksProvider>`. */
   preset?: string;

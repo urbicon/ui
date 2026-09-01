@@ -27,9 +27,10 @@ export const chartVariants = tv({
     /** Background gridlines. */
     grid: ['stroke-border-hairline'],
     /**
-     * The stroked series path: LineChart's line, AreaChart's top edge — and in
-     * AreaChart the filled band as well, which is why `area` and `areaOutline`
-     * exist to reach one path each. A *paint* utility written here lands on
+     * The stroked series path, one per series: LineChart's line, AreaChart's
+     * top edge — and in AreaChart the filled band as well, so two paths per
+     * series there, which is why `area` and `areaOutline` exist to reach one
+     * path each. A *paint* utility written here lands on
      * both AreaChart paths, where each defeats the other's `fill="none"` /
      * `stroke="none"` presentation attribute: measured in Chromium, a `fill:`
      * declaration fills the open outline polyline and a `stroke:` declaration
@@ -37,7 +38,13 @@ export const chartVariants = tv({
      * join — paints nothing on the band and is safe to write here.
      */
     mark: ['transition-[opacity] duration-[var(--blocks-duration-fast)]'],
-    /** Point marker on a line series; fades with the other data marks. */
+    /**
+     * Point marker on a line series, one per series *and* datum — the markers
+     * are drawn in a loop nested inside the series loop, so three series over
+     * twelve values is 36 circles and an entry here lands on all of them.
+     * Sparkline's single marker is `endPoint` for that reason. Fades with the
+     * other data marks.
+     */
     point: ['transition-[opacity] duration-[var(--blocks-duration-fast)]'],
     /**
      * AreaChart's filled band on its own. Empty, and so is `areaOutline`:
