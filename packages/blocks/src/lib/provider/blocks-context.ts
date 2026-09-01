@@ -15,12 +15,17 @@ import {
  * can only address an axis the component speaks for.
  *
  * So `{ disabled: false }` fires on every component that names a `disabled`
- * axis, and on no others. Two kinds fall outside: one with no such axis at all,
- * which dims through the `disabled:` CSS variant instead of a variant branch;
- * and one whose config declares the axis while the component hands it to a slot
- * function per element rather than carrying it for itself — `Menu`, whose rows
- * each get their own `disabled`. Both are pinned in
- * `provider/boolean-conditions.svelte.test.ts`.
+ * **key**, and on no others — declaring the axis is neither necessary nor
+ * sufficient. `datePickerVariants` declares no axes at all and its rules fire,
+ * because DatePicker names the keys of the Input it wraps. Three kinds fall
+ * outside, all pinned in `provider/boolean-conditions.svelte.test.ts`: a
+ * component with no such axis, which reaches the state some other way — the
+ * `disabled:` CSS variant, forwarding to a component it wraps, another axis
+ * carrying it, a predicate writing classes in the markup, or suppressing the
+ * element rather than styling it; one whose config declares the axis while the
+ * component hands it to a slot function per element rather than carrying it for
+ * itself (`Menu`, whose rows each get their own `disabled`); and one the
+ * provider cannot address at all, having no name registered.
  *
  * Matching works like a `tv()` compoundVariant: `string` = equality,
  * `string[]` = "one of", `boolean` for a boolean axis such as the table's
@@ -244,9 +249,14 @@ export function resolveOverrideSlotClasses(
  * asymmetry `blocks/docs/MIGRATION.md` already records for slot keys: a target
  * whose properties are all optional rejects only an object with *no* key in
  * common, and a condition object held in a variable (which is how every call
- * site writes it) skips excess-property checking altogether. Whatever such a
- * signature would catch has to be measured on the signature actually proposed;
- * it is not a thing to reason to.
+ * site writes it) skips excess-property checking altogether.
+ *
+ * Measured across three candidate signatures, the only form that catches a
+ * mispairing is a non-`Partial` `Record` — and it demands that every call site
+ * name **every** axis its config declares. `Input` deliberately omitting
+ * `iconPosition`, which it passes per slot call, becomes a compile error. So a
+ * type tie is not merely unmeasured; it forbids the deliberate omission this
+ * fold exists to permit.
  *
  * The binding does not have to be on the type level, though. A closure would
  * make the mispairing unrepresentable — one identifier instead of two, e.g.

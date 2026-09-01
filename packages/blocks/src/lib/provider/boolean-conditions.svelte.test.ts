@@ -60,14 +60,16 @@ type GapKind =
    * component-level object can carry it for one row without claiming it of all
    * of them.
    *
-   * **The one kind the check cannot fully verify.** Two of its three halves are
-   * measured — the config declares the axis, and the component's condition
-   * object does not carry it — but "and it is passed at a slot call instead" is
-   * not observable from the wrapped `resolveSlotClasses` call: that argument
-   * goes to a `tv()` slot function this harness never sees. So a component that
-   * declared the axis and simply forgot to name it would also satisfy this
-   * kind. That is the `SegmentItem` shape, which was a real defect; if a second
-   * entry ever appears here, read the component before believing it.
+   * **The half this harness does not instrument.** Two of its three are measured
+   * — the config declares the axis, and the component's condition object does
+   * not carry it — while "and it is passed at a slot call instead" would need
+   * the `tv()` slot function wrapped rather than `resolveSlotClasses`. That is
+   * reachable (measured: wrapping the slot function records `disabled` arriving
+   * at two per-row `item` calls with different values, which even separates
+   * "per element" from "once with one value"), and it is not built, so a
+   * component that declared the axis and simply forgot to name it satisfies
+   * this kind too. That is the `SegmentItem` shape, which was a real defect; if
+   * a second entry ever appears here, read the component before believing it.
    */
   | 'per-slot-call'
   /** The component has no provider name, so `overrides` cannot address it. */
