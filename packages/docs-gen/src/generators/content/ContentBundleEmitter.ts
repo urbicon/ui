@@ -150,7 +150,17 @@ export class ContentBundleEmitter {
 
     // 7. Meta — version stamp (DESIGN-MCP-V2 Anhang B) + a content fingerprint.
     const version = await this.readVersion(outputDir);
-    const contentHash = createHash('sha256').update(catalogRaw).digest('hex').slice(0, 12);
+    // The catalog carries its own `generated` wall-clock stamp, so hashing it
+    // whole yielded a fingerprint that could not reproduce — two runs of an
+    // unchanged tree disagreed on it. That stamp describes the run, not the
+    // content, and `builtAt` on the next line already says when. Parsed rather
+    // than text-stripped so the hash does not depend on where in the document
+    // the stamp sits or how it is spaced.
+    const { generated: _generated, ...catalogContent } = JSON.parse(catalogRaw);
+    const contentHash = createHash('sha256')
+      .update(JSON.stringify(catalogContent))
+      .digest('hex')
+      .slice(0, 12);
     const meta = { version, builtAt: new Date().toISOString(), contentHash };
     await fs.writeFile(path.join(outputDir, 'meta.json'), JSON.stringify(meta, null, 2), 'utf-8');
 

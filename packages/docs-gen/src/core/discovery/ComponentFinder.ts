@@ -243,10 +243,17 @@ export class ComponentFinder {
     console.log(`   🏠 CWD: ${process.cwd()}`);
 
     try {
-      const files = await glob(pattern, {
-        ignore: packageConfig.exclude || [],
-        absolute: true
-      });
+      // glob has not sorted since v9, and this order is the order components
+      // are emitted in — it reaches `llms.txt` and `_catalog.json` directly, so
+      // two runs of the same tree disagreed. Sorted with the default
+      // comparator: `localeCompare` would follow the runtime locale and put the
+      // reproducibility back where it was.
+      const files = (
+        await glob(pattern, {
+          ignore: packageConfig.exclude || [],
+          absolute: true
+        })
+      ).sort();
 
       console.log(`   ✅ Found ${files.length} files`);
       if (files.length === 0) {
@@ -473,7 +480,7 @@ export class ComponentFinder {
       let allFiles: string[] = [];
       for (const patternToTry of patterns) {
         try {
-          const files = await glob(patternToTry, { absolute: true });
+          const files = (await glob(patternToTry, { absolute: true })).sort();
           allFiles.push(...files);
           if (files.length > 0) {
             console.log(

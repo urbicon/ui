@@ -217,8 +217,9 @@ export const plannerVariants = tv({
 export type PlannerVariants = VariantProps<typeof plannerVariants>;
 /**
  * The axes a single day cell varies on. Passed to the slot function per cell,
- * never taken as a prop — `PlannerProps` omits exactly these keys, and the
- * assertion beside that omission holds the two together.
+ * never taken as a prop: `PlannerProps` subtracts `keyof PlannerCellState`, so
+ * this declaration is the one place the set is written and a key added here
+ * leaves the prop surface by itself.
  */
 export type PlannerCellState = Pick<
   PlannerVariants,

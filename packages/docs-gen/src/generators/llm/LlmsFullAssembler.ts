@@ -101,7 +101,9 @@ export class LlmsFullAssembler {
 
     for (const dir of this.config.staticDirs) {
       try {
-        const files = await glob(path.join(dir, '**/llm.txt'), { absolute: true });
+        // Sorted for the same reason as ComponentFinder's: unsorted since glob
+        // v9, and this order is the order sections appear in llms-full.txt.
+        const files = (await glob(path.join(dir, '**/llm.txt'), { absolute: true })).sort();
         allFiles.push(...files);
       } catch {
         console.warn(`⚠️  Could not read LLM files from ${dir}`);

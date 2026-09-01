@@ -815,6 +815,11 @@ export class PropsExtractor extends TypeScriptBaseExtractor<PropsExtractionInput
     const fullType = heritageType.getText();
     const baseType = this.heritageBaseTypeText(heritageType);
     if (!baseType) return [];
+    // Checker first, written literals when it has none — and on this side the
+    // fallback empties the picked set, so an unresolvable `K` suppresses every
+    // axis rather than none. Measured, both directions: `Pick<XVariants, keyof
+    // Missing>` publishes no axis, `Omit<XVariants, keyof Missing>` publishes
+    // all of them. No corpus clause spells `K` that way.
     const picked =
       this.resolveHeritageKeyLiterals(heritageType) ??
       new Set(this.extractOmittedLiteralKeys(this.heritageKeyArgText(heritageType)));

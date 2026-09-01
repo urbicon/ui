@@ -470,15 +470,26 @@ export abstract class TypeScriptBaseExtractor<
    * checker for `K` is one question that covers every spelling, including the
    * ones nobody has written yet.
    *
-   * Null, never an empty set, when there is nothing to delegate to: single-file
-   * mode has no program, and a `K` that is not a union of literals (an
-   * unresolved reference widens to `keyof any`) has to fall back to the written
-   * text rather than claim the clause filters nothing.
+   * Null, never an empty set, when there is no answer to delegate to: this node
+   * is not in a program, or `K` is not a union of literals (an unresolved
+   * reference widens to `keyof any`). The caller then reads the written text
+   * instead — which recovers the literal keys, and only those: for `keyof U`
+   * the fallback does report a clause that filters nothing, and the
+   * `Omit<Interface, keyof *Variants>` branch keeps its own net for that.
+   *
+   * The precondition is this node's own binding, not that a package root was
+   * configured — a file outside the tsconfig's `include` has the latter without
+   * the former, and the checker then answers from a synthesised, unbound source
+   * file. Measured on such a fixture: `keyof GridCellState` yielded nothing,
+   * only the written `'view'` was suppressed, and `success` stayed true with no
+   * warning. Identity, not a path match, because a second parse of the same
+   * path is exactly the unbound case.
    */
   protected resolveHeritageKeyLiterals(
     heritageType: ts.ExpressionWithTypeArguments
   ): Set<string> | null {
-    if (!this.packageRoot) return null; // single-file mode: no program, no checker
+    const sourceFile = heritageType.getSourceFile();
+    if (this.program.getSourceFile(sourceFile.fileName) !== sourceFile) return null;
     const keyArg = heritageType.typeArguments?.[1];
     if (!keyArg) return null;
     try {
@@ -487,7 +498,8 @@ export abstract class TypeScriptBaseExtractor<
       );
       return literals.length > 0 ? new Set(literals.map((l) => l.value)) : null;
     } catch {
-      // Node not part of this program, or an unresolvable type reference.
+      // The out-of-program case is the guard's above; what is left here is a
+      // type reference the checker cannot make sense of at all.
       return null;
     }
   }
