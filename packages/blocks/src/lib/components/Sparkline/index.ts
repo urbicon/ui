@@ -37,7 +37,7 @@ export interface SparklineProps extends Omit<HTMLAttributes<HTMLElement>, 'child
   fluid?: boolean;
   /** Fill the area under the line. @default false */
   area?: boolean;
-  /** Mark the last point with a dot. @default false */
+  /** Mark the last value with a single dot; style it via `slotClasses.endPoint`. @default false */
   showEndPoint?: boolean;
   /** Line + fill color. @default 'var(--color-chart-1)' */
   color?: string;
@@ -49,7 +49,11 @@ export interface SparklineProps extends Omit<HTMLAttributes<HTMLElement>, 'child
   class?: string;
   /** Remove all default classes. */
   unstyled?: boolean;
-  /** Per-slot class overrides. */
+  /**
+   * Per-slot class overrides. `mark` is the trend line, `area` the band under
+   * it, `endPoint` the one dot at the last value — the charts' per-datum
+   * `point` has no counterpart here.
+   */
   slotClasses?: SparklineSlotClasses;
   /** Apply a named preset registered on `<BlocksProvider>`. */
   preset?: string;
