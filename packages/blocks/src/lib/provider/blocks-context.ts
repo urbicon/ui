@@ -158,9 +158,9 @@ const warnedConditionKeys = new Set<string>();
  * that resolve a cascade:
  *
  * - a check against `declared` alone reports the keys a component only passes:
- *   the four wrappers hand over axes belonging to what they wrap, and
- *   `datePickerVariants` declares none of the five DatePicker passes. So
- *   `declared` has to buy silence;
+ *   `datePickerVariants` declares none of the five DatePicker passes, and
+ *   `CopyButton` passes two that belong to the Button inside it. So `declared`
+ *   has to buy silence;
  * - `matchesCompound` reads `effectiveProps[key]`, whose keys are exactly
  *   `named`. The 32 axes that are declared but not passed — 14 components,
  *   among them `state` on Stepper, `iconPosition` on Input, `dayState` on
@@ -174,6 +174,14 @@ const warnedConditionKeys = new Set<string>();
  * config gives `Stepper` and `StepperStep` the same `declared`, and only the
  * running call says who passed what. The sentence names the axes and their
  * shape, not their owner.
+ *
+ * **`component` is the name a rule is written under, not the component the
+ * props came from.** A wrapper resolves through the component it wraps, so
+ * under `NumberInput` both lists are Input's — `numberInputVariants` declares
+ * no axis at all and NumberInput passes none. That is the truth a rule needs,
+ * and it is why the message says "the variant props this rule is matched
+ * against" rather than "its props": the possessive would name the wrong
+ * component on every wrapper.
  *
  * With `named` empty the diagnosis is the certain one rather than the weak one:
  * no conditional rule can match that component at all, so the message says so
@@ -189,7 +197,7 @@ const warnedConditionKeys = new Set<string>();
  * **No sibling check for the `class` record's slot names.** The information is
  * not here: five components read slot names the config they hand this resolver
  * does not declare. Three read past a declared slot map — `NumberInput` takes
- * `stepper`/`stepperButton` from its own config while passing Input's,
+ * `stepper`/`stepperButton` off a record Input resolved under its name,
  * `SidebarLayout` five `sidebar*` keys, `Guide` `skip`/`next` — and two,
  * `Popover` and `Separator`, pass a config carrying no `slots` at all and read
  * `base` off the result. Checking against `variantConfig.slots` would report
@@ -222,8 +230,8 @@ function warnUnknownConditionKeys(
       const perSlotCall = declared.filter((axis) => !named.includes(axis));
       const head =
         `[BlocksProvider] The \`overrides\` rule under ${source} for component "${component}" ` +
-        `conditions on "${key}", which is neither a prop it passes nor an axis its ` +
-        '`tv()` config declares.';
+        `conditions on "${key}", which is neither one of the variant props this rule is ` +
+        'matched against nor an axis of the `tv()` config behind them.';
       const body =
         named.length > 0
           ? ` Keys that can match here: ${named.join(', ')}.`
@@ -231,9 +239,9 @@ function warnUnknownConditionKeys(
             ' — use unconditional `slotClasses`.';
       const tail =
         perSlotCall.length > 0
-          ? ` Its config also declares ${perSlotCall.join(', ')}, which the component hands to a` +
-            ' slot function per element rather than carrying for itself; a rule keyed on one of' +
-            ' those matches nothing here either, and belongs on the component that passes it.'
+          ? ` That config also declares ${perSlotCall.join(', ')}, handed to a slot function per` +
+            ' element rather than carried per component; a rule keyed on one of those matches' +
+            ' nothing here either, and belongs on the component that passes it.'
           : '';
       console.warn(head + body + tail);
     }

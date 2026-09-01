@@ -239,7 +239,7 @@
   // cascade of its own, so its `overrides` rules are matched against the object
   // above — including `open`, which is this component's own runtime state and
   // legible nowhere else.
-  const wrapperCascade = consumeWrapperCascade();
+  const wrapperCascade = consumeWrapperCascade(() => wrapperSlotClasses ?? {});
   const wrapperSlotClasses = $derived(
     wrapperCascade &&
       resolveSlotClasses(
@@ -251,9 +251,6 @@
         selectVariants.config
       )
   );
-  // Published from the body, not an effect — a wrapper's own slots would render
-  // inside this component's markup, which the server pass reaches first.
-  if (wrapperCascade) wrapperCascade.resolved = () => wrapperSlotClasses ?? {};
 
   const slotClasses = $derived(
     resolveSlotClasses(

@@ -200,7 +200,7 @@
   // A wrapper (ConfirmDialog) hands its name down instead of resolving a
   // cascade of its own, so its `overrides` rules are matched against the object
   // above rather than against a stand-in built from what its caller wrote.
-  const wrapperCascade = consumeWrapperCascade();
+  const wrapperCascade = consumeWrapperCascade(() => wrapperSlotClasses ?? {});
   const wrapperSlotClasses = $derived(
     wrapperCascade &&
       resolveSlotClasses(
@@ -212,9 +212,6 @@
         dialogVariants.config
       )
   );
-  // Published from the body, not an effect — a wrapper's own slots would render
-  // inside this component's markup, which the server pass reaches first.
-  if (wrapperCascade) wrapperCascade.resolved = () => wrapperSlotClasses ?? {};
 
   const slotClasses = $derived(
     resolveSlotClasses(

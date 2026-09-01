@@ -31,16 +31,17 @@ export interface WrapperCascade {
   readonly preset: string | undefined;
   readonly slotClasses: Record<string, string | undefined> | undefined;
   /**
-   * The record the inner component resolved under {@link component}, installed
-   * by that component during its body. A wrapper with markup of its own reads
-   * its slots off this rather than resolving a second time — NumberInput's
-   * stepper is the case: it renders as Input's `rightIcon`, so Input's body has
-   * run by the time the snippet does, on the server as in the browser.
+   * The record the inner component resolved under {@link component}. A wrapper
+   * with markup of its own reads its slots off this rather than resolving a
+   * second time — NumberInput's stepper is the case: it renders as Input's
+   * `rightIcon`, so Input's body has run by the time the snippet does, on the
+   * server as in the browser.
    *
-   * Absent until the inner component installs it, and absent for good if that
-   * component never renders.
+   * Installed by {@link consumeWrapperCascade}, which cannot be called without
+   * supplying it, so a cascade that reached a component carries that
+   * component's answer before any markup of either one renders.
    */
-  resolved?: () => Record<string, string>;
+  resolved: () => Record<string, string>;
 }
 
 /** The two reactive fields a wrapper supplies; the name is passed separately. */
@@ -69,22 +70,38 @@ export function setWrapperCascade(component: string, source: WrapperCascadeSourc
     },
     get slotClasses() {
       return source.slotClasses;
-    }
+    },
+    // Overwritten the moment a component consumes this cascade. It stands in
+    // for the answer of a component that never ran, which is what a wrapper
+    // rendering no inner component would read.
+    resolved: () => ({})
   };
   setCascadeContext(cascade);
   return cascade;
 }
 
 /**
- * Take the cascade addressed to this component off the context.
+ * Take the cascade addressed to this component off the context, publishing what
+ * this component resolves it to in the same move.
+ *
+ * `publish` is a parameter rather than a later assignment so that consuming
+ * without publishing is unrepresentable: a wrapper's own slots would otherwise
+ * read an empty record from a component that had resolved them, and only a
+ * wrapper that has such slots would ever notice. It is read lazily, so a
+ * `$derived` declared *after* this call is a valid thing to close over — the
+ * caller's binding is initialised long before any markup calls it.
  *
  * Consume-once: a cascade is addressed to the **one** component its wrapper
  * wraps, and everything below that is ordinary markup — the `<Input>` a
  * consumer writes into a `<ConfirmDialog>` body is a child of the Dialog, and
  * would otherwise wear the confirmation's rungs.
  */
-export function consumeWrapperCascade(): WrapperCascade | undefined {
+export function consumeWrapperCascade(
+  publish: () => Record<string, string>
+): WrapperCascade | undefined {
   const cascade = getWrapperCascade();
-  if (cascade) setCascadeContext(undefined);
+  if (!cascade) return undefined;
+  cascade.resolved = publish;
+  setCascadeContext(undefined);
   return cascade;
 }

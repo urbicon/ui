@@ -121,7 +121,7 @@
   // resolving a cascade of its own, so its `overrides` rules are matched
   // against the object above: the tier this field reads off a context, the
   // `messageType` it computes, the `error` boolean its axis is.
-  const wrapperCascade = consumeWrapperCascade();
+  const wrapperCascade = consumeWrapperCascade(() => wrapperSlotClasses ?? {});
   const wrapperSlotClasses = $derived(
     wrapperCascade &&
       resolveSlotClasses(
@@ -133,10 +133,6 @@
         inputVariants.config
       )
   );
-  // Published from the body, not an effect: a wrapper's own slots render inside
-  // this component's markup (NumberInput's stepper is Input's `rightIcon`), and
-  // the server pass reaches that markup with every effect still unrun.
-  if (wrapperCascade) wrapperCascade.resolved = () => wrapperSlotClasses ?? {};
 
   const slotClasses = $derived(
     resolveSlotClasses(

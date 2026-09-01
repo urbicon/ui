@@ -4,10 +4,15 @@ import userEvent from '@testing-library/user-event';
 import type { Component } from 'svelte';
 import { flushSync, mount, unmount } from 'svelte';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import CurrencyInput from '$lib/components/CurrencyInput/CurrencyInput.svelte';
 import LocaleSwitcher from '$lib/components/LocaleSwitcher/LocaleSwitcher.svelte';
 import NumberInput from '$lib/components/NumberInput/NumberInput.svelte';
+import ConfirmDialog from '$lib/primitives/ConfirmDialog/ConfirmDialog.svelte';
+import { dialogVariants } from '$lib/primitives/Dialog/dialog.variants';
 import Input from '$lib/primitives/Input/Input.svelte';
 import { inputVariants } from '$lib/primitives/Input/input.variants';
+import { selectVariants } from '$lib/primitives/Select/select.variants';
+import type { TVConfig } from '$lib/utils/variants';
 import WrapperBodyHost from './__fixtures__/WrapperBodyHost.svelte';
 import WrapperCascadeHost from './__fixtures__/WrapperCascadeHost.svelte';
 import type { ComponentDefaults } from './blocks-context';
@@ -107,6 +112,32 @@ describe('a derived axis the inner component computes', () => {
 
     expect(on, '{ tier: "commit" } reached no element of the NumberInput').toBe(1);
     expect(off, '{ tier: "modify" } fired on a field the tier context put in `commit`').toBe(0);
+  });
+
+  it('matches whether the field it wraps actually has a right icon', () => {
+    // `hasRightIcon` is Input's, computed from what it was handed. NumberInput
+    // hands it a stepper, so the field IS `hasRightIcon: true` — and the axis
+    // name is not one a wrapper could ever write: its prop is `rightIcon`.
+    const { on, off } = render({
+      component: NumberInput,
+      defaults: twoSided('NumberInput', 'base', 'hasRightIcon', true, false)
+    });
+
+    expect(on, '{ hasRightIcon: true } reached no element of a NumberInput with a stepper').toBe(1);
+    expect(off, '{ hasRightIcon: false } fired on a field that renders a stepper').toBe(0);
+  });
+
+  it('matches whether it actually has a left icon', () => {
+    // The same axis on the other side, and the other input wrapper: a prefix
+    // symbol is a left icon, so the field is `hasLeftIcon: true`.
+    const { on, off } = render({
+      component: CurrencyInput,
+      props: { symbolPosition: 'prefix' },
+      defaults: twoSided('CurrencyInput', 'base', 'hasLeftIcon', true, false)
+    });
+
+    expect(on, '{ hasLeftIcon: true } reached no element of a prefix-symbol CurrencyInput').toBe(1);
+    expect(off, '{ hasLeftIcon: false } fired on a field that renders a left symbol').toBe(0);
   });
 
   it('matches the message the field is showing', () => {
@@ -334,7 +365,122 @@ describe('the unknown-condition-key warning under a wrapper name', () => {
       '`iconPosition` was recommended under the wrapper name, though no rule keyed on it can ' +
         'match inside Input either'
     ).not.toContain('iconPosition');
-    expect(message).toMatch(/Its config also declares[^.]*iconPosition/);
+    expect(message).toMatch(/That config also declares[^.]*iconPosition/);
+    // The describing half has to be true under a wrapper's name too. Both
+    // lists are Input's here — NumberInput passes no variant prop and
+    // `numberInputVariants` declares no axis — so a possessive pointing at the
+    // named component states the opposite of what was measured.
+    expect(message, "the message called the props and the config the wrapper's own").not.toMatch(
+      /\bnor an axis its\b|\ba prop it passes\b|\bIts config\b/
+    );
+    expect(message).toContain('the variant props this rule is matched against');
     expect(document.querySelector('.zz-dead')).toBeNull();
+  });
+});
+
+/**
+ * The census: for every axis the inner config declares, does a rule keyed on it
+ * at that config's own `defaultVariants` value fire under the wrapper's name?
+ *
+ * The shape of the change stated as a whole rather than one axis at a time,
+ * which is what the per-axis assertions above cannot be: three axes went
+ * unlisted in `packages/blocks/docs/MIGRATION.md` because each was only ever
+ * looked for one at a time.
+ *
+ * A silent row has two possible causes and they are not the same claim, so the
+ * table names them apart:
+ *
+ * - `written` — the wrapper itself hands the inner component a non-default
+ *   value, so a rule keyed on the default misses. It missed before this change
+ *   too; nothing moved.
+ * - `moved` — the wrapper cannot write the axis at all. The old stand-in
+ *   answered these with the config default and the rule fired; now the
+ *   rendered component answers and it does not. Every entry belongs in the
+ *   migration guide.
+ *
+ * The census only sees an axis at its config default, so an axis that moved at
+ * some *other* value — `tier` under a `commit` context, `error` on an errored
+ * field, `hasLeftIcon` with a left icon — is invisible here and carries its own
+ * assertion above. This is the floor of the claim, not the whole of it.
+ */
+const CENSUS: {
+  wrapper: string;
+  component: unknown;
+  props: Record<string, unknown>;
+  slot: string;
+  innerConfig: TVConfig;
+  /** Silent on both mechanisms: the wrapper writes a non-default value itself. */
+  written: string[];
+  /** Silent only now: the old stand-in answered these with the config default. */
+  moved: string[];
+}[] = [
+  {
+    wrapper: 'NumberInput',
+    component: NumberInput,
+    props: {},
+    slot: 'base',
+    innerConfig: inputVariants.config,
+    written: [],
+    moved: ['hasRightIcon', 'iconPosition']
+  },
+  {
+    wrapper: 'CurrencyInput',
+    component: CurrencyInput,
+    props: {},
+    slot: 'base',
+    innerConfig: inputVariants.config,
+    written: [],
+    moved: ['hasRightIcon', 'iconPosition']
+  },
+  {
+    wrapper: 'LocaleSwitcher',
+    component: LocaleSwitcher,
+    props: {},
+    slot: 'trigger',
+    innerConfig: selectVariants.config,
+    written: ['size'],
+    moved: ['selected']
+  },
+  {
+    wrapper: 'ConfirmDialog',
+    component: ConfirmDialog,
+    props: { open: true, title: 'Delete?' },
+    slot: 'panel',
+    innerConfig: dialogVariants.config,
+    written: ['intent'],
+    moved: []
+  }
+];
+
+describe.each(CENSUS.map((row) => [row.wrapper, row] as const))('%s census', (_name, row) => {
+  it("answers each of the inner config's axes at its own default", () => {
+    const defaults = row.innerConfig.defaultVariants ?? {};
+    const axes = Object.keys(row.innerConfig.variants ?? {}).filter(
+      (axis) => defaults[axis] !== undefined
+    );
+    expect(axes.length, 'the inner config declares no defaulted axis to census').toBeGreaterThan(0);
+
+    const { target } = render({
+      component: row.component,
+      props: row.props,
+      defaults: {
+        [row.wrapper]: {
+          overrides: axes.map((axis) => ({
+            [axis]: defaults[axis] as string | boolean,
+            class: { [row.slot]: `zz-${axis}` }
+          }))
+        }
+      }
+    });
+    const scope = target.querySelector('[data-scope="wrapper"]');
+    const silent = axes.filter(
+      (axis) => (scope?.querySelectorAll(`.zz-${axis}`).length ?? 0) === 0
+    );
+
+    expect(
+      [...silent].sort(),
+      `axes that answer no rule keyed on ${row.wrapper}'s inner default — every one that is ` +
+        'not written by the wrapper itself has a row in the migration guide'
+    ).toEqual([...row.written, ...row.moved].sort());
   });
 });

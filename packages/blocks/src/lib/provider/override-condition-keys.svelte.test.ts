@@ -107,7 +107,7 @@ describe('an unknown overrides condition key', () => {
     // instead. Card passes every axis it declares, so all seven can match and
     // all seven are recommended — the one component where the two halves agree.
     for (const axis of CARD_AXES) expect(message).toContain(axis);
-    expect(message).not.toContain('Its config also declares');
+    expect(message).not.toContain('That config also declares');
   });
 
   it('reports it in a preset, naming the preset it came from', () => {
@@ -284,8 +284,8 @@ describe('what the message recommends', () => {
     expect(recommended).not.toMatch(/\bstate\b/);
     // The declared-but-unpassed axes are still named — in the other sentence,
     // with the reason they cannot match.
-    expect(message).toContain('Its config also declares');
-    expect(message).toMatch(/Its config also declares[^.]*\bstate\b/);
+    expect(message).toContain('That config also declares');
+    expect(message).toMatch(/That config also declares[^.]*\bstate\b/);
   });
 
   it('recommends only keys that really paint, and the rejected one really does not', () => {

@@ -58,7 +58,7 @@
   function slot(name: NumberInputSlots): string {
     // Reached only from the `stepper` snippet, which Input renders as its
     // `rightIcon` — so Input has run and published by the time this is called.
-    const overrides = cascade.resolved?.()[name] ?? '';
+    const overrides = cascade.resolved()[name] ?? '';
     return styles?.[name]({ class: overrides }) ?? overrides;
   }
 

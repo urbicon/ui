@@ -403,6 +403,89 @@ function contractProps(
   return [...names];
 }
 
+/**
+ * Blank the text inside string and template literals, keeping the quotes and
+ * every `${…}` expression — those are code, the text between them is not.
+ *
+ * Over-consuming is the safe direction: an edge this drops shrinks a wrapper's
+ * slot vocabulary, and route A of `provider-cascade.svelte.test.ts` reports
+ * that loudly. An edge it invents is silent.
+ */
+function stripStringLiterals(source: string): string {
+  let out = '';
+  let i = 0;
+  while (i < source.length) {
+    const char = source[i];
+    if (char === "'" || char === '"') {
+      out += char;
+      i++;
+      while (i < source.length && source[i] !== char) i += source[i] === '\\' ? 2 : 1;
+      out += char;
+      i++;
+      continue;
+    }
+    if (char === '`') {
+      out += '`';
+      i++;
+      while (i < source.length && source[i] !== '`') {
+        if (source[i] === '\\') {
+          i += 2;
+          continue;
+        }
+        if (source[i] === '$' && source[i + 1] === '{') {
+          let depth = 1;
+          i += 2;
+          const start = i;
+          while (i < source.length && depth > 0) {
+            if (source[i] === '{') depth++;
+            else if (source[i] === '}') depth--;
+            i++;
+          }
+          out += ` ${source.slice(start, depth === 0 ? i - 1 : i)} `;
+          continue;
+        }
+        i++;
+      }
+      out += '`';
+      i++;
+      continue;
+    }
+    out += char;
+    i++;
+  }
+  return out;
+}
+
+/**
+ * Which cascade-consuming components a wrapper's source names **in code**.
+ *
+ * Comments and literal text are stripped first, so the edge hangs on an import
+ * clause or a rendered tag and not on prose, an attribute value or an import
+ * path. Measured: without the literal strip, `aria-roledescription="Select a
+ * number"` on the `<Input>` inside `NumberInput` gave NumberInput the whole
+ * Select vocabulary, 10 slots to 22.
+ *
+ * What it rests on after that: the local binding a wrapper renders is spelled
+ * like the barrel export it came from, which holds for all four wrappers
+ * — three import the name itself, `ConfirmDialog` names `Dialog` in both its
+ * import clause and its markup. A renamed **default** import
+ * (`import Dlg from '../Dialog/Dialog.svelte'`) would leave the name in the
+ * path alone and drop the edge, which is the loud direction.
+ *
+ * Exported for `cascade-registry.test.ts`, the only positive control this
+ * derivation can have: a wrong edge widens a slot vocabulary, and every sweep
+ * that consumes it stays green.
+ */
+export function namedConsumers(source: string, consumers: Iterable<string>): string[] {
+  const wanted = new Set(consumers);
+  const found = new Set<string>();
+  const code = stripStringLiterals(stripComments(source));
+  for (const [identifier] of code.matchAll(IDENTIFIER)) {
+    if (wanted.has(identifier)) found.add(identifier);
+  }
+  return [...found];
+}
+
 let cache: Promise<CascadeComponent[]> | undefined;
 
 /**
@@ -476,20 +559,17 @@ export function exportedComponents(): Promise<CascadeComponent[]> {
     // what a `defaults` entry under the wrapper's name is written in. The edge
     // is read off the source like everything else here: the wrapped side is the
     // component whose body calls `consumeWrapperCascade`, the wrapping side is
-    // the one whose source both sets a cascade and names that component.
-    //
-    // Naming is enough to identify it, and precisely: only three components
-    // consume a cascade, a wrapper renders exactly one of them, and the
-    // identifier scan reads whole tokens (`NumberInputProps` is one token, not
-    // a mention of `Input`).
+    // the one whose source both sets a cascade and names that component. What
+    // "names" is worth on its own is `namedConsumers`' problem, and its own
+    // positive control — nothing downstream can report a wrong edge.
     const consumers = new Map<string, Scan>();
     for (const scan of scans) {
       if (CONSUMES_CASCADE.test(scan.code)) consumers.set(scan.exportName, scan);
     }
     for (const scan of scans) {
       if (!SETS_CASCADE.test(scan.code)) continue;
-      for (const [identifier] of scan.code.matchAll(IDENTIFIER)) {
-        const inner = consumers.get(identifier);
+      for (const name of namedConsumers(scan.code, consumers.keys())) {
+        const inner = consumers.get(name);
         if (!inner) continue;
         for (const slot of inner.slots) scan.slots.add(slot);
         for (const token of inner.libraryTokens) scan.libraryTokens.add(token);

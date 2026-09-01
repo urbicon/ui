@@ -19,15 +19,23 @@ That resolution used to happen **in the wrapper**, which runs before the compone
 It could only rebuild that component's variants out of what its caller had written, filling
 the rest in from the inner `tv()` config's defaults — and three kinds of axis are not
 reconstructable that way. Two of them made a rule paint a state the component was never in,
-which looks like a success:
+which looks like a success. **Eight axes change their answer**, measured:
 
 | kind | axis | before | now |
 | --- | --- | --- | --- |
 | derived — computed inside | `tier`, in a `commit` tier context | `{ tier: 'modify' }` fired; `{ tier: 'commit' }` did not | the rendered tier answers |
 | derived — computed inside | `messageType`, on `<NumberInput error="…">` | `{ messageType: 'helper' }` fired; `{ messageType: 'error' }` did not | `error` answers |
+| derived — computed inside | `hasRightIcon`, on every `<NumberInput>` and `<CurrencyInput>` | `{ hasRightIcon: false }` fired on **every** one of them | the rendered field answers — `true` wherever a stepper or a suffix symbol is drawn |
+| derived — computed inside | `hasLeftIcon`, e.g. `<CurrencyInput symbolPosition="prefix">` | `{ hasLeftIcon: false }` fired even with a left symbol | `true` wherever a left icon or symbol is drawn |
 | coerced | `error` (a `string` prop, a boolean axis) | `{ error: 'too large' }` fired; `{ error: true }` never did | `{ error: true }` fires, the string does not |
 | owned | `open` on Select | `{ open: false }` fired even while open | the listbox state answers |
 | per slot call | `iconPosition` on Input | fired under the wrapper's name, never under `Input` | fires under neither |
+| per slot call | `selected` on Select | fired under `LocaleSwitcher`, never under `Select` | fires under neither |
+
+The two `has*Icon` rows are the ones most likely to be holding a style up today, because a
+wrapper could never write those axis names — its props are `leftIcon` / `rightIcon` — so the
+stand-in always answered `false` and a rule keyed on `false` reached **every** instance. It
+now reaches none of the ones that draw an icon.
 
 The name now travels **down**: the wrapper passes its name, `preset` and instance
 `slotClasses` to the component it wraps, and that component resolves the cascade against the
@@ -49,12 +57,20 @@ you want matched instead of the helper's reconstruction:
 
 <!-- typecheck -->
 ```ts
-import { getBlocksConfig, resolveSlotClasses, inputVariants } from '@urbicon-ui/blocks';
+import {
+  getBlocksConfig,
+  getTierContext,
+  resolveSlotClasses,
+  inputVariants
+} from '@urbicon-ui/blocks';
 
 const config = getBlocksConfig();
+const tierCtx = getTierContext();
 const variant = 'outlined';
 const size = 'md';
 const disabled = false;
+const error: string | undefined = undefined;
+const tier: 'commit' | 'modify' | undefined = undefined;
 const preset: string | undefined = undefined;
 const slotClassesProp: Record<string, string> | undefined = undefined;
 
@@ -64,16 +80,32 @@ const slotClasses = resolveSlotClasses(
   preset,
   // Was `wrapperActiveProps(inputVariants.config, { variant, size, disabled })`.
   // Name the axes you can speak for; the resolver answers the rest from the config.
-  { variant, size, disabled },
+  {
+    variant,
+    size,
+    disabled,
+    // The two coerced/derived axes are yours to compute — `error` is a `string`
+    // prop and a boolean axis, `messageType` follows from it. `DatePicker` in
+    // this package writes exactly this pair.
+    error: !!error,
+    messageType: error ? 'error' : 'helper',
+    // And the tier context is public.
+    tier: tier ?? tierCtx?.tier ?? 'modify'
+  },
   slotClassesProp,
   inputVariants.config
 );
 ```
 
-The axes your wrapper cannot see stay out of reach the same way they were before — that is the
-limitation this change removed for the library's own wrappers and cannot remove for yours. Where
-that matters, register the rule under the inner component's own name (`Input`) and keep your
-wrapper's name for the unconditional `slotClasses` and presets.
+**What you can still reach, and the one thing you cannot.** The mechanism the library's own
+wrappers now use is internal, but most of what it buys them is not: an axis the inner component
+*derives from a value you hold* you can derive too, as above. What is genuinely out of reach is
+an axis the inner component **owns** — `open` on `Select` is its own runtime state, and nothing
+above it can read it. `hasLeftIcon` / `hasRightIcon` are the near case: you know whether you pass
+an icon, so you can write them, but you cannot know whether the inner component decided to draw
+one (`clearable` swaps Input's right icon for a clear button). For those, register the rule under
+the inner component's own name (`Input`) and keep your wrapper's name for the unconditional
+`slotClasses` and presets.
 
 ### Conditional `overrides` match the variants a component names
 
@@ -116,10 +148,10 @@ them silent:**
 
 ```
 [BlocksProvider] The `overrides` rule under defaults for component "Stepper" conditions on
-"stepState", which is neither a prop it passes nor an axis its `tv()` config declares. Keys
-that can match here: orientation, size, variant, tier, disabled, clickable. Its config also
-declares optionalNote, state, separatorComplete, which the component hands to a slot function
-per element rather than carrying for itself; …
+"stepState", which is neither one of the variant props this rule is matched against nor an
+axis of the `tv()` config behind them. Keys that can match here: orientation, size, variant,
+tier, disabled, clickable. That config also declares optionalNote, state, separatorComplete,
+handed to a slot function per element rather than carried per component; …
 ```
 
 **Read the two lists as the different things they are.** `stepperVariants` declares `state`,
