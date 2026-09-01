@@ -50,13 +50,23 @@ import LadderFoldProbe from './__fixtures__/LadderFoldProbe.svelte';
  *   a browser question; this file asserts on class attributes.
  */
 
+/**
+ * The sweep's own markers. Every one has to sit outside Tailwind's utility
+ * namespace, because the fold resolves them against the library's classes like
+ * any other: a marker that shares a conflict bucket with a rung gets eaten by
+ * it, and the route then reports "nothing arrived" for a run in which the probe
+ * arrived and was stripped. `pb-` and `pe-` were exactly that — `padding-bottom`
+ * and `padding-inline-end`, the same bucket as the ladder's `p-[…]` pair — so
+ * inverting a component's rungs made F/G lose its own marker. The test below
+ * asserts the property rather than the spelling.
+ */
 /** Probe token for route A, one per slot so the landing slot stays identifiable. */
-const PROBE_A_PREFIX = 'pa-';
+const PROBE_A_PREFIX = 'probe-a-';
 const probeA = (slot: string) => `${PROBE_A_PREFIX}${slot}`;
 /** Probe token for route B. */
-const PROBE_B = 'pb-override';
+const PROBE_B = 'probe-b-override';
 /** Probe token for route E — marks the element the `class` prop lands on. */
-const PROBE_E = 'pe-class';
+const PROBE_E = 'probe-e-class';
 /**
  * Route F/G's pair: two classes in one conflict bucket that no library config
  * emits, so each one's presence names the rung it came from. `LADDER_LOSER`
@@ -1232,6 +1242,21 @@ describe('BlocksProvider cascade reaches the markup', () => {
     // all, and ~90 components would go green on a measurement that stopped
     // happening.
     expect(resolveClassChain(LADDER_LOSER, LADDER_WINNER).split(' ')).toEqual([LADDER_WINNER]);
+  });
+
+  it('marks elements with tokens no rung can strip', () => {
+    // The other half of the pair above: the ladder rungs have to collide with
+    // each other and with nothing the sweep writes to find them again. A marker
+    // in the rungs' bucket is eaten by them, and the route reads that as "the
+    // probe never arrived" — a wrong diagnosis on a run that did measure.
+    for (const marker of [probeA('base'), PROBE_B, PROBE_E]) {
+      for (const rung of [LADDER_LOSER, LADDER_WINNER, ...COLLISION_CANDIDATES]) {
+        expect(resolveClassChain(marker, rung).split(' '), `${marker} vs ${rung}`).toEqual([
+          marker,
+          rung
+        ]);
+      }
+    }
   });
 
   // Route D's co-located pass is the only thing in this file that catches a
