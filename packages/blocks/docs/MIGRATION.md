@@ -32,18 +32,44 @@ unchanged.
 ```
 
 `mark` is what `<LineChart>` and `<AreaChart>` already call their stroked series path, so a
-sparkline and a chart now take the same key for the same thing. The marker did **not** become
-`point`, because on a chart `point` is one circle *per datum* under `showPoints`, and on a
-sparkline it is a single circle at the end. Reusing the word would have made a class written
-for one read as portable to the other while landing on a different number of elements — and
-nothing reports that, since the key resolves either way.
+sparkline and a line chart now take the same key for the same thing. One place it does not
+carry over unchanged: on `<AreaChart>` `mark` is folded onto the filled band as well as the
+top edge, so an entry there reaches two paths per series — use `areaOutline` for the edge
+alone and `area` for the band. A sparkline's `mark` reaches the trend path only; its band is
+`area`.
 
-Written inline, both old keys are a type error: `slotClasses={{ line: … }}` fails with
-`'line' does not exist in type 'Partial<Record<SparklineSlots, string>>'`. A slot map held in
-a variable is not checked the same way — measured: an object carrying `root` alongside `line`
-and `point` passes `svelte-check` with zero errors, because a target whose properties are all
-optional only rejects an object with *no* key in common. **Grep for `slotClasses` on your
-sparklines** if you build those maps outside the call site.
+The end marker did **not** become `point`. On a chart `point` is one circle per series *and*
+datum under `showPoints` — three series over twelve values is 36 circles — while on a
+sparkline it is a single circle at the last value. Reusing the word would have made a class
+written for one read as portable to the other while landing on a different number of
+elements, and nothing reports that: the key resolves either way.
+
+**Only one of the four places you can write a slot key is type-checked.** Inline at the call
+site, both old keys are a compile error: `slotClasses={{ line: … }}` fails with `'line' does
+not exist in type 'Partial<Record<SparklineSlots, string>>'`. The other three were measured
+at zero errors:
+
+| where the key sits | why nothing reports it | what to grep for |
+| --- | --- | --- |
+| a slot map held in a variable | a target whose properties are all optional rejects only an object with *no* key in common, so `{ root, line, point }` passes | `slotClasses` near your sparklines |
+| `<BlocksProvider defaults={{ Sparkline: … }}>` | `ComponentDefaults['slotClasses']` is `Record<string, string>` | `Sparkline:` in your provider config |
+| `<BlocksProvider presets={{ Sparkline: … }}>` | `ComponentPreset['slotClasses']` is `Record<string, string>` | `Sparkline:` in your provider config |
+| a prop-conditional `overrides` rule | `ConditionalOverride['class']` is `Record<string, string>` | `Sparkline:` in your provider config |
+
+The three provider rows are why "grep your markup" is not enough on its own: that config sits
+under the string key `'Sparkline'`, and never next to a `<Sparkline>` tag.
+
+A development build reports all four for you. The component checks the *resolved* slot map —
+downstream of the instance prop, the defaults, the preset and the overrides alike — and warns
+once for each sparkline the stale key reaches:
+
+```
+[Sparkline] slotClasses.line no longer resolves: `line` is now `mark`, `point` is now
+`endPoint`. Check the instance prop and any <BlocksProvider> defaults, presets or overrides
+under the 'Sparkline' key.
+```
+
+Production builds drop the check.
 
 ### The shadow scale left the colour namespace
 

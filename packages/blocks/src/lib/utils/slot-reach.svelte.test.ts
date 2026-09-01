@@ -8,6 +8,8 @@ import { calendarVariants } from '$lib/components/Calendar/calendar.variants';
 import ChartFrame from '$lib/components/ChartFrame/ChartFrame.svelte';
 import DonutChart from '$lib/components/DonutChart/DonutChart.svelte';
 import LineChart from '$lib/components/LineChart/LineChart.svelte';
+import Sparkline from '$lib/components/Sparkline/Sparkline.svelte';
+import { sparklineVariants } from '$lib/components/Sparkline/sparkline.variants';
 import * as chartSlots from '$lib/internal/charts/slots';
 import { chartVariants } from '$lib/internal/charts/variants';
 
@@ -149,6 +151,7 @@ const CARTESIAN = {
 
 const CHART_SLOTS = Object.keys(chartVariants.config.slots as Record<string, unknown>);
 const CALENDAR_SLOTS = Object.keys(calendarVariants.config.slots as Record<string, unknown>);
+const SPARKLINE_SLOTS = Object.keys(sparklineVariants.config.slots as Record<string, unknown>);
 
 const SWEEPS: Sweep[] = [
   {
@@ -249,6 +252,22 @@ const SWEEPS: Sweep[] = [
     // into; every other slot belongs to a chart that draws itself.
     slots: [...chartSlots.CHART_FRAME_SLOTS],
     mounts: [{ name: 'an empty frame', props: {} }],
+    unreached: {}
+  },
+  {
+    name: 'Sparkline',
+    component: Sparkline,
+    config: 'sparklineVariants',
+    configSlots: SPARKLINE_SLOTS,
+    slots: SPARKLINE_SLOTS,
+    // `area` and `showEndPoint` each gate exactly one slot and are off by
+    // default, so the two states are the smallest pair that reaches all five —
+    // and they carry the cardinality the slot names claim: one `mark`, one
+    // `endPoint`, against the charts' one `point` per series and datum.
+    mounts: [
+      { name: 'with the band under the line', props: { data: [1, 4, 2, 8, 5], area: true } },
+      { name: 'with the end-point marker', props: { data: [1, 4, 2, 8, 5], showEndPoint: true } }
+    ],
     unreached: {}
   }
 ];
