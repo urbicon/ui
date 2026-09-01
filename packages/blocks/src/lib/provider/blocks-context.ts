@@ -38,6 +38,11 @@ import {
  * names wherever it has one for the axis, and internal where the axis is
  * computed rather than received (`hasRightIcon`, `messageType`, `open`).
  *
+ * The index signature admits any string, so a mistyped key type-checks and
+ * paints nothing. A development build reports a key that is neither named nor
+ * declared — once, naming the keys that would have worked. A rule that is
+ * merely unmatched stays silent, being the normal case.
+ *
  * @example
  * { variant: 'outlined', class: { base: 'border' } } // 1px border only on outlined
  */
@@ -190,6 +195,70 @@ export function wrapperActiveProps(
 }
 
 /**
+ * Messages already emitted, so one mistyped key is reported once rather than
+ * once per component instance and once more per re-render — the cascade runs
+ * inside a `$derived`. Keyed on the whole message, so the same key under
+ * `defaults` and under a preset are two reports.
+ */
+const warnedConditionKeys = new Set<string>();
+
+/**
+ * Report an `overrides` condition key this component can neither carry nor
+ * declare. `ConditionalOverride`'s index signature admits any string on
+ * purpose, so a typo (`varaint`) and a prop that is no axis (`label`) both
+ * type-check, resolve to nothing and change no markup — indistinguishable from
+ * a rule that is simply not matched, which is the normal case.
+ *
+ * **`accepted` is the union of two sets, and each one alone rejects correct
+ * rules.** Measured over the 88 components that resolve a cascade:
+ *
+ * - the axes the config *declares* miss the keys a component only *names*: the
+ *   four wrappers hand over axes belonging to what they wrap, and
+ *   `datePickerVariants` declares none of the five DatePicker passes;
+ * - the keys the component *names* miss an axis carried per slot call instead
+ *   of per component — 14 components, among them `iconPosition` on Input,
+ *   `dayState` on Calendar and Planner, `disabled` on Menu's rows. A rule on
+ *   one of those cannot match ({@link effectiveVariants}), and it is still not
+ *   a typo, so it stays quiet.
+ *
+ * A key outside both is addressable from neither side. Note that quiet is not
+ * the same as inert: `falsyToString` maps a `null`/`undefined` constraint to
+ * `undefined`, which is also what a missing key reads as, so `{ varaint:
+ * undefined }` matches everything. The message therefore states what the key
+ * is, not what the rule will do.
+ *
+ * **No sibling check for the `class` record's slot names.** The information is
+ * not here: three components read slot names off the resolved record that the
+ * config they hand this resolver does not declare — `NumberInput` takes
+ * `stepper`/`stepperButton` from its own config while passing Input's,
+ * `SidebarLayout` five `sidebar*` keys, `Guide` `skip`/`next` — so checking
+ * against `variantConfig.slots` would report correct consumer config as
+ * mistyped. A second parameter carrying the missing names is the shape that
+ * would close it, and it would be hand-maintained: the next forwarding
+ * component to omit it turns the check into a false alarm on working code.
+ */
+function warnUnknownConditionKeys(
+  component: string,
+  source: string,
+  overrides: ConditionalOverride[] | undefined,
+  accepted: string[]
+): void {
+  if (!overrides) return;
+  for (const entry of overrides) {
+    for (const key of Object.keys(entry)) {
+      if (key === 'class' || accepted.includes(key)) continue;
+      const message =
+        `[BlocksProvider] The \`overrides\` rule under ${source} for component "${component}" ` +
+        `conditions on "${key}", which is not one of its variant axes. ` +
+        `Accepted: ${accepted.join(', ')}.`;
+      if (warnedConditionKeys.has(message)) continue;
+      warnedConditionKeys.add(message);
+      console.warn(message);
+    }
+  }
+}
+
+/**
  * Collect the per-slot classes of every `overrides` entry whose prop
  * conditions match `activeProps`. Returns `undefined` when there are no
  * overrides or none match. Multiple matches merge additively, in order.
@@ -279,6 +348,26 @@ export function resolveSlotClasses(
   const defaults = config?.defaults?.[component];
   const presetDef = preset ? config?.presets?.[component]?.[preset] : undefined;
   const matchProps = effectiveVariants(variantConfig, activeProps);
+
+  // On the rules, not on the resolved map: a key only reaches that map when its
+  // rule matches, and a mistyped key is exactly the one whose rule never does.
+  if (
+    typeof window !== 'undefined' &&
+    import.meta.env?.DEV &&
+    (defaults?.overrides || presetDef?.overrides)
+  ) {
+    const accepted = [
+      ...new Set([...Object.keys(variantConfig.variants ?? {}), ...Object.keys(activeProps)])
+    ];
+    // Nothing to check against, and nothing to name in the message: a config
+    // with no axes that the component answers with no keys either. 9 blocks
+    // components resolve slots without variants at all, and `@urbicon-ui/auth`
+    // routes all 14 of its own through one frozen empty config on purpose.
+    if (accepted.length > 0) {
+      warnUnknownConditionKeys(component, 'defaults', defaults?.overrides, accepted);
+      warnUnknownConditionKeys(component, `preset "${preset}"`, presetDef?.overrides, accepted);
+    }
+  }
 
   const sources: (Record<string, string | undefined> | undefined)[] = [
     defaults?.slotClasses,
