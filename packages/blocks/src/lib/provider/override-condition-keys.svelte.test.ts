@@ -1,7 +1,7 @@
 // @vitest-environment jsdom
 import type { Component } from 'svelte';
 import { createRawSnippet, flushSync, mount } from 'svelte';
-import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import ReasoningDisclosure from '$lib/components/Chat/ReasoningDisclosure/ReasoningDisclosure.svelte';
 import CopyButton from '$lib/components/CopyButton/CopyButton.svelte';
 import { copyButtonVariants } from '$lib/components/CopyButton/copy-button.variants';
@@ -11,11 +11,13 @@ import Card from '$lib/primitives/Card/Card.svelte';
 import { cardVariants } from '$lib/primitives/Card/card.variants';
 import Input from '$lib/primitives/Input/Input.svelte';
 import { inputVariants } from '$lib/primitives/Input/input.variants';
+import Stepper from '$lib/primitives/Stepper/Stepper.svelte';
+import { stepperVariants } from '$lib/primitives/Stepper/stepper.variants';
 import OverrideKeyHost from './__fixtures__/OverrideKeyHost.svelte';
 import type { ComponentDefaults, PresetMap } from './blocks-context';
 
 /**
- * An `overrides` condition key the component can neither carry nor declare.
+ * An `overrides` condition key the component neither passes nor declares.
  * `ConditionalOverride`'s index signature admits any string, so `varaint` and
  * `mint` (a real `Card` prop, no axis) type-check, paint nothing, and look
  * exactly like the rule that is simply not matched — which is the normal case
@@ -26,27 +28,44 @@ import type { ComponentDefaults, PresetMap } from './blocks-context';
  * cannot see this class at all: a key only reaches that map when its rule
  * matches, and a mistyped key is exactly the one whose rule never does.
  *
- * The silent half is the load-bearing one. Both halves of the accepted set are
- * pinned by a component that only the other half covers (`DatePicker`,
+ * The silent half is the load-bearing one. Both halves of the union that buys
+ * silence are pinned by a component only the other half covers (`CopyButton`,
  * `Input`), because a check against either alone reports correct config as a
  * typo — 4 components and 14 components respectively, measured across the 88
  * that resolve a cascade.
+ *
+ * The union is not what the message prints, and the Stepper row is why: only a
+ * key the component *passes* can match, so an axis its config declares and it
+ * hands out per slot call must stay off the recommended list. That row walks
+ * the whole path — report, follow the advice, see it paint.
+ *
+ * **The dedupe set is module-global and never cleared** (that is the point: one
+ * typo, one report, whatever the instance count). So every test that asserts a
+ * report uses its OWN misspelling — `varaint`, `paddng`, `mint`, `stepState`,
+ * `vairant`, `varient`, `vaiant`, `varaint2`. Reusing a spent one here yields a
+ * green assertion on zero warnings.
  *
  * The warning is `import.meta.env?.DEV`-gated and window-gated, like the
  * unregistered-preset warning it sits beside; this file is the jsdom half, so
  * both are true.
  */
 
-/** Card's accepted set: it names every axis its config declares, so the union is the config's. */
+/** Card's accepted set: it passes every axis its config declares, so the two halves coincide. */
 const CARD_AXES = Object.keys(cardVariants.config.variants ?? {});
 
-// Spied once, cleared per test: re-spying in `beforeEach` wraps the previous
-// spy, and every test then reads the calls of the ones before it.
-const warn = vi.spyOn(console, 'warn').mockImplementation(() => {});
+// Re-spied per test with a restore after it, because these assertions count
+// calls: `vi.spyOn` hands back the EXISTING mock for an already-spied method
+// and `mockImplementation` does not clear its history, so without the restore
+// one test's calls are counted by the next (`blocks-testing` skill).
+let warn: ReturnType<typeof vi.spyOn>;
 
 beforeEach(() => {
-  warn.mockClear();
+  warn = vi.spyOn(console, 'warn').mockImplementation(() => {});
   document.body.replaceChildren();
+});
+
+afterEach(() => {
+  warn.mockRestore();
 });
 
 function render(props: {
@@ -68,7 +87,7 @@ function render(props: {
 const text = createRawSnippet(() => ({ render: () => '<span>content</span>' }));
 
 /** Every message the check emits, so an assertion reads the whole console. */
-const messages = (): string[] => warn.mock.calls.map((call) => String(call[0]));
+const messages = (): string[] => warn.mock.calls.map((call: unknown[]) => String(call[0]));
 const mentioning = (key: string): string[] =>
   messages().filter((message) => message.includes(`conditions on "${key}"`));
 
@@ -84,8 +103,11 @@ describe('an unknown overrides condition key', () => {
     const [message] = mentioning('varaint');
     expect(message).toContain('component "Card"');
     expect(message).toContain('under defaults');
-    // Named, not counted: the point of the message is which key to write instead.
+    // Named, not counted: the point of the message is which key to write
+    // instead. Card passes every axis it declares, so all seven can match and
+    // all seven are recommended — the one component where the two halves agree.
     for (const axis of CARD_AXES) expect(message).toContain(axis);
+    expect(message).not.toContain('Its config also declares');
   });
 
   it('reports it in a preset, naming the preset it came from', () => {
@@ -144,12 +166,13 @@ describe('the silent half', () => {
   });
 
   it('says nothing about a wrapper keyed on an axis of what it wraps', () => {
-    // `copyButtonVariants` declares `size` and `state`; the button names those
+    // `copyButtonVariants` declares `size` and `state`; the button passes those
     // two AND `variant`/`intent`, which belong to the Button inside it, so a
     // check against the config alone would call the two forwarded ones typos.
-    // This is the only case in the file that separates the union from its
-    // config half: a wrapper declaring NOTHING (below) has an empty accepted
-    // set under such a check, and the no-oracle skip hides the defect.
+    // The only such case in THIS FILE — the corpus has a second, `AvatarGroup`
+    // (declares `spacing`, passes `spacing` + `size`). A wrapper declaring
+    // nothing (below) does not separate them: under a config-only check its
+    // accepted set is empty, which is a different failure.
     expect(Object.keys(copyButtonVariants.config.variants ?? {})).not.toContain('intent');
     render({
       component: CopyButton,
@@ -195,19 +218,92 @@ describe('the silent half', () => {
     expect(warn).not.toHaveBeenCalled();
   });
 
-  it('says nothing when the component declares and names no axis at all', () => {
-    // No accepted set means no oracle and nothing to put in the message. Nine
-    // blocks components resolve slots without any variants, and `@urbicon-ui/auth`
-    // routes all of its through one frozen empty config on purpose.
+  it('says nothing about a rule that carries no condition at all', () => {
+    // `{ class: … }` alone matches everything, on every component. It is the
+    // shape the no-axis message below points people at, so it must be silent
+    // even where every keyed rule is dead.
+    render({
+      component: ReasoningDisclosure,
+      props: { reasoning: { type: 'reasoning', text: 'why', durationMs: 12 } },
+      defaults: { ReasoningDisclosure: { overrides: [{ class: { label: 'probe-live' } }] } }
+    });
+
+    expect(warn).not.toHaveBeenCalled();
+    expect(document.querySelector('.probe-live')).not.toBeNull();
+  });
+});
+
+describe('a component that passes no variant props', () => {
+  it('reports the certain diagnosis instead of an empty list', () => {
+    // 22 components are in this state — 9 here, 13 in `@urbicon-ui/auth` behind
+    // one frozen empty config. A keyed rule on them is not *probably* dead, it
+    // is certainly dead, so this is the one case where the check knows more
+    // than anywhere else. Nothing about this rule looks mistyped.
     render({
       component: ReasoningDisclosure,
       props: { reasoning: { type: 'reasoning', text: 'why', durationMs: 12 } },
       defaults: {
-        ReasoningDisclosure: { overrides: [{ varaint: 'x', class: { base: 'probe-rd' } }] }
+        ReasoningDisclosure: { overrides: [{ varaint2: 'x', class: { label: 'zz-dead' } }] }
       }
     });
 
-    expect(warn).not.toHaveBeenCalled();
+    expect(mentioning('varaint2')).toHaveLength(1);
+    const [message] = mentioning('varaint2');
+    expect(message).toContain('no conditional rule can match it');
+    expect(message).toContain('unconditional `slotClasses`');
+    // No dangling "Keys that can match here:" with nothing after it.
+    expect(message).not.toContain('Keys that can match here');
+    expect(document.querySelector('.zz-dead')).toBeNull();
+  });
+});
+
+describe('what the message recommends', () => {
+  it('leaves out an axis the config declares and the component passes per slot call', () => {
+    // The `MIGRATION.md` path, end to end. `stepperVariants` declares `state`;
+    // `Stepper` does not pass it (only `StepperStep` does), so `{ state: … }` is
+    // as dead as the `stepState` that provoked the report. Recommending it would
+    // send the reader from one silent no-op into the next.
+    const declared = Object.keys(stepperVariants.config.variants ?? {});
+    expect(declared).toContain('state');
+    expect(declared).toContain('orientation');
+
+    render({
+      component: Stepper,
+      props: { children: text },
+      defaults: { Stepper: { overrides: [{ stepState: 'active', class: { base: 'zz' } }] } }
+    });
+
+    const [message] = mentioning('stepState');
+    // Only the recommendation sentence — the one after it names the same axes
+    // for the opposite reason, so slicing to the end would always "contain" them.
+    const from = message.indexOf('Keys that can match here:');
+    const recommended = message.slice(from, message.indexOf('.', from));
+    expect(recommended).toContain('orientation');
+    expect(recommended).not.toContain('state,');
+    expect(recommended).not.toMatch(/\bstate\b/);
+    // The declared-but-unpassed axes are still named — in the other sentence,
+    // with the reason they cannot match.
+    expect(message).toContain('Its config also declares');
+    expect(message).toMatch(/Its config also declares[^.]*\bstate\b/);
+  });
+
+  it('recommends only keys that really paint, and the rejected one really does not', () => {
+    // STEP2 / CONTROL of the same measurement, as assertions.
+    render({
+      component: Stepper,
+      props: { children: text },
+      defaults: {
+        Stepper: {
+          overrides: [
+            { orientation: 'horizontal', class: { base: 'zz-recommended' } },
+            { state: 'active', class: { base: 'zz-declared-only' } }
+          ]
+        }
+      }
+    });
+
+    expect(document.querySelector('.zz-recommended')).not.toBeNull();
+    expect(document.querySelector('.zz-declared-only')).toBeNull();
   });
 });
 

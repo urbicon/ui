@@ -40,16 +40,30 @@ sibling that is not disabled.
 
 ### `stepState` → `state`, `stepDisabled` → `disabled`
 
-The two Stepper axes are renamed to the props they describe. **Two failure modes, one of them
-silent:**
+The two Stepper axes are renamed to the props they describe. **Two failure modes, neither of
+them silent:**
 
 - `stepperVariants({ stepState: … })` and the `StepperVariants` type are compile errors — both
   are exported, so TypeScript names the line.
-- An `overrides` rule written as `{ stepState: 'active' }` is a **silent no-op**: the index
-  signature accepts the old key and the rule simply stops matching.
+- An `overrides` rule written as `{ stepState: 'active' }` still compiles: the index signature
+  accepts any key. It stops matching, and a development build reports it:
 
-Grep for `stepState` and `stepDisabled` across your own source, including the string keys
-inside `defaults` / `presets`.
+```
+[BlocksProvider] The `overrides` rule under defaults for component "Stepper" conditions on
+"stepState", which is neither a prop it passes nor an axis its `tv()` config declares. Keys
+that can match here: orientation, size, variant, tier, disabled, clickable. Its config also
+declares optionalNote, state, separatorComplete, which the component hands to a slot function
+per element rather than carrying for itself; …
+```
+
+**Read the two lists as the different things they are.** `stepperVariants` declares `state`,
+but `Stepper` hands it to a slot function per step rather than carrying it for itself — so
+`{ state: 'active' }` under the `Stepper` key matches nothing either, and that rule belongs
+under `StepperStep`. Only the keys after *"Keys that can match here"* are worth rewriting to.
+
+The report needs the component to render under the provider, so a rule under a component that
+no page you opened mounts stays quiet. Grep for `stepState` and `stepDisabled` across your own
+source, including the string keys inside `defaults` / `presets`.
 
 ### `resolveSlotClasses()` takes the component's `tv()` config
 
