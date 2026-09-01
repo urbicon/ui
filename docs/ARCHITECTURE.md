@@ -341,6 +341,18 @@ either branch parts them, and only route G notices. Within one element nothing i
 stripped: an author who
 wants two classes to coexist writes them in the same element.
 
+An element with **state slots** carries a library default *and* a consumer entry on each,
+and all of them share that one array. The order is every library state first, then the
+consumer's base slot, then the consumer's states in the same order the library's are in —
+never the two halves of one state folded together, which puts a library class after a
+consumer rung again. So a `slotClasses.option` beats `Combobox`'s active highlight the way
+it beats the base slot, and a consumer who wants the highlight back addresses
+`optionActive`; and because both halves are written the same way round, `optionSelected`
+outranks `optionActive` for the consumer exactly as it does for the library. Route D reaches
+the shape only for state slots the sweep's mount actually renders — `option` and
+`optionSelected` share an element there, while `optionActive` needs a keyboard cursor no
+fixture moves — so the states that meet only under interaction are held by mounted tests.
+
 `unstyled` travels the same way — by prop, never by context. A component passes it to the
 blocks components it renders itself (DatePicker → Input/Popover/Calendar, ChatMessage →
 Avatar/Alert/Tooltip, …), so a half-stripped widget is not a state one instance can be in.

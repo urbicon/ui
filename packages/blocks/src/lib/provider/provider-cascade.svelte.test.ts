@@ -199,15 +199,6 @@ const KNOWN_GAPS: Record<string, Partial<Record<Route, string>>> = {
   // COMPONENT-API-CONVENTIONS.md ("the plumbing is not an override surface").
   // The slot class that *is* the override surface merges correctly; these
   // entries record the plumbing buckets that stay out of it.
-  // Combobox had an entry here for two ladder defects the open-listbox fixture
-  // exposed. Both are fixed, so it is gone — but only one of them was ever this
-  // route's to watch, and the difference is worth keeping: reverting
-  // `optionCheck` (library `opacity-100` after the consumer's entry in one
-  // `class` array) reddens D again with "the colliding entry did not arrive
-  // (opacity-0)", while reverting `option` (the nested `optionActive` /
-  // `optionSelected` folds) leaves D green — the state slots carry no
-  // `slotClasses` in the per-slot probe, so there is nothing for them to beat.
-  // That half is held by two mounted tests in `Combobox.svelte.test.ts`.
   ChatMessage: { D: 'CoreIconButton plumbing on `actionButton`, out of the ladder by design' },
   // Reached the sweep with #355, which gave it a provider name of its own; the
   // close button it inherits from Dialog is the same core as Drawer's below.
@@ -783,7 +774,25 @@ function measure(entry: CascadeComponent, withFixture: FixtureChoice = true): Me
           rootRule
         );
         const element = alone.slotElements.get(slot);
-        if (!element || candidates.some((candidate) => !element.has(candidate))) continue;
+        if (!element) {
+          failures.push(`${slot} (written alone): the colliding entry reached no element`);
+          continue;
+        }
+        // A candidate that arrived in the run above and not here lost its
+        // bucket to a neighbouring library class that only this run leaves
+        // unopposed — which is the defect, not a reason to skip. Both runs
+        // write the same string into this slot, so nothing else can remove it.
+        // Measured: with `Combobox`'s option row folding `optionActive` /
+        // `optionSelected` into its own slot again, `bg-transparent` and
+        // `font-normal` go missing here and route D reports it; skipping
+        // instead left that shape green over the whole corpus.
+        const missingAlone = candidates.filter((candidate) => !element.has(candidate));
+        if (missingAlone.length) {
+          failures.push(
+            `${slot} (written alone): the colliding entry did not arrive (${missingAlone.join(' ')})`
+          );
+          continue;
+        }
         const survivors = [...collisions.keys()].filter((token) => element.has(token));
         if (survivors.length) {
           failures.push(
