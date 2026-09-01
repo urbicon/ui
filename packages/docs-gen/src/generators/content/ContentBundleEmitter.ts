@@ -59,7 +59,14 @@ export interface ContentBundleResult {
   iconCount: number;
   /** The `@urbicon-ui/design-content` package version the bundle ships under. */
   version: string;
-  /** First 12 hex chars of the catalog's SHA-256 — the bundle's content fingerprint. */
+  /**
+   * First 12 hex chars of the catalog's SHA-256. Scoped to the catalog, not to
+   * the bundle: of the 138 files emitted, only `component-catalog.json` reaches
+   * this. Measured — a prop description that lands in
+   * `blocks/components/planner/llm.txt` but not in the catalog leaves it
+   * unmoved. Reproducible since the `generated` stamp came out of it, which is
+   * what makes it worth stating how far it reaches.
+   */
   contentHash: string;
 }
 
@@ -148,7 +155,7 @@ export class ContentBundleEmitter {
     const icons = parseIconRegistry(registry);
     await fs.writeFile(path.join(outputDir, 'icons.json'), JSON.stringify(icons, null, 2), 'utf-8');
 
-    // 7. Meta — version stamp (DESIGN-MCP-V2 Anhang B) + a content fingerprint.
+    // 7. Meta — version stamp (DESIGN-MCP-V2 Anhang B) + a catalog fingerprint.
     const version = await this.readVersion(outputDir);
     // The catalog carries its own `generated` wall-clock stamp, so hashing it
     // whole yielded a fingerprint that could not reproduce — two runs of an

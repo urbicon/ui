@@ -216,10 +216,18 @@ export const plannerVariants = tv({
 
 export type PlannerVariants = VariantProps<typeof plannerVariants>;
 /**
- * The axes a single day cell varies on. Passed to the slot function per cell,
- * never taken as a prop: `PlannerProps` subtracts `keyof PlannerCellState`, so
- * this declaration is the one place the set is written and a key added here
- * leaves the prop surface by itself.
+ * The axes a single day cell varies on, resolved at the slot call rather than
+ * from a prop. `PlannerProps` subtracts `keyof PlannerCellState` from what it
+ * inherits off this config, which is what keeps these axes out of the
+ * catalogue's variant list.
+ *
+ * The subtraction reaches the inherited surface and nothing else. `PlannerProps`
+ * declares `view`, `variant` and `size` in its own body, so naming one of those
+ * here strips its variant metadata while the prop stays writable — measured with
+ * `'size'` added: the catalogue drops to `variants: ['variant']`, losing the
+ * options and the playground knob, and `<Planner size="lg">` still type-checks.
+ * Adding a key here is therefore half a move; the other half is that no member
+ * of the interface body declares it.
  */
 export type PlannerCellState = Pick<
   PlannerVariants,
