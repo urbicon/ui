@@ -459,6 +459,40 @@ export abstract class TypeScriptBaseExtractor<
   }
 
   /**
+   * The keys a key-filtering heritage clause (`Omit<B, K>` / `Pick<B, K>`)
+   * names, as the checker resolves `K`.
+   *
+   * Only *some* spellings of `K` list their members at the use site. `keyof U`,
+   * a union alias and an `Exclude<…>` each name them somewhere else, so reading
+   * quoted words out of the written argument finds nothing and the clause reads
+   * as filtering nothing — which is how `Omit<PlannerVariants, 'view' | keyof
+   * PlannerCellState>` published four props `svelte-check` rejects. Asking the
+   * checker for `K` is one question that covers every spelling, including the
+   * ones nobody has written yet.
+   *
+   * Null, never an empty set, when there is nothing to delegate to: single-file
+   * mode has no program, and a `K` that is not a union of literals (an
+   * unresolved reference widens to `keyof any`) has to fall back to the written
+   * text rather than claim the clause filters nothing.
+   */
+  protected resolveHeritageKeyLiterals(
+    heritageType: ts.ExpressionWithTypeArguments
+  ): Set<string> | null {
+    if (!this.packageRoot) return null; // single-file mode: no program, no checker
+    const keyArg = heritageType.typeArguments?.[1];
+    if (!keyArg) return null;
+    try {
+      const literals = TypeScriptBaseExtractor.literalMembersOfType(
+        this.checker.getTypeFromTypeNode(keyArg)
+      );
+      return literals.length > 0 ? new Set(literals.map((l) => l.value)) : null;
+    } catch {
+      // Node not part of this program, or an unresolvable type reference.
+      return null;
+    }
+  }
+
+  /**
    * TypeScript's built-in type transformers. Named individually rather than
    * detected structurally because the point is narrow: a heritage clause whose
    * *expression* is one of these describes its base, never itself, so no

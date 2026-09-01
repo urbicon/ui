@@ -742,8 +742,10 @@ export class PropsExtractor extends TypeScriptBaseExtractor<PropsExtractionInput
       // public API table.
       if (this.isVariantInterface(baseType)) {
         const result: PropInfo[] = this.handleVariantInheritance(baseType);
-        const literalKeys = this.extractOmittedLiteralKeys(omittedKeys);
-        for (const key of literalKeys) {
+        const omittedAxes =
+          this.resolveHeritageKeyLiterals(heritageType) ??
+          new Set(this.extractOmittedLiteralKeys(omittedKeys));
+        for (const key of omittedAxes) {
           result.push({
             name: `__OMIT_VARIANT__${key}`,
             type: 'omit-marker',
@@ -763,11 +765,13 @@ export class PropsExtractor extends TypeScriptBaseExtractor<PropsExtractionInput
       if (baseInterface) {
         // Extract props from the base interface
         const extracted = this.extractPropsFromLocalInterface(baseInterface, baseType);
-        // Blacklist: literal keys named in Omit<…, 'a' | 'b'> plus — when the
-        // keys argument references `keyof *Variants` — the variant keys
-        // provided by VariantsExtractor.
-        const blacklist = new Set(this.extractOmittedLiteralKeys(omittedKeys));
-        if (/keyof\s+\w*Variants/.test(omittedKeys)) {
+        // Blacklist: the checker's answer for the keys argument wherever it has
+        // one, the written literals otherwise. The `keyof *Variants` special
+        // case below is what single-file mode has instead — one spelling out of
+        // the many the checker resolves.
+        const resolvedKeys = this.resolveHeritageKeyLiterals(heritageType);
+        const blacklist = resolvedKeys ?? new Set(this.extractOmittedLiteralKeys(omittedKeys));
+        if (!resolvedKeys && /keyof\s+\w*Variants/.test(omittedKeys)) {
           for (const key of this.currentVariantKeys) blacklist.add(key);
         }
 
@@ -811,12 +815,13 @@ export class PropsExtractor extends TypeScriptBaseExtractor<PropsExtractionInput
     const fullType = heritageType.getText();
     const baseType = this.heritageBaseTypeText(heritageType);
     if (!baseType) return [];
-    const pickedKeys = this.extractOmittedLiteralKeys(this.heritageKeyArgText(heritageType));
+    const picked =
+      this.resolveHeritageKeyLiterals(heritageType) ??
+      new Set(this.extractOmittedLiteralKeys(this.heritageKeyArgText(heritageType)));
 
     // 1. tv() variant alias — invert the picked set into omit markers.
     if (this.isVariantInterface(baseType)) {
       const result: PropInfo[] = this.handleVariantInheritance(baseType);
-      const picked = new Set(pickedKeys);
       for (const key of this.currentVariantKeys) {
         if (picked.has(key)) continue;
         result.push({
@@ -842,7 +847,6 @@ export class PropsExtractor extends TypeScriptBaseExtractor<PropsExtractionInput
     const baseInterface =
       this.findInterface(sourceFile, baseType) ?? this.resolveOmitBaseInterface(heritageType);
     if (baseInterface) {
-      const picked = new Set(pickedKeys);
       return this.extractPropsFromLocalInterface(baseInterface, baseType)
         .filter((p) => picked.has(p.name))
         .map((p) => ({ ...p, source: { type: 'inherited' as const, name: fullType } }));
@@ -943,9 +947,11 @@ export class PropsExtractor extends TypeScriptBaseExtractor<PropsExtractionInput
 
   /**
    * Parse the keys argument of `Omit<X, K>` / `Pick<X, K>` into a flat
-   * string-literal list.
-   * Handles `'a'`, `'a' | 'b' | 'c'`, double-quoted, and ignores `keyof T`
-   * patterns (those are handled separately via `currentVariantKeys`).
+   * string-literal list — `'a'`, `'a' | 'b' | 'c'`, double-quoted.
+   *
+   * The single-file fallback for `resolveHeritageKeyLiterals`: a spelling that
+   * names its keys elsewhere (`keyof U`, a union alias, an `Exclude<…>`) has
+   * none to read here, so without a program those keys stay unenumerable.
    */
   private extractOmittedLiteralKeys(omittedKeys: string): string[] {
     return Array.from(omittedKeys.matchAll(/['"]([A-Za-z_$][A-Za-z0-9_$]*)['"]/g))
