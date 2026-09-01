@@ -459,6 +459,52 @@ export abstract class TypeScriptBaseExtractor<
   }
 
   /**
+   * The keys a key-filtering heritage clause (`Omit<B, K>` / `Pick<B, K>`)
+   * names, as the checker resolves `K`.
+   *
+   * Only *some* spellings of `K` list their members at the use site. `keyof U`,
+   * a union alias and an `Exclude<…>` each name them somewhere else, so reading
+   * quoted words out of the written argument finds nothing and the clause reads
+   * as filtering nothing — which is how `Omit<PlannerVariants, 'view' | keyof
+   * PlannerCellState>` published four props `svelte-check` rejects. Asking the
+   * checker for `K` is one question that covers every spelling, including the
+   * ones nobody has written yet.
+   *
+   * Null, never an empty set, when there is no answer to delegate to: this node
+   * is not in a program, or `K` is not a union of literals (an unresolved
+   * reference widens to `keyof any`). The caller then reads the written text
+   * instead — which recovers the literal keys, and only those: for `keyof U`
+   * the fallback does report a clause that filters nothing, and the
+   * `Omit<Interface, keyof *Variants>` branch keeps its own net for that.
+   *
+   * The precondition is this node's own binding, not that a package root was
+   * configured — a file outside the tsconfig's `include` has the latter without
+   * the former, and the checker then answers from a synthesised, unbound source
+   * file. Measured on such a fixture: `keyof GridCellState` yielded nothing,
+   * only the written `'view'` was suppressed, and `success` stayed true with no
+   * warning. Identity, not a path match, because a second parse of the same
+   * path is exactly the unbound case.
+   */
+  protected resolveHeritageKeyLiterals(
+    heritageType: ts.ExpressionWithTypeArguments
+  ): Set<string> | null {
+    const sourceFile = heritageType.getSourceFile();
+    if (this.program.getSourceFile(sourceFile.fileName) !== sourceFile) return null;
+    const keyArg = heritageType.typeArguments?.[1];
+    if (!keyArg) return null;
+    try {
+      const literals = TypeScriptBaseExtractor.literalMembersOfType(
+        this.checker.getTypeFromTypeNode(keyArg)
+      );
+      return literals.length > 0 ? new Set(literals.map((l) => l.value)) : null;
+    } catch {
+      // The out-of-program case is the guard's above; what is left here is a
+      // type reference the checker cannot make sense of at all.
+      return null;
+    }
+  }
+
+  /**
    * TypeScript's built-in type transformers. Named individually rather than
    * detected structurally because the point is narrow: a heritage clause whose
    * *expression* is one of these describes its base, never itself, so no

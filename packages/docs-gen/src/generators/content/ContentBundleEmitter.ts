@@ -59,7 +59,14 @@ export interface ContentBundleResult {
   iconCount: number;
   /** The `@urbicon-ui/design-content` package version the bundle ships under. */
   version: string;
-  /** First 12 hex chars of the catalog's SHA-256 — the bundle's content fingerprint. */
+  /**
+   * First 12 hex chars of the catalog's SHA-256. Scoped to the catalog, not to
+   * the bundle: of the 138 files emitted, only `component-catalog.json` reaches
+   * this. Measured — a prop description that lands in
+   * `blocks/components/planner/llm.txt` but not in the catalog leaves it
+   * unmoved. Reproducible since the `generated` stamp came out of it, which is
+   * what makes it worth stating how far it reaches.
+   */
   contentHash: string;
 }
 
@@ -148,9 +155,19 @@ export class ContentBundleEmitter {
     const icons = parseIconRegistry(registry);
     await fs.writeFile(path.join(outputDir, 'icons.json'), JSON.stringify(icons, null, 2), 'utf-8');
 
-    // 7. Meta — version stamp (DESIGN-MCP-V2 Anhang B) + a content fingerprint.
+    // 7. Meta — version stamp (DESIGN-MCP-V2 Anhang B) + a catalog fingerprint.
     const version = await this.readVersion(outputDir);
-    const contentHash = createHash('sha256').update(catalogRaw).digest('hex').slice(0, 12);
+    // The catalog carries its own `generated` wall-clock stamp, so hashing it
+    // whole yielded a fingerprint that could not reproduce — two runs of an
+    // unchanged tree disagreed on it. That stamp describes the run, not the
+    // content, and `builtAt` on the next line already says when. Parsed rather
+    // than text-stripped so the hash does not depend on where in the document
+    // the stamp sits or how it is spaced.
+    const { generated: _generated, ...catalogContent } = JSON.parse(catalogRaw);
+    const contentHash = createHash('sha256')
+      .update(JSON.stringify(catalogContent))
+      .digest('hex')
+      .slice(0, 12);
     const meta = { version, builtAt: new Date().toISOString(), contentHash };
     await fs.writeFile(path.join(outputDir, 'meta.json'), JSON.stringify(meta, null, 2), 'utf-8');
 

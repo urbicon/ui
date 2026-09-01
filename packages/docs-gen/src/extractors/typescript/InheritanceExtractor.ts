@@ -235,9 +235,12 @@ export class InheritanceExtractor extends TypeScriptBaseExtractor<
     } else if (!/\bkeyof\b/.test(omittedKeys)) {
       // Interface base with literal omit keys — declared in this file or
       // resolved across files through the shared program (e.g.
-      // Omit<InputProps, 'type' | …>). `keyof`-based omits (variant-key
-      // stripping) can't be enumerated syntactically here and stay handled
-      // by PropsExtractor, which knows the variant keys.
+      // Omit<InputProps, 'type' | …>). A `keyof` omit *is* enumerable here —
+      // `resolveHeritageKeyLiterals` answers it — but the entry stays empty
+      // until #167: this list and the props list feed `usedByProps`
+      // independently, so filling it in makes every type a member names count
+      // twice (measured on Menu: MintProp 1 → 2, joining the two literal-key
+      // components that already double-count).
       const baseInterface =
         this.findInterface(sourceFile, baseType) ?? this.resolveOmitBaseInterface(heritageType);
       if (baseInterface) {

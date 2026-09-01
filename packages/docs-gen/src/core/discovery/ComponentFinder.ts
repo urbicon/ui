@@ -243,10 +243,23 @@ export class ComponentFinder {
     console.log(`   🏠 CWD: ${process.cwd()}`);
 
     try {
-      const files = await glob(pattern, {
-        ignore: packageConfig.exclude || [],
-        absolute: true
-      });
+      // glob has not sorted since v9. This order is the order components are
+      // emitted in and, because the coordinator walks them in sequence, the
+      // order the extractors query the checker in — so it reaches `llms.txt`
+      // and `_catalog.json` directly, and pins the member order of a
+      // checker-resolved union besides. Measured on CopyButton: three distinct
+      // `api.ts` hashes across five runs without this sort, one with.
+      //
+      // Default comparator, not `localeCompare`: these are file paths with no
+      // reader, whose only job is to come out identical on every machine. The
+      // name sorts elsewhere in the pipeline order things a human reads, which
+      // is what `localeCompare` is for.
+      const files = (
+        await glob(pattern, {
+          ignore: packageConfig.exclude || [],
+          absolute: true
+        })
+      ).sort();
 
       console.log(`   ✅ Found ${files.length} files`);
       if (files.length === 0) {
@@ -473,7 +486,7 @@ export class ComponentFinder {
       let allFiles: string[] = [];
       for (const patternToTry of patterns) {
         try {
-          const files = await glob(patternToTry, { absolute: true });
+          const files = (await glob(patternToTry, { absolute: true })).sort();
           allFiles.push(...files);
           if (files.length > 0) {
             console.log(
