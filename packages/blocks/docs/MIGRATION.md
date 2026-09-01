@@ -9,6 +9,42 @@ and ships in the `@urbicon-ui/table` tarball.
 
 ## v9
 
+### Sparkline took the charts' slot names
+
+Two `slotClasses` keys on `<Sparkline>` are spelled differently. `root`, `svg` and `area` are
+unchanged.
+
+| before | after | reaches |
+| --- | --- | --- |
+| `line` | `mark` | the stroked trend path |
+| `point` | `endPoint` | the one dot at the last value, drawn with `showEndPoint` |
+
+```svelte
+<!-- before -->
+<Sparkline data={values} area showEndPoint
+  slotClasses={{ line: 'opacity-70', point: 'stroke-surface-base stroke-[2px]' }} />
+```
+
+```svelte
+<!-- after -->
+<Sparkline data={values} area showEndPoint
+  slotClasses={{ mark: 'opacity-70', endPoint: 'stroke-surface-base stroke-[2px]' }} />
+```
+
+`mark` is what `<LineChart>` and `<AreaChart>` already call their stroked series path, so a
+sparkline and a chart now take the same key for the same thing. The marker did **not** become
+`point`, because on a chart `point` is one circle *per datum* under `showPoints`, and on a
+sparkline it is a single circle at the end. Reusing the word would have made a class written
+for one read as portable to the other while landing on a different number of elements — and
+nothing reports that, since the key resolves either way.
+
+Written inline, both old keys are a type error: `slotClasses={{ line: … }}` fails with
+`'line' does not exist in type 'Partial<Record<SparklineSlots, string>>'`. A slot map held in
+a variable is not checked the same way — measured: an object carrying `root` alongside `line`
+and `point` passes `svelte-check` with zero errors, because a target whose properties are all
+optional only rejects an object with *no* key in common. **Grep for `slotClasses` on your
+sparklines** if you build those maps outside the call site.
+
 ### The shadow scale left the colour namespace
 
 The five box-shadow steps are declared as `--blocks-shadow-scale-xs` …

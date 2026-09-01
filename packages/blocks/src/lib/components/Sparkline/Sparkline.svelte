@@ -82,7 +82,7 @@
     {/if}
     {#if geometry.lineD}
       <path
-        class={slot('line')}
+        class={slot('mark')}
         d={geometry.lineD}
         fill="none"
         stroke={color}
@@ -94,7 +94,7 @@
     {/if}
     {#if showEndPoint && geometry.last}
       <circle
-        class={slot('point')}
+        class={slot('endPoint')}
         cx={geometry.last[0]}
         cy={geometry.last[1]}
         r={strokeWidth + 0.5}

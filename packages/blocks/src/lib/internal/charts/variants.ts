@@ -37,7 +37,11 @@ export const chartVariants = tv({
      * join — paints nothing on the band and is safe to write here.
      */
     mark: ['transition-[opacity] duration-[var(--blocks-duration-fast)]'],
-    /** Point marker on a line series; fades with the other data marks. */
+    /**
+     * Point marker on a line series — one per datum, so an entry here lands on
+     * every one of them. Sparkline's lone marker is `endPoint` for that reason.
+     * Fades with the other data marks.
+     */
     point: ['transition-[opacity] duration-[var(--blocks-duration-fast)]'],
     /**
      * AreaChart's filled band on its own. Empty, and so is `areaOutline`:
