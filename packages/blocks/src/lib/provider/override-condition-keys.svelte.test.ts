@@ -170,9 +170,10 @@ describe('the silent half', () => {
     // two AND `variant`/`intent`, which belong to the Button inside it, so a
     // check against the config alone would call the two forwarded ones typos.
     // The only such case in THIS FILE — the corpus has a second, `AvatarGroup`
-    // (declares `spacing`, passes `spacing` + `size`). A wrapper declaring
-    // nothing (below) does not separate them: under a config-only check its
-    // accepted set is empty, which is a different failure.
+    // (declares `spacing`, passes `spacing` + `size`). The wrapper declaring
+    // nothing (below) separates them too, since the empty-union skip went: a
+    // config-only check leaves its five passed keys unaccounted for and both
+    // tests report.
     expect(Object.keys(copyButtonVariants.config.variants ?? {})).not.toContain('intent');
     render({
       component: CopyButton,
