@@ -84,9 +84,9 @@
     size,
     intent,
     autoResize: autoResize || undefined,
-    disabled: disabled || undefined,
-    readonly: readonly || undefined,
-    error: !!error || undefined,
+    disabled: disabled,
+    readonly: readonly,
+    error: !!error,
     required: required || undefined,
     messageType: error ? 'error' : 'helper',
     counterState
@@ -95,7 +95,14 @@
   const styles = $derived(textareaVariants(variantProps));
 
   const slotClasses = $derived(
-    resolveSlotClasses(blocksConfig, 'Textarea', preset, variantProps, slotClassesProp)
+    resolveSlotClasses(
+      blocksConfig,
+      'Textarea',
+      preset,
+      variantProps,
+      slotClassesProp,
+      textareaVariants.config
+    )
   );
 
   const lineHeight = $derived(size === 'sm' ? 20 : size === 'lg' ? 28 : 24);

@@ -50,7 +50,8 @@ function render(options: {
     'Button',
     options.preset ? 'fancy' : undefined,
     { intent: 'primary' },
-    options.instanceSlotClasses ? { base: options.instanceSlotClasses } : undefined
+    options.instanceSlotClasses ? { base: options.instanceSlotClasses } : undefined,
+    styles.config
   );
   return styles({}).base({ class: [slots.base, options.className] });
 }

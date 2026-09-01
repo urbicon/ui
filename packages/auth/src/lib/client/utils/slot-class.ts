@@ -1,4 +1,9 @@
-import { type BlocksConfig, resolveClassChain, resolveSlotClasses } from '@urbicon-ui/blocks';
+import {
+  type BlocksConfig,
+  resolveClassChain,
+  resolveSlotClasses,
+  type TVConfig
+} from '@urbicon-ui/blocks';
 
 /**
  * Resolve a slot's classes under the `unstyled` contract: default styling is
@@ -12,10 +17,13 @@ export function slotClass(unstyled: boolean, base: string, slot?: string): strin
 }
 
 // `resolveSlotClasses` matches prop-conditional `overrides` against a component's
-// active variant props. The auth components have no variant props — their look is
-// fixed and steered through slots — so the match set is empty by construction.
+// effective variant props — its `tv()` config's `defaultVariants` under whatever
+// the component passes. The auth components have neither: their look is fixed and
+// steered through slots, so both halves are empty by construction and no
+// conditional rule can match. Unconditional `slotClasses` and presets do.
 // Frozen and named once instead of an inline `{}` at every call site.
 const NO_VARIANT_PROPS: Record<string, unknown> = Object.freeze({});
+const NO_VARIANT_CONFIG: TVConfig = Object.freeze({});
 
 /**
  * Resolve a component's per-slot classes through the blocks provider cascade:
@@ -40,7 +48,12 @@ export function resolveAuthSlotClasses<S extends string>(
   preset: string | undefined,
   instance: Partial<Record<S, string>> | undefined
 ): Partial<Record<S, string>> {
-  return resolveSlotClasses(config, component, preset, NO_VARIANT_PROPS, instance) as Partial<
-    Record<S, string>
-  >;
+  return resolveSlotClasses(
+    config,
+    component,
+    preset,
+    NO_VARIANT_PROPS,
+    instance,
+    NO_VARIANT_CONFIG
+  ) as Partial<Record<S, string>>;
 }

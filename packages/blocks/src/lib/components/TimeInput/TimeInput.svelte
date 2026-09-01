@@ -151,9 +151,9 @@
     variant,
     size,
     intent,
-    disabled: disabled || undefined,
-    readonly: readonly || undefined,
-    error: !!error || undefined,
+    disabled: disabled,
+    readonly: readonly,
+    error: !!error,
     required: required || undefined,
     fullWidth: fullWidth || undefined,
     messageType: error ? 'error' : 'helper'
@@ -161,7 +161,14 @@
 
   const styles = $derived(timeInputVariants(variantProps));
   const slotClasses = $derived(
-    resolveSlotClasses(blocksConfig, 'TimeInput', preset, variantProps, slotClassesProp)
+    resolveSlotClasses(
+      blocksConfig,
+      'TimeInput',
+      preset,
+      variantProps,
+      slotClassesProp,
+      timeInputVariants.config
+    )
   );
 
   function segmentClass() {

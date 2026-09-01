@@ -87,7 +87,14 @@
   const styles = $derived(checkboxVariants(variantProps));
 
   const slotClasses = $derived(
-    resolveSlotClasses(blocksConfig, 'Checkbox', preset, variantProps, slotClassesProp)
+    resolveSlotClasses(
+      blocksConfig,
+      'Checkbox',
+      preset,
+      variantProps,
+      slotClassesProp,
+      checkboxVariants.config
+    )
   );
 
   $effect(() => {

@@ -95,7 +95,14 @@
   const styles = $derived(paginationVariants(variantProps));
 
   const slotClasses = $derived(
-    resolveSlotClasses(blocksConfig, 'Pagination', preset, variantProps, slotClassesProp)
+    resolveSlotClasses(
+      blocksConfig,
+      'Pagination',
+      preset,
+      variantProps,
+      slotClassesProp,
+      paginationVariants.config
+    )
   );
 
   // Calculate pagination info for table layout

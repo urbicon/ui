@@ -55,7 +55,14 @@
   const blocksConfig = getBlocksConfig();
   const unstyled = $derived(unstyledProp || blocksConfig?.unstyled || false);
   const slotClasses = $derived(
-    resolveSlotClasses(blocksConfig, 'Popover', preset, { size }, slotClassesProp)
+    resolveSlotClasses(
+      blocksConfig,
+      'Popover',
+      preset,
+      { size },
+      slotClassesProp,
+      popoverVariants.config
+    )
   );
 
   // Per-instance motion overrides. Set the shared popover CSS variables inline

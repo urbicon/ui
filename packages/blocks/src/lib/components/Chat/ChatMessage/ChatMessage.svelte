@@ -72,7 +72,14 @@
   const variantProps: ChatMessageVariants = $derived({ layout, density, role: message.role });
   const styles = $derived(chatMessageVariants(variantProps));
   const slotClasses = $derived(
-    resolveSlotClasses(blocksConfig, 'ChatMessage', preset, variantProps, slotClassesProp)
+    resolveSlotClasses(
+      blocksConfig,
+      'ChatMessage',
+      preset,
+      variantProps,
+      slotClassesProp,
+      chatMessageVariants.config
+    )
   );
 
   function cls(name: keyof typeof slotClasses, extra?: string | (string | undefined)[]) {

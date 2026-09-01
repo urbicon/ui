@@ -80,7 +80,14 @@
   const styles = $derived(toggleVariants(variantProps));
 
   const slotClasses = $derived(
-    resolveSlotClasses(blocksConfig, 'Toggle', preset, variantProps, slotClassesProp)
+    resolveSlotClasses(
+      blocksConfig,
+      'Toggle',
+      preset,
+      variantProps,
+      slotClassesProp,
+      toggleVariants.config
+    )
   );
 
   const dataState = $derived(checked ? 'checked' : 'unchecked');

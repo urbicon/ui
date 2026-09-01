@@ -68,14 +68,6 @@
 
   const blocksConfig = getBlocksConfig();
   const unstyled = $derived(unstyledProp || blocksConfig?.unstyled || false);
-  // `datePickerVariants` has no axes — the root is a positioning context — so
-  // this object feeds `resolveSlotClasses` alone, not a tv() call. Its keys are
-  // the values the picker hands to the Input and the Calendar it wraps, which
-  // is what an `overrides` rule on a picker can meaningfully name.
-  const variantProps = $derived({ size, inputVariant, calendarVariant, disabled });
-  const slotClasses = $derived(
-    resolveSlotClasses(blocksConfig, 'DatePicker', preset, variantProps, slotClassesProp)
-  );
   const styles = $derived(unstyled ? undefined : datePickerVariants());
 
   function slot(name: DatePickerSlots, extra?: string): string {
@@ -121,6 +113,30 @@
 
   const effectivePlaceholder = $derived(placeholder ?? bt('datepicker.placeholder'));
   const effectiveError = $derived(error ?? parseError);
+
+  // `datePickerVariants` has no axes — the root is a positioning context — so
+  // this object feeds `resolveSlotClasses` alone, not a tv() call. Its keys are
+  // the values the picker hands to the Input and the Calendar it wraps, which
+  // is what an `overrides` rule on a picker can meaningfully name. `error` is
+  // the state the field is actually in, parse failures included, and boolean,
+  // because that is the axis shape on every field a rule may be written against.
+  const variantProps = $derived({
+    size,
+    inputVariant,
+    calendarVariant,
+    disabled,
+    error: !!effectiveError
+  });
+  const slotClasses = $derived(
+    resolveSlotClasses(
+      blocksConfig,
+      'DatePicker',
+      preset,
+      variantProps,
+      slotClassesProp,
+      datePickerVariants.config
+    )
+  );
 
   const iconSize = $derived(
     size === 'xs' ? 12 : size === 'sm' ? 14 : size === 'lg' || size === 'xl' ? 18 : 16

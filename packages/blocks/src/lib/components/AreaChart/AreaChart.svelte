@@ -2,7 +2,7 @@
   import { getBlocksConfig, resolveSlotClasses } from '$lib/provider';
   import type { AreaChartProps } from './index';
   import type { ChartSeries } from '$lib/internal/charts/types';
-  import { chartSlotResolver } from '$lib/internal/charts/variants';
+  import { chartSlotResolver, chartVariants } from '$lib/internal/charts/variants';
   import { resolveClassChain } from '$lib/utils/variants';
   import {
     linearScale,
@@ -41,7 +41,7 @@
   const bt = useBlocksI18n();
   const unstyled = $derived(unstyledProp || blocksConfig?.unstyled || false);
   const slotClasses = $derived(
-    resolveSlotClasses(blocksConfig, 'AreaChart', preset, {}, slotClassesProp)
+    resolveSlotClasses(blocksConfig, 'AreaChart', preset, {}, slotClassesProp, chartVariants.config)
   );
   const slot = $derived(chartSlotResolver(unstyled, slotClasses));
 

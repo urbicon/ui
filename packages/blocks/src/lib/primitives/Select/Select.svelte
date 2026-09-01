@@ -226,8 +226,8 @@
     variant,
     size,
     open: open || undefined,
-    disabled: disabled || undefined,
-    error: !!error || undefined,
+    disabled: disabled,
+    error: !!error,
     required: required || undefined,
     messageType: error ? 'error' : 'helper'
   });
@@ -235,7 +235,14 @@
   const styles = $derived(selectVariants(variantProps));
 
   const slotClasses = $derived(
-    resolveSlotClasses(blocksConfig, 'Select', preset, variantProps, slotClassesProp)
+    resolveSlotClasses(
+      blocksConfig,
+      'Select',
+      preset,
+      variantProps,
+      slotClassesProp,
+      selectVariants.config
+    )
   );
 
   // Initial active-option highlight when the listbox opens. Where the virtual

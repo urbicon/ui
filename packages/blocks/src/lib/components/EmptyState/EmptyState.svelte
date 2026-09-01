@@ -26,7 +26,14 @@
   const styles = $derived(unstyled ? undefined : emptyStateVariants(variantProps));
 
   const slotClasses = $derived(
-    resolveSlotClasses(blocksConfig, 'EmptyState', preset, variantProps, slotClassesProp)
+    resolveSlotClasses(
+      blocksConfig,
+      'EmptyState',
+      preset,
+      variantProps,
+      slotClassesProp,
+      emptyStateVariants.config
+    )
   );
 
   const iconSize = $derived(density === 'compact' ? 32 : 40);

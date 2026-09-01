@@ -101,9 +101,9 @@
     variant,
     size,
     intent,
-    disabled: disabled || undefined,
-    readonly: readonly || undefined,
-    error: !!error || undefined,
+    disabled: disabled,
+    readonly: readonly,
+    error: !!error,
     required: required || undefined,
     messageType: error ? 'error' : 'helper'
   });
@@ -111,7 +111,14 @@
   const styles = $derived(pinInputVariants(variantProps));
 
   const slotClasses = $derived(
-    resolveSlotClasses(blocksConfig, 'PinInput', preset, variantProps, slotClassesProp)
+    resolveSlotClasses(
+      blocksConfig,
+      'PinInput',
+      preset,
+      variantProps,
+      slotClassesProp,
+      pinInputVariants.config
+    )
   );
 
   function cellClass() {

@@ -38,7 +38,14 @@
   const styles = $derived(accordionVariants(variantProps));
 
   const slotClasses = $derived(
-    resolveSlotClasses(blocksConfig, 'Accordion', preset, variantProps, slotClassesProp)
+    resolveSlotClasses(
+      blocksConfig,
+      'Accordion',
+      preset,
+      variantProps,
+      slotClassesProp,
+      accordionVariants.config
+    )
   );
 
   function normalise(v: string | string[] | undefined): string[] {

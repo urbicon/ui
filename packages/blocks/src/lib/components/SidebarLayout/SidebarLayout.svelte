@@ -48,7 +48,14 @@
   const styles = $derived(sidebarLayoutVariants(variantProps));
 
   const slotClasses = $derived(
-    resolveSlotClasses(blocksConfig, 'SidebarLayout', preset, variantProps, slotClassesProp)
+    resolveSlotClasses(
+      blocksConfig,
+      'SidebarLayout',
+      preset,
+      variantProps,
+      slotClassesProp,
+      sidebarLayoutVariants.config
+    )
   );
 
   // Forward sidebar-related slotClasses to the embedded Sidebar.

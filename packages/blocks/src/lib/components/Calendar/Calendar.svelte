@@ -144,7 +144,14 @@
   const variantProps: CalendarVariants = $derived({ variant, size, showWeekNumbers });
   const styles = $derived(calendarVariants(variantProps));
   const slotClasses = $derived(
-    resolveSlotClasses(blocksConfig, 'Calendar', preset, variantProps, slotClassesProp)
+    resolveSlotClasses(
+      blocksConfig,
+      'Calendar',
+      preset,
+      variantProps,
+      slotClassesProp,
+      calendarVariants.config
+    )
   );
 
   // --- Animation state ---

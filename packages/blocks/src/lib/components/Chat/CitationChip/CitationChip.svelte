@@ -30,7 +30,14 @@
   const variantProps = $derived({ citationStyle });
   const styles = $derived(citationChipVariants(variantProps));
   const slotClasses = $derived(
-    resolveSlotClasses(blocksConfig, 'CitationChip', preset, variantProps, slotClassesProp)
+    resolveSlotClasses(
+      blocksConfig,
+      'CitationChip',
+      preset,
+      variantProps,
+      slotClassesProp,
+      citationChipVariants.config
+    )
   );
 
   // Numeric markers show the 1-based ordinal, falling back to the raw id when

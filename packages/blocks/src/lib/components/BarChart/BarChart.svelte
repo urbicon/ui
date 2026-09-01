@@ -2,7 +2,7 @@
   import { getBlocksConfig, resolveSlotClasses } from '$lib/provider';
   import type { BarChartProps } from './index';
   import type { ChartSeries } from '$lib/internal/charts/types';
-  import { chartSlotResolver } from '$lib/internal/charts/variants';
+  import { chartSlotResolver, chartVariants } from '$lib/internal/charts/variants';
   import {
     bandScale,
     linearScale,
@@ -37,7 +37,7 @@
   const bt = useBlocksI18n();
   const unstyled = $derived(unstyledProp || blocksConfig?.unstyled || false);
   const slotClasses = $derived(
-    resolveSlotClasses(blocksConfig, 'BarChart', preset, {}, slotClassesProp)
+    resolveSlotClasses(blocksConfig, 'BarChart', preset, {}, slotClassesProp, chartVariants.config)
   );
   const slot = $derived(chartSlotResolver(unstyled, slotClasses));
 

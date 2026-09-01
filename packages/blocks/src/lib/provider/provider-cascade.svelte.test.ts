@@ -1,7 +1,7 @@
 // @vitest-environment jsdom
 import { createRawSnippet, flushSync, mount, unmount } from 'svelte';
 import { describe, expect, it, vi } from 'vitest';
-import { resolveClassChain } from '$lib/utils/variants';
+import { effectiveVariants, resolveClassChain } from '$lib/utils/variants';
 import CascadeCompoundHost from './__fixtures__/CascadeCompoundHost.svelte';
 import CascadeHost from './__fixtures__/CascadeHost.svelte';
 import { MOUNT_FIXTURES, type MountFixture } from './__fixtures__/cascade-mount-props';
@@ -19,8 +19,9 @@ import { type CascadeComponent, exportedComponents } from './__fixtures__/cascad
  *
  * - a component can call `resolveSlotClasses` and never read the record it
  *   returns, so the presence of the call proves nothing about the markup;
- * - an `overrides` rule is matched against the condition object the component
- *   builds at runtime. Its keys are the internal axis names, its values are
+ * - an `overrides` rule is matched against the component's effective variants —
+ *   the condition object it builds at runtime, folded over its `tv()` config's
+ *   `defaultVariants`. Its keys are variant axis names, its values are
  *   expressions, and the object literal carries prose — the only exact reading
  *   of it is the call itself, which is why the condition here is captured from
  *   the running component (see the mock below) instead of parsed;
@@ -175,23 +176,28 @@ const ROUTES: Route[] = ['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H'];
  * a stale entry is an error, not a leftover.
  */
 const KNOWN_GAPS: Record<string, Partial<Record<Route, string>>> = {
-  // #341 — an empty condition object: every `overrides` rule is dead on arrival.
-  A2UIView: { B: '#341 passes `{}` as its condition object' },
-  AreaChart: { B: '#341 passes `{}` as its condition object' },
-  BarChart: { B: '#341 passes `{}` as its condition object' },
-  // `chartVariants` carries one axis, `layout`, and ChartFrame renders only at
-  // `cartesian` — so it hands the resolver `{}` like the four charts around it.
-  ChartFrame: { B: '#341 passes `{}` as its condition object' },
-  Chat: { B: '#341 passes `{}` as its condition object' },
-  ChatMessageList: { B: '#341 passes `{}` though it declares `layout` and `density`' },
-  DonutChart: { B: '#341 passes `{}` as its condition object' },
-  Guide: { B: '#341 passes `{}` as its condition object' },
-  GuideArticle: { B: '#341 passes `{}` as its condition object' },
-  GuideHint: { B: '#341 passes `{}` as its condition object' },
-  GuideMention: { B: '#341 passes `{}` as its condition object' },
-  GuideRef: { B: '#341 passes `{}` as its condition object' },
-  LineChart: { B: '#341 passes `{}` as its condition object' },
-  ReasoningDisclosure: { B: '#341 passes `{}` as its condition object' },
+  // An empty condition object, and here it is the honest one: these components'
+  // `tv()` configs declare `variants: {}`, so there is no axis for a rule to
+  // select and `effectiveVariants` has nothing to fold in either. `tv()` sees
+  // exactly the same emptiness. Unconditional `slotClasses` and presets reach
+  // them (routes A and F–H pass); only a *conditional* rule cannot, and giving
+  // them an axis to be addressable would add a branch no stylesheet needs.
+  //
+  // ChatMessageList is the one that looks like a defect and is not: it declares
+  // `layout` and `density`, but forwards both to the `ChatMessage`s it renders
+  // rather than styling itself with them — a rule keyed on either belongs under
+  // `ChatMessage`, whose condition object does carry them.
+  A2UIView: { B: '`a2uiViewVariants` declares no axes' },
+  Chat: { B: '`chatVariants` declares no axes' },
+  ChatMessageList: {
+    B: '`chatMessageListVariants` declares no axes — `layout`/`density` go to ChatMessage'
+  },
+  Guide: { B: '`guideTourVariants` declares no axes' },
+  GuideArticle: { B: '`guideArticleVariants` declares no axes' },
+  GuideHint: { B: '`guideHintVariants` declares no axes' },
+  GuideMention: { B: '`guideMentionVariants` declares no axes' },
+  GuideRef: { B: '`guideRefVariants` declares no axes' },
+  ReasoningDisclosure: { B: '`reasoningDisclosureVariants` declares no axes' },
 
   // The internal core layer's structural plumbing (`inline-flex items-center
   // justify-center` on `CoreIconButton`) is joined raw with the call-site's
@@ -318,20 +324,19 @@ vi.mock('$lib/provider', async (importOriginal) => {
   return {
     ...original,
     resolveSlotClasses: (
-      config: Parameters<typeof original.resolveSlotClasses>[0],
-      component: string,
-      preset: string | undefined,
-      activeProps: Record<string, unknown>,
-      instanceSlotClasses: Parameters<typeof original.resolveSlotClasses>[4]
-    ) => {
-      recorder.calls.push({ component, activeProps: { ...activeProps } });
-      return original.resolveSlotClasses(
-        config,
-        component,
-        preset,
-        activeProps,
-        instanceSlotClasses
-      );
+      ...args: Parameters<typeof original.resolveSlotClasses>
+    ): ReturnType<typeof original.resolveSlotClasses> => {
+      // The props the resolver *matches on*, not the raw bag the component
+      // hands over: a rule is tested against the config's `defaultVariants`
+      // under that bag, so a component that leaves an axis out is still
+      // addressable on it. Recording the raw bag instead made route B build
+      // rules out of keys the match never sees — measured on the four input
+      // wrappers, whose written props are all `undefined` at a plain mount.
+      recorder.calls.push({
+        component: args[1],
+        activeProps: effectiveVariants(args[5], args[3])
+      });
+      return original.resolveSlotClasses(...args);
     }
   };
 });

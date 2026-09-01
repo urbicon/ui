@@ -87,7 +87,14 @@
   const styles = $derived(tabVariants(variantProps));
 
   const slotClasses = $derived(
-    resolveSlotClasses(blocksConfig, 'Tab', preset, variantProps, slotClassesProp)
+    resolveSlotClasses(
+      blocksConfig,
+      'Tab',
+      preset,
+      variantProps,
+      slotClassesProp,
+      tabVariants.config
+    )
   );
 
   function updateIndicator() {

@@ -123,7 +123,14 @@
   const variantProps: PlannerVariants = $derived({ view, variant, size });
   const styles = $derived(plannerVariants(variantProps));
   const slotClasses = $derived(
-    resolveSlotClasses(blocksConfig, 'Planner', preset, variantProps, slotClassesProp)
+    resolveSlotClasses(
+      blocksConfig,
+      'Planner',
+      preset,
+      variantProps,
+      slotClassesProp,
+      plannerVariants.config
+    )
   );
   // `unstyled` drops the look, not the layout: below `md` the week view moves
   // the weekday and the date out of the header row and into every cell, and

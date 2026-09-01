@@ -36,7 +36,14 @@
   const styles = $derived(toolbarVariants(variantProps));
 
   const slotClasses = $derived(
-    resolveSlotClasses(blocksConfig, 'Toolbar', preset, variantProps, slotClassesProp)
+    resolveSlotClasses(
+      blocksConfig,
+      'Toolbar',
+      preset,
+      variantProps,
+      slotClassesProp,
+      toolbarVariants.config
+    )
   );
 </script>
 

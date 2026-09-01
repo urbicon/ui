@@ -56,7 +56,14 @@
   const variantProps: VariantProps<typeof tooltipVariants> = $derived({ open, intent, size });
   const styles = $derived(tooltipVariants(variantProps));
   const slotClasses = $derived(
-    resolveSlotClasses(blocksConfig, 'Tooltip', preset, variantProps, slotClassesProp)
+    resolveSlotClasses(
+      blocksConfig,
+      'Tooltip',
+      preset,
+      variantProps,
+      slotClassesProp,
+      tooltipVariants.config
+    )
   );
 
   // Inside an open modal <dialog>, a popover shown via showPopover() forms a

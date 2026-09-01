@@ -19,7 +19,7 @@
   const blocksConfig = getBlocksConfig();
   const unstyled = $derived(unstyledProp || blocksConfig?.unstyled || false);
   const slotClasses = $derived(
-    resolveSlotClasses(blocksConfig, 'Kbd', preset, { size }, slotClassesProp)
+    resolveSlotClasses(blocksConfig, 'Kbd', preset, { size }, slotClassesProp, kbdVariants.config)
   );
 
   const styles = $derived(unstyled ? null : kbdVariants({ size }));

@@ -960,6 +960,30 @@ function stripUndefined(obj: Record<string, unknown>): Record<string, unknown> {
   return result;
 }
 
+/**
+ * The variant props a `tv()` config actually resolves against, for a given
+ * input — `defaultVariants` under the caller's values, with `undefined` read
+ * as "not written" so a default survives it. This is the same fold `tv()`
+ * performs internally (`{ ...defaultVariants, ...stripUndefined(props) }`),
+ * exported so the override cascade can match a rule against the state the
+ * component is *styled* in rather than against the raw prop bag.
+ *
+ * Why it has to be shared rather than restated: the two differ exactly where
+ * a component leaves an axis out. `Card` hands `disabled: undefined` to both,
+ * and `cardVariants` carries `defaultVariants.disabled = false` — so `tv()`
+ * styles a `disabled: false` card while a `{ disabled: false }` override rule
+ * saw no `disabled` at all and could never fire.
+ *
+ * @example
+ * effectiveVariants(cardVariants.config, { disabled: undefined }); // → { …, disabled: false }
+ */
+export function effectiveVariants(
+  config: TVConfig,
+  props: Record<string, unknown>
+): Record<string, unknown> {
+  return { ...config.defaultVariants, ...stripUndefined(props) };
+}
+
 export function matchesCompound(
   compound: Record<string, unknown>,
   effectiveProps: Record<string, unknown>

@@ -73,7 +73,14 @@
   const styles = $derived(buttonGroupVariants(variantProps));
 
   const slotClasses = $derived(
-    resolveSlotClasses(blocksConfig, 'ButtonGroup', preset, variantProps, slotClassesProp)
+    resolveSlotClasses(
+      blocksConfig,
+      'ButtonGroup',
+      preset,
+      variantProps,
+      slotClassesProp,
+      buttonGroupVariants.config
+    )
   );
 
   let selectedValues = $state<Set<string>>(new Set());

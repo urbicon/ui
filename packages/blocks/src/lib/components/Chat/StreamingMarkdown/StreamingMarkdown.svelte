@@ -37,7 +37,14 @@
   const styles = $derived(streamingMarkdownVariants(variantProps));
 
   const slotClasses = $derived(
-    resolveSlotClasses(blocksConfig, 'StreamingMarkdown', preset, variantProps, slotClassesProp)
+    resolveSlotClasses(
+      blocksConfig,
+      'StreamingMarkdown',
+      preset,
+      variantProps,
+      slotClassesProp,
+      streamingMarkdownVariants.config
+    )
   );
 
   /** Final class string per slot — computed once here so MdBlock/MdInline stay dumb. */

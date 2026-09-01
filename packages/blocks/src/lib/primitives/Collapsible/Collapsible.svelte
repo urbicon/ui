@@ -68,7 +68,14 @@
   const styles = $derived(collapsibleVariants(variantProps));
 
   const slotClasses = $derived(
-    resolveSlotClasses(blocksConfig, 'Collapsible', preset, variantProps, slotClassesProp)
+    resolveSlotClasses(
+      blocksConfig,
+      'Collapsible',
+      preset,
+      variantProps,
+      slotClassesProp,
+      collapsibleVariants.config
+    )
   );
 
   const propsId = $props.id();

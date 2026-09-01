@@ -58,7 +58,14 @@
   });
   const styles = $derived(toolCallCardVariants(variantProps));
   const slotClasses = $derived(
-    resolveSlotClasses(blocksConfig, 'ToolCallCard', preset, variantProps, slotClassesProp)
+    resolveSlotClasses(
+      blocksConfig,
+      'ToolCallCard',
+      preset,
+      variantProps,
+      slotClassesProp,
+      toolCallCardVariants.config
+    )
   );
 
   function cls(name: keyof typeof slotClasses) {

@@ -109,6 +109,18 @@ Use `overrides` for **prop-conditional** rules an unconditional `slotClasses` ca
 </BlocksProvider>
 ```
 
+A rule is matched against the component's **effective** variants — what it was handed, over its own defaults — so a rule keyed on an axis the call site never wrote still fires at that axis's default value. Both sides of a boolean work, which is what makes a house rule expressible in one entry:
+
+```svelte
+<BlocksProvider
+  defaults={{ Input: { overrides: [{ disabled: false, class: { base: 'cursor-text' } }] } }}
+>
+  <!-- every input that is NOT disabled; `{ disabled: true }` is the other half -->
+</BlocksProvider>
+```
+
+The keys are the component's variant axes. For most axes that is the prop you already write (`variant`, `size`, `intent`, `disabled`); a few are computed rather than received (`hasRightIcon`, `messageType`, `open`) and are listed with each component's variants. A component whose look carries no axes at all — `Chat`, `ChatMessageList`, the `Guide*` parts — has nothing to match on; style those with unconditional `slotClasses` or a preset.
+
 ## Icons
 
 358 hand-rolled SVG icons in `src/lib/icons/`, registered via `IconProvider`. Metadata (`ICON_METADATA`) enables search by name, keyword, or category. Discover them with `urbicon icons <query>`.

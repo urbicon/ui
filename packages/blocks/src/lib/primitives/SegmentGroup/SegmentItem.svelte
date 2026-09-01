@@ -40,7 +40,14 @@
   const styles = $derived(segmentGroupVariants(variantProps));
 
   const slotClasses = $derived(
-    resolveSlotClasses(blocksConfig, 'SegmentItem', preset, variantProps, slotClassesProp)
+    resolveSlotClasses(
+      blocksConfig,
+      'SegmentItem',
+      preset,
+      variantProps,
+      slotClassesProp,
+      segmentGroupVariants.config
+    )
   );
 
   onMount(() => {

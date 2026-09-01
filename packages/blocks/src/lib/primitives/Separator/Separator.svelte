@@ -18,7 +18,14 @@
   const blocksConfig = getBlocksConfig();
   const unstyled = $derived(unstyledProp || blocksConfig?.unstyled || false);
   const slotClasses = $derived(
-    resolveSlotClasses(blocksConfig, 'Separator', preset, { orientation, size }, slotClassesProp)
+    resolveSlotClasses(
+      blocksConfig,
+      'Separator',
+      preset,
+      { orientation, size },
+      slotClassesProp,
+      separatorVariants.config
+    )
   );
 
   const classes = $derived(

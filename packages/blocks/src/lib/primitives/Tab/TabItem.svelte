@@ -47,7 +47,14 @@
   const styles = $derived(tabVariants(variantProps));
 
   const slotClasses = $derived(
-    resolveSlotClasses(blocksConfig, 'TabItem', preset, variantProps, slotClassesProp)
+    resolveSlotClasses(
+      blocksConfig,
+      'TabItem',
+      preset,
+      variantProps,
+      slotClassesProp,
+      tabVariants.config
+    )
   );
 
   onMount(() => {

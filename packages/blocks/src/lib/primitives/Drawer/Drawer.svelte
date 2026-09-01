@@ -90,7 +90,14 @@
   const variantProps: DrawerVariants = $derived({ placement, size, intent, accentEdge });
   const styles = $derived(drawerVariants(variantProps));
   const slotClasses = $derived(
-    resolveSlotClasses(blocksConfig, 'Drawer', preset, variantProps, slotClassesProp)
+    resolveSlotClasses(
+      blocksConfig,
+      'Drawer',
+      preset,
+      variantProps,
+      slotClassesProp,
+      drawerVariants.config
+    )
   );
 
   const motion = $derived(

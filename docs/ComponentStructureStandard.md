@@ -122,17 +122,31 @@ Imports the props type from `index.ts` – no redefinition. Uses `$props()` with
   // The `: ComponentVariants` annotation is MANDATORY: without it, the
   // string-literal ternaries below widen to `string` and stop matching the
   // tv() variant keys (silent loss of styling + overrides).
+  // Boolean axes carry the raw value — never `disabled || undefined`. Both
+  // sides have to be addressable: `{ disabled: false }` is how a project-wide
+  // rule says "every control that is NOT disabled".
   const variantProps: ComponentVariants = $derived({
     variant,
     size,
     intent,
-    disabled: disabled || undefined
+    disabled
   });
 
   const styles = $derived(componentVariants(variantProps));
 
+  // The last argument is the component's own tv() config, and it is required:
+  // it is what lets a rule be matched against the EFFECTIVE variants (the
+  // config's `defaultVariants` under `variantProps`) — the state the component
+  // is actually styled in — rather than against the raw bag.
   const slotClasses = $derived(
-    resolveSlotClasses(blocksConfig, 'ComponentName', preset, variantProps, slotClassesProp)
+    resolveSlotClasses(
+      blocksConfig,
+      'ComponentName',
+      preset,
+      variantProps,
+      slotClassesProp,
+      componentVariants.config
+    )
   );
 </script>
 

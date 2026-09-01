@@ -55,7 +55,14 @@
   const styles = $derived(progressVariants(variantProps));
 
   const slotClasses = $derived(
-    resolveSlotClasses(blocksConfig, 'Progress', preset, variantProps, slotClassesProp)
+    resolveSlotClasses(
+      blocksConfig,
+      'Progress',
+      preset,
+      variantProps,
+      slotClassesProp,
+      progressVariants.config
+    )
   );
 
   const circularRadius = $derived((circularSize - strokeWidth) / 2);

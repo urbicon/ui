@@ -49,7 +49,14 @@
   const styles = $derived(themeSwitcherVariants(variantProps));
 
   const slotClasses = $derived(
-    resolveSlotClasses(blocksConfig, 'ThemeSwitcher', preset, variantProps, slotClassesProp)
+    resolveSlotClasses(
+      blocksConfig,
+      'ThemeSwitcher',
+      preset,
+      variantProps,
+      slotClassesProp,
+      themeSwitcherVariants.config
+    )
   );
 
   const resolvedTheme: Theme = $derived(

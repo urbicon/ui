@@ -138,16 +138,37 @@ describe('resolveSlotClasses', () => {
 
   it('returns instance slotClasses only when no provider config applies', () => {
     expect(
-      resolveSlotClasses(undefined, 'Badge', undefined, { variant: 'filled' }, { base: 'mt-1' })
+      resolveSlotClasses(
+        undefined,
+        'Badge',
+        undefined,
+        { variant: 'filled' },
+        { base: 'mt-1' },
+        badgeVariants.config
+      )
     ).toEqual({ base: 'mt-1' });
   });
 
   it('applies a default override only for the matching variant', () => {
     expect(
-      resolveSlotClasses(config, 'Badge', undefined, { variant: 'outlined' }, undefined)
+      resolveSlotClasses(
+        config,
+        'Badge',
+        undefined,
+        { variant: 'outlined' },
+        undefined,
+        badgeVariants.config
+      )
     ).toEqual({ base: 'shadow-sm border' });
     expect(
-      resolveSlotClasses(config, 'Badge', undefined, { variant: 'filled' }, undefined)
+      resolveSlotClasses(
+        config,
+        'Badge',
+        undefined,
+        { variant: 'filled' },
+        undefined,
+        badgeVariants.config
+      )
     ).toEqual({
       base: 'shadow-sm'
     });
@@ -159,7 +180,8 @@ describe('resolveSlotClasses', () => {
       'Badge',
       'thin',
       { variant: 'outlined' },
-      undefined
+      undefined,
+      badgeVariants.config
     ).base.split(/\s+/);
     expect(tokens).toContain('shadow-sm');
     expect(tokens).toContain('tracking-wide');
@@ -179,10 +201,24 @@ describe('resolveSlotClasses', () => {
       presets: {}
     };
     expect(
-      resolveSlotClasses(conflicting, 'Badge', undefined, { variant: 'outlined' }, undefined)
+      resolveSlotClasses(
+        conflicting,
+        'Badge',
+        undefined,
+        { variant: 'outlined' },
+        undefined,
+        badgeVariants.config
+      )
     ).toEqual({ base: 'border' });
     expect(
-      resolveSlotClasses(conflicting, 'Badge', undefined, { variant: 'filled' }, undefined)
+      resolveSlotClasses(
+        conflicting,
+        'Badge',
+        undefined,
+        { variant: 'filled' },
+        undefined,
+        badgeVariants.config
+      )
     ).toEqual({ base: 'border-4' });
   });
 
@@ -192,9 +228,8 @@ describe('resolveSlotClasses', () => {
       'Badge',
       undefined,
       { variant: 'outlined' },
-      {
-        base: 'border-8'
-      }
+      { base: 'border-8' },
+      badgeVariants.config
     ).base.split(/\s+/);
     expect(tokens).toContain('border-8');
     expect(tokens).not.toContain('border');
@@ -214,7 +249,8 @@ describe('resolveSlotClasses – integration with badgeVariants (origin-blind)',
       'Badge',
       undefined,
       { variant: 'outlined', intent: 'primary' },
-      undefined
+      undefined,
+      badgeVariants.config
     );
     // Mirror Badge.svelte: styles.base({ class: [slotClasses.base, className] }).
     const tokens = badgeVariants({ variant: 'outlined', intent: 'primary' })
@@ -231,7 +267,8 @@ describe('resolveSlotClasses – integration with badgeVariants (origin-blind)',
       'Badge',
       undefined,
       { variant: 'filled', intent: 'primary' },
-      undefined
+      undefined,
+      badgeVariants.config
     );
     expect(resolved.base).toBeUndefined();
   });

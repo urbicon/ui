@@ -52,7 +52,14 @@
 
   const styles = $derived(chatMessageListVariants({}));
   const slotClasses = $derived(
-    resolveSlotClasses(blocksConfig, 'ChatMessageList', preset, {}, slotClassesProp)
+    resolveSlotClasses(
+      blocksConfig,
+      'ChatMessageList',
+      preset,
+      {},
+      slotClassesProp,
+      chatMessageListVariants.config
+    )
   );
 
   function slot(name: keyof typeof styles, extra?: string | false): string {

@@ -47,7 +47,7 @@ import type { CardSlots, CardVariants } from './card.variants';
  * ```
  */
 export interface CardProps
-  extends Omit<CardVariants, 'elementType' | 'interactive'>,
+  extends Omit<CardVariants, 'elementType'>,
     Omit<HTMLAttributes<HTMLElement>, 'children'> {
   /** Main body content. */
   children?: Snippet;
@@ -76,6 +76,16 @@ export interface CardProps
    * @summary Makes the whole card a button, even without an `onclick`.
    */
   clickable?: boolean;
+  /**
+   * The hover/focus treatment on its own, without changing the rendered
+   * element. `clickable`, `onclick` and `href` all switch it on — this is the
+   * axis all three resolve to, and the name a `<BlocksProvider>` `overrides`
+   * rule keys on. Set it directly only when the card is made operable by
+   * something the component cannot see.
+   * @summary Interactive styles without changing the element.
+   * @default false
+   */
+  interactive?: boolean;
 
   /** Extra classes merged onto the root element. */
   class?: string;

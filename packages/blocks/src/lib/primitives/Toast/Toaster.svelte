@@ -48,7 +48,14 @@
   // activeProps — it is applied per row in the `slot(key, intent)` helper via
   // its own `toastVariants({ placement, intent })` call (see below).
   const slotClasses = $derived(
-    resolveSlotClasses(blocksConfig, 'Toaster', preset, { placement }, slotClassesProp)
+    resolveSlotClasses(
+      blocksConfig,
+      'Toaster',
+      preset,
+      { placement },
+      slotClassesProp,
+      toastVariants.config
+    )
   );
 
   $effect(() => {

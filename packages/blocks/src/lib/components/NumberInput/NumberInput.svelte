@@ -50,7 +50,8 @@
       'NumberInput',
       preset,
       wrapperActiveProps(inputVariants.config, { ...inputProps, disabled, readonly }),
-      slotClassesProp
+      slotClassesProp,
+      inputVariants.config
     )
   );
   const styles = $derived(unstyled ? undefined : numberInputVariants());

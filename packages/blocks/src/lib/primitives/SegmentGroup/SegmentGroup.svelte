@@ -71,7 +71,14 @@
   const styles = $derived(segmentGroupVariants(variantProps));
 
   const slotClasses = $derived(
-    resolveSlotClasses(blocksConfig, 'SegmentGroup', preset, variantProps, slotClassesProp)
+    resolveSlotClasses(
+      blocksConfig,
+      'SegmentGroup',
+      preset,
+      variantProps,
+      slotClassesProp,
+      segmentGroupVariants.config
+    )
   );
 
   function updateIndicator() {

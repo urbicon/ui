@@ -34,7 +34,14 @@
   const variantProps: GuideBeaconVariants = $derived({ size });
   const styles = $derived(guideBeaconVariants(variantProps));
   const slotClasses = $derived(
-    resolveSlotClasses(blocksConfig, 'GuideBeacon', preset, variantProps, slotClassesProp)
+    resolveSlotClasses(
+      blocksConfig,
+      'GuideBeacon',
+      preset,
+      variantProps,
+      slotClassesProp,
+      guideBeaconVariants.config
+    )
   );
 
   // Hide once the tour has been seen (gentle, never nags) and while it is running (the

@@ -1,17 +1,31 @@
 import { createOptionalContext } from '$lib/utils/optional-context';
-import { matchesCompound, resolveClassChain, type TVConfig } from '$lib/utils/variants';
+import {
+  effectiveVariants,
+  matchesCompound,
+  resolveClassChain,
+  type TVConfig
+} from '$lib/utils/variants';
 
 /**
- * A prop-conditional style rule. Its non-`class` keys are matched against a
- * component's active variant props — exactly like a `tv()` compoundVariant
- * (`string` = equality, `string[]` = "one of", `boolean` for a boolean axis
- * such as the table's `contained`; the comparison runs on the stringified
- * value, so `true` and `'true'` are the same condition). An axis a component
- * carries as `undefined` rather than `false` — the blocks primitives do that
- * for `disabled`, `readonly` and `error` — matches only its `true` side:
- * `{ disabled: false }` never fires. On a match, the `class` record (slot →
+ * A prop-conditional style rule. Its non-`class` keys are matched against the
+ * component's **effective** variant props — the same fold `tv()` styles it
+ * with, so a rule sees an axis the component left out at its
+ * `defaultVariants` value rather than as absent (see {@link effectiveVariants}).
+ * `{ disabled: false }` therefore fires on every component whose config
+ * declares a `disabled` axis defaulting to `false`, and a component with no
+ * such axis — one that dims through the `disabled:` CSS variant instead of a
+ * variant branch — cannot be addressed on it at all.
+ *
+ * Matching works like a `tv()` compoundVariant: `string` = equality,
+ * `string[]` = "one of", `boolean` for a boolean axis such as the table's
+ * `contained`; the comparison runs on the stringified value, so `true` and
+ * `'true'` are the same condition. On a match, the `class` record (slot →
  * classes) is merged into the slot-class cascade. Additive: every matching
  * rule contributes; later sources win per Tailwind bucket.
+ *
+ * The keys are **variant axis names**, which are the component's public prop
+ * names wherever it has one for the axis, and internal where the axis is
+ * computed rather than received (`hasRightIcon`, `messageType`, `open`).
  *
  * @example
  * { variant: 'outlined', class: { base: 'border' } } // 1px border only on outlined
@@ -116,15 +130,12 @@ export function resolvePresetSlotClasses(
  * nothing at all under a wrapper's name, because the wrapper carries
  * `variant: undefined`.
  *
- * Both halves are read off the inner component's own `tv()` config rather than
- * restated here: `variants` says which keys are axes at all — a rule may not
- * key on `label`, which the inner component's condition object never carries
- * either — and `defaultVariants` supplies the value for an axis the caller left
- * out. A default that moves there moves here.
- *
- * `false` is carried as `undefined`, the way the primitives carry a boolean
- * axis (`disabled: disabled || undefined`, see {@link ConditionalOverride}), so
- * `{ disabled: false }` fires under neither name rather than under one of them.
+ * Which keys are axes at all is read off the inner component's own `tv()`
+ * config rather than restated here — a rule may not key on `label`, which the
+ * inner component's condition object never carries either. Filling in the axes
+ * the caller left out is *not* done here: {@link resolveSlotClasses} folds
+ * `defaultVariants` over every condition object it matches, so a wrapper and
+ * the component it wraps reach that fold with the same content.
  *
  * **What it cannot supply — and the direction matters.** A rule that fails to
  * fire is noticed; a rule that fires on a state the component is not in looks
@@ -146,8 +157,9 @@ export function resolvePresetSlotClasses(
  *
  * One further axis is declared but passed per slot-call rather than per
  * component, so a rule on it fires here and not there: `iconPosition` on Input,
- * 1 of its 12 axes. (`selected` on Select is not a second case — its default is
- * `false`, which the normalisation above removes, so it fires on neither side.)
+ * 1 of its 12 axes. (`selected` on Select is not a second case: it defaults to
+ * `false` on `selectVariants`, and both sides now reach that default through
+ * the same fold, so `{ selected: false }` fires under either name.)
  */
 export function wrapperActiveProps(
   innerConfig: TVConfig,
@@ -155,8 +167,7 @@ export function wrapperActiveProps(
 ): Record<string, unknown> {
   const result: Record<string, unknown> = {};
   for (const axis of Object.keys(innerConfig.variants ?? {})) {
-    const value = written[axis] ?? innerConfig.defaultVariants?.[axis];
-    result[axis] = value === false ? undefined : value;
+    if (written[axis] !== undefined) result[axis] = written[axis];
   }
   return result;
 }
@@ -200,22 +211,31 @@ export function resolveOverrideSlotClasses(
  * `instanceSlotClasses` admits `undefined` values because that is what a
  * `Partial<XSlotClasses>` prop is: a slot the caller left out. Such a slot is
  * skipped, exactly like an empty string, and never reaches the result.
+ *
+ * `variantConfig` is the component's own `tv()` config (`xVariants.config`),
+ * and it is required rather than optional on purpose: it is what lets the
+ * conditional rules be matched against {@link effectiveVariants} — the props
+ * the component is *styled* with — instead of the raw bag it happens to hand
+ * over. A call site that could omit it would silently go back to matching the
+ * raw bag, which is the defect this parameter exists to remove.
  */
 export function resolveSlotClasses(
   config: BlocksConfig | undefined,
   component: string,
   preset: string | undefined,
   activeProps: Record<string, unknown>,
-  instanceSlotClasses: Record<string, string | undefined> | undefined
+  instanceSlotClasses: Record<string, string | undefined> | undefined,
+  variantConfig: TVConfig
 ): Record<string, string> {
   const defaults = config?.defaults?.[component];
   const presetDef = preset ? config?.presets?.[component]?.[preset] : undefined;
+  const matchProps = effectiveVariants(variantConfig, activeProps);
 
   const sources: (Record<string, string | undefined> | undefined)[] = [
     defaults?.slotClasses,
-    resolveOverrideSlotClasses(defaults?.overrides, activeProps),
+    resolveOverrideSlotClasses(defaults?.overrides, matchProps),
     resolvePresetSlotClasses(config?.presets, component, preset),
-    resolveOverrideSlotClasses(presetDef?.overrides, activeProps),
+    resolveOverrideSlotClasses(presetDef?.overrides, matchProps),
     instanceSlotClasses
   ];
 

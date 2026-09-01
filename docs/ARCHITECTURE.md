@@ -310,14 +310,24 @@ its classes join the cascade and the resolver strips the library's conflicting c
 </BlocksProvider>
 ```
 
-Entries match active **prop values** (via `matchesCompound`), not the library's internal
-variant structure — so it is irrelevant whether `border-2` lives in a `variant` or a
-`compoundVariant`. `string` matches by equality, `string[]` as "one of"; multiple matching
-entries merge additively.
+Entries match the component's **effective variant props** (via `matchesCompound`) — the
+same fold `tv()` styles it with, so it is irrelevant whether `border-2` lives in a
+`variant` or a `compoundVariant`, and an axis the component left out is matched at its
+`defaultVariants` value rather than as absent. `string` matches by equality, `string[]` as
+"one of"; multiple matching entries merge additively.
+
+The keys are variant **axis** names. Those are the component's public prop names wherever
+it has a prop for the axis, and internal where the axis is computed rather than received
+(`hasRightIcon`, `messageType`, `open`). Both sides of a boolean axis are addressable:
+`{ disabled: false }` fires on every component whose config declares a `disabled` axis,
+while a component that dims through the `disabled:` CSS variant rather than a variant
+branch has no such axis and cannot be addressed on it at all.
 
 Every component family resolves through the shared
-`resolveSlotClasses(config, name, preset, activeProps, instanceSlotClasses)`, each feeding
-its active `variantProps` as the match input — so `overrides` applies library-wide.
+`resolveSlotClasses(config, name, preset, activeProps, instanceSlotClasses, variantConfig)`,
+each feeding its active `variantProps` plus its own `tv()` config — the config is what
+turns the raw bag into the effective one, so `overrides` applies library-wide and means the
+same thing everywhere.
 
 The name is not always the component's own. A **compound part** — `CalendarHeader`,
 `MenuItem`, `CalendarDay` — renders only inside another component and is addressed under

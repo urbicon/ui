@@ -92,7 +92,14 @@
   const variantProps: ResourceTimelineVariants = $derived({ variant, size });
   const styles = $derived(resourceTimelineVariants(variantProps));
   const slotClasses = $derived(
-    resolveSlotClasses(blocksConfig, 'ResourceTimeline', preset, variantProps, slotClassesProp)
+    resolveSlotClasses(
+      blocksConfig,
+      'ResourceTimeline',
+      preset,
+      variantProps,
+      slotClassesProp,
+      resourceTimelineVariants.config
+    )
   );
   // `structural` is library-authored (the pinned column, the view's own grid
   // rules) and folds BEFORE the consumer's `slotClasses` entry; `className` is

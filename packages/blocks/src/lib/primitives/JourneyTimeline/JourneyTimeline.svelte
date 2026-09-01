@@ -270,7 +270,8 @@
       'JourneyTimeline',
       preset,
       { orientation, size } satisfies JourneyTimelineVariants,
-      slotClassesProp
+      slotClassesProp,
+      journeyTimelineVariants.config
     )
   );
 

@@ -221,12 +221,19 @@
   const variantProps: SplitPaneVariants = $derived({
     orientation,
     dragging: dragging || undefined,
-    disabled: disabled || undefined
+    disabled: disabled
   });
 
   const styles = $derived(splitPaneVariants(variantProps));
   const slotClasses = $derived(
-    resolveSlotClasses(blocksConfig, 'SplitPane', preset, variantProps, slotClassesProp)
+    resolveSlotClasses(
+      blocksConfig,
+      'SplitPane',
+      preset,
+      variantProps,
+      slotClassesProp,
+      splitPaneVariants.config
+    )
   );
 </script>
 

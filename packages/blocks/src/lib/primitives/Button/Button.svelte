@@ -109,7 +109,14 @@
   const styles = $derived(buttonVariants(variantProps));
 
   const slotClasses = $derived(
-    resolveSlotClasses(blocksConfig, 'Button', preset, variantProps, slotClassesProp)
+    resolveSlotClasses(
+      blocksConfig,
+      'Button',
+      preset,
+      variantProps,
+      slotClassesProp,
+      buttonVariants.config
+    )
   );
 
   function handleClick(event: MouseEvent) {

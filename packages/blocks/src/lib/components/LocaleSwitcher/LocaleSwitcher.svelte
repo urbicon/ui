@@ -82,7 +82,8 @@
         size,
         disabled: disabled || isLoading
       }),
-      slotClasses
+      slotClasses,
+      selectVariants.config
     )
   );
 

@@ -107,7 +107,14 @@
   const styles = $derived(avatarVariants(variantProps));
 
   const slotClasses = $derived(
-    resolveSlotClasses(blocksConfig, 'Avatar', preset, variantProps, slotClassesProp)
+    resolveSlotClasses(
+      blocksConfig,
+      'Avatar',
+      preset,
+      variantProps,
+      slotClassesProp,
+      avatarVariants.config
+    )
   );
 
   // `randomColor` paints the visible fill, so it targets the `frame` slot.

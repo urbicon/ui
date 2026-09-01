@@ -52,7 +52,7 @@ export interface StepperContext {
  * ```
  */
 export interface StepperProps
-  extends Omit<StepperVariants, 'stepState' | 'clickable' | 'stepDisabled' | 'separatorComplete'>,
+  extends Omit<StepperVariants, 'state' | 'clickable' | 'disabled' | 'separatorComplete'>,
     Omit<HTMLAttributes<HTMLOListElement>, 'children'> {
   /** Current active step index (0-based). Supports bind:activeStep. @default 0 */
   activeStep?: number;

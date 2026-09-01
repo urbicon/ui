@@ -195,7 +195,14 @@
   const blocksConfig = getBlocksConfig();
   const unstyled = $derived(unstyledProp || blocksConfig?.unstyled || false);
   const slotClasses: Partial<TableSlotClasses> = $derived(
-    resolveSlotClasses(blocksConfig, 'Table', preset, variantProps, slotClassesProp)
+    resolveSlotClasses(
+      blocksConfig,
+      'Table',
+      preset,
+      variantProps,
+      slotClassesProp,
+      tableContainerVariants.config
+    )
   );
 
   setTableStyleContext({

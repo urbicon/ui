@@ -43,8 +43,8 @@ describe('stepperVariants', () => {
     const variants = ['default', 'outlined', 'minimal'] as const;
     const stepStates = ['inactive', 'active', 'complete', 'error', 'warning'] as const;
     for (const variant of variants) {
-      for (const stepState of stepStates) {
-        const styles = stepperVariants({ variant, stepState });
+      for (const state of stepStates) {
+        const styles = stepperVariants({ variant, state });
         expect(styles.indicator()).not.toMatch(/\bdark:/);
         expect(styles.separator()).not.toMatch(/\bdark:/);
         expect(styles.label()).not.toMatch(/\bdark:/);

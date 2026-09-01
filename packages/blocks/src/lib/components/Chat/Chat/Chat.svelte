@@ -20,7 +20,7 @@
 
   const styles = chatVariants();
   const slotClasses = $derived(
-    resolveSlotClasses(blocksConfig, 'Chat', preset, {}, slotClassesProp)
+    resolveSlotClasses(blocksConfig, 'Chat', preset, {}, slotClassesProp, chatVariants.config)
   );
 
   function cls(name: keyof typeof slotClasses, extra?: string | (string | undefined)[]) {

@@ -33,7 +33,14 @@
   const variantProps: GuideArticleVariants = $derived({});
   const styles = $derived(guideArticleVariants(variantProps));
   const slotClasses = $derived(
-    resolveSlotClasses(blocksConfig, 'GuideArticle', preset, variantProps, slotClassesProp)
+    resolveSlotClasses(
+      blocksConfig,
+      'GuideArticle',
+      preset,
+      variantProps,
+      slotClassesProp,
+      guideArticleVariants.config
+    )
   );
 
   const isActive = $derived(guide?.activeArticle === id);

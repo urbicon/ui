@@ -28,7 +28,14 @@
   const styles = $derived(spinnerVariants(variantProps));
 
   const slotClasses = $derived(
-    resolveSlotClasses(blocksConfig, 'Spinner', preset, variantProps, slotClassesProp)
+    resolveSlotClasses(
+      blocksConfig,
+      'Spinner',
+      preset,
+      variantProps,
+      slotClassesProp,
+      spinnerVariants.config
+    )
   );
 </script>
 
