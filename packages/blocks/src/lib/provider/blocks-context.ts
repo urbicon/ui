@@ -132,10 +132,16 @@ export function resolvePresetSlotClasses(
  *
  * Which keys are axes at all is read off the inner component's own `tv()`
  * config rather than restated here — a rule may not key on `label`, which the
- * inner component's condition object never carries either. Filling in the axes
- * the caller left out is *not* done here: {@link resolveSlotClasses} folds
- * `defaultVariants` over every condition object it matches, so a wrapper and
- * the component it wraps reach that fold with the same content.
+ * inner component's condition object never carries either. **Every** such axis
+ * becomes a key, at `undefined` where the caller wrote nothing: a wrapper
+ * stands in for the whole inner component, so it can speak for every axis that
+ * component has, and {@link effectiveVariants} then answers the `undefined`
+ * with the inner config's own default. That is what makes a wrapper and the
+ * component it wraps give one rule the same answer.
+ *
+ * A component that is *not* a stand-in must not do this — an item beside its
+ * siblings (`SegmentItem`) speaks only for the axes it names, or a rule keyed
+ * on one of them would claim its neighbour's state.
  *
  * **What it cannot supply — and the direction matters.** A rule that fails to
  * fire is noticed; a rule that fires on a state the component is not in looks
@@ -167,7 +173,7 @@ export function wrapperActiveProps(
 ): Record<string, unknown> {
   const result: Record<string, unknown> = {};
   for (const axis of Object.keys(innerConfig.variants ?? {})) {
-    if (written[axis] !== undefined) result[axis] = written[axis];
+    result[axis] = written[axis];
   }
   return result;
 }
@@ -213,11 +219,22 @@ export function resolveOverrideSlotClasses(
  * skipped, exactly like an empty string, and never reaches the result.
  *
  * `variantConfig` is the component's own `tv()` config (`xVariants.config`),
- * and it is required rather than optional on purpose: it is what lets the
- * conditional rules be matched against {@link effectiveVariants} — the props
- * the component is *styled* with — instead of the raw bag it happens to hand
- * over. A call site that could omit it would silently go back to matching the
- * raw bag, which is the defect this parameter exists to remove.
+ * and it is required rather than optional on purpose: it is what supplies the
+ * default for an axis the component named but left `undefined`
+ * (see {@link effectiveVariants}). A call site that could omit it would
+ * silently lose those, which is the defect this parameter exists to remove.
+ *
+ * **Required buys the presence of an argument, not the right one.** `TVConfig`
+ * is optional in every field, so *any* config satisfies the parameter and the
+ * compiler cannot tell `cardVariants.config` from `badgeVariants.config` here
+ * — measured: wiring Badge's config into Card's call leaves every suite green
+ * while four rules on axes Card does not have start matching every Card. Tying
+ * the two together — `activeProps` typed as the props of *this* config — was
+ * tried and does not fit: `datePickerVariants` declares no axes at all, and
+ * `DatePicker` deliberately hands the resolver five keys that are not axes of
+ * it but of the Input and Calendar it wraps. A type that rejected the mismatch
+ * would reject that pattern too. Until a shape exists that admits both, the
+ * pairing rests on the call site naming one identifier twice.
  */
 export function resolveSlotClasses(
   config: BlocksConfig | undefined,

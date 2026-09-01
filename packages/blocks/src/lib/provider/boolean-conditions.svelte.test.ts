@@ -20,11 +20,16 @@ import { type CascadeComponent, exportedComponents } from './__fixtures__/cascad
  * one question B folds away: does a rule keyed on **this axis alone** fire?
  *
  * Both sides of the boolean are asserted, and the `false` side is the one that
- * used to fail: a component that carried `disabled: disabled || undefined`
- * handed the resolver no `disabled` at all when it was not disabled, while
- * `tv()` styled it as `disabled: false` out of its own `defaultVariants`. The
- * two now read the same fold (`effectiveVariants`), which is what makes the
- * `false` row assertable at all rather than a second spelling of the `true` row.
+ * used to fail: a component carrying `disabled: disabled || undefined` handed
+ * the resolver no usable `disabled` at all when it was not disabled, so a rule
+ * keyed on `false` could never match. It can now, because the axes below carry
+ * their raw value and because {@link effectiveVariants} answers a key written
+ * as `undefined` with that axis's default.
+ *
+ * The last two rows are the fold's own witnesses, and they are here because
+ * nothing else in this file reaches it: with every boolean axis carrying a raw
+ * `false`, the rows above pass with the fold reverted to `matchProps =
+ * activeProps` — measured.
  *
  * What it does not measure: whether the classes the rule carries are the ones
  * that paint. This is a class-attribute assertion in jsdom, like every other
@@ -39,42 +44,73 @@ type BooleanProp = (typeof BOOLEAN_PROPS)[number];
 const PROBE = 'bc-rule';
 
 /**
- * Pairs that cannot arrive today, each with the reason. An entry asserts the
- * pair **fails**, so closing the gap without deleting the entry is an error —
- * the contract `imports-lint`, `examples-lint` and the cascade sweep share.
- *
- * Every entry here is one shape: the component takes the prop, but its `tv()`
- * config declares no axis of that name, because it dims/marks through a CSS
- * variant (`disabled:opacity-50`, `aria-[invalid]:…`) rather than a variant
- * branch. A rule keyed on the prop has nothing to select, and giving these an
- * axis purely to be addressable would add a branch no stylesheet needs —
- * `variants:lint` hunts exactly those. They are listed rather than derived so
- * that *adding* such an axis, or dropping the prop, has to come past this file.
+ * Why a pair cannot arrive. The kind is **checked against the component's own
+ * `tv()` config**, captured from the running call — so an entry whose prose and
+ * whose code disagree fails here rather than sitting and being believed. That
+ * is not hypothetical: `SegmentItem` carried "no `disabled` axis" while
+ * `segmentGroupVariants` declared one, and what the entry was really recording
+ * was a defect.
  */
-const KNOWN_GAPS: Record<string, Partial<Record<BooleanProp, string>>> = {
-  Accordion: { disabled: 'no `disabled` axis — the item dims via the `disabled:` CSS variant' },
-  AccordionItem: { disabled: 'no `disabled` axis — dims via the `disabled:` CSS variant' },
-  Button: { disabled: 'no `disabled` axis — dims via the `disabled:` CSS variant' },
-  Calendar: { disabled: 'no `disabled` axis — disabled days dim via `dayState`' },
-  Collapsible: { disabled: 'no `disabled` axis — dims via the `disabled:` CSS variant' },
-  CopyButton: { disabled: 'no `disabled` axis — forwarded to the Button it wraps' },
-  FormField: {
-    disabled: '`formFieldVariants` declares no axes at all',
-    error: 'no provider name — a rule goes under the field it wraps'
+type GapKind =
+  /** The config declares no axis of that name — the state is styled by a CSS
+   *  variant (`disabled:opacity-50`), which needs no variant branch. */
+  | 'no-axis'
+  /** The axis exists but is handed to a slot function per row/element, so no
+   *  component-level object can carry it for one row without claiming it of
+   *  all of them. */
+  | 'per-slot-call'
+  /** The component has no provider name, so `overrides` cannot address it. */
+  | 'no-provider-name';
+
+interface Gap {
+  kind: GapKind;
+  why: string;
+}
+
+/**
+ * Pairs that cannot arrive today. An entry asserts that **neither** side fires,
+ * so closing the gap without deleting the entry is an error — the contract
+ * `imports-lint`, `examples-lint` and the cascade sweep share. Neither, not
+ * "not both": a pair where exactly one side fires is a working axis with one
+ * value unreachable, which is a defect and not a gap.
+ *
+ * Giving a component an axis purely to be addressable would add a branch no
+ * stylesheet needs — `variants:lint` hunts exactly those — so these are listed
+ * rather than repaired, and *adding* such an axis or dropping the prop has to
+ * come past this file.
+ */
+const KNOWN_GAPS: Record<string, Partial<Record<BooleanProp, Gap>>> = {
+  Accordion: {
+    disabled: { kind: 'no-axis', why: 'the item dims via the `disabled:` CSS variant' }
   },
-  // `menuVariants.disabled` writes the `item` slot and is passed at the
-  // per-item slot call (`ctx.styles.item({ disabled })`), not per component —
-  // so it says "this row is disabled", which a component-level condition
-  // object cannot carry without claiming it of every row.
-  Menu: { disabled: '`disabled` is a per-item slot-call axis, not a menu-level one' },
-  PaginationItem: { disabled: 'no provider name — a rule for these buttons goes under `Button`' },
-  Planner: { disabled: 'no `disabled` axis — dims via the `disabled:` CSS variant' },
-  PromptInput: { disabled: 'no `disabled` axis — dims via the `disabled:` CSS variant' },
-  ResourceTimeline: { disabled: 'no `disabled` axis — dims via the `disabled:` CSS variant' },
-  SegmentItem: { disabled: 'no `disabled` axis — dims via the `disabled:` CSS variant' },
-  Tab: { disabled: 'no `disabled` axis — dims via the `disabled:` CSS variant' },
-  TabItem: { disabled: 'no `disabled` axis — dims via the `disabled:` CSS variant' },
-  Tooltip: { disabled: 'no `disabled` axis — `disabled` suppresses the tip, it does not style it' }
+  AccordionItem: { disabled: { kind: 'no-axis', why: 'dims via the `disabled:` CSS variant' } },
+  Button: { disabled: { kind: 'no-axis', why: 'dims via the `disabled:` CSS variant' } },
+  Calendar: { disabled: { kind: 'no-axis', why: 'disabled days dim via `dayState`' } },
+  Collapsible: { disabled: { kind: 'no-axis', why: 'dims via the `disabled:` CSS variant' } },
+  CopyButton: { disabled: { kind: 'no-axis', why: 'forwarded to the Button it wraps' } },
+  // One cause, one entry per prop: without a provider name neither rule can be
+  // addressed at all, whatever the config says.
+  FormField: {
+    disabled: { kind: 'no-provider-name', why: 'a rule goes under the field it wraps' },
+    error: { kind: 'no-provider-name', why: 'a rule goes under the field it wraps' }
+  },
+  Menu: {
+    disabled: {
+      kind: 'per-slot-call',
+      why: '`ctx.styles.item({ disabled })` per row — it says "this row", not "this menu"'
+    }
+  },
+  PaginationItem: {
+    disabled: { kind: 'no-provider-name', why: 'a rule for these buttons goes under `Button`' }
+  },
+  Planner: { disabled: { kind: 'no-axis', why: 'dims via the `disabled:` CSS variant' } },
+  PromptInput: { disabled: { kind: 'no-axis', why: 'dims via the `disabled:` CSS variant' } },
+  ResourceTimeline: { disabled: { kind: 'no-axis', why: 'dims via the `disabled:` CSS variant' } },
+  Tab: { disabled: { kind: 'no-axis', why: 'dims via the `disabled:` CSS variant' } },
+  TabItem: { disabled: { kind: 'no-axis', why: 'dims via the `disabled:` CSS variant' } },
+  Tooltip: {
+    disabled: { kind: 'no-axis', why: '`disabled` suppresses the tip, it does not style it' }
+  }
 };
 
 /** Components the harness cannot mount at all, with the reason. Stale = error. */
@@ -84,7 +120,7 @@ const NOT_MOUNTABLE: Record<string, string> = {
 };
 
 const recorder = vi.hoisted(() => ({
-  calls: [] as { component: string; activeProps: Record<string, unknown> }[]
+  calls: [] as { component: string; activeProps: Record<string, unknown>; axes: string[] }[]
 }));
 
 // The condition object never leaves the component otherwise — same wrap the
@@ -102,7 +138,10 @@ vi.mock('$lib/provider', async (importOriginal) => {
       // actually tested against.
       recorder.calls.push({
         component: args[1],
-        activeProps: effectiveVariants(args[5], args[3])
+        activeProps: effectiveVariants(args[5], args[3]),
+        // The component's own config, so a KNOWN_GAPS entry claiming "no such
+        // axis" can be checked against the config instead of believed.
+        axes: Object.keys(args[5].variants ?? {})
       });
       return original.resolveSlotClasses(...args);
     }
@@ -114,6 +153,8 @@ interface MountOutcome {
   tokens: Set<string>;
   /** The condition object the component handed the resolver, if it ran. */
   condition: Record<string, unknown> | undefined;
+  /** Axis names the component's own `tv()` config declares. */
+  axes: string[];
   error?: string;
 }
 
@@ -154,7 +195,7 @@ function mountWith(
     // runs after `mount` returns.
     flushSync();
   } catch (error) {
-    return { tokens: new Set(), condition: undefined, error: (error as Error).message };
+    return { tokens: new Set(), condition: undefined, axes: [], error: (error as Error).message };
   }
 
   const tokens = new Set<string>();
@@ -162,7 +203,7 @@ function mountWith(
     for (const token of element.classList) tokens.add(token);
   }
   const call = recorder.calls.find((c) => c.component === entry.providerName);
-  return { tokens, condition: call?.activeProps };
+  return { tokens, condition: call?.activeProps, axes: call?.axes ?? [] };
 }
 
 /**
@@ -241,6 +282,52 @@ describe('a boolean house rule reaches every component that takes the prop', () 
     ).toEqual([]);
   });
 
+  // ── The fold itself, both directions ────────────────────────────────────
+  //
+  // The rows above do not reach it. Once every boolean axis carries its raw
+  // value, the key is present *and* the value is `false`, so they pass with the
+  // fold reverted to `matchProps = activeProps` — measured. These two do reach
+  // it, and they are the pair that defines it: a key the component wrote as
+  // `undefined` takes the config default, a key it never wrote takes nothing.
+  it('fills in an axis the component names but left undefined', () => {
+    // `Card` writes `dividers: dividers || undefined`, and `cardVariants`
+    // defaults `dividers: false`. The key is the component's claim to the axis;
+    // the default answers for it. Revert the fold and this row goes red.
+    const card = exported.find((e) => e.exportName === 'Card') as CascadeComponent;
+    const run = mountWith(
+      card,
+      {},
+      { defaults: { Card: { overrides: [{ dividers: false, class: { base: PROBE } }] } } }
+    );
+    expect(
+      run.tokens.has(PROBE),
+      `{ dividers: false } reached no element of a Card — it carries ${JSON.stringify(
+        run.condition?.dividers
+      )}`
+    ).toBe(true);
+  });
+
+  it('fills in nothing for an axis the component never names', () => {
+    // `SegmentItem` shares `segmentGroupVariants` with `SegmentGroup`, which is
+    // where `fullWidth` belongs — the item never writes the key. Folding the
+    // config's `fullWidth: false` in would hand the item its parent's axis, and
+    // a rule keyed on it would paint every item of every group. This is the row
+    // that goes red if the fold ever iterates the config instead of the keys.
+    const item = exported.find((e) => e.exportName === 'SegmentItem') as CascadeComponent;
+    const run = mountWith(
+      item,
+      {},
+      { defaults: { SegmentItem: { overrides: [{ fullWidth: false, class: { item: PROBE } }] } } }
+    );
+    expect(
+      run.tokens.has(PROBE),
+      "{ fullWidth: false } fired on a SegmentItem — `fullWidth` is SegmentGroup's axis, and " +
+        'the item never names it, so no rule may claim it here'
+    ).toBe(false);
+    // Without this the row above would also pass if the mount rendered nothing.
+    expect(run.condition, 'the item resolved no slot classes at all').toBeDefined();
+  });
+
   for (const { entry, prop } of PAIRS) {
     const name = entry.exportName;
     const gap = KNOWN_GAPS[name]?.[prop];
@@ -251,12 +338,35 @@ describe('a boolean house rule reaches every component that takes the prop', () 
       const onFalse = ruleArrives(entry, prop, false);
 
       if (gap) {
-        // The entry claims the pair cannot arrive. Prove it still cannot —
-        // a gap that has closed has to be deleted, not left standing.
+        // The entry claims the pair cannot arrive at all. `||`, not `&&`: with
+        // `&&` an entry also passes when exactly ONE side fires, which is not a
+        // gap but a half-working axis — the shape `SegmentItem` sat in.
         expect(
-          onTrue.ok && onFalse.ok,
-          `${name}.${prop} is listed in KNOWN_GAPS (${gap}) but both sides fire now — delete the entry`
+          onTrue.ok || onFalse.ok,
+          `${name}.${prop} is listed in KNOWN_GAPS (${gap.kind}: ${gap.why}) but a rule fires ` +
+            `now (true: ${onTrue.ok}, false: ${onFalse.ok}) — delete the entry`
         ).toBe(false);
+
+        // And the stated reason has to be the real one. Measured from the
+        // config the component handed the resolver, so prose cannot drift.
+        const axes = mountWith(entry, {}, {}).axes;
+        if (gap.kind === 'no-axis') {
+          expect(
+            axes,
+            `${name}.${prop} claims "no-axis", but its tv() config declares \`${prop}\``
+          ).not.toContain(prop);
+        } else if (gap.kind === 'per-slot-call') {
+          expect(
+            axes,
+            `${name}.${prop} claims "per-slot-call", but its tv() config declares no \`${prop}\` ` +
+              `axis at all — that is a "no-axis" entry`
+          ).toContain(prop);
+        } else {
+          expect(
+            entry.providerName,
+            `${name}.${prop} claims "no-provider-name", but it has one (${entry.providerName})`
+          ).toBeNull();
+        }
         return;
       }
 

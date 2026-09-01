@@ -47,7 +47,7 @@ import type { CardSlots, CardVariants } from './card.variants';
  * ```
  */
 export interface CardProps
-  extends Omit<CardVariants, 'elementType'>,
+  extends Omit<CardVariants, 'elementType' | 'interactive'>,
     Omit<HTMLAttributes<HTMLElement>, 'children'> {
   /** Main body content. */
   children?: Snippet;
@@ -76,16 +76,6 @@ export interface CardProps
    * @summary Makes the whole card a button, even without an `onclick`.
    */
   clickable?: boolean;
-  /**
-   * The hover/focus treatment on its own, without changing the rendered
-   * element. `clickable`, `onclick` and `href` all switch it on — this is the
-   * axis all three resolve to, and the name a `<BlocksProvider>` `overrides`
-   * rule keys on. Set it directly only when the card is made operable by
-   * something the component cannot see.
-   * @summary Interactive styles without changing the element.
-   * @default false
-   */
-  interactive?: boolean;
 
   /** Extra classes merged onto the root element. */
   class?: string;
@@ -98,6 +88,14 @@ export interface CardProps
    * Prefer this over `class` overrides when the requested look falls outside the
    * semantic intent palette — presets keep hover/active/dark-mode logic coherent
    * and make the custom look reusable across the project.
+   *
+   * A conditional `overrides` rule on a Card keys on its variant axes, and one
+   * of those is not a prop: `interactive` is the axis `clickable`, `onclick`
+   * and `href` all resolve to, so `overrides: [{ interactive: true, … }]`
+   * styles every card that has a click source, whichever of the three gave it
+   * one. It is deliberately not settable — a card made to look interactive
+   * without one would be a `<div>` with `cursor-pointer` and a hover-lift and
+   * no way to operate it (WCAG 3.2 Predictable).
    */
   preset?: string;
   /**

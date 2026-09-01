@@ -961,27 +961,52 @@ function stripUndefined(obj: Record<string, unknown>): Record<string, unknown> {
 }
 
 /**
- * The variant props a `tv()` config actually resolves against, for a given
- * input — `defaultVariants` under the caller's values, with `undefined` read
- * as "not written" so a default survives it. This is the same fold `tv()`
- * performs internally (`{ ...defaultVariants, ...stripUndefined(props) }`),
- * exported so the override cascade can match a rule against the state the
- * component is *styled* in rather than against the raw prop bag.
+ * The variant values a component's own condition object stands for: every axis
+ * the component **names**, at its written value, or at the config's
+ * `defaultVariants` value where it wrote `undefined`.
  *
- * Why it has to be shared rather than restated: the two differ exactly where
- * a component leaves an axis out. `Card` hands `disabled: undefined` to both,
- * and `cardVariants` carries `defaultVariants.disabled = false` — so `tv()`
- * styles a `disabled: false` card while a `{ disabled: false }` override rule
- * saw no `disabled` at all and could never fire.
+ * Deliberately **not** `tv()`'s fold (`{ ...defaultVariants, ...stripUndefined(props) }`),
+ * and the difference is the whole point. `tv()` may fill in an axis the object
+ * never mentioned, because it styles one slot call at a time and the caller can
+ * hand it more per call. A conditional `overrides` rule is matched **once per
+ * component** against **one** object, so an axis that object does not carry is
+ * an axis the component cannot speak for — filling it in there states something
+ * about the component that nothing measured.
+ *
+ * Two shapes in this tree make that concrete, both measured:
+ *
+ * - *A shared config.* `segmentGroupVariants` declares `disabled` and
+ *   `SegmentGroup` passes it; `SegmentItem` resolves against the same config
+ *   and names only `size`/`variant`/`tier`. Folding the config's
+ *   `disabled: false` into the item's condition hands the item its
+ *   **sibling's** axis: measured, `{ disabled: false }` then painted both items
+ *   of a group, the disabled one included. Nine configs are shared by 2–5
+ *   components, over 28 of the 90 call sites.
+ * - *A per-slot-call axis.* `inputVariants.iconPosition` defaults to `'left'`
+ *   and `Input` never puts it in `variantProps` — it passes it at each of its
+ *   three `iconContainer` calls. Folded in, `{ iconPosition: 'left' }` matched
+ *   an Input carrying only a **right** icon, and one resolved record is applied
+ *   to every slot alike.
+ *
+ * The key is the claim: `Card` writes `disabled: disabled || undefined`, so the
+ * key is there and the default answers for it — `{ disabled: false }` fires.
+ * `SegmentItem` never writes the key, so nothing is folded and no rule can
+ * claim it.
  *
  * @example
- * effectiveVariants(cardVariants.config, { disabled: undefined }); // → { …, disabled: false }
+ * effectiveVariants(cardVariants.config, { disabled: undefined }); // → { disabled: false }
+ * effectiveVariants(inputVariants.config, { size: 'md' }); // → { size: 'md' } — no iconPosition
  */
 export function effectiveVariants(
   config: TVConfig,
   props: Record<string, unknown>
 ): Record<string, unknown> {
-  return { ...config.defaultVariants, ...stripUndefined(props) };
+  const result: Record<string, unknown> = {};
+  for (const key of Object.keys(props)) {
+    const written = props[key];
+    result[key] = written === undefined ? config.defaultVariants?.[key] : written;
+  }
+  return result;
 }
 
 export function matchesCompound(

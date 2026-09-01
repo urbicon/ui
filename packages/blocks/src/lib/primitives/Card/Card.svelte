@@ -16,7 +16,6 @@
     header,
     footer,
     clickable = false,
-    interactive = false,
     href,
     onclick,
     onHover,
@@ -40,7 +39,7 @@
   // `clickable` (force <button>), an `onclick` handler, or `href` (<a>).
   // No decorative-hover mode: cursor-pointer + translate on a passive
   // element would falsely signal interactivity (WCAG 3.2 Predictable).
-  const isInteractive = $derived(clickable || interactive || !!onclick || !!href);
+  const isInteractive = $derived(clickable || !!onclick || !!href);
 
   const variantProps: CardVariants = $derived({
     variant,

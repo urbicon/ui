@@ -2,7 +2,11 @@
   import { getBlocksConfig, resolveSlotClasses } from '$lib/provider';
   import type { LineChartProps } from './index';
   import type { ChartSeries } from '$lib/internal/charts/types';
-  import { chartSlotResolver, chartVariants } from '$lib/internal/charts/variants';
+  import {
+    type ChartVariants,
+    chartSlotResolver,
+    chartVariants
+  } from '$lib/internal/charts/variants';
   import {
     linearScale,
     niceScale,
@@ -38,10 +42,22 @@
   const blocksConfig = getBlocksConfig();
   const bt = useBlocksI18n();
   const unstyled = $derived(unstyledProp || blocksConfig?.unstyled || false);
+  // Cartesian is the shape these charts render, and it is named rather than
+  // left to the config default: the same value reaches the styling call and
+  // the override cascade, so a rule keyed on the layout cannot see a shape
+  // other than the one being painted.
+  const variantProps: ChartVariants = { layout: 'cartesian' };
   const slotClasses = $derived(
-    resolveSlotClasses(blocksConfig, 'LineChart', preset, {}, slotClassesProp, chartVariants.config)
+    resolveSlotClasses(
+      blocksConfig,
+      'LineChart',
+      preset,
+      variantProps,
+      slotClassesProp,
+      chartVariants.config
+    )
   );
-  const slot = $derived(chartSlotResolver(unstyled, slotClasses));
+  const slot = $derived(chartSlotResolver(unstyled, slotClasses, variantProps));
 
   const seriesCount = $derived(
     Math.max(1, seriesProp?.length ?? 0, ...data.map((d) => d.values.length))

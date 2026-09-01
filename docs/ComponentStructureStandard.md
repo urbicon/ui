@@ -122,9 +122,14 @@ Imports the props type from `index.ts` – no redefinition. Uses `$props()` with
   // The `: ComponentVariants` annotation is MANDATORY: without it, the
   // string-literal ternaries below widen to `string` and stop matching the
   // tv() variant keys (silent loss of styling + overrides).
-  // Boolean axes carry the raw value — never `disabled || undefined`. Both
-  // sides have to be addressable: `{ disabled: false }` is how a project-wide
-  // rule says "every control that is NOT disabled".
+  // The KEYS of this object are the axes this component speaks for: a key that
+  // is here can be matched by an `overrides` rule, a key that is absent cannot.
+  // Name every axis the component is actually in — and only those. An axis that
+  // belongs to a sibling sharing the same config, or one handed to a slot
+  // function per element, stays out: the rule is resolved once and applied to
+  // every slot, so naming it here would claim it of all of them.
+  // Boolean axes carry the raw value — never `disabled || undefined`; both
+  // spellings work, the raw one says what it means.
   const variantProps: ComponentVariants = $derived({
     variant,
     size,
@@ -135,9 +140,9 @@ Imports the props type from `index.ts` – no redefinition. Uses `$props()` with
   const styles = $derived(componentVariants(variantProps));
 
   // The last argument is the component's own tv() config, and it is required:
-  // it is what lets a rule be matched against the EFFECTIVE variants (the
-  // config's `defaultVariants` under `variantProps`) — the state the component
-  // is actually styled in — rather than against the raw bag.
+  // it is what answers a key written as `undefined` with that axis's default,
+  // so a rule can address the state the component is actually in. It must be
+  // the config `styles` above was built from — nothing checks that pairing.
   const slotClasses = $derived(
     resolveSlotClasses(
       blocksConfig,

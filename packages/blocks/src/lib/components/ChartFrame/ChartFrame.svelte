@@ -2,7 +2,11 @@
   import { getBlocksConfig, resolveSlotClasses } from '$lib/provider';
   import type { ChartFrameProps } from './index';
   import type { ChartMargin } from '$lib/internal/charts/types';
-  import { chartSlotResolver, chartVariants } from '$lib/internal/charts/variants';
+  import {
+    type ChartVariants,
+    chartSlotResolver,
+    chartVariants
+  } from '$lib/internal/charts/variants';
 
   let {
     height = 240,
@@ -21,12 +25,17 @@
 
   const blocksConfig = getBlocksConfig();
   const unstyled = $derived(unstyledProp || blocksConfig?.unstyled || false);
+  // Cartesian is the shape these charts render, and it is named rather than
+  // left to the config default: the same value reaches the styling call and
+  // the override cascade, so a rule keyed on the layout cannot see a shape
+  // other than the one being painted.
+  const variantProps: ChartVariants = { layout: 'cartesian' };
   const slotClasses = $derived(
     resolveSlotClasses(
       blocksConfig,
       'ChartFrame',
       preset,
-      {},
+      variantProps,
       slotClassesProp,
       chartVariants.config
     )
@@ -47,7 +56,7 @@
   const innerWidth = $derived(Math.max(0, width - margin.left - margin.right));
   const innerHeight = $derived(Math.max(0, height - margin.top - margin.bottom));
 
-  const slot = $derived(chartSlotResolver(unstyled, slotClasses));
+  const slot = $derived(chartSlotResolver(unstyled, slotClasses, variantProps));
 
   function measure(node: HTMLElement) {
     if (widthProp !== undefined) return;

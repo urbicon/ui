@@ -66,10 +66,12 @@
     size,
     variant: effectiveVariant,
     tier: effectiveTier,
-    // Writes the `step` slot only, so it changes nothing about the `base` this
-    // component renders — it is here so a rule keyed on the state the consumer
-    // put the stepper in matches the stepper rather than only its steps.
-    disabled
+    // Both write the `step` slot only, so they change nothing about the `base`
+    // this component renders — they are here so a rule keyed on the state the
+    // consumer put the stepper in matches the stepper rather than only its
+    // steps. Both are public props of `Stepper`.
+    disabled,
+    clickable
   });
 
   const styles = $derived(unstyled ? { base: () => '' } : stepperVariants(variantProps));

@@ -109,7 +109,7 @@ Use `overrides` for **prop-conditional** rules an unconditional `slotClasses` ca
 </BlocksProvider>
 ```
 
-A rule is matched against the component's **effective** variants — what it was handed, over its own defaults — so a rule keyed on an axis the call site never wrote still fires at that axis's default value. Both sides of a boolean work, which is what makes a house rule expressible in one entry:
+A rule is matched against the component's **effective** variants — the axes that component carries, at their value, or at its config's default where the call site wrote nothing. So a rule keyed on an axis you never set still fires at that axis's default, and both sides of a boolean work, which is what makes a house rule expressible in one entry:
 
 ```svelte
 <BlocksProvider
@@ -119,7 +119,9 @@ A rule is matched against the component's **effective** variants — what it was
 </BlocksProvider>
 ```
 
-The keys are the component's variant axes. For most axes that is the prop you already write (`variant`, `size`, `intent`, `disabled`); a few are computed rather than received (`hasRightIcon`, `messageType`, `open`) and are listed with each component's variants. A component whose look carries no axes at all — `Chat`, `ChatMessageList`, the `Guide*` parts — has nothing to match on; style those with unconditional `slotClasses` or a preset.
+The keys are the component's variant axes. For most axes that is the prop you already write (`variant`, `size`, `intent`, `disabled`); a few are computed rather than received and are listed with each component's variants — `hasRightIcon` and `messageType` on the fields, `open` on the overlays, `interactive` on Card (the axis `clickable`, `onclick` and `href` all resolve to, so one rule covers a card made operable by any of the three).
+
+Two kinds of axis are deliberately not addressable. A component whose look carries no axes at all — `Chat`, `ChatMessageList`, the `Guide*` parts — has nothing to match on; style those with unconditional `slotClasses` or a preset. And an axis that belongs to a *part* rather than the component is only addressable where the state lives: a rule on `{ disabled: … }` under `SegmentItem` selects the item that is disabled, but the same key under `Menu` selects nothing, because Menu's rows carry their own `disabled` per row.
 
 ## Icons
 
