@@ -55,9 +55,20 @@ type GapKind =
   /** The config declares no axis of that name — the state is styled by a CSS
    *  variant (`disabled:opacity-50`), which needs no variant branch. */
   | 'no-axis'
-  /** The axis exists but is handed to a slot function per row/element, so no
-   *  component-level object can carry it for one row without claiming it of
-   *  all of them. */
+  /**
+   * The axis exists but is handed to a slot function per row/element, so no
+   * component-level object can carry it for one row without claiming it of all
+   * of them.
+   *
+   * **The one kind the check cannot fully verify.** Two of its three halves are
+   * measured — the config declares the axis, and the component's condition
+   * object does not carry it — but "and it is passed at a slot call instead" is
+   * not observable from the wrapped `resolveSlotClasses` call: that argument
+   * goes to a `tv()` slot function this harness never sees. So a component that
+   * declared the axis and simply forgot to name it would also satisfy this
+   * kind. That is the `SegmentItem` shape, which was a real defect; if a second
+   * entry ever appears here, read the component before believing it.
+   */
   | 'per-slot-call'
   /** The component has no provider name, so `overrides` cannot address it. */
   | 'no-provider-name';
@@ -103,9 +114,14 @@ const KNOWN_GAPS: Record<string, Partial<Record<BooleanProp, Gap>>> = {
   PaginationItem: {
     disabled: { kind: 'no-provider-name', why: 'a rule for these buttons goes under `Button`' }
   },
-  Planner: { disabled: { kind: 'no-axis', why: 'dims via the `disabled:` CSS variant' } },
+  // A disabled *day* is a `dayState` value passed per cell, not this prop.
+  Planner: { disabled: { kind: 'no-axis', why: 'a disabled day is a `dayState` value, per cell' } },
   PromptInput: { disabled: { kind: 'no-axis', why: 'dims via the `disabled:` CSS variant' } },
-  ResourceTimeline: { disabled: { kind: 'no-axis', why: 'dims via the `disabled:` CSS variant' } },
+  // Its own config header says so: cell state is conditional classes in the
+  // markup rather than boolean variants, driven by `isCellDisabled()`.
+  ResourceTimeline: {
+    disabled: { kind: 'no-axis', why: 'cell state is conditional classes in the markup' }
+  },
   Tab: { disabled: { kind: 'no-axis', why: 'dims via the `disabled:` CSS variant' } },
   TabItem: { disabled: { kind: 'no-axis', why: 'dims via the `disabled:` CSS variant' } },
   Tooltip: {
@@ -361,6 +377,14 @@ describe('a boolean house rule reaches every component that takes the prop', () 
             `${name}.${prop} claims "per-slot-call", but its tv() config declares no \`${prop}\` ` +
               `axis at all — that is a "no-axis" entry`
           ).toContain(prop);
+          // The other observable half: the component must not carry the axis
+          // itself. Without this the kind says only "the config has it", which
+          // is also true of a component that names it and works.
+          expect(
+            Object.keys(mountWith(entry, {}, {}).condition ?? {}),
+            `${name}.${prop} claims "per-slot-call", but the component's own condition object ` +
+              `carries \`${prop}\` — then a rule on it can match and this is not a gap`
+          ).not.toContain(prop);
         } else {
           expect(
             entry.providerName,

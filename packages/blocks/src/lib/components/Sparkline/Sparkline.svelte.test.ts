@@ -203,6 +203,31 @@ describe('Sparkline (DEV warning for the v9 slot rename)', () => {
     expect(warn).not.toHaveBeenCalled();
   });
 
+  // The blind spot, pinned because MIGRATION.md states it as behaviour: the
+  // check reads the RESOLVED map, so a stale key inside an `overrides` rule is
+  // only visible when that rule matches. A rule whose condition is never true
+  // carries its key silently — it styles nothing either, so nothing is lost,
+  // but the warning answers "a stale key is reaching this sparkline", not
+  // "your config has no stale keys".
+  it('stays quiet on a stale key in an override that never matches', () => {
+    renderHost({
+      // `fluid` is Sparkline's only axis, and this mount is not fluid.
+      defaults: { Sparkline: { overrides: [{ fluid: true, class: { line: 'opacity-70' } }] } },
+      props: { data: [1, 4, 2], fluid: false }
+    });
+    expect(warn).not.toHaveBeenCalled();
+  });
+
+  it('reports the same stale key once the rule does match', () => {
+    // The control for the row above: same rule, same key, a mount it matches.
+    // Without it, "quiet" would also be what a broken check produces.
+    renderHost({
+      defaults: { Sparkline: { overrides: [{ fluid: true, class: { line: 'opacity-70' } }] } },
+      props: { data: [1, 4, 2], fluid: true }
+    });
+    expect(warn).toHaveBeenCalledWith(expect.stringMatching(STALE));
+  });
+
   // The granularity, pinned because MIGRATION.md tells consumers about it: the
   // check sits in the component body, so it runs once per mount and not again.
   // The slot cascade around it *is* reactive — asserted here, or "no second

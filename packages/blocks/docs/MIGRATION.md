@@ -16,11 +16,13 @@ resolver. It is now matched against that component's **effective** variants: eve
 component names, at its value, or at its `tv()` config's `defaultVariants` value where it
 named the axis but left it `undefined`.
 
-**Rules that used to do nothing now fire.** That is the point of the change — `{ disabled:
-false }`, `{ readonly: false }` and `{ error: false }` were unmatchable on 19 components,
-because a component carried `disabled: disabled || undefined` and the matcher saw no
-`disabled` at all. The same for any axis a call site left at its default: `{ size: 'md' }`
-now matches a component nobody passed a `size` to.
+**Rules that used to do nothing now fire**, and that is the point of the change. Counting
+(component, prop) pairs over `disabled`, `readonly` and `error` — the three a project-wide
+rule reaches for — the `false` side matched on **12 pairs before and 47 after**, across 27
+components, with none lost. It was unmatchable on the other 35 because a component carried
+`disabled: disabled || undefined` and the matcher saw no `disabled` at all. The same holds
+for any axis a call site left at its default: `{ size: 'md' }` now matches a component
+nobody passed a `size` to.
 
 **Nothing reports this.** Not the compiler — `ConditionalOverride`'s index signature accepts
 any key — and not the runtime, which skips a non-matching rule without a word. The only

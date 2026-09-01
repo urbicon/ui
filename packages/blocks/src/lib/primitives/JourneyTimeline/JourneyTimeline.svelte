@@ -241,20 +241,29 @@
   // --- styling ---------------------------------------------------------------
   type Styles = ReturnType<typeof journeyTimelineVariants>;
 
-  const containerStyles = $derived(
-    unstyled
-      ? null
-      : journeyTimelineVariants({ orientation, size, detail: detailMode, withMeta: hasMetaRail })
-  );
+  // The timeline's own state, and all four of it: `detailMode` reads nothing but
+  // `orientation` and the `detail` prop, and `hasMetaRail` is one `.some()` over
+  // every item — so both carry the same value into the container and into every
+  // node, which is what makes them the component's to speak for. One object read
+  // by the styling calls and by the override cascade, so a rule keyed on the
+  // shape being painted cannot see a different one.
+  const variantProps = $derived({
+    orientation,
+    size,
+    detail: detailMode,
+    withMeta: hasMetaRail
+  } satisfies JourneyTimelineVariants);
 
+  const containerStyles = $derived(unstyled ? null : journeyTimelineVariants(variantProps));
+
+  // The axes below genuinely vary per node, so they stay out of `variantProps`:
+  // one resolved override record is applied to every slot, and a rule keyed on
+  // one node's status would claim it of all of them.
   function nodeStyles(item: JourneyNode, focused: boolean): Styles | null {
     return unstyled
       ? null
       : journeyTimelineVariants({
-          orientation,
-          size,
-          detail: detailMode,
-          withMeta: hasMetaRail,
+          ...variantProps,
           status: item.status,
           focused,
           interactive: item.focusable !== false,
@@ -269,7 +278,7 @@
       blocksConfig,
       'JourneyTimeline',
       preset,
-      { orientation, size } satisfies JourneyTimelineVariants,
+      variantProps,
       slotClassesProp,
       journeyTimelineVariants.config
     )

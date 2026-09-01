@@ -8,13 +8,19 @@ import {
 
 /**
  * A prop-conditional style rule. Its non-`class` keys are matched against the
- * component's **effective** variant props — the same fold `tv()` styles it
- * with, so a rule sees an axis the component left out at its
- * `defaultVariants` value rather than as absent (see {@link effectiveVariants}).
- * `{ disabled: false }` therefore fires on every component whose config
- * declares a `disabled` axis defaulting to `false`, and a component with no
- * such axis — one that dims through the `disabled:` CSS variant instead of a
- * variant branch — cannot be addressed on it at all.
+ * component's **effective** variant props: every axis that component's own
+ * condition object *names*, at its value, or at the config's `defaultVariants`
+ * value where it named the axis but wrote `undefined` (see
+ * {@link effectiveVariants}). Naming is the boundary, not declaring — a rule
+ * can only address an axis the component speaks for.
+ *
+ * So `{ disabled: false }` fires on every component that names a `disabled`
+ * axis, and on no others. Two kinds fall outside: one with no such axis at all,
+ * which dims through the `disabled:` CSS variant instead of a variant branch;
+ * and one whose config declares the axis while the component hands it to a slot
+ * function per element rather than carrying it for itself — `Menu`, whose rows
+ * each get their own `disabled`. Both are pinned in
+ * `provider/boolean-conditions.svelte.test.ts`.
  *
  * Matching works like a `tv()` compoundVariant: `string` = equality,
  * `string[]` = "one of", `boolean` for a boolean axis such as the table's
@@ -228,13 +234,29 @@ export function resolveOverrideSlotClasses(
  * is optional in every field, so *any* config satisfies the parameter and the
  * compiler cannot tell `cardVariants.config` from `badgeVariants.config` here
  * — measured: wiring Badge's config into Card's call leaves every suite green
- * while four rules on axes Card does not have start matching every Card. Tying
- * the two together — `activeProps` typed as the props of *this* config — was
- * tried and does not fit: `datePickerVariants` declares no axes at all, and
- * `DatePicker` deliberately hands the resolver five keys that are not axes of
- * it but of the Input and Calendar it wraps. A type that rejected the mismatch
- * would reject that pattern too. Until a shape exists that admits both, the
- * pairing rests on the call site naming one identifier twice.
+ * while four rules on axes Card does not have start matching every Card.
+ *
+ * Typing the pair together (`activeProps` as the props of *this* config) is not
+ * the way out, and not for the reason this comment first gave. Two `tsc
+ * --strict` reproductions of that signature disagree with each other depending
+ * only on how inference is arranged, and in one of them the mismatch passes
+ * while an inline literal of the same object is rejected — the weak-type
+ * asymmetry `blocks/docs/MIGRATION.md` already records for slot keys: a target
+ * whose properties are all optional rejects only an object with *no* key in
+ * common, and a condition object held in a variable (which is how every call
+ * site writes it) skips excess-property checking altogether. Whatever such a
+ * signature would catch has to be measured on the signature actually proposed;
+ * it is not a thing to reason to.
+ *
+ * The binding does not have to be on the type level, though. A closure would
+ * make the mispairing unrepresentable — one identifier instead of two, e.g.
+ * `cardVariants.resolveSlots(config, 'Card', preset, variantProps, slotClasses)`
+ * — and it leaves `DatePicker` alone, whose props parameter stays
+ * `Record<string, unknown>` (its config declares no axes and it hands over five
+ * keys belonging to the Input and Calendar it wraps). What blocks it today is
+ * **module layering, not typing**: this file imports `variants.ts` and not the
+ * other way round, so the binder would have to live on the provider side.
+ * Until then the pairing rests on the call site naming one identifier twice.
  */
 export function resolveSlotClasses(
   config: BlocksConfig | undefined,
