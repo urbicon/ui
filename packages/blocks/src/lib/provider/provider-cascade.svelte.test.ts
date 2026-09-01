@@ -401,19 +401,23 @@ vi.mock('$lib/provider', async (importOriginal) => {
  * required on that shape and absent from the other two, so a failure branch
  * cannot be added without one.
  *
- * `leaks: []` therefore has exactly one meaning — **the failure has no parts**,
- * because nothing of the component's arrived to be named (a `class` prop that
- * reaches no element at all). "The route found nothing to judge" is the other
- * shape, `measured: false`, and choosing between them is not a matter of taste:
- * an entry can pin an empty set and freeze it, so a route with no subject
- * encoded here goes unwatched for good — see route C's `styled.length === 0`
- * branch, which was on the wrong side of this line and what it cost.
+ * `leaks: []` therefore has exactly one meaning — **the failure has no parts**:
+ * either nothing of the component's is left to name (a `class` prop that
+ * reaches no element), or the route weighs one class against one entry on one
+ * element and has no share to report (the ladder). "The route found nothing to
+ * judge" is the other shape, `measured: false`, and choosing between them is
+ * not a matter of taste: an entry can pin an empty set and freeze it, so a
+ * route with no subject encoded here goes unwatched for good — see route C's
+ * `styled.length === 0` branch, which was on the wrong side of this line.
  *
  * The unit of a leak belongs to the route and is named at each one below, but
  * one rule spans all of them: **`leaks` names what the COMPONENT contributes to
- * the failure, never the sweep's own probes.** A missing `p-[5px]` or a
- * `COLLISION_CANDIDATES` entry says which challenger the sweep sent, not which
- * of the component's classes stood — those failures have no parts.
+ * the failure, never the sweep's own probes.** That rule cuts both ways, and
+ * the second way is the one that gets written wrong: a challenger the sweep
+ * sent going missing means a library class ATE it, so the failure has parts
+ * after all — they are the component's tokens, not the challengers. Route D
+ * and route E's `missing` branch both name that half; a `p-[5px]` or a
+ * `COLLISION_CANDIDATES` entry in a leak set is the mistake to look for.
  */
 type Outcome =
   | { ok: true; detail: string; measured?: undefined; leaks?: undefined }
@@ -1034,12 +1038,19 @@ function measure(entry: CascadeComponent, withFixture: FixtureChoice = true): Me
         } else {
           const missing = candidates.filter((candidate) => !element.has(candidate));
           if (missing.length) {
+            // The prop DID reach an element here — a library class in a later
+            // source ate the challenger. So this failure has parts, and they are
+            // the library classes whose challenger went missing, never the
+            // challengers themselves: same choice route D makes in its own "did
+            // not arrive" branch, where the leak is the slot and not the
+            // candidate the sweep sent.
+            const eaten = [...collisions]
+              .filter(([, candidate]) => missing.includes(candidate))
+              .map(([token]) => token);
             routes.E = {
               ok: false,
               detail: `the colliding \`class\` prop did not arrive (${missing.join(' ')})`,
-              // The candidates are the sweep's, not the component's: nothing of
-              // this component's survived to be named.
-              leaks: []
+              leaks: eaten
             };
           } else {
             const survivors = [...collisions.keys()].filter((token) => element.has(token));
@@ -1083,7 +1094,11 @@ function measure(entry: CascadeComponent, withFixture: FixtureChoice = true): Me
   //
   // Leaks: none, on every branch. One `slotClasses` entry against one `class`
   // on one element is a question with a yes and a no and no middle, so an entry
-  // here would pin the empty set — the failure itself, not a share of it.
+  // here would pin the empty set — the failure itself, not a share of it. Two
+  // failure modes share that empty set — the winner never arrived, and the
+  // winner arrived and stripped nothing — which are different defects with
+  // different fixes; `detail` is what tells them apart, and no entry exists to
+  // rest on the distinction.
   const ladder = (unstyled: boolean): Outcome => {
     if (!name) {
       return {
