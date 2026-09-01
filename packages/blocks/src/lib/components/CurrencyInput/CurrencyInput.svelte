@@ -1,6 +1,6 @@
 <script lang="ts">
-  import { Input, inputVariants } from '$lib/primitives/Input';
-  import { getBlocksConfig, resolveSlotClasses, wrapperActiveProps } from '$lib/provider';
+  import { Input } from '$lib/primitives/Input';
+  import { setWrapperCascade } from '$lib/provider/wrapper-cascade';
   import { useI18n } from '@urbicon-ui/i18n';
   import {
     applyEdit,
@@ -25,23 +25,19 @@
     ...inputProps
   }: CurrencyInputProps = $props();
 
-  const blocksConfig = getBlocksConfig();
-  // Resolved here, under this component's own name, and handed to Input as
-  // instance `slotClasses` rather than forwarded as `preset`: inside Input the
-  // name would be `Input`, so a preset written for the money field would style
-  // every text field under the provider too. `wrapperActiveProps` supplies the
-  // axes the caller left to Input's own defaults, without which a preset's
-  // `overrides` rule on any of them would match nothing here.
-  const presetSlotClasses = $derived(
-    resolveSlotClasses(
-      blocksConfig,
-      'CurrencyInput',
-      preset,
-      wrapperActiveProps(inputVariants.config, inputProps),
-      slotClasses,
-      inputVariants.config
-    )
-  );
+  // Handed down rather than resolved here, and not forwarded as `preset`:
+  // inside Input the name would be `Input`, so a preset written for the money
+  // field would style every text field under the provider too. Input resolves
+  // it against its own variant props, which is where the axes a rule may key on
+  // actually are.
+  setWrapperCascade('CurrencyInput', {
+    get preset() {
+      return preset;
+    },
+    get slotClasses() {
+      return slotClasses;
+    }
+  });
 
   const i18n = useI18n();
 
@@ -244,7 +240,6 @@
 
 <Input
   {...inputProps}
-  slotClasses={presetSlotClasses}
   type="text"
   inputmode="decimal"
   bind:value={() => displayText, acceptText}

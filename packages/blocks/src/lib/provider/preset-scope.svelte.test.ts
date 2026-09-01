@@ -24,10 +24,11 @@ import type { PresetMap } from './blocks-context';
  * contract. Left in the rest spread, `preset` would be resolved inside that
  * component, under *its* name — so a preset written for the number field styles
  * every Input under the provider, and the DEV warning for an unregistered name
- * names a component the consumer never typed. Resolving it in the wrapper
- * instead costs the inner component's defaults: the wrapper sees only what its
- * caller wrote, so a rule keyed on an axis the caller left out matches nothing
- * unless `wrapperActiveProps` fills it in. All three are asserted here.
+ * names a component the consumer never typed. Resolving it under the wrapper's
+ * name must not cost the inner component's defaults, though: the wrapper sees
+ * only what its caller wrote, so a rule keyed on an axis the caller left out
+ * has to be answered by the component that owns it. All three are asserted
+ * here.
  *
  * The neighbouring plain `<Input preset="compact">` / `<Select …>` in the host
  * is what makes the scope half falsifiable — with only the wrapper mounted,
@@ -201,7 +202,7 @@ describe.each(CASES.map((entry) => [entry.own, entry] as const))('%s', (_name, e
   it('matches an `overrides` rule on an axis the caller left to the inner default', () => {
     // The shape `packages/blocks/README.md` documents. The wrapper never sees
     // this axis — the caller wrote nothing and the default lives in the inner
-    // component — so without `wrapperActiveProps` the rule matches nothing.
+    // component, which is the component that answers the rule.
     const axis = entry.defaultedAxis;
     const value = entry.innerConfig.defaultVariants?.[axis];
     expect(value, `\`${axis}\` has no default on ${entry.inner} to test against`).toBeDefined();
@@ -214,11 +215,11 @@ describe.each(CASES.map((entry) => [entry.own, entry] as const))('%s', (_name, e
   });
 
   it('keeps an `overrides` rule from keying on a prop that is not a variant axis', () => {
-    // `wrapperActiveProps` narrows the condition object to the inner
-    // component's declared axes. Without that narrowing the wrapper would carry
-    // every prop the caller wrote, so `{ label: 'L' }` would fire under the
-    // wrapper's name while it can never fire under the inner component's —
-    // the same one-rule-two-behaviours asymmetry the whole change removes.
+    // The condition object is the inner component's `variantProps`, and `label`
+    // is no axis of it. A wrapper carrying every prop its caller wrote would
+    // fire `{ label: 'L' }` under its own name while it can never fire under
+    // the inner component's — the one-rule-two-behaviours asymmetry the whole
+    // change removes.
     const { carriers, neighbourCarriers } = run(
       { ...entry, props: { ...entry.props, label: 'L' } },
       withOverride(entry.own, entry.slot, { label: 'L' })

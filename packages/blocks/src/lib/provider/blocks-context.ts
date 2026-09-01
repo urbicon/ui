@@ -139,66 +139,6 @@ export function resolvePresetSlotClasses(
 }
 
 /**
- * The `activeProps` a **wrapper** component hands {@link resolveSlotClasses}.
- *
- * A wrapper (NumberInput over Input, ConfirmDialog over Dialog) resolves its
- * own preset before the component it wraps ever runs, so it sees only the props
- * its caller wrote. Every axis the caller left out is defaulted *inside* the
- * inner component — which is where an `overrides` rule would otherwise have
- * been matched. Handing the written props through unchanged makes the rule
- * shape `packages/blocks/README.md` documents (`{ variant: 'outlined' }`) match
- * nothing at all under a wrapper's name, because the wrapper carries
- * `variant: undefined`.
- *
- * Which keys are axes at all is read off the inner component's own `tv()`
- * config rather than restated here — a rule may not key on `label`, which the
- * inner component's condition object never carries either. **Every** such axis
- * becomes a key, at `undefined` where the caller wrote nothing: a wrapper
- * stands in for the whole inner component, so it can speak for every axis that
- * component has, and {@link effectiveVariants} then answers the `undefined`
- * with the inner config's own default. That is what makes a wrapper and the
- * component it wraps give one rule the same answer.
- *
- * A component that is *not* a stand-in must not do this — an item beside its
- * siblings (`SegmentItem`) speaks only for the axes it names, or a rule keyed
- * on one of them would claim its neighbour's state.
- *
- * **What it cannot supply — and the direction matters.** A rule that fails to
- * fire is noticed; a rule that fires on a state the component is not in looks
- * like a success. Measured, three classes, all of them in #360:
- *
- * - *False hit, derived axis.* An axis the inner component computes rather than
- *   receives carries its config default here. Under a `commit` tier context
- *   `{ tier: 'modify' }` fires on NumberInput and `{ tier: 'commit' }` does not,
- *   though the rendered Input is `commit`; on `<NumberInput error="x">`,
- *   `{ messageType: 'helper' }` fires and `{ messageType: 'error' }` does not.
- * - *Coerced axis.* `error` is a `string` prop on Input and Select and a boolean
- *   axis in their configs. `{ error: true }` fires on the plain component and
- *   never on a wrapper; `{ error: 'x' }` fires on a wrapper and can never match
- *   inside. It is on Input and Select, so on all four wrappers.
- * - *Missed hit, unknowable axis.* An axis the inner component owns (`open` on
- *   Select) or derives from what it renders (`hasRightIcon`, which both input
- *   wrappers always set) carries its default here, so a rule on its other side
- *   never fires.
- *
- * One further axis is declared but passed per slot-call rather than per
- * component, so a rule on it fires here and not there: `iconPosition` on Input,
- * 1 of its 12 axes. (`selected` on Select is not a second case: it defaults to
- * `false` on `selectVariants`, and both sides now reach that default through
- * the same fold, so `{ selected: false }` fires under either name.)
- */
-export function wrapperActiveProps(
-  innerConfig: TVConfig,
-  written: Record<string, unknown>
-): Record<string, unknown> {
-  const result: Record<string, unknown> = {};
-  for (const axis of Object.keys(innerConfig.variants ?? {})) {
-    result[axis] = written[axis];
-  }
-  return result;
-}
-
-/**
  * Keys already reported — `component \0 source \0 key` — so one mistyped key is
  * reported once rather than once per component instance and once more per
  * re-render, the cascade running inside a `$derived`. The message is built

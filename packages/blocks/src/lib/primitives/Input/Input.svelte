@@ -1,6 +1,7 @@
 <script lang="ts">
   import { useBlocksI18n, mintAttachment, createPersistentState } from '$lib';
   import { getBlocksConfig, resolveSlotClasses } from '$lib/provider';
+  import { consumeWrapperCascade } from '$lib/provider/wrapper-cascade';
   import CoreFieldMessage from '$lib/internal/core/CoreFieldMessage.svelte';
   import { useFormField, getTierContext } from '$lib/utils';
   import type { InputProps } from '.';
@@ -116,13 +117,34 @@
 
   const styles = $derived(inputVariants(variantProps));
 
+  // A wrapper (NumberInput, CurrencyInput) hands its name down instead of
+  // resolving a cascade of its own, so its `overrides` rules are matched
+  // against the object above: the tier this field reads off a context, the
+  // `messageType` it computes, the `error` boolean its axis is.
+  const wrapperCascade = consumeWrapperCascade();
+  const wrapperSlotClasses = $derived(
+    wrapperCascade &&
+      resolveSlotClasses(
+        blocksConfig,
+        wrapperCascade.component,
+        wrapperCascade.preset,
+        variantProps,
+        wrapperCascade.slotClasses,
+        inputVariants.config
+      )
+  );
+  // Published from the body, not an effect: a wrapper's own slots render inside
+  // this component's markup (NumberInput's stepper is Input's `rightIcon`), and
+  // the server pass reaches that markup with every effect still unrun.
+  if (wrapperCascade) wrapperCascade.resolved = () => wrapperSlotClasses ?? {};
+
   const slotClasses = $derived(
     resolveSlotClasses(
       blocksConfig,
       'Input',
       preset,
       variantProps,
-      slotClassesProp,
+      wrapperSlotClasses ?? slotClassesProp,
       inputVariants.config
     )
   );

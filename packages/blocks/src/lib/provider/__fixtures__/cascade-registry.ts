@@ -21,11 +21,13 @@ import type { Component } from 'svelte';
  *   `<ConfirmDialog unstyled>` and route H skipped it as "declares no
  *   `unstyled` prop"). The destructured names are unioned in, so a prop a
  *   component takes without typing it still counts;
- * - its provider name is the string literal it passes to `resolveSlotClasses`
+ * - its provider name is the string literal it passes to `resolveSlotClasses`,
+ *   or to `setWrapperCascade` where it hands the name to the component it wraps
  *   — without one it cannot be addressed from a provider's `defaults` at all;
  * - its slot names come from the `tv()` configs it composes from, read through
  *   the `.config` the engine exposes, because `Object.keys(config.slots)` is
- *   where the engine itself gets them.
+ *   where the engine itself gets them — and, for a wrapper, from the component
+ *   it hands its cascade to, which composes them on its behalf.
  *
  * The condition object is deliberately *not* read here. It is captured at
  * mount time from the real `resolveSlotClasses` call, so its keys and the
@@ -59,8 +61,19 @@ const componentsByPath = new Map(
   Object.entries(componentLoaders).map(([key, load]) => [abs(key), load])
 );
 
-/** `resolveSlotClasses(config, 'Name', …)` — the provider name of a component. */
-const PROVIDER_NAME = /resolveSlotClasses\(\s*[A-Za-z_$][\w$]*\s*,\s*'([^']+)'/;
+/**
+ * The provider name of a component: the string literal it hands
+ * `resolveSlotClasses(config, 'Name', …)`, or — for a wrapper, which resolves
+ * nothing itself and passes its name down instead — `setWrapperCascade('Name',
+ * …)`. One pattern for both, so the name is found wherever a component declares
+ * one; a name this misses is a component the whole sweep skips.
+ *
+ * First match wins, which is what an inner component needs: it resolves the
+ * wrapper's name before its own, but reads that one off `cascade.component`
+ * rather than a literal, so the first literal here is still its own.
+ */
+const PROVIDER_NAME =
+  /(?:resolveSlotClasses\(\s*[A-Za-z_$][\w$]*\s*,|setWrapperCascade\()\s*'([^']+)'/;
 /** The destructuring pattern of the component's own `$props()` call. */
 const PROPS_CALL = /let\s*\{([\s\S]*?)\}\s*(?::[^=]*)?=\s*\$props\(\)/;
 /**
@@ -75,6 +88,10 @@ const PROPS_TYPE = /\}\s*:\s*([A-Za-z_$][\w$]*)[^=]*=\s*\$props\(\)/;
 const IMPORT_CLAUSE = /import\s+(?:type\s+)?\{([^}]*)\}\s+from\s+'([^']+)'/g;
 /** Any identifier the source uses — matched against the tv() export index. */
 const IDENTIFIER = /\b[A-Za-z_$][\w$]*\b/g;
+/** The wrapped side of a wrapper cascade: the component that resolves the name. */
+const CONSUMES_CASCADE = /\bconsumeWrapperCascade\s*\(/;
+/** The wrapping side: the component that hands its name to the one it wraps. */
+const SETS_CASCADE = /\bsetWrapperCascade\s*\(/;
 
 export interface CascadeComponent {
   /** Provider name — the key a `defaults` entry is written under, if any. */
@@ -427,7 +444,16 @@ export function exportedComponents(): Promise<CascadeComponent[]> {
       return undefined;
     };
 
-    const found: CascadeComponent[] = [];
+    interface Scan {
+      path: string;
+      code: string;
+      exportName: string;
+      slots: Set<string>;
+      libraryTokens: Set<string>;
+      component: AnyComponent;
+    }
+
+    const scans: Scan[] = [];
     for (const [path, load] of componentsByPath) {
       const component = (await load()).default;
       const exportName = exportNameByModule.get(component);
@@ -442,18 +468,44 @@ export function exportedComponents(): Promise<CascadeComponent[]> {
         for (const slot of facts.slots) slots.add(slot);
         for (const token of facts.tokens) libraryTokens.add(token);
       }
-
-      found.push({
-        providerName: code.match(PROVIDER_NAME)?.[1] ?? null,
-        exportName,
-        // A tv() config without `slots` routes its classes to `base`, and that
-        // is the key such a component reads off the resolved record.
-        slots: slots.size > 0 ? [...slots] : ['base'],
-        libraryTokens,
-        declaredProps: contractProps(path, code, sourceOf, resolveSpecifier),
-        component
-      });
+      scans.push({ path, code, exportName, slots, libraryTokens, component });
     }
+
+    // A wrapper composes no tv() config of its own — it hands its name to the
+    // one component it wraps, and that component's slots and class tokens are
+    // what a `defaults` entry under the wrapper's name is written in. The edge
+    // is read off the source like everything else here: the wrapped side is the
+    // component whose body calls `consumeWrapperCascade`, the wrapping side is
+    // the one whose source both sets a cascade and names that component.
+    //
+    // Naming is enough to identify it, and precisely: only three components
+    // consume a cascade, a wrapper renders exactly one of them, and the
+    // identifier scan reads whole tokens (`NumberInputProps` is one token, not
+    // a mention of `Input`).
+    const consumers = new Map<string, Scan>();
+    for (const scan of scans) {
+      if (CONSUMES_CASCADE.test(scan.code)) consumers.set(scan.exportName, scan);
+    }
+    for (const scan of scans) {
+      if (!SETS_CASCADE.test(scan.code)) continue;
+      for (const [identifier] of scan.code.matchAll(IDENTIFIER)) {
+        const inner = consumers.get(identifier);
+        if (!inner) continue;
+        for (const slot of inner.slots) scan.slots.add(slot);
+        for (const token of inner.libraryTokens) scan.libraryTokens.add(token);
+      }
+    }
+
+    const found: CascadeComponent[] = scans.map((scan) => ({
+      providerName: scan.code.match(PROVIDER_NAME)?.[1] ?? null,
+      exportName: scan.exportName,
+      // A tv() config without `slots` routes its classes to `base`, and that
+      // is the key such a component reads off the resolved record.
+      slots: scan.slots.size > 0 ? [...scan.slots] : ['base'],
+      libraryTokens: scan.libraryTokens,
+      declaredProps: contractProps(scan.path, scan.code, sourceOf, resolveSpecifier),
+      component: scan.component
+    }));
     return found.sort((a, b) => a.exportName.localeCompare(b.exportName));
   })();
   return cache;

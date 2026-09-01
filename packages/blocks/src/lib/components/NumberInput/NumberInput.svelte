@@ -1,6 +1,7 @@
 <script lang="ts">
-  import { Input, inputVariants } from '$lib/primitives/Input';
-  import { getBlocksConfig, resolveSlotClasses, wrapperActiveProps } from '$lib/provider';
+  import { Input } from '$lib/primitives/Input';
+  import { getBlocksConfig } from '$lib/provider';
+  import { setWrapperCascade } from '$lib/provider/wrapper-cascade';
   import { resolveIcon } from '$lib/icons';
   import ChevronDownIconDefault from '$lib/icons/ChevronDownIcon.svelte';
   import { numberInputVariants, type NumberInputSlots } from './numberinput.variants';
@@ -21,10 +22,10 @@
     onValueChange,
     rightIcon: userRightIcon,
     // Out of the forwarded bag, each for its own reason: `preset` because it
-    // must resolve here rather than inside Input (see below), `slotClasses`
-    // because it is the weakest rung of that same resolution, and `unstyled`
-    // because the stepper below is this component's own markup and has to obey
-    // it too.
+    // must resolve under this name rather than Input's (see below),
+    // `slotClasses` because it is the strongest rung of that same cascade, and
+    // `unstyled` because the stepper below is this component's own markup and
+    // has to obey it too.
     unstyled: unstyledProp = false,
     slotClasses: slotClassesProp = {},
     preset,
@@ -33,31 +34,31 @@
 
   const blocksConfig = getBlocksConfig();
   const unstyled = $derived(unstyledProp || blocksConfig?.unstyled || false);
-  // Resolved here, under this component's own name, and handed to Input as
-  // instance `slotClasses` rather than forwarded as `preset`: inside Input the
-  // name would be `Input`, so a preset written for the number field would style
-  // every text field under the provider too. `wrapperActiveProps` supplies the
-  // axes the caller left to Input's own defaults, without which a preset's
-  // `overrides` rule on any of them would match nothing here.
+  // Handed down rather than resolved here, and not forwarded as `preset`:
+  // inside Input the name would be `Input`, so a preset written for the number
+  // field would style every text field under the provider too. Input resolves
+  // it against its own variant props, which is where the axes a rule may key on
+  // actually are.
   //
   // One record for two element sets: Input reads the keys of its own slots off
   // it, `slot()` below reads `numberInputVariants`'s two. `numberInputVariants`
   // declares no axes of its own, so the condition object is Input's set — which
   // is also the only set a caller of a number field has words for.
-  const presetSlotClasses = $derived(
-    resolveSlotClasses(
-      blocksConfig,
-      'NumberInput',
-      preset,
-      wrapperActiveProps(inputVariants.config, { ...inputProps, disabled, readonly }),
-      slotClassesProp,
-      inputVariants.config
-    )
-  );
+  const cascade = setWrapperCascade('NumberInput', {
+    get preset() {
+      return preset;
+    },
+    get slotClasses() {
+      return slotClassesProp;
+    }
+  });
+
   const styles = $derived(unstyled ? undefined : numberInputVariants());
 
   function slot(name: NumberInputSlots): string {
-    const overrides = presetSlotClasses?.[name] ?? '';
+    // Reached only from the `stepper` snippet, which Input renders as its
+    // `rightIcon` — so Input has run and published by the time this is called.
+    const overrides = cascade.resolved?.()[name] ?? '';
     return styles?.[name]({ class: overrides }) ?? overrides;
   }
 
@@ -216,7 +217,6 @@
 <Input
   {...inputProps}
   unstyled={unstyledProp}
-  slotClasses={presetSlotClasses}
   {disabled}
   {readonly}
   type="text"
