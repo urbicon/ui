@@ -147,6 +147,13 @@ The check runs at mount. Changing a provider config under an already-mounted spa
 restyles it without warning again, so re-mount — or reload — after editing one. Production
 builds drop the check entirely.
 
+Reading the *resolved* map is what buys the four provider rows, and it is also the check's one
+blind spot: a stale key inside an `overrides` rule is only in the resolved map when that rule
+**matches**. A rule whose condition is never true carries its stale key silently — measured,
+by keying one on an axis `Sparkline` does not name. That costs nothing here, because the rule
+does nothing either; but it means the warning answers "a stale key is reaching this
+sparkline", not "your config has no stale keys". The grep above is what answers the second.
+
 ### The shadow scale left the colour namespace
 
 The five box-shadow steps are declared as `--blocks-shadow-scale-xs` …

@@ -42,7 +42,14 @@
   const variantProps = $derived({ stateOn });
   const styles = $derived(ladderFoldVariants(variantProps));
   const slotClasses = $derived(
-    resolveSlotClasses(blocksConfig, 'LadderFoldProbe', undefined, variantProps, slotClassesProp)
+    resolveSlotClasses(
+      blocksConfig,
+      'LadderFoldProbe',
+      undefined,
+      variantProps,
+      slotClassesProp,
+      ladderFoldVariants.config
+    )
   );
 </script>
 
