@@ -4,6 +4,15 @@ All notable changes to this project will be documented in this file.
 This changelog is automatically generated from [Conventional Commits](https://www.conventionalcommits.org).
 
 
+## [8.16.0] - 2026-09-02
+
+### Breaking Changes
+- **auth**: The HTTP status is a property of the error code
+> **BREAKING:** a failed passkey sign-in answers 401 where it answered 400 — both a rejected assertion and a credential the server no longer holds. `AuthErrorCode` and `AUTH_ERROR_CODES` gain `two_factor_setup_code_invalid` and `passkey_registration_verification_failed`; `AuthLocale` gains the two matching required keys, so a hand-written locale bundle stops compiling until it carries them. A client branching on `invalid_code` for the 2FA enrolment flow, or on `passkey_verification_failed` for enrolment, needs the new arm. `authError` is not exported from any published entry point, so its own signature change …
+
+### Bug Fixes
+- **auth**: No-store is a property of the response, not of the call site
+
 ## [8.15.0] - 2026-09-02
 
 ### Breaking Changes
