@@ -2,7 +2,7 @@ import { mkdtemp, readFile, rm, stat, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import * as path from 'node:path';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
-import type { APIData } from '../../types';
+import type { APIData, ComponentAPIData, EnrichedComponentInfo } from '../../types';
 import type { LLMOutputConfig } from '../../types/configuration';
 import { LLMDocumentationGenerator } from './LLMDocumentationGenerator';
 
@@ -85,5 +85,102 @@ describe('LLMDocumentationGenerator guides', () => {
     const index = await readFile(path.join(scopeDir, 'llms.txt'), 'utf-8');
     expect(index).not.toContain('## Guides');
     expect(index).toContain('## Components');
+  });
+});
+
+// A component's maturity reached only the docs-page badge and the MCP catalog, so
+// every file-based consumer path — the per-component `llm.txt`, `llms-full.txt`
+// assembled from them, and `urbicon get-component`, which prints one verbatim —
+// showed an experimental component exactly like a stable one.
+describe('LLMDocumentationGenerator stability', () => {
+  let tmp: string;
+  let scopeDir: string;
+
+  const component = (name: string): EnrichedComponentInfo =>
+    ({
+      name,
+      packageName: '@urbicon-ui/blocks',
+      filePath: `/src/lib/components/${name}/${name}.svelte`,
+      description: `The ${name} component.`,
+      crossReferences: [],
+      examples: []
+    }) as unknown as EnrichedComponentInfo;
+
+  const apiEntry = (name: string, stability?: string) =>
+    ({
+      name,
+      props: [{ name: 'value', type: 'string', required: false, description: 'A value.' }],
+      variants: [],
+      inheritance: [],
+      examples: [],
+      stats: { total: 1, direct: 1, variant: 0, inherited: 0 },
+      group: 'components',
+      ...(stability ? { stability } : {})
+    }) as unknown as ComponentAPIData;
+
+  beforeEach(async () => {
+    tmp = await mkdtemp(path.join(tmpdir(), 'docs-gen-stability-'));
+    scopeDir = path.join(tmp, 'blocks');
+  });
+
+  afterEach(async () => {
+    await rm(tmp, { recursive: true, force: true });
+  });
+
+  const run = async () => {
+    const generator = new LLMDocumentationGenerator(baseConfig(scopeDir));
+    await generator.generate(
+      [component('Betamax'), component('Steadfast'), component('Wildcard')],
+      {
+        components: {
+          Betamax: apiEntry('Betamax', 'beta'),
+          // The positive control in the opposite case: same rig, same run — a
+          // `stable` component must come back with no note at all, or the
+          // assertion below would pass on a generator that stamps every entry.
+          Steadfast: apiEntry('Steadfast', 'stable'),
+          Wildcard: apiEntry('Wildcard', 'experimental')
+        },
+        types: [],
+        metadata: {}
+      } as unknown as APIData
+    );
+    const read = (name: string) =>
+      readFile(path.join(scopeDir, 'components', name, 'llm.txt'), 'utf-8');
+    return {
+      betamax: await read('betamax'),
+      steadfast: await read('steadfast'),
+      wildcard: await read('wildcard'),
+      index: await readFile(path.join(scopeDir, 'llms.txt'), 'utf-8')
+    };
+  };
+
+  it('states a non-stable level in the component file, and states nothing for stable', async () => {
+    const { betamax, steadfast, wildcard } = await run();
+
+    expect(betamax).toContain('**Stability:** beta —');
+    expect(wildcard).toContain('**Stability:** experimental —');
+    expect(steadfast).not.toContain('**Stability:**');
+  });
+
+  it('puts the level above the description, where a truncating reader still sees it', async () => {
+    const { betamax } = await run();
+
+    const level = betamax.indexOf('**Stability:**');
+    const description = betamax.indexOf('The Betamax component.');
+    expect(level).toBeGreaterThan(-1);
+    expect(description).toBeGreaterThan(-1);
+    expect(level).toBeLessThan(description);
+  });
+
+  it('marks the level in the scope index, which is the only thing its lines say', async () => {
+    const { index } = await run();
+
+    expect(index).toContain(
+      '[Betamax](./components/betamax/llm.txt): Component LLM context (beta)'
+    );
+    expect(index).toContain(
+      '[Wildcard](./components/wildcard/llm.txt): Component LLM context (experimental)'
+    );
+    expect(index).toContain('[Steadfast](./components/steadfast/llm.txt): Component LLM context\n');
   });
 });

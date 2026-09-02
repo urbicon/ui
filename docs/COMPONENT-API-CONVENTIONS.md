@@ -575,7 +575,9 @@ on both arms, so there is no removal case.
 Every `*Props` interface may carry a `@stability` JSDoc tag —
 `experimental | beta | stable | deprecated`, defaulting to `stable` when
 omitted (see the `component-metadata` skill). The tag drives the docs-page
-badge and the MCP catalog with the landing page's status column. The levels
+badge, the MCP catalog with the landing page's status column, and — for every
+level but `stable` — a note under the heading of the component's `llm.txt`,
+which is what `llms-full.txt` and `urbicon get-component` print. The levels
 promise:
 
 - **`experimental`** – shipped to be used and judged, but the API may change
