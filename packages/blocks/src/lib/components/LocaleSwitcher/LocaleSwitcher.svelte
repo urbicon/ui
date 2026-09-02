@@ -1,7 +1,6 @@
 <script lang="ts">
   import Select from '$lib/primitives/Select/Select.svelte';
-  import { selectVariants } from '$lib/primitives/Select/select.variants';
-  import { getBlocksConfig, resolveSlotClasses, wrapperActiveProps } from '$lib/provider';
+  import { setWrapperCascade } from '$lib/provider/wrapper-cascade';
   import type { LocaleSwitcherProps } from './index';
   import { useBlocksI18n, getBlocksLocales } from '$lib';
   import { useI18n } from '@urbicon-ui/i18n';
@@ -33,8 +32,6 @@
     ...restProps
   }: LocaleSwitcherProps = $props();
 
-  const blocksConfig = getBlocksConfig();
-
   const localeNames: Record<string, string> = $derived({
     en: bt('languages.en'),
     de: bt('languages.de'),
@@ -63,29 +60,20 @@
   const currentLocale = $derived(i18n.locale);
   const isLoading = $derived(i18n.isLoading);
 
-  // Resolved here, under this component's own name, and handed to Select as
-  // instance `slotClasses` rather than forwarded as `preset`: inside Select the
-  // name would be `Select`, so a preset written for the locale picker would
-  // style every select under the provider too. `wrapperActiveProps` supplies the
-  // axes the caller left to Select's own defaults, without which a preset's
-  // `overrides` rule on any of them would match nothing here. `variant`, `size`
-  // and the loading-disabled state are this component's answer for Select, so
-  // they are written into the object rather than defaulted out of the config.
-  const presetSlotClasses = $derived(
-    resolveSlotClasses(
-      blocksConfig,
-      'LocaleSwitcher',
-      preset,
-      wrapperActiveProps(selectVariants.config, {
-        ...restProps,
-        variant,
-        size,
-        disabled: disabled || isLoading
-      }),
-      slotClasses,
-      selectVariants.config
-    )
-  );
+  // Handed down rather than resolved here, and not forwarded as `preset`:
+  // inside Select the name would be `Select`, so a preset written for the
+  // locale picker would style every select under the provider too. Select
+  // resolves it against its own variant props, which is where the axes a rule
+  // may key on actually are — `open` among them, which is Select's own runtime
+  // state and legible nowhere else.
+  setWrapperCascade('LocaleSwitcher', {
+    get preset() {
+      return preset;
+    },
+    get slotClasses() {
+      return slotClasses;
+    }
+  });
 
   // Single-mode Select narrows `newLocale` to `string | null`. The
   // `Array.isArray` guard from the old union-typed wrapper is gone — the
@@ -109,7 +97,6 @@
   {variant}
   {size}
   {unstyled}
-  slotClasses={presetSlotClasses}
   class={className}
   placeholder={isLoading ? bt('common.loading') : bt('localeSwitcher.placeholder')}
   disabled={disabled || isLoading}

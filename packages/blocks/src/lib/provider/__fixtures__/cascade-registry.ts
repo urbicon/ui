@@ -2,6 +2,7 @@ import { readFileSync } from 'node:fs';
 import { dirname, join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import type { Component } from 'svelte';
+import { parse } from 'svelte/compiler';
 
 /**
  * Who takes part in the provider-cascade sweep, and with which slot names —
@@ -21,11 +22,13 @@ import type { Component } from 'svelte';
  *   `<ConfirmDialog unstyled>` and route H skipped it as "declares no
  *   `unstyled` prop"). The destructured names are unioned in, so a prop a
  *   component takes without typing it still counts;
- * - its provider name is the string literal it passes to `resolveSlotClasses`
+ * - its provider name is the string literal it passes to `resolveSlotClasses`,
+ *   or to `setWrapperCascade` where it hands the name to the component it wraps
  *   — without one it cannot be addressed from a provider's `defaults` at all;
  * - its slot names come from the `tv()` configs it composes from, read through
  *   the `.config` the engine exposes, because `Object.keys(config.slots)` is
- *   where the engine itself gets them.
+ *   where the engine itself gets them — and, for a wrapper, from the component
+ *   it hands its cascade to, which composes them on its behalf.
  *
  * The condition object is deliberately *not* read here. It is captured at
  * mount time from the real `resolveSlotClasses` call, so its keys and the
@@ -59,8 +62,19 @@ const componentsByPath = new Map(
   Object.entries(componentLoaders).map(([key, load]) => [abs(key), load])
 );
 
-/** `resolveSlotClasses(config, 'Name', …)` — the provider name of a component. */
-const PROVIDER_NAME = /resolveSlotClasses\(\s*[A-Za-z_$][\w$]*\s*,\s*'([^']+)'/;
+/**
+ * The provider name of a component: the string literal it hands
+ * `resolveSlotClasses(config, 'Name', …)`, or — for a wrapper, which resolves
+ * nothing itself and passes its name down instead — `setWrapperCascade('Name',
+ * …)`. One pattern for both, so the name is found wherever a component declares
+ * one; a name this misses is a component the whole sweep skips.
+ *
+ * First match wins, which is what an inner component needs: it resolves the
+ * wrapper's name before its own, but reads that one off `cascade.component`
+ * rather than a literal, so the first literal here is still its own.
+ */
+const PROVIDER_NAME =
+  /(?:resolveSlotClasses\(\s*[A-Za-z_$][\w$]*\s*,|setWrapperCascade\()\s*'([^']+)'/;
 /** The destructuring pattern of the component's own `$props()` call. */
 const PROPS_CALL = /let\s*\{([\s\S]*?)\}\s*(?::[^=]*)?=\s*\$props\(\)/;
 /**
@@ -386,6 +400,109 @@ function contractProps(
   return [...names];
 }
 
+/**
+ * Every node of a given `type` in a Svelte AST, found by walking the object
+ * graph rather than by knowing its shape — the block and snippet nodes that
+ * hold a component tag differ per construct, and enumerating them is the same
+ * kind of guess this function exists to stop making.
+ */
+function collectNodes(
+  node: unknown,
+  type: string,
+  out: Record<string, unknown>[],
+  seen: WeakSet<object>
+): void {
+  if (!node || typeof node !== 'object') return;
+  if (seen.has(node)) return;
+  seen.add(node);
+  if (Array.isArray(node)) {
+    for (const item of node) collectNodes(item, type, out, seen);
+    return;
+  }
+  const record = node as Record<string, unknown>;
+  if (record.type === type) out.push(record);
+  for (const value of Object.values(record)) collectNodes(value, type, out, seen);
+}
+
+/** The names a `.svelte` source imports, and the component tags it renders. */
+export interface SvelteEdges {
+  /** Export names, so an aliased named import still reads as what it is. */
+  imported: Set<string>;
+  tags: Set<string>;
+}
+
+/**
+ * Read a component's outgoing edges off the Svelte compiler's own parse.
+ *
+ * Asking the parser is the whole point: in a `.svelte` file "not code" is a far
+ * larger set than JavaScript's, and every text scan here has been wrong about
+ * a different member of it. Measured, each silently giving `NumberInput` the
+ * full `Select` vocabulary (10 slots to 22): an attribute VALUE
+ * (`aria-roledescription="Select a number"`), an ordinary markup comment above
+ * the stepper snippet — `<!-- -->` is the mandatory comment form in Svelte
+ * markup and this file already carries one — plain markup text, a regex
+ * literal, a dashed attribute NAME, and `{#each}` body text. A strip excludes
+ * the vector last found; a parse excludes the category.
+ *
+ * The parse also answers the second kind of non-edge, which no scan of any
+ * depth could: a name that *is* a real identifier in a real import and still
+ * renders nothing — a type import, either spelling, and a namespace binding.
+ *
+ * Throws on a source it cannot parse rather than falling back to a scan: a
+ * component the compiler rejects is not a component, and a quiet fallback here
+ * would reinstate exactly the silence this replaced.
+ */
+export function svelteEdges(source: string): SvelteEdges {
+  const ast = parse(source, { modern: true }) as unknown as Record<string, unknown>;
+  const imported = new Set<string>();
+  const tags = new Set<string>();
+
+  const declarations: Record<string, unknown>[] = [];
+  collectNodes(ast.instance, 'ImportDeclaration', declarations, new WeakSet());
+  collectNodes(ast.module, 'ImportDeclaration', declarations, new WeakSet());
+  for (const declaration of declarations) {
+    // A type import renders nothing, so it is no edge. `importKind` sits on the
+    // declaration for `import type { X }` and on the specifier for
+    // `import { type X }`; both spellings reach here.
+    if (declaration.importKind === 'type') continue;
+    for (const specifier of (declaration.specifiers ?? []) as Record<string, unknown>[]) {
+      if (specifier.importKind === 'type') continue;
+      // A namespace binding is never a component — `import * as Select` names
+      // the module, not an export of it — while a default binding is the only
+      // name its import has.
+      if (specifier.type === 'ImportNamespaceSpecifier') continue;
+      // A named import carries the export name in `imported`; a default import
+      // has only the local binding, which is the importer's choice — a renamed
+      // one drops the edge, and that is the loud direction.
+      const source_ =
+        specifier.type === 'ImportSpecifier'
+          ? (specifier.imported as { name?: string })?.name
+          : (specifier.local as { name?: string })?.name;
+      if (source_) imported.add(source_);
+    }
+  }
+
+  const components: Record<string, unknown>[] = [];
+  collectNodes(ast.fragment, 'Component', components, new WeakSet());
+  for (const node of components) if (typeof node.name === 'string') tags.add(node.name);
+
+  return { imported, tags };
+}
+
+/**
+ * Which cascade-consuming components a source names, in code.
+ *
+ * Exported for `cascade-registry.test.ts`, the only positive control this
+ * derivation can have: a wrong edge *widens* a slot vocabulary, so every sweep
+ * that consumes it stays green — measured on both text-scan defects above,
+ * with `provider-cascade` and `boolean-conditions` at 881 passing throughout.
+ */
+export function namedConsumers(source: string, consumers: Iterable<string>): string[] {
+  const wanted = new Set(consumers);
+  const { imported, tags } = svelteEdges(source);
+  return [...new Set([...imported, ...tags])].filter((name) => wanted.has(name));
+}
+
 let cache: Promise<CascadeComponent[]> | undefined;
 
 /**
@@ -427,13 +544,27 @@ export function exportedComponents(): Promise<CascadeComponent[]> {
       return undefined;
     };
 
-    const found: CascadeComponent[] = [];
+    interface Scan {
+      path: string;
+      code: string;
+      edges: SvelteEdges;
+      exportName: string;
+      slots: Set<string>;
+      libraryTokens: Set<string>;
+      component: AnyComponent;
+    }
+
+    const scans: Scan[] = [];
     for (const [path, load] of componentsByPath) {
       const component = (await load()).default;
       const exportName = exportNameByModule.get(component);
       if (!exportName) continue;
 
-      const code = stripComments(readFileSync(path, 'utf8'));
+      const raw = readFileSync(path, 'utf8');
+      const code = stripComments(raw);
+      // Off the raw source: `stripComments` knows JavaScript's comment forms,
+      // and the parser has to see the file the compiler sees.
+      const edges = svelteEdges(raw);
       const slots = new Set<string>();
       const libraryTokens = new Set<string>();
       for (const [identifier] of code.matchAll(IDENTIFIER)) {
@@ -442,18 +573,45 @@ export function exportedComponents(): Promise<CascadeComponent[]> {
         for (const slot of facts.slots) slots.add(slot);
         for (const token of facts.tokens) libraryTokens.add(token);
       }
-
-      found.push({
-        providerName: code.match(PROVIDER_NAME)?.[1] ?? null,
-        exportName,
-        // A tv() config without `slots` routes its classes to `base`, and that
-        // is the key such a component reads off the resolved record.
-        slots: slots.size > 0 ? [...slots] : ['base'],
-        libraryTokens,
-        declaredProps: contractProps(path, code, sourceOf, resolveSpecifier),
-        component
-      });
+      scans.push({ path, code, edges, exportName, slots, libraryTokens, component });
     }
+
+    // A wrapper composes no tv() config of its own — it hands its name to the
+    // one component it wraps, and that component's slots and class tokens are
+    // what a `defaults` entry under the wrapper's name is written in. The edge
+    // is read off the source like everything else here: the wrapped side is the
+    // component whose body calls `consumeWrapperCascade`, the wrapping side is
+    // the one whose source both sets a cascade and names that component. Both
+    // halves come off the parse (`svelteEdges`): which side a component is on
+    // is which of the two functions it imports, and "names" is an import
+    // specifier or a rendered tag — never a word in a comment or a string.
+    // `namedConsumers` carries the positive control; nothing downstream can
+    // report a wrong edge.
+    const consumers = new Map<string, Scan>();
+    for (const scan of scans) {
+      if (scan.edges.imported.has('consumeWrapperCascade')) consumers.set(scan.exportName, scan);
+    }
+    for (const scan of scans) {
+      if (!scan.edges.imported.has('setWrapperCascade')) continue;
+      const named = [...scan.edges.imported, ...scan.edges.tags];
+      for (const name of named) {
+        const inner = consumers.get(name);
+        if (!inner) continue;
+        for (const slot of inner.slots) scan.slots.add(slot);
+        for (const token of inner.libraryTokens) scan.libraryTokens.add(token);
+      }
+    }
+
+    const found: CascadeComponent[] = scans.map((scan) => ({
+      providerName: scan.code.match(PROVIDER_NAME)?.[1] ?? null,
+      exportName: scan.exportName,
+      // A tv() config without `slots` routes its classes to `base`, and that
+      // is the key such a component reads off the resolved record.
+      slots: scan.slots.size > 0 ? [...scan.slots] : ['base'],
+      libraryTokens: scan.libraryTokens,
+      declaredProps: contractProps(scan.path, scan.code, sourceOf, resolveSpecifier),
+      component: scan.component
+    }));
     return found.sort((a, b) => a.exportName.localeCompare(b.exportName));
   })();
   return cache;

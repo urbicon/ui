@@ -1,6 +1,7 @@
 <script lang="ts">
   import { useBlocksI18n } from '$lib';
   import { getBlocksConfig, resolveSlotClasses } from '$lib/provider';
+  import { consumeWrapperCascade } from '$lib/provider/wrapper-cascade';
   import { resolveIcon } from '$lib/icons';
   import CloseIconDefault from '$lib/icons/CloseIcon.svelte';
   import { onDestroy, tick } from 'svelte';
@@ -196,13 +197,29 @@
 
   const variantProps: DialogVariants = $derived({ size, placement, intent });
   const styles = $derived(dialogVariants(variantProps));
+  // A wrapper (ConfirmDialog) hands its name down instead of resolving a
+  // cascade of its own, so its `overrides` rules are matched against the object
+  // above rather than against a stand-in built from what its caller wrote.
+  const wrapperCascade = consumeWrapperCascade(() => wrapperSlotClasses ?? {});
+  const wrapperSlotClasses = $derived(
+    wrapperCascade &&
+      resolveSlotClasses(
+        blocksConfig,
+        wrapperCascade.component,
+        wrapperCascade.preset,
+        variantProps,
+        wrapperCascade.slotClasses,
+        dialogVariants.config
+      )
+  );
+
   const slotClasses = $derived(
     resolveSlotClasses(
       blocksConfig,
       'Dialog',
       preset,
       variantProps,
-      slotClassesProp,
+      wrapperSlotClasses ?? slotClassesProp,
       dialogVariants.config
     )
   );

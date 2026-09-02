@@ -9,6 +9,5 @@ export {
   type PresetMap,
   resolveOverrideSlotClasses,
   resolvePresetSlotClasses,
-  resolveSlotClasses,
-  wrapperActiveProps
+  resolveSlotClasses
 } from './blocks-context';

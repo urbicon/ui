@@ -139,66 +139,6 @@ export function resolvePresetSlotClasses(
 }
 
 /**
- * The `activeProps` a **wrapper** component hands {@link resolveSlotClasses}.
- *
- * A wrapper (NumberInput over Input, ConfirmDialog over Dialog) resolves its
- * own preset before the component it wraps ever runs, so it sees only the props
- * its caller wrote. Every axis the caller left out is defaulted *inside* the
- * inner component — which is where an `overrides` rule would otherwise have
- * been matched. Handing the written props through unchanged makes the rule
- * shape `packages/blocks/README.md` documents (`{ variant: 'outlined' }`) match
- * nothing at all under a wrapper's name, because the wrapper carries
- * `variant: undefined`.
- *
- * Which keys are axes at all is read off the inner component's own `tv()`
- * config rather than restated here — a rule may not key on `label`, which the
- * inner component's condition object never carries either. **Every** such axis
- * becomes a key, at `undefined` where the caller wrote nothing: a wrapper
- * stands in for the whole inner component, so it can speak for every axis that
- * component has, and {@link effectiveVariants} then answers the `undefined`
- * with the inner config's own default. That is what makes a wrapper and the
- * component it wraps give one rule the same answer.
- *
- * A component that is *not* a stand-in must not do this — an item beside its
- * siblings (`SegmentItem`) speaks only for the axes it names, or a rule keyed
- * on one of them would claim its neighbour's state.
- *
- * **What it cannot supply — and the direction matters.** A rule that fails to
- * fire is noticed; a rule that fires on a state the component is not in looks
- * like a success. Measured, three classes, all of them in #360:
- *
- * - *False hit, derived axis.* An axis the inner component computes rather than
- *   receives carries its config default here. Under a `commit` tier context
- *   `{ tier: 'modify' }` fires on NumberInput and `{ tier: 'commit' }` does not,
- *   though the rendered Input is `commit`; on `<NumberInput error="x">`,
- *   `{ messageType: 'helper' }` fires and `{ messageType: 'error' }` does not.
- * - *Coerced axis.* `error` is a `string` prop on Input and Select and a boolean
- *   axis in their configs. `{ error: true }` fires on the plain component and
- *   never on a wrapper; `{ error: 'x' }` fires on a wrapper and can never match
- *   inside. It is on Input and Select, so on all four wrappers.
- * - *Missed hit, unknowable axis.* An axis the inner component owns (`open` on
- *   Select) or derives from what it renders (`hasRightIcon`, which both input
- *   wrappers always set) carries its default here, so a rule on its other side
- *   never fires.
- *
- * One further axis is declared but passed per slot-call rather than per
- * component, so a rule on it fires here and not there: `iconPosition` on Input,
- * 1 of its 12 axes. (`selected` on Select is not a second case: it defaults to
- * `false` on `selectVariants`, and both sides now reach that default through
- * the same fold, so `{ selected: false }` fires under either name.)
- */
-export function wrapperActiveProps(
-  innerConfig: TVConfig,
-  written: Record<string, unknown>
-): Record<string, unknown> {
-  const result: Record<string, unknown> = {};
-  for (const axis of Object.keys(innerConfig.variants ?? {})) {
-    result[axis] = written[axis];
-  }
-  return result;
-}
-
-/**
  * Keys already reported — `component \0 source \0 key` — so one mistyped key is
  * reported once rather than once per component instance and once more per
  * re-render, the cascade running inside a `$derived`. The message is built
@@ -218,9 +158,9 @@ const warnedConditionKeys = new Set<string>();
  * that resolve a cascade:
  *
  * - a check against `declared` alone reports the keys a component only passes:
- *   the four wrappers hand over axes belonging to what they wrap, and
- *   `datePickerVariants` declares none of the five DatePicker passes. So
- *   `declared` has to buy silence;
+ *   `datePickerVariants` declares none of the five DatePicker passes, and
+ *   `CopyButton` passes two that belong to the Button inside it. So `declared`
+ *   has to buy silence;
  * - `matchesCompound` reads `effectiveProps[key]`, whose keys are exactly
  *   `named`. The 32 axes that are declared but not passed — 14 components,
  *   among them `state` on Stepper, `iconPosition` on Input, `dayState` on
@@ -234,6 +174,14 @@ const warnedConditionKeys = new Set<string>();
  * config gives `Stepper` and `StepperStep` the same `declared`, and only the
  * running call says who passed what. The sentence names the axes and their
  * shape, not their owner.
+ *
+ * **`component` is the name a rule is written under, not the component the
+ * props came from.** A wrapper resolves through the component it wraps, so
+ * under `NumberInput` both lists are Input's — `numberInputVariants` declares
+ * no axis at all and NumberInput passes none. That is the truth a rule needs,
+ * and it is why the message says "the variant props this rule is matched
+ * against" rather than "its props": the possessive would name the wrong
+ * component on every wrapper.
  *
  * With `named` empty the diagnosis is the certain one rather than the weak one:
  * no conditional rule can match that component at all, so the message says so
@@ -249,7 +197,7 @@ const warnedConditionKeys = new Set<string>();
  * **No sibling check for the `class` record's slot names.** The information is
  * not here: five components read slot names the config they hand this resolver
  * does not declare. Three read past a declared slot map — `NumberInput` takes
- * `stepper`/`stepperButton` from its own config while passing Input's,
+ * `stepper`/`stepperButton` off a record Input resolved under its name,
  * `SidebarLayout` five `sidebar*` keys, `Guide` `skip`/`next` — and two,
  * `Popover` and `Separator`, pass a config carrying no `slots` at all and read
  * `base` off the result. Checking against `variantConfig.slots` would report
@@ -282,8 +230,8 @@ function warnUnknownConditionKeys(
       const perSlotCall = declared.filter((axis) => !named.includes(axis));
       const head =
         `[BlocksProvider] The \`overrides\` rule under ${source} for component "${component}" ` +
-        `conditions on "${key}", which is neither a prop it passes nor an axis its ` +
-        '`tv()` config declares.';
+        `conditions on "${key}", which is neither one of the variant props this rule is ` +
+        'matched against nor an axis of the `tv()` config behind them.';
       const body =
         named.length > 0
           ? ` Keys that can match here: ${named.join(', ')}.`
@@ -291,9 +239,9 @@ function warnUnknownConditionKeys(
             ' — use unconditional `slotClasses`.';
       const tail =
         perSlotCall.length > 0
-          ? ` Its config also declares ${perSlotCall.join(', ')}, which the component hands to a` +
-            ' slot function per element rather than carrying for itself; a rule keyed on one of' +
-            ' those matches nothing here either, and belongs on the component that passes it.'
+          ? ` That config also declares ${perSlotCall.join(', ')}, handed to a slot function per` +
+            ' element rather than carried per component; a rule keyed on one of those matches' +
+            ' nothing here either, and belongs on the component that passes it.'
           : '';
       console.warn(head + body + tail);
     }

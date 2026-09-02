@@ -3,6 +3,7 @@
   import CoreFieldMessage from '$lib/internal/core/CoreFieldMessage.svelte';
   import { useFormField, getTierContext, useFloatingPanel, floatingPanelHidden } from '$lib/utils';
   import { getBlocksConfig, resolveSlotClasses } from '$lib/provider';
+  import { consumeWrapperCascade } from '$lib/provider/wrapper-cascade';
   import { resolveIcon } from '$lib/icons';
   import ChevronDownIconDefault from '$lib/icons/ChevronDownIcon.svelte';
   import CheckIconDefault from '$lib/icons/CheckIcon.svelte';
@@ -234,13 +235,30 @@
 
   const styles = $derived(selectVariants(variantProps));
 
+  // A wrapper (LocaleSwitcher) hands its name down instead of resolving a
+  // cascade of its own, so its `overrides` rules are matched against the object
+  // above — including `open`, which is this component's own runtime state and
+  // legible nowhere else.
+  const wrapperCascade = consumeWrapperCascade(() => wrapperSlotClasses ?? {});
+  const wrapperSlotClasses = $derived(
+    wrapperCascade &&
+      resolveSlotClasses(
+        blocksConfig,
+        wrapperCascade.component,
+        wrapperCascade.preset,
+        variantProps,
+        wrapperCascade.slotClasses,
+        selectVariants.config
+      )
+  );
+
   const slotClasses = $derived(
     resolveSlotClasses(
       blocksConfig,
       'Select',
       preset,
       variantProps,
-      slotClassesProp,
+      wrapperSlotClasses ?? slotClassesProp,
       selectVariants.config
     )
   );
