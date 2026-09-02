@@ -37,12 +37,17 @@ export interface AuthLocale {
       currentPasswordIncorrect: string;
       notAuthenticated: string;
       forbidden: string;
-      /** The login challenge rejected the code — the sign-in did not complete. */
+      /**
+       * The sign-in challenge rejected the code. The copy must stay generic
+       * about where the code came from: this step also accepts a **backup
+       * code** (the verify handler falls back to redeeming one), which is not
+       * from the authenticator app.
+       */
       invalidCode: string;
       /**
        * Enrolment rejected the code. Separate copy from `invalidCode` because
-       * the reader is mid-setup with the QR code still on screen, so naming the
-       * authenticator app is actionable here and meaningless at sign-in.
+       * enrolment verifies against the staged TOTP secret only — no backup-code
+       * fallback — so this copy may name the authenticator app.
        */
       twoFactorSetupCodeInvalid: string;
       no2faChallenge: string;
@@ -78,6 +83,13 @@ export interface AuthLocale {
        * separated in the audit hook and the log instead.
        */
       passkeyVerificationFailed: string;
+      /**
+       * Enrolment's copy of the same ceremony failure. Separate from
+       * `passkeyVerificationFailed` because the reader is signed in and adding
+       * a device, so "sign in another way" — the way out at sign-in — is not
+       * a step they can take.
+       */
+      passkeyRegistrationVerificationFailed: string;
       /**
        * 400 — the passkey the browser offered is not stored on the server
        * (deleted from another device). A retry offers the same passkey again,

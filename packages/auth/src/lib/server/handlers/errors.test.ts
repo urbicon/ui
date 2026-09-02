@@ -83,11 +83,40 @@ describe('authError', () => {
     }
   });
 
-  it('answers the two 2FA wrong-code events under separate codes', async () => {
-    // One name cannot carry both statuses; the handlers that send them are
-    // pinned in two-factor.test.ts.
+  it('splits every sign-in/enrolment pair across the 400/401 boundary', () => {
+    // Both families had one name doing two jobs. The rule that separates them
+    // (401 = a credential offered to authenticate was refused) lives on
+    // AUTH_ERROR_STATUS; the handlers that send them are pinned in
+    // two-factor.test.ts and the passkey suites.
     expect(AUTH_ERROR_STATUS.invalid_code).toBe(401);
     expect(AUTH_ERROR_STATUS.two_factor_setup_code_invalid).toBe(400);
+    expect(AUTH_ERROR_STATUS.passkey_verification_failed).toBe(401);
+    expect(AUTH_ERROR_STATUS.passkey_registration_verification_failed).toBe(400);
+  });
+
+  it('answers every missing-or-refused credential with 401, and nothing else', () => {
+    // The class the split buys: whichever factor refused, and whether the
+    // credential was invalid, unknown or absent, the status is the same — so a
+    // client mapping 401 to "discard the session, show sign-in" is never wrong
+    // and never has to read the code to get the coarse decision right.
+    //
+    // Asserted as exact membership, both directions: a new code quietly added
+    // at 401, or one of these moved off it, fails here. Which is the review
+    // this class deserves — it is what a consumer branches on.
+    const expected = [
+      'invalid_credentials',
+      'invalid_code',
+      'invalid_refresh_token',
+      'missing_refresh_token',
+      'not_authenticated',
+      'passkey_credential_deleted',
+      'passkey_verification_failed'
+    ];
+    const actual = Object.entries(AUTH_ERROR_STATUS)
+      .filter(([, status]) => status === 401)
+      .map(([code]) => code)
+      .sort();
+    expect(actual).toEqual([...expected].sort());
   });
 
   it('exposes every code as a self-keyed constant', () => {

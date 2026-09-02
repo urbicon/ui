@@ -224,7 +224,7 @@ function registrationVerifyHandler<R extends string>(
           // internals ("challenge mismatch", "origin"), and this handler has no
           // `onLoginFailed` seam to carry it — registration is not a login.
           deps.logger.warn('[auth] passkey registration verification failed:', err.message);
-          return authError('passkey_verification_failed');
+          return authError('passkey_registration_verification_failed');
         }
         throw err;
       }

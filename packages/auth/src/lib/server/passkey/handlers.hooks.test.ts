@@ -156,7 +156,7 @@ describe('passkey login hooks (R10)', () => {
     const deps = makeDeps();
     // The hook call sits inside the handler's WebAuthnError catch, so an
     // unguarded hook of this error class turns a completed login into a
-    // `passkey_verification_failed` 400 plus a bogus onLoginFailed audit entry.
+    // `passkey_verification_failed` 401 plus a bogus onLoginFailed audit entry.
     deps.hooks.onLoginSuccess.mockRejectedValue(new WebAuthnError('consumer hook exploded'));
     vi.mocked(deps.repos.passkey.findByCredentialId).mockResolvedValue(storedCredential);
     vi.mocked(deps.repos.user.findById).mockResolvedValue(createMockUser({ id: 'u-1' }));
@@ -190,7 +190,7 @@ describe('passkey login hooks (R10)', () => {
       event(credentialBody, makeCookieJar())
     );
 
-    expect(res.status).toBe(400);
+    expect(res.status).toBe(401);
     expect(deps.hooks.onLoginFailed).toHaveBeenCalledWith('', 'invalid_assertion');
     expect(deps.hooks.onLoginSuccess).not.toHaveBeenCalled();
   });
@@ -208,14 +208,14 @@ describe('passkey login hooks (R10)', () => {
       event(credentialBody, makeCookieJar())
     );
 
-    expect(res.status).toBe(400);
+    expect(res.status).toBe(401);
     expect(deps.logger.error).toHaveBeenCalledWith(
       expect.stringContaining('u-1'),
       expect.any(Error)
     );
   });
 
-  it('still answers 400 when the onLoginFailed hook throws on a rejected assertion', async () => {
+  it('still answers 401 when the onLoginFailed hook throws on a rejected assertion', async () => {
     const deps = makeDeps();
     // The hook fires from inside the handler's WebAuthnError catch, so an
     // unguarded throw escapes as a 500 instead of the ceremony's own 400.
@@ -227,7 +227,7 @@ describe('passkey login hooks (R10)', () => {
       event(credentialBody, makeCookieJar())
     );
 
-    expect(res.status).toBe(400);
+    expect(res.status).toBe(401);
     expect(deps.logger.error).toHaveBeenCalledWith(
       expect.stringContaining('onLoginFailed'),
       expect.any(Error)
@@ -257,7 +257,7 @@ describe('passkey login hooks (R10)', () => {
       event(credentialBody, makeCookieJar())
     );
 
-    expect(res.status).toBe(400);
+    expect(res.status).toBe(401);
     expect(deps.hooks.onLoginFailed).toHaveBeenCalledWith('', 'unknown_credential');
     // The wire names the way out: a passkey the server does not hold fails the
     // same way on every retry, so "try again" would loop the user.
@@ -285,7 +285,7 @@ describe('passkey login hooks (R10)', () => {
       event(credentialBody, makeCookieJar())
     );
 
-    expect(res.status).toBe(400);
+    expect(res.status).toBe(401);
     expect(deps.hooks.onLoginFailed).toHaveBeenCalledWith('', 'counter_regression');
     // The clone warning is an operator signal: it goes to the log and the audit
     // hook, never onto the wire, where an end user would read it as an
@@ -324,7 +324,7 @@ describe('passkey login hooks (R10)', () => {
 
     // Still fail-closed; the audit reason and the wire code both say "gone",
     // never "clone".
-    expect(res.status).toBe(400);
+    expect(res.status).toBe(401);
     expect(deps.hooks.onLoginFailed).toHaveBeenCalledWith('', 'credential_deleted');
     expect(deps.hooks.onLoginFailed).not.toHaveBeenCalledWith('', 'counter_regression');
     expect((await res.json()).code).toBe('passkey_credential_deleted');
@@ -336,7 +336,7 @@ describe('passkey login hooks (R10)', () => {
       event(credentialBody, makeCookieJar(false))
     );
 
-    expect(res.status).toBe(400);
+    expect(res.status).toBe(401);
     expect(deps.hooks.onLoginFailed).toHaveBeenCalledWith('', 'challenge_missing');
   });
 });
@@ -368,7 +368,7 @@ describe('passkey login hooks — remaining terminal outcomes', () => {
     const res = await passkeyHandlers(deps).authenticationVerify.POST(
       event(credentialBody, makeCookieJar())
     );
-    expect(res.status).toBe(400);
+    expect(res.status).toBe(401);
     expect(deps.hooks.onLoginFailed).toHaveBeenCalledWith('', 'user_handle_mismatch');
   });
 
@@ -381,7 +381,7 @@ describe('passkey login hooks — remaining terminal outcomes', () => {
     const res = await passkeyHandlers(deps).authenticationVerify.POST(
       event(credentialBody, makeCookieJar())
     );
-    expect(res.status).toBe(400);
+    expect(res.status).toBe(401);
     expect(deps.hooks.onLoginFailed).toHaveBeenCalledWith('', 'user_not_found');
   });
 });
@@ -409,7 +409,7 @@ describe('passkey registration — cause on the log', () => {
     );
 
     expect(res.status).toBe(400);
-    expect((await res.json()).code).toBe('passkey_verification_failed');
+    expect((await res.json()).code).toBe('passkey_registration_verification_failed');
     expect(deps.logger.warn).toHaveBeenCalledWith(
       '[auth] passkey registration verification failed:',
       'User verification required but not performed'

@@ -200,7 +200,41 @@ there is deliberately no live region (it would fire on every keystroke). Set
 `showRequirements={false}` to drop both — a refused password still names the
 rules it missed, so the reason stays reachable.
 
-### Breaking in this release
+### Breaking in 8.16.0
+
+**The HTTP status is now a property of the error code.** One code answers under
+exactly one status, everywhere it is sent, so `code` and status can no longer
+disagree between two handlers. Where one name had been carrying two statuses
+there are now two names, and both splits use the same rule: `401` means the
+request was an attempt to authenticate and the credential it carried was
+missing or refused; everything else about a request answers `400`, including a
+wrong secret on a request that authenticates nobody.
+
+- **Two-factor.** `invalid_code` keeps the sign-in step (`401`, unchanged).
+  Enrolment answers the new `two_factor_setup_code_invalid` (`400`, unchanged)
+  when the code typed against the staged secret does not match.
+- **Passkeys.** `passkey_verification_failed` keeps the sign-in ceremony, and
+  **its status changes from `400` to `401`** — the one wire change in this
+  release. A sign-in ceremony that refuses the credential now answers the same
+  status class as a refused password or second factor. Enrolment answers the
+  new `passkey_registration_verification_failed` (`400`).
+  `passkey_credential_deleted` **also moves from `400` to `401`**: the browser
+  did present a credential and the server refused it, and "unknown" rather than
+  "invalid" is the reason — which is what the `code` carries. Every way a
+  passkey sign-in can be refused now answers `401`.
+
+A client that switches on the code falls through to its `default` arm for the
+two enrolment cases until it adds the new names; one that handles only the
+sign-in codes is unaffected by the renames. A client that branches on the
+**status** of a failed passkey sign-in must expect `401` where it saw `400`.
+
+`AuthLocale` is fully required, so a **hand-written locale bundle stops
+compiling** until it carries the new keys — the intended signal, not a
+regression. Added: `auth.errors.twoFactorSetupCodeInvalid` and
+`auth.errors.passkeyRegistrationVerificationFailed`. Consumers passing a
+`PartialAuthLocale` override are unaffected.
+
+### Breaking in 8.7.0
 
 `<RegisterPage>`'s `passwordMinLength` / `requireUppercase` / `requireLowercase`
 / `requireDigit` / `requireSpecial` props are gone — they were the second copy.
@@ -213,18 +247,9 @@ offered that rule since v8 while `validatePasswordStrength` ignored it, so a UI
 demanding a symbol refused nothing the server would have accepted; it is now
 enforced, and off by default like the other character classes.
 
-The 2FA wrong-code answer is **two codes now**, because it was two events under
-one name. `invalid_code` keeps the sign-in step — the second factor refusing an
-unauthenticated caller, `401`, unchanged on the wire — and 2FA enrolment answers
-the new `two_factor_setup_code_invalid` (`400`) when the code typed against the
-staged secret does not match. A client switching on `invalid_code` to render
-"wrong code" during **setup** stops matching and needs the new arm; one that
-handles the sign-in step is unaffected. Both statuses are what those two
-endpoints already answered, so nothing changes for a client reading the status.
-
 `AuthLocale` is fully required, so a **hand-written locale bundle stops
 compiling** until it carries the new keys — that is the intended signal, not a
-regression. Added: `auth.errors.twoFactorSetupCodeInvalid`, `auth.errors.csrfFailed`, `auth.errors.passkeyVerificationFailed`,
+regression. Added: `auth.errors.csrfFailed`, `auth.errors.passkeyVerificationFailed`,
 `auth.errors.connectionLimit`, and the `auth.passwordRequirements` subtree
 (`label`, `met`, `notMet`, `failed`, `rules.*`). Moved: `auth.register.requirementsLabel`
 and `auth.register.requirements.*` became `auth.passwordRequirements.label` and
@@ -909,13 +934,13 @@ bun run test:e2e                            # Playwright (from the repo root)
 
 ## Error Contract
 
-Every handler (and the `createAuthHandle` gates) answers errors with one JSON shape: `{ error: string, code: AuthErrorCode, … }` — `error` is human-readable English prose, `code` the stable machine value from the append-only `AUTH_ERROR_CODES` set (never repurposed, only extended). **The status is a property of the code**: one code answers under exactly one HTTP status, everywhere it is sent, so `code` and status can never disagree between two handlers. Where one name would have had to carry two statuses, there are two names — `invalid_code` is the 2FA sign-in step refusing the second factor (401), and `two_factor_setup_code_invalid` is 2FA enrolment rejecting a typed code on an already-authenticated request (400). Validation failures additionally carry the full field list as `errors`, and the first field message replaces the generic prose. Rate limits answer `429 rate_limited` with a `Retry-After` header, while the per-user cap on concurrent SSE streams answers `429 connection_limit` — a separate code because backoff never clears a connection cap, so a client that treats the two alike retries forever. `<NotificationListener>` reads the stream off `fetch`, so it sees the code: it reports the refusal through `onRefused(code, status)` and does not reconnect on a 4xx (anything reading the log or metrics by `code` tells the two apart the same way). The CSRF gate answers `403 csrf_failed`; the SSE-stream refusals are JSON as of v6.17.0. The push-subscription writes distinguish `push_endpoint_conflict` (endpoint owned by another account — permanent) from `push_subscription_limit` (per-user device cap). The one deliberate exception: `createMeHandler` answers `401 { user: null }` — that is the session-status contract of the client store, not an error report.
+Every handler (and the `createAuthHandle` gates) answers errors with one JSON shape: `{ error: string, code: AuthErrorCode, … }` — `error` is human-readable English prose, `code` the stable machine value from the append-only `AUTH_ERROR_CODES` set (never repurposed, only extended). **The status is a property of the code**: one code answers under exactly one HTTP status, everywhere it is sent, so `code` and status can never disagree between two handlers. The 400/401 boundary is one rule: **401 means the request was an attempt to authenticate and the credential it carried was missing or refused**, and everything else about a request answers 400 — a payload the server cannot read, a request that does not match the server's state, and a wrong secret on a request that authenticates nobody. Being signed in is not itself the test: `no_2fa_challenge` and `two_factor_challenge_expired` are 400 on the *unauthenticated* verify endpoint because they reject the request rather than a credential. Where one name would have had to straddle that boundary there are two names: `invalid_code` (2FA sign-in, 401) beside `two_factor_setup_code_invalid` (2FA enrolment, 400), and `passkey_verification_failed` (passkey sign-in, 401) beside `passkey_registration_verification_failed` (passkey enrolment, 400). Statuses outside that pair follow their own HTTP meaning and the rule does not reach them — 403 when an authenticated caller is refused the action, a failed re-auth gate (`current_password_incorrect`) included. Validation failures additionally carry the full field list as `errors`, and the first field message replaces the generic prose. Rate limits answer `429 rate_limited` with a `Retry-After` header, while the per-user cap on concurrent SSE streams answers `429 connection_limit` — a separate code because backoff never clears a connection cap, so a client that treats the two alike retries forever. `<NotificationListener>` reads the stream off `fetch`, so it sees the code: it reports the refusal through `onRefused(code, status)` and does not reconnect on a 4xx (anything reading the log or metrics by `code` tells the two apart the same way). The CSRF gate answers `403 csrf_failed`; the SSE-stream refusals are JSON as of v6.17.0. The push-subscription writes distinguish `push_endpoint_conflict` (endpoint owned by another account — permanent) from `push_subscription_limit` (per-user device cap). The one deliberate exception: `createMeHandler` answers `401 { user: null }` — that is the session-status contract of the client store, not an error report.
 
 Localized clients map `code` via `errorMessageFromCode(code, t, error)` (exported from the package root): known code → locale bundle, unknown code or missing translation → the server prose, neither → `undefined` for the caller's own fallback. `validation_error` deliberately prefers the field-level server prose. The pre-built components do this everywhere via their shared `errorTextFromBody` helper. One code is client-synthesized rather than served: `network_error` (the request never reached the server — offline, DNS, CORS), produced by the stores and mapped to `auth.errors.networkError` like any other code.
 
 **The code→locale-key table is bound to the union.** `AUTH_ERROR_MESSAGE_KEYS` (`i18n/error-keys.ts`) is `satisfies Record<AuthErrorCode | 'network_error', …>`, so a new server code that nobody keys is a compile error rather than an English sentence on a localized page; `null` marks the two push codes, whose copy `<PushPermissionPrompt>` owns (`notifications.push.errorConflict` / `errorLimit`). The English `error` prose is **read out of the `en` bundle through that same table** — there is one English text per code, not one for i18n consumers and another for the rest.
 
-**Passkey ceremonies answer uniformly, with one exception.** The failure paths return the bare `passkey_verification_failed` with no prose override: none of those causes is actionable by the end user, and one of them — the sign-counter regression — is a possible-cloned-authenticator signal that must not be readable in a page. The exception is a passkey the server does not hold — deleted from another device while the browser keeps offering it: that answers `passkey_credential_deleted` (400), because a retry presents the same passkey again and the sentence has to name the way out (sign in another way, then set it up again). Every outcome, those two included, is told apart server-side: `config.hooks.onLoginFailed(email, reason)` receives a distinct reason per outcome (`challenge_missing`, `unknown_credential`, `user_handle_mismatch`, `credential_deleted`, `counter_regression`, `user_not_found`, `invalid_assertion`), and `config.logger` receives the WebAuthn detail on the paths a reason cannot carry.
+**Passkey ceremonies answer uniformly, with one exception.** The failure paths return the bare `passkey_verification_failed` with no prose override: none of those causes is actionable by the end user, and one of them — the sign-counter regression — is a possible-cloned-authenticator signal that must not be readable in a page. The exception is a passkey the server does not hold — deleted from another device while the browser keeps offering it: that answers `passkey_credential_deleted` (401, like every other refused sign-in credential), because a retry presents the same passkey again and the sentence has to name the way out (sign in another way, then set it up again). Every outcome, those two included, is told apart server-side: `config.hooks.onLoginFailed(email, reason)` receives a distinct reason per outcome (`challenge_missing`, `unknown_credential`, `user_handle_mismatch`, `credential_deleted`, `counter_regression`, `user_not_found`, `invalid_assertion`), and `config.logger` receives the WebAuthn detail on the paths a reason cannot carry.
 
 ## Known Limitations & Security Gaps
 

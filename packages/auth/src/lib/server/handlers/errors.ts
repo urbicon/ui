@@ -42,10 +42,11 @@ export const AUTH_ERROR_CODES = {
   not_authenticated: 'not_authenticated',
   forbidden: 'forbidden',
   // Two-factor. The two wrong-code answers are separate codes because they are
-  // separate events: `invalid_code` is the login challenge failing to
-  // authenticate, `two_factor_setup_code_invalid` is a field rejected on an
-  // already-authenticated enrolment request. They answer under different
-  // statuses, so one name cannot carry both — see AUTH_ERROR_STATUS.
+  // separate events: `invalid_code` is the sign-in challenge refusing the
+  // second factor, `two_factor_setup_code_invalid` is enrolment rejecting a
+  // code on a request that authenticates nobody. They answer under different
+  // statuses, so one name cannot carry both — see the 400/401 rule on
+  // AUTH_ERROR_STATUS.
   invalid_code: 'invalid_code',
   two_factor_setup_code_invalid: 'two_factor_setup_code_invalid',
   no_2fa_challenge: 'no_2fa_challenge',
@@ -77,12 +78,21 @@ export const AUTH_ERROR_CODES = {
   connection_limit: 'connection_limit',
   // CSRF gate in createAuthHandle (403)
   csrf_failed: 'csrf_failed',
-  // Every passkey ceremony failure a retry can fix, registration and sign-in
-  // alike. The prose carries no detail on purpose: none of those causes is
-  // actionable by the user and one is a possible-clone signal.
-  // `onLoginFailed(email, reason)` and the logger separate them server-side
-  // (see passkey/handlers.ts).
+  // Every sign-in ceremony failure a retry can fix. The prose carries no detail
+  // on purpose: none of those causes is actionable by the user and one is a
+  // possible-clone signal. `onLoginFailed(email, reason)` and the logger
+  // separate them server-side (see passkey/handlers.ts).
+  // One of the collapsed causes — a missing ceremony cookie — is a request that
+  // does not match server state, which the 400/401 rule would put at 400. It
+  // stays inside this code anyway: giving it its own status would tell the
+  // browser which of the five causes fired, the exact distinction the collapse
+  // exists to deny. Do not split it out to satisfy the rule.
   passkey_verification_failed: 'passkey_verification_failed',
+  // The same ceremony during enrolment. Its own code because the sign-in half
+  // refuses a credential offered to authenticate someone and the enrolment half
+  // rejects a ceremony that authenticates nobody — the 400/401 rule on
+  // AUTH_ERROR_STATUS, the same cut as the two 2FA codes above.
+  passkey_registration_verification_failed: 'passkey_registration_verification_failed',
   // The passkey the browser offered is not stored on the server (deleted from
   // another device; the browser keeps offering it). A retry presents the same
   // passkey to the same server, so the uniform "try again" would loop the
@@ -110,6 +120,20 @@ export type AuthErrorCode = (typeof AUTH_ERROR_CODES)[keyof typeof AUTH_ERROR_CO
  * `Record<AuthErrorCode, number>` and not `Partial` is the whole enforcement —
  * a new code with no status here fails to compile, so there is no default to
  * fall back to and no way to reach a status this table does not name.
+ *
+ * **Choosing between 400 and 401 for a new code.** 401 means the request was an
+ * attempt to authenticate and the credential it carried was missing or refused.
+ * Everything else about a request is 400: a payload the server cannot read, a
+ * request that does not match the server's state, and — the case that decides
+ * the split pairs below — a wrong secret on a request that was not
+ * authenticating anyone. Being signed in is not itself the test: a wrong TOTP
+ * during enrolment is 400 because nothing was being authenticated, while
+ * `no_2fa_challenge` and `two_factor_challenge_expired` are 400 on the
+ * *unauthenticated* verify path because the request did not match server state.
+ *
+ * The rule reaches only that pair. Every other status is chosen by its own HTTP
+ * meaning: 403 when an authenticated caller is refused the action (a failed
+ * re-auth gate included), 409 for a conflict, 423, 429, 404, 500 for a fault.
  *
  * Not re-exported from `./index.js`: a consumer reads the status off the
  * `Response`, and pinning the table as API would freeze numbers that belong to
@@ -157,8 +181,9 @@ export const AUTH_ERROR_STATUS: Record<AuthErrorCode, number> = {
   connection_limit: 429,
   csrf_failed: 403,
   // Passkeys
-  passkey_verification_failed: 400,
-  passkey_credential_deleted: 400,
+  passkey_verification_failed: 401,
+  passkey_registration_verification_failed: 400,
+  passkey_credential_deleted: 401,
   // Push subscription writes
   push_endpoint_conflict: 409,
   push_subscription_limit: 409,

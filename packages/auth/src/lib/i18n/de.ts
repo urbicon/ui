@@ -36,6 +36,8 @@ export const de = {
       csrfFailed: 'Diese Seite war zu lange geöffnet. Bitte lade sie neu und versuche es erneut.',
       passkeyVerificationFailed:
         'Dein Passkey konnte nicht geprüft werden. Bitte versuche es erneut.',
+      passkeyRegistrationVerificationFailed:
+        'Dieser Passkey konnte nicht registriert werden. Bitte versuche es erneut.',
       passkeyCredentialDeleted:
         'Dieser Passkey ist nicht mehr registriert. Melde dich auf einem anderen Weg an und richte ihn danach neu ein.',
       serverError: 'Etwas ist schiefgelaufen. Bitte versuche es erneut.',

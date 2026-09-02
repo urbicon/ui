@@ -47,6 +47,7 @@ export const AUTH_ERROR_MESSAGE_KEYS = {
   connection_limit: 'connectionLimit',
   csrf_failed: 'csrfFailed',
   passkey_verification_failed: 'passkeyVerificationFailed',
+  passkey_registration_verification_failed: 'passkeyRegistrationVerificationFailed',
   passkey_credential_deleted: 'passkeyCredentialDeleted',
   // The two push codes are the only `null`s: `<PushPermissionPrompt>` renders
   // them from `notifications.push.errorConflict` / `errorLimit`, whose copy is

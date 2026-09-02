@@ -102,9 +102,10 @@ describe('createTwoFactorHandlers — enable', () => {
     const res = await createTwoFactorHandlers(deps).enable.POST(
       as(await authed(deps, { code: '000000' }))
     );
-    // Enrolment runs on an authenticated request, so a wrong code rejects a
-    // field (400) and must NOT reuse the sign-in code: `invalid_code` answers
-    // 401 and would tell the client this session had failed to authenticate.
+    // Enrolment authenticates nobody — the caller already is — so a wrong code
+    // is a rejected request (400), not a refused credential. It must NOT reuse
+    // the sign-in code: `invalid_code` answers 401 and would tell the client
+    // this session had failed to authenticate.
     expect(res.status).toBe(400);
     expect((await res.json()).code).toBe('two_factor_setup_code_invalid');
     expect(deps.repos.user.enableTotp).not.toHaveBeenCalled();
@@ -357,8 +358,11 @@ describe('createTwoFactorHandlers — verify', () => {
     const deps = verifyDeps(user);
     const ev = await withPending(deps, { code: '000000' });
     const res = await createTwoFactorHandlers(deps).verify.POST(as(ev));
-    // The sign-in half keeps `invalid_code`: the caller is not authenticated
-    // and the second factor is what refused, so this is a 401.
+    // The sign-in half keeps `invalid_code`: this request is an authentication
+    // attempt and the second factor refused the credential, so it is a 401 —
+    // unlike its three neighbours on this same handler (no_2fa_challenge,
+    // two_factor_challenge_expired, validation_error), which answer 400 because
+    // they reject the request rather than the secret.
     expect(res.status).toBe(401);
     expect((await res.json()).code).toBe('invalid_code');
     expect(ev._cookieStore.get('session')).toBeUndefined();
