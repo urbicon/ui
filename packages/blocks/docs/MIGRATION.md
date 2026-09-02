@@ -35,7 +35,7 @@ The names come from each component's `slotClasses` prop, so the provider admits 
 the call site admits — no more and no less. That includes the slots a component reads past
 the `tv()` config the cascade resolves under its name — `NumberInput`'s `stepper` and
 `stepperButton`, which `Input`'s config never declares; `SidebarLayout`'s five `sidebar*` keys
-and `Guide`'s `skip` and `next`, which their own configs do not; `base` on `Popover` and
+and `Guide`'s `next`, `prev` and `skip`, which their own configs do not; `base` on `Popover` and
 `Separator`, whose configs carry no slot map at all — and it excludes what a component
 deliberately leaves out: `SegmentGroup` has no `item`, because `SegmentItem` owns that one.
 
@@ -46,19 +46,45 @@ unaffected, as are the components of `@urbicon-ui/auth`. The cost is that a **mi
 component name** is indistinguishable from one of those: `defaults={{ Butoon: … }}` is still
 accepted and still reaches nobody.
 
-**Where it is blind:** these records are weak types — every property optional — and the rule
-for those is that only an object with *no* key in common is rejected. Written inline, a wrong
-key is reported beside right ones too, because excess-property checking applies to a fresh
-object literal. Held in a variable, it is not:
+Two names are worse than that, because the compiler *confirms* them. `CalendarHeader` and
+`FormField` declare a `slotClasses` prop but never resolve it through the provider —
+`CalendarHeader` takes its classes off the Calendar context, `FormField` reads its own prop
+directly — so an entry under either narrows to the right slot names, completes in your editor,
+and reaches no element. Neither accepted provider configuration before this release either;
+style them at the call site.
 
-| how the record reaches the provider | wrong key alone | wrong key beside a right one |
+**Where it is blind.** These records are weak types — every property optional — so the base
+rule is that only an object with *no* key in common is rejected. What catches a wrong key
+*beside* a right one is excess-property checking, and that applies to a **fresh object
+literal**. How your config reaches the attribute therefore decides how much of it is checked:
+
+| how the config reaches the provider | wrong key alone | wrong key beside a right one |
 | --- | --- | --- |
 | written inline in the attribute | error | error |
-| `slotClasses={sc}`, `defaults={d}` from a variable | error | **accepted** |
+| inline but spread in — `{ mark: 'ok', ...rest }` | error | **accepted** |
+| a plain `const`, no type annotation | error | **accepted** |
+| a `const` annotated `Record<string, ComponentDefaults>` or `PresetMap` | **accepted** | **accepted** |
+| a `const` with `satisfies Record<string, ComponentDefaults>` | error | error |
 
-Measured on `<BlocksProvider defaults={{ LineChart: … }}>` in all four combinations. It is the
-same asymmetry the instance `slotClasses` prop has always had, so a project that keeps its
-provider config in a module gets the first column only.
+Measured on `<BlocksProvider defaults={{ LineChart: … }}>`, every cell.
+
+**The fourth row is the one that costs you the most.** `Record<string, ComponentDefaults>`
+was this prop's own type until this release, and `PresetMap` is still exported — so annotating
+a theme module with either is the natural thing to reach for, and it turns the check off
+completely, including the wrong-key-alone case the other rows still catch. There is no
+diagnostic; the annotation simply widens the key type back to `string` before the provider
+ever sees it.
+
+**Write `satisfies` where you would have written the annotation.** It checks the object against
+the same type and still hands the provider the literal keys you wrote, so the per-component
+narrowing survives:
+
+```ts
+// loses the check
+export const theme: Record<string, ComponentDefaults> = { LineChart: { … } };
+// keeps it
+export const theme = { LineChart: { … } } satisfies Record<string, ComponentDefaults>;
+```
 
 ### A wrapper's `overrides` match the state its inner component is in — `wrapperActiveProps` is gone
 
@@ -302,7 +328,10 @@ old key fails against the same slot names: `'line' does not exist in type
 The second column is one rule, not five: a target whose properties are all optional rejects
 only an object with *no* key in common, and the excess-property check that catches a wrong key
 *beside* a right one applies to a fresh object literal. So `{ root, line, point }` written into
-the attribute is an error, and the same object held in a `const` is not.
+the attribute is an error, and the same object held in a `const` is not. One form is quieter
+still — a `const` annotated `Record<string, ComponentDefaults>` or `PresetMap` reports nothing
+at all; see the table under
+[`<BlocksProvider>` slot names are checked against the component](#blocksprovider-slot-names-are-checked-against-the-component).
 
 **One grep finds all five: `Sparkline`.** Not `Sparkline:` — a formatter set to
 `quoteProps: "consistent"` quotes every key in an object as soon as one of them needs it, so

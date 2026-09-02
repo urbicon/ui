@@ -13,8 +13,8 @@
 
   let {
     unstyled = false,
-    defaults = {} as TDefaults,
-    presets = {} as TPresets,
+    defaults = {} as BlocksDefaults<TDefaults>,
+    presets = {} as BlocksPresets<TPresets>,
     children
   }: {
     unstyled?: boolean;
@@ -24,13 +24,13 @@
      * names; a name the library does not know keeps taking any key, which is
      * what a consumer's own wrapper needs.
      */
-    defaults?: TDefaults;
+    defaults?: BlocksDefaults<TDefaults>;
     /**
      * Named, project-defined visual styles per component.
      * Used via the `preset="..."` prop on supported components.
      * See `packages/docs-gen/templates/llms-full-template.md` → Customization for guidance.
      */
-    presets?: TPresets;
+    presets?: BlocksPresets<TPresets>;
     children: Snippet;
   } = $props();
 

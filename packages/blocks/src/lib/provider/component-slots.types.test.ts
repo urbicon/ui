@@ -5,16 +5,28 @@ import type { SlotOf } from './component-slots';
 /** Both directions, so neither a widened nor a narrowed answer passes. */
 type Eq<X, Y> = [X] extends [Y] ? ([Y] extends [X] ? true : false) : false;
 
+/** The shape `BlocksProvider` declares: the parameter names the mapped type. */
+declare function shipped<T extends BlocksDefaults<T>>(defaults: BlocksDefaults<T>): void;
+/** The shape it must not go back to: the parameter *is* the type parameter. */
+declare function inferredIntoTheParameter<T extends BlocksDefaults<T>>(defaults: T): void;
+
 /**
  * The compile-time contract of the provider's slot keys. Assertions live in the
  * type positions; the single runtime `expect` only keeps vitest satisfied.
  *
- * `BlocksDefaults<{ Name: unknown }>` is the target a `<BlocksProvider
- * defaults={{ … }}>` attribute produces: the key is known, the value is a fresh
- * object literal. That pairing is what makes excess-property checking apply, and
- * it is why these run sharper than a generic call — inference from an argument
- * makes the literal its own target, where a wrong key beside a right one passes.
- * Measured; `MIGRATION.md` carries the table.
+ * The target is `BlocksDefaults<{ Name: unknown }>`, which is the type
+ * `BlocksProvider` declares for the prop — `defaults?: BlocksDefaults<TDefaults>`
+ * — applied to a `T` with the same key. It is *not* a restatement of the
+ * attribute's behaviour: that has to be measured, and was, at a real
+ * `<BlocksProvider>` in `__fixtures__/ProviderMarkup.svelte`.
+ *
+ * **The prop has to name the mapped type, not the type parameter.** With
+ * `defaults?: TDefaults` the written literal is inferred *into* the parameter
+ * and so becomes its own target: freshness is lost, excess-property checking
+ * never runs, and only the weak-type rule is left — which rejects an object
+ * with no key in common and passes a wrong key beside a right one. The two
+ * shapes are pinned side by side in the last case below, because nothing else
+ * here would notice the difference.
  *
  * Every negative is an `@ts-expect-error`, so the day one of these stops being
  * reported the directive goes unused and this file fails to compile.
@@ -125,5 +137,24 @@ describe('provider slot keys', () => {
       }
     };
     expect([open, known, foreign]).toBeDefined();
+  });
+
+  it('catches a wrong key only where the parameter names the mapped type', () => {
+    // Never invoked — both are `declare`d, so these calls exist to be
+    // type-checked. Holding them in an uncalled closure keeps that so.
+    const typeCheckedOnly = () => {
+      // A wrong key beside a right one, as a fresh literal — the case the whole
+      // change is for, and the one that separates the two parameter shapes.
+      // @ts-expect-error `arc` is not a LineChart slot
+      shipped({ LineChart: { slotClasses: { mark: 'ok', arc: 'x' } } });
+      // Silent: inference makes the literal its own target, so freshness is
+      // gone and the shared `mark` buys the wrong key through.
+      inferredIntoTheParameter({ LineChart: { slotClasses: { mark: 'ok', arc: 'x' } } });
+      // With no key in common the weak-type rule still fires on both shapes.
+      // @ts-expect-error
+      inferredIntoTheParameter({ LineChart: { slotClasses: { arc: 'x' } } });
+      shipped({ LineChart: { slotClasses: { mark: 'ok' } } });
+    };
+    expect(typeCheckedOnly).toBeTypeOf('function');
   });
 });

@@ -1,6 +1,6 @@
 // @vitest-environment jsdom
 import { describe, expect, it } from 'vitest';
-import { exportedComponents } from './__fixtures__/cascade-registry';
+import { exportedComponents, PROVIDER_NAME, stripComments } from './__fixtures__/cascade-registry';
 
 /**
  * `ComponentSlotMap` is keyed by the identifier the barrel exports a component
@@ -10,16 +10,46 @@ import { exportedComponents } from './__fixtures__/cascade-registry';
  * that could drift, and it drifts silently: a component whose two names differ
  * falls to `SlotOf`'s permissive branch, so its provider entries keep compiling
  * with any key at all and nothing says the check was lost.
+ *
+ * Both halves are conditions rather than counts. A threshold would have let a
+ * component drop out of the sweep entirely — which is the *other* way this
+ * drifts, and the one a name-shaped check cannot see: `PROVIDER_NAME` wants a
+ * literal in the call, so hoisting the name into a `const` yields no name at
+ * all, and a count-based sweep just measures one component fewer.
  */
 describe('a component resolves under the name it is exported as', () => {
-  it('for every component that names one', async () => {
+  const files = Object.entries(
+    import.meta.glob<string>('../{components,primitives}/**/*.svelte', {
+      query: '?raw',
+      import: 'default',
+      eager: true
+    })
+  );
+
+  it('every component that resolves a cascade states its name as a literal', () => {
+    const nameless = files
+      .filter(([, source]) => {
+        const code = stripComments(source);
+        return (
+          /\bresolveSlotClasses\s*\(|\bsetWrapperCascade\s*\(/.test(code) &&
+          !PROVIDER_NAME.test(code)
+        );
+      })
+      .map(([path]) => path.replace('../', ''));
+
+    expect(nameless).toEqual([]);
+  });
+
+  it('and that name is the one the barrel exports it under', async () => {
     const named = (await exportedComponents()).filter((c) => c.providerName !== null);
     const mismatched = named
       .filter((c) => c.providerName !== c.exportName)
       .map((c) => `${c.exportName} resolves as '${c.providerName}'`);
 
     expect(mismatched).toEqual([]);
-    // A sweep that found nothing to check would also report no mismatch.
-    expect(named.length).toBeGreaterThan(80);
+    // Every file that resolves a cascade reached the sweep: the assertion above
+    // is vacuous for a component the glob above found and this one dropped.
+    const callers = files.filter(([, s]) => PROVIDER_NAME.test(stripComments(s))).length;
+    expect(named.length).toBe(callers);
   });
 });

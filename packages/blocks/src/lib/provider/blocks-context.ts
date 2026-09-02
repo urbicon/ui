@@ -98,14 +98,16 @@ export type PresetMap = Record<string, Record<string, ComponentPreset>>;
  * close the map, which breaks the consumer wrapper that
  * COMPONENT-API-CONVENTIONS.md documents.
  *
- * **Sharp for the object literal, not for a variable that reaches it.** These
- * records are weak types (every property optional), and the rule for those is
- * that only an object with *no* key in common is rejected; a wrong key beside a
- * right one is caught by excess-property checking, which applies to a fresh
- * literal and not to a value passed through a variable. So
- * `slotClasses: { mark: '…', arc: '…' }` written into the attribute is an error,
- * while the same two keys held in a `const` and handed to the same place are
- * not. Both are pinned in `component-slots.types.test.ts`.
+ * **Sharp for the object literal that reaches the attribute.** These records are
+ * weak types (every property optional), so the base rule rejects only an object
+ * with *no* key in common; catching a wrong key *beside* a right one is
+ * excess-property checking, which needs a fresh literal. That is why the prop is
+ * declared `BlocksDefaults<TDefaults>` and not `TDefaults` — with the bare type
+ * parameter the written literal is inferred into it, becomes its own target, and
+ * loses freshness, leaving only the weak-type rule. The two shapes are pinned
+ * side by side in `component-slots.types.test.ts`, and every way a config can
+ * reach the attribute is tabulated in `docs/MIGRATION.md`; the quietest is an
+ * annotated `Record<string, ComponentDefaults>`, which reports nothing at all.
  */
 export type BlocksDefaults<T> = { [K in keyof T]: ComponentDefaults<SlotOf<K>> };
 
@@ -123,8 +125,17 @@ const [getBlocksConfig, setBlocksConfig] = createOptionalContext<BlocksConfig>()
 
 export { getBlocksConfig, setBlocksConfig };
 
+/**
+ * Merge slot-class records, later sources appending to earlier ones.
+ *
+ * Takes `string | undefined` values because that is what every source in this
+ * file already is — a `Partial<Record<Slot, string>>` leaves out the slots the
+ * caller did not write — and because the loop below has always skipped a falsy
+ * value. The parameter says what the body does, which is also what lets the two
+ * exported helpers compose: `mergeSlotClasses(resolvePresetSlotClasses(…))`.
+ */
 export function mergeSlotClasses(
-  ...sources: (Record<string, string> | undefined)[]
+  ...sources: (Record<string, string | undefined> | undefined)[]
 ): Record<string, string> {
   const result: Record<string, string> = {};
   for (const source of sources) {
@@ -224,7 +235,7 @@ const warnedConditionKeys = new Set<string>();
  * not here: five components read slot names the config they hand this resolver
  * does not declare. Three read past a declared slot map — `NumberInput` takes
  * `stepper`/`stepperButton` off a record Input resolved under its name,
- * `SidebarLayout` five `sidebar*` keys, `Guide` `skip`/`next` — and two,
+ * `SidebarLayout` five `sidebar*` keys, `Guide` `next`/`prev`/`skip` — and two,
  * `Popover` and `Separator`, pass a config carrying no `slots` at all and read
  * `base` off the result. Checking against `variantConfig.slots` would report
  * correct consumer config as mistyped in all five. A second parameter carrying

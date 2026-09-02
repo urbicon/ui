@@ -43,6 +43,17 @@ type SlotKeysOf<C> = C extends (internal: never, props: infer P) => unknown
  * `sidebar*` keys its config never declares. A config-read map would report
  * correct consumer configuration as a typo in every one of them.
  *
+ * **Ninety keys, not eighty-eight.** The map is keyed on "declares a
+ * `slotClasses` prop", which is two wider than "resolves a provider cascade":
+ * `CalendarHeader` takes its slot classes off the Calendar context and
+ * `FormField` reads its own prop directly, neither through this resolver. An
+ * entry under either name therefore type-checks, narrows, offers completion —
+ * and reaches no element. That is worse than a mistyped component name, which
+ * at least stays silent, and it is a pre-existing gap in those two components
+ * rather than one this map opens: they took no provider configuration before
+ * either. Excluding them would mean hand-listing the exception, which is the
+ * duplication this file exists to avoid.
+ *
  * **The one link not derived** is the string literal a component hands
  * `resolveSlotClasses` / `setWrapperCascade`. It is the export name for all 88,
  * and `component-slots.test.ts` holds it there; a component that passed a
