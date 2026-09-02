@@ -321,7 +321,7 @@ fill in an axis the object never mentioned, because it styles one slot call at a
 `overrides` rule is resolved **once per component** and applied to every slot, so an axis
 the object does not carry is one the component cannot speak for. Two shapes make that
 concrete: a config shared by several components (`segmentGroupVariants` belongs to
-`SegmentGroup` and `SegmentItem` alike — nine configs are shared by 2–5 components), and
+`SegmentGroup` and `SegmentItem` alike — any config imported by more than one component), and
 an axis handed to a slot function per element (`iconPosition` on Input, `disabled` on
 Menu's rows). Folding either in would state something about the component that nothing
 measured — a rule painting the disabled sibling, or the left icon on a right-icon field.
@@ -354,8 +354,9 @@ nav and title. A **wrapper** carries both names at once instead, and resolves ne
 itself: it hands its name, `preset` and instance `slotClasses` down the context
 (`provider/wrapper-cascade.ts`), and the component it wraps resolves that cascade under the
 wrapper's name against its **own** `variantProps` — which is where the axes are, since
-`tier` (off a context), `messageType`, the coerced `error` and Select's `open` are not
-knowable above it. So `defaults.NumberInput` reaches its own stepper *and* that field, while
+`tier` (off a context), `messageType` and the coerced `error` are not knowable above it at
+all, and Select's `open` not in time — it is `$bindable`, so a wrapper may hold the value,
+but the wrapper's own `$derived` runs before the child ever writes to it. So `defaults.NumberInput` reaches its own stepper *and* that field, while
 `defaults.Input` reaches the field alone — both measured, and the fold order with them, by
 `provider/wrapper-cascade-order.svelte.test.ts`. The `preset` travels too; resolving it
 under the wrapper's name is the point, because forwarded as the inner component's own

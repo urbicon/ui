@@ -33,15 +33,18 @@ type SlotKeysOf<C> = C extends (internal: never, props: infer P) => unknown
  *
  * **Deliberately not read from the `tv()` configs.** `SlotNames<typeof
  * xVariants>` answers "what does this config declare", which is a different
- * question, and a differently answered one for 23 of the 88 components that
+ * question, and a differently answered one for 24 of the 88 components that
  * resolve a cascade. 19 have no `xxxVariants` export to reach by that name at
  * all — the five charts among them, one `chartVariants` feeding all five and so
- * naming every chart's slots for each. Four more disagree where both exist:
- * `Popover` and `Separator` hand over a config carrying no `slots`, whose call
- * returns `string` and makes `keyof` the String prototype; `SegmentGroup`
- * excludes `item`, which `SegmentItem` owns; and `SidebarLayout` names five
- * `sidebar*` keys its config never declares. A config-read map would report
- * correct consumer configuration as a typo in every one of them.
+ * naming every chart's slots for each; `Guide`, whose export is
+ * `guideTourVariants`; and the three wrappers, which have no config of their
+ * own. Five more disagree where both exist: `Popover` and `Separator` hand over
+ * a config carrying no `slots`, whose call returns `string` and makes `keyof`
+ * the String prototype; `SegmentGroup` excludes `item`, which `SegmentItem`
+ * owns; and `SidebarLayout` and `NumberInput` each name keys their own config
+ * never declares — the `sidebar*` set, and the `Input` slots a number field
+ * forwards to. A config-read map would report correct consumer configuration as
+ * a typo in every one of them.
  *
  * **Ninety keys, not eighty-eight.** The map is keyed on "declares a
  * `slotClasses` prop", which is two wider than "resolves a provider cascade":

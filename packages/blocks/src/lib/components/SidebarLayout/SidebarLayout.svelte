@@ -1,9 +1,10 @@
 <script lang="ts">
   import { MediaQuery } from 'svelte/reactivity';
-  import { Sidebar, type SidebarProps } from '$lib/primitives/Sidebar';
+  import { Sidebar, type SidebarProps, sidebarVariants } from '$lib/primitives/Sidebar';
+  import type { SidebarSlots } from '$lib/primitives/Sidebar/sidebar.variants';
   import { getBlocksConfig, resolveSlotClasses } from '$lib/provider';
   import { resolveClassChain } from '$lib/utils/variants';
-  import type { SidebarLayoutProps } from './index';
+  import type { SidebarForwardKey, SidebarLayoutProps } from './index';
   import { sidebarLayoutVariants, type SidebarLayoutVariants } from './sidebar-layout.variants';
 
   let {
@@ -58,19 +59,29 @@
     )
   );
 
-  // Forward sidebar-related slotClasses to the embedded Sidebar. `satisfies` on
-  // the literal and not an annotation on the binding: the object is an argument
-  // to `$derived`, so a contextual type never reaches it, and it arrives at
-  // `<Sidebar slotClasses={…}>` as a variable, where excess-property checking no
-  // longer applies. Measured — under an annotation a `panelTYPO` compiles and
-  // lands nowhere; under `satisfies` it is an error.
-  const sidebarSlotClasses = $derived({
-    panel: slotClasses?.sidebar,
-    backdrop: slotClasses?.sidebarBackdrop,
-    header: slotClasses?.sidebarHeader,
-    content: slotClasses?.sidebarContent,
-    footer: slotClasses?.sidebarFooter
-  } satisfies SidebarProps['slotClasses']);
+  // `Capitalize` has no runtime counterpart, so this is the one expression the
+  // compiler cannot narrow on its own; annotating the key it builds is what
+  // makes the prefix agree with the union that admits it.
+  const capitalize = <S extends string>(value: S) =>
+    (value.charAt(0).toUpperCase() + value.slice(1)) as Capitalize<S>;
+
+  // Forward sidebar-related slotClasses to the embedded Sidebar, by walking
+  // Sidebar's own slot names rather than pairing them off by hand. Three edits
+  // to the five hand-written pairs this replaces compiled while reaching no
+  // element: a mistyped source key, a swapped pair, and a deleted line (#346).
+  // Only the first is unrepresentable here — there is no per-slot key left to
+  // mistype, and the prefix is checked against the union it must match. The
+  // other two stay writable and are caught by the sibling test instead, which
+  // asserts that each key reaches its slot rather than how the map is spelt.
+  const sidebarSlotClasses = $derived.by(() => {
+    const forwarded: NonNullable<SidebarProps['slotClasses']> = {};
+    for (const slot of Object.keys(sidebarVariants.config.slots ?? {}) as SidebarSlots[]) {
+      const key: SidebarForwardKey = `sidebar${capitalize(slot)}`;
+      const value = slotClasses?.[key];
+      if (value) forwarded[slot] = value;
+    }
+    return forwarded;
+  });
 
   function openSidebar() {
     open = true;

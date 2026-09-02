@@ -283,7 +283,7 @@
             root: 'min-h-0 h-full relative',
             main: 'min-h-0 h-full overflow-auto',
             inner: 'p-6',
-            sidebar: 'absolute',
+            sidebarPanel: 'absolute',
             sidebarBackdrop: 'absolute'
           }}
         >

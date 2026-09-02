@@ -137,7 +137,11 @@ export interface ConfirmDialogProps
   // `data-testid` for an e2e hook). Rest props are spread first, so they can
   // never clobber ConfirmDialog's own computed props/handlers.
 
-  /** Extra classes merged onto the dialog element. Forwarded to {@link DialogProps.class}. */
+  /**
+   * Extra classes merged onto the dialog **panel** — the card, not the
+   * full-viewport `<dialog>` shell around it. Forwarded to
+   * {@link DialogProps.class}, which lands on the same element.
+   */
   class?: string;
 
   /**

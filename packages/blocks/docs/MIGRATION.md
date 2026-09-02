@@ -9,6 +9,33 @@ and ships in the `@urbicon-ui/table` tarball.
 
 ## v9
 
+### `SidebarLayout`'s `sidebar` slot key is now `sidebarPanel`
+
+`<SidebarLayout slotClasses>` forwards each `sidebar`-prefixed key to the `<Sidebar>` it
+embeds. Four of them already named the Sidebar slot they reach — `sidebarBackdrop` to
+`backdrop`, `sidebarHeader` to `header`, and so on. The fifth, `sidebar`, reached `panel`
+under a name that matched nothing.
+
+```svelte
+<!-- before -->
+<SidebarLayout slotClasses={{ sidebar: 'bg-neutral-900' }} />
+```
+
+```svelte
+<!-- after -->
+<SidebarLayout slotClasses={{ sidebarPanel: 'bg-neutral-900' }} />
+```
+
+**A compile error, not a silent no-op**: `sidebar` has left the union, so every call site and
+every `<BlocksProvider>` entry naming it fails to build. Grep for `sidebar:` *inside a
+`slotClasses` object* — the snippet props `sidebar`, `sidebarHeader` and `sidebarFooter` are a
+different namespace and are unchanged.
+
+The rename is what makes the forwarding derivable: the union is now
+`` `sidebar${Capitalize<SidebarSlots>}` `` and the runtime map walks the same slot config, so
+the two halves cannot disagree. Under the old hand-written pairing, three edits compiled while
+reaching no element — a mistyped source key, a swapped pair, and a deleted line.
+
 ### `<BlocksProvider>` slot names are checked against the component
 
 `defaults` and `presets` took any string as a slot name under any component name. A key the

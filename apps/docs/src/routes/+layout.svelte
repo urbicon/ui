@@ -179,7 +179,7 @@
       bind:open={sidebarOpen}
       sidebarWidth="16rem"
       contentMaxWidth="none"
-      slotClasses={{ sidebar: 'bg-[var(--docs-bg)]' }}
+      slotClasses={{ sidebarPanel: 'bg-[var(--docs-bg)]' }}
     >
       {#snippet sidebarHeader()}
         <div class="flex h-14 w-full items-center justify-between" lang={i18nState.locale}>
