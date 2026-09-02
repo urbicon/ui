@@ -2,6 +2,7 @@ import type { RequestHandler } from '@sveltejs/kit';
 import { json } from '@sveltejs/kit';
 import type { JwtConfig } from '../../types.js';
 import { assertJwtConfigValid, resolveActiveKid } from '../jwt.js';
+import { privateEndpoints } from './_shared.js';
 
 /**
  * The exact JWK shape this endpoint publishes — an explicit allow-list of
@@ -92,7 +93,7 @@ export function createJWKSHandler(config: { jwt: JwtConfig }): { GET: RequestHan
     ...(jwt.previousPublicKeys ?? []).map((key) => publishJwk(key, key.kid))
   ])();
 
-  return {
+  return privateEndpoints({
     GET: async () => json({ keys: await keys }, { headers: JWKS_HEADERS })
-  };
+  });
 }

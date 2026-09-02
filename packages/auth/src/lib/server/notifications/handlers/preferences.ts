@@ -2,6 +2,7 @@ import type { RequestHandler } from '@sveltejs/kit';
 import { json } from '@sveltejs/kit';
 import type { RateLimitConfig } from '../../../types.js';
 import type { NotificationPreferenceRepository } from '../../adapters/types.js';
+import { privateEndpoints } from '../../handlers/_shared.js';
 import { authError } from '../../handlers/errors.js';
 import { enforceRateLimit, makeRateLimiter } from '../../rate-limit.js';
 import { readJsonBody } from '../../validation.js';
@@ -55,7 +56,7 @@ export function createPreferencesHandler(
     options?.rateLimit === null ? undefined : (options?.rateLimit ?? DEFAULT_RATE_LIMIT)
   );
 
-  return {
+  return privateEndpoints({
     GET: async ({ locals }) => {
       const userId = localsUserId(locals);
       if (!userId) {
@@ -112,5 +113,5 @@ export function createPreferencesHandler(
       });
       return json({ success: true });
     }
-  };
+  });
 }

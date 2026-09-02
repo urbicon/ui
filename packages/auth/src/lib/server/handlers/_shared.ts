@@ -1,4 +1,4 @@
-import type { Cookies } from '@sveltejs/kit';
+import type { Cookies, RequestEvent } from '@sveltejs/kit';
 import { resolvePasswordPolicy, unmetPasswordRules } from '../../password-policy.js';
 import type { AuthConfig, AuthLogger, JwtConfig, PasswordConfig } from '../../types.js';
 import type { FullAuthUser, UserRepository } from '../adapters/types.js';
@@ -24,15 +24,13 @@ import { authError } from './errors.js';
  */
 export async function parseBody<T>(
   request: Request,
-  validate: (raw: unknown) => ValidationResult<T>,
-  options?: { headers?: HeadersInit }
+  validate: (raw: unknown) => ValidationResult<T>
 ): Promise<{ data: T } | Response> {
   const input = validate(await readJsonBody(request));
   if (!input.success) {
     return authError('validation_error', {
       message: input.errors[0].message,
-      extra: { errors: input.errors },
-      ...(options?.headers && { headers: options.headers })
+      extra: { errors: input.errors }
     });
   }
   return { data: input.data };
@@ -148,12 +146,136 @@ export function passwordRefusal(password: string, config?: PasswordConfig): Resp
 }
 
 /**
- * `Cache-Control` for responses that carry session state or PII (the `me`
- * payload, freshly minted tokens, session/invitation lists, 2FA material) —
- * they must never park in a shared cache. One constant instead of the four
- * per-file copies counted.
+ * The keys SvelteKit treats as endpoints in a `+server.ts` module: its seven
+ * `HttpMethod`s, plus `fallback` — which answers every method the module does
+ * not export by name, and would otherwise be the one handler this wrapper
+ * walks past.
+ *
+ * Both live in SvelteKit's `SSREndpoint`, which it declares but does not
+ * export ("Module '@sveltejs/kit' declares 'HttpMethod' locally, but it is not
+ * exported"), so the set cannot be derived from the type and is restated here.
+ * It is exported for exactly one reason: the cache-directive gate imports it
+ * instead of keeping a second hand-written copy, so the two cannot disagree
+ * about what an endpoint is. A method SvelteKit adds has to be added here —
+ * nothing detects that for us.
  */
-export const NO_STORE = { 'Cache-Control': 'no-store' } as const;
+export const ENDPOINT_KEYS: readonly string[] = [
+  'GET',
+  'HEAD',
+  'POST',
+  'PUT',
+  'DELETE',
+  'PATCH',
+  'OPTIONS',
+  'fallback'
+];
+
+/**
+ * A value safe to walk into looking for more endpoints: an object literal, and
+ * nothing else. `privateEndpoints` recurses because two factories group their
+ * endpoints (`sessions.list.GET`), and a group is always a literal — while an
+ * `Array`, `Date`, `Map` or class instance sharing the bundle would be walked
+ * into for keys it does not have.
+ */
+function isPlainObject(value: unknown): value is Record<string, unknown> {
+  if (typeof value !== 'object' || value === null) return false;
+  const proto = Object.getPrototypeOf(value);
+  return proto === Object.prototype || proto === null;
+}
+
+/** A route handler, narrowed to what this wrapper needs of it. */
+type EndpointHandler = (event: RequestEvent) => Response | Promise<Response>;
+
+/**
+ * Give every endpoint in a handler bundle `Cache-Control: no-store` unless the
+ * response names a directive itself.
+ *
+ * **Being uncacheable is a property of what this package answers, not of each
+ * `json()` call.** Everything here is scoped to one account — the `me` payload,
+ * freshly minted tokens, session/invitation/notification/passkey lists, 2FA
+ * material, WebAuthn challenges, and the per-account outcome a bare
+ * `{ success: true }` reports. SvelteKit's `json()` emits nothing but
+ * `content-type` and `content-length`, so a response that says nothing is
+ * heuristically storable (RFC 9111 §4.2.2): a shared cache keyed by URL, seeing
+ * no `Vary: Cookie`, may hand one account's answer to the next caller. Wrapping
+ * the bundle puts the directive where the class lives; a call site cannot omit
+ * it and does not have to spell it.
+ *
+ * The three endpoints that are genuinely public (`jwks`, `password-policy`,
+ * `push-key`) set their own `Cache-Control` and keep it — this only ever fills
+ * a gap, so a public endpoint needs no exemption list to stay public.
+ *
+ * The directive is set on the response the handler already built. Nothing is
+ * copied into a fresh `Headers`, so no header a handler set can be dropped on
+ * the way out — `Retry-After` on a 429 included — and a streaming body
+ * (`text/event-stream`) is passed through untouched rather than re-wrapped.
+ *
+ * The bundle is mutated in place and handed back. What this promises is a
+ * header on the endpoint responses and nothing else, so every other value a
+ * factory puts beside its endpoints — a limiter, a `prerender` flag, a shared
+ * sub-object — has to come through untouched, its identity included; only
+ * object literals are walked into looking for further endpoints. The shapes
+ * that rules out are pinned in `_shared.test.ts`.
+ */
+export function privateEndpoints<T extends object>(bundle: T): T {
+  stampEndpoints(bundle as Record<string, unknown>, new WeakSet());
+  return bundle;
+}
+
+/**
+ * Every handler {@link privateEndpoints} has produced, so a test can ask
+ * whether a given endpoint came out of it.
+ *
+ * Driving an endpoint only answers this where a test can reach a success path,
+ * and a good third of these need a ceremony, a second factor or a live token
+ * first. Until they get one they answer from `authError`, whose directive says
+ * nothing about the wrapper — and that gap is where an endpoint mounted BESIDE
+ * the wrapper hides. `{ ...privateEndpoints({ setup }), enable: enable() }` is
+ * a natural thing to write against a wrapper that mutates in place, and it puts
+ * a `200` carrying ten plaintext backup codes on the wire with no directive at
+ * all. Asking about identity covers every endpoint, reachable or not, and needs
+ * no fixture.
+ */
+const WRAPPED = new WeakSet<object>();
+
+/**
+ * Whether `handler` is an endpoint {@link privateEndpoints} wrapped.
+ *
+ * It answers about the *function*, not about a response: a wrapped endpoint
+ * that names its own directive (`jwks`, `password-policy`, `push-key`) is
+ * still wrapped — the wrapper only ever fills a gap. What reaches the wire is
+ * a separate question, and a separate assertion.
+ */
+export function isWrappedEndpoint(handler: unknown): boolean {
+  return typeof handler === 'function' && WRAPPED.has(handler);
+}
+
+/**
+ * `seen` is what bounds the walk. A bundle is a value the caller owns, so it
+ * may hold a reference back to itself or share one sub-object between two
+ * groups; without this, the first recurses until the stack runs out and the
+ * second wraps the same handler twice.
+ */
+function stampEndpoints(node: Record<string, unknown>, seen: WeakSet<object>): void {
+  if (seen.has(node)) return;
+  seen.add(node);
+  for (const [key, value] of Object.entries(node)) {
+    if (ENDPOINT_KEYS.includes(key) && typeof value === 'function') {
+      const handler = value as EndpointHandler;
+      const wrapped = async (event: RequestEvent): Promise<Response> => {
+        const response = await handler(event);
+        if (!response.headers.has('Cache-Control')) {
+          response.headers.set('Cache-Control', 'no-store');
+        }
+        return response;
+      };
+      WRAPPED.add(wrapped);
+      node[key] = wrapped;
+    } else if (isPlainObject(value)) {
+      stampEndpoints(value, seen);
+    }
+  }
+}
 
 /**
  * Resolve the authenticated user behind the request's session cookie, or

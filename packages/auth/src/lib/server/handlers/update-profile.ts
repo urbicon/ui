@@ -3,7 +3,7 @@ import { json } from '@sveltejs/kit';
 import { sanitizeUser } from '../auth.js';
 import type { AuthDeps } from '../deps.js';
 import { validateUpdateProfileInput } from '../validation.js';
-import { parseBody, requireSessionUser } from './_shared.js';
+import { parseBody, privateEndpoints, requireSessionUser } from './_shared.js';
 import { authError } from './errors.js';
 
 /**
@@ -14,7 +14,7 @@ import { authError } from './errors.js';
 export function createUpdateProfileHandler<R extends string>(
   deps: AuthDeps<R>
 ): { POST: RequestHandler } {
-  return {
+  return privateEndpoints({
     POST: async ({ request, cookies }) => {
       const user = await requireSessionUser(deps, cookies);
       if (!user) return authError('not_authenticated');
@@ -29,5 +29,5 @@ export function createUpdateProfileHandler<R extends string>(
       // without a follow-up round-trip to `me`.
       return json({ user: sanitizeUser({ ...user, name }) });
     }
-  };
+  });
 }

@@ -23,9 +23,9 @@ import {
 } from '../two-factor.js';
 import { validateDisable2faInput, validateTotpInput } from '../validation.js';
 import {
-  NO_STORE,
   notifyHook,
   parseBody,
+  privateEndpoints,
   requireSessionUser,
   verifyCurrentPassword
 } from './_shared.js';
@@ -79,12 +79,12 @@ export function createTwoFactorHandlers<R extends string>(
   disable: { POST: RequestHandler };
   verify: { POST: RequestHandler };
 } {
-  return {
+  return privateEndpoints({
     setup: setupHandler(deps),
     enable: enableHandler(deps),
     disable: disableHandler(deps),
     verify: verifyHandler(deps)
-  };
+  });
 }
 
 function setupHandler<R extends string>(deps: AuthDeps<R>): { POST: RequestHandler } {
@@ -92,16 +92,13 @@ function setupHandler<R extends string>(deps: AuthDeps<R>): { POST: RequestHandl
     POST: async (event) => {
       const { config, repos } = deps;
       const user = await requireSessionUser(deps, event.cookies);
-      if (!user) return authError('not_authenticated', { headers: NO_STORE });
+      if (!user) return authError('not_authenticated');
 
       if (!config.twoFactor) {
-        return authError('feature_unavailable', {
-          message: 'Two-factor is not available.',
-          headers: NO_STORE
-        });
+        return authError('feature_unavailable', { message: 'Two-factor is not available.' });
       }
       if (user.totpEnabled) {
-        return authError('two_factor_already_enabled', { headers: NO_STORE });
+        return authError('two_factor_already_enabled');
       }
 
       const secret = generateTotpSecret();
@@ -117,7 +114,7 @@ function setupHandler<R extends string>(deps: AuthDeps<R>): { POST: RequestHandl
         ...resolveTotpOptions(config.twoFactor)
       });
 
-      return json({ secret, otpauthUri }, { headers: NO_STORE });
+      return json({ secret, otpauthUri });
     }
   };
 }
@@ -127,22 +124,19 @@ function enableHandler<R extends string>(deps: AuthDeps<R>): { POST: RequestHand
     POST: async (event) => {
       const { config, repos } = deps;
       const user = await requireSessionUser(deps, event.cookies);
-      if (!user) return authError('not_authenticated', { headers: NO_STORE });
+      if (!user) return authError('not_authenticated');
 
       if (!config.twoFactor || !repos.backupCode) {
-        return authError('feature_unavailable', {
-          message: 'Two-factor is not available.',
-          headers: NO_STORE
-        });
+        return authError('feature_unavailable', { message: 'Two-factor is not available.' });
       }
       if (user.totpEnabled) {
-        return authError('two_factor_already_enabled', { headers: NO_STORE });
+        return authError('two_factor_already_enabled');
       }
       if (!user.totpSecret) {
-        return authError('two_factor_setup_required', { headers: NO_STORE });
+        return authError('two_factor_setup_required');
       }
 
-      const body = await parseBody(event.request, validateTotpInput, { headers: NO_STORE });
+      const body = await parseBody(event.request, validateTotpInput);
       if (body instanceof Response) return body;
 
       const secret = await decryptSecret(user.totpSecret, config.twoFactor.encryptionKey);
@@ -158,12 +152,12 @@ function enableHandler<R extends string>(deps: AuthDeps<R>): { POST: RequestHand
             `[auth] 2fa-enable: the staged TOTP secret could not be decrypted (user ${user.id}) — twoFactor.encryptionKey does not match the key it was staged with. Further attempts by this user are not logged.`
           );
         }
-        return authError('totp_secret_unreadable', { headers: NO_STORE });
+        return authError('totp_secret_unreadable');
       }
 
       const valid = await verifyTotp(secret, body.data.code, resolveTotpOptions(config.twoFactor));
       if (!valid) {
-        return authError('two_factor_setup_code_invalid', { headers: NO_STORE });
+        return authError('two_factor_setup_code_invalid');
       }
 
       // Issue backup codes BEFORE flipping the flag: if the flag write fails the
@@ -174,7 +168,7 @@ function enableHandler<R extends string>(deps: AuthDeps<R>): { POST: RequestHand
       await repos.backupCode.createMany(user.id, hashes);
       await repos.user.enableTotp(user.id);
 
-      return json({ backupCodes: plain }, { headers: NO_STORE });
+      return json({ backupCodes: plain });
     }
   };
 }

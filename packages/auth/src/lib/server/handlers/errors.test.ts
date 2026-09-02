@@ -31,8 +31,15 @@ describe('authError', () => {
     expect(body.errors).toEqual([{ field: 'email', message: 'Email is invalid' }]);
   });
 
-  it('applies response headers (e.g. Cache-Control: no-store)', () => {
-    const res = authError('not_authenticated', { headers: { 'Cache-Control': 'no-store' } });
+  it('sets the cache directive itself, on a refusal that passes no headers', () => {
+    expect(authError('not_authenticated').headers.get('Cache-Control')).toBe('no-store');
+  });
+
+  it('forwards Retry-After beside the directive it sets', () => {
+    // The two must coexist: the directive is written onto the response `json()`
+    // already built, so a header the caller passed cannot be lost to it.
+    const res = authError('rate_limited', { headers: { 'Retry-After': '30' } });
+    expect(res.headers.get('Retry-After')).toBe('30');
     expect(res.headers.get('Cache-Control')).toBe('no-store');
   });
 

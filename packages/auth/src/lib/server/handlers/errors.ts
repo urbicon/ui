@@ -230,8 +230,14 @@ interface AuthErrorOptions {
   message?: string;
   /** Extra fields to merge into the JSON body (e.g. `errors` for validation). */
   extra?: Record<string, unknown>;
-  /** Response headers (e.g. `Cache-Control: no-store`). */
-  headers?: HeadersInit;
+  /**
+   * `Retry-After`, on the two rate-limit codes. Typed as that one header rather
+   * than `HeadersInit` because it is the only one any refusal has ever carried,
+   * and because the narrower type makes the case worth warning about —
+   * a caller passing `Cache-Control`, which {@link authError} would override —
+   * impossible to write instead of merely documented.
+   */
+  headers?: { 'Retry-After': string };
 }
 
 /**
@@ -245,13 +251,24 @@ interface AuthErrorOptions {
  *
  * The status comes from {@link AUTH_ERROR_STATUS} keyed by the code — callers
  * do not pass one. Pass `message` to override the prose (validation field
- * messages), `extra` to add body fields (`{ errors }`), and `headers` for
- * cache directives.
+ * messages), `extra` to add body fields (`{ errors }`), and `headers` for the
+ * one header a refusal carries beyond the directive below (`Retry-After`).
+ *
+ * **`Cache-Control: no-store` is a property of the refusal, not of the call
+ * site.** Every code here names an account, a credential state or a rate-limit
+ * verdict, and none of it may be replayed to a second caller; `session_not_found`
+ * answers 404, which is heuristically storable on its own (RFC 9111 §4.2.2),
+ * and `json()` emits nothing but `content-type` and `content-length`. Set once
+ * here, no call site can forget it and none has to spell it. The header is put
+ * on the response `json()` already built rather than merged into a fresh
+ * `Headers`, so a caller's own header cannot be dropped in the process.
  */
 export function authError(code: AuthErrorCode, opts: AuthErrorOptions = {}): Response {
   const status = AUTH_ERROR_STATUS[code];
-  return json(
+  const response = json(
     { error: opts.message ?? defaultMessage(code), code, ...opts.extra },
     opts.headers ? { status, headers: opts.headers } : { status }
   );
+  response.headers.set('Cache-Control', 'no-store');
+  return response;
 }

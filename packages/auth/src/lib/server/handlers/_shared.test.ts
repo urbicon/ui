@@ -8,6 +8,7 @@ import { createMockAuthDeps, createMockUser, mockPostEvent } from '../test-utils
 import {
   parseBody,
   passwordRefusal,
+  privateEndpoints,
   requireSessionUser,
   verifyCurrentPassword
 } from './_shared.js';
@@ -162,13 +163,13 @@ describe('parseBody', () => {
     expect(result).toEqual({ data: { email: 'a@b.c' } });
   });
 
-  it('produces the full canonical validation 400 — code, first-error prose, errors array, headers', async () => {
-    // Test-review mutation finding: dropping the errors array or the headers
-    // forwarding survived the whole suite — this is the single choke point
-    // for 14 handler preambles, so the envelope is pinned here once.
-    const result = await parseBody(jsonRequest('{"email":42}'), validator, {
-      headers: { 'Cache-Control': 'no-store' }
-    });
+  it('produces the full canonical validation 400 — code, first-error prose, errors array, directive', async () => {
+    // Test-review mutation finding: dropping the errors array survived the
+    // whole suite — this is the single choke point for 14 handler preambles,
+    // so the envelope is pinned here once. `Cache-Control` is asserted without
+    // being passed: it belongs to the refusal `authError` builds, so no caller
+    // forwards it any more.
+    const result = await parseBody(jsonRequest('{"email":42}'), validator);
     expect(result).toBeInstanceOf(Response);
     const res = result as Response;
     expect(res.status).toBe(400);
@@ -222,5 +223,85 @@ describe('passwordRefusal', () => {
     const raw = await (res as Response).text();
     expect(raw).not.toContain('pbkdf2');
     expect(raw).not.toContain('654321');
+  });
+});
+
+/**
+ * `privateEndpoints` promises one thing — a `Cache-Control` on the responses of
+ * the endpoints it finds — so everything else in the bundle has to come back
+ * exactly as it went in.
+ *
+ * It used to rebuild the bundle into a fresh object literal and recurse into
+ * every value that was `typeof 'object'`, which is a deep rewrite of the
+ * caller's object, not a header: an `Array` came back as `{"0":1}`, a `Date`
+ * and a `Map` came back empty, a class instance lost its prototype, getters
+ * were materialised into values, and a circular reference recursed until the
+ * stack ran out. No bundle the package ships hits any of that today; the next
+ * factory returning `{ GET, limiter }` would have hit the first one.
+ */
+describe('privateEndpoints', () => {
+  const bare = () => new Response('x');
+
+  it('sets no-store on an endpoint response that names no directive', async () => {
+    const bundle = privateEndpoints({ GET: bare });
+    expect((await bundle.GET()).headers.get('cache-control')).toBe('no-store');
+  });
+
+  it('leaves a directive the response already names', async () => {
+    const bundle = privateEndpoints({
+      GET: () => new Response('x', { headers: { 'Cache-Control': 'public, max-age=300' } })
+    });
+    expect((await bundle.GET()).headers.get('cache-control')).toBe('public, max-age=300');
+  });
+
+  it('reaches an endpoint nested in a group', async () => {
+    const bundle = privateEndpoints({ list: { GET: bare } });
+    expect((await bundle.list.GET()).headers.get('cache-control')).toBe('no-store');
+  });
+
+  it('returns the same object rather than a copy', () => {
+    const bundle = { GET: bare };
+    expect(privateEndpoints(bundle)).toBe(bundle);
+  });
+
+  it('hands every non-endpoint value back untouched', () => {
+    class Limiter {
+      readonly kind = 'limiter';
+      check() {
+        return true;
+      }
+    }
+    const map = new Map([['a', 1]]);
+    const date = new Date('2026-01-01T00:00:00.000Z');
+    const limiter = new Limiter();
+    const bundle = privateEndpoints({
+      GET: bare,
+      methods: ['GET', 'POST'],
+      since: date,
+      seen: map,
+      limiter,
+      prerender: true
+    });
+
+    expect(Array.isArray(bundle.methods)).toBe(true);
+    expect(bundle.methods).toEqual(['GET', 'POST']);
+    expect(bundle.since).toBe(date);
+    expect(bundle.since.toISOString()).toBe('2026-01-01T00:00:00.000Z');
+    expect(bundle.seen).toBe(map);
+    expect(bundle.seen.get('a')).toBe(1);
+    expect(bundle.limiter).toBe(limiter);
+    expect(bundle.limiter.check()).toBe(true);
+    expect(bundle.prerender).toBe(true);
+  });
+
+  it('does not recurse forever on a circular reference', () => {
+    const bundle: Record<string, unknown> = { GET: bare };
+    bundle.self = bundle;
+    expect(() => privateEndpoints(bundle)).not.toThrow();
+  });
+
+  it('wraps `fallback`, which answers every method not exported by name', async () => {
+    const bundle = privateEndpoints({ fallback: bare });
+    expect((await bundle.fallback()).headers.get('cache-control')).toBe('no-store');
   });
 });

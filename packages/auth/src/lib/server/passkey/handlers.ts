@@ -5,7 +5,7 @@ import { sanitizeUser } from '../auth.js';
 import { isSecureDeployment } from '../cookie-policy.js';
 import type { AuthDeps } from '../deps.js';
 import { base64UrlDecode } from '../encoding.js';
-import { notifyHook, requireSessionUser } from '../handlers/_shared.js';
+import { notifyHook, privateEndpoints, requireSessionUser } from '../handlers/_shared.js';
 import { authError } from '../handlers/errors.js';
 import { enforceRateLimit, sharedLimiter } from '../rate-limit.js';
 import { establishSession, resolveSessionMeta } from '../session.js';
@@ -127,14 +127,14 @@ export function createPasskeyHandlers<R extends string>(
   // the ceremony config stay single.
   const ceremony: WebAuthnConfig = { ...webauthn, logger: webauthn.logger ?? deps.logger };
 
-  return {
+  return privateEndpoints({
     registrationOptions: registrationOptionsHandler(deps, ceremony, passkeyRepo, sessionUser),
     registrationVerify: registrationVerifyHandler(deps, ceremony, passkeyRepo, sessionUser),
     authenticationOptions: authenticationOptionsHandler(deps, ceremony, passkeyRepo),
     authenticationVerify: authenticationVerifyHandler(deps, ceremony, passkeyRepo),
     list: listHandler(passkeyRepo, sessionUser),
     item: deleteHandler(passkeyRepo, sessionUser)
-  };
+  });
 }
 
 type SessionUserResolver<R extends string> = (

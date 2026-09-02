@@ -4,7 +4,7 @@ import { hashToken } from '../auth.js';
 import type { AuthDeps } from '../deps.js';
 import { enforceRateLimit, sharedLimiter } from '../rate-limit.js';
 import { validateTokenInput } from '../validation.js';
-import { parseBody } from './_shared.js';
+import { parseBody, privateEndpoints } from './_shared.js';
 import { authError } from './errors.js';
 
 export function createVerifyEmailHandler<R extends string>(
@@ -12,7 +12,7 @@ export function createVerifyEmailHandler<R extends string>(
 ): { POST: RequestHandler } {
   const rateLimiter = sharedLimiter(deps.config, 'verifyEmail');
 
-  return {
+  return privateEndpoints({
     POST: async ({ request, getClientAddress }) => {
       const limited = await enforceRateLimit(rateLimiter, getClientAddress());
       if (limited) return limited;
@@ -34,5 +34,5 @@ export function createVerifyEmailHandler<R extends string>(
 
       return json({ success: true });
     }
-  };
+  });
 }

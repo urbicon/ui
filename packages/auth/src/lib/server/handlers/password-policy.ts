@@ -2,6 +2,7 @@ import type { RequestHandler } from '@sveltejs/kit';
 import { json } from '@sveltejs/kit';
 import { resolvePasswordPolicy } from '../../password-policy.js';
 import type { AuthDeps } from '../deps.js';
+import { privateEndpoints } from './_shared.js';
 
 /**
  * Publishes the password policy the server enforces, so the sign-up /
@@ -24,7 +25,7 @@ import type { AuthDeps } from '../deps.js';
 export function createPasswordPolicyHandler<R extends string>(
   deps: AuthDeps<R>
 ): { GET: RequestHandler } {
-  return {
+  return privateEndpoints({
     GET: async () =>
       json(
         { policy: resolvePasswordPolicy(deps.config.password) },
@@ -36,5 +37,5 @@ export function createPasswordPolicyHandler<R extends string>(
         // one rejected submit, not an English error.
         { headers: { 'Cache-Control': 'public, max-age=300' } }
       )
-  };
+  });
 }

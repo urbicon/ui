@@ -10,7 +10,7 @@ import { hashPassword } from '../password.js';
 import { enforceRateLimit, sharedLimiter } from '../rate-limit.js';
 import { establishSession, resolveSessionMeta } from '../session.js';
 import { validateRegisterInput } from '../validation.js';
-import { notifyHook, parseBody, passwordRefusal } from './_shared.js';
+import { notifyHook, parseBody, passwordRefusal, privateEndpoints } from './_shared.js';
 import { authError } from './errors.js';
 
 export interface RegisterHandlerOptions {
@@ -67,7 +67,7 @@ export function createRegisterHandler<R extends string>(
   // route was wired instead of on someone's first signup.
   const verificationTtlMs = resolveTokenTtlMs(deps.config.tokenTtl, 'emailVerification');
 
-  return {
+  return privateEndpoints({
     POST: async (event) => {
       const { request, cookies, getClientAddress } = event;
       const limited = await enforceRateLimit(
@@ -220,5 +220,5 @@ export function createRegisterHandler<R extends string>(
 
       return json({ user: sanitizeUser(fullUser) }, { status: 201 });
     }
-  };
+  });
 }

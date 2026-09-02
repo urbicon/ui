@@ -5,7 +5,7 @@ import { hashToken } from '../auth.js';
 import type { AuthDeps } from '../deps.js';
 import { readRefreshCookie } from '../refresh-token.js';
 import { readJsonBody } from '../validation.js';
-import { NO_STORE, requireSessionUser } from './_shared.js';
+import { privateEndpoints, requireSessionUser } from './_shared.js';
 import { authError } from './errors.js';
 
 /**
@@ -65,22 +65,22 @@ export function createSessionsHandlers<R extends string>(
   revoke: { POST: RequestHandler };
   revokeOthers: { POST: RequestHandler };
 } {
-  return {
+  return privateEndpoints({
     list: listSessionsHandler(deps),
     revoke: revokeSessionHandler(deps),
     revokeOthers: revokeOtherSessionsHandler(deps)
-  };
+  });
 }
 
 function listSessionsHandler<R extends string>(deps: AuthDeps<R>): { GET: RequestHandler } {
   return {
     GET: async (event) => {
       const user = await requireSessionUser(deps, event.cookies);
-      if (!user) return authError('not_authenticated', { headers: NO_STORE });
+      if (!user) return authError('not_authenticated');
 
       const repo = deps.repos.refreshToken;
       if (!deps.config.refreshToken || !repo) {
-        return json({ sessions: [], available: false }, { headers: NO_STORE });
+        return json({ sessions: [], available: false });
       }
 
       const current = await currentFamily(event, deps);
@@ -105,7 +105,7 @@ function listSessionsHandler<R extends string>(deps: AuthDeps<R>): { GET: Reques
           current: r.family === current
         }));
 
-      return json({ sessions, available: true }, { headers: NO_STORE });
+      return json({ sessions, available: true });
     }
   };
 }

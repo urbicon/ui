@@ -1,4 +1,5 @@
 import type { RequestHandler } from '@sveltejs/kit';
+import { privateEndpoints } from '../../handlers/_shared.js';
 import { authError } from '../../handlers/errors.js';
 import type { SSEManager } from '../sse.js';
 import { localsUserId } from './locals-user.js';
@@ -26,7 +27,7 @@ export function createStreamHandler(
   const heartbeatMs = options?.heartbeatMs ?? 25_000;
   const maxConnectionsPerUser = options?.maxConnectionsPerUser ?? 5;
 
-  return {
+  return privateEndpoints({
     GET: async ({ locals, request }) => {
       const userId = localsUserId(locals);
       if (!userId) {
@@ -101,14 +102,18 @@ export function createStreamHandler(
       // right after it fires instead of lingering until the signal is GC'd.
       request.signal?.addEventListener('abort', cleanup, { once: true });
 
+      // No `Cache-Control` here: the stream carries one user's notification
+      // rows, so it takes the `no-store` every other private endpoint in this
+      // package gets from `privateEndpoints` around the bundle. It used to say
+      // `no-cache`, the conventional SSE header — but `no-cache` only forces
+      // revalidation and still permits a shared cache to KEEP the response;
+      // `no-store` is the one that forbids holding it.
+      //
+      // No `Connection: keep-alive` either: it's a hop-by-hop header, illegal
+      // under HTTP/2 (where SSE usually runs) and rejected by some runtimes.
       return new Response(stream, {
-        headers: {
-          'Content-Type': 'text/event-stream',
-          'Cache-Control': 'no-cache'
-          // No `Connection: keep-alive`: it's a hop-by-hop header, illegal
-          // under HTTP/2 (where SSE usually runs) and rejected by some runtimes.
-        }
+        headers: { 'Content-Type': 'text/event-stream' }
       });
     }
-  };
+  });
 }
