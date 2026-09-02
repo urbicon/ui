@@ -1,4 +1,4 @@
-import type { Cookies } from '@sveltejs/kit';
+import type { Cookies, RequestEvent } from '@sveltejs/kit';
 import { resolvePasswordPolicy, unmetPasswordRules } from '../../password-policy.js';
 import type { AuthConfig, AuthLogger, JwtConfig, PasswordConfig } from '../../types.js';
 import type { FullAuthUser, UserRepository } from '../adapters/types.js';
@@ -24,15 +24,13 @@ import { authError } from './errors.js';
  */
 export async function parseBody<T>(
   request: Request,
-  validate: (raw: unknown) => ValidationResult<T>,
-  options?: { headers?: HeadersInit }
+  validate: (raw: unknown) => ValidationResult<T>
 ): Promise<{ data: T } | Response> {
   const input = validate(await readJsonBody(request));
   if (!input.success) {
     return authError('validation_error', {
       message: input.errors[0].message,
-      extra: { errors: input.errors },
-      ...(options?.headers && { headers: options.headers })
+      extra: { errors: input.errors }
     });
   }
   return { data: input.data };
@@ -147,13 +145,56 @@ export function passwordRefusal(password: string, config?: PasswordConfig): Resp
   });
 }
 
+/** The keys a handler bundle exposes as endpoints; anything else is a group. */
+const HTTP_VERBS: readonly string[] = ['GET', 'POST', 'PUT', 'PATCH', 'DELETE'];
+
+/** A route handler, narrowed to what this wrapper needs of it. */
+type EndpointHandler = (event: RequestEvent) => Response | Promise<Response>;
+
 /**
- * `Cache-Control` for responses that carry session state or PII (the `me`
- * payload, freshly minted tokens, session/invitation lists, 2FA material) —
- * they must never park in a shared cache. One constant instead of the four
- * per-file copies counted.
+ * Give every endpoint in a handler bundle `Cache-Control: no-store` unless the
+ * response names a directive itself.
+ *
+ * **Being uncacheable is a property of what this package answers, not of each
+ * `json()` call.** Everything here is scoped to one account — the `me` payload,
+ * freshly minted tokens, session/invitation/notification/passkey lists, 2FA
+ * material, WebAuthn challenges, and the per-account outcome a bare
+ * `{ success: true }` reports. SvelteKit's `json()` emits nothing but
+ * `content-type` and `content-length`, so a response that says nothing is
+ * heuristically storable (RFC 9111 §4.2.2): a shared cache keyed by URL, seeing
+ * no `Vary: Cookie`, may hand one account's answer to the next caller. Wrapping
+ * the bundle puts the directive where the class lives; a call site cannot omit
+ * it and does not have to spell it.
+ *
+ * The three endpoints that are genuinely public (`jwks`, `password-policy`,
+ * `push-key`) set their own `Cache-Control` and keep it — this only ever fills
+ * a gap, so a public endpoint needs no exemption list to stay public.
+ *
+ * The directive is set on the response the handler already built. Nothing is
+ * copied into a fresh `Headers`, so no header a handler set can be dropped on
+ * the way out — `Retry-After` on a 429 included — and a streaming body
+ * (`text/event-stream`) is passed through untouched rather than re-wrapped.
  */
-export const NO_STORE = { 'Cache-Control': 'no-store' } as const;
+export function privateEndpoints<T extends object>(bundle: T): T {
+  const wrapped: Record<string, unknown> = {};
+  for (const [key, value] of Object.entries(bundle)) {
+    if (HTTP_VERBS.includes(key) && typeof value === 'function') {
+      const handler = value as EndpointHandler;
+      wrapped[key] = async (event: RequestEvent): Promise<Response> => {
+        const response = await handler(event);
+        if (!response.headers.has('Cache-Control')) {
+          response.headers.set('Cache-Control', 'no-store');
+        }
+        return response;
+      };
+    } else if (value !== null && typeof value === 'object') {
+      wrapped[key] = privateEndpoints(value as object);
+    } else {
+      wrapped[key] = value;
+    }
+  }
+  return wrapped as T;
+}
 
 /**
  * Resolve the authenticated user behind the request's session cookie, or

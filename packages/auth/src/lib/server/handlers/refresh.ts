@@ -5,7 +5,7 @@ import type { AuthDeps } from '../deps.js';
 import { enforceRateLimit, sharedLimiter } from '../rate-limit.js';
 import { readRefreshCookie, rotateRefreshToken } from '../refresh-token.js';
 import { applyRotationOutcome } from '../session.js';
-import { NO_STORE } from './_shared.js';
+import { privateEndpoints } from './_shared.js';
 import { authError } from './errors.js';
 
 /**
@@ -23,7 +23,7 @@ export function createRefreshHandler<R extends string>(
 ): { POST: RequestHandler } {
   const rateLimiter = sharedLimiter(deps.config, 'refresh');
 
-  return {
+  return privateEndpoints({
     POST: async ({ cookies, getClientAddress }) => {
       const limited = await enforceRateLimit(rateLimiter, getClientAddress());
       if (limited) return limited;
@@ -51,9 +51,9 @@ export function createRefreshHandler<R extends string>(
       // policy the handle hook applies — see applyRotationOutcome.
       const user = await applyRotationOutcome(cookies, outcome, deps.config);
       if (!user) {
-        return authError('invalid_refresh_token', { headers: NO_STORE });
+        return authError('invalid_refresh_token');
       }
-      return json({ user: sanitizeUser(user) }, { headers: NO_STORE });
+      return json({ user: sanitizeUser(user) });
     }
-  };
+  });
 }

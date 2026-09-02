@@ -5,7 +5,12 @@ import type { AuthDeps } from '../deps.js';
 import { enforceRateLimit, sharedLimiter } from '../rate-limit.js';
 import { endSession } from '../session.js';
 import { validateDeleteAccountInput } from '../validation.js';
-import { parseBody, requireSessionUser, verifyCurrentPassword } from './_shared.js';
+import {
+  parseBody,
+  privateEndpoints,
+  requireSessionUser,
+  verifyCurrentPassword
+} from './_shared.js';
 import { authError } from './errors.js';
 
 /**
@@ -18,7 +23,7 @@ export function createDeleteAccountHandler<R extends string>(
 ): { POST: RequestHandler } {
   const rateLimiter = sharedLimiter(deps.config, 'deleteAccount');
 
-  return {
+  return privateEndpoints({
     POST: async ({ request, cookies, getClientAddress }) => {
       const limited = await enforceRateLimit(rateLimiter, getClientAddress());
       if (limited) return limited;
@@ -53,5 +58,5 @@ export function createDeleteAccountHandler<R extends string>(
 
       return json({ success: true });
     }
-  };
+  });
 }

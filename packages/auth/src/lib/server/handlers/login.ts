@@ -9,7 +9,7 @@ import { failedLoginLock, lockoutFor } from '../security-defaults.js';
 import { establishSession, resolveSessionMeta } from '../session.js';
 import { createPending2faToken, setPending2faCookie } from '../two-factor.js';
 import { validateLoginInput } from '../validation.js';
-import { notifyHook, parseBody } from './_shared.js';
+import { notifyHook, parseBody, privateEndpoints } from './_shared.js';
 import { authError } from './errors.js';
 
 // A throwaway password used only to build the dummy hash for timing
@@ -98,7 +98,7 @@ export function createLoginHandler<R extends string>(deps: AuthDeps<R>): { POST:
   const dummyHash = () =>
     (dummyHashPromise ??= hashPassword(DUMMY_VERIFY_PASSWORD, deps.config.password));
 
-  return {
+  return privateEndpoints({
     POST: async (event) => {
       const { request, cookies, getClientAddress } = event;
       const clientAddress = getClientAddress();
@@ -244,5 +244,5 @@ export function createLoginHandler<R extends string>(deps: AuthDeps<R>): { POST:
 
       return json({ user: safeUser });
     }
-  };
+  });
 }

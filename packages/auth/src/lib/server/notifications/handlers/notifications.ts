@@ -1,5 +1,6 @@
 import type { RequestHandler } from '@sveltejs/kit';
 import { json } from '@sveltejs/kit';
+import { privateEndpoints } from '../../handlers/_shared.js';
 import { authError } from '../../handlers/errors.js';
 import type { NotificationService } from '../service.js';
 import { localsUserId } from './locals-user.js';
@@ -33,7 +34,7 @@ export function createNotificationsHandlers(service: NotificationService): {
   read: { POST: RequestHandler };
   item: { DELETE: RequestHandler };
 } {
-  return {
+  return privateEndpoints({
     list: {
       GET: async ({ locals, url }) => {
         const userId = localsUserId(locals);
@@ -98,5 +99,5 @@ export function createNotificationsHandlers(service: NotificationService): {
         return json({ success: true });
       }
     }
-  };
+  });
 }

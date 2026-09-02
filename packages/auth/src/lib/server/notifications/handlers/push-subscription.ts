@@ -6,6 +6,7 @@ import type {
   PushSubscriptionWriteOutcome
 } from '../../adapters/types.js';
 import { base64UrlDecode } from '../../encoding.js';
+import { privateEndpoints } from '../../handlers/_shared.js';
 import { authError } from '../../handlers/errors.js';
 import { shieldLogger } from '../../logger.js';
 import { enforceRateLimit, makeRateLimiter } from '../../rate-limit.js';
@@ -96,7 +97,7 @@ export function createPushSubscriptionHandler(
   // reports success — warn once so the absent gate is visible.
   let warnedVoidOutcome = false;
 
-  return {
+  return privateEndpoints({
     POST: async ({ request, locals }) => {
       const userId = localsUserId(locals);
       if (!userId) {
@@ -189,5 +190,5 @@ export function createPushSubscriptionHandler(
       await repo.delete(userId, endpoint);
       return json({ success: true });
     }
-  };
+  });
 }

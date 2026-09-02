@@ -162,13 +162,13 @@ describe('parseBody', () => {
     expect(result).toEqual({ data: { email: 'a@b.c' } });
   });
 
-  it('produces the full canonical validation 400 — code, first-error prose, errors array, headers', async () => {
-    // Test-review mutation finding: dropping the errors array or the headers
-    // forwarding survived the whole suite — this is the single choke point
-    // for 14 handler preambles, so the envelope is pinned here once.
-    const result = await parseBody(jsonRequest('{"email":42}'), validator, {
-      headers: { 'Cache-Control': 'no-store' }
-    });
+  it('produces the full canonical validation 400 — code, first-error prose, errors array, directive', async () => {
+    // Test-review mutation finding: dropping the errors array survived the
+    // whole suite — this is the single choke point for 14 handler preambles,
+    // so the envelope is pinned here once. `Cache-Control` is asserted without
+    // being passed: it belongs to the refusal `authError` builds, so no caller
+    // forwards it any more.
+    const result = await parseBody(jsonRequest('{"email":42}'), validator);
     expect(result).toBeInstanceOf(Response);
     const res = result as Response;
     expect(res.status).toBe(400);

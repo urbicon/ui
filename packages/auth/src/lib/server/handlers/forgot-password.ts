@@ -9,7 +9,7 @@ import { resolveEmailSettings } from '../email/resolve.js';
 import { buildPasswordResetEmail } from '../email/templates.js';
 import { enforceRateLimit, sharedLimiter } from '../rate-limit.js';
 import { validateEmailInput } from '../validation.js';
-import { notifyHook, parseBody } from './_shared.js';
+import { notifyHook, parseBody, privateEndpoints } from './_shared.js';
 
 export interface ForgotPasswordHandlerOptions {
   /**
@@ -30,7 +30,7 @@ export function createForgotPasswordHandler<R extends string>(
   // failures never reach the client.
   const resetTtlMs = resolveTokenTtlMs(deps.config.tokenTtl, 'passwordReset');
 
-  return {
+  return privateEndpoints({
     POST: async ({ request, getClientAddress }) => {
       const limited = await enforceRateLimit(rateLimiter, getClientAddress());
       if (limited) return limited;
@@ -79,7 +79,7 @@ export function createForgotPasswordHandler<R extends string>(
       // carries no account-existence signal.
       return json({ success: true });
     }
-  };
+  });
 }
 
 /**

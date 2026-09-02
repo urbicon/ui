@@ -3,9 +3,10 @@ import { json } from '@sveltejs/kit';
 import type { AuthDeps } from '../deps.js';
 import { revokeRefreshFromCookie } from '../refresh-token.js';
 import { endSession } from '../session.js';
+import { privateEndpoints } from './_shared.js';
 
 export function createLogoutHandler<R extends string>(deps: AuthDeps<R>): { POST: RequestHandler } {
-  return {
+  return privateEndpoints({
     POST: async ({ cookies }) => {
       // Revoke first (cookies still carry the token), then clear in a finally
       // so a transient repo failure cannot leave the client with a valid
@@ -22,5 +23,5 @@ export function createLogoutHandler<R extends string>(deps: AuthDeps<R>): { POST
       }
       return json({ success: true });
     }
-  };
+  });
 }

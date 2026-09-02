@@ -7,7 +7,7 @@ import type { AuthDeps } from '../deps.js';
 import { resolveEmailSettings } from '../email/resolve.js';
 import { buildInvitationEmail } from '../email/templates.js';
 import { validateInvitationInput } from '../validation.js';
-import { NO_STORE, notifyHook, parseBody, requireSessionUser } from './_shared.js';
+import { notifyHook, parseBody, privateEndpoints, requireSessionUser } from './_shared.js';
 import { authError } from './errors.js';
 
 export interface InvitationHandlerOptions<R extends string = string> {
@@ -126,13 +126,13 @@ export function createInvitationHandlers<R extends string>(
     return { user };
   }
 
-  return {
+  return privateEndpoints({
     GET: async ({ cookies }) => {
       const auth = await authorizedUser(cookies);
       if (auth instanceof Response) return auth;
 
       const invitations = await deps.repos.invitation.list();
-      return json({ invitations }, { headers: NO_STORE });
+      return json({ invitations });
     },
 
     POST: async ({ request, cookies }) => {
@@ -255,7 +255,7 @@ export function createInvitationHandlers<R extends string>(
           emailSent,
           ...(emailSent ? {} : { inviteUrl })
         },
-        { status: 201, headers: NO_STORE }
+        { status: 201 }
       );
     },
 
@@ -271,5 +271,5 @@ export function createInvitationHandlers<R extends string>(
       await deps.repos.invitation.delete(id);
       return json({ success: true });
     }
-  };
+  });
 }

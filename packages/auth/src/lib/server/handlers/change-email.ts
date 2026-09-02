@@ -9,7 +9,13 @@ import { resolveEmailSettings } from '../email/resolve.js';
 import { buildChangeEmail, buildChangeEmailNotice } from '../email/templates.js';
 import { enforceRateLimit, sharedLimiter } from '../rate-limit.js';
 import { validateChangeEmailInput } from '../validation.js';
-import { notifyHook, parseBody, requireSessionUser, verifyCurrentPassword } from './_shared.js';
+import {
+  notifyHook,
+  parseBody,
+  privateEndpoints,
+  requireSessionUser,
+  verifyCurrentPassword
+} from './_shared.js';
 import { authError } from './errors.js';
 
 export interface ChangeEmailHandlerOptions {
@@ -46,7 +52,7 @@ export function createChangeEmailHandler<R extends string>(
   // failures never reach the client.
   const changeTtlMs = resolveTokenTtlMs(deps.config.tokenTtl, 'emailChange');
 
-  return {
+  return privateEndpoints({
     POST: async ({ request, cookies, getClientAddress }) => {
       const limited = await enforceRateLimit(rateLimiter, getClientAddress());
       if (limited) return limited;
@@ -88,7 +94,7 @@ export function createChangeEmailHandler<R extends string>(
 
       return json({ success: true });
     }
-  };
+  });
 }
 
 /**

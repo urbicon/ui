@@ -4,7 +4,7 @@ import { hashToken } from '../auth.js';
 import type { AuthDeps } from '../deps.js';
 import { enforceRateLimit, sharedLimiter } from '../rate-limit.js';
 import { validateTokenInput } from '../validation.js';
-import { notifyHook, parseBody } from './_shared.js';
+import { notifyHook, parseBody, privateEndpoints } from './_shared.js';
 import { authError } from './errors.js';
 
 /**
@@ -23,7 +23,7 @@ export function createVerifyEmailChangeHandler<R extends string>(
   // configured `verifyEmail` budget is the budget across both.
   const rateLimiter = sharedLimiter(deps.config, 'verifyEmail');
 
-  return {
+  return privateEndpoints({
     POST: async ({ request, getClientAddress }) => {
       const limited = await enforceRateLimit(rateLimiter, getClientAddress());
       if (limited) return limited;
@@ -54,5 +54,5 @@ export function createVerifyEmailChangeHandler<R extends string>(
 
       return json({ success: true });
     }
-  };
+  });
 }

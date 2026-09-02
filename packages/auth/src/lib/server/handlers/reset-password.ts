@@ -5,7 +5,7 @@ import type { AuthDeps } from '../deps.js';
 import { hashPassword } from '../password.js';
 import { enforceRateLimit, sharedLimiter } from '../rate-limit.js';
 import { validateResetPasswordInput } from '../validation.js';
-import { notifyHook, parseBody, passwordRefusal } from './_shared.js';
+import { notifyHook, parseBody, passwordRefusal, privateEndpoints } from './_shared.js';
 import { authError } from './errors.js';
 
 export function createResetPasswordHandler<R extends string>(
@@ -13,7 +13,7 @@ export function createResetPasswordHandler<R extends string>(
 ): { POST: RequestHandler } {
   const rateLimiter = sharedLimiter(deps.config, 'resetPassword');
 
-  return {
+  return privateEndpoints({
     POST: async ({ request, getClientAddress }) => {
       const limited = await enforceRateLimit(rateLimiter, getClientAddress());
       if (limited) return limited;
@@ -58,5 +58,5 @@ export function createResetPasswordHandler<R extends string>(
 
       return json({ success: true });
     }
-  };
+  });
 }

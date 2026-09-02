@@ -9,6 +9,7 @@ import {
   notifyHook,
   parseBody,
   passwordRefusal,
+  privateEndpoints,
   requireSessionUser,
   verifyCurrentPassword
 } from './_shared.js';
@@ -24,7 +25,7 @@ export function createChangePasswordHandler<R extends string>(
 ): { POST: RequestHandler } {
   const rateLimiter = sharedLimiter(deps.config, 'changePassword');
 
-  return {
+  return privateEndpoints({
     POST: async (event) => {
       const { request, cookies, getClientAddress } = event;
       const limited = await enforceRateLimit(rateLimiter, getClientAddress());
@@ -80,5 +81,5 @@ export function createChangePasswordHandler<R extends string>(
 
       return json({ success: true });
     }
-  };
+  });
 }
