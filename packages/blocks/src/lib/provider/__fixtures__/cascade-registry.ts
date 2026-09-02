@@ -444,6 +444,10 @@ export interface SvelteEdges {
  * literal, a dashed attribute NAME, and `{#each}` body text. A strip excludes
  * the vector last found; a parse excludes the category.
  *
+ * The parse also answers the second kind of non-edge, which no scan of any
+ * depth could: a name that *is* a real identifier in a real import and still
+ * renders nothing — a type import, either spelling, and a namespace binding.
+ *
  * Throws on a source it cannot parse rather than falling back to a scan: a
  * component the compiler rejects is not a component, and a quiet fallback here
  * would reinstate exactly the silence this replaced.
@@ -457,10 +461,19 @@ export function svelteEdges(source: string): SvelteEdges {
   collectNodes(ast.instance, 'ImportDeclaration', declarations, new WeakSet());
   collectNodes(ast.module, 'ImportDeclaration', declarations, new WeakSet());
   for (const declaration of declarations) {
+    // A type import renders nothing, so it is no edge. `importKind` sits on the
+    // declaration for `import type { X }` and on the specifier for
+    // `import { type X }`; both spellings reach here.
+    if (declaration.importKind === 'type') continue;
     for (const specifier of (declaration.specifiers ?? []) as Record<string, unknown>[]) {
-      // A named import carries the export name in `imported`; a default or
-      // namespace import has only the local binding, which is the importer's
-      // choice — a renamed one drops the edge, and that is the loud direction.
+      if (specifier.importKind === 'type') continue;
+      // A namespace binding is never a component — `import * as Select` names
+      // the module, not an export of it — while a default binding is the only
+      // name its import has.
+      if (specifier.type === 'ImportNamespaceSpecifier') continue;
+      // A named import carries the export name in `imported`; a default import
+      // has only the local binding, which is the importer's choice — a renamed
+      // one drops the edge, and that is the loud direction.
       const source_ =
         specifier.type === 'ImportSpecifier'
           ? (specifier.imported as { name?: string })?.name

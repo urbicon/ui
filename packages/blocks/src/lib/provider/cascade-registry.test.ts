@@ -91,6 +91,23 @@ describe('and takes no name out of anything that is not code', () => {
       namedConsumers(source(`// forwards to the Select below\nconst x = 1;`), CONSUMERS)
     ).toEqual([]);
   });
+
+  // The parse closes the text category by construction; these three are the
+  // other kind of non-edge, and it takes the same parse to see them — the name
+  // is a real identifier in a real import, it just renders nothing.
+  it('a type-only import declaration', () => {
+    expect(namedConsumers(source("import type { Input } from './types';"), CONSUMERS)).toEqual([]);
+  });
+
+  it('a type specifier inside a value import', () => {
+    expect(
+      namedConsumers(source("import { type Dialog, helper } from './types';"), CONSUMERS)
+    ).toEqual([]);
+  });
+
+  it('a namespace binding, which names the module and not an export of it', () => {
+    expect(namedConsumers(source("import * as Select from './helpers';"), CONSUMERS)).toEqual([]);
+  });
 });
 
 describe('end to end, on the real component sources', () => {
