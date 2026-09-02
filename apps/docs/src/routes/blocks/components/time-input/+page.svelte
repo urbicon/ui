@@ -36,7 +36,7 @@
   maxWidth="2xl"
   showToc={true}
   title="TimeInput"
-  description="A field for entering a time of day: hour, minute and optional seconds cells, stepped with the Arrow keys and shown in 12- or 24-hour. The bound value is a 24-hour string (HH:MM, or HH:MM:SS with seconds), or null when empty."
+  description="A field for entering a time of day: hour, minute and optional seconds cells, stepped with the Arrow keys and shown in 12- or 24-hour. The bound value is a 24-hour string (HH:MM, or HH:MM:SS with seconds), and null while any segment is empty."
   breadcrumbs={[
     { label: 'Blocks', href: '/blocks' },
     { label: 'Components', href: '/blocks/components' }

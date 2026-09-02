@@ -14,7 +14,7 @@
   <div class="space-y-8">
     <CodeExample
       title="Six-digit OTP with a completion callback"
-      description="bind:value keeps the concatenated string in sync; onComplete fires once the final cell is filled, the moment to start verification. Set mask to render each filled cell as a dot; use it for standing PINs and passcodes, not for throwaway SMS codes."
+      description="bind:value keeps the concatenated string in sync; onComplete fires each time the row becomes complete — so a corrected code fires it again, which is the normal case for a mistyped one."
       code={`<script>
   import { PinInput } from '@urbicon-ui/blocks';
   let code = $state('');
@@ -47,8 +47,13 @@
 
     <CodeExample
       title="Alphanumeric with a grouped separator"
-      description="type=alphanumeric widens the character set to A–Z; uppercase normalises casing as you type; separator + groupSize break a long code into readable groups, here a 4-4 license key."
-      code={`<PinInput
+      description="type=alphanumeric accepts letters as well as digits, in either case; uppercase normalises them as you type; separator + groupSize break a long code into readable groups, here a 4-4 license key."
+      code={`<script>
+  import { PinInput } from '@urbicon-ui/blocks';
+  let licenseKey = $state('');
+<\/script>
+
+<PinInput
   label="License key"
   length={8}
   type="alphanumeric"
@@ -86,18 +91,20 @@
     <p>
       <code>PinInput</code> fits the one-time-code step of a two-factor flow. The first cell carries
       <code>autocomplete="one-time-code"</code>, so iOS offers the code from an incoming SMS as a
-      keyboard suggestion. Pair it with the auth package's <code>TwoFactorManager</code>, feeding
-      the bound value into your verify call from <code>onComplete</code>.
+      keyboard suggestion. Send the bound value from <code>onComplete</code> to your verify endpoint
+      — with the auth package, that is <code>createTwoFactorHandlers</code>'s
+      <code>verify</code> group behind <code>POST /api/auth/2fa/verify</code>.
     </p>
     <p>
-      Give it a visible <code>label</code> and a <code>helper</code> line so the source of the code (authenticator
-      app vs. SMS) is never ambiguous.
+      An autofilled code lands in the first cell and is distributed across the row, exactly like a
+      paste. Give it a visible <code>label</code> and a <code>helper</code> line so the source of the
+      code (authenticator app vs. SMS) is never ambiguous.
     </p>
   </div>
 
   <CodeExample
     title="Authenticator verification field"
-    description="A labelled, six-digit field with helper text, the shape TwoFactorManager expects at the challenge step."
+    description="A labelled, six-digit field with helper text for the second login step."
     code={`<PinInput
   label="Verification code"
   helper="Enter the 6-digit code from your authenticator app."
@@ -122,8 +129,8 @@
       Every visible part is a named slot: <code>root</code> (what <code>class</code> also targets),
       <code>label</code>, <code>group</code> (the cell row), <code>cell</code>,
       <code>separator</code>, and <code>message</code>. Pass <code>slotClasses</code> to merge
-      classes onto any of them, or <code>unstyled</code> to drop all default <code>tv()</code>
-      styles and rebuild from scratch. For a look you reuse across the app, register a
+      classes onto any of them, or <code>unstyled</code> to drop every default class and rebuild
+      from scratch. For a look you reuse across the app, register a
       <code>preset</code>
       once on
       <code>&lt;BlocksProvider&gt;</code> and reference it by name instead of repeating overrides.
@@ -132,10 +139,11 @@
 
   <CodeExample
     title="Terminal-style cells via slotClasses"
-    description="Larger, rounded, monospaced cells built from semantic tokens."
+    description="Rounded, monospaced cells in a bigger type size, built from semantic tokens. The cell box keeps its own size — text-2xl grows the glyph, not the square."
     code={`<PinInput
   label="Access code"
   length={6}
+  value="4711"
   slotClasses={{
     group: 'gap-3',
     cell: 'rounded-lg bg-surface-subtle border-border-default font-mono text-2xl text-primary'
@@ -146,6 +154,7 @@
     <PinInput
       label="Access code"
       length={6}
+      value="4711"
       slotClasses={{
         group: 'gap-3',
         cell: 'rounded-lg bg-surface-subtle border-border-default font-mono text-2xl text-primary'
@@ -168,16 +177,17 @@
         knows where the caret sits.
       </p>
     </Note>
-    <Note title="Errors are announced">
+    <Note title="The error reaches every cell">
       <p>
-        An <code>error</code> message is exposed via <code>role="alert"</code> and wired to every
-        cell through <code>aria-describedby</code>, alongside <code>aria-invalid</code>.
+        <code>aria-describedby</code> is set on each cell individually, not just on the group — so the
+        message is read wherever the caret sits, not only on entering the field.
       </p>
     </Note>
     <Note title="Keyboard">
       <p>
-        Typing a valid character auto-advances to the next cell,
-        <code>Backspace</code> clears and steps back, the arrow keys plus <code>Home</code> /
+        Typing a valid character auto-advances to the next cell. <code>Backspace</code> clears the
+        current cell, or — when that one is already empty — steps back and clears the previous one;
+        <code>Delete</code> clears without moving. The arrow keys plus <code>Home</code> /
         <code>End</code> move between cells, and a paste is distributed across the cells from the caret.
       </p>
     </Note>

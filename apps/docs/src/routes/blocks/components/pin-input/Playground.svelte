@@ -24,8 +24,7 @@
   const controls = deriveControls(componentData, {
     // `required` und `messageType` fehlen bewusst: Ersteres setzt ein Sternchen
     // ans Label, letzteres färbt eine Meldung — das Beispiel hat weder Label
-    // noch Meldungstext, beide Regler blieben also folgenlos. `intent` fehlt,
-    // weil es an der Feld-Familie nachweislich nichts färbt (technical-debt).
+    // noch Meldungstext, beide Regler blieben also folgenlos.
     pick: ['length', 'type', 'mask', 'size', 'variant', 'tier', 'intent', 'readonly', 'disabled'],
     overrides: {
       length: {

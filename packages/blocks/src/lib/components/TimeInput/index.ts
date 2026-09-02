@@ -54,7 +54,13 @@ export interface TimeInputProps extends Omit<TimeInputVariants, 'error'> {
   disabled?: boolean;
   /** @default false */
   readonly?: boolean;
-  /** Adds a required asterisk to the label. @default false */
+  /**
+   * Marks the label with an asterisk and sets `aria-required` on the segments. It does
+   * not block a native submit — the value lives in component state, so validate it
+   * yourself before you act on it.
+   *
+   * @default false
+   */
   required?: boolean;
   /** Stretch the field to the full width of its container. @default false */
   fullWidth?: boolean;

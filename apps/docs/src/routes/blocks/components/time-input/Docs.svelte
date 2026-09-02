@@ -17,7 +17,7 @@
     <CodeExample
       title="Display format vs. bound value"
       previewClass="flex w-full flex-col"
-      description="format=&quot;12h&quot; adds an AM/PM segment and withSeconds adds a seconds segment, but both change only what the field shows. The bound value stays a 24-hour string, or null when the field is empty: 14:15 displays as 02:15 PM and still binds as 14:15."
+      description="format=&quot;12h&quot; adds an AM/PM segment and withSeconds adds a seconds segment, but both change only what the field shows. The bound value stays a 24-hour string: 14:15 displays as 02:15 PM and still binds as 14:15. It is null while any segment is empty — mid-entry as well as for an untouched field."
       code={`<script>
   import { TimeInput } from '@urbicon-ui/blocks';
   let startTime = $state('09:30');
@@ -49,8 +49,8 @@
 
     <CodeExample
       title="Range bounds"
-      previewClass="flex w-full max-w-xs flex-col"
-      description="Values below min or above max clamp back into range when the field loses focus."
+      previewClass="flex w-full flex-col"
+      description="Type 06:00 and click away: values below min or above max clamp back into range on blur, and onValueChange fires with the corrected time. There is no out-of-range state — if 19:30 must be rejected rather than moved, validate before you offer the field."
       code={`<script>
   let officeTime = $state('09:00');
 <\/script>
@@ -75,7 +75,7 @@
 
     <CodeExample
       title="Error state"
-      previewClass="flex w-full max-w-xs flex-col"
+      previewClass="flex w-full flex-col"
       description="Pass error to colour the field danger, override the helper, and mark the segments aria-invalid; the message is announced via role=&quot;alert&quot;."
       code={`<script>
   let errorTime = $state(null);
@@ -95,20 +95,25 @@
       <code>TimeInput</code> is the form family's time field: <code>Calendar</code>,
       <code>DatePicker</code> and <code>DateRangePicker</code> are for dates, <code>TimeInput</code>
       for the time of day. It edits only the time, so for a full timestamp pair it with a
-      <code>DatePicker</code> as two separate fields. Each keeps its own value (an ISO date from the
-      picker, an <code>HH:MM</code> string from the time field), which you combine at the boundary.
+      <code>DatePicker</code> as two separate fields. Each keeps its own value — an ISO date from
+      the picker, an <code>HH:MM</code> string from the time field — and you join them yourself, as
+      the example below does. What you get is a local wall-clock time, not a point in time: turning
+      <code>2026-08-15T14:30</code> into an instant needs a time zone, and that decision stays with you.
     </p>
   </div>
 
   <CodeExample
     title="Date and time side by side"
-    previewClass="flex w-full max-w-lg flex-col"
-    description="A DatePicker for the day and a TimeInput for the time, kept as two separate values."
+    previewClass="flex w-full flex-col"
+    description="A DatePicker for the day and a TimeInput for the time, joined into one value."
     code={`<script>
   import { DatePicker, TimeInput } from '@urbicon-ui/blocks';
 
   let apptDate = $state('2026-08-15');
   let apptTime = $state('14:30');
+
+  // A local wall-clock string. Give it a time zone before it becomes an instant.
+  const startsAt = $derived(apptDate && apptTime ? \`\${apptDate}T\${apptTime}\` : null);
 <\/script>
 
 <div class="flex flex-wrap items-end gap-3">
@@ -122,7 +127,8 @@
       <TimeInput label="Time" bind:value={apptTime} />
     </div>
     <p class="text-text-secondary mt-2 text-sm">
-      Date: <code>{apptDate ?? '—'}</code> · Time: <code>{apptTime ?? '—'}</code>
+      Date: <code>{apptDate ?? '—'}</code> · Time: <code>{apptTime ?? '—'}</code> · Joined:
+      <code>{apptDate && apptTime ? apptDate + 'T' + apptTime : '—'}</code>
     </p>
   </CodeExample>
 </Section>
@@ -132,10 +138,11 @@
     <p>
       For a reusable look, register a named <code>preset</code> on
       <code>&lt;BlocksProvider&gt;</code>; for individual parts, use <code>slotClasses</code>. The
-      slots are <code>wrapper</code>, <code>label</code>, <code>field</code>, <code>icon</code>,
-      <code>segment</code>, <code>separator</code>, <code>meridiem</code>, and
-      <code>message</code>. For a full ground-up restyle, set <code>unstyled</code> to drop every default
-      class and rebuild from the slots.
+      slots are <code>wrapper</code> (what <code>class</code> also targets), <code>label</code>,
+      <code>field</code>, <code>icon</code> (replace the clock with your own snippet via the
+      <code>icon</code> prop), <code>segment</code>, <code>separator</code>,
+      <code>meridiem</code>, and <code>message</code>. For a full ground-up restyle, set
+      <code>unstyled</code> to drop every default class and rebuild from the slots.
     </p>
     <p>
       <code>{'showIcon={false}'}</code> hides the leading clock icon, and <code>fullWidth</code>
@@ -160,14 +167,16 @@
     </Note>
     <Note title="Keyboard">
       <p>
-        <strong>Arrow Up / Down</strong> steps the focused segment (with wrap);
-        <strong>Arrow Left / Right</strong> moves between segments; typing digits auto-advances to the
-        next segment.
+        <strong>Arrow Up / Down</strong> moves the focused segment by one and wraps inside it — 59
+        goes to 00 without carrying the hour. <strong>Arrow Left / Right</strong> moves between
+        segments; typing digits auto-advances to the next. <code>min</code> and <code>max</code> do not
+        limit stepping; they apply on blur.
       </p>
     </Note>
     <Note title="The AM/PM segment">
       <p>
-        The AM/PM segment toggles by click, Arrow keys, or the <Kbd keys="A" /> / <Kbd keys="P" /> keys.
+        The AM/PM segment toggles by click, the Arrow keys, <Kbd keys="Enter" /> /
+        <Kbd keys="Space" />, or the <Kbd keys="A" /> / <Kbd keys="P" /> keys.
       </p>
     </Note>
     <Note title="Clamping">

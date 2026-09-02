@@ -24,10 +24,8 @@
   const controls = deriveControls(componentData, {
     // Erscheinung zuerst, Zustände hinten. `messageType` fehlt bewusst: Es färbt
     // eine Meldung, und ohne `helper`/`error`-Text gäbe es nichts zu färben.
-    // `intent` fehlt, weil es am Feldrahmen nachweislich nichts ändert — die
-    // Klasse kommt an, eine konkurrierende border-Utility gewinnt
-    // (gemessen, siehe docs/technical-debt.md). `required` fehlt, weil es sein
-    // Sternchen an ein `<label>` hängt, das dieses Beispiel nicht rendert.
+    // `required` fehlt, weil es sein Sternchen an ein `<label>` hängt, das
+    // dieses Beispiel nicht rendert.
     pick: [
       'format',
       'withSeconds',

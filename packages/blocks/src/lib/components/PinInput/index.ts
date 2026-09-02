@@ -38,7 +38,14 @@ export interface PinInputProps extends Omit<PinInputVariants, 'error'> {
    * @summary Which characters the field accepts — digits only, or letters too.
    */
   type?: 'numeric' | 'alphanumeric';
-  /** Render each filled cell as a masked dot (password style). @default false */
+  /**
+   * Render each filled cell as a masked dot (password style). For a standing PIN or
+   * passcode, not for a throwaway SMS code — masking one buys no secrecy and costs the
+   * user the ability to check what they typed.
+   *
+   * @summary Renders each filled cell as a dot instead of the character.
+   * @default false
+   */
   mask?: boolean;
   /** Placeholder character shown in every empty cell. @default '' */
   placeholder?: string;
@@ -63,7 +70,13 @@ export interface PinInputProps extends Omit<PinInputVariants, 'error'> {
   disabled?: boolean;
   /** @default false */
   readonly?: boolean;
-  /** Adds a required asterisk to the label. @default false */
+  /**
+   * Marks the label with an asterisk and sets `aria-required` on the cells. It does
+   * not block a native submit — the value lives in component state, so validate it
+   * yourself before you act on it.
+   *
+   * @default false
+   */
   required?: boolean;
 
   /** Group label rendered above the cells and linked via `aria-labelledby`. */
@@ -98,7 +111,7 @@ export interface PinInputProps extends Omit<PinInputVariants, 'error'> {
 
   /**
    * Accessible name for the cell group when no visible `label` is set. Each
-   * cell additionally announces its position ("digit 2 of 6").
+   * cell additionally announces its position ("Character 2 of 6").
    */
   'aria-label'?: string;
   /** Root id; the cells derive their ids and ARIA wiring from it. */
