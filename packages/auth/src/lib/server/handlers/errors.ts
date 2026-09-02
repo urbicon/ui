@@ -99,6 +99,15 @@ export const AUTH_ERROR_CODES = {
   // user — this code's prose names the way out instead. The audit reasons
   // stay `unknown_credential` / `credential_deleted`.
   passkey_credential_deleted: 'passkey_credential_deleted',
+  // The self-service half, where the caller is already signed in: the passkey
+  // named in the path is not one of theirs — deleted from another device since
+  // the list was fetched, or never theirs at all. One code for both, because
+  // telling them apart would answer "does this credential exist?" for a
+  // credential the caller does not own. Distinct from
+  // `passkey_credential_deleted` above, which refuses a *sign-in* (401) and
+  // whose copy tells the user to sign in another way; here the session stands
+  // and the fix is to reload the list.
+  passkey_not_found: 'passkey_not_found',
   // Push subscription writes (409): endpoint owned by another account vs.
   // per-user device cap — distinct codes so the client can tell a permanent
   // ownership conflict from "remove a device first".
@@ -193,6 +202,11 @@ export const AUTH_ERROR_STATUS: Record<AuthErrorCode, number> = {
   passkey_verification_failed: 401,
   passkey_registration_verification_failed: 400,
   passkey_credential_deleted: 401,
+  // 404 and not 403: an authenticated caller naming a passkey that is not
+  // theirs must not learn that it exists. Not 401 — the request authenticated
+  // someone and its session credential was accepted; what is missing is the
+  // row.
+  passkey_not_found: 404,
   // Push subscription writes
   push_endpoint_conflict: 409,
   push_subscription_limit: 409,

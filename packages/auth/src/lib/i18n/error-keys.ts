@@ -49,6 +49,7 @@ export const AUTH_ERROR_MESSAGE_KEYS = {
   passkey_verification_failed: 'passkeyVerificationFailed',
   passkey_registration_verification_failed: 'passkeyRegistrationVerificationFailed',
   passkey_credential_deleted: 'passkeyCredentialDeleted',
+  passkey_not_found: 'passkeyNotFound',
   // The two push codes are the only `null`s: `<PushPermissionPrompt>` renders
   // them from `notifications.push.errorConflict` / `errorLimit`, whose copy is
   // written for that prompt ("remove a device first"). Keying them here too

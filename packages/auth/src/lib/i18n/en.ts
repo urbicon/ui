@@ -36,6 +36,7 @@ export const en = {
         'This passkey could not be registered. Please try again.',
       passkeyCredentialDeleted:
         'This passkey is no longer registered. Sign in another way, then set it up again.',
+      passkeyNotFound: 'This passkey is no longer on your account. Reload the list and try again.',
       serverError: 'Something went wrong. Please try again.',
       networkError: 'Network error. Please check your connection and try again.'
     },
@@ -185,7 +186,12 @@ export const en = {
     or: 'or',
     loginFailed: 'Passkey sign-in failed. Please try again.',
     cancelled: 'The passkey prompt was cancelled.',
-    addFailed: 'Adding the passkey failed. Please try again.'
+    addFailed: 'Adding the passkey failed. Please try again.',
+    rename: 'Rename',
+    renameLabel: 'Passkey name',
+    renameSave: 'Save',
+    renameCancel: 'Cancel',
+    renamed: 'Passkey renamed.'
   },
   account: {
     title: 'Account settings',

@@ -61,7 +61,6 @@
  * tell "nobody calls this yet" from "you are wiring it wrong":
  * {@link UserRepository.setEmailVerified},
  * {@link UserRepository.setVerificationToken},
- * {@link PasskeyRepository.rename},
  * {@link RefreshTokenRepository.deleteExpired} and all of
  * {@link FederatedAccountRepository}.
  *
@@ -697,9 +696,12 @@ export interface PasskeyRepository {
   delete(userId: string, credentialId: string): Promise<void>;
   /**
    * Scoped to the owner (owner-first, see {@link NotificationRepository}).
-   * **Consumer-facing**: nothing in this package calls it — there is no rename
-   * endpoint and `<PasskeyManager>` offers no rename control, so today only a
-   * consumer's own route drives it (#241 plans both).
+   *
+   * Driven by `createPasskeyHandlers`' `item.PATCH` behind `<PasskeyManager>`'s
+   * rename control. That handler resolves the row and refuses a foreign one
+   * before calling this, so the owner scope here is the second gate rather than
+   * the only one — implement it anyway: a consumer route calling the repository
+   * directly has no other.
    */
   rename(userId: string, credentialId: string, name: string): Promise<void>;
 }

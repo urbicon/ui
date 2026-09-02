@@ -28,12 +28,12 @@
 
 <SeoMeta
   title="PasskeyManager - Auth"
-  description="Lists a user's registered passkeys and lets them add or remove one."
+  description="Lists a user's registered passkeys and lets them add, rename or remove one."
 />
 
 <DocsPageLayout
   title="PasskeyManager"
-  description="Lists a user's registered passkeys (WebAuthn credentials) and lets them register a new one or delete an existing one."
+  description="Lists a user's registered passkeys (WebAuthn credentials) and lets them register a new one, rename one in place, or delete one."
   maxWidth="2xl"
   showToc={true}
   breadcrumbs={[
@@ -48,7 +48,7 @@
   <Section marker id="usage" title="Usage" intent="primary">
     <CodeExample
       title="Basic"
-      description="The live preview runs against a mocked demo API (injected via the fetcher prop): deleting passkeys works, and registering explains that it needs a real backend. The snippet shows the production setup."
+      description="The live preview runs against a mocked demo API (injected via the fetcher prop): renaming and deleting passkeys work, and registering explains that it needs a real backend. The snippet shows the production setup."
       code={basicCode}
       language="svelte"
     >
@@ -58,13 +58,24 @@
 
   <Section marker id="accessibility" title="Accessibility">
     <NoteList>
-      <Note title="Every delete button says what it deletes">
+      <Note title="Every row button says which passkey it acts on">
         <p>
-          The visible text is just "Delete", but each button carries
+          The visible text is just "Rename" or "Delete", but each button carries
           <code class="text-text-primary">aria-label</code> with the passkey's name appended. A reader
           tabbing the list hears "Delete — MacBook Pro" rather than four identical buttons, and because
           the accessible name still begins with the visible word, voice control ("click Delete") keeps
           working.
+        </p>
+      </Note>
+      <Note title="Renaming keeps the keyboard where it was">
+        <p>
+          "Rename" swaps the row's name for a labelled text field and moves focus into it with the
+          current name selected, so typing replaces it. Enter or "Save" commits;
+          <kbd class="text-text-primary">Escape</kbd> or "Cancel" restores the stored name. Escape does
+          not bubble, so the panel can sit inside a dialog without the rename form and the dialog closing
+          together. Focus returns to that row's "Rename" button either way — it is never dropped to the
+          top of the document — and a refused rename keeps the field open with the draft so it can be
+          corrected in place.
         </p>
       </Note>
       <Note title="Errors announce in place">
@@ -72,7 +83,8 @@
           WebAuthn failures (a cancelled prompt, an unsupported authenticator, a rejected
           registration) land in the always-mounted
           <code class="text-text-primary">aria-live="polite"</code> region above the list, so the outcome
-          of a flow that ran inside the browser's own credential UI is announced back on the page.
+          of a flow that ran inside the browser's own credential UI is announced back on the page. A completed
+          rename reports there too: the row's own text changes without a word otherwise.
         </p>
       </Note>
       <Note title="The list is a list">

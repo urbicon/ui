@@ -2,9 +2,10 @@ import type { PartialAuthLocale } from '../../../i18n/keys.js';
 import type { CsrfClientOptions } from '../../csrf.js';
 
 /**
- * @summary Add, list and remove the passkeys on an account.
- * @description Self-service panel for managing passkeys (WebAuthn credentials). Register, list and delete passkeys.
- * Communicates with `apiPath` (default `/api/auth/passkey`). Pair with `createPasskeyHandlers` — this panel uses its `registrationOptions`, `registrationVerify`, `list` (GET `${apiPath}/list`) and `item` (DELETE `${apiPath}/[credentialId]`) groups; the login flow additionally uses `authenticationOptions` and `authenticationVerify`.
+ * @summary Add, rename and remove the passkeys on an account.
+ * @description Self-service panel for managing passkeys (WebAuthn credentials). Register, list, rename and delete passkeys.
+ * Renaming happens inline on the row: the name becomes a text field, Enter or Save commits, Escape or Cancel restores it, and focus returns to the row's rename button either way.
+ * Communicates with `apiPath` (default `/api/auth/passkey`). Pair with `createPasskeyHandlers` — this panel uses its `registrationOptions`, `registrationVerify`, `list` (GET `${apiPath}/list`) and `item` (DELETE and PATCH on `${apiPath}/[credentialId]`) groups; the login flow additionally uses `authenticationOptions` and `authenticationVerify`.
  *
  * @tag form
  * @related LoginPage
@@ -30,7 +31,20 @@ export interface PasskeyManagerProps {
   /** Strip all default styling. */
   unstyled?: boolean;
   /** Per-slot class overrides. */
-  slotClasses?: Partial<Record<'root' | 'title' | 'error' | 'list' | 'item' | 'empty', string>>;
+  slotClasses?: Partial<
+    Record<
+      | 'root'
+      | 'title'
+      | 'error'
+      | 'success'
+      | 'list'
+      | 'item'
+      | 'empty'
+      | 'renameForm'
+      | 'renameField',
+      string
+    >
+  >;
   /**
    * Apply a named preset registered via `<BlocksProvider presets={{ PasskeyManager: { … } }}>`.
    * Resolves after the provider defaults and before this instance's own

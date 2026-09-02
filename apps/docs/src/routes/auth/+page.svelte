@@ -217,7 +217,7 @@ export const POST = createForgotPasswordHandler(authDeps);
         Admin panel for invitation-gated registration with email toggle.
       </InfoCard>
       <InfoCard title="PasskeyManager" href={resolve('/auth/components/passkey-manager')}>
-        WebAuthn credential management: register and delete passkeys.
+        WebAuthn credential management: register, rename and delete passkeys.
       </InfoCard>
       <InfoCard title="AccountSettings" href={resolve('/auth/components/account-settings')}>
         Self-service panel: change name, email and password, or delete the account.

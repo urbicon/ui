@@ -196,3 +196,202 @@ describe('PasskeyManager (component)', () => {
     expect(screen.getByText('No passkeys registered.').className).toContain('instance-empty');
   });
 });
+
+describe('PasskeyManager — inline rename', () => {
+  const openRename = async () => {
+    await userEvent.click(screen.getByRole('button', { name: /Rename — MacBook/ }));
+    await settle();
+  };
+
+  const field = () => screen.getByRole('textbox', { name: 'Passkey name' }) as HTMLInputElement;
+
+  it('opens the field on the row, seeded with the stored name and focused', async () => {
+    render({ fetcher: fetcherReturning(jsonResponse(200, { passkeys: [passkey()] })) });
+    await settle();
+    await openRename();
+
+    expect(field().value).toBe('MacBook');
+    // Focus has to land in the field: the control that opened it is gone, so
+    // without this the keyboard user is dropped at the top of the document.
+    expect(document.activeElement).toBe(field());
+    // The whole name is selected, so typing replaces rather than appends.
+    expect([field().selectionStart, field().selectionEnd]).toEqual([0, 'MacBook'.length]);
+  });
+
+  it.each([
+    ['Escape', async () => await userEvent.keyboard('{Escape}')],
+    [
+      'the Cancel button',
+      async () => await userEvent.click(screen.getByRole('button', { name: 'Cancel' }))
+    ]
+  ])('restores the stored name and returns focus to the trigger on %s', async (_label, dismiss) => {
+    const fetcher = fetcherReturning(jsonResponse(200, { passkeys: [passkey()] }));
+    render({ fetcher });
+    await settle();
+    await openRename();
+    await userEvent.clear(field());
+    await userEvent.type(field(), 'Discarded');
+
+    await dismiss();
+    await settle();
+
+    expect(screen.getByText('MacBook')).toBeTruthy();
+    expect(screen.queryByRole('textbox', { name: 'Passkey name' })).toBeNull();
+    // Focus must come back to where it was, not to <body>.
+    expect(document.activeElement).toBe(screen.getByRole('button', { name: /Rename — MacBook/ }));
+    // A dismissed form sends nothing: only the initial list load happened.
+    expect(fetcher).toHaveBeenCalledTimes(1);
+  });
+
+  it('PATCHes the row and renders the name the server stored, not the draft', async () => {
+    const fetcher = vi
+      .fn()
+      .mockResolvedValueOnce(jsonResponse(200, { passkeys: [passkey()] }))
+      .mockResolvedValueOnce(
+        // The server trims; the panel must show what came back.
+        jsonResponse(200, { passkey: passkey({ name: 'Work laptop' }) })
+      );
+    render({ fetcher: fetcher as unknown as typeof globalThis.fetch });
+    await settle();
+    await openRename();
+    await userEvent.clear(field());
+    await userEvent.type(field(), '  Work laptop  ');
+    await userEvent.click(screen.getByRole('button', { name: 'Save' }));
+    await settle();
+
+    const [url, init] = fetcher.mock.calls[1];
+    expect(url).toBe('/api/auth/passkey/c1');
+    expect(init.method).toBe('PATCH');
+    expect(JSON.parse(init.body)).toEqual({ name: '  Work laptop  ' });
+
+    expect(screen.getByText('Work laptop')).toBeTruthy();
+    expect(screen.queryByText('  Work laptop  ')).toBeNull();
+    expect(screen.queryByRole('textbox', { name: 'Passkey name' })).toBeNull();
+  });
+
+  it('announces the rename and puts focus back on the trigger', async () => {
+    render({
+      fetcher: fetcherReturning(
+        jsonResponse(200, { passkeys: [passkey()] }),
+        jsonResponse(200, { passkey: passkey({ name: 'Work laptop' }) })
+      )
+    });
+    await settle();
+    await openRename();
+    await userEvent.click(screen.getByRole('button', { name: 'Save' }));
+    await settle();
+
+    // The row's text changes silently for a screen reader; the panel's live
+    // region is what reports it. `FormErrorAlert` renders success through the
+    // same `Alert`, which carries `role="alert"` for every intent.
+    expect(screen.getByRole('alert').textContent).toContain('Passkey renamed.');
+    expect(document.activeElement).toBe(
+      screen.getByRole('button', { name: /Rename — Work laptop/ })
+    );
+  });
+
+  it('keeps the form open with the draft when the server refuses', async () => {
+    render({
+      fetcher: fetcherReturning(
+        jsonResponse(200, { passkeys: [passkey()] }),
+        jsonResponse(400, { code: 'validation_error', error: 'Name is required.' })
+      )
+    });
+    await settle();
+    await openRename();
+    await userEvent.clear(field());
+    await userEvent.type(field(), 'x');
+    await userEvent.click(screen.getByRole('button', { name: 'Save' }));
+    await settle();
+
+    expect(screen.getByRole('alert').textContent).toContain('Name is required.');
+    // Still editing: the user has to be able to correct the name in place.
+    expect(field().value).toBe('x');
+    // And the row keeps the name the server still holds.
+    expect(screen.queryByText('x', { selector: 'span' })).toBeNull();
+  });
+
+  it('reports a rename whose request never reached a server', async () => {
+    render({
+      fetcher: fetcherReturning(
+        jsonResponse(200, { passkeys: [passkey()] }),
+        new TypeError('Failed to fetch')
+      )
+    });
+    await settle();
+    await openRename();
+    await userEvent.click(screen.getByRole('button', { name: 'Save' }));
+    await settle();
+
+    expect(screen.getByRole('alert').textContent).toContain('Network error');
+  });
+
+  it('re-reads the list when a 2xx carries no row', async () => {
+    const fetcher = vi
+      .fn()
+      .mockResolvedValueOnce(jsonResponse(200, { passkeys: [passkey()] }))
+      .mockResolvedValueOnce(jsonResponse(200, {}))
+      .mockResolvedValueOnce(jsonResponse(200, { passkeys: [passkey({ name: 'From the list' })] }));
+    render({ fetcher: fetcher as unknown as typeof globalThis.fetch });
+    await settle();
+    await openRename();
+    await userEvent.click(screen.getByRole('button', { name: 'Save' }));
+    await settle();
+
+    // A success that does not say what was stored must not be answered with
+    // the draft — the list is the authority.
+    expect(fetcher).toHaveBeenCalledTimes(3);
+    expect(screen.getByText('From the list')).toBeTruthy();
+  });
+
+  it('clears a stale success line when the next action starts', async () => {
+    render({
+      fetcher: fetcherReturning(
+        jsonResponse(200, { passkeys: [passkey()] }),
+        jsonResponse(200, { passkey: passkey({ name: 'Renamed' }) })
+      )
+    });
+    await settle();
+    await openRename();
+    await userEvent.click(screen.getByRole('button', { name: 'Save' }));
+    await settle();
+    expect(screen.getByRole('alert').textContent).toContain('Passkey renamed.');
+
+    await userEvent.click(screen.getByRole('button', { name: /Rename — Renamed/ }));
+    await settle();
+    // "Passkey renamed." next to a form that has not been submitted yet would
+    // report a write that has not happened.
+    expect(screen.queryByRole('alert')).toBeNull();
+  });
+
+  it('resolves the rename slots through the provider cascade', async () => {
+    mountInBody(ProviderHarness, {
+      component: PasskeyManager,
+      componentProps: {
+        slotClasses: { renameForm: 'qa-form', renameField: 'qa-field' },
+        fetcher: fetcherReturning(jsonResponse(200, { passkeys: [passkey()] }))
+      },
+      defaults: { PasskeyManager: { slotClasses: { renameForm: 'qa-defaults' } } }
+    } as ComponentProps<typeof ProviderHarness>);
+    await settle();
+    await openRename();
+
+    const form = document.querySelector('form') as HTMLFormElement;
+    expect(form.className).toContain('qa-defaults');
+    expect(form.className).toContain('qa-form');
+    expect(document.querySelector('.qa-field')).toBeTruthy();
+  });
+
+  it('drops the default classes under unstyled while keeping the slot overrides', async () => {
+    render({
+      unstyled: true,
+      slotClasses: { renameForm: 'only-mine' },
+      fetcher: fetcherReturning(jsonResponse(200, { passkeys: [passkey()] }))
+    });
+    await settle();
+    await openRename();
+
+    const form = document.querySelector('form') as HTMLFormElement;
+    expect(form.className).toBe('only-mine');
+  });
+});

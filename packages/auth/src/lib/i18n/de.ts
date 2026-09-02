@@ -40,6 +40,8 @@ export const de = {
         'Dieser Passkey konnte nicht registriert werden. Bitte versuche es erneut.',
       passkeyCredentialDeleted:
         'Dieser Passkey ist nicht mehr registriert. Melde dich auf einem anderen Weg an und richte ihn danach neu ein.',
+      passkeyNotFound:
+        'Dieser Passkey gehört nicht mehr zu deinem Konto. Lade die Liste neu und versuche es erneut.',
       serverError: 'Etwas ist schiefgelaufen. Bitte versuche es erneut.',
       networkError: 'Netzwerkfehler. Bitte prüfe deine Verbindung und versuche es erneut.'
     },
@@ -190,7 +192,12 @@ export const de = {
     or: 'oder',
     loginFailed: 'Passkey-Anmeldung fehlgeschlagen. Bitte versuche es erneut.',
     cancelled: 'Der Passkey-Vorgang wurde abgebrochen.',
-    addFailed: 'Passkey konnte nicht hinzugefügt werden. Bitte versuche es erneut.'
+    addFailed: 'Passkey konnte nicht hinzugefügt werden. Bitte versuche es erneut.',
+    rename: 'Umbenennen',
+    renameLabel: 'Name des Passkeys',
+    renameSave: 'Speichern',
+    renameCancel: 'Abbrechen',
+    renamed: 'Passkey umbenannt.'
   },
   account: {
     title: 'Kontoeinstellungen',

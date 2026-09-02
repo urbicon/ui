@@ -54,7 +54,7 @@ export const demoAuthUser: AuthUser = {
 
 /**
  * Simulates the `createPasskeyHandlers` endpoints: a pre-filled passkey list and working
- * deletes. Registration is deliberately answered with a clear demo notice —
+ * renames and deletes. Registration is deliberately answered with a clear demo notice —
  * triggering real WebAuthn prompts from a docs page would register a useless
  * credential in the visitor's authenticator.
  */
@@ -94,6 +94,22 @@ export function createPasskeyDemoFetcher(): typeof globalThis.fetch {
       const credentialId = decodeURIComponent(url.split('/').pop() ?? '');
       passkeys = passkeys.filter((p) => p.credentialId !== credentialId);
       return json({ success: true });
+    }
+    if (method === 'PATCH') {
+      const credentialId = decodeURIComponent(url.split('/').pop() ?? '');
+      const name = String(parseBody(init).name ?? '').trim();
+      // The real handler refuses a blank name and trims what it stores, and it
+      // answers with the stored row — the preview has to do all three, or the
+      // panel here behaves differently from the one a consumer mounts.
+      if (name === '') {
+        return json({ error: 'Name is required.', code: 'validation_error' }, 400);
+      }
+      const stored = passkeys.find((p) => p.credentialId === credentialId);
+      if (!stored) {
+        return json({ error: 'Passkey not found.', code: 'passkey_not_found' }, 404);
+      }
+      stored.name = name;
+      return json({ passkey: stored });
     }
     return json({ error: 'Not found' }, 404);
   };
