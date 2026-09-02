@@ -1,6 +1,6 @@
 <script lang="ts">
   import { MediaQuery } from 'svelte/reactivity';
-  import { Sidebar } from '$lib/primitives/Sidebar';
+  import { Sidebar, type SidebarProps } from '$lib/primitives/Sidebar';
   import { getBlocksConfig, resolveSlotClasses } from '$lib/provider';
   import { resolveClassChain } from '$lib/utils/variants';
   import type { SidebarLayoutProps } from './index';
@@ -58,14 +58,19 @@
     )
   );
 
-  // Forward sidebar-related slotClasses to the embedded Sidebar.
+  // Forward sidebar-related slotClasses to the embedded Sidebar. `satisfies` on
+  // the literal and not an annotation on the binding: the object is an argument
+  // to `$derived`, so a contextual type never reaches it, and it arrives at
+  // `<Sidebar slotClasses={…}>` as a variable, where excess-property checking no
+  // longer applies. Measured — under an annotation a `panelTYPO` compiles and
+  // lands nowhere; under `satisfies` it is an error.
   const sidebarSlotClasses = $derived({
     panel: slotClasses?.sidebar,
     backdrop: slotClasses?.sidebarBackdrop,
     header: slotClasses?.sidebarHeader,
     content: slotClasses?.sidebarContent,
     footer: slotClasses?.sidebarFooter
-  });
+  } satisfies SidebarProps['slotClasses']);
 
   function openSidebar() {
     open = true;

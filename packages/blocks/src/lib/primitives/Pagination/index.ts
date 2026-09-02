@@ -239,7 +239,11 @@ export interface PaginationItemProps
   /** Custom content rendered inside the button. Falls back to the page number. */
   children?: Snippet;
 
-  /** Additional CSS classes on the button element. */
+  /**
+   * Additional CSS classes on the element this item actually renders as: the
+   * `<button>` when there is no `href`, and the wrapping `<a>` when there is —
+   * in that branch the inner Button is decorative and receives none.
+   */
   class?: string;
 
   /**
