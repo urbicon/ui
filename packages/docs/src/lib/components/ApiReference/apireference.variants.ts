@@ -7,11 +7,15 @@ export const apiReferenceVariants = tv({
     // The "N required" half of the stats line — the only part that carries an
     // intent colour, so it is its own slot rather than a literal in the markup.
     requiredCount: ['text-danger-text'],
-    // Wrapper around the prop name and its badges (variant/inherited/required).
+    // Wrapper around the prop name and its badges (variant/inherited/required,
+    // and the two maturity markers deprecated/experimental).
     nameCell: ['flex flex-wrap items-center gap-1.5'],
     // Wrapper around the literal-value chips in the Type column.
     typeChips: ['flex flex-wrap gap-1'],
     nameCode: ['font-mono text-xs font-semibold text-text-primary'],
+    // A deprecated prop's name, struck through — the convention every editor and
+    // API reference already uses, so it reads before the badge next to it does.
+    deprecatedCode: ['font-mono text-xs font-semibold text-text-tertiary line-through'],
     spreadCode: ['font-mono text-xs text-text-tertiary'],
     typeCode: ['font-mono text-xs text-text-secondary'],
     // typeChip without a border, just a quiet tint.
@@ -21,6 +25,8 @@ export const apiReferenceVariants = tv({
     ],
     defaultCode: ['font-mono text-xs text-text-tertiary'],
     description: ['text-sm leading-relaxed text-text-secondary'],
+    // The replacement instruction from `@deprecated`, in the expanded row.
+    deprecationNote: ['text-sm leading-relaxed text-danger-text'],
     // In-row description. Capped at two lines: a handful of props carry prose
     // an order of magnitude longer than the rest (median 62 characters, 90th
     // percentile 259, longest 1996), and those turned single rows six lines

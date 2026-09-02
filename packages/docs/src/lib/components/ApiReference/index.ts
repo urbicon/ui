@@ -22,6 +22,14 @@ export interface ApiProp {
    */
   seeAlsoRefs?: string[];
   values?: string[];
+  /**
+   * `@deprecated` on the prop's JSDoc. The message carries the replacement and
+   * is the whole point of the tag — a badge alone would say "don't", not "use
+   * what instead", so it renders in the expanded row as well.
+   */
+  deprecated?: { message: string; since?: string; alternative?: string };
+  /** `@experimental` on the prop's JSDoc — the prop moves while its component holds still. */
+  experimental?: boolean;
   source?: {
     type: 'direct' | 'variant' | 'inherited';
     name?: string;

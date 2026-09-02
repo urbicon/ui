@@ -213,7 +213,15 @@
         {@const item = rawItem as unknown as ApiProp}
         {#if column.id === 'name'}
           <div class={slot('nameCell')}>
-            <code class={slot(item.name.startsWith('...') ? 'spreadCode' : 'nameCode')}>
+            <code
+              class={slot(
+                item.deprecated
+                  ? 'deprecatedCode'
+                  : item.name.startsWith('...')
+                    ? 'spreadCode'
+                    : 'nameCode'
+              )}
+            >
               {item.name}
             </code>
             {#if (item.source?.type ?? 'direct') === 'variant'}
@@ -223,6 +231,11 @@
             {/if}
             {#if item.required}
               <Badge variant="soft" intent="danger" size="xs">{dt('badgeRequired')}</Badge>
+            {/if}
+            {#if item.deprecated}
+              <Badge variant="filled" intent="danger" size="xs">{dt('badgeDeprecated')}</Badge>
+            {:else if item.experimental}
+              <Badge variant="soft" intent="warning" size="xs">{dt('badgeExperimental')}</Badge>
             {/if}
           </div>
         {:else if column.id === 'type'}
@@ -308,6 +321,12 @@
         {@const item = rawItem as unknown as ApiProp}
         <div class={slot('expandedPanel')}>
           <pre class={slot('signature')}><code>{signatureOf(item)}</code></pre>
+
+          {#if item.deprecated}
+            <p class={slot('deprecationNote')}>
+              <InlineCode text={item.deprecated.message} />
+            </p>
+          {/if}
 
           {#if item.description}
             <p class={slot('description')}><InlineCode text={item.description} /></p>

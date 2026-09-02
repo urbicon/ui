@@ -595,7 +595,11 @@ A component is promoted when all four hold:
 1. Its docs page exists and has been through the editorial pass
    ([EDITORIAL.md](EDITORIAL.md)).
 2. No open P1/P2 issue targets the component.
-3. Its public API is unchanged for at least two minor releases.
+3. Its public API is unchanged for at least 30 days. Not "for N releases":
+   this repo has cut twelve minors in eleven days, three of them on a single
+   day, so a release count measures the maintainer's cadence rather than the
+   API's. Measured on the component's `index.ts` — the props surface — with
+   `git log -1 --date=short -- <path>/index.ts`.
 4. Tests cover the core behaviour (interaction and, where applicable, a11y).
 
 The reverse move is not silent: discovering a violated criterion on a stable
