@@ -27,7 +27,7 @@ export function createVerifyEmailHandler<R extends string>(
       const user = await deps.repos.user.consumeVerificationToken(tokenHash);
 
       if (!user) {
-        return authError('invalid_token', 400, {
+        return authError('invalid_token', {
           message: 'Invalid or expired verification token.'
         });
       }

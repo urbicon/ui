@@ -200,7 +200,7 @@ export async function enforceRateLimit(
   if (!limiter) return null;
   const limit = await limiter.check(key);
   if (limit.allowed) return null;
-  return authError('rate_limited', 429, {
+  return authError('rate_limited', {
     message,
     headers: { 'Retry-After': String(Math.ceil(limit.retryAfterMs / 1000)) }
   });

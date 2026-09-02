@@ -270,7 +270,13 @@ export function createTwoFactorDemoFetcher(): typeof globalThis.fetch {
     if (url.endsWith('/enable')) {
       const { code } = parseBody(init);
       if (typeof code !== 'string' || !TOTP_CODE_RE.test(code)) {
-        return json({ error: 'Enter the 6-digit code from your authenticator app.' }, 400);
+        return json(
+          {
+            error: 'Enter the 6-digit code from your authenticator app.',
+            code: 'two_factor_setup_code_invalid'
+          },
+          400
+        );
       }
       return json({
         success: true,

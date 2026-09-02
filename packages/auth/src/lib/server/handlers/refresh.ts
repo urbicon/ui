@@ -32,13 +32,13 @@ export function createRefreshHandler<R extends string>(
       const refreshRepo = deps.repos.refreshToken;
 
       if (!refreshConfig || !refreshRepo) {
-        return authError('feature_unavailable', 400, {
+        return authError('feature_unavailable', {
           message: 'Refresh tokens are not enabled.'
         });
       }
 
       const raw = readRefreshCookie(cookies, refreshConfig);
-      if (!raw) return authError('missing_refresh_token', 401);
+      if (!raw) return authError('missing_refresh_token');
 
       const outcome = await rotateRefreshToken(
         refreshRepo,
@@ -51,7 +51,7 @@ export function createRefreshHandler<R extends string>(
       // policy the handle hook applies — see applyRotationOutcome.
       const user = await applyRotationOutcome(cookies, outcome, deps.config);
       if (!user) {
-        return authError('invalid_refresh_token', 401, { headers: NO_STORE });
+        return authError('invalid_refresh_token', { headers: NO_STORE });
       }
       return json({ user: sanitizeUser(user) }, { headers: NO_STORE });
     }

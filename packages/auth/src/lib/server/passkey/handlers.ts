@@ -153,7 +153,7 @@ function registrationOptionsHandler<R extends string>(
     POST: async ({ cookies }) => {
       const user = await sessionUser(cookies);
       if (!user) {
-        return authError('not_authenticated', 401);
+        return authError('not_authenticated');
       }
 
       const existing = await passkeyRepo.findByUserId(user.id);
@@ -182,7 +182,7 @@ function registrationVerifyHandler<R extends string>(
     POST: async ({ request, cookies }) => {
       const user = await sessionUser(cookies);
       if (!user) {
-        return authError('not_authenticated', 401);
+        return authError('not_authenticated');
       }
 
       try {
@@ -192,7 +192,7 @@ function registrationVerifyHandler<R extends string>(
         };
 
         if (!credential) {
-          return authError('validation_error', 400, { message: 'Credential is required' });
+          return authError('validation_error', { message: 'Credential is required' });
         }
 
         const verified = await verifyRegistration(webauthn, user.id, credential);
@@ -224,7 +224,7 @@ function registrationVerifyHandler<R extends string>(
           // internals ("challenge mismatch", "origin"), and this handler has no
           // `onLoginFailed` seam to carry it — registration is not a login.
           deps.logger.warn('[auth] passkey registration verification failed:', err.message);
-          return authError('passkey_verification_failed', 400);
+          return authError('passkey_registration_verification_failed');
         }
         throw err;
       }
@@ -336,7 +336,7 @@ function authenticationVerifyHandler<R extends string>(
       const ceremonyId = cookies.get(cookieName);
       if (!ceremonyId) {
         await loginFailed('', 'challenge_missing', null);
-        return authError('passkey_verification_failed', 400);
+        return authError('passkey_verification_failed');
       }
       // Invalidate the single-use handle immediately, so no error path (or
       // replay) downstream can reuse it.
@@ -348,7 +348,7 @@ function authenticationVerifyHandler<R extends string>(
         };
 
         if (!credential) {
-          return authError('validation_error', 400, { message: 'Credential is required' });
+          return authError('validation_error', { message: 'Credential is required' });
         }
 
         // Look up the stored credential
@@ -364,7 +364,7 @@ function authenticationVerifyHandler<R extends string>(
           // flow the ID is authenticator-minted (≥ 16 random bytes) — a probe
           // with a made-up ID learns that a random value is unregistered, which
           // the lookup's timing told it before this line ran.
-          return authError('passkey_credential_deleted', 400);
+          return authError('passkey_credential_deleted');
         }
 
         // Verify the assertion. The challenge is consumed under the ceremony
@@ -394,7 +394,7 @@ function authenticationVerifyHandler<R extends string>(
           }
           if (handleUserId !== stored.userId) {
             await loginFailed('', 'user_handle_mismatch', stored.userId);
-            return authError('passkey_verification_failed', 400);
+            return authError('passkey_verification_failed');
           }
         }
 
@@ -413,7 +413,7 @@ function authenticationVerifyHandler<R extends string>(
           const stillStored = await passkeyRepo.findByCredentialId(stored.credentialId);
           if (!stillStored) {
             await loginFailed('', 'credential_deleted', stored.userId);
-            return authError('passkey_credential_deleted', 400);
+            return authError('passkey_credential_deleted');
           }
           await loginFailed('', 'counter_regression', stored.userId);
           // Logged as well as hooked: this is the one outcome an operator must
@@ -422,14 +422,14 @@ function authenticationVerifyHandler<R extends string>(
           deps.logger.warn(
             `[auth] passkey counter did not increase for credential ${stored.credentialId} (user ${stored.userId}) — possible cloned authenticator`
           );
-          return authError('passkey_verification_failed', 400);
+          return authError('passkey_verification_failed');
         }
 
         // Load user and create session
         const user = await deps.repos.user.findById(stored.userId);
         if (!user) {
           await loginFailed('', 'user_not_found', stored.userId);
-          return authError('passkey_verification_failed', 400);
+          return authError('passkey_verification_failed');
         }
 
         // A completed ceremony hands back the two calls it cost (options +
@@ -464,7 +464,7 @@ function authenticationVerifyHandler<R extends string>(
           // `invalid_assertion` collapses every WebAuthn cause into one reason;
           // the specific one is only in the error, so it goes to the log.
           deps.logger.warn('[auth] passkey assertion rejected:', err.message);
-          return authError('passkey_verification_failed', 400);
+          return authError('passkey_verification_failed');
         }
         throw err;
       }
@@ -484,7 +484,7 @@ function listHandler<R extends string>(
     GET: async ({ cookies }) => {
       const user = await sessionUser(cookies);
       if (!user) {
-        return authError('not_authenticated', 401);
+        return authError('not_authenticated');
       }
 
       const passkeys = await passkeyRepo.findByUserId(user.id);
@@ -518,12 +518,12 @@ function deleteHandler<R extends string>(
     DELETE: async ({ cookies, params }) => {
       const user = await sessionUser(cookies);
       if (!user) {
-        return authError('not_authenticated', 401);
+        return authError('not_authenticated');
       }
 
       const credentialId = params.credentialId;
       if (!credentialId) {
-        return authError('validation_error', 400, { message: 'Credential id is required' });
+        return authError('validation_error', { message: 'Credential id is required' });
       }
 
       await passkeyRepo.delete(user.id, credentialId);

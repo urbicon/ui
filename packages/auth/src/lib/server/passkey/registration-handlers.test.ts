@@ -179,7 +179,9 @@ describe('createPasskeyHandlers — registrationVerify', () => {
     );
     expect(res.status).toBe(400);
     const body = await res.json();
-    expect(body.code, 'append-only machine code contract').toBe('passkey_verification_failed');
+    expect(body.code, 'append-only machine code contract').toBe(
+      'passkey_registration_verification_failed'
+    );
     // The attestation detail names WebAuthn internals; registration has no
     // `onLoginFailed` seam, so the log is the only place it goes.
     expect(body.error).not.toMatch(/attestation/i);

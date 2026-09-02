@@ -16,6 +16,8 @@ export const de = {
       notAuthenticated: 'Bitte melde dich an, um fortzufahren.',
       forbidden: 'Dazu hast du keine Berechtigung.',
       invalidCode: 'Ungültiger Code. Bitte versuche es erneut.',
+      twoFactorSetupCodeInvalid:
+        'Dieser Code passt nicht. Prüfe deine Authenticator-App und versuche es erneut.',
       no2faChallenge: 'Keine ausstehende Zwei-Faktor-Anfrage.',
       twoFactorChallengeExpired:
         'Die Zwei-Faktor-Anfrage ist abgelaufen. Bitte melde dich erneut an.',
@@ -34,6 +36,8 @@ export const de = {
       csrfFailed: 'Diese Seite war zu lange geöffnet. Bitte lade sie neu und versuche es erneut.',
       passkeyVerificationFailed:
         'Dein Passkey konnte nicht geprüft werden. Bitte versuche es erneut.',
+      passkeyRegistrationVerificationFailed:
+        'Dieser Passkey konnte nicht registriert werden. Bitte versuche es erneut.',
       passkeyCredentialDeleted:
         'Dieser Passkey ist nicht mehr registriert. Melde dich auf einem anderen Weg an und richte ihn danach neu ein.',
       serverError: 'Etwas ist schiefgelaufen. Bitte versuche es erneut.',

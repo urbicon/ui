@@ -52,7 +52,7 @@ export function createChangeEmailHandler<R extends string>(
       if (limited) return limited;
 
       const user = await requireSessionUser(deps, cookies);
-      if (!user) return authError('not_authenticated', 401);
+      if (!user) return authError('not_authenticated');
 
       const body = await parseBody(request, validateChangeEmailInput);
       if (body instanceof Response) return body;
@@ -60,7 +60,7 @@ export function createChangeEmailHandler<R extends string>(
 
       // Re-auth before staging any change.
       if (!(await verifyCurrentPassword(user, currentPassword, deps))) {
-        return authError('current_password_incorrect', 403);
+        return authError('current_password_incorrect');
       }
 
       // Fire-and-forget the collision check + token write + mails, decoupled

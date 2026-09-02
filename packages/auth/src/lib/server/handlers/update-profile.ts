@@ -17,7 +17,7 @@ export function createUpdateProfileHandler<R extends string>(
   return {
     POST: async ({ request, cookies }) => {
       const user = await requireSessionUser(deps, cookies);
-      if (!user) return authError('not_authenticated', 401);
+      if (!user) return authError('not_authenticated');
 
       const body = await parseBody(request, validateUpdateProfileInput);
       if (body instanceof Response) return body;

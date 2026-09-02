@@ -518,12 +518,12 @@ export function createFederatedAuthHandle<TUser>(
 
     if (event.isRemoteRequest || isRemoteFormPost) {
       if (!user && !allowUnauthenticatedRemote) {
-        return authError('not_authenticated', 401);
+        return authError('not_authenticated');
       }
     } else {
       if (!user && !isPublicPath(event.url.pathname)) {
         if (!loginUrl || event.url.pathname.startsWith('/api/')) {
-          return authError('not_authenticated', 401);
+          return authError('not_authenticated');
         }
         // Verbatim, no redirectTo — see FederatedAuthHandleOptions.loginUrl.
         throw redirect(302, loginUrl);

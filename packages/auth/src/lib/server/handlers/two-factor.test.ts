@@ -88,7 +88,7 @@ describe('createTwoFactorHandlers — enable', () => {
     expect(deps.repos.user.enableTotp).not.toHaveBeenCalled();
   });
 
-  it('returns 400 on an invalid code (no enable, no codes issued)', async () => {
+  it('answers two_factor_setup_code_invalid/400 on a wrong code (no enable, no codes issued)', async () => {
     const user = createMockUser({
       totpEnabled: false,
       totpSecret: await encryptSecret(SECRET, ENC_KEY)
@@ -102,7 +102,12 @@ describe('createTwoFactorHandlers — enable', () => {
     const res = await createTwoFactorHandlers(deps).enable.POST(
       as(await authed(deps, { code: '000000' }))
     );
+    // Enrolment authenticates nobody — the caller already is — so a wrong code
+    // is a rejected request (400), not a refused credential. It must NOT reuse
+    // the sign-in code: `invalid_code` answers 401 and would tell the client
+    // this session had failed to authenticate.
     expect(res.status).toBe(400);
+    expect((await res.json()).code).toBe('two_factor_setup_code_invalid');
     expect(deps.repos.user.enableTotp).not.toHaveBeenCalled();
     expect(backupCode.createMany).not.toHaveBeenCalled();
   });
@@ -353,7 +358,13 @@ describe('createTwoFactorHandlers — verify', () => {
     const deps = verifyDeps(user);
     const ev = await withPending(deps, { code: '000000' });
     const res = await createTwoFactorHandlers(deps).verify.POST(as(ev));
+    // The sign-in half keeps `invalid_code`: this request is an authentication
+    // attempt and the second factor refused the credential, so it is a 401 —
+    // unlike its three neighbours on this same handler (no_2fa_challenge,
+    // two_factor_challenge_expired, validation_error), which answer 400 because
+    // they reject the request rather than the secret.
     expect(res.status).toBe(401);
+    expect((await res.json()).code).toBe('invalid_code');
     expect(ev._cookieStore.get('session')).toBeUndefined();
     // The pending cookie survives a wrong attempt so the user can retry.
     expect([...ev._cookieStore.keys()].some((k) => k.includes('urbicon_2fa'))).toBe(true);

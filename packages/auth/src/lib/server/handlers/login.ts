@@ -137,7 +137,7 @@ export function createLoginHandler<R extends string>(deps: AuthDeps<R>): { POST:
           email,
           'user_not_found'
         );
-        return authError('invalid_credentials', 401);
+        return authError('invalid_credentials');
       }
 
       // Lockout check (refuse before doing the expensive PBKDF2 verify).
@@ -149,7 +149,7 @@ export function createLoginHandler<R extends string>(deps: AuthDeps<R>): { POST:
         const attempts = await deps.repos.user.getFailedLoginAttempts(user.id);
         const now = Date.now();
         if (attempts.lockedUntil && attempts.lockedUntil > new Date(now)) {
-          return authError('account_locked', 423);
+          return authError('account_locked');
         }
         // Decay: a count whose last failure predates the window starts over,
         // so `maxAttempts` typos spread over months no longer lock the account
@@ -191,7 +191,7 @@ export function createLoginHandler<R extends string>(deps: AuthDeps<R>): { POST:
           email,
           'invalid_password'
         );
-        return authError('invalid_credentials', 401);
+        return authError('invalid_credentials');
       }
 
       // Transparent rehash: bcrypt → PBKDF2, or upgrade iteration count

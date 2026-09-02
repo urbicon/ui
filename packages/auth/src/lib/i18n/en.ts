@@ -16,6 +16,8 @@ export const en = {
       notAuthenticated: 'Please sign in to continue.',
       forbidden: "You don't have permission to do that.",
       invalidCode: 'Invalid code. Please try again.',
+      twoFactorSetupCodeInvalid:
+        'That code did not match. Check your authenticator app and try again.',
       no2faChallenge: 'No pending two-factor challenge.',
       twoFactorChallengeExpired: 'Two-factor challenge expired. Please sign in again.',
       twoFactorAlreadyEnabled: 'Two-factor authentication is already enabled.',
@@ -30,6 +32,8 @@ export const en = {
       connectionLimit: 'Too many open connections. Close another tab and try again.',
       csrfFailed: 'This page has been open too long. Please reload it and try again.',
       passkeyVerificationFailed: 'Your passkey could not be verified. Please try again.',
+      passkeyRegistrationVerificationFailed:
+        'This passkey could not be registered. Please try again.',
       passkeyCredentialDeleted:
         'This passkey is no longer registered. Sign in another way, then set it up again.',
       serverError: 'Something went wrong. Please try again.',

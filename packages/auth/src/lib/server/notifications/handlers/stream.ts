@@ -30,7 +30,7 @@ export function createStreamHandler(
     GET: async ({ locals, request }) => {
       const userId = localsUserId(locals);
       if (!userId) {
-        return authError('not_authenticated', 401);
+        return authError('not_authenticated');
       }
 
       // Per-user connection cap (DoS guard): refuse beyond the limit so one
@@ -42,7 +42,7 @@ export function createStreamHandler(
       // synchronously, so on single-threaded JS runtimes no concurrent request
       // can interleave past this check — the count is exact, no lock needed.
       if (sse.connectionCount(userId) >= maxConnectionsPerUser) {
-        return authError('connection_limit', 429);
+        return authError('connection_limit');
       }
 
       const encoder = new TextEncoder();

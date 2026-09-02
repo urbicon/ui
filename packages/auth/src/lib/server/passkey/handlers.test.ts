@@ -420,7 +420,7 @@ describe('passkey auth — ceremony-handle binding (G.1)', () => {
     const jar = makeCookieJar();
     await passkeyHandlers(deps).authenticationOptions.POST(event({}, { jar }));
     // The verify handler must look under the SAME name — a mismatch reads as a
-    // missing ceremony handle and answers 400 before touching the store. So
+    // missing ceremony handle and answers 401 before touching the store. So
     // the store lookup running, and its own answer coming back, is the proof
     // that the handle was found.
     const res = await passkeyHandlers(deps).authenticationVerify.POST(
@@ -485,7 +485,7 @@ describe('passkey auth — ceremony-handle binding (G.1)', () => {
       )
     );
 
-    expect(res.status).toBe(400);
+    expect(res.status).toBe(401);
     // Got past the challenge gate (found AND matched under the handle); fails
     // later on the junk authenticatorData. The defining regression assertion:
     // it is NOT a challenge-resolution failure. Every ceremony failure answers
@@ -551,7 +551,7 @@ describe('passkey auth — ceremony-handle binding (G.1)', () => {
 
     const res = await verify.POST(event({ credential }, { jar }));
 
-    expect(res.status).toBe(400);
+    expect(res.status).toBe(401);
     expect((await res.json()).code).toBe('passkey_verification_failed');
     expect(deps.logger.warn).toHaveBeenCalledWith(
       '[auth] passkey assertion rejected:',
@@ -575,7 +575,7 @@ describe('passkey auth — ceremony-handle binding (G.1)', () => {
         }
       })
     );
-    expect(res.status).toBe(400);
+    expect(res.status).toBe(401);
     const challengeBody = await res.json();
     expect(challengeBody.code, 'append-only machine code contract').toBe(
       'passkey_verification_failed'

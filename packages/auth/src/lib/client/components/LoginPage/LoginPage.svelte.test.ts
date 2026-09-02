@@ -62,7 +62,7 @@ describe('LoginPage passkey refusal copy (de)', () => {
     render({
       fetcher: fetcherReturning(
         optionsResponse(),
-        jsonResponse(400, {
+        jsonResponse(401, {
           error: 'This passkey is no longer registered. Sign in another way, then set it up again.',
           code: 'passkey_credential_deleted'
         })
@@ -79,7 +79,7 @@ describe('LoginPage passkey refusal copy (de)', () => {
     render({
       fetcher: fetcherReturning(
         optionsResponse(),
-        jsonResponse(400, {
+        jsonResponse(401, {
           error: 'Your passkey could not be verified. Please try again.',
           code: 'passkey_verification_failed'
         })

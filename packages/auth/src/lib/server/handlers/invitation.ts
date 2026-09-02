@@ -119,10 +119,10 @@ export function createInvitationHandlers<R extends string>(
     cookies: Parameters<RequestHandler>[0]['cookies']
   ): Promise<{ user: AuthUser<R> } | Response> {
     const full = await requireSessionUser(deps, cookies);
-    if (!full) return authError('not_authenticated', 401);
+    if (!full) return authError('not_authenticated');
 
     const user = sanitizeUser(full);
-    if (!(await authorize(user))) return authError('forbidden', 403);
+    if (!(await authorize(user))) return authError('forbidden');
     return { user };
   }
 
@@ -149,11 +149,11 @@ export function createInvitationHandlers<R extends string>(
       // (e.g. the in-memory one) from surfacing as a 500.
       const existingUser = await deps.repos.user.findByEmail(email);
       if (existingUser) {
-        return authError('email_taken', 409);
+        return authError('email_taken');
       }
       const existingInvite = await deps.repos.invitation.findByEmail(email);
       if (existingInvite) {
-        return authError('email_invited', 409);
+        return authError('email_invited');
       }
 
       // The raw token exists for exactly this request. It is hashed on the way
@@ -265,7 +265,7 @@ export function createInvitationHandlers<R extends string>(
 
       const id = params.id;
       if (!id) {
-        return authError('validation_error', 400, { message: 'Invitation id is required.' });
+        return authError('validation_error', { message: 'Invitation id is required.' });
       }
 
       await deps.repos.invitation.delete(id);
