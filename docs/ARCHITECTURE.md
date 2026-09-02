@@ -333,22 +333,37 @@ are addressable: `{ disabled: false }` fires on every component that names a `di
 axis, while a component that dims through the `disabled:` CSS variant rather than a variant
 branch has no such axis and cannot be addressed on it at all.
 
-Every component family resolves through the shared
+Components resolve through the shared
 `resolveSlotClasses(config, name, preset, activeProps, instanceSlotClasses, variantConfig)`,
 each feeding its active `variantProps` plus its own `tv()` config — the config is what
 turns the raw bag into the effective one, so `overrides` applies library-wide and means the
-same thing everywhere.
+same thing everywhere. Not every component reaches it, and the exceptions are shapes rather
+than a list: a **wrapper** calls it indirectly — it hands its name down and the component it
+wraps makes the call (below); `CalendarHeader` and `FormField` read their slot classes from
+elsewhere (the Calendar context, and their own prop) yet still declare a `slotClasses` prop,
+so an entry under either name type-checks, narrows, and arrives nowhere; and
+`PaginationItem` declares neither `slotClasses` nor `preset`, so it has no provider name at
+all — routes A–C of `provider/provider-cascade.svelte.test.ts` pin what that leaves
+unaddressable. Which names exist is derived from the components themselves in
+`provider/component-slots.ts`, never listed here.
 
 The name is not always the component's own. A **compound part** — `CalendarHeader`,
 `MenuItem`, `CalendarDay` — renders only inside another component and is addressed under
 *that* component's name: `defaults.Calendar.slotClasses` reaches CalendarHeader's header,
-nav and title. A **wrapper** carries both names at once instead: `NumberInput` resolves
-under `NumberInput` and hands the result to the `<Input>` it wraps as instance
-`slotClasses`, so `defaults.NumberInput` reaches its own stepper *and* that field, while
-`defaults.Input` reaches the field alone. Its `preset` is the half that does not travel —
-forwarded, it would resolve under `Input` and style every text field (#355). An entry
-written under a name nothing resolves as matches no lookup and is never read, with nothing
-reported — the same silence a misspelt component name buys.
+nav and title. A **wrapper** carries both names at once instead, and resolves neither
+itself: it hands its name, `preset` and instance `slotClasses` down the context
+(`provider/wrapper-cascade.ts`), and the component it wraps resolves that cascade under the
+wrapper's name against its **own** `variantProps` — which is where the axes are, since
+`tier` (off a context), `messageType`, the coerced `error` and Select's `open` are not
+knowable above it. So `defaults.NumberInput` reaches its own stepper *and* that field, while
+`defaults.Input` reaches the field alone — both measured, and the fold order with them, by
+`provider/wrapper-cascade-order.svelte.test.ts`. The `preset` travels too; resolving it
+under the wrapper's name is the point, because forwarded as the inner component's own
+`preset` it would style every text field (#355). Only the resolved record goes back the
+other way, for a wrapper that has slots of its own: NumberInput's stepper renders as Input's
+`rightIcon`, so Input has resolved by the time that snippet runs. An entry written under a
+name nothing resolves as matches no lookup and is never read, with nothing reported — the
+same silence a misspelt component name buys.
 
 The call sites spell the chain's last two rungs as an array —
 `styles.base({ class: [slotClasses?.base, className] })` — and `tv()` reads **each
