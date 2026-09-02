@@ -45,7 +45,7 @@ describe('a component resolves under the name it is exported as', () => {
           !PROVIDER_NAME.test(code)
         );
       })
-      .map(([path]) => path.replace('../', ''));
+      .map(([path]) => path.replace(/^\.\.\//, ''));
 
     expect(nameless).toEqual([]);
   });
