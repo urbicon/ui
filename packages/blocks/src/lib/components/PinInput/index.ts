@@ -4,10 +4,10 @@ import type { PinInputSlots, PinInputVariants } from './pin-input.variants';
  * @summary One cell per digit, for codes that arrive by mail or app.
  * @description Segmented one-time-code / PIN entry — a row of single-character
  * cells with auto-advance, backspace-to-previous, paste-to-fill, and optional
- * masking. Purpose-built for the 2FA/OTP flow the auth package's
- * `TwoFactorManager` drives (pair it with `autoComplete="one-time-code"` for
- * iOS SMS autofill). The value is the concatenated string; `onComplete` fires
- * once every cell is filled.
+ * masking. Purpose-built for the 2FA/OTP step: the first cell carries
+ * `autocomplete="one-time-code"` on its own, so iOS offers an incoming SMS code
+ * as a keyboard suggestion. The value is the concatenated string; `onComplete`
+ * fires each time the row becomes complete.
  *
  * @tag form
  * @related Input
@@ -66,9 +66,9 @@ export interface PinInputProps extends Omit<PinInputVariants, 'error'> {
   /** Cells per group when `separator` is set. @default 3 */
   groupSize?: number;
 
-  /** @default false */
+  /** Blocks input and dims the whole row. @default false */
   disabled?: boolean;
-  /** @default false */
+  /** Shows the value but refuses edits; the cells stay focusable. @default false */
   readonly?: boolean;
   /**
    * Marks the label with an asterisk and sets `aria-required` on the cells. It does
@@ -91,7 +91,10 @@ export interface PinInputProps extends Omit<PinInputVariants, 'error'> {
 
   /** Fires after any change (typing, paste, backspace) with the full value. */
   onValueChange?: (value: string) => void;
-  /** Fires once when the last empty cell is filled, with the complete value. */
+  /**
+   * Fires each time the row becomes complete, with the full value — so
+   * correcting a rejected code fires it again. Not once per mount.
+   */
   onComplete?: (value: string) => void;
 
   /** Shared `name` for a hidden input, for native form submission. */

@@ -50,9 +50,9 @@ export interface TimeInputProps extends Omit<TimeInputVariants, 'error'> {
    */
   max?: string;
 
-  /** @default false */
+  /** Blocks input and dims the whole field. @default false */
   disabled?: boolean;
-  /** @default false */
+  /** Shows the time but refuses edits; the segments stay focusable. @default false */
   readonly?: boolean;
   /**
    * Marks the label with an asterisk and sets `aria-required` on the segments. It does

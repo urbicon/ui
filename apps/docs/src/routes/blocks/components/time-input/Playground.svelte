@@ -24,8 +24,8 @@
   const controls = deriveControls(componentData, {
     // Erscheinung zuerst, Zustände hinten. `messageType` fehlt bewusst: Es färbt
     // eine Meldung, und ohne `helper`/`error`-Text gäbe es nichts zu färben.
-    // `required` fehlt, weil es sein Sternchen an ein `<label>` hängt, das
-    // dieses Beispiel nicht rendert.
+    // `required` fehlt, weil sein sichtbarer Teil ein Sternchen am Label ist und
+    // der Rest (`aria-required` an den Segmenten) im Panel nichts zeigt.
     pick: [
       'format',
       'withSeconds',

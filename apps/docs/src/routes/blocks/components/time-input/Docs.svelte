@@ -10,6 +10,7 @@
 
   let apptDate = $state('2026-08-15');
   let apptTime = $state('14:30');
+  let departureTime = $state('06:45');
 </script>
 
 <Section marker id="examples" title="Examples">
@@ -103,9 +104,9 @@
   </div>
 
   <CodeExample
-    title="Date and time side by side"
+    title="Date and time in one row"
     previewClass="flex w-full flex-col"
-    description="A DatePicker for the day and a TimeInput for the time, joined into one value."
+    description="Both fields default to full width, so a row needs w-auto on each — without it they stack at every width. flex-wrap then breaks the row when the container gets too narrow for both, which this docs column does at 1024 px."
     code={`<script>
   import { DatePicker, TimeInput } from '@urbicon-ui/blocks';
 
@@ -117,14 +118,14 @@
 <\/script>
 
 <div class="flex flex-wrap items-end gap-3">
-  <DatePicker label="Date" bind:value={apptDate} />
-  <TimeInput label="Time" bind:value={apptTime} />
+  <DatePicker label="Date" class="w-auto" bind:value={apptDate} />
+  <TimeInput label="Time" class="w-auto" bind:value={apptTime} />
 </div>`}
     language="svelte"
   >
     <div class="flex flex-wrap items-end gap-3">
-      <DatePicker label="Date" bind:value={apptDate} />
-      <TimeInput label="Time" bind:value={apptTime} />
+      <DatePicker label="Date" class="w-auto" bind:value={apptDate} />
+      <TimeInput label="Time" class="w-auto" bind:value={apptTime} />
     </div>
     <p class="text-text-secondary mt-2 text-sm">
       Date: <code>{apptDate ?? '—'}</code> · Time: <code>{apptTime ?? '—'}</code> · Joined:
@@ -149,6 +150,33 @@
       stretches the field to fill its container instead of hugging its content.
     </p>
   </div>
+
+  <CodeExample
+    title="Boarding-pass segments via slotClasses"
+    previewClass="flex w-full flex-col"
+    description="Each segment gets its own box, so the field reads as three fields rather than one."
+    code={`<TimeInput
+  label="Departure"
+  bind:value={departure}
+  slotClasses={{
+    field: 'gap-1 border-transparent bg-transparent px-0',
+    segment: 'rounded-modify border border-border-default bg-surface-subtle px-2 py-1 font-mono',
+    separator: 'text-text-tertiary'
+  }}
+/>`}
+    language="svelte"
+  >
+    <TimeInput
+      label="Departure"
+      bind:value={departureTime}
+      slotClasses={{
+        field: 'gap-1 border-transparent bg-transparent px-0',
+        segment:
+          'rounded-modify border border-border-default bg-surface-subtle px-2 py-1 font-mono',
+        separator: 'text-text-tertiary'
+      }}
+    />
+  </CodeExample>
 </Section>
 
 <Section marker id="accessibility" title="Accessibility">

@@ -56,6 +56,7 @@
 <PinInput
   label="License key"
   length={8}
+  size="sm"
   type="alphanumeric"
   uppercase
   separator="-"
@@ -67,6 +68,7 @@
       <PinInput
         label="License key"
         length={8}
+        size="sm"
         type="alphanumeric"
         uppercase
         separator="-"
