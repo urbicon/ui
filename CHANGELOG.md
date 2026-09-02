@@ -4,6 +4,32 @@ All notable changes to this project will be documented in this file.
 This changelog is automatically generated from [Conventional Commits](https://www.conventionalcommits.org).
 
 
+## [8.15.0] - 2026-09-02
+
+### Breaking Changes
+- **blocks**: Sparkline takes the charts' slot names
+> **BREAKING:** `slotClasses` on `<Sparkline>` renames two keys — `line` is now `mark`, `point` is now `endPoint`. `root`, `svg` and `area` are unchanged. Written inline both old keys are a type error; a slot map held in a variable is not checked the same way, and the provider surfaces are not type-checked at all. A DEV warning names the stale key on every surface. MIGRATION.md carries the grep.
+- **blocks**: Match an override rule against the variants a component names
+> **BREAKING:** `resolveSlotClasses()` takes a required sixth parameter, the component's `tv()` config — pass `xVariants.config`. `StepperVariants.stepState` is now `state` and `stepDisabled` is now `disabled`. Conditional `overrides` match the variants a component names, so a rule keyed on an axis the component names but left undefined fires at that axis's `defaultVariants` value, while a rule keyed on an axis it never names now matches nothing. Nothing reports the
+- **blocks**: Resolve a wrapper's overrides where the axes are
+> **BREAKING:** `wrapperActiveProps` is removed from the package root. It existed only to build that stand-in condition object; a call to it is a compile error. `resolveSlotClasses` is unchanged — hand it the axes your wrapper can speak for. An `overrides` rule keyed on one of the eight axes above under a wrapper's name changes what it matches.
+- **blocks**: Check provider slot names against the component
+> **BREAKING:** a `<BlocksProvider>` `defaults` or `presets` entry naming a slot its component does not have no longer compiles.
+
+### Bug Fixes
+- **docs-gen**: Ask the checker which keys an Omit clause names
+
+### Documentation
+- Correct the override-cascade statements the wave made false
+> **BREAKING:** `SidebarLayout`'s `slotClasses.sidebar` is now `slotClasses.sidebarPanel`, so every forwarded key reads as the Sidebar slot it reaches.
+
+### Features
+- **blocks**: Warn on an overrides condition key the component cannot carry
+
+### Testing
+- **blocks**: Route D reports a candidate that never arrived
+- **blocks**: A KNOWN_GAPS entry pins what its gap is made of
+
 ## [8.14.0] - 2026-08-31
 
 ### Breaking Changes
