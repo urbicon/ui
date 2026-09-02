@@ -388,8 +388,16 @@ export class APIDataGenerator {
       processedProp.source.name = `${component.name}Props`;
     }
 
-    // Enhance description with context if needed
-    if (prop.description.length < 20) {
+    // Only when the author wrote nothing. A length threshold conflates "no
+    // description" with "a short, exact one", and the substitute is worse than
+    // what it replaces: 71 props across the library carry a JSDoc under 20
+    // characters — `Sankey.links` "Link list.", `PinInput.length` "Number of
+    // cells.", `Calendar.selectionMode` "Selection behavior." one character
+    // short of the bar. For a name in the table above the substitute is not
+    // merely empty but wrong: `GuideHint.size` says "Icon size." and came out
+    // as "Size variant that controls dimensions and spacing of the Guide".
+    // These strings ship in llm.txt, llms-full.txt and the MCP catalog.
+    if (!processedProp.description) {
       processedProp.description = this.enhancePropertyDescription(prop, component);
     }
 
