@@ -207,4 +207,24 @@ describe('PinInput', () => {
     const describedBy = c[0].getAttribute('aria-describedby');
     expect(describedBy && document.getElementById(describedBy)?.textContent).toBe('Wrong code');
   });
+
+  // `required` reached only the label asterisk (through the variant props), so a
+  // screen-reader user was never told the field was mandatory. Nine of the
+  // eleven components in the form family pass it to the element; these two did
+  // not. It belongs on the cells, not on the `role="group"` wrapper — ARIA does
+  // not allow `aria-required` there, which is the defect #209 describes.
+  it('tells assistive tech that a required field is required', () => {
+    render({ length: 4, required: true });
+    expect(cells().map((c) => c.getAttribute('aria-required'))).toEqual([
+      'true',
+      'true',
+      'true',
+      'true'
+    ]);
+  });
+
+  it('says nothing about requiredness when the field is optional', () => {
+    render({ length: 4 });
+    expect(cells().every((c) => c.getAttribute('aria-required') === null)).toBe(true);
+  });
 });

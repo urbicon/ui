@@ -298,6 +298,7 @@
         {readonly}
         aria-label={bt('accessibility.pinInputCell', { index: i + 1, total: length })}
         aria-invalid={error ? 'true' : undefined}
+        aria-required={required || undefined}
         aria-describedby={describedBy}
         class={cellClass()}
         oninput={(e) => handleInput(i, e)}
