@@ -127,9 +127,18 @@ export type AuthErrorCode = (typeof AUTH_ERROR_CODES)[keyof typeof AUTH_ERROR_CO
  * request that does not match the server's state, and — the case that decides
  * the split pairs below — a wrong secret on a request that was not
  * authenticating anyone. Being signed in is not itself the test: a wrong TOTP
- * during enrolment is 400 because nothing was being authenticated, while
- * `no_2fa_challenge` and `two_factor_challenge_expired` are 400 on the
- * *unauthenticated* verify path because the request did not match server state.
+ * during enrolment is 400 because nothing was being authenticated.
+ *
+ * **What counts as "the credential it carried" needs saying, because two
+ * server-issued cookies answer differently.** A refresh token *is* the
+ * credential: the request offers it and asks for a session in exchange, so a
+ * missing or rejected one is 401. The pending-2FA cookie is only a handle
+ * naming which challenge is open — the credential is the TOTP or backup code
+ * in the body — so a missing or expired handle is a request that does not
+ * match server state, 400. The seam is that `verifySignedToken` returns null
+ * for an expired token and a forged one alike, so a forged pending cookie
+ * answers 400 where a forged refresh token answers 401. Both are refusals
+ * either way; only the class differs, and nothing downstream reads it.
  *
  * The rule reaches only that pair. Every other status is chosen by its own HTTP
  * meaning: 403 when an authenticated caller is refused the action (a failed
