@@ -35,7 +35,7 @@
   const CONTAINED = {
     root: '!min-h-full !rounded-xl',
     main: '!min-h-full',
-    sidebar: '!absolute',
+    sidebarPanel: '!absolute',
     sidebarBackdrop: '!absolute'
   };
 

@@ -1,5 +1,6 @@
 import type { Snippet } from 'svelte';
 import type { HTMLAttributes } from 'svelte/elements';
+import type { SidebarSlots } from '$lib/primitives/Sidebar/sidebar.variants';
 import type { SidebarLayoutSlots, SidebarLayoutVariants } from './sidebar-layout.variants';
 
 /**
@@ -16,17 +17,29 @@ export interface MobileHeaderContext {
 
 /**
  * Slot keys for `slotClasses`. The tv-driven slots (`SidebarLayoutSlots`:
- * root | mobileHeader | main | inner) are the layout's own; the `sidebar*`
- * keys are forwarded to the embedded `<Sidebar>` (mapped to its
- * `slotClasses.panel`/`backdrop`/`header`/`content`/`footer`).
+ * root | mobileHeader | main | inner) are the layout's own; each remaining key
+ * is one slot of the embedded `<Sidebar>` under a `sidebar` prefix.
+ *
+ * Both halves of that forwarding derive from `sidebarVariants` — this union by
+ * template literal, the mapping in `SidebarLayout.svelte` by walking the same
+ * config — so a Sidebar slot renamed, added or dropped moves the two together.
+ * They used to be five literals here mapped by hand, and three edits to that
+ * map type-checked while reaching no element: a mistyped source key, a swapped
+ * pair, and a deleted line (#346).
  */
-type SidebarLayoutSlot =
-  | SidebarLayoutSlots
-  | 'sidebar'
-  | 'sidebarBackdrop'
-  | 'sidebarHeader'
-  | 'sidebarContent'
-  | 'sidebarFooter';
+type SidebarLayoutSlot = SidebarLayoutSlots | SidebarForwardKey;
+
+/**
+ * The `slotClasses` keys forwarded to the embedded `<Sidebar>` — one per slot
+ * it declares, under a `sidebar` prefix.
+ *
+ * Exported because `SidebarLayout.svelte` *builds* the key it reads and
+ * annotates it with this type. That is what writes the prefix once for both
+ * halves: mistyping it in the builder is a compile error, where the resolved
+ * record it indexes is a `Record<string, string>` that would otherwise accept
+ * any string and quietly return nothing (measured).
+ */
+export type SidebarForwardKey = `sidebar${Capitalize<SidebarSlots>}`;
 
 /**
  * @summary The app shell — sidebar, content, and the mobile header that opens it.
@@ -157,8 +170,9 @@ export interface SidebarLayoutProps extends Omit<HTMLAttributes<HTMLDivElement>,
   unstyled?: boolean;
 
   /**
-   * Per-slot class overrides. `sidebar*` slots are forwarded to the embedded
-   * `<Sidebar>` component (mapped to its `slotClasses.panel`/`header`/...).
+   * Per-slot class overrides. A `sidebar`-prefixed key is forwarded to the
+   * embedded `<Sidebar>`'s slot of that name — `sidebarPanel` reaches its
+   * `panel`, `sidebarBackdrop` its `backdrop`, and so on.
    */
   slotClasses?: Partial<Record<SidebarLayoutSlot, string>>;
 

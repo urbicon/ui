@@ -239,12 +239,24 @@ export interface PaginationItemProps
   /** Custom content rendered inside the button. Falls back to the page number. */
   children?: Snippet;
 
-  /** Additional CSS classes on the button element. */
+  /**
+   * Additional CSS classes on the element this item actually renders as: the
+   * `<button>` when there is no `href`, and the wrapping `<a>` when there is —
+   * in that branch the inner Button is decorative and receives none.
+   */
   class?: string;
 
   /**
-   * Strip the inner Button's default styles, so only `class` remains.
-   * Forwarded by `Pagination`'s own `unstyled`. @default false
+   * Strip all default styles. Forwarded by `Pagination`'s own `unstyled`, and it
+   * reaches whichever elements this item renders: the inner Button, plus — with
+   * `href` — the anchor's own chrome. Three semantic hooks stay on the Button
+   * either way (`blocks-button`, `blocks-intent-primary`,
+   * `[--blocks-press-scale:1]`), so this is not "only `class` remains".
+   *
+   * In the `href` branch the focus ring goes with the rest, on the anchor *and*
+   * on the button (measured) — and the anchor is the element that takes focus.
+   * Put one back through `class`, which lands there in that branch.
+   * @default false
    */
   unstyled?: boolean;
 }

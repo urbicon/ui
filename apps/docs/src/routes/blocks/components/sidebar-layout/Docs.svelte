@@ -199,7 +199,7 @@
   sidebarWidth="16rem"
   slotClasses={{
     root: 'bg-neutral-50',
-    sidebar: 'bg-neutral-900 border-neutral-800',
+    sidebarPanel: 'bg-neutral-900 border-neutral-800',
     sidebarHeader: 'border-neutral-800',
     sidebarFooter: 'border-neutral-800',
     mobileHeader: 'bg-neutral-900 text-white border-neutral-800'
@@ -218,7 +218,7 @@
     SidebarLayout: {
       brand: {
         slotClasses: {
-          sidebar: 'bg-neutral-900 border-neutral-800',
+          sidebarPanel: 'bg-neutral-900 border-neutral-800',
           mobileHeader: 'bg-neutral-900 text-white'
         }
       }
