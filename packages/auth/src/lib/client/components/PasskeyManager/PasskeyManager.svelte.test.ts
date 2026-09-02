@@ -3,6 +3,7 @@ import { screen } from '@testing-library/dom';
 import userEvent from '@testing-library/user-event';
 import { type ComponentProps, tick } from 'svelte';
 import { describe, expect, it, vi } from 'vitest';
+import { MAX_DISPLAY_NAME_LENGTH } from '../../../display-name.js';
 import { fetcherReturning, jsonResponse, mounter, settle } from '../__fixtures__/fetcher.js';
 import ProviderHarness from '../__fixtures__/ProviderHarness.svelte';
 import type { PasskeyManagerProps } from './index.js';
@@ -393,5 +394,98 @@ describe('PasskeyManager — inline rename', () => {
 
     const form = document.querySelector('form') as HTMLFormElement;
     expect(form.className).toBe('only-mine');
+  });
+});
+
+describe('PasskeyManager — the rename form does not leak events to its surroundings', () => {
+  const openRename = async () => {
+    await userEvent.click(screen.getByRole('button', { name: /Rename — MacBook/ }));
+    await settle();
+  };
+
+  // The panel is documented as mountable inside a Dialog, which closes on
+  // Escape. The listener used to sit on the field, so one Tab put focus on Save
+  // and from there Escape passed straight through: the dialog closed with the
+  // rename form still open inside it.
+  it('cancels on Escape pressed from the Save button, without the key escaping the form', async () => {
+    const onDocumentKeydown = vi.fn();
+    document.addEventListener('keydown', onDocumentKeydown);
+    try {
+      render({ fetcher: fetcherReturning(jsonResponse(200, { passkeys: [passkey()] })) });
+      await settle();
+      await openRename();
+
+      screen.getByRole('button', { name: 'Save' }).focus();
+      await userEvent.keyboard('{Escape}');
+      await settle();
+
+      expect(screen.queryByRole('textbox', { name: 'Passkey name' })).toBeNull();
+      expect(screen.getByText('MacBook')).toBeTruthy();
+      // Nothing above the form sees the key — a surrounding dialog stays open.
+      expect(onDocumentKeydown).not.toHaveBeenCalled();
+    } finally {
+      document.removeEventListener('keydown', onDocumentKeydown);
+    }
+  });
+
+  // A consumer's settings page may wrap the panel in a form of its own. Without
+  // stopPropagation the rename fires that form's submit handler on every save.
+  it('does not let its submit reach a form wrapped around the panel', async () => {
+    const onDocumentSubmit = vi.fn();
+    document.addEventListener('submit', onDocumentSubmit);
+    try {
+      render({
+        fetcher: fetcherReturning(
+          jsonResponse(200, { passkeys: [passkey()] }),
+          jsonResponse(200, { passkey: passkey({ name: 'Renamed' }) })
+        )
+      });
+      await settle();
+      await openRename();
+      await userEvent.click(screen.getByRole('button', { name: 'Save' }));
+      await settle();
+
+      expect(screen.getByText('Renamed')).toBeTruthy();
+      expect(onDocumentSubmit).not.toHaveBeenCalled();
+    } finally {
+      document.removeEventListener('submit', onDocumentSubmit);
+    }
+  });
+
+  // Removes the only client-reachable refusal — and with it the one place a
+  // German page rendered the server's English "Name is required." verbatim,
+  // because `errorMessageFromCode` prefers the server prose for
+  // `validation_error`.
+  it('offers no Save while the draft is blank', async () => {
+    const fetcher = fetcherReturning(jsonResponse(200, { passkeys: [passkey()] }));
+    render({ fetcher });
+    await settle();
+    await openRename();
+
+    const field = screen.getByRole('textbox', { name: 'Passkey name' }) as HTMLInputElement;
+    await userEvent.clear(field);
+    await settle();
+    const save = screen.getByRole('button', { name: 'Save' });
+    expect(save.hasAttribute('disabled')).toBe(true);
+
+    await userEvent.click(save);
+    await settle();
+    // Only the initial list load — nothing was sent.
+    expect(fetcher).toHaveBeenCalledTimes(1);
+
+    await userEvent.type(field, 'Named again');
+    await settle();
+    expect(screen.getByRole('button', { name: 'Save' }).hasAttribute('disabled')).toBe(false);
+  });
+
+  it('bounds the field at the same number the server refuses past', async () => {
+    render({ fetcher: fetcherReturning(jsonResponse(200, { passkeys: [passkey()] })) });
+    await settle();
+    await openRename();
+
+    const field = screen.getByRole('textbox', { name: 'Passkey name' }) as HTMLInputElement;
+    // Read off the shared constant, not a literal: the point is that the field
+    // and `validateDisplayName` cannot be given different numbers.
+    expect(field.getAttribute('maxlength')).toBe(String(MAX_DISPLAY_NAME_LENGTH));
   });
 });

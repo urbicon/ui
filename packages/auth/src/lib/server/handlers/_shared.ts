@@ -5,7 +5,7 @@ import type { FullAuthUser, UserRepository } from '../adapters/types.js';
 import type { AuthDeps } from '../deps.js';
 import { passwordRuleMessage, verifyPasswordWithMigration } from '../password.js';
 import { getSessionFromCookie } from '../session.js';
-import { readJsonBody, type ValidationResult } from '../validation.js';
+import { readJsonBody, type ValidationError, type ValidationResult } from '../validation.js';
 import { authError } from './errors.js';
 
 /**
@@ -27,13 +27,22 @@ export async function parseBody<T>(
   validate: (raw: unknown) => ValidationResult<T>
 ): Promise<{ data: T } | Response> {
   const input = validate(await readJsonBody(request));
-  if (!input.success) {
-    return authError('validation_error', {
-      message: input.errors[0].message,
-      extra: { errors: input.errors }
-    });
-  }
+  if (!input.success) return validationRefusal(input.errors);
   return { data: input.data };
+}
+
+/**
+ * The canonical `400` for a failed field validation. Split out of
+ * {@link parseBody} for the one caller that cannot use it: passkey registration
+ * validates a single field out of a body it has already read for another one,
+ * and a second hand-written `authError('validation_error', …)` there could
+ * shape the response differently from every other refusal in the package.
+ */
+export function validationRefusal(errors: ValidationError[]): Response {
+  return authError('validation_error', {
+    message: errors[0].message,
+    extra: { errors }
+  });
 }
 
 type AuthHooks<R extends string> = NonNullable<AuthConfig<R>['hooks']>;

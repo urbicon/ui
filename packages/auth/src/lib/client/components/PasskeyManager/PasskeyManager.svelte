@@ -15,6 +15,7 @@
   import { base64UrlToBuffer, bufferToBase64Url } from '../../utils/webauthn.js';
   import { errorTextFromBody, getJson, parseJsonBody } from '../../utils/http.js';
   import { resolveAuthSlotClasses, slotClass } from '../../utils/slot-class.js';
+  import { MAX_DISPLAY_NAME_LENGTH } from '../../../display-name.js';
 
   let {
     t: tProp,
@@ -108,6 +109,10 @@
   }
 
   async function cancelRename() {
+    // Inert, not unfocusable, while the write is in flight — abandoning the
+    // form mid-request would leave the panel showing the old name for a rename
+    // the server is about to commit.
+    if (renameBusy) return;
     const credentialId = renamingId;
     renamingId = null;
     renameDraft = '';
@@ -116,6 +121,14 @@
 
   async function saveRename(e: SubmitEvent) {
     e.preventDefault();
+    // A consumer may wrap this panel in a form of their own — a settings page
+    // is the obvious one — and a rename is not their submit. Same reason
+    // `onRenameKeydown` stops Escape.
+    e.stopPropagation();
+    // Enter during a flight would submit a second time: the field stays
+    // focusable while the request runs (see the markup), so the guard is here
+    // rather than on the control.
+    if (renameBusy) return;
     const credentialId = renamingId;
     if (!credentialId) return;
     actionError = '';
@@ -133,8 +146,12 @@
         fetcher
       );
       if (!res.ok) {
-        // Focus stays in the field: the refusal is almost always the name, and
-        // the message names it.
+        // The form stays open on its draft and nothing here moves focus, which
+        // is only a true statement because the in-flight state leaves every
+        // control focusable — a `disabled` field loses focus to <body> the
+        // moment it is set, and the refusal would strand the user at the top of
+        // the document. Measured in Chromium and Firefox; jsdom does not
+        // implement it, so the guarding test is an e2e one.
         actionError = errorTextFromBody(await parseJsonBody(res), t);
         return;
       }
@@ -349,16 +366,25 @@
           )}
         >
           {#if renamingId === passkey.credentialId}
+            <!-- Escape is handled on the form, not on the field: one Tab puts
+                 focus on Save, and from there the key reaches a surrounding
+                 Dialog and closes it with the rename form still open. The
+                 listener sits on the container so a control added later is
+                 covered without anyone remembering to wire it; every element
+                 that can hold focus inside is itself interactive, which is what
+                 the rule below is actually about. -->
+            <!-- svelte-ignore a11y_no_noninteractive_element_interactions -->
             <form
               class={cls('flex w-full items-end gap-2', slotClasses.renameForm)}
               onsubmit={saveRename}
+              onkeydown={onRenameKeydown}
             >
               <Input
                 label={t.passkeys.renameLabel}
                 bind:value={renameDraft}
-                maxlength={256}
-                disabled={renameBusy}
-                onkeydown={onRenameKeydown}
+                maxlength={MAX_DISPLAY_NAME_LENGTH}
+                readonly={renameBusy}
+                aria-busy={renameBusy}
                 {@attach focusOnOpen}
                 {unstyled}
                 class={cls('min-w-0 flex-1', slotClasses.renameField)}
@@ -369,7 +395,7 @@
                 intent="primary"
                 size="sm"
                 loading={renameBusy}
-                disabled={renameBusy}
+                disabled={renameDraft.trim() === ''}
                 {unstyled}
                 class={cls('shrink-0')}
               >
@@ -380,7 +406,7 @@
                 variant="ghost"
                 intent="neutral"
                 size="sm"
-                disabled={renameBusy}
+                aria-disabled={renameBusy}
                 onclick={cancelRename}
                 {unstyled}
                 class={cls('shrink-0')}

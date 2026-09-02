@@ -794,11 +794,11 @@
       "exports": ["Pagination", "PaginationItem"]
     },
     "PasskeyManager": {
-      "min": 93240,
-      "gz": 27551,
+      "min": 111609,
+      "gz": 32230,
       "net": {
-        "min": 77027,
-        "gz": 22364
+        "min": 95392,
+        "gz": 27042
       },
       "lazy": {
         "min": 7502,

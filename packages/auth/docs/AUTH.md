@@ -223,8 +223,15 @@ credentialId that is not the caller's — absent or someone else's, deliberately
 one answer — is the new `passkey_not_found` (`404`). Ownership is decided in the
 handler, so the refusal does not rest on the adapter's own scoping.
 
-Nothing that exists changes its behaviour, and adapters need no edit. **The
-break is the locale bundle:** `AuthLocale` is fully required, so a hand-written
+**Registration now holds a supplied name to the same rule.**
+`registrationVerify` passed `name` straight to the adapter unchecked, so a label
+registration accepted could be one the rename refuses — 100 KB of it, blank, or
+not a string — and it came back in every `list` response afterwards. A request
+that supplies such a name now answers `validation_error` (`400`) where it
+answered `201`. Omitting `name` is unchanged and remains what `<PasskeyManager>`
+sends: the adapter's `'Passkey'` default still applies.
+
+Adapters need no edit. **The other break is the locale bundle:** `AuthLocale` is fully required, so a hand-written
 one stops compiling until it carries the new keys — the intended signal, not a
 regression. Added: `auth.errors.passkeyNotFound` and `passkeys.rename`,
 `passkeys.renameLabel`, `passkeys.renameSave`, `passkeys.renameCancel`,
@@ -727,7 +734,7 @@ So the contract has two rules about misses, and both are pinned by the conforman
 
 Both exist because a miss is a normal answer, and only a throw is not. What the route does with it varies — the session revoke answers `404` (it gets a boolean back), while the notification, passkey and invitation delete routes are deliberately idempotent and answer `200` whether or not a row matched — but an adapter that throws turns every one of them into a `500`, so a malformed id becomes a way to fail those endpoints on demand.
 
-The passkey **rename** route is the one scoped mutation that does not take the idempotent option: it reads the row and answers `404` (`passkey_not_found`) for one that is absent or owned by someone else, before calling `rename`. A `200` there would report a relabel that did not happen, and the panel would show a name the store does not hold — which is what separates a rename from a delete, where the client's reaction to the no-op (drop the row) agrees with the server anyway. The repository's own owner scope is still required: it is the second gate, and the only one a consumer route calling `rename` directly has.
+The passkey **rename** route also answers `404` (`passkey_not_found`) for a row that is absent or is not the caller's. What separates it from the deletes above is not that it refuses — the session revoke refuses too — but where its answer comes from: the revoke is handed a boolean by its repository, while `rename` returns `void`, so this route reads the row itself before writing rather than inferring the outcome from a call that cannot report one. A `200` on a rename that did not happen would leave the panel showing a name the store does not hold; a delete's no-op has no such reading, because dropping the row is what the client does either way. The repository's own owner scope is still required: it is the second gate, and the only one a consumer route calling `rename` directly has.
 
 Three further cross-cutting conventions round the contract off. **Owner-first parameters:** every owner-scoped mutation takes `(userId, id, …)` — `markAsRead(userId, id)`, `passkey.delete(userId, credentialId)`, `pushSubscription.delete(userId, endpoint)`, `backupCode.consumeIfUnused(userId, codeHash)`. With two plain strings a swapped call still compiles, so the single fixed order is what keeps a swap greppable. **Pre-normalized emails:** every email reaching a repository (lookups and create data) was already trimmed + lowercased by the package's validation — match and store verbatim, never re-normalize. **Feature tiers:** `UserRepository` is sectioned by feature (core · email verification · password reset · email change · TOTP); an adapter for an app that will never mount a feature may stub that section with throwing methods, since nothing calls a section whose feature is not wired — the shipped adapters implement everything (see the section comments in `adapters/types.ts`).
 

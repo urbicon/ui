@@ -9,7 +9,8 @@ import {
   notifyHook,
   parseBody,
   privateEndpoints,
-  requireSessionUser
+  requireSessionUser,
+  validationRefusal
 } from '../handlers/_shared.js';
 import { authError } from '../handlers/errors.js';
 import { enforceRateLimit, sharedLimiter } from '../rate-limit.js';
@@ -201,6 +202,20 @@ function registrationVerifyHandler<R extends string>(
           return authError('validation_error', { message: 'Credential is required' });
         }
 
+        // `name` is optional HERE and only here: `<PasskeyManager>` registers
+        // without one and lets the adapter's `'Passkey'` default stand, so an
+        // absent name has to keep reaching `create` untouched. A name that IS
+        // supplied goes through the rename's rule — this endpoint and the
+        // rename are the two writers of a passkey label, and a label a
+        // consumer could store at registration but not set afterwards would be
+        // a bound that depends on which door it came through.
+        let label: string | undefined;
+        if (name != null) {
+          const checked = validatePasskeyNameInput({ name });
+          if (!checked.success) return validationRefusal(checked.errors);
+          label = checked.data.name;
+        }
+
         const verified = await verifyRegistration(webauthn, user.id, credential);
 
         const passkey = await passkeyRepo.create(user.id, {
@@ -210,7 +225,7 @@ function registrationVerifyHandler<R extends string>(
           counter: verified.counter,
           transports: verified.transports,
           aaguid: verified.aaguid,
-          name
+          name: label
         });
 
         return json(
@@ -534,12 +549,21 @@ function listHandler<R extends string>(
  * response echoes the renamed row, so the panel adopts the stored name (the
  * server trims) instead of its own draft.
  *
- * No rate limiter, matching `item.DELETE` and `list.GET` beside it. Every
- * `rateLimit` key in this package guards an endpoint that either accepts a
- * credential (`login`, `changePassword`, `twoFactor`) or answers before a
- * session exists (`passkeyAuth`); a relabel does neither, and the other
- * authenticated write that takes a display name — `update-profile` — is
- * likewise unlimited.
+ * No rate limiter, matching the `item.DELETE` and `list.GET` it is grouped
+ * with. This package does not limit uniformly and no rule here derives the
+ * answer: the notification writes resolve the session first and limit
+ * *afterwards*, keyed by the authenticated user id (`preferences.ts`,
+ * `push-subscription.ts`), on the argument that a per-user key cannot be dodged
+ * by rotating IPs. A relabel could inherit that argument.
+ *
+ * What decides against it is reach, measured rather than assumed: a rename
+ * costs one read and one write, fires no hook, sends no mail, and this package
+ * keeps no audit table — so its worst case is write load. That is the same
+ * worst case as the unlimited `DELETE` beside it, which destroys a credential
+ * rather than relabelling one. Braking the relabel while the deletion runs free
+ * would be arbitrary, so the group stays as it is. The two groups answering
+ * this differently is a divergence in the package, not a principle to read off
+ * it.
  */
 function renameHandler<R extends string>(
   passkeyRepo: PasskeyRepository,
@@ -574,6 +598,15 @@ function renameHandler<R extends string>(
       // The row is echoed from what was read plus the name just written, the
       // way `update-profile` echoes the updated user — a re-read would cost a
       // second round trip to restate what this handler just decided.
+      //
+      // A delete landing in the await between the lookup and the write leaves
+      // this answering 200 for a row the store no longer holds: `rename`
+      // no-ops and returns `void`, so nothing reports it, and the panel shows
+      // a passkey that is gone. Closing it needs `rename` to say whether it
+      // wrote — a boolean, as `updateCounter` already returns — which is a
+      // breaking change to every adapter written against this contract, so it
+      // is not taken here. The window is one await wide and the panel's next
+      // load corrects it.
       return json({ passkey: toPasskeyView({ ...stored, name }) });
     }
   };

@@ -71,11 +71,16 @@
         <p>
           "Rename" swaps the row's name for a labelled text field and moves focus into it with the
           current name selected, so typing replaces it. Enter or "Save" commits;
-          <kbd class="text-text-primary">Escape</kbd> or "Cancel" restores the stored name. Escape does
-          not bubble, so the panel can sit inside a dialog without the rename form and the dialog closing
-          together. Focus returns to that row's "Rename" button either way — it is never dropped to the
-          top of the document — and a refused rename keeps the field open with the draft so it can be
-          corrected in place.
+          <kbd class="text-text-primary">Escape</kbd> or "Cancel" restores the stored name. The form
+          handles Escape, not the field, so it still cancels once focus has moved on to "Save", and
+          it does not bubble — the panel can sit inside a dialog without the rename form and the
+          dialog closing together. Focus returns to that row's "Rename" button either way. While a
+          rename is being saved the field goes <code class="text-text-primary">readonly</code>
+          rather than
+          <code class="text-text-primary">disabled</code>: a disabled element loses focus to the
+          document body, which would strand a keyboard user at the top of the page for the length of
+          the request, and permanently if the server refuses. A refused rename keeps the field open,
+          focused, with the draft intact.
         </p>
       </Note>
       <Note title="Errors announce in place">

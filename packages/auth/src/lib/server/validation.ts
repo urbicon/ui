@@ -1,3 +1,5 @@
+import { MAX_DISPLAY_NAME_LENGTH } from '../display-name.js';
+
 export interface ValidationError {
   field: string;
   message: string;
@@ -15,7 +17,7 @@ export type ValidationResult<T> =
 // runs over the password on every login/reset) and storage. Generous enough
 // not to reject real passphrases or addresses.
 const MAX_EMAIL_LENGTH = 254; // RFC 5321 practical maximum
-const MAX_NAME_LENGTH = 256;
+const MAX_NAME_LENGTH = MAX_DISPLAY_NAME_LENGTH;
 const MAX_PASSWORD_LENGTH = 256; // ample for passphrases; bounds PBKDF2 cost per request
 const MAX_TOKEN_LENGTH = 512;
 // A TOTP code is 6 digits; a backup code is ~16 Base32 chars with separators.
