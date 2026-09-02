@@ -1,3 +1,4 @@
+import type { HTMLAttributes } from 'svelte/elements';
 import type { PinInputSlots, PinInputVariants } from './pin-input.variants';
 
 /**
@@ -12,7 +13,6 @@ import type { PinInputSlots, PinInputVariants } from './pin-input.variants';
  * @tag form
  * @related Input
  * @related NumberInput
- * @stability beta
  *
  * @example
  * ```svelte
@@ -27,7 +27,12 @@ import type { PinInputSlots, PinInputVariants } from './pin-input.variants';
  * <PinInput length={8} type="alphanumeric" mask separator="-" groupSize={4} />
  * ```
  */
-export interface PinInputProps extends Omit<PinInputVariants, 'error'> {
+export interface PinInputProps
+  extends Omit<PinInputVariants, 'error'>,
+    // `class`, `id` and `aria-label` are modelled below; the rest of a div's
+    // attributes reach the root. `aria-describedby` stays in and is merged
+    // rather than spread, so a consumer hint adds to the error/helper chain.
+    Omit<HTMLAttributes<HTMLDivElement>, 'class' | 'id' | 'aria-label'> {
   /** Current value — the concatenated cell characters. Supports `bind:value`. */
   value?: string;
   /** Number of cells. @default 6 */

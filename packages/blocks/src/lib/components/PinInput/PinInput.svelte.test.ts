@@ -227,4 +227,46 @@ describe('PinInput', () => {
     render({ length: 4 });
     expect(cells().every((c) => c.getAttribute('aria-required') === null)).toBe(true);
   });
+
+  // COMPONENT-API-CONVENTIONS § restProps ordering. PinInput took no restProps
+  // at all, so a consumer could neither hand it a `data-*` hook nor an external
+  // description — 63 of the package's 74 components did.
+  it('passes an unmodelled attribute through to the root', () => {
+    render({ length: 4, 'data-testid': 'code-field' } as Partial<PinInputProps>);
+    expect(document.querySelector('[data-testid="code-field"]')).not.toBeNull();
+  });
+
+  // Regression guard, not evidence: with no restProps at all this was green too,
+  // because the contradicting attribute never arrived. It holds the spread order
+  // if someone later moves `{...restProps}` after the component's attributes.
+  it('keeps its own state when restProps would contradict it', () => {
+    // Spread-first means a caller cannot cancel state the component owns. Both
+    // halves matter: the cells stay invalid, and the group stays disabled.
+    render({
+      length: 4,
+      error: 'Wrong code',
+      disabled: true,
+      'aria-disabled': 'false'
+    } as Partial<PinInputProps>);
+
+    const group = document.querySelector('[role="group"]');
+    expect(group?.getAttribute('aria-disabled')).toBe('true');
+    expect(cells()[0].getAttribute('aria-invalid')).toBe('true');
+  });
+
+  it('appends a consumer aria-describedby after its own message id', () => {
+    render({
+      length: 4,
+      error: 'Wrong code',
+      'aria-describedby': 'outside-hint'
+    } as Partial<PinInputProps>);
+
+    const described = cells()[0].getAttribute('aria-describedby') ?? '';
+    const parts = described.split(/\s+/).filter(Boolean);
+    expect(parts).toHaveLength(2);
+    // Internal first, the consumer's last — an external hint adds to the
+    // description rather than replacing it.
+    expect(parts[1]).toBe('outside-hint');
+    expect(parts[0]).not.toBe('outside-hint');
+  });
 });

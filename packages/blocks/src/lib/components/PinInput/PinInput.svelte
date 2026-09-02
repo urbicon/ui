@@ -38,7 +38,9 @@
     slotClasses: slotClassesProp = {},
     preset,
     id: idProp,
-    'aria-label': ariaLabel
+    'aria-label': ariaLabel,
+    'aria-describedby': ariaDescribedby,
+    ...restProps
   }: PinInputProps = $props();
 
   const tierCtx = getTierContext();
@@ -51,7 +53,10 @@
   const fieldId = $derived(idProp ?? `pininput-${propsId}`);
   const labelId = $derived(`${fieldId}-label`);
   const messageId = $derived(`${fieldId}-message`);
-  const describedBy = $derived(error || helper ? messageId : undefined);
+  const describedBy = $derived(
+    [error || helper ? messageId : undefined, ariaDescribedby].filter(Boolean).join(' ') ||
+      undefined
+  );
 
   // Allowed-character filter. `numeric` keeps digits; `alphanumeric` also keeps
   // ASCII letters and (optionally) uppercases them. Applied to typed input,
@@ -253,6 +258,7 @@
 </script>
 
 <div
+  {...restProps}
   class={unstyled
     ? resolveClassChain(slotClasses?.root, className)
     : styles.root({ class: [slotClasses?.root, className] })}

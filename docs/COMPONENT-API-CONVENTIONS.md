@@ -590,7 +590,7 @@ promise:
 
 ### Promotion: beta → stable
 
-A component is promoted when all four hold:
+A component is promoted when all five hold:
 
 1. Its docs page exists and has been through the editorial pass
    ([EDITORIAL.md](EDITORIAL.md)).
@@ -600,7 +600,17 @@ A component is promoted when all four hold:
    day, so a release count measures the maintainer's cadence rather than the
    API's. Measured on the component's `index.ts` — the props surface — with
    `git log -1 --date=short -- <path>/index.ts`.
-4. Tests cover the core behaviour (interaction and, where applicable, a11y).
+
+   A purely additive change that brings the component *onto* a convention in
+   this document does not restart the clock — it removes a deviation rather
+   than exploring a design. Renaming a prop, changing its type, or changing
+   what an existing one means does restart it.
+4. The conventions in this document hold — in particular the standard props of
+   § Common props. `stable` is defined by that sentence, so the criteria have
+   to ask it: eleven components in `blocks` take no `restProps`, and one of
+   them (QRCode) was promoted in the first wave without anyone checking. Grep
+   for `...rest` in the component's own root `.svelte`.
+5. Tests cover the core behaviour (interaction and, where applicable, a11y).
 
 The reverse move is not silent: discovering a violated criterion on a stable
 component is an issue against the component, not a quiet tag flip.
