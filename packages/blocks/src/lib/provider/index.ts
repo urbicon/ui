@@ -1,6 +1,8 @@
 export { default as BlocksProvider } from './BlocksProvider.svelte';
 export {
   type BlocksConfig,
+  type BlocksDefaults,
+  type BlocksPresets,
   type ComponentDefaults,
   type ComponentPreset,
   type ConditionalOverride,
@@ -11,3 +13,4 @@ export {
   resolvePresetSlotClasses,
   resolveSlotClasses
 } from './blocks-context';
+export type { ComponentSlotMap, SlotOf } from './component-slots';
