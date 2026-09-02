@@ -68,12 +68,14 @@ literal**. How your config reaches the attribute therefore decides how much of i
 | returned from a function | error | **accepted** |
 | a `const` annotated `Record<string, ComponentDefaults>` or `PresetMap` | **accepted** | **accepted** |
 
-Measured on `<BlocksProvider defaults={{ LineChart: … }}>`, every cell. Rows two to six are one
-rule: the wrong-key-*beside*-a-right-one column needs excess-property checking, which only
-reaches a **fresh object literal** written into the attribute. Anything that puts the record in
-a variable first — including `satisfies` and `as const`, which check the value but still leave a
-variable behind — falls back to the weak-type rule, and that only rejects an object sharing *no*
-key with the target.
+Measured on `<BlocksProvider defaults={{ LineChart: … }}>`, every cell. The
+wrong-key-*beside*-a-right-one column needs excess-property checking, which only reaches a
+**fresh object literal** written into the attribute; without it the weak-type rule is all that is
+left, and that rejects only an object sharing *no* key with the target. Rows three to six are one
+way of losing it — they put the record in a variable first, `satisfies` and `as const` included,
+which check the value and still leave a variable behind. Row two loses it for a second reason:
+excess-property checking does not apply to properties brought in by a spread, so a fresh literal
+in the attribute is not enough on its own.
 
 **The last row is the one that costs you the most.** `Record<string, ComponentDefaults>` was
 this prop's own type until this release, and `PresetMap` is still exported — so annotating a

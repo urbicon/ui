@@ -37,6 +37,15 @@ const internal = null as unknown as never;
  *
  * Every negative is an `@ts-expect-error`, so the day one stops being reported
  * the directive goes unused and this file fails to compile.
+ *
+ * **A wrong key alone and a wrong key beside a right one are not the same
+ * assertion.** The first fires through the weak-type rule, which needs no
+ * excess-property check and so survives every prop shape tried here; only the
+ * second tells the shapes apart. Each of the four provider positions therefore
+ * carries both, or the file would keep negatives that cannot fail for the reason
+ * it exists — measured against the shape this prop had before the review: with
+ * one `beside` it reported on a single line, with one per position it reports
+ * four.
  */
 describe('provider slot keys', () => {
   it('rejects a slot name the component does not have', () => {
@@ -68,8 +77,18 @@ describe('provider slot keys', () => {
       });
       BlocksProvider(internal, {
         children,
+        // @ts-expect-error … and beside a key that does resolve
+        defaults: { LineChart: { overrides: [{ class: { mark: 'ok', arc: 'x' } }] } }
+      });
+      BlocksProvider(internal, {
+        children,
         // @ts-expect-error the same record, reached through a preset
         presets: { LineChart: { dense: { overrides: [{ class: { arc: 'x' } }] } } }
+      });
+      BlocksProvider(internal, {
+        children,
+        // @ts-expect-error … and beside a key that does resolve
+        presets: { LineChart: { dense: { overrides: [{ class: { mark: 'ok', arc: 'x' } }] } } }
       });
       BlocksProvider(internal, {
         children,
@@ -85,6 +104,11 @@ describe('provider slot keys', () => {
         children,
         // @ts-expect-error a preset is not a way around the component's slot names
         presets: { LineChart: { dense: { slotClasses: { arc: 'x' } } } }
+      });
+      BlocksProvider(internal, {
+        children,
+        // @ts-expect-error … and beside a key that does resolve
+        presets: { LineChart: { dense: { slotClasses: { mark: 'ok', arc: 'x' } } } }
       });
       BlocksProvider(internal, {
         children,
