@@ -32,6 +32,7 @@ export const AUTH_ERROR_MESSAGE_KEYS = {
   not_authenticated: 'notAuthenticated',
   forbidden: 'forbidden',
   invalid_code: 'invalidCode',
+  two_factor_setup_code_invalid: 'twoFactorSetupCodeInvalid',
   no_2fa_challenge: 'no2faChallenge',
   two_factor_challenge_expired: 'twoFactorChallengeExpired',
   two_factor_already_enabled: 'twoFactorAlreadyEnabled',

@@ -213,9 +213,18 @@ offered that rule since v8 while `validatePasswordStrength` ignored it, so a UI
 demanding a symbol refused nothing the server would have accepted; it is now
 enforced, and off by default like the other character classes.
 
+The 2FA wrong-code answer is **two codes now**, because it was two events under
+one name. `invalid_code` keeps the sign-in step — the second factor refusing an
+unauthenticated caller, `401`, unchanged on the wire — and 2FA enrolment answers
+the new `two_factor_setup_code_invalid` (`400`) when the code typed against the
+staged secret does not match. A client switching on `invalid_code` to render
+"wrong code" during **setup** stops matching and needs the new arm; one that
+handles the sign-in step is unaffected. Both statuses are what those two
+endpoints already answered, so nothing changes for a client reading the status.
+
 `AuthLocale` is fully required, so a **hand-written locale bundle stops
 compiling** until it carries the new keys — that is the intended signal, not a
-regression. Added: `auth.errors.csrfFailed`, `auth.errors.passkeyVerificationFailed`,
+regression. Added: `auth.errors.twoFactorSetupCodeInvalid`, `auth.errors.csrfFailed`, `auth.errors.passkeyVerificationFailed`,
 `auth.errors.connectionLimit`, and the `auth.passwordRequirements` subtree
 (`label`, `met`, `notMet`, `failed`, `rules.*`). Moved: `auth.register.requirementsLabel`
 and `auth.register.requirements.*` became `auth.passwordRequirements.label` and
@@ -900,7 +909,7 @@ bun run test:e2e                            # Playwright (from the repo root)
 
 ## Error Contract
 
-Every handler (and the `createAuthHandle` gates) answers errors with one JSON shape: `{ error: string, code: AuthErrorCode, … }` — `error` is human-readable English prose, `code` the stable machine value from the append-only `AUTH_ERROR_CODES` set (never repurposed, only extended; the same code can appear under different HTTP statuses when the context differs, e.g. `invalid_code` is 400 on 2FA-enable and 401 on 2FA-verify). Validation failures additionally carry the full field list as `errors`, and the first field message replaces the generic prose. Rate limits answer `429 rate_limited` with a `Retry-After` header, while the per-user cap on concurrent SSE streams answers `429 connection_limit` — a separate code because backoff never clears a connection cap, so a client that treats the two alike retries forever. `<NotificationListener>` reads the stream off `fetch`, so it sees the code: it reports the refusal through `onRefused(code, status)` and does not reconnect on a 4xx (anything reading the log or metrics by `code` tells the two apart the same way). The CSRF gate answers `403 csrf_failed`; the SSE-stream refusals are JSON as of v6.17.0. The push-subscription writes distinguish `push_endpoint_conflict` (endpoint owned by another account — permanent) from `push_subscription_limit` (per-user device cap). The one deliberate exception: `createMeHandler` answers `401 { user: null }` — that is the session-status contract of the client store, not an error report.
+Every handler (and the `createAuthHandle` gates) answers errors with one JSON shape: `{ error: string, code: AuthErrorCode, … }` — `error` is human-readable English prose, `code` the stable machine value from the append-only `AUTH_ERROR_CODES` set (never repurposed, only extended). **The status is a property of the code**: one code answers under exactly one HTTP status, everywhere it is sent, so `code` and status can never disagree between two handlers. Where one name would have had to carry two statuses, there are two names — `invalid_code` is the 2FA sign-in step refusing the second factor (401), and `two_factor_setup_code_invalid` is 2FA enrolment rejecting a typed code on an already-authenticated request (400). Validation failures additionally carry the full field list as `errors`, and the first field message replaces the generic prose. Rate limits answer `429 rate_limited` with a `Retry-After` header, while the per-user cap on concurrent SSE streams answers `429 connection_limit` — a separate code because backoff never clears a connection cap, so a client that treats the two alike retries forever. `<NotificationListener>` reads the stream off `fetch`, so it sees the code: it reports the refusal through `onRefused(code, status)` and does not reconnect on a 4xx (anything reading the log or metrics by `code` tells the two apart the same way). The CSRF gate answers `403 csrf_failed`; the SSE-stream refusals are JSON as of v6.17.0. The push-subscription writes distinguish `push_endpoint_conflict` (endpoint owned by another account — permanent) from `push_subscription_limit` (per-user device cap). The one deliberate exception: `createMeHandler` answers `401 { user: null }` — that is the session-status contract of the client store, not an error report.
 
 Localized clients map `code` via `errorMessageFromCode(code, t, error)` (exported from the package root): known code → locale bundle, unknown code or missing translation → the server prose, neither → `undefined` for the caller's own fallback. `validation_error` deliberately prefers the field-level server prose. The pre-built components do this everywhere via their shared `errorTextFromBody` helper. One code is client-synthesized rather than served: `network_error` (the request never reached the server — offline, DNS, CORS), produced by the stores and mapped to `auth.errors.networkError` like any other code.
 

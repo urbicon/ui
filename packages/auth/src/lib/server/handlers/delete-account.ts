@@ -24,7 +24,7 @@ export function createDeleteAccountHandler<R extends string>(
       if (limited) return limited;
 
       const user = await requireSessionUser(deps, cookies);
-      if (!user) return authError('not_authenticated', 401);
+      if (!user) return authError('not_authenticated');
 
       const body = await parseBody(request, validateDeleteAccountInput);
       if (body instanceof Response) return body;
@@ -32,7 +32,7 @@ export function createDeleteAccountHandler<R extends string>(
 
       // Re-auth before an irreversible delete.
       if (!(await verifyCurrentPassword(user, currentPassword, deps))) {
-        return authError('current_password_incorrect', 403);
+        return authError('current_password_incorrect');
       }
 
       // Archive hook BEFORE the row is gone. A throw aborts the deletion

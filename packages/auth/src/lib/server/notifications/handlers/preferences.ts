@@ -59,7 +59,7 @@ export function createPreferencesHandler(
     GET: async ({ locals }) => {
       const userId = localsUserId(locals);
       if (!userId) {
-        return authError('not_authenticated', 401);
+        return authError('not_authenticated');
       }
 
       const prefs = await repo.findByUser(userId);
@@ -69,7 +69,7 @@ export function createPreferencesHandler(
     PUT: async ({ request, locals }) => {
       const userId = localsUserId(locals);
       if (!userId) {
-        return authError('not_authenticated', 401);
+        return authError('not_authenticated');
       }
 
       const limited = await enforceRateLimit(rateLimiter, userId);
@@ -82,24 +82,24 @@ export function createPreferencesHandler(
         email?: unknown;
       };
       if (typeof typeKey !== 'string' || typeKey.length === 0) {
-        return authError('validation_error', 400, { message: 'typeKey is required' });
+        return authError('validation_error', { message: 'typeKey is required' });
       }
       if (typeKey.length > MAX_TYPE_KEY_LENGTH) {
-        return authError('validation_error', 400, {
+        return authError('validation_error', {
           message: `typeKey must be at most ${MAX_TYPE_KEY_LENGTH} characters`
         });
       }
       // Only registered types may hold a preference row — see the factory
       // JSDoc (unbounded-row-growth guard + semantic correctness).
       if (!registry.get(typeKey)) {
-        return authError('validation_error', 400, { message: 'Unknown notification type' });
+        return authError('validation_error', { message: 'Unknown notification type' });
       }
 
       const sseFlag = parseFlag(sse);
       const pushFlag = parseFlag(push);
       const emailFlag = parseFlag(email);
       if (sseFlag === 'invalid' || pushFlag === 'invalid' || emailFlag === 'invalid') {
-        return authError('validation_error', 400, { message: 'Preference flags must be booleans' });
+        return authError('validation_error', { message: 'Preference flags must be booleans' });
       }
 
       // Only the flags actually present in the body reach the repo — the

@@ -76,7 +76,7 @@ function listSessionsHandler<R extends string>(deps: AuthDeps<R>): { GET: Reques
   return {
     GET: async (event) => {
       const user = await requireSessionUser(deps, event.cookies);
-      if (!user) return authError('not_authenticated', 401, { headers: NO_STORE });
+      if (!user) return authError('not_authenticated', { headers: NO_STORE });
 
       const repo = deps.repos.refreshToken;
       if (!deps.config.refreshToken || !repo) {
@@ -114,11 +114,11 @@ function revokeSessionHandler<R extends string>(deps: AuthDeps<R>): { POST: Requ
   return {
     POST: async (event) => {
       const user = await requireSessionUser(deps, event.cookies);
-      if (!user) return authError('not_authenticated', 401);
+      if (!user) return authError('not_authenticated');
 
       const repo = deps.repos.refreshToken;
       if (!deps.config.refreshToken || !repo) {
-        return authError('feature_unavailable', 400, {
+        return authError('feature_unavailable', {
           message: 'Session management is not available.'
         });
       }
@@ -126,11 +126,11 @@ function revokeSessionHandler<R extends string>(deps: AuthDeps<R>): { POST: Requ
       const body = (await readJsonBody(event.request)) as { id?: unknown };
       const rawId: unknown = event.params?.id ?? body.id;
       if (typeof rawId !== 'string' || rawId.length === 0) {
-        return authError('validation_error', 400, { message: 'A session id is required.' });
+        return authError('validation_error', { message: 'A session id is required.' });
       }
 
       const revoked = await repo.revokeFamilyForUser(user.id, rawId);
-      if (!revoked) return authError('session_not_found', 404);
+      if (!revoked) return authError('session_not_found');
       return json({ success: true });
     }
   };
@@ -140,11 +140,11 @@ function revokeOtherSessionsHandler<R extends string>(deps: AuthDeps<R>): { POST
   return {
     POST: async (event) => {
       const user = await requireSessionUser(deps, event.cookies);
-      if (!user) return authError('not_authenticated', 401);
+      if (!user) return authError('not_authenticated');
 
       const repo = deps.repos.refreshToken;
       if (!deps.config.refreshToken || !repo) {
-        return authError('feature_unavailable', 400, {
+        return authError('feature_unavailable', {
           message: 'Session management is not available.'
         });
       }

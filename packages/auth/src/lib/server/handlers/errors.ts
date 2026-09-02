@@ -41,8 +41,13 @@ export const AUTH_ERROR_CODES = {
   // AuthZ / session
   not_authenticated: 'not_authenticated',
   forbidden: 'forbidden',
-  // Two-factor
+  // Two-factor. The two wrong-code answers are separate codes because they are
+  // separate events: `invalid_code` is the login challenge failing to
+  // authenticate, `two_factor_setup_code_invalid` is a field rejected on an
+  // already-authenticated enrolment request. They answer under different
+  // statuses, so one name cannot carry both — see AUTH_ERROR_STATUS.
   invalid_code: 'invalid_code',
+  two_factor_setup_code_invalid: 'two_factor_setup_code_invalid',
   no_2fa_challenge: 'no_2fa_challenge',
   two_factor_challenge_expired: 'two_factor_challenge_expired',
   two_factor_already_enabled: 'two_factor_already_enabled',
@@ -97,6 +102,70 @@ export const AUTH_ERROR_CODES = {
 export type AuthErrorCode = (typeof AUTH_ERROR_CODES)[keyof typeof AUTH_ERROR_CODES];
 
 /**
+ * The HTTP status each code answers under. The status is a property of the
+ * code, not of the call site: two handlers returning the same code answer
+ * under the same status because they read it from here rather than repeating
+ * it.
+ *
+ * `Record<AuthErrorCode, number>` and not `Partial` is the whole enforcement —
+ * a new code with no status here fails to compile, so there is no default to
+ * fall back to and no way to reach a status this table does not name.
+ *
+ * Not re-exported from `./index.js`: a consumer reads the status off the
+ * `Response`, and pinning the table as API would freeze numbers that belong to
+ * the handlers.
+ */
+export const AUTH_ERROR_STATUS: Record<AuthErrorCode, number> = {
+  // Registration / invitations
+  invitation_required: 403,
+  invitation_used: 403,
+  invitation_expired: 403,
+  email_taken: 409,
+  email_invited: 409,
+  // Login
+  invalid_credentials: 401,
+  account_locked: 423,
+  // No handler in this package sends it (see AUTH_ERROR_CODES), so this is the
+  // one status no call site derives — every other entry reproduces what its
+  // handlers already answered. 403: the credentials were accepted and the
+  // account is refused anyway.
+  email_unverified: 403,
+  // Tokens
+  invalid_token: 400,
+  // Re-auth-gated account mutations
+  current_password_incorrect: 403,
+  // AuthZ / session
+  not_authenticated: 401,
+  forbidden: 403,
+  // Two-factor
+  invalid_code: 401,
+  two_factor_setup_code_invalid: 400,
+  no_2fa_challenge: 400,
+  two_factor_challenge_expired: 400,
+  two_factor_already_enabled: 400,
+  two_factor_setup_required: 400,
+  totp_secret_unreadable: 500,
+  // Sessions / refresh
+  session_not_found: 404,
+  missing_refresh_token: 401,
+  invalid_refresh_token: 401,
+  feature_unavailable: 400,
+  // Input validation
+  validation_error: 400,
+  // Rate limiting / connection caps
+  rate_limited: 429,
+  connection_limit: 429,
+  csrf_failed: 403,
+  // Passkeys
+  passkey_verification_failed: 400,
+  passkey_credential_deleted: 400,
+  // Push subscription writes
+  push_endpoint_conflict: 409,
+  push_subscription_limit: 409,
+  server_error: 500
+};
+
+/**
  * English prose for the codes {@link AUTH_ERROR_MESSAGE_KEYS} leaves unmapped.
  * The mapped type is what keeps this exhaustive: a new code mapped to `null`
  * without an entry here fails to compile.
@@ -136,18 +205,17 @@ interface AuthErrorOptions {
  * machine `code`. Drop-in for the old `json({ error }, { status })`:
  *
  * ```ts
- * return authError('invitation_required', 403);
+ * return authError('invitation_required');
  * // → 403 { error: 'An invitation is required to register.', code: 'invitation_required' }
  * ```
  *
- * Pass `message` to override the prose (validation field messages), `extra` to
- * add body fields (`{ errors }`), and `headers` for cache directives.
+ * The status comes from {@link AUTH_ERROR_STATUS} keyed by the code — callers
+ * do not pass one. Pass `message` to override the prose (validation field
+ * messages), `extra` to add body fields (`{ errors }`), and `headers` for
+ * cache directives.
  */
-export function authError(
-  code: AuthErrorCode,
-  status: number,
-  opts: AuthErrorOptions = {}
-): Response {
+export function authError(code: AuthErrorCode, opts: AuthErrorOptions = {}): Response {
+  const status = AUTH_ERROR_STATUS[code];
   return json(
     { error: opts.message ?? defaultMessage(code), code, ...opts.extra },
     opts.headers ? { status, headers: opts.headers } : { status }

@@ -16,6 +16,8 @@ export const de = {
       notAuthenticated: 'Bitte melde dich an, um fortzufahren.',
       forbidden: 'Dazu hast du keine Berechtigung.',
       invalidCode: 'Ungültiger Code. Bitte versuche es erneut.',
+      twoFactorSetupCodeInvalid:
+        'Dieser Code passt nicht. Prüfe deine Authenticator-App und versuche es erneut.',
       no2faChallenge: 'Keine ausstehende Zwei-Faktor-Anfrage.',
       twoFactorChallengeExpired:
         'Die Zwei-Faktor-Anfrage ist abgelaufen. Bitte melde dich erneut an.',

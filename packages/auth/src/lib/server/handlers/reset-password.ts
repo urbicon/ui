@@ -36,7 +36,7 @@ export function createResetPasswordHandler<R extends string>(
       // A second concurrent attempt with the same token gets null → 400.
       const user = await deps.repos.user.consumeResetToken(tokenHash);
       if (!user) {
-        return authError('invalid_token', 400, { message: 'Invalid or expired reset token.' });
+        return authError('invalid_token', { message: 'Invalid or expired reset token.' });
       }
 
       await deps.repos.user.updatePassword(user.id, newHash);

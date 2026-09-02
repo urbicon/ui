@@ -37,7 +37,14 @@ export interface AuthLocale {
       currentPasswordIncorrect: string;
       notAuthenticated: string;
       forbidden: string;
+      /** The login challenge rejected the code — the sign-in did not complete. */
       invalidCode: string;
+      /**
+       * Enrolment rejected the code. Separate copy from `invalidCode` because
+       * the reader is mid-setup with the QR code still on screen, so naming the
+       * authenticator app is actionable here and meaningless at sign-in.
+       */
+      twoFactorSetupCodeInvalid: string;
       no2faChallenge: string;
       twoFactorChallengeExpired: string;
       twoFactorAlreadyEnabled: string;

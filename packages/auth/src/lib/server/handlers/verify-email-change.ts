@@ -37,7 +37,7 @@ export function createVerifyEmailChangeHandler<R extends string>(
       // on an unknown/expired token or a target taken since the request.
       const user = await deps.repos.user.consumeEmailChangeToken(tokenHash);
       if (!user) {
-        return authError('invalid_token', 400, {
+        return authError('invalid_token', {
           message: 'Invalid or expired link, or the email is no longer available.'
         });
       }

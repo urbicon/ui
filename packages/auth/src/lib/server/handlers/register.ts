@@ -113,23 +113,23 @@ export function createRegisterHandler<R extends string>(
       // would be unreachable, and its 403 would contradict that 400.
       const invitation = await deps.repos.invitation.findByTokenHash(hashToken(token));
       if (!invitation) {
-        return authError('invitation_required', 403);
+        return authError('invitation_required');
       }
       if (invitation.usedAt) {
-        return authError('invitation_used', 403);
+        return authError('invitation_used');
       }
       if (invitation.expiresAt.getTime() <= Date.now()) {
-        return authError('invitation_expired', 403);
+        return authError('invitation_expired');
       }
       if (invitation.email !== email) {
-        return authError('invitation_required', 403);
+        return authError('invitation_required');
       }
 
       // Check existing user (cheap early reject; the email unique-constraint is
       // the real serialization point on create below).
       const existing = await deps.repos.user.findByEmail(email);
       if (existing) {
-        return authError('email_taken', 409);
+        return authError('email_taken');
       }
 
       const passwordHash = await hashPassword(password, deps.config.password);
@@ -169,7 +169,7 @@ export function createRegisterHandler<R extends string>(
       // column to the schema can't silently desync the in-memory shape.
       const fullUser = await deps.repos.user.findByEmail(email);
       if (!fullUser) {
-        return authError('server_error', 500, {
+        return authError('server_error', {
           message: 'Registration failed. Please try again.'
         });
       }

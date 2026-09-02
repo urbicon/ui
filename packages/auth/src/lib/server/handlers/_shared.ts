@@ -29,7 +29,7 @@ export async function parseBody<T>(
 ): Promise<{ data: T } | Response> {
   const input = validate(await readJsonBody(request));
   if (!input.success) {
-    return authError('validation_error', 400, {
+    return authError('validation_error', {
       message: input.errors[0].message,
       extra: { errors: input.errors },
       ...(options?.headers && { headers: options.headers })
@@ -137,7 +137,7 @@ export function passwordRefusal(password: string, config?: PasswordConfig): Resp
   const policy = resolvePasswordPolicy(config);
   const rules = unmetPasswordRules(password, policy);
   if (rules.length === 0) return null;
-  return authError('validation_error', 400, {
+  return authError('validation_error', {
     message: passwordRuleMessage(rules[0], policy),
     extra: {
       errors: rules.map((rule) => passwordRuleMessage(rule, policy)),

@@ -38,7 +38,7 @@ export function createNotificationsHandlers(service: NotificationService): {
       GET: async ({ locals, url }) => {
         const userId = localsUserId(locals);
         if (!userId) {
-          return authError('not_authenticated', 401);
+          return authError('not_authenticated');
         }
 
         // Query params are UI hints, read-tolerantly: a malformed or
@@ -57,7 +57,7 @@ export function createNotificationsHandlers(service: NotificationService): {
       POST: async ({ locals }) => {
         const userId = localsUserId(locals);
         if (!userId) {
-          return authError('not_authenticated', 401);
+          return authError('not_authenticated');
         }
 
         await service.markAllAsRead(userId);
@@ -69,12 +69,12 @@ export function createNotificationsHandlers(service: NotificationService): {
       POST: async ({ locals, params }) => {
         const userId = localsUserId(locals);
         if (!userId) {
-          return authError('not_authenticated', 401);
+          return authError('not_authenticated');
         }
 
         const id = params.id;
         if (!id) {
-          return authError('validation_error', 400, { message: 'Notification id is required' });
+          return authError('validation_error', { message: 'Notification id is required' });
         }
 
         await service.markAsRead(userId, id);
@@ -86,12 +86,12 @@ export function createNotificationsHandlers(service: NotificationService): {
       DELETE: async ({ locals, params }) => {
         const userId = localsUserId(locals);
         if (!userId) {
-          return authError('not_authenticated', 401);
+          return authError('not_authenticated');
         }
 
         const id = params.id;
         if (!id) {
-          return authError('validation_error', 400, { message: 'Notification id is required' });
+          return authError('validation_error', { message: 'Notification id is required' });
         }
 
         await service.deleteNotification(userId, id);

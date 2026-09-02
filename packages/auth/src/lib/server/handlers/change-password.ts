@@ -31,7 +31,7 @@ export function createChangePasswordHandler<R extends string>(
       if (limited) return limited;
 
       const user = await requireSessionUser(deps, cookies);
-      if (!user) return authError('not_authenticated', 401);
+      if (!user) return authError('not_authenticated');
 
       const body = await parseBody(request, validateChangePasswordInput);
       if (body instanceof Response) return body;
@@ -39,7 +39,7 @@ export function createChangePasswordHandler<R extends string>(
 
       // Re-auth: confirm the current password before allowing the change.
       if (!(await verifyCurrentPassword(user, currentPassword, deps))) {
-        return authError('current_password_incorrect', 403);
+        return authError('current_password_incorrect');
       }
 
       const weakPassword = passwordRefusal(newPassword, deps.config.password);

@@ -92,7 +92,7 @@ export const DEFAULT_PUBLIC_ROUTES: readonly string[] = Object.freeze([
   '/api/auth/'
 ]);
 
-const jsonUnauthorized = () => authError('not_authenticated', 401);
+const jsonUnauthorized = () => authError('not_authenticated');
 
 export function createAuthHandle<R extends string>(options: AuthHandleOptions<R>): Handle {
   const { config, repos } = options;
@@ -171,7 +171,7 @@ export function createAuthHandle<R extends string>(options: AuthHandleOptions<R>
         logger
       })
     ) {
-      return authError('csrf_failed', 403);
+      return authError('csrf_failed');
     }
 
     // 1a. Ensure the Double-Submit-Cookie exists for safe requests so the
