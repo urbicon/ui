@@ -223,6 +223,34 @@ export function privateEndpoints<T extends object>(bundle: T): T {
 }
 
 /**
+ * Every handler {@link privateEndpoints} has produced, so a test can ask
+ * whether a given endpoint came out of it.
+ *
+ * Driving an endpoint only answers this where a test can reach a success path,
+ * and a good third of these need a ceremony, a second factor or a live token
+ * first. Until they get one they answer from `authError`, whose directive says
+ * nothing about the wrapper — and that gap is where an endpoint mounted BESIDE
+ * the wrapper hides. `{ ...privateEndpoints({ setup }), enable: enable() }` is
+ * a natural thing to write against a wrapper that mutates in place, and it puts
+ * a `200` carrying ten plaintext backup codes on the wire with no directive at
+ * all. Asking about identity covers every endpoint, reachable or not, and needs
+ * no fixture.
+ */
+const WRAPPED = new WeakSet<object>();
+
+/**
+ * Whether `handler` is an endpoint {@link privateEndpoints} wrapped.
+ *
+ * It answers about the *function*, not about a response: a wrapped endpoint
+ * that names its own directive (`jwks`, `password-policy`, `push-key`) is
+ * still wrapped — the wrapper only ever fills a gap. What reaches the wire is
+ * a separate question, and a separate assertion.
+ */
+export function isWrappedEndpoint(handler: unknown): boolean {
+  return typeof handler === 'function' && WRAPPED.has(handler);
+}
+
+/**
  * `seen` is what bounds the walk. A bundle is a value the caller owns, so it
  * may hold a reference back to itself or share one sub-object between two
  * groups; without this, the first recurses until the stack runs out and the
@@ -234,13 +262,15 @@ function stampEndpoints(node: Record<string, unknown>, seen: WeakSet<object>): v
   for (const [key, value] of Object.entries(node)) {
     if (ENDPOINT_KEYS.includes(key) && typeof value === 'function') {
       const handler = value as EndpointHandler;
-      node[key] = async (event: RequestEvent): Promise<Response> => {
+      const wrapped = async (event: RequestEvent): Promise<Response> => {
         const response = await handler(event);
         if (!response.headers.has('Cache-Control')) {
           response.headers.set('Cache-Control', 'no-store');
         }
         return response;
       };
+      WRAPPED.add(wrapped);
+      node[key] = wrapped;
     } else if (isPlainObject(value)) {
       stampEndpoints(value, seen);
     }

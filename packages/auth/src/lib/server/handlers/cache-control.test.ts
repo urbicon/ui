@@ -32,7 +32,7 @@ import {
   createMockUser,
   mockPostEvent
 } from '../test-utils.js';
-import { ENDPOINT_KEYS } from './_shared.js';
+import { ENDPOINT_KEYS, isWrappedEndpoint } from './_shared.js';
 import { createChangeEmailHandler } from './change-email.js';
 import { createChangePasswordHandler } from './change-password.js';
 import { createDeleteAccountHandler } from './delete-account.js';
@@ -278,6 +278,48 @@ describe('cache directives — coverage', () => {
   });
 });
 
+/**
+ * Every endpoint came out of `privateEndpoints`.
+ *
+ * The two driven sweeps below can only speak for the endpoints they reach on a
+ * success path: 13 of the 41 need a ceremony, a second factor or a live token
+ * first, and on their refusal path the directive comes from `authError`, which
+ * says nothing about the wrapper. This asks the wrapper directly instead, so it
+ * covers all 41 with no fixture — and it is what catches an endpoint mounted
+ * BESIDE the wrapper rather than inside it, which no per-bundle argument can:
+ * `{ ...privateEndpoints({ setup }), enable: enableHandler(deps) }` leaves
+ * `enable` answering 200 with ten plaintext backup codes and no directive.
+ *
+ * It claims less than the sweeps do — that the function came from the wrapper,
+ * not that a particular response carries a particular header. The three public
+ * endpoints are wrapped too; the wrapper simply finds their directive already
+ * set and leaves it. Both halves are asserted, so neither stands in for the
+ * other.
+ */
+describe('cache directives — every endpoint is wrapped', () => {
+  it.each(ENDPOINTS.map((e) => [e.id, e] as const))('%s came from the wrapper', (_id, endpoint) => {
+    expect(isWrappedEndpoint(endpoint.run)).toBe(true);
+  });
+
+  it('holds for the public endpoints, which set their own directive', async () => {
+    const publicEndpoints = ENDPOINTS.filter((e) => e.id in STORABLE);
+    // Guards the filter itself: an empty list would make the loop vacuous.
+    expect(publicEndpoints.map((e) => e.id).sort()).toEqual(Object.keys(STORABLE).sort());
+
+    for (const endpoint of publicEndpoints) {
+      expect(isWrappedEndpoint(endpoint.run), `${endpoint.id} is not wrapped`).toBe(true);
+      const res = await endpoint.run(anonymousEvent());
+      await res.body?.cancel();
+      // Wrapped AND public: being wrapped did not overwrite what they name.
+      expect(res.headers.get('cache-control'), endpoint.id).toBe(STORABLE[endpoint.id]);
+    }
+  });
+
+  it('is not true of a handler that never went through it', () => {
+    expect(isWrappedEndpoint(async () => new Response('x'))).toBe(false);
+  });
+});
+
 describe('cache directives — every endpoint, refusal path', () => {
   it.each(ENDPOINTS.map((e) => [e.id, e] as const))(
     '%s carries a cache directive',
@@ -375,193 +417,267 @@ async function signedIn(
   } as unknown as RequestEvent;
 }
 
-const SUCCESS_DRIVES: Record<string, () => Promise<Response>> = {
-  createChangeEmailHandler: async () => {
-    const { deps } = await signedInDeps({
-      userRepo: { findByEmail: vi.fn().mockResolvedValue(null) }
-    });
-    return createChangeEmailHandler(deps).POST(
-      await signedIn(deps, { body: { newEmail: 'new@test.com', currentPassword: PASSWORD } })
-    );
+const SUCCESS_DRIVES: Record<string, { endpoint: string; run: () => Promise<Response> }> = {
+  createChangeEmailHandler: {
+    endpoint: 'ChangeEmail.POST',
+    run: async () => {
+      const { deps } = await signedInDeps({
+        userRepo: { findByEmail: vi.fn().mockResolvedValue(null) }
+      });
+      return createChangeEmailHandler(deps).POST(
+        await signedIn(deps, { body: { newEmail: 'new@test.com', currentPassword: PASSWORD } })
+      );
+    }
   },
-  createChangePasswordHandler: async () => {
-    const { deps } = await signedInDeps();
-    return createChangePasswordHandler(deps).POST(
-      await signedIn(deps, { body: { currentPassword: PASSWORD, newPassword: NEW_PASSWORD } })
-    );
+  createChangePasswordHandler: {
+    endpoint: 'ChangePassword.POST',
+    run: async () => {
+      const { deps } = await signedInDeps();
+      return createChangePasswordHandler(deps).POST(
+        await signedIn(deps, { body: { currentPassword: PASSWORD, newPassword: NEW_PASSWORD } })
+      );
+    }
   },
-  createDeleteAccountHandler: async () => {
-    const { deps } = await signedInDeps();
-    return createDeleteAccountHandler(deps).POST(
-      await signedIn(deps, { body: { currentPassword: PASSWORD } })
-    );
+  createDeleteAccountHandler: {
+    endpoint: 'DeleteAccount.POST',
+    run: async () => {
+      const { deps } = await signedInDeps();
+      return createDeleteAccountHandler(deps).POST(
+        await signedIn(deps, { body: { currentPassword: PASSWORD } })
+      );
+    }
   },
-  createForgotPasswordHandler: async () => {
-    const { deps } = await signedInDeps();
-    return createForgotPasswordHandler(deps).POST(
-      await signedIn(deps, { body: { email: 'test@test.com' } })
-    );
+  createForgotPasswordHandler: {
+    endpoint: 'ForgotPassword.POST',
+    run: async () => {
+      const { deps } = await signedInDeps();
+      return createForgotPasswordHandler(deps).POST(
+        await signedIn(deps, { body: { email: 'test@test.com' } })
+      );
+    }
   },
-  createInvitationHandlers: async () => {
-    const { deps } = await signedInDeps({ invitation: { list: vi.fn().mockResolvedValue([]) } });
-    return createInvitationHandlers(deps, { authorize: () => true, roles: ['admin'] }).GET(
-      await signedIn(deps)
-    );
+  createInvitationHandlers: {
+    endpoint: 'Invitation.GET',
+    run: async () => {
+      const { deps } = await signedInDeps({ invitation: { list: vi.fn().mockResolvedValue([]) } });
+      return createInvitationHandlers(deps, { authorize: () => true, roles: ['admin'] }).GET(
+        await signedIn(deps)
+      );
+    }
   },
-  createJWKSHandler: async () => {
-    const es256 = await generateES256KeyPair();
-    return createJWKSHandler({
-      jwt: { algorithm: 'ES256', signingKey: es256.privateKey, secret: 'unused' }
-    }).GET(anonymousEvent());
+  createJWKSHandler: {
+    endpoint: 'JWKS.GET',
+    run: async () => {
+      const es256 = await generateES256KeyPair();
+      return createJWKSHandler({
+        jwt: { algorithm: 'ES256', signingKey: es256.privateKey, secret: 'unused' }
+      }).GET(anonymousEvent());
+    }
   },
-  createLoginHandler: async () => {
-    const { deps, sessionUser } = await signedInDeps({
-      userRepo: { findByEmail: vi.fn().mockResolvedValue(undefined) }
-    });
-    vi.mocked(deps.repos.user.findByEmail).mockResolvedValue(sessionUser);
-    return createLoginHandler(deps).POST(
-      await signedIn(deps, { body: { email: 'test@test.com', password: PASSWORD } })
-    );
+  createLoginHandler: {
+    endpoint: 'Login.POST',
+    run: async () => {
+      const { deps, sessionUser } = await signedInDeps({
+        userRepo: { findByEmail: vi.fn().mockResolvedValue(undefined) }
+      });
+      vi.mocked(deps.repos.user.findByEmail).mockResolvedValue(sessionUser);
+      return createLoginHandler(deps).POST(
+        await signedIn(deps, { body: { email: 'test@test.com', password: PASSWORD } })
+      );
+    }
   },
-  createLogoutHandler: async () => {
-    const { deps } = await signedInDeps();
-    return createLogoutHandler(deps).POST(await signedIn(deps));
+  createLogoutHandler: {
+    endpoint: 'Logout.POST',
+    run: async () => {
+      const { deps } = await signedInDeps();
+      return createLogoutHandler(deps).POST(await signedIn(deps));
+    }
   },
-  createMeHandler: async () => {
-    const { deps } = await signedInDeps();
-    return createMeHandler(deps).GET(await signedIn(deps));
+  createMeHandler: {
+    endpoint: 'Me.GET',
+    run: async () => {
+      const { deps } = await signedInDeps();
+      return createMeHandler(deps).GET(await signedIn(deps));
+    }
   },
-  createPasswordPolicyHandler: async () => {
-    const { deps } = await signedInDeps();
-    return createPasswordPolicyHandler(deps).GET(anonymousEvent());
+  createPasswordPolicyHandler: {
+    endpoint: 'PasswordPolicy.GET',
+    run: async () => {
+      const { deps } = await signedInDeps();
+      return createPasswordPolicyHandler(deps).GET(anonymousEvent());
+    }
   },
-  createRefreshHandler: async () => {
-    const repo = createInMemoryRefreshTokenRepository(createInMemoryStore());
-    const { token } = await issueRefreshToken(repo, 'user-1', { refreshTokenTtl: '30d' });
-    const { deps } = await signedInDeps({ refreshToken: repo });
-    return createRefreshHandler(deps).POST(await signedIn(deps, { cookies: { refresh: token } }));
+  createRefreshHandler: {
+    endpoint: 'Refresh.POST',
+    run: async () => {
+      const repo = createInMemoryRefreshTokenRepository(createInMemoryStore());
+      const { token } = await issueRefreshToken(repo, 'user-1', { refreshTokenTtl: '30d' });
+      const { deps } = await signedInDeps({ refreshToken: repo });
+      return createRefreshHandler(deps).POST(await signedIn(deps, { cookies: { refresh: token } }));
+    }
   },
-  createRegisterHandler: async () => {
-    const token = 'invitation-token';
-    const sessionUser = createMockUser({ id: 'user-1' });
-    const { deps } = await signedInDeps({
-      // Called twice on the success path: null for the "already registered?"
-      // check, then the created row, which the handler re-reads rather than
-      // hand-assembling.
-      userRepo: {
-        findByEmail: vi.fn().mockResolvedValueOnce(null).mockResolvedValue(sessionUser)
-      },
-      invitation: {
-        findByTokenHash: vi.fn().mockResolvedValue(createMockInvitation({ email: 'new@test.com' }))
-      }
-    });
-    vi.mocked(deps.repos.user.create).mockResolvedValue(sessionUser);
-    return createRegisterHandler(deps).POST(
-      await signedIn(deps, {
-        body: { email: 'new@test.com', name: 'New User', password: NEW_PASSWORD, token }
-      })
-    );
+  createRegisterHandler: {
+    endpoint: 'Register.POST',
+    run: async () => {
+      const token = 'invitation-token';
+      const sessionUser = createMockUser({ id: 'user-1' });
+      const { deps } = await signedInDeps({
+        // Called twice on the success path: null for the "already registered?"
+        // check, then the created row, which the handler re-reads rather than
+        // hand-assembling.
+        userRepo: {
+          findByEmail: vi.fn().mockResolvedValueOnce(null).mockResolvedValue(sessionUser)
+        },
+        invitation: {
+          findByTokenHash: vi
+            .fn()
+            .mockResolvedValue(createMockInvitation({ email: 'new@test.com' }))
+        }
+      });
+      vi.mocked(deps.repos.user.create).mockResolvedValue(sessionUser);
+      return createRegisterHandler(deps).POST(
+        await signedIn(deps, {
+          body: { email: 'new@test.com', name: 'New User', password: NEW_PASSWORD, token }
+        })
+      );
+    }
   },
-  createResetPasswordHandler: async () => {
-    const { deps, sessionUser } = await signedInDeps();
-    vi.mocked(deps.repos.user.consumeResetToken).mockResolvedValue(sessionUser);
-    return createResetPasswordHandler(deps).POST(
-      await signedIn(deps, { body: { token: 'reset-token', password: NEW_PASSWORD } })
-    );
+  createResetPasswordHandler: {
+    endpoint: 'ResetPassword.POST',
+    run: async () => {
+      const { deps, sessionUser } = await signedInDeps();
+      vi.mocked(deps.repos.user.consumeResetToken).mockResolvedValue(sessionUser);
+      return createResetPasswordHandler(deps).POST(
+        await signedIn(deps, { body: { token: 'reset-token', password: NEW_PASSWORD } })
+      );
+    }
   },
-  createSessionsHandlers: async () => {
-    const { deps } = await signedInDeps();
-    return createSessionsHandlers(deps).list.GET(await signedIn(deps));
+  createSessionsHandlers: {
+    endpoint: 'Sessions.list.GET',
+    run: async () => {
+      const { deps } = await signedInDeps();
+      return createSessionsHandlers(deps).list.GET(await signedIn(deps));
+    }
   },
-  createTwoFactorHandlers: async () => {
-    const { deps } = await signedInDeps();
-    return createTwoFactorHandlers(deps).setup.POST(await signedIn(deps));
+  createTwoFactorHandlers: {
+    endpoint: 'TwoFactor.setup.POST',
+    run: async () => {
+      const { deps } = await signedInDeps();
+      return createTwoFactorHandlers(deps).setup.POST(await signedIn(deps));
+    }
   },
-  createUpdateProfileHandler: async () => {
-    const { deps } = await signedInDeps();
-    return createUpdateProfileHandler(deps).POST(
-      await signedIn(deps, { body: { name: 'New Name' } })
-    );
+  createUpdateProfileHandler: {
+    endpoint: 'UpdateProfile.POST',
+    run: async () => {
+      const { deps } = await signedInDeps();
+      return createUpdateProfileHandler(deps).POST(
+        await signedIn(deps, { body: { name: 'New Name' } })
+      );
+    }
   },
-  createVerifyEmailChangeHandler: async () => {
-    const { deps, sessionUser } = await signedInDeps();
-    vi.mocked(deps.repos.user.consumeEmailChangeToken).mockResolvedValue(sessionUser);
-    return createVerifyEmailChangeHandler(deps).POST(
-      await signedIn(deps, { body: { token: 'change-token' } })
-    );
+  createVerifyEmailChangeHandler: {
+    endpoint: 'VerifyEmailChange.POST',
+    run: async () => {
+      const { deps, sessionUser } = await signedInDeps();
+      vi.mocked(deps.repos.user.consumeEmailChangeToken).mockResolvedValue(sessionUser);
+      return createVerifyEmailChangeHandler(deps).POST(
+        await signedIn(deps, { body: { token: 'change-token' } })
+      );
+    }
   },
-  createVerifyEmailHandler: async () => {
-    const { deps, sessionUser } = await signedInDeps();
-    vi.mocked(deps.repos.user.consumeVerificationToken).mockResolvedValue(sessionUser);
-    return createVerifyEmailHandler(deps).POST(
-      await signedIn(deps, { body: { token: 'verify-token' } })
-    );
+  createVerifyEmailHandler: {
+    endpoint: 'VerifyEmail.POST',
+    run: async () => {
+      const { deps, sessionUser } = await signedInDeps();
+      vi.mocked(deps.repos.user.consumeVerificationToken).mockResolvedValue(sessionUser);
+      return createVerifyEmailHandler(deps).POST(
+        await signedIn(deps, { body: { token: 'verify-token' } })
+      );
+    }
   },
-  createNotificationsHandlers: async () => {
-    const repo = notificationRepo();
-    vi.mocked(repo.findByUser).mockResolvedValue([
-      {
-        id: 'n1',
-        userId: 'user-1',
-        typeKey: 'security',
-        title: 'Password changed',
-        body: 'from 10.0.0.1',
-        url: null,
-        icon: null,
-        readAt: null,
-        createdAt: new Date()
-      }
-    ]);
-    const service = createNotificationService({
-      registry: registry(),
-      sse: createSSEManager(),
-      repos: { notification: repo }
-    });
-    const { deps } = await signedInDeps();
-    return createNotificationsHandlers(service).list.GET(await signedIn(deps));
+  createNotificationsHandlers: {
+    endpoint: 'Notifications.list.GET',
+    run: async () => {
+      const repo = notificationRepo();
+      vi.mocked(repo.findByUser).mockResolvedValue([
+        {
+          id: 'n1',
+          userId: 'user-1',
+          typeKey: 'security',
+          title: 'Password changed',
+          body: 'from 10.0.0.1',
+          url: null,
+          icon: null,
+          readAt: null,
+          createdAt: new Date()
+        }
+      ]);
+      const service = createNotificationService({
+        registry: registry(),
+        sse: createSSEManager(),
+        repos: { notification: repo }
+      });
+      const { deps } = await signedInDeps();
+      return createNotificationsHandlers(service).list.GET(await signedIn(deps));
+    }
   },
-  createPreferencesHandler: async () => {
-    const repo = preferenceRepo();
-    vi.mocked(repo.findByUser).mockResolvedValue([
-      { typeKey: 'security', sse: true, push: false, email: true }
-    ]);
-    const { deps } = await signedInDeps();
-    return createPreferencesHandler(repo, registry()).GET(await signedIn(deps));
+  createPreferencesHandler: {
+    endpoint: 'Preferences.GET',
+    run: async () => {
+      const repo = preferenceRepo();
+      vi.mocked(repo.findByUser).mockResolvedValue([
+        { typeKey: 'security', sse: true, push: false, email: true }
+      ]);
+      const { deps } = await signedInDeps();
+      return createPreferencesHandler(repo, registry()).GET(await signedIn(deps));
+    }
   },
-  createPushKeyHandler: async () => createPushKeyHandler(VAPID_PUBLIC_KEY).GET(anonymousEvent()),
-  createPushSubscriptionHandler: async () => {
-    const { deps } = await signedInDeps();
-    return createPushSubscriptionHandler(pushSubscriptionRepo()).DELETE(
-      await signedIn(deps, { body: { endpoint: 'https://push.test/endpoint' } })
-    );
+  createPushKeyHandler: {
+    endpoint: 'PushKey.GET',
+    run: async () => createPushKeyHandler(VAPID_PUBLIC_KEY).GET(anonymousEvent())
   },
-  createStreamHandler: async () => {
-    const { deps } = await signedInDeps();
-    return createStreamHandler(createSSEManager()).GET(await signedIn(deps));
+  createPushSubscriptionHandler: {
+    endpoint: 'PushSubscription.DELETE',
+    run: async () => {
+      const { deps } = await signedInDeps();
+      return createPushSubscriptionHandler(pushSubscriptionRepo()).DELETE(
+        await signedIn(deps, { body: { endpoint: 'https://push.test/endpoint' } })
+      );
+    }
   },
-  createPasskeyHandlers: async () => {
-    const { deps } = await signedInDeps();
-    const repo = deps.repos.passkey as PasskeyRepository;
-    vi.mocked(repo.findByUserId).mockResolvedValue([
-      {
-        credentialId: 'cred-abc',
-        userId: 'user-1',
-        publicKey: new Uint8Array(0),
-        publicKeyAlg: -7,
-        counter: 0,
-        transports: ['internal'],
-        aaguid: '00000000-0000-0000-0000-000000000000',
-        name: 'MacBook',
-        createdAt: new Date(),
-        lastUsedAt: null
-      }
-    ]);
-    return createPasskeyHandlers(deps, {
-      rpId: 'app.test',
-      rpName: 'Test',
-      origin: 'https://app.test',
-      challengeStore: createInMemoryChallengeStore()
-    }).list.GET(await signedIn(deps));
+  createStreamHandler: {
+    endpoint: 'Stream.GET',
+    run: async () => {
+      const { deps } = await signedInDeps();
+      return createStreamHandler(createSSEManager()).GET(await signedIn(deps));
+    }
+  },
+  createPasskeyHandlers: {
+    endpoint: 'Passkey.list.GET',
+    run: async () => {
+      const { deps } = await signedInDeps();
+      const repo = deps.repos.passkey as PasskeyRepository;
+      vi.mocked(repo.findByUserId).mockResolvedValue([
+        {
+          credentialId: 'cred-abc',
+          userId: 'user-1',
+          publicKey: new Uint8Array(0),
+          publicKeyAlg: -7,
+          counter: 0,
+          transports: ['internal'],
+          aaguid: '00000000-0000-0000-0000-000000000000',
+          name: 'MacBook',
+          createdAt: new Date(),
+          lastUsedAt: null
+        }
+      ]);
+      return createPasskeyHandlers(deps, {
+        rpId: 'app.test',
+        rpName: 'Test',
+        origin: 'https://app.test',
+        challengeStore: createInMemoryChallengeStore()
+      }).list.GET(await signedIn(deps));
+    }
   }
 };
 
@@ -572,15 +688,21 @@ describe('cache directives — a success response per factory', () => {
 
   it.each(Object.entries(SUCCESS_DRIVES))(
     '%s answers 2xx with the directive its bundle supplies',
-    async (name, drive) => {
-      const res = await drive();
+    async (name, { endpoint, run }) => {
+      // The endpoint id is declared, not synthesised from the factory name: the
+      // drive picks a verb, and a STORABLE entry for a non-GET endpoint has to
+      // be able to match it.
+      expect(
+        ENDPOINTS.map((e) => e.id),
+        `${name} names an endpoint that does not exist`
+      ).toContain(endpoint);
+      const res = await run();
       await res.body?.cancel();
       // A 2xx is the whole point: `authError` cannot produce one, so the
       // directive below has no other source than the bundle wrapper.
       expect(res.status, `${name} did not reach a success path`).toBeGreaterThanOrEqual(200);
       expect(res.status, `${name} did not reach a success path`).toBeLessThan(300);
-      const id = `${name.replace(/^create/, '').replace(/Handlers?$/, '')}.GET`;
-      expect(res.headers.get('cache-control')).toBe(STORABLE[id] ?? 'no-store');
+      expect(res.headers.get('cache-control')).toBe(STORABLE[endpoint] ?? 'no-store');
     }
   );
 });

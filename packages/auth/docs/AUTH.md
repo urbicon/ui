@@ -288,15 +288,16 @@ which origins the app loads.
 scoped to one account — the `me` payload, freshly minted tokens, the session,
 invitation, notification and passkey lists, 2FA material, WebAuthn challenges,
 and the per-account outcome a bare `{ success: true }` reports — so every
-response the package builds carries `Cache-Control: no-store`. It is a property of the endpoint
-rather than of each call site: refusals take it from `authError`, every other
-response from the wrapper around each handler bundle, so a route cannot answer
-without it and no handler has to remember to add it. That matters because
-SvelteKit's `json()` emits nothing but `content-type` and `content-length`, and
-a `200` carrying no cache directive is heuristically storable (RFC 9111
-§4.2.2): a shared cache in front of the app, keyed by URL and seeing no
-`Vary: Cookie`, would be free to serve one account's notification rows,
-notification preferences or passkey inventory to the next caller. The
+response the package builds carries `Cache-Control: no-store`. It is a
+property of the endpoint rather than of each call site: refusals take it from
+`authError`, every other response from the wrapper around each handler bundle,
+so a route cannot answer without it and no handler has to remember to add it.
+That matters because SvelteKit's `json()` emits nothing but `content-type` and
+`content-length`, and a `200` carrying no cache directive is heuristically
+storable (RFC 9111 §4.2.2): a shared cache in front of the app, keyed by URL
+and seeing no `Vary: Cookie`, would be free to serve one account's
+notification rows, notification preferences or passkey inventory to the next
+caller. The
 notification SSE stream is `no-store` for the same reason — `no-cache`, the
 conventional stream header, only forces revalidation and still lets a shared
 cache keep the response.
@@ -316,8 +317,8 @@ builds**. The rule does not reach what SvelteKit generates from a `throw`: the
 handle's `302` to the login page for a guarded route, or the `500` raised when
 a consumer hook throws. Neither carries a directive. Neither status is in the
 heuristically-cacheable set either, so nothing that motivated the rule reopens
-there — but if you put a cache in front of the app, those two are the responses
-this package has not spoken for.
+there — but if you put a cache in front of the app, those two are the
+responses this package has not spoken for.
 
 ### Secure deployment
 
