@@ -63,28 +63,38 @@ literal**. How your config reaches the attribute therefore decides how much of i
 | written inline in the attribute | error | error |
 | inline but spread in — `{ mark: 'ok', ...rest }` | error | **accepted** |
 | a plain `const`, no type annotation | error | **accepted** |
+| a `const` with `satisfies Record<string, ComponentDefaults>` | error | **accepted** |
+| a `const` with `as const` | error | **accepted** |
+| returned from a function | error | **accepted** |
 | a `const` annotated `Record<string, ComponentDefaults>` or `PresetMap` | **accepted** | **accepted** |
-| a `const` with `satisfies Record<string, ComponentDefaults>` | error | error |
 
-Measured on `<BlocksProvider defaults={{ LineChart: … }}>`, every cell.
+Measured on `<BlocksProvider defaults={{ LineChart: … }}>`, every cell. Rows two to six are one
+rule: the wrong-key-*beside*-a-right-one column needs excess-property checking, which only
+reaches a **fresh object literal** written into the attribute. Anything that puts the record in
+a variable first — including `satisfies` and `as const`, which check the value but still leave a
+variable behind — falls back to the weak-type rule, and that only rejects an object sharing *no*
+key with the target.
 
-**The fourth row is the one that costs you the most.** `Record<string, ComponentDefaults>`
-was this prop's own type until this release, and `PresetMap` is still exported — so annotating
-a theme module with either is the natural thing to reach for, and it turns the check off
-completely, including the wrong-key-alone case the other rows still catch. There is no
-diagnostic; the annotation simply widens the key type back to `string` before the provider
-ever sees it.
+**The last row is the one that costs you the most.** `Record<string, ComponentDefaults>` was
+this prop's own type until this release, and `PresetMap` is still exported — so annotating a
+theme module with either is the natural thing to reach for, and it turns the check off
+completely, including the wrong-key-alone case every other row still catches. There is no
+diagnostic; the annotation widens the key type back to `string` before the provider ever sees
+it.
 
-**Write `satisfies` where you would have written the annotation.** It checks the object against
-the same type and still hands the provider the literal keys you wrote, so the per-component
-narrowing survives:
+**Write `satisfies` where you would have written the annotation.** It does not buy back the
+last column — it checks against `ComponentDefaults<string>`, where any slot name is legal, and
+hands on a variable — but it keeps the literal keys, so the provider still narrows per
+component and the wrong-key-alone case is reported again:
 
 ```ts
-// loses the check
+// no check at all
 export const theme: Record<string, ComponentDefaults> = { LineChart: { … } };
-// keeps it
+// the alone column back
 export const theme = { LineChart: { … } } satisfies Record<string, ComponentDefaults>;
 ```
+
+For the full check, write the object into the attribute.
 
 ### A wrapper's `overrides` match the state its inner component is in — `wrapperActiveProps` is gone
 

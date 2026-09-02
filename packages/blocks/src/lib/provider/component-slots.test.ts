@@ -16,6 +16,16 @@ import { exportedComponents, PROVIDER_NAME, stripComments } from './__fixtures__
  * drifts, and the one a name-shaped check cannot see: `PROVIDER_NAME` wants a
  * literal in the call, so hoisting the name into a `const` yields no name at
  * all, and a count-based sweep just measures one component fewer.
+ *
+ * **What the population itself hangs on: the two call names appearing verbatim
+ * in the file.** An aliased import escapes that, and so does the likelier
+ * shape — a per-package helper that takes the name as a parameter, which is
+ * exactly what `@urbicon-ui/auth` does in `client/utils/slot-class.ts`. Were
+ * blocks to adopt that indirection, its components would leave this sweep
+ * without failing it. Making that unrepresentable needs the population to come
+ * from a run rather than a read — observing which components actually reach
+ * the resolver while the cascade sweep mounts them — which is a larger
+ * instrument than the drift it would close.
  */
 describe('a component resolves under the name it is exported as', () => {
   const files = Object.entries(

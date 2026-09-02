@@ -1,7 +1,4 @@
-<script
-  lang="ts"
-  generics="TDefaults extends BlocksDefaults<TDefaults>, TPresets extends BlocksPresets<TPresets>"
->
+<script lang="ts" generics="TDefaultKeys extends string, TPresetKeys extends string">
   import type { Snippet } from 'svelte';
   import type {
     BlocksDefaults,
@@ -13,8 +10,8 @@
 
   let {
     unstyled = false,
-    defaults = {} as BlocksDefaults<TDefaults>,
-    presets = {} as BlocksPresets<TPresets>,
+    defaults = {},
+    presets = {},
     children
   }: {
     unstyled?: boolean;
@@ -24,13 +21,13 @@
      * names; a name the library does not know keeps taking any key, which is
      * what a consumer's own wrapper needs.
      */
-    defaults?: BlocksDefaults<TDefaults>;
+    defaults?: BlocksDefaults<Record<TDefaultKeys, unknown>>;
     /**
      * Named, project-defined visual styles per component.
      * Used via the `preset="..."` prop on supported components.
      * See `packages/docs-gen/templates/llms-full-template.md` → Customization for guidance.
      */
-    presets?: BlocksPresets<TPresets>;
+    presets?: BlocksPresets<Record<TPresetKeys, unknown>>;
     children: Snippet;
   } = $props();
 

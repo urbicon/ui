@@ -101,18 +101,30 @@ export type PresetMap = Record<string, Record<string, ComponentPreset>>;
  * **Sharp for the object literal that reaches the attribute.** These records are
  * weak types (every property optional), so the base rule rejects only an object
  * with *no* key in common; catching a wrong key *beside* a right one is
- * excess-property checking, which needs a fresh literal. That is why the prop is
- * declared `BlocksDefaults<TDefaults>` and not `TDefaults` — with the bare type
- * parameter the written literal is inferred into it, becomes its own target, and
- * loses freshness, leaving only the weak-type rule. The two shapes are pinned
- * side by side in `component-slots.types.test.ts`, and every way a config can
- * reach the attribute is tabulated in `docs/MIGRATION.md`; the quietest is an
- * annotated `Record<string, ComponentDefaults>`, which reports nothing at all.
+ * excess-property checking, which needs a fresh literal. So the prop must not be
+ * the bare type parameter — inferring the literal *into* it makes the literal
+ * its own target, freshness is gone and only the weak-type rule is left. It is
+ * declared `BlocksDefaults<Record<TDefaultKeys, unknown>>` instead: the type
+ * parameter carries the **keys** alone, and this mapped type builds the target
+ * from them.
+ *
+ * **The properties are optional for a reason a required version cannot serve.**
+ * Inferring keys from `cond ? themeA : themeB` takes them from one branch, and a
+ * required property the other branch lacks is then missing — so a config
+ * switched on at runtime, the ordinary shape, fails to compile with no wrong
+ * slot name anywhere. Both halves are needed: optional alone still fails the
+ * ternary, key-inference alone still fails it.
+ *
+ * Every way a config can reach the attribute is tabulated in `docs/MIGRATION.md`;
+ * the quietest is an annotated `Record<string, ComponentDefaults>`, which reports
+ * nothing at all. The rejected half is asserted in
+ * `component-slots.types.test.ts` by calling the component, so it reads this
+ * declaration rather than a copy of it.
  */
-export type BlocksDefaults<T> = { [K in keyof T]: ComponentDefaults<SlotOf<K>> };
+export type BlocksDefaults<T> = { [K in keyof T]?: ComponentDefaults<SlotOf<K>> };
 
 /** A provider `presets` object, checked per component key like {@link BlocksDefaults}. */
-export type BlocksPresets<T> = { [K in keyof T]: Record<string, ComponentPreset<SlotOf<K>>> };
+export type BlocksPresets<T> = { [K in keyof T]?: Record<string, ComponentPreset<SlotOf<K>>> };
 
 export interface BlocksConfig {
   readonly unstyled: boolean;

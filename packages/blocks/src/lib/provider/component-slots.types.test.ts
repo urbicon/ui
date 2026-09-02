@@ -1,94 +1,177 @@
+import type { Snippet } from 'svelte';
 import { describe, expect, it } from 'vitest';
-import type { BlocksDefaults, BlocksPresets } from './blocks-context';
+import BlocksProvider from './BlocksProvider.svelte';
+import type { BlocksDefaults } from './blocks-context';
 import type { SlotOf } from './component-slots';
 
 /** Both directions, so neither a widened nor a narrowed answer passes. */
 type Eq<X, Y> = [X] extends [Y] ? ([Y] extends [X] ? true : false) : false;
 
-/** The shape `BlocksProvider` declares: the parameter names the mapped type. */
-declare function shipped<T extends BlocksDefaults<T>>(defaults: BlocksDefaults<T>): void;
-/** The shape it must not go back to: the parameter *is* the type parameter. */
-declare function inferredIntoTheParameter<T extends BlocksDefaults<T>>(defaults: T): void;
+const children = null as unknown as Snippet;
+const internal = null as unknown as never;
 
 /**
- * The compile-time contract of the provider's slot keys. Assertions live in the
- * type positions; the single runtime `expect` only keeps vitest satisfied.
+ * The compile-time contract of the provider's slot keys, asserted **on the
+ * component itself**.
  *
- * The target is `BlocksDefaults<{ Name: unknown }>`, which is the type
- * `BlocksProvider` declares for the prop — `defaults?: BlocksDefaults<TDefaults>`
- * — applied to a `T` with the same key. It is *not* a restatement of the
- * attribute's behaviour: that has to be measured, and was, at a real
- * `<BlocksProvider>` in `__fixtures__/ProviderMarkup.svelte`.
+ * A Svelte 5 component is a callable `(internal, props)` — the same signature
+ * svelte2tsx gives a `<BlocksProvider …>` attribute, and the one its generated
+ * `.d.ts` declares. Calling it here therefore checks the real prop type with
+ * the real inference, while a `.ts` file still lets `@ts-expect-error` carry
+ * the *rejected* half, which markup has no way to express.
  *
- * **The prop has to name the mapped type, not the type parameter.** With
- * `defaults?: TDefaults` the written literal is inferred *into* the parameter
- * and so becomes its own target: freshness is lost, excess-property checking
- * never runs, and only the weak-type rule is left — which rejects an object
- * with no key in common and passes a wrong key beside a right one. The two
- * shapes are pinned side by side in the last case below, because nothing else
- * here would notice the difference.
+ * That matters more than it sounds. A local restatement of the prop's signature
+ * checks its own declaration, so it cannot see the prop change underneath it:
+ * measured, replacing the prop with `defaults?: TDefaults` — the shape that let
+ * a wrong key beside a right one through — left a restated pair completely
+ * green. These calls go red on that, and on narrowing the prop to
+ * `Record<TDefaultKeys, unknown>`.
  *
- * Every negative is an `@ts-expect-error`, so the day one of these stops being
- * reported the directive goes unused and this file fails to compile.
+ * Two mechanics to keep:
+ *
+ * - the calls live in a closure nothing invokes. They exist to be type-checked;
+ *   running one would mount a component.
+ * - the directive belongs on the line the error *lands* on — above
+ *   `defaults:`, not above `BlocksProvider(`, because the error sits inside the
+ *   multi-line literal. Placed on the call it is reported unused.
+ *
+ * Every negative is an `@ts-expect-error`, so the day one stops being reported
+ * the directive goes unused and this file fails to compile.
  */
 describe('provider slot keys', () => {
   it('rejects a slot name the component does not have', () => {
-    type D = BlocksDefaults<{ LineChart: unknown }>;
+    const typeCheckedOnly = () => {
+      BlocksProvider(internal, {
+        children,
+        // @ts-expect-error `arc` is DonutChart's slot; LineChart never paints one
+        defaults: { LineChart: { slotClasses: { arc: 'fill-red-500' } } }
+      });
+      BlocksProvider(internal, {
+        children,
+        // @ts-expect-error … and beside a key that does resolve
+        defaults: { LineChart: { slotClasses: { mark: 'ok', arc: 'fill-red-500' } } }
+      });
+      BlocksProvider(internal, {
+        children,
+        defaults: { LineChart: { slotClasses: { mark: 'ok', point: 'ok' } } }
+      });
+    };
+    expect(typeCheckedOnly).toBeTypeOf('function');
+  });
 
-    // @ts-expect-error `arc` is DonutChart's slot; LineChart never paints one
-    const alone: D = { LineChart: { slotClasses: { arc: 'fill-red-500' } } };
-    // @ts-expect-error … and beside a key that does resolve
-    const beside: D = { LineChart: { slotClasses: { mark: 'ok', arc: 'fill-red-500' } } };
-    const good: D = { LineChart: { slotClasses: { mark: 'ok', point: 'ok' } } };
+  it('checks the second slot record — `overrides[].class`', () => {
+    const typeCheckedOnly = () => {
+      BlocksProvider(internal, {
+        children,
+        // @ts-expect-error the condition key is free-form, the class record is not
+        defaults: { LineChart: { overrides: [{ layout: 'cartesian', class: { arc: 'x' } }] } }
+      });
+      BlocksProvider(internal, {
+        children,
+        // @ts-expect-error the same record, reached through a preset
+        presets: { LineChart: { dense: { overrides: [{ class: { arc: 'x' } }] } } }
+      });
+      BlocksProvider(internal, {
+        children,
+        defaults: { LineChart: { overrides: [{ layout: 'cartesian', class: { mark: 'ok' } }] } }
+      });
+    };
+    expect(typeCheckedOnly).toBeTypeOf('function');
+  });
 
-    expect([alone, beside, good]).toBeDefined();
+  it('checks presets under the same names as defaults', () => {
+    const typeCheckedOnly = () => {
+      BlocksProvider(internal, {
+        children,
+        // @ts-expect-error a preset is not a way around the component's slot names
+        presets: { LineChart: { dense: { slotClasses: { arc: 'x' } } } }
+      });
+      BlocksProvider(internal, {
+        children,
+        presets: { LineChart: { dense: { slotClasses: { legendSwatch: 'ok' } } } }
+      });
+    };
+    expect(typeCheckedOnly).toBeTypeOf('function');
+  });
+
+  it('keeps each chart to the slots it paints', () => {
+    // The five charts share one `chartVariants`, so a config-derived map would
+    // give every chart every chart's slots. These are what separates them.
+    const typeCheckedOnly = () => {
+      BlocksProvider(internal, {
+        children,
+        // @ts-expect-error `point` is a LineChart slot; a donut has no data points
+        defaults: { DonutChart: { slotClasses: { point: 'x' } } }
+      });
+      BlocksProvider(internal, {
+        children,
+        defaults: {
+          DonutChart: { slotClasses: { arc: 'ok', centerLabel: 'ok' } },
+          LineChart: { slotClasses: { point: 'ok' } }
+        }
+      });
+    };
+    expect(typeCheckedOnly).toBeTypeOf('function');
+  });
+
+  it('keeps a deliberate narrowing narrow', () => {
+    // SegmentGroup's props exclude `item`; SegmentItem owns it.
+    const typeCheckedOnly = () => {
+      BlocksProvider(internal, {
+        children,
+        // @ts-expect-error `item` belongs to SegmentItem, not to the group
+        defaults: { SegmentGroup: { slotClasses: { item: 'x' } } }
+      });
+      BlocksProvider(internal, {
+        children,
+        defaults: {
+          SegmentGroup: { slotClasses: { base: 'ok', indicator: 'ok' } },
+          SegmentItem: { slotClasses: { item: 'ok' } }
+        }
+      });
+    };
+    expect(typeCheckedOnly).toBeTypeOf('function');
   });
 
   it('does not see a wrong key beside a right one once the record is a variable', () => {
     // The blind spot, pinned rather than described: excess-property checking
-    // reaches a fresh object literal only, so these same two keys — an error in
-    // the attribute above — reach the provider unreported through a `const`.
+    // reaches a fresh object literal only, so these same two keys — an error
+    // written inline above — reach the provider unreported through a `const`.
     const sc = { mark: 'ok', arc: 'x' };
-    const through: BlocksDefaults<{ LineChart: unknown }> = { LineChart: { slotClasses: sc } };
-    expect(through).toBeDefined();
-  });
-
-  it('checks the second slot record — `overrides[].class`', () => {
-    type D = BlocksDefaults<{ LineChart: unknown }>;
-    type P = BlocksPresets<{ LineChart: unknown }>;
-
-    // @ts-expect-error the condition key is free-form, the class record is not
-    const d: D = { LineChart: { overrides: [{ layout: 'cartesian', class: { arc: 'x' } }] } };
-    // @ts-expect-error same record, reached through a preset
-    const p: P = { LineChart: { dense: { overrides: [{ class: { arc: 'x' } }] } } };
-    const ok: D = { LineChart: { overrides: [{ layout: 'cartesian', class: { mark: 'ok' } }] } };
-
-    expect([d, p, ok]).toBeDefined();
-  });
-
-  it('checks presets under the same names as defaults', () => {
-    type P = BlocksPresets<{ LineChart: unknown }>;
-    // @ts-expect-error a preset is not a way around the component's slot names
-    const bad: P = { LineChart: { dense: { slotClasses: { arc: 'x' } } } };
-    const good: P = { LineChart: { dense: { slotClasses: { legendSwatch: 'ok' } } } };
-    expect([bad, good]).toBeDefined();
-  });
-
-  it('keeps each chart to the slots it paints', () => {
-    type Charts = BlocksDefaults<{ DonutChart: unknown; LineChart: unknown }>;
-    // The five charts share one `chartVariants`, so a config-derived map would
-    // give every chart every chart's slots. These two are what separates them.
-    const donut: Charts = {
-      DonutChart: { slotClasses: { arc: 'ok', centerLabel: 'ok' } },
-      LineChart: { slotClasses: { point: 'ok' } }
+    const typeCheckedOnly = () => {
+      BlocksProvider(internal, { children, defaults: { LineChart: { slotClasses: sc } } });
     };
-    // @ts-expect-error `point` is a LineChart slot; a donut has no data points
-    const crossed: Charts = { DonutChart: { slotClasses: { point: 'x' } }, LineChart: {} };
-    expect([donut, crossed]).toBeDefined();
+    expect(typeCheckedOnly).toBeTypeOf('function');
   });
 
-  it('admits the slot names a component reads past its own config', () => {
-    // Five components read slot names the `tv()` config they hand the resolver
+  it('leaves a name from outside this package alone', () => {
+    // `resolveSlotClasses(config, 'YourWrapper', …)` is a documented consumer
+    // path (COMPONENT-API-CONVENTIONS.md) and `@urbicon-ui/auth` resolves under
+    // its own names too. Their slots are not knowable here, so any key passes.
+    //
+    // Asserted on `SlotOf` as well as through the component: an unknown name
+    // resolving to `never` would make the value type `{}`, which accepts any
+    // object for a different reason — the call below would keep compiling while
+    // the typing was gone.
+    const open: Eq<SlotOf<'MoneyField'>, string> = true;
+    const known: Eq<SlotOf<'Popover'>, 'base'> = true;
+    const typeCheckedOnly = () => {
+      BlocksProvider(internal, {
+        children,
+        defaults: {
+          MoneyField: { slotClasses: { currencyAffix: 'ok', anythingAtAll: 'ok' } },
+          LoginPage: {
+            slotClasses: { form: 'ok' },
+            overrides: [{ variant: 'x', class: { form: 'ok' } }]
+          }
+        }
+      });
+    };
+    expect([open, known, typeCheckedOnly]).toBeDefined();
+  });
+
+  it('admits the slot names a component reads past the config resolved for it', () => {
+    // Five components read slot names the `tv()` config handed to the resolver
     // does not declare. The map comes from their props, so none of these is
     // reported — a config-derived one would call all five a typo.
     const beyond: BlocksDefaults<{
@@ -100,61 +183,10 @@ describe('provider slot keys', () => {
     }> = {
       NumberInput: { slotClasses: { stepper: 'ok', stepperButton: 'ok' } },
       SidebarLayout: { slotClasses: { sidebarFooter: 'ok', sidebarBackdrop: 'ok' } },
-      Guide: { slotClasses: { skip: 'ok', next: 'ok' } },
+      Guide: { slotClasses: { next: 'ok', prev: 'ok', skip: 'ok' } },
       Popover: { slotClasses: { base: 'ok' } },
       Separator: { slotClasses: { base: 'ok' } }
     };
     expect(beyond).toBeDefined();
-  });
-
-  it('keeps a deliberate narrowing narrow', () => {
-    // SegmentGroup's props exclude `item`; SegmentItem owns it.
-    type S = BlocksDefaults<{ SegmentGroup: unknown; SegmentItem: unknown }>;
-    const split: S = {
-      SegmentGroup: { slotClasses: { base: 'ok', indicator: 'ok' } },
-      SegmentItem: { slotClasses: { item: 'ok' } }
-    };
-    // @ts-expect-error `item` belongs to SegmentItem, not to the group
-    const merged: S = { SegmentGroup: { slotClasses: { item: 'x' } }, SegmentItem: {} };
-    expect([split, merged]).toBeDefined();
-  });
-
-  it('leaves a name from outside this package alone', () => {
-    // `resolveSlotClasses(config, 'YourWrapper', …)` is a documented consumer
-    // path (COMPONENT-API-CONVENTIONS.md) and `@urbicon-ui/auth` resolves under
-    // its own names too. Their slots are not knowable here, so any key passes.
-    // Asserted on `SlotOf` itself: an unknown name resolving to `never` would
-    // make the value type `{}`, which accepts any object for a different reason
-    // — the usage below would keep compiling while the typing was gone.
-    const open: Eq<SlotOf<'MoneyField'>, string> = true;
-    const known: Eq<SlotOf<'Popover'>, 'base'> = true;
-
-    const foreign: BlocksDefaults<{ MoneyField: unknown; LoginPage: unknown }> = {
-      MoneyField: { slotClasses: { currencyAffix: 'ok', anythingAtAll: 'ok' } },
-      LoginPage: {
-        slotClasses: { form: 'ok' },
-        overrides: [{ variant: 'x', class: { form: 'ok' } }]
-      }
-    };
-    expect([open, known, foreign]).toBeDefined();
-  });
-
-  it('catches a wrong key only where the parameter names the mapped type', () => {
-    // Never invoked — both are `declare`d, so these calls exist to be
-    // type-checked. Holding them in an uncalled closure keeps that so.
-    const typeCheckedOnly = () => {
-      // A wrong key beside a right one, as a fresh literal — the case the whole
-      // change is for, and the one that separates the two parameter shapes.
-      // @ts-expect-error `arc` is not a LineChart slot
-      shipped({ LineChart: { slotClasses: { mark: 'ok', arc: 'x' } } });
-      // Silent: inference makes the literal its own target, so freshness is
-      // gone and the shared `mark` buys the wrong key through.
-      inferredIntoTheParameter({ LineChart: { slotClasses: { mark: 'ok', arc: 'x' } } });
-      // With no key in common the weak-type rule still fires on both shapes.
-      // @ts-expect-error
-      inferredIntoTheParameter({ LineChart: { slotClasses: { arc: 'x' } } });
-      shipped({ LineChart: { slotClasses: { mark: 'ok' } } });
-    };
-    expect(typeCheckedOnly).toBeTypeOf('function');
   });
 });
