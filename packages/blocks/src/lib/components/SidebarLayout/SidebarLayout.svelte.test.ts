@@ -32,9 +32,24 @@ import SidebarLayout from './SidebarLayout.svelte';
  */
 const SLOTS = Object.keys(sidebarVariants.config.slots ?? {});
 const marker = (slot: string) => `zzprobe-${slot}`;
+
+/**
+ * The variant props the fixture renders with, in one place because the render
+ * and the oracle below both read them. `panel` carries `left-0 border-r` on
+ * `side: 'left'` and the mirror image on `'right'`, so an oracle pinned to the
+ * defaults while the fixture renders something else reports a crossed pair that
+ * does not exist — measured: rendering `side="right"` against a defaults-only
+ * oracle fails `panel` with exactly that message.
+ *
+ * `unstyled` cannot join it: it skips the `tv()` pass entirely, so there would
+ * be no library classes to identify a carrier by and this test would need a
+ * different discriminator.
+ */
+const VARIANTS = { side: 'left' } as const;
+
 /** What Sidebar itself paints on that slot — the only thing that tells its five elements apart. */
 const libraryClasses = (slot: string) =>
-  (sidebarVariants() as unknown as Record<string, () => string>)
+  (sidebarVariants(VARIANTS) as unknown as Record<string, () => string>)
     [slot]()
     .split(/\s+/)
     .filter(Boolean);
@@ -71,6 +86,7 @@ function render() {
   const app = mount(SidebarLayout, {
     target,
     props: {
+      ...VARIANTS,
       open: true,
       sidebarHeader: text('Header'),
       sidebarFooter: text('Footer'),
