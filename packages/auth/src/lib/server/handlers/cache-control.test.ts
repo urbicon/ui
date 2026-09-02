@@ -10,6 +10,7 @@ import type {
   PasskeyRepository,
   PushSubscriptionRepository
 } from '../adapters/types.js';
+import type { AuthDeps } from '../deps.js';
 import * as serverIndex from '../index.js';
 import { generateES256KeyPair } from '../jwt.js';
 import { createNotificationsHandlers } from '../notifications/handlers/notifications.js';
@@ -22,8 +23,16 @@ import { createNotificationService } from '../notifications/service.js';
 import { createSSEManager } from '../notifications/sse.js';
 import { createInMemoryChallengeStore } from '../passkey/challenge-store.js';
 import { createPasskeyHandlers } from '../passkey/handlers.js';
+import { hashPassword } from '../password.js';
+import { issueRefreshToken } from '../refresh-token.js';
 import { setSessionCookie } from '../session.js';
-import { createMockAuthDeps, createMockUser, mockPostEvent } from '../test-utils.js';
+import {
+  createMockAuthDeps,
+  createMockInvitation,
+  createMockUser,
+  mockPostEvent
+} from '../test-utils.js';
+import { ENDPOINT_KEYS } from './_shared.js';
 import { createChangeEmailHandler } from './change-email.js';
 import { createChangePasswordHandler } from './change-password.js';
 import { createDeleteAccountHandler } from './delete-account.js';
@@ -56,9 +65,12 @@ import { createVerifyEmailChangeHandler } from './verify-email-change.js';
  *
  * **The oracle is the handler, not the source text.** Each factory is
  * constructed and each verb driven; the assertion reads the header off the
- * `Response` that comes back. A handler that stops reaching `privateEndpoints`
- * — a factory returning its bundle unwrapped, a verb added to a group that is
- * not — fails here, which no reading of the constant's spelling can tell.
+ * `Response` that comes back.
+ *
+ * It is driven in two event forms, and the second is the load-bearing one: an
+ * unauthenticated request reaches a refusal, which `authError` covers on its
+ * own, so that run stays green even with `privateEndpoints` removed entirely.
+ * The signed-in run is what a factory returning its bundle unwrapped fails.
  *
  * Both halves of completeness are derived rather than listed: {@link BUNDLES}
  * is checked against the factory exports of `../index.js`, and the verbs are
@@ -67,8 +79,9 @@ import { createVerifyEmailChangeHandler } from './verify-email-change.js';
  * test by name until it is built above.
  */
 
-/** The verb keys a handler bundle exposes. Anything else is a nested group. */
-const VERBS = ['GET', 'POST', 'PUT', 'PATCH', 'DELETE'] as const;
+// The endpoint keys come from `_shared.ts` — the same list `privateEndpoints`
+// walks. A second copy here could disagree with it, and the endpoints it did
+// not name would be invisible to both.
 
 interface Endpoint {
   id: string;
@@ -82,7 +95,7 @@ interface Endpoint {
 function endpointsOf(prefix: string, bundle: unknown): Endpoint[] {
   const found: Endpoint[] = [];
   for (const [key, value] of Object.entries(bundle as Record<string, unknown>)) {
-    if ((VERBS as readonly string[]).includes(key) && typeof value === 'function') {
+    if (ENDPOINT_KEYS.includes(key) && typeof value === 'function') {
       found.push({ id: `${prefix}.${key}`, run: value as Endpoint['run'] });
     } else if (value && typeof value === 'object') {
       found.push(...endpointsOf(`${prefix}.${key}`, value));
@@ -129,7 +142,7 @@ function pushSubscriptionRepo(): PushSubscriptionRepository {
 }
 
 /** Deps rich enough that no handler refuses at wiring time. */
-function deps() {
+function gateDeps() {
   return createMockAuthDeps({
     config: {
       appUrl: 'https://app.test',
@@ -153,8 +166,11 @@ const registry = () => {
  * Every endpoint-producing factory, constructed. The keys are the export names
  * so {@link coverage} can compare them against `../index.js` directly.
  */
-async function buildBundles(): Promise<Record<string, unknown>> {
-  const d = deps();
+async function buildBundles(): Promise<{
+  bundles: Record<string, unknown>;
+  deps: ReturnType<typeof gateDeps>;
+}> {
+  const d = gateDeps();
   const es256 = await generateES256KeyPair();
   const service = createNotificationService({
     registry: registry(),
@@ -162,7 +178,7 @@ async function buildBundles(): Promise<Record<string, unknown>> {
     repos: { notification: notificationRepo() }
   });
 
-  return {
+  const bundles = {
     createChangeEmailHandler: createChangeEmailHandler(d),
     createChangePasswordHandler: createChangePasswordHandler(d),
     createDeleteAccountHandler: createDeleteAccountHandler(d),
@@ -198,9 +214,10 @@ async function buildBundles(): Promise<Record<string, unknown>> {
       challengeStore: createInMemoryChallengeStore()
     })
   };
+  return { bundles, deps: d };
 }
 
-const BUNDLES = await buildBundles();
+const { bundles: BUNDLES, deps: GATE_DEPS } = await buildBundles();
 const ENDPOINTS = Object.entries(BUNDLES).flatMap(([name, bundle]) =>
   endpointsOf(name.replace(/^create/, '').replace(/Handlers?$/, ''), bundle)
 );
@@ -220,6 +237,26 @@ const STORABLE: Record<string, string> = {
 function anonymousEvent(): RequestEvent {
   const ev = mockPostEvent({});
   return { ...ev, params: {}, locals: {} } as unknown as RequestEvent;
+}
+
+/**
+ * A signed-in request, carrying both ways this package identifies a caller: a
+ * session cookie minted against {@link GATE_DEPS} (`requireSessionUser`) and
+ * `locals.user` (`localsUserId`, set by the auth handle on the notification
+ * endpoints).
+ */
+async function authenticatedEvent(): Promise<RequestEvent> {
+  const ev = mockPostEvent({});
+  await setSessionCookie(
+    ev.cookies as unknown as Cookies,
+    { userId: 'user-1', email: 'test@test.com', role: 'admin', tokenVersion: 0 } as never,
+    GATE_DEPS.config.jwt
+  );
+  return {
+    ...ev,
+    params: {},
+    locals: { user: { id: 'user-1', email: 'test@test.com', role: 'admin' } }
+  } as unknown as RequestEvent;
 }
 
 describe('cache directives — coverage', () => {
@@ -252,50 +289,215 @@ describe('cache directives — every endpoint, refusal path', () => {
   );
 });
 
-describe('cache directives — the success responses that carry account data', () => {
-  const SESSION = {
-    userId: 'user-1',
-    email: 'test@test.com',
-    role: 'admin',
-    tokenVersion: 0
-  } as never;
+/**
+ * The same sweep under a signed-in request, and the half that actually tests
+ * the wrapper.
+ *
+ * An unauthenticated request reaches most endpoints' refusal, and a refusal
+ * takes its directive from `authError` — so the run above passes with
+ * `privateEndpoints` deleted outright, and a factory that forgets the wrapper
+ * goes unnoticed. Signing in moves most endpoints onto the path where the
+ * bundle is the only thing supplying the header, `2xx` bodies included: the
+ * updated profile, the TOTP secret, the account payloads.
+ */
+describe('cache directives — every endpoint, signed in', () => {
+  it.each(ENDPOINTS.map((e) => [e.id, e] as const))(
+    '%s carries a cache directive',
+    async (id, endpoint) => {
+      const res = await endpoint.run(await authenticatedEvent());
+      await res.body?.cancel();
+      expect(res.headers.get('cache-control')).toBe(STORABLE[id] ?? 'no-store');
+    }
+  );
+});
 
-  /** An event carrying a valid session cookie AND `locals.user`. */
-  async function authedEvent(d: ReturnType<typeof deps>): Promise<RequestEvent> {
-    const ev = mockPostEvent({});
-    await setSessionCookie(ev.cookies as unknown as Cookies, SESSION, d.config.jwt);
-    return {
-      ...ev,
-      params: {},
-      locals: { user: { id: 'user-1', email: 'test@test.com', role: 'admin' } }
-    } as unknown as RequestEvent;
-  }
+/**
+ * One success response per factory, driven to a 2xx.
+ *
+ * **This is the half that tests the wrapper.** `authError` never answers 2xx,
+ * so a 2xx carrying `no-store` can only have taken it from `privateEndpoints`
+ * around the bundle — which makes each entry below a proof that its factory is
+ * wrapped, and with it every endpoint under that factory: the wrapper walks the
+ * whole bundle in one pass, so a group it reached at all it reached completely.
+ *
+ * The table is keyed by factory export name and checked against {@link BUNDLES},
+ * so a new factory fails here until someone drives its success path. Without
+ * this, coverage rests on the refusal sweep — and a refusal takes its directive
+ * from `authError`, which leaves the wrapper untested: with `privateEndpoints`
+ * emptied out, the refusal sweep loses three assertions out of 41, and a single
+ * factory dropping the wrapper loses none at all.
+ */
+const PASSWORD = 'Correct-Horse-Battery-42';
+const NEW_PASSWORD = 'Tr0ub4dor-and-3-More';
+const ENC_KEY = 'test-2fa-encryption-key-0123456789';
+const SESSION = {
+  userId: 'user-1',
+  email: 'test@test.com',
+  role: 'admin',
+  tokenVersion: 0
+} as never;
 
-  it('me returns the profile with no-store', async () => {
-    const d = deps();
-    const res = await createMeHandler(d).GET(await authedEvent(d));
-    expect(res.status).toBe(200);
-    expect((await res.json()).user.email).toBe('test@test.com');
-    expect(res.headers.get('cache-control')).toBe('no-store');
+/** Deps whose session user carries a real password hash, so re-auth gates pass. */
+async function signedInDeps(opts?: {
+  user?: Partial<Parameters<typeof createMockAuthDeps>[0] extends undefined ? never : object>;
+  userRepo?: Record<string, unknown>;
+  invitation?: Record<string, unknown>;
+  refreshToken?: ReturnType<typeof createInMemoryRefreshTokenRepository>;
+}) {
+  const sessionUser = createMockUser({ id: 'user-1', passwordHash: await hashPassword(PASSWORD) });
+  const deps = createMockAuthDeps({
+    config: {
+      appUrl: 'https://app.test',
+      jwt: { secret: 'test-secret', expiresIn: '1h' },
+      refreshToken: {},
+      twoFactor: { encryptionKey: ENC_KEY }
+    },
+    user: { findById: vi.fn().mockResolvedValue(sessionUser), ...opts?.userRepo },
+    invitation: opts?.invitation,
+    refreshToken: opts?.refreshToken ?? createInMemoryRefreshTokenRepository(createInMemoryStore()),
+    passkey: passkeyRepo()
   });
+  return { deps, sessionUser };
+}
 
-  it('the session list returns rows with no-store', async () => {
-    const d = deps();
-    const res = await createSessionsHandlers(d).list.GET(await authedEvent(d));
-    expect(res.status).toBe(200);
-    expect(res.headers.get('cache-control')).toBe('no-store');
-  });
+/** An event signed in against `d`, carrying an optional body, params and cookies. */
+async function signedIn(
+  d: AuthDeps<string>,
+  opts?: { body?: unknown; params?: Record<string, string>; cookies?: Record<string, string> }
+): Promise<RequestEvent> {
+  const ev = mockPostEvent(opts?.body ?? {});
+  await setSessionCookie(ev.cookies as unknown as Cookies, SESSION, d.config.jwt);
+  for (const [name, value] of Object.entries(opts?.cookies ?? {})) ev.cookies.set(name, value);
+  return {
+    ...ev,
+    params: opts?.params ?? {},
+    locals: { user: { id: 'user-1', email: 'test@test.com', role: 'admin' } }
+  } as unknown as RequestEvent;
+}
 
-  it('the invitation list returns rows with no-store', async () => {
-    const d = deps();
-    const handlers = createInvitationHandlers(d, { authorize: () => true, roles: ['admin'] });
-    vi.mocked(d.repos.invitation.list).mockResolvedValue([]);
-    const res = await handlers.GET(await authedEvent(d));
-    expect(res.status).toBe(200);
-    expect(res.headers.get('cache-control')).toBe('no-store');
-  });
-
-  it('the notification list returns rows with no-store', async () => {
+const SUCCESS_DRIVES: Record<string, () => Promise<Response>> = {
+  createChangeEmailHandler: async () => {
+    const { deps } = await signedInDeps({
+      userRepo: { findByEmail: vi.fn().mockResolvedValue(null) }
+    });
+    return createChangeEmailHandler(deps).POST(
+      await signedIn(deps, { body: { newEmail: 'new@test.com', currentPassword: PASSWORD } })
+    );
+  },
+  createChangePasswordHandler: async () => {
+    const { deps } = await signedInDeps();
+    return createChangePasswordHandler(deps).POST(
+      await signedIn(deps, { body: { currentPassword: PASSWORD, newPassword: NEW_PASSWORD } })
+    );
+  },
+  createDeleteAccountHandler: async () => {
+    const { deps } = await signedInDeps();
+    return createDeleteAccountHandler(deps).POST(
+      await signedIn(deps, { body: { currentPassword: PASSWORD } })
+    );
+  },
+  createForgotPasswordHandler: async () => {
+    const { deps } = await signedInDeps();
+    return createForgotPasswordHandler(deps).POST(
+      await signedIn(deps, { body: { email: 'test@test.com' } })
+    );
+  },
+  createInvitationHandlers: async () => {
+    const { deps } = await signedInDeps({ invitation: { list: vi.fn().mockResolvedValue([]) } });
+    return createInvitationHandlers(deps, { authorize: () => true, roles: ['admin'] }).GET(
+      await signedIn(deps)
+    );
+  },
+  createJWKSHandler: async () => {
+    const es256 = await generateES256KeyPair();
+    return createJWKSHandler({
+      jwt: { algorithm: 'ES256', signingKey: es256.privateKey, secret: 'unused' }
+    }).GET(anonymousEvent());
+  },
+  createLoginHandler: async () => {
+    const { deps, sessionUser } = await signedInDeps({
+      userRepo: { findByEmail: vi.fn().mockResolvedValue(undefined) }
+    });
+    vi.mocked(deps.repos.user.findByEmail).mockResolvedValue(sessionUser);
+    return createLoginHandler(deps).POST(
+      await signedIn(deps, { body: { email: 'test@test.com', password: PASSWORD } })
+    );
+  },
+  createLogoutHandler: async () => {
+    const { deps } = await signedInDeps();
+    return createLogoutHandler(deps).POST(await signedIn(deps));
+  },
+  createMeHandler: async () => {
+    const { deps } = await signedInDeps();
+    return createMeHandler(deps).GET(await signedIn(deps));
+  },
+  createPasswordPolicyHandler: async () => {
+    const { deps } = await signedInDeps();
+    return createPasswordPolicyHandler(deps).GET(anonymousEvent());
+  },
+  createRefreshHandler: async () => {
+    const repo = createInMemoryRefreshTokenRepository(createInMemoryStore());
+    const { token } = await issueRefreshToken(repo, 'user-1', { refreshTokenTtl: '30d' });
+    const { deps } = await signedInDeps({ refreshToken: repo });
+    return createRefreshHandler(deps).POST(await signedIn(deps, { cookies: { refresh: token } }));
+  },
+  createRegisterHandler: async () => {
+    const token = 'invitation-token';
+    const sessionUser = createMockUser({ id: 'user-1' });
+    const { deps } = await signedInDeps({
+      // Called twice on the success path: null for the "already registered?"
+      // check, then the created row, which the handler re-reads rather than
+      // hand-assembling.
+      userRepo: {
+        findByEmail: vi.fn().mockResolvedValueOnce(null).mockResolvedValue(sessionUser)
+      },
+      invitation: {
+        findByTokenHash: vi.fn().mockResolvedValue(createMockInvitation({ email: 'new@test.com' }))
+      }
+    });
+    vi.mocked(deps.repos.user.create).mockResolvedValue(sessionUser);
+    return createRegisterHandler(deps).POST(
+      await signedIn(deps, {
+        body: { email: 'new@test.com', name: 'New User', password: NEW_PASSWORD, token }
+      })
+    );
+  },
+  createResetPasswordHandler: async () => {
+    const { deps, sessionUser } = await signedInDeps();
+    vi.mocked(deps.repos.user.consumeResetToken).mockResolvedValue(sessionUser);
+    return createResetPasswordHandler(deps).POST(
+      await signedIn(deps, { body: { token: 'reset-token', password: NEW_PASSWORD } })
+    );
+  },
+  createSessionsHandlers: async () => {
+    const { deps } = await signedInDeps();
+    return createSessionsHandlers(deps).list.GET(await signedIn(deps));
+  },
+  createTwoFactorHandlers: async () => {
+    const { deps } = await signedInDeps();
+    return createTwoFactorHandlers(deps).setup.POST(await signedIn(deps));
+  },
+  createUpdateProfileHandler: async () => {
+    const { deps } = await signedInDeps();
+    return createUpdateProfileHandler(deps).POST(
+      await signedIn(deps, { body: { name: 'New Name' } })
+    );
+  },
+  createVerifyEmailChangeHandler: async () => {
+    const { deps, sessionUser } = await signedInDeps();
+    vi.mocked(deps.repos.user.consumeEmailChangeToken).mockResolvedValue(sessionUser);
+    return createVerifyEmailChangeHandler(deps).POST(
+      await signedIn(deps, { body: { token: 'change-token' } })
+    );
+  },
+  createVerifyEmailHandler: async () => {
+    const { deps, sessionUser } = await signedInDeps();
+    vi.mocked(deps.repos.user.consumeVerificationToken).mockResolvedValue(sessionUser);
+    return createVerifyEmailHandler(deps).POST(
+      await signedIn(deps, { body: { token: 'verify-token' } })
+    );
+  },
+  createNotificationsHandlers: async () => {
     const repo = notificationRepo();
     vi.mocked(repo.findByUser).mockResolvedValue([
       {
@@ -315,30 +517,31 @@ describe('cache directives — the success responses that carry account data', (
       sse: createSSEManager(),
       repos: { notification: repo }
     });
-    const d = deps();
-    const res = await createNotificationsHandlers(service).list.GET(await authedEvent(d));
-    expect(res.status).toBe(200);
-    // The body is the exposure this test exists for — private rows, and the
-    // account they belong to is named only by the session cookie.
-    expect((await res.json()).notifications[0].body).toBe('from 10.0.0.1');
-    expect(res.headers.get('cache-control')).toBe('no-store');
-  });
-
-  it('the notification preferences return the settings with no-store', async () => {
+    const { deps } = await signedInDeps();
+    return createNotificationsHandlers(service).list.GET(await signedIn(deps));
+  },
+  createPreferencesHandler: async () => {
     const repo = preferenceRepo();
     vi.mocked(repo.findByUser).mockResolvedValue([
       { typeKey: 'security', sse: true, push: false, email: true }
     ]);
-    const d = deps();
-    const res = await createPreferencesHandler(repo, registry()).GET(await authedEvent(d));
-    expect(res.status).toBe(200);
-    expect((await res.json()).preferences).toHaveLength(1);
-    expect(res.headers.get('cache-control')).toBe('no-store');
-  });
-
-  it('the passkey inventory returns the credentials with no-store', async () => {
-    const d = deps();
-    const repo = d.repos.passkey as PasskeyRepository;
+    const { deps } = await signedInDeps();
+    return createPreferencesHandler(repo, registry()).GET(await signedIn(deps));
+  },
+  createPushKeyHandler: async () => createPushKeyHandler(VAPID_PUBLIC_KEY).GET(anonymousEvent()),
+  createPushSubscriptionHandler: async () => {
+    const { deps } = await signedInDeps();
+    return createPushSubscriptionHandler(pushSubscriptionRepo()).DELETE(
+      await signedIn(deps, { body: { endpoint: 'https://push.test/endpoint' } })
+    );
+  },
+  createStreamHandler: async () => {
+    const { deps } = await signedInDeps();
+    return createStreamHandler(createSSEManager()).GET(await signedIn(deps));
+  },
+  createPasskeyHandlers: async () => {
+    const { deps } = await signedInDeps();
+    const repo = deps.repos.passkey as PasskeyRepository;
     vi.mocked(repo.findByUserId).mockResolvedValue([
       {
         credentialId: 'cred-abc',
@@ -353,28 +556,33 @@ describe('cache directives — the success responses that carry account data', (
         lastUsedAt: null
       }
     ]);
-    const handlers = createPasskeyHandlers(d, {
+    return createPasskeyHandlers(deps, {
       rpId: 'app.test',
       rpName: 'Test',
       origin: 'https://app.test',
       challengeStore: createInMemoryChallengeStore()
-    });
-    const res = await handlers.list.GET(await authedEvent(d));
-    expect(res.status).toBe(200);
-    expect((await res.json()).passkeys[0].name).toBe('MacBook');
-    expect(res.headers.get('cache-control')).toBe('no-store');
+    }).list.GET(await signedIn(deps));
+  }
+};
+
+describe('cache directives — a success response per factory', () => {
+  it('drives every factory the package exports', () => {
+    expect(Object.keys(SUCCESS_DRIVES).sort()).toEqual(Object.keys(BUNDLES).sort());
   });
 
-  it('the SSE stream is uncacheable, not merely revalidated', async () => {
-    // `no-cache` still permits a shared cache to STORE the response; only
-    // `no-store` forbids it. A per-user event stream is as private as the rows
-    // it carries.
-    const d = deps();
-    const res = await createStreamHandler(createSSEManager()).GET(await authedEvent(d));
-    expect(res.headers.get('content-type')).toBe('text/event-stream');
-    expect(res.headers.get('cache-control')).toBe('no-store');
-    await res.body?.cancel();
-  });
+  it.each(Object.entries(SUCCESS_DRIVES))(
+    '%s answers 2xx with the directive its bundle supplies',
+    async (name, drive) => {
+      const res = await drive();
+      await res.body?.cancel();
+      // A 2xx is the whole point: `authError` cannot produce one, so the
+      // directive below has no other source than the bundle wrapper.
+      expect(res.status, `${name} did not reach a success path`).toBeGreaterThanOrEqual(200);
+      expect(res.status, `${name} did not reach a success path`).toBeLessThan(300);
+      const id = `${name.replace(/^create/, '').replace(/Handlers?$/, '')}.GET`;
+      expect(res.headers.get('cache-control')).toBe(STORABLE[id] ?? 'no-store');
+    }
+  );
 });
 
 describe('cache directives — the headers a response must not lose', () => {
@@ -408,7 +616,7 @@ describe('cache directives — the headers a response must not lose', () => {
   });
 
   it('the password policy stays publicly cacheable', async () => {
-    const res = await createPasswordPolicyHandler(deps()).GET(anonymousEvent());
+    const res = await createPasswordPolicyHandler(gateDeps()).GET(anonymousEvent());
     expect(res.status).toBe(200);
     expect(res.headers.get('cache-control')).toBe('public, max-age=300');
   });

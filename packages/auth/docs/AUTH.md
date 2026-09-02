@@ -288,7 +288,7 @@ which origins the app loads.
 scoped to one account — the `me` payload, freshly minted tokens, the session,
 invitation, notification and passkey lists, 2FA material, WebAuthn challenges,
 and the per-account outcome a bare `{ success: true }` reports — so every
-response carries `Cache-Control: no-store`. It is a property of the endpoint
+response the package builds carries `Cache-Control: no-store`. It is a property of the endpoint
 rather than of each call site: refusals take it from `authError`, every other
 response from the wrapper around each handler bundle, so a route cannot answer
 without it and no handler has to remember to add it. That matters because
@@ -309,8 +309,15 @@ order to subscribe to Web Push). None of the three is scoped to a caller, and
 all three accept the same bounded staleness — after a key rotation or a
 tightened policy a warm client keeps using the previous value for up to five
 minutes, which costs one refused push subscription or one rejected submit and
-corrects itself on the next fetch. Those three are the whole exception list;
-everything else the package answers is `no-store`.
+corrects itself on the next fetch.
+
+Those three are the whole exception list **among the responses this package
+builds**. The rule does not reach what SvelteKit generates from a `throw`: the
+handle's `302` to the login page for a guarded route, or the `500` raised when
+a consumer hook throws. Neither carries a directive. Neither status is in the
+heuristically-cacheable set either, so nothing that motivated the rule reopens
+there — but if you put a cache in front of the app, those two are the responses
+this package has not spoken for.
 
 ### Secure deployment
 

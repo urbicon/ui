@@ -15,6 +15,14 @@ import { privateEndpoints } from '../../handlers/_shared.js';
  * subscribing against the old key for up to that long. The failure is visible
  * and self-correcting — those subscriptions are refused by the push service and
  * the next fetch has the new key.
+ *
+ * One interaction worth knowing when you mount this: the route it is usually
+ * mounted at (`/api/notifications/push-key`) is NOT among
+ * `DEFAULT_PUBLIC_ROUTES`, so `createAuthHandle` guards it by default while
+ * this response advertises itself as publicly cacheable — a shared cache would
+ * serve it to callers the guard would have turned away. For a public key that
+ * discloses nothing, which is why the header stands; mount it under a public
+ * prefix if you would rather the two agreed.
  */
 const PUSH_KEY_HEADERS = { 'Cache-Control': 'public, max-age=300' } as const;
 

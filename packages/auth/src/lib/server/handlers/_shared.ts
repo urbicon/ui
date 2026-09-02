@@ -145,8 +145,43 @@ export function passwordRefusal(password: string, config?: PasswordConfig): Resp
   });
 }
 
-/** The keys a handler bundle exposes as endpoints; anything else is a group. */
-const HTTP_VERBS: readonly string[] = ['GET', 'POST', 'PUT', 'PATCH', 'DELETE'];
+/**
+ * The keys SvelteKit treats as endpoints in a `+server.ts` module: its seven
+ * `HttpMethod`s, plus `fallback` — which answers every method the module does
+ * not export by name, and would otherwise be the one handler this wrapper
+ * walks past.
+ *
+ * Both live in SvelteKit's `SSREndpoint`, which it declares but does not
+ * export ("Module '@sveltejs/kit' declares 'HttpMethod' locally, but it is not
+ * exported"), so the set cannot be derived from the type and is restated here.
+ * It is exported for exactly one reason: the cache-directive gate imports it
+ * instead of keeping a second hand-written copy, so the two cannot disagree
+ * about what an endpoint is. A method SvelteKit adds has to be added here —
+ * nothing detects that for us.
+ */
+export const ENDPOINT_KEYS: readonly string[] = [
+  'GET',
+  'HEAD',
+  'POST',
+  'PUT',
+  'DELETE',
+  'PATCH',
+  'OPTIONS',
+  'fallback'
+];
+
+/**
+ * A value safe to walk into looking for more endpoints: an object literal, and
+ * nothing else. `privateEndpoints` recurses because two factories group their
+ * endpoints (`sessions.list.GET`), and a group is always a literal — while an
+ * `Array`, `Date`, `Map` or class instance sharing the bundle would be walked
+ * into for keys it does not have.
+ */
+function isPlainObject(value: unknown): value is Record<string, unknown> {
+  if (typeof value !== 'object' || value === null) return false;
+  const proto = Object.getPrototypeOf(value);
+  return proto === Object.prototype || proto === null;
+}
 
 /** A route handler, narrowed to what this wrapper needs of it. */
 type EndpointHandler = (event: RequestEvent) => Response | Promise<Response>;
@@ -174,26 +209,42 @@ type EndpointHandler = (event: RequestEvent) => Response | Promise<Response>;
  * copied into a fresh `Headers`, so no header a handler set can be dropped on
  * the way out — `Retry-After` on a 429 included — and a streaming body
  * (`text/event-stream`) is passed through untouched rather than re-wrapped.
+ *
+ * The bundle is mutated in place and handed back. What this promises is a
+ * header on the endpoint responses and nothing else, so every other value a
+ * factory puts beside its endpoints — a limiter, a `prerender` flag, a shared
+ * sub-object — has to come through untouched, its identity included; only
+ * object literals are walked into looking for further endpoints. The shapes
+ * that rules out are pinned in `_shared.test.ts`.
  */
 export function privateEndpoints<T extends object>(bundle: T): T {
-  const wrapped: Record<string, unknown> = {};
-  for (const [key, value] of Object.entries(bundle)) {
-    if (HTTP_VERBS.includes(key) && typeof value === 'function') {
+  stampEndpoints(bundle as Record<string, unknown>, new WeakSet());
+  return bundle;
+}
+
+/**
+ * `seen` is what bounds the walk. A bundle is a value the caller owns, so it
+ * may hold a reference back to itself or share one sub-object between two
+ * groups; without this, the first recurses until the stack runs out and the
+ * second wraps the same handler twice.
+ */
+function stampEndpoints(node: Record<string, unknown>, seen: WeakSet<object>): void {
+  if (seen.has(node)) return;
+  seen.add(node);
+  for (const [key, value] of Object.entries(node)) {
+    if (ENDPOINT_KEYS.includes(key) && typeof value === 'function') {
       const handler = value as EndpointHandler;
-      wrapped[key] = async (event: RequestEvent): Promise<Response> => {
+      node[key] = async (event: RequestEvent): Promise<Response> => {
         const response = await handler(event);
         if (!response.headers.has('Cache-Control')) {
           response.headers.set('Cache-Control', 'no-store');
         }
         return response;
       };
-    } else if (value !== null && typeof value === 'object') {
-      wrapped[key] = privateEndpoints(value as object);
-    } else {
-      wrapped[key] = value;
+    } else if (isPlainObject(value)) {
+      stampEndpoints(value, seen);
     }
   }
-  return wrapped as T;
 }
 
 /**

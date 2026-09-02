@@ -231,11 +231,13 @@ interface AuthErrorOptions {
   /** Extra fields to merge into the JSON body (e.g. `errors` for validation). */
   extra?: Record<string, unknown>;
   /**
-   * Additional response headers — `Retry-After` on a 429 is the only one the
-   * package sends. NOT `Cache-Control`: {@link authError} sets that itself and
-   * overrides whatever is passed here.
+   * `Retry-After`, on the two rate-limit codes. Typed as that one header rather
+   * than `HeadersInit` because it is the only one any refusal has ever carried,
+   * and because the narrower type makes the case worth warning about —
+   * a caller passing `Cache-Control`, which {@link authError} would override —
+   * impossible to write instead of merely documented.
    */
-  headers?: HeadersInit;
+  headers?: { 'Retry-After': string };
 }
 
 /**
