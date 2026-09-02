@@ -5,6 +5,7 @@ import {
   resolveClassChain,
   type TVConfig
 } from '$lib/utils/variants';
+import type { SlotOf } from './component-slots';
 
 /**
  * A prop-conditional style rule. Its non-`class` keys are matched against the
@@ -50,22 +51,22 @@ import {
  * @example
  * { variant: 'outlined', class: { base: 'border' } } // 1px border only on outlined
  */
-export interface ConditionalOverride {
+export interface ConditionalOverride<Slot extends string = string> {
   /** Per-slot classes applied when the prop conditions match. */
-  class: Record<string, string>;
+  class: Partial<Record<Slot, string>>;
   /** Prop conditions: prop name → required value (or one of several). */
-  [propCondition: string]: string | string[] | boolean | Record<string, string> | undefined;
+  [propCondition: string]: string | string[] | boolean | Partial<Record<Slot, string>> | undefined;
 }
 
-export interface ComponentDefaults {
-  slotClasses?: Record<string, string>;
+export interface ComponentDefaults<Slot extends string = string> {
+  slotClasses?: Partial<Record<Slot, string>>;
   /**
    * Prop-conditional style rules, applied after unconditional `slotClasses`
    * (so they win per bucket) but before instance-level `slotClasses` / `class`.
    * Use for surgical per-variant tweaks the unconditional `slotClasses` cannot
    * express, e.g. `overrides: [{ variant: 'outlined', class: { base: 'border' } }]`.
    */
-  overrides?: ConditionalOverride[];
+  overrides?: ConditionalOverride<Slot>[];
 }
 
 /**
@@ -77,14 +78,53 @@ export interface ComponentDefaults {
  * outside the semantic intent palette — instead of overriding styles
  * with `class="bg-…!"` at each usage site.
  */
-export interface ComponentPreset {
-  slotClasses?: Record<string, string>;
+export interface ComponentPreset<Slot extends string = string> {
+  slotClasses?: Partial<Record<Slot, string>>;
   /** Prop-conditional rules scoped to this preset (see {@link ConditionalOverride}). */
-  overrides?: ConditionalOverride[];
+  overrides?: ConditionalOverride<Slot>[];
 }
 
 /** Map of component name → preset name → preset definition. */
 export type PresetMap = Record<string, Record<string, ComponentPreset>>;
+
+/**
+ * A provider `defaults` object, with each entry checked against the slot names
+ * of the component its key names.
+ *
+ * Generic in the object that is *written*, not in a fixed key set: `K` is the
+ * literal the consumer typed, so {@link SlotOf} can answer per key — a known
+ * component gets its own slots, any other name keeps `string`. A non-generic
+ * `Record<keyof ComponentSlotMap, …>` would be the alternative and it would
+ * close the map, which breaks the consumer wrapper that
+ * COMPONENT-API-CONVENTIONS.md documents.
+ *
+ * **Sharp for the object literal that reaches the attribute.** These records are
+ * weak types (every property optional), so the base rule rejects only an object
+ * with *no* key in common; catching a wrong key *beside* a right one is
+ * excess-property checking, which needs a fresh literal. So the prop must not be
+ * the bare type parameter — inferring the literal *into* it makes the literal
+ * its own target, freshness is gone and only the weak-type rule is left. It is
+ * declared `BlocksDefaults<Record<TDefaultKeys, unknown>>` instead: the type
+ * parameter carries the **keys** alone, and this mapped type builds the target
+ * from them.
+ *
+ * **The properties are optional for a reason a required version cannot serve.**
+ * Inferring keys from `cond ? themeA : themeB` takes them from one branch, and a
+ * required property the other branch lacks is then missing — so a config
+ * switched on at runtime, the ordinary shape, fails to compile with no wrong
+ * slot name anywhere. Both halves are needed: optional alone still fails the
+ * ternary, key-inference alone still fails it.
+ *
+ * Every way a config can reach the attribute is tabulated in `docs/MIGRATION.md`;
+ * the quietest is an annotated `Record<string, ComponentDefaults>`, which reports
+ * nothing at all. The rejected half is asserted in
+ * `component-slots.types.test.ts` by calling the component, so it reads this
+ * declaration rather than a copy of it.
+ */
+export type BlocksDefaults<T> = { [K in keyof T]?: ComponentDefaults<SlotOf<K>> };
+
+/** A provider `presets` object, checked per component key like {@link BlocksDefaults}. */
+export type BlocksPresets<T> = { [K in keyof T]?: Record<string, ComponentPreset<SlotOf<K>>> };
 
 export interface BlocksConfig {
   readonly unstyled: boolean;
@@ -97,8 +137,17 @@ const [getBlocksConfig, setBlocksConfig] = createOptionalContext<BlocksConfig>()
 
 export { getBlocksConfig, setBlocksConfig };
 
+/**
+ * Merge slot-class records, later sources appending to earlier ones.
+ *
+ * Takes `string | undefined` values because that is what every source in this
+ * file already is — a `Partial<Record<Slot, string>>` leaves out the slots the
+ * caller did not write — and because the loop below has always skipped a falsy
+ * value. The parameter says what the body does, which is also what lets the two
+ * exported helpers compose: `mergeSlotClasses(resolvePresetSlotClasses(…))`.
+ */
 export function mergeSlotClasses(
-  ...sources: (Record<string, string> | undefined)[]
+  ...sources: (Record<string, string | undefined> | undefined)[]
 ): Record<string, string> {
   const result: Record<string, string> = {};
   for (const source of sources) {
@@ -121,7 +170,7 @@ export function resolvePresetSlotClasses(
   presets: PresetMap | undefined,
   component: string,
   presetName: string | undefined
-): Record<string, string> | undefined {
+): Record<string, string | undefined> | undefined {
   if (!presetName) return undefined;
 
   const preset = presets?.[component]?.[presetName];
@@ -198,13 +247,16 @@ const warnedConditionKeys = new Set<string>();
  * not here: five components read slot names the config they hand this resolver
  * does not declare. Three read past a declared slot map — `NumberInput` takes
  * `stepper`/`stepperButton` off a record Input resolved under its name,
- * `SidebarLayout` five `sidebar*` keys, `Guide` `skip`/`next` — and two,
+ * `SidebarLayout` five `sidebar*` keys, `Guide` `next`/`prev`/`skip` — and two,
  * `Popover` and `Separator`, pass a config carrying no `slots` at all and read
  * `base` off the result. Checking against `variantConfig.slots` would report
  * correct consumer config as mistyped in all five. A second parameter carrying
  * the missing names is the shape that would close it, and it would be
  * hand-maintained: the next forwarding component to omit it turns the check
- * into a false alarm on working code.
+ * into a false alarm on working code. Slot names are checked by the type
+ * instead, and from the other side — each component's `slotClasses` prop rather
+ * than its config (see `component-slots.ts`), which is why all five are correct
+ * there.
  *
  * **What it cannot see at all:** a rule reaches this function only when the
  * component it is written for actually renders under the provider. A mistyped

@@ -9,6 +9,95 @@ and ships in the `@urbicon-ui/table` tarball.
 
 ## v9
 
+### `<BlocksProvider>` slot names are checked against the component
+
+`defaults` and `presets` took any string as a slot name under any component name. A key the
+component cannot paint reached no element, changed no markup, and read exactly like a rule
+that was simply not matched. Both records — and the `class` record inside an `overrides`
+rule — now take the slot names of the component their key names.
+
+```svelte
+<!-- before: compiled, painted nothing -->
+<BlocksProvider defaults={{ LineChart: { slotClasses: { arc: 'fill-brand' } } }}>
+```
+
+```svelte
+<!-- after: `arc` is a donut's wedge; a line chart paints `mark` and `point` -->
+<BlocksProvider defaults={{ LineChart: { slotClasses: { mark: 'stroke-brand' } } }}>
+```
+
+**A key that never resolved is now a compile error**, which is the change: the same
+narrowing a component's own `slotClasses` prop already had, on the surface a project
+configures once. Expect it to fire on config written before this release, at the keys that
+were doing nothing.
+
+The names come from each component's `slotClasses` prop, so the provider admits exactly what
+the call site admits — no more and no less. That includes the slots a component reads past
+the `tv()` config the cascade resolves under its name — `NumberInput`'s `stepper` and
+`stepperButton`, which `Input`'s config never declares; `SidebarLayout`'s five `sidebar*` keys
+and `Guide`'s `next`, `prev` and `skip`, which their own configs do not; `base` on `Popover` and
+`Separator`, whose configs carry no slot map at all — and it excludes what a component
+deliberately leaves out: `SegmentGroup` has no `item`, because `SegmentItem` owns that one.
+
+**A wrapper of your own keeps compiling.** A name this package does not export takes any slot
+key, because its slots live in your markup where nothing here can see them — so
+`defaults={{ MoneyField: … }}` beside `resolveSlotClasses(config, 'MoneyField', …)` is
+unaffected, as are the components of `@urbicon-ui/auth`. The cost is that a **mistyped
+component name** is indistinguishable from one of those: `defaults={{ Butoon: … }}` is still
+accepted and still reaches nobody.
+
+Two names are worse than that, because the compiler *confirms* them. `CalendarHeader` and
+`FormField` declare a `slotClasses` prop but never resolve it through the provider —
+`CalendarHeader` takes its classes off the Calendar context, `FormField` reads its own prop
+directly — so an entry under either narrows to the right slot names, completes in your editor,
+and reaches no element. Neither accepted provider configuration before this release either;
+style them at the call site.
+
+**Where it is blind.** These records are weak types — every property optional — so the base
+rule is that only an object with *no* key in common is rejected. What catches a wrong key
+*beside* a right one is excess-property checking, and that applies to a **fresh object
+literal**. How your config reaches the attribute therefore decides how much of it is checked:
+
+| how the config reaches the provider | wrong key alone | wrong key beside a right one |
+| --- | --- | --- |
+| written inline in the attribute | error | error |
+| inline but spread in — `{ mark: 'ok', ...rest }` | error | **accepted** |
+| a plain `const`, no type annotation | error | **accepted** |
+| a `const` with `satisfies Record<string, ComponentDefaults>` | error | **accepted** |
+| a `const` with `as const` | error | **accepted** |
+| returned from a function | error | **accepted** |
+| a `const` annotated `Record<string, ComponentDefaults>` or `PresetMap` | **accepted** | **accepted** |
+
+Measured on `<BlocksProvider defaults={{ LineChart: … }}>`, every cell. The
+wrong-key-*beside*-a-right-one column needs excess-property checking, which only reaches a
+**fresh object literal** written into the attribute; without it the weak-type rule is all that is
+left, and that rejects only an object sharing *no* key with the target. Rows three to six are one
+way of losing it — they put the record in a variable first, `satisfies` and `as const` included,
+which check the value and still leave a variable behind. Row two loses it for a second reason:
+excess-property checking does not apply to properties brought in by a spread, so a fresh literal
+in the attribute is not enough on its own.
+
+**The last row is the one that costs you the most.** `Record<string, ComponentDefaults>` was
+this prop's own type until this release, and `PresetMap` is still exported — so annotating a
+theme module with either is the natural thing to reach for, and it turns the check off
+completely, including the wrong-key-alone case every other row still catches. There is no
+diagnostic; the annotation widens the key type back to `string` before the provider ever sees
+it.
+
+**Write `satisfies` where you would have written the annotation.** It does not buy back the
+last column — it checks against `ComponentDefaults<string>`, where any slot name is legal, and
+hands on a variable — but it keeps the literal keys, so the provider still narrows per
+component and the wrong-key-alone case is reported again:
+
+```ts
+// no check at all
+export const theme: Record<string, ComponentDefaults> = { LineChart: { … } };
+// the alone column back
+export const theme = { LineChart: { … } } satisfies Record<string, ComponentDefaults>;
+```
+
+For the full check, write the object into the attribute.
+
 ### A wrapper's `overrides` match the state its inner component is in — `wrapperActiveProps` is gone
 
 `NumberInput`, `CurrencyInput`, `LocaleSwitcher` and `ConfirmDialog` are wrappers: each hands
@@ -236,26 +325,34 @@ sparkline it is a single circle at the last value. Reusing the word would have m
 written for one read as portable to the other while landing on a different number of
 elements, and nothing reports that: the key resolves either way.
 
-**Five places can carry a slot key, and the compiler reports exactly one of them.** Written
-inline at the call site, both old keys are an error: `slotClasses={{ line: … }}` fails with
-`'line' does not exist in type 'Partial<Record<SparklineSlots, string>>'`. The other four
-were measured at zero errors:
+**Five places can carry a slot key, and written inline every one of them is reported.** Each
+old key fails against the same slot names: `'line' does not exist in type
+'Partial<Record<SparklineSlots, string>>'`. Measured, all five:
 
-| where the key sits | reported at compile time? |
-| --- | --- |
-| the `slotClasses` prop | **only written inline.** A map held in a variable passes: a target whose properties are all optional rejects only an object with *no* key in common, so `{ root, line, point }` is accepted |
-| `defaults={{ Sparkline: { slotClasses } }}` | no — `ComponentDefaults['slotClasses']` is `Record<string, string>` |
-| `defaults={{ Sparkline: { overrides } }}` | no — `ConditionalOverride['class']` is `Record<string, string>` |
-| `presets={{ Sparkline: { … : { slotClasses } } }}` | no — `ComponentPreset['slotClasses']` is `Record<string, string>` |
-| `presets={{ Sparkline: { … : { overrides } } }}` | no — `ConditionalOverride['class']` again |
+| where the key sits | written inline | reached through a variable |
+| --- | --- | --- |
+| the `slotClasses` prop | error | only if no key is in common |
+| `defaults={{ Sparkline: { slotClasses } }}` | error | only if no key is in common |
+| `defaults={{ Sparkline: { overrides } }}` (its `class` record) | error | only if no key is in common |
+| `presets={{ Sparkline: { … : { slotClasses } } }}` | error | only if no key is in common |
+| `presets={{ Sparkline: { … : { overrides } } }}` | error | only if no key is in common |
+
+The second column is one rule, not five: a target whose properties are all optional rejects
+only an object with *no* key in common, and the excess-property check that catches a wrong key
+*beside* a right one applies to a fresh object literal. So `{ root, line, point }` written into
+the attribute is an error, and the same object held in a `const` is not. One form is quieter
+still — a `const` annotated `Record<string, ComponentDefaults>` or `PresetMap` reports nothing
+at all; see the table under
+[`<BlocksProvider>` slot names are checked against the component](#blocksprovider-slot-names-are-checked-against-the-component).
 
 **One grep finds all five: `Sparkline`.** Not `Sparkline:` — a formatter set to
 `quoteProps: "consistent"` quotes every key in an object as soon as one of them needs it, so
 your provider config may well read `'Sparkline':`, and a computed `[SPARKLINE]:` key misses
 too. And not `slotClasses`, which never appears in an `overrides` rule: those write `class:`.
 
-The four provider rows are also why grepping your markup alone is not enough. That config
-sits under the string key `'Sparkline'`, nowhere near a `<Sparkline>` tag.
+The four provider rows are also why grepping your markup alone is not enough for the cases the
+second column lets through. That config sits under the string key `'Sparkline'`, nowhere near a
+`<Sparkline>` tag.
 
 A development build reports all five for you. The component checks the *resolved* slot map,
 downstream of every source, and warns when a sparkline mounts with a stale key in reach:

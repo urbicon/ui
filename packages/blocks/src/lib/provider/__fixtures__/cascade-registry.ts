@@ -73,7 +73,7 @@ const componentsByPath = new Map(
  * wrapper's name before its own, but reads that one off `cascade.component`
  * rather than a literal, so the first literal here is still its own.
  */
-const PROVIDER_NAME =
+export const PROVIDER_NAME =
   /(?:resolveSlotClasses\(\s*[A-Za-z_$][\w$]*\s*,|setWrapperCascade\()\s*'([^']+)'/;
 /** The destructuring pattern of the component's own `$props()` call. */
 const PROPS_CALL = /let\s*\{([\s\S]*?)\}\s*(?::[^=]*)?=\s*\$props\(\)/;
@@ -113,7 +113,7 @@ export interface CascadeComponent {
  * prose *inside* the object literals and argument lists this file reads, so an
  * unstripped scan takes words out of a sentence for prop names.
  */
-function stripComments(source: string): string {
+export function stripComments(source: string): string {
   return source.replace(/\/\*[\s\S]*?\*\//g, '').replace(/(^|[^:])\/\/[^\n]*/g, '$1');
 }
 
