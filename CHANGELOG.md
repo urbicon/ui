@@ -4,6 +4,15 @@ All notable changes to this project will be documented in this file.
 This changelog is automatically generated from [Conventional Commits](https://www.conventionalcommits.org).
 
 
+## [8.17.0] - 2026-09-02
+
+### Breaking Changes
+- **auth**: A passkey can be renamed
+> **BREAKING:** `AuthLocale` is fully required, so a hand-written locale bundle stops compiling until it carries `auth.errors.passkeyNotFound` and `passkeys.{rename,renameLabel,renameSave,renameCancel,renamed}`. Consumers passing a `PartialAuthLocale` are unaffected. A caller that supplied an out-of-bounds passkey name at registration now gets a 400. Adapters need no change.
+
+### Miscellaneous
+- **blocks**: Re-measure the size baseline on today's merged work
+
 ## [8.16.0] - 2026-09-02
 
 ### Breaking Changes
