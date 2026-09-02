@@ -22,9 +22,22 @@ import SidebarLayout from './SidebarLayout.svelte';
  * `open && isMobile`, `header`/`footer` only when given a snippet — so a fixture
  * that skipped them would pass while forwarding nothing (measured: without the
  * snippets and the viewport stub, three of the five report no element).
+ *
+ * **Which element, not merely some element.** A swapped pair is a permutation:
+ * every marker still lands, and on as many distinct elements as before, so
+ * existence and distinctness both survive it (measured — the suite stayed green
+ * with `header` and `footer` exchanged). The carrier is therefore identified by
+ * the classes Sidebar's own config gives that slot, which are pairwise distinct
+ * across all five and come from the same source the roster does.
  */
 const SLOTS = Object.keys(sidebarVariants.config.slots ?? {});
 const marker = (slot: string) => `zzprobe-${slot}`;
+/** What Sidebar itself paints on that slot — the only thing that tells its five elements apart. */
+const libraryClasses = (slot: string) =>
+  (sidebarVariants() as unknown as Record<string, () => string>)
+    [slot]()
+    .split(/\s+/)
+    .filter(Boolean);
 const forwardKey = (slot: string) => `sidebar${slot.charAt(0).toUpperCase()}${slot.slice(1)}`;
 const text = (label: string): Snippet =>
   createRawSnippet(() => ({ render: () => `<p>${label}</p>` }));
@@ -90,5 +103,16 @@ describe('SidebarLayout forwards every sidebar* key to that Sidebar slot', () =>
     expect(new Set(carriers).size, 'two sidebar* keys landed on the same element').toBe(
       SLOTS.length
     );
+  });
+
+  it.each(SLOTS)('sends %s to that slot and not to a sibling', (slot) => {
+    const target = render();
+    const carrier = target.querySelector(`.${marker(slot)}`);
+    const missing = libraryClasses(slot).filter((c) => !carrier?.classList.contains(c));
+    expect(
+      missing,
+      `slotClasses.${forwardKey(slot)} landed on an element that is not Sidebar's "${slot}" ` +
+        'slot — the pair is crossed with another slot'
+    ).toEqual([]);
   });
 });

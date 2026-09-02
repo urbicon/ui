@@ -72,7 +72,9 @@
   // Only the first is unrepresentable here — there is no per-slot key left to
   // mistype, and the prefix is checked against the union it must match. The
   // other two stay writable and are caught by the sibling test instead, which
-  // asserts that each key reaches its slot rather than how the map is spelt.
+  // asserts the reach rather than the spelling: which slot a key lands on, not
+  // merely that it landed, since a crossed pair leaves every marker on a
+  // distinct element and passes the weaker question.
   const sidebarSlotClasses = $derived.by(() => {
     const forwarded: NonNullable<SidebarProps['slotClasses']> = {};
     for (const slot of Object.keys(sidebarVariants.config.slots ?? {}) as SidebarSlots[]) {

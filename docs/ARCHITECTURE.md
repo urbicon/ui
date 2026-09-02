@@ -356,7 +356,8 @@ itself: it hands its name, `preset` and instance `slotClasses` down the context
 wrapper's name against its **own** `variantProps` — which is where the axes are, since
 `tier` (off a context), `messageType` and the coerced `error` are not knowable above it at
 all, and Select's `open` not in time — it is `$bindable`, so a wrapper may hold the value,
-but the wrapper's own `$derived` runs before the child ever writes to it. So `defaults.NumberInput` reaches its own stepper *and* that field, while
+but the wrapper's own `$derived` runs before the child ever writes to it. So
+`defaults.NumberInput` reaches its own stepper *and* that field, while
 `defaults.Input` reaches the field alone — both measured, and the fold order with them, by
 `provider/wrapper-cascade-order.svelte.test.ts`. The `preset` travels too; resolving it
 under the wrapper's name is the point, because forwarded as the inner component's own
