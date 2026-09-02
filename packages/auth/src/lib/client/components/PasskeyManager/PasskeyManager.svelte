@@ -95,13 +95,28 @@
     cancelRename();
   }
 
-  /** Focus the row's rename button — where focus was before the form opened. */
+  /**
+   * Focus the row's rename button — where focus was before the form opened.
+   *
+   * Only when focus is still inside the panel or nowhere: a user who clicked
+   * into something else while the write ran did not ask to come back, and a
+   * settled request is not a reason to move them.
+   */
   async function focusRenameTrigger(credentialId: string) {
+    const held = document.activeElement;
+    const ours = held === null || held === document.body || panel?.contains(held) === true;
     await tick();
-    document.getElementById(renameTriggerId(credentialId))?.focus();
+    if (ours) document.getElementById(renameTriggerId(credentialId))?.focus();
   }
 
+  /** The panel root, read to tell focus inside it from focus a user moved away. */
+  let panel: HTMLDivElement | undefined = $state();
+
   function startRename(passkey: PasskeyItem) {
+    // One row at a time, and not while another row's write is in flight: the
+    // response closes whichever form is open and restores focus, so a form
+    // opened during the flight would be torn out from under the typing.
+    if (renameBusy) return;
     actionError = '';
     actionSuccess = '';
     renamingId = passkey.credentialId;
@@ -316,7 +331,10 @@
   const cls = (base: string, slot?: string) => slotClass(unstyled, base, slot);
 </script>
 
-<div class={cls('flex flex-col gap-4', resolveClassChain(slotClasses.root, className))}>
+<div
+  bind:this={panel}
+  class={cls('flex flex-col gap-4', resolveClassChain(slotClasses.root, className))}
+>
   <div class={cls('flex items-center justify-between gap-4')}>
     <h2 class={cls('text-text-primary min-w-0 truncate text-lg font-semibold', slotClasses.title)}>
       {t.passkeys.title}

@@ -478,6 +478,60 @@ describe('PasskeyManager — the rename form does not leak events to its surroun
     expect(screen.getByRole('button', { name: 'Save' }).hasAttribute('disabled')).toBe(false);
   });
 
+  it('opens no second form while a write is in flight', async () => {
+    // The settled response closes whichever form is open and restores focus,
+    // so a form opened during the flight would be torn out mid-keystroke.
+    let release!: (r: Response) => void;
+    const fetcher = vi
+      .fn()
+      .mockResolvedValueOnce(
+        jsonResponse(200, {
+          passkeys: [passkey(), passkey({ credentialId: 'c2', name: 'iPhone' })]
+        })
+      )
+      .mockReturnValueOnce(new Promise<Response>((r) => (release = r)));
+    render({ fetcher: fetcher as unknown as typeof globalThis.fetch });
+    await settle();
+    await openRename();
+    await userEvent.click(screen.getByRole('button', { name: 'Save' }));
+
+    await userEvent.click(screen.getByRole('button', { name: /Rename — iPhone/ }));
+    await settle();
+    expect(
+      (screen.queryByRole('textbox', { name: 'Passkey name' }) as HTMLInputElement | null)?.value,
+      'a second row opened its form while the first row was still writing'
+    ).toBe('MacBook');
+
+    release(jsonResponse(200, { passkey: passkey({ name: 'MacBook' }) }));
+    await settle();
+  });
+
+  it('leaves focus where a user moved it while the write ran', async () => {
+    // A settled request is not a reason to move someone who clicked away.
+    const outside = document.createElement('button');
+    outside.textContent = 'Elsewhere';
+    document.body.appendChild(outside);
+    try {
+      let release!: (r: Response) => void;
+      const fetcher = vi
+        .fn()
+        .mockResolvedValueOnce(jsonResponse(200, { passkeys: [passkey()] }))
+        .mockReturnValueOnce(new Promise<Response>((r) => (release = r)));
+      render({ fetcher: fetcher as unknown as typeof globalThis.fetch });
+      await settle();
+      await openRename();
+      await userEvent.click(screen.getByRole('button', { name: 'Save' }));
+
+      outside.focus();
+      release(jsonResponse(200, { passkey: passkey({ name: 'Work laptop' }) }));
+      await settle();
+
+      expect(document.activeElement, 'the panel pulled focus back from elsewhere').toBe(outside);
+    } finally {
+      outside.remove();
+    }
+  });
+
   it('bounds the field at the same number the server refuses past', async () => {
     render({ fetcher: fetcherReturning(jsonResponse(200, { passkeys: [passkey()] })) });
     await settle();
