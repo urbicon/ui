@@ -91,11 +91,17 @@ export interface AuthLocale {
        */
       passkeyRegistrationVerificationFailed: string;
       /**
-       * 400 — the passkey the browser offered is not stored on the server
-       * (deleted from another device). A retry offers the same passkey again,
-       * so this copy names the way out: another sign-in, then re-enrol.
+       * 401 — the passkey the browser offered at sign-in is not stored on the
+       * server (deleted from another device). A retry offers the same passkey
+       * again, so this copy names the way out: another sign-in, then re-enrol.
        */
       passkeyCredentialDeleted: string;
+      /**
+       * 404 — the passkey a signed-in user named while managing their own list
+       * is not on their account. Their session stands, so unlike
+       * `passkeyCredentialDeleted` the way out is to reload the list.
+       */
+      passkeyNotFound: string;
       serverError: string;
       /** Client-side only: the request never reached the server (offline, DNS, CORS). */
       networkError: string;
@@ -285,6 +291,16 @@ export interface AuthLocale {
     cancelled: string;
     /** Registering a new passkey failed client-side. */
     addFailed: string;
+    /** Opens the inline rename form on one row; also names it for a screen reader. */
+    rename: string;
+    /** Label of the rename field. Visible, so the form is not an unlabelled box. */
+    renameLabel: string;
+    /** Submits the rename. */
+    renameSave: string;
+    /** Abandons the rename and restores the stored name. */
+    renameCancel: string;
+    /** Announced through the panel's live region once the server confirms. */
+    renamed: string;
   };
   account: {
     title: string;

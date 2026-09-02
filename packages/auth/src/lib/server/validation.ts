@@ -1,3 +1,5 @@
+import { MAX_DISPLAY_NAME_LENGTH } from '../display-name.js';
+
 export interface ValidationError {
   field: string;
   message: string;
@@ -15,7 +17,7 @@ export type ValidationResult<T> =
 // runs over the password on every login/reset) and storage. Generous enough
 // not to reject real passphrases or addresses.
 const MAX_EMAIL_LENGTH = 254; // RFC 5321 practical maximum
-const MAX_NAME_LENGTH = 256;
+const MAX_NAME_LENGTH = MAX_DISPLAY_NAME_LENGTH;
 const MAX_PASSWORD_LENGTH = 256; // ample for passphrases; bounds PBKDF2 cost per request
 const MAX_TOKEN_LENGTH = 512;
 // A TOTP code is 6 digits; a backup code is ~16 Base32 chars with separators.
@@ -202,13 +204,35 @@ export function validateChangeEmailInput(
   };
 }
 
-export function validateUpdateProfileInput(body: unknown): ValidationResult<{ name: string }> {
+/**
+ * The rule for a user-chosen display name in a `name` field: non-empty once
+ * trimmed, at most {@link MAX_NAME_LENGTH}, stored trimmed. Whitespace-only
+ * input is refused rather than stored as a blank label — a passkey row whose
+ * name renders as nothing is unidentifiable in a list of them.
+ *
+ * One function rather than one per field, so the two `name` inputs this package
+ * accepts from a signed-in user — the profile name and a passkey's label —
+ * cannot end up bounded differently. Control characters are deliberately not
+ * stripped: Svelte escapes text content, so they are a rendering nuisance in
+ * the owner's own view rather than an injection, and a filter here would need a
+ * second one agreeing with it wherever the profile name is written.
+ */
+function validateDisplayName(body: unknown): ValidationResult<{ name: string }> {
   const obj = body as Record<string, unknown>;
   if (!isNonEmpty(obj?.name))
     return { success: false, errors: [{ field: 'name', message: 'Name is required.' }] };
   const nameLen = tooLong(obj?.name, MAX_NAME_LENGTH, 'name');
   if (nameLen) return { success: false, errors: [nameLen] };
   return { success: true, data: { name: (obj.name as string).trim() } };
+}
+
+export function validateUpdateProfileInput(body: unknown): ValidationResult<{ name: string }> {
+  return validateDisplayName(body);
+}
+
+/** The label a user gives one passkey — {@link validateDisplayName}'s rule. */
+export function validatePasskeyNameInput(body: unknown): ValidationResult<{ name: string }> {
+  return validateDisplayName(body);
 }
 
 export function validateDeleteAccountInput(

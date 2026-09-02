@@ -5,11 +5,17 @@ import { sanitizeUser } from '../auth.js';
 import { isSecureDeployment } from '../cookie-policy.js';
 import type { AuthDeps } from '../deps.js';
 import { base64UrlDecode } from '../encoding.js';
-import { notifyHook, privateEndpoints, requireSessionUser } from '../handlers/_shared.js';
+import {
+  notifyHook,
+  parseBody,
+  privateEndpoints,
+  requireSessionUser,
+  validationRefusal
+} from '../handlers/_shared.js';
 import { authError } from '../handlers/errors.js';
 import { enforceRateLimit, sharedLimiter } from '../rate-limit.js';
 import { establishSession, resolveSessionMeta } from '../session.js';
-import { readJsonBody } from '../validation.js';
+import { readJsonBody, validatePasskeyNameInput } from '../validation.js';
 import { generateChallenge, resolveChallengeTimeoutSeconds } from './challenge-store.js';
 import { WebAuthnError } from './errors.js';
 import {
@@ -49,7 +55,7 @@ function webauthnAuthCookieName(secure: boolean): string {
 
 /**
  * The full passkey route group: the four WebAuthn ceremony endpoints plus the
- * self-service list/delete pair behind `<PasskeyManager>`. One bundled factory
+ * self-service list/rename/delete set behind `<PasskeyManager>`. One bundled factory
  * (the package's multi-route convention, like `createInvitationHandlers` /
  * `createNotificationsHandlers`) over the canonical `AuthDeps` bundle; the
  * WebAuthn ceremony config rides as the second argument. Mount the groups on
@@ -63,6 +69,7 @@ function webauthnAuthCookieName(secure: boolean): string {
  * // …/authentication-verify/+server.ts   → export const POST = passkey.authenticationVerify.POST;
  * // …/list/+server.ts                    → export const GET = passkey.list.GET;
  * // …/[credentialId]/+server.ts          → export const DELETE = passkey.item.DELETE;
+ * //                                        export const PATCH = passkey.item.PATCH;
  * ```
  *
  * (The static sibling routes take precedence over the `[credentialId]` param
@@ -87,7 +94,7 @@ export function createPasskeyHandlers<R extends string>(
   authenticationOptions: { POST: RequestHandler };
   authenticationVerify: { POST: RequestHandler };
   list: { GET: RequestHandler };
-  item: { DELETE: RequestHandler };
+  item: { DELETE: RequestHandler; PATCH: RequestHandler };
 } {
   const passkeyRepo = deps.repos.passkey;
   if (!passkeyRepo) {
@@ -133,7 +140,7 @@ export function createPasskeyHandlers<R extends string>(
     authenticationOptions: authenticationOptionsHandler(deps, ceremony, passkeyRepo),
     authenticationVerify: authenticationVerifyHandler(deps, ceremony, passkeyRepo),
     list: listHandler(passkeyRepo, sessionUser),
-    item: deleteHandler(passkeyRepo, sessionUser)
+    item: { ...deleteHandler(passkeyRepo, sessionUser), ...renameHandler(passkeyRepo, sessionUser) }
   });
 }
 
@@ -195,6 +202,20 @@ function registrationVerifyHandler<R extends string>(
           return authError('validation_error', { message: 'Credential is required' });
         }
 
+        // `name` is optional HERE and only here: `<PasskeyManager>` registers
+        // without one and lets the adapter's `'Passkey'` default stand, so an
+        // absent name has to keep reaching `create` untouched. A name that IS
+        // supplied goes through the rename's rule — this endpoint and the
+        // rename are the two writers of a passkey label, and a label a
+        // consumer could store at registration but not set afterwards would be
+        // a bound that depends on which door it came through.
+        let label: string | undefined;
+        if (name != null) {
+          const checked = validatePasskeyNameInput({ name });
+          if (!checked.success) return validationRefusal(checked.errors);
+          label = checked.data.name;
+        }
+
         const verified = await verifyRegistration(webauthn, user.id, credential);
 
         const passkey = await passkeyRepo.create(user.id, {
@@ -204,7 +225,7 @@ function registrationVerifyHandler<R extends string>(
           counter: verified.counter,
           transports: verified.transports,
           aaguid: verified.aaguid,
-          name
+          name: label
         });
 
         return json(
@@ -474,6 +495,26 @@ function authenticationVerifyHandler<R extends string>(
 
 // ---- List ----
 
+/**
+ * One stored passkey as `<PasskeyManager>` renders it. The stored COSE public
+ * key and the sign counter are server-internal verification state and must not
+ * travel to the client, so the projection is by allow-list rather than by
+ * subtraction — a column added to `Passkey` cannot leak through it.
+ *
+ * Shared by `list` and by the rename response, which is why it is a function:
+ * the panel replaces one row with what the rename answered, so a field the two
+ * shapes disagreed on would blank itself on every rename.
+ */
+function toPasskeyView(p: Passkey) {
+  return {
+    credentialId: p.credentialId,
+    name: p.name,
+    createdAt: p.createdAt,
+    lastUsedAt: p.lastUsedAt,
+    aaguid: p.aaguid
+  };
+}
+
 // Self-service passkey listing: the server half of `<PasskeyManager>`'s list
 // view (the four ceremony handlers above cover register/login).
 function listHandler<R extends string>(
@@ -488,18 +529,85 @@ function listHandler<R extends string>(
       }
 
       const passkeys = await passkeyRepo.findByUserId(user.id);
-      // Project to the display shape: the stored COSE public key and the sign
-      // counter are server-internal verification state and must not travel to
-      // the client.
-      return json({
-        passkeys: passkeys.map((p) => ({
-          credentialId: p.credentialId,
-          name: p.name,
-          createdAt: p.createdAt,
-          lastUsedAt: p.lastUsedAt,
-          aaguid: p.aaguid
-        }))
-      });
+      return json({ passkeys: passkeys.map(toPasskeyView) });
+    }
+  };
+}
+
+// ---- Rename ----
+
+/**
+ * Self-service passkey relabelling — the only writer of
+ * `PasskeyRepository.rename`, which every adapter had to implement while no
+ * shipped code path reached it.
+ *
+ * **The ownership check is here, not delegated to the repository.** `rename` is
+ * contractually owner-scoped, so a foreign credentialId is a no-op there — but
+ * a handler that only calls it cannot tell a rename that happened from one that
+ * did not, and would answer `200` on the strength of the adapter alone. Reading
+ * the row first makes the refusal this handler's own, and pays for itself: the
+ * response echoes the renamed row, so the panel adopts the stored name (the
+ * server trims) instead of its own draft.
+ *
+ * No rate limiter, matching the `item.DELETE` and `list.GET` it is grouped
+ * with. This package does not limit uniformly and no rule here derives the
+ * answer: the notification writes resolve the session first and limit
+ * *afterwards*, keyed by the authenticated user id (`preferences.ts`,
+ * `push-subscription.ts`), on the argument that a per-user key cannot be dodged
+ * by rotating IPs. A relabel could inherit that argument.
+ *
+ * What decides against it is reach, measured rather than assumed: a rename
+ * costs one read and one write, fires no hook, sends no mail, and this package
+ * keeps no audit table — so its worst case is write load. That is the same
+ * worst case as the unlimited `DELETE` beside it, which destroys a credential
+ * rather than relabelling one. Braking the relabel while the deletion runs free
+ * would be arbitrary, so the group stays as it is. The two groups answering
+ * this differently is a divergence in the package, not a principle to read off
+ * it.
+ */
+function renameHandler<R extends string>(
+  passkeyRepo: PasskeyRepository,
+  sessionUser: SessionUserResolver<R>
+): { PATCH: RequestHandler } {
+  return {
+    PATCH: async ({ request, cookies, params }) => {
+      const user = await sessionUser(cookies);
+      if (!user) {
+        return authError('not_authenticated');
+      }
+
+      const credentialId = params.credentialId;
+      if (!credentialId) {
+        return authError('validation_error', { message: 'Credential id is required' });
+      }
+
+      const body = await parseBody(request, validatePasskeyNameInput);
+      if (body instanceof Response) return body;
+      const { name } = body.data;
+
+      const stored = await passkeyRepo.findByCredentialId(credentialId);
+      // One answer for "no such credential" and "not yours": a 403 on the
+      // second would confirm that a credentialId the caller does not own is
+      // registered here.
+      if (!stored || stored.userId !== user.id) {
+        return authError('passkey_not_found');
+      }
+
+      await passkeyRepo.rename(user.id, credentialId, name);
+
+      // The row is echoed from what was read plus the name just written, the
+      // way `update-profile` echoes the updated user — a re-read would cost a
+      // second round trip to restate what this handler just decided.
+      //
+      // A delete landing in the await between the lookup and the write leaves
+      // this answering 200 for a row the store no longer holds: `rename`
+      // no-ops and returns `void`, so nothing reports it, and the panel shows
+      // a passkey that is gone. Closing it needs `rename` to say whether it
+      // wrote — a boolean, as `updateCounter` already returns — which is a
+      // breaking change to every adapter written against this contract, so it
+      // is not taken here. The window is one await wide and the panel's next
+      // load corrects it.
+      return json({ passkey: toPasskeyView({ ...stored, name }) });
     }
   };
 }

@@ -245,3 +245,76 @@ describe('createPasskeyHandlers — registrationVerify', () => {
     });
   });
 });
+
+describe("createPasskeyHandlers — registrationVerify names a passkey under the rename's rule", () => {
+  /** A verify that will reach `create` unless the name is refused first. */
+  const verifying = () =>
+    mockedVerify.mockResolvedValue({
+      credentialId: 'cred-xyz',
+      publicKey: new Uint8Array([1, 2, 3]),
+      publicKeyAlg: -7,
+      counter: 0,
+      transports: ['internal'],
+      aaguid: 'aaaa-bbbb'
+    });
+
+  // Registration is the second writer of a passkey label. Left unchecked it
+  // could store a name PATCH refuses — and that name comes back in every
+  // `list` response afterwards, so the bound would depend on which door the
+  // value came through.
+  it.each([
+    ['300 characters', 'x'.repeat(300)],
+    ['whitespace only', '   '],
+    ['an empty string', ''],
+    ['a non-string', 42],
+    ['100 KB', 'x'.repeat(100_000)]
+  ])('refuses %s with 400 and stores nothing', async (_label, name) => {
+    verifying();
+    const passkey = mockPasskeyRepo({ create: vi.fn() });
+    const deps = makeDeps(passkey);
+
+    const res = await passkeyHandlers(deps).registrationVerify.POST(
+      await authedEvent(deps, { credential: { id: 'c' }, name })
+    );
+
+    expect(res.status).toBe(400);
+    expect((await res.json()).code).toBe('validation_error');
+    expect(passkey.create).not.toHaveBeenCalled();
+  });
+
+  it('stores the trimmed name, exactly as the rename does', async () => {
+    verifying();
+    const passkey = mockPasskeyRepo({ create: vi.fn().mockResolvedValue(mkPasskey()) });
+    const deps = makeDeps(passkey);
+
+    await passkeyHandlers(deps).registrationVerify.POST(
+      await authedEvent(deps, { credential: { id: 'c' }, name: '  My Laptop  ' })
+    );
+
+    expect(passkey.create).toHaveBeenCalledWith(
+      'user-1',
+      expect.objectContaining({ name: 'My Laptop' })
+    );
+  });
+
+  // The panel registers without a name and lets the adapter default stand, so
+  // an absent one must keep reaching `create` untouched.
+  it.each([
+    ['absent', undefined],
+    ['null', null]
+  ])('passes a %s name through, leaving the adapter default to apply', async (_label, name) => {
+    verifying();
+    const passkey = mockPasskeyRepo({ create: vi.fn().mockResolvedValue(mkPasskey()) });
+    const deps = makeDeps(passkey);
+
+    const body: Record<string, unknown> = { credential: { id: 'c' } };
+    if (name !== undefined) body.name = name;
+    const res = await passkeyHandlers(deps).registrationVerify.POST(await authedEvent(deps, body));
+
+    expect(res.status).toBe(201);
+    expect(passkey.create).toHaveBeenCalledWith(
+      'user-1',
+      expect.objectContaining({ name: undefined })
+    );
+  });
+});

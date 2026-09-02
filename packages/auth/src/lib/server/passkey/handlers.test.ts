@@ -637,7 +637,7 @@ describe('passkey auth — ceremony-handle binding (G.1)', () => {
 // session cookie plus a matching findById row.
 async function sessionEvent(
   deps: TestDeps,
-  extra: { params?: Record<string, string> } = {}
+  extra: { params?: Record<string, string>; body?: unknown } = {}
 ): Promise<RequestEvent> {
   const user = createMockUser({ id: 'real-user-99' });
   vi.mocked(deps.repos.user.findById).mockResolvedValue(user);
@@ -647,7 +647,15 @@ async function sessionEvent(
     { userId: user.id, email: user.email, role: user.role, tokenVersion: user.tokenVersion },
     deps.config.jwt
   );
-  return { cookies: jar.cookies, params: extra.params ?? {} } as unknown as RequestEvent;
+  return {
+    cookies: jar.cookies,
+    params: extra.params ?? {},
+    request: new Request('http://localhost/api/auth/passkey/cred-abc', {
+      method: 'PATCH',
+      body: JSON.stringify(extra.body ?? {}),
+      headers: { 'Content-Type': 'application/json' }
+    })
+  } as unknown as RequestEvent;
 }
 
 describe('createPasskeyHandlers — list.GET', () => {
@@ -716,6 +724,138 @@ describe('createPasskeyHandlers — item.DELETE', () => {
     // Argument order is the IDOR guard: the repo no-ops unless the row
     // belongs to this user.
     expect(deps.repos.passkey.delete).toHaveBeenCalledWith('real-user-99', 'cred-abc');
+  });
+});
+
+describe('createPasskeyHandlers — item.PATCH (rename)', () => {
+  /** A signed-in rename of `cred-abc`, with `stored` as what the store holds. */
+  const renameEvent = (deps: TestDeps, name: unknown) =>
+    sessionEvent(deps, { params: { credentialId: 'cred-abc' }, body: { name } });
+
+  it('returns 401 when unauthenticated, without touching the store', async () => {
+    const deps = makeDeps();
+    const res = await passkeyHandlers(deps).item.PATCH({
+      cookies: makeCookieJar().cookies,
+      params: { credentialId: 'cred-abc' },
+      request: new Request('http://localhost/x', { method: 'PATCH', body: '{"name":"X"}' })
+    } as unknown as RequestEvent);
+    expect(res.status).toBe(401);
+    expect(deps.repos.passkey.rename).not.toHaveBeenCalled();
+    expect(deps.repos.passkey.findByCredentialId).not.toHaveBeenCalled();
+  });
+
+  it('returns 400 without a credentialId param', async () => {
+    const deps = makeDeps();
+    const res = await passkeyHandlers(deps).item.PATCH(
+      await sessionEvent(deps, { body: { name: 'X' } })
+    );
+    expect(res.status).toBe(400);
+    expect(deps.repos.passkey.rename).not.toHaveBeenCalled();
+  });
+
+  // The name is user input rendered back to its owner on every page view, so
+  // the bound is the package's display-name rule (`validateDisplayName`), the
+  // same one the profile name and registration answer to.
+  it.each([
+    ['missing', undefined],
+    ['empty', ''],
+    ['whitespace only', '   '],
+    ['not a string', 42],
+    ['one over the 256-character bound', 'x'.repeat(257)]
+  ])('refuses a %s name with 400 and writes nothing', async (_label, name) => {
+    const deps = makeDeps();
+    const res = await passkeyHandlers(deps).item.PATCH(await renameEvent(deps, name));
+    expect(res.status).toBe(400);
+    expect((await res.json()).code).toBe('validation_error');
+    expect(deps.repos.passkey.rename).not.toHaveBeenCalled();
+  });
+
+  it('accepts a name exactly at the bound', async () => {
+    const deps = makeDeps();
+    deps.repos.passkey.findByCredentialId = vi.fn().mockResolvedValue(mkPasskey());
+    const name = 'x'.repeat(256);
+    const res = await passkeyHandlers(deps).item.PATCH(await renameEvent(deps, name));
+    expect(res.status).toBe(200);
+    expect(deps.repos.passkey.rename).toHaveBeenCalledWith('real-user-99', 'cred-abc', name);
+  });
+
+  // THE IDOR GUARD. `rename` is contractually owner-scoped, so a store that
+  // honours the contract no-ops here anyway — which is exactly why the handler
+  // must not rely on it: calling an owner-scoped write and answering 200 is
+  // indistinguishable from a write that happened. The assertion is that the
+  // handler refuses BEFORE the write, so the answer does not depend on the
+  // adapter being correct.
+  it('refuses a passkey owned by someone else with 404, and does not call rename', async () => {
+    const deps = makeDeps();
+    deps.repos.passkey.findByCredentialId = vi
+      .fn()
+      .mockResolvedValue(mkPasskey({ userId: 'someone-else' }));
+
+    const res = await passkeyHandlers(deps).item.PATCH(await renameEvent(deps, 'Hijacked'));
+
+    expect(res.status).toBe(404);
+    expect((await res.json()).code).toBe('passkey_not_found');
+    expect(deps.repos.passkey.rename).not.toHaveBeenCalled();
+  });
+
+  it('answers a foreign credential exactly as it answers an unknown one (no existence oracle)', async () => {
+    const deps = makeDeps();
+    deps.repos.passkey.findByCredentialId = vi
+      .fn()
+      .mockResolvedValue(mkPasskey({ userId: 'someone-else' }));
+    const foreign = await passkeyHandlers(deps).item.PATCH(await renameEvent(deps, 'Hijacked'));
+
+    const deps2 = makeDeps();
+    deps2.repos.passkey.findByCredentialId = vi.fn().mockResolvedValue(null);
+    const unknown = await passkeyHandlers(deps2).item.PATCH(await renameEvent(deps2, 'Hijacked'));
+
+    expect(foreign.status).toBe(unknown.status);
+    expect(await foreign.json()).toEqual(await unknown.json());
+  });
+
+  it('renames owner-scoped: (userId, credentialId, name) in that order', async () => {
+    const deps = makeDeps();
+    deps.repos.passkey.findByCredentialId = vi.fn().mockResolvedValue(mkPasskey());
+
+    const res = await passkeyHandlers(deps).item.PATCH(await renameEvent(deps, 'My laptop'));
+
+    expect(res.status).toBe(200);
+    expect(deps.repos.passkey.rename).toHaveBeenCalledWith('real-user-99', 'cred-abc', 'My laptop');
+  });
+
+  it('stores and echoes the trimmed name, so the panel cannot show a name the store lacks', async () => {
+    const deps = makeDeps();
+    deps.repos.passkey.findByCredentialId = vi.fn().mockResolvedValue(mkPasskey());
+
+    const res = await passkeyHandlers(deps).item.PATCH(await renameEvent(deps, '  My laptop  '));
+
+    expect(deps.repos.passkey.rename).toHaveBeenCalledWith('real-user-99', 'cred-abc', 'My laptop');
+    expect((await res.json()).passkey.name).toBe('My laptop');
+  });
+
+  it('echoes the row in the same display shape `list` returns', async () => {
+    const deps = makeDeps();
+    const stored = mkPasskey({
+      publicKey: new Uint8Array([1, 2, 3]),
+      counter: 42,
+      lastUsedAt: new Date('2026-06-01T00:00:00Z')
+    });
+    deps.repos.passkey.findByCredentialId = vi.fn().mockResolvedValue(stored);
+    deps.repos.passkey.findByUserId = vi.fn().mockResolvedValue([stored]);
+
+    const renamed = await passkeyHandlers(deps).item.PATCH(await renameEvent(deps, 'Renamed'));
+    const listed = await passkeyHandlers(deps).list.GET(await sessionEvent(deps));
+
+    const one = (await renamed.json()).passkey;
+    const [fromList] = (await listed.json()).passkeys;
+    // The panel swaps one row for this object: a field only `list` carries
+    // would blank itself on every rename.
+    expect(Object.keys(one).sort()).toEqual(Object.keys(fromList).sort());
+    // Nothing server-internal rides along.
+    expect(Object.keys(one)).not.toContain('publicKey');
+    expect(Object.keys(one)).not.toContain('counter');
+    expect(Object.keys(one)).not.toContain('userId');
+    expect(one.name).toBe('Renamed');
   });
 });
 
