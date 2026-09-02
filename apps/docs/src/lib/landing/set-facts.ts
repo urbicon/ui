@@ -30,7 +30,7 @@ export interface PackageMaturity {
  * without an explicit `@stability` tag counts as stable.
  */
 export const SET_MATURITY: PackageMaturity[] = [
-  { pkg: 'blocks', stable: 52, beta: 20, experimental: 12 },
+  { pkg: 'blocks', stable: 53, beta: 19, experimental: 12 },
   { pkg: 'auth', stable: 9, beta: 5, experimental: 0 },
   { pkg: 'table', stable: 1, beta: 0, experimental: 0 }
 ];
@@ -58,7 +58,7 @@ export interface FamilyMaturity {
  * family has settled, while every component tagged `ai` is still moving.
  */
 export const SET_FAMILIES: FamilyMaturity[] = [
-  { family: 'form', settled: 18, inProgress: 7 },
+  { family: 'form', settled: 19, inProgress: 6 },
   { family: 'display', settled: 8, inProgress: 9 },
   { family: 'feedback', settled: 10, inProgress: 1 },
   { family: 'ai', settled: 0, inProgress: 10 },
@@ -104,8 +104,8 @@ export const SET_PACKAGE_FAMILY: SetFlowEdge[] = [
 
 /** Family → maturity. The second half; the same components, split again. */
 export const SET_FAMILY_MATURITY: SetFlowEdge[] = [
-  { source: 'form', target: 'stable', count: 18 },
-  { source: 'form', target: 'beta', count: 7 },
+  { source: 'form', target: 'stable', count: 19 },
+  { source: 'form', target: 'beta', count: 6 },
   { source: 'display', target: 'beta', count: 9 },
   { source: 'display', target: 'stable', count: 8 },
   { source: 'ai', target: 'experimental', count: 10 },
