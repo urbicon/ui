@@ -70,6 +70,7 @@ const variant = 'outlined';
 const size = 'md';
 const disabled = false;
 const error: string | undefined = undefined;
+const leftIcon: unknown = undefined;
 const tier: 'commit' | 'modify' | undefined = undefined;
 const preset: string | undefined = undefined;
 const slotClassesProp: Record<string, string> | undefined = undefined;
@@ -89,6 +90,8 @@ const slotClasses = resolveSlotClasses(
     // this package writes exactly this pair.
     error: !!error,
     messageType: error ? 'error' : 'helper',
+    // `hasLeftIcon` is `!!leftIcon` inside Input — nothing else feeds it.
+    hasLeftIcon: !!leftIcon,
     // And the tier context is public.
     tier: tier ?? tierCtx?.tier ?? 'modify'
   },
@@ -97,15 +100,21 @@ const slotClasses = resolveSlotClasses(
 );
 ```
 
-**What you can still reach, and the one thing you cannot.** The mechanism the library's own
+**What you can still reach, and the two things you cannot.** The mechanism the library's own
 wrappers now use is internal, but most of what it buys them is not: an axis the inner component
-*derives from a value you hold* you can derive too, as above. What is genuinely out of reach is
-an axis the inner component **owns** — `open` on `Select` is its own runtime state, and nothing
-above it can read it. `hasLeftIcon` / `hasRightIcon` are the near case: you know whether you pass
-an icon, so you can write them, but you cannot know whether the inner component decided to draw
-one (`clearable` swaps Input's right icon for a clear button). For those, register the rule under
-the inner component's own name (`Input`) and keep your wrapper's name for the unconditional
-`slotClasses` and presets.
+*derives from a value you hold* you can derive too, as above. `hasLeftIcon` belongs in that
+group — it is `!!leftIcon` and nothing else feeds it, so a wrapper holding that prop writes the
+axis exactly.
+
+Two stay out of reach. `open` on `Select` is the inner component's own runtime state and nothing
+above it can read it. `hasRightIcon` is the boundary case, and not for the reason it looks like:
+with `clearable` set and a value present, Input renders a clear button, and that **creates** a
+right icon where the wrapper passed none — measured, `<Input clearable value="x">` with no
+`rightIcon` is `hasRightIcon: true`, so a wrapper writing `!!rightIcon` answers `false` for a
+field that is `true`. Swapping a passed `rightIcon` *for* the clear button is not a divergence:
+the axis reads `true` either way. For those two, register the rule under the inner component's
+own name (`Input`, `Select`) and keep your wrapper's name for the unconditional `slotClasses`
+and presets.
 
 ### Conditional `overrides` match the variants a component names
 

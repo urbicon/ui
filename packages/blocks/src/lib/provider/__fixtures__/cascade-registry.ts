@@ -2,6 +2,7 @@ import { readFileSync } from 'node:fs';
 import { dirname, join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import type { Component } from 'svelte';
+import { parse } from 'svelte/compiler';
 
 /**
  * Who takes part in the provider-cascade sweep, and with which slot names —
@@ -88,10 +89,6 @@ const PROPS_TYPE = /\}\s*:\s*([A-Za-z_$][\w$]*)[^=]*=\s*\$props\(\)/;
 const IMPORT_CLAUSE = /import\s+(?:type\s+)?\{([^}]*)\}\s+from\s+'([^']+)'/g;
 /** Any identifier the source uses — matched against the tv() export index. */
 const IDENTIFIER = /\b[A-Za-z_$][\w$]*\b/g;
-/** The wrapped side of a wrapper cascade: the component that resolves the name. */
-const CONSUMES_CASCADE = /\bconsumeWrapperCascade\s*\(/;
-/** The wrapping side: the component that hands its name to the one it wraps. */
-const SETS_CASCADE = /\bsetWrapperCascade\s*\(/;
 
 export interface CascadeComponent {
   /** Provider name — the key a `defaults` entry is written under, if any. */
@@ -404,86 +401,93 @@ function contractProps(
 }
 
 /**
- * Blank the text inside string and template literals, keeping the quotes and
- * every `${…}` expression — those are code, the text between them is not.
- *
- * Over-consuming is the safe direction: an edge this drops shrinks a wrapper's
- * slot vocabulary, and route A of `provider-cascade.svelte.test.ts` reports
- * that loudly. An edge it invents is silent.
+ * Every node of a given `type` in a Svelte AST, found by walking the object
+ * graph rather than by knowing its shape — the block and snippet nodes that
+ * hold a component tag differ per construct, and enumerating them is the same
+ * kind of guess this function exists to stop making.
  */
-function stripStringLiterals(source: string): string {
-  let out = '';
-  let i = 0;
-  while (i < source.length) {
-    const char = source[i];
-    if (char === "'" || char === '"') {
-      out += char;
-      i++;
-      while (i < source.length && source[i] !== char) i += source[i] === '\\' ? 2 : 1;
-      out += char;
-      i++;
-      continue;
-    }
-    if (char === '`') {
-      out += '`';
-      i++;
-      while (i < source.length && source[i] !== '`') {
-        if (source[i] === '\\') {
-          i += 2;
-          continue;
-        }
-        if (source[i] === '$' && source[i + 1] === '{') {
-          let depth = 1;
-          i += 2;
-          const start = i;
-          while (i < source.length && depth > 0) {
-            if (source[i] === '{') depth++;
-            else if (source[i] === '}') depth--;
-            i++;
-          }
-          out += ` ${source.slice(start, depth === 0 ? i - 1 : i)} `;
-          continue;
-        }
-        i++;
-      }
-      out += '`';
-      i++;
-      continue;
-    }
-    out += char;
-    i++;
+function collectNodes(
+  node: unknown,
+  type: string,
+  out: Record<string, unknown>[],
+  seen: WeakSet<object>
+): void {
+  if (!node || typeof node !== 'object') return;
+  if (seen.has(node)) return;
+  seen.add(node);
+  if (Array.isArray(node)) {
+    for (const item of node) collectNodes(item, type, out, seen);
+    return;
   }
-  return out;
+  const record = node as Record<string, unknown>;
+  if (record.type === type) out.push(record);
+  for (const value of Object.values(record)) collectNodes(value, type, out, seen);
+}
+
+/** The names a `.svelte` source imports, and the component tags it renders. */
+export interface SvelteEdges {
+  /** Export names, so an aliased named import still reads as what it is. */
+  imported: Set<string>;
+  tags: Set<string>;
 }
 
 /**
- * Which cascade-consuming components a wrapper's source names **in code**.
+ * Read a component's outgoing edges off the Svelte compiler's own parse.
  *
- * Comments and literal text are stripped first, so the edge hangs on an import
- * clause or a rendered tag and not on prose, an attribute value or an import
- * path. Measured: without the literal strip, `aria-roledescription="Select a
- * number"` on the `<Input>` inside `NumberInput` gave NumberInput the whole
- * Select vocabulary, 10 slots to 22.
+ * Asking the parser is the whole point: in a `.svelte` file "not code" is a far
+ * larger set than JavaScript's, and every text scan here has been wrong about
+ * a different member of it. Measured, each silently giving `NumberInput` the
+ * full `Select` vocabulary (10 slots to 22): an attribute VALUE
+ * (`aria-roledescription="Select a number"`), an ordinary markup comment above
+ * the stepper snippet — `<!-- -->` is the mandatory comment form in Svelte
+ * markup and this file already carries one — plain markup text, a regex
+ * literal, a dashed attribute NAME, and `{#each}` body text. A strip excludes
+ * the vector last found; a parse excludes the category.
  *
- * What it rests on after that: the local binding a wrapper renders is spelled
- * like the barrel export it came from, which holds for all four wrappers
- * — three import the name itself, `ConfirmDialog` names `Dialog` in both its
- * import clause and its markup. A renamed **default** import
- * (`import Dlg from '../Dialog/Dialog.svelte'`) would leave the name in the
- * path alone and drop the edge, which is the loud direction.
+ * Throws on a source it cannot parse rather than falling back to a scan: a
+ * component the compiler rejects is not a component, and a quiet fallback here
+ * would reinstate exactly the silence this replaced.
+ */
+export function svelteEdges(source: string): SvelteEdges {
+  const ast = parse(source, { modern: true }) as unknown as Record<string, unknown>;
+  const imported = new Set<string>();
+  const tags = new Set<string>();
+
+  const declarations: Record<string, unknown>[] = [];
+  collectNodes(ast.instance, 'ImportDeclaration', declarations, new WeakSet());
+  collectNodes(ast.module, 'ImportDeclaration', declarations, new WeakSet());
+  for (const declaration of declarations) {
+    for (const specifier of (declaration.specifiers ?? []) as Record<string, unknown>[]) {
+      // A named import carries the export name in `imported`; a default or
+      // namespace import has only the local binding, which is the importer's
+      // choice — a renamed one drops the edge, and that is the loud direction.
+      const source_ =
+        specifier.type === 'ImportSpecifier'
+          ? (specifier.imported as { name?: string })?.name
+          : (specifier.local as { name?: string })?.name;
+      if (source_) imported.add(source_);
+    }
+  }
+
+  const components: Record<string, unknown>[] = [];
+  collectNodes(ast.fragment, 'Component', components, new WeakSet());
+  for (const node of components) if (typeof node.name === 'string') tags.add(node.name);
+
+  return { imported, tags };
+}
+
+/**
+ * Which cascade-consuming components a source names, in code.
  *
  * Exported for `cascade-registry.test.ts`, the only positive control this
- * derivation can have: a wrong edge widens a slot vocabulary, and every sweep
- * that consumes it stays green.
+ * derivation can have: a wrong edge *widens* a slot vocabulary, so every sweep
+ * that consumes it stays green — measured on both text-scan defects above,
+ * with `provider-cascade` and `boolean-conditions` at 881 passing throughout.
  */
 export function namedConsumers(source: string, consumers: Iterable<string>): string[] {
   const wanted = new Set(consumers);
-  const found = new Set<string>();
-  const code = stripStringLiterals(stripComments(source));
-  for (const [identifier] of code.matchAll(IDENTIFIER)) {
-    if (wanted.has(identifier)) found.add(identifier);
-  }
-  return [...found];
+  const { imported, tags } = svelteEdges(source);
+  return [...new Set([...imported, ...tags])].filter((name) => wanted.has(name));
 }
 
 let cache: Promise<CascadeComponent[]> | undefined;
@@ -530,6 +534,7 @@ export function exportedComponents(): Promise<CascadeComponent[]> {
     interface Scan {
       path: string;
       code: string;
+      edges: SvelteEdges;
       exportName: string;
       slots: Set<string>;
       libraryTokens: Set<string>;
@@ -542,7 +547,11 @@ export function exportedComponents(): Promise<CascadeComponent[]> {
       const exportName = exportNameByModule.get(component);
       if (!exportName) continue;
 
-      const code = stripComments(readFileSync(path, 'utf8'));
+      const raw = readFileSync(path, 'utf8');
+      const code = stripComments(raw);
+      // Off the raw source: `stripComments` knows JavaScript's comment forms,
+      // and the parser has to see the file the compiler sees.
+      const edges = svelteEdges(raw);
       const slots = new Set<string>();
       const libraryTokens = new Set<string>();
       for (const [identifier] of code.matchAll(IDENTIFIER)) {
@@ -551,7 +560,7 @@ export function exportedComponents(): Promise<CascadeComponent[]> {
         for (const slot of facts.slots) slots.add(slot);
         for (const token of facts.tokens) libraryTokens.add(token);
       }
-      scans.push({ path, code, exportName, slots, libraryTokens, component });
+      scans.push({ path, code, edges, exportName, slots, libraryTokens, component });
     }
 
     // A wrapper composes no tv() config of its own — it hands its name to the
@@ -559,16 +568,20 @@ export function exportedComponents(): Promise<CascadeComponent[]> {
     // what a `defaults` entry under the wrapper's name is written in. The edge
     // is read off the source like everything else here: the wrapped side is the
     // component whose body calls `consumeWrapperCascade`, the wrapping side is
-    // the one whose source both sets a cascade and names that component. What
-    // "names" is worth on its own is `namedConsumers`' problem, and its own
-    // positive control — nothing downstream can report a wrong edge.
+    // the one whose source both sets a cascade and names that component. Both
+    // halves come off the parse (`svelteEdges`): which side a component is on
+    // is which of the two functions it imports, and "names" is an import
+    // specifier or a rendered tag — never a word in a comment or a string.
+    // `namedConsumers` carries the positive control; nothing downstream can
+    // report a wrong edge.
     const consumers = new Map<string, Scan>();
     for (const scan of scans) {
-      if (CONSUMES_CASCADE.test(scan.code)) consumers.set(scan.exportName, scan);
+      if (scan.edges.imported.has('consumeWrapperCascade')) consumers.set(scan.exportName, scan);
     }
     for (const scan of scans) {
-      if (!SETS_CASCADE.test(scan.code)) continue;
-      for (const name of namedConsumers(scan.code, consumers.keys())) {
+      if (!scan.edges.imported.has('setWrapperCascade')) continue;
+      const named = [...scan.edges.imported, ...scan.edges.tags];
+      for (const name of named) {
         const inner = consumers.get(name);
         if (!inner) continue;
         for (const slot of inner.slots) scan.slots.add(slot);
