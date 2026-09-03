@@ -21,6 +21,8 @@ export default {
   badgeVariant: 'variant',
   badgeInherited: 'inherited',
   badgeRequired: 'required',
+  badgeDeprecated: 'deprecated',
+  badgeExperimental: 'experimental',
   property: 'Prop',
   type: 'Type',
   default: 'Default',

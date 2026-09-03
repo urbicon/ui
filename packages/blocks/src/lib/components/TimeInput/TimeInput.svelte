@@ -422,6 +422,7 @@
       aria-valuemax={hourMax}
       aria-valuenow={num(hourStr) ?? undefined}
       aria-invalid={error ? 'true' : undefined}
+      aria-required={required || undefined}
       aria-describedby={describedBy}
       class={segmentClass()}
       oninput={handleHourInput}
@@ -452,6 +453,7 @@
       aria-valuemax={59}
       aria-valuenow={num(minuteStr) ?? undefined}
       aria-invalid={error ? 'true' : undefined}
+      aria-required={required || undefined}
       aria-describedby={describedBy}
       class={segmentClass()}
       oninput={handleMinuteInput}
@@ -483,6 +485,7 @@
         aria-valuemax={59}
         aria-valuenow={num(secondStr) ?? undefined}
         aria-invalid={error ? 'true' : undefined}
+        aria-required={required || undefined}
         aria-describedby={describedBy}
         class={segmentClass()}
         oninput={handleSecondInput}

@@ -1,18 +1,18 @@
+import type { HTMLAttributes } from 'svelte/elements';
 import type { PinInputSlots, PinInputVariants } from './pin-input.variants';
 
 /**
  * @summary One cell per digit, for codes that arrive by mail or app.
  * @description Segmented one-time-code / PIN entry — a row of single-character
  * cells with auto-advance, backspace-to-previous, paste-to-fill, and optional
- * masking. Purpose-built for the 2FA/OTP flow the auth package's
- * `TwoFactorManager` drives (pair it with `autoComplete="one-time-code"` for
- * iOS SMS autofill). The value is the concatenated string; `onComplete` fires
- * once every cell is filled.
+ * masking. Purpose-built for the 2FA/OTP step: the first cell carries
+ * `autocomplete="one-time-code"` on its own, so iOS offers an incoming SMS code
+ * as a keyboard suggestion. The value is the concatenated string; `onComplete`
+ * fires each time the row becomes complete.
  *
  * @tag form
  * @related Input
  * @related NumberInput
- * @stability beta
  *
  * @example
  * ```svelte
@@ -27,7 +27,12 @@ import type { PinInputSlots, PinInputVariants } from './pin-input.variants';
  * <PinInput length={8} type="alphanumeric" mask separator="-" groupSize={4} />
  * ```
  */
-export interface PinInputProps extends Omit<PinInputVariants, 'error'> {
+export interface PinInputProps
+  extends Omit<PinInputVariants, 'error'>,
+    // `class`, `id` and `aria-label` are modelled below; the rest of a div's
+    // attributes reach the root. `aria-describedby` stays in and is merged
+    // rather than spread, so a consumer hint adds to the error/helper chain.
+    Omit<HTMLAttributes<HTMLDivElement>, 'class' | 'id' | 'aria-label'> {
   /** Current value — the concatenated cell characters. Supports `bind:value`. */
   value?: string;
   /** Number of cells. @default 6 */
@@ -38,7 +43,14 @@ export interface PinInputProps extends Omit<PinInputVariants, 'error'> {
    * @summary Which characters the field accepts — digits only, or letters too.
    */
   type?: 'numeric' | 'alphanumeric';
-  /** Render each filled cell as a masked dot (password style). @default false */
+  /**
+   * Render each filled cell as a masked dot (password style). For a standing PIN or
+   * passcode, not for a throwaway SMS code — masking one buys no secrecy and costs the
+   * user the ability to check what they typed.
+   *
+   * @summary Renders each filled cell as a dot instead of the character.
+   * @default false
+   */
   mask?: boolean;
   /** Placeholder character shown in every empty cell. @default '' */
   placeholder?: string;
@@ -59,11 +71,17 @@ export interface PinInputProps extends Omit<PinInputVariants, 'error'> {
   /** Cells per group when `separator` is set. @default 3 */
   groupSize?: number;
 
-  /** @default false */
+  /** Blocks input and dims the whole row. @default false */
   disabled?: boolean;
-  /** @default false */
+  /** Shows the value but refuses edits; the cells stay focusable. @default false */
   readonly?: boolean;
-  /** Adds a required asterisk to the label. @default false */
+  /**
+   * Marks the label with an asterisk and sets `aria-required` on the cells. It does
+   * not block a native submit — the value lives in component state, so validate it
+   * yourself before you act on it.
+   *
+   * @default false
+   */
   required?: boolean;
 
   /** Group label rendered above the cells and linked via `aria-labelledby`. */
@@ -78,7 +96,10 @@ export interface PinInputProps extends Omit<PinInputVariants, 'error'> {
 
   /** Fires after any change (typing, paste, backspace) with the full value. */
   onValueChange?: (value: string) => void;
-  /** Fires once when the last empty cell is filled, with the complete value. */
+  /**
+   * Fires each time the row becomes complete, with the full value — so
+   * correcting a rejected code fires it again. Not once per mount.
+   */
   onComplete?: (value: string) => void;
 
   /** Shared `name` for a hidden input, for native form submission. */
@@ -98,7 +119,7 @@ export interface PinInputProps extends Omit<PinInputVariants, 'error'> {
 
   /**
    * Accessible name for the cell group when no visible `label` is set. Each
-   * cell additionally announces its position ("digit 2 of 6").
+   * cell additionally announces its position ("Character 2 of 6").
    */
   'aria-label'?: string;
   /** Root id; the cells derive their ids and ARIA wiring from it. */

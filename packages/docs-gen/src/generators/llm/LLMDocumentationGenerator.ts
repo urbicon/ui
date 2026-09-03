@@ -1,6 +1,6 @@
 import * as fs from 'node:fs/promises';
 import * as path from 'node:path';
-import type { SvelteDocsConfig } from '@urbicon-ui/shared-types';
+import type { ComponentStability, SvelteDocsConfig } from '@urbicon-ui/shared-types';
 import { SvelteDocsParser } from '../../parsers/SvelteDocsParser';
 import type {
   APIData,
@@ -11,6 +11,26 @@ import type {
 import type { LLMGuideConfig, LLMOutputConfig } from '../../types/configuration';
 import { toSlug } from '../../utils/slug';
 import { resolveSlotNames } from '../shared/slots';
+
+/**
+ * The stability note a component's `llm.txt` carries. Omitted for `stable` — the
+ * default, and 62 of the catalogue's 99 entries, so a line on every one would cost
+ * tokens in `llms-full.txt` and say nothing.
+ *
+ * The wording is the promise from COMPONENT-API-CONVENTIONS.md § Stability; change
+ * it there first, then here.
+ */
+const STABILITY_NOTES: Record<Exclude<ComponentStability, 'stable'>, string> = {
+  experimental:
+    'experimental — shipped to be used and judged, but the API may change in any release without notice.',
+  beta: 'beta — the API shape is settled and documented; behaviour-level fixes may still land as breaking changes in a minor.',
+  deprecated: 'deprecated — scheduled for removal; the props JSDoc names the replacement.'
+};
+
+/** The note for a level; `undefined` for `stable` and for an absent tag. */
+function stabilityNote(stability: ComponentStability | undefined): string | undefined {
+  return stability && stability !== 'stable' ? STABILITY_NOTES[stability] : undefined;
+}
 
 /**
  * Minimal LLM documentation generator
@@ -252,6 +272,10 @@ export class LLMDocumentationGenerator {
     const lines: string[] = [];
     lines.push(`\n---\n`);
     lines.push(`## ${title}`);
+    // Above the description, not below it: descriptions run several lines and
+    // agents truncate these files with `head` (measured, design-eval 2026-08).
+    const note = stabilityNote(componentApiData.stability);
+    if (note) lines.push(`**Stability:** ${note}`);
     if (description) lines.push(`${description}`);
     lines.push('');
     lines.push(`**Import:** \`import { ${component.name} } from '${component.packageName}';\``);
@@ -533,7 +557,9 @@ export class LLMDocumentationGenerator {
       const group = apiData.components[c.name]?.group;
       const slug = toSlug(c.name);
       const href = group ? `./${group}/${slug}/llm.txt` : `./${slug}/llm.txt`;
-      lines.push(`- [${c.name}](${href}): Component LLM context`);
+      const stability = apiData.components[c.name]?.stability;
+      const level = stability && stability !== 'stable' ? ` (${stability})` : '';
+      lines.push(`- [${c.name}](${href}): Component LLM context${level}`);
     }
     return lines.join('\n');
   }

@@ -362,7 +362,7 @@ Both citations resolve to chips — open one to see the title, snippet, and the 
 <div class="mx-auto max-w-5xl px-4 py-10">
   <div class="mb-6 flex items-center gap-3">
     <h1 class="text-text-primary text-2xl font-semibold">Chat Playground</h1>
-    <Badge intent="primary" variant="soft">experimental</Badge>
+    <Badge intent="warning" variant="soft">experimental</Badge>
   </div>
   <p class="text-text-secondary mb-8 max-w-3xl">
     The whole P2 conversation stack, live: send a message and a simulated model reply streams

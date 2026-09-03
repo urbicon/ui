@@ -197,4 +197,20 @@ describe('TimeInput', () => {
     const describedBy = hour().getAttribute('aria-describedby');
     expect(describedBy && document.getElementById(describedBy)?.textContent).toBe('Too early');
   });
+
+  // Same gap as PinInput: `required` painted the label and stopped there. The
+  // segments are `role="spinbutton"`, which allows `aria-required`; the
+  // `role="group"` around them does not.
+  it('tells assistive tech that a required field is required', () => {
+    render({ required: true, withSeconds: true });
+    const segments = screen.getAllByRole('spinbutton');
+    expect(segments).toHaveLength(3);
+    expect(segments.every((s) => s.getAttribute('aria-required') === 'true')).toBe(true);
+  });
+
+  it('says nothing about requiredness when the field is optional', () => {
+    render({ withSeconds: true });
+    const segments = screen.getAllByRole('spinbutton');
+    expect(segments.every((s) => s.getAttribute('aria-required') === null)).toBe(true);
+  });
 });

@@ -50,11 +50,17 @@ export interface TimeInputProps extends Omit<TimeInputVariants, 'error'> {
    */
   max?: string;
 
-  /** @default false */
+  /** Blocks input and dims the whole field. @default false */
   disabled?: boolean;
-  /** @default false */
+  /** Shows the time but refuses edits; the segments stay focusable. @default false */
   readonly?: boolean;
-  /** Adds a required asterisk to the label. @default false */
+  /**
+   * Marks the label with an asterisk and sets `aria-required` on the segments. It does
+   * not block a native submit — the value lives in component state, so validate it
+   * yourself before you act on it.
+   *
+   * @default false
+   */
   required?: boolean;
   /** Stretch the field to the full width of its container. @default false */
   fullWidth?: boolean;
