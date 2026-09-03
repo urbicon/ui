@@ -55,8 +55,21 @@ to a component with a sibling, check the sibling's values first.
 
 - `filled` – solid background (highest emphasis)
 - `outlined` – border only, transparent background
-- `ghost` – no border, no background, color only
-- `underline` – bottom border only, transparent background (Input only)
+- `ghost` – transparent at rest: border and background are *transparent*, not absent. Hover adds
+  a tint, and a field's focus reveals its frame (`focus-visible:bg-surface-base` +
+  `border-border-subtle` + the ring, `internal/field-chrome.ts`). That reveal is deliberate — a
+  ghost field is a field that hides its chrome until you use it, not a field without chrome.
+  Corrected 2026-09-03: the earlier wording "no border, no background" described `bare`, and a
+  consumer measured the difference as twelve reset classes (#394)
+- `underline` – bottom border only, transparent background (Input, Textarea, Select, Combobox)
+- `bare` – **decided 2026-09-03, ships with #394** on the four fields that carry `underline`: no
+  frame, no fill, no padding, no fixed height, no shadow; `size` keeps only the type step (a
+  compound per component zeroes the size axis's `px/py/h`); focus is **ring-only in the family
+  colour**, and that ring reads `--blocks-focus-ring-color` — its first component consumer;
+  caret, placeholder and message row stay. The difference to `unstyled`: the a11y minimum is the
+  library's, not the consumer's — the consumer who wrote the reset preset first dropped the ring
+  and violated WCAG 2.4.7. A bare field needs context that marks it as a field (a placeholder, a
+  rule, a marker before it); the docs say so
 - `text` – minimal, text-only (Button, SegmentGroup)
 - `soft` – subtle background tint (Badge only)
 - `card` – boxed card treatment (Accordion, Collapsible)
@@ -113,6 +126,8 @@ Three props, three jobs — they do not overlap, and their precedence is a rule,
 **Field frames come from `internal/field-chrome.ts`** (`fieldErrorFrame`, `fieldIntentFrames`, `fieldFocusRing`, `FIELD_MESSAGE_TONES`, …) — Input, Textarea, Select, Combobox, PinInput and TimeInput all consume it. Hand-inlining the same strings is how the family drifted apart before: Select's error frame and Combobox's message tones had been re-derived by hand, and Combobox had no visual error state at all until v6.42.
 
 **Non-field controls** (Checkbox, RadioGroup, Toggle, Slider) take `error` as a message too, but tint only the message, not a frame — they have no frame to tint. Their `intent` is the standard six-value palette (the control's colour), not a validation tone. `aria-invalid` and the `role="alert"` message still follow `error`, exactly as on the fields.
+
+**The required marker is one build** — decided 2026-09-03; #395 brings every field onto it. `<span aria-hidden="true" class={slot('requiredMark')}>*</span>`, class `FIELD_REQUIRED_MARK` from `internal/field-chrome.ts`, default colour `text-text-secondary`: the information travels through native `required` / `aria-required`, the glyph is visual, and the failure tone before a failure reads as an error. Input, Textarea, Select, Combobox, RadioGroup, PinInput, TimeInput, FormField **and Checkbox** draw it the same way — until #395 lands there are three builds (a shared pseudo-element constant, three verbatim copies of it, and the span on Combobox/FormField), and Checkbox draws nothing. Because the marker is a **slot**, it sits on the override ladder: an all-required form hides it once, `defaults: { Input: { slotClasses: { requiredMark: 'hidden' } } }` (or an `overrides` rule on `required: true`), and that reaches auth's `LoginPage` through the consumer's provider. A pseudo-element on the `label` slot is not an option — only a consumer who knows to write `after:content-none` into the same bucket can reach it. No `requiredIndicator` prop: the slot covers "asterisk" and "none"; an "optional-text" mode waits for a consumer who needs it (#395 records why).
 
 ## Discriminated unions for mutually exclusive props
 

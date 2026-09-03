@@ -21,6 +21,29 @@ Bump **after pushing a coherent set of changes**. Bump proactively — don't wai
 
 `bun run bump` is an alias for `bun run bump:patch` (the most common case).
 
+## The pre-launch window
+
+Decided 2026-08-14, written down 2026-09-03. Until the public launch of ui.urbicon.de is
+**announced** (it is technically complete: public repo, npm publishing, deployed docs), the table
+above has one exception: a set containing `feat!:` / `BREAKING CHANGE:` commits is released as a
+**minor**, not a major. There are no third-party consumers yet — the only consumers are the
+maintainer's own apps — so a major bump would protect nobody, and neither would the `^` range.
+Between 8.11.0 and 8.17.0 this shipped 13 breaking commits in six minors.
+
+What it means for anyone on 8.x:
+
+- **`^8.x` is not a promise.** Pin with `~` (or exactly) and treat every minor as a deliberate
+  upgrade: read `CHANGELOG.md` → **Breaking Changes** and the `MIGRATION.md` shipped inside the
+  package (`node_modules/@urbicon-ui/blocks/docs/MIGRATION.md`, `…/table/docs/MIGRATION-V8.md`).
+- **`MIGRATION.md` groups entries by the release that shipped the change** (`## 8.14.0`), never by
+  a future major.
+- **Every breaking commit carries `!` in its subject.** git-cliff groups on the subject; a
+  `BREAKING CHANGE:` footer alone is filed under the commit's type (two 8.12/8.15 notes landed under
+  "Bug Fixes" and "Documentation" that way).
+
+The window closes with the launch announcement: that release is **9.0.0**, and from then on the
+table applies without exception.
+
 ## What the bump scripts do
 
 1. Bumps root `package.json` version via `npm version --no-git-tag-version`

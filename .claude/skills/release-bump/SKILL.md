@@ -11,6 +11,8 @@ description: Version bump and release flow (bump level per commit type, tag, pus
 - **Minor** `bun run bump:minor` — `feat` (new component / prop / capability)
 - **Major** `bun run bump:major` — `feat!:` or `BREAKING CHANGE:`
 
+**Pre-launch window (until the launch of ui.urbicon.de is announced):** a set with breaking commits is still released as a **minor**. Decided 2026-08-14 and written into [docs/VERSIONING.md](../../../docs/VERSIONING.md) § The pre-launch window on 2026-09-03 — name the exception when you bump, do not ask again. Two things stay non-negotiable: every breaking commit carries `!` in its subject (a footer alone is filed under the commit's type by git-cliff), and `packages/blocks/docs/MIGRATION.md` is headed by the release that ships the change, never `## v9`. The window closes with the announcement release, **9.0.0**.
+
 The bump writes a `chore: release vX.Y.Z` commit + an annotated tag on HEAD (the tag triggers the CI publish pipeline). Push with `git push --follow-tags`.
 
 **Never edit `CHANGELOG.md` by hand** — it is auto-generated.

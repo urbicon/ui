@@ -180,13 +180,13 @@ What you need first: [ARCHITECTURE.md](docs/ARCHITECTURE.md) §1 package map & b
   | axis | values | meaning |
   | --- | --- | --- |
   | `debt:<area>` | 13 existing values | the topic |
-  | `pkg:<package>` | blocks · table · auth · docs · docs-app · docs-gen · design-engine · design-cli · i18n · repo | where it lives (multiple allowed) |
+  | `pkg:<package>` | blocks · table · auth · docs · docs-app · docs-gen · design-engine · design-cli · i18n · sveltekit-utils · repo | where it lives (multiple allowed) |
   | `prio:P1\|P2\|P3` | **P1 = someone comes to harm**: a security hole, wrong data, a crash, a keyboard trap. Not "touches shipped code" — in a library every line does | the order |
   | `size:S\|M\|L` | a session · about a day · a wave | the cost |
 
   Plus two state labels: **`ready`** — the path is clear, no open design decision — and `blocked:upstream`. **`ready` is deliberately the positive label**: nearly every deferred finding ends in "wants a decision", so a `needs-decision` label would sit on ~75 % of the backlog and sort nothing. The useful question is what can be picked up right now (`gh issue list --label ready`). There is no P0; that channel stays free for an actual fire.
 
-- **Milestones are cut by work focus, not by urgency** — touching Calendar once beats touching it four times; `prio:` carries the order instead. Ten of them, every issue in exactly one, each with a description saying why its issues belong together. `gh api repos/:owner/:repo/milestones --jq '.[].title'` lists them; put a new issue in one rather than leaving it unassigned.
+- **Milestones are cut by work focus, not by urgency** — touching Calendar once beats touching it four times; `prio:` carries the order instead. Eleven of them, every issue in exactly one, each with a description saying why its issues belong together. `gh api repos/:owner/:repo/milestones --jq '.[].title'` lists them; put a new issue in one rather than leaving it unassigned.
 
 - **Cross-links go in the body**, as a `**Related:**` block after a `---` at the end, and are worth writing when the connection crosses a milestone — that is exactly what the milestone view cannot show. The 2026-08-03 pass found whole defect classes that way (#86/#87/#103/#105 are one bug — a class name that resolves to no CSS and no gate reports it).
 
