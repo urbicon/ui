@@ -17,7 +17,11 @@
  * Component APIs are likewise on demand: `get-component <slug> --section api`.
  */
 
-import { extractPrincipleSection, renderCssReference } from '@urbicon-ui/design-engine/reference';
+import {
+  extractPrincipleSection,
+  OVERRIDE_LADDER,
+  renderCssReference
+} from '@urbicon-ui/design-engine/reference';
 import type { Flags } from '../args.js';
 import { loadPrinciplesText } from '../content.js';
 import { EXIT, printError } from '../output.js';
@@ -72,13 +76,15 @@ export async function runPrimer(_positionals: string[], _flags: Flags): Promise<
   console.log('# Urbicon UI — primer\n');
   console.log(
     'Everything below applies to every task: how to pick a component, how to lay it\n' +
-      'out, and what the tokens are called — surfaces, text, borders, intents,\n' +
+      'out, what the tokens are called — surfaces, text, borders, intents,\n' +
       'shadows **plus the z-index scale and the radius tiers** (both live in the\n' +
-      'shadows section). Component APIs, composition patterns and recipes are fetched\n' +
-      'per task — see the pointers at the end.\n'
+      'shadows section) — and the override ladder: which styling hook to reach for,\n' +
+      'and what wins when two of them meet. Component APIs, composition patterns and\n' +
+      'recipes are fetched per task — see the pointers at the end.\n'
   );
   for (const section of sections) console.log(`${section}\n`);
   for (const section of CORE_SECTIONS) console.log(`${renderCssReference(section).trim()}\n`);
+  console.log(`${OVERRIDE_LADDER.trim()}\n`);
 
   console.log(
     '→ `urbicon find <query>` then `get-component <slug> --section api` for a component API\n' +

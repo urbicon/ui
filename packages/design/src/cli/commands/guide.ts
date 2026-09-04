@@ -1,9 +1,10 @@
 /**
- * `urbicon guide [slug]` — the canonical package guides (auth reference, blocks
- * guide system, migration notes, table scroll models) from the version-pinned
- * bundle. The sources ship in each package's npm tarball (docs/DOCS-SURFACES.md);
- * the bundle copy is what makes them version-matched here. With no slug, lists
- * the available guides; with a slug, prints the full guide markdown.
+ * `urbicon guide [slug]` — the canonical package guides from the version-pinned
+ * bundle: every entry of its `guides/index.json`, which docs-gen emits from its
+ * `PACKAGE_GUIDES` list. The sources ship in each package's npm tarball
+ * (docs/DOCS-SURFACES.md); the bundle copy is what makes them version-matched
+ * here. With no slug, lists the available guides; with a slug, prints the full
+ * guide markdown.
  */
 
 import { boolFlag, type Flags } from '../args.js';

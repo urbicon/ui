@@ -60,6 +60,27 @@ const PACKAGE_GUIDES: (PackageGuide & { embedInLlmsFull?: boolean })[] = [
     description:
       'The two table scroll models — page-relative sticky pinning and contained viewport scroll — API + CSS vars',
     sourcePath: resolveFromDocsGen('..', 'table', 'docs', 'STICKY-PINNING.md')
+  },
+  {
+    slug: 'migration-blocks',
+    title: 'Migrating @urbicon-ui/blocks',
+    description:
+      'Breaking changes to the component library, newest first — what moved, what it costs you, and what to grep for before you ship',
+    sourcePath: resolveFromDocsGen('..', 'blocks', 'docs', 'MIGRATION.md')
+  },
+  {
+    slug: 'migration-table',
+    title: 'Migrating the Table to v8',
+    description:
+      'The v8 view-state rewrite — one TableView object you own replaces eleven props and two ownership mechanisms; bindings decide where its axes live',
+    sourcePath: resolveFromDocsGen('..', 'table', 'docs', 'MIGRATION-V8.md')
+  },
+  {
+    slug: 'sveltekit-utils',
+    title: 'SvelteKit Utils',
+    description:
+      'URL-state runes, table view ↔ URL binding, the cron runner (createCronRunner) and the SSE stream reader — @urbicon-ui/sveltekit-utils',
+    sourcePath: resolveFromDocsGen('..', 'sveltekit-utils', 'README.md')
   }
 ];
 

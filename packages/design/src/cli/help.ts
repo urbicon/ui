@@ -6,7 +6,8 @@
  * which is how the `css-reference` section list went stale (the CLI advertised six
  * sections after `typography` became the seventh, and the guard that should have
  * caught it only checked the engine's overview). The section list is derived from
- * CSS_REFERENCE_SECTION_NAMES, never authored, so it cannot drift again.
+ * CSS_REFERENCE_SECTION_NAMES and the guide list from the bundle's `guides/index.json`
+ * at print time — neither is authored, so neither can drift again.
  */
 
 import { CSS_REFERENCE_SECTION_NAMES } from '@urbicon-ui/design-engine/reference';
@@ -42,6 +43,18 @@ export const CSS_REFERENCE_SECTION_LIST = wrapJoined(
   HELP_WIDTH
 );
 
+/**
+ * The advertised `guide` slugs — the bundle's `guides/index.json` as read at print
+ * time, so the list is read, never authored. `null` is an unreadable bundle: help is
+ * the one page that must still print then, and it names the failure in place of the
+ * list rather than advertising guides it cannot serve.
+ */
+export function guideSlugList(slugs: readonly string[] | null): string {
+  if (slugs === null) return '(bundle unreadable — `urbicon guide` reports why)';
+  if (slugs.length === 0) return '(none bundled)';
+  return wrapJoined(slugs, DESC_INDENT + 'Guides: '.length, HELP_WIDTH);
+}
+
 /** A line that opens a command entry: two spaces, then the command name. */
 function opensCommand(line: string): boolean {
   return /^ {2}\S/.test(line);
@@ -61,12 +74,12 @@ function commandOn(line: string): string | undefined {
  * and spent a second call grepping the command list to find them. One command's
  * block is ~300 B and answers the question that was asked.
  *
- * Sliced out of HELP rather than authored separately — a second copy of the flag
- * text is a second thing to keep in sync, which is exactly how the `css-reference`
- * section list went stale before.
+ * Sliced out of the rendered page rather than authored separately — a second copy
+ * of the flag text is a second thing to keep in sync, which is exactly how the
+ * `css-reference` section list went stale before.
  */
-export function commandHelp(command: string): string | undefined {
-  const lines = HELP.split('\n');
+export function commandHelp(help: string, command: string): string | undefined {
+  const lines = help.split('\n');
   const start = lines.findIndex((line) => commandOn(line) === command);
   if (start === -1) return undefined;
   // Runs to the next command entry or the blank line that ends the Commands
@@ -79,7 +92,12 @@ export function commandHelp(command: string): string | undefined {
   return lines.slice(start, end).join('\n');
 }
 
-export const HELP = `urbicon — design validation & manifest tooling for Urbicon UI projects
+/**
+ * The full help page. `guideSlugs` is the bundle's guide index at print time, or
+ * `null` when the bundle could not be read (see {@link guideSlugList}).
+ */
+export function renderHelp(guideSlugs: readonly string[] | null): string {
+  return `urbicon — design validation & manifest tooling for Urbicon UI projects
 
 Usage:
   urbicon <command> [options]
@@ -118,9 +136,9 @@ Commands — knowledge (what to build with):
                                            theming.
                         --rubric           Print the 8-criterion 1–5 scoring rubric
                                            instead (the judge step; ignores --topic).
-  guide [slug]          Package guides from the version-pinned bundle (auth
-                        reference, blocks guide system, migration notes, table
-                        scroll models). No slug lists all; a slug prints the guide.
+  guide [slug]          Package guides from the version-pinned bundle. No slug lists
+                        all (title, slug, one line each); a slug prints the guide.
+                        Guides: ${guideSlugList(guideSlugs)}
                         --json             Machine-readable guide list.
 
 Commands — judgment (is what you built right):
@@ -234,3 +252,4 @@ Examples:
   cat Page.svelte | urbicon validate -           # lint stdin
   urbicon record-decision --title "Tabs for settings" --decision "Use Tab over Sidebar"
 `;
+}

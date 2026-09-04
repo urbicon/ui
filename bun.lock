@@ -216,12 +216,12 @@
         "docs-gen": "./dist/cli/CLI.js",
       },
       "dependencies": {
+        "@urbicon-ui/design-engine": "^8.0.0",
         "@urbicon-ui/shared-types": "^8.0.0",
         "glob": "catalog:",
       },
       "devDependencies": {
         "@types/node": "catalog:",
-        "@urbicon-ui/design-engine": "^8.0.0",
         "estree-walker": "catalog:",
         "typescript": "catalog:",
         "vitest": "catalog:",

@@ -1,6 +1,7 @@
 import { mkdtemp, readFile, rm, stat, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import * as path from 'node:path';
+import { CLASS_OVER_SLOT_CLASSES } from '@urbicon-ui/design-engine/reference';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import type { APIData, ComponentAPIData, EnrichedComponentInfo } from '../../types';
 import type { LLMOutputConfig } from '../../types/configuration';
@@ -182,5 +183,78 @@ describe('LLMDocumentationGenerator stability', () => {
       '[Wildcard](./components/wildcard/llm.txt): Component LLM context (experimental)'
     );
     expect(index).toContain('[Steadfast](./components/steadfast/llm.txt): Component LLM context\n');
+  });
+});
+
+describe('LLMDocumentationGenerator override precedence', () => {
+  let tmp: string;
+  let scopeDir: string;
+
+  beforeEach(async () => {
+    tmp = await mkdtemp(path.join(tmpdir(), 'docs-gen-precedence-'));
+    scopeDir = path.join(tmp, 'blocks');
+  });
+
+  afterEach(async () => {
+    await rm(tmp, { recursive: true, force: true });
+  });
+
+  const prop = (name: string, description: string) => ({
+    name,
+    type: 'string',
+    required: false,
+    description,
+    source: { type: 'direct' }
+  });
+
+  it('states on the class and slotClasses rows what wins when they meet, and on no other row', async () => {
+    const generator = new LLMDocumentationGenerator(baseConfig(scopeDir));
+    await generator.generate(
+      [
+        {
+          name: 'Widget',
+          packageName: '@urbicon-ui/blocks',
+          filePath: '/src/lib/components/Widget/Widget.svelte',
+          description: 'The Widget component.',
+          crossReferences: [],
+          examples: []
+        } as unknown as EnrichedComponentInfo
+      ],
+      {
+        components: {
+          Widget: {
+            name: 'Widget',
+            props: [
+              prop('class', 'Custom CSS class name'),
+              prop('slotClasses', 'Per-slot class overrides.'),
+              prop('value', 'A value.')
+            ],
+            variants: [],
+            inheritance: [],
+            examples: [],
+            stats: { total: 3, direct: 3, variant: 0, inherited: 0 },
+            group: 'components'
+          }
+        },
+        types: [],
+        metadata: {}
+      } as unknown as APIData
+    );
+    const llm = await readFile(path.join(scopeDir, 'components', 'widget', 'llm.txt'), 'utf-8');
+    const row = (name: string) => llm.split('\n').find((l) => l.startsWith(`| ${name} |`)) ?? '';
+
+    // The clause is the engine's constant, imported — not a second string that
+    // could drift from what the primer and the theming section say.
+    expect(row('class')).toBe(
+      `| class | \`string\` | no |  | Custom CSS class name. ${CLASS_OVER_SLOT_CLASSES} |`
+    );
+    expect(row('slotClasses')).toBe(
+      `| slotClasses | \`string\` | no |  | Per-slot class overrides. ${CLASS_OVER_SLOT_CLASSES} |`
+    );
+    // Positive control in the same run: a third prop gets no clause, so the two
+    // assertions above cannot pass on a generator that stamps every row …
+    expect(row('value')).toBe('| value | `string` | no |  | A value. |');
+    // … and the file carries the sentence exactly twice, once per row.
+    expect(llm.split(CLASS_OVER_SLOT_CLASSES)).toHaveLength(3);
   });
 });

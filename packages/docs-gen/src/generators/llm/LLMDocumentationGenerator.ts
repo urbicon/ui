@@ -1,6 +1,7 @@
 import * as fs from 'node:fs/promises';
 import * as path from 'node:path';
-import type { ComponentStability, SvelteDocsConfig } from '@urbicon-ui/shared-types';
+import { CLASS_OVER_SLOT_CLASSES } from '@urbicon-ui/design-engine/reference';
+import type { ComponentStability, PropInfo, SvelteDocsConfig } from '@urbicon-ui/shared-types';
 import { SvelteDocsParser } from '../../parsers/SvelteDocsParser';
 import type {
   APIData,
@@ -11,6 +12,31 @@ import type {
 import type { LLMGuideConfig, LLMOutputConfig } from '../../types/configuration';
 import { toSlug } from '../../utils/slug';
 import { resolveSlotNames } from '../shared/slots';
+
+/**
+ * The props whose row states the override precedence — no prop JSDoc says what
+ * happens when the two meet. Appended at render time rather than written into the
+ * description: the description is also what the docs site's API table and the
+ * playground knob hints read, and a knob hint is budgeted at 120 characters
+ * (`playgrounds:lint`), which the 106-character clause alone would nearly fill.
+ */
+const PRECEDENCE_PROPS = new Set(['class', 'slotClasses']);
+
+/**
+ * One row of the `### Api` table. Every agent-facing output renders props through
+ * this — `llm.txt` directly, `llms-full.txt` and both `get-component --section api`
+ * paths by reading the `llm.txt` — so a clause added here reaches all of them or none.
+ */
+function renderPropRow(prop: PropInfo): string {
+  const required = prop.required ? 'yes' : 'no';
+  const def = prop.defaultValue ?? '';
+  let desc = (prop.description || '').replace(/\n/g, ' ').trim();
+  if (PRECEDENCE_PROPS.has(prop.name)) {
+    const lead = desc === '' ? '' : desc.endsWith('.') ? `${desc} ` : `${desc}. `;
+    desc = `${lead}${CLASS_OVER_SLOT_CLASSES}`;
+  }
+  return `| ${prop.name} | \`${prop.type}\` | ${required} | ${def} | ${desc} |`;
+}
 
 /**
  * The stability note a component's `llm.txt` carries. Omitted for `stable` — the
@@ -313,12 +339,7 @@ export class LLMDocumentationGenerator {
     const lines: string[] = [];
     lines.push('| Prop | Type | Required | Default | Description |');
     lines.push('| --- | --- | :---: | --- | --- |');
-    for (const prop of componentApiData.props) {
-      const required = prop.required ? 'yes' : 'no';
-      const def = prop.defaultValue ?? '';
-      const desc = (prop.description || '').replace(/\n/g, ' ').trim();
-      lines.push(`| ${prop.name} | \`${prop.type}\` | ${required} | ${def} | ${desc} |`);
-    }
+    for (const prop of componentApiData.props) lines.push(renderPropRow(prop));
     // Inheritance summary
     if (componentApiData.inheritance.length > 0) {
       lines.push('');

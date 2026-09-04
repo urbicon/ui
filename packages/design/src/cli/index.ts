@@ -31,9 +31,25 @@ import { runRecordDecision } from './commands/record-decision.js';
 import { runSyncManifest } from './commands/sync-manifest.js';
 import { runValidate } from './commands/validate.js';
 import { runVerb, runVerbList } from './commands/verb.js';
-import { commandHelp, HELP } from './help.js';
+import { loadGuideIndex } from './content.js';
+import { commandHelp, renderHelp } from './help.js';
 import { EXIT, printError } from './output.js';
 import { readPackageVersion } from './package-root.js';
+
+/**
+ * The help page with the bundle's guide list. Read tolerant: help must answer
+ * even when the bundle is missing, so an unreadable index renders as such
+ * instead of failing the one command that explains the others.
+ */
+async function helpPage(): Promise<string> {
+  let slugs: readonly string[] | null;
+  try {
+    slugs = (await loadGuideIndex()).map((g) => g.slug);
+  } catch {
+    slugs = null;
+  }
+  return renderHelp(slugs);
+}
 
 async function main(argv: string[]): Promise<number> {
   const { command, positionals: rawPositionals, flags } = parseArgs(argv);
@@ -46,10 +62,10 @@ async function main(argv: string[]): Promise<number> {
   // `urbicon`, `urbicon help` and `urbicon --help`. An unknown command still fails
   // loud rather than being consoled with the whole page.
   if (flags.help === true && command !== undefined && command !== 'help') {
-    const section = commandHelp(command);
+    const section = commandHelp(await helpPage(), command);
     if (section === undefined) {
       printError(`unknown command "${command}"`);
-      console.log(`\n${HELP}`);
+      console.log(`\n${await helpPage()}`);
       return EXIT.USAGE;
     }
     console.log(section);
@@ -60,16 +76,16 @@ async function main(argv: string[]): Promise<number> {
     // and used to get the same wrong answer: the whole 9.5 kB page.
     const topic = command === 'help' ? rawPositionals[0] : undefined;
     if (topic !== undefined) {
-      const section = commandHelp(topic);
+      const section = commandHelp(await helpPage(), topic);
       if (section === undefined) {
         printError(`unknown command "${topic}"`);
-        console.log(`\n${HELP}`);
+        console.log(`\n${await helpPage()}`);
         return EXIT.USAGE;
       }
       console.log(section);
       return EXIT.OK;
     }
-    console.log(HELP);
+    console.log(await helpPage());
     return EXIT.OK;
   }
 
@@ -135,7 +151,7 @@ async function main(argv: string[]): Promise<number> {
       return runVerb(positionals, flags);
     default:
       printError(`unknown command "${command}"`);
-      console.log(`\n${HELP}`);
+      console.log(`\n${await helpPage()}`);
       return EXIT.USAGE;
   }
 }

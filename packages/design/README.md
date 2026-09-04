@@ -90,7 +90,7 @@ you have customised is kept and reported, never overwritten.
 
 Then run the guided intake — `bunx urbicon verb adopt` (brownfield) or `onboard` (greenfield) —
 to fill the manifest with this project's design intent. From there an agent can `urbicon primer`
-for the knowledge every task needs (component selection + the token core, one call),
+for the knowledge every task needs (component selection, the token core, the override ladder — one call),
 `urbicon context` to read the intent, `urbicon find` / `get-component` to discover the catalog,
 `urbicon pattern` / `principles` / `css-reference` for the task-specific rest, compose, and
 `urbicon validate` what it produced.
@@ -107,12 +107,12 @@ for the knowledge every task needs (component selection + the token core, one ca
 | `urbicon validate [paths...]`  | Lint `.svelte` markup against the design rules. The CI gate.                                          | mirror of `validate_design` |
 | `urbicon i18n [check]`         | Audit `@urbicon-ui/i18n`: `parity` / `unused` keys / `hardcoded` strings / `audit` (all).             | — (local only)              |
 | `urbicon hook`                 | PostToolUse adapter — validate the just-edited file, block on failure.                                | — (local only)              |
-| `urbicon primer`               | The always-needed bundle in one call: component selection + the token core. Run it first.             | —                           |
+| `urbicon primer`               | The always-needed bundle in one call: component selection, the token core, the override ladder.       | —                           |
 | `urbicon find [query]`         | Fuzzy component discovery over the version-pinned catalog.                                            | `find_components`           |
 | `urbicon get-component <slug>` | A component's API (its `llm.txt`) from the bundle.                                                    | `get_component`             |
 | `urbicon icons [query]`        | Icon discovery (no query: the full grouped reference).                                                | `find_icons`                |
 | `urbicon recipe [id]`          | Complete Svelte 5 code recipes from the catalog.                                                      | `get_recipe`                |
-| `urbicon guide [slug]`         | Canonical package guides (auth reference, blocks guide system, migration notes, table scroll models). | `urbicon://guide/auth`      |
+| `urbicon guide [slug]`         | The bundled package guides: reference, migration and integration docs; a bare `guide` lists them all. | `urbicon://guide/auth`      |
 | `urbicon pattern [name]`       | Composition patterns per page archetype.                                                              | `get_pattern`               |
 | `urbicon principles`           | Design heuristics (`--topic <t>`); `--rubric` for the judge rubric.                                   | `get_design_principles`     |
 | `urbicon css-reference [sect]` | The token truth: naming, dark mode, override patterns.                                                | `get_css_reference`         |

@@ -23,7 +23,9 @@ import {
   GLOBAL_FLAGS,
   QUERY_ALIAS_COMMANDS
 } from './command-flags.js';
-import { HELP } from './help.js';
+import { renderHelp } from './help.js';
+
+const HELP = renderHelp(['auth', 'table-sticky']);
 
 /**
  * The flags HELP documents for each command, read from its own layout: a command

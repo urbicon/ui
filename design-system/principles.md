@@ -122,6 +122,7 @@ When asked to modify the design, identify the correct layer:
 - Use `overrides` for prop-conditional rules — style only one variant/intent/state (e.g. only `variant="outlined"`), what an unconditional `slotClasses` cannot express
 - Use `slotClasses` on individual instances for one-off overrides
 - Use `unstyled` to strip all defaults and bring your own styling
+- Cascade (conflict-resolved per Tailwind bucket, later wins): `defaults.slotClasses → defaults.overrides → preset.slotClasses → preset.overrides → instance slotClasses → instance class`
 
 **"Change page layout / navigation structure"** → Layer 4 (Composition)
 - Update the composition pattern file (see `get_pattern()`)
