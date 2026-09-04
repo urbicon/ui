@@ -1,5 +1,5 @@
 import { type Handle, type RequestEvent, redirect } from '@sveltejs/kit';
-import type { AuthConfig, AuthUser } from '../types.js';
+import type { AuthConfig, AuthLogger, AuthUser } from '../types.js';
 import type { FullAuthUser, Repositories } from './adapters/types.js';
 import { sanitizeUser } from './auth.js';
 import { isSecureDeployment } from './cookie-policy.js';
@@ -7,7 +7,7 @@ import { ensureCsrfCookie, validateCsrf } from './csrf.js';
 import { assertAuthConfigValid } from './deps.js';
 import { authError } from './handlers/errors.js';
 import { shieldLogger } from './logger.js';
-import { compilePublicRoutes, type PublicRoute } from './public-routes.js';
+import { compilePublicRoutes, type PublicRoute, type RouteListOption } from './public-routes.js';
 import { readRefreshCookie, rotateRefreshToken } from './refresh-token.js';
 import { applySecurityHeaders } from './security-headers.js';
 import { applyRotationOutcome, clearSessionCookie, getSessionFromCookie } from './session.js';
@@ -74,6 +74,63 @@ export interface AuthHandleOptions<R extends string = string> {
    * @default false
    */
   allowUnauthenticatedRemote?: boolean;
+  /**
+   * The package's own CSRF gate, step 1 of the hook. The cookie and header
+   * knobs live on `config.csrf`; this is the exemption.
+   */
+  csrf?: {
+    /**
+     * Routes handled as **cookieless**: machine endpoints whose callers send
+     * no `Origin` header and hold no session — a cron runner with a secret
+     * header, an OAuth token endpoint, an API-key route. For a matching
+     * request the hook reads no cookie and writes none: no Origin gate, no
+     * session hydration (a valid session cookie still leaves `locals.user`
+     * `null`), no refresh rotation, no CSRF cookie, no route guard. The
+     * response gets the security headers and nothing else.
+     *
+     * **The route authenticates every request itself** (bearer token, secret
+     * header, PKCE). A page or a cookie-authenticated API route listed here
+     * loses its CSRF protection and sees every visitor as signed out.
+     *
+     * Same vocabulary as {@link publicRoutes}: a string is a pathname prefix,
+     * `{ path, exact: true }` that pathname alone, a bare `'/'` warns at
+     * construction. Or a synchronous predicate over the event for callers a
+     * path does not identify — `(e) => e.request.headers.has('x-cron-secret')`.
+     * Only a literal `true` exempts, so an async predicate (a Promise) exempts
+     * nothing; a throw fails the request. Remote-function requests are never
+     * exempt on either transport — their pathname is client-controlled and
+     * their transport is cookie-authenticated by construction — and the
+     * predicate is not consulted for them.
+     *
+     * SvelteKit's kernel CSRF gate runs before any hook and is unaffected: a
+     * form-encoded cross-origin POST still needs `kit.csrf.trustedOrigins:
+     * ['*']` in a built app. docs/AUTH.md → Machine callers.
+     *
+     * @default nothing is exempt
+     */
+    exempt?: readonly PublicRoute[] | ((event: RequestEvent) => boolean);
+  };
+}
+
+const CSRF_EXEMPT_OPTION: RouteListOption = {
+  name: 'csrf.exempt',
+  bareSlash:
+    'the CSRF gate is off and every request is handled as cookieless, so locals.user is null on every page. List the machine endpoints instead.'
+};
+
+/**
+ * `csrf.exempt` as one predicate over the event. The list form goes through
+ * the same compiler as `publicRoutes`; the function form is gated on a
+ * literal `true` so that a Promise — an async predicate — exempts nothing.
+ */
+function compileCsrfExempt(
+  exempt: NonNullable<AuthHandleOptions['csrf']>['exempt'],
+  logger: AuthLogger
+): (event: RequestEvent) => boolean {
+  if (exempt === undefined) return () => false;
+  if (typeof exempt === 'function') return (event) => exempt(event) === true;
+  const matches = compilePublicRoutes(exempt, logger, CSRF_EXEMPT_OPTION);
+  return (event) => matches(event.url.pathname);
 }
 
 /**
@@ -101,6 +158,7 @@ export function createAuthHandle<R extends string>(options: AuthHandleOptions<R>
   // bundle are wired independently and either can be reached first.
   assertAuthConfigValid(config, repos, logger);
   const isPublicPath = compilePublicRoutes(options.publicRoutes ?? DEFAULT_PUBLIC_ROUTES, logger);
+  const isCsrfExempt = compileCsrfExempt(options.csrf?.exempt, logger);
   const allowUnauthenticatedRemote = options.allowUnauthenticatedRemote ?? false;
   const loginPage = config.routes?.loginPage ?? '/auth/login';
 
@@ -155,12 +213,57 @@ export function createAuthHandle<R extends string>(options: AuthHandleOptions<R>
     }
   };
 
+  // 4. Resolve and apply security headers — the one step every request gets,
+  // the cookieless short-circuit included. HSTS is gated on a secure
+  // deployment — the same predicate the cookie names and the
+  // brute-force-default warnings use.
+  const respond = async (
+    event: RequestEvent,
+    resolve: Parameters<Handle>[0]['resolve']
+  ): Promise<Response> => {
+    const response = await resolve(event);
+    return applySecurityHeaders(response, {
+      ...config.securityHeaders,
+      secure: isSecureDeployment(config)
+    });
+  };
+
   return async ({ event, resolve }) => {
+    // A remote-function call reaches this hook via one of two transports, both
+    // of which let a caller present a public pathname that a path match — the
+    // guard (3b) or `csrf.exempt` (0) — would wave through, so neither may be
+    // decided on the path:
+    //   - /_app/remote/… (query / command / JS-enhanced form): SvelteKit
+    //     rewrites event.url.pathname from the client-controlled
+    //     x-sveltekit-pathname header before this hook runs. Detected via the
+    //     unspoofable event.isRemoteRequest (from the real /_app/remote/… path).
+    //   - the no-JS <form action="?/remote=…"> fallback: SvelteKit dispatches it
+    //     through the page pipeline (render_page → is_action_request →
+    //     get_remote_action) purely from the /remote search param, decoupled
+    //     from the pathname, and intentionally leaves event.isRemoteRequest
+    //     false. Detected via a POST carrying a truthy /remote action param —
+    //     mirroring SvelteKit's own dispatch gate (`if (remote_id)`); a normal
+    //     action named "remote" serializes to an empty ?/remote and is falsy,
+    //     so it correctly stays on the path guard.
+    const isRemoteFormPost =
+      event.request.method === 'POST' && Boolean(event.url.searchParams.get('/remote'));
+    const isRemote = event.isRemoteRequest || isRemoteFormPost;
+
+    // 0. Cookieless machine routes (`csrf.exempt`). The endpoint authenticates
+    // itself, so the hook neither reads a cookie nor writes one: steps 1–3 are
+    // skipped wholesale and `locals` gets the unauthenticated shape. Remote
+    // requests are excluded before the predicate runs — an exemption here
+    // would let a spoofed pathname past the default-deny in 3a.
+    if (!isRemote && isCsrfExempt(event)) {
+      (event.locals as Record<string, unknown>).user = null;
+      return respond(event, resolve);
+    }
+
     // 1. CSRF check for mutating requests. The package's own Origin gate,
     // covering only requests that reach this hook; SvelteKit's kernel CSRF
     // gate runs earlier and still gates handle-bypassed routes. Interplay +
     // the off-switch (`kit.csrf.trustedOrigins: ['*']`, resolved at build
-    // time): docs/AUTH.md → Known Limitations.
+    // time): docs/AUTH.md → Machine callers.
     if (
       !validateCsrf(event.request, event.url, {
         doubleSubmit: csrfDoubleSubmit,
@@ -225,25 +328,7 @@ export function createAuthHandle<R extends string>(options: AuthHandleOptions<R>
     // 3. Route guard.
     const user = (event.locals as Record<string, unknown>).user;
 
-    // A remote-function call reaches this hook via one of two transports, both
-    // of which let a caller present a public pathname the path guard (3b) would
-    // wave through — so neither may be gated on the path:
-    //   - /_app/remote/… (query / command / JS-enhanced form): SvelteKit
-    //     rewrites event.url.pathname from the client-controlled
-    //     x-sveltekit-pathname header before this hook runs. Detected via the
-    //     unspoofable event.isRemoteRequest (from the real /_app/remote/… path).
-    //   - the no-JS <form action="?/remote=…"> fallback: SvelteKit dispatches it
-    //     through the page pipeline (render_page → is_action_request →
-    //     get_remote_action) purely from the /remote search param, decoupled
-    //     from the pathname, and intentionally leaves event.isRemoteRequest
-    //     false. Detected via a POST carrying a truthy /remote action param —
-    //     mirroring SvelteKit's own dispatch gate (`if (remote_id)`); a normal
-    //     action named "remote" serializes to an empty ?/remote and is falsy,
-    //     so it correctly stays on the path guard.
-    const isRemoteFormPost =
-      event.request.method === 'POST' && Boolean(event.url.searchParams.get('/remote'));
-
-    if (event.isRemoteRequest || isRemoteFormPost) {
+    if (isRemote) {
       // 3a. Default-deny unauthenticated remote calls. Apps that deliberately
       // expose public remote functions opt out via allowUnauthenticatedRemote
       // and must then guard those functions themselves. Authenticated remote
@@ -275,13 +360,7 @@ export function createAuthHandle<R extends string>(options: AuthHandleOptions<R>
       }
     }
 
-    // 4. Resolve and apply security headers. HSTS is gated on a secure
-    // deployment — the same predicate the cookie names and the
-    // brute-force-default warnings use.
-    const response = await resolve(event);
-    return applySecurityHeaders(response, {
-      ...config.securityHeaders,
-      secure: isSecureDeployment(config)
-    });
+    // 4. Resolve, headers on.
+    return respond(event, resolve);
   };
 }

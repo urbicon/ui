@@ -15,8 +15,29 @@ import type { AuthLogger } from '../types.js';
 export type PublicRoute = string | { path: string; exact: true };
 
 /**
- * Compile a `publicRoutes` list into the predicate both handles guard with,
- * so the two cannot drift in how they read an entry.
+ * Which option a route list came from — what the construction-time messages
+ * name, so a typo in `csrf.exempt` is not reported against `publicRoutes`.
+ */
+export interface RouteListOption {
+  /** The option as the consumer spells it. */
+  name: string;
+  /**
+   * What a bare `'/'` prefix does to the app and what to write instead: the
+   * clause after "exempts every route —" in the warning.
+   */
+  bareSlash: string;
+}
+
+const PUBLIC_ROUTES_OPTION: RouteListOption = {
+  name: 'publicRoutes',
+  bareSlash:
+    "the auth guard is off for the whole app. Use { path: '/', exact: true } for the landing page alone."
+};
+
+/**
+ * Compile a route list into the predicate both handles guard with — and the
+ * one `csrf.exempt` matches with — so the three cannot drift in how they read
+ * an entry.
  *
  * Refuses, at construction, a path that does not start with `/`: `''` is the
  * silent fail-open twin of `'/'` (`startsWith('')` holds for every pathname,
@@ -32,7 +53,8 @@ export type PublicRoute = string | { path: string; exact: true };
  */
 export function compilePublicRoutes(
   routes: readonly PublicRoute[],
-  logger: AuthLogger
+  logger: AuthLogger,
+  option: RouteListOption = PUBLIC_ROUTES_OPTION
 ): (pathname: string) => boolean {
   // Snapshot: the caller keeps its array, and a later push into it must not
   // silently widen the guard.
@@ -43,21 +65,21 @@ export function compilePublicRoutes(
         : { path: route.path, exact: route.exact };
     if (typeof entry.path !== 'string' || !entry.path.startsWith('/')) {
       throw new Error(
-        `[auth] publicRoutes entry ${JSON.stringify(route)} must start with '/'. An empty path exempts every route and a bare name matches none — both are typos, neither is a mode.`
+        `[auth] ${option.name} entry ${JSON.stringify(route)} must start with '/'. An empty path exempts every route and a bare name matches none — both are typos, neither is a mode.`
       );
     }
     // The type says `exact: true`; a JS caller who left it off is told rather
     // than handed a guessed mode.
     if (typeof route !== 'string' && route.exact !== true) {
       throw new Error(
-        `[auth] publicRoutes entry ${JSON.stringify(route)}: the object form is the exact form and must carry exact: true. A prefix is the plain string.`
+        `[auth] ${option.name} entry ${JSON.stringify(route)}: the object form is the exact form and must carry exact: true. A prefix is the plain string.`
       );
     }
     return entry;
   });
   if (entries.some((entry) => entry.path === '/' && !entry.exact)) {
     logger.warn(
-      "[auth] publicRoutes contains '/' as a prefix, which exempts every route — the auth guard is off for the whole app. Use { path: '/', exact: true } for the landing page alone."
+      `[auth] ${option.name} contains '/' as a prefix, which exempts every route — ${option.bareSlash}`
     );
   }
   return (pathname) =>

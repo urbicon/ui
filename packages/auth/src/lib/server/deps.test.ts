@@ -1,10 +1,17 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import type { AuthConfig } from '../types.js';
 import { createInMemoryRefreshTokenRepository, createInMemoryStore } from './adapters/in-memory.js';
-import { createAuthDeps } from './deps.js';
+import { __resetSeenSecretsForTests, createAuthDeps } from './deps.js';
 import { generateES256KeyPair } from './jwt.js';
 import { lockoutFor, rateLimitFor } from './security-defaults.js';
 import { createMockInvitationRepository, createMockUserRepository } from './test-utils.js';
+
+// The repeat-secret registry is process-wide and this file builds dozens of
+// bundles from `secret: 's'`. Without the reset the one-shot warning lands on
+// whichever test happens to make the file's second call — measured: the second
+// test in file order, and only that one — so a `not.toHaveBeenCalled()` there
+// would depend on test order. The reset makes each sink see only its own test.
+beforeEach(() => __resetSeenSecretsForTests());
 
 function baseDeps(config: Partial<AuthConfig> & { jwt?: AuthConfig['jwt'] } = {}) {
   return {
@@ -238,6 +245,61 @@ describe('forgot-password rate-limit default', () => {
   it('honours the global null opt-out (no forgotPassword limiter)', () => {
     const deps = createAuthDeps(baseDeps({ rateLimit: null }));
     expect(deps.config.rateLimit).toBeNull();
+  });
+});
+
+describe('createAuthDeps called again with a secret it has seen', () => {
+  // The rate-limit counters key on the config OBJECT this function returns
+  // (sharedLimiter), so a second call is a second, empty set of counters. The
+  // warning is process-wide by design — that is the scope of the bug.
+  const sink = () => ({ warn: vi.fn(), error: vi.fn() });
+  const wiring = (secret: string, logger: ReturnType<typeof sink>) =>
+    baseDeps({ logger, jwt: { secret } });
+
+  it('warns exactly once on the second call, naming the consequence and the fix', () => {
+    const logger = sink();
+    createAuthDeps(wiring('repeat-a', logger));
+    expect(logger.warn).not.toHaveBeenCalled();
+
+    createAuthDeps(wiring('repeat-a', logger));
+    expect(logger.warn).toHaveBeenCalledTimes(1);
+    const [message] = logger.warn.mock.calls[0] as [string];
+    expect(message).toContain('createAuthDeps');
+    expect(message).toContain('rate limit');
+    expect(message).toContain('once, at module scope');
+    expect(message).toContain('AUTH.md');
+
+    // A per-request caller gets one line, not one per request.
+    createAuthDeps(wiring('repeat-a', logger));
+    createAuthDeps(wiring('repeat-a', logger));
+    expect(logger.warn).toHaveBeenCalledTimes(1);
+  });
+
+  it('stays silent for two bundles with different secrets', () => {
+    const logger = sink();
+    createAuthDeps(wiring('distinct-a', logger));
+    createAuthDeps(wiring('distinct-b', logger));
+    expect(logger.warn).not.toHaveBeenCalled();
+  });
+
+  it('is not gated on the deployment signal — a dev config is warned too', () => {
+    const logger = sink();
+    const dev = () => baseDeps({ logger, jwt: { secret: 'repeat-dev', cookieSecure: false } });
+    createAuthDeps(dev());
+    createAuthDeps(dev());
+    expect(logger.warn).toHaveBeenCalledTimes(1);
+    expect(logger.warn).toHaveBeenCalledWith(expect.stringContaining('createAuthDeps'));
+  });
+
+  it('does not count a call that threw at validation', () => {
+    // Nothing was returned, so no counter was created: the retry with the
+    // fixed config is the first bundle, not a repeat.
+    const logger = sink();
+    expect(() =>
+      createAuthDeps(baseDeps({ logger, jwt: { secret: 'thrown', algorithm: 'ES256' } }))
+    ).toThrow(/signingKey is missing/);
+    createAuthDeps(wiring('thrown', logger));
+    expect(logger.warn).not.toHaveBeenCalled();
   });
 });
 

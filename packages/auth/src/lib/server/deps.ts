@@ -219,16 +219,67 @@ export function assertAuthConfigValid<R extends string>(
   if (disagreement) logger.warn(disagreement);
 }
 
+// Every `jwt.secret` a bundle has been built for in this process, as a
+// fingerprint → "has the repeat warning gone out". The rate-limit counters key
+// on the config object `createAuthDeps` returns (see `sharedLimiter`), so the
+// second bundle for one secret is what this reports, and the registry has to
+// be process-wide to see it. A fingerprint, not the secret: the registry
+// outlives every config, and a secret the consumer rotated away must not be
+// retained here. Synchronous by necessity — `crypto.subtle.digest` is async
+// and this function is not — so two 32-bit lanes with different mixing stand
+// in for a digest; a collision would cost one spurious warning, nothing else.
+const seenSecrets = new Map<string, boolean>();
+
+function fingerprint(secret: string): string {
+  let fnv = 0x811c9dc5;
+  let djb = 5381;
+  for (let i = 0; i < secret.length; i++) {
+    const code = secret.charCodeAt(i);
+    fnv = Math.imul(fnv ^ code, 0x01000193);
+    djb = Math.imul(djb, 33) ^ code;
+  }
+  return `${(fnv >>> 0).toString(16)}:${(djb >>> 0).toString(16)}`;
+}
+
+function warnOnRepeatedSecret(secret: string, logger: AuthLogger): void {
+  const key = fingerprint(secret);
+  const warned = seenSecrets.get(key);
+  if (warned === undefined) {
+    seenSecrets.set(key, false);
+    return;
+  }
+  if (warned) return;
+  seenSecrets.set(key, true);
+  logger.warn(
+    '[auth] createAuthDeps was called again with a jwt.secret this process has already built a bundle for. The rate-limit counters live on the config object it returns, so every call starts each limiter from zero — called per request, no rate limit ever trips. Call createAuthDeps once, at module scope, and pass the returned deps to the handle and the handler factories (docs/AUTH.md → Stage 1 — Quickstart). Reported once per secret.'
+  );
+}
+
+/**
+ * Test seam for the process-wide secret registry — not in the package's
+ * export map. A suite that builds many bundles from one literal secret would
+ * otherwise carry the repeat warning from test to test.
+ */
+export function __resetSeenSecretsForTests(): void {
+  seenSecrets.clear();
+}
+
 /**
  * Assemble the auth dependency bundle, applying secure brute-force defaults to
  * the config (see {@link resolveSecurityDefaults}). The returned `config`
  * carries the resolved values — pass it on to `createAuthHandle` and the
  * handler factories so the whole app shares one resolved config.
+ *
+ * Once per process: the rate-limit counters key on the returned object, so a
+ * second bundle for the same secret is a fresh, empty set of counters. That
+ * call is warned about on the logger, once per secret, in every deployment.
  */
 export function createAuthDeps<R extends string>(deps: Omit<AuthDeps<R>, 'logger'>): AuthDeps<R> {
   // One source for the sink: `config.logger`. The resolved field on the deps
   // bundle is what handlers use, so none of them re-defaults to console.
   const logger = shieldLogger(deps.config.logger ?? console);
   assertAuthConfigValid(deps.config, deps.repos, logger);
+  // After validation: a call that threw returned no object and made no counter.
+  warnOnRepeatedSecret(deps.config.jwt.secret, logger);
   return { ...deps, logger, config: resolveSecurityDefaults(deps.config, logger) };
 }
