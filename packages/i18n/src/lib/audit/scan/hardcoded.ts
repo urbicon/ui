@@ -14,11 +14,10 @@ import { asNodes, asString, loadParse, walkAst } from './svelte-ast';
 
 const DEFAULT_ATTRIBUTES = ['aria-label', 'title', 'placeholder', 'alt'];
 
-// A chord glyph is a non-ASCII Sm/So (⌘ ⇧ ⌥ ⌃ ↵ ⎋ are all So). Not the whole `\p{S}`:
-// currency (Sc: € £ ¥) and modifiers (Sk: ´ ¨) sit in ordinary copy, as do ASCII `+`
-// and `$`; Ü is a letter. One class behind a lookahead — the u flag has no set
-// subtraction, and an alternation of literals is what Bun's engine gets wrong.
-const CHORD_SYMBOL = /(?!\p{ASCII})[\p{Sm}\p{So}]/u;
+// Keyboard glyphs live in the Arrows, Miscellaneous Technical and Control Pictures
+// blocks; uppercase copy carrying one (`NEXT →`, `⌘ ENTER`) passes the lowercase gate
+// too — accepted, because source copy keeps its lowercase and uppercasing is CSS.
+const KEY_GLYPH = /[←-⇿⌀-⏿␀-␿]/;
 
 export interface HardcodedFinding {
   file: string;
@@ -53,8 +52,7 @@ function looksLikeCopy(text: string, min: number, max: number): boolean {
   if (/^[a-z][a-zA-Z0-9]*$/.test(text)) return false; // single camelCase token (variable-ish)
   if (/^[\d\s.,:;/–—-]+$/.test(text)) return false; // numbers / dates / separators
   if (/[{}<>=]/.test(text)) return false; // markup/code fragments
-  // A key chord (⌘ K) is not copy; a key name (⌃ Space) is, and keeps its lowercase.
-  if (!/[a-z]/.test(text) && CHORD_SYMBOL.test(text)) return false;
+  if (!/[a-z]/.test(text) && KEY_GLYPH.test(text)) return false; // key chord (⌘ K)
   return true;
 }
 
