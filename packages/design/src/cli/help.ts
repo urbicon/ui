@@ -108,7 +108,8 @@ Commands — knowledge (what to build with):
                         intents, shadows). Run it first. Patterns, recipes and
                         component APIs stay on demand — they are task-dependent.
   find [query]          Discover components by fuzzy search over the version-pinned
-                        catalog (names, tags, descriptions). No query lists all.
+                        catalog (names, tags, descriptions, prop docs, variant
+                        values). No query lists all.
                         --tag <t>          Filter by category tag (form, action, …).
                         --limit <n>        Max results (default 10; also caps a full list).
                         --json             Machine-readable catalog entries.

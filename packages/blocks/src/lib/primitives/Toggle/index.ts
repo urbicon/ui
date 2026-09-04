@@ -124,7 +124,7 @@ export interface ToggleProps
    * is visually too loud.
    *
    * @default 'default'
-   * @summary Switch-pill, dot or checkbox-like square.
+   * @summary Switch-pill or a small monochrome dot.
    */
   variant?: ToggleVariants['variant'];
 }

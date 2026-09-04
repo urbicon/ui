@@ -169,6 +169,13 @@ export interface VariantInfo {
   defaultValue?: string;
   /** Variant examples */
   examples?: VariantExample[];
+  /**
+   * What a value means, keyed by value — the JSDoc block that touches the
+   * value's key in the tv() config (`/** … *\/` directly above `dot: {}`).
+   * A `//` line there is a maintainer's note and is not read. Only values
+   * that carry a block; absent when none does.
+   */
+  valueDescriptions?: Record<string, string>;
 }
 
 /**

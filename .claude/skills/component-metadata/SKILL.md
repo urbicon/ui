@@ -49,6 +49,23 @@ The same split, one level down. A prop's own JSDoc is the contract; an optional 
 - **Only *direct* props carry a hint.** A tv() axis gets the "V" badge and no hint line at all, so its generated description ("Determines the component's visual treatment. Available options: …") never reaches a reader and needs no summary. The first version of the gate missed this and reported 56 knobs that show nothing to anyone.
 - The API table on the docs page keeps showing the **description** — that is where the contract belongs. Measured on Dialog: 53 characters beside the knob, 375 in the table, same prop.
 
+## A variant value's description lives in `*.variants.ts`
+
+A tv() value is a bare key (`dot: {}`), so the only place its meaning can sit in source is a JSDoc block **touching the key** — that block becomes `variants[].valueDescriptions.<value>` in the catalog, the search index, and an indented line under the axis in `llm.txt`:
+
+```ts
+    variant: {
+      /** Classic switch pill — a track with an animated thumb. */
+      default: {},
+      /** Small indicator dot left of the label — outline only when off, filled when on. */
+      dot: {}
+    },
+```
+
+- **`/** … */` only.** A `//` line above the key is a maintainer's note (the comment policy: constraints, not prose for a consumer) and is never read — so the "why this class lives here" note stays `//` and never leaks into the catalog.
+- **Touching means touching.** A blank line between block and key detaches it; a pragma line (`biome-ignore`, `@ts-…`, `eslint`) in between is stepped over. A block above the *axis* key belongs to the axis, not to its first value.
+- **Optional.** No block → no description, not an error. Most values (`sm`, `primary`) need none; write one where the value's name does not carry its meaning (`dot`, `ghost`, `proximity`).
+
 ## Placement — JSDoc vs docs page
 
 The sentence rules of `docs/EDITORIAL.md` (checklist items 9–15) apply in JSDoc unchanged. What

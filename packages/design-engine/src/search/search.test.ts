@@ -141,6 +141,134 @@ describe('matchComponents — Planner discovery', () => {
   });
 });
 
+// The ranker read names, tags, descriptions and prop names — never the summary,
+// the prop docs or the variant values the bundle ships. Measured on 8.17:
+// `find "dense settings"` returned AccountSettings alone, although Toggle's
+// `variant` prop says "Use `dot` for dense settings rows".
+describe('matchComponents — scores what the bundle ships', () => {
+  const Toggle = makeEntry({
+    name: 'Toggle',
+    slug: 'toggle',
+    description: 'Accessible switch control for boolean on/off states.',
+    summary: 'On or off, with the switch to say which.',
+    tags: ['form'],
+    keyProps: ['checked', 'label', 'variant'],
+    propDocs: {
+      variant: {
+        description: 'Visual style. Use `dot` for dense settings rows.',
+        summary: 'Switch-pill or a small monochrome dot.'
+      },
+      tier: {
+        description: 'Semantic radius tier.',
+        summary: 'Corner-radius tier — how round the control reads.'
+      }
+    },
+    variants: [
+      {
+        name: 'variant',
+        values: ['default', 'dot'],
+        default: 'default',
+        valueDescriptions: { dot: 'Small indicator dot left of the label — outline only when off.' }
+      },
+      { name: 'size', values: ['sm', 'md'] }
+    ]
+  });
+  const AccountSettings = makeEntry({
+    name: 'AccountSettings',
+    slug: 'account-settings',
+    description: 'Profile, password and sessions on one page.',
+    tags: ['form']
+  });
+  const Kbd = makeEntry({
+    name: 'Kbd',
+    slug: 'kbd',
+    description: 'Keyboard-key hint rendered as a keycap.',
+    summary: 'A keyboard shortcut, drawn as the key you press.',
+    tags: ['display']
+  });
+  const Badge = makeEntry({
+    name: 'Badge',
+    slug: 'badge',
+    description: 'Status label.',
+    variants: [
+      { name: 'variant', values: ['filled', 'dot'] },
+      { name: 'size', values: ['sm', 'md'] }
+    ]
+  });
+  const shipped = [AccountSettings, Badge, Kbd, Toggle];
+
+  it('finds a component through its summary alone', () => {
+    // "shortcut" is in Kbd's summary and nowhere else on the entry.
+    expect(matchComponents(shipped, 'shortcut').map((r) => r.name)).toEqual(['Kbd']);
+  });
+
+  it('finds a component through a prop @summary alone', () => {
+    // "corner" occurs only in the `tier` prop's summary.
+    expect(matchComponents(shipped, 'corner').map((r) => r.name)).toEqual(['Toggle']);
+  });
+
+  it('reaches a component through what a prop description says', () => {
+    const names = matchComponents(shipped, 'dense settings').map((r) => r.name);
+    expect(names[0]).toBe('AccountSettings');
+    expect(names).toContain('Toggle');
+  });
+
+  it('finds a component through a value description', () => {
+    // "indicator" occurs only in the `dot` value's description.
+    expect(matchComponents(shipped, 'indicator').map((r) => r.name)).toEqual(['Toggle']);
+  });
+
+  it('ranks a variant-value hit, the documented value ahead of the bare one', () => {
+    expect(matchComponents(shipped, 'dot').map((r) => r.name)).toEqual(['Toggle', 'Badge']);
+  });
+
+  it('matches a variant value exactly, never as a substring', () => {
+    const Pill = makeEntry({
+      name: 'Pill',
+      slug: 'pill',
+      variants: [{ name: 'size', values: ['small'] }]
+    });
+    expect(matchComponents([Pill], 'sm')).toEqual([]);
+    expect(matchComponents([Pill], 'small').map((r) => r.name)).toEqual(['Pill']);
+  });
+
+  it('lets a name hit outrank summary, description and prop-doc hits together', () => {
+    // Toggle says "switch" in all three; an exact and a substring name hit still win.
+    const Switch = makeEntry({ name: 'Switch', slug: 'switch', description: 'Two-state control.' });
+    const SwitchField = makeEntry({ name: 'SwitchField', slug: 'switch-field' });
+    expect(matchComponents([Toggle, Switch], 'switch')[0]?.name).toBe('Switch');
+    expect(matchComponents([Toggle, SwitchField], 'switch')[0]?.name).toBe('SwitchField');
+  });
+
+  it('counts a prop-doc hit once per word, however many props say it', () => {
+    const Wide = makeEntry({
+      name: 'Wide',
+      slug: 'wide',
+      propDocs: {
+        a: { description: 'Rows here.' },
+        b: { description: 'Rows there.' },
+        c: { description: 'Rows again.' }
+      }
+    });
+    const Narrow = makeEntry({ name: 'Narrow', slug: 'narrow', description: 'Rows of data.' });
+    expect(matchComponents([Wide, Narrow], 'rows').map((r) => r.name)).toEqual(['Narrow', 'Wide']);
+  });
+
+  it('matches prop docs at word starts only', () => {
+    const Pointer = makeEntry({
+      name: 'Pointer',
+      slug: 'pointer',
+      propDocs: { dir: { description: 'Direction of the arrow.' } }
+    });
+    const Grid = makeEntry({
+      name: 'Grid',
+      slug: 'grid',
+      propDocs: { rows: { description: 'Number of rows.' } }
+    });
+    expect(matchComponents([Pointer, Grid], 'row').map((r) => r.name)).toEqual(['Grid']);
+  });
+});
+
 describe('extractSection', () => {
   const llm = [
     '# Button',

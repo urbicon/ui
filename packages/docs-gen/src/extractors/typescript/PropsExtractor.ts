@@ -1,6 +1,10 @@
 import * as ts from 'typescript';
 import type { ExtractionResult, PropInfo, TypeScriptExtractionConfig } from '../../types';
-import { type ResolvedHeritageMember, TypeScriptBaseExtractor } from './TypeScriptBaseExtractor';
+import {
+  noJsDocDescription,
+  type ResolvedHeritageMember,
+  TypeScriptBaseExtractor
+} from './TypeScriptBaseExtractor';
 
 interface PropsExtractionInput {
   filePath: string;
@@ -537,7 +541,7 @@ export class PropsExtractor extends TypeScriptBaseExtractor<PropsExtractionInput
     const isRequired = this.isPropertyRequired(member);
 
     // Extract JSDoc information
-    let description = `${propName} property`;
+    let description = noJsDocDescription(propName);
     let summary: string | undefined;
     let defaultValue: string | undefined;
     let examples: PropInfo['examples'] = [];

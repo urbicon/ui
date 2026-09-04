@@ -369,6 +369,10 @@ export class LLMDocumentationGenerator {
       const values = variant.values.join(', ');
       const def = variant.defaultValue ? ` (default: ${variant.defaultValue})` : '';
       lines.push(`- ${variant.name}: ${values}${def}`);
+      for (const value of variant.values) {
+        const doc = variant.valueDescriptions?.[value];
+        if (doc) lines.push(`  - ${value} — ${doc}`);
+      }
     }
     return lines.join('\n');
   }

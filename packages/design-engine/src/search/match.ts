@@ -8,11 +8,35 @@ interface ScoredEntry {
 /**
  * Rank catalog entries against a free-text query — the component-discovery ranker
  * behind both `find_components` (remote MCP) and `urbicon find` (CLI), so local and
- * remote discovery agree. Pure and dependency-free: each query keyword scores on an
- * exact / substring / fuzzy (Levenshtein ≤ 2) name-or-slug hit, a tag hit, a
- * description hit, and a weak prop-name hit; an explicit `tags` filter adds weight.
- * Keywords shorter than two characters are dropped. Returns the top `limit` entries
- * with a positive score, best first; an empty list when nothing matches.
+ * remote discovery agree. Pure and dependency-free. The query is lower-cased and
+ * split on whitespace, commas, hyphens and underscores; words shorter than two
+ * characters are dropped. Every remaining word scores each field it hits, each
+ * field at most once per word:
+ *
+ * | field                          | hit                                   | score        |
+ * | ------------------------------ | ------------------------------------- | ------------ |
+ * | name / slug                    | exact · substring · Levenshtein ≤1/≤2 | 10 · 7 · 6/3 |
+ * | tags                           | exact                                 | 5            |
+ * | description                    | substring                             | 3            |
+ * | summary                        | substring                             | 2            |
+ * | variant values                 | exact                                 | 2            |
+ * | prop docs + value descriptions | word-prefix                           | 1            |
+ * | prop names                     | substring                             | 1            |
+ *
+ * Why the shipped-text rows sit below `description`: the summary restates the
+ * description in fewer words, so a hit there mostly repeats one above it — a step,
+ * not a tier. A variant value is a token the author named (`dot`, `ghost`), but
+ * `sm` and `primary` sit on dozens of components, so it cannot outrank the text
+ * that says what a component *is*; exact-only, so `sm` never lights up "small".
+ * Prop docs are the longest and most repetitive text in the catalog — twelve auth
+ * components carry the identical `locale` sentence, eight components the same
+ * `preset` one — so a hit is worth the least, counted once per word rather than
+ * once per prop (a component's prop count must not become its score), and matched
+ * at word starts rather than anywhere: across the catalog's prop prose "row" sits
+ * inside "arrow", "browser" and "narrow" as often as it starts a word of its own.
+ *
+ * An explicit `tags` filter adds 5 per matching tag. Returns the top `limit`
+ * entries with a positive score, best first; an empty list when nothing matches.
  */
 export function matchComponents(
   components: ComponentCatalogEntry[],
@@ -30,6 +54,9 @@ export function matchComponents(
     const nameLower = entry.name.toLowerCase();
     const slugLower = entry.slug.toLowerCase();
     const descLower = entry.description.toLowerCase();
+    const summaryLower = entry.summary?.toLowerCase() ?? '';
+    const values = new Set(entry.variants.flatMap((v) => v.values.map((x) => x.toLowerCase())));
+    const docsLower = docText(entry);
 
     for (const kw of keywords) {
       // Exact match
@@ -59,6 +86,21 @@ export function matchComponents(
         score += 3;
       }
 
+      // Summary match
+      if (summaryLower.includes(kw)) {
+        score += 2;
+      }
+
+      // Variant value match
+      if (values.has(kw)) {
+        score += 2;
+      }
+
+      // Prop-doc / value-description match
+      if (hasWordPrefix(docsLower, kw)) {
+        score += 1;
+      }
+
       // Prop name match
       if (entry.keyProps.some((p) => p.toLowerCase().includes(kw))) {
         score += 1;
@@ -82,6 +124,34 @@ export function matchComponents(
     .sort((a, b) => b.score - a.score)
     .slice(0, limit)
     .map((s) => s.entry);
+}
+
+/**
+ * Every hand-written prop and value doc of an entry as one lower-cased text, so a
+ * word is scored once however many props say it.
+ */
+function docText(entry: ComponentCatalogEntry): string {
+  const parts: string[] = [];
+  for (const doc of Object.values(entry.propDocs ?? {})) {
+    if (doc.description) parts.push(doc.description);
+    if (doc.summary) parts.push(doc.summary);
+  }
+  for (const variant of entry.variants) {
+    parts.push(...Object.values(variant.valueDescriptions ?? {}));
+  }
+  return parts.join('\n').toLowerCase();
+}
+
+const WORD_CHAR = /[\p{L}\p{N}_]/u;
+
+/** `kw` starts a word somewhere in `text` — "row" in "rows" and "row-level", not in "arrow". */
+function hasWordPrefix(text: string, kw: string): boolean {
+  let at = text.indexOf(kw);
+  while (at !== -1) {
+    if (at === 0 || !WORD_CHAR.test(text.charAt(at - 1))) return true;
+    at = text.indexOf(kw, at + 1);
+  }
+  return false;
 }
 
 function levenshtein(a: string, b: string): number {

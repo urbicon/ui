@@ -1,8 +1,17 @@
 import * as fs from 'node:fs/promises';
 import * as path from 'node:path';
+import { noJsDocDescription } from '../../extractors/typescript/TypeScriptBaseExtractor';
 import type { APIData, ComponentAPIData, EnrichedComponentInfo } from '../../types';
 import { toSlug } from '../../utils/slug';
 import { resolveSlotNames } from '../shared/slots';
+
+/** The hand-written JSDoc of one prop, split the way the source splits it. */
+export interface ComponentCatalogPropDoc {
+  /** The contract — may run to a paragraph. */
+  description?: string;
+  /** The prop's `@summary`: the one line a playground shows beside the knob. Rare by design. */
+  summary?: string;
+}
 
 export interface ComponentCatalogEntry {
   name: string;
@@ -27,7 +36,17 @@ export interface ComponentCatalogEntry {
   tags: string[];
   import: string;
   llmTxtPath: string;
-  variants: { name: string; values: string[]; default?: string }[];
+  variants: {
+    name: string;
+    values: string[];
+    default?: string;
+    /**
+     * What a value means, keyed by value — the JSDoc block above the value in
+     * the tv() config (VariantsExtractor). Only values that carry one; absent
+     * when none does.
+     */
+    valueDescriptions?: Record<string, string>;
+  }[];
   keyProps: string[];
   /**
    * Size of the component's own API: direct + variant props, inherited HTML
@@ -37,6 +56,13 @@ export interface ComponentCatalogEntry {
   propCount: number;
   /** Non-primitive prop types (objects, arrays, unions) — omits string/boolean/number */
   keyPropTypes: Record<string, string>;
+  /**
+   * The hand-written JSDoc of the component's own (direct) props, by name. What
+   * lets discovery reach a component through what a prop says — "dense settings
+   * rows" lives in Toggle's `variant` prop, not in its description. Absent when
+   * no direct prop carries JSDoc.
+   */
+  propDocs?: Record<string, ComponentCatalogPropDoc>;
   slots: string[];
   hasExamples: boolean;
   relatedComponents: string[];
@@ -74,6 +100,15 @@ export interface ComponentCatalog {
 const ORIGIN_TAGS: Record<string, string> = {
   '@urbicon-ui/auth': 'auth'
 };
+
+/**
+ * The style-override contract every component carries (`unstyled` +
+ * `slotClasses` + `class`, AGENTS.md → Key Architecture Decisions). Left out
+ * of `keyPropTypes` and `propDocs` alike: the type is the same shape and the
+ * JSDoc the same sentence on all of them, so per-component copies add bytes
+ * and a uniform search hit but no information.
+ */
+const STYLE_OVERRIDE_PROPS = new Set(['class', 'unstyled', 'slotClasses']);
 
 /**
  * Generates per-package catalog entries as JSON for MCP server consumption.
@@ -134,7 +169,10 @@ export class MCPCatalogGenerator {
     const variants = compApi.variants.map((v) => ({
       name: v.name,
       values: v.values,
-      ...(v.defaultValue ? { default: v.defaultValue } : {})
+      ...(v.defaultValue ? { default: v.defaultValue } : {}),
+      ...(v.valueDescriptions && Object.keys(v.valueDescriptions).length > 0
+        ? { valueDescriptions: v.valueDescriptions }
+        : {})
     }));
 
     // Key props: top 8 most important direct props (not variant-source, not inherited)
@@ -170,12 +208,31 @@ export class MCPCatalogGenerator {
     const keyPropTypes: Record<string, string> = {};
     for (const p of directProps) {
       if (p.name.startsWith('...')) continue;
-      if (p.name === 'class' || p.name === 'unstyled' || p.name === 'slotClasses') continue;
+      if (STYLE_OVERRIDE_PROPS.has(p.name)) continue;
       const baseType = p.type.replace(/\s*\|?\s*undefined$/, '').trim();
       if (!baseType || PRIMITIVE_TYPES.has(baseType)) continue;
       // Keep compound types, arrays, generics, unions with non-primitives
       if (/^(string|boolean|number)(\s*\|\s*(string|boolean|number))*$/.test(baseType)) continue;
       keyPropTypes[p.name] = baseType;
+    }
+
+    // What each of the component's own props says — the hand-written JSDoc of
+    // the direct props, description and (where a prop carries one) `@summary`.
+    // Variant-source props are left out: their description is generated
+    // boilerplate ("Controls the visual style…") that would match every
+    // component the same way. So are the spread placeholder, the style-override
+    // trio, and a prop with no JSDoc at all (the extractor's `<name> property`
+    // stand-in says nothing the name does not).
+    const propDocs: Record<string, ComponentCatalogPropDoc> = {};
+    for (const p of directProps) {
+      if (p.source.type !== 'direct') continue;
+      if (p.name.startsWith('...') || STYLE_OVERRIDE_PROPS.has(p.name)) continue;
+      const description = p.description === noJsDocDescription(p.name) ? '' : p.description;
+      if (!description && !p.summary) continue;
+      propDocs[p.name] = {
+        ...(description ? { description } : {}),
+        ...(p.summary ? { summary: p.summary } : {})
+      };
     }
 
     const slots = resolveSlotNames(compApi);
@@ -199,6 +256,7 @@ export class MCPCatalogGenerator {
       keyProps,
       propCount,
       keyPropTypes,
+      ...(Object.keys(propDocs).length > 0 ? { propDocs } : {}),
       slots,
       hasExamples: compApi.examples.length > 0,
       relatedComponents

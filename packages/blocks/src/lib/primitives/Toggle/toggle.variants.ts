@@ -93,17 +93,19 @@ export const toggleVariants = tv({
     },
     // Variant contract (see docs/ARCHITECTURE.md §Tier System
     // for the commit/modify radius semantics).
-    //   default → classic switch pill (track + animated thumb).
-    //   dot     → small indicator dot left of the label. Off = outline only,
-    //             on = fill-intent. Monochrome, no pill background. Ideal
-    //             for inline settings, dense toolbars, knob-strips —
-    //             or anywhere the switch is visually too dominant.
     variant: {
+      /** Classic switch pill — a track with an animated thumb. */
       default: {},
       // Concrete styles for `dot` live in compoundVariants below, so that
       // the override-bucket (w/h/rounded) can strip the corresponding
       // size-variant classes. tv() does not dedupe across variants in the
       // same pipeline stage — compoundVariants is the next stage.
+      /**
+       * Small indicator dot left of the label — outline only when off, filled
+       * in the intent colour when on. Monochrome, no pill background: for
+       * inline settings, dense toolbars, knob-strips, or anywhere the switch
+       * is visually too dominant.
+       */
       dot: {}
     },
     checked: {
