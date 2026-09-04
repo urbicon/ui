@@ -5,7 +5,9 @@
   import SearchIconDefault from '$lib/icons/SearchIcon.svelte';
   import { Dialog, Separator } from '$lib/primitives';
   import { getBlocksConfig, resolveSlotClasses } from '$lib/provider';
+  import { edgeEnabledIndex, nextEnabledIndex } from '$lib/utils';
   import { resolveClassChain } from '$lib/utils/variants';
+  import { untrack } from 'svelte';
   import type { CommandPaletteProps, CommandPaletteItem } from './index';
   import { commandPaletteVariants, type CommandPaletteVariants } from './commandPalette.variants';
 
@@ -94,15 +96,29 @@
     return groups;
   });
 
+  const isDisabled = (index: number) => filtered[index]?.disabled ?? false;
+
+  /**
+   * The highlight after the list changed: the first enabled row, or none (-1)
+   * when every row is disabled — then no row is selected, the input names no
+   * active descendant and Enter has nothing to select.
+   */
+  function resetHighlight() {
+    selectedIndex = edgeEnabledIndex(filtered.length, 1, isDisabled);
+  }
+
+  // `filtered` is read untracked in both effects so that only `query` (and
+  // opening) re-runs them: a new `items` array must not move the highlight the
+  // user has already walked to, and must not clear the query while open.
   $effect(() => {
     void query;
-    selectedIndex = 0;
+    untrack(resetHighlight);
   });
 
   $effect(() => {
     if (open) {
       query = '';
-      selectedIndex = 0;
+      untrack(resetHighlight);
       requestAnimationFrame(() => inputEl?.focus());
     }
   });
@@ -119,18 +135,39 @@
     onSelect?.(item);
   }
 
+  // A disabled row is never a stop: the arrow keys step over it and wrap at
+  // both ends, Home/End land on the enabled edges (the shared roving helpers,
+  // as in Tab / ButtonGroup / SegmentGroup). Home/End move the highlight, not
+  // the caret — the list is always open behind this input.
   function handleKeydown(e: KeyboardEvent) {
-    if (e.key === 'ArrowDown') {
-      e.preventDefault();
-      selectedIndex = Math.min(selectedIndex + 1, filtered.length - 1);
+    let next: number;
+    switch (e.key) {
+      case 'ArrowDown':
+        next = nextEnabledIndex(filtered.length, selectedIndex, 1, isDisabled);
+        break;
+      case 'ArrowUp':
+        next = nextEnabledIndex(filtered.length, selectedIndex, -1, isDisabled);
+        break;
+      case 'Home':
+        next = edgeEnabledIndex(filtered.length, 1, isDisabled);
+        break;
+      case 'End':
+        next = edgeEnabledIndex(filtered.length, -1, isDisabled);
+        break;
+      case 'Enter': {
+        const item = filtered[selectedIndex];
+        if (!item) return;
+        e.preventDefault();
+        selectItem(item);
+        return;
+      }
+      default:
+        return;
+    }
+    e.preventDefault();
+    if (next >= 0 && next !== selectedIndex) {
+      selectedIndex = next;
       scrollSelectedIntoView();
-    } else if (e.key === 'ArrowUp') {
-      e.preventDefault();
-      selectedIndex = Math.max(selectedIndex - 1, 0);
-      scrollSelectedIntoView();
-    } else if (e.key === 'Enter' && filtered[selectedIndex]) {
-      e.preventDefault();
-      selectItem(filtered[selectedIndex]);
     }
   }
 

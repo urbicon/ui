@@ -121,6 +121,26 @@ describe('buttonVariants', () => {
     });
   });
 
+  describe('the box holds the label (#393)', () => {
+    // Whether a label actually stays inside its box is a layout question —
+    // `e2e/button-overflow.spec.ts` measures it. This is the class contract
+    // behind it: nothing may clip the button, and the content slot must be
+    // allowed to shrink so truncation can be opted into.
+    it('never clips its own overflow', () => {
+      for (const variant of ['filled', 'outlined', 'ghost', 'text'] as const) {
+        const base = buttonVariants({ variant, loading: true }).base();
+        expect(base, variant).not.toMatch(/\boverflow-(hidden|clip|auto|scroll)\b/);
+        // No explicit floor either: the automatic minimum of an unclipped flex
+        // item is already `min-content`, the label under `whitespace-nowrap`.
+        expect(base, variant).not.toMatch(/\bmin-w-min\b/);
+      }
+    });
+
+    it('lets the content slot shrink below its label', () => {
+      expect(buttonVariants({}).content()).toMatch(/\bmin-w-0\b/);
+    });
+  });
+
   it('content slot uses the [gap:inherit] arbitrary property, not the non-existent gap-inherit utility (Codeberg #21)', () => {
     // Tailwind v4 generates no `gap-inherit` rule (the spacing scale has no
     // `inherit` member), so only the arbitrary property actually renders the

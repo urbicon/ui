@@ -112,7 +112,12 @@ export interface ButtonProps extends ButtonVariants, Omit<HTMLButtonAttributes, 
 
   /** Remove the default variant classes. Only user classes apply. */
   unstyled?: boolean;
-  /** Per-slot class overrides merged with tv styles. Slots: base | content | spinner */
+  /**
+   * Per-slot class overrides merged with tv styles. Slots: base | content | spinner.
+   * A button never shrinks below its label and never clips it; to truncate a
+   * long label instead, let the button shrink (`class="min-w-0"`) and clip the
+   * content slot (`slotClasses={{ content: 'truncate' }}`).
+   */
   slotClasses?: Partial<Record<ButtonSlots, string>>;
 
   /**
