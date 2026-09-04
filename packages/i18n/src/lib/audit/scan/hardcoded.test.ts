@@ -41,6 +41,24 @@ describe('findHardcodedStrings', () => {
     expect(findings).toEqual([]);
   });
 
+  // A glyph chord is not translatable; a key *name* is (⌃ Space is ⌃ Leertaste
+  // in German), so any lowercase letter keeps a string flagged.
+  it.each([
+    { text: '⌘ K', copy: false },
+    { text: '⇧⌘P', copy: false },
+    { text: '⌥↵', copy: false },
+    { text: '⌘ ⇧ K', copy: false },
+    { text: '⌃ Space', copy: true },
+    { text: 'Ctrl + S', copy: true },
+    { text: 'ÜBER UNS', copy: true },
+    { text: 'Save ⌘S', copy: true },
+    { text: 'ONLY €5', copy: true },
+    { text: '→', copy: false } // below the length gate
+  ])('treats $text as copy: $copy', async ({ text, copy }) => {
+    const findings = await findHardcodedStrings(`<span>${text}</span>`, 'X.svelte');
+    expect(findings.map((f) => f.text)).toEqual(copy ? [text] : []);
+  });
+
   it('respects an ignoreStrings allowlist (exact and glob)', async () => {
     const code = `<span>Beta</span><span>Internal note here</span>`;
     const findings = await findHardcodedStrings(code, 'X.svelte', {
