@@ -41,7 +41,7 @@ describe('findHardcodedStrings', () => {
     expect(findings).toEqual([]);
   });
 
-  // Glyph-only chords are not copy; a lowercase letter, a currency sign or a
+  // Chords written in glyphs are not copy; a lowercase letter, a currency sign or a
   // symbol outside the keyboard blocks keeps a string flagged. `NEXT →` and
   // `⌘ ENTER` are the accepted blind spot: uppercase copy next to a keyboard glyph.
   it.each([
