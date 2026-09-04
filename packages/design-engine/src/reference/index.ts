@@ -29,3 +29,22 @@ export {
   OVERRIDE_LADDER,
   PROVIDER_BELOW_INSTANCE
 } from './override-ladder.js';
+export {
+  type AbsentRole,
+  formatStop,
+  INFORMATIVE_RAMP,
+  type IntentNote,
+  type IntentRole,
+  type IntentStops,
+  type ModeValues,
+  modeInvariant,
+  renderFamilyTable,
+  renderInformativeRamp,
+  renderIntentRoles,
+  renderIntentStops,
+  SEMANTIC_TOKENS,
+  type SemanticFamily,
+  type SemanticToken,
+  type SemanticTokens,
+  type StopValue
+} from './semantic-tokens.js';

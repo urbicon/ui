@@ -43,6 +43,12 @@ jobs:
       # generated from semantic.css and went stale twice in one week when that
       # file gained tokens. Fails when semantic.css changed without a regen.
       - run: bun run livery:check
+      # The CSS token reference (`urbicon css-reference`, `get_css_reference`)
+      # renders its surface/text/border tables and the intent roles from a
+      # module generated out of semantic.css; the hand-written tables it
+      # replaced printed a text ramp the CSS no longer had (#402). Fails when
+      # semantic.css changed without a regen.
+      - run: bun run tokens:reference:check
       # Cross-component import guard: public blocks components must reach for
       # the behaviour-only cores in src/lib/internal/core instead of importing
       # each other. Unknown edges AND stale allowlist entries both fail.

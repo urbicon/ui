@@ -109,6 +109,8 @@
     "livery:check": "bun apps/docs/scripts/gen-livery-shim.ts --check",
     "a2ui:axes": "bun --bun run scripts/a2ui-axes-gen.ts",
     "a2ui:axes:check": "bun --bun run scripts/a2ui-axes-gen.ts --check",
+    "tokens:reference": "bun --bun run packages/design-engine/scripts/semantic-tokens-gen.ts",
+    "tokens:reference:check": "bun --bun run packages/design-engine/scripts/semantic-tokens-gen.ts --check",
     "types:guard": "bun --bun run scripts/types-guard.ts",
     "mcp:start": "bun run packages/mcp-server/src/index.ts",
     "mcp:start:http": "bun run packages/mcp-server/src/index.ts --transport http --port 3001",

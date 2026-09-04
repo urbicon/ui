@@ -10,6 +10,29 @@
  *
  * Browser support: Chrome 123+, Firefox 120+, Safari 17.5+ — Baseline
  * Newly Available since 2024-05.
+ *
+ * ROLE MARKERS. The CSS token reference (`urbicon css-reference`,
+ * `get_css_reference`) renders its surface / text / border tables and the
+ * intent roles from this file — `bun run tokens:reference` regenerates
+ * `packages/design-engine/src/reference/semantic-tokens.gen.ts`, and the
+ * `:check` variant gates CI. The role sentences come from two comment markers
+ * inside the `@theme` block, so the prose has one home:
+ *
+ *   `@role <one sentence>`  — in the comment directly before a declaration;
+ *                             binds to the next declaration, one per token.
+ *                             `@role (none)` states an empty role on purpose.
+ *   `@absent <core> — <reason>` — a token the family shape implies but this
+ *                             file deliberately does not define (today
+ *                             `neutral-text`). Stale when the token exists.
+ *
+ * Which tokens need one: every `--color-surface-*`, `--color-text-*` and
+ * `--color-border-*`, plus the six tokens of the FIRST `=== X INTENT ===`
+ * section — that intent is the exemplar whose markers define the role of
+ * each suffix for every intent; a `@role` on another intent's token is a
+ * refinement for that intent only. The generator fails on a tabled token
+ * without a marker and on a marker the reference cannot place. Marker text
+ * must not spell a token name followed by a colon — three tests parse this
+ * file with comments intact and would read that as a declaration.
  */
 
 @theme {
@@ -37,17 +60,17 @@
      style/semantic.test.ts, which asserts the reading surfaces stay
      mutually distinct in BOTH modes — the failure mode here is silent, a
      collapsed rung looks exactly like a working one in a screenshot. */
-  /* L·1 — base: the page itself. Content, cards, and reading surfaces
-     sit at this level. */
+  /* @role L·1 — the page itself: content, cards and reading surfaces sit at
+     this level */
   --color-surface-base: light-dark(var(--color-neutral-0), var(--color-neutral-900));
-  /* L·0 — quiet: the ground/table beneath the page. Softest in-page
-     tint; tint alone signals "own zone" without border or shadow. */
+  /* @role L·0 — the ground beneath the page; the softest in-page tint, which
+     alone signals "own zone" without border or shadow */
   --color-surface-quiet: light-dark(var(--color-neutral-25), var(--color-neutral-850));
-  /* L·2 — elevated: lifted surfaces (Popover, Menu, Select dropdown).
-     Sits above the page with shadow + meaningful Z-index. */
+  /* @role L·2 — lifted surfaces (Popover, Menu, Select dropdown), above the
+     page with shadow and a z-index of their own */
   --color-surface-elevated: light-dark(var(--color-neutral-50), var(--color-neutral-800));
-  /* L·3 — overlay: highest surfaces (Dialog, Drawer, Sheet, Toast).
-     Full shadow + backdrop dimming. */
+  /* @role L·3 — the highest surfaces (Dialog, Drawer, Sheet, Toast), full
+     shadow plus backdrop dimming */
   --color-surface-overlay: light-dark(var(--color-neutral-0), var(--color-neutral-850));
   /* `surface-hover` / `-active` are the hover/press steps for elements resting
      on a READING surface (base/quiet/elevated) — a menu item, a table row.
@@ -60,14 +83,26 @@
      way. `-interactive-hover` continues the fill's own ladder: one step further
      from the page in light, one step toward the light in dark. Guarded by
      style/semantic.test.ts so the pair can never collapse again. */
+  /* @role a resting FILL one step in from the page — a filled Input, a Slider
+     track, the Tab list; its hover step is surface-interactive-hover, not
+     surface-hover */
   --color-surface-interactive: light-dark(var(--color-neutral-100), var(--color-neutral-700));
+  /* @role the hover step for an element resting on surface-interactive — it
+     continues the fill's own ladder, where surface-hover would be a no-op */
   --color-surface-interactive-hover: light-dark(
     var(--color-neutral-200),
     var(--color-neutral-650)
   );
+  /* @role the hover step for an element resting on a READING surface
+     (base / quiet / elevated) — a menu item, a table row */
   --color-surface-hover: light-dark(var(--color-neutral-100), var(--color-neutral-750));
+  /* @role the pressed step for an element resting on a reading surface; the
+     pair of surface-hover */
   --color-surface-active: light-dark(var(--color-neutral-200), var(--color-neutral-700));
+  /* @role the fill of a disabled control */
   --color-surface-disabled: light-dark(var(--color-neutral-100), var(--color-neutral-800));
+  /* @role the ground of a selected item — the primary intent's tint, not a
+     neutral step */
   --color-surface-selected: light-dark(var(--color-primary-50), var(--color-primary-900));
   /* A RESTING tint only — never a hover step. It resolves to exactly
      `surface-elevated`, so `hover:bg-surface-subtle` is invisible on every
@@ -79,7 +114,13 @@
      left — prefer `surface-quiet` for a tinted zone and `surface-elevated`
      for a raised one. Kept for the resting uses that read correctly against
      a border (readonly/disabled fields, list rows, code chips). */
+  /* @role a RESTING tint only, never a hover step — it resolves to exactly
+     surface-elevated; keep it for resting uses against a border (readonly and
+     disabled fields, list rows, code chips), and prefer surface-quiet for a
+     tinted zone and surface-elevated for a raised one */
   --color-surface-subtle: light-dark(var(--color-neutral-50), var(--color-neutral-800));
+  /* @role the inverted ground (Tooltip) — near-black in light mode, near-white
+     in dark; pairs with text-inverted */
   --color-surface-inverted: light-dark(var(--color-neutral-900), var(--color-neutral-100));
   /* Skeleton wave-shimmer highlight (Skeleton animation="wave"). A translucent
      white glint that sweeps across `surface-interactive`; lower alpha in dark
@@ -99,10 +140,21 @@
      pressed surfaces (4.19/3.49) and hard below it under the docs Rooms skin
      (docs-softer, 1.96:1). Never use it for body text — reach for tertiary. The
      contrast test asserts it only against the 3:1 UI-component floor, not 4.5. */
+  /* @role body copy — the top of the informative ramp (primary → secondary →
+     tertiary), every rung of which clears AA 4.5:1 on every reading surface
+     in both modes */
   --color-text-primary: light-dark(var(--color-neutral-900), var(--color-neutral-100));
+  /* @role text on surface-inverted */
   --color-text-inverted: light-dark(var(--color-neutral-0), var(--color-neutral-900));
+  /* @role supporting text — the second rung of the informative ramp */
   --color-text-secondary: light-dark(var(--color-neutral-700), var(--color-neutral-300));
+  /* @role muted text and metadata — the last rung that is still body-safe
+     (AA on every reading surface); reach for it wherever quaternary tempts */
   --color-text-tertiary: light-dark(var(--color-neutral-600), var(--color-neutral-300));
+  /* @role MARK-ONLY — placeholders, dense-grid marks (calendar day cells, kbd
+     hints), disabled glyphs, decoration; it sits at the AA edge on reading
+     surfaces and below AA on interactive and pressed ones, so never use it
+     for body text (held only to the 3:1 UI-component floor) */
   --color-text-quaternary: light-dark(var(--color-neutral-500), var(--color-neutral-400));
   /* Disabled text — the same stop in both modes. WCAG 1.4.3 exempts inactive
      controls, so the old value was not a violation, but at neutral-300 / -600 it
@@ -118,6 +170,10 @@
      steps of one ladder — but see the Calendar entry in technical-debt, where
      they meet), and the floor covers the token alone, not what a component
      composes on top of it (an `opacity-*` wrapper can undo it). */
+  /* @role disabled text — the weakest rung, held to the 3:1 UI floor so a
+     disabled field's label still says what the field is; the same stop in
+     both modes, and in light mode the same stop as quaternary (two roles, not
+     two steps of one ladder) */
   --color-text-disabled: light-dark(var(--color-neutral-500), var(--color-neutral-500));
   /* Link ink — the resting colour of an inline text link on a reading
      surface. Aliases the primary intent's `-text` role, not the base intent
@@ -140,6 +196,9 @@
      Tailwind emitted no CSS for the class, and every auth link rendered in
      whatever colour it inherited (#86 — the `text-2xs` bug class). Guarded by
      style/semantic.test.ts. */
+  /* @role link ink on a reading surface — aliases the primary intent's -text
+     role (its AA text step), never the base fill; a lever of its own, so
+     links can be restyled without touching the primary intent */
   --color-text-link: var(--color-primary-text);
   /* The on-colors below pair text with a *fill* rather than a surface.
      text-on-dark and text-on-fill answer fills that are dark in light
@@ -158,6 +217,9 @@
      palette's on-color would silently repaint every filled Button/Badge label.
      Their equality is a consequence of both fill families straddling the same
      lightness midpoint — not a definition. */
+  /* @role the label on the avatar identity palette, whose slots hold one
+     lightness per mode by construction; deliberately not aliased to
+     text-on-fill, although the two carry the same value today */
   --color-text-on-dark: light-dark(var(--color-neutral-0), var(--color-neutral-900));
   /* The label colour for ANY solid intent fill — primary, secondary, success,
      danger, info, neutral. Named for the *role* (a fill) rather than for one
@@ -182,10 +244,16 @@
      clears all 108 fills this token governs; `warning` is not one of them —
      its fill is light in BOTH modes, so it carries its own non-mode-aware
      on-color below (`--color-text-on-warning`). */
+  /* @role the label on ANY solid intent fill — white in light mode, near-black
+     in dark mode where the fills resolve to their lighter stops; warning is
+     the one exception and takes text-on-warning */
   --color-text-on-fill: light-dark(var(--color-neutral-0), var(--color-neutral-900));
   /* The primary fill's own label colour. Defaults to the shared on-fill value,
      so nothing moves unless a theme says so; override it to repaint the primary
      fills WITHOUT touching success/danger/neutral/secondary/info. */
+  /* @role the label on the primary fill specifically — defaults to
+     text-on-fill; override it to repaint the primary fills without touching
+     the other intents */
   --color-text-on-primary: var(--color-text-on-fill);
   /* Warning's own on-color. Warning is the one intent whose fill stays a
      light amber in BOTH modes (base/hover/active ride L 0.59–0.82), so unlike
@@ -197,7 +265,11 @@
      *surface* token that flips light in dark mode — which put all 18
      dark-mode warning fills at 1.51–2.80:1. Measured across every theme ×
      mode × state by style/contrast.test.ts. */
+  /* @role the label on the warning fill — a warm dark from the warning ramp's
+     own 950 stop in BOTH modes, because that fill stays light amber in both */
   --color-text-on-warning: var(--color-warning-950);
+  /* @role text on any surface — it tracks the page background, so never on an
+     intent fill */
   --color-text-on-surface: light-dark(var(--color-neutral-900), var(--color-neutral-100));
 
   /* === PRIMARY INTENT ===
@@ -229,11 +301,23 @@
      primary's dark stop lands at exactly 4.50 in the worst case
      (rose/own-subtle) — zero headroom, held by the gate; if a rose retune
      ever trips it, the stop moves to -300, not the bar. */
+  /* @role the FILL — a surface with text-on-fill sitting on it; never a text
+     colour (variants-lint errors on a text-<intent> class) */
   --color-primary: light-dark(var(--color-primary-600), var(--color-primary-500));
+  /* @role the hover step of the fill */
   --color-primary-hover: light-dark(var(--color-primary-700), var(--color-primary-400));
+  /* @role the pressed step of the fill */
   --color-primary-active: light-dark(var(--color-primary-800), var(--color-primary-300));
+  /* @role a soft tinted ground in the intent's hue — an Alert's background, a
+     selected row */
   --color-primary-subtle: light-dark(var(--color-primary-50), var(--color-primary-900));
+  /* @role the intent as TEXT on a reading surface — the nearest ramp stop that
+     clears AA 4.5:1 as text on every reading surface and on the intent's own
+     -subtle, in both modes, in the worst of the six themes; still reads as
+     the colour (danger text stays red) */
   --color-primary-text: light-dark(var(--color-primary-700), var(--color-primary-400));
+  /* @role the near-ink tier — strong statements as text, and doubles as a
+     fill; the Radix steps 11/12 split with -text */
   --color-primary-emphasis: light-dark(var(--color-primary-900), var(--color-primary-200));
 
   /* === SECONDARY INTENT === */
@@ -256,7 +340,11 @@
      default reads as a cool grey matching its cool chassis. Each theme
      overrides it to its accent temperature; rooms-docs.css re-pins the neutral
      intent to the warm ramp directly. Uses the same relative-color syntax
-     already relied on by `--color-interactive-*` below. */
+     already relied on by `--color-interactive-*` below.
+
+     @absent neutral-text — its base already clears AA as text on every ground
+     in every theme (the chassis ramp was text-tuned from the start), so a
+     -text role would only alias the base */
   --color-neutral: light-dark(
     oklch(from var(--color-warm-neutral-500) l c var(--neutral-chrome-hue)),
     oklch(from var(--color-warm-neutral-400) l c var(--neutral-chrome-hue))
@@ -293,7 +381,9 @@
   --color-warning-subtle: light-dark(var(--color-warning-50), var(--color-warning-900));
   /* warning's light text stop is -800: the only rung of a yellow ramp that
      reads on white. It lands amber-brown — that is not a compromise but what
-     every AA-clean system does with yellow text (the fill stays yellow). */
+     every AA-clean system does with yellow text (the fill stays yellow).
+     @role the light stop is -800, the only rung of a yellow ramp that reads on
+     white — it lands amber-brown while the fill stays yellow */
   --color-warning-text: light-dark(var(--color-warning-800), var(--color-warning-400));
   --color-warning-emphasis: light-dark(var(--color-warning-800), var(--color-warning-200));
 
@@ -304,7 +394,9 @@
   --color-danger-subtle: light-dark(var(--color-danger-50), var(--color-danger-900));
   /* danger's light stop IS the base stop — red already reads on paper. Dark
      needs -300: sRGB red is so dim that even -400 misses on the lightened
-     elevated/subtle panels (4.25 at worst). */
+     elevated/subtle panels (4.25 at worst).
+     @role the light stop is the base stop, red already reads on paper; dark
+     needs -300 because sRGB red is too dim on the lightened panels at -400 */
   --color-danger-text: light-dark(var(--color-danger-500), var(--color-danger-300));
   --color-danger-emphasis: light-dark(var(--color-danger-800), var(--color-danger-200));
 
@@ -385,10 +477,17 @@
      trennlinien (row dividers, Card header/footer separators, inline
      section dividers). Sits below border-subtle, which is now reserved
      for quiet container outlines (e. g. Popover). */
+  /* @role the quietest tier — structural dividers (row dividers, Card header
+     and footer separators, inline section dividers); translucent, so it
+     blends onto any surface instead of naming a neutral step */
   --color-border-hairline: light-dark(rgb(0 0 0 / 0.08), rgb(255 255 255 / 0.06));
+  /* @role quiet container outlines (Popover) — one tier above hairline */
   --color-border-subtle: light-dark(var(--color-neutral-200), var(--color-neutral-700));
+  /* @role the standard border of controls and containers */
   --color-border-default: light-dark(var(--color-neutral-300), var(--color-neutral-600));
+  /* @role an emphasised outline, one step stronger than default */
   --color-border-emphasis: light-dark(var(--color-neutral-400), var(--color-neutral-500));
+  /* @role the strongest outline the chassis offers */
   --color-border-strong: light-dark(var(--color-neutral-500), var(--color-neutral-400));
 
   /* === INTERACTIVE STATES === */

@@ -1,14 +1,42 @@
 /**
- * The hand-maintained CSS design-token reference — the Knowledge-plane text behind
- * the local `urbicon css-reference` command and the remote `get_css_reference` MCP
- * tool. It lives in the engine (not the content bundle) because it is authored
- * prose, not a docs-gen artifact — and inlined as TS strings because both consumers
- * ship standalone (no blocks CSS at runtime), the same constraint that keeps the
- * linter's `VALID_TOKEN_CORES` inline. Drift is guarded by `css-reference.test.ts`,
- * which re-derives the token families from the real blocks CSS when run in-repo.
+ * The CSS design-token reference — the Knowledge-plane text behind the local
+ * `urbicon css-reference` command and the remote `get_css_reference` MCP tool. It
+ * lives in the engine (not the content bundle) because it is authored prose, not a
+ * docs-gen artifact — and inlined as TS strings because both consumers ship
+ * standalone (no blocks CSS at runtime), the same constraint that keeps the linter's
+ * `VALID_TOKEN_CORES` inline. The surface / text / border tables and the intent
+ * roles are NOT authored here: they render from `semantic-tokens.gen.ts`, generated
+ * out of the blocks `semantic.css` (`bun run tokens:reference`, gated by `:check`),
+ * so a stop the reference prints is a stop the CSS has.
  */
 
 import { OVERRIDE_CASCADE } from './override-ladder.js';
+import {
+  modeInvariant,
+  renderFamilyTable,
+  renderInformativeRamp,
+  renderIntentRoles,
+  renderIntentStops,
+  SEMANTIC_TOKENS,
+  type SemanticFamily
+} from './semantic-tokens.js';
+
+const { families, intents } = SEMANTIC_TOKENS;
+
+/** "Every one switches with the mode …" — with the exceptions the data carries. */
+function modeSentence(family: SemanticFamily): string {
+  const fixed = modeInvariant(family).map((t) => `\`${t.name}\``);
+  if (fixed.length === 0) return 'Every one switches with the mode via `light-dark()`.';
+  return `Every one switches with the mode via \`light-dark()\` except ${fixed.join(
+    ' and '
+  )} — the same stop in both modes; the role says why.`;
+}
+
+function roleOf(family: SemanticFamily, name: string): string {
+  const token = families[family].find((t) => t.name === name);
+  if (!token) throw new Error(`css-reference: the generated data has no ${family} token ${name}`);
+  return token.role;
+}
 
 export const CSS_REFERENCE_OVERVIEW = `# Urbicon UI — CSS Design Tokens
 
@@ -56,10 +84,14 @@ To override a token for ALL modes (light, dark, and manual overrides):
 The \`@theme\` block sets the Tailwind utility value. The \`:root\` rule overrides the runtime value for all theme modes.
 
 ## Available Sections
-- \`surfaces\` — 11 surface background tokens
-- \`text\` — 9 text *color* tokens (for fonts/sizes/weights see \`typography\`)
-- \`borders\` — 5 border color tokens
-- \`intents\` — 6 component intents + the \`info\` status colour, feedback + interactive tokens + the \`live\` ("now") accent
+- \`surfaces\` — ${families.surface.length} surface background tokens
+- \`text\` — ${families.text.length} text *color* tokens (for fonts/sizes/weights see \`typography\`)
+- \`borders\` — ${families.border.length} border color tokens
+- \`intents\` — ${intents.entries.length} intents (${intents.entries
+  .map((e) => e.name)
+  .join(
+    ', '
+  )}) × ${intents.roles.length} roles, feedback + interactive tokens + the \`live\` ("now") accent
 - \`shadows\` — 5 shadow tokens + z-index scale + the **radius tiers** (\`radius\` resolves here)
 - \`typography\` — Font families, size scale, weights, leading/tracking, and how to override them
 - \`theming\` — How to create custom themes, available presets
@@ -69,28 +101,12 @@ Fetch a section with \`urbicon css-reference <section>\` (local CLI) or \`get_cs
 
 const SURFACES = `# Surface Tokens
 
-12 tokens for background colors. All auto-switch in dark mode.
+${families.surface.length} tokens for background colors. ${modeSentence('surface')}
+The table is read from \`semantic.css\`: the role is the token's \`@role\` marker, the stops
+are its two \`light-dark()\` branches, L is the OKLCH lightness of that stop in the default
+chassis (a theme re-tints the ramp; the ladder keeps its order).
 
-| CSS Variable | Tailwind Utility | Purpose |
-|---|---|---|
-| \`--color-surface-base\` | \`bg-surface-base\` | Page background |
-| \`--color-surface-quiet\` | \`bg-surface-quiet\` | Softly tinted in-page zone |
-| \`--color-surface-subtle\` | \`bg-surface-subtle\` | Resting tint only — resolves to \`surface-elevated\`, so never use it as a hover step. Prefer \`surface-quiet\` for a tinted in-page zone |
-| \`--color-surface-elevated\` | \`bg-surface-elevated\` | Cards, panels (floating with shadow) |
-| \`--color-surface-overlay\` | \`bg-surface-overlay\` | Modals, popovers |
-| \`--color-surface-interactive\` | \`bg-surface-interactive\` | Interactive element backgrounds |
-| \`--color-surface-interactive-hover\` | \`bg-surface-interactive-hover\` | Hover step for an element resting on \`surface-interactive\` (\`surface-hover\` is the step for elements on a reading surface, and resolves to the same value as \`surface-interactive\` itself) |
-| \`--color-surface-hover\` | \`bg-surface-hover\` | Hover state |
-| \`--color-surface-active\` | \`bg-surface-active\` | Active/pressed state |
-| \`--color-surface-disabled\` | \`bg-surface-disabled\` | Disabled elements |
-| \`--color-surface-selected\` | \`bg-surface-selected\` | Selected items (uses primary-50) |
-| \`--color-surface-inverted\` | \`bg-surface-inverted\` | Inverted surfaces (tooltips) |
-
-Light → Dark mapping examples:
-- \`surface-base\`: neutral-0 (white) → neutral-900 (near-black)
-- \`surface-quiet\`: neutral-25 → neutral-850
-- \`surface-elevated\`: neutral-50 → neutral-800
-- \`surface-hover\`: neutral-100 → neutral-750
+${renderFamilyTable('surface')}
 
 Override example (dark neon theme):
 \`\`\`css
@@ -105,49 +121,26 @@ Override example (dark neon theme):
 
 const TEXT = `# Text Tokens
 
-12 tokens for text colors. All auto-switch in dark mode except \`text-on-warning\`,
-which is deliberately mode-invariant (warning's fill is light amber in both modes,
-so its label is a warm dark in both).
+${families.text.length} tokens for text colors. ${modeSentence('text')}
+Read from \`semantic.css\` like the surfaces: role = \`@role\` marker, stops = both
+\`light-dark()\` branches, L = lightness of the stop in the default chassis.
 
-| CSS Variable | Tailwind Utility | Purpose |
-|---|---|---|
-| \`--color-text-primary\` | \`text-text-primary\` | Main text |
-| \`--color-text-secondary\` | \`text-text-secondary\` | Supporting text |
-| \`--color-text-tertiary\` | \`text-text-tertiary\` | Muted text, metadata |
-| \`--color-text-quaternary\` | \`text-text-quaternary\` | Most subtle text |
-| \`--color-text-disabled\` | \`text-text-disabled\` | Disabled text |
-| \`--color-text-inverted\` | \`text-text-inverted\` | Text on inverted surfaces |
-| \`--color-text-on-fill\` | \`text-text-on-fill\` | Text on any solid intent fill (all intents except warning) — reach for this one |
-| \`--color-text-on-primary\` | \`text-text-on-primary\` | Text on the **primary** fill specifically; an alias of \`on-fill\` |
-| \`--color-text-on-warning\` | \`text-text-on-warning\` | Text on the warning fill — warm dark (warning-950) in both modes |
-| \`--color-text-on-dark\` | \`text-text-on-dark\` | Text on dark surfaces |
-| \`--color-text-on-surface\` | \`text-text-on-surface\` | Text on any surface (auto-contrast) — never on intent fills |
-| \`--color-text-link\` | \`text-text-link\` | Link ink on reading surfaces; follows the primary intent's AA text step |
+${renderFamilyTable('text')}
 
-Light → Dark mapping:
-- \`text-primary\`: neutral-900 (dark) → neutral-100 (light)
-- \`text-secondary\`: neutral-700 → neutral-300
-- \`text-tertiary\`: neutral-500 → neutral-400
+## The informative ramp
+
+${renderInformativeRamp()}
+
+Body copy ends at \`text-tertiary\`. The last rung is a different kind of token —
+\`text-quaternary\` is ${roleOf('text', 'text-quaternary')}.
 `;
 
 const BORDERS = `# Border Tokens
 
-5 tokens for border colors. All auto-switch in dark mode.
+${families.border.length} tokens for border colors. ${modeSentence('border')}
+Read from \`semantic.css\`: role = \`@role\` marker, stops = both \`light-dark()\` branches.
 
-| CSS Variable | Tailwind Utility | Purpose |
-|---|---|---|
-| \`--color-border-hairline\` | \`border-border-hairline\` | Faintest divider — translucent (alpha), not a neutral step |
-| \`--color-border-subtle\` | \`border-border-subtle\` | Gentle grouping |
-| \`--color-border-default\` | \`border-border-default\` | Standard borders |
-| \`--color-border-emphasis\` | \`border-border-emphasis\` | Emphasized borders |
-| \`--color-border-strong\` | \`border-border-strong\` | High-contrast borders |
-
-Light → Dark mapping:
-- \`border-hairline\`: black 8% → white 6% (translucent, blends onto any surface)
-- \`border-subtle\`: neutral-200 → neutral-700
-- \`border-default\`: neutral-300 → neutral-600
-- \`border-emphasis\`: neutral-400 → neutral-500
-- \`border-strong\`: neutral-500 → neutral-400
+${renderFamilyTable('border')}
 
 Also available for intent-colored borders:
 \`border-primary\`, \`border-success\`, \`border-warning\`, \`border-danger\`, \`border-secondary\`, \`border-neutral\`
@@ -155,24 +148,22 @@ Also available for intent-colored borders:
 
 const INTENTS = `# Intent Color System
 
-6 component intents (primary, secondary, success, warning, danger, neutral) plus a status \`info\` colour — each a full palette with 5 semantic variants + 11 foundation steps.
+${intents.entries.length} intents — ${intents.entries
+  .map((e) => `\`${e.name}\``)
+  .join(', ')} — each a palette of ${intents.roles.length} semantic roles over 11 foundation
+steps. The roles and the stops below are read from \`semantic.css\`: the role sentences are
+the \`@role\` markers on the \`${intents.exemplar}\` tokens, and every other intent carries the
+same roles by suffix.
 
-## Semantic Intent Tokens (auto dark mode)
+## Semantic Intent Roles (auto dark mode)
 
-Each intent has these variants (example: \`primary\`):
+${renderIntentRoles()}
 
-| CSS Variable | Tailwind Utility | Purpose | Light | Dark |
-|---|---|---|---|---|
-| \`--color-primary\` | \`bg-primary\` | Base intent color — a FILL, never a text colour | primary-600 | primary-500 |
-| \`--color-primary-hover\` | \`bg-primary-hover\` | Hover state | primary-700 | primary-400 |
-| \`--color-primary-active\` | \`bg-primary-active\` | Pressed state | primary-800 | — |
-| \`--color-primary-subtle\` | \`bg-primary-subtle\` | Soft background | primary-50 | primary-900 |
-| \`--color-primary-text\` | \`text-primary-text\` | Intent-coloured text on a surface (AA-clean) | primary-700 | primary-400 |
-| \`--color-primary-emphasis\` | \`bg-primary-emphasis\` / \`text-primary-emphasis\` | Near-ink text tier / strong fill | primary-900 | primary-200 |
+## Stops per intent (light → dark)
 
-Same pattern applies to: \`success-*\`, \`warning-*\`, \`danger-*\`, \`secondary-*\`, \`neutral-*\`
-— except that \`neutral\` has no \`-text\` role: its base already clears AA as text on
-every ground (the chassis ramp is text-tuned), so \`text-neutral\` is fine as it is.
+Steps of the intent's own foundation ramp unless a stop is named in full:
+
+${renderIntentStops()}
 
 **Intent-coloured text takes \`-text\`, never the base.** The base token is tuned as a
 *fill* — a surface with \`text-text-on-fill\` sitting on it — and as text on a calm
