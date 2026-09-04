@@ -85,8 +85,7 @@
   ],
   "peerDependencies": {
     "svelte": "catalog:",
-    "@urbicon-ui/i18n": "^8.0.0",
-    "@urbicon-ui/shared-types": "^8.0.0"
+    "@urbicon-ui/i18n": "^8.0.0"
   },
   "dependencies": {},
   "devDependencies": {

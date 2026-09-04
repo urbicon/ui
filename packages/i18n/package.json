@@ -57,8 +57,7 @@
   "sideEffects": false,
   "peerDependencies": {
     "svelte": "catalog:",
-    "typescript": "catalog:",
-    "@urbicon-ui/shared-types": "^8.0.0"
+    "typescript": "catalog:"
   },
   "peerDependenciesMeta": {
     "typescript": {

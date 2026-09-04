@@ -132,7 +132,6 @@
       },
       "peerDependencies": {
         "@urbicon-ui/i18n": "^8.0.0",
-        "@urbicon-ui/shared-types": "^8.0.0",
         "svelte": "catalog:",
       },
     },
@@ -246,7 +245,6 @@
         "vitest": "catalog:",
       },
       "peerDependencies": {
-        "@urbicon-ui/shared-types": "^8.0.0",
         "svelte": "catalog:",
         "typescript": "catalog:",
       },
@@ -338,7 +336,6 @@
       "peerDependencies": {
         "@urbicon-ui/blocks": "^8.0.0",
         "@urbicon-ui/i18n": "^8.0.0",
-        "@urbicon-ui/shared-types": "^8.0.0",
         "svelte": "catalog:",
       },
     },

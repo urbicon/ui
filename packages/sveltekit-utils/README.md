@@ -19,6 +19,8 @@ bun install
 
 Peer dependencies: `svelte` (^5), `@sveltejs/kit`.
 
+The declared `@sveltejs/kit` range is 2.x. The package runs under SvelteKit 3 `next` as well; the incorrect-peer warning `bun add` prints there is expected and stays until Kit 3 has a release candidate, when the range widens.
+
 ## URL State (`url.svelte`)
 
 Bind a typed, reactive value to a URL search param. When the value changes, the URL is updated (and vice versa) without a full navigation.

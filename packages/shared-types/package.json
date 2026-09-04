@@ -1,7 +1,7 @@
 {
   "name": "@urbicon-ui/shared-types",
   "version": "8.17.0",
-  "description": "Shared TypeScript types for the Urbicon UI design system",
+  "description": "TypeScript types behind the Urbicon UI documentation tooling — playground, docs-config, navigation — consumed by @urbicon-ui/docs and docs-gen",
   "license": "MIT",
   "repository": {
     "type": "git",

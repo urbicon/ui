@@ -19,6 +19,14 @@ bun install
 Peer dependencies: `svelte` (^5), `@sveltejs/kit`, `@urbicon-ui/blocks`, `@urbicon-ui/i18n`.
 Runtime dependencies: **none**.
 
+The declared `@sveltejs/kit` range is 2.x. The package runs under SvelteKit 3 `next` as well;
+the incorrect-peer warning `bun add` prints there is expected and stays until Kit 3 has a
+release candidate, when the range widens.
+
+Pin with `~`, not `^`: until the launch of ui.urbicon.de is announced, an 8.x minor may carry
+breaking changes ([VERSIONING.md § The pre-launch window](https://github.com/urbicon/ui/blob/main/docs/VERSIONING.md#the-pre-launch-window));
+each one is listed under **Breaking Changes** in the changelog — read it before a minor upgrade.
+
 **Stylesheet.** The components emit Tailwind classes, and a Tailwind build never scans
 `node_modules` on its own — each package ships a stylesheet whose `@source` directive points
 Tailwind at its components. Import this package's stylesheet next to the blocks one, in the
@@ -72,6 +80,11 @@ stylesheet existed adds the one line and is done.
 ## UI Components
 
 All use `@urbicon-ui/blocks` primitives and honour `unstyled` + `slotClasses` + snippet overrides.
+
+`t` takes a `PartialAuthLocale` — any subset of the strings, deep-merged over the active built-in
+bundle by `mergeAuthLocale` (both root exports), so overriding one string never blanks the rest.
+`AuthLocale` itself is fully required: a hand-written full bundle stops compiling when a release
+adds keys, and the changelog lists that under **Breaking Changes**.
 
 | Component              | Purpose                                         |
 | ---------------------- | ----------------------------------------------- |
