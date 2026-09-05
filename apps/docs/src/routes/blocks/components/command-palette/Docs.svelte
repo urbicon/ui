@@ -212,7 +212,11 @@
         to open (configurable).
         <Kbd keys="↑" />
         <Kbd keys="↓" />
-        to navigate,
+        to navigate — the list wraps at both ends —
+        <Kbd keys="Home" />
+        /
+        <Kbd keys="End" />
+        for the first and last item,
         <Kbd keys="Enter" />
         to select,
         <Kbd keys="Escape" />

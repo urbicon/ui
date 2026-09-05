@@ -5,6 +5,7 @@
   import SearchIconDefault from '$lib/icons/SearchIcon.svelte';
   import { Dialog, Separator } from '$lib/primitives';
   import { getBlocksConfig, resolveSlotClasses } from '$lib/provider';
+  import { edgeEnabledIndex, nextEnabledIndex } from '$lib/utils';
   import { resolveClassChain } from '$lib/utils/variants';
   import type { CommandPaletteProps, CommandPaletteItem } from './index';
   import { commandPaletteVariants, type CommandPaletteVariants } from './commandPalette.variants';
@@ -94,6 +95,23 @@
     return groups;
   });
 
+  const isDisabled = (index: number) => filtered[index]?.disabled ?? false;
+
+  /**
+   * The highlighted row, derived rather than stored: `selectedIndex` is only
+   * where the user last walked, and it counts while it is an enabled row of the
+   * CURRENT `filtered`. Otherwise — results arrived after opening, the row
+   * under it turned disabled, the list shrank past it — the first enabled row
+   * holds the highlight, and -1 when there is none: no row selected, no active
+   * descendant, Enter with nothing to select. A stored highlight would need an
+   * effect for every way the list can change under it.
+   */
+  const highlightIndex = $derived(
+    selectedIndex >= 0 && selectedIndex < filtered.length && !isDisabled(selectedIndex)
+      ? selectedIndex
+      : edgeEnabledIndex(filtered.length, 1, isDisabled)
+  );
+
   $effect(() => {
     void query;
     selectedIndex = 0;
@@ -119,18 +137,39 @@
     onSelect?.(item);
   }
 
+  // A disabled row is never a stop: the arrow keys step over it and wrap at
+  // both ends, Home/End land on the enabled edges (the shared roving helpers,
+  // as in Tab / ButtonGroup / SegmentGroup). Home/End move the highlight, not
+  // the caret — the list is always open behind this input.
   function handleKeydown(e: KeyboardEvent) {
-    if (e.key === 'ArrowDown') {
-      e.preventDefault();
-      selectedIndex = Math.min(selectedIndex + 1, filtered.length - 1);
+    let next: number;
+    switch (e.key) {
+      case 'ArrowDown':
+        next = nextEnabledIndex(filtered.length, highlightIndex, 1, isDisabled);
+        break;
+      case 'ArrowUp':
+        next = nextEnabledIndex(filtered.length, highlightIndex, -1, isDisabled);
+        break;
+      case 'Home':
+        next = edgeEnabledIndex(filtered.length, 1, isDisabled);
+        break;
+      case 'End':
+        next = edgeEnabledIndex(filtered.length, -1, isDisabled);
+        break;
+      case 'Enter': {
+        const item = filtered[highlightIndex];
+        if (!item) return;
+        e.preventDefault();
+        selectItem(item);
+        return;
+      }
+      default:
+        return;
+    }
+    e.preventDefault();
+    if (next >= 0 && next !== highlightIndex) {
+      selectedIndex = next;
       scrollSelectedIntoView();
-    } else if (e.key === 'ArrowUp') {
-      e.preventDefault();
-      selectedIndex = Math.max(selectedIndex - 1, 0);
-      scrollSelectedIntoView();
-    } else if (e.key === 'Enter' && filtered[selectedIndex]) {
-      e.preventDefault();
-      selectItem(filtered[selectedIndex]);
     }
   }
 
@@ -199,8 +238,8 @@
         role="combobox"
         aria-expanded={filtered.length > 0}
         aria-controls="command-palette-list"
-        aria-activedescendant={filtered[selectedIndex]
-          ? `command-palette-item-${selectedIndex}`
+        aria-activedescendant={filtered[highlightIndex]
+          ? `command-palette-item-${highlightIndex}`
           : undefined}
         autocomplete="off"
       />
@@ -258,7 +297,7 @@
             </div>
           {/if}
           {#each group.entries as { item, flatIdx } (item.id ?? item.label)}
-            {@const isHighlighted = flatIdx === selectedIndex}
+            {@const isHighlighted = flatIdx === highlightIndex}
             {@const isDisabled = item.disabled ?? false}
             {#if customItem}
               {@render customItem(item, isHighlighted, flatIdx)}

@@ -132,3 +132,214 @@ describe('CommandPalette (the class ladder on an item row)', () => {
     expect(rowTokens(2)).not.toContain('cursor-pointer');
   });
 });
+
+/**
+ * Keyboard navigation over a list with disabled rows. A disabled row cannot be
+ * selected (Enter is a no-op on it), so the highlight must never rest there —
+ * not by arrow key, not by Home/End, and not after a filter narrows the list.
+ * The index math is the shared roving helper (`utils/roving`), which wraps at
+ * both ends like Tab, ButtonGroup and SegmentGroup.
+ */
+const ROVING_ITEMS: CommandPaletteItem[] = [
+  { id: 'a', label: 'Alpha' },
+  { id: 'b', label: 'Beta', disabled: true },
+  { id: 'c', label: 'Gamma' },
+  { id: 'd', label: 'Delta', disabled: true }
+];
+
+function paletteInput(): HTMLInputElement {
+  return screen.getByRole('combobox', { hidden: true }) as HTMLInputElement;
+}
+
+function press(key: string) {
+  paletteInput().dispatchEvent(
+    new KeyboardEvent('keydown', { key, bubbles: true, cancelable: true })
+  );
+  flushSync();
+}
+
+function type(value: string) {
+  const input = paletteInput();
+  input.value = value;
+  input.dispatchEvent(new Event('input', { bubbles: true }));
+  flushSync();
+}
+
+/** Flat index of the highlighted row, -1 when no row is highlighted. */
+function highlighted(): number {
+  const rows = screen.getAllByRole('option', { hidden: true });
+  return rows.findIndex((row) => row.getAttribute('aria-selected') === 'true');
+}
+
+describe('CommandPalette (keyboard navigation over disabled rows)', () => {
+  it('ArrowDown steps over a disabled row', async () => {
+    render({ items: ROVING_ITEMS });
+    await tick();
+
+    expect(highlighted()).toBe(0);
+    press('ArrowDown');
+    expect(highlighted()).toBe(2);
+    expect(paletteInput().getAttribute('aria-activedescendant')).toBe('command-palette-item-2');
+  });
+
+  it('ArrowUp steps over a disabled row upwards', async () => {
+    render({ items: ROVING_ITEMS });
+    await tick();
+
+    press('ArrowDown');
+    expect(highlighted()).toBe(2);
+    press('ArrowUp');
+    expect(highlighted()).toBe(0);
+  });
+
+  it('wraps at both ends, skipping the disabled edge rows', async () => {
+    render({ items: ROVING_ITEMS });
+    await tick();
+
+    press('ArrowUp');
+    expect(highlighted()).toBe(2);
+    press('ArrowDown');
+    expect(highlighted()).toBe(0);
+  });
+
+  it('Home and End land on the enabled edges', async () => {
+    render({
+      items: [
+        { id: 'x', label: 'First', disabled: true },
+        { id: 'a', label: 'Alpha' },
+        { id: 'b', label: 'Beta' },
+        { id: 'y', label: 'Last', disabled: true }
+      ]
+    });
+    await tick();
+
+    press('End');
+    expect(highlighted()).toBe(2);
+    press('Home');
+    expect(highlighted()).toBe(1);
+  });
+
+  it('opens on the first enabled row when the first row is disabled', async () => {
+    render({
+      items: [
+        { id: 'x', label: 'First', disabled: true },
+        { id: 'a', label: 'Alpha' }
+      ]
+    });
+    await tick();
+
+    expect(highlighted()).toBe(1);
+    expect(paletteInput().getAttribute('aria-activedescendant')).toBe('command-palette-item-1');
+  });
+
+  it('resets to the first enabled match when the query changes', async () => {
+    render({
+      items: [
+        { id: 'a', label: 'Alpha' },
+        { id: 'b1', label: 'Beta one', disabled: true },
+        { id: 'b2', label: 'Beta two' }
+      ]
+    });
+    await tick();
+
+    expect(highlighted()).toBe(0);
+    type('beta');
+    // `filtered` is now [Beta one (disabled), Beta two].
+    expect(highlighted()).toBe(1);
+    expect(paletteInput().getAttribute('aria-activedescendant')).toBe('command-palette-item-1');
+  });
+
+  /**
+   * The list changes under the highlight without the query moving — remote
+   * results arriving, a row's `disabled` flipping, the list shrinking. The
+   * highlight is derived from the user's index against the *current* list, so
+   * none of these can leave it on a row that cannot be selected.
+   */
+  function renderLive(items: CommandPaletteItem[], onSelect?: (item: CommandPaletteItem) => void) {
+    const props = $state({ open: true, shortcut: false as const, items, onSelect });
+    const instance = mount(CommandPalette, { target: document.body, props });
+    dispose = () => unmount(instance);
+    flushSync();
+    return props;
+  }
+
+  it('highlights the first row when items arrive after opening on an empty list', async () => {
+    const selected: CommandPaletteItem[] = [];
+    const props = renderLive([], (item) => selected.push(item));
+    await tick();
+    expect(paletteInput().hasAttribute('aria-activedescendant')).toBe(false);
+
+    props.items = [
+      { id: 'a', label: 'Alpha' },
+      { id: 'b', label: 'Beta' }
+    ];
+    flushSync();
+    await tick();
+
+    expect(highlighted()).toBe(0);
+    expect(paletteInput().getAttribute('aria-activedescendant')).toBe('command-palette-item-0');
+    // Enter works at once — no arrow key needed to "wake" the highlight.
+    press('Enter');
+    expect(selected.map((item) => item.id)).toEqual(['a']);
+  });
+
+  it('leaves a row that becomes disabled under the highlight', async () => {
+    const props = renderLive([
+      { id: 'a', label: 'Alpha' },
+      { id: 'b', label: 'Beta' },
+      { id: 'c', label: 'Gamma' }
+    ]);
+    await tick();
+    press('ArrowDown');
+    press('ArrowDown');
+    expect(highlighted()).toBe(2);
+
+    props.items = [
+      { id: 'a', label: 'Alpha' },
+      { id: 'b', label: 'Beta' },
+      { id: 'c', label: 'Gamma', disabled: true }
+    ];
+    flushSync();
+    await tick();
+
+    expect(highlighted()).toBe(0);
+    expect(
+      screen.getAllByRole('option', { hidden: true })[2].getAttribute('aria-disabled'),
+      'the row is still disabled'
+    ).toBe('true');
+  });
+
+  it('falls back to the first enabled row when the list shrinks past the highlight', async () => {
+    const six = Array.from({ length: 6 }, (_, i) => ({ id: `r${i}`, label: `Row ${i}` }));
+    const props = renderLive(six);
+    await tick();
+    press('End');
+    expect(highlighted()).toBe(5);
+
+    props.items = six.slice(0, 3);
+    flushSync();
+    await tick();
+
+    expect(highlighted()).toBe(0);
+    expect(paletteInput().getAttribute('aria-activedescendant')).toBe('command-palette-item-0');
+  });
+
+  it('highlights nothing and ignores Enter when every row is disabled', async () => {
+    const selected: CommandPaletteItem[] = [];
+    render({
+      items: [
+        { id: 'a', label: 'Alpha', disabled: true },
+        { id: 'b', label: 'Beta', disabled: true }
+      ],
+      onSelect: (item) => selected.push(item)
+    });
+    await tick();
+
+    expect(highlighted()).toBe(-1);
+    expect(paletteInput().hasAttribute('aria-activedescendant')).toBe(false);
+    press('ArrowDown');
+    expect(highlighted()).toBe(-1);
+    press('Enter');
+    expect(selected).toEqual([]);
+  });
+});

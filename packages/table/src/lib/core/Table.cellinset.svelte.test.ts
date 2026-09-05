@@ -684,22 +684,13 @@ describe('no wrapper inside a data cell displaces its content', () => {
  * size), and repeating that rule here would be the second copy this whole PR
  * is about.
  *
- * One known simplification, and the failure mode it leaves open. The blocks
- * `Button` also carries `min-w-min`, so a button whose own min-content is wider
- * than its `w-<step>` uses that instead — measured in Chrome, that is *every*
- * size the actions cell uses: 32px against `w-7`'s 28 at `sm`, 34px against
- * `w-8`'s 32 at `md` and `lg`. The formula below reads the declared width
- * class, so what it cannot see is that min-content: a wider icon or more button
- * padding in blocks lifts the real minimum while every assertion here stays
- * green.
- *
- * That is not hypothetical — it is how `9rem` shipped 6px short at `lg`, where
- * the column had been rendering 150px against its 144px declaration until the
- * browser measurement found it (2026-08-25). Emulating min-content in jsdom
- * would be the kind of second oracle this repo has learned not to write, so the
- * used width is measured where it is decided instead:
- * `e2e/table-actions-budget.spec.ts`. This file keeps the half it can prove —
- * a changed `w-*`, gap or inset fails here, immediately and without a browser.
+ * The `w-<step>` class is the button's used width, which is what lets this
+ * arithmetic stand without a browser: an action button has no horizontal
+ * padding (`actionCellVariants.button`, `px-0`) and the blocks `Button` clips
+ * nothing and declares no floor, so a flex item's automatic minimum is the
+ * smaller of the step and the icon-plus-border, and the used width is the step.
+ * The one way the used width could still leave the class — an icon wider than
+ * its box — is the second assertion below, from the classes as well.
  */
 describe.each(SIZES)('the actions column at size=%s', (size) => {
   const declaredWidthPx = cssLengthPx(String(TableColumns.actions('Actions').width));
@@ -712,6 +703,30 @@ describe.each(SIZES)('the actions column at size=%s', (size) => {
 
     const buttonWidths = buttons.map((button) => widthClassPx([...button.classList]));
     expect(new Set(buttonWidths).size, 'the trio should share one width').toBe(1);
+
+    // The step is the used width only without horizontal padding: with the
+    // size axis's `px-2` back, the icon's box would be wider than the step and
+    // overflow into the padding while every width class read the same.
+    for (const button of buttons) {
+      expect(
+        [...button.classList].filter((cls) => /^px-/.test(cls)),
+        `an action button has no horizontal padding at size=${size}`
+      ).toEqual(['px-0']);
+    }
+
+    // The step is only the used width while the icon and the 1px border on
+    // each side fit inside it; past that the icon overflows the box, unclipped
+    // and uncounted, and no class here would say so.
+    for (const button of buttons) {
+      // The content slot's svg, not the first svg in the button — that one is
+      // the blocks `Button`'s own (hidden) spinner.
+      const icon = button.querySelector(':scope > span:last-of-type svg');
+      if (!icon) throw new Error('An action button renders its icon as an inline <svg>.');
+      expect(
+        widthClassPx([...icon.classList]) + 2,
+        `the icon (+ 2 × 1px border) must fit the button's w-* step at size=${size}`
+      ).toBeLessThanOrEqual(buttonWidths[0]);
+    }
 
     const row = buttons[0].parentElement;
     if (!row) throw new Error('The buttons have no row to sit in.');

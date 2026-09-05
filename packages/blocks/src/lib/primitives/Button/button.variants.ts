@@ -3,28 +3,20 @@ import { type SlotNames, tv, type VariantProps } from '$lib/utils/variants';
 export const buttonVariants = tv({
   slots: {
     base: [
+      // The button never clips its own overflow. Two things hang on that: a
+      // flex item keeps its automatic minimum size (`min-content`, i.e. the
+      // label under `whitespace-nowrap`) only while its overflow is visible —
+      // any `overflow-hidden` here drops that floor to 0 and lets a flex row
+      // shrink the button through its label; and with a pill radius a clip
+      // also takes the corner off the first glyph of a `px-0` label. Nothing
+      // needs the clip: the overlay spinner sits inside the padding box and the
+      // ripple mint sets its own.
       'relative inline-flex items-center justify-center gap-2',
-      // `min-w-min` restores what `overflow-hidden` below takes away, and the
-      // two belong together: a flex item's automatic minimum size is `auto`
-      // ONLY while its overflow is visible — clipping it drops the floor to 0,
-      // so a button in a flex row shrinks straight through its own label, which
-      // `whitespace-nowrap` then cannot reflow. It clips instead, symmetrically,
-      // eating the padding first and the text after.
-      //
-      // Measured on the A2UI livery tile (a `justify-between` row: caption left,
-      // commit button right), 900px viewport: "Book these nights" overflowed its
-      // box by 27px in Duna and by 40px in Firn — past the 16px side padding, so
-      // the label rendered as "OOK THESE NIGHT". `min-content` is exactly the
-      // floor the spec would have applied unclipped, which is why this is a
-      // restoration and not a new rule: with `nowrap` it is the label's own
-      // width, and a button that wraps (`whitespace-normal` via `class`) still
-      // gets to shrink to its longest word.
-      'min-w-min',
       'font-medium text-center whitespace-nowrap border cursor-pointer select-none',
       // `scale`, NOT `transform`: Tailwind 4 emits `scale-*` as the discrete
       // CSS `scale:` property, so a list naming only `transform` never animates
       // the press cue (`active:scale-[0.98]` / `pressed`) — it would jump.
-      'transition-[color,background-color,border-color,box-shadow,opacity,scale] duration-[var(--blocks-duration-fast)] ease-out overflow-hidden',
+      'transition-[color,background-color,border-color,box-shadow,opacity,scale] duration-[var(--blocks-duration-fast)] ease-out',
       // Resting + hover + press depth. Identical for all six intents, so it
       // lives here rather than six times over on the `intent` axis, which now
       // carries only what actually differs per intent (the focus ring). The flat
@@ -69,7 +61,23 @@ export const buttonVariants = tv({
       // emits no rule and the icon↔label gap silently collapses to 0. The
       // arbitrary property makes `content` inherit `base`'s per-size gap as
       // intended. (Codeberg #21)
-      'flex items-center [gap:inherit] transition-opacity duration-[var(--blocks-duration-fast)]'
+      //
+      // `min-w-0`: the content is itself a flex item, and its automatic minimum
+      // would otherwise be the label — so a button the consumer lets shrink
+      // (`class="min-w-0"`) could never clip its label, only overflow it, and a
+      // truncating child of the label would never reach its ellipsis.
+      // Truncation stays opt-in, and it is the CHILD that truncates:
+      // `text-overflow` only paints on a block container, and this slot is a
+      // flex row, so `truncate` here cuts flat — `<span class="block truncate">`
+      // around the label on a `class="min-w-0"` button is the form.
+      //
+      // `[&>svg]:shrink-0`: an icon is a flex item of this slot too, and once
+      // the slot may shrink, Chromium shrinks an svg WITH it (its automatic
+      // minimum is 0) — a 16px icon in a `w-8 size="sm"` button drew at 6px
+      // wide. Pinned, the icon keeps its size and sits off-centre instead,
+      // which is what a box too narrow for icon + padding should look like:
+      // the padding is the consumer's to drop (`px-0`).
+      'flex items-center min-w-0 [&>svg]:shrink-0 [gap:inherit] transition-opacity duration-[var(--blocks-duration-fast)]'
     ],
     spinner: [
       'flex items-center justify-center opacity-0 pointer-events-none transition-opacity duration-[var(--blocks-duration-fast)]'

@@ -11,6 +11,32 @@ Only this package. The table's v8 view-state rewrite has its own guide,
 [MIGRATION-V8.md](https://github.com/urbicon/ui/blob/main/packages/table/docs/MIGRATION-V8.md),
 and ships in the `@urbicon-ui/table` tarball.
 
+## 8.18.0
+
+### `Button` keeps the width its `class` declares
+
+`Button` no longer carries `min-w-min` (it existed to undo an `overflow-hidden` on the same
+element, and both are gone — a button never clips its label now). Under `min-w-min` an icon-only
+button with a fixed width class was silently widened to its content: `<Button size="sm"
+class="w-8">` with a 16px icon rendered 42px (icon + `px-3` + border). It now renders the 32px it
+declares, and its icon keeps its 16px too (the content slot pins `[&>svg]:shrink-0`) — so a box
+narrower than icon + padding shows the icon sitting off-centre. That is the padding, and the fix
+is to drop it.
+
+```svelte
+<!-- before: rendered 42px wide, icon centred -->
+<Button size="sm" class="w-8" aria-label="Search"><SearchIcon class="h-4 w-4" /></Button>
+```
+
+```svelte
+<!-- after: 32px, as declared -->
+<Button size="sm" class="w-8 px-0" aria-label="Search"><SearchIcon class="h-4 w-4" /></Button>
+```
+
+Or pick the size whose padding fits the icon. **Nothing reports the change** — grep for
+`<Button[^>]*class="[^"]*\bw-\d` and give every icon-only hit `px-0`. Label buttons are
+unaffected: an unclipped flex item's automatic minimum is still its label.
+
 ## 8.15.0
 
 ### `SidebarLayout`'s `sidebar` slot key is now `sidebarPanel`
