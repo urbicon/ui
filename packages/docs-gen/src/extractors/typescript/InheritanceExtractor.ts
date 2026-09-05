@@ -6,7 +6,7 @@ import type {
   KnownInterfaceConfig,
   PropInfo
 } from '../../types';
-import { TypeScriptBaseExtractor } from './TypeScriptBaseExtractor';
+import { noJsDocDescription, TypeScriptBaseExtractor } from './TypeScriptBaseExtractor';
 
 interface InheritanceExtractionInput {
   filePath: string;
@@ -537,7 +537,7 @@ export class InheritanceExtractor extends TypeScriptBaseExtractor<
 
     const propType = this.getTypeString(member.type);
     const isRequired = this.isPropertyRequired(member);
-    const description = this.extractJSDocComment(member) || `${propName} property`;
+    const description = this.extractJSDocComment(member) || noJsDocDescription(propName);
 
     return {
       name: propName,

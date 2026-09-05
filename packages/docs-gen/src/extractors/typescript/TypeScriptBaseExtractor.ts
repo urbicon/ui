@@ -26,6 +26,16 @@ export interface ResolvedHeritageMember {
 }
 
 /**
+ * The description a prop gets when its declaration carries no JSDoc at all. One
+ * definition, so a surface that must recognise the stand-in (the catalog's
+ * `propDocs` leaves it out — a name restated says nothing the name does not)
+ * cannot drift from the two extractors that emit it.
+ */
+export function noJsDocDescription(propName: string): string {
+  return `${propName} property`;
+}
+
+/**
  * TypeScript-specific base extractor with TypeScript program management.
  *
  * With a `configPath` in its config, the extractor is backed by the shared

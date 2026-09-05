@@ -10,7 +10,7 @@
  */
 
 import type { ComponentCatalog, ComponentCatalogEntry } from '@urbicon-ui/design-engine/search';
-import { matchComponents } from '@urbicon-ui/design-engine/search';
+import { isBooleanAxis, matchComponents } from '@urbicon-ui/design-engine/search';
 import { boolFlag, type Flags, stringFlag } from '../args.js';
 import { loadCatalog } from '../content.js';
 import { type InstallState, installStateFor, readConsumerDependencies } from '../installed.js';
@@ -19,7 +19,7 @@ import { EXIT, printError } from '../output.js';
 /** Variant summary, skipping pure boolean variants (just true/false). */
 function variantSummary(entry: ComponentCatalogEntry): string {
   return entry.variants
-    .filter((v) => !v.values.every((x) => x === 'true' || x === 'false'))
+    .filter((v) => !isBooleanAxis(v.values))
     .map((v) => `${v.name}: ${v.values.join('/')}`)
     .join(' · ');
 }
@@ -100,9 +100,13 @@ export async function runFind(positionals: string[], flags: Flags): Promise<numb
 
   if (asJson) {
     // Additive `installed` annotation (true/false/null) for machine consumers.
+    // `propDocs` is the ranker's text, not the entry's identity — it is what
+    // `get-component` prints, and inline it multiplies every result by its prop
+    // count (`find button --json`: 50 KB with it, measured).
     const annotated = results.map((entry) => {
       const state = stateOf(entry);
-      return { ...entry, installed: state === 'unknown' ? null : state === 'installed' };
+      const { propDocs: _searchText, ...rest } = entry;
+      return { ...rest, installed: state === 'unknown' ? null : state === 'installed' };
     });
     console.log(JSON.stringify(annotated, null, 2));
     return EXIT.OK;

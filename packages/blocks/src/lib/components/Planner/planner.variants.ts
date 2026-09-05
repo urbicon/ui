@@ -112,7 +112,8 @@ export const plannerVariants = tv({
   },
   variants: {
     view: {
-      // Seven card columns on desktop, stacked below `md` — see `weekViewSlots`.
+      // The stacking classes: `weekViewSlots` above.
+      /** Seven card columns on desktop, stacked below `md`. */
       week: weekViewSlots,
       month: {
         // Continuous grid: shared borders, no gap. The right and bottom edges

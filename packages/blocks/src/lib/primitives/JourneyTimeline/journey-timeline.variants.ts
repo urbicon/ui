@@ -166,8 +166,8 @@ export const journeyTimelineVariants = tv({
         marker: 'bg-surface-base border-border-strong',
         title: 'text-text-secondary'
       },
-      // Worth a look, does not block — hollow like pending but on the warning
-      // token, mirroring Stepper's per-step warning state.
+      // Mirrors Stepper's per-step warning state.
+      /** Worth a look, does not block — hollow like `pending` but on the warning token. */
       attention: {
         marker: 'bg-surface-base border-warning',
         title: 'text-warning-emphasis'

@@ -413,14 +413,14 @@ export class VariantsExtractor extends TypeScriptBaseExtractor<
   ): VariantInfo | null {
     const values: string[] = [];
     const examples: VariantInfo['examples'] = [];
+    const valueDescriptions: Record<string, string> = {};
 
     // Extract variant values from object keys
     for (const property of variantObject.properties) {
+      let variantValue: string | null = null;
       if (ts.isPropertyAssignment(property)) {
-        const variantValue = this.extractPropertyName(property.name);
+        variantValue = this.extractPropertyName(property.name);
         if (variantValue) {
-          values.push(variantValue);
-
           // Extract example classes if available
           const classes = this.extractVariantClasses(property.initializer);
           if (classes) {
@@ -433,10 +433,15 @@ export class VariantsExtractor extends TypeScriptBaseExtractor<
           }
         }
       } else if (ts.isShorthandPropertyAssignment(property)) {
-        values.push(property.name.text);
+        variantValue = property.name.text;
       } else if (ts.isMethodDeclaration(property) && ts.isIdentifier(property.name)) {
-        values.push(property.name.text);
+        variantValue = property.name.text;
       }
+      if (!variantValue) continue;
+
+      values.push(variantValue);
+      const description = this.extractValueDescription(property);
+      if (description) valueDescriptions[variantValue] = description;
     }
 
     if (values.length === 0) {
@@ -456,7 +461,24 @@ export class VariantsExtractor extends TypeScriptBaseExtractor<
       variantInfo.defaultValue = defaultValue;
     }
 
+    if (Object.keys(valueDescriptions).length > 0) {
+      variantInfo.valueDescriptions = valueDescriptions;
+    }
+
     return variantInfo;
+  }
+
+  /**
+   * The description of one variant value: the JSDoc block on the value's key,
+   * read the way a prop's is (`extractJSDocComment`, i.e. TypeScript's own
+   * attachment — a `//` line is not JSDoc and a block above the axis belongs
+   * to the axis). Lines are merged into one, since the text is a catalog line.
+   */
+  private extractValueDescription(property: ts.ObjectLiteralElementLike): string | undefined {
+    const text = this.extractJSDocComment(property)
+      ?.replace(/\s*\n\s*/g, ' ')
+      .trim();
+    return text || undefined;
   }
 
   private extractVariantClasses(initializer: ts.Expression): string | null {

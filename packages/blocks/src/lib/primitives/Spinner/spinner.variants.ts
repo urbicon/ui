@@ -112,11 +112,12 @@ export const spinnerVariants = tv({
       warning: { base: 'text-warning-emphasis' },
       danger: { base: 'text-danger' },
       neutral: { base: 'text-text-secondary' },
-      // `current` inherits the parent text-color via `currentColor`. Use
-      // this when the spinner sits inside a coloured surface (filled
-      // Button, ConfirmDialog primary action, Toast action) and should
-      // pick up the foreground color of that surface instead of the
-      // intent palette.
+      /**
+       * Inherits the parent text colour via `currentColor` — for a spinner
+       * inside a coloured surface (filled Button, ConfirmDialog primary action,
+       * Toast action) that should pick up that surface's foreground instead of
+       * the intent palette.
+       */
       current: { base: 'text-current' }
     },
     speed: {

@@ -1,7 +1,12 @@
 import * as fs from 'node:fs/promises';
 import * as path from 'node:path';
 import { glob } from 'glob';
-import type { ComponentCatalog, ComponentCatalogEntry, RecipeEntry } from './MCPCatalogGenerator';
+import {
+  type ComponentCatalog,
+  type ComponentCatalogEntry,
+  INTERNAL_PACKAGE,
+  type RecipeEntry
+} from './MCPCatalogGenerator';
 
 /** Head of a `const recipeCode =` declaration — locates the live-preview code in a recipe page. */
 const RECIPE_CODE_START_RE = /const\s+recipeCode\s*=\s*\n?\s*/;
@@ -15,24 +20,11 @@ export interface MCPCatalogAssemblerConfig {
   version: string;
 }
 
-/**
- * The `@urbicon-ui/docs` components: the furniture documentation pages are
- * built FROM, not building blocks for a consumer's UI. They are filtered out
- * here, at assembly, rather than when the per-package `_catalog.json` is
- * written — that file is also what `summary:lint` and the docs site read, and
- * filtering upstream left the docs target with an empty catalog (2 bytes) and
- * therefore no metadata gate at all.
- *
- * Keep them out of the MCP catalog: `find_components` answers "what do I build
- * this UI from", and a PlaygroundConfigurator is never that answer.
- *
- * The rule is the package, not a list of names. A hand-kept list of the nine
- * components was the first version and it lasted one new component: `NoteList`
- * was added, nobody remembered the list, and it shipped into the public
- * catalog. Package membership is the actual criterion, so it is the one
- * encoded here.
- */
-const INTERNAL_PACKAGE = '@urbicon-ui/docs';
+// The docs-infrastructure components are filtered out here, at assembly, rather
+// than when the per-package `_catalog.json` is written — that file is also what
+// `summary:lint` and the docs site read, and filtering upstream left the docs
+// target with an empty catalog (2 bytes) and therefore no metadata gate at all.
+// Which package that is: INTERNAL_PACKAGE on the generator.
 
 /**
  * Assembles the final component-catalog.json from per-package _catalog.json

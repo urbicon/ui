@@ -7,14 +7,14 @@ import { formatCompactCatalog, formatComponentLine } from '../utils/format-catal
 /**
  * Register the `find_components` tool: the catalog entry point. With no query it
  * renders the full catalog grouped by category (via `formatCompactCatalog`);
- * with a query it fuzzy-matches names/descriptions/tags through the engine's
- * `matchComponents` (top 10). Every line keeps the origin-package tag so a
+ * with a query it fuzzy-matches names, descriptions, summaries, prop docs, variant
+ * values and tags through the engine's `matchComponents` (top 10). Every line keeps the origin-package tag so a
  * non-blocks match (e.g. `Table`) is never mistaken for a blocks export.
  */
 export function registerFindComponentsTool(server: McpServer): void {
   server.tool(
     'find_components',
-    'Browse and search the Urbicon UI component catalog. Without a query, lists all components grouped by category. With a query, performs fuzzy search across names, descriptions, and tags.',
+    'Browse and search the Urbicon UI component catalog. Without a query, lists all components grouped by category. With a query, performs fuzzy search across names, descriptions, summaries, prop docs, variant values and tags.',
     {
       query: z
         .string()

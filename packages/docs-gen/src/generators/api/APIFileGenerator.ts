@@ -196,6 +196,7 @@ export class APIFileGenerator {
     lines.push('  values: string[];');
     lines.push('  defaultValue?: string;');
     lines.push('  examples?: VariantExample[];');
+    lines.push('  valueDescriptions?: Record<string, string>;');
     lines.push('}');
     lines.push('');
     lines.push(

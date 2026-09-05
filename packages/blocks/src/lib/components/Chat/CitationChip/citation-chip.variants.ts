@@ -29,11 +29,14 @@ export const citationChipVariants = tv({
   },
   variants: {
     citationStyle: {
-      // Numeric marker — a fixed-width numeric pill; no truncation.
+      /** Numeric marker — a fixed-width numeric pill; no truncation. */
       numeric: {},
-      // Label marker — carries the source title, capped so a long title
-      // can't stretch the chip across the line. The ellipsis itself lives on
-      // an inner span (truncate doesn't render on the inline-flex trigger).
+      // The ellipsis itself lives on an inner span (truncate doesn't render on
+      // the inline-flex trigger).
+      /**
+       * Label marker — carries the source title, capped so a long title can't
+       * stretch the chip across the line.
+       */
       label: { trigger: 'max-w-[16ch]' }
     }
   },
