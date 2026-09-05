@@ -98,7 +98,14 @@ const UTILITY_PREFIX: Record<SemanticFamily, string> = {
   border: 'border-'
 };
 
-const cell = (s: string): string => s.replace(/\|/g, '\\|');
+/**
+ * Text made safe inside a GFM table cell: `|` would end the cell, and `\` would
+ * make the next `|` literal — so both are escaped, in one pass, backslash
+ * included. Escaping the pipe alone turns a literal `\|` into `\\|`, which a
+ * reader takes as a backslash plus an unescaped pipe.
+ */
+export const escapeCell = (s: string): string => s.replace(/[\\|]/g, '\\$&');
+const cell = escapeCell;
 
 /** `neutral-600 (L 0.42)` · `warm-neutral-500†` · `rgb(0 0 0 / 0.08)`. */
 export function formatStop(stop: StopValue): string {
@@ -121,10 +128,13 @@ export function modeInvariant(family: SemanticFamily): SemanticToken[] {
   return SEMANTIC_TOKENS.families[family].filter((t) => sameStop(t.light, t.dark));
 }
 
-/** The family's table: one row per token, source order. */
-export function renderFamilyTable(family: SemanticFamily): string {
+/** The family's table: one row per token, source order. `data` is injectable for tests. */
+export function renderFamilyTable(
+  family: SemanticFamily,
+  data: SemanticTokens = SEMANTIC_TOKENS
+): string {
   const prefix = UTILITY_PREFIX[family];
-  const rows = SEMANTIC_TOKENS.families[family].map(
+  const rows = data.families[family].map(
     (t) =>
       `| \`--color-${t.name}\` | \`${prefix}${t.name}\` | ${cell(t.role) || '—'} | ${cell(
         formatMode(t, 'light')
