@@ -38,7 +38,10 @@ filter_unconventional = true
 split_commits = false
 commit_parsers = [
     { message = "^[a-z]+(\\(.+?\\))?!:", group = "Breaking Changes" },
-    { body = "(?m)^BREAKING[ -]CHANGE:", group = "Breaking Changes" },
+    # A `BREAKING CHANGE:` paragraph is parsed out of the body into
+    # `commit.footers` (the template above reads it from there), so a `body`
+    # matcher never sees it — only a `footer` matcher does.
+    { footer = "^BREAKING[ -]CHANGE", group = "Breaking Changes" },
     { message = "^feat", group = "Features" },
     { message = "^fix", group = "Bug Fixes" },
     { message = "^refactor", group = "Refactoring" },

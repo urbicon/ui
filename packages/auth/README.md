@@ -10,14 +10,20 @@ All crypto is implemented with the Web Crypto API — no `bcrypt`, no `jsonwebto
 
 ## Installation
 
-This package ships inside the Urbicon UI monorepo. Install from repo root:
-
 ```bash
-bun install
+bun add @urbicon-ui/auth
 ```
 
 Peer dependencies: `svelte` (^5), `@sveltejs/kit`, `@urbicon-ui/blocks`, `@urbicon-ui/i18n`.
 Runtime dependencies: **none**.
+
+The declared `@sveltejs/kit` range is 2.x. The package runs under SvelteKit 3 `next` as well;
+the incorrect-peer warning `bun add` prints there is expected and stays until Kit 3 has a
+release candidate, when the range widens.
+
+Pin with `~`, not `^`: until the launch of ui.urbicon.de is announced, an 8.x minor may carry
+breaking changes ([VERSIONING.md § The pre-launch window](https://github.com/urbicon/ui/blob/main/docs/VERSIONING.md#the-pre-launch-window));
+each one is listed under **Breaking Changes** in the changelog — read it before a minor upgrade.
 
 **Stylesheet.** The components emit Tailwind classes, and a Tailwind build never scans
 `node_modules` on its own — each package ships a stylesheet whose `@source` directive points
@@ -72,6 +78,9 @@ stylesheet existed adds the one line and is done.
 ## UI Components
 
 All use `@urbicon-ui/blocks` primitives and honour `unstyled` + `slotClasses` + snippet overrides.
+
+`t` takes a `PartialAuthLocale`, merged over the built-in bundle by `mergeAuthLocale` — see
+[AUTH.md → UI Components](./docs/AUTH.md#ui-components).
 
 | Component              | Purpose                                         |
 | ---------------------- | ----------------------------------------------- |

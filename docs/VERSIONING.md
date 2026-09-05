@@ -17,7 +17,7 @@ Bump **after pushing a coherent set of changes**. Bump proactively — don't wai
 | ---------- | -------------------- | ------------------------------------------------------------------------------------------------ |
 | **Patch**  | `bun run bump`       | `fix`, `docs`, `refactor`, `chore`, `style`, `test`, `perf` — no new user-facing features        |
 | **Minor**  | `bun run bump:minor` | `feat` — new component, new prop, new capability                                                 |
-| **Major**  | `bun run bump:major` | `feat!:` or `BREAKING CHANGE:` in commit body — removal of props, renamed APIs, changed defaults |
+| **Major**  | `bun run bump:major` | `feat!:` or a `BREAKING CHANGE:` footer — removal of props, renamed APIs, changed defaults       |
 
 `bun run bump` is an alias for `bun run bump:patch` (the most common case).
 
@@ -37,9 +37,9 @@ What it means for anyone on 8.x:
   package (`node_modules/@urbicon-ui/blocks/docs/MIGRATION.md`, `…/table/docs/MIGRATION-V8.md`).
 - **`MIGRATION.md` groups entries by the release that shipped the change** (`## 8.14.0`), never by
   a future major.
-- **Every breaking commit carries `!` in its subject.** git-cliff groups on the subject; a
-  `BREAKING CHANGE:` footer alone is filed under the commit's type (two 8.12/8.15 notes landed under
-  "Bug Fixes" and "Documentation" that way).
+- **Every breaking commit carries `!` in its subject.** The subject is the signal a `git log`
+  reader gets without opening the commit; git-cliff groups on it and on a `BREAKING CHANGE:`
+  footer alike (`cliff.toml` reads the footer — a `body` matcher never sees one).
 
 The window closes with the launch announcement: that release is **9.0.0**, and from then on the
 table applies without exception.

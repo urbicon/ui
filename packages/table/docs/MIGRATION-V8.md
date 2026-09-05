@@ -10,7 +10,7 @@ Nothing about columns, cells, selection, virtualization, styling or snippets cha
 
 ## Already on 8.0?
 
-v9 tightens four things v8 shipped with, and deletes two CSS files that never did anything.
+8.1.0 tightened four things 8.0 shipped with, and 8.7.0 deleted two CSS files that never did anything.
 All the API changes are quick, and TypeScript names every call site that has to move. In
 plain JavaScript there is no compiler to do that, so the two changes that alter a *shape* —
 the dropped array arm and the required `processing` — throw on the first render with a
@@ -28,7 +28,7 @@ for choosing.
 
 ```svelte
 <Table {columns} source={rows} />           <!-- 8.0 -->
-<Table {columns} source={{ processing: 'client', items: rows }} /> <!-- v9 — or items={rows} -->
+<Table {columns} source={{ processing: 'client', items: rows }} /> <!-- 8.1.0 — or items={rows} -->
 ```
 
 The rule that remains: `items` for rows and nothing else, `source` for rows plus how they
@@ -38,7 +38,7 @@ arrive (loading, error, a server total, a fetch function).
 the same six axes had two spellings depending on which side of `source.query` you stood on —
 and the row count was `total` going in, `totalItems` coming out. There is one vocabulary now:
 
-| 8.0 | v9 |
+| 8.0 | 8.1.0 |
 | --- | --- |
 | `q.searchTerm` | `q.search` |
 | `q.itemsPerPage` | `q.pageSize` |
@@ -53,7 +53,7 @@ the snapshot, and you pass it straight on:
 
 ```ts
 observeView(view, (snapshot) => fetchPage(viewToQuery(snapshot))); // 8.0
-observeView(view, (snapshot) => fetchPage(snapshot));              // v9
+observeView(view, (snapshot) => fetchPage(snapshot));              // 8.1.0
 ```
 
 The one axis that changed shape rather than name is `sort`. `sortColumn: ''` was a sentinel
@@ -64,7 +64,7 @@ In `@urbicon-ui/sveltekit-utils` the `./table-query` subpath is gone with the vo
 served. Its codec was the same URL scheme under the old spellings, so it now lives in
 `./table-view` (also exported from the package root):
 
-| 8.0 | v9 |
+| 8.0 | 8.1.0 |
 | --- | --- |
 | `searchParamsToTableQuery` · `searchParamsToViewQuery` | `searchParamsToViewSnapshot` |
 | `tableQueryToSearchParams` | `viewSnapshotToSearchParams` |
@@ -79,7 +79,7 @@ served. Its codec was the same URL scheme under the old spellings, so it now liv
 
 ```ts
 tableQueryToSearchParams(q, { defaults, prefix });                  // 8.0
-viewSnapshotToSearchParams(snapshot, defaults, axes, prefix);       // v9
+viewSnapshotToSearchParams(snapshot, defaults, axes, prefix);       // 8.1.0
 ```
 
 `defaults` is required now rather than optional, and it is a full snapshot rather than the
@@ -103,13 +103,13 @@ and one the tag never answered: the client variant fetches from a server too.
 
 ```svelte
 <Table {columns} source={{ items: rows }} />                              <!-- 8.0 -->
-<Table {columns} source={{ processing: 'client', items: rows }} />        <!-- v9 -->
+<Table {columns} source={{ processing: 'client', items: rows }} />        <!-- 8.1.0 -->
 
 <Table {columns} source={{ kind: 'server', items, total }} />             <!-- 8.0 -->
-<Table {columns} source={{ processing: 'server', items, total }} />       <!-- v9 -->
+<Table {columns} source={{ processing: 'server', items, total }} />       <!-- 8.1.0 -->
 
 <Table {columns} source={{ query: loadUsers }} />                         <!-- 8.0 -->
-<Table {columns} source={{ processing: 'server', query: loadUsers }} />   <!-- v9 -->
+<Table {columns} source={{ processing: 'server', query: loadUsers }} />   <!-- 8.1.0 -->
 ```
 
 `items={rows}` is untouched — it is still the shorthand for a client source, and still the
@@ -129,7 +129,7 @@ spelling of all six — `state.searchTerm`, `state.currentPage`, `state.sortColu
 `state.sortDirection`, `state.activeFilters`, `state.itemsPerPage`, `state.groupByKey` — as
 getters onto the very same view. `context.view` is the one address now:
 
-| 8.0 | v9 |
+| 8.0 | 8.1.0 |
 | --- | --- |
 | `ctx.state.searchTerm` | `ctx.view.search` |
 | `ctx.state.currentPage` | `ctx.view.page` |
@@ -158,7 +158,7 @@ for what the reader asked for, `effectiveGroupBy` for what they are looking at.
 **`TableQueryResult` became `TablePage`.** With `TableQuery` gone (above) the old name was
 half of a pair whose other half no longer existed. Same shape, `{ items, total }`.
 
-**The two density theme files are gone.** `@urbicon-ui/table/style/themes/comfortable.css`
+**The two density theme files are gone (8.7.0).** `@urbicon-ui/table/style/themes/comfortable.css`
 and `…/compact.css` no longer exist, and the `./style/themes/*` export with them. Delete the
 `@import`; nothing replaces it, because nothing was there. Each file's whole body was seven
 `@theme` custom properties — `--table-row-height`, `--table-header-height`,

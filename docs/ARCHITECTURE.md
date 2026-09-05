@@ -41,16 +41,14 @@ graph TD
     DES[design<br/><i>urbicon CLI</i>]
     MCP[mcp-server<br/><i>remote adapter</i>]
 
-    ST --> I18N
-    ST --> BL
     I18N --> BL
     BL --> TB
-    ST --> TB
     SKU --> TB
     BL --> AU
     I18N --> AU
     BL --> DOCS
     TB --> DOCS
+    ST --> DOCS
     ST --> DG
     DE --> DG
     DE --> DES
@@ -70,7 +68,7 @@ graph TD
 
 | Package | Does | Start reading at |
 | --- | --- | --- |
-| `shared-types` | Shared TypeScript types, no runtime code | `src/index.ts` |
+| `shared-types` | Docs-tooling types (playground, docs-config, navigation) for `docs` and `docs-gen`, no runtime code | `src/index.ts` |
 | `i18n` | Runes-based localization + translation audit | `src/lib/i18n/registry.svelte.ts` |
 | `blocks` | 40 primitives + 28 components, the token system, the `tv()` engine | `src/lib/index.ts` |
 | `table` | Data table: sorting, filtering, grouping, selection, keyboard nav, virtualization, remote mode | `src/lib/stores/TableStore.svelte.ts` |

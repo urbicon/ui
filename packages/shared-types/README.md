@@ -1,10 +1,10 @@
 # @urbicon-ui/shared-types
 
-Central TypeScript type definitions shared across the Urbicon UI monorepo. Pure types, zero runtime, zero dependencies.
+The TypeScript types behind the Urbicon UI documentation tooling. Pure types, zero runtime, zero dependencies.
 
 ## Purpose
 
-Every Urbicon package (`blocks`, `table`, `docs`, `docs-gen`, `mcp-server`, `i18n`) consumes these types to stay consistent. The same `PropInfo` describes a component prop in `docs-gen` output, in `docs`' `ApiReference` component, and in the MCP server catalog.
+`docs-gen` reads and emits these types (`ComponentInfo`, `PropInfo`, `SvelteDocsConfig`, …), and `@urbicon-ui/docs` takes the `PlaygroundConfigurator` control model (`ControlDefinition`, `ControlOption`) from `./playground`. No runtime package depends on this one: `blocks` and `table` reference `./globals` only while type-checking their own sources, and nothing they publish imports it.
 
 ## Installation
 
@@ -72,5 +72,5 @@ bun --filter='@urbicon-ui/shared-types' run dev       # watch mode
 
 ## Related
 
-- [Architecture Overview](../../docs/ARCHITECTURE.md) — how the type hub feeds docs-gen, docs, and mcp-server
+- [Architecture Overview](../../docs/ARCHITECTURE.md) — how the types feed docs-gen and docs
 - [Component API Conventions](../../docs/COMPONENT-API-CONVENTIONS.md) — canonical prop patterns reflected in these types
