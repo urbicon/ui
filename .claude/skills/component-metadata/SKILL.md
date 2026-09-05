@@ -63,6 +63,7 @@ A tv() value is a bare key (`dot: {}`), so its meaning lives in the JSDoc block 
 ```
 
 - **The JSDoc block on the key, as for a prop.** A `//` line is a maintainer's note (the comment policy: constraints, not prose for a consumer) and is never read; a block on the *axis* key belongs to the axis.
+- **Ships only where the axis is a prop.** A value description reaches the catalog only for an axis that is a prop of the component, read from its `<name>Variants` declaration — on an axis the Props interface `Omit`s, or in a sibling `tv()` config (`smartFilterBarVariants` next to `tableFeaturesVariants`), the block is documentation for maintainers only.
 - **Optional.** No block → no description, not an error. Most values (`sm`, `primary`) need none; write one where the value's name does not carry its meaning (`dot`, `ghost`, `proximity`).
 - **Said once.** The prop's JSDoc keeps the contract — what the prop selects, its default, when to reach for a value in one clause if you must; it does not restate what a value block says.
 

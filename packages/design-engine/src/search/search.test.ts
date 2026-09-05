@@ -292,6 +292,38 @@ describe('matchComponents — scores what the bundle ships', () => {
     for (const q of ['avatar group', 'avatar-group', 'AvatarGroup']) {
       expect(matchComponents([Avatar, AvatarGroup], q)[0]?.name).toBe('AvatarGroup');
     }
+    // …while a word that is the name, inside a longer query, still wins the word:
+    // with the whole-query bonus alone "small avatar" went to AvatarGroup.
+    for (const q of ['small avatar', 'avatar image']) {
+      expect(matchComponents([AvatarGroup, Avatar], q)[0]?.name).toBe('Avatar');
+    }
+  });
+
+  it('lets a word that is a name win a two-word query against a sibling that only contains it', () => {
+    const Toast = makeEntry({
+      name: 'Toast',
+      slug: 'toast',
+      description: 'Brief notification that dismisses itself.',
+      summary: 'A short notification that fades.'
+    });
+    const NotificationListener = makeEntry({
+      name: 'NotificationListener',
+      slug: 'notification-listener',
+      description: 'Shows each notification as a toast.',
+      summary: 'Listens for notifications and shows a toast.'
+    });
+    expect(matchComponents([NotificationListener, Toast], 'toast notification')[0]?.name).toBe(
+      'Toast'
+    );
+
+    const ConfirmDialog = makeEntry({
+      name: 'ConfirmDialog',
+      slug: 'confirm-dialog',
+      description: 'Modal dialog asking for confirmation.',
+      summary: 'A modal dialog with two answers.',
+      tags: ['overlay']
+    });
+    expect(matchComponents([ConfirmDialog, Dialog], 'modal dialog')[0]?.name).toBe('Dialog');
   });
 
   it('breaks a tie by name, not by catalog order', () => {

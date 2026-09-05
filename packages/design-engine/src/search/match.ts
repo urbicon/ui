@@ -23,24 +23,33 @@ export function isBooleanAxis(values: string[]): boolean {
  * characters are dropped. Every remaining word scores each field it hits, each
  * field at most once per word:
  *
- * | field                          | hit                           | score   |
- * | ------------------------------ | ----------------------------- | ------- |
- * | name / slug                    | substring · Levenshtein ≤1/≤2 | 7 · 6/3 |
- * | tags                           | exact                         | 5       |
- * | description                    | substring                     | 3       |
- * | summary                        | substring                     | 2       |
- * | variant values                 | exact, non-boolean axes       | 2       |
- * | prop docs + value descriptions | word-prefix                   | 1       |
- * | prop names                     | substring                     | 1       |
+ * | field                          | hit                                   | score        |
+ * | ------------------------------ | ------------------------------------- | ------------ |
+ * | name / slug                    | exact · substring · Levenshtein ≤1/≤2 | 15 · 7 · 6/3 |
+ * | tags                           | exact                                 | 5            |
+ * | description                    | substring                             | 3            |
+ * | summary                        | substring                             | 2            |
+ * | variant values                 | exact, non-boolean axes               | 2            |
+ * | prop docs + value descriptions | word-prefix                           | 1            |
+ * | prop names                     | substring                             | 1            |
  *
- * On top of the per-word scores, an entry whose name or slug *is* the whole query
- * (`avatar`, `date picker`, `date-picker`, `DatePicker`) gets 25 once. Whole
- * query, not per word: scored per word, "avatar-group" handed `Avatar` the bonus
- * for its first word and 22 of the catalog's 198 names and slugs stopped ranking
- * first for themselves. The bonus is set so that no stack a sibling can build
- * from one word reaches it: substring 7 + tag 5 + description 3 + summary 2 +
- * value 2 + docs 1 + prop 1 = 21, so 25 — below that `Avatar` lost to
- * `AvatarGroup` (substring plus four text hits) for "avatar". Equal scores are
+ * Two name tiers, because they answer two questions. An entry whose name or slug
+ * *is* the whole query (`avatar`, `date picker`, `date-picker`, `DatePicker`)
+ * gets 25 once — above the 21 a sibling can stack from that one word (substring
+ * 7 + tag 5 + description 3 + summary 2 + value 2 + docs 1 + prop 1), so
+ * `Avatar` beats `AvatarGroup` for "avatar"; and it is the whole query, not a
+ * word, so "avatar-group" does not hand `Avatar` 25 for its first word (scored
+ * per word at 25, 22 of the catalog's 198 names and slugs stopped ranking first
+ * for themselves). A word that is a name inside a longer query ("toast
+ * notification", "small avatar") gets 15 against the substring sibling's 7: with
+ * the text a sibling adds for the same word without a tag (description 3 +
+ * summary 2 + docs 1 + prop 1 = 7, plus 2 if an axis value happens to equal it)
+ * it reaches 14–16, and the exact entry collects those same text hits for its
+ * own name on top. Without this tier the whole-query bonus alone scored the
+ * word like a substring, and six two-word queries lost their obvious answer
+ * ("toast notification" → NotificationListener). 12 would sit inside that 14–16
+ * band; 22 overshoots — measured on the catalog, it flips "date picker input"
+ * to Input, while 15 keeps every single-word top-3 as it was. Equal scores are
  * broken by name, ascending — never by catalog order.
  *
  * Why the shipped-text rows sit below `description`: the description is the
@@ -95,8 +104,11 @@ export function matchComponents(
     }
 
     for (const kw of keywords) {
-      // Substring match on name/slug
-      if (nameLower.includes(kw) || slugLower.includes(kw)) {
+      // Exact word match on name/slug
+      if (nameLower === kw || slugLower === kw) {
+        score += 15;
+      } else if (nameLower.includes(kw) || slugLower.includes(kw)) {
+        // Substring match on name/slug
         score += 7;
       } else {
         // Fuzzy match on name/slug (Levenshtein distance <= 2)
