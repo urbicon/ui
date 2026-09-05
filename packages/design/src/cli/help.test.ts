@@ -112,18 +112,21 @@ describe('urbicon --help', () => {
 });
 
 describe.skipIf(!existsSync(BUILT_INDEX))('urbicon --help against the built bundle', () => {
-  const slugs = (JSON.parse(readFileSync(BUILT_INDEX, 'utf-8')) as { slug: string }[]).map(
-    (g) => g.slug
-  );
-  const help = renderHelp(slugs);
+  // Read inside the tests: vitest still runs a skipped describe's body to collect
+  // it, so a read up here would throw in the very checkout the guard is for.
+  const builtSlugs = (): string[] =>
+    (JSON.parse(readFileSync(BUILT_INDEX, 'utf-8')) as { slug: string }[]).map((g) => g.slug);
 
   it('advertises every guide docs-gen bundled and nothing else', () => {
-    expect(advertisedGuides(help)).toEqual(slugs);
+    const slugs = builtSlugs();
+    expect(advertisedGuides(renderHelp(slugs))).toEqual(slugs);
   });
 
   it('wraps the real list inside the help width', () => {
     // The fixture list is two slugs; the bundle's is what the wrapping must survive.
-    const overflowing = help.split('\n').filter((line) => line.length > 100);
+    const overflowing = renderHelp(builtSlugs())
+      .split('\n')
+      .filter((line) => line.length > 100);
     expect(overflowing, `Help lines over 100 columns: ${overflowing.join(' / ')}`).toEqual([]);
   });
 });

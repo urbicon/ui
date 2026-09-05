@@ -7,6 +7,8 @@
  * One source, all channels generated — see docs/DOCS-SURFACES.md.
  */
 
+import { OVERRIDE_CASCADE } from '@urbicon-ui/design-engine/reference';
+
 /**
  * A canonical package guide document distributed into the generated channels.
  * The source of truth stays in the package (shipped in its npm tarball);
@@ -33,6 +35,51 @@ export function guidePlaceholder(slug: string): string {
 
 /** Matches any guide placeholder — the fail-loud sweep for unconfigured leftovers. */
 export const GUIDE_PLACEHOLDER_PATTERN = /\{\{GUIDE:([a-z0-9-]+)\}\}/;
+
+/** The template placeholder the engine's override-cascade sentence is substituted into. */
+export const OVERRIDE_CASCADE_PLACEHOLDER = '{{OVERRIDE_CASCADE}}';
+
+/**
+ * The template placeholder `llms-full.txt` inlines every component section into.
+ * The bundle copy keeps it: the bundle carries the components as the catalog and
+ * the `llm.txt` tree, and the MCP guide resources slice sections `## Components`
+ * is not among.
+ */
+export const COMPONENTS_PLACEHOLDER = '{{COMPONENTS}}';
+
+/**
+ * Any placeholder-shaped token: an upper-case name, optionally with a `:slug`
+ * argument. The shape matters — the template's Svelte examples open object
+ * literals with `defaults={{ … }}`, which a bare `{{` sweep would flag.
+ */
+export const TEMPLATE_PLACEHOLDER_PATTERN = /\{\{[A-Z][A-Z_]*(?::[a-z0-9-]+)?\}\}/;
+
+/**
+ * Substitute the override-cascade sentence for its placeholder. Absence is a
+ * build error, like a configured guide without its placeholder: the template's
+ * merge-order paragraph would otherwise lose its derived line without a trace.
+ */
+export function injectOverrideCascade(text: string, what: string): string {
+  if (!text.includes(OVERRIDE_CASCADE_PLACEHOLDER)) {
+    throw new Error(`${what} is missing the ${OVERRIDE_CASCADE_PLACEHOLDER} placeholder`);
+  }
+  return text.replace(OVERRIDE_CASCADE_PLACEHOLDER, () => OVERRIDE_CASCADE);
+}
+
+/**
+ * After every substitution: a placeholder-shaped token still standing would ship
+ * literally. `kept` names the placeholders this output leaves in by design.
+ */
+export function assertNoPlaceholderLeft(
+  text: string,
+  what: string,
+  kept: readonly string[] = []
+): void {
+  const pattern = new RegExp(TEMPLATE_PLACEHOLDER_PATTERN.source, 'g');
+  for (const [token] of text.matchAll(pattern)) {
+    if (!kept.includes(token)) throw new Error(`${what} still carries the placeholder ${token}`);
+  }
+}
 
 /**
  * Validate a guide's slug (it becomes a bundle file name and a CLI argument).

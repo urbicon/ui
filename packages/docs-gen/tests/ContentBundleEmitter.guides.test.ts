@@ -1,6 +1,8 @@
 import * as fs from 'node:fs/promises';
+import { OVERRIDE_CASCADE } from '@urbicon-ui/design-engine/reference';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { ContentBundleEmitter } from '../src/generators/content/ContentBundleEmitter';
+import { TEMPLATE_PLACEHOLDER_PATTERN } from '../src/generators/llm/guide-injection';
 
 vi.mock('fs/promises');
 vi.mock('glob', () => ({
@@ -11,9 +13,17 @@ const { glob } = await import('glob');
 
 const TEMPLATE = `# Reference
 
+## Components
+
+{{COMPONENTS}}
+
 ## Auth Reference
 
 {{GUIDE:auth}}
+
+## Customization
+
+{{OVERRIDE_CASCADE}}
 `;
 
 const ICON_REGISTRY = `
@@ -129,10 +139,39 @@ describe('ContentBundleEmitter package guides', () => {
     await expect(emitter.emit()).rejects.toThrow('unconfigured guide "auth"');
   });
 
+  it('substitutes the cascade sentence into the bundled template copy', async () => {
+    mockFs();
+    const emitter = new ContentBundleEmitter({ ...config, packageGuides: [guide] });
+
+    await emitter.emit();
+
+    // The MCP guide resources slice this copy, so it has to carry the sentence
+    // itself — the engine's constant, not a paraphrase — and no placeholder shape
+    // but `{{COMPONENTS}}`, which the bundle copy keeps by design.
+    const template = writtenFile('guides/llms-full-template.md') ?? '';
+    expect(template).toContain(OVERRIDE_CASCADE);
+    expect(template).toContain('{{COMPONENTS}}');
+    expect(template.replace('{{COMPONENTS}}', '')).not.toMatch(TEMPLATE_PLACEHOLDER_PATTERN);
+  });
+
+  it('fails on a misspelled placeholder instead of shipping it literally', async () => {
+    mockFs({ [config.templatePath]: `${TEMPLATE}\n{{OVERRIDE_CASCADES}}\n` });
+    const emitter = new ContentBundleEmitter({ ...config, packageGuides: [guide] });
+
+    await expect(emitter.emit()).rejects.toThrow('{{OVERRIDE_CASCADES}}');
+  });
+
+  it('fails loud when the template lost the cascade placeholder', async () => {
+    mockFs({ [config.templatePath]: TEMPLATE.replace('{{OVERRIDE_CASCADE}}', '') });
+    const emitter = new ContentBundleEmitter({ ...config, packageGuides: [guide] });
+
+    await expect(emitter.emit()).rejects.toThrow('missing the {{OVERRIDE_CASCADE}}');
+  });
+
   it('rejects an invalid guide slug', async () => {
-    // Placeholder-free template so the slug check is what trips, not the
+    // Guide-placeholder-free template so the slug check is what trips, not the
     // unconfigured-placeholder sweep.
-    mockFs({ [config.templatePath]: '# Reference\n' });
+    mockFs({ [config.templatePath]: '# Reference\n\n{{OVERRIDE_CASCADE}}\n' });
     const emitter = new ContentBundleEmitter({
       ...config,
       packageGuides: [{ ...guide, slug: '../escape' }]

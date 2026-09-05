@@ -4,8 +4,11 @@ import * as path from 'node:path';
 import { glob } from 'glob';
 import {
   assertGuideSlug,
+  assertNoPlaceholderLeft,
+  COMPONENTS_PLACEHOLDER,
   GUIDE_PLACEHOLDER_PATTERN,
   guidePlaceholder,
+  injectOverrideCascade,
   type PackageGuide,
   stripTypecheckMarkers
 } from '../llm/guide-injection';
@@ -136,8 +139,18 @@ export class ContentBundleEmitter {
     // 5. Guide template. `{{GUIDE:<slug>}}` placeholders become pointers to the
     //    bundled guide file — the bundle carries each guide exactly once (5b),
     //    and the template's sections stay sliceable for the MCP guide resources.
+    //    `{{OVERRIDE_CASCADE}}` is substituted here as in llms-full.txt, so the
+    //    bundle copy the MCP guide resources slice carries the sentence, not the
+    //    placeholder. `{{COMPONENTS}}` is the one placeholder that stays (see
+    //    COMPONENTS_PLACEHOLDER).
     const template = await this.readRequired(templatePath, 'llms-full template');
-    const bundledTemplate = this.pointGuidePlaceholders(template, packageGuides);
+    const bundledTemplate = injectOverrideCascade(
+      this.pointGuidePlaceholders(template, packageGuides),
+      'llms-full template'
+    );
+    assertNoPlaceholderLeft(bundledTemplate, 'the bundled llms-full template', [
+      COMPONENTS_PLACEHOLDER
+    ]);
     await fs.mkdir(path.join(outputDir, 'guides'), { recursive: true });
     await fs.writeFile(
       path.join(outputDir, 'guides', 'llms-full-template.md'),

@@ -83,7 +83,7 @@ When a component needs a look **outside the semantic `intent` palette** (primary
 ```
 
 Define all interactive states (`hover:`, `active:`, `focus-visible:`) inside the preset.
-Merge order: tv() defaults → `defaults.slotClasses` → `defaults.overrides` → `presets[name].slotClasses` → `presets[name].overrides` → instance `slotClasses` → instance `class` (conflict-resolved per Tailwind bucket — a later source wins).
+Merge order: the library's own tv() variant styles sit below every rung you write. Cascade (conflict-resolved per Tailwind bucket, later wins): `defaults.slotClasses → defaults.overrides[match] → preset.slotClasses → preset.overrides[match] → instance slotClasses → instance class`.
 
 ### USE `overrides` for prop-conditional rules (target only a specific variant/intent/state):
 ```svelte

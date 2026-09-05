@@ -1,6 +1,7 @@
 /**
  * `urbicon primer` — the design knowledge an agent needs on *every* task, in one
- * call: how to pick a component, and what the tokens are actually called.
+ * call: how to pick a component, what the tokens are actually called, and the
+ * override ladder — which styling hook to reach for and what wins when two meet.
  *
  * Why a bundle instead of leaving it to `principles --topic component-selection`
  * + five `css-reference` calls: both are needed for essentially any task, and a
@@ -9,7 +10,10 @@
  * six separate calls, Sonnet 5 fetched only two sections and worked with
  * incomplete token knowledge. One call removes that variance — and it lands in
  * the prompt cache on the first round, so the marginal cost over the rest of the
- * session is a rounding error (~7 100 tokens ≈ $0.14 across 55 rounds).
+ * session is a rounding error: ~7 100 tokens ≈ $0.14 across 55 rounds, measured
+ * at introduction (2026-07-27) and not re-measured since. The page has grown by
+ * the layout section and the override ladder — 23 798 B today, 967 B of it
+ * (4.2 %) the ladder block and its intro line.
  *
  * What is deliberately NOT here: patterns and recipes. Those are task-dependent
  * (a settings page needs `settings-page`, not all seven), so bundling them would

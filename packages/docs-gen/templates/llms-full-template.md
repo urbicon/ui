@@ -667,14 +667,9 @@ Each `overrides` entry is a `compoundVariant`-shaped matcher (`string` = equals,
 per-slot `class`); it matches active prop *values*, so it works regardless of whether the library
 defines the conflicting class in a `variant` or a `compoundVariant`.
 
-Merge priority (lowest → highest), conflict-resolved per Tailwind bucket (a later source wins):
-1. `tv()` variant styles (library default)
-2. `defaults.slotClasses` (global baseline)
-3. `defaults.overrides[match]` (prop-conditional)
-4. `presets[Component][name].slotClasses` (when `preset` prop is set)
-5. `presets[Component][name].overrides[match]`
-6. Instance `slotClasses` prop
-7. Instance `class` prop
+The library's own `tv()` variant styles sit below every rung a consumer writes, and `preset.*` in
+the chain reads `presets[Component][name].*` — the entry the instance's `preset` prop selects.
+{{OVERRIDE_CASCADE}}
 
 ### Level 4: Global Unstyled Mode
 

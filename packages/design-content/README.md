@@ -22,7 +22,7 @@ The `content/` directory is a **build artifact** (git-ignored in dev, regenerate
 | `design-system/principles.md` | Design principles, by topic |
 | `design-system/patterns/*.md` | Layer-4 composition patterns (dashboard, form-page, …) |
 | `guides/llms-full-template.md` | Source for the template-sliced guide resources |
-| `guides/<slug>.md` + `guides/index.json` | Canonical package guides (auth, guide-system, a2ui, variant-contract, table-sticky) behind `urbicon guide` |
+| `guides/<slug>.md` + `guides/index.json` | Canonical package guides behind `urbicon guide`; `guides/index.json` is the list of what this bundle ships |
 | `icons.json` | Icon metadata (name → label / categories / keywords / component) |
 | `meta.json` | Build provenance `{ version, builtAt, contentHash }` |
 

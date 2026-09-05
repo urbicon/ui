@@ -1,6 +1,9 @@
 import * as fs from 'node:fs/promises';
 import * as path from 'node:path';
-import { CLASS_OVER_SLOT_CLASSES } from '@urbicon-ui/design-engine/reference';
+import {
+  CLASS_OVER_SLOT_CLASSES,
+  PROVIDER_BELOW_INSTANCE
+} from '@urbicon-ui/design-engine/reference';
 import type { ComponentStability, PropInfo, SvelteDocsConfig } from '@urbicon-ui/shared-types';
 import { SvelteDocsParser } from '../../parsers/SvelteDocsParser';
 import type {
@@ -26,14 +29,22 @@ const PRECEDENCE_PROPS = new Set(['class', 'slotClasses']);
  * One row of the `### Api` table. Every agent-facing output renders props through
  * this — `llm.txt` directly, `llms-full.txt` and both `get-component --section api`
  * paths by reading the `llm.txt` — so a clause added here reaches all of them or none.
+ *
+ * `resolvesProvider` is whether the component declares a `preset` prop: the
+ * components that resolve the provider cascade all take one, and the ones that do
+ * not (the `@urbicon-ui/docs` components, `FormField` — 11 of the 106 with these
+ * rows) merge `class` over `slotClasses` and nothing else, so the sentence about
+ * presets and provider defaults would send an agent to a `BlocksProvider` entry
+ * nothing reads.
  */
-function renderPropRow(prop: PropInfo): string {
+function renderPropRow(prop: PropInfo, resolvesProvider: boolean): string {
   const required = prop.required ? 'yes' : 'no';
   const def = prop.defaultValue ?? '';
   let desc = (prop.description || '').replace(/\n/g, ' ').trim();
   if (PRECEDENCE_PROPS.has(prop.name)) {
     const lead = desc === '' ? '' : desc.endsWith('.') ? `${desc} ` : `${desc}. `;
-    desc = `${lead}${CLASS_OVER_SLOT_CLASSES}`;
+    const provider = resolvesProvider ? ` ${PROVIDER_BELOW_INSTANCE}` : '';
+    desc = `${lead}${CLASS_OVER_SLOT_CLASSES}${provider}`;
   }
   return `| ${prop.name} | \`${prop.type}\` | ${required} | ${def} | ${desc} |`;
 }
@@ -339,7 +350,8 @@ export class LLMDocumentationGenerator {
     const lines: string[] = [];
     lines.push('| Prop | Type | Required | Default | Description |');
     lines.push('| --- | --- | :---: | --- | --- |');
-    for (const prop of componentApiData.props) lines.push(renderPropRow(prop));
+    const resolvesProvider = componentApiData.props.some((p) => p.name === 'preset');
+    for (const prop of componentApiData.props) lines.push(renderPropRow(prop, resolvesProvider));
     // Inheritance summary
     if (componentApiData.inheritance.length > 0) {
       lines.push('');
