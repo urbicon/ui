@@ -17,7 +17,7 @@ Bump **after pushing a coherent set of changes**. Bump proactively — don't wai
 | ---------- | -------------------- | ------------------------------------------------------------------------------------------------ |
 | **Patch**  | `bun run bump`       | `fix`, `docs`, `refactor`, `chore`, `style`, `test`, `perf` — no new user-facing features        |
 | **Minor**  | `bun run bump:minor` | `feat` — new component, new prop, new capability                                                 |
-| **Major**  | `bun run bump:major` | `feat!:` or `BREAKING CHANGE:` in commit body — removal of props, renamed APIs, changed defaults |
+| **Major**  | `bun run bump:major` | `feat!:` or a `BREAKING CHANGE:` footer — removal of props, renamed APIs, changed defaults       |
 
 `bun run bump` is an alias for `bun run bump:patch` (the most common case).
 

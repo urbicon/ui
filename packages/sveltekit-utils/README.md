@@ -11,10 +11,8 @@ Currently shipping:
 
 ## Installation
 
-This package ships inside the Urbicon UI monorepo. Install from repo root:
-
 ```bash
-bun install
+bun add @urbicon-ui/sveltekit-utils
 ```
 
 Peer dependencies: `svelte` (^5), `@sveltejs/kit`.

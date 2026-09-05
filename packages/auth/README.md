@@ -81,10 +81,8 @@ stylesheet existed adds the one line and is done.
 
 All use `@urbicon-ui/blocks` primitives and honour `unstyled` + `slotClasses` + snippet overrides.
 
-`t` takes a `PartialAuthLocale` — any subset of the strings, deep-merged over the active built-in
-bundle by `mergeAuthLocale` (both root exports), so overriding one string never blanks the rest.
-`AuthLocale` itself is fully required: a hand-written full bundle stops compiling when a release
-adds keys, and the changelog lists that under **Breaking Changes**.
+`t` takes a `PartialAuthLocale`, merged over the built-in bundle by `mergeAuthLocale` — see
+[AUTH.md → UI Components](./docs/AUTH.md#ui-components).
 
 | Component              | Purpose                                         |
 | ---------------------- | ----------------------------------------------- |

@@ -24,7 +24,6 @@
     "@sveltejs/package": "catalog:",
     "@sveltejs/vite-plugin-svelte": "catalog:",
     "@types/node": "catalog:",
-    "@urbicon-ui/shared-types": "workspace:*",
     "prettier": "catalog:",
     "prettier-plugin-svelte": "catalog:",
     "prettier-plugin-tailwindcss": "catalog:",

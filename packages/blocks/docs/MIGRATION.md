@@ -3,11 +3,9 @@
 Breaking changes to the component library, newest first: what moved, what it costs you, and —
 where nothing reports the change — what to grep for before you ship.
 
-Entries are headed by the release that shipped the change. Until the launch of ui.urbicon.de is
-announced, an 8.x **minor** may carry breaking changes — the policy, and what it means for your
-version range, is
-[VERSIONING.md § The pre-launch window](https://github.com/urbicon/ui/blob/main/docs/VERSIONING.md#the-pre-launch-window):
-pin with `~`, and read this file and the changelog's **Breaking Changes** before every minor.
+Entries are headed by the release that shipped the change — an 8.x minor until the launch is
+announced, see
+[VERSIONING.md § The pre-launch window](https://github.com/urbicon/ui/blob/main/docs/VERSIONING.md#the-pre-launch-window).
 
 Only this package. The table's v8 view-state rewrite has its own guide,
 [MIGRATION-V8.md](https://github.com/urbicon/ui/blob/main/packages/table/docs/MIGRATION-V8.md),
@@ -413,8 +411,9 @@ sparkline", not "your config has no stale keys". The grep above is what answers 
 
 An instance `class` and a `slotClasses` entry that reach the same element used to land in the
 attribute together, and the stylesheet's emit order decided which one painted. `class` is now
-the last source of the override ladder in its own right: where the two collide in the same
-Tailwind bucket, only the `class` one survives.
+the strongest source of the cascade (`defaults.slotClasses → … → instance.slotClasses → class`)
+in its own right: where the two collide in the same Tailwind bucket, only the `class` one
+survives.
 
 ```svelte
 <EmptyState class="py-4" slotClasses={{ base: 'py-8' }} />
@@ -426,17 +425,35 @@ Tailwind bucket, only the `class` one survives.
 stripped class without a word; the only signal is visual, on an element that carried both. Grep
 for `class=` beside `slotClasses=` on the same element, `class={` included. A `slotClasses`
 entry that reaches the element through a `<BlocksProvider>` `defaults` or `presets` block is
-folded through the same rung, so an instance `class` strips it the same way — that pair does not
-show up in the markup grep. Where the two collide, the value you see now is the `class` one; if
-it was the other you wanted, move it into `class` or drop the `class` half.
+folded into the same resolved record before `class` meets it, so an instance `class` strips it
+the same way — that pair does not show up in the markup grep. Where the two collide, the value
+you see now is the `class` one; if it was the other you wanted, move it into `class` or drop the
+`class` half.
 
 Within one prop nothing changed: `class="rounded-md rounded-t-none"` is still one source, so an
 author-paired set survives, and so does a `slotClasses` string with two classes in one bucket.
 
-**Restart the dev server after upgrading.** Vite pre-bundles dependencies at server start and
-decides only then, from the lockfile, whether to rebuild that bundle; a server that was already
-running keeps serving the previous version's copy from `node_modules/.vite`, so the old fold
-stays in effect until you restart.
+**Restart the dev server after upgrading.** A server that was already running keeps serving
+what it already transformed — the pre-bundle in `node_modules/.vite` on the client, its module
+cache on the server — so the old fold stays in effect until you restart it.
+
+### An instance `unstyled` reaches the components it renders
+
+`<DatePicker unstyled>` stripped its own root and left the `<Input>` it renders with every
+default class, where `<BlocksProvider unstyled>` stripped both. Every component that declares
+`unstyled` and renders another public component now forwards the flag, so the instance flag and
+the provider flag remove the same thing. `<Skeleton unstyled>` also lost its `gap-2`: the gap
+moved into the slot base so that a documented instance prop no longer loses to a provider
+default, and `unstyled` now removes it like every other default.
+
+**Nothing reports this either** — the flag type-checks as before, and the embedded control
+simply renders bare. Grep for `unstyled` on `DatePicker`, `DateRangePicker`, `ConfirmDialog`,
+`Pagination`, `Menu`, `CommandPalette`, `FileUpload`, `AvatarGroup`, `Guide`, `CalendarHeader`,
+`PlannerHeader`, `ResourceTimelineHeader`, the Chat family (`ChatMessage`, `ChatMessageList`,
+`CitationChip`, `ReasoningDisclosure`, `ToolCallCard`, `A2UIView`) and on `Skeleton`. If the
+embedded control was meant to keep its look, write the classes you want back through
+`slotClasses`, or hand the control in as `children` where the component takes them — the flag
+never reaches those.
 
 ### The shadow scale left the colour namespace
 
