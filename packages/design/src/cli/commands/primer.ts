@@ -1,6 +1,7 @@
 /**
  * `urbicon primer` — the design knowledge an agent needs on *every* task, in one
- * call: how to pick a component, and what the tokens are actually called.
+ * call: how to pick a component, what the tokens are actually called, and the
+ * override ladder — which styling hook to reach for and what wins when two meet.
  *
  * Why a bundle instead of leaving it to `principles --topic component-selection`
  * + five `css-reference` calls: both are needed for essentially any task, and a
@@ -9,7 +10,10 @@
  * six separate calls, Sonnet 5 fetched only two sections and worked with
  * incomplete token knowledge. One call removes that variance — and it lands in
  * the prompt cache on the first round, so the marginal cost over the rest of the
- * session is a rounding error (~7 100 tokens ≈ $0.14 across 55 rounds).
+ * session is a rounding error: ~7 100 tokens ≈ $0.14 across 55 rounds, measured
+ * at introduction (2026-07-27) and not re-measured since. The page has grown by
+ * the layout section and the override ladder — 23 798 B today, 967 B of it
+ * (4.2 %) the ladder block and its intro line.
  *
  * What is deliberately NOT here: patterns and recipes. Those are task-dependent
  * (a settings page needs `settings-page`, not all seven), so bundling them would
@@ -17,7 +21,11 @@
  * Component APIs are likewise on demand: `get-component <slug> --section api`.
  */
 
-import { extractPrincipleSection, renderCssReference } from '@urbicon-ui/design-engine/reference';
+import {
+  extractPrincipleSection,
+  OVERRIDE_LADDER,
+  renderCssReference
+} from '@urbicon-ui/design-engine/reference';
 import type { Flags } from '../args.js';
 import { loadPrinciplesText } from '../content.js';
 import { EXIT, printError } from '../output.js';
@@ -72,13 +80,15 @@ export async function runPrimer(_positionals: string[], _flags: Flags): Promise<
   console.log('# Urbicon UI — primer\n');
   console.log(
     'Everything below applies to every task: how to pick a component, how to lay it\n' +
-      'out, and what the tokens are called — surfaces, text, borders, intents,\n' +
+      'out, what the tokens are called — surfaces, text, borders, intents,\n' +
       'shadows **plus the z-index scale and the radius tiers** (both live in the\n' +
-      'shadows section). Component APIs, composition patterns and recipes are fetched\n' +
-      'per task — see the pointers at the end.\n'
+      'shadows section) — and the override ladder: which styling hook to reach for,\n' +
+      'and what wins when two of them meet. Component APIs, composition patterns and\n' +
+      'recipes are fetched per task — see the pointers at the end.\n'
   );
   for (const section of sections) console.log(`${section}\n`);
   for (const section of CORE_SECTIONS) console.log(`${renderCssReference(section).trim()}\n`);
+  console.log(`${OVERRIDE_LADDER.trim()}\n`);
 
   console.log(
     '→ `urbicon find <query>` then `get-component <slug> --section api` for a component API\n' +

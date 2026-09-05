@@ -8,6 +8,7 @@
 
 import { dirname, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { OVERRIDE_CASCADE } from '@urbicon-ui/design-engine/reference';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { runPrimer } from './primer.js';
 
@@ -60,6 +61,26 @@ describe('runPrimer', () => {
     ]) {
       expect(stdout(), `token reference is missing ${token}`).toContain(token);
     }
+  });
+
+  it('carries the override ladder — the five rungs and the cascade sentence theming prints', async () => {
+    expect(await runPrimer([], {})).toBe(0);
+    expect(stdout()).toContain('# Override Ladder');
+    for (const rung of [
+      '`class`',
+      '`slotClasses.<slot>`',
+      '`preset`',
+      '`overrides`',
+      '`unstyled`'
+    ]) {
+      expect(stdout(), `ladder is missing the ${rung} rung`).toContain(rung);
+    }
+    // The sentence is the engine's constant, so `css-reference theming` and the
+    // primer cannot state two orders. Asserted on the constant, not a copy of it.
+    expect(stdout()).toContain(OVERRIDE_CASCADE);
+    // After the token sections: the rungs name `slotClasses` values that are
+    // token classes, and a reader meets those names once they are defined.
+    expect(stdout().indexOf('# Override Ladder')).toBeGreaterThan(stdout().indexOf('--z-modal'));
   });
 
   it('leaves out what is task-dependent — that is the point of the bundle', async () => {

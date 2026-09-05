@@ -1,5 +1,7 @@
 import * as fs from 'node:fs/promises';
+import { OVERRIDE_CASCADE } from '@urbicon-ui/design-engine/reference';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { TEMPLATE_PLACEHOLDER_PATTERN } from '../src/generators/llm/guide-injection';
 import { LlmsFullAssembler } from '../src/generators/llm/LlmsFullAssembler';
 
 vi.mock('fs/promises');
@@ -19,6 +21,9 @@ const TEMPLATE = `# Urbicon UI – Full API Reference
 
 ## Design Tokens
 Semantic tokens only.
+
+## Customization
+Merge order: {{OVERRIDE_CASCADE}}
 `;
 
 const COMPONENT_A = `---
@@ -190,6 +195,8 @@ describe('LlmsFullAssembler', () => {
 ## Auth Reference
 
 {{GUIDE:auth}}
+
+{{OVERRIDE_CASCADE}}
 `;
     const guideSourcePath = '/repo/packages/auth/docs/AUTH.md';
     // The $-before-backtick would corrupt output if replace() used a string
@@ -276,6 +283,44 @@ describe('LlmsFullAssembler', () => {
       const guideAssembler = new LlmsFullAssembler({ templatePath, staticDirs, outputPaths });
 
       await expect(guideAssembler.assemble()).rejects.toThrow('unconfigured guide "auth"');
+    });
+  });
+
+  describe('override cascade', () => {
+    function mockFs(template: string): void {
+      vi.mocked(fs.readFile).mockImplementation(async (filePath) => {
+        const p = filePath.toString();
+        if (p === templatePath) return template;
+        if (p.includes('llm.txt')) return COMPONENT_A;
+        throw new Error(`Unexpected read: ${p}`);
+      });
+      vi.mocked(glob).mockResolvedValue(['/repo/apps/docs/static/blocks/Alert/llm.txt']);
+      vi.mocked(fs.mkdir).mockResolvedValue(undefined);
+      vi.mocked(fs.writeFile).mockResolvedValue(undefined);
+    }
+
+    it('substitutes the engine sentence and leaves no placeholder-shaped token behind', async () => {
+      mockFs(TEMPLATE);
+
+      await assembler.assemble();
+
+      const written = vi.mocked(fs.writeFile).mock.calls[0][1] as string;
+      // The sentence is the engine's constant — a paraphrase here would be the
+      // hand copy this placeholder replaced.
+      expect(written).toContain(`Merge order: ${OVERRIDE_CASCADE}`);
+      expect(written).not.toMatch(TEMPLATE_PLACEHOLDER_PATTERN);
+    });
+
+    it('throws when the template lost the placeholder, rather than dropping the line', async () => {
+      mockFs(TEMPLATE.replace('{{OVERRIDE_CASCADE}}', ''));
+
+      await expect(assembler.assemble()).rejects.toThrow('missing the {{OVERRIDE_CASCADE}}');
+    });
+
+    it('fails on a misspelled placeholder instead of shipping it literally', async () => {
+      mockFs(`${TEMPLATE}\n{{OVERRIDE_CASCADES}}\n`);
+
+      await expect(assembler.assemble()).rejects.toThrow('{{OVERRIDE_CASCADES}}');
     });
   });
 

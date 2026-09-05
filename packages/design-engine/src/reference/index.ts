@@ -23,3 +23,9 @@ export {
   type PrincipleTopic,
   parsePatternEntry
 } from './design-system.js';
+export {
+  CLASS_OVER_SLOT_CLASSES,
+  OVERRIDE_CASCADE,
+  OVERRIDE_LADDER,
+  PROVIDER_BELOW_INSTANCE
+} from './override-ladder.js';

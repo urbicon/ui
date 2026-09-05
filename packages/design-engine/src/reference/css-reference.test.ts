@@ -10,6 +10,7 @@ import {
   renderCssReference,
   resolveCssReferenceSection
 } from './css-reference.js';
+import { OVERRIDE_CASCADE } from './override-ladder.js';
 
 /**
  * Drift guard for the hand-maintained CSS token reference.
@@ -167,6 +168,12 @@ describe('renderCssReference', () => {
 
   it('still fails to resolve a genuine typo', () => {
     expect(resolveCssReferenceSection('bogus')).toBeUndefined();
+  });
+
+  it('states the override cascade through the shared sentence, not a paraphrase of it', () => {
+    // The primer prints the same constant; a theming section that reworded the
+    // chain could put the two bundled statements of one order in disagreement.
+    expect(CSS_REFERENCE_SECTIONS.theming).toContain(OVERRIDE_CASCADE);
   });
 
   it('advertises every section in the overview', () => {

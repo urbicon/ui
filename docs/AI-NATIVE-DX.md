@@ -17,9 +17,10 @@ surface is the one consumers actually install.
 One dev-dependency, so the knowledge a project gets is pinned to the version it installed.
 
 - **Knowledge** — `primer` (the always-needed bundle: component selection plus the token
-  core, one call, run first), `find`, `get-component`, `icons`, `recipe`, `guide` (bundled
-  package guides: auth reference, blocks guide system, A2UI, variant contract, table scroll
-  models), `pattern`, `principles` (`--topic`, `--rubric`), `css-reference`.
+  core, the override ladder, one call, run first), `find`, `get-component`, `icons`, `recipe`,
+  `guide` (the bundled package guides — reference, migration and integration docs shipped in
+  the package tarballs; `--help` and a bare `guide` list them from the bundle's index),
+  `pattern`, `principles` (`--topic`, `--rubric`), `css-reference`.
 - **Judgment** — `validate`, plus `hook` and the CI entry point.
 - **Memory** — `context`, `record-decision`, `sync-manifest`.
 - **Process** — `verbs` / `verb <name>`, plus the `urbicon-design` skill.

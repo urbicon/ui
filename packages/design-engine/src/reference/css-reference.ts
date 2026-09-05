@@ -8,6 +8,8 @@
  * which re-derives the token families from the real blocks CSS when run in-repo.
  */
 
+import { OVERRIDE_CASCADE } from './override-ladder.js';
+
 export const CSS_REFERENCE_OVERVIEW = `# Urbicon UI — CSS Design Tokens
 
 ## Architecture
@@ -594,7 +596,7 @@ Use \`BlocksProvider\` to style components project-wide — unconditional \`defa
   Badge: { overrides: [{ variant: 'outlined', class: { base: 'border' } }] }
 }}>
 \`\`\`
-Cascade (conflict-resolved per Tailwind bucket, later wins): \`defaults.slotClasses → defaults.overrides → preset.slotClasses → preset.overrides → instance slotClasses → instance class\`.
+${OVERRIDE_CASCADE}
 
 Or override per-instance:
 \`\`\`svelte
