@@ -163,11 +163,14 @@ import { authDeps } from '$lib/server/auth-setup';
 export const handle = createAuthHandle({ config: authDeps.config, repos: authDeps.repos });
 ```
 
-> **Origin/CSRF is enforced only for requests that flow _through_ the handle.** If you
-> later route a cross-origin, form-encoded endpoint (an OAuth 2.1 token endpoint, a webhook)
-> _around_ `createAuthHandle`, SvelteKit's own kernel CSRF gate — which runs before any
-> hook, in built apps only (never under `vite dev`) — will `403` it. Resolution
-> and safety preconditions: [AUTH.md → Known Limitations](https://ui.urbicon.de/auth/guide#known-limitations--security-gaps).
+> **Machine callers** — a cron runner posting with a secret header, an OAuth token endpoint,
+> an API-key route — send no `Origin`, so the handle's CSRF gate answers them `403`. Declare
+> them in `csrf: { exempt: ['/api/cron/'] }`: the hook then resolves no session for them
+> (`locals.user` is `null`) and they must authenticate every request without the session
+> cookie — a route that reads it itself keeps working with the gate off, so never exempt a
+> cookie-authorised route (`/api/auth/` is refused). What SvelteKit's own kernel CSRF gate
+> still does to form-encoded ones, and its build-time off-switch:
+> [AUTH.md → Machine callers](https://ui.urbicon.de/auth/guide#machine-callers).
 
 **3. API route stubs** — one file per handler, e.g. `src/routes/api/auth/login/+server.ts`:
 
@@ -263,7 +266,7 @@ Mirrors [AUTH.md → Production-Readiness Checklist](https://ui.urbicon.de/auth/
 - [ ] **CSP** tuned to your app (`securityHeaders.csp`) — the default only blocks framing.
 - [ ] **`appUrl`** set to the real public origin; **`JWT_SECRET`** from a secret store, with a `keyId` + `previousSecrets` rotation runbook ready.
 - [ ] **Monitoring** on auth-handler latency + error rate; wire `hooks.onPasswordResetFailed` to your error tracker so a broken mail transport doesn't silently lock users out of recovery.
-- [ ] **Cross-origin form-encoded endpoint outside the handle?** (OAuth 2.1 token, webhook) — set `kit.csrf: { trustedOrigins: ['*'] }` in `svelte.config.js` (SvelteKit's kernel CSRF gate, skipped under `vite dev` only, otherwise `403`s it before the hook; the wildcard disables the gate at build time — a *specific* origin list can't admit header-less callers) and confirm every cookie-auth mutating route still flows through `createAuthHandle`. See [AUTH.md → Known Limitations](https://ui.urbicon.de/auth/guide#known-limitations--security-gaps).
+- [ ] **Machine callers declared** (cron, OAuth token, API-key routes) in `csrf: { exempt }` on `createAuthHandle`, each authenticating itself; for the form-encoded ones also `kit.csrf: { trustedOrigins: ['*'] }` in `svelte.config.js` (SvelteKit's kernel gate, built apps only) with every cookie-auth mutating route still flowing through the handle. See [AUTH.md → Machine callers](https://ui.urbicon.de/auth/guide#machine-callers).
 
 #### CSRF on the client
 
@@ -425,7 +428,7 @@ Setup returns the `otpauth://` URI + Base32 secret (the core ships **no** QR enc
 
 - **`notification.url` is untrusted at navigation time.** It originates from your event registry, but treat it as data: validate/allow-list it before passing it to `goto()` so a crafted URL can't drive an open redirect.
 - **The console email transport is dev-only.** It logs full email bodies (including reset/verify tokens) to stdout — never ship it to production.
-- **`createAuthHandle` is mandatory for CSRF and session hydration.** Route handlers alone don't apply the Origin/Double-Submit checks or set `locals.user`. The Origin check covers only requests that _reach_ the handle — in a `sequence()`, an earlier handle that returns a response without calling `resolve` (maintenance mode, webhook shortcut, redirect) bypasses it for its routes; with `trustedOrigins: ['*']` set, nothing else covers those. A cross-origin, form-encoded endpoint bypassing the handle is instead gated by SvelteKit's own kernel CSRF check, which `403`s it before any hook (in built apps only, never under `vite dev`) — see [AUTH.md → Known Limitations](https://ui.urbicon.de/auth/guide#known-limitations--security-gaps).
+- **`createAuthHandle` is mandatory for CSRF and session hydration.** Route handlers alone don't apply the Origin/Double-Submit checks or set `locals.user`. The Origin check covers only requests that _reach_ the handle — in a `sequence()`, an earlier handle that returns a response without calling `resolve` (maintenance mode, webhook shortcut, redirect) bypasses it for its routes; with `trustedOrigins: ['*']` set, nothing else covers those. A machine route that must accept Origin-less POSTs belongs in `csrf: { exempt }`, not outside the handle; a form-encoded one is additionally gated by SvelteKit's own kernel CSRF check, which `403`s it before any hook (in built apps only, never under `vite dev`) — see [AUTH.md → Machine callers](https://ui.urbicon.de/auth/guide#machine-callers).
 - **Notification mark-read / delete must scope by the authenticated user.** In those route handlers derive `userId` from `locals.user`, never from the request body — otherwise one user can mutate another's notifications (IDOR).
 - **`recipients: 'admins'` needs a resolver.** The package has no role model, so pass `resolveAdminRecipients` (e.g. `() => repo.findAdminUserIds()`) to `createNotificationService` for any type that targets admins. Without it `send()` **throws** rather than silently dropping the alert. Push-delivery failures are swallowed (one bad subscription mustn't break a send) — pass `onPushResult` to observe them; dead endpoints (410/404) are pruned automatically.
 

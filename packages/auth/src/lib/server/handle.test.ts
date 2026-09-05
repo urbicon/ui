@@ -5,7 +5,12 @@ import type { AuthConfig, AuthUser } from '../types.js';
 import { createInMemoryRefreshTokenRepository, createInMemoryStore } from './adapters/in-memory.js';
 import type { Repositories, UserRepository } from './adapters/types.js';
 import { hashToken } from './auth.js';
-import { createAuthHandle, DEFAULT_PUBLIC_ROUTES, type PublicRoute } from './handle.js';
+import {
+  type AuthHandleOptions,
+  createAuthHandle,
+  DEFAULT_PUBLIC_ROUTES,
+  type PublicRoute
+} from './handle.js';
 import { createSessionToken } from './jwt.js';
 import { issueRefreshToken } from './refresh-token.js';
 import {
@@ -43,8 +48,9 @@ function createMockEvent(options: {
   refreshCookie?: string;
   refreshCookieName?: string;
   isRemoteRequest?: boolean;
+  headers?: Record<string, string>;
 }) {
-  const headers = new Headers();
+  const headers = new Headers(options.headers);
   if (options.origin) headers.set('origin', options.origin);
 
   const cookieStore = new Map<string, string>();
@@ -1089,6 +1095,259 @@ describe('createAuthHandle — transformUser', () => {
   });
 });
 
+describe('createAuthHandle — csrf.exempt (cookieless machine routes)', () => {
+  const ok = () => vi.fn().mockResolvedValue(new Response('OK'));
+  type Exempt = NonNullable<NonNullable<AuthHandleOptions['csrf']>['exempt']>;
+  const build = (exempt: Exempt, extra: Partial<AuthHandleOptions> = {}) => {
+    const logger = { warn: vi.fn(), error: vi.fn() };
+    const repos = createMockRepos();
+    const handle = createAuthHandle({
+      config: { ...config, logger },
+      repos,
+      csrf: { exempt },
+      ...extra
+    });
+    return { handle, logger, repos };
+  };
+  const machinePost = (path: string, extra: Partial<Parameters<typeof createMockEvent>[0]> = {}) =>
+    createMockEvent({ path, method: 'POST', headers: { 'x-cron-secret': 's3cret' }, ...extra });
+
+  it('lets a POST without Origin through on an exempt prefix, as unauthenticated', async () => {
+    const { handle, repos } = build(['/api/cron/']);
+    const event = machinePost('/api/cron/nightly');
+    const resolve = ok();
+
+    const response = await handle({ event: asEvent(event), resolve });
+    expect(response.status).toBe(200);
+    expect(resolve).toHaveBeenCalledTimes(1);
+    // The unauthenticated locals shape is set in full, not left undefined.
+    expect(event.locals).toHaveProperty('user', null);
+    expect(repos.user.findById).not.toHaveBeenCalled();
+  });
+
+  it('ignores a valid session cookie on an exempt route — locals.user stays null', async () => {
+    const { handle, repos } = build(['/api/cron/']);
+    const token = await createSessionToken(
+      { userId: 'user-1', email: 'test@test.com', role: 'admin', tokenVersion: 0 },
+      config.jwt
+    );
+    const event = machinePost('/api/cron/nightly', { sessionCookie: token });
+    const resolve = ok();
+
+    await handle({ event: asEvent(event), resolve });
+    expect(resolve).toHaveBeenCalledTimes(1);
+    expect(event.locals.user).toBeNull();
+    // Cookieless means no session lookup at all, not a lookup whose result is dropped.
+    expect(repos.user.findById).not.toHaveBeenCalled();
+    // Positive control: the same cookie authenticates on a non-exempt route.
+    const page = createMockEvent({ path: '/dashboard', sessionCookie: token });
+    await handle({ event: asEvent(page), resolve: ok() });
+    expect((page.locals.user as { id?: string }).id).toBe('user-1');
+  });
+
+  it('runs no refresh rotation for an exempt request', async () => {
+    const refreshRepo = createInMemoryRefreshTokenRepository(createInMemoryStore());
+    const { token } = await issueRefreshToken(refreshRepo, 'user-1', { refreshTokenTtl: '30d' });
+    const handle = createAuthHandle({
+      config: { ...config, refreshToken: { accessTokenTtl: '15m', refreshTokenTtl: '30d' } },
+      repos: { ...createMockRepos(), refreshToken: refreshRepo },
+      csrf: { exempt: ['/api/cron/'] }
+    });
+    const event = machinePost('/api/cron/nightly', { refreshCookie: token });
+
+    await handle({ event: asEvent(event), resolve: ok() });
+    expect(event.locals.user).toBeNull();
+    expect(event._cookieStore.get('session'), 'no session minted').toBeUndefined();
+    expect(event._cookieStore.get('refresh'), 'refresh cookie untouched').toBe(token);
+  });
+
+  it('keeps the 403 for a POST without Origin outside the exempt list', async () => {
+    const { handle } = build(['/api/cron/']);
+    const event = machinePost('/api/orders');
+    const resolve = ok();
+
+    const response = await handle({ event: asEvent(event), resolve });
+    expect(response.status).toBe(403);
+    expect((await response.json()).code).toBe('csrf_failed');
+    expect(resolve).not.toHaveBeenCalled();
+  });
+
+  it('accepts a predicate over the event', async () => {
+    const { handle } = build((event) => event.request.headers.has('x-cron-secret'));
+    const withHeader = machinePost('/api/cron/nightly');
+    const withHeaderResolve = ok();
+    expect((await handle({ event: asEvent(withHeader), resolve: withHeaderResolve })).status).toBe(
+      200
+    );
+    expect(withHeaderResolve).toHaveBeenCalledTimes(1);
+    expect(withHeader.locals.user).toBeNull();
+
+    // Same path, header missing: the predicate says no, the Origin gate answers.
+    const without = createMockEvent({ path: '/api/cron/nightly', method: 'POST' });
+    const withoutResolve = ok();
+    expect((await handle({ event: asEvent(without), resolve: withoutResolve })).status).toBe(403);
+    expect(withoutResolve).not.toHaveBeenCalled();
+  });
+
+  it('a throwing predicate fails the request instead of deciding either way', async () => {
+    const { handle } = build(() => {
+      throw new Error('predicate boom');
+    });
+    await expect(
+      handle({ event: asEvent(machinePost('/api/cron/nightly')), resolve: ok() })
+    ).rejects.toThrow('predicate boom');
+  });
+
+  it('an exact entry matches that pathname alone, not a longer one', async () => {
+    const { handle } = build([{ path: '/api/cron', exact: true }]);
+    const exact = machinePost('/api/cron');
+    const exactResolve = ok();
+    expect((await handle({ event: asEvent(exact), resolve: exactResolve })).status).toBe(200);
+    expect(exactResolve).toHaveBeenCalledTimes(1);
+
+    const longer = machinePost('/api/cron/nightly');
+    const longerResolve = ok();
+    expect((await handle({ event: asEvent(longer), resolve: longerResolve })).status).toBe(403);
+    expect(longerResolve).not.toHaveBeenCalled();
+  });
+
+  it('never exempts a remote-function request — its pathname is client-controlled', async () => {
+    const { handle } = build(['/api/cron/']);
+    // Transport 1: /_app/remote/… with a spoofed public-looking pathname.
+    const spoofed = createMockEvent({ path: '/api/cron/nightly', isRemoteRequest: true });
+    const spoofedResolve = ok();
+    expect((await handle({ event: asEvent(spoofed), resolve: spoofedResolve })).status).toBe(401);
+    expect(spoofedResolve).not.toHaveBeenCalled();
+    // Transport 2: the no-JS ?/remote= form fallback on the real pathname.
+    const fallback = createMockEvent({
+      path: '/api/cron/nightly?/remote=runJob',
+      method: 'POST',
+      origin: 'http://localhost:3000'
+    });
+    const fallbackResolve = ok();
+    expect((await handle({ event: asEvent(fallback), resolve: fallbackResolve })).status).toBe(401);
+    expect(fallbackResolve).not.toHaveBeenCalled();
+    // The predicate is not even consulted for either.
+    const predicate = vi.fn(() => true);
+    const { handle: predicated } = build(predicate);
+    await predicated({ event: asEvent(spoofed), resolve: ok() });
+    expect(predicate).not.toHaveBeenCalled();
+  });
+
+  it('still applies the security headers to an exempt response', async () => {
+    const { handle } = build(['/api/cron/']);
+    const response = await handle({
+      event: asEvent(machinePost('/api/cron/nightly')),
+      resolve: ok()
+    });
+    expect(response.headers.get('X-Content-Type-Options')).toBe('nosniff');
+    expect(response.headers.get('Strict-Transport-Security')).toBe(
+      'max-age=63072000; includeSubDomains'
+    );
+  });
+
+  it('seeds no CSRF cookie on an exempt safe request even with doubleSubmit on', async () => {
+    const handle = createAuthHandle({
+      config: { ...config, csrf: { doubleSubmit: true } },
+      repos: createMockRepos(),
+      csrf: { exempt: ['/api/cron/'] }
+    });
+    const event = createMockEvent({ path: '/api/cron/status' });
+    await handle({ event: asEvent(event), resolve: ok() });
+    expect(event._cookieStore.size, 'cookieless in both directions').toBe(0);
+    // Positive control: a public page request does get the cookie.
+    const page = createMockEvent({ path: '/auth/login' });
+    await handle({ event: asEvent(page), resolve: ok() });
+    expect(page._cookieStore.size).toBe(1);
+  });
+
+  it("refuses a bare '/' at construction — nothing would be left on", () => {
+    expect(() => build(['/'])).toThrow(
+      /csrf\.exempt contains '\/' as a prefix, which exempts every route/
+    );
+    expect(() => build(['/'])).toThrow(/exempt: \(\) => true/);
+    // The exact landing page and a real machine prefix construct, silently.
+    expect(build([{ path: '/', exact: true }]).logger.warn).not.toHaveBeenCalled();
+    expect(build(['/api/cron/']).logger.warn).not.toHaveBeenCalled();
+    // Positive control: publicRoutes keeps its warning for the same entry.
+    const logger = { warn: vi.fn(), error: vi.fn() };
+    createAuthHandle({
+      config: { ...config, logger },
+      repos: createMockRepos(),
+      publicRoutes: ['/']
+    });
+    expect(logger.warn).toHaveBeenCalledWith(
+      expect.stringContaining("publicRoutes contains '/' as a prefix, which exempts every route")
+    );
+  });
+
+  it("refuses an entry that covers the package's own /api/auth/ routes", () => {
+    // Every shipped handler resolves its user from the session cookie itself,
+    // so an exemption here would be a cookie-authorised route with the gate off.
+    const covering: PublicRoute[][] = [
+      ['/api/'],
+      ['/api'],
+      ['/api/auth/'],
+      ['/api/auth'],
+      ['/api/auth/login'],
+      ['/a'],
+      [{ path: '/api/auth/login', exact: true }],
+      ['/api/cron/', '/api/']
+    ];
+    for (const list of covering) {
+      expect(() => build(list), JSON.stringify(list)).toThrow(
+        /csrf\.exempt entry .* covers \/api\/auth\//
+      );
+    }
+    const clear: PublicRoute[][] = [
+      ['/api/cron/'],
+      ['/api/authz/'],
+      ['/oauth/token'],
+      [{ path: '/api/auth', exact: true }],
+      [{ path: '/', exact: true }],
+      []
+    ];
+    for (const list of clear) {
+      expect(() => build(list), JSON.stringify(list)).not.toThrow();
+    }
+    // publicRoutes is not subject to it: '/api/' is a legitimate public prefix there.
+    expect(() =>
+      createAuthHandle({ config, repos: createMockRepos(), publicRoutes: ['/api/'] })
+    ).not.toThrow();
+  });
+
+  it('an async predicate or a truthy non-true return exempts nothing', async () => {
+    const predicates = [async () => true, () => 1] as unknown as Array<
+      (event: RequestEvent) => boolean
+    >;
+    for (const predicate of predicates) {
+      const { handle } = build(predicate);
+      const event = machinePost('/api/cron/nightly');
+      const resolve = ok();
+      expect((await handle({ event: asEvent(event), resolve })).status).toBe(403);
+      expect(resolve).not.toHaveBeenCalled();
+    }
+  });
+
+  it('a page action named "remote" (empty ?/remote) on an exempt path stays exempt', async () => {
+    const { handle } = build(['/api/cron/']);
+    const event = machinePost('/api/cron/nightly?/remote');
+    const resolve = ok();
+    expect((await handle({ event: asEvent(event), resolve })).status).toBe(200);
+    expect(resolve).toHaveBeenCalledTimes(1);
+  });
+
+  it('refuses an entry that does not start with a slash, naming csrf.exempt', () => {
+    expect(() => build(['api/cron'])).toThrow(/csrf\.exempt entry .* must start with '\/'/);
+  });
+
+  it('exempts nothing by default: a GET on a would-be machine route is still guarded', async () => {
+    const { handle } = build([]);
+    const event = createMockEvent({ path: '/api/cron/nightly' });
+    expect((await handle({ event: asEvent(event), resolve: ok() })).status).toBe(401);
+  });
+});
+
 describe('createAuthHandle refresh-token wiring', () => {
   // config.refreshToken without repos.refreshToken would silently skip the
   // hook's transparent-rotation branch (2a) — assertReposMatchConfig makes it
@@ -1120,6 +1379,15 @@ describe('createAuthHandle JWT config validation (ES256 wiring)', () => {
   // The hook is wired independently of createAuthDeps, so it must run the
   // same fail-loud JWT config check — an ES256 config without its signing key
   // would otherwise only surface as per-request verification failures.
+  it('throws at wiring time when jwt.secret is unset', () => {
+    expect(() =>
+      createAuthHandle({
+        config: { ...config, jwt: { secret: undefined } as unknown as AuthConfig['jwt'] },
+        repos: createMockRepos()
+      })
+    ).toThrow(/jwt\.secret must be a non-empty string/);
+  });
+
   it('throws at wiring time when algorithm ES256 lacks a signingKey', () => {
     expect(() =>
       createAuthHandle({

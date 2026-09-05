@@ -437,7 +437,9 @@ request a fresh config object and therefore a fresh, empty counter: measured 20 
 20 requests accepted against a configured limit of 5, where one `createAuthDeps`
 lets 5 of 20 through. (Reusing the same config
 *literal* does not help; it is the resolved object's identity that keys the
-counter.) A persistent `RateLimitStore` sidesteps the whole question.
+counter.) A second call with a `jwt.secret` this process has already built a
+bundle for is warned about on the logger — once per secret, in production too.
+A persistent `RateLimitStore` sidesteps the whole question.
 
 The wiring is four files: deps → `hooks.server.ts` (`createAuthHandle`) → one
 `+server.ts` per handler (`createLoginHandler`, …) → a `<LoginPage>` route.
@@ -484,6 +486,89 @@ registry.register({
   recipients: async (data) => [data.userId as string] // data is Record<string, unknown>
 });
 ```
+
+### Machine callers
+
+A cron runner posting with a secret header, an OAuth token endpoint, an API-key
+route: callers that send no `Origin` header and hold no session cookie. The
+`@urbicon-ui/sveltekit-utils` cron runner is one — it sends its secret header
+and nothing else. Step 1 of `createAuthHandle` is an Origin gate on every
+mutating request, so such a POST answers `403 csrf_failed` before the endpoint
+runs. Turning the job into a GET is not the fix (it gives up the mutation guard
+everywhere else), and neither is routing the endpoint around the hook. Declare
+it:
+
+<!-- typecheck -->
+```typescript
+import { createAuthHandle } from '@urbicon-ui/auth/server';
+import { authDeps } from '$lib/server/auth-setup';
+
+export const handle = createAuthHandle({
+  config: authDeps.config,
+  repos: authDeps.repos,
+  csrf: { exempt: ['/api/cron/', { path: '/oauth/token', exact: true }] }
+});
+```
+
+`csrf.exempt` takes the `publicRoutes` vocabulary — a string is a pathname
+prefix, `{ path, exact: true }` that pathname alone, matched against the
+requested pathname (a `reroute` hook changes which route is resolved, not
+this) — or a predicate over the event for callers a path does not identify:
+`(event) => event.request.headers.has('x-cron-secret')`. Two entries are
+refused at construction: a bare `'/'`, because nothing would be left on
+(`exempt: () => true` is the deliberate spelling), and anything covering
+`/api/auth/`, the package's own endpoints — for the reason below. An exempt
+request is handled as **cookieless** by the hook, not merely as CSRF-skipped.
+The argument that makes the exemption safe — nothing ambient rides along, so
+there is nothing for a cross-site page to forge — holds only for a request
+that carries no credential the browser sends on its own, so the hook reads no
+cookie and writes none: no Origin gate, no session hydration, no refresh
+rotation, no CSRF cookie, no route guard. `locals.user` is `null` even when a
+valid session cookie is present — deliberately — and the response still gets
+the security headers. That describes the hook, not the request: the cookie
+still arrives, and a route that reads `event.cookies` itself keeps working
+with the gate off — which is how every handler this package ships resolves
+its user (`requireSessionUser`, from the session cookie, never from
+`locals.user`). So **never exempt a cookie-authorised route**; exempt only
+routes that authenticate every request without a cookie (bearer token, secret
+header, PKCE). The list form is checked for `/api/auth/`; the predicate form
+cannot be, and the rule is yours to keep there. Remote-function requests are
+never exempt on either transport — their pathname is client-controlled — so
+the remote guard's default-deny stands, and the predicate is not consulted for
+them.
+
+SvelteKit's own kernel CSRF gate is a separate, earlier gate that `csrf.exempt`
+does not reach. It runs before any hook, in built apps only (never under
+`vite dev`), on **form content types** — `application/x-www-form-urlencoded`,
+`multipart/form-data`, `text/plain`, plus Kit's internal
+`application/x-sveltekit-formdata` — and `403`s a cross-origin or Origin-less
+form POST with "Cross-site POST form submissions are forbidden". A JSON **or
+body-less** POST (MCP JSON-RPC, dynamic client registration, a cron job that
+sends no body and no content type) passes it; an OAuth token endpoint does
+not, because RFC 6749 §4.1.3 mandates
+form encoding and real clients send no `Origin`. The gate cannot be switched off
+per route from a hook, and its allow-list — `kit.csrf.trustedOrigins` — is
+consulted only when an `Origin` header is present, so no list of origins admits
+a header-less caller. The off-switch is `kit.csrf: { trustedOrigins: ['*'] }`
+in `svelte.config.js`, resolved at **build** time (Kit derives
+`csrf_check_origin = checkOrigin && !trustedOrigins.includes('*')` in
+`write_server.js`; the runtime check never matches `'*'` against a header), and
+since Kit 2.61 the only non-deprecated spelling (`checkOrigin` is deprecated in
+its favour). Kit's strict same-origin check for remote-function requests is
+independent of `kit.csrf.*` and stays on. Disabling the kernel gate is safe
+exactly when **(1)** every cookie-authenticated mutating route flows through
+`createAuthHandle` — including form actions such as an OAuth consent
+`?/approve`, and "cookie-authenticated" means any ambient-session route, not
+only this package's; *reaching* the hook is what counts, so a handle earlier in
+a `sequence()` that answers without calling `resolve` (maintenance mode, a
+webhook implemented as a handle, a redirect) leaves its routes uncovered — and
+**(2)** `csrf.exempt` names only routes that authenticate themselves. Step 1 is
+stricter than the kernel gate for everything that reaches it (every mutating
+method, every content type, no allow-list), so the kernel check was redundant
+there; if you relied on `trustedOrigins` as an allow-list for legitimate
+cross-origin *browser* form posts, note that `validateCsrf` has no equivalent.
+On a federated consumer the wildcard is off-limits without a `validateCsrf`
+backstop of your own — see [Limitations](#limitations-deliberate-v1-scope).
 
 ### Upgrade note — user verification is enforced by default
 
@@ -623,7 +708,7 @@ The `FederatedAccount` link table (`findByFederatedId` / `linkFederatedAccount` 
 - **Same trust domain:** cookie-based federation needs a shared parent domain (`cookieDomain`). Cross-domain SSO (redirect-based token handoff, OIDC) is out of scope — as is acting as an OAuth/OIDC provider for third parties (see the auth package non-goals).
 - **Logout is IdP-global:** the consumer never clears the shared cookie; "sign out of one app only" does not exist in this model (deny via `resolveUser` instead).
 - **Sibling subdomains are full trust peers:** the shared-domain session cookie is readable and settable by every host under `cookieDomain`. A compromised sibling (`evil.example.com`) can (a) **replay** the bearer JWT it receives to any other sibling until `exp`, and (b) **set** a `.example.com` session cookie to pin a victim onto an attacker-chosen — but validly signed — session (cookie-tossing / session fixation). Put only apps you trust as peers under one `cookieDomain`, and give each sibling's CSRF cookie a `__Host-` prefix so it can't be tossed across subdomains.
-- **The consumer handle runs no CSRF gate:** unlike `createAuthHandle`, `createFederatedAuthHandle` does not check request origin. SvelteKit's kernel CSRF gate covers form-encoded cross-site POSTs but **not** JSON ones (see [Known Limitations](#known-limitations--security-gaps)), so a cookie-authenticated JSON mutating endpoint on a consumer must enforce its own CSRF defense. The `trustedOrigins: ['*']` resolution from Known Limitations is **off-limits on a federated consumer** unless you build the backstop yourself: there is no `validateCsrf` behind this handle, so `['*']` would leave every cookie-authenticated form mutation of the app unprotected. A federated consumer that must expose its own header-less cross-origin endpoint (own OAuth token endpoint, webhook) first gates its cookie-authenticated mutations by calling the exported `validateCsrf(event.request, event.url)` in its own hook (sequenced before `createFederatedAuthHandle`, with the cookieless endpoint paths exempted), and only then disables the kernel gate.
+- **The consumer handle runs no CSRF gate:** unlike `createAuthHandle`, `createFederatedAuthHandle` does not check request origin. SvelteKit's kernel CSRF gate covers form-encoded cross-site POSTs but **not** JSON ones (see [Known Limitations](#known-limitations--security-gaps)), so a cookie-authenticated JSON mutating endpoint on a consumer must enforce its own CSRF defense. The `trustedOrigins: ['*']` resolution from Known Limitations is **off-limits on a federated consumer** unless you build the backstop yourself: there is no `validateCsrf` behind this handle, so `['*']` would leave every cookie-authenticated form mutation of the app unprotected. A federated consumer that must expose its own header-less cross-origin endpoint (own OAuth token endpoint, webhook) first gates its cookie-authenticated mutations by calling the exported `validateCsrf(event.request, event.url)` in its own hook (sequenced before `createFederatedAuthHandle`), exempting its machine routes there. What that hook cannot give is the cookieless handling `createAuthHandle` gives `csrf.exempt`: `createFederatedAuthHandle` hydrates `locals.user` on every request and has no exemption seam, so an exempted route is CSRF-skipped but stays fully session-hydrated — it must therefore not be cookie-authorised (bearer token, secret header, PKCE only), and it still has to be listed in `publicRoutes`, or the federated guard answers 401 before the route runs. What the kernel gate still does to such a route and when its off-switch is safe: [Machine callers](#machine-callers). Only then disable the kernel gate.
 
 ## Prisma Schema
 
@@ -1047,7 +1132,7 @@ The package deliberately avoids revealing whether an account exists, via either 
 - **TOTP replay within the same time window** — v1 relies solely on the strict verify rate-limit. A stored `lastUsedStep` that prevents re-redeeming the same code within its validity (±1 period) is noted as a later hardening.
 - **`publicRoutes` replaces the defaults, and a string entry is a prefix** — passing the option drops the built-in list rather than adding to it. That list is exported as `DEFAULT_PUBLIC_ROUTES` (read it there; it is not transcribed here), and `'/api/auth/'` is in it — so an override that omits it guards the app's own sign-in: an unauthenticated `POST /api/auth/login` gets `401 not_authenticated` instead of a session. Spread the constant to extend — `publicRoutes: [...DEFAULT_PUBLIC_ROUTES, '/pricing']` — and replace wholesale only for a handle scoped to routes that mount no auth endpoints of their own. A string matches with `startsWith`: `'/api/auth/'` makes **all** subroutes below it public, `'/pricing'` also publishes `/pricing-admin` and `/pricing/internal`, and `'/'` makes the **entire app** public — the obvious spelling of "my landing page is public" turns the guard off completely, and the handle warns about it at construction. One pathname alone is the object form, `{ path: '/', exact: true }`: the landing page, and nothing under it. A list held in a variable first (`const routes = [...]; createAuthHandle({ publicRoutes: routes })`) needs `as const` or the annotation `PublicRoute[]` — TypeScript otherwise widens `exact: true` to `boolean` and the assignment is a type error; an inline list needs nothing. The same two forms apply to `createFederatedAuthHandle`. Keep the list narrow, and don't place protectable app routes below a public prefix.
 - **Remote functions are guarded by `event.isRemoteRequest` (+ a `/remote` POST check), not `publicRoutes`.** For SvelteKit Remote Functions (`kit.experimental.remoteFunctions`) the pathname the guard sees is **client-controlled**, via either of two transports: **(1)** the `/_app/remote/…` calls (`query` / `command` / JS-enhanced `form`) — SvelteKit overwrites `event.url.pathname` from the `x-sveltekit-pathname` header *before* the `handle` hook runs; a plain `query` is even a **GET** (payload in `?payload=`), so the kernel's non-`GET` cross-site block doesn't catch it either; and **(2)** the no-JS `<form action="?/remote=…">` fallback — dispatched through the page pipeline from the `/remote` search param, decoupled from the pathname, with `event.isRemoteRequest` left **`false`**. Either way a spoofed (or genuinely) public route such as `/auth/login` would let an unauthenticated remote call run without a session and leak every reachable row. `createAuthHandle` **default-denies** (`401`) both: keyed on the unspoofable `event.isRemoteRequest`, and — for the fallback — a `POST` carrying a truthy `/remote` action param (mirroring SvelteKit's own dispatch gate; a normal action named `remote` serializes to an empty `?/remote` and is correctly left to the path guard). Set `allowUnauthenticatedRemote: true` **only** if you deliberately expose public remote functions — you then own their authorization (check `event.locals.user` inside each). **Defense-in-depth:** even with the guard active, prefer an explicit `event.locals.user` (+ per-user ownership) check inside each remote function rather than relying on the handle alone — the guard is a backstop, not a substitute for per-function authorization.
-- **SvelteKit's built-in `csrf.checkOrigin` is a separate gate that runs _before_ this package's check.** SvelteKit's request kernel performs its own Origin-CSRF check *before* the `handle` hook runs (`@sveltejs/kit` → `src/runtime/server/respond.js`). If you route a cross-origin, form-encoded `POST` *around* `createAuthHandle` — an OAuth 2.1 token endpoint, a third-party webhook — that kernel gate rejects it with `403 "Cross-site POST form submissions are forbidden"` before your hook (and therefore this package's `validateCsrf`) ever runs. Three properties make this bite: it **can't be disabled per-route from a hook** (by the time `handle` runs the 403 is already returned — the only levers are the global `kit.csrf.*` config); it fires on **form content types only** (`application/x-www-form-urlencoded`, `multipart/form-data`, `text/plain`, plus Kit's internal `application/x-sveltekit-formdata` — preflighted, not CORS-simple), so a JSON endpoint (MCP JSON-RPC, dynamic client registration) passes through but the OAuth **token** endpoint can't — RFC 6749 §4.1.3 mandates `application/x-www-form-urlencoded` and real callers (Claude, etc.) send **no `Origin` header**, which keeps the gate shut (a *specific* `trustedOrigins` list is consulted only when an `Origin` header is present, so no list of origins can ever admit a header-less caller); and it is **skipped under `vite dev`, never in a build** (guaranteed by the package's `@sveltejs/kit ^2.70.1` peer range — older Kits compiled the gate out of non-production-`NODE_ENV` builds, [sveltejs/kit#16313](https://github.com/sveltejs/kit/pull/16313)), so the 403 typically first surfaces *after deploy*, never in local development. **Resolution:** set `kit.csrf: { trustedOrigins: ['*'] }` in `svelte.config.js` — the official off-switch, and since Kit 2.61 the only non-deprecated one (`checkOrigin` is `@deprecated Use trustedOrigins: ['*'] instead`). The wildcard is resolved at **build time**, not matched against request origins: Kit's `write_server.js` derives `csrf_check_origin = checkOrigin && !trustedOrigins.includes('*')`, so `['*']` removes the kernel gate entirely — including for the header-less callers no literal origin list could admit. (Verify at both levels when auditing this: the runtime check in `respond.js` never matches `'*'` against an `Origin` header — the disable happens in the build-time derivation.) This affects the form gate only; Kit's separate strict same-origin check for remote-function requests (`/_app/remote/…`, non-GET) is independent of `kit.csrf.*` and stays active. Then let this package's `validateCsrf` be the single Origin gate — it is *stricter* than the kernel check (every mutating method, **all** content types incl. JSON, no allow-list, as step 1 of `createAuthHandle`), so for any request that flows through the handle the kernel check was redundant anyway. **Safe only when:** (1) every cookie-authenticated mutating route flows through `createAuthHandle` — including SvelteKit form actions such as an OAuth consent `?/approve`, and "cookie-authenticated" means *any* ambient-session-cookie route, not just this package's. *Reaching* the handle is what counts, not mounting it: in a `sequence()`, any earlier handle that returns a response without calling `resolve` (maintenance mode, a webhook endpoint implemented as a handle, a redirect handle) bypasses this gate for its routes — and with the kernel gate disabled, nothing else covers them. And (2) the handle-bypassed routes are cookieless (bearer / PKCE / API-key) — they carry no ambient credential the browser auto-sends, so they're structurally not CSRF-able and the Origin gate protected nothing there. Edge case to flag rather than assume: if you depend on SvelteKit's `trustedOrigins` allow-list for legitimate cross-origin *browser* form posts, note `validateCsrf` is strict-same-origin with no allow-list equivalent.
+- **SvelteKit's built-in `csrf.checkOrigin` is a separate gate that runs _before_ this package's check.** SvelteKit's request kernel performs its own Origin-CSRF check *before* the `handle` hook runs (`@sveltejs/kit` → `src/runtime/server/respond.js`), so `csrf.exempt` cannot reach it: a cross-origin, form-encoded `POST` — an OAuth 2.1 token endpoint, a third-party webhook — is answered `403 "Cross-site POST form submissions are forbidden"` before your hook (and therefore this package's `validateCsrf`) ever runs. It fires on form content types only, cannot be disabled per route from a hook, admits no header-less caller through `trustedOrigins`, and is **skipped under `vite dev`, never in a build** (guaranteed by the package's `@sveltejs/kit ^2.70.1` peer range — older Kits compiled the gate out of non-production-`NODE_ENV` builds, [sveltejs/kit#16313](https://github.com/sveltejs/kit/pull/16313)), so the 403 typically first surfaces *after deploy*, never in local development. Which callers it stops, the build-time off-switch (`kit.csrf: { trustedOrigins: ['*'] }`) and the two conditions under which disabling it is safe: [Machine callers](#machine-callers). The exemption from *this* package's gate is `csrf.exempt` on `createAuthHandle` — never a route mounted around the hook.
 - **SSE presence is process-local** — `createSSEManager` registers connections in this process only; there is no cross-instance seam. On multi-instance/serverless deployments, `isOnline` false-negatives make `send()` skip the live SSE event for users connected to another instance and fall back to push (delivery still happens, via the heavier channel, provided a push subscription exists), and `recipients: 'online'` broadcasts only reach the users connected to the instance running `send()`. Treat the notification system as single-instance until a shared presence backend exists — the same class of assumption as the in-memory rate-limit store.
 - **In-memory adapter grows unbounded** — `createInMemoryRepos` doesn't clean up notifications/push subscriptions and doesn't call `deleteExpired` for refresh tokens automatically. `user.delete` is not one of these: every repository built on one `createInMemoryStore()` shares its tables, and the delete removes a user's dependent rows from all of them, the same end state the Prisma adapter gets from `onDelete: Cascade` — both are pinned by the conformance suite. This is fine for the declared dev/test scope; for long-lived processes use a persistent adapter.
 
@@ -1068,7 +1153,7 @@ Before production use outside of controlled environments:
 - [ ] Monitoring for auth-handler latency and error rate active.
 - [ ] Incident runbook for a compromised JWT secret prepared (`keyId` + `previousSecrets` allows uninterrupted rotation).
 - [ ] Incident runbook for `twoFactor.encryptionKey` prepared — it has **no** overlap mechanism, so a rotation locks out every TOTP user *and* blocks their re-enrolment; a backup code — or a passkey, which is not TOTP-gated — is the way back in (see the [key-rotation runbook](#key-rotation-runbook-twofactorencryptionkey)). Keep the key backed up separately from the database, and alert on the `2fa-enable` / `2fa-verify` decryption errors in `config.logger` — they never reach `handleError`.
-- [ ] If you expose a cross-origin form-encoded endpoint *outside* `createAuthHandle` (OAuth 2.1 token endpoint, webhook): `kit.csrf: { trustedOrigins: ['*'] }` set in `svelte.config.js` (the build-time off-switch for the kernel gate — a *specific* origin list can't admit the header-less callers this concerns, see [Known Limitations](#known-limitations--security-gaps)), and confirmed every cookie-authenticated mutating route still flows through the auth handle. The kernel CSRF check never runs under `vite dev`, so this won't show up before a deployed build.
+- [ ] **Machine callers declared** — every cron, OAuth-token or API-key route that posts without an `Origin` header is listed in `csrf: { exempt }` on `createAuthHandle` and authenticates each request itself (it sees `locals.user === null` by design). For the form-encoded ones (an OAuth 2.1 token endpoint, a webhook): `kit.csrf: { trustedOrigins: ['*'] }` set in `svelte.config.js` — the build-time off-switch for SvelteKit's kernel gate, which a *specific* origin list cannot open for a header-less caller — and confirmed every cookie-authenticated mutating route still flows through the auth handle ([Machine callers](#machine-callers)). The kernel CSRF check never runs under `vite dev`, so this won't show up before a deployed build.
 - [ ] If you run **`createFederatedAuthHandle`** (SSO consumer): the kernel CSRF gate stays **on** — the `trustedOrigins: ['*']` resolution above is off-limits there (no `validateCsrf` backstop behind the federated handle) unless you gate cookie-authenticated mutations yourself via the exported `validateCsrf` in your own hook (see [Federated Identity](#federated-identity-sso)).
 - [ ] If you use **SvelteKit Remote Functions** (`kit.experimental.remoteFunctions`): confirmed each remote function checks `event.locals.user` (and per-user ownership) itself — the handle default-denies unauthenticated remote requests, but per-function checks are defense-in-depth. Only set `allowUnauthenticatedRemote: true` for deliberately public remote functions (see [Known Limitations](#known-limitations--security-gaps)).
 

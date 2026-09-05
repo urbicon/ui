@@ -1,10 +1,17 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import type { AuthConfig } from '../types.js';
 import { createInMemoryRefreshTokenRepository, createInMemoryStore } from './adapters/in-memory.js';
-import { createAuthDeps } from './deps.js';
+import { __resetSeenSecretsForTests, createAuthDeps } from './deps.js';
 import { generateES256KeyPair } from './jwt.js';
 import { lockoutFor, rateLimitFor } from './security-defaults.js';
 import { createMockInvitationRepository, createMockUserRepository } from './test-utils.js';
+
+// The repeat-secret registry is process-wide and this file builds dozens of
+// bundles from `secret: 's'`. Without the reset the one-shot warning lands on
+// whichever test happens to make the file's second call — measured: the second
+// test in file order, and only that one — so a `not.toHaveBeenCalled()` there
+// would depend on test order. The reset makes each sink see only its own test.
+beforeEach(() => __resetSeenSecretsForTests());
 
 function baseDeps(config: Partial<AuthConfig> & { jwt?: AuthConfig['jwt'] } = {}) {
   return {
@@ -241,6 +248,63 @@ describe('forgot-password rate-limit default', () => {
   });
 });
 
+describe('createAuthDeps called again with a secret it has seen', () => {
+  // The rate-limit counters key on the config OBJECT this function returns
+  // (sharedLimiter), so a second call is a second, empty set of counters. The
+  // warning is process-wide by design — that is the scope of the bug.
+  const sink = () => ({ warn: vi.fn(), error: vi.fn() });
+  const wiring = (secret: string, logger: ReturnType<typeof sink>) =>
+    baseDeps({ logger, jwt: { secret } });
+
+  it('warns exactly once on the second call, naming the consequence and the fix', () => {
+    const logger = sink();
+    createAuthDeps(wiring('repeat-a', logger));
+    expect(logger.warn).not.toHaveBeenCalled();
+
+    createAuthDeps(wiring('repeat-a', logger));
+    expect(logger.warn).toHaveBeenCalledTimes(1);
+    const [message] = logger.warn.mock.calls[0] as [string];
+    expect(message).toContain('createAuthDeps');
+    expect(message).toContain('rate limit');
+    expect(message).toContain('once, at module scope');
+    expect(message).toContain('AUTH.md');
+    // The hot-reload clause: a dev-server reload makes a second call too.
+    expect(message).toContain('vite dev');
+
+    // A per-request caller gets one line, not one per request.
+    createAuthDeps(wiring('repeat-a', logger));
+    createAuthDeps(wiring('repeat-a', logger));
+    expect(logger.warn).toHaveBeenCalledTimes(1);
+  });
+
+  it('stays silent for two bundles with different secrets', () => {
+    const logger = sink();
+    createAuthDeps(wiring('distinct-a', logger));
+    createAuthDeps(wiring('distinct-b', logger));
+    expect(logger.warn).not.toHaveBeenCalled();
+  });
+
+  it('is not gated on the deployment signal — a dev config is warned too', () => {
+    const logger = sink();
+    const dev = () => baseDeps({ logger, jwt: { secret: 'repeat-dev', cookieSecure: false } });
+    createAuthDeps(dev());
+    createAuthDeps(dev());
+    expect(logger.warn).toHaveBeenCalledTimes(1);
+    expect(logger.warn).toHaveBeenCalledWith(expect.stringContaining('createAuthDeps'));
+  });
+
+  it('does not count a call that threw at validation', () => {
+    // Nothing was returned, so no counter was created: the retry with the
+    // fixed config is the first bundle, not a repeat.
+    const logger = sink();
+    expect(() =>
+      createAuthDeps(baseDeps({ logger, jwt: { secret: 'thrown', algorithm: 'ES256' } }))
+    ).toThrow(/signingKey is missing/);
+    createAuthDeps(wiring('thrown', logger));
+    expect(logger.warn).not.toHaveBeenCalled();
+  });
+});
+
 describe('refresh-token wiring validation', () => {
   // config.refreshToken without repos.refreshToken silently downgrades every
   // session to access-token-only (establishSession skips the refresh cookie) —
@@ -332,6 +396,32 @@ describe('JWT config validation (ES256 wiring)', () => {
       baseDeps({ jwt: { secret: 's', algorithm: 'ES256', signingKey: privateKey } })
     );
     expect(deps.config.jwt.algorithm).toBe('ES256');
+  });
+});
+
+describe('jwt.secret wiring validation', () => {
+  // The secret signs the session cookie under HS256 and the package's
+  // short-lived tokens under every algorithm; an unset env var is the most
+  // common wiring mistake and must be named, not surface as a TypeError.
+  it.each([
+    ['undefined (an unset env var)', undefined],
+    ['an empty string', ''],
+    ['a non-string', 123]
+  ])('refuses %s with a named error', (_label, secret) => {
+    expect(() =>
+      createAuthDeps(baseDeps({ jwt: { secret } as unknown as AuthConfig['jwt'] }))
+    ).toThrow(/\[auth\] jwt\.secret must be a non-empty string/);
+  });
+
+  it('refuses a missing secret under ES256 too — the short-lived tokens stay HMAC', async () => {
+    const { privateKey } = await generateES256KeyPair();
+    expect(() =>
+      createAuthDeps(
+        baseDeps({
+          jwt: { algorithm: 'ES256', signingKey: privateKey } as unknown as AuthConfig['jwt']
+        })
+      )
+    ).toThrow(/jwt\.secret must be a non-empty string/);
   });
 });
 
