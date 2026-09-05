@@ -1,5 +1,5 @@
 import * as fs from 'node:fs/promises';
-import { OVERRIDE_CASCADE } from '@urbicon-ui/design-engine/reference';
+import { OVERRIDE_CASCADE, SEMANTIC_TOKENS } from '@urbicon-ui/design-engine/reference';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { ContentBundleEmitter } from '../src/generators/content/ContentBundleEmitter';
 import { TEMPLATE_PLACEHOLDER_PATTERN } from '../src/generators/llm/guide-injection';
@@ -20,6 +20,10 @@ const TEMPLATE = `# Reference
 ## Auth Reference
 
 {{GUIDE:auth}}
+
+## Design Tokens
+
+{{SEMANTIC_TOKENS}}
 
 ## Customization
 
@@ -168,10 +172,35 @@ describe('ContentBundleEmitter package guides', () => {
     await expect(emitter.emit()).rejects.toThrow('missing the {{OVERRIDE_CASCADE}}');
   });
 
+  it('renders the token list into the bundled template copy', async () => {
+    mockFs();
+    const emitter = new ContentBundleEmitter({ ...config, packageGuides: [guide] });
+
+    await emitter.emit();
+
+    // The `tokens` guide resource is sliced from this copy, so the list has to
+    // be in it — every surface and text token the engine data carries.
+    const template = writtenFile('guides/llms-full-template.md') ?? '';
+    for (const token of SEMANTIC_TOKENS.families.surface) {
+      expect(template).toContain(`bg-${token.name}`);
+    }
+    for (const token of SEMANTIC_TOKENS.families.text) {
+      expect(template).toContain(`text-${token.name}`);
+    }
+    expect(template).not.toContain('{{SEMANTIC_TOKENS}}');
+  });
+
+  it('fails loud when the template lost the token placeholder', async () => {
+    mockFs({ [config.templatePath]: TEMPLATE.replace('{{SEMANTIC_TOKENS}}', '') });
+    const emitter = new ContentBundleEmitter({ ...config, packageGuides: [guide] });
+
+    await expect(emitter.emit()).rejects.toThrow('missing the {{SEMANTIC_TOKENS}}');
+  });
+
   it('rejects an invalid guide slug', async () => {
     // Guide-placeholder-free template so the slug check is what trips, not the
     // unconfigured-placeholder sweep.
-    mockFs({ [config.templatePath]: '# Reference\n\n{{OVERRIDE_CASCADE}}\n' });
+    mockFs({ [config.templatePath]: '# Reference\n\n{{OVERRIDE_CASCADE}}\n{{SEMANTIC_TOKENS}}\n' });
     const emitter = new ContentBundleEmitter({
       ...config,
       packageGuides: [{ ...guide, slug: '../escape' }]

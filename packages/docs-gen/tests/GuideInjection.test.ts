@@ -1,22 +1,65 @@
 import { readFileSync } from 'node:fs';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { SEMANTIC_TOKENS } from '@urbicon-ui/design-engine/reference';
 import { describe, expect, it } from 'vitest';
 import {
   assertGuideSlug,
   closesFence,
   demoteHeadings,
   guidePlaceholder,
+  injectSemanticTokens,
   parseFenceDelimiter,
   renderGuideForEmbedding,
+  renderSemanticTokenList,
+  SEMANTIC_TOKENS_PLACEHOLDER,
   stripLeadingH1,
   stripTypecheckMarkers,
+  TEMPLATE_PLACEHOLDER_PATTERN,
   TYPECHECK_MARKER
 } from '../src/generators/llm/guide-injection';
 
 const FIXTURES = join(dirname(fileURLToPath(import.meta.url)), 'fixtures/doc-fences');
 
 describe('guide-injection', () => {
+  describe('semantic tokens', () => {
+    it('lists every surface and text utility with the role the CSS states', () => {
+      const list = renderSemanticTokenList();
+      const lines = list.split('\n');
+      for (const token of SEMANTIC_TOKENS.families.surface) {
+        expect(lines).toContainEqual(expect.stringMatching(`^bg-${token.name} +/\\* `));
+        expect(list).toContain(`/* ${token.role} */`);
+      }
+      for (const token of SEMANTIC_TOKENS.families.text) {
+        expect(lines).toContainEqual(expect.stringMatching(`^text-${token.name} +/\\* `));
+      }
+      // The two the hand list omitted, and the one it gave the on-fill role.
+      expect(list).toContain('text-text-on-fill');
+      expect(list).toContain('text-text-link');
+      expect(list).not.toContain('text-text-on-primary     /* text on intent-colored fills');
+      expect(list).toContain('### Surface Tokens (backgrounds)');
+      expect(list).toContain('### Text Tokens');
+      expect(list).not.toMatch(TEMPLATE_PLACEHOLDER_PATTERN);
+    });
+
+    it('aligns the role comments at the template column, keeping a space after a long utility', () => {
+      const lines = renderSemanticTokenList().split('\n');
+      const short = lines.find((l) => l.startsWith('bg-surface-base ')) ?? '';
+      const long = lines.find((l) => l.startsWith('bg-surface-interactive-hover')) ?? '';
+      expect(short.indexOf('/*')).toBe(25);
+      expect(long).toMatch(/^bg-surface-interactive-hover \/\* /);
+    });
+
+    it('substitutes the placeholder, and throws when it is absent', () => {
+      const out = injectSemanticTokens(`before\n${SEMANTIC_TOKENS_PLACEHOLDER}\nafter`, 'x');
+      expect(out.startsWith('before\n### Surface Tokens')).toBe(true);
+      expect(out.endsWith('```\nafter')).toBe(true);
+      expect(() => injectSemanticTokens('before\nafter', 'the template')).toThrow(
+        'the template is missing the {{SEMANTIC_TOKENS}} placeholder'
+      );
+    });
+  });
+
   describe('guidePlaceholder', () => {
     it('renders the {{GUIDE:slug}} form', () => {
       expect(guidePlaceholder('auth')).toBe('{{GUIDE:auth}}');

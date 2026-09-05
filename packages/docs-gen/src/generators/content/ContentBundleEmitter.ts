@@ -9,6 +9,7 @@ import {
   GUIDE_PLACEHOLDER_PATTERN,
   guidePlaceholder,
   injectOverrideCascade,
+  injectSemanticTokens,
   type PackageGuide,
   stripTypecheckMarkers
 } from '../llm/guide-injection';
@@ -139,13 +140,17 @@ export class ContentBundleEmitter {
     // 5. Guide template. `{{GUIDE:<slug>}}` placeholders become pointers to the
     //    bundled guide file — the bundle carries each guide exactly once (5b),
     //    and the template's sections stay sliceable for the MCP guide resources.
-    //    `{{OVERRIDE_CASCADE}}` is substituted here as in llms-full.txt, so the
-    //    bundle copy the MCP guide resources slice carries the sentence, not the
-    //    placeholder. `{{COMPONENTS}}` is the one placeholder that stays (see
+    //    `{{OVERRIDE_CASCADE}}` and `{{SEMANTIC_TOKENS}}` are substituted here
+    //    as in llms-full.txt, so the bundle copy the MCP guide resources slice
+    //    carries the sentence and the token list, not the placeholders.
+    //    `{{COMPONENTS}}` is the one placeholder that stays (see
     //    COMPONENTS_PLACEHOLDER).
     const template = await this.readRequired(templatePath, 'llms-full template');
-    const bundledTemplate = injectOverrideCascade(
-      this.pointGuidePlaceholders(template, packageGuides),
+    const bundledTemplate = injectSemanticTokens(
+      injectOverrideCascade(
+        this.pointGuidePlaceholders(template, packageGuides),
+        'llms-full template'
+      ),
       'llms-full template'
     );
     assertNoPlaceholderLeft(bundledTemplate, 'the bundled llms-full template', [

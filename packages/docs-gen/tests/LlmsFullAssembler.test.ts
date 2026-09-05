@@ -1,5 +1,5 @@
 import * as fs from 'node:fs/promises';
-import { OVERRIDE_CASCADE } from '@urbicon-ui/design-engine/reference';
+import { OVERRIDE_CASCADE, SEMANTIC_TOKENS } from '@urbicon-ui/design-engine/reference';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { TEMPLATE_PLACEHOLDER_PATTERN } from '../src/generators/llm/guide-injection';
 import { LlmsFullAssembler } from '../src/generators/llm/LlmsFullAssembler';
@@ -21,6 +21,8 @@ const TEMPLATE = `# Urbicon UI – Full API Reference
 
 ## Design Tokens
 Semantic tokens only.
+
+{{SEMANTIC_TOKENS}}
 
 ## Customization
 Merge order: {{OVERRIDE_CASCADE}}
@@ -197,6 +199,7 @@ describe('LlmsFullAssembler', () => {
 {{GUIDE:auth}}
 
 {{OVERRIDE_CASCADE}}
+{{SEMANTIC_TOKENS}}
 `;
     const guideSourcePath = '/repo/packages/auth/docs/AUTH.md';
     // The $-before-backtick would corrupt output if replace() used a string
@@ -321,6 +324,44 @@ describe('LlmsFullAssembler', () => {
       mockFs(`${TEMPLATE}\n{{OVERRIDE_CASCADES}}\n`);
 
       await expect(assembler.assemble()).rejects.toThrow('{{OVERRIDE_CASCADES}}');
+    });
+  });
+
+  describe('semantic tokens', () => {
+    function mockFs(template: string): void {
+      vi.mocked(fs.readFile).mockImplementation(async (filePath) => {
+        const p = filePath.toString();
+        if (p === templatePath) return template;
+        if (p.includes('llm.txt')) return COMPONENT_A;
+        throw new Error(`Unexpected read: ${p}`);
+      });
+      vi.mocked(glob).mockResolvedValue(['/repo/apps/docs/static/blocks/Alert/llm.txt']);
+      vi.mocked(fs.mkdir).mockResolvedValue(undefined);
+      vi.mocked(fs.writeFile).mockResolvedValue(undefined);
+    }
+
+    it('renders the surface and text utilities from the engine data', async () => {
+      mockFs(TEMPLATE);
+
+      await assembler.assemble();
+
+      const written = vi.mocked(fs.writeFile).mock.calls[0][1] as string;
+      // Every token the data carries, with the role the CSS states — the hand
+      // list this placeholder replaced omitted two and misdescribed a third.
+      for (const token of SEMANTIC_TOKENS.families.surface) {
+        expect(written).toContain(`bg-${token.name}`);
+        expect(written).toContain(`/* ${token.role} */`);
+      }
+      for (const token of SEMANTIC_TOKENS.families.text) {
+        expect(written).toContain(`text-${token.name}`);
+      }
+      expect(written).not.toMatch(TEMPLATE_PLACEHOLDER_PATTERN);
+    });
+
+    it('throws when the template lost the placeholder, rather than dropping the list', async () => {
+      mockFs(TEMPLATE.replace('{{SEMANTIC_TOKENS}}', ''));
+
+      await expect(assembler.assemble()).rejects.toThrow('missing the {{SEMANTIC_TOKENS}}');
     });
   });
 

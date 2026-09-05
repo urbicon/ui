@@ -225,37 +225,7 @@ All other primitives use a fixed tier per family (see family table above) — Co
 
 This is the COMPLETE list of available semantic tokens. Use ONLY these — do not invent token names.
 
-### Surface Tokens (backgrounds)
-
-```
-bg-surface-base          /* page background */
-bg-surface-quiet         /* softly tinted in-page zone */
-bg-surface-subtle        /* resting tint ONLY — equals surface-elevated, so never `hover:bg-surface-subtle` */
-bg-surface-elevated      /* floating surfaces (paired with shadow) */
-bg-surface-overlay       /* modals, popovers */
-bg-surface-interactive   /* interactive backgrounds */
-bg-surface-interactive-hover /* hover step for something resting on surface-interactive */
-bg-surface-hover         /* hover state (for elements on a reading surface) */
-bg-surface-active        /* active/pressed state */
-bg-surface-disabled      /* disabled elements */
-bg-surface-selected      /* selected items (uses primary-50) */
-bg-surface-inverted      /* inverted surfaces (tooltips) */
-```
-
-### Text Tokens
-
-```
-text-text-primary        /* main text */
-text-text-secondary      /* supporting text */
-text-text-tertiary       /* muted text, metadata */
-text-text-quaternary     /* most subtle text */
-text-text-disabled       /* disabled text */
-text-text-inverted       /* text on inverted surfaces */
-text-text-on-primary     /* text on intent-colored fills (all intents except warning) */
-text-text-on-warning     /* text on the warning fill — warm dark in both modes */
-text-text-on-dark        /* text on dark surfaces */
-text-text-on-surface     /* text on any surface (auto-contrast) — never on intent fills */
-```
+{{SEMANTIC_TOKENS}}
 
 ### Border Tokens
 
