@@ -10,10 +10,8 @@ All crypto is implemented with the Web Crypto API — no `bcrypt`, no `jsonwebto
 
 ## Installation
 
-This package ships inside the Urbicon UI monorepo. Install from repo root:
-
 ```bash
-bun install
+bun add @urbicon-ui/auth
 ```
 
 Peer dependencies: `svelte` (^5), `@sveltejs/kit`, `@urbicon-ui/blocks`, `@urbicon-ui/i18n`.
