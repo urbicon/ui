@@ -7,7 +7,6 @@
   import { getBlocksConfig, resolveSlotClasses } from '$lib/provider';
   import { edgeEnabledIndex, nextEnabledIndex } from '$lib/utils';
   import { resolveClassChain } from '$lib/utils/variants';
-  import { untrack } from 'svelte';
   import type { CommandPaletteProps, CommandPaletteItem } from './index';
   import { commandPaletteVariants, type CommandPaletteVariants } from './commandPalette.variants';
 
@@ -99,26 +98,29 @@
   const isDisabled = (index: number) => filtered[index]?.disabled ?? false;
 
   /**
-   * The highlight after the list changed: the first enabled row, or none (-1)
-   * when every row is disabled — then no row is selected, the input names no
-   * active descendant and Enter has nothing to select.
+   * The highlighted row, derived rather than stored: `selectedIndex` is only
+   * where the user last walked, and it counts while it is an enabled row of the
+   * CURRENT `filtered`. Otherwise — results arrived after opening, the row
+   * under it turned disabled, the list shrank past it — the first enabled row
+   * holds the highlight, and -1 when there is none: no row selected, no active
+   * descendant, Enter with nothing to select. A stored highlight would need an
+   * effect for every way the list can change under it.
    */
-  function resetHighlight() {
-    selectedIndex = edgeEnabledIndex(filtered.length, 1, isDisabled);
-  }
+  const highlightIndex = $derived(
+    selectedIndex >= 0 && selectedIndex < filtered.length && !isDisabled(selectedIndex)
+      ? selectedIndex
+      : edgeEnabledIndex(filtered.length, 1, isDisabled)
+  );
 
-  // `filtered` is read untracked in both effects so that only `query` (and
-  // opening) re-runs them: a new `items` array must not move the highlight the
-  // user has already walked to, and must not clear the query while open.
   $effect(() => {
     void query;
-    untrack(resetHighlight);
+    selectedIndex = 0;
   });
 
   $effect(() => {
     if (open) {
       query = '';
-      untrack(resetHighlight);
+      selectedIndex = 0;
       requestAnimationFrame(() => inputEl?.focus());
     }
   });
@@ -143,10 +145,10 @@
     let next: number;
     switch (e.key) {
       case 'ArrowDown':
-        next = nextEnabledIndex(filtered.length, selectedIndex, 1, isDisabled);
+        next = nextEnabledIndex(filtered.length, highlightIndex, 1, isDisabled);
         break;
       case 'ArrowUp':
-        next = nextEnabledIndex(filtered.length, selectedIndex, -1, isDisabled);
+        next = nextEnabledIndex(filtered.length, highlightIndex, -1, isDisabled);
         break;
       case 'Home':
         next = edgeEnabledIndex(filtered.length, 1, isDisabled);
@@ -155,7 +157,7 @@
         next = edgeEnabledIndex(filtered.length, -1, isDisabled);
         break;
       case 'Enter': {
-        const item = filtered[selectedIndex];
+        const item = filtered[highlightIndex];
         if (!item) return;
         e.preventDefault();
         selectItem(item);
@@ -165,7 +167,7 @@
         return;
     }
     e.preventDefault();
-    if (next >= 0 && next !== selectedIndex) {
+    if (next >= 0 && next !== highlightIndex) {
       selectedIndex = next;
       scrollSelectedIntoView();
     }
@@ -236,8 +238,8 @@
         role="combobox"
         aria-expanded={filtered.length > 0}
         aria-controls="command-palette-list"
-        aria-activedescendant={filtered[selectedIndex]
-          ? `command-palette-item-${selectedIndex}`
+        aria-activedescendant={filtered[highlightIndex]
+          ? `command-palette-item-${highlightIndex}`
           : undefined}
         autocomplete="off"
       />
@@ -295,7 +297,7 @@
             </div>
           {/if}
           {#each group.entries as { item, flatIdx } (item.id ?? item.label)}
-            {@const isHighlighted = flatIdx === selectedIndex}
+            {@const isHighlighted = flatIdx === highlightIndex}
             {@const isDisabled = item.disabled ?? false}
             {#if customItem}
               {@render customItem(item, isHighlighted, flatIdx)}

@@ -3,7 +3,7 @@
   // label, and a label the box cannot hold truncates only where the consumer
   // asks for it. Every probe sits in a flex row narrower than its label. Not
   // part of the docs nav.
-  import { Button } from '@urbicon-ui/blocks';
+  import { Button, SearchIcon } from '@urbicon-ui/blocks';
 </script>
 
 <div class="bg-surface-base min-h-screen p-6" data-testid="button-overflow-fixtures">
@@ -15,17 +15,26 @@
     <Button data-probe="glyph" variant="text" class="min-w-0 px-0">Interaktionsmodell</Button>
   </div>
 
-  <!-- Opt-in truncation: the button may shrink, the content slot clips. -->
-  <div class="mb-6 flex w-40">
-    <Button data-probe="truncate" class="min-w-0" slotClasses={{ content: 'truncate' }}>
-      Interaktionsmodell und Verlauf
-    </Button>
-  </div>
-
-  <!-- The consumer's own truncating child inside the label. -->
+  <!-- Opt-in truncation: the button may shrink, the consumer's block clips. -->
   <div class="mb-6 flex w-40">
     <Button data-probe="truncate-child" class="min-w-0">
       <span class="block truncate">Interaktionsmodell und Verlauf</span>
+    </Button>
+  </div>
+
+  <!-- Its twin without the ellipsis: the same clip, cut flat. -->
+  <div class="mb-6 flex w-40">
+    <Button data-probe="truncate-child-clip" class="min-w-0">
+      <span class="block overflow-hidden [text-overflow:clip] whitespace-nowrap"
+        >Interaktionsmodell und Verlauf</span
+      >
+    </Button>
+  </div>
+
+  <!-- An icon in a box narrower than icon + padding. -->
+  <div class="mb-6">
+    <Button data-probe="icon" size="sm" class="w-8" aria-label="Search">
+      <SearchIcon class="h-4 w-4" />
     </Button>
   </div>
 

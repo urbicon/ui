@@ -609,7 +609,10 @@ export const headerMenuVariants = tv({
     // table wrapper. See the `align` note on `tableHeaderVariants` for the wave
     // that has to settle header alignment properly.
     container: ['flex items-center justify-center flex-shrink-0'],
-    trigger: ['h-8 w-8 min-w-8', 'opacity-0 transition-opacity group-hover:opacity-100'],
+    // `px-0`: an icon-only square on a `size="sm"` Button, whose own `px-3`
+    // would leave a 16px icon a 6px content box — the step is the width, and
+    // the icon centres in it only without the size axis's padding.
+    trigger: ['h-8 w-8 px-0', 'opacity-0 transition-opacity group-hover:opacity-100'],
     // Handed to the Menu primitive as `slotClasses.content`: only the width
     // floor is ours (Menu's own `syncWidth:false` floor is min-w-48, this menu
     // keeps the 200px it always had). Everything else the old Popover build

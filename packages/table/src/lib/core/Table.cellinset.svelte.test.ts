@@ -704,6 +704,16 @@ describe.each(SIZES)('the actions column at size=%s', (size) => {
     const buttonWidths = buttons.map((button) => widthClassPx([...button.classList]));
     expect(new Set(buttonWidths).size, 'the trio should share one width').toBe(1);
 
+    // The step is the used width only without horizontal padding: with the
+    // size axis's `px-2` back, the icon's box would be wider than the step and
+    // overflow into the padding while every width class read the same.
+    for (const button of buttons) {
+      expect(
+        [...button.classList].filter((cls) => /^px-/.test(cls)),
+        `an action button has no horizontal padding at size=${size}`
+      ).toEqual(['px-0']);
+    }
+
     // The step is only the used width while the icon and the 1px border on
     // each side fit inside it; past that the icon overflows the box, unclipped
     // and uncounted, and no class here would say so.

@@ -9,9 +9,8 @@ export const buttonVariants = tv({
       // any `overflow-hidden` here drops that floor to 0 and lets a flex row
       // shrink the button through its label; and with a pill radius a clip
       // also takes the corner off the first glyph of a `px-0` label. Nothing
-      // needs the clip: the overlay spinner sits inside the padding box
-      // (measured at 2× on filled/outlined/ghost/start/sm — 0 pixels differ
-      // with and without it) and the ripple mint sets its own.
+      // needs the clip: the overlay spinner sits inside the padding box and the
+      // ripple mint sets its own.
       'relative inline-flex items-center justify-center gap-2',
       'font-medium text-center whitespace-nowrap border cursor-pointer select-none',
       // `scale`, NOT `transform`: Tailwind 4 emits `scale-*` as the discrete
@@ -66,10 +65,19 @@ export const buttonVariants = tv({
       // `min-w-0`: the content is itself a flex item, and its automatic minimum
       // would otherwise be the label — so a button the consumer lets shrink
       // (`class="min-w-0"`) could never clip its label, only overflow it, and a
-      // truncating child of the label (`<span class="truncate">`) would never
-      // reach its ellipsis. Truncation stays opt-in: `slotClasses.content`
-      // `'truncate'` on a shrinkable button.
-      'flex items-center min-w-0 [gap:inherit] transition-opacity duration-[var(--blocks-duration-fast)]'
+      // truncating child of the label would never reach its ellipsis.
+      // Truncation stays opt-in, and it is the CHILD that truncates:
+      // `text-overflow` only paints on a block container, and this slot is a
+      // flex row, so `truncate` here cuts flat — `<span class="block truncate">`
+      // around the label on a `class="min-w-0"` button is the form.
+      //
+      // `[&>svg]:shrink-0`: an icon is a flex item of this slot too, and once
+      // the slot may shrink, Chromium shrinks an svg WITH it (its automatic
+      // minimum is 0) — a 16px icon in a `w-8 size="sm"` button drew at 6px
+      // wide. Pinned, the icon keeps its size and sits off-centre instead,
+      // which is what a box too narrow for icon + padding should look like:
+      // the padding is the consumer's to drop (`px-0`).
+      'flex items-center min-w-0 [&>svg]:shrink-0 [gap:inherit] transition-opacity duration-[var(--blocks-duration-fast)]'
     ],
     spinner: [
       'flex items-center justify-center opacity-0 pointer-events-none transition-opacity duration-[var(--blocks-duration-fast)]'

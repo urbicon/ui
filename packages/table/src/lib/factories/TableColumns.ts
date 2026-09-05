@@ -158,7 +158,8 @@ export const TableColumns = {
    * width could still leave the class (an icon wider than its box) is caught
    * from the classes as well. What no class can show is a horizontal box
    * between the `<td>` and the buttons — the shape #256 removed from
-   * `ActionButtons.svelte`, whose markup comment is the guard for that.
+   * `ActionButtons.svelte`; `e2e/table-actions-budget.spec.ts` asks the engine
+   * for the cell's min-content and holds it against this declaration.
    */
   actions: <Item>(
     title = 'Actions',

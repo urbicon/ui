@@ -109,6 +109,22 @@
     const start = (Math.max(1, query.page) - 1) * perPage;
     return { items: rows.slice(start, start + perPage), total: rows.length };
   }
+  // Actions-column width budget (e2e/table-actions-budget.spec.ts): one table
+  // per size, each with all three handlers so the full trio renders, and the
+  // spec asks the engine for the cell's min-content. No numbers here — the
+  // declared width travels to the spec through the DOM attribute below, so the
+  // assertion is about *this* factory's number and raising it moves the bar by
+  // itself.
+  const budgetRows = makeRows(3);
+  const budgetSizes = ['sm', 'md', 'lg'] as const;
+  const noop = () => {};
+  const budgetActions = TableColumns.actions<Row>('Actions', {
+    onView: noop,
+    onEdit: noop,
+    onDelete: noop
+  });
+  const budgetColumns: Column<Row>[] = [{ accessor: 'name', title: 'Name' }, budgetActions];
+  const budgetDeclaredWidth = String(budgetActions.width);
 </script>
 
 <svelte:head>
@@ -287,4 +303,24 @@
       ariaLabel="Virtualized sm fixture table"
     />
   </section>
+
+  <!-- Actions-column width budget, one table per size. The spec clones the
+       cell's content into a zero-width box and holds the engine's min-content
+       against the width the factory declares. -->
+  {#each budgetSizes as size (size)}
+    <section
+      data-testid="table-actions-{size}"
+      data-declared-width={budgetDeclaredWidth}
+      class="mb-16"
+    >
+      <h2 class="text-text-primary mb-4 text-lg font-semibold">Actions budget ({size})</h2>
+      <Table
+        items={budgetRows}
+        columns={budgetColumns}
+        {size}
+        enableSmartFilter={false}
+        ariaLabel="Actions budget fixture table ({size})"
+      />
+    </section>
+  {/each}
 </div>
