@@ -7,7 +7,7 @@
  * One source, all channels generated — see docs/DOCS-SURFACES.md.
  */
 
-import { OVERRIDE_CASCADE } from '@urbicon-ui/design-engine/reference';
+import { OVERRIDE_CASCADE, SEMANTIC_TOKENS } from '@urbicon-ui/design-engine/reference';
 
 /**
  * A canonical package guide document distributed into the generated channels.
@@ -64,6 +64,58 @@ export function injectOverrideCascade(text: string, what: string): string {
     throw new Error(`${what} is missing the ${OVERRIDE_CASCADE_PLACEHOLDER} placeholder`);
   }
   return text.replace(OVERRIDE_CASCADE_PLACEHOLDER, () => OVERRIDE_CASCADE);
+}
+
+/** The template placeholder the surface / text / border utility list is rendered into. */
+export const SEMANTIC_TOKENS_PLACEHOLDER = '{{SEMANTIC_TOKENS}}';
+
+/** Column the template's token fences align their role comments at. */
+const TOKEN_COMMENT_COLUMN = 25;
+
+/**
+ * The surface, text and border utilities as fence lines — the utility, then its
+ * role in a CSS-style comment — from the engine's generated token data: the same
+ * data the CSS reference tables render from, so the "COMPLETE list" the
+ * template promises can neither omit a token the CSS has nor describe one with
+ * a role it no longer plays. A role cannot end such a comment early: it is read
+ * out of a CSS comment, which the same two characters would have ended.
+ */
+export function renderSemanticTokenList(): string {
+  const block = (
+    heading: string,
+    family: 'surface' | 'text' | 'border',
+    prefix: string
+  ): string => {
+    const lines = SEMANTIC_TOKENS.families[family].map((token) => {
+      const utility = `${prefix}${token.name}`;
+      if (token.role === '') return utility;
+      const padded =
+        utility.length < TOKEN_COMMENT_COLUMN
+          ? utility.padEnd(TOKEN_COMMENT_COLUMN)
+          : `${utility} `;
+      return `${padded}/* ${token.role} */`;
+    });
+    return [`### ${heading}`, '', '```', ...lines, '```'].join('\n');
+  };
+  return [
+    block('Surface Tokens (backgrounds)', 'surface', 'bg-'),
+    '',
+    block('Text Tokens', 'text', 'text-'),
+    '',
+    block('Border Tokens', 'border', 'border-')
+  ].join('\n');
+}
+
+/**
+ * Substitute the rendered token list for its placeholder. Absence is a build
+ * error, as for the cascade sentence: the token section would otherwise ship
+ * without its list and nothing would say so.
+ */
+export function injectSemanticTokens(text: string, what: string): string {
+  if (!text.includes(SEMANTIC_TOKENS_PLACEHOLDER)) {
+    throw new Error(`${what} is missing the ${SEMANTIC_TOKENS_PLACEHOLDER} placeholder`);
+  }
+  return text.replace(SEMANTIC_TOKENS_PLACEHOLDER, () => renderSemanticTokenList());
 }
 
 /**

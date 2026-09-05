@@ -7,6 +7,7 @@ import {
   GUIDE_PLACEHOLDER_PATTERN,
   guidePlaceholder,
   injectOverrideCascade,
+  injectSemanticTokens,
   type PackageGuide,
   renderGuideForEmbedding
 } from './guide-injection';
@@ -48,6 +49,7 @@ export class LlmsFullAssembler {
     let assembled = template.replace(PLACEHOLDER, () => componentSections.content);
     assembled = await this.injectGuides(assembled);
     assembled = injectOverrideCascade(assembled, 'llms-full template');
+    assembled = injectSemanticTokens(assembled, 'llms-full template');
     assertNoPlaceholderLeft(assembled, 'llms-full.txt');
 
     for (const outputPath of this.config.outputPaths) {

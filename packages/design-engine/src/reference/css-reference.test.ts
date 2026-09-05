@@ -11,28 +11,15 @@ import {
   resolveCssReferenceSection
 } from './css-reference.js';
 import { OVERRIDE_CASCADE } from './override-ladder.js';
+import { INFORMATIVE_RAMP, SEMANTIC_TOKENS } from './semantic-tokens.js';
 
 /**
- * Drift guard for the hand-maintained CSS token reference.
- *
- * The reference inlines its token tables as TS strings — both consumers (the remote
- * MCP server and the `urbicon` CLI) ship standalone (no blocks CSS at runtime), the
- * same constraint that keeps the linter's `VALID_TOKEN_CORES` inline. The hazard of
- * any hand-copied list is silent drift: `--color-border-hairline` was added to the
- * CSS and went unmirrored here for a while. When the blocks CSS is present (i.e.
- * running in-repo) we re-derive the semantic surface / text / border token cores and
- * assert each is documented, so a newly added token can no longer disappear.
- *
- * Scope: the three families the reference enumerates exhaustively (one row per
- * token), plus a lighter check that every intent is at least *named* (its base
- * `--color-<intent>` token or a `bg-<intent>` utility appears in the prose) — the
- * F-B drift where a whole intent (`info`, a real ramp behind `bg-info` /
- * `--color-feedback-info`) went undocumented while the six others were listed. It
- * deliberately does NOT require every intent scale step (`primary-50 … primary-950`,
- * documented via shorthand), feedback/interactive, chart, or internal-only token
- * (e.g. `skeleton-shimmer`, used by the Skeleton wave, never a consumer utility) to
- * be spelled out. Whole-set token validity is already guarded by the linter's
- * `tokens.test.ts`.
+ * The reference's token tables render from `semantic-tokens.gen.ts`, which
+ * `tokens:reference:check` (and `scripts/semantic-tokens-parse.test.ts`) holds
+ * equal to the blocks CSS — so the tests here ask the data for the properties
+ * the prose promises, not the prose for a token count. The theming and
+ * typography claims below are still authored, and still measured against the
+ * blocks source when it is present.
  */
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
@@ -48,6 +35,20 @@ const semantic = resolve(
   'semantic.css'
 );
 const cssAvailable = existsSync(semantic);
+
+/**
+ * Unique `--color-<family>-*` cores the CSS declares — a regex over the file
+ * with comments stripped, i.e. an oracle independent of the generator, so a
+ * row the renderer drops (or a token the generator skips) is a count mismatch
+ * here rather than data agreeing with itself.
+ */
+function cssCores(family: string): string[] {
+  const css = readFileSync(semantic, 'utf-8').replace(/\/\*[\s\S]*?\*\//g, '');
+  const cores = new Set<string>();
+  for (const m of css.matchAll(new RegExp(`--color-(${family}-[a-z0-9-]+)\\s*:`, 'g')))
+    cores.add(m[1]!);
+  return [...cores];
+}
 
 const themesDir = resolve(semantic, '..', 'themes');
 const themesAvailable = existsSync(themesDir);
@@ -94,32 +95,12 @@ function deriveThemeTokenFamilies(): string[] {
   return [...families].sort();
 }
 
-const ALL_CONTENT = [CSS_REFERENCE_OVERVIEW, ...Object.values(CSS_REFERENCE_SECTIONS)].join('\n');
-
-/** Families the reference tables exhaustively, with the prose count to verify. */
+/** Families the reference tables one row per token, and the section each renders into. */
 const TABLED_FAMILIES = [
   { family: 'surface', section: CSS_REFERENCE_SECTIONS.surfaces },
   { family: 'text', section: CSS_REFERENCE_SECTIONS.text },
   { family: 'border', section: CSS_REFERENCE_SECTIONS.borders }
 ] as const;
-
-/** Unique semantic `--color-<family>-*` cores in the CSS (scoped re-declarations collapse). */
-function deriveSemanticCores(family: string): string[] {
-  const css = readFileSync(semantic, 'utf-8');
-  const re = new RegExp(`--color-(${family}-[a-z-]+)\\s*:`, 'g');
-  const cores = new Set<string>();
-  for (const m of css.matchAll(re)) cores.add(m[1]!);
-  return [...cores].sort();
-}
-
-/** Intent names from the `=== X INTENT ===` section markers in the CSS — robust to
- * the multi-line `--color-neutral` definition a self-referential regex would miss. */
-function deriveIntents(): string[] {
-  const css = readFileSync(semantic, 'utf-8');
-  const cores = new Set<string>();
-  for (const m of css.matchAll(/=== ([A-Z-]+) INTENT ===/g)) cores.add(m[1]!.toLowerCase());
-  return [...cores].sort();
-}
 
 describe('renderCssReference', () => {
   it('returns the overview when no section is given', () => {
@@ -283,33 +264,122 @@ describe.skipIf(!blocksLibAvailable)('typography reach claims match the blocks s
   });
 });
 
-describe.skipIf(!cssAvailable)('css-reference token drift guard', () => {
-  for (const { family } of TABLED_FAMILIES) {
-    it(`documents every semantic \`${family}-*\` token defined in the CSS`, () => {
-      const missing = deriveSemanticCores(family).filter((c) => !ALL_CONTENT.includes(c));
+describe('generated token tables', () => {
+  for (const { family, section } of TABLED_FAMILIES) {
+    it(`renders a row for every ${family} token in the data`, () => {
+      const tokens = SEMANTIC_TOKENS.families[family];
+      expect(tokens.length).toBeGreaterThan(0);
+      const missing = tokens.filter((t) => !section.includes(`| \`--color-${t.name}\` |`));
       expect(
-        missing,
-        `Semantic ${family} tokens in the CSS but absent from the reference: ${missing.join(', ')}`
+        missing.map((t) => t.name),
+        `${family} tokens in the data without a table row`
       ).toEqual([]);
     });
-  }
 
-  for (const { family, section } of TABLED_FAMILIES) {
-    it(`states the correct ${family}-token count`, () => {
-      const stated = Number(section.match(/(\d+)\s+tokens for/)?.[1]);
-      expect(stated, 'prose count drifted from the real token count').toBe(
-        deriveSemanticCores(family).length
-      );
+    it(`resolves every ${family} branch to a stop or a literal`, () => {
+      for (const t of SEMANTIC_TOKENS.families[family]) {
+        for (const side of ['light', 'dark'] as const) {
+          const stop = t[side];
+          expect(stop.ref !== undefined || stop.raw !== undefined, `${t.name} ${side}`).toBe(true);
+        }
+      }
     });
   }
 
-  it('names every intent defined in the CSS (base token or utility)', () => {
-    const missing = deriveIntents().filter(
-      (c) => !ALL_CONTENT.includes(`--color-${c}`) && !ALL_CONTENT.includes(`bg-${c}`)
-    );
-    expect(
-      missing,
-      `Intents in the CSS but absent from the reference: ${missing.join(', ')}`
-    ).toEqual([]);
+  it('keeps the informative ramp monotonic in lightness', () => {
+    const byName = new Map(SEMANTIC_TOKENS.families.text.map((t) => [t.name, t]));
+    const rungs = INFORMATIVE_RAMP.map((name) => {
+      const token = byName.get(name);
+      if (!token) throw new Error(`no text token ${name}`);
+      return token;
+    });
+    const ties: string[][] = [];
+    for (let i = 1; i < rungs.length; i++) {
+      const above = rungs[i - 1]!;
+      const rung = rungs[i]!;
+      // Light mode: every rung strictly lighter than the one above it — the
+      // inversion a consumer produced by lightening tertiary past quaternary
+      // (#402) is exactly what this refuses.
+      expect(rung.light.l, `${rung.name} lighter than ${above.name} (light)`).toBeGreaterThan(
+        above.light.l!
+      );
+      // Dark mode: every rung strictly darker than the one above it, except
+      // the one tie the CSS carries on purpose (asserted below) — a "not
+      // darker" check would also pass a ramp collapsed onto one stop.
+      if (rung.dark.ref === above.dark.ref) {
+        ties.push([above.name, rung.name]);
+        continue;
+      }
+      expect(rung.dark.l, `${rung.name} darker than ${above.name} (dark)`).toBeLessThan(
+        above.dark.l!
+      );
+    }
+    expect(ties, 'the only dark-mode tie is secondary/tertiary on neutral-300').toEqual([
+      ['text-secondary', 'text-tertiary']
+    ]);
+    expect(CSS_REFERENCE_SECTIONS.text).toContain('| `text-tertiary` |');
   });
+
+  it('marks text-quaternary as mark-only, never body text', () => {
+    const role = SEMANTIC_TOKENS.families.text.find((t) => t.name === 'text-quaternary')?.role;
+    expect(role).toMatch(/mark-only/i);
+    expect(role).toMatch(/never use it for body text/i);
+    expect(CSS_REFERENCE_SECTIONS.text).toContain(role);
+  });
+
+  it('keeps surface-subtle a resting tint, never a hover step', () => {
+    const role = SEMANTIC_TOKENS.families.surface.find((t) => t.name === 'surface-subtle')?.role;
+    expect(role).toMatch(/resting/i);
+    expect(role).toMatch(/never a hover step/i);
+  });
+
+  it('carries every role for every intent, or states why not', () => {
+    const { roles, entries, absent } = SEMANTIC_TOKENS.intents;
+    expect(entries.length).toBeGreaterThan(0);
+    for (const entry of entries) {
+      for (const { suffix } of roles) {
+        const stated = absent.some((a) => a.intent === entry.name && a.suffix === suffix);
+        expect(
+          entry.stops[suffix] !== undefined || stated,
+          `${entry.name} has no -${suffix} and no @absent reason`
+        ).toBe(true);
+      }
+      expect(CSS_REFERENCE_SECTIONS.intents).toContain(`| \`${entry.name}\` |`);
+    }
+    for (const a of absent) expect(CSS_REFERENCE_SECTIONS.intents).toContain(a.reason);
+  });
+
+  it('documents the three intent roles #207 asked for', () => {
+    const role = (suffix: string) =>
+      SEMANTIC_TOKENS.intents.roles.find((r) => r.suffix === suffix)?.role ?? '';
+    expect(role('base')).toMatch(/fill/i);
+    expect(role('text')).toMatch(/AA 4\.5/);
+    expect(role('emphasis')).toMatch(/near-ink/i);
+    expect(SEMANTIC_TOKENS.intents.absent).toContainEqual(
+      expect.objectContaining({ intent: 'neutral', suffix: 'text' })
+    );
+  });
+
+  it('keeps info out of the ComponentIntent union it names', () => {
+    // The intro derives its list from the data but states once that `info` is
+    // the status colour; that sentence needs an `info` intent to be about.
+    expect(SEMANTIC_TOKENS.intents.entries.map((e) => e.name)).toContain('info');
+    expect(CSS_REFERENCE_SECTIONS.intents).toContain('`info` is the status colour');
+    expect(CSS_REFERENCE_SECTIONS.intents).not.toMatch(
+      /\(`[^)]*`info`[^)]*\) are the `ComponentIntent`/
+    );
+  });
+});
+
+describe.skipIf(!cssAvailable)('table rows against the CSS', () => {
+  for (const { family, section } of TABLED_FAMILIES) {
+    it(`renders exactly one row per ${family} token the CSS declares, and says so`, () => {
+      const cores = cssCores(family);
+      expect(cores.length).toBeGreaterThan(0);
+      const rows = section.split('\n').filter((line) => line.startsWith('| `--color-'));
+      expect(rows.length, `${family} rows vs. tokens in semantic.css`).toBe(cores.length);
+      for (const core of cores) expect(section).toContain(`| \`--color-${core}\` |`);
+      expect(section).toContain(`${cores.length} tokens for`);
+    });
+  }
 });
