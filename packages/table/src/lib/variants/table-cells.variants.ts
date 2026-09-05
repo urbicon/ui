@@ -386,7 +386,13 @@ export const actionCellVariants = tv({
   slots: {
     container: [...CELL_BASE, 'justify-end gap-1'],
     button: [
-      'inline-flex items-center justify-center',
+      // `px-0`: an icon-only square. The `w-*` step below IS the button's width
+      // — a flex item's automatic minimum is the smaller of its specified width
+      // and its content, so the horizontal padding the blocks `Button` size axis
+      // brings (`px-2`) would only push the icon's own box past the step and
+      // into the padding, never widen the button. `justify-center` centres the
+      // icon; the column budget in `TableColumns.actions` counts the step.
+      'inline-flex items-center justify-center px-0',
       'rounded-modify transition-[color,background-color,border-color,box-shadow,opacity] duration-[var(--blocks-duration-fast)]',
       'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-1'
     ],

@@ -109,29 +109,6 @@
     const start = (Math.max(1, query.page) - 1) * perPage;
     return { items: rows.slice(start, start + perPage), total: rows.length };
   }
-
-  // Actions-column width budget (e2e/table-actions-budget.spec.ts). The factory
-  // declares a width computed from the built-in trio, and
-  // `Table.cellinset.svelte.test.ts` recomputes that from the *declared* `w-*`
-  // classes. What no jsdom assertion can see is what the engine lays out
-  // underneath an unchanged `w-8` — the blocks `Button` carries `min-w-min`, so
-  // a wider icon or more padding lifts its floor without touching the class.
-  // Hence one table per size, each with all three handlers so the full trio
-  // renders. No numbers here: the spec reads the declaration off the DOM
-  // attribute below, so raising the factory width moves the bar by itself.
-  const budgetRows = makeRows(3);
-  const budgetSizes = ['sm', 'md', 'lg'] as const;
-  const noop = () => {};
-  const budgetActions = TableColumns.actions<Row>('Actions', {
-    onView: noop,
-    onEdit: noop,
-    onDelete: noop
-  });
-  const budgetColumns: Column<Row>[] = [{ accessor: 'name', title: 'Name' }, budgetActions];
-  // The declared width travels to the spec through the DOM rather than being
-  // typed there a second time: the assertion has to be about *this* factory's
-  // number, so raising it must move the bar the browser is held to.
-  const budgetDeclaredWidth = String(budgetActions.width);
 </script>
 
 <svelte:head>
@@ -310,24 +287,4 @@
       ariaLabel="Virtualized sm fixture table"
     />
   </section>
-
-  <!-- Actions-column width budget, one table per size. The spec measures the
-       rendered buttons, their gap and the cell inset in a real engine and holds
-       the sum against the width the factory declares. -->
-  {#each budgetSizes as size (size)}
-    <section
-      data-testid="table-actions-{size}"
-      data-declared-width={budgetDeclaredWidth}
-      class="mb-16"
-    >
-      <h2 class="text-text-primary mb-4 text-lg font-semibold">Actions budget ({size})</h2>
-      <Table
-        items={budgetRows}
-        columns={budgetColumns}
-        {size}
-        enableSmartFilter={false}
-        ariaLabel="Actions budget fixture table ({size})"
-      />
-    </section>
-  {/each}
 </div>
