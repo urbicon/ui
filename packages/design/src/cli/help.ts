@@ -108,11 +108,12 @@ Commands — knowledge (what to build with):
                         intents, shadows). Run it first. Patterns, recipes and
                         component APIs stay on demand — they are task-dependent.
   find [query]          Discover components by fuzzy search over the version-pinned
-                        catalog (names, tags, descriptions, prop docs, variant
-                        values). No query lists all.
+                        catalog (names, tags, descriptions, summaries, prop docs,
+                        variant values). No query lists all.
                         --tag <t>          Filter by category tag (form, action, …).
                         --limit <n>        Max results (default 10; also caps a full list).
-                        --json             Machine-readable catalog entries.
+                        --json             Machine-readable catalog entries (prop docs
+                                           omitted — get-component has them).
   get-component <slug…> Print a component's API (its llm.txt) from the bundle.
                         Takes several slugs — one call for a whole screen's worth.
                         --section <s>      overview | examples | variants | api | slots |

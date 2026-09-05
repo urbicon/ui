@@ -1,4 +1,5 @@
 import type { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
+import { isBooleanAxis } from '@urbicon-ui/design-engine/search';
 import { z } from 'zod';
 import { loadCatalog } from '../data/catalog-loader.js';
 
@@ -118,7 +119,7 @@ export function registerGetChecklistTool(server: McpServer): void {
             md += `### ${comp.name}\n`;
             if (comp.variants.length > 0) {
               const key = comp.variants
-                .filter((v) => !['true', 'false'].every((b) => v.values.includes(b)))
+                .filter((v) => !isBooleanAxis(v.values))
                 .map((v) => `\`${v.name}\`: ${v.values.join(' / ')}`)
                 .join(', ');
               if (key) md += `- Variants: ${key}\n`;

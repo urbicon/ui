@@ -4,12 +4,9 @@ import { VariantsExtractor } from '../src/extractors/variants/VariantsExtractor'
 import type { VariantInfo } from '../src/types';
 
 // ---------------------------------------------------------------------------
-// Per-value descriptions. A tv() value is a bare key (`dot: {}`), so the only
-// place its meaning can live in source is a comment above it — and the only
-// comment form read is a JSDoc block that touches the key. Surveyed before the
-// form was chosen: of the repo's 1018 values, 30 carry a `//` line directly
-// above the key and two thirds of those are maintainer notes ("tv() does not
-// dedupe across variants…"), so `//` cannot be the description form.
+// Per-value descriptions. A tv() value is a bare key (`dot: {}`), so its
+// meaning lives in the JSDoc block on that key — attached by TypeScript the
+// way a prop's JSDoc is, and read through the same `extractJSDocComment`.
 // ---------------------------------------------------------------------------
 
 const FIXTURES = path.join(import.meta.dirname, 'fixtures');
@@ -43,26 +40,32 @@ describe('VariantsExtractor — per-value descriptions', () => {
     size = variants.find((v) => v.name === 'size');
   });
 
-  it('lifts the JSDoc block touching a value key, its lines merged into one', () => {
+  it('lifts the JSDoc block on a value key, its lines merged into one', () => {
     expect(variant?.valueDescriptions?.dot).toBe(
       'Small indicator dot left of the label — outline only when off, filled in the intent colour when on.'
     );
   });
 
-  it('skips a pragma line between the block and the key', () => {
+  it('is not disturbed by a pragma line between the block and the key', () => {
     expect(variant?.valueDescriptions?.square).toBe('Compact square.');
   });
 
-  it('does not attribute the block above the axis to the first value', () => {
+  it('is not disturbed by a blank line between the block and the key', () => {
+    expect(variant?.valueDescriptions?.detached).toBe(
+      'Separated from the key by a blank line — attached all the same.'
+    );
+  });
+
+  it('keeps the prose and drops an inline tag, as for a prop', () => {
+    expect(variant?.valueDescriptions?.ring).toBe('Hollow ring.');
+  });
+
+  it('does not attribute the block on the axis key to the first value', () => {
     expect(variant?.valueDescriptions).not.toHaveProperty('default');
   });
 
-  it('does not read a // note touching the key as a description', () => {
+  it('does not read a // note as a description', () => {
     expect(variant?.valueDescriptions).not.toHaveProperty('pill');
-  });
-
-  it('does not read a block separated from the key by a blank line', () => {
-    expect(variant?.valueDescriptions).not.toHaveProperty('detached');
   });
 
   it('omits valueDescriptions entirely when no value carries a block', () => {
@@ -71,6 +74,6 @@ describe('VariantsExtractor — per-value descriptions', () => {
   });
 
   it('leaves the value list itself as it was', () => {
-    expect(variant?.values).toEqual(['default', 'detached', 'dot', 'pill', 'square']);
+    expect(variant?.values).toEqual(['default', 'detached', 'dot', 'pill', 'ring', 'square']);
   });
 });

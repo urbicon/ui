@@ -1,8 +1,8 @@
 /**
- * Fixture: per-value descriptions. A JSDoc block touching a value's key is
- * that value's description. A `//` note touching the key, a pragma line
- * between block and key, a block above the axis, and a block separated from
- * the key by a blank line are the four things that must NOT become one.
+ * Fixture: per-value descriptions. The JSDoc block on a value's key is that
+ * value's description, attached the way TypeScript attaches a prop's. A `//`
+ * note is not JSDoc; a block on the axis key belongs to the axis; a pragma
+ * line, a blank line and an inline tag change nothing about the attachment.
  */
 declare const tv: (config: unknown) => Record<string, unknown>;
 
@@ -22,9 +22,11 @@ export const toggleVariants = tv({
       /** Compact square. */
       // eslint-disable-next-line no-empty-pattern
       square: {},
-      /** Separated from the key by a blank line — not touching it. */
+      /** Separated from the key by a blank line — attached all the same. */
 
-      detached: {}
+      detached: {},
+      /** Hollow ring. @deprecated prefer `dot` */
+      ring: {}
     },
     size: { sm: {}, md: {} }
   },

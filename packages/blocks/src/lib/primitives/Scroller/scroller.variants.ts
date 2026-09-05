@@ -106,11 +106,13 @@ export const scrollerVariants = tv({
     },
 
     snap: {
-      // Default. `mandatory` can strand content the browser then skips past;
-      // `proximity` snaps when you let go nearby and otherwise stays out of the
-      // way (plan §3.5).
+      // Default (plan §3.5).
+      /** Snaps when you let go nearby and otherwise stays out of the way. */
       proximity: { viewport: 'snap-x snap-proximity' },
-      // Deliberate opt-in for "exactly one item per screen".
+      /**
+       * Deliberate opt-in for "exactly one item per screen" — can strand
+       * content the browser then skips past.
+       */
       mandatory: { viewport: 'snap-x snap-mandatory' },
       none: { viewport: 'snap-none' }
     },

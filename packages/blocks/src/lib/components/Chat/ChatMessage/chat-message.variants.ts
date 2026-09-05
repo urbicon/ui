@@ -66,7 +66,7 @@ export const chatMessageVariants = tv({
   variants: {
     layout: {
       bubble: {},
-      // Document-like: full-width content under an avatar + role header row.
+      /** Document-like: full-width content under an avatar + role header row. */
       plain: {
         column: 'w-full items-stretch',
         bubble: 'w-full'

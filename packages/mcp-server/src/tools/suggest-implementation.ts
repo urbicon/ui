@@ -1,5 +1,5 @@
 import type { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
-import { matchComponents } from '@urbicon-ui/design-engine/search';
+import { isBooleanAxis, matchComponents } from '@urbicon-ui/design-engine/search';
 import { z } from 'zod';
 import type { ComponentCatalogEntry } from '../data/catalog-loader.js';
 import { loadCatalog } from '../data/catalog-loader.js';
@@ -166,13 +166,7 @@ export function registerSuggestImplementationTool(server: McpServer): void {
       md += '## Components\n\n';
       for (const comp of matched) {
         const meaningfulVariants = comp.variants
-          .filter((v) => {
-            const sorted = [...v.values].sort();
-            return !(
-              (sorted.length === 1 && (sorted[0] === 'true' || sorted[0] === 'false')) ||
-              (sorted.length === 2 && sorted[0] === 'false' && sorted[1] === 'true')
-            );
-          })
+          .filter((v) => !isBooleanAxis(v.values))
           .map((v) => {
             const def = v.default ? ` (default: ${v.default})` : '';
             return `${v.name}: ${v.values.join('/')}${def}`;

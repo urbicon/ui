@@ -11,13 +11,6 @@ interface VariantsExtractionInput {
 }
 
 /**
- * Line comments that are tooling directives, not prose. Between a value's JSDoc
- * block and its key they are stepped over — neither read as the description nor
- * allowed to detach the block from the key.
- */
-const PRAGMA_COMMENT_RE = /^\/\/\s*(biome-ignore|@ts-|eslint|prettier-ignore)/;
-
-/**
  * Extracts variant information from Tailwind Variants files
  * Supports tv() function calls and various variant configurations
  */
@@ -229,7 +222,7 @@ export class VariantsExtractor extends TypeScriptBaseExtractor<
 
   private parseVariantsDeclaration(
     declaration: ts.VariableDeclaration,
-    sourceFile: ts.SourceFile
+    _sourceFile: ts.SourceFile
   ): VariantInfo[] {
     if (!declaration.initializer) {
       throw new Error('Variants declaration has no initializer');
@@ -241,7 +234,7 @@ export class VariantsExtractor extends TypeScriptBaseExtractor<
         case 'tailwind-variants': {
           const tvCall = this.findTailwindVariantsCall(declaration.initializer);
           if (tvCall) {
-            return this.parseTailwindVariants(tvCall, sourceFile);
+            return this.parseTailwindVariants(tvCall);
           }
           break;
         }
@@ -283,10 +276,7 @@ export class VariantsExtractor extends TypeScriptBaseExtractor<
     return result;
   }
 
-  private parseTailwindVariants(
-    tvCall: ts.CallExpression,
-    sourceFile: ts.SourceFile
-  ): VariantInfo[] {
+  private parseTailwindVariants(tvCall: ts.CallExpression): VariantInfo[] {
     const configObject = tvCall.arguments[0];
     if (!configObject || !ts.isObjectLiteralExpression(configObject)) {
       throw new Error('tv() first argument is not an object literal');
@@ -303,7 +293,7 @@ export class VariantsExtractor extends TypeScriptBaseExtractor<
     const defaults = defaultVariants ? this.extractDefaultVariants(defaultVariants) : {};
 
     // Parse individual variant groups
-    return this.parseVariantGroups(variantsProperty, defaults, sourceFile);
+    return this.parseVariantGroups(variantsProperty, defaults);
   }
 
   private findPropertyInObject(
@@ -388,8 +378,7 @@ export class VariantsExtractor extends TypeScriptBaseExtractor<
 
   private parseVariantGroups(
     variantsObject: ts.ObjectLiteralExpression,
-    defaults: Record<string, string>,
-    sourceFile: ts.SourceFile
+    defaults: Record<string, string>
   ): VariantInfo[] {
     const variants: VariantInfo[] = [];
 
@@ -401,7 +390,6 @@ export class VariantsExtractor extends TypeScriptBaseExtractor<
           const variantInfo = this.parseVariantGroup(
             variantName,
             property.initializer,
-            sourceFile,
             defaults[variantName]
           );
 
@@ -421,7 +409,6 @@ export class VariantsExtractor extends TypeScriptBaseExtractor<
   private parseVariantGroup(
     variantName: string,
     variantObject: ts.ObjectLiteralExpression,
-    sourceFile: ts.SourceFile,
     defaultValue?: string
   ): VariantInfo | null {
     const values: string[] = [];
@@ -453,7 +440,7 @@ export class VariantsExtractor extends TypeScriptBaseExtractor<
       if (!variantValue) continue;
 
       values.push(variantValue);
-      const description = this.extractValueDescription(property, sourceFile);
+      const description = this.extractValueDescription(property);
       if (description) valueDescriptions[variantValue] = description;
     }
 
@@ -482,47 +469,16 @@ export class VariantsExtractor extends TypeScriptBaseExtractor<
   }
 
   /**
-   * The description of one variant value: the JSDoc block (`/** … *\/`) that
-   * touches the value's key from above — ending on the key's line or the one
-   * before it, with only pragma lines allowed in between. Its lines are merged
-   * into one. Nothing else is read: a `//` line touching the key is a
-   * maintainer's note by this repo's comment policy (constraints, not prose
-   * for a consumer), a block above the axis belongs to the axis, and a block
-   * separated from the key by a blank line is not "above the key". A block on
-   * the same line as the previous value (`a: {}, /** … *\/ b: {}`) is that
-   * value's trailing comment to the scanner and is not seen either.
+   * The description of one variant value: the JSDoc block on the value's key,
+   * read the way a prop's is (`extractJSDocComment`, i.e. TypeScript's own
+   * attachment — a `//` line is not JSDoc and a block above the axis belongs
+   * to the axis). Lines are merged into one, since the text is a catalog line.
    */
-  private extractValueDescription(
-    property: ts.ObjectLiteralElementLike,
-    sourceFile: ts.SourceFile
-  ): string | undefined {
-    const text = sourceFile.text;
-    const ranges = ts.getLeadingCommentRanges(text, property.getFullStart()) ?? [];
-    const lineOf = (pos: number): number => sourceFile.getLineAndCharacterOfPosition(pos).line;
-
-    // A range ending on or before this line has a blank line between itself
-    // and what follows it.
-    let detachedBelow = lineOf(property.getStart(sourceFile)) - 2;
-    for (let i = ranges.length - 1; i >= 0; i--) {
-      const range = ranges[i];
-      if (!range || lineOf(range.end) <= detachedBelow) return undefined;
-      const raw = text.slice(range.pos, range.end);
-      if (range.kind === ts.SyntaxKind.SingleLineCommentTrivia) {
-        if (!PRAGMA_COMMENT_RE.test(raw)) return undefined;
-        detachedBelow = lineOf(range.pos) - 2;
-        continue;
-      }
-      if (!raw.startsWith('/**')) return undefined;
-      const merged = raw
-        .replace(/^\/\*\*/, '')
-        .replace(/\*\/$/, '')
-        .split('\n')
-        .map((line) => line.replace(/^\s*\*\s?/, '').trim())
-        .filter(Boolean)
-        .join(' ');
-      return merged || undefined;
-    }
-    return undefined;
+  private extractValueDescription(property: ts.ObjectLiteralElementLike): string | undefined {
+    const text = this.extractJSDocComment(property)
+      ?.replace(/\s*\n\s*/g, ' ')
+      .trim();
+    return text || undefined;
   }
 
   private extractVariantClasses(initializer: ts.Expression): string | null {

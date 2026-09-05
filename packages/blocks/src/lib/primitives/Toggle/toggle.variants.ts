@@ -102,9 +102,7 @@ export const toggleVariants = tv({
       // same pipeline stage — compoundVariants is the next stage.
       /**
        * Small indicator dot left of the label — outline only when off, filled
-       * in the intent colour when on. Monochrome, no pill background: for
-       * inline settings, dense toolbars, knob-strips, or anywhere the switch
-       * is visually too dominant.
+       * in the intent colour when on; monochrome, no pill background.
        */
       dot: {}
     },

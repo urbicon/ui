@@ -51,7 +51,7 @@ The same split, one level down. A prop's own JSDoc is the contract; an optional 
 
 ## A variant value's description lives in `*.variants.ts`
 
-A tv() value is a bare key (`dot: {}`), so the only place its meaning can sit in source is a JSDoc block **touching the key** — that block becomes `variants[].valueDescriptions.<value>` in the catalog, the search index, and an indented line under the axis in `llm.txt`:
+A tv() value is a bare key (`dot: {}`), so its meaning lives in the JSDoc block on that key — read exactly as a prop's JSDoc is (TypeScript's own attachment) — and becomes `variants[].valueDescriptions.<value>` in the catalog, the search index, and an indented line under the axis in `llm.txt`:
 
 ```ts
     variant: {
@@ -62,9 +62,9 @@ A tv() value is a bare key (`dot: {}`), so the only place its meaning can sit in
     },
 ```
 
-- **`/** … */` only.** A `//` line above the key is a maintainer's note (the comment policy: constraints, not prose for a consumer) and is never read — so the "why this class lives here" note stays `//` and never leaks into the catalog.
-- **Touching means touching.** A blank line between block and key detaches it; a pragma line (`biome-ignore`, `@ts-…`, `eslint`) in between is stepped over. A block above the *axis* key belongs to the axis, not to its first value.
+- **The JSDoc block on the key, as for a prop.** A `//` line is a maintainer's note (the comment policy: constraints, not prose for a consumer) and is never read; a block on the *axis* key belongs to the axis.
 - **Optional.** No block → no description, not an error. Most values (`sm`, `primary`) need none; write one where the value's name does not carry its meaning (`dot`, `ghost`, `proximity`).
+- **Said once.** The prop's JSDoc keeps the contract — what the prop selects, its default, when to reach for a value in one clause if you must; it does not restate what a value block says.
 
 ## Placement — JSDoc vs docs page
 

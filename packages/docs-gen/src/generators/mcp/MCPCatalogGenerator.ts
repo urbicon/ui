@@ -87,9 +87,24 @@ export interface ComponentCatalog {
   tags: string[];
 }
 
-// The docs-infrastructure exclusion lives in MCPCatalogAssembler now — see
-// INTERNAL_COMPONENTS there. Filtering here emptied `_catalog.json` for the
-// docs target, which is also what `summary:lint` and the docs site read.
+/**
+ * The `@urbicon-ui/docs` components: the furniture documentation pages are
+ * built FROM, not building blocks for a consumer's UI. `MCPCatalogAssembler`
+ * keeps them out of the assembled catalog — `find_components` answers "what do
+ * I build this UI from", and a PlaygroundConfigurator is never that answer.
+ * Their per-package `_catalog.json` is still written (it is what
+ * `summary:lint` and the docs site's own index read), but without the
+ * search-only fields (`propDocs`, `valueDescriptions`): that file is imported
+ * client-side by the docs index page, which reads name, slug, summary and
+ * description.
+ *
+ * The rule is the package, not a list of names. A hand-kept list of the nine
+ * components was the first version and it lasted one new component: `NoteList`
+ * was added, nobody remembered the list, and it shipped into the public
+ * catalog. Package membership is the actual criterion, so it is the one
+ * encoded here — once, for the generator and the assembler.
+ */
+export const INTERNAL_PACKAGE = '@urbicon-ui/docs';
 
 /**
  * Package → origin tag. Components from these packages carry an extra discovery
@@ -166,11 +181,15 @@ export class MCPCatalogGenerator {
     const tags =
       originTag && !jsdocTags.includes(originTag) ? [...jsdocTags, originTag] : jsdocTags;
 
+    // Search-only text goes where search reads it; the internal package never
+    // reaches the assembled catalog (see INTERNAL_PACKAGE).
+    const searchable = this.packageName !== INTERNAL_PACKAGE;
+
     const variants = compApi.variants.map((v) => ({
       name: v.name,
       values: v.values,
       ...(v.defaultValue ? { default: v.defaultValue } : {}),
-      ...(v.valueDescriptions && Object.keys(v.valueDescriptions).length > 0
+      ...(searchable && v.valueDescriptions && Object.keys(v.valueDescriptions).length > 0
         ? { valueDescriptions: v.valueDescriptions }
         : {})
     }));
@@ -225,7 +244,7 @@ export class MCPCatalogGenerator {
     // stand-in says nothing the name does not).
     const propDocs: Record<string, ComponentCatalogPropDoc> = {};
     for (const p of directProps) {
-      if (p.source.type !== 'direct') continue;
+      if (!searchable || p.source.type !== 'direct') continue;
       if (p.name.startsWith('...') || STYLE_OVERRIDE_PROPS.has(p.name)) continue;
       const description = p.description === noJsDocDescription(p.name) ? '' : p.description;
       if (!description && !p.summary) continue;

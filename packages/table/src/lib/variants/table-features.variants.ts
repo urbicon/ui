@@ -116,7 +116,7 @@ export const smartFilterBarVariants = tv({
         searchSection: '@md:max-w-full',
         actionsSection: 'w-full justify-between'
       },
-      // Stack while the bar is narrow; switch to a row at ~28rem container width.
+      /** Stacks while the bar is narrow; switches to a row at ~28rem container width. */
       responsive: {
         controls: 'flex-col @md:flex-row @md:items-center',
         // `w-fit` while stacked: the toolbar carries a ground of its own now, and

@@ -99,8 +99,10 @@ export const dialogVariants = tv({
       }
     },
     placement: {
-      // Mobile keeps the bottom-sheet alignment so a swipe-up gesture
-      // hits the bottom edge; desktop opens centered.
+      /**
+       * Mobile keeps the bottom-sheet alignment so a swipe-up gesture hits the
+       * bottom edge; desktop opens centered.
+       */
       center: { dialog: 'items-end p-0 sm:items-center sm:p-6 lg:p-8' },
       // pt-12 keeps a comfortable top breathing room on mobile; sm:pt-16 covered desktop.
       top: { dialog: 'items-start justify-center pt-12 sm:pt-16 px-4 sm:px-6 lg:px-8' }

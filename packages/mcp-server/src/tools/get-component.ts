@@ -1,4 +1,5 @@
 import type { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
+import { isBooleanAxis } from '@urbicon-ui/design-engine/search';
 import { z } from 'zod';
 import type { ComponentCatalogEntry } from '../data/catalog-loader.js';
 import { loadCatalog } from '../data/catalog-loader.js';
@@ -91,13 +92,7 @@ function generateCompactView(entry: ComponentCatalogEntry, llmContent: string): 
   }
 
   // Variants (if any meaningful ones exist beyond what's in keyPropTypes)
-  const meaningfulVariants = entry.variants.filter((v) => {
-    const sorted = [...v.values].sort();
-    return !(
-      (sorted.length === 1 && (sorted[0] === 'true' || sorted[0] === 'false')) ||
-      (sorted.length === 2 && sorted[0] === 'false' && sorted[1] === 'true')
-    );
-  });
+  const meaningfulVariants = entry.variants.filter((v) => !isBooleanAxis(v.values));
 
   if (meaningfulVariants.length > 0) {
     md += '## Variants\n\n';

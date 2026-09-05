@@ -4,6 +4,7 @@ import * as path from 'node:path';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import {
   type ComponentCatalogEntry,
+  INTERNAL_PACKAGE,
   MCPCatalogGenerator
 } from '../src/generators/mcp/MCPCatalogGenerator';
 import type { APIData, ComponentAPIData, EnrichedComponentInfo, PropInfo } from '../src/types';
@@ -104,8 +105,11 @@ describe('MCPCatalogGenerator — what the entry carries for discovery', () => {
     await fs.rm(tmp, { recursive: true, force: true });
   });
 
-  async function generateEntry(apiData: APIData): Promise<ComponentCatalogEntry> {
-    const generator = new MCPCatalogGenerator('@urbicon-ui/blocks', tmp);
+  async function generateEntry(
+    apiData: APIData,
+    packageName = '@urbicon-ui/blocks'
+  ): Promise<ComponentCatalogEntry> {
+    const generator = new MCPCatalogGenerator(packageName, tmp);
     await generator.generate([component], apiData);
     const raw = await fs.readFile(path.join(tmp, '_catalog.json'), 'utf-8');
     const [entry] = JSON.parse(raw) as ComponentCatalogEntry[];
@@ -135,6 +139,22 @@ describe('MCPCatalogGenerator — what the entry carries for discovery', () => {
   it('omits propDocs entirely when no direct prop carries JSDoc', async () => {
     const entry = await generateEntry(apiFor([direct('bare', 'bare property')], []));
     expect(entry).not.toHaveProperty('propDocs');
+  });
+
+  it('writes no search-only fields for the internal package, which never reaches the search index', async () => {
+    const entry = await generateEntry(
+      apiFor(PROPS, [
+        {
+          name: 'variant',
+          values: ['default', 'dot'],
+          valueDescriptions: { dot: 'Small indicator dot.' }
+        }
+      ]),
+      INTERNAL_PACKAGE
+    );
+    expect(entry.summary).toBe('On or off, with the switch to say which.');
+    expect(entry).not.toHaveProperty('propDocs');
+    expect(entry.variants).toEqual([{ name: 'variant', values: ['default', 'dot'] }]);
   });
 
   it('passes per-value descriptions through and omits the field where there are none', async () => {

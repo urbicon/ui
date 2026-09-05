@@ -6,6 +6,16 @@ interface ScoredEntry {
 }
 
 /**
+ * Whether a variant axis is a boolean switch (`true`/`false`, or a lone `true`)
+ * rather than a named look. The one predicate behind every surface that lists
+ * or scores axis values — the CLI's `find` lines, the MCP catalog formatters and
+ * the ranker — so the three cannot disagree on what a boolean axis is.
+ */
+export function isBooleanAxis(values: string[]): boolean {
+  return values.length > 0 && values.every((v) => v === 'true' || v === 'false');
+}
+
+/**
  * Rank catalog entries against a free-text query — the component-discovery ranker
  * behind both `find_components` (remote MCP) and `urbicon find` (CLI), so local and
  * remote discovery agree. Pure and dependency-free. The query is lower-cased and
@@ -13,27 +23,41 @@ interface ScoredEntry {
  * characters are dropped. Every remaining word scores each field it hits, each
  * field at most once per word:
  *
- * | field                          | hit                                   | score        |
- * | ------------------------------ | ------------------------------------- | ------------ |
- * | name / slug                    | exact · substring · Levenshtein ≤1/≤2 | 10 · 7 · 6/3 |
- * | tags                           | exact                                 | 5            |
- * | description                    | substring                             | 3            |
- * | summary                        | substring                             | 2            |
- * | variant values                 | exact                                 | 2            |
- * | prop docs + value descriptions | word-prefix                           | 1            |
- * | prop names                     | substring                             | 1            |
+ * | field                          | hit                           | score   |
+ * | ------------------------------ | ----------------------------- | ------- |
+ * | name / slug                    | substring · Levenshtein ≤1/≤2 | 7 · 6/3 |
+ * | tags                           | exact                         | 5       |
+ * | description                    | substring                     | 3       |
+ * | summary                        | substring                     | 2       |
+ * | variant values                 | exact, non-boolean axes       | 2       |
+ * | prop docs + value descriptions | word-prefix                   | 1       |
+ * | prop names                     | substring                     | 1       |
  *
- * Why the shipped-text rows sit below `description`: the summary restates the
- * description in fewer words, so a hit there mostly repeats one above it — a step,
- * not a tier. A variant value is a token the author named (`dot`, `ghost`), but
- * `sm` and `primary` sit on dozens of components, so it cannot outrank the text
- * that says what a component *is*; exact-only, so `sm` never lights up "small".
+ * On top of the per-word scores, an entry whose name or slug *is* the whole query
+ * (`avatar`, `date picker`, `date-picker`, `DatePicker`) gets 25 once. Whole
+ * query, not per word: scored per word, "avatar-group" handed `Avatar` the bonus
+ * for its first word and 22 of the catalog's 198 names and slugs stopped ranking
+ * first for themselves. The bonus is set so that no stack a sibling can build
+ * from one word reaches it: substring 7 + tag 5 + description 3 + summary 2 +
+ * value 2 + docs 1 + prop 1 = 21, so 25 — below that `Avatar` lost to
+ * `AvatarGroup` (substring plus four text hits) for "avatar". Equal scores are
+ * broken by name, ascending — never by catalog order.
+ *
+ * Why the shipped-text rows sit below `description`: the description is the
+ * contract and stays the primary text; the summary is the one-line paraphrase a
+ * person reads under the name, worth a step less — it scores at all because it
+ * carries vocabulary of its own (97 of 99 summaries contain a word their
+ * description lacks; mean word overlap 44 %). A variant value is a token the
+ * author named (`dot`, `ghost`), but `md` and `sm` sit on 48 of 99 components, so
+ * it cannot outrank the text that says what a component *is*; exact-only, so `sm`
+ * never lights up "small", and boolean axes are skipped — `true` names nothing.
  * Prop docs are the longest and most repetitive text in the catalog — twelve auth
- * components carry the identical `locale` sentence, eight components the same
- * `preset` one — so a hit is worth the least, counted once per word rather than
- * once per prop (a component's prop count must not become its score), and matched
- * at word starts rather than anywhere: across the catalog's prop prose "row" sits
- * inside "arrow", "browser" and "narrow" as often as it starts a word of its own.
+ * components carry the identical `t` sentence, eight components the same `preset`
+ * one — so a hit is worth the least, counted once per word rather than once per
+ * prop (a component's prop count must not become its score), and matched at word
+ * starts rather than anywhere: "row" occurs 58 times inside a word ("arrow",
+ * "browser", "narrow") against 111 times starting one, and lights 36 components
+ * by substring against 18 by word start.
  *
  * An explicit `tags` filter adds 5 per matching tag. Returns the top `limit`
  * entries with a positive score, best first; an empty list when nothing matches.
@@ -48,6 +72,9 @@ export function matchComponents(
     .toLowerCase()
     .split(/[\s,\-_]+/)
     .filter((w) => w.length > 1);
+  // The whole query as a name (`datepicker`) and as a slug (`date-picker`).
+  const queryAsName = keywords.join('');
+  const queryAsSlug = keywords.join('-');
 
   const scored: ScoredEntry[] = components.map((entry) => {
     let score = 0;
@@ -55,14 +82,21 @@ export function matchComponents(
     const slugLower = entry.slug.toLowerCase();
     const descLower = entry.description.toLowerCase();
     const summaryLower = entry.summary?.toLowerCase() ?? '';
-    const values = new Set(entry.variants.flatMap((v) => v.values.map((x) => x.toLowerCase())));
+    const values = new Set(
+      entry.variants
+        .filter((v) => !isBooleanAxis(v.values))
+        .flatMap((v) => v.values.map((x) => x.toLowerCase()))
+    );
     const docsLower = docText(entry);
 
+    // Whole-query exact match
+    if (keywords.length > 0 && (nameLower === queryAsName || slugLower === queryAsSlug)) {
+      score += 25;
+    }
+
     for (const kw of keywords) {
-      // Exact match
-      if (nameLower === kw || slugLower === kw) {
-        score += 10;
-      } else if (nameLower.includes(kw) || slugLower.includes(kw)) {
+      // Substring match on name/slug
+      if (nameLower.includes(kw) || slugLower.includes(kw)) {
         score += 7;
       } else {
         // Fuzzy match on name/slug (Levenshtein distance <= 2)
@@ -121,7 +155,7 @@ export function matchComponents(
 
   return scored
     .filter((s) => s.score > 0)
-    .sort((a, b) => b.score - a.score)
+    .sort((a, b) => b.score - a.score || a.entry.name.localeCompare(b.entry.name))
     .slice(0, limit)
     .map((s) => s.entry);
 }

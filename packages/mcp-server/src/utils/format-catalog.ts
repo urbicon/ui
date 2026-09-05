@@ -1,3 +1,4 @@
+import { isBooleanAxis } from '@urbicon-ui/design-engine/search';
 import type { ComponentCatalogEntry, RecipeEntry } from '../data/catalog-loader.js';
 
 /**
@@ -119,14 +120,6 @@ export function formatCompactCatalog(
   return md;
 }
 
-function isBooleanVariant(values: string[]): boolean {
-  const sorted = [...values].sort();
-  return (
-    (sorted.length === 1 && (sorted[0] === 'true' || sorted[0] === 'false')) ||
-    (sorted.length === 2 && sorted[0] === 'false' && sorted[1] === 'true')
-  );
-}
-
 /**
  * Format one catalog entry as a single markdown bullet: name, an origin-package
  * tag for non-blocks components (so `Table` reads as `@urbicon-ui/table`), the
@@ -135,7 +128,7 @@ function isBooleanVariant(values: string[]): boolean {
  */
 export function formatComponentLine(comp: ComponentCatalogEntry): string {
   const variants = comp.variants
-    .filter((v) => !isBooleanVariant(v.values))
+    .filter((v) => !isBooleanAxis(v.values))
     .map((v) => `${v.name}: ${v.values.join('/')}`)
     .join(' · ');
 

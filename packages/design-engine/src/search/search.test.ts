@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { matchComponents } from './match.js';
+import { isBooleanAxis, matchComponents } from './match.js';
 import { extractSection } from './section.js';
 import type { ComponentCatalogEntry } from './types.js';
 
@@ -240,6 +240,13 @@ describe('matchComponents — scores what the bundle ships', () => {
     expect(matchComponents([Toggle, SwitchField], 'switch')[0]?.name).toBe('SwitchField');
   });
 
+  it('exposes the boolean-axis predicate the listing surfaces share', () => {
+    expect(isBooleanAxis(['true'])).toBe(true);
+    expect(isBooleanAxis(['false', 'true'])).toBe(true);
+    expect(isBooleanAxis(['default', 'dot'])).toBe(false);
+    expect(isBooleanAxis([])).toBe(false);
+  });
+
   it('counts a prop-doc hit once per word, however many props say it', () => {
     const Wide = makeEntry({
       name: 'Wide',
@@ -252,6 +259,59 @@ describe('matchComponents — scores what the bundle ships', () => {
     });
     const Narrow = makeEntry({ name: 'Narrow', slug: 'narrow', description: 'Rows of data.' });
     expect(matchComponents([Wide, Narrow], 'rows').map((r) => r.name)).toEqual(['Narrow', 'Wide']);
+  });
+
+  it('lets an exact name beat a substring-name sibling with every text hit', () => {
+    // Before the exact tier was set above the whole substring+text stack,
+    // AvatarGroup (7 + 3 + 2 + 1 + 1) beat Avatar (10 + 1 + 1) for "avatar".
+    const Avatar = makeEntry({
+      name: 'Avatar',
+      slug: 'avatar',
+      description: 'User image with initials fallback.',
+      keyProps: ['src', 'alt'],
+      propDocs: { src: { description: 'Image of the avatar.' } }
+    });
+    const AvatarGroup = makeEntry({
+      name: 'AvatarGroup',
+      slug: 'avatar-group',
+      description: 'Overlapping stack of avatars.',
+      summary: 'Several avatars, one row.',
+      tags: ['display'],
+      keyProps: ['avatars', 'max'],
+      propDocs: { avatars: { description: 'The avatars to stack.' } },
+      variants: [{ name: 'size', values: ['avatar'] }]
+    });
+    expect(matchComponents([AvatarGroup, Avatar], 'avatar').map((r) => r.name)).toEqual([
+      'Avatar',
+      'AvatarGroup'
+    ]);
+    // With the tag too: 7 + 5 + 3 + 2 + 2 + 1 + 1 = 21 — still under 25.
+    expect(matchComponents([AvatarGroup, Avatar], 'avatar', ['display'])[0]?.name).toBe('Avatar');
+    // The bonus is for the whole query: the sibling's name, however spelled, wins
+    // over the exact first word — this is where a per-word tier broke 22 slugs.
+    for (const q of ['avatar group', 'avatar-group', 'AvatarGroup']) {
+      expect(matchComponents([Avatar, AvatarGroup], q)[0]?.name).toBe('AvatarGroup');
+    }
+  });
+
+  it('breaks a tie by name, not by catalog order', () => {
+    const a = makeEntry({ name: 'Zeta', slug: 'zeta', description: 'Shows a tally.' });
+    const b = makeEntry({ name: 'Alpha', slug: 'alpha', description: 'Shows a tally.' });
+    expect(matchComponents([a, b], 'tally').map((r) => r.name)).toEqual(['Alpha', 'Zeta']);
+    expect(matchComponents([b, a], 'tally').map((r) => r.name)).toEqual(['Alpha', 'Zeta']);
+  });
+
+  it('does not score the values of a boolean axis', () => {
+    const Switchy = makeEntry({
+      name: 'Switchy',
+      slug: 'switchy',
+      variants: [
+        { name: 'disabled', values: ['true'] },
+        { name: 'checked', values: ['false', 'true'] }
+      ]
+    });
+    expect(matchComponents([Switchy], 'true')).toEqual([]);
+    expect(matchComponents([Switchy], 'false')).toEqual([]);
   });
 
   it('matches prop docs at word starts only', () => {

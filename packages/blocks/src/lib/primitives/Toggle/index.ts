@@ -117,11 +117,8 @@ export interface ToggleProps
   tier?: InteractiveTier;
 
   /**
-   * Visual style. `default` renders a classic Switch-Pill (track + sliding
-   * thumb). `dot` renders a small monochrome circular indicator instead —
-   * outline-only when off, filled in the intent colour when on. Use `dot`
-   * for dense settings rows, inline-toolbars, or anywhere the Switch-Pill
-   * is visually too loud.
+   * Visual style of the control. Reach for `dot` where the switch pill is
+   * visually too loud — dense settings rows, inline toolbars.
    *
    * @default 'default'
    * @summary Switch-pill or a small monochrome dot.
