@@ -443,14 +443,15 @@ cache on the server — so the old fold stays in effect until you restart it.
 default class, where `<BlocksProvider unstyled>` stripped both. Every component that declares
 `unstyled` and renders another public component now forwards the flag, so the instance flag and
 the provider flag remove the same thing. `<Skeleton unstyled>` also lost its `gap-2`: the gap
-moved into the slot base so that a documented instance prop no longer loses to a provider
+moved into the `wrapper` slot so that a documented instance prop no longer loses to a provider
 default, and `unstyled` now removes it like every other default.
 
 **Nothing reports this either** — the flag type-checks as before, and the embedded control
 simply renders bare. Grep for `unstyled` on `DatePicker`, `DateRangePicker`, `ConfirmDialog`,
-`Pagination`, `Menu`, `CommandPalette`, `FileUpload`, `AvatarGroup`, `Guide`, `CalendarHeader`,
-`PlannerHeader`, `ResourceTimelineHeader`, the Chat family (`ChatMessage`, `ChatMessageList`,
-`CitationChip`, `ReasoningDisclosure`, `ToolCallCard`, `A2UIView`) and on `Skeleton`. If the
+`Pagination`, `PaginationItem`, `Menu`, `CommandPalette`, `FileUpload`, `AvatarGroup`, `Guide`,
+`Calendar`, `Planner` and `ResourceTimeline` (the flag now reaches their header parts), the Chat
+family (`ChatMessage`, `ChatMessageList`, `CitationChip`, `ReasoningDisclosure`, `ToolCallCard`,
+`A2UIView`) and on `Skeleton`. If the
 embedded control was meant to keep its look, write the classes you want back through
 `slotClasses`, or hand the control in as `children` where the component takes them — the flag
 never reaches those.
