@@ -156,10 +156,12 @@ export const handle = createAuthHandle({ config: authDeps.config, repos: authDep
 
 > **Machine callers** — a cron runner posting with a secret header, an OAuth token endpoint,
 > an API-key route — send no `Origin`, so the handle's CSRF gate answers them `403`. Declare
-> them in `csrf: { exempt: ['/api/cron/'] }`: they are then handled as cookieless (no session
-> resolved, `locals.user` is `null`) and must authenticate every request themselves. What
-> SvelteKit's own kernel CSRF gate still does to form-encoded ones, and its build-time
-> off-switch: [AUTH.md → Machine callers](https://ui.urbicon.de/auth/guide#machine-callers).
+> them in `csrf: { exempt: ['/api/cron/'] }`: the hook then resolves no session for them
+> (`locals.user` is `null`) and they must authenticate every request without the session
+> cookie — a route that reads it itself keeps working with the gate off, so never exempt a
+> cookie-authorised route (`/api/auth/` is refused). What SvelteKit's own kernel CSRF gate
+> still does to form-encoded ones, and its build-time off-switch:
+> [AUTH.md → Machine callers](https://ui.urbicon.de/auth/guide#machine-callers).
 
 **3. API route stubs** — one file per handler, e.g. `src/routes/api/auth/login/+server.ts`:
 

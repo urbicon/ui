@@ -268,6 +268,8 @@ describe('createAuthDeps called again with a secret it has seen', () => {
     expect(message).toContain('rate limit');
     expect(message).toContain('once, at module scope');
     expect(message).toContain('AUTH.md');
+    // The hot-reload clause: a dev-server reload makes a second call too.
+    expect(message).toContain('vite dev');
 
     // A per-request caller gets one line, not one per request.
     createAuthDeps(wiring('repeat-a', logger));
@@ -394,6 +396,32 @@ describe('JWT config validation (ES256 wiring)', () => {
       baseDeps({ jwt: { secret: 's', algorithm: 'ES256', signingKey: privateKey } })
     );
     expect(deps.config.jwt.algorithm).toBe('ES256');
+  });
+});
+
+describe('jwt.secret wiring validation', () => {
+  // The secret signs the session cookie under HS256 and the package's
+  // short-lived tokens under every algorithm; an unset env var is the most
+  // common wiring mistake and must be named, not surface as a TypeError.
+  it.each([
+    ['undefined (an unset env var)', undefined],
+    ['an empty string', ''],
+    ['a non-string', 123]
+  ])('refuses %s with a named error', (_label, secret) => {
+    expect(() =>
+      createAuthDeps(baseDeps({ jwt: { secret } as unknown as AuthConfig['jwt'] }))
+    ).toThrow(/\[auth\] jwt\.secret must be a non-empty string/);
+  });
+
+  it('refuses a missing secret under ES256 too — the short-lived tokens stay HMAC', async () => {
+    const { privateKey } = await generateES256KeyPair();
+    expect(() =>
+      createAuthDeps(
+        baseDeps({
+          jwt: { algorithm: 'ES256', signingKey: privateKey } as unknown as AuthConfig['jwt']
+        })
+      )
+    ).toThrow(/jwt\.secret must be a non-empty string/);
   });
 });
 

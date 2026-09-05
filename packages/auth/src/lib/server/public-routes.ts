@@ -22,10 +22,16 @@ export interface RouteListOption {
   /** The option as the consumer spells it. */
   name: string;
   /**
-   * What a bare `'/'` prefix does to the app and what to write instead: the
-   * clause after "exempts every route —" in the warning.
+   * The verdict on a bare `'/'` prefix, which exempts every route: the clause
+   * after "exempts every route —", either warned (a string) or thrown
+   * (`{ error }`).
    */
-  bareSlash: string;
+  bareSlash: string | { error: string };
+  /**
+   * Per-entry veto, run in the construction loop after the shape checks: the
+   * clause after "entry <entry>" that refuses it, or `null` to accept.
+   */
+  refuse?: (entry: { path: string; exact: boolean }) => string | null;
 }
 
 const PUBLIC_ROUTES_OPTION: RouteListOption = {
@@ -44,18 +50,22 @@ const PUBLIC_ROUTES_OPTION: RouteListOption = {
  * and no warning names it), a bare `'pricing'` the silent fail-closed one (it
  * matches nothing). Both are typos, so both throw where the typo is fixable.
  *
- * Warns — once, here, not per request — when a bare `'/'` prefix is in the
- * list: as a prefix it matches every pathname, so the guard is off for the
+ * A bare `'/'` prefix matches every pathname, so the option is off for the
  * whole app, and the entry is the natural misspelling of "my landing page is
- * public". A warning rather than a throw, because a fully public site that
- * mounts the handle only for session hydration (`locals.user` on every page)
- * is a legitimate configuration and this is its only spelling.
+ * public". The verdict is the option's: `publicRoutes` warns — once, here,
+ * not per request — because a fully public site that mounts the handle only
+ * for session hydration (`locals.user` on every page) is a legitimate
+ * configuration and this is its only spelling; `csrf.exempt` refuses it,
+ * because nothing would be left on and `() => true` is its deliberate
+ * spelling. An option can also veto single entries (`refuse`), in this same
+ * loop.
  */
 export function compilePublicRoutes(
   routes: readonly PublicRoute[],
   logger: AuthLogger,
   option: RouteListOption = PUBLIC_ROUTES_OPTION
 ): (pathname: string) => boolean {
+  let bareSlashSeen = false;
   // Snapshot: the caller keeps its array, and a later push into it must not
   // silently widen the guard.
   const entries = routes.map((route) => {
@@ -75,9 +85,22 @@ export function compilePublicRoutes(
         `[auth] ${option.name} entry ${JSON.stringify(route)}: the object form is the exact form and must carry exact: true. A prefix is the plain string.`
       );
     }
+    if (entry.path === '/' && !entry.exact) {
+      if (typeof option.bareSlash !== 'string') {
+        throw new Error(
+          `[auth] ${option.name} contains '/' as a prefix, which exempts every route — ${option.bareSlash.error}`
+        );
+      }
+      bareSlashSeen = true;
+      return entry;
+    }
+    const reason = option.refuse?.(entry);
+    if (reason) {
+      throw new Error(`[auth] ${option.name} entry ${JSON.stringify(route)} ${reason}`);
+    }
     return entry;
   });
-  if (entries.some((entry) => entry.path === '/' && !entry.exact)) {
+  if (bareSlashSeen && typeof option.bareSlash === 'string') {
     logger.warn(
       `[auth] ${option.name} contains '/' as a prefix, which exempts every route — ${option.bareSlash}`
     );

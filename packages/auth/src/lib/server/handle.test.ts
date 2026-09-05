@@ -1261,13 +1261,80 @@ describe('createAuthHandle — csrf.exempt (cookieless machine routes)', () => {
     expect(page._cookieStore.size).toBe(1);
   });
 
-  it("warns once, naming csrf.exempt, when a bare '/' would exempt every route", () => {
-    const { logger } = build(['/']);
-    expect(logger.warn).toHaveBeenCalledTimes(1);
-    expect(logger.warn).toHaveBeenCalledWith(expect.stringContaining('csrf.exempt'));
-    expect(logger.warn).toHaveBeenCalledWith(expect.stringContaining('exempts every route'));
+  it("refuses a bare '/' at construction — nothing would be left on", () => {
+    expect(() => build(['/'])).toThrow(
+      /csrf\.exempt contains '\/' as a prefix, which exempts every route/
+    );
+    expect(() => build(['/'])).toThrow(/exempt: \(\) => true/);
+    // The exact landing page and a real machine prefix construct, silently.
     expect(build([{ path: '/', exact: true }]).logger.warn).not.toHaveBeenCalled();
     expect(build(['/api/cron/']).logger.warn).not.toHaveBeenCalled();
+    // Positive control: publicRoutes keeps its warning for the same entry.
+    const logger = { warn: vi.fn(), error: vi.fn() };
+    createAuthHandle({
+      config: { ...config, logger },
+      repos: createMockRepos(),
+      publicRoutes: ['/']
+    });
+    expect(logger.warn).toHaveBeenCalledWith(
+      expect.stringContaining("publicRoutes contains '/' as a prefix, which exempts every route")
+    );
+  });
+
+  it("refuses an entry that covers the package's own /api/auth/ routes", () => {
+    // Every shipped handler resolves its user from the session cookie itself,
+    // so an exemption here would be a cookie-authorised route with the gate off.
+    const covering: PublicRoute[][] = [
+      ['/api/'],
+      ['/api'],
+      ['/api/auth/'],
+      ['/api/auth'],
+      ['/api/auth/login'],
+      ['/a'],
+      [{ path: '/api/auth/login', exact: true }],
+      ['/api/cron/', '/api/']
+    ];
+    for (const list of covering) {
+      expect(() => build(list), JSON.stringify(list)).toThrow(
+        /csrf\.exempt entry .* covers \/api\/auth\//
+      );
+    }
+    const clear: PublicRoute[][] = [
+      ['/api/cron/'],
+      ['/api/authz/'],
+      ['/oauth/token'],
+      [{ path: '/api/auth', exact: true }],
+      [{ path: '/', exact: true }],
+      []
+    ];
+    for (const list of clear) {
+      expect(() => build(list), JSON.stringify(list)).not.toThrow();
+    }
+    // publicRoutes is not subject to it: '/api/' is a legitimate public prefix there.
+    expect(() =>
+      createAuthHandle({ config, repos: createMockRepos(), publicRoutes: ['/api/'] })
+    ).not.toThrow();
+  });
+
+  it('an async predicate or a truthy non-true return exempts nothing', async () => {
+    const predicates = [async () => true, () => 1] as unknown as Array<
+      (event: RequestEvent) => boolean
+    >;
+    for (const predicate of predicates) {
+      const { handle } = build(predicate);
+      const event = machinePost('/api/cron/nightly');
+      const resolve = ok();
+      expect((await handle({ event: asEvent(event), resolve })).status).toBe(403);
+      expect(resolve).not.toHaveBeenCalled();
+    }
+  });
+
+  it('a page action named "remote" (empty ?/remote) on an exempt path stays exempt', async () => {
+    const { handle } = build(['/api/cron/']);
+    const event = machinePost('/api/cron/nightly?/remote');
+    const resolve = ok();
+    expect((await handle({ event: asEvent(event), resolve })).status).toBe(200);
+    expect(resolve).toHaveBeenCalledTimes(1);
   });
 
   it('refuses an entry that does not start with a slash, naming csrf.exempt', () => {
@@ -1312,6 +1379,15 @@ describe('createAuthHandle JWT config validation (ES256 wiring)', () => {
   // The hook is wired independently of createAuthDeps, so it must run the
   // same fail-loud JWT config check — an ES256 config without its signing key
   // would otherwise only surface as per-request verification failures.
+  it('throws at wiring time when jwt.secret is unset', () => {
+    expect(() =>
+      createAuthHandle({
+        config: { ...config, jwt: { secret: undefined } as unknown as AuthConfig['jwt'] },
+        repos: createMockRepos()
+      })
+    ).toThrow(/jwt\.secret must be a non-empty string/);
+  });
+
   it('throws at wiring time when algorithm ES256 lacks a signingKey', () => {
     expect(() =>
       createAuthHandle({

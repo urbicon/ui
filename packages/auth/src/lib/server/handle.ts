@@ -80,27 +80,37 @@ export interface AuthHandleOptions<R extends string = string> {
    */
   csrf?: {
     /**
-     * Routes handled as **cookieless**: machine endpoints whose callers send
-     * no `Origin` header and hold no session — a cron runner with a secret
-     * header, an OAuth token endpoint, an API-key route. For a matching
-     * request the hook reads no cookie and writes none: no Origin gate, no
-     * session hydration (a valid session cookie still leaves `locals.user`
-     * `null`), no refresh rotation, no CSRF cookie, no route guard. The
-     * response gets the security headers and nothing else.
+     * Routes the hook handles as **cookieless**: machine endpoints whose
+     * callers send no `Origin` header and hold no session — a cron runner
+     * with a secret header, an OAuth token endpoint, an API-key route. For a
+     * matching request the hook reads no cookie and writes none: no Origin
+     * gate, no session hydration (`locals.user` is `null` even beside a valid
+     * session cookie), no refresh rotation, no CSRF cookie, no route guard.
+     * The response gets the security headers and nothing else.
      *
-     * **The route authenticates every request itself** (bearer token, secret
-     * header, PKCE). A page or a cookie-authenticated API route listed here
-     * loses its CSRF protection and sees every visitor as signed out.
+     * Cookieless describes the hook, not the request: the cookie still
+     * arrives, and a route that reads `event.cookies` itself keeps working
+     * with the CSRF gate off — which is how every handler this package ships
+     * resolves its user (`requireSessionUser`), so a list entry covering
+     * `/api/auth/` is refused at construction. **Never exempt a
+     * cookie-authorised route**; exempt only routes that authenticate every
+     * request without a cookie (bearer token, secret header, PKCE). The
+     * predicate form cannot be checked at construction — that rule is yours
+     * to keep there.
      *
      * Same vocabulary as {@link publicRoutes}: a string is a pathname prefix,
-     * `{ path, exact: true }` that pathname alone, a bare `'/'` warns at
-     * construction. Or a synchronous predicate over the event for callers a
-     * path does not identify — `(e) => e.request.headers.has('x-cron-secret')`.
-     * Only a literal `true` exempts, so an async predicate (a Promise) exempts
-     * nothing; a throw fails the request. Remote-function requests are never
-     * exempt on either transport — their pathname is client-controlled and
-     * their transport is cookie-authenticated by construction — and the
-     * predicate is not consulted for them.
+     * `{ path, exact: true }` that pathname alone, matched against the
+     * requested pathname (`event.url.pathname`) — a `reroute` hook changes
+     * which route is resolved, not this. A bare `'/'` is refused, because
+     * nothing would be left on; `exempt: () => true` is the deliberate
+     * spelling. Or a synchronous predicate over the event for callers a path
+     * does not identify — `(e) => e.request.headers.has('x-cron-secret')`.
+     * Only a literal `true` exempts, so an async predicate (a Promise) and a
+     * truthy non-boolean exempt nothing; a throw fails the request.
+     * Remote-function requests are never exempt on either transport — their
+     * pathname is client-controlled and their transport is
+     * cookie-authenticated by construction — and the predicate is not
+     * consulted for them.
      *
      * SvelteKit's kernel CSRF gate runs before any hook and is unaffected: a
      * form-encoded cross-origin POST still needs `kit.csrf.trustedOrigins:
@@ -112,10 +122,31 @@ export interface AuthHandleOptions<R extends string = string> {
   };
 }
 
+/**
+ * The pathname prefix this package's own endpoints are mounted under
+ * (`/api/auth/login`, …): an entry of {@link DEFAULT_PUBLIC_ROUTES}, and the
+ * prefix `csrf.exempt` refuses to cover — every shipped handler resolves its
+ * user from the session cookie itself (`requireSessionUser`), so an exemption
+ * there would be a cookie-authorised route with the CSRF gate off.
+ */
+const AUTH_API_PREFIX = '/api/auth/';
+
 const CSRF_EXEMPT_OPTION: RouteListOption = {
   name: 'csrf.exempt',
-  bareSlash:
-    'the CSRF gate is off and every request is handled as cookieless, so locals.user is null on every page. List the machine endpoints instead.'
+  bareSlash: {
+    error:
+      'the CSRF gate is off, the guard is off and locals.user is null everywhere — nothing is left on. List the machine endpoints; if you mean it, spell it as exempt: () => true.'
+  },
+  // "Covers": some pathname under the prefix would match the entry — a prefix
+  // of it, the prefix itself or a longer one, or an exact path inside it.
+  refuse: (entry) => {
+    const covers = entry.exact
+      ? entry.path.startsWith(AUTH_API_PREFIX)
+      : entry.path.startsWith(AUTH_API_PREFIX) || AUTH_API_PREFIX.startsWith(entry.path);
+    return covers
+      ? `covers ${AUTH_API_PREFIX}, the package's own endpoints. They resolve the user from the session cookie themselves, so the exemption would leave them cookie-authorised with the CSRF gate off. Exempt only routes that authenticate every request without a cookie.`
+      : null;
+  }
 };
 
 /**
@@ -146,7 +177,7 @@ export const DEFAULT_PUBLIC_ROUTES: readonly string[] = Object.freeze([
   '/auth/forgot-password',
   '/auth/reset-password',
   '/auth/verify-email',
-  '/api/auth/'
+  AUTH_API_PREFIX
 ]);
 
 const jsonUnauthorized = () => authError('not_authenticated');

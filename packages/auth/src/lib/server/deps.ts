@@ -251,7 +251,7 @@ function warnOnRepeatedSecret(secret: string, logger: AuthLogger): void {
   if (warned) return;
   seenSecrets.set(key, true);
   logger.warn(
-    '[auth] createAuthDeps was called again with a jwt.secret this process has already built a bundle for. The rate-limit counters live on the config object it returns, so every call starts each limiter from zero — called per request, no rate limit ever trips. Call createAuthDeps once, at module scope, and pass the returned deps to the handle and the handler factories (docs/AUTH.md → Stage 1 — Quickstart). Reported once per secret.'
+    '[auth] createAuthDeps was called again with a jwt.secret this process has already built a bundle for. The rate-limit counters live on the config object it returns, so every call starts each limiter from zero — called per request, no rate limit ever trips. Call createAuthDeps once, at module scope, and pass the returned deps to the handle and the handler factories (docs/AUTH.md → Stage 1 — Quickstart). Reported once per secret. If this appeared right after you edited a file under vite dev, a hot reload made the second call and your wiring is fine; it is only actionable when you see it without having edited anything.'
   );
 }
 
