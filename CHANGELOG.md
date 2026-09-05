@@ -4,6 +4,27 @@ All notable changes to this project will be documented in this file.
 This changelog is automatically generated from [Conventional Commits](https://www.conventionalcommits.org).
 
 
+## [8.18.0] - 2026-09-05
+
+### Breaking Changes
+- **blocks**: Button keeps its declared width and never clips; palette keys skip disabled rows
+> **BREAKING:** `<Button class="w-N">` icon-only buttons keep their declared width instead of being widened to icon + padding; give them `px-0`. MIGRATION.md `## 8.18.0` carries the grep.
+
+### Bug Fixes
+- **i18n**: Stop reporting key chords like ⌘ K as hardcoded copy
+- **design-engine**: Render the token tables from semantic.css
+
+### Build
+- Drop the dead shared-types peer, head MIGRATION by shipping release
+
+### Documentation
+- Consumer requirements
+
+### Features
+- **design**: Bundle the override ladder and the missing package guides
+- **auth**: Csrf.exempt for cookieless routes, warn on repeated createAuthDeps
+- **design-engine**: Rank by summary, prop docs and variant values
+
 ## [8.17.0] - 2026-09-02
 
 ### Breaking Changes
@@ -33,13 +54,11 @@ This changelog is automatically generated from [Conventional Commits](https://ww
 > **BREAKING:** `wrapperActiveProps` is removed from the package root. It existed only to build that stand-in condition object; a call to it is a compile error. `resolveSlotClasses` is unchanged — hand it the axes your wrapper can speak for. An `overrides` rule keyed on one of the eight axes above under a wrapper's name changes what it matches.
 - **blocks**: Check provider slot names against the component
 > **BREAKING:** a `<BlocksProvider>` `defaults` or `presets` entry naming a slot its component does not have no longer compiles.
+- Correct the override-cascade statements the wave made false
+> **BREAKING:** `SidebarLayout`'s `slotClasses.sidebar` is now `slotClasses.sidebarPanel`, so every forwarded key reads as the Sidebar slot it reaches.
 
 ### Bug Fixes
 - **docs-gen**: Ask the checker which keys an Omit clause names
-
-### Documentation
-- Correct the override-cascade statements the wave made false
-> **BREAKING:** `SidebarLayout`'s `slotClasses.sidebar` is now `slotClasses.sidebarPanel`, so every forwarded key reads as the Sidebar slot it reaches.
 
 ### Features
 - **blocks**: Warn on an overrides condition key the component cannot carry
@@ -89,12 +108,12 @@ This changelog is automatically generated from [Conventional Commits](https://ww
 ### Breaking Changes
 - **blocks**: Delete slots that reach no element, scope presets to their own component (#355)
 > **BREAKING:** `CalendarSlots` and the exported `CalendarSlotName` no longer include `weekGrid`, `weekColumn` or `weekEventList`; `ChartSlot` / `ChartSlotClasses` no longer include `axisTick`. A `slotClasses` entry using one of these names stops compiling — it reached no element before, so nothing rendered differently, but the line has to go. A preset registered under `Input`, `Dialog` or `Select` no longer applies to NumberInput, CurrencyInput, ConfirmDialog or LocaleSwitcher — register it under the wrapper's own name instead, which was not previously possible.
+- **blocks**: Repair four branch losses and admit four components to the override contract (#356)
+> **BREAKING:** `PaginationItemProps` extends the generic element attributes rather than the button element's, so a handler typed against a button-only property no longer compiles. Such code was already wrong in the `href` branch, where the props land on the anchor.
 
 ### Bug Fixes
 - **blocks**: Route every override through the fold, so the consumer's strongest rung wins (#350)
 - **blocks**: Ask the compiler whether the conflict resolver still agrees with it (#351)
-- **blocks**: Repair four branch losses and admit four components to the override contract (#356)
-> **BREAKING:** `PaginationItemProps` extends the generic element attributes rather than the button element's, so a handler typed against a button-only property no longer compiles. Such code was already wrong in the `href` branch, where the props land on the anchor.
 
 ### Documentation
 - The table's render structure, and the probes it came from are archived (#348)
@@ -234,10 +253,12 @@ This changelog is automatically generated from [Conventional Commits](https://ww
 
 ## [8.4.1] - 2026-08-20
 
-### Bug Fixes
-- **design-engine**: Flag Material-style on-* roots as token attempts (#238)
+### Breaking Changes
 - One aggregation model in the table, a wired blur token, and an editorial contradiction removed (#239)
 > **BREAKING:** The headerMenu.addSummary / headerMenu.removeSummary translation keys are gone, replaced by headerMenu.summary. A consumer overriding those strings needs to move them.
+
+### Bug Fixes
+- **design-engine**: Flag Material-style on-* roots as token attempts (#238)
 - **blocks**: Carry the CurrencyInput caret as a digit, not an offset (#243)
 
 ### Documentation
@@ -245,6 +266,12 @@ This changelog is automatically generated from [Conventional Commits](https://ww
 - Capture the architecture-probe method as a repo skill
 
 ## [8.4.0] - 2026-08-18
+
+### Breaking Changes
+- Block-level Checkbox/Toggle roots, and one owner per calendar gridline (#222)
+> **BREAKING:** In normal block flow a Checkbox/Toggle root now fills the line and following content stacks below it. Restore inline placement with class="inline-flex".
+- The ready wave — twelve premise-checked fixes and the first stability promotions (#223)
+> **BREAKING:** A Tab without `value` or `defaultValue` now renders its first enabled tab selected instead of rendering nothing selected. Pass `defaultValue` to choose a different one. * fix(blocks): make RadioGroup's required block an empty submit Same class as Select's required (#206), found in its sibling while fixing it: the group drew an asterisk and set aria-required, and an empty required group submitted straight through. RadioGroup renders real radio inputs sharing one name, so unlike Select it needs no sentinel — the constraint goes on the radios, which is how HTML expresses a required radio group, a …
 
 ### Bug Fixes
 - **blocks**: Derive the step index from DOM order, not init order
@@ -254,10 +281,6 @@ This changelog is automatically generated from [Conventional Commits](https://ww
 - **table**: Normalise status chips to a shared minimum width
 - **table**: Draw the keyboard focus ring inset on rows
 - **docs-gen**: Extract recipe metadata safely and ship cooked code
-- Block-level Checkbox/Toggle roots, and one owner per calendar gridline (#222)
-> **BREAKING:** In normal block flow a Checkbox/Toggle root now fills the line and following content stacks below it. Restore inline placement with class="inline-flex".
-- The ready wave — twelve premise-checked fixes and the first stability promotions (#223)
-> **BREAKING:** A Tab without `value` or `defaultValue` now renders its first enabled tab selected instead of rendering nothing selected. Pass `defaultValue` to choose a different one. * fix(blocks): make RadioGroup's required block an empty submit Same class as Select's required (#206), found in its sibling while fixing it: the group drew an asterisk and set aria-required, and an empty required group submitted straight through. RadioGroup renders real radio inputs sharing one name, so unlike Select it needs no sentinel — the constraint goes on the radios, which is how HTML expresses a required radio group, a …
 
 ### Documentation
 - **docs-app**: Rebuild every recipe page on the canonical shell
