@@ -66,22 +66,26 @@ export function injectOverrideCascade(text: string, what: string): string {
   return text.replace(OVERRIDE_CASCADE_PLACEHOLDER, () => OVERRIDE_CASCADE);
 }
 
-/** The template placeholder the surface / text utility list is rendered into. */
+/** The template placeholder the surface / text / border utility list is rendered into. */
 export const SEMANTIC_TOKENS_PLACEHOLDER = '{{SEMANTIC_TOKENS}}';
 
 /** Column the template's token fences align their role comments at. */
 const TOKEN_COMMENT_COLUMN = 25;
 
 /**
- * The surface and text utilities as fence lines — the utility, then its role
- * in a CSS-style comment — from the engine's generated token data: the same
+ * The surface, text and border utilities as fence lines — the utility, then its
+ * role in a CSS-style comment — from the engine's generated token data: the same
  * data the CSS reference tables render from, so the "COMPLETE list" the
  * template promises can neither omit a token the CSS has nor describe one with
  * a role it no longer plays. A role cannot end such a comment early: it is read
  * out of a CSS comment, which the same two characters would have ended.
  */
 export function renderSemanticTokenList(): string {
-  const block = (heading: string, family: 'surface' | 'text', prefix: string): string => {
+  const block = (
+    heading: string,
+    family: 'surface' | 'text' | 'border',
+    prefix: string
+  ): string => {
     const lines = SEMANTIC_TOKENS.families[family].map((token) => {
       const utility = `${prefix}${token.name}`;
       if (token.role === '') return utility;
@@ -96,7 +100,9 @@ export function renderSemanticTokenList(): string {
   return [
     block('Surface Tokens (backgrounds)', 'surface', 'bg-'),
     '',
-    block('Text Tokens', 'text', 'text-')
+    block('Text Tokens', 'text', 'text-'),
+    '',
+    block('Border Tokens', 'border', 'border-')
   ].join('\n');
 }
 

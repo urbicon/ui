@@ -187,6 +187,9 @@ describe('ContentBundleEmitter package guides', () => {
     for (const token of SEMANTIC_TOKENS.families.text) {
       expect(template).toContain(`text-${token.name}`);
     }
+    for (const token of SEMANTIC_TOKENS.families.border) {
+      expect(template).toContain(`border-${token.name}`);
+    }
     expect(template).not.toContain('{{SEMANTIC_TOKENS}}');
   });
 

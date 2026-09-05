@@ -355,6 +355,9 @@ describe('LlmsFullAssembler', () => {
       for (const token of SEMANTIC_TOKENS.families.text) {
         expect(written).toContain(`text-${token.name}`);
       }
+      for (const token of SEMANTIC_TOKENS.families.border) {
+        expect(written).toContain(`border-${token.name}`);
+      }
       expect(written).not.toMatch(TEMPLATE_PLACEHOLDER_PATTERN);
     });
 

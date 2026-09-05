@@ -227,15 +227,6 @@ This is the COMPLETE list of available semantic tokens. Use ONLY these — do no
 
 {{SEMANTIC_TOKENS}}
 
-### Border Tokens
-
-```
-border-border-subtle     /* gentle grouping */
-border-border-default    /* standard borders */
-border-border-emphasis   /* emphasized borders */
-border-border-strong     /* high-contrast borders */
-```
-
 ### Intent Tokens (available for ALL intents: primary, secondary, neutral, success, warning, danger)
 
 Each intent has 5 variants. Example with `success`:

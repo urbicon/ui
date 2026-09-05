@@ -23,7 +23,7 @@ const FIXTURES = join(dirname(fileURLToPath(import.meta.url)), 'fixtures/doc-fen
 
 describe('guide-injection', () => {
   describe('semantic tokens', () => {
-    it('lists every surface and text utility with the role the CSS states', () => {
+    it('lists every surface, text and border utility with the role the CSS states', () => {
       const list = renderSemanticTokenList();
       const lines = list.split('\n');
       for (const token of SEMANTIC_TOKENS.families.surface) {
@@ -33,12 +33,18 @@ describe('guide-injection', () => {
       for (const token of SEMANTIC_TOKENS.families.text) {
         expect(lines).toContainEqual(expect.stringMatching(`^text-${token.name} +/\\* `));
       }
-      // The two the hand list omitted, and the one it gave the on-fill role.
+      for (const token of SEMANTIC_TOKENS.families.border) {
+        expect(lines).toContainEqual(expect.stringMatching(`^border-${token.name} +/\\* `));
+        expect(list).toContain(`/* ${token.role} */`);
+      }
+      // The three the hand lists omitted, and the one they gave the on-fill role.
       expect(list).toContain('text-text-on-fill');
       expect(list).toContain('text-text-link');
+      expect(list).toContain('border-border-hairline');
       expect(list).not.toContain('text-text-on-primary     /* text on intent-colored fills');
       expect(list).toContain('### Surface Tokens (backgrounds)');
       expect(list).toContain('### Text Tokens');
+      expect(list).toContain('### Border Tokens');
       expect(list).not.toMatch(TEMPLATE_PLACEHOLDER_PATTERN);
     });
 
