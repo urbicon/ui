@@ -3,8 +3,9 @@
  * that was never routed through i18n. Heuristic and therefore ADVISORY by default
  * (the CLI gates it only on opt-in): it flags plain markup text and a small set of
  * human-readable attributes (`aria-label`, `title`, `placeholder`, `alt`), skips
- * code-shaped strings, and never looks inside `<script>`/`<style>` (those hold no
- * Text/Attribute AST nodes) or a `<T>` component (already translated).
+ * code-shaped strings and key chords (`⌘ K`), and never looks inside
+ * `<script>`/`<style>` (those hold no Text/Attribute AST nodes) or a `<T>`
+ * component (already translated).
  */
 
 import { makeGlobMatcher } from '../glob';
@@ -12,6 +13,11 @@ import { makeContextAt, makeLineAt } from './recognize';
 import { asNodes, asString, loadParse, walkAst } from './svelte-ast';
 
 const DEFAULT_ATTRIBUTES = ['aria-label', 'title', 'placeholder', 'alt'];
+
+// Keyboard glyphs live in the Arrows, Miscellaneous Technical and Control Pictures
+// blocks; uppercase copy carrying one (`NEXT →`, `⌘ ENTER`) passes the lowercase gate
+// too — accepted, because source copy keeps its lowercase and uppercasing is CSS.
+const KEY_GLYPH = /[←-⇿⌀-⏿␀-␿]/;
 
 export interface HardcodedFinding {
   file: string;
@@ -46,6 +52,7 @@ function looksLikeCopy(text: string, min: number, max: number): boolean {
   if (/^[a-z][a-zA-Z0-9]*$/.test(text)) return false; // single camelCase token (variable-ish)
   if (/^[\d\s.,:;/–—-]+$/.test(text)) return false; // numbers / dates / separators
   if (/[{}<>=]/.test(text)) return false; // markup/code fragments
+  if (!/[a-z]/.test(text) && KEY_GLYPH.test(text)) return false; // key chord (⌘ K)
   return true;
 }
 

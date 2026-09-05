@@ -41,6 +41,31 @@ describe('findHardcodedStrings', () => {
     expect(findings).toEqual([]);
   });
 
+  // Chords written in glyphs are not copy; a lowercase letter, a currency sign or a
+  // symbol outside the keyboard blocks keeps a string flagged. `NEXT →` and
+  // `⌘ ENTER` are the accepted blind spot: uppercase copy next to a keyboard glyph.
+  it.each([
+    { text: '⌘ K', copy: false },
+    { text: '⇧⌘P', copy: false },
+    { text: '⌥ ↵ K', copy: false },
+    { text: '⌘ ⇧ K', copy: false },
+    { text: '⌃ Space', copy: true },
+    { text: 'Ctrl + S', copy: true },
+    { text: 'CTRL + S', copy: true },
+    { text: 'ÜBER UNS', copy: true },
+    { text: 'Save ⌘S', copy: true },
+    { text: 'ONLY €5', copy: true },
+    { text: '✓ DONE', copy: true },
+    { text: '⚠ WARNING', copy: true },
+    { text: 'SIZE 3 × 4', copy: true },
+    { text: 'NEXT →', copy: false }, // accepted blind spot: uppercase copy with an arrow
+    { text: '⌘ ENTER', copy: false }, // accepted blind spot: uppercase key name
+    { text: '→', copy: false } // below the length gate
+  ])('treats $text as copy: $copy', async ({ text, copy }) => {
+    const findings = await findHardcodedStrings(`<span>${text}</span>`, 'X.svelte');
+    expect(findings.map((f) => f.text)).toEqual(copy ? [text] : []);
+  });
+
   it('respects an ignoreStrings allowlist (exact and glob)', async () => {
     const code = `<span>Beta</span><span>Internal note here</span>`;
     const findings = await findHardcodedStrings(code, 'X.svelte', {
